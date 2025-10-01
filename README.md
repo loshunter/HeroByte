@@ -41,6 +41,7 @@ pnpm install
 
 ### Running Locally
 
+**Linux/Mac:**
 ```bash
 # Start the server
 cd apps/server
@@ -50,6 +51,14 @@ pnpm dev
 cd apps/client
 pnpm dev
 ```
+
+**Windows (with WSL):**
+
+For easier launching on Windows, use the provided batch scripts:
+1. Double-click `scripts/windows/start-server.bat` to start the server
+2. Double-click `scripts/windows/start-client.bat` to start the client
+
+See [scripts/windows/README.md](scripts/windows/README.md) for detailed Windows setup instructions.
 
 Then open your browser to: `http://localhost:5173`
 
