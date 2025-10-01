@@ -33,3 +33,11 @@ vtt-state.json
 
 # OS
 Thumbs.db
+
+# Image working files (originals and exports only, not working files)
+*.psd
+*.ai
+*.sketch
+*.xcf
+*.afdesign
+*.afphoto
