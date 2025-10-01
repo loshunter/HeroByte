@@ -1,6 +1,10 @@
-# HeroByte
+<div align="center">
+  <img src="assets/images/logo/LogoSm.webp" alt="HeroByte Logo" width="200"/>
 
-**A retro-inspired virtual tabletop for epic adventures online**
+  # HeroByte
+
+  **A retro-inspired virtual tabletop for epic adventures online**
+</div>
 
 HeroByte is a system-agnostic, real-time multiplayer VTT that brings the charm of classic NES/SNES RPGs into the modern web. With pixel menus, voice-synced character portraits, and moddable tools, it's designed for quick setup, smooth play, and endless creativity.
 

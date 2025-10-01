@@ -467,7 +467,13 @@ export const App: React.FC = () => {
           borderRadius: 0
         }}
       >
-        <h1 style={{ margin: "0 0 8px 0" }}>VTT Client</h1>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
+          <img
+            src="/logo.webp"
+            alt="HeroByte"
+            style={{ height: "48px", imageRendering: "pixelated" }}
+          />
+        </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", gap: "8px" }}>
           <p style={{ margin: 0, fontSize: "0.7rem" }}>
             <strong>UID:</strong> {uid.substring(0, 8)}...
