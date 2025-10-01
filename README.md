@@ -1,24 +1,29 @@
 # HeroByte
 
-A real-time multiplayer virtual tabletop (VTT) for tabletop RPG gaming sessions.
+**A retro-inspired virtual tabletop for epic adventures online**
+
+HeroByte is a system-agnostic, real-time multiplayer VTT that brings the charm of classic NES/SNES RPGs into the modern web. With pixel menus, voice-synced character portraits, and moddable tools, it's designed for quick setup, smooth play, and endless creativity.
+
+Play anywhere, with anyone—no installs, just browser-based fun. Build your maps, roll your dice, and bring your party together like it's cartridge night all over again.
 
 ## Features
 
-- **Real-time Multiplayer**: WebSocket-based synchronization across all connected players
-- **Interactive Map Canvas**: Pan, zoom, and interact with an infinite canvas
-- **Token Management**: Drag-and-drop tokens with synchronized positions
-- **Drawing Tools**: Freehand drawing, pointer indicators, and distance measurement
-- **Grid System**: Adjustable grid with snap-to-grid functionality
-- **Voice Chat**: Peer-to-peer voice communication using WebRTC
-- **Player Portraits**: Custom character portraits for each player
-- **Persistent State**: Game state automatically saved and restored
+- **Real-time Multiplayer** – WebSocket-based synchronization keeps everyone in lockstep
+- **Interactive Map Canvas** – Infinite canvas with pan, zoom, and smooth interactions
+- **Token Management** – Drag-and-drop tokens with synced positions across players
+- **Drawing Tools** – Freehand drawing, pointers, and distance measurement
+- **Grid System** – Adjustable grid with snap-to-grid functionality
+- **Voice Chat** – Peer-to-peer voice communication with WebRTC
+- **Player Portraits** – Custom portraits that light up when you talk
+- **Persistent State** – Sessions auto-save and restore so you never lose progress
 
 ## Architecture
 
 This is a monorepo built with:
+
 - **Client**: React + TypeScript + Konva (canvas rendering) + Vite
 - **Server**: Node.js + WebSocket + TypeScript
-- **Shared**: Common types shared between client and server
+- **Shared**: Common types between client and server
 
 ## Getting Started
 
@@ -36,41 +41,38 @@ pnpm install
 
 ### Running Locally
 
-1. Start the server:
 ```bash
+# Start the server
 cd apps/server
 pnpm dev
-```
 
-2. Start the client (in a new terminal):
-```bash
+# Start the client (in a new terminal)
 cd apps/client
 pnpm dev
 ```
 
-3. Open your browser to `http://localhost:5173`
+Then open your browser to: `http://localhost:5173`
 
 ### Network Access
 
-To access from other devices on your local network:
-- Find your local IP address (e.g., `192.168.x.x`)
-- Access the client at `http://YOUR_IP:5173`
-- The server automatically listens on all network interfaces
+To use on your local network:
+
+- Find your IP address (e.g. `192.168.x.x`)
+- Access at: `http://YOUR_IP:5173`
+- The server automatically listens on all interfaces
 
 ## Project Structure
 
 ```
 HeroByte/
 ├── apps/
-│   ├── client/          # React frontend application
-│   │   └── src/
-│   │       └── ui/
-│   │           ├── App.tsx       # Main app component
-│   │           ├── MapBoard.tsx  # Canvas/map component
-│   │           └── useVoiceChat.ts
+│   ├── client/          # React frontend
+│   │   └── src/ui/
+│   │       ├── App.tsx
+│   │       ├── MapBoard.tsx
+│   │       └── useVoiceChat.ts
 │   └── server/          # WebSocket server
-│       └── src/
-│           └── index.ts  # Server entry point
+│       └── src/index.ts
 ├── packages/
 │   ├── shared/          # Shared types
 │   └── adapters-net/    # Network client
@@ -79,23 +81,22 @@ HeroByte/
 
 ## How to Play
 
-1. **Join a Session**: Each player opens the app in their browser
-2. **Set Up the Map**:
-   - Click "Load Map" to add a background image
-   - Adjust grid size using the slider (🔒 lock when ready)
-3. **Move Tokens**: Drag your token around the map
+1. **Join a Session**: Each player opens the app in a browser
+2. **Set Up the Map**: Load a background image and lock the grid
+3. **Move Tokens**: Drag and drop your character around
 4. **Use Tools**:
-   - **Pointer Mode** 👆: Click to place temporary pointer indicators
-   - **Measure Distance** 📏: Click two points to measure distance in grid units
-   - **Draw** ✏️: Freehand drawing on the canvas
-5. **Voice Chat**: Click the microphone button to enable/disable voice
+   - **Pointer Mode** 👆 – place temporary indicators
+   - **Measure** 📏 – click two points for distance
+   - **Draw** ✏️ – freehand on the map
+5. **Voice Chat**: Toggle mic button for live talk
+6. **Portraits**: Custom avatars that animate when speaking
 
 ## Controls
 
 - **Mouse Wheel**: Zoom in/out
-- **Click + Drag**: Pan the canvas (when no tool is active)
-- **Double-click Token**: Change token color
-- **Snap to Grid**: Toggle for precise token placement
+- **Click + Drag**: Pan map
+- **Double-click Token**: Change color
+- **Snap to Grid**: Toggle precision placement
 
 ## Development
 
@@ -126,4 +127,8 @@ ISC
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Pull requests encouraged.
+
+---
+
+⚡ **HeroByte: Where classic pixels meet modern play.**
