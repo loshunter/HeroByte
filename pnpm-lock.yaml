@@ -44,6 +44,9 @@ importers:
         specifier: ^0.12.5
         version: 0.12.5
     devDependencies:
+      '@types/node':
+        specifier: ^24.6.1
+        version: 24.6.1
       '@types/react':
         specifier: ^18.3.5
         version: 18.3.24

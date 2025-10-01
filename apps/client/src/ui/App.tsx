@@ -262,6 +262,13 @@ export const App: React.FC = () => {
   const [measureMode, setMeasureMode] = useState(false);
   const [drawMode, setDrawMode] = useState(false);
 
+  // Drawing tool settings
+  const [drawTool, setDrawTool] = useState<"freehand" | "line" | "rect" | "circle" | "eraser">("freehand");
+  const [drawColor, setDrawColor] = useState("#ffffff");
+  const [drawWidth, setDrawWidth] = useState(3);
+  const [drawOpacity, setDrawOpacity] = useState(1);
+  const [drawFilled, setDrawFilled] = useState(false);
+
   // Voice chat
   const [micEnabled, setMicEnabled] = useState(false);
   const [micLevel, setMicLevel] = useState(0);
@@ -453,6 +460,209 @@ export const App: React.FC = () => {
 
   return (
     <div onClick={() => setContextMenu(null)} style={{ height: "100vh", overflow: "hidden" }}>
+      {/* Drawing Toolbar - Fixed on left side when draw mode is active */}
+      {drawMode && (
+        <div
+          onMouseDown={(e) => e.stopPropagation()}
+          onMouseMove={(e) => e.stopPropagation()}
+          onMouseUp={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: "fixed",
+            left: "8px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            zIndex: 200,
+            background: "#1a1c24",
+            border: "2px solid #555",
+            padding: "12px",
+            borderRadius: "8px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "12px",
+            minWidth: "200px",
+            maxWidth: "250px"
+          }}
+        >
+          <h4 style={{ margin: 0, color: "#6cf", fontSize: "0.9rem" }}>Drawing Tools</h4>
+
+          {/* Tool Selection */}
+          <div>
+            <label style={{ fontSize: "0.75rem", display: "block", marginBottom: "4px" }}>Tool:</label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
+              <button
+                onClick={() => setDrawTool("freehand")}
+                style={{
+                  padding: "6px",
+                  background: drawTool === "freehand" ? "#6cf" : "#333",
+                  border: "1px solid #555",
+                  cursor: "pointer",
+                  fontSize: "0.7rem",
+                  color: "#fff"
+                }}
+                title="Freehand Draw"
+              >
+                ✏️ Draw
+              </button>
+              <button
+                onClick={() => setDrawTool("line")}
+                style={{
+                  padding: "6px",
+                  background: drawTool === "line" ? "#6cf" : "#333",
+                  border: "1px solid #555",
+                  cursor: "pointer",
+                  fontSize: "0.7rem",
+                  color: "#fff"
+                }}
+                title="Line Tool"
+              >
+                📏 Line
+              </button>
+              <button
+                onClick={() => setDrawTool("rect")}
+                style={{
+                  padding: "6px",
+                  background: drawTool === "rect" ? "#6cf" : "#333",
+                  border: "1px solid #555",
+                  cursor: "pointer",
+                  fontSize: "0.7rem",
+                  color: "#fff"
+                }}
+                title="Rectangle Tool"
+              >
+                ▭ Rect
+              </button>
+              <button
+                onClick={() => setDrawTool("circle")}
+                style={{
+                  padding: "6px",
+                  background: drawTool === "circle" ? "#6cf" : "#333",
+                  border: "1px solid #555",
+                  cursor: "pointer",
+                  fontSize: "0.7rem",
+                  color: "#fff"
+                }}
+                title="Circle Tool"
+              >
+                ⬤ Circle
+              </button>
+              <button
+                onClick={() => setDrawTool("eraser")}
+                style={{
+                  padding: "6px",
+                  background: drawTool === "eraser" ? "#6cf" : "#333",
+                  border: "1px solid #555",
+                  cursor: "pointer",
+                  fontSize: "0.7rem",
+                  color: "#fff",
+                  gridColumn: "1 / -1"
+                }}
+                title="Eraser"
+              >
+                🧹 Eraser
+              </button>
+            </div>
+          </div>
+
+          {/* Color Palette */}
+          {drawTool !== "eraser" && (
+            <div>
+              <label style={{ fontSize: "0.75rem", display: "block", marginBottom: "4px" }}>Color:</label>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "4px", marginBottom: "6px" }}>
+                {["#ffffff", "#000000", "#ff0000", "#00ff00", "#0000ff", "#ffff00",
+                  "#ff00ff", "#00ffff", "#ff8800", "#8800ff", "#888888", "#ff88cc"].map(color => (
+                  <button
+                    key={color}
+                    onClick={() => setDrawColor(color)}
+                    style={{
+                      width: "24px",
+                      height: "24px",
+                      background: color,
+                      border: drawColor === color ? "2px solid #fff" : "1px solid #555",
+                      cursor: "pointer",
+                      padding: 0
+                    }}
+                    title={color}
+                  />
+                ))}
+              </div>
+              <input
+                type="color"
+                value={drawColor}
+                onChange={(e) => setDrawColor(e.target.value)}
+                style={{
+                  width: "100%",
+                  height: "30px",
+                  cursor: "pointer",
+                  border: "1px solid #555"
+                }}
+              />
+            </div>
+          )}
+
+          {/* Brush Size */}
+          <div>
+            <label style={{ fontSize: "0.75rem", display: "block", marginBottom: "4px" }}>
+              Brush Size: {drawWidth}px
+            </label>
+            <input
+              type="range"
+              min="1"
+              max="50"
+              value={drawWidth}
+              onChange={(e) => setDrawWidth(Number(e.target.value))}
+              style={{ width: "100%" }}
+            />
+          </div>
+
+          {/* Opacity */}
+          {drawTool !== "eraser" && (
+            <div>
+              <label style={{ fontSize: "0.75rem", display: "block", marginBottom: "4px" }}>
+                Opacity: {Math.round(drawOpacity * 100)}%
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={drawOpacity * 100}
+                onChange={(e) => setDrawOpacity(Number(e.target.value) / 100)}
+                style={{ width: "100%" }}
+              />
+            </div>
+          )}
+
+          {/* Fill Toggle for Shapes */}
+          {(drawTool === "rect" || drawTool === "circle") && (
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <input
+                id="drawFilled"
+                type="checkbox"
+                checked={drawFilled}
+                onChange={(e) => setDrawFilled(e.target.checked)}
+              />
+              <label htmlFor="drawFilled" style={{ fontSize: "0.75rem" }}>Filled</label>
+            </div>
+          )}
+
+          {/* Clear All Button */}
+          <button
+            onClick={() => net?.send({ t: "clear-drawings" })}
+            style={{
+              padding: "8px",
+              background: "#f66",
+              border: "none",
+              cursor: "pointer",
+              fontSize: "0.75rem",
+              color: "#fff",
+              marginTop: "8px"
+            }}
+          >
+            🗑️ Clear All Drawings
+          </button>
+        </div>
+      )}
+
       {/* Header - Fixed at top */}
       <div
         ref={topPanelRef}
@@ -573,13 +783,7 @@ export const App: React.FC = () => {
               id="measureMode"
               type="checkbox"
               checked={measureMode}
-              onChange={(e) => {
-                setMeasureMode(e.target.checked);
-                if (!e.target.checked) {
-                  setMeasureStart(null);
-                  setMeasureEnd(null);
-                }
-              }}
+              onChange={(e) => setMeasureMode(e.target.checked)}
             />
             <label htmlFor="measureMode">Measure Distance 📏</label>
           </div>
@@ -591,20 +795,6 @@ export const App: React.FC = () => {
               onChange={(e) => setDrawMode(e.target.checked)}
             />
             <label htmlFor="drawMode">Draw ✏️</label>
-            {drawMode && (
-              <button
-                onClick={() => net?.send({ t: "clear-drawings" })}
-                style={{
-                  padding: "2px 8px",
-                  background: "#f66",
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: "0.7rem"
-                }}
-              >
-                Clear All
-              </button>
-            )}
           </div>
           <div>
             <button
@@ -648,6 +838,11 @@ export const App: React.FC = () => {
           pointerMode={pointerMode}
           measureMode={measureMode}
           drawMode={drawMode}
+          drawTool={drawTool}
+          drawColor={drawColor}
+          drawWidth={drawWidth}
+          drawOpacity={drawOpacity}
+          drawFilled={drawFilled}
           onMoveToken={moveToken}
           onRecolorToken={recolorToken}
           onDeleteToken={deleteToken}

@@ -40,13 +40,17 @@ export interface Pointer {
 }
 
 /**
- * Drawing: Freehand drawing on the map canvas
+ * Drawing: Represents any drawing on the map canvas
+ * Supports multiple tool types: freehand, line, rectangle, circle, etc.
  */
 export interface Drawing {
   id: string;                        // Unique identifier
-  points: { x: number; y: number }[]; // Path points in canvas coordinates
-  color: string;                      // Line color
+  type: "freehand" | "line" | "rect" | "circle" | "eraser"; // Drawing tool type
+  points: { x: number; y: number }[]; // Path points or shape bounds
+  color: string;                      // Line/fill color
   width: number;                      // Line thickness
+  opacity: number;                    // Opacity (0-1)
+  filled?: boolean;                   // For shapes: filled vs outline only
 }
 
 // ----------------------------------------------------------------------------
