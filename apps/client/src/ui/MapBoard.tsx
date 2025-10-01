@@ -1,0 +1,722 @@
+// ============================================================================
+// MAP BOARD COMPONENT
+// ============================================================================
+// Main canvas component using Konva for rendering the VTT map.
+// Features:
+// - Pan and zoom camera controls
+// - Infinite grid overlay
+// - Token rendering and dragging
+// - Freehand drawing
+// - Pointer indicators
+// - Distance measurement tool
+// - Map background image support
+
+import { useEffect, useRef, useState } from "react";
+import { Stage, Layer, Image as KonvaImage, Line, Group, Rect, Circle, Text } from "react-konva";
+import useImage from "use-image";
+import type { RoomSnapshot, Token, Player, Pointer, Drawing } from "@shared";
+import type { NetClient } from "@adapters-net";
+
+// ----------------------------------------------------------------------------
+// TYPES
+// ----------------------------------------------------------------------------
+
+type Camera = { x: number; y: number; scale: number };
+
+// ----------------------------------------------------------------------------
+// HOOKS
+// ----------------------------------------------------------------------------
+
+/**
+ * Hook to track the size of a DOM element
+ * Updates whenever the element is resized
+ */
+function useElementSize<T extends HTMLElement>() {
+  const ref = useRef<T | null>(null);
+  const [size, setSize] = useState({ w: 800, h: 600 });
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const obs = new ResizeObserver(([entry]) => {
+      const cr = entry.contentRect;
+      setSize({ w: cr.width, h: cr.height });
+    });
+    obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, []);
+
+  return { ref, ...size };
+}
+
+// ----------------------------------------------------------------------------
+// LAYER COMPONENTS
+// ----------------------------------------------------------------------------
+
+/**
+ * GridLayer: Renders an infinite procedural grid
+ * - Only renders visible grid lines based on camera position
+ * - Highlights major grid lines every N steps
+ * - Scales line thickness based on zoom level
+ */
+function GridLayer({
+  cam,
+  viewport,
+  gridSize = 50,
+  color = "#5b5f75",
+  majorEvery = 5,
+  opacity = 0.25,
+}: {
+  cam: Camera;
+  viewport: { w: number; h: number };
+  gridSize?: number;
+  color?: string;
+  majorEvery?: number;
+  opacity?: number;
+}) {
+  // Convert viewport bounds to world coordinates
+  const minX = (-cam.x) / cam.scale;
+  const minY = (-cam.y) / cam.scale;
+  const maxX = (viewport.w - cam.x) / cam.scale;
+  const maxY = (viewport.h - cam.y) / cam.scale;
+
+  // Calculate which grid lines are visible
+  const step = gridSize;
+  const startX = Math.floor(minX / step) * step;
+  const startY = Math.floor(minY / step) * step;
+
+  const lines: JSX.Element[] = [];
+
+  // Generate vertical grid lines
+  for (let x = startX; x <= maxX; x += step) {
+    const isMajor = Math.round(x / step) % majorEvery === 0;
+    lines.push(
+      <Line
+        key={`vx-${x}`}
+        points={[x, minY, x, maxY]}
+        stroke={color}
+        opacity={isMajor ? opacity * 1.5 : opacity}
+        strokeWidth={isMajor ? 1.5 / cam.scale : 1 / cam.scale}
+        listening={false}
+      />
+    );
+  }
+
+  // Generate horizontal grid lines
+  for (let y = startY; y <= maxY; y += step) {
+    const isMajor = Math.round(y / step) % majorEvery === 0;
+    lines.push(
+      <Line
+        key={`hy-${y}`}
+        points={[minX, y, maxX, y]}
+        stroke={color}
+        opacity={isMajor ? opacity * 1.5 : opacity}
+        strokeWidth={isMajor ? 1.5 / cam.scale : 1 / cam.scale}
+        listening={false}
+      />
+    );
+  }
+
+  // Apply camera transformation
+  return (
+    <Group
+      x={cam.x}
+      y={cam.y}
+      scaleX={cam.scale}
+      scaleY={cam.scale}
+      listening={false}
+    >
+      {lines}
+    </Group>
+  );
+}
+
+/**
+ * MapImageLayer: Renders the background map image
+ */
+function MapImageLayer({
+  cam,
+  src,
+  x = 0,
+  y = 0,
+}: {
+  cam: Camera;
+  src: string | null;
+  x?: number;
+  y?: number;
+}) {
+  const [img] = useImage(src || "", "anonymous");
+  if (!img) return null;
+
+  return (
+    <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale}>
+      <KonvaImage image={img} x={x} y={y} listening={false} />
+    </Group>
+  );
+}
+
+/**
+ * TokensLayer: Renders all player tokens
+ * - Players can drag their own tokens
+ * - Double-click to recolor
+ * - Other players' tokens are non-interactive
+ */
+function TokensLayer({
+  cam,
+  tokens,
+  uid,
+  gridSize,
+  hoveredTokenId,
+  onHover,
+  onMoveToken,
+  onRecolorToken,
+  onDeleteToken,
+  snapToGrid,
+}: {
+  cam: Camera;
+  tokens: Token[];
+  uid: string;
+  gridSize: number;
+  hoveredTokenId: string | null;
+  onHover: (id: string | null) => void;
+  onMoveToken: (id: string, x: number, y: number) => void;
+  onRecolorToken: (id: string) => void;
+  onDeleteToken?: (id: string) => void;
+  snapToGrid: boolean;
+}) {
+  const myTokens = tokens.filter((t) => t.owner === uid);
+  const otherTokens = tokens.filter((t) => t.owner !== uid);
+
+  const handleDrag = (tokenId: string, e: any) => {
+    const pos = e.target.position();
+    // Convert screen position to grid coordinates
+    let gx, gy;
+    if (snapToGrid) {
+      gx = Math.round(pos.x / gridSize);
+      gy = Math.round(pos.y / gridSize);
+    } else {
+      gx = pos.x / gridSize;
+      gy = pos.y / gridSize;
+    }
+    onMoveToken(tokenId, gx, gy);
+  };
+
+  return (
+    <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale}>
+      {/* Render other players' tokens first */}
+      {otherTokens.map((t) => (
+        <Rect
+          key={t.id}
+          x={t.x * gridSize + gridSize / 4}
+          y={t.y * gridSize + gridSize / 4}
+          width={gridSize / 2}
+          height={gridSize / 2}
+          fill={t.color}
+          stroke={hoveredTokenId === t.id ? "#aaa" : "none"}
+          strokeWidth={2 / cam.scale}
+          onMouseEnter={() => onHover(t.id)}
+          onMouseLeave={() => onHover(null)}
+        />
+      ))}
+
+      {/* Render my tokens last (on top) */}
+      {myTokens.map((t) => (
+        <Rect
+          key={t.id}
+          x={t.x * gridSize + gridSize / 4}
+          y={t.y * gridSize + gridSize / 4}
+          width={gridSize / 2}
+          height={gridSize / 2}
+          fill={t.color}
+          stroke="#fff"
+          strokeWidth={2 / cam.scale}
+          draggable
+          onDragEnd={(e) => handleDrag(t.id, e)}
+          onMouseEnter={() => onHover(t.id)}
+          onMouseLeave={() => onHover(null)}
+          onDblClick={() => onRecolorToken(t.id)}
+        />
+      ))}
+    </Group>
+  );
+}
+
+/**
+ * PointersLayer: Renders temporary pointer indicators
+ * Shows player name and uses their token color
+ */
+function PointersLayer({
+  cam,
+  pointers,
+  players,
+  tokens,
+}: {
+  cam: Camera;
+  pointers: Pointer[];
+  players: Player[];
+  tokens: Token[];
+}) {
+  return (
+    <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale}>
+      {pointers.map((pointer) => {
+        const player = players.find((p) => p.uid === pointer.uid);
+        const token = tokens.find((t) => t.owner === pointer.uid);
+        return (
+          <Group key={pointer.uid}>
+            <Circle
+              x={pointer.x}
+              y={pointer.y}
+              radius={20}
+              fill={token?.color || "#fff"}
+              opacity={0.6}
+            />
+            <Text
+              x={pointer.x}
+              y={pointer.y + 30}
+              text={player?.name || "???"}
+              fill={token?.color || "#fff"}
+              fontSize={12 / cam.scale}
+              fontStyle="bold"
+              align="center"
+              offsetX={30}
+            />
+          </Group>
+        );
+      })}
+    </Group>
+  );
+}
+
+/**
+ * DrawingsLayer: Renders all freehand drawings
+ * Includes both completed drawings and current drawing in progress
+ */
+function DrawingsLayer({
+  cam,
+  drawings,
+  currentDrawing,
+  currentColor,
+}: {
+  cam: Camera;
+  drawings: Drawing[];
+  currentDrawing: { x: number; y: number }[];
+  currentColor?: string;
+}) {
+  return (
+    <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale}>
+      {drawings.map((drawing) => (
+        <Line
+          key={drawing.id}
+          points={drawing.points.flatMap((p: { x: number; y: number }) => [p.x, p.y])}
+          stroke={drawing.color}
+          strokeWidth={drawing.width / cam.scale}
+          lineCap="round"
+          lineJoin="round"
+          tension={0}
+        />
+      ))}
+      {currentDrawing.length > 0 && (
+        <Line
+          points={currentDrawing.flatMap((p: { x: number; y: number }) => [p.x, p.y])}
+          stroke={currentColor || "#fff"}
+          strokeWidth={3 / cam.scale}
+          lineCap="round"
+          lineJoin="round"
+          opacity={0.7}
+        />
+      )}
+    </Group>
+  );
+}
+
+/**
+ * MeasureLayer: Renders distance measurement tool
+ * Shows line between two points with distance in grid units
+ */
+function MeasureLayer({
+  cam,
+  measureStart,
+  measureEnd,
+  gridSize,
+}: {
+  cam: Camera;
+  measureStart: { x: number; y: number } | null;
+  measureEnd: { x: number; y: number } | null;
+  gridSize: number;
+}) {
+  if (!measureStart || !measureEnd) return null;
+
+  const distance = Math.sqrt(
+    Math.pow(measureEnd.x - measureStart.x, 2) +
+    Math.pow(measureEnd.y - measureStart.y, 2)
+  );
+  const units = Math.round((distance / gridSize) * 10) / 10;
+
+  return (
+    <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale}>
+      <Line
+        points={[measureStart.x, measureStart.y, measureEnd.x, measureEnd.y]}
+        stroke="#ff0"
+        strokeWidth={2 / cam.scale}
+        dash={[5 / cam.scale, 5 / cam.scale]}
+      />
+      <Circle x={measureStart.x} y={measureStart.y} radius={4 / cam.scale} fill="#ff0" />
+      <Circle x={measureEnd.x} y={measureEnd.y} radius={4 / cam.scale} fill="#ff0" />
+      <Text
+        x={(measureStart.x + measureEnd.x) / 2}
+        y={(measureStart.y + measureEnd.y) / 2 - 10}
+        text={`${units} units`}
+        fill="#ff0"
+        fontSize={14 / cam.scale}
+        fontStyle="bold"
+        align="center"
+        offsetX={30}
+      />
+    </Group>
+  );
+}
+
+// ----------------------------------------------------------------------------
+// MAIN COMPONENT
+// ----------------------------------------------------------------------------
+
+interface MapBoardProps {
+  snapshot: RoomSnapshot | null;        // Current room state
+  net: NetClient | undefined;           // Network client for sending messages
+  uid: string;                          // Current player's UID
+  gridSize: number;                     // Synchronized grid size
+  snapToGrid: boolean;                  // Whether to snap tokens to grid
+  pointerMode: boolean;                 // Pointer tool active
+  measureMode: boolean;                 // Measure tool active
+  drawMode: boolean;                    // Draw tool active
+  onMoveToken: (id: string, x: number, y: number) => void;
+  onRecolorToken: (id: string) => void;
+  onDeleteToken: (id: string) => void;
+}
+
+/**
+ * MapBoard: Main VTT canvas component
+ *
+ * Handles:
+ * - Camera (pan/zoom)
+ * - Interactive tools (pointer, measure, draw)
+ * - Token rendering and interaction
+ * - Grid and map background
+ */
+export default function MapBoard({
+  snapshot,
+  net,
+  uid,
+  gridSize,
+  snapToGrid,
+  pointerMode,
+  measureMode,
+  drawMode,
+  onMoveToken,
+  onRecolorToken,
+  onDeleteToken,
+}: MapBoardProps) {
+  // -------------------------------------------------------------------------
+  // STATE
+  // -------------------------------------------------------------------------
+
+  const { ref, w, h } = useElementSize<HTMLDivElement>();
+
+  // Camera state (pan and zoom)
+  const [cam, setCam] = useState<Camera>({ x: 0, y: 0, scale: 1 });
+
+  // Token interaction
+  const [hoveredTokenId, setHoveredTokenId] = useState<string | null>(null);
+
+  // Measure tool state
+  const [measureStart, setMeasureStart] = useState<{ x: number; y: number } | null>(null);
+  const [measureEnd, setMeasureEnd] = useState<{ x: number; y: number } | null>(null);
+
+  // Drawing tool state
+  const [currentDrawing, setCurrentDrawing] = useState<{ x: number; y: number }[]>([]);
+  const [isDrawing, setIsDrawing] = useState(false);
+
+  // Grid configuration
+  const [grid, setGrid] = useState({
+    show: true,
+    size: gridSize,
+    color: "#5b5f75",
+    majorEvery: 5,
+    opacity: 0.25,
+  });
+
+  const stageRef = useRef<any>(null);
+
+  // -------------------------------------------------------------------------
+  // EFFECTS
+  // -------------------------------------------------------------------------
+
+  // Sync grid size from props
+  useEffect(() => {
+    setGrid(prev => ({ ...prev, size: gridSize }));
+  }, [gridSize]);
+
+  // Clear measure tool when mode changes
+  useEffect(() => {
+    if (!measureMode) {
+      setMeasureStart(null);
+      setMeasureEnd(null);
+    }
+  }, [measureMode]);
+
+  // -------------------------------------------------------------------------
+  // CAMERA CONTROLS
+  // -------------------------------------------------------------------------
+
+  /**
+   * Zoom with mouse wheel, zooming toward cursor position
+   */
+  const onWheel = (e: any) => {
+    e.evt.preventDefault();
+    const scaleBy = 1.08;
+    const oldScale = cam.scale;
+
+    const pointer = stageRef.current.getPointerPosition();
+    if (!pointer) return;
+    const mouseWorld = {
+      x: (pointer.x - cam.x) / oldScale,
+      y: (pointer.y - cam.y) / oldScale,
+    };
+
+    const direction = e.evt.deltaY > 0 ? 1 : -1;
+    const newScale = direction > 0 ? oldScale / scaleBy : oldScale * scaleBy;
+    // clamp
+    const clamped = Math.min(8, Math.max(0.1, newScale));
+
+    const newPos = {
+      x: pointer.x - mouseWorld.x * clamped,
+      y: pointer.y - mouseWorld.y * clamped,
+    };
+    setCam({ x: newPos.x, y: newPos.y, scale: clamped });
+  };
+
+  // Pan state
+  const [isPanning, setIsPanning] = useState(false);
+  const dragOrigin = useRef<{ x: number; y: number } | null>(null);
+  const camOrigin = useRef<Camera | null>(null);
+
+  /**
+   * Convert screen coordinates to world coordinates
+   */
+  const toWorld = (sx: number, sy: number) => ({
+    x: (sx - cam.x) / cam.scale,
+    y: (sy - cam.y) / cam.scale,
+  });
+
+  // -------------------------------------------------------------------------
+  // EVENT HANDLERS
+  // -------------------------------------------------------------------------
+
+  /**
+   * Handle stage clicks for pointer and measure tools
+   */
+  const onStageClick = (e: any) => {
+    if (!pointerMode && !measureMode && !drawMode) return;
+
+    const stage = e.target.getStage();
+    const pointer = stage.getPointerPosition();
+    if (!pointer) return;
+
+    const world = toWorld(pointer.x, pointer.y);
+
+    if (pointerMode) {
+      net?.send({ t: "point", x: world.x, y: world.y });
+    } else if (measureMode) {
+      if (!measureStart) {
+        setMeasureStart(world);
+        setMeasureEnd(null);
+      } else {
+        setMeasureEnd(world);
+      }
+    }
+  };
+
+  /**
+   * Handle mouse down for panning or starting a drawing
+   */
+  const onMouseDown = (e: any) => {
+    const isSpace = e.evt && (e.evt.code === "Space" || e.evt.buttons === 4);
+    const shouldPan = !pointerMode && !measureMode && !drawMode;
+
+    if (shouldPan || isSpace) {
+      setIsPanning(true);
+      camOrigin.current = cam;
+      dragOrigin.current = stageRef.current.getPointerPosition();
+    } else if (drawMode) {
+      const pointer = stageRef.current.getPointerPosition();
+      if (!pointer) return;
+      const world = toWorld(pointer.x, pointer.y);
+      setIsDrawing(true);
+      setCurrentDrawing([world]);
+    }
+  };
+
+  /**
+   * Handle mouse move for panning, drawing, or measure tool
+   */
+  const onMouseMove = (_e: any) => {
+    if (isPanning && dragOrigin.current && camOrigin.current) {
+      const p = stageRef.current.getPointerPosition();
+      if (!p) return;
+      const dx = p.x - dragOrigin.current.x;
+      const dy = p.y - dragOrigin.current.y;
+      setCam({
+        ...camOrigin.current,
+        x: camOrigin.current.x + dx,
+        y: camOrigin.current.y + dy,
+      });
+    } else if (measureMode && measureStart) {
+      const pointer = stageRef.current.getPointerPosition();
+      if (!pointer) return;
+      const world = toWorld(pointer.x, pointer.y);
+      setMeasureEnd(world);
+    } else if (drawMode && isDrawing) {
+      const pointer = stageRef.current.getPointerPosition();
+      if (!pointer) return;
+      const world = toWorld(pointer.x, pointer.y);
+      setCurrentDrawing((prev) => [...prev, world]);
+    }
+  };
+
+  /**
+   * Handle mouse up to finish panning or complete a drawing
+   */
+  const onMouseUp = () => {
+    if (isPanning) {
+      setIsPanning(false);
+      dragOrigin.current = null;
+      camOrigin.current = null;
+    } else if (drawMode && isDrawing && currentDrawing.length > 1) {
+      const token = snapshot?.tokens?.find((t: Token) => t.owner === uid);
+      const drawingId = typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
+        ? crypto.randomUUID()
+        : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+            const r = (Math.random() * 16) | 0;
+            const v = c === "x" ? r : (r & 0x3) | 0x8;
+            return v.toString(16);
+          });
+
+      net?.send({
+        t: "draw",
+        drawing: {
+          id: drawingId,
+          points: currentDrawing,
+          color: token?.color || "#fff",
+          width: 3
+        }
+      });
+      setCurrentDrawing([]);
+    }
+    setIsDrawing(false);
+  };
+
+  /**
+   * Determine cursor style based on active mode
+   */
+  const getCursor = () => {
+    if (isPanning) return "grabbing";
+    if (pointerMode) return "crosshair";
+    if (measureMode) return "crosshair";
+    if (drawMode) return "crosshair";
+    return "default";
+  };
+
+  // -------------------------------------------------------------------------
+  // RENDER
+  // -------------------------------------------------------------------------
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        width: "100%",
+        height: "100%",
+        background: "#0b0d12",
+        color: "#dbe1ff",
+        position: "relative",
+      }}
+    >
+      {/* Stage is the viewport; world content is translated/scaled by cam in child Groups */}
+      <Stage
+        ref={stageRef}
+        width={w}
+        height={h}
+        onWheel={onWheel}
+        onClick={onStageClick}
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseUp={onMouseUp}
+        style={{ cursor: getCursor() }}
+      >
+        {/* Map image below */}
+        <Layer listening={false}>
+          <MapImageLayer cam={cam} src={snapshot?.mapBackground || null} x={0} y={0} />
+        </Layer>
+
+        {/* Grid overlay above map */}
+        {grid.show && (
+          <Layer listening={false}>
+            <GridLayer
+              cam={cam}
+              viewport={{ w, h }}
+              gridSize={grid.size}
+              color={grid.color}
+              majorEvery={5}
+              opacity={0.25}
+            />
+          </Layer>
+        )}
+
+        {/* Drawings layer */}
+        <Layer>
+          <DrawingsLayer
+            cam={cam}
+            drawings={snapshot?.drawings || []}
+            currentDrawing={currentDrawing}
+            currentColor={snapshot?.tokens?.find((t: Token) => t.owner === uid)?.color}
+          />
+        </Layer>
+
+        {/* Tokens layer */}
+        <Layer>
+          <TokensLayer
+            cam={cam}
+            tokens={snapshot?.tokens || []}
+            uid={uid}
+            gridSize={grid.size}
+            hoveredTokenId={hoveredTokenId}
+            onHover={setHoveredTokenId}
+            onMoveToken={onMoveToken}
+            onRecolorToken={onRecolorToken}
+            onDeleteToken={onDeleteToken}
+            snapToGrid={snapToGrid}
+          />
+        </Layer>
+
+        {/* Pointers layer */}
+        <Layer>
+          <PointersLayer
+            cam={cam}
+            pointers={snapshot?.pointers || []}
+            players={snapshot?.players || []}
+            tokens={snapshot?.tokens || []}
+          />
+        </Layer>
+
+        {/* Measure tool layer */}
+        <Layer>
+          <MeasureLayer
+            cam={cam}
+            measureStart={measureStart}
+            measureEnd={measureEnd}
+            gridSize={grid.size}
+          />
+        </Layer>
+      </Stage>
+    </div>
+  );
+}

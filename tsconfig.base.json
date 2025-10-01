@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["vite/client", "node"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["packages/shared/src/*"],
+      "@adapters-net/*": ["packages/adapters-net/src/*"],
+      "@adapters-render/*": ["packages/adapters-render/src/*"],
+      "@adapters-ui/*": ["packages/adapters-ui/src/*"]
+    }
+  }
+}
