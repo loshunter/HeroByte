@@ -17,6 +17,10 @@ import { MapService } from "./domains/map/service.js";
 import { DiceService } from "./domains/dice/service.js";
 import { MessageRouter } from "./ws/messageRouter.js";
 
+// Middleware
+import { validateMessage } from "./middleware/validation.js";
+import { RateLimiter } from "./middleware/rateLimit.js";
+
 // ----------------------------------------------------------------------------
 // INITIALIZATION
 // ----------------------------------------------------------------------------
@@ -27,6 +31,9 @@ const playerService = new PlayerService();
 const tokenService = new TokenService();
 const mapService = new MapService();
 const diceService = new DiceService();
+
+// Initialize middleware
+const rateLimiter = new RateLimiter({ maxMessages: 100, windowMs: 1000 });
 
 // Load persisted state
 roomService.loadState();
@@ -135,10 +142,26 @@ wss.on("connection", (ws, req) => {
 
   ws.on("message", (buf) => {
     try {
+      // Parse message
       const message: ClientMessage = JSON.parse(buf.toString());
+
+      // Rate limiting
+      if (!rateLimiter.check(uid)) {
+        console.warn(`Rate limit exceeded for client ${uid}`);
+        return;
+      }
+
+      // Input validation
+      const validation = validateMessage(message);
+      if (!validation.valid) {
+        console.warn(`Invalid message from ${uid}: ${validation.error}`);
+        return;
+      }
+
+      // Route to appropriate handler
       messageRouter.route(message, uid);
     } catch (err) {
-      console.error("Failed to process message", err);
+      console.error(`Failed to process message from ${uid}:`, err);
     }
   });
 

@@ -3,6 +3,7 @@
 // ============================================================================
 // Renders all drawings (freehand, lines, shapes) including current drawing
 
+import { memo } from "react";
 import { Group, Line, Rect, Circle } from "react-konva";
 import type { Drawing } from "@shared";
 import type { Camera } from "../types";
@@ -21,8 +22,10 @@ interface DrawingsLayerProps {
 /**
  * DrawingsLayer: Renders all drawings (freehand, lines, shapes)
  * Includes both completed drawings and current drawing in progress
+ *
+ * Optimized with React.memo to prevent unnecessary re-renders
  */
-export function DrawingsLayer({
+export const DrawingsLayer = memo(function DrawingsLayer({
   cam,
   drawings,
   currentDrawing,
@@ -223,4 +226,4 @@ export function DrawingsLayer({
       {renderCurrentDrawing()}
     </Group>
   );
-}
+});

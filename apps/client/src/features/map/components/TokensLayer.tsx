@@ -3,6 +3,7 @@
 // ============================================================================
 // Renders all player tokens with drag and interaction support
 
+import { memo } from "react";
 import { Group, Rect } from "react-konva";
 import type { Token } from "@shared";
 import type { Camera } from "../types";
@@ -25,8 +26,10 @@ interface TokensLayerProps {
  * - Players can drag their own tokens
  * - Double-click to recolor
  * - Other players' tokens are non-interactive
+ *
+ * Optimized with React.memo to prevent unnecessary re-renders
  */
-export function TokensLayer({
+export const TokensLayer = memo(function TokensLayer({
   cam,
   tokens,
   uid,
@@ -92,4 +95,4 @@ export function TokensLayer({
       ))}
     </Group>
   );
-}
+});

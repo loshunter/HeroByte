@@ -3,6 +3,7 @@
 // ============================================================================
 // Renders an infinite procedural grid with major/minor line highlighting
 
+import { memo } from "react";
 import { Group, Line } from "react-konva";
 import type { Camera, Viewport } from "../types";
 
@@ -20,8 +21,10 @@ interface GridLayerProps {
  * - Only renders visible grid lines based on camera position
  * - Highlights major grid lines every N steps
  * - Scales line thickness based on zoom level
+ *
+ * Optimized with React.memo to prevent unnecessary re-renders
  */
-export function GridLayer({
+export const GridLayer = memo(function GridLayer({
   cam,
   viewport,
   gridSize = 50,
@@ -90,4 +93,4 @@ export function GridLayer({
       {lines}
     </Group>
   );
-}
+});
