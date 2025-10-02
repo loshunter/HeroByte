@@ -6,6 +6,7 @@
 
 import { Hono } from "hono";
 import { serve } from "@hono/node-server";
+import { createServer } from "http";
 import { WebSocketServer } from "ws";
 import { randomUUID } from "crypto";
 import { writeFileSync, readFileSync, existsSync } from "fs";
@@ -120,20 +121,28 @@ app.get("/health", (c) => c.json({ status: "ok" }));
 // Get port from environment (Render assigns PORT) or default to 8787
 const PORT = Number(process.env.PORT || 8787);
 
-// Create HTTP server
-const server = serve({
-  fetch: app.fetch,
-  port: PORT,
-  hostname: '0.0.0.0'
-}) as any; // Type cast needed for WebSocketServer compatibility
+// Create native HTTP server for WebSocket compatibility
+const server = createServer(async (req, res) => {
+  // Use Hono to handle HTTP requests
+  const response = await app.fetch(req as any);
+  res.statusCode = response.status;
+  response.headers.forEach((value, key) => {
+    res.setHeader(key, value);
+  });
+  const body = await response.text();
+  res.end(body);
+});
 
 // Attach WebSocket server to HTTP server
-const wss = new WebSocketServer({ server, path: '/' });
+const wss = new WebSocketServer({ server });
 
 // Track WebSocket connections by UID for direct P2P signaling
 const uidToWs = new Map<string, any>();
 
-console.log(`Server running on port ${PORT}`);
+// Start server
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
 // ----------------------------------------------------------------------------
 // CONNECTION HANDLING

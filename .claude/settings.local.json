@@ -20,7 +20,9 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(pnpm install:*)",
-      "Bash(pnpm --filter vtt-server build)"
+      "Bash(pnpm --filter vtt-server build)",
+      "Bash(pnpm start:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []
