@@ -132,6 +132,7 @@ export function validateMessage(message: any): ValidationResult {
     case "clear-drawings":
     case "clear-roll-history":
     case "clear-all-tokens":
+    case "heartbeat":
       // No additional validation needed
       break;
 

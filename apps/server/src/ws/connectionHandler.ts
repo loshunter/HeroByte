@@ -17,6 +17,8 @@ import { validateMessage } from "../middleware/validation.js";
 export class ConnectionHandler {
   private container: Container;
   private wss: WebSocketServer;
+  private timeoutCheckInterval: NodeJS.Timeout | null = null;
+  private readonly HEARTBEAT_TIMEOUT = 60000; // 60 seconds without heartbeat = timeout
 
   constructor(container: Container, wss: WebSocketServer) {
     this.container = container;
@@ -28,6 +30,55 @@ export class ConnectionHandler {
    */
   attach(): void {
     this.wss.on("connection", (ws, req) => this.handleConnection(ws, req));
+
+    // Start heartbeat timeout checker
+    this.startTimeoutChecker();
+  }
+
+  /**
+   * Start periodic check for timed-out players
+   */
+  private startTimeoutChecker(): void {
+    // Check every 30 seconds for timed-out players
+    this.timeoutCheckInterval = setInterval(() => {
+      this.checkForTimedOutPlayers();
+    }, 30000);
+  }
+
+  /**
+   * Check for and remove players that haven't sent heartbeat
+   */
+  private checkForTimedOutPlayers(): void {
+    const state = this.container.roomService.getState();
+    const now = Date.now();
+    const timedOutPlayers: string[] = [];
+
+    // Find players who haven't sent heartbeat in timeout window
+    for (const player of state.players) {
+      const lastHeartbeat = player.lastHeartbeat || 0;
+      if (now - lastHeartbeat > this.HEARTBEAT_TIMEOUT) {
+        timedOutPlayers.push(player.uid);
+      }
+    }
+
+    // Remove timed out players and their tokens
+    if (timedOutPlayers.length > 0) {
+      console.log(`Removing ${timedOutPlayers.length} timed-out players:`, timedOutPlayers);
+
+      for (const uid of timedOutPlayers) {
+        // Remove player
+        state.players = state.players.filter((p) => p.uid !== uid);
+        // Remove their token
+        state.tokens = state.tokens.filter((t) => t.owner !== uid);
+        // Remove from users list
+        state.users = state.users.filter((u) => u !== uid);
+        // Clean up WebSocket connection map
+        this.container.uidToWs.delete(uid);
+      }
+
+      // Broadcast updated state
+      this.container.roomService.broadcast(this.wss.clients);
+    }
   }
 
   /**

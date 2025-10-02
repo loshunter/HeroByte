@@ -44,12 +44,13 @@ export interface DiceRoll {
  * Player: Represents a connected player in the session
  */
 export interface Player {
-  uid: string;         // Unique player identifier
-  name: string;        // Display name
-  portrait?: string;   // Base64 encoded image or URL
-  micLevel?: number;   // Current microphone level (0-1) for visual feedback
-  hp?: number;         // Current hit points
-  maxHp?: number;      // Maximum hit points
+  uid: string;           // Unique player identifier
+  name: string;          // Display name
+  portrait?: string;     // Base64 encoded image or URL
+  micLevel?: number;     // Current microphone level (0-1) for visual feedback
+  hp?: number;           // Current hit points
+  maxHp?: number;        // Maximum hit points
+  lastHeartbeat?: number; // Timestamp of last heartbeat (for timeout detection)
 }
 
 /**
@@ -127,6 +128,7 @@ export type ClientMessage =
 
   // Room management
   | { t: "clear-all-tokens" }                            // Remove all tokens/players except self
+  | { t: "heartbeat" }                                   // Keep-alive ping from client
 
   // WebRTC signaling
   | { t: "rtc-signal"; target: string; signal: any };    // P2P voice chat signaling

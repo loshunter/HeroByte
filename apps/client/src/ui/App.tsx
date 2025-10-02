@@ -20,6 +20,7 @@ import { useWebSocket } from "../hooks/useWebSocket";
 import { useMicrophone } from "../hooks/useMicrophone";
 import { useDrawingState } from "../hooks/useDrawingState";
 import { usePlayerEditing } from "../hooks/usePlayerEditing";
+import { useHeartbeat } from "../hooks/useHeartbeat";
 import { getSessionUID } from "../utils/session";
 import { DrawingToolbar } from "../features/drawing/components";
 import { Header } from "../components/layout/Header";
@@ -48,6 +49,9 @@ export const App: React.FC = () => {
   // Custom hooks for state management
   const { micEnabled, micLevel, micStream, toggleMic } = useMicrophone({ sendMessage });
   const { drawTool, drawColor, drawWidth, drawOpacity, drawFilled, setDrawTool, setDrawColor, setDrawWidth, setDrawOpacity, setDrawFilled } = useDrawingState();
+
+  // Heartbeat to prevent timeout
+  useHeartbeat({ sendMessage });
   const {
     editingPlayerUID, nameInput, editingMaxHpUID, maxHpInput,
     startNameEdit, updateNameInput, submitNameEdit,

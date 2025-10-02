@@ -32,6 +32,7 @@ export class PlayerService {
       name: `Player ${playerNumber}`,
       hp: 100,
       maxHp: 100,
+      lastHeartbeat: Date.now(), // Initialize heartbeat timestamp
     };
 
     state.players.push(newPlayer);

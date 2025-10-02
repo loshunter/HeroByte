@@ -142,6 +142,15 @@ export class MessageRouter {
           this.roomService.saveState();
           break;
 
+        case "heartbeat":
+          // Update player's last heartbeat timestamp
+          const player = state.players.find((p) => p.uid === senderUid);
+          if (player) {
+            player.lastHeartbeat = Date.now();
+          }
+          // No broadcast needed for heartbeat
+          break;
+
         // WEBRTC SIGNALING
         case "rtc-signal":
           this.forwardRtcSignal(message.target, senderUid, message.signal);
