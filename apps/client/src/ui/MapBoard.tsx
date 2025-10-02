@@ -14,8 +14,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Stage, Layer, Image as KonvaImage, Line, Group, Rect, Circle, Text } from "react-konva";
 import useImage from "use-image";
-import type { RoomSnapshot, Token, Player, Pointer, Drawing } from "@shared";
-import type { NetClient } from "@adapters-net";
+import type { RoomSnapshot, Token, Player, Pointer, Drawing, ClientMessage } from "@shared";
 
 // ----------------------------------------------------------------------------
 // TYPES
@@ -562,7 +561,7 @@ function MeasureLayer({
 
 interface MapBoardProps {
   snapshot: RoomSnapshot | null;        // Current room state
-  net: NetClient | undefined;           // Network client for sending messages
+  sendMessage: (msg: ClientMessage) => void; // Function to send messages to server
   uid: string;                          // Current player's UID
   gridSize: number;                     // Synchronized grid size
   snapToGrid: boolean;                  // Whether to snap tokens to grid
@@ -590,7 +589,7 @@ interface MapBoardProps {
  */
 export default function MapBoard({
   snapshot,
-  net,
+  sendMessage,
   uid,
   gridSize,
   snapToGrid,
@@ -715,7 +714,7 @@ export default function MapBoard({
     const world = toWorld(pointer.x, pointer.y);
 
     if (pointerMode) {
-      net?.send({ t: "point", x: world.x, y: world.y });
+      sendMessage({ t: "point", x: world.x, y: world.y });
     } else if (measureMode) {
       if (!measureStart) {
         setMeasureStart(world);
@@ -811,7 +810,7 @@ export default function MapBoard({
               return v.toString(16);
             });
 
-        net?.send({
+        sendMessage({
           t: "draw",
           drawing: {
             id: drawingId,

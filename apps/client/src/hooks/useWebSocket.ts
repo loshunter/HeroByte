@@ -21,6 +21,7 @@ interface UseWebSocketReturn {
   send: (message: ClientMessage) => void;
   connect: () => void;
   disconnect: () => void;
+  registerRtcHandler: (handler: (from: string, signal: any) => void) => void;
 }
 
 /**
@@ -43,6 +44,9 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     ConnectionState.DISCONNECTED
   );
 
+  // Use ref to store the current RTC signal handler
+  const rtcHandlerRef = useRef<((from: string, signal: any) => void) | undefined>(onRtcSignal);
+
   // Use ref to avoid recreating service on re-renders
   const serviceRef = useRef<WebSocketService | null>(null);
 
@@ -52,7 +56,10 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
       url,
       uid,
       onMessage: setSnapshot,
-      onRtcSignal,
+      onRtcSignal: (from, signal) => {
+        // Use the ref to get the latest handler
+        rtcHandlerRef.current?.(from, signal);
+      },
       onStateChange: setConnectionState,
     });
 
@@ -68,14 +75,6 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     };
   }, [url, uid]); // Only recreate if URL or UID changes
 
-  // Update RTC signal handler when it changes
-  useEffect(() => {
-    if (serviceRef.current && onRtcSignal) {
-      // Service already has the handler from initialization
-      // This effect ensures we don't recreate the service unnecessarily
-    }
-  }, [onRtcSignal]);
-
   const send = useCallback((message: ClientMessage) => {
     serviceRef.current?.send(message);
   }, []);
@@ -88,6 +87,10 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     serviceRef.current?.disconnect();
   }, []);
 
+  const registerRtcHandler = useCallback((handler: (from: string, signal: any) => void) => {
+    rtcHandlerRef.current = handler;
+  }, []);
+
   const isConnected = connectionState === ConnectionState.CONNECTED;
 
   return {
@@ -97,5 +100,6 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     send,
     connect,
     disconnect,
+    registerRtcHandler,
   };
 }

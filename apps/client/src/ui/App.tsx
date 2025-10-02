@@ -9,7 +9,6 @@
 // - Tool modes (pointer, measure, draw)
 
 import React, { useEffect, useState, useRef, memo } from "react";
-import { NetClient } from "@adapters-net";
 import { RoomSnapshot, Token, Player, Pointer, Drawing } from "@shared";
 import MapBoard from "./MapBoard";
 import { useVoiceChat } from "./useVoiceChat";
@@ -17,39 +16,13 @@ import { DiceRoller } from "../components/dice/DiceRoller";
 import { RollLog } from "../components/dice/RollLog";
 import type { RollResult } from "../components/dice/types";
 import { WS_URL } from "../config";
+import { useWebSocket } from "../hooks/useWebSocket";
+import { getSessionUID } from "../utils/session";
 
 interface RollLogEntry extends RollResult {
   playerName: string;
 }
 
-// ----------------------------------------------------------------------------
-// SESSION MANAGEMENT
-// ----------------------------------------------------------------------------
-
-/**
- * Get or create a unique session ID for this browser
- * Stored in localStorage to persist across page reloads
- */
-function getSessionUID(): string {
-  const key = "herobyte-session-uid";
-  const v = localStorage.getItem(key);
-  if (v) return v;
-
-  let id: string;
-  if (typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function") {
-    id = crypto.randomUUID();
-  } else {
-    // Fallback UUID generator for browsers without crypto.randomUUID
-    id = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-      const r = (Math.random() * 16) | 0;
-      const v = c === "x" ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    });
-  }
-
-  localStorage.setItem(key, id);
-  return id;
-}
 
 // ----------------------------------------------------------------------------
 // PLAYER CARD COMPONENT
@@ -342,9 +315,11 @@ export const App: React.FC = () => {
   // -------------------------------------------------------------------------
 
   // Network and session
-  const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null);  // Room state from server
   const uid = getSessionUID();                                          // This player's unique ID
-  const [net, setNet] = useState<NetClient>();                          // WebSocket client
+  const { snapshot, send: sendMessage, isConnected, registerRtcHandler } = useWebSocket({
+    url: WS_URL,
+    uid,
+  });
 
   // Player name editing
   const [editingPlayerUID, setEditingPlayerUID] = useState<string | null>(null);
@@ -422,7 +397,8 @@ export const App: React.FC = () => {
   }, [snapshot?.players, uid]);
 
   const { connectedPeers } = useVoiceChat({
-    net,
+    sendMessage,
+    onRtcSignal: registerRtcHandler,
     uid,
     otherPlayerUIDs,
     enabled: micEnabled,
@@ -433,14 +409,7 @@ export const App: React.FC = () => {
   // EFFECTS
   // -------------------------------------------------------------------------
 
-  /**
-   * Initialize network connection on mount
-   */
-  useEffect(() => {
-    const n = new NetClient();
-    n.connect(WS_URL, uid, (snap) => setSnapshot(snap));
-    setNet(n);
-  }, [uid]);
+  // Network connection is now handled by useWebSocket hook
 
   /**
    * Measure top and bottom panel heights for layout calculations
@@ -499,7 +468,7 @@ export const App: React.FC = () => {
       }
       setMicEnabled(false);
       setMicLevel(0);
-      net?.send({ t: "mic-level", level: 0 });
+      sendMessage({ t: "mic-level", level: 0 });
     } else {
       // Turn on mic
       try {
@@ -523,7 +492,7 @@ export const App: React.FC = () => {
           const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
           const normalized = average / 255; // Normalize to 0-1
           setMicLevel(normalized);
-          net?.send({ t: "mic-level", level: normalized });
+          sendMessage({ t: "mic-level", level: normalized });
           animationFrameRef.current = requestAnimationFrame(detectLevel);
         };
 
@@ -541,41 +510,41 @@ export const App: React.FC = () => {
    * Token actions
    */
   const moveToken = (id: string, x: number, y: number) => {
-    net?.send({ t: "move", id, x, y });
+    sendMessage({ t: "move", id, x, y });
   };
 
   const recolorToken = (id: string) => {
-    net?.send({ t: "recolor", id });
+    sendMessage({ t: "recolor", id });
   };
 
   const deleteToken = (id: string) => {
-    net?.send({ t: "delete-token", id });
+    sendMessage({ t: "delete-token", id });
   };
 
   /**
    * Player actions
    */
   const renamePlayer = (name: string) => {
-    net?.send({ t: "rename", name });
+    sendMessage({ t: "rename", name });
   };
 
   const setPortraitURL = (url: string) => {
-    net?.send({ t: "portrait", data: url });
+    sendMessage({ t: "portrait", data: url });
   };
 
   const setPlayerHP = (hp: number, maxHp: number) => {
-    net?.send({ t: "set-hp", hp, maxHp });
+    sendMessage({ t: "set-hp", hp, maxHp });
   };
 
   /**
    * Map actions
    */
   const setMapBackgroundURL = (url: string) => {
-    net?.send({ t: "map-background", data: url });
+    sendMessage({ t: "map-background", data: url });
   };
 
   const setGridSize = (size: number) => {
-    net?.send({ t: "grid-size", size });
+    sendMessage({ t: "grid-size", size });
   };
 
   // Get synchronized grid size from server
@@ -748,7 +717,7 @@ export const App: React.FC = () => {
 
           {/* Clear All Button */}
           <button
-            onClick={() => net?.send({ t: "clear-drawings" })}
+            onClick={() => sendMessage({ t: "clear-drawings" })}
             className="btn btn-danger"
             style={{
               fontSize: "0.75rem",
@@ -800,7 +769,7 @@ export const App: React.FC = () => {
             <button
               onClick={() => {
                 if (confirm("Clear all old tokens/players? This will remove disconnected players but keep your own token.")) {
-                  net?.send({ t: "clear-all-tokens" });
+                  sendMessage({ t: "clear-all-tokens" });
                 }
               }}
               className="btn btn-danger"
@@ -935,7 +904,7 @@ export const App: React.FC = () => {
       >
         <MapBoard
           snapshot={snapshot}
-          net={net}
+          sendMessage={sendMessage}
           uid={uid}
           gridSize={gridSize}
           snapToGrid={snapToGrid}
@@ -1092,7 +1061,7 @@ export const App: React.FC = () => {
             }).join(' ');
 
             // Broadcast to server
-            net?.send({
+            sendMessage({
               t: "dice-roll",
               roll: {
                 id: result.id,
@@ -1123,7 +1092,7 @@ export const App: React.FC = () => {
         >
           <RollLog
             rolls={rollHistory}
-            onClearLog={() => net?.send({ t: "clear-roll-history" })}
+            onClearLog={() => sendMessage({ t: "clear-roll-history" })}
             onViewRoll={(roll) => setViewingRoll(roll)}
           />
         </div>

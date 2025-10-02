@@ -1,22 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import SimplePeer from "simple-peer";
-import { NetClient } from "@adapters-net";
+import type { ClientMessage } from "@shared";
 
 interface VoiceChatOptions {
-  net: NetClient | undefined;
+  sendMessage: (msg: ClientMessage) => void;
+  onRtcSignal: (handler: (from: string, signal: any) => void) => void;
   uid: string;
   otherPlayerUIDs: string[];
   enabled: boolean;
   stream: MediaStream | null;
 }
 
-export function useVoiceChat({ net, uid, otherPlayerUIDs, enabled, stream }: VoiceChatOptions) {
+export function useVoiceChat({ sendMessage, onRtcSignal, uid, otherPlayerUIDs, enabled, stream }: VoiceChatOptions) {
   const peersRef = useRef<Map<string, SimplePeer.Instance>>(new Map());
   const [connectedPeers, setConnectedPeers] = useState<string[]>([]);
   const otherPlayerUIDsStr = JSON.stringify(otherPlayerUIDs);
 
   useEffect(() => {
-    if (!net || !enabled || !stream) {
+    if (!enabled || !stream) {
       // Clean up all peers when disabled
       peersRef.current.forEach(peer => {
         try {
@@ -43,7 +44,7 @@ export function useVoiceChat({ net, uid, otherPlayerUIDs, enabled, stream }: Voi
         });
 
         peer.on("signal", (signal) => {
-          net.send({ t: "rtc-signal", target: from, signal });
+          sendMessage({ t: "rtc-signal", target: from, signal });
         });
 
         peer.on("stream", (remoteStream) => {
@@ -78,7 +79,7 @@ export function useVoiceChat({ net, uid, otherPlayerUIDs, enabled, stream }: Voi
       peer.signal(signal);
     };
 
-    net.onRtcSignal(handleRtcSignal);
+    onRtcSignal(handleRtcSignal);
 
     // Initiate connections to other players
     otherPlayerUIDs.forEach((targetUID) => {
@@ -91,7 +92,7 @@ export function useVoiceChat({ net, uid, otherPlayerUIDs, enabled, stream }: Voi
         });
 
         peer.on("signal", (signal) => {
-          net.send({ t: "rtc-signal", target: targetUID, signal });
+          sendMessage({ t: "rtc-signal", target: targetUID, signal });
         });
 
         peer.on("stream", (remoteStream) => {
@@ -133,7 +134,7 @@ export function useVoiceChat({ net, uid, otherPlayerUIDs, enabled, stream }: Voi
     });
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [net, uid, otherPlayerUIDsStr, enabled, stream]);
+  }, [onRtcSignal, uid, otherPlayerUIDsStr, enabled, stream]);
 
   // Cleanup on unmount
   useEffect(() => {
