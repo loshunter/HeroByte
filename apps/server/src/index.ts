@@ -144,7 +144,8 @@ wss.on("connection", (ws, req) => {
   const params = new URL(req.url || "", "http://localhost").searchParams;
   const uid = params.get("uid") || "anon";
 
-  // Register connection
+  // Register connection (remove from users list first to prevent duplicates on reconnect)
+  users = users.filter((u) => u !== uid);
   users.push(uid);
   uidToWs.set(uid, ws);
 
@@ -337,6 +338,7 @@ wss.on("connection", (ws, req) => {
         tokens = tokens.filter((t) => t.owner === uid);
         players = players.filter((p) => p.uid === uid);
         broadcast();
+        saveState();
       }
 
       // -----------------------------------------------------------------------
@@ -364,10 +366,8 @@ wss.on("connection", (ws, req) => {
     // Clear keepalive interval
     clearInterval(keepalive);
 
-    // Clean up disconnected player's data
+    // Clean up disconnected player's connection (but keep player and token data for reconnection)
     users = users.filter((u) => u !== uid);
-    tokens = tokens.filter((t) => t.owner !== uid);
-    players = players.filter((p) => p.uid !== uid);
     uidToWs.delete(uid);
     broadcast();
   });
