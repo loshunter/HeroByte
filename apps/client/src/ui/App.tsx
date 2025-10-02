@@ -17,6 +17,9 @@ import { RollLog } from "../components/dice/RollLog";
 import type { RollResult } from "../components/dice/types";
 import { WS_URL } from "../config";
 import { useWebSocket } from "../hooks/useWebSocket";
+import { useMicrophone } from "../hooks/useMicrophone";
+import { useDrawingState } from "../hooks/useDrawingState";
+import { usePlayerEditing } from "../hooks/usePlayerEditing";
 import { getSessionUID } from "../utils/session";
 import { PlayerCard } from "../features/players/components";
 import { DrawingToolbar } from "../features/drawing/components";
@@ -41,13 +44,14 @@ export const App: React.FC = () => {
     uid,
   });
 
-  // Player name editing
-  const [editingPlayerUID, setEditingPlayerUID] = useState<string | null>(null);
-  const [nameInput, setNameInput] = useState("");
-
-  // Max HP editing
-  const [editingMaxHpUID, setEditingMaxHpUID] = useState<string | null>(null);
-  const [maxHpInput, setMaxHpInput] = useState("");
+  // Custom hooks for state management
+  const { micEnabled, micLevel, micStream, toggleMic } = useMicrophone({ sendMessage });
+  const { drawTool, drawColor, drawWidth, drawOpacity, drawFilled, setDrawTool, setDrawColor, setDrawWidth, setDrawOpacity, setDrawFilled } = useDrawingState();
+  const {
+    editingPlayerUID, nameInput, editingMaxHpUID, maxHpInput,
+    startNameEdit, updateNameInput, submitNameEdit,
+    startMaxHpEdit, updateMaxHpInput, submitMaxHpEdit
+  } = usePlayerEditing();
 
   // Map controls
   const [snapToGrid, setSnapToGrid] = useState(true);
@@ -57,21 +61,6 @@ export const App: React.FC = () => {
   const [pointerMode, setPointerMode] = useState(false);
   const [measureMode, setMeasureMode] = useState(false);
   const [drawMode, setDrawMode] = useState(false);
-
-  // Drawing tool settings
-  const [drawTool, setDrawTool] = useState<"freehand" | "line" | "rect" | "circle" | "eraser">("freehand");
-  const [drawColor, setDrawColor] = useState("#ffffff");
-  const [drawWidth, setDrawWidth] = useState(3);
-  const [drawOpacity, setDrawOpacity] = useState(1);
-  const [drawFilled, setDrawFilled] = useState(false);
-
-  // Voice chat
-  const [micEnabled, setMicEnabled] = useState(false);
-  const [micLevel, setMicLevel] = useState(0);
-  const [micStream, setMicStream] = useState<MediaStream | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
 
   // UI layout (fixed panels)
   const topPanelRef = useRef<HTMLDivElement | null>(null);
@@ -150,81 +139,9 @@ export const App: React.FC = () => {
     return () => window.removeEventListener("resize", measureHeights);
   }, [snapshot?.players]);
 
-  /**
-   * Cleanup audio context and animation frame on unmount
-   */
-  useEffect(() => {
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
-    };
-  }, []);
-
   // -------------------------------------------------------------------------
   // ACTIONS
   // -------------------------------------------------------------------------
-
-  /**
-   * Toggle microphone on/off
-   * Starts/stops audio analysis for visual feedback
-   */
-  const toggleMic = async () => {
-    if (micEnabled) {
-      // Turn off mic
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-        audioContextRef.current = null;
-      }
-      if (micStream) {
-        micStream.getTracks().forEach(track => track.stop());
-        setMicStream(null);
-      }
-      setMicEnabled(false);
-      setMicLevel(0);
-      sendMessage({ t: "mic-level", level: 0 });
-    } else {
-      // Turn on mic
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        setMicStream(stream);
-
-        const audioContext = new AudioContext();
-        const analyser = audioContext.createAnalyser();
-        const microphone = audioContext.createMediaStreamSource(stream);
-
-        analyser.fftSize = 256;
-        microphone.connect(analyser);
-
-        audioContextRef.current = audioContext;
-        analyserRef.current = analyser;
-
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-        const detectLevel = () => {
-          analyser.getByteFrequencyData(dataArray);
-          const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-          const normalized = average / 255; // Normalize to 0-1
-          setMicLevel(normalized);
-          sendMessage({ t: "mic-level", level: normalized });
-          animationFrameRef.current = requestAnimationFrame(detectLevel);
-        };
-
-        detectLevel();
-        setMicEnabled(true);
-      } catch (err) {
-        console.error("Mic access error:", err);
-        const errorMsg = err instanceof Error ? err.message : String(err);
-        alert(`Microphone error: ${errorMsg}\n\nCheck Safari Settings → Websites → Microphone`);
-      }
-    }
-  };
 
   /**
    * Token actions
@@ -523,15 +440,9 @@ export const App: React.FC = () => {
                 micLevel={micLevel}
                 editingPlayerUID={editingPlayerUID}
                 nameInput={nameInput}
-                onNameInputChange={setNameInput}
-                onNameEdit={(uid, name) => {
-                  setNameInput(name);
-                  setEditingPlayerUID(uid);
-                }}
-                onNameSubmit={(name) => {
-                  renamePlayer(name);
-                  setEditingPlayerUID(null);
-                }}
+                onNameInputChange={updateNameInput}
+                onNameEdit={startNameEdit}
+                onNameSubmit={() => submitNameEdit(renamePlayer)}
                 onPortraitLoad={() => {
                   const url = prompt("Enter image URL:");
                   if (url && url.trim()) {
@@ -544,18 +455,9 @@ export const App: React.FC = () => {
                 }}
                 editingMaxHpUID={editingMaxHpUID}
                 maxHpInput={maxHpInput}
-                onMaxHpInputChange={setMaxHpInput}
-                onMaxHpEdit={(uid, maxHp) => {
-                  setMaxHpInput(String(maxHp));
-                  setEditingMaxHpUID(uid);
-                }}
-                onMaxHpSubmit={(maxHpStr) => {
-                  const newMaxHp = parseInt(maxHpStr, 10);
-                  if (!isNaN(newMaxHp) && newMaxHp > 0) {
-                    setPlayerHP(p.hp ?? 100, newMaxHp);
-                  }
-                  setEditingMaxHpUID(null);
-                }}
+                onMaxHpInputChange={updateMaxHpInput}
+                onMaxHpEdit={startMaxHpEdit}
+                onMaxHpSubmit={() => submitMaxHpEdit((maxHp) => setPlayerHP(p.hp ?? 100, maxHp))}
               />
             );
           })}
