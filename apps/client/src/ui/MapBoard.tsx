@@ -15,12 +15,9 @@ import { useEffect, useRef, useState } from "react";
 import { Stage, Layer, Image as KonvaImage, Line, Group, Rect, Circle, Text } from "react-konva";
 import useImage from "use-image";
 import type { RoomSnapshot, Token, Player, Pointer, Drawing, ClientMessage } from "@shared";
-
-// ----------------------------------------------------------------------------
-// TYPES
-// ----------------------------------------------------------------------------
-
-type Camera = { x: number; y: number; scale: number };
+import { useCamera, type Camera } from "../hooks/useCamera.js";
+import { usePointerTool } from "../hooks/usePointerTool.js";
+import { useDrawingTool } from "../hooks/useDrawingTool.js";
 
 // ----------------------------------------------------------------------------
 // HOOKS
@@ -606,24 +603,58 @@ export default function MapBoard({
   onDeleteToken,
 }: MapBoardProps) {
   // -------------------------------------------------------------------------
-  // STATE
+  // STATE & HOOKS
   // -------------------------------------------------------------------------
 
   const { ref, w, h } = useElementSize<HTMLDivElement>();
+  const stageRef = useRef<any>(null);
 
-  // Camera state (pan and zoom)
-  const [cam, setCam] = useState<Camera>({ x: 0, y: 0, scale: 1 });
+  // Camera controls (pan/zoom)
+  const {
+    cam,
+    setCam,
+    isPanning,
+    onWheel: handleWheel,
+    onMouseDown: handleCameraMouseDown,
+    onMouseMove: handleCameraMouseMove,
+    onMouseUp: handleCameraMouseUp,
+    toWorld,
+  } = useCamera();
+
+  // Pointer and measure tool
+  const {
+    measureStart,
+    measureEnd,
+    onStageClick: handlePointerClick,
+    onMouseMove: handlePointerMouseMove,
+  } = usePointerTool({
+    pointerMode,
+    measureMode,
+    toWorld,
+    sendMessage,
+    gridSize,
+  });
+
+  // Drawing tool
+  const {
+    currentDrawing,
+    isDrawing,
+    onMouseDown: handleDrawMouseDown,
+    onMouseMove: handleDrawMouseMove,
+    onMouseUp: handleDrawMouseUp,
+  } = useDrawingTool({
+    drawMode,
+    drawTool,
+    drawColor,
+    drawWidth,
+    drawOpacity,
+    drawFilled,
+    toWorld,
+    sendMessage,
+  });
 
   // Token interaction
   const [hoveredTokenId, setHoveredTokenId] = useState<string | null>(null);
-
-  // Measure tool state
-  const [measureStart, setMeasureStart] = useState<{ x: number; y: number } | null>(null);
-  const [measureEnd, setMeasureEnd] = useState<{ x: number; y: number } | null>(null);
-
-  // Drawing tool state
-  const [currentDrawing, setCurrentDrawing] = useState<{ x: number; y: number }[]>([]);
-  const [isDrawing, setIsDrawing] = useState(false);
 
   // Grid configuration
   const [grid, setGrid] = useState({
@@ -634,8 +665,6 @@ export default function MapBoard({
     opacity: 0.15,
   });
 
-  const stageRef = useRef<any>(null);
-
   // -------------------------------------------------------------------------
   // EFFECTS
   // -------------------------------------------------------------------------
@@ -645,187 +674,42 @@ export default function MapBoard({
     setGrid(prev => ({ ...prev, size: gridSize }));
   }, [gridSize]);
 
-  // Clear measure tool when mode changes
-  useEffect(() => {
-    if (!measureMode) {
-      setMeasureStart(null);
-      setMeasureEnd(null);
-    }
-  }, [measureMode]);
-
   // -------------------------------------------------------------------------
-  // CAMERA CONTROLS
+  // UNIFIED EVENT HANDLERS
   // -------------------------------------------------------------------------
 
   /**
-   * Zoom with mouse wheel, zooming toward cursor position
-   */
-  const onWheel = (e: any) => {
-    e.evt.preventDefault();
-    const scaleBy = 1.08;
-    const oldScale = cam.scale;
-
-    const pointer = stageRef.current.getPointerPosition();
-    if (!pointer) return;
-    const mouseWorld = {
-      x: (pointer.x - cam.x) / oldScale,
-      y: (pointer.y - cam.y) / oldScale,
-    };
-
-    const direction = e.evt.deltaY > 0 ? 1 : -1;
-    const newScale = direction > 0 ? oldScale / scaleBy : oldScale * scaleBy;
-    // clamp
-    const clamped = Math.min(8, Math.max(0.1, newScale));
-
-    const newPos = {
-      x: pointer.x - mouseWorld.x * clamped,
-      y: pointer.y - mouseWorld.y * clamped,
-    };
-    setCam({ x: newPos.x, y: newPos.y, scale: clamped });
-  };
-
-  // Pan state
-  const [isPanning, setIsPanning] = useState(false);
-  const dragOrigin = useRef<{ x: number; y: number } | null>(null);
-  const camOrigin = useRef<Camera | null>(null);
-
-  /**
-   * Convert screen coordinates to world coordinates
-   */
-  const toWorld = (sx: number, sy: number) => ({
-    x: (sx - cam.x) / cam.scale,
-    y: (sy - cam.y) / cam.scale,
-  });
-
-  // -------------------------------------------------------------------------
-  // EVENT HANDLERS
-  // -------------------------------------------------------------------------
-
-  /**
-   * Handle stage clicks for pointer and measure tools
+   * Unified stage click handler (pointer/measure tools)
    */
   const onStageClick = (e: any) => {
     if (!pointerMode && !measureMode && !drawMode) return;
-
-    const stage = e.target.getStage();
-    const pointer = stage.getPointerPosition();
-    if (!pointer) return;
-
-    const world = toWorld(pointer.x, pointer.y);
-
-    if (pointerMode) {
-      sendMessage({ t: "point", x: world.x, y: world.y });
-    } else if (measureMode) {
-      if (!measureStart) {
-        setMeasureStart(world);
-        setMeasureEnd(null);
-      } else {
-        setMeasureEnd(world);
-      }
-    }
+    handlePointerClick(e);
   };
 
   /**
-   * Handle mouse down for panning or starting a drawing
+   * Unified mouse down handler (camera pan or drawing start)
    */
   const onMouseDown = (e: any) => {
-    const isSpace = e.evt && (e.evt.code === "Space" || e.evt.buttons === 4);
     const shouldPan = !pointerMode && !measureMode && !drawMode;
-
-    if (shouldPan || isSpace) {
-      setIsPanning(true);
-      camOrigin.current = cam;
-      dragOrigin.current = stageRef.current.getPointerPosition();
-    } else if (drawMode) {
-      const pointer = stageRef.current.getPointerPosition();
-      if (!pointer) return;
-      const world = toWorld(pointer.x, pointer.y);
-      setIsDrawing(true);
-
-      // For freehand and eraser, continuously add points
-      // For shapes and lines, just track start/end points
-      if (drawTool === "freehand" || drawTool === "eraser") {
-        setCurrentDrawing([world]);
-      } else {
-        // For line, rect, circle: store start point
-        setCurrentDrawing([world, world]);
-      }
-    }
+    handleCameraMouseDown(e, stageRef, shouldPan);
+    handleDrawMouseDown(stageRef);
   };
 
   /**
-   * Handle mouse move for panning, drawing, or measure tool
+   * Unified mouse move handler (camera, drawing, measure)
    */
   const onMouseMove = (_e: any) => {
-    if (isPanning && dragOrigin.current && camOrigin.current) {
-      const p = stageRef.current.getPointerPosition();
-      if (!p) return;
-      const dx = p.x - dragOrigin.current.x;
-      const dy = p.y - dragOrigin.current.y;
-      setCam({
-        ...camOrigin.current,
-        x: camOrigin.current.x + dx,
-        y: camOrigin.current.y + dy,
-      });
-    } else if (measureMode && measureStart) {
-      const pointer = stageRef.current.getPointerPosition();
-      if (!pointer) return;
-      const world = toWorld(pointer.x, pointer.y);
-      setMeasureEnd(world);
-    } else if (drawMode && isDrawing) {
-      const pointer = stageRef.current.getPointerPosition();
-      if (!pointer) return;
-      const world = toWorld(pointer.x, pointer.y);
-
-      // For freehand and eraser, continuously add points
-      if (drawTool === "freehand" || drawTool === "eraser") {
-        setCurrentDrawing((prev) => [...prev, world]);
-      } else {
-        // For shapes/line, just update the end point
-        setCurrentDrawing((prev) => [prev[0], world]);
-      }
-    }
+    handleCameraMouseMove(stageRef);
+    handlePointerMouseMove(stageRef);
+    handleDrawMouseMove(stageRef);
   };
 
   /**
-   * Handle mouse up to finish panning or complete a drawing
+   * Unified mouse up handler (camera, drawing)
    */
   const onMouseUp = () => {
-    if (isPanning) {
-      setIsPanning(false);
-      dragOrigin.current = null;
-      camOrigin.current = null;
-    } else if (drawMode && isDrawing && currentDrawing.length > 0) {
-      // Only send drawing if we have meaningful content
-      const shouldSend =
-        (drawTool === "freehand" || drawTool === "eraser") && currentDrawing.length > 1 ||
-        (drawTool === "line" || drawTool === "rect" || drawTool === "circle") && currentDrawing.length >= 2;
-
-      if (shouldSend) {
-        const drawingId = typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
-          ? crypto.randomUUID()
-          : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-              const r = (Math.random() * 16) | 0;
-              const v = c === "x" ? r : (r & 0x3) | 0x8;
-              return v.toString(16);
-            });
-
-        sendMessage({
-          t: "draw",
-          drawing: {
-            id: drawingId,
-            type: drawTool,
-            points: currentDrawing,
-            color: drawColor,
-            width: drawWidth,
-            opacity: drawOpacity,
-            filled: drawFilled
-          }
-        });
-      }
-      setCurrentDrawing([]);
-    }
-    setIsDrawing(false);
+    handleCameraMouseUp();
+    handleDrawMouseUp();
   };
 
   /**
@@ -859,7 +743,7 @@ export default function MapBoard({
         ref={stageRef}
         width={w}
         height={h}
-        onWheel={onWheel}
+        onWheel={(e) => handleWheel(e, stageRef)}
         onClick={onStageClick}
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
