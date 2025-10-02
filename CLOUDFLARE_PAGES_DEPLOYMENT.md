@@ -31,22 +31,26 @@ Click **Show advanced** and configure:
 
 - **Build command**:
   ```bash
-  pnpm install --frozen-lockfile && pnpm build
+  corepack enable && pnpm install --frozen-lockfile && pnpm build
   ```
-  - This installs dependencies and builds the client (which also builds the shared package)
+  - `corepack enable` ensures pnpm is available in the build environment
+  - `--frozen-lockfile` ensures exact dependency versions from pnpm-lock.yaml
+  - `pnpm build` builds the client (which also builds the shared package)
 
 - **Build output directory**: `dist`
   - Vite outputs the built files to the `dist` directory
 
 ### Environment Variables
 
-Add the following environment variable:
+Add the following environment variable to **both Production and Preview**:
 
 | Variable Name | Value |
 |--------------|-------|
 | `VITE_WS_URL` | `wss://herobyte-server.onrender.com` |
 
-**Important**: Use `wss://` (WebSocket Secure) not `ws://` for production.
+**Important**:
+- Use `wss://` (WebSocket Secure) not `ws://` for production
+- Set this for both Production and Preview environments so preview deployments also work
 
 ## Step 3: Deploy
 
