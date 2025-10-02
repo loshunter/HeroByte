@@ -2,11 +2,11 @@
 
 ## High Priority
 
-- [ ] Add dice roller feature
-  - [ ] Multiple dice types (d4, d6, d8, d10, d12, d20, d100)
-  - [ ] Roll history/log visible to all players
-  - [ ] Advantage/disadvantage support
-  - [ ] Custom modifiers
+- [x] Add dice roller feature
+  - [x] Multiple dice types (d4, d6, d8, d10, d12, d20, d100)
+  - [x] Roll history/log visible to all players
+  - [x] Advantage/disadvantage support
+  - [x] Custom modifiers
 
 - [ ] Initiative tracker
   - [ ] Add/remove combatants
@@ -41,9 +41,9 @@
   - [ ] Export/import game state
 
 - [ ] Drawing enhancements
-  - [ ] Shape tools (circle, rectangle, line)
-  - [ ] Color picker for drawings
-  - [ ] Eraser tool
+  - [x] Shape tools (circle, rectangle, line)
+  - [x] Color picker for drawings
+  - [x] Eraser tool
   - [ ] Drawing layers (temporary vs permanent)
   - [ ] Undo/redo for drawings
 
@@ -71,15 +71,17 @@
 
 ## Technical Improvements
 
-- [ ] Performance optimization
+- [x] Performance optimization
+  - [x] React.memo for map layer components
+  - [x] Canvas rendering optimization
   - [ ] Lazy loading for large maps
-  - [ ] Canvas rendering optimization
   - [ ] Reduce network bandwidth usage
 
-- [ ] Security
+- [x] Security
+  - [x] Input validation middleware
+  - [x] Rate limiting (100 msg/sec per client)
   - [ ] Authentication system
   - [ ] Session encryption
-  - [ ] Rate limiting
 
 - [ ] Testing
   - [ ] Unit tests for shared logic

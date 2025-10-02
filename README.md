@@ -23,10 +23,16 @@ Play anywhere, with anyone—no installs, just browser-based fun. Build your map
 
 ## Architecture
 
-This is a monorepo built with:
+This is a monorepo built with **domain-driven design** and **separation of concerns** principles:
 
 - **Client**: React + TypeScript + Konva (canvas rendering) + Vite
+  - Feature-based organization with React.memo optimizations
+  - Service layer for WebSocket and voice chat
+  - Custom hooks for shared logic
 - **Server**: Node.js + WebSocket + TypeScript
+  - Domain-driven architecture with dependency injection
+  - Input validation and rate limiting middleware (100 msg/sec)
+  - Separated concerns: HTTP routes, WebSocket handlers, domain services
 - **Shared**: Common types between client and server
 
 ## Getting Started
@@ -80,15 +86,23 @@ To use on your local network:
 HeroByte/
 ├── apps/
 │   ├── client/          # React frontend
-│   │   └── src/ui/
-│   │       ├── App.tsx
-│   │       ├── MapBoard.tsx
-│   │       └── useVoiceChat.ts
+│   │   └── src/
+│   │       ├── features/          # Feature modules (map, dice, drawing)
+│   │       ├── hooks/             # Custom React hooks
+│   │       ├── services/          # WebSocket, voice chat services
+│   │       ├── theme/             # Styling and themes
+│   │       └── ui/                # UI components
 │   └── server/          # WebSocket server
-│       └── src/index.ts
+│       └── src/
+│           ├── domains/           # Domain services (Room, Player, Token, Map, Dice)
+│           ├── middleware/        # Validation, rate limiting
+│           ├── http/              # HTTP routes (health checks)
+│           ├── ws/                # WebSocket connection handler
+│           ├── container.ts       # Dependency injection container
+│           └── index.ts           # Bootstrap layer
 ├── packages/
-│   ├── shared/          # Shared types
-│   └── adapters-net/    # Network client
+│   ├── shared/          # Shared types between client/server
+│   └── adapters-net/    # Network adapter
 └── package.json
 ```
 
@@ -127,12 +141,13 @@ pnpm build
 
 ### Technologies Used
 
-- React 18
-- TypeScript
+- React 18 (with React.memo for performance)
+- TypeScript (strict mode with NodeNext resolution)
 - Konva (Canvas rendering)
-- WebSockets (ws)
-- SimplePeer (WebRTC)
+- WebSockets (ws) with input validation and rate limiting
+- SimplePeer (WebRTC for voice chat)
 - Vite (Build tool)
+- Domain-Driven Design with Dependency Injection
 
 ## License
 

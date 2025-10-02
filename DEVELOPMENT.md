@@ -67,20 +67,44 @@ start-client.bat
    - Server: Push to Render (auto-deploys from main branch)
    - Client: Push to Cloudflare Pages (auto-deploys from main branch)
 
-## Current Architecture (Post-Phase 1 Refactoring)
+## Current Architecture (Phase 5: Domain-Driven Design)
 
 ### Client Structure
 ```
 apps/client/src/
-├── services/          # Service layer (WebSocket, etc.)
+├── services/          # Service layer (WebSocket, voice chat)
 ├── hooks/             # React hooks (useWebSocket, etc.)
 ├── utils/             # Utilities (session management, etc.)
 ├── features/          # Feature-based modules
-│   └── map/
-│       ├── components/  # Map layer components
-│       └── types.ts     # Feature types
+│   ├── map/
+│   │   ├── components/  # Map layer components (React.memo optimized)
+│   │   └── types.ts     # Feature types
+│   ├── dice/            # Dice roller feature
+│   └── drawing/         # Drawing tools
 ├── components/        # Shared components
-└── ui/               # Main UI components
+├── theme/             # Styling and themes
+└── ui/                # Main UI components
+```
+
+### Server Structure
+```
+apps/server/src/
+├── domains/           # Domain services (DDD pattern)
+│   ├── room/          # Room state management
+│   ├── player/        # Player operations
+│   ├── token/         # Token management
+│   ├── map/           # Map state
+│   └── dice/          # Dice rolling
+├── middleware/        # Cross-cutting concerns
+│   ├── validation.ts  # Input validation
+│   └── rateLimit.ts   # Rate limiting (100 msg/sec)
+├── http/              # HTTP endpoint handlers
+│   └── routes.ts      # Health check endpoints
+├── ws/                # WebSocket infrastructure
+│   ├── connectionHandler.ts  # Connection lifecycle
+│   └── messageRouter.ts      # Message routing
+├── container.ts       # Dependency injection container
+└── index.ts           # Bootstrap layer
 ```
 
 ### Shared Package
@@ -90,11 +114,29 @@ packages/shared/src/
 └── models.ts         # Domain model classes (TokenModel, PlayerModel)
 ```
 
-## Key Improvements in Dev Branch
+## Key Improvements
 
+### Phase 1-2: Foundation
 - ✅ Production-ready WebSocket service with reconnection and heartbeat
 - ✅ Custom React hooks for state management
 - ✅ Domain model classes with business logic
 - ✅ MapBoard decomposed into focused layer components
-- ✅ Better separation of concerns
 - ✅ Full TypeScript type safety
+
+### Phase 3: Domain-Driven Architecture
+- ✅ Separated domain services (Room, Player, Token, Map, Dice)
+- ✅ Message router for handling different message types
+- ✅ Clear separation between business logic and infrastructure
+
+### Phase 4: Performance & Security
+- ✅ React.memo optimization for map layer components
+- ✅ Input validation middleware for all WebSocket messages
+- ✅ Rate limiting (token bucket, 100 messages/second per client)
+- ✅ Protection against malformed data and DoS attacks
+
+### Phase 5: Advanced Separation of Concerns
+- ✅ Dependency injection container for service management
+- ✅ Separated HTTP routes from WebSocket handlers
+- ✅ ConnectionHandler for WebSocket lifecycle management
+- ✅ Bootstrap layer reduced to thin initialization (71 lines from 172)
+- ✅ Single Responsibility Principle throughout codebase
