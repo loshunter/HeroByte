@@ -1,7 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./ui/App";
-import './theme/nes.css';
+import './theme/herobyte.css';
 
 // Polyfills for simple-peer
 import { Buffer } from 'buffer';

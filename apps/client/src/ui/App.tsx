@@ -13,6 +13,14 @@ import { NetClient } from "@adapters-net";
 import { RoomSnapshot, Token, Player, Pointer, Drawing } from "@shared";
 import MapBoard from "./MapBoard";
 import { useVoiceChat } from "./useVoiceChat";
+import { DiceRoller } from "../components/dice/DiceRoller";
+import { RollLog } from "../components/dice/RollLog";
+import type { RollResult } from "../components/dice/types";
+import { WS_URL } from "../config";
+
+interface RollLogEntry extends RollResult {
+  playerName: string;
+}
 
 // ----------------------------------------------------------------------------
 // SESSION MANAGEMENT
@@ -64,6 +72,12 @@ interface PlayerCardProps {
   onNameSubmit: (name: string) => void;
   onPortraitLoad: () => void;
   onToggleMic: () => void;
+  onHpChange: (hp: number) => void;
+  editingMaxHpUID: string | null;
+  maxHpInput: string;
+  onMaxHpInputChange: (maxHp: string) => void;
+  onMaxHpEdit: (uid: string, maxHp: number) => void;
+  onMaxHpSubmit: (maxHp: string) => void;
 }
 
 const PlayerCard = memo<PlayerCardProps>(({
@@ -79,23 +93,27 @@ const PlayerCard = memo<PlayerCardProps>(({
   onNameSubmit,
   onPortraitLoad,
   onToggleMic,
+  onHpChange,
+  editingMaxHpUID,
+  maxHpInput,
+  onMaxHpInputChange,
+  onMaxHpEdit,
+  onMaxHpSubmit,
 }) => {
   const editing = editingPlayerUID === player.uid;
+  const editingMaxHp = editingMaxHpUID === player.uid;
 
   return (
     <div
+      className="player-card"
       style={{
-        width: "120px",
-        height: "170px",
-        background: "#222",
-        border: "2px solid #555",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "6px",
         color: "#dbe1ff",
         fontSize: "0.8rem",
+        gap: "6px",
       }}
     >
       <div
@@ -123,8 +141,8 @@ const PlayerCard = memo<PlayerCardProps>(({
               width: "100%",
               fontSize: "0.7rem",
               background: "#111",
-              color: tokenColor || "#dbe1ff",
-              border: "1px solid #555",
+              color: "var(--hero-blue)",
+              border: "1px solid var(--hero-gold)",
               padding: "2px",
               textAlign: "center",
             }}
@@ -138,8 +156,9 @@ const PlayerCard = memo<PlayerCardProps>(({
             }}
             style={{
               cursor: isMe ? "pointer" : "default",
-              color: tokenColor || "#dbe1ff",
+              color: tokenColor || "var(--hero-gold-light)",
               fontWeight: "bold",
+              textShadow: "0 0 6px rgba(240, 226, 195, 0.6), 1px 1px 2px rgba(0, 0, 0, 0.8)",
             }}
           >
             {player.name}
@@ -147,67 +166,141 @@ const PlayerCard = memo<PlayerCardProps>(({
         )}
       </div>
 
-      <div
-        style={{
-          width: "64px",
-          height: "64px",
-          background: "#111",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: "6px",
-          overflow: "hidden",
-          transform: (player.micLevel ?? 0) > 0.1
-            ? `scale(${1 + (player.micLevel ?? 0) * 0.2})`
-            : "scale(1)",
-          transition: "transform 0.1s ease-out",
-        }}
-      >
-        {player.portrait ? (
-          <img
-            key={player.portrait.substring(0, 100)}
-            src={player.portrait}
-            alt="portrait"
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              pointerEvents: "none",
-              userSelect: "none",
-              display: "block",
-            }}
-            draggable={false}
-          />
-        ) : (
-          <span style={{ fontSize: "0.6rem", color: "#aaa" }}>
-            Portrait
-          </span>
-        )}
+      <div style={{ display: "flex", gap: "8px", alignItems: "center", width: "100%" }}>
+        {/* Pixel class icon */}
+        <div
+          style={{
+            width: "24px",
+            height: "24px",
+            background: "linear-gradient(135deg, var(--hero-blue) 0%, var(--hero-gold) 100%)",
+            border: "2px solid var(--hero-gold-light)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "14px",
+            boxShadow: "0 0 6px rgba(68, 125, 247, 0.4)",
+          }}
+        >
+          ⚔️
+        </div>
+        <div
+          className="player-portrait"
+          style={{
+            transform: (player.micLevel ?? 0) > 0.1
+              ? `scale(${1 + (player.micLevel ?? 0) * 0.2})`
+              : "scale(1)",
+            transition: "transform 0.1s ease-out",
+            flex: 1,
+          }}
+        >
+          {player.portrait && (
+            <img
+              key={player.portrait.substring(0, 100)}
+              src={player.portrait}
+              alt="portrait"
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                pointerEvents: "none",
+                userSelect: "none",
+                display: "block",
+              }}
+              draggable={false}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* HP Bar with numerical display and drag support */}
+      <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "4px" }}>
+        <div style={{ fontSize: "0.6rem", color: "var(--hero-text-dim)", textAlign: "center" }}>
+          HP: {player.hp ?? 100} / {editingMaxHp ? (
+            <input
+              type="number"
+              value={maxHpInput}
+              onChange={(e) => onMaxHpInputChange(e.target.value)}
+              onBlur={() => onMaxHpSubmit(maxHpInput)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  onMaxHpSubmit(maxHpInput);
+                }
+              }}
+              autoFocus
+              style={{
+                width: "40px",
+                fontSize: "0.6rem",
+                background: "#111",
+                color: "var(--hero-blue)",
+                border: "1px solid var(--hero-gold)",
+                padding: "1px 2px",
+                textAlign: "center",
+              }}
+            />
+          ) : (
+            <span
+              onClick={() => {
+                if (isMe) {
+                  onMaxHpEdit(player.uid, player.maxHp ?? 100);
+                }
+              }}
+              style={{
+                cursor: isMe ? "pointer" : "default",
+                textDecoration: isMe ? "underline" : "none",
+              }}
+            >
+              {player.maxHp ?? 100}
+            </span>
+          )}
+        </div>
+        <div
+          className="stat-bar hp"
+          style={{
+            cursor: isMe ? "ew-resize" : "default",
+            position: "relative"
+          }}
+          onMouseDown={isMe ? (e: React.MouseEvent<HTMLDivElement>) => {
+            e.preventDefault();
+            const bar = e.currentTarget;
+            const rect = bar.getBoundingClientRect();
+
+            const handleMouseMove = (moveEvent: MouseEvent) => {
+              const x = moveEvent.clientX - rect.left;
+              const percentage = Math.max(0, Math.min(1, x / rect.width));
+              const newHp = Math.round(percentage * (player.maxHp ?? 100));
+              onHpChange(newHp);
+            };
+
+            const handleMouseUp = () => {
+              document.removeEventListener("mousemove", handleMouseMove);
+              document.removeEventListener("mouseup", handleMouseUp);
+            };
+
+            document.addEventListener("mousemove", handleMouseMove);
+            document.addEventListener("mouseup", handleMouseUp);
+            handleMouseMove(e.nativeEvent);
+          } : undefined}
+        >
+          <div
+            className="stat-bar-fill"
+            style={{ width: `${((player.hp ?? 100) / (player.maxHp ?? 100)) * 100}%` }}
+          ></div>
+        </div>
       </div>
 
       {isMe && (
         <>
           <div style={{ display: "flex", gap: "4px" }}>
             <button
-              style={{
-                fontSize: "0.7rem",
-                padding: "2px 6px",
-                background: "#6cf",
-                border: "none",
-                cursor: "pointer",
-              }}
+              className="btn btn-primary"
+              style={{ fontSize: "0.7rem", padding: "4px 8px" }}
               onClick={onPortraitLoad}
             >
               Load
             </button>
             <button
-              style={{
-                fontSize: "0.7rem",
-                padding: "2px 6px",
-                background: micEnabled ? "#f66" : "#6c6",
-                border: "none",
-                cursor: "pointer",
-              }}
+              className={micEnabled ? "btn btn-danger" : "btn btn-success"}
+              style={{ fontSize: "0.7rem", padding: "4px 8px" }}
               onClick={onToggleMic}
               title={micEnabled ? "Mute mic" : "Enable mic"}
             >
@@ -217,7 +310,7 @@ const PlayerCard = memo<PlayerCardProps>(({
         </>
       )}
       {!isMe && (
-        <div style={{ height: "22px" }} />
+        <div style={{ height: "30px" }} />
       )}
     </div>
   );
@@ -227,11 +320,15 @@ const PlayerCard = memo<PlayerCardProps>(({
     prevProps.player.name === nextProps.player.name &&
     prevProps.player.portrait === nextProps.player.portrait &&
     prevProps.player.micLevel === nextProps.player.micLevel &&
+    prevProps.player.hp === nextProps.player.hp &&
+    prevProps.player.maxHp === nextProps.player.maxHp &&
     prevProps.tokenColor === nextProps.tokenColor &&
     prevProps.micEnabled === nextProps.micEnabled &&
     prevProps.micLevel === nextProps.micLevel &&
     prevProps.editingPlayerUID === nextProps.editingPlayerUID &&
-    prevProps.nameInput === nextProps.nameInput
+    prevProps.nameInput === nextProps.nameInput &&
+    prevProps.editingMaxHpUID === nextProps.editingMaxHpUID &&
+    prevProps.maxHpInput === nextProps.maxHpInput
   );
 });
 
@@ -252,6 +349,10 @@ export const App: React.FC = () => {
   // Player name editing
   const [editingPlayerUID, setEditingPlayerUID] = useState<string | null>(null);
   const [nameInput, setNameInput] = useState("");
+
+  // Max HP editing
+  const [editingMaxHpUID, setEditingMaxHpUID] = useState<string | null>(null);
+  const [maxHpInput, setMaxHpInput] = useState("");
 
   // Map controls
   const [snapToGrid, setSnapToGrid] = useState(true);
@@ -286,6 +387,26 @@ export const App: React.FC = () => {
   // Context menu
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; tokenId: string } | null>(null);
 
+  // CRT filter toggle
+  const [crtFilter, setCrtFilter] = useState(false);
+
+  // Dice roller toggle and state
+  const [diceRollerOpen, setDiceRollerOpen] = useState(false);
+  const [rollLogOpen, setRollLogOpen] = useState(false);
+  const [viewingRoll, setViewingRoll] = useState<RollResult | null>(null);
+
+  // Get roll history from server snapshot
+  const rollHistory: RollLogEntry[] = React.useMemo(() => {
+    return (snapshot?.diceRolls || []).map((roll) => ({
+      id: roll.id,
+      playerName: roll.playerName,
+      tokens: [], // Not needed for display
+      perDie: roll.breakdown,
+      total: roll.total,
+      timestamp: roll.timestamp,
+    }));
+  }, [snapshot?.diceRolls]);
+
   // -------------------------------------------------------------------------
   // VOICE CHAT
   // -------------------------------------------------------------------------
@@ -314,8 +435,7 @@ export const App: React.FC = () => {
    */
   useEffect(() => {
     const n = new NetClient();
-    const wsHost = window.location.hostname || "localhost";
-    n.connect(`http://${wsHost}:8787`, uid, (snap) => setSnapshot(snap));
+    n.connect(WS_URL, uid, (snap) => setSnapshot(snap));
     setNet(n);
   }, [uid]);
 
@@ -440,6 +560,10 @@ export const App: React.FC = () => {
     net?.send({ t: "portrait", data: url });
   };
 
+  const setPlayerHP = (hp: number, maxHp: number) => {
+    net?.send({ t: "set-hp", hp, maxHp });
+  };
+
   /**
    * Map actions
    */
@@ -463,6 +587,7 @@ export const App: React.FC = () => {
       {/* Drawing Toolbar - Fixed on left side when draw mode is active */}
       {drawMode && (
         <div
+          className="drawing-toolbar"
           onMouseDown={(e) => e.stopPropagation()}
           onMouseMove={(e) => e.stopPropagation()}
           onMouseUp={(e) => e.stopPropagation()}
@@ -473,10 +598,6 @@ export const App: React.FC = () => {
             top: "50%",
             transform: "translateY(-50%)",
             zIndex: 200,
-            background: "#1a1c24",
-            border: "2px solid #555",
-            padding: "12px",
-            borderRadius: "8px",
             display: "flex",
             flexDirection: "column",
             gap: "12px",
@@ -484,7 +605,7 @@ export const App: React.FC = () => {
             maxWidth: "250px"
           }}
         >
-          <h4 style={{ margin: 0, color: "#6cf", fontSize: "0.9rem" }}>Drawing Tools</h4>
+          <h4 className="title-pixel" style={{ margin: 0, color: "var(--hero-gold)", fontSize: "0.9rem" }}>Drawing Tools</h4>
 
           {/* Tool Selection */}
           <div>
@@ -492,71 +613,36 @@ export const App: React.FC = () => {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
               <button
                 onClick={() => setDrawTool("freehand")}
-                style={{
-                  padding: "6px",
-                  background: drawTool === "freehand" ? "#6cf" : "#333",
-                  border: "1px solid #555",
-                  cursor: "pointer",
-                  fontSize: "0.7rem",
-                  color: "#fff"
-                }}
+                className={drawTool === "freehand" ? "tool-button active" : "tool-button"}
                 title="Freehand Draw"
               >
                 ✏️ Draw
               </button>
               <button
                 onClick={() => setDrawTool("line")}
-                style={{
-                  padding: "6px",
-                  background: drawTool === "line" ? "#6cf" : "#333",
-                  border: "1px solid #555",
-                  cursor: "pointer",
-                  fontSize: "0.7rem",
-                  color: "#fff"
-                }}
+                className={drawTool === "line" ? "tool-button active" : "tool-button"}
                 title="Line Tool"
               >
                 📏 Line
               </button>
               <button
                 onClick={() => setDrawTool("rect")}
-                style={{
-                  padding: "6px",
-                  background: drawTool === "rect" ? "#6cf" : "#333",
-                  border: "1px solid #555",
-                  cursor: "pointer",
-                  fontSize: "0.7rem",
-                  color: "#fff"
-                }}
+                className={drawTool === "rect" ? "tool-button active" : "tool-button"}
                 title="Rectangle Tool"
               >
                 ▭ Rect
               </button>
               <button
                 onClick={() => setDrawTool("circle")}
-                style={{
-                  padding: "6px",
-                  background: drawTool === "circle" ? "#6cf" : "#333",
-                  border: "1px solid #555",
-                  cursor: "pointer",
-                  fontSize: "0.7rem",
-                  color: "#fff"
-                }}
+                className={drawTool === "circle" ? "tool-button active" : "tool-button"}
                 title="Circle Tool"
               >
                 ⬤ Circle
               </button>
               <button
                 onClick={() => setDrawTool("eraser")}
-                style={{
-                  padding: "6px",
-                  background: drawTool === "eraser" ? "#6cf" : "#333",
-                  border: "1px solid #555",
-                  cursor: "pointer",
-                  fontSize: "0.7rem",
-                  color: "#fff",
-                  gridColumn: "1 / -1"
-                }}
+                className={drawTool === "eraser" ? "tool-button active" : "tool-button"}
+                style={{ gridColumn: "1 / -1" }}
                 title="Eraser"
               >
                 🧹 Eraser
@@ -564,23 +650,36 @@ export const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Color Palette */}
+          {/* Color Palette - Limited Retro Colors */}
           {drawTool !== "eraser" && (
             <div>
               <label style={{ fontSize: "0.75rem", display: "block", marginBottom: "4px" }}>Color:</label>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "4px", marginBottom: "6px" }}>
-                {["#ffffff", "#000000", "#ff0000", "#00ff00", "#0000ff", "#ffff00",
-                  "#ff00ff", "#00ffff", "#ff8800", "#8800ff", "#888888", "#ff88cc"].map(color => (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "4px", marginBottom: "6px" }}>
+                {[
+                  "#ffffff", // White
+                  "#000000", // Black
+                  "#ff0000", // Enemy Red
+                  "#0000ff", // Ally Blue
+                  "#888888", // Wall Grey
+                  "#FF3C64E", // Hero Gold
+                  "#447DF7", // Hero Blue
+                  "#66cc66", // Success Green
+                  "#ffff00", // Yellow
+                  "#ff00ff", // Magenta
+                  "#00ffff", // Cyan
+                  "#ff8800", // Orange
+                ].map(color => (
                   <button
                     key={color}
                     onClick={() => setDrawColor(color)}
                     style={{
-                      width: "24px",
-                      height: "24px",
+                      width: "100%",
+                      height: "28px",
                       background: color,
-                      border: drawColor === color ? "2px solid #fff" : "1px solid #555",
+                      border: drawColor === color ? "3px solid var(--hero-gold)" : "2px solid var(--hero-gold-light)",
                       cursor: "pointer",
-                      padding: 0
+                      padding: 0,
+                      boxShadow: drawColor === color ? "0 0 8px var(--hero-gold)" : "none"
                     }}
                     title={color}
                   />
@@ -592,9 +691,8 @@ export const App: React.FC = () => {
                 onChange={(e) => setDrawColor(e.target.value)}
                 style={{
                   width: "100%",
-                  height: "30px",
-                  cursor: "pointer",
-                  border: "1px solid #555"
+                  height: "32px",
+                  cursor: "pointer"
                 }}
               />
             </div>
@@ -648,17 +746,13 @@ export const App: React.FC = () => {
           {/* Clear All Button */}
           <button
             onClick={() => net?.send({ t: "clear-drawings" })}
+            className="btn btn-danger"
             style={{
-              padding: "8px",
-              background: "#f66",
-              border: "none",
-              cursor: "pointer",
               fontSize: "0.75rem",
-              color: "#fff",
               marginTop: "8px"
             }}
           >
-            🗑️ Clear All Drawings
+            🗑️ Clear All
           </button>
         </div>
       )}
@@ -696,14 +790,7 @@ export const App: React.FC = () => {
                   window.location.reload();
                 }
               }}
-              style={{
-                padding: "4px 8px",
-                background: "#6c6",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "0.8rem",
-                color: "#fff"
-              }}
+              className="btn btn-success"
             >
               New Player
             </button>
@@ -713,14 +800,7 @@ export const App: React.FC = () => {
                   net?.send({ t: "clear-all-tokens" });
                 }
               }}
-              style={{
-                padding: "4px 8px",
-                background: "#f66",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "0.8rem",
-                color: "#fff"
-              }}
+              className="btn btn-danger"
             >
               Clear Old
             </button>
@@ -796,6 +876,33 @@ export const App: React.FC = () => {
             />
             <label htmlFor="drawMode">Draw ✏️</label>
           </div>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <input
+              id="crtFilter"
+              type="checkbox"
+              checked={crtFilter}
+              onChange={(e) => setCrtFilter(e.target.checked)}
+            />
+            <label htmlFor="crtFilter">CRT Filter 📺</label>
+          </div>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <input
+              id="diceRoller"
+              type="checkbox"
+              checked={diceRollerOpen}
+              onChange={(e) => setDiceRollerOpen(e.target.checked)}
+            />
+            <label htmlFor="diceRoller">Dice Roller ⚂</label>
+          </div>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <input
+              id="rollLog"
+              type="checkbox"
+              checked={rollLogOpen}
+              onChange={(e) => setRollLogOpen(e.target.checked)}
+            />
+            <label htmlFor="rollLog">Roll Log 📜</label>
+          </div>
           <div>
             <button
               onClick={() => {
@@ -804,13 +911,7 @@ export const App: React.FC = () => {
                   setMapBackgroundURL(url.trim());
                 }
               }}
-              style={{
-                padding: "4px 12px",
-                background: "#6cf",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "0.9rem",
-              }}
+              className="btn btn-primary"
             >
               Load Map
             </button>
@@ -863,7 +964,7 @@ export const App: React.FC = () => {
           borderRadius: 0
         }}
       >
-        <h3 style={{ margin: "0 0 8px 0", color: "#6cf" }}>Party</h3>
+        <h3 style={{ margin: "0 0 8px 0" }}>Party</h3>
         <div
           style={{
             display: "flex",
@@ -902,6 +1003,23 @@ export const App: React.FC = () => {
                   }
                 }}
                 onToggleMic={toggleMic}
+                onHpChange={(hp) => {
+                  setPlayerHP(hp, p.maxHp ?? 100);
+                }}
+                editingMaxHpUID={editingMaxHpUID}
+                maxHpInput={maxHpInput}
+                onMaxHpInputChange={setMaxHpInput}
+                onMaxHpEdit={(uid, maxHp) => {
+                  setMaxHpInput(String(maxHp));
+                  setEditingMaxHpUID(uid);
+                }}
+                onMaxHpSubmit={(maxHpStr) => {
+                  const newMaxHp = parseInt(maxHpStr, 10);
+                  if (!isNaN(newMaxHp) && newMaxHp > 0) {
+                    setPlayerHP(p.hp ?? 100, newMaxHp);
+                  }
+                  setEditingMaxHpUID(null);
+                }}
               />
             );
           })}
@@ -923,15 +1041,10 @@ export const App: React.FC = () => {
           onClick={(e) => e.stopPropagation()}
         >
           <button
+            className="btn btn-danger"
             style={{
               display: "block",
               width: "100%",
-              padding: "8px 16px",
-              background: "#f66",
-              border: "none",
-              cursor: "pointer",
-              color: "#fff",
-              fontSize: "0.9rem",
             }}
             onClick={() => {
               deleteToken(contextMenu.tokenId);
@@ -940,6 +1053,86 @@ export const App: React.FC = () => {
           >
             Delete Token
           </button>
+        </div>
+      )}
+
+      {/* CRT Scanline Filter with Arcade Bezel */}
+      {crtFilter && (
+        <>
+          <div className="crt-vignette" />
+          <div className="crt-filter" />
+          <div className="crt-bezel" />
+        </>
+      )}
+
+      {/* Ambient Pixel Sparkles */}
+      <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1 }}>
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="pixel-sparkle" />
+        ))}
+      </div>
+
+      {/* Dice Roller Panel */}
+      {diceRollerOpen && (
+        <DiceRoller
+          onRoll={(result: RollResult) => {
+            const me = snapshot?.players?.find((p: Player) => p.uid === uid);
+            const playerName = me?.name || "Unknown";
+
+            // Build formula string
+            const formula = result.tokens.map((t) => {
+              if (t.kind === 'die') {
+                return t.qty > 1 ? `${t.qty}${t.die}` : t.die;
+              } else {
+                return t.value >= 0 ? `+${t.value}` : `${t.value}`;
+              }
+            }).join(' ');
+
+            // Broadcast to server
+            net?.send({
+              t: "dice-roll",
+              roll: {
+                id: result.id,
+                playerUid: uid,
+                playerName,
+                formula,
+                total: result.total,
+                breakdown: result.perDie,
+                timestamp: result.timestamp,
+              },
+            });
+          }}
+          onClose={() => setDiceRollerOpen(false)}
+        />
+      )}
+
+      {/* Roll Log Panel */}
+      {rollLogOpen && (
+        <div
+          style={{
+            position: "fixed",
+            right: 20,
+            top: 200,
+            width: 350,
+            height: 500,
+            zIndex: 1000,
+          }}
+        >
+          <RollLog
+            rolls={rollHistory}
+            onClearLog={() => net?.send({ t: "clear-roll-history" })}
+            onViewRoll={(roll) => setViewingRoll(roll)}
+          />
+        </div>
+      )}
+
+      {/* Viewing roll from log */}
+      {viewingRoll && (
+        <div style={{ position: "fixed", zIndex: 2000 }}>
+          <DiceRoller
+            onRoll={() => {}}
+            onClose={() => setViewingRoll(null)}
+          />
         </div>
       )}
     </div>

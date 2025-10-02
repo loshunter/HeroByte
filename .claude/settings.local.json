@@ -5,7 +5,22 @@
       "Bash(pnpm remove:*)",
       "Bash(npm run build:*)",
       "Bash(npm run:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(pnpm dev:*)",
+      "Bash(pgrep:*)",
+      "Bash(node:*)",
+      "Bash(pnpm build:*)",
+      "Bash(cat:*)",
+      "Bash(pkill:*)",
+      "Bash(kill:*)",
+      "Bash(lsof:*)",
+      "Bash(awk:*)",
+      "Bash(xargs kill:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm --filter vtt-server build)"
     ],
     "deny": [],
     "ask": []

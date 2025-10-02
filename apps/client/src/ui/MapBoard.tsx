@@ -62,9 +62,9 @@ function GridLayer({
   cam,
   viewport,
   gridSize = 50,
-  color = "#5b5f75",
+  color = "#447DF7",
   majorEvery = 5,
-  opacity = 0.25,
+  opacity = 0.15,
 }: {
   cam: Camera;
   viewport: { w: number; h: number };
@@ -86,7 +86,7 @@ function GridLayer({
 
   const lines: JSX.Element[] = [];
 
-  // Generate vertical grid lines
+  // Generate vertical grid lines with subtle glow
   for (let x = startX; x <= maxX; x += step) {
     const isMajor = Math.round(x / step) % majorEvery === 0;
     lines.push(
@@ -94,14 +94,17 @@ function GridLayer({
         key={`vx-${x}`}
         points={[x, minY, x, maxY]}
         stroke={color}
-        opacity={isMajor ? opacity * 1.5 : opacity}
-        strokeWidth={isMajor ? 1.5 / cam.scale : 1 / cam.scale}
+        opacity={isMajor ? opacity * 2 : opacity}
+        strokeWidth={isMajor ? 2 / cam.scale : 1.5 / cam.scale}
         listening={false}
+        shadowColor={color}
+        shadowBlur={isMajor ? 3 : 1.5}
+        shadowOpacity={isMajor ? 0.4 : 0.2}
       />
     );
   }
 
-  // Generate horizontal grid lines
+  // Generate horizontal grid lines with subtle glow
   for (let y = startY; y <= maxY; y += step) {
     const isMajor = Math.round(y / step) % majorEvery === 0;
     lines.push(
@@ -109,9 +112,12 @@ function GridLayer({
         key={`hy-${y}`}
         points={[minX, y, maxX, y]}
         stroke={color}
-        opacity={isMajor ? opacity * 1.5 : opacity}
-        strokeWidth={isMajor ? 1.5 / cam.scale : 1 / cam.scale}
+        opacity={isMajor ? opacity * 2 : opacity}
+        strokeWidth={isMajor ? 2 / cam.scale : 1.5 / cam.scale}
         listening={false}
+        shadowColor={color}
+        shadowBlur={isMajor ? 3 : 1.5}
+        shadowOpacity={isMajor ? 0.4 : 0.2}
       />
     );
   }
@@ -624,9 +630,9 @@ export default function MapBoard({
   const [grid, setGrid] = useState({
     show: true,
     size: gridSize,
-    color: "#5b5f75",
+    color: "#447DF7",
     majorEvery: 5,
-    opacity: 0.25,
+    opacity: 0.15,
   });
 
   const stageRef = useRef<any>(null);
@@ -841,10 +847,10 @@ export default function MapBoard({
   return (
     <div
       ref={ref}
+      className="map-canvas-wrapper"
       style={{
         width: "100%",
         height: "100%",
-        background: "#0b0d12",
         color: "#dbe1ff",
         position: "relative",
       }}
@@ -875,7 +881,7 @@ export default function MapBoard({
               gridSize={grid.size}
               color={grid.color}
               majorEvery={5}
-              opacity={0.25}
+              opacity={grid.opacity}
             />
           </Layer>
         )}

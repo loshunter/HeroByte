@@ -74,6 +74,9 @@ importers:
       '@hono/node-server':
         specifier: ^1.12.0
         version: 1.19.5(hono@4.9.9)
+      '@shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@types/node':
         specifier: ^24.6.1
         version: 24.6.1
@@ -102,7 +105,11 @@ importers:
 
   packages/adapters-net: {}
 
-  packages/shared: {}
+  packages/shared:
+    devDependencies:
+      typescript:
+        specifier: ^5.5.4
+        version: 5.9.2
 
 packages:
 

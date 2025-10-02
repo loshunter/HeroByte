@@ -20,6 +20,24 @@ export interface Token {
 }
 
 /**
+ * DiceRoll: Represents a dice roll result for network sync
+ */
+export interface DiceRoll {
+  id: string;          // Unique roll identifier
+  playerUid: string;   // Who made the roll
+  playerName: string;  // Player name at time of roll
+  formula: string;     // Human-readable formula (e.g., "2d20 + 5")
+  total: number;       // Final result
+  breakdown: {         // Detailed breakdown per die/modifier
+    tokenId: string;
+    die?: string;
+    rolls?: number[];
+    subtotal: number;
+  }[];
+  timestamp: number;   // When the roll occurred
+}
+
+/**
  * Player: Represents a connected player in the session
  */
 export interface Player {
@@ -27,6 +45,8 @@ export interface Player {
   name: string;        // Display name
   portrait?: string;   // Base64 encoded image or URL
   micLevel?: number;   // Current microphone level (0-1) for visual feedback
+  hp?: number;         // Current hit points
+  maxHp?: number;      // Maximum hit points
 }
 
 /**
@@ -69,6 +89,7 @@ export interface RoomSnapshot {
   pointers: Pointer[];      // Active pointer indicators
   drawings: Drawing[];      // All drawings on the canvas
   gridSize: number;         // Synchronized grid size for all clients
+  diceRolls: DiceRoll[];    // History of dice rolls
 }
 
 // ----------------------------------------------------------------------------
@@ -88,6 +109,7 @@ export type ClientMessage =
   | { t: "portrait"; data: string }                      // Update player portrait
   | { t: "rename"; name: string }                        // Change player name
   | { t: "mic-level"; level: number }                    // Update mic level for visual feedback
+  | { t: "set-hp"; hp: number; maxHp: number }           // Update player HP
 
   // Map/canvas actions
   | { t: "map-background"; data: string }                // Set map background image
@@ -95,6 +117,10 @@ export type ClientMessage =
   | { t: "point"; x: number; y: number }                 // Place pointer indicator
   | { t: "draw"; drawing: Drawing }                      // Add a drawing
   | { t: "clear-drawings" }                              // Remove all drawings
+
+  // Dice rolls
+  | { t: "dice-roll"; roll: DiceRoll }                   // Broadcast a dice roll
+  | { t: "clear-roll-history" }                          // Clear all dice rolls
 
   // Room management
   | { t: "clear-all-tokens" }                            // Remove all tokens/players except self

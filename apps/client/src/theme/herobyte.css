@@ -1,0 +1,825 @@
+/* ============================================================================
+   HEROBYTE RETRO RPG THEME
+   ============================================================================
+   A complete pixel-art SNES/NES-inspired theme system for HeroByte VTT
+
+   Color Palette:
+   - Gold/Orange: #FF3C64E, #F0E2C3 (accent buttons, highlights)
+   - Blue: #447DF (glowing accents, highlights)
+   - Dark Navy: #0B000246, #202020 (shadows, frames, backgrounds)
+   - Enemy Red: #FF0000
+   - Ally Blue: #0000FF
+   - Wall Grey: #888888
+   ============================================================================ */
+
+/* ----------------------------------------------------------------------------
+   FONTS
+   ---------------------------------------------------------------------------- */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap');
+
+/* ----------------------------------------------------------------------------
+   CSS VARIABLES - HEROBYTE DESIGN TOKENS
+   ---------------------------------------------------------------------------- */
+:root {
+  /* Color Palette - Gold Dominant, Blue Accent */
+  --hero-gold: #FF3C64E;
+  --hero-gold-light: #F0E2C3;
+  --hero-blue: #447DF7;
+  --hero-blue-glow: rgba(68, 125, 247, 0.6);
+  --hero-navy-dark: #0B0246;
+  --hero-navy: #202020;
+  --hero-bg-dark: #0b0d12;
+  --hero-text-light: #F0E2C3;
+  --hero-text-dim: #a89878;
+  --hero-text-accent: #dbe1ff;
+
+  /* Semantic Colors */
+  --hero-enemy: #FF0000;
+  --hero-ally: #0000FF;
+  --hero-wall: #888888;
+  --hero-danger: #ff6666;
+  --hero-success: #66cc66;
+
+  /* Grid & Map */
+  --hero-grid-color: var(--hero-blue);
+  --hero-grid-opacity: 0.15;
+  --hero-grid-glow: rgba(68, 125, 247, 0.3);
+
+  /* Borders & Frames */
+  --hero-border-width: 4px;
+  --hero-border-color: var(--hero-gold-light);
+  --hero-border-shadow: 0 4px 0 var(--hero-navy-dark), 4px 4px 0 var(--hero-navy);
+  --hero-border-inset: inset 0 -2px 0 rgba(0, 0, 0, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.2);
+
+  /* Typography */
+  --font-pixel: 'Press Start 2P', monospace;
+  --font-enchanted: 'MedievalSharp', serif;
+
+  /* Animation Timing */
+  --anim-fast: 150ms;
+  --anim-normal: 250ms;
+  --anim-slow: 400ms;
+
+  /* Button States */
+  --btn-shadow-active: 0 2px 0 var(--hero-navy-dark);
+  --btn-translate-active: translateY(2px);
+}
+
+/* ----------------------------------------------------------------------------
+   GLOBAL STYLES
+   ---------------------------------------------------------------------------- */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+body {
+  background:
+    /* Pixel dithered noise texture */
+    repeating-conic-gradient(#0B0A24 0% 25%, #0d0c28 0% 50%) 50% / 2px 2px,
+    /* Subtle diagonal lines */
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 4px,
+      rgba(68, 125, 247, 0.03) 4px,
+      rgba(68, 125, 247, 0.03) 8px
+    ),
+    /* Radial vignette */
+    radial-gradient(ellipse at center, #0f0e2a 0%, #0B0A24 100%);
+  color: var(--hero-text-light);
+  font-family: var(--font-pixel);
+  font-size: 12px;
+  line-height: 1.5;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ----------------------------------------------------------------------------
+   PIXEL-ART PANELS & FRAMES
+   ---------------------------------------------------------------------------- */
+.panel {
+  background:
+    /* Pixel texture overlay */
+    repeating-conic-gradient(rgba(255,255,255,0.02) 0% 25%, transparent 0% 50%) 50% / 2px 2px,
+    /* SNES-style gradient */
+    linear-gradient(180deg, #2a2845 0%, #1a1835 50%, #0f0e2a 100%);
+  border: 6px solid;
+  border-image-source: linear-gradient(135deg, var(--hero-gold-light) 0%, var(--hero-gold) 50%, var(--hero-gold-light) 100%);
+  border-image-slice: 2;
+  box-shadow:
+    /* Outer glow */
+    0 0 12px rgba(240, 226, 195, 0.3),
+    /* Drop shadow */
+    0 6px 0 var(--hero-navy-dark),
+    6px 6px 0 rgba(11, 2, 70, 0.8),
+    /* Inner highlight */
+    inset 0 2px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.6);
+  padding: 16px 20px;
+  margin: 8px;
+  position: relative;
+}
+
+/* Panel decorative corner gems */
+.panel::before,
+.panel::after {
+  content: '◆';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justifyContent: center;
+  font-size: 12px;
+  color: var(--hero-gold);
+  text-shadow:
+    0 0 8px var(--hero-gold),
+    0 0 4px var(--hero-gold-light),
+    2px 2px 2px rgba(0, 0, 0, 0.8);
+  animation: sparkle 3s ease-in-out infinite;
+  z-index: 10;
+}
+
+.panel::before {
+  top: -8px;
+  left: -8px;
+}
+
+.panel::after {
+  top: -8px;
+  right: -8px;
+  animation-delay: 1.5s;
+}
+
+/* Additional corner decorations */
+.panel-decorated::before,
+.panel-decorated::after {
+  content: '◆';
+  position: absolute;
+  color: var(--hero-gold);
+  font-size: 8px;
+  text-shadow: 0 0 4px var(--hero-gold);
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+/* ----------------------------------------------------------------------------
+   BUTTONS - CHUNKY PIXEL STYLE
+   ---------------------------------------------------------------------------- */
+button,
+.btn {
+  background: linear-gradient(180deg, var(--hero-gold) 0%, var(--hero-gold-light) 100%);
+  border: 3px solid;
+  border-color: var(--hero-gold-light) var(--hero-navy-dark) var(--hero-navy-dark) var(--hero-gold-light);
+  color: var(--hero-navy-dark);
+  padding: 8px 16px;
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  cursor: pointer;
+  position: relative;
+  box-shadow: 0 4px 0 var(--hero-navy-dark);
+  transition: all var(--anim-fast) ease;
+  image-rendering: pixelated;
+  user-select: none;
+}
+
+button:hover,
+.btn:hover {
+  background: linear-gradient(180deg, #FFD700 0%, var(--hero-gold) 100%);
+  box-shadow: 0 4px 0 var(--hero-navy-dark), 0 0 12px var(--hero-gold);
+  animation: button-bounce 0.6s ease-in-out;
+}
+
+button:active,
+.btn:active {
+  transform: var(--btn-translate-active);
+  box-shadow: var(--btn-shadow-active);
+}
+
+button:disabled,
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  animation: none;
+}
+
+/* Button Variants */
+.btn-primary {
+  background: linear-gradient(180deg, var(--hero-blue) 0%, #3366CC 100%);
+  border-color: #6699FF var(--hero-navy-dark) var(--hero-navy-dark) #6699FF;
+  color: white;
+}
+
+.btn-danger {
+  background: linear-gradient(180deg, #FF6666 0%, #CC0000 100%);
+  border-color: #FF9999 var(--hero-navy-dark) var(--hero-navy-dark) #FF9999;
+  color: white;
+}
+
+.btn-success {
+  background: linear-gradient(180deg, var(--hero-gold) 0%, var(--hero-gold-light) 100%);
+  border-color: var(--hero-gold-light) var(--hero-navy-dark) var(--hero-navy-dark) var(--hero-gold-light);
+  color: var(--hero-navy-dark);
+  font-weight: bold;
+}
+
+/* ----------------------------------------------------------------------------
+   CHECKBOXES - PIXEL SWORD ICONS
+   ---------------------------------------------------------------------------- */
+input[type="checkbox"] {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--hero-navy-dark);
+  border: 2px solid var(--hero-gold-light);
+  cursor: pointer;
+  position: relative;
+  image-rendering: pixelated;
+  transition: all var(--anim-fast) ease;
+}
+
+input[type="checkbox"]:hover {
+  border-color: var(--hero-gold);
+  box-shadow: 0 0 8px var(--hero-blue-glow);
+}
+
+input[type="checkbox"]:checked {
+  background: var(--hero-gold);
+  border-color: var(--hero-gold-light);
+}
+
+input[type="checkbox"]:checked::after {
+  content: '⚔';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--hero-navy-dark);
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* ----------------------------------------------------------------------------
+   SLIDERS - PIXEL ORB TRACK
+   ---------------------------------------------------------------------------- */
+input[type="range"] {
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  background: linear-gradient(180deg, var(--hero-navy-dark) 0%, var(--hero-navy) 100%);
+  border: 2px solid var(--hero-gold-light);
+  outline: none;
+  cursor: pointer;
+  position: relative;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(circle, var(--hero-gold) 0%, var(--hero-gold-light) 50%, var(--hero-gold) 100%);
+  border: 2px solid var(--hero-gold-light);
+  cursor: pointer;
+  box-shadow: 0 0 8px var(--hero-gold), 0 2px 4px rgba(0, 0, 0, 0.5);
+  transition: all var(--anim-fast) ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 12px var(--hero-gold), 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(circle, var(--hero-gold) 0%, var(--hero-gold-light) 50%, var(--hero-gold) 100%);
+  border: 2px solid var(--hero-gold-light);
+  cursor: pointer;
+  box-shadow: 0 0 8px var(--hero-gold), 0 2px 4px rgba(0, 0, 0, 0.5);
+  transition: all var(--anim-fast) ease;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 12px var(--hero-gold), 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+
+input[type="range"]:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ----------------------------------------------------------------------------
+   TEXT INPUTS
+   ---------------------------------------------------------------------------- */
+input[type="text"],
+input[type="color"],
+textarea,
+select {
+  background: var(--hero-navy-dark);
+  border: 2px solid var(--hero-gold-light);
+  color: var(--hero-text-light);
+  padding: 6px 8px;
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  outline: none;
+  transition: all var(--anim-fast) ease;
+}
+
+input[type="text"]:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--hero-blue);
+  box-shadow: 0 0 8px var(--hero-blue-glow);
+}
+
+input[type="color"] {
+  padding: 2px;
+  cursor: pointer;
+  height: 32px;
+}
+
+/* ----------------------------------------------------------------------------
+   TYPOGRAPHY - ENCHANTED TITLES & PIXEL TEXT
+   ---------------------------------------------------------------------------- */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-enchanted);
+  color: var(--hero-gold);
+  text-shadow:
+    2px 2px 0 var(--hero-navy-dark),
+    0 0 8px var(--hero-gold);
+  margin: 0;
+  line-height: 1.2;
+}
+
+h1 { font-size: 32px; }
+h2 { font-size: 24px; }
+h3 { font-size: 18px; }
+h4 { font-size: 16px; }
+
+.title-pixel {
+  font-family: var(--font-pixel);
+  text-transform: uppercase;
+}
+
+/* ----------------------------------------------------------------------------
+   PLAYER/PARTY PANEL STYLES
+   ---------------------------------------------------------------------------- */
+.player-card {
+  width: 160px;
+  background:
+    /* Pixel noise texture */
+    repeating-conic-gradient(rgba(255,255,255,0.015) 0% 25%, transparent 0% 50%) 50% / 2px 2px,
+    /* SNES menu gradient: navy → grey */
+    linear-gradient(180deg, #3a3860 0%, #2a2845 30%, #1a1835 70%, #0f0e2a 100%);
+  border: 4px solid;
+  border-image-source: linear-gradient(180deg, var(--hero-gold-light) 0%, var(--hero-gold) 100%);
+  border-image-slice: 2;
+  padding: 10px;
+  position: relative;
+  box-shadow:
+    /* Outer glow */
+    0 0 8px rgba(240, 226, 195, 0.2),
+    /* Drop shadow */
+    0 4px 0 var(--hero-navy-dark),
+    4px 4px 0 rgba(11, 2, 70, 0.6),
+    /* Inner bevel */
+    inset 0 2px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.5);
+}
+
+.player-card::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border: 1px solid rgba(68, 125, 247, 0.4);
+  pointer-events: none;
+  box-shadow: inset 0 0 12px rgba(68, 125, 247, 0.1);
+}
+
+.player-portrait {
+  width: 96px;
+  height: 96px;
+  background:
+    /* Subtle shimmer overlay */
+    repeating-linear-gradient(
+      45deg,
+      rgba(240, 226, 195, 0.02) 0px,
+      transparent 2px,
+      transparent 4px,
+      rgba(240, 226, 195, 0.02) 6px
+    ),
+    /* Checkerboard sprite slot pattern */
+    repeating-conic-gradient(#0d0c28 0% 25%, #0B0A24 0% 50%) 50% / 8px 8px;
+  border: 4px solid;
+  border-image-source: linear-gradient(135deg, var(--hero-gold-light) 0%, var(--hero-gold) 50%, var(--hero-gold-light) 100%);
+  border-image-slice: 1;
+  image-rendering: pixelated;
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--anim-fast) ease;
+  box-shadow:
+    /* Inset depth */
+    inset 3px 3px 5px rgba(0, 0, 0, 0.7),
+    inset -2px -2px 4px rgba(255, 255, 255, 0.08),
+    /* Outer gold glow */
+    0 0 12px rgba(255, 195, 77, 0.5),
+    0 0 4px rgba(240, 226, 195, 0.7);
+}
+
+/* Empty portrait placeholder icon */
+.player-portrait:empty::after {
+  content: '👤';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 48px;
+  opacity: 0.15;
+  filter: grayscale(1);
+  z-index: 1;
+}
+
+/* Shimmer effect on portraits */
+.player-portrait:not(:empty)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(240, 226, 195, 0.15) 50%,
+    transparent 100%
+  );
+  animation: shimmer 4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.player-portrait:hover {
+  animation: portrait-shimmer 1s ease-in-out;
+}
+
+.player-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
+}
+
+/* HP Bar - Chunky SNES Style */
+.stat-bar {
+  width: 100%;
+  height: 18px;
+  background:
+    /* Deep inset shadow */
+    linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 40%, transparent 60%, rgba(255,255,255,0.15) 100%),
+    /* Base dark navy */
+    #0B0A24;
+  border: 3px solid;
+  border-image-source: linear-gradient(90deg, var(--hero-gold-light) 0%, var(--hero-gold) 50%, var(--hero-gold-light) 100%);
+  border-image-slice: 1;
+  position: relative;
+  overflow: hidden;
+  margin: 6px 0;
+  box-shadow:
+    /* Deep inset top */
+    inset 3px 3px 6px rgba(0, 0, 0, 0.9),
+    /* Subtle bottom highlight */
+    inset -2px -2px 3px rgba(255, 255, 255, 0.08),
+    /* Outer glow */
+    0 0 6px rgba(240, 226, 195, 0.2);
+}
+
+.stat-bar-fill {
+  height: 100%;
+  background:
+    /* Chunky pixel gradient with banding */
+    linear-gradient(90deg,
+      #cc0000 0%, #dd2222 20%, #ee4444 40%, #ff6666 60%, #ff8888 80%, #ffaaaa 100%
+    );
+  transition: width var(--anim-normal) ease;
+  position: relative;
+  box-shadow:
+    /* Top highlight */
+    inset 0 2px 0 rgba(255, 255, 255, 0.4),
+    /* Bottom shadow */
+    inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+}
+
+.stat-bar-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background:
+    /* Retro shine effect */
+    linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.stat-bar.mp .stat-bar-fill {
+  background:
+    linear-gradient(90deg,
+      #0044cc 0%, #2266dd 20%, #4488ee 40%, #66aaff 60%, #88ccff 80%, #aaddff 100%
+    );
+}
+
+.stat-label {
+  font-size: 8px;
+  color: var(--hero-text-dim);
+  text-transform: uppercase;
+}
+
+/* ----------------------------------------------------------------------------
+   CRT SCANLINE FILTER WITH ARCADE BEZEL
+   ---------------------------------------------------------------------------- */
+
+/* Arcade cabinet bezel frame */
+.crt-bezel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10000;
+  /* Chunky arcade frame with wood grain texture */
+  box-shadow:
+    /* Inner monitor inset */
+    inset 0 0 0 20px #1a1410,
+    inset 0 0 0 24px #2d2520,
+    /* Wood grain bevel */
+    inset 0 0 0 40px #3a2f28,
+    inset 0 0 0 44px #4a3f38,
+    /* Outer cabinet edge */
+    inset 0 0 0 48px #1a1410;
+}
+
+.crt-filter {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  background:
+    /* Horizontal scanlines */
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.2) 0px,
+      transparent 1px,
+      transparent 2px,
+      rgba(0, 0, 0, 0.2) 3px
+    );
+  animation: scanline 8s linear infinite;
+}
+
+.crt-filter::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* RGB color separation (chromatic aberration) */
+  background:
+    radial-gradient(ellipse at center,
+      transparent 0%,
+      rgba(255, 0, 0, 0.01) 50%,
+      transparent 100%
+    );
+  mix-blend-mode: screen;
+}
+
+.crt-filter::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* Flickering effect */
+  background: rgba(255, 255, 255, 0.02);
+  animation: flicker 0.15s infinite;
+}
+
+.crt-vignette {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9998;
+  background:
+    /* Strong corner darkening that bleeds to full black */
+    radial-gradient(ellipse at center,
+      transparent 20%,
+      rgba(0, 0, 0, 0.3) 50%,
+      rgba(0, 0, 0, 0.7) 80%,
+      rgba(0, 0, 0, 1) 100%
+    );
+}
+
+@keyframes flicker {
+  0% { opacity: 0.97; }
+  50% { opacity: 1; }
+  100% { opacity: 0.97; }
+}
+
+/* ----------------------------------------------------------------------------
+   AMBIENT EFFECTS - PIXEL SPARKLES
+   ---------------------------------------------------------------------------- */
+.pixel-sparkle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: var(--hero-gold);
+  box-shadow: 0 0 8px var(--hero-gold);
+  animation: sparkle-float 3s ease-in-out infinite;
+  opacity: 0;
+}
+
+/* Distribute sparkles randomly */
+.pixel-sparkle:nth-child(1) { top: 10%; left: 15%; animation-delay: 0s; }
+.pixel-sparkle:nth-child(2) { top: 30%; left: 75%; animation-delay: 0.5s; }
+.pixel-sparkle:nth-child(3) { top: 60%; left: 25%; animation-delay: 1s; }
+.pixel-sparkle:nth-child(4) { top: 80%; left: 85%; animation-delay: 1.5s; }
+.pixel-sparkle:nth-child(5) { top: 20%; left: 50%; animation-delay: 2s; }
+
+/* ----------------------------------------------------------------------------
+   ANIMATIONS
+   ---------------------------------------------------------------------------- */
+@keyframes button-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes sparkle-float {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-20px) scale(1.5);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-40px) scale(0.5);
+  }
+}
+
+@keyframes portrait-shimmer {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.05);
+    filter: brightness(1.2);
+  }
+}
+
+@keyframes scanline {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(4px); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 8px var(--hero-blue-glow);
+  }
+  50% {
+    box-shadow: 0 0 16px var(--hero-blue);
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   GRID STYLES (for Konva canvas background)
+   ---------------------------------------------------------------------------- */
+.map-canvas-wrapper {
+  background:
+    /* Pixel dither texture (like old console RPGs) */
+    repeating-conic-gradient(#0B0A24 0% 25%, #0d0c28 0% 50%) 50% / 2px 2px,
+    /* Faint dungeon tile pattern */
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 49px,
+      rgba(68, 125, 247, 0.04) 49px,
+      rgba(68, 125, 247, 0.04) 50px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 49px,
+      rgba(68, 125, 247, 0.04) 49px,
+      rgba(68, 125, 247, 0.04) 50px
+    ),
+    /* Radial vignette for depth */
+    radial-gradient(ellipse at center, #0f0e2a 0%, #0B0A24 100%);
+  position: relative;
+}
+
+/* ----------------------------------------------------------------------------
+   DRAWING TOOLBAR PIXEL STYLE
+   ---------------------------------------------------------------------------- */
+.drawing-toolbar {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%),
+    var(--hero-bg-dark);
+  border: 3px solid;
+  border-image: linear-gradient(135deg, var(--hero-blue) 0%, var(--hero-gold) 100%) 1;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.7),
+    inset 0 2px 4px rgba(255, 255, 255, 0.1);
+  padding: 12px;
+  border-radius: 0;
+}
+
+.tool-button {
+  background: var(--hero-navy);
+  border: 2px solid var(--hero-gold-light);
+  color: var(--hero-text-light);
+  padding: 8px;
+  font-size: 10px;
+  transition: all var(--anim-fast) ease;
+}
+
+.tool-button.active {
+  background: var(--hero-blue);
+  border-color: var(--hero-gold);
+  color: white;
+  box-shadow: 0 0 12px var(--hero-blue-glow);
+}
+
+.tool-button:hover {
+  border-color: var(--hero-gold);
+  transform: scale(1.05);
+}
+
+/* ----------------------------------------------------------------------------
+   UTILITY CLASSES
+   ---------------------------------------------------------------------------- */
+.text-glow {
+  text-shadow: 0 0 8px currentColor;
+}
+
+.border-glow {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.pixelated {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+/* Loading animation (retro spinning token) */
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 4px solid var(--hero-navy);
+  border-top: 4px solid var(--hero-gold);
+  border-radius: 0;
+  animation: spin 1s linear infinite;
+  image-rendering: pixelated;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
