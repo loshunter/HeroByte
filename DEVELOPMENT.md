@@ -1,192 +1,100 @@
 # Development Workflow
 
-This guide explains how to work on HeroByte locally while keeping your live production deployment safe.
-
 ## Branch Strategy
 
-- **`main`**: Production branch - automatically deploys to:
-  - Server: Render (https://herobyte-server.onrender.com)
-  - Client: Cloudflare Pages (https://herobyte.pages.dev)
+- **`main`** - Stable production branch, deployed to live servers
+- **`dev`** - Development branch for new features and refactoring
 
-- **`dev`**: Development branch - for local testing and experimental features
+## Local Development
 
-## Local Development Setup
+### Running the Dev Branch
 
-### Quick Start (Recommended)
+Use these batch files to run the development version:
 
-From the repository root, run both server and client together:
+```batch
+# Terminal 1: Start the server
+start-server-dev.bat
 
-```bash
-pnpm dev
+# Terminal 2: Start the client
+start-client-dev.bat
 ```
 
-This starts:
-- Server on `http://localhost:8787`
-- Client on `http://localhost:5173`
+These scripts will:
+1. Automatically switch to the `dev` branch
+2. Start the development servers
+3. Client runs on http://localhost:5173
+4. Server runs on http://localhost:8787
 
-The client automatically connects to `ws://localhost:8787` via `.env.development`.
+### Running the Main Branch
 
-### Manual Start (Alternative)
+Use the original batch files to run the stable version:
 
-If you need to run them separately:
+```batch
+# Terminal 1: Start the server
+start-server.bat
 
-**Terminal 1 - Server:**
-```bash
-pnpm dev:server
+# Terminal 2: Start the client
+start-client.bat
 ```
 
-**Terminal 2 - Client:**
-```bash
-pnpm dev:client
+## Development Workflow
+
+1. **Make changes on dev branch**
+   ```bash
+   git checkout dev
+   # Make your changes
+   git add .
+   git commit -m "Your commit message"
+   ```
+
+2. **Test locally**
+   - Run `start-server-dev.bat` and `start-client-dev.bat`
+   - Test all functionality
+
+3. **Push to GitHub dev branch**
+   ```bash
+   git push origin dev
+   ```
+
+4. **When ready to deploy, merge to main**
+   ```bash
+   git checkout main
+   git merge dev
+   git push origin main
+   ```
+
+5. **Deploy to production**
+   - Server: Push to Render (auto-deploys from main branch)
+   - Client: Push to Cloudflare Pages (auto-deploys from main branch)
+
+## Current Architecture (Post-Phase 1 Refactoring)
+
+### Client Structure
+```
+apps/client/src/
+├── services/          # Service layer (WebSocket, etc.)
+├── hooks/             # React hooks (useWebSocket, etc.)
+├── utils/             # Utilities (session management, etc.)
+├── features/          # Feature-based modules
+│   └── map/
+│       ├── components/  # Map layer components
+│       └── types.ts     # Feature types
+├── components/        # Shared components
+└── ui/               # Main UI components
 ```
 
-### 3. Test Your Changes
-
-- Open http://localhost:5173 in your browser
-- Make changes to code - Vite will hot-reload the client
-- Server changes require restart (or use tsx watch mode)
-
-## Making Changes
-
-### Working on Features
-
-```bash
-# Switch to dev branch
-git checkout dev
-
-# Make your changes...
-# Test locally with pnpm dev
-
-# Commit your changes
-git add .
-git commit -m "Description of changes"
-
-# Push to dev branch
-git push origin dev
+### Shared Package
+```
+packages/shared/src/
+├── index.ts          # Type definitions and interfaces
+└── models.ts         # Domain model classes (TokenModel, PlayerModel)
 ```
 
-### Deploying to Production
+## Key Improvements in Dev Branch
 
-Only merge to `main` when you're ready to deploy:
-
-```bash
-# Make sure dev is working
-git checkout dev
-# Test locally...
-
-# Merge to main
-git checkout main
-git merge dev
-
-# Push to trigger automatic deployment
-git push origin main
-```
-
-**Important**: Pushing to `main` automatically deploys to production!
-
-## Environment Variables
-
-### Local Development
-- `VITE_WS_URL=ws://localhost:8787` (set in `apps/client/.env.development`)
-- No secrets needed - this file is committed for team consistency
-
-### Production (Cloudflare Pages)
-Set in Cloudflare Pages dashboard for both Production and Preview:
-- `VITE_WS_URL` = `wss://herobyte-server.onrender.com`
-- `NODE_VERSION` = `20` (optional, ensures consistent builds)
-
-## Workflow Examples
-
-### Example: Adding a New Feature
-
-```bash
-# 1. Switch to dev
-git checkout dev
-
-# 2. Start both server and client
-cd apps/server && pnpm dev &
-cd apps/client && pnpm dev &
-
-# 3. Make changes and test at localhost:5173
-
-# 4. Commit when ready
-git add .
-git commit -m "Add new feature"
-git push origin dev
-
-# 5. Deploy to production when tested
-git checkout main
-git merge dev
-git push origin main
-```
-
-### Example: Emergency Hotfix
-
-```bash
-# 1. Create hotfix branch from main
-git checkout main
-git checkout -b hotfix/critical-bug
-
-# 2. Fix the bug and test locally
-
-# 3. Merge directly to main
-git checkout main
-git merge hotfix/critical-bug
-git push origin main
-
-# 4. Also merge back to dev
-git checkout dev
-git merge main
-git push origin dev
-```
-
-## Monitoring Production
-
-- **Server logs**: Check Render dashboard
-- **Client**: Cloudflare Pages dashboard shows build logs
-- **Errors**: Check browser console on herobyte.pages.dev
-
-## Tips
-
-- **Keep dev and main in sync**: Regularly merge main into dev to avoid conflicts
-- **Test before deploying**: Always test on localhost before pushing to main
-- **Check builds**: Cloudflare Pages shows build status - make sure it's green
-- **Server restarts**: Render automatically restarts server on deploy (takes ~2 min)
-
-## Troubleshooting
-
-### Client can't connect to local server
-- Make sure server is running: `cd apps/server && pnpm dev`
-- Check console shows: `[Config] WebSocket URL: ws://localhost:8787`
-
-### Changes not appearing
-- Client: Vite should auto-reload - check terminal for errors
-- Server: Restart the server with `pnpm dev`
-
-### Production broken after deploy
-```bash
-# Quick rollback
-git checkout main
-git revert HEAD
-git push origin main
-```
-
-## Project Structure
-
-```
-HeroByte/
-├── apps/
-│   ├── client/          # React + Vite frontend
-│   │   └── src/
-│   │       └── config.ts   # Auto-detects dev vs prod
-│   └── server/          # Node.js WebSocket server
-│       └── src/
-│           └── index.ts
-├── packages/
-│   └── shared/          # Shared TypeScript types
-└── pnpm-workspace.yaml  # Monorepo config
-```
-
-## Current Line Count
-
-~4,370 lines of TypeScript/JavaScript code
+- ✅ Production-ready WebSocket service with reconnection and heartbeat
+- ✅ Custom React hooks for state management
+- ✅ Domain model classes with business logic
+- ✅ MapBoard decomposed into focused layer components
+- ✅ Better separation of concerns
+- ✅ Full TypeScript type safety
