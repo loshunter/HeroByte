@@ -13,6 +13,9 @@ importers:
       '@adapters-net':
         specifier: workspace:*
         version: link:../../packages/adapters-net
+      '@shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       buffer:
         specifier: ^6.0.3
         version: 6.0.3

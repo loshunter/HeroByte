@@ -401,7 +401,10 @@ export const App: React.FC = () => {
       id: roll.id,
       playerName: roll.playerName,
       tokens: [], // Not needed for display
-      perDie: roll.breakdown,
+      perDie: roll.breakdown.map(b => ({
+        ...b,
+        die: b.die as any, // Type compatibility between DiceRoll and RollResult
+      })),
       total: roll.total,
       timestamp: roll.timestamp,
     }));
