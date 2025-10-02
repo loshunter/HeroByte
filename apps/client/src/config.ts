@@ -5,17 +5,15 @@
 
 /**
  * WebSocket server URL
- * - Production (Cloudflare Pages): Uses VITE_WS_URL environment variable
- * - Development (localhost): Connects to ws://localhost:8787
+ * - Production (Cloudflare Pages): Uses VITE_WS_URL from environment
+ * - Development (.env.development): ws://localhost:8787
+ *
+ * IMPORTANT: Always set VITE_WS_URL in environment - no fallback logic
  */
-export const WS_URL = import.meta.env.VITE_WS_URL || (() => {
-  // Development mode: connect to local server
-  if (import.meta.env.DEV) {
-    return 'ws://localhost:8787';
-  }
-  // Fallback: try to connect to server on same host
-  const wsHost = window.location.hostname || 'localhost';
-  return `ws://${wsHost}:8787`;
-})();
+export const WS_URL = import.meta.env.VITE_WS_URL;
+
+if (!WS_URL) {
+  throw new Error('VITE_WS_URL environment variable is required');
+}
 
 console.log('[Config] WebSocket URL:', WS_URL);

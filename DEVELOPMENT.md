@@ -12,29 +12,33 @@ This guide explains how to work on HeroByte locally while keeping your live prod
 
 ## Local Development Setup
 
-### 1. Start the Server
+### Quick Start (Recommended)
 
-In one terminal:
+From the repository root, run both server and client together:
 
 ```bash
-cd apps/server
 pnpm dev
 ```
 
-Server runs on `http://localhost:8787`
+This starts:
+- Server on `http://localhost:8787`
+- Client on `http://localhost:5173`
 
-### 2. Start the Client
+The client automatically connects to `ws://localhost:8787` via `.env.development`.
 
-In another terminal:
+### Manual Start (Alternative)
 
+If you need to run them separately:
+
+**Terminal 1 - Server:**
 ```bash
-cd apps/client
-pnpm dev
+pnpm dev:server
 ```
 
-Client runs on `http://localhost:5173`
-
-The client automatically connects to `ws://localhost:8787` in development mode.
+**Terminal 2 - Client:**
+```bash
+pnpm dev:client
+```
 
 ### 3. Test Your Changes
 
@@ -83,10 +87,13 @@ git push origin main
 ## Environment Variables
 
 ### Local Development
-No environment variables needed - the client auto-connects to localhost.
+- `VITE_WS_URL=ws://localhost:8787` (set in `apps/client/.env.development`)
+- No secrets needed - this file is committed for team consistency
 
 ### Production (Cloudflare Pages)
+Set in Cloudflare Pages dashboard for both Production and Preview:
 - `VITE_WS_URL` = `wss://herobyte-server.onrender.com`
+- `NODE_VERSION` = `20` (optional, ensures consistent builds)
 
 ## Workflow Examples
 

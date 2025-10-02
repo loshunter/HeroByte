@@ -4,10 +4,19 @@
   "description": "A real-time multiplayer virtual tabletop for tabletop RPG gaming",
   "main": "index.js",
   "scripts": {
+    "dev:server": "pnpm --filter vtt-server dev",
+    "dev:client": "pnpm --filter herobyte-client dev",
+    "dev": "concurrently -k -n \"server,client\" -c \"blue,green\" \"pnpm dev:server\" \"pnpm dev:client\"",
+    "build:server": "pnpm --filter vtt-server build",
+    "build:client": "pnpm --filter herobyte-client build",
+    "build": "pnpm build:server && pnpm build:client",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.17.1"
+  "packageManager": "pnpm@10.17.1",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
 }

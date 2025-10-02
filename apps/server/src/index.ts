@@ -109,7 +109,7 @@ loadState();
 // Create Hono app for HTTP routes
 const app = new Hono();
 
-// Health check endpoint
+// Health check endpoints
 app.get("/", (c) => c.json({
   name: "HeroByte VTT Server",
   version: "1.0.0",
@@ -117,6 +117,7 @@ app.get("/", (c) => c.json({
   websocket: "Connect via WebSocket to this server"
 }));
 app.get("/health", (c) => c.json({ status: "ok" }));
+app.get("/healthz", (c) => c.text("ok")); // Simple health check for monitoring
 
 // Get port from environment (Render assigns PORT) or default to 8787
 const PORT = Number(process.env.PORT || 8787);
