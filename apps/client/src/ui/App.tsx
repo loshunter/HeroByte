@@ -21,8 +21,9 @@ import { useMicrophone } from "../hooks/useMicrophone";
 import { useDrawingState } from "../hooks/useDrawingState";
 import { usePlayerEditing } from "../hooks/usePlayerEditing";
 import { getSessionUID } from "../utils/session";
-import { PlayerCard } from "../features/players/components";
 import { DrawingToolbar } from "../features/drawing/components";
+import { Header } from "../components/layout/Header";
+import { PartyPanel } from "../components/layout/PartyPanel";
 
 interface RollLogEntry extends RollResult {
   playerName: string;
@@ -211,166 +212,45 @@ export const App: React.FC = () => {
       )}
 
       {/* Header - Fixed at top */}
-      <div
-        ref={topPanelRef}
-        className="panel"
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 100,
-          margin: 0,
-          borderRadius: 0
+      <Header
+        uid={uid}
+        gridSize={gridSize}
+        gridLocked={gridLocked}
+        snapToGrid={snapToGrid}
+        pointerMode={pointerMode}
+        measureMode={measureMode}
+        drawMode={drawMode}
+        crtFilter={crtFilter}
+        diceRollerOpen={diceRollerOpen}
+        rollLogOpen={rollLogOpen}
+        onGridLockToggle={() => setGridLocked(!gridLocked)}
+        onGridSizeChange={setGridSize}
+        onSnapToGridChange={setSnapToGrid}
+        onPointerModeChange={setPointerMode}
+        onMeasureModeChange={setMeasureMode}
+        onDrawModeChange={setDrawMode}
+        onCrtFilterChange={setCrtFilter}
+        onDiceRollerToggle={setDiceRollerOpen}
+        onRollLogToggle={setRollLogOpen}
+        onLoadMap={() => {
+          const url = prompt("Enter map image URL:");
+          if (url && url.trim()) {
+            setMapBackgroundURL(url.trim());
+          }
         }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
-          <img
-            src="/logo.webp"
-            alt="HeroByte"
-            style={{ height: "48px", imageRendering: "pixelated" }}
-          />
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", gap: "8px" }}>
-          <p style={{ margin: 0, fontSize: "0.7rem" }}>
-            <strong>UID:</strong> {uid.substring(0, 8)}...
-          </p>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <button
-              onClick={() => {
-                if (confirm("Create a new player? This will give you a new UID for testing multiplayer in the same browser.")) {
-                  localStorage.removeItem("vtt-session-uid");
-                  window.location.reload();
-                }
-              }}
-              className="btn btn-success"
-            >
-              New Player
-            </button>
-            <button
-              onClick={() => {
-                if (confirm("Clear all old tokens/players? This will remove disconnected players but keep your own token.")) {
-                  sendMessage({ t: "clear-all-tokens" });
-                }
-              }}
-              className="btn btn-danger"
-            >
-              Clear Old
-            </button>
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: "16px", alignItems: "center", flexWrap: "wrap" }}>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <label htmlFor="gridSize">Grid Size:</label>
-            <button
-              onClick={() => setGridLocked(!gridLocked)}
-              style={{
-                padding: "2px 8px",
-                background: "transparent",
-                border: "1px solid #555",
-                cursor: "pointer",
-                fontSize: "1rem",
-                color: gridLocked ? "#f66" : "#6c6"
-              }}
-              title={gridLocked ? "Unlock grid size" : "Lock grid size"}
-            >
-              {gridLocked ? "🔒" : "🔓"}
-            </button>
-            <input
-              id="gridSize"
-              type="range"
-              min="1"
-              max="100"
-              step="1"
-              value={gridSize}
-              onChange={(e) => setGridSize(Number(e.target.value))}
-              style={{
-                width: "200px",
-                opacity: gridLocked ? 0.4 : 1,
-                cursor: gridLocked ? "not-allowed" : "pointer"
-              }}
-              disabled={gridLocked}
-            />
-            <span style={{ color: gridLocked ? "#888" : "#dbe1ff" }}>{gridSize}px</span>
-          </div>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <input
-              id="snapToGrid"
-              type="checkbox"
-              checked={snapToGrid}
-              onChange={(e) => setSnapToGrid(e.target.checked)}
-            />
-            <label htmlFor="snapToGrid">Snap to Grid</label>
-          </div>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <input
-              id="pointerMode"
-              type="checkbox"
-              checked={pointerMode}
-              onChange={(e) => setPointerMode(e.target.checked)}
-            />
-            <label htmlFor="pointerMode">Pointer Mode 👆</label>
-          </div>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <input
-              id="measureMode"
-              type="checkbox"
-              checked={measureMode}
-              onChange={(e) => setMeasureMode(e.target.checked)}
-            />
-            <label htmlFor="measureMode">Measure Distance 📏</label>
-          </div>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <input
-              id="drawMode"
-              type="checkbox"
-              checked={drawMode}
-              onChange={(e) => setDrawMode(e.target.checked)}
-            />
-            <label htmlFor="drawMode">Draw ✏️</label>
-          </div>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <input
-              id="crtFilter"
-              type="checkbox"
-              checked={crtFilter}
-              onChange={(e) => setCrtFilter(e.target.checked)}
-            />
-            <label htmlFor="crtFilter">CRT Filter 📺</label>
-          </div>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <input
-              id="diceRoller"
-              type="checkbox"
-              checked={diceRollerOpen}
-              onChange={(e) => setDiceRollerOpen(e.target.checked)}
-            />
-            <label htmlFor="diceRoller">Dice Roller ⚂</label>
-          </div>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <input
-              id="rollLog"
-              type="checkbox"
-              checked={rollLogOpen}
-              onChange={(e) => setRollLogOpen(e.target.checked)}
-            />
-            <label htmlFor="rollLog">Roll Log 📜</label>
-          </div>
-          <div>
-            <button
-              onClick={() => {
-                const url = prompt("Enter map image URL:");
-                if (url && url.trim()) {
-                  setMapBackgroundURL(url.trim());
-                }
-              }}
-              className="btn btn-primary"
-            >
-              Load Map
-            </button>
-          </div>
-        </div>
-      </div>
+        onNewPlayer={() => {
+          if (confirm("Create a new player? This will give you a new UID for testing multiplayer in the same browser.")) {
+            localStorage.removeItem("vtt-session-uid");
+            window.location.reload();
+          }
+        }}
+        onClearOld={() => {
+          if (confirm("Clear all old tokens/players? This will remove disconnected players but keep your own token.")) {
+            sendMessage({ t: "clear-all-tokens" });
+          }
+        }}
+        topPanelRef={topPanelRef}
+      />
 
       {/* Main Whiteboard Panel - fills space between fixed top and bottom */}
       <div
@@ -404,65 +284,32 @@ export const App: React.FC = () => {
       </div>
 
       {/* Party HUD - Fixed at bottom */}
-      <div
-        ref={bottomPanelRef}
-        className="panel"
-        style={{
-          position: "fixed",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 100,
-          margin: 0,
-          borderRadius: 0
+      <PartyPanel
+        players={snapshot?.players || []}
+        tokens={snapshot?.tokens || []}
+        uid={uid}
+        micEnabled={micEnabled}
+        micLevel={micLevel}
+        editingPlayerUID={editingPlayerUID}
+        nameInput={nameInput}
+        editingMaxHpUID={editingMaxHpUID}
+        maxHpInput={maxHpInput}
+        onNameInputChange={updateNameInput}
+        onNameEdit={startNameEdit}
+        onNameSubmit={() => submitNameEdit(renamePlayer)}
+        onPortraitLoad={() => {
+          const url = prompt("Enter image URL:");
+          if (url && url.trim()) {
+            setPortraitURL(url.trim());
+          }
         }}
-      >
-        <h3 style={{ margin: "0 0 8px 0" }}>Party</h3>
-        <div
-          style={{
-            display: "flex",
-            gap: "16px",
-            justifyContent: "center",
-            flexWrap: "wrap",
-          }}
-        >
-          {snapshot?.players?.map((p: Player) => {
-            const isMe = p.uid === uid;
-            const token = snapshot?.tokens?.find((t: Token) => t.owner === p.uid);
-
-            return (
-              <PlayerCard
-                key={p.uid}
-                player={p}
-                isMe={isMe}
-                tokenColor={token?.color}
-                micEnabled={micEnabled}
-                micLevel={micLevel}
-                editingPlayerUID={editingPlayerUID}
-                nameInput={nameInput}
-                onNameInputChange={updateNameInput}
-                onNameEdit={startNameEdit}
-                onNameSubmit={() => submitNameEdit(renamePlayer)}
-                onPortraitLoad={() => {
-                  const url = prompt("Enter image URL:");
-                  if (url && url.trim()) {
-                    setPortraitURL(url.trim());
-                  }
-                }}
-                onToggleMic={toggleMic}
-                onHpChange={(hp) => {
-                  setPlayerHP(hp, p.maxHp ?? 100);
-                }}
-                editingMaxHpUID={editingMaxHpUID}
-                maxHpInput={maxHpInput}
-                onMaxHpInputChange={updateMaxHpInput}
-                onMaxHpEdit={startMaxHpEdit}
-                onMaxHpSubmit={() => submitMaxHpEdit((maxHp) => setPlayerHP(p.hp ?? 100, maxHp))}
-              />
-            );
-          })}
-        </div>
-      </div>
+        onToggleMic={toggleMic}
+        onHpChange={(hp, maxHp) => setPlayerHP(hp, maxHp)}
+        onMaxHpInputChange={updateMaxHpInput}
+        onMaxHpEdit={startMaxHpEdit}
+        onMaxHpSubmit={() => submitMaxHpEdit((maxHp) => setPlayerHP(snapshot?.players?.find(p => p.uid === uid)?.hp ?? 100, maxHp))}
+        bottomPanelRef={bottomPanelRef}
+      />
 
       {/* Context Menu */}
       {contextMenu && (
