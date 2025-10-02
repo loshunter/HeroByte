@@ -867,14 +867,10 @@ export default function MapBoard({
         onMouseUp={onMouseUp}
         style={{ cursor: getCursor() }}
       >
-        {/* Map image below */}
+        {/* Background Layer: Map image and grid (non-interactive) */}
         <Layer listening={false}>
           <MapImageLayer cam={cam} src={snapshot?.mapBackground || null} x={0} y={0} />
-        </Layer>
-
-        {/* Grid overlay above map */}
-        {grid.show && (
-          <Layer listening={false}>
+          {grid.show && (
             <GridLayer
               cam={cam}
               viewport={{ w, h }}
@@ -883,10 +879,10 @@ export default function MapBoard({
               majorEvery={5}
               opacity={grid.opacity}
             />
-          </Layer>
-        )}
+          )}
+        </Layer>
 
-        {/* Drawings layer */}
+        {/* Game Layer: Drawings and tokens (interactive) */}
         <Layer>
           <DrawingsLayer
             cam={cam}
@@ -898,10 +894,6 @@ export default function MapBoard({
             currentOpacity={drawOpacity}
             currentFilled={drawFilled}
           />
-        </Layer>
-
-        {/* Tokens layer */}
-        <Layer>
           <TokensLayer
             cam={cam}
             tokens={snapshot?.tokens || []}
@@ -916,7 +908,7 @@ export default function MapBoard({
           />
         </Layer>
 
-        {/* Pointers layer */}
+        {/* Overlay Layer: Pointers and measure tool (top-most) */}
         <Layer>
           <PointersLayer
             cam={cam}
@@ -924,10 +916,6 @@ export default function MapBoard({
             players={snapshot?.players || []}
             tokens={snapshot?.tokens || []}
           />
-        </Layer>
-
-        {/* Measure tool layer */}
-        <Layer>
           <MeasureLayer
             cam={cam}
             measureStart={measureStart}

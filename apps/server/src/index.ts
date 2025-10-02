@@ -238,6 +238,7 @@ wss.on("connection", (ws, req) => {
         if (player) {
           player.portrait = msg.data;
           broadcast();
+          saveState();
         }
       }
 
@@ -247,6 +248,7 @@ wss.on("connection", (ws, req) => {
         if (player) {
           player.name = msg.name;
           broadcast();
+          saveState();
         }
       }
 
@@ -266,6 +268,7 @@ wss.on("connection", (ws, req) => {
           player.hp = msg.hp;
           player.maxHp = msg.maxHp;
           broadcast();
+          saveState();
         }
       }
 
