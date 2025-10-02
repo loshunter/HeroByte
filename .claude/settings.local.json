@@ -22,7 +22,17 @@
       "Bash(pnpm install:*)",
       "Bash(pnpm --filter vtt-server build)",
       "Bash(pnpm start:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(pnpm build:client:*)",
+      "Read(//mnt/c/Users/loshu/**)",
+      "Bash(pnpm run:*)",
+      "Bash(pnpm --filter vtt-server start)",
+      "Bash(pnpm --filter herobyte-client dev)",
+      "Bash(pnpm --filter herobyte-client build)",
+      "Bash(git checkout:*)",
+      "Bash(git merge dev -m \"$(cat <<''EOF''\nMerge Phase 4: Performance optimizations and security middleware\n\nAdvanced optimizations for production-ready deployment:\n\nClient-Side Performance (React.memo):\n- Optimized TokensLayer, DrawingsLayer, PointersLayer, GridLayer\n- Prevents unnecessary re-renders during camera operations\n- Significant performance improvement with complex maps\n\nServer-Side Security:\n- Input validation middleware for all 15+ message types\n- Type checking, range validation, size limits\n- Rate limiting (100 messages/second per client)\n- Protection against malformed data and DoS attacks\n- Enhanced error logging with client identification\n\nMiddleware:\n- middleware/validation.ts - Comprehensive input validation\n- middleware/rateLimit.ts - Token bucket rate limiter\n- Integrated into message handling pipeline\n\nTesting validated:\n✅ Input validation catching invalid messages\n✅ Rate limiting blocking excess requests\n✅ All functionality working with middleware active\n✅ Performance improvements noticeable\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git pull:*)",
+      "Bash(git tag:*)"
     ],
     "deny": [],
     "ask": []

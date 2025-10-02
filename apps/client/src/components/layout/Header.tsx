@@ -28,8 +28,6 @@ interface HeaderProps {
   onDiceRollerToggle: (open: boolean) => void;
   onRollLogToggle: (open: boolean) => void;
   onLoadMap: () => void;
-  onNewPlayer: () => void;
-  onClearOld: () => void;
   topPanelRef?: React.RefObject<HTMLDivElement>;
 }
 
@@ -57,8 +55,6 @@ export const Header: React.FC<HeaderProps> = ({
   onDiceRollerToggle,
   onRollLogToggle,
   onLoadMap,
-  onNewPlayer,
-  onClearOld,
   topPanelRef,
 }) => {
   return (
@@ -67,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({
       className="panel"
       style={{
         position: "fixed",
-        top: 0,
+        top: "28px", // Offset for status banner
         left: 0,
         right: 0,
         zIndex: 100,
@@ -84,19 +80,11 @@ export const Header: React.FC<HeaderProps> = ({
         />
       </div>
 
-      {/* UID and Player Management */}
+      {/* UID Display */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", gap: "8px" }}>
         <p style={{ margin: 0, fontSize: "0.7rem" }}>
           <strong>UID:</strong> {uid.substring(0, 8)}...
         </p>
-        <div style={{ display: "flex", gap: "8px" }}>
-          <button onClick={onNewPlayer} className="btn btn-success">
-            New Player
-          </button>
-          <button onClick={onClearOld} className="btn btn-danger">
-            Clear Old
-          </button>
-        </div>
       </div>
 
       {/* Controls and Tools */}

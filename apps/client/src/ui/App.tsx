@@ -25,6 +25,7 @@ import { getSessionUID } from "../utils/session";
 import { DrawingToolbar } from "../features/drawing/components";
 import { Header } from "../components/layout/Header";
 import { PartyPanel } from "../components/layout/PartyPanel";
+import { ServerStatus } from "../components/layout/ServerStatus";
 
 interface RollLogEntry extends RollResult {
   playerName: string;
@@ -198,6 +199,9 @@ export const App: React.FC = () => {
 
   return (
     <div onClick={() => setContextMenu(null)} style={{ height: "100vh", overflow: "hidden" }}>
+      {/* Server Status Banner */}
+      <ServerStatus isConnected={isConnected} />
+
       {/* Drawing Toolbar - Fixed on left side when draw mode is active */}
       {drawMode && (
         <DrawingToolbar
@@ -240,17 +244,6 @@ export const App: React.FC = () => {
           const url = prompt("Enter map image URL:");
           if (url && url.trim()) {
             setMapBackgroundURL(url.trim());
-          }
-        }}
-        onNewPlayer={() => {
-          if (confirm("Create a new player? This will give you a new UID for testing multiplayer in the same browser.")) {
-            localStorage.removeItem("vtt-session-uid");
-            window.location.reload();
-          }
-        }}
-        onClearOld={() => {
-          if (confirm("Clear all old tokens/players? This will remove disconnected players but keep your own token.")) {
-            sendMessage({ t: "clear-all-tokens" });
           }
         }}
         topPanelRef={topPanelRef}

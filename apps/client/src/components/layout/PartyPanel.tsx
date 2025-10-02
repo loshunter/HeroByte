@@ -4,7 +4,7 @@
 // Bottom fixed panel displaying player cards
 // Extracted from App.tsx to follow single responsibility principle
 
-import React from "react";
+import React, { useState } from "react";
 import type { Player, Token } from "@shared";
 import { PlayerCard } from "../../features/players/components";
 
@@ -54,6 +54,8 @@ export const PartyPanel: React.FC<PartyPanelProps> = ({
   onMaxHpSubmit,
   bottomPanelRef,
 }) => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   return (
     <div
       ref={bottomPanelRef}
@@ -66,46 +68,77 @@ export const PartyPanel: React.FC<PartyPanelProps> = ({
         zIndex: 100,
         margin: 0,
         borderRadius: 0,
+        transition: "transform 0.3s ease",
       }}
     >
-      <h3 style={{ margin: "0 0 8px 0" }}>Party</h3>
-      <div
+      {/* Toggle button */}
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
         style={{
-          display: "flex",
-          gap: "16px",
-          justifyContent: "center",
-          flexWrap: "wrap",
+          position: "absolute",
+          top: "-24px",
+          right: "12px",
+          padding: "4px 12px",
+          background: "var(--hero-blue)",
+          border: "2px solid var(--hero-gold)",
+          color: "var(--hero-gold)",
+          cursor: "pointer",
+          fontSize: "0.75rem",
+          fontWeight: "bold",
+          borderRadius: "4px 4px 0 0",
         }}
       >
-        {players.map((p: Player) => {
-          const isMe = p.uid === uid;
-          const token = tokens.find((t: Token) => t.owner === p.uid);
+        {isCollapsed ? "▲ Show Party" : "▼ Hide Party"}
+      </button>
 
-          return (
-            <PlayerCard
-              key={p.uid}
-              player={p}
-              isMe={isMe}
-              tokenColor={token?.color}
-              micEnabled={micEnabled}
-              micLevel={micLevel}
-              editingPlayerUID={editingPlayerUID}
-              nameInput={nameInput}
-              onNameInputChange={onNameInputChange}
-              onNameEdit={onNameEdit}
-              onNameSubmit={onNameSubmit}
-              onPortraitLoad={onPortraitLoad}
-              onToggleMic={onToggleMic}
-              onHpChange={(hp) => onHpChange(hp, p.maxHp ?? 100)}
-              editingMaxHpUID={editingMaxHpUID}
-              maxHpInput={maxHpInput}
-              onMaxHpInputChange={onMaxHpInputChange}
-              onMaxHpEdit={onMaxHpEdit}
-              onMaxHpSubmit={onMaxHpSubmit}
-            />
-          );
-        })}
-      </div>
+      {!isCollapsed && (
+        <>
+          <h3 style={{ margin: "0 0 8px 0" }}>Party</h3>
+          <div
+            style={{
+              display: "flex",
+              gap: "16px",
+              justifyContent: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            {players.map((p: Player) => {
+              const isMe = p.uid === uid;
+              const token = tokens.find((t: Token) => t.owner === p.uid);
+
+              return (
+                <PlayerCard
+                  key={p.uid}
+                  player={p}
+                  isMe={isMe}
+                  tokenColor={token?.color}
+                  micEnabled={micEnabled}
+                  micLevel={micLevel}
+                  editingPlayerUID={editingPlayerUID}
+                  nameInput={nameInput}
+                  onNameInputChange={onNameInputChange}
+                  onNameEdit={onNameEdit}
+                  onNameSubmit={onNameSubmit}
+                  onPortraitLoad={onPortraitLoad}
+                  onToggleMic={onToggleMic}
+                  onHpChange={(hp) => onHpChange(hp, p.maxHp ?? 100)}
+                  editingMaxHpUID={editingMaxHpUID}
+                  maxHpInput={maxHpInput}
+                  onMaxHpInputChange={onMaxHpInputChange}
+                  onMaxHpEdit={onMaxHpEdit}
+                  onMaxHpSubmit={onMaxHpSubmit}
+                />
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {isCollapsed && (
+        <div style={{ padding: "8px", textAlign: "center", fontSize: "0.75rem", color: "var(--hero-text-dim)" }}>
+          Party collapsed - click "Show Party" to expand
+        </div>
+      )}
     </div>
   );
 };
