@@ -224,9 +224,9 @@ export class WebSocketService {
         return;
       }
 
-      // Send a dummy message as heartbeat (server ignores unknown types)
+      // Send heartbeat message (server uses this to track player activity)
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        this.ws.send(JSON.stringify({ t: "ping" }));
+        this.ws.send(JSON.stringify({ t: "heartbeat" }));
       }
     }, this.config.heartbeatInterval);
   }

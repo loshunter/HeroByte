@@ -37,8 +37,32 @@ export class MapService {
   /**
    * Add a drawing to the canvas
    */
-  addDrawing(state: RoomState, drawing: Drawing): void {
-    state.drawings.push(drawing);
+  addDrawing(state: RoomState, drawing: Drawing, ownerUid: string): void {
+    // Add owner to drawing for undo tracking
+    state.drawings.push({ ...drawing, owner: ownerUid });
+  }
+
+  /**
+   * Undo the last drawing by a specific player
+   * Removes the most recent drawing created by that player
+   */
+  undoDrawing(state: RoomState, ownerUid: string): boolean {
+    // Find the last drawing by this player
+    let lastIndex = -1;
+    for (let i = state.drawings.length - 1; i >= 0; i--) {
+      if (state.drawings[i].owner === ownerUid) {
+        lastIndex = i;
+        break;
+      }
+    }
+
+    // Remove the drawing if found
+    if (lastIndex !== -1) {
+      state.drawings.splice(lastIndex, 1);
+      return true;
+    }
+
+    return false;
   }
 
   /**

@@ -49,7 +49,12 @@ export const App: React.FC = () => {
 
   // Custom hooks for state management
   const { micEnabled, micLevel, micStream, toggleMic } = useMicrophone({ sendMessage });
-  const { drawTool, drawColor, drawWidth, drawOpacity, drawFilled, setDrawTool, setDrawColor, setDrawWidth, setDrawOpacity, setDrawFilled } = useDrawingState();
+  const {
+    drawTool, drawColor, drawWidth, drawOpacity, drawFilled,
+    drawingHistory, canUndo,
+    setDrawTool, setDrawColor, setDrawWidth, setDrawOpacity, setDrawFilled,
+    addToHistory, popFromHistory, clearHistory
+  } = useDrawingState();
 
   // Heartbeat to prevent timeout
   useHeartbeat({ sendMessage });
@@ -145,6 +150,27 @@ export const App: React.FC = () => {
     return () => window.removeEventListener("resize", measureHeights);
   }, [snapshot?.players]);
 
+  /**
+   * Keyboard shortcuts
+   * Ctrl+Z / Cmd+Z: Undo last drawing
+   */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+Z or Cmd+Z for undo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        // Only undo if draw mode is active and there's something to undo
+        if (drawMode && canUndo) {
+          e.preventDefault();
+          popFromHistory();
+          sendMessage({ t: "undo-drawing" });
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [drawMode, canUndo, popFromHistory, sendMessage]);
+
   // -------------------------------------------------------------------------
   // ACTIONS
   // -------------------------------------------------------------------------
@@ -210,12 +236,20 @@ export const App: React.FC = () => {
           drawWidth={drawWidth}
           drawOpacity={drawOpacity}
           drawFilled={drawFilled}
+          canUndo={canUndo}
           onToolChange={setDrawTool}
           onColorChange={setDrawColor}
           onWidthChange={setDrawWidth}
           onOpacityChange={setDrawOpacity}
           onFilledChange={setDrawFilled}
-          onClearAll={() => sendMessage({ t: "clear-drawings" })}
+          onUndo={() => {
+            popFromHistory();
+            sendMessage({ t: "undo-drawing" });
+          }}
+          onClearAll={() => {
+            clearHistory();
+            sendMessage({ t: "clear-drawings" });
+          }}
         />
       )}
 
@@ -277,6 +311,7 @@ export const App: React.FC = () => {
           onMoveToken={moveToken}
           onRecolorToken={recolorToken}
           onDeleteToken={deleteToken}
+          onDrawingComplete={addToHistory}
         />
       </div>
 

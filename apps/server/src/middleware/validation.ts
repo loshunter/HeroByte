@@ -129,6 +129,7 @@ export function validateMessage(message: any): ValidationResult {
       }
       break;
 
+    case "undo-drawing":
     case "clear-drawings":
     case "clear-roll-history":
     case "clear-all-tokens":

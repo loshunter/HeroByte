@@ -573,6 +573,7 @@ interface MapBoardProps {
   onMoveToken: (id: string, x: number, y: number) => void;
   onRecolorToken: (id: string) => void;
   onDeleteToken: (id: string) => void;
+  onDrawingComplete?: (drawingId: string) => void; // Called when a drawing is completed
 }
 
 /**
@@ -601,6 +602,7 @@ export default function MapBoard({
   onMoveToken,
   onRecolorToken,
   onDeleteToken,
+  onDrawingComplete,
 }: MapBoardProps) {
   // -------------------------------------------------------------------------
   // STATE & HOOKS
@@ -651,6 +653,7 @@ export default function MapBoard({
     drawFilled,
     toWorld,
     sendMessage,
+    onDrawingComplete,
   });
 
   // Token interaction

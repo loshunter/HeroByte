@@ -16,6 +16,7 @@ interface UseDrawingToolOptions {
   drawFilled: boolean;
   toWorld: (sx: number, sy: number) => { x: number; y: number };
   sendMessage: (msg: ClientMessage) => void;
+  onDrawingComplete?: (drawingId: string) => void;
 }
 
 interface UseDrawingToolReturn {
@@ -39,6 +40,7 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
     drawFilled,
     toWorld,
     sendMessage,
+    onDrawingComplete,
   } = options;
 
   // Drawing tool state
@@ -122,6 +124,9 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
           filled: drawFilled,
         },
       });
+
+      // Notify parent that a drawing was completed (for undo history)
+      onDrawingComplete?.(drawingId);
     }
 
     setCurrentDrawing([]);

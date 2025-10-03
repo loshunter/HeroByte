@@ -69,6 +69,7 @@ export interface Pointer {
  */
 export interface Drawing {
   id: string;                        // Unique identifier
+  owner?: string;                     // UID of player who created this drawing
   type: "freehand" | "line" | "rect" | "circle" | "eraser"; // Drawing tool type
   points: { x: number; y: number }[]; // Path points or shape bounds
   color: string;                      // Line/fill color
@@ -120,6 +121,7 @@ export type ClientMessage =
   | { t: "grid-size"; size: number }                     // Change grid size (synced)
   | { t: "point"; x: number; y: number }                 // Place pointer indicator
   | { t: "draw"; drawing: Drawing }                      // Add a drawing
+  | { t: "undo-drawing" }                                // Undo last drawing by this player
   | { t: "clear-drawings" }                              // Remove all drawings
 
   // Dice rolls

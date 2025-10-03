@@ -113,8 +113,14 @@ export class MessageRouter {
           break;
 
         case "draw":
-          this.mapService.addDrawing(state, message.drawing);
+          this.mapService.addDrawing(state, message.drawing, senderUid);
           this.broadcast();
+          break;
+
+        case "undo-drawing":
+          if (this.mapService.undoDrawing(state, senderUid)) {
+            this.broadcast();
+          }
           break;
 
         case "clear-drawings":
