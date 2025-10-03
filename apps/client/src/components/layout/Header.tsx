@@ -16,6 +16,7 @@ interface HeaderProps {
   pointerMode: boolean;
   measureMode: boolean;
   drawMode: boolean;
+  selectMode?: boolean;
   crtFilter: boolean;
   diceRollerOpen: boolean;
   rollLogOpen: boolean;
@@ -25,6 +26,7 @@ interface HeaderProps {
   onPointerModeChange: (mode: boolean) => void;
   onMeasureModeChange: (mode: boolean) => void;
   onDrawModeChange: (mode: boolean) => void;
+  onSelectModeChange?: (mode: boolean) => void;
   onCrtFilterChange: (enabled: boolean) => void;
   onDiceRollerToggle: (open: boolean) => void;
   onRollLogToggle: (open: boolean) => void;
@@ -43,6 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
   pointerMode,
   measureMode,
   drawMode,
+  selectMode,
   crtFilter,
   diceRollerOpen,
   rollLogOpen,
@@ -52,6 +55,7 @@ export const Header: React.FC<HeaderProps> = ({
   onPointerModeChange,
   onMeasureModeChange,
   onDrawModeChange,
+  onSelectModeChange,
   onCrtFilterChange,
   onDiceRollerToggle,
   onRollLogToggle,
@@ -143,7 +147,14 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Pointer Mode */}
           <JRPGButton
-            onClick={() => onPointerModeChange(!pointerMode)}
+            onClick={() => {
+              onPointerModeChange(!pointerMode);
+              if (!pointerMode) {
+                onMeasureModeChange(false);
+                onDrawModeChange(false);
+                onSelectModeChange?.(false);
+              }
+            }}
             variant={pointerMode ? "primary" : "default"}
             style={{ fontSize: "8px", padding: "6px 12px" }}
           >
@@ -152,7 +163,14 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Measure Mode */}
           <JRPGButton
-            onClick={() => onMeasureModeChange(!measureMode)}
+            onClick={() => {
+              onMeasureModeChange(!measureMode);
+              if (!measureMode) {
+                onPointerModeChange(false);
+                onDrawModeChange(false);
+                onSelectModeChange?.(false);
+              }
+            }}
             variant={measureMode ? "primary" : "default"}
             style={{ fontSize: "8px", padding: "6px 12px" }}
           >
@@ -161,11 +179,34 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Draw Mode */}
           <JRPGButton
-            onClick={() => onDrawModeChange(!drawMode)}
+            onClick={() => {
+              onDrawModeChange(!drawMode);
+              if (!drawMode) {
+                onPointerModeChange(false);
+                onMeasureModeChange(false);
+                onSelectModeChange?.(false);
+              }
+            }}
             variant={drawMode ? "primary" : "default"}
             style={{ fontSize: "8px", padding: "6px 12px" }}
           >
             ✏️ Draw
+          </JRPGButton>
+
+          {/* Select Mode */}
+          <JRPGButton
+            onClick={() => {
+              onSelectModeChange?.(!selectMode);
+              if (!selectMode) {
+                onPointerModeChange(false);
+                onMeasureModeChange(false);
+                onDrawModeChange(false);
+              }
+            }}
+            variant={selectMode ? "primary" : "default"}
+            style={{ fontSize: "8px", padding: "6px 12px" }}
+          >
+            🖱️ Select
           </JRPGButton>
 
           {/* CRT Filter */}

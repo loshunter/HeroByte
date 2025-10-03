@@ -72,6 +72,7 @@ export const App: React.FC = () => {
   const [pointerMode, setPointerMode] = useState(false);
   const [measureMode, setMeasureMode] = useState(false);
   const [drawMode, setDrawMode] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
 
   // UI layout (fixed panels)
   const topPanelRef = useRef<HTMLDivElement | null>(null);
@@ -262,6 +263,7 @@ export const App: React.FC = () => {
         pointerMode={pointerMode}
         measureMode={measureMode}
         drawMode={drawMode}
+        selectMode={selectMode}
         crtFilter={crtFilter}
         diceRollerOpen={diceRollerOpen}
         rollLogOpen={rollLogOpen}
@@ -271,6 +273,7 @@ export const App: React.FC = () => {
         onPointerModeChange={setPointerMode}
         onMeasureModeChange={setMeasureMode}
         onDrawModeChange={setDrawMode}
+        onSelectModeChange={setSelectMode}
         onCrtFilterChange={setCrtFilter}
         onDiceRollerToggle={setDiceRollerOpen}
         onRollLogToggle={setRollLogOpen}
@@ -303,6 +306,7 @@ export const App: React.FC = () => {
           pointerMode={pointerMode}
           measureMode={measureMode}
           drawMode={drawMode}
+          selectMode={selectMode}
           drawTool={drawTool}
           drawColor={drawColor}
           drawWidth={drawWidth}

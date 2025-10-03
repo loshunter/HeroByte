@@ -18,6 +18,7 @@ import type { RoomSnapshot, Token, Player, Pointer, Drawing, ClientMessage } fro
 import { useCamera, type Camera } from "../hooks/useCamera.js";
 import { usePointerTool } from "../hooks/usePointerTool.js";
 import { useDrawingTool } from "../hooks/useDrawingTool.js";
+import { useDrawingSelection } from "../hooks/useDrawingSelection.js";
 
 // ----------------------------------------------------------------------------
 // HOOKS
@@ -301,6 +302,11 @@ function DrawingsLayer({
   currentWidth,
   currentOpacity,
   currentFilled,
+  uid,
+  selectMode,
+  selectedDrawingId,
+  onSelectDrawing,
+  onDrawingDragEnd,
 }: {
   cam: Camera;
   drawings: Drawing[];
@@ -310,10 +316,38 @@ function DrawingsLayer({
   currentWidth?: number;
   currentOpacity?: number;
   currentFilled?: boolean;
+  uid: string;
+  selectMode?: boolean;
+  selectedDrawingId?: string | null;
+  onSelectDrawing?: (drawingId: string | null) => void;
+  onDrawingDragEnd?: (drawingId: string, e: any) => void;
 }) {
   // Render a single completed drawing
   const renderDrawing = (drawing: Drawing) => {
+    const isSelected = drawing.selectedBy === uid;
+    const isHoverable = selectMode && !drawing.selectedBy;
     const points = drawing.points;
+
+    // Common props for clickable drawings
+    const interactiveProps = selectMode ? {
+      onClick: (e: any) => {
+        e.cancelBubble = true;
+        e.evt.stopPropagation();
+        onSelectDrawing?.(drawing.id);
+      },
+      onMouseEnter: (e: any) => {
+        if (isHoverable) {
+          e.target.getStage().container().style.cursor = "pointer";
+        }
+      },
+      onMouseLeave: (e: any) => {
+        e.target.getStage().container().style.cursor = selectMode ? "default" : "crosshair";
+      },
+      onTap: (e: any) => {
+        e.cancelBubble = true;
+        onSelectDrawing?.(drawing.id);
+      },
+    } : {};
 
     if (drawing.type === "eraser") {
       // Eraser removes drawings, so render as white thick line in erase mode
@@ -326,34 +360,94 @@ function DrawingsLayer({
           lineCap="round"
           lineJoin="round"
           globalCompositeOperation="destination-out"
+          {...interactiveProps}
         />
       );
     }
 
     if (drawing.type === "freehand") {
       return (
-        <Line
+        <Group
           key={drawing.id}
-          points={points.flatMap((p: { x: number; y: number }) => [p.x, p.y])}
-          stroke={drawing.color}
-          strokeWidth={drawing.width / cam.scale}
-          lineCap="round"
-          lineJoin="round"
-          opacity={drawing.opacity}
-        />
+          draggable={isSelected}
+          onDragEnd={(e) => onDrawingDragEnd?.(drawing.id, e)}
+        >
+          {/* Invisible wider hit area for easier clicking */}
+          {selectMode && (
+            <Line
+              points={points.flatMap((p: { x: number; y: number }) => [p.x, p.y])}
+              stroke="transparent"
+              strokeWidth={Math.max(20 / cam.scale, (drawing.width + 10) / cam.scale)}
+              lineCap="round"
+              lineJoin="round"
+              {...interactiveProps}
+            />
+          )}
+          {/* Actual drawing */}
+          <Line
+            points={points.flatMap((p: { x: number; y: number }) => [p.x, p.y])}
+            stroke={drawing.color}
+            strokeWidth={drawing.width / cam.scale}
+            lineCap="round"
+            lineJoin="round"
+            opacity={drawing.opacity}
+            listening={false}
+          />
+          {/* Selection highlight */}
+          {isSelected && (
+            <Line
+              points={points.flatMap((p: { x: number; y: number }) => [p.x, p.y])}
+              stroke="#447DF7"
+              strokeWidth={(drawing.width + 4) / cam.scale}
+              lineCap="round"
+              lineJoin="round"
+              opacity={0.4}
+              listening={false}
+            />
+          )}
+        </Group>
       );
     }
 
     if (drawing.type === "line" && points.length >= 2) {
+      const hitAreaWidth = Math.max(20 / cam.scale, (drawing.width + 10) / cam.scale);
       return (
-        <Line
+        <Group
           key={drawing.id}
-          points={[points[0].x, points[0].y, points[points.length - 1].x, points[points.length - 1].y]}
-          stroke={drawing.color}
-          strokeWidth={drawing.width / cam.scale}
-          lineCap="round"
-          opacity={drawing.opacity}
-        />
+          draggable={isSelected}
+          onDragEnd={(e) => onDrawingDragEnd?.(drawing.id, e)}
+        >
+          {/* Invisible wider hit area for easier clicking */}
+          {selectMode && (
+            <Line
+              points={[points[0].x, points[0].y, points[points.length - 1].x, points[points.length - 1].y]}
+              stroke="transparent"
+              strokeWidth={hitAreaWidth}
+              lineCap="round"
+              {...interactiveProps}
+            />
+          )}
+          {/* Actual drawing */}
+          <Line
+            points={[points[0].x, points[0].y, points[points.length - 1].x, points[points.length - 1].y]}
+            stroke={drawing.color}
+            strokeWidth={drawing.width / cam.scale}
+            lineCap="round"
+            opacity={drawing.opacity}
+            listening={false}
+          />
+          {/* Selection highlight */}
+          {isSelected && (
+            <Line
+              points={[points[0].x, points[0].y, points[points.length - 1].x, points[points.length - 1].y]}
+              stroke="#447DF7"
+              strokeWidth={(drawing.width + 4) / cam.scale}
+              lineCap="round"
+              opacity={0.4}
+              listening={false}
+            />
+          )}
+        </Group>
       );
     }
 
@@ -364,17 +458,50 @@ function DrawingsLayer({
       const y2 = Math.max(points[0].y, points[points.length - 1].y);
 
       return (
-        <Rect
+        <Group
           key={drawing.id}
-          x={x1}
-          y={y1}
-          width={x2 - x1}
-          height={y2 - y1}
-          fill={drawing.filled ? drawing.color : undefined}
-          stroke={drawing.color}
-          strokeWidth={drawing.width / cam.scale}
-          opacity={drawing.opacity}
-        />
+          draggable={isSelected}
+          onDragEnd={(e) => onDrawingDragEnd?.(drawing.id, e)}
+        >
+          {/* Invisible hit area for easier clicking (only when not filled) */}
+          {selectMode && !drawing.filled && (
+            <Rect
+              x={x1}
+              y={y1}
+              width={x2 - x1}
+              height={y2 - y1}
+              fill="transparent"
+              stroke="transparent"
+              strokeWidth={Math.max(20 / cam.scale, (drawing.width + 10) / cam.scale)}
+              {...interactiveProps}
+            />
+          )}
+          {/* Actual drawing */}
+          <Rect
+            x={x1}
+            y={y1}
+            width={x2 - x1}
+            height={y2 - y1}
+            fill={drawing.filled ? drawing.color : undefined}
+            stroke={drawing.color}
+            strokeWidth={drawing.width / cam.scale}
+            opacity={drawing.opacity}
+            {...(selectMode && !drawing.filled ? { listening: false } : interactiveProps)}
+          />
+          {isSelected && (
+            <Rect
+              x={x1}
+              y={y1}
+              width={x2 - x1}
+              height={y2 - y1}
+              fill="transparent"
+              stroke="#447DF7"
+              strokeWidth={(drawing.width + 4) / cam.scale}
+              opacity={0.4}
+              listening={false}
+            />
+          )}
+        </Group>
       );
     }
 
@@ -387,16 +514,47 @@ function DrawingsLayer({
       );
 
       return (
-        <Circle
+        <Group
           key={drawing.id}
-          x={cx}
-          y={cy}
-          radius={radius}
-          fill={drawing.filled ? drawing.color : undefined}
-          stroke={drawing.color}
-          strokeWidth={drawing.width / cam.scale}
-          opacity={drawing.opacity}
-        />
+          draggable={isSelected}
+          onDragEnd={(e) => onDrawingDragEnd?.(drawing.id, e)}
+        >
+          {/* Invisible hit area for easier clicking (only when not filled) */}
+          {selectMode && !drawing.filled && (
+            <Circle
+              x={cx}
+              y={cy}
+              radius={radius}
+              fill="transparent"
+              stroke="transparent"
+              strokeWidth={Math.max(20 / cam.scale, (drawing.width + 10) / cam.scale)}
+              {...interactiveProps}
+            />
+          )}
+          {/* Actual drawing */}
+          <Circle
+            x={cx}
+            y={cy}
+            radius={radius}
+            fill={drawing.filled ? drawing.color : undefined}
+            stroke={drawing.color}
+            strokeWidth={drawing.width / cam.scale}
+            opacity={drawing.opacity}
+            {...(selectMode && !drawing.filled ? { listening: false } : interactiveProps)}
+          />
+          {isSelected && (
+            <Circle
+              x={cx}
+              y={cy}
+              radius={radius}
+              fill="transparent"
+              stroke="#447DF7"
+              strokeWidth={(drawing.width + 4) / cam.scale}
+              opacity={0.4}
+              listening={false}
+            />
+          )}
+        </Group>
       );
     }
 
@@ -565,6 +723,7 @@ interface MapBoardProps {
   pointerMode: boolean;                 // Pointer tool active
   measureMode: boolean;                 // Measure tool active
   drawMode: boolean;                    // Draw tool active
+  selectMode: boolean;                  // Selection tool active
   drawTool: "freehand" | "line" | "rect" | "circle" | "eraser"; // Active drawing tool
   drawColor: string;                    // Drawing color
   drawWidth: number;                    // Drawing brush size
@@ -594,6 +753,7 @@ export default function MapBoard({
   pointerMode,
   measureMode,
   drawMode,
+  selectMode,
   drawTool,
   drawColor,
   drawWidth,
@@ -610,6 +770,14 @@ export default function MapBoard({
 
   const { ref, w, h } = useElementSize<HTMLDivElement>();
   const stageRef = useRef<any>(null);
+
+  // Drawing selection
+  const {
+    selectedDrawingId,
+    selectDrawing: handleSelectDrawing,
+    deselectIfEmpty,
+    onDrawingDragEnd,
+  } = useDrawingSelection({ selectMode, sendMessage });
 
   // Camera controls (pan/zoom)
   const {
@@ -677,6 +845,19 @@ export default function MapBoard({
     setGrid(prev => ({ ...prev, size: gridSize }));
   }, [gridSize]);
 
+  // Delete key handler for selected drawings
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Delete" && selectedDrawingId && selectMode) {
+        sendMessage({ t: "delete-drawing", id: selectedDrawingId });
+        handleSelectDrawing(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedDrawingId, selectMode, sendMessage, handleSelectDrawing]);
+
   // -------------------------------------------------------------------------
   // UNIFIED EVENT HANDLERS
   // -------------------------------------------------------------------------
@@ -685,15 +866,18 @@ export default function MapBoard({
    * Unified stage click handler (pointer/measure tools)
    */
   const onStageClick = (e: any) => {
-    if (!pointerMode && !measureMode && !drawMode) return;
+    if (!pointerMode && !measureMode && !drawMode) {
+      deselectIfEmpty(e);
+      return;
+    }
     handlePointerClick(e);
   };
 
   /**
-   * Unified mouse down handler (camera pan or drawing start)
+   * Unified mouse down handler (camera pan, drawing)
    */
   const onMouseDown = (e: any) => {
-    const shouldPan = !pointerMode && !measureMode && !drawMode;
+    const shouldPan = !pointerMode && !measureMode && !drawMode && !selectMode;
     handleCameraMouseDown(e, stageRef, shouldPan);
     handleDrawMouseDown(stageRef);
   };
@@ -723,7 +907,8 @@ export default function MapBoard({
     if (pointerMode) return "crosshair";
     if (measureMode) return "crosshair";
     if (drawMode) return "crosshair";
-    return "default";
+    if (selectMode) return "default";
+    return "grab";
   };
 
   // -------------------------------------------------------------------------
@@ -779,6 +964,11 @@ export default function MapBoard({
             currentWidth={drawWidth}
             currentOpacity={drawOpacity}
             currentFilled={drawFilled}
+            uid={uid}
+            selectMode={selectMode}
+            selectedDrawingId={selectedDrawingId}
+            onSelectDrawing={handleSelectDrawing}
+            onDrawingDragEnd={onDrawingDragEnd}
           />
           <TokensLayer
             cam={cam}
@@ -795,7 +985,7 @@ export default function MapBoard({
         </Layer>
 
         {/* Overlay Layer: Pointers and measure tool (top-most) */}
-        <Layer>
+        <Layer listening={false}>
           <PointersLayer
             cam={cam}
             pointers={snapshot?.pointers || []}
