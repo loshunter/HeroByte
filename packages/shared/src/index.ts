@@ -76,6 +76,7 @@ export interface Drawing {
   width: number;                      // Line thickness
   opacity: number;                    // Opacity (0-1)
   filled?: boolean;                   // For shapes: filled vs outline only
+  selectedBy?: string;                // UID of player who has this drawing selected (for editing)
 }
 
 // ----------------------------------------------------------------------------
@@ -123,6 +124,10 @@ export type ClientMessage =
   | { t: "draw"; drawing: Drawing }                      // Add a drawing
   | { t: "undo-drawing" }                                // Undo last drawing by this player
   | { t: "clear-drawings" }                              // Remove all drawings
+  | { t: "select-drawing"; id: string }                  // Select a drawing for editing
+  | { t: "deselect-drawing" }                            // Deselect current drawing
+  | { t: "move-drawing"; id: string; dx: number; dy: number } // Move a drawing by delta
+  | { t: "delete-drawing"; id: string }                  // Delete a specific drawing
 
   // Dice rolls
   | { t: "dice-roll"; roll: DiceRoll }                   // Broadcast a dice roll

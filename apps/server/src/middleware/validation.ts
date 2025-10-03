@@ -131,10 +131,27 @@ export function validateMessage(message: any): ValidationResult {
 
     case "undo-drawing":
     case "clear-drawings":
+    case "deselect-drawing":
     case "clear-roll-history":
     case "clear-all-tokens":
     case "heartbeat":
       // No additional validation needed
+      break;
+
+    case "select-drawing":
+    case "delete-drawing":
+      if (typeof message.id !== "string" || message.id.length === 0) {
+        return { valid: false, error: `${message.t}: missing or invalid drawing id` };
+      }
+      break;
+
+    case "move-drawing":
+      if (typeof message.id !== "string" || message.id.length === 0) {
+        return { valid: false, error: "move-drawing: missing or invalid drawing id" };
+      }
+      if (typeof message.dx !== "number" || typeof message.dy !== "number") {
+        return { valid: false, error: "move-drawing: dx and dy must be numbers" };
+      }
       break;
 
     case "dice-roll":

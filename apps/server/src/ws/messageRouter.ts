@@ -128,6 +128,29 @@ export class MessageRouter {
           this.broadcast();
           break;
 
+        case "select-drawing":
+          if (this.mapService.selectDrawing(state, message.id, senderUid)) {
+            this.broadcast();
+          }
+          break;
+
+        case "deselect-drawing":
+          this.mapService.deselectDrawing(state, senderUid);
+          this.broadcast();
+          break;
+
+        case "move-drawing":
+          if (this.mapService.moveDrawing(state, message.id, message.dx, message.dy, senderUid)) {
+            this.broadcast();
+          }
+          break;
+
+        case "delete-drawing":
+          if (this.mapService.deleteDrawing(state, message.id)) {
+            this.broadcast();
+          }
+          break;
+
         // DICE ACTIONS
         case "dice-roll":
           this.diceService.addRoll(state, message.roll);

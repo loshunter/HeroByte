@@ -71,4 +71,65 @@ export class MapService {
   clearDrawings(state: RoomState): void {
     state.drawings = [];
   }
+
+  /**
+   * Select a drawing for editing
+   * Deselects any other drawings by this player
+   */
+  selectDrawing(state: RoomState, drawingId: string, playerUid: string): boolean {
+    // First, deselect any drawings currently selected by this player
+    state.drawings.forEach(d => {
+      if (d.selectedBy === playerUid) {
+        delete d.selectedBy;
+      }
+    });
+
+    // Then select the requested drawing
+    const drawing = state.drawings.find(d => d.id === drawingId);
+    if (drawing) {
+      drawing.selectedBy = playerUid;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Deselect all drawings by a player
+   */
+  deselectDrawing(state: RoomState, playerUid: string): void {
+    state.drawings.forEach(d => {
+      if (d.selectedBy === playerUid) {
+        delete d.selectedBy;
+      }
+    });
+  }
+
+  /**
+   * Move a drawing by a delta amount
+   * Only the player who selected it can move it
+   */
+  moveDrawing(state: RoomState, drawingId: string, dx: number, dy: number, playerUid: string): boolean {
+    const drawing = state.drawings.find(d => d.id === drawingId);
+    if (drawing && drawing.selectedBy === playerUid) {
+      // Move all points by the delta
+      drawing.points = drawing.points.map(p => ({
+        x: p.x + dx,
+        y: p.y + dy
+      }));
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Delete a specific drawing
+   */
+  deleteDrawing(state: RoomState, drawingId: string): boolean {
+    const index = state.drawings.findIndex(d => d.id === drawingId);
+    if (index !== -1) {
+      state.drawings.splice(index, 1);
+      return true;
+    }
+    return false;
+  }
 }
