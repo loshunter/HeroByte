@@ -563,16 +563,11 @@ h4 { font-size: 16px; }
   height: 100%;
   pointer-events: none;
   z-index: 10000;
-  /* Chunky arcade frame with wood grain texture */
+  /* Subtle monitor bezel */
   box-shadow:
-    /* Inner monitor inset */
-    inset 0 0 0 20px #1a1410,
-    inset 0 0 0 24px #2d2520,
-    /* Wood grain bevel */
-    inset 0 0 0 40px #3a2f28,
-    inset 0 0 0 44px #4a3f38,
-    /* Outer cabinet edge */
-    inset 0 0 0 48px #1a1410;
+    inset 0 0 0 3px rgba(26, 20, 16, 0.8),
+    inset 0 0 0 6px rgba(45, 37, 32, 0.6),
+    inset 0 0 8px rgba(0, 0, 0, 0.4);
 }
 
 .crt-filter {
@@ -584,17 +579,17 @@ h4 { font-size: 16px; }
   pointer-events: none;
   z-index: 9999;
   background:
-    /* Horizontal scanlines - more authentic CRT pattern */
+    /* Horizontal scanlines - thick and visible */
     repeating-linear-gradient(
-      0deg,
-      rgba(0, 0, 0, 0.15) 0px,
-      rgba(0, 0, 0, 0.15) 1px,
-      transparent 1px,
-      transparent 2px
+      180deg,
+      rgba(0, 0, 0, 0.6) 0px,
+      rgba(0, 0, 0, 0.6) 2px,
+      transparent 2px,
+      transparent 4px
     );
   animation: scanline 8s linear infinite;
-  /* Slight blur for phosphor glow effect */
-  filter: blur(0.3px);
+  /* CSS bloom approximation - brightness + blur */
+  filter: brightness(1.15) contrast(1.1);
 }
 
 .crt-filter::before {
@@ -604,18 +599,14 @@ h4 { font-size: 16px; }
   left: 0;
   width: 100%;
   height: 100%;
-  /* CRT screen curvature vignette */
+  /* Chromatic aberration approximation */
   background:
     radial-gradient(ellipse at center,
-      transparent 0%,
       transparent 60%,
-      rgba(0, 0, 0, 0.2) 85%,
-      rgba(0, 0, 0, 0.5) 100%
+      rgba(255, 0, 0, 0.03) 80%,
+      rgba(0, 255, 255, 0.03) 100%
     );
-  /* Subtle chromatic aberration on edges */
-  box-shadow:
-    inset 0 0 100px rgba(68, 125, 247, 0.03),
-    inset 0 0 200px rgba(68, 125, 247, 0.02);
+  mix-blend-mode: screen;
 }
 
 .crt-filter::after {
@@ -625,10 +616,16 @@ h4 { font-size: 16px; }
   left: 0;
   width: 100%;
   height: 100%;
-  /* Subtle flickering + phosphor glow */
-  background: rgba(68, 125, 247, 0.015);
+  /* Strong phosphor glow bloom */
+  background:
+    radial-gradient(ellipse at center,
+      rgba(68, 125, 247, 0.25) 0%,
+      rgba(68, 125, 247, 0.15) 40%,
+      transparent 70%
+    );
   mix-blend-mode: screen;
   animation: flicker 0.15s infinite, phosphor-glow 3s ease-in-out infinite;
+  filter: blur(40px);
 }
 
 .crt-vignette {
@@ -640,12 +637,12 @@ h4 { font-size: 16px; }
   pointer-events: none;
   z-index: 9998;
   background:
-    /* Strong corner darkening that bleeds to full black */
+    /* Subtle corner darkening for CRT curvature */
     radial-gradient(ellipse at center,
-      transparent 20%,
-      rgba(0, 0, 0, 0.3) 50%,
-      rgba(0, 0, 0, 0.7) 80%,
-      rgba(0, 0, 0, 1) 100%
+      transparent 40%,
+      rgba(0, 0, 0, 0.15) 70%,
+      rgba(0, 0, 0, 0.4) 90%,
+      rgba(0, 0, 0, 0.6) 100%
     );
 }
 
