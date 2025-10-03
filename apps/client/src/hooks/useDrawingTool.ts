@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import type { ClientMessage } from "@shared";
+import { generateUUID } from "../utils/uuid";
 
 interface UseDrawingToolOptions {
   drawMode: boolean;
@@ -104,13 +105,7 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
       ((drawTool === "line" || drawTool === "rect" || drawTool === "circle") && currentDrawing.length >= 2);
 
     if (shouldSend) {
-      const drawingId = typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
-        ? crypto.randomUUID()
-        : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-            const r = (Math.random() * 16) | 0;
-            const v = c === "x" ? r : (r & 0x3) | 0x8;
-            return v.toString(16);
-          });
+      const drawingId = generateUUID();
 
       sendMessage({
         t: "draw",

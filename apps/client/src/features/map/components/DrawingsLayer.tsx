@@ -48,6 +48,13 @@ export const DrawingsLayer = memo(function DrawingsLayer({
   // Render a single completed drawing
   const renderDrawing = (drawing: Drawing) => {
     const points = drawing.points;
+
+    // Defensive check: ensure points array exists and has elements
+    if (!points || points.length === 0) {
+      console.warn(`Drawing ${drawing.id} has invalid points array`);
+      return null;
+    }
+
     const isSelected = selectedDrawingId === drawing.id;
     const isOwner = drawing.owner === uid;
     const canInteract = selectMode && isOwner;
@@ -71,6 +78,9 @@ export const DrawingsLayer = memo(function DrawingsLayer({
       : {};
 
     if (drawing.type === "eraser") {
+      // Eraser needs at least 1 point
+      if (points.length < 1) return null;
+
       return (
         <Line
           key={drawing.id}
@@ -85,6 +95,9 @@ export const DrawingsLayer = memo(function DrawingsLayer({
     }
 
     if (drawing.type === "freehand") {
+      // Freehand needs at least 1 point
+      if (points.length < 1) return null;
+
       return (
         <Group
           key={drawing.id}

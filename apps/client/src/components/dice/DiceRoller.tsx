@@ -11,19 +11,7 @@ import { RollButton } from './RollButton';
 import { ResultPanel } from './ResultPanel';
 import { DraggableWindow } from './DraggableWindow';
 import { JRPGPanel, JRPGButton } from '../ui/JRPGPanel';
-
-// Safari-compatible UUID generator
-function generateUUID(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  // Fallback for Safari and older browsers
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
+import { generateUUID } from '../../utils/uuid';
 
 interface DiceRollerProps {
   onRoll?: (result: RollResult) => void;

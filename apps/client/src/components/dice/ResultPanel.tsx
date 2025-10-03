@@ -42,6 +42,11 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({ result, onClose }) => 
           }}
         >
           {result.perDie.map((roll, index) => {
+            // Defensive check: ensure token exists at this index
+            if (index >= result.tokens.length) {
+              console.warn(`Token missing for roll at index ${index}`);
+              return null;
+            }
             const token = result.tokens[index];
             if (!token) return null;
 

@@ -98,8 +98,10 @@ export const App: React.FC = () => {
       playerName: roll.playerName,
       tokens: [], // Not needed for display
       perDie: roll.breakdown.map(b => ({
-        ...b,
-        die: b.die as any, // Type compatibility between DiceRoll and RollResult
+        tokenId: b.tokenId,
+        die: b.die,
+        rolls: b.rolls,
+        subtotal: b.subtotal,
       })),
       total: roll.total,
       timestamp: roll.timestamp,
