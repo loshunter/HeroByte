@@ -584,15 +584,17 @@ h4 { font-size: 16px; }
   pointer-events: none;
   z-index: 9999;
   background:
-    /* Horizontal scanlines */
+    /* Horizontal scanlines - more authentic CRT pattern */
     repeating-linear-gradient(
       0deg,
-      rgba(0, 0, 0, 0.2) 0px,
+      rgba(0, 0, 0, 0.15) 0px,
+      rgba(0, 0, 0, 0.15) 1px,
       transparent 1px,
-      transparent 2px,
-      rgba(0, 0, 0, 0.2) 3px
+      transparent 2px
     );
   animation: scanline 8s linear infinite;
+  /* Slight blur for phosphor glow effect */
+  filter: blur(0.3px);
 }
 
 .crt-filter::before {
@@ -602,14 +604,18 @@ h4 { font-size: 16px; }
   left: 0;
   width: 100%;
   height: 100%;
-  /* RGB color separation (chromatic aberration) */
+  /* CRT screen curvature vignette */
   background:
     radial-gradient(ellipse at center,
       transparent 0%,
-      rgba(255, 0, 0, 0.01) 50%,
-      transparent 100%
+      transparent 60%,
+      rgba(0, 0, 0, 0.2) 85%,
+      rgba(0, 0, 0, 0.5) 100%
     );
-  mix-blend-mode: screen;
+  /* Subtle chromatic aberration on edges */
+  box-shadow:
+    inset 0 0 100px rgba(68, 125, 247, 0.03),
+    inset 0 0 200px rgba(68, 125, 247, 0.02);
 }
 
 .crt-filter::after {
@@ -619,9 +625,10 @@ h4 { font-size: 16px; }
   left: 0;
   width: 100%;
   height: 100%;
-  /* Flickering effect */
-  background: rgba(255, 255, 255, 0.02);
-  animation: flicker 0.15s infinite;
+  /* Subtle flickering + phosphor glow */
+  background: rgba(68, 125, 247, 0.015);
+  mix-blend-mode: screen;
+  animation: flicker 0.15s infinite, phosphor-glow 3s ease-in-out infinite;
 }
 
 .crt-vignette {
@@ -724,6 +731,17 @@ h4 { font-size: 16px; }
   }
   50% {
     box-shadow: 0 0 16px var(--hero-blue);
+  }
+}
+
+@keyframes phosphor-glow {
+  0%, 100% {
+    opacity: 0.97;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.02);
   }
 }
 

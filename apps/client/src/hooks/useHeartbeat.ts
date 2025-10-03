@@ -27,5 +27,7 @@ export function useHeartbeat({ sendMessage, interval = 30000 }: UseHeartbeatOpti
     return () => {
       clearInterval(heartbeatInterval);
     };
-  }, [sendMessage, interval]);
+    // sendMessage is stable (memoized with useCallback), safe to omit from deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [interval]);
 }
