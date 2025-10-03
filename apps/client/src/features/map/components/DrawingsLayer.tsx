@@ -6,7 +6,7 @@
 import { memo } from "react";
 import { Group, Line, Rect, Circle } from "react-konva";
 import type { Drawing } from "@shared";
-import type { Camera } from "../types";
+import type { Camera } from "../../../hooks/useCamera";
 
 interface DrawingsLayerProps {
   cam: Camera;
@@ -17,6 +17,11 @@ interface DrawingsLayerProps {
   currentWidth?: number;
   currentOpacity?: number;
   currentFilled?: boolean;
+  uid: string;
+  selectMode: boolean;
+  selectedDrawingId: string | null;
+  onSelectDrawing: (drawingId: string | null) => void;
+  onDrawingDragEnd: (drawingId: string, e: any) => void;
 }
 
 /**
@@ -34,10 +39,36 @@ export const DrawingsLayer = memo(function DrawingsLayer({
   currentWidth,
   currentOpacity,
   currentFilled,
+  uid,
+  selectMode,
+  selectedDrawingId,
+  onSelectDrawing,
+  onDrawingDragEnd,
 }: DrawingsLayerProps) {
   // Render a single completed drawing
   const renderDrawing = (drawing: Drawing) => {
     const points = drawing.points;
+    const isSelected = selectedDrawingId === drawing.id;
+    const isOwner = drawing.owner === uid;
+    const canInteract = selectMode && isOwner;
+
+    // Common interaction props for selectable drawings
+    const interactiveProps = selectMode
+      ? {
+          onClick: (e: any) => {
+            if (canInteract) {
+              e.cancelBubble = true;
+              onSelectDrawing(drawing.id);
+            }
+          },
+          onTap: (e: any) => {
+            if (canInteract) {
+              e.cancelBubble = true;
+              onSelectDrawing(drawing.id);
+            }
+          },
+        }
+      : {};
 
     if (drawing.type === "eraser") {
       return (
@@ -55,28 +86,86 @@ export const DrawingsLayer = memo(function DrawingsLayer({
 
     if (drawing.type === "freehand") {
       return (
-        <Line
+        <Group
           key={drawing.id}
-          points={points.flatMap((p) => [p.x, p.y])}
-          stroke={drawing.color}
-          strokeWidth={drawing.width / cam.scale}
-          lineCap="round"
-          lineJoin="round"
-          opacity={drawing.opacity}
-        />
+          draggable={isSelected && canInteract}
+          onDragEnd={(e) => canInteract && onDrawingDragEnd(drawing.id, e)}
+        >
+          {/* Invisible wider hit area for easier clicking */}
+          {selectMode && canInteract && (
+            <Line
+              points={points.flatMap((p) => [p.x, p.y])}
+              stroke="transparent"
+              strokeWidth={Math.max(20 / cam.scale, (drawing.width + 10) / cam.scale)}
+              lineCap="round"
+              lineJoin="round"
+              {...interactiveProps}
+            />
+          )}
+          {/* Actual drawing */}
+          <Line
+            points={points.flatMap((p) => [p.x, p.y])}
+            stroke={drawing.color}
+            strokeWidth={drawing.width / cam.scale}
+            lineCap="round"
+            lineJoin="round"
+            opacity={drawing.opacity}
+            listening={false}
+          />
+          {/* Selection highlight */}
+          {isSelected && canInteract && (
+            <Line
+              points={points.flatMap((p) => [p.x, p.y])}
+              stroke="#447DF7"
+              strokeWidth={2 / cam.scale}
+              dash={[8 / cam.scale, 4 / cam.scale]}
+              lineCap="round"
+              lineJoin="round"
+              listening={false}
+            />
+          )}
+        </Group>
       );
     }
 
     if (drawing.type === "line" && points.length >= 2) {
       return (
-        <Line
+        <Group
           key={drawing.id}
-          points={[points[0].x, points[0].y, points[points.length - 1].x, points[points.length - 1].y]}
-          stroke={drawing.color}
-          strokeWidth={drawing.width / cam.scale}
-          lineCap="round"
-          opacity={drawing.opacity}
-        />
+          draggable={isSelected && canInteract}
+          onDragEnd={(e) => canInteract && onDrawingDragEnd(drawing.id, e)}
+        >
+          {/* Invisible wider hit area for easier clicking */}
+          {selectMode && canInteract && (
+            <Line
+              points={[points[0].x, points[0].y, points[points.length - 1].x, points[points.length - 1].y]}
+              stroke="transparent"
+              strokeWidth={Math.max(20 / cam.scale, (drawing.width + 10) / cam.scale)}
+              lineCap="round"
+              {...interactiveProps}
+            />
+          )}
+          {/* Actual drawing */}
+          <Line
+            points={[points[0].x, points[0].y, points[points.length - 1].x, points[points.length - 1].y]}
+            stroke={drawing.color}
+            strokeWidth={drawing.width / cam.scale}
+            lineCap="round"
+            opacity={drawing.opacity}
+            listening={false}
+          />
+          {/* Selection highlight */}
+          {isSelected && canInteract && (
+            <Line
+              points={[points[0].x, points[0].y, points[points.length - 1].x, points[points.length - 1].y]}
+              stroke="#447DF7"
+              strokeWidth={2 / cam.scale}
+              dash={[8 / cam.scale, 4 / cam.scale]}
+              lineCap="round"
+              listening={false}
+            />
+          )}
+        </Group>
       );
     }
 
@@ -87,17 +176,37 @@ export const DrawingsLayer = memo(function DrawingsLayer({
       const y2 = Math.max(points[0].y, points[points.length - 1].y);
 
       return (
-        <Rect
+        <Group
           key={drawing.id}
-          x={x1}
-          y={y1}
-          width={x2 - x1}
-          height={y2 - y1}
-          fill={drawing.filled ? drawing.color : undefined}
-          stroke={drawing.color}
-          strokeWidth={drawing.width / cam.scale}
-          opacity={drawing.opacity}
-        />
+          draggable={isSelected && canInteract}
+          onDragEnd={(e) => canInteract && onDrawingDragEnd(drawing.id, e)}
+        >
+          {/* Actual drawing */}
+          <Rect
+            x={x1}
+            y={y1}
+            width={x2 - x1}
+            height={y2 - y1}
+            fill={drawing.filled ? drawing.color : undefined}
+            stroke={drawing.color}
+            strokeWidth={drawing.width / cam.scale}
+            opacity={drawing.opacity}
+            {...interactiveProps}
+          />
+          {/* Selection highlight */}
+          {isSelected && canInteract && (
+            <Rect
+              x={x1}
+              y={y1}
+              width={x2 - x1}
+              height={y2 - y1}
+              stroke="#447DF7"
+              strokeWidth={2 / cam.scale}
+              dash={[8 / cam.scale, 4 / cam.scale]}
+              listening={false}
+            />
+          )}
+        </Group>
       );
     }
 
@@ -106,20 +215,39 @@ export const DrawingsLayer = memo(function DrawingsLayer({
       const cy = points[0].y;
       const radius = Math.sqrt(
         Math.pow(points[points.length - 1].x - cx, 2) +
-        Math.pow(points[points.length - 1].y - cy, 2)
+          Math.pow(points[points.length - 1].y - cy, 2)
       );
 
       return (
-        <Circle
+        <Group
           key={drawing.id}
-          x={cx}
-          y={cy}
-          radius={radius}
-          fill={drawing.filled ? drawing.color : undefined}
-          stroke={drawing.color}
-          strokeWidth={drawing.width / cam.scale}
-          opacity={drawing.opacity}
-        />
+          draggable={isSelected && canInteract}
+          onDragEnd={(e) => canInteract && onDrawingDragEnd(drawing.id, e)}
+        >
+          {/* Actual drawing */}
+          <Circle
+            x={cx}
+            y={cy}
+            radius={radius}
+            fill={drawing.filled ? drawing.color : undefined}
+            stroke={drawing.color}
+            strokeWidth={drawing.width / cam.scale}
+            opacity={drawing.opacity}
+            {...interactiveProps}
+          />
+          {/* Selection highlight */}
+          {isSelected && canInteract && (
+            <Circle
+              x={cx}
+              y={cy}
+              radius={radius}
+              stroke="#447DF7"
+              strokeWidth={2 / cam.scale}
+              dash={[8 / cam.scale, 4 / cam.scale]}
+              listening={false}
+            />
+          )}
+        </Group>
       );
     }
 
@@ -200,8 +328,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
       const start = currentDrawing[0];
       const end = currentDrawing[currentDrawing.length - 1];
       const radius = Math.sqrt(
-        Math.pow(end.x - start.x, 2) +
-        Math.pow(end.y - start.y, 2)
+        Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2)
       );
 
       return (

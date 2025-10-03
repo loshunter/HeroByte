@@ -5,11 +5,11 @@
 
 import { memo } from "react";
 import { Group, Line } from "react-konva";
-import type { Camera, Viewport } from "../types";
+import type { Camera } from "../../../hooks/useCamera";
 
 interface GridLayerProps {
   cam: Camera;
-  viewport: Viewport;
+  viewport: { w: number; h: number };
   gridSize?: number;
   color?: string;
   majorEvery?: number;
