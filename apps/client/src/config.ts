@@ -25,12 +25,16 @@ if (wsOverride) {
 } else if (import.meta.env.VITE_WS_URL) {
   // Environment variable second priority
   computedWsUrl = import.meta.env.VITE_WS_URL;
-} else if (import.meta.env.DEV) {
-  // Development mode: auto-detect from current hostname
-  const wsHost = window.location.hostname || 'localhost';
-  computedWsUrl = `ws://${wsHost}:8787`;
 } else {
-  throw new Error('VITE_WS_URL environment variable is required in production');
+  // Fallback: Auto-detect WebSocket URL from current hostname
+  // Production will use wss://herobyte-server.onrender.com
+  // Development will use ws://localhost:8787
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsHost = import.meta.env.DEV
+    ? (window.location.hostname || 'localhost')
+    : 'herobyte-server.onrender.com';
+  const wsPort = import.meta.env.DEV ? ':8787' : '';
+  computedWsUrl = `${protocol}//${wsHost}${wsPort}`;
 }
 
 export const WS_URL = computedWsUrl;
