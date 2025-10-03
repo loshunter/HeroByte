@@ -15,24 +15,29 @@ export const ServerStatus: React.FC<ServerStatusProps> = ({ isConnected }) => {
       style={{
         position: "fixed",
         top: 0,
-        left: 0,
-        right: 0,
+        left: "50%",
+        transform: "translateX(-50%)",
         zIndex: 200,
-        background: isConnected ? "var(--hero-success)" : "var(--hero-danger)",
-        color: "white",
-        padding: "4px 12px",
+        background: isConnected ? "var(--jrpg-hp-full)" : "var(--jrpg-hp-low)",
+        color: "var(--jrpg-navy)",
+        padding: "4px 16px",
         textAlign: "center",
-        fontSize: "0.75rem",
+        fontSize: "8px",
         fontWeight: "bold",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        gap: "8px",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+        gap: "6px",
+        border: "2px solid var(--jrpg-border-outer)",
+        borderTop: "none",
+        borderRadius: "0 0 8px 8px",
+        boxShadow: "0 2px 4px rgba(0,0,0,0.5), inset 0 0 0 1px var(--jrpg-border-shadow)",
+        fontFamily: "'Press Start 2P', monospace",
+        minWidth: "120px",
       }}
     >
-      <span style={{ fontSize: "1rem" }}>{isConnected ? "🟢" : "🔴"}</span>
-      <span>{isConnected ? "Connected" : "Disconnected"}</span>
+      <span style={{ fontSize: "10px" }}>{isConnected ? "🟢" : "🔴"}</span>
+      <span>{isConnected ? "ONLINE" : "OFFLINE"}</span>
     </div>
   );
 };

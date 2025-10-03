@@ -6,6 +6,7 @@
 
 import React from "react";
 import type { ClientMessage } from "@shared";
+import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
 
 interface HeaderProps {
   uid: string;
@@ -60,7 +61,6 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <div
       ref={topPanelRef}
-      className="panel"
       style={{
         position: "fixed",
         top: "28px", // Offset for status banner
@@ -68,146 +68,145 @@ export const Header: React.FC<HeaderProps> = ({
         right: 0,
         zIndex: 100,
         margin: 0,
-        borderRadius: 0,
       }}
     >
-      {/* Logo */}
-      <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
-        <img
-          src="/logo.webp"
-          alt="HeroByte"
-          style={{ height: "48px", imageRendering: "pixelated" }}
-        />
-      </div>
+      <JRPGPanel variant="bevel" style={{ padding: "8px", borderRadius: 0 }}>
+        <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+          {/* Left side: Logo and UID */}
+          <JRPGPanel variant="simple" style={{ padding: "8px", minWidth: "200px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {/* Logo */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <img
+                  src="/logo.webp"
+                  alt="HeroByte"
+                  className="jrpg-pixelated"
+                  style={{ height: "40px" }}
+                />
+              </div>
+              {/* UID Display */}
+              <div style={{ textAlign: "center" }}>
+                <p className="jrpg-text-small" style={{ margin: 0, color: "var(--jrpg-white)" }}>
+                  <strong style={{ color: "var(--jrpg-gold)" }}>UID:</strong><br />
+                  {uid.substring(0, 8)}...
+                </p>
+              </div>
+            </div>
+          </JRPGPanel>
 
-      {/* UID Display */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", gap: "8px" }}>
-        <p style={{ margin: 0, fontSize: "0.7rem" }}>
-          <strong>UID:</strong> {uid.substring(0, 8)}...
-        </p>
-      </div>
+          {/* Right side: Controls and Tools */}
+          <JRPGPanel variant="simple" style={{ padding: "8px", flex: 1 }}>
+            <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
+          {/* Grid Size */}
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <label htmlFor="gridSize" className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>Grid:</label>
+            <button
+              onClick={onGridLockToggle}
+              style={{
+                padding: "2px 8px",
+                background: "transparent",
+                border: "1px solid var(--jrpg-border-gold)",
+                cursor: "pointer",
+                fontSize: "1rem",
+                color: gridLocked ? "var(--jrpg-hp-low)" : "var(--jrpg-hp-full)",
+              }}
+              title={gridLocked ? "Unlock grid size" : "Lock grid size"}
+            >
+              {gridLocked ? "🔒" : "🔓"}
+            </button>
+            <input
+              id="gridSize"
+              type="range"
+              min="1"
+              max="100"
+              step="1"
+              value={gridSize}
+              onChange={(e) => onGridSizeChange(Number(e.target.value))}
+              style={{
+                width: "120px",
+                opacity: gridLocked ? 0.4 : 1,
+                cursor: gridLocked ? "not-allowed" : "pointer",
+              }}
+              disabled={gridLocked}
+            />
+            <span className="jrpg-text-small" style={{ color: gridLocked ? "var(--jrpg-white)" : "var(--jrpg-cyan)", opacity: gridLocked ? 0.5 : 1 }}>{gridSize}px</span>
+          </div>
 
-      {/* Controls and Tools */}
-      <div style={{ display: "flex", gap: "16px", alignItems: "center", flexWrap: "wrap" }}>
-        {/* Grid Size */}
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <label htmlFor="gridSize">Grid Size:</label>
-          <button
-            onClick={onGridLockToggle}
-            style={{
-              padding: "2px 8px",
-              background: "transparent",
-              border: "1px solid #555",
-              cursor: "pointer",
-              fontSize: "1rem",
-              color: gridLocked ? "#f66" : "#6c6",
-            }}
-            title={gridLocked ? "Unlock grid size" : "Lock grid size"}
+          {/* Snap to Grid */}
+          <JRPGButton
+            onClick={() => onSnapToGridChange(!snapToGrid)}
+            variant={snapToGrid ? "primary" : "default"}
+            style={{ fontSize: "8px", padding: "6px 12px" }}
           >
-            {gridLocked ? "🔒" : "🔓"}
-          </button>
-          <input
-            id="gridSize"
-            type="range"
-            min="1"
-            max="100"
-            step="1"
-            value={gridSize}
-            onChange={(e) => onGridSizeChange(Number(e.target.value))}
-            style={{
-              width: "200px",
-              opacity: gridLocked ? 0.4 : 1,
-              cursor: gridLocked ? "not-allowed" : "pointer",
-            }}
-            disabled={gridLocked}
-          />
-          <span style={{ color: gridLocked ? "#888" : "#dbe1ff" }}>{gridSize}px</span>
-        </div>
+            Snap
+          </JRPGButton>
 
-        {/* Snap to Grid */}
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <input
-            id="snapToGrid"
-            type="checkbox"
-            checked={snapToGrid}
-            onChange={(e) => onSnapToGridChange(e.target.checked)}
-          />
-          <label htmlFor="snapToGrid">Snap to Grid</label>
-        </div>
+          {/* Pointer Mode */}
+          <JRPGButton
+            onClick={() => onPointerModeChange(!pointerMode)}
+            variant={pointerMode ? "primary" : "default"}
+            style={{ fontSize: "8px", padding: "6px 12px" }}
+          >
+            👆 Pointer
+          </JRPGButton>
 
-        {/* Pointer Mode */}
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <input
-            id="pointerMode"
-            type="checkbox"
-            checked={pointerMode}
-            onChange={(e) => onPointerModeChange(e.target.checked)}
-          />
-          <label htmlFor="pointerMode">Pointer Mode 👆</label>
-        </div>
+          {/* Measure Mode */}
+          <JRPGButton
+            onClick={() => onMeasureModeChange(!measureMode)}
+            variant={measureMode ? "primary" : "default"}
+            style={{ fontSize: "8px", padding: "6px 12px" }}
+          >
+            📏 Measure
+          </JRPGButton>
 
-        {/* Measure Mode */}
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <input
-            id="measureMode"
-            type="checkbox"
-            checked={measureMode}
-            onChange={(e) => onMeasureModeChange(e.target.checked)}
-          />
-          <label htmlFor="measureMode">Measure Distance 📏</label>
-        </div>
+          {/* Draw Mode */}
+          <JRPGButton
+            onClick={() => onDrawModeChange(!drawMode)}
+            variant={drawMode ? "primary" : "default"}
+            style={{ fontSize: "8px", padding: "6px 12px" }}
+          >
+            ✏️ Draw
+          </JRPGButton>
 
-        {/* Draw Mode */}
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <input
-            id="drawMode"
-            type="checkbox"
-            checked={drawMode}
-            onChange={(e) => onDrawModeChange(e.target.checked)}
-          />
-          <label htmlFor="drawMode">Draw ✏️</label>
-        </div>
+          {/* CRT Filter */}
+          <JRPGButton
+            onClick={() => onCrtFilterChange(!crtFilter)}
+            variant={crtFilter ? "primary" : "default"}
+            style={{ fontSize: "8px", padding: "6px 12px" }}
+          >
+            📺 CRT
+          </JRPGButton>
 
-        {/* CRT Filter */}
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <input
-            id="crtFilter"
-            type="checkbox"
-            checked={crtFilter}
-            onChange={(e) => onCrtFilterChange(e.target.checked)}
-          />
-          <label htmlFor="crtFilter">CRT Filter 📺</label>
-        </div>
+          {/* Dice Roller */}
+          <JRPGButton
+            onClick={() => onDiceRollerToggle(!diceRollerOpen)}
+            variant={diceRollerOpen ? "primary" : "default"}
+            style={{ fontSize: "8px", padding: "6px 12px" }}
+          >
+            ⚂ Dice
+          </JRPGButton>
 
-        {/* Dice Roller */}
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <input
-            id="diceRoller"
-            type="checkbox"
-            checked={diceRollerOpen}
-            onChange={(e) => onDiceRollerToggle(e.target.checked)}
-          />
-          <label htmlFor="diceRoller">Dice Roller ⚂</label>
-        </div>
+          {/* Roll Log */}
+          <JRPGButton
+            onClick={() => onRollLogToggle(!rollLogOpen)}
+            variant={rollLogOpen ? "primary" : "default"}
+            style={{ fontSize: "8px", padding: "6px 12px" }}
+          >
+            📜 Log
+          </JRPGButton>
 
-        {/* Roll Log */}
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <input
-            id="rollLog"
-            type="checkbox"
-            checked={rollLogOpen}
-            onChange={(e) => onRollLogToggle(e.target.checked)}
-          />
-          <label htmlFor="rollLog">Roll Log 📜</label>
+              {/* Load Map */}
+              <JRPGButton
+                onClick={onLoadMap}
+                variant="success"
+                style={{ fontSize: "8px", padding: "6px 12px" }}
+              >
+                Load Map
+              </JRPGButton>
+            </div>
+          </JRPGPanel>
         </div>
-
-        {/* Load Map */}
-        <div>
-          <button onClick={onLoadMap} className="btn btn-primary">
-            Load Map
-          </button>
-        </div>
-      </div>
+      </JRPGPanel>
     </div>
   );
 };

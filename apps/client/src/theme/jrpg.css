@@ -1,0 +1,450 @@
+/* ============================================================================
+ * HEROBYTE JRPG THEME
+ * ============================================================================
+ * Inspired by SNES JRPGs: Final Fantasy IV-VI, Chrono Trigger, Secret of Mana
+ * Pixel-perfect UI with crisp borders, limited palette, and framed menus
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+/* ---------------------------------------------------------------------------
+ * CORE PALETTE (FF6 / Chrono Trigger Style)
+ * --------------------------------------------------------------------------- */
+:root {
+  /* Primary Menu Colors - Deep Indigo/Navy (SNES Style) */
+  --jrpg-indigo: #1C1734;          /* Deep indigo background (darker, richer) */
+  --jrpg-navy: #0F0E1E;            /* Darkest navy for shadows */
+  --jrpg-gold: #E2B75C;            /* Muted gold for section headers */
+  --jrpg-cyan: #00E0D1;            /* Bright cyan for highlights/hover */
+  --jrpg-white: #FFFFFF;           /* Pure white for text */
+
+  /* Dice Colors (muted pastels, not neon) */
+  --jrpg-dice-red: #E89A9C;        /* d4 - soft red */
+  --jrpg-dice-green: #A2D7C8;      /* d6 - soft green */
+  --jrpg-dice-yellow: #F2A65A;     /* d8 - soft yellow */
+  --jrpg-dice-cyan: #7DD3C0;       /* d10 - soft cyan */
+  --jrpg-dice-blue: #7BA3C7;       /* d12 - soft blue */
+  --jrpg-dice-purple: #B19CD9;     /* d20 - soft purple */
+
+  /* UI State Colors */
+  --jrpg-hp-full: #A2D7C8;         /* Soft green HP bar */
+  --jrpg-mp-full: #7BA3C7;         /* Soft blue MP bar */
+  --jrpg-hp-medium: #F2A65A;       /* Soft yellow HP warning */
+  --jrpg-hp-low: #E89A9C;          /* Soft red HP critical */
+
+  /* Border & Frame Colors - SNES Chunky Borders */
+  --jrpg-border-outer: #0F0E1E;    /* Dark navy outer border */
+  --jrpg-border-gold: #E2B75C;     /* Gold middle trim */
+  --jrpg-border-inner: #1C1734;    /* Indigo inner fill */
+  --jrpg-border-highlight: #00E0D1; /* Cyan highlight */
+  --jrpg-border-shadow: #000000;   /* Black shadow */
+}
+
+/* ---------------------------------------------------------------------------
+ * TYPOGRAPHY - Pixel Perfect Fonts
+ * --------------------------------------------------------------------------- */
+
+.jrpg-text {
+  font-family: 'Press Start 2P', monospace;
+  text-rendering: optimizeSpeed;
+  image-rendering: pixelated;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: grayscale;
+  font-smooth: never;
+}
+
+.jrpg-text-command {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--jrpg-white);
+  text-shadow: 1px 1px 0 var(--jrpg-border-inner);
+  letter-spacing: 1px;
+}
+
+.jrpg-text-highlight {
+  color: var(--jrpg-gold);
+  text-shadow: 1px 1px 0 var(--jrpg-border-inner);
+}
+
+.jrpg-text-small {
+  font-size: 8px;
+  letter-spacing: 0.5px;
+}
+
+/* ---------------------------------------------------------------------------
+ * CHUNKY PIXEL BORDERS (SNES 3-Layer Style)
+ * --------------------------------------------------------------------------- */
+
+/* Chunky Frame (3px triple-layer border) */
+.jrpg-frame {
+  background: var(--jrpg-indigo);
+  border: 3px solid var(--jrpg-border-outer);     /* Dark navy outer (3px) */
+  box-shadow:
+    inset 0 0 0 2px var(--jrpg-border-gold),     /* Gold middle trim (2px) */
+    inset 0 0 0 3px var(--jrpg-border-inner),    /* Indigo inner (fills) */
+    0 4px 0 var(--jrpg-border-shadow);           /* Drop shadow */
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  padding: 4px;  /* Tighter spacing */
+}
+
+/* Beveled Frame (3D pixel block effect) */
+.jrpg-frame-bevel {
+  background: var(--jrpg-indigo);
+  border: 3px solid var(--jrpg-border-outer);
+  box-shadow:
+    inset 0 0 0 2px var(--jrpg-border-gold),
+    inset 0 0 0 3px var(--jrpg-border-inner),
+    inset 2px 2px 0 rgba(255, 255, 255, 0.15),   /* Top-left highlight */
+    inset -2px -2px 0 var(--jrpg-border-shadow), /* Bottom-right shadow */
+    0 4px 0 var(--jrpg-border-shadow);
+  padding: 4px;
+}
+
+/* Simple Frame (2px for nested content) */
+.jrpg-frame-simple {
+  background: var(--jrpg-navy);
+  border: 2px solid var(--jrpg-border-gold);
+  box-shadow:
+    inset 0 0 0 1px var(--jrpg-border-shadow),
+    0 2px 0 var(--jrpg-border-shadow);
+  padding: 4px;
+}
+
+/* Dark Panel (minimal border for deep content) */
+.jrpg-panel-dark {
+  background: var(--jrpg-navy);
+  border: 1px solid var(--jrpg-border-shadow);
+  padding: 4px;
+}
+
+/* ---------------------------------------------------------------------------
+ * BUTTONS (JRPG Command Style)
+ * --------------------------------------------------------------------------- */
+
+.jrpg-button {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--jrpg-gold);
+  background: var(--jrpg-indigo);
+  border: 2px solid var(--jrpg-border-outer);
+  box-shadow:
+    inset 0 0 0 1px var(--jrpg-border-gold),      /* Gold inner trim */
+    inset 2px 2px 0 rgba(255, 255, 255, 0.2),     /* Top-left highlight */
+    inset -2px -2px 0 var(--jrpg-border-shadow),  /* Bottom-right shadow */
+    0 3px 0 var(--jrpg-border-shadow);            /* Drop shadow below */
+  padding: 6px 12px;
+  cursor: pointer;
+  image-rendering: pixelated;
+  text-shadow: 1px 1px 0 var(--jrpg-border-shadow);
+  transition: none;
+  position: relative;
+}
+
+.jrpg-button:hover {
+  box-shadow:
+    inset 0 0 0 1px var(--jrpg-border-highlight),  /* Cyan highlight */
+    inset 2px 2px 0 rgba(0, 224, 209, 0.3),
+    inset -2px -2px 0 var(--jrpg-border-shadow),
+    0 3px 0 var(--jrpg-border-shadow),
+    0 0 8px var(--jrpg-border-highlight);          /* Cyan glow */
+  color: var(--jrpg-cyan);
+}
+
+.jrpg-button:active {
+  background: var(--jrpg-gold);
+  color: var(--jrpg-border-shadow);  /* Black text */
+  text-shadow: none;
+  box-shadow:
+    inset 0 0 0 1px var(--jrpg-border-shadow),
+    inset 2px 2px 0 rgba(0, 0, 0, 0.4),   /* Inverted shadows */
+    0 1px 0 var(--jrpg-border-shadow);    /* Pressed down */
+  transform: translateY(2px);  /* Push down effect */
+}
+
+.jrpg-button-primary {
+  background: var(--jrpg-gold);
+  color: var(--jrpg-border-shadow);  /* Black text */
+  font-weight: bold;
+  text-shadow: none;
+  box-shadow:
+    inset 0 0 0 1px var(--jrpg-border-outer),
+    inset 2px 2px 0 rgba(255, 255, 255, 0.3),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.3),
+    0 3px 0 var(--jrpg-border-shadow);
+}
+
+.jrpg-button-primary:hover {
+  box-shadow:
+    inset 0 0 0 1px var(--jrpg-border-highlight),
+    inset 2px 2px 0 rgba(0, 224, 209, 0.4),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.3),
+    0 3px 0 var(--jrpg-border-shadow),
+    0 0 12px var(--jrpg-border-highlight);
+}
+
+.jrpg-button-danger {
+  background: var(--jrpg-hp-low);
+  color: var(--jrpg-white);
+  text-shadow: 1px 1px 0 var(--jrpg-border-shadow);
+}
+
+.jrpg-button-success {
+  background: var(--jrpg-hp-full);
+  color: var(--jrpg-white);
+  text-shadow: 1px 1px 0 var(--jrpg-border-shadow);
+}
+
+/* Toggle Button (like menu selection) */
+.jrpg-button-toggle {
+  position: relative;
+  padding-left: 24px;
+}
+
+.jrpg-button-toggle::before {
+  content: '▶';
+  position: absolute;
+  left: 8px;
+  color: var(--jrpg-gold);
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.jrpg-button-toggle.active::before {
+  opacity: 1;
+}
+
+.jrpg-button-toggle.active {
+  background: var(--jrpg-sky);
+  color: var(--jrpg-gold);
+}
+
+/* ---------------------------------------------------------------------------
+ * HP/MP BARS (Pixel Block Style)
+ * --------------------------------------------------------------------------- */
+
+.jrpg-hp-bar {
+  width: 100%;
+  height: 12px;
+  background: var(--jrpg-navy);
+  border: 1px solid var(--jrpg-border-outer);
+  position: relative;
+  image-rendering: pixelated;
+  overflow: hidden;
+}
+
+.jrpg-hp-bar-fill {
+  height: 100%;
+  background: var(--jrpg-hp-full);
+  image-rendering: pixelated;
+  transition: width 0.2s steps(10), background-color 0.2s;
+  position: relative;
+}
+
+/* Chunky pixel blocks pattern */
+.jrpg-hp-bar-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 3px,
+      rgba(0, 0, 0, 0.2) 3px,
+      rgba(0, 0, 0, 0.2) 4px
+    );
+}
+
+/* HP Color States */
+.jrpg-hp-bar-fill[data-hp-percent="high"] {
+  background: var(--jrpg-hp-full);
+}
+
+.jrpg-hp-bar-fill[data-hp-percent="medium"] {
+  background: var(--jrpg-hp-medium);
+}
+
+.jrpg-hp-bar-fill[data-hp-percent="low"] {
+  background: var(--jrpg-hp-low);
+  animation: jrpg-hp-flash 0.8s infinite;
+}
+
+@keyframes jrpg-hp-flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* HP Text Label */
+.jrpg-hp-text {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  color: var(--jrpg-ivory);
+  text-shadow: 1px 1px 0 var(--jrpg-border-outer);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------------------
+ * PORTRAIT FRAMES (Character Display)
+ * --------------------------------------------------------------------------- */
+
+.jrpg-portrait-frame {
+  background: var(--jrpg-sapphire);
+  border: 3px solid var(--jrpg-border-outer);
+  box-shadow:
+    inset 0 0 0 2px var(--jrpg-border-inner),
+    0 4px 0 rgba(0, 0, 0, 0.6);
+  padding: 4px;
+  position: relative;
+  image-rendering: pixelated;
+}
+
+.jrpg-portrait-frame::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 8px;
+  background: var(--jrpg-gold);
+  border: 2px solid var(--jrpg-border-outer);
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+}
+
+.jrpg-portrait-image {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  border: 2px solid var(--jrpg-navy);
+}
+
+/* ---------------------------------------------------------------------------
+ * SCROLLABLE LISTS (Menu Items)
+ * --------------------------------------------------------------------------- */
+
+.jrpg-menu-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.jrpg-menu-item {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  color: var(--jrpg-ivory);
+  padding: 8px 12px;
+  padding-left: 24px;
+  cursor: pointer;
+  position: relative;
+  transition: none;
+}
+
+.jrpg-menu-item::before {
+  content: '▶';
+  position: absolute;
+  left: 8px;
+  color: var(--jrpg-gold);
+  opacity: 0;
+}
+
+.jrpg-menu-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--jrpg-gold);
+}
+
+.jrpg-menu-item:hover::before {
+  opacity: 1;
+}
+
+.jrpg-menu-item.active {
+  background: var(--jrpg-sky);
+  color: var(--jrpg-gold);
+}
+
+.jrpg-menu-item.active::before {
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------------------
+ * ICONS & SPRITES
+ * --------------------------------------------------------------------------- */
+
+.jrpg-icon {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* ---------------------------------------------------------------------------
+ * ANIMATIONS (Snappy, SNES-style)
+ * --------------------------------------------------------------------------- */
+
+@keyframes jrpg-slide-in {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes jrpg-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.jrpg-anim-slide-in {
+  animation: jrpg-slide-in 0.2s steps(4);
+}
+
+.jrpg-anim-bounce {
+  animation: jrpg-bounce 0.4s steps(2) infinite;
+}
+
+/* ---------------------------------------------------------------------------
+ * UTILITY CLASSES
+ * --------------------------------------------------------------------------- */
+
+.jrpg-no-select {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.jrpg-pixelated {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.jrpg-spacing-sm {
+  padding: 4px;
+  gap: 4px;
+}
+
+.jrpg-spacing-md {
+  padding: 8px;
+  gap: 8px;
+}
+
+.jrpg-spacing-lg {
+  padding: 12px;
+  gap: 12px;
+}

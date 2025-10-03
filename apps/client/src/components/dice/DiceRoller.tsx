@@ -10,6 +10,7 @@ import { BuildStrip } from './BuildStrip';
 import { RollButton } from './RollButton';
 import { ResultPanel } from './ResultPanel';
 import { DraggableWindow } from './DraggableWindow';
+import { JRPGPanel, JRPGButton } from '../ui/JRPGPanel';
 
 // Safari-compatible UUID generator
 function generateUUID(): string {
@@ -96,61 +97,64 @@ export const DiceRoller: React.FC<DiceRollerProps> = ({ onRoll, onClose }) => {
       maxWidth={800}
       zIndex={1000}
     >
-      <div
-        className="dice-roller"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '16px',
-          padding: '20px',
-        }}
-      >
-        {/* Header */}
-        {build.length > 0 && (
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-            }}
-          >
-            <button
-              onClick={clearBuild}
-              className="btn btn-sm"
+      <JRPGPanel variant="bevel" style={{ padding: '8px' }}>
+        <div
+          className="dice-roller"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}
+        >
+          {/* Header */}
+          {build.length > 0 && (
+            <div
               style={{
-                padding: '6px 12px',
-                fontSize: '12px',
-                background: 'linear-gradient(180deg, #888 0%, #666 100%)',
-                border: '3px solid var(--hero-navy-dark)',
+                display: 'flex',
+                justifyContent: 'flex-end',
               }}
             >
-              Clear All
-            </button>
-          </div>
-        )}
+              <JRPGButton
+                onClick={clearBuild}
+                variant="danger"
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '8px',
+                }}
+              >
+                CLEAR
+              </JRPGButton>
+            </div>
+          )}
 
-      {/* Dice selection bar */}
-      <DiceBar onAddDie={addDie} onAddModifier={addModifier} />
+        {/* Dice selection bar */}
+        <DiceBar onAddDie={addDie} onAddModifier={addModifier} />
 
-      {/* Build strip */}
-      <div
-        style={{
-          minHeight: '96px',
-          background: 'rgba(0,0,0,0.3)',
-          border: '3px solid rgba(240,226,195,0.2)',
-          borderRadius: '8px',
-        }}
-      >
-        <BuildStrip build={build} onUpdateBuild={setBuild} isAnimating={isAnimating} />
-      </div>
+        {/* Build strip */}
+        <JRPGPanel variant="simple" style={{ minHeight: '96px', padding: '8px' }}>
+          <BuildStrip build={build} onUpdateBuild={setBuild} isAnimating={isAnimating} />
+        </JRPGPanel>
 
-      {/* Roll button */}
-      <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <RollButton onClick={handleRoll} disabled={build.length === 0 || isAnimating} />
-      </div>
+        {/* Roll button */}
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <JRPGButton
+            onClick={handleRoll}
+            disabled={build.length === 0 || isAnimating}
+            variant="primary"
+            style={{
+              padding: '12px 48px',
+              fontSize: '14px',
+              fontWeight: 'bold',
+            }}
+          >
+            ⚂ ROLL!
+          </JRPGButton>
+        </div>
 
-      {/* Result panel */}
-      {result && <ResultPanel result={result} onClose={() => setResult(null)} />}
-      </div>
+        {/* Result panel */}
+        {result && <ResultPanel result={result} onClose={() => setResult(null)} />}
+        </div>
+      </JRPGPanel>
     </DraggableWindow>
   );
 };

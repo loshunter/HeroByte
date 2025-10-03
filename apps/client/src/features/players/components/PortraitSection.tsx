@@ -18,22 +18,23 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
     <div style={{ display: "flex", gap: "8px", alignItems: "center", width: "100%" }}>
       {/* Pixel class icon */}
       <div
+        className="jrpg-icon"
         style={{
           width: "24px",
           height: "24px",
-          background: "linear-gradient(135deg, var(--hero-blue) 0%, var(--hero-gold) 100%)",
-          border: "2px solid var(--hero-gold-light)",
+          background: "linear-gradient(135deg, var(--jrpg-dice-blue) 0%, var(--jrpg-gold) 100%)",
+          border: "2px solid var(--jrpg-border-gold)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           fontSize: "14px",
-          boxShadow: "0 0 6px rgba(68, 125, 247, 0.4)",
+          boxShadow: "0 0 6px var(--jrpg-border-gold)",
         }}
       >
         ⚔️
       </div>
       <div
-        className="player-portrait"
+        className="jrpg-portrait-frame"
         style={{
           transform: micLevel > 0.1
             ? `scale(${1 + micLevel * 0.2})`
@@ -47,6 +48,7 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
             key={portrait.substring(0, 100)}
             src={portrait}
             alt="portrait"
+            className="jrpg-portrait-image"
             style={{
               width: "100%",
               height: "100%",

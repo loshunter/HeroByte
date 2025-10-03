@@ -2,6 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./ui/App";
 import './theme/herobyte.css';
+import './theme/jrpg.css';
 
 // Polyfills for simple-peer
 import { Buffer } from 'buffer';

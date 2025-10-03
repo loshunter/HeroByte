@@ -7,6 +7,7 @@
 import React, { useState } from "react";
 import type { Player, Token } from "@shared";
 import { PlayerCard } from "../../features/players/components";
+import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
 
 interface PartyPanelProps {
   players: Player[];
@@ -59,7 +60,6 @@ export const PartyPanel: React.FC<PartyPanelProps> = ({
   return (
     <div
       ref={bottomPanelRef}
-      className="panel"
       style={{
         position: "fixed",
         bottom: 0,
@@ -67,78 +67,78 @@ export const PartyPanel: React.FC<PartyPanelProps> = ({
         right: 0,
         zIndex: 100,
         margin: 0,
-        borderRadius: 0,
         transition: "transform 0.3s ease",
       }}
     >
       {/* Toggle button */}
-      <button
+      <JRPGButton
         onClick={() => setIsCollapsed(!isCollapsed)}
+        variant={isCollapsed ? "default" : "primary"}
         style={{
           position: "absolute",
-          top: "-24px",
+          top: "-28px",
           right: "12px",
-          padding: "4px 12px",
-          background: "var(--hero-blue)",
-          border: "2px solid var(--hero-gold)",
-          color: "var(--hero-gold)",
-          cursor: "pointer",
-          fontSize: "0.75rem",
-          fontWeight: "bold",
+          padding: "6px 12px",
+          fontSize: "8px",
           borderRadius: "4px 4px 0 0",
         }}
       >
-        {isCollapsed ? "▲ Show Party" : "▼ Hide Party"}
-      </button>
+        {isCollapsed ? "▲ SHOW PARTY" : "▼ HIDE PARTY"}
+      </JRPGButton>
 
-      {!isCollapsed && (
-        <>
-          <h3 style={{ margin: "0 0 8px 0" }}>Party</h3>
-          <div
-            style={{
-              display: "flex",
-              gap: "16px",
-              justifyContent: "center",
-              flexWrap: "wrap",
-            }}
-          >
-            {players.map((p: Player) => {
-              const isMe = p.uid === uid;
-              const token = tokens.find((t: Token) => t.owner === p.uid);
+      <JRPGPanel variant="bevel" style={{ padding: "8px", borderRadius: 0 }}>
+        {!isCollapsed && (
+          <>
+            <h3 className="jrpg-text-command jrpg-text-highlight" style={{ margin: "0 0 8px 0", textAlign: "center" }}>
+              PARTY
+            </h3>
+            <div
+              style={{
+                display: "flex",
+                gap: "12px",
+                justifyContent: "center",
+                flexWrap: "wrap",
+              }}
+            >
+              {players.map((p: Player) => {
+                const isMe = p.uid === uid;
+                const token = tokens.find((t: Token) => t.owner === p.uid);
 
-              return (
-                <PlayerCard
-                  key={p.uid}
-                  player={p}
-                  isMe={isMe}
-                  tokenColor={token?.color}
-                  micEnabled={micEnabled}
-                  micLevel={micLevel}
-                  editingPlayerUID={editingPlayerUID}
-                  nameInput={nameInput}
-                  onNameInputChange={onNameInputChange}
-                  onNameEdit={onNameEdit}
-                  onNameSubmit={onNameSubmit}
-                  onPortraitLoad={onPortraitLoad}
-                  onToggleMic={onToggleMic}
-                  onHpChange={(hp) => onHpChange(hp, p.maxHp ?? 100)}
-                  editingMaxHpUID={editingMaxHpUID}
-                  maxHpInput={maxHpInput}
-                  onMaxHpInputChange={onMaxHpInputChange}
-                  onMaxHpEdit={onMaxHpEdit}
-                  onMaxHpSubmit={onMaxHpSubmit}
-                />
-              );
-            })}
+                return (
+                  <JRPGPanel key={p.uid} variant="simple" style={{ padding: "8px", minWidth: "120px" }}>
+                    <PlayerCard
+                      player={p}
+                      isMe={isMe}
+                      tokenColor={token?.color}
+                      micEnabled={micEnabled}
+                      micLevel={micLevel}
+                      editingPlayerUID={editingPlayerUID}
+                      nameInput={nameInput}
+                      onNameInputChange={onNameInputChange}
+                      onNameEdit={onNameEdit}
+                      onNameSubmit={onNameSubmit}
+                      onPortraitLoad={onPortraitLoad}
+                      onToggleMic={onToggleMic}
+                      onHpChange={(hp) => onHpChange(hp, p.maxHp ?? 100)}
+                      editingMaxHpUID={editingMaxHpUID}
+                      maxHpInput={maxHpInput}
+                      onMaxHpInputChange={onMaxHpInputChange}
+                      onMaxHpEdit={onMaxHpEdit}
+                      onMaxHpSubmit={onMaxHpSubmit}
+                    />
+                  </JRPGPanel>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {isCollapsed && (
+          <div className="jrpg-text-small" style={{ padding: "8px", textAlign: "center", color: "var(--jrpg-white)", opacity: 0.6 }}>
+            Party collapsed - click "SHOW PARTY" to expand
           </div>
-        </>
-      )}
-
-      {isCollapsed && (
-        <div style={{ padding: "8px", textAlign: "center", fontSize: "0.75rem", color: "var(--hero-text-dim)" }}>
-          Party collapsed - click "Show Party" to expand
-        </div>
-      )}
+        )}
+      </JRPGPanel>
     </div>
   );
 };

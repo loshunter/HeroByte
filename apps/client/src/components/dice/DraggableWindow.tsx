@@ -103,42 +103,37 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
       {/* Title bar - draggable */}
       <div
         onMouseDown={handleMouseDown}
+        className="jrpg-text-command"
         style={{
-          background: 'linear-gradient(90deg, var(--hero-gold) 0%, var(--hero-gold-light) 50%, var(--hero-gold) 100%)',
+          background: 'var(--jrpg-gold)',
           padding: '12px 20px',
-          color: 'var(--hero-navy-dark)',
-          fontSize: '18px',
+          color: 'var(--jrpg-navy)',
+          fontSize: '12px',
           fontWeight: 'bold',
-          fontFamily: 'var(--font-pixel)',
           textAlign: 'center',
           position: 'relative',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+          boxShadow: 'inset 0 -2px 0 rgba(0,0,0,0.3)',
           cursor: isDragging ? 'grabbing' : 'grab',
           userSelect: 'none',
+          border: '2px solid var(--jrpg-border-outer)',
+          textShadow: 'none',
         }}
       >
         {title}
         {onClose && (
           <button
             onClick={onClose}
+            className="jrpg-button jrpg-button-danger"
             style={{
               position: 'absolute',
-              right: '12px',
+              right: '8px',
               top: '50%',
               transform: 'translateY(-50%)',
-              background: 'var(--hero-danger)',
-              border: '2px solid var(--hero-navy-dark)',
-              borderRadius: '4px',
-              color: 'white',
-              width: '28px',
-              height: '28px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              fontSize: '18px',
-              fontWeight: 'bold',
+              width: '24px',
+              height: '24px',
               padding: 0,
+              fontSize: '14px',
+              lineHeight: '1',
             }}
           >
             ×

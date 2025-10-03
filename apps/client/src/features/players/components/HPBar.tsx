@@ -54,9 +54,12 @@ export const HPBar: React.FC<HPBarProps> = ({
     handleMouseMove(e.nativeEvent);
   };
 
+  const hpPercent = (hp / maxHp) * 100;
+  const hpState = hpPercent > 66 ? "high" : hpPercent > 33 ? "medium" : "low";
+
   return (
     <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "4px" }}>
-      <div style={{ fontSize: "0.6rem", color: "var(--hero-text-dim)", textAlign: "center" }}>
+      <div className="jrpg-text-small" style={{ color: "var(--jrpg-gold)", textAlign: "center" }}>
         HP: {hp} / {isEditingMaxHp ? (
           <input
             type="number"
@@ -71,11 +74,11 @@ export const HPBar: React.FC<HPBarProps> = ({
             autoFocus
             style={{
               width: "40px",
-              fontSize: "0.6rem",
-              background: "#111",
-              color: "var(--hero-blue)",
-              border: "1px solid var(--hero-gold)",
-              padding: "1px 2px",
+              fontSize: "8px",
+              background: "var(--jrpg-navy)",
+              color: "var(--jrpg-cyan)",
+              border: "1px solid var(--jrpg-border-gold)",
+              padding: "2px",
               textAlign: "center",
             }}
           />
@@ -96,16 +99,16 @@ export const HPBar: React.FC<HPBarProps> = ({
         )}
       </div>
       <div
-        className="stat-bar hp"
+        className="jrpg-hp-bar"
         style={{
           cursor: isMe ? "ew-resize" : "default",
-          position: "relative"
         }}
         onMouseDown={handleMouseDown}
       >
         <div
-          className="stat-bar-fill"
-          style={{ width: `${(hp / maxHp) * 100}%` }}
+          className="jrpg-hp-bar-fill"
+          data-hp-percent={hpState}
+          style={{ width: `${hpPercent}%` }}
         ></div>
       </div>
     </div>
