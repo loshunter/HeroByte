@@ -412,9 +412,7 @@ export class CharacterModel {
       details.portrait === undefined ? this.portrait : details.portrait || undefined,
       this.tokenId,
       this.ownedByPlayerUID,
-      details.tokenImage === undefined
-        ? this.tokenImage
-        : details.tokenImage?.trim() || null,
+      details.tokenImage === undefined ? this.tokenImage : details.tokenImage?.trim() || null,
     );
   }
 
