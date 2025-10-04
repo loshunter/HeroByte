@@ -68,8 +68,7 @@ describe("TokenService", () => {
     const state = createEmptyRoomState();
     const token = service.createToken(state, "owner", 0, 0);
 
-    expect(service.setImageUrlForToken(state, token.id, "https://img"))
-      .toBe(true);
+    expect(service.setImageUrlForToken(state, token.id, "https://img")).toBe(true);
     expect(state.tokens[0]?.imageUrl).toBe("https://img");
 
     expect(service.forceDeleteToken(state, "missing")).toBe(false);

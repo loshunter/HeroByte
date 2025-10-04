@@ -42,7 +42,7 @@ export class CharacterService {
     maxHp: number,
     portrait?: string,
     type: "pc" | "npc" = "pc",
-    options?: { hp?: number; tokenImage?: string }
+    options?: { hp?: number; tokenImage?: string },
   ): Character {
     const clamp = (value: number) => Math.max(0, value);
     const normalizedMaxHp = clamp(maxHp);
@@ -176,7 +176,13 @@ export class CharacterService {
       tokenService.forceDeleteToken(state, character.tokenId);
     }
 
-    const token = tokenService.createToken(state, ownerUid, 0, 0, character.tokenImage ?? undefined);
+    const token = tokenService.createToken(
+      state,
+      ownerUid,
+      0,
+      0,
+      character.tokenImage ?? undefined,
+    );
     character.tokenId = token.id;
     return character;
   }

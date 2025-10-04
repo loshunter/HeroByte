@@ -168,7 +168,9 @@ export class MessageRouter {
         }
 
         case "place-npc-token":
-          if (this.characterService.placeNPCToken(state, this.tokenService, message.id, senderUid)) {
+          if (
+            this.characterService.placeNPCToken(state, this.tokenService, message.id, senderUid)
+          ) {
             this.broadcast();
             this.roomService.saveState();
           }
