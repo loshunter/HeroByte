@@ -5,6 +5,7 @@ Thanks for your interest in improving HeroByte! This guide explains how we work,
 ---
 
 ## Table of Contents
+
 - [Code of Conduct](#code-of-conduct)
 - [Project Workflow](#project-workflow)
 - [Set Up the Project](#set-up-the-project)
@@ -19,11 +20,13 @@ Thanks for your interest in improving HeroByte! This guide explains how we work,
 ---
 
 ## Code of Conduct
+
 Please act respectfully and professionally. Assume good intent, offer constructive feedback, and keep discussions focused on solving problems. If conflicts arise, reach out to the maintainers.
 
 ---
 
 ## Project Workflow
+
 - `main`: production-ready branch (auto-deployed)
 - `dev`: integration branch for all new work
 - Feature branches: `feature/<scope>-<short-description>` (e.g. `feature/map-undo`)
@@ -33,6 +36,7 @@ We use PNPM workspaces. Scripts run from the repo root unless otherwise noted.
 ---
 
 ## Set Up the Project
+
 ```bash
 # clone and move into repo
 git clone https://github.com/loshunter/HeroByte.git
@@ -50,6 +54,7 @@ pnpm dev:client
 ```
 
 Useful scripts:
+
 - `pnpm dev` – run server and client concurrently
 - `pnpm lint` – lint entire workspace
 - `pnpm test` – run unit/integration tests (shared + server)
@@ -59,6 +64,7 @@ Useful scripts:
 ---
 
 ## Branching & Commit Style
+
 - Branch off `dev`: `git checkout -b feature/<scope>-<short-description>`
 - Keep commits small and focused. Use present tense (e.g. `Add map undo stack`).
 - Rebase locally if your branch falls behind `dev`.
@@ -66,6 +72,7 @@ Useful scripts:
 ---
 
 ## Development Checklist
+
 1. Update / create tests for new behavior.
 2. Run `pnpm lint` and ensure no warnings/errors.
 3. Run `pnpm test` (or `pnpm test:server`, `pnpm test:shared` as needed).
@@ -75,6 +82,7 @@ Useful scripts:
 ---
 
 ## Pull Request Process
+
 1. Push your branch and open a PR targeting `dev`.
 2. Fill out the PR template, including:
    - Summary of changes
@@ -87,6 +95,7 @@ Useful scripts:
 ---
 
 ## Coding Standards
+
 - TypeScript everywhere (strict mode enabled).
 - Prefer `unknown` over `any`; add runtime validation if needed (e.g. zod).
 - Avoid business logic in React components—encapsulate in hooks/services.
@@ -95,6 +104,7 @@ Useful scripts:
 - Keep files small and cohesive. When in doubt, create a new module.
 
 ### Formatting & Linting
+
 - ESLint + Prettier enforce consistent style. Run `pnpm lint` and `pnpm format:check` before committing.
 - Zero lint warnings policy (CI fails on warnings). Fix issues before pushing.
 - Configure your editor to use workspace TypeScript and format on save.
@@ -102,6 +112,7 @@ Useful scripts:
 ---
 
 ## Testing Expectations
+
 - Unit tests: use Vitest. Place files alongside source (`*.test.ts` / `*.test.tsx`).
 - Shared package: aim for >80% coverage on domain models/types.
 - Server package: add tests for middleware, domain services, and websocket logic when touched.
@@ -113,7 +124,9 @@ When submitting your PR, document the exact commands you ran (e.g. `pnpm lint &&
 ---
 
 ## Documentation Updates
+
 If you modify behavior, configs, or workflows, update relevant docs:
+
 - `README.md` – high-level overview, commands, screenshots, badges
 - `DEVELOPMENT.md` – workflow/process adjustments
 - `TESTING_SETUP.md` – changes to testing approach or tooling
@@ -124,6 +137,7 @@ Screenshots or GIFs are encouraged for UI changes.
 ---
 
 ## Need Help?
+
 - Open an issue with the `question` label
 - Reach out via PR comments
 - Mention maintainers if you need a quick review

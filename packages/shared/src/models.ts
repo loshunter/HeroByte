@@ -97,13 +97,22 @@ export class PlayerModel {
     public micLevel?: number,
     public hp?: number,
     public maxHp?: number,
+    public isDM: boolean = false,
   ) {}
 
   /**
    * Create from plain object (deserialization)
    */
   static fromJSON(data: IPlayer): PlayerModel {
-    return new PlayerModel(data.uid, data.name, data.portrait, data.micLevel, data.hp, data.maxHp);
+    return new PlayerModel(
+      data.uid,
+      data.name,
+      data.portrait,
+      data.micLevel,
+      data.hp,
+      data.maxHp,
+      data.isDM ?? false,
+    );
   }
 
   /**
@@ -117,6 +126,7 @@ export class PlayerModel {
       micLevel: this.micLevel,
       hp: this.hp,
       maxHp: this.maxHp,
+      isDM: this.isDM,
     };
   }
 
@@ -124,14 +134,30 @@ export class PlayerModel {
    * Update player name
    */
   rename(newName: string): PlayerModel {
-    return new PlayerModel(this.uid, newName, this.portrait, this.micLevel, this.hp, this.maxHp);
+    return new PlayerModel(
+      this.uid,
+      newName,
+      this.portrait,
+      this.micLevel,
+      this.hp,
+      this.maxHp,
+      this.isDM,
+    );
   }
 
   /**
    * Update player portrait
    */
   setPortrait(portraitData: string): PlayerModel {
-    return new PlayerModel(this.uid, this.name, portraitData, this.micLevel, this.hp, this.maxHp);
+    return new PlayerModel(
+      this.uid,
+      this.name,
+      portraitData,
+      this.micLevel,
+      this.hp,
+      this.maxHp,
+      this.isDM,
+    );
   }
 
   /**
@@ -145,6 +171,7 @@ export class PlayerModel {
       Math.max(0, Math.min(1, level)), // Clamp to 0-1
       this.hp,
       this.maxHp,
+      this.isDM,
     );
   }
 
@@ -159,6 +186,7 @@ export class PlayerModel {
       this.micLevel,
       hp,
       maxHp ?? this.maxHp,
+      this.isDM,
     );
   }
 
@@ -167,7 +195,15 @@ export class PlayerModel {
    */
   takeDamage(amount: number): PlayerModel {
     const newHp = Math.max(0, (this.hp ?? 0) - amount);
-    return new PlayerModel(this.uid, this.name, this.portrait, this.micLevel, newHp, this.maxHp);
+    return new PlayerModel(
+      this.uid,
+      this.name,
+      this.portrait,
+      this.micLevel,
+      newHp,
+      this.maxHp,
+      this.isDM,
+    );
   }
 
   /**
@@ -175,7 +211,15 @@ export class PlayerModel {
    */
   heal(amount: number): PlayerModel {
     const newHp = Math.min(this.maxHp ?? Infinity, (this.hp ?? 0) + amount);
-    return new PlayerModel(this.uid, this.name, this.portrait, this.micLevel, newHp, this.maxHp);
+    return new PlayerModel(
+      this.uid,
+      this.name,
+      this.portrait,
+      this.micLevel,
+      newHp,
+      this.maxHp,
+      this.isDM,
+    );
   }
 
   /**
@@ -198,6 +242,21 @@ export class PlayerModel {
    */
   isSpeaking(threshold: number = 0.1): boolean {
     return (this.micLevel ?? 0) > threshold;
+  }
+
+  /**
+   * Toggle DM role flag
+   */
+  setDMMode(isDM: boolean): PlayerModel {
+    return new PlayerModel(
+      this.uid,
+      this.name,
+      this.portrait,
+      this.micLevel,
+      this.hp,
+      this.maxHp,
+      isDM,
+    );
   }
 }
 

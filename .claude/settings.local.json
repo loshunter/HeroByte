@@ -49,7 +49,14 @@
       "Bash(pnpm --filter herobyte-client lint)",
       "Bash(find:*)",
       "Bash(pnpm list:*)",
-      "Bash(pnpm --filter vtt-server add -D @types/simple-peer)"
+      "Bash(pnpm --filter vtt-server add -D @types/simple-peer)",
+      "Bash(gh run list:*)",
+      "Bash(pnpm test:coverage:*)",
+      "Bash(/dev/null)",
+      "WebFetch(domain:github.com)",
+      "Bash(gh run view:*)",
+      "Bash(pnpm --filter @shared test)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []

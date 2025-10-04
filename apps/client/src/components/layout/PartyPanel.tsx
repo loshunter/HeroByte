@@ -27,6 +27,8 @@ interface PartyPanelProps {
   onMaxHpInputChange: (value: string) => void;
   onMaxHpEdit: (uid: string, currentMaxHp: number) => void;
   onMaxHpSubmit: () => void;
+  currentIsDM: boolean;
+  onToggleDMMode: (next: boolean) => void;
   bottomPanelRef?: React.RefObject<HTMLDivElement>;
 }
 
@@ -51,6 +53,8 @@ export const PartyPanel: React.FC<PartyPanelProps> = ({
   onMaxHpInputChange,
   onMaxHpEdit,
   onMaxHpSubmit,
+  currentIsDM,
+  onToggleDMMode,
   bottomPanelRef,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -130,6 +134,15 @@ export const PartyPanel: React.FC<PartyPanelProps> = ({
                       onMaxHpEdit={onMaxHpEdit}
                       onMaxHpSubmit={onMaxHpSubmit}
                     />
+                    {isMe && (
+                      <JRPGButton
+                        onClick={() => onToggleDMMode(!currentIsDM)}
+                        variant={currentIsDM ? "primary" : "default"}
+                        style={{ fontSize: "8px", padding: "4px 8px", marginTop: "8px" }}
+                      >
+                        {currentIsDM ? "DM MODE: ON" : "DM MODE: OFF"}
+                      </JRPGButton>
+                    )}
                   </JRPGPanel>
                 );
               })}

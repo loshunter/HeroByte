@@ -74,6 +74,9 @@ export const PlayerCard = memo<PlayerCardProps>(
             borderBottom: "1px solid #444",
             marginBottom: "4px",
             fontSize: "0.7rem",
+            display: "flex",
+            flexDirection: "column",
+            gap: "4px",
           }}
         >
           <NameEditor
@@ -87,6 +90,19 @@ export const PlayerCard = memo<PlayerCardProps>(
             onNameEdit={onNameEdit}
             onNameSubmit={onNameSubmit}
           />
+          {player.isDM && (
+            <span
+              className="jrpg-text-small"
+              style={{
+                alignSelf: "center",
+                color: "var(--jrpg-gold)",
+                textShadow: "0 0 4px rgba(255, 215, 0, 0.6)",
+                letterSpacing: "1px",
+              }}
+            >
+              DM
+            </span>
+          )}
         </div>
 
         <PortraitSection portrait={player.portrait} micLevel={player.micLevel} />
@@ -121,6 +137,7 @@ export const PlayerCard = memo<PlayerCardProps>(
       prevProps.player.micLevel === nextProps.player.micLevel &&
       prevProps.player.hp === nextProps.player.hp &&
       prevProps.player.maxHp === nextProps.player.maxHp &&
+      (prevProps.player.isDM ?? false) === (nextProps.player.isDM ?? false) &&
       prevProps.tokenColor === nextProps.tokenColor &&
       prevProps.micEnabled === nextProps.micEnabled &&
       prevProps.editingPlayerUID === nextProps.editingPlayerUID &&

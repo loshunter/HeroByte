@@ -101,6 +101,13 @@ export class MessageRouter {
           }
           break;
 
+        case "toggle-dm":
+          if (this.playerService.setDMMode(state, senderUid, message.isDM)) {
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+
         // CHARACTER ACTIONS
         case "create-character":
           this.characterService.createCharacter(

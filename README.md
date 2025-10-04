@@ -24,6 +24,7 @@ Play anywhere, with anyone—no installs, just browser-based fun. Build your map
 ## Features
 
 ### Core Gameplay
+
 - **Real-time Multiplayer** – WebSocket-based synchronization keeps everyone in lockstep
 - **Interactive Map Canvas** – Infinite canvas with pan, zoom, and smooth interactions
 - **Token Management** – Drag-and-drop tokens with synced positions across players
@@ -33,6 +34,7 @@ Play anywhere, with anyone—no installs, just browser-based fun. Build your map
 - **Player Portraits** – Custom portraits that light up when you talk
 
 ### Drawing & Visual Tools
+
 - **Advanced Drawing Tools** – Freehand pen, line, rectangle, circle, and eraser
 - **Drawing Customization** – Adjustable color, width, opacity, and fill options
 - **Drawing Management** – Undo/redo, clear all, with keyboard shortcuts (Ctrl+Z)
@@ -42,12 +44,14 @@ Play anywhere, with anyone—no installs, just browser-based fun. Build your map
 - **CRT Filter** – Optional retro scanline effect with bloom and chromatic aberration
 
 ### Dice & Combat
+
 - **Visual Dice Roller** – Interactive 3D-style dice with physics-based rolling animations
 - **Multi-die Support** – Roll d4, d6, d8, d10, d12, d20, d100 with modifiers
 - **Roll History** – Shared log of all dice rolls with timestamps and player names
 - **Roll Breakdown** – Detailed per-die results with expandable formulas
 
 ### Technical Features
+
 - **Persistent State** – Auto-save to disk, sessions restore on server restart
 - **Input Validation** – Comprehensive message validation with size limits
 - **Rate Limiting** – 100 messages/second per client with token bucket algorithm
@@ -175,22 +179,26 @@ HeroByte/
 ## Controls
 
 ### Map Navigation
+
 - **Mouse Wheel**: Zoom in/out
 - **Click + Drag**: Pan map canvas
 - **Snap to Grid**: Toggle for precision token placement
 - **Grid Lock**: Prevent accidental grid adjustments
 
 ### Tokens & Objects
+
 - **Drag Token**: Move your character
 - **Double-click Token**: Randomize color
 - **Right-click Token**: Context menu (delete, etc.)
 
 ### Drawing Tools
+
 - **Ctrl+Z / Cmd+Z**: Undo last drawing
 - **Drawing Toolbar**: Adjust color, width, opacity, fill when in draw mode
 - **Select Mode**: Click drawings to move or delete them
 
 ### Shortcuts
+
 - **Toolbar Buttons**: Quick access to all modes (pointer, measure, draw, select, dice, CRT)
 - **Grid Controls**: Adjust size (10-500px) and toggle snap/lock
 

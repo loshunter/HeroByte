@@ -33,6 +33,7 @@ export class PlayerService {
       hp: 100,
       maxHp: 100,
       lastHeartbeat: Date.now(), // Initialize heartbeat timestamp
+      isDM: false,
     };
 
     state.players.push(newPlayer);
@@ -83,6 +84,18 @@ export class PlayerService {
     if (player) {
       player.hp = hp;
       player.maxHp = maxHp;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Toggle DM mode flag
+   */
+  setDMMode(state: RoomState, uid: string, isDM: boolean): boolean {
+    const player = this.findPlayer(state, uid);
+    if (player) {
+      player.isDM = isDM;
       return true;
     }
     return false;

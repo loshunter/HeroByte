@@ -9,8 +9,6 @@ import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
 
 interface HeaderProps {
   uid: string;
-  gridSize: number;
-  gridLocked: boolean;
   snapToGrid: boolean;
   pointerMode: boolean;
   measureMode: boolean;
@@ -19,8 +17,6 @@ interface HeaderProps {
   crtFilter: boolean;
   diceRollerOpen: boolean;
   rollLogOpen: boolean;
-  onGridLockToggle: () => void;
-  onGridSizeChange: (size: number) => void;
   onSnapToGridChange: (snap: boolean) => void;
   onPointerModeChange: (mode: boolean) => void;
   onMeasureModeChange: (mode: boolean) => void;
@@ -29,7 +25,6 @@ interface HeaderProps {
   onCrtFilterChange: (enabled: boolean) => void;
   onDiceRollerToggle: (open: boolean) => void;
   onRollLogToggle: (open: boolean) => void;
-  onLoadMap: () => void;
   topPanelRef?: React.RefObject<HTMLDivElement>;
 }
 
@@ -38,8 +33,6 @@ interface HeaderProps {
  */
 export const Header: React.FC<HeaderProps> = ({
   uid,
-  gridSize,
-  gridLocked,
   snapToGrid,
   pointerMode,
   measureMode,
@@ -48,8 +41,6 @@ export const Header: React.FC<HeaderProps> = ({
   crtFilter,
   diceRollerOpen,
   rollLogOpen,
-  onGridLockToggle,
-  onGridSizeChange,
   onSnapToGridChange,
   onPointerModeChange,
   onMeasureModeChange,
@@ -58,7 +49,6 @@ export const Header: React.FC<HeaderProps> = ({
   onCrtFilterChange,
   onDiceRollerToggle,
   onRollLogToggle,
-  onLoadMap,
   topPanelRef,
 }) => {
   return (
@@ -101,55 +91,6 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Right side: Controls and Tools */}
           <JRPGPanel variant="simple" style={{ padding: "8px", flex: 1 }}>
             <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
-              {/* Grid Size */}
-              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                <label
-                  htmlFor="gridSize"
-                  className="jrpg-text-small"
-                  style={{ color: "var(--jrpg-gold)" }}
-                >
-                  Grid:
-                </label>
-                <button
-                  onClick={onGridLockToggle}
-                  style={{
-                    padding: "2px 8px",
-                    background: "transparent",
-                    border: "1px solid var(--jrpg-border-gold)",
-                    cursor: "pointer",
-                    fontSize: "1rem",
-                    color: gridLocked ? "var(--jrpg-hp-low)" : "var(--jrpg-hp-full)",
-                  }}
-                  title={gridLocked ? "Unlock grid size" : "Lock grid size"}
-                >
-                  {gridLocked ? "🔒" : "🔓"}
-                </button>
-                <input
-                  id="gridSize"
-                  type="range"
-                  min="1"
-                  max="100"
-                  step="1"
-                  value={gridSize}
-                  onChange={(e) => onGridSizeChange(Number(e.target.value))}
-                  style={{
-                    width: "120px",
-                    opacity: gridLocked ? 0.4 : 1,
-                    cursor: gridLocked ? "not-allowed" : "pointer",
-                  }}
-                  disabled={gridLocked}
-                />
-                <span
-                  className="jrpg-text-small"
-                  style={{
-                    color: gridLocked ? "var(--jrpg-white)" : "var(--jrpg-cyan)",
-                    opacity: gridLocked ? 0.5 : 1,
-                  }}
-                >
-                  {gridSize}px
-                </span>
-              </div>
-
               {/* Snap to Grid */}
               <JRPGButton
                 onClick={() => onSnapToGridChange(!snapToGrid)}
@@ -248,15 +189,6 @@ export const Header: React.FC<HeaderProps> = ({
                 style={{ fontSize: "8px", padding: "6px 12px" }}
               >
                 📜 Log
-              </JRPGButton>
-
-              {/* Load Map */}
-              <JRPGButton
-                onClick={onLoadMap}
-                variant="success"
-                style={{ fontSize: "8px", padding: "6px 12px" }}
-              >
-                Load Map
               </JRPGButton>
             </div>
           </JRPGPanel>

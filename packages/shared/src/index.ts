@@ -52,6 +52,7 @@ export interface Player {
   hp?: number; // Current hit points
   maxHp?: number; // Maximum hit points
   lastHeartbeat?: number; // Timestamp of last heartbeat (for timeout detection)
+  isDM?: boolean; // Whether the player currently has DM tools enabled
 }
 
 /**
@@ -138,6 +139,7 @@ export type ClientMessage =
   | { t: "rename"; name: string } // Change player name
   | { t: "mic-level"; level: number } // Update mic level for visual feedback
   | { t: "set-hp"; hp: number; maxHp: number } // Update player HP
+  | { t: "toggle-dm"; isDM: boolean } // Toggle DM role flag
 
   // Character actions (Phase 1: PCs only)
   | { t: "create-character"; name: string; maxHp: number; portrait?: string } // DM creates PC slot

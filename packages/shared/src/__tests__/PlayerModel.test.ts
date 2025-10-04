@@ -13,6 +13,17 @@ describe("PlayerModel", () => {
     expect(fromJson).toEqual(basePlayer);
   });
 
+  it("tracks DM mode flag consistently", () => {
+    const dmPlayer = basePlayer.setDMMode(true);
+    expect(dmPlayer.isDM).toBe(true);
+
+    const json = dmPlayer.toJSON();
+    expect(json.isDM).toBe(true);
+
+    const restored = PlayerModel.fromJSON(json);
+    expect(restored.isDM).toBe(true);
+  });
+
   it("renames immutably", () => {
     const renamed = basePlayer.rename("Champion");
 

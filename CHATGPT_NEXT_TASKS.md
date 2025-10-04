@@ -25,19 +25,14 @@
 ### Priority Order (Critical → Nice to Have)
 
 **CRITICAL (Blocks gameplay):**
+
 1. DM Menu & Session Management
 2. Token Image Upload (Players & DM)
 3. Save/Load Game State
 
-**HIGH (Major UX issues):**
-4. DM-Only Controls (Protect from accidental player actions)
-5. Fix Token/Drawing Movement Flicker
-6. Viewport Controls (Snap to token, Recenter map)
+**HIGH (Major UX issues):** 4. DM-Only Controls (Protect from accidental player actions) 5. Fix Token/Drawing Movement Flicker 6. Viewport Controls (Snap to token, Recenter map)
 
-**MEDIUM (Polish):**
-7. Enhanced Selection Tools
-8. Improved Roll Display
-9. Private Lobbies (Major feature - Phase 10)
+**MEDIUM (Polish):** 7. Enhanced Selection Tools 8. Improved Roll Display 9. Private Lobbies (Major feature - Phase 10)
 
 ---
 
@@ -175,6 +170,7 @@
 1. **Create Session Persistence Utility**
    - Location: `apps/client/src/utils/sessionPersistence.ts`
    - Implement:
+
      ```typescript
      import { RoomSnapshot } from "@shared/index";
 
@@ -443,6 +439,7 @@
 **Problem**: No way to create private game sessions. Anyone can join the live demo.
 
 **⚠️ DEFER TO PHASE 10**: This is a major architectural change requiring:
+
 - Room ID system (instead of single global room)
 - URL routing (`/room/ABC123`)
 - Password authentication
@@ -523,6 +520,7 @@ git push origin dev
 ### DM Role Logic (MVP)
 
 For Phase 9, use **trust-based DM toggle**:
+
 - **Any player can toggle DM mode on/off** via checkbox in DM Menu
 - Add `isDM: boolean` to Player model (defaults to false)
 - DM Menu only appears when player has DM mode enabled
@@ -530,6 +528,7 @@ For Phase 9, use **trust-based DM toggle**:
 - **No server-side authorization** - players are trusted not to abuse this
 
 **Why this works:**
+
 - VTTs are used by friends playing together
 - Trust is implicit in tabletop gaming
 - Simplifies implementation (no auth logic needed)
@@ -540,12 +539,14 @@ Phase 10 will add proper authorization when private rooms are implemented (DM pa
 ### File Format for Save/Load
 
 Use existing `RoomSnapshot` type - it already includes:
+
 - All players (name, HP, portrait)
 - All tokens (position, owner, imageUrl)
 - All drawings
 - Map state (background, grid settings)
 
 Just add timestamp and session name to wrapper:
+
 ```typescript
 {
   sessionName: "Dragon's Lair - Session 3",

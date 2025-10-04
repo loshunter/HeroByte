@@ -45,7 +45,10 @@ export class RoomService {
         this.state = {
           users: [], // Don't persist users - they reconnect
           tokens: data.tokens || [],
-          players: data.players || [],
+          players: (data.players || []).map((player: Player) => ({
+            ...player,
+            isDM: player.isDM ?? false,
+          })),
           characters: data.characters || [],
           mapBackground: data.mapBackground,
           pointers: [], // Don't persist pointers - they expire
@@ -87,7 +90,10 @@ export class RoomService {
    */
   loadSnapshot(snapshot: RoomSnapshot): void {
     // Merge players: Keep currently connected players, update their data if they exist in snapshot
-    const loadedPlayers = snapshot.players ?? [];
+    const loadedPlayers = (snapshot.players ?? []).map((player) => ({
+      ...player,
+      isDM: player.isDM ?? false,
+    }));
     const mergedPlayers = this.state.players.map((currentPlayer) => {
       // Find matching player in loaded snapshot by UID
       const savedPlayer = loadedPlayers.find((p: Player) => p.uid === currentPlayer.uid);
@@ -100,7 +106,7 @@ export class RoomService {
         };
       }
       // Player is currently connected but wasn't in saved session - keep them
-      return currentPlayer;
+      return { ...currentPlayer, isDM: currentPlayer.isDM ?? false };
     });
 
     this.state = {

@@ -8,7 +8,7 @@
 // - UI layout (fixed top/bottom bars, center map canvas)
 // - Tool modes (pointer, measure, draw)
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import MapBoard from "./MapBoard";
 import { useVoiceChat } from "./useVoiceChat";
 import { DiceRoller } from "../components/dice/DiceRoller";
@@ -21,6 +21,8 @@ import { useMicrophone } from "../hooks/useMicrophone";
 import { useDrawingState } from "../hooks/useDrawingState";
 import { usePlayerEditing } from "../hooks/usePlayerEditing";
 import { useHeartbeat } from "../hooks/useHeartbeat";
+import { useDMRole } from "../hooks/useDMRole";
+import { DMMenu } from "../features/dm";
 import { getSessionUID } from "../utils/session";
 import { DrawingToolbar } from "../features/drawing/components";
 import { Header } from "../components/layout/Header";
@@ -252,8 +254,16 @@ export const App: React.FC = () => {
     sendMessage({ t: "grid-size", size });
   };
 
+  const handleClearDrawings = useCallback(() => {
+    clearHistory();
+    sendMessage({ t: "clear-drawings" });
+  }, [clearHistory, sendMessage]);
+
   // Get synchronized grid size from server
   const gridSize = snapshot?.gridSize || 50;
+
+  // DM role detection
+  const { isDM, toggleDM } = useDMRole({ snapshot, uid, send: sendMessage });
 
   // -------------------------------------------------------------------------
   // RENDER
@@ -287,18 +297,13 @@ export const App: React.FC = () => {
             popFromRedoHistory();
             sendMessage({ t: "redo-drawing" });
           }}
-          onClearAll={() => {
-            clearHistory();
-            sendMessage({ t: "clear-drawings" });
-          }}
+          onClearAll={handleClearDrawings}
         />
       )}
 
       {/* Header - Fixed at top */}
       <Header
         uid={uid}
-        gridSize={gridSize}
-        gridLocked={gridLocked}
         snapToGrid={snapToGrid}
         pointerMode={pointerMode}
         measureMode={measureMode}
@@ -307,8 +312,6 @@ export const App: React.FC = () => {
         crtFilter={crtFilter}
         diceRollerOpen={diceRollerOpen}
         rollLogOpen={rollLogOpen}
-        onGridLockToggle={() => setGridLocked(!gridLocked)}
-        onGridSizeChange={setGridSize}
         onSnapToGridChange={setSnapToGrid}
         onPointerModeChange={setPointerMode}
         onMeasureModeChange={setMeasureMode}
@@ -317,12 +320,6 @@ export const App: React.FC = () => {
         onCrtFilterChange={setCrtFilter}
         onDiceRollerToggle={setDiceRollerOpen}
         onRollLogToggle={setRollLogOpen}
-        onLoadMap={() => {
-          const url = prompt("Enter map image URL:");
-          if (url && url.trim()) {
-            setMapBackgroundURL(url.trim());
-          }
-        }}
         topPanelRef={topPanelRef}
       />
 
@@ -387,7 +384,23 @@ export const App: React.FC = () => {
             setPlayerHP(snapshot?.players?.find((p) => p.uid === uid)?.hp ?? 100, maxHp),
           )
         }
+        currentIsDM={isDM}
+        onToggleDMMode={toggleDM}
         bottomPanelRef={bottomPanelRef}
+      />
+
+      <DMMenu
+        isDM={isDM}
+        onToggleDM={toggleDM}
+        gridSize={gridSize}
+        gridLocked={gridLocked}
+        onGridLockToggle={() => setGridLocked((prev) => !prev)}
+        onGridSizeChange={setGridSize}
+        onClearDrawings={handleClearDrawings}
+        onSetMapBackground={setMapBackgroundURL}
+        mapBackground={snapshot?.mapBackground}
+        playerCount={snapshot?.players?.length ?? 0}
+        characters={snapshot?.characters || []}
       />
 
       {/* Context Menu */}
