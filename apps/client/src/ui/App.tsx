@@ -14,7 +14,7 @@ import MapBoard from "./MapBoard";
 import { useVoiceChat } from "./useVoiceChat";
 import { DiceRoller } from "../components/dice/DiceRoller";
 import { RollLog } from "../components/dice/RollLog";
-import type { RollResult } from "../components/dice/types";
+import type { RollResult, DieType } from "../components/dice/types";
 import { WS_URL } from "../config";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useMicrophone } from "../hooks/useMicrophone";
@@ -99,7 +99,7 @@ export const App: React.FC = () => {
       tokens: [], // Not needed for display
       perDie: roll.breakdown.map(b => ({
         tokenId: b.tokenId,
-        die: b.die,
+        die: b.die as DieType | undefined,
         rolls: b.rolls,
         subtotal: b.subtotal,
       })),
