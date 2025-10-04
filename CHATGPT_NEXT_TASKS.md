@@ -3,20 +3,23 @@
 ## ✅ Completed
 - **Phase 1-3**: Testing Infrastructure & CI/CD (54 tests, 99.57% shared coverage)
 - **Contributor Polish**: CONTRIBUTING.md + GitHub templates
-- **Task 1**: Client Lint Fixes (0 errors/warnings, 24 files cleaned)
-- **Task 2**: Server `any` Type Cleanup (0 warnings, 6 files hardened)
+- **Code Hygiene (Tasks 1-4)**: Zero-warning codebase achieved
+  - Task 1: Client Lint Fixes (0 warnings, 24 files cleaned)
+  - Task 2: Server `any` Type Cleanup (0 warnings, 6 files hardened)
+  - Task 3: Unused Imports Removed (30 files total)
+  - Task 4: Zero-Warning Enforcement Locked In
 
 ---
 
-## 🎯 Current Task: Code Hygiene
+## 🎉 Code Hygiene: COMPLETE
 
-**Goal**: Clean up all linting warnings to achieve zero-warning build and maintain code quality.
+**Goal**: ~~Clean up all linting warnings~~ → **ACHIEVED**
 
-### Progress
+### Final Results
 - ✅ Task 1: Client browser globals + unused imports → **COMPLETE** (0 warnings)
 - ✅ Task 2: Server `any` types → **COMPLETE** (0 warnings)
-- ✅ Task 3: Remove unused imports → **COMPLETE** (done during 1 & 2)
-- 🔄 Task 4: Lower linting thresholds → **READY TO START**
+- ✅ Task 3: Remove unused imports → **COMPLETE** (30 files)
+- ✅ Task 4: Zero-warning enforcement → **COMPLETE** (CI locked)
 
 ---
 
@@ -121,68 +124,28 @@ pnpm lint
 
 ---
 
-## Task 4: Lower Linting Thresholds (FINAL TASK)
+## ~~Task 4: Zero-Warning Enforcement~~ ✅ COMPLETE
 
-**Problem**: Temporary high `--max-warnings` thresholds (server: 50, client: 200) are now unnecessary since we have **0 warnings**.
+**Problem**: ~~Temporary high `--max-warnings` thresholds needed removal.~~
 
-**Solution**: Lock in zero-warning enforcement by removing thresholds and CI fallbacks.
+**Solution**: Locked in zero-warning enforcement across codebase and CI.
 
-### Steps
+### ✅ Changes Made
+- ✅ `apps/server/package.json` - Changed to `--max-warnings=0` (was 50)
+- ✅ `apps/client/package.json` - Changed to `--max-warnings=0` (was 200)
+- ✅ `.github/workflows/ci.yml` - Removed `|| true` escape hatch
 
-1. **Verify Current State**
-   ```bash
-   pnpm --filter vtt-server lint
-   pnpm --filter herobyte-client lint
-   ```
-   - Both should show **0 warnings** ✅
-
-2. **Remove Server Threshold**
-   - Location: `apps/server/package.json`
-   - **Before:** `"lint": "eslint . --max-warnings 50"`
-   - **After:** `"lint": "eslint ."`
-   - This enforces **0 warnings** as the default
-
-3. **Remove Client Threshold**
-   - Location: `apps/client/package.json`
-   - **Before:** `"lint": "eslint . --max-warnings 200"`
-   - **After:** `"lint": "eslint ."`
-   - This enforces **0 warnings** as the default
-
-4. **Update CI Workflow**
-   - Location: `.github/workflows/ci.yml`
-   - **Before:** `run: pnpm lint || true`
-   - **After:** `run: pnpm lint`
-   - Remove the `|| true` fallback to make CI fail on lint errors
-
-5. **Test Locally**
-   ```bash
-   pnpm lint
-   pnpm test
-   pnpm build
-   ```
-   - All commands should pass without errors
-
-6. **Commit and Push**
-   ```bash
-   git add .
-   git commit -m "Enforce zero-warning linting: remove --max-warnings thresholds and CI fallback"
-   git push origin dev
-   ```
-
-### Success Criteria
-- ✅ `apps/server/package.json` has no `--max-warnings` flag
-- ✅ `apps/client/package.json` has no `--max-warnings` flag
-- ✅ `.github/workflows/ci.yml` has no `|| true` fallback on lint step
-- ✅ `pnpm lint` passes locally with 0 warnings
-- ✅ CI enforces strict zero-warning policy going forward
+### Results
+- ✅ `pnpm lint` passes locally with **0 warnings**
+- ✅ CI now **fails** on any lint regression
+- ✅ Zero-warning standard locked in for all future PRs
+- ✅ Production-ready code quality enforced
 
 ---
 
-## 🎉 After Task 4 Completion
+## 🎉 Code Hygiene: ALL TASKS COMPLETE!
 
-Once Task 4 is done, **all Code Hygiene work will be complete!**
-
-### Final Summary to Report
+### Final Summary
 
 **Code Hygiene Results:**
 - ✅ Client: 59 errors → 0 warnings (24 files cleaned)
@@ -192,14 +155,16 @@ Once Task 4 is done, **all Code Hygiene work will be complete!**
 - ✅ CI enforcement: Strict zero-warning policy active
 
 **Total Impact:**
-- 30 files cleaned and type-hardened
+- 33 files cleaned and type-hardened
 - 79+ linting issues resolved
 - Zero-warning codebase achieved
 - Production-ready code quality enforced in CI
 
-### Next Steps After Completion
+---
 
-Update `TODO.md` to mark Code Hygiene tasks as complete, then choose next focus:
+## 🚀 What's Next?
+
+All Code Hygiene work is now **COMPLETE**! Choose the next focus area:
 
 **Option A: Phase 9 Features** (State & Persistence)
 - Undo/Redo for drawings (Ctrl+Y)
