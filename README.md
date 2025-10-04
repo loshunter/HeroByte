@@ -12,14 +12,36 @@ Play anywhere, with anyone—no installs, just browser-based fun. Build your map
 
 ## Features
 
+### Core Gameplay
 - **Real-time Multiplayer** – WebSocket-based synchronization keeps everyone in lockstep
 - **Interactive Map Canvas** – Infinite canvas with pan, zoom, and smooth interactions
 - **Token Management** – Drag-and-drop tokens with synced positions across players
-- **Drawing Tools** – Freehand drawing, pointers, and distance measurement
-- **Grid System** – Adjustable grid with snap-to-grid functionality
+- **Character System** – Server-side foundation for PC/NPC management with ownership tracking
+- **HP Tracking** – Real-time hit point management with visual indicators
 - **Voice Chat** – Peer-to-peer voice communication with WebRTC
 - **Player Portraits** – Custom portraits that light up when you talk
-- **Persistent State** – Sessions auto-save and restore so you never lose progress
+
+### Drawing & Visual Tools
+- **Advanced Drawing Tools** – Freehand pen, line, rectangle, circle, and eraser
+- **Drawing Customization** – Adjustable color, width, opacity, and fill options
+- **Drawing Management** – Undo/redo, clear all, with keyboard shortcuts (Ctrl+Z)
+- **Pointer Mode** – Temporary visual indicators for communication
+- **Measure Tool** – Distance measurement between two points
+- **Grid System** – Adjustable grid (10-500px) with snap-to-grid and lock functionality
+- **CRT Filter** – Optional retro scanline effect with bloom and chromatic aberration
+
+### Dice & Combat
+- **Visual Dice Roller** – Interactive 3D-style dice with physics-based rolling animations
+- **Multi-die Support** – Roll d4, d6, d8, d10, d12, d20, d100 with modifiers
+- **Roll History** – Shared log of all dice rolls with timestamps and player names
+- **Roll Breakdown** – Detailed per-die results with expandable formulas
+
+### Technical Features
+- **Persistent State** – Auto-save to disk, sessions restore on server restart
+- **Input Validation** – Comprehensive message validation with size limits
+- **Rate Limiting** – 100 messages/second per client with token bucket algorithm
+- **Performance Optimized** – React.memo on map layers, prevents unnecessary re-renders
+- **Session Management** – Heartbeat system prevents client timeouts
 
 ## Architecture
 
@@ -94,7 +116,7 @@ HeroByte/
 │   │       └── ui/                # UI components
 │   └── server/          # WebSocket server
 │       └── src/
-│           ├── domains/           # Domain services (Room, Player, Token, Map, Dice)
+│           ├── domains/           # Domain services (Room, Player, Token, Map, Dice, Character)
 │           ├── middleware/        # Validation, rate limiting
 │           ├── http/              # HTTP routes (health checks)
 │           ├── ws/                # WebSocket connection handler
@@ -109,21 +131,39 @@ HeroByte/
 ## How to Play
 
 1. **Join a Session**: Each player opens the app in a browser
-2. **Set Up the Map**: Load a background image and lock the grid
-3. **Move Tokens**: Drag and drop your character around
-4. **Use Tools**:
-   - **Pointer Mode** 👆 – place temporary indicators
-   - **Measure** 📏 – click two points for distance
-   - **Draw** ✏️ – freehand on the map
-5. **Voice Chat**: Toggle mic button for live talk
-6. **Portraits**: Custom avatars that animate when speaking
+2. **Set Up the Map**: Load a background image and adjust/lock the grid
+3. **Manage Characters**: Update HP, set portraits, link tokens to characters
+4. **Move Tokens**: Drag and drop your character around the map
+5. **Use Drawing Tools**:
+   - **Pointer Mode** 👆 – Place temporary visual indicators
+   - **Measure** 📏 – Click two points for distance
+   - **Draw Mode** ✏️ – Freehand, shapes, eraser with customization
+   - **Select Mode** 🖱️ – Move and delete existing drawings
+6. **Roll Dice**: Open dice roller, select dice types, add modifiers, and roll
+7. **Voice Chat**: Toggle mic button for live talk with animated portraits
+8. **Retro Mode**: Enable CRT filter for that classic arcade feel
 
 ## Controls
 
+### Map Navigation
 - **Mouse Wheel**: Zoom in/out
-- **Click + Drag**: Pan map
-- **Double-click Token**: Change color
-- **Snap to Grid**: Toggle precision placement
+- **Click + Drag**: Pan map canvas
+- **Snap to Grid**: Toggle for precision token placement
+- **Grid Lock**: Prevent accidental grid adjustments
+
+### Tokens & Objects
+- **Drag Token**: Move your character
+- **Double-click Token**: Randomize color
+- **Right-click Token**: Context menu (delete, etc.)
+
+### Drawing Tools
+- **Ctrl+Z / Cmd+Z**: Undo last drawing
+- **Drawing Toolbar**: Adjust color, width, opacity, fill when in draw mode
+- **Select Mode**: Click drawings to move or delete them
+
+### Shortcuts
+- **Toolbar Buttons**: Quick access to all modes (pointer, measure, draw, select, dice, CRT)
+- **Grid Controls**: Adjust size (10-500px) and toggle snap/lock
 
 ## Development
 
@@ -159,5 +199,16 @@ Contributions are welcome! Pull requests encouraged.
 
 ---
 
+## Deployment
+
+HeroByte is designed for easy deployment:
+
+- **Client**: Deployed on [Cloudflare Pages](https://pages.cloudflare.com/) with automatic builds from main branch
+- **Server**: Deployable on [Render](https://render.com/) or any Node.js hosting platform
+- **Live Demo**: [herobyte.pages.dev](https://herobyte.pages.dev) (client) connects to production server
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.
+
+---
+
 ⚡ **HeroByte: Where classic pixels meet modern play.**
-# Trigger Cloudflare rebuild
