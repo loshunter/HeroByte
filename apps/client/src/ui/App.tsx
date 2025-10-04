@@ -196,6 +196,137 @@ export const App: React.FC = () => {
     [authenticate, connect, isConnected, passwordInput],
   );
 
+  const handlePasswordChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setPasswordInput(event.target.value);
+  }, []);
+
+  const connectionLabel = useMemo(() => {
+    switch (connectionState) {
+      case ConnectionState.CONNECTED:
+        return "Connected";
+      case ConnectionState.CONNECTING:
+        return "Connecting";
+      case ConnectionState.RECONNECTING:
+        return "Reconnecting";
+      case ConnectionState.FAILED:
+        return "Failed";
+      case ConnectionState.DISCONNECTED:
+      default:
+        return "Disconnected";
+    }
+  }, [connectionState]);
+
+  const canSubmit = passwordInput.trim().length > 0 && authState !== AuthState.PENDING;
+
+  if (authState !== AuthState.AUTHENTICATED) {
+    return (
+      <AuthGate
+        password={passwordInput}
+        authState={authState}
+        authError={authError}
+        connectionLabel={connectionLabel}
+        canSubmit={canSubmit}
+        isConnected={isConnected}
+        onPasswordChange={handlePasswordChange}
+        onSubmit={handlePasswordSubmit}
+        onRetry={connect}
+      />
+    );
+  }
+
+  return (
+    <AuthenticatedApp
+      uid={uid}
+      snapshot={snapshot}
+      sendMessage={sendMessage}
+      registerRtcHandler={registerRtcHandler}
+      isConnected={isConnected}
+    />
+  );
+};
+
+interface AuthGateProps {
+  password: string;
+  authState: AuthState;
+  authError: string | null;
+  connectionLabel: string;
+  canSubmit: boolean;
+  isConnected: boolean;
+  onPasswordChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onRetry: () => void;
+}
+
+function AuthGate({
+  password,
+  authState,
+  authError,
+  connectionLabel,
+  canSubmit,
+  isConnected,
+  onPasswordChange,
+  onSubmit,
+  onRetry,
+}: AuthGateProps): JSX.Element {
+  return (
+    <div style={authGateContainerStyle}>
+      <div style={authGateCardStyle}>
+        <h1 style={{ margin: "0 0 16px" }}>Join Your Room</h1>
+        <p style={{ margin: "0 0 24px", color: "#cbd5f5", fontSize: "0.95rem" }}>
+          Enter the shared room password to sync with your party.
+        </p>
+        <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <input
+            type="password"
+            value={password}
+            onChange={onPasswordChange}
+            placeholder="Room password"
+            style={authInputStyle}
+            autoFocus
+            spellCheck={false}
+            disabled={authState === AuthState.PENDING}
+          />
+          {authError ? <p style={authGateErrorStyle}>{authError}</p> : null}
+          <button
+            type="submit"
+            style={{
+              ...authPrimaryButtonStyle,
+              opacity: canSubmit ? 1 : 0.6,
+              cursor: canSubmit ? "pointer" : "not-allowed",
+            }}
+            disabled={!canSubmit}
+          >
+            {authState === AuthState.PENDING ? "Authenticating..." : "Enter Room"}
+          </button>
+        </form>
+        <p style={authGateHintStyle}>
+          Connection status: <strong>{connectionLabel}</strong>
+        </p>
+        {!isConnected ? (
+          <button type="button" style={authSecondaryButtonStyle} onClick={onRetry}>
+            Retry Connection
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+interface AuthenticatedAppProps {
+  uid: string;
+  snapshot: RoomSnapshot | null;
+  sendMessage: (message: ClientMessage) => void;
+  registerRtcHandler: (handler: (from: string, signal: unknown) => void) => void;
+  isConnected: boolean;
+}
+
+function AuthenticatedApp({
+  uid,
+  snapshot,
+  sendMessage,
+  registerRtcHandler,
+  isConnected,
+}: AuthenticatedAppProps): JSX.Element {
   // Custom hooks for state management
   const { micEnabled, micStream, toggleMic } = useMicrophone({ sendMessage });
   const {
@@ -218,7 +349,7 @@ export const App: React.FC = () => {
   } = useDrawingState();
 
   // Heartbeat to prevent timeout (only after authentication)
-  useHeartbeat({ sendMessage, enabled: authState === AuthState.AUTHENTICATED });
+  useHeartbeat({ sendMessage });
   const {
     editingPlayerUID,
     nameInput,
@@ -258,72 +389,6 @@ export const App: React.FC = () => {
 
   // Camera commands
   const [cameraCommand, setCameraCommand] = useState<CameraCommand | null>(null);
-
-  if (authState !== AuthState.AUTHENTICATED) {
-    const connectionLabel = (() => {
-      switch (connectionState) {
-        case ConnectionState.CONNECTED:
-          return "Connected";
-        case ConnectionState.CONNECTING:
-          return "Connecting";
-        case ConnectionState.RECONNECTING:
-          return "Reconnecting";
-        case ConnectionState.FAILED:
-          return "Failed";
-        case ConnectionState.DISCONNECTED:
-        default:
-          return "Disconnected";
-      }
-    })();
-
-    const canSubmit = passwordInput.trim().length > 0 && authState !== AuthState.PENDING;
-
-    return (
-      <div style={authGateContainerStyle}>
-        <div style={authGateCardStyle}>
-          <h1 style={{ margin: "0 0 16px" }}>Join Your Room</h1>
-          <p style={{ margin: "0 0 24px", color: "#cbd5f5", fontSize: "0.95rem" }}>
-            Enter the shared room password to sync with your party.
-          </p>
-          <form
-            onSubmit={handlePasswordSubmit}
-            style={{ display: "flex", flexDirection: "column", gap: "16px" }}
-          >
-            <input
-              type="password"
-              value={passwordInput}
-              onChange={(event) => setPasswordInput(event.target.value)}
-              placeholder="Room password"
-              style={authInputStyle}
-              autoFocus
-              spellCheck={false}
-              disabled={authState === AuthState.PENDING}
-            />
-            {authError ? <p style={authGateErrorStyle}>{authError}</p> : null}
-            <button
-              type="submit"
-              style={{
-                ...authPrimaryButtonStyle,
-                opacity: canSubmit ? 1 : 0.6,
-                cursor: canSubmit ? "pointer" : "not-allowed",
-              }}
-              disabled={!canSubmit}
-            >
-              {authState === AuthState.PENDING ? "Authenticating..." : "Enter Room"}
-            </button>
-          </form>
-          <p style={authGateHintStyle}>
-            Connection status: <strong>{connectionLabel}</strong>
-          </p>
-          {!isConnected ? (
-            <button type="button" style={authSecondaryButtonStyle} onClick={connect}>
-              Retry Connection
-            </button>
-          ) : null}
-        </div>
-      </div>
-    );
-  }
 
   // Dice roller toggle and state
   const [diceRollerOpen, setDiceRollerOpen] = useState(false);
@@ -857,4 +922,4 @@ export const App: React.FC = () => {
       )}
     </div>
   );
-};
+}
