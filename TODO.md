@@ -1,12 +1,84 @@
 # HeroByte TODO
 
-## High Priority
+## Phase 9: Core State & Persistence (CURRENT)
 
-- [x] Add dice roller feature
-  - [x] Multiple dice types (d4, d6, d8, d10, d12, d20, d100)
-  - [x] Roll history/log visible to all players
-  - [x] Advantage/disadvantage support
-  - [x] Custom modifiers
+- [ ] Undo System for Drawings
+  - [x] Ctrl+Z undo functionality (already working)
+  - [ ] Redo support (Ctrl+Y)
+
+- [ ] Player State Persistence
+  - [ ] PlayerState interface in packages/shared/src/models.ts
+  - [ ] playerPersistence.ts utility (savePlayerState, loadPlayerState)
+  - [ ] Save/Load buttons in PlayerCard.tsx
+  - [ ] JSON export/import for player data
+
+- [ ] Map + Session Save/Load
+  - [ ] sessionPersistence.ts utility
+  - [ ] Full RoomSnapshot export (players, tokens, drawings, map)
+  - [ ] Save/Load buttons in Header.tsx
+  - [ ] Session restore functionality
+
+- [ ] Asset Manager Foundations
+  - [ ] AssetManager.tsx component with tabs (Scenes/Maps, Tokens, Portraits, Props/Misc)
+  - [ ] URL-based asset registry
+  - [ ] Client-side persistence (localStorage)
+  - [ ] Integration with MapBoard for background selection
+
+- [ ] Private Room System
+  - [ ] roomId concept in WebSocket server
+  - [ ] UUID-based room links generation
+  - [ ] DM controls (pre-create players/NPCs, invite links)
+  - [ ] RoomConnector.ts with roomId parameter
+
+- [ ] Server Status Polish
+  - [ ] Connection state indicators (🟢 Connected, 🔴 Disconnected, 💤 Reconnecting)
+  - [ ] Room name display
+
+- [ ] Documentation
+  - [ ] Save/Load instructions in README
+  - [ ] Private room system documentation
+  - [ ] Asset manager usage guide
+  - [ ] UI tooltips for Save/Load and Undo
+
+## Phase 10: Asset & Token Expansion (NEXT)
+
+- [ ] Asset Manager Upgrade
+  - [ ] Full registry schema with AssetType
+  - [ ] UI tabs for each asset type
+  - [ ] Upload via URL input
+  - [ ] localStorage persistence across sessions
+
+- [ ] Token Image Replacement
+  - [ ] Add imageUrl to Token model
+  - [ ] TokenRenderer.tsx image support (fallback to color)
+  - [ ] "Replace Token Image" button in PartyPanel/PlayerCard
+  - [ ] Asset Manager integration for token selection
+
+- [ ] Party List Color → Name
+  - [ ] Move color selection from token to player name field
+  - [ ] Update PlayerCard.tsx styling
+  - [ ] Keep color fallback for tokens without images
+
+- [ ] NPC Workflow
+  - [ ] Drag-spawn NPCs from Asset Manager
+  - [ ] Red border styling for NPCs in party panel
+  - [ ] NPC flag in Token model
+
+- [ ] Session Persistence Upgrade
+  - [ ] Include assets in snapshot
+  - [ ] Include token image URLs
+  - [ ] Restore assets on session load
+
+- [ ] Onboarding Message
+  - [ ] Welcome overlay in public-demo lobby
+  - [ ] Click-to-dismiss functionality
+
+- [ ] Documentation
+  - [ ] Asset Manager usage
+  - [ ] Token replacement guide
+  - [ ] NPC spawning instructions
+
+## High Priority (Post-Phase 10)
 
 - [ ] Initiative tracker
   - [ ] Add/remove combatants
@@ -17,7 +89,7 @@
 - [ ] Token improvements
   - [ ] Right-click context menu for tokens
   - [ ] Token size options (small, medium, large, huge)
-  - [ ] Custom token images/uploads
+  - [x] Custom token images/uploads (Phase 10)
   - [ ] Token rotation
   - [ ] Token name labels
 
@@ -35,17 +107,17 @@
   - [ ] Customizable hotkeys
 
 - [ ] Session management
-  - [ ] Multiple rooms/sessions
-  - [ ] Session passwords/access control
-  - [ ] Save/load different game sessions
-  - [ ] Export/import game state
+  - [x] Multiple rooms/sessions (Phase 9)
+  - [x] Session passwords/access control (Phase 9 - Private rooms)
+  - [x] Save/load different game sessions (Phase 9)
+  - [x] Export/import game state (Phase 9)
 
 - [ ] Drawing enhancements
   - [x] Shape tools (circle, rectangle, line)
   - [x] Color picker for drawings
   - [x] Eraser tool
   - [ ] Drawing layers (temporary vs permanent)
-  - [ ] Undo/redo for drawings
+  - [x] Undo/redo for drawings (Ctrl+Z working, Ctrl+Y in Phase 9)
 
 ## Low Priority
 
