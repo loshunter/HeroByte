@@ -162,11 +162,7 @@ export const TokensLayer = memo(function TokensLayer({
       {otherTokens.map((t) => (
         <TokenSprite
           key={t.id}
-          token={
-            localPositionsRef.current[t.id]
-              ? { ...t, ...localPositionsRef.current[t.id] }
-              : t
-          }
+          token={localPositionsRef.current[t.id] ? { ...t, ...localPositionsRef.current[t.id] } : t}
           gridSize={gridSize}
           stroke={hoveredTokenId === t.id ? "#aaa" : "transparent"}
           strokeWidth={2 / cam.scale}
@@ -178,11 +174,7 @@ export const TokensLayer = memo(function TokensLayer({
       {myTokens.map((t) => (
         <TokenSprite
           key={t.id}
-          token={
-            localPositionsRef.current[t.id]
-              ? { ...t, ...localPositionsRef.current[t.id] }
-              : t
-          }
+          token={localPositionsRef.current[t.id] ? { ...t, ...localPositionsRef.current[t.id] } : t}
           gridSize={gridSize}
           stroke={draggingTokenId === t.id ? "#44f" : "#fff"}
           strokeWidth={2 / cam.scale}

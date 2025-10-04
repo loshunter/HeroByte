@@ -61,7 +61,15 @@ const NPCEditor = ({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) => {
     setTokenImage(npc.tokenImage ?? "");
   }, [npc]);
 
-  const commitUpdate = (overrides?: Partial<{ name: string; hp: number; maxHp: number; portrait?: string; tokenImage?: string }>) => {
+  const commitUpdate = (
+    overrides?: Partial<{
+      name: string;
+      hp: number;
+      maxHp: number;
+      portrait?: string;
+      tokenImage?: string;
+    }>,
+  ) => {
     const baseHp = overrides?.hp ?? Number(hpInput);
     const baseMaxHp = overrides?.maxHp ?? Number(maxHpInput);
     const parsedHp = Math.max(0, Number.isFinite(baseHp) ? Number(baseHp) : 0);
@@ -94,7 +102,10 @@ const NPCEditor = ({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) => {
   const handleTokenImageBlur = () => commitUpdate({ tokenImage });
 
   return (
-    <JRPGPanel variant="simple" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+    <JRPGPanel
+      variant="simple"
+      style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+    >
       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
         <label className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
           Name
@@ -160,7 +171,10 @@ const NPCEditor = ({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) => {
         </label>
       </div>
 
-      <label className="jrpg-text-small" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+      <label
+        className="jrpg-text-small"
+        style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+      >
         Portrait URL
         <input
           type="text"
@@ -192,7 +206,10 @@ const NPCEditor = ({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) => {
         />
       )}
 
-      <label className="jrpg-text-small" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+      <label
+        className="jrpg-text-small"
+        style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+      >
         Token Image URL
         <input
           type="text"
@@ -237,11 +254,7 @@ const NPCEditor = ({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) => {
         >
           Place on Map
         </JRPGButton>
-        <JRPGButton
-          variant="danger"
-          onClick={onDelete}
-          style={{ fontSize: "10px", flex: 1 }}
-        >
+        <JRPGButton variant="danger" onClick={onDelete} style={{ fontSize: "10px", flex: 1 }}>
           Delete
         </JRPGButton>
       </div>
@@ -273,7 +286,10 @@ export function DMMenu({
   const [mapUrl, setMapUrl] = useState(mapBackground ?? "");
   const [sessionName, setSessionName] = useState("session");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const npcs = useMemo(() => characters.filter((character) => character.type === "npc"), [characters]);
+  const npcs = useMemo(
+    () => characters.filter((character) => character.type === "npc"),
+    [characters],
+  );
 
   useEffect(() => {
     setMapUrl(mapBackground ?? "");
@@ -482,7 +498,13 @@ export function DMMenu({
 
             {activeTab === "npcs" && (
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
                   <h4 className="jrpg-text-command" style={{ margin: 0 }}>
                     NPCs & Monsters
                   </h4>
@@ -496,8 +518,11 @@ export function DMMenu({
                 </div>
 
                 {npcs.length === 0 ? (
-                  <JRPGPanel variant="simple" style={{ color: "var(--jrpg-white)", fontSize: "12px" }}>
-                    No NPCs yet. Use "Add NPC" to create one.
+                  <JRPGPanel
+                    variant="simple"
+                    style={{ color: "var(--jrpg-white)", fontSize: "12px" }}
+                  >
+                    No NPCs yet. Use &ldquo;Add NPC&rdquo; to create one.
                   </JRPGPanel>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
