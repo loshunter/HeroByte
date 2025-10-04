@@ -11,177 +11,359 @@
 
 ---
 
-## 🎉 Code Hygiene: COMPLETE
+## 🎯 Current Focus: Phase 9 - Core State & Persistence
 
-**Goal**: ~~Clean up all linting warnings~~ → **ACHIEVED**
+**Goal**: Implement save/load functionality, redo support, and persistence utilities for HeroByte.
 
-### Final Results
-- ✅ Task 1: Client browser globals + unused imports → **COMPLETE** (0 warnings)
-- ✅ Task 2: Server `any` types → **COMPLETE** (0 warnings)
-- ✅ Task 3: Remove unused imports → **COMPLETE** (30 files)
-- ✅ Task 4: Zero-warning enforcement → **COMPLETE** (CI locked)
+### Overview
+Phase 9 focuses on making game state persistent and recoverable. Players should be able to save/load their character data, DMs should be able to save entire sessions, and the undo system needs redo support.
+
+### What's Already Done
+- ✅ Ctrl+Z undo for drawings (working in `useDrawingState.ts` + `App.tsx`)
+- ✅ Drawing history stack implemented
+- ✅ Server-side undo-drawing message handler
+
+### Tasks to Complete (In Order)
 
 ---
 
-## ~~Task 1: Fix Browser Globals in Client~~ ✅ COMPLETE
+## Task 1: Add Redo Support (Ctrl+Y)
 
-**Problem**: 59 errors in client code due to missing browser global type definitions.
+**Problem**: Undo works (Ctrl+Z), but there's no redo functionality.
 
-**Solution**: Add missing browser globals to ESLint configuration.
+**Solution**: Implement redo stack and Ctrl+Y keyboard handler.
+
+### Current Implementation
+- `apps/client/src/hooks/useDrawingState.ts` - Has undo history stack
+- `apps/client/src/ui/App.tsx` - Has Ctrl+Z handler that sends `undo-drawing` message
 
 ### Steps
 
-1. **Update `eslint.config.js`**
-   - Location: `/home/loshunter/HeroByte/eslint.config.js`
-   - Find the React configuration section (around line 47-65)
-   - Add these missing globals to the `globals` object:
-     ```javascript
-     globals: {
-       window: "readonly",
-       document: "readonly",
-       navigator: "readonly",
-       localStorage: "readonly",
-       MediaStream: "readonly",
-       Audio: "readonly",
-       crypto: "readonly",
-       // ADD THESE:
-       WebSocket: "readonly",
-       HTMLElement: "readonly",
-       HTMLDivElement: "readonly",
-       KeyboardEvent: "readonly",
-       ResizeObserver: "readonly",
-       prompt: "readonly",
-       setTimeout: "readonly",
-       clearTimeout: "readonly",
-       setInterval: "readonly",
-       clearInterval: "readonly",
-     },
+1. **Update `useDrawingState.ts`**
+   - Add `redoHistory: string[]` state (stores undone drawing IDs)
+   - Add `canRedo: boolean` computed value
+   - Add `addToRedoHistory(drawingId: string)` function
+   - Add `popFromRedoHistory(): string | undefined` function
+   - Modify `addToHistory()` to clear redo stack when new drawing is added
+   - Return new values in hook interface
+
+2. **Update Shared Types**
+   - Location: `packages/shared/src/index.ts`
+   - Add new client message type:
+     ```typescript
+     | { t: "redo-drawing" }
      ```
 
-2. **Test the Fix**
-   ```bash
-   pnpm --filter herobyte-client lint
-   ```
-   - Should see significant reduction in errors (59 → ~10-20)
+3. **Add Server Handler**
+   - Location: `apps/server/src/ws/messageRouter.ts`
+   - Add case for `"redo-drawing"` message
+   - Implement redo logic (restore most recently undone drawing)
+   - Send updated room state to all clients
 
-3. **Fix Remaining Unused Variable Errors**
-   - Prefix unused variables with `_` (e.g., `const _token` instead of `const token`)
-   - Or remove the variable if truly unused
-   - Files likely affected:
-     - `apps/client/src/components/dice/BuildStrip.tsx`
-     - `apps/client/src/components/dice/DiceRoller.tsx`
-     - `apps/client/src/ui/App.tsx`
-     - `apps/client/src/ui/MapBoard.tsx`
+4. **Update Client Keyboard Handler**
+   - Location: `apps/client/src/ui/App.tsx`
+   - Add Ctrl+Y / Cmd+Y handler (similar to existing Ctrl+Z)
+   - Send `{ t: "redo-drawing" }` message when pressed
+   - Check `canRedo` before sending
+
+5. **Test the Feature**
+   ```bash
+   pnpm dev
+   ```
+   - Draw something
+   - Press Ctrl+Z (should undo)
+   - Press Ctrl+Y (should redo)
+   - Draw something new (redo stack should clear)
 
 ### Success Criteria
-- ✅ `pnpm --filter herobyte-client lint` passes with <10 warnings
-- ✅ All 59 "not defined" errors are fixed
-- ✅ Unused variable errors reduced
+- ✅ Ctrl+Y restores last undone drawing
+- ✅ Redo stack clears when new drawing is added
+- ✅ Works in both draw modes (freehand, shapes, etc.)
+- ✅ All tests still pass
 
 ---
 
-## ~~Task 2: Replace `any` with `unknown` in Server~~ ✅ COMPLETE
+## Task 2: Player State Persistence
 
-**Problem**: ~~20+ → 18~~ **All `any` types eliminated.**
+**Problem**: Players lose their character data (name, portrait, HP, etc.) on page refresh.
 
-**Solution**: Replaced `any` with `unknown` and added proper type guards/assertions.
+**Solution**: Implement save/load functionality for individual player state.
 
-### ✅ All Files Fixed
-- ✅ `apps/server/src/container.ts` - Typed WebSocket instances
-- ✅ `apps/server/src/domains/room/service.ts` - RoomSnapshot type signature
-- ✅ `apps/server/src/middleware/validation.ts` - Message validation with guards
-- ✅ `apps/server/src/ws/messageRouter.ts` - RTC message helpers, switch case wrappers
-- ✅ `apps/server/src/domains/__tests__/roomService.test.ts` - Cast through unknown
-- ✅ `apps/server/src/middleware/__tests__/validation.test.ts` - Mock WebSockets typed
-- ✅ `apps/server/src/ws/__tests__/connectionHandler.test.ts` - Proper signatures
+### Steps
 
-### Results
-- ✅ `pnpm --filter vtt-server lint` → **0 warnings**
-- ✅ `pnpm --filter herobyte-client lint` → **0 warnings**
-- ✅ `pnpm lint` → **Passes successfully**
-- ✅ All tests still passing
+1. **Create PlayerState Interface**
+   - Location: `packages/shared/src/models.ts`
+   - Add interface:
+     ```typescript
+     export interface PlayerState {
+       name: string;
+       portrait: string;
+       hp: number;
+       maxHp: number;
+       micLevel: number;
+       // Add any other player-specific state
+     }
+     ```
 
----
+2. **Create Persistence Utility**
+   - Location: `apps/client/src/utils/playerPersistence.ts`
+   - Implement:
+     ```typescript
+     export function savePlayerState(player: PlayerState): void {
+       // Create JSON blob
+       // Trigger download as "player-{name}.json"
+     }
 
-## ~~Task 3: Remove Unused Imports~~ ✅ COMPLETE
+     export function loadPlayerState(file: File): Promise<PlayerState> {
+       // Read file
+       // Parse JSON
+       // Validate schema
+       // Return PlayerState
+     }
+     ```
 
-**Problem**: Multiple files had unused imports cluttering the code.
+3. **Add Save/Load Buttons to PlayerCard**
+   - Location: `apps/client/src/features/party/components/PlayerCard.tsx`
+   - Add "Save" button (downloads JSON)
+   - Add "Load" button (file input)
+   - Wire up to persistence utilities
 
-**Solution**: Removed during Task 1 and Task 2 cleanup.
+4. **Add Client Message Types**
+   - Location: `packages/shared/src/index.ts`
+   - Add:
+     ```typescript
+     | { t: "load-player-state"; state: PlayerState }
+     ```
 
-### ✅ Work Already Done
-- Client unused imports removed in Task 1 (24 files cleaned)
-- Server unused imports removed in Task 2 (6 files cleaned)
-- Both `pnpm --filter herobyte-client lint` and `pnpm --filter vtt-server lint` pass with 0 warnings
+5. **Add Server Handler**
+   - Location: `apps/server/src/ws/messageRouter.ts`
+   - Handle `load-player-state` message
+   - Update player in room state
+   - Broadcast updated state to all clients
 
-### Verification
-```bash
-pnpm lint
-```
-- ✅ Passes successfully with no unused import warnings
+6. **Test the Feature**
+   - Create a player with custom name, portrait, HP
+   - Click "Save" (should download JSON)
+   - Refresh page (state lost)
+   - Click "Load" and select saved file
+   - Verify state restored
 
-**Note**: This task was effectively completed alongside Tasks 1 and 2. No additional work needed.
-
----
-
-## ~~Task 4: Zero-Warning Enforcement~~ ✅ COMPLETE
-
-**Problem**: ~~Temporary high `--max-warnings` thresholds needed removal.~~
-
-**Solution**: Locked in zero-warning enforcement across codebase and CI.
-
-### ✅ Changes Made
-- ✅ `apps/server/package.json` - Changed to `--max-warnings=0` (was 50)
-- ✅ `apps/client/package.json` - Changed to `--max-warnings=0` (was 200)
-- ✅ `.github/workflows/ci.yml` - Removed `|| true` escape hatch
-
-### Results
-- ✅ `pnpm lint` passes locally with **0 warnings**
-- ✅ CI now **fails** on any lint regression
-- ✅ Zero-warning standard locked in for all future PRs
-- ✅ Production-ready code quality enforced
-
----
-
-## 🎉 Code Hygiene: ALL TASKS COMPLETE!
-
-### Final Summary
-
-**Code Hygiene Results:**
-- ✅ Client: 59 errors → 0 warnings (24 files cleaned)
-- ✅ Server: 20+ any warnings → 0 warnings (6 files hardened)
-- ✅ Unused imports: Removed across 30 files
-- ✅ Linting thresholds: Server 50→0, Client 200→0
-- ✅ CI enforcement: Strict zero-warning policy active
-
-**Total Impact:**
-- 33 files cleaned and type-hardened
-- 79+ linting issues resolved
-- Zero-warning codebase achieved
-- Production-ready code quality enforced in CI
+### Success Criteria
+- ✅ Save button downloads valid JSON file
+- ✅ Load button restores player state from file
+- ✅ Schema validation prevents corrupt data
+- ✅ Other players see updated state
 
 ---
 
-## 🚀 What's Next?
+## Task 3: Session Save/Load
 
-All Code Hygiene work is now **COMPLETE**! Choose the next focus area:
+**Problem**: DMs lose entire session state (all players, tokens, drawings, map) on refresh.
 
-**Option A: Phase 9 Features** (State & Persistence)
-- Undo/Redo for drawings (Ctrl+Y)
-- Player state persistence (save/load)
-- Session save/load system
-- Asset manager foundations
-- Private room system
+**Solution**: Implement full session snapshot save/load.
 
-**Option B: Visual Polish** (README improvements)
-- Screenshots of gameplay
-- GIF/video demos
-- Architecture diagrams
-- Troubleshooting section
+### Steps
 
-**Option C: Testing Expansion**
-- E2E tests with Playwright
-- Increase server coverage >80%
-- Performance benchmarks
+1. **Create Session Persistence Utility**
+   - Location: `apps/client/src/utils/sessionPersistence.ts`
+   - Implement:
+     ```typescript
+     import { RoomSnapshot } from "@shared/index";
 
-Let me know which direction you want to go next!
+     export function saveSession(snapshot: RoomSnapshot): void {
+       // Create JSON blob from entire RoomSnapshot
+       // Trigger download as "herobyte-session-{timestamp}.json"
+     }
+
+     export function loadSession(file: File): Promise<RoomSnapshot> {
+       // Read file
+       // Parse JSON
+       // Validate RoomSnapshot schema
+       // Return RoomSnapshot
+     }
+     ```
+
+2. **Add Save/Load Buttons to Header**
+   - Location: `apps/client/src/features/header/Header.tsx`
+   - Add "Save Session" button (downloads full snapshot)
+   - Add "Load Session" button (file input)
+   - Wire up to sessionPersistence utilities
+
+3. **Add Client Message Type**
+   - Location: `packages/shared/src/index.ts`
+   - Add:
+     ```typescript
+     | { t: "load-session"; snapshot: RoomSnapshot }
+     ```
+
+4. **Add Server Handler**
+   - Location: `apps/server/src/ws/messageRouter.ts`
+   - Handle `load-session` message
+   - Use existing `RoomService.loadSnapshot()` (already typed from Task 2 of Code Hygiene!)
+   - Broadcast new session to all clients
+
+5. **Test the Feature**
+   - Create session with multiple players, tokens, drawings
+   - Click "Save Session" (should download JSON)
+   - Refresh or clear page
+   - Click "Load Session" and select file
+   - Verify everything restored (players, tokens, drawings, map state)
+
+### Success Criteria
+- ✅ Save downloads complete session JSON
+- ✅ Load restores full session state
+- ✅ All players, tokens, drawings restored correctly
+- ✅ Map background and grid settings preserved
+
+---
+
+## Task 4: Connection Status Indicator
+
+**Problem**: No visual feedback for connection state (connected, disconnected, reconnecting).
+
+**Solution**: Add connection status indicator to UI.
+
+### Steps
+
+1. **Update WebSocket Hook**
+   - Location: `apps/client/src/hooks/useWebSocket.ts`
+   - Add connection state tracking:
+     ```typescript
+     const [connectionState, setConnectionState] = useState<
+       "connected" | "disconnected" | "reconnecting"
+     >("disconnected");
+     ```
+   - Update state on connection events
+
+2. **Add Status Indicator Component**
+   - Location: `apps/client/src/features/header/components/ConnectionStatus.tsx`
+   - Create component showing:
+     - 🟢 Connected (green dot + text)
+     - 🔴 Disconnected (red dot + text)
+     - 💤 Reconnecting (yellow dot + text)
+
+3. **Add to Header**
+   - Location: `apps/client/src/features/header/Header.tsx`
+   - Import and render ConnectionStatus component
+   - Position in header (top-right corner)
+
+4. **Test the Feature**
+   - Start dev server
+   - Check status shows "🟢 Connected"
+   - Stop server
+   - Check status changes to "🔴 Disconnected"
+   - Restart server
+   - Check status shows "💤 Reconnecting" then "🟢 Connected"
+
+### Success Criteria
+- ✅ Status indicator visible in header
+- ✅ Correctly shows connected/disconnected/reconnecting states
+- ✅ Updates in real-time on connection changes
+
+---
+
+## Task 5: Add UI Tooltips
+
+**Problem**: New features (Save/Load, Undo/Redo) lack user guidance.
+
+**Solution**: Add tooltips to buttons explaining keyboard shortcuts and functionality.
+
+### Steps
+
+1. **Add Tooltip Component** (if not exists)
+   - Location: `apps/client/src/components/Tooltip.tsx`
+   - Simple hover tooltip using CSS or library
+
+2. **Add Tooltips to Drawing Toolbar**
+   - Location: `apps/client/src/features/map/components/DrawingToolbar.tsx`
+   - Add tooltips:
+     - Undo button: "Undo (Ctrl+Z)"
+     - Redo button: "Redo (Ctrl+Y)"
+
+3. **Add Tooltips to PlayerCard**
+   - Location: `apps/client/src/features/party/components/PlayerCard.tsx`
+   - Add tooltips:
+     - Save button: "Save player state to file"
+     - Load button: "Load player state from file"
+
+4. **Add Tooltips to Header**
+   - Location: `apps/client/src/features/header/Header.tsx`
+   - Add tooltips:
+     - Save Session: "Save entire session to file"
+     - Load Session: "Load session from file"
+
+### Success Criteria
+- ✅ All new buttons have helpful tooltips
+- ✅ Tooltips show keyboard shortcuts where applicable
+- ✅ Tooltips appear on hover
+
+---
+
+## After Task 5 Completion
+
+Once all 5 tasks are done:
+
+1. **Run Full Test Suite**
+   ```bash
+   pnpm test
+   pnpm lint
+   pnpm build
+   ```
+
+2. **Commit Changes**
+   ```bash
+   git add .
+   git commit -m "Complete Phase 9: Redo support, player/session persistence, connection status, tooltips"
+   git push origin dev
+   ```
+
+3. **Update TODO.md**
+   - Mark Phase 9 items as complete
+
+4. **Report Summary**
+   - Redo support added (Ctrl+Y)
+   - Player state save/load implemented
+   - Session save/load implemented
+   - Connection status indicator added
+   - UI tooltips added for guidance
+
+---
+
+## Important Notes
+
+### What NOT to Implement (Already Done or Out of Scope)
+
+- ❌ **Undo for drawings** - Already working via Ctrl+Z
+- ❌ **Drawing history stack** - Already implemented in useDrawingState.ts
+- ❌ **Asset Manager** - Deferred to Phase 10
+- ❌ **Private Room System** - Deferred to Phase 10
+- ❌ **Room name display** - Part of private rooms (Phase 10)
+
+### Testing Reminders
+
+- Always run `pnpm test` after changes
+- Test both keyboard shortcuts AND button clicks
+- Test edge cases (empty files, corrupt JSON, etc.)
+- Verify WebSocket messages work in multiplayer scenario
+
+### Code Quality
+
+- Follow existing patterns in the codebase
+- Use TypeScript strict mode (no `any` types!)
+- Add JSDoc comments to new functions
+- Keep functions small and focused (SOLID principles)
+
+---
+
+## 🚀 Let's Get Started!
+
+Work through tasks **in order** (Task 1 → Task 2 → Task 3 → Task 4 → Task 5).
+
+Each task builds on the previous one:
+- Task 1: Redo support (completes undo/redo system)
+- Task 2: Player persistence (single player save/load)
+- Task 3: Session persistence (full session save/load)
+- Task 4: Connection status (user feedback)
+- Task 5: Tooltips (polish and guidance)
+
+Report back when each task is complete, or if you encounter any blockers!
