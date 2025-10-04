@@ -89,6 +89,9 @@ export function DMMenu({
     return null;
   }
 
+  const saveDisabled = !onRequestSaveSession;
+  const loadDisabled = !onRequestLoadSession;
+
   const TabButton = ({ tab, label }: { tab: DMMenuTab; label: string }) => (
     <JRPGButton
       onClick={() => setActiveTab(tab)}
@@ -330,7 +333,12 @@ export function DMMenu({
                       <JRPGButton
                         onClick={handleSaveSession}
                         variant="success"
-                        disabled={!onRequestSaveSession}
+                        disabled={saveDisabled}
+                        title={
+                          saveDisabled
+                            ? "Save is unavailable until the room state is ready."
+                            : undefined
+                        }
                         style={{ fontSize: "10px", flex: 1 }}
                       >
                         Save Game State
@@ -338,7 +346,8 @@ export function DMMenu({
                       <JRPGButton
                         onClick={() => fileInputRef.current?.click()}
                         variant="primary"
-                        disabled={!onRequestLoadSession}
+                        disabled={loadDisabled}
+                        title={loadDisabled ? "Loading is unavailable at the moment." : undefined}
                         style={{ fontSize: "10px", flex: 1 }}
                       >
                         Load Game State

@@ -50,6 +50,7 @@ interface JRPGButtonProps {
   disabled?: boolean;
   className?: string;
   style?: React.CSSProperties;
+  title?: string;
 }
 
 export function JRPGButton({
@@ -59,6 +60,7 @@ export function JRPGButton({
   disabled = false,
   className = "",
   style = {},
+  title,
 }: JRPGButtonProps) {
   const variantClass = {
     default: "jrpg-button",
@@ -72,6 +74,7 @@ export function JRPGButton({
       className={`${variantClass} ${className}`}
       onClick={onClick}
       disabled={disabled}
+      title={title}
       style={{
         opacity: disabled ? 0.5 : 1,
         cursor: disabled ? "not-allowed" : "pointer",

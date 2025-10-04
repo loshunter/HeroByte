@@ -24,6 +24,7 @@ import { useHeartbeat } from "../hooks/useHeartbeat";
 import { useDMRole } from "../hooks/useDMRole";
 import { DMMenu } from "../features/dm";
 import { getSessionUID } from "../utils/session";
+import { saveSession, loadSession } from "../utils/sessionPersistence";
 import { DrawingToolbar } from "../features/drawing/components";
 import { Header } from "../components/layout/Header";
 import { PartyPanel } from "../components/layout/PartyPanel";
@@ -266,6 +267,41 @@ export const App: React.FC = () => {
     [sendMessage],
   );
 
+  const handleSaveSession = useCallback(
+    (name: string) => {
+      if (!snapshot) {
+        window.alert("No session data available to save yet.");
+        return;
+      }
+      try {
+        saveSession(snapshot, name);
+        window.alert("Session saved to your downloads.");
+      } catch (err) {
+        console.error("Failed to save session", err);
+        window.alert("Failed to save session. See console for details.");
+      }
+    },
+    [snapshot],
+  );
+
+  const handleLoadSession = useCallback(
+    async (file: File) => {
+      try {
+        const loadedSnapshot = await loadSession(file);
+        sendMessage({ t: "load-session", snapshot: loadedSnapshot });
+        window.alert(`Loaded session from ${file.name}`);
+      } catch (err) {
+        console.error("Failed to load session", err);
+        window.alert(
+          err instanceof Error
+            ? `Failed to load session: ${err.message}`
+            : "Failed to load session.",
+        );
+      }
+    },
+    [sendMessage],
+  );
+
   // Get synchronized grid size from server
   const gridSize = snapshot?.gridSize || 50;
 
@@ -409,6 +445,8 @@ export const App: React.FC = () => {
         mapBackground={snapshot?.mapBackground}
         playerCount={snapshot?.players?.length ?? 0}
         characters={snapshot?.characters || []}
+        onRequestSaveSession={snapshot ? handleSaveSession : undefined}
+        onRequestLoadSession={handleLoadSession}
       />
 
       {/* Context Menu */}
