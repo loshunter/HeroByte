@@ -1,6 +1,7 @@
 {
   "name": "herobyte",
   "version": "1.0.0",
+  "type": "module",
   "description": "A real-time multiplayer virtual tabletop for tabletop RPG gaming",
   "main": "index.js",
   "scripts": {
