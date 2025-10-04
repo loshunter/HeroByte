@@ -3,6 +3,7 @@
 ## ✅ Completed
 - **Phase 1-3**: Testing Infrastructure & CI/CD (54 tests, 99.57% shared coverage)
 - **Contributor Polish**: CONTRIBUTING.md + GitHub templates
+- **Task 1**: Client Lint Fixes (0 errors/warnings, 24 files cleaned)
 
 ---
 
@@ -10,11 +11,15 @@
 
 **Goal**: Clean up all linting warnings to achieve zero-warning build and maintain code quality.
 
-### Task Breakdown (Complete in Order)
+### Progress
+- ✅ Task 1: Client browser globals + unused imports → **COMPLETE** (0 warnings)
+- 🔄 Task 2: Server `any` types → **IN PROGRESS** (18 warnings remaining)
+- ⏳ Task 3: Remove unused imports (pending)
+- ⏳ Task 4: Lower linting thresholds (pending)
 
 ---
 
-## Task 1: Fix Browser Globals in Client (HIGHEST PRIORITY)
+## ~~Task 1: Fix Browser Globals in Client~~ ✅ COMPLETE
 
 **Problem**: 59 errors in client code due to missing browser global type definitions.
 
@@ -71,41 +76,44 @@
 
 ---
 
-## Task 2: Replace `any` with `unknown` in Server
+## Task 2: Replace `any` with `unknown` in Server (IN PROGRESS)
 
-**Problem**: 20+ warnings in server code due to explicit `any` types.
+**Problem**: ~~20+~~ **18 warnings** remaining in server code due to explicit `any` types.
 
 **Solution**: Replace `any` with `unknown` and add proper type guards/assertions.
 
-### Steps
+### ✅ Already Fixed
+- ✅ `apps/server/src/container.ts` - Now uses typed WebSocket instances
+- ✅ `apps/server/src/domains/room/service.ts` - loadSnapshot accepts RoomSnapshot type
 
-1. **Find All `any` Types**
+### 🎯 Remaining Work (18 warnings)
+
+**Files still needing fixes:**
+
+1. **`apps/server/src/middleware/validation.ts`**
+   - Message validation functions likely use `any`
+   - Replace with `unknown` and add type guards
+
+2. **`apps/server/src/ws/**/*.ts`** (message router, connection handlers)
+   - WebSocket message handlers may have `any` parameters
+   - Use type predicates for ClientMessage validation
+
+3. **Test files** (`apps/server/**/*.test.ts`)
+   - Mock data or test helpers may use `any`
+   - Replace with proper types or `unknown` with assertions
+
+### Steps to Complete
+
+1. **Run Lint to Find Remaining `any` Types**
    ```bash
-   pnpm --filter herobyte-server lint
+   pnpm --filter vtt-server lint
    ```
-   - Look for warnings like: "Unexpected any. Specify a different type"
+   - Should show exactly 18 warnings
+   - Note file paths and line numbers
 
 2. **Fix Each File**
 
-   **Files to update** (in order of priority):
-
-   - `apps/server/src/container.ts` (2 warnings)
-     - Look for dependency injection container methods
-     - Replace `any` with `unknown` or specific interface types
-
-   - `apps/server/src/middleware/validation.ts` (2 warnings)
-     - Look for message validation functions
-     - Use type guards to narrow `unknown` to specific message types
-
-   - `apps/server/src/domains/room/service.ts` (2 warnings)
-     - Look for state update methods
-     - Replace `any` with proper RoomState or specific types
-
-   - `apps/server/src/ws/**/*.ts` (multiple warnings)
-     - Look for WebSocket message handlers
-     - Use type predicates or assertions
-
-3. **Example Pattern**
+3. **Example Pattern** (same as before)
 
    **Before:**
    ```typescript
@@ -129,16 +137,23 @@
    }
    ```
 
-4. **Test the Fixes**
+4. **Test After Each Fix**
    ```bash
-   pnpm --filter herobyte-server lint
+   pnpm --filter vtt-server lint
    ```
-   - Should see warnings drop from 20+ to <10
+   - Track progress: 18 → 10 → 5 → 0
+
+5. **Run Full Test Suite**
+   ```bash
+   pnpm --filter vtt-server test
+   ```
+   - Ensure no tests break from type changes
 
 ### Success Criteria
-- ✅ All `any` types replaced with `unknown` or specific types
+- ✅ All 18 remaining `any` types replaced with `unknown` or specific types
 - ✅ Type guards added where needed
-- ✅ `pnpm --filter herobyte-server lint` shows <10 warnings
+- ✅ `pnpm --filter vtt-server lint` shows **0 warnings**
+- ✅ All tests still pass
 
 ---
 
