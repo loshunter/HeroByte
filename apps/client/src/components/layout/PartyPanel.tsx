@@ -5,7 +5,7 @@
 // Extracted from App.tsx to follow single responsibility principle
 
 import React, { useState } from "react";
-import type { Player, Token } from "@shared";
+import type { Player, PlayerState, Token } from "@shared";
 import { PlayerCard } from "../../features/players/components";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
 
@@ -30,6 +30,7 @@ interface PartyPanelProps {
   currentIsDM: boolean;
   onToggleDMMode: (next: boolean) => void;
   onTokenImageChange: (tokenId: string, imageUrl: string) => void;
+  onApplyPlayerState: (state: PlayerState, tokenId?: string) => void;
   bottomPanelRef?: React.RefObject<HTMLDivElement>;
 }
 
@@ -57,6 +58,7 @@ export const PartyPanel: React.FC<PartyPanelProps> = ({
   currentIsDM,
   onToggleDMMode,
   onTokenImageChange,
+  onApplyPlayerState,
   bottomPanelRef,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -138,6 +140,10 @@ export const PartyPanel: React.FC<PartyPanelProps> = ({
                       tokenImageUrl={token?.imageUrl}
                       onTokenImageSubmit={
                         isMe && token ? (url) => onTokenImageChange(token.id, url) : undefined
+                      }
+                      tokenId={token?.id}
+                      onApplyPlayerState={
+                        isMe ? (state) => onApplyPlayerState(state, token?.id) : undefined
                       }
                     />
                     {isMe && (

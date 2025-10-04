@@ -57,6 +57,17 @@ export interface Player {
 }
 
 /**
+ * PlayerState: Serialized player data for persistence
+ */
+export interface PlayerState {
+  name: string;
+  hp: number;
+  maxHp: number;
+  portrait?: string | null;
+  tokenImage?: string | null;
+}
+
+/**
  * Pointer: Temporary pointer indicator that players can place on the map
  */
 export interface Pointer {

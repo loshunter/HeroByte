@@ -14,7 +14,7 @@ import { useVoiceChat } from "./useVoiceChat";
 import { DiceRoller } from "../components/dice/DiceRoller";
 import { RollLog } from "../components/dice/RollLog";
 import type { RollResult, DieType } from "../components/dice/types";
-import type { Player } from "@shared";
+import type { Player, PlayerState } from "@shared";
 import { WS_URL } from "../config";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useMicrophone } from "../hooks/useMicrophone";
@@ -283,6 +283,26 @@ export const App: React.FC = () => {
     setCameraCommand({ type: "reset" });
   }, []);
 
+  const handleApplyPlayerState = useCallback(
+    (state: PlayerState, tokenId?: string) => {
+      sendMessage({ t: "rename", name: state.name });
+      sendMessage({ t: "set-hp", hp: state.hp, maxHp: state.maxHp });
+
+      if (state.portrait !== undefined) {
+        sendMessage({ t: "portrait", data: state.portrait ?? "" });
+      }
+
+      if (tokenId && state.tokenImage !== undefined) {
+        sendMessage({
+          t: "update-token-image",
+          tokenId,
+          imageUrl: state.tokenImage ?? "",
+        });
+      }
+    },
+    [sendMessage],
+  );
+
   const handleCreateNPC = useCallback(() => {
     sendMessage({ t: "create-npc", name: "New NPC", hp: 10, maxHp: 10 });
   }, [sendMessage]);
@@ -486,6 +506,7 @@ export const App: React.FC = () => {
         currentIsDM={isDM}
         onToggleDMMode={toggleDM}
         onTokenImageChange={updateTokenImage}
+        onApplyPlayerState={handleApplyPlayerState}
         bottomPanelRef={bottomPanelRef}
       />
 

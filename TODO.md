@@ -99,16 +99,16 @@
   - [ ] Redo support (Ctrl+Y)
 
 - [ ] Player State Persistence
-  - [ ] PlayerState interface in packages/shared/src/models.ts
-  - [ ] playerPersistence.ts utility (savePlayerState, loadPlayerState)
-  - [ ] Save/Load buttons in PlayerCard.tsx
-  - [ ] JSON export/import for player data
+  - [x] PlayerState interface in packages/shared/src/models.ts
+  - [x] playerPersistence.ts utility (savePlayerState, loadPlayerState)
+  - [x] Save/Load buttons in PlayerCard.tsx
+  - [x] JSON export/import for player data
 
 - [ ] Map + Session Save/Load
-  - [ ] sessionPersistence.ts utility
-  - [ ] Full RoomSnapshot export (players, tokens, drawings, map)
-  - [ ] Save/Load buttons in Header.tsx
-  - [ ] Session restore functionality
+  - [x] sessionPersistence.ts utility
+  - [x] Full RoomSnapshot export (players, tokens, drawings, map)
+  - [x] Save/Load buttons in Header.tsx
+  - [x] Session restore functionality
 
 - [ ] Asset Manager Foundations
   - [ ] AssetManager.tsx component with tabs (Scenes/Maps, Tokens, Portraits, Props/Misc)
