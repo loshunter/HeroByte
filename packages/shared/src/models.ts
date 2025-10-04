@@ -17,13 +17,14 @@ export class TokenModel {
     public x: number,
     public y: number,
     public color: string,
+    public imageUrl?: string,
   ) {}
 
   /**
    * Create from plain object (deserialization)
    */
   static fromJSON(data: IToken): TokenModel {
-    return new TokenModel(data.id, data.owner, data.x, data.y, data.color);
+    return new TokenModel(data.id, data.owner, data.x, data.y, data.color, data.imageUrl);
   }
 
   /**
@@ -36,6 +37,7 @@ export class TokenModel {
       x: this.x,
       y: this.y,
       color: this.color,
+      imageUrl: this.imageUrl,
     };
   }
 
@@ -43,14 +45,14 @@ export class TokenModel {
    * Move token to new grid position
    */
   moveTo(x: number, y: number): TokenModel {
-    return new TokenModel(this.id, this.owner, x, y, this.color);
+    return new TokenModel(this.id, this.owner, x, y, this.color, this.imageUrl);
   }
 
   /**
    * Change token color
    */
   recolor(newColor: string): TokenModel {
-    return new TokenModel(this.id, this.owner, this.x, this.y, newColor);
+    return new TokenModel(this.id, this.owner, this.x, this.y, newColor, this.imageUrl);
   }
 
   /**
@@ -59,7 +61,7 @@ export class TokenModel {
   snapToGrid(gridSize: number): TokenModel {
     const snappedX = Math.round(this.x / gridSize) * gridSize;
     const snappedY = Math.round(this.y / gridSize) * gridSize;
-    return new TokenModel(this.id, this.owner, snappedX, snappedY, this.color);
+    return new TokenModel(this.id, this.owner, snappedX, snappedY, this.color, this.imageUrl);
   }
 
   /**
@@ -82,6 +84,13 @@ export class TokenModel {
   static randomColor(): string {
     const hue = Math.floor(Math.random() * 360);
     return `hsl(${hue}, 70%, 50%)`;
+  }
+
+  /**
+   * Assign or clear an image URL
+   */
+  setImage(url: string | undefined): TokenModel {
+    return new TokenModel(this.id, this.owner, this.x, this.y, this.color, url);
   }
 }
 

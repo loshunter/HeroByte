@@ -259,6 +259,13 @@ export const App: React.FC = () => {
     sendMessage({ t: "clear-drawings" });
   }, [clearHistory, sendMessage]);
 
+  const updateTokenImage = useCallback(
+    (tokenId: string, imageUrl: string) => {
+      sendMessage({ t: "update-token-image", tokenId, imageUrl });
+    },
+    [sendMessage],
+  );
+
   // Get synchronized grid size from server
   const gridSize = snapshot?.gridSize || 50;
 
@@ -386,6 +393,7 @@ export const App: React.FC = () => {
         }
         currentIsDM={isDM}
         onToggleDMMode={toggleDM}
+        onTokenImageChange={updateTokenImage}
         bottomPanelRef={bottomPanelRef}
       />
 

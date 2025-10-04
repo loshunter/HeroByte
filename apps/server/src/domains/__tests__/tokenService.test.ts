@@ -13,11 +13,12 @@ describe("TokenService", () => {
     vi.spyOn(Math, "random").mockReturnValue(0.25);
     const state = createEmptyRoomState();
 
-    const token = service.createToken(state, "owner-1", 5, 6);
+    const token = service.createToken(state, "owner-1", 5, 6, "https://example.com/token.png");
 
     expect(token.color).toBe("hsl(90, 70%, 50%)");
     expect(state.tokens).toHaveLength(1);
     expect(state.tokens[0]?.owner).toBe("owner-1");
+    expect(state.tokens[0]?.imageUrl).toBe("https://example.com/token.png");
   });
 
   it("moves, recolors, and deletes tokens with ownership enforcement", () => {
@@ -49,5 +50,17 @@ describe("TokenService", () => {
     service.clearAllTokensExcept(state, "keep");
     expect(state.tokens).toEqual([a]);
     expect(state.tokens).not.toContain(b);
+  });
+
+  it("updates token image when owner requests it", () => {
+    const state = createEmptyRoomState();
+    const token = service.createToken(state, "keep", 0, 0);
+
+    expect(service.setImageUrl(state, token.id, "wrong", "https://nope")).toBe(false);
+    expect(service.setImageUrl(state, token.id, "keep", "https://example.com/new.png")).toBe(true);
+    expect(state.tokens[0]?.imageUrl).toBe("https://example.com/new.png");
+
+    expect(service.setImageUrl(state, token.id, "keep", "   ")).toBe(true);
+    expect(state.tokens[0]?.imageUrl).toBeUndefined();
   });
 });

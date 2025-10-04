@@ -29,6 +29,7 @@ interface PartyPanelProps {
   onMaxHpSubmit: () => void;
   currentIsDM: boolean;
   onToggleDMMode: (next: boolean) => void;
+  onTokenImageChange: (tokenId: string, imageUrl: string) => void;
   bottomPanelRef?: React.RefObject<HTMLDivElement>;
 }
 
@@ -55,6 +56,7 @@ export const PartyPanel: React.FC<PartyPanelProps> = ({
   onMaxHpSubmit,
   currentIsDM,
   onToggleDMMode,
+  onTokenImageChange,
   bottomPanelRef,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -133,6 +135,10 @@ export const PartyPanel: React.FC<PartyPanelProps> = ({
                       onMaxHpInputChange={onMaxHpInputChange}
                       onMaxHpEdit={onMaxHpEdit}
                       onMaxHpSubmit={onMaxHpSubmit}
+                      tokenImageUrl={token?.imageUrl}
+                      onTokenImageSubmit={
+                        isMe && token ? (url) => onTokenImageChange(token.id, url) : undefined
+                      }
                     />
                     {isMe && (
                       <JRPGButton

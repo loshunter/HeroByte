@@ -4,7 +4,7 @@
 // Displays a single player's portrait, name, HP bar, and controls
 // Memoized to prevent unnecessary re-renders
 
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import type { Player } from "@shared";
 import { NameEditor } from "./NameEditor";
 import { PortraitSection } from "./PortraitSection";
@@ -29,6 +29,8 @@ export interface PlayerCardProps {
   onMaxHpInputChange: (maxHp: string) => void;
   onMaxHpEdit: (uid: string, maxHp: number) => void;
   onMaxHpSubmit: (maxHp: string) => void;
+  tokenImageUrl?: string;
+  onTokenImageSubmit?: (url: string) => void;
 }
 
 export const PlayerCard = memo<PlayerCardProps>(
@@ -50,9 +52,21 @@ export const PlayerCard = memo<PlayerCardProps>(
     onMaxHpInputChange,
     onMaxHpEdit,
     onMaxHpSubmit,
+    tokenImageUrl,
+    onTokenImageSubmit,
   }) => {
     const editing = editingPlayerUID === player.uid;
     const editingMaxHp = editingMaxHpUID === player.uid;
+    const [tokenImageInput, setTokenImageInput] = useState(tokenImageUrl ?? "");
+
+    useEffect(() => {
+      setTokenImageInput(tokenImageUrl ?? "");
+    }, [tokenImageUrl]);
+
+    const handleTokenImageSubmit = () => {
+      if (!isMe || !onTokenImageSubmit) return;
+      onTokenImageSubmit(tokenImageInput.trim());
+    };
 
     return (
       <div
@@ -126,6 +140,73 @@ export const PlayerCard = memo<PlayerCardProps>(
           onPortraitLoad={onPortraitLoad}
           onToggleMic={onToggleMic}
         />
+
+        {isMe && onTokenImageSubmit && (
+          <div
+            style={{
+              width: "100%",
+              display: "flex",
+              flexDirection: "column",
+              gap: "4px",
+              textAlign: "center",
+            }}
+          >
+            <label
+              className="jrpg-text-small"
+              style={{ color: "var(--jrpg-gold)", fontSize: "0.65rem" }}
+            >
+              Token Image URL
+            </label>
+            <input
+              type="text"
+              value={tokenImageInput}
+              placeholder="https://example.com/token.png"
+              onChange={(e) => setTokenImageInput(e.target.value)}
+              onBlur={handleTokenImageSubmit}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleTokenImageSubmit();
+                }
+              }}
+              style={{
+                width: "100%",
+                background: "#111",
+                color: "var(--jrpg-white)",
+                border: "1px solid var(--jrpg-border-gold)",
+                padding: "4px",
+                fontSize: "0.65rem",
+              }}
+            />
+            {tokenImageUrl && (
+              <img
+                src={tokenImageUrl}
+                alt={`${player.name} token preview`}
+                style={{
+                  width: "48px",
+                  height: "48px",
+                  objectFit: "cover",
+                  alignSelf: "center",
+                  borderRadius: "6px",
+                  border: "1px solid var(--jrpg-border-gold)",
+                }}
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                }}
+              />
+            )}
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ fontSize: "0.6rem", padding: "4px 6px" }}
+              onClick={() => {
+                setTokenImageInput("");
+                onTokenImageSubmit?.("");
+              }}
+            >
+              Clear Token Image
+            </button>
+          </div>
+        )}
       </div>
     );
   },
@@ -138,6 +219,7 @@ export const PlayerCard = memo<PlayerCardProps>(
       prevProps.player.hp === nextProps.player.hp &&
       prevProps.player.maxHp === nextProps.player.maxHp &&
       (prevProps.player.isDM ?? false) === (nextProps.player.isDM ?? false) &&
+      prevProps.tokenImageUrl === nextProps.tokenImageUrl &&
       prevProps.tokenColor === nextProps.tokenColor &&
       prevProps.micEnabled === nextProps.micEnabled &&
       prevProps.editingPlayerUID === nextProps.editingPlayerUID &&

@@ -82,6 +82,13 @@ export function validateMessage(raw: unknown): ValidationResult {
       break;
     }
 
+    case "toggle-dm": {
+      if (typeof message.isDM !== "boolean") {
+        return { valid: false, error: "toggle-dm: isDM must be boolean" };
+      }
+      break;
+    }
+
     case "set-hp": {
       const { hp, maxHp } = message;
       if (!isFiniteNumber(hp) || !isFiniteNumber(maxHp)) {
@@ -158,6 +165,19 @@ export function validateMessage(raw: unknown): ValidationResult {
       const { size } = message;
       if (!isFiniteNumber(size) || size < 10 || size > 500) {
         return { valid: false, error: "grid-size: size must be between 10 and 500" };
+      }
+      break;
+    }
+
+    case "update-token-image": {
+      if (typeof message.tokenId !== "string" || message.tokenId.length === 0) {
+        return { valid: false, error: "update-token-image: missing or invalid tokenId" };
+      }
+      if (typeof message.imageUrl !== "string") {
+        return { valid: false, error: "update-token-image: imageUrl must be a string" };
+      }
+      if (message.imageUrl.length > 2048) {
+        return { valid: false, error: "update-token-image: imageUrl too long (max 2048 chars)" };
       }
       break;
     }

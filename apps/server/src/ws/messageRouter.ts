@@ -73,6 +73,13 @@ export class MessageRouter {
           }
           break;
 
+        case "update-token-image":
+          if (this.tokenService.setImageUrl(state, message.tokenId, senderUid, message.imageUrl)) {
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+
         // PLAYER ACTIONS
         case "portrait":
           if (this.playerService.setPortrait(state, senderUid, message.data)) {

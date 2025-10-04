@@ -20,6 +20,7 @@ export interface Token {
   x: number; // Grid X position
   y: number; // Grid Y position
   color: string; // Color of the token (HSL format)
+  imageUrl?: string; // Optional image to render instead of colored circle
 }
 
 /**
@@ -133,6 +134,7 @@ export type ClientMessage =
   | { t: "move"; id: string; x: number; y: number } // Move a token to new position
   | { t: "recolor"; id: string } // Randomize token color
   | { t: "delete-token"; id: string } // Remove a token
+  | { t: "update-token-image"; tokenId: string; imageUrl: string } // Update token image URL
 
   // Player actions
   | { t: "portrait"; data: string } // Update player portrait

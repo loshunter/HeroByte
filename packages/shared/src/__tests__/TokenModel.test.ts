@@ -34,6 +34,16 @@ describe("TokenModel", () => {
     expect(recolored).not.toBe(baseToken);
   });
 
+  it("updates image URL immutably", () => {
+    const withImage = baseToken.setImage("https://example.com/token.png");
+
+    expect(withImage.imageUrl).toBe("https://example.com/token.png");
+    expect(baseToken.imageUrl).toBeUndefined();
+
+    const cleared = withImage.setImage(undefined);
+    expect(cleared.imageUrl).toBeUndefined();
+  });
+
   it("snaps to the closest grid coordinate", () => {
     const token = new TokenModel("id", "owner", 47, 78, "red");
     const snapped = token.snapToGrid(25);

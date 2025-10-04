@@ -4,10 +4,60 @@
 // Renders all player tokens with drag and interaction support
 
 import { memo } from "react";
-import { Group, Rect } from "react-konva";
+import { Group, Rect, Image as KonvaImage } from "react-konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import type { Token } from "@shared";
 import type { Camera } from "../types";
+import useImage from "use-image";
+
+interface TokenSpriteProps {
+  token: Token;
+  gridSize: number;
+  stroke: string;
+  strokeWidth: number;
+  draggable?: boolean;
+  onDragEnd?: (event: KonvaEventObject<DragEvent>) => void;
+  onHover: (id: string | null) => void;
+  onDoubleClick?: () => void;
+}
+
+const TokenSprite = memo(function TokenSprite({
+  token,
+  gridSize,
+  stroke,
+  strokeWidth,
+  draggable = false,
+  onDragEnd,
+  onHover,
+  onDoubleClick,
+}: TokenSpriteProps) {
+  const [image, status] = useImage(token.imageUrl ?? "", "anonymous");
+
+  const x = token.x * gridSize + gridSize / 4;
+  const y = token.y * gridSize + gridSize / 4;
+  const size = gridSize / 2;
+
+  const commonProps = {
+    x,
+    y,
+    width: size,
+    height: size,
+    cornerRadius: gridSize / 8,
+    stroke,
+    strokeWidth,
+    draggable,
+    onDragEnd,
+    onMouseEnter: () => onHover(token.id),
+    onMouseLeave: () => onHover(null),
+    onDblClick: onDoubleClick,
+  } as const;
+
+  if (token.imageUrl && status === "loaded" && image) {
+    return <KonvaImage image={image} {...commonProps} />;
+  }
+
+  return <Rect fill={token.color} {...commonProps} />;
+});
 
 interface TokensLayerProps {
   cam: Camera;
@@ -62,36 +112,28 @@ export const TokensLayer = memo(function TokensLayer({
     <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale}>
       {/* Render other players' tokens first */}
       {otherTokens.map((t) => (
-        <Rect
+        <TokenSprite
           key={t.id}
-          x={t.x * gridSize + gridSize / 4}
-          y={t.y * gridSize + gridSize / 4}
-          width={gridSize / 2}
-          height={gridSize / 2}
-          fill={t.color}
-          stroke={hoveredTokenId === t.id ? "#aaa" : "none"}
+          token={t}
+          gridSize={gridSize}
+          stroke={hoveredTokenId === t.id ? "#aaa" : "transparent"}
           strokeWidth={2 / cam.scale}
-          onMouseEnter={() => onHover(t.id)}
-          onMouseLeave={() => onHover(null)}
+          onHover={onHover}
         />
       ))}
 
       {/* Render my tokens last (on top) */}
       {myTokens.map((t) => (
-        <Rect
+        <TokenSprite
           key={t.id}
-          x={t.x * gridSize + gridSize / 4}
-          y={t.y * gridSize + gridSize / 4}
-          width={gridSize / 2}
-          height={gridSize / 2}
-          fill={t.color}
+          token={t}
+          gridSize={gridSize}
           stroke="#fff"
           strokeWidth={2 / cam.scale}
           draggable
           onDragEnd={(e) => handleDrag(t.id, e)}
-          onMouseEnter={() => onHover(t.id)}
-          onMouseLeave={() => onHover(null)}
-          onDblClick={() => onRecolorToken(t.id)}
+          onHover={onHover}
+          onDoubleClick={() => onRecolorToken(t.id)}
         />
       ))}
     </Group>

@@ -35,13 +35,20 @@ export class TokenService {
   /**
    * Create a new token for a player
    */
-  createToken(state: RoomState, ownerUid: string, x: number = 0, y: number = 0): Token {
+  createToken(
+    state: RoomState,
+    ownerUid: string,
+    x: number = 0,
+    y: number = 0,
+    imageUrl?: string,
+  ): Token {
     const newToken: Token = {
       id: randomUUID(),
       owner: ownerUid,
       x,
       y,
       color: this.randomColor(),
+      imageUrl,
     };
 
     state.tokens.push(newToken);
@@ -81,6 +88,19 @@ export class TokenService {
     const index = state.tokens.findIndex((t) => t.id === tokenId && t.owner === ownerUid);
     if (index !== -1) {
       state.tokens.splice(index, 1);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Update or clear a token image (with ownership validation)
+   */
+  setImageUrl(state: RoomState, tokenId: string, ownerUid: string, imageUrl: string): boolean {
+    const token = state.tokens.find((t) => t.id === tokenId && t.owner === ownerUid);
+    if (token) {
+      const trimmed = imageUrl.trim();
+      token.imageUrl = trimmed.length > 0 ? trimmed : undefined;
       return true;
     }
     return false;

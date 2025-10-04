@@ -4,7 +4,7 @@
 // Floating tools panel for Dungeon Masters. Provides access to map setup,
 // NPC management (scaffolding), and session utilities.
 
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import type { Character } from "@shared";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 
@@ -56,13 +56,6 @@ export function DMMenu({
       setOpen(false);
     }
   }, [isDM]);
-
-  const sessionDisabledReason = useMemo(() => {
-    if (!onRequestSaveSession && !onRequestLoadSession) {
-      return "Session persistence not implemented yet";
-    }
-    return undefined;
-  }, [onRequestLoadSession, onRequestSaveSession]);
 
   const handleMapApply = () => {
     if (!mapUrl.trim()) return;
