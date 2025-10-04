@@ -288,7 +288,10 @@ export const App: React.FC = () => {
   }, [sendMessage]);
 
   const handleUpdateNPC = useCallback(
-    (id: string, updates: { name: string; hp: number; maxHp: number; portrait?: string; tokenImage?: string }) => {
+    (
+      id: string,
+      updates: { name: string; hp: number; maxHp: number; portrait?: string; tokenImage?: string },
+    ) => {
       sendMessage({
         t: "update-npc",
         id,

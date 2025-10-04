@@ -102,10 +102,7 @@ const NPCEditor = ({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) => {
   const handleTokenImageBlur = () => commitUpdate({ tokenImage });
 
   return (
-    <JRPGPanel
-      variant="simple"
-      style={{ display: "flex", flexDirection: "column", gap: "8px" }}
-    >
+    <JRPGPanel variant="simple" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
         <label className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
           Name
