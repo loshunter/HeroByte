@@ -92,7 +92,8 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
     shouldPan: boolean,
   ) => {
     const originalEvent = event.evt;
-    const isSpace = "code" in originalEvent && (originalEvent as unknown as KeyboardEvent).code === "Space";
+    const isSpace =
+      "code" in originalEvent && (originalEvent as unknown as KeyboardEvent).code === "Space";
     const middleClick = "buttons" in originalEvent && originalEvent.buttons === 4;
 
     if (shouldPan || isSpace || middleClick) {
