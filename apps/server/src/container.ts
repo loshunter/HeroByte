@@ -58,7 +58,7 @@ export class Container {
       this.diceService,
       this.characterService,
       wss,
-      this.uidToWs
+      this.uidToWs,
     );
 
     // Load persisted state

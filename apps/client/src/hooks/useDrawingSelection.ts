@@ -18,46 +18,55 @@ export function useDrawingSelection({ selectMode, sendMessage }: UseDrawingSelec
   /**
    * Select a drawing by ID
    */
-  const selectDrawing = useCallback((drawingId: string | null) => {
-    if (drawingId) {
-      sendMessage({ t: "select-drawing", id: drawingId });
-      setSelectedDrawingId(drawingId);
-    } else {
-      sendMessage({ t: "deselect-drawing" });
-      setSelectedDrawingId(null);
-    }
-  }, [sendMessage]);
+  const selectDrawing = useCallback(
+    (drawingId: string | null) => {
+      if (drawingId) {
+        sendMessage({ t: "select-drawing", id: drawingId });
+        setSelectedDrawingId(drawingId);
+      } else {
+        sendMessage({ t: "deselect-drawing" });
+        setSelectedDrawingId(null);
+      }
+    },
+    [sendMessage],
+  );
 
   /**
    * Deselect when clicking empty space
    */
-  const deselectIfEmpty = useCallback((e: any) => {
-    if (selectMode && e.target === e.target.getStage()) {
-      selectDrawing(null);
-    }
-  }, [selectMode, selectDrawing]);
+  const deselectIfEmpty = useCallback(
+    (e: any) => {
+      if (selectMode && e.target === e.target.getStage()) {
+        selectDrawing(null);
+      }
+    },
+    [selectMode, selectDrawing],
+  );
 
   /**
    * Handle drag end - send final position to server
    */
-  const onDrawingDragEnd = useCallback((drawingId: string, e: any) => {
-    const node = e.target;
-    const dx = node.x();
-    const dy = node.y();
+  const onDrawingDragEnd = useCallback(
+    (drawingId: string, e: any) => {
+      const node = e.target;
+      const dx = node.x();
+      const dy = node.y();
 
-    // Send movement to server
-    if (dx !== 0 || dy !== 0) {
-      sendMessage({
-        t: "move-drawing",
-        id: drawingId,
-        dx,
-        dy
-      });
-    }
+      // Send movement to server
+      if (dx !== 0 || dy !== 0) {
+        sendMessage({
+          t: "move-drawing",
+          id: drawingId,
+          dx,
+          dy,
+        });
+      }
 
-    // Reset position (server will broadcast the updated drawing)
-    node.position({ x: 0, y: 0 });
-  }, [sendMessage]);
+      // Reset position (server will broadcast the updated drawing)
+      node.position({ x: 0, y: 0 });
+    },
+    [sendMessage],
+  );
 
   return {
     selectedDrawingId,

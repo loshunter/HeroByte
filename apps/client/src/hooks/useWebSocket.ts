@@ -41,7 +41,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
 
   const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null);
   const [connectionState, setConnectionState] = useState<ConnectionState>(
-    ConnectionState.DISCONNECTED
+    ConnectionState.DISCONNECTED,
   );
 
   // Use ref to store the current RTC signal handler

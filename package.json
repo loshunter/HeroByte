@@ -10,13 +10,33 @@
     "build:server": "pnpm --filter vtt-server build",
     "build:client": "pnpm --filter herobyte-client build",
     "build": "pnpm build:server && pnpm build:client",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "pnpm test:shared && pnpm test:server",
+    "test:coverage": "pnpm test:shared:coverage && pnpm test:server:coverage",
+    "test:shared": "pnpm --filter @shared test",
+    "test:shared:coverage": "pnpm --filter @shared test:coverage",
+    "test:server": "pnpm --filter vtt-server test",
+    "test:server:coverage": "pnpm --filter vtt-server test:coverage",
+    "lint": "pnpm lint:shared && pnpm lint:server && pnpm lint:client",
+    "lint:client": "pnpm --filter herobyte-client lint",
+    "lint:server": "pnpm --filter vtt-server lint",
+    "lint:shared": "pnpm --filter @shared lint",
+    "format": "prettier --write \"apps/**/*.{ts,tsx,js,json,md}\" \"packages/**/*.{ts,tsx,js,json,md}\" \"*.{js,json,md}\"",
+    "format:check": "prettier --check \"apps/**/*.{ts,tsx,js,json,md}\" \"packages/**/*.{ts,tsx,js,json,md}\" \"*.{js,json,md}\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.17.1",
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "@eslint/js": "^9.37.0",
+    "@typescript-eslint/eslint-plugin": "^8.45.0",
+    "@typescript-eslint/parser": "^8.45.0",
+    "concurrently": "^8.2.2",
+    "eslint": "^9.37.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^6.1.1",
+    "prettier": "^3.6.2"
   }
 }

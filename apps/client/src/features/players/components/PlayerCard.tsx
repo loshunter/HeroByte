@@ -32,104 +32,104 @@ export interface PlayerCardProps {
   onMaxHpSubmit: (maxHp: string) => void;
 }
 
-export const PlayerCard = memo<PlayerCardProps>(({
-  player,
-  isMe,
-  tokenColor,
-  micEnabled,
-  micLevel,
-  editingPlayerUID,
-  nameInput,
-  onNameInputChange,
-  onNameEdit,
-  onNameSubmit,
-  onPortraitLoad,
-  onToggleMic,
-  onHpChange,
-  editingMaxHpUID,
-  maxHpInput,
-  onMaxHpInputChange,
-  onMaxHpEdit,
-  onMaxHpSubmit,
-}) => {
-  const editing = editingPlayerUID === player.uid;
-  const editingMaxHp = editingMaxHpUID === player.uid;
+export const PlayerCard = memo<PlayerCardProps>(
+  ({
+    player,
+    isMe,
+    tokenColor,
+    micEnabled,
+    micLevel,
+    editingPlayerUID,
+    nameInput,
+    onNameInputChange,
+    onNameEdit,
+    onNameSubmit,
+    onPortraitLoad,
+    onToggleMic,
+    onHpChange,
+    editingMaxHpUID,
+    maxHpInput,
+    onMaxHpInputChange,
+    onMaxHpEdit,
+    onMaxHpSubmit,
+  }) => {
+    const editing = editingPlayerUID === player.uid;
+    const editingMaxHp = editingMaxHpUID === player.uid;
 
-  return (
-    <div
-      className="player-card"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "space-between",
-        color: "#dbe1ff",
-        fontSize: "0.8rem",
-        gap: "6px",
-      }}
-    >
+    return (
       <div
+        className="player-card"
         style={{
-          width: "100%",
-          textAlign: "center",
-          borderBottom: "1px solid #444",
-          marginBottom: "4px",
-          fontSize: "0.7rem",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "space-between",
+          color: "#dbe1ff",
+          fontSize: "0.8rem",
+          gap: "6px",
         }}
       >
-        <NameEditor
-          isEditing={editing}
+        <div
+          style={{
+            width: "100%",
+            textAlign: "center",
+            borderBottom: "1px solid #444",
+            marginBottom: "4px",
+            fontSize: "0.7rem",
+          }}
+        >
+          <NameEditor
+            isEditing={editing}
+            isMe={isMe}
+            playerName={player.name}
+            playerUid={player.uid}
+            nameInput={nameInput}
+            tokenColor={tokenColor}
+            onNameInputChange={onNameInputChange}
+            onNameEdit={onNameEdit}
+            onNameSubmit={onNameSubmit}
+          />
+        </div>
+
+        <PortraitSection portrait={player.portrait} micLevel={player.micLevel} />
+
+        <HPBar
+          hp={player.hp ?? 100}
+          maxHp={player.maxHp ?? 100}
           isMe={isMe}
-          playerName={player.name}
+          isEditingMaxHp={editingMaxHp}
+          maxHpInput={maxHpInput}
           playerUid={player.uid}
-          nameInput={nameInput}
-          tokenColor={tokenColor}
-          onNameInputChange={onNameInputChange}
-          onNameEdit={onNameEdit}
-          onNameSubmit={onNameSubmit}
+          onHpChange={onHpChange}
+          onMaxHpInputChange={onMaxHpInputChange}
+          onMaxHpEdit={onMaxHpEdit}
+          onMaxHpSubmit={onMaxHpSubmit}
+        />
+
+        <CardControls
+          isMe={isMe}
+          micEnabled={micEnabled}
+          onPortraitLoad={onPortraitLoad}
+          onToggleMic={onToggleMic}
         />
       </div>
-
-      <PortraitSection
-        portrait={player.portrait}
-        micLevel={player.micLevel}
-      />
-
-      <HPBar
-        hp={player.hp ?? 100}
-        maxHp={player.maxHp ?? 100}
-        isMe={isMe}
-        isEditingMaxHp={editingMaxHp}
-        maxHpInput={maxHpInput}
-        playerUid={player.uid}
-        onHpChange={onHpChange}
-        onMaxHpInputChange={onMaxHpInputChange}
-        onMaxHpEdit={onMaxHpEdit}
-        onMaxHpSubmit={onMaxHpSubmit}
-      />
-
-      <CardControls
-        isMe={isMe}
-        micEnabled={micEnabled}
-        onPortraitLoad={onPortraitLoad}
-        onToggleMic={onToggleMic}
-      />
-    </div>
-  );
-}, (prevProps, nextProps) => {
-  // Custom comparison: only re-render if relevant props change
-  return (
-    prevProps.player.name === nextProps.player.name &&
-    prevProps.player.portrait === nextProps.player.portrait &&
-    prevProps.player.micLevel === nextProps.player.micLevel &&
-    prevProps.player.hp === nextProps.player.hp &&
-    prevProps.player.maxHp === nextProps.player.maxHp &&
-    prevProps.tokenColor === nextProps.tokenColor &&
-    prevProps.micEnabled === nextProps.micEnabled &&
-    prevProps.micLevel === nextProps.micLevel &&
-    prevProps.editingPlayerUID === nextProps.editingPlayerUID &&
-    prevProps.nameInput === nextProps.nameInput &&
-    prevProps.editingMaxHpUID === nextProps.editingMaxHpUID &&
-    prevProps.maxHpInput === nextProps.maxHpInput
-  );
-});
+    );
+  },
+  (prevProps, nextProps) => {
+    // Custom comparison: only re-render if relevant props change
+    return (
+      prevProps.player.name === nextProps.player.name &&
+      prevProps.player.portrait === nextProps.player.portrait &&
+      prevProps.player.micLevel === nextProps.player.micLevel &&
+      prevProps.player.hp === nextProps.player.hp &&
+      prevProps.player.maxHp === nextProps.player.maxHp &&
+      prevProps.tokenColor === nextProps.tokenColor &&
+      prevProps.micEnabled === nextProps.micEnabled &&
+      prevProps.micLevel === nextProps.micLevel &&
+      prevProps.editingPlayerUID === nextProps.editingPlayerUID &&
+      prevProps.nameInput === nextProps.nameInput &&
+      prevProps.editingMaxHpUID === nextProps.editingMaxHpUID &&
+      prevProps.maxHpInput === nextProps.maxHpInput
+    );
+  },
+);

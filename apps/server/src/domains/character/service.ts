@@ -35,12 +35,7 @@ export class CharacterService {
   /**
    * Create a new PC character (Phase 1: DM creates PC slots)
    */
-  createCharacter(
-    state: RoomState,
-    name: string,
-    maxHp: number,
-    portrait?: string
-  ): Character {
+  createCharacter(state: RoomState, name: string, maxHp: number, portrait?: string): Character {
     const newCharacter: Character = {
       id: randomUUID(),
       type: "pc",
@@ -60,11 +55,7 @@ export class CharacterService {
   /**
    * Claim a character (player takes ownership)
    */
-  claimCharacter(
-    state: RoomState,
-    characterId: string,
-    playerUID: string
-  ): boolean {
+  claimCharacter(state: RoomState, characterId: string, playerUID: string): boolean {
     const character = this.findCharacter(state, characterId);
     if (!character) {
       console.error(`Cannot claim: Character ${characterId} not found`);
@@ -73,7 +64,7 @@ export class CharacterService {
 
     if (character.ownedByPlayerUID) {
       console.error(
-        `Cannot claim: Character ${characterId} already owned by ${character.ownedByPlayerUID}`
+        `Cannot claim: Character ${characterId} already owned by ${character.ownedByPlayerUID}`,
       );
       return false;
     }
@@ -86,12 +77,7 @@ export class CharacterService {
   /**
    * Update character HP
    */
-  updateHP(
-    state: RoomState,
-    characterId: string,
-    hp: number,
-    maxHp: number
-  ): boolean {
+  updateHP(state: RoomState, characterId: string, hp: number, maxHp: number): boolean {
     const character = this.findCharacter(state, characterId);
     if (character) {
       character.hp = hp;

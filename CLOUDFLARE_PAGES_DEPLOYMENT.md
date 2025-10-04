@@ -19,6 +19,7 @@ This guide walks you through deploying the HeroByte client to Cloudflare Pages.
 ## Step 2: Configure Build Settings
 
 ### Basic Settings
+
 - **Project name**: `herobyte` (or your preferred name)
 - **Production branch**: `main`
 
@@ -30,9 +31,11 @@ Click **Show advanced** and configure:
   - This tells Cloudflare to build from the monorepo's client directory
 
 - **Build command**:
+
   ```bash
   corepack enable && pnpm install --frozen-lockfile && pnpm build
   ```
+
   - `corepack enable` ensures pnpm is available in the build environment
   - `--frozen-lockfile` ensures exact dependency versions from pnpm-lock.yaml
   - `pnpm build` builds the client (which also builds the shared package)
@@ -44,11 +47,12 @@ Click **Show advanced** and configure:
 
 Add the following environment variable to **both Production and Preview**:
 
-| Variable Name | Value |
-|--------------|-------|
+| Variable Name | Value                                |
+| ------------- | ------------------------------------ |
 | `VITE_WS_URL` | `wss://herobyte-server.onrender.com` |
 
 **Important**:
+
 - Use `wss://` (WebSocket Secure) not `ws://` for production
 - Set this for both Production and Preview environments so preview deployments also work
 
@@ -79,6 +83,7 @@ The initial deployment takes 2-5 minutes.
 ### Build Fails
 
 If the build fails, check:
+
 - The build logs in Cloudflare Pages dashboard
 - Ensure `Root directory` is set to `apps/client`
 - Verify the build command is correct
@@ -86,6 +91,7 @@ If the build fails, check:
 ### WebSocket Connection Fails
 
 If the app loads but doesn't connect:
+
 - Check browser console for errors (F12)
 - Verify `VITE_WS_URL` is set correctly in Cloudflare Pages settings
 - Ensure your Render server is running
@@ -94,6 +100,7 @@ If the app loads but doesn't connect:
 ### Blank Page
 
 If you see a blank page:
+
 - Check browser console (F12) for JavaScript errors
 - Verify the build output directory is `dist`
 - Check that the build succeeded in Cloudflare Pages logs
@@ -111,6 +118,7 @@ To use your own domain:
 ## Continuous Deployment
 
 Every time you push to the `main` branch, Cloudflare Pages will automatically:
+
 1. Detect the push
 2. Run the build
 3. Deploy the new version
@@ -120,6 +128,7 @@ You can also create preview deployments for other branches in the Pages settings
 ## Performance
 
 Cloudflare Pages provides:
+
 - **Global CDN**: Your app is served from 275+ edge locations worldwide
 - **Automatic SSL**: HTTPS is enabled by default
 - **Unlimited bandwidth**: No bandwidth charges on the free tier

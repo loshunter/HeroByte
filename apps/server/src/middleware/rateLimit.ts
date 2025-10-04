@@ -7,8 +7,8 @@
  * Rate limiter configuration
  */
 interface RateLimitConfig {
-  maxMessages: number;    // Maximum messages allowed in window
-  windowMs: number;       // Time window in milliseconds
+  maxMessages: number; // Maximum messages allowed in window
+  windowMs: number; // Time window in milliseconds
 }
 
 /**

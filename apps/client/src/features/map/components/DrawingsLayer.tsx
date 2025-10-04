@@ -151,7 +151,12 @@ export const DrawingsLayer = memo(function DrawingsLayer({
           {/* Invisible wider hit area for easier clicking */}
           {selectMode && canInteract && (
             <Line
-              points={[points[0].x, points[0].y, points[points.length - 1].x, points[points.length - 1].y]}
+              points={[
+                points[0].x,
+                points[0].y,
+                points[points.length - 1].x,
+                points[points.length - 1].y,
+              ]}
               stroke="transparent"
               strokeWidth={Math.max(20 / cam.scale, (drawing.width + 10) / cam.scale)}
               lineCap="round"
@@ -160,7 +165,12 @@ export const DrawingsLayer = memo(function DrawingsLayer({
           )}
           {/* Actual drawing */}
           <Line
-            points={[points[0].x, points[0].y, points[points.length - 1].x, points[points.length - 1].y]}
+            points={[
+              points[0].x,
+              points[0].y,
+              points[points.length - 1].x,
+              points[points.length - 1].y,
+            ]}
             stroke={drawing.color}
             strokeWidth={drawing.width / cam.scale}
             lineCap="round"
@@ -170,7 +180,12 @@ export const DrawingsLayer = memo(function DrawingsLayer({
           {/* Selection highlight */}
           {isSelected && canInteract && (
             <Line
-              points={[points[0].x, points[0].y, points[points.length - 1].x, points[points.length - 1].y]}
+              points={[
+                points[0].x,
+                points[0].y,
+                points[points.length - 1].x,
+                points[points.length - 1].y,
+              ]}
               stroke="#447DF7"
               strokeWidth={2 / cam.scale}
               dash={[8 / cam.scale, 4 / cam.scale]}
@@ -228,7 +243,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
       const cy = points[0].y;
       const radius = Math.sqrt(
         Math.pow(points[points.length - 1].x - cx, 2) +
-          Math.pow(points[points.length - 1].y - cy, 2)
+          Math.pow(points[points.length - 1].y - cy, 2),
       );
 
       return (
@@ -340,9 +355,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
     if (currentTool === "circle" && currentDrawing.length >= 2) {
       const start = currentDrawing[0];
       const end = currentDrawing[currentDrawing.length - 1];
-      const radius = Math.sqrt(
-        Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2)
-      );
+      const radius = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
 
       return (
         <Circle

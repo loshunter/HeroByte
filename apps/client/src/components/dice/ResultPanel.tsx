@@ -2,11 +2,11 @@
 // RESULT PANEL - SNES-style breakdown window
 // ============================================================================
 
-import React from 'react';
-import type { RollResult } from './types';
-import { formatRollText } from './diceLogic';
-import { DIE_SYMBOLS } from './types';
-import { DraggableWindow } from './DraggableWindow';
+import React from "react";
+import type { RollResult } from "./types";
+import { formatRollText } from "./diceLogic";
+import { DIE_SYMBOLS } from "./types";
+import { DraggableWindow } from "./DraggableWindow";
 
 interface ResultPanelProps {
   result: RollResult | null;
@@ -31,14 +31,13 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({ result, onClose }) => 
       maxWidth={600}
       zIndex={1001}
     >
-      <div style={{ animation: 'panelSlideIn 300ms ease-out' }}>
-
+      <div style={{ animation: "panelSlideIn 300ms ease-out" }}>
         {/* Breakdown */}
         <div
           style={{
-            padding: '20px',
-            maxHeight: '400px',
-            overflowY: 'auto',
+            padding: "20px",
+            maxHeight: "400px",
+            overflowY: "auto",
           }}
         >
           {result.perDie.map((roll, index) => {
@@ -54,34 +53,35 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({ result, onClose }) => 
               <div
                 key={roll.tokenId}
                 style={{
-                  padding: '12px',
-                  marginBottom: '8px',
-                  background: 'rgba(0,0,0,0.3)',
-                  border: '2px solid rgba(240,226,195,0.2)',
-                  borderRadius: '6px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
+                  padding: "12px",
+                  marginBottom: "8px",
+                  background: "rgba(0,0,0,0.3)",
+                  border: "2px solid rgba(240,226,195,0.2)",
+                  borderRadius: "6px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                   {/* Token label */}
-                  {token.kind === 'die' ? (
+                  {token.kind === "die" ? (
                     <div
                       style={{
-                        fontSize: '16px',
-                        fontWeight: 'bold',
-                        color: 'var(--hero-gold-light)',
+                        fontSize: "16px",
+                        fontWeight: "bold",
+                        color: "var(--hero-gold-light)",
                       }}
                     >
-                      {DIE_SYMBOLS[token.die]} {token.qty > 1 ? `${token.qty}${token.die}` : token.die}
+                      {DIE_SYMBOLS[token.die]}{" "}
+                      {token.qty > 1 ? `${token.qty}${token.die}` : token.die}
                     </div>
                   ) : (
                     <div
                       style={{
-                        fontSize: '16px',
-                        fontWeight: 'bold',
-                        color: 'var(--hero-gold)',
+                        fontSize: "16px",
+                        fontWeight: "bold",
+                        color: "var(--hero-gold)",
                       }}
                     >
                       {token.value >= 0 ? `+${token.value}` : token.value}
@@ -90,8 +90,8 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({ result, onClose }) => 
 
                   {/* Rolls breakdown */}
                   {roll.rolls && roll.rolls.length > 0 && (
-                    <div style={{ fontSize: '14px', color: 'var(--hero-text-dim)' }}>
-                      [{roll.rolls.join(' + ')}]
+                    <div style={{ fontSize: "14px", color: "var(--hero-text-dim)" }}>
+                      [{roll.rolls.join(" + ")}]
                     </div>
                   )}
                 </div>
@@ -99,11 +99,11 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({ result, onClose }) => 
                 {/* Subtotal */}
                 <div
                   style={{
-                    fontSize: '20px',
-                    fontWeight: 'bold',
-                    color: 'var(--hero-gold)',
-                    minWidth: '60px',
-                    textAlign: 'right',
+                    fontSize: "20px",
+                    fontWeight: "bold",
+                    color: "var(--hero-gold)",
+                    minWidth: "60px",
+                    textAlign: "right",
                   }}
                 >
                   {roll.subtotal}
@@ -115,43 +115,45 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({ result, onClose }) => 
           {/* Divider */}
           <div
             style={{
-              height: '3px',
-              background: 'linear-gradient(90deg, transparent 0%, var(--hero-gold) 50%, transparent 100%)',
-              margin: '16px 0',
+              height: "3px",
+              background:
+                "linear-gradient(90deg, transparent 0%, var(--hero-gold) 50%, transparent 100%)",
+              margin: "16px 0",
             }}
           />
 
           {/* Total */}
           <div
             style={{
-              padding: '16px',
-              background: 'linear-gradient(135deg, rgba(68,125,247,0.2) 0%, rgba(255,195,77,0.2) 100%)',
-              border: '3px solid var(--hero-gold)',
-              borderRadius: '8px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              boxShadow: '0 0 20px rgba(240,226,195,0.3)',
-              animation: 'totalGlow 1s ease-out',
+              padding: "16px",
+              background:
+                "linear-gradient(135deg, rgba(68,125,247,0.2) 0%, rgba(255,195,77,0.2) 100%)",
+              border: "3px solid var(--hero-gold)",
+              borderRadius: "8px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              boxShadow: "0 0 20px rgba(240,226,195,0.3)",
+              animation: "totalGlow 1s ease-out",
             }}
           >
             <div
               style={{
-                fontSize: '24px',
-                fontWeight: 'bold',
-                color: 'var(--hero-gold-light)',
-                fontFamily: 'var(--font-pixel)',
+                fontSize: "24px",
+                fontWeight: "bold",
+                color: "var(--hero-gold-light)",
+                fontFamily: "var(--font-pixel)",
               }}
             >
               TOTAL
             </div>
             <div
               style={{
-                fontSize: '36px',
-                fontWeight: 'bold',
-                color: 'var(--hero-gold)',
-                fontFamily: 'var(--font-pixel)',
-                textShadow: '0 0 12px rgba(255,195,77,0.8), 2px 2px 0 var(--hero-navy-dark)',
+                fontSize: "36px",
+                fontWeight: "bold",
+                color: "var(--hero-gold)",
+                fontFamily: "var(--font-pixel)",
+                textShadow: "0 0 12px rgba(255,195,77,0.8), 2px 2px 0 var(--hero-navy-dark)",
               }}
             >
               {result.total}
@@ -163,10 +165,10 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({ result, onClose }) => 
             onClick={copyToClipboard}
             className="btn"
             style={{
-              width: '100%',
-              marginTop: '16px',
-              padding: '12px',
-              fontSize: '14px',
+              width: "100%",
+              marginTop: "16px",
+              padding: "12px",
+              fontSize: "14px",
             }}
           >
             📋 Copy as Text
@@ -178,7 +180,7 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({ result, onClose }) => 
 };
 
 // Add animations to CSS
-const style = document.createElement('style');
+const style = document.createElement("style");
 style.textContent = `
   @keyframes panelSlideIn {
     from {

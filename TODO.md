@@ -1,5 +1,88 @@
 # HeroByte TODO
 
+## CRITICAL: Contributor Readiness (BLOCKING)
+
+**These items are essential for making the repo stable and contributor-friendly.**
+
+### Testing Infrastructure
+
+- [ ] **Unit Tests**
+  - [ ] Set up Vitest for shared package (`packages/shared/`)
+  - [ ] Test shared model classes (TokenModel, PlayerModel, CharacterModel)
+  - [ ] Test validation schemas and utilities
+  - [ ] Achieve >80% coverage on shared logic
+
+- [ ] **Integration Tests**
+  - [ ] Set up test environment for WebSocket
+  - [ ] Test socket handshake and connection lifecycle
+  - [ ] Test message routing and validation middleware
+  - [ ] Test rate limiting behavior
+  - [ ] Test room state synchronization
+
+- [ ] **E2E Tests** (optional for now)
+  - [ ] Set up Playwright or Cypress
+  - [ ] Test critical user flows (join session, move token, roll dice)
+
+### CI/CD Pipeline
+
+- [ ] **GitHub Actions Setup**
+  - [x] Create `.github/workflows/ci.yml`
+  - [x] Run linting on all PRs (eslint + prettier)
+  - [x] Run tests on all PRs
+  - [x] Build validation for client and server
+  - [x] Fail PRs if any check fails
+
+- [ ] **Quality Gates**
+  - [x] Add code coverage reporting
+  - [x] Add build status badge to README
+  - [x] Add test coverage badge to README
+
+### README Improvements
+
+- [ ] **Visual Assets**
+  - [ ] Add screenshots of gameplay (map, dice roller, voice chat)
+  - [ ] Add GIF/video demo of core features
+  - [ ] Show UI for drawing tools, token movement
+
+- [ ] **Better Documentation**
+  - [ ] Add "Running Tests" section with `pnpm test` examples
+  - [ ] Expand "Contributing" section with PR workflow
+  - [ ] Add troubleshooting section (common issues)
+  - [ ] Add architecture diagram (optional)
+
+### Security Hardening
+
+- [ ] **Schema Validation** ✅ (Already have input validation middleware)
+- [ ] **Authentication System**
+  - [ ] Basic room passwords (Phase 9 covers this)
+  - [ ] Player identity verification
+  - [ ] DM authentication for private rooms
+
+- [ ] **Additional Security**
+  - [ ] CORS configuration review
+  - [ ] WebSocket origin validation
+  - [ ] Helmet.js for HTTP security headers (if applicable)
+
+### Community & Governance
+
+- [ ] **Public Roadmap**
+  - [ ] Create GitHub Projects board
+  - [ ] Link roadmap in README
+  - [ ] Label issues by priority (P0, P1, P2)
+
+- [ ] **Issue Templates**
+  - [ ] Bug report template
+  - [ ] Feature request template
+  - [ ] Pull request template
+
+- [ ] **Contributing Guidelines**
+  - [ ] Create CONTRIBUTING.md
+  - [ ] Code style guide
+  - [ ] PR review process
+  - [ ] Testing requirements
+
+---
+
 ## Phase 9: Core State & Persistence (CURRENT)
 
 - [ ] Undo System for Drawings
@@ -155,16 +238,16 @@
   - [ ] Authentication system
   - [ ] Session encryption
 
-- [ ] Testing
+- [ ] Testing (see CRITICAL section above)
   - [ ] Unit tests for shared logic
   - [ ] Integration tests for WebSocket communication
   - [ ] E2E tests for critical workflows
 
-- [ ] Documentation
+- [ ] Documentation (see CRITICAL section above)
   - [ ] API documentation
   - [ ] User guide
   - [ ] DM guide
-  - [ ] Contributing guidelines
+  - [x] Contributing guidelines (moved to CRITICAL)
 
 - [ ] Deployment
   - [ ] Docker support
@@ -193,6 +276,7 @@
 ---
 
 **Priority Legend:**
+
 - High = Core gameplay features
 - Medium = Quality of life improvements
 - Low = Nice-to-have features

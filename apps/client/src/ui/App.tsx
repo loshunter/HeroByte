@@ -41,8 +41,13 @@ export const App: React.FC = () => {
   // -------------------------------------------------------------------------
 
   // Network and session
-  const uid = getSessionUID();                                          // This player's unique ID
-  const { snapshot, send: sendMessage, isConnected, registerRtcHandler } = useWebSocket({
+  const uid = getSessionUID(); // This player's unique ID
+  const {
+    snapshot,
+    send: sendMessage,
+    isConnected,
+    registerRtcHandler,
+  } = useWebSocket({
     url: WS_URL,
     uid,
   });
@@ -50,18 +55,36 @@ export const App: React.FC = () => {
   // Custom hooks for state management
   const { micEnabled, micLevel, micStream, toggleMic } = useMicrophone({ sendMessage });
   const {
-    drawTool, drawColor, drawWidth, drawOpacity, drawFilled,
-    drawingHistory, canUndo,
-    setDrawTool, setDrawColor, setDrawWidth, setDrawOpacity, setDrawFilled,
-    addToHistory, popFromHistory, clearHistory
+    drawTool,
+    drawColor,
+    drawWidth,
+    drawOpacity,
+    drawFilled,
+    drawingHistory,
+    canUndo,
+    setDrawTool,
+    setDrawColor,
+    setDrawWidth,
+    setDrawOpacity,
+    setDrawFilled,
+    addToHistory,
+    popFromHistory,
+    clearHistory,
   } = useDrawingState();
 
   // Heartbeat to prevent timeout
   useHeartbeat({ sendMessage });
   const {
-    editingPlayerUID, nameInput, editingMaxHpUID, maxHpInput,
-    startNameEdit, updateNameInput, submitNameEdit,
-    startMaxHpEdit, updateMaxHpInput, submitMaxHpEdit
+    editingPlayerUID,
+    nameInput,
+    editingMaxHpUID,
+    maxHpInput,
+    startNameEdit,
+    updateNameInput,
+    submitNameEdit,
+    startMaxHpEdit,
+    updateMaxHpInput,
+    submitMaxHpEdit,
   } = usePlayerEditing();
 
   // Map controls
@@ -81,7 +104,9 @@ export const App: React.FC = () => {
   const [bottomHeight, setBottomHeight] = useState(210);
 
   // Context menu
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; tokenId: string } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; tokenId: string } | null>(
+    null,
+  );
 
   // CRT filter toggle
   const [crtFilter, setCrtFilter] = useState(false);
@@ -97,7 +122,7 @@ export const App: React.FC = () => {
       id: roll.id,
       playerName: roll.playerName,
       tokens: [], // Not needed for display
-      perDie: roll.breakdown.map(b => ({
+      perDie: roll.breakdown.map((b) => ({
         tokenId: b.tokenId,
         die: b.die as DieType | undefined,
         rolls: b.rolls,
@@ -114,9 +139,7 @@ export const App: React.FC = () => {
 
   // Get list of other players for P2P voice connections
   const otherPlayerUIDs = React.useMemo(() => {
-    return snapshot?.players
-      ?.filter((p: Player) => p.uid !== uid)
-      .map((p: Player) => p.uid) || [];
+    return snapshot?.players?.filter((p: Player) => p.uid !== uid).map((p: Player) => p.uid) || [];
   }, [snapshot?.players, uid]);
 
   const { connectedPeers } = useVoiceChat({
@@ -160,7 +183,7 @@ export const App: React.FC = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl+Z or Cmd+Z for undo
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
         // Only undo if draw mode is active and there's something to undo
         if (drawMode && canUndo) {
           e.preventDefault();
@@ -296,7 +319,7 @@ export const App: React.FC = () => {
           bottom: `${bottomHeight}px`,
           left: 0,
           right: 0,
-          overflow: "hidden"
+          overflow: "hidden",
         }}
       >
         <MapBoard
@@ -345,7 +368,11 @@ export const App: React.FC = () => {
         onHpChange={(hp, maxHp) => setPlayerHP(hp, maxHp)}
         onMaxHpInputChange={updateMaxHpInput}
         onMaxHpEdit={startMaxHpEdit}
-        onMaxHpSubmit={() => submitMaxHpEdit((maxHp) => setPlayerHP(snapshot?.players?.find(p => p.uid === uid)?.hp ?? 100, maxHp))}
+        onMaxHpSubmit={() =>
+          submitMaxHpEdit((maxHp) =>
+            setPlayerHP(snapshot?.players?.find((p) => p.uid === uid)?.hp ?? 100, maxHp),
+          )
+        }
         bottomPanelRef={bottomPanelRef}
       />
 
@@ -389,7 +416,17 @@ export const App: React.FC = () => {
       )}
 
       {/* Ambient Pixel Sparkles */}
-      <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 1 }}>
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          pointerEvents: "none",
+          zIndex: 1,
+        }}
+      >
         {[...Array(5)].map((_, i) => (
           <div key={i} className="pixel-sparkle" />
         ))}
@@ -403,13 +440,15 @@ export const App: React.FC = () => {
             const playerName = me?.name || "Unknown";
 
             // Build formula string
-            const formula = result.tokens.map((t) => {
-              if (t.kind === 'die') {
-                return t.qty > 1 ? `${t.qty}${t.die}` : t.die;
-              } else {
-                return t.value >= 0 ? `+${t.value}` : `${t.value}`;
-              }
-            }).join(' ');
+            const formula = result.tokens
+              .map((t) => {
+                if (t.kind === "die") {
+                  return t.qty > 1 ? `${t.qty}${t.die}` : t.die;
+                } else {
+                  return t.value >= 0 ? `+${t.value}` : `${t.value}`;
+                }
+              })
+              .join(" ");
 
             // Broadcast to server
             sendMessage({
@@ -452,10 +491,7 @@ export const App: React.FC = () => {
       {/* Viewing roll from log */}
       {viewingRoll && (
         <div style={{ position: "fixed", zIndex: 2000 }}>
-          <DiceRoller
-            onRoll={() => {}}
-            onClose={() => setViewingRoll(null)}
-          />
+          <DiceRoller onRoll={() => {}} onClose={() => setViewingRoll(null)} />
         </div>
       )}
     </div>

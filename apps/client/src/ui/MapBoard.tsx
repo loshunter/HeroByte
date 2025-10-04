@@ -24,7 +24,7 @@ import {
   TokensLayer,
   PointersLayer,
   DrawingsLayer,
-  MeasureLayer
+  MeasureLayer,
 } from "../features/map/components";
 
 // ----------------------------------------------------------------------------
@@ -57,20 +57,20 @@ function useElementSize<T extends HTMLElement>() {
 // ----------------------------------------------------------------------------
 
 interface MapBoardProps {
-  snapshot: RoomSnapshot | null;        // Current room state
+  snapshot: RoomSnapshot | null; // Current room state
   sendMessage: (msg: ClientMessage) => void; // Function to send messages to server
-  uid: string;                          // Current player's UID
-  gridSize: number;                     // Synchronized grid size
-  snapToGrid: boolean;                  // Whether to snap tokens to grid
-  pointerMode: boolean;                 // Pointer tool active
-  measureMode: boolean;                 // Measure tool active
-  drawMode: boolean;                    // Draw tool active
-  selectMode: boolean;                  // Selection tool active
+  uid: string; // Current player's UID
+  gridSize: number; // Synchronized grid size
+  snapToGrid: boolean; // Whether to snap tokens to grid
+  pointerMode: boolean; // Pointer tool active
+  measureMode: boolean; // Measure tool active
+  drawMode: boolean; // Draw tool active
+  selectMode: boolean; // Selection tool active
   drawTool: "freehand" | "line" | "rect" | "circle" | "eraser"; // Active drawing tool
-  drawColor: string;                    // Drawing color
-  drawWidth: number;                    // Drawing brush size
-  drawOpacity: number;                  // Drawing opacity (0-1)
-  drawFilled: boolean;                  // Whether shapes are filled
+  drawColor: string; // Drawing color
+  drawWidth: number; // Drawing brush size
+  drawOpacity: number; // Drawing opacity (0-1)
+  drawFilled: boolean; // Whether shapes are filled
   onMoveToken: (id: string, x: number, y: number) => void;
   onRecolorToken: (id: string) => void;
   onDeleteToken: (id: string) => void;
@@ -184,7 +184,7 @@ export default function MapBoard({
 
   // Sync grid size from props
   useEffect(() => {
-    setGrid(prev => ({ ...prev, size: gridSize }));
+    setGrid((prev) => ({ ...prev, size: gridSize }));
   }, [gridSize]);
 
   // Delete key handler for selected drawings

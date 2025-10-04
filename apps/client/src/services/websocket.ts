@@ -198,12 +198,10 @@ export class WebSocketService {
     // Exponential backoff (cap at 30 seconds)
     const delay = Math.min(
       this.config.reconnectInterval * Math.pow(1.5, this.reconnectAttempts - 1),
-      30000
+      30000,
     );
 
-    console.log(
-      `[WebSocket] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`
-    );
+    console.log(`[WebSocket] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
 
     this.reconnectTimer = window.setTimeout(() => {
       this.connect();

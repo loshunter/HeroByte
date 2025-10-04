@@ -33,8 +33,8 @@ export const GridLayer = memo(function GridLayer({
   opacity = 0.15,
 }: GridLayerProps) {
   // Convert viewport bounds to world coordinates
-  const minX = (-cam.x) / cam.scale;
-  const minY = (-cam.y) / cam.scale;
+  const minX = -cam.x / cam.scale;
+  const minY = -cam.y / cam.scale;
   const maxX = (viewport.w - cam.x) / cam.scale;
   const maxY = (viewport.h - cam.y) / cam.scale;
 
@@ -59,7 +59,7 @@ export const GridLayer = memo(function GridLayer({
         shadowColor={color}
         shadowBlur={isMajor ? 3 : 1.5}
         shadowOpacity={isMajor ? 0.4 : 0.2}
-      />
+      />,
     );
   }
 
@@ -77,19 +77,13 @@ export const GridLayer = memo(function GridLayer({
         shadowColor={color}
         shadowBlur={isMajor ? 3 : 1.5}
         shadowOpacity={isMajor ? 0.4 : 0.2}
-      />
+      />,
     );
   }
 
   // Apply camera transformation
   return (
-    <Group
-      x={cam.x}
-      y={cam.y}
-      scaleX={cam.scale}
-      scaleY={cam.scale}
-      listening={false}
-    >
+    <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale} listening={false}>
       {lines}
     </Group>
   );

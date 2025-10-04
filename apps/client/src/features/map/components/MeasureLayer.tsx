@@ -17,17 +17,11 @@ interface MeasureLayerProps {
  * MeasureLayer: Renders distance measurement tool
  * Shows line between two points with distance in grid units
  */
-export function MeasureLayer({
-  cam,
-  measureStart,
-  measureEnd,
-  gridSize,
-}: MeasureLayerProps) {
+export function MeasureLayer({ cam, measureStart, measureEnd, gridSize }: MeasureLayerProps) {
   if (!measureStart || !measureEnd) return null;
 
   const distance = Math.sqrt(
-    Math.pow(measureEnd.x - measureStart.x, 2) +
-    Math.pow(measureEnd.y - measureStart.y, 2)
+    Math.pow(measureEnd.x - measureStart.x, 2) + Math.pow(measureEnd.y - measureStart.y, 2),
   );
   const units = Math.round((distance / gridSize) * 10) / 10;
 

@@ -20,6 +20,7 @@ start-client-dev.bat
 ```
 
 These scripts will:
+
 1. Automatically switch to the `dev` branch
 2. Start the development servers
 3. Client runs on http://localhost:5173
@@ -40,6 +41,7 @@ start-client.bat
 ## Development Workflow
 
 1. **Make changes on dev branch**
+
    ```bash
    git checkout dev
    # Make your changes
@@ -52,11 +54,13 @@ start-client.bat
    - Test all functionality
 
 3. **Push to GitHub dev branch**
+
    ```bash
    git push origin dev
    ```
 
 4. **When ready to deploy, merge to main**
+
    ```bash
    git checkout main
    git merge dev
@@ -70,6 +74,7 @@ start-client.bat
 ## Current Architecture (Phase 5: Domain-Driven Design)
 
 ### Client Structure
+
 ```
 apps/client/src/
 ├── services/          # Service layer (WebSocket, voice chat)
@@ -87,6 +92,7 @@ apps/client/src/
 ```
 
 ### Server Structure
+
 ```
 apps/server/src/
 ├── domains/           # Domain services (DDD pattern)
@@ -108,6 +114,7 @@ apps/server/src/
 ```
 
 ### Shared Package
+
 ```
 packages/shared/src/
 ├── index.ts          # Type definitions and interfaces
@@ -117,6 +124,7 @@ packages/shared/src/
 ## Key Improvements
 
 ### Phase 1-2: Foundation
+
 - ✅ Production-ready WebSocket service with reconnection and heartbeat
 - ✅ Custom React hooks for state management
 - ✅ Domain model classes with business logic
@@ -124,17 +132,20 @@ packages/shared/src/
 - ✅ Full TypeScript type safety
 
 ### Phase 3: Domain-Driven Architecture
+
 - ✅ Separated domain services (Room, Player, Token, Map, Dice)
 - ✅ Message router for handling different message types
 - ✅ Clear separation between business logic and infrastructure
 
 ### Phase 4: Performance & Security
+
 - ✅ React.memo optimization for map layer components
 - ✅ Input validation middleware for all WebSocket messages
 - ✅ Rate limiting (token bucket, 100 messages/second per client)
 - ✅ Protection against malformed data and DoS attacks
 
 ### Phase 5: Advanced Separation of Concerns
+
 - ✅ Dependency injection container for service management
 - ✅ Separated HTTP routes from WebSocket handlers
 - ✅ ConnectionHandler for WebSocket lifecycle management

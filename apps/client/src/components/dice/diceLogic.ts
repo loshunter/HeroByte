@@ -2,8 +2,8 @@
 // DICE LOGIC - SECURE RNG ENGINE
 // ============================================================================
 
-import type { Build, DieType, RollResult } from './types';
-import { generateUUID } from '../../utils/uuid';
+import type { Build, DieType, RollResult } from "./types";
+import { generateUUID } from "../../utils/uuid";
 
 /**
  * Secure random integer generator using crypto API
@@ -36,11 +36,11 @@ const DIE_FACES: Record<DieType, number> = {
  * Roll a complete build and return detailed results
  */
 export function rollBuild(build: Build): RollResult {
-  const perDie: RollResult['perDie'] = [];
+  const perDie: RollResult["perDie"] = [];
   let total = 0;
 
   for (const token of build) {
-    if (token.kind === 'die') {
+    if (token.kind === "die") {
       const faces = DIE_FACES[token.die];
       const rolls = Array.from({ length: token.qty }, () => rngIntSecure(1, faces));
       const subtotal = rolls.reduce((a, b) => a + b, 0);
@@ -81,12 +81,12 @@ export function formatRollText(result: RollResult): string {
   const parts: string[] = [];
 
   for (const token of result.tokens) {
-    if (token.kind === 'die') {
+    if (token.kind === "die") {
       parts.push(token.qty > 1 ? `${token.qty}${token.die}` : token.die);
     } else {
       parts.push(token.value >= 0 ? `+${token.value}` : `${token.value}`);
     }
   }
 
-  return `${parts.join(' ')} → ${result.total}`;
+  return `${parts.join(" ")} → ${result.total}`;
 }

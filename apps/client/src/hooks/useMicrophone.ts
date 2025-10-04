@@ -58,7 +58,7 @@ export function useMicrophone({ sendMessage }: UseMicrophoneOptions): UseMicroph
         audioContextRef.current = null;
       }
       if (micStream) {
-        micStream.getTracks().forEach(track => track.stop());
+        micStream.getTracks().forEach((track) => track.stop());
         setMicStream(null);
       }
       setMicEnabled(false);

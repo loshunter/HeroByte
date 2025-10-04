@@ -102,7 +102,8 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
     // Only send drawing if we have meaningful content
     const shouldSend =
       ((drawTool === "freehand" || drawTool === "eraser") && currentDrawing.length > 1) ||
-      ((drawTool === "line" || drawTool === "rect" || drawTool === "circle") && currentDrawing.length >= 2);
+      ((drawTool === "line" || drawTool === "rect" || drawTool === "circle") &&
+        currentDrawing.length >= 2);
 
     if (shouldSend) {
       const drawingId = generateUUID();

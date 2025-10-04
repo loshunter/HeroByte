@@ -42,12 +42,12 @@ export class RoomService {
       try {
         const data = JSON.parse(readFileSync(STATE_FILE, "utf-8"));
         this.state = {
-          users: [],  // Don't persist users - they reconnect
+          users: [], // Don't persist users - they reconnect
           tokens: data.tokens || [],
           players: data.players || [],
           characters: data.characters || [],
           mapBackground: data.mapBackground,
-          pointers: [],  // Don't persist pointers - they expire
+          pointers: [], // Don't persist pointers - they expire
           drawings: data.drawings || [],
           gridSize: data.gridSize || 50,
           diceRolls: data.diceRolls || [],
@@ -86,15 +86,15 @@ export class RoomService {
   loadSnapshot(snapshot: any): void {
     // Merge players: Keep currently connected players, update their data if they exist in snapshot
     const loadedPlayers = snapshot.players || [];
-    const mergedPlayers = this.state.players.map(currentPlayer => {
+    const mergedPlayers = this.state.players.map((currentPlayer) => {
       // Find matching player in loaded snapshot by UID
       const savedPlayer = loadedPlayers.find((p: any) => p.uid === currentPlayer.uid);
       if (savedPlayer) {
         // Merge: Keep current connection data (lastHeartbeat, micLevel), restore saved data
         return {
           ...savedPlayer,
-          lastHeartbeat: currentPlayer.lastHeartbeat,  // Keep current heartbeat
-          micLevel: currentPlayer.micLevel,            // Keep current mic level
+          lastHeartbeat: currentPlayer.lastHeartbeat, // Keep current heartbeat
+          micLevel: currentPlayer.micLevel, // Keep current mic level
         };
       }
       // Player is currently connected but wasn't in saved session - keep them
@@ -102,12 +102,12 @@ export class RoomService {
     });
 
     this.state = {
-      users: this.state.users,  // Keep current WebSocket connections
+      users: this.state.users, // Keep current WebSocket connections
       tokens: snapshot.tokens || [],
       players: mergedPlayers,
       characters: snapshot.characters || [],
       mapBackground: snapshot.mapBackground,
-      pointers: [],  // Clear pointers on load
+      pointers: [], // Clear pointers on load
       drawings: snapshot.drawings || [],
       gridSize: snapshot.gridSize || 50,
       diceRolls: snapshot.diceRolls || [],
@@ -133,7 +133,8 @@ export class RoomService {
     const json = JSON.stringify(snapshot);
 
     clients.forEach((client) => {
-      if (client.readyState === 1) {  // OPEN
+      if (client.readyState === 1) {
+        // OPEN
         client.send(json);
       }
     });

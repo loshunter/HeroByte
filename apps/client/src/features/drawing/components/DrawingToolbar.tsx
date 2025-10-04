@@ -4,10 +4,10 @@
 // Draggable toolbar when draw mode is active
 // Provides controls for drawing tool selection, colors, brush size, opacity, etc.
 
-import React from 'react';
+import React from "react";
 import type { ClientMessage } from "@shared";
-import { DraggableWindow } from '../../../components/dice/DraggableWindow';
-import { JRPGPanel, JRPGButton } from '../../../components/ui/JRPGPanel';
+import { DraggableWindow } from "../../../components/dice/DraggableWindow";
+import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 
 export interface DrawingToolbarProps {
   drawTool: "freehand" | "line" | "rect" | "circle" | "eraser";
@@ -65,17 +65,22 @@ export function DrawingToolbar({
       maxWidth={280}
       zIndex={200}
     >
-      <JRPGPanel variant="bevel" style={{ padding: '8px' }}>
+      <JRPGPanel variant="bevel" style={{ padding: "8px" }}>
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "8px"
+            gap: "8px",
           }}
         >
           {/* Tool Selection */}
           <div>
-            <label className="jrpg-text-small" style={{ display: "block", marginBottom: "4px", color: "var(--jrpg-gold)" }}>Tool:</label>
+            <label
+              className="jrpg-text-small"
+              style={{ display: "block", marginBottom: "4px", color: "var(--jrpg-gold)" }}
+            >
+              Tool:
+            </label>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
               <JRPGButton
                 onClick={() => onToolChange("freehand")}
@@ -118,9 +123,21 @@ export function DrawingToolbar({
           {/* Color Palette - Limited Retro Colors */}
           {drawTool !== "eraser" && (
             <div>
-              <label className="jrpg-text-small" style={{ display: "block", marginBottom: "4px", color: "var(--jrpg-gold)" }}>Color:</label>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "4px", marginBottom: "6px" }}>
-                {PRESET_COLORS.map(color => (
+              <label
+                className="jrpg-text-small"
+                style={{ display: "block", marginBottom: "4px", color: "var(--jrpg-gold)" }}
+              >
+                Color:
+              </label>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(4, 1fr)",
+                  gap: "4px",
+                  marginBottom: "6px",
+                }}
+              >
+                {PRESET_COLORS.map((color) => (
                   <button
                     key={color}
                     onClick={() => onColorChange(color)}
@@ -128,10 +145,16 @@ export function DrawingToolbar({
                       width: "100%",
                       height: "28px",
                       background: color,
-                      border: drawColor === color ? "3px solid var(--jrpg-gold)" : "2px solid var(--jrpg-border-outer)",
+                      border:
+                        drawColor === color
+                          ? "3px solid var(--jrpg-gold)"
+                          : "2px solid var(--jrpg-border-outer)",
                       cursor: "pointer",
                       padding: 0,
-                      boxShadow: drawColor === color ? "0 0 8px var(--jrpg-gold)" : "inset 0 0 0 1px var(--jrpg-border-shadow)"
+                      boxShadow:
+                        drawColor === color
+                          ? "0 0 8px var(--jrpg-gold)"
+                          : "inset 0 0 0 1px var(--jrpg-border-shadow)",
                     }}
                     title={color}
                   />
@@ -145,7 +168,7 @@ export function DrawingToolbar({
                   width: "100%",
                   height: "32px",
                   cursor: "pointer",
-                  border: "2px solid var(--jrpg-border-outer)"
+                  border: "2px solid var(--jrpg-border-outer)",
                 }}
               />
             </div>
@@ -153,7 +176,10 @@ export function DrawingToolbar({
 
           {/* Brush Size */}
           <div>
-            <label className="jrpg-text-small" style={{ display: "block", marginBottom: "4px", color: "var(--jrpg-gold)" }}>
+            <label
+              className="jrpg-text-small"
+              style={{ display: "block", marginBottom: "4px", color: "var(--jrpg-gold)" }}
+            >
               Brush Size: {drawWidth}px
             </label>
             <input
@@ -169,7 +195,10 @@ export function DrawingToolbar({
           {/* Opacity */}
           {drawTool !== "eraser" && (
             <div>
-              <label className="jrpg-text-small" style={{ display: "block", marginBottom: "4px", color: "var(--jrpg-gold)" }}>
+              <label
+                className="jrpg-text-small"
+                style={{ display: "block", marginBottom: "4px", color: "var(--jrpg-gold)" }}
+              >
                 Opacity: {Math.round(drawOpacity * 100)}%
               </label>
               <input
@@ -192,7 +221,13 @@ export function DrawingToolbar({
                 checked={drawFilled}
                 onChange={(e) => onFilledChange(e.target.checked)}
               />
-              <label htmlFor="drawFilled" className="jrpg-text-small" style={{ color: "var(--jrpg-white)" }}>Filled</label>
+              <label
+                htmlFor="drawFilled"
+                className="jrpg-text-small"
+                style={{ color: "var(--jrpg-white)" }}
+              >
+                Filled
+              </label>
             </div>
           )}
 

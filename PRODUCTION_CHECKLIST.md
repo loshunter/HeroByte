@@ -7,11 +7,13 @@ Use this checklist before deploying to production to catch issues early.
 ### 1. Environment Configuration
 
 **Cloudflare Pages:**
+
 - [ ] `VITE_WS_URL=wss://herobyte-server.onrender.com` (Production)
 - [ ] `VITE_WS_URL=wss://herobyte-server.onrender.com` (Preview)
 - [ ] `NODE_VERSION=20` (optional)
 
 **Render:**
+
 - [ ] `PORT` is auto-assigned by Render (no action needed)
 
 ### 2. Local Testing
@@ -63,12 +65,14 @@ git push origin main
 ### 3. Monitor Deployments
 
 **Render (Server):**
+
 - [ ] Check Render dashboard for build status
 - [ ] Wait for "Live" status (~2 minutes)
 - [ ] Check logs for errors
 - [ ] Test health endpoint: https://herobyte-server.onrender.com/healthz (should return "ok")
 
 **Cloudflare Pages (Client):**
+
 - [ ] Check Pages dashboard for build status
 - [ ] Wait for "Success" status (~2-3 minutes)
 - [ ] Check build logs for errors
@@ -84,6 +88,7 @@ git push origin main
   - [ ] Different network (not just localhost)
 
 **Core Features:**
+
 - [ ] Add token
 - [ ] Move token
 - [ ] Recolor token
@@ -119,11 +124,13 @@ git push origin main
 ### Monitor for Issues
 
 **First 5 minutes:**
+
 - Watch Render logs for errors
 - Check for WebSocket connection failures
 - Monitor for unusual traffic
 
 **First hour:**
+
 - Check for user reports (if applicable)
 - Monitor server CPU/memory on Render
 - Check error logs
@@ -146,6 +153,7 @@ git push origin main
 ### Issue: WebSocket won't connect in production
 
 **Check:**
+
 - [ ] VITE_WS_URL uses `wss://` not `ws://`
 - [ ] Server is running on Render
 - [ ] CORS/Origin headers allow Cloudflare Pages domain
@@ -153,12 +161,14 @@ git push origin main
 ### Issue: Portrait disappears after refresh
 
 **Check:**
+
 - [ ] Server has `saveState()` called after portrait update
 - [ ] Server state file is persisted (check Render persistent disk if configured)
 
 ### Issue: Cloudflare Pages build fails
 
 **Check:**
+
 - [ ] Build command: `corepack enable && pnpm install --frozen-lockfile && pnpm build`
 - [ ] Root directory: `apps/client`
 - [ ] Output directory: `dist`
@@ -167,6 +177,7 @@ git push origin main
 ### Issue: Render build fails
 
 **Check:**
+
 - [ ] Build command: `pnpm install --prod=false && pnpm --filter vtt-server build`
 - [ ] Start command: `pnpm --filter vtt-server start`
 - [ ] Node.js version matches local (check in Render settings)

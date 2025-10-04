@@ -10,10 +10,7 @@ interface PortraitSectionProps {
   micLevel?: number;
 }
 
-export const PortraitSection: React.FC<PortraitSectionProps> = ({
-  portrait,
-  micLevel = 0,
-}) => {
+export const PortraitSection: React.FC<PortraitSectionProps> = ({ portrait, micLevel = 0 }) => {
   return (
     <div style={{ display: "flex", gap: "8px", alignItems: "center", width: "100%" }}>
       {/* Pixel class icon */}
@@ -36,9 +33,7 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
       <div
         className="jrpg-portrait-frame"
         style={{
-          transform: micLevel > 0.1
-            ? `scale(${1 + micLevel * 0.2})`
-            : "scale(1)",
+          transform: micLevel > 0.1 ? `scale(${1 + micLevel * 0.2})` : "scale(1)",
           transition: "transform 0.1s ease-out",
           flex: 1,
         }}

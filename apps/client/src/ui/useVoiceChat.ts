@@ -11,7 +11,14 @@ interface VoiceChatOptions {
   stream: MediaStream | null;
 }
 
-export function useVoiceChat({ sendMessage, onRtcSignal, uid, otherPlayerUIDs, enabled, stream }: VoiceChatOptions) {
+export function useVoiceChat({
+  sendMessage,
+  onRtcSignal,
+  uid,
+  otherPlayerUIDs,
+  enabled,
+  stream,
+}: VoiceChatOptions) {
   const peersRef = useRef<Map<string, SimplePeer.Instance>>(new Map());
   const [connectedPeers, setConnectedPeers] = useState<string[]>([]);
   const otherPlayerUIDsStr = JSON.stringify(otherPlayerUIDs);
@@ -19,7 +26,7 @@ export function useVoiceChat({ sendMessage, onRtcSignal, uid, otherPlayerUIDs, e
   useEffect(() => {
     if (!enabled || !stream) {
       // Clean up all peers when disabled
-      peersRef.current.forEach(peer => {
+      peersRef.current.forEach((peer) => {
         try {
           peer.destroy();
         } catch (e) {
@@ -57,19 +64,19 @@ export function useVoiceChat({ sendMessage, onRtcSignal, uid, otherPlayerUIDs, e
 
         peer.on("connect", () => {
           console.log("Connected to", from);
-          setConnectedPeers(prev => [...prev.filter(p => p !== from), from]);
+          setConnectedPeers((prev) => [...prev.filter((p) => p !== from), from]);
         });
 
         peer.on("close", () => {
           console.log("Disconnected from", from);
           peersRef.current.delete(from);
-          setConnectedPeers(prev => prev.filter(p => p !== from));
+          setConnectedPeers((prev) => prev.filter((p) => p !== from));
         });
 
         peer.on("error", (err) => {
           console.error("Peer error with", from, err);
           peersRef.current.delete(from);
-          setConnectedPeers(prev => prev.filter(p => p !== from));
+          setConnectedPeers((prev) => prev.filter((p) => p !== from));
         });
 
         peersRef.current.set(from, peer);
@@ -105,19 +112,19 @@ export function useVoiceChat({ sendMessage, onRtcSignal, uid, otherPlayerUIDs, e
 
         peer.on("connect", () => {
           console.log("Connected to", targetUID);
-          setConnectedPeers(prev => [...prev.filter(p => p !== targetUID), targetUID]);
+          setConnectedPeers((prev) => [...prev.filter((p) => p !== targetUID), targetUID]);
         });
 
         peer.on("close", () => {
           console.log("Disconnected from", targetUID);
           peersRef.current.delete(targetUID);
-          setConnectedPeers(prev => prev.filter(p => p !== targetUID));
+          setConnectedPeers((prev) => prev.filter((p) => p !== targetUID));
         });
 
         peer.on("error", (err) => {
           console.error("Peer error with", targetUID, err);
           peersRef.current.delete(targetUID);
-          setConnectedPeers(prev => prev.filter(p => p !== targetUID));
+          setConnectedPeers((prev) => prev.filter((p) => p !== targetUID));
         });
 
         peersRef.current.set(targetUID, peer);
@@ -129,7 +136,7 @@ export function useVoiceChat({ sendMessage, onRtcSignal, uid, otherPlayerUIDs, e
       if (!otherPlayerUIDs.includes(peerUID)) {
         peer.destroy();
         peersRef.current.delete(peerUID);
-        setConnectedPeers(prev => prev.filter(p => p !== peerUID));
+        setConnectedPeers((prev) => prev.filter((p) => p !== peerUID));
       }
     });
 
@@ -139,7 +146,7 @@ export function useVoiceChat({ sendMessage, onRtcSignal, uid, otherPlayerUIDs, e
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      peersRef.current.forEach(peer => peer.destroy());
+      peersRef.current.forEach((peer) => peer.destroy());
       peersRef.current.clear();
     };
   }, []);

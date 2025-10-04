@@ -36,7 +36,17 @@
       "Bash(pnpm --filter herobyte-server build)",
       "Bash(exit 0)",
       "Bash(git merge:*)",
-      "WebFetch(domain:herobyte.pages.dev)"
+      "WebFetch(domain:herobyte.pages.dev)",
+      "Bash(git fetch:*)",
+      "Bash(pnpm test:*)",
+      "Bash(pnpm --filter @shared test:coverage)",
+      "Bash(pnpm --filter vtt-server test:coverage)",
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm format:*)",
+      "Bash(pnpm --filter vtt-server lint)",
+      "Bash(npx eslint:*)",
+      "Bash(pnpm --filter vtt-server lint --max-warnings 50)",
+      "Bash(pnpm --filter herobyte-client lint)"
     ],
     "deny": [],
     "ask": []

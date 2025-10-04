@@ -29,11 +29,7 @@ interface UseCameraReturn {
  * Hook to manage camera state and pan/zoom controls
  */
 export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
-  const {
-    minScale = 0.1,
-    maxScale = 8,
-    scaleBy = 1.08,
-  } = options;
+  const { minScale = 0.1, maxScale = 8, scaleBy = 1.08 } = options;
 
   // Camera state (pan and zoom)
   const [cam, setCam] = useState<Camera>({ x: 0, y: 0, scale: 1 });

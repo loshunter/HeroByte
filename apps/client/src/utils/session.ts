@@ -26,4 +26,3 @@ export function getSessionUID(): string {
 export function clearSessionUID(): void {
   localStorage.removeItem(SESSION_UID_KEY);
 }
-

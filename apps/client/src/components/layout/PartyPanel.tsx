@@ -89,7 +89,10 @@ export const PartyPanel: React.FC<PartyPanelProps> = ({
       <JRPGPanel variant="bevel" style={{ padding: "8px", borderRadius: 0 }}>
         {!isCollapsed && (
           <>
-            <h3 className="jrpg-text-command jrpg-text-highlight" style={{ margin: "0 0 8px 0", textAlign: "center" }}>
+            <h3
+              className="jrpg-text-command jrpg-text-highlight"
+              style={{ margin: "0 0 8px 0", textAlign: "center" }}
+            >
               PARTY
             </h3>
             <div
@@ -105,7 +108,11 @@ export const PartyPanel: React.FC<PartyPanelProps> = ({
                 const token = tokens.find((t: Token) => t.owner === p.uid);
 
                 return (
-                  <JRPGPanel key={p.uid} variant="simple" style={{ padding: "8px", minWidth: "120px" }}>
+                  <JRPGPanel
+                    key={p.uid}
+                    variant="simple"
+                    style={{ padding: "8px", minWidth: "120px" }}
+                  >
                     <PlayerCard
                       player={p}
                       isMe={isMe}
@@ -134,7 +141,15 @@ export const PartyPanel: React.FC<PartyPanelProps> = ({
         )}
 
         {isCollapsed && (
-          <div className="jrpg-text-small" style={{ padding: "8px", textAlign: "center", color: "var(--jrpg-white)", opacity: 0.6 }}>
+          <div
+            className="jrpg-text-small"
+            style={{
+              padding: "8px",
+              textAlign: "center",
+              color: "var(--jrpg-white)",
+              opacity: 0.6,
+            }}
+          >
             Party collapsed - click "SHOW PARTY" to expand
           </div>
         )}

@@ -3,8 +3,6 @@
 // ============================================================================
 // Validates incoming WebSocket messages to prevent malformed or malicious data
 
-import type { ClientMessage } from "@shared";
-
 /**
  * Validation result
  */
@@ -194,8 +192,15 @@ export function validateMessage(message: any): ValidationResult {
         return { valid: false, error: "load-session: missing or invalid snapshot data" };
       }
       // Basic structure validation
-      if (!Array.isArray(message.snapshot.players) || !Array.isArray(message.snapshot.tokens) || !Array.isArray(message.snapshot.drawings)) {
-        return { valid: false, error: "load-session: snapshot must contain players, tokens, and drawings arrays" };
+      if (
+        !Array.isArray(message.snapshot.players) ||
+        !Array.isArray(message.snapshot.tokens) ||
+        !Array.isArray(message.snapshot.drawings)
+      ) {
+        return {
+          valid: false,
+          error: "load-session: snapshot must contain players, tokens, and drawings arrays",
+        };
       }
       break;
 

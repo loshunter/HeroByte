@@ -46,7 +46,9 @@ interface UseDrawingStateReturn {
  * ```
  */
 export function useDrawingState(): UseDrawingStateReturn {
-  const [drawTool, setDrawTool] = useState<"freehand" | "line" | "rect" | "circle" | "eraser">("freehand");
+  const [drawTool, setDrawTool] = useState<"freehand" | "line" | "rect" | "circle" | "eraser">(
+    "freehand",
+  );
   const [drawColor, setDrawColor] = useState("#ffffff");
   const [drawWidth, setDrawWidth] = useState(3);
   const [drawOpacity, setDrawOpacity] = useState(1);

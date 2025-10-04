@@ -1,0 +1,155 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("fs", () => ({
+  writeFileSync: vi.fn(),
+  readFileSync: vi.fn(),
+  existsSync: vi.fn().mockReturnValue(false),
+}));
+
+import type { Container } from "../../container.ts";
+import { ConnectionHandler } from "../connectionHandler.ts";
+import { RoomService } from "../../domains/room/service.ts";
+import { PlayerService } from "../../domains/player/service.ts";
+import { TokenService } from "../../domains/token/service.ts";
+import { MapService } from "../../domains/map/service.ts";
+import { DiceService } from "../../domains/dice/service.ts";
+import { CharacterService } from "../../domains/character/service.ts";
+import { MessageRouter } from "../messageRouter.ts";
+import { RateLimiter } from "../../middleware/rateLimit.ts";
+import type { ClientMessage } from "@shared";
+
+class FakeWebSocket {
+  public readyState = 1;
+  public send = vi.fn();
+  public ping = vi.fn();
+  private handlers: Record<string, (data?: any) => void> = {};
+
+  on(event: string, handler: (data: any) => void) {
+    this.handlers[event] = handler;
+  }
+
+  emit(event: string, data?: any) {
+    this.handlers[event]?.(data);
+  }
+}
+
+class FakeWebSocketServer {
+  public clients = new Set<FakeWebSocket>();
+  private handlers: Record<string, (...args: any[]) => void> = {};
+
+  on(event: "connection", handler: (...args: any[]) => void) {
+    this.handlers[event] = handler;
+  }
+
+  emitConnection(ws: FakeWebSocket, req: { url: string }) {
+    this.clients.add(ws);
+    this.handlers["connection"]?.(ws, req);
+  }
+}
+
+const setupContainer = () => {
+  const roomService = new RoomService();
+  const playerService = new PlayerService();
+  const tokenService = new TokenService();
+  const mapService = new MapService();
+  const diceService = new DiceService();
+  const characterService = new CharacterService();
+  const messageRouter = new MessageRouter(
+    roomService,
+    playerService,
+    tokenService,
+    mapService,
+    diceService,
+    characterService,
+    {} as any,
+    new Map(),
+  );
+
+  const rateLimiter = new RateLimiter({ maxMessages: 100, windowMs: 1000 });
+  vi.spyOn(rateLimiter, "check").mockReturnValue(true);
+
+  const container: Partial<Container> = {
+    roomService,
+    playerService,
+    tokenService,
+    mapService,
+    diceService,
+    characterService,
+    messageRouter,
+    rateLimiter,
+    uidToWs: new Map(),
+  };
+
+  return container as Container;
+};
+
+describe("ConnectionHandler", () => {
+  let wss: FakeWebSocketServer;
+  let container: Container;
+  let handler: ConnectionHandler;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    wss = new FakeWebSocketServer();
+    container = setupContainer();
+    vi.spyOn(container.roomService, "broadcast").mockImplementation(() => {});
+    handler = new ConnectionHandler(container, wss as any);
+    handler.attach();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.clearAllMocks();
+  });
+
+  it("registers new connections and spawns player/token state", () => {
+    const socket = new FakeWebSocket();
+    wss.emitConnection(socket, { url: "/?uid=user-1" });
+
+    const state = container.roomService.getState();
+    expect(state.users).toContain("user-1");
+    expect(state.players).toHaveLength(1);
+    expect(state.tokens).toHaveLength(1);
+    expect(container.uidToWs.get("user-1")).toBe(socket);
+    expect(container.roomService.broadcast).toHaveBeenCalled();
+
+    vi.advanceTimersByTime(25_000);
+    expect(socket.ping).toHaveBeenCalled();
+  });
+
+  it("updates heartbeat and respects rate limits", () => {
+    const socket = new FakeWebSocket();
+    wss.emitConnection(socket, { url: "/?uid=user-2" });
+    const state = container.roomService.getState();
+    const player = state.players[0]!;
+
+    const message: ClientMessage = { t: "heartbeat" };
+    socket.emit("message", Buffer.from(JSON.stringify(message)));
+    expect(player.lastHeartbeat).toBeGreaterThan(0);
+
+    const checkSpy = vi.spyOn(container.rateLimiter, "check").mockReturnValue(false);
+    const routeSpy = vi.spyOn(container.messageRouter, "route");
+    socket.emit(
+      "message",
+      Buffer.from(
+        JSON.stringify({
+          t: "draw",
+          drawing: { id: "d", type: "freehand", points: [], color: "#fff", width: 1, opacity: 1 },
+        }),
+      ),
+    );
+    expect(routeSpy).not.toHaveBeenCalled();
+    expect(checkSpy).toHaveBeenCalled();
+  });
+
+  it("cleans up on disconnect", () => {
+    const socket = new FakeWebSocket();
+    wss.emitConnection(socket, { url: "/?uid=user-3" });
+    socket.emit("close");
+
+    const state = container.roomService.getState();
+    expect(state.users).not.toContain("user-3");
+    expect(container.uidToWs.has("user-3")).toBe(false);
+    expect(container.roomService.broadcast).toHaveBeenCalledTimes(2);
+  });
+});

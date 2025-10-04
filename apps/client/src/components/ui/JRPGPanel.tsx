@@ -3,9 +3,9 @@
 // ============================================================================
 // Reusable SNES-style panel/frame wrapper for consistent UI theming
 
-import React from 'react';
+import React from "react";
 
-export type JRPGPanelVariant = 'default' | 'bevel' | 'simple';
+export type JRPGPanelVariant = "default" | "bevel" | "simple";
 
 interface JRPGPanelProps {
   children: React.ReactNode;
@@ -17,21 +17,24 @@ interface JRPGPanelProps {
 
 export function JRPGPanel({
   children,
-  variant = 'default',
+  variant = "default",
   title,
-  className = '',
+  className = "",
   style = {},
 }: JRPGPanelProps) {
   const variantClass = {
-    default: 'jrpg-frame',
-    bevel: 'jrpg-frame-bevel',
-    simple: 'jrpg-frame-simple',
+    default: "jrpg-frame",
+    bevel: "jrpg-frame-bevel",
+    simple: "jrpg-frame-simple",
   }[variant];
 
   return (
     <div className={`${variantClass} jrpg-spacing-md ${className}`} style={style}>
       {title && (
-        <div className="jrpg-text-command jrpg-text-highlight" style={{ marginBottom: '12px', textAlign: 'center' }}>
+        <div
+          className="jrpg-text-command jrpg-text-highlight"
+          style={{ marginBottom: "12px", textAlign: "center" }}
+        >
           {title}
         </div>
       )}
@@ -43,7 +46,7 @@ export function JRPGPanel({
 interface JRPGButtonProps {
   children: React.ReactNode;
   onClick?: () => void;
-  variant?: 'default' | 'primary' | 'danger' | 'success';
+  variant?: "default" | "primary" | "danger" | "success";
   disabled?: boolean;
   className?: string;
   style?: React.CSSProperties;
@@ -52,16 +55,16 @@ interface JRPGButtonProps {
 export function JRPGButton({
   children,
   onClick,
-  variant = 'default',
+  variant = "default",
   disabled = false,
-  className = '',
+  className = "",
   style = {},
 }: JRPGButtonProps) {
   const variantClass = {
-    default: 'jrpg-button',
-    primary: 'jrpg-button jrpg-button-primary',
-    danger: 'jrpg-button jrpg-button-danger',
-    success: 'jrpg-button jrpg-button-success',
+    default: "jrpg-button",
+    primary: "jrpg-button jrpg-button-primary",
+    danger: "jrpg-button jrpg-button-danger",
+    success: "jrpg-button jrpg-button-success",
   }[variant];
 
   return (
@@ -71,7 +74,7 @@ export function JRPGButton({
       disabled={disabled}
       style={{
         opacity: disabled ? 0.5 : 1,
-        cursor: disabled ? 'not-allowed' : 'pointer',
+        cursor: disabled ? "not-allowed" : "pointer",
         ...style,
       }}
     >

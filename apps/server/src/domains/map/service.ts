@@ -3,7 +3,7 @@
 // ============================================================================
 // Handles map-related features: background, grid, drawings, pointers
 
-import type { Drawing, Pointer } from "@shared";
+import type { Drawing } from "@shared";
 import type { RoomState } from "../room/model.js";
 
 /**
@@ -78,14 +78,14 @@ export class MapService {
    */
   selectDrawing(state: RoomState, drawingId: string, playerUid: string): boolean {
     // First, deselect any drawings currently selected by this player
-    state.drawings.forEach(d => {
+    state.drawings.forEach((d) => {
       if (d.selectedBy === playerUid) {
         delete d.selectedBy;
       }
     });
 
     // Then select the requested drawing
-    const drawing = state.drawings.find(d => d.id === drawingId);
+    const drawing = state.drawings.find((d) => d.id === drawingId);
     if (drawing) {
       drawing.selectedBy = playerUid;
       return true;
@@ -97,7 +97,7 @@ export class MapService {
    * Deselect all drawings by a player
    */
   deselectDrawing(state: RoomState, playerUid: string): void {
-    state.drawings.forEach(d => {
+    state.drawings.forEach((d) => {
       if (d.selectedBy === playerUid) {
         delete d.selectedBy;
       }
@@ -108,13 +108,19 @@ export class MapService {
    * Move a drawing by a delta amount
    * Only the player who selected it can move it
    */
-  moveDrawing(state: RoomState, drawingId: string, dx: number, dy: number, playerUid: string): boolean {
-    const drawing = state.drawings.find(d => d.id === drawingId);
+  moveDrawing(
+    state: RoomState,
+    drawingId: string,
+    dx: number,
+    dy: number,
+    playerUid: string,
+  ): boolean {
+    const drawing = state.drawings.find((d) => d.id === drawingId);
     if (drawing && drawing.selectedBy === playerUid) {
       // Move all points by the delta
-      drawing.points = drawing.points.map(p => ({
+      drawing.points = drawing.points.map((p) => ({
         x: p.x + dx,
-        y: p.y + dy
+        y: p.y + dy,
       }));
       return true;
     }
@@ -125,7 +131,7 @@ export class MapService {
    * Delete a specific drawing
    */
   deleteDrawing(state: RoomState, drawingId: string): boolean {
-    const index = state.drawings.findIndex(d => d.id === drawingId);
+    const index = state.drawings.findIndex((d) => d.id === drawingId);
     if (index !== -1) {
       state.drawings.splice(index, 1);
       return true;

@@ -33,7 +33,7 @@ export class MessageRouter {
     diceService: DiceService,
     characterService: CharacterService,
     wss: WebSocketServer,
-    uidToWs: Map<string, WebSocket>
+    uidToWs: Map<string, WebSocket>,
   ) {
     this.roomService = roomService;
     this.playerService = playerService;
@@ -102,7 +102,12 @@ export class MessageRouter {
 
         // CHARACTER ACTIONS
         case "create-character":
-          this.characterService.createCharacter(state, message.name, message.maxHp, message.portrait);
+          this.characterService.createCharacter(
+            state,
+            message.name,
+            message.maxHp,
+            message.portrait,
+          );
           this.broadcast();
           this.roomService.saveState();
           break;
@@ -115,7 +120,9 @@ export class MessageRouter {
           break;
 
         case "update-character-hp":
-          if (this.characterService.updateHP(state, message.characterId, message.hp, message.maxHp)) {
+          if (
+            this.characterService.updateHP(state, message.characterId, message.hp, message.maxHp)
+          ) {
             this.broadcast();
             this.roomService.saveState();
           }

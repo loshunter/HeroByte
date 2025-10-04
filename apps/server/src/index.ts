@@ -15,7 +15,7 @@ import { ConnectionHandler } from "./ws/connectionHandler.js";
 // ----------------------------------------------------------------------------
 
 const PORT = Number(process.env.PORT || 8787);
-const HOST = '0.0.0.0';
+const HOST = "0.0.0.0";
 
 // ----------------------------------------------------------------------------
 // SERVER INITIALIZATION
@@ -57,10 +57,10 @@ function bootstrap() {
   });
 
   // Graceful shutdown
-  process.on('SIGTERM', () => {
-    console.log('SIGTERM received, shutting down gracefully...');
+  process.on("SIGTERM", () => {
+    console.log("SIGTERM received, shutting down gracefully...");
     server.close(() => {
-      console.log('Server closed');
+      console.log("Server closed");
       container.destroy();
       process.exit(0);
     });

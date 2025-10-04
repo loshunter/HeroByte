@@ -21,7 +21,12 @@ interface PointersLayerProps {
  *
  * Optimized with React.memo to prevent unnecessary re-renders
  */
-export const PointersLayer = memo(function PointersLayer({ cam, pointers, players, tokens }: PointersLayerProps) {
+export const PointersLayer = memo(function PointersLayer({
+  cam,
+  pointers,
+  players,
+  tokens,
+}: PointersLayerProps) {
   return (
     <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale}>
       {pointers.map((pointer) => {

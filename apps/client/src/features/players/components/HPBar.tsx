@@ -60,7 +60,8 @@ export const HPBar: React.FC<HPBarProps> = ({
   return (
     <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "4px" }}>
       <div className="jrpg-text-small" style={{ color: "var(--jrpg-gold)", textAlign: "center" }}>
-        HP: {hp} / {isEditingMaxHp ? (
+        HP: {hp} /{" "}
+        {isEditingMaxHp ? (
           <input
             type="number"
             value={maxHpInput}

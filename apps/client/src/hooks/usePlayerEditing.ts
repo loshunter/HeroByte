@@ -50,13 +50,16 @@ export function usePlayerEditing(): UsePlayerEditingReturn {
     setNameInput(name);
   }, []);
 
-  const submitNameEdit = useCallback((onSubmit: (name: string) => void) => {
-    if (nameInput.trim()) {
-      onSubmit(nameInput.trim());
-    }
-    setEditingPlayerUID(null);
-    setNameInput("");
-  }, [nameInput]);
+  const submitNameEdit = useCallback(
+    (onSubmit: (name: string) => void) => {
+      if (nameInput.trim()) {
+        onSubmit(nameInput.trim());
+      }
+      setEditingPlayerUID(null);
+      setNameInput("");
+    },
+    [nameInput],
+  );
 
   const startMaxHpEdit = useCallback((uid: string, currentMaxHp: number) => {
     setEditingMaxHpUID(uid);
@@ -67,14 +70,17 @@ export function usePlayerEditing(): UsePlayerEditingReturn {
     setMaxHpInput(maxHp);
   }, []);
 
-  const submitMaxHpEdit = useCallback((onSubmit: (maxHp: number) => void) => {
-    const parsed = parseInt(maxHpInput, 10);
-    if (!isNaN(parsed) && parsed > 0) {
-      onSubmit(parsed);
-    }
-    setEditingMaxHpUID(null);
-    setMaxHpInput("");
-  }, [maxHpInput]);
+  const submitMaxHpEdit = useCallback(
+    (onSubmit: (maxHp: number) => void) => {
+      const parsed = parseInt(maxHpInput, 10);
+      if (!isNaN(parsed) && parsed > 0) {
+        onSubmit(parsed);
+      }
+      setEditingMaxHpUID(null);
+      setMaxHpInput("");
+    },
+    [maxHpInput],
+  );
 
   return {
     editingPlayerUID,

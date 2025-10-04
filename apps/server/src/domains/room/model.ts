@@ -9,15 +9,15 @@ import type { RoomSnapshot, Token, Player, Pointer, Drawing, DiceRoll, Character
  * Room state - holds all game data for a session
  */
 export interface RoomState {
-  users: string[];              // Connected user UIDs (legacy)
-  tokens: Token[];              // All tokens on the map
-  players: Player[];            // Player metadata
-  characters: Character[];      // Character data (PCs and NPCs)
-  mapBackground?: string;       // Background image URL/base64
-  pointers: Pointer[];          // Temporary pointer indicators
-  drawings: Drawing[];          // Freehand drawings
-  gridSize: number;             // Synchronized grid size
-  diceRolls: DiceRoll[];        // Dice roll history
+  users: string[]; // Connected user UIDs (legacy)
+  tokens: Token[]; // All tokens on the map
+  players: Player[]; // Player metadata
+  characters: Character[]; // Character data (PCs and NPCs)
+  mapBackground?: string; // Background image URL/base64
+  pointers: Pointer[]; // Temporary pointer indicators
+  drawings: Drawing[]; // Freehand drawings
+  gridSize: number; // Synchronized grid size
+  diceRolls: DiceRoll[]; // Dice roll history
 }
 
 /**
