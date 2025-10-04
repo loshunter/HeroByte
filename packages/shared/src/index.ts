@@ -79,6 +79,26 @@ export interface Drawing {
   selectedBy?: string;                // UID of player who has this drawing selected (for editing)
 }
 
+/**
+ * Character: Represents a player character (PC) in the game
+ * Phase 1: PC only, NPC support coming in Phase 2 with templates
+ */
+export interface Character {
+  id: string;                    // Unique character identifier
+  type: "pc";                    // Phase 1: Only PCs (will add "npc" in Phase 2)
+  name: string;                  // Character name
+  portrait?: string;             // Character portrait (Base64 or URL)
+  hp: number;                    // Current hit points
+  maxHp: number;                 // Maximum hit points
+  tokenId?: string | null;       // ID of token on map (null if no token)
+  ownedByPlayerUID?: string | null; // Player who controls this character (null = unclaimed)
+
+  // Future fields (Phase 2+):
+  // templateId?: string;        // Link to character template (for NPCs)
+  // status?: "active" | "dead" | "unconscious" | "retired" | "hidden";
+  // permissions?: CharacterPermissions; // Advanced ownership/visibility
+}
+
 // ----------------------------------------------------------------------------
 // ROOM STATE
 // ----------------------------------------------------------------------------
@@ -91,6 +111,7 @@ export interface RoomSnapshot {
   users: string[];          // Legacy array of UIDs (deprecated, use players)
   tokens: Token[];          // All tokens on the map
   players: Player[];        // All connected players
+  characters: Character[];  // All characters (PCs and NPCs)
   mapBackground?: string;   // Base64 encoded background image or URL
   pointers: Pointer[];      // Active pointer indicators
   drawings: Drawing[];      // All drawings on the canvas
@@ -117,6 +138,12 @@ export type ClientMessage =
   | { t: "mic-level"; level: number }                    // Update mic level for visual feedback
   | { t: "set-hp"; hp: number; maxHp: number }           // Update player HP
 
+  // Character actions (Phase 1: PCs only)
+  | { t: "create-character"; name: string; maxHp: number; portrait?: string }  // DM creates PC slot
+  | { t: "claim-character"; characterId: string }        // Player claims unclaimed PC
+  | { t: "update-character-hp"; characterId: string; hp: number; maxHp: number } // Update character HP
+  | { t: "link-token"; characterId: string; tokenId: string }  // Link token to character
+
   // Map/canvas actions
   | { t: "map-background"; data: string }                // Set map background image
   | { t: "grid-size"; size: number }                     // Change grid size (synced)
@@ -136,6 +163,7 @@ export type ClientMessage =
   // Room management
   | { t: "clear-all-tokens" }                            // Remove all tokens/players except self
   | { t: "heartbeat" }                                   // Keep-alive ping from client
+  | { t: "load-session"; snapshot: RoomSnapshot }        // Load a saved session state
 
   // WebRTC signaling
   | { t: "rtc-signal"; target: string; signal: any };    // P2P voice chat signaling

@@ -3,7 +3,7 @@
 // ============================================================================
 // Defines the room state structure and snapshot
 
-import type { RoomSnapshot, Token, Player, Pointer, Drawing, DiceRoll } from "@shared";
+import type { RoomSnapshot, Token, Player, Pointer, Drawing, DiceRoll, Character } from "@shared";
 
 /**
  * Room state - holds all game data for a session
@@ -12,6 +12,7 @@ export interface RoomState {
   users: string[];              // Connected user UIDs (legacy)
   tokens: Token[];              // All tokens on the map
   players: Player[];            // Player metadata
+  characters: Character[];      // Character data (PCs and NPCs)
   mapBackground?: string;       // Background image URL/base64
   pointers: Pointer[];          // Temporary pointer indicators
   drawings: Drawing[];          // Freehand drawings
@@ -27,6 +28,7 @@ export function createEmptyRoomState(): RoomState {
     users: [],
     tokens: [],
     players: [],
+    characters: [],
     mapBackground: undefined,
     pointers: [],
     drawings: [],
@@ -43,6 +45,7 @@ export function toSnapshot(state: RoomState): RoomSnapshot {
     users: state.users,
     tokens: state.tokens,
     players: state.players,
+    characters: state.characters,
     mapBackground: state.mapBackground,
     pointers: state.pointers,
     drawings: state.drawings,

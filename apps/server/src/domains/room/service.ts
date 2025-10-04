@@ -45,6 +45,7 @@ export class RoomService {
           users: [],  // Don't persist users - they reconnect
           tokens: data.tokens || [],
           players: data.players || [],
+          characters: data.characters || [],
           mapBackground: data.mapBackground,
           pointers: [],  // Don't persist pointers - they expire
           drawings: data.drawings || [],
@@ -66,6 +67,7 @@ export class RoomService {
       const persistentData = {
         tokens: this.state.tokens,
         players: this.state.players,
+        characters: this.state.characters,
         mapBackground: this.state.mapBackground,
         drawings: this.state.drawings,
         gridSize: this.state.gridSize,
@@ -75,6 +77,42 @@ export class RoomService {
     } catch (err) {
       console.error("Failed to save state:", err);
     }
+  }
+
+  /**
+   * Load a snapshot from client (from saved session file)
+   * Merges loaded data with currently connected players
+   */
+  loadSnapshot(snapshot: any): void {
+    // Merge players: Keep currently connected players, update their data if they exist in snapshot
+    const loadedPlayers = snapshot.players || [];
+    const mergedPlayers = this.state.players.map(currentPlayer => {
+      // Find matching player in loaded snapshot by UID
+      const savedPlayer = loadedPlayers.find((p: any) => p.uid === currentPlayer.uid);
+      if (savedPlayer) {
+        // Merge: Keep current connection data (lastHeartbeat, micLevel), restore saved data
+        return {
+          ...savedPlayer,
+          lastHeartbeat: currentPlayer.lastHeartbeat,  // Keep current heartbeat
+          micLevel: currentPlayer.micLevel,            // Keep current mic level
+        };
+      }
+      // Player is currently connected but wasn't in saved session - keep them
+      return currentPlayer;
+    });
+
+    this.state = {
+      users: this.state.users,  // Keep current WebSocket connections
+      tokens: snapshot.tokens || [],
+      players: mergedPlayers,
+      characters: snapshot.characters || [],
+      mapBackground: snapshot.mapBackground,
+      pointers: [],  // Clear pointers on load
+      drawings: snapshot.drawings || [],
+      gridSize: snapshot.gridSize || 50,
+      diceRolls: snapshot.diceRolls || [],
+    };
+    console.log(`Loaded session snapshot from client - merged ${mergedPlayers.length} players`);
   }
 
   /**

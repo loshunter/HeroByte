@@ -10,6 +10,7 @@ import { PlayerService } from "../domains/player/service.js";
 import { TokenService } from "../domains/token/service.js";
 import { MapService } from "../domains/map/service.js";
 import { DiceService } from "../domains/dice/service.js";
+import { CharacterService } from "../domains/character/service.js";
 
 /**
  * Message router - handles all WebSocket messages and dispatches to domain services
@@ -20,6 +21,7 @@ export class MessageRouter {
   private tokenService: TokenService;
   private mapService: MapService;
   private diceService: DiceService;
+  private characterService: CharacterService;
   private wss: WebSocketServer;
   private uidToWs: Map<string, WebSocket>;
 
@@ -29,6 +31,7 @@ export class MessageRouter {
     tokenService: TokenService,
     mapService: MapService,
     diceService: DiceService,
+    characterService: CharacterService,
     wss: WebSocketServer,
     uidToWs: Map<string, WebSocket>
   ) {
@@ -37,6 +40,7 @@ export class MessageRouter {
     this.tokenService = tokenService;
     this.mapService = mapService;
     this.diceService = diceService;
+    this.characterService = characterService;
     this.wss = wss;
     this.uidToWs = uidToWs;
   }
@@ -91,6 +95,34 @@ export class MessageRouter {
 
         case "set-hp":
           if (this.playerService.setHP(state, senderUid, message.hp, message.maxHp)) {
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+
+        // CHARACTER ACTIONS
+        case "create-character":
+          this.characterService.createCharacter(state, message.name, message.maxHp, message.portrait);
+          this.broadcast();
+          this.roomService.saveState();
+          break;
+
+        case "claim-character":
+          if (this.characterService.claimCharacter(state, message.characterId, senderUid)) {
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+
+        case "update-character-hp":
+          if (this.characterService.updateHP(state, message.characterId, message.hp, message.maxHp)) {
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+
+        case "link-token":
+          if (this.characterService.linkToken(state, message.characterId, message.tokenId)) {
             this.broadcast();
             this.roomService.saveState();
           }
@@ -178,6 +210,13 @@ export class MessageRouter {
             player.lastHeartbeat = Date.now();
           }
           // No broadcast needed for heartbeat
+          break;
+
+        case "load-session":
+          // Load a saved session state, replacing current state
+          this.roomService.loadSnapshot(message.snapshot);
+          this.broadcast();
+          this.roomService.saveState();
           break;
 
         // WEBRTC SIGNALING

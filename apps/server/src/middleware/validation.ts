@@ -86,6 +86,57 @@ export function validateMessage(message: any): ValidationResult {
       }
       break;
 
+    case "create-character":
+      if (typeof message.name !== "string") {
+        return { valid: false, error: "create-character: missing or invalid name" };
+      }
+      if (message.name.length === 0 || message.name.length > 50) {
+        return { valid: false, error: "create-character: name must be 1-50 characters" };
+      }
+      if (typeof message.maxHp !== "number") {
+        return { valid: false, error: "create-character: missing or invalid maxHp" };
+      }
+      if (!isFinite(message.maxHp) || message.maxHp <= 0) {
+        return { valid: false, error: "create-character: maxHp must be positive" };
+      }
+      if (message.portrait !== undefined && typeof message.portrait !== "string") {
+        return { valid: false, error: "create-character: portrait must be a string" };
+      }
+      if (message.portrait && message.portrait.length > 2 * 1024 * 1024) {
+        return { valid: false, error: "create-character: portrait too large (max 2MB)" };
+      }
+      break;
+
+    case "claim-character":
+      if (typeof message.characterId !== "string" || message.characterId.length === 0) {
+        return { valid: false, error: "claim-character: missing or invalid characterId" };
+      }
+      break;
+
+    case "update-character-hp":
+      if (typeof message.characterId !== "string" || message.characterId.length === 0) {
+        return { valid: false, error: "update-character-hp: missing or invalid characterId" };
+      }
+      if (typeof message.hp !== "number" || typeof message.maxHp !== "number") {
+        return { valid: false, error: "update-character-hp: missing or invalid hp/maxHp" };
+      }
+      if (!isFinite(message.hp) || !isFinite(message.maxHp)) {
+        return { valid: false, error: "update-character-hp: hp/maxHp must be finite numbers" };
+      }
+      if (message.hp < 0 || message.maxHp < 0) {
+        return { valid: false, error: "update-character-hp: hp/maxHp cannot be negative" };
+      }
+      break;
+
+    case "link-token":
+      if (typeof message.characterId !== "string" || message.characterId.length === 0) {
+        return { valid: false, error: "link-token: missing or invalid characterId" };
+      }
+      if (typeof message.tokenId !== "string" || message.tokenId.length === 0) {
+        return { valid: false, error: "link-token: missing or invalid tokenId" };
+      }
+      break;
+
     case "map-background":
       if (typeof message.data !== "string") {
         return { valid: false, error: "map-background: missing or invalid data" };
@@ -136,6 +187,16 @@ export function validateMessage(message: any): ValidationResult {
     case "clear-all-tokens":
     case "heartbeat":
       // No additional validation needed
+      break;
+
+    case "load-session":
+      if (!message.snapshot || typeof message.snapshot !== "object") {
+        return { valid: false, error: "load-session: missing or invalid snapshot data" };
+      }
+      // Basic structure validation
+      if (!Array.isArray(message.snapshot.players) || !Array.isArray(message.snapshot.tokens) || !Array.isArray(message.snapshot.drawings)) {
+        return { valid: false, error: "load-session: snapshot must contain players, tokens, and drawings arrays" };
+      }
       break;
 
     case "select-drawing":
