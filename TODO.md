@@ -70,16 +70,16 @@
   - [ ] Link roadmap in README
   - [ ] Label issues by priority (P0, P1, P2)
 
-- [ ] **Issue Templates**
-  - [ ] Bug report template
-  - [ ] Feature request template
-  - [ ] Pull request template
+- [x] **Issue Templates**
+  - [x] Bug report template
+  - [x] Feature request template
+  - [x] Pull request template
 
-- [ ] **Contributing Guidelines**
-  - [ ] Create CONTRIBUTING.md
-  - [ ] Code style guide
-  - [ ] PR review process
-  - [ ] Testing requirements
+- [x] **Contributing Guidelines**
+  - [x] Create CONTRIBUTING.md
+  - [x] Code style guide
+  - [x] PR review process
+  - [x] Testing requirements
 
 ---
 
