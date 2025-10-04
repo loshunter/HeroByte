@@ -4,7 +4,8 @@
 // Manages drawing tool state and interactions
 // Extracted from MapBoard.tsx to follow single responsibility principle
 
-import { useState } from "react";
+import { useState, type RefObject } from "react";
+import type Konva from "konva";
 import type { ClientMessage } from "@shared";
 import { generateUUID } from "../utils/uuid";
 
@@ -23,8 +24,8 @@ interface UseDrawingToolOptions {
 interface UseDrawingToolReturn {
   currentDrawing: { x: number; y: number }[];
   isDrawing: boolean;
-  onMouseDown: (stageRef: any) => void;
-  onMouseMove: (stageRef: any) => void;
+  onMouseDown: (stageRef: RefObject<Konva.Stage | null>) => void;
+  onMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
   onMouseUp: () => void;
 }
 
@@ -51,7 +52,7 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
   /**
    * Start a new drawing on mouse down
    */
-  const onMouseDown = (stageRef: any) => {
+  const onMouseDown = (stageRef: RefObject<Konva.Stage | null>) => {
     if (!drawMode) return;
 
     const pointer = stageRef.current?.getPointerPosition();
@@ -73,7 +74,7 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
   /**
    * Update drawing as mouse moves
    */
-  const onMouseMove = (stageRef: any) => {
+  const onMouseMove = (stageRef: RefObject<Konva.Stage | null>) => {
     if (!drawMode || !isDrawing) return;
 
     const pointer = stageRef.current?.getPointerPosition();

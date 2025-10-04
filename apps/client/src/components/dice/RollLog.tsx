@@ -4,7 +4,6 @@
 
 import React from "react";
 import type { RollResult } from "./types";
-import { formatRollText } from "./diceLogic";
 import { DIE_SYMBOLS } from "./types";
 import { DraggableWindow } from "./DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";

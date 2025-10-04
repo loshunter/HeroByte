@@ -16,7 +16,6 @@ export interface PlayerCardProps {
   isMe: boolean;
   tokenColor?: string;
   micEnabled: boolean;
-  micLevel: number;
   editingPlayerUID: string | null;
   nameInput: string;
   onNameInputChange: (name: string) => void;
@@ -38,7 +37,6 @@ export const PlayerCard = memo<PlayerCardProps>(
     isMe,
     tokenColor,
     micEnabled,
-    micLevel,
     editingPlayerUID,
     nameInput,
     onNameInputChange,
@@ -125,7 +123,6 @@ export const PlayerCard = memo<PlayerCardProps>(
       prevProps.player.maxHp === nextProps.player.maxHp &&
       prevProps.tokenColor === nextProps.tokenColor &&
       prevProps.micEnabled === nextProps.micEnabled &&
-      prevProps.micLevel === nextProps.micLevel &&
       prevProps.editingPlayerUID === nextProps.editingPlayerUID &&
       prevProps.nameInput === nextProps.nameInput &&
       prevProps.editingMaxHpUID === nextProps.editingMaxHpUID &&
@@ -133,3 +130,5 @@ export const PlayerCard = memo<PlayerCardProps>(
     );
   },
 );
+
+PlayerCard.displayName = "PlayerCard";

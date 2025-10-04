@@ -6,8 +6,16 @@ import "./theme/jrpg.css";
 
 // Polyfills for simple-peer
 import { Buffer } from "buffer";
-import process from "process";
-(window as any).Buffer = Buffer;
-(window as any).process = process;
+import processPolyfill from "process";
+
+declare global {
+  interface Window {
+    Buffer: typeof Buffer;
+    process: typeof processPolyfill;
+  }
+}
+
+window.Buffer = Buffer;
+window.process = processPolyfill;
 
 createRoot(document.getElementById("root")!).render(<App />);

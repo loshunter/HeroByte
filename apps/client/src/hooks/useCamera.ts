@@ -4,7 +4,9 @@
 // Manages camera state (pan and zoom) for the map canvas
 // Extracted from MapBoard.tsx to follow single responsibility principle
 
-import { useState, useRef } from "react";
+import { useState, useRef, type Dispatch, type RefObject, type SetStateAction } from "react";
+import type Konva from "konva";
+import type { KonvaEventObject } from "konva/lib/Node";
 
 export type Camera = { x: number; y: number; scale: number };
 
@@ -16,11 +18,15 @@ interface UseCameraOptions {
 
 interface UseCameraReturn {
   cam: Camera;
-  setCam: React.Dispatch<React.SetStateAction<Camera>>;
+  setCam: Dispatch<SetStateAction<Camera>>;
   isPanning: boolean;
-  onWheel: (e: any, stageRef: any) => void;
-  onMouseDown: (e: any, stageRef: any, shouldPan: boolean) => void;
-  onMouseMove: (stageRef: any) => void;
+  onWheel: (event: KonvaEventObject<WheelEvent>, stageRef: RefObject<Konva.Stage | null>) => void;
+  onMouseDown: (
+    event: KonvaEventObject<PointerEvent>,
+    stageRef: RefObject<Konva.Stage | null>,
+    shouldPan: boolean,
+  ) => void;
+  onMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
   onMouseUp: () => void;
   toWorld: (sx: number, sy: number) => { x: number; y: number };
 }
@@ -50,8 +56,11 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
   /**
    * Zoom with mouse wheel, zooming toward cursor position
    */
-  const onWheel = (e: any, stageRef: any) => {
-    e.evt.preventDefault();
+  const onWheel = (
+    event: KonvaEventObject<WheelEvent>,
+    stageRef: RefObject<Konva.Stage | null>,
+  ) => {
+    event.evt.preventDefault();
     const oldScale = cam.scale;
 
     const pointer = stageRef.current?.getPointerPosition();
@@ -62,7 +71,7 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
       y: (pointer.y - cam.y) / oldScale,
     };
 
-    const direction = e.evt.deltaY > 0 ? 1 : -1;
+    const direction = event.evt.deltaY > 0 ? 1 : -1;
     const newScale = direction > 0 ? oldScale / scaleBy : oldScale * scaleBy;
     const clamped = Math.min(maxScale, Math.max(minScale, newScale));
 
@@ -77,10 +86,16 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
   /**
    * Start panning on mouse down
    */
-  const onMouseDown = (e: any, stageRef: any, shouldPan: boolean) => {
-    const isSpace = e.evt && (e.evt.code === "Space" || e.evt.buttons === 4);
+  const onMouseDown = (
+    event: KonvaEventObject<PointerEvent>,
+    stageRef: RefObject<Konva.Stage | null>,
+    shouldPan: boolean,
+  ) => {
+    const originalEvent = event.evt;
+    const isSpace = "code" in originalEvent && (originalEvent as unknown as KeyboardEvent).code === "Space";
+    const middleClick = "buttons" in originalEvent && originalEvent.buttons === 4;
 
-    if (shouldPan || isSpace) {
+    if (shouldPan || isSpace || middleClick) {
       setIsPanning(true);
       camOrigin.current = cam;
       dragOrigin.current = stageRef.current?.getPointerPosition() || null;
@@ -90,7 +105,7 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
   /**
    * Update camera position while panning
    */
-  const onMouseMove = (stageRef: any) => {
+  const onMouseMove = (stageRef: RefObject<Konva.Stage | null>) => {
     if (isPanning && dragOrigin.current && camOrigin.current) {
       const p = stageRef.current?.getPointerPosition();
       if (!p) return;

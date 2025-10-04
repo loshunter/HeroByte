@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { CharacterService } from "../character/service.ts";
-import { createEmptyRoomState } from "../room/model.ts";
+import { CharacterService } from "../character/service.js";
+import { createEmptyRoomState } from "../room/model.js";
 
 vi.mock("crypto", async () => {
   const actual = await vi.importActual<typeof import("crypto")>("crypto");

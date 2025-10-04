@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import { PlayerService } from "../player/service.ts";
-import { createEmptyRoomState } from "../room/model.ts";
+import { PlayerService } from "../player/service.js";
+import { createEmptyRoomState } from "../room/model.js";
 
 const createState = () => createEmptyRoomState();
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PlayerModel } from "../models.ts";
+import { PlayerModel } from "../models.js";
 
 describe("PlayerModel", () => {
   const basePlayer = new PlayerModel("uid-1", "Hero", undefined, 0.2, 80, 100);

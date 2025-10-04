@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { MapService } from "../map/service.ts";
-import { createEmptyRoomState } from "../room/model.ts";
+import { MapService } from "../map/service.js";
+import { createEmptyRoomState } from "../room/model.js";
 
 const baseDrawing = () => ({
   id: "drawing-1",
@@ -46,9 +46,27 @@ describe("MapService", () => {
 
     expect(service.undoDrawing(state, "uid-1")).toBe(true);
     expect(state.drawings).toHaveLength(1);
+    expect(service.redoDrawing(state, "uid-1")).toBe(true);
+    expect(state.drawings).toHaveLength(2);
 
     service.clearDrawings(state);
     expect(state.drawings).toHaveLength(0);
+  });
+
+  it("maintains redo stack per player", () => {
+    const state = createEmptyRoomState();
+
+    service.addDrawing(state, baseDrawing(), "uid-1");
+    service.addDrawing(state, { ...baseDrawing(), id: "drawing-2" }, "uid-1");
+    expect(service.undoDrawing(state, "uid-1")).toBe(true);
+    expect(state.drawings.map((d) => d.id)).toEqual(["drawing-1"]);
+
+    expect(service.redoDrawing(state, "uid-1")).toBe(true);
+    expect(state.drawings.map((d) => d.id)).toEqual(["drawing-1", "drawing-2"]);
+
+    // New drawing clears redo stack
+    service.addDrawing(state, { ...baseDrawing(), id: "drawing-3" }, "uid-1");
+    expect(service.redoDrawing(state, "uid-1")).toBe(false);
   });
 
   it("supports selecting, moving, and deselecting drawings", () => {

@@ -7,7 +7,6 @@ import type { Build, DieType, RollResult } from "./types";
 import { rollBuild } from "./diceLogic";
 import { DiceBar } from "./DiceBar";
 import { BuildStrip } from "./BuildStrip";
-import { RollButton } from "./RollButton";
 import { ResultPanel } from "./ResultPanel";
 import { DraggableWindow } from "./DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";

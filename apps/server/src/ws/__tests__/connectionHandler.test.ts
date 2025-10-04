@@ -6,38 +6,43 @@ vi.mock("fs", () => ({
   existsSync: vi.fn().mockReturnValue(false),
 }));
 
-import type { Container } from "../../container.ts";
-import { ConnectionHandler } from "../connectionHandler.ts";
-import { RoomService } from "../../domains/room/service.ts";
-import { PlayerService } from "../../domains/player/service.ts";
-import { TokenService } from "../../domains/token/service.ts";
-import { MapService } from "../../domains/map/service.ts";
-import { DiceService } from "../../domains/dice/service.ts";
-import { CharacterService } from "../../domains/character/service.ts";
-import { MessageRouter } from "../messageRouter.ts";
-import { RateLimiter } from "../../middleware/rateLimit.ts";
+import type { Container } from "../../container.js";
+import { ConnectionHandler } from "../connectionHandler.js";
+import { RoomService } from "../../domains/room/service.js";
+import { PlayerService } from "../../domains/player/service.js";
+import { TokenService } from "../../domains/token/service.js";
+import { MapService } from "../../domains/map/service.js";
+import { DiceService } from "../../domains/dice/service.js";
+import { CharacterService } from "../../domains/character/service.js";
+import { MessageRouter } from "../messageRouter.js";
+import { RateLimiter } from "../../middleware/rateLimit.js";
 import type { ClientMessage } from "@shared";
+import type { WebSocket, WebSocketServer } from "ws";
+
+type WebSocketEvent = "message" | "close";
 
 class FakeWebSocket {
   public readyState = 1;
-  public send = vi.fn();
+  public send = vi.fn<(data: string | Buffer) => void>();
   public ping = vi.fn();
-  private handlers: Record<string, (data?: any) => void> = {};
+  private handlers: Partial<Record<WebSocketEvent, (data?: unknown) => void>> = {};
 
-  on(event: string, handler: (data: any) => void) {
+  on(event: WebSocketEvent, handler: (data?: unknown) => void) {
     this.handlers[event] = handler;
   }
 
-  emit(event: string, data?: any) {
+  emit(event: WebSocketEvent, data?: unknown) {
     this.handlers[event]?.(data);
   }
 }
 
 class FakeWebSocketServer {
   public clients = new Set<FakeWebSocket>();
-  private handlers: Record<string, (...args: any[]) => void> = {};
+  private handlers: Partial<
+    Record<"connection", (ws: FakeWebSocket, req: { url: string }) => void>
+  > = {};
 
-  on(event: "connection", handler: (...args: any[]) => void) {
+  on(event: "connection", handler: (ws: FakeWebSocket, req: { url: string }) => void) {
     this.handlers[event] = handler;
   }
 
@@ -54,6 +59,7 @@ const setupContainer = () => {
   const mapService = new MapService();
   const diceService = new DiceService();
   const characterService = new CharacterService();
+  const fakeNodeServer = { clients: new Set<WebSocket>() } as unknown as WebSocketServer;
   const messageRouter = new MessageRouter(
     roomService,
     playerService,
@@ -61,8 +67,8 @@ const setupContainer = () => {
     mapService,
     diceService,
     characterService,
-    {} as any,
-    new Map(),
+    fakeNodeServer,
+    new Map<string, WebSocket>(),
   );
 
   const rateLimiter = new RateLimiter({ maxMessages: 100, windowMs: 1000 });
@@ -77,7 +83,7 @@ const setupContainer = () => {
     characterService,
     messageRouter,
     rateLimiter,
-    uidToWs: new Map(),
+    uidToWs: new Map<string, WebSocket>(),
   };
 
   return container as Container;
@@ -93,7 +99,7 @@ describe("ConnectionHandler", () => {
     wss = new FakeWebSocketServer();
     container = setupContainer();
     vi.spyOn(container.roomService, "broadcast").mockImplementation(() => {});
-    handler = new ConnectionHandler(container, wss as any);
+    handler = new ConnectionHandler(container, wss as unknown as WebSocketServer);
     handler.attach();
   });
 

@@ -14,6 +14,7 @@ interface UseDrawingStateReturn {
   drawFilled: boolean;
   drawingHistory: string[];
   canUndo: boolean;
+  canRedo: boolean;
   setDrawTool: (tool: "freehand" | "line" | "rect" | "circle" | "eraser") => void;
   setDrawColor: (color: string) => void;
   setDrawWidth: (width: number) => void;
@@ -21,6 +22,7 @@ interface UseDrawingStateReturn {
   setDrawFilled: (filled: boolean) => void;
   addToHistory: (drawingId: string) => void;
   popFromHistory: () => string | undefined;
+  popFromRedoHistory: () => string | undefined;
   clearHistory: () => void;
 }
 
@@ -56,6 +58,7 @@ export function useDrawingState(): UseDrawingStateReturn {
 
   // Undo history stack - stores drawing IDs in order of creation
   const [drawingHistory, setDrawingHistory] = useState<string[]>([]);
+  const [redoHistory, setRedoHistory] = useState<string[]>([]);
 
   /**
    * Add a drawing ID to the history stack
@@ -63,6 +66,7 @@ export function useDrawingState(): UseDrawingStateReturn {
    */
   const addToHistory = useCallback((drawingId: string) => {
     setDrawingHistory((prev) => [...prev, drawingId]);
+    setRedoHistory([]);
   }, []);
 
   /**
@@ -76,7 +80,26 @@ export function useDrawingState(): UseDrawingStateReturn {
       poppedId = prev[prev.length - 1];
       return prev.slice(0, -1);
     });
+    if (poppedId !== undefined) {
+      setRedoHistory((prev) => [...prev, poppedId!]);
+    }
     return poppedId;
+  }, []);
+
+  /**
+   * Restore from redo stack back into history
+   */
+  const popFromRedoHistory = useCallback((): string | undefined => {
+    let redoId: string | undefined;
+    setRedoHistory((prev) => {
+      if (prev.length === 0) return prev;
+      redoId = prev[prev.length - 1];
+      return prev.slice(0, -1);
+    });
+    if (redoId !== undefined) {
+      setDrawingHistory((prev) => [...prev, redoId!]);
+    }
+    return redoId;
   }, []);
 
   /**
@@ -85,6 +108,7 @@ export function useDrawingState(): UseDrawingStateReturn {
    */
   const clearHistory = useCallback(() => {
     setDrawingHistory([]);
+    setRedoHistory([]);
   }, []);
 
   return {
@@ -95,6 +119,7 @@ export function useDrawingState(): UseDrawingStateReturn {
     drawFilled,
     drawingHistory,
     canUndo: drawingHistory.length > 0,
+    canRedo: redoHistory.length > 0,
     setDrawTool,
     setDrawColor,
     setDrawWidth,
@@ -102,6 +127,7 @@ export function useDrawingState(): UseDrawingStateReturn {
     setDrawFilled,
     addToHistory,
     popFromHistory,
+    popFromRedoHistory,
     clearHistory,
   };
 }

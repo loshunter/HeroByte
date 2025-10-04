@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { DiceService } from "../dice/service.ts";
-import { createEmptyRoomState } from "../room/model.ts";
+import { DiceService } from "../dice/service.js";
+import { createEmptyRoomState } from "../room/model.js";
 
 const createRoll = (id: number) => ({
   id: `roll-${id}`,

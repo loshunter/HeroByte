@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CharacterModel } from "../models.ts";
+import { CharacterModel } from "../models.js";
 
 describe("CharacterModel", () => {
   const baseCharacter = new CharacterModel("char-1", "Ayla", 42, 60, "pc", undefined, null, null);

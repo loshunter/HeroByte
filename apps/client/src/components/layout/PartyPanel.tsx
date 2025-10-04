@@ -14,7 +14,6 @@ interface PartyPanelProps {
   tokens: Token[];
   uid: string;
   micEnabled: boolean;
-  micLevel: number;
   editingPlayerUID: string | null;
   nameInput: string;
   editingMaxHpUID: string | null;
@@ -39,7 +38,6 @@ export const PartyPanel: React.FC<PartyPanelProps> = ({
   tokens,
   uid,
   micEnabled,
-  micLevel,
   editingPlayerUID,
   nameInput,
   editingMaxHpUID,
@@ -118,7 +116,6 @@ export const PartyPanel: React.FC<PartyPanelProps> = ({
                       isMe={isMe}
                       tokenColor={token?.color}
                       micEnabled={micEnabled}
-                      micLevel={micLevel}
                       editingPlayerUID={editingPlayerUID}
                       nameInput={nameInput}
                       onNameInputChange={onNameInputChange}
@@ -150,7 +147,7 @@ export const PartyPanel: React.FC<PartyPanelProps> = ({
               opacity: 0.6,
             }}
           >
-            Party collapsed - click "SHOW PARTY" to expand
+            Party collapsed - click &quot;SHOW PARTY&quot; to expand
           </div>
         )}
       </JRPGPanel>

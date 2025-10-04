@@ -9,12 +9,12 @@
 // - Tool modes (pointer, measure, draw)
 
 import React, { useEffect, useState, useRef } from "react";
-import { RoomSnapshot, Token, Player, Pointer, Drawing } from "@shared";
 import MapBoard from "./MapBoard";
 import { useVoiceChat } from "./useVoiceChat";
 import { DiceRoller } from "../components/dice/DiceRoller";
 import { RollLog } from "../components/dice/RollLog";
 import type { RollResult, DieType } from "../components/dice/types";
+import type { Player } from "@shared";
 import { WS_URL } from "../config";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useMicrophone } from "../hooks/useMicrophone";
@@ -53,15 +53,15 @@ export const App: React.FC = () => {
   });
 
   // Custom hooks for state management
-  const { micEnabled, micLevel, micStream, toggleMic } = useMicrophone({ sendMessage });
+  const { micEnabled, micStream, toggleMic } = useMicrophone({ sendMessage });
   const {
     drawTool,
     drawColor,
     drawWidth,
     drawOpacity,
     drawFilled,
-    drawingHistory,
     canUndo,
+    canRedo,
     setDrawTool,
     setDrawColor,
     setDrawWidth,
@@ -69,6 +69,7 @@ export const App: React.FC = () => {
     setDrawFilled,
     addToHistory,
     popFromHistory,
+    popFromRedoHistory,
     clearHistory,
   } = useDrawingState();
 
@@ -142,7 +143,7 @@ export const App: React.FC = () => {
     return snapshot?.players?.filter((p: Player) => p.uid !== uid).map((p: Player) => p.uid) || [];
   }, [snapshot?.players, uid]);
 
-  const { connectedPeers } = useVoiceChat({
+  useVoiceChat({
     sendMessage,
     onRtcSignal: registerRtcHandler,
     uid,
@@ -191,11 +192,20 @@ export const App: React.FC = () => {
           sendMessage({ t: "undo-drawing" });
         }
       }
+
+      // Ctrl+Y or Cmd+Y for redo
+      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.shiftKey && e.key === "Z"))) {
+        if (drawMode && canRedo) {
+          e.preventDefault();
+          popFromRedoHistory();
+          sendMessage({ t: "redo-drawing" });
+        }
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [drawMode, canUndo, popFromHistory, sendMessage]);
+  }, [drawMode, canUndo, canRedo, popFromHistory, popFromRedoHistory, sendMessage]);
 
   // -------------------------------------------------------------------------
   // ACTIONS
@@ -263,6 +273,7 @@ export const App: React.FC = () => {
           drawOpacity={drawOpacity}
           drawFilled={drawFilled}
           canUndo={canUndo}
+          canRedo={canRedo}
           onToolChange={setDrawTool}
           onColorChange={setDrawColor}
           onWidthChange={setDrawWidth}
@@ -271,6 +282,10 @@ export const App: React.FC = () => {
           onUndo={() => {
             popFromHistory();
             sendMessage({ t: "undo-drawing" });
+          }}
+          onRedo={() => {
+            popFromRedoHistory();
+            sendMessage({ t: "redo-drawing" });
           }}
           onClearAll={() => {
             clearHistory();
@@ -350,7 +365,6 @@ export const App: React.FC = () => {
         tokens={snapshot?.tokens || []}
         uid={uid}
         micEnabled={micEnabled}
-        micLevel={micLevel}
         editingPlayerUID={editingPlayerUID}
         nameInput={nameInput}
         editingMaxHpUID={editingMaxHpUID}

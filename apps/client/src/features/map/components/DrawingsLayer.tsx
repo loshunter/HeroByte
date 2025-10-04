@@ -5,6 +5,7 @@
 
 import { memo } from "react";
 import { Group, Line, Rect, Circle } from "react-konva";
+import type { KonvaEventObject } from "konva/lib/Node";
 import type { Drawing } from "@shared";
 import type { Camera } from "../../../hooks/useCamera";
 
@@ -21,7 +22,7 @@ interface DrawingsLayerProps {
   selectMode: boolean;
   selectedDrawingId: string | null;
   onSelectDrawing: (drawingId: string | null) => void;
-  onDrawingDragEnd: (drawingId: string, e: any) => void;
+  onDrawingDragEnd: (drawingId: string, e: KonvaEventObject<DragEvent>) => void;
 }
 
 /**
@@ -62,15 +63,15 @@ export const DrawingsLayer = memo(function DrawingsLayer({
     // Common interaction props for selectable drawings
     const interactiveProps = selectMode
       ? {
-          onClick: (e: any) => {
+          onClick: (event: KonvaEventObject<MouseEvent>) => {
             if (canInteract) {
-              e.cancelBubble = true;
+              event.cancelBubble = true;
               onSelectDrawing(drawing.id);
             }
           },
-          onTap: (e: any) => {
+          onTap: (event: KonvaEventObject<Event>) => {
             if (canInteract) {
-              e.cancelBubble = true;
+              event.cancelBubble = true;
               onSelectDrawing(drawing.id);
             }
           },

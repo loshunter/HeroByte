@@ -5,6 +5,7 @@
 
 import { memo } from "react";
 import { Group, Rect } from "react-konva";
+import type { KonvaEventObject } from "konva/lib/Node";
 import type { Token } from "@shared";
 import type { Camera } from "../types";
 
@@ -43,8 +44,8 @@ export const TokensLayer = memo(function TokensLayer({
   const myTokens = tokens.filter((t) => t.owner === uid);
   const otherTokens = tokens.filter((t) => t.owner !== uid);
 
-  const handleDrag = (tokenId: string, e: any) => {
-    const pos = e.target.position();
+  const handleDrag = (tokenId: string, event: KonvaEventObject<DragEvent>) => {
+    const pos = event.target.position();
     // Convert screen position to grid coordinates
     let gx, gy;
     if (snapToGrid) {

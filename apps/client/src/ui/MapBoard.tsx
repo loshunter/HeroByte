@@ -13,8 +13,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Stage, Layer } from "react-konva";
-import type { RoomSnapshot, Token, Player, Pointer, Drawing, ClientMessage } from "@shared";
-import { useCamera, type Camera } from "../hooks/useCamera.js";
+import type Konva from "konva";
+import type { KonvaEventObject } from "konva/lib/Node";
+import type { RoomSnapshot, ClientMessage } from "@shared";
+import { useCamera } from "../hooks/useCamera.js";
 import { usePointerTool } from "../hooks/usePointerTool.js";
 import { useDrawingTool } from "../hooks/useDrawingTool.js";
 import { useDrawingSelection } from "../hooks/useDrawingSelection.js";
@@ -111,7 +113,7 @@ export default function MapBoard({
   // -------------------------------------------------------------------------
 
   const { ref, w, h } = useElementSize<HTMLDivElement>();
-  const stageRef = useRef<any>(null);
+  const stageRef = useRef<Konva.Stage | null>(null);
 
   // Drawing selection
   const {
@@ -124,7 +126,6 @@ export default function MapBoard({
   // Camera controls (pan/zoom)
   const {
     cam,
-    setCam,
     isPanning,
     onWheel: handleWheel,
     onMouseDown: handleCameraMouseDown,
@@ -144,13 +145,11 @@ export default function MapBoard({
     measureMode,
     toWorld,
     sendMessage,
-    gridSize,
   });
 
   // Drawing tool
   const {
     currentDrawing,
-    isDrawing,
     onMouseDown: handleDrawMouseDown,
     onMouseMove: handleDrawMouseMove,
     onMouseUp: handleDrawMouseUp,
@@ -207,27 +206,27 @@ export default function MapBoard({
   /**
    * Unified stage click handler (pointer/measure tools)
    */
-  const onStageClick = (e: any) => {
+  const onStageClick = (event: KonvaEventObject<MouseEvent | PointerEvent>) => {
     if (!pointerMode && !measureMode && !drawMode) {
-      deselectIfEmpty(e);
+      deselectIfEmpty(event);
       return;
     }
-    handlePointerClick(e);
+    handlePointerClick(event);
   };
 
   /**
    * Unified mouse down handler (camera pan, drawing)
    */
-  const onMouseDown = (e: any) => {
+  const onMouseDown = (event: KonvaEventObject<PointerEvent>) => {
     const shouldPan = !pointerMode && !measureMode && !drawMode && !selectMode;
-    handleCameraMouseDown(e, stageRef, shouldPan);
+    handleCameraMouseDown(event, stageRef, shouldPan);
     handleDrawMouseDown(stageRef);
   };
 
   /**
    * Unified mouse move handler (camera, drawing, measure)
    */
-  const onMouseMove = (_e: any) => {
+  const onMouseMove = () => {
     handleCameraMouseMove(stageRef);
     handlePointerMouseMove(stageRef);
     handleDrawMouseMove(stageRef);

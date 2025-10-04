@@ -41,6 +41,7 @@ export default [
       ],
       "@typescript-eslint/no-explicit-any": "warn", // Warn instead of error for now
       "no-case-declarations": "warn", // Warn for case declarations
+      "no-undef": "off",
     },
   },
 
@@ -61,6 +62,23 @@ export default [
         MediaStream: "readonly",
         Audio: "readonly",
         crypto: "readonly",
+        WebSocket: "readonly",
+        HTMLElement: "readonly",
+        HTMLDivElement: "readonly",
+        KeyboardEvent: "readonly",
+        ResizeObserver: "readonly",
+        prompt: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
+        requestAnimationFrame: "readonly",
+        cancelAnimationFrame: "readonly",
+        URLSearchParams: "readonly",
+        AudioContext: "readonly",
+        AnalyserNode: "readonly",
+        MouseEvent: "readonly",
+        JSX: "readonly",
       },
     },
     plugins: {

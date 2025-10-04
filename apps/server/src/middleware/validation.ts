@@ -15,118 +15,125 @@ interface ValidationResult {
  * Validate a client message
  * Returns { valid: true } if message is valid, or { valid: false, error: string } if invalid
  */
-export function validateMessage(message: any): ValidationResult {
-  // Check if message has a type field
-  if (!message || typeof message.t !== "string") {
+type MessageRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is MessageRecord {
+  return typeof value === "object" && value !== null;
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+export function validateMessage(raw: unknown): ValidationResult {
+  if (!isRecord(raw) || typeof raw.t !== "string") {
     return { valid: false, error: "Missing or invalid message type" };
   }
 
-  const type = message.t;
+  const message = raw;
 
-  // Validate each message type
-  switch (type) {
-    case "move":
-      if (typeof message.id !== "string") {
+  switch (message.t) {
+    case "move": {
+      const { id, x, y } = message;
+      if (typeof id !== "string") {
         return { valid: false, error: "move: missing or invalid id" };
       }
-      if (typeof message.x !== "number" || typeof message.y !== "number") {
+      if (!isFiniteNumber(x) || !isFiniteNumber(y)) {
         return { valid: false, error: "move: missing or invalid x/y coordinates" };
       }
-      if (!isFinite(message.x) || !isFinite(message.y)) {
-        return { valid: false, error: "move: x/y must be finite numbers" };
-      }
       break;
+    }
 
     case "recolor":
-    case "delete-token":
+    case "delete-token": {
       if (typeof message.id !== "string") {
-        return { valid: false, error: `${type}: missing or invalid id` };
+        return { valid: false, error: `${message.t}: missing or invalid id` };
       }
       break;
+    }
 
-    case "portrait":
-      if (typeof message.data !== "string") {
+    case "portrait": {
+      const { data } = message;
+      if (typeof data !== "string") {
         return { valid: false, error: "portrait: missing or invalid data" };
       }
-      // Limit portrait size to 2MB base64 encoded
-      if (message.data.length > 2 * 1024 * 1024) {
+      if (data.length > 2 * 1024 * 1024) {
         return { valid: false, error: "portrait: data too large (max 2MB)" };
       }
       break;
+    }
 
-    case "rename":
-      if (typeof message.name !== "string") {
+    case "rename": {
+      const { name } = message;
+      if (typeof name !== "string") {
         return { valid: false, error: "rename: missing or invalid name" };
       }
-      if (message.name.length === 0 || message.name.length > 50) {
+      if (name.length === 0 || name.length > 50) {
         return { valid: false, error: "rename: name must be 1-50 characters" };
       }
       break;
+    }
 
-    case "mic-level":
-      if (typeof message.level !== "number") {
-        return { valid: false, error: "mic-level: missing or invalid level" };
-      }
-      if (!isFinite(message.level) || message.level < 0 || message.level > 1) {
+    case "mic-level": {
+      const { level } = message;
+      if (!isFiniteNumber(level) || level < 0 || level > 1) {
         return { valid: false, error: "mic-level: level must be between 0 and 1" };
       }
       break;
+    }
 
-    case "set-hp":
-      if (typeof message.hp !== "number" || typeof message.maxHp !== "number") {
+    case "set-hp": {
+      const { hp, maxHp } = message;
+      if (!isFiniteNumber(hp) || !isFiniteNumber(maxHp)) {
         return { valid: false, error: "set-hp: missing or invalid hp/maxHp" };
       }
-      if (!isFinite(message.hp) || !isFinite(message.maxHp)) {
-        return { valid: false, error: "set-hp: hp/maxHp must be finite numbers" };
-      }
-      if (message.hp < 0 || message.maxHp < 0) {
+      if (hp < 0 || maxHp < 0) {
         return { valid: false, error: "set-hp: hp/maxHp cannot be negative" };
       }
       break;
+    }
 
-    case "create-character":
-      if (typeof message.name !== "string") {
-        return { valid: false, error: "create-character: missing or invalid name" };
-      }
-      if (message.name.length === 0 || message.name.length > 50) {
+    case "create-character": {
+      const { name, maxHp, portrait } = message;
+      if (typeof name !== "string" || name.length === 0 || name.length > 50) {
         return { valid: false, error: "create-character: name must be 1-50 characters" };
       }
-      if (typeof message.maxHp !== "number") {
-        return { valid: false, error: "create-character: missing or invalid maxHp" };
-      }
-      if (!isFinite(message.maxHp) || message.maxHp <= 0) {
+      if (!isFiniteNumber(maxHp) || maxHp <= 0) {
         return { valid: false, error: "create-character: maxHp must be positive" };
       }
-      if (message.portrait !== undefined && typeof message.portrait !== "string") {
-        return { valid: false, error: "create-character: portrait must be a string" };
-      }
-      if (message.portrait && message.portrait.length > 2 * 1024 * 1024) {
-        return { valid: false, error: "create-character: portrait too large (max 2MB)" };
+      if (portrait !== undefined) {
+        if (typeof portrait !== "string") {
+          return { valid: false, error: "create-character: portrait must be a string" };
+        }
+        if (portrait.length > 2 * 1024 * 1024) {
+          return { valid: false, error: "create-character: portrait too large (max 2MB)" };
+        }
       }
       break;
+    }
 
-    case "claim-character":
+    case "claim-character": {
       if (typeof message.characterId !== "string" || message.characterId.length === 0) {
         return { valid: false, error: "claim-character: missing or invalid characterId" };
       }
       break;
+    }
 
-    case "update-character-hp":
-      if (typeof message.characterId !== "string" || message.characterId.length === 0) {
+    case "update-character-hp": {
+      const { characterId, hp, maxHp } = message;
+      if (typeof characterId !== "string" || characterId.length === 0) {
         return { valid: false, error: "update-character-hp: missing or invalid characterId" };
       }
-      if (typeof message.hp !== "number" || typeof message.maxHp !== "number") {
+      if (!isFiniteNumber(hp) || !isFiniteNumber(maxHp)) {
         return { valid: false, error: "update-character-hp: missing or invalid hp/maxHp" };
       }
-      if (!isFinite(message.hp) || !isFinite(message.maxHp)) {
-        return { valid: false, error: "update-character-hp: hp/maxHp must be finite numbers" };
-      }
-      if (message.hp < 0 || message.maxHp < 0) {
+      if (hp < 0 || maxHp < 0) {
         return { valid: false, error: "update-character-hp: hp/maxHp cannot be negative" };
       }
       break;
+    }
 
-    case "link-token":
+    case "link-token": {
       if (typeof message.characterId !== "string" || message.characterId.length === 0) {
         return { valid: false, error: "link-token: missing or invalid characterId" };
       }
@@ -134,68 +141,71 @@ export function validateMessage(message: any): ValidationResult {
         return { valid: false, error: "link-token: missing or invalid tokenId" };
       }
       break;
+    }
 
-    case "map-background":
-      if (typeof message.data !== "string") {
+    case "map-background": {
+      const { data } = message;
+      if (typeof data !== "string") {
         return { valid: false, error: "map-background: missing or invalid data" };
       }
-      // Limit background size to 10MB base64 encoded
-      if (message.data.length > 10 * 1024 * 1024) {
+      if (data.length > 10 * 1024 * 1024) {
         return { valid: false, error: "map-background: data too large (max 10MB)" };
       }
       break;
+    }
 
-    case "grid-size":
-      if (typeof message.size !== "number") {
-        return { valid: false, error: "grid-size: missing or invalid size" };
-      }
-      if (!isFinite(message.size) || message.size < 10 || message.size > 500) {
+    case "grid-size": {
+      const { size } = message;
+      if (!isFiniteNumber(size) || size < 10 || size > 500) {
         return { valid: false, error: "grid-size: size must be between 10 and 500" };
       }
       break;
+    }
 
-    case "point":
-      if (typeof message.x !== "number" || typeof message.y !== "number") {
+    case "point": {
+      const { x, y } = message;
+      if (!isFiniteNumber(x) || !isFiniteNumber(y)) {
         return { valid: false, error: "point: missing or invalid x/y coordinates" };
       }
-      if (!isFinite(message.x) || !isFinite(message.y)) {
-        return { valid: false, error: "point: x/y must be finite numbers" };
-      }
       break;
+    }
 
-    case "draw":
-      if (!message.drawing || typeof message.drawing !== "object") {
+    case "draw": {
+      const drawing = message.drawing;
+      if (!isRecord(drawing)) {
         return { valid: false, error: "draw: missing or invalid drawing object" };
       }
-      // Validate drawing structure
-      const drawing = message.drawing;
-      if (!drawing.id || !drawing.type || !Array.isArray(drawing.points)) {
+      if (typeof drawing.id !== "string" || typeof drawing.type !== "string") {
         return { valid: false, error: "draw: invalid drawing structure" };
       }
-      // Limit drawing complexity
+      if (!Array.isArray(drawing.points)) {
+        return { valid: false, error: "draw: invalid drawing structure" };
+      }
       if (drawing.points.length > 10000) {
         return { valid: false, error: "draw: too many points (max 10000)" };
       }
       break;
+    }
 
     case "undo-drawing":
+    case "redo-drawing":
     case "clear-drawings":
     case "deselect-drawing":
     case "clear-roll-history":
     case "clear-all-tokens":
-    case "heartbeat":
-      // No additional validation needed
+    case "heartbeat": {
       break;
+    }
 
-    case "load-session":
-      if (!message.snapshot || typeof message.snapshot !== "object") {
+    case "load-session": {
+      const snapshot = message.snapshot;
+      if (!isRecord(snapshot)) {
         return { valid: false, error: "load-session: missing or invalid snapshot data" };
       }
-      // Basic structure validation
       if (
-        !Array.isArray(message.snapshot.players) ||
-        !Array.isArray(message.snapshot.tokens) ||
-        !Array.isArray(message.snapshot.drawings)
+        !Array.isArray(snapshot.players) ||
+        !Array.isArray(snapshot.tokens) ||
+        !Array.isArray(snapshot.drawings)
       ) {
         return {
           valid: false,
@@ -203,40 +213,47 @@ export function validateMessage(message: any): ValidationResult {
         };
       }
       break;
+    }
 
     case "select-drawing":
-    case "delete-drawing":
+    case "delete-drawing": {
       if (typeof message.id !== "string" || message.id.length === 0) {
         return { valid: false, error: `${message.t}: missing or invalid drawing id` };
       }
       break;
+    }
 
-    case "move-drawing":
-      if (typeof message.id !== "string" || message.id.length === 0) {
+    case "move-drawing": {
+      const { id, dx, dy } = message;
+      if (typeof id !== "string" || id.length === 0) {
         return { valid: false, error: "move-drawing: missing or invalid drawing id" };
       }
-      if (typeof message.dx !== "number" || typeof message.dy !== "number") {
+      if (!isFiniteNumber(dx) || !isFiniteNumber(dy)) {
         return { valid: false, error: "move-drawing: dx and dy must be numbers" };
       }
       break;
+    }
 
-    case "dice-roll":
-      if (!message.roll || typeof message.roll !== "object") {
+    case "dice-roll": {
+      if (!isRecord(message.roll)) {
         return { valid: false, error: "dice-roll: missing or invalid roll object" };
       }
       break;
+    }
 
-    case "rtc-signal":
+    case "rtc-signal": {
       if (typeof message.target !== "string") {
         return { valid: false, error: "rtc-signal: missing or invalid target" };
       }
-      if (!message.signal) {
+      if (!("signal" in message)) {
         return { valid: false, error: "rtc-signal: missing signal data" };
       }
       break;
+    }
 
-    default:
-      return { valid: false, error: `Unknown message type: ${type}` };
+    default: {
+      return { valid: false, error: `Unknown message type: ${message.t}` };
+    }
   }
 
   return { valid: true };

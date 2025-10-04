@@ -10,6 +10,13 @@ import type { RoomState } from "../room/model.js";
  * Map service - manages map background, grid, drawings, and pointers
  */
 export class MapService {
+  private getRedoStack(state: RoomState, ownerUid: string): Drawing[] {
+    if (!state.drawingRedoStacks[ownerUid]) {
+      state.drawingRedoStacks[ownerUid] = [];
+    }
+    return state.drawingRedoStacks[ownerUid]!;
+  }
+
   /**
    * Set map background image
    */
@@ -40,6 +47,8 @@ export class MapService {
   addDrawing(state: RoomState, drawing: Drawing, ownerUid: string): void {
     // Add owner to drawing for undo tracking
     state.drawings.push({ ...drawing, owner: ownerUid });
+    // Clear redo stack whenever a new drawing is created
+    state.drawingRedoStacks[ownerUid] = [];
   }
 
   /**
@@ -58,10 +67,26 @@ export class MapService {
 
     // Remove the drawing if found
     if (lastIndex !== -1) {
-      state.drawings.splice(lastIndex, 1);
+      const [removed] = state.drawings.splice(lastIndex, 1);
+      const snapshot: Drawing = { ...removed, selectedBy: undefined };
+      this.getRedoStack(state, ownerUid).push(snapshot);
       return true;
     }
 
+    return false;
+  }
+
+  /**
+   * Redo the most recently undone drawing for a player
+   */
+  redoDrawing(state: RoomState, ownerUid: string): boolean {
+    const stack = this.getRedoStack(state, ownerUid);
+    const drawing = stack.pop();
+    if (drawing) {
+      const restored: Drawing = { ...drawing, selectedBy: undefined };
+      state.drawings.push(restored);
+      return true;
+    }
     return false;
   }
 
@@ -70,6 +95,7 @@ export class MapService {
    */
   clearDrawings(state: RoomState): void {
     state.drawings = [];
+    state.drawingRedoStacks = {};
   }
 
   /**

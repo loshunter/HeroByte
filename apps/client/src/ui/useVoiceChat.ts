@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import SimplePeer from "simple-peer";
+import SimplePeer, { type SignalData } from "simple-peer";
 import type { ClientMessage } from "@shared";
 
 interface VoiceChatOptions {
   sendMessage: (msg: ClientMessage) => void;
-  onRtcSignal: (handler: (from: string, signal: any) => void) => void;
+  onRtcSignal: (handler: (from: string, signal: unknown) => void) => void;
   uid: string;
   otherPlayerUIDs: string[];
   enabled: boolean;
@@ -39,7 +39,7 @@ export function useVoiceChat({
     }
 
     // Handle incoming RTC signals
-    const handleRtcSignal = (from: string, signal: any) => {
+    const handleRtcSignal = (from: string, signal: unknown) => {
       let peer = peersRef.current.get(from);
 
       if (!peer) {
@@ -83,7 +83,7 @@ export function useVoiceChat({
       }
 
       // Signal the peer
-      peer.signal(signal);
+      peer.signal(signal as SignalData);
     };
 
     onRtcSignal(handleRtcSignal);
@@ -139,9 +139,7 @@ export function useVoiceChat({
         setConnectedPeers((prev) => prev.filter((p) => p !== peerUID));
       }
     });
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onRtcSignal, uid, otherPlayerUIDsStr, enabled, stream]);
+  }, [onRtcSignal, uid, otherPlayerUIDsStr, enabled, stream, sendMessage]);
 
   // Cleanup on unmount
   useEffect(() => {

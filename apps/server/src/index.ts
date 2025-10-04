@@ -31,7 +31,7 @@ function bootstrap() {
 
   // Create HTTP server for WebSocket compatibility
   const server = createServer(async (req, res) => {
-    const response = await app.fetch(req as any);
+    const response = await app.fetch(req as unknown as Request);
     res.statusCode = response.status;
     response.headers.forEach((value, key) => {
       res.setHeader(key, value);

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { TokenModel } from "../models.ts";
+import { TokenModel } from "../models.js";
 
 describe("TokenModel", () => {
   afterEach(() => {

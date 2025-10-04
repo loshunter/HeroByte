@@ -133,6 +133,9 @@ importers:
         specifier: ^3.23.8
         version: 3.25.76
     devDependencies:
+      '@types/simple-peer':
+        specifier: ^9.11.8
+        version: 9.11.8
       '@vitest/coverage-v8':
         specifier: ^3.2.4
         version: 3.2.4(vitest@3.2.4(@types/node@24.6.1))

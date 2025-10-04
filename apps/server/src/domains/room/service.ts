@@ -5,6 +5,7 @@
 
 import { writeFileSync, readFileSync, existsSync } from "fs";
 import type { WebSocket } from "ws";
+import type { Player, RoomSnapshot } from "@shared";
 import type { RoomState } from "./model.js";
 import { createEmptyRoomState, toSnapshot } from "./model.js";
 
@@ -51,6 +52,7 @@ export class RoomService {
           drawings: data.drawings || [],
           gridSize: data.gridSize || 50,
           diceRolls: data.diceRolls || [],
+          drawingRedoStacks: {},
         };
         console.log("Loaded state from disk");
       } catch (err) {
@@ -83,12 +85,12 @@ export class RoomService {
    * Load a snapshot from client (from saved session file)
    * Merges loaded data with currently connected players
    */
-  loadSnapshot(snapshot: any): void {
+  loadSnapshot(snapshot: RoomSnapshot): void {
     // Merge players: Keep currently connected players, update their data if they exist in snapshot
-    const loadedPlayers = snapshot.players || [];
+    const loadedPlayers = snapshot.players ?? [];
     const mergedPlayers = this.state.players.map((currentPlayer) => {
       // Find matching player in loaded snapshot by UID
-      const savedPlayer = loadedPlayers.find((p: any) => p.uid === currentPlayer.uid);
+      const savedPlayer = loadedPlayers.find((p: Player) => p.uid === currentPlayer.uid);
       if (savedPlayer) {
         // Merge: Keep current connection data (lastHeartbeat, micLevel), restore saved data
         return {
@@ -103,14 +105,15 @@ export class RoomService {
 
     this.state = {
       users: this.state.users, // Keep current WebSocket connections
-      tokens: snapshot.tokens || [],
+      tokens: snapshot.tokens ?? [],
       players: mergedPlayers,
-      characters: snapshot.characters || [],
+      characters: snapshot.characters ?? [],
       mapBackground: snapshot.mapBackground,
       pointers: [], // Clear pointers on load
-      drawings: snapshot.drawings || [],
-      gridSize: snapshot.gridSize || 50,
-      diceRolls: snapshot.diceRolls || [],
+      drawings: snapshot.drawings ?? [],
+      gridSize: snapshot.gridSize ?? 50,
+      diceRolls: snapshot.diceRolls ?? [],
+      drawingRedoStacks: {},
     };
     console.log(`Loaded session snapshot from client - merged ${mergedPlayers.length} players`);
   }

@@ -4,7 +4,7 @@
 // Central container for service instantiation and dependency management
 // Follows Inversion of Control (IoC) principle
 
-import type { WebSocketServer } from "ws";
+import type { WebSocket, WebSocketServer } from "ws";
 import { RoomService } from "./domains/room/service.js";
 import { PlayerService } from "./domains/player/service.js";
 import { TokenService } from "./domains/token/service.js";
@@ -32,7 +32,7 @@ export class Container {
 
   // Infrastructure
   public readonly messageRouter: MessageRouter;
-  public readonly uidToWs: Map<string, any>;
+  public readonly uidToWs: Map<string, WebSocket>;
 
   constructor(wss: WebSocketServer) {
     // Initialize services (no dependencies between them)
@@ -47,7 +47,7 @@ export class Container {
     this.rateLimiter = new RateLimiter({ maxMessages: 100, windowMs: 1000 });
 
     // Initialize WebSocket connection tracking
-    this.uidToWs = new Map<string, any>();
+    this.uidToWs = new Map<string, WebSocket>();
 
     // Initialize message router (depends on services)
     this.messageRouter = new MessageRouter(

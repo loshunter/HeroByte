@@ -5,6 +5,8 @@
 // Handles selection, deselection, and provides drag callbacks
 
 import { useState, useCallback } from "react";
+import type Konva from "konva";
+import type { KonvaEventObject } from "konva/lib/Node";
 import type { ClientMessage } from "@shared";
 
 export interface UseDrawingSelectionProps {
@@ -35,8 +37,9 @@ export function useDrawingSelection({ selectMode, sendMessage }: UseDrawingSelec
    * Deselect when clicking empty space
    */
   const deselectIfEmpty = useCallback(
-    (e: any) => {
-      if (selectMode && e.target === e.target.getStage()) {
+    (event: KonvaEventObject<Event>) => {
+      const target = event.target as Konva.Node;
+      if (selectMode && target === target.getStage()) {
         selectDrawing(null);
       }
     },
@@ -47,8 +50,8 @@ export function useDrawingSelection({ selectMode, sendMessage }: UseDrawingSelec
    * Handle drag end - send final position to server
    */
   const onDrawingDragEnd = useCallback(
-    (drawingId: string, e: any) => {
-      const node = e.target;
+    (drawingId: string, event: KonvaEventObject<DragEvent>) => {
+      const node = event.target as Konva.Node;
       const dx = node.x();
       const dy = node.y();
 

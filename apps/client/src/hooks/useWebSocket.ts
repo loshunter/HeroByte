@@ -10,7 +10,7 @@ import type { RoomSnapshot, ClientMessage } from "@shared";
 interface UseWebSocketOptions {
   url: string;
   uid: string;
-  onRtcSignal?: (from: string, signal: any) => void;
+  onRtcSignal?: (from: string, signal: unknown) => void;
   autoConnect?: boolean;
 }
 
@@ -21,7 +21,7 @@ interface UseWebSocketReturn {
   send: (message: ClientMessage) => void;
   connect: () => void;
   disconnect: () => void;
-  registerRtcHandler: (handler: (from: string, signal: any) => void) => void;
+  registerRtcHandler: (handler: (from: string, signal: unknown) => void) => void;
 }
 
 /**
@@ -45,7 +45,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
   );
 
   // Use ref to store the current RTC signal handler
-  const rtcHandlerRef = useRef<((from: string, signal: any) => void) | undefined>(onRtcSignal);
+  const rtcHandlerRef = useRef<((from: string, signal: unknown) => void) | undefined>(onRtcSignal);
 
   // Use ref to avoid recreating service on re-renders
   const serviceRef = useRef<WebSocketService | null>(null);
@@ -87,7 +87,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     serviceRef.current?.disconnect();
   }, []);
 
-  const registerRtcHandler = useCallback((handler: (from: string, signal: any) => void) => {
+  const registerRtcHandler = useCallback((handler: (from: string, signal: unknown) => void) => {
     rtcHandlerRef.current = handler;
   }, []);
 

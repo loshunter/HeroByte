@@ -5,7 +5,6 @@
 // Extracted from App.tsx to follow single responsibility principle
 
 import React from "react";
-import type { ClientMessage } from "@shared";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
 
 interface HeaderProps {

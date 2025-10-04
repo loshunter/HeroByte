@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { validateMessage } from "../validation.ts";
+import { validateMessage } from "../validation.js";
+import type { ClientMessage } from "@shared";
 
 const baseDrawing = {
   id: "drawing-1",
@@ -46,6 +47,7 @@ describe("validateMessage", () => {
       { t: "point", x: 1, y: 2 },
       { t: "draw", drawing: baseDrawing },
       { t: "undo-drawing" },
+      { t: "redo-drawing" },
       { t: "clear-drawings" },
       { t: "select-drawing", id: "drawing-1" },
       { t: "deselect-drawing" },
@@ -92,9 +94,13 @@ describe("validateMessage", () => {
     expect(validateMessage({ t: "rename", name: "" })).toMatchObject({ valid: false });
     expect(validateMessage({ t: "grid-size", size: 5 })).toMatchObject({ valid: false });
     expect(validateMessage({ t: "mic-level", level: 1.5 })).toMatchObject({ valid: false });
-    expect(validateMessage({ t: "move-drawing", id: "draw", dx: "1", dy: 0 } as any)).toMatchObject(
-      { valid: false },
-    );
+    const invalidMoveDrawing = {
+      t: "move-drawing",
+      id: "draw",
+      dx: "1",
+      dy: 0,
+    } as unknown as ClientMessage;
+    expect(validateMessage(invalidMoveDrawing)).toMatchObject({ valid: false });
   });
 
   it("enforces payload size limits", () => {
@@ -112,9 +118,11 @@ describe("validateMessage", () => {
   });
 
   it("validates drawing structure and complexity", () => {
-    expect(
-      validateMessage({ t: "draw", drawing: { id: "missing", type: "freehand" } as any }),
-    ).toMatchObject({ valid: false });
+    const invalidDrawingMessage = {
+      t: "draw",
+      drawing: { id: "missing", type: "freehand" },
+    } as unknown as ClientMessage;
+    expect(validateMessage(invalidDrawingMessage)).toMatchObject({ valid: false });
 
     const tooManyPoints = {
       ...baseDrawing,

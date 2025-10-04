@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { TokenService } from "../token/service.ts";
-import { createEmptyRoomState } from "../room/model.ts";
+import { TokenService } from "../token/service.js";
+import { createEmptyRoomState } from "../room/model.js";
 
 describe("TokenService", () => {
   const service = new TokenService();

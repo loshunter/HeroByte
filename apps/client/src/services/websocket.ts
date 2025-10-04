@@ -7,10 +7,27 @@
 // - https://ably.com/topic/websocket-architecture
 
 import type { RoomSnapshot, ClientMessage } from "@shared";
+import type { SignalData } from "simple-peer";
 
 type MessageHandler = (snapshot: RoomSnapshot) => void;
-type RtcSignalHandler = (from: string, signal: any) => void;
+type RtcSignalHandler = (from: string, signal: SignalData) => void;
 type ConnectionStateHandler = (state: ConnectionState) => void;
+
+type RtcSignalMessage = {
+  t: "rtc-signal";
+  from: string;
+  signal: SignalData;
+};
+
+function isRtcSignalMessage(value: unknown): value is RtcSignalMessage {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<RtcSignalMessage>;
+  return (
+    candidate.t === "rtc-signal" &&
+    typeof candidate.from === "string" &&
+    Object.prototype.hasOwnProperty.call(candidate, "signal")
+  );
+}
 
 export enum ConnectionState {
   CONNECTING = "connecting",
@@ -161,16 +178,15 @@ export class WebSocketService {
     this.lastPongTime = Date.now(); // Any message counts as "alive"
 
     try {
-      const msg = JSON.parse(data);
+      const parsed: unknown = JSON.parse(data);
 
-      // Route RTC signaling messages
-      if (msg.t === "rtc-signal") {
-        this.config.onRtcSignal(msg.from, msg.signal);
+      if (isRtcSignalMessage(parsed)) {
+        this.config.onRtcSignal(parsed.from, parsed.signal);
         return;
       }
 
       // All other messages are room snapshots
-      this.config.onMessage(msg as RoomSnapshot);
+      this.config.onMessage(parsed as RoomSnapshot);
     } catch (error) {
       console.error("[WebSocket] Invalid message:", error, data);
     }

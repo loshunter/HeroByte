@@ -34,7 +34,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run lint checks
-        run: pnpm lint || true  # Allow linting to pass with warnings for now
+        run: pnpm lint
 
       - name: Build packages
         run: pnpm build

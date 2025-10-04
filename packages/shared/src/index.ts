@@ -151,6 +151,7 @@ export type ClientMessage =
   | { t: "point"; x: number; y: number } // Place pointer indicator
   | { t: "draw"; drawing: Drawing } // Add a drawing
   | { t: "undo-drawing" } // Undo last drawing by this player
+  | { t: "redo-drawing" } // Redo last undone drawing by this player
   | { t: "clear-drawings" } // Remove all drawings
   | { t: "select-drawing"; id: string } // Select a drawing for editing
   | { t: "deselect-drawing" } // Deselect current drawing

@@ -7,12 +7,16 @@ vi.mock("fs", () => ({
 }));
 
 import { writeFileSync, readFileSync, existsSync } from "fs";
-import { RoomService } from "../room/service.ts";
+import { RoomService } from "../room/service.js";
+import { WebSocket } from "ws";
 
-const createClient = () => ({
-  readyState: 1,
-  send: vi.fn(),
-});
+const createClient = (): WebSocket => {
+  const mock = {
+    readyState: WebSocket.OPEN,
+    send: vi.fn<(data: string | Buffer) => void>(),
+  };
+  return mock as unknown as WebSocket;
+};
 
 describe("RoomService", () => {
   beforeEach(() => {
@@ -95,10 +99,11 @@ describe("RoomService", () => {
     state.tokens.push({ id: "token-3", owner: "uid-3", x: 3, y: 4, color: "#f00" });
 
     const client = createClient();
-    service.broadcast(new Set([client as any]));
+    service.broadcast(new Set<WebSocket>([client]));
 
     expect(client.send).toHaveBeenCalledTimes(1);
-    const payload = JSON.parse(client.send.mock.calls[0][0]);
+    const sendMock = vi.mocked(client.send);
+    const payload = JSON.parse(sendMock.mock.calls[0][0] as string);
     expect(payload.pointers).toHaveLength(0);
     expect(payload.tokens).toHaveLength(1);
     expect(writeFileSync).toHaveBeenCalledTimes(1);

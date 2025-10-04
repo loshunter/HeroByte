@@ -18,6 +18,7 @@ export interface RoomState {
   drawings: Drawing[]; // Freehand drawings
   gridSize: number; // Synchronized grid size
   diceRolls: DiceRoll[]; // Dice roll history
+  drawingRedoStacks: Record<string, Drawing[]>; // Per-player redo stacks
 }
 
 /**
@@ -34,6 +35,7 @@ export function createEmptyRoomState(): RoomState {
     drawings: [],
     gridSize: 50,
     diceRolls: [],
+    drawingRedoStacks: {},
   };
 }
 

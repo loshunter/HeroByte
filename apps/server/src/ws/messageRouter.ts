@@ -4,6 +4,7 @@
 // Routes incoming WebSocket messages to appropriate domain services
 
 import type { WebSocket, WebSocketServer } from "ws";
+import type { SignalData } from "simple-peer";
 import type { ClientMessage } from "@shared";
 import { RoomService } from "../domains/room/service.js";
 import { PlayerService } from "../domains/player/service.js";
@@ -162,6 +163,12 @@ export class MessageRouter {
           }
           break;
 
+        case "redo-drawing":
+          if (this.mapService.redoDrawing(state, senderUid)) {
+            this.broadcast();
+          }
+          break;
+
         case "clear-drawings":
           this.mapService.clearDrawings(state);
           this.broadcast();
@@ -202,37 +209,37 @@ export class MessageRouter {
           break;
 
         // ROOM MANAGEMENT
-        case "clear-all-tokens":
+        case "clear-all-tokens": {
           this.tokenService.clearAllTokensExcept(state, senderUid);
-          // Also clear players except sender
           state.players = state.players.filter((p) => p.uid === senderUid);
           this.broadcast();
           this.roomService.saveState();
           break;
+        }
 
-        case "heartbeat":
-          // Update player's last heartbeat timestamp
+        case "heartbeat": {
           const player = state.players.find((p) => p.uid === senderUid);
           if (player) {
             player.lastHeartbeat = Date.now();
           }
-          // No broadcast needed for heartbeat
           break;
+        }
 
-        case "load-session":
-          // Load a saved session state, replacing current state
+        case "load-session": {
           this.roomService.loadSnapshot(message.snapshot);
           this.broadcast();
           this.roomService.saveState();
           break;
+        }
 
-        // WEBRTC SIGNALING
-        case "rtc-signal":
-          this.forwardRtcSignal(message.target, senderUid, message.signal);
+        case "rtc-signal": {
+          this.forwardRtcSignal(message.target, senderUid, message.signal as SignalData);
           break;
+        }
 
-        default:
-          console.warn("Unknown message type:", (message as any).t);
+        default: {
+          console.warn("Unknown message type:", (message as ClientMessage).t);
+        }
       }
     } catch (err) {
       console.error("Error routing message:", err);
@@ -242,7 +249,7 @@ export class MessageRouter {
   /**
    * Forward WebRTC signaling to target peer
    */
-  private forwardRtcSignal(targetUid: string, fromUid: string, signal: any): void {
+  private forwardRtcSignal(targetUid: string, fromUid: string, signal: SignalData): void {
     const targetWs = this.uidToWs.get(targetUid);
     if (targetWs && targetWs.readyState === 1) {
       targetWs.send(JSON.stringify({ t: "rtc-signal", from: fromUid, signal }));

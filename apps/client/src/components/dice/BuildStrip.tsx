@@ -3,7 +3,7 @@
 // ============================================================================
 
 import React from "react";
-import type { Build, Token } from "./types";
+import type { Build } from "./types";
 import { DiceToken } from "./DiceToken";
 
 interface BuildStripProps {

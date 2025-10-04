@@ -5,7 +5,6 @@
 // Provides controls for drawing tool selection, colors, brush size, opacity, etc.
 
 import React from "react";
-import type { ClientMessage } from "@shared";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 
@@ -16,12 +15,14 @@ export interface DrawingToolbarProps {
   drawOpacity: number;
   drawFilled: boolean;
   canUndo?: boolean;
+  canRedo?: boolean;
   onToolChange: (tool: "freehand" | "line" | "rect" | "circle" | "eraser") => void;
   onColorChange: (color: string) => void;
   onWidthChange: (width: number) => void;
   onOpacityChange: (opacity: number) => void;
   onFilledChange: (filled: boolean) => void;
   onUndo?: () => void;
+  onRedo?: () => void;
   onClearAll: () => void;
 }
 
@@ -47,12 +48,14 @@ export function DrawingToolbar({
   drawOpacity,
   drawFilled,
   canUndo = false,
+  canRedo = false,
   onToolChange,
   onColorChange,
   onWidthChange,
   onOpacityChange,
   onFilledChange,
   onUndo,
+  onRedo,
   onClearAll,
 }: DrawingToolbarProps) {
   return (
@@ -242,6 +245,18 @@ export function DrawingToolbar({
                 style={{ fontSize: "8px", padding: "6px" }}
               >
                 ↶ Undo
+              </JRPGButton>
+            )}
+
+            {/* Redo Button */}
+            {onRedo && (
+              <JRPGButton
+                onClick={onRedo}
+                variant="default"
+                disabled={!canRedo}
+                style={{ fontSize: "8px", padding: "6px" }}
+              >
+                ↷ Redo
               </JRPGButton>
             )}
 

@@ -9,8 +9,12 @@
  */
 export function generateUUID(): string {
   // Modern browsers support crypto.randomUUID()
-  if (typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function") {
-    return (crypto as any).randomUUID();
+  const cryptoObj = typeof globalThis !== "undefined" ? globalThis.crypto : undefined;
+  if (
+    cryptoObj &&
+    typeof (cryptoObj as Partial<Crypto & { randomUUID: () => string }>).randomUUID === "function"
+  ) {
+    return (cryptoObj as Crypto & { randomUUID: () => string }).randomUUID();
   }
 
   // Fallback for older browsers
