@@ -1,215 +1,272 @@
 # ChatGPT Next Tasks
 
-You've completed **Phase 1-3: Testing Infrastructure & CI/CD**. Excellent work! 🎉
-
-Here are your next options. **Choose ONE lane to focus on:**
+## ✅ Completed
+- **Phase 1-3**: Testing Infrastructure & CI/CD (54 tests, 99.57% shared coverage)
+- **Contributor Polish**: CONTRIBUTING.md + GitHub templates
 
 ---
 
-## Option 1: Contributor Polish (RECOMMENDED NEXT)
+## 🎯 Current Task: Code Hygiene
 
-**Goal**: Finish the CRITICAL contributor-readiness items to make the repo welcoming for newcomers.
+**Goal**: Clean up all linting warnings to achieve zero-warning build and maintain code quality.
 
-### Tasks
+### Task Breakdown (Complete in Order)
 
-1. **Create CONTRIBUTING.md**
-   - Location: `/home/loshunter/HeroByte/CONTRIBUTING.md`
-   - Contents:
-     - Getting Started (fork, clone, install)
-     - Development Workflow (branch from `dev`, naming conventions)
-     - Code Style Guide (ESLint, Prettier, TypeScript strict mode)
-     - Testing Requirements (run `pnpm test`, add tests for new features)
-     - PR Process (create PR, link issues, wait for CI, code review)
-     - Commit Message Guidelines (concise, descriptive)
-   - Reference: See DEVELOPMENT.md and TESTING_SETUP.md for context
+---
 
-2. **Create GitHub Issue Templates**
+## Task 1: Fix Browser Globals in Client (HIGHEST PRIORITY)
 
-   **Bug Report** - `.github/ISSUE_TEMPLATE/bug_report.md`:
-   ```markdown
-   ---
-   name: Bug Report
-   about: Report a bug or unexpected behavior
-   title: '[BUG] '
-   labels: bug
-   ---
+**Problem**: 59 errors in client code due to missing browser global type definitions.
 
-   ## Description
-   A clear description of the bug.
+**Solution**: Add missing browser globals to ESLint configuration.
 
-   ## Steps to Reproduce
-   1. Go to '...'
-   2. Click on '...'
-   3. See error
+### Steps
 
-   ## Expected Behavior
-   What you expected to happen.
+1. **Update `eslint.config.js`**
+   - Location: `/home/loshunter/HeroByte/eslint.config.js`
+   - Find the React configuration section (around line 47-65)
+   - Add these missing globals to the `globals` object:
+     ```javascript
+     globals: {
+       window: "readonly",
+       document: "readonly",
+       navigator: "readonly",
+       localStorage: "readonly",
+       MediaStream: "readonly",
+       Audio: "readonly",
+       crypto: "readonly",
+       // ADD THESE:
+       WebSocket: "readonly",
+       HTMLElement: "readonly",
+       HTMLDivElement: "readonly",
+       KeyboardEvent: "readonly",
+       ResizeObserver: "readonly",
+       prompt: "readonly",
+       setTimeout: "readonly",
+       clearTimeout: "readonly",
+       setInterval: "readonly",
+       clearInterval: "readonly",
+     },
+     ```
 
-   ## Actual Behavior
-   What actually happened.
-
-   ## Environment
-   - OS: [e.g., Windows 11, macOS 13, Ubuntu 22.04]
-   - Browser: [e.g., Chrome 120, Firefox 121]
-   - Node version: [e.g., 18.19.0]
-
-   ## Additional Context
-   Screenshots, logs, or other relevant info.
+2. **Test the Fix**
+   ```bash
+   pnpm --filter herobyte-client lint
    ```
+   - Should see significant reduction in errors (59 → ~10-20)
 
-   **Feature Request** - `.github/ISSUE_TEMPLATE/feature_request.md`:
-   ```markdown
-   ---
-   name: Feature Request
-   about: Suggest a new feature or enhancement
-   title: '[FEATURE] '
-   labels: enhancement
-   ---
-
-   ## Feature Description
-   A clear description of the feature you'd like to see.
-
-   ## Use Case
-   Why is this feature valuable? What problem does it solve?
-
-   ## Proposed Solution
-   How should this feature work?
-
-   ## Alternatives Considered
-   Other approaches you've thought about.
-
-   ## Additional Context
-   Mockups, examples, or related features.
-   ```
-
-3. **Create Pull Request Template**
-
-   **Location**: `.github/pull_request_template.md`
-   ```markdown
-   ## Description
-   Brief description of what this PR does.
-
-   ## Related Issues
-   Closes #[issue number]
-
-   ## Changes Made
-   - [ ] Added/Updated feature X
-   - [ ] Fixed bug Y
-   - [ ] Added tests for Z
-
-   ## Testing
-   - [ ] All tests pass (`pnpm test`)
-   - [ ] Linting passes (`pnpm lint`)
-   - [ ] Tested locally
-
-   ## Screenshots (if applicable)
-   Add screenshots or GIFs showing the changes.
-
-   ## Checklist
-   - [ ] Code follows project style guidelines
-   - [ ] Tests added/updated for new functionality
-   - [ ] Documentation updated (README, TODO, etc.)
-   - [ ] No breaking changes (or documented if unavoidable)
-   ```
-
-4. **Update TODO.md**
-   - Mark completed items in CRITICAL section:
-     - [x] Issue Templates
-     - [x] Pull request template
-     - [x] Contributing guidelines
+3. **Fix Remaining Unused Variable Errors**
+   - Prefix unused variables with `_` (e.g., `const _token` instead of `const token`)
+   - Or remove the variable if truly unused
+   - Files likely affected:
+     - `apps/client/src/components/dice/BuildStrip.tsx`
+     - `apps/client/src/components/dice/DiceRoller.tsx`
+     - `apps/client/src/ui/App.tsx`
+     - `apps/client/src/ui/MapBoard.tsx`
 
 ### Success Criteria
-- ✅ CONTRIBUTING.md exists and is comprehensive
-- ✅ 3 GitHub templates created (.github/ISSUE_TEMPLATE/*, .github/pull_request_template.md)
-- ✅ TODO.md updated with completed items
-- ✅ Ready for external contributors
+- ✅ `pnpm --filter herobyte-client lint` passes with <10 warnings
+- ✅ All 59 "not defined" errors are fixed
+- ✅ Unused variable errors reduced
 
 ---
 
-## Option 2: Feature Roadmap (Phase 9 Work)
+## Task 2: Replace `any` with `unknown` in Server
 
-**Goal**: Implement Phase 9 features (Core State & Persistence).
+**Problem**: 20+ warnings in server code due to explicit `any` types.
 
-### Tasks (Pick ONE to start)
+**Solution**: Replace `any` with `unknown` and add proper type guards/assertions.
 
-#### 2A: Undo/Redo System for Drawings
-- Add redo support (Ctrl+Y) to complement existing Ctrl+Z undo
-- Location: `apps/client/src/hooks/useDrawingState.ts`
-- Add `redoStack` state and `redo()` function
-- Update keyboard handlers in `MapBoard.tsx`
+### Steps
 
-#### 2B: Player State Persistence
-- Create `playerPersistence.ts` utility in `apps/client/src/utils/`
-- Implement `savePlayerState()` and `loadPlayerState()` functions using JSON download/upload
-- Add Save/Load buttons to `PlayerCard.tsx`
-- Test: Save player → reload tab → Load file → state restored
+1. **Find All `any` Types**
+   ```bash
+   pnpm --filter herobyte-server lint
+   ```
+   - Look for warnings like: "Unexpected any. Specify a different type"
 
-#### 2C: Session Save/Load
-- Create `sessionPersistence.ts` in `apps/client/src/utils/`
-- Implement `saveSession()` and `loadSession()` for full RoomSnapshot
-- Add Save/Load buttons to `Header.tsx`
-- Test: Save session → clear → load → full state restored
+2. **Fix Each File**
 
-### Reference
-- See TODO.md "Phase 9: Core State & Persistence" for full roadmap
-- Follow SOLID principles (SRP, DIP, OCP)
-- Add tests for new utilities
+   **Files to update** (in order of priority):
 
----
+   - `apps/server/src/container.ts` (2 warnings)
+     - Look for dependency injection container methods
+     - Replace `any` with `unknown` or specific interface types
 
-## Option 3: Code Hygiene
+   - `apps/server/src/middleware/validation.ts` (2 warnings)
+     - Look for message validation functions
+     - Use type guards to narrow `unknown` to specific message types
 
-**Goal**: Clean up linting warnings to maintain code quality.
+   - `apps/server/src/domains/room/service.ts` (2 warnings)
+     - Look for state update methods
+     - Replace `any` with proper RoomState or specific types
 
-### Tasks (In Order)
+   - `apps/server/src/ws/**/*.ts` (multiple warnings)
+     - Look for WebSocket message handlers
+     - Use type predicates or assertions
 
-1. **Fix Browser Globals in Client** (59 errors)
-   - Add missing globals to `eslint.config.js`:
-     - `WebSocket`, `HTMLElement`, `HTMLDivElement`, `KeyboardEvent`, `ResizeObserver`, `prompt`
-   - Location: `eslint.config.js` → React configuration → globals section
+3. **Example Pattern**
 
-2. **Replace `any` with `unknown`** (20 warnings in server)
-   - Files to fix:
-     - `apps/server/src/container.ts` (2 warnings)
-     - `apps/server/src/domains/room/service.ts` (2 warnings)
-     - `apps/server/src/middleware/validation.ts` (2 warnings)
-     - `apps/server/src/ws/**/*.ts` (multiple warnings)
-   - Use type guards or assertions after replacing `any` with `unknown`
+   **Before:**
+   ```typescript
+   function handleMessage(msg: any) {
+     if (msg.t === "move-token") {
+       // ...
+     }
+   }
+   ```
 
-3. **Remove Unused Imports** (multiple files)
-   - Run `npx eslint --fix` to auto-remove unused imports
-   - Manually review and fix remaining cases
+   **After:**
+   ```typescript
+   function handleMessage(msg: unknown) {
+     if (isClientMessage(msg) && msg.t === "move-token") {
+       // ...
+     }
+   }
 
-4. **Lower Linting Thresholds**
-   - After fixes, reduce `--max-warnings` in:
-     - `apps/server/package.json` (currently 50 → target 0)
-     - `apps/client/package.json` (currently 200 → target 50 → target 0)
+   function isClientMessage(msg: unknown): msg is ClientMessage {
+     return typeof msg === "object" && msg !== null && "t" in msg;
+   }
+   ```
+
+4. **Test the Fixes**
+   ```bash
+   pnpm --filter herobyte-server lint
+   ```
+   - Should see warnings drop from 20+ to <10
 
 ### Success Criteria
-- ✅ All lint errors fixed
-- ✅ Warnings reduced to <10 total
-- ✅ CI lint check passes without `|| true` fallback
+- ✅ All `any` types replaced with `unknown` or specific types
+- ✅ Type guards added where needed
+- ✅ `pnpm --filter herobyte-server lint` shows <10 warnings
 
 ---
 
-## Recommendation
+## Task 3: Remove Unused Imports
 
-**Start with Option 1: Contributor Polish**
+**Problem**: Multiple files have unused imports cluttering the code.
 
-This is the quickest win and completes the CRITICAL contributor-readiness work. It should take 30-45 minutes and makes the repo immediately ready for external contributors.
+**Solution**: Auto-fix with ESLint and manually review remaining cases.
 
-After that, you can choose between:
-- **Feature work** (Option 2) for new functionality
-- **Code hygiene** (Option 3) for technical debt
+### Steps
+
+1. **Auto-fix Unused Imports**
+   ```bash
+   pnpm lint --fix
+   ```
+   - This will automatically remove most unused imports
+
+2. **Verify Changes**
+   ```bash
+   git diff
+   ```
+   - Review removed imports to ensure nothing critical was deleted
+
+3. **Run Linting Again**
+   ```bash
+   pnpm lint
+   ```
+   - Check if any unused import warnings remain
+
+4. **Manual Cleanup (if needed)**
+   - If auto-fix didn't catch everything:
+     - Search for "is defined but never used" warnings
+     - Remove or use the imported items
+
+### Success Criteria
+- ✅ No "unused import" warnings remain
+- ✅ All imports are actually used in the code
+- ✅ Tests still pass after cleanup
+
+---
+
+## Task 4: Lower Linting Thresholds
+
+**Problem**: Temporary high `--max-warnings` thresholds mask code quality issues.
+
+**Solution**: Gradually reduce thresholds to zero after fixing warnings.
+
+### Steps
+
+1. **Check Current Warning Count**
+   ```bash
+   pnpm --filter herobyte-server lint
+   pnpm --filter herobyte-client lint
+   ```
+   - Note the actual warning count for each package
+
+2. **Update Server Threshold**
+   - Location: `apps/server/package.json`
+   - Current: `"lint": "eslint . --max-warnings 50"`
+   - Target: Reduce to actual warning count (e.g., 10, then 5, then 0)
+   - Example:
+     ```json
+     "lint": "eslint . --max-warnings 10"
+     ```
+
+3. **Update Client Threshold**
+   - Location: `apps/client/package.json`
+   - Current: `"lint": "eslint . --max-warnings 200"`
+   - Target: Reduce to ~50, then 20, then 0
+   - Example:
+     ```json
+     "lint": "eslint . --max-warnings 50"
+     ```
+
+4. **Update CI Workflow**
+   - Location: `.github/workflows/ci.yml`
+   - Remove `|| true` fallback from lint step:
+     ```yaml
+     - name: Run lint checks
+       run: pnpm lint  # Remove || true
+     ```
+
+5. **Test CI Locally**
+   ```bash
+   pnpm lint
+   pnpm test
+   pnpm build
+   ```
+   - Ensure all checks pass before pushing
+
+### Success Criteria
+- ✅ Server lint threshold reduced to 0
+- ✅ Client lint threshold reduced to 0
+- ✅ CI workflow enforces strict linting (no `|| true`)
+- ✅ All checks pass on CI
+
+---
+
+## After Completion
+
+Once all 4 tasks are done:
+
+1. **Commit Changes**
+   ```bash
+   git add .
+   git commit -m "Complete code hygiene: Fix browser globals, replace any with unknown, remove unused imports, enforce zero-warning linting"
+   ```
+
+2. **Push to Dev**
+   ```bash
+   git push origin dev
+   ```
+
+3. **Update TODO.md**
+   - Mark "Code Hygiene" items as complete in CRITICAL section
+
+4. **Report Summary**
+   - Total warnings reduced: [before] → [after]
+   - Files cleaned: [count]
+   - Linting thresholds: Server 50→0, Client 200→0
 
 ---
 
 ## How to Proceed
 
-1. Choose ONE option above
-2. Work through the tasks in order
-3. Commit changes incrementally (one task per commit)
-4. Push to `dev` branch when complete
-5. Report back with summary of completed work
+1. Work through tasks **in order** (Task 1 → Task 2 → Task 3 → Task 4)
+2. Test after each task to ensure nothing breaks
+3. Commit incrementally (one task per commit)
+4. Report back with summary when all tasks complete
 
-Let me know which option you want to tackle!
+Let me know if you encounter any issues or need clarification on any step!
