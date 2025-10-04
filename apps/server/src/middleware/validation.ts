@@ -119,6 +119,63 @@ export function validateMessage(raw: unknown): ValidationResult {
       break;
     }
 
+    case "create-npc": {
+      const { name, hp, maxHp, portrait, tokenImage } = message;
+      if (typeof name !== "string" || name.length === 0 || name.length > 50) {
+        return { valid: false, error: "create-npc: name must be 1-50 characters" };
+      }
+      if (!isFiniteNumber(hp) || hp <= 0) {
+        return { valid: false, error: "create-npc: hp must be positive" };
+      }
+      if (!isFiniteNumber(maxHp) || maxHp <= 0) {
+        return { valid: false, error: "create-npc: maxHp must be positive" };
+      }
+      if (portrait !== undefined && typeof portrait !== "string") {
+        return { valid: false, error: "create-npc: portrait must be a string" };
+      }
+      if (typeof tokenImage !== "undefined" && typeof tokenImage !== "string") {
+        return { valid: false, error: "create-npc: tokenImage must be a string" };
+      }
+      break;
+    }
+
+    case "update-npc": {
+      const { id, name, hp, maxHp, portrait, tokenImage } = message;
+      if (typeof id !== "string" || id.length === 0) {
+        return { valid: false, error: "update-npc: missing or invalid id" };
+      }
+      if (typeof name !== "string" || name.length === 0 || name.length > 50) {
+        return { valid: false, error: "update-npc: name must be 1-50 characters" };
+      }
+      if (!isFiniteNumber(hp) || hp < 0) {
+        return { valid: false, error: "update-npc: hp must be non-negative" };
+      }
+      if (!isFiniteNumber(maxHp) || maxHp <= 0) {
+        return { valid: false, error: "update-npc: maxHp must be positive" };
+      }
+      if (portrait !== undefined && typeof portrait !== "string") {
+        return { valid: false, error: "update-npc: portrait must be a string" };
+      }
+      if (tokenImage !== undefined && typeof tokenImage !== "string") {
+        return { valid: false, error: "update-npc: tokenImage must be a string" };
+      }
+      break;
+    }
+
+    case "delete-npc": {
+      if (typeof message.id !== "string" || message.id.length === 0) {
+        return { valid: false, error: "delete-npc: missing or invalid id" };
+      }
+      break;
+    }
+
+    case "place-npc-token": {
+      if (typeof message.id !== "string" || message.id.length === 0) {
+        return { valid: false, error: "place-npc-token: missing or invalid id" };
+      }
+      break;
+    }
+
     case "claim-character": {
       if (typeof message.characterId !== "string" || message.characterId.length === 0) {
         return { valid: false, error: "claim-character: missing or invalid characterId" };

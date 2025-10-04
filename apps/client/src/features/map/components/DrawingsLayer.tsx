@@ -23,6 +23,7 @@ interface DrawingsLayerProps {
   selectedDrawingId: string | null;
   onSelectDrawing: (drawingId: string | null) => void;
   onDrawingDragEnd: (drawingId: string, e: KonvaEventObject<DragEvent>) => void;
+  localOffsets?: Record<string, { dx: number; dy: number }>;
 }
 
 /**
@@ -45,16 +46,22 @@ export const DrawingsLayer = memo(function DrawingsLayer({
   selectedDrawingId,
   onSelectDrawing,
   onDrawingDragEnd,
+  localOffsets,
 }: DrawingsLayerProps) {
   // Render a single completed drawing
   const renderDrawing = (drawing: Drawing) => {
-    const points = drawing.points;
+    const originalPoints = drawing.points;
 
     // Defensive check: ensure points array exists and has elements
-    if (!points || points.length === 0) {
+    if (!originalPoints || originalPoints.length === 0) {
       console.warn(`Drawing ${drawing.id} has invalid points array`);
       return null;
     }
+
+    const offset = localOffsets?.[drawing.id];
+    const points = offset
+      ? originalPoints.map((p) => ({ x: p.x + offset.dx, y: p.y + offset.dy }))
+      : originalPoints;
 
     const isSelected = selectedDrawingId === drawing.id;
     const isOwner = drawing.owner === uid;

@@ -9,7 +9,7 @@
 // - Tool modes (pointer, measure, draw)
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import MapBoard from "./MapBoard";
+import MapBoard, { type CameraCommand } from "./MapBoard";
 import { useVoiceChat } from "./useVoiceChat";
 import { DiceRoller } from "../components/dice/DiceRoller";
 import { RollLog } from "../components/dice/RollLog";
@@ -114,6 +114,9 @@ export const App: React.FC = () => {
 
   // CRT filter toggle
   const [crtFilter, setCrtFilter] = useState(false);
+
+  // Camera commands
+  const [cameraCommand, setCameraCommand] = useState<CameraCommand | null>(null);
 
   // Dice roller toggle and state
   const [diceRollerOpen, setDiceRollerOpen] = useState(false);
@@ -267,6 +270,52 @@ export const App: React.FC = () => {
     [sendMessage],
   );
 
+  const handleFocusSelf = useCallback(() => {
+    const myToken = snapshot?.tokens?.find((t) => t.owner === uid);
+    if (!myToken) {
+      window.alert("You don't have a token on the map yet.");
+      return;
+    }
+    setCameraCommand({ type: "focus-token", tokenId: myToken.id });
+  }, [snapshot?.tokens, uid]);
+
+  const handleResetCamera = useCallback(() => {
+    setCameraCommand({ type: "reset" });
+  }, []);
+
+  const handleCreateNPC = useCallback(() => {
+    sendMessage({ t: "create-npc", name: "New NPC", hp: 10, maxHp: 10 });
+  }, [sendMessage]);
+
+  const handleUpdateNPC = useCallback(
+    (id: string, updates: { name: string; hp: number; maxHp: number; portrait?: string; tokenImage?: string }) => {
+      sendMessage({
+        t: "update-npc",
+        id,
+        name: updates.name,
+        hp: updates.hp,
+        maxHp: updates.maxHp,
+        portrait: updates.portrait,
+        tokenImage: updates.tokenImage,
+      });
+    },
+    [sendMessage],
+  );
+
+  const handleDeleteNPC = useCallback(
+    (id: string) => {
+      sendMessage({ t: "delete-npc", id });
+    },
+    [sendMessage],
+  );
+
+  const handlePlaceNPCToken = useCallback(
+    (id: string) => {
+      sendMessage({ t: "place-npc-token", id });
+    },
+    [sendMessage],
+  );
+
   const handleSaveSession = useCallback(
     (name: string) => {
       if (!snapshot) {
@@ -364,6 +413,8 @@ export const App: React.FC = () => {
         onDiceRollerToggle={setDiceRollerOpen}
         onRollLogToggle={setRollLogOpen}
         topPanelRef={topPanelRef}
+        onFocusSelf={handleFocusSelf}
+        onResetCamera={handleResetCamera}
       />
 
       {/* Main Whiteboard Panel - fills space between fixed top and bottom */}
@@ -396,6 +447,8 @@ export const App: React.FC = () => {
           onRecolorToken={recolorToken}
           onDeleteToken={deleteToken}
           onDrawingComplete={addToHistory}
+          cameraCommand={cameraCommand}
+          onCameraCommandHandled={() => setCameraCommand(null)}
         />
       </div>
 
@@ -447,6 +500,10 @@ export const App: React.FC = () => {
         characters={snapshot?.characters || []}
         onRequestSaveSession={snapshot ? handleSaveSession : undefined}
         onRequestLoadSession={handleLoadSession}
+        onCreateNPC={handleCreateNPC}
+        onUpdateNPC={handleUpdateNPC}
+        onDeleteNPC={handleDeleteNPC}
+        onPlaceNPCToken={handlePlaceNPCToken}
       />
 
       {/* Context Menu */}

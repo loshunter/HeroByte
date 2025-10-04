@@ -88,13 +88,14 @@ export interface Drawing {
  */
 export interface Character {
   id: string; // Unique character identifier
-  type: "pc"; // Phase 1: Only PCs (will add "npc" in Phase 2)
+  type: "pc" | "npc"; // Character type (player character or NPC)
   name: string; // Character name
   portrait?: string; // Character portrait (Base64 or URL)
   hp: number; // Current hit points
   maxHp: number; // Maximum hit points
   tokenId?: string | null; // ID of token on map (null if no token)
   ownedByPlayerUID?: string | null; // Player who controls this character (null = unclaimed)
+  tokenImage?: string | null; // Optional token image URL for NPC tokens
 
   // Future fields (Phase 2+):
   // templateId?: string;        // Link to character template (for NPCs)
@@ -148,6 +149,25 @@ export type ClientMessage =
   | { t: "claim-character"; characterId: string } // Player claims unclaimed PC
   | { t: "update-character-hp"; characterId: string; hp: number; maxHp: number } // Update character HP
   | { t: "link-token"; characterId: string; tokenId: string } // Link token to character
+  | {
+      t: "create-npc";
+      name: string;
+      hp: number;
+      maxHp: number;
+      portrait?: string;
+      tokenImage?: string;
+    }
+  | {
+      t: "update-npc";
+      id: string;
+      name: string;
+      hp: number;
+      maxHp: number;
+      portrait?: string;
+      tokenImage?: string;
+    }
+  | { t: "delete-npc"; id: string }
+  | { t: "place-npc-token"; id: string }
 
   // Map/canvas actions
   | { t: "map-background"; data: string } // Set map background image

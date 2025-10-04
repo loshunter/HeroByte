@@ -127,6 +127,53 @@ export class MessageRouter {
           this.roomService.saveState();
           break;
 
+        case "create-npc":
+          this.characterService.createCharacter(
+            state,
+            message.name,
+            message.maxHp,
+            message.portrait,
+            "npc",
+            { hp: message.hp, tokenImage: message.tokenImage },
+          );
+          this.broadcast();
+          this.roomService.saveState();
+          break;
+
+        case "update-npc":
+          if (
+            this.characterService.updateNPC(state, this.tokenService, message.id, {
+              name: message.name,
+              hp: message.hp,
+              maxHp: message.maxHp,
+              portrait: message.portrait,
+              tokenImage: message.tokenImage,
+            })
+          ) {
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+
+        case "delete-npc": {
+          const removed = this.characterService.deleteCharacter(state, message.id);
+          if (removed) {
+            if (removed.tokenId) {
+              this.tokenService.forceDeleteToken(state, removed.tokenId);
+            }
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+        }
+
+        case "place-npc-token":
+          if (this.characterService.placeNPCToken(state, this.tokenService, message.id, senderUid)) {
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+
         case "claim-character":
           if (this.characterService.claimCharacter(state, message.characterId, senderUid)) {
             this.broadcast();

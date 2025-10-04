@@ -279,10 +279,11 @@ export class CharacterModel {
     public name: string,
     public hp: number,
     public maxHp: number,
-    public type: "pc" = "pc",
+    public type: "pc" | "npc" = "pc",
     public portrait?: string,
     public tokenId: string | null = null,
     public ownedByPlayerUID: string | null = null,
+    public tokenImage: string | null = null,
   ) {}
 
   /**
@@ -294,10 +295,11 @@ export class CharacterModel {
       data.name,
       data.hp,
       data.maxHp,
-      (data.type ?? "pc") as "pc",
+      (data.type ?? "pc") === "npc" ? "npc" : "pc",
       data.portrait,
       data.tokenId ?? null,
       data.ownedByPlayerUID ?? null,
+      data.tokenImage ?? null,
     );
   }
 
@@ -314,6 +316,7 @@ export class CharacterModel {
       portrait: this.portrait,
       tokenId: this.tokenId ?? undefined,
       ownedByPlayerUID: this.ownedByPlayerUID ?? undefined,
+      tokenImage: this.tokenImage ?? undefined,
     };
   }
 
@@ -333,6 +336,7 @@ export class CharacterModel {
       this.portrait,
       this.tokenId,
       this.ownedByPlayerUID,
+      this.tokenImage,
     );
   }
 
@@ -363,6 +367,7 @@ export class CharacterModel {
       this.portrait,
       tokenId,
       this.ownedByPlayerUID,
+      this.tokenImage,
     );
   }
 
@@ -379,6 +384,54 @@ export class CharacterModel {
       this.portrait,
       this.tokenId,
       playerUid,
+      this.tokenImage,
+    );
+  }
+
+  /**
+   * Update base metadata
+   */
+  update(details: {
+    name?: string;
+    portrait?: string | null;
+    hp?: number;
+    maxHp?: number;
+    type?: "pc" | "npc";
+    tokenImage?: string | null;
+  }): CharacterModel {
+    const nextHp = details.hp ?? this.hp;
+    const nextMaxHp = Math.max(0, details.maxHp ?? this.maxHp);
+    const normalizedHp = Math.min(nextMaxHp, Math.max(0, nextHp));
+
+    return new CharacterModel(
+      this.id,
+      details.name ?? this.name,
+      normalizedHp,
+      nextMaxHp,
+      details.type ?? this.type,
+      details.portrait === undefined ? this.portrait : details.portrait || undefined,
+      this.tokenId,
+      this.ownedByPlayerUID,
+      details.tokenImage === undefined
+        ? this.tokenImage
+        : details.tokenImage?.trim() || null,
+    );
+  }
+
+  /**
+   * Set the token image reference
+   */
+  setTokenImage(imageUrl: string | null): CharacterModel {
+    return new CharacterModel(
+      this.id,
+      this.name,
+      this.hp,
+      this.maxHp,
+      this.type,
+      this.portrait,
+      this.tokenId,
+      this.ownedByPlayerUID,
+      imageUrl && imageUrl.trim().length > 0 ? imageUrl.trim() : null,
     );
   }
 

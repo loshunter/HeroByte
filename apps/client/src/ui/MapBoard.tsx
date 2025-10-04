@@ -29,6 +29,8 @@ import {
   MeasureLayer,
 } from "../features/map/components";
 
+export type CameraCommand = { type: "focus-token"; tokenId: string } | { type: "reset" };
+
 // ----------------------------------------------------------------------------
 // HOOKS
 // ----------------------------------------------------------------------------
@@ -77,6 +79,8 @@ interface MapBoardProps {
   onRecolorToken: (id: string) => void;
   onDeleteToken: (id: string) => void;
   onDrawingComplete?: (drawingId: string) => void; // Called when a drawing is completed
+  cameraCommand: CameraCommand | null;
+  onCameraCommandHandled: () => void;
 }
 
 /**
@@ -107,6 +111,8 @@ export default function MapBoard({
   onRecolorToken,
   onDeleteToken,
   onDrawingComplete,
+  cameraCommand,
+  onCameraCommandHandled,
 }: MapBoardProps) {
   // -------------------------------------------------------------------------
   // STATE & HOOKS
@@ -121,11 +127,13 @@ export default function MapBoard({
     selectDrawing: handleSelectDrawing,
     deselectIfEmpty,
     onDrawingDragEnd,
-  } = useDrawingSelection({ selectMode, sendMessage });
+    localOffsets: localDrawingOffsets,
+  } = useDrawingSelection({ selectMode, sendMessage, drawings: snapshot?.drawings || [] });
 
   // Camera controls (pan/zoom)
   const {
     cam,
+    setCam,
     isPanning,
     onWheel: handleWheel,
     onMouseDown: handleCameraMouseDown,
@@ -240,6 +248,37 @@ export default function MapBoard({
     handleDrawMouseUp();
   };
 
+  // Camera command handler
+  useEffect(() => {
+    if (!cameraCommand) return;
+
+    if (cameraCommand.type === "reset") {
+      setCam((prev) => ({ ...prev, x: 0, y: 0, scale: 1 }));
+      onCameraCommandHandled();
+      return;
+    }
+
+    if (cameraCommand.type === "focus-token") {
+      const token = snapshot?.tokens?.find((t) => t.id === cameraCommand.tokenId);
+      if (!token) {
+        window.alert("Token not found.");
+        onCameraCommandHandled();
+        return;
+      }
+
+      setCam((prevCam) => {
+        const scale = prevCam.scale;
+        const centerX = token.x * gridSize + gridSize / 2;
+        const centerY = token.y * gridSize + gridSize / 2;
+        const newX = w / 2 - centerX * scale;
+        const newY = h / 2 - centerY * scale;
+        return { ...prevCam, x: newX, y: newY };
+      });
+
+      onCameraCommandHandled();
+    }
+  }, [cameraCommand, gridSize, onCameraCommandHandled, setCam, snapshot?.tokens, w, h]);
+
   /**
    * Determine cursor style based on active mode
    */
@@ -310,6 +349,7 @@ export default function MapBoard({
             selectedDrawingId={selectedDrawingId}
             onSelectDrawing={handleSelectDrawing}
             onDrawingDragEnd={onDrawingDragEnd}
+            localOffsets={localDrawingOffsets}
           />
           <TokensLayer
             cam={cam}

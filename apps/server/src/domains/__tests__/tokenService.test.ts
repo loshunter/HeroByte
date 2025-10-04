@@ -63,4 +63,17 @@ describe("TokenService", () => {
     expect(service.setImageUrl(state, token.id, "keep", "   ")).toBe(true);
     expect(state.tokens[0]?.imageUrl).toBeUndefined();
   });
+
+  it("supports admin token image updates and deletions", () => {
+    const state = createEmptyRoomState();
+    const token = service.createToken(state, "owner", 0, 0);
+
+    expect(service.setImageUrlForToken(state, token.id, "https://img"))
+      .toBe(true);
+    expect(state.tokens[0]?.imageUrl).toBe("https://img");
+
+    expect(service.forceDeleteToken(state, "missing")).toBe(false);
+    expect(service.forceDeleteToken(state, token.id)).toBe(true);
+    expect(state.tokens).toHaveLength(0);
+  });
 });

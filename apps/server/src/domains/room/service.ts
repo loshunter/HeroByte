@@ -5,7 +5,7 @@
 
 import { writeFileSync, readFileSync, existsSync } from "fs";
 import type { WebSocket } from "ws";
-import type { Player, RoomSnapshot } from "@shared";
+import type { Player, RoomSnapshot, Character } from "@shared";
 import type { RoomState } from "./model.js";
 import { createEmptyRoomState, toSnapshot } from "./model.js";
 
@@ -49,7 +49,12 @@ export class RoomService {
             ...player,
             isDM: player.isDM ?? false,
           })),
-          characters: data.characters || [],
+          characters: (data.characters || []).map((character: Character) => ({
+            ...character,
+            type: character.type === "npc" ? ("npc" as const) : ("pc" as const),
+            tokenImage: character.tokenImage ?? null,
+            tokenId: character.tokenId ?? null,
+          })),
           mapBackground: data.mapBackground,
           pointers: [], // Don't persist pointers - they expire
           drawings: data.drawings || [],
@@ -94,6 +99,12 @@ export class RoomService {
       ...player,
       isDM: player.isDM ?? false,
     }));
+    const loadedCharacters = (snapshot.characters ?? []).map((character) => ({
+      ...character,
+      type: character.type === "npc" ? ("npc" as const) : ("pc" as const),
+      tokenId: character.tokenId ?? null,
+      tokenImage: character.tokenImage ?? null,
+    }));
     const mergedPlayers = this.state.players.map((currentPlayer) => {
       // Find matching player in loaded snapshot by UID
       const savedPlayer = loadedPlayers.find((p: Player) => p.uid === currentPlayer.uid);
@@ -113,7 +124,7 @@ export class RoomService {
       users: this.state.users, // Keep current WebSocket connections
       tokens: snapshot.tokens ?? [],
       players: mergedPlayers,
-      characters: snapshot.characters ?? [],
+      characters: loadedCharacters,
       mapBackground: snapshot.mapBackground,
       pointers: [], // Clear pointers on load
       drawings: snapshot.drawings ?? [],

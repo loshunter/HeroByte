@@ -26,6 +26,8 @@ interface HeaderProps {
   onDiceRollerToggle: (open: boolean) => void;
   onRollLogToggle: (open: boolean) => void;
   topPanelRef?: React.RefObject<HTMLDivElement>;
+  onFocusSelf: () => void;
+  onResetCamera: () => void;
 }
 
 /**
@@ -50,6 +52,8 @@ export const Header: React.FC<HeaderProps> = ({
   onDiceRollerToggle,
   onRollLogToggle,
   topPanelRef,
+  onFocusSelf,
+  onResetCamera,
 }) => {
   return (
     <div
@@ -98,6 +102,22 @@ export const Header: React.FC<HeaderProps> = ({
                 style={{ fontSize: "8px", padding: "6px 12px" }}
               >
                 Snap
+              </JRPGButton>
+
+              {/* Viewport Controls */}
+              <JRPGButton
+                onClick={onFocusSelf}
+                variant="default"
+                style={{ fontSize: "8px", padding: "6px 12px" }}
+              >
+                🎯 My Token
+              </JRPGButton>
+              <JRPGButton
+                onClick={onResetCamera}
+                variant="default"
+                style={{ fontSize: "8px", padding: "6px 12px" }}
+              >
+                🧭 Recenter
               </JRPGButton>
 
               {/* Pointer Mode */}

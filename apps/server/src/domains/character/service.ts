@@ -6,6 +6,7 @@
 import { randomUUID } from "crypto";
 import type { Character } from "@shared";
 import type { RoomState } from "../room/model.js";
+import type { TokenService } from "../token/service.js";
 
 /**
  * Character service - manages character data and actions
@@ -33,18 +34,31 @@ export class CharacterService {
   }
 
   /**
-   * Create a new PC character (Phase 1: DM creates PC slots)
+   * Create a new character (supports PCs and NPCs)
    */
-  createCharacter(state: RoomState, name: string, maxHp: number, portrait?: string): Character {
+  createCharacter(
+    state: RoomState,
+    name: string,
+    maxHp: number,
+    portrait?: string,
+    type: "pc" | "npc" = "pc",
+    options?: { hp?: number; tokenImage?: string }
+  ): Character {
+    const clamp = (value: number) => Math.max(0, value);
+    const normalizedMaxHp = clamp(maxHp);
+    const normalizedHp = Math.min(normalizedMaxHp, clamp(options?.hp ?? maxHp));
+    const tokenImage = options?.tokenImage?.trim() ?? undefined;
+
     const newCharacter: Character = {
       id: randomUUID(),
-      type: "pc",
+      type,
       name,
       portrait,
-      hp: maxHp,
-      maxHp,
+      hp: normalizedHp,
+      maxHp: normalizedMaxHp,
       tokenId: null,
-      ownedByPlayerUID: null, // Unclaimed by default
+      ownedByPlayerUID: null,
+      tokenImage: tokenImage ?? null,
     };
 
     state.characters.push(newCharacter);
@@ -88,6 +102,50 @@ export class CharacterService {
   }
 
   /**
+   * Update NPC metadata
+   */
+  updateNPC(
+    state: RoomState,
+    tokenService: TokenService,
+    characterId: string,
+    updates: {
+      name: string;
+      hp: number;
+      maxHp: number;
+      portrait?: string;
+      tokenImage?: string;
+    },
+  ): boolean {
+    const character = this.findCharacter(state, characterId);
+    if (!character) {
+      return false;
+    }
+
+    character.name = updates.name;
+    character.maxHp = Math.max(0, updates.maxHp);
+    character.hp = Math.min(character.maxHp, Math.max(0, updates.hp));
+    character.portrait = updates.portrait || undefined;
+    character.type = "npc";
+    character.tokenImage = updates.tokenImage?.trim() || null;
+
+    if (character.tokenId) {
+      tokenService.setImageUrlForToken(state, character.tokenId, character.tokenImage ?? undefined);
+    }
+
+    return true;
+  }
+
+  /**
+   * Delete character by ID
+   */
+  deleteCharacter(state: RoomState, characterId: string): Character | undefined {
+    const index = state.characters.findIndex((c) => c.id === characterId);
+    if (index === -1) return undefined;
+    const [removed] = state.characters.splice(index, 1);
+    return removed;
+  }
+
+  /**
    * Link a token to a character
    */
   linkToken(state: RoomState, characterId: string, tokenId: string): boolean {
@@ -98,6 +156,29 @@ export class CharacterService {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Place an NPC token on the map at default coordinates
+   */
+  placeNPCToken(
+    state: RoomState,
+    tokenService: TokenService,
+    characterId: string,
+    ownerUid: string,
+  ): Character | undefined {
+    const character = this.findCharacter(state, characterId);
+    if (!character) {
+      return undefined;
+    }
+
+    if (character.tokenId) {
+      tokenService.forceDeleteToken(state, character.tokenId);
+    }
+
+    const token = tokenService.createToken(state, ownerUid, 0, 0, character.tokenImage ?? undefined);
+    character.tokenId = token.id;
+    return character;
   }
 
   /**
