@@ -4,6 +4,7 @@
 - **Phase 1-3**: Testing Infrastructure & CI/CD (54 tests, 99.57% shared coverage)
 - **Contributor Polish**: CONTRIBUTING.md + GitHub templates
 - **Task 1**: Client Lint Fixes (0 errors/warnings, 24 files cleaned)
+- **Task 2**: Server `any` Type Cleanup (0 warnings, 6 files hardened)
 
 ---
 
@@ -13,9 +14,9 @@
 
 ### Progress
 - ✅ Task 1: Client browser globals + unused imports → **COMPLETE** (0 warnings)
-- 🔄 Task 2: Server `any` types → **IN PROGRESS** (18 warnings remaining)
-- ⏳ Task 3: Remove unused imports (pending)
-- ⏳ Task 4: Lower linting thresholds (pending)
+- ✅ Task 2: Server `any` types → **COMPLETE** (0 warnings)
+- ✅ Task 3: Remove unused imports → **COMPLETE** (done during 1 & 2)
+- 🔄 Task 4: Lower linting thresholds → **READY TO START**
 
 ---
 
@@ -76,212 +77,146 @@
 
 ---
 
-## Task 2: Replace `any` with `unknown` in Server (IN PROGRESS)
+## ~~Task 2: Replace `any` with `unknown` in Server~~ ✅ COMPLETE
 
-**Problem**: ~~20+~~ **18 warnings** remaining in server code due to explicit `any` types.
+**Problem**: ~~20+ → 18~~ **All `any` types eliminated.**
 
-**Solution**: Replace `any` with `unknown` and add proper type guards/assertions.
+**Solution**: Replaced `any` with `unknown` and added proper type guards/assertions.
 
-### ✅ Already Fixed
-- ✅ `apps/server/src/container.ts` - Now uses typed WebSocket instances
-- ✅ `apps/server/src/domains/room/service.ts` - loadSnapshot accepts RoomSnapshot type
+### ✅ All Files Fixed
+- ✅ `apps/server/src/container.ts` - Typed WebSocket instances
+- ✅ `apps/server/src/domains/room/service.ts` - RoomSnapshot type signature
+- ✅ `apps/server/src/middleware/validation.ts` - Message validation with guards
+- ✅ `apps/server/src/ws/messageRouter.ts` - RTC message helpers, switch case wrappers
+- ✅ `apps/server/src/domains/__tests__/roomService.test.ts` - Cast through unknown
+- ✅ `apps/server/src/middleware/__tests__/validation.test.ts` - Mock WebSockets typed
+- ✅ `apps/server/src/ws/__tests__/connectionHandler.test.ts` - Proper signatures
 
-### 🎯 Remaining Work (18 warnings)
-
-**Files still needing fixes:**
-
-1. **`apps/server/src/middleware/validation.ts`**
-   - Message validation functions likely use `any`
-   - Replace with `unknown` and add type guards
-
-2. **`apps/server/src/ws/**/*.ts`** (message router, connection handlers)
-   - WebSocket message handlers may have `any` parameters
-   - Use type predicates for ClientMessage validation
-
-3. **Test files** (`apps/server/**/*.test.ts`)
-   - Mock data or test helpers may use `any`
-   - Replace with proper types or `unknown` with assertions
-
-### Steps to Complete
-
-1. **Run Lint to Find Remaining `any` Types**
-   ```bash
-   pnpm --filter vtt-server lint
-   ```
-   - Should show exactly 18 warnings
-   - Note file paths and line numbers
-
-2. **Fix Each File**
-
-3. **Example Pattern** (same as before)
-
-   **Before:**
-   ```typescript
-   function handleMessage(msg: any) {
-     if (msg.t === "move-token") {
-       // ...
-     }
-   }
-   ```
-
-   **After:**
-   ```typescript
-   function handleMessage(msg: unknown) {
-     if (isClientMessage(msg) && msg.t === "move-token") {
-       // ...
-     }
-   }
-
-   function isClientMessage(msg: unknown): msg is ClientMessage {
-     return typeof msg === "object" && msg !== null && "t" in msg;
-   }
-   ```
-
-4. **Test After Each Fix**
-   ```bash
-   pnpm --filter vtt-server lint
-   ```
-   - Track progress: 18 → 10 → 5 → 0
-
-5. **Run Full Test Suite**
-   ```bash
-   pnpm --filter vtt-server test
-   ```
-   - Ensure no tests break from type changes
-
-### Success Criteria
-- ✅ All 18 remaining `any` types replaced with `unknown` or specific types
-- ✅ Type guards added where needed
-- ✅ `pnpm --filter vtt-server lint` shows **0 warnings**
-- ✅ All tests still pass
+### Results
+- ✅ `pnpm --filter vtt-server lint` → **0 warnings**
+- ✅ `pnpm --filter herobyte-client lint` → **0 warnings**
+- ✅ `pnpm lint` → **Passes successfully**
+- ✅ All tests still passing
 
 ---
 
-## Task 3: Remove Unused Imports
+## ~~Task 3: Remove Unused Imports~~ ✅ COMPLETE
 
-**Problem**: Multiple files have unused imports cluttering the code.
+**Problem**: Multiple files had unused imports cluttering the code.
 
-**Solution**: Auto-fix with ESLint and manually review remaining cases.
+**Solution**: Removed during Task 1 and Task 2 cleanup.
 
-### Steps
+### ✅ Work Already Done
+- Client unused imports removed in Task 1 (24 files cleaned)
+- Server unused imports removed in Task 2 (6 files cleaned)
+- Both `pnpm --filter herobyte-client lint` and `pnpm --filter vtt-server lint` pass with 0 warnings
 
-1. **Auto-fix Unused Imports**
-   ```bash
-   pnpm lint --fix
-   ```
-   - This will automatically remove most unused imports
+### Verification
+```bash
+pnpm lint
+```
+- ✅ Passes successfully with no unused import warnings
 
-2. **Verify Changes**
-   ```bash
-   git diff
-   ```
-   - Review removed imports to ensure nothing critical was deleted
-
-3. **Run Linting Again**
-   ```bash
-   pnpm lint
-   ```
-   - Check if any unused import warnings remain
-
-4. **Manual Cleanup (if needed)**
-   - If auto-fix didn't catch everything:
-     - Search for "is defined but never used" warnings
-     - Remove or use the imported items
-
-### Success Criteria
-- ✅ No "unused import" warnings remain
-- ✅ All imports are actually used in the code
-- ✅ Tests still pass after cleanup
+**Note**: This task was effectively completed alongside Tasks 1 and 2. No additional work needed.
 
 ---
 
-## Task 4: Lower Linting Thresholds
+## Task 4: Lower Linting Thresholds (FINAL TASK)
 
-**Problem**: Temporary high `--max-warnings` thresholds mask code quality issues.
+**Problem**: Temporary high `--max-warnings` thresholds (server: 50, client: 200) are now unnecessary since we have **0 warnings**.
 
-**Solution**: Gradually reduce thresholds to zero after fixing warnings.
+**Solution**: Lock in zero-warning enforcement by removing thresholds and CI fallbacks.
 
 ### Steps
 
-1. **Check Current Warning Count**
+1. **Verify Current State**
    ```bash
-   pnpm --filter herobyte-server lint
+   pnpm --filter vtt-server lint
    pnpm --filter herobyte-client lint
    ```
-   - Note the actual warning count for each package
+   - Both should show **0 warnings** ✅
 
-2. **Update Server Threshold**
+2. **Remove Server Threshold**
    - Location: `apps/server/package.json`
-   - Current: `"lint": "eslint . --max-warnings 50"`
-   - Target: Reduce to actual warning count (e.g., 10, then 5, then 0)
-   - Example:
-     ```json
-     "lint": "eslint . --max-warnings 10"
-     ```
+   - **Before:** `"lint": "eslint . --max-warnings 50"`
+   - **After:** `"lint": "eslint ."`
+   - This enforces **0 warnings** as the default
 
-3. **Update Client Threshold**
+3. **Remove Client Threshold**
    - Location: `apps/client/package.json`
-   - Current: `"lint": "eslint . --max-warnings 200"`
-   - Target: Reduce to ~50, then 20, then 0
-   - Example:
-     ```json
-     "lint": "eslint . --max-warnings 50"
-     ```
+   - **Before:** `"lint": "eslint . --max-warnings 200"`
+   - **After:** `"lint": "eslint ."`
+   - This enforces **0 warnings** as the default
 
 4. **Update CI Workflow**
    - Location: `.github/workflows/ci.yml`
-   - Remove `|| true` fallback from lint step:
-     ```yaml
-     - name: Run lint checks
-       run: pnpm lint  # Remove || true
-     ```
+   - **Before:** `run: pnpm lint || true`
+   - **After:** `run: pnpm lint`
+   - Remove the `|| true` fallback to make CI fail on lint errors
 
-5. **Test CI Locally**
+5. **Test Locally**
    ```bash
    pnpm lint
    pnpm test
    pnpm build
    ```
-   - Ensure all checks pass before pushing
+   - All commands should pass without errors
 
-### Success Criteria
-- ✅ Server lint threshold reduced to 0
-- ✅ Client lint threshold reduced to 0
-- ✅ CI workflow enforces strict linting (no `|| true`)
-- ✅ All checks pass on CI
-
----
-
-## After Completion
-
-Once all 4 tasks are done:
-
-1. **Commit Changes**
+6. **Commit and Push**
    ```bash
    git add .
-   git commit -m "Complete code hygiene: Fix browser globals, replace any with unknown, remove unused imports, enforce zero-warning linting"
-   ```
-
-2. **Push to Dev**
-   ```bash
+   git commit -m "Enforce zero-warning linting: remove --max-warnings thresholds and CI fallback"
    git push origin dev
    ```
 
-3. **Update TODO.md**
-   - Mark "Code Hygiene" items as complete in CRITICAL section
-
-4. **Report Summary**
-   - Total warnings reduced: [before] → [after]
-   - Files cleaned: [count]
-   - Linting thresholds: Server 50→0, Client 200→0
+### Success Criteria
+- ✅ `apps/server/package.json` has no `--max-warnings` flag
+- ✅ `apps/client/package.json` has no `--max-warnings` flag
+- ✅ `.github/workflows/ci.yml` has no `|| true` fallback on lint step
+- ✅ `pnpm lint` passes locally with 0 warnings
+- ✅ CI enforces strict zero-warning policy going forward
 
 ---
 
-## How to Proceed
+## 🎉 After Task 4 Completion
 
-1. Work through tasks **in order** (Task 1 → Task 2 → Task 3 → Task 4)
-2. Test after each task to ensure nothing breaks
-3. Commit incrementally (one task per commit)
-4. Report back with summary when all tasks complete
+Once Task 4 is done, **all Code Hygiene work will be complete!**
 
-Let me know if you encounter any issues or need clarification on any step!
+### Final Summary to Report
+
+**Code Hygiene Results:**
+- ✅ Client: 59 errors → 0 warnings (24 files cleaned)
+- ✅ Server: 20+ any warnings → 0 warnings (6 files hardened)
+- ✅ Unused imports: Removed across 30 files
+- ✅ Linting thresholds: Server 50→0, Client 200→0
+- ✅ CI enforcement: Strict zero-warning policy active
+
+**Total Impact:**
+- 30 files cleaned and type-hardened
+- 79+ linting issues resolved
+- Zero-warning codebase achieved
+- Production-ready code quality enforced in CI
+
+### Next Steps After Completion
+
+Update `TODO.md` to mark Code Hygiene tasks as complete, then choose next focus:
+
+**Option A: Phase 9 Features** (State & Persistence)
+- Undo/Redo for drawings (Ctrl+Y)
+- Player state persistence (save/load)
+- Session save/load system
+- Asset manager foundations
+- Private room system
+
+**Option B: Visual Polish** (README improvements)
+- Screenshots of gameplay
+- GIF/video demos
+- Architecture diagrams
+- Troubleshooting section
+
+**Option C: Testing Expansion**
+- E2E tests with Playwright
+- Increase server coverage >80%
+- Performance benchmarks
+
+Let me know which direction you want to go next!
