@@ -147,9 +147,7 @@ export class RoomService {
    * Broadcast current room state to all connected clients
    */
   broadcast(clients: Set<WebSocket>): void {
-    this.cleanupPointers();
-
-    const snapshot = toSnapshot(this.state);
+    const snapshot = this.createSnapshot();
     const json = JSON.stringify(snapshot);
 
     clients.forEach((client) => {
@@ -160,5 +158,13 @@ export class RoomService {
     });
 
     this.saveState();
+  }
+
+  /**
+   * Create a snapshot of the current room state without sending it
+   */
+  createSnapshot(): RoomSnapshot {
+    this.cleanupPointers();
+    return toSnapshot(this.state);
   }
 }

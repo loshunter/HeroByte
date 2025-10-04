@@ -202,6 +202,9 @@ export type ClientMessage =
   | { t: "heartbeat" } // Keep-alive ping from client
   | { t: "load-session"; snapshot: RoomSnapshot } // Load a saved session state
 
+  // Authentication
+  | { t: "authenticate"; secret: string; roomId?: string } // Authenticate with room secret
+
   // WebRTC signaling
   | { t: "rtc-signal"; target: string; signal: unknown }; // P2P voice chat signaling
 
@@ -210,4 +213,6 @@ export type ClientMessage =
  */
 export type ServerMessage =
   | RoomSnapshot // Full room state update
-  | { t: "rtc-signal"; from: string; signal: unknown }; // WebRTC signal from another peer
+  | { t: "rtc-signal"; from: string; signal: unknown } // WebRTC signal from another peer
+  | { t: "auth-ok" } // Authentication succeeded
+  | { t: "auth-failed"; reason?: string }; // Authentication failed

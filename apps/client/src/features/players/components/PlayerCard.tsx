@@ -64,7 +64,7 @@ export const PlayerCard = memo<PlayerCardProps>(
     const editingMaxHp = editingMaxHpUID === player.uid;
     const [tokenImageInput, setTokenImageInput] = useState(tokenImageUrl ?? "");
     const playerStateInputRef = useRef<HTMLInputElement | null>(null);
-    
+
     useEffect(() => {
       setTokenImageInput(tokenImageUrl ?? "");
     }, [tokenImageUrl]);
@@ -90,7 +90,9 @@ export const PlayerCard = memo<PlayerCardProps>(
         setTokenImageInput(state.tokenImage ?? "");
       } catch (err) {
         window.alert(
-          err instanceof Error ? `Failed to load player state: ${err.message}` : "Failed to load player state.",
+          err instanceof Error
+            ? `Failed to load player state: ${err.message}`
+            : "Failed to load player state.",
         );
       } finally {
         event.target.value = "";

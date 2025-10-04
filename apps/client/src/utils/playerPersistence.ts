@@ -43,7 +43,7 @@ export async function loadPlayerState(file: File): Promise<PlayerState> {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
-  } catch (err) {
+  } catch {
     throw new Error("Invalid player state file (not valid JSON)");
   }
 
@@ -74,9 +74,9 @@ export async function loadPlayerState(file: File): Promise<PlayerState> {
   }
 
   const normalizedPortrait =
-    portrait === undefined ? undefined : (portrait === null ? null : portrait);
+    portrait === undefined ? undefined : portrait === null ? null : (portrait as string);
   const normalizedTokenImage =
-    tokenImage === undefined ? undefined : (tokenImage === null ? null : tokenImage);
+    tokenImage === undefined ? undefined : tokenImage === null ? null : (tokenImage as string);
 
   return {
     name: name.trim(),

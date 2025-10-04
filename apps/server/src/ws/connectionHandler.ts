@@ -9,6 +9,7 @@ import type { IncomingMessage } from "http";
 import type { ClientMessage } from "@shared";
 import type { Container } from "../container.js";
 import { validateMessage } from "../middleware/validation.js";
+import { getDefaultRoomId, getRoomSecret } from "../config/auth.js";
 
 /**
  * WebSocket connection handler
@@ -19,10 +20,14 @@ export class ConnectionHandler {
   private wss: WebSocketServer;
   private timeoutCheckInterval: NodeJS.Timeout | null = null;
   private readonly HEARTBEAT_TIMEOUT = 60000; // 60 seconds without heartbeat = timeout
+  private readonly roomSecret: string;
+  private readonly defaultRoomId: string;
 
   constructor(container: Container, wss: WebSocketServer) {
     this.container = container;
     this.wss = wss;
+    this.roomSecret = getRoomSecret();
+    this.defaultRoomId = getDefaultRoomId();
   }
 
   /**
@@ -66,6 +71,10 @@ export class ConnectionHandler {
       console.log(`Removing ${timedOutPlayers.length} timed-out players:`, timedOutPlayers);
 
       for (const uid of timedOutPlayers) {
+        const socket = this.container.uidToWs.get(uid);
+        if (socket && socket.readyState === 1) {
+          socket.close(4000, "Heartbeat timeout");
+        }
         // Remove player
         state.players = state.players.filter((p) => p.uid !== uid);
         // Remove their token
@@ -74,10 +83,12 @@ export class ConnectionHandler {
         state.users = state.users.filter((u) => u !== uid);
         // Clean up WebSocket connection map
         this.container.uidToWs.delete(uid);
+        this.container.authenticatedUids.delete(uid);
+        this.container.authenticatedSessions.delete(uid);
       }
 
       // Broadcast updated state
-      this.container.roomService.broadcast(this.wss.clients);
+      this.container.roomService.broadcast(this.container.getAuthenticatedClients());
     }
   }
 
@@ -91,9 +102,12 @@ export class ConnectionHandler {
 
     const state = this.container.roomService.getState();
 
-    // Register connection (remove from users list first to prevent duplicates)
+    // Reset any previous authentication state for this UID
+    this.container.authenticatedUids.delete(uid);
+    this.container.authenticatedSessions.delete(uid);
     state.users = state.users.filter((u) => u !== uid);
-    state.users.push(uid);
+
+    // Register connection
     this.container.uidToWs.set(uid, ws);
 
     // Keepalive ping to prevent cloud provider timeout
@@ -102,25 +116,6 @@ export class ConnectionHandler {
         ws.ping();
       }
     }, 25000);
-
-    // Check if this is a reconnecting player
-    const existingPlayer = this.container.playerService.findPlayer(state, uid);
-    const existingToken = this.container.tokenService.findTokenByOwner(state, uid);
-
-    // Create new player if first time connecting
-    if (!existingPlayer) {
-      this.container.playerService.createPlayer(state, uid);
-    }
-
-    // Create initial token if player doesn't have one
-    if (!existingToken) {
-      this.container.tokenService.createToken(state, uid, 0, 0);
-    } else {
-      console.log("Player reconnected:", uid);
-    }
-
-    // Send initial room state to new connection
-    this.container.roomService.broadcast(this.wss.clients);
 
     // Message handling
     ws.on("message", (buf) => this.handleMessage(Buffer.from(buf as ArrayBuffer), uid));
@@ -150,6 +145,17 @@ export class ConnectionHandler {
         return;
       }
 
+      // Authentication handling
+      if (message.t === "authenticate") {
+        this.handleAuthentication(uid, message.secret, message.roomId);
+        return;
+      }
+
+      if (!this.container.authenticatedUids.has(uid)) {
+        console.warn(`Unauthenticated message from ${uid}, dropping.`);
+        return;
+      }
+
       // Route to appropriate handler
       this.container.messageRouter.route(message, uid);
     } catch (err) {
@@ -167,11 +173,78 @@ export class ConnectionHandler {
     const state = this.container.roomService.getState();
 
     // Clean up disconnected player's connection
-    // (but keep player and token data for reconnection)
     state.users = state.users.filter((u) => u !== uid);
+    this.container.authenticatedUids.delete(uid);
+    this.container.authenticatedSessions.delete(uid);
     this.container.uidToWs.delete(uid);
 
     // Broadcast updated state
-    this.container.roomService.broadcast(this.wss.clients);
+    this.container.roomService.broadcast(this.container.getAuthenticatedClients());
+  }
+
+  /**
+   * Authenticate a client connection using the shared room secret
+   */
+  private handleAuthentication(uid: string, secret: string, roomId?: string): void {
+    const ws = this.container.uidToWs.get(uid);
+    if (!ws) {
+      return;
+    }
+
+    if (this.container.authenticatedUids.has(uid)) {
+      ws.send(JSON.stringify({ t: "auth-ok" }));
+      return;
+    }
+
+    const requestedRoomId = roomId?.trim() || this.defaultRoomId;
+    if (requestedRoomId !== this.defaultRoomId) {
+      this.rejectAuthentication(ws, "Unknown room");
+      return;
+    }
+
+    if (secret !== this.roomSecret) {
+      console.warn(`Authentication failed for uid ${uid}`);
+      this.rejectAuthentication(ws, "Invalid room password");
+      return;
+    }
+
+    const state = this.container.roomService.getState();
+
+    // Create or reconnect player entities
+    let player = this.container.playerService.findPlayer(state, uid);
+    if (!player) {
+      player = this.container.playerService.createPlayer(state, uid);
+    }
+
+    const existingToken = this.container.tokenService.findTokenByOwner(state, uid);
+    if (!existingToken) {
+      this.container.tokenService.createToken(state, uid, 0, 0);
+    }
+
+    // Track authentication state
+    this.container.authenticatedUids.add(uid);
+    this.container.authenticatedSessions.set(uid, {
+      roomId: requestedRoomId,
+      authedAt: Date.now(),
+    });
+
+    // Register user for session lists
+    state.users = state.users.filter((u) => u !== uid);
+    state.users.push(uid);
+
+    ws.send(JSON.stringify({ t: "auth-ok" }));
+    console.log(`Client authenticated: ${uid}`);
+
+    // Broadcast updated room state to authenticated clients
+    this.container.roomService.broadcast(this.container.getAuthenticatedClients());
+  }
+
+  private rejectAuthentication(ws: WebSocket, reason: string): void {
+    ws.send(JSON.stringify({ t: "auth-failed", reason }));
+    setTimeout(() => {
+      if (ws.readyState === 1) {
+        ws.close(4001, reason);
+      }
+    }, 100);
   }
 }

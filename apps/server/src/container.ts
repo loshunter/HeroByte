@@ -33,6 +33,8 @@ export class Container {
   // Infrastructure
   public readonly messageRouter: MessageRouter;
   public readonly uidToWs: Map<string, WebSocket>;
+  public readonly authenticatedUids: Set<string>;
+  public readonly authenticatedSessions: Map<string, { roomId: string; authedAt: number }>;
 
   constructor(wss: WebSocketServer) {
     // Initialize services (no dependencies between them)
@@ -48,6 +50,8 @@ export class Container {
 
     // Initialize WebSocket connection tracking
     this.uidToWs = new Map<string, WebSocket>();
+    this.authenticatedUids = new Set<string>();
+    this.authenticatedSessions = new Map<string, { roomId: string; authedAt: number }>();
 
     // Initialize message router (depends on services)
     this.messageRouter = new MessageRouter(
@@ -59,6 +63,7 @@ export class Container {
       this.characterService,
       wss,
       this.uidToWs,
+      () => this.getAuthenticatedClients(),
     );
 
     // Load persisted state
@@ -71,7 +76,23 @@ export class Container {
   destroy(): void {
     // Clear connection tracking
     this.uidToWs.clear();
+    this.authenticatedUids.clear();
+    this.authenticatedSessions.clear();
 
     // Future: Add any cleanup logic for services
+  }
+
+  /**
+   * Collect WebSocket clients that have completed authentication
+   */
+  getAuthenticatedClients(): Set<WebSocket> {
+    const clients = new Set<WebSocket>();
+    for (const uid of this.authenticatedUids) {
+      const ws = this.uidToWs.get(uid);
+      if (ws && ws.readyState === 1) {
+        clients.add(ws);
+      }
+    }
+    return clients;
   }
 }

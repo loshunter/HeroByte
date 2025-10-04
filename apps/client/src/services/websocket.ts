@@ -6,12 +6,16 @@
 // - https://medium.com/@voodooengineering/websocket-integration-checklist
 // - https://ably.com/topic/websocket-architecture
 
-import type { RoomSnapshot, ClientMessage } from "@shared";
+import type { RoomSnapshot, ClientMessage, ServerMessage } from "@shared";
 import type { SignalData } from "simple-peer";
 
 type MessageHandler = (snapshot: RoomSnapshot) => void;
 type RtcSignalHandler = (from: string, signal: SignalData) => void;
 type ConnectionStateHandler = (state: ConnectionState) => void;
+
+type AuthResponseMessage =
+  | Extract<ServerMessage, { t: "auth-ok" }>
+  | Extract<ServerMessage, { t: "auth-failed" }>;
 
 type RtcSignalMessage = {
   t: "rtc-signal";
@@ -29,6 +33,31 @@ function isRtcSignalMessage(value: unknown): value is RtcSignalMessage {
   );
 }
 
+function isAuthResponseMessage(value: unknown): value is AuthResponseMessage {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<AuthResponseMessage>;
+  if (candidate.t === "auth-ok") {
+    return true;
+  }
+  if (candidate.t === "auth-failed") {
+    return true;
+  }
+  return false;
+}
+
+export enum AuthState {
+  UNAUTHENTICATED = "unauthenticated",
+  PENDING = "pending",
+  AUTHENTICATED = "authenticated",
+  FAILED = "failed",
+}
+
+export type AuthEvent =
+  | { type: "reset" }
+  | { type: "pending" }
+  | { type: "success" }
+  | { type: "failure"; reason?: string };
+
 export enum ConnectionState {
   CONNECTING = "connecting",
   CONNECTED = "connected",
@@ -43,6 +72,7 @@ interface WebSocketServiceConfig {
   onMessage: MessageHandler;
   onRtcSignal?: RtcSignalHandler;
   onStateChange?: ConnectionStateHandler;
+  onAuthEvent?: (event: AuthEvent) => void;
   reconnectInterval?: number; // ms between reconnect attempts
   maxReconnectAttempts?: number; // 0 = infinite
   heartbeatInterval?: number; // ms between heartbeats
@@ -62,6 +92,7 @@ export class WebSocketService {
   private ws: WebSocket | null = null;
   private config: Required<WebSocketServiceConfig>;
   private state: ConnectionState = ConnectionState.DISCONNECTED;
+  private authState: AuthState = AuthState.UNAUTHENTICATED;
   private reconnectAttempts = 0;
   private reconnectTimer: number | null = null;
   private heartbeatTimer: number | null = null;
@@ -75,6 +106,7 @@ export class WebSocketService {
       heartbeatInterval: 25000, // 25 seconds (matches server)
       onRtcSignal: () => {},
       onStateChange: () => {},
+      onAuthEvent: () => {},
       ...config,
     };
   }
@@ -87,6 +119,9 @@ export class WebSocketService {
       console.warn("[WebSocket] Already connected");
       return;
     }
+
+    this.authState = AuthState.UNAUTHENTICATED;
+    this.config.onAuthEvent({ type: "reset" });
 
     this.setState(ConnectionState.CONNECTING);
     const url = `${this.config.url}?uid=${this.config.uid}`;
@@ -105,6 +140,8 @@ export class WebSocketService {
    */
   disconnect(): void {
     this.cleanup();
+    this.authState = AuthState.UNAUTHENTICATED;
+    this.config.onAuthEvent({ type: "reset" });
     this.setState(ConnectionState.DISCONNECTED);
   }
 
@@ -113,19 +150,22 @@ export class WebSocketService {
    * Messages are queued if not connected and sent when reconnected
    */
   send(message: ClientMessage): void {
-    if (this.ws && this.state === ConnectionState.CONNECTED) {
-      try {
-        this.ws.send(JSON.stringify(message));
-      } catch (error) {
-        console.error("[WebSocket] Send error:", error);
-        // Queue message for retry
-        this.messageQueue.push(message);
-      }
-    } else {
-      // Queue message to send when connected
-      this.messageQueue.push(message);
-      console.warn("[WebSocket] Message queued (not connected):", message);
+    if (message.t === "authenticate") {
+      this.sendRaw(message);
+      return;
     }
+
+    if (this.canSendImmediately()) {
+      this.sendRaw(message);
+      return;
+    }
+
+    if (message.t === "heartbeat") {
+      // Drop heartbeat attempts until authenticated to prevent queue bloat
+      return;
+    }
+
+    this.queueMessage(message);
   }
 
   /**
@@ -140,6 +180,21 @@ export class WebSocketService {
    */
   isConnected(): boolean {
     return this.state === ConnectionState.CONNECTED;
+  }
+
+  /**
+   * Attempt to authenticate the current WebSocket session
+   */
+  authenticate(secret: string, roomId?: string): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      console.warn("[WebSocket] Cannot authenticate before socket is open");
+      return;
+    }
+
+    this.authState = AuthState.PENDING;
+    this.config.onAuthEvent({ type: "pending" });
+
+    this.sendRaw({ t: "authenticate", secret, roomId });
   }
 
   // =========================================================================
@@ -185,6 +240,18 @@ export class WebSocketService {
         return;
       }
 
+      if (isAuthResponseMessage(parsed)) {
+        if (parsed.t === "auth-ok") {
+          this.authState = AuthState.AUTHENTICATED;
+          this.config.onAuthEvent({ type: "success" });
+          this.flushMessageQueue();
+        } else {
+          this.authState = AuthState.FAILED;
+          this.config.onAuthEvent({ type: "failure", reason: parsed.reason });
+        }
+        return;
+      }
+
       // All other messages are room snapshots
       this.config.onMessage(parsed as RoomSnapshot);
     } catch (error) {
@@ -193,6 +260,11 @@ export class WebSocketService {
   }
 
   private handleDisconnect(): void {
+    if (this.authState !== AuthState.UNAUTHENTICATED) {
+      this.authState = AuthState.UNAUTHENTICATED;
+      this.config.onAuthEvent({ type: "reset" });
+    }
+
     this.cleanup();
 
     // Attempt reconnection
@@ -232,14 +304,21 @@ export class WebSocketService {
       const timeSinceLastMessage = Date.now() - this.lastPongTime;
 
       // If no message in 2x heartbeat interval, consider connection dead
-      if (timeSinceLastMessage > this.config.heartbeatInterval * 2) {
+      if (
+        this.authState === AuthState.AUTHENTICATED &&
+        timeSinceLastMessage > this.config.heartbeatInterval * 2
+      ) {
         console.warn("[WebSocket] Heartbeat timeout - reconnecting");
         this.handleDisconnect();
         return;
       }
 
       // Send heartbeat message (server uses this to track player activity)
-      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      if (
+        this.authState === AuthState.AUTHENTICATED &&
+        this.ws &&
+        this.ws.readyState === WebSocket.OPEN
+      ) {
         this.ws.send(JSON.stringify({ t: "heartbeat" }));
       }
     }, this.config.heartbeatInterval);
@@ -253,11 +332,45 @@ export class WebSocketService {
   }
 
   private flushMessageQueue(): void {
+    if (!this.canSendImmediately()) {
+      return;
+    }
+
     while (this.messageQueue.length > 0) {
       const message = this.messageQueue.shift();
       if (message) {
-        this.send(message);
+        this.sendRaw(message);
       }
+    }
+  }
+
+  private canSendImmediately(): boolean {
+    return (
+      this.ws !== null &&
+      this.ws.readyState === WebSocket.OPEN &&
+      this.state === ConnectionState.CONNECTED &&
+      this.authState === AuthState.AUTHENTICATED
+    );
+  }
+
+  private queueMessage(message: ClientMessage): void {
+    if (this.messageQueue.length >= 200) {
+      this.messageQueue.shift();
+    }
+    this.messageQueue.push(message);
+  }
+
+  private sendRaw(message: ClientMessage): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      this.queueMessage(message);
+      return;
+    }
+
+    try {
+      this.ws.send(JSON.stringify(message));
+    } catch (error) {
+      console.error("[WebSocket] Send error:", error);
+      this.queueMessage(message);
     }
   }
 

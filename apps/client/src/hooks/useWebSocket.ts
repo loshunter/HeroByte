@@ -4,7 +4,7 @@
 // React hook for WebSocket connection management
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { WebSocketService, ConnectionState } from "../services/websocket";
+import { WebSocketService, ConnectionState, AuthState, AuthEvent } from "../services/websocket";
 import type { RoomSnapshot, ClientMessage } from "@shared";
 
 interface UseWebSocketOptions {
@@ -18,10 +18,13 @@ interface UseWebSocketReturn {
   snapshot: RoomSnapshot | null;
   connectionState: ConnectionState;
   isConnected: boolean;
+  authState: AuthState;
+  authError: string | null;
   send: (message: ClientMessage) => void;
   connect: () => void;
   disconnect: () => void;
   registerRtcHandler: (handler: (from: string, signal: unknown) => void) => void;
+  authenticate: (secret: string, roomId?: string) => void;
 }
 
 /**
@@ -43,6 +46,8 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
   const [connectionState, setConnectionState] = useState<ConnectionState>(
     ConnectionState.DISCONNECTED,
   );
+  const [authState, setAuthState] = useState<AuthState>(AuthState.UNAUTHENTICATED);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   // Use ref to store the current RTC signal handler
   const rtcHandlerRef = useRef<((from: string, signal: unknown) => void) | undefined>(onRtcSignal);
@@ -52,6 +57,29 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
 
   // Initialize service once
   useEffect(() => {
+    const handleAuthEvent = (event: AuthEvent) => {
+      switch (event.type) {
+        case "reset":
+          setAuthState(AuthState.UNAUTHENTICATED);
+          setAuthError(null);
+          setSnapshot(null);
+          break;
+        case "pending":
+          setAuthState(AuthState.PENDING);
+          setAuthError(null);
+          break;
+        case "success":
+          setAuthState(AuthState.AUTHENTICATED);
+          setAuthError(null);
+          break;
+        case "failure":
+          setAuthState(AuthState.FAILED);
+          setAuthError(event.reason ?? "Authentication failed");
+          setSnapshot(null);
+          break;
+      }
+    };
+
     const service = new WebSocketService({
       url,
       uid,
@@ -61,6 +89,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
         rtcHandlerRef.current?.(from, signal);
       },
       onStateChange: setConnectionState,
+      onAuthEvent: handleAuthEvent,
     });
 
     serviceRef.current = service;
@@ -91,15 +120,22 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     rtcHandlerRef.current = handler;
   }, []);
 
+  const authenticate = useCallback((secret: string, roomId?: string) => {
+    serviceRef.current?.authenticate(secret, roomId);
+  }, []);
+
   const isConnected = connectionState === ConnectionState.CONNECTED;
 
   return {
     snapshot,
     connectionState,
     isConnected,
+    authState,
+    authError,
     send,
     connect,
     disconnect,
     registerRtcHandler,
+    authenticate,
   };
 }

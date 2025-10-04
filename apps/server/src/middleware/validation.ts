@@ -328,6 +328,23 @@ export function validateMessage(raw: unknown): ValidationResult {
       break;
     }
 
+    case "authenticate": {
+      if (typeof message.secret !== "string" || message.secret.length === 0) {
+        return { valid: false, error: "authenticate: missing or invalid secret" };
+      }
+      if (message.secret.length > 256) {
+        return { valid: false, error: "authenticate: secret too long" };
+      }
+      if (
+        "roomId" in message &&
+        message.roomId !== undefined &&
+        typeof message.roomId !== "string"
+      ) {
+        return { valid: false, error: "authenticate: roomId must be a string" };
+      }
+      break;
+    }
+
     default: {
       return { valid: false, error: `Unknown message type: ${message.t}` };
     }

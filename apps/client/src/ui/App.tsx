@@ -8,7 +8,7 @@
 // - UI layout (fixed top/bottom bars, center map canvas)
 // - Tool modes (pointer, measure, draw)
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import MapBoard, { type CameraCommand } from "./MapBoard";
 import { useVoiceChat } from "./useVoiceChat";
 import { DiceRoller } from "../components/dice/DiceRoller";
@@ -29,10 +29,93 @@ import { DrawingToolbar } from "../features/drawing/components";
 import { Header } from "../components/layout/Header";
 import { PartyPanel } from "../components/layout/PartyPanel";
 import { ServerStatus } from "../components/layout/ServerStatus";
+import { ConnectionState, AuthState } from "../services/websocket";
 
 interface RollLogEntry extends RollResult {
   playerName: string;
 }
+
+const ROOM_SECRET_STORAGE_KEY = "herobyte-room-secret";
+
+function getInitialRoomSecret(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    return sessionStorage.getItem(ROOM_SECRET_STORAGE_KEY) ?? "";
+  } catch (error) {
+    console.warn("[Auth] Unable to access sessionStorage:", error);
+    return "";
+  }
+}
+
+const authGateContainerStyle: React.CSSProperties = {
+  alignItems: "center",
+  background: "radial-gradient(circle at top, #101020 0%, #050509 100%)",
+  display: "flex",
+  height: "100vh",
+  justifyContent: "center",
+  padding: "24px",
+};
+
+const authGateCardStyle: React.CSSProperties = {
+  backgroundColor: "rgba(17, 24, 39, 0.9)",
+  border: "1px solid rgba(148, 163, 184, 0.2)",
+  borderRadius: "12px",
+  boxShadow: "0 12px 40px rgba(15, 23, 42, 0.5)",
+  color: "#f8fafc",
+  maxWidth: "400px",
+  padding: "32px",
+  width: "100%",
+};
+
+const authGateErrorStyle: React.CSSProperties = {
+  color: "#f87171",
+  fontSize: "0.95rem",
+  margin: "0",
+};
+
+const authGateHintStyle: React.CSSProperties = {
+  color: "#cbd5f5",
+  fontSize: "0.85rem",
+  marginTop: "16px",
+};
+
+const authInputStyle: React.CSSProperties = {
+  backgroundColor: "rgba(15, 23, 42, 0.9)",
+  border: "1px solid rgba(148, 163, 184, 0.5)",
+  borderRadius: "8px",
+  color: "#e2e8f0",
+  fontFamily: "inherit",
+  fontSize: "1rem",
+  padding: "12px",
+  width: "100%",
+};
+
+const authPrimaryButtonStyle: React.CSSProperties = {
+  background: "linear-gradient(135deg, #38bdf8, #6366f1)",
+  border: "none",
+  borderRadius: "8px",
+  color: "#0f172a",
+  cursor: "pointer",
+  fontFamily: "inherit",
+  fontSize: "1rem",
+  fontWeight: 600,
+  padding: "12px",
+  transition: "filter 0.2s ease",
+};
+
+const authSecondaryButtonStyle: React.CSSProperties = {
+  background: "transparent",
+  border: "1px solid rgba(148, 163, 184, 0.4)",
+  borderRadius: "8px",
+  color: "#cbd5f5",
+  cursor: "pointer",
+  fontFamily: "inherit",
+  fontSize: "0.9rem",
+  marginTop: "12px",
+  padding: "10px 12px",
+  transition: "border-color 0.2s ease, color 0.2s ease",
+  width: "100%",
+};
 
 // ----------------------------------------------------------------------------
 // MAIN APP COMPONENT
@@ -47,13 +130,71 @@ export const App: React.FC = () => {
   const uid = getSessionUID(); // This player's unique ID
   const {
     snapshot,
+    connectionState,
     send: sendMessage,
+    authState,
+    authError,
     isConnected,
+    authenticate,
+    connect,
     registerRtcHandler,
   } = useWebSocket({
     url: WS_URL,
     uid,
   });
+
+  const initialSecret = useMemo(() => getInitialRoomSecret(), []);
+  const [authSecret, setAuthSecret] = useState(initialSecret);
+  const [passwordInput, setPasswordInput] = useState(initialSecret);
+
+  useEffect(() => {
+    if (!authSecret) return;
+    if (authState !== AuthState.UNAUTHENTICATED) return;
+    if (!isConnected) return;
+
+    authenticate(authSecret);
+  }, [authSecret, authState, authenticate, isConnected]);
+
+  useEffect(() => {
+    if (authState === AuthState.AUTHENTICATED && authSecret) {
+      try {
+        sessionStorage.setItem(ROOM_SECRET_STORAGE_KEY, authSecret);
+      } catch (error) {
+        console.warn("[Auth] Unable to persist room secret:", error);
+      }
+    }
+  }, [authState, authSecret]);
+
+  useEffect(() => {
+    if (authState === AuthState.FAILED && authSecret) {
+      try {
+        sessionStorage.removeItem(ROOM_SECRET_STORAGE_KEY);
+      } catch (error) {
+        console.warn("[Auth] Unable to clear stored secret:", error);
+      }
+      setAuthSecret("");
+    }
+  }, [authState, authSecret]);
+
+  const handlePasswordSubmit = useCallback(
+    (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const trimmed = passwordInput.trim();
+      if (!trimmed) {
+        return;
+      }
+
+      setAuthSecret(trimmed);
+
+      if (!isConnected) {
+        connect();
+        return;
+      }
+
+      authenticate(trimmed);
+    },
+    [authenticate, connect, isConnected, passwordInput],
+  );
 
   // Custom hooks for state management
   const { micEnabled, micStream, toggleMic } = useMicrophone({ sendMessage });
@@ -76,8 +217,8 @@ export const App: React.FC = () => {
     clearHistory,
   } = useDrawingState();
 
-  // Heartbeat to prevent timeout
-  useHeartbeat({ sendMessage });
+  // Heartbeat to prevent timeout (only after authentication)
+  useHeartbeat({ sendMessage, enabled: authState === AuthState.AUTHENTICATED });
   const {
     editingPlayerUID,
     nameInput,
@@ -117,6 +258,72 @@ export const App: React.FC = () => {
 
   // Camera commands
   const [cameraCommand, setCameraCommand] = useState<CameraCommand | null>(null);
+
+  if (authState !== AuthState.AUTHENTICATED) {
+    const connectionLabel = (() => {
+      switch (connectionState) {
+        case ConnectionState.CONNECTED:
+          return "Connected";
+        case ConnectionState.CONNECTING:
+          return "Connecting";
+        case ConnectionState.RECONNECTING:
+          return "Reconnecting";
+        case ConnectionState.FAILED:
+          return "Failed";
+        case ConnectionState.DISCONNECTED:
+        default:
+          return "Disconnected";
+      }
+    })();
+
+    const canSubmit = passwordInput.trim().length > 0 && authState !== AuthState.PENDING;
+
+    return (
+      <div style={authGateContainerStyle}>
+        <div style={authGateCardStyle}>
+          <h1 style={{ margin: "0 0 16px" }}>Join Your Room</h1>
+          <p style={{ margin: "0 0 24px", color: "#cbd5f5", fontSize: "0.95rem" }}>
+            Enter the shared room password to sync with your party.
+          </p>
+          <form
+            onSubmit={handlePasswordSubmit}
+            style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+          >
+            <input
+              type="password"
+              value={passwordInput}
+              onChange={(event) => setPasswordInput(event.target.value)}
+              placeholder="Room password"
+              style={authInputStyle}
+              autoFocus
+              spellCheck={false}
+              disabled={authState === AuthState.PENDING}
+            />
+            {authError ? <p style={authGateErrorStyle}>{authError}</p> : null}
+            <button
+              type="submit"
+              style={{
+                ...authPrimaryButtonStyle,
+                opacity: canSubmit ? 1 : 0.6,
+                cursor: canSubmit ? "pointer" : "not-allowed",
+              }}
+              disabled={!canSubmit}
+            >
+              {authState === AuthState.PENDING ? "Authenticating..." : "Enter Room"}
+            </button>
+          </form>
+          <p style={authGateHintStyle}>
+            Connection status: <strong>{connectionLabel}</strong>
+          </p>
+          {!isConnected ? (
+            <button type="button" style={authSecondaryButtonStyle} onClick={connect}>
+              Retry Connection
+            </button>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
 
   // Dice roller toggle and state
   const [diceRollerOpen, setDiceRollerOpen] = useState(false);

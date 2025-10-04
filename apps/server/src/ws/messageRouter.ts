@@ -25,6 +25,7 @@ export class MessageRouter {
   private characterService: CharacterService;
   private wss: WebSocketServer;
   private uidToWs: Map<string, WebSocket>;
+  private getAuthorizedClients: () => Set<WebSocket>;
 
   constructor(
     roomService: RoomService,
@@ -35,6 +36,7 @@ export class MessageRouter {
     characterService: CharacterService,
     wss: WebSocketServer,
     uidToWs: Map<string, WebSocket>,
+    getAuthorizedClients: () => Set<WebSocket>,
   ) {
     this.roomService = roomService;
     this.playerService = playerService;
@@ -44,6 +46,7 @@ export class MessageRouter {
     this.characterService = characterService;
     this.wss = wss;
     this.uidToWs = uidToWs;
+    this.getAuthorizedClients = getAuthorizedClients;
   }
 
   /**
@@ -323,6 +326,6 @@ export class MessageRouter {
    * Broadcast room state to all clients
    */
   private broadcast(): void {
-    this.roomService.broadcast(this.wss.clients);
+    this.roomService.broadcast(this.getAuthorizedClients());
   }
 }
