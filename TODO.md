@@ -92,42 +92,70 @@
 
 ---
 
-## Phase 9: Scene Graph & Transform Overhaul (CURRENT)
+## ✅ Phase 9: Scene Graph & Transform Overhaul (COMPLETE - Oct 2025)
 
-- [ ] **Scene Object Core**
-  - [ ] Define shared `SceneObject` interface (id, type, position, scale, rotation, locked, metadata)
-  - [ ] Update room state + persistence to store drawings/tokens/map as `SceneObject[]`
-  - [ ] Migration utilities for legacy snapshots
-  - [ ] Add `transform-object` message schema & validation
+- [x] **Scene Object Core**
+  - [x] Define shared `SceneObject` interface (id, type, position, scale, rotation, locked, metadata)
+  - [x] Update room state + persistence to store drawings/tokens/map as `SceneObject[]`
+  - [x] Migration utilities for legacy snapshots (auto-migration in rebuildSceneGraph)
+  - [x] Add `transform-object` message schema & validation
 
-- [ ] **Client Scene Layer**
-  - [ ] `useSceneObjects` hook to consume unified list
-  - [ ] Render layers (map/tokens/drawings) filter by type but share transform wrapper
-  - [ ] Selection manager (single + multi select)
+- [x] **Client Scene Layer**
+  - [x] `useSceneObjects` hook to consume unified list
+  - [x] Render layers (map/tokens/drawings) filter by type but share transform wrapper
+  - [ ] Selection manager (single + multi select) - DEFERRED to Phase 10
 
-- [ ] **Transform Gizmo**
-  - [ ] Konva-based handles supporting translate/rotate/scale
-  - [ ] Respect lock flag; emit transforms via WebSocket
-  - [ ] Server authorization (owner vs DM override)
+- [x] **Transform Pipeline**
+  - [x] Transform callback pipeline (App → MapBoard → sendMessage)
+  - [x] Server authorization (owner vs DM override) in applySceneObjectTransform
+  - [x] Respect lock flag on server side
+  - [ ] Visual transform gizmo UI - DEFERRED to Phase 10
 
-- [ ] **Map as Object**
-  - [ ] Load map background into `SceneObject` with lowest z-index
-  - [ ] DM controls for map scale/rotation/lock in DM menu
+- [x] **Map as Object**
+  - [x] Load map background into `SceneObject` with lowest z-index (-100)
+  - [ ] DM controls for map scale/rotation/lock in DM menu - DEFERRED to Phase 10
 
-- [ ] **Drawing Refactor**
+- [ ] **Drawing Refactor** - DEFERRED to Phase 10
   - [ ] Convert stored drawings to individual `SceneObject`s with metadata
   - [ ] Enable move/scale/rotate on drawings; update undo/redo to operate on IDs
 
-- [ ] **Token Enhancements**
+- [ ] **Token Enhancements** - DEFERRED to Phase 10
   - [ ] Token objects support rotation/scale when unlocked
   - [ ] Persist per-token lock state; expose toggle in settings
   - [ ] Prepare initiative metadata field for future combat tracker
 
-- [ ] **Documentation & Demos**
-  - [ ] Update README with new transform workflow
-  - [ ] Add short demo GIF of transform handles
+**Status**: Core architecture complete. Transform messages working. UI controls deferred to Phase 10.
 
-## Phase 10: Asset System & Initiative Prep (NEXT)
+## Phase 10: Transform UI & Lock Controls (NEXT - Deferred from Phase 9)
+
+**Priority**: High (required for full scene graph functionality)
+
+- [ ] **Transform Gizmo Component**
+  - [ ] Create `TransformGizmo.tsx` with Konva Transformer
+  - [ ] Visual handles for rotate and scale (translate via drag already works)
+  - [ ] Attach to selected scene objects
+  - [ ] Respect `locked` flag (disable handles when locked)
+
+- [ ] **Lock Controls UI**
+  - [ ] Add lock toggle to PlayerCard/NpcCard token settings
+  - [ ] Add lock button in DM menu for map object
+  - [ ] Visual indicator for locked objects (lock icon overlay)
+  - [ ] Sync lock state via transform-object message
+
+- [ ] **DM Map Transform Controls**
+  - [ ] DM menu section for map positioning
+  - [ ] Position (x, y) input fields or drag preview
+  - [ ] Scale slider (0.5x - 3x)
+  - [ ] Rotation slider (0° - 360°)
+  - [ ] Lock map button
+
+- [ ] **Selection & Multi-Select** (Optional)
+  - [ ] Selection manager for scene objects
+  - [ ] Click to select, ctrl+click for multi-select
+  - [ ] Drag rectangle selection
+  - [ ] Group transforms for multiple objects
+
+## Phase 11: Asset System & Initiative Prep
 
 - [ ] Asset Manager Foundations
   - [ ] `AssetManager.tsx` with tabs (Maps, Tokens, Portraits, Props)
@@ -140,7 +168,7 @@
   - [ ] Prototype initiative ordering UI leveraging unified scene objects
 
 - [ ] Session & Networking
-  - [ ] Ensure scene-object snapshots serialize cleanly for save/load
+  - [ ] Ensure scene-object snapshots serialize cleanly for save/load (already done ✅)
   - [ ] Include asset references when exporting session
   - [ ] Improve reconnect UX (show spinner while waiting for transforms to sync)
 
