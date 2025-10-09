@@ -9,8 +9,11 @@ pkill -9 -f "node.*dist/index.js" 2>/dev/null
 echo "Waiting for processes to die..."
 sleep 2
 
-echo "=== Starting Backend Server (port 8787) ==="
+echo "=== Rebuilding Backend Server ==="
 cd /home/loshunter/HeroByte
+pnpm --filter vtt-server build
+
+echo "=== Starting Backend Server (port 8787) ==="
 pnpm --filter vtt-server start &
 SERVER_PID=$!
 echo "Server PID: $SERVER_PID"
