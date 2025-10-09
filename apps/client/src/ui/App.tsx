@@ -521,11 +521,13 @@ function AuthenticatedApp({
       position,
       scale,
       rotation,
+      locked,
     }: {
       id: string;
       position?: { x: number; y: number };
       scale?: { x: number; y: number };
       rotation?: number;
+      locked?: boolean;
     }) => {
       sendMessage({
         t: "transform-object",
@@ -533,6 +535,18 @@ function AuthenticatedApp({
         position,
         scale,
         rotation,
+        locked,
+      });
+    },
+    [sendMessage],
+  );
+
+  const toggleSceneObjectLock = useCallback(
+    (sceneObjectId: string, locked: boolean) => {
+      sendMessage({
+        t: "transform-object",
+        id: sceneObjectId,
+        locked,
       });
     },
     [sendMessage],
@@ -819,6 +833,7 @@ function AuthenticatedApp({
         players={snapshot?.players || []}
         characters={snapshot?.characters || []}
         tokens={snapshot?.tokens || []}
+        sceneObjects={snapshot?.sceneObjects || []}
         uid={uid}
         micEnabled={micEnabled}
         editingPlayerUID={editingPlayerUID}
@@ -850,6 +865,7 @@ function AuthenticatedApp({
         onNpcUpdate={handleUpdateNPC}
         onNpcDelete={handleDeleteNPC}
         onNpcPlaceToken={handlePlaceNPCToken}
+        onToggleTokenLock={toggleSceneObjectLock}
         bottomPanelRef={bottomPanelRef}
       />
 
@@ -871,6 +887,35 @@ function AuthenticatedApp({
         onUpdateNPC={handleUpdateNPC}
         onDeleteNPC={handleDeleteNPC}
         onPlaceNPCToken={handlePlaceNPCToken}
+        mapLocked={
+          snapshot?.sceneObjects?.find((obj) => obj.type === "map")?.locked ?? true
+        }
+        onMapLockToggle={() => {
+          const mapObj = snapshot?.sceneObjects?.find((obj) => obj.type === "map");
+          if (mapObj) {
+            toggleSceneObjectLock(mapObj.id, !mapObj.locked);
+          }
+        }}
+        mapTransform={
+          snapshot?.sceneObjects?.find((obj) => obj.type === "map")?.transform ?? {
+            x: 0,
+            y: 0,
+            scaleX: 1,
+            scaleY: 1,
+            rotation: 0,
+          }
+        }
+        onMapTransformChange={(transform) => {
+          const mapObj = snapshot?.sceneObjects?.find((obj) => obj.type === "map");
+          if (mapObj) {
+            transformSceneObject({
+              id: mapObj.id,
+              position: { x: transform.x, y: transform.y },
+              scale: { x: transform.scaleX, y: transform.scaleY },
+              rotation: transform.rotation,
+            });
+          }
+        }}
       />
 
       {/* Context Menu */}
