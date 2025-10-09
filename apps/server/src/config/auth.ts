@@ -4,7 +4,7 @@
 // Centralizes access to authentication-related environment variables
 
 const DEFAULT_ROOM_ID = "default";
-const DEV_FALLBACK_SECRET = "herobyte-dev";
+const DEV_FALLBACK_SECRET = "Fun1";
 
 let warnedAboutFallback = false;
 

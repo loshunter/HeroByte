@@ -1,17 +1,19 @@
 // ============================================================================
-// DRAWINGS LAYER COMPONENT
+// DRAWINGS LAYER COMPONENT (SCENE OBJECT VERSION)
 // ============================================================================
-// Renders all drawings (freehand, lines, shapes) including current drawing
+// Renders drawing scene objects with selection and drag support, falling back to
+// legacy drawing data via the scene object migration hook.
 
-import { memo } from "react";
-import { Group, Line, Rect, Circle } from "react-konva";
+import { memo, useEffect, useRef, useState } from "react";
+import { Circle, Group, Line, Rect } from "react-konva";
+import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import type { Drawing } from "@shared";
+import type { SceneObject } from "@shared";
 import type { Camera } from "../../../hooks/useCamera";
 
 interface DrawingsLayerProps {
   cam: Camera;
-  drawings: Drawing[];
+  drawingObjects: (SceneObject & { type: "drawing" })[];
   currentDrawing: { x: number; y: number }[];
   currentTool: "freehand" | "line" | "rect" | "circle" | "eraser";
   currentColor?: string;
@@ -22,19 +24,14 @@ interface DrawingsLayerProps {
   selectMode: boolean;
   selectedDrawingId: string | null;
   onSelectDrawing: (drawingId: string | null) => void;
-  onDrawingDragEnd: (drawingId: string, e: KonvaEventObject<DragEvent>) => void;
-  localOffsets?: Record<string, { dx: number; dy: number }>;
+  onTransformDrawing: (sceneId: string, transform: { position?: { x: number; y: number } }) => void;
 }
 
-/**
- * DrawingsLayer: Renders all drawings (freehand, lines, shapes)
- * Includes both completed drawings and current drawing in progress
- *
- * Optimized with React.memo to prevent unnecessary re-renders
- */
+type TransformOverride = Partial<SceneObject["transform"]>;
+
 export const DrawingsLayer = memo(function DrawingsLayer({
   cam,
-  drawings,
+  drawingObjects,
   currentDrawing,
   currentTool,
   currentColor,
@@ -45,252 +42,326 @@ export const DrawingsLayer = memo(function DrawingsLayer({
   selectMode,
   selectedDrawingId,
   onSelectDrawing,
-  onDrawingDragEnd,
-  localOffsets,
+  onTransformDrawing,
 }: DrawingsLayerProps) {
-  // Render a single completed drawing
-  const renderDrawing = (drawing: Drawing) => {
-    const originalPoints = drawing.points;
+  const localOverrides = useRef<Record<string, TransformOverride>>({});
+  const [, forceRerender] = useState(0);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
 
-    // Defensive check: ensure points array exists and has elements
-    if (!originalPoints || originalPoints.length === 0) {
+  const applyOverrides = (object: SceneObject & { type: "drawing" }) => {
+    const override = localOverrides.current[object.id];
+    if (!override) {
+      return object;
+    }
+    return {
+      ...object,
+      transform: {
+        ...object.transform,
+        ...override,
+      },
+    };
+  };
+
+  const handleDragStart = (sceneId: string) => {
+    setDraggingId(sceneId);
+  };
+
+  const handleDragEnd = (sceneId: string, event: KonvaEventObject<DragEvent>) => {
+    const node = event.target as Konva.Node;
+    const position = node.position();
+    const nextOverride: TransformOverride = {
+      x: position.x,
+      y: position.y,
+    };
+    localOverrides.current[sceneId] = nextOverride;
+    forceRerender((value) => value + 1);
+    onTransformDrawing(sceneId, { position: { x: position.x, y: position.y } });
+    setDraggingId(null);
+  };
+
+  useEffect(() => {
+    const overrides = localOverrides.current;
+    const keys = Object.keys(overrides);
+    if (keys.length === 0) return;
+
+    const nextOverrides: Record<string, TransformOverride> = { ...overrides };
+    let changed = false;
+
+    for (const key of keys) {
+      const sceneObject = drawingObjects.find((object) => object.id === key);
+      const override = overrides[key];
+      if (!sceneObject) {
+        delete nextOverrides[key];
+        changed = true;
+        continue;
+      }
+
+      const matchesPosition =
+        (override.x === undefined || Math.abs(sceneObject.transform.x - override.x) < 0.1) &&
+        (override.y === undefined || Math.abs(sceneObject.transform.y - override.y) < 0.1);
+
+      if (matchesPosition) {
+        delete nextOverrides[key];
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      localOverrides.current = nextOverrides;
+      forceRerender((value) => value + 1);
+    }
+  }, [drawingObjects]);
+
+  const renderDrawingObject = (sceneObject: SceneObject & { type: "drawing" }) => {
+    const appliedObject = applyOverrides(sceneObject);
+    const drawing = appliedObject.data.drawing;
+    const points = drawing.points;
+
+    if (!points || points.length === 0) {
       console.warn(`Drawing ${drawing.id} has invalid points array`);
       return null;
     }
 
-    const offset = localOffsets?.[drawing.id];
-    const points = offset
-      ? originalPoints.map((p) => ({ x: p.x + offset.dx, y: p.y + offset.dy }))
-      : originalPoints;
-
+    const transform = appliedObject.transform;
     const isSelected = selectedDrawingId === drawing.id;
     const isOwner = drawing.owner === uid;
     const canInteract = selectMode && isOwner;
+    const isDragging = draggingId === sceneObject.id;
 
-    // Common interaction props for selectable drawings
-    const interactiveProps = selectMode
+    const interactiveProps = canInteract
       ? {
           onClick: (event: KonvaEventObject<MouseEvent>) => {
-            if (canInteract) {
-              event.cancelBubble = true;
-              onSelectDrawing(drawing.id);
-            }
+            event.cancelBubble = true;
+            onSelectDrawing(drawing.id);
           },
           onTap: (event: KonvaEventObject<Event>) => {
-            if (canInteract) {
-              event.cancelBubble = true;
-              onSelectDrawing(drawing.id);
-            }
+            event.cancelBubble = true;
+            onSelectDrawing(drawing.id);
           },
         }
       : {};
 
-    if (drawing.type === "eraser") {
-      // Eraser needs at least 1 point
-      if (points.length < 1) return null;
+    const groupHandlers =
+      canInteract && isSelected
+        ? {
+            onDragStart: () => handleDragStart(sceneObject.id),
+            onDragEnd: (event: KonvaEventObject<DragEvent>) => handleDragEnd(sceneObject.id, event),
+          }
+        : {};
 
-      return (
-        <Line
-          key={drawing.id}
-          points={points.flatMap((p) => [p.x, p.y])}
-          stroke="#0b0d12"
-          strokeWidth={drawing.width / cam.scale}
-          lineCap="round"
-          lineJoin="round"
-          globalCompositeOperation="destination-out"
-        />
-      );
-    }
+    const selectionStroke = isDragging ? "#44f" : "#447DF7";
+    const baseStrokeWidth = drawing.width / cam.scale;
+    const highlightStrokeWidth = 2 / cam.scale;
 
-    if (drawing.type === "freehand") {
-      // Freehand needs at least 1 point
-      if (points.length < 1) return null;
-
-      return (
-        <Group
-          key={drawing.id}
-          draggable={isSelected && canInteract}
-          onDragEnd={(e) => canInteract && onDrawingDragEnd(drawing.id, e)}
-        >
-          {/* Invisible wider hit area for easier clicking */}
-          {selectMode && canInteract && (
+    switch (drawing.type) {
+      case "eraser": {
+        return (
+          <Group
+            key={sceneObject.id}
+            x={transform.x}
+            y={transform.y}
+            scaleX={transform.scaleX}
+            scaleY={transform.scaleY}
+            rotation={transform.rotation}
+          >
             <Line
               points={points.flatMap((p) => [p.x, p.y])}
-              stroke="transparent"
-              strokeWidth={Math.max(20 / cam.scale, (drawing.width + 10) / cam.scale)}
+              stroke="#0b0d12"
+              strokeWidth={baseStrokeWidth}
               lineCap="round"
               lineJoin="round"
-              {...interactiveProps}
+              opacity={0.5}
+              globalCompositeOperation="destination-out"
+              listening={false}
             />
-          )}
-          {/* Actual drawing */}
-          <Line
-            points={points.flatMap((p) => [p.x, p.y])}
-            stroke={drawing.color}
-            strokeWidth={drawing.width / cam.scale}
-            lineCap="round"
-            lineJoin="round"
-            opacity={drawing.opacity}
-            listening={false}
-          />
-          {/* Selection highlight */}
-          {isSelected && canInteract && (
+          </Group>
+        );
+      }
+
+      case "freehand": {
+        return (
+          <Group
+            key={sceneObject.id}
+            x={transform.x}
+            y={transform.y}
+            scaleX={transform.scaleX}
+            scaleY={transform.scaleY}
+            rotation={transform.rotation}
+            draggable={canInteract && isSelected}
+            {...groupHandlers}
+          >
+            {canInteract && (
+              <Line
+                points={points.flatMap((p) => [p.x, p.y])}
+                stroke="transparent"
+                strokeWidth={Math.max(20 / cam.scale, (drawing.width + 10) / cam.scale)}
+                lineCap="round"
+                lineJoin="round"
+                {...interactiveProps}
+              />
+            )}
             <Line
               points={points.flatMap((p) => [p.x, p.y])}
-              stroke="#447DF7"
-              strokeWidth={2 / cam.scale}
-              dash={[8 / cam.scale, 4 / cam.scale]}
+              stroke={drawing.color}
+              strokeWidth={baseStrokeWidth}
               lineCap="round"
               lineJoin="round"
+              opacity={drawing.opacity}
               listening={false}
             />
-          )}
-        </Group>
-      );
-    }
+            {isSelected && canInteract && (
+              <Line
+                points={points.flatMap((p) => [p.x, p.y])}
+                stroke={selectionStroke}
+                strokeWidth={highlightStrokeWidth}
+                dash={[8 / cam.scale, 4 / cam.scale]}
+                lineCap="round"
+                lineJoin="round"
+                listening={false}
+              />
+            )}
+          </Group>
+        );
+      }
 
-    if (drawing.type === "line" && points.length >= 2) {
-      return (
-        <Group
-          key={drawing.id}
-          draggable={isSelected && canInteract}
-          onDragEnd={(e) => canInteract && onDrawingDragEnd(drawing.id, e)}
-        >
-          {/* Invisible wider hit area for easier clicking */}
-          {selectMode && canInteract && (
+      case "line": {
+        if (points.length < 2) return null;
+        const [start, end] = [points[0], points[points.length - 1]];
+        return (
+          <Group
+            key={sceneObject.id}
+            x={transform.x}
+            y={transform.y}
+            scaleX={transform.scaleX}
+            scaleY={transform.scaleY}
+            rotation={transform.rotation}
+            draggable={canInteract && isSelected}
+            {...groupHandlers}
+          >
+            {canInteract && (
+              <Line
+                points={[start.x, start.y, end.x, end.y]}
+                stroke="transparent"
+                strokeWidth={Math.max(20 / cam.scale, (drawing.width + 10) / cam.scale)}
+                lineCap="round"
+                {...interactiveProps}
+              />
+            )}
             <Line
-              points={[
-                points[0].x,
-                points[0].y,
-                points[points.length - 1].x,
-                points[points.length - 1].y,
-              ]}
-              stroke="transparent"
-              strokeWidth={Math.max(20 / cam.scale, (drawing.width + 10) / cam.scale)}
+              points={[start.x, start.y, end.x, end.y]}
+              stroke={drawing.color}
+              strokeWidth={baseStrokeWidth}
               lineCap="round"
-              {...interactiveProps}
-            />
-          )}
-          {/* Actual drawing */}
-          <Line
-            points={[
-              points[0].x,
-              points[0].y,
-              points[points.length - 1].x,
-              points[points.length - 1].y,
-            ]}
-            stroke={drawing.color}
-            strokeWidth={drawing.width / cam.scale}
-            lineCap="round"
-            opacity={drawing.opacity}
-            listening={false}
-          />
-          {/* Selection highlight */}
-          {isSelected && canInteract && (
-            <Line
-              points={[
-                points[0].x,
-                points[0].y,
-                points[points.length - 1].x,
-                points[points.length - 1].y,
-              ]}
-              stroke="#447DF7"
-              strokeWidth={2 / cam.scale}
-              dash={[8 / cam.scale, 4 / cam.scale]}
-              lineCap="round"
+              opacity={drawing.opacity}
               listening={false}
             />
-          )}
-        </Group>
-      );
-    }
+            {isSelected && canInteract && (
+              <Line
+                points={[start.x, start.y, end.x, end.y]}
+                stroke={selectionStroke}
+                strokeWidth={highlightStrokeWidth}
+                dash={[8 / cam.scale, 4 / cam.scale]}
+                lineCap="round"
+                listening={false}
+              />
+            )}
+          </Group>
+        );
+      }
 
-    if (drawing.type === "rect" && points.length >= 2) {
-      const x1 = Math.min(points[0].x, points[points.length - 1].x);
-      const y1 = Math.min(points[0].y, points[points.length - 1].y);
-      const x2 = Math.max(points[0].x, points[points.length - 1].x);
-      const y2 = Math.max(points[0].y, points[points.length - 1].y);
+      case "rect": {
+        if (points.length < 2) return null;
+        const x1 = Math.min(points[0].x, points[points.length - 1].x);
+        const y1 = Math.min(points[0].y, points[points.length - 1].y);
+        const x2 = Math.max(points[0].x, points[points.length - 1].x);
+        const y2 = Math.max(points[0].y, points[points.length - 1].y);
 
-      return (
-        <Group
-          key={drawing.id}
-          draggable={isSelected && canInteract}
-          onDragEnd={(e) => canInteract && onDrawingDragEnd(drawing.id, e)}
-        >
-          {/* Actual drawing */}
-          <Rect
-            x={x1}
-            y={y1}
-            width={x2 - x1}
-            height={y2 - y1}
-            fill={drawing.filled ? drawing.color : undefined}
-            stroke={drawing.color}
-            strokeWidth={drawing.width / cam.scale}
-            opacity={drawing.opacity}
-            {...interactiveProps}
-          />
-          {/* Selection highlight */}
-          {isSelected && canInteract && (
+        return (
+          <Group
+            key={sceneObject.id}
+            x={transform.x}
+            y={transform.y}
+            scaleX={transform.scaleX}
+            scaleY={transform.scaleY}
+            rotation={transform.rotation}
+            draggable={canInteract && isSelected}
+            {...groupHandlers}
+          >
             <Rect
               x={x1}
               y={y1}
               width={x2 - x1}
               height={y2 - y1}
-              stroke="#447DF7"
-              strokeWidth={2 / cam.scale}
-              dash={[8 / cam.scale, 4 / cam.scale]}
-              listening={false}
+              fill={drawing.filled ? drawing.color : undefined}
+              stroke={drawing.color}
+              strokeWidth={baseStrokeWidth}
+              opacity={drawing.opacity}
+              {...interactiveProps}
             />
-          )}
-        </Group>
-      );
-    }
+            {isSelected && canInteract && (
+              <Rect
+                x={x1}
+                y={y1}
+                width={x2 - x1}
+                height={y2 - y1}
+                stroke={selectionStroke}
+                strokeWidth={highlightStrokeWidth}
+                dash={[8 / cam.scale, 4 / cam.scale]}
+                listening={false}
+              />
+            )}
+          </Group>
+        );
+      }
 
-    if (drawing.type === "circle" && points.length >= 2) {
-      const cx = points[0].x;
-      const cy = points[0].y;
-      const radius = Math.sqrt(
-        Math.pow(points[points.length - 1].x - cx, 2) +
-          Math.pow(points[points.length - 1].y - cy, 2),
-      );
+      case "circle": {
+        if (points.length < 2) return null;
+        const cx = points[0].x;
+        const cy = points[0].y;
+        const last = points[points.length - 1];
+        const radius = Math.sqrt(Math.pow(last.x - cx, 2) + Math.pow(last.y - cy, 2));
 
-      return (
-        <Group
-          key={drawing.id}
-          draggable={isSelected && canInteract}
-          onDragEnd={(e) => canInteract && onDrawingDragEnd(drawing.id, e)}
-        >
-          {/* Actual drawing */}
-          <Circle
-            x={cx}
-            y={cy}
-            radius={radius}
-            fill={drawing.filled ? drawing.color : undefined}
-            stroke={drawing.color}
-            strokeWidth={drawing.width / cam.scale}
-            opacity={drawing.opacity}
-            {...interactiveProps}
-          />
-          {/* Selection highlight */}
-          {isSelected && canInteract && (
+        return (
+          <Group
+            key={sceneObject.id}
+            x={transform.x}
+            y={transform.y}
+            scaleX={transform.scaleX}
+            scaleY={transform.scaleY}
+            rotation={transform.rotation}
+            draggable={canInteract && isSelected}
+            {...groupHandlers}
+          >
             <Circle
               x={cx}
               y={cy}
               radius={radius}
-              stroke="#447DF7"
-              strokeWidth={2 / cam.scale}
-              dash={[8 / cam.scale, 4 / cam.scale]}
-              listening={false}
+              fill={drawing.filled ? drawing.color : undefined}
+              stroke={drawing.color}
+              strokeWidth={baseStrokeWidth}
+              opacity={drawing.opacity}
+              {...interactiveProps}
             />
-          )}
-        </Group>
-      );
-    }
+            {isSelected && canInteract && (
+              <Circle
+                x={cx}
+                y={cy}
+                radius={radius}
+                stroke={selectionStroke}
+                strokeWidth={highlightStrokeWidth}
+                dash={[8 / cam.scale, 4 / cam.scale]}
+                listening={false}
+              />
+            )}
+          </Group>
+        );
+      }
 
-    return null;
+      default:
+        return null;
+    }
   };
 
-  // Render the current drawing in progress
   const renderCurrentDrawing = () => {
     if (currentDrawing.length === 0) return null;
 
@@ -298,92 +369,94 @@ export const DrawingsLayer = memo(function DrawingsLayer({
     const width = (currentWidth || 3) / cam.scale;
     const opacity = currentOpacity || 0.7;
 
-    if (currentTool === "eraser") {
-      return (
-        <Line
-          points={currentDrawing.flatMap((p) => [p.x, p.y])}
-          stroke="#0b0d12"
-          strokeWidth={width}
-          lineCap="round"
-          lineJoin="round"
-          opacity={0.5}
-        />
-      );
+    switch (currentTool) {
+      case "eraser":
+        return (
+          <Line
+            points={currentDrawing.flatMap((p) => [p.x, p.y])}
+            stroke="#0b0d12"
+            strokeWidth={width}
+            lineCap="round"
+            lineJoin="round"
+            opacity={0.5}
+          />
+        );
+
+      case "freehand":
+        return (
+          <Line
+            points={currentDrawing.flatMap((p) => [p.x, p.y])}
+            stroke={color}
+            strokeWidth={width}
+            lineCap="round"
+            lineJoin="round"
+            opacity={opacity}
+          />
+        );
+
+      case "line": {
+        if (currentDrawing.length < 2) return null;
+        const start = currentDrawing[0];
+        const end = currentDrawing[currentDrawing.length - 1];
+        return (
+          <Line
+            points={[start.x, start.y, end.x, end.y]}
+            stroke={color}
+            strokeWidth={width}
+            lineCap="round"
+            opacity={opacity}
+          />
+        );
+      }
+
+      case "rect": {
+        if (currentDrawing.length < 2) return null;
+        const start = currentDrawing[0];
+        const end = currentDrawing[currentDrawing.length - 1];
+        const x1 = Math.min(start.x, end.x);
+        const y1 = Math.min(start.y, end.y);
+        const x2 = Math.max(start.x, end.x);
+        const y2 = Math.max(start.y, end.y);
+        return (
+          <Rect
+            x={x1}
+            y={y1}
+            width={x2 - x1}
+            height={y2 - y1}
+            fill={currentFilled ? color : undefined}
+            stroke={color}
+            strokeWidth={width}
+            opacity={opacity}
+          />
+        );
+      }
+
+      case "circle": {
+        if (currentDrawing.length < 2) return null;
+        const start = currentDrawing[0];
+        const end = currentDrawing[currentDrawing.length - 1];
+        const radius = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
+        return (
+          <Circle
+            x={start.x}
+            y={start.y}
+            radius={radius}
+            fill={currentFilled ? color : undefined}
+            stroke={color}
+            strokeWidth={width}
+            opacity={opacity}
+          />
+        );
+      }
+
+      default:
+        return null;
     }
-
-    if (currentTool === "freehand") {
-      return (
-        <Line
-          points={currentDrawing.flatMap((p) => [p.x, p.y])}
-          stroke={color}
-          strokeWidth={width}
-          lineCap="round"
-          lineJoin="round"
-          opacity={opacity}
-        />
-      );
-    }
-
-    if (currentTool === "line" && currentDrawing.length >= 2) {
-      const start = currentDrawing[0];
-      const end = currentDrawing[currentDrawing.length - 1];
-      return (
-        <Line
-          points={[start.x, start.y, end.x, end.y]}
-          stroke={color}
-          strokeWidth={width}
-          lineCap="round"
-          opacity={opacity}
-        />
-      );
-    }
-
-    if (currentTool === "rect" && currentDrawing.length >= 2) {
-      const start = currentDrawing[0];
-      const end = currentDrawing[currentDrawing.length - 1];
-      const x1 = Math.min(start.x, end.x);
-      const y1 = Math.min(start.y, end.y);
-      const x2 = Math.max(start.x, end.x);
-      const y2 = Math.max(start.y, end.y);
-
-      return (
-        <Rect
-          x={x1}
-          y={y1}
-          width={x2 - x1}
-          height={y2 - y1}
-          fill={currentFilled ? color : undefined}
-          stroke={color}
-          strokeWidth={width}
-          opacity={opacity}
-        />
-      );
-    }
-
-    if (currentTool === "circle" && currentDrawing.length >= 2) {
-      const start = currentDrawing[0];
-      const end = currentDrawing[currentDrawing.length - 1];
-      const radius = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
-
-      return (
-        <Circle
-          x={start.x}
-          y={start.y}
-          radius={radius}
-          fill={currentFilled ? color : undefined}
-          stroke={color}
-          strokeWidth={width}
-          opacity={opacity}
-        />
-      );
-    }
-
-    return null;
   };
 
   return (
     <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale}>
-      {drawings.map((drawing) => renderDrawing(drawing))}
+      {drawingObjects.map((object) => renderDrawingObject(object))}
       {renderCurrentDrawing()}
     </Group>
   );

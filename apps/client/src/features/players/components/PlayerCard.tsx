@@ -4,12 +4,13 @@
 // Displays a single player's portrait, name, HP bar, and controls
 // Memoized to prevent unnecessary re-renders
 
-import { memo, useEffect, useRef, useState, type ChangeEvent } from "react";
+import { memo, useEffect, useState } from "react";
 import type { PlayerState, Player } from "@shared";
 import { NameEditor } from "./NameEditor";
 import { PortraitSection } from "./PortraitSection";
 import { HPBar } from "./HPBar";
 import { CardControls } from "./CardControls";
+import { PlayerSettingsMenu } from "./PlayerSettingsMenu";
 import { loadPlayerState, savePlayerState } from "../../../utils/playerPersistence";
 
 export interface PlayerCardProps {
@@ -34,6 +35,8 @@ export interface PlayerCardProps {
   onTokenImageSubmit?: (url: string) => void;
   tokenId?: string;
   onApplyPlayerState?: (state: PlayerState, tokenId?: string) => void;
+  isDM: boolean;
+  onToggleDMMode: (next: boolean) => void;
 }
 
 export const PlayerCard = memo<PlayerCardProps>(
@@ -59,19 +62,22 @@ export const PlayerCard = memo<PlayerCardProps>(
     onTokenImageSubmit,
     tokenId,
     onApplyPlayerState,
+    isDM,
+    onToggleDMMode,
   }) => {
     const editing = editingPlayerUID === player.uid;
     const editingMaxHp = editingMaxHpUID === player.uid;
     const [tokenImageInput, setTokenImageInput] = useState(tokenImageUrl ?? "");
-    const playerStateInputRef = useRef<HTMLInputElement | null>(null);
+    const [settingsOpen, setSettingsOpen] = useState(false);
+    const [statusIcon, setStatusIcon] = useState<{ emoji: string; label: string } | null>(null);
 
     useEffect(() => {
       setTokenImageInput(tokenImageUrl ?? "");
     }, [tokenImageUrl]);
 
-    const handleTokenImageSubmit = () => {
+    const handleTokenImageApply = (value: string) => {
       if (!isMe || !onTokenImageSubmit) return;
-      onTokenImageSubmit(tokenImageInput.trim());
+      onTokenImageSubmit(value);
     };
 
     const handleSavePlayerState = () => {
@@ -80,23 +86,11 @@ export const PlayerCard = memo<PlayerCardProps>(
       savePlayerState(player, imageRef);
     };
 
-    const handleLoadPlayerState = async (event: ChangeEvent<HTMLInputElement>) => {
+    const handleLoadPlayerState = async (file: File) => {
       if (!isMe || !onApplyPlayerState) return;
-      const file = event.target.files?.[0];
-      if (!file) return;
-      try {
-        const state = await loadPlayerState(file);
-        onApplyPlayerState(state, tokenId);
-        setTokenImageInput(state.tokenImage ?? "");
-      } catch (err) {
-        window.alert(
-          err instanceof Error
-            ? `Failed to load player state: ${err.message}`
-            : "Failed to load player state.",
-        );
-      } finally {
-        event.target.value = "";
-      }
+      const state = await loadPlayerState(file);
+      onApplyPlayerState(state, tokenId);
+      setTokenImageInput(state.tokenImage ?? "");
     };
 
     return (
@@ -110,6 +104,7 @@ export const PlayerCard = memo<PlayerCardProps>(
           color: "#dbe1ff",
           fontSize: "0.8rem",
           gap: "6px",
+          position: "relative",
         }}
       >
         <div
@@ -135,22 +130,25 @@ export const PlayerCard = memo<PlayerCardProps>(
             onNameEdit={onNameEdit}
             onNameSubmit={onNameSubmit}
           />
-          {player.isDM && (
-            <span
-              className="jrpg-text-small"
-              style={{
-                alignSelf: "center",
-                color: "var(--jrpg-gold)",
-                textShadow: "0 0 4px rgba(255, 215, 0, 0.6)",
-                letterSpacing: "1px",
-              }}
-            >
-              DM
-            </span>
-          )}
+          <span
+            className="jrpg-text-small"
+            style={{
+              alignSelf: "center",
+              color: player.isDM ? "var(--jrpg-gold)" : "var(--jrpg-white)",
+              letterSpacing: "1px",
+            }}
+          >
+            {isMe ? "You" : player.isDM ? "Dungeon Master" : "Adventurer"}
+          </span>
         </div>
 
-        <PortraitSection portrait={player.portrait} micLevel={player.micLevel} />
+        <PortraitSection
+          portrait={player.portrait}
+          micLevel={player.micLevel}
+          isEditable={isMe}
+          onRequestChange={onPortraitLoad}
+          statusIcon={statusIcon}
+        />
 
         <HPBar
           hp={player.hp ?? 100}
@@ -160,6 +158,7 @@ export const PlayerCard = memo<PlayerCardProps>(
           maxHpInput={maxHpInput}
           playerUid={player.uid}
           onHpChange={onHpChange}
+          onHpSet={onHpChange}
           onMaxHpInputChange={onMaxHpInputChange}
           onMaxHpEdit={onMaxHpEdit}
           onMaxHpSubmit={onMaxHpSubmit}
@@ -168,120 +167,27 @@ export const PlayerCard = memo<PlayerCardProps>(
         <CardControls
           isMe={isMe}
           micEnabled={micEnabled}
-          onPortraitLoad={onPortraitLoad}
           onToggleMic={onToggleMic}
+          onOpenSettings={() => setSettingsOpen((value) => !value)}
         />
 
-        {isMe && onTokenImageSubmit && (
-          <div
-            style={{
-              width: "100%",
-              display: "flex",
-              flexDirection: "column",
-              gap: "4px",
-              textAlign: "center",
-            }}
-          >
-            <label
-              className="jrpg-text-small"
-              style={{ color: "var(--jrpg-gold)", fontSize: "0.65rem" }}
-            >
-              Token Image URL
-            </label>
-            <input
-              type="text"
-              value={tokenImageInput}
-              placeholder="https://example.com/token.png"
-              onChange={(e) => setTokenImageInput(e.target.value)}
-              onBlur={handleTokenImageSubmit}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleTokenImageSubmit();
-                }
-              }}
-              style={{
-                width: "100%",
-                background: "#111",
-                color: "var(--jrpg-white)",
-                border: "1px solid var(--jrpg-border-gold)",
-                padding: "4px",
-                fontSize: "0.65rem",
-              }}
-            />
-            {tokenImageUrl && (
-              <img
-                src={tokenImageUrl}
-                alt={`${player.name} token preview`}
-                style={{
-                  width: "48px",
-                  height: "48px",
-                  objectFit: "cover",
-                  alignSelf: "center",
-                  borderRadius: "6px",
-                  border: "1px solid var(--jrpg-border-gold)",
-                }}
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.display = "none";
-                }}
-              />
-            )}
-            <button
-              type="button"
-              className="btn btn-secondary"
-              style={{ fontSize: "0.6rem", padding: "4px 6px" }}
-              onClick={() => {
-                setTokenImageInput("");
-                onTokenImageSubmit?.("");
-              }}
-            >
-              Clear Token Image
-            </button>
-          </div>
-        )}
-
-        {isMe && onApplyPlayerState && (
-          <div
-            style={{
-              width: "100%",
-              display: "flex",
-              flexDirection: "column",
-              gap: "4px",
-              textAlign: "center",
-            }}
-          >
-            <label
-              className="jrpg-text-small"
-              style={{ color: "var(--jrpg-gold)", fontSize: "0.65rem" }}
-            >
-              Player State
-            </label>
-            <div style={{ display: "flex", gap: "8px", justifyContent: "center" }}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                style={{ fontSize: "0.6rem", padding: "4px 6px" }}
-                onClick={handleSavePlayerState}
-              >
-                Save
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                style={{ fontSize: "0.6rem", padding: "4px 6px" }}
-                onClick={() => playerStateInputRef.current?.click()}
-              >
-                Load
-              </button>
-            </div>
-            <input
-              ref={playerStateInputRef}
-              type="file"
-              accept="application/json"
-              style={{ display: "none" }}
-              onChange={handleLoadPlayerState}
-            />
-          </div>
-        )}
+        <PlayerSettingsMenu
+          isOpen={isMe && settingsOpen}
+          tokenImageInput={tokenImageInput}
+          tokenImageUrl={tokenImageUrl}
+          onTokenImageInputChange={setTokenImageInput}
+          onTokenImageApply={(value) => handleTokenImageApply(value)}
+          onTokenImageClear={() => {
+            setTokenImageInput("");
+            handleTokenImageApply("");
+          }}
+          onSavePlayerState={handleSavePlayerState}
+          onLoadPlayerState={handleLoadPlayerState}
+          statusIcon={statusIcon}
+          onStatusChange={setStatusIcon}
+          isDM={isDM}
+          onToggleDMMode={onToggleDMMode}
+        />
       </div>
     );
   },
@@ -302,7 +208,8 @@ export const PlayerCard = memo<PlayerCardProps>(
       prevProps.editingPlayerUID === nextProps.editingPlayerUID &&
       prevProps.nameInput === nextProps.nameInput &&
       prevProps.editingMaxHpUID === nextProps.editingMaxHpUID &&
-      prevProps.maxHpInput === nextProps.maxHpInput
+      prevProps.maxHpInput === nextProps.maxHpInput &&
+      prevProps.isDM === nextProps.isDM
     );
   },
 );

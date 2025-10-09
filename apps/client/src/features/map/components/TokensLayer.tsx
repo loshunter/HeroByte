@@ -1,17 +1,17 @@
 // ============================================================================
-// TOKENS LAYER COMPONENT
+// TOKENS LAYER COMPONENT (SCENE OBJECT VERSION)
 // ============================================================================
-// Renders all player tokens with drag and interaction support
+// Renders tokens from the unified scene graph with drag support.
 
 import { memo, useEffect, useRef, useState } from "react";
 import { Group, Rect, Image as KonvaImage } from "react-konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import type { Token } from "@shared";
-import type { Camera } from "../types";
+import type { SceneObject } from "@shared";
 import useImage from "use-image";
+import type { Camera } from "../types";
 
 interface TokenSpriteProps {
-  token: Token;
+  object: SceneObject & { type: "token" };
   gridSize: number;
   stroke: string;
   strokeWidth: number;
@@ -23,7 +23,7 @@ interface TokenSpriteProps {
 }
 
 const TokenSprite = memo(function TokenSprite({
-  token,
+  object,
   gridSize,
   stroke,
   strokeWidth,
@@ -33,78 +33,77 @@ const TokenSprite = memo(function TokenSprite({
   onHover,
   onDoubleClick,
 }: TokenSpriteProps) {
-  const [image, status] = useImage(token.imageUrl ?? "", "anonymous");
+  const { data, transform, id } = object;
+  const [image, status] = useImage(data.imageUrl ?? "", "anonymous");
 
-  const x = token.x * gridSize + gridSize / 4;
-  const y = token.y * gridSize + gridSize / 4;
-  const size = gridSize / 2;
+  const size = gridSize * 0.75;
+  const offset = size / 2;
 
   const commonProps = {
-    x,
-    y,
+    x: transform.x * gridSize + gridSize / 2 - offset,
+    y: transform.y * gridSize + gridSize / 2 - offset,
     width: size,
     height: size,
+    rotation: transform.rotation,
+    scaleX: transform.scaleX,
+    scaleY: transform.scaleY,
     cornerRadius: gridSize / 8,
     stroke,
     strokeWidth,
     draggable,
     onDragEnd,
     onDragStart,
-    onMouseEnter: () => onHover(token.id),
+    onMouseEnter: () => onHover(id),
     onMouseLeave: () => onHover(null),
     onDblClick: onDoubleClick,
   } as const;
 
-  if (token.imageUrl && status === "loaded" && image) {
+  if (data.imageUrl && status === "loaded" && image) {
     return <KonvaImage image={image} {...commonProps} />;
   }
 
-  return <Rect fill={token.color} {...commonProps} />;
+  return <Rect fill={data.color} {...commonProps} />;
 });
 
 interface TokensLayerProps {
   cam: Camera;
-  tokens: Token[];
+  sceneObjects: SceneObject[];
   uid: string;
   gridSize: number;
   hoveredTokenId: string | null;
   onHover: (id: string | null) => void;
-  onMoveToken: (id: string, x: number, y: number) => void;
-  onRecolorToken: (id: string) => void;
-  onDeleteToken?: (id: string) => void;
+  onTransformToken: (sceneId: string, position: { x: number; y: number }) => void;
+  onRecolorToken: (sceneId: string, owner: string | null | undefined) => void;
   snapToGrid: boolean;
 }
 
-/**
- * TokensLayer: Renders all player tokens
- * - Players can drag their own tokens
- * - Double-click to recolor
- * - Other players' tokens are non-interactive
- *
- * Optimized with React.memo to prevent unnecessary re-renders
- */
 export const TokensLayer = memo(function TokensLayer({
   cam,
-  tokens,
+  sceneObjects,
   uid,
   gridSize,
   hoveredTokenId,
   onHover,
-  onMoveToken,
+  onTransformToken,
   onRecolorToken,
   snapToGrid,
 }: TokensLayerProps) {
-  const localPositionsRef = useRef<Record<string, { x: number; y: number }>>({});
+  const localOverrides = useRef<Record<string, { x: number; y: number }>>({});
   const [, forceRerender] = useState(0);
-  const [draggingTokenId, setDraggingTokenId] = useState<string | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
 
-  const myTokens = tokens.filter((t) => t.owner === uid);
-  const otherTokens = tokens.filter((t) => t.owner !== uid);
+  const tokens = sceneObjects.filter((object): object is SceneObject & { type: "token" } => {
+    return object.type === "token";
+  });
 
-  const handleDrag = (tokenId: string, event: KonvaEventObject<DragEvent>) => {
+  const myTokens = tokens.filter((object) => object.owner === uid);
+  const otherTokens = tokens.filter((object) => object.owner !== uid);
+
+  const handleDrag = (sceneId: string, event: KonvaEventObject<DragEvent>) => {
     const pos = event.target.position();
-    // Convert screen position to grid coordinates
-    let gx, gy;
+
+    let gx: number;
+    let gy: number;
     if (snapToGrid) {
       gx = Math.round(pos.x / gridSize);
       gy = Math.round(pos.y / gridSize);
@@ -112,77 +111,90 @@ export const TokensLayer = memo(function TokensLayer({
       gx = pos.x / gridSize;
       gy = pos.y / gridSize;
     }
-    const snappedX = gx * gridSize + gridSize / 4;
-    const snappedY = gy * gridSize + gridSize / 4;
 
+    const snappedX = gx * gridSize;
+    const snappedY = gy * gridSize;
     event.target.position({ x: snappedX, y: snappedY });
 
-    localPositionsRef.current[tokenId] = { x: gx, y: gy };
-    forceRerender((v) => v + 1);
+    localOverrides.current[sceneId] = { x: gx, y: gy };
+    forceRerender((value) => value + 1);
 
-    onMoveToken(tokenId, gx, gy);
-    setDraggingTokenId(null);
+    onTransformToken(sceneId, { x: gx, y: gy });
+    setDraggingId(null);
   };
 
-  const handleDragStart = (tokenId: string) => {
-    setDraggingTokenId(tokenId);
+  const handleDragStart = (sceneId: string) => {
+    setDraggingId(sceneId);
   };
 
-  // Clear local overrides once server snapshot matches
   useEffect(() => {
-    const overrides = localPositionsRef.current;
-    const ids = Object.keys(overrides);
-    if (ids.length === 0) return;
-    let changed = false;
+    const overrides = localOverrides.current;
+    const keys = Object.keys(overrides);
+    if (keys.length === 0) return;
+
     const next = { ...overrides };
-    for (const id of ids) {
-      const token = tokens.find((t) => t.id === id);
-      const override = overrides[id];
-      if (!token) {
-        delete next[id];
-        changed = true;
+    let dirty = false;
+    for (const key of keys) {
+      const object = tokens.find((candidate) => candidate.id === key);
+      const override = overrides[key];
+      if (!object) {
+        delete next[key];
+        dirty = true;
         continue;
       }
       const matches =
-        Math.abs(token.x - override.x) < 0.001 && Math.abs(token.y - override.y) < 0.001;
+        Math.abs(object.transform.x - override.x) < 0.001 &&
+        Math.abs(object.transform.y - override.y) < 0.001;
       if (matches) {
-        delete next[id];
-        changed = true;
+        delete next[key];
+        dirty = true;
       }
     }
-    if (changed) {
-      localPositionsRef.current = next;
-      forceRerender((v) => v + 1);
+
+    if (dirty) {
+      localOverrides.current = next;
+      forceRerender((value) => value + 1);
     }
   }, [tokens]);
 
+  const mapOverrides = (object: SceneObject & { type: "token" }) => {
+    const override = localOverrides.current[object.id];
+    if (!override) return object;
+    return {
+      ...object,
+      transform: {
+        ...object.transform,
+        x: override.x,
+        y: override.y,
+      },
+    };
+  };
+
   return (
     <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale}>
-      {/* Render other players' tokens first */}
-      {otherTokens.map((t) => (
+      {otherTokens.map((object) => (
         <TokenSprite
-          key={t.id}
-          token={localPositionsRef.current[t.id] ? { ...t, ...localPositionsRef.current[t.id] } : t}
+          key={object.id}
+          object={mapOverrides(object)}
           gridSize={gridSize}
-          stroke={hoveredTokenId === t.id ? "#aaa" : "transparent"}
+          stroke={hoveredTokenId === object.id ? "#aaa" : "transparent"}
           strokeWidth={2 / cam.scale}
           onHover={onHover}
         />
       ))}
 
-      {/* Render my tokens last (on top) */}
-      {myTokens.map((t) => (
+      {myTokens.map((object) => (
         <TokenSprite
-          key={t.id}
-          token={localPositionsRef.current[t.id] ? { ...t, ...localPositionsRef.current[t.id] } : t}
+          key={object.id}
+          object={mapOverrides(object)}
           gridSize={gridSize}
-          stroke={draggingTokenId === t.id ? "#44f" : "#fff"}
+          stroke={draggingId === object.id ? "#44f" : "#fff"}
           strokeWidth={2 / cam.scale}
           draggable
-          onDragStart={() => handleDragStart(t.id)}
-          onDragEnd={(e) => handleDrag(t.id, e)}
+          onDragStart={() => handleDragStart(object.id)}
+          onDragEnd={(event) => handleDrag(object.id, event)}
           onHover={onHover}
-          onDoubleClick={() => onRecolorToken(t.id)}
+          onDoubleClick={() => onRecolorToken(object.id, object.owner)}
         />
       ))}
     </Group>

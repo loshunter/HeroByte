@@ -14,7 +14,7 @@ import { useVoiceChat } from "./useVoiceChat";
 import { DiceRoller } from "../components/dice/DiceRoller";
 import { RollLog } from "../components/dice/RollLog";
 import type { RollResult, DieType } from "../components/dice/types";
-import type { Player, PlayerState } from "@shared";
+import type { Player, PlayerState, RoomSnapshot, ClientMessage } from "@shared";
 import { WS_URL } from "../config";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useMicrophone } from "../hooks/useMicrophone";
@@ -27,7 +27,7 @@ import { getSessionUID } from "../utils/session";
 import { saveSession, loadSession } from "../utils/sessionPersistence";
 import { DrawingToolbar } from "../features/drawing/components";
 import { Header } from "../components/layout/Header";
-import { PartyPanel } from "../components/layout/PartyPanel";
+import { EntitiesPanel } from "../components/layout/EntitiesPanel";
 import { ServerStatus } from "../components/layout/ServerStatus";
 import { ConnectionState, AuthState } from "../services/websocket";
 
@@ -144,8 +144,9 @@ export const App: React.FC = () => {
   });
 
   const initialSecret = useMemo(() => getInitialRoomSecret(), []);
-  const [authSecret, setAuthSecret] = useState(initialSecret);
-  const [passwordInput, setPasswordInput] = useState(initialSecret);
+  const [authSecret, setAuthSecret] = useState("");
+  const [passwordInput, setPasswordInput] = useState(initialSecret || "");
+  const [hasAuthenticated, setHasAuthenticated] = useState(false);
 
   useEffect(() => {
     if (!authSecret) return;
@@ -173,8 +174,17 @@ export const App: React.FC = () => {
         console.warn("[Auth] Unable to clear stored secret:", error);
       }
       setAuthSecret("");
+      setPasswordInput("");
     }
   }, [authState, authSecret]);
+
+  useEffect(() => {
+    if (authState === AuthState.AUTHENTICATED) {
+      setHasAuthenticated(true);
+    } else if (authState === AuthState.FAILED) {
+      setHasAuthenticated(false);
+    }
+  }, [authState]);
 
   const handlePasswordSubmit = useCallback(
     (event: React.FormEvent<HTMLFormElement>) => {
@@ -218,7 +228,9 @@ export const App: React.FC = () => {
 
   const canSubmit = passwordInput.trim().length > 0 && authState !== AuthState.PENDING;
 
-  if (authState !== AuthState.AUTHENTICATED) {
+  const showAuthGate = !hasAuthenticated || authState === AuthState.FAILED;
+
+  if (showAuthGate) {
     return (
       <AuthGate
         password={passwordInput}
@@ -241,6 +253,8 @@ export const App: React.FC = () => {
       sendMessage={sendMessage}
       registerRtcHandler={registerRtcHandler}
       isConnected={isConnected}
+      authState={authState}
+      hasAuthenticated={hasAuthenticated}
     />
   );
 };
@@ -273,7 +287,7 @@ function AuthGate({
       <div style={authGateCardStyle}>
         <h1 style={{ margin: "0 0 16px" }}>Join Your Room</h1>
         <p style={{ margin: "0 0 24px", color: "#cbd5f5", fontSize: "0.95rem" }}>
-          Enter the shared room password to sync with your party.
+          Enter the Demo Room Password: <strong>Fun1</strong> to sync with your party.
         </p>
         <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <input
@@ -318,6 +332,8 @@ interface AuthenticatedAppProps {
   sendMessage: (message: ClientMessage) => void;
   registerRtcHandler: (handler: (from: string, signal: unknown) => void) => void;
   isConnected: boolean;
+  authState: AuthState;
+  hasAuthenticated: boolean;
 }
 
 function AuthenticatedApp({
@@ -326,6 +342,8 @@ function AuthenticatedApp({
   sendMessage,
   registerRtcHandler,
   isConnected,
+  authState,
+  hasAuthenticated,
 }: AuthenticatedAppProps): JSX.Element {
   // Custom hooks for state management
   const { micEnabled, micStream, toggleMic } = useMicrophone({ sendMessage });
@@ -492,13 +510,33 @@ function AuthenticatedApp({
   /**
    * Token actions
    */
-  const moveToken = (id: string, x: number, y: number) => {
-    sendMessage({ t: "move", id, x, y });
+  const recolorToken = (sceneId: string) => {
+    const tokenId = sceneId.replace(/^token:/, "");
+    sendMessage({ t: "recolor", id: tokenId });
   };
 
-  const recolorToken = (id: string) => {
-    sendMessage({ t: "recolor", id });
-  };
+  const transformSceneObject = useCallback(
+    ({
+      id,
+      position,
+      scale,
+      rotation,
+    }: {
+      id: string;
+      position?: { x: number; y: number };
+      scale?: { x: number; y: number };
+      rotation?: number;
+    }) => {
+      sendMessage({
+        t: "transform-object",
+        id,
+        position,
+        scale,
+        rotation,
+      });
+    },
+    [sendMessage],
+  );
 
   const deleteToken = (id: string) => {
     sendMessage({ t: "delete-token", id });
@@ -582,19 +620,28 @@ function AuthenticatedApp({
   const handleUpdateNPC = useCallback(
     (
       id: string,
-      updates: { name: string; hp: number; maxHp: number; portrait?: string; tokenImage?: string },
+      updates: Partial<{
+        name: string;
+        hp: number;
+        maxHp: number;
+        portrait?: string;
+        tokenImage?: string;
+      }>,
     ) => {
+      const existing = snapshot?.characters?.find((character) => character.id === id);
+      if (!existing) return;
+
       sendMessage({
         t: "update-npc",
         id,
-        name: updates.name,
-        hp: updates.hp,
-        maxHp: updates.maxHp,
-        portrait: updates.portrait,
-        tokenImage: updates.tokenImage,
+        name: updates.name ?? existing.name,
+        hp: updates.hp ?? existing.hp,
+        maxHp: updates.maxHp ?? existing.maxHp,
+        portrait: updates.portrait ?? existing.portrait,
+        tokenImage: updates.tokenImage ?? existing.tokenImage ?? undefined,
       });
     },
-    [sendMessage],
+    [sendMessage, snapshot?.characters],
   );
 
   const handleDeleteNPC = useCallback(
@@ -658,6 +705,27 @@ function AuthenticatedApp({
 
   return (
     <div onClick={() => setContextMenu(null)} style={{ height: "100vh", overflow: "hidden" }}>
+      {hasAuthenticated && authState !== AuthState.AUTHENTICATED && (
+        <div
+          className="jrpg-text-small"
+          style={{
+            position: "fixed",
+            top: "12px",
+            right: "16px",
+            padding: "6px 10px",
+            background: "rgba(12, 19, 38, 0.9)",
+            border: "1px solid var(--jrpg-border-gold)",
+            borderRadius: "6px",
+            color: "var(--jrpg-white)",
+            zIndex: 2000,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+          }}
+        >
+          {authState === AuthState.PENDING ? "Re-authenticating…" : "Reconnecting…"}
+        </div>
+      )}
+
       {/* Server Status Banner */}
       <ServerStatus isConnected={isConnected} />
 
@@ -738,18 +806,18 @@ function AuthenticatedApp({
           drawWidth={drawWidth}
           drawOpacity={drawOpacity}
           drawFilled={drawFilled}
-          onMoveToken={moveToken}
           onRecolorToken={recolorToken}
-          onDeleteToken={deleteToken}
+          onTransformObject={transformSceneObject}
           onDrawingComplete={addToHistory}
           cameraCommand={cameraCommand}
           onCameraCommandHandled={() => setCameraCommand(null)}
         />
       </div>
 
-      {/* Party HUD - Fixed at bottom */}
-      <PartyPanel
+      {/* Entities HUD - Fixed at bottom */}
+      <EntitiesPanel
         players={snapshot?.players || []}
+        characters={snapshot?.characters || []}
         tokens={snapshot?.tokens || []}
         uid={uid}
         micEnabled={micEnabled}
@@ -779,6 +847,9 @@ function AuthenticatedApp({
         onToggleDMMode={toggleDM}
         onTokenImageChange={updateTokenImage}
         onApplyPlayerState={handleApplyPlayerState}
+        onNpcUpdate={handleUpdateNPC}
+        onNpcDelete={handleDeleteNPC}
+        onNpcPlaceToken={handlePlaceNPCToken}
         bottomPanelRef={bottomPanelRef}
       />
 

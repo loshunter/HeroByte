@@ -1,0 +1,240 @@
+// ============================================================================
+// ENTITIES PANEL COMPONENT
+// ============================================================================
+// Fixed bottom panel displaying both players and NPCs in the scene.
+
+import React, { useMemo, useState } from "react";
+import type { Character, Player, PlayerState, Token } from "@shared";
+import { PlayerCard } from "../../features/players/components";
+import { NpcCard } from "../../features/players/components/NpcCard";
+import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
+
+interface EntitiesPanelProps {
+  players: Player[];
+  characters: Character[];
+  tokens: Token[];
+  uid: string;
+  micEnabled: boolean;
+  editingPlayerUID: string | null;
+  nameInput: string;
+  editingMaxHpUID: string | null;
+  maxHpInput: string;
+  onNameInputChange: (value: string) => void;
+  onNameEdit: (uid: string, currentName: string) => void;
+  onNameSubmit: () => void;
+  onPortraitLoad: () => void;
+  onToggleMic: () => void;
+  onHpChange: (hp: number, maxHp: number) => void;
+  onMaxHpInputChange: (value: string) => void;
+  onMaxHpEdit: (uid: string, currentMaxHp: number) => void;
+  onMaxHpSubmit: () => void;
+  currentIsDM: boolean;
+  onToggleDMMode: (next: boolean) => void;
+  onTokenImageChange: (tokenId: string, imageUrl: string) => void;
+  onApplyPlayerState: (state: PlayerState, tokenId?: string) => void;
+  onNpcUpdate: (
+    id: string,
+    updates: { name?: string; hp?: number; maxHp?: number; portrait?: string; tokenImage?: string },
+  ) => void;
+  onNpcDelete: (id: string) => void;
+  onNpcPlaceToken: (id: string) => void;
+  bottomPanelRef?: React.RefObject<HTMLDivElement>;
+}
+
+/**
+ * Entities panel displaying all players and active NPCs.
+ */
+export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
+  players,
+  characters,
+  tokens,
+  uid,
+  micEnabled,
+  editingPlayerUID,
+  nameInput,
+  editingMaxHpUID,
+  maxHpInput,
+  onNameInputChange,
+  onNameEdit,
+  onNameSubmit,
+  onPortraitLoad,
+  onToggleMic,
+  onHpChange,
+  onMaxHpInputChange,
+  onMaxHpEdit,
+  onMaxHpSubmit,
+  currentIsDM,
+  onToggleDMMode,
+  onTokenImageChange,
+  onApplyPlayerState,
+  onNpcUpdate,
+  onNpcDelete,
+  onNpcPlaceToken,
+  bottomPanelRef,
+}) => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const npcCharacters = useMemo(
+    () => characters.filter((character) => character.type === "npc"),
+    [characters],
+  );
+
+  const entities = useMemo(() => {
+    const playerEntities = players.map((player) => {
+      const token = tokens.find((t: Token) => t.owner === player.uid);
+      return {
+        kind: "player" as const,
+        id: player.uid,
+        player,
+        token,
+        isMe: player.uid === uid,
+      };
+    });
+
+    const npcEntities = npcCharacters.map((character) => ({
+      kind: "npc" as const,
+      id: character.id,
+      character,
+    }));
+
+    return [...playerEntities, ...npcEntities];
+  }, [players, tokens, npcCharacters, uid]);
+
+  return (
+    <div
+      ref={bottomPanelRef}
+      style={{
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 100,
+        margin: 0,
+        transition: "transform 0.3s ease",
+      }}
+    >
+      <JRPGButton
+        onClick={() => setIsCollapsed((value) => !value)}
+        variant={isCollapsed ? "default" : "primary"}
+        style={{
+          position: "absolute",
+          top: "-28px",
+          right: "12px",
+          padding: "6px 12px",
+          fontSize: "8px",
+          borderRadius: "4px 4px 0 0",
+        }}
+      >
+        {isCollapsed ? "▲ SHOW ENTITIES" : "▼ HIDE ENTITIES"}
+      </JRPGButton>
+
+      <JRPGPanel
+        variant="bevel"
+        style={{
+          padding: "8px",
+          borderRadius: 0,
+          maxHeight: "320px",
+          overflowY: "auto",
+        }}
+      >
+        {isCollapsed ? (
+          <div
+            className="jrpg-text-small"
+            style={{
+              padding: "8px",
+              textAlign: "center",
+              color: "var(--jrpg-white)",
+              opacity: 0.6,
+            }}
+          >
+            Entities panel collapsed - click &ldquo;SHOW ENTITIES&rdquo; to expand
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <h3
+              className="jrpg-text-command jrpg-text-highlight"
+              style={{ margin: "0", textAlign: "center" }}
+            >
+              ENTITIES
+            </h3>
+
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "12px",
+                justifyContent: "center",
+                alignItems: "flex-start",
+              }}
+            >
+              {entities.map((entity) => {
+                if (entity.kind === "player") {
+                  const { player, token, isMe } = entity;
+
+                  return (
+                    <div
+                      key={`player-${player.uid}`}
+                      style={{
+                        position: "relative",
+                        width: "160px",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <PlayerCard
+                        player={player}
+                        isMe={isMe}
+                        tokenColor={token?.color}
+                        micEnabled={micEnabled}
+                        editingPlayerUID={editingPlayerUID}
+                        nameInput={nameInput}
+                        onNameInputChange={onNameInputChange}
+                        onNameEdit={onNameEdit}
+                        onNameSubmit={onNameSubmit}
+                        onPortraitLoad={onPortraitLoad}
+                        onToggleMic={onToggleMic}
+                        onHpChange={(hp) => onHpChange(hp, player.maxHp ?? 100)}
+                        editingMaxHpUID={editingMaxHpUID}
+                        maxHpInput={maxHpInput}
+                        onMaxHpInputChange={onMaxHpInputChange}
+                        onMaxHpEdit={onMaxHpEdit}
+                        onMaxHpSubmit={onMaxHpSubmit}
+                        tokenImageUrl={token?.imageUrl ?? undefined}
+                        onTokenImageSubmit={
+                          isMe && token ? (url) => onTokenImageChange(token.id, url) : undefined
+                        }
+                        tokenId={token?.id}
+                        onApplyPlayerState={
+                          isMe ? (state) => onApplyPlayerState(state, token?.id) : undefined
+                        }
+                        isDM={player.isDM ?? false}
+                        onToggleDMMode={onToggleDMMode}
+                      />
+                    </div>
+                  );
+                }
+
+                return (
+                  <div
+                    key={`npc-${entity.id}`}
+                    style={{ width: "160px", display: "flex", justifyContent: "center" }}
+                  >
+                    <NpcCard
+                      character={entity.character}
+                      isDM={currentIsDM}
+                      onUpdate={onNpcUpdate}
+                      onDelete={onNpcDelete}
+                      onPlaceToken={onNpcPlaceToken}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </JRPGPanel>
+    </div>
+  );
+};

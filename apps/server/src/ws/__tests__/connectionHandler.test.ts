@@ -69,10 +69,15 @@ const setupContainer = () => {
     characterService,
     fakeNodeServer,
     new Map<string, WebSocket>(),
+    () => new Set<WebSocket>(),
   );
 
   const rateLimiter = new RateLimiter({ maxMessages: 100, windowMs: 1000 });
   vi.spyOn(rateLimiter, "check").mockReturnValue(true);
+
+  const uidToWs = new Map<string, WebSocket>();
+  const authenticatedUids = new Set<string>();
+  const authenticatedSessions = new Map<string, { roomId: string; authedAt: number }>();
 
   const container: Partial<Container> = {
     roomService,
@@ -83,7 +88,19 @@ const setupContainer = () => {
     characterService,
     messageRouter,
     rateLimiter,
-    uidToWs: new Map<string, WebSocket>(),
+    uidToWs,
+    authenticatedUids,
+    authenticatedSessions,
+    getAuthenticatedClients: () => {
+      const clients = new Set<WebSocket>();
+      for (const uid of authenticatedUids) {
+        const ws = uidToWs.get(uid);
+        if (ws && ws.readyState === 1) {
+          clients.add(ws);
+        }
+      }
+      return clients;
+    },
   };
 
   return container as Container;
@@ -112,6 +129,10 @@ describe("ConnectionHandler", () => {
     const socket = new FakeWebSocket();
     wss.emitConnection(socket, { url: "/?uid=user-1" });
 
+    // Authenticate the connection
+    const authMessage: ClientMessage = { t: "authenticate", secret: "Fun1" };
+    socket.emit("message", Buffer.from(JSON.stringify(authMessage)));
+
     const state = container.roomService.getState();
     expect(state.users).toContain("user-1");
     expect(state.players).toHaveLength(1);
@@ -126,6 +147,11 @@ describe("ConnectionHandler", () => {
   it("updates heartbeat and respects rate limits", () => {
     const socket = new FakeWebSocket();
     wss.emitConnection(socket, { url: "/?uid=user-2" });
+
+    // Authenticate the connection
+    const authMessage: ClientMessage = { t: "authenticate", secret: "Fun1" };
+    socket.emit("message", Buffer.from(JSON.stringify(authMessage)));
+
     const state = container.roomService.getState();
     const player = state.players[0]!;
 
@@ -151,6 +177,11 @@ describe("ConnectionHandler", () => {
   it("cleans up on disconnect", () => {
     const socket = new FakeWebSocket();
     wss.emitConnection(socket, { url: "/?uid=user-3" });
+
+    // Authenticate the connection
+    const authMessage: ClientMessage = { t: "authenticate", secret: "Fun1" };
+    socket.emit("message", Buffer.from(JSON.stringify(authMessage)));
+
     socket.emit("close");
 
     const state = container.roomService.getState();

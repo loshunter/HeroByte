@@ -4,6 +4,7 @@
 // HTTP endpoint definitions for health checks and API routes
 
 import { Hono } from "hono";
+import { getRoomSecret } from "../config/auth.js";
 
 /**
  * Create and configure HTTP routes
@@ -13,15 +14,81 @@ export function createRoutes(): Hono {
   const app = new Hono();
 
   // Root endpoint - API information
-  app.get("/", (c) =>
-    c.json({
-      name: "HeroByte VTT Server",
-      version: "2.0.0",
-      status: "running",
-      architecture: "domain-driven",
-      websocket: "Connect via WebSocket to this server",
-    }),
-  );
+  app.get("/", (c) => {
+    const secret = getRoomSecret();
+    const html = `<!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>HeroByte VTT – Demo Server</title>
+        <style>
+          body {
+            margin: 0;
+            padding: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: radial-gradient(circle at top, #141b33 0%, #05060d 80%);
+            color: #f7f8ff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+          }
+          .card {
+            background: rgba(8, 12, 24, 0.92);
+            border: 1px solid rgba(255, 215, 0, 0.45);
+            border-radius: 12px;
+            box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+            padding: 32px 36px;
+            max-width: 520px;
+            width: 92vw;
+          }
+          h1 {
+            margin-top: 0;
+            font-size: 2rem;
+            letter-spacing: 0.08em;
+            color: #ffc857;
+            text-transform: uppercase;
+          }
+          p {
+            line-height: 1.6;
+            margin-bottom: 16px;
+          }
+          code {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+          }
+          .hint {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.75);
+          }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <h1>HeroByte Demo Server</h1>
+          <p>
+            Welcome! This Render.com instance may take up to a minute to wake from
+            sleep. Keep this tab open &ndash; once the backend is ready the client will
+            connect automatically.
+          </p>
+          <p class="hint">
+            While waiting, make sure everyone joining knows the current room password:
+          </p>
+          <p><code>${secret}</code></p>
+          <p class="hint">
+            Enter that password on the client welcome screen to hop into the shared
+            tabletop once the server is online.
+          </p>
+        </div>
+      </body>
+    </html>`;
+
+    return c.html(html);
+  });
 
   // Health check endpoint (JSON)
   app.get("/health", (c) => c.json({ status: "ok" }));

@@ -13,6 +13,7 @@ interface HPBarProps {
   maxHpInput: string;
   playerUid: string;
   onHpChange: (hp: number) => void;
+  onHpSet?: (hp: number) => void;
   onMaxHpInputChange: (value: string) => void;
   onMaxHpEdit: (uid: string, maxHp: number) => void;
   onMaxHpSubmit: (value: string) => void;
@@ -26,6 +27,7 @@ export const HPBar: React.FC<HPBarProps> = ({
   maxHpInput,
   playerUid,
   onHpChange,
+  onHpSet,
   onMaxHpInputChange,
   onMaxHpEdit,
   onMaxHpSubmit,
@@ -60,7 +62,24 @@ export const HPBar: React.FC<HPBarProps> = ({
   return (
     <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "4px" }}>
       <div className="jrpg-text-small" style={{ color: "var(--jrpg-gold)", textAlign: "center" }}>
-        HP: {hp} /{" "}
+        <span
+          onDoubleClick={() => {
+            if (!isMe || !onHpSet) return;
+            const input = prompt("Set current HP", String(hp));
+            if (input === null) return;
+            const numeric = Number.parseInt(input, 10);
+            if (Number.isNaN(numeric)) return;
+            const clamped = Math.max(0, Math.min(numeric, maxHp));
+            onHpSet(clamped);
+          }}
+          style={{
+            cursor: isMe && onHpSet ? "pointer" : "default",
+            textDecoration: isMe && onHpSet ? "underline" : "none",
+          }}
+        >
+          HP: {hp}
+        </span>
+        {" / "}
         {isEditingMaxHp ? (
           <input
             type="number"

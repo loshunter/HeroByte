@@ -5,7 +5,7 @@
 
 import { writeFileSync, readFileSync, existsSync } from "fs";
 import type { WebSocket } from "ws";
-import type { Player, RoomSnapshot, Character } from "@shared";
+import type { Player, RoomSnapshot, Character, SceneObject } from "@shared";
 import type { RoomState } from "./model.js";
 import { createEmptyRoomState, toSnapshot } from "./model.js";
 
@@ -19,6 +19,7 @@ export class RoomService {
 
   constructor() {
     this.state = createEmptyRoomState();
+    this.rebuildSceneGraph();
   }
 
   /**
@@ -42,6 +43,8 @@ export class RoomService {
     if (existsSync(STATE_FILE)) {
       try {
         const data = JSON.parse(readFileSync(STATE_FILE, "utf-8"));
+        const sceneObjects: SceneObject[] = data.sceneObjects || [];
+
         this.state = {
           users: [], // Don't persist users - they reconnect
           tokens: data.tokens || [],
@@ -61,7 +64,9 @@ export class RoomService {
           gridSize: data.gridSize || 50,
           diceRolls: data.diceRolls || [],
           drawingRedoStacks: {},
+          sceneObjects,
         };
+        this.rebuildSceneGraph();
         console.log("Loaded state from disk");
       } catch (err) {
         console.error("Failed to load state:", err);
@@ -82,6 +87,7 @@ export class RoomService {
         drawings: this.state.drawings,
         gridSize: this.state.gridSize,
         diceRolls: this.state.diceRolls,
+        sceneObjects: this.state.sceneObjects,
       };
       writeFileSync(STATE_FILE, JSON.stringify(persistentData, null, 2));
     } catch (err) {
@@ -131,7 +137,9 @@ export class RoomService {
       gridSize: snapshot.gridSize ?? 50,
       diceRolls: snapshot.diceRolls ?? [],
       drawingRedoStacks: {},
+      sceneObjects: snapshot.sceneObjects ?? this.state.sceneObjects,
     };
+    this.rebuildSceneGraph();
     console.log(`Loaded session snapshot from client - merged ${mergedPlayers.length} players`);
   }
 
@@ -165,6 +173,199 @@ export class RoomService {
    */
   createSnapshot(): RoomSnapshot {
     this.cleanupPointers();
+    this.rebuildSceneGraph();
     return toSnapshot(this.state);
+  }
+
+  applySceneObjectTransform(
+    id: string,
+    actorUid: string,
+    changes: {
+      position?: { x: number; y: number };
+      scale?: { x: number; y: number };
+      rotation?: number;
+    },
+  ): boolean {
+    const object = this.state.sceneObjects.find((candidate) => candidate.id === id);
+    if (!object) {
+      return false;
+    }
+
+    const actor = this.state.players.find((player) => player.uid === actorUid);
+    const isDM = actor?.isDM ?? false;
+
+    if (object.locked && !isDM) {
+      return false;
+    }
+
+    const applyRotation = (value: number | undefined) => {
+      if (typeof value === "number") {
+        object.transform.rotation = value;
+      }
+    };
+
+    const applyScale = (value: { x: number; y: number } | undefined) => {
+      if (value) {
+        object.transform.scaleX = value.x;
+        object.transform.scaleY = value.y;
+      }
+    };
+
+    const applyPosition = (value: { x: number; y: number } | undefined) => {
+      if (value) {
+        object.transform.x = value.x;
+        object.transform.y = value.y;
+      }
+    };
+
+    switch (object.type) {
+      case "map": {
+        if (!isDM) return false;
+        applyPosition(changes.position);
+        applyScale(changes.scale);
+        applyRotation(changes.rotation);
+        return true;
+      }
+
+      case "token": {
+        const tokenId = object.id.replace(/^token:/, "");
+        const token = this.state.tokens.find((candidate) => candidate.id === tokenId);
+        if (!token) return false;
+        if (!isDM && token.owner !== actorUid) return false;
+
+        if (changes.position) {
+          token.x = changes.position.x;
+          token.y = changes.position.y;
+        }
+
+        applyPosition(changes.position);
+        applyScale(changes.scale);
+        applyRotation(changes.rotation);
+        return true;
+      }
+
+      case "drawing": {
+        const drawingId = object.id.replace(/^drawing:/, "");
+        const drawing = this.state.drawings.find((candidate) => candidate.id === drawingId);
+        const canEdit = isDM || drawing?.owner === actorUid;
+        if (!drawing || !canEdit) return false;
+
+        applyPosition(changes.position);
+        applyScale(changes.scale);
+        applyRotation(changes.rotation);
+        return true;
+      }
+
+      case "prop": {
+        if (!isDM && object.owner && object.owner !== actorUid) return false;
+        applyPosition(changes.position);
+        applyScale(changes.scale);
+        applyRotation(changes.rotation);
+        return true;
+      }
+
+      case "pointer": {
+        // Pointers are ephemeral and follow owner interactions only
+        if (object.owner !== actorUid) return false;
+        applyPosition(changes.position);
+        return true;
+      }
+
+      default:
+        return false;
+    }
+  }
+
+  private rebuildSceneGraph(): void {
+    const existing = new Map<string, SceneObject>(
+      this.state.sceneObjects.map((obj) => [obj.id, obj]),
+    );
+    const next: SceneObject[] = [];
+
+    // Map background -> scene object
+    if (this.state.mapBackground) {
+      const mapId = "map";
+      const prev = existing.get(mapId);
+      next.push({
+        id: mapId,
+        type: "map",
+        owner: null,
+        locked: prev?.locked ?? true,
+        zIndex: prev?.zIndex ?? -100,
+        transform: prev?.transform ?? { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+        data: {
+          imageUrl: this.state.mapBackground,
+          width: prev?.type === "map" ? prev.data.width : undefined,
+          height: prev?.type === "map" ? prev.data.height : undefined,
+        },
+      });
+    }
+
+    // Tokens -> scene objects
+    for (const token of this.state.tokens) {
+      const id = `token:${token.id}`;
+      const prev = existing.get(id);
+      const transform = prev?.transform ?? {
+        x: token.x,
+        y: token.y,
+        scaleX: 1,
+        scaleY: 1,
+        rotation: 0,
+      };
+      transform.x = token.x;
+      transform.y = token.y;
+
+      next.push({
+        id,
+        type: "token",
+        owner: token.owner,
+        locked: prev?.locked ?? false,
+        zIndex: prev?.zIndex ?? 10,
+        transform: { ...transform },
+        data: {
+          characterId: prev?.type === "token" ? prev.data.characterId : undefined,
+          color: token.color,
+          imageUrl: token.imageUrl,
+        },
+      });
+    }
+
+    // Drawings -> scene objects
+    for (const drawing of this.state.drawings) {
+      const id = `drawing:${drawing.id}`;
+      const prev = existing.get(id);
+      next.push({
+        id,
+        type: "drawing",
+        owner: drawing.owner ?? null,
+        locked: prev?.locked ?? false,
+        zIndex: prev?.zIndex ?? 5,
+        transform: prev?.transform ?? { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+        data: { drawing },
+      });
+    }
+
+    // Pointers (ephemeral)
+    for (const pointer of this.state.pointers) {
+      const id = `pointer:${pointer.uid}`;
+      const prev = existing.get(id);
+      next.push({
+        id,
+        type: "pointer",
+        owner: pointer.uid,
+        locked: true,
+        zIndex: prev?.zIndex ?? 20,
+        transform: prev?.transform ?? {
+          x: pointer.x,
+          y: pointer.y,
+          scaleX: 1,
+          scaleY: 1,
+          rotation: 0,
+        },
+        data: { uid: pointer.uid },
+      });
+    }
+
+    this.state.sceneObjects = next;
   }
 }

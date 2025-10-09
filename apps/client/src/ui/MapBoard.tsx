@@ -11,15 +11,16 @@
 // - Distance measurement tool
 // - Map background image support
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Stage, Layer } from "react-konva";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import type { RoomSnapshot, ClientMessage } from "@shared";
+import type { RoomSnapshot, ClientMessage, SceneObject } from "@shared";
 import { useCamera } from "../hooks/useCamera.js";
 import { usePointerTool } from "../hooks/usePointerTool.js";
 import { useDrawingTool } from "../hooks/useDrawingTool.js";
 import { useDrawingSelection } from "../hooks/useDrawingSelection.js";
+import { useSceneObjects } from "../hooks/useSceneObjects.js";
 import {
   GridLayer,
   MapImageLayer,
@@ -75,9 +76,13 @@ interface MapBoardProps {
   drawWidth: number; // Drawing brush size
   drawOpacity: number; // Drawing opacity (0-1)
   drawFilled: boolean; // Whether shapes are filled
-  onMoveToken: (id: string, x: number, y: number) => void;
-  onRecolorToken: (id: string) => void;
-  onDeleteToken: (id: string) => void;
+  onRecolorToken: (sceneId: string, owner?: string | null) => void;
+  onTransformObject: (input: {
+    id: string;
+    position?: { x: number; y: number };
+    scale?: { x: number; y: number };
+    rotation?: number;
+  }) => void;
   onDrawingComplete?: (drawingId: string) => void; // Called when a drawing is completed
   cameraCommand: CameraCommand | null;
   onCameraCommandHandled: () => void;
@@ -107,9 +112,8 @@ export default function MapBoard({
   drawWidth,
   drawOpacity,
   drawFilled,
-  onMoveToken,
   onRecolorToken,
-  onDeleteToken,
+  onTransformObject,
   onDrawingComplete,
   cameraCommand,
   onCameraCommandHandled,
@@ -121,14 +125,24 @@ export default function MapBoard({
   const { ref, w, h } = useElementSize<HTMLDivElement>();
   const stageRef = useRef<Konva.Stage | null>(null);
 
+  const sceneObjects = useSceneObjects(snapshot);
+  const mapObject = useMemo(
+    () => sceneObjects.find((object) => object.type === "map"),
+    [sceneObjects],
+  );
+  const drawingObjects = useMemo(
+    () =>
+      sceneObjects.filter(
+        (object): object is SceneObject & { type: "drawing" } => object.type === "drawing",
+      ),
+    [sceneObjects],
+  );
   // Drawing selection
   const {
     selectedDrawingId,
     selectDrawing: handleSelectDrawing,
     deselectIfEmpty,
-    onDrawingDragEnd,
-    localOffsets: localDrawingOffsets,
-  } = useDrawingSelection({ selectMode, sendMessage, drawings: snapshot?.drawings || [] });
+  } = useDrawingSelection({ selectMode, sendMessage, drawingObjects });
 
   // Camera controls (pan/zoom)
   const {
@@ -291,6 +305,27 @@ export default function MapBoard({
     return "grab";
   };
 
+  const handleTransformToken = useCallback(
+    (sceneId: string, position: { x: number; y: number }) => {
+      onTransformObject({ id: sceneId, position });
+    },
+    [onTransformObject],
+  );
+
+  const handleTransformDrawing = useCallback(
+    (sceneId: string, transform: { position?: { x: number; y: number } }) => {
+      onTransformObject({ id: sceneId, ...transform });
+    },
+    [onTransformObject],
+  );
+
+  const handleRecolorToken = useCallback(
+    (sceneId: string, owner?: string | null) => {
+      onRecolorToken(sceneId, owner);
+    },
+    [onRecolorToken],
+  );
+
   // -------------------------------------------------------------------------
   // RENDER
   // -------------------------------------------------------------------------
@@ -320,7 +355,12 @@ export default function MapBoard({
       >
         {/* Background Layer: Map image and grid (non-interactive) */}
         <Layer listening={false}>
-          <MapImageLayer cam={cam} src={snapshot?.mapBackground || null} x={0} y={0} />
+          <MapImageLayer
+            cam={cam}
+            src={mapObject?.data.imageUrl ?? snapshot?.mapBackground ?? null}
+            x={0}
+            y={0}
+          />
           {grid.show && (
             <GridLayer
               cam={cam}
@@ -337,7 +377,7 @@ export default function MapBoard({
         <Layer>
           <DrawingsLayer
             cam={cam}
-            drawings={snapshot?.drawings || []}
+            drawingObjects={drawingObjects}
             currentDrawing={currentDrawing}
             currentTool={drawTool}
             currentColor={drawColor}
@@ -348,19 +388,17 @@ export default function MapBoard({
             selectMode={selectMode}
             selectedDrawingId={selectedDrawingId}
             onSelectDrawing={handleSelectDrawing}
-            onDrawingDragEnd={onDrawingDragEnd}
-            localOffsets={localDrawingOffsets}
+            onTransformDrawing={handleTransformDrawing}
           />
           <TokensLayer
             cam={cam}
-            tokens={snapshot?.tokens || []}
+            sceneObjects={sceneObjects}
             uid={uid}
             gridSize={grid.size}
             hoveredTokenId={hoveredTokenId}
             onHover={setHoveredTokenId}
-            onMoveToken={onMoveToken}
-            onRecolorToken={onRecolorToken}
-            onDeleteToken={onDeleteToken}
+            onTransformToken={handleTransformToken}
+            onRecolorToken={handleRecolorToken}
             snapToGrid={snapToGrid}
           />
         </Layer>

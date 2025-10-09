@@ -92,83 +92,61 @@
 
 ---
 
-## Phase 9: Core State & Persistence (CURRENT)
+## Phase 9: Scene Graph & Transform Overhaul (CURRENT)
 
-- [ ] Undo System for Drawings
-  - [x] Ctrl+Z undo functionality (already working)
-  - [ ] Redo support (Ctrl+Y)
+- [ ] **Scene Object Core**
+  - [ ] Define shared `SceneObject` interface (id, type, position, scale, rotation, locked, metadata)
+  - [ ] Update room state + persistence to store drawings/tokens/map as `SceneObject[]`
+  - [ ] Migration utilities for legacy snapshots
+  - [ ] Add `transform-object` message schema & validation
 
-- [ ] Player State Persistence
-  - [x] PlayerState interface in packages/shared/src/models.ts
-  - [x] playerPersistence.ts utility (savePlayerState, loadPlayerState)
-  - [x] Save/Load buttons in PlayerCard.tsx
-  - [x] JSON export/import for player data
+- [ ] **Client Scene Layer**
+  - [ ] `useSceneObjects` hook to consume unified list
+  - [ ] Render layers (map/tokens/drawings) filter by type but share transform wrapper
+  - [ ] Selection manager (single + multi select)
 
-- [ ] Map + Session Save/Load
-  - [x] sessionPersistence.ts utility
-  - [x] Full RoomSnapshot export (players, tokens, drawings, map)
-  - [x] Save/Load buttons in Header.tsx
-  - [x] Session restore functionality
+- [ ] **Transform Gizmo**
+  - [ ] Konva-based handles supporting translate/rotate/scale
+  - [ ] Respect lock flag; emit transforms via WebSocket
+  - [ ] Server authorization (owner vs DM override)
+
+- [ ] **Map as Object**
+  - [ ] Load map background into `SceneObject` with lowest z-index
+  - [ ] DM controls for map scale/rotation/lock in DM menu
+
+- [ ] **Drawing Refactor**
+  - [ ] Convert stored drawings to individual `SceneObject`s with metadata
+  - [ ] Enable move/scale/rotate on drawings; update undo/redo to operate on IDs
+
+- [ ] **Token Enhancements**
+  - [ ] Token objects support rotation/scale when unlocked
+  - [ ] Persist per-token lock state; expose toggle in settings
+  - [ ] Prepare initiative metadata field for future combat tracker
+
+- [ ] **Documentation & Demos**
+  - [ ] Update README with new transform workflow
+  - [ ] Add short demo GIF of transform handles
+
+## Phase 10: Asset System & Initiative Prep (NEXT)
 
 - [ ] Asset Manager Foundations
-  - [ ] AssetManager.tsx component with tabs (Scenes/Maps, Tokens, Portraits, Props/Misc)
-  - [ ] URL-based asset registry
-  - [ ] Client-side persistence (localStorage)
-  - [ ] Integration with MapBoard for background selection
+  - [ ] `AssetManager.tsx` with tabs (Maps, Tokens, Portraits, Props)
+  - [ ] URL-based registry persisted to localStorage
+  - [ ] DM import flow for map/token assets
 
-- [ ] Private Room System
-  - [ ] roomId concept in WebSocket server
-  - [ ] UUID-based room links generation
-  - [ ] DM controls (pre-create players/NPCs, invite links)
-  - [ ] RoomConnector.ts with roomId parameter
+- [ ] Initiative & Status Hooks
+  - [ ] Store optional `initiative` stat on scene objects (when relevant)
+  - [ ] Extend status-effect system to broadcast to tokens (portrait + token badge)
+  - [ ] Prototype initiative ordering UI leveraging unified scene objects
 
-- [ ] Server Status Polish
-  - [ ] Connection state indicators (🟢 Connected, 🔴 Disconnected, 💤 Reconnecting)
-  - [ ] Room name display
+- [ ] Session & Networking
+  - [ ] Ensure scene-object snapshots serialize cleanly for save/load
+  - [ ] Include asset references when exporting session
+  - [ ] Improve reconnect UX (show spinner while waiting for transforms to sync)
 
-- [ ] Documentation
-  - [ ] Save/Load instructions in README
-  - [ ] Private room system documentation
-  - [ ] Asset manager usage guide
-  - [ ] UI tooltips for Save/Load and Undo
-
-## Phase 10: Asset & Token Expansion (NEXT)
-
-- [ ] Asset Manager Upgrade
-  - [ ] Full registry schema with AssetType
-  - [ ] UI tabs for each asset type
-  - [ ] Upload via URL input
-  - [ ] localStorage persistence across sessions
-
-- [ ] Token Image Replacement
-  - [ ] Add imageUrl to Token model
-  - [ ] TokenRenderer.tsx image support (fallback to color)
-  - [ ] "Replace Token Image" button in PartyPanel/PlayerCard
-  - [ ] Asset Manager integration for token selection
-
-- [ ] Party List Color → Name
-  - [ ] Move color selection from token to player name field
-  - [ ] Update PlayerCard.tsx styling
-  - [ ] Keep color fallback for tokens without images
-
-- [ ] NPC Workflow
-  - [ ] Drag-spawn NPCs from Asset Manager
-  - [ ] Red border styling for NPCs in party panel
-  - [ ] NPC flag in Token model
-
-- [ ] Session Persistence Upgrade
-  - [ ] Include assets in snapshot
-  - [ ] Include token image URLs
-  - [ ] Restore assets on session load
-
-- [ ] Onboarding Message
-  - [ ] Welcome overlay in public-demo lobby
-  - [ ] Click-to-dismiss functionality
-
-- [ ] Documentation
-  - [ ] Asset Manager usage
-  - [ ] Token replacement guide
-  - [ ] NPC spawning instructions
+- [ ] Onboarding & Demo Polish
+  - [ ] Enhance welcome overlay (password hint, uptime notice)
+  - [ ] Add optional interactive tutorial for transform controls
 
 ## High Priority (Post-Phase 10)
 

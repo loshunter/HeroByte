@@ -56,7 +56,14 @@
       "WebFetch(domain:github.com)",
       "Bash(gh run view:*)",
       "Bash(pnpm --filter @shared test)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(git log:*)",
+      "Bash(pnpm --filter vtt-server lint --fix)",
+      "Bash(pnpm --filter herobyte-client lint --fix)",
+      "Bash(pnpm --filter vtt-server test)",
+      "Bash(netstat:*)",
+      "Bash(ss:*)",
+      "Bash(PORT=5174 pnpm vite:*)"
     ],
     "deny": [],
     "ask": []

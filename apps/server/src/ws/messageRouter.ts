@@ -298,6 +298,20 @@ export class MessageRouter {
           break;
         }
 
+        case "transform-object": {
+          if (
+            this.roomService.applySceneObjectTransform(message.id, senderUid, {
+              position: message.position,
+              scale: message.scale,
+              rotation: message.rotation,
+            })
+          ) {
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+        }
+
         case "rtc-signal": {
           this.forwardRtcSignal(message.target, senderUid, message.signal as SignalData);
           break;

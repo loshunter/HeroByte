@@ -11,6 +11,61 @@ export { TokenModel, PlayerModel, CharacterModel } from "./models.js";
 // GAME ENTITY TYPES
 // ----------------------------------------------------------------------------
 
+// ----------------------------------------------------------------------------
+// SCENE GRAPH
+// ----------------------------------------------------------------------------
+
+export type SceneObjectType = "map" | "token" | "drawing" | "pointer" | "prop";
+
+export interface SceneObjectTransform {
+  x: number;
+  y: number;
+  scaleX: number;
+  scaleY: number;
+  rotation: number; // Degrees
+}
+
+interface SceneObjectBase {
+  id: string;
+  type: SceneObjectType;
+  owner?: string | null; // For permission checks
+  locked?: boolean;
+  zIndex: number;
+  transform: SceneObjectTransform;
+}
+
+export interface MapSceneData {
+  imageUrl?: string;
+  width?: number;
+  height?: number;
+}
+
+export interface TokenSceneData {
+  characterId?: string | null;
+  color: string;
+  imageUrl?: string;
+}
+
+export interface DrawingSceneData {
+  drawing: Drawing;
+}
+
+export interface PointerSceneData {
+  uid: string;
+}
+
+export interface PropSceneData {
+  assetId?: string;
+  label?: string;
+}
+
+export type SceneObject =
+  | (SceneObjectBase & { type: "map"; data: MapSceneData })
+  | (SceneObjectBase & { type: "token"; data: TokenSceneData })
+  | (SceneObjectBase & { type: "drawing"; data: DrawingSceneData })
+  | (SceneObjectBase & { type: "pointer"; data: PointerSceneData })
+  | (SceneObjectBase & { type: "prop"; data: PropSceneData });
+
 /**
  * Token: Represents a player's game piece on the map
  */
@@ -132,6 +187,7 @@ export interface RoomSnapshot {
   drawings: Drawing[]; // All drawings on the canvas
   gridSize: number; // Synchronized grid size for all clients
   diceRolls: DiceRoll[]; // History of dice rolls
+  sceneObjects?: SceneObject[]; // Unified scene graph (experimental)
 }
 
 // ----------------------------------------------------------------------------
@@ -201,6 +257,13 @@ export type ClientMessage =
   | { t: "clear-all-tokens" } // Remove all tokens/players except self
   | { t: "heartbeat" } // Keep-alive ping from client
   | { t: "load-session"; snapshot: RoomSnapshot } // Load a saved session state
+  | {
+      t: "transform-object";
+      id: string;
+      position?: { x: number; y: number };
+      scale?: { x: number; y: number };
+      rotation?: number;
+    }
 
   // Authentication
   | { t: "authenticate"; secret: string; roomId?: string } // Authenticate with room secret

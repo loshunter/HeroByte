@@ -8,29 +8,22 @@ import React from "react";
 interface CardControlsProps {
   isMe: boolean;
   micEnabled: boolean;
-  onPortraitLoad: () => void;
   onToggleMic: () => void;
+  onOpenSettings: () => void;
 }
 
 export const CardControls: React.FC<CardControlsProps> = ({
   isMe,
   micEnabled,
-  onPortraitLoad,
   onToggleMic,
+  onOpenSettings,
 }) => {
   if (!isMe) {
     return <div style={{ height: "30px" }} />;
   }
 
   return (
-    <div style={{ display: "flex", gap: "4px" }}>
-      <button
-        className="btn btn-primary"
-        style={{ fontSize: "0.7rem", padding: "4px 8px" }}
-        onClick={onPortraitLoad}
-      >
-        Load
-      </button>
+    <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
       <button
         className={micEnabled ? "btn btn-danger" : "btn btn-success"}
         style={{ fontSize: "0.7rem", padding: "4px 8px" }}
@@ -38,6 +31,14 @@ export const CardControls: React.FC<CardControlsProps> = ({
         title={micEnabled ? "Mute mic" : "Enable mic"}
       >
         {micEnabled ? "🔇" : "🎤"}
+      </button>
+      <button
+        className="btn btn-secondary"
+        style={{ fontSize: "0.7rem", padding: "4px 8px" }}
+        onClick={onOpenSettings}
+        title="Open player settings"
+      >
+        ⚙️
       </button>
     </div>
   );

@@ -345,6 +345,33 @@ export function validateMessage(raw: unknown): ValidationResult {
       break;
     }
 
+    case "transform-object": {
+      if (typeof message.id !== "string" || message.id.length === 0) {
+        return { valid: false, error: "transform-object: missing or invalid id" };
+      }
+      if ("position" in message && message.position !== undefined) {
+        const pos = message.position;
+        if (!isRecord(pos) || !isFiniteNumber(pos.x) || !isFiniteNumber(pos.y)) {
+          return { valid: false, error: "transform-object: invalid position" };
+        }
+      }
+      if ("scale" in message && message.scale !== undefined) {
+        const scale = message.scale;
+        if (!isRecord(scale) || !isFiniteNumber(scale.x) || !isFiniteNumber(scale.y)) {
+          return { valid: false, error: "transform-object: invalid scale" };
+        }
+        if (scale.x <= 0 || scale.y <= 0) {
+          return { valid: false, error: "transform-object: scale must be positive" };
+        }
+      }
+      if ("rotation" in message && message.rotation !== undefined) {
+        if (!isFiniteNumber(message.rotation)) {
+          return { valid: false, error: "transform-object: rotation must be a number" };
+        }
+      }
+      break;
+    }
+
     default: {
       return { valid: false, error: `Unknown message type: ${message.t}` };
     }

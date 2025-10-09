@@ -4,3 +4,6 @@ export { NameEditor } from "./NameEditor";
 export { PortraitSection } from "./PortraitSection";
 export { HPBar } from "./HPBar";
 export { CardControls } from "./CardControls";
+export { PlayerSettingsMenu } from "./PlayerSettingsMenu";
+export { NpcCard } from "./NpcCard";
+export { NpcSettingsMenu } from "./NpcSettingsMenu";

@@ -3,7 +3,16 @@
 // ============================================================================
 // Defines the room state structure and snapshot
 
-import type { RoomSnapshot, Token, Player, Pointer, Drawing, DiceRoll, Character } from "@shared";
+import type {
+  RoomSnapshot,
+  Token,
+  Player,
+  Pointer,
+  Drawing,
+  DiceRoll,
+  Character,
+  SceneObject,
+} from "@shared";
 
 /**
  * Room state - holds all game data for a session
@@ -19,6 +28,7 @@ export interface RoomState {
   gridSize: number; // Synchronized grid size
   diceRolls: DiceRoll[]; // Dice roll history
   drawingRedoStacks: Record<string, Drawing[]>; // Per-player redo stacks
+  sceneObjects: SceneObject[]; // Unified scene graph
 }
 
 /**
@@ -36,6 +46,7 @@ export function createEmptyRoomState(): RoomState {
     gridSize: 50,
     diceRolls: [],
     drawingRedoStacks: {},
+    sceneObjects: [],
   };
 }
 
@@ -53,5 +64,6 @@ export function toSnapshot(state: RoomState): RoomSnapshot {
     drawings: state.drawings,
     gridSize: state.gridSize,
     diceRolls: state.diceRolls,
+    sceneObjects: state.sceneObjects,
   };
 }

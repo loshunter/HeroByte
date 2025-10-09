@@ -9,194 +9,63 @@
 
 ---
 
-## 🎯 Current Focus: Phase 9 - DM Tools & Game Session Management
+## 🎯 Current Focus: Scene Graph & Transform Overhaul
 
-**Goal**: Make HeroByte fully playable for actual game sessions. DM can prepare sessions, save/load game state, and players can manage their tokens.
+**Goal**: Treat every drawable entity (map, tokens, drawings, props) as a unified scene object that can be selected, transformed, and locked. This unlocks future systems like initiative ordering, status overlays, and map manipulation without bespoke codepaths.**
 
-### What's Already Done
+### Guiding Principles
 
-- ✅ Ctrl+Z undo for drawings
-- ✅ Drawing history stack
-- ✅ Token movement and placement
-- ✅ Basic character/HP tracking
-- ✅ Map background loading
-- ✅ Grid system with snap-to-grid
+- Single source of truth for renderable objects (scene graph with z-order and lock state)
+- Shared transform toolbox (select, move, rotate, scale) applied consistently
+- Fine-grained permissions: players alter their own pieces; DM can override/lock
+- Backward compatibility: migrate existing drawings/tokens into the new model
 
-### Priority Order (Critical → Nice to Have)
+### Phase Breakdown
 
-**CRITICAL (Blocks gameplay):**
+1. **Scene Object Model & Migration (Critical)**
+   - Define `SceneObject` interface in shared package (id, type, position, scale, rotation, locked, metadata)
+   - Update server room state to store drawings/tokens/map as `SceneObject[]`
+   - Write migration utilities to convert existing room snapshot into scene objects on load
+   - Adjust broadcast payloads + validation schemas
 
-1. DM Menu & Session Management
-2. Token Image Upload (Players & DM)
-3. Save/Load Game State
+2. **Client-Side Scene Graph Layer (Critical)**
+   - Introduce `useSceneObjects` hook to subscribe to unified object list
+   - Render layers filter by object type (map/tokens/drawings) but reuse shared transform wrapper
+   - Build selection manager for single/multi select; broadcast selection intent for remote awareness (MVP local only)
 
-**HIGH (Major UX issues):** 4. DM-Only Controls (Protect from accidental player actions) 5. Fix Token/Drawing Movement Flicker 6. Viewport Controls (Snap to token, Recenter map)
+3. **Transform Gizmo & Edit Pipeline (Critical)**
+   - Create reusable transform handles (Konva Group wrapper) supporting translate, rotate, scale with locking
+   - Emit new `{ t: "transform-object"; id; position; scale; rotation }` message
+   - Server: authorize (owner/DM), update object state, broadcast
+   - Add lock toggle to player/NPC settings; DM menu gets lock/unlock map & global objects
 
-**MEDIUM (Polish):** 7. Enhanced Selection Tools 8. Improved Roll Display 9. Private Lobbies (Major feature - Phase 10)
+4. **Map-as-Object & Layer Ordering (High)**
+   - Load map image into `SceneObject` with `type: "map"`, negative z-order so it always sits behind
+   - DM menu: map transform controls (scale, rotate, position) + lock button
+   - Ensure transform gizmo respects viewport zoom/pan
 
----
+5. **Drawing Refactor (High)**
+   - Convert drawing history entries into individual `SceneObject` instances (type-specific metadata: points, color, width)
+   - Selection/transform: allow moving/scaling/rotating drawings; support multi-select for group operations
+   - Update undo/redo stack to operate on IDs
 
-## Task 1: DM Menu & Core Session Setup
+6. **Token Enhancements (Medium)**
+   - Allow rotate/scale on tokens when unlocked
+   - Persist per-token lock state + DM override
+   - Prep for initiative ordering by storing optional `initiative` metadata
 
-**Problem**: DM has no dedicated interface to prepare sessions. Critical controls are scattered or missing.
-
-**Solution**: Create a DM-only menu with session preparation tools.
-
-### Steps
-
-1. **Create DM Menu Component**
-   - Location: `apps/client/src/features/dm/components/DMMenu.tsx`
-   - Floating menu button (fixed position, bottom-right or similar)
-   - Opens modal/panel with tabs for different tools
-   - Tabs: "Map Setup", "NPCs/Monsters", "Session"
-
-2. **Map Setup Tab**
-   - Move "Load Map Background" here (currently in MapControls?)
-   - Grid size controls (10-500px slider)
-   - Grid lock toggle (prevent accidental changes)
-   - "Clear All Drawings" button (dangerous action, needs confirmation)
-
-3. **NPCs/Monsters Tab**
-   - List of all NPCs/monsters in session
-   - Add new NPC button
-   - For each NPC:
-     - Name input
-     - HP/Max HP inputs
-     - Portrait URL input (with preview)
-     - Token image URL input (with preview)
-     - "Place on Map" button (creates token at center)
-     - Delete button
-
-4. **Session Tab**
-   - "Save Game State" button (downloads JSON)
-   - "Load Game State" button (file input)
-   - Session name input (used for filename)
-   - Player count display (read-only)
-
-5. **Add DM Toggle Functionality**
-   - Update Player model to include `isDM: boolean` (defaults to false)
-   - Location: `packages/shared/src/models.ts`
-   - Add `isDM` field to PlayerModel
-
-6. **Add DM Toggle UI in DM Menu**
-   - Simple checkbox at top of DM Menu: "DM Mode"
-   - When toggled, send `{ t: "toggle-dm", isDM: boolean }` to server
-   - Server updates player's `isDM` flag and broadcasts to all clients
-
-7. **Add DM Role Detection Hook**
-   - Location: `apps/client/src/hooks/useDMRole.ts`
-   - Check if current player has `isDM: true` in room state
-   - Return `isDM: boolean` from hook
-
-8. **Wire Up to App**
-   - Import DMMenu in `App.tsx`
-   - Only render if `isDM === true` (from useDMRole hook)
-   - Pass necessary callbacks (send WebSocket messages)
-   - Anyone can toggle DM mode on/off (trust-based for MVP)
+7. **Future Hooks (Nice to Have)**
+   - Status effect overlays rendered as child objects anchored to parent token
+   - Terrain props / fog-of-war as additional object types
+   - Snap-to-grid toggle for transforms
 
 ### Success Criteria
 
-- ✅ Any player can toggle DM mode on/off via checkbox
-- ✅ DM menu button only visible when DM mode is enabled
-- ✅ Can configure grid size and lock it
-- ✅ Can add NPCs with HP, portrait, token image
-- ✅ Can place NPC tokens on map
-- ✅ Save/Load buttons present (wired up in Task 3)
-- ✅ Multiple players can have DM mode enabled simultaneously (co-DM support)
-
----
-
-## Task 2: Token Image Upload for Players & DM
-
-**Problem**: Players can't customize their token appearance. DM can't load monster/NPC tokens.
-
-**Solution**: Allow image URL input for tokens. Support both players and DM-created NPCs.
-
-### Steps
-
-1. **Update Token Model**
-   - Location: `packages/shared/src/models.ts`
-   - Add `imageUrl?: string` to TokenModel
-   - When imageUrl is present, display image instead of colored circle
-
-2. **Add Player Token Customization**
-   - Location: `apps/client/src/features/party/components/PlayerCard.tsx`
-   - Add "Token Image URL" input field
-   - When player enters URL, send message to update their token's imageUrl
-   - Show small preview of token image
-
-3. **Update Shared Types**
-   - Location: `packages/shared/src/index.ts`
-   - Add message type:
-     ```typescript
-     | { t: "update-token-image"; tokenId: string; imageUrl: string }
-     ```
-
-4. **Add Server Handler**
-   - Location: `apps/server/src/ws/messageRouter.ts`
-   - Handle `update-token-image` message
-   - Update token's imageUrl in room state
-   - Broadcast to all clients
-
-5. **Update Token Rendering**
-   - Location: `apps/client/src/features/map/components/TokensLayer.tsx`
-   - Check if token has `imageUrl`
-   - If yes: Render Konva.Image with the URL
-   - If no: Render existing colored circle
-   - Handle image loading errors (fallback to circle)
-
-6. **NPC Token Images (via DM Menu)**
-   - Already covered in Task 1 (NPCs/Monsters tab)
-   - When DM creates NPC with token image, create token with imageUrl set
-
-### Success Criteria
-
-- ✅ Players can paste image URL for their token
-- ✅ Token displays image instead of colored circle
-- ✅ DM can set token images for NPCs/monsters
-- ✅ Image loading errors fallback to colored circle
-- ✅ Token images sync across all clients
-
----
-
-## Task 3: Save/Load Game State
-
-**Problem**: All session data (NPCs, tokens, drawings, map) is lost on refresh or server restart.
-
-**Solution**: Implement full session save/load as JSON file.
-
-### Steps
-
-1. **Create Session Persistence Utility**
-   - Location: `apps/client/src/utils/sessionPersistence.ts`
-   - Implement:
-
-     ```typescript
-     import { RoomSnapshot } from "@shared/index";
-
-     export function saveSession(snapshot: RoomSnapshot, sessionName: string): void {
-       // Create JSON blob from RoomSnapshot
-       // Trigger download as "{sessionName}-{timestamp}.json"
-     }
-
-     export function loadSession(file: File): Promise<RoomSnapshot> {
-       // Read file
-       // Parse JSON
-       // Validate RoomSnapshot schema
-       // Return RoomSnapshot
-     }
-     ```
-
-2. **Wire Save Button (in DM Menu from Task 1)**
-   - Get current room snapshot from useWebSocket hook
-   - Get session name from input
-   - Call `saveSession(snapshot, sessionName)`
-   - Show success toast
-
-3. **Wire Load Button (in DM Menu from Task 1)**
-   - File input for JSON file
-   - Call `loadSession(file)`
-   - Send `load-session` message to server with snapshot
+- ✅ All interactive elements share the same transform controls and lock behavior
+- ✅ Map, tokens, and drawings can be repositioned, rotated, scaled (within permissions)
+- ✅ Locked objects ignore transform attempts until unlocked
+- ✅ Server enforces ownership/lock rules for `transform-object` messages
+- ✅ No regressions to undo/redo, save/load workflows (scene objects serialize cleanly)
 
 4. **Update Shared Types**
    - Location: `packages/shared/src/index.ts`
