@@ -95,28 +95,42 @@ pnpm install
 
 ### Running Locally
 
-**Linux/Mac:**
+**Quick Start (Recommended):**
 
 ```bash
-# Start the server
-cd apps/server
-pnpm dev
-
-# Start the client (in a new terminal)
-cd apps/client
-pnpm dev
+# From project root - automatically handles cleanup, build, and startup
+./dev-start.sh
 ```
 
-**Windows (with WSL):**
+This script:
+- Cleans up any stuck processes/ports
+- Builds the backend
+- Starts both servers in the correct order
+- Shows you the URLs and PIDs
 
-For easier launching on Windows, use the provided batch scripts:
+**Manual Start (Alternative):**
 
-1. Double-click `scripts/windows/start-server.bat` to start the server
-2. Double-click `scripts/windows/start-client.bat` to start the client
+```bash
+# Terminal 1: Start the backend
+pnpm dev:server
 
-See [scripts/windows/README.md](scripts/windows/README.md) for detailed Windows setup instructions.
+# Terminal 2: Start the frontend
+pnpm dev:client
+```
 
-Then open your browser to: `http://localhost:5173`
+**Port Issues?**
+
+If you get "port already in use" errors:
+```bash
+./kill-ports.sh  # Cleans up stuck processes
+```
+
+See [PORT_MANAGEMENT.md](PORT_MANAGEMENT.md) for detailed troubleshooting.
+
+**Access the Application:**
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:8787`
+- Default Password: `Fun1`
 
 ### Network Access
 
