@@ -18,6 +18,8 @@ interface PlayerSettingsMenuProps {
   onStatusChange: (icon: { emoji: string; label: string } | null) => void;
   isDM: boolean;
   onToggleDMMode: (next: boolean) => void;
+  tokenLocked?: boolean;
+  onToggleTokenLock?: (locked: boolean) => void;
 }
 
 export function PlayerSettingsMenu({
@@ -33,6 +35,8 @@ export function PlayerSettingsMenu({
   onStatusChange,
   isDM,
   onToggleDMMode,
+  tokenLocked,
+  onToggleTokenLock,
 }: PlayerSettingsMenuProps): JSX.Element | null {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -187,6 +191,25 @@ export function PlayerSettingsMenu({
         </div>
 
         <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "4px 0" }} />
+
+        {onToggleTokenLock && (
+          <>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
+                Token Lock
+              </span>
+              <button
+                className={tokenLocked ? "btn btn-primary" : "btn btn-secondary"}
+                style={{ fontSize: "0.65rem" }}
+                onClick={() => onToggleTokenLock(!tokenLocked)}
+                title={tokenLocked ? "Token is locked (DM only)" : "Token is unlocked"}
+              >
+                {tokenLocked ? "🔒 Locked" : "🔓 Unlocked"}
+              </button>
+            </div>
+            <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "4px 0" }} />
+          </>
+        )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>

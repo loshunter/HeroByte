@@ -369,6 +369,11 @@ export function validateMessage(raw: unknown): ValidationResult {
           return { valid: false, error: "transform-object: rotation must be a number" };
         }
       }
+      if ("locked" in message && message.locked !== undefined) {
+        if (typeof message.locked !== "boolean") {
+          return { valid: false, error: "transform-object: locked must be a boolean" };
+        }
+      }
       break;
     }
 

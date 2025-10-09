@@ -304,6 +304,7 @@ export class MessageRouter {
               position: message.position,
               scale: message.scale,
               rotation: message.rotation,
+              locked: message.locked,
             })
           ) {
             this.broadcast();

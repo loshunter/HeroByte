@@ -15,6 +15,8 @@ interface NpcSettingsMenuProps {
   onDelete: () => void;
   statusIcon: { emoji: string; label: string } | null;
   onStatusChange: (icon: { emoji: string; label: string } | null) => void;
+  tokenLocked?: boolean;
+  onToggleTokenLock?: (locked: boolean) => void;
 }
 
 export function NpcSettingsMenu({
@@ -28,6 +30,8 @@ export function NpcSettingsMenu({
   onDelete,
   statusIcon,
   onStatusChange,
+  tokenLocked,
+  onToggleTokenLock,
 }: NpcSettingsMenuProps): JSX.Element | null {
   if (!isOpen) {
     return null;
@@ -133,6 +137,16 @@ export function NpcSettingsMenu({
           >
             Place Token
           </button>
+          {onToggleTokenLock && (
+            <button
+              className={tokenLocked ? "btn btn-primary" : "btn btn-secondary"}
+              style={{ fontSize: "0.65rem" }}
+              onClick={() => onToggleTokenLock(!tokenLocked)}
+              title={tokenLocked ? "Token is locked (DM can unlock)" : "Token is unlocked"}
+            >
+              {tokenLocked ? "🔒 Locked" : "🔓 Unlocked"}
+            </button>
+          )}
           <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
             {statusOptions.map((icon) => {
               const isNone = icon.label === "None";

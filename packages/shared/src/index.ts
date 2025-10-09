@@ -263,6 +263,7 @@ export type ClientMessage =
       position?: { x: number; y: number };
       scale?: { x: number; y: number };
       rotation?: number;
+      locked?: boolean;
     }
 
   // Authentication
