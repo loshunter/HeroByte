@@ -63,7 +63,9 @@
       "Bash(pnpm --filter vtt-server test)",
       "Bash(netstat:*)",
       "Bash(ss:*)",
-      "Bash(PORT=5174 pnpm vite:*)"
+      "Bash(PORT=5174 pnpm vite:*)",
+      "Bash(chmod:*)",
+      "Bash(fuser:*)"
     ],
     "deny": [],
     "ask": []
