@@ -444,6 +444,204 @@
 
 ---
 
+### Critical Bug Fixes
+
+**Priority**: Mixed (2 HIGH, 2 MEDIUM) - User-reported UX issues affecting daily gameplay
+
+**Total Estimated Time**: 9-14 hours
+
+#### Bug 1: Pointer Tool - Temporary Pulse Behavior (HIGH Priority - 4-6 hours)
+
+**Current Problem**:
+- Pointer stays on map until clicked elsewhere
+- Doesn't disappear when pointer tool clicked again (inconsistent)
+- Clutters the map with persistent pointers
+- Confusing UX for DMs trying to direct attention
+
+**Desired Behavior**:
+- Click pointer button → Click map → Pointer appears, pulses, fades out in 3 seconds
+- Allow multiple simultaneous pointers (each expires independently)
+- Each pointer: pulse brightness/size for ~1s, then fade out over ~2s
+- Total lifespan: 3 seconds per pointer
+- Clicking pointer button again cancels active mode (consistent with other tools)
+
+**Implementation**:
+- [ ] Update pointer data structure to include: `{ id, x, y, name, timestamp, uid }`
+- [ ] Change from single pointer to array of temporary pointers in state
+- [ ] Broadcast pointer creation with timestamp
+- [ ] Client-side: Use `setTimeout` to remove pointer after 3s based on timestamp
+- [ ] Create CSS keyframe animation:
+  ```css
+  @keyframes pointer-pulse-fade {
+    0% { opacity: 0; transform: scale(0.8); }
+    15% { opacity: 1; transform: scale(1.2); }
+    30% { transform: scale(1); }
+    66% { opacity: 1; }
+    100% { opacity: 0; transform: scale(0.9); }
+  }
+  ```
+- [ ] Update PointersLayer component to handle multiple pointers with animation
+- [ ] Update usePointerTool hook to toggle off when clicked again
+- [ ] Remove old pointer cleanup logic (no more single persistent pointer)
+
+**Files Affected**:
+- `apps/client/src/hooks/usePointerTool.ts`
+- `apps/client/src/features/map/components/PointersLayer.tsx`
+- `apps/client/src/styles/` (add animation keyframes)
+- `packages/shared/src/index.ts` (pointer interface updates)
+
+**Testing**:
+- [ ] Click pointer multiple times rapidly → verify all appear and expire independently
+- [ ] Verify 3-second lifespan timing
+- [ ] Verify pulse animation smoothness
+- [ ] Test with multiple clients → all see same pointers expire simultaneously
+- [ ] Click pointer button while in pointer mode → should cancel/exit mode
+
+---
+
+#### Bug 2: Portrait Placeholder - Colored Square (HIGH Priority - 1-2 hours)
+
+**Current Problem**:
+- "Thin line to click" is not discoverable
+- After clicking, shows "Click the Image to change" text with no actual image
+- Confusing UX for new players
+
+**Desired Behavior**:
+- Initial state: Colored square matching token color and name color
+- Square displays text: "Click to change portrait"
+- Once custom portrait loaded: Text disappears, but click-to-change functionality remains
+- Consistent visual identity (portrait color = token color = name color)
+
+**Implementation**:
+- [ ] Find PortraitSection component in `apps/client/src/features/players/components/PortraitSection.tsx`
+- [ ] When `portrait` is null/empty:
+  - Render colored `<div>` with `backgroundColor` set to player's token color
+  - Display centered text: "Click to change portrait"
+  - Apply same click handler for URL input
+- [ ] When `portrait` is set:
+  - Render image as normal
+  - Hide text overlay
+  - Keep click handler for changing portrait
+- [ ] Ensure color comes from player's token color (consistent across UI)
+
+**Files Affected**:
+- `apps/client/src/features/players/components/PortraitSection.tsx`
+
+**Testing**:
+- [ ] New player (no portrait) → see colored square with message
+- [ ] Click square → URL input appears (existing behavior)
+- [ ] Load portrait → text disappears, image shows
+- [ ] Click portrait → can still change image
+- [ ] Verify color matches token color on map
+
+---
+
+#### Bug 3: Landing Page Connection State (MEDIUM Priority - 1-2 hours)
+
+**Current Problem**:
+- "Connecting..." message shown, but button remains clickable
+- No visual feedback that system is actively retrying
+- Users may think app is hung
+
+**Desired Behavior**:
+- Button disabled (greyed out) during "Connecting..." state
+- Button enabled only when server connects successfully
+- Add animation to "Connecting..." text (pulsing dots or spinner)
+- Clear visual feedback that connection is in progress
+
+**Implementation**:
+- [ ] Find AuthGate or landing page component
+- [ ] Track connection state: `"idle" | "connecting" | "connected" | "failed"`
+- [ ] Disable button when `connectionState === "connecting"`
+- [ ] Add CSS animation for connecting state:
+  ```css
+  @keyframes connecting-pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+  ```
+- [ ] Or use animated ellipsis: "Connecting" → "Connecting." → "Connecting.." → "Connecting..."
+- [ ] Apply JRPG button disabled styling (already exists)
+
+**Files Affected**:
+- `apps/client/src/components/auth/` (AuthGate or similar)
+- WebSocket connection logic
+
+**Testing**:
+- [ ] Start app with server offline → see "Connecting..." with animation
+- [ ] Button should be disabled/unclickable
+- [ ] Start server → button becomes enabled
+- [ ] Try entering password during connecting → nothing happens (disabled)
+
+---
+
+#### Bug 4: Measure Tool - Squares & DM Configuration (MEDIUM Priority - 3-4 hours)
+
+**Current Problem**:
+- Measure tool displays "units" (not D&D standard terminology)
+- No way to configure what 1 square equals in real-world measurements
+- Tool behavior: stays open until closed manually (inconsistent with other tools)
+
+**Desired Behavior**:
+- Display format: "X Squares (Y ft)" where Y = X * gridSquareSize
+- DM can configure gridSquareSize in DM Menu (default: 5 ft)
+- Measure tool closes after placing measurement (click to open again)
+- Consistent with other tool workflows
+
+**Implementation**:
+
+**Backend**:
+- [ ] Add `gridSquareSize` to RoomState interface (default: 5)
+- [ ] Add to room snapshot for synchronization
+- [ ] Validation: gridSquareSize must be positive number (1-100 reasonable range)
+
+**Frontend - DM Menu**:
+- [ ] Add "Grid Configuration" section to DM Menu (near Grid Controls)
+- [ ] Input field: "1 Square = ___ feet" with number input
+- [ ] Send update message to server when DM changes value
+- [ ] Broadcast to all clients (part of room state)
+
+**Frontend - Measure Tool**:
+- [ ] Update display calculation:
+  ```typescript
+  const squares = Math.round(distance / gridSize);
+  const feet = squares * gridSquareSize;
+  return `${squares} Squares (${feet} ft)`;
+  ```
+- [ ] Change tool behavior: auto-close after measurement placed
+- [ ] Update button to be standard toggle (not persistent open)
+
+**Files Affected**:
+- `packages/shared/src/index.ts` (RoomState interface)
+- `apps/server/src/domains/room/model.ts` (room state)
+- `apps/client/src/features/dm/components/DMMenu.tsx`
+- `apps/client/src/features/map/components/MeasureLayer.tsx`
+- `apps/client/src/hooks/useMeasureTool.ts` (if exists)
+
+**Testing**:
+- [ ] Default: Measure 3 squares → shows "3 Squares (15 ft)"
+- [ ] DM changes to 10 ft per square → shows "3 Squares (30 ft)"
+- [ ] DM changes to 1.5 ft (small scale) → shows "3 Squares (4.5 ft)"
+- [ ] Measure tool closes after placing line
+- [ ] Click measure button again → can place new measurement
+- [ ] Multiple clients see same square size configuration
+
+---
+
+**Implementation Priority Order**:
+1. **Pointer Tool** (HIGH, most complex) - Affects DM communication
+2. **Portrait Placeholder** (HIGH, quick win) - Affects all players immediately
+3. **Landing Page Connection** (MEDIUM, quick win) - First impression fix
+4. **Measure Tool** (MEDIUM, moderate) - Nice enhancement for DMs
+
+**Benefits**:
+- 🎯 Fixes broken pointer tool behavior (critical DM feature)
+- 🎯 Improves new player onboarding (portrait discovery)
+- 🎯 Professional connection handling (no more "is it hung?" moments)
+- 🎯 D&D-standard measurement display (squares + feet)
+
+---
+
 ## Phase 13: Asset System & Initiative Prep (Future)
 
 - [ ] Asset Manager Foundations
