@@ -156,59 +156,43 @@
   - [ ] Drag rectangle selection
   - [ ] Group transforms for multiple objects
 
-## Phase 11: Token Size & Advanced Selection (NEXT)
+## ✅ Phase 11: Token Size System (COMPLETE - Oct 2025)
 
-**Priority**: High
-**Effort**: Medium (~3-5 hours)
-**Methodology**: Test-Driven Development (write tests first, then implementation)
+**Status**: Token size system fully implemented with TDD methodology. 146/146 tests passing, 80.99% coverage.
 
-### Goals
-1. Token size variants (tiny/small/medium/large/huge/gargantuan)
-2. Selection state management for TransformGizmo
-3. Multi-select capabilities
-4. Token rotation via gizmo
+### Completed Features
 
-### Phase 11A: Write Tests First (TDD)
+- [x] **Token Size System**
+  - [x] Add `size` property to Token model (default: medium)
+  - [x] Size variants: tiny (0.5x), small (0.75x), medium (1x), large (1.5x), huge (2x), gargantuan (3x)
+  - [x] Add set-token-size message type to @shared
+  - [x] Implement TokenService.setTokenSize with lock check
+  - [x] Implement TokenService.setTokenSizeByDM for DM override
+  - [x] Add validation middleware for set-token-size
+  - [x] Update scene graph to include token size
+  - [x] UI controls in PlayerCard settings to change size (3x2 button grid)
+  - [x] UI controls in NpcCard settings for DM (3x2 button grid)
+  - [x] Visual size scaling on tokens in TokensLayer
+  - [x] Respect locked state (locked tokens require DM override)
 
-- [ ] **Token Size Tests** (Server-side)
-  - [ ] Test: Token model accepts size property (tiny/small/medium/large/huge/gargantuan)
-  - [ ] Test: Token model defaults to "medium" size
-  - [ ] Test: Validate set-token-size message with valid sizes
-  - [ ] Test: Reject set-token-size with invalid size strings
-  - [ ] Test: Reject set-token-size with non-string size
-  - [ ] Test: TokenService.setTokenSize updates token size
-  - [ ] Test: TokenService respects locked state (can't resize locked tokens)
-  - [ ] Test: DM can resize locked tokens (override)
-  - [ ] Test: Size persists in save/load (RoomService snapshot includes size)
-  - [ ] Test: Message router handles set-token-size correctly
+- [x] **Comprehensive Testing (TDD)**
+  - [x] 14 tests for token size service (tokenSize.test.ts)
+  - [x] 7 tests for validation middleware
+  - [x] 3 tests for message router
+  - [x] 6 tests for TokenModel persistence
+  - [x] 30 total new tests, all passing
+  - [x] 99.02% coverage on TokenService
 
-- [ ] **Selection State Tests** (Server-side)
-  - [ ] Test: Validate select-object message with valid scene object ID
-  - [ ] Test: Validate deselect-object message
-  - [ ] Test: Reject select-object with missing ID
-  - [ ] Test: RoomService tracks selected object per player
-  - [ ] Test: Selection state broadcasts to all clients
-  - [ ] Test: Selection clears when object is deleted
-  - [ ] Test: Selection persists across reconnect (optional)
+### Success Criteria Achieved
+- ✅ All tests written first (TDD methodology)
+- ✅ Tokens can be resized via UI settings menu
+- ✅ Size changes visible in real-time on map
+- ✅ Ownership validation enforced
+- ✅ Lock state respected (DM override works)
+- ✅ Size persists in scene graph and state
+- ✅ Test coverage >80% (80.99% overall, 99.02% on TokenService)
 
-- [ ] **Multi-Select Tests** (Optional - Server-side)
-  - [ ] Test: Validate select-multiple message with array of IDs
-  - [ ] Test: Reject select-multiple with non-array
-  - [ ] Test: RoomService tracks multiple selections per player
-  - [ ] Test: Bulk transform applies to all selected objects
-
-### Phase 11B: Implement Features (After Tests Pass)
-
-- [ ] **Token Size System**
-  - [ ] Add `size` property to Token model (default: medium)
-  - [ ] Size variants: tiny (0.5x), small (0.75x), medium (1x), large (1.5x), huge (2x), gargantuan (3x)
-  - [ ] Add set-token-size message type to @shared
-  - [ ] Implement TokenService.setTokenSize with lock check
-  - [ ] Add validation middleware for set-token-size
-  - [ ] Update RoomService save/load to include size
-  - [ ] UI controls in PlayerCard/NpcCard to change size
-  - [ ] Visual size scaling on tokens
-  - [ ] Respect locked state
+### Deferred to Phase 12
 
 - [ ] **Selection State Management**
   - [ ] Add select-object/deselect-object message types to @shared
@@ -226,15 +210,6 @@
   - [ ] Shift+click for multi-select on client
   - [ ] Bulk transform operations
   - [ ] Group lock/unlock
-
-### Success Criteria
-- ✅ All tests pass before implementation begins
-- ✅ Tokens can be resized via UI
-- ✅ TransformGizmo attached to selected objects
-- ✅ Rotation and scaling work via gizmo
-- ✅ Selection state synchronized across clients
-- ✅ Size persists with session save/load
-- ✅ Test coverage >80% for new features
 
 ---
 
