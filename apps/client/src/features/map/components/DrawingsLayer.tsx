@@ -154,30 +154,6 @@ export const DrawingsLayer = memo(function DrawingsLayer({
     const highlightStrokeWidth = 2 / cam.scale;
 
     switch (drawing.type) {
-      case "eraser": {
-        return (
-          <Group
-            key={sceneObject.id}
-            x={transform.x}
-            y={transform.y}
-            scaleX={transform.scaleX}
-            scaleY={transform.scaleY}
-            rotation={transform.rotation}
-          >
-            <Line
-              points={points.flatMap((p) => [p.x, p.y])}
-              stroke="#0b0d12"
-              strokeWidth={baseStrokeWidth}
-              lineCap="round"
-              lineJoin="round"
-              opacity={0.5}
-              globalCompositeOperation="destination-out"
-              listening={false}
-            />
-          </Group>
-        );
-      }
-
       case "freehand": {
         return (
           <Group
@@ -371,14 +347,15 @@ export const DrawingsLayer = memo(function DrawingsLayer({
 
     switch (currentTool) {
       case "eraser":
+        // Show eraser preview as a semi-transparent red line
         return (
           <Line
             points={currentDrawing.flatMap((p) => [p.x, p.y])}
-            stroke="#0b0d12"
+            stroke="#ff4444"
             strokeWidth={width}
             lineCap="round"
             lineJoin="round"
-            opacity={0.5}
+            opacity={0.4}
           />
         );
 

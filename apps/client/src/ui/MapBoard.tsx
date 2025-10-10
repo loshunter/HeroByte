@@ -185,6 +185,7 @@ export default function MapBoard({
     toWorld,
     sendMessage,
     onDrawingComplete,
+    drawingObjects,
   });
 
   // Token interaction
