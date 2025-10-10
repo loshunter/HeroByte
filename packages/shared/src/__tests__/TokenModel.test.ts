@@ -73,7 +73,15 @@ describe("TokenModel", () => {
 
   describe("Phase 11: Token Size", () => {
     it("includes size in toJSON output", () => {
-      const token = new TokenModel("id-1", "player-1", 10, 20, "hsl(0, 70%, 50%)", undefined, "large");
+      const token = new TokenModel(
+        "id-1",
+        "player-1",
+        10,
+        20,
+        "hsl(0, 70%, 50%)",
+        undefined,
+        "large",
+      );
       const json = token.toJSON();
 
       expect(json.size).toBe("large");

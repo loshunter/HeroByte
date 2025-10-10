@@ -27,7 +27,18 @@ describe("MessageRouter", () => {
     // Create mock state
     mockState = {
       users: [],
-      players: [{ uid: "player-1", name: "Alice", portrait: undefined, isDM: false, hp: 10, maxHp: 10, micLevel: 0, lastHeartbeat: Date.now() }],
+      players: [
+        {
+          uid: "player-1",
+          name: "Alice",
+          portrait: undefined,
+          isDM: false,
+          hp: 10,
+          maxHp: 10,
+          micLevel: 0,
+          lastHeartbeat: Date.now(),
+        },
+      ],
       tokens: [],
       characters: [],
       mapBackground: undefined,
@@ -116,7 +127,13 @@ describe("MessageRouter", () => {
       const msg: ClientMessage = { t: "move", id: "token-1", x: 10, y: 20 };
       router.route(msg, "player-1");
 
-      expect(mockTokenService.moveToken).toHaveBeenCalledWith(mockState, "token-1", "player-1", 10, 20);
+      expect(mockTokenService.moveToken).toHaveBeenCalledWith(
+        mockState,
+        "token-1",
+        "player-1",
+        10,
+        20,
+      );
       expect(mockRoomService.broadcast).toHaveBeenCalled();
     });
 
@@ -137,10 +154,19 @@ describe("MessageRouter", () => {
     });
 
     it("routes update-token-image and saves state", () => {
-      const msg: ClientMessage = { t: "update-token-image", tokenId: "token-1", imageUrl: "http://example.com/img.png" };
+      const msg: ClientMessage = {
+        t: "update-token-image",
+        tokenId: "token-1",
+        imageUrl: "http://example.com/img.png",
+      };
       router.route(msg, "player-1");
 
-      expect(mockTokenService.setImageUrl).toHaveBeenCalledWith(mockState, "token-1", "player-1", "http://example.com/img.png");
+      expect(mockTokenService.setImageUrl).toHaveBeenCalledWith(
+        mockState,
+        "token-1",
+        "player-1",
+        "http://example.com/img.png",
+      );
       expect(mockRoomService.broadcast).toHaveBeenCalled();
       expect(mockRoomService.saveState).toHaveBeenCalled();
     });
@@ -151,7 +177,11 @@ describe("MessageRouter", () => {
       const msg: ClientMessage = { t: "portrait", data: "base64data" };
       router.route(msg, "player-1");
 
-      expect(mockPlayerService.setPortrait).toHaveBeenCalledWith(mockState, "player-1", "base64data");
+      expect(mockPlayerService.setPortrait).toHaveBeenCalledWith(
+        mockState,
+        "player-1",
+        "base64data",
+      );
       expect(mockRoomService.broadcast).toHaveBeenCalled();
       expect(mockRoomService.saveState).toHaveBeenCalled();
     });
@@ -194,16 +224,33 @@ describe("MessageRouter", () => {
 
   describe("Character Actions", () => {
     it("routes create-character message", () => {
-      const msg: ClientMessage = { t: "create-character", name: "Hero", maxHp: 100, portrait: "portrait-data" };
+      const msg: ClientMessage = {
+        t: "create-character",
+        name: "Hero",
+        maxHp: 100,
+        portrait: "portrait-data",
+      };
       router.route(msg, "player-1");
 
-      expect(mockCharacterService.createCharacter).toHaveBeenCalledWith(mockState, "Hero", 100, "portrait-data");
+      expect(mockCharacterService.createCharacter).toHaveBeenCalledWith(
+        mockState,
+        "Hero",
+        100,
+        "portrait-data",
+      );
       expect(mockRoomService.broadcast).toHaveBeenCalled();
       expect(mockRoomService.saveState).toHaveBeenCalled();
     });
 
     it("routes create-npc message with npc type", () => {
-      const msg: ClientMessage = { t: "create-npc", name: "Goblin", hp: 20, maxHp: 20, portrait: "goblin-portrait", tokenImage: "goblin-token" };
+      const msg: ClientMessage = {
+        t: "create-npc",
+        name: "Goblin",
+        hp: 20,
+        maxHp: 20,
+        portrait: "goblin-portrait",
+        tokenImage: "goblin-token",
+      };
       router.route(msg, "player-1");
 
       expect(mockCharacterService.createCharacter).toHaveBeenCalledWith(
@@ -219,16 +266,29 @@ describe("MessageRouter", () => {
     });
 
     it("routes update-npc message", () => {
-      const msg: ClientMessage = { t: "update-npc", id: "npc-1", name: "Updated Goblin", hp: 15, maxHp: 25, portrait: "new-portrait", tokenImage: "new-token" };
-      router.route(msg, "player-1");
-
-      expect(mockCharacterService.updateNPC).toHaveBeenCalledWith(mockState, mockTokenService, "npc-1", {
+      const msg: ClientMessage = {
+        t: "update-npc",
+        id: "npc-1",
         name: "Updated Goblin",
         hp: 15,
         maxHp: 25,
         portrait: "new-portrait",
         tokenImage: "new-token",
-      });
+      };
+      router.route(msg, "player-1");
+
+      expect(mockCharacterService.updateNPC).toHaveBeenCalledWith(
+        mockState,
+        mockTokenService,
+        "npc-1",
+        {
+          name: "Updated Goblin",
+          hp: 15,
+          maxHp: 25,
+          portrait: "new-portrait",
+          tokenImage: "new-token",
+        },
+      );
       expect(mockRoomService.broadcast).toHaveBeenCalled();
       expect(mockRoomService.saveState).toHaveBeenCalled();
     });
@@ -247,13 +307,22 @@ describe("MessageRouter", () => {
       const msg: ClientMessage = { t: "claim-character", characterId: "char-1" };
       router.route(msg, "player-1");
 
-      expect(mockCharacterService.claimCharacter).toHaveBeenCalledWith(mockState, "char-1", "player-1");
+      expect(mockCharacterService.claimCharacter).toHaveBeenCalledWith(
+        mockState,
+        "char-1",
+        "player-1",
+      );
       expect(mockRoomService.broadcast).toHaveBeenCalled();
       expect(mockRoomService.saveState).toHaveBeenCalled();
     });
 
     it("routes update-character-hp message", () => {
-      const msg: ClientMessage = { t: "update-character-hp", characterId: "char-1", hp: 50, maxHp: 100 };
+      const msg: ClientMessage = {
+        t: "update-character-hp",
+        characterId: "char-1",
+        hp: 50,
+        maxHp: 100,
+      };
       router.route(msg, "player-1");
 
       expect(mockCharacterService.updateHP).toHaveBeenCalledWith(mockState, "char-1", 50, 100);
@@ -300,10 +369,13 @@ describe("MessageRouter", () => {
       const drawing = {
         id: "draw-1",
         type: "freehand" as const,
-        points: [{ x: 0, y: 0 }, { x: 10, y: 10 }],
+        points: [
+          { x: 0, y: 0 },
+          { x: 10, y: 10 },
+        ],
         color: "red",
         width: 2,
-        opacity: 1
+        opacity: 1,
       };
       const msg: ClientMessage = { t: "draw", drawing };
       router.route(msg, "player-1");
@@ -338,7 +410,7 @@ describe("MessageRouter", () => {
         formula: "1d20",
         total: 15,
         breakdown: [{ tokenId: "roll-1-token", die: "d20", rolls: [15], subtotal: 15 }],
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
       const msg: ClientMessage = { t: "dice-roll", roll };
       router.route(msg, "player-1");
@@ -443,7 +515,12 @@ describe("MessageRouter", () => {
       const msg: ClientMessage = { t: "set-token-size", tokenId: "token-1", size: "large" };
       router.route(msg, "player-1");
 
-      expect(mockTokenService.setTokenSize).toHaveBeenCalledWith(mockState, "token-1", "player-1", "large");
+      expect(mockTokenService.setTokenSize).toHaveBeenCalledWith(
+        mockState,
+        "token-1",
+        "player-1",
+        "large",
+      );
       expect(mockRoomService.broadcast).toHaveBeenCalled();
       expect(mockRoomService.saveState).toHaveBeenCalled();
     });
@@ -456,7 +533,12 @@ describe("MessageRouter", () => {
         const msg: ClientMessage = { t: "set-token-size", tokenId: "token-1", size };
         router.route(msg, "player-1");
 
-        expect(mockTokenService.setTokenSize).toHaveBeenCalledWith(mockState, "token-1", "player-1", size);
+        expect(mockTokenService.setTokenSize).toHaveBeenCalledWith(
+          mockState,
+          "token-1",
+          "player-1",
+          size,
+        );
         expect(mockRoomService.broadcast).toHaveBeenCalled();
         expect(mockRoomService.saveState).toHaveBeenCalled();
       }

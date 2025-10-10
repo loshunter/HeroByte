@@ -66,13 +66,38 @@ sleep 2
 echo ""
 echo "=== Verification ==="
 echo "Checking if ports are now free..."
+WINDOWS_PORTS_IN_USE=()
 for port in 5173 5174 8787; do
     if lsof -ti:$port &>/dev/null || netstat -tlnp 2>/dev/null | grep -q ":$port "; then
-        echo "  ⚠ Port $port is still in use"
+        echo "  ⚠ Port $port is still in use (WSL side)"
     else
-        echo "  ✓ Port $port is free"
+        # Check Windows side
+        if command -v netstat.exe &> /dev/null; then
+            if netstat.exe -ano 2>/dev/null | grep -q ":$port "; then
+                echo "  ⚠ Port $port is in use by Windows process"
+                WINDOWS_PORTS_IN_USE+=($port)
+            else
+                echo "  ✓ Port $port is free"
+            fi
+        else
+            echo "  ✓ Port $port is free (WSL side)"
+        fi
     fi
 done
+
+if [ ${#WINDOWS_PORTS_IN_USE[@]} -gt 0 ]; then
+    echo ""
+    echo "⚠️  WARNING: Windows processes are holding ports: ${WINDOWS_PORTS_IN_USE[*]}"
+    echo "This is usually svchost.exe (Hyper-V/NAT service)."
+    echo ""
+    echo "To fix this, run PowerShell as Administrator and execute:"
+    echo "  Get-NetNatStaticMapping | Remove-NetNatStaticMapping"
+    echo "  Get-NetNat | Remove-NetNat"
+    echo "  Restart-Service -Name 'LxssManager' -Force"
+    echo ""
+    echo "Or try using different ports in your dev configuration."
+    echo "See PORT_MANAGEMENT.md for more details."
+fi
 
 echo ""
 echo "Done! You can now run your dev servers."

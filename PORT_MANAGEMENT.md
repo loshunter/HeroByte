@@ -1,5 +1,26 @@
 # Port Management Guide for WSL Development
 
+## ⚠️ IMPORTANT: Windows/Hyper-V Port Conflicts
+
+If `./kill-ports.sh` reports that a **Windows process** is holding port 5173, this is usually `svchost.exe` from Hyper-V or Windows NAT service. This is a known WSL issue.
+
+### Quick Fix (Run in PowerShell as Administrator):
+```powershell
+# Option 1: Remove NAT mappings and restart WSL manager
+Get-NetNatStaticMapping | Remove-NetNatStaticMapping
+Get-NetNat | Remove-NetNat
+Restart-Service -Name 'LxssManager' -Force
+
+# Option 2: Restart WSL completely
+wsl --shutdown
+# Wait 10 seconds, then restart WSL
+```
+
+### Alternative: Use a different port
+Edit [apps/client/vite.config.ts](apps/client/vite.config.ts) to use port 5174 instead.
+
+---
+
 ## Quick Start
 
 ### Start Development Servers

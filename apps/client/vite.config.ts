@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react(), tsconfigPaths()],
   server: {
     host: "0.0.0.0", // Listen on all network interfaces
-    port: 5174,
+    port: 5173,
     strictPort: true,
   },
   define: {

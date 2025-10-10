@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { TokenService } from "../token/service.js";
 import { createEmptyRoomState } from "../room/model.js";
-import type { RoomState } from "../room/model.js";
 
 /**
  * Phase 11A: Token Size System Tests (TDD)
