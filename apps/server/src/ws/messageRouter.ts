@@ -83,6 +83,13 @@ export class MessageRouter {
           }
           break;
 
+        case "set-token-size":
+          if (this.tokenService.setTokenSize(state, message.tokenId, senderUid, message.size)) {
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+
         // PLAYER ACTIONS
         case "portrait":
           if (this.playerService.setPortrait(state, senderUid, message.data)) {

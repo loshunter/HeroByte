@@ -44,6 +44,7 @@ export interface TokenSceneData {
   characterId?: string | null;
   color: string;
   imageUrl?: string;
+  size?: TokenSize;
 }
 
 export interface DrawingSceneData {
@@ -67,6 +68,11 @@ export type SceneObject =
   | (SceneObjectBase & { type: "prop"; data: PropSceneData });
 
 /**
+ * Token size variants (D&D 5e size categories)
+ */
+export type TokenSize = "tiny" | "small" | "medium" | "large" | "huge" | "gargantuan";
+
+/**
  * Token: Represents a player's game piece on the map
  */
 export interface Token {
@@ -76,6 +82,8 @@ export interface Token {
   y: number; // Grid Y position
   color: string; // Color of the token (HSL format)
   imageUrl?: string; // Optional image to render instead of colored circle
+  size?: TokenSize; // Token size (defaults to medium)
+  locked?: boolean; // Whether the token is locked (Phase 10/11)
 }
 
 /**
@@ -203,6 +211,7 @@ export type ClientMessage =
   | { t: "recolor"; id: string } // Randomize token color
   | { t: "delete-token"; id: string } // Remove a token
   | { t: "update-token-image"; tokenId: string; imageUrl: string } // Update token image URL
+  | { t: "set-token-size"; tokenId: string; size: TokenSize } // Change token size (Phase 11)
 
   // Player actions
   | { t: "portrait"; data: string } // Update player portrait

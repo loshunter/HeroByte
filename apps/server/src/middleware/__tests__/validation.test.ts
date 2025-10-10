@@ -72,6 +72,12 @@ describe("validateMessage", () => {
         },
       },
       { t: "rtc-signal", target: "uid-2", signal: { type: "offer" } },
+      { t: "set-token-size", tokenId: "token-1", size: "medium" },
+      { t: "set-token-size", tokenId: "token-1", size: "tiny" },
+      { t: "set-token-size", tokenId: "token-1", size: "small" },
+      { t: "set-token-size", tokenId: "token-1", size: "large" },
+      { t: "set-token-size", tokenId: "token-1", size: "huge" },
+      { t: "set-token-size", tokenId: "token-1", size: "gargantuan" },
     ];
 
     for (const message of validMessages) {
@@ -446,6 +452,89 @@ describe("validateMessage", () => {
         error: "transform-object: invalid position",
       });
     });
+
+    it("validates transform-object with locked: true", () => {
+      expect(
+        validateMessage({
+          t: "transform-object",
+          id: "obj-1",
+          locked: true,
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("validates transform-object with locked: false", () => {
+      expect(
+        validateMessage({
+          t: "transform-object",
+          id: "obj-1",
+          locked: false,
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("validates transform-object with position and locked", () => {
+      expect(
+        validateMessage({
+          t: "transform-object",
+          id: "obj-1",
+          position: { x: 10, y: 20 },
+          locked: true,
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("validates transform-object with all fields including locked", () => {
+      expect(
+        validateMessage({
+          t: "transform-object",
+          id: "obj-1",
+          position: { x: 10, y: 20 },
+          scale: { x: 1.5, y: 1.5 },
+          rotation: 45,
+          locked: false,
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("rejects transform-object with non-boolean locked", () => {
+      expect(
+        validateMessage({
+          t: "transform-object",
+          id: "obj-1",
+          locked: "true",
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "transform-object: locked must be a boolean",
+      });
+    });
+
+    it("rejects transform-object with numeric locked", () => {
+      expect(
+        validateMessage({
+          t: "transform-object",
+          id: "obj-1",
+          locked: 1,
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "transform-object: locked must be a boolean",
+      });
+    });
+
+    it("rejects transform-object with null locked", () => {
+      expect(
+        validateMessage({
+          t: "transform-object",
+          id: "obj-1",
+          locked: null,
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "transform-object: locked must be a boolean",
+      });
+    });
   });
 
   describe("Edge Cases: Toggle DM", () => {
@@ -461,6 +550,84 @@ describe("validateMessage", () => {
       expect(validateMessage({ t: "toggle-dm", isDM: 1 })).toMatchObject({
         valid: false,
         error: "toggle-dm: isDM must be boolean",
+      });
+    });
+  });
+
+  describe("Phase 11: Token Size Validation", () => {
+    it("validates set-token-size with all valid sizes", () => {
+      const validSizes = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
+
+      for (const size of validSizes) {
+        expect(
+          validateMessage({
+            t: "set-token-size",
+            tokenId: "token-1",
+            size,
+          }),
+        ).toEqual({ valid: true });
+      }
+    });
+
+    it("rejects set-token-size with invalid size string", () => {
+      expect(
+        validateMessage({
+          t: "set-token-size",
+          tokenId: "token-1",
+          size: "invalid",
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "set-token-size: invalid size (must be tiny/small/medium/large/huge/gargantuan)",
+      });
+    });
+
+    it("rejects set-token-size with non-string size", () => {
+      expect(
+        validateMessage({
+          t: "set-token-size",
+          tokenId: "token-1",
+          size: 5,
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "set-token-size: size must be a string",
+      });
+    });
+
+    it("rejects set-token-size with missing tokenId", () => {
+      expect(
+        validateMessage({
+          t: "set-token-size",
+          tokenId: "",
+          size: "large",
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "set-token-size: tokenId required",
+      });
+    });
+
+    it("rejects set-token-size with missing size", () => {
+      expect(
+        validateMessage({
+          t: "set-token-size",
+          tokenId: "token-1",
+        }),
+      ).toMatchObject({
+        valid: false,
+      });
+    });
+
+    it("rejects set-token-size with null size", () => {
+      expect(
+        validateMessage({
+          t: "set-token-size",
+          tokenId: "token-1",
+          size: null,
+        }),
+      ).toMatchObject({
+        valid: false,
       });
     });
   });

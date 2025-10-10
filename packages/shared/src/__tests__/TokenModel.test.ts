@@ -70,4 +70,67 @@ describe("TokenModel", () => {
 
     expect(color).toBe("hsl(90, 70%, 50%)");
   });
+
+  describe("Phase 11: Token Size", () => {
+    it("includes size in toJSON output", () => {
+      const token = new TokenModel("id-1", "player-1", 10, 20, "hsl(0, 70%, 50%)", undefined, "large");
+      const json = token.toJSON();
+
+      expect(json.size).toBe("large");
+    });
+
+    it("preserves size when creating from JSON", () => {
+      const json = {
+        id: "id-1",
+        owner: "player-1",
+        x: 10,
+        y: 20,
+        color: "red",
+        size: "huge" as const,
+      };
+
+      const token = TokenModel.fromJSON(json);
+
+      expect(token.size).toBe("huge");
+    });
+
+    it("defaults to medium size if not specified", () => {
+      const json = {
+        id: "id-1",
+        owner: "player-1",
+        x: 10,
+        y: 20,
+        color: "red",
+      };
+
+      const token = TokenModel.fromJSON(json);
+
+      expect(token.size).toBe("medium");
+    });
+
+    it("preserves size when moving", () => {
+      const token = new TokenModel("id-1", "player-1", 10, 20, "red", undefined, "tiny");
+      const moved = token.moveTo(30, 40);
+
+      expect(moved.size).toBe("tiny");
+      expect(moved.x).toBe(30);
+      expect(moved.y).toBe(40);
+    });
+
+    it("preserves size when recoloring", () => {
+      const token = new TokenModel("id-1", "player-1", 10, 20, "red", undefined, "gargantuan");
+      const recolored = token.recolor("blue");
+
+      expect(recolored.size).toBe("gargantuan");
+      expect(recolored.color).toBe("blue");
+    });
+
+    it("preserves size when setting image", () => {
+      const token = new TokenModel("id-1", "player-1", 10, 20, "red", undefined, "small");
+      const withImage = token.setImage("https://example.com/img.png");
+
+      expect(withImage.size).toBe("small");
+      expect(withImage.imageUrl).toBe("https://example.com/img.png");
+    });
+  });
 });

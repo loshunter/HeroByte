@@ -334,6 +334,7 @@ export class RoomService {
           characterId: prev?.type === "token" ? prev.data.characterId : undefined,
           color: token.color,
           imageUrl: token.imageUrl,
+          size: token.size ?? "medium",
         },
       });
     }

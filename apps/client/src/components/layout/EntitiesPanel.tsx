@@ -9,6 +9,8 @@ import { PlayerCard } from "../../features/players/components";
 import { NpcCard } from "../../features/players/components/NpcCard";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
 
+import type { TokenSize } from "@shared";
+
 interface EntitiesPanelProps {
   players: Player[];
   characters: Character[];
@@ -40,6 +42,7 @@ interface EntitiesPanelProps {
   onNpcDelete: (id: string) => void;
   onNpcPlaceToken: (id: string) => void;
   onToggleTokenLock: (sceneObjectId: string, locked: boolean) => void;
+  onTokenSizeChange: (tokenId: string, size: TokenSize) => void;
   bottomPanelRef?: React.RefObject<HTMLDivElement>;
 }
 
@@ -74,6 +77,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   onNpcDelete,
   onNpcPlaceToken,
   onToggleTokenLock,
+  onTokenSizeChange,
   bottomPanelRef,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -225,6 +229,10 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                             ? (locked: boolean) => onToggleTokenLock(`token:${token.id}`, locked)
                             : undefined
                         }
+                        tokenSize={token?.size}
+                        onTokenSizeChange={
+                          isMe && token ? (size: TokenSize) => onTokenSizeChange(token.id, size) : undefined
+                        }
                       />
                     </div>
                   );
@@ -251,6 +259,18 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                         currentIsDM && entity.character.tokenId
                           ? (locked: boolean) =>
                               onToggleTokenLock(`token:${entity.character.tokenId}`, locked)
+                          : undefined
+                      }
+                      tokenSize={
+                        entity.character.tokenId
+                          ? (sceneObjects.find((obj) => obj.id === `token:${entity.character.tokenId}`) as
+                              | (SceneObject & { type: "token" })
+                              | undefined)?.data.size
+                          : undefined
+                      }
+                      onTokenSizeChange={
+                        currentIsDM && entity.character.tokenId
+                          ? (size: TokenSize) => onTokenSizeChange(entity.character.tokenId!, size)
                           : undefined
                       }
                     />

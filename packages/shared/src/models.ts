@@ -4,7 +4,7 @@
 // Domain model classes that encapsulate business logic and behavior.
 // These complement the plain interfaces used for serialization.
 
-import type { Token as IToken, Player as IPlayer, Character as ICharacter } from "./index.js";
+import type { Token as IToken, Player as IPlayer, Character as ICharacter, TokenSize } from "./index.js";
 
 /**
  * Token domain model
@@ -18,13 +18,14 @@ export class TokenModel {
     public y: number,
     public color: string,
     public imageUrl?: string,
+    public size: TokenSize = "medium",
   ) {}
 
   /**
    * Create from plain object (deserialization)
    */
   static fromJSON(data: IToken): TokenModel {
-    return new TokenModel(data.id, data.owner, data.x, data.y, data.color, data.imageUrl);
+    return new TokenModel(data.id, data.owner, data.x, data.y, data.color, data.imageUrl, data.size ?? "medium");
   }
 
   /**
@@ -38,6 +39,7 @@ export class TokenModel {
       y: this.y,
       color: this.color,
       imageUrl: this.imageUrl,
+      size: this.size,
     };
   }
 
@@ -45,14 +47,14 @@ export class TokenModel {
    * Move token to new grid position
    */
   moveTo(x: number, y: number): TokenModel {
-    return new TokenModel(this.id, this.owner, x, y, this.color, this.imageUrl);
+    return new TokenModel(this.id, this.owner, x, y, this.color, this.imageUrl, this.size);
   }
 
   /**
    * Change token color
    */
   recolor(newColor: string): TokenModel {
-    return new TokenModel(this.id, this.owner, this.x, this.y, newColor, this.imageUrl);
+    return new TokenModel(this.id, this.owner, this.x, this.y, newColor, this.imageUrl, this.size);
   }
 
   /**
@@ -61,7 +63,7 @@ export class TokenModel {
   snapToGrid(gridSize: number): TokenModel {
     const snappedX = Math.round(this.x / gridSize) * gridSize;
     const snappedY = Math.round(this.y / gridSize) * gridSize;
-    return new TokenModel(this.id, this.owner, snappedX, snappedY, this.color, this.imageUrl);
+    return new TokenModel(this.id, this.owner, snappedX, snappedY, this.color, this.imageUrl, this.size);
   }
 
   /**
@@ -90,7 +92,14 @@ export class TokenModel {
    * Assign or clear an image URL
    */
   setImage(url: string | undefined): TokenModel {
-    return new TokenModel(this.id, this.owner, this.x, this.y, this.color, url);
+    return new TokenModel(this.id, this.owner, this.x, this.y, this.color, url, this.size);
+  }
+
+  /**
+   * Change token size (Phase 11)
+   */
+  setSize(newSize: TokenSize): TokenModel {
+    return new TokenModel(this.id, this.owner, this.x, this.y, this.color, this.imageUrl, newSize);
   }
 }
 

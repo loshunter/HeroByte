@@ -594,6 +594,13 @@ function AuthenticatedApp({
     [sendMessage],
   );
 
+  const updateTokenSize = useCallback(
+    (tokenId: string, size: import("@shared").TokenSize) => {
+      sendMessage({ t: "set-token-size", tokenId, size });
+    },
+    [sendMessage],
+  );
+
   const handleFocusSelf = useCallback(() => {
     const myToken = snapshot?.tokens?.find((t) => t.owner === uid);
     if (!myToken) {
@@ -866,6 +873,7 @@ function AuthenticatedApp({
         onNpcDelete={handleDeleteNPC}
         onNpcPlaceToken={handlePlaceNPCToken}
         onToggleTokenLock={toggleSceneObjectLock}
+        onTokenSizeChange={updateTokenSize}
         bottomPanelRef={bottomPanelRef}
       />
 

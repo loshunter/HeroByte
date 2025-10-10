@@ -4,6 +4,8 @@
 // Collapsible panel for NPC-specific management actions (token image, placement,
 // deletion). Mirrors the styling of the player settings popover.
 
+import type { TokenSize } from "@shared";
+
 interface NpcSettingsMenuProps {
   isOpen: boolean;
   tokenImageInput: string;
@@ -17,6 +19,8 @@ interface NpcSettingsMenuProps {
   onStatusChange: (icon: { emoji: string; label: string } | null) => void;
   tokenLocked?: boolean;
   onToggleTokenLock?: (locked: boolean) => void;
+  tokenSize?: TokenSize;
+  onTokenSizeChange?: (size: TokenSize) => void;
 }
 
 export function NpcSettingsMenu({
@@ -32,6 +36,8 @@ export function NpcSettingsMenu({
   onStatusChange,
   tokenLocked,
   onToggleTokenLock,
+  tokenSize = "medium",
+  onTokenSizeChange,
 }: NpcSettingsMenuProps): JSX.Element | null {
   if (!isOpen) {
     return null;
@@ -137,6 +143,43 @@ export function NpcSettingsMenu({
           >
             Place Token
           </button>
+
+          {onTokenSizeChange && (
+            <>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "4px" }}>
+                <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
+                  Token Size
+                </span>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4px" }}>
+                  {(["tiny", "small", "medium", "large", "huge", "gargantuan"] as TokenSize[]).map(
+                    (size) => {
+                      const sizeLabels: Record<TokenSize, string> = {
+                        tiny: "Tiny",
+                        small: "Small",
+                        medium: "Med",
+                        large: "Large",
+                        huge: "Huge",
+                        gargantuan: "Garg",
+                      };
+                      return (
+                        <button
+                          key={size}
+                          className={tokenSize === size ? "btn btn-primary" : "btn btn-secondary"}
+                          style={{ fontSize: "0.6rem", padding: "4px 2px" }}
+                          onClick={() => onTokenSizeChange(size)}
+                          title={size.charAt(0).toUpperCase() + size.slice(1)}
+                        >
+                          {sizeLabels[size]}
+                        </button>
+                      );
+                    },
+                  )}
+                </div>
+              </div>
+              <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "4px 0" }} />
+            </>
+          )}
+
           {onToggleTokenLock && (
             <button
               className={tokenLocked ? "btn btn-primary" : "btn btn-secondary"}

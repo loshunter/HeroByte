@@ -5,6 +5,8 @@
 
 import { useRef } from "react";
 
+import type { TokenSize } from "@shared";
+
 interface PlayerSettingsMenuProps {
   isOpen: boolean;
   tokenImageInput: string;
@@ -20,6 +22,8 @@ interface PlayerSettingsMenuProps {
   onToggleDMMode: (next: boolean) => void;
   tokenLocked?: boolean;
   onToggleTokenLock?: (locked: boolean) => void;
+  tokenSize?: TokenSize;
+  onTokenSizeChange?: (size: TokenSize) => void;
 }
 
 export function PlayerSettingsMenu({
@@ -37,6 +41,8 @@ export function PlayerSettingsMenu({
   onToggleDMMode,
   tokenLocked,
   onToggleTokenLock,
+  tokenSize = "medium",
+  onTokenSizeChange,
 }: PlayerSettingsMenuProps): JSX.Element | null {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -191,6 +197,42 @@ export function PlayerSettingsMenu({
         </div>
 
         <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "4px 0" }} />
+
+        {onTokenSizeChange && (
+          <>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
+                Token Size
+              </span>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4px" }}>
+                {(["tiny", "small", "medium", "large", "huge", "gargantuan"] as TokenSize[]).map(
+                  (size) => {
+                    const sizeLabels: Record<TokenSize, string> = {
+                      tiny: "Tiny",
+                      small: "Small",
+                      medium: "Med",
+                      large: "Large",
+                      huge: "Huge",
+                      gargantuan: "Garg",
+                    };
+                    return (
+                      <button
+                        key={size}
+                        className={tokenSize === size ? "btn btn-primary" : "btn btn-secondary"}
+                        style={{ fontSize: "0.6rem", padding: "4px 2px" }}
+                        onClick={() => onTokenSizeChange(size)}
+                        title={size.charAt(0).toUpperCase() + size.slice(1)}
+                      >
+                        {sizeLabels[size]}
+                      </button>
+                    );
+                  },
+                )}
+              </div>
+            </div>
+            <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "4px 0" }} />
+          </>
+        )}
 
         {onToggleTokenLock && (
           <>

@@ -37,7 +37,18 @@ const TokenSprite = memo(function TokenSprite({
   const { data, transform, id } = object;
   const [image, status] = useImage(data.imageUrl ?? "", "anonymous");
 
-  const size = gridSize * 0.75;
+  // Calculate size multiplier based on token size category
+  const sizeMultipliers: Record<string, number> = {
+    tiny: 0.5,
+    small: 0.75,
+    medium: 1.0,
+    large: 1.5,
+    huge: 2.0,
+    gargantuan: 3.0,
+  };
+  const sizeMultiplier = sizeMultipliers[data.size ?? "medium"] ?? 1.0;
+
+  const size = gridSize * 0.75 * sizeMultiplier;
   const offset = size / 2;
 
   const commonProps = {

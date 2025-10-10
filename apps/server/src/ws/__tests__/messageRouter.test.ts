@@ -7,7 +7,8 @@ import { MapService } from "../../domains/map/service.js";
 import { DiceService } from "../../domains/dice/service.js";
 import { CharacterService } from "../../domains/character/service.js";
 import type { WebSocket, WebSocketServer } from "ws";
-import type { ClientMessage, RoomState } from "@shared";
+import type { ClientMessage } from "@shared";
+import type { RoomState } from "../../domains/room/model.js";
 
 describe("MessageRouter", () => {
   let router: MessageRouter;
@@ -25,13 +26,16 @@ describe("MessageRouter", () => {
   beforeEach(() => {
     // Create mock state
     mockState = {
-      id: "test-room",
-      name: "Test Room",
-      players: [{ uid: "player-1", name: "Alice", portrait: null, isDM: false, hp: 10, maxHp: 10, micLevel: 0, lastHeartbeat: Date.now() }],
+      users: [],
+      players: [{ uid: "player-1", name: "Alice", portrait: undefined, isDM: false, hp: 10, maxHp: 10, micLevel: 0, lastHeartbeat: Date.now() }],
       tokens: [],
       characters: [],
-      map: { background: null, gridSize: 50, pointers: {}, drawings: [] },
+      mapBackground: undefined,
+      pointers: [],
+      drawings: [],
+      gridSize: 50,
       diceRolls: [],
+      drawingRedoStacks: {},
       sceneObjects: [],
     };
 
@@ -91,8 +95,8 @@ describe("MessageRouter", () => {
     } as unknown as CharacterService;
 
     mockWss = {} as WebSocketServer;
-    mockUidToWs = new Map();
-    mockGetAuthorizedClients = vi.fn(() => new Set());
+    mockUidToWs = new Map<string, WebSocket>();
+    mockGetAuthorizedClients = vi.fn(() => new Set<WebSocket>());
 
     router = new MessageRouter(
       mockRoomService,
@@ -293,7 +297,14 @@ describe("MessageRouter", () => {
     });
 
     it("routes draw message", () => {
-      const drawing = { id: "draw-1", points: [{ x: 0, y: 0 }, { x: 10, y: 10 }], color: "red", width: 2 };
+      const drawing = {
+        id: "draw-1",
+        type: "freehand" as const,
+        points: [{ x: 0, y: 0 }, { x: 10, y: 10 }],
+        color: "red",
+        width: 2,
+        opacity: 1
+      };
       const msg: ClientMessage = { t: "draw", drawing };
       router.route(msg, "player-1");
 
@@ -320,7 +331,15 @@ describe("MessageRouter", () => {
 
   describe("Dice Actions", () => {
     it("routes dice-roll message", () => {
-      const roll = { id: "roll-1", uid: "player-1", result: 15, expression: "1d20", timestamp: Date.now() };
+      const roll = {
+        id: "roll-1",
+        playerUid: "player-1",
+        playerName: "Alice",
+        formula: "1d20",
+        total: 15,
+        breakdown: [{ tokenId: "roll-1-token", die: "d20", rolls: [15], subtotal: 15 }],
+        timestamp: Date.now()
+      };
       const msg: ClientMessage = { t: "dice-roll", roll };
       router.route(msg, "player-1");
 
@@ -353,7 +372,7 @@ describe("MessageRouter", () => {
       router.route(msg, "player-1");
       const afterTime = Date.now();
 
-      const player = mockState.players.find(p => p.uid === "player-1");
+      const player = mockState.players.find((p) => p.uid === "player-1");
       expect(player?.lastHeartbeat).toBeGreaterThanOrEqual(beforeTime);
       expect(player?.lastHeartbeat).toBeLessThanOrEqual(afterTime);
     });
@@ -411,6 +430,46 @@ describe("MessageRouter", () => {
       const msg: ClientMessage = { t: "rtc-signal", target: "nonexistent", signal };
 
       expect(() => router.route(msg, "player-1")).not.toThrow();
+    });
+  });
+
+  describe("Phase 11: Token Size Actions", () => {
+    beforeEach(() => {
+      mockTokenService.setTokenSize = vi.fn(() => true);
+      mockTokenService.setTokenSizeByDM = vi.fn(() => true);
+    });
+
+    it("routes set-token-size message to tokenService", () => {
+      const msg: ClientMessage = { t: "set-token-size", tokenId: "token-1", size: "large" };
+      router.route(msg, "player-1");
+
+      expect(mockTokenService.setTokenSize).toHaveBeenCalledWith(mockState, "token-1", "player-1", "large");
+      expect(mockRoomService.broadcast).toHaveBeenCalled();
+      expect(mockRoomService.saveState).toHaveBeenCalled();
+    });
+
+    it("routes set-token-size with all valid sizes", () => {
+      const sizes = ["tiny", "small", "medium", "large", "huge", "gargantuan"] as const;
+
+      for (const size of sizes) {
+        vi.clearAllMocks();
+        const msg: ClientMessage = { t: "set-token-size", tokenId: "token-1", size };
+        router.route(msg, "player-1");
+
+        expect(mockTokenService.setTokenSize).toHaveBeenCalledWith(mockState, "token-1", "player-1", size);
+        expect(mockRoomService.broadcast).toHaveBeenCalled();
+        expect(mockRoomService.saveState).toHaveBeenCalled();
+      }
+    });
+
+    it("does not broadcast if setTokenSize returns false", () => {
+      mockTokenService.setTokenSize = vi.fn(() => false);
+      const msg: ClientMessage = { t: "set-token-size", tokenId: "token-1", size: "huge" };
+      router.route(msg, "player-1");
+
+      expect(mockTokenService.setTokenSize).toHaveBeenCalled();
+      expect(mockRoomService.broadcast).not.toHaveBeenCalled();
+      expect(mockRoomService.saveState).not.toHaveBeenCalled();
     });
   });
 

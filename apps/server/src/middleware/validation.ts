@@ -239,6 +239,23 @@ export function validateMessage(raw: unknown): ValidationResult {
       break;
     }
 
+    case "set-token-size": {
+      if (typeof message.tokenId !== "string" || message.tokenId.length === 0) {
+        return { valid: false, error: "set-token-size: tokenId required" };
+      }
+      if (typeof message.size !== "string") {
+        return { valid: false, error: "set-token-size: size must be a string" };
+      }
+      const validSizes = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
+      if (!validSizes.includes(message.size)) {
+        return {
+          valid: false,
+          error: "set-token-size: invalid size (must be tiny/small/medium/large/huge/gargantuan)",
+        };
+      }
+      break;
+    }
+
     case "point": {
       const { x, y } = message;
       if (!isFiniteNumber(x) || !isFiniteNumber(y)) {
