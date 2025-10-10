@@ -239,46 +239,105 @@
 
 **Goal**: Allow erasing parts of freehand drawings, splitting them into segments. Lines/shapes still get fully deleted (they're simple enough to redraw).
 
-- [ ] **Client-Side Geometry Splitting**
+**Methodology**: Test-Driven Development (write tests first, then implement)
+
+- [ ] **Phase 1: TDD - Write Tests First**
+  - [ ] Create `partialErasing.test.ts` test file
+  - [ ] Test: `splitFreehandDrawing()` removes middle → creates 2 segments
+  - [ ] Test: `splitFreehandDrawing()` removes start → creates 1 segment
+  - [ ] Test: `splitFreehandDrawing()` removes end → creates 1 segment
+  - [ ] Test: `splitFreehandDrawing()` removes entire drawing → returns empty array
+  - [ ] Test: Multiple erase passes create correct segments
+  - [ ] Test: Filter out segments with < 2 points
+  - [ ] Test: Preserve drawing properties (color, width, opacity, owner)
+  - [ ] Test: Handle transformed drawings (moved/rotated coordinates)
+  - [ ] Test: Edge case - eraser path doesn't intersect (returns original)
+  - [ ] Test: Edge case - very close points near eraser boundary
+  - [ ] Run tests - all should FAIL (red phase) ❌
+
+- [ ] **Phase 2: TDD - Implement Core Logic**
   - [ ] Create `splitFreehandDrawing(drawing, eraserPath, eraserWidth)` utility function
-  - [ ] For each point in freehand drawing, calculate min distance to eraser path
+  - [ ] Implement point-to-eraser distance calculation
   - [ ] Mark points as "keep" or "erase" based on distance < hitRadius
   - [ ] Group consecutive "keep" points into segments
-  - [ ] Filter out segments with < 2 points (too small to be visible)
+  - [ ] Filter out segments with < 2 points
   - [ ] Handle edge cases: entire drawing erased, only start/end erased, multiple gaps
+  - [ ] Run tests - core splitting tests should PASS (green phase) ✅
 
-- [ ] **Message Protocol**
-  - [ ] Create new `erase-partial` message type in @shared
-  - [ ] Message includes: originalDrawingId (to delete) + array of new segment drawings
-  - [ ] Server processes as atomic transaction (delete + create segments together)
-  - [ ] Validation middleware for erase-partial messages
+- [ ] **Phase 3: TDD - Message Protocol Tests**
+  - [ ] Add test: `erase-partial` message validation accepts valid message
+  - [ ] Add test: `erase-partial` message validation rejects missing fields
+  - [ ] Add test: `erase-partial` message validation rejects invalid segment data
+  - [ ] Add test: Message router routes `erase-partial` to correct handler
+  - [ ] Run tests - all should FAIL (red phase) ❌
 
-- [ ] **Drawing Property Preservation**
-  - [ ] Each new segment inherits: color, width, opacity, owner from original
-  - [ ] Transform handling: preserve or reset based on coordinate system
-  - [ ] Ensure segments are created as proper SceneObjects with unique IDs
+- [ ] **Phase 4: TDD - Implement Message Protocol**
+  - [ ] Create new `erase-partial` message type in @shared/index.ts
+  - [ ] Message schema: `{ t: "erase-partial", deleteId: string, segments: DrawingData[] }`
+  - [ ] Add validation middleware for erase-partial messages
+  - [ ] Update messageRouter to handle erase-partial
+  - [ ] Run tests - message protocol tests should PASS (green phase) ✅
 
-- [ ] **Undo/Redo Support**
-  - [ ] Track partial erase as single undo operation
-  - [ ] Undo should: delete all new segments, restore original drawing
-  - [ ] Redo should: delete original, recreate segments
-  - [ ] Add "batch operation" concept to undo stack for multi-object changes
+- [ ] **Phase 5: TDD - Server-Side Processing Tests**
+  - [ ] Add test: Server deletes original drawing atomically
+  - [ ] Add test: Server creates all segments atomically
+  - [ ] Add test: Transaction fails if deleteId not found
+  - [ ] Add test: Broadcast erase-partial to all clients
+  - [ ] Add test: Scene graph updated with new segments
+  - [ ] Run tests - all should FAIL (red phase) ❌
 
-- [ ] **Performance Optimization (Optional)**
-  - [ ] Bounding box checks before point-by-point distance calculations
-  - [ ] Only check points near eraser path (spatial optimization)
-  - [ ] Profile with large drawings (500+ points)
+- [ ] **Phase 6: TDD - Implement Server Processing**
+  - [ ] Implement RoomService.handlePartialErase() method
+  - [ ] Delete original drawing from state
+  - [ ] Create new segment drawings with unique IDs
+  - [ ] Update scene graph atomically
+  - [ ] Broadcast changes to all clients
+  - [ ] Run tests - server processing tests should PASS (green phase) ✅
 
-- [ ] **Testing**
-  - [ ] Test: Eraser removes middle of freehand → creates 2 segments
-  - [ ] Test: Eraser removes start of freehand → creates 1 segment
-  - [ ] Test: Eraser removes end of freehand → creates 1 segment
-  - [ ] Test: Eraser removes entire freehand → deletes it completely
-  - [ ] Test: Multiple eraser passes on same drawing
-  - [ ] Test: Line/rect/circle still get full deletion (no splitting)
-  - [ ] Test: Transformed drawings (moved/rotated) erase correctly
-  - [ ] Test: Very short segments get filtered out (< 2 points)
-  - [ ] Test: Undo/redo of partial erase operations
+- [ ] **Phase 7: TDD - Client Integration Tests**
+  - [ ] Add test: useDrawingTool calls splitFreehandDrawing on eraser release
+  - [ ] Add test: Client sends erase-partial message with correct data
+  - [ ] Add test: Lines/rects/circles still use delete-drawing (no splitting)
+  - [ ] Add test: Client doesn't send message if no segments created
+  - [ ] Run tests - all should FAIL (red phase) ❌
+
+- [ ] **Phase 8: TDD - Implement Client Integration**
+  - [ ] Update useDrawingTool.ts eraser logic to call splitFreehandDrawing
+  - [ ] Send erase-partial message instead of delete-drawing for freehand
+  - [ ] Preserve full deletion for line/rect/circle shapes
+  - [ ] Handle case where splitting produces no segments (full deletion)
+  - [ ] Run tests - client integration tests should PASS (green phase) ✅
+
+- [ ] **Phase 9: TDD - Undo/Redo Tests**
+  - [ ] Add test: Undo partial erase restores original, deletes segments
+  - [ ] Add test: Redo partial erase deletes original, creates segments
+  - [ ] Add test: Batch operation tracked as single undo item
+  - [ ] Add test: Multiple undo/redo cycles work correctly
+  - [ ] Run tests - all should FAIL (red phase) ❌
+
+- [ ] **Phase 10: TDD - Implement Undo/Redo**
+  - [ ] Extend undo stack to support batch operations
+  - [ ] Track erase-partial as atomic undo operation
+  - [ ] Implement undo: delete segments, restore original
+  - [ ] Implement redo: delete original, recreate segments
+  - [ ] Run tests - undo/redo tests should PASS (green phase) ✅
+
+- [ ] **Phase 11: Refactor & Optimize**
+  - [ ] Refactor: Extract helper functions for clarity
+  - [ ] Optimize: Add bounding box checks before distance calculations
+  - [ ] Optimize: Spatial optimization for large drawings (500+ points)
+  - [ ] Profile performance with large test drawings
+  - [ ] Run all tests - ensure no regressions (green phase maintained) ✅
+
+- [ ] **Phase 12: Final Validation**
+  - [ ] Run full test suite (unit + integration)
+  - [ ] Manual testing: Erase middle of sketch in UI
+  - [ ] Manual testing: Undo/redo works as expected
+  - [ ] Manual testing: Multiple clients see same result
+  - [ ] Code review and documentation
+  - [ ] Verify all tests passing: `pnpm test` ✅
+  - [ ] Verify coverage maintained >80%
+  - [ ] Commit with comprehensive test results in commit message
 
 **Success Criteria**:
 - ✅ Users can erase portions of freehand drawings without losing entire sketch
