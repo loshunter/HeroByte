@@ -194,26 +194,102 @@
 
 ### Deferred to Phase 12
 
-- [ ] **Selection State Management**
-  - [ ] Add select-object/deselect-object message types to @shared
-  - [ ] Add selection tracking to RoomState (Map<uid, selectedObjectId>)
-  - [ ] Implement selection broadcast in RoomService
-  - [ ] Add selection manager hook (`useObjectSelection`) on client
-  - [ ] Single-click to select scene objects
-  - [ ] ESC to deselect
-  - [ ] Visual selection indicator (highlight border)
-  - [ ] Integrate TransformGizmo with selected objects
-  - [ ] Selection state synchronized across clients
-
-- [ ] **Multi-Select** (Optional)
-  - [ ] Add select-multiple message type
-  - [ ] Shift+click for multi-select on client
-  - [ ] Bulk transform operations
-  - [ ] Group lock/unlock
+- [ ] **Selection State Management** - See Phase 12
+- [ ] **Multi-Select** - See Phase 12
 
 ---
 
-## Phase 12: Asset System & Initiative Prep (Future)
+## Phase 12: Selection & Drawing Polish (Future)
+
+**Priority**: High - Critical UX improvements for drawing and object manipulation
+
+### Selection State Management
+
+- [ ] **Message Protocol**
+  - [ ] Add `select-object` message type to @shared (uid, objectId)
+  - [ ] Add `deselect-object` message type to @shared
+  - [ ] Add `select-multiple` message type for multi-select
+  - [ ] Add validation middleware for selection messages
+
+- [ ] **Server-Side Selection Tracking**
+  - [ ] Add selection tracking to RoomState (Map<uid, selectedObjectId | selectedObjectIds[]>)
+  - [ ] Implement selection broadcast in RoomService
+  - [ ] Handle selection conflicts (two users selecting same object)
+  - [ ] Clear selection when object is deleted
+
+- [ ] **Client-Side Selection Manager**
+  - [ ] Create `useObjectSelection` hook
+  - [ ] Single-click to select scene objects (tokens, drawings, map)
+  - [ ] ESC key to deselect
+  - [ ] Visual selection indicator (highlight border around selected object)
+  - [ ] Integrate TransformGizmo with selected objects
+  - [ ] Selection state synchronized across clients in real-time
+
+- [ ] **Multi-Select (Optional)**
+  - [ ] Shift+click for multi-select
+  - [ ] Ctrl+click to add/remove from selection
+  - [ ] Drag rectangle selection (marquee tool)
+  - [ ] Bulk transform operations (move all selected)
+  - [ ] Group lock/unlock
+  - [ ] Visual indicator showing multiple selected objects
+
+### Partial Erasing for Freehand Drawings
+
+**Current Issue**: Eraser deletes entire drawings when touching any part. Users cannot erase just a portion of a detailed sketch.
+
+**Goal**: Allow erasing parts of freehand drawings, splitting them into segments. Lines/shapes still get fully deleted (they're simple enough to redraw).
+
+- [ ] **Client-Side Geometry Splitting**
+  - [ ] Create `splitFreehandDrawing(drawing, eraserPath, eraserWidth)` utility function
+  - [ ] For each point in freehand drawing, calculate min distance to eraser path
+  - [ ] Mark points as "keep" or "erase" based on distance < hitRadius
+  - [ ] Group consecutive "keep" points into segments
+  - [ ] Filter out segments with < 2 points (too small to be visible)
+  - [ ] Handle edge cases: entire drawing erased, only start/end erased, multiple gaps
+
+- [ ] **Message Protocol**
+  - [ ] Create new `erase-partial` message type in @shared
+  - [ ] Message includes: originalDrawingId (to delete) + array of new segment drawings
+  - [ ] Server processes as atomic transaction (delete + create segments together)
+  - [ ] Validation middleware for erase-partial messages
+
+- [ ] **Drawing Property Preservation**
+  - [ ] Each new segment inherits: color, width, opacity, owner from original
+  - [ ] Transform handling: preserve or reset based on coordinate system
+  - [ ] Ensure segments are created as proper SceneObjects with unique IDs
+
+- [ ] **Undo/Redo Support**
+  - [ ] Track partial erase as single undo operation
+  - [ ] Undo should: delete all new segments, restore original drawing
+  - [ ] Redo should: delete original, recreate segments
+  - [ ] Add "batch operation" concept to undo stack for multi-object changes
+
+- [ ] **Performance Optimization (Optional)**
+  - [ ] Bounding box checks before point-by-point distance calculations
+  - [ ] Only check points near eraser path (spatial optimization)
+  - [ ] Profile with large drawings (500+ points)
+
+- [ ] **Testing**
+  - [ ] Test: Eraser removes middle of freehand → creates 2 segments
+  - [ ] Test: Eraser removes start of freehand → creates 1 segment
+  - [ ] Test: Eraser removes end of freehand → creates 1 segment
+  - [ ] Test: Eraser removes entire freehand → deletes it completely
+  - [ ] Test: Multiple eraser passes on same drawing
+  - [ ] Test: Line/rect/circle still get full deletion (no splitting)
+  - [ ] Test: Transformed drawings (moved/rotated) erase correctly
+  - [ ] Test: Very short segments get filtered out (< 2 points)
+  - [ ] Test: Undo/redo of partial erase operations
+
+**Success Criteria**:
+- ✅ Users can erase portions of freehand drawings without losing entire sketch
+- ✅ Eraser creates clean splits (no visual artifacts)
+- ✅ All drawing properties preserved in segments
+- ✅ Undo/redo works correctly for partial erasing
+- ✅ Performance acceptable for typical drawings (50-500 points)
+
+---
+
+## Phase 13: Asset System & Initiative Prep (Future)
 
 - [ ] Asset Manager Foundations
   - [ ] `AssetManager.tsx` with tabs (Maps, Tokens, Portraits, Props)
@@ -271,7 +347,8 @@
 - [ ] Drawing enhancements
   - [x] Shape tools (circle, rectangle, line)
   - [x] Color picker for drawings
-  - [x] Eraser tool
+  - [x] Eraser tool (basic - deletes entire drawing)
+  - [ ] Partial erasing for freehand drawings (Phase 12)
   - [ ] Drawing layers (temporary vs permanent)
   - [x] Undo/redo for drawings (Ctrl+Z working, Ctrl+Y in Phase 9)
 
