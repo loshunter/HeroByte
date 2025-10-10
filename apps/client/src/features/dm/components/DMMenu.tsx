@@ -502,7 +502,7 @@ export function DMMenu({
                     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                       <JRPGButton
                         onClick={onMapLockToggle}
-                        variant={mapLocked ? "primary" : "secondary"}
+                        variant={mapLocked ? "primary" : "default"}
                         style={{ fontSize: "10px" }}
                         title={mapLocked ? "Map is locked" : "Map is unlocked"}
                       >
@@ -627,7 +627,7 @@ export function DMMenu({
                               rotation: 0,
                             })
                           }
-                          variant="secondary"
+                          variant="default"
                           disabled={mapLocked}
                           style={{ fontSize: "10px", marginTop: "8px" }}
                         >
