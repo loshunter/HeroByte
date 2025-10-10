@@ -4,7 +4,7 @@
 // Handles token-related business logic
 
 import { randomUUID } from "crypto";
-import type { Token } from "@shared";
+import type { Token, TokenSize } from "@shared";
 import type { RoomState } from "../room/model.js";
 
 /**
@@ -41,6 +41,7 @@ export class TokenService {
     x: number = 0,
     y: number = 0,
     imageUrl?: string,
+    size: TokenSize = "medium",
   ): Token {
     const newToken: Token = {
       id: randomUUID(),
@@ -49,6 +50,7 @@ export class TokenService {
       y,
       color: this.randomColor(),
       imageUrl,
+      size,
     };
 
     state.tokens.push(newToken);
@@ -136,5 +138,29 @@ export class TokenService {
    */
   clearAllTokensExcept(state: RoomState, keepOwnerUid: string): void {
     state.tokens = state.tokens.filter((t) => t.owner === keepOwnerUid);
+  }
+
+  /**
+   * Set token size (with ownership and lock validation) - Phase 11
+   */
+  setTokenSize(state: RoomState, tokenId: string, ownerUid: string, size: TokenSize): boolean {
+    const token = state.tokens.find((t) => t.id === tokenId && t.owner === ownerUid);
+    if (token && !token.locked) {
+      token.size = size;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Set token size without ownership checks (DM/admin actions) - Phase 11
+   */
+  setTokenSizeByDM(state: RoomState, tokenId: string, size: TokenSize): boolean {
+    const token = state.tokens.find((t) => t.id === tokenId);
+    if (token) {
+      token.size = size;
+      return true;
+    }
+    return false;
   }
 }

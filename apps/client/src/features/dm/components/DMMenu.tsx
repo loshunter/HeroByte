@@ -29,6 +29,16 @@ interface DMMenuProps {
   ) => void;
   onDeleteNPC: (id: string) => void;
   onPlaceNPCToken: (id: string) => void;
+  mapLocked?: boolean;
+  onMapLockToggle?: () => void;
+  mapTransform?: { x: number; y: number; scaleX: number; scaleY: number; rotation: number };
+  onMapTransformChange?: (transform: {
+    x: number;
+    y: number;
+    scaleX: number;
+    scaleY: number;
+    rotation: number;
+  }) => void;
 }
 
 type DMMenuTab = "map" | "npcs" | "session";
@@ -277,6 +287,10 @@ export function DMMenu({
   onUpdateNPC,
   onDeleteNPC,
   onPlaceNPCToken,
+  mapLocked,
+  onMapLockToggle,
+  mapTransform,
+  onMapTransformChange,
 }: DMMenuProps) {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<DMMenuTab>("map");
@@ -482,6 +496,147 @@ export function DMMenu({
                     </JRPGButton>
                   </div>
                 </JRPGPanel>
+
+                {onMapLockToggle && onMapTransformChange && mapTransform && (
+                  <JRPGPanel variant="simple" title="Map Transform">
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <JRPGButton
+                        onClick={onMapLockToggle}
+                        variant={mapLocked ? "primary" : "default"}
+                        style={{ fontSize: "10px" }}
+                        title={mapLocked ? "Map is locked" : "Map is unlocked"}
+                      >
+                        {mapLocked ? "🔒 Map Locked" : "🔓 Map Unlocked"}
+                      </JRPGButton>
+
+                      <div style={{ opacity: mapLocked ? 0.5 : 1 }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            marginBottom: "4px",
+                          }}
+                        >
+                          <span className="jrpg-text-small">Scale</span>
+                          <span className="jrpg-text-small">{mapTransform.scaleX.toFixed(2)}x</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0.1}
+                          max={3}
+                          step={0.1}
+                          value={mapTransform.scaleX}
+                          onChange={(event) =>
+                            onMapTransformChange({
+                              ...mapTransform,
+                              scaleX: Number(event.target.value),
+                              scaleY: Number(event.target.value),
+                            })
+                          }
+                          disabled={mapLocked}
+                          style={{ width: "100%" }}
+                        />
+
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            marginTop: "8px",
+                            marginBottom: "4px",
+                          }}
+                        >
+                          <span className="jrpg-text-small">Rotation</span>
+                          <span className="jrpg-text-small">{Math.round(mapTransform.rotation)}°</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={360}
+                          step={5}
+                          value={mapTransform.rotation}
+                          onChange={(event) =>
+                            onMapTransformChange({
+                              ...mapTransform,
+                              rotation: Number(event.target.value),
+                            })
+                          }
+                          disabled={mapLocked}
+                          style={{ width: "100%" }}
+                        />
+
+                        <div style={{ marginTop: "8px", display: "flex", gap: "4px" }}>
+                          <div style={{ flex: 1 }}>
+                            <label className="jrpg-text-small" style={{ display: "block" }}>
+                              X
+                            </label>
+                            <input
+                              type="number"
+                              value={Math.round(mapTransform.x)}
+                              onChange={(event) =>
+                                onMapTransformChange({
+                                  ...mapTransform,
+                                  x: Number(event.target.value),
+                                })
+                              }
+                              disabled={mapLocked}
+                              style={{
+                                width: "100%",
+                                padding: "4px",
+                                background: "#111",
+                                color: "var(--jrpg-white)",
+                                border: "1px solid var(--jrpg-border-gold)",
+                                fontSize: "10px",
+                              }}
+                            />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <label className="jrpg-text-small" style={{ display: "block" }}>
+                              Y
+                            </label>
+                            <input
+                              type="number"
+                              value={Math.round(mapTransform.y)}
+                              onChange={(event) =>
+                                onMapTransformChange({
+                                  ...mapTransform,
+                                  y: Number(event.target.value),
+                                })
+                              }
+                              disabled={mapLocked}
+                              style={{
+                                width: "100%",
+                                padding: "4px",
+                                background: "#111",
+                                color: "var(--jrpg-white)",
+                                border: "1px solid var(--jrpg-border-gold)",
+                                fontSize: "10px",
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <JRPGButton
+                          onClick={() =>
+                            onMapTransformChange({
+                              x: 0,
+                              y: 0,
+                              scaleX: 1,
+                              scaleY: 1,
+                              rotation: 0,
+                            })
+                          }
+                          variant="default"
+                          disabled={mapLocked}
+                          style={{ fontSize: "10px", marginTop: "8px" }}
+                        >
+                          Reset Transform
+                        </JRPGButton>
+                      </div>
+                    </div>
+                  </JRPGPanel>
+                )}
 
                 <JRPGButton
                   onClick={handleClearDrawings}

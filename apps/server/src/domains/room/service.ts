@@ -184,6 +184,7 @@ export class RoomService {
       position?: { x: number; y: number };
       scale?: { x: number; y: number };
       rotation?: number;
+      locked?: boolean;
     },
   ): boolean {
     const object = this.state.sceneObjects.find((candidate) => candidate.id === id);
@@ -193,6 +194,13 @@ export class RoomService {
 
     const actor = this.state.players.find((player) => player.uid === actorUid);
     const isDM = actor?.isDM ?? false;
+
+    // Handle locked state change (DM only)
+    if (typeof changes.locked === "boolean") {
+      if (!isDM) return false;
+      object.locked = changes.locked;
+      return true;
+    }
 
     if (object.locked && !isDM) {
       return false;
@@ -326,6 +334,7 @@ export class RoomService {
           characterId: prev?.type === "token" ? prev.data.characterId : undefined,
           color: token.color,
           imageUrl: token.imageUrl,
+          size: token.size ?? "medium",
         },
       });
     }

@@ -9,6 +9,7 @@ import type { KonvaEventObject } from "konva/lib/Node";
 import type { SceneObject } from "@shared";
 import useImage from "use-image";
 import type { Camera } from "../types";
+import { LockIndicator } from "./LockIndicator";
 
 interface TokenSpriteProps {
   object: SceneObject & { type: "token" };
@@ -36,7 +37,18 @@ const TokenSprite = memo(function TokenSprite({
   const { data, transform, id } = object;
   const [image, status] = useImage(data.imageUrl ?? "", "anonymous");
 
-  const size = gridSize * 0.75;
+  // Calculate size multiplier based on token size category
+  const sizeMultipliers: Record<string, number> = {
+    tiny: 0.5,
+    small: 0.75,
+    medium: 1.0,
+    large: 1.5,
+    huge: 2.0,
+    gargantuan: 3.0,
+  };
+  const sizeMultiplier = sizeMultipliers[data.size ?? "medium"] ?? 1.0;
+
+  const size = gridSize * 0.75 * sizeMultiplier;
   const offset = size / 2;
 
   const commonProps = {
@@ -173,29 +185,45 @@ export const TokensLayer = memo(function TokensLayer({
   return (
     <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale}>
       {otherTokens.map((object) => (
-        <TokenSprite
-          key={object.id}
-          object={mapOverrides(object)}
-          gridSize={gridSize}
-          stroke={hoveredTokenId === object.id ? "#aaa" : "transparent"}
-          strokeWidth={2 / cam.scale}
-          onHover={onHover}
-        />
+        <Group key={object.id}>
+          <TokenSprite
+            object={mapOverrides(object)}
+            gridSize={gridSize}
+            stroke={hoveredTokenId === object.id ? "#aaa" : "transparent"}
+            strokeWidth={2 / cam.scale}
+            onHover={onHover}
+          />
+          {object.locked && (
+            <LockIndicator
+              x={object.transform.x * gridSize + gridSize / 2}
+              y={object.transform.y * gridSize + gridSize / 2 - gridSize * 0.45}
+              size={gridSize * 0.25}
+            />
+          )}
+        </Group>
       ))}
 
       {myTokens.map((object) => (
-        <TokenSprite
-          key={object.id}
-          object={mapOverrides(object)}
-          gridSize={gridSize}
-          stroke={draggingId === object.id ? "#44f" : "#fff"}
-          strokeWidth={2 / cam.scale}
-          draggable
-          onDragStart={() => handleDragStart(object.id)}
-          onDragEnd={(event) => handleDrag(object.id, event)}
-          onHover={onHover}
-          onDoubleClick={() => onRecolorToken(object.id, object.owner)}
-        />
+        <Group key={object.id}>
+          <TokenSprite
+            object={mapOverrides(object)}
+            gridSize={gridSize}
+            stroke={draggingId === object.id ? "#44f" : "#fff"}
+            strokeWidth={2 / cam.scale}
+            draggable={!object.locked}
+            onDragStart={() => handleDragStart(object.id)}
+            onDragEnd={(event) => handleDrag(object.id, event)}
+            onHover={onHover}
+            onDoubleClick={() => onRecolorToken(object.id, object.owner)}
+          />
+          {object.locked && (
+            <LockIndicator
+              x={object.transform.x * gridSize + gridSize / 2}
+              y={object.transform.y * gridSize + gridSize / 2 - gridSize * 0.45}
+              size={gridSize * 0.25}
+            />
+          )}
+        </Group>
       ))}
     </Group>
   );

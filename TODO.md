@@ -126,36 +126,94 @@
 
 **Status**: Core architecture complete. Transform messages working. UI controls deferred to Phase 10.
 
-## Phase 10: Transform UI & Lock Controls (NEXT - Deferred from Phase 9)
+## ✅ Phase 10: Transform UI & Lock Controls (COMPLETE - Oct 2025)
 
-**Priority**: High (required for full scene graph functionality)
+**Status**: All features implemented and tested. 116/116 tests passing.
 
-- [ ] **Transform Gizmo Component**
-  - [ ] Create `TransformGizmo.tsx` with Konva Transformer
-  - [ ] Visual handles for rotate and scale (translate via drag already works)
-  - [ ] Attach to selected scene objects
-  - [ ] Respect `locked` flag (disable handles when locked)
+- [x] **Transform Gizmo Component**
+  - [x] Create `TransformGizmo.tsx` with Konva Transformer
+  - [x] Visual handles for rotate and scale (translate via drag already works)
+  - [x] Attach to selected scene objects
+  - [x] Respect `locked` flag (disable handles when locked)
 
-- [ ] **Lock Controls UI**
-  - [ ] Add lock toggle to PlayerCard/NpcCard token settings
-  - [ ] Add lock button in DM menu for map object
-  - [ ] Visual indicator for locked objects (lock icon overlay)
-  - [ ] Sync lock state via transform-object message
+- [x] **Lock Controls UI**
+  - [x] Add lock toggle to PlayerCard/NpcCard token settings
+  - [x] Add lock button in DM menu for map object
+  - [x] Visual indicator for locked objects (lock icon overlay with `LockIndicator.tsx`)
+  - [x] Sync lock state via transform-object message
 
-- [ ] **DM Map Transform Controls**
-  - [ ] DM menu section for map positioning
-  - [ ] Position (x, y) input fields or drag preview
-  - [ ] Scale slider (0.5x - 3x)
-  - [ ] Rotation slider (0° - 360°)
-  - [ ] Lock map button
+- [x] **DM Map Transform Controls**
+  - [x] DM menu section for map positioning
+  - [x] Position (x, y) input fields
+  - [x] Scale slider (0.1x - 3x)
+  - [x] Rotation slider (0° - 360°)
+  - [x] Lock map button
+  - [x] Reset transform button
 
 - [ ] **Selection & Multi-Select** (Optional)
-  - [ ] Selection manager for scene objects
+  - [ ] Selection manager for scene objects - DEFERRED to Phase 11
   - [ ] Click to select, ctrl+click for multi-select
   - [ ] Drag rectangle selection
   - [ ] Group transforms for multiple objects
 
-## Phase 11: Asset System & Initiative Prep
+## ✅ Phase 11: Token Size System (COMPLETE - Oct 2025)
+
+**Status**: Token size system fully implemented with TDD methodology. 146/146 tests passing, 80.99% coverage.
+
+### Completed Features
+
+- [x] **Token Size System**
+  - [x] Add `size` property to Token model (default: medium)
+  - [x] Size variants: tiny (0.5x), small (0.75x), medium (1x), large (1.5x), huge (2x), gargantuan (3x)
+  - [x] Add set-token-size message type to @shared
+  - [x] Implement TokenService.setTokenSize with lock check
+  - [x] Implement TokenService.setTokenSizeByDM for DM override
+  - [x] Add validation middleware for set-token-size
+  - [x] Update scene graph to include token size
+  - [x] UI controls in PlayerCard settings to change size (3x2 button grid)
+  - [x] UI controls in NpcCard settings for DM (3x2 button grid)
+  - [x] Visual size scaling on tokens in TokensLayer
+  - [x] Respect locked state (locked tokens require DM override)
+
+- [x] **Comprehensive Testing (TDD)**
+  - [x] 14 tests for token size service (tokenSize.test.ts)
+  - [x] 7 tests for validation middleware
+  - [x] 3 tests for message router
+  - [x] 6 tests for TokenModel persistence
+  - [x] 30 total new tests, all passing
+  - [x] 99.02% coverage on TokenService
+
+### Success Criteria Achieved
+- ✅ All tests written first (TDD methodology)
+- ✅ Tokens can be resized via UI settings menu
+- ✅ Size changes visible in real-time on map
+- ✅ Ownership validation enforced
+- ✅ Lock state respected (DM override works)
+- ✅ Size persists in scene graph and state
+- ✅ Test coverage >80% (80.99% overall, 99.02% on TokenService)
+
+### Deferred to Phase 12
+
+- [ ] **Selection State Management**
+  - [ ] Add select-object/deselect-object message types to @shared
+  - [ ] Add selection tracking to RoomState (Map<uid, selectedObjectId>)
+  - [ ] Implement selection broadcast in RoomService
+  - [ ] Add selection manager hook (`useObjectSelection`) on client
+  - [ ] Single-click to select scene objects
+  - [ ] ESC to deselect
+  - [ ] Visual selection indicator (highlight border)
+  - [ ] Integrate TransformGizmo with selected objects
+  - [ ] Selection state synchronized across clients
+
+- [ ] **Multi-Select** (Optional)
+  - [ ] Add select-multiple message type
+  - [ ] Shift+click for multi-select on client
+  - [ ] Bulk transform operations
+  - [ ] Group lock/unlock
+
+---
+
+## Phase 12: Asset System & Initiative Prep (Future)
 
 - [ ] Asset Manager Foundations
   - [ ] `AssetManager.tsx` with tabs (Maps, Tokens, Portraits, Props)

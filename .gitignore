@@ -31,6 +31,9 @@ yarn-error.log*
 herobyte-state.json
 vtt-state.json
 
+# MCP config with secrets
+.mcp.json
+
 # OS
 Thumbs.db
 

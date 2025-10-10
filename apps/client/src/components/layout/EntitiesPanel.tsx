@@ -4,15 +4,18 @@
 // Fixed bottom panel displaying both players and NPCs in the scene.
 
 import React, { useMemo, useState } from "react";
-import type { Character, Player, PlayerState, Token } from "@shared";
+import type { Character, Player, PlayerState, Token, SceneObject } from "@shared";
 import { PlayerCard } from "../../features/players/components";
 import { NpcCard } from "../../features/players/components/NpcCard";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
+
+import type { TokenSize } from "@shared";
 
 interface EntitiesPanelProps {
   players: Player[];
   characters: Character[];
   tokens: Token[];
+  sceneObjects: SceneObject[];
   uid: string;
   micEnabled: boolean;
   editingPlayerUID: string | null;
@@ -38,6 +41,8 @@ interface EntitiesPanelProps {
   ) => void;
   onNpcDelete: (id: string) => void;
   onNpcPlaceToken: (id: string) => void;
+  onToggleTokenLock: (sceneObjectId: string, locked: boolean) => void;
+  onTokenSizeChange: (tokenId: string, size: TokenSize) => void;
   bottomPanelRef?: React.RefObject<HTMLDivElement>;
 }
 
@@ -48,6 +53,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   players,
   characters,
   tokens,
+  sceneObjects,
   uid,
   micEnabled,
   editingPlayerUID,
@@ -70,6 +76,8 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   onNpcUpdate,
   onNpcDelete,
   onNpcPlaceToken,
+  onToggleTokenLock,
+  onTokenSizeChange,
   bottomPanelRef,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -211,6 +219,20 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                         }
                         isDM={player.isDM ?? false}
                         onToggleDMMode={onToggleDMMode}
+                        tokenLocked={
+                          token
+                            ? sceneObjects.find((obj) => obj.id === `token:${token.id}`)?.locked
+                            : undefined
+                        }
+                        onToggleTokenLock={
+                          currentIsDM && token
+                            ? (locked: boolean) => onToggleTokenLock(`token:${token.id}`, locked)
+                            : undefined
+                        }
+                        tokenSize={token?.size}
+                        onTokenSizeChange={
+                          isMe && token ? (size: TokenSize) => onTokenSizeChange(token.id, size) : undefined
+                        }
                       />
                     </div>
                   );
@@ -227,6 +249,30 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                       onUpdate={onNpcUpdate}
                       onDelete={onNpcDelete}
                       onPlaceToken={onNpcPlaceToken}
+                      tokenLocked={
+                        entity.character.tokenId
+                          ? sceneObjects.find((obj) => obj.id === `token:${entity.character.tokenId}`)
+                              ?.locked
+                          : undefined
+                      }
+                      onToggleTokenLock={
+                        currentIsDM && entity.character.tokenId
+                          ? (locked: boolean) =>
+                              onToggleTokenLock(`token:${entity.character.tokenId}`, locked)
+                          : undefined
+                      }
+                      tokenSize={
+                        entity.character.tokenId
+                          ? (sceneObjects.find((obj) => obj.id === `token:${entity.character.tokenId}`) as
+                              | (SceneObject & { type: "token" })
+                              | undefined)?.data.size
+                          : undefined
+                      }
+                      onTokenSizeChange={
+                        currentIsDM && entity.character.tokenId
+                          ? (size: TokenSize) => onTokenSizeChange(entity.character.tokenId!, size)
+                          : undefined
+                      }
                     />
                   </div>
                 );

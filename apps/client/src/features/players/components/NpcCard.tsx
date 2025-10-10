@@ -5,7 +5,7 @@
 // player card while using a red accent to indicate an enemy.
 
 import { useCallback, useEffect, useState } from "react";
-import type { Character } from "@shared";
+import type { Character, TokenSize } from "@shared";
 import { PortraitSection } from "./PortraitSection";
 import { HPBar } from "./HPBar";
 import { NpcSettingsMenu } from "./NpcSettingsMenu";
@@ -19,6 +19,10 @@ interface NpcCardProps {
   ) => void;
   onDelete: (id: string) => void;
   onPlaceToken: (id: string) => void;
+  tokenLocked?: boolean;
+  onToggleTokenLock?: (locked: boolean) => void;
+  tokenSize?: TokenSize;
+  onTokenSizeChange?: (size: TokenSize) => void;
 }
 
 export function NpcCard({
@@ -27,6 +31,10 @@ export function NpcCard({
   onUpdate,
   onDelete,
   onPlaceToken,
+  tokenLocked,
+  onToggleTokenLock,
+  tokenSize,
+  onTokenSizeChange,
 }: NpcCardProps): JSX.Element {
   const [editingMaxHp, setEditingMaxHp] = useState(false);
   const [maxHpInput, setMaxHpInput] = useState(String(character.maxHp));
@@ -192,6 +200,10 @@ export function NpcCard({
         onDelete={() => onDelete(character.id)}
         statusIcon={statusIcon}
         onStatusChange={setStatusIcon}
+        tokenLocked={tokenLocked}
+        onToggleTokenLock={onToggleTokenLock}
+        tokenSize={tokenSize}
+        onTokenSizeChange={onTokenSizeChange}
       />
     </div>
   );

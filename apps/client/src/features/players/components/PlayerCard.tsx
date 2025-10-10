@@ -5,7 +5,7 @@
 // Memoized to prevent unnecessary re-renders
 
 import { memo, useEffect, useState } from "react";
-import type { PlayerState, Player } from "@shared";
+import type { PlayerState, Player, TokenSize } from "@shared";
 import { NameEditor } from "./NameEditor";
 import { PortraitSection } from "./PortraitSection";
 import { HPBar } from "./HPBar";
@@ -37,6 +37,10 @@ export interface PlayerCardProps {
   onApplyPlayerState?: (state: PlayerState, tokenId?: string) => void;
   isDM: boolean;
   onToggleDMMode: (next: boolean) => void;
+  tokenLocked?: boolean;
+  onToggleTokenLock?: (locked: boolean) => void;
+  tokenSize?: TokenSize;
+  onTokenSizeChange?: (size: TokenSize) => void;
 }
 
 export const PlayerCard = memo<PlayerCardProps>(
@@ -64,6 +68,10 @@ export const PlayerCard = memo<PlayerCardProps>(
     onApplyPlayerState,
     isDM,
     onToggleDMMode,
+    tokenLocked,
+    onToggleTokenLock,
+    tokenSize,
+    onTokenSizeChange,
   }) => {
     const editing = editingPlayerUID === player.uid;
     const editingMaxHp = editingMaxHpUID === player.uid;
@@ -187,6 +195,10 @@ export const PlayerCard = memo<PlayerCardProps>(
           onStatusChange={setStatusIcon}
           isDM={isDM}
           onToggleDMMode={onToggleDMMode}
+          tokenLocked={tokenLocked}
+          onToggleTokenLock={onToggleTokenLock}
+          tokenSize={tokenSize}
+          onTokenSizeChange={onTokenSizeChange}
         />
       </div>
     );
