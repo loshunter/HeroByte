@@ -203,6 +203,102 @@
 
 **Priority**: High - Critical UX improvements for drawing and object manipulation
 
+### Menu System Unification
+
+**Current Issue**: Menus have inconsistent behavior and styling. PlayerSettingsMenu causes scrolling in EntitiesPanel. DMMenu is stuck in bottom-right corner and not movable.
+
+**Goal**: Unified draggable window system for all menus with position persistence.
+
+**Reference Implementation**: DrawingToolbar already uses DraggableWindow correctly - replicate this pattern for all menus.
+
+**Affected Menus**:
+- ✅ DrawingToolbar (already uses DraggableWindow)
+- ✅ Dice Roller (already good)
+- ✅ Roll Log (already good)
+- ❌ PlayerSettingsMenu (embedded in EntitiesPanel, causes scrolling)
+- ❌ NpcSettingsMenu (same issue as PlayerSettings)
+- ❌ DMMenu (fixed position, not movable, inconsistent styling)
+
+**Implementation Plan**:
+
+- [ ] **Phase 1: Enhance DraggableWindow Component** (2 hours)
+  - [ ] Add optional `storageKey?: string` prop for localStorage persistence
+  - [ ] On component mount: Load position from `localStorage['herobyte-window-position-{storageKey}']`
+  - [ ] On drag end: Save position as JSON `{ x: number, y: number }` to localStorage
+  - [ ] Ensure backward compatibility (works without storageKey)
+  - [ ] Add bounds checking (prevent dragging windows off-screen)
+  - [ ] Handle window resize events (reposition if window shrinks)
+
+- [ ] **Phase 2: Refactor PlayerSettingsMenu** (2 hours)
+  - [ ] Remove absolute positioning from PlayerSettingsMenu component
+  - [ ] Wrap content in DraggableWindow component
+  - [ ] Pass `storageKey="player-settings-menu"`
+  - [ ] Set sensible defaults: `initialX={300} initialY={100} width={280}`
+  - [ ] Use React Portal to render at root level (not inside EntitiesPanel)
+  - [ ] Update PlayerCard to conditionally render DraggableWindow when settings open
+  - [ ] Add close button that calls parent's `setSettingsOpen(false)`
+  - [ ] Test: Verify no more scrolling in EntitiesPanel
+  - [ ] Test: Verify position persists across page refreshes
+
+- [ ] **Phase 3: Refactor NpcSettingsMenu** (1 hour)
+  - [ ] Same approach as PlayerSettingsMenu
+  - [ ] Pass `storageKey="npc-settings-menu"`
+  - [ ] Set different initial position to avoid overlap: `initialX={350} initialY={150}`
+  - [ ] Test same scenarios as PlayerSettings
+
+- [ ] **Phase 4: Refactor DMMenu** (2 hours)
+  - [ ] Convert from fixed bottom-right positioning to DraggableWindow
+  - [ ] Pass `storageKey="dm-menu"`
+  - [ ] Calculate smart initial position: `initialX={window.innerWidth - 420} initialY={100}`
+  - [ ] Ensure JRPG styling matches other windows (use JRPGPanel variant="bevel")
+  - [ ] Keep toggle button in bottom-right corner (opens/closes the window)
+  - [ ] Make DM Menu closable but not required (optional workflow)
+  - [ ] Test: Verify DM can drag menu to preferred position
+  - [ ] Test: Verify position remembered across sessions
+
+- [ ] **Phase 5: Testing & Polish** (2 hours)
+  - [ ] Manual test: Open all menus simultaneously, verify z-index layering
+  - [ ] Manual test: Drag each menu, refresh page, verify position restored
+  - [ ] Manual test: Resize browser window, verify menus stay visible
+  - [ ] Manual test: First-time user (clear localStorage), verify sensible defaults
+  - [ ] Edge case: Very small screens (< 768px width) - ensure menus don't overlap
+  - [ ] Polish: Ensure all windows use consistent JRPG title bar styling
+  - [ ] Polish: Add subtle entrance animation (fade + slide) - optional
+  - [ ] Document: Update user guide with menu dragging feature
+
+**Storage Key Convention**:
+```
+"herobyte-window-position-player-settings-menu" → { x: 300, y: 150 }
+"herobyte-window-position-npc-settings-menu" → { x: 350, y: 200 }
+"herobyte-window-position-dm-menu" → { x: 900, y: 100 }
+"herobyte-window-position-drawing-toolbar" → { x: 8, y: 100 }
+```
+
+**Success Criteria**:
+- ✅ All menus use DraggableWindow component
+- ✅ Menu positions persist across page refreshes
+- ✅ PlayerSettingsMenu no longer causes EntitiesPanel scrolling
+- ✅ DMMenu is movable and remembers position
+- ✅ Consistent JRPG styling across all windows
+- ✅ No z-index conflicts when multiple menus open
+- ✅ Sensible default positions for first-time users
+
+**Benefits**:
+- 🎯 Eliminates EntitiesPanel scrolling frustration
+- 🎯 Flexible menu positioning for user preference
+- 🎯 Professional, consistent UX across entire app
+- 🎯 "Magic" moment when positions are remembered
+- 🎯 Low complexity, high impact improvement
+
+**Future Enhancements** (Optional, post-Phase 12):
+- [ ] Touch/mobile support (onTouchStart/Move/End handlers)
+- [ ] Keyboard navigation (Tab, Escape, Arrow keys)
+- [ ] Window snapping (snap to edges/corners)
+- [ ] Minimize/maximize buttons
+- [ ] Save/restore window layout presets
+
+---
+
 ### Selection State Management
 
 - [ ] **Message Protocol**
