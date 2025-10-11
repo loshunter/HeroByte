@@ -62,6 +62,7 @@ export class RoomService {
           pointers: [], // Don't persist pointers - they expire
           drawings: data.drawings || [],
           gridSize: data.gridSize || 50,
+          gridSquareSize: data.gridSquareSize || 5,
           diceRolls: data.diceRolls || [],
           drawingRedoStacks: {},
           sceneObjects,
@@ -86,6 +87,7 @@ export class RoomService {
         mapBackground: this.state.mapBackground,
         drawings: this.state.drawings,
         gridSize: this.state.gridSize,
+        gridSquareSize: this.state.gridSquareSize,
         diceRolls: this.state.diceRolls,
         sceneObjects: this.state.sceneObjects,
       };
@@ -126,6 +128,8 @@ export class RoomService {
       return { ...currentPlayer, isDM: currentPlayer.isDM ?? false };
     });
 
+    const currentGridSquareSize = this.state.gridSquareSize ?? 5;
+
     this.state = {
       users: this.state.users, // Keep current WebSocket connections
       tokens: snapshot.tokens ?? [],
@@ -135,6 +139,7 @@ export class RoomService {
       pointers: [], // Clear pointers on load
       drawings: snapshot.drawings ?? [],
       gridSize: snapshot.gridSize ?? 50,
+      gridSquareSize: snapshot.gridSquareSize ?? currentGridSquareSize,
       diceRolls: snapshot.diceRolls ?? [],
       drawingRedoStacks: {},
       sceneObjects: snapshot.sceneObjects ?? this.state.sceneObjects,
@@ -356,7 +361,8 @@ export class RoomService {
 
     // Pointers (ephemeral)
     for (const pointer of this.state.pointers) {
-      const id = `pointer:${pointer.uid}`;
+      const pointerKey = pointer.id ?? pointer.uid;
+      const id = `pointer:${pointerKey}`;
       const prev = existing.get(id);
       next.push({
         id,
@@ -371,7 +377,7 @@ export class RoomService {
           scaleY: 1,
           rotation: 0,
         },
-        data: { uid: pointer.uid },
+        data: { uid: pointer.uid, pointerId: pointerKey },
       });
     }
 

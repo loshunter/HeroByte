@@ -27,13 +27,17 @@ describe("MapService", () => {
     const state = createEmptyRoomState();
     service.setBackground(state, "bg");
     service.setGridSize(state, 64);
+    service.setGridSquareSize(state, 10);
     service.placePointer(state, "uid-1", 5, 6);
     service.placePointer(state, "uid-1", 7, 8);
 
     expect(state.mapBackground).toBe("bg");
     expect(state.gridSize).toBe(64);
-    expect(state.pointers).toHaveLength(1);
-    expect(state.pointers[0]).toMatchObject({ uid: "uid-1", x: 7, y: 8 });
+    expect(state.gridSquareSize).toBe(10);
+    // Multiple pointers supported (temporary pulse behavior)
+    expect(state.pointers).toHaveLength(2);
+    expect(state.pointers[0]).toMatchObject({ uid: "uid-1", x: 5, y: 6 });
+    expect(state.pointers[1]).toMatchObject({ uid: "uid-1", x: 7, y: 8 });
   });
 
   it("manages drawing lifecycle", () => {

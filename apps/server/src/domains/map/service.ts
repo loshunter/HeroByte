@@ -32,13 +32,19 @@ export class MapService {
   }
 
   /**
-   * Add or update pointer indicator
+   * Update grid square size (how many feet per square)
+   */
+  setGridSquareSize(state: RoomState, size: number): void {
+    state.gridSquareSize = size;
+  }
+
+  /**
+   * Add pointer indicator (supports multiple simultaneous pointers)
    */
   placePointer(state: RoomState, uid: string, x: number, y: number): void {
-    // Remove old pointer from this user
-    state.pointers = state.pointers.filter((p) => p.uid !== uid);
-    // Add new pointer
-    state.pointers.push({ uid, x, y, timestamp: Date.now() });
+    // Add new pointer with unique ID based on timestamp
+    const pointerId = `${uid}-${Date.now()}`;
+    state.pointers.push({ uid, x, y, timestamp: Date.now(), id: pointerId });
   }
 
   /**

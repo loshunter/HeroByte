@@ -70,11 +70,20 @@ export class MessageRouter {
           }
           break;
 
-        case "delete-token":
-          if (this.tokenService.deleteToken(state, message.id, senderUid)) {
+        case "delete-token": {
+          // Check if sender is a DM - DMs can delete any token
+          const sender = state.players.find((p) => p.uid === senderUid);
+          const isDM = sender?.isDM ?? false;
+
+          const success = isDM
+            ? this.tokenService.forceDeleteToken(state, message.id)
+            : this.tokenService.deleteToken(state, message.id, senderUid);
+
+          if (success) {
             this.broadcast();
           }
           break;
+        }
 
         case "update-token-image":
           if (this.tokenService.setImageUrl(state, message.tokenId, senderUid, message.imageUrl)) {
@@ -220,6 +229,11 @@ export class MessageRouter {
           this.broadcast();
           break;
 
+        case "grid-square-size":
+          this.mapService.setGridSquareSize(state, message.size);
+          this.broadcast();
+          break;
+
         case "point":
           this.mapService.placePointer(state, senderUid, message.x, message.y);
           this.broadcast();
@@ -295,6 +309,8 @@ export class MessageRouter {
           if (player) {
             player.lastHeartbeat = Date.now();
           }
+          // Broadcast to keep client connection alive (prevents heartbeat timeout)
+          this.broadcast();
           break;
         }
 

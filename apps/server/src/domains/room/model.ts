@@ -26,6 +26,7 @@ export interface RoomState {
   pointers: Pointer[]; // Temporary pointer indicators
   drawings: Drawing[]; // Freehand drawings
   gridSize: number; // Synchronized grid size
+  gridSquareSize: number; // How many feet per grid square (default: 5ft)
   diceRolls: DiceRoll[]; // Dice roll history
   drawingRedoStacks: Record<string, Drawing[]>; // Per-player redo stacks
   sceneObjects: SceneObject[]; // Unified scene graph
@@ -44,6 +45,7 @@ export function createEmptyRoomState(): RoomState {
     pointers: [],
     drawings: [],
     gridSize: 50,
+    gridSquareSize: 5, // Default: 5 feet per square (D&D standard)
     diceRolls: [],
     drawingRedoStacks: {},
     sceneObjects: [],
@@ -63,6 +65,7 @@ export function toSnapshot(state: RoomState): RoomSnapshot {
     pointers: state.pointers,
     drawings: state.drawings,
     gridSize: state.gridSize,
+    gridSquareSize: state.gridSquareSize,
     diceRolls: state.diceRolls,
     sceneObjects: state.sceneObjects,
   };

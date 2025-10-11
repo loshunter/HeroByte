@@ -79,7 +79,7 @@ describe("RoomService", () => {
       players: [{ uid: "uid-1", name: "Saved Player", hp: 5, maxHp: 10 }],
       characters: [],
       mapBackground: "bg",
-      pointers: [{ uid: "uid-1", x: 5, y: 5, timestamp: Date.now() }],
+      pointers: [{ id: "uid-1-123", uid: "uid-1", x: 5, y: 5, timestamp: Date.now() }],
       drawings: [],
       gridSize: 32,
       diceRolls: [],
@@ -95,7 +95,13 @@ describe("RoomService", () => {
   it("broadcasts snapshots and prunes expired pointers", () => {
     const service = new RoomService();
     const state = service.getState();
-    state.pointers.push({ uid: "uid-1", x: 0, y: 0, timestamp: Date.now() - 5000 });
+    state.pointers.push({
+      id: "uid-1-456",
+      uid: "uid-1",
+      x: 0,
+      y: 0,
+      timestamp: Date.now() - 5000,
+    });
     state.tokens.push({ id: "token-3", owner: "uid-3", x: 3, y: 4, color: "#f00" });
 
     const client = createClient();
@@ -429,16 +435,22 @@ describe("RoomService", () => {
         lastHeartbeat: Date.now(),
         micLevel: 0,
       });
-      state.pointers.push({ uid: "player-1", x: 0, y: 0, timestamp: Date.now() });
+      state.pointers.push({
+        id: "player-1-789",
+        uid: "player-1",
+        x: 0,
+        y: 0,
+        timestamp: Date.now(),
+      });
       service.createSnapshot();
 
       // Pointers are locked by default, so transformation will fail
-      const pointerObject = state.sceneObjects.find((obj) => obj.id === "pointer:player-1");
+      const pointerObject = state.sceneObjects.find((obj) => obj.id === "pointer:player-1-789");
       if (pointerObject) {
         pointerObject.locked = false; // Unlock to allow transformation
       }
 
-      const result = service.applySceneObjectTransform("pointer:player-1", "player-1", {
+      const result = service.applySceneObjectTransform("pointer:player-1-789", "player-1", {
         position: { x: 50, y: 75 },
       });
 
@@ -466,10 +478,16 @@ describe("RoomService", () => {
         lastHeartbeat: Date.now(),
         micLevel: 0,
       });
-      state.pointers.push({ uid: "player-1", x: 0, y: 0, timestamp: Date.now() });
+      state.pointers.push({
+        id: "player-1-789",
+        uid: "player-1",
+        x: 0,
+        y: 0,
+        timestamp: Date.now(),
+      });
       service.createSnapshot();
 
-      const result = service.applySceneObjectTransform("pointer:player-1", "player-2", {
+      const result = service.applySceneObjectTransform("pointer:player-1-789", "player-2", {
         position: { x: 50, y: 75 },
       });
 
@@ -493,7 +511,13 @@ describe("RoomService", () => {
         opacity: 1,
         owner: "player-1",
       });
-      state.pointers.push({ uid: "player-1", x: 5, y: 5, timestamp: Date.now() });
+      state.pointers.push({
+        id: "player-1-101",
+        uid: "player-1",
+        x: 5,
+        y: 5,
+        timestamp: Date.now(),
+      });
 
       const _snapshot = service.createSnapshot();
 
@@ -501,7 +525,7 @@ describe("RoomService", () => {
       expect(state.sceneObjects.find((obj) => obj.id === "map")).toBeDefined();
       expect(state.sceneObjects.find((obj) => obj.id === "token:token-1")).toBeDefined();
       expect(state.sceneObjects.find((obj) => obj.id === "drawing:drawing-1")).toBeDefined();
-      expect(state.sceneObjects.find((obj) => obj.id === "pointer:player-1")).toBeDefined();
+      expect(state.sceneObjects.find((obj) => obj.id === "pointer:player-1-101")).toBeDefined();
     });
 
     it("preserves custom zIndex and transform values", () => {

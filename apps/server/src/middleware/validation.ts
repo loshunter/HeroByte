@@ -226,6 +226,14 @@ export function validateMessage(raw: unknown): ValidationResult {
       break;
     }
 
+    case "grid-square-size": {
+      const { size } = message;
+      if (!isFiniteNumber(size) || size < 0.1 || size > 100) {
+        return { valid: false, error: "grid-square-size: size must be between 0.1 and 100 feet" };
+      }
+      break;
+    }
+
     case "update-token-image": {
       if (typeof message.tokenId !== "string" || message.tokenId.length === 0) {
         return { valid: false, error: "update-token-image: missing or invalid tokenId" };
@@ -379,6 +387,13 @@ export function validateMessage(raw: unknown): ValidationResult {
         }
         if (scale.x <= 0 || scale.y <= 0) {
           return { valid: false, error: "transform-object: scale must be positive" };
+        }
+        // Prevent extreme scale values that can break rendering
+        if (scale.x > 10 || scale.y > 10) {
+          return { valid: false, error: "transform-object: scale must not exceed 10x" };
+        }
+        if (scale.x < 0.1 || scale.y < 0.1) {
+          return { valid: false, error: "transform-object: scale must be at least 0.1x" };
         }
       }
       if ("rotation" in message && message.rotation !== undefined) {

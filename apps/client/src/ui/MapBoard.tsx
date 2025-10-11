@@ -28,6 +28,7 @@ import {
   PointersLayer,
   DrawingsLayer,
   MeasureLayer,
+  TransformGizmo,
 } from "../features/map/components";
 
 export type CameraCommand = { type: "focus-token"; tokenId: string } | { type: "reset" };
@@ -70,6 +71,7 @@ interface MapBoardProps {
   pointerMode: boolean; // Pointer tool active
   measureMode: boolean; // Measure tool active
   drawMode: boolean; // Draw tool active
+  transformMode: boolean; // Transform tool active (gizmo mode)
   selectMode: boolean; // Selection tool active
   drawTool: "freehand" | "line" | "rect" | "circle" | "eraser"; // Active drawing tool
   drawColor: string; // Drawing color
@@ -86,6 +88,8 @@ interface MapBoardProps {
   onDrawingComplete?: (drawingId: string) => void; // Called when a drawing is completed
   cameraCommand: CameraCommand | null;
   onCameraCommandHandled: () => void;
+  selectedObjectId?: string | null; // Currently selected object for transform gizmo
+  onSelectObject?: (objectId: string | null) => void; // Selection handler
 }
 
 /**
@@ -106,6 +110,7 @@ export default function MapBoard({
   pointerMode,
   measureMode,
   drawMode,
+  transformMode,
   selectMode,
   drawTool,
   drawColor,
@@ -117,6 +122,8 @@ export default function MapBoard({
   onDrawingComplete,
   cameraCommand,
   onCameraCommandHandled,
+  selectedObjectId = null,
+  onSelectObject,
 }: MapBoardProps) {
   // -------------------------------------------------------------------------
   // STATE & HOOKS
@@ -137,6 +144,14 @@ export default function MapBoard({
       ),
     [sceneObjects],
   );
+
+  // Transform gizmo state
+  const selectedObjectNodeRef = useRef<Konva.Node | null>(null);
+  const selectedObject = useMemo(
+    () => sceneObjects.find((obj) => obj.id === selectedObjectId) || null,
+    [sceneObjects, selectedObjectId],
+  );
+
   // Drawing selection
   const {
     selectedDrawingId,
@@ -209,18 +224,50 @@ export default function MapBoard({
     setGrid((prev) => ({ ...prev, size: gridSize }));
   }, [gridSize]);
 
-  // Delete key handler for selected drawings
+  // Delete key handler for selected objects (drawings via select tool, or any object via transform gizmo)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Delete" && selectedDrawingId && selectMode) {
-        sendMessage({ t: "delete-drawing", id: selectedDrawingId });
-        handleSelectDrawing(null);
+      // Don't delete if typing in an input field
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      if (e.key === "Delete") {
+        // Priority 1: Delete selected drawing (via select tool)
+        if (selectedDrawingId && selectMode) {
+          sendMessage({ t: "delete-drawing", id: selectedDrawingId });
+          handleSelectDrawing(null);
+          return;
+        }
+
+        // Priority 2: Delete selected object now handled in App.tsx
+        // (App.tsx has DM check and proper permission handling)
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedDrawingId, selectMode, sendMessage, handleSelectDrawing]);
+  }, [
+    selectedDrawingId,
+    selectMode,
+    sendMessage,
+    handleSelectDrawing,
+    selectedObjectId,
+    onSelectObject,
+    sceneObjects,
+  ]);
+
+  // ESC key handler to deselect transform gizmo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && selectedObjectId && onSelectObject) {
+        onSelectObject(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedObjectId, onSelectObject]);
 
   // -------------------------------------------------------------------------
   // UNIFIED EVENT HANDLERS
@@ -327,6 +374,103 @@ export default function MapBoard({
     [onRecolorToken],
   );
 
+  // Transform gizmo handlers
+  const handleGizmoTransform = useCallback(
+    (transform: {
+      id: string;
+      position?: { x: number; y: number };
+      scale?: { x: number; y: number };
+      rotation?: number;
+    }) => {
+      // Find the object to determine its type
+      const obj = sceneObjects.find((o) => o.id === transform.id);
+
+      if (!obj) {
+        console.warn(`Object ${transform.id} not found`);
+        return;
+      }
+
+      // For tokens, don't send position (it's in grid coords, not pixels)
+      // Only send scale and rotation
+      if (obj.type === "token") {
+        onTransformObject({
+          id: transform.id,
+          scale: transform.scale,
+          rotation: transform.rotation,
+          // Position should only be updated via dragging (which handles grid snapping)
+        });
+      } else {
+        // For map and drawings, send full transform
+        onTransformObject(transform);
+      }
+    },
+    [onTransformObject, sceneObjects],
+  );
+
+  const getSelectedNodeRef = useCallback(() => {
+    return selectedObjectNodeRef.current;
+  }, []);
+
+  // Callback to receive node reference from MapImageLayer
+  const handleMapNodeReady = useCallback(
+    (node: Konva.Node | null) => {
+      if (mapObject) {
+        if (node) {
+          nodeRefsMap.current.set(mapObject.id, node);
+        } else {
+          nodeRefsMap.current.delete(mapObject.id);
+        }
+      }
+    },
+    [mapObject],
+  );
+
+  // Click handler to select the map (only in transform mode)
+  const handleMapClick = useCallback(() => {
+    // Only allow selection when transform mode is active
+    if (!transformMode) {
+      return;
+    }
+    // Don't select if other tools are active
+    if (pointerMode || measureMode || drawMode || selectMode) {
+      return;
+    }
+    if (mapObject && onSelectObject) {
+      onSelectObject(mapObject.id);
+    }
+  }, [mapObject, onSelectObject, transformMode, pointerMode, measureMode, drawMode, selectMode]);
+
+  // Store all node refs (keyed by object ID)
+  const nodeRefsMap = useRef<Map<string, Konva.Node>>(new Map());
+
+  // Clear the selected node ref when selection changes
+  useEffect(() => {
+    if (selectedObjectId) {
+      const node = nodeRefsMap.current.get(selectedObjectId);
+      selectedObjectNodeRef.current = node || null;
+    } else {
+      selectedObjectNodeRef.current = null;
+    }
+  }, [selectedObjectId]);
+
+  // Callback to receive node reference from TokensLayer
+  const handleTokenNodeReady = useCallback((tokenId: string, node: Konva.Node | null) => {
+    if (node) {
+      nodeRefsMap.current.set(tokenId, node);
+    } else {
+      nodeRefsMap.current.delete(tokenId);
+    }
+  }, []);
+
+  // Callback to receive node reference from DrawingsLayer
+  const handleDrawingNodeReady = useCallback((drawingId: string, node: Konva.Node | null) => {
+    if (node) {
+      nodeRefsMap.current.set(drawingId, node);
+    } else {
+      nodeRefsMap.current.delete(drawingId);
+    }
+  }, []);
+
   // -------------------------------------------------------------------------
   // RENDER
   // -------------------------------------------------------------------------
@@ -355,12 +499,13 @@ export default function MapBoard({
         style={{ cursor: getCursor() }}
       >
         {/* Background Layer: Map image and grid (non-interactive) */}
-        <Layer listening={false}>
+        <Layer>
           <MapImageLayer
             cam={cam}
             src={mapObject?.data.imageUrl ?? snapshot?.mapBackground ?? null}
-            x={0}
-            y={0}
+            transform={mapObject?.transform}
+            onNodeReady={handleMapNodeReady}
+            onClick={handleMapClick}
           />
           {grid.show && (
             <GridLayer
@@ -390,6 +535,9 @@ export default function MapBoard({
             selectedDrawingId={selectedDrawingId}
             onSelectDrawing={handleSelectDrawing}
             onTransformDrawing={handleTransformDrawing}
+            selectedObjectId={selectedObjectId}
+            onSelectObject={onSelectObject}
+            onDrawingNodeReady={handleDrawingNodeReady}
           />
           <TokensLayer
             cam={cam}
@@ -401,6 +549,9 @@ export default function MapBoard({
             onTransformToken={handleTransformToken}
             onRecolorToken={handleRecolorToken}
             snapToGrid={snapToGrid}
+            selectedObjectId={selectedObjectId}
+            onSelectObject={onSelectObject}
+            onTokenNodeReady={handleTokenNodeReady}
           />
         </Layer>
 
@@ -417,8 +568,20 @@ export default function MapBoard({
             measureStart={measureStart}
             measureEnd={measureEnd}
             gridSize={grid.size}
+            gridSquareSize={snapshot?.gridSquareSize}
           />
         </Layer>
+
+        {/* Transform Gizmo Layer: Visual handles for selected objects (only in transform mode) */}
+        {transformMode && (
+          <Layer>
+            <TransformGizmo
+              selectedObject={selectedObject}
+              onTransform={handleGizmoTransform}
+              getNodeRef={getSelectedNodeRef}
+            />
+          </Layer>
+        )}
       </Stage>
     </div>
   );

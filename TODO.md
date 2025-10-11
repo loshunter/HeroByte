@@ -583,29 +583,29 @@
 - Tool behavior: stays open until closed manually (inconsistent with other tools)
 
 **Desired Behavior**:
-- Display format: "X Squares (Y ft)" where Y = X * gridSquareSize
-- DM can configure gridSquareSize in DM Menu (default: 5 ft)
+- [x] Display format: "X Squares (Y ft)" where Y = X * gridSquareSize
+- [x] DM can configure gridSquareSize in DM Menu (default: 5 ft)
 - Measure tool closes after placing measurement (click to open again)
 - Consistent with other tool workflows
 
 **Implementation**:
 
 **Backend**:
-- [ ] Add `gridSquareSize` to RoomState interface (default: 5)
-- [ ] Add to room snapshot for synchronization
-- [ ] Validation: gridSquareSize must be positive number (1-100 reasonable range)
+- [x] Add `gridSquareSize` to RoomState interface (default: 5)
+- [x] Add to room snapshot for synchronization
+- [x] Validation: gridSquareSize must be positive number (1-100 reasonable range)
 
 **Frontend - DM Menu**:
-- [ ] Add "Grid Configuration" section to DM Menu (near Grid Controls)
-- [ ] Input field: "1 Square = ___ feet" with number input
-- [ ] Send update message to server when DM changes value
-- [ ] Broadcast to all clients (part of room state)
+- [x] Add "Grid Configuration" section to DM Menu (near Grid Controls)
+- [x] Input control: "1 Square = ___ feet" (slider with 1–100 ft range)
+- [x] Send update message to server when DM changes value
+- [x] Broadcast to all clients (part of room state)
 
 **Frontend - Measure Tool**:
-- [ ] Update display calculation:
+- [x] Update display calculation:
   ```typescript
-  const squares = Math.round(distance / gridSize);
-  const feet = squares * gridSquareSize;
+  const squares = Math.round((distance / gridSize) * 10) / 10;
+  const feet = Math.round(squares * gridSquareSize * 10) / 10;
   return `${squares} Squares (${feet} ft)`;
   ```
 - [ ] Change tool behavior: auto-close after measurement placed

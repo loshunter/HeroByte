@@ -226,7 +226,10 @@ export const App: React.FC = () => {
     }
   }, [connectionState]);
 
-  const canSubmit = passwordInput.trim().length > 0 && authState !== AuthState.PENDING;
+  const canSubmit =
+    passwordInput.trim().length > 0 &&
+    authState !== AuthState.PENDING &&
+    connectionState === ConnectionState.CONNECTED;
 
   const showAuthGate = !hasAuthenticated || authState === AuthState.FAILED;
 
@@ -239,6 +242,7 @@ export const App: React.FC = () => {
         connectionLabel={connectionLabel}
         canSubmit={canSubmit}
         isConnected={isConnected}
+        connectionState={connectionState}
         onPasswordChange={handlePasswordChange}
         onSubmit={handlePasswordSubmit}
         onRetry={connect}
@@ -266,6 +270,7 @@ interface AuthGateProps {
   connectionLabel: string;
   canSubmit: boolean;
   isConnected: boolean;
+  connectionState: ConnectionState;
   onPasswordChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onRetry: () => void;
@@ -278,10 +283,14 @@ function AuthGate({
   connectionLabel,
   canSubmit,
   isConnected,
+  connectionState,
   onPasswordChange,
   onSubmit,
   onRetry,
 }: AuthGateProps): JSX.Element {
+  const isConnecting =
+    connectionState === ConnectionState.CONNECTING ||
+    connectionState === ConnectionState.RECONNECTING;
   return (
     <div style={authGateContainerStyle}>
       <div style={authGateCardStyle}>
@@ -314,7 +323,14 @@ function AuthGate({
           </button>
         </form>
         <p style={authGateHintStyle}>
-          Connection status: <strong>{connectionLabel}</strong>
+          Connection status:{" "}
+          <strong
+            style={{
+              animation: isConnecting ? "pulse 1.5s ease-in-out infinite" : "none",
+            }}
+          >
+            {connectionLabel}
+          </strong>
         </p>
         {!isConnected ? (
           <button type="button" style={authSecondaryButtonStyle} onClick={onRetry}>
@@ -389,7 +405,11 @@ function AuthenticatedApp({
   const [pointerMode, setPointerMode] = useState(false);
   const [measureMode, setMeasureMode] = useState(false);
   const [drawMode, setDrawMode] = useState(false);
+  const [transformMode, setTransformMode] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
+
+  // Selection state for transform gizmo (only active when transformMode is true)
+  const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
 
   // UI layout (fixed panels)
   const topPanelRef = useRef<HTMLDivElement | null>(null);
@@ -476,32 +496,15 @@ function AuthenticatedApp({
   /**
    * Keyboard shortcuts
    * Ctrl+Z / Cmd+Z: Undo last drawing
+   * Delete/Backspace: Delete selected object (moved after isDM declaration)
    */
+
+  // Clear selection when transform mode is disabled
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+Z or Cmd+Z for undo
-      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
-        // Only undo if draw mode is active and there's something to undo
-        if (drawMode && canUndo) {
-          e.preventDefault();
-          popFromHistory();
-          sendMessage({ t: "undo-drawing" });
-        }
-      }
-
-      // Ctrl+Y or Cmd+Y for redo
-      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.shiftKey && e.key === "Z"))) {
-        if (drawMode && canRedo) {
-          e.preventDefault();
-          popFromRedoHistory();
-          sendMessage({ t: "redo-drawing" });
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [drawMode, canUndo, canRedo, popFromHistory, popFromRedoHistory, sendMessage]);
+    if (!transformMode && selectedObjectId) {
+      setSelectedObjectId(null);
+    }
+  }, [transformMode, selectedObjectId]);
 
   // -------------------------------------------------------------------------
   // ACTIONS
@@ -580,6 +583,10 @@ function AuthenticatedApp({
 
   const setGridSize = (size: number) => {
     sendMessage({ t: "grid-size", size });
+  };
+
+  const setGridSquareSize = (size: number) => {
+    sendMessage({ t: "grid-square-size", size });
   };
 
   const handleClearDrawings = useCallback(() => {
@@ -672,6 +679,13 @@ function AuthenticatedApp({
     [sendMessage],
   );
 
+  const handleDeletePlayerToken = useCallback(
+    (tokenId: string) => {
+      sendMessage({ t: "delete-token", id: tokenId });
+    },
+    [sendMessage],
+  );
+
   const handlePlaceNPCToken = useCallback(
     (id: string) => {
       sendMessage({ t: "place-npc-token", id });
@@ -716,9 +730,70 @@ function AuthenticatedApp({
 
   // Get synchronized grid size from server
   const gridSize = snapshot?.gridSize || 50;
+  const gridSquareSize = snapshot?.gridSquareSize ?? 5;
 
   // DM role detection
   const { isDM, toggleDM } = useDMRole({ snapshot, uid, send: sendMessage });
+
+  // Keyboard shortcuts (after isDM is declared)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Delete or Backspace to delete selected object (DM only)
+      if ((e.key === "Delete" || e.key === "Backspace") && selectedObjectId && isDM) {
+        e.preventDefault();
+
+        // Find the scene object to check if it's locked
+        const obj = snapshot?.sceneObjects?.find((o) => o.id === selectedObjectId);
+        if (obj?.locked) {
+          alert("This object is locked. Unlock it first to delete.");
+          return;
+        }
+
+        // Parse the scene object ID to determine type
+        const [type, id] = selectedObjectId.split(":");
+
+        if (type === "token" && id) {
+          console.log("[Delete] Attempting to delete token:", { selectedObjectId, type, id });
+          if (confirm("Delete this token? This cannot be undone.")) {
+            console.log("[Delete] Sending delete-token message:", { t: "delete-token", id });
+            sendMessage({ t: "delete-token", id }); // id is already without prefix
+            setSelectedObjectId(null);
+          }
+        } else if (type === "map") {
+          // Don't allow deleting the map
+          alert("Cannot delete the map background. Use DM Menu to clear it.");
+        } else if (type === "drawing" && id) {
+          if (confirm("Delete this drawing? This cannot be undone.")) {
+            sendMessage({ t: "delete-drawing", id }); // id is already without prefix
+            setSelectedObjectId(null);
+          }
+        }
+        return;
+      }
+
+      // Ctrl+Z or Cmd+Z for undo
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        // Only undo if draw mode is active and there's something to undo
+        if (drawMode && canUndo) {
+          e.preventDefault();
+          popFromHistory();
+          sendMessage({ t: "undo-drawing" });
+        }
+      }
+
+      // Ctrl+Y or Cmd+Y for redo
+      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.shiftKey && e.key === "Z"))) {
+        if (drawMode && canRedo) {
+          e.preventDefault();
+          popFromRedoHistory();
+          sendMessage({ t: "redo-drawing" });
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [drawMode, canUndo, canRedo, popFromHistory, popFromRedoHistory, sendMessage, selectedObjectId, isDM, snapshot]);
 
   // -------------------------------------------------------------------------
   // RENDER
@@ -784,6 +859,7 @@ function AuthenticatedApp({
         pointerMode={pointerMode}
         measureMode={measureMode}
         drawMode={drawMode}
+        transformMode={transformMode}
         selectMode={selectMode}
         crtFilter={crtFilter}
         diceRollerOpen={diceRollerOpen}
@@ -792,6 +868,7 @@ function AuthenticatedApp({
         onPointerModeChange={setPointerMode}
         onMeasureModeChange={setMeasureMode}
         onDrawModeChange={setDrawMode}
+        onTransformModeChange={setTransformMode}
         onSelectModeChange={setSelectMode}
         onCrtFilterChange={setCrtFilter}
         onDiceRollerToggle={setDiceRollerOpen}
@@ -821,6 +898,7 @@ function AuthenticatedApp({
           pointerMode={pointerMode}
           measureMode={measureMode}
           drawMode={drawMode}
+          transformMode={transformMode}
           selectMode={selectMode}
           drawTool={drawTool}
           drawColor={drawColor}
@@ -832,6 +910,8 @@ function AuthenticatedApp({
           onDrawingComplete={addToHistory}
           cameraCommand={cameraCommand}
           onCameraCommandHandled={() => setCameraCommand(null)}
+          selectedObjectId={selectedObjectId}
+          onSelectObject={setSelectedObjectId}
         />
       </div>
 
@@ -872,6 +952,7 @@ function AuthenticatedApp({
         onNpcUpdate={handleUpdateNPC}
         onNpcDelete={handleDeleteNPC}
         onNpcPlaceToken={handlePlaceNPCToken}
+        onPlayerTokenDelete={handleDeletePlayerToken}
         onToggleTokenLock={toggleSceneObjectLock}
         onTokenSizeChange={updateTokenSize}
         bottomPanelRef={bottomPanelRef}
@@ -881,9 +962,11 @@ function AuthenticatedApp({
         isDM={isDM}
         onToggleDM={toggleDM}
         gridSize={gridSize}
+        gridSquareSize={gridSquareSize}
         gridLocked={gridLocked}
         onGridLockToggle={() => setGridLocked((prev) => !prev)}
         onGridSizeChange={setGridSize}
+        onGridSquareSizeChange={setGridSquareSize}
         onClearDrawings={handleClearDrawings}
         onSetMapBackground={setMapBackgroundURL}
         mapBackground={snapshot?.mapBackground}
@@ -895,9 +978,7 @@ function AuthenticatedApp({
         onUpdateNPC={handleUpdateNPC}
         onDeleteNPC={handleDeleteNPC}
         onPlaceNPCToken={handlePlaceNPCToken}
-        mapLocked={
-          snapshot?.sceneObjects?.find((obj) => obj.type === "map")?.locked ?? true
-        }
+        mapLocked={snapshot?.sceneObjects?.find((obj) => obj.type === "map")?.locked ?? true}
         onMapLockToggle={() => {
           const mapObj = snapshot?.sceneObjects?.find((obj) => obj.type === "map");
           if (mapObj) {

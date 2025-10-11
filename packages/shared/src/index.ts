@@ -53,6 +53,7 @@ export interface DrawingSceneData {
 
 export interface PointerSceneData {
   uid: string;
+  pointerId?: string;
 }
 
 export interface PropSceneData {
@@ -134,6 +135,7 @@ export interface PlayerState {
  * Pointer: Temporary pointer indicator that players can place on the map
  */
 export interface Pointer {
+  id: string; // Unique identifier for this specific pointer instance
   uid: string; // Player who placed the pointer
   x: number; // Screen/canvas X coordinate
   y: number; // Screen/canvas Y coordinate
@@ -194,6 +196,7 @@ export interface RoomSnapshot {
   pointers: Pointer[]; // Active pointer indicators
   drawings: Drawing[]; // All drawings on the canvas
   gridSize: number; // Synchronized grid size for all clients
+  gridSquareSize?: number; // How many feet per grid square (default: 5ft)
   diceRolls: DiceRoll[]; // History of dice rolls
   sceneObjects?: SceneObject[]; // Unified scene graph (experimental)
 }
@@ -248,6 +251,7 @@ export type ClientMessage =
   // Map/canvas actions
   | { t: "map-background"; data: string } // Set map background image
   | { t: "grid-size"; size: number } // Change grid size (synced)
+  | { t: "grid-square-size"; size: number } // Change grid square size in feet (default: 5ft)
   | { t: "point"; x: number; y: number } // Place pointer indicator
   | { t: "draw"; drawing: Drawing } // Add a drawing
   | { t: "undo-drawing" } // Undo last drawing by this player

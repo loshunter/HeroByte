@@ -44,6 +44,7 @@ describe("validateMessage", () => {
       { t: "link-token", characterId: "char-1", tokenId: "token-1" },
       { t: "map-background", data: "data:image/png;base64,BBB" },
       { t: "grid-size", size: 50 },
+      { t: "grid-square-size", size: 5 },
       { t: "point", x: 1, y: 2 },
       { t: "draw", drawing: baseDrawing },
       { t: "undo-drawing" },
@@ -68,6 +69,7 @@ describe("validateMessage", () => {
           pointers: [],
           drawings: [],
           gridSize: 50,
+          gridSquareSize: 5,
           diceRolls: [],
         },
       },
@@ -99,6 +101,8 @@ describe("validateMessage", () => {
     });
     expect(validateMessage({ t: "rename", name: "" })).toMatchObject({ valid: false });
     expect(validateMessage({ t: "grid-size", size: 5 })).toMatchObject({ valid: false });
+    expect(validateMessage({ t: "grid-square-size", size: 0 })).toMatchObject({ valid: false });
+    expect(validateMessage({ t: "grid-square-size", size: 150 })).toMatchObject({ valid: false });
     expect(validateMessage({ t: "mic-level", level: 1.5 })).toMatchObject({ valid: false });
     const invalidMoveDrawing = {
       t: "move-drawing",
@@ -437,6 +441,56 @@ describe("validateMessage", () => {
       ).toMatchObject({
         valid: false,
         error: "transform-object: scale must be positive",
+      });
+    });
+
+    it("rejects transform-object with scale exceeding maximum (>10x)", () => {
+      expect(
+        validateMessage({
+          t: "transform-object",
+          id: "obj-1",
+          scale: { x: 15, y: 1 },
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "transform-object: scale must not exceed 10x",
+      });
+    });
+
+    it("rejects transform-object with scale below minimum (<0.1x)", () => {
+      expect(
+        validateMessage({
+          t: "transform-object",
+          id: "obj-1",
+          scale: { x: 0.05, y: 1 },
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "transform-object: scale must be at least 0.1x",
+      });
+    });
+
+    it("accepts transform-object with scale at maximum (10x)", () => {
+      expect(
+        validateMessage({
+          t: "transform-object",
+          id: "obj-1",
+          scale: { x: 10, y: 10 },
+        }),
+      ).toMatchObject({
+        valid: true,
+      });
+    });
+
+    it("accepts transform-object with scale at minimum (0.1x)", () => {
+      expect(
+        validateMessage({
+          t: "transform-object",
+          id: "obj-1",
+          scale: { x: 0.1, y: 0.1 },
+        }),
+      ).toMatchObject({
+        valid: true,
       });
     });
 

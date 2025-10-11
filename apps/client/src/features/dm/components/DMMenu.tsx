@@ -7,14 +7,17 @@
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { Character } from "@shared";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
+import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 
 interface DMMenuProps {
   isDM: boolean;
   onToggleDM: (next: boolean) => void;
   gridSize: number;
+  gridSquareSize?: number; // Feet per square
   gridLocked: boolean;
   onGridLockToggle: () => void;
   onGridSizeChange: (size: number) => void;
+  onGridSquareSizeChange?: (size: number) => void;
   onClearDrawings: () => void;
   onSetMapBackground: (url: string) => void;
   mapBackground?: string;
@@ -273,9 +276,11 @@ export function DMMenu({
   isDM,
   onToggleDM,
   gridSize,
+  gridSquareSize = 5,
   gridLocked,
   onGridLockToggle,
   onGridSizeChange,
+  onGridSquareSizeChange,
   onClearDrawings,
   onSetMapBackground,
   mapBackground,
@@ -347,6 +352,9 @@ export function DMMenu({
   const saveDisabled = !onRequestSaveSession;
   const loadDisabled = !onRequestLoadSession;
 
+  const formatSquareSize = (value: number) =>
+    Number.isInteger(value) ? `${value}` : value.toFixed(1);
+
   const TabButton = ({ tab, label }: { tab: DMMenuTab; label: string }) => (
     <JRPGButton
       onClick={() => setActiveTab(tab)}
@@ -377,18 +385,18 @@ export function DMMenu({
       </div>
 
       {open && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: "96px",
-            right: "32px",
-            width: "360px",
-            maxHeight: "70vh",
-            overflowY: "auto",
-            zIndex: 200,
-          }}
+        <DraggableWindow
+          title="Dungeon Master Tools"
+          onClose={() => setOpen(false)}
+          initialX={typeof window !== "undefined" ? window.innerWidth - 420 : 100}
+          initialY={100}
+          width={400}
+          minWidth={360}
+          maxWidth={500}
+          storageKey="dm-menu"
+          zIndex={1002}
         >
-          <JRPGPanel variant="bevel" title="Dungeon Master Tools">
+          <div style={{ padding: "12px" }}>
             <div
               style={{
                 display: "flex",
@@ -494,6 +502,34 @@ export function DMMenu({
                     >
                       {gridLocked ? "Grid Locked" : "Lock Grid"}
                     </JRPGButton>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        marginTop: "8px",
+                      }}
+                    >
+                      <span className="jrpg-text-small">Square Size</span>
+                      <span className="jrpg-text-small">
+                        {formatSquareSize(gridSquareSize)} ft
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={1}
+                      max={100}
+                      step={1}
+                      value={Math.min(100, Math.max(1, gridSquareSize))}
+                      onChange={(event) =>
+                        onGridSquareSizeChange?.(Number(event.target.value))
+                      }
+                      disabled={!onGridSquareSizeChange}
+                      style={{ width: "100%" }}
+                    />
+                    <span style={{ fontSize: "10px", opacity: 0.8, lineHeight: 1.3, display: "block" }}>
+                      Measurement tool displays distances as squares and feet using this value.
+                    </span>
                   </div>
                 </JRPGPanel>
 
@@ -548,7 +584,9 @@ export function DMMenu({
                           }}
                         >
                           <span className="jrpg-text-small">Rotation</span>
-                          <span className="jrpg-text-small">{Math.round(mapTransform.rotation)}°</span>
+                          <span className="jrpg-text-small">
+                            {Math.round(mapTransform.rotation)}°
+                          </span>
                         </div>
                         <input
                           type="range"
@@ -756,8 +794,8 @@ export function DMMenu({
                 </JRPGPanel>
               </div>
             )}
-          </JRPGPanel>
-        </div>
+          </div>
+        </DraggableWindow>
       )}
     </>
   );
