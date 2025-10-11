@@ -501,10 +501,10 @@ function AuthenticatedApp({
 
   // Clear selection when transform mode is disabled
   useEffect(() => {
-    if (!transformMode && selectedObjectId) {
+    if (!transformMode) {
       setSelectedObjectId(null);
     }
-  }, [transformMode, selectedObjectId]);
+  }, [transformMode]);
 
   // -------------------------------------------------------------------------
   // ACTIONS
