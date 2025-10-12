@@ -26,10 +26,12 @@ import { DMMenu } from "../features/dm";
 import { getSessionUID } from "../utils/session";
 import { saveSession, loadSession } from "../utils/sessionPersistence";
 import { DrawingToolbar } from "../features/drawing/components";
-import { Header } from "../components/layout/Header";
+import { Header, type ToolMode } from "../components/layout/Header";
 import { EntitiesPanel } from "../components/layout/EntitiesPanel";
 import { ServerStatus } from "../components/layout/ServerStatus";
 import { ConnectionState, AuthState } from "../services/websocket";
+import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
+import { computeMapAlignmentTransform } from "../utils/mapAlignment";
 
 interface RollLogEntry extends RollResult {
   playerName: string;
@@ -402,11 +404,16 @@ function AuthenticatedApp({
   const [gridLocked, setGridLocked] = useState(false);
 
   // Tool modes
-  const [pointerMode, setPointerMode] = useState(false);
-  const [measureMode, setMeasureMode] = useState(false);
-  const [drawMode, setDrawMode] = useState(false);
-  const [transformMode, setTransformMode] = useState(false);
-  const [selectMode, setSelectMode] = useState(false);
+  const [activeTool, setActiveTool] = useState<ToolMode>(null);
+  const pointerMode = activeTool === "pointer";
+  const measureMode = activeTool === "measure";
+  const drawMode = activeTool === "draw";
+  const transformMode = activeTool === "transform";
+  const selectMode = activeTool === "select";
+  const alignmentMode = activeTool === "align";
+  const [alignmentPoints, setAlignmentPoints] = useState<AlignmentPoint[]>([]);
+  const [alignmentSuggestion, setAlignmentSuggestion] = useState<AlignmentSuggestion | null>(null);
+  const [alignmentError, setAlignmentError] = useState<string | null>(null);
 
   // Selection state for transform gizmo (only active when transformMode is true)
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
@@ -589,6 +596,60 @@ function AuthenticatedApp({
     sendMessage({ t: "grid-square-size", size });
   };
 
+  const handleAlignmentStart = useCallback(() => {
+    setAlignmentPoints([]);
+    setAlignmentSuggestion(null);
+    setAlignmentError(null);
+    setActiveTool("align");
+  }, []);
+
+  const handleAlignmentCancel = useCallback(() => {
+    setActiveTool(null);
+    setAlignmentPoints([]);
+    setAlignmentSuggestion(null);
+    setAlignmentError(null);
+  }, []);
+
+  const handleAlignmentPointCapture = useCallback((point: AlignmentPoint) => {
+    setAlignmentError(null);
+    setAlignmentPoints((prev) => {
+      if (prev.length >= 2) {
+        return [point];
+      }
+      return [...prev, point];
+    });
+  }, []);
+
+  const handleAlignmentReset = useCallback(() => {
+    setAlignmentPoints([]);
+    setAlignmentSuggestion(null);
+    setAlignmentError(null);
+  }, []);
+
+  const handleAlignmentApply = useCallback(() => {
+    if (!alignmentSuggestion || !mapSceneObject) {
+      return;
+    }
+
+    transformSceneObject({
+      id: mapSceneObject.id,
+      position: {
+        x: alignmentSuggestion.transform.x,
+        y: alignmentSuggestion.transform.y,
+      },
+      scale: {
+        x: alignmentSuggestion.transform.scaleX,
+        y: alignmentSuggestion.transform.scaleY,
+      },
+      rotation: alignmentSuggestion.transform.rotation,
+    });
+
+    setAlignmentPoints([]);
+    setAlignmentSuggestion(null);
+    setAlignmentError(null);
+    setActiveTool(null);
+  }, [alignmentSuggestion, mapSceneObject, transformSceneObject]);
+
   const handleClearDrawings = useCallback(() => {
     clearHistory();
     sendMessage({ t: "clear-drawings" });
@@ -731,20 +792,67 @@ function AuthenticatedApp({
   // Get synchronized grid size from server
   const gridSize = snapshot?.gridSize || 50;
   const gridSquareSize = snapshot?.gridSquareSize ?? 5;
+  const mapSceneObject = useMemo(
+    () => snapshot?.sceneObjects?.find((obj) => obj.type === "map") ?? null,
+    [snapshot?.sceneObjects],
+  );
 
   // DM role detection
   const { isDM, toggleDM } = useDMRole({ snapshot, uid, send: sendMessage });
 
   useEffect(() => {
-    const handlePointerEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && pointerMode) {
-        setPointerMode(false);
+    if (activeTool !== "pointer" && activeTool !== "measure" && activeTool !== "align") {
+      return;
+    }
+
+    const handleToolEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setActiveTool(null);
       }
     };
 
-    window.addEventListener("keydown", handlePointerEscape);
-    return () => window.removeEventListener("keydown", handlePointerEscape);
-  }, [pointerMode]);
+    window.addEventListener("keydown", handleToolEscape);
+    return () => window.removeEventListener("keydown", handleToolEscape);
+  }, [activeTool]);
+
+  useEffect(() => {
+    if (activeTool !== "align") {
+      setAlignmentPoints([]);
+      setAlignmentSuggestion(null);
+      setAlignmentError(null);
+      return;
+    }
+  }, [activeTool]);
+
+  useEffect(() => {
+    if (activeTool !== "align") {
+      return;
+    }
+
+    if (alignmentPoints.length !== 2) {
+      setAlignmentSuggestion(null);
+      if (alignmentPoints.length === 0) {
+        setAlignmentError(null);
+      }
+      return;
+    }
+
+    try {
+      const result = computeMapAlignmentTransform(alignmentPoints, gridSize);
+      setAlignmentSuggestion(result);
+      const tolerance = Math.max(0.5, gridSize * 0.02);
+      if (result.error > tolerance) {
+        setAlignmentError(
+          `Alignment residual ${result.error.toFixed(2)}px — consider recapturing points.`,
+        );
+      } else {
+        setAlignmentError(null);
+      }
+    } catch (error) {
+      setAlignmentSuggestion(null);
+      setAlignmentError(error instanceof Error ? error.message : "Failed to compute alignment.");
+    }
+  }, [activeTool, alignmentPoints, gridSize]);
 
   // Keyboard shortcuts (after isDM is declared)
   useEffect(() => {
@@ -804,7 +912,17 @@ function AuthenticatedApp({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [drawMode, canUndo, canRedo, popFromHistory, popFromRedoHistory, sendMessage, selectedObjectId, isDM, snapshot]);
+  }, [
+    drawMode,
+    canUndo,
+    canRedo,
+    popFromHistory,
+    popFromRedoHistory,
+    sendMessage,
+    selectedObjectId,
+    isDM,
+    snapshot,
+  ]);
 
   // -------------------------------------------------------------------------
   // RENDER
@@ -867,20 +985,12 @@ function AuthenticatedApp({
       <Header
         uid={uid}
         snapToGrid={snapToGrid}
-        pointerMode={pointerMode}
-        measureMode={measureMode}
-        drawMode={drawMode}
-        transformMode={transformMode}
-        selectMode={selectMode}
+        activeTool={activeTool}
         crtFilter={crtFilter}
         diceRollerOpen={diceRollerOpen}
         rollLogOpen={rollLogOpen}
         onSnapToGridChange={setSnapToGrid}
-        onPointerModeChange={setPointerMode}
-        onMeasureModeChange={setMeasureMode}
-        onDrawModeChange={setDrawMode}
-        onTransformModeChange={setTransformMode}
-        onSelectModeChange={setSelectMode}
+        onToolSelect={setActiveTool}
         onCrtFilterChange={setCrtFilter}
         onDiceRollerToggle={setDiceRollerOpen}
         onRollLogToggle={setRollLogOpen}
@@ -911,19 +1021,23 @@ function AuthenticatedApp({
           drawMode={drawMode}
           transformMode={transformMode}
           selectMode={selectMode}
+          alignmentMode={alignmentMode}
+          alignmentPoints={alignmentPoints}
+          alignmentSuggestion={alignmentSuggestion}
+          onAlignmentPointCapture={handleAlignmentPointCapture}
           drawTool={drawTool}
           drawColor={drawColor}
           drawWidth={drawWidth}
           drawOpacity={drawOpacity}
           drawFilled={drawFilled}
           onRecolorToken={recolorToken}
-        onTransformObject={transformSceneObject}
-        onDrawingComplete={addToHistory}
-        cameraCommand={cameraCommand}
-        onCameraCommandHandled={() => setCameraCommand(null)}
-        selectedObjectId={selectedObjectId}
-        onSelectObject={setSelectedObjectId}
-      />
+          onTransformObject={transformSceneObject}
+          onDrawingComplete={addToHistory}
+          cameraCommand={cameraCommand}
+          onCameraCommandHandled={() => setCameraCommand(null)}
+          selectedObjectId={selectedObjectId}
+          onSelectObject={setSelectedObjectId}
+        />
       </div>
 
       {/* Entities HUD - Fixed at bottom */}
@@ -989,15 +1103,14 @@ function AuthenticatedApp({
         onUpdateNPC={handleUpdateNPC}
         onDeleteNPC={handleDeleteNPC}
         onPlaceNPCToken={handlePlaceNPCToken}
-        mapLocked={snapshot?.sceneObjects?.find((obj) => obj.type === "map")?.locked ?? true}
+        mapLocked={mapSceneObject?.locked ?? true}
         onMapLockToggle={() => {
-          const mapObj = snapshot?.sceneObjects?.find((obj) => obj.type === "map");
-          if (mapObj) {
-            toggleSceneObjectLock(mapObj.id, !mapObj.locked);
+          if (mapSceneObject) {
+            toggleSceneObjectLock(mapSceneObject.id, !mapSceneObject.locked);
           }
         }}
         mapTransform={
-          snapshot?.sceneObjects?.find((obj) => obj.type === "map")?.transform ?? {
+          mapSceneObject?.transform ?? {
             x: 0,
             y: 0,
             scaleX: 1,
@@ -1006,16 +1119,23 @@ function AuthenticatedApp({
           }
         }
         onMapTransformChange={(transform) => {
-          const mapObj = snapshot?.sceneObjects?.find((obj) => obj.type === "map");
-          if (mapObj) {
+          if (mapSceneObject) {
             transformSceneObject({
-              id: mapObj.id,
+              id: mapSceneObject.id,
               position: { x: transform.x, y: transform.y },
               scale: { x: transform.scaleX, y: transform.scaleY },
               rotation: transform.rotation,
             });
           }
         }}
+        alignmentModeActive={alignmentMode}
+        alignmentPoints={alignmentPoints}
+        alignmentSuggestion={alignmentSuggestion}
+        alignmentError={alignmentError}
+        onAlignmentStart={handleAlignmentStart}
+        onAlignmentReset={handleAlignmentReset}
+        onAlignmentCancel={handleAlignmentCancel}
+        onAlignmentApply={handleAlignmentApply}
       />
 
       {/* Context Menu */}

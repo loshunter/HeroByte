@@ -7,23 +7,17 @@
 import React from "react";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
 
+export type ToolMode = "pointer" | "measure" | "draw" | "transform" | "select" | "align" | null;
+
 interface HeaderProps {
   uid: string;
   snapToGrid: boolean;
-  pointerMode: boolean;
-  measureMode: boolean;
-  drawMode: boolean;
-  transformMode?: boolean;
-  selectMode?: boolean;
+  activeTool: ToolMode;
   crtFilter: boolean;
   diceRollerOpen: boolean;
   rollLogOpen: boolean;
   onSnapToGridChange: (snap: boolean) => void;
-  onPointerModeChange: (mode: boolean) => void;
-  onMeasureModeChange: (mode: boolean) => void;
-  onDrawModeChange: (mode: boolean) => void;
-  onTransformModeChange?: (mode: boolean) => void;
-  onSelectModeChange?: (mode: boolean) => void;
+  onToolSelect: (mode: ToolMode) => void;
   onCrtFilterChange: (enabled: boolean) => void;
   onDiceRollerToggle: (open: boolean) => void;
   onRollLogToggle: (open: boolean) => void;
@@ -38,20 +32,12 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   uid,
   snapToGrid,
-  pointerMode,
-  measureMode,
-  drawMode,
-  transformMode,
-  selectMode,
+  activeTool,
   crtFilter,
   diceRollerOpen,
   rollLogOpen,
   onSnapToGridChange,
-  onPointerModeChange,
-  onMeasureModeChange,
-  onDrawModeChange,
-  onTransformModeChange,
-  onSelectModeChange,
+  onToolSelect,
   onCrtFilterChange,
   onDiceRollerToggle,
   onRollLogToggle,
@@ -59,6 +45,12 @@ export const Header: React.FC<HeaderProps> = ({
   onFocusSelf,
   onResetCamera,
 }) => {
+  const pointerMode = activeTool === "pointer";
+  const measureMode = activeTool === "measure";
+  const drawMode = activeTool === "draw";
+  const transformMode = activeTool === "transform";
+  const selectMode = activeTool === "select";
+
   return (
     <div
       ref={topPanelRef}
@@ -126,14 +118,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* Pointer Mode */}
               <JRPGButton
-                onClick={() => {
-                  onPointerModeChange(!pointerMode);
-                  if (!pointerMode) {
-                    onMeasureModeChange(false);
-                    onDrawModeChange(false);
-                    onSelectModeChange?.(false);
-                  }
-                }}
+                onClick={() => onToolSelect(pointerMode ? null : "pointer")}
                 variant={pointerMode ? "primary" : "default"}
                 style={{ fontSize: "8px", padding: "6px 12px" }}
               >
@@ -142,14 +127,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* Measure Mode */}
               <JRPGButton
-                onClick={() => {
-                  onMeasureModeChange(!measureMode);
-                  if (!measureMode) {
-                    onPointerModeChange(false);
-                    onDrawModeChange(false);
-                    onSelectModeChange?.(false);
-                  }
-                }}
+                onClick={() => onToolSelect(measureMode ? null : "measure")}
                 variant={measureMode ? "primary" : "default"}
                 style={{ fontSize: "8px", padding: "6px 12px" }}
               >
@@ -158,15 +136,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* Draw Mode */}
               <JRPGButton
-                onClick={() => {
-                  onDrawModeChange(!drawMode);
-                  if (!drawMode) {
-                    onPointerModeChange(false);
-                    onMeasureModeChange(false);
-                    onTransformModeChange?.(false);
-                    onSelectModeChange?.(false);
-                  }
-                }}
+                onClick={() => onToolSelect(drawMode ? null : "draw")}
                 variant={drawMode ? "primary" : "default"}
                 style={{ fontSize: "8px", padding: "6px 12px" }}
               >
@@ -175,15 +145,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* Transform Mode */}
               <JRPGButton
-                onClick={() => {
-                  onTransformModeChange?.(!transformMode);
-                  if (!transformMode) {
-                    onPointerModeChange(false);
-                    onMeasureModeChange(false);
-                    onDrawModeChange(false);
-                    onSelectModeChange?.(false);
-                  }
-                }}
+                onClick={() => onToolSelect(transformMode ? null : "transform")}
                 variant={transformMode ? "primary" : "default"}
                 style={{ fontSize: "8px", padding: "6px 12px" }}
                 title="Scale and rotate objects"
@@ -193,15 +155,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* Select Mode */}
               <JRPGButton
-                onClick={() => {
-                  onSelectModeChange?.(!selectMode);
-                  if (!selectMode) {
-                    onPointerModeChange(false);
-                    onMeasureModeChange(false);
-                    onDrawModeChange(false);
-                    onTransformModeChange?.(false);
-                  }
-                }}
+                onClick={() => onToolSelect(selectMode ? null : "select")}
                 variant={selectMode ? "primary" : "default"}
                 style={{ fontSize: "8px", padding: "6px 12px" }}
               >

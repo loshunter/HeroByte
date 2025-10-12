@@ -66,7 +66,7 @@ export function usePointerTool(options: UsePointerToolOptions): UsePointerToolRe
       sendMessage({ t: "point", x: world.x, y: world.y });
       setPointerPreview(world);
     } else if (measureMode) {
-      if (!measureStart) {
+      if (!measureStart || measureEnd) {
         setMeasureStart(world);
         setMeasureEnd(null);
       } else {

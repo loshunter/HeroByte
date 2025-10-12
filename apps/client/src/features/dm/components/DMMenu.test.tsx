@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import React from "react";
 import { DMMenu } from "./DMMenu";
+import type { Character } from "@shared";
 
 vi.mock("../../../components/ui/JRPGPanel", () => {
   const JRPGPanel = ({
@@ -58,7 +59,7 @@ const createProps = () => ({
   onSetMapBackground: vi.fn(),
   mapBackground: undefined as string | undefined,
   playerCount: 2,
-  characters: [] as any[],
+  characters: [] as Character[],
   onRequestSaveSession: undefined as ((name: string) => void) | undefined,
   onRequestLoadSession: vi.fn(),
   onCreateNPC: vi.fn(),

@@ -4,8 +4,8 @@
 // Provides visual handles for rotating and scaling scene objects using Konva Transformer.
 // Respects the `locked` flag on scene objects.
 
-import { useEffect, useRef } from "react";
-import { Transformer } from "react-konva";
+import { useEffect, useRef, useState } from "react";
+import { Transformer, Group, Rect, Line } from "react-konva";
 import type Konva from "konva";
 import type { SceneObject } from "@shared";
 
@@ -19,6 +19,9 @@ interface TransformGizmoProps {
   }) => void;
   getNodeRef: () => Konva.Node | null; // Function to get the Konva node to attach to
 }
+
+const ORIGINAL_DRAG_KEY = "__herobyte_original_draggable";
+const HANDLE_SIZE = 18;
 
 /**
  * TransformGizmo: Visual transform handles for scene objects
@@ -36,6 +39,34 @@ export function TransformGizmo({
 }: TransformGizmoProps): JSX.Element | null {
   const transformerRef = useRef<Konva.Transformer>(null);
   const isCtrlPressed = useRef<boolean>(false);
+  const currentNodeRef = useRef<Konva.Node | null>(null);
+  const [handlePosition, setHandlePosition] = useState<{ x: number; y: number } | null>(null);
+
+  const restoreNodeDraggable = (node: Konva.Node | null) => {
+    if (!node) return;
+    const original = node.getAttr(ORIGINAL_DRAG_KEY);
+    if (typeof original === "boolean") {
+      node.draggable(original);
+    }
+    node.setAttr(ORIGINAL_DRAG_KEY, undefined);
+  };
+
+  const setCursor = (cursor: string) => {
+    const stage = transformerRef.current?.getStage();
+    if (stage) {
+      stage.container().style.cursor = cursor;
+    }
+  };
+
+  const handleCenterPointerDown = () => {
+    const node = currentNodeRef.current ?? getNodeRef();
+    if (!node) return;
+    setCursor("grabbing");
+    node.startDrag();
+  };
+
+  const handleCenterPointerEnter = () => setCursor("move");
+  const handleCenterPointerLeave = () => setCursor("default");
 
   // Track Ctrl key state for rotation snap override
   useEffect(() => {
@@ -63,33 +94,86 @@ export function TransformGizmo({
   useEffect(() => {
     const transformer = transformerRef.current;
     const node = getNodeRef();
+    const previousNode = currentNodeRef.current;
 
     if (!transformer) return;
 
     // Always detach first to prevent stale references
     transformer.nodes([]);
 
+    if (previousNode && previousNode !== node) {
+      restoreNodeDraggable(previousNode);
+      currentNodeRef.current = null;
+    }
+
     if (selectedObject && !selectedObject.locked && node) {
-      // Attach transformer to the selected node
-      // Don't reset the node - it should keep its current transform from React props
+      currentNodeRef.current = node;
+
+      if (typeof node.getAttr(ORIGINAL_DRAG_KEY) !== "boolean") {
+        node.setAttr(ORIGINAL_DRAG_KEY, node.draggable());
+      }
+      node.draggable(true);
+
       try {
         transformer.nodes([node]);
         transformer.getLayer()?.batchDraw();
       } catch (error) {
-        // If node attachment fails (e.g., node was destroyed), detach
         console.warn("[TransformGizmo] Failed to attach node:", error);
         transformer.nodes([]);
       }
     } else {
-      // Ensure detached state is rendered
+      setHandlePosition(null);
+      restoreNodeDraggable(node ?? previousNode ?? null);
       transformer.getLayer()?.batchDraw();
+      currentNodeRef.current = null;
     }
 
-    // Cleanup: detach on unmount or when dependencies change
     return () => {
-      if (transformer) {
-        transformer.nodes([]);
-      }
+      restoreNodeDraggable(currentNodeRef.current);
+      currentNodeRef.current = null;
+      transformer.nodes([]);
+      setHandlePosition(null);
+      setCursor("default");
+    };
+  }, [selectedObject, getNodeRef]);
+
+  useEffect(() => {
+    const transformer = transformerRef.current;
+    const node = currentNodeRef.current ?? getNodeRef();
+
+    if (!transformer || !node || !selectedObject || selectedObject.locked) {
+      setHandlePosition(null);
+      return;
+    }
+
+    const updateHandle = () => {
+      const box = transformer.getClientRect({ skipTransform: false });
+      setHandlePosition({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
+    };
+
+    updateHandle();
+
+    const handleNodeDragMove = () => {
+      updateHandle();
+    };
+
+    const handleNodeDragEnd = () => {
+      updateHandle();
+      setCursor("default");
+    };
+
+    transformer.on("transform", updateHandle);
+    transformer.on("transformend", updateHandle);
+    transformer.on("dragmove", updateHandle);
+    node.on("dragmove", handleNodeDragMove);
+    node.on("dragend", handleNodeDragEnd);
+
+    return () => {
+      transformer.off("transform", updateHandle);
+      transformer.off("transformend", updateHandle);
+      transformer.off("dragmove", updateHandle);
+      node.off("dragmove", handleNodeDragMove);
+      node.off("dragend", handleNodeDragEnd);
     };
   }, [selectedObject, getNodeRef]);
 
@@ -152,52 +236,77 @@ export function TransformGizmo({
   }
 
   return (
-    <Transformer
-      ref={transformerRef}
-      rotateEnabled={true}
-      enabledAnchors={[
-        "top-left",
-        "top-right",
-        "bottom-left",
-        "bottom-right",
-        "top-center",
-        "bottom-center",
-        "middle-left",
-        "middle-right",
-      ]}
-      // Visual styling
-      borderStroke="#447DF7" // JRPG blue color
-      borderStrokeWidth={2}
-      borderDash={[5, 5]} // Dashed border
-      anchorFill="#447DF7"
-      anchorStroke="#FFFFFF"
-      anchorStrokeWidth={2}
-      anchorSize={10}
-      anchorCornerRadius={2}
-      // Rotation handle styling
-      rotateAnchorOffset={30}
-      rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]} // Snap to 45° increments (hold Ctrl to disable)
-      rotationSnapTolerance={10} // Degrees tolerance for snapping
-      // Interaction
-      keepRatio={false} // Allow independent X/Y scaling by default
-      // Shift key inverts the keepRatio behavior (hold Shift to maintain aspect ratio)
-      // Note: Konva automatically handles Shift key, no additional config needed
-      boundBoxFunc={(oldBox, newBox) => {
-        // Prevent scaling to zero or negative
-        if (newBox.width < 5 || newBox.height < 5) {
-          return oldBox;
-        }
-        // Max scale limit (10x)
-        if (newBox.width > oldBox.width * 10 || newBox.height > oldBox.height * 10) {
-          return oldBox;
-        }
-        return newBox;
-      }}
-      onTransform={handleTransform}
-      onTransformEnd={handleTransformEnd}
-      // Cursor feedback (Konva provides default cursors for transform handles)
-      // - Resize handles: nwse-resize, nesw-resize, ew-resize, ns-resize
-      // - Rotation handle: crosshair
-    />
+    <>
+      <Transformer
+        ref={transformerRef}
+        rotateEnabled={true}
+        enabledAnchors={[
+          "top-left",
+          "top-right",
+          "bottom-left",
+          "bottom-right",
+          "top-center",
+          "bottom-center",
+          "middle-left",
+          "middle-right",
+        ]}
+        borderStroke="#447DF7"
+        borderStrokeWidth={2}
+        borderDash={[5, 5]}
+        anchorFill="#447DF7"
+        anchorStroke="#FFFFFF"
+        anchorStrokeWidth={2}
+        anchorSize={10}
+        anchorCornerRadius={2}
+        rotateAnchorOffset={30}
+        rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
+        rotationSnapTolerance={10}
+        keepRatio={false}
+        boundBoxFunc={(oldBox, newBox) => {
+          if (newBox.width < 5 || newBox.height < 5) {
+            return oldBox;
+          }
+          if (newBox.width > oldBox.width * 10 || newBox.height > oldBox.height * 10) {
+            return oldBox;
+          }
+          return newBox;
+        }}
+        onTransform={handleTransform}
+        onTransformEnd={handleTransformEnd}
+      />
+      {handlePosition && (
+        <Group
+          x={handlePosition.x}
+          y={handlePosition.y}
+          offsetX={HANDLE_SIZE / 2}
+          offsetY={HANDLE_SIZE / 2}
+          onMouseDown={handleCenterPointerDown}
+          onTouchStart={handleCenterPointerDown}
+          onMouseEnter={handleCenterPointerEnter}
+          onMouseLeave={handleCenterPointerLeave}
+        >
+          <Rect
+            width={HANDLE_SIZE}
+            height={HANDLE_SIZE}
+            cornerRadius={4}
+            fill="rgba(68, 125, 247, 0.25)"
+            stroke="#447DF7"
+            strokeWidth={1.5}
+          />
+          <Line
+            points={[HANDLE_SIZE / 2, 4, HANDLE_SIZE / 2, HANDLE_SIZE - 4]}
+            stroke="#FFFFFF"
+            strokeWidth={2}
+            lineCap="round"
+          />
+          <Line
+            points={[4, HANDLE_SIZE / 2, HANDLE_SIZE - 4, HANDLE_SIZE / 2]}
+            stroke="#FFFFFF"
+            strokeWidth={2}
+            lineCap="round"
+          />
+        </Group>
+      )}
+    </>
   );
 }

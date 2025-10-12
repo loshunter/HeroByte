@@ -47,7 +47,7 @@ export const PointersLayer = memo(function PointersLayer({
   const [, setAnimationTick] = useState(0);
 
   const now = Date.now();
-  
+
   // Apply incoming pointer updates, filtering out any already-expired data
   useEffect(() => {
     const nowSnapshot = Date.now();
@@ -162,7 +162,12 @@ export const PointersLayer = memo(function PointersLayer({
   return (
     <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale}>
       {pointerMode && preview ? (
-        <Group x={preview.x} y={preview.y} scaleX={inverseCamScale * previewPulse} scaleY={inverseCamScale * previewPulse}>
+        <Group
+          x={preview.x}
+          y={preview.y}
+          scaleX={inverseCamScale * previewPulse}
+          scaleY={inverseCamScale * previewPulse}
+        >
           <Circle
             radius={BASE_RADIUS + 4}
             stroke={previewColor}
@@ -187,7 +192,13 @@ export const PointersLayer = memo(function PointersLayer({
         const textYOffset = BASE_RADIUS + 16;
 
         return (
-          <Group key={pointer.id} x={pointer.x} y={pointer.y} scaleX={groupScale} scaleY={groupScale}>
+          <Group
+            key={pointer.id}
+            x={pointer.x}
+            y={pointer.y}
+            scaleX={groupScale}
+            scaleY={groupScale}
+          >
             {ringOpacity > 0 ? (
               <Circle
                 x={0}

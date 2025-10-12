@@ -12,10 +12,11 @@
 // - Map background image support
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Stage, Layer } from "react-konva";
+import { Stage, Layer, Group, Circle, Line, Text } from "react-konva";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import type { RoomSnapshot, ClientMessage, SceneObject } from "@shared";
+import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import { useCamera } from "../hooks/useCamera.js";
 import { usePointerTool } from "../hooks/usePointerTool.js";
 import { useDrawingTool } from "../hooks/useDrawingTool.js";
@@ -58,6 +59,24 @@ function useElementSize<T extends HTMLElement>() {
   return { ref, ...size };
 }
 
+function worldToMapLocal(
+  world: { x: number; y: number },
+  transform: SceneObject["transform"],
+): { x: number; y: number } {
+  const { x, y, scaleX, scaleY, rotation } = transform;
+  const rad = (rotation * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+
+  const dx = world.x - x;
+  const dy = world.y - y;
+
+  const localX = (cos * dx + sin * dy) / (Math.abs(scaleX) < 1e-6 ? 1 : scaleX);
+  const localY = (-sin * dx + cos * dy) / (Math.abs(scaleY) < 1e-6 ? 1 : scaleY);
+
+  return { x: localX, y: localY };
+}
+
 // ----------------------------------------------------------------------------
 // MAIN COMPONENT
 // ----------------------------------------------------------------------------
@@ -73,6 +92,10 @@ interface MapBoardProps {
   drawMode: boolean; // Draw tool active
   transformMode: boolean; // Transform tool active (gizmo mode)
   selectMode: boolean; // Selection tool active
+  alignmentMode: boolean; // Alignment tool active
+  alignmentPoints?: AlignmentPoint[]; // Captured alignment points
+  alignmentSuggestion?: AlignmentSuggestion | null; // Preview transform for alignment
+  onAlignmentPointCapture?: (point: AlignmentPoint) => void;
   drawTool: "freehand" | "line" | "rect" | "circle" | "eraser"; // Active drawing tool
   drawColor: string; // Drawing color
   drawWidth: number; // Drawing brush size
@@ -112,6 +135,10 @@ export default function MapBoard({
   drawMode,
   transformMode,
   selectMode,
+  alignmentMode,
+  alignmentPoints = [],
+  alignmentSuggestion = null,
+  onAlignmentPointCapture,
   drawTool,
   drawColor,
   drawWidth,
@@ -184,6 +211,25 @@ export default function MapBoard({
     toWorld,
     sendMessage,
   });
+
+  const handleAlignmentClick = useCallback(
+    (event: KonvaEventObject<MouseEvent | PointerEvent>) => {
+      if (!alignmentMode || !onAlignmentPointCapture || !mapObject) {
+        return;
+      }
+
+      const stage = event.target.getStage();
+      if (!stage) return;
+      const pointer = stage.getPointerPosition();
+      if (!pointer) return;
+
+      const world = toWorld(pointer.x, pointer.y);
+      const local = worldToMapLocal(world, mapObject.transform);
+
+      onAlignmentPointCapture({ world, local });
+    },
+    [alignmentMode, onAlignmentPointCapture, mapObject, toWorld],
+  );
 
   // Drawing tool
   const {
@@ -278,6 +324,11 @@ export default function MapBoard({
    * Unified stage click handler (pointer/measure tools)
    */
   const onStageClick = (event: KonvaEventObject<MouseEvent | PointerEvent>) => {
+    if (alignmentMode) {
+      handleAlignmentClick(event);
+      return;
+    }
+
     if (!pointerMode && !measureMode && !drawMode) {
       deselectIfEmpty(event);
       return;
@@ -289,7 +340,7 @@ export default function MapBoard({
    * Unified mouse down handler (camera pan, drawing)
    */
   const onMouseDown = (event: KonvaEventObject<PointerEvent>) => {
-    const shouldPan = !pointerMode && !measureMode && !drawMode && !selectMode;
+    const shouldPan = !alignmentMode && !pointerMode && !measureMode && !drawMode && !selectMode;
     handleCameraMouseDown(event, stageRef, shouldPan);
     handleDrawMouseDown(stageRef);
   };
@@ -487,6 +538,31 @@ export default function MapBoard({
         position: "relative",
       }}
     >
+      {alignmentMode && (
+        <div
+          style={{
+            position: "absolute",
+            top: "12px",
+            right: "12px",
+            background: "rgba(12, 18, 38, 0.9)",
+            border: "1px solid var(--jrpg-border-gold)",
+            borderRadius: "6px",
+            padding: "8px 12px",
+            fontSize: "10px",
+            lineHeight: 1.4,
+            zIndex: 10,
+            pointerEvents: "none",
+          }}
+        >
+          <strong style={{ color: "var(--jrpg-gold)" }}>Alignment Mode</strong>
+          <div style={{ marginTop: "4px" }}>
+            {alignmentPoints.length === 0 && "Click the first corner of a map square."}
+            {alignmentPoints.length === 1 && "Click the opposite corner of the same square."}
+            {alignmentPoints.length >= 2 && "Review the preview and apply when ready."}
+          </div>
+        </div>
+      )}
+
       {/* Stage is the viewport; world content is translated/scaled by cam in child Groups */}
       <Stage
         ref={stageRef}
@@ -574,6 +650,58 @@ export default function MapBoard({
             gridSize={grid.size}
             gridSquareSize={snapshot?.gridSquareSize}
           />
+          {alignmentMode && alignmentPoints.length > 0 && (
+            <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale} listening={false}>
+              {alignmentPoints.slice(0, 2).map((point, index) => (
+                <Group key={`align-point-${index}`}>
+                  <Circle
+                    x={point.world.x}
+                    y={point.world.y}
+                    radius={8 / cam.scale}
+                    stroke="#facc15"
+                    strokeWidth={2 / cam.scale}
+                    fill="rgba(250, 204, 21, 0.2)"
+                  />
+                  <Text
+                    text={`${index + 1}`}
+                    x={point.world.x + 6 / cam.scale}
+                    y={point.world.y - 18 / cam.scale}
+                    fontSize={12 / cam.scale}
+                    fill="#facc15"
+                    listening={false}
+                  />
+                </Group>
+              ))}
+              {alignmentPoints.length === 2 && (
+                <Line
+                  points={[
+                    alignmentPoints[0].world.x,
+                    alignmentPoints[0].world.y,
+                    alignmentPoints[1].world.x,
+                    alignmentPoints[1].world.y,
+                  ]}
+                  stroke="#facc15"
+                  strokeWidth={2 / cam.scale}
+                  dash={[8 / cam.scale, 6 / cam.scale]}
+                  listening={false}
+                />
+              )}
+              {alignmentSuggestion && (
+                <Line
+                  points={[
+                    alignmentSuggestion.targetA.x,
+                    alignmentSuggestion.targetA.y,
+                    alignmentSuggestion.targetB.x,
+                    alignmentSuggestion.targetB.y,
+                  ]}
+                  stroke="#4de5c0"
+                  strokeWidth={2 / cam.scale}
+                  dash={[4 / cam.scale, 6 / cam.scale]}
+                  listening={false}
+                />
+              )}
+            </Group>
+          )}
         </Layer>
 
         {/* Transform Gizmo Layer: Visual handles for selected objects (only in transform mode) */}

@@ -176,6 +176,16 @@
 
 ---
 
+## ✅ Phase 13: Tool & Alignment Polish (COMPLETE - Oct 2025)
+
+**Status**: UX polish for tabletop tooling shipped; tool toggles, measurement flow, and map alignment now feel cohesive.
+
+- [x] Unified tool state management so header buttons instantly reflect the active mode and deselect prior tools.
+- [x] Measurement tool now auto-closes after a distance is placed and exits with `Esc`, staying consistent with other tool workflows.
+- [x] Delivered a Grid Alignment Wizard: DM captures two grid corners, previews scale/rotation deltas, and applies the transform directly from the DM menu.
+- [x] Added alignment math helpers (`computeMapAlignmentTransform`) plus overlay guidance to capture points at high zoom.
+- [x] Extended the transform gizmo with a center translation handle while restoring original draggable settings after interaction.
+
 ## ✅ Phase 12: Menu System Unification (COMPLETE - Oct 2025)
 
 **Status**: All draggable windows now have position persistence. All menus use DraggableWindow component with localStorage.
