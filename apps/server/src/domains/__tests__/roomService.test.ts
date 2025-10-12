@@ -79,7 +79,9 @@ describe("RoomService", () => {
       players: [{ uid: "uid-1", name: "Saved Player", hp: 5, maxHp: 10 }],
       characters: [],
       mapBackground: "bg",
-      pointers: [{ id: "uid-1-123", uid: "uid-1", x: 5, y: 5, timestamp: Date.now() }],
+      pointers: [
+        { id: "uid-1-123", uid: "uid-1", x: 5, y: 5, timestamp: Date.now(), name: "Saved Player" },
+      ],
       drawings: [],
       gridSize: 32,
       diceRolls: [],
@@ -101,6 +103,7 @@ describe("RoomService", () => {
       x: 0,
       y: 0,
       timestamp: Date.now() - 5000,
+      name: "Expired",
     });
     state.tokens.push({ id: "token-3", owner: "uid-3", x: 3, y: 4, color: "#f00" });
 
@@ -113,6 +116,60 @@ describe("RoomService", () => {
     expect(payload.pointers).toHaveLength(0);
     expect(payload.tokens).toHaveLength(1);
     expect(writeFileSync).toHaveBeenCalledTimes(1);
+  });
+
+  it("delivers pointer updates to all clients and expires them simultaneously", () => {
+    vi.useFakeTimers();
+    try {
+      const service = new RoomService();
+      const state = service.getState();
+
+      state.players.push({
+        uid: "uid-1",
+        name: "Player 1",
+        hp: 10,
+        maxHp: 10,
+      });
+
+      const now = new Date("2025-01-01T00:00:00.000Z");
+      vi.setSystemTime(now);
+
+      state.pointers.push({
+        id: "uid-1-0",
+        uid: "uid-1",
+        x: 42,
+        y: 84,
+        timestamp: Date.now(),
+        name: "Player 1",
+      });
+
+      const clientA = createClient();
+      const clientB = createClient();
+      const clients = new Set<WebSocket>([clientA, clientB]);
+
+      service.broadcast(clients);
+
+      expect(clientA.send).toHaveBeenCalledTimes(1);
+      expect(clientB.send).toHaveBeenCalledTimes(1);
+
+      const firstPayload = JSON.parse(vi.mocked(clientA.send).mock.calls[0][0] as string);
+      expect(firstPayload.pointers).toHaveLength(1);
+      expect(firstPayload.pointers[0]).toMatchObject({ uid: "uid-1", x: 42, y: 84 });
+
+      // Advance time beyond pointer lifespan and broadcast again
+      vi.setSystemTime(new Date(now.getTime() + 3500));
+      service.broadcast(clients);
+
+      expect(clientA.send).toHaveBeenCalledTimes(2);
+      expect(clientB.send).toHaveBeenCalledTimes(2);
+
+      const secondPayloadA = JSON.parse(vi.mocked(clientA.send).mock.calls[1][0] as string);
+      const secondPayloadB = JSON.parse(vi.mocked(clientB.send).mock.calls[1][0] as string);
+      expect(secondPayloadA.pointers).toHaveLength(0);
+      expect(secondPayloadB.pointers).toHaveLength(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   describe("Scene Object Transformations", () => {
@@ -441,6 +498,7 @@ describe("RoomService", () => {
         x: 0,
         y: 0,
         timestamp: Date.now(),
+        name: "Player",
       });
       service.createSnapshot();
 
@@ -484,6 +542,7 @@ describe("RoomService", () => {
         x: 0,
         y: 0,
         timestamp: Date.now(),
+        name: "Player 1",
       });
       service.createSnapshot();
 
@@ -517,6 +576,7 @@ describe("RoomService", () => {
         x: 5,
         y: 5,
         timestamp: Date.now(),
+        name: "Player 1",
       });
 
       const _snapshot = service.createSnapshot();

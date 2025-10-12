@@ -5,6 +5,7 @@
 
 import { Hono } from "hono";
 import { getRoomSecret } from "../config/auth.js";
+import { isOriginAllowed } from "../config/security.js";
 
 /**
  * Create and configure HTTP routes
@@ -12,6 +13,37 @@ import { getRoomSecret } from "../config/auth.js";
  */
 export function createRoutes(): Hono {
   const app = new Hono();
+  const ALLOWED_METHODS = "GET,POST,OPTIONS";
+  const DEFAULT_ALLOWED_HEADERS = "Content-Type, Authorization";
+
+  app.use("*", async (c, next) => {
+    const origin = c.req.header("Origin");
+
+    if (origin && !isOriginAllowed(origin)) {
+      console.warn(`Blocked HTTP request from disallowed origin: ${origin}`);
+      return c.text("CORS origin denied", 403);
+    }
+
+    if (c.req.method === "OPTIONS") {
+      c.header("Vary", "Origin");
+      if (origin) {
+        c.header("Access-Control-Allow-Origin", origin);
+      }
+      c.header("Access-Control-Allow-Credentials", "true");
+      c.header("Access-Control-Allow-Methods", ALLOWED_METHODS);
+      const requestHeaders = c.req.header("Access-Control-Request-Headers");
+      c.header("Access-Control-Allow-Headers", requestHeaders ?? DEFAULT_ALLOWED_HEADERS);
+      return c.text("", 204);
+    }
+
+    await next();
+
+    if (origin) {
+      c.header("Vary", "Origin");
+      c.header("Access-Control-Allow-Origin", origin);
+      c.header("Access-Control-Allow-Credentials", "true");
+    }
+  });
 
   // Root endpoint - API information
   app.get("/", (c) => {

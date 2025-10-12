@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Player } from "@shared";
 import { MapService } from "../map/service.js";
 import { createEmptyRoomState } from "../room/model.js";
 
@@ -25,6 +26,7 @@ describe("MapService", () => {
 
   it("updates background, grid size, and pointers", () => {
     const state = createEmptyRoomState();
+    state.players = [{ uid: "uid-1", name: "Alice" } as Player];
     service.setBackground(state, "bg");
     service.setGridSize(state, 64);
     service.setGridSquareSize(state, 10);
@@ -36,8 +38,8 @@ describe("MapService", () => {
     expect(state.gridSquareSize).toBe(10);
     // Multiple pointers supported (temporary pulse behavior)
     expect(state.pointers).toHaveLength(2);
-    expect(state.pointers[0]).toMatchObject({ uid: "uid-1", x: 5, y: 6 });
-    expect(state.pointers[1]).toMatchObject({ uid: "uid-1", x: 7, y: 8 });
+    expect(state.pointers[0]).toMatchObject({ uid: "uid-1", x: 5, y: 6, name: "Alice" });
+    expect(state.pointers[1]).toMatchObject({ uid: "uid-1", x: 7, y: 8, name: "Alice" });
   });
 
   it("manages drawing lifecycle", () => {

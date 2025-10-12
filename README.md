@@ -19,6 +19,7 @@ Play anywhere, with anyone—no installs, just browser-based fun. Build your map
 - [DEVELOPMENT.md](DEVELOPMENT.md) – day-to-day workflow tips
 - [TESTING_SETUP.md](TESTING_SETUP.md) – step-by-step testing playbook
 - [TODO.md](TODO.md) – phased roadmap and contributor priorities
+- [DONE.md](DONE.md) – archive of completed phases and milestones
 - [CLOUDFLARE_PAGES_DEPLOYMENT.md](CLOUDFLARE_PAGES_DEPLOYMENT.md) – deployment checklist
 
 ## Features
@@ -28,6 +29,13 @@ Play anywhere, with anyone—no installs, just browser-based fun. Build your map
 - **Real-time Multiplayer** – WebSocket-based synchronization keeps everyone in lockstep
 - **Interactive Map Canvas** – Infinite canvas with pan, zoom, and smooth interactions
 - **Token Management** – Drag-and-drop tokens with synced positions across players
+- **Universal Transform System** – Visual Photoshop-style transform gizmo for maps, tokens, and drawings
+  - Click any object to select and show transform handles
+  - Drag corners to scale, drag rotation handle to rotate
+  - 8 resize handles (4 corners, 4 edges) with visual feedback
+  - Lock/unlock objects to prevent accidental changes
+  - All transforms sync in real-time across all clients
+- **Token Size System** – 6 size variants (tiny, small, medium, large, huge, gargantuan)
 - **Character System** – Server-side foundation for PC/NPC management with ownership tracking
 - **HP Tracking** – Real-time hit point management with visual indicators
 - **Voice Chat** – Peer-to-peer voice communication with WebRTC
@@ -140,6 +148,15 @@ To use on your local network:
 - Access at: `http://YOUR_IP:5173`
 - The server automatically listens on all interfaces
 
+### Security Configuration
+
+- Set `HEROBYTE_ROOM_SECRET` in `.env` to override the development fallback room password.
+- Restrict HTTP/WebSocket origins with `HEROBYTE_ALLOWED_ORIGINS` (comma-separated list). Defaults cover local development (`http://localhost:5173`, `http://127.0.0.1:5173`) and the hosted demo (`https://herobyte.pages.dev`). Example:
+
+```bash
+HEROBYTE_ALLOWED_ORIGINS="https://yourdomain.com,https://staging.yourdomain.com"
+```
+
 ### Common Project Scripts
 
 | Command                               | Description                                              |
@@ -148,6 +165,32 @@ To use on your local network:
 | `pnpm dev:server` / `pnpm dev:client` | Start a single target in watch mode                      |
 | `pnpm build`                          | Build both server and client bundles                     |
 | `pnpm test:shared`                    | Execute unit tests for shared domain models              |
+| `pnpm test:e2e`                       | Run Playwright smoke tests (auto-starts dev servers)     |
+
+### Running Tests
+
+```bash
+# Run the full monorepo suite (shared + server + client)
+pnpm test
+
+# Focus on a single package
+pnpm test:shared
+pnpm test:server
+pnpm test:client
+
+# Generate coverage reports for all packages
+pnpm test:coverage
+```
+
+Tests rely on Vitest across packages, so the first run may take a moment while caches warm. The suite can be executed headlessly in CI, and it is safe to interrupt with `Ctrl+C` when running locally—partial results are discarded automatically.
+
+### Troubleshooting
+
+- **Dev server says port 5173 is busy** – Run `./kill-ports.sh` (or `./kill-client-port.bat` on Windows). If the port keeps reappearing, switch the client to use 5174 by exporting `VITE_PORT=5174` before running `pnpm dev:client`.
+- **WebSocket refuses connections** – Confirm the backend is running on `http://localhost:8787`. When tunneling or using a non-default origin, set `VITE_WS_URL` so the client knows the correct WebSocket endpoint.
+- **Voice chat fails in Chrome** – WebRTC requires secure origins; use `https://` (Cloudflare tunnel, `mkcert`, or run against the hosted demo). Self-signed certificates must be trusted locally.
+- **Tests fail with missing state file** – Delete `apps/server/herobyte-state.json` if a previous run left a partial snapshot, then re-run `pnpm test`. The server suite stubs disk access and will regenerate a clean file.
+- **“Room secret not set” warning** – Set `HEROBYTE_ROOM_SECRET` in `.env` to avoid falling back to the insecure development secret when running long-lived sessions.
 
 ## Project Structure
 
@@ -202,6 +245,15 @@ HeroByte/
 ### Tokens & Objects
 
 - **Drag Token**: Move your character
+- **Click Token**: Select token to show transform gizmo
+- **Transform Gizmo**:
+  - Drag corner handles to scale
+  - Drag rotation handle to rotate (45° snap increments)
+  - ESC to deselect
+- **Token Settings**:
+  - Size selector (tiny to gargantuan)
+  - Lock/unlock to prevent transforms
+  - Custom portraits and colors
 - **Double-click Token**: Randomize color
 - **Right-click Token**: Context menu (delete, etc.)
 
@@ -218,14 +270,44 @@ HeroByte/
 
 ## Testing
 
-- ✅ Shared domain models are covered with Vitest (≈99% coverage). Run:
+HeroByte maintains comprehensive test coverage across all layers:
 
-  ```bash
-  pnpm test:shared
-  ```
+### Test Coverage
 
-- Need more detail? Follow the step-by-step guidance in [TESTING_SETUP.md](TESTING_SETUP.md).
-- Upcoming work (see [TODO.md](TODO.md)) tracks integration and e2e coverage goals.
+- ✅ **150/150 tests passing** (100% pass rate)
+- ✅ **Shared package**: 99.57% coverage (31 tests)
+- ✅ **Server package**: 80.99% coverage (119 tests)
+- ✅ **CI/CD**: Automated testing on all PRs via GitHub Actions
+
+### Running Tests
+
+```bash
+# Run all tests
+pnpm test
+
+# Run tests with coverage
+pnpm test:coverage
+
+# Run specific package tests
+pnpm test:shared    # Shared models (99.57% coverage)
+pnpm test:server    # Server logic (80.99% coverage)
+```
+
+### Test Documentation
+
+- [TESTING.md](docs/TESTING.md) - Comprehensive testing guide with Chrome DevTools MCP integration
+- [Phase 14.5 Test Results](docs/test-results/phase-14.5.md) - Latest test results and validation
+- [TESTING_SETUP.md](TESTING_SETUP.md) - Original testing setup guide
+
+### Chrome DevTools MCP Integration
+
+For advanced E2E testing with browser automation, HeroByte supports Chrome DevTools MCP:
+- Performance profiling and benchmarking
+- Visual regression testing
+- Multi-client synchronization validation
+- Automated UI interaction testing
+
+See [docs/TESTING.md](docs/TESTING.md) for setup instructions and example test prompts.
 
 ## Development
 
@@ -263,14 +345,21 @@ ISC
 
 ## Contributing
 
-We welcome pull requests—especially around the CRITICAL items called out in [TODO.md](TODO.md).
+We welcome pull requests—especially around the CRITICAL items called out in [TODO.md](TODO.md). Open issues use P0/P1/P2 labels so you can quickly gauge priority.
+
+### Preferred PR Workflow
 
 1. Fork and branch from `dev` (`feature/<short-name>`).
-2. Run locally (`pnpm dev`) and add tests (`pnpm test:shared`) when touching shared logic.
-3. Update relevant docs (README, DEVELOPMENT, TESTING) if behavior or workflows change.
-4. Submit a PR with a concise summary and checklist of completed TODO items.
+2. Sync dependencies (`pnpm install`) and run the app (`pnpm dev`) to verify your environment.
+3. Make focused commits with clear messages; favor small, reviewable changes.
+4. Add or update tests that cover the new behavior (`pnpm test`, or `pnpm test:<package>` when editing a single package).
+5. Run `pnpm lint` to ensure the codebase stays warning-free.
+6. Update affected docs (README/DEVELOPMENT/TESTING) when workflows or user-facing behavior change.
+7. Open a PR against `dev` using the template, summarizing the change and linking relevant TODO items or issues.
 
-Need more structure? See [DEVELOPMENT.md](DEVELOPMENT.md) for workflow norms and [TESTING_SETUP.md](TESTING_SETUP.md) for expectations before opening a PR.
+Before requesting review, double-check the CI status locally. If you are unsure how to validate something, mention it in the PR description so maintainers know what still needs attention.
+
+See [DEVELOPMENT.md](DEVELOPMENT.md) for day-to-day workflow norms and [TESTING_SETUP.md](TESTING_SETUP.md) for detailed testing expectations.
 
 ---
 

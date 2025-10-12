@@ -42,9 +42,12 @@ export class MapService {
    * Add pointer indicator (supports multiple simultaneous pointers)
    */
   placePointer(state: RoomState, uid: string, x: number, y: number): void {
+    const player = state.players.find((p) => p.uid === uid);
+    const name = player?.name ?? uid.slice(0, 6);
+    const now = Date.now();
     // Add new pointer with unique ID based on timestamp
-    const pointerId = `${uid}-${Date.now()}`;
-    state.pointers.push({ uid, x, y, timestamp: Date.now(), id: pointerId });
+    const pointerId = `${uid}-${now}`;
+    state.pointers.push({ uid, x, y, timestamp: now, id: pointerId, name });
   }
 
   /**

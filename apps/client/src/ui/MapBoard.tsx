@@ -177,6 +177,7 @@ export default function MapBoard({
     measureEnd,
     onStageClick: handlePointerClick,
     onMouseMove: handlePointerMouseMove,
+    pointerPreview,
   } = usePointerTool({
     pointerMode,
     measureMode,
@@ -346,7 +347,7 @@ export default function MapBoard({
    */
   const getCursor = () => {
     if (isPanning) return "grabbing";
-    if (pointerMode) return "crosshair";
+    if (pointerMode) return "none";
     if (measureMode) return "crosshair";
     if (drawMode) return "crosshair";
     if (selectMode) return "default";
@@ -562,6 +563,9 @@ export default function MapBoard({
             pointers={snapshot?.pointers || []}
             players={snapshot?.players || []}
             tokens={snapshot?.tokens || []}
+            preview={pointerPreview}
+            previewUid={uid}
+            pointerMode={pointerMode}
           />
           <MeasureLayer
             cam={cam}

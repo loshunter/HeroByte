@@ -735,6 +735,17 @@ function AuthenticatedApp({
   // DM role detection
   const { isDM, toggleDM } = useDMRole({ snapshot, uid, send: sendMessage });
 
+  useEffect(() => {
+    const handlePointerEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && pointerMode) {
+        setPointerMode(false);
+      }
+    };
+
+    window.addEventListener("keydown", handlePointerEscape);
+    return () => window.removeEventListener("keydown", handlePointerEscape);
+  }, [pointerMode]);
+
   // Keyboard shortcuts (after isDM is declared)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -906,13 +917,13 @@ function AuthenticatedApp({
           drawOpacity={drawOpacity}
           drawFilled={drawFilled}
           onRecolorToken={recolorToken}
-          onTransformObject={transformSceneObject}
-          onDrawingComplete={addToHistory}
-          cameraCommand={cameraCommand}
-          onCameraCommandHandled={() => setCameraCommand(null)}
-          selectedObjectId={selectedObjectId}
-          onSelectObject={setSelectedObjectId}
-        />
+        onTransformObject={transformSceneObject}
+        onDrawingComplete={addToHistory}
+        cameraCommand={cameraCommand}
+        onCameraCommandHandled={() => setCameraCommand(null)}
+        selectedObjectId={selectedObjectId}
+        onSelectObject={setSelectedObjectId}
+      />
       </div>
 
       {/* Entities HUD - Fixed at bottom */}

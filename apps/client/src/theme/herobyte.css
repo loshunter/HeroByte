@@ -222,6 +222,12 @@ button:disabled,
   color: white;
 }
 
+.btn-secondary {
+  background: linear-gradient(180deg, #2f2f73 0%, #1c1d4d 100%);
+  border-color: #676fcb var(--hero-navy-dark) var(--hero-navy-dark) #676fcb;
+  color: var(--hero-text-light);
+}
+
 .btn-success {
   background: linear-gradient(180deg, var(--hero-gold) 0%, var(--hero-gold-light) 100%);
   border-color: var(--hero-gold-light) var(--hero-navy-dark) var(--hero-navy-dark) var(--hero-gold-light);

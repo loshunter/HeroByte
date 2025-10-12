@@ -149,11 +149,11 @@ export class RoomService {
   }
 
   /**
-   * Clean up expired pointers (older than 2 seconds)
+   * Clean up expired pointers (older than 3 seconds)
    */
   cleanupPointers(): void {
     const now = Date.now();
-    this.state.pointers = this.state.pointers.filter((p) => now - p.timestamp < 2000);
+    this.state.pointers = this.state.pointers.filter((p) => now - p.timestamp < 3000);
   }
 
   /**
@@ -377,7 +377,7 @@ export class RoomService {
           scaleY: 1,
           rotation: 0,
         },
-        data: { uid: pointer.uid, pointerId: pointerKey },
+        data: { uid: pointer.uid, pointerId: pointerKey, name: pointer.name },
       });
     }
 

@@ -54,6 +54,7 @@ export interface DrawingSceneData {
 export interface PointerSceneData {
   uid: string;
   pointerId?: string;
+  name: string;
 }
 
 export interface PropSceneData {
@@ -139,6 +140,7 @@ export interface Pointer {
   uid: string; // Player who placed the pointer
   x: number; // Screen/canvas X coordinate
   y: number; // Screen/canvas Y coordinate
+  name: string; // Name of the player when the pointer was placed
   timestamp: number; // When the pointer was placed (for auto-removal)
 }
 

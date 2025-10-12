@@ -28,6 +28,7 @@ export const RollLog: React.FC<RollLogProps> = ({ rolls, onClearLog, onViewRoll 
       minWidth={350}
       maxWidth={500}
       height={600}
+      storageKey="roll-log"
       zIndex={999}
     >
       <JRPGPanel

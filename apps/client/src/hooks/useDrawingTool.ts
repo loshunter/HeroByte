@@ -121,10 +121,7 @@ function eraserIntersectsDrawing(
           eraserPoint.y <= y2 + hitRadius;
 
         const isOnEdge =
-          eraserPoint.x >= x1 &&
-          eraserPoint.x <= x2 &&
-          eraserPoint.y >= y1 &&
-          eraserPoint.y <= y2;
+          eraserPoint.x >= x1 && eraserPoint.x <= x2 && eraserPoint.y >= y1 && eraserPoint.y <= y2;
 
         if (isOnEdge || isInside) return true;
         break;
@@ -134,9 +131,7 @@ function eraserIntersectsDrawing(
         if (points.length < 2) break;
         const center = transformPoint(points[0]);
         const last = transformPoint(points[points.length - 1]);
-        const radius = Math.sqrt(
-          Math.pow(last.x - center.x, 2) + Math.pow(last.y - center.y, 2),
-        );
+        const radius = Math.sqrt(Math.pow(last.x - center.x, 2) + Math.pow(last.y - center.y, 2));
 
         const distToCenter = Math.sqrt(
           Math.pow(eraserPoint.x - center.x, 2) + Math.pow(eraserPoint.y - center.y, 2),

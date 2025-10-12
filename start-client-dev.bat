@@ -1,22 +1,17 @@
 @echo off
-echo Attempting to free port 5173...
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr :5173 ^| findstr LISTENING') do call :killprocess %%a
-if errorlevel 1 goto :end
-timeout /t 2 /nobreak >nul
-echo Starting HeroByte Client (dev branch)...
-wsl -d Ubuntu bash -ic "cd ~/HeroByte && git checkout dev && cd apps/client && pnpm dev"
-pause
-goto :end
+setlocal
 
-:killprocess
-echo Stopping process on port 5173 (PID %1)...
-taskkill /PID %1 >nul 2>&1
-if errorlevel 1 (
-    echo WARNING: Could not stop process %1 - it may require admin privileges
-    echo Please run this script as administrator or close the previous instance manually
-    pause
-    exit /b 1
-)
-exit /b 0
+set PORT=5173
+set PROJECT_PATH=~/HeroByte
+set WSL_DISTRO=Ubuntu
 
-:end
+:: Step 1: ensure Windows isn't holding the port
+call "%~dp0kill-windows-port.bat"
+
+:: Step 2: clean up WSL processes on the same port
+wsl -d %WSL_DISTRO% --cd /home/loshunter/HeroByte -e bash -lc "cd %PROJECT_PATH% && ./kill-ports.sh"
+
+:: Step 3: start client
+wsl -d %WSL_DISTRO% --cd /home/loshunter/HeroByte -e bash -lc "cd %PROJECT_PATH% && git checkout dev && pnpm --filter herobyte-client dev"
+
+endlocal

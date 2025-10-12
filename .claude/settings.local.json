@@ -65,7 +65,14 @@
       "Bash(ss:*)",
       "Bash(PORT=5174 pnpm vite:*)",
       "Bash(chmod:*)",
-      "Bash(fuser:*)"
+      "Bash(fuser:*)",
+      "Bash(pnpm --filter @shared build)",
+      "Bash(pnpm --filter herobyte-server lint)",
+      "Bash(PORT=3000 node dist/index.js)",
+      "Bash(PORT=5174 pnpm dev:*)",
+      "Bash(xargs ps:*)",
+      "Read(//tmp/**)",
+      "Bash(pnpm --filter vtt-server test validation)"
     ],
     "deny": [],
     "ask": []

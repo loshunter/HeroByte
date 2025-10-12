@@ -13,6 +13,7 @@ interface HeaderProps {
   pointerMode: boolean;
   measureMode: boolean;
   drawMode: boolean;
+  transformMode?: boolean;
   selectMode?: boolean;
   crtFilter: boolean;
   diceRollerOpen: boolean;
@@ -21,6 +22,7 @@ interface HeaderProps {
   onPointerModeChange: (mode: boolean) => void;
   onMeasureModeChange: (mode: boolean) => void;
   onDrawModeChange: (mode: boolean) => void;
+  onTransformModeChange?: (mode: boolean) => void;
   onSelectModeChange?: (mode: boolean) => void;
   onCrtFilterChange: (enabled: boolean) => void;
   onDiceRollerToggle: (open: boolean) => void;
@@ -39,6 +41,7 @@ export const Header: React.FC<HeaderProps> = ({
   pointerMode,
   measureMode,
   drawMode,
+  transformMode,
   selectMode,
   crtFilter,
   diceRollerOpen,
@@ -47,6 +50,7 @@ export const Header: React.FC<HeaderProps> = ({
   onPointerModeChange,
   onMeasureModeChange,
   onDrawModeChange,
+  onTransformModeChange,
   onSelectModeChange,
   onCrtFilterChange,
   onDiceRollerToggle,
@@ -159,6 +163,7 @@ export const Header: React.FC<HeaderProps> = ({
                   if (!drawMode) {
                     onPointerModeChange(false);
                     onMeasureModeChange(false);
+                    onTransformModeChange?.(false);
                     onSelectModeChange?.(false);
                   }
                 }}
@@ -166,6 +171,24 @@ export const Header: React.FC<HeaderProps> = ({
                 style={{ fontSize: "8px", padding: "6px 12px" }}
               >
                 ✏️ Draw
+              </JRPGButton>
+
+              {/* Transform Mode */}
+              <JRPGButton
+                onClick={() => {
+                  onTransformModeChange?.(!transformMode);
+                  if (!transformMode) {
+                    onPointerModeChange(false);
+                    onMeasureModeChange(false);
+                    onDrawModeChange(false);
+                    onSelectModeChange?.(false);
+                  }
+                }}
+                variant={transformMode ? "primary" : "default"}
+                style={{ fontSize: "8px", padding: "6px 12px" }}
+                title="Scale and rotate objects"
+              >
+                🔄 Transform
               </JRPGButton>
 
               {/* Select Mode */}
@@ -176,6 +199,7 @@ export const Header: React.FC<HeaderProps> = ({
                     onPointerModeChange(false);
                     onMeasureModeChange(false);
                     onDrawModeChange(false);
+                    onTransformModeChange?.(false);
                   }
                 }}
                 variant={selectMode ? "primary" : "default"}

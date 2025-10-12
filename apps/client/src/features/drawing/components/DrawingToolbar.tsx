@@ -4,7 +4,6 @@
 // Draggable toolbar when draw mode is active
 // Provides controls for drawing tool selection, colors, brush size, opacity, etc.
 
-import React from "react";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 
@@ -66,6 +65,7 @@ export function DrawingToolbar({
       width={250}
       minWidth={220}
       maxWidth={280}
+      storageKey="drawing-toolbar"
       zIndex={200}
     >
       <JRPGPanel variant="bevel" style={{ padding: "8px" }}>

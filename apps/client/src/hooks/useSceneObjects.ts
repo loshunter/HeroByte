@@ -84,7 +84,7 @@ function buildLegacySceneObjects(snapshot: RoomSnapshot): SceneObject[] {
         scaleY: 1,
         rotation: 0,
       },
-      data: { uid: pointer.uid, pointerId: pointerKey },
+      data: { uid: pointer.uid, pointerId: pointerKey, name: pointer.name },
     });
   }
 

@@ -45,6 +45,7 @@ describe("MessageRouter", () => {
       pointers: [],
       drawings: [],
       gridSize: 50,
+      gridSquareSize: 5,
       diceRolls: [],
       drawingRedoStacks: {},
       sceneObjects: [],

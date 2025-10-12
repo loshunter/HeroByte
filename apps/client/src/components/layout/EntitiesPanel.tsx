@@ -41,6 +41,7 @@ interface EntitiesPanelProps {
   ) => void;
   onNpcDelete: (id: string) => void;
   onNpcPlaceToken: (id: string) => void;
+  onPlayerTokenDelete: (tokenId: string) => void;
   onToggleTokenLock: (sceneObjectId: string, locked: boolean) => void;
   onTokenSizeChange: (tokenId: string, size: TokenSize) => void;
   bottomPanelRef?: React.RefObject<HTMLDivElement>;
@@ -53,6 +54,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   players,
   characters,
   tokens,
+  onPlayerTokenDelete,
   sceneObjects,
   uid,
   micEnabled,
@@ -229,9 +231,12 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                             ? (locked: boolean) => onToggleTokenLock(`token:${token.id}`, locked)
                             : undefined
                         }
+                        onDeleteToken={currentIsDM ? onPlayerTokenDelete : undefined}
                         tokenSize={token?.size}
                         onTokenSizeChange={
-                          isMe && token ? (size: TokenSize) => onTokenSizeChange(token.id, size) : undefined
+                          isMe && token
+                            ? (size: TokenSize) => onTokenSizeChange(token.id, size)
+                            : undefined
                         }
                       />
                     </div>
@@ -251,8 +256,9 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                       onPlaceToken={onNpcPlaceToken}
                       tokenLocked={
                         entity.character.tokenId
-                          ? sceneObjects.find((obj) => obj.id === `token:${entity.character.tokenId}`)
-                              ?.locked
+                          ? sceneObjects.find(
+                              (obj) => obj.id === `token:${entity.character.tokenId}`,
+                            )?.locked
                           : undefined
                       }
                       onToggleTokenLock={
@@ -263,9 +269,11 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                       }
                       tokenSize={
                         entity.character.tokenId
-                          ? (sceneObjects.find((obj) => obj.id === `token:${entity.character.tokenId}`) as
-                              | (SceneObject & { type: "token" })
-                              | undefined)?.data.size
+                          ? (
+                              sceneObjects.find(
+                                (obj) => obj.id === `token:${entity.character.tokenId}`,
+                              ) as (SceneObject & { type: "token" }) | undefined
+                            )?.data.size
                           : undefined
                       }
                       onTokenSizeChange={

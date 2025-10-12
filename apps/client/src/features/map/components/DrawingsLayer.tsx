@@ -25,6 +25,9 @@ interface DrawingsLayerProps {
   selectedDrawingId: string | null;
   onSelectDrawing: (drawingId: string | null) => void;
   onTransformDrawing: (sceneId: string, transform: { position?: { x: number; y: number } }) => void;
+  selectedObjectId?: string | null;
+  onSelectObject?: (objectId: string | null) => void;
+  onDrawingNodeReady?: (drawingId: string, node: Konva.Node | null) => void;
 }
 
 type TransformOverride = Partial<SceneObject["transform"]>;
@@ -43,6 +46,9 @@ export const DrawingsLayer = memo(function DrawingsLayer({
   selectedDrawingId,
   onSelectDrawing,
   onTransformDrawing,
+  selectedObjectId,
+  onSelectObject,
+  onDrawingNodeReady,
 }: DrawingsLayerProps) {
   const localOverrides = useRef<Record<string, TransformOverride>>({});
   const [, forceRerender] = useState(0);
@@ -123,7 +129,9 @@ export const DrawingsLayer = memo(function DrawingsLayer({
     }
 
     const transform = appliedObject.transform;
-    const isSelected = selectedDrawingId === drawing.id;
+    // Use unified selectedObjectId if available, otherwise fall back to selectedDrawingId
+    const isSelected =
+      (selectedObjectId && selectedObjectId === sceneObject.id) || selectedDrawingId === drawing.id;
     const isOwner = drawing.owner === uid;
     const canInteract = selectMode && isOwner;
     const isDragging = draggingId === sceneObject.id;
@@ -132,11 +140,21 @@ export const DrawingsLayer = memo(function DrawingsLayer({
       ? {
           onClick: (event: KonvaEventObject<MouseEvent>) => {
             event.cancelBubble = true;
-            onSelectDrawing(drawing.id);
+            // Use unified onSelectObject if available, otherwise fall back
+            if (onSelectObject) {
+              onSelectObject(sceneObject.id);
+            } else {
+              onSelectDrawing(drawing.id);
+            }
           },
           onTap: (event: KonvaEventObject<Event>) => {
             event.cancelBubble = true;
-            onSelectDrawing(drawing.id);
+            // Use unified onSelectObject if available, otherwise fall back
+            if (onSelectObject) {
+              onSelectObject(sceneObject.id);
+            } else {
+              onSelectDrawing(drawing.id);
+            }
           },
         }
       : {};
@@ -165,6 +183,9 @@ export const DrawingsLayer = memo(function DrawingsLayer({
             rotation={transform.rotation}
             draggable={canInteract && isSelected}
             {...groupHandlers}
+            ref={
+              onDrawingNodeReady ? (node) => onDrawingNodeReady(sceneObject.id, node) : undefined
+            }
           >
             {canInteract && (
               <Line
@@ -213,6 +234,9 @@ export const DrawingsLayer = memo(function DrawingsLayer({
             rotation={transform.rotation}
             draggable={canInteract && isSelected}
             {...groupHandlers}
+            ref={
+              onDrawingNodeReady ? (node) => onDrawingNodeReady(sceneObject.id, node) : undefined
+            }
           >
             {canInteract && (
               <Line
@@ -262,6 +286,9 @@ export const DrawingsLayer = memo(function DrawingsLayer({
             rotation={transform.rotation}
             draggable={canInteract && isSelected}
             {...groupHandlers}
+            ref={
+              onDrawingNodeReady ? (node) => onDrawingNodeReady(sceneObject.id, node) : undefined
+            }
           >
             <Rect
               x={x1}
@@ -307,6 +334,9 @@ export const DrawingsLayer = memo(function DrawingsLayer({
             rotation={transform.rotation}
             draggable={canInteract && isSelected}
             {...groupHandlers}
+            ref={
+              onDrawingNodeReady ? (node) => onDrawingNodeReady(sceneObject.id, node) : undefined
+            }
           >
             <Circle
               x={cx}

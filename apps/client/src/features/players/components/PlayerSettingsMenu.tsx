@@ -4,11 +4,14 @@
 // Collapsible panel containing token image controls and state save/load actions
 
 import { useRef } from "react";
+import { createPortal } from "react-dom";
 
 import type { TokenSize } from "@shared";
+import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 
 interface PlayerSettingsMenuProps {
   isOpen: boolean;
+  onClose: () => void;
   tokenImageInput: string;
   tokenImageUrl?: string;
   onTokenImageInputChange: (value: string) => void;
@@ -20,6 +23,7 @@ interface PlayerSettingsMenuProps {
   onStatusChange: (icon: { emoji: string; label: string } | null) => void;
   isDM: boolean;
   onToggleDMMode: (next: boolean) => void;
+  onDeleteToken?: () => void;
   tokenLocked?: boolean;
   onToggleTokenLock?: (locked: boolean) => void;
   tokenSize?: TokenSize;
@@ -28,6 +32,7 @@ interface PlayerSettingsMenuProps {
 
 export function PlayerSettingsMenu({
   isOpen,
+  onClose,
   tokenImageInput,
   tokenImageUrl,
   onTokenImageInputChange,
@@ -39,6 +44,7 @@ export function PlayerSettingsMenu({
   onStatusChange,
   isDM,
   onToggleDMMode,
+  onDeleteToken,
   tokenLocked,
   onToggleTokenLock,
   tokenSize = "medium",
@@ -57,28 +63,27 @@ export function PlayerSettingsMenu({
     { emoji: "❄️", label: "Frozen" },
   ];
 
-  return (
-    <div
-      style={{
-        position: "absolute",
-        top: "100%",
-        right: 0,
-        marginTop: "6px",
-        zIndex: 30,
-        width: "220px",
-      }}
+  return createPortal(
+    <DraggableWindow
+      title="Player Settings"
+      onClose={onClose}
+      initialX={300}
+      initialY={100}
+      width={280}
+      minWidth={280}
+      maxWidth={350}
+      storageKey="player-settings-menu"
+      zIndex={1001}
     >
       <div
-        className="jrpg-panel jrpg-panel-simple"
+        className="jrpg-frame-simple"
         style={{
-          padding: "10px",
-          background: "rgba(12, 19, 38, 0.95)",
-          border: "1px solid var(--jrpg-border-gold)",
-          boxShadow: "0 12px 24px rgba(5, 8, 15, 0.45)",
-          borderRadius: "8px",
+          padding: "12px",
           display: "flex",
           flexDirection: "column",
-          gap: "8px",
+          gap: "10px",
+          background: "rgba(12, 16, 40, 0.9)",
+          borderRadius: "10px",
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -86,6 +91,7 @@ export function PlayerSettingsMenu({
             Token Image URL
           </label>
           <input
+            className="jrpg-input"
             type="text"
             value={tokenImageInput}
             placeholder="https://example.com/token.png"
@@ -95,14 +101,6 @@ export function PlayerSettingsMenu({
               if (event.key === "Enter") {
                 onTokenImageApply(tokenImageInput.trim());
               }
-            }}
-            style={{
-              width: "100%",
-              background: "#111",
-              color: "var(--jrpg-white)",
-              border: "1px solid var(--jrpg-border-gold)",
-              padding: "4px",
-              fontSize: "0.7rem",
             }}
           />
           <div style={{ display: "flex", gap: "6px", justifyContent: "space-between" }}>
@@ -140,7 +138,7 @@ export function PlayerSettingsMenu({
           ) : null}
         </div>
 
-        <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "4px 0" }} />
+        <div style={{ borderTop: "1px solid rgba(226, 183, 92, 0.25)", margin: "4px 0" }} />
 
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
@@ -181,7 +179,7 @@ export function PlayerSettingsMenu({
           />
         </div>
 
-        <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "4px 0" }} />
+        <div style={{ borderTop: "1px solid rgba(226, 183, 92, 0.25)", margin: "4px 0" }} />
 
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
@@ -196,7 +194,7 @@ export function PlayerSettingsMenu({
           </button>
         </div>
 
-        <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "4px 0" }} />
+        <div style={{ borderTop: "1px solid rgba(226, 183, 92, 0.25)", margin: "4px 0" }} />
 
         {onTokenSizeChange && (
           <>
@@ -230,7 +228,7 @@ export function PlayerSettingsMenu({
                 )}
               </div>
             </div>
-            <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "4px 0" }} />
+            <div style={{ borderTop: "1px solid rgba(226, 183, 92, 0.25)", margin: "4px 0" }} />
           </>
         )}
 
@@ -249,7 +247,7 @@ export function PlayerSettingsMenu({
                 {tokenLocked ? "🔒 Locked" : "🔓 Unlocked"}
               </button>
             </div>
-            <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "4px 0" }} />
+            <div style={{ borderTop: "1px solid rgba(226, 183, 92, 0.25)", margin: "4px 0" }} />
           </>
         )}
 
@@ -278,7 +276,26 @@ export function PlayerSettingsMenu({
             })}
           </div>
         </div>
+
+        {/* DM-only: Delete Token button */}
+        {isDM && onDeleteToken && (
+          <>
+            <div style={{ borderTop: "1px solid rgba(226, 183, 92, 0.25)", margin: "4px 0" }} />
+            <button
+              className="btn btn-danger"
+              style={{ fontSize: "0.65rem" }}
+              onClick={() => {
+                if (confirm("Delete this player's token? This cannot be undone.")) {
+                  onDeleteToken();
+                }
+              }}
+            >
+              🗑️ Delete Token (DM)
+            </button>
+          </>
+        )}
       </div>
-    </div>
+    </DraggableWindow>,
+    document.body,
   );
 }

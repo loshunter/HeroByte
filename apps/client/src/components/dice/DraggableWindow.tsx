@@ -15,6 +15,7 @@ interface DraggableWindowProps {
   maxWidth?: number;
   height?: number;
   zIndex?: number;
+  storageKey?: string; // Optional key for localStorage persistence
 }
 
 export const DraggableWindow: React.FC<DraggableWindowProps> = ({
@@ -28,8 +29,34 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   maxWidth = 800,
   height,
   zIndex = 1000,
+  storageKey,
 }) => {
-  const [position, setPosition] = useState({ x: initialX, y: initialY });
+  // Load position from localStorage if storageKey is provided
+  const getInitialPosition = () => {
+    if (storageKey) {
+      try {
+        const saved = localStorage.getItem(`herobyte-window-position-${storageKey}`);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          // Validate the saved position
+          if (typeof parsed.x === "number" && typeof parsed.y === "number") {
+            // Ensure position is within viewport bounds
+            const maxX = window.innerWidth - 200; // Leave at least 200px visible
+            const maxY = window.innerHeight - 100; // Leave at least 100px visible
+            return {
+              x: Math.max(0, Math.min(parsed.x, maxX)),
+              y: Math.max(0, Math.min(parsed.y, maxY)),
+            };
+          }
+        }
+      } catch (error) {
+        console.warn("Failed to load window position from localStorage:", error);
+      }
+    }
+    return { x: initialX, y: initialY };
+  };
+
+  const [position, setPosition] = useState(getInitialPosition);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const windowRef = useRef<HTMLDivElement>(null);
@@ -55,15 +82,25 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (isDragging) {
-        setPosition({
+        const newPosition = {
           x: e.clientX - dragOffset.x,
           y: e.clientY - dragOffset.y,
-        });
+        };
+        setPosition(newPosition);
       }
     };
 
     const handleMouseUp = () => {
       setIsDragging(false);
+
+      // Save position to localStorage when dragging ends
+      if (storageKey) {
+        try {
+          localStorage.setItem(`herobyte-window-position-${storageKey}`, JSON.stringify(position));
+        } catch (error) {
+          console.warn("Failed to save window position to localStorage:", error);
+        }
+      }
     };
 
     if (isDragging) {
@@ -75,7 +112,38 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isDragging, dragOffset]);
+  }, [isDragging, dragOffset, position, storageKey]);
+
+  // Handle window resize - ensure window stays visible
+  useEffect(() => {
+    const handleResize = () => {
+      const maxX = window.innerWidth - 200;
+      const maxY = window.innerHeight - 100;
+
+      if (position.x > maxX || position.y > maxY) {
+        const newPosition = {
+          x: Math.max(0, Math.min(position.x, maxX)),
+          y: Math.max(0, Math.min(position.y, maxY)),
+        };
+        setPosition(newPosition);
+
+        // Save adjusted position
+        if (storageKey) {
+          try {
+            localStorage.setItem(
+              `herobyte-window-position-${storageKey}`,
+              JSON.stringify(newPosition),
+            );
+          } catch (error) {
+            console.warn("Failed to save adjusted window position:", error);
+          }
+        }
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [position, storageKey]);
 
   return (
     <div

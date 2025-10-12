@@ -9,6 +9,7 @@ import { WebSocketServer } from "ws";
 import { createRoutes } from "./http/routes.js";
 import { Container } from "./container.js";
 import { ConnectionHandler } from "./ws/connectionHandler.js";
+import { isOriginAllowed } from "./config/security.js";
 
 // ----------------------------------------------------------------------------
 // CONFIGURATION
@@ -40,8 +41,18 @@ function bootstrap() {
     res.end(body);
   });
 
-  // Create WebSocket server
-  const wss = new WebSocketServer({ server });
+  // Create WebSocket server with origin validation
+  const wss = new WebSocketServer({
+    server,
+    verifyClient: (info, done) => {
+      if (!isOriginAllowed(info.origin)) {
+        console.warn(`Rejected WebSocket connection from disallowed origin: ${info.origin}`);
+        done(false, 403, "Forbidden");
+        return;
+      }
+      done(true);
+    },
+  });
 
   // Initialize dependency container
   const container = new Container(wss);
