@@ -1,0 +1,17 @@
+CodCov failure summary (Oct 11)
+--------------------------------
+
+- Latest `dev` workflow failed at the Codecov step because aggregate coverage dropped beneath Codecov's default threshold.
+- Coverage files uploaded by CI:
+    • `packages/shared/coverage/coverage-final.json`  → 99% statements  
+    • `apps/server/coverage/coverage-final.json`      → ~80% statements  
+    • `apps/client/coverage/coverage-final.json`      → ~13% statements (dominates total LOC)
+- Because the client bundle contains the majority of executable lines, the overall weighted coverage reported by Codecov is currently ~28%.
+
+Next steps
+----------
+1. Grow client-side coverage (focus: DM menu alignment wizard, `mapAlignment.ts`, `TransformGizmo`, pointer/measure hooks).
+2. Keep running `pnpm test:coverage` locally to ensure all three coverage reports are emitted and healthy.
+3. Once coverage improves (or if we intentionally tweak Codecov settings), push again—README badges will update on the next green run.
+
+(Logged by Codex on Oct 11, 2025.)

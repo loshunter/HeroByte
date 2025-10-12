@@ -252,6 +252,11 @@ export default function MapBoard({
 
   // Token interaction
   const [hoveredTokenId, setHoveredTokenId] = useState<string | null>(null);
+  useEffect(() => {
+    if (drawMode) {
+      setHoveredTokenId(null);
+    }
+  }, [drawMode]);
 
   // Grid configuration
   const [grid, setGrid] = useState({
@@ -404,6 +409,8 @@ export default function MapBoard({
     if (selectMode) return "default";
     return "grab";
   };
+
+  const tokenInteractionsEnabled = !drawMode;
 
   const handleTransformToken = useCallback(
     (sceneId: string, position: { x: number; y: number }) => {
@@ -629,6 +636,7 @@ export default function MapBoard({
             selectedObjectId={selectedObjectId}
             onSelectObject={onSelectObject}
             onTokenNodeReady={handleTokenNodeReady}
+            interactionsEnabled={tokenInteractionsEnabled}
           />
         </Layer>
 

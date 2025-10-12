@@ -17,6 +17,7 @@ interface TokenSpriteProps {
   gridSize: number;
   stroke: string;
   strokeWidth: number;
+  interactive: boolean;
   draggable?: boolean;
   onDragEnd?: (event: KonvaEventObject<DragEvent>) => void;
   onDragStart?: (event: KonvaEventObject<DragEvent>) => void;
@@ -32,6 +33,7 @@ const TokenSprite = memo(function TokenSprite({
   stroke,
   strokeWidth,
   draggable = false,
+  interactive,
   onDragEnd,
   onDragStart,
   onHover,
@@ -72,6 +74,7 @@ const TokenSprite = memo(function TokenSprite({
     onDragStart,
     onMouseEnter: () => onHover(id),
     onMouseLeave: () => onHover(null),
+    listening: interactive,
     onDblClick: onDoubleClick,
     onClick: onClick,
     ref: (node: Konva.Node | null) => {
@@ -101,6 +104,7 @@ interface TokensLayerProps {
   selectedObjectId?: string | null;
   onSelectObject?: (objectId: string | null) => void;
   onTokenNodeReady?: (tokenId: string, node: Konva.Node | null) => void;
+  interactionsEnabled?: boolean;
 }
 
 export const TokensLayer = memo(function TokensLayer({
@@ -116,6 +120,7 @@ export const TokensLayer = memo(function TokensLayer({
   selectedObjectId,
   onSelectObject,
   onTokenNodeReady,
+  interactionsEnabled = true,
 }: TokensLayerProps) {
   const localOverrides = useRef<Record<string, { x: number; y: number }>>({});
   const [, forceRerender] = useState(0);
@@ -222,6 +227,7 @@ export const TokensLayer = memo(function TokensLayer({
                 isSelected ? "#447DF7" : hoveredTokenId === object.id ? "#aaa" : "transparent"
               }
               strokeWidth={isSelected ? 3 / cam.scale : 2 / cam.scale}
+              interactive={interactionsEnabled}
               onHover={onHover}
               onClick={() => {
                 if (onSelectObject) {
@@ -252,7 +258,8 @@ export const TokensLayer = memo(function TokensLayer({
               gridSize={gridSize}
               stroke={isSelected ? "#447DF7" : draggingId === object.id ? "#44f" : "#fff"}
               strokeWidth={isSelected ? 3 / cam.scale : 2 / cam.scale}
-              draggable={!object.locked}
+              draggable={!object.locked && interactionsEnabled}
+              interactive={interactionsEnabled}
               onDragStart={() => handleDragStart(object.id)}
               onDragEnd={(event) => handleDrag(object.id, event)}
               onHover={onHover}

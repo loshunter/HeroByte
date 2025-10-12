@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 
 import type { TokenSize } from "@shared";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
+import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 
 interface PlayerSettingsMenuProps {
   isOpen: boolean;
@@ -65,7 +66,7 @@ export function PlayerSettingsMenu({
 
   return createPortal(
     <DraggableWindow
-      title="Player Settings"
+      title="🎮 Player Settings"
       onClose={onClose}
       initialX={300}
       initialY={100}
@@ -75,18 +76,25 @@ export function PlayerSettingsMenu({
       storageKey="player-settings-menu"
       zIndex={1001}
     >
-      <div
-        className="jrpg-frame-simple"
+      <JRPGPanel
+        variant="bevel"
         style={{
-          padding: "12px",
           display: "flex",
           flexDirection: "column",
-          gap: "10px",
-          background: "rgba(12, 16, 40, 0.9)",
-          borderRadius: "10px",
+          gap: "12px",
+          padding: "12px",
+          background: "rgba(12, 18, 40, 0.95)",
         }}
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+        <JRPGPanel
+          variant="simple"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+            padding: "12px",
+          }}
+        >
           <label className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
             Token Image URL
           </label>
@@ -103,61 +111,53 @@ export function PlayerSettingsMenu({
               }
             }}
           />
-          <div style={{ display: "flex", gap: "6px", justifyContent: "space-between" }}>
-            <button
-              className="btn btn-primary"
-              style={{ flex: 1, fontSize: "0.65rem", padding: "4px 6px" }}
+          <div style={{ display: "flex", gap: "8px" }}>
+            <JRPGButton
               onClick={() => onTokenImageApply(tokenImageInput.trim())}
+              variant="primary"
+              style={{ flex: 1, fontSize: "10px", padding: "6px 8px" }}
             >
               Apply
-            </button>
-            <button
-              className="btn btn-secondary"
-              style={{ flex: 1, fontSize: "0.65rem", padding: "4px 6px" }}
+            </JRPGButton>
+            <JRPGButton
               onClick={onTokenImageClear}
+              style={{ flex: 1, fontSize: "10px", padding: "6px 8px" }}
             >
               Clear
-            </button>
+            </JRPGButton>
           </div>
           {tokenImageUrl ? (
             <img
               src={tokenImageUrl}
               alt="Token preview"
               style={{
-                width: "56px",
-                height: "56px",
-                margin: "6px auto 0",
+                width: "60px",
+                height: "60px",
+                margin: "4px auto 0",
                 objectFit: "cover",
                 borderRadius: "6px",
-                border: "1px solid var(--jrpg-border-gold)",
+                border: "2px solid var(--jrpg-border-gold)",
               }}
               onError={(event) => {
                 (event.currentTarget as HTMLImageElement).style.display = "none";
               }}
             />
           ) : null}
-        </div>
+        </JRPGPanel>
 
-        <div style={{ borderTop: "1px solid rgba(226, 183, 92, 0.25)", margin: "4px 0" }} />
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        <JRPGPanel
+          variant="simple"
+          style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
+        >
           <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
             Player State
           </span>
-          <button
-            className="btn btn-primary"
-            style={{ fontSize: "0.65rem" }}
-            onClick={onSavePlayerState}
-          >
+          <JRPGButton onClick={onSavePlayerState} variant="primary" style={{ fontSize: "10px" }}>
             Save to File
-          </button>
-          <button
-            className="btn btn-secondary"
-            style={{ fontSize: "0.65rem" }}
-            onClick={() => fileInputRef.current?.click()}
-          >
+          </JRPGButton>
+          <JRPGButton onClick={() => fileInputRef.current?.click()} style={{ fontSize: "10px" }}>
             Load from File
-          </button>
+          </JRPGButton>
           <input
             ref={fileInputRef}
             type="file"
@@ -177,85 +177,88 @@ export function PlayerSettingsMenu({
               }
             }}
           />
-        </div>
+        </JRPGPanel>
 
-        <div style={{ borderTop: "1px solid rgba(226, 183, 92, 0.25)", margin: "4px 0" }} />
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        <JRPGPanel
+          variant="simple"
+          style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
+        >
           <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
             Dungeon Master Mode
           </span>
-          <button
-            className={isDM ? "btn btn-primary" : "btn btn-secondary"}
-            style={{ fontSize: "0.65rem" }}
+          <JRPGButton
             onClick={() => onToggleDMMode(!isDM)}
+            variant={isDM ? "success" : "default"}
+            style={{ fontSize: "10px" }}
           >
             {isDM ? "DM Mode: ON" : "DM Mode: OFF"}
-          </button>
-        </div>
-
-        <div style={{ borderTop: "1px solid rgba(226, 183, 92, 0.25)", margin: "4px 0" }} />
+          </JRPGButton>
+        </JRPGPanel>
 
         {onTokenSizeChange && (
-          <>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-                Token Size
-              </span>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4px" }}>
-                {(["tiny", "small", "medium", "large", "huge", "gargantuan"] as TokenSize[]).map(
-                  (size) => {
-                    const sizeLabels: Record<TokenSize, string> = {
-                      tiny: "Tiny",
-                      small: "Small",
-                      medium: "Med",
-                      large: "Large",
-                      huge: "Huge",
-                      gargantuan: "Garg",
-                    };
-                    return (
-                      <button
-                        key={size}
-                        className={tokenSize === size ? "btn btn-primary" : "btn btn-secondary"}
-                        style={{ fontSize: "0.6rem", padding: "4px 2px" }}
-                        onClick={() => onTokenSizeChange(size)}
-                        title={size.charAt(0).toUpperCase() + size.slice(1)}
-                      >
-                        {sizeLabels[size]}
-                      </button>
-                    );
-                  },
-                )}
-              </div>
+          <JRPGPanel
+            variant="simple"
+            style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
+          >
+            <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
+              Token Size
+            </span>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "6px" }}>
+              {(["tiny", "small", "medium", "large", "huge", "gargantuan"] as TokenSize[]).map(
+                (size) => {
+                  const sizeLabels: Record<TokenSize, string> = {
+                    tiny: "Tiny",
+                    small: "Small",
+                    medium: "Med",
+                    large: "Large",
+                    huge: "Huge",
+                    gargantuan: "Garg",
+                  };
+                  const active = tokenSize === size;
+                  return (
+                    <JRPGButton
+                      key={size}
+                      onClick={() => onTokenSizeChange(size)}
+                      variant={active ? "primary" : "default"}
+                      style={{ fontSize: "10px", padding: "6px 4px" }}
+                      title={size.charAt(0).toUpperCase() + size.slice(1)}
+                    >
+                      {sizeLabels[size]}
+                    </JRPGButton>
+                  );
+                },
+              )}
             </div>
-            <div style={{ borderTop: "1px solid rgba(226, 183, 92, 0.25)", margin: "4px 0" }} />
-          </>
+          </JRPGPanel>
         )}
 
         {onToggleTokenLock && (
-          <>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-                Token Lock
-              </span>
-              <button
-                className={tokenLocked ? "btn btn-primary" : "btn btn-secondary"}
-                style={{ fontSize: "0.65rem" }}
-                onClick={() => onToggleTokenLock(!tokenLocked)}
-                title={tokenLocked ? "Token is locked (DM only)" : "Token is unlocked"}
-              >
-                {tokenLocked ? "🔒 Locked" : "🔓 Unlocked"}
-              </button>
-            </div>
-            <div style={{ borderTop: "1px solid rgba(226, 183, 92, 0.25)", margin: "4px 0" }} />
-          </>
+          <JRPGPanel
+            variant="simple"
+            style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
+          >
+            <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
+              Token Lock
+            </span>
+            <JRPGButton
+              onClick={() => onToggleTokenLock(!tokenLocked)}
+              variant={tokenLocked ? "primary" : "default"}
+              style={{ fontSize: "10px" }}
+              title={tokenLocked ? "Token is locked (DM only)" : "Token is unlocked"}
+            >
+              {tokenLocked ? "🔒 Locked" : "🔓 Unlocked"}
+            </JRPGButton>
+          </JRPGPanel>
         )}
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        <JRPGPanel
+          variant="simple"
+          style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
+        >
           <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
             Status Effect
           </span>
-          <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
             {statusOptions.map((icon) => {
               const isNone = icon.label === "None";
               const active = statusIcon?.label === icon.label || (!statusIcon && isNone);
@@ -264,37 +267,35 @@ export function PlayerSettingsMenu({
                 onStatusChange(nextStatus);
               };
               return (
-                <button
+                <JRPGButton
                   key={icon.label}
-                  className={active ? "btn btn-primary" : "btn btn-secondary"}
-                  style={{ fontSize: "0.6rem", padding: "4px 6px" }}
                   onClick={handleStatusClick}
+                  variant={active ? "primary" : "default"}
+                  style={{ fontSize: "10px", padding: "6px 8px" }}
                 >
                   {icon.emoji ? `${icon.emoji} ${icon.label}` : icon.label}
-                </button>
+                </JRPGButton>
               );
             })}
           </div>
-        </div>
+        </JRPGPanel>
 
-        {/* DM-only: Delete Token button */}
         {isDM && onDeleteToken && (
-          <>
-            <div style={{ borderTop: "1px solid rgba(226, 183, 92, 0.25)", margin: "4px 0" }} />
-            <button
-              className="btn btn-danger"
-              style={{ fontSize: "0.65rem" }}
+          <JRPGPanel variant="simple" style={{ padding: "12px" }}>
+            <JRPGButton
               onClick={() => {
                 if (confirm("Delete this player's token? This cannot be undone.")) {
                   onDeleteToken();
                 }
               }}
+              variant="danger"
+              style={{ width: "100%", fontSize: "10px" }}
             >
               🗑️ Delete Token (DM)
-            </button>
-          </>
+            </JRPGButton>
+          </JRPGPanel>
         )}
-      </div>
+      </JRPGPanel>
     </DraggableWindow>,
     document.body,
   );

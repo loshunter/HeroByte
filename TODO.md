@@ -57,6 +57,15 @@ _Completed phase summaries now live in [DONE.md](DONE.md)._
 
 **Priority**: High - Critical UX improvements for drawing and object manipulation
 
+### Tool UX Polish (Now)
+
+- [x] Global `Esc` shortcut closes whichever tool is active (pointer, measure, draw, select, transform) for quick exits
+- [x] Keep only one drawing mode active; disable token interactions during drawing to avoid accidental moves/marks
+- [x] Drawing toolbar remembers last tool, exposes close button, and header toggle renamed to "Draw Tools"
+- [x] Add consistent close buttons to Drawing Tools and Roll Log panels
+- [x] Restyle Player Settings window with JRPG buttons/panels to match DM tools
+- [x] Update README badges so CI/coverage indicators stay green and non-breaking
+
 ### Selection State Management
 
 - [ ] **Message Protocol**

@@ -134,13 +134,13 @@ export const Header: React.FC<HeaderProps> = ({
                 📏 Measure
               </JRPGButton>
 
-              {/* Draw Mode */}
+              {/* Drawing Toolbar Toggle */}
               <JRPGButton
                 onClick={() => onToolSelect(drawMode ? null : "draw")}
                 variant={drawMode ? "primary" : "default"}
                 style={{ fontSize: "8px", padding: "6px 12px" }}
               >
-                ✏️ Draw
+                ✏️ Draw Tools
               </JRPGButton>
 
               {/* Transform Mode */}

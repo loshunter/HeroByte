@@ -800,7 +800,7 @@ function AuthenticatedApp({
   const { isDM, toggleDM } = useDMRole({ snapshot, uid, send: sendMessage });
 
   useEffect(() => {
-    if (activeTool !== "pointer" && activeTool !== "measure" && activeTool !== "align") {
+    if (!activeTool) {
       return;
     }
 
@@ -977,6 +977,7 @@ function AuthenticatedApp({
             sendMessage({ t: "redo-drawing" });
           }}
           onClearAll={handleClearDrawings}
+          onClose={() => setActiveTool(null)}
         />
       )}
 
@@ -1245,6 +1246,7 @@ function AuthenticatedApp({
             rolls={rollHistory}
             onClearLog={() => sendMessage({ t: "clear-roll-history" })}
             onViewRoll={(roll) => setViewingRoll(roll)}
+            onClose={() => setRollLogOpen(false)}
           />
         </div>
       )}

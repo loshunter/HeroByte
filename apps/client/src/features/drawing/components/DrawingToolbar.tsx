@@ -13,6 +13,7 @@ export interface DrawingToolbarProps {
   drawWidth: number;
   drawOpacity: number;
   drawFilled: boolean;
+  onClose?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
   onToolChange: (tool: "freehand" | "line" | "rect" | "circle" | "eraser") => void;
@@ -46,6 +47,7 @@ export function DrawingToolbar({
   drawWidth,
   drawOpacity,
   drawFilled,
+  onClose,
   canUndo = false,
   canRedo = false,
   onToolChange,
@@ -60,6 +62,7 @@ export function DrawingToolbar({
   return (
     <DraggableWindow
       title="🎨 DRAWING TOOLS"
+      onClose={onClose}
       initialX={8}
       initialY={100}
       width={250}

@@ -4,7 +4,7 @@
 // Manages drawing tool state and interactions
 // Extracted from MapBoard.tsx to follow single responsibility principle
 
-import { useState, type RefObject } from "react";
+import { useEffect, useState, type RefObject } from "react";
 import type Konva from "konva";
 import type { ClientMessage, SceneObject } from "@shared";
 import { generateUUID } from "../utils/uuid";
@@ -192,6 +192,13 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
   // Drawing tool state
   const [currentDrawing, setCurrentDrawing] = useState<{ x: number; y: number }[]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
+
+  useEffect(() => {
+    if (!drawMode) {
+      setCurrentDrawing([]);
+      setIsDrawing(false);
+    }
+  }, [drawMode]);
 
   /**
    * Start a new drawing on mouse down

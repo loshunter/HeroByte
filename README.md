@@ -3,8 +3,8 @@
 
 # HeroByte
 
-[![CI](https://github.com/loshunter/HeroByte/actions/workflows/ci.yml/badge.svg)](https://github.com/loshunter/HeroByte/actions/workflows/ci.yml)
-[![Coverage](https://codecov.io/gh/loshunter/HeroByte/branch/dev/graph/badge.svg)](https://app.codecov.io/gh/loshunter/HeroByte/tree/dev)
+[![CI](https://img.shields.io/github/actions/workflow/status/loshunter/HeroByte/ci.yml?branch=dev&label=CI&logo=github)](https://github.com/loshunter/HeroByte/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-tracking-blueviolet?logo=codecov)](https://app.codecov.io/gh/loshunter/HeroByte/tree/dev)
 
 **A retro-inspired virtual tabletop for epic adventures online**
 
