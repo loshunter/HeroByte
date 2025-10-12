@@ -70,6 +70,14 @@ const createProps = () => ({
   onMapLockToggle: vi.fn(),
   mapTransform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
   onMapTransformChange: vi.fn(),
+  alignmentModeActive: false,
+  alignmentPoints: [],
+  alignmentSuggestion: null,
+  alignmentError: null,
+  onAlignmentStart: vi.fn(),
+  onAlignmentReset: vi.fn(),
+  onAlignmentCancel: vi.fn(),
+  onAlignmentApply: vi.fn(),
 });
 
 describe("DMMenu", () => {

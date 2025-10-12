@@ -33,7 +33,7 @@ export function createRoutes(): Hono {
       c.header("Access-Control-Allow-Methods", ALLOWED_METHODS);
       const requestHeaders = c.req.header("Access-Control-Request-Headers");
       c.header("Access-Control-Allow-Headers", requestHeaders ?? DEFAULT_ALLOWED_HEADERS);
-      return c.text("", 204);
+      return c.body(null, 204);
     }
 
     await next();

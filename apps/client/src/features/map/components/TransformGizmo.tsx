@@ -147,7 +147,7 @@ export function TransformGizmo({
     }
 
     const updateHandle = () => {
-      const box = transformer.getClientRect({ skipTransform: false });
+      const box = transformer.getClientRect();
       setHandlePosition({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
     };
 

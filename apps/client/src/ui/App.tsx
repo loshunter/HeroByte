@@ -596,6 +596,13 @@ function AuthenticatedApp({
     sendMessage({ t: "grid-square-size", size });
   };
 
+  const gridSize = snapshot?.gridSize || 50;
+  const gridSquareSize = snapshot?.gridSquareSize ?? 5;
+  const mapSceneObject = useMemo(
+    () => snapshot?.sceneObjects?.find((obj) => obj.type === "map") ?? null,
+    [snapshot?.sceneObjects],
+  );
+
   const handleAlignmentStart = useCallback(() => {
     setAlignmentPoints([]);
     setAlignmentSuggestion(null);
@@ -787,14 +794,6 @@ function AuthenticatedApp({
       }
     },
     [sendMessage],
-  );
-
-  // Get synchronized grid size from server
-  const gridSize = snapshot?.gridSize || 50;
-  const gridSquareSize = snapshot?.gridSquareSize ?? 5;
-  const mapSceneObject = useMemo(
-    () => snapshot?.sceneObjects?.find((obj) => obj.type === "map") ?? null,
-    [snapshot?.sceneObjects],
   );
 
   // DM role detection
