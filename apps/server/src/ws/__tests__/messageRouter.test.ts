@@ -50,6 +50,7 @@ describe("MessageRouter", () => {
       gridSize: 50,
       gridSquareSize: 5,
       diceRolls: [],
+      drawingUndoStacks: {},
       drawingRedoStacks: {},
       sceneObjects: [],
       selectionState: new Map() as RoomState["selectionState"],
