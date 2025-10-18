@@ -14,7 +14,13 @@ import { useVoiceChat } from "./useVoiceChat";
 import { DiceRoller } from "../components/dice/DiceRoller";
 import { RollLog } from "../components/dice/RollLog";
 import type { RollResult, DieType } from "../components/dice/types";
-import type { Player, PlayerState, RoomSnapshot, ClientMessage } from "@shared";
+import type {
+  Player,
+  PlayerState,
+  RoomSnapshot,
+  ClientMessage,
+  ServerMessage,
+} from "@shared";
 import { WS_URL } from "../config";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useMicrophone } from "../hooks/useMicrophone";
@@ -567,13 +573,13 @@ function AuthenticatedApp({
 
   useEffect(() => {
     registerServerEventHandler((message: ServerMessage) => {
-      if (message.t === "room-password-updated") {
+      if ("t" in message && message.t === "room-password-updated") {
         setRoomPasswordPending(false);
         setRoomPasswordStatus({
           type: "success",
           message: "Room password updated successfully.",
         });
-      } else if (message.t === "room-password-update-failed") {
+      } else if ("t" in message && message.t === "room-password-update-failed") {
         setRoomPasswordPending(false);
         setRoomPasswordStatus({
           type: "error",
