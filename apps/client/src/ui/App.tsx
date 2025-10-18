@@ -1324,6 +1324,7 @@ function AuthenticatedApp({
           drawMode={drawMode}
           transformMode={transformMode}
           selectMode={selectMode}
+          isDM={isDM}
           alignmentMode={alignmentMode}
           alignmentPoints={alignmentPoints}
           alignmentSuggestion={alignmentSuggestion}

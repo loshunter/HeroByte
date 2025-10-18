@@ -96,6 +96,7 @@ interface MapBoardProps {
   drawMode: boolean; // Draw tool active
   transformMode: boolean; // Transform tool active (gizmo mode)
   selectMode: boolean; // Selection tool active
+  isDM: boolean; // Whether the current user can manage all objects
   alignmentMode: boolean; // Alignment tool active
   alignmentPoints?: AlignmentPoint[]; // Captured alignment points
   alignmentSuggestion?: AlignmentSuggestion | null; // Preview transform for alignment
@@ -140,6 +141,7 @@ export default function MapBoard({
   drawMode,
   transformMode,
   selectMode,
+  isDM,
   alignmentMode,
   alignmentPoints = [],
   alignmentSuggestion = null,
@@ -813,6 +815,7 @@ export default function MapBoard({
             uid={uid}
             selectMode={selectMode}
             transformMode={transformMode}
+            canManageAllDrawings={isDM}
             selectedDrawingId={selectedDrawingId}
             onSelectDrawing={handleSelectDrawing}
             onTransformDrawing={handleTransformDrawing}

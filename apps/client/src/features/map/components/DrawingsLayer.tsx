@@ -28,6 +28,7 @@ interface DrawingsLayerProps {
   onTransformDrawing: (sceneId: string, transform: { position?: { x: number; y: number } }) => void;
   selectedObjectId?: string | null;
   selectedObjectIds: string[];
+  canManageAllDrawings?: boolean;
   onSelectObject?: (
     objectId: string | null,
     options?: { mode?: "replace" | "append" | "toggle" | "subtract" },
@@ -54,6 +55,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
   onTransformDrawing,
   selectedObjectId,
   selectedObjectIds = [],
+  canManageAllDrawings = false,
   onSelectObject,
   onDrawingNodeReady,
 }: DrawingsLayerProps) {
@@ -144,8 +146,9 @@ export const DrawingsLayer = memo(function DrawingsLayer({
     const isOwner = !drawing.owner || drawing.owner === uid;
     const selectionEnabled = selectMode || transformMode;
     const canShowSelection = selectionEnabled; // Show selection outlines when selection or transform tools are active
-    const allowClickSelection = (selectMode && isOwner) || transformMode;
-    const allowDrag = selectMode && isOwner && isSelected;
+    const canManage = isOwner || canManageAllDrawings;
+    const allowClickSelection = (selectMode && canManage) || transformMode;
+    const allowDrag = selectMode && canManage && isSelected;
     const isDragging = draggingId === sceneObject.id;
 
     const interactiveProps = allowClickSelection
