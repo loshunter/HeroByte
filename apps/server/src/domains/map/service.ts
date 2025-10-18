@@ -54,9 +54,10 @@ export class MapService {
           original: this.cloneDrawing(operation.original),
           segments: operation.segments.map((segment) => this.cloneDrawing(segment)),
         };
-      default:
+      default: {
         const exhaustive: never = operation;
         return exhaustive;
+      }
     }
   }
 
