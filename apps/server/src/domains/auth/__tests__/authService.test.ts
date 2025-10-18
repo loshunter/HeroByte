@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeAll, afterEach } from "vitest";
 import { existsSync, mkdirSync, rmSync } from "fs";
 import path from "path";
 import { AuthService } from "../service.js";
