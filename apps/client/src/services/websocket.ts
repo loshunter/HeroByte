@@ -107,6 +107,7 @@ export class WebSocketService {
   private reconnectAttempts = 0;
   private reconnectTimer: number | null = null;
   private heartbeatTimer: number | null = null;
+  private connectTimer: number | null = null;
   private messageQueue: ClientMessage[] = [];
   private lastPongTime = Date.now();
 
@@ -141,6 +142,7 @@ export class WebSocketService {
     try {
       this.ws = new WebSocket(url);
       this.setupEventHandlers();
+      this.startConnectTimer();
     } catch (error) {
       console.error("[WebSocket] Connection error:", error);
       this.handleDisconnect();
@@ -218,6 +220,7 @@ export class WebSocketService {
 
     this.ws.onopen = () => {
       console.log("[WebSocket] Connected as", this.config.uid);
+      this.clearConnectTimer();
       this.setState(ConnectionState.CONNECTED);
       this.reconnectAttempts = 0;
       this.startHeartbeat();
@@ -230,6 +233,7 @@ export class WebSocketService {
 
     this.ws.onclose = (event) => {
       console.log("[WebSocket] Disconnected", event.code, event.reason);
+      this.clearConnectTimer();
       this.handleDisconnect();
     };
 
@@ -283,6 +287,7 @@ export class WebSocketService {
     }
 
     this.cleanup();
+    this.clearConnectTimer();
 
     // Attempt reconnection
     const shouldReconnect =
@@ -393,6 +398,7 @@ export class WebSocketService {
 
   private cleanup(): void {
     this.stopHeartbeat();
+    this.clearConnectTimer();
 
     if (this.reconnectTimer !== null) {
       clearTimeout(this.reconnectTimer);
@@ -421,6 +427,28 @@ export class WebSocketService {
       this.connect();
     }
   };
+
+  private startConnectTimer(): void {
+    this.clearConnectTimer();
+    this.connectTimer = window.setTimeout(() => {
+      if (this.ws && this.ws.readyState === WebSocket.CONNECTING) {
+        console.warn("[WebSocket] Connection handshake timed out");
+        this.ws.close(4005, "Connection timeout");
+      } else if (
+        this.state === ConnectionState.CONNECTING ||
+        this.state === ConnectionState.RECONNECTING
+      ) {
+        this.handleDisconnect();
+      }
+    }, 12000);
+  }
+
+  private clearConnectTimer(): void {
+    if (this.connectTimer !== null) {
+      clearTimeout(this.connectTimer);
+      this.connectTimer = null;
+    }
+  }
 
   private setState(newState: ConnectionState): void {
     if (this.state !== newState) {

@@ -12,7 +12,7 @@
 // - Map background image support
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Stage, Layer, Group, Circle, Line, Text } from "react-konva";
+import { Stage, Layer, Group, Circle, Line, Rect, Text } from "react-konva";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import type { RoomSnapshot, ClientMessage, SceneObject } from "@shared";
@@ -81,6 +81,10 @@ function worldToMapLocal(
 // MAIN COMPONENT
 // ----------------------------------------------------------------------------
 
+type SelectionRequestOptions = {
+  mode?: "replace" | "append" | "toggle" | "subtract";
+};
+
 interface MapBoardProps {
   snapshot: RoomSnapshot | null; // Current room state
   sendMessage: (msg: ClientMessage) => void; // Function to send messages to server
@@ -112,7 +116,8 @@ interface MapBoardProps {
   cameraCommand: CameraCommand | null;
   onCameraCommandHandled: () => void;
   selectedObjectId?: string | null; // Currently selected object for transform gizmo
-  onSelectObject?: (objectId: string | null) => void; // Selection handler
+  selectedObjectIds?: string[];
+  onSelectObject?: (objectId: string | null, options?: SelectionRequestOptions) => void; // Selection handler
 }
 
 /**
@@ -150,6 +155,7 @@ export default function MapBoard({
   cameraCommand,
   onCameraCommandHandled,
   selectedObjectId = null,
+  selectedObjectIds = [],
   onSelectObject,
 }: MapBoardProps) {
   // -------------------------------------------------------------------------
@@ -185,6 +191,17 @@ export default function MapBoard({
     selectDrawing: handleSelectDrawing,
     deselectIfEmpty,
   } = useDrawingSelection({ selectMode, sendMessage, drawingObjects });
+
+  const [marquee, setMarquee] = useState<{
+    start: { x: number; y: number };
+    current: { x: number; y: number };
+  } | null>(null);
+
+  useEffect(() => {
+    if (!selectMode) {
+      setMarquee(null);
+    }
+  }, [selectMode]);
 
   // Camera controls (pan/zoom)
   const {
@@ -354,6 +371,20 @@ export default function MapBoard({
     const shouldPan = !alignmentMode && !pointerMode && !measureMode && !drawMode && !selectMode;
     handleCameraMouseDown(event, stageRef, shouldPan);
     handleDrawMouseDown(stageRef);
+
+    if (
+      selectMode &&
+      !pointerMode &&
+      !measureMode &&
+      !drawMode &&
+      event.evt.button === 0 &&
+      stageRef.current
+    ) {
+      const pointer = stageRef.current.getPointerPosition();
+      if (pointer && event.target === stageRef.current) {
+        setMarquee({ start: pointer, current: pointer });
+      }
+    }
   };
 
   /**
@@ -363,16 +394,18 @@ export default function MapBoard({
     handleCameraMouseMove(stageRef);
     handlePointerMouseMove(stageRef);
     handleDrawMouseMove(stageRef);
+
+    if (marquee && stageRef.current) {
+      const pointer = stageRef.current.getPointerPosition();
+      if (pointer) {
+        setMarquee((prev) => (prev ? { ...prev, current: pointer } : prev));
+      }
+    }
   };
 
   /**
    * Unified mouse up handler (camera, drawing)
    */
-  const onMouseUp = () => {
-    handleCameraMouseUp();
-    handleDrawMouseUp();
-  };
-
   // Camera command handler
   useEffect(() => {
     if (!cameraCommand) return;
@@ -536,6 +569,83 @@ export default function MapBoard({
     }
   }, []);
 
+  const applyMarqueeSelection = useCallback(() => {
+    if (!marquee || !stageRef.current || !onSelectObject) {
+      return;
+    }
+
+    const { start, current } = marquee;
+    const minX = Math.min(start.x, current.x);
+    const minY = Math.min(start.y, current.y);
+    const maxX = Math.max(start.x, current.x);
+    const maxY = Math.max(start.y, current.y);
+
+    const width = maxX - minX;
+    const height = maxY - minY;
+
+    // Treat a click without drag as a deselect so behaviour mirrors existing stage clicks
+    if (width < 4 && height < 4) {
+      onSelectObject(null);
+      return;
+    }
+
+    const matches: string[] = [];
+
+    nodeRefsMap.current.forEach((node, id) => {
+      if (!node || (!id.startsWith("token:") && !id.startsWith("drawing:"))) {
+        return;
+      }
+
+      const rect = node.getClientRect({ relativeTo: stageRef.current! });
+      const nodeMinX = rect.x;
+      const nodeMinY = rect.y;
+      const nodeMaxX = rect.x + rect.width;
+      const nodeMaxY = rect.y + rect.height;
+
+      const intersects =
+        nodeMinX <= maxX &&
+        nodeMaxX >= minX &&
+        nodeMinY <= maxY &&
+        nodeMaxY >= minY;
+
+      if (intersects) {
+        matches.push(id);
+      }
+    });
+
+    if (matches.length === 0) {
+      onSelectObject(null);
+      return;
+    }
+
+    matches.forEach((id, index) => {
+      onSelectObject(id, { mode: index === 0 ? "replace" : "append" });
+    });
+  }, [marquee, onSelectObject]);
+
+  const marqueeRect = useMemo(() => {
+    if (!marquee) {
+      return null;
+    }
+    const { start, current } = marquee;
+    return {
+      x: Math.min(start.x, current.x),
+      y: Math.min(start.y, current.y),
+      width: Math.abs(start.x - current.x),
+      height: Math.abs(start.y - current.y),
+    };
+  }, [marquee]);
+
+  const onMouseUp = () => {
+    handleCameraMouseUp();
+    handleDrawMouseUp();
+
+    if (marquee) {
+      applyMarqueeSelection();
+      setMarquee(null);
+    }
+  };
+
   // -------------------------------------------------------------------------
   // RENDER
   // -------------------------------------------------------------------------
@@ -652,27 +762,29 @@ export default function MapBoard({
             uid={uid}
             selectMode={selectMode}
             selectedDrawingId={selectedDrawingId}
-            onSelectDrawing={handleSelectDrawing}
-            onTransformDrawing={handleTransformDrawing}
-            selectedObjectId={selectedObjectId}
-            onSelectObject={onSelectObject}
-            onDrawingNodeReady={handleDrawingNodeReady}
-          />
-          <TokensLayer
-            cam={cam}
+          onSelectDrawing={handleSelectDrawing}
+          onTransformDrawing={handleTransformDrawing}
+          selectedObjectId={selectedObjectId}
+          selectedObjectIds={selectedObjectIds}
+          onSelectObject={onSelectObject}
+          onDrawingNodeReady={handleDrawingNodeReady}
+        />
+        <TokensLayer
+          cam={cam}
             sceneObjects={sceneObjects}
             uid={uid}
             gridSize={grid.size}
             hoveredTokenId={hoveredTokenId}
             onHover={setHoveredTokenId}
             onTransformToken={handleTransformToken}
-            onRecolorToken={handleRecolorToken}
-            snapToGrid={snapToGrid}
-            selectedObjectId={selectedObjectId}
-            onSelectObject={onSelectObject}
-            onTokenNodeReady={handleTokenNodeReady}
-            interactionsEnabled={tokenInteractionsEnabled}
-          />
+          onRecolorToken={handleRecolorToken}
+          snapToGrid={snapToGrid}
+          selectedObjectId={selectedObjectId}
+          selectedObjectIds={selectedObjectIds}
+          onSelectObject={onSelectObject}
+          onTokenNodeReady={handleTokenNodeReady}
+          interactionsEnabled={tokenInteractionsEnabled}
+        />
         </Layer>
 
         {/* Overlay Layer: Pointers and measure tool (top-most) */}
@@ -746,6 +858,21 @@ export default function MapBoard({
             </Group>
           )}
         </Layer>
+
+        {marqueeRect && (
+          <Layer listening={false}>
+            <Rect
+              x={marqueeRect.x}
+              y={marqueeRect.y}
+              width={marqueeRect.width}
+              height={marqueeRect.height}
+              stroke="#4de5c0"
+              dash={[8, 4]}
+              strokeWidth={1.5}
+              fill="rgba(77, 229, 192, 0.15)"
+            />
+          </Layer>
+        )}
 
         {/* Transform Gizmo Layer: Visual handles for selected objects (only in transform mode) */}
         {transformMode && (
