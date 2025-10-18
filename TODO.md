@@ -10,8 +10,15 @@ _Completed milestones are archived in [DONE.md](DONE.md) to keep this list focus
 
 - [ ] **E2E Tests** (optional for now) — unit/integration coverage complete (see `DONE.md`)
   - [x] Add Playwright smoke test for default room login
-  - [ ] Set up Playwright or Cypress
-  - [ ] Test critical user flows (join session, move token, roll dice)
+  - [x] Set up Playwright runner (root `playwright.config.ts`, `pnpm test:e2e`)
+  - [x] Expand coverage (token movement, dice roller, drawing tools)
+    - [x] Token movement (`apps/e2e/token-movement.spec.ts`)
+    - [x] Dice roller (`apps/e2e/dice.spec.ts`)
+    - [x] Drawing tools
+  - [x] Test critical user flows (join session, move token, roll dice)
+    - [x] Join session (`apps/e2e/smoke.spec.ts`)
+    - [x] Move token (`apps/e2e/token-movement.spec.ts`)
+    - [x] Roll dice (`apps/e2e/dice.spec.ts`)
 
 ### README Improvements
 
@@ -30,7 +37,7 @@ _Completed milestones are archived in [DONE.md](DONE.md) to keep this list focus
 
 - [ ] **Schema Validation** ✅ (Already have input validation middleware)
 - [ ] **Authentication System**
-  - [ ] Basic room passwords (Phase 9 covers this)
+  - [x] Basic room passwords (Phase 9 covers this)
   - [ ] Player identity verification
   - [ ] DM authentication for private rooms
 
@@ -95,10 +102,10 @@ _Completed phase summaries now live in [DONE.md](DONE.md)._
   - [x] Keep rendering feedback separated from state management for SRP
 
 - [ ] **Multi-Select (Optional)**
-  - [ ] Shift+click for multi-select
-  - [ ] Ctrl+click to add/remove from selection
-  - [ ] Drag rectangle selection (marquee tool)
-  - [ ] Bulk transform operations (move all selected)
+  - [x] Shift+click for multi-select
+  - [x] Ctrl+click to add/remove from selection
+  - [x] Drag rectangle selection (marquee tool)
+  - [x] Bulk transform operations (move all selected)
   - [ ] Group lock/unlock
   - [ ] Visual indicator showing multiple selected objects
   - [ ] Codify multi-select orchestration in dedicated module to avoid overloading base selection hook

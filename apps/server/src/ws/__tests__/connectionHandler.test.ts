@@ -20,6 +20,7 @@ import { MessageRouter } from "../messageRouter.js";
 import { RateLimiter } from "../../middleware/rateLimit.js";
 import type { ClientMessage } from "@shared";
 import type { WebSocket, WebSocketServer } from "ws";
+import { AuthService } from "../../domains/auth/service.js";
 
 type WebSocketEvent = "message" | "close";
 
@@ -66,6 +67,7 @@ const setupContainer = () => {
   const diceService = new DiceService();
   const characterService = new CharacterService();
   const selectionService = new SelectionService();
+  const authService = new AuthService({ storagePath: "./test-room-secret.json" });
   const fakeNodeServer = { clients: new Set<WebSocket>() } as unknown as WebSocketServer;
   const messageRouter = new MessageRouter(
     roomService,
@@ -75,6 +77,7 @@ const setupContainer = () => {
     diceService,
     characterService,
     selectionService,
+    authService,
     fakeNodeServer,
     new Map<string, WebSocket>(),
     () => new Set<WebSocket>(),
@@ -95,6 +98,7 @@ const setupContainer = () => {
     diceService,
     characterService,
     selectionService,
+    authService,
     messageRouter,
     rateLimiter,
     uidToWs,

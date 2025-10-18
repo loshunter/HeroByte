@@ -732,16 +732,36 @@ describe("validateMessage", () => {
       expect(validateMessage({ t: "toggle-dm", isDM: true })).toEqual({ valid: true });
     });
 
-    it("validates toggle-dm with false", () => {
-      expect(validateMessage({ t: "toggle-dm", isDM: false })).toEqual({ valid: true });
-    });
+  it("validates toggle-dm with false", () => {
+    expect(validateMessage({ t: "toggle-dm", isDM: false })).toEqual({ valid: true });
+  });
 
-    it("rejects toggle-dm with non-boolean", () => {
-      expect(validateMessage({ t: "toggle-dm", isDM: 1 })).toMatchObject({
-        valid: false,
-        error: "toggle-dm: isDM must be boolean",
-      });
+  it("rejects toggle-dm with non-boolean", () => {
+    expect(validateMessage({ t: "toggle-dm", isDM: 1 })).toMatchObject({
+      valid: false,
+      error: "toggle-dm: isDM must be boolean",
     });
+  });
+
+  it("validates set-room-password", () => {
+    expect(validateMessage({ t: "set-room-password", secret: "NewSecret123" })).toEqual({
+      valid: true,
+    });
+  });
+
+  it("rejects set-room-password with empty secret", () => {
+    expect(validateMessage({ t: "set-room-password", secret: "" })).toMatchObject({
+      valid: false,
+      error: "set-room-password: secret is empty",
+    });
+  });
+
+  it("rejects set-room-password with non-string secret", () => {
+    expect(validateMessage({ t: "set-room-password", secret: 42 })).toMatchObject({
+      valid: false,
+      error: "set-room-password: secret must be a string",
+    });
+  });
   });
 
   describe("Phase 11: Token Size Validation", () => {

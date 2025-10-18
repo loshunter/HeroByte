@@ -5,13 +5,14 @@
 
 import { Hono } from "hono";
 import { getRoomSecret } from "../config/auth.js";
+import type { AuthService } from "../domains/auth/service.js";
 import { isOriginAllowed } from "../config/security.js";
 
 /**
  * Create and configure HTTP routes
  * Separates route definitions from server bootstrap
  */
-export function createRoutes(): Hono {
+export function createRoutes(authService: AuthService): Hono {
   const app = new Hono();
   const ALLOWED_METHODS = "GET,POST,OPTIONS";
   const DEFAULT_ALLOWED_HEADERS = "Content-Type, Authorization";
@@ -47,7 +48,35 @@ export function createRoutes(): Hono {
 
   // Root endpoint - API information
   app.get("/", (c) => {
-    const secret = getRoomSecret();
+    const summary = authService.getSummary();
+    const secretSource = summary.source;
+
+    let passwordHintHtml = "";
+    if (secretSource === "fallback") {
+      const secret = getRoomSecret();
+      passwordHintHtml = `
+        <p class="hint">
+          While waiting, make sure everyone joining knows the current room password:
+        </p>
+        <p><code>${secret}</code></p>
+        <p class="hint">
+          Enter that password on the client welcome screen to hop into the shared
+          tabletop once the server is online.
+        </p>`;
+    } else if (secretSource === "env") {
+      passwordHintHtml = `
+        <p class="hint">
+          A room password is configured by the deployment. Ask your host for the
+          latest password before joining.
+        </p>`;
+    } else {
+      passwordHintHtml = `
+        <p class="hint">
+          The Dungeon Master has set a custom room password. Contact them directly
+          to obtain the latest secret before joining the table.
+        </p>`;
+    }
+
     const html = `<!DOCTYPE html>
     <html lang="en">
       <head>
@@ -107,14 +136,7 @@ export function createRoutes(): Hono {
             sleep. Keep this tab open &ndash; once the backend is ready the client will
             connect automatically.
           </p>
-          <p class="hint">
-            While waiting, make sure everyone joining knows the current room password:
-          </p>
-          <p><code>${secret}</code></p>
-          <p class="hint">
-            Enter that password on the client welcome screen to hop into the shared
-            tabletop once the server is online.
-          </p>
+          ${passwordHintHtml}
         </div>
       </body>
     </html>`;

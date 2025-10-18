@@ -14,6 +14,7 @@ import { CharacterService } from "./domains/character/service.js";
 import { SelectionService } from "./domains/selection/service.js";
 import { MessageRouter } from "./ws/messageRouter.js";
 import { RateLimiter } from "./middleware/rateLimit.js";
+import { AuthService } from "./domains/auth/service.js";
 
 /**
  * Application container holding all services
@@ -28,6 +29,7 @@ export class Container {
   public readonly diceService: DiceService;
   public readonly characterService: CharacterService;
   public readonly selectionService: SelectionService;
+  public readonly authService: AuthService;
 
   // Middleware
   public readonly rateLimiter: RateLimiter;
@@ -38,7 +40,7 @@ export class Container {
   public readonly authenticatedUids: Set<string>;
   public readonly authenticatedSessions: Map<string, { roomId: string; authedAt: number }>;
 
-  constructor(wss: WebSocketServer) {
+  constructor(wss: WebSocketServer, authService: AuthService) {
     // Initialize services (no dependencies between them)
     this.roomService = new RoomService();
     this.playerService = new PlayerService();
@@ -47,6 +49,7 @@ export class Container {
     this.diceService = new DiceService();
     this.characterService = new CharacterService();
     this.selectionService = new SelectionService();
+    this.authService = authService;
 
     // Initialize middleware
     this.rateLimiter = new RateLimiter({ maxMessages: 100, windowMs: 1000 });
@@ -65,6 +68,7 @@ export class Container {
       this.diceService,
       this.characterService,
       this.selectionService,
+      this.authService,
       wss,
       this.uidToWs,
       () => this.getAuthenticatedClients(),

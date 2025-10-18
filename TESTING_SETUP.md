@@ -482,117 +482,44 @@ Update `README.md` to include badges:
 
 ## Phase 4: E2E Tests (Optional - Lower Priority)
 
-**Goal**: Test critical user workflows end-to-end.
+**Goal**: Extend the existing Playwright smoke coverage into full user journeys.
 
-### Step 4.1: Choose E2E Framework
+### Step 4.1: Current Baseline
 
-**Option A: Playwright** (Recommended)
+- **Framework**: Playwright (`@playwright/test`)
+- **Config**: [`playwright.config.ts`](playwright.config.ts) at the monorepo root
+- **Tests**: `apps/e2e/smoke.spec.ts` validates that password `Fun1` joins the default room and renders the tabletop UI
+- **Command**: `pnpm test:e2e` (boots client & server automatically)
 
-- Better TypeScript support
-- Built-in test runner
-- Headless + headed modes
-
-**Option B: Cypress**
-
-- More visual debugging
-- Time-travel debugging
-- Larger ecosystem
-
-### Step 4.2: Install Playwright
+### Step 4.2: Installing Browsers (first-time setup)
 
 ```bash
-cd apps/client
-pnpm add -D @playwright/test
-pnpm exec playwright install
+pnpm exec playwright install --with-deps chromium
 ```
 
-### Step 4.3: Configure Playwright
+Run this once per development machine or CI runner to download the Chromium engine and system packages.
 
-Create `apps/client/playwright.config.ts`:
+### Step 4.3: Adding More Scenarios
 
-```typescript
-import { defineConfig, devices } from "@playwright/test";
+Create additional specs in `apps/e2e/` following the existing smoke test structure. Suggested cases:
 
-export default defineConfig({
-  testDir: "./e2e",
-  fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
-  reporter: "html",
-  use: {
-    baseURL: "http://localhost:5173",
-    trace: "on-first-retry",
-  },
-  projects: [
-    {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
-    },
-  ],
-  webServer: {
-    command: "pnpm dev",
-    url: "http://localhost:5173",
-    reuseExistingServer: !process.env.CI,
-  },
-});
-```
+- `apps/e2e/token-movement.spec.ts` → join room, drag a token, verify position update
+- `apps/e2e/dice-roller.spec.ts` → roll dice and assert results broadcast to log
+- `apps/e2e/drawing-tools.spec.ts` → sketch on canvas, toggle eraser, confirm persistence
 
-### Step 4.4: Create E2E Tests
+Reference utilities like `page.getByRole`, `page.locator`, and Playwright test fixtures to keep interactions resilient.
 
-Create `apps/client/e2e/gameplay.spec.ts`:
+### Step 4.4: Reporting
 
-```typescript
-import { test, expect } from "@playwright/test";
+Playwright outputs HTML reports (`playwright-report/index.html`), traces, screenshots, and videos for failed runs. Publish these as CI artifacts to simplify debugging.
 
-test.describe("Core Gameplay", () => {
-  test("should join session and move token", async ({ page }) => {
-    await page.goto("/");
+### Step 4.5: CI Integration (Planned)
 
-    // Set player name
-    await page.fill('input[placeholder="Enter your name"]', "Alice");
-    await page.click('button:has-text("Join")');
+Add a GitHub Actions job that:
 
-    // Wait for canvas
-    await page.waitForSelector("canvas");
-
-    // Drag token
-    const canvas = page.locator("canvas");
-    await canvas.click({ position: { x: 100, y: 100 } });
-    await canvas.dragTo(canvas, {
-      sourcePosition: { x: 100, y: 100 },
-      targetPosition: { x: 200, y: 200 },
-    });
-
-    // Verify token moved
-    // Add assertions based on your app's state
-  });
-
-  test("should roll dice and see results", async ({ page }) => {
-    await page.goto("/");
-
-    // Open dice roller
-    await page.click('button[aria-label="Dice Roller"]');
-
-    // Select d20
-    await page.click('button:has-text("d20")');
-
-    // Roll
-    await page.click('button:has-text("Roll")');
-
-    // Check result appears
-    await expect(page.locator(".dice-result")).toBeVisible();
-  });
-});
-```
-
-### Step 4.5: Run E2E Tests
-
-```bash
-cd apps/client
-pnpm exec playwright test
-pnpm exec playwright show-report
-```
+1. Installs browser dependencies (`npx playwright install --with-deps chromium`)
+2. Boots the stack with `pnpm test:e2e`
+3. Uploads the Playwright HTML report and traces as artifacts
 
 ---
 
@@ -626,8 +553,8 @@ pnpm exec playwright show-report
 
 ### Phase 4: E2E (Optional) 🔄
 
-- [ ] Playwright configured
-- [ ] Core gameplay test
+- [x] Playwright configured with default-room smoke test
+- [ ] Token movement regression test
 - [ ] Dice roller test
 - [ ] Voice chat test (if feasible)
 

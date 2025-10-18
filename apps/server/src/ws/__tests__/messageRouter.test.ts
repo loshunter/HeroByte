@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { Mock } from "vitest";
 import { MessageRouter } from "../messageRouter.js";
 import { RoomService } from "../../domains/room/service.js";
 import { PlayerService } from "../../domains/player/service.js";
@@ -7,6 +8,7 @@ import { MapService } from "../../domains/map/service.js";
 import { DiceService } from "../../domains/dice/service.js";
 import { CharacterService } from "../../domains/character/service.js";
 import { SelectionService } from "../../domains/selection/service.js";
+import { AuthService } from "../../domains/auth/service.js";
 import type { WebSocket, WebSocketServer } from "ws";
 import type { ClientMessage } from "@shared";
 import type { RoomState } from "../../domains/room/model.js";
@@ -21,6 +23,7 @@ describe("MessageRouter", () => {
   let mockDiceService: DiceService;
   let mockCharacterService: CharacterService;
   let mockSelectionService: SelectionService;
+  let mockAuthService: AuthService;
   let mockWss: WebSocketServer;
   let mockUidToWs: Map<string, WebSocket>;
   let mockGetAuthorizedClients: () => Set<WebSocket>;
@@ -119,6 +122,12 @@ describe("MessageRouter", () => {
       removeObject: vi.fn(() => true),
     } as unknown as SelectionService;
 
+    mockAuthService = {
+      verify: vi.fn(() => true),
+      update: vi.fn(() => ({ source: "user", updatedAt: Date.now() })),
+      getSummary: vi.fn(() => ({ source: "fallback", updatedAt: Date.now() })),
+    } as unknown as AuthService;
+
     mockWss = {} as WebSocketServer;
     mockUidToWs = new Map<string, WebSocket>();
     mockGetAuthorizedClients = vi.fn(() => new Set<WebSocket>());
@@ -131,6 +140,7 @@ describe("MessageRouter", () => {
       mockDiceService,
       mockCharacterService,
       mockSelectionService,
+      mockAuthService,
       mockWss,
       mockUidToWs,
       mockGetAuthorizedClients,
@@ -663,6 +673,39 @@ describe("MessageRouter", () => {
       });
       expect(mockRoomService.broadcast).toHaveBeenCalled();
       expect(mockRoomService.saveState).toHaveBeenCalled();
+    });
+
+    it("allows DM to update room password", () => {
+      mockState.players[0].isDM = true;
+      const ws = { readyState: 1, send: vi.fn() } as unknown as WebSocket;
+      mockUidToWs.set("player-1", ws);
+      const summary = { source: "user" as const, updatedAt: 12345 };
+      (mockAuthService.update as unknown as Mock).mockReturnValue(summary);
+
+      const msg: ClientMessage = { t: "set-room-password", secret: "Secret123" };
+      router.route(msg, "player-1");
+
+      expect(mockAuthService.update).toHaveBeenCalledWith("Secret123");
+      expect(ws.send).toHaveBeenCalledWith(
+        JSON.stringify({ t: "room-password-updated", updatedAt: 12345, source: "user" }),
+      );
+    });
+
+    it("rejects room password updates from non-DM", () => {
+      mockState.players[0].isDM = false;
+      const ws = { readyState: 1, send: vi.fn() } as unknown as WebSocket;
+      mockUidToWs.set("player-1", ws);
+
+      const msg: ClientMessage = { t: "set-room-password", secret: "Secret123" };
+      router.route(msg, "player-1");
+
+      expect(mockAuthService.update).not.toHaveBeenCalled();
+      expect(ws.send).toHaveBeenCalledWith(
+        JSON.stringify({
+          t: "room-password-update-failed",
+          reason: "Only Dungeon Masters can update the room password.",
+        }),
+      );
     });
   });
 

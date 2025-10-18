@@ -141,6 +141,7 @@ export const App: React.FC = () => {
     authenticate,
     connect,
     registerRtcHandler,
+    registerServerEventHandler,
   } = useWebSocket({
     url: WS_URL,
     uid,
@@ -259,6 +260,7 @@ export const App: React.FC = () => {
       snapshot={snapshot}
       sendMessage={sendMessage}
       registerRtcHandler={registerRtcHandler}
+      registerServerEventHandler={registerServerEventHandler}
       isConnected={isConnected}
       authState={authState}
       hasAuthenticated={hasAuthenticated}
@@ -299,7 +301,7 @@ function AuthGate({
       <div style={authGateCardStyle}>
         <h1 style={{ margin: "0 0 16px" }}>Join Your Room</h1>
         <p style={{ margin: "0 0 24px", color: "#cbd5f5", fontSize: "0.95rem" }}>
-          Enter the Demo Room Password: <strong>Fun1</strong> to sync with your party.
+          Enter the room password provided by your host to sync with your party.
         </p>
         <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <input
@@ -350,16 +352,20 @@ interface AuthenticatedAppProps {
   snapshot: RoomSnapshot | null;
   sendMessage: (message: ClientMessage) => void;
   registerRtcHandler: (handler: (from: string, signal: unknown) => void) => void;
+  registerServerEventHandler: (handler: (message: ServerMessage) => void) => void;
   isConnected: boolean;
   authState: AuthState;
   hasAuthenticated: boolean;
 }
+
+type RoomPasswordStatus = { type: "success" | "error"; message: string };
 
 function AuthenticatedApp({
   uid,
   snapshot,
   sendMessage,
   registerRtcHandler,
+  registerServerEventHandler,
   isConnected,
   authState,
   hasAuthenticated,
@@ -419,7 +425,9 @@ function AuthenticatedApp({
   // Server-synced object selection state
   const {
     selectedObjectId,
+    selectedObjectIds,
     selectObject,
+    selectMultiple,
     deselect: clearSelection,
   } = useObjectSelection({ uid, snapshot, sendMessage });
 
@@ -444,6 +452,8 @@ function AuthenticatedApp({
   const [diceRollerOpen, setDiceRollerOpen] = useState(false);
   const [rollLogOpen, setRollLogOpen] = useState(false);
   const [viewingRoll, setViewingRoll] = useState<RollResult | null>(null);
+  const [roomPasswordStatus, setRoomPasswordStatus] = useState<RoomPasswordStatus | null>(null);
+  const [roomPasswordPending, setRoomPasswordPending] = useState(false);
 
   // Get roll history from server snapshot
   const rollHistory: RollLogEntry[] = React.useMemo(() => {
@@ -517,6 +527,60 @@ function AuthenticatedApp({
       clearSelection();
     }
   }, [transformMode, clearSelection]);
+
+  useEffect(() => {
+    registerServerEventHandler((message: ServerMessage) => {
+      if (message.t === "room-password-updated") {
+        setRoomPasswordPending(false);
+        setRoomPasswordStatus({
+          type: "success",
+          message: "Room password updated successfully.",
+        });
+      } else if (message.t === "room-password-update-failed") {
+        setRoomPasswordPending(false);
+        setRoomPasswordStatus({
+          type: "error",
+          message: message.reason ?? "Unable to update room password.",
+        });
+      }
+    });
+  }, [registerServerEventHandler]);
+
+  const handleObjectSelection = useCallback(
+    (objectId: string | null, options?: { mode?: "replace" | "append" | "toggle" | "subtract" }) => {
+      if (!objectId) {
+        clearSelection();
+        return;
+      }
+
+      const mode = options?.mode ?? "replace";
+      switch (mode) {
+        case "append": {
+          selectMultiple([objectId], "append");
+          return;
+        }
+        case "toggle": {
+          if (selectedObjectIds.includes(objectId)) {
+            selectMultiple([objectId], "subtract");
+          } else if (selectedObjectIds.length > 0) {
+            selectMultiple([objectId], "append");
+          } else {
+            selectObject(objectId);
+          }
+          return;
+        }
+        case "subtract": {
+          selectMultiple([objectId], "subtract");
+          return;
+        }
+        case "replace":
+        default: {
+          selectObject(objectId);
+        }
+      }
+    },
+    [clearSelection, selectMultiple, selectObject, selectedObjectIds],
+  );
 
   // -------------------------------------------------------------------------
   // ACTIONS
@@ -603,6 +667,35 @@ function AuthenticatedApp({
 
   const gridSize = snapshot?.gridSize || 50;
   const gridSquareSize = snapshot?.gridSquareSize ?? 5;
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (import.meta.env.MODE === "production") {
+      return;
+    }
+
+    const globalWindow = window as typeof window & {
+      __HERO_BYTE_E2E__?: {
+        snapshot?: RoomSnapshot | null;
+        uid?: string;
+        gridSize?: number;
+        cam?: { x: number; y: number; scale: number };
+        viewport?: { width: number; height: number };
+      };
+    };
+
+    const previous = globalWindow.__HERO_BYTE_E2E__ ?? {};
+    globalWindow.__HERO_BYTE_E2E__ = {
+      ...previous,
+      snapshot,
+      uid,
+      gridSize,
+    };
+  }, [gridSize, snapshot, uid]);
+
   const mapSceneObject = useMemo(
     () => snapshot?.sceneObjects?.find((obj) => obj.type === "map") ?? null,
     [snapshot?.sceneObjects],
@@ -666,6 +759,19 @@ function AuthenticatedApp({
     clearHistory();
     sendMessage({ t: "clear-drawings" });
   }, [clearHistory, sendMessage]);
+
+  const handleSetRoomPassword = useCallback(
+    (nextSecret: string) => {
+      setRoomPasswordPending(true);
+      setRoomPasswordStatus(null);
+      sendMessage({ t: "set-room-password", secret: nextSecret });
+    },
+    [sendMessage],
+  );
+
+  const dismissRoomPasswordStatus = useCallback(() => {
+    setRoomPasswordStatus(null);
+  }, []);
 
   const updateTokenImage = useCallback(
     (tokenId: string, imageUrl: string) => {
@@ -1037,12 +1143,13 @@ function AuthenticatedApp({
           drawFilled={drawFilled}
           onRecolorToken={recolorToken}
           onTransformObject={transformSceneObject}
-          onDrawingComplete={addToHistory}
-          cameraCommand={cameraCommand}
-          onCameraCommandHandled={() => setCameraCommand(null)}
-          selectedObjectId={selectedObjectId}
-          onSelectObject={selectObject}
-        />
+        onDrawingComplete={addToHistory}
+        cameraCommand={cameraCommand}
+        onCameraCommandHandled={() => setCameraCommand(null)}
+        selectedObjectId={selectedObjectId}
+        selectedObjectIds={selectedObjectIds}
+        onSelectObject={handleObjectSelection}
+      />
       </div>
 
       {/* Entities HUD - Fixed at bottom */}
@@ -1141,6 +1248,10 @@ function AuthenticatedApp({
         onAlignmentReset={handleAlignmentReset}
         onAlignmentCancel={handleAlignmentCancel}
         onAlignmentApply={handleAlignmentApply}
+        onSetRoomPassword={handleSetRoomPassword}
+        roomPasswordStatus={roomPasswordStatus}
+        roomPasswordPending={roomPasswordPending}
+        onDismissRoomPasswordStatus={dismissRoomPasswordStatus}
       />
 
       {/* Context Menu */}

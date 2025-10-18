@@ -23,6 +23,10 @@ type RtcSignalMessage = {
   signal: SignalData;
 };
 
+type ControlMessage =
+  | Extract<ServerMessage, { t: "room-password-updated" }>
+  | Extract<ServerMessage, { t: "room-password-update-failed" }>;
+
 function isRtcSignalMessage(value: unknown): value is RtcSignalMessage {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<RtcSignalMessage>;
@@ -43,6 +47,12 @@ function isAuthResponseMessage(value: unknown): value is AuthResponseMessage {
     return true;
   }
   return false;
+}
+
+function isControlMessage(value: unknown): value is ControlMessage {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<ControlMessage>;
+  return candidate.t === "room-password-updated" || candidate.t === "room-password-update-failed";
 }
 
 export enum AuthState {
@@ -73,6 +83,7 @@ interface WebSocketServiceConfig {
   onRtcSignal?: RtcSignalHandler;
   onStateChange?: ConnectionStateHandler;
   onAuthEvent?: (event: AuthEvent) => void;
+  onControlMessage?: (message: ControlMessage) => void;
   reconnectInterval?: number; // ms between reconnect attempts
   maxReconnectAttempts?: number; // 0 = infinite
   heartbeatInterval?: number; // ms between heartbeats
@@ -107,6 +118,7 @@ export class WebSocketService {
       onRtcSignal: () => {},
       onStateChange: () => {},
       onAuthEvent: () => {},
+      onControlMessage: () => {},
       ...config,
     };
   }
@@ -249,6 +261,11 @@ export class WebSocketService {
           this.authState = AuthState.FAILED;
           this.config.onAuthEvent({ type: "failure", reason: parsed.reason });
         }
+        return;
+      }
+
+      if (isControlMessage(parsed)) {
+        this.config.onControlMessage(parsed);
         return;
       }
 

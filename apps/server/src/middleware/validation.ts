@@ -166,6 +166,20 @@ export function validateMessage(raw: unknown): ValidationResult {
       break;
     }
 
+    case "set-room-password": {
+      if (typeof message.secret !== "string") {
+        return { valid: false, error: "set-room-password: secret must be a string" };
+      }
+      const trimmed = message.secret.trim();
+      if (trimmed.length === 0) {
+        return { valid: false, error: "set-room-password: secret is empty" };
+      }
+      if (trimmed.length > 256) {
+        return { valid: false, error: "set-room-password: secret too long" };
+      }
+      break;
+    }
+
     case "set-hp": {
       const { hp, maxHp } = message;
       if (!isFiniteNumber(hp) || !isFiniteNumber(maxHp)) {

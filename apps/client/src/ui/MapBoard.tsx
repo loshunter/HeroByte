@@ -540,10 +540,39 @@ export default function MapBoard({
   // RENDER
   // -------------------------------------------------------------------------
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (import.meta.env.MODE === "production") {
+      return;
+    }
+
+    const globalWindow = window as typeof window & {
+      __HERO_BYTE_E2E__?: {
+        snapshot?: RoomSnapshot | null;
+        uid?: string;
+        gridSize?: number;
+        cam?: { x: number; y: number; scale: number };
+        viewport?: { width: number; height: number };
+      };
+    };
+
+    const previous = globalWindow.__HERO_BYTE_E2E__ ?? {};
+    globalWindow.__HERO_BYTE_E2E__ = {
+      ...previous,
+      gridSize,
+      cam,
+      viewport: { width: w, height: h },
+    };
+  }, [cam, gridSize, h, w]);
+
   return (
     <div
       ref={ref}
       className="map-canvas-wrapper"
+      data-testid="map-board"
       style={{
         width: "100%",
         height: "100%",

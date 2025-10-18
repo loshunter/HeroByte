@@ -5,6 +5,8 @@
 - **`main`** - Stable production branch, deployed to live servers
 - **`dev`** - Development branch for new features and refactoring
 
+Use `scripts/sync-dev.sh` (documented in [docs/LOCAL_SYNC.md](docs/LOCAL_SYNC.md)) to fast-forward your local branch to the latest remote commits and install the required Playwright dependencies in one step.
+
 ## Local Development
 
 ### Running the Dev Branch
