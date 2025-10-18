@@ -206,7 +206,11 @@ interface SegmentCandidate {
   bounds: BoundingBox;
 }
 
-function buildSegments(points: Point[], expansion: number, fallbackRadius: number): SegmentCandidate[] {
+function buildSegments(
+  points: Point[],
+  expansion: number,
+  fallbackRadius: number,
+): SegmentCandidate[] {
   if (points.length === 0) {
     return [];
   }
