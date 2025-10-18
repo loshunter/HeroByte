@@ -101,18 +101,18 @@ interface MultiSelectBadgeProps {
   count: number;
 }
 
-const MultiSelectBadge = memo(function MultiSelectBadge({ x, y, size, count }: MultiSelectBadgeProps) {
+const MultiSelectBadge = memo(function MultiSelectBadge({
+  x,
+  y,
+  size,
+  count,
+}: MultiSelectBadgeProps) {
   const radius = size / 2;
   const fontSize = size * 0.6;
 
   return (
     <Group x={x} y={y}>
-      <Circle
-        radius={radius}
-        fill="#447DF7"
-        stroke="#FFFFFF"
-        strokeWidth={2}
-      />
+      <Circle radius={radius} fill="#447DF7" stroke="#FFFFFF" strokeWidth={2} />
       <Text
         text={count.toString()}
         fontSize={fontSize}
@@ -140,7 +140,10 @@ interface TokensLayerProps {
   snapToGrid: boolean;
   selectedObjectId?: string | null;
   selectedObjectIds: string[];
-  onSelectObject?: (objectId: string | null, options?: { mode?: "replace" | "append" | "toggle" | "subtract" }) => void;
+  onSelectObject?: (
+    objectId: string | null,
+    options?: { mode?: "replace" | "append" | "toggle" | "subtract" },
+  ) => void;
   onTokenNodeReady?: (tokenId: string, node: Konva.Node | null) => void;
   interactionsEnabled?: boolean;
 }
@@ -308,8 +311,7 @@ export const TokensLayer = memo(function TokensLayer({
   return (
     <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale}>
       {otherTokens.map((object) => {
-        const isSelected =
-          selectedObjectIds.includes(object.id) || selectedObjectId === object.id;
+        const isSelected = selectedObjectIds.includes(object.id) || selectedObjectId === object.id;
         const isFirstSelected = selectedTokenCount > 1 && selectedObjectIds[0] === object.id;
         return (
           <Group key={object.id}>
@@ -359,8 +361,7 @@ export const TokensLayer = memo(function TokensLayer({
       })}
 
       {myTokens.map((object) => {
-        const isSelected =
-          selectedObjectIds.includes(object.id) || selectedObjectId === object.id;
+        const isSelected = selectedObjectIds.includes(object.id) || selectedObjectId === object.id;
         const isFirstSelected = selectedTokenCount > 1 && selectedObjectIds[0] === object.id;
         return (
           <Group key={object.id}>

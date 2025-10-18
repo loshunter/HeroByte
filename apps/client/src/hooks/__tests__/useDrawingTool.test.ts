@@ -157,6 +157,59 @@ describe("useDrawingTool - partial erase", () => {
     expect(sendMessage).toHaveBeenCalledWith({ t: "delete-drawing", id: "drawing-1" });
   });
 
+  it("does nothing when splitFreehandDrawing returns the untouched drawing", () => {
+    const sendMessage = vi.fn();
+    vi.spyOn(splitModule, "splitFreehandDrawing").mockReturnValue([
+      {
+        type: "freehand" as const,
+        points: [
+          { x: 0, y: 0 },
+          { x: 10, y: 0 },
+        ],
+        color: "#ff00ff",
+        width: 2,
+        opacity: 1,
+        owner: "uid-1",
+      },
+    ]);
+
+    const drawingObjects = [createFreehandSceneObject()];
+    const stage = createStageStub([
+      { x: 0, y: 10 },
+      { x: 5, y: 10 },
+      { x: 10, y: 10 },
+    ]);
+
+    const { result } = renderHook(() =>
+      useDrawingTool({
+        drawMode: true,
+        drawTool: "eraser",
+        drawColor: "#ffffff",
+        drawWidth: 2,
+        drawOpacity: 1,
+        drawFilled: false,
+        toWorld: (x, y) => ({ x, y }),
+        sendMessage,
+        drawingObjects,
+      }),
+    );
+
+    act(() => {
+      result.current.onMouseDown({ current: stage } as never);
+    });
+    act(() => {
+      result.current.onMouseMove({ current: stage } as never);
+    });
+    act(() => {
+      result.current.onMouseMove({ current: stage } as never);
+    });
+    act(() => {
+      result.current.onMouseUp();
+    });
+
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
+
   it("continues to delete non-freehand drawings when erasing", () => {
     const sendMessage = vi.fn();
     const drawingObjects = [

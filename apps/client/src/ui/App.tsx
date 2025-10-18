@@ -341,7 +341,7 @@ function AuthGate({
           <strong
             style={{
               animation: isConnecting ? "pulse 1.5s ease-in-out infinite" : "none",
-              }}
+            }}
             aria-live="polite"
             aria-busy={isConnecting}
           >
@@ -584,7 +584,10 @@ function AuthenticatedApp({
   }, [registerServerEventHandler]);
 
   const handleObjectSelection = useCallback(
-    (objectId: string | null, options?: { mode?: "replace" | "append" | "toggle" | "subtract" }) => {
+    (
+      objectId: string | null,
+      options?: { mode?: "replace" | "append" | "toggle" | "subtract" },
+    ) => {
       if (!objectId) {
         clearSelection();
         return;
@@ -1258,13 +1261,13 @@ function AuthenticatedApp({
           drawFilled={drawFilled}
           onRecolorToken={recolorToken}
           onTransformObject={transformSceneObject}
-        onDrawingComplete={addToHistory}
-        cameraCommand={cameraCommand}
-        onCameraCommandHandled={() => setCameraCommand(null)}
-        selectedObjectId={selectedObjectId}
-        selectedObjectIds={selectedObjectIds}
-        onSelectObject={handleObjectSelection}
-      />
+          onDrawingComplete={addToHistory}
+          cameraCommand={cameraCommand}
+          onCameraCommandHandled={() => setCameraCommand(null)}
+          selectedObjectId={selectedObjectId}
+          selectedObjectIds={selectedObjectIds}
+          onSelectObject={handleObjectSelection}
+        />
       </div>
 
       {/* Entities HUD - Fixed at bottom */}

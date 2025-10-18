@@ -36,7 +36,13 @@ describe("PortraitSection", () => {
 
   it("disables changes when not editable", () => {
     const handleRequestChange = vi.fn();
-    render(<PortraitSection portrait={undefined} isEditable={false} onRequestChange={handleRequestChange} />);
+    render(
+      <PortraitSection
+        portrait={undefined}
+        isEditable={false}
+        onRequestChange={handleRequestChange}
+      />,
+    );
 
     const button = screen.getByRole("button", { name: /player portrait/i });
     expect(button).toBeDisabled();

@@ -123,6 +123,7 @@
 ### Migration Notes
 
 **From Pre-Scene-Graph Versions:**
+
 - Auto-migration handles legacy token/drawing data ✅
 - No manual intervention needed for existing saves ✅
 - Scene objects added transparently to RoomSnapshot
@@ -150,6 +151,7 @@
 ## 📊 Metrics
 
 **Code Quality (as of Oct 2025):**
+
 - ✅ **Tests**: 36/36 passing (9 test files)
 - ✅ **Coverage**: 75%+ (shared: 99.57%, server: 75%+)
 - ✅ **Lint Warnings**: 0
@@ -163,15 +165,18 @@
 ## 🎯 Debt Reduction Plan
 
 ### Phase 10 (Current)
+
 - Fix CSS property warnings during transform gizmo work
 - Add E2E smoke tests for basic flows
 
 ### Phase 11
+
 - Implement code splitting for bundle size
 - Consolidate player persistence logic
 - Add scene graph migration tests
 
 ### Phase 12+
+
 - Extract transform logic into service
 - Implement lazy loading for large maps
 - Optimize scene graph rebuilds
@@ -181,6 +186,7 @@
 ## 📝 Notes
 
 **Philosophy:**
+
 - Prioritize shipping features over perfect architecture
 - Address debt when it blocks new work or causes bugs
 - Don't pre-optimize - measure first

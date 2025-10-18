@@ -933,7 +933,10 @@ export function DMMenu({
 
                 <JRPGPanel variant="simple" title="Room Security">
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <p className="jrpg-text-small" style={{ margin: 0, color: "var(--jrpg-white)" }}>
+                    <p
+                      className="jrpg-text-small"
+                      style={{ margin: 0, color: "var(--jrpg-white)" }}
+                    >
                       Update the shared room password. Current players remain connected; new
                       entrants must use the new secret.
                     </p>
@@ -972,7 +975,9 @@ export function DMMenu({
                       }}
                     />
                     {passwordError ? (
-                      <p style={{ color: "#f87171", margin: 0, fontSize: "0.85rem" }}>{passwordError}</p>
+                      <p style={{ color: "#f87171", margin: 0, fontSize: "0.85rem" }}>
+                        {passwordError}
+                      </p>
                     ) : null}
                     {roomPasswordStatus ? (
                       <p

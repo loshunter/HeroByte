@@ -8,7 +8,10 @@ test.describe("HeroByte token movement", () => {
     await page.waitForFunction(() => {
       const data = window.__HERO_BYTE_E2E__;
       if (!data?.snapshot || !data.uid || !data.cam) return false;
-      return Array.isArray(data.snapshot.tokens) && data.snapshot.tokens.some((t) => t.owner === data.uid);
+      return (
+        Array.isArray(data.snapshot.tokens) &&
+        data.snapshot.tokens.some((t) => t.owner === data.uid)
+      );
     });
 
     const tokenInfo = await page.evaluate(() => {
@@ -67,12 +70,15 @@ test.describe("HeroByte token movement", () => {
       { tokenId, targetX, targetY },
     );
 
-    const finalPosition = await page.evaluate(({ tokenId }) => {
-      const data = window.__HERO_BYTE_E2E__;
-      const token = data?.snapshot?.tokens?.find((entry) => entry.id === tokenId);
-      if (!token) return null;
-      return { x: token.x, y: token.y };
-    }, { tokenId });
+    const finalPosition = await page.evaluate(
+      ({ tokenId }) => {
+        const data = window.__HERO_BYTE_E2E__;
+        const token = data?.snapshot?.tokens?.find((entry) => entry.id === tokenId);
+        if (!token) return null;
+        return { x: token.x, y: token.y };
+      },
+      { tokenId },
+    );
 
     expect(finalPosition).toEqual({ x: startGridX + 1, y: startGridY });
   });

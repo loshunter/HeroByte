@@ -12,7 +12,7 @@ import { AuthService } from "../../domains/auth/service.js";
 import type { WebSocket, WebSocketServer } from "ws";
 import type { ClientMessage } from "@shared";
 import type { RoomState } from "../../domains/room/model.js";
-import { selectionMapToRecord } from "../../domains/room/model.js";
+import { createEmptyRoomState, selectionMapToRecord } from "../../domains/room/model.js";
 
 describe("MessageRouter", () => {
   let router: MessageRouter;
@@ -483,6 +483,125 @@ describe("MessageRouter", () => {
       expect(mockSelectionService.removeObject).toHaveBeenCalledWith(mockState, "draw-1");
       expect(mockSelectionService.removeObject).toHaveBeenCalledWith(mockState, "draw-2");
       expect(mockRoomService.broadcast).toHaveBeenCalled();
+    });
+  });
+
+  describe("Partial erase integration", () => {
+    let integrationState: RoomState;
+    let integrationRoomService: RoomService;
+    let integrationSelectionService: SelectionService;
+    let integrationMapService: MapService;
+    let integrationRouter: MessageRouter;
+    let broadcastSpy: Mock;
+
+    beforeEach(() => {
+      integrationState = createEmptyRoomState();
+      integrationState.players = [
+        {
+          uid: "player-1",
+          name: "Alice",
+          portrait: undefined,
+          isDM: false,
+          hp: 10,
+          maxHp: 10,
+          micLevel: 0,
+          lastHeartbeat: Date.now(),
+        },
+      ];
+
+      integrationSelectionService = new SelectionService();
+      integrationMapService = new MapService();
+
+      integrationRoomService = {
+        getState: () => integrationState,
+        broadcast: vi.fn(),
+        saveState: vi.fn(),
+        loadSnapshot: vi.fn(),
+        applySceneObjectTransform: vi.fn(() => true),
+      } as unknown as RoomService;
+      broadcastSpy = integrationRoomService.broadcast as unknown as Mock;
+
+      const playerService = mockPlayerService;
+      const tokenService = mockTokenService;
+      const diceService = mockDiceService;
+      const characterService = mockCharacterService;
+      const authService = mockAuthService;
+
+      integrationRouter = new MessageRouter(
+        integrationRoomService,
+        playerService,
+        tokenService,
+        integrationMapService,
+        diceService,
+        characterService,
+        integrationSelectionService,
+        authService,
+        mockWss,
+        mockUidToWs,
+        mockGetAuthorizedClients,
+      );
+    });
+
+    it("replaces the drawing with segments and clears selection", () => {
+      const originalDrawing = {
+        id: "drawing-1",
+        type: "freehand" as const,
+        points: [
+          { x: 0, y: 0 },
+          { x: 4, y: 0 },
+          { x: 8, y: 0 },
+        ],
+        color: "#00ff00",
+        width: 3,
+        opacity: 0.9,
+      };
+
+      integrationMapService.addDrawing(integrationState, originalDrawing, "player-1");
+      integrationSelectionService.selectObject(integrationState, "player-1", "drawing-1");
+
+      const segments = [
+        {
+          type: "freehand" as const,
+          points: [
+            { x: 0, y: 0 },
+            { x: 4, y: 0 },
+          ],
+          color: "#00ff00",
+          width: 3,
+          opacity: 0.9,
+          filled: false,
+        },
+        {
+          type: "freehand" as const,
+          points: [
+            { x: 4, y: 0 },
+            { x: 8, y: 0 },
+          ],
+          color: "#00ff00",
+          width: 3,
+          opacity: 0.9,
+          filled: false,
+        },
+      ];
+
+      const message: ClientMessage = {
+        t: "erase-partial",
+        deleteId: "drawing-1",
+        segments,
+      };
+
+      integrationRouter.route(message, "player-1");
+
+      expect(integrationState.drawings).toHaveLength(2);
+      const createdIds = integrationState.drawings.map((drawing) => drawing.id);
+      expect(new Set(createdIds).size).toBe(2);
+      expect(integrationState.drawings.every((drawing) => drawing.owner === "player-1")).toBe(true);
+      expect(integrationState.drawings.map((drawing) => drawing.points)).toEqual(
+        segments.map((segment) => segment.points),
+      );
+      expect(integrationState.drawings.some((drawing) => drawing.id === "drawing-1")).toBe(false);
+      expect(integrationState.selectionState.size).toBe(0);
+      expect(broadcastSpy).toHaveBeenCalled();
     });
   });
 

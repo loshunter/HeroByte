@@ -507,7 +507,9 @@ describe("App", () => {
 
     await waitFor(() => expect(latestDMMenuProps).not.toBeNull());
 
-    const onSetRoomPassword = latestDMMenuProps?.onSetRoomPassword as ((secret: string) => void) | undefined;
+    const onSetRoomPassword = latestDMMenuProps?.onSetRoomPassword as
+      | ((secret: string) => void)
+      | undefined;
     expect(onSetRoomPassword).toBeDefined();
 
     await act(async () => {

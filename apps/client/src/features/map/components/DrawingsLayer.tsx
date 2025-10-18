@@ -27,7 +27,10 @@ interface DrawingsLayerProps {
   onTransformDrawing: (sceneId: string, transform: { position?: { x: number; y: number } }) => void;
   selectedObjectId?: string | null;
   selectedObjectIds: string[];
-  onSelectObject?: (objectId: string | null, options?: { mode?: "replace" | "append" | "toggle" | "subtract" }) => void;
+  onSelectObject?: (
+    objectId: string | null,
+    options?: { mode?: "replace" | "append" | "toggle" | "subtract" },
+  ) => void;
   onDrawingNodeReady?: (drawingId: string, node: Konva.Node | null) => void;
 }
 

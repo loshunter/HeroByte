@@ -2,14 +2,19 @@ import { expect, test } from "@playwright/test";
 import { joinDefaultRoom } from "./helpers";
 
 test.describe("HeroByte multi-select and group lock", () => {
-  test("DM can select multiple tokens, lock them, and verify locked state persists", async ({ page }) => {
+  test("DM can select multiple tokens, lock them, and verify locked state persists", async ({
+    page,
+  }) => {
     await joinDefaultRoom(page);
 
     // Wait for initial token to appear
     await page.waitForFunction(() => {
       const data = window.__HERO_BYTE_E2E__;
       if (!data?.snapshot || !data.uid) return false;
-      return Array.isArray(data.snapshot.tokens) && data.snapshot.tokens.some((t) => t.owner === data.uid);
+      return (
+        Array.isArray(data.snapshot.tokens) &&
+        data.snapshot.tokens.some((t) => t.owner === data.uid)
+      );
     });
 
     // Enable DM mode
@@ -61,8 +66,8 @@ test.describe("HeroByte multi-select and group lock", () => {
       const data = window.__HERO_BYTE_E2E__;
       if (!data?.snapshot?.sceneObjects) return [];
 
-      const tokenObjects = data.snapshot.sceneObjects.filter((obj) =>
-        obj.type === "token" && obj.owner === data.uid
+      const tokenObjects = data.snapshot.sceneObjects.filter(
+        (obj) => obj.type === "token" && obj.owner === data.uid,
       );
 
       return tokenObjects.map((obj) => obj.id);

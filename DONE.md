@@ -161,6 +161,7 @@
   - [x] 99.02% coverage on TokenService
 
 ### Success Criteria Achieved
+
 - ✅ All tests written first (TDD methodology)
 - ✅ Tokens can be resized via UI settings menu
 - ✅ Size changes visible in real-time on map
@@ -206,6 +207,7 @@
   - [x] RollLog uses DraggableWindow (`storageKey="roll-log"`)
 
 ### Success Criteria Achieved
+
 - ✅ All menus use DraggableWindow component
 - ✅ Menu positions persist across page refreshes
 - ✅ PlayerSettingsMenu no longer causes EntitiesPanel scrolling

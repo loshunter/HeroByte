@@ -38,14 +38,11 @@ test.describe("HeroByte drawing tools", () => {
     await page.mouse.move(startX + 120, startY - 20, { steps: 12 });
     await page.mouse.up();
 
-    await page.waitForFunction(
-      (previousCount) => {
-        const data = window.__HERO_BYTE_E2E__;
-        const drawings = data?.snapshot?.drawings;
-        return Array.isArray(drawings) && drawings.length > previousCount;
-      },
-      initialCount,
-    );
+    await page.waitForFunction((previousCount) => {
+      const data = window.__HERO_BYTE_E2E__;
+      const drawings = data?.snapshot?.drawings;
+      return Array.isArray(drawings) && drawings.length > previousCount;
+    }, initialCount);
 
     const result = await page.evaluate(() => {
       const data = window.__HERO_BYTE_E2E__;

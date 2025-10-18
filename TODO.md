@@ -9,10 +9,12 @@ Ship a table-ready MVP to run live playtests with real players and a DM. Priorit
 ### Drawing & Selection Stability
 
 - [ ] **Partial erase completion**
-  - [ ] Finish unit coverage for `splitFreehandDrawing` (middle/start/end removal, no-intersection, near-miss, tiny segments).
-  - [ ] Implement the splitting utility and reuse it in the client eraser path.
-  - [ ] Wire shared schema + server handling (`erase-partial` validation, `RoomService.handlePartialErase`, state persistence).
+  - [x] Finish unit coverage for `splitFreehandDrawing` (middle/start/end removal, no-intersection, near-miss, tiny segments).
+  - [x] Implement the splitting utility and reuse it in the client eraser path.
+  - [x] Wire shared schema + server handling (`erase-partial` validation, `RoomService.handlePartialErase`, state persistence).
   - [ ] Add integration coverage in the message router and manual QA with two clients (erase + undo/redo sync).
+    - [x] Add integration coverage in the message router.
+    - [ ] Manual QA with two clients (erase + undo/redo sync). See `docs/manual-test-reports/2025-10-18-partial-erase.md` for step-by-step checklist.
 - [ ] **Multi-select readiness**
   - [ ] Surface a multi-select visual indicator (badge/outline, accessible colours).
   - [ ] Implement group lock/unlock and persist lock state in the scene graph.

@@ -43,8 +43,7 @@ export function JRPGPanel({
   );
 }
 
-interface JRPGButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface JRPGButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "default" | "primary" | "danger" | "success";
 }
 

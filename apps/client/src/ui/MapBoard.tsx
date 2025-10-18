@@ -603,10 +603,7 @@ export default function MapBoard({
       const nodeMaxY = rect.y + rect.height;
 
       const intersects =
-        nodeMinX <= maxX &&
-        nodeMaxX >= minX &&
-        nodeMinY <= maxY &&
-        nodeMaxY >= minY;
+        nodeMinX <= maxX && nodeMaxX >= minX && nodeMinY <= maxY && nodeMaxY >= minY;
 
       if (intersects) {
         matches.push(id);
@@ -762,29 +759,29 @@ export default function MapBoard({
             uid={uid}
             selectMode={selectMode}
             selectedDrawingId={selectedDrawingId}
-          onSelectDrawing={handleSelectDrawing}
-          onTransformDrawing={handleTransformDrawing}
-          selectedObjectId={selectedObjectId}
-          selectedObjectIds={selectedObjectIds}
-          onSelectObject={onSelectObject}
-          onDrawingNodeReady={handleDrawingNodeReady}
-        />
-        <TokensLayer
-          cam={cam}
+            onSelectDrawing={handleSelectDrawing}
+            onTransformDrawing={handleTransformDrawing}
+            selectedObjectId={selectedObjectId}
+            selectedObjectIds={selectedObjectIds}
+            onSelectObject={onSelectObject}
+            onDrawingNodeReady={handleDrawingNodeReady}
+          />
+          <TokensLayer
+            cam={cam}
             sceneObjects={sceneObjects}
             uid={uid}
             gridSize={grid.size}
             hoveredTokenId={hoveredTokenId}
             onHover={setHoveredTokenId}
             onTransformToken={handleTransformToken}
-          onRecolorToken={handleRecolorToken}
-          snapToGrid={snapToGrid}
-          selectedObjectId={selectedObjectId}
-          selectedObjectIds={selectedObjectIds}
-          onSelectObject={onSelectObject}
-          onTokenNodeReady={handleTokenNodeReady}
-          interactionsEnabled={tokenInteractionsEnabled}
-        />
+            onRecolorToken={handleRecolorToken}
+            snapToGrid={snapToGrid}
+            selectedObjectId={selectedObjectId}
+            selectedObjectIds={selectedObjectIds}
+            onSelectObject={onSelectObject}
+            onTokenNodeReady={handleTokenNodeReady}
+            interactionsEnabled={tokenInteractionsEnabled}
+          />
         </Layer>
 
         {/* Overlay Layer: Pointers and measure tool (top-most) */}

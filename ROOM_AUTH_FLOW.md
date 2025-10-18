@@ -3,12 +3,14 @@
 This document sketches the minimal changes needed to introduce a shared room password into HeroByte while keeping the door open for richer auth later.
 
 ## Goals
+
 - Require a password before a client can participate in the shared room state.
 - Keep the server authoritative: only authenticated sessions can mutate or read room data.
 - Avoid persisting the password in snapshots or logs.
 - Support future evolution to per-room IDs and per-user tokens.
 
 ## High-Level Handshake
+
 1. **Client boot**
    - Prompt user for the room password (modal). Persist in `sessionStorage` for the tab.
    - Create WebSocket connection as today, but hold gameplay actions until auth completes.
@@ -27,6 +29,7 @@ This document sketches the minimal changes needed to introduce a shared room pas
    - Regular heartbeat continues; if disconnected, client retries with stored secret.
 
 ## Data Structures & Config
+
 - **Server**
   - Add `AuthenticatedSession` map (`uid -> { roomId, authedAt }`).
   - Load expected secret from `process.env.HEROBYTE_ROOM_SECRET` (MVP default fallback for dev).
@@ -37,7 +40,9 @@ This document sketches the minimal changes needed to introduce a shared room pas
   - Store auth status in hook state so UI can gate access or show loading.
 
 ## Message Contract Changes
+
 Update `packages/shared/src/index.ts` to include:
+
 ```ts
 | { t: "authenticate"; secret: string; roomId?: string }
 | { t: "auth-ok" }
@@ -47,6 +52,7 @@ Update `packages/shared/src/index.ts` to include:
 Server will reply with `auth-ok` or `auth-failed` before broadcasting the first snapshot. Snapshots are only pushed to authenticated sockets.
 
 ## Server Flow Adjustments
+
 - `ConnectionHandler.handleConnection`
   - Mark new connections as unauthenticated and skip `createPlayer`/`createToken` until auth passes.
   - Do not broadcast room state to them yet.
@@ -59,6 +65,7 @@ Server will reply with `auth-ok` or `auth-failed` before broadcasting the first 
   - Filter out unauthenticated clients to avoid leaking room state.
 
 ## Client Flow Adjustments
+
 - `useWebSocket`
   - Add `authenticate(secret)` helper that sends the auth message and resolves when `auth-ok` arrives.
   - Buffer outbound messages while `authPending` is true.
@@ -68,11 +75,13 @@ Server will reply with `auth-ok` or `auth-failed` before broadcasting the first 
   - Call `authenticate` before enabling UI features. Show error toast if `auth-failed`.
 
 ## Error Handling & UX
+
 - On `auth-failed`, client clears stored secret and re-prompts.
 - Server logs failed attempts with the `uid` and source IP (if available) but never logs the secret value.
 - After N failures (configurable, e.g., 5), server adds a temporary penalty delay before allowing the same IP/uid to retry.
 
 ## Future Enhancements
+
 - Replace shared secret with per-room secrets stored with room metadata.
 - Issue short-lived signed tokens after password entry to avoid resending secrets.
 - Integrate invite links (`wss://.../connect?roomId=abc&token=...`).

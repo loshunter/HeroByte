@@ -151,6 +151,7 @@ pnpm install
 ```
 
 This script:
+
 - Cleans up any stuck processes/ports
 - Builds the backend
 - Starts both servers in the correct order
@@ -169,6 +170,7 @@ pnpm dev:client
 **Port Issues?**
 
 If you get "port already in use" errors:
+
 ```bash
 ./kill-ports.sh  # Cleans up stuck processes
 ```
@@ -176,6 +178,7 @@ If you get "port already in use" errors:
 See [PORT_MANAGEMENT.md](PORT_MANAGEMENT.md) for detailed troubleshooting.
 
 **Access the Application:**
+
 - Frontend: `http://localhost:5173`
 - Backend: `http://localhost:8787`
 - Default Password: `Fun1` (change it via DM Menu ▶ Session ▶ Room Security or by setting `HEROBYTE_ROOM_SECRET`)
@@ -343,6 +346,7 @@ pnpm test:server    # Server logic (80.99% coverage)
 ### Chrome DevTools MCP Integration
 
 For advanced E2E testing with browser automation, HeroByte supports Chrome DevTools MCP:
+
 - Performance profiling and benchmarking
 - Visual regression testing
 - Multi-client synchronization validation
