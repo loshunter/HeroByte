@@ -5,6 +5,13 @@ type Point = { x: number; y: number };
 
 const RAD_PER_DEG = Math.PI / 180;
 
+interface BoundingBox {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+}
+
 function applyTransform(point: Point, transform: SceneObjectTransform): Point {
   const scaleX = transform.scaleX ?? 1;
   const scaleY = transform.scaleY ?? 1;
@@ -100,6 +107,133 @@ function buildSegmentFromPoints(
   };
 }
 
+function computeBoundingBox(points: Point[]): BoundingBox {
+  let minX = points[0]!.x;
+  let maxX = points[0]!.x;
+  let minY = points[0]!.y;
+  let maxY = points[0]!.y;
+
+  for (let index = 1; index < points.length; index++) {
+    const { x, y } = points[index]!;
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  }
+
+  return { minX, maxX, minY, maxY };
+}
+
+function expandBoundingBox(box: BoundingBox, amount: number): BoundingBox {
+  return {
+    minX: box.minX - amount,
+    maxX: box.maxX + amount,
+    minY: box.minY - amount,
+    maxY: box.maxY + amount,
+  };
+}
+
+function boxesIntersect(a: BoundingBox, b: BoundingBox): boolean {
+  return !(a.maxX < b.minX || a.minX > b.maxX || a.maxY < b.minY || a.minY > b.maxY);
+}
+
+function createPointBoundingBox(point: Point): BoundingBox {
+  return { minX: point.x, maxX: point.x, minY: point.y, maxY: point.y };
+}
+
+function computeSegmentBounds(start: Point, end: Point, expansion: number): BoundingBox {
+  const bounds = computeBoundingBox([start, end]);
+  return expandBoundingBox(bounds, expansion);
+}
+
+function orientation(a: Point, b: Point, c: Point): number {
+  const value = (b.y - a.y) * (c.x - b.x) - (b.x - a.x) * (c.y - b.y);
+  if (value === 0) return 0;
+  return value > 0 ? 1 : -1;
+}
+
+function onSegment(a: Point, b: Point, c: Point): boolean {
+  return (
+    Math.min(a.x, b.x) <= c.x &&
+    c.x <= Math.max(a.x, b.x) &&
+    Math.min(a.y, b.y) <= c.y &&
+    c.y <= Math.max(a.y, b.y)
+  );
+}
+
+function segmentsIntersect(p1: Point, p2: Point, q1: Point, q2: Point): boolean {
+  const o1 = orientation(p1, p2, q1);
+  const o2 = orientation(p1, p2, q2);
+  const o3 = orientation(q1, q2, p1);
+  const o4 = orientation(q1, q2, p2);
+
+  if (o1 !== o2 && o3 !== o4) {
+    return true;
+  }
+
+  if (o1 === 0 && onSegment(p1, p2, q1)) return true;
+  if (o2 === 0 && onSegment(p1, p2, q2)) return true;
+  if (o3 === 0 && onSegment(q1, q2, p1)) return true;
+  if (o4 === 0 && onSegment(q1, q2, p2)) return true;
+
+  return false;
+}
+
+function segmentDistance(
+  p1: Point,
+  p2: Point,
+  q1: Point,
+  q2: Point,
+  pointDistance: (px: number, py: number, x1: number, y1: number, x2: number, y2: number) => number,
+): number {
+  if (segmentsIntersect(p1, p2, q1, q2)) {
+    return 0;
+  }
+
+  const distances = [
+    pointDistance(p1.x, p1.y, q1.x, q1.y, q2.x, q2.y),
+    pointDistance(p2.x, p2.y, q1.x, q1.y, q2.x, q2.y),
+    pointDistance(q1.x, q1.y, p1.x, p1.y, p2.x, p2.y),
+    pointDistance(q2.x, q2.y, p1.x, p1.y, p2.x, p2.y),
+  ];
+
+  return Math.min(...distances);
+}
+
+interface SegmentCandidate {
+  start: Point;
+  end: Point;
+  bounds: BoundingBox;
+}
+
+function buildSegments(points: Point[], expansion: number, fallbackRadius: number): SegmentCandidate[] {
+  if (points.length === 0) {
+    return [];
+  }
+
+  if (points.length === 1) {
+    return [
+      {
+        start: points[0]!,
+        end: points[0]!,
+        bounds: expandBoundingBox(createPointBoundingBox(points[0]!), fallbackRadius),
+      },
+    ];
+  }
+
+  const segments: SegmentCandidate[] = [];
+  for (let index = 0; index < points.length - 1; index++) {
+    const start = points[index]!;
+    const end = points[index + 1]!;
+    segments.push({
+      start,
+      end,
+      bounds: computeSegmentBounds(start, end, expansion),
+    });
+  }
+  return segments;
+}
+
 export function splitFreehandDrawing(
   drawingObject: DrawingSceneObject,
   eraserPath: Point[],
@@ -134,21 +268,33 @@ export function splitFreehandDrawing(
   const drawingStrokeWidth = computeStrokeWidthInWorld(drawing.width, transform);
   const hitRadius = (drawingStrokeWidth + eraserWidth) / 2;
 
-  const shouldEraseSegment: boolean[] = new Array(points.length - 1).fill(false);
+  const drawingBounds = expandBoundingBox(computeBoundingBox(worldPoints), hitRadius);
+  const eraserBounds = expandBoundingBox(computeBoundingBox(eraserPath), eraserWidth / 2);
 
-  for (let segmentIndex = 0; segmentIndex < worldPoints.length - 1; segmentIndex++) {
-    const start = worldPoints[segmentIndex];
-    const end = worldPoints[segmentIndex + 1];
+  if (!boxesIntersect(drawingBounds, eraserBounds)) {
+    return [buildSegmentFromPoints(template, points)];
+  }
 
-    for (const eraserPoint of eraserPath) {
-      const distance = pointToSegmentDistance(
-        eraserPoint.x,
-        eraserPoint.y,
-        start.x,
-        start.y,
-        end.x,
-        end.y,
+  const eraserSegments = buildSegments(eraserPath, hitRadius, eraserWidth / 2);
+  const drawingSegments = buildSegments(worldPoints, hitRadius, hitRadius);
+  const shouldEraseSegment: boolean[] = new Array(drawingSegments.length).fill(false);
+
+  for (let segmentIndex = 0; segmentIndex < drawingSegments.length; segmentIndex++) {
+    const segment = drawingSegments[segmentIndex]!;
+
+    for (const eraserSegment of eraserSegments) {
+      if (!boxesIntersect(segment.bounds, eraserSegment.bounds)) {
+        continue;
+      }
+
+      const distance = segmentDistance(
+        segment.start,
+        segment.end,
+        eraserSegment.start,
+        eraserSegment.end,
+        pointToSegmentDistance,
       );
+
       if (distance < hitRadius) {
         shouldEraseSegment[segmentIndex] = true;
         break;
