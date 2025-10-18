@@ -47,9 +47,11 @@ export class PlayerService {
   setPortrait(state: RoomState, uid: string, portraitData: string): boolean {
     const player = this.findPlayer(state, uid);
     if (player) {
+      console.log(`[PlayerService] Setting portrait for ${player.name} (${uid}): ${portraitData.substring(0, 50)}...`);
       player.portrait = portraitData;
       return true;
     }
+    console.warn(`[PlayerService] Player not found for UID: ${uid}`);
     return false;
   }
 

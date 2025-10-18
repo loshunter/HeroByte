@@ -690,6 +690,7 @@ function AuthenticatedApp({
   };
 
   const setPortraitURL = (url: string) => {
+    console.log(`[App] Setting portrait URL: ${url.substring(0, 50)}...`);
     sendMessage({ t: "portrait", data: url });
   };
 
