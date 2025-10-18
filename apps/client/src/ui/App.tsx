@@ -927,7 +927,7 @@ function AuthenticatedApp({
   );
 
   const handleSetPlayerStagingZone = useCallback(
-    (zone: PlayerStagingZone | null) => {
+    (zone: PlayerStagingZone | undefined) => {
       sendMessage({ t: "set-player-staging-zone", zone });
     },
     [sendMessage],
@@ -1400,7 +1400,7 @@ function AuthenticatedApp({
         onClearDrawings={handleClearDrawings}
         onSetMapBackground={setMapBackgroundURL}
         mapBackground={snapshot?.mapBackground}
-        playerStagingZone={snapshot?.playerStagingZone ?? null}
+        playerStagingZone={snapshot?.playerStagingZone}
         onSetPlayerStagingZone={handleSetPlayerStagingZone}
         playerCount={snapshot?.players?.length ?? 0}
         characters={snapshot?.characters || []}

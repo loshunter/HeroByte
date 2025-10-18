@@ -192,14 +192,14 @@ export default function MapBoard({
     }
 
     return {
-      centerX: (stagingZoneObject.transform.x + 0.5) * grid.size,
-      centerY: (stagingZoneObject.transform.y + 0.5) * grid.size,
-      widthPx: stagingZoneObject.data.width * grid.size,
-      heightPx: stagingZoneObject.data.height * grid.size,
+      centerX: (stagingZoneObject.transform.x + 0.5) * gridSize,
+      centerY: (stagingZoneObject.transform.y + 0.5) * gridSize,
+      widthPx: stagingZoneObject.data.width * gridSize,
+      heightPx: stagingZoneObject.data.height * gridSize,
       rotation: stagingZoneObject.transform.rotation,
       label: stagingZoneObject.data.label ?? "Player Staging Zone",
     };
-  }, [grid.size, stagingZoneObject]);
+  }, [gridSize, stagingZoneObject]);
 
   // Transform gizmo state
   const selectedObjectNodeRef = useRef<Konva.Node | null>(null);

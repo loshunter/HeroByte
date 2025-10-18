@@ -22,8 +22,8 @@ interface DMMenuProps {
   onClearDrawings: () => void;
   onSetMapBackground: (url: string) => void;
   mapBackground?: string;
-  playerStagingZone?: PlayerStagingZone | null;
-  onSetPlayerStagingZone?: (zone: PlayerStagingZone | null) => void;
+  playerStagingZone?: PlayerStagingZone;
+  onSetPlayerStagingZone?: (zone: PlayerStagingZone | undefined) => void;
   playerCount: number;
   characters: Character[];
   onRequestSaveSession?: (sessionName: string) => void;
@@ -417,7 +417,7 @@ export function DMMenu({
 
   const handleStagingZoneClear = () => {
     if (!onSetPlayerStagingZone) return;
-    onSetPlayerStagingZone(null);
+    onSetPlayerStagingZone(undefined);
   };
 
   const handleStagingZoneCenterOnMap = () => {

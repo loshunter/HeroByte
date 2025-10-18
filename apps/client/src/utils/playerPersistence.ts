@@ -18,6 +18,8 @@ interface SavePlayerStateParams {
 const TOKEN_SIZES: TokenSize[] = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
 const MAX_DRAWINGS = 200;
 const MAX_DRAWING_POINTS = 10_000;
+const VALID_DRAWING_TYPES = ["circle", "line", "rect", "freehand", "eraser"] as const;
+type ValidDrawingType = (typeof VALID_DRAWING_TYPES)[number];
 
 function sanitizeFilenameSegment(value: string): string {
   return value.replace(/[^a-z0-9-_]+/gi, "-").replace(/-+/g, "-");
@@ -127,8 +129,10 @@ function sanitizeDrawingFromImport(raw: unknown, index: number): Drawing | null 
 
   const id =
     typeof raw.id === "string" && raw.id.trim().length > 0 ? raw.id.trim() : generateId();
-  const type =
-    typeof raw.type === "string" && raw.type.trim().length > 0 ? raw.type.trim() : "freehand";
+  const typeRaw = typeof raw.type === "string" ? raw.type.trim() : "";
+  const type: ValidDrawingType = VALID_DRAWING_TYPES.includes(typeRaw as ValidDrawingType)
+    ? (typeRaw as ValidDrawingType)
+    : "freehand";
 
   if (!Array.isArray(raw.points) || raw.points.length === 0) {
     console.warn(`Skipping drawing[${index}] - missing points array`);

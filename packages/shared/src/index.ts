@@ -369,7 +369,7 @@ export type ClientMessage =
   | { t: "delete-drawing"; id: string } // Delete a specific drawing
   | { t: "erase-partial"; deleteId: string; segments: DrawingSegmentPayload[] } // Partially erase a freehand drawing
   | { t: "sync-player-drawings"; drawings: Drawing[] } // Replace player's drawings with provided set
-  | { t: "set-player-staging-zone"; zone: PlayerStagingZone | null } // DM sets/clears player staging zone
+  | { t: "set-player-staging-zone"; zone: PlayerStagingZone | undefined } // DM sets/clears player staging zone
 
   // Dice rolls
   | { t: "dice-roll"; roll: DiceRoll } // Broadcast a dice roll

@@ -22,9 +22,9 @@ export class RoomService {
     this.rebuildSceneGraph();
   }
 
-  private sanitizeStagingZone(zone: unknown): PlayerStagingZone | null {
+  private sanitizeStagingZone(zone: unknown): PlayerStagingZone | undefined {
     if (!zone || typeof zone !== "object") {
-      return null;
+      return undefined;
     }
     const candidate = zone as Partial<PlayerStagingZone>;
     const x = Number(candidate.x);
@@ -32,7 +32,7 @@ export class RoomService {
     const width = Number(candidate.width);
     const height = Number(candidate.height);
     if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(width) || !Number.isFinite(height)) {
-      return null;
+      return undefined;
     }
     const normalized: PlayerStagingZone = {
       x,
@@ -539,7 +539,7 @@ export class RoomService {
   /**
    * Set or clear the player staging zone
    */
-  setPlayerStagingZone(zone: PlayerStagingZone | null): boolean {
+  setPlayerStagingZone(zone: PlayerStagingZone | undefined): boolean {
     const sanitized = this.sanitizeStagingZone(zone);
     this.state.playerStagingZone = sanitized;
     this.rebuildSceneGraph();

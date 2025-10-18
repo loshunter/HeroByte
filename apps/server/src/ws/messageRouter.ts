@@ -269,7 +269,7 @@ export class MessageRouter {
           if (!sender?.isDM) {
             break;
           }
-          if (this.roomService.setPlayerStagingZone(message.zone ?? null)) {
+          if (this.roomService.setPlayerStagingZone(message.zone)) {
             this.broadcast();
             this.roomService.saveState();
           }

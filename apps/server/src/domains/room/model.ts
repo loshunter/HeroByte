@@ -38,7 +38,7 @@ export interface RoomState {
   drawingRedoStacks: Record<string, DrawingOperation[]>; // Per-player redo history
   sceneObjects: SceneObject[]; // Unified scene graph
   selectionState: SelectionStateMap; // Current object selections keyed by player UID
-  playerStagingZone: PlayerStagingZone | null; // Spawn area for player tokens
+  playerStagingZone?: PlayerStagingZone; // Spawn area for player tokens
 }
 
 /**
@@ -60,7 +60,7 @@ export function createEmptyRoomState(): RoomState {
     drawingRedoStacks: {},
     sceneObjects: [],
     selectionState: createSelectionMap(),
-    playerStagingZone: null,
+    playerStagingZone: undefined,
   };
 }
 

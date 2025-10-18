@@ -58,7 +58,7 @@ describe("MessageRouter", () => {
       drawingRedoStacks: {},
       sceneObjects: [],
       selectionState: new Map() as RoomState["selectionState"],
-      playerStagingZone: null,
+      playerStagingZone: undefined,
     };
 
     // Mock services
