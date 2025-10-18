@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Player } from "@shared";
 import { MapService } from "../map/service.js";
+import type { DrawingOperation } from "../map/types.js";
 import { createEmptyRoomState } from "../room/model.js";
 
 const baseDrawing = () => ({
@@ -112,7 +113,9 @@ describe("MapService", () => {
       opacity: 0.8,
     };
     service.addDrawing(state, original, "uid-1");
-    state.drawingRedoStacks["uid-1"] = [{ ...original, owner: "uid-1" }];
+    state.drawingRedoStacks["uid-1"] = [
+      { type: "add", drawing: { ...original, owner: "uid-1" } },
+    ] satisfies DrawingOperation[];
 
     const segments = [
       {
@@ -168,5 +171,149 @@ describe("MapService", () => {
 
     service.addDrawing(state, baseDrawing(), "owner-2");
     expect(service.handlePartialErase(state, "drawing-1", segments, "uid-1")).toBe(false);
+  });
+
+  it("treats partial erase as an undoable batch operation", () => {
+    const state = createEmptyRoomState();
+    const original = {
+      id: "drawing-1",
+      type: "freehand" as const,
+      points: [
+        { x: 0, y: 0 },
+        { x: 4, y: 0 },
+        { x: 8, y: 0 },
+      ],
+      color: "#00ff00",
+      width: 2,
+      opacity: 1,
+    };
+    service.addDrawing(state, original, "uid-1");
+
+    const segments = [
+      {
+        type: "freehand" as const,
+        points: [
+          { x: 0, y: 0 },
+          { x: 4, y: 0 },
+        ],
+        color: "#00ff00",
+        width: 2,
+        opacity: 1,
+      },
+      {
+        type: "freehand" as const,
+        points: [
+          { x: 4, y: 0 },
+          { x: 8, y: 0 },
+        ],
+        color: "#00ff00",
+        width: 2,
+        opacity: 1,
+      },
+    ];
+
+    expect(service.handlePartialErase(state, "drawing-1", segments, "uid-1")).toBe(true);
+    expect(state.drawings).toHaveLength(2);
+
+    expect(service.undoDrawing(state, "uid-1")).toBe(true);
+    expect(state.drawings).toHaveLength(1);
+    expect(state.drawings[0]?.id).toBe("drawing-1");
+    expect(state.drawings[0]?.points).toEqual(original.points);
+
+    expect(service.redoDrawing(state, "uid-1")).toBe(true);
+    expect(state.drawings).toHaveLength(2);
+    expect(state.drawings.every((d) => d.type === "freehand")).toBe(true);
+    expect(state.drawings.map((d) => d.points)).toEqual(segments.map((segment) => segment.points));
+  });
+
+  it("restores a completely erased drawing on undo", () => {
+    const state = createEmptyRoomState();
+    const original = {
+      id: "drawing-1",
+      type: "freehand" as const,
+      points: [
+        { x: 0, y: 0 },
+        { x: 10, y: 0 },
+      ],
+      color: "#ff00ff",
+      width: 2,
+      opacity: 1,
+    };
+    service.addDrawing(state, original, "uid-1");
+
+    expect(service.handlePartialErase(state, "drawing-1", [], "uid-1")).toBe(true);
+    expect(state.drawings).toHaveLength(0);
+
+    expect(service.undoDrawing(state, "uid-1")).toBe(true);
+    expect(state.drawings).toHaveLength(1);
+    expect(state.drawings[0]?.id).toBe("drawing-1");
+
+    expect(service.redoDrawing(state, "uid-1")).toBe(true);
+    expect(state.drawings).toHaveLength(0);
+  });
+
+  it("supports multiple undo and redo cycles without losing history", () => {
+    const state = createEmptyRoomState();
+    const original = {
+      id: "drawing-1",
+      type: "freehand" as const,
+      points: [
+        { x: 0, y: 0 },
+        { x: 6, y: 0 },
+      ],
+      color: "#ffaa00",
+      width: 3,
+      opacity: 0.9,
+    };
+    service.addDrawing(state, original, "uid-1");
+
+    const segments = [
+      {
+        type: "freehand" as const,
+        points: [
+          { x: 0, y: 0 },
+          { x: 3, y: 0 },
+        ],
+        color: "#ffaa00",
+        width: 3,
+        opacity: 0.9,
+      },
+      {
+        type: "freehand" as const,
+        points: [
+          { x: 3, y: 0 },
+          { x: 6, y: 0 },
+        ],
+        color: "#ffaa00",
+        width: 3,
+        opacity: 0.9,
+      },
+    ];
+
+    expect(service.handlePartialErase(state, "drawing-1", segments, "uid-1")).toBe(true);
+    expect(state.drawings).toHaveLength(2);
+
+    // Undo 1: restore original
+    expect(service.undoDrawing(state, "uid-1")).toBe(true);
+    expect(state.drawings).toHaveLength(1);
+    expect(state.drawings[0]?.points).toEqual(original.points);
+
+    // Undo 2: remove original add
+    expect(service.undoDrawing(state, "uid-1")).toBe(true);
+    expect(state.drawings).toHaveLength(0);
+
+    // Redo 1: restore original add
+    expect(service.redoDrawing(state, "uid-1")).toBe(true);
+    expect(state.drawings).toHaveLength(1);
+
+    // Redo 2: replay partial erase segments
+    expect(service.redoDrawing(state, "uid-1")).toBe(true);
+    expect(state.drawings).toHaveLength(2);
+    expect(state.drawings.map((d) => d.points)).toEqual(segments.map((s) => s.points));
+
+    // Final undo cycle returns to pristine state
+    expect(service.undoDrawing(state, "uid-1")).toBe(true);
+    expect(service.undoDrawing(state, "uid-1")).toBe(true);
+    expect(state.drawings).toHaveLength(0);
   });
 });

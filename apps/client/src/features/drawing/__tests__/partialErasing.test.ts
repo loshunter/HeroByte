@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Drawing, SceneObject } from "@shared";
 import { splitFreehandDrawing } from "../utils/splitFreehandDrawing";
 
@@ -124,8 +124,8 @@ describe("splitFreehandDrawing", () => {
     expect(segments).toEqual([]);
   });
 
-  it("handles multiple erase passes and returns three segments", () => {
-    const drawing = createSceneDrawing([
+  it("handles multiple erase passes across separate strokes", () => {
+    const basePoints: DrawingPoint[] = [
       { x: 0, y: 0 },
       { x: 2, y: 0 },
       { x: 4, y: 0 },
@@ -133,28 +133,43 @@ describe("splitFreehandDrawing", () => {
       { x: 8, y: 0 },
       { x: 10, y: 0 },
       { x: 12, y: 0 },
-    ]);
+    ];
+    const drawing = createSceneDrawing(basePoints);
 
-    const segments = splitFreehandDrawing(
-      drawing,
-      [
-        { x: 3, y: 0 },
-        { x: 9, y: 0 },
-      ],
-      1,
-    );
+    // First pass removes the join near x = 3, splitting drawing into left + right halves
+    const firstPassSegments = splitFreehandDrawing(drawing, [{ x: 3, y: 0 }], 1);
+    expect(firstPassSegments).toHaveLength(2);
 
-    expect(segments).toHaveLength(3);
-    expect(segments[0]?.points).toEqual([
+    const leftSegment = firstPassSegments[0];
+    const rightSegment = firstPassSegments[1];
+    expect(leftSegment?.points).toEqual([
       { x: 0, y: 0 },
       { x: 2, y: 0 },
     ]);
-    expect(segments[1]?.points).toEqual([
+    expect(rightSegment?.points).toEqual([
+      { x: 4, y: 0 },
+      { x: 6, y: 0 },
+      { x: 8, y: 0 },
+      { x: 10, y: 0 },
+      { x: 12, y: 0 },
+    ]);
+
+    // Second pass operates on the right-hand segment near x = 9
+    const rightSceneObject = createSceneDrawing(rightSegment!.points);
+    const secondPassSegments = splitFreehandDrawing(rightSceneObject, [{ x: 9, y: 0 }], 1);
+
+    const finalSegments = [leftSegment, ...secondPassSegments];
+    expect(finalSegments).toHaveLength(3);
+    expect(finalSegments[0]?.points).toEqual([
+      { x: 0, y: 0 },
+      { x: 2, y: 0 },
+    ]);
+    expect(finalSegments[1]?.points).toEqual([
       { x: 4, y: 0 },
       { x: 6, y: 0 },
       { x: 8, y: 0 },
     ]);
-    expect(segments[2]?.points).toEqual([
+    expect(finalSegments[2]?.points).toEqual([
       { x: 10, y: 0 },
       { x: 12, y: 0 },
     ]);
@@ -268,5 +283,53 @@ describe("splitFreehandDrawing", () => {
       { x: 0, y: 0 },
       { x: 5, y: 0 },
     ]);
+  });
+
+  it("avoids distance checks when eraser bounds do not intersect", () => {
+    const drawing = createSceneDrawing([
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+    ]);
+
+    const sqrtSpy = vi.spyOn(Math, "sqrt");
+    const segments = splitFreehandDrawing(
+      drawing,
+      [
+        { x: 50, y: 50 },
+        { x: 60, y: 60 },
+      ],
+      2,
+    );
+    sqrtSpy.mockRestore();
+
+    expect(segments).toHaveLength(1);
+    expect(segments[0]?.points).toEqual([
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+    ]);
+    expect(sqrtSpy).not.toHaveBeenCalled();
+  });
+
+  it("handles large drawings efficiently while preserving accuracy", () => {
+    const densePoints: DrawingPoint[] = Array.from({ length: 2_001 }, (_, index) => ({
+      x: index,
+      y: 0,
+    }));
+    const drawing = createSceneDrawing(densePoints, {
+      drawing: { width: 4, opacity: 1 },
+    });
+
+    const eraserPath = [
+      { x: 900, y: -5 },
+      { x: 1_100, y: 5 },
+    ];
+
+    const segments = splitFreehandDrawing(drawing, eraserPath, 10);
+
+    expect(segments).toHaveLength(2);
+    expect(segments[0]?.points[0]).toEqual({ x: 0, y: 0 });
+    expect(segments[0]?.points.at(-1)).toEqual({ x: 895, y: 0 });
+    expect(segments[1]?.points[0]).toEqual({ x: 1_105, y: 0 });
+    expect(segments[1]?.points.at(-1)).toEqual({ x: 2_000, y: 0 });
   });
 });

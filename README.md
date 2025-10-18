@@ -190,7 +190,8 @@ Tests rely on Vitest across packages, so the first run may take a moment while c
 - **WebSocket refuses connections** – Confirm the backend is running on `http://localhost:8787`. When tunneling or using a non-default origin, set `VITE_WS_URL` so the client knows the correct WebSocket endpoint.
 - **Voice chat fails in Chrome** – WebRTC requires secure origins; use `https://` (Cloudflare tunnel, `mkcert`, or run against the hosted demo). Self-signed certificates must be trusted locally.
 - **Tests fail with missing state file** – Delete `apps/server/herobyte-state.json` if a previous run left a partial snapshot, then re-run `pnpm test`. The server suite stubs disk access and will regenerate a clean file.
-- **“Room secret not set” warning** – Set `HEROBYTE_ROOM_SECRET` in `.env` to avoid falling back to the insecure development secret when running long-lived sessions.
+- **"Room secret not set" warning** – Set `HEROBYTE_ROOM_SECRET` in `.env` to avoid falling back to the insecure development secret when running long-lived sessions.
+- **Map images don't load (CORS errors)** – Some image hosts block cross-origin requests. Use CORS-friendly hosting like Discord CDN, Imgur, or Cloudinary. Upload your image to Discord, right-click → "Copy Link", and paste that URL as your map background.
 
 ## Project Structure
 

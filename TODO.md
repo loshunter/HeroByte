@@ -179,34 +179,34 @@ _Completed phase summaries now live in [DONE.md](DONE.md)._
   - [ ] Handle case where splitting produces no segments (full deletion)
   - [ ] Run tests - client integration tests should PASS (green phase) ✅
 
-- [ ] **Phase 9: TDD - Undo/Redo Tests**
-  - [ ] Add test: Undo partial erase restores original, deletes segments
-  - [ ] Add test: Redo partial erase deletes original, creates segments
-  - [ ] Add test: Batch operation tracked as single undo item
-  - [ ] Add test: Multiple undo/redo cycles work correctly
-  - [ ] Run tests - all should FAIL (red phase) ❌
+- [x] **Phase 9: TDD - Undo/Redo Tests**
+  - [x] Add test: Undo partial erase restores original, deletes segments
+  - [x] Add test: Redo partial erase deletes original, creates segments
+  - [x] Add test: Batch operation tracked as single undo item
+  - [x] Add test: Multiple undo/redo cycles work correctly
+  - [x] Run tests - all should FAIL (red phase) ❌
 
-- [ ] **Phase 10: TDD - Implement Undo/Redo**
-  - [ ] Extend undo stack to support batch operations
-  - [ ] Track erase-partial as atomic undo operation
-  - [ ] Implement undo: delete segments, restore original
-  - [ ] Implement redo: delete original, recreate segments
-  - [ ] Run tests - undo/redo tests should PASS (green phase) ✅
+- [x] **Phase 10: TDD - Implement Undo/Redo**
+  - [x] Extend undo stack to support batch operations
+  - [x] Track erase-partial as atomic undo operation
+  - [x] Implement undo: delete segments, restore original
+  - [x] Implement redo: delete original, recreate segments
+  - [x] Run tests - undo/redo tests should PASS (green phase) ✅
 
-- [ ] **Phase 11: Refactor & Optimize**
-  - [ ] Refactor: Extract helper functions for clarity
-  - [ ] Optimize: Add bounding box checks before distance calculations
-  - [ ] Optimize: Spatial optimization for large drawings (500+ points)
-  - [ ] Profile performance with large test drawings
-  - [ ] Run all tests - ensure no regressions (green phase maintained) ✅
+- [x] **Phase 11: Refactor & Optimize**
+  - [x] Refactor: Extract helper functions for clarity
+  - [x] Optimize: Add bounding box checks before distance calculations
+  - [x] Optimize: Spatial optimization for large drawings (500+ points)
+  - [x] Profile performance with large test drawings
+  - [x] Run all tests - ensure no regressions (green phase maintained) ✅
 
 - [ ] **Phase 12: Final Validation**
-  - [ ] Run full test suite (unit + integration)
-  - [ ] Manual testing: Erase middle of sketch in UI
-  - [ ] Manual testing: Undo/redo works as expected
-  - [ ] Manual testing: Multiple clients see same result
+  - [x] Run full test suite (unit + integration)
+  - [x] Manual testing: Erase middle of sketch in UI
+  - [x] Manual testing: Undo/redo works as expected
+  - [x] Manual testing: Multiple clients see same result
   - [ ] Code review and documentation
-  - [ ] Verify all tests passing: `pnpm test` ✅
+  - [x] Verify all tests passing: `pnpm test` ✅
   - [ ] Verify coverage maintained >80%
   - [ ] Commit with comprehensive test results in commit message
 
