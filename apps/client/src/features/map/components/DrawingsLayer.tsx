@@ -143,7 +143,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
       selectedDrawingId === drawing.id;
     const isOwner = !drawing.owner || drawing.owner === uid;
     const selectionEnabled = selectMode || transformMode;
-    const canInteract = selectionEnabled && isOwner;
+    const canInteract = selectionEnabled && (isOwner || transformMode);
     const canShowSelection = selectionEnabled; // Show selection outlines when selection or transform tools are active
     const isDragging = draggingId === sceneObject.id;
 
