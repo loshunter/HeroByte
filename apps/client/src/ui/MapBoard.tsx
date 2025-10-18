@@ -812,6 +812,7 @@ export default function MapBoard({
             currentFilled={drawFilled}
             uid={uid}
             selectMode={selectMode}
+            transformMode={transformMode}
             selectedDrawingId={selectedDrawingId}
             onSelectDrawing={handleSelectDrawing}
             onTransformDrawing={handleTransformDrawing}

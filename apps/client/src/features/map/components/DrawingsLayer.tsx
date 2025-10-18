@@ -22,6 +22,7 @@ interface DrawingsLayerProps {
   currentFilled?: boolean;
   uid: string;
   selectMode: boolean;
+  transformMode: boolean;
   selectedDrawingId: string | null;
   onSelectDrawing: (drawingId: string | null) => void;
   onTransformDrawing: (sceneId: string, transform: { position?: { x: number; y: number } }) => void;
@@ -47,6 +48,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
   currentFilled,
   uid,
   selectMode,
+  transformMode,
   selectedDrawingId,
   onSelectDrawing,
   onTransformDrawing,
@@ -139,9 +141,10 @@ export const DrawingsLayer = memo(function DrawingsLayer({
       selectedObjectIds.includes(sceneObject.id) ||
       (selectedObjectId && selectedObjectId === sceneObject.id) ||
       selectedDrawingId === drawing.id;
-    const isOwner = drawing.owner === uid;
-    const canInteract = selectMode && isOwner;
-    const canShowSelection = selectMode; // Show selection for anyone, not just owner
+    const isOwner = !drawing.owner || drawing.owner === uid;
+    const selectionEnabled = selectMode || transformMode;
+    const canInteract = selectionEnabled && isOwner;
+    const canShowSelection = selectionEnabled; // Show selection outlines when selection or transform tools are active
     const isDragging = draggingId === sceneObject.id;
 
     const interactiveProps = canInteract
