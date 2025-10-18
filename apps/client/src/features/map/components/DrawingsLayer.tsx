@@ -134,6 +134,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
       (selectedObjectId && selectedObjectId === sceneObject.id) || selectedDrawingId === drawing.id;
     const isOwner = drawing.owner === uid;
     const canInteract = selectMode && isOwner;
+    const canShowSelection = selectMode; // Show selection for anyone, not just owner
     const isDragging = draggingId === sceneObject.id;
 
     const interactiveProps = canInteract
@@ -206,7 +207,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
               opacity={drawing.opacity}
               listening={false}
             />
-            {isSelected && canInteract && (
+            {isSelected && canShowSelection && (
               <Line
                 points={points.flatMap((p) => [p.x, p.y])}
                 stroke={selectionStroke}
@@ -255,7 +256,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
               opacity={drawing.opacity}
               listening={false}
             />
-            {isSelected && canInteract && (
+            {isSelected && canShowSelection && (
               <Line
                 points={[start.x, start.y, end.x, end.y]}
                 stroke={selectionStroke}
@@ -301,7 +302,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
               opacity={drawing.opacity}
               {...interactiveProps}
             />
-            {isSelected && canInteract && (
+            {isSelected && canShowSelection && (
               <Rect
                 x={x1}
                 y={y1}
@@ -348,7 +349,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
               opacity={drawing.opacity}
               {...interactiveProps}
             />
-            {isSelected && canInteract && (
+            {isSelected && canShowSelection && (
               <Circle
                 x={cx}
                 y={cy}
