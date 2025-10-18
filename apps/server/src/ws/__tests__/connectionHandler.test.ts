@@ -20,7 +20,6 @@ import { MessageRouter } from "../messageRouter.js";
 import { RateLimiter } from "../../middleware/rateLimit.js";
 import type { ClientMessage } from "@shared";
 import type { WebSocket, WebSocketServer } from "ws";
-import type { RoomState } from "../../domains/room/model.js";
 
 type WebSocketEvent = "message" | "close";
 
