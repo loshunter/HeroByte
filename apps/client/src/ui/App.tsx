@@ -14,13 +14,7 @@ import { useVoiceChat } from "./useVoiceChat";
 import { DiceRoller } from "../components/dice/DiceRoller";
 import { RollLog } from "../components/dice/RollLog";
 import type { RollResult, DieType } from "../components/dice/types";
-import type {
-  Player,
-  PlayerState,
-  RoomSnapshot,
-  ClientMessage,
-  ServerMessage,
-} from "@shared";
+import type { Player, PlayerState, RoomSnapshot, ClientMessage, ServerMessage } from "@shared";
 import { WS_URL } from "../config";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useMicrophone } from "../hooks/useMicrophone";
