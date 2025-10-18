@@ -742,6 +742,26 @@ describe("validateMessage", () => {
         error: "toggle-dm: isDM must be boolean",
       });
     });
+
+    it("validates set-room-password", () => {
+      expect(validateMessage({ t: "set-room-password", secret: "NewSecret123" })).toEqual({
+        valid: true,
+      });
+    });
+
+    it("rejects set-room-password with empty secret", () => {
+      expect(validateMessage({ t: "set-room-password", secret: "" })).toMatchObject({
+        valid: false,
+        error: "set-room-password: secret is empty",
+      });
+    });
+
+    it("rejects set-room-password with non-string secret", () => {
+      expect(validateMessage({ t: "set-room-password", secret: 42 })).toMatchObject({
+        valid: false,
+        error: "set-room-password: secret must be a string",
+      });
+    });
   });
 
   describe("Phase 11: Token Size Validation", () => {

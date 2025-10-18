@@ -692,4 +692,162 @@ describe("RoomService", () => {
     expect(openClient.send).toHaveBeenCalledTimes(1);
     expect(closedClient.send).not.toHaveBeenCalled();
   });
+
+  describe("Batch Lock/Unlock Operations", () => {
+    it("allows DM to lock multiple objects", () => {
+      const service = new RoomService();
+      const state = service.getState();
+
+      state.players.push({
+        uid: "dm-1",
+        name: "DM",
+        isDM: true,
+        hp: 10,
+        maxHp: 10,
+        lastHeartbeat: Date.now(),
+        micLevel: 0,
+      });
+      state.tokens.push({ id: "token-1", owner: "player-1", x: 0, y: 0, color: "#fff" });
+      state.tokens.push({ id: "token-2", owner: "player-2", x: 5, y: 5, color: "#f00" });
+      state.drawings.push({
+        id: "drawing-1",
+        type: "freehand",
+        points: [{ x: 0, y: 0 }],
+        color: "#fff",
+        width: 2,
+        opacity: 1,
+        owner: "player-1",
+      });
+      service.createSnapshot();
+
+      const objectIds = ["token:token-1", "token:token-2", "drawing:drawing-1"];
+      const lockCount = service.lockSelectedObjects("dm-1", objectIds);
+
+      expect(lockCount).toBe(3);
+      expect(state.sceneObjects.find((obj) => obj.id === "token:token-1")?.locked).toBe(true);
+      expect(state.sceneObjects.find((obj) => obj.id === "token:token-2")?.locked).toBe(true);
+      expect(state.sceneObjects.find((obj) => obj.id === "drawing:drawing-1")?.locked).toBe(true);
+    });
+
+    it("prevents non-DM from locking objects", () => {
+      const service = new RoomService();
+      const state = service.getState();
+
+      state.players.push({
+        uid: "player-1",
+        name: "Player",
+        isDM: false,
+        hp: 10,
+        maxHp: 10,
+        lastHeartbeat: Date.now(),
+        micLevel: 0,
+      });
+      state.tokens.push({ id: "token-1", owner: "player-1", x: 0, y: 0, color: "#fff" });
+      service.createSnapshot();
+
+      const lockCount = service.lockSelectedObjects("player-1", ["token:token-1"]);
+
+      expect(lockCount).toBe(0);
+      expect(state.sceneObjects.find((obj) => obj.id === "token:token-1")?.locked).toBe(false);
+    });
+
+    it("allows DM to unlock multiple objects", () => {
+      const service = new RoomService();
+      const state = service.getState();
+
+      state.players.push({
+        uid: "dm-1",
+        name: "DM",
+        isDM: true,
+        hp: 10,
+        maxHp: 10,
+        lastHeartbeat: Date.now(),
+        micLevel: 0,
+      });
+      state.tokens.push({ id: "token-1", owner: "player-1", x: 0, y: 0, color: "#fff" });
+      state.tokens.push({ id: "token-2", owner: "player-2", x: 5, y: 5, color: "#f00" });
+      service.createSnapshot();
+
+      // Lock the objects first
+      const token1 = state.sceneObjects.find((obj) => obj.id === "token:token-1");
+      const token2 = state.sceneObjects.find((obj) => obj.id === "token:token-2");
+      if (token1) token1.locked = true;
+      if (token2) token2.locked = true;
+
+      const objectIds = ["token:token-1", "token:token-2"];
+      const unlockCount = service.unlockSelectedObjects("dm-1", objectIds);
+
+      expect(unlockCount).toBe(2);
+      expect(state.sceneObjects.find((obj) => obj.id === "token:token-1")?.locked).toBe(false);
+      expect(state.sceneObjects.find((obj) => obj.id === "token:token-2")?.locked).toBe(false);
+    });
+
+    it("prevents non-DM from unlocking objects", () => {
+      const service = new RoomService();
+      const state = service.getState();
+
+      state.players.push({
+        uid: "player-1",
+        name: "Player",
+        isDM: false,
+        hp: 10,
+        maxHp: 10,
+        lastHeartbeat: Date.now(),
+        micLevel: 0,
+      });
+      state.tokens.push({ id: "token-1", owner: "player-1", x: 0, y: 0, color: "#fff" });
+      service.createSnapshot();
+
+      // Lock the object first
+      const token1 = state.sceneObjects.find((obj) => obj.id === "token:token-1");
+      if (token1) token1.locked = true;
+
+      const unlockCount = service.unlockSelectedObjects("player-1", ["token:token-1"]);
+
+      expect(unlockCount).toBe(0);
+      expect(state.sceneObjects.find((obj) => obj.id === "token:token-1")?.locked).toBe(true);
+    });
+
+    it("handles nonexistent objects gracefully when locking", () => {
+      const service = new RoomService();
+      const state = service.getState();
+
+      state.players.push({
+        uid: "dm-1",
+        name: "DM",
+        isDM: true,
+        hp: 10,
+        maxHp: 10,
+        lastHeartbeat: Date.now(),
+        micLevel: 0,
+      });
+      state.tokens.push({ id: "token-1", owner: "player-1", x: 0, y: 0, color: "#fff" });
+      service.createSnapshot();
+
+      const objectIds = ["token:token-1", "token:nonexistent", "drawing:nonexistent"];
+      const lockCount = service.lockSelectedObjects("dm-1", objectIds);
+
+      expect(lockCount).toBe(1); // Only token-1 exists
+      expect(state.sceneObjects.find((obj) => obj.id === "token:token-1")?.locked).toBe(true);
+    });
+
+    it("handles empty array when locking", () => {
+      const service = new RoomService();
+      const state = service.getState();
+
+      state.players.push({
+        uid: "dm-1",
+        name: "DM",
+        isDM: true,
+        hp: 10,
+        maxHp: 10,
+        lastHeartbeat: Date.now(),
+        micLevel: 0,
+      });
+
+      const lockCount = service.lockSelectedObjects("dm-1", []);
+
+      expect(lockCount).toBe(0);
+    });
+  });
 });

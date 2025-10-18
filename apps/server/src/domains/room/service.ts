@@ -186,6 +186,54 @@ export class RoomService {
     return toSnapshot(this.state);
   }
 
+  /**
+   * Lock multiple scene objects (DM only)
+   * Returns number of objects successfully locked
+   */
+  lockSelectedObjects(actorUid: string, objectIds: string[]): number {
+    const actor = this.state.players.find((player) => player.uid === actorUid);
+    const isDM = actor?.isDM ?? false;
+
+    if (!isDM) {
+      return 0;
+    }
+
+    let lockCount = 0;
+    for (const id of objectIds) {
+      const object = this.state.sceneObjects.find((candidate) => candidate.id === id);
+      if (object) {
+        object.locked = true;
+        lockCount++;
+      }
+    }
+
+    return lockCount;
+  }
+
+  /**
+   * Unlock multiple scene objects (DM only)
+   * Returns number of objects successfully unlocked
+   */
+  unlockSelectedObjects(actorUid: string, objectIds: string[]): number {
+    const actor = this.state.players.find((player) => player.uid === actorUid);
+    const isDM = actor?.isDM ?? false;
+
+    if (!isDM) {
+      return 0;
+    }
+
+    let unlockCount = 0;
+    for (const id of objectIds) {
+      const object = this.state.sceneObjects.find((candidate) => candidate.id === id);
+      if (object) {
+        object.locked = false;
+        unlockCount++;
+      }
+    }
+
+    return unlockCount;
+  }
+
   applySceneObjectTransform(
     id: string,
     actorUid: string,

@@ -9,7 +9,7 @@ import type { IncomingMessage } from "http";
 import type { ClientMessage } from "@shared";
 import type { Container } from "../container.js";
 import { validateMessage } from "../middleware/validation.js";
-import { getDefaultRoomId, getRoomSecret } from "../config/auth.js";
+import { getDefaultRoomId } from "../config/auth.js";
 
 /**
  * WebSocket connection handler
@@ -20,13 +20,11 @@ export class ConnectionHandler {
   private wss: WebSocketServer;
   private timeoutCheckInterval: NodeJS.Timeout | null = null;
   private readonly HEARTBEAT_TIMEOUT = 60000; // 60 seconds without heartbeat = timeout
-  private readonly roomSecret: string;
   private readonly defaultRoomId: string;
 
   constructor(container: Container, wss: WebSocketServer) {
     this.container = container;
     this.wss = wss;
-    this.roomSecret = getRoomSecret();
     this.defaultRoomId = getDefaultRoomId();
   }
 
@@ -204,7 +202,8 @@ export class ConnectionHandler {
       return;
     }
 
-    if (secret !== this.roomSecret) {
+    const normalizedSecret = secret.trim();
+    if (!this.container.authService.verify(normalizedSecret)) {
       console.warn(`Authentication failed for uid ${uid}`);
       this.rejectAuthentication(ws, "Invalid room password");
       return;

@@ -43,24 +43,17 @@ export function JRPGPanel({
   );
 }
 
-interface JRPGButtonProps {
-  children: React.ReactNode;
-  onClick?: () => void;
+interface JRPGButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "default" | "primary" | "danger" | "success";
-  disabled?: boolean;
-  className?: string;
-  style?: React.CSSProperties;
-  title?: string;
 }
 
 export function JRPGButton({
   children,
-  onClick,
   variant = "default",
   disabled = false,
   className = "",
   style = {},
-  title,
+  ...buttonProps
 }: JRPGButtonProps) {
   const variantClass = {
     default: "jrpg-button",
@@ -72,14 +65,13 @@ export function JRPGButton({
   return (
     <button
       className={`${variantClass} ${className}`}
-      onClick={onClick}
       disabled={disabled}
-      title={title}
       style={{
         opacity: disabled ? 0.5 : 1,
         cursor: disabled ? "not-allowed" : "pointer",
         ...style,
       }}
+      {...buttonProps}
     >
       {children}
     </button>

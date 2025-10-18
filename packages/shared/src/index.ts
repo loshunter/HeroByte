@@ -234,6 +234,18 @@ export interface SelectMultipleMessage {
   mode?: SelectionMode;
 }
 
+export interface LockSelectedMessage {
+  t: "lock-selected";
+  uid: string;
+  objectIds: string[];
+}
+
+export interface UnlockSelectedMessage {
+  t: "unlock-selected";
+  uid: string;
+  objectIds: string[];
+}
+
 export interface SelectionStateSingle {
   mode: "single";
   objectId: string;
@@ -267,6 +279,8 @@ export type ClientMessage =
   | SelectObjectMessage
   | DeselectObjectMessage
   | SelectMultipleMessage
+  | LockSelectedMessage
+  | UnlockSelectedMessage
 
   // Player actions
   | { t: "portrait"; data: string } // Update player portrait
@@ -331,6 +345,7 @@ export type ClientMessage =
       rotation?: number;
       locked?: boolean;
     }
+  | { t: "set-room-password"; secret: string }
 
   // Authentication
   | { t: "authenticate"; secret: string; roomId?: string } // Authenticate with room secret
@@ -345,4 +360,6 @@ export type ServerMessage =
   | RoomSnapshot // Full room state update
   | { t: "rtc-signal"; from: string; signal: unknown } // WebRTC signal from another peer
   | { t: "auth-ok" } // Authentication succeeded
-  | { t: "auth-failed"; reason?: string }; // Authentication failed
+  | { t: "auth-failed"; reason?: string } // Authentication failed
+  | { t: "room-password-updated"; updatedAt: number; source: "env" | "fallback" | "user" }
+  | { t: "room-password-update-failed"; reason?: string };

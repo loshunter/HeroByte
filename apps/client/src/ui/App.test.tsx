@@ -7,6 +7,7 @@ import { App } from "./App";
 const mockUseWebSocket = vi.fn();
 const mockUseObjectSelection = vi.fn();
 let latestHeaderProps: { onToolSelect: (mode: string | null) => void } | null = null;
+let latestMapBoardProps: Record<string, unknown> | null = null;
 let selectionMock: {
   selectedObjectId: string | null;
   selectedObjectIds: string[];
@@ -83,8 +84,13 @@ vi.mock("../hooks/useDMRole", () => ({
   })),
 }));
 
+let latestDMMenuProps: Record<string, unknown> | null = null;
+
 vi.mock("../features/dm", () => ({
-  DMMenu: vi.fn(() => <div data-testid="dm-menu">DM Menu</div>),
+  DMMenu: (props: Record<string, unknown>) => {
+    latestDMMenuProps = props;
+    return <div data-testid="dm-menu">DM Menu</div>;
+  },
 }));
 
 vi.mock("../features/drawing/components", () => ({
@@ -125,7 +131,10 @@ vi.mock("../utils/sessionPersistence", () => ({
 
 vi.mock("./MapBoard", () => ({
   __esModule: true,
-  default: () => <div data-testid="map-board">Map Board</div>,
+  default: (props: Record<string, unknown>) => {
+    latestMapBoardProps = props;
+    return <div data-testid="map-board">Map Board</div>;
+  },
 }));
 
 const baseWebSocketState = {
@@ -138,7 +147,64 @@ const baseWebSocketState = {
   authenticate: vi.fn(),
   connect: vi.fn(),
   registerRtcHandler: vi.fn(),
+  registerServerEventHandler: vi.fn(),
 };
+
+const buildSnapshot = () => ({
+  diceRolls: [],
+  users: [],
+  tokens: [
+    {
+      id: "token-1",
+      owner: "test-uid",
+      x: 0,
+      y: 0,
+      color: "#fff",
+    },
+    {
+      id: "token-2",
+      owner: "player-2",
+      x: 1,
+      y: 0,
+      color: "#f00",
+    },
+  ],
+  drawings: [],
+  pointers: [],
+  players: [
+    {
+      uid: "test-uid",
+      name: "Player One",
+      hp: 10,
+      maxHp: 12,
+    },
+  ],
+  characters: [],
+  sceneObjects: [
+    {
+      id: "token:token-1",
+      type: "token",
+      owner: "test-uid",
+      locked: false,
+      zIndex: 1,
+      transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+      data: { color: "#fff", size: "medium" },
+    },
+    {
+      id: "token:token-2",
+      type: "token",
+      owner: "player-2",
+      locked: false,
+      zIndex: 1,
+      transform: { x: 1, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+      data: { color: "#f00", size: "medium" },
+    },
+  ],
+  gridSize: 50,
+  gridSquareSize: 5,
+  mapBackground: null,
+  selectionState: {},
+});
 
 describe("App", () => {
   beforeEach(() => {
@@ -154,6 +220,8 @@ describe("App", () => {
     };
     mockUseObjectSelection.mockImplementation(() => selectionMock);
     latestHeaderProps = null;
+    latestMapBoardProps = null;
+    latestDMMenuProps = null;
   });
 
   it("renders the auth gate when the user is not authenticated", () => {
@@ -219,6 +287,70 @@ describe("App", () => {
     expect(screen.getByTestId("header")).toBeInTheDocument();
     expect(screen.getByTestId("entities-panel")).toBeInTheDocument();
     expect(screen.getByTestId("server-status")).toBeInTheDocument();
+  });
+
+  it("appends selection when MapBoard requests append mode", async () => {
+    selectionMock = {
+      selectedObjectId: null,
+      selectedObjectIds: [],
+      selectObject: vi.fn(),
+      selectMultiple: vi.fn(),
+      isSelected: vi.fn(),
+      deselect: vi.fn(),
+    };
+    mockUseObjectSelection.mockImplementation(() => selectionMock);
+
+    mockUseWebSocket.mockReturnValue({
+      ...baseWebSocketState,
+      authState: AuthState.AUTHENTICATED,
+      snapshot: buildSnapshot(),
+    });
+
+    render(<App />);
+
+    await waitFor(() => expect(latestMapBoardProps).not.toBeNull());
+
+    const onSelectObject = latestMapBoardProps!.onSelectObject as (
+      id: string | null,
+      options?: { mode?: string },
+    ) => void;
+
+    onSelectObject("token:token-1", { mode: "replace" });
+    expect(selectionMock.selectObject).toHaveBeenCalledWith("token:token-1");
+
+    onSelectObject("token:token-2", { mode: "append" });
+    expect(selectionMock.selectMultiple).toHaveBeenCalledWith(["token:token-2"], "append");
+  });
+
+  it("toggles selection when MapBoard requests toggle mode for an already-selected object", async () => {
+    selectionMock = {
+      selectedObjectId: "token:token-1",
+      selectedObjectIds: ["token:token-1"],
+      selectObject: vi.fn(),
+      selectMultiple: vi.fn(),
+      isSelected: vi.fn(),
+      deselect: vi.fn(),
+    };
+    mockUseObjectSelection.mockImplementation(() => selectionMock);
+
+    mockUseWebSocket.mockReturnValue({
+      ...baseWebSocketState,
+      authState: AuthState.AUTHENTICATED,
+      snapshot: buildSnapshot(),
+    });
+
+    render(<App />);
+
+    await waitFor(() => expect(latestMapBoardProps).not.toBeNull());
+
+    const onSelectObject = latestMapBoardProps!.onSelectObject as (
+      id: string | null,
+      options?: { mode?: string },
+    ) => void;
+
+    onSelectObject("token:token-1", { mode: "toggle" });
+    expect(selectionMock.selectMultiple).toHaveBeenCalledWith(["token:token-1"], "subtract");
+    expect(selectionMock.selectObject).not.toHaveBeenCalled();
   });
 
   it("deletes a selected token and clears selection when DM confirms", async () => {
@@ -358,5 +490,31 @@ describe("App", () => {
     });
 
     await waitFor(() => expect(deselect).toHaveBeenCalledTimes(1));
+  });
+
+  it("allows DM to update the room password", async () => {
+    const send = vi.fn();
+    const snapshot = buildSnapshot();
+
+    mockUseWebSocket.mockReturnValue({
+      ...baseWebSocketState,
+      authState: AuthState.AUTHENTICATED,
+      snapshot,
+      send,
+    });
+
+    render(<App />);
+
+    await waitFor(() => expect(latestDMMenuProps).not.toBeNull());
+
+    const onSetRoomPassword = latestDMMenuProps?.onSetRoomPassword as
+      | ((secret: string) => void)
+      | undefined;
+    expect(onSetRoomPassword).toBeDefined();
+
+    await act(async () => {
+      onSetRoomPassword?.("Secret123");
+    });
+    expect(send).toHaveBeenCalledWith({ t: "set-room-password", secret: "Secret123" });
   });
 });

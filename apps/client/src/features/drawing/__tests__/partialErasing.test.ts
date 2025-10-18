@@ -270,6 +270,27 @@ describe("splitFreehandDrawing", () => {
     expect(segments[0]).not.toBe(drawing.data.drawing);
   });
 
+  it("does not erase when the eraser path overlaps bounding boxes but stays outside the hit radius", () => {
+    const points = [
+      { x: 0, y: 0 },
+      { x: 5, y: 0 },
+      { x: 10, y: 0 },
+    ];
+    const drawing = createSceneDrawing(points);
+
+    const segments = splitFreehandDrawing(
+      drawing,
+      [
+        { x: 0, y: 1.6 },
+        { x: 10, y: 1.6 },
+      ],
+      2,
+    );
+
+    expect(segments).toHaveLength(1);
+    expect(segments[0]?.points).toEqual(points);
+  });
+
   it("keeps segments when the eraser path stays just outside the hit radius", () => {
     const drawing = createSceneDrawing([
       { x: 0, y: 0 },
@@ -331,5 +352,29 @@ describe("splitFreehandDrawing", () => {
     expect(segments[0]?.points.at(-1)).toEqual({ x: 895, y: 0 });
     expect(segments[1]?.points[0]).toEqual({ x: 1_105, y: 0 });
     expect(segments[1]?.points.at(-1)).toEqual({ x: 2_000, y: 0 });
+  });
+
+  it("preserves tiny remaining segments that still contain two points", () => {
+    const drawing = createSceneDrawing(
+      [
+        { x: 0, y: 0 },
+        { x: 0.05, y: 0 },
+        { x: 0.1, y: 0 },
+        { x: 2, y: 0 },
+      ],
+      { drawing: { width: 0.01 } },
+    );
+
+    const segments = splitFreehandDrawing(drawing, [{ x: 0.075, y: 0 }], 0.01);
+
+    expect(segments).toHaveLength(2);
+    expect(segments[0]?.points).toEqual([
+      { x: 0, y: 0 },
+      { x: 0.05, y: 0 },
+    ]);
+    expect(segments[1]?.points).toEqual([
+      { x: 0.1, y: 0 },
+      { x: 2, y: 0 },
+    ]);
   });
 });

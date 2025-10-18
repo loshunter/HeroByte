@@ -141,6 +141,7 @@ export const App: React.FC = () => {
     authenticate,
     connect,
     registerRtcHandler,
+    registerServerEventHandler,
   } = useWebSocket({
     url: WS_URL,
     uid,
@@ -259,6 +260,7 @@ export const App: React.FC = () => {
       snapshot={snapshot}
       sendMessage={sendMessage}
       registerRtcHandler={registerRtcHandler}
+      registerServerEventHandler={registerServerEventHandler}
       isConnected={isConnected}
       authState={authState}
       hasAuthenticated={hasAuthenticated}
@@ -294,12 +296,20 @@ function AuthGate({
   const isConnecting =
     connectionState === ConnectionState.CONNECTING ||
     connectionState === ConnectionState.RECONNECTING;
+  const isHandshakeActive = isConnecting || authState === AuthState.PENDING;
+  const submitLabel =
+    authState === AuthState.PENDING
+      ? "Authenticating..."
+      : isConnecting
+        ? "Connecting..."
+        : "Enter Room";
+  const primaryDisabled = !canSubmit || isHandshakeActive;
   return (
     <div style={authGateContainerStyle}>
       <div style={authGateCardStyle}>
         <h1 style={{ margin: "0 0 16px" }}>Join Your Room</h1>
         <p style={{ margin: "0 0 24px", color: "#cbd5f5", fontSize: "0.95rem" }}>
-          Enter the Demo Room Password: <strong>Fun1</strong> to sync with your party.
+          Enter the room password provided by your host to sync with your party.
         </p>
         <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <input
@@ -310,19 +320,20 @@ function AuthGate({
             style={authInputStyle}
             autoFocus
             spellCheck={false}
-            disabled={authState === AuthState.PENDING}
+            disabled={isHandshakeActive}
           />
           {authError ? <p style={authGateErrorStyle}>{authError}</p> : null}
           <button
             type="submit"
             style={{
               ...authPrimaryButtonStyle,
-              opacity: canSubmit ? 1 : 0.6,
-              cursor: canSubmit ? "pointer" : "not-allowed",
+              opacity: primaryDisabled ? 0.6 : 1,
+              cursor: primaryDisabled ? "not-allowed" : "pointer",
             }}
-            disabled={!canSubmit}
+            disabled={primaryDisabled}
+            aria-busy={isHandshakeActive}
           >
-            {authState === AuthState.PENDING ? "Authenticating..." : "Enter Room"}
+            {submitLabel}
           </button>
         </form>
         <p style={authGateHintStyle}>
@@ -331,12 +342,38 @@ function AuthGate({
             style={{
               animation: isConnecting ? "pulse 1.5s ease-in-out infinite" : "none",
             }}
+            aria-live="polite"
+            aria-busy={isConnecting}
           >
-            {connectionLabel}
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              {isConnecting ? (
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: "12px",
+                    height: "12px",
+                    borderRadius: "50%",
+                    border: "2px solid rgba(255,255,255,0.3)",
+                    borderTopColor: "var(--jrpg-gold)",
+                    animation: "spin 0.8s linear infinite",
+                  }}
+                />
+              ) : null}
+              <span>{connectionLabel}</span>
+            </span>
           </strong>
         </p>
         {!isConnected ? (
-          <button type="button" style={authSecondaryButtonStyle} onClick={onRetry}>
+          <button
+            type="button"
+            style={{
+              ...authSecondaryButtonStyle,
+              opacity: isConnecting ? 0.6 : 1,
+              cursor: isConnecting ? "not-allowed" : "pointer",
+            }}
+            onClick={onRetry}
+            disabled={isConnecting}
+          >
             Retry Connection
           </button>
         ) : null}
@@ -350,16 +387,20 @@ interface AuthenticatedAppProps {
   snapshot: RoomSnapshot | null;
   sendMessage: (message: ClientMessage) => void;
   registerRtcHandler: (handler: (from: string, signal: unknown) => void) => void;
+  registerServerEventHandler: (handler: (message: ServerMessage) => void) => void;
   isConnected: boolean;
   authState: AuthState;
   hasAuthenticated: boolean;
 }
+
+type RoomPasswordStatus = { type: "success" | "error"; message: string };
 
 function AuthenticatedApp({
   uid,
   snapshot,
   sendMessage,
   registerRtcHandler,
+  registerServerEventHandler,
   isConnected,
   authState,
   hasAuthenticated,
@@ -419,8 +460,12 @@ function AuthenticatedApp({
   // Server-synced object selection state
   const {
     selectedObjectId,
+    selectedObjectIds,
     selectObject,
+    selectMultiple,
     deselect: clearSelection,
+    lockSelected,
+    unlockSelected,
   } = useObjectSelection({ uid, snapshot, sendMessage });
 
   // UI layout (fixed panels)
@@ -444,6 +489,8 @@ function AuthenticatedApp({
   const [diceRollerOpen, setDiceRollerOpen] = useState(false);
   const [rollLogOpen, setRollLogOpen] = useState(false);
   const [viewingRoll, setViewingRoll] = useState<RollResult | null>(null);
+  const [roomPasswordStatus, setRoomPasswordStatus] = useState<RoomPasswordStatus | null>(null);
+  const [roomPasswordPending, setRoomPasswordPending] = useState(false);
 
   // Get roll history from server snapshot
   const rollHistory: RollLogEntry[] = React.useMemo(() => {
@@ -517,6 +564,63 @@ function AuthenticatedApp({
       clearSelection();
     }
   }, [transformMode, clearSelection]);
+
+  useEffect(() => {
+    registerServerEventHandler((message: ServerMessage) => {
+      if (message.t === "room-password-updated") {
+        setRoomPasswordPending(false);
+        setRoomPasswordStatus({
+          type: "success",
+          message: "Room password updated successfully.",
+        });
+      } else if (message.t === "room-password-update-failed") {
+        setRoomPasswordPending(false);
+        setRoomPasswordStatus({
+          type: "error",
+          message: message.reason ?? "Unable to update room password.",
+        });
+      }
+    });
+  }, [registerServerEventHandler]);
+
+  const handleObjectSelection = useCallback(
+    (
+      objectId: string | null,
+      options?: { mode?: "replace" | "append" | "toggle" | "subtract" },
+    ) => {
+      if (!objectId) {
+        clearSelection();
+        return;
+      }
+
+      const mode = options?.mode ?? "replace";
+      switch (mode) {
+        case "append": {
+          selectMultiple([objectId], "append");
+          return;
+        }
+        case "toggle": {
+          if (selectedObjectIds.includes(objectId)) {
+            selectMultiple([objectId], "subtract");
+          } else if (selectedObjectIds.length > 0) {
+            selectMultiple([objectId], "append");
+          } else {
+            selectObject(objectId);
+          }
+          return;
+        }
+        case "subtract": {
+          selectMultiple([objectId], "subtract");
+          return;
+        }
+        case "replace":
+        default: {
+          selectObject(objectId);
+        }
+      }
+    },
+    [clearSelection, selectMultiple, selectObject, selectedObjectIds],
+  );
 
   // -------------------------------------------------------------------------
   // ACTIONS
@@ -603,6 +707,35 @@ function AuthenticatedApp({
 
   const gridSize = snapshot?.gridSize || 50;
   const gridSquareSize = snapshot?.gridSquareSize ?? 5;
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (import.meta.env.MODE === "production") {
+      return;
+    }
+
+    const globalWindow = window as typeof window & {
+      __HERO_BYTE_E2E__?: {
+        snapshot?: RoomSnapshot | null;
+        uid?: string;
+        gridSize?: number;
+        cam?: { x: number; y: number; scale: number };
+        viewport?: { width: number; height: number };
+      };
+    };
+
+    const previous = globalWindow.__HERO_BYTE_E2E__ ?? {};
+    globalWindow.__HERO_BYTE_E2E__ = {
+      ...previous,
+      snapshot,
+      uid,
+      gridSize,
+    };
+  }, [gridSize, snapshot, uid]);
+
   const mapSceneObject = useMemo(
     () => snapshot?.sceneObjects?.find((obj) => obj.type === "map") ?? null,
     [snapshot?.sceneObjects],
@@ -666,6 +799,19 @@ function AuthenticatedApp({
     clearHistory();
     sendMessage({ t: "clear-drawings" });
   }, [clearHistory, sendMessage]);
+
+  const handleSetRoomPassword = useCallback(
+    (nextSecret: string) => {
+      setRoomPasswordPending(true);
+      setRoomPasswordStatus(null);
+      sendMessage({ t: "set-room-password", secret: nextSecret });
+    },
+    [sendMessage],
+  );
+
+  const dismissRoomPasswordStatus = useCallback(() => {
+    setRoomPasswordStatus(null);
+  }, []);
 
   const updateTokenImage = useCallback(
     (tokenId: string, imageUrl: string) => {
@@ -1004,6 +1150,84 @@ function AuthenticatedApp({
         onResetCamera={handleResetCamera}
       />
 
+      {/* Multi-select toolbar - shows when multiple objects are selected and user is DM */}
+      {isDM && selectedObjectIds.length > 0 && (
+        <div
+          style={{
+            position: "fixed",
+            top: `${topHeight + 20}px`,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 1000,
+            display: "flex",
+            gap: "8px",
+            padding: "8px 16px",
+            backgroundColor: "rgba(17, 24, 39, 0.95)",
+            border: "1px solid rgba(148, 163, 184, 0.3)",
+            borderRadius: "8px",
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.4)",
+          }}
+        >
+          <div
+            style={{
+              color: "#cbd5e1",
+              fontSize: "0.9rem",
+              fontWeight: 500,
+              marginRight: "12px",
+              lineHeight: "32px",
+            }}
+          >
+            {selectedObjectIds.length} selected
+          </div>
+          <button
+            onClick={lockSelected}
+            style={{
+              padding: "6px 16px",
+              backgroundColor: "#374151",
+              border: "1px solid rgba(148, 163, 184, 0.3)",
+              borderRadius: "6px",
+              color: "#f3f4f6",
+              fontSize: "0.9rem",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "#4b5563";
+              e.currentTarget.style.borderColor = "rgba(148, 163, 184, 0.5)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "#374151";
+              e.currentTarget.style.borderColor = "rgba(148, 163, 184, 0.3)";
+            }}
+          >
+            🔒 Lock
+          </button>
+          <button
+            onClick={unlockSelected}
+            style={{
+              padding: "6px 16px",
+              backgroundColor: "#374151",
+              border: "1px solid rgba(148, 163, 184, 0.3)",
+              borderRadius: "6px",
+              color: "#f3f4f6",
+              fontSize: "0.9rem",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "#4b5563";
+              e.currentTarget.style.borderColor = "rgba(148, 163, 184, 0.5)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "#374151";
+              e.currentTarget.style.borderColor = "rgba(148, 163, 184, 0.3)";
+            }}
+          >
+            🔓 Unlock
+          </button>
+        </div>
+      )}
+
       {/* Main Whiteboard Panel - fills space between fixed top and bottom */}
       <div
         style={{
@@ -1041,7 +1265,8 @@ function AuthenticatedApp({
           cameraCommand={cameraCommand}
           onCameraCommandHandled={() => setCameraCommand(null)}
           selectedObjectId={selectedObjectId}
-          onSelectObject={selectObject}
+          selectedObjectIds={selectedObjectIds}
+          onSelectObject={handleObjectSelection}
         />
       </div>
 
@@ -1141,6 +1366,10 @@ function AuthenticatedApp({
         onAlignmentReset={handleAlignmentReset}
         onAlignmentCancel={handleAlignmentCancel}
         onAlignmentApply={handleAlignmentApply}
+        onSetRoomPassword={handleSetRoomPassword}
+        roomPasswordStatus={roomPasswordStatus}
+        roomPasswordPending={roomPasswordPending}
+        onDismissRoomPasswordStatus={dismissRoomPasswordStatus}
       />
 
       {/* Context Menu */}

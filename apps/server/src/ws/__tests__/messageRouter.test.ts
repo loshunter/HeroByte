@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { Mock } from "vitest";
 import { MessageRouter } from "../messageRouter.js";
 import { RoomService } from "../../domains/room/service.js";
 import { PlayerService } from "../../domains/player/service.js";
@@ -7,10 +8,11 @@ import { MapService } from "../../domains/map/service.js";
 import { DiceService } from "../../domains/dice/service.js";
 import { CharacterService } from "../../domains/character/service.js";
 import { SelectionService } from "../../domains/selection/service.js";
+import { AuthService } from "../../domains/auth/service.js";
 import type { WebSocket, WebSocketServer } from "ws";
 import type { ClientMessage } from "@shared";
 import type { RoomState } from "../../domains/room/model.js";
-import { selectionMapToRecord } from "../../domains/room/model.js";
+import { createEmptyRoomState, selectionMapToRecord } from "../../domains/room/model.js";
 
 describe("MessageRouter", () => {
   let router: MessageRouter;
@@ -21,6 +23,7 @@ describe("MessageRouter", () => {
   let mockDiceService: DiceService;
   let mockCharacterService: CharacterService;
   let mockSelectionService: SelectionService;
+  let mockAuthService: AuthService;
   let mockWss: WebSocketServer;
   let mockUidToWs: Map<string, WebSocket>;
   let mockGetAuthorizedClients: () => Set<WebSocket>;
@@ -119,6 +122,12 @@ describe("MessageRouter", () => {
       removeObject: vi.fn(() => true),
     } as unknown as SelectionService;
 
+    mockAuthService = {
+      verify: vi.fn(() => true),
+      update: vi.fn(() => ({ source: "user", updatedAt: Date.now() })),
+      getSummary: vi.fn(() => ({ source: "fallback", updatedAt: Date.now() })),
+    } as unknown as AuthService;
+
     mockWss = {} as WebSocketServer;
     mockUidToWs = new Map<string, WebSocket>();
     mockGetAuthorizedClients = vi.fn(() => new Set<WebSocket>());
@@ -131,6 +140,7 @@ describe("MessageRouter", () => {
       mockDiceService,
       mockCharacterService,
       mockSelectionService,
+      mockAuthService,
       mockWss,
       mockUidToWs,
       mockGetAuthorizedClients,
@@ -476,6 +486,125 @@ describe("MessageRouter", () => {
     });
   });
 
+  describe("Partial erase integration", () => {
+    let integrationState: RoomState;
+    let integrationRoomService: RoomService;
+    let integrationSelectionService: SelectionService;
+    let integrationMapService: MapService;
+    let integrationRouter: MessageRouter;
+    let broadcastSpy: Mock;
+
+    beforeEach(() => {
+      integrationState = createEmptyRoomState();
+      integrationState.players = [
+        {
+          uid: "player-1",
+          name: "Alice",
+          portrait: undefined,
+          isDM: false,
+          hp: 10,
+          maxHp: 10,
+          micLevel: 0,
+          lastHeartbeat: Date.now(),
+        },
+      ];
+
+      integrationSelectionService = new SelectionService();
+      integrationMapService = new MapService();
+
+      integrationRoomService = {
+        getState: () => integrationState,
+        broadcast: vi.fn(),
+        saveState: vi.fn(),
+        loadSnapshot: vi.fn(),
+        applySceneObjectTransform: vi.fn(() => true),
+      } as unknown as RoomService;
+      broadcastSpy = integrationRoomService.broadcast as unknown as Mock;
+
+      const playerService = mockPlayerService;
+      const tokenService = mockTokenService;
+      const diceService = mockDiceService;
+      const characterService = mockCharacterService;
+      const authService = mockAuthService;
+
+      integrationRouter = new MessageRouter(
+        integrationRoomService,
+        playerService,
+        tokenService,
+        integrationMapService,
+        diceService,
+        characterService,
+        integrationSelectionService,
+        authService,
+        mockWss,
+        mockUidToWs,
+        mockGetAuthorizedClients,
+      );
+    });
+
+    it("replaces the drawing with segments and clears selection", () => {
+      const originalDrawing = {
+        id: "drawing-1",
+        type: "freehand" as const,
+        points: [
+          { x: 0, y: 0 },
+          { x: 4, y: 0 },
+          { x: 8, y: 0 },
+        ],
+        color: "#00ff00",
+        width: 3,
+        opacity: 0.9,
+      };
+
+      integrationMapService.addDrawing(integrationState, originalDrawing, "player-1");
+      integrationSelectionService.selectObject(integrationState, "player-1", "drawing-1");
+
+      const segments = [
+        {
+          type: "freehand" as const,
+          points: [
+            { x: 0, y: 0 },
+            { x: 4, y: 0 },
+          ],
+          color: "#00ff00",
+          width: 3,
+          opacity: 0.9,
+          filled: false,
+        },
+        {
+          type: "freehand" as const,
+          points: [
+            { x: 4, y: 0 },
+            { x: 8, y: 0 },
+          ],
+          color: "#00ff00",
+          width: 3,
+          opacity: 0.9,
+          filled: false,
+        },
+      ];
+
+      const message: ClientMessage = {
+        t: "erase-partial",
+        deleteId: "drawing-1",
+        segments,
+      };
+
+      integrationRouter.route(message, "player-1");
+
+      expect(integrationState.drawings).toHaveLength(2);
+      const createdIds = integrationState.drawings.map((drawing) => drawing.id);
+      expect(new Set(createdIds).size).toBe(2);
+      expect(integrationState.drawings.every((drawing) => drawing.owner === "player-1")).toBe(true);
+      expect(integrationState.drawings.map((drawing) => drawing.points)).toEqual(
+        segments.map((segment) => segment.points),
+      );
+      expect(integrationState.drawings.some((drawing) => drawing.id === "drawing-1")).toBe(false);
+      expect(integrationState.selectionState.size).toBe(0);
+      expect(broadcastSpy).toHaveBeenCalled();
+    });
+  });
+
   describe("Selection Actions", () => {
     it("routes select-object message when uid matches sender", () => {
       const msg: ClientMessage = { t: "select-object", uid: "player-1", objectId: "token-1" };
@@ -663,6 +792,39 @@ describe("MessageRouter", () => {
       });
       expect(mockRoomService.broadcast).toHaveBeenCalled();
       expect(mockRoomService.saveState).toHaveBeenCalled();
+    });
+
+    it("allows DM to update room password", () => {
+      mockState.players[0].isDM = true;
+      const ws = { readyState: 1, send: vi.fn() } as unknown as WebSocket;
+      mockUidToWs.set("player-1", ws);
+      const summary = { source: "user" as const, updatedAt: 12345 };
+      (mockAuthService.update as unknown as Mock).mockReturnValue(summary);
+
+      const msg: ClientMessage = { t: "set-room-password", secret: "Secret123" };
+      router.route(msg, "player-1");
+
+      expect(mockAuthService.update).toHaveBeenCalledWith("Secret123");
+      expect(ws.send).toHaveBeenCalledWith(
+        JSON.stringify({ t: "room-password-updated", updatedAt: 12345, source: "user" }),
+      );
+    });
+
+    it("rejects room password updates from non-DM", () => {
+      mockState.players[0].isDM = false;
+      const ws = { readyState: 1, send: vi.fn() } as unknown as WebSocket;
+      mockUidToWs.set("player-1", ws);
+
+      const msg: ClientMessage = { t: "set-room-password", secret: "Secret123" };
+      router.route(msg, "player-1");
+
+      expect(mockAuthService.update).not.toHaveBeenCalled();
+      expect(ws.send).toHaveBeenCalledWith(
+        JSON.stringify({
+          t: "room-password-update-failed",
+          reason: "Only Dungeon Masters can update the room password.",
+        }),
+      );
     });
   });
 

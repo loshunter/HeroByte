@@ -155,6 +155,7 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({ result, onClose }) => 
                 fontFamily: "var(--font-pixel)",
                 textShadow: "0 0 12px rgba(255,195,77,0.8), 2px 2px 0 var(--hero-navy-dark)",
               }}
+              data-testid="roll-result-total"
             >
               {result.total}
             </div>

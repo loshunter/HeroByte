@@ -26,7 +26,11 @@ interface DrawingsLayerProps {
   onSelectDrawing: (drawingId: string | null) => void;
   onTransformDrawing: (sceneId: string, transform: { position?: { x: number; y: number } }) => void;
   selectedObjectId?: string | null;
-  onSelectObject?: (objectId: string | null) => void;
+  selectedObjectIds: string[];
+  onSelectObject?: (
+    objectId: string | null,
+    options?: { mode?: "replace" | "append" | "toggle" | "subtract" },
+  ) => void;
   onDrawingNodeReady?: (drawingId: string, node: Konva.Node | null) => void;
 }
 
@@ -47,6 +51,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
   onSelectDrawing,
   onTransformDrawing,
   selectedObjectId,
+  selectedObjectIds = [],
   onSelectObject,
   onDrawingNodeReady,
 }: DrawingsLayerProps) {
@@ -131,7 +136,9 @@ export const DrawingsLayer = memo(function DrawingsLayer({
     const transform = appliedObject.transform;
     // Use unified selectedObjectId if available, otherwise fall back to selectedDrawingId
     const isSelected =
-      (selectedObjectId && selectedObjectId === sceneObject.id) || selectedDrawingId === drawing.id;
+      selectedObjectIds.includes(sceneObject.id) ||
+      (selectedObjectId && selectedObjectId === sceneObject.id) ||
+      selectedDrawingId === drawing.id;
     const isOwner = drawing.owner === uid;
     const canInteract = selectMode && isOwner;
     const canShowSelection = selectMode; // Show selection for anyone, not just owner
@@ -143,7 +150,11 @@ export const DrawingsLayer = memo(function DrawingsLayer({
             event.cancelBubble = true;
             // Use unified onSelectObject if available, otherwise fall back
             if (onSelectObject) {
-              onSelectObject(sceneObject.id);
+              const native = event.evt as MouseEvent | undefined;
+              const append = native?.shiftKey ?? false;
+              const toggle = native?.ctrlKey || native?.metaKey || false;
+              const mode = append ? "append" : toggle ? "toggle" : "replace";
+              onSelectObject(sceneObject.id, { mode });
             } else {
               onSelectDrawing(drawing.id);
             }

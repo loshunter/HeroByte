@@ -21,6 +21,8 @@ interface UseObjectSelectionResult {
   selectObject: (objectId: string | null) => void;
   selectMultiple: (objectIds: string[], mode?: SelectionMode) => void;
   deselect: () => void;
+  lockSelected: () => void;
+  unlockSelected: () => void;
 }
 
 const MAX_SELECTION = 100;
@@ -177,6 +179,20 @@ export function useObjectSelection({
     [selectedObjectIds],
   );
 
+  const lockSelected = useCallback(() => {
+    if (selectedObjectIds.length === 0) {
+      return;
+    }
+    sendMessage({ t: "lock-selected", uid, objectIds: selectedObjectIds });
+  }, [selectedObjectIds, sendMessage, uid]);
+
+  const unlockSelected = useCallback(() => {
+    if (selectedObjectIds.length === 0) {
+      return;
+    }
+    sendMessage({ t: "unlock-selected", uid, objectIds: selectedObjectIds });
+  }, [selectedObjectIds, sendMessage, uid]);
+
   return {
     selectedObjectId,
     selectedObjectIds,
@@ -184,6 +200,8 @@ export function useObjectSelection({
     selectObject,
     selectMultiple,
     deselect,
+    lockSelected,
+    unlockSelected,
   };
 }
 

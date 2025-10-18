@@ -5,7 +5,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { WebSocketService, ConnectionState, AuthState, AuthEvent } from "../services/websocket";
-import type { RoomSnapshot, ClientMessage } from "@shared";
+import type { RoomSnapshot, ClientMessage, ServerMessage } from "@shared";
 
 interface UseWebSocketOptions {
   url: string;
@@ -25,6 +25,7 @@ interface UseWebSocketReturn {
   disconnect: () => void;
   registerRtcHandler: (handler: (from: string, signal: unknown) => void) => void;
   authenticate: (secret: string, roomId?: string) => void;
+  registerServerEventHandler: (handler: (message: ServerMessage) => void) => void;
 }
 
 /**
@@ -51,6 +52,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
 
   // Use ref to store the current RTC signal handler
   const rtcHandlerRef = useRef<((from: string, signal: unknown) => void) | undefined>(onRtcSignal);
+  const controlHandlerRef = useRef<((message: ServerMessage) => void) | undefined>();
 
   // Use ref to avoid recreating service on re-renders
   const serviceRef = useRef<WebSocketService | null>(null);
@@ -90,6 +92,9 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
       },
       onStateChange: setConnectionState,
       onAuthEvent: handleAuthEvent,
+      onControlMessage: (message) => {
+        controlHandlerRef.current?.(message);
+      },
     });
 
     serviceRef.current = service;
@@ -120,6 +125,10 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     rtcHandlerRef.current = handler;
   }, []);
 
+  const registerServerEventHandler = useCallback((handler: (message: ServerMessage) => void) => {
+    controlHandlerRef.current = handler;
+  }, []);
+
   const authenticate = useCallback((secret: string, roomId?: string) => {
     serviceRef.current?.authenticate(secret, roomId);
   }, []);
@@ -137,5 +146,6 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     disconnect,
     registerRtcHandler,
     authenticate,
+    registerServerEventHandler,
   };
 }

@@ -51,6 +51,10 @@ interface DMMenuProps {
   onAlignmentReset: () => void;
   onAlignmentCancel: () => void;
   onAlignmentApply: () => void;
+  onSetRoomPassword?: (secret: string) => void;
+  roomPasswordStatus?: { type: "success" | "error"; message: string } | null;
+  roomPasswordPending?: boolean;
+  onDismissRoomPasswordStatus?: () => void;
 }
 
 type DMMenuTab = "map" | "npcs" | "session";
@@ -313,11 +317,18 @@ export function DMMenu({
   onAlignmentReset,
   onAlignmentCancel,
   onAlignmentApply,
+  onSetRoomPassword,
+  roomPasswordStatus = null,
+  roomPasswordPending = false,
+  onDismissRoomPasswordStatus,
 }: DMMenuProps) {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<DMMenuTab>("map");
   const [mapUrl, setMapUrl] = useState(mapBackground ?? "");
   const [sessionName, setSessionName] = useState("session");
+  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordConfirmInput, setPasswordConfirmInput] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const npcs = useMemo(
     () => characters.filter((character) => character.type === "npc"),
@@ -327,6 +338,13 @@ export function DMMenu({
   useEffect(() => {
     setMapUrl(mapBackground ?? "");
   }, [mapBackground]);
+
+  useEffect(() => {
+    if (roomPasswordStatus?.type === "success") {
+      setPasswordInput("");
+      setPasswordConfirmInput("");
+    }
+  }, [roomPasswordStatus]);
 
   useEffect(() => {
     if (!isDM) {
@@ -365,6 +383,27 @@ export function DMMenu({
   if (!isDM) {
     return null;
   }
+
+  const handlePasswordSubmit = () => {
+    if (!onSetRoomPassword) return;
+
+    const trimmed = passwordInput.trim();
+    const confirm = passwordConfirmInput.trim();
+
+    if (trimmed.length < 6) {
+      setPasswordError("Password must be at least 6 characters.");
+      return;
+    }
+
+    if (trimmed !== confirm) {
+      setPasswordError("Passwords do not match.");
+      return;
+    }
+
+    setPasswordError(null);
+    onDismissRoomPasswordStatus?.();
+    onSetRoomPassword(trimmed);
+  };
 
   const saveDisabled = !onRequestSaveSession;
   const loadDisabled = !onRequestLoadSession;
@@ -889,6 +928,76 @@ export function DMMenu({
                         onChange={handleLoadSession}
                       />
                     </div>
+                  </div>
+                </JRPGPanel>
+
+                <JRPGPanel variant="simple" title="Room Security">
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <p
+                      className="jrpg-text-small"
+                      style={{ margin: 0, color: "var(--jrpg-white)" }}
+                    >
+                      Update the shared room password. Current players remain connected; new
+                      entrants must use the new secret.
+                    </p>
+                    <input
+                      type="password"
+                      value={passwordInput}
+                      placeholder="New password"
+                      onChange={(event) => {
+                        setPasswordInput(event.target.value);
+                        setPasswordError(null);
+                        onDismissRoomPasswordStatus?.();
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "6px",
+                        background: "#111",
+                        color: "var(--jrpg-white)",
+                        border: "1px solid var(--jrpg-border-gold)",
+                      }}
+                    />
+                    <input
+                      type="password"
+                      value={passwordConfirmInput}
+                      placeholder="Confirm password"
+                      onChange={(event) => {
+                        setPasswordConfirmInput(event.target.value);
+                        setPasswordError(null);
+                        onDismissRoomPasswordStatus?.();
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "6px",
+                        background: "#111",
+                        color: "var(--jrpg-white)",
+                        border: "1px solid var(--jrpg-border-gold)",
+                      }}
+                    />
+                    {passwordError ? (
+                      <p style={{ color: "#f87171", margin: 0, fontSize: "0.85rem" }}>
+                        {passwordError}
+                      </p>
+                    ) : null}
+                    {roomPasswordStatus ? (
+                      <p
+                        style={{
+                          color: roomPasswordStatus.type === "success" ? "#4ade80" : "#f87171",
+                          margin: 0,
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        {roomPasswordStatus.message}
+                      </p>
+                    ) : null}
+                    <JRPGButton
+                      onClick={handlePasswordSubmit}
+                      variant="primary"
+                      disabled={roomPasswordPending || !onSetRoomPassword}
+                      style={{ fontSize: "10px" }}
+                    >
+                      {roomPasswordPending ? "Updating…" : "Update Password"}
+                    </JRPGButton>
                   </div>
                 </JRPGPanel>
 

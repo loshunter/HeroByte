@@ -18,6 +18,7 @@ Play anywhere, with anyone—no installs, just browser-based fun. Build your map
 
 - [DEVELOPMENT.md](DEVELOPMENT.md) – day-to-day workflow tips
 - [TESTING_SETUP.md](TESTING_SETUP.md) – step-by-step testing playbook
+- [docs/LOCAL_SYNC.md](docs/LOCAL_SYNC.md) – pull the latest Playwright changes into your `dev` branch
 - [TODO.md](TODO.md) – phased roadmap and contributor priorities
 - [DONE.md](DONE.md) – archive of completed phases and milestones
 - [CLOUDFLARE_PAGES_DEPLOYMENT.md](CLOUDFLARE_PAGES_DEPLOYMENT.md) – deployment checklist
@@ -68,17 +69,56 @@ Play anywhere, with anyone—no installs, just browser-based fun. Build your map
 
 ## Architecture
 
-This is a monorepo built with **domain-driven design** and **separation of concerns** principles:
+This is a monorepo built with **domain-driven design** and a strict separation between client, server, and shared contracts.
 
-- **Client**: React + TypeScript + Konva (canvas rendering) + Vite
-  - Feature-based organization with React.memo optimizations
-  - Service layer for WebSocket and voice chat
-  - Custom hooks for shared logic
-- **Server**: Node.js + WebSocket + TypeScript
-  - Domain-driven architecture with dependency injection
-  - Input validation and rate limiting middleware (100 msg/sec)
-  - Separated concerns: HTTP routes, WebSocket handlers, domain services
-- **Shared**: Common types between client and server
+- **Client (`apps/client`)** – React + TypeScript + Konva
+  - Feature-based folders with memoized map layers and context-aware hooks
+  - WebSocket transport wrapper for real-time events and a WebRTC voice service
+  - Local history managers for drawings, selections, and camera state
+- **Server (`apps/server`)** – Node.js + ws + TypeScript
+  - Domain modules (map, token, selection, dice, room, player) orchestrated via dependency injection
+  - Middleware pipeline for authentication, validation, and rate limiting
+  - Persistence layer writes snapshots to disk for crash-safe sessions
+- **Shared (`packages/shared`)** – Canonical message schemas and DTOs consumed by both sides
+
+### High-Level Flow
+
+```mermaid
+graph LR
+  subgraph Browser
+    UI[React UI\n(Konva canvas, panels)]
+    Hooks[Custom Hooks\n(state & services)]
+    Voice[WebRTC Voice Channel]
+  end
+  subgraph Client Runtime
+    WSClient[WebSocket Client\n(JSON messages)]
+    UndoRedo[Local History\n(undo/redo, selection)]
+  end
+  subgraph Server
+    Gateway[WebSocket Gateway]
+    Services[Domain Services\n(map, token, dice, selection)]
+    State[(RoomState Snapshot)]
+    Persistence[(Disk Persistence)]
+  end
+  subgraph Shared Contracts
+    Schemas[@shared message types\n & validation]
+  end
+
+  UI --> Hooks
+  Hooks --> WSClient
+  Hooks --> Voice
+  Hooks --> UndoRedo
+  WSClient --> Gateway
+  Gateway --> Services
+  Services --> State
+  Services --> Persistence
+  Services --> Gateway
+  Schemas --> WSClient
+  Schemas --> Gateway
+  Voice -. WebRTC .-> Voice
+```
+
+Contributors should familiarize themselves with the `@shared` schemas first—they define every WebSocket payload, ensuring the client and server stay in lockstep.
 
 ## Getting Started
 
@@ -111,6 +151,7 @@ pnpm install
 ```
 
 This script:
+
 - Cleans up any stuck processes/ports
 - Builds the backend
 - Starts both servers in the correct order
@@ -129,6 +170,7 @@ pnpm dev:client
 **Port Issues?**
 
 If you get "port already in use" errors:
+
 ```bash
 ./kill-ports.sh  # Cleans up stuck processes
 ```
@@ -136,9 +178,10 @@ If you get "port already in use" errors:
 See [PORT_MANAGEMENT.md](PORT_MANAGEMENT.md) for detailed troubleshooting.
 
 **Access the Application:**
+
 - Frontend: `http://localhost:5173`
 - Backend: `http://localhost:8787`
-- Default Password: `Fun1`
+- Default Password: `Fun1` (change it via DM Menu ▶ Session ▶ Room Security or by setting `HEROBYTE_ROOM_SECRET`)
 
 ### Network Access
 
@@ -303,6 +346,7 @@ pnpm test:server    # Server logic (80.99% coverage)
 ### Chrome DevTools MCP Integration
 
 For advanced E2E testing with browser automation, HeroByte supports Chrome DevTools MCP:
+
 - Performance profiling and benchmarking
 - Visual regression testing
 - Multi-client synchronization validation

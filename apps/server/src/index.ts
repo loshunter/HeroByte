@@ -10,6 +10,7 @@ import { createRoutes } from "./http/routes.js";
 import { Container } from "./container.js";
 import { ConnectionHandler } from "./ws/connectionHandler.js";
 import { isOriginAllowed } from "./config/security.js";
+import { AuthService } from "./domains/auth/service.js";
 
 // ----------------------------------------------------------------------------
 // CONFIGURATION
@@ -27,8 +28,9 @@ const HOST = "0.0.0.0";
  * Creates all infrastructure and wires dependencies
  */
 function bootstrap() {
+  const authService = new AuthService();
   // Create HTTP routes
-  const app = createRoutes();
+  const app = createRoutes(authService);
 
   // Create HTTP server for WebSocket compatibility
   const server = createServer(async (req, res) => {
@@ -55,7 +57,7 @@ function bootstrap() {
   });
 
   // Initialize dependency container
-  const container = new Container(wss);
+  const container = new Container(wss, authService);
 
   // Attach WebSocket connection handler
   const connectionHandler = new ConnectionHandler(container, wss);

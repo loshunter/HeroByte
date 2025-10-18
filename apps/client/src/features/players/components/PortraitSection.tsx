@@ -39,11 +39,13 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
     borderRadius: "8px",
     overflow: "hidden",
     background: "var(--jrpg-navy)",
-    cursor: isEditable ? "pointer" : "default",
     transform: micLevel > 0.1 ? `scale(${1 + micLevel * 0.15})` : "scale(1)",
     transition: "transform 0.1s ease-out, box-shadow 0.2s ease",
     boxShadow: animatedBoxShadow,
     aspectRatio: "1 / 1",
+    padding: 0,
+    cursor: isEditable ? "pointer" : "default",
+    outline: "none",
   };
 
   return (
@@ -93,11 +95,14 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
           </span>
         )}
       </div>
-      <div
+      <button
+        type="button"
         className="jrpg-portrait-frame"
         style={frameStyles}
         onClick={handleClick}
-        role={isEditable ? "button" : undefined}
+        aria-label={isEditable ? "Change portrait" : "Player portrait"}
+        disabled={!isEditable}
+        tabIndex={isEditable ? 0 : -1}
       >
         {portrait ? (
           <img
@@ -120,6 +125,7 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
           />
         ) : (
           <div
+            data-testid="portrait-placeholder"
             style={{
               position: "absolute",
               inset: 0,
@@ -130,21 +136,41 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
               gap: "6px",
               backgroundColor: tokenColor,
               color: "#fff",
-              fontSize: "0.65rem",
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
               textAlign: "center",
               padding: "8px",
-              textShadow: "0 1px 3px rgba(0,0,0,0.5)",
+              textShadow: "0 1px 3px rgba(0, 0, 0, 0.45)",
               pointerEvents: "none",
             }}
           >
-            <span style={{ fontSize: "0.6rem", fontWeight: "bold", lineHeight: "1.2" }}>
-              {isEditable ? "Click to change portrait" : "No portrait"}
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+              }}
+            >
+              {isEditable ? "+ Add Portrait" : "Portrait Pending"}
             </span>
+            {isEditable ? (
+              <span
+                style={{
+                  fontSize: "0.65rem",
+                  opacity: 0.85,
+                  lineHeight: 1.3,
+                  letterSpacing: "0.04em",
+                }}
+              >
+                Click to upload or paste an image link.
+              </span>
+            ) : null}
           </div>
         )}
-      </div>
+      </button>
     </div>
   );
 };

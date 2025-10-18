@@ -5,7 +5,7 @@
 
 import type { WebSocket, WebSocketServer } from "ws";
 import type { SignalData } from "simple-peer";
-import type { ClientMessage } from "@shared";
+import type { ClientMessage, ServerMessage } from "@shared";
 import { RoomService } from "../domains/room/service.js";
 import { PlayerService } from "../domains/player/service.js";
 import { TokenService } from "../domains/token/service.js";
@@ -13,6 +13,7 @@ import { MapService } from "../domains/map/service.js";
 import { DiceService } from "../domains/dice/service.js";
 import { CharacterService } from "../domains/character/service.js";
 import { SelectionService } from "../domains/selection/service.js";
+import { AuthService } from "../domains/auth/service.js";
 
 /**
  * Message router - handles all WebSocket messages and dispatches to domain services
@@ -25,6 +26,7 @@ export class MessageRouter {
   private diceService: DiceService;
   private characterService: CharacterService;
   private selectionService: SelectionService;
+  private authService: AuthService;
   private wss: WebSocketServer;
   private uidToWs: Map<string, WebSocket>;
   private getAuthorizedClients: () => Set<WebSocket>;
@@ -37,6 +39,7 @@ export class MessageRouter {
     diceService: DiceService,
     characterService: CharacterService,
     selectionService: SelectionService,
+    authService: AuthService,
     wss: WebSocketServer,
     uidToWs: Map<string, WebSocket>,
     getAuthorizedClients: () => Set<WebSocket>,
@@ -48,6 +51,7 @@ export class MessageRouter {
     this.diceService = diceService;
     this.characterService = characterService;
     this.selectionService = selectionService;
+    this.authService = authService;
     this.wss = wss;
     this.uidToWs = uidToWs;
     this.getAuthorizedClients = getAuthorizedClients;
@@ -321,6 +325,32 @@ export class MessageRouter {
           break;
         }
 
+        case "lock-selected": {
+          if (message.uid !== senderUid) {
+            console.warn(`lock-selected spoofed uid from ${senderUid}`);
+            break;
+          }
+          const lockCount = this.roomService.lockSelectedObjects(senderUid, message.objectIds);
+          if (lockCount > 0) {
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+        }
+
+        case "unlock-selected": {
+          if (message.uid !== senderUid) {
+            console.warn(`unlock-selected spoofed uid from ${senderUid}`);
+            break;
+          }
+          const unlockCount = this.roomService.unlockSelectedObjects(senderUid, message.objectIds);
+          if (unlockCount > 0) {
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+        }
+
         case "move-drawing":
           if (this.mapService.moveDrawing(state, message.id, message.dx, message.dy, senderUid)) {
             this.broadcast();
@@ -355,6 +385,45 @@ export class MessageRouter {
           break;
 
         // ROOM MANAGEMENT
+        case "set-room-password": {
+          const sender = state.players.find((p) => p.uid === senderUid);
+          const isDM = sender?.isDM ?? false;
+
+          if (!isDM) {
+            this.sendControlMessage(senderUid, {
+              t: "room-password-update-failed",
+              reason: "Only Dungeon Masters can update the room password.",
+            });
+            break;
+          }
+
+          const nextSecret = message.secret?.trim() ?? "";
+          if (nextSecret.length < 6 || nextSecret.length > 128) {
+            this.sendControlMessage(senderUid, {
+              t: "room-password-update-failed",
+              reason: "Password must be between 6 and 128 characters.",
+            });
+            break;
+          }
+
+          try {
+            const summary = this.authService.update(nextSecret);
+            this.sendControlMessage(senderUid, {
+              t: "room-password-updated",
+              updatedAt: summary.updatedAt,
+              source: summary.source,
+            });
+            console.log(`DM ${senderUid} updated the room password.`);
+          } catch (error) {
+            console.error("Failed to update room password:", error);
+            this.sendControlMessage(senderUid, {
+              t: "room-password-update-failed",
+              reason: "Unable to update password. Check server logs.",
+            });
+          }
+          break;
+        }
+
         case "clear-all-tokens": {
           const removedIds = state.tokens
             .filter((token) => token.owner !== senderUid)
@@ -436,5 +505,12 @@ export class MessageRouter {
    */
   private broadcast(): void {
     this.roomService.broadcast(this.getAuthorizedClients());
+  }
+
+  private sendControlMessage(targetUid: string, message: ServerMessage): void {
+    const ws = this.uidToWs.get(targetUid);
+    if (ws && ws.readyState === 1) {
+      ws.send(JSON.stringify(message));
+    }
   }
 }

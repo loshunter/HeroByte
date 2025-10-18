@@ -166,6 +166,20 @@ export function validateMessage(raw: unknown): ValidationResult {
       break;
     }
 
+    case "set-room-password": {
+      if (typeof message.secret !== "string") {
+        return { valid: false, error: "set-room-password: secret must be a string" };
+      }
+      const trimmed = message.secret.trim();
+      if (trimmed.length === 0) {
+        return { valid: false, error: "set-room-password: secret is empty" };
+      }
+      if (trimmed.length > 256) {
+        return { valid: false, error: "set-room-password: secret too long" };
+      }
+      break;
+    }
+
     case "set-hp": {
       const { hp, maxHp } = message;
       if (!isFiniteNumber(hp) || !isFiniteNumber(maxHp)) {
@@ -387,6 +401,50 @@ export function validateMessage(raw: unknown): ValidationResult {
             error: "select-multiple: invalid mode (replace, append, subtract)",
           };
         }
+      }
+      break;
+    }
+
+    case "lock-selected": {
+      if (typeof message.uid !== "string" || message.uid.length === 0) {
+        return { valid: false, error: "lock-selected: missing or invalid uid" };
+      }
+      if (!Array.isArray(message.objectIds) || message.objectIds.length === 0) {
+        return {
+          valid: false,
+          error: "lock-selected: objectIds must be a non-empty string array",
+        };
+      }
+      if (message.objectIds.length > 100) {
+        return { valid: false, error: "lock-selected: too many objectIds (max 100)" };
+      }
+      if (!message.objectIds.every((id) => typeof id === "string" && id.length > 0)) {
+        return {
+          valid: false,
+          error: "lock-selected: objectIds must be a non-empty string array",
+        };
+      }
+      break;
+    }
+
+    case "unlock-selected": {
+      if (typeof message.uid !== "string" || message.uid.length === 0) {
+        return { valid: false, error: "unlock-selected: missing or invalid uid" };
+      }
+      if (!Array.isArray(message.objectIds) || message.objectIds.length === 0) {
+        return {
+          valid: false,
+          error: "unlock-selected: objectIds must be a non-empty string array",
+        };
+      }
+      if (message.objectIds.length > 100) {
+        return { valid: false, error: "unlock-selected: too many objectIds (max 100)" };
+      }
+      if (!message.objectIds.every((id) => typeof id === "string" && id.length > 0)) {
+        return {
+          valid: false,
+          error: "unlock-selected: objectIds must be a non-empty string array",
+        };
       }
       break;
     }
