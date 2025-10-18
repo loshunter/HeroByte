@@ -147,7 +147,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
     const selectionEnabled = selectMode || transformMode;
     const canShowSelection = selectionEnabled; // Show selection outlines when selection or transform tools are active
     const canManage = isOwner || canManageAllDrawings;
-    const allowClickSelection = (selectMode && canManage) || transformMode;
+    const allowClickSelection = selectMode || transformMode;
     const allowDrag = selectMode && canManage && isSelected;
     const isDragging = draggingId === sceneObject.id;
 
@@ -303,7 +303,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
             scaleX={transform.scaleX}
             scaleY={transform.scaleY}
             rotation={transform.rotation}
-            draggable={canInteract && isSelected}
+            draggable={allowDrag}
             {...groupHandlers}
             ref={
               onDrawingNodeReady ? (node) => onDrawingNodeReady(sceneObject.id, node) : undefined
@@ -351,7 +351,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
             scaleX={transform.scaleX}
             scaleY={transform.scaleY}
             rotation={transform.rotation}
-            draggable={canInteract && isSelected}
+            draggable={allowDrag}
             {...groupHandlers}
             ref={
               onDrawingNodeReady ? (node) => onDrawingNodeReady(sceneObject.id, node) : undefined
