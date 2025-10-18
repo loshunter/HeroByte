@@ -296,6 +296,14 @@ function AuthGate({
   const isConnecting =
     connectionState === ConnectionState.CONNECTING ||
     connectionState === ConnectionState.RECONNECTING;
+  const isHandshakeActive = isConnecting || authState === AuthState.PENDING;
+  const submitLabel =
+    authState === AuthState.PENDING
+      ? "Authenticating..."
+      : isConnecting
+        ? "Connecting..."
+        : "Enter Room";
+  const primaryDisabled = !canSubmit || isHandshakeActive;
   return (
     <div style={authGateContainerStyle}>
       <div style={authGateCardStyle}>
@@ -312,19 +320,20 @@ function AuthGate({
             style={authInputStyle}
             autoFocus
             spellCheck={false}
-            disabled={authState === AuthState.PENDING}
+            disabled={isHandshakeActive}
           />
           {authError ? <p style={authGateErrorStyle}>{authError}</p> : null}
           <button
             type="submit"
             style={{
               ...authPrimaryButtonStyle,
-              opacity: canSubmit ? 1 : 0.6,
-              cursor: canSubmit ? "pointer" : "not-allowed",
+              opacity: primaryDisabled ? 0.6 : 1,
+              cursor: primaryDisabled ? "not-allowed" : "pointer",
             }}
-            disabled={!canSubmit}
+            disabled={primaryDisabled}
+            aria-busy={isHandshakeActive}
           >
-            {authState === AuthState.PENDING ? "Authenticating..." : "Enter Room"}
+            {submitLabel}
           </button>
         </form>
         <p style={authGateHintStyle}>
@@ -332,13 +341,39 @@ function AuthGate({
           <strong
             style={{
               animation: isConnecting ? "pulse 1.5s ease-in-out infinite" : "none",
-            }}
+              }}
+            aria-live="polite"
+            aria-busy={isConnecting}
           >
-            {connectionLabel}
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              {isConnecting ? (
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: "12px",
+                    height: "12px",
+                    borderRadius: "50%",
+                    border: "2px solid rgba(255,255,255,0.3)",
+                    borderTopColor: "var(--jrpg-gold)",
+                    animation: "spin 0.8s linear infinite",
+                  }}
+                />
+              ) : null}
+              <span>{connectionLabel}</span>
+            </span>
           </strong>
         </p>
         {!isConnected ? (
-          <button type="button" style={authSecondaryButtonStyle} onClick={onRetry}>
+          <button
+            type="button"
+            style={{
+              ...authSecondaryButtonStyle,
+              opacity: isConnecting ? 0.6 : 1,
+              cursor: isConnecting ? "not-allowed" : "pointer",
+            }}
+            onClick={onRetry}
+            disabled={isConnecting}
+          >
             Retry Connection
           </button>
         ) : null}
@@ -429,6 +464,8 @@ function AuthenticatedApp({
     selectObject,
     selectMultiple,
     deselect: clearSelection,
+    lockSelected,
+    unlockSelected,
   } = useObjectSelection({ uid, snapshot, sendMessage });
 
   // UI layout (fixed panels)
@@ -1109,6 +1146,84 @@ function AuthenticatedApp({
         onFocusSelf={handleFocusSelf}
         onResetCamera={handleResetCamera}
       />
+
+      {/* Multi-select toolbar - shows when multiple objects are selected and user is DM */}
+      {isDM && selectedObjectIds.length > 0 && (
+        <div
+          style={{
+            position: "fixed",
+            top: `${topHeight + 20}px`,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 1000,
+            display: "flex",
+            gap: "8px",
+            padding: "8px 16px",
+            backgroundColor: "rgba(17, 24, 39, 0.95)",
+            border: "1px solid rgba(148, 163, 184, 0.3)",
+            borderRadius: "8px",
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.4)",
+          }}
+        >
+          <div
+            style={{
+              color: "#cbd5e1",
+              fontSize: "0.9rem",
+              fontWeight: 500,
+              marginRight: "12px",
+              lineHeight: "32px",
+            }}
+          >
+            {selectedObjectIds.length} selected
+          </div>
+          <button
+            onClick={lockSelected}
+            style={{
+              padding: "6px 16px",
+              backgroundColor: "#374151",
+              border: "1px solid rgba(148, 163, 184, 0.3)",
+              borderRadius: "6px",
+              color: "#f3f4f6",
+              fontSize: "0.9rem",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "#4b5563";
+              e.currentTarget.style.borderColor = "rgba(148, 163, 184, 0.5)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "#374151";
+              e.currentTarget.style.borderColor = "rgba(148, 163, 184, 0.3)";
+            }}
+          >
+            🔒 Lock
+          </button>
+          <button
+            onClick={unlockSelected}
+            style={{
+              padding: "6px 16px",
+              backgroundColor: "#374151",
+              border: "1px solid rgba(148, 163, 184, 0.3)",
+              borderRadius: "6px",
+              color: "#f3f4f6",
+              fontSize: "0.9rem",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "#4b5563";
+              e.currentTarget.style.borderColor = "rgba(148, 163, 184, 0.5)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "#374151";
+              e.currentTarget.style.borderColor = "rgba(148, 163, 184, 0.3)";
+            }}
+          >
+            🔓 Unlock
+          </button>
+        </div>
+      )}
 
       {/* Main Whiteboard Panel - fills space between fixed top and bottom */}
       <div

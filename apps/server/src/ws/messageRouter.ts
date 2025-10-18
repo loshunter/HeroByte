@@ -325,6 +325,32 @@ export class MessageRouter {
           break;
         }
 
+        case "lock-selected": {
+          if (message.uid !== senderUid) {
+            console.warn(`lock-selected spoofed uid from ${senderUid}`);
+            break;
+          }
+          const lockCount = this.roomService.lockSelectedObjects(senderUid, message.objectIds);
+          if (lockCount > 0) {
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+        }
+
+        case "unlock-selected": {
+          if (message.uid !== senderUid) {
+            console.warn(`unlock-selected spoofed uid from ${senderUid}`);
+            break;
+          }
+          const unlockCount = this.roomService.unlockSelectedObjects(senderUid, message.objectIds);
+          if (unlockCount > 0) {
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+        }
+
         case "move-drawing":
           if (this.mapService.moveDrawing(state, message.id, message.dx, message.dy, senderUid)) {
             this.broadcast();

@@ -234,6 +234,18 @@ export interface SelectMultipleMessage {
   mode?: SelectionMode;
 }
 
+export interface LockSelectedMessage {
+  t: "lock-selected";
+  uid: string;
+  objectIds: string[];
+}
+
+export interface UnlockSelectedMessage {
+  t: "unlock-selected";
+  uid: string;
+  objectIds: string[];
+}
+
 export interface SelectionStateSingle {
   mode: "single";
   objectId: string;
@@ -267,6 +279,8 @@ export type ClientMessage =
   | SelectObjectMessage
   | DeselectObjectMessage
   | SelectMultipleMessage
+  | LockSelectedMessage
+  | UnlockSelectedMessage
 
   // Player actions
   | { t: "portrait"; data: string } // Update player portrait

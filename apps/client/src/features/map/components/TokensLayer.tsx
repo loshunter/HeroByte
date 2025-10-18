@@ -4,7 +4,7 @@
 // Renders tokens from the unified scene graph with drag support.
 
 import { memo, useEffect, useRef, useState } from "react";
-import { Group, Rect, Image as KonvaImage } from "react-konva";
+import { Group, Rect, Image as KonvaImage, Circle, Text } from "react-konva";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import type { SceneObject } from "@shared";
@@ -23,7 +23,7 @@ interface TokenSpriteProps {
   onDragStart?: (event: KonvaEventObject<DragEvent>) => void;
   onHover: (id: string | null) => void;
   onDoubleClick?: () => void;
-  onClick?: () => void;
+  onClick?: (event: KonvaEventObject<MouseEvent>) => void;
   onNodeReady?: (node: Konva.Node | null) => void;
 }
 
@@ -76,7 +76,7 @@ const TokenSprite = memo(function TokenSprite({
     onMouseLeave: () => onHover(null),
     listening: interactive,
     onDblClick: onDoubleClick,
-    onClick: onClick,
+    onClick,
     id,
     name: id,
     attrs: { "data-token-id": id },
@@ -94,6 +94,40 @@ const TokenSprite = memo(function TokenSprite({
   return <Rect fill={data.color} {...commonProps} />;
 });
 
+interface MultiSelectBadgeProps {
+  x: number;
+  y: number;
+  size: number;
+  count: number;
+}
+
+const MultiSelectBadge = memo(function MultiSelectBadge({ x, y, size, count }: MultiSelectBadgeProps) {
+  const radius = size / 2;
+  const fontSize = size * 0.6;
+
+  return (
+    <Group x={x} y={y}>
+      <Circle
+        radius={radius}
+        fill="#447DF7"
+        stroke="#FFFFFF"
+        strokeWidth={2}
+      />
+      <Text
+        text={count.toString()}
+        fontSize={fontSize}
+        fontFamily="Arial"
+        fontStyle="bold"
+        fill="#FFFFFF"
+        align="center"
+        verticalAlign="middle"
+        offsetX={fontSize / 2.5}
+        offsetY={fontSize / 2.5}
+      />
+    </Group>
+  );
+});
+
 interface TokensLayerProps {
   cam: Camera;
   sceneObjects: SceneObject[];
@@ -105,7 +139,8 @@ interface TokensLayerProps {
   onRecolorToken: (sceneId: string, owner: string | null | undefined) => void;
   snapToGrid: boolean;
   selectedObjectId?: string | null;
-  onSelectObject?: (objectId: string | null) => void;
+  selectedObjectIds: string[];
+  onSelectObject?: (objectId: string | null, options?: { mode?: "replace" | "append" | "toggle" | "subtract" }) => void;
   onTokenNodeReady?: (tokenId: string, node: Konva.Node | null) => void;
   interactionsEnabled?: boolean;
 }
@@ -121,11 +156,13 @@ export const TokensLayer = memo(function TokensLayer({
   onRecolorToken,
   snapToGrid,
   selectedObjectId,
+  selectedObjectIds = [],
   onSelectObject,
   onTokenNodeReady,
   interactionsEnabled = true,
 }: TokensLayerProps) {
   const localOverrides = useRef<Record<string, { x: number; y: number }>>({});
+  const multiDragStartRef = useRef<Record<string, { x: number; y: number }>>({});
   const [, forceRerender] = useState(0);
   const [draggingId, setDraggingId] = useState<string | null>(null);
 
@@ -135,6 +172,9 @@ export const TokensLayer = memo(function TokensLayer({
 
   const myTokens = tokens.filter((object) => object.owner === uid);
   const otherTokens = tokens.filter((object) => object.owner !== uid);
+
+  // Count selected tokens for multi-select badge
+  const selectedTokenCount = selectedObjectIds.filter((id) => id.startsWith("token:")).length;
 
   const handleDrag = (sceneId: string, event: KonvaEventObject<DragEvent>) => {
     try {
@@ -154,24 +194,72 @@ export const TokensLayer = memo(function TokensLayer({
       const snappedY = gy * gridSize;
       event.target.position({ x: snappedX, y: snappedY });
 
-      localOverrides.current[sceneId] = { x: gx, y: gy };
+      const startPositions = multiDragStartRef.current;
+      const base = startPositions[sceneId];
+      if (base) {
+        const deltaX = gx - base.x;
+        const deltaY = gy - base.y;
+
+        const entries = Object.entries(startPositions);
+        if (entries.length > 0) {
+          for (const [id, start] of entries) {
+            const nextX = start.x + deltaX;
+            const nextY = start.y + deltaY;
+            localOverrides.current[id] = { x: nextX, y: nextY };
+            onTransformToken(id, { x: nextX, y: nextY });
+          }
+        } else {
+          localOverrides.current[sceneId] = { x: gx, y: gy };
+          onTransformToken(sceneId, { x: gx, y: gy });
+        }
+      } else {
+        localOverrides.current[sceneId] = { x: gx, y: gy };
+        onTransformToken(sceneId, { x: gx, y: gy });
+      }
+
       forceRerender((value) => value + 1);
 
-      onTransformToken(sceneId, { x: gx, y: gy });
       setDraggingId(null);
+      multiDragStartRef.current = {};
     } catch (error) {
       // Ignore errors during drag (transformer may still be detaching)
       console.warn("[TokensLayer] Drag error:", error);
       setDraggingId(null);
+      multiDragStartRef.current = {};
     }
   };
 
-  const handleDragStart = (sceneId: string) => {
+  const handleDragStart = (sceneId: string, event: KonvaEventObject<DragEvent>) => {
     setDraggingId(sceneId);
-    // Deselect when dragging starts (so transformer doesn't interfere)
-    if (onSelectObject) {
-      onSelectObject(null);
+
+    const alreadySelected = selectedObjectIds.includes(sceneId);
+    if (!alreadySelected && onSelectObject) {
+      const native = event?.evt as MouseEvent | PointerEvent | undefined;
+      const append = native?.shiftKey ?? false;
+      const toggle = native?.ctrlKey || native?.metaKey || false;
+      const mode = append ? "append" : toggle ? "toggle" : "replace";
+      onSelectObject(sceneId, { mode });
     }
+
+    const idsForDrag = (alreadySelected ? selectedObjectIds : [sceneId]).filter((id) =>
+      id.startsWith("token:"),
+    );
+
+    const starts: Record<string, { x: number; y: number }> = {};
+    for (const object of tokens) {
+      if (idsForDrag.includes(object.id)) {
+        starts[object.id] = { x: object.transform.x, y: object.transform.y };
+      }
+    }
+
+    if (!starts[sceneId]) {
+      const target = tokens.find((candidate) => candidate.id === sceneId);
+      if (target) {
+        starts[sceneId] = { x: target.transform.x, y: target.transform.y };
+      }
+    }
+
+    multiDragStartRef.current = starts;
   };
 
   useEffect(() => {
@@ -220,7 +308,9 @@ export const TokensLayer = memo(function TokensLayer({
   return (
     <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale}>
       {otherTokens.map((object) => {
-        const isSelected = selectedObjectId === object.id;
+        const isSelected =
+          selectedObjectIds.includes(object.id) || selectedObjectId === object.id;
+        const isFirstSelected = selectedTokenCount > 1 && selectedObjectIds[0] === object.id;
         return (
           <Group key={object.id}>
             <TokenSprite
@@ -232,10 +322,18 @@ export const TokensLayer = memo(function TokensLayer({
               strokeWidth={isSelected ? 3 / cam.scale : 2 / cam.scale}
               interactive={interactionsEnabled}
               onHover={onHover}
-              onClick={() => {
-                if (onSelectObject) {
-                  onSelectObject(object.id);
+              onClick={(event) => {
+                if (!onSelectObject) {
+                  return;
                 }
+                const native = event?.evt;
+                const append = native?.shiftKey ?? false;
+                const toggle = native?.ctrlKey || native?.metaKey || false;
+                const mode = append ? "append" : toggle ? "toggle" : "replace";
+                if (event) {
+                  event.cancelBubble = true;
+                }
+                onSelectObject(object.id, { mode });
               }}
               onNodeReady={
                 onTokenNodeReady ? (node) => onTokenNodeReady(object.id, node) : undefined
@@ -248,12 +346,22 @@ export const TokensLayer = memo(function TokensLayer({
                 size={gridSize * 0.25}
               />
             )}
+            {isFirstSelected && (
+              <MultiSelectBadge
+                x={object.transform.x * gridSize + gridSize * 0.85}
+                y={object.transform.y * gridSize + gridSize * 0.15}
+                size={gridSize * 0.3}
+                count={selectedTokenCount}
+              />
+            )}
           </Group>
         );
       })}
 
       {myTokens.map((object) => {
-        const isSelected = selectedObjectId === object.id;
+        const isSelected =
+          selectedObjectIds.includes(object.id) || selectedObjectId === object.id;
+        const isFirstSelected = selectedTokenCount > 1 && selectedObjectIds[0] === object.id;
         return (
           <Group key={object.id}>
             <TokenSprite
@@ -263,14 +371,22 @@ export const TokensLayer = memo(function TokensLayer({
               strokeWidth={isSelected ? 3 / cam.scale : 2 / cam.scale}
               draggable={!object.locked && interactionsEnabled}
               interactive={interactionsEnabled}
-              onDragStart={() => handleDragStart(object.id)}
+              onDragStart={(event) => handleDragStart(object.id, event)}
               onDragEnd={(event) => handleDrag(object.id, event)}
               onHover={onHover}
               onDoubleClick={() => onRecolorToken(object.id, object.owner)}
-              onClick={() => {
-                if (onSelectObject) {
-                  onSelectObject(object.id);
+              onClick={(event) => {
+                if (!onSelectObject) {
+                  return;
                 }
+                const native = event?.evt;
+                const append = native?.shiftKey ?? false;
+                const toggle = native?.ctrlKey || native?.metaKey || false;
+                const mode = append ? "append" : toggle ? "toggle" : "replace";
+                if (event) {
+                  event.cancelBubble = true;
+                }
+                onSelectObject(object.id, { mode });
               }}
               onNodeReady={
                 onTokenNodeReady ? (node) => onTokenNodeReady(object.id, node) : undefined
@@ -281,6 +397,14 @@ export const TokensLayer = memo(function TokensLayer({
                 x={object.transform.x * gridSize + gridSize / 2}
                 y={object.transform.y * gridSize + gridSize / 2 - gridSize * 0.45}
                 size={gridSize * 0.25}
+              />
+            )}
+            {isFirstSelected && (
+              <MultiSelectBadge
+                x={object.transform.x * gridSize + gridSize * 0.85}
+                y={object.transform.y * gridSize + gridSize * 0.15}
+                size={gridSize * 0.3}
+                count={selectedTokenCount}
               />
             )}
           </Group>
