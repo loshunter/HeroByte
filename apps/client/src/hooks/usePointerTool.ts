@@ -19,6 +19,7 @@ interface UsePointerToolOptions {
 interface UsePointerToolReturn {
   measureStart: { x: number; y: number } | null;
   measureEnd: { x: number; y: number } | null;
+  pointerPreview: { x: number; y: number } | null;
   onStageClick: (event: KonvaEventObject<MouseEvent | PointerEvent>) => void;
   onMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
 }
@@ -32,6 +33,7 @@ export function usePointerTool(options: UsePointerToolOptions): UsePointerToolRe
   // Measure tool state
   const [measureStart, setMeasureStart] = useState<{ x: number; y: number } | null>(null);
   const [measureEnd, setMeasureEnd] = useState<{ x: number; y: number } | null>(null);
+  const [pointerPreview, setPointerPreview] = useState<{ x: number; y: number } | null>(null);
 
   // Clear measure tool when mode changes
   useEffect(() => {
@@ -40,6 +42,12 @@ export function usePointerTool(options: UsePointerToolOptions): UsePointerToolRe
       setMeasureEnd(null);
     }
   }, [measureMode]);
+
+  useEffect(() => {
+    if (!pointerMode) {
+      setPointerPreview(null);
+    }
+  }, [pointerMode]);
 
   /**
    * Handle stage clicks for pointer and measure tools
@@ -56,8 +64,9 @@ export function usePointerTool(options: UsePointerToolOptions): UsePointerToolRe
 
     if (pointerMode) {
       sendMessage({ t: "point", x: world.x, y: world.y });
+      setPointerPreview(world);
     } else if (measureMode) {
-      if (!measureStart) {
+      if (!measureStart || measureEnd) {
         setMeasureStart(world);
         setMeasureEnd(null);
       } else {
@@ -70,10 +79,15 @@ export function usePointerTool(options: UsePointerToolOptions): UsePointerToolRe
    * Update measure tool end point as mouse moves
    */
   const onMouseMove = (stageRef: RefObject<Konva.Stage | null>) => {
+    const pointer = stageRef.current?.getPointerPosition();
+    if (!pointer) return;
+    const world = toWorld(pointer.x, pointer.y);
+
+    if (pointerMode) {
+      setPointerPreview(world);
+    }
+
     if (measureMode && measureStart) {
-      const pointer = stageRef.current?.getPointerPosition();
-      if (!pointer) return;
-      const world = toWorld(pointer.x, pointer.y);
       setMeasureEnd(world);
     }
   };
@@ -81,6 +95,7 @@ export function usePointerTool(options: UsePointerToolOptions): UsePointerToolRe
   return {
     measureStart,
     measureEnd,
+    pointerPreview,
     onStageClick,
     onMouseMove,
   };

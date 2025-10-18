@@ -5,6 +5,7 @@ node_modules/
 # Build outputs
 dist/
 build/
+coverage/
 *.tsbuildinfo
 
 # Environment variables
@@ -30,6 +31,8 @@ yarn-error.log*
 # State files
 herobyte-state.json
 vtt-state.json
+playwright-report/
+test-results/
 
 # MCP config with secrets
 .mcp.json

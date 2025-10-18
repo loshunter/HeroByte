@@ -10,8 +10,8 @@ interface PortraitSectionProps {
   micLevel?: number;
   isEditable?: boolean;
   onRequestChange?: () => void;
-  placeholderLabel?: string;
   statusIcon?: { emoji: string; label: string } | null;
+  tokenColor?: string;
 }
 
 export const PortraitSection: React.FC<PortraitSectionProps> = ({
@@ -19,8 +19,8 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
   micLevel = 0,
   isEditable = false,
   onRequestChange,
-  placeholderLabel = "Load from URL",
   statusIcon,
+  tokenColor = "#5AFFAD",
 }) => {
   const handleClick = () => {
     if (isEditable && onRequestChange) {
@@ -34,6 +34,7 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
   const frameStyles: React.CSSProperties = {
     position: "relative",
     flex: 1,
+    width: "100%",
     border: "2px solid var(--jrpg-border-gold)",
     borderRadius: "8px",
     overflow: "hidden",
@@ -42,6 +43,7 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
     transform: micLevel > 0.1 ? `scale(${1 + micLevel * 0.15})` : "scale(1)",
     transition: "transform 0.1s ease-out, box-shadow 0.2s ease",
     boxShadow: animatedBoxShadow,
+    aspectRatio: "1 / 1",
   };
 
   return (
@@ -126,33 +128,20 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
               alignItems: "center",
               justifyContent: "center",
               gap: "6px",
-              color: "var(--jrpg-cyan)",
-              fontSize: "0.7rem",
+              backgroundColor: tokenColor,
+              color: "#fff",
+              fontSize: "0.65rem",
               textTransform: "uppercase",
               letterSpacing: "0.08em",
-            }}
-          >
-            <span style={{ fontSize: "1.8rem" }}>👤</span>
-            {isEditable ? <span>{placeholderLabel}</span> : <span>Awaiting portrait</span>}
-          </div>
-        )}
-
-        {isEditable && (
-          <div
-            style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              padding: "4px",
-              background: "linear-gradient(180deg, rgba(8,12,24,0) 0%, rgba(8,12,24,0.85) 100%)",
               textAlign: "center",
-              fontSize: "0.6rem",
-              color: "var(--jrpg-white)",
+              padding: "8px",
+              textShadow: "0 1px 3px rgba(0,0,0,0.5)",
               pointerEvents: "none",
             }}
           >
-            Click to change portrait
+            <span style={{ fontSize: "0.6rem", fontWeight: "bold", lineHeight: "1.2" }}>
+              {isEditable ? "Click to change portrait" : "No portrait"}
+            </span>
           </div>
         )}
       </div>

@@ -7,14 +7,18 @@
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { Character } from "@shared";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
+import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignment";
+import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 
 interface DMMenuProps {
   isDM: boolean;
   onToggleDM: (next: boolean) => void;
   gridSize: number;
+  gridSquareSize?: number; // Feet per square
   gridLocked: boolean;
   onGridLockToggle: () => void;
   onGridSizeChange: (size: number) => void;
+  onGridSquareSizeChange?: (size: number) => void;
   onClearDrawings: () => void;
   onSetMapBackground: (url: string) => void;
   mapBackground?: string;
@@ -39,6 +43,14 @@ interface DMMenuProps {
     scaleY: number;
     rotation: number;
   }) => void;
+  alignmentModeActive: boolean;
+  alignmentPoints: AlignmentPoint[];
+  alignmentSuggestion: AlignmentSuggestion | null;
+  alignmentError?: string | null;
+  onAlignmentStart: () => void;
+  onAlignmentReset: () => void;
+  onAlignmentCancel: () => void;
+  onAlignmentApply: () => void;
 }
 
 type DMMenuTab = "map" | "npcs" | "session";
@@ -273,9 +285,11 @@ export function DMMenu({
   isDM,
   onToggleDM,
   gridSize,
+  gridSquareSize = 5,
   gridLocked,
   onGridLockToggle,
   onGridSizeChange,
+  onGridSquareSizeChange,
   onClearDrawings,
   onSetMapBackground,
   mapBackground,
@@ -291,6 +305,14 @@ export function DMMenu({
   onMapLockToggle,
   mapTransform,
   onMapTransformChange,
+  alignmentModeActive,
+  alignmentPoints,
+  alignmentSuggestion,
+  alignmentError,
+  onAlignmentStart,
+  onAlignmentReset,
+  onAlignmentCancel,
+  onAlignmentApply,
 }: DMMenuProps) {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<DMMenuTab>("map");
@@ -347,6 +369,9 @@ export function DMMenu({
   const saveDisabled = !onRequestSaveSession;
   const loadDisabled = !onRequestLoadSession;
 
+  const formatSquareSize = (value: number) =>
+    Number.isInteger(value) ? `${value}` : value.toFixed(1);
+
   const TabButton = ({ tab, label }: { tab: DMMenuTab; label: string }) => (
     <JRPGButton
       onClick={() => setActiveTab(tab)}
@@ -377,18 +402,18 @@ export function DMMenu({
       </div>
 
       {open && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: "96px",
-            right: "32px",
-            width: "360px",
-            maxHeight: "70vh",
-            overflowY: "auto",
-            zIndex: 200,
-          }}
+        <DraggableWindow
+          title="Dungeon Master Tools"
+          onClose={() => setOpen(false)}
+          initialX={typeof window !== "undefined" ? window.innerWidth - 420 : 100}
+          initialY={100}
+          width={400}
+          minWidth={360}
+          maxWidth={500}
+          storageKey="dm-menu"
+          zIndex={1002}
         >
-          <JRPGPanel variant="bevel" title="Dungeon Master Tools">
+          <div style={{ padding: "12px" }}>
             <div
               style={{
                 display: "flex",
@@ -494,6 +519,122 @@ export function DMMenu({
                     >
                       {gridLocked ? "Grid Locked" : "Lock Grid"}
                     </JRPGButton>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        marginTop: "8px",
+                      }}
+                    >
+                      <span className="jrpg-text-small">Square Size</span>
+                      <span className="jrpg-text-small">{formatSquareSize(gridSquareSize)} ft</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={1}
+                      max={100}
+                      step={1}
+                      value={Math.min(100, Math.max(1, gridSquareSize))}
+                      onChange={(event) => onGridSquareSizeChange?.(Number(event.target.value))}
+                      disabled={!onGridSquareSizeChange}
+                      style={{ width: "100%" }}
+                    />
+                    <span
+                      style={{
+                        fontSize: "10px",
+                        opacity: 0.8,
+                        lineHeight: 1.3,
+                        display: "block",
+                      }}
+                    >
+                      Measurement tool displays distances as squares and feet using this value.
+                    </span>
+                  </div>
+                </JRPGPanel>
+
+                <JRPGPanel variant="simple" title="Grid Alignment Wizard">
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <span className="jrpg-text-small" style={{ lineHeight: 1.4 }}>
+                      {alignmentModeActive
+                        ? "Alignment mode active — zoom in and click two opposite corners of a single map square."
+                        : "Capture two opposite corners of a map square to auto-match the map to the table grid."}
+                    </span>
+
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                      <JRPGButton
+                        variant={alignmentModeActive ? "primary" : "default"}
+                        onClick={onAlignmentStart}
+                        style={{ fontSize: "10px" }}
+                        disabled={alignmentModeActive}
+                      >
+                        Start Alignment
+                      </JRPGButton>
+                      <JRPGButton
+                        variant="default"
+                        onClick={onAlignmentReset}
+                        style={{ fontSize: "10px" }}
+                        disabled={alignmentPoints.length === 0}
+                      >
+                        Reset Points
+                      </JRPGButton>
+                      {alignmentModeActive && (
+                        <JRPGButton
+                          variant="danger"
+                          onClick={onAlignmentCancel}
+                          style={{ fontSize: "10px" }}
+                        >
+                          Cancel
+                        </JRPGButton>
+                      )}
+                    </div>
+
+                    <span className="jrpg-text-small" style={{ opacity: 0.8 }}>
+                      Captured Points: {Math.min(alignmentPoints.length, 2)} / 2
+                    </span>
+
+                    {alignmentSuggestion && (
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                          gap: "6px",
+                          fontSize: "10px",
+                          background: "rgba(0, 0, 0, 0.2)",
+                          padding: "8px",
+                          borderRadius: "4px",
+                        }}
+                      >
+                        <span>Scale</span>
+                        <span>{alignmentSuggestion.scale.toFixed(4)}×</span>
+                        <span>Rotation</span>
+                        <span>{alignmentSuggestion.rotation.toFixed(2)}°</span>
+                        <span>Offset X</span>
+                        <span>{alignmentSuggestion.transform.x.toFixed(1)}</span>
+                        <span>Offset Y</span>
+                        <span>{alignmentSuggestion.transform.y.toFixed(1)}</span>
+                        <span>Residual</span>
+                        <span>{alignmentSuggestion.error.toFixed(2)} px</span>
+                      </div>
+                    )}
+
+                    {alignmentError && (
+                      <span style={{ color: "#f87171", fontSize: "10px" }}>{alignmentError}</span>
+                    )}
+
+                    <JRPGButton
+                      variant="success"
+                      onClick={onAlignmentApply}
+                      style={{ fontSize: "10px" }}
+                      disabled={!alignmentSuggestion || !!alignmentError || mapLocked}
+                    >
+                      Apply Alignment
+                    </JRPGButton>
+                    {mapLocked && (
+                      <span style={{ color: "#facc15", fontSize: "10px" }}>
+                        Unlock the map before applying alignment.
+                      </span>
+                    )}
                   </div>
                 </JRPGPanel>
 
@@ -548,7 +689,9 @@ export function DMMenu({
                           }}
                         >
                           <span className="jrpg-text-small">Rotation</span>
-                          <span className="jrpg-text-small">{Math.round(mapTransform.rotation)}°</span>
+                          <span className="jrpg-text-small">
+                            {Math.round(mapTransform.rotation)}°
+                          </span>
                         </div>
                         <input
                           type="range"
@@ -756,8 +899,8 @@ export function DMMenu({
                 </JRPGPanel>
               </div>
             )}
-          </JRPGPanel>
-        </div>
+          </div>
+        </DraggableWindow>
       )}
     </>
   );

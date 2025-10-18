@@ -85,6 +85,7 @@ export const DiceRoller: React.FC<DiceRollerProps> = ({ onRoll, onClose }) => {
       width={600}
       minWidth={500}
       maxWidth={800}
+      storageKey="dice-roller"
       zIndex={1000}
     >
       <JRPGPanel variant="bevel" style={{ padding: "8px" }}>

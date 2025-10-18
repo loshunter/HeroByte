@@ -11,6 +11,7 @@ import { TokenService } from "./domains/token/service.js";
 import { MapService } from "./domains/map/service.js";
 import { DiceService } from "./domains/dice/service.js";
 import { CharacterService } from "./domains/character/service.js";
+import { SelectionService } from "./domains/selection/service.js";
 import { MessageRouter } from "./ws/messageRouter.js";
 import { RateLimiter } from "./middleware/rateLimit.js";
 
@@ -26,6 +27,7 @@ export class Container {
   public readonly mapService: MapService;
   public readonly diceService: DiceService;
   public readonly characterService: CharacterService;
+  public readonly selectionService: SelectionService;
 
   // Middleware
   public readonly rateLimiter: RateLimiter;
@@ -44,6 +46,7 @@ export class Container {
     this.mapService = new MapService();
     this.diceService = new DiceService();
     this.characterService = new CharacterService();
+    this.selectionService = new SelectionService();
 
     // Initialize middleware
     this.rateLimiter = new RateLimiter({ maxMessages: 100, windowMs: 1000 });
@@ -61,6 +64,7 @@ export class Container {
       this.mapService,
       this.diceService,
       this.characterService,
+      this.selectionService,
       wss,
       this.uidToWs,
       () => this.getAuthenticatedClients(),

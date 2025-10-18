@@ -53,6 +53,8 @@ export interface DrawingSceneData {
 
 export interface PointerSceneData {
   uid: string;
+  pointerId?: string;
+  name: string;
 }
 
 export interface PropSceneData {
@@ -134,9 +136,11 @@ export interface PlayerState {
  * Pointer: Temporary pointer indicator that players can place on the map
  */
 export interface Pointer {
+  id: string; // Unique identifier for this specific pointer instance
   uid: string; // Player who placed the pointer
   x: number; // Screen/canvas X coordinate
   y: number; // Screen/canvas Y coordinate
+  name: string; // Name of the player when the pointer was placed
   timestamp: number; // When the pointer was placed (for auto-removal)
 }
 
@@ -155,6 +159,12 @@ export interface Drawing {
   filled?: boolean; // For shapes: filled vs outline only
   selectedBy?: string; // UID of player who has this drawing selected (for editing)
 }
+
+/**
+ * DrawingSegmentPayload: Data required to create a new drawing segment generated
+ * after a partial erase operation. Server will assign a fresh id and owner.
+ */
+export type DrawingSegmentPayload = Omit<Drawing, "id">;
 
 /**
  * Character: Represents a player character (PC) in the game
@@ -194,9 +204,49 @@ export interface RoomSnapshot {
   pointers: Pointer[]; // Active pointer indicators
   drawings: Drawing[]; // All drawings on the canvas
   gridSize: number; // Synchronized grid size for all clients
+  gridSquareSize?: number; // How many feet per grid square (default: 5ft)
   diceRolls: DiceRoll[]; // History of dice rolls
   sceneObjects?: SceneObject[]; // Unified scene graph (experimental)
+  selectionState?: SelectionState; // Active object selections keyed by player UID
 }
+
+// ----------------------------------------------------------------------------
+// SELECTION MESSAGES
+// ----------------------------------------------------------------------------
+
+export type SelectionMode = "replace" | "append" | "subtract";
+
+export interface SelectObjectMessage {
+  t: "select-object";
+  uid: string;
+  objectId: string;
+}
+
+export interface DeselectObjectMessage {
+  t: "deselect-object";
+  uid: string;
+}
+
+export interface SelectMultipleMessage {
+  t: "select-multiple";
+  uid: string;
+  objectIds: string[];
+  mode?: SelectionMode;
+}
+
+export interface SelectionStateSingle {
+  mode: "single";
+  objectId: string;
+}
+
+export interface SelectionStateMultiple {
+  mode: "multiple";
+  objectIds: string[];
+}
+
+export type SelectionStateEntry = SelectionStateSingle | SelectionStateMultiple;
+
+export type SelectionState = Record<string, SelectionStateEntry>;
 
 // ----------------------------------------------------------------------------
 // WEBSOCKET MESSAGES
@@ -212,6 +262,11 @@ export type ClientMessage =
   | { t: "delete-token"; id: string } // Remove a token
   | { t: "update-token-image"; tokenId: string; imageUrl: string } // Update token image URL
   | { t: "set-token-size"; tokenId: string; size: TokenSize } // Change token size (Phase 11)
+
+  // Selection actions
+  | SelectObjectMessage
+  | DeselectObjectMessage
+  | SelectMultipleMessage
 
   // Player actions
   | { t: "portrait"; data: string } // Update player portrait
@@ -248,6 +303,7 @@ export type ClientMessage =
   // Map/canvas actions
   | { t: "map-background"; data: string } // Set map background image
   | { t: "grid-size"; size: number } // Change grid size (synced)
+  | { t: "grid-square-size"; size: number } // Change grid square size in feet (default: 5ft)
   | { t: "point"; x: number; y: number } // Place pointer indicator
   | { t: "draw"; drawing: Drawing } // Add a drawing
   | { t: "undo-drawing" } // Undo last drawing by this player
@@ -257,6 +313,7 @@ export type ClientMessage =
   | { t: "deselect-drawing" } // Deselect current drawing
   | { t: "move-drawing"; id: string; dx: number; dy: number } // Move a drawing by delta
   | { t: "delete-drawing"; id: string } // Delete a specific drawing
+  | { t: "erase-partial"; deleteId: string; segments: DrawingSegmentPayload[] } // Partially erase a freehand drawing
 
   // Dice rolls
   | { t: "dice-roll"; roll: DiceRoll } // Broadcast a dice roll

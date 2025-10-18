@@ -3,7 +3,8 @@
 // ============================================================================
 // Handles map-related features: background, grid, drawings, pointers
 
-import type { Drawing } from "@shared";
+import { randomUUID } from "crypto";
+import type { Drawing, DrawingSegmentPayload } from "@shared";
 import type { RoomState } from "../room/model.js";
 
 /**
@@ -32,13 +33,22 @@ export class MapService {
   }
 
   /**
-   * Add or update pointer indicator
+   * Update grid square size (how many feet per square)
+   */
+  setGridSquareSize(state: RoomState, size: number): void {
+    state.gridSquareSize = size;
+  }
+
+  /**
+   * Add pointer indicator (supports multiple simultaneous pointers)
    */
   placePointer(state: RoomState, uid: string, x: number, y: number): void {
-    // Remove old pointer from this user
-    state.pointers = state.pointers.filter((p) => p.uid !== uid);
-    // Add new pointer
-    state.pointers.push({ uid, x, y, timestamp: Date.now() });
+    const player = state.players.find((p) => p.uid === uid);
+    const name = player?.name ?? uid.slice(0, 6);
+    const now = Date.now();
+    // Add new pointer with unique ID based on timestamp
+    const pointerId = `${uid}-${now}`;
+    state.pointers.push({ uid, x, y, timestamp: now, id: pointerId, name });
   }
 
   /**
@@ -163,5 +173,60 @@ export class MapService {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Handle partial erase operations for freehand drawings
+   * Removes the original drawing and replaces it with sanitized segments
+   */
+  handlePartialErase(
+    state: RoomState,
+    deleteId: string,
+    segments: DrawingSegmentPayload[],
+    ownerUid: string,
+  ): boolean {
+    const index = state.drawings.findIndex((drawing) => drawing.id === deleteId);
+    if (index === -1) {
+      return false;
+    }
+
+    const original = state.drawings[index];
+    if (original.owner && original.owner !== ownerUid) {
+      return false;
+    }
+
+    state.drawings.splice(index, 1);
+    const redoStack = this.getRedoStack(state, ownerUid);
+    redoStack.length = 0;
+
+    if (segments.length === 0) {
+      return true;
+    }
+
+    for (const segment of segments) {
+      if (
+        segment.type !== "freehand" ||
+        !Array.isArray(segment.points) ||
+        segment.points.length < 2
+      ) {
+        // Validation should prevent this, but guard defensively
+        continue;
+      }
+
+      const clonedPoints = segment.points.map((point) => ({ x: point.x, y: point.y }));
+      const newDrawing: Drawing = {
+        id: randomUUID(),
+        type: "freehand",
+        points: clonedPoints,
+        color: segment.color,
+        width: segment.width,
+        opacity: segment.opacity,
+        filled: segment.filled,
+        owner: ownerUid,
+      };
+      state.drawings.push(newDrawing);
+    }
+
+    return true;
   }
 }

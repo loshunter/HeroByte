@@ -25,6 +25,9 @@ interface DrawingsLayerProps {
   selectedDrawingId: string | null;
   onSelectDrawing: (drawingId: string | null) => void;
   onTransformDrawing: (sceneId: string, transform: { position?: { x: number; y: number } }) => void;
+  selectedObjectId?: string | null;
+  onSelectObject?: (objectId: string | null) => void;
+  onDrawingNodeReady?: (drawingId: string, node: Konva.Node | null) => void;
 }
 
 type TransformOverride = Partial<SceneObject["transform"]>;
@@ -43,6 +46,9 @@ export const DrawingsLayer = memo(function DrawingsLayer({
   selectedDrawingId,
   onSelectDrawing,
   onTransformDrawing,
+  selectedObjectId,
+  onSelectObject,
+  onDrawingNodeReady,
 }: DrawingsLayerProps) {
   const localOverrides = useRef<Record<string, TransformOverride>>({});
   const [, forceRerender] = useState(0);
@@ -123,7 +129,9 @@ export const DrawingsLayer = memo(function DrawingsLayer({
     }
 
     const transform = appliedObject.transform;
-    const isSelected = selectedDrawingId === drawing.id;
+    // Use unified selectedObjectId if available, otherwise fall back to selectedDrawingId
+    const isSelected =
+      (selectedObjectId && selectedObjectId === sceneObject.id) || selectedDrawingId === drawing.id;
     const isOwner = drawing.owner === uid;
     const canInteract = selectMode && isOwner;
     const isDragging = draggingId === sceneObject.id;
@@ -132,11 +140,21 @@ export const DrawingsLayer = memo(function DrawingsLayer({
       ? {
           onClick: (event: KonvaEventObject<MouseEvent>) => {
             event.cancelBubble = true;
-            onSelectDrawing(drawing.id);
+            // Use unified onSelectObject if available, otherwise fall back
+            if (onSelectObject) {
+              onSelectObject(sceneObject.id);
+            } else {
+              onSelectDrawing(drawing.id);
+            }
           },
           onTap: (event: KonvaEventObject<Event>) => {
             event.cancelBubble = true;
-            onSelectDrawing(drawing.id);
+            // Use unified onSelectObject if available, otherwise fall back
+            if (onSelectObject) {
+              onSelectObject(sceneObject.id);
+            } else {
+              onSelectDrawing(drawing.id);
+            }
           },
         }
       : {};
@@ -154,30 +172,6 @@ export const DrawingsLayer = memo(function DrawingsLayer({
     const highlightStrokeWidth = 2 / cam.scale;
 
     switch (drawing.type) {
-      case "eraser": {
-        return (
-          <Group
-            key={sceneObject.id}
-            x={transform.x}
-            y={transform.y}
-            scaleX={transform.scaleX}
-            scaleY={transform.scaleY}
-            rotation={transform.rotation}
-          >
-            <Line
-              points={points.flatMap((p) => [p.x, p.y])}
-              stroke="#0b0d12"
-              strokeWidth={baseStrokeWidth}
-              lineCap="round"
-              lineJoin="round"
-              opacity={0.5}
-              globalCompositeOperation="destination-out"
-              listening={false}
-            />
-          </Group>
-        );
-      }
-
       case "freehand": {
         return (
           <Group
@@ -189,6 +183,9 @@ export const DrawingsLayer = memo(function DrawingsLayer({
             rotation={transform.rotation}
             draggable={canInteract && isSelected}
             {...groupHandlers}
+            ref={
+              onDrawingNodeReady ? (node) => onDrawingNodeReady(sceneObject.id, node) : undefined
+            }
           >
             {canInteract && (
               <Line
@@ -237,6 +234,9 @@ export const DrawingsLayer = memo(function DrawingsLayer({
             rotation={transform.rotation}
             draggable={canInteract && isSelected}
             {...groupHandlers}
+            ref={
+              onDrawingNodeReady ? (node) => onDrawingNodeReady(sceneObject.id, node) : undefined
+            }
           >
             {canInteract && (
               <Line
@@ -286,6 +286,9 @@ export const DrawingsLayer = memo(function DrawingsLayer({
             rotation={transform.rotation}
             draggable={canInteract && isSelected}
             {...groupHandlers}
+            ref={
+              onDrawingNodeReady ? (node) => onDrawingNodeReady(sceneObject.id, node) : undefined
+            }
           >
             <Rect
               x={x1}
@@ -331,6 +334,9 @@ export const DrawingsLayer = memo(function DrawingsLayer({
             rotation={transform.rotation}
             draggable={canInteract && isSelected}
             {...groupHandlers}
+            ref={
+              onDrawingNodeReady ? (node) => onDrawingNodeReady(sceneObject.id, node) : undefined
+            }
           >
             <Circle
               x={cx}
@@ -371,14 +377,15 @@ export const DrawingsLayer = memo(function DrawingsLayer({
 
     switch (currentTool) {
       case "eraser":
+        // Show eraser preview as a semi-transparent red line
         return (
           <Line
             points={currentDrawing.flatMap((p) => [p.x, p.y])}
-            stroke="#0b0d12"
+            stroke="#ff4444"
             strokeWidth={width}
             lineCap="round"
             lineJoin="round"
-            opacity={0.5}
+            opacity={0.4}
           />
         );
 

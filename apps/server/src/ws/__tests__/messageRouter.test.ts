@@ -6,9 +6,11 @@ import { TokenService } from "../../domains/token/service.js";
 import { MapService } from "../../domains/map/service.js";
 import { DiceService } from "../../domains/dice/service.js";
 import { CharacterService } from "../../domains/character/service.js";
+import { SelectionService } from "../../domains/selection/service.js";
 import type { WebSocket, WebSocketServer } from "ws";
 import type { ClientMessage } from "@shared";
 import type { RoomState } from "../../domains/room/model.js";
+import { selectionMapToRecord } from "../../domains/room/model.js";
 
 describe("MessageRouter", () => {
   let router: MessageRouter;
@@ -18,6 +20,7 @@ describe("MessageRouter", () => {
   let mockMapService: MapService;
   let mockDiceService: DiceService;
   let mockCharacterService: CharacterService;
+  let mockSelectionService: SelectionService;
   let mockWss: WebSocketServer;
   let mockUidToWs: Map<string, WebSocket>;
   let mockGetAuthorizedClients: () => Set<WebSocket>;
@@ -45,9 +48,11 @@ describe("MessageRouter", () => {
       pointers: [],
       drawings: [],
       gridSize: 50,
+      gridSquareSize: 5,
       diceRolls: [],
       drawingRedoStacks: {},
       sceneObjects: [],
+      selectionState: new Map() as RoomState["selectionState"],
     };
 
     // Mock services
@@ -73,7 +78,7 @@ describe("MessageRouter", () => {
       deleteToken: vi.fn(() => true),
       setImageUrl: vi.fn(() => true),
       clearAllTokensExcept: vi.fn(),
-      forceDeleteToken: vi.fn(),
+      forceDeleteToken: vi.fn(() => true),
     } as unknown as TokenService;
 
     mockMapService = {
@@ -88,6 +93,7 @@ describe("MessageRouter", () => {
       deselectDrawing: vi.fn(),
       moveDrawing: vi.fn(() => true),
       deleteDrawing: vi.fn(() => true),
+      handlePartialErase: vi.fn(() => true),
     } as unknown as MapService;
 
     mockDiceService = {
@@ -105,6 +111,13 @@ describe("MessageRouter", () => {
       linkToken: vi.fn(() => true),
     } as unknown as CharacterService;
 
+    mockSelectionService = {
+      selectObject: vi.fn(() => true),
+      deselect: vi.fn(() => true),
+      selectMultiple: vi.fn(() => true),
+      removeObject: vi.fn(() => true),
+    } as unknown as SelectionService;
+
     mockWss = {} as WebSocketServer;
     mockUidToWs = new Map<string, WebSocket>();
     mockGetAuthorizedClients = vi.fn(() => new Set<WebSocket>());
@@ -116,6 +129,7 @@ describe("MessageRouter", () => {
       mockMapService,
       mockDiceService,
       mockCharacterService,
+      mockSelectionService,
       mockWss,
       mockUidToWs,
       mockGetAuthorizedClients,
@@ -150,6 +164,19 @@ describe("MessageRouter", () => {
       router.route(msg, "player-1");
 
       expect(mockTokenService.deleteToken).toHaveBeenCalledWith(mockState, "token-1", "player-1");
+      expect(mockSelectionService.removeObject).toHaveBeenCalledWith(mockState, "token-1");
+      expect(mockRoomService.broadcast).toHaveBeenCalled();
+    });
+
+    it("allows DM to force delete tokens and clears selection", () => {
+      mockState.players[0].isDM = true;
+      const msg: ClientMessage = { t: "delete-token", id: "token-2" };
+
+      router.route(msg, "player-1");
+
+      expect(mockTokenService.forceDeleteToken).toHaveBeenCalledWith(mockState, "token-2");
+      expect(mockTokenService.deleteToken).not.toHaveBeenCalled();
+      expect(mockSelectionService.removeObject).toHaveBeenCalledWith(mockState, "token-2");
       expect(mockRoomService.broadcast).toHaveBeenCalled();
     });
 
@@ -299,6 +326,7 @@ describe("MessageRouter", () => {
 
       expect(mockCharacterService.deleteCharacter).toHaveBeenCalledWith(mockState, "npc-1");
       expect(mockTokenService.forceDeleteToken).toHaveBeenCalledWith(mockState, "token-1");
+      expect(mockSelectionService.removeObject).toHaveBeenCalledWith(mockState, "token-1");
       expect(mockRoomService.broadcast).toHaveBeenCalled();
       expect(mockRoomService.saveState).toHaveBeenCalled();
     });
@@ -392,12 +420,148 @@ describe("MessageRouter", () => {
       expect(mockRoomService.broadcast).toHaveBeenCalled();
     });
 
+    it("routes delete-drawing message and clears selection", () => {
+      const msg: ClientMessage = { t: "delete-drawing", id: "draw-1" };
+      router.route(msg, "player-1");
+
+      expect(mockMapService.deleteDrawing).toHaveBeenCalledWith(mockState, "draw-1");
+      expect(mockSelectionService.removeObject).toHaveBeenCalledWith(mockState, "draw-1");
+      expect(mockRoomService.broadcast).toHaveBeenCalled();
+    });
+
+    it("routes erase-partial message and removes original selection", () => {
+      const segments = [
+        {
+          type: "freehand" as const,
+          points: [
+            { x: 0, y: 0 },
+            { x: 5, y: 5 },
+          ],
+          color: "#ffffff",
+          width: 2,
+          opacity: 0.9,
+        },
+      ];
+      const msg = {
+        t: "erase-partial",
+        deleteId: "draw-1",
+        segments,
+      } as ClientMessage;
+
+      router.route(msg, "player-1");
+
+      expect(mockMapService.handlePartialErase).toHaveBeenCalledWith(
+        mockState,
+        "draw-1",
+        segments,
+        "player-1",
+      );
+      expect(mockSelectionService.removeObject).toHaveBeenCalledWith(mockState, "draw-1");
+      expect(mockRoomService.broadcast).toHaveBeenCalled();
+    });
+
     it("routes clear-drawings message", () => {
+      mockState.drawings = [
+        { id: "draw-1" } as unknown as RoomState["drawings"][number],
+        { id: "draw-2" } as unknown as RoomState["drawings"][number],
+      ];
       const msg: ClientMessage = { t: "clear-drawings" };
       router.route(msg, "player-1");
 
       expect(mockMapService.clearDrawings).toHaveBeenCalledWith(mockState);
+      expect(mockSelectionService.removeObject).toHaveBeenCalledWith(mockState, "draw-1");
+      expect(mockSelectionService.removeObject).toHaveBeenCalledWith(mockState, "draw-2");
       expect(mockRoomService.broadcast).toHaveBeenCalled();
+    });
+  });
+
+  describe("Selection Actions", () => {
+    it("routes select-object message when uid matches sender", () => {
+      const msg: ClientMessage = { t: "select-object", uid: "player-1", objectId: "token-1" };
+
+      router.route(msg, "player-1");
+
+      expect(mockSelectionService.selectObject).toHaveBeenCalledWith(
+        mockState,
+        "player-1",
+        "token-1",
+      );
+      expect(mockRoomService.broadcast).toHaveBeenCalled();
+      expect(mockRoomService.saveState).not.toHaveBeenCalled();
+    });
+
+    it("does not route select-object when uid spoofed", () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        const msg: ClientMessage = { t: "select-object", uid: "player-2", objectId: "token-1" };
+
+        router.route(msg, "player-1");
+
+        expect(mockSelectionService.selectObject).not.toHaveBeenCalled();
+        expect(mockRoomService.broadcast).not.toHaveBeenCalled();
+        expect(warnSpy).toHaveBeenCalled();
+      } finally {
+        warnSpy.mockRestore();
+      }
+    });
+
+    it("routes deselect-object message", () => {
+      const msg: ClientMessage = { t: "deselect-object", uid: "player-1" };
+
+      router.route(msg, "player-1");
+
+      expect(mockSelectionService.deselect).toHaveBeenCalledWith(mockState, "player-1");
+      expect(mockRoomService.broadcast).toHaveBeenCalled();
+      expect(mockRoomService.saveState).not.toHaveBeenCalled();
+    });
+
+    it("routes select-multiple message with append mode", () => {
+      const msg: ClientMessage = {
+        t: "select-multiple",
+        uid: "player-1",
+        objectIds: ["token-1", "token-2"],
+        mode: "append",
+      };
+
+      router.route(msg, "player-1");
+
+      expect(mockSelectionService.selectMultiple).toHaveBeenCalledWith(
+        mockState,
+        "player-1",
+        ["token-1", "token-2"],
+        "append",
+      );
+      expect(mockRoomService.broadcast).toHaveBeenCalled();
+      expect(mockRoomService.saveState).not.toHaveBeenCalled();
+    });
+
+    it("routes select-multiple message with default replace mode", () => {
+      const msg: ClientMessage = {
+        t: "select-multiple",
+        uid: "player-1",
+        objectIds: ["token-3"],
+      };
+
+      router.route(msg, "player-1");
+
+      expect(mockSelectionService.selectMultiple).toHaveBeenCalledWith(
+        mockState,
+        "player-1",
+        ["token-3"],
+        "replace",
+      );
+      expect(mockRoomService.broadcast).toHaveBeenCalled();
+      expect(mockRoomService.saveState).not.toHaveBeenCalled();
+    });
+
+    it("skips broadcast when selection state unchanged", () => {
+      mockSelectionService.selectObject = vi.fn(() => false);
+      const msg: ClientMessage = { t: "select-object", uid: "player-1", objectId: "token-1" };
+
+      router.route(msg, "player-1");
+
+      expect(mockSelectionService.selectObject).toHaveBeenCalled();
+      expect(mockRoomService.broadcast).not.toHaveBeenCalled();
     });
   });
 
@@ -430,10 +594,28 @@ describe("MessageRouter", () => {
 
   describe("Room Management", () => {
     it("routes clear-all-tokens message", () => {
+      mockState.tokens = [
+        {
+          id: "token-removed",
+          owner: "player-2",
+        } as unknown as RoomState["tokens"][number],
+      ];
+      mockState.players.push({
+        uid: "player-2",
+        name: "Bob",
+        portrait: undefined,
+        isDM: false,
+        hp: 8,
+        maxHp: 8,
+        micLevel: 0,
+        lastHeartbeat: Date.now(),
+      });
       const msg: ClientMessage = { t: "clear-all-tokens" };
       router.route(msg, "player-1");
 
       expect(mockTokenService.clearAllTokensExcept).toHaveBeenCalledWith(mockState, "player-1");
+      expect(mockSelectionService.removeObject).toHaveBeenCalledWith(mockState, "token-removed");
+      expect(mockSelectionService.deselect).toHaveBeenCalledWith(mockState, "player-2");
       expect(mockRoomService.broadcast).toHaveBeenCalled();
       expect(mockRoomService.saveState).toHaveBeenCalled();
     });
@@ -450,7 +632,11 @@ describe("MessageRouter", () => {
     });
 
     it("routes load-session message", () => {
-      const snapshot = { ...mockState, name: "Loaded Session" };
+      const snapshot = {
+        ...mockState,
+        name: "Loaded Session",
+        selectionState: selectionMapToRecord(mockState.selectionState),
+      };
       const msg: ClientMessage = { t: "load-session", snapshot };
       router.route(msg, "player-1");
 

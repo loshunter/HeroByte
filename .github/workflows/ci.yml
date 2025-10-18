@@ -36,6 +36,21 @@ jobs:
       - name: Run lint checks
         run: pnpm lint
 
+      - name: Enforce structural guardrails
+        run: pnpm lint:structure | tee structure-report.txt
+
+      - name: Generate structural report artifact
+        run: node scripts/structure-report.mjs --limit 200 --threshold 350 --json > structure-report.json
+
+      - name: Upload structural report
+        uses: actions/upload-artifact@v4
+        with:
+          name: structure-report-${{ matrix.node-version }}
+          path: |
+            structure-report.txt
+            structure-report.json
+          if-no-files-found: ignore
+
       - name: Build packages
         run: pnpm build
 

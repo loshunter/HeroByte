@@ -22,14 +22,17 @@ import { useDrawingState } from "../hooks/useDrawingState";
 import { usePlayerEditing } from "../hooks/usePlayerEditing";
 import { useHeartbeat } from "../hooks/useHeartbeat";
 import { useDMRole } from "../hooks/useDMRole";
+import { useObjectSelection } from "../hooks/useObjectSelection";
 import { DMMenu } from "../features/dm";
 import { getSessionUID } from "../utils/session";
 import { saveSession, loadSession } from "../utils/sessionPersistence";
 import { DrawingToolbar } from "../features/drawing/components";
-import { Header } from "../components/layout/Header";
+import { Header, type ToolMode } from "../components/layout/Header";
 import { EntitiesPanel } from "../components/layout/EntitiesPanel";
 import { ServerStatus } from "../components/layout/ServerStatus";
 import { ConnectionState, AuthState } from "../services/websocket";
+import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
+import { computeMapAlignmentTransform } from "../utils/mapAlignment";
 
 interface RollLogEntry extends RollResult {
   playerName: string;
@@ -226,7 +229,10 @@ export const App: React.FC = () => {
     }
   }, [connectionState]);
 
-  const canSubmit = passwordInput.trim().length > 0 && authState !== AuthState.PENDING;
+  const canSubmit =
+    passwordInput.trim().length > 0 &&
+    authState !== AuthState.PENDING &&
+    connectionState === ConnectionState.CONNECTED;
 
   const showAuthGate = !hasAuthenticated || authState === AuthState.FAILED;
 
@@ -239,6 +245,7 @@ export const App: React.FC = () => {
         connectionLabel={connectionLabel}
         canSubmit={canSubmit}
         isConnected={isConnected}
+        connectionState={connectionState}
         onPasswordChange={handlePasswordChange}
         onSubmit={handlePasswordSubmit}
         onRetry={connect}
@@ -266,6 +273,7 @@ interface AuthGateProps {
   connectionLabel: string;
   canSubmit: boolean;
   isConnected: boolean;
+  connectionState: ConnectionState;
   onPasswordChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onRetry: () => void;
@@ -278,10 +286,14 @@ function AuthGate({
   connectionLabel,
   canSubmit,
   isConnected,
+  connectionState,
   onPasswordChange,
   onSubmit,
   onRetry,
 }: AuthGateProps): JSX.Element {
+  const isConnecting =
+    connectionState === ConnectionState.CONNECTING ||
+    connectionState === ConnectionState.RECONNECTING;
   return (
     <div style={authGateContainerStyle}>
       <div style={authGateCardStyle}>
@@ -314,7 +326,14 @@ function AuthGate({
           </button>
         </form>
         <p style={authGateHintStyle}>
-          Connection status: <strong>{connectionLabel}</strong>
+          Connection status:{" "}
+          <strong
+            style={{
+              animation: isConnecting ? "pulse 1.5s ease-in-out infinite" : "none",
+            }}
+          >
+            {connectionLabel}
+          </strong>
         </p>
         {!isConnected ? (
           <button type="button" style={authSecondaryButtonStyle} onClick={onRetry}>
@@ -386,10 +405,23 @@ function AuthenticatedApp({
   const [gridLocked, setGridLocked] = useState(false);
 
   // Tool modes
-  const [pointerMode, setPointerMode] = useState(false);
-  const [measureMode, setMeasureMode] = useState(false);
-  const [drawMode, setDrawMode] = useState(false);
-  const [selectMode, setSelectMode] = useState(false);
+  const [activeTool, setActiveTool] = useState<ToolMode>(null);
+  const pointerMode = activeTool === "pointer";
+  const measureMode = activeTool === "measure";
+  const drawMode = activeTool === "draw";
+  const transformMode = activeTool === "transform";
+  const selectMode = activeTool === "select";
+  const alignmentMode = activeTool === "align";
+  const [alignmentPoints, setAlignmentPoints] = useState<AlignmentPoint[]>([]);
+  const [alignmentSuggestion, setAlignmentSuggestion] = useState<AlignmentSuggestion | null>(null);
+  const [alignmentError, setAlignmentError] = useState<string | null>(null);
+
+  // Server-synced object selection state
+  const {
+    selectedObjectId,
+    selectObject,
+    deselect: clearSelection,
+  } = useObjectSelection({ uid, snapshot, sendMessage });
 
   // UI layout (fixed panels)
   const topPanelRef = useRef<HTMLDivElement | null>(null);
@@ -476,32 +508,15 @@ function AuthenticatedApp({
   /**
    * Keyboard shortcuts
    * Ctrl+Z / Cmd+Z: Undo last drawing
+   * Delete/Backspace: Delete selected object (moved after isDM declaration)
    */
+
+  // Clear selection when transform mode is disabled
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+Z or Cmd+Z for undo
-      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
-        // Only undo if draw mode is active and there's something to undo
-        if (drawMode && canUndo) {
-          e.preventDefault();
-          popFromHistory();
-          sendMessage({ t: "undo-drawing" });
-        }
-      }
-
-      // Ctrl+Y or Cmd+Y for redo
-      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.shiftKey && e.key === "Z"))) {
-        if (drawMode && canRedo) {
-          e.preventDefault();
-          popFromRedoHistory();
-          sendMessage({ t: "redo-drawing" });
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [drawMode, canUndo, canRedo, popFromHistory, popFromRedoHistory, sendMessage]);
+    if (!transformMode) {
+      clearSelection();
+    }
+  }, [transformMode, clearSelection]);
 
   // -------------------------------------------------------------------------
   // ACTIONS
@@ -581,6 +596,71 @@ function AuthenticatedApp({
   const setGridSize = (size: number) => {
     sendMessage({ t: "grid-size", size });
   };
+
+  const setGridSquareSize = (size: number) => {
+    sendMessage({ t: "grid-square-size", size });
+  };
+
+  const gridSize = snapshot?.gridSize || 50;
+  const gridSquareSize = snapshot?.gridSquareSize ?? 5;
+  const mapSceneObject = useMemo(
+    () => snapshot?.sceneObjects?.find((obj) => obj.type === "map") ?? null,
+    [snapshot?.sceneObjects],
+  );
+
+  const handleAlignmentStart = useCallback(() => {
+    setAlignmentPoints([]);
+    setAlignmentSuggestion(null);
+    setAlignmentError(null);
+    setActiveTool("align");
+  }, []);
+
+  const handleAlignmentCancel = useCallback(() => {
+    setActiveTool(null);
+    setAlignmentPoints([]);
+    setAlignmentSuggestion(null);
+    setAlignmentError(null);
+  }, []);
+
+  const handleAlignmentPointCapture = useCallback((point: AlignmentPoint) => {
+    setAlignmentError(null);
+    setAlignmentPoints((prev) => {
+      if (prev.length >= 2) {
+        return [point];
+      }
+      return [...prev, point];
+    });
+  }, []);
+
+  const handleAlignmentReset = useCallback(() => {
+    setAlignmentPoints([]);
+    setAlignmentSuggestion(null);
+    setAlignmentError(null);
+  }, []);
+
+  const handleAlignmentApply = useCallback(() => {
+    if (!alignmentSuggestion || !mapSceneObject) {
+      return;
+    }
+
+    transformSceneObject({
+      id: mapSceneObject.id,
+      position: {
+        x: alignmentSuggestion.transform.x,
+        y: alignmentSuggestion.transform.y,
+      },
+      scale: {
+        x: alignmentSuggestion.transform.scaleX,
+        y: alignmentSuggestion.transform.scaleY,
+      },
+      rotation: alignmentSuggestion.transform.rotation,
+    });
+
+    setAlignmentPoints([]);
+    setAlignmentSuggestion(null);
+    setAlignmentError(null);
+    setActiveTool(null);
+  }, [alignmentSuggestion, mapSceneObject, transformSceneObject]);
 
   const handleClearDrawings = useCallback(() => {
     clearHistory();
@@ -672,6 +752,13 @@ function AuthenticatedApp({
     [sendMessage],
   );
 
+  const handleDeletePlayerToken = useCallback(
+    (tokenId: string) => {
+      sendMessage({ t: "delete-token", id: tokenId });
+    },
+    [sendMessage],
+  );
+
   const handlePlaceNPCToken = useCallback(
     (id: string) => {
       sendMessage({ t: "place-npc-token", id });
@@ -714,11 +801,132 @@ function AuthenticatedApp({
     [sendMessage],
   );
 
-  // Get synchronized grid size from server
-  const gridSize = snapshot?.gridSize || 50;
-
   // DM role detection
   const { isDM, toggleDM } = useDMRole({ snapshot, uid, send: sendMessage });
+
+  useEffect(() => {
+    if (!activeTool) {
+      return;
+    }
+
+    const handleToolEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setActiveTool(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleToolEscape);
+    return () => window.removeEventListener("keydown", handleToolEscape);
+  }, [activeTool]);
+
+  useEffect(() => {
+    if (activeTool !== "align") {
+      setAlignmentPoints([]);
+      setAlignmentSuggestion(null);
+      setAlignmentError(null);
+      return;
+    }
+  }, [activeTool]);
+
+  useEffect(() => {
+    if (activeTool !== "align") {
+      return;
+    }
+
+    if (alignmentPoints.length !== 2) {
+      setAlignmentSuggestion(null);
+      if (alignmentPoints.length === 0) {
+        setAlignmentError(null);
+      }
+      return;
+    }
+
+    try {
+      const result = computeMapAlignmentTransform(alignmentPoints, gridSize);
+      setAlignmentSuggestion(result);
+      const tolerance = Math.max(0.5, gridSize * 0.02);
+      if (result.error > tolerance) {
+        setAlignmentError(
+          `Alignment residual ${result.error.toFixed(2)}px — consider recapturing points.`,
+        );
+      } else {
+        setAlignmentError(null);
+      }
+    } catch (error) {
+      setAlignmentSuggestion(null);
+      setAlignmentError(error instanceof Error ? error.message : "Failed to compute alignment.");
+    }
+  }, [activeTool, alignmentPoints, gridSize]);
+
+  // Keyboard shortcuts (after isDM is declared)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Delete or Backspace to delete selected object (DM only)
+      if ((e.key === "Delete" || e.key === "Backspace") && selectedObjectId && isDM) {
+        e.preventDefault();
+
+        // Find the scene object to check if it's locked
+        const obj = snapshot?.sceneObjects?.find((o) => o.id === selectedObjectId);
+        if (obj?.locked) {
+          alert("This object is locked. Unlock it first to delete.");
+          return;
+        }
+
+        // Parse the scene object ID to determine type
+        const [type, id] = selectedObjectId.split(":");
+
+        if (type === "token" && id) {
+          console.log("[Delete] Attempting to delete token:", { selectedObjectId, type, id });
+          if (confirm("Delete this token? This cannot be undone.")) {
+            console.log("[Delete] Sending delete-token message:", { t: "delete-token", id });
+            sendMessage({ t: "delete-token", id }); // id is already without prefix
+            clearSelection();
+          }
+        } else if (type === "map") {
+          // Don't allow deleting the map
+          alert("Cannot delete the map background. Use DM Menu to clear it.");
+        } else if (type === "drawing" && id) {
+          if (confirm("Delete this drawing? This cannot be undone.")) {
+            sendMessage({ t: "delete-drawing", id }); // id is already without prefix
+            clearSelection();
+          }
+        }
+        return;
+      }
+
+      // Ctrl+Z or Cmd+Z for undo
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        // Only undo if draw mode is active and there's something to undo
+        if (drawMode && canUndo) {
+          e.preventDefault();
+          popFromHistory();
+          sendMessage({ t: "undo-drawing" });
+        }
+      }
+
+      // Ctrl+Y or Cmd+Y for redo
+      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.shiftKey && e.key === "Z"))) {
+        if (drawMode && canRedo) {
+          e.preventDefault();
+          popFromRedoHistory();
+          sendMessage({ t: "redo-drawing" });
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    drawMode,
+    canUndo,
+    canRedo,
+    popFromHistory,
+    popFromRedoHistory,
+    sendMessage,
+    selectedObjectId,
+    isDM,
+    snapshot,
+  ]);
 
   // -------------------------------------------------------------------------
   // RENDER
@@ -774,6 +982,7 @@ function AuthenticatedApp({
             sendMessage({ t: "redo-drawing" });
           }}
           onClearAll={handleClearDrawings}
+          onClose={() => setActiveTool(null)}
         />
       )}
 
@@ -781,18 +990,12 @@ function AuthenticatedApp({
       <Header
         uid={uid}
         snapToGrid={snapToGrid}
-        pointerMode={pointerMode}
-        measureMode={measureMode}
-        drawMode={drawMode}
-        selectMode={selectMode}
+        activeTool={activeTool}
         crtFilter={crtFilter}
         diceRollerOpen={diceRollerOpen}
         rollLogOpen={rollLogOpen}
         onSnapToGridChange={setSnapToGrid}
-        onPointerModeChange={setPointerMode}
-        onMeasureModeChange={setMeasureMode}
-        onDrawModeChange={setDrawMode}
-        onSelectModeChange={setSelectMode}
+        onToolSelect={setActiveTool}
         onCrtFilterChange={setCrtFilter}
         onDiceRollerToggle={setDiceRollerOpen}
         onRollLogToggle={setRollLogOpen}
@@ -821,7 +1024,12 @@ function AuthenticatedApp({
           pointerMode={pointerMode}
           measureMode={measureMode}
           drawMode={drawMode}
+          transformMode={transformMode}
           selectMode={selectMode}
+          alignmentMode={alignmentMode}
+          alignmentPoints={alignmentPoints}
+          alignmentSuggestion={alignmentSuggestion}
+          onAlignmentPointCapture={handleAlignmentPointCapture}
           drawTool={drawTool}
           drawColor={drawColor}
           drawWidth={drawWidth}
@@ -832,6 +1040,8 @@ function AuthenticatedApp({
           onDrawingComplete={addToHistory}
           cameraCommand={cameraCommand}
           onCameraCommandHandled={() => setCameraCommand(null)}
+          selectedObjectId={selectedObjectId}
+          onSelectObject={selectObject}
         />
       </div>
 
@@ -872,6 +1082,7 @@ function AuthenticatedApp({
         onNpcUpdate={handleUpdateNPC}
         onNpcDelete={handleDeleteNPC}
         onNpcPlaceToken={handlePlaceNPCToken}
+        onPlayerTokenDelete={handleDeletePlayerToken}
         onToggleTokenLock={toggleSceneObjectLock}
         onTokenSizeChange={updateTokenSize}
         bottomPanelRef={bottomPanelRef}
@@ -881,9 +1092,11 @@ function AuthenticatedApp({
         isDM={isDM}
         onToggleDM={toggleDM}
         gridSize={gridSize}
+        gridSquareSize={gridSquareSize}
         gridLocked={gridLocked}
         onGridLockToggle={() => setGridLocked((prev) => !prev)}
         onGridSizeChange={setGridSize}
+        onGridSquareSizeChange={setGridSquareSize}
         onClearDrawings={handleClearDrawings}
         onSetMapBackground={setMapBackgroundURL}
         mapBackground={snapshot?.mapBackground}
@@ -895,17 +1108,14 @@ function AuthenticatedApp({
         onUpdateNPC={handleUpdateNPC}
         onDeleteNPC={handleDeleteNPC}
         onPlaceNPCToken={handlePlaceNPCToken}
-        mapLocked={
-          snapshot?.sceneObjects?.find((obj) => obj.type === "map")?.locked ?? true
-        }
+        mapLocked={mapSceneObject?.locked ?? true}
         onMapLockToggle={() => {
-          const mapObj = snapshot?.sceneObjects?.find((obj) => obj.type === "map");
-          if (mapObj) {
-            toggleSceneObjectLock(mapObj.id, !mapObj.locked);
+          if (mapSceneObject) {
+            toggleSceneObjectLock(mapSceneObject.id, !mapSceneObject.locked);
           }
         }}
         mapTransform={
-          snapshot?.sceneObjects?.find((obj) => obj.type === "map")?.transform ?? {
+          mapSceneObject?.transform ?? {
             x: 0,
             y: 0,
             scaleX: 1,
@@ -914,16 +1124,23 @@ function AuthenticatedApp({
           }
         }
         onMapTransformChange={(transform) => {
-          const mapObj = snapshot?.sceneObjects?.find((obj) => obj.type === "map");
-          if (mapObj) {
+          if (mapSceneObject) {
             transformSceneObject({
-              id: mapObj.id,
+              id: mapSceneObject.id,
               position: { x: transform.x, y: transform.y },
               scale: { x: transform.scaleX, y: transform.scaleY },
               rotation: transform.rotation,
             });
           }
         }}
+        alignmentModeActive={alignmentMode}
+        alignmentPoints={alignmentPoints}
+        alignmentSuggestion={alignmentSuggestion}
+        alignmentError={alignmentError}
+        onAlignmentStart={handleAlignmentStart}
+        onAlignmentReset={handleAlignmentReset}
+        onAlignmentCancel={handleAlignmentCancel}
+        onAlignmentApply={handleAlignmentApply}
       />
 
       {/* Context Menu */}
@@ -1034,6 +1251,7 @@ function AuthenticatedApp({
             rolls={rollHistory}
             onClearLog={() => sendMessage({ t: "clear-roll-history" })}
             onViewRoll={(roll) => setViewingRoll(roll)}
+            onClose={() => setRollLogOpen(false)}
           />
         </div>
       )}

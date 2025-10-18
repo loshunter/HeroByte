@@ -222,6 +222,12 @@ button:disabled,
   color: white;
 }
 
+.btn-secondary {
+  background: linear-gradient(180deg, #2f2f73 0%, #1c1d4d 100%);
+  border-color: #676fcb var(--hero-navy-dark) var(--hero-navy-dark) #676fcb;
+  color: var(--hero-text-light);
+}
+
 .btn-success {
   background: linear-gradient(180deg, var(--hero-gold) 0%, var(--hero-gold-light) 100%);
   border-color: var(--hero-gold-light) var(--hero-navy-dark) var(--hero-navy-dark) var(--hero-gold-light);
@@ -837,4 +843,40 @@ h4 { font-size: 16px; }
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* Text pulse animation for connecting states */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Pointer pulse-fade animation */
+@keyframes pointer-pulse-fade {
+  0% { 
+    opacity: 0; 
+    transform: scale(0.8); 
+  }
+  15% { 
+    opacity: 1; 
+    transform: scale(1.2); 
+  }
+  30% { 
+    transform: scale(1); 
+  }
+  66% { 
+    opacity: 1; 
+  }
+  100% { 
+    opacity: 0; 
+    transform: scale(0.9); 
+  }
+}
+
+.pointer-indicator {
+  animation: pointer-pulse-fade 3s ease-out forwards;
 }

@@ -16,18 +16,21 @@ interface RollLogProps {
   rolls: RollLogEntry[];
   onClearLog: () => void;
   onViewRoll: (roll: RollLogEntry) => void;
+  onClose?: () => void;
 }
 
-export const RollLog: React.FC<RollLogProps> = ({ rolls, onClearLog, onViewRoll }) => {
+export const RollLog: React.FC<RollLogProps> = ({ rolls, onClearLog, onViewRoll, onClose }) => {
   return (
     <DraggableWindow
       title="⚂ ROLL LOG"
+      onClose={onClose}
       initialX={window.innerWidth - 420}
       initialY={100}
       width={400}
       minWidth={350}
       maxWidth={500}
       height={600}
+      storageKey="roll-log"
       zIndex={999}
     >
       <JRPGPanel

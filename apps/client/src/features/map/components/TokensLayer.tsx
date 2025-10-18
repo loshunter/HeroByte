@@ -5,6 +5,7 @@
 
 import { memo, useEffect, useRef, useState } from "react";
 import { Group, Rect, Image as KonvaImage } from "react-konva";
+import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import type { SceneObject } from "@shared";
 import useImage from "use-image";
@@ -16,11 +17,14 @@ interface TokenSpriteProps {
   gridSize: number;
   stroke: string;
   strokeWidth: number;
+  interactive: boolean;
   draggable?: boolean;
   onDragEnd?: (event: KonvaEventObject<DragEvent>) => void;
   onDragStart?: (event: KonvaEventObject<DragEvent>) => void;
   onHover: (id: string | null) => void;
   onDoubleClick?: () => void;
+  onClick?: () => void;
+  onNodeReady?: (node: Konva.Node | null) => void;
 }
 
 const TokenSprite = memo(function TokenSprite({
@@ -29,10 +33,13 @@ const TokenSprite = memo(function TokenSprite({
   stroke,
   strokeWidth,
   draggable = false,
+  interactive,
   onDragEnd,
   onDragStart,
   onHover,
   onDoubleClick,
+  onClick,
+  onNodeReady,
 }: TokenSpriteProps) {
   const { data, transform, id } = object;
   const [image, status] = useImage(data.imageUrl ?? "", "anonymous");
@@ -67,7 +74,14 @@ const TokenSprite = memo(function TokenSprite({
     onDragStart,
     onMouseEnter: () => onHover(id),
     onMouseLeave: () => onHover(null),
+    listening: interactive,
     onDblClick: onDoubleClick,
+    onClick: onClick,
+    ref: (node: Konva.Node | null) => {
+      if (onNodeReady) {
+        onNodeReady(node);
+      }
+    },
   } as const;
 
   if (data.imageUrl && status === "loaded" && image) {
@@ -87,6 +101,10 @@ interface TokensLayerProps {
   onTransformToken: (sceneId: string, position: { x: number; y: number }) => void;
   onRecolorToken: (sceneId: string, owner: string | null | undefined) => void;
   snapToGrid: boolean;
+  selectedObjectId?: string | null;
+  onSelectObject?: (objectId: string | null) => void;
+  onTokenNodeReady?: (tokenId: string, node: Konva.Node | null) => void;
+  interactionsEnabled?: boolean;
 }
 
 export const TokensLayer = memo(function TokensLayer({
@@ -99,6 +117,10 @@ export const TokensLayer = memo(function TokensLayer({
   onTransformToken,
   onRecolorToken,
   snapToGrid,
+  selectedObjectId,
+  onSelectObject,
+  onTokenNodeReady,
+  interactionsEnabled = true,
 }: TokensLayerProps) {
   const localOverrides = useRef<Record<string, { x: number; y: number }>>({});
   const [, forceRerender] = useState(0);
@@ -112,31 +134,41 @@ export const TokensLayer = memo(function TokensLayer({
   const otherTokens = tokens.filter((object) => object.owner !== uid);
 
   const handleDrag = (sceneId: string, event: KonvaEventObject<DragEvent>) => {
-    const pos = event.target.position();
+    try {
+      const pos = event.target.position();
 
-    let gx: number;
-    let gy: number;
-    if (snapToGrid) {
-      gx = Math.round(pos.x / gridSize);
-      gy = Math.round(pos.y / gridSize);
-    } else {
-      gx = pos.x / gridSize;
-      gy = pos.y / gridSize;
+      let gx: number;
+      let gy: number;
+      if (snapToGrid) {
+        gx = Math.round(pos.x / gridSize);
+        gy = Math.round(pos.y / gridSize);
+      } else {
+        gx = pos.x / gridSize;
+        gy = pos.y / gridSize;
+      }
+
+      const snappedX = gx * gridSize;
+      const snappedY = gy * gridSize;
+      event.target.position({ x: snappedX, y: snappedY });
+
+      localOverrides.current[sceneId] = { x: gx, y: gy };
+      forceRerender((value) => value + 1);
+
+      onTransformToken(sceneId, { x: gx, y: gy });
+      setDraggingId(null);
+    } catch (error) {
+      // Ignore errors during drag (transformer may still be detaching)
+      console.warn("[TokensLayer] Drag error:", error);
+      setDraggingId(null);
     }
-
-    const snappedX = gx * gridSize;
-    const snappedY = gy * gridSize;
-    event.target.position({ x: snappedX, y: snappedY });
-
-    localOverrides.current[sceneId] = { x: gx, y: gy };
-    forceRerender((value) => value + 1);
-
-    onTransformToken(sceneId, { x: gx, y: gy });
-    setDraggingId(null);
   };
 
   const handleDragStart = (sceneId: string) => {
     setDraggingId(sceneId);
+    // Deselect when dragging starts (so transformer doesn't interfere)
+    if (onSelectObject) {
+      onSelectObject(null);
+    }
   };
 
   useEffect(() => {
@@ -184,47 +216,73 @@ export const TokensLayer = memo(function TokensLayer({
 
   return (
     <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale}>
-      {otherTokens.map((object) => (
-        <Group key={object.id}>
-          <TokenSprite
-            object={mapOverrides(object)}
-            gridSize={gridSize}
-            stroke={hoveredTokenId === object.id ? "#aaa" : "transparent"}
-            strokeWidth={2 / cam.scale}
-            onHover={onHover}
-          />
-          {object.locked && (
-            <LockIndicator
-              x={object.transform.x * gridSize + gridSize / 2}
-              y={object.transform.y * gridSize + gridSize / 2 - gridSize * 0.45}
-              size={gridSize * 0.25}
+      {otherTokens.map((object) => {
+        const isSelected = selectedObjectId === object.id;
+        return (
+          <Group key={object.id}>
+            <TokenSprite
+              object={mapOverrides(object)}
+              gridSize={gridSize}
+              stroke={
+                isSelected ? "#447DF7" : hoveredTokenId === object.id ? "#aaa" : "transparent"
+              }
+              strokeWidth={isSelected ? 3 / cam.scale : 2 / cam.scale}
+              interactive={interactionsEnabled}
+              onHover={onHover}
+              onClick={() => {
+                if (onSelectObject) {
+                  onSelectObject(object.id);
+                }
+              }}
+              onNodeReady={
+                onTokenNodeReady ? (node) => onTokenNodeReady(object.id, node) : undefined
+              }
             />
-          )}
-        </Group>
-      ))}
+            {object.locked && (
+              <LockIndicator
+                x={object.transform.x * gridSize + gridSize / 2}
+                y={object.transform.y * gridSize + gridSize / 2 - gridSize * 0.45}
+                size={gridSize * 0.25}
+              />
+            )}
+          </Group>
+        );
+      })}
 
-      {myTokens.map((object) => (
-        <Group key={object.id}>
-          <TokenSprite
-            object={mapOverrides(object)}
-            gridSize={gridSize}
-            stroke={draggingId === object.id ? "#44f" : "#fff"}
-            strokeWidth={2 / cam.scale}
-            draggable={!object.locked}
-            onDragStart={() => handleDragStart(object.id)}
-            onDragEnd={(event) => handleDrag(object.id, event)}
-            onHover={onHover}
-            onDoubleClick={() => onRecolorToken(object.id, object.owner)}
-          />
-          {object.locked && (
-            <LockIndicator
-              x={object.transform.x * gridSize + gridSize / 2}
-              y={object.transform.y * gridSize + gridSize / 2 - gridSize * 0.45}
-              size={gridSize * 0.25}
+      {myTokens.map((object) => {
+        const isSelected = selectedObjectId === object.id;
+        return (
+          <Group key={object.id}>
+            <TokenSprite
+              object={mapOverrides(object)}
+              gridSize={gridSize}
+              stroke={isSelected ? "#447DF7" : draggingId === object.id ? "#44f" : "#fff"}
+              strokeWidth={isSelected ? 3 / cam.scale : 2 / cam.scale}
+              draggable={!object.locked && interactionsEnabled}
+              interactive={interactionsEnabled}
+              onDragStart={() => handleDragStart(object.id)}
+              onDragEnd={(event) => handleDrag(object.id, event)}
+              onHover={onHover}
+              onDoubleClick={() => onRecolorToken(object.id, object.owner)}
+              onClick={() => {
+                if (onSelectObject) {
+                  onSelectObject(object.id);
+                }
+              }}
+              onNodeReady={
+                onTokenNodeReady ? (node) => onTokenNodeReady(object.id, node) : undefined
+              }
             />
-          )}
-        </Group>
-      ))}
+            {object.locked && (
+              <LockIndicator
+                x={object.transform.x * gridSize + gridSize / 2}
+                y={object.transform.y * gridSize + gridSize / 2 - gridSize * 0.45}
+                size={gridSize * 0.25}
+              />
+            )}
+          </Group>
+        );
+      })}
     </Group>
   );
 });

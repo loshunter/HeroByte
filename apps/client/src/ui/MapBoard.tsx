@@ -12,10 +12,11 @@
 // - Map background image support
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Stage, Layer } from "react-konva";
+import { Stage, Layer, Group, Circle, Line, Text } from "react-konva";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import type { RoomSnapshot, ClientMessage, SceneObject } from "@shared";
+import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import { useCamera } from "../hooks/useCamera.js";
 import { usePointerTool } from "../hooks/usePointerTool.js";
 import { useDrawingTool } from "../hooks/useDrawingTool.js";
@@ -28,6 +29,7 @@ import {
   PointersLayer,
   DrawingsLayer,
   MeasureLayer,
+  TransformGizmo,
 } from "../features/map/components";
 
 export type CameraCommand = { type: "focus-token"; tokenId: string } | { type: "reset" };
@@ -57,6 +59,24 @@ function useElementSize<T extends HTMLElement>() {
   return { ref, ...size };
 }
 
+function worldToMapLocal(
+  world: { x: number; y: number },
+  transform: SceneObject["transform"],
+): { x: number; y: number } {
+  const { x, y, scaleX, scaleY, rotation } = transform;
+  const rad = (rotation * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+
+  const dx = world.x - x;
+  const dy = world.y - y;
+
+  const localX = (cos * dx + sin * dy) / (Math.abs(scaleX) < 1e-6 ? 1 : scaleX);
+  const localY = (-sin * dx + cos * dy) / (Math.abs(scaleY) < 1e-6 ? 1 : scaleY);
+
+  return { x: localX, y: localY };
+}
+
 // ----------------------------------------------------------------------------
 // MAIN COMPONENT
 // ----------------------------------------------------------------------------
@@ -70,7 +90,12 @@ interface MapBoardProps {
   pointerMode: boolean; // Pointer tool active
   measureMode: boolean; // Measure tool active
   drawMode: boolean; // Draw tool active
+  transformMode: boolean; // Transform tool active (gizmo mode)
   selectMode: boolean; // Selection tool active
+  alignmentMode: boolean; // Alignment tool active
+  alignmentPoints?: AlignmentPoint[]; // Captured alignment points
+  alignmentSuggestion?: AlignmentSuggestion | null; // Preview transform for alignment
+  onAlignmentPointCapture?: (point: AlignmentPoint) => void;
   drawTool: "freehand" | "line" | "rect" | "circle" | "eraser"; // Active drawing tool
   drawColor: string; // Drawing color
   drawWidth: number; // Drawing brush size
@@ -86,6 +111,8 @@ interface MapBoardProps {
   onDrawingComplete?: (drawingId: string) => void; // Called when a drawing is completed
   cameraCommand: CameraCommand | null;
   onCameraCommandHandled: () => void;
+  selectedObjectId?: string | null; // Currently selected object for transform gizmo
+  onSelectObject?: (objectId: string | null) => void; // Selection handler
 }
 
 /**
@@ -106,7 +133,12 @@ export default function MapBoard({
   pointerMode,
   measureMode,
   drawMode,
+  transformMode,
   selectMode,
+  alignmentMode,
+  alignmentPoints = [],
+  alignmentSuggestion = null,
+  onAlignmentPointCapture,
   drawTool,
   drawColor,
   drawWidth,
@@ -117,6 +149,8 @@ export default function MapBoard({
   onDrawingComplete,
   cameraCommand,
   onCameraCommandHandled,
+  selectedObjectId = null,
+  onSelectObject,
 }: MapBoardProps) {
   // -------------------------------------------------------------------------
   // STATE & HOOKS
@@ -137,6 +171,14 @@ export default function MapBoard({
       ),
     [sceneObjects],
   );
+
+  // Transform gizmo state
+  const selectedObjectNodeRef = useRef<Konva.Node | null>(null);
+  const selectedObject = useMemo(
+    () => sceneObjects.find((obj) => obj.id === selectedObjectId) || null,
+    [sceneObjects, selectedObjectId],
+  );
+
   // Drawing selection
   const {
     selectedDrawingId,
@@ -162,12 +204,32 @@ export default function MapBoard({
     measureEnd,
     onStageClick: handlePointerClick,
     onMouseMove: handlePointerMouseMove,
+    pointerPreview,
   } = usePointerTool({
     pointerMode,
     measureMode,
     toWorld,
     sendMessage,
   });
+
+  const handleAlignmentClick = useCallback(
+    (event: KonvaEventObject<MouseEvent | PointerEvent>) => {
+      if (!alignmentMode || !onAlignmentPointCapture || !mapObject) {
+        return;
+      }
+
+      const stage = event.target.getStage();
+      if (!stage) return;
+      const pointer = stage.getPointerPosition();
+      if (!pointer) return;
+
+      const world = toWorld(pointer.x, pointer.y);
+      const local = worldToMapLocal(world, mapObject.transform);
+
+      onAlignmentPointCapture({ world, local });
+    },
+    [alignmentMode, onAlignmentPointCapture, mapObject, toWorld],
+  );
 
   // Drawing tool
   const {
@@ -185,10 +247,16 @@ export default function MapBoard({
     toWorld,
     sendMessage,
     onDrawingComplete,
+    drawingObjects,
   });
 
   // Token interaction
   const [hoveredTokenId, setHoveredTokenId] = useState<string | null>(null);
+  useEffect(() => {
+    if (drawMode) {
+      setHoveredTokenId(null);
+    }
+  }, [drawMode]);
 
   // Grid configuration
   const [grid, setGrid] = useState({
@@ -208,18 +276,50 @@ export default function MapBoard({
     setGrid((prev) => ({ ...prev, size: gridSize }));
   }, [gridSize]);
 
-  // Delete key handler for selected drawings
+  // Delete key handler for selected objects (drawings via select tool, or any object via transform gizmo)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Delete" && selectedDrawingId && selectMode) {
-        sendMessage({ t: "delete-drawing", id: selectedDrawingId });
-        handleSelectDrawing(null);
+      // Don't delete if typing in an input field
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      if (e.key === "Delete") {
+        // Priority 1: Delete selected drawing (via select tool)
+        if (selectedDrawingId && selectMode) {
+          sendMessage({ t: "delete-drawing", id: selectedDrawingId });
+          handleSelectDrawing(null);
+          return;
+        }
+
+        // Priority 2: Delete selected object now handled in App.tsx
+        // (App.tsx has DM check and proper permission handling)
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedDrawingId, selectMode, sendMessage, handleSelectDrawing]);
+  }, [
+    selectedDrawingId,
+    selectMode,
+    sendMessage,
+    handleSelectDrawing,
+    selectedObjectId,
+    onSelectObject,
+    sceneObjects,
+  ]);
+
+  // ESC key handler to deselect transform gizmo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && selectedObjectId && onSelectObject) {
+        onSelectObject(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedObjectId, onSelectObject]);
 
   // -------------------------------------------------------------------------
   // UNIFIED EVENT HANDLERS
@@ -229,7 +329,18 @@ export default function MapBoard({
    * Unified stage click handler (pointer/measure tools)
    */
   const onStageClick = (event: KonvaEventObject<MouseEvent | PointerEvent>) => {
+    if (alignmentMode) {
+      handleAlignmentClick(event);
+      return;
+    }
+
     if (!pointerMode && !measureMode && !drawMode) {
+      if (onSelectObject) {
+        const stage = event.target.getStage();
+        if (stage && event.target === stage) {
+          onSelectObject(null);
+        }
+      }
       deselectIfEmpty(event);
       return;
     }
@@ -240,7 +351,7 @@ export default function MapBoard({
    * Unified mouse down handler (camera pan, drawing)
    */
   const onMouseDown = (event: KonvaEventObject<PointerEvent>) => {
-    const shouldPan = !pointerMode && !measureMode && !drawMode && !selectMode;
+    const shouldPan = !alignmentMode && !pointerMode && !measureMode && !drawMode && !selectMode;
     handleCameraMouseDown(event, stageRef, shouldPan);
     handleDrawMouseDown(stageRef);
   };
@@ -298,12 +409,14 @@ export default function MapBoard({
    */
   const getCursor = () => {
     if (isPanning) return "grabbing";
-    if (pointerMode) return "crosshair";
+    if (pointerMode) return "none";
     if (measureMode) return "crosshair";
     if (drawMode) return "crosshair";
     if (selectMode) return "default";
     return "grab";
   };
+
+  const tokenInteractionsEnabled = !drawMode;
 
   const handleTransformToken = useCallback(
     (sceneId: string, position: { x: number; y: number }) => {
@@ -326,6 +439,103 @@ export default function MapBoard({
     [onRecolorToken],
   );
 
+  // Transform gizmo handlers
+  const handleGizmoTransform = useCallback(
+    (transform: {
+      id: string;
+      position?: { x: number; y: number };
+      scale?: { x: number; y: number };
+      rotation?: number;
+    }) => {
+      // Find the object to determine its type
+      const obj = sceneObjects.find((o) => o.id === transform.id);
+
+      if (!obj) {
+        console.warn(`Object ${transform.id} not found`);
+        return;
+      }
+
+      // For tokens, don't send position (it's in grid coords, not pixels)
+      // Only send scale and rotation
+      if (obj.type === "token") {
+        onTransformObject({
+          id: transform.id,
+          scale: transform.scale,
+          rotation: transform.rotation,
+          // Position should only be updated via dragging (which handles grid snapping)
+        });
+      } else {
+        // For map and drawings, send full transform
+        onTransformObject(transform);
+      }
+    },
+    [onTransformObject, sceneObjects],
+  );
+
+  const getSelectedNodeRef = useCallback(() => {
+    return selectedObjectNodeRef.current;
+  }, []);
+
+  // Callback to receive node reference from MapImageLayer
+  const handleMapNodeReady = useCallback(
+    (node: Konva.Node | null) => {
+      if (mapObject) {
+        if (node) {
+          nodeRefsMap.current.set(mapObject.id, node);
+        } else {
+          nodeRefsMap.current.delete(mapObject.id);
+        }
+      }
+    },
+    [mapObject],
+  );
+
+  // Click handler to select the map (only in transform mode)
+  const handleMapClick = useCallback(() => {
+    // Only allow selection when transform mode is active
+    if (!transformMode) {
+      return;
+    }
+    // Don't select if other tools are active
+    if (pointerMode || measureMode || drawMode || selectMode) {
+      return;
+    }
+    if (mapObject && onSelectObject) {
+      onSelectObject(mapObject.id);
+    }
+  }, [mapObject, onSelectObject, transformMode, pointerMode, measureMode, drawMode, selectMode]);
+
+  // Store all node refs (keyed by object ID)
+  const nodeRefsMap = useRef<Map<string, Konva.Node>>(new Map());
+
+  // Clear the selected node ref when selection changes
+  useEffect(() => {
+    if (selectedObjectId) {
+      const node = nodeRefsMap.current.get(selectedObjectId);
+      selectedObjectNodeRef.current = node || null;
+    } else {
+      selectedObjectNodeRef.current = null;
+    }
+  }, [selectedObjectId]);
+
+  // Callback to receive node reference from TokensLayer
+  const handleTokenNodeReady = useCallback((tokenId: string, node: Konva.Node | null) => {
+    if (node) {
+      nodeRefsMap.current.set(tokenId, node);
+    } else {
+      nodeRefsMap.current.delete(tokenId);
+    }
+  }, []);
+
+  // Callback to receive node reference from DrawingsLayer
+  const handleDrawingNodeReady = useCallback((drawingId: string, node: Konva.Node | null) => {
+    if (node) {
+      nodeRefsMap.current.set(drawingId, node);
+    } else {
+      nodeRefsMap.current.delete(drawingId);
+    }
+  }, []);
+
   // -------------------------------------------------------------------------
   // RENDER
   // -------------------------------------------------------------------------
@@ -341,6 +551,31 @@ export default function MapBoard({
         position: "relative",
       }}
     >
+      {alignmentMode && (
+        <div
+          style={{
+            position: "absolute",
+            top: "12px",
+            right: "12px",
+            background: "rgba(12, 18, 38, 0.9)",
+            border: "1px solid var(--jrpg-border-gold)",
+            borderRadius: "6px",
+            padding: "8px 12px",
+            fontSize: "10px",
+            lineHeight: 1.4,
+            zIndex: 10,
+            pointerEvents: "none",
+          }}
+        >
+          <strong style={{ color: "var(--jrpg-gold)" }}>Alignment Mode</strong>
+          <div style={{ marginTop: "4px" }}>
+            {alignmentPoints.length === 0 && "Click the first corner of a map square."}
+            {alignmentPoints.length === 1 && "Click the opposite corner of the same square."}
+            {alignmentPoints.length >= 2 && "Review the preview and apply when ready."}
+          </div>
+        </div>
+      )}
+
       {/* Stage is the viewport; world content is translated/scaled by cam in child Groups */}
       <Stage
         ref={stageRef}
@@ -354,12 +589,13 @@ export default function MapBoard({
         style={{ cursor: getCursor() }}
       >
         {/* Background Layer: Map image and grid (non-interactive) */}
-        <Layer listening={false}>
+        <Layer>
           <MapImageLayer
             cam={cam}
             src={mapObject?.data.imageUrl ?? snapshot?.mapBackground ?? null}
-            x={0}
-            y={0}
+            transform={mapObject?.transform}
+            onNodeReady={handleMapNodeReady}
+            onClick={handleMapClick}
           />
           {grid.show && (
             <GridLayer
@@ -389,6 +625,9 @@ export default function MapBoard({
             selectedDrawingId={selectedDrawingId}
             onSelectDrawing={handleSelectDrawing}
             onTransformDrawing={handleTransformDrawing}
+            selectedObjectId={selectedObjectId}
+            onSelectObject={onSelectObject}
+            onDrawingNodeReady={handleDrawingNodeReady}
           />
           <TokensLayer
             cam={cam}
@@ -400,6 +639,10 @@ export default function MapBoard({
             onTransformToken={handleTransformToken}
             onRecolorToken={handleRecolorToken}
             snapToGrid={snapToGrid}
+            selectedObjectId={selectedObjectId}
+            onSelectObject={onSelectObject}
+            onTokenNodeReady={handleTokenNodeReady}
+            interactionsEnabled={tokenInteractionsEnabled}
           />
         </Layer>
 
@@ -410,14 +653,81 @@ export default function MapBoard({
             pointers={snapshot?.pointers || []}
             players={snapshot?.players || []}
             tokens={snapshot?.tokens || []}
+            preview={pointerPreview}
+            previewUid={uid}
+            pointerMode={pointerMode}
           />
           <MeasureLayer
             cam={cam}
             measureStart={measureStart}
             measureEnd={measureEnd}
             gridSize={grid.size}
+            gridSquareSize={snapshot?.gridSquareSize}
           />
+          {alignmentMode && alignmentPoints.length > 0 && (
+            <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale} listening={false}>
+              {alignmentPoints.slice(0, 2).map((point, index) => (
+                <Group key={`align-point-${index}`}>
+                  <Circle
+                    x={point.world.x}
+                    y={point.world.y}
+                    radius={8 / cam.scale}
+                    stroke="#facc15"
+                    strokeWidth={2 / cam.scale}
+                    fill="rgba(250, 204, 21, 0.2)"
+                  />
+                  <Text
+                    text={`${index + 1}`}
+                    x={point.world.x + 6 / cam.scale}
+                    y={point.world.y - 18 / cam.scale}
+                    fontSize={12 / cam.scale}
+                    fill="#facc15"
+                    listening={false}
+                  />
+                </Group>
+              ))}
+              {alignmentPoints.length === 2 && (
+                <Line
+                  points={[
+                    alignmentPoints[0].world.x,
+                    alignmentPoints[0].world.y,
+                    alignmentPoints[1].world.x,
+                    alignmentPoints[1].world.y,
+                  ]}
+                  stroke="#facc15"
+                  strokeWidth={2 / cam.scale}
+                  dash={[8 / cam.scale, 6 / cam.scale]}
+                  listening={false}
+                />
+              )}
+              {alignmentSuggestion && (
+                <Line
+                  points={[
+                    alignmentSuggestion.targetA.x,
+                    alignmentSuggestion.targetA.y,
+                    alignmentSuggestion.targetB.x,
+                    alignmentSuggestion.targetB.y,
+                  ]}
+                  stroke="#4de5c0"
+                  strokeWidth={2 / cam.scale}
+                  dash={[4 / cam.scale, 6 / cam.scale]}
+                  listening={false}
+                />
+              )}
+            </Group>
+          )}
         </Layer>
+
+        {/* Transform Gizmo Layer: Visual handles for selected objects (only in transform mode) */}
+        {transformMode && (
+          <Layer>
+            <TransformGizmo
+              selectedObject={selectedObject}
+              onTransform={handleGizmoTransform}
+              getNodeRef={getSelectedNodeRef}
+            />
+          </Layer>
+        )}
       </Stage>
     </div>
   );

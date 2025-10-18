@@ -85,6 +85,7 @@ export class ConnectionHandler {
         this.container.uidToWs.delete(uid);
         this.container.authenticatedUids.delete(uid);
         this.container.authenticatedSessions.delete(uid);
+        this.container.selectionService.deselect(state, uid);
       }
 
       // Broadcast updated state
@@ -177,6 +178,7 @@ export class ConnectionHandler {
     this.container.authenticatedUids.delete(uid);
     this.container.authenticatedSessions.delete(uid);
     this.container.uidToWs.delete(uid);
+    this.container.selectionService.deselect(state, uid);
 
     // Broadcast updated state
     this.container.roomService.broadcast(this.container.getAuthenticatedClients());

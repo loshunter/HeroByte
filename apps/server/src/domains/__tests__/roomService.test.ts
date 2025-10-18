@@ -61,6 +61,41 @@ describe("RoomService", () => {
     expect(state.gridSize).toBe(64);
     expect(state.users).toHaveLength(0);
     expect(state.pointers).toHaveLength(0);
+    expect(state.selectionState.size).toBe(0);
+  });
+
+  it("drops persisted selection state when loading from disk", () => {
+    vi.mocked(existsSync).mockReturnValue(true);
+    vi.mocked(readFileSync).mockReturnValue(
+      JSON.stringify({
+        tokens: [],
+        players: [],
+        characters: [],
+        selectionState: {
+          "uid-1": { mode: "single", objectId: "token-1" },
+        },
+      }),
+    );
+
+    const service = new RoomService();
+    service.loadState();
+
+    expect(service.getState().selectionState.size).toBe(0);
+    vi.mocked(existsSync).mockReturnValue(false);
+  });
+
+  it("does not persist selection state when saving to disk", () => {
+    const service = new RoomService();
+    const state = service.getState();
+
+    state.selectionState.set("uid-1", { mode: "single", objectId: "token-99" });
+    state.tokens.push({ id: "token-99", owner: "uid-1", x: 2, y: 4, color: "#abc" });
+
+    service.saveState();
+
+    expect(writeFileSync).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string);
+    expect(payload.selectionState).toBeUndefined();
   });
 
   it("merges loaded snapshot while preserving active players", () => {
@@ -79,7 +114,9 @@ describe("RoomService", () => {
       players: [{ uid: "uid-1", name: "Saved Player", hp: 5, maxHp: 10 }],
       characters: [],
       mapBackground: "bg",
-      pointers: [{ uid: "uid-1", x: 5, y: 5, timestamp: Date.now() }],
+      pointers: [
+        { id: "uid-1-123", uid: "uid-1", x: 5, y: 5, timestamp: Date.now(), name: "Saved Player" },
+      ],
       drawings: [],
       gridSize: 32,
       diceRolls: [],
@@ -90,13 +127,22 @@ describe("RoomService", () => {
     expect(merged.players[0]?.name).toBe("Saved Player");
     expect(merged.players[0]?.lastHeartbeat).toBe(123);
     expect(merged.tokens).toHaveLength(1);
+    expect(merged.selectionState.size).toBe(0);
   });
 
   it("broadcasts snapshots and prunes expired pointers", () => {
     const service = new RoomService();
     const state = service.getState();
-    state.pointers.push({ uid: "uid-1", x: 0, y: 0, timestamp: Date.now() - 5000 });
+    state.pointers.push({
+      id: "uid-1-456",
+      uid: "uid-1",
+      x: 0,
+      y: 0,
+      timestamp: Date.now() - 5000,
+      name: "Expired",
+    });
     state.tokens.push({ id: "token-3", owner: "uid-3", x: 3, y: 4, color: "#f00" });
+    state.selectionState.set("uid-3", { mode: "single", objectId: "token-3" });
 
     const client = createClient();
     service.broadcast(new Set<WebSocket>([client]));
@@ -106,7 +152,66 @@ describe("RoomService", () => {
     const payload = JSON.parse(sendMock.mock.calls[0][0] as string);
     expect(payload.pointers).toHaveLength(0);
     expect(payload.tokens).toHaveLength(1);
+    expect(payload.selectionState).toEqual({
+      "uid-3": { mode: "single", objectId: "token-3" },
+    });
     expect(writeFileSync).toHaveBeenCalledTimes(1);
+    const persisted = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string);
+    expect(persisted.selectionState).toBeUndefined();
+  });
+
+  it("delivers pointer updates to all clients and expires them simultaneously", () => {
+    vi.useFakeTimers();
+    try {
+      const service = new RoomService();
+      const state = service.getState();
+
+      state.players.push({
+        uid: "uid-1",
+        name: "Player 1",
+        hp: 10,
+        maxHp: 10,
+      });
+
+      const now = new Date("2025-01-01T00:00:00.000Z");
+      vi.setSystemTime(now);
+
+      state.pointers.push({
+        id: "uid-1-0",
+        uid: "uid-1",
+        x: 42,
+        y: 84,
+        timestamp: Date.now(),
+        name: "Player 1",
+      });
+
+      const clientA = createClient();
+      const clientB = createClient();
+      const clients = new Set<WebSocket>([clientA, clientB]);
+
+      service.broadcast(clients);
+
+      expect(clientA.send).toHaveBeenCalledTimes(1);
+      expect(clientB.send).toHaveBeenCalledTimes(1);
+
+      const firstPayload = JSON.parse(vi.mocked(clientA.send).mock.calls[0][0] as string);
+      expect(firstPayload.pointers).toHaveLength(1);
+      expect(firstPayload.pointers[0]).toMatchObject({ uid: "uid-1", x: 42, y: 84 });
+
+      // Advance time beyond pointer lifespan and broadcast again
+      vi.setSystemTime(new Date(now.getTime() + 3500));
+      service.broadcast(clients);
+
+      expect(clientA.send).toHaveBeenCalledTimes(2);
+      expect(clientB.send).toHaveBeenCalledTimes(2);
+
+      const secondPayloadA = JSON.parse(vi.mocked(clientA.send).mock.calls[1][0] as string);
+      const secondPayloadB = JSON.parse(vi.mocked(clientB.send).mock.calls[1][0] as string);
+      expect(secondPayloadA.pointers).toHaveLength(0);
+      expect(secondPayloadB.pointers).toHaveLength(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   describe("Scene Object Transformations", () => {
@@ -429,16 +534,23 @@ describe("RoomService", () => {
         lastHeartbeat: Date.now(),
         micLevel: 0,
       });
-      state.pointers.push({ uid: "player-1", x: 0, y: 0, timestamp: Date.now() });
+      state.pointers.push({
+        id: "player-1-789",
+        uid: "player-1",
+        x: 0,
+        y: 0,
+        timestamp: Date.now(),
+        name: "Player",
+      });
       service.createSnapshot();
 
       // Pointers are locked by default, so transformation will fail
-      const pointerObject = state.sceneObjects.find((obj) => obj.id === "pointer:player-1");
+      const pointerObject = state.sceneObjects.find((obj) => obj.id === "pointer:player-1-789");
       if (pointerObject) {
         pointerObject.locked = false; // Unlock to allow transformation
       }
 
-      const result = service.applySceneObjectTransform("pointer:player-1", "player-1", {
+      const result = service.applySceneObjectTransform("pointer:player-1-789", "player-1", {
         position: { x: 50, y: 75 },
       });
 
@@ -466,10 +578,17 @@ describe("RoomService", () => {
         lastHeartbeat: Date.now(),
         micLevel: 0,
       });
-      state.pointers.push({ uid: "player-1", x: 0, y: 0, timestamp: Date.now() });
+      state.pointers.push({
+        id: "player-1-789",
+        uid: "player-1",
+        x: 0,
+        y: 0,
+        timestamp: Date.now(),
+        name: "Player 1",
+      });
       service.createSnapshot();
 
-      const result = service.applySceneObjectTransform("pointer:player-1", "player-2", {
+      const result = service.applySceneObjectTransform("pointer:player-1-789", "player-2", {
         position: { x: 50, y: 75 },
       });
 
@@ -493,7 +612,14 @@ describe("RoomService", () => {
         opacity: 1,
         owner: "player-1",
       });
-      state.pointers.push({ uid: "player-1", x: 5, y: 5, timestamp: Date.now() });
+      state.pointers.push({
+        id: "player-1-101",
+        uid: "player-1",
+        x: 5,
+        y: 5,
+        timestamp: Date.now(),
+        name: "Player 1",
+      });
 
       const _snapshot = service.createSnapshot();
 
@@ -501,7 +627,7 @@ describe("RoomService", () => {
       expect(state.sceneObjects.find((obj) => obj.id === "map")).toBeDefined();
       expect(state.sceneObjects.find((obj) => obj.id === "token:token-1")).toBeDefined();
       expect(state.sceneObjects.find((obj) => obj.id === "drawing:drawing-1")).toBeDefined();
-      expect(state.sceneObjects.find((obj) => obj.id === "pointer:player-1")).toBeDefined();
+      expect(state.sceneObjects.find((obj) => obj.id === "pointer:player-1-101")).toBeDefined();
     });
 
     it("preserves custom zIndex and transform values", () => {

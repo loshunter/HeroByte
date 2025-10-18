@@ -151,3 +151,11 @@ packages/shared/src/
 - ✅ ConnectionHandler for WebSocket lifecycle management
 - ✅ Bootstrap layer reduced to thin initialization (71 lines from 172)
 - ✅ Single Responsibility Principle throughout codebase
+
+## Structural Guardrails
+
+- Run `node scripts/structure-report.mjs` to list the largest source files and surface SOLID refactor hints.
+- Default threshold is 350 LOC; flagged files display ⚠️ with suggested extraction strategies.
+- Use `--limit`, `--threshold`, `--json`, and `--include-tests` to tailor reports or feed structured output into CI.
+- Capture characterization tests before reshaping a flagged module so behaviour remains stable during decomposition.
+- CI automatically runs `pnpm lint:structure`; reviews should inspect the attached report artifacts before approving large diffs.

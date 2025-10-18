@@ -12,6 +12,7 @@ import { TokenService } from "../domains/token/service.js";
 import { MapService } from "../domains/map/service.js";
 import { DiceService } from "../domains/dice/service.js";
 import { CharacterService } from "../domains/character/service.js";
+import { SelectionService } from "../domains/selection/service.js";
 
 /**
  * Message router - handles all WebSocket messages and dispatches to domain services
@@ -23,6 +24,7 @@ export class MessageRouter {
   private mapService: MapService;
   private diceService: DiceService;
   private characterService: CharacterService;
+  private selectionService: SelectionService;
   private wss: WebSocketServer;
   private uidToWs: Map<string, WebSocket>;
   private getAuthorizedClients: () => Set<WebSocket>;
@@ -34,6 +36,7 @@ export class MessageRouter {
     mapService: MapService,
     diceService: DiceService,
     characterService: CharacterService,
+    selectionService: SelectionService,
     wss: WebSocketServer,
     uidToWs: Map<string, WebSocket>,
     getAuthorizedClients: () => Set<WebSocket>,
@@ -44,6 +47,7 @@ export class MessageRouter {
     this.mapService = mapService;
     this.diceService = diceService;
     this.characterService = characterService;
+    this.selectionService = selectionService;
     this.wss = wss;
     this.uidToWs = uidToWs;
     this.getAuthorizedClients = getAuthorizedClients;
@@ -70,11 +74,21 @@ export class MessageRouter {
           }
           break;
 
-        case "delete-token":
-          if (this.tokenService.deleteToken(state, message.id, senderUid)) {
+        case "delete-token": {
+          // Check if sender is a DM - DMs can delete any token
+          const sender = state.players.find((p) => p.uid === senderUid);
+          const isDM = sender?.isDM ?? false;
+
+          const success = isDM
+            ? this.tokenService.forceDeleteToken(state, message.id)
+            : this.tokenService.deleteToken(state, message.id, senderUid);
+
+          if (success) {
+            this.selectionService.removeObject(state, message.id);
             this.broadcast();
           }
           break;
+        }
 
         case "update-token-image":
           if (this.tokenService.setImageUrl(state, message.tokenId, senderUid, message.imageUrl)) {
@@ -170,6 +184,7 @@ export class MessageRouter {
           if (removed) {
             if (removed.tokenId) {
               this.tokenService.forceDeleteToken(state, removed.tokenId);
+              this.selectionService.removeObject(state, removed.tokenId);
             }
             this.broadcast();
             this.roomService.saveState();
@@ -220,6 +235,11 @@ export class MessageRouter {
           this.broadcast();
           break;
 
+        case "grid-square-size":
+          this.mapService.setGridSquareSize(state, message.size);
+          this.broadcast();
+          break;
+
         case "point":
           this.mapService.placePointer(state, senderUid, message.x, message.y);
           this.broadcast();
@@ -243,6 +263,9 @@ export class MessageRouter {
           break;
 
         case "clear-drawings":
+          for (const drawing of state.drawings) {
+            this.selectionService.removeObject(state, drawing.id);
+          }
           this.mapService.clearDrawings(state);
           this.broadcast();
           break;
@@ -258,6 +281,46 @@ export class MessageRouter {
           this.broadcast();
           break;
 
+        case "select-object": {
+          if (message.uid !== senderUid) {
+            console.warn(`select-object spoofed uid from ${senderUid}`);
+            break;
+          }
+          if (this.selectionService.selectObject(state, senderUid, message.objectId)) {
+            this.broadcast();
+          }
+          break;
+        }
+
+        case "deselect-object": {
+          if (message.uid !== senderUid) {
+            console.warn(`deselect-object spoofed uid from ${senderUid}`);
+            break;
+          }
+          if (this.selectionService.deselect(state, senderUid)) {
+            this.broadcast();
+          }
+          break;
+        }
+
+        case "select-multiple": {
+          if (message.uid !== senderUid) {
+            console.warn(`select-multiple spoofed uid from ${senderUid}`);
+            break;
+          }
+          if (
+            this.selectionService.selectMultiple(
+              state,
+              senderUid,
+              message.objectIds,
+              message.mode ?? "replace",
+            )
+          ) {
+            this.broadcast();
+          }
+          break;
+        }
+
         case "move-drawing":
           if (this.mapService.moveDrawing(state, message.id, message.dx, message.dy, senderUid)) {
             this.broadcast();
@@ -266,6 +329,16 @@ export class MessageRouter {
 
         case "delete-drawing":
           if (this.mapService.deleteDrawing(state, message.id)) {
+            this.selectionService.removeObject(state, message.id);
+            this.broadcast();
+          }
+          break;
+
+        case "erase-partial":
+          if (
+            this.mapService.handlePartialErase(state, message.deleteId, message.segments, senderUid)
+          ) {
+            this.selectionService.removeObject(state, message.deleteId);
             this.broadcast();
           }
           break;
@@ -283,8 +356,20 @@ export class MessageRouter {
 
         // ROOM MANAGEMENT
         case "clear-all-tokens": {
+          const removedIds = state.tokens
+            .filter((token) => token.owner !== senderUid)
+            .map((token) => token.id);
           this.tokenService.clearAllTokensExcept(state, senderUid);
+          for (const tokenId of removedIds) {
+            this.selectionService.removeObject(state, tokenId);
+          }
+          const removedPlayerUids = state.players
+            .filter((player) => player.uid !== senderUid)
+            .map((player) => player.uid);
           state.players = state.players.filter((p) => p.uid === senderUid);
+          for (const uid of removedPlayerUids) {
+            this.selectionService.deselect(state, uid);
+          }
           this.broadcast();
           this.roomService.saveState();
           break;
@@ -295,6 +380,8 @@ export class MessageRouter {
           if (player) {
             player.lastHeartbeat = Date.now();
           }
+          // Broadcast to keep client connection alive (prevents heartbeat timeout)
+          this.broadcast();
           break;
         }
 

@@ -13,6 +13,7 @@
 ## Checklist
 - [ ] Documentation updated (README, DEVELOPMENT, TESTING_SETUP, etc.)
 - [ ] Related TODO / issue updated or linked
+- [ ] If Phase 19/20 items in `TODO.md` changed, `docs/planning/phase19-20-briefing.md` was updated in the same PR
 - [ ] No lint warnings remain (`pnpm lint`)
 - [ ] Relevant tests added/updated
 

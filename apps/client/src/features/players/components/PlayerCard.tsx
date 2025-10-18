@@ -35,6 +35,7 @@ export interface PlayerCardProps {
   onTokenImageSubmit?: (url: string) => void;
   tokenId?: string;
   onApplyPlayerState?: (state: PlayerState, tokenId?: string) => void;
+  onDeleteToken?: (tokenId: string) => void;
   isDM: boolean;
   onToggleDMMode: (next: boolean) => void;
   tokenLocked?: boolean;
@@ -66,6 +67,7 @@ export const PlayerCard = memo<PlayerCardProps>(
     onTokenImageSubmit,
     tokenId,
     onApplyPlayerState,
+    onDeleteToken,
     isDM,
     onToggleDMMode,
     tokenLocked,
@@ -156,6 +158,7 @@ export const PlayerCard = memo<PlayerCardProps>(
           isEditable={isMe}
           onRequestChange={onPortraitLoad}
           statusIcon={statusIcon}
+          tokenColor={tokenColor}
         />
 
         <HPBar
@@ -181,6 +184,7 @@ export const PlayerCard = memo<PlayerCardProps>(
 
         <PlayerSettingsMenu
           isOpen={isMe && settingsOpen}
+          onClose={() => setSettingsOpen(false)}
           tokenImageInput={tokenImageInput}
           tokenImageUrl={tokenImageUrl}
           onTokenImageInputChange={setTokenImageInput}
@@ -189,6 +193,7 @@ export const PlayerCard = memo<PlayerCardProps>(
             setTokenImageInput("");
             handleTokenImageApply("");
           }}
+          onDeleteToken={tokenId && onDeleteToken ? () => onDeleteToken(tokenId) : undefined}
           onSavePlayerState={handleSavePlayerState}
           onLoadPlayerState={handleLoadPlayerState}
           statusIcon={statusIcon}

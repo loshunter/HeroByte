@@ -4,10 +4,14 @@
 // Collapsible panel for NPC-specific management actions (token image, placement,
 // deletion). Mirrors the styling of the player settings popover.
 
+import { createPortal } from "react-dom";
+
 import type { TokenSize } from "@shared";
+import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 
 interface NpcSettingsMenuProps {
   isOpen: boolean;
+  onClose: () => void;
   tokenImageInput: string;
   tokenImageUrl?: string;
   onTokenImageInputChange: (value: string) => void;
@@ -25,6 +29,7 @@ interface NpcSettingsMenuProps {
 
 export function NpcSettingsMenu({
   isOpen,
+  onClose,
   tokenImageInput,
   tokenImageUrl,
   onTokenImageInputChange,
@@ -50,25 +55,21 @@ export function NpcSettingsMenu({
     { emoji: "❄️", label: "Frozen" },
   ];
 
-  return (
-    <div
-      style={{
-        position: "absolute",
-        top: "100%",
-        right: 0,
-        marginTop: "6px",
-        zIndex: 30,
-        width: "220px",
-      }}
+  return createPortal(
+    <DraggableWindow
+      title="NPC Settings"
+      onClose={onClose}
+      initialX={350}
+      initialY={150}
+      width={280}
+      minWidth={280}
+      maxWidth={350}
+      storageKey="npc-settings-menu"
+      zIndex={1001}
     >
       <div
-        className="jrpg-panel jrpg-panel-simple"
         style={{
           padding: "10px",
-          background: "rgba(34, 11, 18, 0.95)",
-          border: "1px solid var(--jrpg-border-gold)",
-          boxShadow: "0 12px 24px rgba(12, 6, 12, 0.55)",
-          borderRadius: "8px",
           display: "flex",
           flexDirection: "column",
           gap: "8px",
@@ -146,7 +147,9 @@ export function NpcSettingsMenu({
 
           {onTokenSizeChange && (
             <>
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "4px" }}>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "4px" }}
+              >
                 <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
                   Token Size
                 </span>
@@ -215,6 +218,7 @@ export function NpcSettingsMenu({
           </button>
         </div>
       </div>
-    </div>
+    </DraggableWindow>,
+    document.body,
   );
 }

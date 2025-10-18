@@ -12,11 +12,15 @@ import type {
   DiceRoll,
   Character,
   SceneObject,
+  SelectionState,
+  SelectionStateEntry,
 } from "@shared";
 
 /**
  * Room state - holds all game data for a session
  */
+export type SelectionStateMap = Map<string, SelectionStateEntry>;
+
 export interface RoomState {
   users: string[]; // Connected user UIDs (legacy)
   tokens: Token[]; // All tokens on the map
@@ -26,9 +30,11 @@ export interface RoomState {
   pointers: Pointer[]; // Temporary pointer indicators
   drawings: Drawing[]; // Freehand drawings
   gridSize: number; // Synchronized grid size
+  gridSquareSize: number; // How many feet per grid square (default: 5ft)
   diceRolls: DiceRoll[]; // Dice roll history
   drawingRedoStacks: Record<string, Drawing[]>; // Per-player redo stacks
   sceneObjects: SceneObject[]; // Unified scene graph
+  selectionState: SelectionStateMap; // Current object selections keyed by player UID
 }
 
 /**
@@ -44,10 +50,53 @@ export function createEmptyRoomState(): RoomState {
     pointers: [],
     drawings: [],
     gridSize: 50,
+    gridSquareSize: 5, // Default: 5 feet per square (D&D standard)
     diceRolls: [],
     drawingRedoStacks: {},
     sceneObjects: [],
+    selectionState: createSelectionMap(),
   };
+}
+
+/**
+ * Create a Map-backed selection store from a plain object snapshot
+ */
+export function createSelectionMap(initial?: SelectionState): SelectionStateMap {
+  const map: SelectionStateMap = new Map();
+  if (!initial) {
+    return map;
+  }
+
+  for (const [uid, entry] of Object.entries(initial)) {
+    if (!entry) {
+      continue;
+    }
+
+    if (entry.mode === "single") {
+      map.set(uid, { mode: "single", objectId: entry.objectId });
+    } else {
+      map.set(uid, { mode: "multiple", objectIds: [...entry.objectIds] });
+    }
+  }
+
+  return map;
+}
+
+/**
+ * Convert selection map into a serializable record for clients
+ */
+export function selectionMapToRecord(map: SelectionStateMap): SelectionState {
+  const serialized: SelectionState = {};
+
+  for (const [uid, entry] of map.entries()) {
+    if (entry.mode === "single") {
+      serialized[uid] = { mode: "single", objectId: entry.objectId };
+    } else {
+      serialized[uid] = { mode: "multiple", objectIds: [...entry.objectIds] };
+    }
+  }
+
+  return serialized;
 }
 
 /**
@@ -63,7 +112,9 @@ export function toSnapshot(state: RoomState): RoomSnapshot {
     pointers: state.pointers,
     drawings: state.drawings,
     gridSize: state.gridSize,
+    gridSquareSize: state.gridSquareSize,
     diceRolls: state.diceRolls,
     sceneObjects: state.sceneObjects,
+    selectionState: selectionMapToRecord(state.selectionState),
   };
 }

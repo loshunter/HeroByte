@@ -151,8 +151,8 @@ export function NpcCard({
           portrait={character.portrait ?? undefined}
           isEditable={canEdit}
           onRequestChange={handlePortraitChange}
-          placeholderLabel="Load portrait"
           statusIcon={statusIcon}
+          tokenColor="#D63C53"
         />
       </div>
 
@@ -188,6 +188,7 @@ export function NpcCard({
 
       <NpcSettingsMenu
         isOpen={canEdit && settingsOpen}
+        onClose={() => setSettingsOpen(false)}
         tokenImageInput={tokenImageInput}
         tokenImageUrl={character.tokenImage ?? undefined}
         onTokenImageInputChange={setTokenImageInput}

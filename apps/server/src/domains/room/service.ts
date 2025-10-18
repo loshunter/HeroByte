@@ -7,7 +7,7 @@ import { writeFileSync, readFileSync, existsSync } from "fs";
 import type { WebSocket } from "ws";
 import type { Player, RoomSnapshot, Character, SceneObject } from "@shared";
 import type { RoomState } from "./model.js";
-import { createEmptyRoomState, toSnapshot } from "./model.js";
+import { createEmptyRoomState, createSelectionMap, toSnapshot } from "./model.js";
 
 const STATE_FILE = "./herobyte-state.json";
 
@@ -62,9 +62,11 @@ export class RoomService {
           pointers: [], // Don't persist pointers - they expire
           drawings: data.drawings || [],
           gridSize: data.gridSize || 50,
+          gridSquareSize: data.gridSquareSize || 5,
           diceRolls: data.diceRolls || [],
           drawingRedoStacks: {},
           sceneObjects,
+          selectionState: createSelectionMap(),
         };
         this.rebuildSceneGraph();
         console.log("Loaded state from disk");
@@ -86,6 +88,7 @@ export class RoomService {
         mapBackground: this.state.mapBackground,
         drawings: this.state.drawings,
         gridSize: this.state.gridSize,
+        gridSquareSize: this.state.gridSquareSize,
         diceRolls: this.state.diceRolls,
         sceneObjects: this.state.sceneObjects,
       };
@@ -126,6 +129,8 @@ export class RoomService {
       return { ...currentPlayer, isDM: currentPlayer.isDM ?? false };
     });
 
+    const currentGridSquareSize = this.state.gridSquareSize ?? 5;
+
     this.state = {
       users: this.state.users, // Keep current WebSocket connections
       tokens: snapshot.tokens ?? [],
@@ -135,20 +140,22 @@ export class RoomService {
       pointers: [], // Clear pointers on load
       drawings: snapshot.drawings ?? [],
       gridSize: snapshot.gridSize ?? 50,
+      gridSquareSize: snapshot.gridSquareSize ?? currentGridSquareSize,
       diceRolls: snapshot.diceRolls ?? [],
       drawingRedoStacks: {},
       sceneObjects: snapshot.sceneObjects ?? this.state.sceneObjects,
+      selectionState: createSelectionMap(),
     };
     this.rebuildSceneGraph();
     console.log(`Loaded session snapshot from client - merged ${mergedPlayers.length} players`);
   }
 
   /**
-   * Clean up expired pointers (older than 2 seconds)
+   * Clean up expired pointers (older than 3 seconds)
    */
   cleanupPointers(): void {
     const now = Date.now();
-    this.state.pointers = this.state.pointers.filter((p) => now - p.timestamp < 2000);
+    this.state.pointers = this.state.pointers.filter((p) => now - p.timestamp < 3000);
   }
 
   /**
@@ -356,7 +363,8 @@ export class RoomService {
 
     // Pointers (ephemeral)
     for (const pointer of this.state.pointers) {
-      const id = `pointer:${pointer.uid}`;
+      const pointerKey = pointer.id ?? pointer.uid;
+      const id = `pointer:${pointerKey}`;
       const prev = existing.get(id);
       next.push({
         id,
@@ -371,7 +379,7 @@ export class RoomService {
           scaleY: 1,
           rotation: 0,
         },
-        data: { uid: pointer.uid },
+        data: { uid: pointer.uid, pointerId: pointerKey, name: pointer.name },
       });
     }
 
