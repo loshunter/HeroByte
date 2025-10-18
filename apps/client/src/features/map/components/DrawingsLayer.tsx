@@ -143,11 +143,12 @@ export const DrawingsLayer = memo(function DrawingsLayer({
       selectedDrawingId === drawing.id;
     const isOwner = !drawing.owner || drawing.owner === uid;
     const selectionEnabled = selectMode || transformMode;
-    const canInteract = selectionEnabled && (isOwner || transformMode);
     const canShowSelection = selectionEnabled; // Show selection outlines when selection or transform tools are active
+    const allowClickSelection = (selectMode && isOwner) || transformMode;
+    const allowDrag = selectMode && isOwner && isSelected;
     const isDragging = draggingId === sceneObject.id;
 
-    const interactiveProps = canInteract
+    const interactiveProps = allowClickSelection
       ? {
           onClick: (event: KonvaEventObject<MouseEvent>) => {
             event.cancelBubble = true;
@@ -175,7 +176,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
       : {};
 
     const groupHandlers =
-      canInteract && isSelected
+      allowDrag
         ? {
             onDragStart: () => handleDragStart(sceneObject.id),
             onDragEnd: (event: KonvaEventObject<DragEvent>) => handleDragEnd(sceneObject.id, event),
@@ -196,13 +197,13 @@ export const DrawingsLayer = memo(function DrawingsLayer({
             scaleX={transform.scaleX}
             scaleY={transform.scaleY}
             rotation={transform.rotation}
-            draggable={canInteract && isSelected}
+            draggable={allowDrag}
             {...groupHandlers}
             ref={
               onDrawingNodeReady ? (node) => onDrawingNodeReady(sceneObject.id, node) : undefined
             }
           >
-            {canInteract && (
+            {allowClickSelection && (
               <Line
                 points={points.flatMap((p) => [p.x, p.y])}
                 stroke="transparent"
@@ -247,13 +248,13 @@ export const DrawingsLayer = memo(function DrawingsLayer({
             scaleX={transform.scaleX}
             scaleY={transform.scaleY}
             rotation={transform.rotation}
-            draggable={canInteract && isSelected}
+            draggable={allowDrag}
             {...groupHandlers}
             ref={
               onDrawingNodeReady ? (node) => onDrawingNodeReady(sceneObject.id, node) : undefined
             }
           >
-            {canInteract && (
+            {allowClickSelection && (
               <Line
                 points={[start.x, start.y, end.x, end.y]}
                 stroke="transparent"
