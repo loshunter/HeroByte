@@ -5,6 +5,8 @@
 // Follows single responsibility: application initialization only
 
 import { createServer } from "http";
+import type { IncomingMessage, ServerResponse } from "http";
+import { Readable } from "node:stream";
 import { WebSocketServer } from "ws";
 import { createRoutes } from "./http/routes.js";
 import { Container } from "./container.js";
@@ -32,15 +34,75 @@ function bootstrap() {
   // Create HTTP routes
   const app = createRoutes(authService);
 
-  // Create HTTP server for WebSocket compatibility
-  const server = createServer(async (req, res) => {
-    const response = await app.fetch(req as unknown as Request);
+  const buildFetchRequest = (req: IncomingMessage): Request => {
+    const protocolHeader = req.headers["x-forwarded-proto"];
+    const forwardedProto = Array.isArray(protocolHeader) ? protocolHeader[0] : protocolHeader;
+    const protocol = forwardedProto ?? "http";
+    const host = req.headers.host ?? `localhost:${PORT}`;
+    const url = new URL(req.url ?? "/", `${protocol}://${host}`);
+
+    const method = req.method ?? "GET";
+
+    const headers = new Headers();
+    for (const [key, value] of Object.entries(req.headers)) {
+      if (Array.isArray(value)) {
+        for (const entry of value) {
+          headers.append(key, entry);
+        }
+      } else if (typeof value === "string") {
+        headers.set(key, value);
+      }
+    }
+
+    const hasBody = method !== "GET" && method !== "HEAD";
+    const body = hasBody ? Readable.toWeb(req) : undefined;
+
+    const init: RequestInit & { duplex?: "half" } = {
+      method,
+      headers,
+    };
+
+    if (hasBody) {
+      init.body = body;
+      init.duplex = "half";
+    }
+
+    return new Request(url, init);
+  };
+
+  const sendFetchResponse = async (res: ServerResponse, response: Response) => {
     res.statusCode = response.status;
     response.headers.forEach((value, key) => {
       res.setHeader(key, value);
     });
-    const body = await response.text();
-    res.end(body);
+
+    const responseBody = response.body;
+    if (!responseBody) {
+      res.end();
+      return;
+    }
+
+    const stream = Readable.fromWeb(responseBody as unknown as ReadableStream);
+    stream.on("error", (error) => {
+      console.error("[HTTP] Failed to stream response body:", error);
+      res.destroy(error as Error);
+    });
+    stream.pipe(res);
+  };
+
+  // Create HTTP server for WebSocket compatibility
+  const server = createServer(async (req, res) => {
+    try {
+      const request = buildFetchRequest(req);
+      const response = await app.fetch(request);
+      await sendFetchResponse(res, response);
+    } catch (error) {
+      console.error("[HTTP] Request handling failed:", error);
+      if (!res.headersSent) {
+        res.statusCode = 500;
+      }
+      res.end("Internal Server Error");
+    }
   });
 
   // Create WebSocket server with origin validation
