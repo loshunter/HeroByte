@@ -224,7 +224,8 @@ export class WebSocketService {
       this.setState(ConnectionState.CONNECTED);
       this.reconnectAttempts = 0;
       this.startHeartbeat();
-      this.flushMessageQueue();
+      // Do NOT flush message queue here - wait for auth-ok response
+      // Messages will be flushed after successful authentication
     };
 
     this.ws.onmessage = (event) => {
