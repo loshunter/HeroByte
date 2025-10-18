@@ -11,6 +11,18 @@ const baseDrawing = {
   opacity: 1,
 };
 
+const basePartialSegment = {
+  type: "freehand" as const,
+  points: [
+    { x: 0, y: 0 },
+    { x: 5, y: 5 },
+  ],
+  color: "#ff00ff",
+  width: 2,
+  opacity: 0.9,
+  filled: false,
+};
+
 const baseRoll = {
   id: "roll-1",
   playerUid: "uid-1",
@@ -34,6 +46,10 @@ describe("validateMessage", () => {
       { t: "move", id: "token-1", x: 10, y: 15 },
       { t: "recolor", id: "token-1" },
       { t: "delete-token", id: "token-1" },
+      { t: "select-object", uid: "uid-1", objectId: "token-1" },
+      { t: "deselect-object", uid: "uid-1" },
+      { t: "select-multiple", uid: "uid-1", objectIds: ["token-1", "drawing-1"] },
+      { t: "select-multiple", uid: "uid-1", objectIds: ["token-1"], mode: "append" },
       { t: "portrait", data: "data:image/png;base64,AAA" },
       { t: "rename", name: "New Name" },
       { t: "mic-level", level: 0.5 },
@@ -54,6 +70,11 @@ describe("validateMessage", () => {
       { t: "deselect-drawing" },
       { t: "move-drawing", id: "drawing-1", dx: 5, dy: -3 },
       { t: "delete-drawing", id: "drawing-1" },
+      {
+        t: "erase-partial",
+        deleteId: "drawing-1",
+        segments: [basePartialSegment],
+      } as unknown as ClientMessage,
       { t: "dice-roll", roll: baseRoll },
       { t: "clear-roll-history" },
       { t: "clear-all-tokens" },
@@ -87,6 +108,64 @@ describe("validateMessage", () => {
     }
   });
 
+  describe("erase-partial validation", () => {
+    it("accepts erase-partial with valid deleteId and segments", () => {
+      const message: ClientMessage = {
+        t: "erase-partial",
+        deleteId: "drawing-1",
+        segments: [basePartialSegment],
+      } as ClientMessage;
+      expect(validateMessage(message)).toEqual({ valid: true });
+    });
+
+    it("allows erase-partial with empty segments for full deletion", () => {
+      const message = {
+        t: "erase-partial",
+        deleteId: "drawing-1",
+        segments: [],
+      };
+      expect(validateMessage(message)).toEqual({ valid: true });
+    });
+
+    it("rejects erase-partial without deleteId", () => {
+      const message = {
+        t: "erase-partial",
+        segments: [basePartialSegment],
+      };
+      expect(validateMessage(message)).toMatchObject({
+        valid: false,
+        error: "erase-partial: missing deleteId",
+      });
+    });
+
+    it("rejects erase-partial with invalid segments array", () => {
+      const message = {
+        t: "erase-partial",
+        deleteId: "drawing-1",
+        segments: "not-an-array",
+      };
+      expect(validateMessage(message)).toMatchObject({
+        valid: false,
+        error: "erase-partial: segments must be an array",
+      });
+    });
+
+    it("rejects erase-partial when any segment is invalid", () => {
+      const invalidSegment = {
+        ...basePartialSegment,
+        points: [{ x: 0, y: 0 }],
+      };
+      const message = {
+        t: "erase-partial",
+        deleteId: "drawing-1",
+        segments: [invalidSegment],
+      };
+      expect(validateMessage(message)).toMatchObject({
+        valid: false,
+        error: "erase-partial: segments must contain at least 2 points",
+      });
+    });
+  });
   it("rejects unknown message types", () => {
     expect(validateMessage({})).toEqual({ valid: false, error: "Missing or invalid message type" });
     expect(validateMessage({ t: "unknown" })).toEqual({
@@ -152,6 +231,63 @@ describe("validateMessage", () => {
     });
 
     expect(result).toMatchObject({ valid: false });
+  });
+
+  describe("selection message validation", () => {
+    it("rejects select-object without required fields", () => {
+      expect(validateMessage({ t: "select-object", uid: "uid-1" })).toMatchObject({
+        valid: false,
+        error: "select-object: missing or invalid objectId",
+      });
+      expect(validateMessage({ t: "select-object", objectId: "obj-1" })).toMatchObject({
+        valid: false,
+        error: "select-object: missing or invalid uid",
+      });
+    });
+
+    it("rejects deselect-object without a uid", () => {
+      expect(validateMessage({ t: "deselect-object" })).toMatchObject({
+        valid: false,
+        error: "deselect-object: missing or invalid uid",
+      });
+    });
+
+    it("rejects select-multiple with invalid objectIds", () => {
+      expect(validateMessage({ t: "select-multiple", uid: "uid-1", objectIds: [] })).toMatchObject({
+        valid: false,
+        error: "select-multiple: objectIds must be a non-empty string array",
+      });
+      expect(
+        validateMessage({ t: "select-multiple", uid: "uid-1", objectIds: ["valid", 2] }),
+      ).toMatchObject({
+        valid: false,
+        error: "select-multiple: objectIds must be a non-empty string array",
+      });
+    });
+
+    it("rejects select-multiple with invalid mode", () => {
+      expect(
+        validateMessage({
+          t: "select-multiple",
+          uid: "uid-1",
+          objectIds: ["obj-1"],
+          mode: "invalid",
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "select-multiple: invalid mode (replace, append, subtract)",
+      });
+    });
+
+    it("caps select-multiple payload size", () => {
+      const manyIds = Array.from({ length: 101 }, (_, idx) => `obj-${idx}`);
+      expect(
+        validateMessage({ t: "select-multiple", uid: "uid-1", objectIds: manyIds }),
+      ).toMatchObject({
+        valid: false,
+        error: "select-multiple: too many objectIds (max 100)",
+      });
+    });
   });
 
   describe("Security: Injection & Malformed Data", () => {

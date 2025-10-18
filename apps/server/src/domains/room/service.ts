@@ -7,7 +7,7 @@ import { writeFileSync, readFileSync, existsSync } from "fs";
 import type { WebSocket } from "ws";
 import type { Player, RoomSnapshot, Character, SceneObject } from "@shared";
 import type { RoomState } from "./model.js";
-import { createEmptyRoomState, toSnapshot } from "./model.js";
+import { createEmptyRoomState, createSelectionMap, toSnapshot } from "./model.js";
 
 const STATE_FILE = "./herobyte-state.json";
 
@@ -66,6 +66,7 @@ export class RoomService {
           diceRolls: data.diceRolls || [],
           drawingRedoStacks: {},
           sceneObjects,
+          selectionState: createSelectionMap(),
         };
         this.rebuildSceneGraph();
         console.log("Loaded state from disk");
@@ -143,6 +144,7 @@ export class RoomService {
       diceRolls: snapshot.diceRolls ?? [],
       drawingRedoStacks: {},
       sceneObjects: snapshot.sceneObjects ?? this.state.sceneObjects,
+      selectionState: createSelectionMap(),
     };
     this.rebuildSceneGraph();
     console.log(`Loaded session snapshot from client - merged ${mergedPlayers.length} players`);

@@ -3,6 +3,8 @@
 // ============================================================================
 // Validates incoming WebSocket messages to prevent malformed or malicious data
 
+import type { DrawingSegmentPayload } from "@shared";
+
 /**
  * Validation result
  */
@@ -23,6 +25,81 @@ function isRecord(value: unknown): value is MessageRecord {
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
+}
+
+const SELECTION_MODES = ["replace", "append", "subtract"] as const;
+const MAX_PARTIAL_SEGMENTS = 50;
+const MAX_SEGMENT_POINTS = 10_000;
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+function isPoint(value: unknown): value is Point {
+  return (
+    isRecord(value) &&
+    isFiniteNumber((value as MessageRecord).x) &&
+    isFiniteNumber((value as MessageRecord).y)
+  );
+}
+
+function validatePartialSegment(segment: unknown, index: number): ValidationResult {
+  if (!isRecord(segment)) {
+    return { valid: false, error: `erase-partial: segment ${index} must be an object` };
+  }
+
+  const payload = segment as DrawingSegmentPayload;
+
+  if (payload.type !== "freehand") {
+    return { valid: false, error: "erase-partial: segment type must be freehand" };
+  }
+
+  if (!Array.isArray(payload.points)) {
+    return { valid: false, error: "erase-partial: segments must provide point arrays" };
+  }
+  if (payload.points.length < 2) {
+    return { valid: false, error: "erase-partial: segments must contain at least 2 points" };
+  }
+  if (payload.points.length > MAX_SEGMENT_POINTS) {
+    return {
+      valid: false,
+      error: `erase-partial: segment exceeds point limit (max ${MAX_SEGMENT_POINTS})`,
+    };
+  }
+  if (!payload.points.every((point) => isPoint(point))) {
+    return { valid: false, error: "erase-partial: segment points must contain finite coordinates" };
+  }
+
+  if (
+    typeof payload.color !== "string" ||
+    payload.color.length === 0 ||
+    payload.color.length > 128
+  ) {
+    return { valid: false, error: "erase-partial: segment color must be a non-empty string" };
+  }
+
+  if (!isFiniteNumber(payload.width) || payload.width <= 0 || payload.width > 200) {
+    return { valid: false, error: "erase-partial: segment width must be between 0 and 200" };
+  }
+
+  if (!isFiniteNumber(payload.opacity) || payload.opacity < 0 || payload.opacity > 1) {
+    return { valid: false, error: "erase-partial: segment opacity must be between 0 and 1" };
+  }
+
+  if ("filled" in payload && payload.filled !== undefined && typeof payload.filled !== "boolean") {
+    return { valid: false, error: "erase-partial: segment filled flag must be boolean" };
+  }
+
+  if ("owner" in payload && payload.owner !== undefined && typeof payload.owner !== "string") {
+    return { valid: false, error: "erase-partial: segment owner must be a string when provided" };
+  }
+
+  if ("selectedBy" in payload && payload.selectedBy !== undefined) {
+    return { valid: false, error: "erase-partial: segment cannot include selection metadata" };
+  }
+
+  return { valid: true };
 }
 
 export function validateMessage(raw: unknown): ValidationResult {
@@ -264,6 +341,56 @@ export function validateMessage(raw: unknown): ValidationResult {
       break;
     }
 
+    case "select-object": {
+      if (typeof message.uid !== "string" || message.uid.length === 0) {
+        return { valid: false, error: "select-object: missing or invalid uid" };
+      }
+      if (typeof message.objectId !== "string" || message.objectId.length === 0) {
+        return { valid: false, error: "select-object: missing or invalid objectId" };
+      }
+      break;
+    }
+
+    case "deselect-object": {
+      if (typeof message.uid !== "string" || message.uid.length === 0) {
+        return { valid: false, error: "deselect-object: missing or invalid uid" };
+      }
+      break;
+    }
+
+    case "select-multiple": {
+      if (typeof message.uid !== "string" || message.uid.length === 0) {
+        return { valid: false, error: "select-multiple: missing or invalid uid" };
+      }
+      if (!Array.isArray(message.objectIds) || message.objectIds.length === 0) {
+        return {
+          valid: false,
+          error: "select-multiple: objectIds must be a non-empty string array",
+        };
+      }
+      if (message.objectIds.length > 100) {
+        return { valid: false, error: "select-multiple: too many objectIds (max 100)" };
+      }
+      if (!message.objectIds.every((id) => typeof id === "string" && id.length > 0)) {
+        return {
+          valid: false,
+          error: "select-multiple: objectIds must be a non-empty string array",
+        };
+      }
+      if ("mode" in message && message.mode !== undefined) {
+        if (typeof message.mode !== "string") {
+          return { valid: false, error: "select-multiple: mode must be a string" };
+        }
+        if (!SELECTION_MODES.includes(message.mode as (typeof SELECTION_MODES)[number])) {
+          return {
+            valid: false,
+            error: "select-multiple: invalid mode (replace, append, subtract)",
+          };
+        }
+      }
+      break;
+    }
+
     case "point": {
       const { x, y } = message;
       if (!isFiniteNumber(x) || !isFiniteNumber(y)) {
@@ -321,6 +448,28 @@ export function validateMessage(raw: unknown): ValidationResult {
     case "delete-drawing": {
       if (typeof message.id !== "string" || message.id.length === 0) {
         return { valid: false, error: `${message.t}: missing or invalid drawing id` };
+      }
+      break;
+    }
+
+    case "erase-partial": {
+      if (typeof message.deleteId !== "string" || message.deleteId.length === 0) {
+        return { valid: false, error: "erase-partial: missing deleteId" };
+      }
+      if (!Array.isArray(message.segments)) {
+        return { valid: false, error: "erase-partial: segments must be an array" };
+      }
+      if (message.segments.length > MAX_PARTIAL_SEGMENTS) {
+        return {
+          valid: false,
+          error: `erase-partial: too many segments (max ${MAX_PARTIAL_SEGMENTS})`,
+        };
+      }
+      for (let index = 0; index < message.segments.length; index += 1) {
+        const validation = validatePartialSegment(message.segments[index], index);
+        if (!validation.valid) {
+          return validation;
+        }
       }
       break;
     }

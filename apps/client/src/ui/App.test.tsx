@@ -1,13 +1,27 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
 import { describe, expect, it, beforeEach, vi } from "vitest";
 import React from "react";
 import { AuthState, ConnectionState } from "../services/websocket";
 import { App } from "./App";
 
 const mockUseWebSocket = vi.fn();
+const mockUseObjectSelection = vi.fn();
+let latestHeaderProps: { onToolSelect: (mode: string | null) => void } | null = null;
+let selectionMock: {
+  selectedObjectId: string | null;
+  selectedObjectIds: string[];
+  selectObject: ReturnType<typeof vi.fn>;
+  selectMultiple: ReturnType<typeof vi.fn>;
+  isSelected: ReturnType<typeof vi.fn>;
+  deselect: ReturnType<typeof vi.fn>;
+};
 
 vi.mock("../hooks/useWebSocket", () => ({
   useWebSocket: (options: unknown) => mockUseWebSocket(options),
+}));
+
+vi.mock("../hooks/useObjectSelection", () => ({
+  useObjectSelection: (options: unknown) => mockUseObjectSelection(options),
 }));
 
 vi.mock("./useVoiceChat", () => ({
@@ -78,7 +92,10 @@ vi.mock("../features/drawing/components", () => ({
 }));
 
 vi.mock("../components/layout/Header", () => ({
-  Header: () => <div data-testid="header">Header</div>,
+  Header: (props: { onToolSelect: (mode: string | null) => void }) => {
+    latestHeaderProps = props;
+    return <div data-testid="header">Header</div>;
+  },
 }));
 
 vi.mock("../components/layout/EntitiesPanel", () => ({
@@ -126,6 +143,17 @@ const baseWebSocketState = {
 describe("App", () => {
   beforeEach(() => {
     mockUseWebSocket.mockReset();
+    mockUseObjectSelection.mockReset();
+    selectionMock = {
+      selectedObjectId: null,
+      selectedObjectIds: [],
+      selectObject: vi.fn(),
+      selectMultiple: vi.fn(),
+      isSelected: vi.fn(),
+      deselect: vi.fn(),
+    };
+    mockUseObjectSelection.mockImplementation(() => selectionMock);
+    latestHeaderProps = null;
   });
 
   it("renders the auth gate when the user is not authenticated", () => {
@@ -140,6 +168,10 @@ describe("App", () => {
   it("renders the authenticated layout once authentication succeeds", async () => {
     const snapshot = {
       diceRolls: [],
+      users: [],
+      tokens: [],
+      drawings: [],
+      pointers: [],
       players: [
         {
           uid: "player-1",
@@ -150,7 +182,6 @@ describe("App", () => {
           tokenImage: null,
         },
       ],
-      tokens: [],
       characters: [],
       sceneObjects: [
         {
@@ -188,5 +219,144 @@ describe("App", () => {
     expect(screen.getByTestId("header")).toBeInTheDocument();
     expect(screen.getByTestId("entities-panel")).toBeInTheDocument();
     expect(screen.getByTestId("server-status")).toBeInTheDocument();
+  });
+
+  it("deletes a selected token and clears selection when DM confirms", async () => {
+    const deselect = vi.fn();
+    selectionMock = {
+      selectedObjectId: "token:token-1",
+      selectedObjectIds: ["token:token-1"],
+      selectObject: vi.fn(),
+      selectMultiple: vi.fn(),
+      isSelected: vi.fn(),
+      deselect,
+    };
+    mockUseObjectSelection.mockImplementation(() => selectionMock);
+
+    const sendMessage = vi.fn();
+    const snapshot = {
+      users: [],
+      tokens: [
+        {
+          id: "token-1",
+          owner: "player-1",
+          x: 0,
+          y: 0,
+          color: "#fff",
+        },
+      ],
+      drawings: [],
+      pointers: [],
+      players: [
+        {
+          uid: "player-1",
+          name: "Player One",
+          hp: 10,
+          maxHp: 12,
+        },
+      ],
+      characters: [],
+      sceneObjects: [
+        {
+          id: "token:token-1",
+          type: "token",
+          owner: "player-1",
+          locked: false,
+          zIndex: 1,
+          transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+          data: { color: "#fff" },
+        },
+      ],
+      gridSize: 50,
+      gridSquareSize: 5,
+      mapBackground: null,
+      selectionState: {},
+      diceRolls: [],
+    };
+
+    mockUseWebSocket.mockReturnValue({
+      ...baseWebSocketState,
+      authState: AuthState.AUTHENTICATED,
+      snapshot,
+      send: sendMessage,
+    });
+
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByTestId("dm-menu")).toBeInTheDocument());
+
+    deselect.mockClear(); // Ignore initial clear on mount
+
+    fireEvent.keyDown(window, { key: "Delete" });
+
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(sendMessage).toHaveBeenCalledWith({ t: "delete-token", id: "token-1" });
+    expect(deselect).toHaveBeenCalledTimes(1);
+
+    confirmSpy.mockRestore();
+    alertSpy.mockRestore();
+  });
+
+  it("clears selection when transform mode is toggled off", async () => {
+    const deselect = vi.fn();
+    selectionMock = {
+      selectedObjectId: "token:token-1",
+      selectedObjectIds: ["token:token-1"],
+      selectObject: vi.fn(),
+      selectMultiple: vi.fn(),
+      isSelected: vi.fn(),
+      deselect,
+    };
+    mockUseObjectSelection.mockImplementation(() => selectionMock);
+
+    const snapshot = {
+      users: [],
+      tokens: [],
+      drawings: [],
+      pointers: [],
+      players: [
+        {
+          uid: "player-1",
+          name: "Player One",
+          hp: 10,
+          maxHp: 12,
+        },
+      ],
+      characters: [],
+      sceneObjects: [],
+      gridSize: 50,
+      gridSquareSize: 5,
+      mapBackground: null,
+      selectionState: {},
+      diceRolls: [],
+    };
+
+    mockUseWebSocket.mockReturnValue({
+      ...baseWebSocketState,
+      authState: AuthState.AUTHENTICATED,
+      snapshot,
+    });
+
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByTestId("dm-menu")).toBeInTheDocument());
+    await waitFor(() => expect(latestHeaderProps).not.toBeNull());
+
+    deselect.mockClear(); // Ignore initial clear on mount
+
+    await act(async () => {
+      latestHeaderProps!.onToolSelect("transform");
+    });
+
+    expect(deselect).not.toHaveBeenCalled();
+
+    await act(async () => {
+      latestHeaderProps!.onToolSelect(null);
+    });
+
+    await waitFor(() => expect(deselect).toHaveBeenCalledTimes(1));
   });
 });

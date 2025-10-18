@@ -22,6 +22,7 @@ import { useDrawingState } from "../hooks/useDrawingState";
 import { usePlayerEditing } from "../hooks/usePlayerEditing";
 import { useHeartbeat } from "../hooks/useHeartbeat";
 import { useDMRole } from "../hooks/useDMRole";
+import { useObjectSelection } from "../hooks/useObjectSelection";
 import { DMMenu } from "../features/dm";
 import { getSessionUID } from "../utils/session";
 import { saveSession, loadSession } from "../utils/sessionPersistence";
@@ -415,8 +416,12 @@ function AuthenticatedApp({
   const [alignmentSuggestion, setAlignmentSuggestion] = useState<AlignmentSuggestion | null>(null);
   const [alignmentError, setAlignmentError] = useState<string | null>(null);
 
-  // Selection state for transform gizmo (only active when transformMode is true)
-  const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
+  // Server-synced object selection state
+  const {
+    selectedObjectId,
+    selectObject,
+    deselect: clearSelection,
+  } = useObjectSelection({ uid, snapshot, sendMessage });
 
   // UI layout (fixed panels)
   const topPanelRef = useRef<HTMLDivElement | null>(null);
@@ -509,9 +514,9 @@ function AuthenticatedApp({
   // Clear selection when transform mode is disabled
   useEffect(() => {
     if (!transformMode) {
-      setSelectedObjectId(null);
+      clearSelection();
     }
-  }, [transformMode]);
+  }, [transformMode, clearSelection]);
 
   // -------------------------------------------------------------------------
   // ACTIONS
@@ -875,7 +880,7 @@ function AuthenticatedApp({
           if (confirm("Delete this token? This cannot be undone.")) {
             console.log("[Delete] Sending delete-token message:", { t: "delete-token", id });
             sendMessage({ t: "delete-token", id }); // id is already without prefix
-            setSelectedObjectId(null);
+            clearSelection();
           }
         } else if (type === "map") {
           // Don't allow deleting the map
@@ -883,7 +888,7 @@ function AuthenticatedApp({
         } else if (type === "drawing" && id) {
           if (confirm("Delete this drawing? This cannot be undone.")) {
             sendMessage({ t: "delete-drawing", id }); // id is already without prefix
-            setSelectedObjectId(null);
+            clearSelection();
           }
         }
         return;
@@ -1036,7 +1041,7 @@ function AuthenticatedApp({
           cameraCommand={cameraCommand}
           onCameraCommandHandled={() => setCameraCommand(null)}
           selectedObjectId={selectedObjectId}
-          onSelectObject={setSelectedObjectId}
+          onSelectObject={selectObject}
         />
       </div>
 

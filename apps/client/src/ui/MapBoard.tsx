@@ -335,6 +335,12 @@ export default function MapBoard({
     }
 
     if (!pointerMode && !measureMode && !drawMode) {
+      if (onSelectObject) {
+        const stage = event.target.getStage();
+        if (stage && event.target === stage) {
+          onSelectObject(null);
+        }
+      }
       deselectIfEmpty(event);
       return;
     }

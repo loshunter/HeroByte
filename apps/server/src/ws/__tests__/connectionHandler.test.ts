@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { MockInstance } from "vitest";
 
 vi.mock("fs", () => ({
   writeFileSync: vi.fn(),
@@ -14,10 +15,12 @@ import { TokenService } from "../../domains/token/service.js";
 import { MapService } from "../../domains/map/service.js";
 import { DiceService } from "../../domains/dice/service.js";
 import { CharacterService } from "../../domains/character/service.js";
+import { SelectionService } from "../../domains/selection/service.js";
 import { MessageRouter } from "../messageRouter.js";
 import { RateLimiter } from "../../middleware/rateLimit.js";
 import type { ClientMessage } from "@shared";
 import type { WebSocket, WebSocketServer } from "ws";
+import type { RoomState } from "../../domains/room/model.js";
 
 type WebSocketEvent = "message" | "close";
 
@@ -25,6 +28,10 @@ class FakeWebSocket {
   public readyState = 1;
   public send = vi.fn<(data: string | Buffer) => void>();
   public ping = vi.fn();
+  public close = vi.fn<(code?: number, reason?: string) => void>((_code, _reason) => {
+    this.readyState = 3;
+    this.emit("close");
+  });
   private handlers: Partial<Record<WebSocketEvent, (data?: unknown) => void>> = {};
 
   on(event: WebSocketEvent, handler: (data?: unknown) => void) {
@@ -59,6 +66,7 @@ const setupContainer = () => {
   const mapService = new MapService();
   const diceService = new DiceService();
   const characterService = new CharacterService();
+  const selectionService = new SelectionService();
   const fakeNodeServer = { clients: new Set<WebSocket>() } as unknown as WebSocketServer;
   const messageRouter = new MessageRouter(
     roomService,
@@ -67,6 +75,7 @@ const setupContainer = () => {
     mapService,
     diceService,
     characterService,
+    selectionService,
     fakeNodeServer,
     new Map<string, WebSocket>(),
     () => new Set<WebSocket>(),
@@ -86,6 +95,7 @@ const setupContainer = () => {
     mapService,
     diceService,
     characterService,
+    selectionService,
     messageRouter,
     rateLimiter,
     uidToWs,
@@ -110,12 +120,16 @@ describe("ConnectionHandler", () => {
   let wss: FakeWebSocketServer;
   let container: Container;
   let handler: ConnectionHandler;
+  let deselectSpy: MockInstance;
+  let broadcastSpy: MockInstance;
 
   beforeEach(() => {
     vi.useFakeTimers();
+    vi.setSystemTime(new Date("2024-01-01T00:00:00.000Z"));
     wss = new FakeWebSocketServer();
     container = setupContainer();
-    vi.spyOn(container.roomService, "broadcast").mockImplementation(() => {});
+    broadcastSpy = vi.spyOn(container.roomService, "broadcast").mockImplementation(() => {});
+    deselectSpy = vi.spyOn(container.selectionService, "deselect");
     handler = new ConnectionHandler(container, wss as unknown as WebSocketServer);
     handler.attach();
   });
@@ -187,6 +201,33 @@ describe("ConnectionHandler", () => {
     const state = container.roomService.getState();
     expect(state.users).not.toContain("user-3");
     expect(container.uidToWs.has("user-3")).toBe(false);
-    expect(container.roomService.broadcast).toHaveBeenCalledTimes(2);
+    expect(broadcastSpy).toHaveBeenCalledTimes(2);
+    expect(deselectSpy).toHaveBeenCalledWith(state, "user-3");
+  });
+
+  it("deselects timed-out players during heartbeat cleanup", () => {
+    const socket = new FakeWebSocket();
+    wss.emitConnection(socket, { url: "/?uid=user-4" });
+
+    const authMessage: ClientMessage = { t: "authenticate", secret: "Fun1" };
+    socket.emit("message", Buffer.from(JSON.stringify(authMessage)));
+
+    const state = container.roomService.getState();
+    state.selectionState.set("user-4", { mode: "single", objectId: "token:user-4" });
+    const player = state.players.find((p) => p.uid === "user-4");
+    expect(player).toBeDefined();
+    if (player) {
+      player.lastHeartbeat = Date.now() - 120_000;
+    }
+
+    deselectSpy.mockClear();
+    broadcastSpy.mockClear();
+
+    vi.advanceTimersByTime(30_000);
+
+    expect(state.users).not.toContain("user-4");
+    expect(container.uidToWs.has("user-4")).toBe(false);
+    expect(deselectSpy).toHaveBeenCalledWith(state, "user-4");
+    expect(broadcastSpy).toHaveBeenCalled();
   });
 });

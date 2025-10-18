@@ -8,6 +8,7 @@ import { useEffect, useState, type RefObject } from "react";
 import type Konva from "konva";
 import type { ClientMessage, SceneObject } from "@shared";
 import { generateUUID } from "../utils/uuid";
+import { splitFreehandDrawing } from "../features/drawing/utils/splitFreehandDrawing";
 
 /**
  * Check if a point is within a certain distance of a line segment
@@ -254,15 +255,27 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
     // Handle eraser tool differently - delete intersecting drawings
     if (drawTool === "eraser" && currentDrawing.length > 1) {
       // Find all drawings that intersect with the eraser path
-      const drawingsToDelete = drawingObjects.filter((drawing) =>
+      const intersecting = drawingObjects.filter((drawing) =>
         eraserIntersectsDrawing(currentDrawing, drawing, drawWidth),
       );
 
-      // Send delete messages for each intersecting drawing
-      for (const drawing of drawingsToDelete) {
+      for (const drawing of intersecting) {
+        const drawingId = drawing.data.drawing.id;
+        if (drawing.data.drawing.type === "freehand") {
+          const segments = splitFreehandDrawing(drawing, currentDrawing, drawWidth);
+          if (segments.length > 0) {
+            sendMessage({
+              t: "erase-partial",
+              deleteId: drawingId,
+              segments,
+            });
+            continue;
+          }
+        }
+
         sendMessage({
           t: "delete-drawing",
-          id: drawing.data.drawing.id,
+          id: drawingId,
         });
       }
 

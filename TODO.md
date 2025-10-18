@@ -69,24 +69,30 @@ _Completed phase summaries now live in [DONE.md](DONE.md)._
 ### Selection State Management
 
 - [ ] **Message Protocol**
-  - [ ] Add `select-object` message type to @shared (uid, objectId)
-  - [ ] Add `deselect-object` message type to @shared
-  - [ ] Add `select-multiple` message type for multi-select
-  - [ ] Add validation middleware for selection messages
+  - [x] Add `select-object` message type to @shared (uid, objectId)
+  - [x] Add `deselect-object` message type to @shared
+  - [x] Add `select-multiple` message type for multi-select
+  - [x] Add validation middleware for selection messages
+  - [x] Draft interface contracts and validation tests before implementation (TDD)
+  - [x] Keep message schema definitions isolated from transport handlers to honor SRP
 
 - [ ] **Server-Side Selection Tracking**
-  - [ ] Add selection tracking to RoomState (Map<uid, selectedObjectId | selectedObjectIds[]>)
-  - [ ] Implement selection broadcast in RoomService
-  - [ ] Handle selection conflicts (two users selecting same object)
-  - [ ] Clear selection when object is deleted
+  - [x] Add selection tracking to RoomState (Map<uid, selectedObjectId | selectedObjectIds[]>)
+  - [x] Implement selection broadcast in RoomService
+  - [x] Handle selection conflicts (two users selecting same object)
+  - [x] Clear selection when object is deleted
+  - [x] Ensure tracking logic stays separate from persistence/rendering layers per SoC
+  - [x] Add failing unit tests for conflict resolution prior to coding
 
 - [ ] **Client-Side Selection Manager**
-  - [ ] Create `useObjectSelection` hook
-  - [ ] Single-click to select scene objects (tokens, drawings, map)
-  - [ ] ESC key to deselect
-  - [ ] Visual selection indicator (highlight border around selected object)
-  - [ ] Integrate TransformGizmo with selected objects
-  - [ ] Selection state synchronized across clients in real-time
+  - [x] Create `useObjectSelection` hook
+  - [x] Single-click to select scene objects (tokens, drawings, map)
+  - [x] ESC key to deselect
+  - [x] Visual selection indicator (highlight border around selected object)
+  - [x] Integrate TransformGizmo with selected objects
+  - [x] Selection state synchronized across clients in real-time
+  - [x] Write hook behavior tests (selection/deselection) first, then implement
+  - [x] Keep rendering feedback separated from state management for SRP
 
 - [ ] **Multi-Select (Optional)**
   - [ ] Shift+click for multi-select
@@ -95,6 +101,8 @@ _Completed phase summaries now live in [DONE.md](DONE.md)._
   - [ ] Bulk transform operations (move all selected)
   - [ ] Group lock/unlock
   - [ ] Visual indicator showing multiple selected objects
+  - [ ] Codify multi-select orchestration in dedicated module to avoid overloading base selection hook
+  - [ ] Add integration tests (written first) covering multi-select transformations
 
 ### Partial Erasing for Freehand Drawings
 
@@ -212,7 +220,179 @@ _Completed phase summaries now live in [DONE.md](DONE.md)._
 ### Critical Bug Fixes
 
 - [ ] Portrait placeholder UX (`PortraitSection`): show a token-colored call-to-action square when no portrait is set, while keeping the click-to-change affordance.
+  - [ ] Write failing visual/state tests before implementation (snapshot + interaction)
+  - [ ] Keep placeholder rendering/styling isolated from portrait upload handlers to maintain SRP
 - [ ] Auth landing state: disable the connect button and animate the “Connecting…” status while the client establishes a session.
+  - [ ] Add first a failing test capturing disabled state + animation trigger
+  - [ ] Separate connection state management from UI animation logic to uphold SoC
+
+## Engineering Guardrails (Applies to All Phases)
+
+- [ ] For each feature epic, document module boundaries up front to preserve SRP and wider separation of concerns.
+- [ ] Ensure new services/hooks/components expose one responsibility; refactor or extract helpers if responsibilities creep.
+- [ ] Capture interface contracts before implementation and drive development with failing tests (TDD) where practical.
+- [ ] Maintain or expand automated coverage when touching serialization, networking, or shared state orchestration.
+- [ ] Keep `docs/planning/phase19-20-briefing.md` synchronized with Phase 19/20 scope/status updates before merging.
+
+## Phase 15: Palette & Color System (Future)
+
+**Priority**: High - unlocks customizable color workflows and palette sharing
+
+### Phase 15.0: Research & Data Modeling
+
+- [ ] Audit current color/palette data structures and storage locations
+- [ ] Research swatch exchange formats (ASE, GPL, JSON) and document import/export requirements
+- [ ] Identify reputable palette repositories (e.g., Coolors, Lospec) and licensing constraints for bundled sets
+- [ ] Evaluate naming conventions for multi-tool drawing modules (“Markup”, “Annotate”, etc.) and recommend update
+- [ ] Define palette module boundaries (state, persistence, import/export) to align with SRP/SoC
+
+### Phase 15.1: Palette Management Features
+
+- [ ] Implement eyedropper tool tied to current canvas rendering pipeline
+- [ ] Allow replacing any default swatch with the currently selected color
+- [ ] Support adding/removing/reordering custom swatches beyond the 12-slot default
+- [ ] Build palette save/load UI with per-user persistence
+- [ ] Implement palette import/export (ASE first, JSON fallback, stretch GPL)
+- [ ] Surface starter gallery of downloadable palettes with preview metadata
+
+### Phase 15.2: UX & Validation
+
+- [ ] Provide visual feedback for duplicate colors, locked slots, and successful saves
+- [ ] Add automated tests for palette CRUD operations and format round-trips
+- [ ] Update documentation/help overlays to explain new palette workflows
+- [ ] Follow TDD for palette parser/converter utilities and UI state reducers
+
+## Phase 16: Drawing & Interaction Polish (Future)
+
+**Priority**: High - clarifies multi-user ownership and tool behaviors
+
+### Phase 16.0: Tooling Semantics
+
+- [ ] Rename “Draw” tool per Phase 15 research outcome and update icons/help text
+- [ ] Tag drawings with creator metadata on creation for ownership-aware actions
+- [ ] Validate that new drawing ownership services obey SRP (separate tracking vs rendering concerns)
+
+### Phase 16.1: Clear & Erase Behavior
+
+- [ ] Update UI copy to “Clear All Yours” in drawing toolbox and confirm scope limits to invoking user
+- [ ] Ensure DM menu variant remains a global “Clear Everyone’s Drawings” and verify it nukes all ownership buckets
+- [ ] Write regression tests covering both clear modes in multi-user sessions
+- [ ] Add focused unit tests (written first) for ownership-aware clear handlers
+
+### Phase 16.2: Pointer & Input Handling
+
+- [ ] Reserve middle mouse for panning/scrolling and prevent tool actions while pressed
+- [ ] Fix pointer artifacts left when dragging with middle mouse across tools (measure, pointer, draw)
+- [ ] Add manual + automated tests for panning while in other tools to ensure zero residual marks
+
+## Phase 17: Layout, Movement & Branding (Future)
+
+**Priority**: Medium - global UX polish and accessibility improvements
+
+### Phase 17.0: Keyboard Movement
+
+- [ ] Attach grid-aware movement (1 square per press) to W/A/S/D and arrow keys for any selected object
+- [ ] Handle diagonal combos and key-repeat pacing without conflicting with text inputs
+- [ ] Add tests covering keyboard movement across tokens, drawings, and future object types
+- [ ] Keep movement logic isolated (input handling, grid math, networking) to maintain SRP
+
+### Phase 17.1: Window Placement & Scroll UX
+
+- [ ] Define default positions for floating panels to avoid overlap/off-screen spawn
+- [ ] Implement auto-resize-to-content behavior with scrollbars only when content exceeds bounds
+- [ ] Skin scrollbars to match retro theme with 8-bit triangle arrows and verify accessibility contrast
+- [ ] Slightly scale up Hero Byte logo while respecting layout constraints
+
+## Phase 18: Persistence & Roll Log Validation (Future)
+
+**Priority**: High - ensures campaign continuity and clarity in gameplay logs
+
+### Phase 18.0: Player Data Saves
+
+- [ ] Confirm save/load for tokens, portraits, custom sizes, names, HP max/current across sessions
+- [ ] Add automated regression coverage for player save payloads and migrations
+- [ ] Extract serialization/deserialization helpers to dedicated modules to enforce SoC
+
+### Phase 18.1: DM Snapshot Pipeline
+
+- [ ] Define full game-state schema (tokens, NPCs, initiative, turn pointer, drawings with transforms, map state)
+- [ ] Implement snapshot export/import with version tagging and integrity checks
+- [ ] Verify loaded drawings remain selectable/editable (e.g., castle + drawbridge scenario)
+- [ ] Write snapshot tests first (round-trip + ownership retention) before implementing handlers
+
+### Phase 18.2: Roll Log Enhancements
+
+- [ ] Redesign log entries to show total plus right-aligned breakdown (e.g., `D20(6)+D4(2)`) in timestamp color/size pairing
+- [ ] Add configuration/tests for multi-die expressions and long modifiers to ensure layout stability
+- [ ] Update documentation/tooltips to explain new log formatting
+
+## Phase 19: DM-Driven Player Provisioning (Future)
+
+_Planning brief: see `docs/planning/phase19-20-briefing.md` for slide-ready summary and dependencies._
+
+**Priority**: High - empowers DMs to pre-stage players/tokens and streamline onboarding
+
+### Phase 19.0: Research & Data Contracts
+
+- [ ] Audit current player/session models and identify extension points for DM-assigned identities
+- [ ] Research invite-link best practices (security, expiry, one-time use) and document requirements
+- [ ] Define SRP-aligned modules: identity registry, invite link service, token-binding orchestrator
+- [ ] Write failing tests for invite validation and token-identity binding contracts ahead of implementation
+
+### Phase 19.1: DM Identity Workspace
+
+- [ ] Extend DM menu with “Player Provisioning” panel (visible only in DM mode)
+- [ ] Allow DM to create/edit identity cards (name, portrait URL, token asset, default square, HP)
+- [ ] Persist identity templates and ensure SoC between UI, state, and persistence layers
+- [ ] Add tests (written first) for identity CRUD operations and schema validation
+
+### Phase 19.2: Invite Link Flows
+
+- [ ] Generate single-use invite links that associate a player with a prepared identity
+- [ ] Support fallback universal link; ensure DM can toggle “identity claim” window safely
+- [ ] Handle failure cases (expired link, already claimed, identity missing) with clear UX and tests
+- [ ] Implement SRP-compliant handlers: invitation issuance separate from player session activation
+
+### Phase 19.3: Identity Claim & Reassignment
+
+- [ ] When link succeeds, auto-bind player session to identity (token, portrait, stats) and spawn at configured location
+- [ ] Provide DM tools to reassign or revoke identities; ensure SoC between identity manager and scene updates
+- [ ] Implement toggled “All identities claimable” mode with guard rails to prevent accidental double-claim
+- [ ] Deliver TDD coverage for claim/rescind flows and multi-user concurrency scenarios
+
+## Phase 20: Asset Library & Scene Grouping (Future)
+
+_Shared planning brief with Phase 19: `docs/planning/phase19-20-briefing.md`._
+
+**Priority**: Medium - builds reusable content workflows and grouped interactions
+
+### Phase 20.0: Research & Storage Strategy
+
+- [ ] Evaluate storage options (localStorage/indexedDB vs backend) for map/token/prop libraries, respecting user privacy
+- [ ] Gather best practices for asset catalog UX and grouping/pinning interactions in VTTs
+- [ ] Define SRP-aligned modules: asset catalog service, pinning/grouping manager, persistence adapters
+- [ ] Create failing tests covering asset metadata serialization/deserialization
+
+### Phase 20.1: Asset Catalog Foundations
+
+- [ ] Implement library UI (maps, tokens, props, status effects) with filtering/search
+- [ ] Allow DM to upload/link assets; ensure SoC between upload handling and catalog rendering
+- [ ] Persist catalog locally (initially cookies/localStorage) with future-ready hooks for syncing
+- [ ] Add TDD-backed tests for asset CRUD and caching fallback paths
+
+### Phase 20.2: Scene Pinning & Grouping
+
+- [ ] Enable pinning objects together (tokens + props) for grouped transforms
+- [ ] Implement detachable groups with hierarchy metadata stored alongside scene objects
+- [ ] Ensure pinning logic lives in dedicated module to maintain SRP from rendering
+- [ ] Cover group creation/removal with integration tests (write first)
+
+### Phase 20.3: Sharing & Sync
+
+- [ ] Allow export/import of asset bundles (JSON manifest) for sharing across sessions
+- [ ] Provide DM option to sync selected assets to players on join; honor bandwidth limits
+- [ ] Keep synchronization responsibilities separated (asset service vs real-time transport)
+- [ ] Add E2E-style tests validating bundle round-trips and sync opt-in/out behaviors
 
 ## ✅ Phase 14: Universal Visual Transform System (COMPLETE - Oct 2025)
 
@@ -772,6 +952,13 @@ _Completed phase summaries now live in [DONE.md](DONE.md)._
   - [ ] Unit tests for shared logic
   - [ ] Integration tests for WebSocket communication
   - [ ] E2E tests for critical workflows
+  - [ ] Server selection coverage
+    - [x] MessageRouter tests for select/deselect/clear-all flows
+    - [x] Connection lifecycle tests ensure deselect on disconnect/timeout
+    - [x] RoomService persistence tests for `selectionState`
+  - [ ] Client selection coverage
+    - [x] Expand `useObjectSelection` hook tests for multi-mode branches
+    - [x] UI tests for DM delete/deselect and transform toggle behavior
 
 - [ ] Documentation (see CRITICAL section above)
   - [ ] API documentation

@@ -161,6 +161,12 @@ export interface Drawing {
 }
 
 /**
+ * DrawingSegmentPayload: Data required to create a new drawing segment generated
+ * after a partial erase operation. Server will assign a fresh id and owner.
+ */
+export type DrawingSegmentPayload = Omit<Drawing, "id">;
+
+/**
  * Character: Represents a player character (PC) in the game
  * Phase 1: PC only, NPC support coming in Phase 2 with templates
  */
@@ -201,7 +207,46 @@ export interface RoomSnapshot {
   gridSquareSize?: number; // How many feet per grid square (default: 5ft)
   diceRolls: DiceRoll[]; // History of dice rolls
   sceneObjects?: SceneObject[]; // Unified scene graph (experimental)
+  selectionState?: SelectionState; // Active object selections keyed by player UID
 }
+
+// ----------------------------------------------------------------------------
+// SELECTION MESSAGES
+// ----------------------------------------------------------------------------
+
+export type SelectionMode = "replace" | "append" | "subtract";
+
+export interface SelectObjectMessage {
+  t: "select-object";
+  uid: string;
+  objectId: string;
+}
+
+export interface DeselectObjectMessage {
+  t: "deselect-object";
+  uid: string;
+}
+
+export interface SelectMultipleMessage {
+  t: "select-multiple";
+  uid: string;
+  objectIds: string[];
+  mode?: SelectionMode;
+}
+
+export interface SelectionStateSingle {
+  mode: "single";
+  objectId: string;
+}
+
+export interface SelectionStateMultiple {
+  mode: "multiple";
+  objectIds: string[];
+}
+
+export type SelectionStateEntry = SelectionStateSingle | SelectionStateMultiple;
+
+export type SelectionState = Record<string, SelectionStateEntry>;
 
 // ----------------------------------------------------------------------------
 // WEBSOCKET MESSAGES
@@ -217,6 +262,11 @@ export type ClientMessage =
   | { t: "delete-token"; id: string } // Remove a token
   | { t: "update-token-image"; tokenId: string; imageUrl: string } // Update token image URL
   | { t: "set-token-size"; tokenId: string; size: TokenSize } // Change token size (Phase 11)
+
+  // Selection actions
+  | SelectObjectMessage
+  | DeselectObjectMessage
+  | SelectMultipleMessage
 
   // Player actions
   | { t: "portrait"; data: string } // Update player portrait
@@ -263,6 +313,7 @@ export type ClientMessage =
   | { t: "deselect-drawing" } // Deselect current drawing
   | { t: "move-drawing"; id: string; dx: number; dy: number } // Move a drawing by delta
   | { t: "delete-drawing"; id: string } // Delete a specific drawing
+  | { t: "erase-partial"; deleteId: string; segments: DrawingSegmentPayload[] } // Partially erase a freehand drawing
 
   // Dice rolls
   | { t: "dice-roll"; roll: DiceRoll } // Broadcast a dice roll

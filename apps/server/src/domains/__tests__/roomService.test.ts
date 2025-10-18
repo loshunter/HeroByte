@@ -61,6 +61,41 @@ describe("RoomService", () => {
     expect(state.gridSize).toBe(64);
     expect(state.users).toHaveLength(0);
     expect(state.pointers).toHaveLength(0);
+    expect(state.selectionState.size).toBe(0);
+  });
+
+  it("drops persisted selection state when loading from disk", () => {
+    vi.mocked(existsSync).mockReturnValue(true);
+    vi.mocked(readFileSync).mockReturnValue(
+      JSON.stringify({
+        tokens: [],
+        players: [],
+        characters: [],
+        selectionState: {
+          "uid-1": { mode: "single", objectId: "token-1" },
+        },
+      }),
+    );
+
+    const service = new RoomService();
+    service.loadState();
+
+    expect(service.getState().selectionState.size).toBe(0);
+    vi.mocked(existsSync).mockReturnValue(false);
+  });
+
+  it("does not persist selection state when saving to disk", () => {
+    const service = new RoomService();
+    const state = service.getState();
+
+    state.selectionState.set("uid-1", { mode: "single", objectId: "token-99" });
+    state.tokens.push({ id: "token-99", owner: "uid-1", x: 2, y: 4, color: "#abc" });
+
+    service.saveState();
+
+    expect(writeFileSync).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string);
+    expect(payload.selectionState).toBeUndefined();
   });
 
   it("merges loaded snapshot while preserving active players", () => {
@@ -92,6 +127,7 @@ describe("RoomService", () => {
     expect(merged.players[0]?.name).toBe("Saved Player");
     expect(merged.players[0]?.lastHeartbeat).toBe(123);
     expect(merged.tokens).toHaveLength(1);
+    expect(merged.selectionState.size).toBe(0);
   });
 
   it("broadcasts snapshots and prunes expired pointers", () => {
@@ -106,6 +142,7 @@ describe("RoomService", () => {
       name: "Expired",
     });
     state.tokens.push({ id: "token-3", owner: "uid-3", x: 3, y: 4, color: "#f00" });
+    state.selectionState.set("uid-3", { mode: "single", objectId: "token-3" });
 
     const client = createClient();
     service.broadcast(new Set<WebSocket>([client]));
@@ -115,7 +152,12 @@ describe("RoomService", () => {
     const payload = JSON.parse(sendMock.mock.calls[0][0] as string);
     expect(payload.pointers).toHaveLength(0);
     expect(payload.tokens).toHaveLength(1);
+    expect(payload.selectionState).toEqual({
+      "uid-3": { mode: "single", objectId: "token-3" },
+    });
     expect(writeFileSync).toHaveBeenCalledTimes(1);
+    const persisted = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string);
+    expect(persisted.selectionState).toBeUndefined();
   });
 
   it("delivers pointer updates to all clients and expires them simultaneously", () => {
