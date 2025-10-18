@@ -137,6 +137,7 @@ export class PlayerModel {
     public hp?: number,
     public maxHp?: number,
     public isDM: boolean = false,
+    public statusEffects: string[] = [],
   ) {}
 
   /**
@@ -151,6 +152,7 @@ export class PlayerModel {
       data.hp,
       data.maxHp,
       data.isDM ?? false,
+      Array.isArray(data.statusEffects) ? [...data.statusEffects] : [],
     );
   }
 
@@ -166,6 +168,7 @@ export class PlayerModel {
       hp: this.hp,
       maxHp: this.maxHp,
       isDM: this.isDM,
+      statusEffects: this.statusEffects.length > 0 ? [...this.statusEffects] : undefined,
     };
   }
 
@@ -181,6 +184,7 @@ export class PlayerModel {
       this.hp,
       this.maxHp,
       this.isDM,
+      [...this.statusEffects],
     );
   }
 
@@ -196,6 +200,7 @@ export class PlayerModel {
       this.hp,
       this.maxHp,
       this.isDM,
+      [...this.statusEffects],
     );
   }
 
@@ -211,6 +216,7 @@ export class PlayerModel {
       this.hp,
       this.maxHp,
       this.isDM,
+      [...this.statusEffects],
     );
   }
 
@@ -226,6 +232,7 @@ export class PlayerModel {
       hp,
       maxHp ?? this.maxHp,
       this.isDM,
+      [...this.statusEffects],
     );
   }
 
@@ -242,6 +249,7 @@ export class PlayerModel {
       newHp,
       this.maxHp,
       this.isDM,
+      [...this.statusEffects],
     );
   }
 
@@ -258,6 +266,7 @@ export class PlayerModel {
       newHp,
       this.maxHp,
       this.isDM,
+      [...this.statusEffects],
     );
   }
 
@@ -295,6 +304,23 @@ export class PlayerModel {
       this.hp,
       this.maxHp,
       isDM,
+      [...this.statusEffects],
+    );
+  }
+
+  /**
+   * Replace status effects
+   */
+  setStatusEffects(effects: string[]): PlayerModel {
+    return new PlayerModel(
+      this.uid,
+      this.name,
+      this.portrait,
+      this.micLevel,
+      this.hp,
+      this.maxHp,
+      this.isDM,
+      [...effects],
     );
   }
 }

@@ -4,19 +4,23 @@
 // Displays a single player's portrait, name, HP bar, and controls
 // Memoized to prevent unnecessary re-renders
 
-import { memo, useEffect, useState } from "react";
-import type { PlayerState, Player, TokenSize } from "@shared";
+import { memo, useEffect, useMemo, useState } from "react";
+import type { Drawing, Player, PlayerState, SceneObject, Token, TokenSize } from "@shared";
 import { NameEditor } from "./NameEditor";
 import { PortraitSection } from "./PortraitSection";
 import { HPBar } from "./HPBar";
 import { CardControls } from "./CardControls";
-import { PlayerSettingsMenu } from "./PlayerSettingsMenu";
+import { PlayerSettingsMenu, STATUS_OPTIONS, type StatusOption } from "./PlayerSettingsMenu";
 import { loadPlayerState, savePlayerState } from "../../../utils/playerPersistence";
 
 export interface PlayerCardProps {
   player: Player;
   isMe: boolean;
   tokenColor?: string;
+  token?: Token | null;
+  tokenSceneObject?: (SceneObject & { type: "token" }) | null;
+  playerDrawings?: Drawing[];
+  statusEffects?: string[];
   micEnabled: boolean;
   editingPlayerUID: string | null;
   nameInput: string;
@@ -36,6 +40,7 @@ export interface PlayerCardProps {
   tokenId?: string;
   onApplyPlayerState?: (state: PlayerState, tokenId?: string) => void;
   onDeleteToken?: (tokenId: string) => void;
+  onStatusEffectsChange?: (effects: string[]) => void;
   isDM: boolean;
   onToggleDMMode: (next: boolean) => void;
   tokenLocked?: boolean;
@@ -49,6 +54,10 @@ export const PlayerCard = memo<PlayerCardProps>(
     player,
     isMe,
     tokenColor,
+    token,
+    tokenSceneObject,
+    playerDrawings,
+    statusEffects,
     micEnabled,
     editingPlayerUID,
     nameInput,
@@ -74,16 +83,39 @@ export const PlayerCard = memo<PlayerCardProps>(
     onToggleTokenLock,
     tokenSize,
     onTokenSizeChange,
+    onStatusEffectsChange,
   }) => {
     const editing = editingPlayerUID === player.uid;
     const editingMaxHp = editingMaxHpUID === player.uid;
     const [tokenImageInput, setTokenImageInput] = useState(tokenImageUrl ?? "");
     const [settingsOpen, setSettingsOpen] = useState(false);
-    const [statusIcon, setStatusIcon] = useState<{ emoji: string; label: string } | null>(null);
+    const [statusOption, setStatusOption] = useState<StatusOption | null>(null);
 
     useEffect(() => {
       setTokenImageInput(tokenImageUrl ?? "");
     }, [tokenImageUrl]);
+
+    useEffect(() => {
+      if (!statusEffects || statusEffects.length === 0) {
+        setStatusOption(null);
+        return;
+      }
+
+      const active = statusEffects[0] ?? "";
+      if (!active) {
+        setStatusOption(null);
+        return;
+      }
+
+      const match =
+        STATUS_OPTIONS.find((option) => option.value === active) ??
+        ({
+          value: active,
+          emoji: "",
+          label: active.charAt(0).toUpperCase() + active.slice(1),
+        } satisfies StatusOption);
+      setStatusOption(match);
+    }, [statusEffects]);
 
     const handleTokenImageApply = (value: string) => {
       if (!isMe || !onTokenImageSubmit) return;
@@ -93,15 +125,41 @@ export const PlayerCard = memo<PlayerCardProps>(
     const handleSavePlayerState = () => {
       if (!isMe) return;
       const imageRef = tokenImageInput.trim() || tokenImageUrl || undefined;
-      savePlayerState(player, imageRef);
+      const tokenForExport: Token | undefined = token
+        ? {
+            ...token,
+            imageUrl: imageRef ?? token.imageUrl ?? undefined,
+          }
+        : undefined;
+      savePlayerState({
+        player,
+        token: tokenForExport,
+        tokenScene: tokenSceneObject ?? null,
+        drawings: playerDrawings ?? [],
+      });
     };
 
     const handleLoadPlayerState = async (file: File) => {
       if (!isMe || !onApplyPlayerState) return;
       const state = await loadPlayerState(file);
       onApplyPlayerState(state, tokenId);
-      setTokenImageInput(state.tokenImage ?? "");
+      const nextImage = state.token?.imageUrl ?? state.tokenImage ?? "";
+      setTokenImageInput(nextImage ?? "");
     };
+
+    const handleStatusChange = (option: StatusOption | null) => {
+      setStatusOption(option);
+      if (!isMe || !onStatusEffectsChange) {
+        return;
+      }
+      const payload = option && option.value ? [option.value] : [];
+      onStatusEffectsChange(payload);
+    };
+
+    const portraitStatus = useMemo(
+      () => (statusOption ? { emoji: statusOption.emoji, label: statusOption.label } : null),
+      [statusOption],
+    );
 
     return (
       <div
@@ -157,7 +215,7 @@ export const PlayerCard = memo<PlayerCardProps>(
           micLevel={player.micLevel}
           isEditable={isMe}
           onRequestChange={onPortraitLoad}
-          statusIcon={statusIcon}
+          statusIcon={portraitStatus}
           tokenColor={tokenColor}
         />
 
@@ -196,8 +254,8 @@ export const PlayerCard = memo<PlayerCardProps>(
           onDeleteToken={tokenId && onDeleteToken ? () => onDeleteToken(tokenId) : undefined}
           onSavePlayerState={handleSavePlayerState}
           onLoadPlayerState={handleLoadPlayerState}
-          statusIcon={statusIcon}
-          onStatusChange={setStatusIcon}
+          statusIcon={statusOption}
+          onStatusChange={handleStatusChange}
           isDM={isDM}
           onToggleDMMode={onToggleDMMode}
           tokenLocked={tokenLocked}
@@ -220,6 +278,11 @@ export const PlayerCard = memo<PlayerCardProps>(
       prevProps.tokenImageUrl === nextProps.tokenImageUrl &&
       prevProps.tokenId === nextProps.tokenId &&
       prevProps.onApplyPlayerState === nextProps.onApplyPlayerState &&
+      prevProps.token === nextProps.token &&
+      prevProps.tokenSceneObject === nextProps.tokenSceneObject &&
+      prevProps.playerDrawings === nextProps.playerDrawings &&
+      prevProps.statusEffects === nextProps.statusEffects &&
+      prevProps.onStatusEffectsChange === nextProps.onStatusEffectsChange &&
       prevProps.tokenColor === nextProps.tokenColor &&
       prevProps.micEnabled === nextProps.micEnabled &&
       prevProps.editingPlayerUID === nextProps.editingPlayerUID &&

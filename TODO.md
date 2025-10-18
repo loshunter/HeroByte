@@ -25,6 +25,19 @@ Ship a table-ready MVP to run live playtests with real players and a DM. Priorit
 - [ ] Harden load/save UX: validate imports, show progress/error toasts, confirm success.
 - [ ] Add a snapshot smoke test that loads sample data and asserts tokens/characters/scene objects.
 - [ ] Review `clear-all-tokens` and other DM bulk actions for selection cleanup, persistence cadence, and confirmation prompts.
+- [ ] **Player save/load parity**
+  - [ ] Document the player snapshot schema (name, color, token URL, portrait URL, HP/max HP, status effects, size scaling, rotation, position, custom drawings).
+  - [ ] Wire player serialization/deserialization through the server save pipeline and ensure client-side rehydration restores UI state (HP inputs, portrait slot, token transforms).
+  - [ ] Persist player-authored drawings alongside token data and verify they reattach to the correct owner on load.
+  - [ ] Add integration coverage for player save/load (unit test for serializer + end-to-end load of a sample save).
+- [ ] **DM session persistence**
+  - [ ] Extend the session schema to capture active map metadata (URL, wizard X/Y sizing, scaling, rotation) and DM drawings.
+  - [ ] Persist NPC tokens with their URLs, portrait URLs, sizing overrides, and positions; ensure they respawn correctly when loading a session.
+  - [ ] Validate session load restores the active map plus all DM drawings/NPC tokens before players join; add regression tests for partial saves.
+- [ ] **Player staging zone (DM object)**
+  - [ ] Design the staging zone data model (default size, color/opacity, spawn radius) and add authoring controls to DM tools.
+  - [ ] Persist the staging zone in session saves and spawn players inside it when they connect or reload.
+  - [ ] Add smoke coverage verifying new players spawn inside the staging zone and fall back gracefully if none exists.
 
 ### Onboarding & Core UI Feedback
 

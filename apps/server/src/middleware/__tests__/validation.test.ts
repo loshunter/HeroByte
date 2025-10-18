@@ -451,6 +451,110 @@ describe("validateMessage", () => {
         error: "update-token-image: imageUrl too long (max 2048 chars)",
       });
     });
+
+    it("validates set-token-color with a non-empty string", () => {
+      expect(
+        validateMessage({ t: "set-token-color", tokenId: "token-1", color: "#ff00ff" }),
+      ).toEqual({ valid: true });
+    });
+
+    it("rejects set-token-color with empty or whitespace color", () => {
+      expect(
+        validateMessage({ t: "set-token-color", tokenId: "token-1", color: "" }),
+      ).toMatchObject({
+        valid: false,
+        error: "set-token-color: color cannot be empty",
+      });
+      expect(
+        validateMessage({ t: "set-token-color", tokenId: "token-1", color: "   " }),
+      ).toMatchObject({
+        valid: false,
+        error: "set-token-color: color cannot be empty",
+      });
+    });
+  });
+
+  describe("Edge Cases: Player Metadata", () => {
+    it("validates set-status-effects with trimmed strings", () => {
+      expect(
+        validateMessage({
+          t: "set-status-effects",
+          effects: ["poisoned", "burning"],
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("rejects set-status-effects when effects are not strings", () => {
+      expect(
+        validateMessage({
+          t: "set-status-effects",
+          effects: ["poisoned", 42],
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "set-status-effects: effects must be strings",
+      });
+    });
+
+    it("validates sync-player-drawings with sanitized drawings", () => {
+      expect(
+        validateMessage({
+          t: "sync-player-drawings",
+          drawings: [
+            {
+              id: "draw-1",
+              type: "freehand",
+              points: [
+                { x: 0, y: 0 },
+                { x: 1, y: 1 },
+              ],
+              color: "#fff",
+              width: 2,
+              opacity: 1,
+            },
+          ],
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("rejects sync-player-drawings when payload is not an array", () => {
+      expect(
+        validateMessage({
+          t: "sync-player-drawings",
+          drawings: "not-an-array",
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "sync-player-drawings: drawings must be an array",
+      });
+    });
+  });
+
+  describe("Edge Cases: Staging Zone", () => {
+    it("validates set-player-staging-zone with null", () => {
+      expect(validateMessage({ t: "set-player-staging-zone", zone: null })).toEqual({ valid: true });
+    });
+
+    it("validates set-player-staging-zone with numeric values", () => {
+      expect(
+        validateMessage({
+          t: "set-player-staging-zone",
+          zone: { x: 1, y: 2, width: 5, height: 3, rotation: 45 },
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("rejects set-player-staging-zone with invalid numbers", () => {
+      expect(
+        validateMessage({
+          t: "set-player-staging-zone",
+          zone: { x: "bad", y: 0, width: 2, height: 2 },
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "set-player-staging-zone: zone x/y must be finite numbers",
+      });
+    });
   });
 
   describe("Edge Cases: Authentication", () => {

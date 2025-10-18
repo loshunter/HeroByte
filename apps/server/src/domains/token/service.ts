@@ -134,6 +134,38 @@ export class TokenService {
   }
 
   /**
+   * Update token color explicitly (with ownership validation)
+   */
+  setColor(state: RoomState, tokenId: string, ownerUid: string, color: string): boolean {
+    const token = state.tokens.find((t) => t.id === tokenId && t.owner === ownerUid);
+    if (token) {
+      const trimmed = color.trim();
+      if (trimmed.length === 0) {
+        return false;
+      }
+      token.color = trimmed;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Update token color without ownership checks (DM/admin actions)
+   */
+  setColorForToken(state: RoomState, tokenId: string, color: string): boolean {
+    const token = state.tokens.find((t) => t.id === tokenId);
+    if (token) {
+      const trimmed = color.trim();
+      if (trimmed.length === 0) {
+        return false;
+      }
+      token.color = trimmed;
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Remove all tokens except those owned by specified UID
    */
   clearAllTokensExcept(state: RoomState, keepOwnerUid: string): void {

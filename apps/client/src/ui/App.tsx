@@ -14,7 +14,14 @@ import { useVoiceChat } from "./useVoiceChat";
 import { DiceRoller } from "../components/dice/DiceRoller";
 import { RollLog } from "../components/dice/RollLog";
 import type { RollResult, DieType } from "../components/dice/types";
-import type { Player, PlayerState, RoomSnapshot, ClientMessage, ServerMessage } from "@shared";
+import type {
+  Player,
+  PlayerState,
+  RoomSnapshot,
+  ClientMessage,
+  ServerMessage,
+  PlayerStagingZone,
+} from "@shared";
 import { WS_URL } from "../config";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useMicrophone } from "../hooks/useMicrophone";
@@ -849,13 +856,79 @@ function AuthenticatedApp({
         sendMessage({ t: "portrait", data: state.portrait ?? "" });
       }
 
-      if (tokenId && state.tokenImage !== undefined) {
-        sendMessage({
-          t: "update-token-image",
-          tokenId,
-          imageUrl: state.tokenImage ?? "",
-        });
+      if (state.statusEffects !== undefined) {
+        sendMessage({ t: "set-status-effects", effects: state.statusEffects });
       }
+
+      if (tokenId) {
+        const color = state.token?.color ?? (typeof state.color === "string" ? state.color : undefined);
+        if (color && color.trim().length > 0) {
+          sendMessage({ t: "set-token-color", tokenId, color: color.trim() });
+        }
+
+        const nextImage =
+          state.token?.imageUrl !== undefined ? state.token.imageUrl : state.tokenImage;
+        if (nextImage !== undefined) {
+          sendMessage({
+            t: "update-token-image",
+            tokenId,
+            imageUrl: nextImage ?? "",
+          });
+        }
+
+        if (state.token?.size) {
+          sendMessage({ t: "set-token-size", tokenId, size: state.token.size });
+        }
+
+        const transform: {
+          position?: { x: number; y: number };
+          scale?: { x: number; y: number };
+          rotation?: number;
+        } = {};
+
+        if (state.token?.position) {
+          transform.position = {
+            x: state.token.position.x,
+            y: state.token.position.y,
+          };
+        }
+
+        if (state.token?.scale) {
+          const scaleX = Math.max(0.1, Math.min(10, state.token.scale.x));
+          const scaleY = Math.max(0.1, Math.min(10, state.token.scale.y));
+          transform.scale = { x: scaleX, y: scaleY };
+        }
+
+        if (state.token?.rotation !== undefined) {
+          transform.rotation = state.token.rotation;
+        }
+
+        if (transform.position || transform.scale || transform.rotation !== undefined) {
+          sendMessage({
+            t: "transform-object",
+            id: `token:${tokenId}`,
+            ...transform,
+          });
+        }
+      }
+
+      if (state.drawings !== undefined) {
+        sendMessage({ t: "sync-player-drawings", drawings: state.drawings });
+      }
+    },
+    [sendMessage],
+  );
+
+  const handleSetStatusEffects = useCallback(
+    (effects: string[]) => {
+      sendMessage({ t: "set-status-effects", effects });
+    },
+    [sendMessage],
+  );
+
+  const handleSetPlayerStagingZone = useCallback(
+    (zone: PlayerStagingZone | null) => {
+      sendMessage({ t: "set-player-staging-zone", zone });
     },
     [sendMessage],
   );
@@ -1276,6 +1349,7 @@ function AuthenticatedApp({
         characters={snapshot?.characters || []}
         tokens={snapshot?.tokens || []}
         sceneObjects={snapshot?.sceneObjects || []}
+        drawings={snapshot?.drawings || []}
         uid={uid}
         micEnabled={micEnabled}
         editingPlayerUID={editingPlayerUID}
@@ -1304,6 +1378,7 @@ function AuthenticatedApp({
         onToggleDMMode={toggleDM}
         onTokenImageChange={updateTokenImage}
         onApplyPlayerState={handleApplyPlayerState}
+        onStatusEffectsChange={handleSetStatusEffects}
         onNpcUpdate={handleUpdateNPC}
         onNpcDelete={handleDeleteNPC}
         onNpcPlaceToken={handlePlaceNPCToken}
@@ -1325,6 +1400,8 @@ function AuthenticatedApp({
         onClearDrawings={handleClearDrawings}
         onSetMapBackground={setMapBackgroundURL}
         mapBackground={snapshot?.mapBackground}
+        playerStagingZone={snapshot?.playerStagingZone ?? null}
+        onSetPlayerStagingZone={handleSetPlayerStagingZone}
         playerCount={snapshot?.players?.length ?? 0}
         characters={snapshot?.characters || []}
         onRequestSaveSession={snapshot ? handleSaveSession : undefined}

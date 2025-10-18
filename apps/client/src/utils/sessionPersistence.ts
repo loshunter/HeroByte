@@ -3,7 +3,7 @@
 // ============================================================================
 // Helpers to export and import complete room snapshots for offline storage.
 
-import type { RoomSnapshot } from "@shared";
+import type { PlayerStagingZone, RoomSnapshot } from "@shared";
 
 /**
  * Trigger a download of the provided room snapshot as a JSON file.
@@ -40,6 +40,34 @@ function ensureArray<T = unknown>(value: unknown, label: string): T[] {
   return value as T[];
 }
 
+function sanitizePlayerStagingZone(value: unknown): PlayerStagingZone | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const x = Number(value.x);
+  const y = Number(value.y);
+  const width = Number(value.width);
+  const height = Number(value.height);
+
+  if ([x, y, width, height].some((candidate) => !Number.isFinite(candidate))) {
+    return undefined;
+  }
+
+  const rotation =
+    value.rotation === undefined || Number.isNaN(Number(value.rotation))
+      ? 0
+      : Number(value.rotation);
+
+  return {
+    x,
+    y,
+    width: Math.max(0.5, Math.abs(width)),
+    height: Math.max(0.5, Math.abs(height)),
+    rotation,
+  };
+}
+
 /**
  * Load a room snapshot from a selected JSON file.
  */
@@ -66,6 +94,11 @@ export function loadSession(file: File): Promise<RoomSnapshot> {
           throw new Error("gridSize must be a number");
         }
 
+        const sceneObjects = Array.isArray(parsed.sceneObjects)
+          ? (parsed.sceneObjects as RoomSnapshot["sceneObjects"])
+          : undefined;
+        const stagingZone = sanitizePlayerStagingZone(parsed.playerStagingZone);
+
         const snapshot: RoomSnapshot = {
           users: Array.isArray(parsed.users) ? parsed.users : [],
           tokens: tokens as RoomSnapshot["tokens"],
@@ -77,6 +110,10 @@ export function loadSession(file: File): Promise<RoomSnapshot> {
           drawings: drawings as RoomSnapshot["drawings"],
           gridSize: parsed.gridSize,
           diceRolls: diceRolls as RoomSnapshot["diceRolls"],
+          gridSquareSize:
+            typeof parsed.gridSquareSize === "number" ? parsed.gridSquareSize : undefined,
+          sceneObjects,
+          playerStagingZone: stagingZone,
         };
 
         resolve(snapshot);

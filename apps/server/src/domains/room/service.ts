@@ -5,7 +5,7 @@
 
 import { writeFileSync, readFileSync, existsSync } from "fs";
 import type { WebSocket } from "ws";
-import type { Player, RoomSnapshot, Character, SceneObject } from "@shared";
+import type { Player, RoomSnapshot, Character, SceneObject, PlayerStagingZone } from "@shared";
 import type { RoomState } from "./model.js";
 import { createEmptyRoomState, createSelectionMap, toSnapshot } from "./model.js";
 
@@ -20,6 +20,30 @@ export class RoomService {
   constructor() {
     this.state = createEmptyRoomState();
     this.rebuildSceneGraph();
+  }
+
+  private sanitizeStagingZone(zone: unknown): PlayerStagingZone | null {
+    if (!zone || typeof zone !== "object") {
+      return null;
+    }
+    const candidate = zone as Partial<PlayerStagingZone>;
+    const x = Number(candidate.x);
+    const y = Number(candidate.y);
+    const width = Number(candidate.width);
+    const height = Number(candidate.height);
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(width) || !Number.isFinite(height)) {
+      return null;
+    }
+    const normalized: PlayerStagingZone = {
+      x,
+      y,
+      width: Math.max(1, Math.abs(width)),
+      height: Math.max(1, Math.abs(height)),
+      rotation: candidate.rotation !== undefined && Number.isFinite(Number(candidate.rotation))
+        ? Number(candidate.rotation)
+        : 0,
+    };
+    return normalized;
   }
 
   /**
@@ -51,6 +75,7 @@ export class RoomService {
           players: (data.players || []).map((player: Player) => ({
             ...player,
             isDM: player.isDM ?? false,
+            statusEffects: Array.isArray(player.statusEffects) ? [...player.statusEffects] : [],
           })),
           characters: (data.characters || []).map((character: Character) => ({
             ...character,
@@ -68,6 +93,7 @@ export class RoomService {
           drawingRedoStacks: {},
           sceneObjects,
           selectionState: createSelectionMap(),
+          playerStagingZone: this.sanitizeStagingZone(data.playerStagingZone),
         };
         this.rebuildSceneGraph();
         console.log("Loaded state from disk");
@@ -92,6 +118,7 @@ export class RoomService {
         gridSquareSize: this.state.gridSquareSize,
         diceRolls: this.state.diceRolls,
         sceneObjects: this.state.sceneObjects,
+        playerStagingZone: this.state.playerStagingZone,
       };
       writeFileSync(STATE_FILE, JSON.stringify(persistentData, null, 2));
     } catch (err) {
@@ -108,6 +135,7 @@ export class RoomService {
     const loadedPlayers = (snapshot.players ?? []).map((player) => ({
       ...player,
       isDM: player.isDM ?? false,
+      statusEffects: Array.isArray(player.statusEffects) ? [...player.statusEffects] : [],
     }));
     const loadedCharacters = (snapshot.characters ?? []).map((character) => ({
       ...character,
@@ -147,6 +175,7 @@ export class RoomService {
       drawingRedoStacks: {},
       sceneObjects: snapshot.sceneObjects ?? this.state.sceneObjects,
       selectionState: createSelectionMap(),
+      playerStagingZone: this.sanitizeStagingZone(snapshot.playerStagingZone),
     };
     this.rebuildSceneGraph();
     console.log(`Loaded session snapshot from client - merged ${mergedPlayers.length} players`);
@@ -309,6 +338,47 @@ export class RoomService {
         return true;
       }
 
+      case "staging-zone": {
+        if (!isDM) return false;
+        if (!this.state.playerStagingZone) return false;
+
+        if (changes.position) {
+          this.state.playerStagingZone.x = changes.position.x;
+          this.state.playerStagingZone.y = changes.position.y;
+          applyPosition(changes.position);
+        }
+
+        if (changes.scale) {
+          const { scaleX, scaleY } = object.transform;
+          const nextScaleX = changes.scale.x;
+          const nextScaleY = changes.scale.y;
+          const baseWidth =
+            this.state.playerStagingZone.width / (Math.abs(scaleX) < 1e-6 ? 1 : scaleX);
+          const baseHeight =
+            this.state.playerStagingZone.height / (Math.abs(scaleY) < 1e-6 ? 1 : scaleY);
+
+          this.state.playerStagingZone.width = Math.max(1, baseWidth * nextScaleX);
+          this.state.playerStagingZone.height = Math.max(1, baseHeight * nextScaleY);
+
+          object.transform.scaleX = 1;
+          object.transform.scaleY = 1;
+          if (object.type === "staging-zone") {
+            object.data.width = this.state.playerStagingZone.width;
+            object.data.height = this.state.playerStagingZone.height;
+          }
+        }
+
+        if (typeof changes.rotation === "number") {
+          this.state.playerStagingZone.rotation = changes.rotation;
+          applyRotation(changes.rotation);
+          if (object.type === "staging-zone") {
+            object.data.rotation = changes.rotation;
+          }
+        }
+
+        return true;
+      }
+
       case "drawing": {
         const drawingId = object.id.replace(/^drawing:/, "");
         const drawing = this.state.drawings.find((candidate) => candidate.id === drawingId);
@@ -411,6 +481,36 @@ export class RoomService {
       });
     }
 
+    // Player staging zone
+    if (this.state.playerStagingZone) {
+      const zone = this.state.playerStagingZone;
+      const id = "staging-zone";
+      const prev = existing.get(id);
+      next.push({
+        id,
+        type: "staging-zone",
+        owner: null,
+        locked: prev?.locked ?? true,
+        zIndex: prev?.zIndex ?? -80,
+        transform: {
+          x: zone.x,
+          y: zone.y,
+          scaleX: 1,
+          scaleY: 1,
+          rotation: zone.rotation ?? 0,
+        },
+        data: {
+          width: zone.width,
+          height: zone.height,
+          rotation: zone.rotation ?? 0,
+          label:
+            prev?.type === "staging-zone" && prev.data.label
+              ? prev.data.label
+              : "Player Staging Zone",
+        },
+      });
+    }
+
     // Pointers (ephemeral)
     for (const pointer of this.state.pointers) {
       const pointerKey = pointer.id ?? pointer.uid;
@@ -434,5 +534,41 @@ export class RoomService {
     }
 
     this.state.sceneObjects = next;
+  }
+
+  /**
+   * Set or clear the player staging zone
+   */
+  setPlayerStagingZone(zone: PlayerStagingZone | null): boolean {
+    const sanitized = this.sanitizeStagingZone(zone);
+    this.state.playerStagingZone = sanitized;
+    this.rebuildSceneGraph();
+    return true;
+  }
+
+  /**
+   * Pick a spawn position for a player token.
+   * Uses the staging zone if available; otherwise defaults to (0,0).
+   */
+  getPlayerSpawnPosition(): { x: number; y: number } {
+    const zone = this.state.playerStagingZone;
+    if (!zone) {
+      return { x: 0, y: 0 };
+    }
+
+    const angle = ((zone.rotation ?? 0) * Math.PI) / 180;
+    const halfWidth = zone.width / 2;
+    const halfHeight = zone.height / 2;
+
+    const randomX = Math.random() * zone.width - halfWidth;
+    const randomY = Math.random() * zone.height - halfHeight;
+
+    const rotatedX = randomX * Math.cos(angle) - randomY * Math.sin(angle);
+    const rotatedY = randomX * Math.sin(angle) + randomY * Math.cos(angle);
+
+    return {
+      x: zone.x + rotatedX,
+      y: zone.y + rotatedY,
+    };
   }
 }

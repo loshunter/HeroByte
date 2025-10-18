@@ -72,7 +72,8 @@
       "Bash(PORT=5174 pnpm dev:*)",
       "Bash(xargs ps:*)",
       "Read(//tmp/**)",
-      "Bash(pnpm --filter vtt-server test validation)"
+      "Bash(pnpm --filter vtt-server test validation)",
+      "Bash(git merge main -m \"Sync bugfixes from main to dev\n\nMerging CI/CD fixes that were applied directly to main:\n- Fix vitest imports in authService.test.ts\n- Add ServerMessage import and type narrowing in App.tsx\n- Format imports on single line for prettier\n\nAll tests passing, ready for continued development.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\")"
     ],
     "deny": [],
     "ask": []

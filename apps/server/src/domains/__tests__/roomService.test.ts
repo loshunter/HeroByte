@@ -850,4 +850,39 @@ describe("RoomService", () => {
       expect(lockCount).toBe(0);
     });
   });
+
+  describe("Player staging zone", () => {
+    it("updates scene objects when staging zone changes", () => {
+      const service = new RoomService();
+      service.setPlayerStagingZone({ x: 6, y: 7, width: 4, height: 2, rotation: 30 });
+
+      const state = service.getState();
+      expect(state.playerStagingZone).toMatchObject({ x: 6, y: 7, width: 4, height: 2, rotation: 30 });
+      expect(state.sceneObjects.some((obj) => obj.type === "staging-zone")).toBe(true);
+
+      service.setPlayerStagingZone(null);
+      const cleared = service.getState();
+      expect(cleared.playerStagingZone).toBeNull();
+      expect(cleared.sceneObjects.some((obj) => obj.type === "staging-zone")).toBe(false);
+    });
+
+    it("generates spawn positions inside staging bounds", () => {
+      const service = new RoomService();
+      service.setPlayerStagingZone({ x: 10, y: 12, width: 6, height: 4, rotation: 0 });
+
+      for (let index = 0; index < 10; index += 1) {
+        const spawn = service.getPlayerSpawnPosition();
+        expect(spawn.x).toBeGreaterThanOrEqual(7);
+        expect(spawn.x).toBeLessThanOrEqual(13);
+        expect(spawn.y).toBeGreaterThanOrEqual(10);
+        expect(spawn.y).toBeLessThanOrEqual(14);
+      }
+    });
+
+    it("falls back to origin when staging zone is unset", () => {
+      const service = new RoomService();
+      const position = service.getPlayerSpawnPosition();
+      expect(position).toEqual({ x: 0, y: 0 });
+    });
+  });
 });

@@ -4,7 +4,7 @@
 // Fixed bottom panel displaying both players and NPCs in the scene.
 
 import React, { useMemo, useState } from "react";
-import type { Character, Player, PlayerState, Token, SceneObject } from "@shared";
+import type { Character, Drawing, Player, PlayerState, Token, SceneObject } from "@shared";
 import { PlayerCard } from "../../features/players/components";
 import { NpcCard } from "../../features/players/components/NpcCard";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
@@ -16,6 +16,7 @@ interface EntitiesPanelProps {
   characters: Character[];
   tokens: Token[];
   sceneObjects: SceneObject[];
+  drawings: Drawing[];
   uid: string;
   micEnabled: boolean;
   editingPlayerUID: string | null;
@@ -35,6 +36,7 @@ interface EntitiesPanelProps {
   onToggleDMMode: (next: boolean) => void;
   onTokenImageChange: (tokenId: string, imageUrl: string) => void;
   onApplyPlayerState: (state: PlayerState, tokenId?: string) => void;
+  onStatusEffectsChange: (effects: string[]) => void;
   onNpcUpdate: (
     id: string,
     updates: { name?: string; hp?: number; maxHp?: number; portrait?: string; tokenImage?: string },
@@ -56,6 +58,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   tokens,
   onPlayerTokenDelete,
   sceneObjects,
+  drawings,
   uid,
   micEnabled,
   editingPlayerUID,
@@ -75,6 +78,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   onToggleDMMode,
   onTokenImageChange,
   onApplyPlayerState,
+  onStatusEffectsChange,
   onNpcUpdate,
   onNpcDelete,
   onNpcPlaceToken,
@@ -88,6 +92,29 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
     () => characters.filter((character) => character.type === "npc"),
     [characters],
   );
+
+  const tokenSceneMap = useMemo(() => {
+    const map = new Map<string, SceneObject & { type: "token" }>();
+    for (const object of sceneObjects) {
+      if (object.type === "token") {
+        const tokenId = object.id.replace(/^token:/, "");
+        map.set(tokenId, object as SceneObject & { type: "token" });
+      }
+    }
+    return map;
+  }, [sceneObjects]);
+
+  const drawingsByOwner = useMemo(() => {
+    const map = new Map<string, Drawing[]>();
+    for (const drawing of drawings) {
+      if (!drawing.owner) continue;
+      if (!map.has(drawing.owner)) {
+        map.set(drawing.owner, []);
+      }
+      map.get(drawing.owner)!.push(drawing);
+    }
+    return map;
+  }, [drawings]);
 
   const entities = useMemo(() => {
     const playerEntities = players.map((player) => {
@@ -180,6 +207,8 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
               {entities.map((entity) => {
                 if (entity.kind === "player") {
                   const { player, token, isMe } = entity;
+                  const tokenSceneObject = token ? tokenSceneMap.get(token.id) ?? null : null;
+                  const playerDrawings = drawingsByOwner.get(player.uid) ?? [];
 
                   return (
                     <div
@@ -197,6 +226,10 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                         player={player}
                         isMe={isMe}
                         tokenColor={token?.color}
+                         token={token}
+                         tokenSceneObject={tokenSceneObject}
+                         playerDrawings={playerDrawings}
+                        statusEffects={player.statusEffects}
                         micEnabled={micEnabled}
                         editingPlayerUID={editingPlayerUID}
                         nameInput={nameInput}
@@ -218,6 +251,9 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                         tokenId={token?.id}
                         onApplyPlayerState={
                           isMe ? (state) => onApplyPlayerState(state, token?.id) : undefined
+                        }
+                        onStatusEffectsChange={
+                          isMe ? (effects) => onStatusEffectsChange(effects) : undefined
                         }
                         isDM={player.isDM ?? false}
                         onToggleDMMode={onToggleDMMode}

@@ -43,6 +43,7 @@ describe("MessageRouter", () => {
           maxHp: 10,
           micLevel: 0,
           lastHeartbeat: Date.now(),
+          statusEffects: [],
         },
       ],
       tokens: [],
@@ -57,6 +58,7 @@ describe("MessageRouter", () => {
       drawingRedoStacks: {},
       sceneObjects: [],
       selectionState: new Map() as RoomState["selectionState"],
+      playerStagingZone: null,
     };
 
     // Mock services
@@ -66,6 +68,7 @@ describe("MessageRouter", () => {
       saveState: vi.fn(),
       loadSnapshot: vi.fn(),
       applySceneObjectTransform: vi.fn(() => true),
+      setPlayerStagingZone: vi.fn(() => true),
     } as unknown as RoomService;
 
     mockPlayerService = {
@@ -74,6 +77,7 @@ describe("MessageRouter", () => {
       setMicLevel: vi.fn(() => true),
       setHP: vi.fn(() => true),
       setDMMode: vi.fn(() => true),
+      setStatusEffects: vi.fn(() => true),
     } as unknown as PlayerService;
 
     mockTokenService = {
@@ -83,6 +87,10 @@ describe("MessageRouter", () => {
       setImageUrl: vi.fn(() => true),
       clearAllTokensExcept: vi.fn(),
       forceDeleteToken: vi.fn(() => true),
+      setTokenSize: vi.fn(() => true),
+      setTokenSizeByDM: vi.fn(() => true),
+      setColor: vi.fn(() => true),
+      setColorForToken: vi.fn(() => true),
     } as unknown as TokenService;
 
     mockMapService = {
@@ -98,6 +106,7 @@ describe("MessageRouter", () => {
       moveDrawing: vi.fn(() => true),
       deleteDrawing: vi.fn(() => true),
       handlePartialErase: vi.fn(() => true),
+      replacePlayerDrawings: vi.fn(),
     } as unknown as MapService;
 
     mockDiceService = {
@@ -899,6 +908,153 @@ describe("MessageRouter", () => {
       router.route(msg, "player-1");
 
       expect(mockTokenService.setTokenSize).toHaveBeenCalled();
+      expect(mockRoomService.broadcast).not.toHaveBeenCalled();
+      expect(mockRoomService.saveState).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Token color actions", () => {
+    beforeEach(() => {
+      mockState.tokens = [
+        {
+          id: "token-1",
+          owner: "player-1",
+          x: 0,
+          y: 0,
+          color: "#ffffff",
+        },
+      ];
+      mockTokenService.setColor = vi.fn(() => true);
+      mockTokenService.setColorForToken = vi.fn(() => true);
+    });
+
+    it("routes set-token-color for the token owner", () => {
+      const msg: ClientMessage = { t: "set-token-color", tokenId: "token-1", color: "#123456" };
+      router.route(msg, "player-1");
+
+      expect(mockTokenService.setColor).toHaveBeenCalledWith(
+        mockState,
+        "token-1",
+        "player-1",
+        "#123456",
+      );
+      expect(mockTokenService.setColorForToken).not.toHaveBeenCalled();
+      expect(mockRoomService.broadcast).toHaveBeenCalled();
+      expect(mockRoomService.saveState).toHaveBeenCalled();
+    });
+
+    it("allows DMs to recolor any token", () => {
+      mockState.players[0].isDM = true;
+      const msg: ClientMessage = { t: "set-token-color", tokenId: "token-1", color: "#abcdef" };
+      router.route(msg, "player-1");
+
+      expect(mockTokenService.setColorForToken).toHaveBeenCalledWith(
+        mockState,
+        "token-1",
+        "#abcdef",
+      );
+      expect(mockRoomService.broadcast).toHaveBeenCalled();
+      expect(mockRoomService.saveState).toHaveBeenCalled();
+    });
+  });
+
+  describe("Player status effects", () => {
+    beforeEach(() => {
+      mockPlayerService.setStatusEffects = vi.fn(() => true);
+    });
+
+    it("routes set-status-effects to playerService", () => {
+      const msg: ClientMessage = { t: "set-status-effects", effects: ["poisoned", "burning"] };
+      router.route(msg, "player-1");
+
+      expect(mockPlayerService.setStatusEffects).toHaveBeenCalledWith(
+        mockState,
+        "player-1",
+        ["poisoned", "burning"],
+      );
+      expect(mockRoomService.broadcast).toHaveBeenCalled();
+      expect(mockRoomService.saveState).toHaveBeenCalled();
+    });
+  });
+
+  describe("Player drawings synchronization", () => {
+    beforeEach(() => {
+      mockState.drawings = [
+        {
+          id: "draw-1",
+          owner: "player-1",
+          type: "freehand",
+          points: [
+            { x: 0, y: 0 },
+            { x: 1, y: 1 },
+          ],
+          color: "#fff",
+          width: 2,
+          opacity: 1,
+        },
+      ];
+      mockSelectionService.removeObject = vi.fn(() => true);
+      mockMapService.replacePlayerDrawings = vi.fn();
+    });
+
+    it("replaces player drawings and clears selection state", () => {
+      const msg: ClientMessage = {
+        t: "sync-player-drawings",
+        drawings: [
+          {
+            id: "draw-new",
+            type: "freehand",
+            points: [
+              { x: 2, y: 2 },
+              { x: 3, y: 3 },
+            ],
+            color: "#123",
+            width: 3,
+            opacity: 0.8,
+          },
+        ],
+      };
+
+      router.route(msg, "player-1");
+
+      expect(mockMapService.replacePlayerDrawings).toHaveBeenCalledWith(
+        mockState,
+        "player-1",
+        msg.drawings,
+      );
+      expect(mockSelectionService.removeObject).toHaveBeenCalledWith(mockState, "draw-1");
+      expect(mockRoomService.broadcast).toHaveBeenCalled();
+      expect(mockRoomService.saveState).toHaveBeenCalled();
+    });
+  });
+
+  describe("Player staging zone", () => {
+    beforeEach(() => {
+      mockState.players[0].isDM = true;
+      mockRoomService.setPlayerStagingZone = vi.fn(() => true);
+    });
+
+    it("allows DM to set the player staging zone", () => {
+      const zone = { x: 5, y: 5, width: 3, height: 2, rotation: 45 };
+      const msg: ClientMessage = { t: "set-player-staging-zone", zone };
+
+      router.route(msg, "player-1");
+
+      expect(mockRoomService.setPlayerStagingZone).toHaveBeenCalledWith(zone);
+      expect(mockRoomService.broadcast).toHaveBeenCalled();
+      expect(mockRoomService.saveState).toHaveBeenCalled();
+    });
+
+    it("does nothing when non-DM attempts to set staging zone", () => {
+      mockState.players[0].isDM = false;
+      const msg: ClientMessage = {
+        t: "set-player-staging-zone",
+        zone: { x: 0, y: 0, width: 4, height: 4, rotation: 0 },
+      };
+
+      router.route(msg, "player-1");
+
+      expect(mockRoomService.setPlayerStagingZone).not.toHaveBeenCalled();
       expect(mockRoomService.broadcast).not.toHaveBeenCalled();
       expect(mockRoomService.saveState).not.toHaveBeenCalled();
     });

@@ -34,6 +34,7 @@ export class PlayerService {
       maxHp: 100,
       lastHeartbeat: Date.now(), // Initialize heartbeat timestamp
       isDM: false,
+      statusEffects: [],
     };
 
     state.players.push(newPlayer);
@@ -96,6 +97,18 @@ export class PlayerService {
     const player = this.findPlayer(state, uid);
     if (player) {
       player.isDM = isDM;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Replace the player's status effects array
+   */
+  setStatusEffects(state: RoomState, uid: string, effects: string[]): boolean {
+    const player = this.findPlayer(state, uid);
+    if (player) {
+      player.statusEffects = [...effects];
       return true;
     }
     return false;

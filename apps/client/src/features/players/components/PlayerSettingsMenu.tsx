@@ -10,6 +10,19 @@ import type { TokenSize } from "@shared";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 
+export interface StatusOption {
+  value: string;
+  emoji: string;
+  label: string;
+}
+
+export const STATUS_OPTIONS: StatusOption[] = [
+  { value: "", emoji: "", label: "None" },
+  { value: "poisoned", emoji: "☠️", label: "Poisoned" },
+  { value: "burning", emoji: "🔥", label: "Burning" },
+  { value: "frozen", emoji: "❄️", label: "Frozen" },
+];
+
 interface PlayerSettingsMenuProps {
   isOpen: boolean;
   onClose: () => void;
@@ -20,8 +33,8 @@ interface PlayerSettingsMenuProps {
   onTokenImageApply: (value: string) => void;
   onSavePlayerState: () => void;
   onLoadPlayerState: (file: File) => Promise<void>;
-  statusIcon: { emoji: string; label: string } | null;
-  onStatusChange: (icon: { emoji: string; label: string } | null) => void;
+  statusIcon: StatusOption | null;
+  onStatusChange: (option: StatusOption | null) => void;
   isDM: boolean;
   onToggleDMMode: (next: boolean) => void;
   onDeleteToken?: () => void;
@@ -56,13 +69,6 @@ export function PlayerSettingsMenu({
   if (!isOpen) {
     return null;
   }
-
-  const statusOptions = [
-    { emoji: "", label: "None" },
-    { emoji: "☠️", label: "Poisoned" },
-    { emoji: "🔥", label: "Burning" },
-    { emoji: "❄️", label: "Frozen" },
-  ];
 
   return createPortal(
     <DraggableWindow
@@ -259,21 +265,22 @@ export function PlayerSettingsMenu({
             Status Effect
           </span>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-            {statusOptions.map((icon) => {
-              const isNone = icon.label === "None";
-              const active = statusIcon?.label === icon.label || (!statusIcon && isNone);
+            {STATUS_OPTIONS.map((option) => {
+              const isNone = option.value === "";
+              const active = statusIcon
+                ? statusIcon.value === option.value
+                : isNone;
               const handleStatusClick = () => {
-                const nextStatus = isNone ? null : { emoji: icon.emoji || "", label: icon.label };
-                onStatusChange(nextStatus);
+                onStatusChange(isNone ? null : option);
               };
               return (
                 <JRPGButton
-                  key={icon.label}
+                  key={option.value || "none"}
                   onClick={handleStatusClick}
                   variant={active ? "primary" : "default"}
                   style={{ fontSize: "10px", padding: "6px 8px" }}
                 >
-                  {icon.emoji ? `${icon.emoji} ${icon.label}` : icon.label}
+                  {option.emoji ? `${option.emoji} ${option.label}` : option.label}
                 </JRPGButton>
               );
             })}

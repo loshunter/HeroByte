@@ -166,6 +166,30 @@ export class MapService {
   }
 
   /**
+   * Replace all drawings owned by a player (used for imports)
+   */
+  replacePlayerDrawings(state: RoomState, ownerUid: string, drawings: Drawing[]): void {
+    state.drawings = state.drawings.filter((drawing) => drawing.owner !== ownerUid);
+
+    const sanitized: Drawing[] = drawings.map((drawing) => {
+      const sanitizedDrawing: Drawing = {
+        ...drawing,
+        id:
+          typeof drawing.id === "string" && drawing.id.trim().length > 0
+            ? drawing.id.trim()
+            : randomUUID(),
+        owner: ownerUid,
+        selectedBy: undefined,
+      };
+      return this.cloneDrawing(sanitizedDrawing);
+    });
+
+    state.drawings.push(...sanitized);
+    state.drawingUndoStacks[ownerUid] = [];
+    state.drawingRedoStacks[ownerUid] = [];
+  }
+
+  /**
    * Select a drawing for editing
    * Deselects any other drawings by this player
    */

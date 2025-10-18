@@ -219,7 +219,8 @@ export class ConnectionHandler {
 
     const existingToken = this.container.tokenService.findTokenByOwner(state, uid);
     if (!existingToken) {
-      this.container.tokenService.createToken(state, uid, 0, 0);
+      const spawn = this.container.roomService.getPlayerSpawnPosition();
+      this.container.tokenService.createToken(state, uid, spawn.x, spawn.y);
     }
 
     // Track authentication state

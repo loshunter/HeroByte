@@ -15,7 +15,13 @@ export { TokenModel, PlayerModel, CharacterModel } from "./models.js";
 // SCENE GRAPH
 // ----------------------------------------------------------------------------
 
-export type SceneObjectType = "map" | "token" | "drawing" | "pointer" | "prop";
+export type SceneObjectType =
+  | "map"
+  | "token"
+  | "drawing"
+  | "pointer"
+  | "prop"
+  | "staging-zone";
 
 export interface SceneObjectTransform {
   x: number;
@@ -62,12 +68,20 @@ export interface PropSceneData {
   label?: string;
 }
 
+export interface StagingZoneSceneData {
+  width: number;
+  height: number;
+  rotation?: number;
+  label?: string;
+}
+
 export type SceneObject =
   | (SceneObjectBase & { type: "map"; data: MapSceneData })
   | (SceneObjectBase & { type: "token"; data: TokenSceneData })
   | (SceneObjectBase & { type: "drawing"; data: DrawingSceneData })
   | (SceneObjectBase & { type: "pointer"; data: PointerSceneData })
-  | (SceneObjectBase & { type: "prop"; data: PropSceneData });
+  | (SceneObjectBase & { type: "prop"; data: PropSceneData })
+  | (SceneObjectBase & { type: "staging-zone"; data: StagingZoneSceneData });
 
 /**
  * Token size variants (D&D 5e size categories)
@@ -119,6 +133,7 @@ export interface Player {
   maxHp?: number; // Maximum hit points
   lastHeartbeat?: number; // Timestamp of last heartbeat (for timeout detection)
   isDM?: boolean; // Whether the player currently has DM tools enabled
+  statusEffects?: string[]; // Active status effect identifiers/labels
 }
 
 /**
@@ -129,7 +144,21 @@ export interface PlayerState {
   hp: number;
   maxHp: number;
   portrait?: string | null;
-  tokenImage?: string | null;
+  tokenImage?: string | null; // Legacy support (deprecated in favor of token.imageUrl)
+  color?: string; // Legacy support (mirrors token.color)
+  token?: PlayerStateTokenSnapshot;
+  statusEffects?: string[];
+  drawings?: Drawing[];
+}
+
+export interface PlayerStateTokenSnapshot {
+  id?: string;
+  color?: string;
+  imageUrl?: string | null;
+  position?: { x: number; y: number };
+  size?: TokenSize;
+  rotation?: number;
+  scale?: { x: number; y: number };
 }
 
 /**
@@ -208,6 +237,15 @@ export interface RoomSnapshot {
   diceRolls: DiceRoll[]; // History of dice rolls
   sceneObjects?: SceneObject[]; // Unified scene graph (experimental)
   selectionState?: SelectionState; // Active object selections keyed by player UID
+  playerStagingZone?: PlayerStagingZone; // DM-defined spawn area for player tokens
+}
+
+export interface PlayerStagingZone {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation?: number;
 }
 
 // ----------------------------------------------------------------------------
@@ -274,6 +312,7 @@ export type ClientMessage =
   | { t: "delete-token"; id: string } // Remove a token
   | { t: "update-token-image"; tokenId: string; imageUrl: string } // Update token image URL
   | { t: "set-token-size"; tokenId: string; size: TokenSize } // Change token size (Phase 11)
+  | { t: "set-token-color"; tokenId: string; color: string } // Explicitly set token color
 
   // Selection actions
   | SelectObjectMessage
@@ -288,6 +327,7 @@ export type ClientMessage =
   | { t: "mic-level"; level: number } // Update mic level for visual feedback
   | { t: "set-hp"; hp: number; maxHp: number } // Update player HP
   | { t: "toggle-dm"; isDM: boolean } // Toggle DM role flag
+  | { t: "set-status-effects"; effects: string[] } // Replace active status effects for the player
 
   // Character actions (Phase 1: PCs only)
   | { t: "create-character"; name: string; maxHp: number; portrait?: string } // DM creates PC slot
@@ -328,6 +368,8 @@ export type ClientMessage =
   | { t: "move-drawing"; id: string; dx: number; dy: number } // Move a drawing by delta
   | { t: "delete-drawing"; id: string } // Delete a specific drawing
   | { t: "erase-partial"; deleteId: string; segments: DrawingSegmentPayload[] } // Partially erase a freehand drawing
+  | { t: "sync-player-drawings"; drawings: Drawing[] } // Replace player's drawings with provided set
+  | { t: "set-player-staging-zone"; zone: PlayerStagingZone | null } // DM sets/clears player staging zone
 
   // Dice rolls
   | { t: "dice-roll"; roll: DiceRoll } // Broadcast a dice roll

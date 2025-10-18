@@ -5,7 +5,7 @@
 // NPC management (scaffolding), and session utilities.
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
-import type { Character } from "@shared";
+import type { Character, PlayerStagingZone } from "@shared";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignment";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
@@ -22,6 +22,8 @@ interface DMMenuProps {
   onClearDrawings: () => void;
   onSetMapBackground: (url: string) => void;
   mapBackground?: string;
+  playerStagingZone?: PlayerStagingZone | null;
+  onSetPlayerStagingZone?: (zone: PlayerStagingZone | null) => void;
   playerCount: number;
   characters: Character[];
   onRequestSaveSession?: (sessionName: string) => void;
@@ -297,6 +299,8 @@ export function DMMenu({
   onClearDrawings,
   onSetMapBackground,
   mapBackground,
+  playerStagingZone,
+  onSetPlayerStagingZone,
   playerCount,
   characters,
   onRequestSaveSession,
@@ -334,6 +338,13 @@ export function DMMenu({
     () => characters.filter((character) => character.type === "npc"),
     [characters],
   );
+  const [stagingInputs, setStagingInputs] = useState({
+    x: "0",
+    y: "0",
+    width: "6",
+    height: "6",
+    rotation: "0",
+  });
 
   useEffect(() => {
     setMapUrl(mapBackground ?? "");
@@ -352,9 +363,70 @@ export function DMMenu({
     }
   }, [isDM]);
 
+  useEffect(() => {
+    if (playerStagingZone) {
+      setStagingInputs({
+        x: playerStagingZone.x.toFixed(2),
+        y: playerStagingZone.y.toFixed(2),
+        width: playerStagingZone.width.toFixed(2),
+        height: playerStagingZone.height.toFixed(2),
+        rotation: (playerStagingZone.rotation ?? 0).toFixed(1),
+      });
+    } else {
+      setStagingInputs({
+        x: "0",
+        y: "0",
+        width: "6",
+        height: "6",
+        rotation: "0",
+      });
+    }
+  }, [playerStagingZone]);
+
   const handleMapApply = () => {
     if (!mapUrl.trim()) return;
     onSetMapBackground(mapUrl.trim());
+  };
+
+  const handleStagingInputChange = (field: keyof typeof stagingInputs, value: string) => {
+    setStagingInputs((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleStagingZoneApply = () => {
+    if (!onSetPlayerStagingZone) return;
+
+    const x = Number.parseFloat(stagingInputs.x);
+    const y = Number.parseFloat(stagingInputs.y);
+    const width = Number.parseFloat(stagingInputs.width);
+    const height = Number.parseFloat(stagingInputs.height);
+    const rotation = Number.parseFloat(stagingInputs.rotation);
+
+    if ([x, y, width, height, rotation].some((value) => Number.isNaN(value))) {
+      window.alert("Staging zone values must be valid numbers.");
+      return;
+    }
+
+    onSetPlayerStagingZone({
+      x,
+      y,
+      width: Math.max(0.5, Math.abs(width)),
+      height: Math.max(0.5, Math.abs(height)),
+      rotation: Number.isNaN(rotation) ? 0 : rotation,
+    });
+  };
+
+  const handleStagingZoneClear = () => {
+    if (!onSetPlayerStagingZone) return;
+    onSetPlayerStagingZone(null);
+  };
+
+  const handleStagingZoneCenterOnMap = () => {
+    if (!mapTransform) return;
+    setStagingInputs((prev) => ({
+      ...prev,
+      x: mapTransform.x.toFixed(2),
+      y: mapTransform.y.toFixed(2),
+    }));
   };
 
   const handleClearDrawings = () => {
@@ -526,6 +598,122 @@ export function DMMenu({
                         }}
                       />
                     )}
+                  </div>
+                </JRPGPanel>
+
+                <JRPGPanel variant="simple" title="Player Staging Zone">
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px" }}>
+                      <label className="jrpg-text-small" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        Center X
+                        <input
+                          type="number"
+                          value={stagingInputs.x}
+                          onChange={(event) => handleStagingInputChange("x", event.target.value)}
+                          style={{
+                            width: "100%",
+                            padding: "6px",
+                            background: "#111",
+                            color: "var(--jrpg-white)",
+                            border: "1px solid var(--jrpg-border-gold)",
+                          }}
+                          step={0.1}
+                        />
+                      </label>
+                      <label className="jrpg-text-small" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        Center Y
+                        <input
+                          type="number"
+                          value={stagingInputs.y}
+                          onChange={(event) => handleStagingInputChange("y", event.target.value)}
+                          style={{
+                            width: "100%",
+                            padding: "6px",
+                            background: "#111",
+                            color: "var(--jrpg-white)",
+                            border: "1px solid var(--jrpg-border-gold)",
+                          }}
+                          step={0.1}
+                        />
+                      </label>
+                      <label className="jrpg-text-small" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        Width (tiles)
+                        <input
+                          type="number"
+                          min={0.5}
+                          value={stagingInputs.width}
+                          onChange={(event) => handleStagingInputChange("width", event.target.value)}
+                          style={{
+                            width: "100%",
+                            padding: "6px",
+                            background: "#111",
+                            color: "var(--jrpg-white)",
+                            border: "1px solid var(--jrpg-border-gold)",
+                          }}
+                          step={0.5}
+                        />
+                      </label>
+                      <label className="jrpg-text-small" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        Height (tiles)
+                        <input
+                          type="number"
+                          min={0.5}
+                          value={stagingInputs.height}
+                          onChange={(event) => handleStagingInputChange("height", event.target.value)}
+                          style={{
+                            width: "100%",
+                            padding: "6px",
+                            background: "#111",
+                            color: "var(--jrpg-white)",
+                            border: "1px solid var(--jrpg-border-gold)",
+                          }}
+                          step={0.5}
+                        />
+                      </label>
+                    </div>
+                    <label className="jrpg-text-small" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      Rotation (degrees)
+                      <input
+                        type="number"
+                        value={stagingInputs.rotation}
+                        onChange={(event) => handleStagingInputChange("rotation", event.target.value)}
+                        style={{
+                          width: "100%",
+                          padding: "6px",
+                          background: "#111",
+                          color: "var(--jrpg-white)",
+                          border: "1px solid var(--jrpg-border-gold)",
+                        }}
+                        step={1}
+                      />
+                    </label>
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                      <JRPGButton
+                        onClick={handleStagingZoneApply}
+                        variant="primary"
+                        style={{ fontSize: "10px", flex: "1 1 120px" }}
+                        disabled={!onSetPlayerStagingZone}
+                      >
+                        Apply Zone
+                      </JRPGButton>
+                      <JRPGButton
+                        onClick={handleStagingZoneCenterOnMap}
+                        style={{ fontSize: "10px", flex: "1 1 120px" }}
+                      >
+                        Center on Map
+                      </JRPGButton>
+                      <JRPGButton
+                        onClick={handleStagingZoneClear}
+                        variant="danger"
+                        style={{ fontSize: "10px", flex: "1 1 120px" }}
+                        disabled={!onSetPlayerStagingZone}
+                      >
+                        Clear Zone
+                      </JRPGButton>
+                    </div>
+                    <span className="jrpg-text-tiny" style={{ color: "var(--jrpg-white)", opacity: 0.6 }}>
+                      Players spawn randomly within this area when they join the session.
+                    </span>
                   </div>
                 </JRPGPanel>
 

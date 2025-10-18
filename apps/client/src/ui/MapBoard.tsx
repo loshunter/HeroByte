@@ -178,6 +178,29 @@ export default function MapBoard({
     [sceneObjects],
   );
 
+  const stagingZoneObject = useMemo(
+    () =>
+      sceneObjects.find(
+        (object): object is SceneObject & { type: "staging-zone" } => object.type === "staging-zone",
+      ) ?? null,
+    [sceneObjects],
+  );
+
+  const stagingZoneDimensions = useMemo(() => {
+    if (!stagingZoneObject) {
+      return null;
+    }
+
+    return {
+      centerX: (stagingZoneObject.transform.x + 0.5) * grid.size,
+      centerY: (stagingZoneObject.transform.y + 0.5) * grid.size,
+      widthPx: stagingZoneObject.data.width * grid.size,
+      heightPx: stagingZoneObject.data.height * grid.size,
+      rotation: stagingZoneObject.transform.rotation,
+      label: stagingZoneObject.data.label ?? "Player Staging Zone",
+    };
+  }, [grid.size, stagingZoneObject]);
+
   // Transform gizmo state
   const selectedObjectNodeRef = useRef<Konva.Node | null>(null);
   const selectedObject = useMemo(
@@ -747,6 +770,37 @@ export default function MapBoard({
 
         {/* Game Layer: Drawings and tokens (interactive) */}
         <Layer>
+          {stagingZoneDimensions ? (
+            <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale} listening={false}>
+              <Group
+                x={stagingZoneDimensions.centerX}
+                y={stagingZoneDimensions.centerY}
+                rotation={stagingZoneDimensions.rotation}
+              >
+                <Rect
+                  x={-stagingZoneDimensions.widthPx / 2}
+                  y={-stagingZoneDimensions.heightPx / 2}
+                  width={stagingZoneDimensions.widthPx}
+                  height={stagingZoneDimensions.heightPx}
+                  stroke="rgba(77, 229, 192, 0.75)"
+                  strokeWidth={2 / cam.scale}
+                  dash={[8 / cam.scale, 6 / cam.scale]}
+                  fill="rgba(77, 229, 192, 0.12)"
+                  cornerRadius={8 / cam.scale}
+                />
+                <Text
+                  text={stagingZoneDimensions.label}
+                  fontSize={14 / cam.scale}
+                  fill="#4de5c0"
+                  align="center"
+                  width={stagingZoneDimensions.widthPx}
+                  x={-stagingZoneDimensions.widthPx / 2}
+                  y={-stagingZoneDimensions.heightPx / 2 - 18 / cam.scale}
+                  listening={false}
+                />
+              </Group>
+            </Group>
+          ) : null}
           <DrawingsLayer
             cam={cam}
             drawingObjects={drawingObjects}

@@ -108,6 +108,19 @@ export class MessageRouter {
           }
           break;
 
+        case "set-token-color": {
+          const sender = state.players.find((p) => p.uid === senderUid);
+          const isDM = sender?.isDM ?? false;
+          const updated = isDM
+            ? this.tokenService.setColorForToken(state, message.tokenId, message.color)
+            : this.tokenService.setColor(state, message.tokenId, senderUid, message.color);
+          if (updated) {
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+        }
+
         // PLAYER ACTIONS
         case "portrait":
           if (this.playerService.setPortrait(state, senderUid, message.data)) {
@@ -131,6 +144,13 @@ export class MessageRouter {
 
         case "set-hp":
           if (this.playerService.setHP(state, senderUid, message.hp, message.maxHp)) {
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+
+        case "set-status-effects":
+          if (this.playerService.setStatusEffects(state, senderUid, message.effects)) {
             this.broadcast();
             this.roomService.saveState();
           }
@@ -244,6 +264,18 @@ export class MessageRouter {
           this.broadcast();
           break;
 
+        case "set-player-staging-zone": {
+          const sender = state.players.find((player) => player.uid === senderUid);
+          if (!sender?.isDM) {
+            break;
+          }
+          if (this.roomService.setPlayerStagingZone(message.zone ?? null)) {
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+        }
+
         case "point":
           this.mapService.placePointer(state, senderUid, message.x, message.y);
           this.broadcast();
@@ -253,6 +285,19 @@ export class MessageRouter {
           this.mapService.addDrawing(state, message.drawing, senderUid);
           this.broadcast();
           break;
+
+        case "sync-player-drawings": {
+          const removedIds = state.drawings
+            .filter((drawing) => drawing.owner === senderUid)
+            .map((drawing) => drawing.id);
+          this.mapService.replacePlayerDrawings(state, senderUid, message.drawings);
+          for (const id of removedIds) {
+            this.selectionService.removeObject(state, id);
+          }
+          this.broadcast();
+          this.roomService.saveState();
+          break;
+        }
 
         case "undo-drawing":
           if (this.mapService.undoDrawing(state, senderUid)) {

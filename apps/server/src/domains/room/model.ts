@@ -14,6 +14,7 @@ import type {
   SceneObject,
   SelectionState,
   SelectionStateEntry,
+  PlayerStagingZone,
 } from "@shared";
 import type { DrawingOperation } from "../map/types.js";
 
@@ -37,6 +38,7 @@ export interface RoomState {
   drawingRedoStacks: Record<string, DrawingOperation[]>; // Per-player redo history
   sceneObjects: SceneObject[]; // Unified scene graph
   selectionState: SelectionStateMap; // Current object selections keyed by player UID
+  playerStagingZone: PlayerStagingZone | null; // Spawn area for player tokens
 }
 
 /**
@@ -58,6 +60,7 @@ export function createEmptyRoomState(): RoomState {
     drawingRedoStacks: {},
     sceneObjects: [],
     selectionState: createSelectionMap(),
+    playerStagingZone: null,
   };
 }
 
@@ -119,5 +122,6 @@ export function toSnapshot(state: RoomState): RoomSnapshot {
     diceRolls: state.diceRolls,
     sceneObjects: state.sceneObjects,
     selectionState: selectionMapToRecord(state.selectionState),
+    playerStagingZone: state.playerStagingZone ?? undefined,
   };
 }

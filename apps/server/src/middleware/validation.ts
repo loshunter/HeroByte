@@ -102,6 +102,96 @@ function validatePartialSegment(segment: unknown, index: number): ValidationResu
   return { valid: true };
 }
 
+function validateStagingZone(value: unknown, context: string): ValidationResult {
+  if (value === null) {
+    return { valid: true };
+  }
+
+  if (!isRecord(value)) {
+    return { valid: false, error: `${context}: zone must be an object or null` };
+  }
+
+  const zone = value as MessageRecord;
+
+  if (!isFiniteNumber(zone.x) || !isFiniteNumber(zone.y)) {
+    return { valid: false, error: `${context}: zone x/y must be finite numbers` };
+  }
+  if (!isFiniteNumber(zone.width) || !isFiniteNumber(zone.height)) {
+    return { valid: false, error: `${context}: zone width/height must be finite numbers` };
+  }
+
+  if (Math.abs(zone.width as number) < 0.5 || Math.abs(zone.height as number) < 0.5) {
+    return { valid: false, error: `${context}: zone width/height must be at least 0.5` };
+  }
+
+  if (
+    "rotation" in zone &&
+    zone.rotation !== undefined &&
+    !isFiniteNumber(zone.rotation as number)
+  ) {
+    return { valid: false, error: `${context}: zone rotation must be a number when provided` };
+  }
+
+  return { valid: true };
+}
+
+function validateDrawingPayload(drawing: unknown, context: string): ValidationResult {
+  if (!isRecord(drawing)) {
+    return { valid: false, error: `${context}: drawing must be an object` };
+  }
+
+  const payload = drawing as MessageRecord;
+
+  if (payload.id !== undefined && typeof payload.id !== "string") {
+    return { valid: false, error: `${context}: drawing id must be a string` };
+  }
+
+  if (typeof payload.type !== "string" || payload.type.length === 0) {
+    return { valid: false, error: `${context}: drawing type must be a non-empty string` };
+  }
+
+  if (!Array.isArray(payload.points) || payload.points.length === 0) {
+    return { valid: false, error: `${context}: drawing must include point coordinates` };
+  }
+
+  if (payload.points.length > MAX_SEGMENT_POINTS) {
+    return {
+      valid: false,
+      error: `${context}: drawing exceeds point limit (max ${MAX_SEGMENT_POINTS})`,
+    };
+  }
+
+  if (!payload.points.every((point) => isPoint(point))) {
+    return { valid: false, error: `${context}: drawing points must contain finite coordinates` };
+  }
+
+  if (typeof payload.color !== "string" || payload.color.length === 0 || payload.color.length > 128) {
+    return { valid: false, error: `${context}: drawing color must be a non-empty string` };
+  }
+
+  if (!isFiniteNumber(payload.width) || payload.width <= 0 || payload.width > 200) {
+    return { valid: false, error: `${context}: drawing width must be between 0 and 200` };
+  }
+
+  if (!isFiniteNumber(payload.opacity) || payload.opacity < 0 || payload.opacity > 1) {
+    return { valid: false, error: `${context}: drawing opacity must be between 0 and 1` };
+  }
+
+  if ("filled" in payload && payload.filled !== undefined && typeof payload.filled !== "boolean") {
+    return { valid: false, error: `${context}: drawing filled flag must be boolean` };
+  }
+
+  if ("owner" in payload && payload.owner !== undefined && typeof payload.owner !== "string") {
+    return { valid: false, error: `${context}: drawing owner must be a string when provided` };
+  }
+
+  if ("selectedBy" in payload && payload.selectedBy !== undefined) {
+    return { valid: false, error: `${context}: drawing cannot include selection metadata` };
+  }
+
+  return { valid: true };
+}
+
 export function validateMessage(raw: unknown): ValidationResult {
   if (!isRecord(raw) || typeof raw.t !== "string") {
     return { valid: false, error: "Missing or invalid message type" };
@@ -187,6 +277,29 @@ export function validateMessage(raw: unknown): ValidationResult {
       }
       if (hp < 0 || maxHp < 0) {
         return { valid: false, error: "set-hp: hp/maxHp cannot be negative" };
+      }
+      break;
+    }
+
+    case "set-status-effects": {
+      const { effects } = message;
+      if (!Array.isArray(effects)) {
+        return { valid: false, error: "set-status-effects: effects must be an array" };
+      }
+      if (effects.length > 16) {
+        return { valid: false, error: "set-status-effects: too many effects (max 16)" };
+      }
+      for (const effect of effects) {
+        if (typeof effect !== "string") {
+          return { valid: false, error: "set-status-effects: effects must be strings" };
+        }
+        const trimmed = effect.trim();
+        if (trimmed.length === 0) {
+          return { valid: false, error: "set-status-effects: effect labels cannot be empty" };
+        }
+        if (trimmed.length > 64) {
+          return { valid: false, error: "set-status-effects: effect labels too long (max 64 chars)" };
+        }
       }
       break;
     }
@@ -325,6 +438,14 @@ export function validateMessage(raw: unknown): ValidationResult {
       break;
     }
 
+    case "set-player-staging-zone": {
+      const validation = validateStagingZone(message.zone, "set-player-staging-zone");
+      if (!validation.valid) {
+        return validation;
+      }
+      break;
+    }
+
     case "update-token-image": {
       if (typeof message.tokenId !== "string" || message.tokenId.length === 0) {
         return { valid: false, error: "update-token-image: missing or invalid tokenId" };
@@ -351,6 +472,23 @@ export function validateMessage(raw: unknown): ValidationResult {
           valid: false,
           error: "set-token-size: invalid size (must be tiny/small/medium/large/huge/gargantuan)",
         };
+      }
+      break;
+    }
+
+    case "set-token-color": {
+      if (typeof message.tokenId !== "string" || message.tokenId.length === 0) {
+        return { valid: false, error: "set-token-color: tokenId required" };
+      }
+      if (typeof message.color !== "string") {
+        return { valid: false, error: "set-token-color: color must be a string" };
+      }
+      const trimmed = message.color.trim();
+      if (trimmed.length === 0) {
+        return { valid: false, error: "set-token-color: color cannot be empty" };
+      }
+      if (trimmed.length > 128) {
+        return { valid: false, error: "set-token-color: color too long (max 128 chars)" };
       }
       break;
     }
@@ -458,18 +596,9 @@ export function validateMessage(raw: unknown): ValidationResult {
     }
 
     case "draw": {
-      const drawing = message.drawing;
-      if (!isRecord(drawing)) {
-        return { valid: false, error: "draw: missing or invalid drawing object" };
-      }
-      if (typeof drawing.id !== "string" || typeof drawing.type !== "string") {
-        return { valid: false, error: "draw: invalid drawing structure" };
-      }
-      if (!Array.isArray(drawing.points)) {
-        return { valid: false, error: "draw: invalid drawing structure" };
-      }
-      if (drawing.points.length > 10000) {
-        return { valid: false, error: "draw: too many points (max 10000)" };
+      const validation = validateDrawingPayload(message.drawing, "draw");
+      if (!validation.valid) {
+        return validation;
       }
       break;
     }
@@ -525,6 +654,25 @@ export function validateMessage(raw: unknown): ValidationResult {
       }
       for (let index = 0; index < message.segments.length; index += 1) {
         const validation = validatePartialSegment(message.segments[index], index);
+        if (!validation.valid) {
+          return validation;
+        }
+      }
+      break;
+    }
+
+    case "sync-player-drawings": {
+      if (!Array.isArray(message.drawings)) {
+        return { valid: false, error: "sync-player-drawings: drawings must be an array" };
+      }
+      if (message.drawings.length > 200) {
+        return { valid: false, error: "sync-player-drawings: too many drawings (max 200)" };
+      }
+      for (let index = 0; index < message.drawings.length; index += 1) {
+        const validation = validateDrawingPayload(
+          message.drawings[index],
+          `sync-player-drawings[${index}]`,
+        );
         if (!validation.valid) {
           return validation;
         }

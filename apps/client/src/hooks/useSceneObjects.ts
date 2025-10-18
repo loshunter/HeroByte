@@ -69,6 +69,30 @@ function buildLegacySceneObjects(snapshot: RoomSnapshot): SceneObject[] {
     });
   }
 
+  if (snapshot.playerStagingZone) {
+    const zone = snapshot.playerStagingZone;
+    objects.push({
+      id: "staging-zone",
+      type: "staging-zone",
+      owner: null,
+      locked: true,
+      zIndex: -80,
+      transform: {
+        x: zone.x,
+        y: zone.y,
+        scaleX: 1,
+        scaleY: 1,
+        rotation: zone.rotation ?? 0,
+      },
+      data: {
+        width: zone.width,
+        height: zone.height,
+        rotation: zone.rotation ?? 0,
+        label: "Player Staging Zone",
+      },
+    });
+  }
+
   for (const pointer of snapshot.pointers || []) {
     const pointerKey = pointer.id ?? pointer.uid;
     objects.push({
