@@ -119,6 +119,7 @@ interface MapBoardProps {
   selectedObjectId?: string | null; // Currently selected object for transform gizmo
   selectedObjectIds?: string[];
   onSelectObject?: (objectId: string | null, options?: SelectionRequestOptions) => void; // Selection handler
+  onSelectObjects?: (objectIds: string[]) => void; // Batch selection handler
 }
 
 /**
@@ -159,6 +160,7 @@ export default function MapBoard({
   selectedObjectId = null,
   selectedObjectIds = [],
   onSelectObject,
+  onSelectObjects,
 }: MapBoardProps) {
   // -------------------------------------------------------------------------
   // STATE & HOOKS
@@ -595,7 +597,7 @@ export default function MapBoard({
   }, []);
 
   const applyMarqueeSelection = useCallback(() => {
-    if (!marquee || !stageRef.current || !onSelectObject) {
+    if (!marquee || !stageRef.current) {
       return;
     }
 
@@ -610,7 +612,7 @@ export default function MapBoard({
 
     // Treat a click without drag as a deselect so behaviour mirrors existing stage clicks
     if (width < 4 && height < 4) {
-      onSelectObject(null);
+      onSelectObject?.(null);
       return;
     }
 
@@ -636,14 +638,18 @@ export default function MapBoard({
     });
 
     if (matches.length === 0) {
-      onSelectObject(null);
+      onSelectObject?.(null);
       return;
     }
 
-    matches.forEach((id, index) => {
-      onSelectObject(id, { mode: index === 0 ? "replace" : "append" });
-    });
-  }, [marquee, onSelectObject]);
+    if (onSelectObjects) {
+      onSelectObjects(matches);
+    } else if (onSelectObject) {
+      matches.forEach((id, index) => {
+        onSelectObject(id, { mode: index === 0 ? "replace" : "append" });
+      });
+    }
+  }, [marquee, onSelectObject, onSelectObjects]);
 
   const marqueeRect = useMemo(() => {
     if (!marquee) {

@@ -629,6 +629,17 @@ function AuthenticatedApp({
     [clearSelection, selectMultiple, selectObject, selectedObjectIds],
   );
 
+  const handleObjectSelectionBatch = useCallback(
+    (objectIds: string[]) => {
+      if (objectIds.length === 0) {
+        clearSelection();
+        return;
+      }
+      selectMultiple(objectIds, "replace");
+    },
+    [clearSelection, selectMultiple],
+  );
+
   // -------------------------------------------------------------------------
   // ACTIONS
   // -------------------------------------------------------------------------
@@ -1342,6 +1353,7 @@ function AuthenticatedApp({
           selectedObjectId={selectedObjectId}
           selectedObjectIds={selectedObjectIds}
           onSelectObject={handleObjectSelection}
+          onSelectObjects={handleObjectSelectionBatch}
         />
       </div>
 
