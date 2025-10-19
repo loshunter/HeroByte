@@ -40,6 +40,8 @@ import { ServerStatus } from "../components/layout/ServerStatus";
 import { ConnectionState, AuthState } from "../services/websocket";
 import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import { computeMapAlignmentTransform } from "../utils/mapAlignment";
+import { useToast } from "../hooks/useToast";
+import { ToastContainer } from "../components/ui/Toast";
 
 interface RollLogEntry extends RollResult {
   playerName: string;
@@ -447,6 +449,9 @@ function AuthenticatedApp({
     updateMaxHpInput,
     submitMaxHpEdit,
   } = usePlayerEditing();
+
+  // Toast notifications
+  const toast = useToast();
 
   // Map controls
   const [snapToGrid, setSnapToGrid] = useState(true);
@@ -1001,36 +1006,59 @@ function AuthenticatedApp({
   const handleSaveSession = useCallback(
     (name: string) => {
       if (!snapshot) {
-        window.alert("No session data available to save yet.");
+        toast.warning("No session data available to save yet.");
         return;
       }
       try {
+        toast.info("Preparing session file...");
         saveSession(snapshot, name);
-        window.alert("Session saved to your downloads.");
+        toast.success(`Session "${name}" saved successfully!`, 4000);
       } catch (err) {
         console.error("Failed to save session", err);
-        window.alert("Failed to save session. See console for details.");
+        toast.error(
+          err instanceof Error
+            ? `Save failed: ${err.message}`
+            : "Failed to save session. Check console for details.",
+          5000,
+        );
       }
     },
-    [snapshot],
+    [snapshot, toast],
   );
 
   const handleLoadSession = useCallback(
     async (file: File) => {
       try {
+        toast.info(`Loading session from ${file.name}...`);
         const loadedSnapshot = await loadSession(file);
+
+        // Validate snapshot has expected data
+        const warnings: string[] = [];
+        if (!loadedSnapshot.sceneObjects || loadedSnapshot.sceneObjects.length === 0) {
+          warnings.push("No scene objects found");
+        }
+        if (!loadedSnapshot.characters || loadedSnapshot.characters.length === 0) {
+          warnings.push("No characters found");
+        }
+
         sendMessage({ t: "load-session", snapshot: loadedSnapshot });
-        window.alert(`Loaded session from ${file.name}`);
+
+        if (warnings.length > 0) {
+          toast.warning(`Session loaded with warnings: ${warnings.join(", ")}`, 5000);
+        } else {
+          toast.success(`Session "${file.name}" loaded successfully!`, 4000);
+        }
       } catch (err) {
         console.error("Failed to load session", err);
-        window.alert(
+        toast.error(
           err instanceof Error
-            ? `Failed to load session: ${err.message}`
-            : "Failed to load session.",
+            ? `Load failed: ${err.message}`
+            : "Failed to load session. File may be corrupted.",
+          5000,
         );
       }
     },
-    [sendMessage],
+    [sendMessage, toast],
   );
 
   // DM role detection
@@ -1655,6 +1683,9 @@ function AuthenticatedApp({
           <DiceRoller onRoll={() => {}} onClose={() => setViewingRoll(null)} />
         </div>
       )}
+
+      {/* Toast Notifications */}
+      <ToastContainer messages={toast.messages} onDismiss={toast.dismiss} />
     </div>
   );
 }
