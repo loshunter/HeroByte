@@ -42,7 +42,7 @@ const TokenSprite = memo(function TokenSprite({
   onNodeReady,
 }: TokenSpriteProps) {
   const { data, transform, id } = object;
-  const [image, status] = useImage(data.imageUrl ?? "", "anonymous");
+  const [image, status] = useImage(data.imageUrl ?? "");
 
   // Calculate size multiplier based on token size category
   const sizeMultipliers: Record<string, number> = {

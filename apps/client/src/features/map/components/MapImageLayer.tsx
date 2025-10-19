@@ -30,7 +30,7 @@ interface MapImageLayerProps {
  * - Inner Group: Map object transform (position/scale/rotation)
  */
 export function MapImageLayer({ cam, src, transform, onNodeReady, onClick }: MapImageLayerProps) {
-  const [img] = useImage(src || "", "anonymous");
+  const [img] = useImage(src || "");
   const transformGroupRef = useRef<Konva.Group>(null);
 
   // Expose the transform group ref to parent
