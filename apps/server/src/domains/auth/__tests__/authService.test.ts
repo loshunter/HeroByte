@@ -37,10 +37,12 @@ describe("AuthService", () => {
   });
 
   describe("DM Password Management", () => {
-    it("returns false when no DM password is set", () => {
+    it("initializes with default DM password from environment", () => {
       const service = new AuthService({ storagePath: SECRET_PATH });
-      expect(service.hasDMPassword()).toBe(false);
-      expect(service.verifyDMPassword("anything")).toBe(false);
+      // With our changes, DM password is always initialized (either from env or fallback "FunDM")
+      expect(service.hasDMPassword()).toBe(true);
+      expect(service.verifyDMPassword("FunDM")).toBe(true); // Default fallback
+      expect(service.verifyDMPassword("wrong")).toBe(false);
     });
 
     it("sets and verifies DM password", () => {
