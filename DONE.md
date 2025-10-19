@@ -68,6 +68,40 @@
 
 ---
 
+## ✅ Toast Notification System & Load/Save UX (October 2025)
+
+### Toast Notification System
+- [x] **Toast Component**
+  - [x] Created `Toast.tsx` with four types: success, error, warning, info
+  - [x] Implemented JRPG-styled notifications with accessible color coding
+  - [x] Added auto-dismiss with configurable duration
+  - [x] Click-to-dismiss functionality
+  - [x] Enter/exit animations for smooth UX
+
+- [x] **Toast Management Hook**
+  - [x] Created `useToast` hook for managing toast state
+  - [x] Convenience methods: `success()`, `error()`, `warning()`, `info()`
+  - [x] Auto-incrementing toast IDs
+  - [x] Toast container positioning (fixed top-right)
+
+### Load/Save UX Improvements
+- [x] **Save Session Enhancement**
+  - [x] Replaced blocking `window.alert` with non-blocking toasts
+  - [x] Info toast: "Preparing session file..."
+  - [x] Success toast with session name confirmation
+  - [x] Error toasts with specific error messages (5s duration)
+
+- [x] **Load Session Enhancement**
+  - [x] Info toast showing filename being loaded
+  - [x] Snapshot validation for expected data
+  - [x] Warning toasts for missing scene objects or characters
+  - [x] Success toast confirming load with filename
+  - [x] Error toasts for corrupted files with helpful messages
+
+**Benefits**: Non-blocking feedback, professional UX, better error communication, validation warnings help DM understand session state.
+
+---
+
 ## ✅ Contributor Readiness
 
 ### Testing Infrastructure

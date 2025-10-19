@@ -26,7 +26,7 @@ Ship a table-ready MVP to run live playtests with real players and a DM. Priorit
 
 ### Session Management & DM Tools
 
-- [ ] Harden load/save UX: validate imports, show progress/error toasts, confirm success.
+- [x] Harden load/save UX: validate imports, show progress/error toasts, confirm success.
 - [ ] Add a snapshot smoke test that loads sample data and asserts tokens/characters/scene objects.
 - [ ] Review `clear-all-tokens` and other DM bulk actions for selection cleanup, persistence cadence, and confirmation prompts.
 - [ ] **Player save/load parity**
