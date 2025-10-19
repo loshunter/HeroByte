@@ -1103,21 +1103,22 @@ function AuthenticatedApp({
 
         e.preventDefault();
 
-        // Filter to only objects the user can delete (owns or is DM)
+        // Filter to only objects the user can delete
+        // Note: Locked objects CANNOT be deleted by anyone (including DM)
         const objectsToDelete = selectedObjectIds.filter((id) => {
           const obj = snapshot?.sceneObjects?.find((o) => o.id === id);
           if (!obj) return false;
 
-          // Can't delete locked objects
+          // LOCK BLOCKS EVERYONE: Can't delete locked objects (even DM must unlock first)
           if (obj.locked) return false;
 
           // Can't delete the map
           if (id.startsWith("map:")) return false;
 
-          // Can delete if DM
+          // Can delete if DM (and not locked)
           if (isDM) return true;
 
-          // Can delete if owner (or no owner set)
+          // Can delete if owner (or no owner set) and not locked
           if (obj.type === "drawing") {
             const drawing = obj.data.drawing;
             return !drawing.owner || drawing.owner === uid;
@@ -1138,7 +1139,7 @@ function AuthenticatedApp({
           });
 
           if (hasLocked) {
-            alert("Cannot delete locked objects. Unlock them first.");
+            alert("Cannot delete locked objects. Unlock them first using the lock icon.");
           } else {
             alert("You can only delete objects you own.");
           }
@@ -1148,11 +1149,16 @@ function AuthenticatedApp({
         // Show warning if some objects can't be deleted
         if (objectsToDelete.length < selectedObjectIds.length) {
           const skipped = selectedObjectIds.length - objectsToDelete.length;
-          if (
-            !confirm(
-              `You can only delete ${objectsToDelete.length} of ${selectedObjectIds.length} selected objects (${skipped} owned by others or locked). Continue?`,
-            )
-          ) {
+          const lockedCount = selectedObjectIds.filter((id) => {
+            const obj = snapshot?.sceneObjects?.find((o) => o.id === id);
+            return obj?.locked;
+          }).length;
+
+          const message = lockedCount > 0
+            ? `Cannot delete ${skipped} locked object${skipped > 1 ? "s" : ""}. Delete the ${objectsToDelete.length} unlocked object${objectsToDelete.length > 1 ? "s" : ""}?`
+            : `You can only delete ${objectsToDelete.length} of ${selectedObjectIds.length} selected objects (${skipped} owned by others). Continue?`;
+
+          if (!confirm(message)) {
             return;
           }
         }

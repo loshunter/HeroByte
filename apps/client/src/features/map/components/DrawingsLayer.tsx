@@ -226,7 +226,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
     const canShowSelection = selectionEnabled; // Show selection outlines when selection or transform tools are active
     const canManage = isOwner || canManageAllDrawings;
     const allowClickSelection = selectMode || transformMode;
-    const allowDrag = selectMode && canManage && isSelected;
+    const allowDrag = selectMode && canManage && isSelected && !sceneObject.locked;
     const isDragging = draggingId === sceneObject.id;
 
     const interactiveProps = allowClickSelection
