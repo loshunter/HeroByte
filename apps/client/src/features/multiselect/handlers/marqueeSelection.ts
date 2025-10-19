@@ -3,7 +3,7 @@
  * Pure utility functions for marquee selection logic
  */
 
-import type { MarqueeState, MarqueeRect, Point } from "../types/index.js";
+import type { MarqueeRect, Point } from "../types/index.js";
 
 /**
  * Calculate the rectangular bounds of a marquee selection
