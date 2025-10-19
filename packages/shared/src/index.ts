@@ -15,13 +15,7 @@ export { TokenModel, PlayerModel, CharacterModel } from "./models.js";
 // SCENE GRAPH
 // ----------------------------------------------------------------------------
 
-export type SceneObjectType =
-  | "map"
-  | "token"
-  | "drawing"
-  | "pointer"
-  | "prop"
-  | "staging-zone";
+export type SceneObjectType = "map" | "token" | "drawing" | "pointer" | "prop" | "staging-zone";
 
 export interface SceneObjectTransform {
   x: number;
