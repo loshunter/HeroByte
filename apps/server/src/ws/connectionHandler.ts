@@ -19,7 +19,7 @@ export class ConnectionHandler {
   private container: Container;
   private wss: WebSocketServer;
   private timeoutCheckInterval: NodeJS.Timeout | null = null;
-  private readonly HEARTBEAT_TIMEOUT = 120000; // 120 seconds without heartbeat = timeout (extended for debugging)
+  private readonly HEARTBEAT_TIMEOUT = 5 * 60 * 1000; // 5 minutes without heartbeat before timeout
   private readonly defaultRoomId: string;
 
   constructor(container: Container, wss: WebSocketServer) {
