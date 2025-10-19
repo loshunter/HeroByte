@@ -75,7 +75,10 @@ export function useObjectSelection({
 
   // Clear optimistic state once the authoritative snapshot catches up
   useEffect(() => {
-    console.log("[useObjectSelection] serverEntry changed, clearing optimistic state. serverEntry:", serverEntry);
+    console.log(
+      "[useObjectSelection] serverEntry changed, clearing optimistic state. serverEntry:",
+      serverEntry,
+    );
     setOptimisticEntry(null);
   }, [serverEntry]);
 
@@ -97,7 +100,10 @@ export function useObjectSelection({
         if (!activeEntry) {
           return;
         }
-        console.log("[useObjectSelection] selectObject(null) called - deselecting", new Error().stack);
+        console.log(
+          "[useObjectSelection] selectObject(null) called - deselecting",
+          new Error().stack,
+        );
         setOptimisticEntry(null);
         sendMessage({ t: "deselect-object", uid });
         return;

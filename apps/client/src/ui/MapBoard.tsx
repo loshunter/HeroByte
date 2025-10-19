@@ -185,7 +185,8 @@ export default function MapBoard({
   const stagingZoneObject = useMemo(
     () =>
       sceneObjects.find(
-        (object): object is SceneObject & { type: "staging-zone" } => object.type === "staging-zone",
+        (object): object is SceneObject & { type: "staging-zone" } =>
+          object.type === "staging-zone",
       ) ?? null,
     [sceneObjects],
   );

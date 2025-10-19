@@ -873,7 +873,8 @@ function AuthenticatedApp({
       }
 
       if (tokenId) {
-        const color = state.token?.color ?? (typeof state.color === "string" ? state.color : undefined);
+        const color =
+          state.token?.color ?? (typeof state.color === "string" ? state.color : undefined);
         if (color && color.trim().length > 0) {
           sendMessage({ t: "set-token-color", tokenId, color: color.trim() });
         }
@@ -1145,9 +1146,10 @@ function AuthenticatedApp({
             return obj?.locked;
           }).length;
 
-          const message = lockedCount > 0
-            ? `Cannot delete ${skipped} locked object${skipped > 1 ? "s" : ""}. Delete the ${objectsToDelete.length} unlocked object${objectsToDelete.length > 1 ? "s" : ""}?`
-            : `You can only delete ${objectsToDelete.length} of ${selectedObjectIds.length} selected objects (${skipped} owned by others). Continue?`;
+          const message =
+            lockedCount > 0
+              ? `Cannot delete ${skipped} locked object${skipped > 1 ? "s" : ""}. Delete the ${objectsToDelete.length} unlocked object${objectsToDelete.length > 1 ? "s" : ""}?`
+              : `You can only delete ${objectsToDelete.length} of ${selectedObjectIds.length} selected objects (${skipped} owned by others). Continue?`;
 
           if (!confirm(message)) {
             return;

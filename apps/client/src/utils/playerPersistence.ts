@@ -41,7 +41,10 @@ function cloneDrawingForExport(drawing: Drawing): Drawing {
     : [];
 
   return {
-    id: typeof drawing.id === "string" && drawing.id.trim().length > 0 ? drawing.id.trim() : generateId(),
+    id:
+      typeof drawing.id === "string" && drawing.id.trim().length > 0
+        ? drawing.id.trim()
+        : generateId(),
     type: drawing.type,
     points,
     color: drawing.color,
@@ -127,8 +130,7 @@ function sanitizeDrawingFromImport(raw: unknown, index: number): Drawing | null 
     return null;
   }
 
-  const id =
-    typeof raw.id === "string" && raw.id.trim().length > 0 ? raw.id.trim() : generateId();
+  const id = typeof raw.id === "string" && raw.id.trim().length > 0 ? raw.id.trim() : generateId();
   const typeRaw = typeof raw.type === "string" ? raw.type.trim() : "";
   const type: ValidDrawingType = VALID_DRAWING_TYPES.includes(typeRaw as ValidDrawingType)
     ? (typeRaw as ValidDrawingType)
@@ -188,8 +190,7 @@ export function savePlayerState({
         size: token.size,
         rotation: tokenScene?.transform.rotation,
         scale:
-          tokenScene &&
-          (tokenScene.transform.scaleX !== 1 || tokenScene.transform.scaleY !== 1)
+          tokenScene && (tokenScene.transform.scaleX !== 1 || tokenScene.transform.scaleY !== 1)
             ? { x: tokenScene.transform.scaleX, y: tokenScene.transform.scaleY }
             : undefined,
       }
@@ -198,9 +199,7 @@ export function savePlayerState({
   const sanitizedStatus = sanitizeStatusEffects(player.statusEffects);
   const sanitizedDrawings =
     Array.isArray(drawings) && drawings.length > 0
-      ? drawings
-          .slice(0, MAX_DRAWINGS)
-          .map(cloneDrawingForExport)
+      ? drawings.slice(0, MAX_DRAWINGS).map(cloneDrawingForExport)
       : undefined;
 
   const state: PlayerState = {

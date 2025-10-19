@@ -256,14 +256,13 @@ export const DrawingsLayer = memo(function DrawingsLayer({
         }
       : {};
 
-    const groupHandlers =
-      allowDrag
-        ? {
-            onDragStart: () => handleDragStart(sceneObject.id),
-            onDragMove: (event: KonvaEventObject<DragEvent>) => handleDragMove(sceneObject.id, event),
-            onDragEnd: (event: KonvaEventObject<DragEvent>) => handleDragEnd(sceneObject.id, event),
-          }
-        : {};
+    const groupHandlers = allowDrag
+      ? {
+          onDragStart: () => handleDragStart(sceneObject.id),
+          onDragMove: (event: KonvaEventObject<DragEvent>) => handleDragMove(sceneObject.id, event),
+          onDragEnd: (event: KonvaEventObject<DragEvent>) => handleDragEnd(sceneObject.id, event),
+        }
+      : {};
 
     const selectionStroke = isDragging ? "#44f" : "#447DF7";
     const baseStrokeWidth = drawing.width / cam.scale;

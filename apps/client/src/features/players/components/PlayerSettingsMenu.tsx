@@ -267,9 +267,7 @@ export function PlayerSettingsMenu({
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
             {STATUS_OPTIONS.map((option) => {
               const isNone = option.value === "";
-              const active = statusIcon
-                ? statusIcon.value === option.value
-                : isNone;
+              const active = statusIcon ? statusIcon.value === option.value : isNone;
               const handleStatusClick = () => {
                 onStatusChange(isNone ? null : option);
               };

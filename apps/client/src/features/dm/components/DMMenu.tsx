@@ -603,8 +603,13 @@ export function DMMenu({
 
                 <JRPGPanel variant="simple" title="Player Staging Zone">
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px" }}>
-                      <label className="jrpg-text-small" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <div
+                      style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px" }}
+                    >
+                      <label
+                        className="jrpg-text-small"
+                        style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+                      >
                         Center X
                         <input
                           type="number"
@@ -620,7 +625,10 @@ export function DMMenu({
                           step={0.1}
                         />
                       </label>
-                      <label className="jrpg-text-small" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <label
+                        className="jrpg-text-small"
+                        style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+                      >
                         Center Y
                         <input
                           type="number"
@@ -636,13 +644,18 @@ export function DMMenu({
                           step={0.1}
                         />
                       </label>
-                      <label className="jrpg-text-small" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <label
+                        className="jrpg-text-small"
+                        style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+                      >
                         Width (tiles)
                         <input
                           type="number"
                           min={0.5}
                           value={stagingInputs.width}
-                          onChange={(event) => handleStagingInputChange("width", event.target.value)}
+                          onChange={(event) =>
+                            handleStagingInputChange("width", event.target.value)
+                          }
                           style={{
                             width: "100%",
                             padding: "6px",
@@ -653,13 +666,18 @@ export function DMMenu({
                           step={0.5}
                         />
                       </label>
-                      <label className="jrpg-text-small" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <label
+                        className="jrpg-text-small"
+                        style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+                      >
                         Height (tiles)
                         <input
                           type="number"
                           min={0.5}
                           value={stagingInputs.height}
-                          onChange={(event) => handleStagingInputChange("height", event.target.value)}
+                          onChange={(event) =>
+                            handleStagingInputChange("height", event.target.value)
+                          }
                           style={{
                             width: "100%",
                             padding: "6px",
@@ -671,12 +689,17 @@ export function DMMenu({
                         />
                       </label>
                     </div>
-                    <label className="jrpg-text-small" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <label
+                      className="jrpg-text-small"
+                      style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+                    >
                       Rotation (degrees)
                       <input
                         type="number"
                         value={stagingInputs.rotation}
-                        onChange={(event) => handleStagingInputChange("rotation", event.target.value)}
+                        onChange={(event) =>
+                          handleStagingInputChange("rotation", event.target.value)
+                        }
                         style={{
                           width: "100%",
                           padding: "6px",
@@ -711,7 +734,10 @@ export function DMMenu({
                         Clear Zone
                       </JRPGButton>
                     </div>
-                    <span className="jrpg-text-tiny" style={{ color: "var(--jrpg-white)", opacity: 0.6 }}>
+                    <span
+                      className="jrpg-text-tiny"
+                      style={{ color: "var(--jrpg-white)", opacity: 0.6 }}
+                    >
                       Players spawn randomly within this area when they join the session.
                     </span>
                   </div>

@@ -207,7 +207,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
               {entities.map((entity) => {
                 if (entity.kind === "player") {
                   const { player, token, isMe } = entity;
-                  const tokenSceneObject = token ? tokenSceneMap.get(token.id) ?? null : null;
+                  const tokenSceneObject = token ? (tokenSceneMap.get(token.id) ?? null) : null;
                   const playerDrawings = drawingsByOwner.get(player.uid) ?? [];
 
                   return (
@@ -226,9 +226,9 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                         player={player}
                         isMe={isMe}
                         tokenColor={token?.color}
-                         token={token}
-                         tokenSceneObject={tokenSceneObject}
-                         playerDrawings={playerDrawings}
+                        token={token}
+                        tokenSceneObject={tokenSceneObject}
+                        playerDrawings={playerDrawings}
                         statusEffects={player.statusEffects}
                         micEnabled={micEnabled}
                         editingPlayerUID={editingPlayerUID}
