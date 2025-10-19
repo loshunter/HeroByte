@@ -359,7 +359,9 @@ export class MessageRouter {
             console.warn(`select-multiple spoofed uid from ${senderUid}`);
             break;
           }
-          console.info(`[DEBUG] select-multiple from ${senderUid}: objectIds=${JSON.stringify(message.objectIds)}, mode=${message.mode ?? "replace"}`);
+          console.info(
+            `[DEBUG] select-multiple from ${senderUid}: objectIds=${JSON.stringify(message.objectIds)}, mode=${message.mode ?? "replace"}`,
+          );
           if (
             this.selectionService.selectMultiple(
               state,
