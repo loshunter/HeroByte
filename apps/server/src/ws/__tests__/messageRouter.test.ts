@@ -967,11 +967,10 @@ describe("MessageRouter", () => {
       const msg: ClientMessage = { t: "set-status-effects", effects: ["poisoned", "burning"] };
       router.route(msg, "player-1");
 
-      expect(mockPlayerService.setStatusEffects).toHaveBeenCalledWith(
-        mockState,
-        "player-1",
-        ["poisoned", "burning"],
-      );
+      expect(mockPlayerService.setStatusEffects).toHaveBeenCalledWith(mockState, "player-1", [
+        "poisoned",
+        "burning",
+      ]);
       expect(mockRoomService.broadcast).toHaveBeenCalled();
       expect(mockRoomService.saveState).toHaveBeenCalled();
     });

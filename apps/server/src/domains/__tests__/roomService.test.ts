@@ -857,7 +857,13 @@ describe("RoomService", () => {
       service.setPlayerStagingZone({ x: 6, y: 7, width: 4, height: 2, rotation: 30 });
 
       const state = service.getState();
-      expect(state.playerStagingZone).toMatchObject({ x: 6, y: 7, width: 4, height: 2, rotation: 30 });
+      expect(state.playerStagingZone).toMatchObject({
+        x: 6,
+        y: 7,
+        width: 4,
+        height: 2,
+        rotation: 30,
+      });
       expect(state.sceneObjects.some((obj) => obj.type === "staging-zone")).toBe(true);
 
       service.setPlayerStagingZone(undefined);

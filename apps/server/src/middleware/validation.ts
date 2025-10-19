@@ -165,7 +165,11 @@ function validateDrawingPayload(drawing: unknown, context: string): ValidationRe
     return { valid: false, error: `${context}: drawing points must contain finite coordinates` };
   }
 
-  if (typeof payload.color !== "string" || payload.color.length === 0 || payload.color.length > 128) {
+  if (
+    typeof payload.color !== "string" ||
+    payload.color.length === 0 ||
+    payload.color.length > 128
+  ) {
     return { valid: false, error: `${context}: drawing color must be a non-empty string` };
   }
 
@@ -298,7 +302,10 @@ export function validateMessage(raw: unknown): ValidationResult {
           return { valid: false, error: "set-status-effects: effect labels cannot be empty" };
         }
         if (trimmed.length > 64) {
-          return { valid: false, error: "set-status-effects: effect labels too long (max 64 chars)" };
+          return {
+            valid: false,
+            error: "set-status-effects: effect labels too long (max 64 chars)",
+          };
         }
       }
       break;

@@ -31,7 +31,12 @@ export class RoomService {
     const y = Number(candidate.y);
     const width = Number(candidate.width);
     const height = Number(candidate.height);
-    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(width) || !Number.isFinite(height)) {
+    if (
+      !Number.isFinite(x) ||
+      !Number.isFinite(y) ||
+      !Number.isFinite(width) ||
+      !Number.isFinite(height)
+    ) {
       return undefined;
     }
     const normalized: PlayerStagingZone = {
@@ -39,9 +44,10 @@ export class RoomService {
       y,
       width: Math.max(1, Math.abs(width)),
       height: Math.max(1, Math.abs(height)),
-      rotation: candidate.rotation !== undefined && Number.isFinite(Number(candidate.rotation))
-        ? Number(candidate.rotation)
-        : 0,
+      rotation:
+        candidate.rotation !== undefined && Number.isFinite(Number(candidate.rotation))
+          ? Number(candidate.rotation)
+          : 0,
     };
     return normalized;
   }

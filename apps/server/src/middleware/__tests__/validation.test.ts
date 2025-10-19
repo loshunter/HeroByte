@@ -532,7 +532,9 @@ describe("validateMessage", () => {
 
   describe("Edge Cases: Staging Zone", () => {
     it("validates set-player-staging-zone with null", () => {
-      expect(validateMessage({ t: "set-player-staging-zone", zone: null })).toEqual({ valid: true });
+      expect(validateMessage({ t: "set-player-staging-zone", zone: null })).toEqual({
+        valid: true,
+      });
     });
 
     it("validates set-player-staging-zone with numeric values", () => {
