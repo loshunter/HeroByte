@@ -124,9 +124,13 @@ describe("AuthService", () => {
       const service = new AuthService({ storagePath: SECRET_PATH });
       service.updateDMPassword("ValidPass123");
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(service.verifyDMPassword("" as any)).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(service.verifyDMPassword(null as any)).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(service.verifyDMPassword(undefined as any)).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(service.verifyDMPassword(123 as any)).toBe(false);
     });
 
