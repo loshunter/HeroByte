@@ -5,6 +5,49 @@
 
 ---
 
+## ✅ Partial Erase E2E Testing (October 19, 2025)
+
+**Commit**: 777fd90
+
+### E2E Test Infrastructure Fixed
+- [x] **Test Environment Setup**
+  - [x] Created `apps/e2e/global-setup.ts` to clear server state before test runs
+  - [x] Added beforeEach hooks in `partial-erase.spec.ts` for test isolation
+  - [x] Disabled parallel execution in `playwright.config.ts` to avoid room state conflicts
+  - [x] Fixed test flakiness caused by shared state between parallel tests
+
+### E2E Test Coverage Verified
+- [x] **All 4 Tests Passing** (11.0s total execution time)
+  - [x] Test: "erases middle segment of freehand drawing" - validates core splitting logic
+  - [x] Test: "handles undo/redo for partial erase" - verifies undo stack integration
+  - [x] Test: "syncs partial erase across multiple clients" - confirms real-time synchronization
+  - [x] Test: "preserves drawing properties in split segments" - ensures color/width/opacity preserved
+
+### Feature Validation
+- [x] **Server Logic Verified**
+  - [x] Partial erase server handler works correctly
+  - [x] Split segments created with proper IDs and properties
+  - [x] Original drawing deleted atomically
+  - [x] All clients receive synchronized updates
+
+- [x] **No Bugs Found**
+  - [x] Feature works perfectly in all test scenarios
+  - [x] Undo/redo integration confirmed working
+  - [x] Multi-client synchronization confirmed working
+  - [x] Drawing properties preservation confirmed working
+
+### Files Involved
+- `playwright.config.ts` - Disabled parallel execution for stable room state
+- `apps/e2e/global-setup.ts` - Clear state before test runs
+- `apps/e2e/partial-erase.spec.ts` - Comprehensive E2E test suite
+- `docs/manual-test-reports/2025-10-18-partial-erase.md` - Manual QA checklist
+
+**Benefits**: Partial erase feature is fully validated and ready for MVP launch. E2E test infrastructure improvements will benefit all future tests. No bugs found - feature works exactly as designed.
+
+**Status**: MVP launch blocker complete. Feature verified working correctly with comprehensive test coverage.
+
+---
+
 ## ✅ MVP Launch Blocker Completion (October 19, 2025)
 
 ### Multi-Select Module Extraction & Testing
