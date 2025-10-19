@@ -129,7 +129,8 @@ export class AuthService {
       source: this.secret.dmSource || "fallback",
     } as StoredSecret;
 
-    return compareSecret(dmPassword, dmRecord);
+    // Trim whitespace to match update behavior
+    return compareSecret(dmPassword.trim(), dmRecord);
   }
 
   /**
