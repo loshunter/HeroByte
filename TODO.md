@@ -39,8 +39,8 @@ Ship a table-ready MVP to run live playtests with real players and a DM. Priorit
   - [ ] Persist NPC tokens with their URLs, portrait URLs, sizing overrides, and positions; ensure they respawn correctly when loading a session.
   - [ ] Validate session load restores the active map plus all DM drawings/NPC tokens before players join; add regression tests for partial saves.
 - [ ] **Player staging zone (DM object)**
-  - [ ] Design the staging zone data model (default size, color/opacity, spawn radius) and add authoring controls to DM tools.
-  - [ ] Persist the staging zone in session saves and spawn players inside it when they connect or reload.
+  - [x] Design the staging zone data model and add transform tool support for visual editing.
+  - [x] Persist the staging zone in session saves and spawn players inside it when they connect or reload.
   - [ ] Add smoke coverage verifying new players spawn inside the staging zone and fall back gracefully if none exists.
 
 ### Onboarding & Core UI Feedback

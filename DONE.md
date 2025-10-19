@@ -120,6 +120,32 @@
 
 ---
 
+## ✅ Player Staging Zone Transform Tool Support (October 2025)
+
+### Visual Transform Tool Integration
+- [x] **Staging Zone Selectable**
+  - [x] Made staging zone unlocked by default (was previously locked)
+  - [x] Added click/tap handlers for staging zone selection in select/transform modes
+  - [x] DM can click staging zone to select it like any other scene object
+  - [x] Wired staging zone to transform gizmo node reference system
+
+- [x] **Transform Tool Support**
+  - [x] Staging zone works with unified transform tool
+  - [x] Move: Drag staging zone to reposition spawn area
+  - [x] Scale: Resize staging zone width/height with transform handles
+  - [x] Rotate: Rotate staging zone for map alignment
+
+- [x] **Server Integration**
+  - [x] Backend already handled staging zone transforms (RoomService.applySceneObjectTransform)
+  - [x] Position updates sync to playerStagingZone.x/y
+  - [x] Scale updates sync to playerStagingZone.width/height
+  - [x] Rotation updates sync to playerStagingZone.rotation
+  - [x] DM-only permission enforced on server side
+
+**Benefits**: Replaced awkward DM menu number inputs with intuitive visual transform tool. Consistent UX across all transformable objects (map, tokens, staging zone). Direct manipulation with visual feedback.
+
+---
+
 ## ✅ Contributor Readiness
 
 ### Testing Infrastructure
