@@ -1119,17 +1119,8 @@ function AuthenticatedApp({
           if (isDM) return true;
 
           // Can delete if owner (or no owner set) and not locked
-          if (obj.type === "drawing") {
-            const drawing = obj.data.drawing;
-            return !drawing.owner || drawing.owner === uid;
-          }
-
-          if (obj.type === "token") {
-            const token = obj.data.token;
-            return !token.owner || token.owner === uid;
-          }
-
-          return false;
+          // Owner is stored at the SceneObject level, not in data
+          return !obj.owner || obj.owner === uid;
         });
 
         if (objectsToDelete.length === 0) {
