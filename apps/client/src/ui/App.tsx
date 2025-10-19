@@ -594,13 +594,11 @@ function AuthenticatedApp({
       } else if ("t" in message && message.t === "dm-status") {
         // DM elevation successful
         if (message.isDM) {
-          toast.success("DM elevation successful! You are now the Dungeon Master.", {
-            duration: 4000,
-          });
+          toast.success("DM elevation successful! You are now the Dungeon Master.", 4000);
         }
       } else if ("t" in message && message.t === "dm-elevation-failed") {
         // DM elevation failed
-        toast.error(`DM elevation failed: ${message.reason}`, { duration: 5000 });
+        toast.error(`DM elevation failed: ${message.reason}`, 5000);
       }
     });
   }, [registerServerEventHandler, toast]);
@@ -1079,7 +1077,7 @@ function AuthenticatedApp({
     (requestDM: boolean) => {
       if (!requestDM) {
         // Revoking DM mode not currently supported
-        toast.warning("DM mode cannot be revoked once activated", { duration: 3000 });
+        toast.warning("DM mode cannot be revoked once activated", 3000);
         return;
       }
 
