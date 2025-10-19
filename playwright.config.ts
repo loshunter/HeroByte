@@ -6,11 +6,12 @@ const baseURL = process.env.E2E_BASE_URL ?? `http://${HOST}:${PORT}`;
 
 export default defineConfig({
   testDir: "./apps/e2e",
+  globalSetup: "./apps/e2e/global-setup.ts",
   timeout: 30_000,
   expect: {
     timeout: 10_000,
   },
-  fullyParallel: true,
+  fullyParallel: false, // Disable parallel execution to avoid room state conflicts
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"], ["html", { open: "never" }]],
