@@ -635,6 +635,10 @@ function AuthenticatedApp({
         clearSelection();
         return;
       }
+      console.debug(
+        "[Selection][App] handleObjectSelectionBatch received ids:",
+        objectIds,
+      );
       selectMultiple(objectIds, "replace");
     },
     [clearSelection, selectMultiple],

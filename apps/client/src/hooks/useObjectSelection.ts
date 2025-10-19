@@ -159,7 +159,14 @@ export function useObjectSelection({
         if (mode === "replace") {
           sendMessage({ t: "deselect-object", uid });
         } else {
-          sendMessage({ t: "select-multiple", uid, objectIds: normalizedIncoming, mode });
+          const payload: ClientMessage = {
+            t: "select-multiple",
+            uid,
+            objectIds: normalizedIncoming,
+            mode,
+          };
+          console.debug("[Selection] Sending select-multiple (empty nextIds)", payload);
+          sendMessage(payload);
         }
         return;
       }
@@ -168,7 +175,14 @@ export function useObjectSelection({
       if (mode === "replace" && nextIds.length === 1) {
         sendMessage({ t: "select-object", uid, objectId: nextIds[0]! });
       } else {
-        sendMessage({ t: "select-multiple", uid, objectIds: normalizedIncoming, mode });
+        const payload: ClientMessage = {
+          t: "select-multiple",
+          uid,
+          objectIds: normalizedIncoming,
+          mode,
+        };
+        console.debug("[Selection] Sending select-multiple", payload);
+        sendMessage(payload);
       }
     },
     [activeEntry, sendMessage, uid],
