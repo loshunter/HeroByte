@@ -15,7 +15,7 @@ interface UseDMRoleOptions {
 
 interface UseDMRoleReturn {
   isDM: boolean;
-  toggleDM: (next: boolean) => void;
+  elevateToDM: (dmPassword: string) => void;
 }
 
 /**
@@ -30,12 +30,12 @@ export function useDMRole({ snapshot, uid, send }: UseDMRoleOptions): UseDMRoleR
     return snapshot?.players?.find((player) => player.uid === uid)?.isDM ?? false;
   }, [snapshot?.players, uid]);
 
-  const toggleDM = useCallback(
-    (next: boolean) => {
-      send({ t: "toggle-dm", isDM: next });
+  const elevateToDM = useCallback(
+    (dmPassword: string) => {
+      send({ t: "elevate-to-dm", dmPassword });
     },
     [send],
   );
 
-  return { isDM, toggleDM };
+  return { isDM, elevateToDM };
 }

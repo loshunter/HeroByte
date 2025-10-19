@@ -591,9 +591,19 @@ function AuthenticatedApp({
           type: "error",
           message: message.reason ?? "Unable to update room password.",
         });
+      } else if ("t" in message && message.t === "dm-status") {
+        // DM elevation successful
+        if (message.isDM) {
+          toast.success("DM elevation successful! You are now the Dungeon Master.", {
+            duration: 4000,
+          });
+        }
+      } else if ("t" in message && message.t === "dm-elevation-failed") {
+        // DM elevation failed
+        toast.error(`DM elevation failed: ${message.reason}`, { duration: 5000 });
       }
     });
-  }, [registerServerEventHandler]);
+  }, [registerServerEventHandler, toast]);
 
   const handleObjectSelection = useCallback(
     (
@@ -1062,7 +1072,32 @@ function AuthenticatedApp({
   );
 
   // DM role detection
-  const { isDM, toggleDM } = useDMRole({ snapshot, uid, send: sendMessage });
+  const { isDM, elevateToDM } = useDMRole({ snapshot, uid, send: sendMessage });
+
+  // Handle DM elevation with password prompt
+  const handleToggleDM = useCallback(
+    (requestDM: boolean) => {
+      if (!requestDM) {
+        // Revoking DM mode not currently supported
+        toast.warning("DM mode cannot be revoked once activated", { duration: 3000 });
+        return;
+      }
+
+      if (isDM) {
+        // Already DM
+        return;
+      }
+
+      // Prompt for DM password
+      const dmPassword = window.prompt("Enter DM password to elevate:");
+      if (!dmPassword) {
+        return; // User cancelled
+      }
+
+      elevateToDM(dmPassword.trim());
+    },
+    [isDM, elevateToDM, toast],
+  );
 
   useEffect(() => {
     if (!activeTool) {
@@ -1490,7 +1525,7 @@ function AuthenticatedApp({
           )
         }
         currentIsDM={isDM}
-        onToggleDMMode={toggleDM}
+        onToggleDMMode={handleToggleDM}
         onTokenImageChange={updateTokenImage}
         onApplyPlayerState={handleApplyPlayerState}
         onStatusEffectsChange={handleSetStatusEffects}
@@ -1505,7 +1540,7 @@ function AuthenticatedApp({
 
       <DMMenu
         isDM={isDM}
-        onToggleDM={toggleDM}
+        onToggleDM={handleToggleDM}
         gridSize={gridSize}
         gridSquareSize={gridSquareSize}
         gridLocked={gridLocked}
