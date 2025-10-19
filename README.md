@@ -316,20 +316,33 @@ HeroByte/
 
 ## Testing
 
-HeroByte maintains comprehensive test coverage across all layers:
+HeroByte maintains comprehensive test coverage across all layers with **100% automated testing**:
+
+### 🎉 Complete Test Automation - **352/352 Tests Passing**
+
+- ✅ **Unit & Integration**: 342/342 tests passing
+- ✅ **End-to-End**: 10/10 comprehensive E2E tests
+- ✅ **Execution Time**: ~3 minutes (vs 30-60 min manual)
+- ✅ **Efficiency Gain**: 10-20x faster than manual testing
+- ✅ **CI/CD**: Automated testing on all PRs via GitHub Actions
+
+**Major Achievement (October 2025)**: Complete automation of manual testing workflows. All critical user flows now covered by automated E2E tests including authentication, drawing tools, multi-select, dice rolling, two-browser synchronization, and session persistence.
 
 ### Test Coverage
 
-- ✅ **150/150 tests passing** (100% pass rate)
 - ✅ **Shared package**: 99.57% coverage (31 tests)
-- ✅ **Server package**: 80.99% coverage (119 tests)
-- ✅ **CI/CD**: Automated testing on all PRs via GitHub Actions
+- ✅ **Server package**: 80.99% coverage (235 tests)
+- ✅ **Client package**: 76/76 tests passing
+- ✅ **E2E Suite**: 10 comprehensive user flow tests
 
 ### Running Tests
 
 ```bash
-# Run all tests
+# Run all tests (unit + integration + E2E)
 pnpm test
+
+# Run E2E tests only (10 comprehensive tests, ~46 seconds)
+pnpm test:e2e
 
 # Run tests with coverage
 pnpm test:coverage
@@ -337,13 +350,50 @@ pnpm test:coverage
 # Run specific package tests
 pnpm test:shared    # Shared models (99.57% coverage)
 pnpm test:server    # Server logic (80.99% coverage)
+pnpm test:client    # Client features
 ```
+
+### What's Tested in E2E Suite
+
+All critical MVP features are covered by automated tests:
+
+1. **Authentication Flow** - Password validation, WebSocket connection, game UI loading
+2. **Drawing Tools** - Freehand drawing, persistence through page reload
+3. **Partial Erase** - Drawing segmentation and eraser tool
+4. **Multi-Select** - Marquee selection, multi-object operations
+5. **Dice Rolling** - Die selection, roll execution, result display
+6. **Session Save/Load** - DM session export and validation
+7. **Two-Browser Sync** ⭐ - Real-time WebSocket synchronization between clients
+8. **Voice Chat** - Microphone UI and controls
+9. **Reconnection Handling** - Disconnect/reconnect flow, state restoration
+10. **Player State Persistence** - HP changes, token state survival
 
 ### Test Documentation
 
+- [docs/e2e-testing-success.md](docs/e2e-testing-success.md) - **Complete E2E automation success story** (recommended read!)
+- [docs/automated-testing-strategy.md](docs/automated-testing-strategy.md) - Testing architecture and guide
+- [docs/playtest-setup-guide.md](docs/playtest-setup-guide.md) - DM and player setup instructions
 - [TESTING.md](docs/TESTING.md) - Comprehensive testing guide with Chrome DevTools MCP integration
-- [Phase 14.5 Test Results](docs/test-results/phase-14.5.md) - Latest test results and validation
 - [TESTING_SETUP.md](TESTING_SETUP.md) - Original testing setup guide
+
+### Quick Test Commands
+
+```bash
+# Prerequisites (start dev servers first)
+pnpm dev:server  # Terminal 1
+pnpm dev:client  # Terminal 2
+
+# Run tests
+pnpm test        # All tests (352 total, ~3 min)
+pnpm test:e2e   # E2E only (10 tests, ~46 sec)
+
+# Debug E2E tests
+npx playwright test comprehensive-mvp.spec.ts --headed  # Show browser
+PWDEBUG=1 npx playwright test comprehensive-mvp.spec.ts  # Inspector
+
+# Specific test
+npx playwright test comprehensive-mvp.spec.ts -g "Authentication"
+```
 
 ### Chrome DevTools MCP Integration
 
