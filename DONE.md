@@ -35,6 +35,24 @@
   - [x] Added smart confirmation dialogs with deletion counts
   - [x] Provided specific error messages for different permission issues
 
+### Group Lock/Unlock Controls
+- [x] **UI Controls**
+  - [x] Group lock button appears when multiple objects selected
+  - [x] Group unlock button appears when multiple objects selected
+  - [x] Selection count display shows number of selected objects
+  - [x] Hover states for better UX feedback
+
+- [x] **Backend Support**
+  - [x] `lock-selected` message handler in message router
+  - [x] `unlock-selected` message handler in message router
+  - [x] `lockSelected()` and `unlockSelected()` methods in useObjectSelection hook
+  - [x] Broadcast and save state after lock/unlock operations
+
+- [x] **Persistence**
+  - [x] Lock state stored in SceneObject.locked field
+  - [x] Lock state persisted through save/load in session files
+  - [x] Scene graph preserves lock state across server restarts
+
 ### Bug Fixes
 - [x] **WebSocket Connection Stability**
   - [x] Fixed race condition in connection handler authentication
