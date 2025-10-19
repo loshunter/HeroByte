@@ -1078,7 +1078,7 @@ function AuthenticatedApp({
       if (!requestDM) {
         // Revoking DM mode
         const confirmed = window.confirm(
-          "Are you sure you want to revoke your DM status? Another player will be able to become DM with the password."
+          "Are you sure you want to revoke your DM status? Another player will be able to become DM with the password.",
         );
         if (!confirmed) {
           return;

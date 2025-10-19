@@ -25,6 +25,7 @@ Users were unable to make themselves DM because:
 ### 1. Client Updates (apps/client/src/ui/App.tsx)
 
 **Added Bootstrap Flow:**
+
 - Detects "No DM password configured" error
 - Prompts user to set initial DM password
 - Validates password (minimum 8 characters)
@@ -32,6 +33,7 @@ Users were unable to make themselves DM because:
 - Shows success/failure toasts
 
 **Added Message Handlers:**
+
 - `dm-password-updated` → Success toast
 - `dm-password-update-failed` → Error toast
 
@@ -40,34 +42,39 @@ Users were unable to make themselves DM because:
 ### 2. Server Updates
 
 **File: apps/server/src/config/auth.ts**
+
 - Added `DEV_FALLBACK_DM_PASSWORD = "FunDM"`
 - Added `getDMPassword()` function
 - Logs warning when using development fallback
 
 **File: apps/server/src/domains/auth/service.ts**
+
 - Import `getDMPassword` from config
 - Initialize `StoredSecret` with default DM password on first run
 - DM password now persists in `herobyte-room-secret.json`
 
 **Code Locations**:
+
 - `apps/server/src/config/auth.ts:8, 37-51`
 - `apps/server/src/domains/auth/service.ts:8, 169-194`
 
 ### 3. Documentation
 
 **Created:**
+
 - `docs/DEMO_SERVER_WORKFLOW.md` - Complete guide for managing demo server sessions
 
 **Updated:**
+
 - `README.md` - Added default DM password documentation
 - `ROOM_AUTH_FLOW.md` - Updated with default passwords and bootstrap flow
 
 ## Default Credentials
 
-| Type | Default Value | Environment Variable |
-|------|---------------|---------------------|
-| Room Password | `Fun1` | `HEROBYTE_ROOM_SECRET` |
-| DM Password | `FunDM` | `HEROBYTE_DM_PASSWORD` |
+| Type          | Default Value | Environment Variable   |
+| ------------- | ------------- | ---------------------- |
+| Room Password | `Fun1`        | `HEROBYTE_ROOM_SECRET` |
+| DM Password   | `FunDM`       | `HEROBYTE_DM_PASSWORD` |
 
 ## User Flows
 
@@ -100,6 +107,7 @@ See `docs/DEMO_SERVER_WORKFLOW.md` for complete guide:
 ## Testing
 
 **Manual Testing:**
+
 1. Start fresh server (no `herobyte-room-secret.json`)
 2. Connect as player with room password `Fun1`
 3. Click settings → "Make myself DM"
@@ -107,6 +115,7 @@ See `docs/DEMO_SERVER_WORKFLOW.md` for complete guide:
 5. ✅ Should become DM immediately
 
 **With Custom Password:**
+
 1. Delete `apps/server/herobyte-room-secret.json`
 2. Restart server
 3. Try to become DM with wrong password
@@ -116,6 +125,7 @@ See `docs/DEMO_SERVER_WORKFLOW.md` for complete guide:
 ## Production Considerations
 
 **Environment Variables:**
+
 ```bash
 # Production .env
 HEROBYTE_ROOM_SECRET="$(openssl rand -base64 32)"
@@ -124,6 +134,7 @@ HEROBYTE_ALLOWED_ORIGINS="https://yourdomain.com"
 ```
 
 **Security:**
+
 - Defaults are for development only
 - Use strong passwords in production
 - Enable CORS restrictions
@@ -143,6 +154,7 @@ See `docs/DEMO_SERVER_WORKFLOW.md` for planned features:
 ## Related Files
 
 **Modified:**
+
 - `apps/client/src/ui/App.tsx`
 - `apps/server/src/config/auth.ts`
 - `apps/server/src/domains/auth/service.ts`
@@ -150,9 +162,11 @@ See `docs/DEMO_SERVER_WORKFLOW.md` for planned features:
 - `ROOM_AUTH_FLOW.md`
 
 **Created:**
+
 - `docs/DEMO_SERVER_WORKFLOW.md`
 
 **State Files (auto-generated):**
+
 - `apps/server/herobyte-room-secret.json` - Stores hashed passwords
 - `apps/server/herobyte-state.json` - Game session state
 
@@ -173,17 +187,20 @@ pnpm dev
 ## Migration Notes
 
 **Existing Deployments:**
+
 - Server will auto-create DM password on first run
 - No manual migration needed
 - Existing room passwords are preserved
 - DM password adds to existing `herobyte-room-secret.json`
 
 **Breaking Changes:**
+
 - None. Fully backward compatible.
 
 ## Support
 
 For issues or questions:
+
 - GitHub Issues: https://github.com/loshunter/HeroByte/issues
 - Documentation: `docs/DEMO_SERVER_WORKFLOW.md`
 - Auth Flow: `ROOM_AUTH_FLOW.md`
