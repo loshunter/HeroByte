@@ -38,7 +38,7 @@ describe("MessageRouter", () => {
           uid: "player-1",
           name: "Alice",
           portrait: undefined,
-          isDM: false,
+          isDM: false, // Default to non-DM; tests can override if needed
           hp: 10,
           maxHp: 10,
           micLevel: 0,
@@ -259,18 +259,20 @@ describe("MessageRouter", () => {
       expect(mockRoomService.saveState).toHaveBeenCalled();
     });
 
-    it("routes toggle-dm message and saves state", () => {
+    it("ignores deprecated toggle-dm message", () => {
       const msg: ClientMessage = { t: "toggle-dm", isDM: true };
       router.route(msg, "player-1");
 
-      expect(mockPlayerService.setDMMode).toHaveBeenCalledWith(mockState, "player-1", true);
-      expect(mockRoomService.broadcast).toHaveBeenCalled();
-      expect(mockRoomService.saveState).toHaveBeenCalled();
+      // toggle-dm is deprecated and should be ignored
+      expect(mockPlayerService.setDMMode).not.toHaveBeenCalled();
+      expect(mockRoomService.broadcast).not.toHaveBeenCalled();
+      expect(mockRoomService.saveState).not.toHaveBeenCalled();
     });
   });
 
   describe("Character Actions", () => {
     it("routes create-character message", () => {
+      mockState.players[0].isDM = true; // DM-only action
       const msg: ClientMessage = {
         t: "create-character",
         name: "Hero",
@@ -290,6 +292,7 @@ describe("MessageRouter", () => {
     });
 
     it("routes create-npc message with npc type", () => {
+      mockState.players[0].isDM = true; // DM-only action
       const msg: ClientMessage = {
         t: "create-npc",
         name: "Goblin",
@@ -313,6 +316,7 @@ describe("MessageRouter", () => {
     });
 
     it("routes update-npc message", () => {
+      mockState.players[0].isDM = true; // DM-only action
       const msg: ClientMessage = {
         t: "update-npc",
         id: "npc-1",
@@ -341,6 +345,7 @@ describe("MessageRouter", () => {
     });
 
     it("routes delete-npc and removes associated token", () => {
+      mockState.players[0].isDM = true; // DM-only action
       const msg: ClientMessage = { t: "delete-npc", id: "npc-1" };
       router.route(msg, "player-1");
 
@@ -481,6 +486,7 @@ describe("MessageRouter", () => {
     });
 
     it("routes clear-drawings message", () => {
+      mockState.players[0].isDM = true; // DM-only action
       mockState.drawings = [
         { id: "draw-1" } as unknown as RoomState["drawings"][number],
         { id: "draw-2" } as unknown as RoomState["drawings"][number],
@@ -733,6 +739,7 @@ describe("MessageRouter", () => {
 
   describe("Room Management", () => {
     it("routes clear-all-tokens message", () => {
+      mockState.players[0].isDM = true; // DM-only action
       mockState.tokens = [
         {
           id: "token-removed",
@@ -771,6 +778,7 @@ describe("MessageRouter", () => {
     });
 
     it("routes load-session message", () => {
+      mockState.players[0].isDM = true; // DM-only action
       const snapshot = {
         ...mockState,
         name: "Loaded Session",

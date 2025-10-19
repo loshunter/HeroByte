@@ -58,6 +58,15 @@ export class MessageRouter {
   }
 
   /**
+   * Check if a player has DM privileges
+   */
+  private isDM(senderUid: string): boolean {
+    const state = this.roomService.getState();
+    const player = state.players.find((p) => p.uid === senderUid);
+    return player?.isDM ?? false;
+  }
+
+  /**
    * Route a message to the appropriate handler
    */
   route(message: ClientMessage, senderUid: string): void {
@@ -157,14 +166,17 @@ export class MessageRouter {
           break;
 
         case "toggle-dm":
-          if (this.playerService.setDMMode(state, senderUid, message.isDM)) {
-            this.broadcast();
-            this.roomService.saveState();
-          }
+          // DEPRECATED: This action is replaced by elevate-to-dm flow
+          // Kept for backwards compatibility but should not be used
+          console.warn(`toggle-dm message from ${senderUid} ignored - use elevate-to-dm instead`);
           break;
 
         // CHARACTER ACTIONS
         case "create-character":
+          if (!this.isDM(senderUid)) {
+            console.warn(`Non-DM ${senderUid} attempted to create character`);
+            break;
+          }
           this.characterService.createCharacter(
             state,
             message.name,
@@ -176,6 +188,10 @@ export class MessageRouter {
           break;
 
         case "create-npc":
+          if (!this.isDM(senderUid)) {
+            console.warn(`Non-DM ${senderUid} attempted to create NPC`);
+            break;
+          }
           this.characterService.createCharacter(
             state,
             message.name,
@@ -189,6 +205,10 @@ export class MessageRouter {
           break;
 
         case "update-npc":
+          if (!this.isDM(senderUid)) {
+            console.warn(`Non-DM ${senderUid} attempted to update NPC`);
+            break;
+          }
           if (
             this.characterService.updateNPC(state, this.tokenService, message.id, {
               name: message.name,
@@ -204,6 +224,10 @@ export class MessageRouter {
           break;
 
         case "delete-npc": {
+          if (!this.isDM(senderUid)) {
+            console.warn(`Non-DM ${senderUid} attempted to delete NPC`);
+            break;
+          }
           const removed = this.characterService.deleteCharacter(state, message.id);
           if (removed) {
             if (removed.tokenId) {
@@ -217,6 +241,10 @@ export class MessageRouter {
         }
 
         case "place-npc-token":
+          if (!this.isDM(senderUid)) {
+            console.warn(`Non-DM ${senderUid} attempted to place NPC token`);
+            break;
+          }
           if (
             this.characterService.placeNPCToken(state, this.tokenService, message.id, senderUid)
           ) {
@@ -312,6 +340,10 @@ export class MessageRouter {
           break;
 
         case "clear-drawings":
+          if (!this.isDM(senderUid)) {
+            console.warn(`Non-DM ${senderUid} attempted to clear all drawings`);
+            break;
+          }
           for (const drawing of state.drawings) {
             this.selectionService.removeObject(state, drawing.id);
           }
@@ -475,6 +507,10 @@ export class MessageRouter {
         }
 
         case "clear-all-tokens": {
+          if (!this.isDM(senderUid)) {
+            console.warn(`Non-DM ${senderUid} attempted to clear all tokens`);
+            break;
+          }
           const removedIds = state.tokens
             .filter((token) => token.owner !== senderUid)
             .map((token) => token.id);
@@ -506,6 +542,10 @@ export class MessageRouter {
         }
 
         case "load-session": {
+          if (!this.isDM(senderUid)) {
+            console.warn(`Non-DM ${senderUid} attempted to load session`);
+            break;
+          }
           this.roomService.loadSnapshot(message.snapshot);
           this.broadcast();
           this.roomService.saveState();

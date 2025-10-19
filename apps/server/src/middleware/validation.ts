@@ -732,6 +732,26 @@ export function validateMessage(raw: unknown): ValidationResult {
       break;
     }
 
+    case "elevate-to-dm": {
+      if (typeof message.dmPassword !== "string" || message.dmPassword.length === 0) {
+        return { valid: false, error: "elevate-to-dm: missing or invalid dmPassword" };
+      }
+      if (message.dmPassword.length > 256) {
+        return { valid: false, error: "elevate-to-dm: dmPassword too long" };
+      }
+      break;
+    }
+
+    case "set-dm-password": {
+      if (typeof message.dmPassword !== "string" || message.dmPassword.length === 0) {
+        return { valid: false, error: "set-dm-password: missing or invalid dmPassword" };
+      }
+      if (message.dmPassword.length > 256) {
+        return { valid: false, error: "set-dm-password: dmPassword too long" };
+      }
+      break;
+    }
+
     case "transform-object": {
       if (typeof message.id !== "string" || message.id.length === 0) {
         return { valid: false, error: "transform-object: missing or invalid id" };

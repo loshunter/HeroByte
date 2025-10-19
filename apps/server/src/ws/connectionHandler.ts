@@ -135,6 +135,13 @@ export class ConnectionHandler {
    */
   private handleMessage(buf: Buffer, uid: string): void {
     try {
+      // Message size limit check (1MB) to prevent DoS attacks
+      const MAX_MESSAGE_SIZE = 1024 * 1024; // 1MB
+      if (buf.length > MAX_MESSAGE_SIZE) {
+        console.warn(`Message from ${uid} exceeds size limit: ${buf.length} bytes (max: ${MAX_MESSAGE_SIZE})`);
+        return;
+      }
+
       // Parse message
       const message: ClientMessage = JSON.parse(buf.toString());
 
@@ -159,6 +166,18 @@ export class ConnectionHandler {
 
       if (!this.container.authenticatedUids.has(uid)) {
         console.warn(`Unauthenticated message from ${uid}, dropping.`);
+        return;
+      }
+
+      // DM elevation handling
+      if (message.t === "elevate-to-dm") {
+        this.handleDMElevation(uid, message.dmPassword);
+        return;
+      }
+
+      // DM password management (DM-only action)
+      if (message.t === "set-dm-password") {
+        this.handleSetDMPassword(uid, message.dmPassword);
         return;
       }
 
@@ -255,5 +274,89 @@ export class ConnectionHandler {
         ws.close(4001, reason);
       }
     }, 100);
+  }
+
+  /**
+   * Handle DM elevation request
+   */
+  private handleDMElevation(uid: string, dmPassword: string): void {
+    const ws = this.container.uidToWs.get(uid);
+    if (!ws) {
+      return;
+    }
+
+    const state = this.container.roomService.getState();
+    const player = this.container.playerService.findPlayer(state, uid);
+
+    if (!player) {
+      ws.send(JSON.stringify({ t: "dm-elevation-failed", reason: "Player not found" }));
+      return;
+    }
+
+    // Check if DM password is even set
+    if (!this.container.authService.hasDMPassword()) {
+      ws.send(JSON.stringify({ t: "dm-elevation-failed", reason: "No DM password configured. Use set-dm-password to create one." }));
+      return;
+    }
+
+    // Verify DM password
+    const normalizedPassword = dmPassword.trim();
+    if (!this.container.authService.verifyDMPassword(normalizedPassword)) {
+      console.warn(`DM elevation failed for uid ${uid}: Invalid password`);
+      ws.send(JSON.stringify({ t: "dm-elevation-failed", reason: "Invalid DM password" }));
+      return;
+    }
+
+    // Grant DM powers
+    player.isDM = true;
+    ws.send(JSON.stringify({ t: "dm-status", isDM: true }));
+    console.log(`DM elevation granted to ${uid}`);
+
+    // Broadcast updated state
+    this.container.roomService.broadcast(this.container.getAuthenticatedClients());
+  }
+
+  /**
+   * Handle DM password set/update request (DM-only action)
+   */
+  private handleSetDMPassword(uid: string, dmPassword: string): void {
+    const ws = this.container.uidToWs.get(uid);
+    if (!ws) {
+      return;
+    }
+
+    const state = this.container.roomService.getState();
+    const player = this.container.playerService.findPlayer(state, uid);
+
+    if (!player) {
+      ws.send(JSON.stringify({ t: "dm-password-update-failed", reason: "Player not found" }));
+      return;
+    }
+
+    // Only current DM can set/update DM password
+    // OR if no DM password exists yet, anyone can set it (bootstrap case)
+    const hasDMPassword = this.container.authService.hasDMPassword();
+    if (hasDMPassword && !player.isDM) {
+      ws.send(JSON.stringify({ t: "dm-password-update-failed", reason: "Only DM can update DM password" }));
+      return;
+    }
+
+    // Update DM password
+    try {
+      const summary = this.container.authService.updateDMPassword(dmPassword);
+      ws.send(JSON.stringify({ t: "dm-password-updated", updatedAt: summary.updatedAt }));
+      console.log(`DM password updated by ${uid}`);
+
+      // If this is first-time setup and player doesn't have DM status yet, grant it
+      if (!hasDMPassword && !player.isDM) {
+        player.isDM = true;
+        ws.send(JSON.stringify({ t: "dm-status", isDM: true }));
+        console.log(`DM status granted to ${uid} (first-time DM password setup)`);
+        this.container.roomService.broadcast(this.container.getAuthenticatedClients());
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      ws.send(JSON.stringify({ t: "dm-password-update-failed", reason: errorMessage }));
+    }
   }
 }

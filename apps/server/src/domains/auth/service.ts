@@ -16,6 +16,10 @@ interface StoredSecret {
   hash: string;
   updatedAt: number;
   source: SecretSource;
+  dmSalt?: string;
+  dmHash?: string;
+  dmUpdatedAt?: number;
+  dmSource?: SecretSource;
 }
 
 function hashSecret(secret: string, saltHex?: string): { hash: string; salt: string } {
@@ -105,6 +109,63 @@ export class AuthService {
     };
   }
 
+  /**
+   * Verify whether the provided DM password matches the current DM password.
+   */
+  verifyDMPassword(dmPassword: string): boolean {
+    if (!dmPassword || typeof dmPassword !== "string") {
+      return false;
+    }
+
+    // If no DM password is set, reject
+    if (!this.secret.dmHash || !this.secret.dmSalt) {
+      return false;
+    }
+
+    const dmRecord = {
+      hash: this.secret.dmHash,
+      salt: this.secret.dmSalt,
+      updatedAt: this.secret.dmUpdatedAt || Date.now(),
+      source: this.secret.dmSource || "fallback",
+    } as StoredSecret;
+
+    // Trim whitespace to match update behavior
+    return compareSecret(dmPassword.trim(), dmRecord);
+  }
+
+  /**
+   * Update the DM password.
+   * Persists the hashed secret to disk for future restarts.
+   */
+  updateDMPassword(dmPassword: string): RoomPasswordSummary {
+    const trimmed = dmPassword.trim();
+    if (trimmed.length < 8 || trimmed.length > 128) {
+      throw new Error("DM password must be between 8 and 128 characters.");
+    }
+
+    const { hash, salt } = hashSecret(trimmed);
+
+    // Update the existing secret record with DM fields
+    this.secret.dmHash = hash;
+    this.secret.dmSalt = salt;
+    this.secret.dmUpdatedAt = Date.now();
+    this.secret.dmSource = "user";
+
+    this.persistRecord(this.secret);
+
+    return {
+      source: this.secret.dmSource,
+      updatedAt: this.secret.dmUpdatedAt
+    };
+  }
+
+  /**
+   * Check if a DM password has been set
+   */
+  hasDMPassword(): boolean {
+    return !!(this.secret.dmHash && this.secret.dmSalt);
+  }
+
   private loadSecret(): StoredSecret {
     const persisted = this.loadPersistedSecret();
     if (persisted) {
@@ -150,6 +211,10 @@ export class AuthService {
           salt: parsed.salt,
           updatedAt: parsed.updatedAt,
           source: parsed.source === "user" ? "user" : "user",
+          dmHash: parsed.dmHash,
+          dmSalt: parsed.dmSalt,
+          dmUpdatedAt: parsed.dmUpdatedAt,
+          dmSource: parsed.dmSource === "user" ? "user" : parsed.dmSource,
         };
       }
       console.warn("[Auth] Secret file was invalid; ignoring persisted password.");
@@ -162,18 +227,24 @@ export class AuthService {
 
   private persistRecord(record: StoredSecret): void {
     try {
+      const persistData: Partial<StoredSecret> = {
+        hash: record.hash,
+        salt: record.salt,
+        updatedAt: record.updatedAt,
+        source: "user",
+      };
+
+      // Include DM password fields if they exist
+      if (record.dmHash && record.dmSalt) {
+        persistData.dmHash = record.dmHash;
+        persistData.dmSalt = record.dmSalt;
+        persistData.dmUpdatedAt = record.dmUpdatedAt;
+        persistData.dmSource = record.dmSource || "user";
+      }
+
       writeFileSync(
         this.storagePath,
-        JSON.stringify(
-          {
-            hash: record.hash,
-            salt: record.salt,
-            updatedAt: record.updatedAt,
-            source: "user",
-          },
-          null,
-          2,
-        ),
+        JSON.stringify(persistData, null, 2),
       );
     } catch (error) {
       console.error("[Auth] Failed to persist room password:", error);
