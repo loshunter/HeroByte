@@ -77,6 +77,9 @@ const TokenSprite = memo(function TokenSprite({
     listening: interactive,
     onDblClick: onDoubleClick,
     onClick: onClick,
+    id,
+    name: id,
+    attrs: { "data-token-id": id },
     ref: (node: Konva.Node | null) => {
       if (onNodeReady) {
         onNodeReady(node);

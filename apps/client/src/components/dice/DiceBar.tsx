@@ -40,6 +40,7 @@ export const DiceBar: React.FC<DiceBarProps> = ({ onAddDie, onAddModifier }) => 
           }}
           className="dice-button"
           type="button"
+          aria-label={`Add ${die}`}
           style={{
             width: "56px",
             height: "56px",
@@ -127,6 +128,7 @@ export const DiceBar: React.FC<DiceBarProps> = ({ onAddDie, onAddModifier }) => 
         }}
         className="mod-button"
         type="button"
+        aria-label="Add +1 modifier"
         style={{
           width: "56px",
           height: "56px",
@@ -177,6 +179,7 @@ export const DiceBar: React.FC<DiceBarProps> = ({ onAddDie, onAddModifier }) => 
         }}
         className="mod-button"
         type="button"
+        aria-label="Add -1 modifier"
         style={{
           width: "56px",
           height: "56px",

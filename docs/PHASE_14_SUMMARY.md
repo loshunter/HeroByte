@@ -248,6 +248,12 @@ Add to MCP client configuration:
 }
 ```
 
+Or configure it through the Codex CLI:
+
+```bash
+codex mcp add chrome-devtools -- npx chrome-devtools-mcp@latest
+```
+
 ### Example Test Prompts
 See [docs/TESTING.md](TESTING.md) for full examples:
 - Performance benchmarking during transforms
@@ -271,7 +277,7 @@ See [docs/TESTING.md](TESTING.md) for full examples:
 3. 🔄 **Performance Profiling**: Should benchmark before/after major changes
 
 ### Future Considerations
-1. Consider Playwright for automated E2E tests (more reliable than manual)
+1. Broaden Playwright automation beyond the default-room smoke test
 2. Add visual regression testing (Percy, Chromatic) to CI
 3. Create performance budget (Lighthouse CI) to prevent regressions
 4. Record demo videos during development (not after)

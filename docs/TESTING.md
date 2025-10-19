@@ -16,9 +16,45 @@ This guide covers manual and automated testing approaches for HeroByte, includin
 - **Coverage**: WebSocket lifecycle, message routing, validation, rate limiting
 - **Run**: `pnpm --filter vtt-server test`
 
-### 3. E2E Tests (Chrome DevTools MCP)
-- **Status**: Recommended for Phase 14.5
-- **Purpose**: Visual validation, multi-client sync, performance testing
+### 3. E2E Tests (Playwright)
+- **Status**: Implemented
+- **Location**: `apps/e2e/`
+- **Runner**: `@playwright/test` with [`playwright.config.ts`](../playwright.config.ts)
+- **Scenarios**:
+  - `smoke.spec.ts` — Join the default room (`Fun1`) via the lobby
+  - `dice.spec.ts` — Roll a d20 from the dice roller and confirm the result appears in the roll log
+  - `token-movement.spec.ts` — Drag your token to a new grid square and confirm the snapshot updates
+- **Run**: `pnpm test:e2e`
+
+---
+
+## Playwright Setup
+
+### Prerequisites
+- Node.js v20.19+
+- Chromium runtime (installed via `pnpm exec playwright install --with-deps chromium`)
+- `pnpm` v10+
+
+### Install Browsers & Dependencies
+
+```bash
+pnpm exec playwright install --with-deps chromium
+```
+
+### Run the Smoke Suite
+
+```bash
+pnpm test:e2e
+```
+
+Environment variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `E2E_BASE_URL` | `http://127.0.0.1:5173` | Override when pointing tests at a deployed preview |
+| `E2E_ROOM_PASSWORD` | `Fun1` | Default password for the public demo room |
+
+Playwright automatically boots both the client and server via the `webServer` configuration. Logs, traces, screenshots, and videos are captured on failure and written to `playwright-report/`.
 
 ---
 
@@ -42,6 +78,12 @@ Add to your MCP client configuration (`.claude/mcp.json` or Claude Desktop setti
     }
   }
 }
+```
+
+Or configure it through the Codex CLI:
+
+```bash
+codex mcp add chrome-devtools -- npx chrome-devtools-mcp@latest
 ```
 
 ### Available Tools
@@ -381,7 +423,7 @@ pnpm --filter herobyte-client dev
 ```
 
 ### Future Enhancements
-- [ ] Add Playwright E2E tests
+- [ ] Expand Playwright scenarios (token movement, dice roller, drawing tools)
 - [ ] Add visual regression testing (Percy, Chromatic)
 - [ ] Add performance budgets (Lighthouse CI)
 - [ ] Add chrome-devtools MCP to CI pipeline
@@ -394,6 +436,7 @@ pnpm --filter herobyte-client dev
 - [Vitest Documentation](https://vitest.dev)
 - [Playwright Documentation](https://playwright.dev)
 - [HeroByte Architecture](./ARCHITECTURE.md) (if exists)
+- [2025-10-18 Default Password Smoke Test](./manual-test-reports/2025-10-18-default-password.md)
 
 ---
 

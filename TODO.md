@@ -10,8 +10,15 @@ _Completed milestones are archived in [DONE.md](DONE.md) to keep this list focus
 
 - [ ] **E2E Tests** (optional for now) — unit/integration coverage complete (see `DONE.md`)
   - [x] Add Playwright smoke test for default room login
-  - [ ] Set up Playwright or Cypress
+  - [x] Set up Playwright runner (root `playwright.config.ts`, `pnpm test:e2e`)
+  - [ ] Expand coverage (token movement, dice roller, drawing tools)
+    - [x] Token movement (`apps/e2e/token-movement.spec.ts`)
+    - [x] Dice roller (`apps/e2e/dice.spec.ts`)
+    - [ ] Drawing tools
   - [ ] Test critical user flows (join session, move token, roll dice)
+    - [x] Join session (`apps/e2e/smoke.spec.ts`)
+    - [x] Move token (`apps/e2e/token-movement.spec.ts`)
+    - [x] Roll dice (`apps/e2e/dice.spec.ts`)
 
 ### README Improvements
 

@@ -85,6 +85,7 @@ export const RollLog: React.FC<RollLogProps> = ({ rolls, onClearLog, onViewRoll,
                       cursor: "pointer",
                       transition: "none",
                     }}
+                    data-testid="roll-log-entry"
                     onMouseEnter={(e) => {
                       e.currentTarget.style.borderColor = "var(--jrpg-border-highlight)";
                       e.currentTarget.style.boxShadow =

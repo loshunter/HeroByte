@@ -132,6 +132,7 @@ export const DiceRoller: React.FC<DiceRollerProps> = ({ onRoll, onClose }) => {
               onClick={handleRoll}
               disabled={build.length === 0 || isAnimating}
               variant="primary"
+              aria-label="Roll dice"
               style={{
                 padding: "12px 48px",
                 fontSize: "14px",

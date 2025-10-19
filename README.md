@@ -18,6 +18,7 @@ Play anywhere, with anyone—no installs, just browser-based fun. Build your map
 
 - [DEVELOPMENT.md](DEVELOPMENT.md) – day-to-day workflow tips
 - [TESTING_SETUP.md](TESTING_SETUP.md) – step-by-step testing playbook
+- [docs/LOCAL_SYNC.md](docs/LOCAL_SYNC.md) – pull the latest Playwright changes into your `dev` branch
 - [TODO.md](TODO.md) – phased roadmap and contributor priorities
 - [DONE.md](DONE.md) – archive of completed phases and milestones
 - [CLOUDFLARE_PAGES_DEPLOYMENT.md](CLOUDFLARE_PAGES_DEPLOYMENT.md) – deployment checklist
