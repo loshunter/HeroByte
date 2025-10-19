@@ -4,6 +4,7 @@
 // Inline name editing for player cards
 
 import React from "react";
+import { sanitizeText } from "../../../utils/sanitize";
 
 interface NameEditorProps {
   isEditing: boolean;
@@ -68,7 +69,7 @@ export const NameEditor: React.FC<NameEditorProps> = ({
         textShadow: "0 0 6px rgba(240, 226, 195, 0.6), 1px 1px 2px rgba(0, 0, 0, 0.8)",
       }}
     >
-      {playerName}
+      {sanitizeText(playerName)}
     </span>
   );
 };

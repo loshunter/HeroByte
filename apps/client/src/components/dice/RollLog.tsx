@@ -7,6 +7,7 @@ import type { RollResult } from "./types";
 import { DIE_SYMBOLS } from "./types";
 import { DraggableWindow } from "./DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
+import { sanitizeText } from "../../utils/sanitize";
 
 interface RollLogEntry extends RollResult {
   playerName: string;
@@ -112,7 +113,7 @@ export const RollLog: React.FC<RollLogProps> = ({ rolls, onClearLog, onViewRoll,
                           color: "var(--jrpg-gold)",
                         }}
                       >
-                        {roll.playerName}
+                        {sanitizeText(roll.playerName)}
                       </div>
                       <div
                         className="jrpg-text-small"

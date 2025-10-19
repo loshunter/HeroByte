@@ -4,6 +4,7 @@
 // Non-blocking feedback messages with auto-dismiss and JRPG styling
 
 import React, { useEffect, useState } from "react";
+import { sanitizeText } from "../../utils/sanitize";
 
 export type ToastType = "success" | "error" | "info" | "warning";
 
@@ -108,7 +109,7 @@ const Toast: React.FC<ToastProps> = ({ message, onDismiss }) => {
   return (
     <div style={getStyles()} onClick={() => onDismiss(message.id)} title="Click to dismiss">
       <span style={{ fontSize: "1.2rem" }}>{getIcon()}</span>
-      <span style={{ flex: 1 }}>{message.message}</span>
+      <span style={{ flex: 1 }}>{sanitizeText(message.message)}</span>
     </div>
   );
 };

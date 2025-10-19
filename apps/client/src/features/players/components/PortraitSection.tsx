@@ -4,6 +4,7 @@
 // Player portrait with class icon and mic level animation
 
 import React from "react";
+import { sanitizeText } from "../../../utils/sanitize";
 
 interface PortraitSectionProps {
   portrait?: string;
@@ -91,7 +92,7 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
               pointerEvents: "none",
             }}
           >
-            {statusIcon.label}
+            {sanitizeText(statusIcon.label)}
           </span>
         )}
       </div>

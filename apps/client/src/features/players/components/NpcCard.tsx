@@ -9,6 +9,7 @@ import type { Character, TokenSize } from "@shared";
 import { PortraitSection } from "./PortraitSection";
 import { HPBar } from "./HPBar";
 import { NpcSettingsMenu } from "./NpcSettingsMenu";
+import { sanitizeText } from "../../../utils/sanitize";
 
 interface NpcCardProps {
   character: Character;
@@ -139,7 +140,7 @@ export function NpcCard({
             onUpdate(character.id, { name: newName.trim() });
           }}
         >
-          {character.name}
+          {sanitizeText(character.name)}
         </div>
         <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
           Enemy
