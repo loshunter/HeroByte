@@ -1076,8 +1076,17 @@ function AuthenticatedApp({
   const handleToggleDM = useCallback(
     (requestDM: boolean) => {
       if (!requestDM) {
-        // Revoking DM mode not currently supported
-        toast.warning("DM mode cannot be revoked once activated", 3000);
+        // Revoking DM mode
+        const confirmed = window.confirm(
+          "Are you sure you want to revoke your DM status? Another player will be able to become DM with the password."
+        );
+        if (!confirmed) {
+          return;
+        }
+
+        // Send revoke-dm message
+        sendMessage({ t: "revoke-dm" });
+        toast.success("DM status revoked. You are now a player.", 3000);
         return;
       }
 
@@ -1094,7 +1103,7 @@ function AuthenticatedApp({
 
       elevateToDM(dmPassword.trim());
     },
-    [isDM, elevateToDM, toast],
+    [isDM, elevateToDM, sendMessage, toast],
   );
 
   useEffect(() => {
