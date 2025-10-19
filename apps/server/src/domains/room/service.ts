@@ -166,6 +166,12 @@ export class RoomService {
 
     const currentGridSquareSize = this.state.gridSquareSize ?? 5;
 
+    // If snapshot has sceneObjects, don't load legacy drawings array
+    // (rebuildSceneGraph will recreate drawings from sceneObjects if needed)
+    const hasSceneObjects = snapshot.sceneObjects && snapshot.sceneObjects.length > 0;
+
+    console.log(`[loadSession] hasSceneObjects: ${hasSceneObjects}, sceneObjects count: ${snapshot.sceneObjects?.length || 0}, drawings count: ${snapshot.drawings?.length || 0}`);
+
     this.state = {
       users: this.state.users, // Keep current WebSocket connections
       tokens: snapshot.tokens ?? [],
@@ -173,7 +179,7 @@ export class RoomService {
       characters: loadedCharacters,
       mapBackground: snapshot.mapBackground,
       pointers: [], // Clear pointers on load
-      drawings: snapshot.drawings ?? [],
+      drawings: hasSceneObjects ? [] : (snapshot.drawings ?? []),
       gridSize: snapshot.gridSize ?? 50,
       gridSquareSize: snapshot.gridSquareSize ?? currentGridSquareSize,
       diceRolls: snapshot.diceRolls ?? [],
@@ -540,6 +546,13 @@ export class RoomService {
     }
 
     this.state.sceneObjects = next;
+
+    // Debug: Check for duplicate IDs
+    const ids = next.map((obj) => obj.id);
+    const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index);
+    if (duplicates.length > 0) {
+      console.error(`[rebuildSceneGraph] DUPLICATE IDs FOUND:`, duplicates);
+    }
   }
 
   /**
