@@ -75,7 +75,7 @@ function buildLegacySceneObjects(snapshot: RoomSnapshot): SceneObject[] {
       id: "staging-zone",
       type: "staging-zone",
       owner: null,
-      locked: true,
+      locked: false, // Allow DM to transform with transform tool
       zIndex: -80,
       transform: {
         x: zone.x,

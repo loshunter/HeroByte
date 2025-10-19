@@ -788,12 +788,17 @@ export default function MapBoard({
 
         {/* Game Layer: Drawings and tokens (interactive) */}
         <Layer>
-          {stagingZoneDimensions ? (
-            <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale} listening={false}>
+          {stagingZoneDimensions && stagingZoneObject ? (
+            <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale}>
               <Group
                 x={stagingZoneDimensions.centerX}
                 y={stagingZoneDimensions.centerY}
                 rotation={stagingZoneDimensions.rotation}
+                ref={(node) => {
+                  if (node && stagingZoneObject && selectedObjectId === stagingZoneObject.id) {
+                    selectedObjectNodeRef.current = node;
+                  }
+                }}
               >
                 <Rect
                   x={-stagingZoneDimensions.widthPx / 2}
@@ -805,6 +810,19 @@ export default function MapBoard({
                   dash={[8 / cam.scale, 6 / cam.scale]}
                   fill="rgba(77, 229, 192, 0.12)"
                   cornerRadius={8 / cam.scale}
+                  listening={isDM && (selectMode || transformMode)}
+                  onClick={(e) => {
+                    if (isDM && (selectMode || transformMode)) {
+                      e.cancelBubble = true;
+                      onSelectObject?.(stagingZoneObject.id);
+                    }
+                  }}
+                  onTap={(e) => {
+                    if (isDM && (selectMode || transformMode)) {
+                      e.cancelBubble = true;
+                      onSelectObject?.(stagingZoneObject.id);
+                    }
+                  }}
                 />
                 <Text
                   text={stagingZoneDimensions.label}
