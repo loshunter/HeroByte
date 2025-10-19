@@ -92,6 +92,34 @@ Useful scripts:
 4. Address reviewer feedback promptly; keep the conversation respectful and focused.
 5. A maintainer will squash/merge once approvals and checks are green.
 
+### Monitoring CI After Push
+
+After pushing your branch, **monitor the CI run** to catch failures early:
+
+**Using Claude Code**: The `/ci-check` command automatically:
+- Monitors the latest GitHub Actions CI run
+- Auto-fixes common issues (Prettier formatting, ESLint warnings)
+- Reports final status with detailed logs if failures occur
+
+**Manual monitoring**:
+```bash
+# View latest CI run
+gh run list --workflow=ci.yml --limit=1
+
+# Watch a specific run in real-time
+gh run watch <run-id>
+
+# View failed logs
+gh run view <run-id> --log-failed
+```
+
+**Common auto-fixable issues**:
+- **Prettier errors**: Run `pnpm format` to auto-format all files
+- **ESLint warnings**: Add `eslint-disable-next-line` comments for intentional violations
+- **TypeScript errors**: Review and fix type issues manually
+
+The CI enforces zero warnings (`--max-warnings=0`), so all lint warnings must be addressed before merging.
+
 ---
 
 ## Coding Standards
