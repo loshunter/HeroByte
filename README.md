@@ -18,6 +18,8 @@ Play anywhere, with anyone—no installs, just browser-based fun. Build your map
 
 ## Quick Links
 
+- [QUICK_REFERENCE.md](QUICK_REFERENCE.md) – **⚡ common tasks and shortcuts**
+- [docs/DEMO_SERVER_WORKFLOW.md](docs/DEMO_SERVER_WORKFLOW.md) – managing passwords and sessions for casual games
 - [DEVELOPMENT.md](DEVELOPMENT.md) – day-to-day workflow tips
 - [TESTING_SETUP.md](TESTING_SETUP.md) – step-by-step testing playbook
 - [docs/LOCAL_SYNC.md](docs/LOCAL_SYNC.md) – pull the latest Playwright changes into your `dev` branch
@@ -183,7 +185,8 @@ See [PORT_MANAGEMENT.md](PORT_MANAGEMENT.md) for detailed troubleshooting.
 
 - Frontend: `http://localhost:5173`
 - Backend: `http://localhost:8787`
-- Default Password: `Fun1` (change it via DM Menu ▶ Session ▶ Room Security or by setting `HEROBYTE_ROOM_SECRET`)
+- Default Room Password: `Fun1` (change it via DM Menu ▶ Session ▶ Room Security or by setting `HEROBYTE_ROOM_SECRET`)
+- Default DM Password: `FunDM` (use this to elevate to Dungeon Master role, or set `HEROBYTE_DM_PASSWORD` to customize)
 
 ### Network Access
 
@@ -195,10 +198,13 @@ To use on your local network:
 
 ### Security Configuration
 
-- Set `HEROBYTE_ROOM_SECRET` in `.env` to override the development fallback room password.
+- Set `HEROBYTE_ROOM_SECRET` in `.env` to override the development fallback room password (`Fun1`).
+- Set `HEROBYTE_DM_PASSWORD` in `.env` to override the development fallback DM password (`FunDM`).
 - Restrict HTTP/WebSocket origins with `HEROBYTE_ALLOWED_ORIGINS` (comma-separated list). Defaults cover local development (`http://localhost:5173`, `http://127.0.0.1:5173`) and the hosted demo (`https://herobyte.pages.dev`). Example:
 
 ```bash
+HEROBYTE_ROOM_SECRET="your-secure-room-password"
+HEROBYTE_DM_PASSWORD="your-secure-dm-password"
 HEROBYTE_ALLOWED_ORIGINS="https://yourdomain.com,https://staging.yourdomain.com"
 ```
 

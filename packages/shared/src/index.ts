@@ -386,6 +386,7 @@ export type ClientMessage =
   // Authentication
   | { t: "authenticate"; secret: string; roomId?: string } // Authenticate with room secret
   | { t: "elevate-to-dm"; dmPassword: string } // Request DM elevation with DM password
+  | { t: "revoke-dm" } // Revoke own DM status
   | { t: "set-dm-password"; dmPassword: string } // DM sets/updates the DM password
 
   // WebRTC signaling

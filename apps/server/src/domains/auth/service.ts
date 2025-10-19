@@ -5,7 +5,7 @@
 
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
-import { getRoomSecret } from "../../config/auth.js";
+import { getRoomSecret, getDMPassword } from "../../config/auth.js";
 
 const SECRET_FILE = "./herobyte-room-secret.json";
 
@@ -172,24 +172,24 @@ export class AuthService {
       return persisted;
     }
 
+    // Load room secret
     const envSecret = process.env.HEROBYTE_ROOM_SECRET?.trim();
-    if (envSecret) {
-      const { hash, salt } = hashSecret(envSecret);
-      return {
-        hash,
-        salt,
-        updatedAt: Date.now(),
-        source: "env",
-      };
-    }
+    const roomSecret = envSecret || getRoomSecret();
+    const { hash, salt } = hashSecret(roomSecret);
 
-    const fallback = getRoomSecret();
-    const { hash, salt } = hashSecret(fallback);
+    // Load DM password (fallback for development)
+    const dmPassword = getDMPassword();
+    const dmHashData = hashSecret(dmPassword);
+
     return {
       hash,
       salt,
       updatedAt: Date.now(),
-      source: "fallback",
+      source: envSecret ? "env" : "fallback",
+      dmHash: dmHashData.hash,
+      dmSalt: dmHashData.salt,
+      dmUpdatedAt: Date.now(),
+      dmSource: "fallback",
     };
   }
 

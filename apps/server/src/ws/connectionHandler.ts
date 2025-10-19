@@ -177,6 +177,12 @@ export class ConnectionHandler {
         return;
       }
 
+      // DM revocation handling
+      if (message.t === "revoke-dm") {
+        this.handleDMRevocation(uid);
+        return;
+      }
+
       // DM password management (DM-only action)
       if (message.t === "set-dm-password") {
         this.handleSetDMPassword(uid, message.dmPassword);
@@ -318,6 +324,37 @@ export class ConnectionHandler {
     player.isDM = true;
     ws.send(JSON.stringify({ t: "dm-status", isDM: true }));
     console.log(`DM elevation granted to ${uid}`);
+
+    // Broadcast updated state
+    this.container.roomService.broadcast(this.container.getAuthenticatedClients());
+  }
+
+  /**
+   * Handle DM revocation request
+   */
+  private handleDMRevocation(uid: string): void {
+    const ws = this.container.uidToWs.get(uid);
+    if (!ws) {
+      return;
+    }
+
+    const state = this.container.roomService.getState();
+    const player = this.container.playerService.findPlayer(state, uid);
+
+    if (!player) {
+      console.warn(`DM revocation failed: player ${uid} not found`);
+      return;
+    }
+
+    if (!player.isDM) {
+      console.warn(`DM revocation ignored: player ${uid} is not DM`);
+      return;
+    }
+
+    // Revoke DM status
+    player.isDM = false;
+    ws.send(JSON.stringify({ t: "dm-status", isDM: false }));
+    console.log(`DM status revoked for ${uid}`);
 
     // Broadcast updated state
     this.container.roomService.broadcast(this.container.getAuthenticatedClients());
