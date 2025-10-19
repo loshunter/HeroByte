@@ -1,7 +1,51 @@
 # HeroByte Completed Work
 
-**Last Updated**: October 2025  
+**Last Updated**: October 2025
 **Source**: Archived from `TODO.md` to keep the active roadmap lean.
+
+---
+
+## ✅ Multi-Object Selection & Interaction (October 2025)
+
+### Selection System Improvements
+- [x] **Selection Persistence**
+  - [x] Fixed selection clearing when switching between select and transform modes
+  - [x] Updated useEffect condition to preserve selection in both modes
+  - [x] Added dependency on selectMode to prevent unintended deselection
+
+- [x] **Marquee Selection Enhancement**
+  - [x] Prevented onStageClick from interfering with marquee selection
+  - [x] Improved deselection logic to only clear when no objects are found
+  - [x] Added comprehensive debug logging for selection state tracking
+
+### Multi-Object Dragging
+- [x] **Synchronized Movement**
+  - [x] Implemented real-time synchronized dragging for all selected objects
+  - [x] Added onDragMove handler to update positions during drag operation
+  - [x] Calculated delta movement from dragged object and applied to all selections
+  - [x] Stored initial positions of all selected objects on drag start
+  - [x] Eliminated rubber-band snap effect for smooth visual feedback
+
+### Multi-Object Deletion
+- [x] **Ownership-Based Permissions**
+  - [x] Updated Delete/Backspace handler to support multiple selected objects
+  - [x] Changed from DM-only to ownership-based deletion permissions
+  - [x] Allowed users to delete objects they own (matching drag permissions)
+  - [x] Implemented automatic filtering of locked and unowned objects
+  - [x] Added smart confirmation dialogs with deletion counts
+  - [x] Provided specific error messages for different permission issues
+
+### Bug Fixes
+- [x] **WebSocket Connection Stability**
+  - [x] Fixed race condition in connection handler authentication
+  - [x] Added logic to close stale WebSocket connections before auth state clear
+  - [x] Prevented "Unauthenticated message" errors during reconnection
+
+- [x] **Test Corrections**
+  - [x] Updated validation test error messages to match actual output
+  - [x] Fixed heartbeat timeout test to use correct 6-minute threshold
+
+**Key Achievement**: Consistent permission model across all object interactions - if you can move it, you can delete it.
 
 ---
 

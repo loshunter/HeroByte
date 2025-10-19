@@ -16,6 +16,9 @@ Ship a table-ready MVP to run live playtests with real players and a DM. Priorit
     - [x] Add integration coverage in the message router.
     - [ ] Manual QA with two clients (erase + undo/redo sync). See `docs/manual-test-reports/2025-10-18-partial-erase.md` for step-by-step checklist.
 - [ ] **Multi-select readiness**
+  - [x] Fix multi-object selection persistence and marquee selection deselection logic.
+  - [x] Implement synchronized multi-object dragging with real-time visual feedback.
+  - [x] Add ownership-based multi-object deletion with Delete/Backspace keyboard shortcuts.
   - [ ] Surface a multi-select visual indicator (badge/outline, accessible colours).
   - [ ] Implement group lock/unlock and persist lock state in the scene graph.
   - [ ] Extract multi-select orchestration into a dedicated module and ship an integration test covering bulk transform + lock flows.
