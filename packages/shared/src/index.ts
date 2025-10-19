@@ -385,6 +385,8 @@ export type ClientMessage =
 
   // Authentication
   | { t: "authenticate"; secret: string; roomId?: string } // Authenticate with room secret
+  | { t: "elevate-to-dm"; dmPassword: string } // Request DM elevation with DM password
+  | { t: "set-dm-password"; dmPassword: string } // DM sets/updates the DM password
 
   // WebRTC signaling
   | { t: "rtc-signal"; target: string; signal: unknown }; // P2P voice chat signaling
@@ -397,5 +399,9 @@ export type ServerMessage =
   | { t: "rtc-signal"; from: string; signal: unknown } // WebRTC signal from another peer
   | { t: "auth-ok" } // Authentication succeeded
   | { t: "auth-failed"; reason?: string } // Authentication failed
+  | { t: "dm-status"; isDM: boolean } // DM elevation status update
+  | { t: "dm-elevation-failed"; reason?: string } // DM elevation failed
+  | { t: "dm-password-updated"; updatedAt: number } // DM password set/updated successfully
+  | { t: "dm-password-update-failed"; reason?: string } // DM password update failed
   | { t: "room-password-updated"; updatedAt: number; source: "env" | "fallback" | "user" }
   | { t: "room-password-update-failed"; reason?: string };
