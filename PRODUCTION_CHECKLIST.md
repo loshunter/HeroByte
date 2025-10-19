@@ -32,7 +32,7 @@ Use this checklist before deploying to production to catch issues early.
 ### 3. Build Verification
 
 - [ ] Server builds successfully: `pnpm build:server`
-- [ ] Client builds successfully: `pnpm build:client`
+- [ ] Client builds successfully: `pnpm --filter herobyte-client build` (CI/CD runs this exact command before packaging `apps/client/dist`)
 - [ ] No TypeScript errors
 - [ ] No build warnings (or all are known/acceptable)
 

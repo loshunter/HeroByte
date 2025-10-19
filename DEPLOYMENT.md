@@ -75,13 +75,14 @@ NODE_ENV=production
 | -------------------------- | ---------------------------------------------- |
 | **Project name**           | `herobyte` (or your choice)                    |
 | **Production branch**      | `main`                                         |
-| **Build command**          | `pnpm install --frozen-lockfile && pnpm build` |
+| **Build command**          | `pnpm install --frozen-lockfile && pnpm --filter herobyte-client build` |
 | **Build output directory** | `dist`                                         |
 
 **Important - Advanced Settings:**
 
 - Click **Build settings** → **Show advanced**
 - Set **Root directory (advanced)** to: `apps/client`
+- Cloudflare runs `pnpm --filter herobyte-client build` in CI/CD so the compiled `apps/client/dist` bundle exists before packaging
 
 ### C. Environment Variables
 

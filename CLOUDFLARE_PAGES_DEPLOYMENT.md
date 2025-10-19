@@ -33,12 +33,12 @@ Click **Show advanced** and configure:
 - **Build command**:
 
   ```bash
-  corepack enable && pnpm install --frozen-lockfile && pnpm build
+  corepack enable && pnpm install --frozen-lockfile && pnpm --filter herobyte-client build
   ```
 
   - `corepack enable` ensures pnpm is available in the build environment
   - `--frozen-lockfile` ensures exact dependency versions from pnpm-lock.yaml
-  - `pnpm build` builds the client (which also builds the shared package)
+  - `pnpm --filter herobyte-client build` compiles the client (and shared package) exactly the way CI/CD does before packaging `apps/client/dist`
 
 - **Build output directory**: `dist`
   - Vite outputs the built files to the `dist` directory
