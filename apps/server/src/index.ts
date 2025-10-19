@@ -7,6 +7,7 @@
 import { createServer } from "http";
 import type { IncomingMessage, ServerResponse } from "http";
 import { Readable } from "node:stream";
+import type { ReadableStream } from "node:stream/web";
 import { WebSocketServer } from "ws";
 import { createRoutes } from "./http/routes.js";
 import { Container } from "./container.js";
