@@ -138,7 +138,9 @@ export class ConnectionHandler {
       // Message size limit check (1MB) to prevent DoS attacks
       const MAX_MESSAGE_SIZE = 1024 * 1024; // 1MB
       if (buf.length > MAX_MESSAGE_SIZE) {
-        console.warn(`Message from ${uid} exceeds size limit: ${buf.length} bytes (max: ${MAX_MESSAGE_SIZE})`);
+        console.warn(
+          `Message from ${uid} exceeds size limit: ${buf.length} bytes (max: ${MAX_MESSAGE_SIZE})`,
+        );
         return;
       }
 
@@ -295,7 +297,12 @@ export class ConnectionHandler {
 
     // Check if DM password is even set
     if (!this.container.authService.hasDMPassword()) {
-      ws.send(JSON.stringify({ t: "dm-elevation-failed", reason: "No DM password configured. Use set-dm-password to create one." }));
+      ws.send(
+        JSON.stringify({
+          t: "dm-elevation-failed",
+          reason: "No DM password configured. Use set-dm-password to create one.",
+        }),
+      );
       return;
     }
 
@@ -337,7 +344,12 @@ export class ConnectionHandler {
     // OR if no DM password exists yet, anyone can set it (bootstrap case)
     const hasDMPassword = this.container.authService.hasDMPassword();
     if (hasDMPassword && !player.isDM) {
-      ws.send(JSON.stringify({ t: "dm-password-update-failed", reason: "Only DM can update DM password" }));
+      ws.send(
+        JSON.stringify({
+          t: "dm-password-update-failed",
+          reason: "Only DM can update DM password",
+        }),
+      );
       return;
     }
 

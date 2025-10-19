@@ -155,7 +155,7 @@ export class AuthService {
 
     return {
       source: this.secret.dmSource,
-      updatedAt: this.secret.dmUpdatedAt
+      updatedAt: this.secret.dmUpdatedAt,
     };
   }
 
@@ -242,10 +242,7 @@ export class AuthService {
         persistData.dmSource = record.dmSource || "user";
       }
 
-      writeFileSync(
-        this.storagePath,
-        JSON.stringify(persistData, null, 2),
-      );
+      writeFileSync(this.storagePath, JSON.stringify(persistData, null, 2));
     } catch (error) {
       console.error("[Auth] Failed to persist room password:", error);
     }

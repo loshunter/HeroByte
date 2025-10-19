@@ -95,7 +95,7 @@ describe("AuthService", () => {
       const service = new AuthService({ storagePath: SECRET_PATH });
 
       expect(() => service.updateDMPassword("short")).toThrow(
-        "DM password must be between 8 and 128 characters."
+        "DM password must be between 8 and 128 characters.",
       );
       expect(() => service.updateDMPassword("12345678")).not.toThrow();
     });
@@ -105,7 +105,7 @@ describe("AuthService", () => {
 
       const tooLong = "a".repeat(129);
       expect(() => service.updateDMPassword(tooLong)).toThrow(
-        "DM password must be between 8 and 128 characters."
+        "DM password must be between 8 and 128 characters.",
       );
 
       const maxLength = "a".repeat(128);
@@ -136,13 +136,13 @@ describe("AuthService", () => {
 
       // These should all fail without leaking timing info
       const attempts = [
-        "SecurePass12",   // One char short
+        "SecurePass12", // One char short
         "SecurePass1234", // One char long
-        "securepass123",  // Different case
-        "XecurePass123",  // First char wrong
+        "securepass123", // Different case
+        "XecurePass123", // First char wrong
       ];
 
-      attempts.forEach(attempt => {
+      attempts.forEach((attempt) => {
         expect(service.verifyDMPassword(attempt)).toBe(false);
       });
     });

@@ -92,64 +92,67 @@ export function PlayerSettingsMenu({
           background: "rgba(12, 18, 40, 0.95)",
         }}
       >
-        <JRPGPanel
-          variant="simple"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "8px",
-            padding: "12px",
-          }}
-        >
-          <label className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-            Token Image URL
-          </label>
-          <input
-            className="jrpg-input"
-            type="text"
-            value={tokenImageInput}
-            placeholder="https://example.com/token.png"
-            onChange={(event) => onTokenImageInputChange(event.target.value)}
-            onBlur={() => onTokenImageApply(tokenImageInput.trim())}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                onTokenImageApply(tokenImageInput.trim());
-              }
+        {/* DM players don't have tokens, so hide token controls when isDM is true */}
+        {!isDM && (
+          <JRPGPanel
+            variant="simple"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+              padding: "12px",
             }}
-          />
-          <div style={{ display: "flex", gap: "8px" }}>
-            <JRPGButton
-              onClick={() => onTokenImageApply(tokenImageInput.trim())}
-              variant="primary"
-              style={{ flex: 1, fontSize: "10px", padding: "6px 8px" }}
-            >
-              Apply
-            </JRPGButton>
-            <JRPGButton
-              onClick={onTokenImageClear}
-              style={{ flex: 1, fontSize: "10px", padding: "6px 8px" }}
-            >
-              Clear
-            </JRPGButton>
-          </div>
-          {tokenImageUrl ? (
-            <img
-              src={tokenImageUrl}
-              alt="Token preview"
-              style={{
-                width: "60px",
-                height: "60px",
-                margin: "4px auto 0",
-                objectFit: "cover",
-                borderRadius: "6px",
-                border: "2px solid var(--jrpg-border-gold)",
-              }}
-              onError={(event) => {
-                (event.currentTarget as HTMLImageElement).style.display = "none";
+          >
+            <label className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
+              Token Image URL
+            </label>
+            <input
+              className="jrpg-input"
+              type="text"
+              value={tokenImageInput}
+              placeholder="https://example.com/token.png"
+              onChange={(event) => onTokenImageInputChange(event.target.value)}
+              onBlur={() => onTokenImageApply(tokenImageInput.trim())}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  onTokenImageApply(tokenImageInput.trim());
+                }
               }}
             />
-          ) : null}
-        </JRPGPanel>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <JRPGButton
+                onClick={() => onTokenImageApply(tokenImageInput.trim())}
+                variant="primary"
+                style={{ flex: 1, fontSize: "10px", padding: "6px 8px" }}
+              >
+                Apply
+              </JRPGButton>
+              <JRPGButton
+                onClick={onTokenImageClear}
+                style={{ flex: 1, fontSize: "10px", padding: "6px 8px" }}
+              >
+                Clear
+              </JRPGButton>
+            </div>
+            {tokenImageUrl ? (
+              <img
+                src={tokenImageUrl}
+                alt="Token preview"
+                style={{
+                  width: "60px",
+                  height: "60px",
+                  margin: "4px auto 0",
+                  objectFit: "cover",
+                  borderRadius: "6px",
+                  border: "2px solid var(--jrpg-border-gold)",
+                }}
+                onError={(event) => {
+                  (event.currentTarget as HTMLImageElement).style.display = "none";
+                }}
+              />
+            ) : null}
+          </JRPGPanel>
+        )}
 
         <JRPGPanel
           variant="simple"
@@ -201,7 +204,8 @@ export function PlayerSettingsMenu({
           </JRPGButton>
         </JRPGPanel>
 
-        {onTokenSizeChange && (
+        {/* Token Size - only show for non-DM players who have tokens */}
+        {!isDM && onTokenSizeChange && (
           <JRPGPanel
             variant="simple"
             style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
@@ -238,7 +242,8 @@ export function PlayerSettingsMenu({
           </JRPGPanel>
         )}
 
-        {onToggleTokenLock && (
+        {/* Token Lock - only show for non-DM players who have tokens */}
+        {!isDM && onToggleTokenLock && (
           <JRPGPanel
             variant="simple"
             style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}

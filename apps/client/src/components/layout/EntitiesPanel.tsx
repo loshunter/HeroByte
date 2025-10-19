@@ -134,7 +134,16 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
       character,
     }));
 
-    return [...playerEntities, ...npcEntities];
+    // Separate DM from regular players
+    // DM appears first (left-most) and is visually distinct from players
+    // FUTURE: When initiative is implemented, filter out DM (players.filter(p => !p.isDM))
+    // and keep DM in fixed position while other players reorder
+    const dmEntity = playerEntities.find((e) => e.player.isDM);
+    const regularPlayers = playerEntities.filter((e) => !e.player.isDM);
+
+    return dmEntity
+      ? [dmEntity, ...regularPlayers, ...npcEntities]
+      : [...regularPlayers, ...npcEntities];
   }, [players, tokens, npcCharacters, uid]);
 
   return (
@@ -204,11 +213,13 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                 alignItems: "flex-start",
               }}
             >
-              {entities.map((entity) => {
+              {entities.map((entity, index) => {
                 if (entity.kind === "player") {
                   const { player, token, isMe } = entity;
                   const tokenSceneObject = token ? (tokenSceneMap.get(token.id) ?? null) : null;
                   const playerDrawings = drawingsByOwner.get(player.uid) ?? [];
+                  const isDM = player.isDM ?? false;
+                  const isFirstDM = isDM && index === 0;
 
                   return (
                     <div
@@ -220,6 +231,9 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                         flexDirection: "column",
                         alignItems: "center",
                         gap: "6px",
+                        marginRight: isFirstDM ? "20px" : "0",
+                        paddingRight: isFirstDM ? "20px" : "0",
+                        borderRight: isFirstDM ? "2px solid rgba(255, 215, 0, 0.3)" : "none",
                       }}
                     >
                       <PlayerCard

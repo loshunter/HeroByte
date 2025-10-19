@@ -161,20 +161,37 @@ export const PlayerCard = memo<PlayerCardProps>(
       [statusOption],
     );
 
-    return (
-      <div
-        className="player-card"
-        style={{
+    // Apply DM-specific styling when player.isDM is true
+    const isDMPlayer = player.isDM ?? false;
+    const cardStyle = isDMPlayer
+      ? {
           display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "space-between",
+          flexDirection: "column" as const,
+          alignItems: "center" as const,
+          justifyContent: "space-between" as const,
+          color: "#ffe8b3",
+          fontSize: "0.8rem",
+          gap: "6px",
+          position: "relative" as const,
+          background: "rgba(60, 48, 10, 0.9)",
+          border: "2px solid var(--jrpg-gold)",
+          boxShadow: "0 0 16px rgba(255, 215, 0, 0.6)",
+          borderRadius: "8px",
+          padding: "8px",
+        }
+      : {
+          display: "flex",
+          flexDirection: "column" as const,
+          alignItems: "center" as const,
+          justifyContent: "space-between" as const,
           color: "#dbe1ff",
           fontSize: "0.8rem",
           gap: "6px",
-          position: "relative",
-        }}
-      >
+          position: "relative" as const,
+        };
+
+    return (
+      <div className="player-card" style={cardStyle}>
         <div
           style={{
             width: "100%",

@@ -87,6 +87,7 @@ The room password flow described above has been implemented and enhanced with a 
 ### Architecture
 
 **Two-Tier Authentication:**
+
 1. **Room Password** (Player Access) - Gets you into the room as a Player
    - Stored in `herobyte-room-secret.json` (hashed with scrypt)
    - Can be set via `HEROBYTE_ROOM_SECRET` env var or updated by DM
@@ -107,12 +108,14 @@ The room password flow described above has been implemented and enhanced with a 
 ### Message Types Added
 
 **Client → Server:**
+
 ```ts
 | { t: "elevate-to-dm"; dmPassword: string }     // Request DM elevation
 | { t: "set-dm-password"; dmPassword: string }   // Set/update DM password (DM-only)
 ```
 
 **Server → Client:**
+
 ```ts
 | { t: "dm-status"; isDM: boolean }                      // DM elevation status
 | { t: "dm-elevation-failed"; reason?: string }          // Elevation failed
@@ -123,6 +126,7 @@ The room password flow described above has been implemented and enhanced with a 
 ### DM-Only Actions
 
 The following actions now require `isDM=true`:
+
 - `create-character` - Create PC slots
 - `create-npc`, `update-npc`, `delete-npc` - NPC management
 - `place-npc-token` - Place NPC tokens on map
@@ -133,17 +137,20 @@ The following actions now require `isDM=true`:
 ### Security Hardening
 
 **Password Hashing:**
+
 - Scrypt with 16-byte salt, 64-byte derived key
 - Timing-safe comparison (prevents timing attacks)
 - Passwords never stored in plain text
 
 **Input Validation:**
+
 - 1MB message size limit (prevents DoS)
 - Password length constraints enforced
 - 256 character max on password fields
 - Rate limiting on authentication attempts
 
 **XSS Protection:**
+
 - DOMPurify installed for client-side sanitization
 - Utility functions in `apps/client/src/utils/sanitize.ts`:
   - `sanitizeText()` - Player names, text fields
@@ -154,6 +161,7 @@ The following actions now require `isDM=true`:
 ### Implementation Files
 
 **Server:**
+
 - `apps/server/src/domains/auth/service.ts` - AuthService with DM password support
 - `apps/server/src/ws/connectionHandler.ts` - DM elevation handlers
 - `apps/server/src/ws/messageRouter.ts` - DM permission middleware
@@ -161,15 +169,18 @@ The following actions now require `isDM=true`:
 - `herobyte-room-secret.json` - Persisted password storage
 
 **Client:**
+
 - `apps/client/src/ui/App.tsx` - AuthGate component (room password UI)
 - `apps/client/src/utils/sanitize.ts` - XSS protection utilities
 
 **Shared:**
+
 - `packages/shared/src/index.ts` - DM message type definitions
 
 ### Testing
 
 ✅ 235/235 tests passing including:
+
 - 11 DM password tests (authService.test.ts)
 - DM permission enforcement tests (messageRouter.test.ts)
 - Whitespace trimming, length validation, timing-safe comparison
