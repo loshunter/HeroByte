@@ -19,8 +19,9 @@ Ship a table-ready MVP to run live playtests with real players and a DM. Priorit
   - [x] Fix multi-object selection persistence and marquee selection deselection logic.
   - [x] Implement synchronized multi-object dragging with real-time visual feedback.
   - [x] Add ownership-based multi-object deletion with Delete/Backspace keyboard shortcuts.
+  - [x] Enforce lock protection for movement and deletion (blocks all users including DM).
   - [ ] Surface a multi-select visual indicator (badge/outline, accessible colours).
-  - [ ] Implement group lock/unlock and persist lock state in the scene graph.
+  - [ ] Implement group lock/unlock UI controls and persist lock state in the scene graph.
   - [ ] Extract multi-select orchestration into a dedicated module and ship an integration test covering bulk transform + lock flows.
 
 ### Session Management & DM Tools

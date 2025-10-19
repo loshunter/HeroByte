@@ -47,6 +47,25 @@
 
 **Key Achievement**: Consistent permission model across all object interactions - if you can move it, you can delete it.
 
+### Lock Enforcement (October 2025)
+- [x] **Movement Protection**
+  - [x] Updated allowDrag check in DrawingsLayer to respect locked flag
+  - [x] Locked objects cannot be dragged by anyone (including DM)
+  - [x] Lock must be removed before object can be moved
+
+- [x] **Deletion Protection**
+  - [x] Enhanced keyboard deletion handler with explicit lock blocking
+  - [x] Locked objects cannot be deleted via Delete/Backspace by anyone (including DM)
+  - [x] Improved error messages to distinguish between locked vs ownership issues
+  - [x] Added specific locked object count in multi-delete warning dialogs
+
+- [x] **Clear All Override**
+  - [x] Verified "Clear All Drawings" button correctly ignores lock flag
+  - [x] DM can use bulk clear to reset board regardless of lock status
+  - [x] Individual unlock still available for selective changes
+
+**Lock Philosophy**: Lock is a safety mechanism to prevent accidental changes during gameplay. DM can unlock individual items when needed, or use the nuclear "Clear All" option for complete board reset. Consistent protection: locked = unmovable + undeletable by all users.
+
 ---
 
 ## ✅ Contributor Readiness
