@@ -565,12 +565,12 @@ function AuthenticatedApp({
    * Delete/Backspace: Delete selected object (moved after isDM declaration)
    */
 
-  // Clear selection when transform mode is disabled
+  // Clear selection when switching away from transform/select mode to other tools
   useEffect(() => {
-    if (!transformMode) {
+    if (!transformMode && !selectMode) {
       clearSelection();
     }
-  }, [transformMode, clearSelection]);
+  }, [transformMode, selectMode, clearSelection]);
 
   useEffect(() => {
     registerServerEventHandler((message: ServerMessage) => {
@@ -1092,35 +1092,109 @@ function AuthenticatedApp({
   // Keyboard shortcuts (after isDM is declared)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Delete or Backspace to delete selected object (DM only)
-      if ((e.key === "Delete" || e.key === "Backspace") && selectedObjectId && isDM) {
+      // Delete or Backspace to delete selected object(s)
+      if ((e.key === "Delete" || e.key === "Backspace") && selectedObjectIds.length > 0) {
+        console.log("[KeyDown] Delete/Backspace pressed:", {
+          key: e.key,
+          selectedObjectIds,
+          isDM,
+          target: e.target,
+        });
+
         e.preventDefault();
 
-        // Find the scene object to check if it's locked
-        const obj = snapshot?.sceneObjects?.find((o) => o.id === selectedObjectId);
-        if (obj?.locked) {
-          alert("This object is locked. Unlock it first to delete.");
+        // Filter to only objects the user can delete (owns or is DM)
+        const objectsToDelete = selectedObjectIds.filter((id) => {
+          const obj = snapshot?.sceneObjects?.find((o) => o.id === id);
+          if (!obj) return false;
+
+          // Can't delete locked objects
+          if (obj.locked) return false;
+
+          // Can't delete the map
+          if (id.startsWith("map:")) return false;
+
+          // Can delete if DM
+          if (isDM) return true;
+
+          // Can delete if owner (or no owner set)
+          if (obj.type === "drawing") {
+            const drawing = obj.data.drawing;
+            return !drawing.owner || drawing.owner === uid;
+          }
+
+          if (obj.type === "token") {
+            const token = obj.data.token;
+            return !token.owner || token.owner === uid;
+          }
+
+          return false;
+        });
+
+        if (objectsToDelete.length === 0) {
+          const hasLocked = selectedObjectIds.some((id) => {
+            const obj = snapshot?.sceneObjects?.find((o) => o.id === id);
+            return obj?.locked;
+          });
+
+          if (hasLocked) {
+            alert("Cannot delete locked objects. Unlock them first.");
+          } else {
+            alert("You can only delete objects you own.");
+          }
           return;
         }
 
-        // Parse the scene object ID to determine type
-        const [type, id] = selectedObjectId.split(":");
+        // Show warning if some objects can't be deleted
+        if (objectsToDelete.length < selectedObjectIds.length) {
+          const skipped = selectedObjectIds.length - objectsToDelete.length;
+          if (
+            !confirm(
+              `You can only delete ${objectsToDelete.length} of ${selectedObjectIds.length} selected objects (${skipped} owned by others or locked). Continue?`,
+            )
+          ) {
+            return;
+          }
+        }
 
-        if (type === "token" && id) {
-          console.log("[Delete] Attempting to delete token:", { selectedObjectId, type, id });
-          if (confirm("Delete this token? This cannot be undone.")) {
-            console.log("[Delete] Sending delete-token message:", { t: "delete-token", id });
-            sendMessage({ t: "delete-token", id }); // id is already without prefix
-            clearSelection();
+        // Separate objects by type
+        const tokens = objectsToDelete
+          .filter((id) => id.startsWith("token:"))
+          .map((id) => id.split(":")[1]!)
+          .filter(Boolean);
+        const drawings = objectsToDelete
+          .filter((id) => id.startsWith("drawing:"))
+          .map((id) => id.split(":")[1]!)
+          .filter(Boolean);
+
+        if (tokens.length === 0 && drawings.length === 0) {
+          return;
+        }
+
+        // Build confirmation message
+        const parts: string[] = [];
+        if (tokens.length > 0) {
+          parts.push(`${tokens.length} token${tokens.length > 1 ? "s" : ""}`);
+        }
+        if (drawings.length > 0) {
+          parts.push(`${drawings.length} drawing${drawings.length > 1 ? "s" : ""}`);
+        }
+        const message = `Delete ${parts.join(" and ")}? This cannot be undone.`;
+
+        if (confirm(message)) {
+          console.log("[Delete] Deleting selected objects:", { tokens, drawings });
+
+          // Delete all tokens
+          for (const id of tokens) {
+            sendMessage({ t: "delete-token", id });
           }
-        } else if (type === "map") {
-          // Don't allow deleting the map
-          alert("Cannot delete the map background. Use DM Menu to clear it.");
-        } else if (type === "drawing" && id) {
-          if (confirm("Delete this drawing? This cannot be undone.")) {
-            sendMessage({ t: "delete-drawing", id }); // id is already without prefix
-            clearSelection();
+
+          // Delete all drawings
+          for (const id of drawings) {
+            sendMessage({ t: "delete-drawing", id });
           }
+
+          clearSelection();
         }
         return;
       }

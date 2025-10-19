@@ -378,6 +378,11 @@ export default function MapBoard({
       return;
     }
 
+    // In select mode, marquee selection handles everything - don't process stage clicks
+    if (selectMode) {
+      return;
+    }
+
     if (!pointerMode && !measureMode && !drawMode) {
       if (onSelectObject) {
         const stage = event.target.getStage();
@@ -610,12 +615,6 @@ export default function MapBoard({
     const width = maxX - minX;
     const height = maxY - minY;
 
-    // Treat a click without drag as a deselect so behaviour mirrors existing stage clicks
-    if (width < 4 && height < 4) {
-      onSelectObject?.(null);
-      return;
-    }
-
     const matches: string[] = [];
 
     nodeRefsMap.current.forEach((node, id) => {
@@ -637,11 +636,21 @@ export default function MapBoard({
       }
     });
 
-    if (matches.length === 0) {
+    // If the marquee is very small (likely a click) and no objects were found, deselect
+    if (width < 4 && height < 4 && matches.length === 0) {
+      console.log("[Marquee] Small marquee, no matches - deselecting");
       onSelectObject?.(null);
       return;
     }
 
+    // If no objects were found in a larger marquee, also deselect
+    if (matches.length === 0) {
+      console.log("[Marquee] No matches found - deselecting");
+      onSelectObject?.(null);
+      return;
+    }
+
+    console.log("[Marquee] Selecting", matches.length, "objects:", matches);
     if (onSelectObjects) {
       onSelectObjects(matches);
     } else if (onSelectObject) {

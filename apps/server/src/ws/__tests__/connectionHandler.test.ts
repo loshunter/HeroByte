@@ -220,7 +220,8 @@ describe("ConnectionHandler", () => {
     const player = state.players.find((p) => p.uid === "user-4");
     expect(player).toBeDefined();
     if (player) {
-      player.lastHeartbeat = Date.now() - 120_000;
+      // Set lastHeartbeat to 6 minutes ago (beyond 5 minute timeout)
+      player.lastHeartbeat = Date.now() - 6 * 60 * 1000;
     }
 
     deselectSpy.mockClear();

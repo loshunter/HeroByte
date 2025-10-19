@@ -220,7 +220,7 @@ describe("validateMessage", () => {
 
     expect(validateMessage({ t: "draw", drawing: tooManyPoints })).toMatchObject({
       valid: false,
-      error: "draw: too many points (max 10000)",
+      error: "draw: drawing exceeds point limit (max 10000)",
     });
   });
 
@@ -367,7 +367,7 @@ describe("validateMessage", () => {
 
       expect(validateMessage({ t: "draw", drawing: massiveDrawing })).toMatchObject({
         valid: false,
-        error: "draw: too many points (max 10000)",
+        error: "draw: drawing exceeds point limit (max 10000)",
       });
     });
 

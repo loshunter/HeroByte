@@ -62,6 +62,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
   const localOverrides = useRef<Record<string, TransformOverride>>({});
   const [, forceRerender] = useState(0);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const dragStartPositions = useRef<Record<string, { x: number; y: number }>>({});
 
   const applyOverrides = (object: SceneObject & { type: "drawing" }) => {
     const override = localOverrides.current[object.id];
@@ -79,19 +80,96 @@ export const DrawingsLayer = memo(function DrawingsLayer({
 
   const handleDragStart = (sceneId: string) => {
     setDraggingId(sceneId);
+
+    // Store initial positions of all selected objects for multi-object dragging
+    dragStartPositions.current = {};
+    for (const id of selectedObjectIds) {
+      const obj = drawingObjects.find((d) => d.id === id);
+      if (obj) {
+        const appliedObj = applyOverrides(obj);
+        dragStartPositions.current[id] = {
+          x: appliedObj.transform.x,
+          y: appliedObj.transform.y,
+        };
+      }
+    }
+    console.log("[DrawingsLayer] handleDragStart - stored positions:", dragStartPositions.current);
+  };
+
+  const handleDragMove = (sceneId: string, event: KonvaEventObject<DragEvent>) => {
+    const node = event.target as Konva.Node;
+    const currentPosition = node.position();
+
+    // Calculate the delta from the dragged object's original position
+    const startPos = dragStartPositions.current[sceneId];
+    if (!startPos) return;
+
+    const deltaX = currentPosition.x - startPos.x;
+    const deltaY = currentPosition.y - startPos.y;
+
+    // Apply the delta to all selected objects (except the one being dragged)
+    for (const id of selectedObjectIds) {
+      if (id === sceneId) continue; // Skip the dragged object itself
+
+      const startPosition = dragStartPositions.current[id];
+      if (startPosition) {
+        const nextPosition = {
+          x: startPosition.x + deltaX,
+          y: startPosition.y + deltaY,
+        };
+
+        localOverrides.current[id] = {
+          x: nextPosition.x,
+          y: nextPosition.y,
+        };
+      }
+    }
+
+    // Force re-render to show updated positions
+    forceRerender((value) => value + 1);
   };
 
   const handleDragEnd = (sceneId: string, event: KonvaEventObject<DragEvent>) => {
     const node = event.target as Konva.Node;
-    const position = node.position();
-    const nextOverride: TransformOverride = {
-      x: position.x,
-      y: position.y,
-    };
-    localOverrides.current[sceneId] = nextOverride;
+    const newPosition = node.position();
+
+    // Calculate the delta from the dragged object's original position
+    const startPos = dragStartPositions.current[sceneId];
+    if (!startPos) {
+      console.warn("[DrawingsLayer] No start position for dragged object:", sceneId);
+      setDraggingId(null);
+      return;
+    }
+
+    const deltaX = newPosition.x - startPos.x;
+    const deltaY = newPosition.y - startPos.y;
+
+    console.log("[DrawingsLayer] handleDragEnd - delta:", { deltaX, deltaY, selectedObjectIds });
+
+    // Apply the delta to all selected objects
+    for (const id of selectedObjectIds) {
+      const startPosition = dragStartPositions.current[id];
+      if (startPosition) {
+        const nextPosition = {
+          x: startPosition.x + deltaX,
+          y: startPosition.y + deltaY,
+        };
+
+        const nextOverride: TransformOverride = {
+          x: nextPosition.x,
+          y: nextPosition.y,
+        };
+        localOverrides.current[id] = nextOverride;
+
+        // Send transform update to server for each selected object
+        onTransformDrawing(id, { position: nextPosition });
+        console.log("[DrawingsLayer] Moving object:", id, "to", nextPosition);
+      }
+    }
+
     forceRerender((value) => value + 1);
-    onTransformDrawing(sceneId, { position: { x: position.x, y: position.y } });
     setDraggingId(null);
+    dragStartPositions.current = {};
   };
 
   useEffect(() => {
@@ -182,6 +260,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
       allowDrag
         ? {
             onDragStart: () => handleDragStart(sceneObject.id),
+            onDragMove: (event: KonvaEventObject<DragEvent>) => handleDragMove(sceneObject.id, event),
             onDragEnd: (event: KonvaEventObject<DragEvent>) => handleDragEnd(sceneObject.id, event),
           }
         : {};

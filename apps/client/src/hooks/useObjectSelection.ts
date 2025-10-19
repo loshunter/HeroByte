@@ -75,6 +75,7 @@ export function useObjectSelection({
 
   // Clear optimistic state once the authoritative snapshot catches up
   useEffect(() => {
+    console.log("[useObjectSelection] serverEntry changed, clearing optimistic state. serverEntry:", serverEntry);
     setOptimisticEntry(null);
   }, [serverEntry]);
 
@@ -96,6 +97,7 @@ export function useObjectSelection({
         if (!activeEntry) {
           return;
         }
+        console.log("[useObjectSelection] selectObject(null) called - deselecting", new Error().stack);
         setOptimisticEntry(null);
         sendMessage({ t: "deselect-object", uid });
         return;
@@ -115,12 +117,14 @@ export function useObjectSelection({
     if (!activeEntry) {
       return;
     }
+    console.log("[useObjectSelection] deselect() called", new Error().stack);
     setOptimisticEntry(null);
     sendMessage({ t: "deselect-object", uid });
   }, [activeEntry, sendMessage, uid]);
 
   const selectMultiple = useCallback(
     (objectIds: string[], mode: SelectionMode = "replace") => {
+      console.log("[useObjectSelection] selectMultiple called:", objectIds, "mode:", mode);
       const currentIds = entryToIds(activeEntry);
       const normalizedIncoming = normalizeIds(objectIds);
 
@@ -147,14 +151,18 @@ export function useObjectSelection({
         }
       }
 
+      console.log("[useObjectSelection] currentIds:", currentIds, "nextIds:", nextIds);
+
       const unchanged =
         currentIds.length === nextIds.length &&
         currentIds.every((value, index) => value === nextIds[index]);
       if (unchanged) {
+        console.log("[useObjectSelection] Selection unchanged, skipping");
         return;
       }
 
       if (nextIds.length === 0) {
+        console.log("[useObjectSelection] nextIds is empty - deselecting", new Error().stack);
         setOptimisticEntry(null);
         if (mode === "replace") {
           sendMessage({ t: "deselect-object", uid });
@@ -164,6 +172,7 @@ export function useObjectSelection({
         return;
       }
 
+      console.log("[useObjectSelection] Setting selection to:", nextIds);
       setOptimisticEntry(toSelectionEntry(nextIds));
       if (mode === "replace" && nextIds.length === 1) {
         sendMessage({ t: "select-object", uid, objectId: nextIds[0]! });
