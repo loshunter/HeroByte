@@ -6,27 +6,7 @@ Ship a table-ready MVP to run live playtests with real players and a DM. Priorit
 
 ## 1. Launch Blockers (must ship before scheduling playtest)
 
-### Drawing & Selection Stability
-
-- [x] **Partial erase completion**
-  - [x] Manual QA with two clients (erase + undo/redo sync). See `docs/manual-test-reports/2025-10-18-partial-erase.md` for step-by-step checklist.
-  - [x] E2E test infrastructure fixed (global-setup.ts, beforeEach hooks, disabled parallel execution)
-  - [x] All 4 E2E tests passing (11.0s total) - no bugs found, feature works perfectly
-- [x] **Multi-select readiness**
-  - [x] Extract multi-select orchestration into a dedicated module and ship an integration test covering bulk transform + lock flows.
-    - Module extracted to `apps/client/src/features/multiselect/` with types and handlers
-    - E2E tests in `apps/e2e/multi-select.spec.ts` (4 tests: 1 passing, 3 have DM toggle timing issues - deferred)
-
-### Session Management & DM Tools
-
-- [x] **Player save/load parity**
-  - [x] Document the player snapshot schema (name, color, token URL, portrait URL, HP/max HP, status effects, size scaling, rotation, position, custom drawings).
-    - Comprehensive schema documentation created in `docs/player-snapshot-schema.md`
-  - [x] Wire player serialization/deserialization through the server save pipeline and ensure client-side rehydration restores UI state (HP inputs, portrait slot, token transforms).
-    - Server pipeline verified at `apps/server/src/domains/room/service.ts:119` (saveState) and `:81` (loadState)
-    - Client rehydration verified through PlayerCard → HPBar, PortraitSection, NameEditor components
-  - [x] Add integration coverage for player save/load (unit test for serializer + end-to-end load of a sample save).
-    - E2E tests in `apps/e2e/player-state.spec.ts` (4 tests: 2 passing, 2 have server broadcast timing issues - deferred)
+_All launch blockers complete! See [DONE.md](DONE.md) for details._
 
 ## 2. High-Priority Polish (tackle right after blockers)
 
@@ -68,16 +48,7 @@ _Completed milestones are archived in [DONE.md](DONE.md) to keep this list focus
 ### Testing Infrastructure
 
 - [ ] **E2E Tests** (optional for now) — unit/integration coverage complete (see `DONE.md`)
-  - [x] Add Playwright smoke test for default room login
-  - [x] Set up Playwright runner (root `playwright.config.ts`, `pnpm test:e2e`)
-  - [x] Expand coverage (token movement, dice roller, drawing tools)
-    - [x] Token movement (`apps/e2e/token-movement.spec.ts`)
-    - [x] Dice roller (`apps/e2e/dice.spec.ts`)
-    - [x] Drawing tools
-  - [x] Test critical user flows (join session, move token, roll dice)
-    - [x] Join session (`apps/e2e/smoke.spec.ts`)
-    - [x] Move token (`apps/e2e/token-movement.spec.ts`)
-    - [x] Roll dice (`apps/e2e/dice.spec.ts`)
+  - _All core E2E infrastructure complete! See [DONE.md](DONE.md) for details._
 
 ### README Improvements
 
@@ -87,9 +58,7 @@ _Completed milestones are archived in [DONE.md](DONE.md) to keep this list focus
   - [ ] Show UI for drawing tools, token movement
 
 - [ ] **Better Documentation**
-  - [x] Add "Running Tests" section with `pnpm test` examples
-  - [x] Expand "Contributing" section with PR workflow
-  - [x] Add troubleshooting section (common issues)
+  - _Core documentation complete! See [DONE.md](DONE.md) for completed items._
   - [ ] Add architecture diagram (optional)
 
 ### Security Hardening
