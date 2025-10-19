@@ -752,6 +752,11 @@ export function validateMessage(raw: unknown): ValidationResult {
       break;
     }
 
+    case "revoke-dm": {
+      // No parameters to validate - just needs to be authenticated
+      break;
+    }
+
     case "transform-object": {
       if (typeof message.id !== "string" || message.id.length === 0) {
         return { valid: false, error: "transform-object: missing or invalid id" };

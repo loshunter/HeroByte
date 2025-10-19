@@ -89,21 +89,33 @@ The room password flow described above has been implemented and enhanced with a 
 **Two-Tier Authentication:**
 
 1. **Room Password** (Player Access) - Gets you into the room as a Player
+   - Default (development): `Fun1`
    - Stored in `herobyte-room-secret.json` (hashed with scrypt)
    - Can be set via `HEROBYTE_ROOM_SECRET` env var or updated by DM
    - Length: 6-128 characters
 
 2. **DM Password** (DM Elevation) - Elevates you to DM with special powers
+   - Default (development): `FunDM`
    - Stored separately in same JSON file (dmHash, dmSalt fields)
-   - Set by first authenticated user (bootstrap) or updated by current DM
+   - Can be set via `HEROBYTE_DM_PASSWORD` env var or updated by current DM
    - Length: 8-128 characters (stricter than room password)
 
-### Bootstrap Flow
+### Bootstrap Flow (First-Time Setup)
 
-1. First user connects with room password → becomes Player
-2. First user sets DM password → auto-promoted to DM
-3. Subsequent users connect with room password → become Players
-4. Players can elevate to DM by providing DM password
+1. First user connects with room password (`Fun1` default) → becomes Player
+2. User clicks "Make myself DM" → prompted for DM password
+3. If no DM password exists yet:
+   - User is prompted to set one (minimum 8 characters)
+   - User is auto-promoted to DM after setting password
+4. If DM password exists (`FunDM` default):
+   - User enters the password to elevate
+   - User becomes DM if password matches
+
+### Regular Flow (After Bootstrap)
+
+1. Users connect with room password (`Fun1` or custom) → become Players
+2. Players can elevate to DM by entering DM password (`FunDM` or custom)
+3. Only one DM at a time (future: multiple DMs possible)
 
 ### Message Types Added
 
@@ -186,15 +198,26 @@ The following actions now require `isDM=true`:
 - Whitespace trimming, length validation, timing-safe comparison
 - Separate persistence of room vs DM passwords
 
+## Demo Server Workflow
+
+For casual game sessions on the demo server, see **[docs/DEMO_SERVER_WORKFLOW.md](docs/DEMO_SERVER_WORKFLOW.md)** for:
+
+- How to set a private room password before your game
+- Sharing passwords with your players
+- Saving and cleaning up after your session
+- Resetting to demo defaults (coming soon)
+- Security best practices for demo vs. production
+
 ## Future Enhancements
 
-- Replace shared secret with per-room secrets stored with room metadata.
-- Issue short-lived signed tokens after password entry to avoid resending secrets.
-- Integrate invite links (`wss://.../connect?roomId=abc&token=...`).
-- Layer in Authlocal or other identity systems once room boundaries are solid.
+- **"Reset to Demo Mode" button** - One-click cleanup after game sessions
+- Replace shared secret with per-room secrets stored with room metadata
+- Issue short-lived signed tokens after password entry to avoid resending secrets
+- Integrate invite links (`wss://.../connect?roomId=abc&token=...`)
+- Layer in OAuth or other identity systems once room boundaries are solid
 - Add structured audit logging for auth and DM actions (winston/pino)
 - HTTPS/WSS production deployment guide
 - E2E tests for dual-password flow
-- DM elevation UI (optional - currently CLI/WebSocket only)
+- ✅ ~~DM elevation UI~~ (Implemented in v0.9.0-beta.2)
 
 This design keeps the immediate change manageable while isolating auth logic so we can iterate toward more robust identity in later phases.

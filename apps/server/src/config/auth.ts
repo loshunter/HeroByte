@@ -5,8 +5,10 @@
 
 const DEFAULT_ROOM_ID = "default";
 const DEV_FALLBACK_SECRET = "Fun1";
+const DEV_FALLBACK_DM_PASSWORD = "FunDM";
 
 let warnedAboutFallback = false;
+let warnedAboutDMFallback = false;
 
 /**
  * Retrieve the shared room secret from environment configuration.
@@ -26,6 +28,26 @@ export function getRoomSecret(): string {
   }
 
   return DEV_FALLBACK_SECRET;
+}
+
+/**
+ * Retrieve the DM password from environment configuration.
+ * Falls back to a development password if not provided.
+ */
+export function getDMPassword(): string {
+  const envDMPassword = process.env.HEROBYTE_DM_PASSWORD?.trim();
+  if (envDMPassword) {
+    return envDMPassword;
+  }
+
+  if (!warnedAboutDMFallback) {
+    console.warn(
+      "[Auth] HEROBYTE_DM_PASSWORD not set; using development fallback DM password. Set the env var in production.",
+    );
+    warnedAboutDMFallback = true;
+  }
+
+  return DEV_FALLBACK_DM_PASSWORD;
 }
 
 /**
