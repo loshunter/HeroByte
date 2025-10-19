@@ -135,6 +135,13 @@ export class ConnectionHandler {
    */
   private handleMessage(buf: Buffer, uid: string): void {
     try {
+      // Message size limit check (1MB) to prevent DoS attacks
+      const MAX_MESSAGE_SIZE = 1024 * 1024; // 1MB
+      if (buf.length > MAX_MESSAGE_SIZE) {
+        console.warn(`Message from ${uid} exceeds size limit: ${buf.length} bytes (max: ${MAX_MESSAGE_SIZE})`);
+        return;
+      }
+
       // Parse message
       const message: ClientMessage = JSON.parse(buf.toString());
 
