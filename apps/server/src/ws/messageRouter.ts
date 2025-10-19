@@ -335,6 +335,7 @@ export class MessageRouter {
             console.warn(`select-object spoofed uid from ${senderUid}`);
             break;
           }
+          console.info(`[DEBUG] select-object from ${senderUid}: objectId=${message.objectId}`);
           if (this.selectionService.selectObject(state, senderUid, message.objectId)) {
             this.broadcast();
           }
@@ -346,6 +347,7 @@ export class MessageRouter {
             console.warn(`deselect-object spoofed uid from ${senderUid}`);
             break;
           }
+          console.info(`[DEBUG] deselect-object from ${senderUid}`);
           if (this.selectionService.deselect(state, senderUid)) {
             this.broadcast();
           }
@@ -357,6 +359,7 @@ export class MessageRouter {
             console.warn(`select-multiple spoofed uid from ${senderUid}`);
             break;
           }
+          console.info(`[DEBUG] select-multiple from ${senderUid}: objectIds=${JSON.stringify(message.objectIds)}, mode=${message.mode ?? "replace"}`);
           if (
             this.selectionService.selectMultiple(
               state,
@@ -494,6 +497,7 @@ export class MessageRouter {
           if (player) {
             player.lastHeartbeat = Date.now();
           }
+          console.log(`[DEBUG] Heartbeat received from ${senderUid}`);
           // Broadcast to keep client connection alive (prevents heartbeat timeout)
           this.broadcast();
           break;
