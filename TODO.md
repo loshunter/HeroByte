@@ -207,6 +207,7 @@ _Completed phase summaries now live in [DONE.md](DONE.md)._
   - [ ] Commit with comprehensive test results in commit message
 
 **Success Criteria**:
+
 - Users can erase portions of freehand drawings without losing entire sketch
 - Eraser creates clean splits (no visual artifacts)
 - All drawing properties preserved in segments
@@ -421,6 +422,7 @@ _Shared planning brief with Phase 19: `docs/planning/phase19-20-briefing.md`._
   - [ ] Bidirectional sync: Menu ↔ Gizmo
 
 **Success Criteria**:
+
 - Keyboard shortcuts work intuitively
 - Edge cases handled gracefully
 - Visual polish: smooth, responsive, professional
@@ -487,6 +489,7 @@ _Shared planning brief with Phase 19: `docs/planning/phase19-20-briefing.md`._
   - [ ] Track structural metrics (LOC, dependency graph density) in CI to catch new god-file drift
 
 **Success Criteria**:
+
 - No targeted file exceeds agreed LOC threshold or mixes unrelated responsibilities
 - Refactored modules ship with tests authored or updated during refactor (TDD pass)
 - Contributor documentation highlights SOLID/SOC guardrails and test requirements for reviews

@@ -120,22 +120,27 @@ test.describe("HeroByte partial erase", () => {
         const data = window.__HERO_BYTE_E2E__;
         const drawings = data?.snapshot?.drawings ?? [];
         const originalBack = drawings.some((d) => d.id === origId);
-        const segmentsGone = segmentIds.every((segId: string) => !drawings.some((d) => d.id === segId));
+        const segmentsGone = segmentIds.every(
+          (segId: string) => !drawings.some((d) => d.id === segId),
+        );
         return originalBack && segmentsGone;
       },
       { origId: originalDrawingId, segmentIds },
       { timeout: 5000 },
     );
 
-    const afterUndo = await page.evaluate(({ origId, segmentIds }) => {
-      const data = window.__HERO_BYTE_E2E__;
-      const drawings = data?.snapshot?.drawings ?? [];
-      return {
-        originalExists: drawings.some((d) => d.id === origId),
-        segmentsExist: segmentIds.some((segId: string) => drawings.some((d) => d.id === segId)),
-        drawingCount: drawings.length,
-      };
-    }, { origId: originalDrawingId, segmentIds });
+    const afterUndo = await page.evaluate(
+      ({ origId, segmentIds }) => {
+        const data = window.__HERO_BYTE_E2E__;
+        const drawings = data?.snapshot?.drawings ?? [];
+        return {
+          originalExists: drawings.some((d) => d.id === origId),
+          segmentsExist: segmentIds.some((segId: string) => drawings.some((d) => d.id === segId)),
+          drawingCount: drawings.length,
+        };
+      },
+      { origId: originalDrawingId, segmentIds },
+    );
 
     expect(afterUndo.originalExists).toBe(true);
     expect(afterUndo.segmentsExist).toBe(false); // Segments should be removed!
@@ -153,22 +158,28 @@ test.describe("HeroByte partial erase", () => {
         const data = window.__HERO_BYTE_E2E__;
         const drawings = data?.snapshot?.drawings ?? [];
         const originalGone = !drawings.some((d) => d.id === origId);
-        const segmentsBack = segmentIds.every((segId: string) => drawings.some((d) => d.id === segId));
+        const segmentsBack = segmentIds.every((segId: string) =>
+          drawings.some((d) => d.id === segId),
+        );
         return originalGone && segmentsBack;
       },
       { origId: originalDrawingId, segmentIds },
       { timeout: 5000 },
     );
 
-    const afterRedo = await page.evaluate(({ origId, segmentIds }) => {
-      const data = window.__HERO_BYTE_E2E__;
-      const drawings = data?.snapshot?.drawings ?? [];
-      return {
-        originalExists: drawings.some((d) => d.id === origId),
-        segmentsExist: segmentIds.every((segId: string) => drawings.some((d) => d.id === segId)),
-        segmentCount: segmentIds.filter((segId: string) => drawings.some((d) => d.id === segId)).length,
-      };
-    }, { origId: originalDrawingId, segmentIds });
+    const afterRedo = await page.evaluate(
+      ({ origId, segmentIds }) => {
+        const data = window.__HERO_BYTE_E2E__;
+        const drawings = data?.snapshot?.drawings ?? [];
+        return {
+          originalExists: drawings.some((d) => d.id === origId),
+          segmentsExist: segmentIds.every((segId: string) => drawings.some((d) => d.id === segId)),
+          segmentCount: segmentIds.filter((segId: string) => drawings.some((d) => d.id === segId))
+            .length,
+        };
+      },
+      { origId: originalDrawingId, segmentIds },
+    );
 
     expect(afterRedo.originalExists).toBe(false);
     expect(afterRedo.segmentsExist).toBe(true); // Segments should be restored!
@@ -267,10 +278,14 @@ test.describe("HeroByte partial erase", () => {
       await page1.mouse.up();
 
       // Client 1 verifies drawing created
-      await page1.waitForFunction((prevCount) => {
-        const data = window.__HERO_BYTE_E2E__;
-        return (data?.snapshot?.drawings?.length ?? 0) > prevCount;
-      }, initialCount, { timeout: 5000 });
+      await page1.waitForFunction(
+        (prevCount) => {
+          const data = window.__HERO_BYTE_E2E__;
+          return (data?.snapshot?.drawings?.length ?? 0) > prevCount;
+        },
+        initialCount,
+        { timeout: 5000 },
+      );
 
       const drawingId = await page1.evaluate(() => {
         const data = window.__HERO_BYTE_E2E__;
@@ -392,22 +407,27 @@ test.describe("HeroByte partial erase", () => {
           const data = window.__HERO_BYTE_E2E__;
           const drawings = data?.snapshot?.drawings ?? [];
           const originalBack = drawings.some((d) => d.id === origId);
-          const segmentsGone = segmentIds.every((segId: string) => !drawings.some((d) => d.id === segId));
+          const segmentsGone = segmentIds.every(
+            (segId: string) => !drawings.some((d) => d.id === segId),
+          );
           return originalBack && segmentsGone;
         },
         { origId: drawingId, segmentIds: client1Segments.ids },
         { timeout: 15000 },
       );
 
-      const client2AfterUndo = await page2.evaluate(({ origId, segmentIds }) => {
-        const data = window.__HERO_BYTE_E2E__;
-        const drawings = data?.snapshot?.drawings ?? [];
-        return {
-          originalExists: drawings.some((d) => d.id === origId),
-          segmentsExist: segmentIds.some((segId: string) => drawings.some((d) => d.id === segId)),
-          drawingCount: drawings.length,
-        };
-      }, { origId: drawingId, segmentIds: client1Segments.ids });
+      const client2AfterUndo = await page2.evaluate(
+        ({ origId, segmentIds }) => {
+          const data = window.__HERO_BYTE_E2E__;
+          const drawings = data?.snapshot?.drawings ?? [];
+          return {
+            originalExists: drawings.some((d) => d.id === origId),
+            segmentsExist: segmentIds.some((segId: string) => drawings.some((d) => d.id === segId)),
+            drawingCount: drawings.length,
+          };
+        },
+        { origId: drawingId, segmentIds: client1Segments.ids },
+      );
 
       expect(client2AfterUndo.originalExists).toBe(true);
       expect(client2AfterUndo.segmentsExist).toBe(false); // Segments should be removed
@@ -436,22 +456,29 @@ test.describe("HeroByte partial erase", () => {
           const data = window.__HERO_BYTE_E2E__;
           const drawings = data?.snapshot?.drawings ?? [];
           const originalGone = !drawings.some((d) => d.id === origId);
-          const segmentsBack = segmentIds.every((segId: string) => drawings.some((d) => d.id === segId));
+          const segmentsBack = segmentIds.every((segId: string) =>
+            drawings.some((d) => d.id === segId),
+          );
           return originalGone && segmentsBack;
         },
         { origId: drawingId, segmentIds: client1Segments.ids },
         { timeout: 15000 },
       );
 
-      const client2AfterRedo = await page2.evaluate(({ origId, segmentIds }) => {
-        const data = window.__HERO_BYTE_E2E__;
-        const drawings = data?.snapshot?.drawings ?? [];
-        return {
-          originalExists: drawings.some((d) => d.id === origId),
-          segmentsExist: segmentIds.every((segId: string) => drawings.some((d) => d.id === segId)),
-          segmentCount: drawings.filter((d) => d.type === "freehand").length,
-        };
-      }, { origId: drawingId, segmentIds: client1Segments.ids });
+      const client2AfterRedo = await page2.evaluate(
+        ({ origId, segmentIds }) => {
+          const data = window.__HERO_BYTE_E2E__;
+          const drawings = data?.snapshot?.drawings ?? [];
+          return {
+            originalExists: drawings.some((d) => d.id === origId),
+            segmentsExist: segmentIds.every((segId: string) =>
+              drawings.some((d) => d.id === segId),
+            ),
+            segmentCount: drawings.filter((d) => d.type === "freehand").length,
+          };
+        },
+        { origId: drawingId, segmentIds: client1Segments.ids },
+      );
 
       expect(client2AfterRedo.originalExists).toBe(false);
       expect(client2AfterRedo.segmentsExist).toBe(true); // Segments should be restored
@@ -671,22 +698,27 @@ test.describe("HeroByte partial erase", () => {
         const data = window.__HERO_BYTE_E2E__;
         const drawings = data?.snapshot?.drawings ?? [];
         const originalBack = drawings.some((d) => d.id === origId);
-        const segmentsGone = segmentIds.every((segId: string) => !drawings.some((d) => d.id === segId));
+        const segmentsGone = segmentIds.every(
+          (segId: string) => !drawings.some((d) => d.id === segId),
+        );
         return originalBack && segmentsGone;
       },
       { origId: originalDrawingId, segmentIds },
       { timeout: 5000 },
     );
 
-    const afterUndo = await page.evaluate(({ origId, segmentIds }) => {
-      const data = window.__HERO_BYTE_E2E__;
-      const drawings = data?.snapshot?.drawings ?? [];
-      return {
-        originalExists: drawings.some((d) => d.id === origId),
-        segmentsExist: segmentIds.some((segId: string) => drawings.some((d) => d.id === segId)),
-        drawingCount: drawings.length,
-      };
-    }, { origId: originalDrawingId, segmentIds });
+    const afterUndo = await page.evaluate(
+      ({ origId, segmentIds }) => {
+        const data = window.__HERO_BYTE_E2E__;
+        const drawings = data?.snapshot?.drawings ?? [];
+        return {
+          originalExists: drawings.some((d) => d.id === origId),
+          segmentsExist: segmentIds.some((segId: string) => drawings.some((d) => d.id === segId)),
+          drawingCount: drawings.length,
+        };
+      },
+      { origId: originalDrawingId, segmentIds },
+    );
 
     expect(afterUndo.originalExists).toBe(true);
     expect(afterUndo.segmentsExist).toBe(false); // Segments should be removed
@@ -702,22 +734,27 @@ test.describe("HeroByte partial erase", () => {
         const data = window.__HERO_BYTE_E2E__;
         const drawings = data?.snapshot?.drawings ?? [];
         const originalGone = !drawings.some((d) => d.id === origId);
-        const segmentsBack = segmentIds.every((segId: string) => drawings.some((d) => d.id === segId));
+        const segmentsBack = segmentIds.every((segId: string) =>
+          drawings.some((d) => d.id === segId),
+        );
         return originalGone && segmentsBack;
       },
       { origId: originalDrawingId, segmentIds },
       { timeout: 5000 },
     );
 
-    const afterRedo = await page.evaluate(({ origId, segmentIds }) => {
-      const data = window.__HERO_BYTE_E2E__;
-      const drawings = data?.snapshot?.drawings ?? [];
-      return {
-        originalExists: drawings.some((d) => d.id === origId),
-        segmentsExist: segmentIds.every((segId: string) => drawings.some((d) => d.id === segId)),
-        segmentCount: drawings.filter((d) => d.type === "freehand").length,
-      };
-    }, { origId: originalDrawingId, segmentIds });
+    const afterRedo = await page.evaluate(
+      ({ origId, segmentIds }) => {
+        const data = window.__HERO_BYTE_E2E__;
+        const drawings = data?.snapshot?.drawings ?? [];
+        return {
+          originalExists: drawings.some((d) => d.id === origId),
+          segmentsExist: segmentIds.every((segId: string) => drawings.some((d) => d.id === segId)),
+          segmentCount: drawings.filter((d) => d.type === "freehand").length,
+        };
+      },
+      { origId: originalDrawingId, segmentIds },
+    );
 
     expect(afterRedo.originalExists).toBe(false);
     expect(afterRedo.segmentsExist).toBe(true); // Segments should be restored

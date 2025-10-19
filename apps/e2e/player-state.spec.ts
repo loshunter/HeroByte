@@ -142,7 +142,10 @@ test.describe("HeroByte player state save/load", () => {
     await page.waitForFunction(() => {
       const data = window.__HERO_BYTE_E2E__;
       if (!data?.snapshot || !data.uid) return false;
-      return Array.isArray(data.snapshot.tokens) && data.snapshot.tokens.some((t) => t.owner === data.uid);
+      return (
+        Array.isArray(data.snapshot.tokens) &&
+        data.snapshot.tokens.some((t) => t.owner === data.uid)
+      );
     });
 
     const myUid = await page.evaluate(() => window.__HERO_BYTE_E2E__?.uid ?? null);

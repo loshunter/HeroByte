@@ -10,6 +10,7 @@
 **Commit**: 777fd90
 
 ### E2E Test Infrastructure Fixed
+
 - [x] **Test Environment Setup**
   - [x] Created `apps/e2e/global-setup.ts` to clear server state before test runs
   - [x] Added beforeEach hooks in `partial-erase.spec.ts` for test isolation
@@ -17,6 +18,7 @@
   - [x] Fixed test flakiness caused by shared state between parallel tests
 
 ### E2E Test Coverage Verified
+
 - [x] **All 4 Tests Passing** (11.0s total execution time)
   - [x] Test: "erases middle segment of freehand drawing" - validates core splitting logic
   - [x] Test: "handles undo/redo for partial erase" - verifies undo stack integration
@@ -24,6 +26,7 @@
   - [x] Test: "preserves drawing properties in split segments" - ensures color/width/opacity preserved
 
 ### Feature Validation
+
 - [x] **Server Logic Verified**
   - [x] Partial erase server handler works correctly
   - [x] Split segments created with proper IDs and properties
@@ -37,6 +40,7 @@
   - [x] Drawing properties preservation confirmed working
 
 ### Files Involved
+
 - `playwright.config.ts` - Disabled parallel execution for stable room state
 - `apps/e2e/global-setup.ts` - Clear state before test runs
 - `apps/e2e/partial-erase.spec.ts` - Comprehensive E2E test suite
@@ -51,6 +55,7 @@
 ## ✅ MVP Launch Blocker Completion (October 19, 2025)
 
 ### Multi-Select Module Extraction & Testing
+
 - [x] **Dedicated Multi-Select Module**
   - [x] Extracted multi-select orchestration into `apps/client/src/features/multiselect/`
   - [x] Created type definitions in `types/multiselect.ts` (SelectionMode, MultiSelectOptions, DeleteAnalysisResult)
@@ -68,6 +73,7 @@
   - [x] Note: 1/4 tests passing, 3 have timing issues with DM toggle (deferred for post-MVP debugging)
 
 ### Player Save/Load Parity
+
 - [x] **Player Snapshot Schema Documentation**
   - [x] Created comprehensive documentation in `docs/player-snapshot-schema.md`
   - [x] Documented server-side `Player` interface (uid, name, portrait, hp, maxHp, isDM, statusEffects)
@@ -102,6 +108,7 @@
 ## ✅ Partial Erase Implementation (October 2025)
 
 ### Core Splitting Utility
+
 - [x] **Unit Test Coverage for splitFreehandDrawing**
   - [x] Middle segment removal with clean path splitting
   - [x] Start segment removal (first portion of path)
@@ -112,12 +119,14 @@
   - [x] Comprehensive test suite ensures robust splitting behavior
 
 ### Client-Side Integration
+
 - [x] **Eraser Path Implementation**
   - [x] Implemented splitting utility in client eraser workflow
   - [x] Reused server-validated logic for consistent behavior
   - [x] Visual feedback during erase operation
 
 ### Server-Side Handling
+
 - [x] **Backend Support**
   - [x] `erase-partial` message schema in shared package
   - [x] Validation middleware for erase-partial messages
@@ -126,6 +135,7 @@
   - [x] Broadcast updates to all clients
 
 ### Integration Testing
+
 - [x] **Message Router Coverage**
   - [x] Added integration tests for erase-partial message flow
   - [x] Verified end-to-end message handling
@@ -138,6 +148,7 @@
 ## ✅ Multi-Select Core Features (October 2025)
 
 ### Selection Persistence & Stability
+
 - [x] **Selection State Management**
   - [x] Fixed multi-object selection persistence across mode switches
   - [x] Prevented selection clearing when switching between select and transform modes
@@ -151,6 +162,7 @@
   - [x] Smooth multi-object selection via drag rectangle
 
 ### Synchronized Multi-Object Operations
+
 - [x] **Real-Time Dragging**
   - [x] Implemented synchronized movement for all selected objects
   - [x] Added onDragMove handler for live position updates
@@ -160,6 +172,7 @@
   - [x] Eliminated rubber-band snap effect for smooth visual feedback
 
 ### Multi-Object Deletion
+
 - [x] **Ownership-Based Permissions**
   - [x] Updated Delete/Backspace handler for multiple selections
   - [x] Changed from DM-only to ownership-based deletion
@@ -169,6 +182,7 @@
   - [x] Specific error messages for different permission issues
 
 ### Lock Enforcement
+
 - [x] **Movement Protection**
   - [x] Locked objects cannot be dragged by anyone (including DM)
   - [x] Lock must be removed before object movement
@@ -181,6 +195,7 @@
   - [x] Locked object count shown in multi-delete warnings
 
 ### Group Lock/Unlock UI
+
 - [x] **UI Controls**
   - [x] Group lock button for multiple selections
   - [x] Group unlock button for multiple selections
@@ -199,6 +214,7 @@
   - [x] Scene graph preserves lock state across restarts
 
 ### Visual Indicators
+
 - [x] **Multi-Select Feedback**
   - [x] Dotted outline for selected objects
   - [x] Accessible color coding
@@ -211,6 +227,7 @@
 ## ✅ Session Management UX Improvements (October 2025)
 
 ### Load/Save Hardening
+
 - [x] **Import Validation**
   - [x] Validate JSON structure before loading
   - [x] Check for expected fields (sceneObjects, characters, etc.)
@@ -235,6 +252,7 @@
 ## ✅ Player Staging Zone - Data Model & Transform Support (October 2025)
 
 ### Data Model Design
+
 - [x] **Staging Zone Schema**
   - [x] Designed staging zone as SceneObject with type 'staging-zone'
   - [x] Position (x, y) for spawn area location
@@ -243,6 +261,7 @@
   - [x] Integrated into room state and session persistence
 
 ### Transform Tool Integration
+
 - [x] **Visual Editing**
   - [x] Made staging zone unlocked by default for easy editing
   - [x] Added click/tap handlers for selection in select/transform modes
@@ -256,6 +275,7 @@
   - [x] All transforms sync to server in real-time
 
 ### Server Integration
+
 - [x] **Backend Support**
   - [x] RoomService.applySceneObjectTransform handles staging zone
   - [x] Position updates sync to playerStagingZone.x/y
@@ -264,6 +284,7 @@
   - [x] DM-only permission enforced
 
 ### Session Persistence
+
 - [x] **Save/Load Support**
   - [x] Staging zone persisted in session snapshots
   - [x] Players spawn inside staging zone on connect
@@ -277,6 +298,7 @@
 ## ✅ Connection Stability & UI Feedback (October 2025)
 
 ### Connection Button Improvements
+
 - [x] **Button State Management**
   - [x] Disabled join/connect button during handshake
   - [x] "Connecting…" animation with visual feedback
@@ -284,6 +306,7 @@
   - [x] Re-enabled on success or failure
 
 ### Error Recovery
+
 - [x] **Timeout Handling**
   - [x] Clean recovery from connection timeouts
   - [x] User-friendly error messages
@@ -297,6 +320,7 @@
 ## ✅ DM Session Persistence (October 2025)
 
 ### Complete Session Schema
+
 - [x] **RoomSnapshot Interface**
   - [x] Extended session schema to capture all game state
   - [x] Map metadata: URL, position (x, y), scale, rotation stored in SceneObject
@@ -306,6 +330,7 @@
   - [x] Player staging zone with position, size, rotation
 
 ### Map Persistence
+
 - [x] **Map Metadata Storage**
   - [x] Map URL persisted in mapBackground field
   - [x] Map transforms stored in SceneObject with type "map"
@@ -316,6 +341,7 @@
   - [x] Z-index (-100) keeps map as background layer
 
 ### NPC Token Persistence
+
 - [x] **Complete NPC Data Model**
   - [x] NPC stored as Character object with type "npc"
   - [x] Portrait URL persisted in Character.portrait
@@ -334,6 +360,7 @@
   - [x] NPC ownership correctly assigned to DM
 
 ### DM Drawings Persistence
+
 - [x] **Drawing Data Storage**
   - [x] All drawing types persisted (freehand, line, rect, circle, eraser)
   - [x] Drawing points array (x, y coordinates) persisted
@@ -350,6 +377,7 @@
   - [x] Lock state persisted through save/load
 
 ### Session Load Validation
+
 - [x] **Load Session Implementation**
   - [x] Session validation before loading (JSON structure, required fields)
   - [x] Graceful handling of missing optional fields
@@ -366,6 +394,7 @@
   - [x] Grid settings restored
 
 ### Integration Testing
+
 - [x] **E2E Test Coverage**
   - [x] 3 tests in session-load.spec.ts verify functionality
   - [x] Test: Load session with tokens, characters, scene objects
@@ -382,6 +411,7 @@
   - [x] Verified grid settings persist
 
 ### Persistence Pipeline
+
 - [x] **Three-Level Persistence**
   - [x] In-memory: RoomState managed by RoomService
   - [x] Server disk: Auto-save to herobyte-state.json after every change
@@ -403,6 +433,7 @@
 ## ✅ Player State Persistence (October 2025)
 
 ### Player Data Capture
+
 - [x] **Player Snapshot Data**
   - [x] Player name persisted
   - [x] HP and maxHP values persisted
@@ -415,6 +446,7 @@
   - [x] Player-authored drawings persisted with owner linkage
 
 ### Drawing Ownership
+
 - [x] **Player Drawing Persistence**
   - [x] All player drawings tracked by owner UID
   - [x] Drawings persist alongside token data
@@ -422,6 +454,7 @@
   - [x] Drawing ownership verified in state reconstruction
 
 ### E2E Test Coverage
+
 - [x] **Player State Tests** (4 tests in player-state.spec.ts)
   - [x] Test: Player can save and load state including drawings
   - [x] Test: Player state includes token data
@@ -440,6 +473,7 @@
 ## ✅ HP/Rename Feedback & Validation (October 2025)
 
 ### Toast Notification Integration
+
 - [x] **HP Update Feedback**
   - [x] Success toast shows "HP updated to X/Y" (2s duration)
   - [x] Client-side validation for negative values
@@ -459,6 +493,7 @@
   - [x] Immediate visual confirmation
 
 ### Broadcasting
+
 - [x] **Server Synchronization**
   - [x] HP changes broadcast to all clients
   - [x] Name changes broadcast to all clients
@@ -472,6 +507,7 @@
 ## ✅ Object Lock State Persistence & Display (October 2025)
 
 ### Lock State Storage
+
 - [x] **Data Model**
   - [x] Lock state stored in SceneObject.locked field (boolean)
   - [x] Persisted in server database (herobyte-state.json)
@@ -479,6 +515,7 @@
   - [x] Synchronized across all clients via WebSocket
 
 ### Persistence Through Reloads
+
 - [x] **Server Persistence**
   - [x] Lock state survives server restarts via loadState()
   - [x] Lock state survives session loads via loadSnapshot()
@@ -486,6 +523,7 @@
   - [x] Three-level persistence: in-memory, disk, session files
 
 ### UI Lock Indicator
+
 - [x] **Visual Feedback**
   - [x] Gold lock icon (LockIndicator component) on locked objects
   - [x] Icon positioned at top of object
@@ -494,6 +532,7 @@
   - [x] Visible to all players (DM and non-DM)
 
 ### Lock Status on Selection
+
 - [x] **Selection Integration**
   - [x] Lock indicator appears immediately when object locked
   - [x] Lock status visible in scene objects data
@@ -501,6 +540,7 @@
   - [x] Drag operations respect lock state (draggable={!locked})
 
 ### Lock Enforcement
+
 - [x] **Operation Blocking**
   - [x] DM-only lock/unlock operations (ownership check)
   - [x] Locked objects cannot be dragged by anyone
@@ -509,6 +549,7 @@
   - [x] Specific error messages for locked object operations
 
 ### Real-time Synchronization
+
 - [x] **WebSocket Updates**
   - [x] Lock changes broadcast to all clients immediately
   - [x] Optimistic UI updates through React state
@@ -524,6 +565,7 @@
 ## ✅ Portrait Placeholder CTA (October 2025)
 
 ### UI Placeholder
+
 - [x] **Portrait Section Component**
   - [x] "+ Add Portrait" text when no portrait set
   - [x] "Click to upload or paste an image link" instruction text
@@ -532,6 +574,7 @@
   - [x] Test ID: portrait-placeholder for E2E testing
 
 ### Visual Design
+
 - [x] **JRPG Styling**
   - [x] Centered text layout
   - [x] Bold uppercase "ADD PORTRAIT" label
@@ -548,6 +591,7 @@
 ## ✅ Session Load Smoke Test (October 2025)
 
 ### Test Coverage
+
 - [x] **Comprehensive Session Load Test** (`session-load.spec.ts`)
   - [x] Loads sample snapshot with tokens, characters, scene objects
   - [x] Verifies tokens load correctly (count, position, owner)
@@ -558,6 +602,7 @@
   - [x] Verifies grid settings persist
 
 ### Additional Session Tests
+
 - [x] **Player Connection Preservation**
   - [x] Test: "loads session and preserves current player connections"
   - [x] Ensures current players not dropped during session load
@@ -577,12 +622,14 @@
 ## ✅ Clear-All-Tokens Backend Implementation (October 2025)
 
 ### Server-Side Implementation
+
 - [x] **Message Handler**
   - [x] `clear-all-tokens` message type defined in shared schema
   - [x] Validation middleware allows message (no parameters required)
   - [x] Message router handles clear-all-tokens at line 477
 
 ### Selection Cleanup
+
 - [x] **Automatic Cleanup**
   - [x] Removes selections for all deleted tokens
   - [x] Calls `selectionService.removeObject()` for each removed token
@@ -590,12 +637,14 @@
   - [x] Calls `selectionService.deselect()` for each removed player UID
 
 ### Persistence
+
 - [x] **State Management**
   - [x] Broadcast called after clear operation
   - [x] `saveState()` called to persist to disk
   - [x] Changes synchronized to all clients
 
 ### Functionality
+
 - [x] **Nuclear Reset**
   - [x] Removes all tokens except sender's token
   - [x] Removes all players except sender
@@ -603,6 +652,7 @@
   - [x] TokenService.clearAllTokensExcept implementation
 
 ### Testing
+
 - [x] **Unit Test Coverage**
   - [x] Test: "routes clear-all-tokens message"
   - [x] Verifies tokens removed correctly
@@ -618,6 +668,7 @@
 ## ✅ Player Staging Zone Spawn Tests (October 2025)
 
 ### Unit Test Coverage
+
 - [x] **Spawn Position Tests** (`roomService.test.ts`)
   - [x] Test: "generates spawn positions inside staging bounds"
   - [x] Verifies 10 random spawns all land within zone boundaries
@@ -630,6 +681,7 @@
   - [x] Graceful degradation for sessions without staging zone
 
 ### Spawn Logic Implementation
+
 - [x] **getPlayerSpawnPosition Method**
   - [x] Checks if playerStagingZone exists
   - [x] Falls back to (0, 0) if undefined
@@ -638,6 +690,7 @@
   - [x] Returns absolute grid coordinates
 
 ### E2E Test Coverage
+
 - [x] **Staging Zone E2E Tests** (`staging-zone.spec.ts`)
   - [x] 7 comprehensive E2E tests (6 skipped due to toggle-dm issues)
   - [x] Test: "non-DM players cannot set staging zone" (active)
@@ -654,6 +707,7 @@
 ## ✅ Multi-Object Selection & Interaction (October 2025)
 
 ### Selection System Improvements
+
 - [x] **Selection Persistence**
   - [x] Fixed selection clearing when switching between select and transform modes
   - [x] Updated useEffect condition to preserve selection in both modes
@@ -665,6 +719,7 @@
   - [x] Added comprehensive debug logging for selection state tracking
 
 ### Multi-Object Dragging
+
 - [x] **Synchronized Movement**
   - [x] Implemented real-time synchronized dragging for all selected objects
   - [x] Added onDragMove handler to update positions during drag operation
@@ -673,6 +728,7 @@
   - [x] Eliminated rubber-band snap effect for smooth visual feedback
 
 ### Multi-Object Deletion
+
 - [x] **Ownership-Based Permissions**
   - [x] Updated Delete/Backspace handler to support multiple selected objects
   - [x] Changed from DM-only to ownership-based deletion permissions
@@ -682,6 +738,7 @@
   - [x] Provided specific error messages for different permission issues
 
 ### Group Lock/Unlock Controls
+
 - [x] **UI Controls**
   - [x] Group lock button appears when multiple objects selected
   - [x] Group unlock button appears when multiple objects selected
@@ -700,6 +757,7 @@
   - [x] Scene graph preserves lock state across server restarts
 
 ### Bug Fixes
+
 - [x] **WebSocket Connection Stability**
   - [x] Fixed race condition in connection handler authentication
   - [x] Added logic to close stale WebSocket connections before auth state clear
@@ -712,6 +770,7 @@
 **Key Achievement**: Consistent permission model across all object interactions - if you can move it, you can delete it.
 
 ### Lock Enforcement (October 2025)
+
 - [x] **Movement Protection**
   - [x] Updated allowDrag check in DrawingsLayer to respect locked flag
   - [x] Locked objects cannot be dragged by anyone (including DM)
@@ -735,6 +794,7 @@
 ## ✅ Toast Notification System & Load/Save UX (October 2025)
 
 ### Toast Notification System
+
 - [x] **Toast Component**
   - [x] Created `Toast.tsx` with four types: success, error, warning, info
   - [x] Implemented JRPG-styled notifications with accessible color coding
@@ -749,6 +809,7 @@
   - [x] Toast container positioning (fixed top-right)
 
 ### Load/Save UX Improvements
+
 - [x] **Save Session Enhancement**
   - [x] Replaced blocking `window.alert` with non-blocking toasts
   - [x] Info toast: "Preparing session file..."
@@ -769,6 +830,7 @@
 ## ✅ Player Staging Zone Transform Tool Support (October 2025)
 
 ### Visual Transform Tool Integration
+
 - [x] **Staging Zone Selectable**
   - [x] Made staging zone unlocked by default (was previously locked)
   - [x] Added click/tap handlers for staging zone selection in select/transform modes

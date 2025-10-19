@@ -170,8 +170,6 @@ export class RoomService {
     // (rebuildSceneGraph will recreate drawings from sceneObjects if needed)
     const hasSceneObjects = snapshot.sceneObjects && snapshot.sceneObjects.length > 0;
 
-    console.log(`[loadSession] hasSceneObjects: ${hasSceneObjects}, sceneObjects count: ${snapshot.sceneObjects?.length || 0}, drawings count: ${snapshot.drawings?.length || 0}`);
-
     this.state = {
       users: this.state.users, // Keep current WebSocket connections
       tokens: snapshot.tokens ?? [],
