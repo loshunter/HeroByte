@@ -82,7 +82,10 @@
       "Bash(git add:*)",
       "Bash(pnpm run:*)",
       "Bash(git log:*)",
-      "Bash(gh run view:*)"
+      "Bash(gh run view:*)",
+      "Bash(gh run watch:*)",
+      "Bash(gh run list:*)",
+      "Bash(pnpm --filter herobyte-client tsc:*)"
     ],
     "deny": [],
     "ask": []
