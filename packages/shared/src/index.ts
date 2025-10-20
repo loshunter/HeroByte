@@ -327,6 +327,8 @@ export type ClientMessage =
   | { t: "create-character"; name: string; maxHp: number; portrait?: string } // DM creates PC slot
   | { t: "claim-character"; characterId: string } // Player claims unclaimed PC
   | { t: "add-player-character"; name: string; maxHp?: number } // Player creates additional character for themselves
+  | { t: "delete-player-character"; characterId: string } // Player deletes one of their characters
+  | { t: "update-character-name"; characterId: string; name: string } // Player updates their character's name
   | { t: "update-character-hp"; characterId: string; hp: number; maxHp: number } // Update character HP
   | { t: "link-token"; characterId: string; tokenId: string } // Link token to character
   | {

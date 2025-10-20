@@ -408,6 +408,27 @@ export function validateMessage(raw: unknown): ValidationResult {
       break;
     }
 
+    case "delete-player-character": {
+      if (typeof message.characterId !== "string" || message.characterId.length === 0) {
+        return { valid: false, error: "delete-player-character: missing or invalid characterId" };
+      }
+      break;
+    }
+
+    case "update-character-name": {
+      if (typeof message.characterId !== "string" || message.characterId.length === 0) {
+        return { valid: false, error: "update-character-name: missing or invalid characterId" };
+      }
+      if (
+        typeof message.name !== "string" ||
+        message.name.length === 0 ||
+        message.name.length > 100
+      ) {
+        return { valid: false, error: "update-character-name: name must be 1-100 characters" };
+      }
+      break;
+    }
+
     case "update-character-hp": {
       const { characterId, hp, maxHp } = message;
       if (typeof characterId !== "string" || characterId.length === 0) {

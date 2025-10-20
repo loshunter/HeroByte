@@ -102,6 +102,18 @@ export class CharacterService {
   }
 
   /**
+   * Update character name
+   */
+  updateName(state: RoomState, characterId: string, name: string): boolean {
+    const character = this.findCharacter(state, characterId);
+    if (character) {
+      character.name = name;
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Update NPC metadata
    */
   updateNPC(

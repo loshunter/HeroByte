@@ -875,6 +875,44 @@ function AuthenticatedApp({
     [sendMessage],
   );
 
+  const handleDeleteCharacter = useCallback(
+    (characterId: string) => {
+      // Find this character
+      const character = snapshot?.characters?.find((c) => c.id === characterId);
+      if (!character) return;
+
+      // Count player's characters
+      const myCharacters = snapshot?.characters?.filter((c) => c.ownedByPlayerUID === uid) || [];
+      const isLastCharacter = myCharacters.length === 1;
+
+      // Confirm deletion
+      if (!confirm("Delete this character? This will remove the character and their token.")) {
+        return;
+      }
+
+      // Send delete message
+      sendMessage({ t: "delete-player-character", characterId });
+
+      // If was last character, immediately prompt for replacement
+      if (isLastCharacter) {
+        setTimeout(() => {
+          alert("You have no characters. Please create a new one.");
+          const name = prompt("Enter character name:", "New Character");
+          const finalName = name && name.trim() ? name.trim() : "New Character";
+          sendMessage({ t: "add-player-character", name: finalName, maxHp: 100 });
+        }, 100);
+      }
+    },
+    [sendMessage, snapshot?.characters, uid],
+  );
+
+  const handleCharacterNameUpdate = useCallback(
+    (characterId: string, name: string) => {
+      sendMessage({ t: "update-character-name", characterId, name });
+    },
+    [sendMessage],
+  );
+
   const handleFocusSelf = useCallback(() => {
     const myToken = snapshot?.tokens?.find((t) => t.owner === uid);
     if (!myToken) {
@@ -1560,6 +1598,8 @@ function AuthenticatedApp({
         onToggleTokenLock={toggleSceneObjectLock}
         onTokenSizeChange={updateTokenSize}
         onAddCharacter={handleAddCharacter}
+        onDeleteCharacter={handleDeleteCharacter}
+        onCharacterNameUpdate={handleCharacterNameUpdate}
         bottomPanelRef={bottomPanelRef}
       />
 

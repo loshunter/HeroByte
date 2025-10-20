@@ -26,6 +26,7 @@ interface EntitiesPanelProps {
   onNameInputChange: (value: string) => void;
   onNameEdit: (uid: string, currentName: string) => void;
   onNameSubmit: () => void;
+  onCharacterNameUpdate: (characterId: string, name: string) => void;
   onPortraitLoad: () => void;
   onToggleMic: () => void;
   onHpChange: (hp: number, maxHp: number) => void;
@@ -47,6 +48,7 @@ interface EntitiesPanelProps {
   onToggleTokenLock: (sceneObjectId: string, locked: boolean) => void;
   onTokenSizeChange: (tokenId: string, size: TokenSize) => void;
   onAddCharacter: (name: string) => void;
+  onDeleteCharacter: (characterId: string) => void;
   bottomPanelRef?: React.RefObject<HTMLDivElement>;
 }
 
@@ -69,6 +71,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   onNameInputChange,
   onNameEdit,
   onNameSubmit,
+  onCharacterNameUpdate,
   onPortraitLoad,
   onToggleMic,
   onHpChange,
@@ -86,9 +89,12 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   onToggleTokenLock,
   onTokenSizeChange,
   onAddCharacter,
+  onDeleteCharacter,
   bottomPanelRef,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
+  const [characterNameInput, setCharacterNameInput] = useState("");
 
   const npcCharacters = useMemo(
     () => characters.filter((character) => character.type === "npc"),
@@ -272,11 +278,20 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                         playerDrawings={playerDrawings}
                         statusEffects={player.statusEffects}
                         micEnabled={micEnabled}
-                        editingPlayerUID={editingPlayerUID}
-                        nameInput={nameInput}
-                        onNameInputChange={onNameInputChange}
-                        onNameEdit={onNameEdit}
-                        onNameSubmit={onNameSubmit}
+                        editingPlayerUID={editingCharacterId === character.id ? player.uid : null}
+                        nameInput={characterNameInput}
+                        onNameInputChange={setCharacterNameInput}
+                        onNameEdit={() => {
+                          setEditingCharacterId(character.id);
+                          setCharacterNameInput(character.name);
+                        }}
+                        onNameSubmit={() => {
+                          if (characterNameInput.trim()) {
+                            onCharacterNameUpdate(character.id, characterNameInput.trim());
+                          }
+                          setEditingCharacterId(null);
+                          setCharacterNameInput("");
+                        }}
                         onPortraitLoad={onPortraitLoad}
                         onToggleMic={onToggleMic}
                         onHpChange={(hp) => onHpChange(hp, displayPlayer.maxHp ?? 100)}
@@ -316,6 +331,8 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                             : undefined
                         }
                         onAddCharacter={isMe ? onAddCharacter : undefined}
+                        characterId={character.id}
+                        onDeleteCharacter={isMe ? onDeleteCharacter : undefined}
                       />
                     </div>
                   );

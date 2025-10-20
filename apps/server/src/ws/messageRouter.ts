@@ -285,6 +285,52 @@ export class MessageRouter {
           break;
         }
 
+        case "delete-player-character": {
+          // Find the character to delete
+          const characterToDelete = this.characterService.findCharacter(state, message.characterId);
+
+          // Permission check: Only allow if player owns this character
+          if (!characterToDelete || characterToDelete.ownedByPlayerUID !== senderUid) {
+            console.warn(`Player ${senderUid} tried to delete character they don't own`);
+            break;
+          }
+
+          // Delete the character
+          const deleted = this.characterService.deleteCharacter(state, message.characterId);
+          if (deleted) {
+            // Delete linked token if exists
+            if (deleted.tokenId) {
+              this.tokenService.forceDeleteToken(state, deleted.tokenId);
+              this.selectionService.removeObject(state, deleted.tokenId);
+            }
+            console.log(`Player ${senderUid} deleted character: ${deleted.name}`);
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+        }
+
+        case "update-character-name": {
+          // Find the character to rename
+          const characterToRename = this.characterService.findCharacter(state, message.characterId);
+
+          // Permission check: Only allow if player owns this character
+          if (!characterToRename || characterToRename.ownedByPlayerUID !== senderUid) {
+            console.warn(`Player ${senderUid} tried to rename character they don't own`);
+            break;
+          }
+
+          // Update the character name
+          if (this.characterService.updateName(state, message.characterId, message.name)) {
+            console.log(
+              `Player ${senderUid} renamed character to: ${message.name} (ID: ${message.characterId})`,
+            );
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+        }
+
         case "update-character-hp":
           if (
             this.characterService.updateHP(state, message.characterId, message.hp, message.maxHp)
