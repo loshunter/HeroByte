@@ -10,50 +10,8 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useState, useCallback } from "react";
 import type { RoomSnapshot } from "@shared";
-
-// Mock CameraCommand type from MapBoard
-type CameraCommand =
-  | { type: "reset" }
-  | { type: "focus-token"; tokenId: string };
-
-/**
- * Simplified version of the hook logic from App.tsx for characterization testing
- */
-function useCameraCommandsCharacterization({
-  snapshot,
-  uid,
-}: {
-  snapshot: RoomSnapshot | null;
-  uid: string;
-}) {
-  const [cameraCommand, setCameraCommand] = useState<CameraCommand | null>(null);
-
-  const handleFocusSelf = useCallback(() => {
-    const myToken = snapshot?.tokens?.find((t) => t.owner === uid);
-    if (!myToken) {
-      window.alert("You don't have a token on the map yet.");
-      return;
-    }
-    setCameraCommand({ type: "focus-token", tokenId: myToken.id });
-  }, [snapshot?.tokens, uid]);
-
-  const handleResetCamera = useCallback(() => {
-    setCameraCommand({ type: "reset" });
-  }, []);
-
-  const handleCameraCommandHandled = useCallback(() => {
-    setCameraCommand(null);
-  }, []);
-
-  return {
-    cameraCommand,
-    handleFocusSelf,
-    handleResetCamera,
-    handleCameraCommandHandled,
-  };
-}
+import { useCameraCommands } from "../../../hooks/useCameraCommands";
 
 describe("useCameraCommands - Characterization", () => {
   beforeEach(() => {
@@ -69,7 +27,7 @@ describe("useCameraCommands - Characterization", () => {
   describe("initial state", () => {
     it("should initialize with null camera command", () => {
       const { result } = renderHook(() =>
-        useCameraCommandsCharacterization({ snapshot: null, uid: "user123" }),
+        useCameraCommands({ snapshot: null, uid: "user123" }),
       );
 
       expect(result.current.cameraCommand).toBeNull();
@@ -94,7 +52,7 @@ describe("useCameraCommands - Characterization", () => {
       } as RoomSnapshot;
 
       const { result } = renderHook(() =>
-        useCameraCommandsCharacterization({ snapshot, uid: "user123" }),
+        useCameraCommands({ snapshot, uid: "user123" }),
       );
 
       act(() => {
@@ -124,7 +82,7 @@ describe("useCameraCommands - Characterization", () => {
       } as RoomSnapshot;
 
       const { result } = renderHook(() =>
-        useCameraCommandsCharacterization({ snapshot, uid: "user123" }),
+        useCameraCommands({ snapshot, uid: "user123" }),
       );
 
       act(() => {
@@ -137,7 +95,7 @@ describe("useCameraCommands - Characterization", () => {
 
     it("should show alert when snapshot is null", () => {
       const { result } = renderHook(() =>
-        useCameraCommandsCharacterization({ snapshot: null, uid: "user123" }),
+        useCameraCommands({ snapshot: null, uid: "user123" }),
       );
 
       act(() => {
@@ -154,7 +112,7 @@ describe("useCameraCommands - Characterization", () => {
       } as RoomSnapshot;
 
       const { result } = renderHook(() =>
-        useCameraCommandsCharacterization({ snapshot, uid: "user123" }),
+        useCameraCommands({ snapshot, uid: "user123" }),
       );
 
       act(() => {
@@ -202,7 +160,7 @@ describe("useCameraCommands - Characterization", () => {
       } as RoomSnapshot;
 
       const { result } = renderHook(() =>
-        useCameraCommandsCharacterization({ snapshot, uid: "user123" }),
+        useCameraCommands({ snapshot, uid: "user123" }),
       );
 
       act(() => {
@@ -219,7 +177,7 @@ describe("useCameraCommands - Characterization", () => {
   describe("handleResetCamera", () => {
     it("should set reset command", () => {
       const { result } = renderHook(() =>
-        useCameraCommandsCharacterization({ snapshot: null, uid: "user123" }),
+        useCameraCommands({ snapshot: null, uid: "user123" }),
       );
 
       act(() => {
@@ -237,7 +195,7 @@ describe("useCameraCommands - Characterization", () => {
       } as RoomSnapshot;
 
       const { result } = renderHook(() =>
-        useCameraCommandsCharacterization({ snapshot, uid: "user123" }),
+        useCameraCommands({ snapshot, uid: "user123" }),
       );
 
       act(() => {
@@ -266,7 +224,7 @@ describe("useCameraCommands - Characterization", () => {
       } as RoomSnapshot;
 
       const { result } = renderHook(() =>
-        useCameraCommandsCharacterization({ snapshot, uid: "user123" }),
+        useCameraCommands({ snapshot, uid: "user123" }),
       );
 
       act(() => {
@@ -291,7 +249,7 @@ describe("useCameraCommands - Characterization", () => {
   describe("handleCameraCommandHandled", () => {
     it("should clear the camera command", () => {
       const { result } = renderHook(() =>
-        useCameraCommandsCharacterization({ snapshot: null, uid: "user123" }),
+        useCameraCommands({ snapshot: null, uid: "user123" }),
       );
 
       // Set a reset command
@@ -326,7 +284,7 @@ describe("useCameraCommands - Characterization", () => {
       } as RoomSnapshot;
 
       const { result } = renderHook(() =>
-        useCameraCommandsCharacterization({ snapshot, uid: "user123" }),
+        useCameraCommands({ snapshot, uid: "user123" }),
       );
 
       // Set a focus command
@@ -349,7 +307,7 @@ describe("useCameraCommands - Characterization", () => {
 
     it("should be idempotent when command is already null", () => {
       const { result } = renderHook(() =>
-        useCameraCommandsCharacterization({ snapshot: null, uid: "user123" }),
+        useCameraCommands({ snapshot: null, uid: "user123" }),
       );
 
       expect(result.current.cameraCommand).toBeNull();
@@ -380,7 +338,7 @@ describe("useCameraCommands - Characterization", () => {
       } as RoomSnapshot;
 
       const { result } = renderHook(() =>
-        useCameraCommandsCharacterization({ snapshot, uid: "user123" }),
+        useCameraCommands({ snapshot, uid: "user123" }),
       );
 
       // Initial state
@@ -433,7 +391,7 @@ describe("useCameraCommands - Characterization", () => {
       } as RoomSnapshot;
 
       const { result, rerender } = renderHook(
-        ({ snapshot, uid }) => useCameraCommandsCharacterization({ snapshot, uid }),
+        ({ snapshot, uid }) => useCameraCommands({ snapshot, uid }),
         {
           initialProps: { snapshot: snapshot1, uid: "user123" },
         },
@@ -508,7 +466,7 @@ describe("useCameraCommands - Characterization", () => {
       } as RoomSnapshot;
 
       const { result, rerender } = renderHook(
-        ({ snapshot, uid }) => useCameraCommandsCharacterization({ snapshot, uid }),
+        ({ snapshot, uid }) => useCameraCommands({ snapshot, uid }),
         {
           initialProps: { snapshot, uid: "user123" },
         },
