@@ -13,7 +13,6 @@ import MapBoard from "./MapBoard";
 import type { Camera } from "../hooks/useCamera";
 import { DiceRoller } from "../components/dice/DiceRoller";
 import { RollLog } from "../components/dice/RollLog";
-import type { RollResult, DieType } from "../components/dice/types";
 import type {
   Player,
   PlayerState,
@@ -55,10 +54,7 @@ import { ContextMenu } from "../components/ui/ContextMenu";
 import { useMapActions } from "../hooks/useMapActions";
 import { usePlayerActions } from "../hooks/usePlayerActions";
 import { useVoiceChatManager } from "../hooks/useVoiceChatManager";
-
-interface RollLogEntry extends RollResult {
-  playerName: string;
-}
+import { useDiceRolling } from "../hooks/useDiceRolling";
 
 // ----------------------------------------------------------------------------
 // MAIN APP COMPONENT
@@ -224,29 +220,21 @@ function AuthenticatedApp({
   // Camera state (from MapBoard)
   const [camera, _setCamera] = useState<Camera>({ x: 0, y: 0, scale: 1 });
 
-  // Dice roller toggle and state
-  const [diceRollerOpen, setDiceRollerOpen] = useState(false);
-  const [rollLogOpen, setRollLogOpen] = useState(false);
-  const [viewingRoll, setViewingRoll] = useState<RollResult | null>(null);
+  // Dice rolling state and handlers
+  const {
+    diceRollerOpen,
+    rollLogOpen,
+    viewingRoll,
+    rollHistory,
+    toggleDiceRoller,
+    toggleRollLog,
+    handleRoll,
+    handleClearLog,
+    handleViewRoll,
+  } = useDiceRolling({ snapshot, sendMessage, uid });
+
   const [roomPasswordStatus, setRoomPasswordStatus] = useState<RoomPasswordStatus | null>(null);
   const [roomPasswordPending, setRoomPasswordPending] = useState(false);
-
-  // Get roll history from server snapshot
-  const rollHistory: RollLogEntry[] = React.useMemo(() => {
-    return (snapshot?.diceRolls || []).map((roll) => ({
-      id: roll.id,
-      playerName: roll.playerName,
-      tokens: [], // Not needed for display
-      perDie: roll.breakdown.map((b) => ({
-        tokenId: b.tokenId,
-        die: b.die as DieType | undefined,
-        rolls: b.rolls,
-        subtotal: b.subtotal,
-      })),
-      total: roll.total,
-      timestamp: roll.timestamp,
-    }));
-  }, [snapshot?.diceRolls]);
 
   // -------------------------------------------------------------------------
   // EFFECTS
@@ -830,8 +818,8 @@ function AuthenticatedApp({
         onSnapToGridChange={setSnapToGrid}
         onToolSelect={setActiveTool}
         onCrtFilterChange={setCrtFilter}
-        onDiceRollerToggle={setDiceRollerOpen}
-        onRollLogToggle={setRollLogOpen}
+        onDiceRollerToggle={toggleDiceRoller}
+        onRollLogToggle={toggleRollLog}
         topPanelRef={topPanelRef}
         onFocusSelf={handleFocusSelf}
         onResetCamera={handleResetCamera}
@@ -1015,38 +1003,7 @@ function AuthenticatedApp({
 
       {/* Dice Roller Panel */}
       {diceRollerOpen && (
-        <DiceRoller
-          onRoll={(result: RollResult) => {
-            const me = snapshot?.players?.find((p: Player) => p.uid === uid);
-            const playerName = me?.name || "Unknown";
-
-            // Build formula string
-            const formula = result.tokens
-              .map((t) => {
-                if (t.kind === "die") {
-                  return t.qty > 1 ? `${t.qty}${t.die}` : t.die;
-                } else {
-                  return t.value >= 0 ? `+${t.value}` : `${t.value}`;
-                }
-              })
-              .join(" ");
-
-            // Broadcast to server
-            sendMessage({
-              t: "dice-roll",
-              roll: {
-                id: result.id,
-                playerUid: uid,
-                playerName,
-                formula,
-                total: result.total,
-                breakdown: result.perDie,
-                timestamp: result.timestamp,
-              },
-            });
-          }}
-          onClose={() => setDiceRollerOpen(false)}
-        />
+        <DiceRoller onRoll={handleRoll} onClose={() => toggleDiceRoller(false)} />
       )}
 
       {/* Roll Log Panel */}
@@ -1063,9 +1020,9 @@ function AuthenticatedApp({
         >
           <RollLog
             rolls={rollHistory}
-            onClearLog={() => sendMessage({ t: "clear-roll-history" })}
-            onViewRoll={(roll) => setViewingRoll(roll)}
-            onClose={() => setRollLogOpen(false)}
+            onClearLog={handleClearLog}
+            onViewRoll={handleViewRoll}
+            onClose={() => toggleRollLog(false)}
           />
         </div>
       )}
@@ -1073,7 +1030,7 @@ function AuthenticatedApp({
       {/* Viewing roll from log */}
       {viewingRoll && (
         <div style={{ position: "fixed", zIndex: 2000 }}>
-          <DiceRoller onRoll={() => {}} onClose={() => setViewingRoll(null)} />
+          <DiceRoller onRoll={() => {}} onClose={() => handleViewRoll(null)} />
         </div>
       )}
 
