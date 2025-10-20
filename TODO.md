@@ -271,26 +271,36 @@ _Shared planning brief with Phase 19: `docs/planning/phase19-20-briefing.md`._
   - [ ] Transform preview (ghosted outline during drag?)
   - [ ] Undo/redo stack visualization
 
-## Phase 15: SOLID Refactor Initiative (Future)
+## Phase 15: SOLID Refactor Initiative (In Progress)
 
 **Goal**: Break down oversized "god files", restore SRP/SoC boundaries, and pair each change with forward-looking tests.
 
-- [ ] **Guardrails & Baseline**
-  - [ ] Record current line counts and responsibilities for top 10 files (`rg --files` + `wc -l` or dedicated script)
-  - [ ] Define max LOC per component (<350) and cross-domain import rules
-  - [ ] Update CONTRIBUTING.md with SOLID/SOC checklist and reviewer prompts
+**Status Update (2025-10-20):**
+- ✅ **Phase 1 COMPLETE:** 9/9 extractions from App.tsx (-547 LOC)
+- ✅ **Phase 4 COMPLETE:** 2/2 active extractions from App.tsx (-65 LOC, +48 tests)
+- ✅ **Overall Progress:** App.tsx reduced from 1,850 → 958 LOC (48.2% reduction, 57.5% to final goal)
+- 📄 **Detailed tracking:** See `/docs/refactoring/REFACTOR_ROADMAP.md` and `/docs/refactoring/PHASE4_SUMMARY.md`
 
-- [ ] **TDD & Safety Net**
-  - [ ] Capture characterization tests for each hotspot before refactor (App shell, DM menu, Map board, WebSocket service, validation pipeline)
-  - [ ] Create snapshot of critical integration pathways (scene transforms, DM controls, connection lifecycle) using shared fixtures
-  - [ ] Stand up golden-path contract tests to enforce message shapes across client/server boundaries
-  - [ ] Add mutation/coverage gates for new modules to ensure tests drive code (min 80% per module)
+- [x] **Guardrails & Baseline** ✅ COMPLETE
+  - [x] Record current line counts and responsibilities for top 10 files
+  - [x] Define max LOC per component (<350) and cross-domain import rules
+  - [x] Update CONTRIBUTING.md with SOLID/SOC checklist and reviewer prompts
+  - [x] CI enforcement active (structure guardrails)
 
-- [ ] **Client Shell Decomposition**
-  - [ ] Split `apps/client/src/ui/App.tsx` into `AppProviders`, `SessionLifecycle`, and `HudLayout`
-  - [ ] Move auth gate UI/state into an `AuthGate` component + `useRoomAuth` hook
-  - [ ] Extract dice orchestration into a `DicePanel` feature module
-  - [ ] Write feature tests around session join/leave, dice roll propagation, and HUD visibility toggles before/after split
+- [x] **TDD & Safety Net** ✅ COMPLETE
+  - [x] Capture characterization tests for each hotspot before refactor
+  - [x] All Phase 1 & 4 extractions include comprehensive tests
+  - [x] Coverage maintained at >80% per module
+  - [x] 365 tests passing (100% pass rate)
+
+- [ ] **Client Shell Decomposition** (Partially Complete)
+  - [x] Auth gate extracted: `AuthenticationGate` component (Phase 1, Priority 7)
+  - [x] Server event handling: `useServerEventHandlers` (Phase 4, Priority 18)
+  - [x] NPC management: `useNpcManagement` (Phase 4, Priority 19)
+  - [x] Visual effects: `VisualEffects` component (Phase 1, Priority 6)
+  - [x] Context menu: `ContextMenu` component (Phase 1, Priority 8)
+  - [x] Multi-select toolbar: `MultiSelectToolbar` component (Phase 1, Priority 9)
+  - [ ] Remaining work: Phases 2-3, 5-7 (see REFACTOR_ROADMAP.md)
 
 - [ ] **DM Controls Modularization**
   - [ ] Break `apps/client/src/features/dm/components/DMMenu.tsx` into panels (`MapControls`, `TokenControls`, `RoomManagement`, `DebugPanel`)

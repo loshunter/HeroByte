@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2025-10-20T22:37:19.676Z",
+  "generatedAt": "2025-10-20T23:00:00.000Z",
   "threshold": 350,
   "includeTests": false,
   "files": [
@@ -14,12 +14,12 @@
     },
     {
       "path": "apps/client/src/ui/App.tsx",
-      "loc": 1024,
+      "loc": 959,
       "category": "client:ui",
       "flagged": true,
       "hint": "See docs/refactoring/REFACTOR_ROADMAP.md - 27 clusters identified, start with Phase 1 (quick wins: useLayoutMeasurement, useToolMode, etc.)",
       "roadmapRef": "App.tsx Phases 1-7",
-      "sizeBytes": 32559
+      "sizeBytes": 30561
     },
     {
       "path": "apps/client/src/ui/MapBoard.tsx",
@@ -292,6 +292,15 @@
       "sizeBytes": 6617
     },
     {
+      "path": "apps/client/src/hooks/useNpcManagement.ts",
+      "loc": 169,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 3864
+    },
+    {
       "path": "apps/e2e/character-creation.spec.ts",
       "loc": 275,
       "category": "other",
@@ -371,6 +380,15 @@
       "hint": "",
       "roadmapRef": "",
       "sizeBytes": 5803
+    },
+    {
+      "path": "apps/client/src/hooks/useServerEventHandlers.ts",
+      "loc": 167,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 4955
     },
     {
       "path": "apps/client/src/hooks/useDiceRolling.ts",

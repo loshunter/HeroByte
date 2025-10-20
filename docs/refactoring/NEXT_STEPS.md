@@ -1,22 +1,32 @@
-# Next Steps: Starting Phase 15 Refactoring
+# Next Steps: Continuing Phase 15 Refactoring
 
 **Date:** 2025-10-20
-**Status:** Phase 1 COMPLETE - Ready for Phase 2
+**Status:** Phase 1 COMPLETE, Phase 4 COMPLETE - Ready for Phase 5
 **Phase 1 Completed:** 2025-10-20
-**Context:** Phase 15 SOLID Refactor Initiative - Phase 1 extraction complete
+**Phase 4 Completed:** 2025-10-20
+**Context:** Phase 15 SOLID Refactor Initiative - Phase 1 & 4 extractions complete
 
 ---
 
 ## For the Next Engineer/AI Instance
 
-### Phase 1 Completion Summary
+### Phase 1 & 4 Completion Summary
 
-✅ **ALL 9 PRIORITIES EXTRACTED (100% Complete)**
+✅ **PHASE 1: ALL 9 PRIORITIES EXTRACTED (100% Complete)**
 - Total LOC Reduction: 547 lines (-29.6% from baseline)
 - Original Goal: 350 LOC reduction
 - Achievement: EXCEEDED goal by 197 LOC (156% of target)
-- App.tsx: 1,850 LOC → 1,303 LOC estimated (-547 LOC net reduction)
-- Status: All branches pushed, ready for PR review
+- App.tsx: 1,850 LOC → 1,303 LOC
+- Status: All branches merged
+
+✅ **PHASE 4: 2 ACTIVE PRIORITIES EXTRACTED (100% Complete)**
+- Total LOC Reduction: 65 lines (-6.4% from Phase 4 start)
+- P17: Already extracted (AuthenticationGate, completed prior to Phase 4)
+- P18: useServerEventHandlers (-25 LOC)
+- P19: useNpcManagement (-37 LOC)
+- App.tsx: 1,023 LOC → 958 LOC
+- Tests Added: 48 new tests (365 total, 100% pass rate)
+- Status: All branches merged to dev
 
 ### Completed Extractions (In Order)
 
@@ -146,28 +156,31 @@ All Phase 1 branches are pushed and ready for PR creation/review:
 
 ---
 
-## Immediate Next Step: Phase 2 - Action Creators
+## Immediate Next Step: Phase 5 - High-Complexity Orchestration
 
 ### Recommended Starting Point
 
-**Extract `useTokenActions` from App.tsx (Phase 2, Priority 10)**
+**Phase 5 focuses on extracting complex multi-step workflows (Priorities 24-27)**
 
-**Why this module?**
-- ✅ Builds on Phase 1 success
-- ✅ Medium complexity (3/5)
-- ✅ Clear responsibility (token manipulation actions)
-- ✅ Depends only on sendMessage (stable interface)
-- ✅ Estimated 3 days
+**Why Phase 5 next?**
+- ✅ Phases 2-3 (Action Creators, Feature Managers) can be done in parallel
+- ✅ Phase 5 tackles critical complexity reduction
+- ✅ Builds on Phase 1 & 4 foundations
+- ✅ ~450 LOC reduction potential
 
-**Module Details:**
+**Suggested First Priority: SelectionManager (Priority 24)**
 - **Source:** `apps/client/src/ui/App.tsx`
-- **Target:** `apps/client/src/hooks/useTokenActions.ts`
-- **Purpose:** Centralize all token-related actions (create, update, delete, move)
-- **Dependencies:** sendMessage, snapshot
-- **LOC Estimate:** ~50 LOC extraction
-- **Effort:** 3 days
+- **Target:** `apps/client/src/features/selection/SelectionManager.ts`
+- **Purpose:** Extract complex object selection and multi-select logic
+- **Dependencies:** useObjectSelection, toolMode
+- **LOC Estimate:** ~90 LOC extraction
+- **Effort:** 5 days
 
-### Step-by-Step Instructions for Phase 2
+**Alternative: Continue with Phases 2-3 sequentially**
+- Phase 2: Action Creators (Priorities 10-13) - ~140 LOC
+- Phase 3: Feature Managers (Priorities 14-16) - ~260 LOC
+
+### Step-by-Step Instructions for Phase 5
 
 #### 1. Set Up Your Environment
 
@@ -175,51 +188,54 @@ All Phase 1 branches are pushed and ready for PR creation/review:
 cd /home/loshunter/HeroByte
 pnpm install
 
-# Verify tests pass
+# Verify tests pass (should be 365/365)
 pnpm test
 
 # Check current file sizes
 pnpm lint:structure
 
-# Create feature branch for Phase 2 (IMPORTANT!)
+# Verify App.tsx is at 958 LOC
+# Create feature branch for Phase 5 (IMPORTANT!)
 git checkout dev
 git pull origin dev
-git checkout -b refactor/app/use-token-actions
+git checkout -b refactor/app/selection-manager
 ```
 
 #### 2. Review Documentation
 
 Read in this order:
-1. `docs/refactoring/REFACTOR_ROADMAP.md` - App.tsx Phase 2 section (10 min)
+1. `docs/refactoring/REFACTOR_ROADMAP.md` - App.tsx Phase 5 section (10 min)
 2. `docs/refactoring/REFACTOR_PLAYBOOK.md` - Refresh on checklist (15 min)
-3. Review Phase 1 PRs for patterns and learnings (20 min)
+3. `/tmp/PHASE4_COMPLETE.md` - Review Phase 4 lessons learned (10 min)
+4. Review Phase 1 & 4 commit history for patterns (20 min)
 
 #### 3. Create Tracking Issue
 
 Create GitHub issue:
 
 ```markdown
-## Extract useTokenActions from App.tsx
+## Extract SelectionManager from App.tsx
 
 **Part of:** Phase 15 SOLID Refactor Initiative
-**Roadmap:** App.tsx Phase 2, Priority 10
+**Roadmap:** App.tsx Phase 5, Priority 24
 **File:** docs/refactoring/REFACTOR_ROADMAP.md
 
 ### Details
 - **Source:** apps/client/src/ui/App.tsx
-- **Target:** apps/client/src/hooks/useTokenActions.ts
-- **Complexity:** 3/5
-- **Estimated Effort:** 3 days
+- **Target:** apps/client/src/features/selection/SelectionManager.ts
+- **Complexity:** 4/5
+- **Estimated Effort:** 5 days
 
 ### Description
-Extract token-related action creators that wrap sendMessage calls.
-Centralize token manipulation logic (create, update, delete, move).
-Estimated ~50 LOC extraction.
+Extract complex object selection and multi-select orchestration logic.
+Centralize selection state management and tool mode integration.
+Estimated ~90 LOC extraction.
 
 ### Dependencies
-- ✅ Phase 1 complete (especially useSceneObjectSelectors)
-- sendMessage interface (stable)
-- snapshot access (stable)
+- ✅ Phase 1 complete (useSceneObjectSelectors)
+- ✅ Phase 4 complete (useServerEventHandlers, useNpcManagement)
+- useObjectSelection hook (stable)
+- toolMode state (stable)
 
 ### Checklist
 - [ ] Characterization tests written
@@ -302,7 +318,7 @@ pnpm test
 
 ---
 
-## Phase 1 Complete - Moving to Phase 2
+## Phases 1 & 4 Complete - Moving to Phase 5
 
 ### Phase 1 Achievements (COMPLETE ✅)
 
@@ -318,6 +334,15 @@ All Phase 1 extractions from App.tsx completed:
 - [x] MultiSelectToolbar (-68 LOC, 3 days) ✅
 
 **Phase 1 Total:** 547 LOC reduction achieved (156% of 350 LOC goal)
+
+### Phase 4 Achievements (COMPLETE ✅)
+
+Phase 4 extractions from App.tsx completed:
+- [x] Priority 17: useAuthenticationFlow (pre-existing, extracted as AuthenticationGate) ✅
+- [x] Priority 18: useServerEventHandlers (-25 LOC, 22 tests) ✅
+- [x] Priority 19: useNpcManagement (-37 LOC, 26 tests) ✅
+
+**Phase 4 Total:** 65 LOC reduction, 48 new tests (365 total)
 
 ### Phase 2 Priorities (Week 3-4)
 
@@ -606,7 +631,8 @@ Every extraction makes the codebase better. Every module extracted is a victory.
 
 ---
 
-**Last Updated:** 2025-10-20 (Phase 1 Complete)
+**Last Updated:** 2025-10-20 (Phases 1 & 4 Complete)
 **Phase 1 Completed:** 2025-10-20 (9/9 extractions, 547 LOC reduction)
-**Next Review:** After Phase 2 complete
+**Phase 4 Completed:** 2025-10-20 (2/2 active extractions, 65 LOC reduction, 48 tests)
+**Next Phase:** Phase 5 - High-Complexity Orchestration
 **Questions?** See docs/refactoring/README.md FAQ section
