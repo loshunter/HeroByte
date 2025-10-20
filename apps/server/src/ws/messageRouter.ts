@@ -293,13 +293,27 @@ export class MessageRouter {
           break;
 
         case "set-player-staging-zone": {
+          console.log("[DEBUG] Received set-player-staging-zone message:", {
+            senderUid,
+            zone: message.zone,
+            timestamp: new Date().toISOString(),
+          });
           const sender = state.players.find((player) => player.uid === senderUid);
+          console.log("[DEBUG] Sender found:", {
+            uid: sender?.uid,
+            isDM: sender?.isDM,
+            name: sender?.name,
+          });
           if (!sender?.isDM) {
+            console.log("[DEBUG] Rejected: sender is not DM");
             break;
           }
-          if (this.roomService.setPlayerStagingZone(message.zone)) {
+          const result = this.roomService.setPlayerStagingZone(message.zone);
+          console.log("[DEBUG] setPlayerStagingZone result:", result);
+          if (result) {
             this.broadcast();
             this.roomService.saveState();
+            console.log("[DEBUG] Staging zone set successfully and saved");
           }
           break;
         }

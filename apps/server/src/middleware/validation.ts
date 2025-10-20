@@ -103,12 +103,12 @@ function validatePartialSegment(segment: unknown, index: number): ValidationResu
 }
 
 function validateStagingZone(value: unknown, context: string): ValidationResult {
-  if (value === null) {
+  if (value === null || value === undefined) {
     return { valid: true };
   }
 
   if (!isRecord(value)) {
-    return { valid: false, error: `${context}: zone must be an object or null` };
+    return { valid: false, error: `${context}: zone must be an object, null, or undefined` };
   }
 
   const zone = value as MessageRecord;
@@ -775,12 +775,16 @@ export function validateMessage(raw: unknown): ValidationResult {
         if (scale.x <= 0 || scale.y <= 0) {
           return { valid: false, error: "transform-object: scale must be positive" };
         }
-        // Prevent extreme scale values that can break rendering
-        if (scale.x > 10 || scale.y > 10) {
-          return { valid: false, error: "transform-object: scale must not exceed 10x" };
-        }
-        if (scale.x < 0.1 || scale.y < 0.1) {
-          return { valid: false, error: "transform-object: scale must be at least 0.1x" };
+        // Staging zone handles scale differently (converts to width/height), so skip strict limits
+        const isStagingZone = message.id === "staging-zone";
+        if (!isStagingZone) {
+          // Prevent extreme scale values that can break rendering
+          if (scale.x > 10 || scale.y > 10) {
+            return { valid: false, error: "transform-object: scale must not exceed 10x" };
+          }
+          if (scale.x < 0.1 || scale.y < 0.1) {
+            return { valid: false, error: "transform-object: scale must be at least 0.1x" };
+          }
         }
       }
       if ("rotation" in message && message.rotation !== undefined) {

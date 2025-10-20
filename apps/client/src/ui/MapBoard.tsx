@@ -17,7 +17,7 @@ import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import type { RoomSnapshot, ClientMessage, SceneObject } from "@shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
-import { useCamera } from "../hooks/useCamera.js";
+import { useCamera, type Camera } from "../hooks/useCamera.js";
 import { usePointerTool } from "../hooks/usePointerTool.js";
 import { useDrawingTool } from "../hooks/useDrawingTool.js";
 import { useDrawingSelection } from "../hooks/useDrawingSelection.js";
@@ -120,6 +120,7 @@ interface MapBoardProps {
   selectedObjectIds?: string[];
   onSelectObject?: (objectId: string | null, options?: SelectionRequestOptions) => void; // Selection handler
   onSelectObjects?: (objectIds: string[]) => void; // Batch selection handler
+  onCameraChange?: (camera: Camera) => void; // Called when camera changes
 }
 
 /**
@@ -160,6 +161,7 @@ export default function MapBoard({
   selectedObjectId = null,
   selectedObjectIds = [],
   onSelectObject,
+  onCameraChange,
   onSelectObjects,
 }: MapBoardProps) {
   // -------------------------------------------------------------------------
@@ -193,8 +195,20 @@ export default function MapBoard({
 
   const stagingZoneDimensions = useMemo(() => {
     if (!stagingZoneObject) {
+      console.log("[MapBoard] No staging zone object");
       return null;
     }
+
+    console.log("[MapBoard] Staging zone:", {
+      id: stagingZoneObject.id,
+      x: stagingZoneObject.transform.x,
+      y: stagingZoneObject.transform.y,
+      scaleX: stagingZoneObject.transform.scaleX,
+      scaleY: stagingZoneObject.transform.scaleY,
+      rotation: stagingZoneObject.transform.rotation,
+      width: stagingZoneObject.data.width,
+      height: stagingZoneObject.data.height,
+    });
 
     return {
       centerX: (stagingZoneObject.transform.x + 0.5) * gridSize,
@@ -242,6 +256,11 @@ export default function MapBoard({
     onMouseUp: handleCameraMouseUp,
     toWorld,
   } = useCamera();
+
+  // Notify parent when camera changes
+  useEffect(() => {
+    onCameraChange?.(cam);
+  }, [cam, onCameraChange]);
 
   // Pointer and measure tool
   const {
@@ -530,6 +549,16 @@ export default function MapBoard({
           rotation: transform.rotation,
           // Position should only be updated via dragging (which handles grid snapping)
         });
+      } else if (obj.type === "staging-zone") {
+        // For staging zone, convert position from pixels to grid units
+        onTransformObject({
+          id: transform.id,
+          position: transform.position
+            ? { x: transform.position.x / gridSize, y: transform.position.y / gridSize }
+            : undefined,
+          scale: transform.scale,
+          rotation: transform.rotation,
+        });
       } else {
         // For map and drawings, send full transform
         onTransformObject(transform);
@@ -794,6 +823,8 @@ export default function MapBoard({
                 x={stagingZoneDimensions.centerX}
                 y={stagingZoneDimensions.centerY}
                 rotation={stagingZoneDimensions.rotation}
+                scaleX={stagingZoneObject.transform.scaleX || 1}
+                scaleY={stagingZoneObject.transform.scaleY || 1}
                 ref={(node) => {
                   if (node && stagingZoneObject && selectedObjectId === stagingZoneObject.id) {
                     selectedObjectNodeRef.current = node;

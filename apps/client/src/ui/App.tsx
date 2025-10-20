@@ -10,6 +10,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import MapBoard, { type CameraCommand } from "./MapBoard";
+import type { Camera } from "../hooks/useCamera";
 import { useVoiceChat } from "./useVoiceChat";
 import { DiceRoller } from "../components/dice/DiceRoller";
 import { RollLog } from "../components/dice/RollLog";
@@ -497,6 +498,9 @@ function AuthenticatedApp({
   // Camera commands
   const [cameraCommand, setCameraCommand] = useState<CameraCommand | null>(null);
 
+  // Camera state (from MapBoard)
+  const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, scale: 1 });
+
   // Dice roller toggle and state
   const [diceRollerOpen, setDiceRollerOpen] = useState(false);
   const [rollLogOpen, setRollLogOpen] = useState(false);
@@ -770,6 +774,11 @@ function AuthenticatedApp({
 
   const mapSceneObject = useMemo(
     () => snapshot?.sceneObjects?.find((obj) => obj.type === "map") ?? null,
+    [snapshot?.sceneObjects],
+  );
+
+  const stagingZoneSceneObject = useMemo(
+    () => snapshot?.sceneObjects?.find((obj) => obj.type === "staging-zone") ?? null,
     [snapshot?.sceneObjects],
   );
 
@@ -1497,6 +1506,7 @@ function AuthenticatedApp({
           selectedObjectIds={selectedObjectIds}
           onSelectObject={handleObjectSelection}
           onSelectObjects={handleObjectSelectionBatch}
+          onCameraChange={setCamera}
         />
       </div>
 
@@ -1559,6 +1569,7 @@ function AuthenticatedApp({
         mapBackground={snapshot?.mapBackground}
         playerStagingZone={snapshot?.playerStagingZone}
         onSetPlayerStagingZone={handleSetPlayerStagingZone}
+        camera={camera}
         playerCount={snapshot?.players?.length ?? 0}
         characters={snapshot?.characters || []}
         onRequestSaveSession={snapshot ? handleSaveSession : undefined}
@@ -1571,6 +1582,12 @@ function AuthenticatedApp({
         onMapLockToggle={() => {
           if (mapSceneObject) {
             toggleSceneObjectLock(mapSceneObject.id, !mapSceneObject.locked);
+          }
+        }}
+        stagingZoneLocked={stagingZoneSceneObject?.locked ?? false}
+        onStagingZoneLockToggle={() => {
+          if (stagingZoneSceneObject) {
+            toggleSceneObjectLock(stagingZoneSceneObject.id, !stagingZoneSceneObject.locked);
           }
         }}
         mapTransform={

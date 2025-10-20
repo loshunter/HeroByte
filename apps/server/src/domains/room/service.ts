@@ -352,6 +352,14 @@ export class RoomService {
         if (!isDM) return false;
         if (!this.state.playerStagingZone) return false;
 
+        console.log("[DEBUG] Staging zone transform:", {
+          position: changes.position,
+          scale: changes.scale,
+          rotation: changes.rotation,
+          currentTransform: object.transform,
+          currentZone: this.state.playerStagingZone,
+        });
+
         if (changes.position) {
           this.state.playerStagingZone.x = changes.position.x;
           this.state.playerStagingZone.y = changes.position.y;
@@ -359,23 +367,18 @@ export class RoomService {
         }
 
         if (changes.scale) {
-          const { scaleX, scaleY } = object.transform;
-          const nextScaleX = changes.scale.x;
-          const nextScaleY = changes.scale.y;
-          const baseWidth =
-            this.state.playerStagingZone.width / (Math.abs(scaleX) < 1e-6 ? 1 : scaleX);
-          const baseHeight =
-            this.state.playerStagingZone.height / (Math.abs(scaleY) < 1e-6 ? 1 : scaleY);
+          // Apply scale to transform (don't bake into width/height)
+          // The width/height remain as "base" values, and we scale them via transform
+          applyScale(changes.scale);
 
-          this.state.playerStagingZone.width = Math.max(1, baseWidth * nextScaleX);
-          this.state.playerStagingZone.height = Math.max(1, baseHeight * nextScaleY);
-
-          object.transform.scaleX = 1;
-          object.transform.scaleY = 1;
-          if (object.type === "staging-zone") {
-            object.data.width = this.state.playerStagingZone.width;
-            object.data.height = this.state.playerStagingZone.height;
-          }
+          console.log("[DEBUG] Staging zone scale applied:", {
+            baseWidth: this.state.playerStagingZone.width,
+            baseHeight: this.state.playerStagingZone.height,
+            scaleX: changes.scale.x,
+            scaleY: changes.scale.y,
+            finalWidth: this.state.playerStagingZone.width * changes.scale.x,
+            finalHeight: this.state.playerStagingZone.height * changes.scale.y,
+          });
         }
 
         if (typeof changes.rotation === "number") {
@@ -500,13 +503,13 @@ export class RoomService {
         id,
         type: "staging-zone",
         owner: null,
-        locked: prev?.locked ?? true,
-        zIndex: prev?.zIndex ?? -80,
+        locked: prev?.locked ?? false,
+        zIndex: prev?.zIndex ?? 1,
         transform: {
           x: zone.x,
           y: zone.y,
-          scaleX: 1,
-          scaleY: 1,
+          scaleX: prev?.type === "staging-zone" ? prev.transform.scaleX : 1,
+          scaleY: prev?.type === "staging-zone" ? prev.transform.scaleY : 1,
           rotation: zone.rotation ?? 0,
         },
         data: {
