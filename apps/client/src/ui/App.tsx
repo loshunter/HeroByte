@@ -232,9 +232,11 @@ function AuthenticatedApp({
     roomPasswordPending,
     dismissRoomPasswordStatus,
     startRoomPasswordUpdate,
+    handleSetRoomPassword,
   } = useServerEventHandlers({
     registerServerEventHandler,
     toast,
+    sendMessage,
   });
 
   // -------------------------------------------------------------------------
@@ -395,14 +397,6 @@ function AuthenticatedApp({
     setAlignmentError(null);
     setActiveTool(null);
   }, [alignmentSuggestion, mapSceneObject, transformSceneObject]);
-
-  const handleSetRoomPassword = useCallback(
-    (nextSecret: string) => {
-      startRoomPasswordUpdate();
-      sendMessage({ t: "set-room-password", secret: nextSecret });
-    },
-    [sendMessage, startRoomPasswordUpdate],
-  );
 
   // NPC Management Hook
   const { handleCreateNPC, handleUpdateNPC, handleDeleteNPC, handlePlaceNPCToken } =

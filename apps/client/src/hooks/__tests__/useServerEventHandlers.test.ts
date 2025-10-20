@@ -625,4 +625,112 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       expect(registerServerEventHandler.mock.calls.length).toBeGreaterThan(callCount);
     });
   });
+
+  describe("handleSetRoomPassword", () => {
+    it("should call sendMessage with set-room-password message", () => {
+      const registerServerEventHandler = vi.fn();
+      const sendMessage = vi.fn();
+      const toast = {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
+        dismiss: vi.fn(),
+        messages: [],
+      };
+
+      const { result } = renderHook(() =>
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage }),
+      );
+
+      act(() => {
+        result.current.handleSetRoomPassword("my-secret-password");
+      });
+
+      expect(sendMessage).toHaveBeenCalledTimes(1);
+      expect(sendMessage).toHaveBeenCalledWith({
+        t: "set-room-password",
+        secret: "my-secret-password",
+      });
+    });
+
+    it("should call startRoomPasswordUpdate before sending message", () => {
+      const registerServerEventHandler = vi.fn();
+      const sendMessage = vi.fn();
+      const toast = {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
+        dismiss: vi.fn(),
+        messages: [],
+      };
+
+      const { result } = renderHook(() =>
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage }),
+      );
+
+      act(() => {
+        result.current.handleSetRoomPassword("test-password");
+      });
+
+      // Should set pending to true and clear status
+      expect(result.current.roomPasswordPending).toBe(true);
+      expect(result.current.roomPasswordStatus).toBeNull();
+    });
+
+    it("should handle empty password string", () => {
+      const registerServerEventHandler = vi.fn();
+      const sendMessage = vi.fn();
+      const toast = {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
+        dismiss: vi.fn(),
+        messages: [],
+      };
+
+      const { result } = renderHook(() =>
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage }),
+      );
+
+      act(() => {
+        result.current.handleSetRoomPassword("");
+      });
+
+      expect(sendMessage).toHaveBeenCalledWith({
+        t: "set-room-password",
+        secret: "",
+      });
+    });
+
+    it("should handle special characters in password", () => {
+      const registerServerEventHandler = vi.fn();
+      const sendMessage = vi.fn();
+      const toast = {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
+        dismiss: vi.fn(),
+        messages: [],
+      };
+
+      const { result } = renderHook(() =>
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage }),
+      );
+
+      const complexPassword = "p@ssw0rd!#$%^&*()_+-=[]{}|;:,.<>?";
+
+      act(() => {
+        result.current.handleSetRoomPassword(complexPassword);
+      });
+
+      expect(sendMessage).toHaveBeenCalledWith({
+        t: "set-room-password",
+        secret: complexPassword,
+      });
+    });
+  });
 });
