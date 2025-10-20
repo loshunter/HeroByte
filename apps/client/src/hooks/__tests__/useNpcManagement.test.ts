@@ -11,7 +11,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useNpcManagement } from "../useNpcManagement.js";
-import type { RoomSnapshot, Character, ClientMessage } from "@shared";
+import type { RoomSnapshot, Character } from "@shared";
 
 describe("useNpcManagement - Characterization", () => {
   const mockSendMessage = vi.fn();
@@ -118,14 +118,7 @@ describe("useNpcManagement - Characterization", () => {
 
   describe("handleUpdateNPC", () => {
     it("should send update-npc message with merged updates and existing values", () => {
-      const existingNPC = createMockNPC(
-        "npc-1",
-        "Goblin",
-        20,
-        30,
-        "portrait-url",
-        "token-url",
-      );
+      const existingNPC = createMockNPC("npc-1", "Goblin", 20, 30, "portrait-url", "token-url");
       const snapshot = createMockSnapshot([existingNPC]);
 
       const { result } = renderHook(() =>
@@ -327,6 +320,7 @@ describe("useNpcManagement - Characterization", () => {
 
     it("should NOT send message if snapshot.characters is undefined", () => {
       const snapshot = createMockSnapshot([]);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (snapshot as any).characters;
 
       const { result } = renderHook(() =>
@@ -551,9 +545,7 @@ describe("useNpcManagement - Characterization", () => {
     });
 
     it("should update handleUpdateNPC when snapshot changes", () => {
-      const snapshot1 = createMockSnapshot([
-        createMockNPC("npc-1", "Goblin", 20, 20),
-      ]);
+      const snapshot1 = createMockSnapshot([createMockNPC("npc-1", "Goblin", 20, 20)]);
 
       const { result, rerender } = renderHook(
         ({ snapshot }) =>

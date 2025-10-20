@@ -610,9 +610,12 @@ describe("useServerEventHandlers - Characterization Tests", () => {
         messages: [],
       };
 
-      const { rerender } = renderHook(({ toast }) => useServerEventHandlers({ registerServerEventHandler, toast }), {
-        initialProps: { toast: toast1 },
-      });
+      const { rerender } = renderHook(
+        ({ toast }) => useServerEventHandlers({ registerServerEventHandler, toast }),
+        {
+          initialProps: { toast: toast1 },
+        },
+      );
 
       const callCount = registerServerEventHandler.mock.calls.length;
 

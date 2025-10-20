@@ -95,9 +95,7 @@ export interface UseNpcManagementReturn {
  * @param params - Hook parameters
  * @returns NPC management handlers
  */
-export function useNpcManagement(
-  params: UseNpcManagementParams,
-): UseNpcManagementReturn {
+export function useNpcManagement(params: UseNpcManagementParams): UseNpcManagementReturn {
   const { sendMessage, snapshot } = params;
 
   /**

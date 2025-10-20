@@ -226,11 +226,15 @@ function AuthenticatedApp({
   } = useDiceRolling({ snapshot, sendMessage, uid });
 
   // Server event handlers (room password, DM elevation)
-  const { roomPasswordStatus, roomPasswordPending, dismissRoomPasswordStatus, startRoomPasswordUpdate } =
-    useServerEventHandlers({
-      registerServerEventHandler,
-      toast,
-    });
+  const {
+    roomPasswordStatus,
+    roomPasswordPending,
+    dismissRoomPasswordStatus,
+    startRoomPasswordUpdate,
+  } = useServerEventHandlers({
+    registerServerEventHandler,
+    toast,
+  });
 
   // -------------------------------------------------------------------------
   // EFFECTS
