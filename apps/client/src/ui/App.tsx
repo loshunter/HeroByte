@@ -11,7 +11,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import MapBoard from "./MapBoard";
 import type { Camera } from "../hooks/useCamera";
-import { useVoiceChat } from "./useVoiceChat";
 import { DiceRoller } from "../components/dice/DiceRoller";
 import { RollLog } from "../components/dice/RollLog";
 import type { RollResult, DieType } from "../components/dice/types";
@@ -26,7 +25,6 @@ import type {
 } from "@shared";
 import { WS_URL } from "../config";
 import { useWebSocket } from "../hooks/useWebSocket";
-import { useMicrophone } from "../hooks/useMicrophone";
 import { useDrawingState } from "../hooks/useDrawingState";
 import { usePlayerEditing } from "../hooks/usePlayerEditing";
 import { useHeartbeat } from "../hooks/useHeartbeat";
@@ -56,6 +54,7 @@ import { AuthenticationGate } from "../features/auth";
 import { ContextMenu } from "../components/ui/ContextMenu";
 import { useMapActions } from "../hooks/useMapActions";
 import { usePlayerActions } from "../hooks/usePlayerActions";
+import { useVoiceChatManager } from "../hooks/useVoiceChatManager";
 
 interface RollLogEntry extends RollResult {
   playerName: string;
@@ -134,7 +133,12 @@ function AuthenticatedApp({
   authState: _authState,
 }: AuthenticatedAppProps): JSX.Element {
   // Custom hooks for state management
-  const { micEnabled, micStream, toggleMic } = useMicrophone({ sendMessage });
+  const { micEnabled, toggleMic } = useVoiceChatManager({
+    uid,
+    snapshot,
+    sendMessage,
+    registerRtcHandler,
+  });
   const {
     drawTool,
     drawColor,
@@ -254,24 +258,6 @@ function AuthenticatedApp({
       timestamp: roll.timestamp,
     }));
   }, [snapshot?.diceRolls]);
-
-  // -------------------------------------------------------------------------
-  // VOICE CHAT
-  // -------------------------------------------------------------------------
-
-  // Get list of other players for P2P voice connections
-  const otherPlayerUIDs = React.useMemo(() => {
-    return snapshot?.players?.filter((p: Player) => p.uid !== uid).map((p: Player) => p.uid) || [];
-  }, [snapshot?.players, uid]);
-
-  useVoiceChat({
-    sendMessage,
-    onRtcSignal: registerRtcHandler,
-    uid,
-    otherPlayerUIDs,
-    enabled: micEnabled,
-    stream: micStream,
-  });
 
   // -------------------------------------------------------------------------
   // EFFECTS
