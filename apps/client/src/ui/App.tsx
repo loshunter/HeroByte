@@ -47,6 +47,7 @@ import { useMapActions } from "../hooks/useMapActions";
 import { usePlayerActions } from "../hooks/usePlayerActions";
 import { useVoiceChatManager } from "../hooks/useVoiceChatManager";
 import { useDiceRolling } from "../hooks/useDiceRolling";
+import { useServerEventHandlers } from "../hooks/useServerEventHandlers";
 
 // ----------------------------------------------------------------------------
 // MAIN APP COMPONENT
@@ -108,8 +109,6 @@ interface AuthenticatedAppProps {
   isConnected: boolean;
   authState: AuthState;
 }
-
-type RoomPasswordStatus = { type: "success" | "error"; message: string };
 
 function AuthenticatedApp({
   uid,
@@ -225,8 +224,12 @@ function AuthenticatedApp({
     handleViewRoll,
   } = useDiceRolling({ snapshot, sendMessage, uid });
 
-  const [roomPasswordStatus, setRoomPasswordStatus] = useState<RoomPasswordStatus | null>(null);
-  const [roomPasswordPending, setRoomPasswordPending] = useState(false);
+  // Server event handlers (room password, DM elevation)
+  const { roomPasswordStatus, roomPasswordPending, dismissRoomPasswordStatus, startRoomPasswordUpdate } =
+    useServerEventHandlers({
+      registerServerEventHandler,
+      toast,
+    });
 
   // -------------------------------------------------------------------------
   // EFFECTS
@@ -265,32 +268,6 @@ function AuthenticatedApp({
       clearSelection();
     }
   }, [transformMode, selectMode, clearSelection]);
-
-  useEffect(() => {
-    registerServerEventHandler((message: ServerMessage) => {
-      if ("t" in message && message.t === "room-password-updated") {
-        setRoomPasswordPending(false);
-        setRoomPasswordStatus({
-          type: "success",
-          message: "Room password updated successfully.",
-        });
-      } else if ("t" in message && message.t === "room-password-update-failed") {
-        setRoomPasswordPending(false);
-        setRoomPasswordStatus({
-          type: "error",
-          message: message.reason ?? "Unable to update room password.",
-        });
-      } else if ("t" in message && message.t === "dm-status") {
-        // DM elevation successful
-        if (message.isDM) {
-          toast.success("DM elevation successful! You are now the Dungeon Master.", 4000);
-        }
-      } else if ("t" in message && message.t === "dm-elevation-failed") {
-        // DM elevation failed
-        toast.error(`DM elevation failed: ${message.reason}`, 5000);
-      }
-    });
-  }, [registerServerEventHandler, toast]);
 
   // Selection handlers
   const { handleObjectSelection, handleObjectSelectionBatch } = useSceneObjectSelectors({
@@ -415,16 +392,11 @@ function AuthenticatedApp({
 
   const handleSetRoomPassword = useCallback(
     (nextSecret: string) => {
-      setRoomPasswordPending(true);
-      setRoomPasswordStatus(null);
+      startRoomPasswordUpdate();
       sendMessage({ t: "set-room-password", secret: nextSecret });
     },
-    [sendMessage],
+    [sendMessage, startRoomPasswordUpdate],
   );
-
-  const dismissRoomPasswordStatus = useCallback(() => {
-    setRoomPasswordStatus(null);
-  }, []);
 
   const handleCreateNPC = useCallback(() => {
     sendMessage({ t: "create-npc", name: "New NPC", hp: 10, maxHp: 10 });
