@@ -30,6 +30,7 @@ import {
   DrawingsLayer,
   MeasureLayer,
   TransformGizmo,
+  PropsLayer,
 } from "../features/map/components";
 
 export type CameraCommand = { type: "focus-token"; tokenId: string } | { type: "reset" };
@@ -510,6 +511,13 @@ export default function MapBoard({
     [onTransformObject],
   );
 
+  const handleTransformProp = useCallback(
+    (sceneId: string, position: { x: number; y: number }) => {
+      onTransformObject({ id: sceneId, position });
+    },
+    [onTransformObject],
+  );
+
   const handleTransformDrawing = useCallback(
     (sceneId: string, transform: { position?: { x: number; y: number } }) => {
       onTransformObject({ id: sceneId, ...transform });
@@ -631,6 +639,15 @@ export default function MapBoard({
     }
   }, []);
 
+  // Callback to receive node reference from PropsLayer
+  const handlePropNodeReady = useCallback((propId: string, node: Konva.Node | null) => {
+    if (node) {
+      nodeRefsMap.current.set(propId, node);
+    } else {
+      nodeRefsMap.current.delete(propId);
+    }
+  }, []);
+
   const applyMarqueeSelection = useCallback(() => {
     if (!marquee || !stageRef.current) {
       return;
@@ -648,7 +665,7 @@ export default function MapBoard({
     const matches: string[] = [];
 
     nodeRefsMap.current.forEach((node, id) => {
-      if (!node || (!id.startsWith("token:") && !id.startsWith("drawing:"))) {
+      if (!node || (!id.startsWith("token:") && !id.startsWith("drawing:") && !id.startsWith("prop:"))) {
         return;
       }
 
@@ -888,6 +905,17 @@ export default function MapBoard({
             selectedObjectIds={selectedObjectIds}
             onSelectObject={onSelectObject}
             onDrawingNodeReady={handleDrawingNodeReady}
+          />
+          <PropsLayer
+            cam={cam}
+            sceneObjects={sceneObjects}
+            gridSize={grid.size}
+            interactive={!measureMode}
+            selectedObjectId={selectedObjectId}
+            selectedObjectIds={selectedObjectIds}
+            onSelectObject={onSelectObject}
+            onPropNodeReady={handlePropNodeReady}
+            onTransformProp={handleTransformProp}
           />
           <TokensLayer
             cam={cam}
