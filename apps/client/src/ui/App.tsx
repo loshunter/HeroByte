@@ -44,6 +44,7 @@ import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import { computeMapAlignmentTransform } from "../utils/mapAlignment";
 import { useToast } from "../hooks/useToast";
 import { ToastContainer } from "../components/ui/Toast";
+import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 
 interface RollLogEntry extends RollResult {
   playerName: string;
@@ -753,33 +754,12 @@ function AuthenticatedApp({
   const gridSize = snapshot?.gridSize || 50;
   const gridSquareSize = snapshot?.gridSquareSize ?? 5;
 
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    if (import.meta.env.MODE === "production") {
-      return;
-    }
-
-    const globalWindow = window as typeof window & {
-      __HERO_BYTE_E2E__?: {
-        snapshot?: RoomSnapshot | null;
-        uid?: string;
-        gridSize?: number;
-        cam?: { x: number; y: number; scale: number };
-        viewport?: { width: number; height: number };
-      };
-    };
-
-    const previous = globalWindow.__HERO_BYTE_E2E__ ?? {};
-    globalWindow.__HERO_BYTE_E2E__ = {
-      ...previous,
-      snapshot,
-      uid,
-      gridSize,
-    };
-  }, [gridSize, snapshot, uid]);
+  // E2E testing support (dev-only)
+  useE2ETestingSupport({
+    snapshot,
+    uid,
+    gridSize,
+  });
 
   const mapSceneObject = useMemo(
     () => snapshot?.sceneObjects?.find((obj) => obj.type === "map") ?? null,
