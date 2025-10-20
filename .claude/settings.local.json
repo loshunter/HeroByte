@@ -68,7 +68,8 @@
       "Bash(pnpm --filter herobyte-client typecheck)",
       "Bash(pnpm --filter herobyte-client build)",
       "Bash(git commit -m \"refactor: integrate useCameraCommands into App.tsx\n\nReplace inline camera command state management with extracted hook.\n\nChanges:\n- Import useCameraCommands hook\n- Replace state declaration with hook usage (line 513)\n- Remove handleFocusSelf function (lines 929-936)\n- Remove handleResetCamera function (lines 938-940)\n- Use handleCameraCommandHandled instead of inline arrow (line 1573)\n\nApp.tsx reduced: 1,838 → 1,827 LOC (11 LOC reduction)\nAll tests passing, no behavior changes.\n\nPart of Phase 15 SOLID Refactor Initiative\nSee: docs/refactoring/REFACTOR_ROADMAP.md App.tsx Phase 1, Priority 3\")",
-      "Bash(git commit -m \"chore: fix linting errors and unused imports\n\n- Remove unused CameraCommand import from App.tsx\n- Remove unused ToolMode import from App.tsx  \n- Fix unused variable in useLayoutMeasurement.test.ts\n- Fix unused variable in useToolMode.test.ts\n\nAll linting and formatting checks passing.\")"
+      "Bash(git commit -m \"chore: fix linting errors and unused imports\n\n- Remove unused CameraCommand import from App.tsx\n- Remove unused ToolMode import from App.tsx  \n- Fix unused variable in useLayoutMeasurement.test.ts\n- Fix unused variable in useToolMode.test.ts\n\nAll linting and formatting checks passing.\")",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []
