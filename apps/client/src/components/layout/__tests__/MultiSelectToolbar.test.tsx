@@ -266,8 +266,8 @@ describe("MultiSelectToolbar - Characterization", () => {
         />,
       );
 
-      const lockButton = screen.getByRole("button", { name: /lock/i });
-      const unlockButton = screen.getByRole("button", { name: /unlock/i });
+      const lockButton = screen.getByRole("button", { name: "🔒 Lock" });
+      const unlockButton = screen.getByRole("button", { name: "🔓 Unlock" });
 
       expect(lockButton).toHaveTextContent("🔒 Lock");
       expect(unlockButton).toHaveTextContent("🔓 Unlock");
