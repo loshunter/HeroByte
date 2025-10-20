@@ -12,7 +12,21 @@
       "Bash(pnpm format)",
       "Bash(git add -A)",
       "Bash(git commit -m \"fix: auto-format code for CI\")",
-      "Bash(git push origin dev)"
+      "Bash(git push origin dev)",
+      "Bash(git log --all --oneline --grep=\"prop\" -i)",
+      "Bash(find /home/loshunter/HeroByte/apps/client -type f -name \"*session*\" ( -name \"*.test.ts\" -o -name \"*.test.tsx\" -o -name \"*.spec.ts\" -o -name \"*.spec.tsx\" ))",
+      "Bash(pnpm exec prettier --write src/utils/sessionPersistence.ts)",
+      "Bash(pnpm exec prettier --write session-load.spec.ts)",
+      "Bash(pnpm exec prettier --write /home/loshunter/HeroByte/apps/client/src/utils/sessionPersistence.ts /home/loshunter/HeroByte/apps/e2e/session-load.spec.ts)",
+      "Bash(pnpm test)",
+      "Bash(pnpm test:e2e)",
+      "Bash(tee /tmp/e2e-test-output.log)",
+      "Read(//tmp/**)",
+      "Bash(cat /home/loshunter/HeroByte/test-results/session-load-HeroByte-sess-86ddc-haracters-and-scene-objects-chromium/error-context.md)",
+      "Bash(pnpm exec prettier --write /home/loshunter/HeroByte/apps/e2e/session-load.spec.ts)",
+      "Bash(git log -1 --format=\"%H %s\" -- apps/e2e/session-load.spec.ts)",
+      "Bash(pnpm exec prettier --write /home/loshunter/HeroByte/apps/e2e/helpers.ts)",
+      "Bash(pnpm test:e2e session-load.spec.ts)"
     ],
     "deny": [],
     "ask": []

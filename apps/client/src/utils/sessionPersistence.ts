@@ -87,6 +87,7 @@ export function loadSession(file: File): Promise<RoomSnapshot> {
         const players = ensureArray(parsed.players, "players");
         const drawings = ensureArray(parsed.drawings, "drawings");
         const characters = ensureArray(parsed.characters, "characters");
+        const props = ensureArray(parsed.props ?? [], "props");
         const pointers = Array.isArray(parsed.pointers) ? parsed.pointers : [];
         const diceRolls = ensureArray(parsed.diceRolls ?? [], "diceRolls");
 
@@ -104,6 +105,7 @@ export function loadSession(file: File): Promise<RoomSnapshot> {
           tokens: tokens as RoomSnapshot["tokens"],
           players: players as RoomSnapshot["players"],
           characters: characters as RoomSnapshot["characters"],
+          props: props as RoomSnapshot["props"],
           mapBackground:
             typeof parsed.mapBackground === "string" ? parsed.mapBackground : undefined,
           pointers: pointers as RoomSnapshot["pointers"],
