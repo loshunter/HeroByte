@@ -48,6 +48,7 @@ import { usePlayerActions } from "../hooks/usePlayerActions";
 import { useVoiceChatManager } from "../hooks/useVoiceChatManager";
 import { useDiceRolling } from "../hooks/useDiceRolling";
 import { useServerEventHandlers } from "../hooks/useServerEventHandlers";
+import { useNpcManagement } from "../hooks/useNpcManagement";
 
 // ----------------------------------------------------------------------------
 // MAIN APP COMPONENT
@@ -398,54 +399,16 @@ function AuthenticatedApp({
     [sendMessage, startRoomPasswordUpdate],
   );
 
-  const handleCreateNPC = useCallback(() => {
-    sendMessage({ t: "create-npc", name: "New NPC", hp: 10, maxHp: 10 });
-  }, [sendMessage]);
-
-  const handleUpdateNPC = useCallback(
-    (
-      id: string,
-      updates: Partial<{
-        name: string;
-        hp: number;
-        maxHp: number;
-        portrait?: string;
-        tokenImage?: string;
-      }>,
-    ) => {
-      const existing = snapshot?.characters?.find((character) => character.id === id);
-      if (!existing) return;
-
-      sendMessage({
-        t: "update-npc",
-        id,
-        name: updates.name ?? existing.name,
-        hp: updates.hp ?? existing.hp,
-        maxHp: updates.maxHp ?? existing.maxHp,
-        portrait: updates.portrait ?? existing.portrait,
-        tokenImage: updates.tokenImage ?? existing.tokenImage ?? undefined,
-      });
-    },
-    [sendMessage, snapshot?.characters],
-  );
-
-  const handleDeleteNPC = useCallback(
-    (id: string) => {
-      sendMessage({ t: "delete-npc", id });
-    },
-    [sendMessage],
-  );
+  // NPC Management Hook
+  const { handleCreateNPC, handleUpdateNPC, handleDeleteNPC, handlePlaceNPCToken } =
+    useNpcManagement({
+      sendMessage,
+      snapshot,
+    });
 
   const handleDeletePlayerToken = useCallback(
     (tokenId: string) => {
       sendMessage({ t: "delete-token", id: tokenId });
-    },
-    [sendMessage],
-  );
-
-  const handlePlaceNPCToken = useCallback(
-    (id: string) => {
-      sendMessage({ t: "place-npc-token", id });
     },
     [sendMessage],
   );
