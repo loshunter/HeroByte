@@ -50,6 +50,7 @@ import { useDiceRolling } from "../hooks/useDiceRolling";
 import { useServerEventHandlers } from "../hooks/useServerEventHandlers";
 import { useNpcManagement } from "../hooks/useNpcManagement";
 import { usePropManagement } from "../hooks/usePropManagement";
+import { useDMManagement } from "../hooks/useDMManagement";
 
 // ----------------------------------------------------------------------------
 // MAIN APP COMPONENT
@@ -479,39 +480,13 @@ function AuthenticatedApp({
   // DM role detection
   const { isDM, elevateToDM } = useDMRole({ snapshot, uid, send: sendMessage });
 
-  // Handle DM elevation with password prompt
-  const handleToggleDM = useCallback(
-    (requestDM: boolean) => {
-      if (!requestDM) {
-        // Revoking DM mode
-        const confirmed = window.confirm(
-          "Are you sure you want to revoke your DM status? Another player will be able to become DM with the password.",
-        );
-        if (!confirmed) {
-          return;
-        }
-
-        // Send revoke-dm message
-        sendMessage({ t: "revoke-dm" });
-        toast.success("DM status revoked. You are now a player.", 3000);
-        return;
-      }
-
-      if (isDM) {
-        // Already DM
-        return;
-      }
-
-      // Prompt for DM password
-      const dmPassword = window.prompt("Enter DM password to elevate:");
-      if (!dmPassword) {
-        return; // User cancelled
-      }
-
-      elevateToDM(dmPassword.trim());
-    },
-    [isDM, elevateToDM, sendMessage, toast],
-  );
+  // DM management (elevation and revocation)
+  const { handleToggleDM } = useDMManagement({
+    isDM,
+    elevateToDM,
+    sendMessage,
+    toast,
+  });
 
   useEffect(() => {
     if (activeTool !== "align") {
