@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Staging Zone Debug</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #ddd; }
+        pre { background: #2a2a2a; padding: 15px; border-radius: 5px; overflow: auto; }
+        button { padding: 10px 20px; margin: 5px; background: #447df7; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #3366d4; }
+        .info { background: #2a4a2a; padding: 10px; margin: 10px 0; border-left: 4px solid #4ade80; }
+        .warning { background: #4a3a2a; padding: 10px; margin: 10px 0; border-left: 4px solid #facc15; }
+        .error { background: #4a2a2a; padding: 10px; margin: 10px 0; border-left: 4px solid #f87171; }
+    </style>
+</head>
+<body>
+    <h1>HeroByte Staging Zone Debugger</h1>
+    <p>This page will help you debug why the staging zone isn't visible.</p>
+
+    <div class="info">
+        <strong>Instructions:</strong>
+        <ol>
+            <li>Make sure HeroByte is running at <a href="http://localhost:5173" target="_blank">http://localhost:5173</a></li>
+            <li>Join the default room and elevate to DM</li>
+            <li>Try to set a staging zone in the DM Menu</li>
+            <li>Come back here and click "Check Staging Zone Status"</li>
+        </ol>
+    </div>
+
+    <button onclick="checkStagingZone()">Check Staging Zone Status</button>
+    <button onclick="checkSceneObjects()">Check Scene Objects</button>
+    <button onclick="clearResults()">Clear Results</button>
+
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:8787';
+
+        async function checkStagingZone() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Fetching room state...</p>';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/snapshot`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const snapshot = await response.json();
+
+                let html = '<h2>Room Snapshot Analysis</h2>';
+
+                // Check playerStagingZone
+                html += '<h3>1. Player Staging Zone Property</h3>';
+                if (snapshot.playerStagingZone) {
+                    html += '<div class="info">';
+                    html += '<p><strong>✓ Staging zone EXISTS in snapshot!</strong></p>';
+                    html += '<pre>' + JSON.stringify(snapshot.playerStagingZone, null, 2) + '</pre>';
+                    html += '</div>';
+                } else {
+                    html += '<div class="warning">';
+                    html += '<p><strong>⚠ No staging zone set</strong></p>';
+                    html += '<p>The playerStagingZone property is: <code>' + JSON.stringify(snapshot.playerStagingZone) + '</code></p>';
+                    html += '<p>You need to set a staging zone in the DM Menu:</p>';
+                    html += '<ol>';
+                    html += '<li>Open DM Menu (bottom right)</li>';
+                    html += '<li>Go to "Map Setup" tab</li>';
+                    html += '<li>Scroll to "Player Staging Zone"</li>';
+                    html += '<li>Click "Apply Zone" button</li>';
+                    html += '</ol>';
+                    html += '</div>';
+                }
+
+                // Check sceneObjects for staging-zone
+                html += '<h3>2. Scene Objects</h3>';
+                const stagingZoneObject = snapshot.sceneObjects?.find(obj => obj.type === 'staging-zone');
+                if (stagingZoneObject) {
+                    html += '<div class="info">';
+                    html += '<p><strong>✓ staging-zone scene object FOUND!</strong></p>';
+                    html += '<pre>' + JSON.stringify(stagingZoneObject, null, 2) + '</pre>';
+                    html += '</div>';
+                } else {
+                    html += '<div class="error">';
+                    html += '<p><strong>✗ No staging-zone scene object found</strong></p>';
+                    html += '<p>This is the problem! The server should create a scene object when playerStagingZone is set.</p>';
+                    html += '</div>';
+                }
+
+                // List all scene objects
+                html += '<h3>3. All Scene Objects (' + (snapshot.sceneObjects?.length || 0) + ')</h3>';
+                html += '<pre>' + JSON.stringify(snapshot.sceneObjects?.map(obj => ({
+                    id: obj.id,
+                    type: obj.type,
+                    transform: obj.transform
+                })), null, 2) + '</pre>';
+
+                results.innerHTML = html;
+            } catch (error) {
+                results.innerHTML = '<div class="error"><p><strong>Error:</strong> ' + error.message + '</p></div>';
+                console.error(error);
+            }
+        }
+
+        async function checkSceneObjects() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Checking scene objects in detail...</p>';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/snapshot`);
+                const snapshot = await response.json();
+
+                let html = '<h2>Detailed Scene Objects</h2>';
+                html += '<pre>' + JSON.stringify(snapshot.sceneObjects, null, 2) + '</pre>';
+
+                results.innerHTML = html;
+            } catch (error) {
+                results.innerHTML = '<div class="error"><p><strong>Error:</strong> ' + error.message + '</p></div>';
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+    </script>
+</body>
+</html>

@@ -638,7 +638,9 @@ export function DMMenu({
                     style={{
                       padding: mapLocked ? "8px" : "12px",
                       transition: "padding 150ms ease-in-out",
-                      border: mapLocked ? "2px solid rgba(136, 136, 136, 0.5)" : "2px solid var(--jrpg-border-gold)"
+                      border: mapLocked
+                        ? "2px solid rgba(136, 136, 136, 0.5)"
+                        : "2px solid var(--jrpg-border-gold)",
                     }}
                   >
                     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -668,7 +670,9 @@ export function DMMenu({
                             }}
                           >
                             <span className="jrpg-text-small">Scale</span>
-                            <span className="jrpg-text-small">{mapTransform.scaleX.toFixed(2)}x</span>
+                            <span className="jrpg-text-small">
+                              {mapTransform.scaleX.toFixed(2)}x
+                            </span>
                           </div>
                           <input
                             type="range"
@@ -792,7 +796,9 @@ export function DMMenu({
                   style={{
                     padding: gridLocked ? "8px" : "12px",
                     transition: "padding 150ms ease-in-out",
-                    border: gridLocked ? "2px solid rgba(136, 136, 136, 0.5)" : "2px solid var(--jrpg-border-gold)"
+                    border: gridLocked
+                      ? "2px solid rgba(136, 136, 136, 0.5)"
+                      : "2px solid var(--jrpg-border-gold)",
                   }}
                 >
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -841,7 +847,9 @@ export function DMMenu({
                           }}
                         >
                           <span className="jrpg-text-small">Square Size</span>
-                          <span className="jrpg-text-small">{formatSquareSize(gridSquareSize)} ft</span>
+                          <span className="jrpg-text-small">
+                            {formatSquareSize(gridSquareSize)} ft
+                          </span>
                         </div>
                         <input
                           type="range"
@@ -980,7 +988,9 @@ export function DMMenu({
                           background: stagingZoneLocked ? "rgba(136, 136, 136, 0.2)" : undefined,
                           color: stagingZoneLocked ? "#aaa" : undefined,
                         }}
-                        title={stagingZoneLocked ? "Staging zone is locked" : "Staging zone is unlocked"}
+                        title={
+                          stagingZoneLocked ? "Staging zone is locked" : "Staging zone is unlocked"
+                        }
                       >
                         {stagingZoneLocked ? "🔒 ZONE LOCKED ▲" : "🔓 ZONE UNLOCKED ▼"}
                       </JRPGButton>
@@ -989,7 +999,11 @@ export function DMMenu({
                     <CollapsibleSection isCollapsed={stagingZoneLocked ?? false}>
                       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                         <div
-                          style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px" }}
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(2, 1fr)",
+                            gap: "8px",
+                          }}
                         >
                           <label
                             className="jrpg-text-small"
@@ -999,7 +1013,9 @@ export function DMMenu({
                             <input
                               type="number"
                               value={stagingInputs.x}
-                              onChange={(event) => handleStagingInputChange("x", event.target.value)}
+                              onChange={(event) =>
+                                handleStagingInputChange("x", event.target.value)
+                              }
                               style={{
                                 width: "100%",
                                 padding: "6px",
@@ -1018,7 +1034,9 @@ export function DMMenu({
                             <input
                               type="number"
                               value={stagingInputs.y}
-                              onChange={(event) => handleStagingInputChange("y", event.target.value)}
+                              onChange={(event) =>
+                                handleStagingInputChange("y", event.target.value)
+                              }
                               style={{
                                 width: "100%",
                                 padding: "6px",
@@ -1117,8 +1135,9 @@ export function DMMenu({
                           className="jrpg-text-tiny"
                           style={{ color: "var(--jrpg-white)", opacity: 0.6 }}
                         >
-                          Click "Apply Zone" to create/update the staging zone. Use the Transform tool
-                          to move and resize it on the map. Players spawn randomly within this area.
+                          Click &ldquo;Apply Zone&rdquo; to create/update the staging zone. Use the
+                          Transform tool to move and resize it on the map. Players spawn randomly
+                          within this area.
                         </span>
                       </div>
                     </CollapsibleSection>
