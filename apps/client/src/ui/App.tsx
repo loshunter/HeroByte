@@ -49,6 +49,7 @@ import { useVoiceChatManager } from "../hooks/useVoiceChatManager";
 import { useDiceRolling } from "../hooks/useDiceRolling";
 import { useServerEventHandlers } from "../hooks/useServerEventHandlers";
 import { useNpcManagement } from "../hooks/useNpcManagement";
+import { usePropManagement } from "../hooks/usePropManagement";
 
 // ----------------------------------------------------------------------------
 // MAIN APP COMPONENT
@@ -417,42 +418,11 @@ function AuthenticatedApp({
     [sendMessage],
   );
 
-  const handleCreateProp = useCallback(() => {
-    sendMessage({
-      t: "create-prop",
-      label: "New Prop",
-      imageUrl: "",
-      owner: null,
-      size: "medium",
-      viewport: cameraState,
-    });
-  }, [sendMessage, cameraState]);
-
-  const handleUpdateProp = useCallback(
-    (
-      id: string,
-      updates: {
-        label: string;
-        imageUrl: string;
-        owner: string | null;
-        size: TokenSize;
-      },
-    ) => {
-      sendMessage({
-        t: "update-prop",
-        id,
-        ...updates,
-      });
-    },
-    [sendMessage],
-  );
-
-  const handleDeleteProp = useCallback(
-    (id: string) => {
-      sendMessage({ t: "delete-prop", id });
-    },
-    [sendMessage],
-  );
+  // Prop Management Hook
+  const { handleCreateProp, handleUpdateProp, handleDeleteProp } = usePropManagement({
+    sendMessage,
+    cameraState,
+  });
 
   const handleSaveSession = useCallback(
     (name: string) => {
