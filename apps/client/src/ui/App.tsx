@@ -14,12 +14,9 @@ import type { Camera } from "../hooks/useCamera";
 import { DiceRoller } from "../components/dice/DiceRoller";
 import { RollLog } from "../components/dice/RollLog";
 import type {
-  Player,
-  PlayerState,
   RoomSnapshot,
   ClientMessage,
   ServerMessage,
-  PlayerStagingZone,
   TokenSize,
 } from "@shared";
 import { WS_URL } from "../config";
@@ -327,7 +324,7 @@ function AuthenticatedApp({
   /**
    * Status effects management
    */
-  const { setStatusEffects } = useStatusEffects({ sendMessage });
+  const { setStatusEffects: _setStatusEffects } = useStatusEffects({ sendMessage });
 
   /**
    * Map actions
@@ -785,15 +782,7 @@ function AuthenticatedApp({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [
-    drawMode,
-    drawingManager,
-    sendMessage,
-    selectedObjectIds,
-    isDM,
-    snapshot,
-    clearSelection,
-  ]);
+  }, [drawMode, drawingManager, sendMessage, selectedObjectIds, isDM, snapshot, clearSelection]);
 
   // -------------------------------------------------------------------------
   // RENDER
@@ -1002,9 +991,7 @@ function AuthenticatedApp({
       <VisualEffects crtFilter={crtFilter} />
 
       {/* Dice Roller Panel */}
-      {diceRollerOpen && (
-        <DiceRoller onRoll={handleRoll} onClose={() => toggleDiceRoller(false)} />
-      )}
+      {diceRollerOpen && <DiceRoller onRoll={handleRoll} onClose={() => toggleDiceRoller(false)} />}
 
       {/* Roll Log Panel */}
       {rollLogOpen && (

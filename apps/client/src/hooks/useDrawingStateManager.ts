@@ -144,7 +144,7 @@ export interface UseDrawingStateManagerReturn {
  */
 export function useDrawingStateManager({
   sendMessage,
-  drawMode,
+  drawMode: _drawMode,
   setActiveTool,
 }: UseDrawingStateManagerOptions): UseDrawingStateManagerReturn {
   // Core drawing state from existing hook

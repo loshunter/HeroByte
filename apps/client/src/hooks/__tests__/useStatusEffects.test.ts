@@ -45,9 +45,7 @@ describe("useStatusEffects - Characterization Tests", () => {
 
   it("should maintain callback stability when sendMessage is stable", () => {
     const sendMessage = vi.fn<[ClientMessage], void>();
-    const { result, rerender } = renderHook(() =>
-      useStatusEffects({ sendMessage }),
-    );
+    const { result, rerender } = renderHook(() => useStatusEffects({ sendMessage }));
 
     const firstCallback = result.current.setStatusEffects;
     rerender();

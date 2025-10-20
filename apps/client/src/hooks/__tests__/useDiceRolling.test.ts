@@ -12,13 +12,16 @@ import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useDiceRolling } from "../useDiceRolling.js";
 import type { RoomSnapshot, Player, DiceRoll, ClientMessage } from "@shared";
-import type { RollResult, DieType } from "../../components/dice/types.js";
+import type { RollResult } from "../../components/dice/types.js";
 
 describe("useDiceRolling - Characterization", () => {
   const mockUid = "test-player-uid";
   const mockSendMessage = vi.fn();
 
-  const createMockSnapshot = (diceRolls: DiceRoll[] = [], players: Player[] = []): RoomSnapshot => ({
+  const createMockSnapshot = (
+    diceRolls: DiceRoll[] = [],
+    players: Player[] = [],
+  ): RoomSnapshot => ({
     players,
     characters: [],
     tokens: [],

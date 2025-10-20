@@ -13,7 +13,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import type { RoomSnapshot, ClientMessage, Player } from "@shared";
+import type { RoomSnapshot, Player } from "@shared";
 import { useVoiceChatManager } from "../useVoiceChatManager";
 
 // Mock dependencies

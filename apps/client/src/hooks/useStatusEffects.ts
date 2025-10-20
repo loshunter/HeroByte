@@ -47,9 +47,7 @@ export interface UseStatusEffectsReturn {
  * }
  * ```
  */
-export function useStatusEffects(
-  options: UseStatusEffectsOptions,
-): UseStatusEffectsReturn {
+export function useStatusEffects(options: UseStatusEffectsOptions): UseStatusEffectsReturn {
   const { sendMessage } = options;
 
   const setStatusEffects = useCallback(

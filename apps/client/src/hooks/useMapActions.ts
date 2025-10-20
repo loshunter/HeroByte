@@ -50,9 +50,7 @@ export interface UseMapActionsReturn {
  * setGridSquareSize(10);
  * ```
  */
-export function useMapActions(
-  options: UseMapActionsOptions,
-): UseMapActionsReturn {
+export function useMapActions(options: UseMapActionsOptions): UseMapActionsReturn {
   const { sendMessage } = options;
 
   /**
