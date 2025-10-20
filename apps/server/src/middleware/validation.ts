@@ -405,9 +405,12 @@ export function validateMessage(raw: unknown): ValidationResult {
       if (
         !viewport ||
         typeof viewport !== "object" ||
-        typeof (viewport as any).x !== "number" ||
-        typeof (viewport as any).y !== "number" ||
-        typeof (viewport as any).scale !== "number"
+        !("x" in viewport) ||
+        !("y" in viewport) ||
+        !("scale" in viewport) ||
+        typeof viewport.x !== "number" ||
+        typeof viewport.y !== "number" ||
+        typeof viewport.scale !== "number"
       ) {
         return { valid: false, error: "create-prop: viewport must be {x, y, scale}" };
       }
