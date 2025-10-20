@@ -33,6 +33,7 @@ import { useHeartbeat } from "../hooks/useHeartbeat";
 import { useDMRole } from "../hooks/useDMRole";
 import { useObjectSelection } from "../hooks/useObjectSelection";
 import { useToolMode } from "../hooks/useToolMode";
+import { useCameraCommands } from "../hooks/useCameraCommands";
 import { DMMenu } from "../features/dm";
 import { getSessionUID } from "../utils/session";
 import { saveSession, loadSession } from "../utils/sessionPersistence";
@@ -509,7 +510,7 @@ function AuthenticatedApp({
   const [crtFilter, setCrtFilter] = useState(false);
 
   // Camera commands
-  const [cameraCommand, setCameraCommand] = useState<CameraCommand | null>(null);
+  const { cameraCommand, handleFocusSelf, handleResetCamera, handleCameraCommandHandled } = useCameraCommands({ snapshot, uid });
 
   // Camera state (from MapBoard)
   const [camera, _setCamera] = useState<Camera>({ x: 0, y: 0, scale: 1 });
@@ -926,18 +927,6 @@ function AuthenticatedApp({
     [sendMessage],
   );
 
-  const handleFocusSelf = useCallback(() => {
-    const myToken = snapshot?.tokens?.find((t) => t.owner === uid);
-    if (!myToken) {
-      window.alert("You don't have a token on the map yet.");
-      return;
-    }
-    setCameraCommand({ type: "focus-token", tokenId: myToken.id });
-  }, [snapshot?.tokens, uid]);
-
-  const handleResetCamera = useCallback(() => {
-    setCameraCommand({ type: "reset" });
-  }, []);
 
   const handleApplyPlayerState = useCallback(
     (state: PlayerState, tokenId?: string) => {
@@ -1581,7 +1570,7 @@ function AuthenticatedApp({
           onTransformObject={transformSceneObject}
           onDrawingComplete={addToHistory}
           cameraCommand={cameraCommand}
-          onCameraCommandHandled={() => setCameraCommand(null)}
+          onCameraCommandHandled={handleCameraCommandHandled}
           onCameraChange={setCameraState}
           selectedObjectId={selectedObjectId}
           selectedObjectIds={selectedObjectIds}
