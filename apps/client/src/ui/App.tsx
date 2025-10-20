@@ -44,6 +44,7 @@ import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import { computeMapAlignmentTransform } from "../utils/mapAlignment";
 import { useToast } from "../hooks/useToast";
 import { ToastContainer } from "../components/ui/Toast";
+import { ContextMenu } from "../components/ui/ContextMenu";
 
 interface RollLogEntry extends RollResult {
   playerName: string;
@@ -1723,34 +1724,11 @@ function AuthenticatedApp({
       />
 
       {/* Context Menu */}
-      {contextMenu && (
-        <div
-          style={{
-            position: "fixed",
-            left: contextMenu.x,
-            top: contextMenu.y,
-            background: "#222",
-            border: "2px solid #555",
-            padding: "4px",
-            zIndex: 1000,
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            className="btn btn-danger"
-            style={{
-              display: "block",
-              width: "100%",
-            }}
-            onClick={() => {
-              deleteToken(contextMenu.tokenId);
-              setContextMenu(null);
-            }}
-          >
-            Delete Token
-          </button>
-        </div>
-      )}
+      <ContextMenu
+        menu={contextMenu}
+        onDelete={deleteToken}
+        onClose={() => setContextMenu(null)}
+      />
 
       {/* CRT Scanline Filter with Arcade Bezel */}
       {crtFilter && (
