@@ -38,6 +38,7 @@ import { saveSession, loadSession } from "../utils/sessionPersistence";
 import { DrawingToolbar } from "../features/drawing/components";
 import { Header, type ToolMode } from "../components/layout/Header";
 import { EntitiesPanel } from "../components/layout/EntitiesPanel";
+import { VisualEffects } from "../components/effects/VisualEffects";
 import { ServerStatus } from "../components/layout/ServerStatus";
 import { ConnectionState, AuthState } from "../services/websocket";
 import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
@@ -1752,31 +1753,8 @@ function AuthenticatedApp({
         </div>
       )}
 
-      {/* CRT Scanline Filter with Arcade Bezel */}
-      {crtFilter && (
-        <>
-          <div className="crt-vignette" />
-          <div className="crt-filter" />
-          <div className="crt-bezel" />
-        </>
-      )}
-
-      {/* Ambient Pixel Sparkles */}
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          pointerEvents: "none",
-          zIndex: 1,
-        }}
-      >
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="pixel-sparkle" />
-        ))}
-      </div>
+      {/* Visual Effects (CRT Filter + Ambient Sparkles) */}
+      <VisualEffects crtFilter={crtFilter} />
 
       {/* Dice Roller Panel */}
       {diceRollerOpen && (
