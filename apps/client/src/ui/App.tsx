@@ -50,6 +50,7 @@ import { useToast } from "../hooks/useToast";
 import { ToastContainer } from "../components/ui/Toast";
 import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 import { AuthenticationGate } from "../features/auth";
+import { ContextMenu } from "../components/ui/ContextMenu";
 
 interface RollLogEntry extends RollResult {
   playerName: string;
@@ -1326,34 +1327,11 @@ function AuthenticatedApp({
       />
 
       {/* Context Menu */}
-      {contextMenu && (
-        <div
-          style={{
-            position: "fixed",
-            left: contextMenu.x,
-            top: contextMenu.y,
-            background: "#222",
-            border: "2px solid #555",
-            padding: "4px",
-            zIndex: 1000,
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            className="btn btn-danger"
-            style={{
-              display: "block",
-              width: "100%",
-            }}
-            onClick={() => {
-              deleteToken(contextMenu.tokenId);
-              setContextMenu(null);
-            }}
-          >
-            Delete Token
-          </button>
-        </div>
-      )}
+      <ContextMenu
+        menu={contextMenu}
+        onDelete={deleteToken}
+        onClose={() => setContextMenu(null)}
+      />
 
       {/* Visual Effects (CRT Filter + Ambient Sparkles) */}
       <VisualEffects crtFilter={crtFilter} />
