@@ -114,11 +114,11 @@ export function useNpcManagement(params: UseNpcManagementParams): UseNpcManageme
     (
       id: string,
       updates: Partial<{
-        name: string;
-        hp: number;
-        maxHp: number;
-        portrait?: string;
-        tokenImage?: string;
+        name?: string;
+        hp?: number;
+        maxHp?: number;
+        portrait?: string | null;
+        tokenImage?: string | null;
       }>,
     ) => {
       const existing = snapshot?.characters?.find((character) => character.id === id);
