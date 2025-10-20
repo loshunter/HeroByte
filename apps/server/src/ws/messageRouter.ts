@@ -275,8 +275,8 @@ export class MessageRouter {
           this.characterService.claimCharacter(state, character.id, senderUid);
 
           // Create and link token at spawn position
-          const spawn = this.container.roomService.getPlayerSpawnPosition();
-          const token = this.container.tokenService.createToken(state, senderUid, spawn.x, spawn.y);
+          const spawn = this.roomService.getPlayerSpawnPosition();
+          const token = this.tokenService.createToken(state, senderUid, spawn.x, spawn.y);
           this.characterService.linkToken(state, character.id, token.id);
 
           console.log(`Player ${senderUid} created additional character: ${character.name}`);
