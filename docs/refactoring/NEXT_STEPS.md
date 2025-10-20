@@ -77,6 +77,14 @@ The parallel task agents generated detailed JSON analyses:
 
 These are documented in the roadmap but not stored as separate files.
 
+### Branching Strategy
+
+7. **[docs/refactoring/BRANCHING_STRATEGY.md](./BRANCHING_STRATEGY.md)**
+   - Branch naming convention: `refactor/<scope>/<module-name>`
+   - Workflow: create branch → extract → PR → merge → cleanup
+   - Parallel work coordination
+   - Commit message guidelines
+
 ---
 
 ## Immediate Next Step: First Extraction
@@ -112,6 +120,11 @@ pnpm test
 
 # Check current file sizes
 pnpm lint:structure
+
+# Create feature branch (IMPORTANT!)
+git checkout dev
+git pull origin dev
+git checkout -b refactor/app/use-layout-measurement
 ```
 
 #### 2. Review Documentation
