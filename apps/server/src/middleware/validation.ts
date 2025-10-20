@@ -387,6 +387,60 @@ export function validateMessage(raw: unknown): ValidationResult {
       break;
     }
 
+    case "create-prop": {
+      const { label, imageUrl, owner, size, viewport } = message;
+      if (typeof label !== "string" || label.length === 0 || label.length > 50) {
+        return { valid: false, error: "create-prop: label must be 1-50 characters" };
+      }
+      if (typeof imageUrl !== "string") {
+        return { valid: false, error: "create-prop: imageUrl must be a string" };
+      }
+      if (owner !== null && owner !== "*" && typeof owner !== "string") {
+        return { valid: false, error: "create-prop: owner must be null, '*', or a player UID" };
+      }
+      const validSizes = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
+      if (!validSizes.includes(size)) {
+        return { valid: false, error: "create-prop: size must be a valid TokenSize" };
+      }
+      if (
+        !viewport ||
+        typeof viewport.x !== "number" ||
+        typeof viewport.y !== "number" ||
+        typeof viewport.scale !== "number"
+      ) {
+        return { valid: false, error: "create-prop: viewport must be {x, y, scale}" };
+      }
+      break;
+    }
+
+    case "update-prop": {
+      const { id, label, imageUrl, owner, size } = message;
+      if (typeof id !== "string" || id.length === 0) {
+        return { valid: false, error: "update-prop: missing or invalid id" };
+      }
+      if (typeof label !== "string" || label.length === 0 || label.length > 50) {
+        return { valid: false, error: "update-prop: label must be 1-50 characters" };
+      }
+      if (typeof imageUrl !== "string") {
+        return { valid: false, error: "update-prop: imageUrl must be a string" };
+      }
+      if (owner !== null && owner !== "*" && typeof owner !== "string") {
+        return { valid: false, error: "update-prop: owner must be null, '*', or a player UID" };
+      }
+      const validSizes = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
+      if (!validSizes.includes(size)) {
+        return { valid: false, error: "update-prop: size must be a valid TokenSize" };
+      }
+      break;
+    }
+
+    case "delete-prop": {
+      if (typeof message.id !== "string" || message.id.length === 0) {
+        return { valid: false, error: "delete-prop: missing or invalid id" };
+      }
+      break;
+    }
+
     case "claim-character": {
       if (typeof message.characterId !== "string" || message.characterId.length === 0) {
         return { valid: false, error: "claim-character: missing or invalid characterId" };

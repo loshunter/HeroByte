@@ -22,6 +22,7 @@ import type {
   ClientMessage,
   ServerMessage,
   PlayerStagingZone,
+  TokenSize,
 } from "@shared";
 import { WS_URL } from "../config";
 import { useWebSocket } from "../hooks/useWebSocket";
@@ -466,6 +467,14 @@ function AuthenticatedApp({
   const transformMode = activeTool === "transform";
   const selectMode = activeTool === "select";
   const alignmentMode = activeTool === "align";
+
+  // Camera state (for viewport-based prop placement)
+  const [cameraState, setCameraState] = useState<{ x: number; y: number; scale: number }>({
+    x: 0,
+    y: 0,
+    scale: 1,
+  });
+
   const [alignmentPoints, setAlignmentPoints] = useState<AlignmentPoint[]>([]);
   const [alignmentSuggestion, setAlignmentSuggestion] = useState<AlignmentSuggestion | null>(null);
   const [alignmentError, setAlignmentError] = useState<string | null>(null);
@@ -1065,6 +1074,43 @@ function AuthenticatedApp({
     [sendMessage],
   );
 
+  const handleCreateProp = useCallback(() => {
+    sendMessage({
+      t: "create-prop",
+      label: "New Prop",
+      imageUrl: "",
+      owner: null,
+      size: "medium",
+      viewport: cameraState,
+    });
+  }, [sendMessage, cameraState]);
+
+  const handleUpdateProp = useCallback(
+    (
+      id: string,
+      updates: {
+        label: string;
+        imageUrl: string;
+        owner: string | null;
+        size: TokenSize;
+      },
+    ) => {
+      sendMessage({
+        t: "update-prop",
+        id,
+        ...updates,
+      });
+    },
+    [sendMessage],
+  );
+
+  const handleDeleteProp = useCallback(
+    (id: string) => {
+      sendMessage({ t: "delete-prop", id });
+    },
+    [sendMessage],
+  );
+
   const handleSaveSession = useCallback(
     (name: string) => {
       if (!snapshot) {
@@ -1547,11 +1593,11 @@ function AuthenticatedApp({
           onDrawingComplete={addToHistory}
           cameraCommand={cameraCommand}
           onCameraCommandHandled={() => setCameraCommand(null)}
+          onCameraChange={setCameraState}
           selectedObjectId={selectedObjectId}
           selectedObjectIds={selectedObjectIds}
           onSelectObject={handleObjectSelection}
           onSelectObjects={handleObjectSelectionBatch}
-          onCameraChange={setCamera}
         />
       </div>
 
@@ -1626,6 +1672,11 @@ function AuthenticatedApp({
         onUpdateNPC={handleUpdateNPC}
         onDeleteNPC={handleDeleteNPC}
         onPlaceNPCToken={handlePlaceNPCToken}
+        props={snapshot?.props || []}
+        players={snapshot?.players || []}
+        onCreateProp={handleCreateProp}
+        onUpdateProp={handleUpdateProp}
+        onDeleteProp={handleDeleteProp}
         mapLocked={mapSceneObject?.locked ?? true}
         onMapLockToggle={() => {
           if (mapSceneObject) {

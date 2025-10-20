@@ -22,7 +22,16 @@ interface PropsSpriteProps {
   onDragEnd?: (event: any) => void;
 }
 
-const PropSprite = memo(function PropSprite({ object, gridSize, interactive, cam, isSelected, onClick, onNodeReady, onDragEnd }: PropsSpriteProps) {
+const PropSprite = memo(function PropSprite({
+  object,
+  gridSize,
+  interactive,
+  cam,
+  isSelected,
+  onClick,
+  onNodeReady,
+  onDragEnd,
+}: PropsSpriteProps) {
   const { data, transform, locked } = object;
   const [image, status] = useImage(data.imageUrl);
 
@@ -69,12 +78,7 @@ const PropSprite = memo(function PropSprite({ object, gridSize, interactive, cam
       {status === "loaded" && image ? (
         <KonvaImage {...commonProps} image={image} />
       ) : (
-        <Rect
-          {...commonProps}
-          fill="#888888"
-          cornerRadius={4}
-          opacity={0.5}
-        />
+        <Rect {...commonProps} fill="#888888" cornerRadius={4} opacity={0.5} />
       )}
 
       {/* Lock indicator */}
@@ -116,7 +120,9 @@ export const PropsLayer = memo(function PropsLayer({
   onPropNodeReady,
   onTransformProp,
 }: PropsLayerProps) {
-  const propObjects = sceneObjects.filter((obj): obj is SceneObject & { type: "prop" } => obj.type === "prop");
+  const propObjects = sceneObjects.filter(
+    (obj): obj is SceneObject & { type: "prop" } => obj.type === "prop",
+  );
 
   return (
     <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale}>

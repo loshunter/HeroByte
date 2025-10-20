@@ -665,7 +665,10 @@ export default function MapBoard({
     const matches: string[] = [];
 
     nodeRefsMap.current.forEach((node, id) => {
-      if (!node || (!id.startsWith("token:") && !id.startsWith("drawing:") && !id.startsWith("prop:"))) {
+      if (
+        !node ||
+        (!id.startsWith("token:") && !id.startsWith("drawing:") && !id.startsWith("prop:"))
+      ) {
         return;
       }
 

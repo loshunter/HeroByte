@@ -11,6 +11,7 @@ import { TokenService } from "./domains/token/service.js";
 import { MapService } from "./domains/map/service.js";
 import { DiceService } from "./domains/dice/service.js";
 import { CharacterService } from "./domains/character/service.js";
+import { PropService } from "./domains/prop/service.js";
 import { SelectionService } from "./domains/selection/service.js";
 import { MessageRouter } from "./ws/messageRouter.js";
 import { RateLimiter } from "./middleware/rateLimit.js";
@@ -28,6 +29,7 @@ export class Container {
   public readonly mapService: MapService;
   public readonly diceService: DiceService;
   public readonly characterService: CharacterService;
+  public readonly propService: PropService;
   public readonly selectionService: SelectionService;
   public readonly authService: AuthService;
 
@@ -48,6 +50,7 @@ export class Container {
     this.mapService = new MapService();
     this.diceService = new DiceService();
     this.characterService = new CharacterService();
+    this.propService = new PropService();
     this.selectionService = new SelectionService();
     this.authService = authService;
 
@@ -67,6 +70,7 @@ export class Container {
       this.mapService,
       this.diceService,
       this.characterService,
+      this.propService,
       this.selectionService,
       this.authService,
       wss,

@@ -1,7 +1,92 @@
 # HeroByte Completed Work
 
-**Last Updated**: October 19, 2025
+**Last Updated**: October 20, 2025
 **Source**: Archived from `TODO.md` to keep the active roadmap lean.
+
+---
+
+## ✅ Multi-Character Support for Single Players (October 20, 2025)
+
+### Feature Overview
+
+Allows one physical player to control multiple characters over a single WebSocket connection. Players can create additional character cards via Player Settings, each with independent HP, portraits, tokens, and drawings.
+
+### Core Implementation
+
+- [x] **Player-Initiated Character Creation**
+  - [x] "Add Character" button in Player Settings menu (non-DM players only)
+  - [x] Confirmation dialog: "Are you sure you want to have 2 separate characters in the campaign?"
+  - [x] Character name prompt with default "Character 2"
+  - [x] Creates PC-type character with token at spawn position
+  - [x] Auto-claims character for requesting player
+
+- [x] **UI Architecture Refactor**
+  - [x] EntitiesPanel now renders one card per Character (not per Player)
+  - [x] Filters characters by `ownedByPlayerUID` to show all player characters
+  - [x] Each card displays character-specific name, HP, maxHp, and portrait
+  - [x] Players with 0 characters show no cards (only if DM deleted all)
+  - [x] DM player separation preserved (appears first with visual divider)
+
+- [x] **Server-Side Architecture**
+  - [x] New message type: `add-player-character` with name and optional maxHp
+  - [x] Validation middleware for character creation messages
+  - [x] Auto-creates first character when player connects
+  - [x] Character-token linkage via `character.tokenId`
+  - [x] 1:many relationship: One player UID owns multiple characters
+
+- [x] **Connection Handler Integration**
+  - [x] Auto-creates character for new players on first connect
+  - [x] Uses player's name and portrait for initial character
+  - [x] Creates token at spawn position and links to character
+  - [x] Backward compatibility with existing player data
+
+### Technical Details
+
+**Message Flow:**
+
+1. Client sends `{ t: "add-player-character", name: string, maxHp?: number }`
+2. Server creates PC character, auto-claims for requesting player
+3. Server creates token at spawn position and links to character
+4. Broadcast triggers UI update showing new character card
+
+**Character-Player Relationship:**
+
+- Characters have `ownedByPlayerUID` field (player UID)
+- Tokens have `owner` field (player UID)
+- Characters link to tokens via `tokenId`
+- Multiple characters can share same `ownedByPlayerUID`
+
+### Files Changed
+
+**Shared Types:**
+
+- `packages/shared/src/index.ts` - Added `add-player-character` message type
+
+**Server:**
+
+- `apps/server/src/middleware/validation.ts` - Validation for new message
+- `apps/server/src/ws/messageRouter.ts` - Handler for character creation
+- `apps/server/src/ws/connectionHandler.ts` - Auto-create character on connect
+
+**Client:**
+
+- `apps/client/src/ui/App.tsx` - Handler for add character action
+- `apps/client/src/components/layout/EntitiesPanel.tsx` - Render by character
+- `apps/client/src/features/players/components/PlayerCard.tsx` - Pass handler
+- `apps/client/src/features/players/components/PlayerSettingsMenu.tsx` - UI button
+
+### Use Cases
+
+- **Multi-character player**: One person controls 2 characters in campaign
+- **Character replacement**: Player creates new character mid-campaign
+- **Party composition**: Flexible character management per player
+- **Edge case support**: Handles groups where one player controls multiple PCs
+
+### Benefits
+
+Players can now manage multiple characters simultaneously without needing separate connections. Each character maintains independent game state (HP, portrait, token, drawings) while sharing player identity (UID, WebSocket connection, voice chat). Perfect for solo campaigns or players controlling multiple party members.
+
+**Status**: Feature complete. All tests passing. Ready for production use.
 
 ---
 

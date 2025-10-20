@@ -89,6 +89,7 @@ export class RoomService {
             tokenImage: character.tokenImage ?? null,
             tokenId: character.tokenId ?? null,
           })),
+          props: data.props || [],
           mapBackground: data.mapBackground,
           pointers: [], // Don't persist pointers - they expire
           drawings: data.drawings || [],
@@ -118,6 +119,7 @@ export class RoomService {
         tokens: this.state.tokens,
         players: this.state.players,
         characters: this.state.characters,
+        props: this.state.props,
         mapBackground: this.state.mapBackground,
         drawings: this.state.drawings,
         gridSize: this.state.gridSize,
@@ -175,6 +177,7 @@ export class RoomService {
       tokens: snapshot.tokens ?? [],
       players: mergedPlayers,
       characters: loadedCharacters,
+      props: snapshot.props ?? [],
       mapBackground: snapshot.mapBackground,
       pointers: [], // Clear pointers on load
       drawings: hasSceneObjects ? [] : (snapshot.drawings ?? []),
@@ -405,7 +408,29 @@ export class RoomService {
       }
 
       case "prop": {
-        if (!isDM && object.owner && object.owner !== actorUid) return false;
+        // Find the source prop entity
+        const propId = object.id.replace(/^prop:/, "");
+        const prop = this.state.props.find((candidate) => candidate.id === propId);
+        if (!prop) return false;
+
+        // Permission check: DM can always edit, owner="*" means everyone, or specific owner
+        const canEdit = isDM || prop.owner === "*" || prop.owner === actorUid;
+        if (!canEdit) return false;
+
+        // Update source Prop entity
+        if (changes.position) {
+          prop.x = changes.position.x;
+          prop.y = changes.position.y;
+        }
+        if (changes.scale) {
+          prop.scaleX = changes.scale.x;
+          prop.scaleY = changes.scale.y;
+        }
+        if (typeof changes.rotation === "number") {
+          prop.rotation = changes.rotation;
+        }
+
+        // Apply to SceneObject
         applyPosition(changes.position);
         applyScale(changes.scale);
         applyRotation(changes.rotation);
@@ -491,6 +516,31 @@ export class RoomService {
         zIndex: prev?.zIndex ?? 5,
         transform: prev?.transform ?? { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
         data: { drawing },
+      });
+    }
+
+    // Props -> scene objects
+    for (const prop of this.state.props) {
+      const id = `prop:${prop.id}`;
+      const prev = existing.get(id);
+      next.push({
+        id,
+        type: "prop",
+        owner: prop.owner,
+        locked: prev?.locked ?? false,
+        zIndex: prev?.zIndex ?? 7, // Above drawings (5), below tokens (10)
+        transform: {
+          x: prop.x,
+          y: prop.y,
+          scaleX: prop.scaleX,
+          scaleY: prop.scaleY,
+          rotation: prop.rotation,
+        },
+        data: {
+          imageUrl: prop.imageUrl,
+          label: prop.label,
+          size: prop.size,
+        },
       });
     }
 

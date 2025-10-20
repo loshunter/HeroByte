@@ -12,6 +12,7 @@ import { TokenService } from "../domains/token/service.js";
 import { MapService } from "../domains/map/service.js";
 import { DiceService } from "../domains/dice/service.js";
 import { CharacterService } from "../domains/character/service.js";
+import { PropService } from "../domains/prop/service.js";
 import { SelectionService } from "../domains/selection/service.js";
 import { AuthService } from "../domains/auth/service.js";
 
@@ -25,6 +26,7 @@ export class MessageRouter {
   private mapService: MapService;
   private diceService: DiceService;
   private characterService: CharacterService;
+  private propService: PropService;
   private selectionService: SelectionService;
   private authService: AuthService;
   private wss: WebSocketServer;
@@ -38,6 +40,7 @@ export class MessageRouter {
     mapService: MapService,
     diceService: DiceService,
     characterService: CharacterService,
+    propService: PropService,
     selectionService: SelectionService,
     authService: AuthService,
     wss: WebSocketServer,
@@ -50,6 +53,7 @@ export class MessageRouter {
     this.mapService = mapService;
     this.diceService = diceService;
     this.characterService = characterService;
+    this.propService = propService;
     this.selectionService = selectionService;
     this.authService = authService;
     this.wss = wss;
@@ -252,6 +256,59 @@ export class MessageRouter {
             this.roomService.saveState();
           }
           break;
+
+        // PROP ACTIONS
+        case "create-prop": {
+          if (!this.isDM(senderUid)) {
+            console.warn(`Non-DM ${senderUid} attempted to create prop`);
+            break;
+          }
+          this.propService.createProp(
+            state,
+            message.label,
+            message.imageUrl,
+            message.owner,
+            message.size,
+            message.viewport,
+            state.gridSize,
+          );
+          this.broadcast();
+          this.roomService.saveState();
+          break;
+        }
+
+        case "update-prop":
+          if (!this.isDM(senderUid)) {
+            console.warn(`Non-DM ${senderUid} attempted to update prop`);
+            break;
+          }
+          if (
+            this.propService.updateProp(state, message.id, {
+              label: message.label,
+              imageUrl: message.imageUrl,
+              owner: message.owner,
+              size: message.size,
+            })
+          ) {
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+
+        case "delete-prop": {
+          if (!this.isDM(senderUid)) {
+            console.warn(`Non-DM ${senderUid} attempted to delete prop`);
+            break;
+          }
+          const removed = this.propService.deleteProp(state, message.id);
+          if (removed) {
+            // Remove from selection state
+            this.selectionService.removeObject(state, `prop:${message.id}`);
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+        }
 
         case "claim-character":
           if (this.characterService.claimCharacter(state, message.characterId, senderUid)) {
