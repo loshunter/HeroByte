@@ -9,7 +9,7 @@
 // - Tool modes (pointer, measure, draw)
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import MapBoard, { type CameraCommand } from "./MapBoard";
+import MapBoard from "./MapBoard";
 import type { Camera } from "../hooks/useCamera";
 import { useVoiceChat } from "./useVoiceChat";
 import { DiceRoller } from "../components/dice/DiceRoller";
@@ -32,11 +32,13 @@ import { usePlayerEditing } from "../hooks/usePlayerEditing";
 import { useHeartbeat } from "../hooks/useHeartbeat";
 import { useDMRole } from "../hooks/useDMRole";
 import { useObjectSelection } from "../hooks/useObjectSelection";
+import { useToolMode } from "../hooks/useToolMode";
+import { useCameraCommands } from "../hooks/useCameraCommands";
 import { DMMenu } from "../features/dm";
 import { getSessionUID } from "../utils/session";
 import { saveSession, loadSession } from "../utils/sessionPersistence";
 import { DrawingToolbar } from "../features/drawing/components";
-import { Header, type ToolMode } from "../components/layout/Header";
+import { Header } from "../components/layout/Header";
 import { EntitiesPanel } from "../components/layout/EntitiesPanel";
 import { ServerStatus } from "../components/layout/ServerStatus";
 import { ConnectionState, AuthState } from "../services/websocket";
@@ -460,13 +462,16 @@ function AuthenticatedApp({
   const [gridLocked, setGridLocked] = useState(false);
 
   // Tool modes
-  const [activeTool, setActiveTool] = useState<ToolMode>(null);
-  const pointerMode = activeTool === "pointer";
-  const measureMode = activeTool === "measure";
-  const drawMode = activeTool === "draw";
-  const transformMode = activeTool === "transform";
-  const selectMode = activeTool === "select";
-  const alignmentMode = activeTool === "align";
+  const {
+    activeTool,
+    setActiveTool,
+    pointerMode,
+    measureMode,
+    drawMode,
+    transformMode,
+    selectMode,
+    alignmentMode,
+  } = useToolMode();
 
   // Camera state (for viewport-based prop placement)
   const [cameraState, setCameraState] = useState<{ x: number; y: number; scale: number }>({
@@ -505,7 +510,8 @@ function AuthenticatedApp({
   const [crtFilter, setCrtFilter] = useState(false);
 
   // Camera commands
-  const [cameraCommand, setCameraCommand] = useState<CameraCommand | null>(null);
+  const { cameraCommand, handleFocusSelf, handleResetCamera, handleCameraCommandHandled } =
+    useCameraCommands({ snapshot, uid });
 
   // Camera state (from MapBoard)
   const [camera, _setCamera] = useState<Camera>({ x: 0, y: 0, scale: 1 });
@@ -922,19 +928,6 @@ function AuthenticatedApp({
     [sendMessage],
   );
 
-  const handleFocusSelf = useCallback(() => {
-    const myToken = snapshot?.tokens?.find((t) => t.owner === uid);
-    if (!myToken) {
-      window.alert("You don't have a token on the map yet.");
-      return;
-    }
-    setCameraCommand({ type: "focus-token", tokenId: myToken.id });
-  }, [snapshot?.tokens, uid]);
-
-  const handleResetCamera = useCallback(() => {
-    setCameraCommand({ type: "reset" });
-  }, []);
-
   const handleApplyPlayerState = useCallback(
     (state: PlayerState, tokenId?: string) => {
       sendMessage({ t: "rename", name: state.name });
@@ -1205,21 +1198,6 @@ function AuthenticatedApp({
     },
     [isDM, elevateToDM, sendMessage, toast],
   );
-
-  useEffect(() => {
-    if (!activeTool) {
-      return;
-    }
-
-    const handleToolEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setActiveTool(null);
-      }
-    };
-
-    window.addEventListener("keydown", handleToolEscape);
-    return () => window.removeEventListener("keydown", handleToolEscape);
-  }, [activeTool]);
 
   useEffect(() => {
     if (activeTool !== "align") {
@@ -1592,7 +1570,7 @@ function AuthenticatedApp({
           onTransformObject={transformSceneObject}
           onDrawingComplete={addToHistory}
           cameraCommand={cameraCommand}
-          onCameraCommandHandled={() => setCameraCommand(null)}
+          onCameraCommandHandled={handleCameraCommandHandled}
           onCameraChange={setCameraState}
           selectedObjectId={selectedObjectId}
           selectedObjectIds={selectedObjectIds}
