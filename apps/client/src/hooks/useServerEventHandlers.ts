@@ -12,7 +12,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import type { ServerMessage } from "@shared";
+import type { ClientMessage, ServerMessage } from "@shared";
 
 /**
  * Status of a room password update operation
@@ -49,6 +49,11 @@ export interface UseServerEventHandlersOptions {
    * Toast notification functions for displaying user feedback
    */
   toast: ToastNotifications;
+
+  /**
+   * WebSocket message sender for client-server communication
+   */
+  sendMessage: (msg: ClientMessage) => void;
 }
 
 /**
@@ -76,6 +81,14 @@ export interface UseServerEventHandlersReturn {
    * Should be called when initiating a password update
    */
   startRoomPasswordUpdate: () => void;
+
+  /**
+   * Sets the room password
+   * Initiates a password update and sends the message to the server
+   *
+   * @param nextSecret - The new room password
+   */
+  handleSetRoomPassword: (nextSecret: string) => void;
 }
 
 /**
@@ -106,6 +119,7 @@ export interface UseServerEventHandlersReturn {
 export function useServerEventHandlers({
   registerServerEventHandler,
   toast,
+  sendMessage,
 }: UseServerEventHandlersOptions): UseServerEventHandlersReturn {
   // State for room password operations
   const [roomPasswordStatus, setRoomPasswordStatus] = useState<RoomPasswordStatus | null>(null);
@@ -126,6 +140,18 @@ export function useServerEventHandlers({
     setRoomPasswordPending(true);
     setRoomPasswordStatus(null);
   }, []);
+
+  /**
+   * Sets the room password
+   * Initiates a password update and sends the message to the server
+   */
+  const handleSetRoomPassword = useCallback(
+    (nextSecret: string) => {
+      startRoomPasswordUpdate();
+      sendMessage({ t: "set-room-password", secret: nextSecret });
+    },
+    [sendMessage, startRoomPasswordUpdate],
+  );
 
   /**
    * Register handler for server events
@@ -162,5 +188,6 @@ export function useServerEventHandlers({
     roomPasswordPending,
     dismissRoomPasswordStatus,
     startRoomPasswordUpdate,
+    handleSetRoomPassword,
   };
 }
