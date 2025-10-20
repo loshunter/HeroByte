@@ -220,7 +220,7 @@ describe("useToolMode - Characterization", () => {
     });
 
     it("should not add escape listener when no tool is active", () => {
-      const addEventListenerSpy = vi.spyOn(window, "addEventListener");
+      const _addEventListenerSpy = vi.spyOn(window, "addEventListener");
 
       const { result } = renderHook(() => useToolModeCharacterization());
 

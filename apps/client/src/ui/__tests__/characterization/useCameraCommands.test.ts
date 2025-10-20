@@ -26,9 +26,7 @@ describe("useCameraCommands - Characterization", () => {
 
   describe("initial state", () => {
     it("should initialize with null camera command", () => {
-      const { result } = renderHook(() =>
-        useCameraCommands({ snapshot: null, uid: "user123" }),
-      );
+      const { result } = renderHook(() => useCameraCommands({ snapshot: null, uid: "user123" }));
 
       expect(result.current.cameraCommand).toBeNull();
     });
@@ -51,9 +49,7 @@ describe("useCameraCommands - Characterization", () => {
         ],
       } as RoomSnapshot;
 
-      const { result } = renderHook(() =>
-        useCameraCommands({ snapshot, uid: "user123" }),
-      );
+      const { result } = renderHook(() => useCameraCommands({ snapshot, uid: "user123" }));
 
       act(() => {
         result.current.handleFocusSelf();
@@ -81,9 +77,7 @@ describe("useCameraCommands - Characterization", () => {
         ],
       } as RoomSnapshot;
 
-      const { result } = renderHook(() =>
-        useCameraCommands({ snapshot, uid: "user123" }),
-      );
+      const { result } = renderHook(() => useCameraCommands({ snapshot, uid: "user123" }));
 
       act(() => {
         result.current.handleFocusSelf();
@@ -94,9 +88,7 @@ describe("useCameraCommands - Characterization", () => {
     });
 
     it("should show alert when snapshot is null", () => {
-      const { result } = renderHook(() =>
-        useCameraCommands({ snapshot: null, uid: "user123" }),
-      );
+      const { result } = renderHook(() => useCameraCommands({ snapshot: null, uid: "user123" }));
 
       act(() => {
         result.current.handleFocusSelf();
@@ -111,9 +103,7 @@ describe("useCameraCommands - Characterization", () => {
         tokens: [],
       } as RoomSnapshot;
 
-      const { result } = renderHook(() =>
-        useCameraCommands({ snapshot, uid: "user123" }),
-      );
+      const { result } = renderHook(() => useCameraCommands({ snapshot, uid: "user123" }));
 
       act(() => {
         result.current.handleFocusSelf();
@@ -159,9 +149,7 @@ describe("useCameraCommands - Characterization", () => {
         ],
       } as RoomSnapshot;
 
-      const { result } = renderHook(() =>
-        useCameraCommands({ snapshot, uid: "user123" }),
-      );
+      const { result } = renderHook(() => useCameraCommands({ snapshot, uid: "user123" }));
 
       act(() => {
         result.current.handleFocusSelf();
@@ -176,9 +164,7 @@ describe("useCameraCommands - Characterization", () => {
 
   describe("handleResetCamera", () => {
     it("should set reset command", () => {
-      const { result } = renderHook(() =>
-        useCameraCommands({ snapshot: null, uid: "user123" }),
-      );
+      const { result } = renderHook(() => useCameraCommands({ snapshot: null, uid: "user123" }));
 
       act(() => {
         result.current.handleResetCamera();
@@ -194,9 +180,7 @@ describe("useCameraCommands - Characterization", () => {
         tokens: [],
       } as RoomSnapshot;
 
-      const { result } = renderHook(() =>
-        useCameraCommands({ snapshot, uid: "user123" }),
-      );
+      const { result } = renderHook(() => useCameraCommands({ snapshot, uid: "user123" }));
 
       act(() => {
         result.current.handleResetCamera();
@@ -223,9 +207,7 @@ describe("useCameraCommands - Characterization", () => {
         ],
       } as RoomSnapshot;
 
-      const { result } = renderHook(() =>
-        useCameraCommands({ snapshot, uid: "user123" }),
-      );
+      const { result } = renderHook(() => useCameraCommands({ snapshot, uid: "user123" }));
 
       act(() => {
         result.current.handleFocusSelf();
@@ -248,9 +230,7 @@ describe("useCameraCommands - Characterization", () => {
 
   describe("handleCameraCommandHandled", () => {
     it("should clear the camera command", () => {
-      const { result } = renderHook(() =>
-        useCameraCommands({ snapshot: null, uid: "user123" }),
-      );
+      const { result } = renderHook(() => useCameraCommands({ snapshot: null, uid: "user123" }));
 
       // Set a reset command
       act(() => {
@@ -283,9 +263,7 @@ describe("useCameraCommands - Characterization", () => {
         ],
       } as RoomSnapshot;
 
-      const { result } = renderHook(() =>
-        useCameraCommands({ snapshot, uid: "user123" }),
-      );
+      const { result } = renderHook(() => useCameraCommands({ snapshot, uid: "user123" }));
 
       // Set a focus command
       act(() => {
@@ -306,9 +284,7 @@ describe("useCameraCommands - Characterization", () => {
     });
 
     it("should be idempotent when command is already null", () => {
-      const { result } = renderHook(() =>
-        useCameraCommands({ snapshot: null, uid: "user123" }),
-      );
+      const { result } = renderHook(() => useCameraCommands({ snapshot: null, uid: "user123" }));
 
       expect(result.current.cameraCommand).toBeNull();
 
@@ -337,9 +313,7 @@ describe("useCameraCommands - Characterization", () => {
         ],
       } as RoomSnapshot;
 
-      const { result } = renderHook(() =>
-        useCameraCommands({ snapshot, uid: "user123" }),
-      );
+      const { result } = renderHook(() => useCameraCommands({ snapshot, uid: "user123" }));
 
       // Initial state
       expect(result.current.cameraCommand).toBeNull();

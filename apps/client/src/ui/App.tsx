@@ -9,7 +9,7 @@
 // - Tool modes (pointer, measure, draw)
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import MapBoard, { type CameraCommand } from "./MapBoard";
+import MapBoard from "./MapBoard";
 import type { Camera } from "../hooks/useCamera";
 import { useVoiceChat } from "./useVoiceChat";
 import { DiceRoller } from "../components/dice/DiceRoller";
@@ -38,7 +38,7 @@ import { DMMenu } from "../features/dm";
 import { getSessionUID } from "../utils/session";
 import { saveSession, loadSession } from "../utils/sessionPersistence";
 import { DrawingToolbar } from "../features/drawing/components";
-import { Header, type ToolMode } from "../components/layout/Header";
+import { Header } from "../components/layout/Header";
 import { EntitiesPanel } from "../components/layout/EntitiesPanel";
 import { ServerStatus } from "../components/layout/ServerStatus";
 import { ConnectionState, AuthState } from "../services/websocket";
@@ -510,7 +510,8 @@ function AuthenticatedApp({
   const [crtFilter, setCrtFilter] = useState(false);
 
   // Camera commands
-  const { cameraCommand, handleFocusSelf, handleResetCamera, handleCameraCommandHandled } = useCameraCommands({ snapshot, uid });
+  const { cameraCommand, handleFocusSelf, handleResetCamera, handleCameraCommandHandled } =
+    useCameraCommands({ snapshot, uid });
 
   // Camera state (from MapBoard)
   const [camera, _setCamera] = useState<Camera>({ x: 0, y: 0, scale: 1 });
@@ -926,7 +927,6 @@ function AuthenticatedApp({
     },
     [sendMessage],
   );
-
 
   const handleApplyPlayerState = useCallback(
     (state: PlayerState, tokenId?: string) => {
