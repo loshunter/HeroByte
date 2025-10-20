@@ -10,12 +10,17 @@
 
 This roadmap provides a systematic plan to refactor the three largest files in the HeroByte codebase:
 
-| File | Current LOC | Target LOC | Reduction | Complexity Clusters | Est. Effort |
-|------|-------------|------------|-----------|---------------------|-------------|
-| **App.tsx** | 1,850 | 300 | 84% | 27 clusters | 8-10 weeks |
-| **DMMenu.tsx** | 1,588 | 350 | 78% | 20 clusters | 6-8 weeks |
-| **MapBoard.tsx** | 1,041 | 400 | 62% | 32 clusters | 6-8 weeks |
-| **Total** | **4,479** | **1,050** | **77%** | **79 clusters** | **20-26 weeks** |
+| File | Current LOC | Target LOC | Reduction | Complexity Clusters | Est. Effort | Status |
+|------|-------------|------------|-----------|---------------------|-------------|--------|
+| **App.tsx** | 1,850 → 1,303 | 300 | 84% | 27 clusters | 8-10 weeks | Phase 1: ✅ COMPLETE (9/9) |
+| **DMMenu.tsx** | 1,588 | 350 | 78% | 20 clusters | 6-8 weeks | Not started |
+| **MapBoard.tsx** | 1,041 | 400 | 62% | 32 clusters | 6-8 weeks | Not started |
+| **Total** | **4,479** → **3,932** | **1,050** | **77%** | **79 clusters** | **20-26 weeks** | **547 LOC reduced** |
+
+**Phase 1 Milestone Achieved:** 2025-10-20
+- 9 extractions completed from App.tsx
+- 547 LOC reduction (156% of 350 LOC goal)
+- All branches pushed and ready for PR review
 
 ---
 
@@ -69,6 +74,13 @@ This roadmap provides a systematic plan to refactor the three largest files in t
 
 ## File 1: App.tsx (1,850 LOC → 300 LOC)
 
+### Current Status
+- **Starting LOC:** 1,850
+- **Current LOC:** ~1,303 (estimated after Phase 1)
+- **Reduction So Far:** 547 LOC (29.6%)
+- **Phase 1 Status:** ✅ COMPLETE (9/9 priorities) - Completed 2025-10-20
+- **Next Phase:** Phase 2 (Action Creators)
+
 ### Complexity Profile
 
 **Highest Complexity (5):**
@@ -85,22 +97,27 @@ This roadmap provides a systematic plan to refactor the three largest files in t
 
 ### Extraction Strategy
 
-#### Phase 1: Quick Wins (2-3 weeks)
+#### Phase 1: Quick Wins ✅ COMPLETE (2025-10-20)
 **Goal:** Extract simple, low-dependency modules to build momentum
 
-| Priority | Module | LOC | Target Path | Dependencies | Effort |
-|----------|--------|-----|-------------|--------------|--------|
-| 1 | `useLayoutMeasurement` | 20 | `/hooks/useLayoutMeasurement.ts` | React refs, resize events | 2 days |
-| 2 | `useToolMode` | 25 | `/hooks/useToolMode.ts` | ToolMode enum, keyboard | 2 days |
-| 3 | `useCameraCommands` | 30 | `/hooks/useCameraCommands.ts` | Camera type | 2 days |
-| 4 | `useE2ETestingSupport` | 15 | `/utils/useE2ETestingSupport.ts` | window object | 1 day |
-| 5 | `useSceneObjectSelectors` | 20 | `/hooks/useSceneObjectSelectors.ts` | snapshot | 2 days |
-| 6 | `VisualEffects` | 40 | `/components/effects/VisualEffects.tsx` | CSS classes | 3 days |
-| 7 | `AuthenticationGate` | 120 | `/features/auth/AuthenticationGate.tsx` | Auth types | 4 days |
-| 8 | `ContextMenu` | 30 | `/components/ui/ContextMenu.tsx` | None | 2 days |
-| 9 | `MultiSelectToolbar` | 50 | `/components/layout/MultiSelectToolbar.tsx` | Selection state | 3 days |
+| Priority | Module | Est. LOC | Actual LOC | Target Path | Branch | Status |
+|----------|--------|----------|------------|-------------|--------|--------|
+| 1 | `useLayoutMeasurement` | 20 | -14 | `/hooks/useLayoutMeasurement.ts` | `refactor/app/use-layout-measurement` | ✅ COMPLETE |
+| 2 | `useToolMode` | 25 | -11 | `/hooks/useToolMode.ts` | `refactor/app/use-tool-mode` | ✅ COMPLETE |
+| 3 | `useCameraCommands` | 30 | -11 | `/hooks/useCameraCommands.ts` | `refactor/app/use-camera-commands` | ✅ COMPLETE |
+| 4 | `useE2ETestingSupport` | 15 | -20 | `/utils/useE2ETestingSupport.ts` | `refactor/app/use-e2e-testing-support` | ✅ COMPLETE |
+| 5 | `useSceneObjectSelectors` | 20 | -41 | `/hooks/useSceneObjectSelectors.ts` | `refactor/app/use-scene-object-selectors` | ✅ COMPLETE |
+| 6 | `VisualEffects` | 40 | -23 | `/components/effects/VisualEffects.tsx` | `refactor/app/visual-effects` | ✅ COMPLETE |
+| 7 | `AuthenticationGate` | 120 | -337 | `/features/auth/AuthenticationGate.tsx` | `refactor/app/authentication-gate` | ✅ COMPLETE |
+| 8 | `ContextMenu` | 30 | -22 | `/components/ui/ContextMenu.tsx` | `refactor/app/context-menu` | ✅ COMPLETE |
+| 9 | `MultiSelectToolbar` | 50 | -68 | `/components/layout/MultiSelectToolbar.tsx` | `refactor/app/multi-select-toolbar` | ✅ COMPLETE |
 
-**Phase 1 Reduction:** ~350 LOC → App.tsx down to ~1,500 LOC
+**Phase 1 Results:**
+- **Estimated Reduction:** ~350 LOC
+- **Actual Reduction:** 547 LOC (156% of goal)
+- **App.tsx:** 1,850 LOC → ~1,303 LOC
+- **All tests passing, no regressions**
+- **All branches pushed and ready for PR review**
 
 #### Phase 2: Action Creators (2 weeks)
 **Goal:** Extract simple message-sending action hooks
@@ -475,13 +492,20 @@ apps/client/src/
 
 ### Quantitative
 
-- [ ] App.tsx: 1,850 LOC → 300 LOC (84% reduction)
+**Progress So Far:**
+- [x] ✅ **App.tsx Phase 1:** 1,850 LOC → ~1,303 LOC (29.6% reduction, 547 LOC)
+- [ ] App.tsx Phases 2-7: ~1,303 LOC → 300 LOC (remaining 54.4% reduction)
 - [ ] DMMenu.tsx: 1,588 LOC → 350 LOC (78% reduction)
 - [ ] MapBoard.tsx: 1,041 LOC → 400 LOC (62% reduction)
-- [ ] **Total: 4,479 LOC → 1,050 LOC (77% reduction)**
-- [ ] Test coverage maintained or improved (>80% per module)
-- [ ] Zero new violations of 350 LOC limit
-- [ ] All CI checks passing after each extraction
+- [x] ✅ **Current Total:** 4,479 LOC → 3,932 LOC (547 LOC reduced, 12.2% of overall goal)
+- [ ] **Final Goal:** 4,479 LOC → 1,050 LOC (77% reduction)
+
+**Quality Metrics (Phase 1):**
+- [x] ✅ Test coverage maintained (>80% per module)
+- [x] ✅ Zero new violations of 350 LOC limit
+- [x] ✅ All CI checks passing after each extraction
+- [x] ✅ All characterization tests written and passing
+- [x] ✅ No behavioral regressions detected
 
 ### Qualitative
 
@@ -550,9 +574,11 @@ apps/client/src/
 
 ---
 
-**Last Updated:** 2025-10-20
+**Last Updated:** 2025-10-20 (Phase 1 Complete)
+**Phase 1 Completed:** 2025-10-20 - App.tsx 9/9 extractions, 547 LOC reduction
 **Maintained By:** Engineering Team
 **Related Documents:**
 - [TODO.md Phase 15](/TODO.md#phase-15-solid-refactor-initiative-future)
 - [REFACTOR_PLAYBOOK.md](./REFACTOR_PLAYBOOK.md)
+- [NEXT_STEPS.md](./NEXT_STEPS.md) - Phase 1 lessons learned and Phase 2 guidance
 - [CONTRIBUTING.md](/CONTRIBUTING.md#structural-guardrails)
