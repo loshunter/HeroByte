@@ -32,6 +32,7 @@ import { usePlayerEditing } from "../hooks/usePlayerEditing";
 import { useHeartbeat } from "../hooks/useHeartbeat";
 import { useDMRole } from "../hooks/useDMRole";
 import { useObjectSelection } from "../hooks/useObjectSelection";
+import { useSceneObjectSelectors } from "../hooks/useSceneObjectSelectors";
 import { DMMenu } from "../features/dm";
 import { getSessionUID } from "../utils/session";
 import { saveSession, loadSession } from "../utils/sessionPersistence";
@@ -616,55 +617,13 @@ function AuthenticatedApp({
     });
   }, [registerServerEventHandler, toast]);
 
-  const handleObjectSelection = useCallback(
-    (
-      objectId: string | null,
-      options?: { mode?: "replace" | "append" | "toggle" | "subtract" },
-    ) => {
-      if (!objectId) {
-        clearSelection();
-        return;
-      }
-
-      const mode = options?.mode ?? "replace";
-      switch (mode) {
-        case "append": {
-          selectMultiple([objectId], "append");
-          return;
-        }
-        case "toggle": {
-          if (selectedObjectIds.includes(objectId)) {
-            selectMultiple([objectId], "subtract");
-          } else if (selectedObjectIds.length > 0) {
-            selectMultiple([objectId], "append");
-          } else {
-            selectObject(objectId);
-          }
-          return;
-        }
-        case "subtract": {
-          selectMultiple([objectId], "subtract");
-          return;
-        }
-        case "replace":
-        default: {
-          selectObject(objectId);
-        }
-      }
-    },
-    [clearSelection, selectMultiple, selectObject, selectedObjectIds],
-  );
-
-  const handleObjectSelectionBatch = useCallback(
-    (objectIds: string[]) => {
-      if (objectIds.length === 0) {
-        clearSelection();
-        return;
-      }
-      selectMultiple(objectIds, "replace");
-    },
-    [clearSelection, selectMultiple],
-  );
+  // Selection handlers
+  const { handleObjectSelection, handleObjectSelectionBatch } = useSceneObjectSelectors({
+    selectedObjectIds,
+    selectObject,
+    selectMultiple,
+    clearSelection,
+  });
 
   // -------------------------------------------------------------------------
   // ACTIONS
