@@ -32,6 +32,7 @@ import { usePlayerEditing } from "../hooks/usePlayerEditing";
 import { useHeartbeat } from "../hooks/useHeartbeat";
 import { useDMRole } from "../hooks/useDMRole";
 import { useObjectSelection } from "../hooks/useObjectSelection";
+import { useToolMode } from "../hooks/useToolMode";
 import { DMMenu } from "../features/dm";
 import { getSessionUID } from "../utils/session";
 import { saveSession, loadSession } from "../utils/sessionPersistence";
@@ -460,13 +461,16 @@ function AuthenticatedApp({
   const [gridLocked, setGridLocked] = useState(false);
 
   // Tool modes
-  const [activeTool, setActiveTool] = useState<ToolMode>(null);
-  const pointerMode = activeTool === "pointer";
-  const measureMode = activeTool === "measure";
-  const drawMode = activeTool === "draw";
-  const transformMode = activeTool === "transform";
-  const selectMode = activeTool === "select";
-  const alignmentMode = activeTool === "align";
+  const {
+    activeTool,
+    setActiveTool,
+    pointerMode,
+    measureMode,
+    drawMode,
+    transformMode,
+    selectMode,
+    alignmentMode,
+  } = useToolMode();
 
   // Camera state (for viewport-based prop placement)
   const [cameraState, setCameraState] = useState<{ x: number; y: number; scale: number }>({
@@ -1205,21 +1209,6 @@ function AuthenticatedApp({
     },
     [isDM, elevateToDM, sendMessage, toast],
   );
-
-  useEffect(() => {
-    if (!activeTool) {
-      return;
-    }
-
-    const handleToolEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setActiveTool(null);
-      }
-    };
-
-    window.addEventListener("keydown", handleToolEscape);
-    return () => window.removeEventListener("keydown", handleToolEscape);
-  }, [activeTool]);
 
   useEffect(() => {
     if (activeTool !== "align") {
