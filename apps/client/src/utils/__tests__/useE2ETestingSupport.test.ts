@@ -1,5 +1,5 @@
 import { renderHook } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { useE2ETestingSupport } from "../useE2ETestingSupport";
 import type { RoomSnapshot } from "@shared";
 
@@ -59,7 +59,7 @@ describe("useE2ETestingSupport", () => {
           snapshot: mockSnapshot,
           uid: "test-uid",
           gridSize: 50,
-        })
+        }),
       );
 
       expect(window.__HERO_BYTE_E2E__).toBeUndefined();
@@ -87,7 +87,7 @@ describe("useE2ETestingSupport", () => {
           snapshot: mockSnapshot,
           uid: "test-uid-123",
           gridSize: 50,
-        })
+        }),
       );
 
       expect(window.__HERO_BYTE_E2E__).toBeDefined();
@@ -113,7 +113,7 @@ describe("useE2ETestingSupport", () => {
           uid: "test-uid",
           gridSize: 50,
           cam: mockCam,
-        })
+        }),
       );
 
       expect(window.__HERO_BYTE_E2E__?.cam).toEqual(mockCam);
@@ -136,7 +136,7 @@ describe("useE2ETestingSupport", () => {
           uid: "test-uid",
           gridSize: 50,
           viewport: mockViewport,
-        })
+        }),
       );
 
       expect(window.__HERO_BYTE_E2E__?.viewport).toEqual(mockViewport);
@@ -148,7 +148,7 @@ describe("useE2ETestingSupport", () => {
           snapshot: null,
           uid: "test-uid",
           gridSize: 50,
-        })
+        }),
       );
 
       expect(window.__HERO_BYTE_E2E__?.snapshot).toBeNull();
@@ -188,7 +188,7 @@ describe("useE2ETestingSupport", () => {
           uid: "initial-uid",
           gridSize: 50,
           cam: mockCam,
-        })
+        }),
       );
 
       // Should preserve snapshot, uid, gridSize AND add cam
@@ -208,12 +208,12 @@ describe("useE2ETestingSupport", () => {
       };
 
       // First call: App.tsx sets base state
-      const { rerender: rerender1 } = renderHook(() =>
+      renderHook(() =>
         useE2ETestingSupport({
           snapshot: mockSnapshot,
           uid: "test-uid",
           gridSize: 50,
-        })
+        }),
       );
 
       expect(window.__HERO_BYTE_E2E__).toEqual({
@@ -226,14 +226,14 @@ describe("useE2ETestingSupport", () => {
       const mockCam = { x: 100, y: 200, scale: 1.5 };
       const mockViewport = { width: 1920, height: 1080 };
 
-      const { rerender: rerender2 } = renderHook(() =>
+      renderHook(() =>
         useE2ETestingSupport({
           snapshot: mockSnapshot,
           uid: "test-uid",
           gridSize: 50,
           cam: mockCam,
           viewport: mockViewport,
-        })
+        }),
       );
 
       // Should have all properties
@@ -277,7 +277,7 @@ describe("useE2ETestingSupport", () => {
             uid: "test-uid",
             gridSize: 50,
           }),
-        { initialProps: { snapshot: mockSnapshot1 } }
+        { initialProps: { snapshot: mockSnapshot1 } },
       );
 
       expect(window.__HERO_BYTE_E2E__?.snapshot).toBe(mockSnapshot1);
@@ -303,7 +303,7 @@ describe("useE2ETestingSupport", () => {
             uid,
             gridSize: 50,
           }),
-        { initialProps: { uid: "uid-1" } }
+        { initialProps: { uid: "uid-1" } },
       );
 
       expect(window.__HERO_BYTE_E2E__?.uid).toBe("uid-1");
@@ -329,7 +329,7 @@ describe("useE2ETestingSupport", () => {
             uid: "test-uid",
             gridSize,
           }),
-        { initialProps: { gridSize: 50 } }
+        { initialProps: { gridSize: 50 } },
       );
 
       expect(window.__HERO_BYTE_E2E__?.gridSize).toBe(50);
@@ -359,7 +359,7 @@ describe("useE2ETestingSupport", () => {
             gridSize: 50,
             cam,
           }),
-        { initialProps: { cam: cam1 } }
+        { initialProps: { cam: cam1 } },
       );
 
       expect(window.__HERO_BYTE_E2E__?.cam).toEqual(cam1);
@@ -389,7 +389,7 @@ describe("useE2ETestingSupport", () => {
             gridSize: 50,
             viewport,
           }),
-        { initialProps: { viewport: viewport1 } }
+        { initialProps: { viewport: viewport1 } },
       );
 
       expect(window.__HERO_BYTE_E2E__?.viewport).toEqual(viewport1);
@@ -421,7 +421,7 @@ describe("useE2ETestingSupport", () => {
           uid: "test-uid",
           gridSize: 50,
           // cam is omitted
-        })
+        }),
       );
 
       expect(window.__HERO_BYTE_E2E__).toBeDefined();
@@ -446,7 +446,7 @@ describe("useE2ETestingSupport", () => {
           uid: "test-uid",
           gridSize: 50,
           // viewport is omitted
-        })
+        }),
       );
 
       expect(window.__HERO_BYTE_E2E__).toBeDefined();
@@ -470,7 +470,7 @@ describe("useE2ETestingSupport", () => {
           snapshot: mockSnapshot,
           uid: "test-uid",
           gridSize: 50,
-        })
+        }),
       );
 
       expect(window.__HERO_BYTE_E2E__).toBeDefined();
@@ -499,7 +499,7 @@ describe("useE2ETestingSupport", () => {
             gridSize: 50,
             cam,
           }),
-        { initialProps: { cam: undefined } }
+        { initialProps: { cam: undefined } },
       );
 
       expect(window.__HERO_BYTE_E2E__?.cam).toBeUndefined();
