@@ -25,7 +25,7 @@ import type {
 } from "@shared";
 import { WS_URL } from "../config";
 import { useWebSocket } from "../hooks/useWebSocket";
-import { useDrawingState } from "../hooks/useDrawingState";
+import { useDrawingStateManager } from "../hooks/useDrawingStateManager";
 import { usePlayerEditing } from "../hooks/usePlayerEditing";
 import { useHeartbeat } from "../hooks/useHeartbeat";
 import { useDMRole } from "../hooks/useDMRole";
@@ -132,6 +132,18 @@ function AuthenticatedApp({
   isConnected,
   authState: _authState,
 }: AuthenticatedAppProps): JSX.Element {
+  // Tool modes
+  const {
+    activeTool,
+    setActiveTool,
+    pointerMode,
+    measureMode,
+    drawMode,
+    transformMode,
+    selectMode,
+    alignmentMode,
+  } = useToolMode();
+
   // Custom hooks for state management
   const { micEnabled, toggleMic } = useVoiceChatManager({
     uid,
@@ -139,24 +151,13 @@ function AuthenticatedApp({
     sendMessage,
     registerRtcHandler,
   });
-  const {
-    drawTool,
-    drawColor,
-    drawWidth,
-    drawOpacity,
-    drawFilled,
-    canUndo,
-    canRedo,
-    setDrawTool,
-    setDrawColor,
-    setDrawWidth,
-    setDrawOpacity,
-    setDrawFilled,
-    addToHistory,
-    popFromHistory,
-    popFromRedoHistory,
-    clearHistory,
-  } = useDrawingState();
+
+  // Drawing state manager
+  const drawingManager = useDrawingStateManager({
+    sendMessage,
+    drawMode,
+    setActiveTool,
+  });
 
   // Heartbeat to prevent timeout (only after authentication)
   useHeartbeat({ sendMessage });
@@ -179,18 +180,6 @@ function AuthenticatedApp({
   // Map controls
   const [snapToGrid, setSnapToGrid] = useState(true);
   const [gridLocked, setGridLocked] = useState(false);
-
-  // Tool modes
-  const {
-    activeTool,
-    setActiveTool,
-    pointerMode,
-    measureMode,
-    drawMode,
-    transformMode,
-    selectMode,
-    alignmentMode,
-  } = useToolMode();
 
   // Camera state (for viewport-based prop placement)
   const [cameraState, setCameraState] = useState<{ x: number; y: number; scale: number }>({
@@ -443,11 +432,6 @@ function AuthenticatedApp({
     setAlignmentError(null);
     setActiveTool(null);
   }, [alignmentSuggestion, mapSceneObject, transformSceneObject]);
-
-  const handleClearDrawings = useCallback(() => {
-    clearHistory();
-    sendMessage({ t: "clear-drawings" });
-  }, [clearHistory, sendMessage]);
 
   const handleSetRoomPassword = useCallback(
     (nextSecret: string) => {
@@ -796,19 +780,17 @@ function AuthenticatedApp({
       // Ctrl+Z or Cmd+Z for undo
       if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
         // Only undo if draw mode is active and there's something to undo
-        if (drawMode && canUndo) {
+        if (drawMode && drawingManager.canUndo) {
           e.preventDefault();
-          popFromHistory();
-          sendMessage({ t: "undo-drawing" });
+          drawingManager.handleUndo();
         }
       }
 
       // Ctrl+Y or Cmd+Y for redo
       if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.shiftKey && e.key === "Z"))) {
-        if (drawMode && canRedo) {
+        if (drawMode && drawingManager.canRedo) {
           e.preventDefault();
-          popFromRedoHistory();
-          sendMessage({ t: "redo-drawing" });
+          drawingManager.handleRedo();
         }
       }
     };
@@ -817,14 +799,12 @@ function AuthenticatedApp({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [
     drawMode,
-    canUndo,
-    canRedo,
-    popFromHistory,
-    popFromRedoHistory,
+    drawingManager,
     sendMessage,
-    selectedObjectId,
+    selectedObjectIds,
     isDM,
     snapshot,
+    clearSelection,
   ]);
 
   // -------------------------------------------------------------------------
@@ -837,32 +817,7 @@ function AuthenticatedApp({
       <ServerStatus isConnected={isConnected} />
 
       {/* Drawing Toolbar - Fixed on left side when draw mode is active */}
-      {drawMode && (
-        <DrawingToolbar
-          drawTool={drawTool}
-          drawColor={drawColor}
-          drawWidth={drawWidth}
-          drawOpacity={drawOpacity}
-          drawFilled={drawFilled}
-          canUndo={canUndo}
-          canRedo={canRedo}
-          onToolChange={setDrawTool}
-          onColorChange={setDrawColor}
-          onWidthChange={setDrawWidth}
-          onOpacityChange={setDrawOpacity}
-          onFilledChange={setDrawFilled}
-          onUndo={() => {
-            popFromHistory();
-            sendMessage({ t: "undo-drawing" });
-          }}
-          onRedo={() => {
-            popFromRedoHistory();
-            sendMessage({ t: "redo-drawing" });
-          }}
-          onClearAll={handleClearDrawings}
-          onClose={() => setActiveTool(null)}
-        />
-      )}
+      {drawMode && <DrawingToolbar {...drawingManager.toolbarProps} />}
 
       {/* Header - Fixed at top */}
       <Header
@@ -918,14 +873,9 @@ function AuthenticatedApp({
           alignmentPoints={alignmentPoints}
           alignmentSuggestion={alignmentSuggestion}
           onAlignmentPointCapture={handleAlignmentPointCapture}
-          drawTool={drawTool}
-          drawColor={drawColor}
-          drawWidth={drawWidth}
-          drawOpacity={drawOpacity}
-          drawFilled={drawFilled}
+          {...drawingManager.drawingProps}
           onRecolorToken={recolorToken}
           onTransformObject={transformSceneObject}
-          onDrawingComplete={addToHistory}
           cameraCommand={cameraCommand}
           onCameraCommandHandled={handleCameraCommandHandled}
           onCameraChange={setCameraState}
@@ -993,7 +943,7 @@ function AuthenticatedApp({
         onGridLockToggle={() => setGridLocked((prev) => !prev)}
         onGridSizeChange={setGridSize}
         onGridSquareSizeChange={setGridSquareSize}
-        onClearDrawings={handleClearDrawings}
+        onClearDrawings={drawingManager.handleClearDrawings}
         onSetMapBackground={setMapBackgroundURL}
         mapBackground={snapshot?.mapBackground}
         playerStagingZone={snapshot?.playerStagingZone}
