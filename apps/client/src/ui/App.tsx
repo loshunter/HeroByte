@@ -43,7 +43,8 @@ import { Header } from "../components/layout/Header";
 import { EntitiesPanel } from "../components/layout/EntitiesPanel";
 import { VisualEffects } from "../components/effects/VisualEffects";
 import { ServerStatus } from "../components/layout/ServerStatus";
-import { AuthState } from "../services/websocket";
+import { MultiSelectToolbar } from "../components/layout/MultiSelectToolbar";
+import { ConnectionState, AuthState } from "../services/websocket";
 import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import { computeMapAlignmentTransform } from "../utils/mapAlignment";
 import { useToast } from "../hooks/useToast";
@@ -1083,82 +1084,13 @@ function AuthenticatedApp({
       />
 
       {/* Multi-select toolbar - shows when multiple objects are selected and user is DM */}
-      {isDM && selectedObjectIds.length > 0 && (
-        <div
-          style={{
-            position: "fixed",
-            top: `${topHeight + 20}px`,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 1000,
-            display: "flex",
-            gap: "8px",
-            padding: "8px 16px",
-            backgroundColor: "rgba(17, 24, 39, 0.95)",
-            border: "1px solid rgba(148, 163, 184, 0.3)",
-            borderRadius: "8px",
-            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.4)",
-          }}
-        >
-          <div
-            style={{
-              color: "#cbd5e1",
-              fontSize: "0.9rem",
-              fontWeight: 500,
-              marginRight: "12px",
-              lineHeight: "32px",
-            }}
-          >
-            {selectedObjectIds.length} selected
-          </div>
-          <button
-            onClick={lockSelected}
-            style={{
-              padding: "6px 16px",
-              backgroundColor: "#374151",
-              border: "1px solid rgba(148, 163, 184, 0.3)",
-              borderRadius: "6px",
-              color: "#f3f4f6",
-              fontSize: "0.9rem",
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "#4b5563";
-              e.currentTarget.style.borderColor = "rgba(148, 163, 184, 0.5)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "#374151";
-              e.currentTarget.style.borderColor = "rgba(148, 163, 184, 0.3)";
-            }}
-          >
-            🔒 Lock
-          </button>
-          <button
-            onClick={unlockSelected}
-            style={{
-              padding: "6px 16px",
-              backgroundColor: "#374151",
-              border: "1px solid rgba(148, 163, 184, 0.3)",
-              borderRadius: "6px",
-              color: "#f3f4f6",
-              fontSize: "0.9rem",
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "#4b5563";
-              e.currentTarget.style.borderColor = "rgba(148, 163, 184, 0.5)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "#374151";
-              e.currentTarget.style.borderColor = "rgba(148, 163, 184, 0.3)";
-            }}
-          >
-            🔓 Unlock
-          </button>
-        </div>
-      )}
+      <MultiSelectToolbar
+        selectedObjectIds={selectedObjectIds}
+        isDM={isDM}
+        topHeight={topHeight}
+        onLock={lockSelected}
+        onUnlock={unlockSelected}
+      />
 
       {/* Main Whiteboard Panel - fills space between fixed top and bottom */}
       <div
