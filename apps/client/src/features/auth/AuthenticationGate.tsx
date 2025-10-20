@@ -13,6 +13,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { AuthState, ConnectionState } from "../../services/websocket";
+import { AuthGate } from "./AuthGate";
 
 // ============================================================================
 // CONSTANTS
@@ -37,80 +38,6 @@ function getInitialRoomSecret(): string {
     return "";
   }
 }
-
-// ============================================================================
-// STYLES
-// ============================================================================
-
-const authGateContainerStyle: React.CSSProperties = {
-  alignItems: "center",
-  background: "radial-gradient(circle at top, #101020 0%, #050509 100%)",
-  display: "flex",
-  height: "100vh",
-  justifyContent: "center",
-  padding: "24px",
-};
-
-const authGateCardStyle: React.CSSProperties = {
-  backgroundColor: "rgba(17, 24, 39, 0.9)",
-  border: "1px solid rgba(148, 163, 184, 0.2)",
-  borderRadius: "12px",
-  boxShadow: "0 12px 40px rgba(15, 23, 42, 0.5)",
-  color: "#f8fafc",
-  maxWidth: "400px",
-  padding: "32px",
-  width: "100%",
-};
-
-const authGateErrorStyle: React.CSSProperties = {
-  color: "#f87171",
-  fontSize: "0.95rem",
-  margin: "0",
-};
-
-const authGateHintStyle: React.CSSProperties = {
-  color: "#cbd5f5",
-  fontSize: "0.85rem",
-  marginTop: "16px",
-};
-
-const authInputStyle: React.CSSProperties = {
-  backgroundColor: "rgba(15, 23, 42, 0.9)",
-  border: "1px solid rgba(148, 163, 184, 0.5)",
-  borderRadius: "8px",
-  color: "#e2e8f0",
-  fontFamily: "inherit",
-  fontSize: "1rem",
-  padding: "12px",
-  width: "100%",
-};
-
-const authPrimaryButtonStyle: React.CSSProperties = {
-  background: "linear-gradient(135deg, #38bdf8, #6366f1)",
-  border: "none",
-  borderRadius: "8px",
-  color: "#0f172a",
-  cursor: "pointer",
-  fontFamily: "inherit",
-  fontSize: "1rem",
-  fontWeight: 600,
-  padding: "12px",
-  transition: "filter 0.2s ease",
-};
-
-const authSecondaryButtonStyle: React.CSSProperties = {
-  background: "transparent",
-  border: "1px solid rgba(148, 163, 184, 0.4)",
-  borderRadius: "8px",
-  color: "#cbd5f5",
-  cursor: "pointer",
-  fontFamily: "inherit",
-  fontSize: "0.9rem",
-  marginTop: "12px",
-  padding: "10px 12px",
-  transition: "border-color 0.2s ease, color 0.2s ease",
-  width: "100%",
-};
 
 // ============================================================================
 // TYPES
@@ -167,133 +94,6 @@ export interface AuthenticationGateProps {
   children: React.ReactNode;
 }
 
-/**
- * Props for the internal AuthGate form component
- */
-interface AuthGateProps {
-  password: string;
-  authState: AuthState;
-  authError: string | null;
-  connectionLabel: string;
-  canSubmit: boolean;
-  isConnected: boolean;
-  connectionState: ConnectionState;
-  onPasswordChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
-  onRetry: () => void;
-}
-
-// ============================================================================
-// COMPONENTS
-// ============================================================================
-
-/**
- * Internal authentication form component
- *
- * Renders the full-screen authentication gate with password input,
- * connection status, and retry functionality.
- */
-function AuthGate({
-  password,
-  authState,
-  authError,
-  connectionLabel,
-  canSubmit,
-  isConnected,
-  connectionState,
-  onPasswordChange,
-  onSubmit,
-  onRetry,
-}: AuthGateProps): JSX.Element {
-  const isConnecting =
-    connectionState === ConnectionState.CONNECTING ||
-    connectionState === ConnectionState.RECONNECTING;
-  const isHandshakeActive = isConnecting || authState === AuthState.PENDING;
-  const submitLabel =
-    authState === AuthState.PENDING
-      ? "Authenticating..."
-      : isConnecting
-        ? "Connecting..."
-        : "Enter Room";
-  const primaryDisabled = !canSubmit || isHandshakeActive;
-
-  return (
-    <div style={authGateContainerStyle}>
-      <div style={authGateCardStyle}>
-        <h1 style={{ margin: "0 0 16px" }}>Join Your Room</h1>
-        <p style={{ margin: "0 0 24px", color: "#cbd5f5", fontSize: "0.95rem" }}>
-          Enter the room password provided by your host to sync with your party.
-        </p>
-        <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <input
-            type="password"
-            value={password}
-            onChange={onPasswordChange}
-            placeholder="Room password"
-            style={authInputStyle}
-            autoFocus
-            spellCheck={false}
-            disabled={isHandshakeActive}
-          />
-          {authError ? <p style={authGateErrorStyle}>{authError}</p> : null}
-          <button
-            type="submit"
-            style={{
-              ...authPrimaryButtonStyle,
-              opacity: primaryDisabled ? 0.6 : 1,
-              cursor: primaryDisabled ? "not-allowed" : "pointer",
-            }}
-            disabled={primaryDisabled}
-            aria-busy={isHandshakeActive}
-          >
-            {submitLabel}
-          </button>
-        </form>
-        <p style={authGateHintStyle}>
-          Connection status:{" "}
-          <strong
-            style={{
-              animation: isConnecting ? "pulse 1.5s ease-in-out infinite" : "none",
-            }}
-            aria-live="polite"
-            aria-busy={isConnecting}
-          >
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-              {isConnecting ? (
-                <span
-                  aria-hidden="true"
-                  style={{
-                    width: "12px",
-                    height: "12px",
-                    borderRadius: "50%",
-                    border: "2px solid rgba(255,255,255,0.3)",
-                    borderTopColor: "var(--jrpg-gold)",
-                    animation: "spin 0.8s linear infinite",
-                  }}
-                />
-              ) : null}
-              <span>{connectionLabel}</span>
-            </span>
-          </strong>
-        </p>
-        {!isConnected ? (
-          <button
-            type="button"
-            style={{
-              ...authSecondaryButtonStyle,
-              opacity: isConnecting ? 0.6 : 1,
-              cursor: isConnecting ? "not-allowed" : "pointer",
-            }}
-            onClick={onRetry}
-            disabled={isConnecting}
-          >
-            Retry Connection
-          </button>
-        ) : null}
-      </div>
-    </div>
-  );
-}
 
 // ============================================================================
 // MAIN COMPONENT
@@ -348,6 +148,15 @@ export function AuthenticationGate({
   // -------------------------------------------------------------------------
   // EFFECTS
   // -------------------------------------------------------------------------
+
+  /**
+   * Set authSecret from initialSecret on mount if available
+   */
+  useEffect(() => {
+    if (initialSecret) {
+      setAuthSecret(initialSecret);
+    }
+  }, [initialSecret]);
 
   /**
    * Auto-authenticate when connection is established and we have a stored secret
@@ -457,7 +266,8 @@ export function AuthenticationGate({
   const canSubmit =
     passwordInput.trim().length > 0 &&
     authState !== AuthState.PENDING &&
-    connectionState === ConnectionState.CONNECTED;
+    connectionState !== ConnectionState.CONNECTING &&
+    connectionState !== ConnectionState.RECONNECTING;
 
   const showAuthGate = !hasAuthenticated || authState === AuthState.FAILED;
 
