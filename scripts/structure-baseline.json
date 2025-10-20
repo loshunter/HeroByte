@@ -1,9 +1,4 @@
-
-> herobyte@0.9.0-beta.1 lint:structure /home/loshunter/HeroByte
-> node scripts/structure-report.mjs --limit 50 --threshold 350 --json
-
-{
-  "generatedAt": "2025-10-20T22:34:46.892Z",
+  "generatedAt": "2025-10-20T22:36:04.814Z",
   "threshold": 350,
   "includeTests": false,
   "files": [
