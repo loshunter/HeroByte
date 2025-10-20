@@ -1,38 +1,46 @@
+
+> herobyte@0.9.0-beta.1 lint:structure /home/loshunter/HeroByte
+> node scripts/structure-report.mjs --limit 50 --threshold 350 --json
+
 {
-  "generatedAt": "2025-10-20T15:53:48.403Z",
+  "generatedAt": "2025-10-20T22:34:46.892Z",
   "threshold": 350,
   "includeTests": false,
   "files": [
-    {
-      "path": "apps/client/src/ui/App.tsx",
-      "loc": 1850,
-      "category": "client:ui",
-      "flagged": true,
-      "hint": "Consider extracting providers/layout + feature shells.",
-      "sizeBytes": 55899
-    },
     {
       "path": "apps/client/src/features/dm/components/DMMenu.tsx",
       "loc": 1589,
       "category": "client:dm",
       "flagged": true,
-      "hint": "Split DM menu into feature panels & shared hooks.",
+      "hint": "See docs/refactoring/REFACTOR_ROADMAP.md - 20 clusters identified, start with Phase 1 (CollapsibleSection, NPCEditor, PropEditor)",
+      "roadmapRef": "DMMenu.tsx Phases 1-6",
       "sizeBytes": 59420
     },
     {
-      "path": "apps/client/src/ui/MapBoard.tsx",
-      "loc": 1042,
+      "path": "apps/client/src/ui/App.tsx",
+      "loc": 1024,
       "category": "client:ui",
       "flagged": true,
-      "hint": "Consider extracting providers/layout + feature shells.",
-      "sizeBytes": 32751
+      "hint": "See docs/refactoring/REFACTOR_ROADMAP.md - 27 clusters identified, start with Phase 1 (quick wins: useLayoutMeasurement, useToolMode, etc.)",
+      "roadmapRef": "App.tsx Phases 1-7",
+      "sizeBytes": 32559
+    },
+    {
+      "path": "apps/client/src/ui/MapBoard.tsx",
+      "loc": 1024,
+      "category": "client:ui",
+      "flagged": true,
+      "hint": "See docs/refactoring/REFACTOR_ROADMAP.md - 32 clusters identified, start with Phase 1 (pure utilities: MapBoardTypes, coordinateTransforms)",
+      "roadmapRef": "MapBoard.tsx Phases 1-7",
+      "sizeBytes": 32336
     },
     {
       "path": "apps/server/src/middleware/validation.ts",
       "loc": 903,
       "category": "server:middleware",
       "flagged": true,
-      "hint": "Break validators into schema-specific modules.",
+      "hint": "Break validators into schema-specific modules (transformValidation.ts, drawingValidation.ts, etc.).",
+      "roadmapRef": "",
       "sizeBytes": 31647
     },
     {
@@ -40,7 +48,8 @@
       "loc": 764,
       "category": "other",
       "flagged": true,
-      "hint": "Evaluate SRP boundaries and extract focused modules.",
+      "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
+      "roadmapRef": "",
       "sizeBytes": 28016
     },
     {
@@ -48,7 +57,8 @@
       "loc": 750,
       "category": "server:websocket",
       "flagged": true,
-      "hint": "Modularize handlers per message type & connection lifecycle.",
+      "hint": "Modularize handlers per message type & connection lifecycle. Extract auth, heartbeat, and message routing.",
+      "roadmapRef": "",
       "sizeBytes": 24888
     },
     {
@@ -56,7 +66,8 @@
       "loc": 645,
       "category": "server:domains",
       "flagged": true,
-      "hint": "Split domain orchestration vs persistence vs validation.",
+      "hint": "Split domain orchestration vs persistence vs validation. Follow DDD boundaries.",
+      "roadmapRef": "",
       "sizeBytes": 19989
     },
     {
@@ -64,7 +75,8 @@
       "loc": 568,
       "category": "client:map",
       "flagged": true,
-      "hint": "Separate camera, selection, and tool orchestration.",
+      "hint": "Separate camera, selection, and tool orchestration. Extract hooks first, then components.",
+      "roadmapRef": "",
       "sizeBytes": 18492
     },
     {
@@ -72,7 +84,8 @@
       "loc": 507,
       "category": "shared",
       "flagged": true,
-      "hint": "Partition shared models into domain-specific slices.",
+      "hint": "Partition shared models into domain-specific slices (scene.ts, player.ts, token.ts, drawing.ts).",
+      "roadmapRef": "",
       "sizeBytes": 10810
     },
     {
@@ -80,7 +93,8 @@
       "loc": 462,
       "category": "client:services",
       "flagged": true,
-      "hint": "Evaluate SRP boundaries and extract focused modules.",
+      "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
+      "roadmapRef": "",
       "sizeBytes": 13073
     },
     {
@@ -88,7 +102,8 @@
       "loc": 450,
       "category": "shared",
       "flagged": true,
-      "hint": "Partition shared models into domain-specific slices.",
+      "hint": "Partition shared models into domain-specific slices (scene.ts, player.ts, token.ts, drawing.ts).",
+      "roadmapRef": "",
       "sizeBytes": 15937
     },
     {
@@ -96,7 +111,8 @@
       "loc": 443,
       "category": "other",
       "flagged": true,
-      "hint": "Evaluate SRP boundaries and extract focused modules.",
+      "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
+      "roadmapRef": "",
       "sizeBytes": 14555
     },
     {
@@ -104,7 +120,8 @@
       "loc": 434,
       "category": "other",
       "flagged": true,
-      "hint": "Evaluate SRP boundaries and extract focused modules.",
+      "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
+      "roadmapRef": "",
       "sizeBytes": 12281
     },
     {
@@ -112,7 +129,8 @@
       "loc": 432,
       "category": "other",
       "flagged": true,
-      "hint": "Evaluate SRP boundaries and extract focused modules.",
+      "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
+      "roadmapRef": "",
       "sizeBytes": 13276
     },
     {
@@ -120,7 +138,8 @@
       "loc": 432,
       "category": "server:websocket",
       "flagged": true,
-      "hint": "Modularize handlers per message type & connection lifecycle.",
+      "hint": "Modularize handlers per message type & connection lifecycle. Extract auth, heartbeat, and message routing.",
+      "roadmapRef": "",
       "sizeBytes": 14213
     },
     {
@@ -128,7 +147,8 @@
       "loc": 417,
       "category": "client:map",
       "flagged": true,
-      "hint": "Separate camera, selection, and tool orchestration.",
+      "hint": "Separate camera, selection, and tool orchestration. Extract hooks first, then components.",
+      "roadmapRef": "",
       "sizeBytes": 13349
     },
     {
@@ -136,7 +156,8 @@
       "loc": 403,
       "category": "other",
       "flagged": true,
-      "hint": "Evaluate SRP boundaries and extract focused modules.",
+      "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
+      "roadmapRef": "",
       "sizeBytes": 12756
     },
     {
@@ -144,7 +165,8 @@
       "loc": 388,
       "category": "server:domains",
       "flagged": true,
-      "hint": "Split domain orchestration vs persistence vs validation.",
+      "hint": "Split domain orchestration vs persistence vs validation. Follow DDD boundaries.",
+      "roadmapRef": "",
       "sizeBytes": 11108
     },
     {
@@ -152,7 +174,8 @@
       "loc": 385,
       "category": "client:misc",
       "flagged": true,
-      "hint": "Evaluate SRP boundaries and extract focused modules.",
+      "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
+      "roadmapRef": "",
       "sizeBytes": 14456
     },
     {
@@ -160,15 +183,26 @@
       "loc": 378,
       "category": "other",
       "flagged": true,
-      "hint": "Evaluate SRP boundaries and extract focused modules.",
+      "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
+      "roadmapRef": "",
       "sizeBytes": 13129
+    },
+    {
+      "path": "apps/client/src/hooks/usePlayerActions.ts",
+      "loc": 374,
+      "category": "client:hooks",
+      "flagged": true,
+      "hint": "Divide hook responsibilities per tool/state segment. Each hook should have ONE purpose (SRP).",
+      "roadmapRef": "",
+      "sizeBytes": 10159
     },
     {
       "path": "apps/client/src/features/players/components/PlayerSettingsMenu.tsx",
       "loc": 365,
       "category": "client:players",
       "flagged": true,
-      "hint": "Evaluate SRP boundaries and extract focused modules.",
+      "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
+      "roadmapRef": "",
       "sizeBytes": 12535
     },
     {
@@ -177,6 +211,7 @@
       "category": "client:misc",
       "flagged": false,
       "hint": "",
+      "roadmapRef": "",
       "sizeBytes": 8769
     },
     {
@@ -185,6 +220,7 @@
       "category": "client:misc",
       "flagged": false,
       "hint": "",
+      "roadmapRef": "",
       "sizeBytes": 9945
     },
     {
@@ -193,7 +229,17 @@
       "category": "client:players",
       "flagged": false,
       "hint": "",
+      "roadmapRef": "",
       "sizeBytes": 10703
+    },
+    {
+      "path": "apps/client/src/features/auth/AuthenticationGate.tsx",
+      "loc": 323,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 9118
     },
     {
       "path": "apps/client/src/features/map/components/TransformGizmo.tsx",
@@ -201,6 +247,7 @@
       "category": "client:map",
       "flagged": false,
       "hint": "",
+      "roadmapRef": "",
       "sizeBytes": 9336
     },
     {
@@ -209,6 +256,7 @@
       "category": "other",
       "flagged": false,
       "hint": "",
+      "roadmapRef": "",
       "sizeBytes": 10269
     },
     {
@@ -217,6 +265,7 @@
       "category": "other",
       "flagged": false,
       "hint": "",
+      "roadmapRef": "",
       "sizeBytes": 9456
     },
     {
@@ -225,6 +274,7 @@
       "category": "other",
       "flagged": false,
       "hint": "",
+      "roadmapRef": "",
       "sizeBytes": 9354
     },
     {
@@ -233,7 +283,17 @@
       "category": "client:misc",
       "flagged": false,
       "hint": "",
+      "roadmapRef": "",
       "sizeBytes": 8823
+    },
+    {
+      "path": "apps/client/src/hooks/useDrawingStateManager.ts",
+      "loc": 277,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 6617
     },
     {
       "path": "apps/e2e/character-creation.spec.ts",
@@ -241,6 +301,7 @@
       "category": "other",
       "flagged": false,
       "hint": "",
+      "roadmapRef": "",
       "sizeBytes": 8445
     },
     {
@@ -249,6 +310,7 @@
       "category": "client:dice",
       "flagged": false,
       "hint": "",
+      "roadmapRef": "",
       "sizeBytes": 7598
     },
     {
@@ -257,6 +319,7 @@
       "category": "other",
       "flagged": false,
       "hint": "",
+      "roadmapRef": "",
       "sizeBytes": 8208
     },
     {
@@ -265,6 +328,7 @@
       "category": "server:domains",
       "flagged": false,
       "hint": "",
+      "roadmapRef": "",
       "sizeBytes": 7093
     },
     {
@@ -273,6 +337,7 @@
       "category": "client:map",
       "flagged": false,
       "hint": "",
+      "roadmapRef": "",
       "sizeBytes": 7865
     },
     {
@@ -281,6 +346,7 @@
       "category": "client:dice",
       "flagged": false,
       "hint": "",
+      "roadmapRef": "",
       "sizeBytes": 6775
     },
     {
@@ -289,6 +355,7 @@
       "category": "client:misc",
       "flagged": false,
       "hint": "",
+      "roadmapRef": "",
       "sizeBytes": 5758
     },
     {
@@ -297,7 +364,26 @@
       "category": "other",
       "flagged": false,
       "hint": "",
+      "roadmapRef": "",
       "sizeBytes": 7547
+    },
+    {
+      "path": "apps/client/src/hooks/useSceneObjectActions.ts",
+      "loc": 238,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 5803
+    },
+    {
+      "path": "apps/client/src/hooks/useDiceRolling.ts",
+      "loc": 229,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 6697
     },
     {
       "path": "apps/client/src/components/dice/DraggableWindow.tsx",
@@ -305,6 +391,7 @@
       "category": "client:dice",
       "flagged": false,
       "hint": "",
+      "roadmapRef": "",
       "sizeBytes": 6622
     },
     {
@@ -313,6 +400,7 @@
       "category": "client:players",
       "flagged": false,
       "hint": "",
+      "roadmapRef": "",
       "sizeBytes": 7794
     },
     {
@@ -321,6 +409,7 @@
       "category": "client:dice",
       "flagged": false,
       "hint": "",
+      "roadmapRef": "",
       "sizeBytes": 7811
     },
     {
@@ -329,6 +418,7 @@
       "category": "client:hooks",
       "flagged": false,
       "hint": "",
+      "roadmapRef": "",
       "sizeBytes": 6686
     },
     {
@@ -337,6 +427,7 @@
       "category": "server:domains",
       "flagged": false,
       "hint": "",
+      "roadmapRef": "",
       "sizeBytes": 6106
     },
     {
@@ -345,6 +436,7 @@
       "category": "other",
       "flagged": false,
       "hint": "",
+      "roadmapRef": "",
       "sizeBytes": 6772
     },
     {
@@ -353,6 +445,7 @@
       "category": "client:players",
       "flagged": false,
       "hint": "",
+      "roadmapRef": "",
       "sizeBytes": 6573
     },
     {
@@ -361,631 +454,8 @@
       "category": "server:domains",
       "flagged": false,
       "hint": "",
+      "roadmapRef": "",
       "sizeBytes": 5370
-    },
-    {
-      "path": "apps/client/src/components/layout/Header.tsx",
-      "loc": 198,
-      "category": "client:misc",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 6781
-    },
-    {
-      "path": "apps/server/src/domains/selection/service.ts",
-      "loc": 185,
-      "category": "server:domains",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 5093
-    },
-    {
-      "path": "apps/client/src/components/dice/RollLog.tsx",
-      "loc": 181,
-      "category": "client:dice",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 6472
-    },
-    {
-      "path": "apps/client/src/hooks/useDrawingTool.ts",
-      "loc": 179,
-      "category": "client:hooks",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 4989
-    },
-    {
-      "path": "apps/client/src/features/players/components/PortraitSection.tsx",
-      "loc": 178,
-      "category": "client:players",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 5170
-    },
-    {
-      "path": "apps/server/src/domains/prop/service.ts",
-      "loc": 173,
-      "category": "server:domains",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 4913
-    },
-    {
-      "path": "apps/client/src/components/ui/Toast.tsx",
-      "loc": 169,
-      "category": "client:ui",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 4474
-    },
-    {
-      "path": "apps/client/src/features/map/components/PropsLayer.tsx",
-      "loc": 160,
-      "category": "client:map",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 4891
-    },
-    {
-      "path": "apps/server/src/http/routes.ts",
-      "loc": 155,
-      "category": "server:core",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 4961
-    },
-    {
-      "path": "apps/client/src/ui/useVoiceChat.ts",
-      "loc": 154,
-      "category": "client:ui",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 4572
-    },
-    {
-      "path": "apps/client/src/components/dice/DiceRoller.tsx",
-      "loc": 153,
-      "category": "client:dice",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 4614
-    },
-    {
-      "path": "apps/client/src/hooks/useWebSocket.ts",
-      "loc": 152,
-      "category": "client:hooks",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 4542
-    },
-    {
-      "path": "apps/server/src/index.ts",
-      "loc": 148,
-      "category": "server:core",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 4657
-    },
-    {
-      "path": "apps/client/src/hooks/useCamera.ts",
-      "loc": 147,
-      "category": "client:hooks",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 4118
-    },
-    {
-      "path": "apps/client/src/features/players/components/HPBar.tsx",
-      "loc": 137,
-      "category": "client:players",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 3991
-    },
-    {
-      "path": "apps/client/src/hooks/useDrawingState.ts",
-      "loc": 134,
-      "category": "client:hooks",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 3961
-    },
-    {
-      "path": "apps/client/src/hooks/useSceneObjects.ts",
-      "loc": 134,
-      "category": "client:hooks",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 3392
-    },
-    {
-      "path": "apps/client/src/features/multiselect/handlers/multiSelectActions.ts",
-      "loc": 133,
-      "category": "client:misc",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 3629
-    },
-    {
-      "path": "apps/server/src/domains/player/service.ts",
-      "loc": 133,
-      "category": "server:domains",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 3255
-    },
-    {
-      "path": "apps/server/src/domains/room/model.ts",
-      "loc": 132,
-      "category": "server:domains",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 3784
-    },
-    {
-      "path": "apps/client/src/utils/sessionPersistence.ts",
-      "loc": 130,
-      "category": "client:misc",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 4400
-    },
-    {
-      "path": "apps/client/src/hooks/useMicrophone.ts",
-      "loc": 125,
-      "category": "client:hooks",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 3892
-    },
-    {
-      "path": "apps/server/src/container.ts",
-      "loc": 111,
-      "category": "server:core",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 3873
-    },
-    {
-      "path": "apps/server/src/middleware/rateLimit.ts",
-      "loc": 106,
-      "category": "server:middleware",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 2537
-    },
-    {
-      "path": "apps/client/src/hooks/usePointerTool.ts",
-      "loc": 103,
-      "category": "client:hooks",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 3021
-    },
-    {
-      "path": "apps/client/src/components/dice/BuildStrip.tsx",
-      "loc": 98,
-      "category": "client:dice",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 2625
-    },
-    {
-      "path": "apps/client/src/hooks/usePlayerEditing.ts",
-      "loc": 98,
-      "category": "client:hooks",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 2742
-    },
-    {
-      "path": "apps/client/src/utils/mapAlignment.ts",
-      "loc": 97,
-      "category": "client:misc",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 2495
-    },
-    {
-      "path": "apps/client/src/components/dice/diceLogic.ts",
-      "loc": 93,
-      "category": "client:dice",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 2135
-    },
-    {
-      "path": "apps/client/src/features/map/components/GridLayer.tsx",
-      "loc": 91,
-      "category": "client:map",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 2678
-    },
-    {
-      "path": "apps/e2e/token-movement.spec.ts",
-      "loc": 86,
-      "category": "other",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 2944
-    },
-    {
-      "path": "apps/client/src/features/map/components/LockIndicator.tsx",
-      "loc": 81,
-      "category": "client:map",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 1951
-    },
-    {
-      "path": "apps/client/src/components/ui/JRPGPanel.tsx",
-      "loc": 80,
-      "category": "client:ui",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 1905
-    },
-    {
-      "path": "apps/client/src/components/dice/RollButton.tsx",
-      "loc": 78,
-      "category": "client:dice",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 2622
-    },
-    {
-      "path": "apps/client/src/utils/sanitize.ts",
-      "loc": 78,
-      "category": "client:misc",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 2200
-    },
-    {
-      "path": "apps/client/src/features/players/components/NameEditor.tsx",
-      "loc": 76,
-      "category": "client:players",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 1846
-    },
-    {
-      "path": "apps/client/src/hooks/useDrawingSelection.ts",
-      "loc": 76,
-      "category": "client:hooks",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 2252
-    },
-    {
-      "path": "apps/e2e/drawing-tools.spec.ts",
-      "loc": 71,
-      "category": "other",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 2365
-    },
-    {
-      "path": "apps/client/src/features/map/components/MapImageLayer.tsx",
-      "loc": 67,
-      "category": "client:map",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 2252
-    },
-    {
-      "path": "apps/client/src/hooks/useToast.ts",
-      "loc": 67,
-      "category": "client:hooks",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 1576
-    },
-    {
-      "path": "apps/server/src/config/security.ts",
-      "loc": 61,
-      "category": "server:core",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 1803
-    },
-    {
-      "path": "apps/client/src/features/map/components/MeasureLayer.tsx",
-      "loc": 59,
-      "category": "client:map",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 1911
-    },
-    {
-      "path": "apps/server/src/config/auth.ts",
-      "loc": 59,
-      "category": "server:core",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 1704
-    },
-    {
-      "path": "apps/client/src/features/multiselect/handlers/marqueeSelection.ts",
-      "loc": 58,
-      "category": "client:misc",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 1615
-    },
-    {
-      "path": "apps/e2e/dice.spec.ts",
-      "loc": 57,
-      "category": "other",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 2184
-    },
-    {
-      "path": "apps/e2e/helpers.ts",
-      "loc": 53,
-      "category": "other",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 1645
-    },
-    {
-      "path": "apps/client/src/config.ts",
-      "loc": 47,
-      "category": "client:misc",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 1700
-    },
-    {
-      "path": "apps/client/src/features/players/components/CardControls.tsx",
-      "loc": 46,
-      "category": "client:players",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 1201
-    },
-    {
-      "path": "apps/client/src/components/dice/types.ts",
-      "loc": 45,
-      "category": "client:dice",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 1034
-    },
-    {
-      "path": "apps/client/src/components/layout/ServerStatus.tsx",
-      "loc": 44,
-      "category": "client:misc",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 1351
-    },
-    {
-      "path": "apps/client/src/features/multiselect/types/multiselect.ts",
-      "loc": 44,
-      "category": "client:misc",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 1134
-    },
-    {
-      "path": "packages/adapters-net/src/index.ts",
-      "loc": 44,
-      "category": "other",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 1086
-    },
-    {
-      "path": "apps/client/src/hooks/useDMRole.ts",
-      "loc": 42,
-      "category": "client:hooks",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 1231
-    },
-    {
-      "path": "apps/client/src/hooks/useHeartbeat.ts",
-      "loc": 41,
-      "category": "client:hooks",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 1114
-    },
-    {
-      "path": "apps/server/src/domains/dice/service.ts",
-      "loc": 41,
-      "category": "server:domains",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 958
-    },
-    {
-      "path": "apps/client/src/features/multiselect/types/transform.ts",
-      "loc": 34,
-      "category": "client:misc",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 754
-    },
-    {
-      "path": "apps/client/vite.config.ts",
-      "loc": 31,
-      "category": "other",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 604
-    },
-    {
-      "path": "apps/client/src/features/multiselect/types/marquee.ts",
-      "loc": 30,
-      "category": "client:misc",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 528
-    },
-    {
-      "path": "apps/client/src/utils/session.ts",
-      "loc": 29,
-      "category": "client:misc",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 822
-    },
-    {
-      "path": "apps/client/src/utils/uuid.ts",
-      "loc": 27,
-      "category": "client:misc",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 974
-    },
-    {
-      "path": "apps/e2e/global-setup.ts",
-      "loc": 25,
-      "category": "other",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 758
-    },
-    {
-      "path": "apps/client/src/main.tsx",
-      "loc": 22,
-      "category": "client:misc",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 497
-    },
-    {
-      "path": "apps/client/src/features/multiselect/handlers/index.ts",
-      "loc": 20,
-      "category": "client:misc",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 390
-    },
-    {
-      "path": "apps/server/src/domains/map/types.ts",
-      "loc": 19,
-      "category": "server:domains",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 335
-    },
-    {
-      "path": "apps/server/vitest.config.ts",
-      "loc": 18,
-      "category": "other",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 400
-    },
-    {
-      "path": "packages/shared/vitest.config.ts",
-      "loc": 18,
-      "category": "shared",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 445
-    },
-    {
-      "path": "apps/client/vitest.config.ts",
-      "loc": 17,
-      "category": "other",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 369
-    },
-    {
-      "path": "apps/client/src/types/alignment.ts",
-      "loc": 16,
-      "category": "client:misc",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 365
-    },
-    {
-      "path": "apps/client/src/features/map/types.ts",
-      "loc": 15,
-      "category": "client:map",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 306
-    },
-    {
-      "path": "apps/client/src/features/map/components/index.ts",
-      "loc": 14,
-      "category": "client:map",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 616
-    },
-    {
-      "path": "apps/client/src/features/multiselect/types/index.ts",
-      "loc": 14,
-      "category": "client:misc",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 365
-    },
-    {
-      "path": "apps/client/vitest.setup.ts",
-      "loc": 12,
-      "category": "other",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 277
-    },
-    {
-      "path": "apps/client/src/features/players/components/index.ts",
-      "loc": 10,
-      "category": "client:players",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 421
-    },
-    {
-      "path": "apps/e2e/smoke.spec.ts",
-      "loc": 9,
-      "category": "other",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 229
-    },
-    {
-      "path": "packages/shared/src/index.js",
-      "loc": 7,
-      "category": "shared",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 341
-    },
-    {
-      "path": "apps/client/src/features/drawing/components/index.ts",
-      "loc": 3,
-      "category": "client:misc",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 112
-    },
-    {
-      "path": "apps/client/src/features/dm/components/index.ts",
-      "loc": 2,
-      "category": "client:dm",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 35
-    },
-    {
-      "path": "apps/client/src/features/dm/index.ts",
-      "loc": 2,
-      "category": "client:dm",
-      "flagged": false,
-      "hint": "",
-      "sizeBytes": 30
     }
   ]
 }
