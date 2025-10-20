@@ -394,6 +394,16 @@ export function validateMessage(raw: unknown): ValidationResult {
       break;
     }
 
+    case "add-player-character": {
+      if (typeof message.name !== "string" || message.name.length === 0 || message.name.length > 100) {
+        return { valid: false, error: "add-player-character: name must be 1-100 characters" };
+      }
+      if (message.maxHp !== undefined && (!isFiniteNumber(message.maxHp) || message.maxHp <= 0)) {
+        return { valid: false, error: "add-player-character: maxHp must be positive" };
+      }
+      break;
+    }
+
     case "update-character-hp": {
       const { characterId, hp, maxHp } = message;
       if (typeof characterId !== "string" || characterId.length === 0) {

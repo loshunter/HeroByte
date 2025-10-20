@@ -47,6 +47,7 @@ export interface PlayerCardProps {
   onToggleTokenLock?: (locked: boolean) => void;
   tokenSize?: TokenSize;
   onTokenSizeChange?: (size: TokenSize) => void;
+  onAddCharacter?: (name: string) => void;
 }
 
 export const PlayerCard = memo<PlayerCardProps>(
@@ -84,6 +85,7 @@ export const PlayerCard = memo<PlayerCardProps>(
     tokenSize,
     onTokenSizeChange,
     onStatusEffectsChange,
+    onAddCharacter,
   }) => {
     const editing = editingPlayerUID === player.uid;
     const editingMaxHp = editingMaxHpUID === player.uid;
@@ -279,6 +281,7 @@ export const PlayerCard = memo<PlayerCardProps>(
           onToggleTokenLock={onToggleTokenLock}
           tokenSize={tokenSize}
           onTokenSizeChange={onTokenSizeChange}
+          onAddCharacter={onAddCharacter}
         />
       </div>
     );

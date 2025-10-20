@@ -260,6 +260,31 @@ export class MessageRouter {
           }
           break;
 
+        case "add-player-character": {
+          // Create character for the requesting player
+          const maxHp = message.maxHp ?? 100;
+          const character = this.characterService.createCharacter(
+            state,
+            message.name,
+            maxHp,
+            undefined, // portrait - player can set later
+            "pc",
+          );
+
+          // Auto-claim for the requesting player
+          this.characterService.claimCharacter(state, character.id, senderUid);
+
+          // Create and link token at spawn position
+          const spawn = this.container.roomService.getPlayerSpawnPosition();
+          const token = this.container.tokenService.createToken(state, senderUid, spawn.x, spawn.y);
+          this.characterService.linkToken(state, character.id, token.id);
+
+          console.log(`Player ${senderUid} created additional character: ${character.name}`);
+          this.broadcast();
+          this.roomService.saveState();
+          break;
+        }
+
         case "update-character-hp":
           if (
             this.characterService.updateHP(state, message.characterId, message.hp, message.maxHp)

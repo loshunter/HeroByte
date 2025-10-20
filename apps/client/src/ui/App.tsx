@@ -868,6 +868,13 @@ function AuthenticatedApp({
     [sendMessage],
   );
 
+  const handleAddCharacter = useCallback(
+    (name: string) => {
+      sendMessage({ t: "add-player-character", name, maxHp: 100 });
+    },
+    [sendMessage],
+  );
+
   const handleFocusSelf = useCallback(() => {
     const myToken = snapshot?.tokens?.find((t) => t.owner === uid);
     if (!myToken) {
@@ -1552,6 +1559,7 @@ function AuthenticatedApp({
         onPlayerTokenDelete={handleDeletePlayerToken}
         onToggleTokenLock={toggleSceneObjectLock}
         onTokenSizeChange={updateTokenSize}
+        onAddCharacter={handleAddCharacter}
         bottomPanelRef={bottomPanelRef}
       />
 
