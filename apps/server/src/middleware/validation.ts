@@ -399,14 +399,15 @@ export function validateMessage(raw: unknown): ValidationResult {
         return { valid: false, error: "create-prop: owner must be null, '*', or a player UID" };
       }
       const validSizes = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
-      if (!validSizes.includes(size)) {
+      if (typeof size !== "string" || !validSizes.includes(size)) {
         return { valid: false, error: "create-prop: size must be a valid TokenSize" };
       }
       if (
         !viewport ||
-        typeof viewport.x !== "number" ||
-        typeof viewport.y !== "number" ||
-        typeof viewport.scale !== "number"
+        typeof viewport !== "object" ||
+        typeof (viewport as any).x !== "number" ||
+        typeof (viewport as any).y !== "number" ||
+        typeof (viewport as any).scale !== "number"
       ) {
         return { valid: false, error: "create-prop: viewport must be {x, y, scale}" };
       }
@@ -428,7 +429,7 @@ export function validateMessage(raw: unknown): ValidationResult {
         return { valid: false, error: "update-prop: owner must be null, '*', or a player UID" };
       }
       const validSizes = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
-      if (!validSizes.includes(size)) {
+      if (typeof size !== "string" || !validSizes.includes(size)) {
         return { valid: false, error: "update-prop: size must be a valid TokenSize" };
       }
       break;

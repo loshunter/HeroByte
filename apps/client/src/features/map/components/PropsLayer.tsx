@@ -83,14 +83,7 @@ const PropSprite = memo(function PropSprite({
       )}
 
       {/* Lock indicator */}
-      {locked && (
-        <LockIndicator
-          x={commonProps.x + size - 12}
-          y={commonProps.y + 4}
-          size={16}
-          rotation={-transform.rotation}
-        />
-      )}
+      {locked && <LockIndicator x={commonProps.x + size - 12} y={commonProps.y + 4} size={16} />}
     </Group>
   );
 });
