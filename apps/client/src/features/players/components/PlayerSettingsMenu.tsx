@@ -43,6 +43,8 @@ interface PlayerSettingsMenuProps {
   tokenSize?: TokenSize;
   onTokenSizeChange?: (size: TokenSize) => void;
   onAddCharacter?: (name: string) => void;
+  characterId?: string;
+  onDeleteCharacter?: (characterId: string) => void;
 }
 
 export function PlayerSettingsMenu({
@@ -65,6 +67,8 @@ export function PlayerSettingsMenu({
   tokenSize = "medium",
   onTokenSizeChange,
   onAddCharacter,
+  characterId,
+  onDeleteCharacter,
 }: PlayerSettingsMenuProps): JSX.Element | null {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -318,6 +322,23 @@ export function PlayerSettingsMenu({
             >
               ➕ Add Character
             </JRPGButton>
+            {characterId && onDeleteCharacter && (
+              <JRPGButton
+                onClick={() => {
+                  if (
+                    confirm(
+                      "Delete this character? This will remove the character and their token.",
+                    )
+                  ) {
+                    onDeleteCharacter(characterId);
+                  }
+                }}
+                variant="danger"
+                style={{ fontSize: "10px" }}
+              >
+                🗑️ Delete this character
+              </JRPGButton>
+            )}
           </JRPGPanel>
         )}
 
