@@ -508,7 +508,7 @@ function AuthenticatedApp({
   const [cameraCommand, setCameraCommand] = useState<CameraCommand | null>(null);
 
   // Camera state (from MapBoard)
-  const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, scale: 1 });
+  const [camera, _setCamera] = useState<Camera>({ x: 0, y: 0, scale: 1 });
 
   // Dice roller toggle and state
   const [diceRollerOpen, setDiceRollerOpen] = useState(false);

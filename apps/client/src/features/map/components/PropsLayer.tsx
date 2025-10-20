@@ -8,6 +8,7 @@ import { Group, Rect, Image as KonvaImage } from "react-konva";
 import type Konva from "konva";
 import type { SceneObject } from "@shared";
 import useImage from "use-image";
+import type { KonvaEventObject } from "konva/lib/Node";
 import type { Camera } from "../types";
 import { LockIndicator } from "./LockIndicator";
 
@@ -17,9 +18,9 @@ interface PropsSpriteProps {
   interactive: boolean;
   cam: Camera;
   isSelected: boolean;
-  onClick?: (event: any) => void;
+  onClick?: (event: KonvaEventObject<MouseEvent | PointerEvent>) => void;
   onNodeReady?: (node: Konva.Node | null) => void;
-  onDragEnd?: (event: any) => void;
+  onDragEnd?: (event: KonvaEventObject<DragEvent>) => void;
 }
 
 const PropSprite = memo(function PropSprite({
