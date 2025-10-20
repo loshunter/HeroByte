@@ -37,6 +37,10 @@ jobs:
         run: pnpm lint
 
       - name: Enforce structural guardrails
+        run: pnpm lint:structure:enforce
+
+      - name: Generate structural report
+        if: always()
         run: pnpm lint:structure | tee structure-report.txt
 
       - name: Generate structural report artifact

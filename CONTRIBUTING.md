@@ -57,6 +57,8 @@ Useful scripts:
 
 - `pnpm dev` – run server and client concurrently
 - `pnpm lint` – lint entire workspace
+- `pnpm lint:structure` – analyze file sizes and show refactoring hints
+- `pnpm lint:structure:enforce` – enforce 350 LOC limit (fails on new violations)
 - `pnpm test` – run unit/integration tests (shared + server)
 - `pnpm test:coverage` – run tests with coverage output
 - `pnpm format:check` – ensure prettier formatting (use `pnpm format` to auto-fix)
@@ -132,13 +134,44 @@ The CI enforces zero warnings (`--max-warnings=0`), so all lint warnings must be
 - Avoid business logic in React components—encapsulate in hooks/services.
 - Follow Domain-Driven Design structure already in place (domains, middleware, ws, etc.).
 - Use named exports (no default exports) unless a React component.
-- Keep files small and cohesive. When in doubt, create a new module.
+- **Keep files small and cohesive. Maximum 350 lines of code per file (enforced by CI).**
+  - The structural guardrail prevents new files from exceeding the 350 LOC threshold.
+  - Files already over the threshold are tracked in `scripts/structure-baseline.json`.
+  - Run `pnpm lint:structure` to see current file sizes and refactoring hints.
+  - When in doubt, create a new module.
 
 ### Formatting & Linting
 
 - ESLint + Prettier enforce consistent style. Run `pnpm lint` and `pnpm format:check` before committing.
 - Zero lint warnings policy (CI fails on warnings). Fix issues before pushing.
 - Configure your editor to use workspace TypeScript and format on save.
+
+### Structural Guardrails
+
+The project enforces a **350 lines of code (LOC) limit per file** to maintain SOLID principles and prevent "god files":
+
+1. **CI Enforcement**: The `lint:structure:enforce` step in CI will **fail the build** if you introduce a new file exceeding 350 LOC.
+
+2. **Existing Violations**: Files that already exceed the threshold are tracked in `scripts/structure-baseline.json`. These are allowed but should be refactored over time (see TODO.md Phase 15).
+
+3. **Checking File Sizes**: Run `pnpm lint:structure` locally to see:
+   - The largest files in the codebase
+   - Which files exceed the threshold (marked with ⚠️)
+   - Refactoring hints specific to each category
+
+4. **What to Do If Your File Exceeds 350 LOC**:
+   - Break it into smaller, focused modules following Single Responsibility Principle
+   - Extract components, hooks, services, or utilities into separate files
+   - Use the refactoring hints provided by `pnpm lint:structure` for guidance
+   - See TODO.md Phase 15 for detailed refactoring strategies
+
+5. **Updating the Baseline** (maintainers only):
+   ```bash
+   # Only do this if absolutely necessary and with approval
+   pnpm lint:structure --json --limit 200 > scripts/structure-baseline.json
+   ```
+
+This guardrail ensures the codebase remains maintainable and prevents technical debt from accumulating.
 
 ---
 
