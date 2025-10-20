@@ -31,9 +31,7 @@ describe("MultiSelectToolbar - Characterization", () => {
 
       expect(screen.getByText("3 selected")).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "🔒 Lock" })).toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: "🔓 Unlock" }),
-      ).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "🔓 Unlock" })).toBeInTheDocument();
     });
 
     it("should NOT render when isDM is false", () => {

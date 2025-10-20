@@ -74,7 +74,9 @@ describe("ContextMenu - Characterization", () => {
       const onDelete = vi.fn();
       const onClose = vi.fn();
 
-      const { container } = render(<ContextMenuMock menu={null} onDelete={onDelete} onClose={onClose} />);
+      const { container } = render(
+        <ContextMenuMock menu={null} onDelete={onDelete} onClose={onClose} />,
+      );
 
       expect(container.firstChild).toBeNull();
     });
@@ -86,7 +88,9 @@ describe("ContextMenu - Characterization", () => {
       const onDelete = vi.fn();
       const onClose = vi.fn();
 
-      const { container } = render(<ContextMenuMock menu={menu} onDelete={onDelete} onClose={onClose} />);
+      const { container } = render(
+        <ContextMenuMock menu={menu} onDelete={onDelete} onClose={onClose} />,
+      );
 
       const menuElement = container.firstChild as HTMLElement;
       expect(menuElement.style.position).toBe("fixed");
@@ -99,7 +103,9 @@ describe("ContextMenu - Characterization", () => {
       const onDelete = vi.fn();
       const onClose = vi.fn();
 
-      const { container } = render(<ContextMenuMock menu={menu} onDelete={onDelete} onClose={onClose} />);
+      const { container } = render(
+        <ContextMenuMock menu={menu} onDelete={onDelete} onClose={onClose} />,
+      );
 
       const menuElement = container.firstChild as HTMLElement;
       expect(menuElement.style.zIndex).toBe("1000");
@@ -141,7 +147,9 @@ describe("ContextMenu - Characterization", () => {
       const onDelete = vi.fn();
       const onClose = vi.fn();
 
-      const { container } = render(<ContextMenuMock menu={menu} onDelete={onDelete} onClose={onClose} />);
+      const { container } = render(
+        <ContextMenuMock menu={menu} onDelete={onDelete} onClose={onClose} />,
+      );
 
       const menuElement = container.firstChild as HTMLElement;
 
@@ -158,7 +166,9 @@ describe("ContextMenu - Characterization", () => {
       const onDelete = vi.fn();
       const onClose = vi.fn();
 
-      const { container } = render(<ContextMenuMock menu={menu} onDelete={onDelete} onClose={onClose} />);
+      const { container } = render(
+        <ContextMenuMock menu={menu} onDelete={onDelete} onClose={onClose} />,
+      );
 
       const menuElement = container.firstChild as HTMLElement;
       // Browser converts #222 to rgb(34, 34, 34)

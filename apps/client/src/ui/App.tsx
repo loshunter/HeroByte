@@ -44,7 +44,7 @@ import { EntitiesPanel } from "../components/layout/EntitiesPanel";
 import { VisualEffects } from "../components/effects/VisualEffects";
 import { ServerStatus } from "../components/layout/ServerStatus";
 import { MultiSelectToolbar } from "../components/layout/MultiSelectToolbar";
-import { ConnectionState, AuthState } from "../services/websocket";
+import { AuthState } from "../services/websocket";
 import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import { computeMapAlignmentTransform } from "../utils/mapAlignment";
 import { useToast } from "../hooks/useToast";
@@ -127,7 +127,7 @@ function AuthenticatedApp({
   registerRtcHandler,
   registerServerEventHandler,
   isConnected,
-  authState,
+  authState: _authState,
 }: AuthenticatedAppProps): JSX.Element {
   // Custom hooks for state management
   const { micEnabled, micStream, toggleMic } = useMicrophone({ sendMessage });
@@ -1259,11 +1259,7 @@ function AuthenticatedApp({
       />
 
       {/* Context Menu */}
-      <ContextMenu
-        menu={contextMenu}
-        onDelete={deleteToken}
-        onClose={() => setContextMenu(null)}
-      />
+      <ContextMenu menu={contextMenu} onDelete={deleteToken} onClose={() => setContextMenu(null)} />
 
       {/* Visual Effects (CRT Filter + Ambient Sparkles) */}
       <VisualEffects crtFilter={crtFilter} />
