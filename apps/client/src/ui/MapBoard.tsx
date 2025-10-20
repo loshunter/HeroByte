@@ -32,6 +32,7 @@ import {
   TransformGizmo,
   PropsLayer,
 } from "../features/map/components";
+import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 
 export type CameraCommand = { type: "focus-token"; tokenId: string } | { type: "reset" };
 
@@ -737,33 +738,14 @@ export default function MapBoard({
   // RENDER
   // -------------------------------------------------------------------------
 
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    if (import.meta.env.MODE === "production") {
-      return;
-    }
-
-    const globalWindow = window as typeof window & {
-      __HERO_BYTE_E2E__?: {
-        snapshot?: RoomSnapshot | null;
-        uid?: string;
-        gridSize?: number;
-        cam?: { x: number; y: number; scale: number };
-        viewport?: { width: number; height: number };
-      };
-    };
-
-    const previous = globalWindow.__HERO_BYTE_E2E__ ?? {};
-    globalWindow.__HERO_BYTE_E2E__ = {
-      ...previous,
-      gridSize,
-      cam,
-      viewport: { width: w, height: h },
-    };
-  }, [cam, gridSize, h, w]);
+  // E2E testing support (dev-only) - enriched with camera/viewport
+  useE2ETestingSupport({
+    snapshot,
+    uid,
+    gridSize,
+    cam,
+    viewport: { width: w, height: h },
+  });
 
   return (
     <div
