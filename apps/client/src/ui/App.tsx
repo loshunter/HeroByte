@@ -35,6 +35,7 @@ import { useObjectSelection } from "../hooks/useObjectSelection";
 import { useToolMode } from "../hooks/useToolMode";
 import { useCameraCommands } from "../hooks/useCameraCommands";
 import { useSceneObjectSelectors } from "../hooks/useSceneObjectSelectors";
+import { useSceneObjectActions } from "../hooks/useSceneObjectActions";
 import { DMMenu } from "../features/dm";
 import { getSessionUID } from "../utils/session";
 import { saveSession, loadSession } from "../utils/sessionPersistence";
@@ -48,10 +49,12 @@ import { AuthState } from "../services/websocket";
 import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import { computeMapAlignmentTransform } from "../utils/mapAlignment";
 import { useToast } from "../hooks/useToast";
+import { useStatusEffects } from "../hooks/useStatusEffects";
 import { ToastContainer } from "../components/ui/Toast";
 import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 import { AuthenticationGate } from "../features/auth";
 import { ContextMenu } from "../components/ui/ContextMenu";
+import { useMapActions } from "../hooks/useMapActions";
 
 interface RollLogEntry extends RollResult {
   playerName: string;
@@ -346,53 +349,21 @@ function AuthenticatedApp({
   // -------------------------------------------------------------------------
 
   /**
-   * Token actions
+   * Scene object actions (tokens, map, props, staging zone)
    */
-  const recolorToken = (sceneId: string) => {
-    const tokenId = sceneId.replace(/^token:/, "");
-    sendMessage({ t: "recolor", id: tokenId });
-  };
+  const {
+    recolorToken,
+    transformSceneObject,
+    toggleSceneObjectLock,
+    deleteToken,
+    updateTokenImage,
+    updateTokenSize,
+  } = useSceneObjectActions({ sendMessage });
 
-  const transformSceneObject = useCallback(
-    ({
-      id,
-      position,
-      scale,
-      rotation,
-      locked,
-    }: {
-      id: string;
-      position?: { x: number; y: number };
-      scale?: { x: number; y: number };
-      rotation?: number;
-      locked?: boolean;
-    }) => {
-      sendMessage({
-        t: "transform-object",
-        id,
-        position,
-        scale,
-        rotation,
-        locked,
-      });
-    },
-    [sendMessage],
-  );
-
-  const toggleSceneObjectLock = useCallback(
-    (sceneObjectId: string, locked: boolean) => {
-      sendMessage({
-        t: "transform-object",
-        id: sceneObjectId,
-        locked,
-      });
-    },
-    [sendMessage],
-  );
-
-  const deleteToken = (id: string) => {
-    sendMessage({ t: "delete-token", id });
-  };
+  /**
+   * Status effects management
+   */
+  const { setStatusEffects } = useStatusEffects({ sendMessage });
 
   /**
    * Player actions
@@ -413,17 +384,11 @@ function AuthenticatedApp({
   /**
    * Map actions
    */
-  const setMapBackgroundURL = (url: string) => {
-    sendMessage({ t: "map-background", data: url });
-  };
-
-  const setGridSize = (size: number) => {
-    sendMessage({ t: "grid-size", size });
-  };
-
-  const setGridSquareSize = (size: number) => {
-    sendMessage({ t: "grid-square-size", size });
-  };
+  const {
+    setMapBackground: setMapBackgroundURL,
+    setGridSize,
+    setGridSquareSize,
+  } = useMapActions({ sendMessage });
 
   const gridSize = snapshot?.gridSize || 50;
   const gridSquareSize = snapshot?.gridSquareSize ?? 5;
@@ -516,20 +481,6 @@ function AuthenticatedApp({
   const dismissRoomPasswordStatus = useCallback(() => {
     setRoomPasswordStatus(null);
   }, []);
-
-  const updateTokenImage = useCallback(
-    (tokenId: string, imageUrl: string) => {
-      sendMessage({ t: "update-token-image", tokenId, imageUrl });
-    },
-    [sendMessage],
-  );
-
-  const updateTokenSize = useCallback(
-    (tokenId: string, size: import("@shared").TokenSize) => {
-      sendMessage({ t: "set-token-size", tokenId, size });
-    },
-    [sendMessage],
-  );
 
   const handleAddCharacter = useCallback(
     (name: string) => {
@@ -645,13 +596,6 @@ function AuthenticatedApp({
       if (state.drawings !== undefined) {
         sendMessage({ t: "sync-player-drawings", drawings: state.drawings });
       }
-    },
-    [sendMessage],
-  );
-
-  const handleSetStatusEffects = useCallback(
-    (effects: string[]) => {
-      sendMessage({ t: "set-status-effects", effects });
     },
     [sendMessage],
   );
