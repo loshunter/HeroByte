@@ -25,8 +25,8 @@ export interface PlayerCardProps {
   editingPlayerUID: string | null;
   nameInput: string;
   onNameInputChange: (name: string) => void;
-  onNameEdit: (uid: string, name: string) => void;
-  onNameSubmit: (name: string) => void;
+  onNameEdit: () => void;
+  onNameSubmit: () => void;
   onPortraitLoad: () => void;
   onToggleMic: () => void;
   onHpChange: (hp: number) => void;
@@ -48,6 +48,8 @@ export interface PlayerCardProps {
   tokenSize?: TokenSize;
   onTokenSizeChange?: (size: TokenSize) => void;
   onAddCharacter?: (name: string) => void;
+  characterId?: string;
+  onDeleteCharacter?: (characterId: string) => void;
 }
 
 export const PlayerCard = memo<PlayerCardProps>(
@@ -86,6 +88,8 @@ export const PlayerCard = memo<PlayerCardProps>(
     onTokenSizeChange,
     onStatusEffectsChange,
     onAddCharacter,
+    characterId,
+    onDeleteCharacter,
   }) => {
     const editing = editingPlayerUID === player.uid;
     const editingMaxHp = editingMaxHpUID === player.uid;
@@ -282,6 +286,8 @@ export const PlayerCard = memo<PlayerCardProps>(
           tokenSize={tokenSize}
           onTokenSizeChange={onTokenSizeChange}
           onAddCharacter={onAddCharacter}
+          characterId={characterId}
+          onDeleteCharacter={onDeleteCharacter}
         />
       </div>
     );
