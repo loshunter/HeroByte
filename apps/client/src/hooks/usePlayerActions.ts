@@ -15,7 +15,13 @@
  */
 
 import { useCallback } from "react";
-import type { ClientMessage, PlayerState, PlayerStagingZone, Snapshot } from "@shared";
+import type {
+  ClientMessage,
+  PlayerState,
+  PlayerStagingZone,
+  RoomSnapshot,
+  Character,
+} from "@shared";
 
 /**
  * Dependencies required by the usePlayerActions hook.
@@ -29,7 +35,7 @@ export interface UsePlayerActionsOptions {
   /**
    * Current room snapshot for validation and state checks.
    */
-  snapshot: Snapshot | null;
+  snapshot: RoomSnapshot | null;
 
   /**
    * Current player's unique identifier.
@@ -208,11 +214,12 @@ export function usePlayerActions({
   const deleteCharacter = useCallback(
     (characterId: string) => {
       // Find this character
-      const character = snapshot?.characters?.find((c) => c.id === characterId);
+      const character = snapshot?.characters?.find((c: Character) => c.id === characterId);
       if (!character) return;
 
       // Count player's characters
-      const myCharacters = snapshot?.characters?.filter((c) => c.ownedByPlayerUID === uid) || [];
+      const myCharacters =
+        snapshot?.characters?.filter((c: Character) => c.ownedByPlayerUID === uid) || [];
       const isLastCharacter = myCharacters.length === 1;
 
       // Confirm deletion

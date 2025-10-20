@@ -52,6 +52,7 @@ import { ToastContainer } from "../components/ui/Toast";
 import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 import { AuthenticationGate } from "../features/auth";
 import { ContextMenu } from "../components/ui/ContextMenu";
+import { usePlayerActions } from "../hooks/usePlayerActions";
 
 interface RollLogEntry extends RollResult {
   playerName: string;
@@ -341,6 +342,13 @@ function AuthenticatedApp({
     clearSelection,
   });
 
+  // Player actions
+  const playerActions = usePlayerActions({
+    sendMessage,
+    snapshot,
+    uid,
+  });
+
   // -------------------------------------------------------------------------
   // ACTIONS
   // -------------------------------------------------------------------------
@@ -392,22 +400,6 @@ function AuthenticatedApp({
 
   const deleteToken = (id: string) => {
     sendMessage({ t: "delete-token", id });
-  };
-
-  /**
-   * Player actions
-   */
-  const renamePlayer = (name: string) => {
-    sendMessage({ t: "rename", name });
-  };
-
-  const setPortraitURL = (url: string) => {
-    console.log(`[App] Setting portrait URL: ${url.substring(0, 50)}...`);
-    sendMessage({ t: "portrait", data: url });
-  };
-
-  const setPlayerHP = (hp: number, maxHp: number) => {
-    sendMessage({ t: "set-hp", hp, maxHp });
   };
 
   /**
@@ -531,137 +523,6 @@ function AuthenticatedApp({
     [sendMessage],
   );
 
-  const handleAddCharacter = useCallback(
-    (name: string) => {
-      sendMessage({ t: "add-player-character", name, maxHp: 100 });
-    },
-    [sendMessage],
-  );
-
-  const handleDeleteCharacter = useCallback(
-    (characterId: string) => {
-      // Find this character
-      const character = snapshot?.characters?.find((c) => c.id === characterId);
-      if (!character) return;
-
-      // Count player's characters
-      const myCharacters = snapshot?.characters?.filter((c) => c.ownedByPlayerUID === uid) || [];
-      const isLastCharacter = myCharacters.length === 1;
-
-      // Confirm deletion
-      if (!confirm("Delete this character? This will remove the character and their token.")) {
-        return;
-      }
-
-      // Send delete message
-      sendMessage({ t: "delete-player-character", characterId });
-
-      // If was last character, immediately prompt for replacement
-      if (isLastCharacter) {
-        setTimeout(() => {
-          alert("You have no characters. Please create a new one.");
-          const name = prompt("Enter character name:", "New Character");
-          const finalName = name && name.trim() ? name.trim() : "New Character";
-          sendMessage({ t: "add-player-character", name: finalName, maxHp: 100 });
-        }, 100);
-      }
-    },
-    [sendMessage, snapshot?.characters, uid],
-  );
-
-  const handleCharacterNameUpdate = useCallback(
-    (characterId: string, name: string) => {
-      sendMessage({ t: "update-character-name", characterId, name });
-    },
-    [sendMessage],
-  );
-
-  const handleApplyPlayerState = useCallback(
-    (state: PlayerState, tokenId?: string) => {
-      sendMessage({ t: "rename", name: state.name });
-      sendMessage({ t: "set-hp", hp: state.hp, maxHp: state.maxHp });
-
-      if (state.portrait !== undefined) {
-        sendMessage({ t: "portrait", data: state.portrait ?? "" });
-      }
-
-      if (state.statusEffects !== undefined) {
-        sendMessage({ t: "set-status-effects", effects: state.statusEffects });
-      }
-
-      if (tokenId) {
-        const color =
-          state.token?.color ?? (typeof state.color === "string" ? state.color : undefined);
-        if (color && color.trim().length > 0) {
-          sendMessage({ t: "set-token-color", tokenId, color: color.trim() });
-        }
-
-        const nextImage =
-          state.token?.imageUrl !== undefined ? state.token.imageUrl : state.tokenImage;
-        if (nextImage !== undefined) {
-          sendMessage({
-            t: "update-token-image",
-            tokenId,
-            imageUrl: nextImage ?? "",
-          });
-        }
-
-        if (state.token?.size) {
-          sendMessage({ t: "set-token-size", tokenId, size: state.token.size });
-        }
-
-        const transform: {
-          position?: { x: number; y: number };
-          scale?: { x: number; y: number };
-          rotation?: number;
-        } = {};
-
-        if (state.token?.position) {
-          transform.position = {
-            x: state.token.position.x,
-            y: state.token.position.y,
-          };
-        }
-
-        if (state.token?.scale) {
-          const scaleX = Math.max(0.1, Math.min(10, state.token.scale.x));
-          const scaleY = Math.max(0.1, Math.min(10, state.token.scale.y));
-          transform.scale = { x: scaleX, y: scaleY };
-        }
-
-        if (state.token?.rotation !== undefined) {
-          transform.rotation = state.token.rotation;
-        }
-
-        if (transform.position || transform.scale || transform.rotation !== undefined) {
-          sendMessage({
-            t: "transform-object",
-            id: `token:${tokenId}`,
-            ...transform,
-          });
-        }
-      }
-
-      if (state.drawings !== undefined) {
-        sendMessage({ t: "sync-player-drawings", drawings: state.drawings });
-      }
-    },
-    [sendMessage],
-  );
-
-  const handleSetStatusEffects = useCallback(
-    (effects: string[]) => {
-      sendMessage({ t: "set-status-effects", effects });
-    },
-    [sendMessage],
-  );
-
-  const handleSetPlayerStagingZone = useCallback(
-    (zone: PlayerStagingZone | undefined) => {
-      sendMessage({ t: "set-player-staging-zone", zone });
-    },
-    [sendMessage],
-  );
 
   const handleCreateNPC = useCallback(() => {
     sendMessage({ t: "create-npc", name: "New NPC", hp: 10, maxHp: 10 });
@@ -1152,36 +1013,36 @@ function AuthenticatedApp({
         maxHpInput={maxHpInput}
         onNameInputChange={updateNameInput}
         onNameEdit={startNameEdit}
-        onNameSubmit={() => submitNameEdit(renamePlayer)}
+        onNameSubmit={() => submitNameEdit(playerActions.renamePlayer)}
         onPortraitLoad={() => {
           const url = prompt("Enter image URL:");
           if (url && url.trim()) {
-            setPortraitURL(url.trim());
+            playerActions.setPortrait(url.trim());
           }
         }}
         onToggleMic={toggleMic}
-        onHpChange={(hp, maxHp) => setPlayerHP(hp, maxHp)}
+        onHpChange={(hp, maxHp) => playerActions.setHP(hp, maxHp)}
         onMaxHpInputChange={updateMaxHpInput}
         onMaxHpEdit={startMaxHpEdit}
         onMaxHpSubmit={() =>
           submitMaxHpEdit((maxHp) =>
-            setPlayerHP(snapshot?.players?.find((p) => p.uid === uid)?.hp ?? 100, maxHp),
+            playerActions.setHP(snapshot?.players?.find((p) => p.uid === uid)?.hp ?? 100, maxHp),
           )
         }
         currentIsDM={isDM}
         onToggleDMMode={handleToggleDM}
         onTokenImageChange={updateTokenImage}
-        onApplyPlayerState={handleApplyPlayerState}
-        onStatusEffectsChange={handleSetStatusEffects}
+        onApplyPlayerState={playerActions.applyPlayerState}
+        onStatusEffectsChange={playerActions.setStatusEffects}
         onNpcUpdate={handleUpdateNPC}
         onNpcDelete={handleDeleteNPC}
         onNpcPlaceToken={handlePlaceNPCToken}
         onPlayerTokenDelete={handleDeletePlayerToken}
         onToggleTokenLock={toggleSceneObjectLock}
         onTokenSizeChange={updateTokenSize}
-        onAddCharacter={handleAddCharacter}
-        onDeleteCharacter={handleDeleteCharacter}
-        onCharacterNameUpdate={handleCharacterNameUpdate}
+        onAddCharacter={playerActions.addCharacter}
+        onDeleteCharacter={playerActions.deleteCharacter}
+        onCharacterNameUpdate={playerActions.updateCharacterName}
         bottomPanelRef={bottomPanelRef}
       />
 
@@ -1198,7 +1059,7 @@ function AuthenticatedApp({
         onSetMapBackground={setMapBackgroundURL}
         mapBackground={snapshot?.mapBackground}
         playerStagingZone={snapshot?.playerStagingZone}
-        onSetPlayerStagingZone={handleSetPlayerStagingZone}
+        onSetPlayerStagingZone={playerActions.setPlayerStagingZone}
         camera={camera}
         playerCount={snapshot?.players?.length ?? 0}
         characters={snapshot?.characters || []}
