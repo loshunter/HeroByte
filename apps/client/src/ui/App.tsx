@@ -13,12 +13,7 @@ import MapBoard from "./MapBoard";
 import type { Camera } from "../hooks/useCamera";
 import { DiceRoller } from "../components/dice/DiceRoller";
 import { RollLog } from "../components/dice/RollLog";
-import type {
-  RoomSnapshot,
-  ClientMessage,
-  ServerMessage,
-  TokenSize,
-} from "@shared";
+import type { RoomSnapshot, ClientMessage, ServerMessage, TokenSize } from "@shared";
 import { WS_URL } from "../config";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useDrawingStateManager } from "../hooks/useDrawingStateManager";
