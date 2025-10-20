@@ -395,7 +395,11 @@ export function validateMessage(raw: unknown): ValidationResult {
     }
 
     case "add-player-character": {
-      if (typeof message.name !== "string" || message.name.length === 0 || message.name.length > 100) {
+      if (
+        typeof message.name !== "string" ||
+        message.name.length === 0 ||
+        message.name.length > 100
+      ) {
         return { valid: false, error: "add-player-character: name must be 1-100 characters" };
       }
       if (message.maxHp !== undefined && (!isFiniteNumber(message.maxHp) || message.maxHp <= 0)) {
