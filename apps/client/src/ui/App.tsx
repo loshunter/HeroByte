@@ -20,11 +20,10 @@ import { useDrawingStateManager } from "../hooks/useDrawingStateManager";
 import { usePlayerEditing } from "../hooks/usePlayerEditing";
 import { useHeartbeat } from "../hooks/useHeartbeat";
 import { useDMRole } from "../hooks/useDMRole";
-import { useObjectSelection } from "../hooks/useObjectSelection";
 import { useToolMode } from "../hooks/useToolMode";
 import { useCameraCommands } from "../hooks/useCameraCommands";
-import { useSceneObjectSelectors } from "../hooks/useSceneObjectSelectors";
 import { useSceneObjectActions } from "../hooks/useSceneObjectActions";
+import { useSelectionManager } from "../features/selection";
 import { DMMenu } from "../features/dm";
 import { getSessionUID } from "../utils/session";
 import { saveSession, loadSession } from "../utils/sessionPersistence";
@@ -186,12 +185,18 @@ function AuthenticatedApp({
   const {
     selectedObjectId,
     selectedObjectIds,
-    selectObject,
-    selectMultiple,
-    deselect: clearSelection,
+    handleObjectSelection,
+    handleObjectSelectionBatch,
+    clearSelection,
     lockSelected,
     unlockSelected,
-  } = useObjectSelection({ uid, snapshot, sendMessage });
+  } = useSelectionManager({
+    uid,
+    snapshot,
+    sendMessage,
+    transformMode,
+    selectMode,
+  });
 
   // UI layout (fixed panels)
   const topPanelRef = useRef<HTMLDivElement | null>(null);
@@ -269,21 +274,6 @@ function AuthenticatedApp({
    * Ctrl+Z / Cmd+Z: Undo last drawing
    * Delete/Backspace: Delete selected object (moved after isDM declaration)
    */
-
-  // Clear selection when switching away from transform/select mode to other tools
-  useEffect(() => {
-    if (!transformMode && !selectMode) {
-      clearSelection();
-    }
-  }, [transformMode, selectMode, clearSelection]);
-
-  // Selection handlers
-  const { handleObjectSelection, handleObjectSelectionBatch } = useSceneObjectSelectors({
-    selectedObjectIds,
-    selectObject,
-    selectMultiple,
-    clearSelection,
-  });
 
   // -------------------------------------------------------------------------
   // ACTIONS
