@@ -1,5 +1,7 @@
 # HeroByte TODO
 
+> **Note**: Completed work has been archived in [DONE.md](DONE.md) to keep this list focused on active and future work.
+
 ## Goal
 
 Ship a table-ready MVP to run live playtests with real players and a DM. Prioritize drawing/selection stability, DM session controls, and player-facing feedback so we can gather real game-night data fast.
@@ -271,46 +273,20 @@ _Shared planning brief with Phase 19: `docs/planning/phase19-20-briefing.md`._
   - [ ] Transform preview (ghosted outline during drag?)
   - [ ] Undo/redo stack visualization
 
-## Phase 15: SOLID Refactor Initiative (COMPLETE - App.tsx)
+## Phase 15: SOLID Refactor Initiative (Future Work)
 
-**Goal**: Break down oversized "god files", restore SRP/SoC boundaries, and pair each change with forward-looking tests.
+**Goal**: Break down remaining oversized "god files", restore SRP/SoC boundaries, and pair each change with forward-looking tests.
 
-**Status Update (2025-10-20):**
+**Status**: App.tsx refactoring COMPLETE (see [DONE.md](DONE.md)). Remaining targets below.
 
-- ✅ **App.tsx Refactoring COMPLETE:** All planned extractions finished (1,850 → 519 LOC, -72% reduction)
-- ✅ **Phase 1 COMPLETE:** 9/9 extractions from App.tsx (-547 LOC)
-- ✅ **Phase 4 COMPLETE:** 2/2 active extractions from App.tsx (-65 LOC, +48 tests)
-- ✅ **Completion Date:** 2025-10-20
-- 📄 **Detailed tracking:** See `/docs/refactoring/REFACTOR_ROADMAP.md` and `/docs/refactoring/PHASE4_SUMMARY.md`
+### Remaining Refactoring Targets
 
-- [x] **Guardrails & Baseline** ✅ COMPLETE
-  - [x] Record current line counts and responsibilities for top 10 files
-  - [x] Define max LOC per component (<350) and cross-domain import rules
-  - [x] Update CONTRIBUTING.md with SOLID/SOC checklist and reviewer prompts
-  - [x] CI enforcement active (structure guardrails)
-
-- [x] **TDD & Safety Net** ✅ COMPLETE
-  - [x] Capture characterization tests for each hotspot before refactor
-  - [x] All Phase 1 & 4 extractions include comprehensive tests
-  - [x] Coverage maintained at >80% per module
-  - [x] 365 tests passing (100% pass rate)
-
-- [x] **Client Shell Decomposition** ✅ COMPLETE (App.tsx)
-  - [x] Auth gate extracted: `AuthenticationGate` component (Phase 1, Priority 7)
-  - [x] Server event handling: `useServerEventHandlers` (Phase 4, Priority 18)
-  - [x] NPC management: `useNpcManagement` (Phase 4, Priority 19)
-  - [x] Visual effects: `VisualEffects` component (Phase 1, Priority 6)
-  - [x] Context menu: `ContextMenu` component (Phase 1, Priority 8)
-  - [x] Multi-select toolbar: `MultiSelectToolbar` component (Phase 1, Priority 9)
-  - [x] All remaining extractions from App.tsx completed
-  - [ ] Future work: DMMenu.tsx and MapBoard.tsx (see below)
-
-- [ ] **DM Controls Modularization**
+- [ ] **DM Controls Modularization** (DMMenu.tsx)
   - [ ] Break `apps/client/src/features/dm/components/DMMenu.tsx` into panels (`MapControls`, `TokenControls`, `RoomManagement`, `DebugPanel`)
   - [ ] Introduce `useDMMenuState` hook to isolate derived state/effects
   - [ ] Cover each panel with interaction tests (e.g., lock toggles, fog controls) and storybook smoke checks
 
-- [ ] **Map Interaction Layers**
+- [ ] **Map Interaction Layers** (MapBoard.tsx)
   - [ ] Decompose `apps/client/src/ui/MapBoard.tsx` into `CameraController`, `SelectionLayer`, and `ToolLayer`
   - [ ] Move pointer/measure/draw orchestration into strategy modules reusable by `TransformGizmo`
   - [ ] Add Vitest suites for camera commands, selection propagation, and tool switching; ensure e2e coverage through transform pipeline tests
@@ -344,7 +320,7 @@ _Shared planning brief with Phase 19: `docs/planning/phase19-20-briefing.md`._
   - [ ] Add CI guard (lint rule or script) verifying max component size and enforcing boundary checks
   - [ ] Track structural metrics (LOC, dependency graph density) in CI to catch new god-file drift
 
-**Success Criteria**:
+**Success Criteria** (same as App.tsx refactoring):
 
 - No targeted file exceeds agreed LOC threshold or mixes unrelated responsibilities
 - Refactored modules ship with tests authored or updated during refactor (TDD pass)

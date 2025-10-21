@@ -5,6 +5,78 @@
 
 ---
 
+## ✅ Phase 15: SOLID Refactor Initiative - App.tsx COMPLETE (October 20, 2025)
+
+**Goal**: Break down oversized "god files", restore SRP/SoC boundaries, and pair each change with forward-looking tests.
+
+### App.tsx Refactoring Achievement
+
+**Status**: App.tsx refactoring COMPLETE - All planned extractions finished!
+
+- ✅ **App.tsx: 1,850 → 519 LOC (-72% reduction, -1,331 LOC)**
+- ✅ **Phase 1 COMPLETE:** 9/9 extractions from App.tsx (-547 LOC)
+- ✅ **Phase 4 COMPLETE:** 2/2 active extractions from App.tsx (-65 LOC, +48 tests)
+- ✅ **Completion Date:** October 20, 2025
+- 📄 **Detailed tracking:** See `/docs/refactoring/REFACTOR_ROADMAP.md` and `/docs/refactoring/PHASE4_SUMMARY.md`
+
+### Completed Work
+
+#### Guardrails & Baseline ✅ COMPLETE
+
+- [x] Record current line counts and responsibilities for top 10 files
+- [x] Define max LOC per component (<350) and cross-domain import rules
+- [x] Update CONTRIBUTING.md with SOLID/SOC checklist and reviewer prompts
+- [x] CI enforcement active (structure guardrails)
+
+#### TDD & Safety Net ✅ COMPLETE
+
+- [x] Capture characterization tests for each hotspot before refactor
+- [x] All Phase 1 & 4 extractions include comprehensive tests
+- [x] Coverage maintained at >80% per module
+- [x] 365 tests passing (100% pass rate)
+
+#### Client Shell Decomposition ✅ COMPLETE (App.tsx)
+
+All extractions from App.tsx completed:
+
+1. **Auth gate extracted:** `AuthenticationGate` component (Phase 1, Priority 7)
+2. **Server event handling:** `useServerEventHandlers` hook (Phase 4, Priority 18)
+3. **NPC management:** `useNpcManagement` hook (Phase 4, Priority 19)
+4. **Visual effects:** `VisualEffects` component (Phase 1, Priority 6)
+5. **Context menu:** `ContextMenu` component (Phase 1, Priority 8)
+6. **Multi-select toolbar:** `MultiSelectToolbar` component (Phase 1, Priority 9)
+7. **Keyboard shortcuts:** `useKeyboardShortcuts` hook (Priority 28)
+8. **Map alignment:** `useMapAlignment` hook (Priority 26)
+9. All other planned extractions completed
+
+### Success Criteria Achieved
+
+- ✅ App.tsx reduced from 1,850 to 519 LOC (72% reduction)
+- ✅ All extracted modules follow SRP/SoC principles
+- ✅ Comprehensive test coverage for all extractions (>80% per module)
+- ✅ 365 tests passing (100% pass rate)
+- ✅ CI enforcement active for structural guardrails
+- ✅ CONTRIBUTING.md updated with SOLID/SOC guidelines
+
+### Future Work
+
+**Note**: The following Phase 15 targets remain for future refactoring:
+
+- DMMenu.tsx modularization (Phase 15.2)
+- MapBoard.tsx decomposition (Phase 15.3)
+- Drawing workflow cleanup (Phase 15.4)
+- Networking & messaging boundaries (Phase 15.5)
+- Server domain isolation (Phase 15.6)
+- Shared models partitioning (Phase 15.7)
+
+These are documented in TODO.md as future work under "Phase 15: SOLID Refactor Initiative (Future Work)".
+
+### Key Achievement
+
+**App.tsx is now lean and focused!** From a 1,850-line "god component" to a clean 519-line orchestrator. All business logic properly extracted into focused, tested modules. This establishes the pattern for future SOLID refactoring across the codebase.
+
+---
+
 ## ✅ Multi-Character Support for Single Players (October 20, 2025)
 
 ### Feature Overview
