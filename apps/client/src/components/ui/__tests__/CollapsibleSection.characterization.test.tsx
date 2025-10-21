@@ -36,7 +36,7 @@ describe("CollapsibleSection - Characterization", () => {
       render(
         <CollapsibleSection isCollapsed={false}>
           <div data-testid="test-content">Test Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       expect(screen.getByTestId("test-content")).toBeInTheDocument();
@@ -47,7 +47,7 @@ describe("CollapsibleSection - Characterization", () => {
       render(
         <CollapsibleSection isCollapsed={true}>
           <div data-testid="test-content">Test Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       // Children are still rendered in DOM, just hidden
@@ -64,7 +64,7 @@ describe("CollapsibleSection - Characterization", () => {
       const { container } = render(
         <CollapsibleSection isCollapsed={false}>
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       const wrapper = container.firstChild as HTMLElement;
@@ -75,7 +75,7 @@ describe("CollapsibleSection - Characterization", () => {
       const { container } = render(
         <CollapsibleSection isCollapsed={true}>
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       const wrapper = container.firstChild as HTMLElement;
@@ -86,7 +86,7 @@ describe("CollapsibleSection - Characterization", () => {
       const { container } = render(
         <CollapsibleSection isCollapsed={false}>
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       const wrapper = container.firstChild as HTMLElement;
@@ -97,7 +97,7 @@ describe("CollapsibleSection - Characterization", () => {
       const { container } = render(
         <CollapsibleSection isCollapsed={true}>
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       const wrapper = container.firstChild as HTMLElement;
@@ -108,7 +108,7 @@ describe("CollapsibleSection - Characterization", () => {
       const { container: container1 } = render(
         <CollapsibleSection isCollapsed={false}>
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       const wrapper1 = container1.firstChild as HTMLElement;
@@ -117,7 +117,7 @@ describe("CollapsibleSection - Characterization", () => {
       const { container: container2 } = render(
         <CollapsibleSection isCollapsed={true}>
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       const wrapper2 = container2.firstChild as HTMLElement;
@@ -128,20 +128,24 @@ describe("CollapsibleSection - Characterization", () => {
       const { container: container1 } = render(
         <CollapsibleSection isCollapsed={false}>
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       const wrapper1 = container1.firstChild as HTMLElement;
-      expect(wrapper1.style.transition).toBe("max-height 150ms ease-in-out, opacity 150ms ease-in-out");
+      expect(wrapper1.style.transition).toBe(
+        "max-height 150ms ease-in-out, opacity 150ms ease-in-out",
+      );
 
       const { container: container2 } = render(
         <CollapsibleSection isCollapsed={true}>
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       const wrapper2 = container2.firstChild as HTMLElement;
-      expect(wrapper2.style.transition).toBe("max-height 150ms ease-in-out, opacity 150ms ease-in-out");
+      expect(wrapper2.style.transition).toBe(
+        "max-height 150ms ease-in-out, opacity 150ms ease-in-out",
+      );
     });
   });
 
@@ -151,11 +155,7 @@ describe("CollapsibleSection - Characterization", () => {
 
   describe("children rendering", () => {
     it("should render simple text children", () => {
-      render(
-        <CollapsibleSection isCollapsed={false}>
-          Simple text content
-        </CollapsibleSection>
-      );
+      render(<CollapsibleSection isCollapsed={false}>Simple text content</CollapsibleSection>);
 
       const wrapper = screen.getByText("Simple text content");
       expect(wrapper).toBeInTheDocument();
@@ -167,7 +167,7 @@ describe("CollapsibleSection - Characterization", () => {
           <div data-testid="child-1">Child 1</div>
           <div data-testid="child-2">Child 2</div>
           <div data-testid="child-3">Child 3</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       expect(screen.getByTestId("child-1")).toBeInTheDocument();
@@ -177,9 +177,7 @@ describe("CollapsibleSection - Characterization", () => {
 
     it("should handle null children", () => {
       const { container } = render(
-        <CollapsibleSection isCollapsed={false}>
-          {null}
-        </CollapsibleSection>
+        <CollapsibleSection isCollapsed={false}>{null}</CollapsibleSection>,
       );
 
       const wrapper = container.firstChild as HTMLElement;
@@ -189,9 +187,7 @@ describe("CollapsibleSection - Characterization", () => {
 
     it("should handle undefined children", () => {
       const { container } = render(
-        <CollapsibleSection isCollapsed={false}>
-          {undefined}
-        </CollapsibleSection>
+        <CollapsibleSection isCollapsed={false}>{undefined}</CollapsibleSection>,
       );
 
       const wrapper = container.firstChild as HTMLElement;
@@ -205,7 +201,7 @@ describe("CollapsibleSection - Characterization", () => {
       render(
         <CollapsibleSection isCollapsed={false}>
           <ChildComponent />
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       expect(screen.getByTestId("child-component")).toBeInTheDocument();
@@ -221,7 +217,7 @@ describe("CollapsibleSection - Characterization", () => {
       const { container, rerender } = render(
         <CollapsibleSection isCollapsed={true}>
           <div data-testid="content">Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       let wrapper = container.firstChild as HTMLElement;
@@ -232,7 +228,7 @@ describe("CollapsibleSection - Characterization", () => {
       rerender(
         <CollapsibleSection isCollapsed={false}>
           <div data-testid="content">Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       wrapper = container.firstChild as HTMLElement;
@@ -244,7 +240,7 @@ describe("CollapsibleSection - Characterization", () => {
       const { container, rerender } = render(
         <CollapsibleSection isCollapsed={false}>
           <div data-testid="content">Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       let wrapper = container.firstChild as HTMLElement;
@@ -255,7 +251,7 @@ describe("CollapsibleSection - Characterization", () => {
       rerender(
         <CollapsibleSection isCollapsed={true}>
           <div data-testid="content">Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       wrapper = container.firstChild as HTMLElement;
@@ -267,7 +263,7 @@ describe("CollapsibleSection - Characterization", () => {
       const { container, rerender } = render(
         <CollapsibleSection isCollapsed={false}>
           <div data-testid="content">Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       let wrapper = container.firstChild as HTMLElement;
@@ -277,7 +273,7 @@ describe("CollapsibleSection - Characterization", () => {
       rerender(
         <CollapsibleSection isCollapsed={true}>
           <div data-testid="content">Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       wrapper = container.firstChild as HTMLElement;
@@ -287,7 +283,7 @@ describe("CollapsibleSection - Characterization", () => {
       rerender(
         <CollapsibleSection isCollapsed={false}>
           <div data-testid="content">Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       wrapper = container.firstChild as HTMLElement;
@@ -297,7 +293,7 @@ describe("CollapsibleSection - Characterization", () => {
       rerender(
         <CollapsibleSection isCollapsed={true}>
           <div data-testid="content">Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       wrapper = container.firstChild as HTMLElement;
@@ -307,7 +303,7 @@ describe("CollapsibleSection - Characterization", () => {
       rerender(
         <CollapsibleSection isCollapsed={false}>
           <div data-testid="content">Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       wrapper = container.firstChild as HTMLElement;
@@ -322,9 +318,7 @@ describe("CollapsibleSection - Characterization", () => {
   describe("edge cases", () => {
     it("should handle empty children", () => {
       const { container } = render(
-        <CollapsibleSection isCollapsed={false}>
-          {""}
-        </CollapsibleSection>
+        <CollapsibleSection isCollapsed={false}>{""}</CollapsibleSection>,
       );
 
       const wrapper = container.firstChild as HTMLElement;
@@ -337,7 +331,7 @@ describe("CollapsibleSection - Characterization", () => {
       render(
         <CollapsibleSection isCollapsed={false}>
           <div data-testid="long-content">{longContent}</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       const content = screen.getByTestId("long-content");
@@ -352,7 +346,7 @@ describe("CollapsibleSection - Characterization", () => {
           <CollapsibleSection isCollapsed={false}>
             <div data-testid="inner-content">Inner</div>
           </CollapsibleSection>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       expect(screen.getByTestId("outer-content")).toBeInTheDocument();
@@ -366,7 +360,7 @@ describe("CollapsibleSection - Characterization", () => {
           <CollapsibleSection isCollapsed={true}>
             <div data-testid="inner-content">Inner</div>
           </CollapsibleSection>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       const wrappers = container.querySelectorAll("div[style*='transition']");
@@ -412,7 +406,7 @@ describe("CollapsibleSection - Characterization", () => {
               defaultValue={1}
             />
           </div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       expect(screen.getByTestId("label")).toBeInTheDocument();
@@ -461,7 +455,7 @@ describe("CollapsibleSection - Characterization", () => {
               defaultValue={5}
             />
           </div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       expect(screen.getByTestId("grid-size-label")).toBeInTheDocument();
@@ -476,7 +470,7 @@ describe("CollapsibleSection - Characterization", () => {
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <span data-testid="content">Content</span>
           </div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       const wrapper = container.firstChild as HTMLElement;
@@ -494,27 +488,31 @@ describe("CollapsibleSection - Characterization", () => {
       const { container, rerender } = render(
         <CollapsibleSection isCollapsed={false}>
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       let wrapper = container.firstChild as HTMLElement;
 
       // Initial state
       expect(wrapper.style.overflow).toBe("hidden");
-      expect(wrapper.style.transition).toBe("max-height 150ms ease-in-out, opacity 150ms ease-in-out");
+      expect(wrapper.style.transition).toBe(
+        "max-height 150ms ease-in-out, opacity 150ms ease-in-out",
+      );
 
       // Toggle to collapsed
       rerender(
         <CollapsibleSection isCollapsed={true}>
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       wrapper = container.firstChild as HTMLElement;
 
       // CSS properties should be maintained
       expect(wrapper.style.overflow).toBe("hidden");
-      expect(wrapper.style.transition).toBe("max-height 150ms ease-in-out, opacity 150ms ease-in-out");
+      expect(wrapper.style.transition).toBe(
+        "max-height 150ms ease-in-out, opacity 150ms ease-in-out",
+      );
     });
   });
 
@@ -527,7 +525,7 @@ describe("CollapsibleSection - Characterization", () => {
       const { container } = render(
         <CollapsibleSection isCollapsed={false}>
           <div data-testid="content">Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       // Should have exactly one child (the wrapper div)
@@ -539,7 +537,7 @@ describe("CollapsibleSection - Characterization", () => {
       const { container } = render(
         <CollapsibleSection isCollapsed={false}>
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       const wrapper = container.firstChild as HTMLElement;
@@ -554,7 +552,7 @@ describe("CollapsibleSection - Characterization", () => {
       const { container, rerender } = render(
         <CollapsibleSection isCollapsed={false}>
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       let wrapper = container.firstChild as HTMLElement;
@@ -564,7 +562,7 @@ describe("CollapsibleSection - Characterization", () => {
       rerender(
         <CollapsibleSection isCollapsed={true}>
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
 
       wrapper = container.firstChild as HTMLElement;

@@ -32,7 +32,7 @@
  * @module components/ui/ImagePreview
  */
 
-import React from 'react';
+import React from "react";
 
 /**
  * Props for the ImagePreview component
@@ -49,9 +49,9 @@ export interface ImagePreviewProps {
   /** Maximum height (optional, useful for portrait variant) */
   maxHeight?: string | number;
   /** CSS object-fit property (default: "cover") */
-  objectFit?: 'cover' | 'contain';
+  objectFit?: "cover" | "contain";
   /** CSS align-self property (default: "flex-start") */
-  alignSelf?: 'flex-start' | 'center';
+  alignSelf?: "flex-start" | "center";
   /** Whether to show the golden border (default: true) */
   showBorder?: boolean;
   /** Callback invoked when image fails to load */
@@ -128,4 +128,4 @@ export const ImagePreview = React.memo((props: ImagePreviewProps) => {
   );
 });
 
-ImagePreview.displayName = 'ImagePreview';
+ImagePreview.displayName = "ImagePreview";

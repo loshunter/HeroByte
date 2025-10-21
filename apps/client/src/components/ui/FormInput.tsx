@@ -43,7 +43,7 @@
  * @module components/ui/FormInput
  */
 
-import React from 'react';
+import React from "react";
 
 /**
  * Props for the FormInput component
@@ -155,4 +155,4 @@ export const FormInput = React.memo((props: FormInputProps) => {
   );
 });
 
-FormInput.displayName = 'FormInput';
+FormInput.displayName = "FormInput";

@@ -123,7 +123,9 @@
       "Bash(gh pr close:*)",
       "Bash(npm run:*)",
       "Bash(npx eslint:*)",
-      "Bash(git ls-tree:*)"
+      "Bash(git ls-tree:*)",
+      "Bash(pnpm --filter herobyte-client vitest run:*)",
+      "Bash(gh pr create:*)"
     ],
     "deny": [],
     "ask": []

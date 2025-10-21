@@ -46,10 +46,7 @@ interface EmptyStateProps {
 
 export const EmptyState = React.memo(({ message }: EmptyStateProps) => {
   return (
-    <JRPGPanel
-      variant="simple"
-      style={{ color: "var(--jrpg-white)", fontSize: "12px" }}
-    >
+    <JRPGPanel variant="simple" style={{ color: "var(--jrpg-white)", fontSize: "12px" }}>
       {message}
     </JRPGPanel>
   );

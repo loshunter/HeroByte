@@ -38,10 +38,7 @@ interface EmptyStateProps {
 
 const EmptyState = ({ message }: EmptyStateProps) => {
   return (
-    <JRPGPanel
-      variant="simple"
-      style={{ color: "var(--jrpg-white)", fontSize: "12px" }}
-    >
+    <JRPGPanel variant="simple" style={{ color: "var(--jrpg-white)", fontSize: "12px" }}>
       {message}
     </JRPGPanel>
   );
@@ -167,7 +164,7 @@ describe("EmptyState - Characterization", () => {
               <strong>No items</strong> - Add one to get started
             </div>
           }
-        />
+        />,
       );
 
       expect(screen.getByTestId("custom-message")).toBeInTheDocument();
@@ -184,7 +181,7 @@ describe("EmptyState - Characterization", () => {
               <div data-testid="line-2">Second line</div>
             </>
           }
-        />
+        />,
       );
 
       expect(screen.getByTestId("line-1")).toBeInTheDocument();
@@ -199,7 +196,7 @@ describe("EmptyState - Characterization", () => {
               No items yet. Use <strong>Add Item</strong> to create one.
             </>
           }
-        />
+        />,
       );
 
       expect(screen.getByText(/No items yet/)).toBeInTheDocument();
@@ -259,12 +256,10 @@ describe("EmptyState - Characterization", () => {
     });
 
     it("should work with instructional messages", () => {
-      render(
-        <EmptyState message="No data available. Please import or create new items." />
-      );
+      render(<EmptyState message="No data available. Please import or create new items." />);
 
       expect(
-        screen.getByText("No data available. Please import or create new items.")
+        screen.getByText("No data available. Please import or create new items."),
       ).toBeInTheDocument();
     });
   });
@@ -311,7 +306,7 @@ describe("EmptyState - Characterization", () => {
               Use the Add button to create one.
             </>
           }
-        />
+        />,
       );
 
       expect(screen.getByText(/No items available/)).toBeInTheDocument();
@@ -327,7 +322,7 @@ describe("EmptyState - Characterization", () => {
     });
 
     it("should handle message with special quotes and apostrophes", () => {
-      render(<EmptyState message={'It\'s empty. Use "Add" or \'Create\'.'} />);
+      render(<EmptyState message={"It's empty. Use \"Add\" or 'Create'."} />);
 
       expect(screen.getByText(/It's empty/)).toBeInTheDocument();
       expect(screen.getByText(/Use/)).toBeInTheDocument();
@@ -336,9 +331,7 @@ describe("EmptyState - Characterization", () => {
     it("should handle numeric content in message", () => {
       render(<EmptyState message="0 items found. Add at least 1 to continue." />);
 
-      expect(
-        screen.getByText("0 items found. Add at least 1 to continue.")
-      ).toBeInTheDocument();
+      expect(screen.getByText("0 items found. Add at least 1 to continue.")).toBeInTheDocument();
     });
 
     it("should handle message with emoji", () => {
@@ -381,9 +374,7 @@ describe("EmptyState - Characterization", () => {
     });
 
     it("should pass message as direct children to JRPGPanel", () => {
-      const { container } = render(
-        <EmptyState message={<div data-testid="child">Child</div>} />
-      );
+      const { container } = render(<EmptyState message={<div data-testid="child">Child</div>} />);
 
       const panel = container.querySelector(".jrpg-frame-simple");
       const child = panel?.querySelector("[data-testid='child']");
@@ -408,12 +399,8 @@ describe("EmptyState - Characterization", () => {
 
   describe("style consistency", () => {
     it("should apply same styles regardless of message type", () => {
-      const { container: container1 } = render(
-        <EmptyState message="String message" />
-      );
-      const { container: container2 } = render(
-        <EmptyState message={<div>JSX message</div>} />
-      );
+      const { container: container1 } = render(<EmptyState message="String message" />);
+      const { container: container2 } = render(<EmptyState message={<div>JSX message</div>} />);
 
       const panel1 = container1.querySelector(".jrpg-frame-simple") as HTMLElement;
       const panel2 = container2.querySelector(".jrpg-frame-simple") as HTMLElement;
@@ -425,7 +412,7 @@ describe("EmptyState - Characterization", () => {
     it("should apply same styles regardless of message length", () => {
       const { container: container1 } = render(<EmptyState message="Short" />);
       const { container: container2 } = render(
-        <EmptyState message="This is a much longer message that contains multiple words and should still have the same styling applied to it" />
+        <EmptyState message="This is a much longer message that contains multiple words and should still have the same styling applied to it" />,
       );
 
       const panel1 = container1.querySelector(".jrpg-frame-simple") as HTMLElement;
@@ -471,7 +458,7 @@ describe("EmptyState - Characterization", () => {
               <strong>Important:</strong> No items found
             </>
           }
-        />
+        />,
       );
 
       expect(screen.getByText("Important:")).toBeInTheDocument();
@@ -486,7 +473,7 @@ describe("EmptyState - Characterization", () => {
               No items available. <em>Please add some.</em>
             </p>
           }
-        />
+        />,
       );
 
       const paragraph = screen.getByTestId("semantic-p");
@@ -508,7 +495,7 @@ describe("EmptyState - Characterization", () => {
           <EmptyState message="First empty state" />
           <EmptyState message="Second empty state" />
           <EmptyState message="Third empty state" />
-        </>
+        </>,
       );
 
       expect(screen.getByText("First empty state")).toBeInTheDocument();
@@ -520,7 +507,7 @@ describe("EmptyState - Characterization", () => {
       const { container } = render(
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           <EmptyState message="In flex column" />
-        </div>
+        </div>,
       );
 
       expect(screen.getByText("In flex column")).toBeInTheDocument();
@@ -534,7 +521,7 @@ describe("EmptyState - Characterization", () => {
           <div data-testid="other-component">Other Component</div>
           <EmptyState message="Empty state component" />
           <div data-testid="another-component">Another Component</div>
-        </>
+        </>,
       );
 
       expect(screen.getByTestId("other-component")).toBeInTheDocument();
@@ -560,8 +547,8 @@ describe("EmptyState - Characterization", () => {
       expect(panels.length).toBeGreaterThan(0);
 
       // Verify it's the simple variant
-      const hasSimpleVariant = Array.from(panels).some(panel =>
-        panel.classList.contains("jrpg-frame-simple")
+      const hasSimpleVariant = Array.from(panels).some((panel) =>
+        panel.classList.contains("jrpg-frame-simple"),
       );
       expect(hasSimpleVariant).toBe(true);
     });

@@ -42,6 +42,7 @@
    - Purpose: Bottom panel with player/NPC character cards
 
 **Total Phase 1 Impact:**
+
 - MainLayout reduced: 795 → 725 LOC (-70 LOC, 8.8%)
 - New components: 1,012 LOC total across 4 files
 - Total tests: 307 characterization tests, all passing
@@ -74,23 +75,27 @@ MainLayout is a **pure composition component** (0 state, 0 logic, 110 props forw
 ### Files Created
 
 **Layout Components:**
+
 - `apps/client/src/layouts/TopPanelLayout.tsx`
 - `apps/client/src/layouts/CenterCanvasLayout.tsx`
 - `apps/client/src/layouts/FloatingPanelsLayout.tsx`
 - `apps/client/src/layouts/BottomPanelLayout.tsx`
 
 **Props & Hooks:**
+
 - `apps/client/src/layouts/props/MainLayoutProps.ts`
 - `apps/client/src/layouts/props/index.ts`
 - `apps/client/src/hooks/useEntityEditHandlers.ts`
 
 **Tests:**
+
 - `apps/client/src/layouts/__tests__/TopPanelLayout.characterization.test.tsx` (46 tests)
 - `apps/client/src/layouts/__tests__/CenterCanvasLayout.characterization.test.tsx` (70 tests)
 - `apps/client/src/layouts/__tests__/FloatingPanelsLayout.characterization.test.tsx` (113 tests)
 - `apps/client/src/layouts/__tests__/BottomPanelLayout.characterization.test.tsx` (78 tests)
 
 **Documentation:**
+
 - `docs/refactoring/MAINLAYOUT_DECISIONS.md` - Complete decision log
 - `docs/refactoring/PHASE2_COMPLETION.md` - Phase 2 analysis and completion report
 - `docs/refactoring/archive/MAINLAYOUT_HANDOFF.md` - Archived handoff document
@@ -113,17 +118,20 @@ MainLayout is a **pure composition component** (0 state, 0 logic, 110 props forw
 ### Technical Metrics
 
 **LOC Reduction:**
+
 - MainLayout.tsx: 795 → 364 LOC (-431 LOC, -54.2%)
 - Props interface: Relocated to dedicated file (376 LOC)
 - Handler logic: Relocated to custom hook (152 LOC)
 
 **Test Coverage:**
+
 - Characterization tests: 307 tests (46 + 70 + 113 + 78)
 - All client tests: 923 passing
 - Execution time: Fast (<2 seconds for all layout tests)
 - Coverage: 100% behavior preservation verified
 
 **Code Quality:**
+
 - TypeScript: Strict mode, no errors
 - Explicit prop passing: Clear data flow
 - React.memo: Performance optimization
@@ -133,6 +141,7 @@ MainLayout is a **pure composition component** (0 state, 0 logic, 110 props forw
 ### Key Achievement
 
 **MainLayout.tsx is now a clean composition component!** From a 795-line "god file" to a well-organized 364-line orchestrator with:
+
 - Clear separation of concerns (4 sub-layout components)
 - Explicit prop forwarding (110 props, type-safe)
 - Dedicated props interface file (reusable types)

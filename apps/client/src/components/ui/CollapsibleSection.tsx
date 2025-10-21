@@ -17,7 +17,7 @@
  * @module components/ui/CollapsibleSection
  */
 
-import React, { ReactNode } from 'react';
+import React, { ReactNode } from "react";
 
 /**
  * Props for CollapsibleSection component
@@ -45,19 +45,21 @@ export interface CollapsibleSectionProps {
  * @param props - Component props
  * @returns Collapsible container element
  */
-export const CollapsibleSection = React.memo(({ isCollapsed, children }: CollapsibleSectionProps) => {
-  return (
-    <div
-      style={{
-        maxHeight: isCollapsed ? "0" : "2000px",
-        opacity: isCollapsed ? 0 : 1,
-        overflow: "hidden",
-        transition: "max-height 150ms ease-in-out, opacity 150ms ease-in-out",
-      }}
-    >
-      {children}
-    </div>
-  );
-});
+export const CollapsibleSection = React.memo(
+  ({ isCollapsed, children }: CollapsibleSectionProps) => {
+    return (
+      <div
+        style={{
+          maxHeight: isCollapsed ? "0" : "2000px",
+          opacity: isCollapsed ? 0 : 1,
+          overflow: "hidden",
+          transition: "max-height 150ms ease-in-out, opacity 150ms ease-in-out",
+        }}
+      >
+        {children}
+      </div>
+    );
+  },
+);
 
-CollapsibleSection.displayName = 'CollapsibleSection';
+CollapsibleSection.displayName = "CollapsibleSection";

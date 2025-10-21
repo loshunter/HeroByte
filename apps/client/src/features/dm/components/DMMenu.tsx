@@ -158,11 +158,13 @@ const PropEditor = ({ prop, players, onUpdate, onDelete }: PropEditorProps) => {
     <JRPGPanel variant="simple" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
       <FormInput label="Label" value={label} onChange={setLabel} onBlur={handleLabelBlur} />
 
-      <FormInput label="Image URL" value={imageUrl} onChange={setImageUrl} onBlur={handleImageUrlBlur} />
-      <ImagePreview
-        src={imageUrl}
-        alt={`${prop.label} preview`}
+      <FormInput
+        label="Image URL"
+        value={imageUrl}
+        onChange={setImageUrl}
+        onBlur={handleImageUrlBlur}
       />
+      <ImagePreview src={imageUrl} alt={`${prop.label} preview`} />
 
       <label
         className="jrpg-text-small"
@@ -289,14 +291,33 @@ const NPCEditor = ({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) => {
 
       <div style={{ display: "flex", gap: "8px" }}>
         <div style={{ flex: 1 }}>
-          <FormInput label="HP" type="number" value={hpInput} onChange={setHpInput} onBlur={handleHpBlur} min={0} />
+          <FormInput
+            label="HP"
+            type="number"
+            value={hpInput}
+            onChange={setHpInput}
+            onBlur={handleHpBlur}
+            min={0}
+          />
         </div>
         <div style={{ flex: 1 }}>
-          <FormInput label="Max HP" type="number" value={maxHpInput} onChange={setMaxHpInput} onBlur={handleMaxHpBlur} min={1} />
+          <FormInput
+            label="Max HP"
+            type="number"
+            value={maxHpInput}
+            onChange={setMaxHpInput}
+            onBlur={handleMaxHpBlur}
+            min={1}
+          />
         </div>
       </div>
 
-      <FormInput label="Portrait URL" value={portrait} onChange={setPortrait} onBlur={handlePortraitBlur} />
+      <FormInput
+        label="Portrait URL"
+        value={portrait}
+        onChange={setPortrait}
+        onBlur={handlePortraitBlur}
+      />
       <ImagePreview
         src={portrait}
         alt={`${npc.name} portrait`}
@@ -305,11 +326,13 @@ const NPCEditor = ({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) => {
         showBorder={false}
       />
 
-      <FormInput label="Token Image URL" value={tokenImage} onChange={setTokenImage} onBlur={handleTokenImageBlur} />
-      <ImagePreview
-        src={tokenImage}
-        alt={`${npc.name} token preview`}
+      <FormInput
+        label="Token Image URL"
+        value={tokenImage}
+        onChange={setTokenImage}
+        onBlur={handleTokenImageBlur}
       />
+      <ImagePreview src={tokenImage} alt={`${npc.name} token preview`} />
 
       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
         <JRPGButton
