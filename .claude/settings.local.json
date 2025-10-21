@@ -101,7 +101,8 @@
       "Bash(npx prettier:*)",
       "Bash(pnpm --filter herobyte-client test:*)",
       "Bash(pnpm lint:*)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "Bash(pnpm --filter herobyte-client run --help)"
     ],
     "deny": [],
     "ask": []
