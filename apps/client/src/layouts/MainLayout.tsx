@@ -28,6 +28,7 @@ import { TopPanelLayout } from "./TopPanelLayout";
 import { CenterCanvasLayout } from "./CenterCanvasLayout";
 import { FloatingPanelsLayout } from "./FloatingPanelsLayout";
 import { BottomPanelLayout } from "./BottomPanelLayout";
+import { useEntityEditHandlers } from "../hooks/useEntityEditHandlers";
 
 // Re-export for backward compatibility
 export type { MainLayoutProps, RollLogEntry };
@@ -42,46 +43,6 @@ export type { MainLayoutProps, RollLogEntry };
  * unnecessary re-renders during drag operations.
  */
 export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps): JSX.Element {
-  // Extract complex inline handlers from EntitiesPanel for better readability
-  const {
-    editingHpUID,
-    editingMaxHpUID,
-    snapshot,
-    playerActions,
-    submitHpEdit,
-    submitMaxHpEdit,
-    submitNameEdit,
-  } = props;
-
-  const handleCharacterHpSubmit = React.useCallback(() => {
-    submitHpEdit((hp) => {
-      if (!editingHpUID) return;
-      const character = snapshot?.characters?.find((c) => c.id === editingHpUID);
-      if (!character) return;
-      playerActions.updateCharacterHP(character.id, hp, character.maxHp);
-    });
-  }, [submitHpEdit, editingHpUID, snapshot?.characters, playerActions]);
-
-  const handleCharacterMaxHpSubmit = React.useCallback(() => {
-    submitMaxHpEdit((maxHp) => {
-      if (!editingMaxHpUID) return;
-      const character = snapshot?.characters?.find((c) => c.id === editingMaxHpUID);
-      if (!character) return;
-      playerActions.updateCharacterHP(character.id, character.hp, maxHp);
-    });
-  }, [submitMaxHpEdit, editingMaxHpUID, snapshot?.characters, playerActions]);
-
-  const handlePortraitLoad = React.useCallback(() => {
-    const url = prompt("Enter image URL:");
-    if (url && url.trim()) {
-      playerActions.setPortrait(url.trim());
-    }
-  }, [playerActions]);
-
-  const handleNameSubmit = React.useCallback(() => {
-    submitNameEdit(playerActions.renamePlayer);
-  }, [submitNameEdit, playerActions.renamePlayer]);
-
   const {
     // Layout state
     topHeight,
@@ -123,6 +84,8 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     gridSize,
     gridSquareSize,
     isDM,
+    snapshot,
+    playerActions,
 
     // Camera
     cameraCommand,
@@ -139,6 +102,8 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
 
     // Editing
     editingPlayerUID,
+    editingHpUID,
+    editingMaxHpUID,
     nameInput,
     hpInput,
     maxHpInput,
@@ -148,6 +113,9 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     startHpEdit,
     updateMaxHpInput,
     startMaxHpEdit,
+    submitHpEdit,
+    submitMaxHpEdit,
+    submitNameEdit,
 
     // Selection
     selectedObjectId,
@@ -217,6 +185,22 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     // WebSocket
     sendMessage,
   } = props;
+
+  // Extract entity editing handlers to custom hook
+  const {
+    handleCharacterHpSubmit,
+    handleCharacterMaxHpSubmit,
+    handlePortraitLoad,
+    handleNameSubmit,
+  } = useEntityEditHandlers({
+    editingHpUID,
+    editingMaxHpUID,
+    snapshot,
+    submitHpEdit,
+    submitMaxHpEdit,
+    submitNameEdit,
+    playerActions,
+  });
 
   return (
     <div onClick={() => setContextMenu(null)} style={{ height: "100vh", overflow: "hidden" }}>
