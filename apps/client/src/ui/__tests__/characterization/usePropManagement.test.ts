@@ -28,9 +28,7 @@ describe("usePropManagement", () => {
         scale: 1.5,
       };
 
-      const { result } = renderHook(() =>
-        usePropManagement({ sendMessage, cameraState }),
-      );
+      const { result } = renderHook(() => usePropManagement({ sendMessage, cameraState }));
 
       result.current.handleCreateProp();
 
@@ -49,8 +47,8 @@ describe("usePropManagement", () => {
       const sendMessage = vi.fn();
       let cameraState: CameraState = { x: 0, y: 0, scale: 1 };
 
-      const { result, rerender } = renderHook(
-        () => usePropManagement({ sendMessage, cameraState }),
+      const { result, rerender } = renderHook(() =>
+        usePropManagement({ sendMessage, cameraState }),
       );
 
       // Update camera state
@@ -72,9 +70,7 @@ describe("usePropManagement", () => {
       const sendMessage = vi.fn();
       const cameraState: CameraState = { x: 0, y: 0, scale: 1 };
 
-      const { result } = renderHook(() =>
-        usePropManagement({ sendMessage, cameraState }),
-      );
+      const { result } = renderHook(() => usePropManagement({ sendMessage, cameraState }));
 
       result.current.handleUpdateProp("prop-123", {
         label: "Updated Prop",
@@ -98,9 +94,7 @@ describe("usePropManagement", () => {
       const sendMessage = vi.fn();
       const cameraState: CameraState = { x: 0, y: 0, scale: 1 };
 
-      const { result } = renderHook(() =>
-        usePropManagement({ sendMessage, cameraState }),
-      );
+      const { result } = renderHook(() => usePropManagement({ sendMessage, cameraState }));
 
       result.current.handleUpdateProp("prop-789", {
         label: "Unowned Prop",
@@ -120,9 +114,7 @@ describe("usePropManagement", () => {
       const sendMessage = vi.fn();
       const cameraState: CameraState = { x: 0, y: 0, scale: 1 };
 
-      const { result } = renderHook(() =>
-        usePropManagement({ sendMessage, cameraState }),
-      );
+      const { result } = renderHook(() => usePropManagement({ sendMessage, cameraState }));
 
       const sizes = ["tiny", "small", "medium", "large", "huge", "gargantuan"] as const;
 
@@ -135,9 +127,7 @@ describe("usePropManagement", () => {
           size,
         });
 
-        expect(sendMessage).toHaveBeenCalledWith(
-          expect.objectContaining({ size }),
-        );
+        expect(sendMessage).toHaveBeenCalledWith(expect.objectContaining({ size }));
       });
     });
   });
@@ -147,9 +137,7 @@ describe("usePropManagement", () => {
       const sendMessage = vi.fn();
       const cameraState: CameraState = { x: 0, y: 0, scale: 1 };
 
-      const { result } = renderHook(() =>
-        usePropManagement({ sendMessage, cameraState }),
-      );
+      const { result } = renderHook(() => usePropManagement({ sendMessage, cameraState }));
 
       result.current.handleDeleteProp("prop-to-delete");
 
@@ -164,9 +152,7 @@ describe("usePropManagement", () => {
       const sendMessage = vi.fn();
       const cameraState: CameraState = { x: 0, y: 0, scale: 1 };
 
-      const { result } = renderHook(() =>
-        usePropManagement({ sendMessage, cameraState }),
-      );
+      const { result } = renderHook(() => usePropManagement({ sendMessage, cameraState }));
 
       result.current.handleDeleteProp("prop-1");
       result.current.handleDeleteProp("prop-2");
@@ -184,8 +170,8 @@ describe("usePropManagement", () => {
       const sendMessage = vi.fn();
       const cameraState: CameraState = { x: 0, y: 0, scale: 1 };
 
-      const { result, rerender } = renderHook(
-        () => usePropManagement({ sendMessage, cameraState }),
+      const { result, rerender } = renderHook(() =>
+        usePropManagement({ sendMessage, cameraState }),
       );
 
       const firstRender = result.current;
@@ -201,8 +187,8 @@ describe("usePropManagement", () => {
       const sendMessage = vi.fn();
       let cameraState: CameraState = { x: 0, y: 0, scale: 1 };
 
-      const { result, rerender } = renderHook(
-        () => usePropManagement({ sendMessage, cameraState }),
+      const { result, rerender } = renderHook(() =>
+        usePropManagement({ sendMessage, cameraState }),
       );
 
       const firstCreate = result.current.handleCreateProp;

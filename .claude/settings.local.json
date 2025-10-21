@@ -85,7 +85,12 @@
       "Bash(gh run view:*)",
       "Bash(gh run watch:*)",
       "Bash(gh run list:*)",
-      "Bash(pnpm --filter herobyte-client tsc:*)"
+      "Bash(pnpm --filter herobyte-client tsc:*)",
+      "Bash(git -C /home/loshunter/HeroByte checkout -b refactor/app/use-npc-management)",
+      "Bash(git restore:*)",
+      "Bash(node:*)",
+      "Bash(ls:*)",
+      "Bash(npm test:*)"
     ],
     "deny": [],
     "ask": []
