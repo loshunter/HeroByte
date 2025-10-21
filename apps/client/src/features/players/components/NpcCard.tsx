@@ -181,7 +181,7 @@ export function NpcCard({
         isEditingHp={editingHp}
         hpInput={hpInput}
         onHpInputChange={setHpInput}
-        onHpEdit={(uid: string) => {
+        onHpEdit={(_uid: string) => {
           if (!canEdit) return;
           setEditingHp(true);
           setHpInput(String(character.hp));
