@@ -246,7 +246,8 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                     name: character.name,
                     hp: character.hp,
                     maxHp: character.maxHp,
-                    portrait: character.portrait,
+                    // Use player.portrait (set via PlayerSettingsMenu), fallback to character.portrait
+                    portrait: player.portrait ?? character.portrait,
                   };
 
                   return (
