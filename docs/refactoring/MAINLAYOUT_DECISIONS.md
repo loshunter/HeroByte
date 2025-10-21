@@ -436,12 +436,187 @@ export interface CenterCanvasLayoutProps {
 
 ## Extraction 3: FloatingPanelsLayout (Target: ~120 LOC, ~25-30 props)
 
-### Analysis Phase
+### Analysis Phase (Completed 2025-10-21)
 
-**Source:** MainLayout.tsx lines 681-792
-**Components:** DMMenu, ContextMenu, DiceRoller, RollLog, VisualEffects, Toast
+**Source:** MainLayout.tsx lines 650-785 (current numbering after 2 extractions)
+**Components:** DMMenu, ContextMenu, VisualEffects, DiceRoller (2 instances), RollLog, ToastContainer
 
-_[Pending]_
+**Agent:** Explore (medium thoroughness)
+**Status:** ✅ Complete
+
+**Key Findings:**
+- **Props Required:** ~45-50 props (HIGHER than initial estimate of 25-30)
+- **Components Rendered:** 7 components total
+- **Conditional Rendering:** 3 patterns (diceRollerOpen, rollLogOpen, viewingRoll)
+- **Inline Functions:** 8 inline arrow functions need preservation
+- **Complexity:** Medium-High (DMMenu dominates with 35+ props)
+- **Estimated Extracted LOC:** ~135 lines (higher than 120 target)
+
+**Component Breakdown:**
+1. **DMMenu** (lines 663-734): 72 props spread across grid, alignment, map, staging, NPCs, props, session, room password
+2. **ContextMenu** (line 737): 3 props (menu state, delete handler, close handler)
+3. **VisualEffects** (line 740): 1 prop (crtFilter)
+4. **DiceRoller** (line 743): 2 props (conditional on diceRollerOpen)
+5. **RollLog** (lines 746-764): 4 props with wrapper div styling (conditional on rollLogOpen)
+6. **DiceRoller (viewing)** (lines 767-771): 2 props with wrapper div (conditional on viewingRoll)
+7. **ToastContainer** (line 774): 2 props (toast object with messages and dismiss)
+
+**Special Considerations:**
+- DMMenu has extensive prop list requiring careful organization
+- 3 wrapper divs with inline fixed positioning styles need extraction
+- Multiple inline handlers need to remain in MainLayout, passed as props
+- viewingRoll creates second DiceRoller instance with different handlers
+
+### Interface Design Phase (Completed 2025-10-21)
+
+**Status:** ✅ Complete
+
+**Decision:** Use flat props interface with semantic grouping (established pattern)
+**Rationale:**
+- Maintains consistency with TopPanelLayout and CenterCanvasLayout
+- Explicit prop passing aids debugging and TypeScript autocomplete
+- Semantic grouping via comments keeps interface organized despite high prop count
+- Exception: Keep complex pre-existing types as objects (toast, camera, snapshot)
+
+**Final Interface Structure:**
+
+```typescript
+export interface FloatingPanelsLayoutProps {
+  // DM Status & Context Menu (4 props)
+  isDM: boolean;
+  contextMenu: ContextMenuState | null;
+  deleteToken: (id: string) => void;
+  setContextMenu: (menu: ContextMenuState | null) => void;
+
+  // Grid State & Handlers (5 props)
+  gridSize: number;
+  gridSquareSize: number;
+  gridLocked: boolean;
+  onGridSizeChange: (size: number) => void;
+  onGridSquareSizeChange: (size: number) => void;
+
+  // DM Mode & Controls (4 props)
+  onToggleDM: () => void;
+  onGridLockToggle: () => void;
+  onClearDrawings: () => void;
+  camera: { x: number; y: number; scale: number };
+
+  // Scene Objects & Map (8 props)
+  snapshot: RoomSnapshot | null;
+  mapSceneObject: SceneObject | null;
+  stagingZoneSceneObject: SceneObject | null;
+  onSetMapBackground: (url: string) => void;
+  toggleSceneObjectLock: (id: string) => void;
+  transformSceneObject: (id: string, transform: Transform) => void;
+  onSetPlayerStagingZone: (url: string) => void;
+
+  // Alignment Mode (5 props)
+  alignmentMode: boolean;
+  alignmentPoints: AlignmentPoint[];
+  alignmentSuggestion: AlignmentSuggestion | null;
+  alignmentError: string | null;
+  onAlignmentStart: () => void;
+  onAlignmentReset: () => void;
+  onAlignmentCancel: () => void;
+  onAlignmentApply: () => void;
+
+  // Session Management (2 props)
+  onRequestSaveSession: () => void;
+  onRequestLoadSession: () => void;
+
+  // NPC Management (4 props)
+  onCreateNPC: (npc: NPC) => void;
+  onUpdateNPC: (id: string, updates: Partial<NPC>) => void;
+  onDeleteNPC: (id: string) => void;
+  onPlaceNPCToken: (npcId: string) => void;
+
+  // Prop Management (3 props)
+  onCreateProp: (prop: Prop) => void;
+  onUpdateProp: (id: string, updates: Partial<Prop>) => void;
+  onDeleteProp: (id: string) => void;
+
+  // Room Password (3 props)
+  onSetRoomPassword: (password: string) => void;
+  roomPasswordStatus: PasswordStatus | null;
+  roomPasswordPending: boolean;
+  onDismissRoomPasswordStatus: () => void;
+
+  // Dice Roller (3 props)
+  diceRollerOpen: boolean;
+  toggleDiceRoller: (open: boolean) => void;
+  handleRoll: (roll: DiceRoll) => void;
+
+  // Roll Log (5 props)
+  rollLogOpen: boolean;
+  rollHistory: RollLogEntry[];
+  viewingRoll: RollLogEntry | null;
+  toggleRollLog: (open: boolean) => void;
+  handleClearLog: () => void;
+  handleViewRoll: (roll: RollLogEntry | null) => void;
+
+  // Visual Effects (1 prop)
+  crtFilter: boolean;
+
+  // Toast Messages (1 prop)
+  toast: { messages: ToastMessage[]; dismiss: (id: string) => void };
+}
+```
+
+**Total:** 51 props across 13 semantic groups
+**Estimated Interface LOC:** ~75 lines with JSDoc comments (under 80 target ✅)
+
+**Key Design Decisions:**
+1. **Kept complex objects:** `toast`, `camera`, `snapshot` remain as objects (pre-existing types)
+2. **Flattened handlers:** All handlers remain individual props for explicitness
+3. **Semantic grouping:** 13 logical groups to organize the 51 props
+4. **Inline handlers:** Will be preserved in integration (passed from MainLayout)
+
+**Props Count Justification:**
+- 51 props is high but manageable
+- DMMenu alone requires 35+ props due to its extensive functionality
+- Alternative (nested objects) would violate established pattern and reduce TypeScript benefits
+- Semantic grouping makes the large interface navigable
+
+**Next:** Write characterization tests with comprehensive coverage of all 7 components and conditional rendering
+
+### Characterization Tests Phase (Completed 2025-10-21)
+
+**Status:** ✅ Complete
+
+**Agent:** General-purpose
+**Test File:** `/home/loshunter/HeroByte/apps/client/src/layouts/__tests__/FloatingPanelsLayout.characterization.test.tsx`
+
+**Results:**
+- **Test Cases:** 113 tests created (exceeded 70-90 target ✅)
+- **LOC:** 2,376 lines
+- **Execution Time:** ~1,628ms
+- **Status:** ✅ All tests passing
+
+**Coverage:** DMMenu (43 tests), ContextMenu (5 tests), VisualEffects (4 tests), DiceRoller (8 tests), RollLog (11 tests), DiceRoller viewing (12 tests), ToastContainer (4 tests), Hierarchy (2 tests), Edge cases (24 tests)
+
+### Component Creation & Integration Phase (Completed 2025-10-21)
+
+**Status:** ✅ Complete
+
+**Component File:** `/home/loshunter/HeroByte/apps/client/src/layouts/FloatingPanelsLayout.tsx`
+- **Total LOC:** 299 (under 350 ✅)
+- **Props Interface LOC:** 72 (under 80 ✅)
+- **Props Count:** 52 across 13 semantic groups
+- **Features:** React.memo, JSDoc, pure presentation
+
+**Integration Results:**
+- **MainLayout LOC:** 777 → 715 (62 LOC reduction, 8.0%)
+- **Removed Imports:** DMMenu, ContextMenu, VisualEffects, DiceRoller, RollLog, ToastContainer
+- **All 113 Tests Passing:** ✅
+- **TypeScript Compilation:** ✅
+
+**Cumulative Progress:**
+- **Total Reduction:** 795 → 715 LOC (80 LOC, 10.1%)
+- **Extractions Complete:** 3 of 4
+- **Total Tests:** 229 (46 + 70 + 113) all passing
+- **Remaining:** Need 515 more LOC reduction (72%)
+
+**Next:** Begin Extraction 4 - BottomPanelLayout (MOST COMPLEX)
 
 ---
 

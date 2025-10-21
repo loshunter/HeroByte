@@ -37,15 +37,10 @@ import type { UseDrawingStateManagerReturn } from "../hooks/useDrawingStateManag
 import type { ToolMode } from "../components/layout/Header";
 import type { CameraCommand } from "../ui/MapBoard";
 import MapBoard from "../ui/MapBoard";
-import { DiceRoller } from "../components/dice/DiceRoller";
-import { RollLog } from "../components/dice/RollLog";
 import { EntitiesPanel } from "../components/layout/EntitiesPanel";
-import { VisualEffects } from "../components/effects/VisualEffects";
-import { DMMenu } from "../features/dm";
-import { ContextMenu } from "../components/ui/ContextMenu";
-import { ToastContainer } from "../components/ui/Toast";
 import { TopPanelLayout } from "./TopPanelLayout";
 import { CenterCanvasLayout } from "./CenterCanvasLayout";
+import { FloatingPanelsLayout } from "./FloatingPanelsLayout";
 
 // Type aliases for missing types
 type ContextMenuState = { x: number; y: number; tokenId: string } | null;
@@ -660,66 +655,29 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         bottomPanelRef={bottomPanelRef}
       />
 
-      <DMMenu
+      {/* Floating Panels - DM menu, context menu, visual effects, dice roller, roll log, toasts */}
+      <FloatingPanelsLayout
         isDM={isDM}
-        onToggleDM={handleToggleDM}
+        contextMenu={contextMenu}
+        deleteToken={deleteToken}
+        setContextMenu={setContextMenu}
         gridSize={gridSize}
         gridSquareSize={gridSquareSize}
         gridLocked={gridLocked}
-        onGridLockToggle={() => setGridLocked((prev) => !prev)}
         onGridSizeChange={setGridSize}
         onGridSquareSizeChange={setGridSquareSize}
+        onToggleDM={handleToggleDM}
+        onGridLockToggle={() => setGridLocked((prev) => !prev)}
         onClearDrawings={handleClearDrawings}
-        onSetMapBackground={setMapBackgroundURL}
-        mapBackground={snapshot?.mapBackground}
-        playerStagingZone={snapshot?.playerStagingZone}
-        onSetPlayerStagingZone={playerActions.setPlayerStagingZone}
         camera={camera}
-        playerCount={snapshot?.players?.length ?? 0}
-        characters={snapshot?.characters || []}
-        onRequestSaveSession={snapshot ? handleSaveSession : undefined}
-        onRequestLoadSession={undefined} // handleLoadSession is not exposed in the original render
-        onCreateNPC={handleCreateNPC}
-        onUpdateNPC={handleUpdateNPC}
-        onDeleteNPC={handleDeleteNPC}
-        onPlaceNPCToken={handlePlaceNPCToken}
-        props={snapshot?.props || []}
-        players={snapshot?.players || []}
-        onCreateProp={handleCreateProp}
-        onUpdateProp={handleUpdateProp}
-        onDeleteProp={handleDeleteProp}
-        mapLocked={mapSceneObject?.locked ?? true}
-        onMapLockToggle={() => {
-          if (mapSceneObject) {
-            toggleSceneObjectLock(mapSceneObject.id, !mapSceneObject.locked);
-          }
-        }}
-        stagingZoneLocked={stagingZoneSceneObject?.locked ?? false}
-        onStagingZoneLockToggle={() => {
-          if (stagingZoneSceneObject) {
-            toggleSceneObjectLock(stagingZoneSceneObject.id, !stagingZoneSceneObject.locked);
-          }
-        }}
-        mapTransform={
-          mapSceneObject?.transform ?? {
-            x: 0,
-            y: 0,
-            scaleX: 1,
-            scaleY: 1,
-            rotation: 0,
-          }
-        }
-        onMapTransformChange={(transform) => {
-          if (mapSceneObject) {
-            transformSceneObject({
-              id: mapSceneObject.id,
-              position: { x: transform.x, y: transform.y },
-              scale: { x: transform.scaleX, y: transform.scaleY },
-              rotation: transform.rotation,
-            });
-          }
-        }}
-        alignmentModeActive={alignmentMode}
+        snapshot={snapshot}
+        mapSceneObject={mapSceneObject}
+        stagingZoneSceneObject={stagingZoneSceneObject}
+        onSetMapBackground={setMapBackgroundURL}
+        toggleSceneObjectLock={toggleSceneObjectLock}
+        transformSceneObject={transformSceneObject}
+        onSetPlayerStagingZone={playerActions.setPlayerStagingZone}
+        alignmentMode={alignmentMode}
         alignmentPoints={alignmentPoints}
         alignmentSuggestion={alignmentSuggestion}
         alignmentError={alignmentError}
@@ -727,51 +685,31 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onAlignmentReset={handleAlignmentReset}
         onAlignmentCancel={handleAlignmentCancel}
         onAlignmentApply={handleAlignmentApply}
+        onRequestSaveSession={snapshot ? handleSaveSession : undefined}
+        onRequestLoadSession={undefined}
+        onCreateNPC={handleCreateNPC}
+        onUpdateNPC={handleUpdateNPC}
+        onDeleteNPC={handleDeleteNPC}
+        onPlaceNPCToken={handlePlaceNPCToken}
+        onCreateProp={handleCreateProp}
+        onUpdateProp={handleUpdateProp}
+        onDeleteProp={handleDeleteProp}
         onSetRoomPassword={handleSetRoomPassword}
         roomPasswordStatus={roomPasswordStatus}
         roomPasswordPending={roomPasswordPending}
         onDismissRoomPasswordStatus={dismissRoomPasswordStatus}
+        diceRollerOpen={diceRollerOpen}
+        toggleDiceRoller={toggleDiceRoller}
+        handleRoll={handleRoll}
+        rollLogOpen={rollLogOpen}
+        rollHistory={rollHistory}
+        viewingRoll={viewingRoll}
+        toggleRollLog={toggleRollLog}
+        handleClearLog={handleClearLog}
+        handleViewRoll={handleViewRoll}
+        crtFilter={crtFilter}
+        toast={toast}
       />
-
-      {/* Context Menu */}
-      <ContextMenu menu={contextMenu} onDelete={deleteToken} onClose={() => setContextMenu(null)} />
-
-      {/* Visual Effects (CRT Filter + Ambient Sparkles) */}
-      <VisualEffects crtFilter={crtFilter} />
-
-      {/* Dice Roller Panel */}
-      {diceRollerOpen && <DiceRoller onRoll={handleRoll} onClose={() => toggleDiceRoller(false)} />}
-
-      {/* Roll Log Panel */}
-      {rollLogOpen && (
-        <div
-          style={{
-            position: "fixed",
-            right: 20,
-            top: 200,
-            width: 350,
-            height: 500,
-            zIndex: 1000,
-          }}
-        >
-          <RollLog
-            rolls={rollHistory}
-            onClearLog={handleClearLog}
-            onViewRoll={(roll) => handleViewRoll(roll)}
-            onClose={() => toggleRollLog(false)}
-          />
-        </div>
-      )}
-
-      {/* Viewing roll from log */}
-      {viewingRoll && (
-        <div style={{ position: "fixed", zIndex: 2000 }}>
-          <DiceRoller onRoll={() => {}} onClose={() => handleViewRoll(null)} />
-        </div>
-      )}
-
-      {/* Toast Notifications */}
-      <ToastContainer messages={toast.messages} onDismiss={toast.dismiss} />
     </div>
   );
 });
