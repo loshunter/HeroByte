@@ -277,7 +277,7 @@ _Shared planning brief with Phase 19: `docs/planning/phase19-20-briefing.md`._
 
 **Goal**: Break down remaining oversized "god files", restore SRP/SoC boundaries, and pair each change with forward-looking tests.
 
-**Status**: App.tsx refactoring COMPLETE (see [DONE.md](DONE.md)). Remaining targets below.
+**Status**: App.tsx and MainLayout.tsx refactoring COMPLETE (see [DONE.md](DONE.md)). Remaining targets below.
 
 ### Remaining Refactoring Targets
 
