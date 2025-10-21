@@ -15,7 +15,19 @@
  */
 
 import { useCallback } from "react";
-import type { CameraState, ClientMessage, TokenSize } from "@shared";
+import type { ClientMessage, TokenSize } from "@shared";
+
+/**
+ * Camera state for viewport-based positioning.
+ */
+export interface CameraState {
+  /** X position of the camera */
+  x: number;
+  /** Y position of the camera */
+  y: number;
+  /** Zoom scale of the camera */
+  scale: number;
+}
 
 /**
  * Dependencies required by the usePropManagement hook.

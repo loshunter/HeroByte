@@ -15,8 +15,10 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
-import { usePropManagement } from "../../../hooks/usePropManagement";
-import type { CameraState } from "@shared";
+import {
+  usePropManagement,
+  type CameraState,
+} from "../../../hooks/usePropManagement";
 
 describe("usePropManagement", () => {
   describe("handleCreateProp", () => {
