@@ -39,15 +39,13 @@ import type { CameraCommand } from "../ui/MapBoard";
 import MapBoard from "../ui/MapBoard";
 import { DiceRoller } from "../components/dice/DiceRoller";
 import { RollLog } from "../components/dice/RollLog";
-import { DrawingToolbar } from "../features/drawing/components";
-import { Header } from "../components/layout/Header";
 import { EntitiesPanel } from "../components/layout/EntitiesPanel";
 import { VisualEffects } from "../components/effects/VisualEffects";
-import { ServerStatus } from "../components/layout/ServerStatus";
-import { MultiSelectToolbar } from "../components/layout/MultiSelectToolbar";
 import { DMMenu } from "../features/dm";
 import { ContextMenu } from "../components/ui/ContextMenu";
 import { ToastContainer } from "../components/ui/Toast";
+import { TopPanelLayout } from "./TopPanelLayout";
+import { CenterCanvasLayout } from "./CenterCanvasLayout";
 
 // Type aliases for missing types
 type ContextMenuState = { x: number; y: number; tokenId: string } | null;
@@ -540,78 +538,62 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
 
   return (
     <div onClick={() => setContextMenu(null)} style={{ height: "100vh", overflow: "hidden" }}>
-      {/* Server Status Banner */}
-      <ServerStatus isConnected={isConnected} />
-
-      {/* Drawing Toolbar - Fixed on left side when draw mode is active */}
-      {drawMode && <DrawingToolbar {...drawingToolbarProps} />}
-
-      {/* Header - Fixed at top */}
-      <Header
+      {/* Top Panel - Server status, drawing toolbar, header, and multi-select toolbar */}
+      <TopPanelLayout
+        isConnected={isConnected}
+        drawMode={drawMode}
+        drawingToolbarProps={drawingToolbarProps}
         uid={uid}
-        snapToGrid={snapToGrid}
         activeTool={activeTool}
+        setActiveTool={setActiveTool}
+        snapToGrid={snapToGrid}
+        setSnapToGrid={setSnapToGrid}
         crtFilter={crtFilter}
+        setCrtFilter={setCrtFilter}
         diceRollerOpen={diceRollerOpen}
         rollLogOpen={rollLogOpen}
-        onSnapToGridChange={setSnapToGrid}
-        onToolSelect={setActiveTool}
-        onCrtFilterChange={setCrtFilter}
-        onDiceRollerToggle={toggleDiceRoller}
-        onRollLogToggle={toggleRollLog}
+        toggleDiceRoller={toggleDiceRoller}
+        toggleRollLog={toggleRollLog}
+        handleFocusSelf={handleFocusSelf}
+        handleResetCamera={handleResetCamera}
         topPanelRef={topPanelRef}
-        onFocusSelf={handleFocusSelf}
-        onResetCamera={handleResetCamera}
-      />
-
-      {/* Multi-select toolbar - shows when multiple objects are selected and user is DM */}
-      <MultiSelectToolbar
+        topHeight={topHeight}
         selectedObjectIds={selectedObjectIds}
         isDM={isDM}
-        topHeight={topHeight}
-        onLock={lockSelected}
-        onUnlock={unlockSelected}
+        lockSelected={lockSelected}
+        unlockSelected={unlockSelected}
       />
 
-      {/* Main Whiteboard Panel - fills space between fixed top and bottom */}
-      <div
-        style={{
-          position: "fixed",
-          top: `${topHeight}px`,
-          bottom: `${bottomHeight}px`,
-          left: 0,
-          right: 0,
-          overflow: "hidden",
-        }}
-      >
-        <MapBoard
-          snapshot={snapshot}
-          sendMessage={sendMessage}
-          uid={uid}
-          gridSize={gridSize}
-          snapToGrid={snapToGrid}
-          pointerMode={pointerMode}
-          measureMode={measureMode}
-          drawMode={drawMode}
-          transformMode={transformMode}
-          selectMode={selectMode}
-          isDM={isDM}
-          alignmentMode={alignmentMode}
-          alignmentPoints={alignmentPoints}
-          alignmentSuggestion={alignmentSuggestion}
-          onAlignmentPointCapture={handleAlignmentPointCapture}
-          {...drawingProps}
-          onRecolorToken={recolorToken}
-          onTransformObject={transformSceneObject}
-          cameraCommand={cameraCommand}
-          onCameraCommandHandled={handleCameraCommandHandled}
-          onCameraChange={setCameraState}
-          selectedObjectId={selectedObjectId}
-          selectedObjectIds={selectedObjectIds}
-          onSelectObject={handleObjectSelection}
-          onSelectObjects={handleObjectSelectionBatch}
-        />
-      </div>
+      {/* Center Canvas - MapBoard with dynamic top/bottom spacing */}
+      <CenterCanvasLayout
+        topHeight={topHeight}
+        bottomHeight={bottomHeight}
+        snapshot={snapshot}
+        uid={uid}
+        gridSize={gridSize}
+        snapToGrid={snapToGrid}
+        isDM={isDM}
+        pointerMode={pointerMode}
+        measureMode={measureMode}
+        drawMode={drawMode}
+        transformMode={transformMode}
+        selectMode={selectMode}
+        alignmentMode={alignmentMode}
+        selectedObjectId={selectedObjectId}
+        selectedObjectIds={selectedObjectIds}
+        onSelectObject={handleObjectSelection}
+        onSelectObjects={handleObjectSelectionBatch}
+        cameraCommand={cameraCommand}
+        onCameraCommandHandled={handleCameraCommandHandled}
+        onCameraChange={setCameraState}
+        alignmentPoints={alignmentPoints}
+        alignmentSuggestion={alignmentSuggestion}
+        onAlignmentPointCapture={handleAlignmentPointCapture}
+        onRecolorToken={recolorToken}
+        onTransformObject={transformSceneObject}
+        drawingProps={drawingProps}
+        sendMessage={sendMessage}
+      />
 
       {/* Entities HUD - Fixed at bottom */}
       <EntitiesPanel
