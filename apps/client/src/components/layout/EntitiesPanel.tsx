@@ -29,7 +29,12 @@ interface EntitiesPanelProps {
   onCharacterNameUpdate: (characterId: string, name: string) => void;
   onPortraitLoad: () => void;
   onToggleMic: () => void;
-  onHpChange: (hp: number, maxHp: number) => void;
+  onCharacterHpChange: (characterId: string, hp: number, maxHp: number) => void;
+  editingHpUID: string | null;
+  hpInput: string;
+  onHpInputChange: (value: string) => void;
+  onHpEdit: (uid: string, currentHp: number) => void;
+  onHpSubmit: () => void;
   onMaxHpInputChange: (value: string) => void;
   onMaxHpEdit: (uid: string, currentMaxHp: number) => void;
   onMaxHpSubmit: () => void;
@@ -69,7 +74,12 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   onCharacterNameUpdate,
   onPortraitLoad,
   onToggleMic,
-  onHpChange,
+  onCharacterHpChange,
+  editingHpUID,
+  hpInput,
+  onHpInputChange,
+  onHpEdit,
+  onHpSubmit,
   onMaxHpInputChange,
   onMaxHpEdit,
   onMaxHpSubmit,
@@ -290,7 +300,12 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                         }}
                         onPortraitLoad={onPortraitLoad}
                         onToggleMic={onToggleMic}
-                        onHpChange={(hp) => onHpChange(hp, displayPlayer.maxHp ?? 100)}
+                        onHpChange={(hp) => onCharacterHpChange(character.id, hp, displayPlayer.maxHp ?? 100)}
+                        editingHpUID={editingHpUID}
+                        hpInput={hpInput}
+                        onHpInputChange={onHpInputChange}
+                        onHpEdit={onHpEdit}
+                        onHpSubmit={onHpSubmit}
                         editingMaxHpUID={editingMaxHpUID}
                         maxHpInput={maxHpInput}
                         onMaxHpInputChange={onMaxHpInputChange}

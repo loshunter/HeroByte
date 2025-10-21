@@ -100,6 +100,15 @@ export interface UsePlayerActionsReturn {
   updateCharacterName: (characterId: string, name: string) => void;
 
   /**
+   * Update a character's hit points.
+   *
+   * @param characterId - ID of the character to update
+   * @param hp - Current hit points
+   * @param maxHp - Maximum hit points
+   */
+  updateCharacterHP: (characterId: string, hp: number, maxHp: number) => void;
+
+  /**
    * Apply a complete player state snapshot, including:
    * - Name, HP, portrait, status effects
    * - Token color, image, size, transform
@@ -254,6 +263,16 @@ export function usePlayerActions({
   );
 
   /**
+   * Update a character's HP values.
+   */
+  const updateCharacterHP = useCallback(
+    (characterId: string, hp: number, maxHp: number) => {
+      sendMessage({ t: "update-character-hp", characterId, hp, maxHp });
+    },
+    [sendMessage],
+  );
+
+  /**
    * Apply a complete player state snapshot.
    *
    * This function orchestrates multiple WebSocket messages to synchronize
@@ -368,6 +387,7 @@ export function usePlayerActions({
       addCharacter,
       deleteCharacter,
       updateCharacterName,
+      updateCharacterHP,
       applyPlayerState,
       setPlayerStagingZone,
     }),
@@ -379,6 +399,7 @@ export function usePlayerActions({
       addCharacter,
       deleteCharacter,
       updateCharacterName,
+      updateCharacterHP,
       applyPlayerState,
       setPlayerStagingZone,
     ],

@@ -8,11 +8,16 @@ import { useState, useCallback } from "react";
 interface UsePlayerEditingReturn {
   editingPlayerUID: string | null;
   nameInput: string;
+  editingHpUID: string | null;
+  hpInput: string;
   editingMaxHpUID: string | null;
   maxHpInput: string;
   startNameEdit: (uid: string, currentName: string) => void;
   updateNameInput: (name: string) => void;
   submitNameEdit: (onSubmit: (name: string) => void) => void;
+  startHpEdit: (uid: string, currentHp: number) => void;
+  updateHpInput: (hp: string) => void;
+  submitHpEdit: (onSubmit: (hp: number) => void) => void;
   startMaxHpEdit: (uid: string, currentMaxHp: number) => void;
   updateMaxHpInput: (maxHp: string) => void;
   submitMaxHpEdit: (onSubmit: (maxHp: number) => void) => void;
@@ -37,6 +42,10 @@ export function usePlayerEditing(): UsePlayerEditingReturn {
   const [editingPlayerUID, setEditingPlayerUID] = useState<string | null>(null);
   const [nameInput, setNameInput] = useState("");
 
+  // Current HP editing
+  const [editingHpUID, setEditingHpUID] = useState<string | null>(null);
+  const [hpInput, setHpInput] = useState("");
+
   // Max HP editing
   const [editingMaxHpUID, setEditingMaxHpUID] = useState<string | null>(null);
   const [maxHpInput, setMaxHpInput] = useState("");
@@ -59,6 +68,27 @@ export function usePlayerEditing(): UsePlayerEditingReturn {
       setNameInput("");
     },
     [nameInput],
+  );
+
+  const startHpEdit = useCallback((uid: string, currentHp: number) => {
+    setEditingHpUID(uid);
+    setHpInput(String(currentHp));
+  }, []);
+
+  const updateHpInput = useCallback((hp: string) => {
+    setHpInput(hp);
+  }, []);
+
+  const submitHpEdit = useCallback(
+    (onSubmit: (hp: number) => void) => {
+      const parsed = parseInt(hpInput, 10);
+      if (!isNaN(parsed) && parsed >= 0) {
+        onSubmit(parsed);
+      }
+      setEditingHpUID(null);
+      setHpInput("");
+    },
+    [hpInput],
   );
 
   const startMaxHpEdit = useCallback((uid: string, currentMaxHp: number) => {
@@ -85,11 +115,16 @@ export function usePlayerEditing(): UsePlayerEditingReturn {
   return {
     editingPlayerUID,
     nameInput,
+    editingHpUID,
+    hpInput,
     editingMaxHpUID,
     maxHpInput,
     startNameEdit,
     updateNameInput,
     submitNameEdit,
+    startHpEdit,
+    updateHpInput,
+    submitHpEdit,
     startMaxHpEdit,
     updateMaxHpInput,
     submitMaxHpEdit,

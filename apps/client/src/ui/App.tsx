@@ -142,11 +142,16 @@ function AuthenticatedApp({
   const {
     editingPlayerUID,
     nameInput,
+    editingHpUID,
+    hpInput,
     editingMaxHpUID,
     maxHpInput,
     startNameEdit,
     updateNameInput,
     submitNameEdit,
+    startHpEdit,
+    updateHpInput,
+    submitHpEdit,
     startMaxHpEdit,
     updateMaxHpInput,
     submitMaxHpEdit,
@@ -421,14 +426,24 @@ function AuthenticatedApp({
     [snapshot?.players, startNameEdit],
   );
 
+  // Wrap startHpEdit to match MainLayout's signature (uid only, no currentHp)
+  const handleStartHpEdit = useCallback(
+    (uid: string) => {
+      const character = snapshot?.characters?.find((c) => c.id === uid);
+      const currentHp = character?.hp || 0;
+      startHpEdit(uid, currentHp);
+    },
+    [snapshot?.characters, startHpEdit],
+  );
+
   // Wrap startMaxHpEdit to match MainLayout's signature (uid only, no currentMaxHp)
   const handleStartMaxHpEdit = useCallback(
     (uid: string) => {
-      const player = snapshot?.players?.find((p) => p.uid === uid);
-      const currentMaxHp = player?.maxHp || 0;
+      const character = snapshot?.characters?.find((c) => c.id === uid);
+      const currentMaxHp = character?.maxHp || 0;
       startMaxHpEdit(uid, currentMaxHp);
     },
-    [snapshot?.players, startMaxHpEdit],
+    [snapshot?.characters, startMaxHpEdit],
   );
 
   // Transform mapSceneObject to extract only needed properties
@@ -538,11 +553,16 @@ function AuthenticatedApp({
       // Editing
       editingPlayerUID={editingPlayerUID}
       nameInput={nameInput}
+      editingHpUID={editingHpUID}
+      hpInput={hpInput}
       editingMaxHpUID={editingMaxHpUID}
       maxHpInput={maxHpInput}
       updateNameInput={updateNameInput}
       startNameEdit={handleStartNameEdit}
       submitNameEdit={submitNameEdit}
+      updateHpInput={updateHpInput}
+      startHpEdit={handleStartHpEdit}
+      submitHpEdit={submitHpEdit}
       updateMaxHpInput={updateMaxHpInput}
       startMaxHpEdit={handleStartMaxHpEdit}
       submitMaxHpEdit={submitMaxHpEdit}

@@ -30,6 +30,11 @@ export interface PlayerCardProps {
   onPortraitLoad: () => void;
   onToggleMic: () => void;
   onHpChange: (hp: number) => void;
+  editingHpUID: string | null;
+  hpInput: string;
+  onHpInputChange: (hp: string) => void;
+  onHpEdit: (uid: string, hp: number) => void;
+  onHpSubmit: (hp: string) => void;
   editingMaxHpUID: string | null;
   maxHpInput: string;
   onMaxHpInputChange: (maxHp: string) => void;
@@ -70,6 +75,11 @@ export const PlayerCard = memo<PlayerCardProps>(
     onPortraitLoad,
     onToggleMic,
     onHpChange,
+    editingHpUID,
+    hpInput,
+    onHpInputChange,
+    onHpEdit,
+    onHpSubmit,
     editingMaxHpUID,
     maxHpInput,
     onMaxHpInputChange,
@@ -92,7 +102,8 @@ export const PlayerCard = memo<PlayerCardProps>(
     onDeleteCharacter,
   }) => {
     const editing = editingPlayerUID === player.uid;
-    const editingMaxHp = editingMaxHpUID === player.uid;
+    const editingHp = editingHpUID === (characterId ?? player.uid);
+    const editingMaxHp = editingMaxHpUID === (characterId ?? player.uid);
     const [tokenImageInput, setTokenImageInput] = useState(tokenImageUrl ?? "");
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [statusOption, setStatusOption] = useState<StatusOption | null>(null);
@@ -246,11 +257,15 @@ export const PlayerCard = memo<PlayerCardProps>(
           hp={player.hp ?? 100}
           maxHp={player.maxHp ?? 100}
           isMe={isMe}
+          isEditingHp={editingHp}
+          hpInput={hpInput}
           isEditingMaxHp={editingMaxHp}
           maxHpInput={maxHpInput}
-          playerUid={player.uid}
+          playerUid={characterId ?? player.uid}
           onHpChange={onHpChange}
-          onHpSet={onHpChange}
+          onHpInputChange={onHpInputChange}
+          onHpEdit={onHpEdit}
+          onHpSubmit={onHpSubmit}
           onMaxHpInputChange={onMaxHpInputChange}
           onMaxHpEdit={onMaxHpEdit}
           onMaxHpSubmit={onMaxHpSubmit}

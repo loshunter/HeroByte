@@ -189,7 +189,11 @@ export interface MainLayoutProps {
   editingPlayerUID: string | null;
   /** Current name input value */
   nameInput: string;
-  /** UID of player whose max HP is being edited */
+  /** UID of character whose current HP is being edited */
+  editingHpUID: string | null;
+  /** Current HP input value */
+  hpInput: string;
+  /** UID of character whose max HP is being edited */
   editingMaxHpUID: string | null;
   /** Current max HP input value */
   maxHpInput: string;
@@ -199,6 +203,12 @@ export interface MainLayoutProps {
   startNameEdit: (uid: string) => void;
   /** Handler to submit name edit */
   submitNameEdit: (callback: (name: string) => void) => void;
+  /** Handler to update current HP input */
+  updateHpInput: (value: string) => void;
+  /** Handler to start current HP edit */
+  startHpEdit: (uid: string) => void;
+  /** Handler to submit current HP edit */
+  submitHpEdit: (callback: (hp: number) => void) => void;
   /** Handler to update max HP input */
   updateMaxHpInput: (value: string) => void;
   /** Handler to start max HP edit */
@@ -236,6 +246,7 @@ export interface MainLayoutProps {
     addCharacter: (name: string) => void;
     deleteCharacter: (id: string) => void;
     updateCharacterName: (id: string, name: string) => void;
+    updateCharacterHP: (characterId: string, hp: number, maxHp: number) => void;
   };
 
   // -------------------------------------------------------------------------
@@ -441,11 +452,16 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     // Editing
     editingPlayerUID,
     nameInput,
+    editingHpUID,
+    hpInput,
     editingMaxHpUID,
     maxHpInput,
     updateNameInput,
     startNameEdit,
     submitNameEdit,
+    updateHpInput,
+    startHpEdit,
+    submitHpEdit,
     updateMaxHpInput,
     startMaxHpEdit,
     submitMaxHpEdit,
@@ -620,13 +636,28 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
           }
         }}
         onToggleMic={toggleMic}
-        onHpChange={(hp, maxHp) => playerActions.setHP(hp, maxHp)}
+        onCharacterHpChange={(characterId, hp, maxHp) => playerActions.updateCharacterHP(characterId, hp, maxHp)}
+        editingHpUID={editingHpUID}
+        hpInput={hpInput}
+        onHpInputChange={updateHpInput}
+        onHpEdit={startHpEdit}
+        onHpSubmit={() =>
+          submitHpEdit((hp) => {
+            if (!editingHpUID) return;
+            const character = snapshot?.characters?.find((c) => c.id === editingHpUID);
+            if (!character) return;
+            playerActions.updateCharacterHP(character.id, hp, character.maxHp);
+          })
+        }
         onMaxHpInputChange={updateMaxHpInput}
         onMaxHpEdit={startMaxHpEdit}
         onMaxHpSubmit={() =>
-          submitMaxHpEdit((maxHp) =>
-            playerActions.setHP(snapshot?.players?.find((p) => p.uid === uid)?.hp ?? 100, maxHp),
-          )
+          submitMaxHpEdit((maxHp) => {
+            if (!editingMaxHpUID) return;
+            const character = snapshot?.characters?.find((c) => c.id === editingMaxHpUID);
+            if (!character) return;
+            playerActions.updateCharacterHP(character.id, character.hp, maxHp);
+          })
         }
         currentIsDM={isDM}
         onToggleDMMode={handleToggleDM}
