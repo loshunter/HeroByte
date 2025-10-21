@@ -12,10 +12,10 @@ This roadmap provides a systematic plan to refactor the three largest files in t
 
 | File | Current LOC | Target LOC | Reduction | Complexity Clusters | Est. Effort | Status |
 |------|-------------|------------|-----------|---------------------|-------------|--------|
-| **App.tsx** | 1,850 → 958 | 300 | 84% | 27 clusters | 8-10 weeks | Phase 1: ✅ COMPLETE (9/9), Phase 4: ✅ COMPLETE (2/2) |
+| **App.tsx** | 1,850 → 901 | 300 | 84% | 27 clusters | 8-10 weeks | Phase 1: ✅ COMPLETE (9/9), Phase 4: ✅ COMPLETE (7/7) |
 | **DMMenu.tsx** | 1,588 | 350 | 78% | 20 clusters | 6-8 weeks | Not started |
 | **MapBoard.tsx** | 1,041 | 400 | 62% | 32 clusters | 6-8 weeks | Not started |
-| **Total** | **4,479** → **3,587** | **1,050** | **77%** | **79 clusters** | **20-26 weeks** | **892 LOC reduced** |
+| **Total** | **4,479** → **3,530** | **1,050** | **77%** | **79 clusters** | **20-26 weeks** | **949 LOC reduced** |
 
 **Phase 1 Milestone Achieved:** 2025-10-20
 - 9 extractions completed from App.tsx
@@ -23,10 +23,11 @@ This roadmap provides a systematic plan to refactor the three largest files in t
 - All branches pushed and ready for PR review
 
 **Phase 4 Milestone Achieved:** 2025-10-20
-- 2 active extractions completed from App.tsx (P18, P19)
-- 1 priority already extracted (P17 - completed prior to Phase 4)
-- 65 LOC reduction (P18: -25 LOC, P19: -37 LOC, P17: pre-existing)
-- 48 new tests added (100% pass rate)
+- 7 priorities completed (P17-P23)
+- 2 priorities pre-existing (P17: AuthenticationGate, P21: usePlayerActions)
+- 5 active extractions completed (P18-P20, P22-P23)
+- 123 LOC reduction from active extractions (P18: -25, P19: -37, P20: -30, P22: -6, P23: -25)
+- 48 new tests added (361 → 409 total, 100% pass rate)
 - All changes merged to dev branch
 
 ---
@@ -83,10 +84,10 @@ This roadmap provides a systematic plan to refactor the three largest files in t
 
 ### Current Status
 - **Starting LOC:** 1,850
-- **Current LOC:** 958 (after Phase 4)
-- **Reduction So Far:** 892 LOC (48.2%)
+- **Current LOC:** 901 (after Phase 4)
+- **Reduction So Far:** 949 LOC (51.3%)
 - **Phase 1 Status:** ✅ COMPLETE (9/9 priorities) - Completed 2025-10-20
-- **Phase 4 Status:** ✅ COMPLETE (2/2 active priorities) - Completed 2025-10-20
+- **Phase 4 Status:** ✅ COMPLETE (7/7 priorities) - Completed 2025-10-20
 - **Next Phase:** Phase 5 (High-Complexity Orchestration)
 
 ### Complexity Profile
@@ -155,16 +156,18 @@ This roadmap provides a systematic plan to refactor the three largest files in t
 
 | Priority | Module | LOC | Actual LOC | Target Path | Status |
 |----------|--------|-----|------------|-------------|--------|
-| 17 | `useAuthenticationFlow` | 90 | Pre-existing | `/features/auth/AuthenticationGate.tsx` | ✅ COMPLETE (extracted prior to Phase 4) |
+| 17 | `useAuthenticationFlow` | 90 | Pre-existing | `/features/auth/AuthenticationGate.tsx` | ✅ COMPLETE (extracted in Phase 1) |
 | 18 | `useServerEventHandlers` | 50 | -25 | `/hooks/useServerEventHandlers.ts` | ✅ COMPLETE |
 | 19 | `useNPCManagement` | 70 | -37 | `/hooks/useNpcManagement.ts` | ✅ COMPLETE |
-| 20 | `usePropManagement` | 80 | TBD | `/features/props/usePropManagement.ts` | Not started |
-| 21 | `useCharacterManagement` | 90 | TBD | `/features/characters/useCharacterManagement.ts` | Not started |
-| 22 | `useRoomPasswordManagement` | 70 | TBD | `/features/room/useRoomPasswordManagement.ts` | Not started |
-| 23 | `useDMManagement` | 80 | TBD | `/features/dm/useDMManagement.ts` | Not started |
+| 20 | `usePropManagement` | 80 | -30 | `/hooks/usePropManagement.ts` | ✅ COMPLETE |
+| 21 | `usePlayerActions` | 90 | Pre-existing | `/hooks/usePlayerActions.ts` | ✅ COMPLETE (extracted in Phase 2) |
+| 22 | `useRoomPasswordManagement` | 70 | -6 | `/hooks/useRoomPasswordManagement.ts` | ✅ COMPLETE |
+| 23 | `useDMManagement` | 80 | -25 | `/hooks/useDMManagement.ts` | ✅ COMPLETE |
 
-**Phase 4 Reduction (P17-P19):** ~65 LOC actual (1,023 → 958)
-**Note:** Priority 17 was already extracted in Phase 1 as AuthenticationGate (-337 LOC). Priorities 18-19 extracted in Phase 4.
+**Phase 4 Reduction:** 123 LOC from active extractions (1,023 → 901)
+**Active Extractions (P18-P20, P22-P23):** -123 LOC
+**Pre-existing (P17, P21):** Extracted in earlier phases
+**Note:** Priority 17 (AuthenticationGate, -337 LOC) was completed in Phase 1. Priority 21 (usePlayerActions) was extracted in Phase 2.
 
 #### Phase 5: High-Complexity Orchestration (3 weeks)
 **Goal:** Extract complex multi-step workflows
@@ -503,11 +506,11 @@ apps/client/src/
 
 **Progress So Far:**
 - [x] ✅ **App.tsx Phase 1:** 1,850 LOC → ~1,303 LOC (29.6% reduction, 547 LOC)
-- [x] ✅ **App.tsx Phase 4:** 1,023 LOC → 958 LOC (6.4% reduction, 65 LOC)
-- [ ] App.tsx Phases 2-3, 5-7: 958 LOC → 300 LOC (remaining 36.7% reduction)
+- [x] ✅ **App.tsx Phase 4:** 1,023 LOC → 901 LOC (11.9% reduction, 123 LOC from active extractions)
+- [ ] App.tsx Phases 2-3, 5-7: 901 LOC → 300 LOC (remaining 32.5% reduction)
 - [ ] DMMenu.tsx: 1,588 LOC → 350 LOC (78% reduction)
 - [ ] MapBoard.tsx: 1,041 LOC → 400 LOC (62% reduction)
-- [x] ✅ **Current Total:** 4,479 LOC → 3,587 LOC (892 LOC reduced, 26.0% of overall goal)
+- [x] ✅ **Current Total:** 4,479 LOC → 3,530 LOC (949 LOC reduced, 27.7% of overall goal)
 - [ ] **Final Goal:** 4,479 LOC → 1,050 LOC (77% reduction)
 
 **Quality Metrics (Phases 1 & 4):**
@@ -516,7 +519,7 @@ apps/client/src/
 - [x] ✅ All CI checks passing after each extraction
 - [x] ✅ All characterization tests written and passing
 - [x] ✅ No behavioral regressions detected
-- [x] ✅ Phase 4: 48 new tests added (365 total, 100% pass rate)
+- [x] ✅ Phase 4: 48 new tests added (361 → 409 total, 100% pass rate)
 
 ### Qualitative
 
@@ -587,7 +590,7 @@ apps/client/src/
 
 **Last Updated:** 2025-10-20 (Phases 1 & 4 Complete)
 **Phase 1 Completed:** 2025-10-20 - App.tsx 9/9 extractions, 547 LOC reduction
-**Phase 4 Completed:** 2025-10-20 - App.tsx 2/2 active extractions, 65 LOC reduction
+**Phase 4 Completed:** 2025-10-20 - App.tsx 7/7 priorities (5 active extractions), 123 LOC reduction
 **Maintained By:** Engineering Team
 **Related Documents:**
 - [TODO.md Phase 15](/TODO.md#phase-15-solid-refactor-initiative-future)
