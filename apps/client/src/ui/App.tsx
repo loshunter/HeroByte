@@ -9,10 +9,7 @@
 // - Tool modes (pointer, measure, draw)
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import MapBoard from "./MapBoard";
 import type { Camera } from "../hooks/useCamera";
-import { DiceRoller } from "../components/dice/DiceRoller";
-import { RollLog } from "../components/dice/RollLog";
 import type { RoomSnapshot, ClientMessage, ServerMessage } from "@shared";
 import { WS_URL } from "../config";
 import { useWebSocket } from "../hooks/useWebSocket";
@@ -24,22 +21,13 @@ import { useToolMode } from "../hooks/useToolMode";
 import { useCameraCommands } from "../hooks/useCameraCommands";
 import { useSceneObjectActions } from "../hooks/useSceneObjectActions";
 import { useSelectionManager } from "../features/selection";
-import { DMMenu } from "../features/dm";
 import { getSessionUID } from "../utils/session";
 import { useSessionManagement } from "../features/session";
-import { DrawingToolbar } from "../features/drawing/components";
-import { Header } from "../components/layout/Header";
-import { EntitiesPanel } from "../components/layout/EntitiesPanel";
-import { VisualEffects } from "../components/effects/VisualEffects";
-import { ServerStatus } from "../components/layout/ServerStatus";
-import { MultiSelectToolbar } from "../components/layout/MultiSelectToolbar";
 import { AuthState } from "../services/websocket";
 import { useToast } from "../hooks/useToast";
 import { useStatusEffects } from "../hooks/useStatusEffects";
-import { ToastContainer } from "../components/ui/Toast";
 import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 import { AuthenticationGate } from "../features/auth";
-import { ContextMenu } from "../components/ui/ContextMenu";
 import { useMapActions } from "../hooks/useMapActions";
 import { useMapAlignment } from "../features/map";
 import { usePlayerActions } from "../hooks/usePlayerActions";
@@ -50,6 +38,7 @@ import { useNpcManagement } from "../hooks/useNpcManagement";
 import { usePropManagement } from "../hooks/usePropManagement";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { useDMManagement } from "../hooks/useDMManagement";
+import { MainLayout } from "../layouts/MainLayout";
 
 // ----------------------------------------------------------------------------
 // MAIN APP COMPONENT
@@ -403,240 +392,128 @@ function AuthenticatedApp({
   // -------------------------------------------------------------------------
 
   return (
-    <div onClick={() => setContextMenu(null)} style={{ height: "100vh", overflow: "hidden" }}>
-      {/* Server Status Banner */}
-      <ServerStatus isConnected={isConnected} />
-
-      {/* Drawing Toolbar - Fixed on left side when draw mode is active */}
-      {drawMode && <DrawingToolbar {...drawingManager.toolbarProps} />}
-
-      {/* Header - Fixed at top */}
-      <Header
-        uid={uid}
-        snapToGrid={snapToGrid}
-        activeTool={activeTool}
-        crtFilter={crtFilter}
-        diceRollerOpen={diceRollerOpen}
-        rollLogOpen={rollLogOpen}
-        onSnapToGridChange={setSnapToGrid}
-        onToolSelect={setActiveTool}
-        onCrtFilterChange={setCrtFilter}
-        onDiceRollerToggle={toggleDiceRoller}
-        onRollLogToggle={toggleRollLog}
-        topPanelRef={topPanelRef}
-        onFocusSelf={handleFocusSelf}
-        onResetCamera={handleResetCamera}
-      />
-
-      {/* Multi-select toolbar - shows when multiple objects are selected and user is DM */}
-      <MultiSelectToolbar
-        selectedObjectIds={selectedObjectIds}
-        isDM={isDM}
-        topHeight={topHeight}
-        onLock={lockSelected}
-        onUnlock={unlockSelected}
-      />
-
-      {/* Main Whiteboard Panel - fills space between fixed top and bottom */}
-      <div
-        style={{
-          position: "fixed",
-          top: `${topHeight}px`,
-          bottom: `${bottomHeight}px`,
-          left: 0,
-          right: 0,
-          overflow: "hidden",
-        }}
-      >
-        <MapBoard
-          snapshot={snapshot}
-          sendMessage={sendMessage}
-          uid={uid}
-          gridSize={gridSize}
-          snapToGrid={snapToGrid}
-          pointerMode={pointerMode}
-          measureMode={measureMode}
-          drawMode={drawMode}
-          transformMode={transformMode}
-          selectMode={selectMode}
-          isDM={isDM}
-          alignmentMode={alignmentMode}
-          alignmentPoints={alignmentPoints}
-          alignmentSuggestion={alignmentSuggestion}
-          onAlignmentPointCapture={handleAlignmentPointCapture}
-          {...drawingManager.drawingProps}
-          onRecolorToken={recolorToken}
-          onTransformObject={transformSceneObject}
-          cameraCommand={cameraCommand}
-          onCameraCommandHandled={handleCameraCommandHandled}
-          onCameraChange={setCameraState}
-          selectedObjectId={selectedObjectId}
-          selectedObjectIds={selectedObjectIds}
-          onSelectObject={handleObjectSelection}
-          onSelectObjects={handleObjectSelectionBatch}
-        />
-      </div>
-
-      {/* Entities HUD - Fixed at bottom */}
-      <EntitiesPanel
-        players={snapshot?.players || []}
-        characters={snapshot?.characters || []}
-        tokens={snapshot?.tokens || []}
-        sceneObjects={snapshot?.sceneObjects || []}
-        drawings={snapshot?.drawings || []}
-        uid={uid}
-        micEnabled={micEnabled}
-        editingPlayerUID={editingPlayerUID}
-        nameInput={nameInput}
-        editingMaxHpUID={editingMaxHpUID}
-        maxHpInput={maxHpInput}
-        onNameInputChange={updateNameInput}
-        onNameEdit={startNameEdit}
-        onNameSubmit={() => submitNameEdit(playerActions.renamePlayer)}
-        onPortraitLoad={() => {
-          const url = prompt("Enter image URL:");
-          if (url && url.trim()) {
-            playerActions.setPortrait(url.trim());
-          }
-        }}
-        onToggleMic={toggleMic}
-        onHpChange={(hp, maxHp) => playerActions.setHP(hp, maxHp)}
-        onMaxHpInputChange={updateMaxHpInput}
-        onMaxHpEdit={startMaxHpEdit}
-        onMaxHpSubmit={() =>
-          submitMaxHpEdit((maxHp) =>
-            playerActions.setHP(snapshot?.players?.find((p) => p.uid === uid)?.hp ?? 100, maxHp),
-          )
-        }
-        currentIsDM={isDM}
-        onToggleDMMode={handleToggleDM}
-        onTokenImageChange={updateTokenImage}
-        onApplyPlayerState={playerActions.applyPlayerState}
-        onStatusEffectsChange={playerActions.setStatusEffects}
-        onNpcUpdate={handleUpdateNPC}
-        onNpcDelete={handleDeleteNPC}
-        onNpcPlaceToken={handlePlaceNPCToken}
-        onPlayerTokenDelete={handleDeletePlayerToken}
-        onToggleTokenLock={toggleSceneObjectLock}
-        onTokenSizeChange={updateTokenSize}
-        onAddCharacter={playerActions.addCharacter}
-        onDeleteCharacter={playerActions.deleteCharacter}
-        onCharacterNameUpdate={playerActions.updateCharacterName}
-        bottomPanelRef={bottomPanelRef}
-      />
-
-      <DMMenu
-        isDM={isDM}
-        onToggleDM={handleToggleDM}
-        gridSize={gridSize}
-        gridSquareSize={gridSquareSize}
-        gridLocked={gridLocked}
-        onGridLockToggle={() => setGridLocked((prev) => !prev)}
-        onGridSizeChange={setGridSize}
-        onGridSquareSizeChange={setGridSquareSize}
-        onClearDrawings={drawingManager.handleClearDrawings}
-        onSetMapBackground={setMapBackgroundURL}
-        mapBackground={snapshot?.mapBackground}
-        playerStagingZone={snapshot?.playerStagingZone}
-        onSetPlayerStagingZone={playerActions.setPlayerStagingZone}
-        camera={camera}
-        playerCount={snapshot?.players?.length ?? 0}
-        characters={snapshot?.characters || []}
-        onRequestSaveSession={snapshot ? handleSaveSession : undefined}
-        onRequestLoadSession={handleLoadSession}
-        onCreateNPC={handleCreateNPC}
-        onUpdateNPC={handleUpdateNPC}
-        onDeleteNPC={handleDeleteNPC}
-        onPlaceNPCToken={handlePlaceNPCToken}
-        props={snapshot?.props || []}
-        players={snapshot?.players || []}
-        onCreateProp={handleCreateProp}
-        onUpdateProp={handleUpdateProp}
-        onDeleteProp={handleDeleteProp}
-        mapLocked={mapSceneObject?.locked ?? true}
-        onMapLockToggle={() => {
-          if (mapSceneObject) {
-            toggleSceneObjectLock(mapSceneObject.id, !mapSceneObject.locked);
-          }
-        }}
-        stagingZoneLocked={stagingZoneSceneObject?.locked ?? false}
-        onStagingZoneLockToggle={() => {
-          if (stagingZoneSceneObject) {
-            toggleSceneObjectLock(stagingZoneSceneObject.id, !stagingZoneSceneObject.locked);
-          }
-        }}
-        mapTransform={
-          mapSceneObject?.transform ?? {
-            x: 0,
-            y: 0,
-            scaleX: 1,
-            scaleY: 1,
-            rotation: 0,
-          }
-        }
-        onMapTransformChange={(transform) => {
-          if (mapSceneObject) {
-            transformSceneObject({
-              id: mapSceneObject.id,
-              position: { x: transform.x, y: transform.y },
-              scale: { x: transform.scaleX, y: transform.scaleY },
-              rotation: transform.rotation,
-            });
-          }
-        }}
-        alignmentModeActive={alignmentMode}
-        alignmentPoints={alignmentPoints}
-        alignmentSuggestion={alignmentSuggestion}
-        alignmentError={alignmentError}
-        onAlignmentStart={handleAlignmentStart}
-        onAlignmentReset={handleAlignmentReset}
-        onAlignmentCancel={handleAlignmentCancel}
-        onAlignmentApply={handleAlignmentApply}
-        onSetRoomPassword={handleSetRoomPassword}
-        roomPasswordStatus={roomPasswordStatus}
-        roomPasswordPending={roomPasswordPending}
-        onDismissRoomPasswordStatus={dismissRoomPasswordStatus}
-      />
-
-      {/* Context Menu */}
-      <ContextMenu menu={contextMenu} onDelete={deleteToken} onClose={() => setContextMenu(null)} />
-
-      {/* Visual Effects (CRT Filter + Ambient Sparkles) */}
-      <VisualEffects crtFilter={crtFilter} />
-
-      {/* Dice Roller Panel */}
-      {diceRollerOpen && <DiceRoller onRoll={handleRoll} onClose={() => toggleDiceRoller(false)} />}
-
-      {/* Roll Log Panel */}
-      {rollLogOpen && (
-        <div
-          style={{
-            position: "fixed",
-            right: 20,
-            top: 200,
-            width: 350,
-            height: 500,
-            zIndex: 1000,
-          }}
-        >
-          <RollLog
-            rolls={rollHistory}
-            onClearLog={handleClearLog}
-            onViewRoll={handleViewRoll}
-            onClose={() => toggleRollLog(false)}
-          />
-        </div>
-      )}
-
-      {/* Viewing roll from log */}
-      {viewingRoll && (
-        <div style={{ position: "fixed", zIndex: 2000 }}>
-          <DiceRoller onRoll={() => {}} onClose={() => handleViewRoll(null)} />
-        </div>
-      )}
-
-      {/* Toast Notifications */}
-      <ToastContainer messages={toast.messages} onDismiss={toast.dismiss} />
-    </div>
+    <MainLayout
+      // Layout state
+      topHeight={topHeight}
+      bottomHeight={bottomHeight}
+      topPanelRef={topPanelRef}
+      bottomPanelRef={bottomPanelRef}
+      contextMenu={contextMenu}
+      setContextMenu={setContextMenu}
+      // Connection state
+      isConnected={isConnected}
+      // Tool state
+      activeTool={activeTool}
+      setActiveTool={setActiveTool}
+      drawMode={drawMode}
+      pointerMode={pointerMode}
+      measureMode={measureMode}
+      transformMode={transformMode}
+      selectMode={selectMode}
+      alignmentMode={alignmentMode}
+      // UI state
+      snapToGrid={snapToGrid}
+      setSnapToGrid={setSnapToGrid}
+      crtFilter={crtFilter}
+      setCrtFilter={setCrtFilter}
+      diceRollerOpen={diceRollerOpen}
+      rollLogOpen={rollLogOpen}
+      toggleDiceRoller={toggleDiceRoller}
+      toggleRollLog={toggleRollLog}
+      micEnabled={micEnabled}
+      toggleMic={toggleMic}
+      gridLocked={gridLocked}
+      setGridLocked={setGridLocked}
+      // Data
+      snapshot={snapshot}
+      uid={uid}
+      gridSize={gridSize}
+      gridSquareSize={gridSquareSize}
+      isDM={isDM}
+      // Camera
+      cameraState={cameraState}
+      camera={camera}
+      cameraCommand={cameraCommand}
+      handleCameraCommandHandled={handleCameraCommandHandled}
+      setCameraState={setCameraState}
+      handleFocusSelf={handleFocusSelf}
+      handleResetCamera={handleResetCamera}
+      // Drawing
+      drawingToolbarProps={drawingManager.toolbarProps}
+      drawingProps={drawingManager.drawingProps}
+      handleClearDrawings={drawingManager.handleClearDrawings}
+      // Editing
+      editingPlayerUID={editingPlayerUID}
+      nameInput={nameInput}
+      editingMaxHpUID={editingMaxHpUID}
+      maxHpInput={maxHpInput}
+      updateNameInput={updateNameInput}
+      startNameEdit={startNameEdit}
+      submitNameEdit={submitNameEdit}
+      updateMaxHpInput={updateMaxHpInput}
+      startMaxHpEdit={startMaxHpEdit}
+      submitMaxHpEdit={submitMaxHpEdit}
+      // Selection
+      selectedObjectId={selectedObjectId}
+      selectedObjectIds={selectedObjectIds}
+      handleObjectSelection={handleObjectSelection}
+      handleObjectSelectionBatch={handleObjectSelectionBatch}
+      lockSelected={lockSelected}
+      unlockSelected={unlockSelected}
+      // Player actions
+      playerActions={playerActions}
+      // Scene objects
+      mapSceneObject={mapSceneObject}
+      stagingZoneSceneObject={stagingZoneSceneObject}
+      recolorToken={recolorToken}
+      transformSceneObject={transformSceneObject}
+      toggleSceneObjectLock={toggleSceneObjectLock}
+      deleteToken={deleteToken}
+      updateTokenImage={updateTokenImage}
+      updateTokenSize={updateTokenSize}
+      // Alignment
+      alignmentPoints={alignmentPoints}
+      alignmentSuggestion={alignmentSuggestion}
+      alignmentError={alignmentError}
+      handleAlignmentStart={handleAlignmentStart}
+      handleAlignmentReset={handleAlignmentReset}
+      handleAlignmentCancel={handleAlignmentCancel}
+      handleAlignmentApply={handleAlignmentApply}
+      handleAlignmentPointCapture={handleAlignmentPointCapture}
+      // Dice
+      rollHistory={rollHistory}
+      viewingRoll={viewingRoll}
+      handleRoll={handleRoll}
+      handleClearLog={handleClearLog}
+      handleViewRoll={handleViewRoll}
+      // Room password
+      roomPasswordStatus={roomPasswordStatus}
+      roomPasswordPending={roomPasswordPending}
+      handleSetRoomPassword={handleSetRoomPassword}
+      dismissRoomPasswordStatus={dismissRoomPasswordStatus}
+      // NPC management
+      handleCreateNPC={handleCreateNPC}
+      handleUpdateNPC={handleUpdateNPC}
+      handleDeleteNPC={handleDeleteNPC}
+      handlePlaceNPCToken={handlePlaceNPCToken}
+      handleDeletePlayerToken={handleDeletePlayerToken}
+      // Prop management
+      handleCreateProp={handleCreateProp}
+      handleUpdateProp={handleUpdateProp}
+      handleDeleteProp={handleDeleteProp}
+      // Session management
+      handleSaveSession={handleSaveSession}
+      handleLoadSession={handleLoadSession}
+      // DM management
+      handleToggleDM={handleToggleDM}
+      // Map actions
+      setMapBackgroundURL={setMapBackgroundURL}
+      setGridSize={setGridSize}
+      setGridSquareSize={setGridSquareSize}
+      // Toast
+      toast={toast}
+      // Other
+      sendMessage={sendMessage}
+    />
   );
 }
