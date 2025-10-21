@@ -403,13 +403,8 @@ function AuthenticatedApp({
   // -------------------------------------------------------------------------
   // MEMOIZED ARRAY PROPS (Performance optimization)
   // -------------------------------------------------------------------------
-  // Memoize snapshot array props to prevent unnecessary re-renders of MainLayout
-  const players = useMemo(() => snapshot?.players || [], [snapshot?.players]);
-  const characters = useMemo(() => snapshot?.characters || [], [snapshot?.characters]);
-  const tokens = useMemo(() => snapshot?.tokens || [], [snapshot?.tokens]);
-  const sceneObjects = useMemo(() => snapshot?.sceneObjects || [], [snapshot?.sceneObjects]);
-  const drawings = useMemo(() => snapshot?.drawings || [], [snapshot?.drawings]);
-  const props = useMemo(() => snapshot?.props || [], [snapshot?.props]);
+  // NOTE: Previously memoized snapshot array props here, but they were unused.
+  // MainLayout receives snapshot directly and components extract what they need.
 
   // -------------------------------------------------------------------------
   // RENDER

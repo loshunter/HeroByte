@@ -80,7 +80,7 @@ vi.mock("../../components/dice/RollLog", () => ({
 }));
 
 vi.mock("../../components/ui/Toast", () => ({
-  ToastContainer: (props: any) => <div data-testid="toast-container">ToastContainer</div>,
+  ToastContainer: (_props: any) => <div data-testid="toast-container">ToastContainer</div>,
 }));
 
 // Import the component AFTER mocks are set up
