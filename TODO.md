@@ -271,15 +271,16 @@ _Shared planning brief with Phase 19: `docs/planning/phase19-20-briefing.md`._
   - [ ] Transform preview (ghosted outline during drag?)
   - [ ] Undo/redo stack visualization
 
-## Phase 15: SOLID Refactor Initiative (In Progress)
+## Phase 15: SOLID Refactor Initiative (COMPLETE - App.tsx)
 
 **Goal**: Break down oversized "god files", restore SRP/SoC boundaries, and pair each change with forward-looking tests.
 
 **Status Update (2025-10-20):**
 
+- ✅ **App.tsx Refactoring COMPLETE:** All planned extractions finished (1,850 → 519 LOC, -72% reduction)
 - ✅ **Phase 1 COMPLETE:** 9/9 extractions from App.tsx (-547 LOC)
 - ✅ **Phase 4 COMPLETE:** 2/2 active extractions from App.tsx (-65 LOC, +48 tests)
-- ✅ **Overall Progress:** App.tsx reduced from 1,850 → 958 LOC (48.2% reduction, 57.5% to final goal)
+- ✅ **Completion Date:** 2025-10-20
 - 📄 **Detailed tracking:** See `/docs/refactoring/REFACTOR_ROADMAP.md` and `/docs/refactoring/PHASE4_SUMMARY.md`
 
 - [x] **Guardrails & Baseline** ✅ COMPLETE
@@ -294,14 +295,15 @@ _Shared planning brief with Phase 19: `docs/planning/phase19-20-briefing.md`._
   - [x] Coverage maintained at >80% per module
   - [x] 365 tests passing (100% pass rate)
 
-- [ ] **Client Shell Decomposition** (Partially Complete)
+- [x] **Client Shell Decomposition** ✅ COMPLETE (App.tsx)
   - [x] Auth gate extracted: `AuthenticationGate` component (Phase 1, Priority 7)
   - [x] Server event handling: `useServerEventHandlers` (Phase 4, Priority 18)
   - [x] NPC management: `useNpcManagement` (Phase 4, Priority 19)
   - [x] Visual effects: `VisualEffects` component (Phase 1, Priority 6)
   - [x] Context menu: `ContextMenu` component (Phase 1, Priority 8)
   - [x] Multi-select toolbar: `MultiSelectToolbar` component (Phase 1, Priority 9)
-  - [ ] Remaining work: Phases 2-3, 5-7 (see REFACTOR_ROADMAP.md)
+  - [x] All remaining extractions from App.tsx completed
+  - [ ] Future work: DMMenu.tsx and MapBoard.tsx (see below)
 
 - [ ] **DM Controls Modularization**
   - [ ] Break `apps/client/src/features/dm/components/DMMenu.tsx` into panels (`MapControls`, `TokenControls`, `RoomManagement`, `DebugPanel`)

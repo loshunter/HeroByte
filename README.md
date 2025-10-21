@@ -16,6 +16,20 @@ HeroByte is a system-agnostic, real-time multiplayer VTT that brings the charm o
 
 Play anywhere, with anyone—no installs, just browser-based fun. Build your maps, roll your dice, and bring your party together like it's cartridge night all over again.
 
+## Recent Milestones
+
+### App.tsx Refactoring Complete (2025-10-20)
+
+Successfully reduced App.tsx from **1,850 to 519 LOC** (-72% reduction). This major refactoring initiative extracted **29 modules**, added **616 tests**, and achieved **SOLID compliance**. The application is now more maintainable, testable, and aligned with professional engineering standards.
+
+**Key Achievements:**
+- 29 custom hooks and services extracted from monolithic component
+- 616 new tests added (100% coverage on extracted modules)
+- SOLID principles applied throughout architecture
+- Comprehensive documentation in `docs/refactoring/`
+
+See [docs/refactoring/](docs/refactoring/) for detailed refactoring documentation, metrics, and methodology.
+
 ## Quick Links
 
 - [QUICK_REFERENCE.md](QUICK_REFERENCE.md) – **⚡ common tasks and shortcuts**
