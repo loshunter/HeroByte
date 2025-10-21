@@ -23,7 +23,7 @@
 
 import React from "react";
 import type { Camera } from "../hooks/useCamera";
-import type { RoomSnapshot, ClientMessage } from "@shared";
+import type { RoomSnapshot, ClientMessage, SceneObjectTransform } from "@shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import type { RollResult } from "../components/dice/types";
 import type { UseDrawingStateManagerReturn } from "../hooks/useDrawingStateManager";
@@ -239,7 +239,7 @@ export interface MainLayoutProps {
   // Scene Objects
   // -------------------------------------------------------------------------
   /** Map scene object (if exists) */
-  mapSceneObject: { id: string; locked: boolean; transform: any } | null;
+  mapSceneObject: { id: string; locked: boolean; transform: SceneObjectTransform } | null;
   /** Staging zone scene object (if exists) */
   stagingZoneSceneObject: { id: string; locked: boolean } | null;
   /** Handler to recolor a token */

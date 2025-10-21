@@ -38,49 +38,49 @@ vi.mock("../../components/layout/ServerStatus", () => ({
 }));
 
 vi.mock("../../features/drawing/components", () => ({
-  DrawingToolbar: (_props: any) => <div data-testid="drawing-toolbar">DrawingToolbar</div>,
+  DrawingToolbar: (_props: unknown) => <div data-testid="drawing-toolbar">DrawingToolbar</div>,
 }));
 
 vi.mock("../../components/layout/Header", () => ({
-  Header: (_props: any) => <div data-testid="header">Header</div>,
+  Header: (_props: unknown) => <div data-testid="header">Header</div>,
 }));
 
 vi.mock("../../components/layout/MultiSelectToolbar", () => ({
-  MultiSelectToolbar: (_props: any) => (
+  MultiSelectToolbar: (_props: unknown) => (
     <div data-testid="multi-select-toolbar">MultiSelectToolbar</div>
   ),
 }));
 
 vi.mock("../../ui/MapBoard", () => ({
-  default: (_props: any) => <div data-testid="map-board">MapBoard</div>,
+  default: (_props: unknown) => <div data-testid="map-board">MapBoard</div>,
 }));
 
 vi.mock("../../components/layout/EntitiesPanel", () => ({
-  EntitiesPanel: (_props: any) => <div data-testid="entities-panel">EntitiesPanel</div>,
+  EntitiesPanel: (_props: unknown) => <div data-testid="entities-panel">EntitiesPanel</div>,
 }));
 
 vi.mock("../../features/dm", () => ({
-  DMMenu: (_props: any) => <div data-testid="dm-menu">DMMenu</div>,
+  DMMenu: (_props: unknown) => <div data-testid="dm-menu">DMMenu</div>,
 }));
 
 vi.mock("../../components/ui/ContextMenu", () => ({
-  ContextMenu: (_props: any) => <div data-testid="context-menu">ContextMenu</div>,
+  ContextMenu: (_props: unknown) => <div data-testid="context-menu">ContextMenu</div>,
 }));
 
 vi.mock("../../components/effects/VisualEffects", () => ({
-  VisualEffects: (_props: any) => <div data-testid="visual-effects">VisualEffects</div>,
+  VisualEffects: (_props: unknown) => <div data-testid="visual-effects">VisualEffects</div>,
 }));
 
 vi.mock("../../components/dice/DiceRoller", () => ({
-  DiceRoller: (_props: any) => <div data-testid="dice-roller">DiceRoller</div>,
+  DiceRoller: (_props: unknown) => <div data-testid="dice-roller">DiceRoller</div>,
 }));
 
 vi.mock("../../components/dice/RollLog", () => ({
-  RollLog: (_props: any) => <div data-testid="roll-log">RollLog</div>,
+  RollLog: (_props: unknown) => <div data-testid="roll-log">RollLog</div>,
 }));
 
 vi.mock("../../components/ui/Toast", () => ({
-  ToastContainer: (_props: any) => <div data-testid="toast-container">ToastContainer</div>,
+  ToastContainer: (_props: unknown) => <div data-testid="toast-container">ToastContainer</div>,
 }));
 
 // Import the component AFTER mocks are set up
@@ -403,19 +403,19 @@ describe.skip("MainLayout - Characterization", () => {
 
     it("should pass players to EntitiesPanel", () => {
       const players = [{ uid: "player1", name: "Player 1", hp: 100, maxHp: 100 }];
-      render(<MainLayout {...defaultProps} players={players as any} />);
+      render(<MainLayout {...defaultProps} players={players as unknown} />);
       expect(screen.getByTestId("entities-panel")).toBeInTheDocument();
     });
 
     it("should pass characters to EntitiesPanel", () => {
       const characters = [{ id: "char1", name: "Character 1" }];
-      render(<MainLayout {...defaultProps} characters={characters as any} />);
+      render(<MainLayout {...defaultProps} characters={characters as unknown} />);
       expect(screen.getByTestId("entities-panel")).toBeInTheDocument();
     });
 
     it("should pass tokens to EntitiesPanel", () => {
       const tokens = [{ id: "token1", x: 0, y: 0 }];
-      render(<MainLayout {...defaultProps} tokens={tokens as any} />);
+      render(<MainLayout {...defaultProps} tokens={tokens as unknown} />);
       expect(screen.getByTestId("entities-panel")).toBeInTheDocument();
     });
 
@@ -539,7 +539,7 @@ describe.skip("MainLayout - Characterization", () => {
   describe("Viewing roll modal", () => {
     it("should render DiceRoller for viewing when viewingRoll is not null", () => {
       const viewingRoll = { id: "roll1", result: 15 };
-      render(<MainLayout {...defaultProps} viewingRoll={viewingRoll as any} />);
+      render(<MainLayout {...defaultProps} viewingRoll={viewingRoll as unknown} />);
 
       // Should have at least one DiceRoller (for viewing)
       const diceRollers = screen.getAllByTestId("dice-roller");
@@ -556,7 +556,7 @@ describe.skip("MainLayout - Characterization", () => {
     it("should position viewing DiceRoller with fixed positioning", () => {
       const viewingRoll = { id: "roll1", result: 15 };
       const { container } = render(
-        <MainLayout {...defaultProps} viewingRoll={viewingRoll as any} />,
+        <MainLayout {...defaultProps} viewingRoll={viewingRoll as unknown} />,
       );
 
       // Find the container wrapping the viewing DiceRoller
@@ -575,7 +575,7 @@ describe.skip("MainLayout - Characterization", () => {
     it("should render both DiceRoller instances when both diceRollerOpen and viewingRoll are active", () => {
       const viewingRoll = { id: "roll1", result: 15 };
       render(
-        <MainLayout {...defaultProps} diceRollerOpen={true} viewingRoll={viewingRoll as any} />,
+        <MainLayout {...defaultProps} diceRollerOpen={true} viewingRoll={viewingRoll as unknown} />,
       );
 
       const diceRollers = screen.getAllByTestId("dice-roller");
@@ -631,7 +631,7 @@ describe.skip("MainLayout - Characterization", () => {
           drawMode={true}
           diceRollerOpen={true}
           rollLogOpen={true}
-          viewingRoll={{ id: "roll1" } as any}
+          viewingRoll={{ id: "roll1" } as unknown}
         />,
       );
 
