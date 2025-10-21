@@ -26,7 +26,7 @@ import { useSceneObjectActions } from "../hooks/useSceneObjectActions";
 import { useSelectionManager } from "../features/selection";
 import { DMMenu } from "../features/dm";
 import { getSessionUID } from "../utils/session";
-import { saveSession, loadSession } from "../utils/sessionPersistence";
+import { useSessionManagement } from "../features/session";
 import { DrawingToolbar } from "../features/drawing/components";
 import { Header } from "../components/layout/Header";
 import { EntitiesPanel } from "../components/layout/EntitiesPanel";
@@ -408,63 +408,12 @@ function AuthenticatedApp({
     cameraState,
   });
 
-  const handleSaveSession = useCallback(
-    (name: string) => {
-      if (!snapshot) {
-        toast.warning("No session data available to save yet.");
-        return;
-      }
-      try {
-        toast.info("Preparing session file...");
-        saveSession(snapshot, name);
-        toast.success(`Session "${name}" saved successfully!`, 4000);
-      } catch (err) {
-        console.error("Failed to save session", err);
-        toast.error(
-          err instanceof Error
-            ? `Save failed: ${err.message}`
-            : "Failed to save session. Check console for details.",
-          5000,
-        );
-      }
-    },
-    [snapshot, toast],
-  );
-
-  const handleLoadSession = useCallback(
-    async (file: File) => {
-      try {
-        toast.info(`Loading session from ${file.name}...`);
-        const loadedSnapshot = await loadSession(file);
-
-        // Validate snapshot has expected data
-        const warnings: string[] = [];
-        if (!loadedSnapshot.sceneObjects || loadedSnapshot.sceneObjects.length === 0) {
-          warnings.push("No scene objects found");
-        }
-        if (!loadedSnapshot.characters || loadedSnapshot.characters.length === 0) {
-          warnings.push("No characters found");
-        }
-
-        sendMessage({ t: "load-session", snapshot: loadedSnapshot });
-
-        if (warnings.length > 0) {
-          toast.warning(`Session loaded with warnings: ${warnings.join(", ")}`, 5000);
-        } else {
-          toast.success(`Session "${file.name}" loaded successfully!`, 4000);
-        }
-      } catch (err) {
-        console.error("Failed to load session", err);
-        toast.error(
-          err instanceof Error
-            ? `Load failed: ${err.message}`
-            : "Failed to load session. File may be corrupted.",
-          5000,
-        );
-      }
-    },
-    [sendMessage, toast],
-  );
+  // Session Management Hook
+  const { handleSaveSession, handleLoadSession } = useSessionManagement({
+    snapshot,
+    sendMessage,
+    toast,
+  });
 
   // DM role detection
   const { isDM, elevateToDM } = useDMRole({ snapshot, uid, send: sendMessage });
