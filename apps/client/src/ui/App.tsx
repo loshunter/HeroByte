@@ -34,8 +34,6 @@ import { VisualEffects } from "../components/effects/VisualEffects";
 import { ServerStatus } from "../components/layout/ServerStatus";
 import { MultiSelectToolbar } from "../components/layout/MultiSelectToolbar";
 import { AuthState } from "../services/websocket";
-import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
-import { computeMapAlignmentTransform } from "../utils/mapAlignment";
 import { useToast } from "../hooks/useToast";
 import { useStatusEffects } from "../hooks/useStatusEffects";
 import { ToastContainer } from "../components/ui/Toast";
@@ -43,6 +41,7 @@ import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 import { AuthenticationGate } from "../features/auth";
 import { ContextMenu } from "../components/ui/ContextMenu";
 import { useMapActions } from "../hooks/useMapActions";
+import { useMapAlignment } from "../features/map";
 import { usePlayerActions } from "../hooks/usePlayerActions";
 import { useVoiceChatManager } from "../hooks/useVoiceChatManager";
 import { useDiceRolling } from "../hooks/useDiceRolling";
@@ -176,10 +175,6 @@ function AuthenticatedApp({
     y: 0,
     scale: 1,
   });
-
-  const [alignmentPoints, setAlignmentPoints] = useState<AlignmentPoint[]>([]);
-  const [alignmentSuggestion, setAlignmentSuggestion] = useState<AlignmentSuggestion | null>(null);
-  const [alignmentError, setAlignmentError] = useState<string | null>(null);
 
   // Server-synced object selection state
   const {
@@ -334,60 +329,6 @@ function AuthenticatedApp({
     [snapshot?.sceneObjects],
   );
 
-  const handleAlignmentStart = useCallback(() => {
-    setAlignmentPoints([]);
-    setAlignmentSuggestion(null);
-    setAlignmentError(null);
-    setActiveTool("align");
-  }, []);
-
-  const handleAlignmentCancel = useCallback(() => {
-    setActiveTool(null);
-    setAlignmentPoints([]);
-    setAlignmentSuggestion(null);
-    setAlignmentError(null);
-  }, []);
-
-  const handleAlignmentPointCapture = useCallback((point: AlignmentPoint) => {
-    setAlignmentError(null);
-    setAlignmentPoints((prev) => {
-      if (prev.length >= 2) {
-        return [point];
-      }
-      return [...prev, point];
-    });
-  }, []);
-
-  const handleAlignmentReset = useCallback(() => {
-    setAlignmentPoints([]);
-    setAlignmentSuggestion(null);
-    setAlignmentError(null);
-  }, []);
-
-  const handleAlignmentApply = useCallback(() => {
-    if (!alignmentSuggestion || !mapSceneObject) {
-      return;
-    }
-
-    transformSceneObject({
-      id: mapSceneObject.id,
-      position: {
-        x: alignmentSuggestion.transform.x,
-        y: alignmentSuggestion.transform.y,
-      },
-      scale: {
-        x: alignmentSuggestion.transform.scaleX,
-        y: alignmentSuggestion.transform.scaleY,
-      },
-      rotation: alignmentSuggestion.transform.rotation,
-    });
-
-    setAlignmentPoints([]);
-    setAlignmentSuggestion(null);
-    setAlignmentError(null);
-    setActiveTool(null);
-  }, [alignmentSuggestion, mapSceneObject, transformSceneObject]);
-
   // NPC Management Hook
   const { handleCreateNPC, handleUpdateNPC, handleDeleteNPC, handlePlaceNPCToken } =
     useNpcManagement({
@@ -426,44 +367,23 @@ function AuthenticatedApp({
     toast,
   });
 
-  useEffect(() => {
-    if (activeTool !== "align") {
-      setAlignmentPoints([]);
-      setAlignmentSuggestion(null);
-      setAlignmentError(null);
-      return;
-    }
-  }, [activeTool]);
-
-  useEffect(() => {
-    if (activeTool !== "align") {
-      return;
-    }
-
-    if (alignmentPoints.length !== 2) {
-      setAlignmentSuggestion(null);
-      if (alignmentPoints.length === 0) {
-        setAlignmentError(null);
-      }
-      return;
-    }
-
-    try {
-      const result = computeMapAlignmentTransform(alignmentPoints, gridSize);
-      setAlignmentSuggestion(result);
-      const tolerance = Math.max(0.5, gridSize * 0.02);
-      if (result.error > tolerance) {
-        setAlignmentError(
-          `Alignment residual ${result.error.toFixed(2)}px — consider recapturing points.`,
-        );
-      } else {
-        setAlignmentError(null);
-      }
-    } catch (error) {
-      setAlignmentSuggestion(null);
-      setAlignmentError(error instanceof Error ? error.message : "Failed to compute alignment.");
-    }
-  }, [activeTool, alignmentPoints, gridSize]);
+  // Map alignment
+  const {
+    alignmentPoints,
+    alignmentSuggestion,
+    alignmentError,
+    handleAlignmentStart,
+    handleAlignmentCancel,
+    handleAlignmentPointCapture,
+    handleAlignmentReset,
+    handleAlignmentApply,
+  } = useMapAlignment({
+    activeTool,
+    setActiveTool,
+    gridSize,
+    mapSceneObject: snapshot?.sceneObjects?.find((obj) => obj.type === "map"),
+    transformSceneObject,
+  });
 
   // Keyboard shortcuts (after isDM is declared)
   useEffect(() => {
