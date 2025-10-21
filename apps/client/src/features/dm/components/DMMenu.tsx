@@ -13,6 +13,7 @@ import type { Camera } from "../../../hooks/useCamera";
 import { CollapsibleSection } from "../../../components/ui/CollapsibleSection";
 import { ImagePreview } from "../../../components/ui/ImagePreview";
 import { FormInput } from "../../../components/ui/FormInput";
+import { EmptyState } from "../../../components/ui/EmptyState";
 
 interface DMMenuProps {
   isDM: boolean;
@@ -1213,12 +1214,7 @@ export function DMMenu({
                 </div>
 
                 {npcs.length === 0 ? (
-                  <JRPGPanel
-                    variant="simple"
-                    style={{ color: "var(--jrpg-white)", fontSize: "12px" }}
-                  >
-                    No NPCs yet. Use &ldquo;Add NPC&rdquo; to create one.
-                  </JRPGPanel>
+                  <EmptyState message="No NPCs yet. Use &ldquo;Add NPC&rdquo; to create one." />
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                     {npcs.map((npc) => (
@@ -1257,12 +1253,7 @@ export function DMMenu({
                 </div>
 
                 {props.length === 0 ? (
-                  <JRPGPanel
-                    variant="simple"
-                    style={{ color: "var(--jrpg-white)", fontSize: "12px" }}
-                  >
-                    No props yet. Use &ldquo;Add Prop&rdquo; to create one.
-                  </JRPGPanel>
+                  <EmptyState message="No props yet. Use &ldquo;Add Prop&rdquo; to create one." />
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                     {props.map((prop) => (
