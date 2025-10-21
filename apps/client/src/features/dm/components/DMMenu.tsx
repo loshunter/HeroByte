@@ -11,6 +11,7 @@ import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignme
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import type { Camera } from "../../../hooks/useCamera";
 import { CollapsibleSection } from "../../../components/ui/CollapsibleSection";
+import { ImagePreview } from "../../../components/ui/ImagePreview";
 
 interface DMMenuProps {
   isDM: boolean;
@@ -194,23 +195,10 @@ const PropEditor = ({ prop, players, onUpdate, onDelete }: PropEditorProps) => {
           }}
         />
       </label>
-      {imageUrl && (
-        <img
-          src={imageUrl}
-          alt={`${prop.label} preview`}
-          style={{
-            width: "48px",
-            height: "48px",
-            objectFit: "cover",
-            borderRadius: "4px",
-            border: "1px solid var(--jrpg-border-gold)",
-            alignSelf: "flex-start",
-          }}
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = "none";
-          }}
-        />
-      )}
+      <ImagePreview
+        src={imageUrl}
+        alt={`${prop.label} preview`}
+      />
 
       <label
         className="jrpg-text-small"
@@ -417,21 +405,13 @@ const NPCEditor = ({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) => {
           }}
         />
       </label>
-      {portrait && (
-        <img
-          src={portrait}
-          alt={`${npc.name} portrait`}
-          style={{
-            width: "100%",
-            maxHeight: "100px",
-            objectFit: "cover",
-            borderRadius: "4px",
-          }}
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = "none";
-          }}
-        />
-      )}
+      <ImagePreview
+        src={portrait}
+        alt={`${npc.name} portrait`}
+        width="100%"
+        maxHeight="100px"
+        showBorder={false}
+      />
 
       <label
         className="jrpg-text-small"
@@ -452,23 +432,10 @@ const NPCEditor = ({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) => {
           }}
         />
       </label>
-      {tokenImage && (
-        <img
-          src={tokenImage}
-          alt={`${npc.name} token preview`}
-          style={{
-            width: "48px",
-            height: "48px",
-            objectFit: "cover",
-            borderRadius: "4px",
-            border: "1px solid var(--jrpg-border-gold)",
-            alignSelf: "flex-start",
-          }}
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = "none";
-          }}
-        />
-      )}
+      <ImagePreview
+        src={tokenImage}
+        alt={`${npc.name} token preview`}
+      />
 
       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
         <JRPGButton
