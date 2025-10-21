@@ -300,7 +300,7 @@ describe("FormInput - Characterization", () => {
     });
 
     it("value not visible in DOM (security)", () => {
-      const { container } = render(
+      const { container: _container } = render(
         <FormInput label="Password" type="password" value="secret123" onChange={vi.fn()} />,
       );
 
