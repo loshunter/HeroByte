@@ -37,10 +37,10 @@ import type { UseDrawingStateManagerReturn } from "../hooks/useDrawingStateManag
 import type { ToolMode } from "../components/layout/Header";
 import type { CameraCommand } from "../ui/MapBoard";
 import MapBoard from "../ui/MapBoard";
-import { EntitiesPanel } from "../components/layout/EntitiesPanel";
 import { TopPanelLayout } from "./TopPanelLayout";
 import { CenterCanvasLayout } from "./CenterCanvasLayout";
 import { FloatingPanelsLayout } from "./FloatingPanelsLayout";
+import { BottomPanelLayout } from "./BottomPanelLayout";
 
 // Type aliases for missing types
 type ContextMenuState = { x: number; y: number; tokenId: string } | null;
@@ -386,6 +386,46 @@ export interface MainLayoutProps {
  * unnecessary re-renders during drag operations.
  */
 export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps): JSX.Element {
+  // Extract complex inline handlers from EntitiesPanel for better readability
+  const {
+    editingHpUID,
+    editingMaxHpUID,
+    snapshot,
+    playerActions,
+    submitHpEdit,
+    submitMaxHpEdit,
+    submitNameEdit,
+  } = props;
+
+  const handleCharacterHpSubmit = React.useCallback(() => {
+    submitHpEdit((hp) => {
+      if (!editingHpUID) return;
+      const character = snapshot?.characters?.find((c) => c.id === editingHpUID);
+      if (!character) return;
+      playerActions.updateCharacterHP(character.id, hp, character.maxHp);
+    });
+  }, [submitHpEdit, editingHpUID, snapshot?.characters, playerActions]);
+
+  const handleCharacterMaxHpSubmit = React.useCallback(() => {
+    submitMaxHpEdit((maxHp) => {
+      if (!editingMaxHpUID) return;
+      const character = snapshot?.characters?.find((c) => c.id === editingMaxHpUID);
+      if (!character) return;
+      playerActions.updateCharacterHP(character.id, character.hp, maxHp);
+    });
+  }, [submitMaxHpEdit, editingMaxHpUID, snapshot?.characters, playerActions]);
+
+  const handlePortraitLoad = React.useCallback(() => {
+    const url = prompt("Enter image URL:");
+    if (url && url.trim()) {
+      playerActions.setPortrait(url.trim());
+    }
+  }, [playerActions]);
+
+  const handleNameSubmit = React.useCallback(() => {
+    submitNameEdit(playerActions.renamePlayer);
+  }, [submitNameEdit, playerActions.renamePlayer]);
+
   const {
     // Layout state
     topHeight,
@@ -423,7 +463,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     setGridLocked,
 
     // Data
-    snapshot,
     uid,
     gridSize,
     gridSquareSize,
@@ -445,19 +484,14 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     // Editing
     editingPlayerUID,
     nameInput,
-    editingHpUID,
     hpInput,
-    editingMaxHpUID,
     maxHpInput,
     updateNameInput,
     startNameEdit,
-    submitNameEdit,
     updateHpInput,
     startHpEdit,
-    submitHpEdit,
     updateMaxHpInput,
     startMaxHpEdit,
-    submitMaxHpEdit,
 
     // Selection
     selectedObjectId,
@@ -466,9 +500,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     handleObjectSelectionBatch,
     lockSelected,
     unlockSelected,
-
-    // Player actions
-    playerActions,
 
     // Scene objects
     mapSceneObject,
@@ -590,8 +621,9 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         sendMessage={sendMessage}
       />
 
-      {/* Entities HUD - Fixed at bottom */}
-      <EntitiesPanel
+      {/* Bottom Panel - Entities HUD with player/character/NPC management */}
+      <BottomPanelLayout
+        bottomPanelRef={bottomPanelRef}
         players={snapshot?.players || []}
         characters={snapshot?.characters || []}
         tokens={snapshot?.tokens || []}
@@ -599,60 +631,38 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         drawings={snapshot?.drawings || []}
         uid={uid}
         micEnabled={micEnabled}
+        currentIsDM={isDM}
         editingPlayerUID={editingPlayerUID}
         nameInput={nameInput}
-        editingMaxHpUID={editingMaxHpUID}
-        maxHpInput={maxHpInput}
         onNameInputChange={updateNameInput}
         onNameEdit={startNameEdit}
-        onNameSubmit={() => submitNameEdit(playerActions.renamePlayer)}
-        onPortraitLoad={() => {
-          const url = prompt("Enter image URL:");
-          if (url && url.trim()) {
-            playerActions.setPortrait(url.trim());
-          }
-        }}
-        onToggleMic={toggleMic}
-        onCharacterHpChange={(characterId, hp, maxHp) =>
-          playerActions.updateCharacterHP(characterId, hp, maxHp)
-        }
+        onNameSubmit={handleNameSubmit}
         editingHpUID={editingHpUID}
         hpInput={hpInput}
         onHpInputChange={updateHpInput}
         onHpEdit={startHpEdit}
-        onHpSubmit={() =>
-          submitHpEdit((hp) => {
-            if (!editingHpUID) return;
-            const character = snapshot?.characters?.find((c) => c.id === editingHpUID);
-            if (!character) return;
-            playerActions.updateCharacterHP(character.id, hp, character.maxHp);
-          })
-        }
+        onHpSubmit={handleCharacterHpSubmit}
+        onCharacterHpChange={playerActions.updateCharacterHP}
+        editingMaxHpUID={editingMaxHpUID}
+        maxHpInput={maxHpInput}
         onMaxHpInputChange={updateMaxHpInput}
         onMaxHpEdit={startMaxHpEdit}
-        onMaxHpSubmit={() =>
-          submitMaxHpEdit((maxHp) => {
-            if (!editingMaxHpUID) return;
-            const character = snapshot?.characters?.find((c) => c.id === editingMaxHpUID);
-            if (!character) return;
-            playerActions.updateCharacterHP(character.id, character.hp, maxHp);
-          })
-        }
-        currentIsDM={isDM}
+        onMaxHpSubmit={handleCharacterMaxHpSubmit}
+        onPortraitLoad={handlePortraitLoad}
+        onToggleMic={toggleMic}
         onToggleDMMode={handleToggleDM}
-        onTokenImageChange={updateTokenImage}
         onApplyPlayerState={playerActions.applyPlayerState}
         onStatusEffectsChange={playerActions.setStatusEffects}
+        onCharacterNameUpdate={playerActions.updateCharacterName}
         onNpcUpdate={handleUpdateNPC}
         onNpcDelete={handleDeleteNPC}
         onNpcPlaceToken={handlePlaceNPCToken}
         onPlayerTokenDelete={handleDeletePlayerToken}
         onToggleTokenLock={toggleSceneObjectLock}
         onTokenSizeChange={updateTokenSize}
+        onTokenImageChange={updateTokenImage}
         onAddCharacter={playerActions.addCharacter}
         onDeleteCharacter={playerActions.deleteCharacter}
-        onCharacterNameUpdate={playerActions.updateCharacterName}
-        bottomPanelRef={bottomPanelRef}
       />
 
       {/* Floating Panels - DM menu, context menu, visual effects, dice roller, roll log, toasts */}

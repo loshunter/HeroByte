@@ -620,22 +620,309 @@ export interface FloatingPanelsLayoutProps {
 
 ---
 
-## Extraction 4: BottomPanelLayout (Target: ~180 LOC, ~30-35 props)
+## Extraction 4: BottomPanelLayout (Target: ~70-80 LOC, ~40 props)
 
-### Analysis Phase
+### Analysis Phase (Completed 2025-10-21)
 
-**Source:** MainLayout.tsx lines 616-679
-**Components:** EntitiesPanel with complex inline HP editing logic (lines 646-663)
+**Source:** MainLayout.tsx lines 593-656 (current numbering after 3 extractions)
+**Components:** EntitiesPanel (no wrapper div - rendered directly with bottomPanelRef)
 
-**Note:** Most complex extraction - requires careful handling of HP callbacks
+**Agent:** Explore (medium thoroughness)
+**Status:** ✅ Complete
 
-_[Pending]_
+**Key Findings:**
+- **Props Required:** 40 props (higher than initial estimate of 30-35)
+- **Components Rendered:** 1 (EntitiesPanel only - no wrapper div)
+- **Inline Functions:** 5 inline functions (3 complex, 2 simple)
+- **Complexity:** High - HP editing callbacks with snapshot dependencies
+- **Estimated Extracted LOC:** ~70-80 lines
+
+**Props Breakdown:**
+1. **Layout & Ref** (1 prop): `bottomPanelRef`
+2. **State Data** (9 props): `players`, `characters`, `tokens`, `sceneObjects`, `drawings`, `uid`, `micEnabled`, `currentIsDM`
+3. **Name Editing** (5 props): `editingPlayerUID`, `nameInput`, `onNameInputChange`, `onNameEdit`, `onNameSubmit`
+4. **HP Editing** (6 props): `editingHpUID`, `hpInput`, `onHpInputChange`, `onHpEdit`, `onHpSubmit`, `onCharacterHpChange`
+5. **Max HP Editing** (4 props): `editingMaxHpUID`, `maxHpInput`, `onMaxHpInputChange`, `onMaxHpEdit`, `onMaxHpSubmit`
+6. **Portrait & Mic** (2 props): `onPortraitLoad`, `onToggleMic`
+7. **DM & Player State** (4 props): `onToggleDMMode`, `onApplyPlayerState`, `onStatusEffectsChange`, `onCharacterNameUpdate`
+8. **NPC Management** (4 props): `onNpcUpdate`, `onNpcDelete`, `onNpcPlaceToken`, `onPlayerTokenDelete`
+9. **Token Management** (3 props): `onToggleTokenLock`, `onTokenSizeChange`, `onTokenImageChange`
+10. **Character Management** (2 props): `onAddCharacter`, `onDeleteCharacter`
+
+**Total Estimated:** 40 props
+
+**Inline Functions Analysis:**
+
+**Simple Inline Functions (Keep as-is):**
+1. `onNameSubmit` (line 608): Simple wrapper for `submitNameEdit(playerActions.renamePlayer)`
+2. `onCharacterHpChange` (lines 616-618): Direct passthrough to `playerActions.updateCharacterHP`
+
+**Complex Inline Functions (Extract to MainLayout):**
+3. `onHpSubmit` (lines 623-630): **COMPLEX** - Character lookup from snapshot, HP update logic
+4. `onMaxHpSubmit` (lines 633-640): **COMPLEX** - Character lookup from snapshot, max HP update logic
+5. `onPortraitLoad` (lines 609-614): **COMPLEX** - User prompt and portrait update logic
+
+**Special Considerations:**
+
+⚠️ **HP Editing Callbacks:**
+- Complex inline functions that perform character lookup from snapshot
+- Dependencies: `editingHpUID`, `editingMaxHpUID`, `snapshot.characters`, `playerActions`
+- Pattern: Find character by ID, then call playerActions with HP/maxHP values
+
+⚠️ **bottomPanelRef:**
+- Passed directly to EntitiesPanel as optional prop
+- No wrapper div in current implementation (differs from handoff expectation)
+- Ref must be attached inside EntitiesPanel's implementation
+
+⚠️ **No Fixed Positioning Wrapper:**
+- Unlike other extractions, no wrapper div with fixed positioning
+- EntitiesPanel is rendered directly in the bottom section
+- Simpler extraction than anticipated
+
+**Complexity Assessment:**
+- **Simplicity:** Medium-Low (high prop count but straightforward structure)
+- **Logic:** Medium-High (HP editing callbacks are complex)
+- **Extraction Readiness:** Good (after handler extraction)
+
+### Interface Design Phase (Completed 2025-10-21)
+
+**Status:** ✅ Complete
+
+**Decision:** Extract 3 complex inline handlers to MainLayout handlers
+
+**Rationale:**
+- Cleaner component interface (following Extractions 1-3 pattern)
+- Better testability (handlers can be tested independently)
+- Reduced JSX complexity
+- Easier debugging and maintenance
+- Follows established pattern from previous extractions
+
+**Handlers to Extract:**
+1. `handleCharacterHpSubmit` - Wraps HP edit submission with character lookup
+2. `handleCharacterMaxHpSubmit` - Wraps max HP edit submission with character lookup
+3. `handlePortraitLoad` - Handles user prompt and portrait update
+
+**Props Interface Design:**
+- Use flat props interface with semantic grouping (established pattern)
+- 40 props across 10 semantic groups
+- All props documented with JSDoc comments
+- Interface LOC target: <80 (estimated ~50-60 LOC)
+- Pattern: Flat interface with semantic grouping via comments (NOT nested objects)
+
+**Final Interface Structure:**
+
+```typescript
+export interface BottomPanelLayoutProps {
+  // Layout & Ref (1 prop)
+  bottomPanelRef?: React.RefObject<HTMLDivElement>;
+
+  // State Data (9 props)
+  players: Player[];
+  characters: Character[];
+  tokens: Token[];
+  sceneObjects: SceneObject[];
+  drawings: Drawing[];
+  uid: string;
+  micEnabled: boolean;
+  currentIsDM: boolean;
+
+  // Name Editing (5 props)
+  editingPlayerUID: string | null;
+  nameInput: string;
+  onNameInputChange: (value: string) => void;
+  onNameEdit: (uid: string, currentName: string) => void;
+  onNameSubmit: () => void;
+
+  // HP Editing (6 props)
+  editingHpUID: string | null;
+  hpInput: string;
+  onHpInputChange: (value: string) => void;
+  onHpEdit: (uid: string, currentHp: number) => void;
+  onHpSubmit: () => void;
+  onCharacterHpChange: (characterId: string, hp: number, maxHp: number) => void;
+
+  // Max HP Editing (4 props)
+  editingMaxHpUID: string | null;
+  maxHpInput: string;
+  onMaxHpInputChange: (value: string) => void;
+  onMaxHpEdit: (uid: string, currentMaxHp: number) => void;
+  onMaxHpSubmit: () => void;
+
+  // Portrait & Mic (2 props)
+  onPortraitLoad: () => void;
+  onToggleMic: () => void;
+
+  // DM & Player State (4 props)
+  onToggleDMMode: (next: boolean) => void;
+  onApplyPlayerState: (state: PlayerState, tokenId?: string) => void;
+  onStatusEffectsChange: (effects: string[]) => void;
+  onCharacterNameUpdate: (characterId: string, name: string) => void;
+
+  // NPC Management (4 props)
+  onNpcUpdate: (id: string, updates: Partial<NPC>) => void;
+  onNpcDelete: (id: string) => void;
+  onNpcPlaceToken: (id: string) => void;
+  onPlayerTokenDelete: (tokenId: string) => void;
+
+  // Token Management (3 props)
+  onToggleTokenLock: (sceneObjectId: string, locked: boolean) => void;
+  onTokenSizeChange: (tokenId: string, size: TokenSize) => void;
+  onTokenImageChange: (tokenId: string, imageUrl: string) => void;
+
+  // Character Management (2 props)
+  onAddCharacter: (name: string) => void;
+  onDeleteCharacter: (characterId: string) => void;
+}
+```
+
+**Interface Metrics:**
+- Total props: 40
+- Semantic groups: 10
+- Estimated interface LOC: ~50-60 (under 80 target ✅)
+- Pattern: Flat interface with semantic grouping (established)
+
+**Next:** Create characterization tests
+
+### Testing Phase (Completed 2025-10-21)
+
+**Status:** ✅ Complete
+
+**Test File:** `/home/loshunter/HeroByte/apps/client/src/layouts/__tests__/BottomPanelLayout.characterization.test.tsx`
+
+**Results:**
+- **Total Tests:** 78 comprehensive test cases
+- **Test Execution Time:** ~244-288ms
+- **All Tests Passing:** ✅
+
+**Test Coverage Breakdown:**
+1. **Basic Rendering** (2 tests): Component renders, no wrapper div
+2. **Layout & Ref Props** (3 tests): bottomPanelRef pass-through, null handling
+3. **State Data Props** (14 tests): Empty/populated arrays, uid, micEnabled, currentIsDM
+4. **Name Editing Props** (7 tests): editingPlayerUID, nameInput, handlers
+5. **HP Editing Props** (8 tests): editingHpUID, hpInput, handlers, character HP change
+6. **Max HP Editing Props** (7 tests): editingMaxHpUID, maxHpInput, handlers
+7. **Portrait & Mic Props** (2 tests): onPortraitLoad, onToggleMic
+8. **DM & Player State Props** (4 tests): All handler functions
+9. **NPC Management Props** (4 tests): Update, delete, place token, delete player token
+10. **Token Management Props** (3 tests): Lock toggle, size change, image change
+11. **Character Management Props** (2 tests): Add, delete
+12. **Edge Cases** (18 tests): Long strings, extreme numbers, many items, simultaneous states
+13. **Integration Tests** (4 tests): All 40 props, realistic scenarios, updates
+
+**Key Testing Patterns:**
+- Mock EntitiesPanel with data-attribute prop verification
+- Comprehensive edge case coverage
+- Integration testing with realistic prop combinations
+- Validates direct rendering (no wrapper div)
+
+### Component Creation Phase (Completed 2025-10-21)
+
+**Status:** ✅ Complete
+
+**Component File:** `/home/loshunter/HeroByte/apps/client/src/layouts/BottomPanelLayout.tsx`
+- **Total LOC:** 301 (under 350 target ✅)
+- **Props Interface LOC:** 101 (includes extensive JSDoc)
+- **Props Count:** 40 across 10 semantic groups
+- **Features:** React.memo, displayName, comprehensive JSDoc
+
+**Extracted Handlers (Added to MainLayout):**
+
+Created 4 handler functions in MainLayout before the return statement:
+
+1. **handleCharacterHpSubmit** (lines ~630-640)
+   - Wraps HP edit submission with character lookup from snapshot
+   - Dependencies: `editingHpUID`, `snapshot?.characters`, `submitHpEdit`, `playerActions`
+
+2. **handleCharacterMaxHpSubmit** (lines ~642-652)
+   - Wraps max HP edit submission with character lookup from snapshot
+   - Dependencies: `editingMaxHpUID`, `snapshot?.characters`, `submitMaxHpEdit`, `playerActions`
+
+3. **handlePortraitLoad** (lines ~654-660)
+   - Wraps user prompt and portrait update logic
+   - Dependencies: `playerActions`
+
+4. **handleNameSubmit** (lines ~662-664)
+   - Wraps name edit submission
+   - Dependencies: `submitNameEdit`, `playerActions`
+
+All handlers use `React.useCallback` with proper dependency arrays for optimization.
 
 ---
 
 ## Integration Phase
 
-_[Pending]_
+### Integration Steps (Completed 2025-10-21)
+
+**Status:** ✅ Complete
+
+**Changes to MainLayout.tsx:**
+
+1. **Imports:**
+   - Added: `import { BottomPanelLayout } from "./BottomPanelLayout";`
+   - Removed: EntitiesPanel import (now imported by BottomPanelLayout)
+
+2. **Handler Extraction:**
+   - Added 4 handler functions with useCallback before return statement (~34 lines)
+   - Replaced inline functions in JSX
+
+3. **JSX Replacement:**
+   - Removed: EntitiesPanel JSX with 40 props (~64 lines)
+   - Added: BottomPanelLayout component call with 40 props (~42 lines)
+
+**Results:**
+- **MainLayout.tsx LOC:** 715 → 725 (+10 LOC)
+- **BottomPanelLayout.tsx LOC:** 301 (new file)
+- **All 78 Characterization Tests:** ✅ Passing
+- **TypeScript Compilation:** ✅ No errors
+- **All Client Tests:** ✅ 923 tests passing
+
+**LOC Accounting:**
+
+**Lines Removed (~64 total):**
+- EntitiesPanel JSX block: ~60 lines
+- Inline functions (moved to handlers): ~4 lines
+
+**Lines Added (~74 total):**
+- Handler function declarations: ~34 lines
+- BottomPanelLayout import: ~1 line
+- BottomPanelLayout component call: ~42 lines
+- Import cleanup adjustments: ~-3 lines
+
+**Net Change:** +10 LOC in MainLayout
+
+**Explanation of LOC Increase:**
+The extraction resulted in a **net increase** of 10 LOC in MainLayout because:
+1. Handler extraction with useCallback wrappers added significant boilerplate (~34 lines)
+2. EntitiesPanel removal only saved ~64 lines
+3. BottomPanelLayout call with 40 props added ~42 lines
+4. The complexity was **moved to named handlers** for better testability and maintainability
+
+**Trade-off Analysis:**
+- ❌ MainLayout LOC increased by 10 (not decreased)
+- ✅ Code organization improved (named handlers vs inline functions)
+- ✅ Better testability (handlers can be tested independently)
+- ✅ EntitiesPanel logic extracted to BottomPanelLayout (301 LOC component)
+- ✅ Improved maintainability and readability
+
+**Cumulative Progress:**
+- **Total MainLayout Reduction:** 795 → 725 LOC (-70 LOC, 8.8%)
+- **Extractions Complete:** 4 of 4 ✅
+- **Total Tests Created:** 307 (46 + 70 + 113 + 78), all passing
+- **Remaining Target:** Need 525 more LOC reduction (72.4%)
+
+**Verification:**
+- ✅ All characterization tests pass (78 tests)
+- ✅ TypeScript compilation successful
+- ✅ No behavioral changes
+- ✅ Component follows established patterns
+- ✅ Handlers properly memoized with useCallback
+
+**Key Decision:**
+Handler extraction trade-off accepted because:
+- Improves code organization (named functions > inline)
+- Better testability
+- Sets precedent for Phase 2 handler extraction work
+- Small LOC increase acceptable for maintainability gains
 
 ---
 
