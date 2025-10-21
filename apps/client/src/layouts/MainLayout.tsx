@@ -41,6 +41,13 @@ import { DMMenu } from "../features/dm";
 import { ContextMenu } from "../components/ui/ContextMenu";
 import { ToastContainer, ToastMessage } from "../components/ui/Toast";
 
+// Type aliases for missing types
+type ContextMenuState = { x: number; y: number; tokenId: string } | null;
+type DrawingToolbarProps = UseDrawingStateManagerReturn["toolbarProps"];
+type DrawingBoardProps = UseDrawingStateManagerReturn["drawingProps"];
+type RollHistoryEntry = RollLogEntry;
+type ToastState = ReturnType<typeof import("../hooks/useToast").useToast>;
+
 /**
  * Roll log entry interface
  */
@@ -377,8 +384,11 @@ export interface MainLayoutProps {
  *
  * Pure presentation component that renders the complete application UI.
  * All state and behavior is passed in via props.
+ *
+ * Wrapped with React.memo for performance optimization to prevent
+ * unnecessary re-renders during drag operations.
  */
-export function MainLayout(props: MainLayoutProps): JSX.Element {
+export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps): JSX.Element {
   const {
     // Layout state
     topHeight,
@@ -756,4 +766,4 @@ export function MainLayout(props: MainLayoutProps): JSX.Element {
       <ToastContainer messages={toast.messages} onDismiss={toast.dismiss} />
     </div>
   );
-}
+});

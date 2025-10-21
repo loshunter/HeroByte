@@ -166,6 +166,11 @@ function AuthenticatedApp({
     scale: 1,
   });
 
+  // Memoize camera state setter to prevent unnecessary re-renders
+  const handleCameraChange = useCallback((camera: Camera) => {
+    setCameraState(camera);
+  }, []);
+
   // Server-synced object selection state
   const {
     selectedObjectId,
@@ -192,6 +197,14 @@ function AuthenticatedApp({
   // Context menu
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; tokenId: string } | null>(
     null,
+  );
+
+  // Memoize context menu setter to prevent unnecessary re-renders
+  const handleContextMenuChange = useCallback(
+    (menu: { x: number; y: number; tokenId: string } | null) => {
+      setContextMenu(menu);
+    },
+    [],
   );
 
   // CRT filter toggle
@@ -388,6 +401,17 @@ function AuthenticatedApp({
   });
 
   // -------------------------------------------------------------------------
+  // MEMOIZED ARRAY PROPS (Performance optimization)
+  // -------------------------------------------------------------------------
+  // Memoize snapshot array props to prevent unnecessary re-renders of MainLayout
+  const players = useMemo(() => snapshot?.players || [], [snapshot?.players]);
+  const characters = useMemo(() => snapshot?.characters || [], [snapshot?.characters]);
+  const tokens = useMemo(() => snapshot?.tokens || [], [snapshot?.tokens]);
+  const sceneObjects = useMemo(() => snapshot?.sceneObjects || [], [snapshot?.sceneObjects]);
+  const drawings = useMemo(() => snapshot?.drawings || [], [snapshot?.drawings]);
+  const props = useMemo(() => snapshot?.props || [], [snapshot?.props]);
+
+  // -------------------------------------------------------------------------
   // RENDER
   // -------------------------------------------------------------------------
 
@@ -399,7 +423,7 @@ function AuthenticatedApp({
       topPanelRef={topPanelRef}
       bottomPanelRef={bottomPanelRef}
       contextMenu={contextMenu}
-      setContextMenu={setContextMenu}
+      setContextMenu={handleContextMenuChange}
       // Connection state
       isConnected={isConnected}
       // Tool state
@@ -435,7 +459,7 @@ function AuthenticatedApp({
       camera={camera}
       cameraCommand={cameraCommand}
       handleCameraCommandHandled={handleCameraCommandHandled}
-      setCameraState={setCameraState}
+      setCameraState={handleCameraChange}
       handleFocusSelf={handleFocusSelf}
       handleResetCamera={handleResetCamera}
       // Drawing

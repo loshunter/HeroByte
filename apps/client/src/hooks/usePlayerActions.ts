@@ -14,7 +14,7 @@
  * @module hooks/usePlayerActions
  */
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import type {
   ClientMessage,
   PlayerState,
@@ -359,15 +359,28 @@ export function usePlayerActions({
     [sendMessage],
   );
 
-  return {
-    renamePlayer,
-    setPortrait,
-    setHP,
-    setStatusEffects,
-    addCharacter,
-    deleteCharacter,
-    updateCharacterName,
-    applyPlayerState,
-    setPlayerStagingZone,
-  };
+  return useMemo(
+    () => ({
+      renamePlayer,
+      setPortrait,
+      setHP,
+      setStatusEffects,
+      addCharacter,
+      deleteCharacter,
+      updateCharacterName,
+      applyPlayerState,
+      setPlayerStagingZone,
+    }),
+    [
+      renamePlayer,
+      setPortrait,
+      setHP,
+      setStatusEffects,
+      addCharacter,
+      deleteCharacter,
+      updateCharacterName,
+      applyPlayerState,
+      setPlayerStagingZone,
+    ],
+  );
 }
