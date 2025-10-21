@@ -22,7 +22,7 @@
  * @module features/selection/SelectionManager
  */
 
-import { useCallback, useEffect } from "react";
+import { useEffect } from "react";
 import type { ClientMessage, RoomSnapshot } from "@shared";
 import { useObjectSelection } from "../../hooks/useObjectSelection";
 import { useSceneObjectSelectors } from "../../hooks/useSceneObjectSelectors";

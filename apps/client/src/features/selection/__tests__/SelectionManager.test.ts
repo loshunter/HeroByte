@@ -17,7 +17,7 @@
  */
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { renderHook } from "@testing-library/react";
 
 /**
  * Mock implementation of the SelectionManager
@@ -27,9 +27,9 @@ function createSelectionManager({
   useObjectSelection,
   useToolMode,
   useSceneObjectSelectors,
-  snapshot,
-  sendMessage,
-  uid,
+  snapshot: _snapshot,
+  sendMessage: _sendMessage,
+  uid: _uid,
 }: {
   useObjectSelection: () => {
     selectedObjectId: string | null;
@@ -119,7 +119,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: false,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -158,7 +158,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: false,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -197,7 +197,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: true,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -236,7 +236,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: false,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -276,7 +276,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: false,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -322,7 +322,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: false,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -364,7 +364,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: false,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -411,7 +411,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: false,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -449,7 +449,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: false,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -487,7 +487,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: true,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -525,7 +525,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: true,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -566,7 +566,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -616,7 +616,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -665,7 +665,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: false,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -705,7 +705,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: false,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -942,7 +942,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: false,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -980,7 +980,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: false,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -1018,7 +1018,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: false,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -1057,7 +1057,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: false,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -1096,7 +1096,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: true,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -1135,7 +1135,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: true,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -1178,7 +1178,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: false,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -1224,7 +1224,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: false,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -1268,7 +1268,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: false,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -1312,7 +1312,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: false,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -1356,7 +1356,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: false,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -1402,7 +1402,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: false,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -1442,7 +1442,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: false,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -1482,7 +1482,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: true,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -1524,7 +1524,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -1580,7 +1580,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: false,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -1623,7 +1623,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: false,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -1680,7 +1680,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: true,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -1732,7 +1732,7 @@ describe("SelectionManager - Characterization", () => {
         selectMode: false,
       });
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;
@@ -1787,7 +1787,7 @@ describe("SelectionManager - Characterization", () => {
       const mockHandleObjectSelection = vi.fn();
       const mockHandleObjectSelectionBatch = vi.fn();
 
-      const mockUseSceneObjectSelectors = (options: {
+      const mockUseSceneObjectSelectors = (_options: {
         selectedObjectIds: string[];
         selectObject: (objectId: string | null) => void;
         selectMultiple: (objectIds: string[], mode?: "replace" | "append" | "subtract") => void;

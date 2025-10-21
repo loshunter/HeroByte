@@ -288,11 +288,11 @@ describe("useMapAlignment - Characterization", () => {
       // CURRENT BEHAVIOR (App.tsx line 351):
       // const handleAlignmentPointCapture = useCallback((point: AlignmentPoint) => { ... });
       const point: AlignmentPoint = {
-        world: { x: 123.45, y: 678.90 },
+        world: { x: 123.45, y: 678.9 },
         local: { x: 111.11, y: 222.22 },
       };
 
-      expect(point.world).toEqual({ x: 123.45, y: 678.90 });
+      expect(point.world).toEqual({ x: 123.45, y: 678.9 });
       expect(point.local).toEqual({ x: 111.11, y: 222.22 });
     });
 
@@ -400,7 +400,7 @@ describe("useMapAlignment - Characterization", () => {
     it("should clear alignment points after apply", () => {
       // CURRENT BEHAVIOR (App.tsx line 385):
       // setAlignmentPoints([]);
-      const points: AlignmentPoint[] = [mockPoint1, mockPoint2];
+      const _points: AlignmentPoint[] = [mockPoint1, mockPoint2];
       const suggestion = mockSuggestion;
       const mapObject = mockMapSceneObject;
 
@@ -691,7 +691,7 @@ describe("useMapAlignment - Characterization", () => {
         try {
           const result = mockComputeMapAlignmentTransform(points, gridSize);
           expect(result).toBe(mockSuggestion);
-        } catch (error) {
+        } catch {
           // Error handling tested separately
         }
       }
@@ -761,7 +761,8 @@ describe("useMapAlignment - Characterization", () => {
         throw errorInstance;
       } catch (error) {
         const clearedSuggestion: AlignmentSuggestion | null = null;
-        const errorMessage = error instanceof Error ? error.message : "Failed to compute alignment.";
+        const errorMessage =
+          error instanceof Error ? error.message : "Failed to compute alignment.";
 
         expect(clearedSuggestion).toBeNull();
         expect(errorMessage).toBe("Alignment points must not be identical.");
@@ -775,7 +776,8 @@ describe("useMapAlignment - Characterization", () => {
         throw "String error";
       } catch (error) {
         const clearedSuggestion: AlignmentSuggestion | null = null;
-        const errorMessage = error instanceof Error ? error.message : "Failed to compute alignment.";
+        const errorMessage =
+          error instanceof Error ? error.message : "Failed to compute alignment.";
 
         expect(clearedSuggestion).toBeNull();
         expect(errorMessage).toBe("Failed to compute alignment.");
@@ -825,27 +827,27 @@ describe("useMapAlignment - Characterization", () => {
       // CURRENT BEHAVIOR: Complete alignment workflow
       const points: AlignmentPoint[] = [];
       let suggestion: AlignmentSuggestion | null = null;
-      let error: string | null = null;
+      let _error: string | null = null;
       let activeTool: string | null = null;
 
       // 1. Start alignment
       activeTool = "align";
       points.length = 0;
       suggestion = null;
-      error = null;
+      _error = null;
 
       expect(activeTool).toBe("align");
       expect(points).toHaveLength(0);
 
       // 2. Capture first point
       points.push(mockPoint1);
-      error = null;
+      _error = null;
 
       expect(points).toHaveLength(1);
 
       // 3. Capture second point
       points.push(mockPoint2);
-      error = null;
+      _error = null;
 
       expect(points).toHaveLength(2);
 
