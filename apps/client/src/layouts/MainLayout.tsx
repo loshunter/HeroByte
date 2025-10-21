@@ -23,7 +23,6 @@
 
 import React from "react";
 import type { MainLayoutProps, RollLogEntry } from "./props/MainLayoutProps";
-import MapBoard from "../ui/MapBoard";
 import { TopPanelLayout } from "./TopPanelLayout";
 import { CenterCanvasLayout } from "./CenterCanvasLayout";
 import { FloatingPanelsLayout } from "./FloatingPanelsLayout";
