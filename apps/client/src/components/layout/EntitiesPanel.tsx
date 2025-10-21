@@ -300,7 +300,9 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                         }}
                         onPortraitLoad={onPortraitLoad}
                         onToggleMic={onToggleMic}
-                        onHpChange={(hp) => onCharacterHpChange(character.id, hp, displayPlayer.maxHp ?? 100)}
+                        onHpChange={(hp) =>
+                          onCharacterHpChange(character.id, hp, displayPlayer.maxHp ?? 100)
+                        }
                         editingHpUID={editingHpUID}
                         hpInput={hpInput}
                         onHpInputChange={onHpInputChange}

@@ -636,7 +636,9 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
           }
         }}
         onToggleMic={toggleMic}
-        onCharacterHpChange={(characterId, hp, maxHp) => playerActions.updateCharacterHP(characterId, hp, maxHp)}
+        onCharacterHpChange={(characterId, hp, maxHp) =>
+          playerActions.updateCharacterHP(characterId, hp, maxHp)
+        }
         editingHpUID={editingHpUID}
         hpInput={hpInput}
         onHpInputChange={updateHpInput}
