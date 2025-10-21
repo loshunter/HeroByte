@@ -156,7 +156,12 @@ const PropEditor = ({ prop, players, onUpdate, onDelete }: PropEditorProps) => {
 
   return (
     <JRPGPanel variant="simple" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-      <FormInput label="Label" value={label} onChange={(v) => setLabel(v as string)} onBlur={handleLabelBlur} />
+      <FormInput
+        label="Label"
+        value={label}
+        onChange={(v) => setLabel(v as string)}
+        onBlur={handleLabelBlur}
+      />
 
       <FormInput
         label="Image URL"
@@ -287,7 +292,12 @@ const NPCEditor = ({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) => {
 
   return (
     <JRPGPanel variant="simple" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-      <FormInput label="Name" value={name} onChange={(v) => setName(v as string)} onBlur={handleNameBlur} />
+      <FormInput
+        label="Name"
+        value={name}
+        onChange={(v) => setName(v as string)}
+        onBlur={handleNameBlur}
+      />
 
       <div style={{ display: "flex", gap: "8px" }}>
         <div style={{ flex: 1 }}>
@@ -1297,7 +1307,11 @@ export function DMMenu({
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 <JRPGPanel variant="simple" title="Session Save/Load">
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <FormInput label="Session Name" value={sessionName} onChange={(v) => setSessionName(v as string)} />
+                    <FormInput
+                      label="Session Name"
+                      value={sessionName}
+                      onChange={(v) => setSessionName(v as string)}
+                    />
 
                     <div style={{ display: "flex", gap: "8px" }}>
                       <JRPGButton
