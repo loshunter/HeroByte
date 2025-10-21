@@ -476,7 +476,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
     it("should pass playerCount from snapshot to DMMenu", () => {
       const props = createDefaultProps();
       props.snapshot = {
-        players: [{}, {}, {}] as any,
+        players: [{}, {}, {}] as unknown[],
         characters: [],
         tokens: [],
         sceneObjects: [],
@@ -506,7 +506,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       const props = createDefaultProps();
       props.snapshot = {
         players: [],
-        characters: [{}, {}] as any,
+        characters: [{}, {}] as unknown[],
         tokens: [],
         sceneObjects: [],
         drawings: [],
@@ -699,7 +699,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
         pointers: [],
         gridSize: 50,
         gridSquareSize: 5,
-        props: [{}, {}] as any,
+        props: [{}, {}] as unknown[],
       };
 
       render(<MainLayout {...props} />);
@@ -711,7 +711,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
     it("should pass players from snapshot to DMMenu", () => {
       const props = createDefaultProps();
       props.snapshot = {
-        players: [{}, {}, {}] as any,
+        players: [{}, {}, {}] as unknown[],
         characters: [],
         tokens: [],
         sceneObjects: [],
@@ -1701,7 +1701,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
         messages: [
           { id: "1", message: "Toast 1" },
           { id: "2", message: "Toast 2" },
-        ] as any,
+        ] as unknown[],
         dismiss: vi.fn(),
       };
 
@@ -1724,7 +1724,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(toastContainer).toHaveAttribute("data-messages-count", "0");
 
       props.toast = {
-        messages: [{ id: "1", message: "New toast" }] as any,
+        messages: [{ id: "1", message: "New toast" }] as unknown[],
         dismiss: vi.fn(),
       };
       rerender(<MainLayout {...props} />);
@@ -1906,7 +1906,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
         messages: Array.from({ length: 20 }, (_, i) => ({
           id: `toast-${i}`,
           message: `Toast message ${i}`,
-        })) as any,
+        })) as unknown[],
         dismiss: vi.fn(),
       };
 
@@ -2031,7 +2031,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
         },
       ];
       props.toast = {
-        messages: [{ id: "toast-1", message: "Test toast" }] as any,
+        messages: [{ id: "toast-1", message: "Test toast" }] as unknown[],
         dismiss: vi.fn(),
       };
 
@@ -2100,7 +2100,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       props.toast.messages = [
         { id: "t1", message: "Toast 1" },
         { id: "t2", message: "Toast 2" },
-      ] as any;
+      ] as unknown[];
       props.gridSize = 100;
       props.camera = { x: 500, y: 600, scale: 2.5 };
       rerender(<MainLayout {...props} />);
@@ -2286,18 +2286,18 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       props.toast.messages = Array.from({ length: largeNumber }, (_, i) => ({
         id: `toast-${i}`,
         message: `Message ${i}`,
-      })) as any;
+      })) as unknown[];
 
       props.snapshot = {
-        players: Array(largeNumber).fill({}) as any,
-        characters: Array(largeNumber).fill({}) as any,
+        players: Array(largeNumber).fill({}) as unknown[],
+        characters: Array(largeNumber).fill({}) as unknown[],
         tokens: [],
         sceneObjects: [],
         drawings: [],
         pointers: [],
         gridSize: 50,
         gridSquareSize: 5,
-        props: Array(largeNumber).fill({}) as any,
+        props: Array(largeNumber).fill({}) as unknown[],
       };
 
       render(<MainLayout {...props} />);
