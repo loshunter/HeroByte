@@ -23,6 +23,7 @@ Play anywhere, with anyone—no installs, just browser-based fun. Build your map
 Successfully reduced App.tsx from **1,850 to 519 LOC** (-72% reduction). This major refactoring initiative extracted **29 modules**, added **616 tests**, and achieved **SOLID compliance**. The application is now more maintainable, testable, and aligned with professional engineering standards.
 
 **Key Achievements:**
+
 - 29 custom hooks and services extracted from monolithic component
 - 616 new tests added (100% coverage on extracted modules)
 - SOLID principles applied throughout architecture

@@ -26,7 +26,6 @@ import type { Camera } from "../hooks/useCamera";
 import type { RoomSnapshot, ClientMessage } from "@shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import type { RollResult } from "../components/dice/types";
-import type { ToolMode } from "../components/layout/Header";
 import type { UseDrawingStateManagerReturn } from "../hooks/useDrawingStateManager";
 import MapBoard from "../ui/MapBoard";
 import { DiceRoller } from "../components/dice/DiceRoller";
@@ -39,7 +38,7 @@ import { ServerStatus } from "../components/layout/ServerStatus";
 import { MultiSelectToolbar } from "../components/layout/MultiSelectToolbar";
 import { DMMenu } from "../features/dm";
 import { ContextMenu } from "../components/ui/ContextMenu";
-import { ToastContainer, ToastMessage } from "../components/ui/Toast";
+import { ToastContainer } from "../components/ui/Toast";
 
 // Type aliases for missing types
 type ContextMenuState = { x: number; y: number; tokenId: string } | null;

@@ -38,43 +38,45 @@ vi.mock("../../components/layout/ServerStatus", () => ({
 }));
 
 vi.mock("../../features/drawing/components", () => ({
-  DrawingToolbar: (props: any) => <div data-testid="drawing-toolbar">DrawingToolbar</div>,
+  DrawingToolbar: (_props: any) => <div data-testid="drawing-toolbar">DrawingToolbar</div>,
 }));
 
 vi.mock("../../components/layout/Header", () => ({
-  Header: (props: any) => <div data-testid="header">Header</div>,
+  Header: (_props: any) => <div data-testid="header">Header</div>,
 }));
 
 vi.mock("../../components/layout/MultiSelectToolbar", () => ({
-  MultiSelectToolbar: (props: any) => <div data-testid="multi-select-toolbar">MultiSelectToolbar</div>,
+  MultiSelectToolbar: (_props: any) => (
+    <div data-testid="multi-select-toolbar">MultiSelectToolbar</div>
+  ),
 }));
 
 vi.mock("../../ui/MapBoard", () => ({
-  default: (props: any) => <div data-testid="map-board">MapBoard</div>,
+  default: (_props: any) => <div data-testid="map-board">MapBoard</div>,
 }));
 
 vi.mock("../../components/layout/EntitiesPanel", () => ({
-  EntitiesPanel: (props: any) => <div data-testid="entities-panel">EntitiesPanel</div>,
+  EntitiesPanel: (_props: any) => <div data-testid="entities-panel">EntitiesPanel</div>,
 }));
 
 vi.mock("../../features/dm", () => ({
-  DMMenu: (props: any) => <div data-testid="dm-menu">DMMenu</div>,
+  DMMenu: (_props: any) => <div data-testid="dm-menu">DMMenu</div>,
 }));
 
 vi.mock("../../components/ui/ContextMenu", () => ({
-  ContextMenu: (props: any) => <div data-testid="context-menu">ContextMenu</div>,
+  ContextMenu: (_props: any) => <div data-testid="context-menu">ContextMenu</div>,
 }));
 
 vi.mock("../../components/effects/VisualEffects", () => ({
-  VisualEffects: (props: any) => <div data-testid="visual-effects">VisualEffects</div>,
+  VisualEffects: (_props: any) => <div data-testid="visual-effects">VisualEffects</div>,
 }));
 
 vi.mock("../../components/dice/DiceRoller", () => ({
-  DiceRoller: (props: any) => <div data-testid="dice-roller">DiceRoller</div>,
+  DiceRoller: (_props: any) => <div data-testid="dice-roller">DiceRoller</div>,
 }));
 
 vi.mock("../../components/dice/RollLog", () => ({
-  RollLog: (props: any) => <div data-testid="roll-log">RollLog</div>,
+  RollLog: (_props: any) => <div data-testid="roll-log">RollLog</div>,
 }));
 
 vi.mock("../../components/ui/Toast", () => ({
@@ -553,7 +555,9 @@ describe.skip("MainLayout - Characterization", () => {
 
     it("should position viewing DiceRoller with fixed positioning", () => {
       const viewingRoll = { id: "roll1", result: 15 };
-      const { container } = render(<MainLayout {...defaultProps} viewingRoll={viewingRoll as any} />);
+      const { container } = render(
+        <MainLayout {...defaultProps} viewingRoll={viewingRoll as any} />,
+      );
 
       // Find the container wrapping the viewing DiceRoller
       const viewingContainer = Array.from(container.querySelectorAll("div")).find((div) => {
@@ -571,11 +575,7 @@ describe.skip("MainLayout - Characterization", () => {
     it("should render both DiceRoller instances when both diceRollerOpen and viewingRoll are active", () => {
       const viewingRoll = { id: "roll1", result: 15 };
       render(
-        <MainLayout
-          {...defaultProps}
-          diceRollerOpen={true}
-          viewingRoll={viewingRoll as any}
-        />,
+        <MainLayout {...defaultProps} diceRollerOpen={true} viewingRoll={viewingRoll as any} />,
       );
 
       const diceRollers = screen.getAllByTestId("dice-roller");
@@ -591,9 +591,7 @@ describe.skip("MainLayout - Characterization", () => {
 
     it("should pass toast messages to ToastContainer", () => {
       const toast = {
-        messages: [
-          { id: "1", text: "Test message", type: "info" as const },
-        ],
+        messages: [{ id: "1", text: "Test message", type: "info" as const }],
         dismiss: vi.fn(),
       };
       render(<MainLayout {...defaultProps} toast={toast} />);
@@ -688,7 +686,9 @@ describe.skip("MainLayout - Characterization", () => {
 
   describe("edge cases", () => {
     it("should handle topHeight of 0", () => {
-      const { container } = render(<MainLayout {...defaultProps} topHeight={0} bottomHeight={210} />);
+      const { container } = render(
+        <MainLayout {...defaultProps} topHeight={0} bottomHeight={210} />,
+      );
 
       const mapContainer = Array.from(container.querySelectorAll("div")).find((div) => {
         const style = div.getAttribute("style");
@@ -699,7 +699,9 @@ describe.skip("MainLayout - Characterization", () => {
     });
 
     it("should handle bottomHeight of 0", () => {
-      const { container } = render(<MainLayout {...defaultProps} topHeight={180} bottomHeight={0} />);
+      const { container } = render(
+        <MainLayout {...defaultProps} topHeight={180} bottomHeight={0} />,
+      );
 
       const mapContainer = Array.from(container.querySelectorAll("div")).find((div) => {
         const style = div.getAttribute("style");

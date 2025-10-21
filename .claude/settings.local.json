@@ -102,7 +102,16 @@
       "Bash(pnpm --filter herobyte-client test:*)",
       "Bash(pnpm lint:*)",
       "Bash(npm run lint:*)",
-      "Bash(pnpm --filter herobyte-client run --help)"
+      "Bash(pnpm --filter herobyte-client run --help)",
+      "SlashCommand(/ci-check)",
+      "Bash(mkdir:*)",
+      "Bash(pnpm test:*)",
+      "Bash(test:*)",
+      "Bash(pnpm dev)",
+      "Bash(npx --yes tsc:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_install",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []
