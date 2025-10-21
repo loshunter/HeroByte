@@ -12,6 +12,7 @@ import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import type { Camera } from "../../../hooks/useCamera";
 import { CollapsibleSection } from "../../../components/ui/CollapsibleSection";
 import { ImagePreview } from "../../../components/ui/ImagePreview";
+import { FormInput } from "../../../components/ui/FormInput";
 
 interface DMMenuProps {
   isDM: boolean;
@@ -154,47 +155,9 @@ const PropEditor = ({ prop, players, onUpdate, onDelete }: PropEditorProps) => {
 
   return (
     <JRPGPanel variant="simple" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-        <label className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-          Label
-          <input
-            type="text"
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            onBlur={handleLabelBlur}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleLabelBlur();
-            }}
-            style={{
-              width: "100%",
-              padding: "4px",
-              background: "#111",
-              color: "var(--jrpg-white)",
-              border: "1px solid var(--jrpg-border-gold)",
-            }}
-          />
-        </label>
-      </div>
+      <FormInput label="Label" value={label} onChange={setLabel} onBlur={handleLabelBlur} />
 
-      <label
-        className="jrpg-text-small"
-        style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-      >
-        Image URL
-        <input
-          type="text"
-          value={imageUrl}
-          onChange={(e) => setImageUrl(e.target.value)}
-          onBlur={handleImageUrlBlur}
-          style={{
-            width: "100%",
-            padding: "4px",
-            background: "#111",
-            color: "var(--jrpg-white)",
-            border: "1px solid var(--jrpg-border-gold)",
-          }}
-        />
-      </label>
+      <FormInput label="Image URL" value={imageUrl} onChange={setImageUrl} onBlur={handleImageUrlBlur} />
       <ImagePreview
         src={imageUrl}
         alt={`${prop.label} preview`}
@@ -321,90 +284,18 @@ const NPCEditor = ({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) => {
 
   return (
     <JRPGPanel variant="simple" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-        <label className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-          Name
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onBlur={handleNameBlur}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleNameBlur();
-            }}
-            style={{
-              width: "100%",
-              padding: "4px",
-              background: "#111",
-              color: "var(--jrpg-white)",
-              border: "1px solid var(--jrpg-border-gold)",
-            }}
-          />
-        </label>
-      </div>
+      <FormInput label="Name" value={name} onChange={setName} onBlur={handleNameBlur} />
 
       <div style={{ display: "flex", gap: "8px" }}>
-        <label className="jrpg-text-small" style={{ flex: 1 }}>
-          HP
-          <input
-            type="number"
-            min={0}
-            value={hpInput}
-            onChange={(e) => setHpInput(e.target.value)}
-            onBlur={handleHpBlur}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleHpBlur();
-            }}
-            style={{
-              width: "100%",
-              padding: "4px",
-              background: "#111",
-              color: "var(--jrpg-white)",
-              border: "1px solid var(--jrpg-border-gold)",
-            }}
-          />
-        </label>
-        <label className="jrpg-text-small" style={{ flex: 1 }}>
-          Max HP
-          <input
-            type="number"
-            min={1}
-            value={maxHpInput}
-            onChange={(e) => setMaxHpInput(e.target.value)}
-            onBlur={handleMaxHpBlur}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleMaxHpBlur();
-            }}
-            style={{
-              width: "100%",
-              padding: "4px",
-              background: "#111",
-              color: "var(--jrpg-white)",
-              border: "1px solid var(--jrpg-border-gold)",
-            }}
-          />
-        </label>
+        <div style={{ flex: 1 }}>
+          <FormInput label="HP" type="number" value={hpInput} onChange={setHpInput} onBlur={handleHpBlur} min={0} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <FormInput label="Max HP" type="number" value={maxHpInput} onChange={setMaxHpInput} onBlur={handleMaxHpBlur} min={1} />
+        </div>
       </div>
 
-      <label
-        className="jrpg-text-small"
-        style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-      >
-        Portrait URL
-        <input
-          type="text"
-          value={portrait}
-          onChange={(e) => setPortrait(e.target.value)}
-          onBlur={handlePortraitBlur}
-          style={{
-            width: "100%",
-            padding: "4px",
-            background: "#111",
-            color: "var(--jrpg-white)",
-            border: "1px solid var(--jrpg-border-gold)",
-          }}
-        />
-      </label>
+      <FormInput label="Portrait URL" value={portrait} onChange={setPortrait} onBlur={handlePortraitBlur} />
       <ImagePreview
         src={portrait}
         alt={`${npc.name} portrait`}
@@ -413,25 +304,7 @@ const NPCEditor = ({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) => {
         showBorder={false}
       />
 
-      <label
-        className="jrpg-text-small"
-        style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-      >
-        Token Image URL
-        <input
-          type="text"
-          value={tokenImage}
-          onChange={(e) => setTokenImage(e.target.value)}
-          onBlur={handleTokenImageBlur}
-          style={{
-            width: "100%",
-            padding: "4px",
-            background: "#111",
-            color: "var(--jrpg-white)",
-            border: "1px solid var(--jrpg-border-gold)",
-          }}
-        />
-      </label>
+      <FormInput label="Token Image URL" value={tokenImage} onChange={setTokenImage} onBlur={handleTokenImageBlur} />
       <ImagePreview
         src={tokenImage}
         alt={`${npc.name} token preview`}
@@ -647,6 +520,18 @@ export function DMMenu({
   if (!isDM) {
     return null;
   }
+
+  const handlePasswordChange = (value: string | number) => {
+    setPasswordInput(String(value));
+    setPasswordError(null);
+    onDismissRoomPasswordStatus?.();
+  };
+
+  const handlePasswordConfirmChange = (value: string | number) => {
+    setPasswordConfirmInput(String(value));
+    setPasswordError(null);
+    onDismissRoomPasswordStatus?.();
+  };
 
   const handlePasswordSubmit = () => {
     if (!onSetRoomPassword) return;
@@ -1398,24 +1283,7 @@ export function DMMenu({
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 <JRPGPanel variant="simple" title="Session Save/Load">
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <label
-                      className="jrpg-text-small"
-                      style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-                    >
-                      Session Name
-                      <input
-                        type="text"
-                        value={sessionName}
-                        onChange={(event) => setSessionName(event.target.value)}
-                        style={{
-                          width: "100%",
-                          padding: "6px",
-                          background: "#111",
-                          color: "var(--jrpg-white)",
-                          border: "1px solid var(--jrpg-border-gold)",
-                        }}
-                      />
-                    </label>
+                    <FormInput label="Session Name" value={sessionName} onChange={setSessionName} />
 
                     <div style={{ display: "flex", gap: "8px" }}>
                       <JRPGButton
@@ -1460,39 +1328,19 @@ export function DMMenu({
                       Update the shared room password. Current players remain connected; new
                       entrants must use the new secret.
                     </p>
-                    <input
+                    <FormInput
+                      label="Password"
                       type="password"
                       value={passwordInput}
+                      onChange={handlePasswordChange}
                       placeholder="New password"
-                      onChange={(event) => {
-                        setPasswordInput(event.target.value);
-                        setPasswordError(null);
-                        onDismissRoomPasswordStatus?.();
-                      }}
-                      style={{
-                        width: "100%",
-                        padding: "6px",
-                        background: "#111",
-                        color: "var(--jrpg-white)",
-                        border: "1px solid var(--jrpg-border-gold)",
-                      }}
                     />
-                    <input
+                    <FormInput
+                      label="Confirm Password"
                       type="password"
                       value={passwordConfirmInput}
+                      onChange={handlePasswordConfirmChange}
                       placeholder="Confirm password"
-                      onChange={(event) => {
-                        setPasswordConfirmInput(event.target.value);
-                        setPasswordError(null);
-                        onDismissRoomPasswordStatus?.();
-                      }}
-                      style={{
-                        width: "100%",
-                        padding: "6px",
-                        background: "#111",
-                        color: "var(--jrpg-white)",
-                        border: "1px solid var(--jrpg-border-gold)",
-                      }}
                     />
                     {passwordError ? (
                       <p style={{ color: "#f87171", margin: 0, fontSize: "0.85rem" }}>
