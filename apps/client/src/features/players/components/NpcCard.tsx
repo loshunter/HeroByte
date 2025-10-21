@@ -37,6 +37,8 @@ export function NpcCard({
   tokenSize,
   onTokenSizeChange,
 }: NpcCardProps): JSX.Element {
+  const [editingHp, setEditingHp] = useState(false);
+  const [hpInput, setHpInput] = useState(String(character.hp));
   const [editingMaxHp, setEditingMaxHp] = useState(false);
   const [maxHpInput, setMaxHpInput] = useState(String(character.maxHp));
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -52,6 +54,21 @@ export function NpcCard({
       onUpdate(character.id, { hp: nextHp });
     },
     [character.id, onUpdate],
+  );
+
+  const handleHpSubmit = useCallback(
+    (value: string) => {
+      if (!isDM) return;
+      const numeric = Number.parseInt(value, 10);
+      if (!Number.isFinite(numeric) || numeric < 0) {
+        setEditingHp(false);
+        return;
+      }
+      const nextHp = Math.min(numeric, character.maxHp);
+      onUpdate(character.id, { hp: nextHp });
+      setEditingHp(false);
+    },
+    [isDM, character.id, character.maxHp, onUpdate],
   );
 
   const handleMaxHpSubmit = useCallback(
@@ -161,11 +178,19 @@ export function NpcCard({
         hp={character.hp}
         maxHp={character.maxHp}
         isMe={canEdit}
+        isEditingHp={editingHp}
+        hpInput={hpInput}
+        onHpInputChange={setHpInput}
+        onHpEdit={(uid: string) => {
+          if (!canEdit) return;
+          setEditingHp(true);
+          setHpInput(String(character.hp));
+        }}
+        onHpSubmit={handleHpSubmit}
         isEditingMaxHp={editingMaxHp}
         maxHpInput={maxHpInput}
         playerUid={character.id}
         onHpChange={handleHpChange}
-        onHpSet={handleHpChange}
         onMaxHpInputChange={setMaxHpInput}
         onMaxHpEdit={() => {
           if (!canEdit) return;
