@@ -22,366 +22,15 @@
  */
 
 import React from "react";
-import type { Camera } from "../hooks/useCamera";
-import type {
-  RoomSnapshot,
-  ClientMessage,
-  SceneObjectTransform,
-  TokenSize,
-  PlayerState,
-  PlayerStagingZone,
-} from "@shared";
-import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
-import type { RollResult } from "../components/dice/types";
-import type { UseDrawingStateManagerReturn } from "../hooks/useDrawingStateManager";
-import type { ToolMode } from "../components/layout/Header";
-import type { CameraCommand } from "../ui/MapBoard";
-import MapBoard from "../ui/MapBoard";
-import { DiceRoller } from "../components/dice/DiceRoller";
-import { RollLog } from "../components/dice/RollLog";
-import { DrawingToolbar } from "../features/drawing/components";
-import { Header } from "../components/layout/Header";
-import { EntitiesPanel } from "../components/layout/EntitiesPanel";
-import { VisualEffects } from "../components/effects/VisualEffects";
-import { ServerStatus } from "../components/layout/ServerStatus";
-import { MultiSelectToolbar } from "../components/layout/MultiSelectToolbar";
-import { DMMenu } from "../features/dm";
-import { ContextMenu } from "../components/ui/ContextMenu";
-import { ToastContainer } from "../components/ui/Toast";
+import type { MainLayoutProps, RollLogEntry } from "./props/MainLayoutProps";
+import { TopPanelLayout } from "./TopPanelLayout";
+import { CenterCanvasLayout } from "./CenterCanvasLayout";
+import { FloatingPanelsLayout } from "./FloatingPanelsLayout";
+import { BottomPanelLayout } from "./BottomPanelLayout";
+import { useEntityEditHandlers } from "../hooks/useEntityEditHandlers";
 
-// Type aliases for missing types
-type ContextMenuState = { x: number; y: number; tokenId: string } | null;
-type DrawingToolbarProps = UseDrawingStateManagerReturn["toolbarProps"];
-type DrawingBoardProps = UseDrawingStateManagerReturn["drawingProps"];
-type ToastState = ReturnType<typeof import("../hooks/useToast").useToast>;
-
-/**
- * Roll log entry interface
- * This extends RollResult with playerName to match what RollLog.tsx expects
- */
-export interface RollLogEntry extends RollResult {
-  playerName: string;
-}
-
-/**
- * Props for the MainLayout component
- *
- * This interface defines all the props needed to render the complete application
- * layout. Props are organized into logical groups for clarity.
- */
-export interface MainLayoutProps {
-  // -------------------------------------------------------------------------
-  // Layout State
-  // -------------------------------------------------------------------------
-  /** Height of the top panel in pixels */
-  topHeight: number;
-  /** Height of the bottom panel in pixels */
-  bottomHeight: number;
-  /** Reference to the top panel DOM element */
-  topPanelRef: React.RefObject<HTMLDivElement>;
-  /** Reference to the bottom panel DOM element */
-  bottomPanelRef: React.RefObject<HTMLDivElement>;
-  /** Context menu state (position and target token) */
-  contextMenu: ContextMenuState;
-  /** Handler to update context menu state */
-  setContextMenu: (menu: ContextMenuState) => void;
-
-  // -------------------------------------------------------------------------
-  // Connection State
-  // -------------------------------------------------------------------------
-  /** Whether the WebSocket connection is active */
-  isConnected: boolean;
-
-  // -------------------------------------------------------------------------
-  // Tool State
-  // -------------------------------------------------------------------------
-  /** Currently active tool mode */
-  activeTool: ToolMode;
-  /** Handler to change the active tool */
-  setActiveTool: (mode: ToolMode) => void;
-  /** Whether draw mode is active */
-  drawMode: boolean;
-  /** Whether pointer mode is active */
-  pointerMode: boolean;
-  /** Whether measure mode is active */
-  measureMode: boolean;
-  /** Whether transform mode is active */
-  transformMode: boolean;
-  /** Whether select mode is active */
-  selectMode: boolean;
-  /** Whether alignment mode is active */
-  alignmentMode: boolean;
-
-  // -------------------------------------------------------------------------
-  // UI State
-  // -------------------------------------------------------------------------
-  /** Whether snap-to-grid is enabled */
-  snapToGrid: boolean;
-  /** Handler to update snap-to-grid state */
-  setSnapToGrid: (value: boolean) => void;
-  /** Whether CRT filter is enabled */
-  crtFilter: boolean;
-  /** Handler to update CRT filter state */
-  setCrtFilter: (value: boolean) => void;
-  /** Whether dice roller panel is open */
-  diceRollerOpen: boolean;
-  /** Whether roll log panel is open */
-  rollLogOpen: boolean;
-  /** Handler to toggle dice roller panel */
-  toggleDiceRoller: (value: boolean) => void;
-  /** Handler to toggle roll log panel */
-  toggleRollLog: (value: boolean) => void;
-  /** Whether microphone is enabled */
-  micEnabled: boolean;
-  /** Handler to toggle microphone */
-  toggleMic: () => void;
-  /** Whether the grid is locked */
-  gridLocked: boolean;
-  /** Handler to toggle grid lock */
-  setGridLocked: React.Dispatch<React.SetStateAction<boolean>>;
-
-  // -------------------------------------------------------------------------
-  // Data
-  // -------------------------------------------------------------------------
-  /** Current room state snapshot */
-  snapshot: RoomSnapshot | null;
-  /** Current user's UID */
-  uid: string;
-  /** Grid size (cells) */
-  gridSize: number;
-  /** Grid square size (feet per cell) */
-  gridSquareSize: number;
-  /** Whether current user is DM */
-  isDM: boolean;
-
-  // -------------------------------------------------------------------------
-  // Camera
-  // -------------------------------------------------------------------------
-  /** Current camera state */
-  cameraState: { x: number; y: number; scale: number };
-  /** Camera object (legacy) */
-  camera: Camera;
-  /** Camera command to execute */
-  cameraCommand: CameraCommand | null;
-  /** Handler for when camera command is handled */
-  handleCameraCommandHandled: () => void;
-  /** Handler for camera state changes */
-  setCameraState: (state: { x: number; y: number; scale: number }) => void;
-  /** Handler to focus on self */
-  handleFocusSelf: () => void;
-  /** Handler to reset camera */
-  handleResetCamera: () => void;
-
-  // -------------------------------------------------------------------------
-  // Drawing
-  // -------------------------------------------------------------------------
-  /** Drawing manager toolbar props */
-  drawingToolbarProps: DrawingToolbarProps;
-  /** Drawing manager drawing props */
-  drawingProps: DrawingBoardProps;
-  /** Handler to clear all drawings */
-  handleClearDrawings: () => void;
-
-  // -------------------------------------------------------------------------
-  // Editing
-  // -------------------------------------------------------------------------
-  /** UID of player being name-edited */
-  editingPlayerUID: string | null;
-  /** Current name input value */
-  nameInput: string;
-  /** UID of character whose current HP is being edited */
-  editingHpUID: string | null;
-  /** Current HP input value */
-  hpInput: string;
-  /** UID of character whose max HP is being edited */
-  editingMaxHpUID: string | null;
-  /** Current max HP input value */
-  maxHpInput: string;
-  /** Handler to update name input */
-  updateNameInput: (value: string) => void;
-  /** Handler to start name edit */
-  startNameEdit: (uid: string) => void;
-  /** Handler to submit name edit */
-  submitNameEdit: (callback: (name: string) => void) => void;
-  /** Handler to update current HP input */
-  updateHpInput: (value: string) => void;
-  /** Handler to start current HP edit */
-  startHpEdit: (uid: string) => void;
-  /** Handler to submit current HP edit */
-  submitHpEdit: (callback: (hp: number) => void) => void;
-  /** Handler to update max HP input */
-  updateMaxHpInput: (value: string) => void;
-  /** Handler to start max HP edit */
-  startMaxHpEdit: (uid: string) => void;
-  /** Handler to submit max HP edit */
-  submitMaxHpEdit: (callback: (maxHp: number) => void) => void;
-
-  // -------------------------------------------------------------------------
-  // Selection
-  // -------------------------------------------------------------------------
-  /** ID of currently selected object */
-  selectedObjectId: string | null;
-  /** IDs of all selected objects */
-  selectedObjectIds: string[];
-  /** Handler for single object selection */
-  handleObjectSelection: (id: string | null) => void;
-  /** Handler for batch object selection */
-  handleObjectSelectionBatch: (ids: string[]) => void;
-  /** Handler to lock selected objects */
-  lockSelected: () => void;
-  /** Handler to unlock selected objects */
-  unlockSelected: () => void;
-
-  // -------------------------------------------------------------------------
-  // Player Actions
-  // -------------------------------------------------------------------------
-  /** Player action handlers */
-  playerActions: {
-    renamePlayer: (name: string) => void;
-    setPortrait: (url: string) => void;
-    setHP: (hp: number, maxHp: number) => void;
-    applyPlayerState: (state: PlayerState, tokenId?: string) => void;
-    setStatusEffects: (effects: string[]) => void;
-    setPlayerStagingZone: (zone: PlayerStagingZone | undefined) => void;
-    addCharacter: (name: string) => void;
-    deleteCharacter: (id: string) => void;
-    updateCharacterName: (id: string, name: string) => void;
-    updateCharacterHP: (characterId: string, hp: number, maxHp: number) => void;
-  };
-
-  // -------------------------------------------------------------------------
-  // Scene Objects
-  // -------------------------------------------------------------------------
-  /** Map scene object (if exists) */
-  mapSceneObject: { id: string; locked: boolean; transform: SceneObjectTransform } | null;
-  /** Staging zone scene object (if exists) */
-  stagingZoneSceneObject: { id: string; locked: boolean } | null;
-  /** Handler to recolor a token */
-  recolorToken: (sceneId: string, owner?: string | null) => void;
-  /** Handler to transform a scene object */
-  transformSceneObject: (input: {
-    id: string;
-    position?: { x: number; y: number };
-    scale?: { x: number; y: number };
-    rotation?: number;
-  }) => void;
-  /** Handler to toggle scene object lock */
-  toggleSceneObjectLock: (id: string, locked: boolean) => void;
-  /** Handler to delete a token */
-  deleteToken: (id: string) => void;
-  /** Handler to update token image */
-  updateTokenImage: (id: string, imageUrl: string) => void;
-  /** Handler to update token size */
-  updateTokenSize: (tokenId: string, size: TokenSize) => void;
-
-  // -------------------------------------------------------------------------
-  // Alignment
-  // -------------------------------------------------------------------------
-  /** Captured alignment points */
-  alignmentPoints: AlignmentPoint[];
-  /** Current alignment suggestion */
-  alignmentSuggestion: AlignmentSuggestion | null;
-  /** Alignment error message */
-  alignmentError: string | null;
-  /** Handler to start alignment */
-  handleAlignmentStart: () => void;
-  /** Handler to reset alignment points */
-  handleAlignmentReset: () => void;
-  /** Handler to cancel alignment */
-  handleAlignmentCancel: () => void;
-  /** Handler to apply alignment */
-  handleAlignmentApply: () => void;
-  /** Handler for alignment point capture */
-  handleAlignmentPointCapture: (point: AlignmentPoint) => void;
-
-  // -------------------------------------------------------------------------
-  // Dice
-  // -------------------------------------------------------------------------
-  /** Roll history entries */
-  rollHistory: RollLogEntry[];
-  /** Currently viewing roll */
-  viewingRoll: RollLogEntry | null;
-  /** Handler for dice roll */
-  handleRoll: (result: RollResult) => void;
-  /** Handler to clear roll log */
-  handleClearLog: () => void;
-  /** Handler to view a roll from history */
-  handleViewRoll: (roll: RollLogEntry | null) => void;
-
-  // -------------------------------------------------------------------------
-  // Room Password
-  // -------------------------------------------------------------------------
-  /** Room password status message */
-  roomPasswordStatus: { type: "success" | "error"; message: string } | null;
-  /** Whether room password operation is pending */
-  roomPasswordPending: boolean;
-  /** Handler to set room password */
-  handleSetRoomPassword: (password: string) => void;
-  /** Handler to dismiss room password status */
-  dismissRoomPasswordStatus: () => void;
-
-  // -------------------------------------------------------------------------
-  // NPC Management
-  // -------------------------------------------------------------------------
-  /** Handler to create NPC */
-  handleCreateNPC: () => void;
-  /** Handler to update NPC */
-  handleUpdateNPC: (
-    id: string,
-    updates: { name?: string; hp?: number; maxHp?: number; portrait?: string; tokenImage?: string },
-  ) => void;
-  /** Handler to delete NPC */
-  handleDeleteNPC: (id: string) => void;
-  /** Handler to place NPC token */
-  handlePlaceNPCToken: (id: string) => void;
-  /** Handler to delete player token */
-  handleDeletePlayerToken: (tokenId: string) => void;
-
-  // -------------------------------------------------------------------------
-  // Prop Management
-  // -------------------------------------------------------------------------
-  /** Handler to create prop */
-  handleCreateProp: () => void;
-  /** Handler to update prop */
-  handleUpdateProp: (
-    id: string,
-    updates: { label: string; imageUrl: string; owner: string | null; size: TokenSize },
-  ) => void;
-  /** Handler to delete prop */
-  handleDeleteProp: (id: string) => void;
-
-  // -------------------------------------------------------------------------
-  // Session Management
-  // -------------------------------------------------------------------------
-  /** Handler to save session */
-  handleSaveSession: (sessionName: string) => void;
-  /** Handler to load session */
-  handleLoadSession: () => void;
-
-  // -------------------------------------------------------------------------
-  // DM Management
-  // -------------------------------------------------------------------------
-  /** Handler to toggle DM mode */
-  handleToggleDM: (next: boolean) => void;
-  /** Handler to set map background */
-  setMapBackgroundURL: (url: string) => void;
-  /** Handler to set grid size */
-  setGridSize: (size: number) => void;
-  /** Handler to set grid square size */
-  setGridSquareSize: (size: number) => void;
-
-  // -------------------------------------------------------------------------
-  // Toast
-  // -------------------------------------------------------------------------
-  /** Toast notification state */
-  toast: ToastState;
-
-  // -------------------------------------------------------------------------
-  // WebSocket
-  // -------------------------------------------------------------------------
-  /** Handler to send messages to server */
-  sendMessage: (message: ClientMessage) => void;
-}
+// Re-export for backward compatibility
+export type { MainLayoutProps, RollLogEntry };
 
 /**
  * MainLayout Component
@@ -430,11 +79,12 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     setGridLocked,
 
     // Data
-    snapshot,
     uid,
     gridSize,
     gridSquareSize,
     isDM,
+    snapshot,
+    playerActions,
 
     // Camera
     cameraCommand,
@@ -451,20 +101,20 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
 
     // Editing
     editingPlayerUID,
-    nameInput,
     editingHpUID,
-    hpInput,
     editingMaxHpUID,
+    nameInput,
+    hpInput,
     maxHpInput,
     updateNameInput,
     startNameEdit,
-    submitNameEdit,
     updateHpInput,
     startHpEdit,
-    submitHpEdit,
     updateMaxHpInput,
     startMaxHpEdit,
+    submitHpEdit,
     submitMaxHpEdit,
+    submitNameEdit,
 
     // Selection
     selectedObjectId,
@@ -473,9 +123,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     handleObjectSelectionBatch,
     lockSelected,
     unlockSelected,
-
-    // Player actions
-    playerActions,
 
     // Scene objects
     mapSceneObject,
@@ -538,83 +185,84 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     sendMessage,
   } = props;
 
+  // Extract entity editing handlers to custom hook
+  const {
+    handleCharacterHpSubmit,
+    handleCharacterMaxHpSubmit,
+    handlePortraitLoad,
+    handleNameSubmit,
+  } = useEntityEditHandlers({
+    editingHpUID,
+    editingMaxHpUID,
+    snapshot,
+    submitHpEdit,
+    submitMaxHpEdit,
+    submitNameEdit,
+    playerActions,
+  });
+
   return (
     <div onClick={() => setContextMenu(null)} style={{ height: "100vh", overflow: "hidden" }}>
-      {/* Server Status Banner */}
-      <ServerStatus isConnected={isConnected} />
-
-      {/* Drawing Toolbar - Fixed on left side when draw mode is active */}
-      {drawMode && <DrawingToolbar {...drawingToolbarProps} />}
-
-      {/* Header - Fixed at top */}
-      <Header
+      {/* Top Panel - Server status, drawing toolbar, header, and multi-select toolbar */}
+      <TopPanelLayout
+        isConnected={isConnected}
+        drawMode={drawMode}
+        drawingToolbarProps={drawingToolbarProps}
         uid={uid}
-        snapToGrid={snapToGrid}
         activeTool={activeTool}
+        setActiveTool={setActiveTool}
+        snapToGrid={snapToGrid}
+        setSnapToGrid={setSnapToGrid}
         crtFilter={crtFilter}
+        setCrtFilter={setCrtFilter}
         diceRollerOpen={diceRollerOpen}
         rollLogOpen={rollLogOpen}
-        onSnapToGridChange={setSnapToGrid}
-        onToolSelect={setActiveTool}
-        onCrtFilterChange={setCrtFilter}
-        onDiceRollerToggle={toggleDiceRoller}
-        onRollLogToggle={toggleRollLog}
+        toggleDiceRoller={toggleDiceRoller}
+        toggleRollLog={toggleRollLog}
+        handleFocusSelf={handleFocusSelf}
+        handleResetCamera={handleResetCamera}
         topPanelRef={topPanelRef}
-        onFocusSelf={handleFocusSelf}
-        onResetCamera={handleResetCamera}
-      />
-
-      {/* Multi-select toolbar - shows when multiple objects are selected and user is DM */}
-      <MultiSelectToolbar
+        topHeight={topHeight}
         selectedObjectIds={selectedObjectIds}
         isDM={isDM}
-        topHeight={topHeight}
-        onLock={lockSelected}
-        onUnlock={unlockSelected}
+        lockSelected={lockSelected}
+        unlockSelected={unlockSelected}
       />
 
-      {/* Main Whiteboard Panel - fills space between fixed top and bottom */}
-      <div
-        style={{
-          position: "fixed",
-          top: `${topHeight}px`,
-          bottom: `${bottomHeight}px`,
-          left: 0,
-          right: 0,
-          overflow: "hidden",
-        }}
-      >
-        <MapBoard
-          snapshot={snapshot}
-          sendMessage={sendMessage}
-          uid={uid}
-          gridSize={gridSize}
-          snapToGrid={snapToGrid}
-          pointerMode={pointerMode}
-          measureMode={measureMode}
-          drawMode={drawMode}
-          transformMode={transformMode}
-          selectMode={selectMode}
-          isDM={isDM}
-          alignmentMode={alignmentMode}
-          alignmentPoints={alignmentPoints}
-          alignmentSuggestion={alignmentSuggestion}
-          onAlignmentPointCapture={handleAlignmentPointCapture}
-          {...drawingProps}
-          onRecolorToken={recolorToken}
-          onTransformObject={transformSceneObject}
-          cameraCommand={cameraCommand}
-          onCameraCommandHandled={handleCameraCommandHandled}
-          onCameraChange={setCameraState}
-          selectedObjectId={selectedObjectId}
-          selectedObjectIds={selectedObjectIds}
-          onSelectObject={handleObjectSelection}
-          onSelectObjects={handleObjectSelectionBatch}
-        />
-      </div>
+      {/* Center Canvas - MapBoard with dynamic top/bottom spacing */}
+      <CenterCanvasLayout
+        topHeight={topHeight}
+        bottomHeight={bottomHeight}
+        snapshot={snapshot}
+        uid={uid}
+        gridSize={gridSize}
+        snapToGrid={snapToGrid}
+        isDM={isDM}
+        pointerMode={pointerMode}
+        measureMode={measureMode}
+        drawMode={drawMode}
+        transformMode={transformMode}
+        selectMode={selectMode}
+        alignmentMode={alignmentMode}
+        selectedObjectId={selectedObjectId}
+        selectedObjectIds={selectedObjectIds}
+        onSelectObject={handleObjectSelection}
+        onSelectObjects={handleObjectSelectionBatch}
+        cameraCommand={cameraCommand}
+        onCameraCommandHandled={handleCameraCommandHandled}
+        onCameraChange={setCameraState}
+        alignmentPoints={alignmentPoints}
+        alignmentSuggestion={alignmentSuggestion}
+        onAlignmentPointCapture={handleAlignmentPointCapture}
+        onRecolorToken={recolorToken}
+        onTransformObject={transformSceneObject}
+        drawingProps={drawingProps}
+        sendMessage={sendMessage}
+      />
 
-      {/* Entities HUD - Fixed at bottom */}
-      <EntitiesPanel
+      {/* Bottom Panel - Entities HUD with player/character/NPC management */}
+      <BottomPanelLayout
+        bottomPanelRef={bottomPanelRef}
         players={snapshot?.players || []}
         characters={snapshot?.characters || []}
         tokens={snapshot?.tokens || []}
@@ -622,122 +270,63 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         drawings={snapshot?.drawings || []}
         uid={uid}
         micEnabled={micEnabled}
+        currentIsDM={isDM}
         editingPlayerUID={editingPlayerUID}
         nameInput={nameInput}
-        editingMaxHpUID={editingMaxHpUID}
-        maxHpInput={maxHpInput}
         onNameInputChange={updateNameInput}
         onNameEdit={startNameEdit}
-        onNameSubmit={() => submitNameEdit(playerActions.renamePlayer)}
-        onPortraitLoad={() => {
-          const url = prompt("Enter image URL:");
-          if (url && url.trim()) {
-            playerActions.setPortrait(url.trim());
-          }
-        }}
-        onToggleMic={toggleMic}
-        onCharacterHpChange={(characterId, hp, maxHp) =>
-          playerActions.updateCharacterHP(characterId, hp, maxHp)
-        }
+        onNameSubmit={handleNameSubmit}
         editingHpUID={editingHpUID}
         hpInput={hpInput}
         onHpInputChange={updateHpInput}
         onHpEdit={startHpEdit}
-        onHpSubmit={() =>
-          submitHpEdit((hp) => {
-            if (!editingHpUID) return;
-            const character = snapshot?.characters?.find((c) => c.id === editingHpUID);
-            if (!character) return;
-            playerActions.updateCharacterHP(character.id, hp, character.maxHp);
-          })
-        }
+        onHpSubmit={handleCharacterHpSubmit}
+        onCharacterHpChange={playerActions.updateCharacterHP}
+        editingMaxHpUID={editingMaxHpUID}
+        maxHpInput={maxHpInput}
         onMaxHpInputChange={updateMaxHpInput}
         onMaxHpEdit={startMaxHpEdit}
-        onMaxHpSubmit={() =>
-          submitMaxHpEdit((maxHp) => {
-            if (!editingMaxHpUID) return;
-            const character = snapshot?.characters?.find((c) => c.id === editingMaxHpUID);
-            if (!character) return;
-            playerActions.updateCharacterHP(character.id, character.hp, maxHp);
-          })
-        }
-        currentIsDM={isDM}
+        onMaxHpSubmit={handleCharacterMaxHpSubmit}
+        onPortraitLoad={handlePortraitLoad}
+        onToggleMic={toggleMic}
         onToggleDMMode={handleToggleDM}
-        onTokenImageChange={updateTokenImage}
         onApplyPlayerState={playerActions.applyPlayerState}
         onStatusEffectsChange={playerActions.setStatusEffects}
+        onCharacterNameUpdate={playerActions.updateCharacterName}
         onNpcUpdate={handleUpdateNPC}
         onNpcDelete={handleDeleteNPC}
         onNpcPlaceToken={handlePlaceNPCToken}
         onPlayerTokenDelete={handleDeletePlayerToken}
         onToggleTokenLock={toggleSceneObjectLock}
         onTokenSizeChange={updateTokenSize}
+        onTokenImageChange={updateTokenImage}
         onAddCharacter={playerActions.addCharacter}
         onDeleteCharacter={playerActions.deleteCharacter}
-        onCharacterNameUpdate={playerActions.updateCharacterName}
-        bottomPanelRef={bottomPanelRef}
       />
 
-      <DMMenu
+      {/* Floating Panels - DM menu, context menu, visual effects, dice roller, roll log, toasts */}
+      <FloatingPanelsLayout
         isDM={isDM}
-        onToggleDM={handleToggleDM}
+        contextMenu={contextMenu}
+        deleteToken={deleteToken}
+        setContextMenu={setContextMenu}
         gridSize={gridSize}
         gridSquareSize={gridSquareSize}
         gridLocked={gridLocked}
-        onGridLockToggle={() => setGridLocked((prev) => !prev)}
         onGridSizeChange={setGridSize}
         onGridSquareSizeChange={setGridSquareSize}
+        onToggleDM={handleToggleDM}
+        onGridLockToggle={() => setGridLocked((prev) => !prev)}
         onClearDrawings={handleClearDrawings}
-        onSetMapBackground={setMapBackgroundURL}
-        mapBackground={snapshot?.mapBackground}
-        playerStagingZone={snapshot?.playerStagingZone}
-        onSetPlayerStagingZone={playerActions.setPlayerStagingZone}
         camera={camera}
-        playerCount={snapshot?.players?.length ?? 0}
-        characters={snapshot?.characters || []}
-        onRequestSaveSession={snapshot ? handleSaveSession : undefined}
-        onRequestLoadSession={undefined} // handleLoadSession is not exposed in the original render
-        onCreateNPC={handleCreateNPC}
-        onUpdateNPC={handleUpdateNPC}
-        onDeleteNPC={handleDeleteNPC}
-        onPlaceNPCToken={handlePlaceNPCToken}
-        props={snapshot?.props || []}
-        players={snapshot?.players || []}
-        onCreateProp={handleCreateProp}
-        onUpdateProp={handleUpdateProp}
-        onDeleteProp={handleDeleteProp}
-        mapLocked={mapSceneObject?.locked ?? true}
-        onMapLockToggle={() => {
-          if (mapSceneObject) {
-            toggleSceneObjectLock(mapSceneObject.id, !mapSceneObject.locked);
-          }
-        }}
-        stagingZoneLocked={stagingZoneSceneObject?.locked ?? false}
-        onStagingZoneLockToggle={() => {
-          if (stagingZoneSceneObject) {
-            toggleSceneObjectLock(stagingZoneSceneObject.id, !stagingZoneSceneObject.locked);
-          }
-        }}
-        mapTransform={
-          mapSceneObject?.transform ?? {
-            x: 0,
-            y: 0,
-            scaleX: 1,
-            scaleY: 1,
-            rotation: 0,
-          }
-        }
-        onMapTransformChange={(transform) => {
-          if (mapSceneObject) {
-            transformSceneObject({
-              id: mapSceneObject.id,
-              position: { x: transform.x, y: transform.y },
-              scale: { x: transform.scaleX, y: transform.scaleY },
-              rotation: transform.rotation,
-            });
-          }
-        }}
-        alignmentModeActive={alignmentMode}
+        snapshot={snapshot}
+        mapSceneObject={mapSceneObject}
+        stagingZoneSceneObject={stagingZoneSceneObject}
+        onSetMapBackground={setMapBackgroundURL}
+        toggleSceneObjectLock={toggleSceneObjectLock}
+        transformSceneObject={transformSceneObject}
+        onSetPlayerStagingZone={playerActions.setPlayerStagingZone}
+        alignmentMode={alignmentMode}
         alignmentPoints={alignmentPoints}
         alignmentSuggestion={alignmentSuggestion}
         alignmentError={alignmentError}
@@ -745,51 +334,31 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onAlignmentReset={handleAlignmentReset}
         onAlignmentCancel={handleAlignmentCancel}
         onAlignmentApply={handleAlignmentApply}
+        onRequestSaveSession={snapshot ? handleSaveSession : undefined}
+        onRequestLoadSession={undefined}
+        onCreateNPC={handleCreateNPC}
+        onUpdateNPC={handleUpdateNPC}
+        onDeleteNPC={handleDeleteNPC}
+        onPlaceNPCToken={handlePlaceNPCToken}
+        onCreateProp={handleCreateProp}
+        onUpdateProp={handleUpdateProp}
+        onDeleteProp={handleDeleteProp}
         onSetRoomPassword={handleSetRoomPassword}
         roomPasswordStatus={roomPasswordStatus}
         roomPasswordPending={roomPasswordPending}
         onDismissRoomPasswordStatus={dismissRoomPasswordStatus}
+        diceRollerOpen={diceRollerOpen}
+        toggleDiceRoller={toggleDiceRoller}
+        handleRoll={handleRoll}
+        rollLogOpen={rollLogOpen}
+        rollHistory={rollHistory}
+        viewingRoll={viewingRoll}
+        toggleRollLog={toggleRollLog}
+        handleClearLog={handleClearLog}
+        handleViewRoll={handleViewRoll}
+        crtFilter={crtFilter}
+        toast={toast}
       />
-
-      {/* Context Menu */}
-      <ContextMenu menu={contextMenu} onDelete={deleteToken} onClose={() => setContextMenu(null)} />
-
-      {/* Visual Effects (CRT Filter + Ambient Sparkles) */}
-      <VisualEffects crtFilter={crtFilter} />
-
-      {/* Dice Roller Panel */}
-      {diceRollerOpen && <DiceRoller onRoll={handleRoll} onClose={() => toggleDiceRoller(false)} />}
-
-      {/* Roll Log Panel */}
-      {rollLogOpen && (
-        <div
-          style={{
-            position: "fixed",
-            right: 20,
-            top: 200,
-            width: 350,
-            height: 500,
-            zIndex: 1000,
-          }}
-        >
-          <RollLog
-            rolls={rollHistory}
-            onClearLog={handleClearLog}
-            onViewRoll={(roll) => handleViewRoll(roll)}
-            onClose={() => toggleRollLog(false)}
-          />
-        </div>
-      )}
-
-      {/* Viewing roll from log */}
-      {viewingRoll && (
-        <div style={{ position: "fixed", zIndex: 2000 }}>
-          <DiceRoller onRoll={() => {}} onClose={() => handleViewRoll(null)} />
-        </div>
-      )}
-
-      {/* Toast Notifications */}
-      <ToastContainer messages={toast.messages} onDismiss={toast.dismiss} />
     </div>
   );
 });

@@ -111,7 +111,15 @@
       "Bash(npx --yes tsc:*)",
       "mcp__playwright__browser_navigate",
       "mcp__playwright__browser_install",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(pnpm exec prettier:*)",
+      "Bash(pnpm dev:client:*)",
+      "Bash(tee:*)",
+      "Bash(pnpm test:server:*)",
+      "mcp__sequential-thinking__sequentialthinking",
+      "Bash(npm run test:client:*)",
+      "Bash(npx vitest:*)",
+      "Bash(echo:*)"
     ],
     "deny": [],
     "ask": []
