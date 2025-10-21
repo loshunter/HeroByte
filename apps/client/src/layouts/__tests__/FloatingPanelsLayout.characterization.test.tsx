@@ -1233,7 +1233,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       const props = createDefaultProps();
       props.rollLogOpen = true;
 
-      const { container } = render(<MainLayout {...props} />);
+      const { container: _container } = render(<MainLayout {...props} />);
 
       const rollLog = screen.getByTestId("roll-log");
       const wrapper = rollLog.parentElement;
@@ -1789,7 +1789,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
         playerName: "Player 1",
       };
 
-      const { container } = render(<MainLayout {...props} />);
+      const { container: _container } = render(<MainLayout {...props} />);
 
       // All conditional components should be present
       const diceRollers = screen.getAllByTestId("dice-roller");
