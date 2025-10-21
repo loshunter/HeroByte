@@ -568,6 +568,17 @@ export default function MapBoard({
           scale: transform.scale,
           rotation: transform.rotation,
         });
+      } else if (obj.type === "prop") {
+        // For props, convert position from pixels to grid units (same as staging-zone)
+        // Props are rendered with transform.x * gridSize, so position must be in grid units
+        onTransformObject({
+          id: transform.id,
+          position: transform.position
+            ? { x: transform.position.x / gridSize, y: transform.position.y / gridSize }
+            : undefined,
+          scale: transform.scale,
+          rotation: transform.rotation,
+        });
       } else {
         // For map and drawings, send full transform
         onTransformObject(transform);
