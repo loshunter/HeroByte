@@ -73,7 +73,9 @@ vi.mock("../../ui/MapBoard", () => ({
       data-is-dm={props.isDM}
       data-alignment-mode={props.alignmentMode}
       data-alignment-points-count={props.alignmentPoints?.length ?? 0}
-      data-alignment-suggestion-present={props.alignmentSuggestion !== null && props.alignmentSuggestion !== undefined}
+      data-alignment-suggestion-present={
+        props.alignmentSuggestion !== null && props.alignmentSuggestion !== undefined
+      }
       data-draw-tool={props.drawTool}
       data-draw-color={props.drawColor}
       data-draw-width={props.drawWidth}

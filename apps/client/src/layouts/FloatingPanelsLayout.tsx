@@ -258,11 +258,17 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
           onDismissRoomPasswordStatus={onDismissRoomPasswordStatus}
         />
 
-        <ContextMenu menu={contextMenu} onDelete={deleteToken} onClose={() => setContextMenu(null)} />
+        <ContextMenu
+          menu={contextMenu}
+          onDelete={deleteToken}
+          onClose={() => setContextMenu(null)}
+        />
 
         <VisualEffects crtFilter={crtFilter} />
 
-        {diceRollerOpen && <DiceRoller onRoll={handleRoll} onClose={() => toggleDiceRoller(false)} />}
+        {diceRollerOpen && (
+          <DiceRoller onRoll={handleRoll} onClose={() => toggleDiceRoller(false)} />
+        )}
 
         {rollLogOpen && (
           <div
@@ -293,7 +299,7 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
         <ToastContainer messages={toast.messages} onDismiss={toast.dismiss} />
       </>
     );
-  }
+  },
 );
 
 FloatingPanelsLayout.displayName = "FloatingPanelsLayout";

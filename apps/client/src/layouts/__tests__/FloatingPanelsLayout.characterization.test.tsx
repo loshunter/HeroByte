@@ -93,7 +93,9 @@ vi.mock("../../features/dm", () => ({
       data-alignment-mode-active={props.alignmentModeActive}
       data-alignment-points-count={props.alignmentPoints.length}
       data-alignment-suggestion-present={props.alignmentSuggestion !== null}
-      data-alignment-error-present={props.alignmentError !== null && props.alignmentError !== undefined}
+      data-alignment-error-present={
+        props.alignmentError !== null && props.alignmentError !== undefined
+      }
       data-room-password-status-type={props.roomPasswordStatus?.type ?? "null"}
       data-room-password-pending={props.roomPasswordPending ?? false}
       data-map-background={props.mapBackground ?? ""}

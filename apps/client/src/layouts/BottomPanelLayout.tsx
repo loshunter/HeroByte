@@ -22,7 +22,15 @@
  */
 
 import React from "react";
-import type { Player, Character, Token, SceneObject, Drawing, PlayerState, TokenSize } from "@shared";
+import type {
+  Player,
+  Character,
+  Token,
+  SceneObject,
+  Drawing,
+  PlayerState,
+  TokenSize,
+} from "@shared";
 import { EntitiesPanel } from "../components/layout/EntitiesPanel";
 
 /**
@@ -295,7 +303,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
         bottomPanelRef={bottomPanelRef}
       />
     );
-  }
+  },
 );
 
 BottomPanelLayout.displayName = "BottomPanelLayout";

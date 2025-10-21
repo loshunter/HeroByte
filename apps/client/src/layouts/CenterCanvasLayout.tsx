@@ -235,7 +235,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
         />
       </div>
     );
-  }
+  },
 );
 
 CenterCanvasLayout.displayName = "CenterCanvasLayout";

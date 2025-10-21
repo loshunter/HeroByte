@@ -165,7 +165,7 @@ export const TopPanelLayout = React.memo<TopPanelLayoutProps>(
         />
       </>
     );
-  }
+  },
 );
 
 TopPanelLayout.displayName = "TopPanelLayout";

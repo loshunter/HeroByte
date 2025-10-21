@@ -87,7 +87,9 @@ export interface UseEntityEditHandlersReturn {
  * });
  * ```
  */
-export function useEntityEditHandlers(params: UseEntityEditHandlersParams): UseEntityEditHandlersReturn {
+export function useEntityEditHandlers(
+  params: UseEntityEditHandlersParams,
+): UseEntityEditHandlersReturn {
   const {
     editingHpUID,
     editingMaxHpUID,

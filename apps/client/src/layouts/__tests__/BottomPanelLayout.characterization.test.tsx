@@ -17,7 +17,15 @@
 import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import type { Player, Character, Token, SceneObject, Drawing, PlayerState, TokenSize } from "@shared";
+import type {
+  Player,
+  Character,
+  Token,
+  SceneObject,
+  Drawing,
+  PlayerState,
+  TokenSize,
+} from "@shared";
 
 // ============================================================================
 // MOCK CHILD COMPONENTS

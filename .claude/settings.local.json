@@ -119,7 +119,8 @@
       "mcp__sequential-thinking__sequentialthinking",
       "Bash(npm run test:client:*)",
       "Bash(npx vitest:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(gh pr close:*)"
     ],
     "deny": [],
     "ask": []
