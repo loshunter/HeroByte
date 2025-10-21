@@ -352,7 +352,7 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
 
     it("should apply position: fixed to wrapper div", () => {
       const props = createDefaultProps();
-      const { container } = render(<MainLayout {...props} />);
+      const { container: _container } = render(<MainLayout {...props} />);
 
       // Find the MapBoard wrapper (parent of MapBoard component)
       const mapBoard = screen.getByTestId("map-board");
@@ -364,7 +364,7 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
 
     it("should apply overflow: hidden to wrapper div", () => {
       const props = createDefaultProps();
-      const { container } = render(<MainLayout {...props} />);
+      const { container: _container } = render(<MainLayout {...props} />);
 
       const mapBoard = screen.getByTestId("map-board");
       const wrapper = mapBoard.parentElement;
@@ -374,7 +374,7 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
 
     it("should apply left: 0 and right: 0 to wrapper div", () => {
       const props = createDefaultProps();
-      const { container } = render(<MainLayout {...props} />);
+      const { container: _container } = render(<MainLayout {...props} />);
 
       const mapBoard = screen.getByTestId("map-board");
       const wrapper = mapBoard.parentElement;
@@ -393,7 +393,7 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
       const props = createDefaultProps();
       props.topHeight = 180;
 
-      const { container } = render(<MainLayout {...props} />);
+      const { container: _container } = render(<MainLayout {...props} />);
 
       const mapBoard = screen.getByTestId("map-board");
       const wrapper = mapBoard.parentElement;
@@ -405,7 +405,7 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
       const props = createDefaultProps();
       props.bottomHeight = 210;
 
-      const { container } = render(<MainLayout {...props} />);
+      const { container: _container } = render(<MainLayout {...props} />);
 
       const mapBoard = screen.getByTestId("map-board");
       const wrapper = mapBoard.parentElement;
@@ -455,7 +455,7 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
       const props = createDefaultProps();
       props.topHeight = 0;
 
-      const { container } = render(<MainLayout {...props} />);
+      const { container: _container } = render(<MainLayout {...props} />);
 
       const mapBoard = screen.getByTestId("map-board");
       const wrapper = mapBoard.parentElement;
@@ -467,7 +467,7 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
       const props = createDefaultProps();
       props.bottomHeight = 0;
 
-      const { container } = render(<MainLayout {...props} />);
+      const { container: _container } = render(<MainLayout {...props} />);
 
       const mapBoard = screen.getByTestId("map-board");
       const wrapper = mapBoard.parentElement;
@@ -516,7 +516,7 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
       props.topHeight = 150;
       props.bottomHeight = 250;
 
-      const { container } = render(<MainLayout {...props} />);
+      const { container: _container } = render(<MainLayout {...props} />);
 
       const mapBoard = screen.getByTestId("map-board");
       const wrapper = mapBoard.parentElement;
@@ -1116,7 +1116,7 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
       const props = createDefaultProps();
       props.topHeight = -50;
 
-      const { container } = render(<MainLayout {...props} />);
+      const { container: _container } = render(<MainLayout {...props} />);
 
       const mapBoard = screen.getByTestId("map-board");
       const wrapper = mapBoard.parentElement;
@@ -1128,7 +1128,7 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
       const props = createDefaultProps();
       props.bottomHeight = -100;
 
-      const { container } = render(<MainLayout {...props} />);
+      const { container: _container } = render(<MainLayout {...props} />);
 
       const mapBoard = screen.getByTestId("map-board");
       const wrapper = mapBoard.parentElement;
@@ -1191,7 +1191,7 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
       props.topHeight = 9999;
       props.bottomHeight = 9999;
 
-      const { container } = render(<MainLayout {...props} />);
+      const { container: _container } = render(<MainLayout {...props} />);
 
       const mapBoard = screen.getByTestId("map-board");
       const wrapper = mapBoard.parentElement;
