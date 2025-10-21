@@ -23,10 +23,19 @@
 
 import React from "react";
 import type { Camera } from "../hooks/useCamera";
-import type { RoomSnapshot, ClientMessage, SceneObjectTransform } from "@shared";
+import type {
+  RoomSnapshot,
+  ClientMessage,
+  SceneObjectTransform,
+  TokenSize,
+  PlayerState,
+  PlayerStagingZone,
+} from "@shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import type { RollResult } from "../components/dice/types";
 import type { UseDrawingStateManagerReturn } from "../hooks/useDrawingStateManager";
+import type { ToolMode } from "../components/layout/Header";
+import type { CameraCommand } from "../ui/MapBoard";
 import MapBoard from "../ui/MapBoard";
 import { DiceRoller } from "../components/dice/DiceRoller";
 import { RollLog } from "../components/dice/RollLog";
@@ -44,17 +53,14 @@ import { ToastContainer } from "../components/ui/Toast";
 type ContextMenuState = { x: number; y: number; tokenId: string } | null;
 type DrawingToolbarProps = UseDrawingStateManagerReturn["toolbarProps"];
 type DrawingBoardProps = UseDrawingStateManagerReturn["drawingProps"];
-type RollHistoryEntry = RollLogEntry;
 type ToastState = ReturnType<typeof import("../hooks/useToast").useToast>;
 
 /**
  * Roll log entry interface
+ * This extends RollResult with playerName to match what RollLog.tsx expects
  */
-export interface RollLogEntry {
-  id: string;
+export interface RollLogEntry extends RollResult {
   playerName: string;
-  result: RollResult;
-  timestamp: number;
 }
 
 /**
@@ -90,9 +96,9 @@ export interface MainLayoutProps {
   // Tool State
   // -------------------------------------------------------------------------
   /** Currently active tool mode */
-  activeTool: string;
+  activeTool: ToolMode;
   /** Handler to change the active tool */
-  setActiveTool: (tool: string) => void;
+  setActiveTool: (mode: ToolMode) => void;
   /** Whether draw mode is active */
   drawMode: boolean;
   /** Whether pointer mode is active */
@@ -156,7 +162,7 @@ export interface MainLayoutProps {
   /** Camera object (legacy) */
   camera: Camera;
   /** Camera command to execute */
-  cameraCommand: { type: "focus-self" | "reset" } | null;
+  cameraCommand: CameraCommand | null;
   /** Handler for when camera command is handled */
   handleCameraCommandHandled: () => void;
   /** Handler for camera state changes */
@@ -224,12 +230,9 @@ export interface MainLayoutProps {
     renamePlayer: (name: string) => void;
     setPortrait: (url: string) => void;
     setHP: (hp: number, maxHp: number) => void;
-    applyPlayerState: (
-      uid: string,
-      state: { x: number; y: number; hp?: number; maxHp?: number },
-    ) => void;
-    setStatusEffects: (uid: string, effects: string[]) => void;
-    setPlayerStagingZone: (zone: { x: number; y: number; width: number; height: number }) => void;
+    applyPlayerState: (state: PlayerState, tokenId?: string) => void;
+    setStatusEffects: (effects: string[]) => void;
+    setPlayerStagingZone: (zone: PlayerStagingZone | undefined) => void;
     addCharacter: (name: string) => void;
     deleteCharacter: (id: string) => void;
     updateCharacterName: (id: string, name: string) => void;
@@ -243,13 +246,13 @@ export interface MainLayoutProps {
   /** Staging zone scene object (if exists) */
   stagingZoneSceneObject: { id: string; locked: boolean } | null;
   /** Handler to recolor a token */
-  recolorToken: (id: string, color: string) => void;
+  recolorToken: (sceneId: string, owner?: string | null) => void;
   /** Handler to transform a scene object */
-  transformSceneObject: (transform: {
+  transformSceneObject: (input: {
     id: string;
-    position: { x: number; y: number };
-    scale: { x: number; y: number };
-    rotation: number;
+    position?: { x: number; y: number };
+    scale?: { x: number; y: number };
+    rotation?: number;
   }) => void;
   /** Handler to toggle scene object lock */
   toggleSceneObjectLock: (id: string, locked: boolean) => void;
@@ -258,7 +261,7 @@ export interface MainLayoutProps {
   /** Handler to update token image */
   updateTokenImage: (id: string, imageUrl: string) => void;
   /** Handler to update token size */
-  updateTokenSize: (id: string, size: number) => void;
+  updateTokenSize: (tokenId: string, size: TokenSize) => void;
 
   // -------------------------------------------------------------------------
   // Alignment
@@ -284,27 +287,21 @@ export interface MainLayoutProps {
   // Dice
   // -------------------------------------------------------------------------
   /** Roll history entries */
-  rollHistory: RollHistoryEntry[];
+  rollHistory: RollLogEntry[];
   /** Currently viewing roll */
-  viewingRoll: RollHistoryEntry | null;
+  viewingRoll: RollLogEntry | null;
   /** Handler for dice roll */
-  handleRoll: (
-    diceType: string,
-    count: number,
-    modifier: number,
-    advantage?: boolean,
-    disadvantage?: boolean,
-  ) => void;
+  handleRoll: (result: RollResult) => void;
   /** Handler to clear roll log */
   handleClearLog: () => void;
   /** Handler to view a roll from history */
-  handleViewRoll: (roll: RollHistoryEntry | null) => void;
+  handleViewRoll: (roll: RollLogEntry | null) => void;
 
   // -------------------------------------------------------------------------
   // Room Password
   // -------------------------------------------------------------------------
   /** Room password status message */
-  roomPasswordStatus: string | null;
+  roomPasswordStatus: { type: "success" | "error"; message: string } | null;
   /** Whether room password operation is pending */
   roomPasswordPending: boolean;
   /** Handler to set room password */
@@ -316,22 +313,16 @@ export interface MainLayoutProps {
   // NPC Management
   // -------------------------------------------------------------------------
   /** Handler to create NPC */
-  handleCreateNPC: (npc: {
-    name: string;
-    hp: number;
-    maxHp: number;
-    ac: number;
-    imageUrl?: string;
-  }) => void;
+  handleCreateNPC: () => void;
   /** Handler to update NPC */
   handleUpdateNPC: (
     id: string,
-    updates: { name?: string; hp?: number; maxHp?: number; ac?: number; imageUrl?: string },
+    updates: { name?: string; hp?: number; maxHp?: number; portrait?: string; tokenImage?: string },
   ) => void;
   /** Handler to delete NPC */
   handleDeleteNPC: (id: string) => void;
   /** Handler to place NPC token */
-  handlePlaceNPCToken: (npcId: string, position: { x: number; y: number }) => void;
+  handlePlaceNPCToken: (id: string) => void;
   /** Handler to delete player token */
   handleDeletePlayerToken: (tokenId: string) => void;
 
@@ -339,9 +330,12 @@ export interface MainLayoutProps {
   // Prop Management
   // -------------------------------------------------------------------------
   /** Handler to create prop */
-  handleCreateProp: (prop: { name: string; imageUrl: string }) => void;
+  handleCreateProp: () => void;
   /** Handler to update prop */
-  handleUpdateProp: (id: string, updates: { name?: string; imageUrl?: string }) => void;
+  handleUpdateProp: (
+    id: string,
+    updates: { label: string; imageUrl: string; owner: string | null; size: TokenSize },
+  ) => void;
   /** Handler to delete prop */
   handleDeleteProp: (id: string) => void;
 
@@ -349,7 +343,7 @@ export interface MainLayoutProps {
   // Session Management
   // -------------------------------------------------------------------------
   /** Handler to save session */
-  handleSaveSession: () => void;
+  handleSaveSession: (sessionName: string) => void;
   /** Handler to load session */
   handleLoadSession: () => void;
 
@@ -357,7 +351,7 @@ export interface MainLayoutProps {
   // DM Management
   // -------------------------------------------------------------------------
   /** Handler to toggle DM mode */
-  handleToggleDM: (targetUID: string) => void;
+  handleToggleDM: (next: boolean) => void;
   /** Handler to set map background */
   setMapBackgroundURL: (url: string) => void;
   /** Handler to set grid size */
@@ -748,7 +742,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
           <RollLog
             rolls={rollHistory}
             onClearLog={handleClearLog}
-            onViewRoll={handleViewRoll}
+            onViewRoll={(roll) => handleViewRoll(roll)}
             onClose={() => toggleRollLog(false)}
           />
         </div>

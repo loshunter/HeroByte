@@ -407,6 +407,80 @@ function AuthenticatedApp({
   // MainLayout receives snapshot directly and components extract what they need.
 
   // -------------------------------------------------------------------------
+  // PROP ADAPTERS (Type compatibility wrappers for MainLayout)
+  // -------------------------------------------------------------------------
+  // These wrappers adapt hook return values to match MainLayout's expected prop types
+
+  // Wrap startNameEdit to match MainLayout's signature (uid only, no currentName)
+  const handleStartNameEdit = useCallback(
+    (uid: string) => {
+      const player = snapshot?.players?.find((p) => p.uid === uid);
+      const currentName = player?.name || "";
+      startNameEdit(uid, currentName);
+    },
+    [snapshot?.players, startNameEdit],
+  );
+
+  // Wrap startMaxHpEdit to match MainLayout's signature (uid only, no currentMaxHp)
+  const handleStartMaxHpEdit = useCallback(
+    (uid: string) => {
+      const player = snapshot?.players?.find((p) => p.uid === uid);
+      const currentMaxHp = player?.maxHp || 0;
+      startMaxHpEdit(uid, currentMaxHp);
+    },
+    [snapshot?.players, startMaxHpEdit],
+  );
+
+  // Transform mapSceneObject to extract only needed properties
+  const mapSceneObjectForLayout = useMemo(() => {
+    if (!mapSceneObject) return null;
+    return {
+      id: mapSceneObject.id,
+      locked: mapSceneObject.locked ?? false,
+      transform: mapSceneObject.transform,
+    };
+  }, [mapSceneObject]);
+
+  // Transform stagingZoneSceneObject to extract only needed properties
+  const stagingZoneSceneObjectForLayout = useMemo(() => {
+    if (!stagingZoneSceneObject) return null;
+    return {
+      id: stagingZoneSceneObject.id,
+      locked: stagingZoneSceneObject.locked ?? false,
+    };
+  }, [stagingZoneSceneObject]);
+
+  // Transform viewingRoll from RollResult to RollLogEntry by adding playerName
+  const viewingRollForLayout = useMemo(() => {
+    if (!viewingRoll) return null;
+    // Find the matching roll in rollHistory which already has playerName
+    const matchingHistoryEntry = rollHistory.find((r) => r.id === viewingRoll.id);
+    if (matchingHistoryEntry) {
+      return matchingHistoryEntry;
+    }
+    // Fallback: create entry with "Unknown" player name
+    return {
+      ...viewingRoll,
+      playerName: "Unknown",
+    };
+  }, [viewingRoll, rollHistory]);
+
+  // Wrap handleLoadSession to match MainLayout's signature (no parameters)
+  // This will be called from a file input, so the wrapper triggers the file picker
+  const handleLoadSessionWrapper = useCallback(() => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        await handleLoadSession(file);
+      }
+    };
+    input.click();
+  }, [handleLoadSession]);
+
+  // -------------------------------------------------------------------------
   // RENDER
   // -------------------------------------------------------------------------
 
@@ -467,10 +541,10 @@ function AuthenticatedApp({
       editingMaxHpUID={editingMaxHpUID}
       maxHpInput={maxHpInput}
       updateNameInput={updateNameInput}
-      startNameEdit={startNameEdit}
+      startNameEdit={handleStartNameEdit}
       submitNameEdit={submitNameEdit}
       updateMaxHpInput={updateMaxHpInput}
-      startMaxHpEdit={startMaxHpEdit}
+      startMaxHpEdit={handleStartMaxHpEdit}
       submitMaxHpEdit={submitMaxHpEdit}
       // Selection
       selectedObjectId={selectedObjectId}
@@ -482,8 +556,8 @@ function AuthenticatedApp({
       // Player actions
       playerActions={playerActions}
       // Scene objects
-      mapSceneObject={mapSceneObject}
-      stagingZoneSceneObject={stagingZoneSceneObject}
+      mapSceneObject={mapSceneObjectForLayout}
+      stagingZoneSceneObject={stagingZoneSceneObjectForLayout}
       recolorToken={recolorToken}
       transformSceneObject={transformSceneObject}
       toggleSceneObjectLock={toggleSceneObjectLock}
@@ -501,7 +575,7 @@ function AuthenticatedApp({
       handleAlignmentPointCapture={handleAlignmentPointCapture}
       // Dice
       rollHistory={rollHistory}
-      viewingRoll={viewingRoll}
+      viewingRoll={viewingRollForLayout}
       handleRoll={handleRoll}
       handleClearLog={handleClearLog}
       handleViewRoll={handleViewRoll}
@@ -522,7 +596,7 @@ function AuthenticatedApp({
       handleDeleteProp={handleDeleteProp}
       // Session management
       handleSaveSession={handleSaveSession}
-      handleLoadSession={handleLoadSession}
+      handleLoadSession={handleLoadSessionWrapper}
       // DM management
       handleToggleDM={handleToggleDM}
       // Map actions
