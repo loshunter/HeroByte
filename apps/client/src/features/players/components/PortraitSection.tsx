@@ -121,6 +121,8 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
             }}
             draggable={false}
             onError={(e) => {
+              console.error("[PortraitSection] Failed to load portrait image:", portrait);
+              console.error("[PortraitSection] Error event:", e);
               (e.currentTarget as HTMLImageElement).style.display = "none";
             }}
           />
