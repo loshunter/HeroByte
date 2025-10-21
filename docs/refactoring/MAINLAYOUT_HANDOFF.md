@@ -1,351 +1,675 @@
-# MainLayout Refactoring - Handoff Summary
+# MainLayout Decomposition - Handoff to Next Orchestrator
 
 **Date:** 2025-10-21
-**From:** Code Analysis Claude Instance
-**To:** User → Next Refactoring Team Manager Instance
+**From:** Refactoring Team Manager (Orchestrator Instance #2)
+**To:** Next Refactoring Team Manager (Orchestrator Instance #3)
+**Branch:** `refactor/main-layout/decompose`
+**Status:** 3 of 4 Extractions Complete ✅
 
 ---
 
-## What Was Analyzed
+## Executive Summary
 
-I conducted a comprehensive analysis of your codebase to check for god files after your App.tsx refactoring. Here's what I found:
+**What's Done:**
+- ✅ **Extraction 1: TopPanelLayout** - 171 LOC component, 46 tests passing
+- ✅ **Extraction 2: CenterCanvasLayout** - 241 LOC component, 70 tests passing
+- ✅ **Extraction 3: FloatingPanelsLayout** - 299 LOC component, 113 tests passing
+- ✅ MainLayout.tsx reduced: 795 → 715 LOC (-80 LOC, 10.1%)
+- ✅ Decision log updated in real-time throughout all 3 extractions
+- ✅ All commits clean with clear messages
 
-### Critical Discovery: MainLayout.tsx is a NEW God File 🚨
+**What's Next:**
+- ⏳ **Extraction 4: BottomPanelLayout** (~40-50 LOC target, MOST COMPLEX)
+- ⏳ Final integration and cleanup to reach <200 LOC target
+- ⏳ Process improvements (CI, baseline, documentation)
 
-**File:** `apps/client/src/layouts/MainLayout.tsx`
-**Size:** 795 LOC (227% over 350 LOC threshold)
-**Status:** Listed in structure-baseline.json as "approved violation"
+**Target:** Reduce MainLayout from 795 → <200 LOC (need 515 more LOC reduction, 72%)
 
-**Root Cause:** A 312 LOC props interface (89% of threshold!) with 80+ props across 20 categories - a textbook "god interface" that violates the Interface Segregation Principle.
-
-### Why This Happened (Guardrail Failure)
-
-1. MainLayout was extracted from App.tsx in Phase 7
-2. It was created at 795 LOC
-3. Someone ran `pnpm lint:structure --json > scripts/structure-baseline.json`
-4. This added MainLayout to approved violations
-5. CI no longer fails for this file
-
-**Lesson:** Baseline updates bypass guardrails if not properly controlled.
+**Current Progress:** 80 LOC reduced (10.1% of total, 14% of goal)
 
 ---
 
-## What I Created for You
+## What Was Completed
 
-### 1. Comprehensive Analysis & Plan
+### Extraction 1: TopPanelLayout (✅ Complete)
 
-**File:** `docs/refactoring/MAINLAYOUT_REFACTOR_BRIEF.md`
+**Extracted From:** MainLayout.tsx lines 544-574
+**Components:** ServerStatus, DrawingToolbar, Header, MultiSelectToolbar
 
-This is a **complete refactoring brief** (600+ lines) that includes:
-- Root cause analysis (why it became a god file)
-- Guardrail failure analysis (why CI didn't catch it)
-- Detailed refactoring plan (4 component extractions)
-- Orchestration strategy (how to manage agents)
-- Step-by-step execution guide (day-by-day tasks)
-- Best practices and pitfalls to avoid
-- Emergency procedures and troubleshooting
-- Success metrics and quality gates
+**Results:**
+- **Component File:** `/home/loshunter/HeroByte/apps/client/src/layouts/TopPanelLayout.tsx`
+  - Total LOC: 171 (under 350 target ✅)
+  - Props interface: 59 LOC (under 80 target ✅)
+  - Props count: 22 across 8 semantic groups
+- **Test File:** `/home/loshunter/HeroByte/apps/client/src/layouts/__tests__/TopPanelLayout.characterization.test.tsx`
+  - Test count: 46 tests, all passing ✅
+  - Test LOC: ~1,000 lines
+  - Execution time: ~205ms
+- **MainLayout Reduction:** 795 → 785 LOC (-10 LOC)
 
-### 2. Manager Prompt (Copy-Paste Ready)
+### Extraction 2: CenterCanvasLayout (✅ Complete)
 
-**File:** `docs/refactoring/MAINLAYOUT_MANAGER_PROMPT.txt`
+**Extracted From:** MainLayout.tsx lines 566-605
+**Components:** MapBoard (with dynamic positioning wrapper)
 
-This is the **initial prompt** to give the next Claude instance. It:
-- Explains their role as orchestrator
-- Points them to the comprehensive brief
-- Provides immediate first actions
-- Sets expectations for agent usage
-- Includes quick reference commands
+**Results:**
+- **Component File:** `/home/loshunter/HeroByte/apps/client/src/layouts/CenterCanvasLayout.tsx`
+  - Total LOC: 241 (under 350 target ✅)
+  - Props interface: 78 LOC (under 80 target ✅)
+  - Props count: 26 across 9 semantic groups
+- **Test File:** `/home/loshunter/HeroByte/apps/client/src/layouts/__tests__/CenterCanvasLayout.characterization.test.tsx`
+  - Test count: 70 tests, all passing ✅
+  - Test LOC: ~1,357 lines
+  - Coverage: Wrapper positioning, MapBoard props, spread operator, edge cases
+- **MainLayout Reduction:** 785 → 777 LOC (-8 LOC)
 
-### 3. This Handoff Document
+### Extraction 3: FloatingPanelsLayout (✅ Complete)
 
-**File:** `docs/refactoring/MAINLAYOUT_HANDOFF.md`
+**Extracted From:** MainLayout.tsx lines 663-774
+**Components:** DMMenu, ContextMenu, VisualEffects, DiceRoller (x2), RollLog, ToastContainer
 
-You're reading it now! It explains what was created and how to use it.
+**Results:**
+- **Component File:** `/home/loshunter/HeroByte/apps/client/src/layouts/FloatingPanelsLayout.tsx`
+  - Total LOC: 299 (under 350 target ✅)
+  - Props interface: 72 LOC (under 80 target ✅)
+  - Props count: 52 across 13 semantic groups
+- **Test File:** `/home/loshunter/HeroByte/apps/client/src/layouts/__tests__/FloatingPanelsLayout.characterization.test.tsx`
+  - Test count: 113 tests, all passing ✅
+  - Test LOC: ~2,376 lines
+  - Execution time: ~1,628ms
+  - Coverage: DMMenu (43), ContextMenu (5), VisualEffects (4), DiceRoller (8), RollLog (11), DiceRoller viewing (12), ToastContainer (4), Hierarchy (2), Edge cases (24)
+- **MainLayout Reduction:** 777 → 715 LOC (-62 LOC)
 
----
+**Key Decisions:**
+- Used flat props interface with semantic grouping (NOT nested objects)
+- Kept complex pre-existing types as objects (toast, camera, snapshot)
+- Made type corrections for several handler signatures
+- Preserved inline handlers and passed as props
+- Maintained conditional rendering patterns (diceRollerOpen, rollLogOpen, viewingRoll)
+- Extracted wrapper divs with fixed positioning styling
 
-## How to Use This System
-
-### Step 1: When You're Ready to Start Refactoring
-
-1. Open a new Claude Code session (use `/clear` in current session)
-2. Copy the contents of `MAINLAYOUT_MANAGER_PROMPT.txt`
-3. Paste it as your first message to the new Claude instance
-4. The new instance will read the brief and begin orchestrating
-
-### Step 2: The Manager Will
-
-1. Read the comprehensive brief (MAINLAYOUT_REFACTOR_BRIEF.md)
-2. Create a todo list for all 4 extractions
-3. Launch specialized agents for:
-   - Code analysis (Explore agents)
-   - Test creation (General-purpose agents)
-   - Component creation (General-purpose agents)
-4. Synthesize agent outputs
-5. Integrate extractions into MainLayout
-6. Verify quality at each step
-7. Track progress and document decisions
-
-### Step 3: Monitor Progress
-
-The manager will update a todo list. You can check progress by looking for:
-- Completed extractions (4 total)
-- LOC reduction metrics
-- Test pass/fail status
-- Decision log entries
-
-### Step 4: Review Final Results
-
-When complete, the manager should have:
-- MainLayout.tsx: <200 LOC (down from 795)
-- 4 new sub-components: each <350 LOC
-- All tests passing
-- MainLayout removed from structure-baseline.json
-- Process improvements documented
+**Cumulative Progress:**
+- Total reduction: 795 → 715 LOC (-80 LOC, 10.1%)
+- Total tests created: 229 (46 + 70 + 113), all passing
+- Extractions complete: 3 of 4
+- Remaining target: 515 LOC reduction needed (72%)
 
 ---
 
-## The Refactoring Plan (Summary)
+## Current State of MainLayout.tsx
 
-### Phase 1: Extract 4 Sub-Components (3 weeks)
+**Current LOC:** 715 (after 3 extractions)
+**Target LOC:** <200
+**Remaining Reduction Needed:** 515 LOC (72%)
 
-| Extraction | LOC | Complexity | Days |
-|------------|-----|------------|------|
-| TopPanelLayout | ~120 | Low | 2 |
-| CenterCanvasLayout | ~50 | Low | 1 |
-| FloatingPanelsLayout | ~120 | Medium | 2 |
-| BottomPanelLayout | ~180 | **High** | 3 |
-| Integration | - | - | 1 |
+**Current Structure (lines approximate after 3 extractions):**
 
-**Total Phase 1:** ~470 LOC extracted, MainLayout reduced to ~180 LOC
+```typescript
+export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps) {
+  // ... state declarations, hooks, handlers (lines 1-540) ...
 
-### Phase 2: Process Improvements (1 week)
+  return (
+    <div onClick={() => setContextMenu(null)} style={{ height: "100vh", overflow: "hidden" }}>
 
-- Add CI warnings for baseline modifications
-- Update CONTRIBUTING.md with baseline policy
-- Remove MainLayout from structure-baseline.json
-- Document lessons learned
+      {/* ✅ EXTRACTED: TopPanelLayout (Extraction 1) */}
+      <TopPanelLayout
+        isConnected={isConnected}
+        drawMode={drawMode}
+        // ... 22 props
+      />
 
-**Total Project:** 3-4 weeks
+      {/* ✅ EXTRACTED: CenterCanvasLayout (Extraction 2) */}
+      <CenterCanvasLayout
+        topHeight={topHeight}
+        bottomHeight={bottomHeight}
+        // ... 26 props
+      />
 
----
+      {/* ⏳ TO EXTRACT: BottomPanelLayout (Extraction 4) - Lines ~616-679 */}
+      <div
+        ref={bottomPanelRef}
+        style={{
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 10,
+        }}
+      >
+        <EntitiesPanel
+          // ... 30+ props including inline HP editing callbacks
+        />
+      </div>
 
-## Key Insights from Analysis
-
-### Overall God File Status
-
-**You still have 22 god files** across your codebase:
-
-**Critical (>1000 LOC):**
-- DMMenu.tsx: 1,588 LOC
-- MapBoard.tsx: 1,034 LOC
-
-**High Priority (>700 LOC):**
-- MainLayout.tsx: 795 LOC ← **Current focus**
-- validation.ts (server): 902 LOC
-- messageRouter.ts (server): 749 LOC
-
-**Medium Priority (400-700 LOC):**
-- 17 additional files
-
-### Progress on App.tsx
-
-✅ **Good news:** App.tsx reduced from 1,850 → 632 LOC (66% reduction)
-⚠️ **But:** Still 182 LOC over threshold (632 vs 350 target)
-
-### Recommendations Priority
-
-1. **Fix MainLayout** (current plan) - NEW god file, process failure
-2. **Complete App.tsx** - 182 LOC over, close to goal
-3. **Tackle DMMenu** (1,588 LOC) - Biggest remaining client god file
-4. **Tackle MapBoard** (1,034 LOC) - Second biggest client god file
-5. **Server refactoring** - validation.ts, messageRouter.ts
-
----
-
-## Why This Orchestration Approach?
-
-### The Problem
-
-Refactoring a 795 LOC file with 80+ props is too complex for a single AI instance to hold in context effectively. You need:
-
-1. **Focused analysis** of specific sections
-2. **Parallel research** of multiple aspects
-3. **Synthesis** of findings into coherent plan
-4. **Iterative execution** with verification at each step
-
-### The Solution
-
-**Orchestrator Pattern:**
-- **Manager** (main Claude instance): High-level coordination, synthesis, decision-making
-- **Explore Agents**: Focused codebase analysis, dependency discovery
-- **General-Purpose Agents**: Multi-step tasks like test/component creation
-- **Context Management**: Only load what's needed for current decision
-
-**Benefits:**
-- Efficient context window usage
-- Parallel analysis capabilities
-- Focused, specialized work
-- Maintained architectural coherence
-- Clear delegation and accountability
+      {/* ✅ EXTRACTED: FloatingPanelsLayout (Extraction 3) */}
+      <FloatingPanelsLayout
+        isDM={isDM}
+        contextMenu={contextMenu}
+        // ... 52 props
+      />
+    </div>
+  );
+});
+```
 
 ---
 
-## Files Created (Summary)
+## Next Task: Extraction 4 - BottomPanelLayout (MOST COMPLEX)
 
-1. **MAINLAYOUT_REFACTOR_BRIEF.md** (600+ lines)
-   - Comprehensive guide for the manager
-   - Technical specifications
-   - Day-by-day execution plan
-   - Best practices and pitfalls
+### Overview
 
-2. **MAINLAYOUT_MANAGER_PROMPT.txt** (80 lines)
-   - Initial prompt for new Claude instance
-   - Quick context and first actions
-   - Copy-paste ready
+**Source Lines:** MainLayout.tsx ~616-679 (current numbering)
+**Target Component LOC:** ~40-50 lines (small extraction - just wrapper + EntitiesPanel)
+**Target Props:** ~30-35 props
+**Complexity:** **HIGHEST** - Inline HP editing callbacks
+**Estimated Time:** 1-2 days
 
-3. **MAINLAYOUT_HANDOFF.md** (this file)
-   - Summary of analysis and deliverables
-   - How to use the orchestration system
-   - Context for next steps
+### Components to Extract
 
----
+1. **Fixed-position wrapper div** with bottomPanelRef (lines ~616-623)
+2. **EntitiesPanel** component (lines ~624-678)
 
-## Additional Context Files (Already Exist)
+### Expected Props Breakdown
 
-These files provide supporting context:
-- `REFACTOR_ROADMAP.md` - Overall refactoring strategy
-- `REFACTOR_PLAYBOOK.md` - Step-by-step extraction process
-- `NEXT_STEPS.md` - Phase 1 completion summary
-- `structure-baseline.json` - Current violations baseline
+Analyze these prop categories:
+1. **Layout & Ref** (~2 props): `bottomPanelRef`, `bottomHeight`
+2. **Core Data** (~5 props): `snapshot`, `isDM`, `uid`, player/character data
+3. **Selection** (~3 props): `selectedObjectIds`, selection handlers
+4. **HP Editing Callbacks** (~8-10 props): Character/NPC HP editing (INLINE FUNCTIONS - complex!)
+5. **Entity Actions** (~8-10 props): Delete, lock, unlock, recolor handlers
+6. **UI State** (~3-5 props): Panel state, toggles
 
----
+**Total Estimated:** 29-35 props
 
-## What to Expect
+### Special Considerations - CRITICAL
 
-### Timeline
+⚠️ **HP Editing Callbacks (Lines 646-663 in original):**
+- **Inline character HP editing:** `onHpEdit={(characterId, newHp) => { ... }}`
+- **Inline NPC HP editing:** `onNpcHpEdit={(npcId, newHp) => { ... }}`
+- These are complex inline functions that dispatch WebSocket messages
+- **Decision Required:** Extract these to named handlers in MainLayout or keep inline?
+- **Pattern:** Likely need to create `handleCharacterHpEdit` and `handleNpcHpEdit` in MainLayout
 
-- **Week 1:** TopPanelLayout + CenterCanvasLayout extractions
-- **Week 2:** FloatingPanelsLayout + BottomPanelLayout extractions
-- **Week 3:** Integration + Process improvements
-- **Week 4:** Buffer for unexpected issues
+⚠️ **BottomPanelRef:**
+- Used for layout measurement (bottomHeight calculation)
+- Must be passed through to wrapper div
+- Don't break the ref chain
 
-### Checkpoints
-
-The manager should provide updates after each extraction:
-1. TopPanelLayout complete (Day 2)
-2. CenterCanvasLayout complete (Day 3)
-3. FloatingPanelsLayout complete (Day 5)
-4. BottomPanelLayout complete (Day 8)
-5. Final integration complete (Day 10)
-6. Process improvements complete (Day 15)
-
-### Success Indicators
-
-✅ Each extraction:
-- Tests written before extraction
-- All tests passing after extraction
-- Component <350 LOC
-- Props interface <80 LOC
-- No inline logic
-
-✅ Final result:
-- MainLayout.tsx <200 LOC
-- Removed from baseline
-- All behavior preserved
-- Documentation complete
+⚠️ **Fixed Positioning:**
+- Wrapper div has inline styles for fixed positioning
+- Must preserve exact styling in extracted component
 
 ---
 
-## If Something Goes Wrong
+## The Proven Workflow (Follow This Pattern for Extraction 4)
 
-### Manager Gets Stuck
+You must follow this exact 4-step pattern:
 
-The brief includes:
-- Troubleshooting section
-- Emergency procedures
-- When to ask for help
-- Context recovery strategies
+### Step 1: Analysis Phase (Explore Agent)
 
-### Tests Fail
+**Launch Explore agent with this prompt:**
 
-The brief includes:
-- Debugging workflow
-- Common issues and fixes
-- How to compare original vs extracted
+```
+Analyze MainLayout.tsx lines ~616-679 to identify all props needed for BottomPanelLayout extraction.
 
-### Timeline Slips
+This section contains:
+- Fixed-position wrapper div with bottomPanelRef
+- EntitiesPanel component
 
-The brief includes:
-- Checkpoints to reassess
-- Scope reduction options
-- When to escalate
+For EntitiesPanel, identify:
+1. All props passed to it
+2. Any inline functions (especially HP editing callbacks on lines ~646-663)
+3. Any conditional rendering logic
+4. Layout wrapper props (ref, styling)
+
+Focus special attention on:
+- HP editing callbacks for characters and NPCs
+- Whether these should be extracted to MainLayout handlers
+- bottomPanelRef usage
+
+Organize findings by prop category.
+Report estimated:
+- Total prop count
+- Inline function count and complexity
+- Recommended approach for HP editing handlers
+- Estimated extracted LOC
+```
+
+**Expected Output:**
+- Comprehensive prop list (29-35 props)
+- Organized by semantic category
+- HP editing callback analysis with recommendation
+- No missed props or inline functions
+
+### Step 2: Interface Design Phase (Manager - YOU)
+
+After receiving Explore agent findings, YOU (the manager) design the props interface:
+
+**Decision to make:**
+1. **HP Editing Handlers:** Should they be extracted to named functions in MainLayout or kept inline?
+   - **Recommendation:** Extract to `handleCharacterHpEdit` and `handleNpcHpEdit` in MainLayout
+   - **Rationale:** Cleaner interface, easier to test, follows pattern from other extractions
+
+2. **Props Interface:**
+   - Use flat props interface with semantic grouping (established pattern)
+   - Group props by: Layout, Core Data, Selection, HP Editing, Entity Actions, UI State
+   - Document each prop with JSDoc comments
+   - Verify total props <40, interface LOC <80
+
+**Update Decision Log:**
+- Document props breakdown
+- Explain HP editing handler decision
+- Record interface design decisions
+
+### Step 3: Characterization Tests Phase (General-Purpose Agent)
+
+**Launch General-purpose agent with this prompt:**
+
+```
+Create comprehensive characterization tests for BottomPanelLayout extraction.
+
+Component to test: BottomPanelLayout
+Props interface: [paste the designed interface]
+
+The component renders:
+1. Fixed-position wrapper div with bottomPanelRef (verify ref, positioning styles)
+2. EntitiesPanel with 30+ props
+
+Create tests covering:
+1. Wrapper div renders with correct ref and fixed positioning styles
+2. EntitiesPanel renders with all props passed correctly
+3. HP editing callbacks work correctly (character and NPC)
+4. Selection handlers (onSelectObject, onSelectObjects)
+5. Entity action handlers (delete, lock, unlock, recolor)
+6. Edge cases (null snapshot, empty arrays, extreme numbers)
+7. All props passed to EntitiesPanel
+
+Mock EntitiesPanel for isolation.
+Use data-attributes for prop verification.
+Target: 40-60 tests with comprehensive coverage.
+
+File: /home/loshunter/HeroByte/apps/client/src/layouts/__tests__/BottomPanelLayout.characterization.test.tsx
+```
+
+**Verify:**
+- All tests passing ✅
+- Coverage includes HP editing callbacks
+- Edge cases tested
+- Execution time reasonable (<500ms)
+
+### Step 4: Component Creation & Integration Phase (General-Purpose Agent)
+
+**Launch General-purpose agent with this prompt:**
+
+```
+Create the BottomPanelLayout component and integrate it into MainLayout.
+
+Props interface: [paste the designed interface]
+Target file: /home/loshunter/HeroByte/apps/client/src/layouts/BottomPanelLayout.tsx
+
+Requirements:
+1. Extract JSX from MainLayout.tsx lines ~616-679 (bottom panel section)
+2. Create component with:
+   - File-level JSDoc documentation
+   - Props interface with JSDoc for each prop
+   - React.memo for performance
+   - displayName set
+3. Extract wrapper div with:
+   - bottomPanelRef prop
+   - Fixed positioning styles (position: fixed, bottom: 0, left: 0, right: 0, zIndex: 10)
+4. Extract EntitiesPanel with all props
+5. Verify component LOC <350, props interface LOC <80
+6. Run characterization tests - must all pass
+7. Integrate into MainLayout:
+   - Add BottomPanelLayout import
+   - Remove EntitiesPanel import
+   - Replace extracted JSX with <BottomPanelLayout {...props} />
+   - If HP editing handlers extracted, add them to MainLayout before JSX
+8. Verify TypeScript compilation passes
+9. Verify all characterization tests pass after integration
+```
+
+**Verify:**
+- Component created successfully
+- All tests passing after integration
+- TypeScript compilation successful
+- MainLayout LOC reduced by ~40-50 lines
 
 ---
 
-## Next Steps (For You, the User)
+## Critical Files Reference
 
-### Option 1: Start Refactoring Now
+### Documentation Files (Read These First)
 
-1. Run `/clear` in Claude Code to reset context
-2. Copy contents of `MAINLAYOUT_MANAGER_PROMPT.txt`
-3. Paste as first message to new Claude instance
-4. Monitor progress via todo list updates
+1. **`/home/loshunter/HeroByte/docs/refactoring/MAINLAYOUT_REFACTOR_BRIEF.md`**
+   - Original comprehensive refactoring brief (698 lines)
+   - Contains overall strategy, best practices, emergency procedures
 
-### Option 2: Review Before Starting
+2. **`/home/loshunter/HeroByte/docs/refactoring/MAINLAYOUT_DECISIONS.md`**
+   - Real-time decision log with all rationale
+   - Updated after each phase of Extractions 1-3
+   - Contains findings and patterns (reference these!)
+   - **Read Extraction 3 section** to understand FloatingPanelsLayout patterns
 
-1. Read `MAINLAYOUT_REFACTOR_BRIEF.md` yourself
-2. Verify the plan makes sense for your architecture
-3. Adjust timeline or scope if needed
-4. Then proceed with Option 1
+3. **`/home/loshunter/HeroByte/docs/refactoring/BRANCHING_STRATEGY.md`**
+   - Git workflow for refactoring branches
+   - Commit message conventions
 
-### Option 3: Defer and Continue App.tsx
+### Source Files
 
-MainLayout can wait. You could instead:
-1. Complete App.tsx refactoring (only 182 LOC over)
-2. Tackle DMMenu or MapBoard next
-3. Return to MainLayout later
+1. **`/home/loshunter/HeroByte/apps/client/src/layouts/MainLayout.tsx`**
+   - Current state: 715 LOC
+   - DO NOT hold full file in context - use Explore agents to analyze sections
 
-My recommendation: **Fix MainLayout first** because:
-- It's a NEW god file (process failure)
-- It demonstrates the fix for the guardrail issue
-- It completes the App.tsx → MainLayout extraction arc
-- The process improvements benefit all future refactoring
+2. **`/home/loshunter/HeroByte/apps/client/src/layouts/TopPanelLayout.tsx`**
+   - Reference for established patterns (React.memo, JSDoc, flat props interface)
+
+3. **`/home/loshunter/HeroByte/apps/client/src/layouts/CenterCanvasLayout.tsx`**
+   - Reference for spread operator pattern, dynamic positioning
+
+4. **`/home/loshunter/HeroByte/apps/client/src/layouts/FloatingPanelsLayout.tsx`**
+   - Reference for high prop count (52 props), semantic grouping
+   - Reference for type corrections and inline handler preservation
+
+### Test Files (Reference for Patterns)
+
+1. **`/home/loshunter/HeroByte/apps/client/src/layouts/__tests__/TopPanelLayout.characterization.test.tsx`**
+   - 46 tests, component mocking patterns, data-attribute verification
+
+2. **`/home/loshunter/HeroByte/apps/client/src/layouts/__tests__/CenterCanvasLayout.characterization.test.tsx`**
+   - 70 tests, spread operator testing, edge case patterns
+
+3. **`/home/loshunter/HeroByte/apps/client/src/layouts/__tests__/FloatingPanelsLayout.characterization.test.tsx`**
+   - 113 tests, high prop count testing, conditional rendering, wrapper divs
 
 ---
 
-## Final Thoughts
+## Key Decisions Made (Don't Change These)
 
-This analysis revealed that while you made **excellent progress** on App.tsx (1,850 → 632 LOC, 66% reduction), you inadvertently created a new god file in the process by moving complexity rather than decomposing it.
+These patterns were established in Extractions 1-3. **Continue using them:**
 
-The MainLayout.tsx refactoring will:
-1. ✅ Fix the new god file
-2. ✅ Demonstrate proper decomposition
-3. ✅ Improve the guardrail process
-4. ✅ Provide a pattern for DMMenu/MapBoard refactoring
-5. ✅ Complete the App.tsx extraction story
+1. **Props Interface Style:**
+   - ✅ Flat interface with semantic grouping comments
+   - ❌ NOT nested objects or grouped props
+   - **Rationale:** More explicit, better TypeScript autocomplete, easier debugging
+   - **Exception:** Keep pre-existing complex types as objects (toast, camera, snapshot)
 
-**The orchestration system I've created gives you a blueprint for managing complex refactorings using AI effectively.**
+2. **Component Pattern:**
+   - ✅ React.memo for all components
+   - ✅ Comprehensive JSDoc (file, interface, component)
+   - ✅ displayName set
+   - ✅ Pure presentation (no internal state)
+
+3. **Testing Strategy:**
+   - ✅ Characterization tests BEFORE extraction
+   - ✅ Mock all child components
+   - ✅ Data-attribute based prop verification
+   - ✅ Comprehensive edge case coverage
+   - ✅ Tests must pass AFTER integration
+
+4. **Agent Delegation:**
+   - ✅ Explore agent (medium thoroughness) for analysis
+   - ✅ General-purpose agent for tests and component creation
+   - ✅ Manager for integration, verification, decision log updates
+
+5. **Complex Props:**
+   - ✅ Use spread operator for complex prop objects (e.g., drawingProps)
+   - ✅ Extract inline handlers to named functions when complex
+   - **Rationale:** Encapsulation, maintainability, follows existing patterns
+
+6. **Type Corrections:**
+   - ✅ Correct handler signatures based on actual usage in MainLayout
+   - ✅ Make props optional if conditionally used
+   - ✅ Update types to match MainLayout implementation
 
 ---
 
-**Questions?**
+## Common Pitfalls to Avoid
 
-If you have questions before starting:
-- Review the brief: `MAINLAYOUT_REFACTOR_BRIEF.md`
-- Check the god file analysis in this handoff
-- Review the refactoring roadmap: `REFACTOR_ROADMAP.md`
+Based on Extractions 1-3 experience:
 
-**Ready to start?**
+1. **Don't Hold Full MainLayout in Context**
+   - File is 715 LOC - too large
+   - Use Explore agents to analyze specific line ranges
+   - Synthesize findings without loading full file
 
-Use the prompt in `MAINLAYOUT_MANAGER_PROMPT.txt` to begin.
+2. **Don't Skip Characterization Tests**
+   - Tests MUST be written before extraction
+   - Tests MUST pass before and after integration
+   - Tests are your safety net for behavior preservation
+
+3. **Don't Guess at Prop Requirements**
+   - Use Explore agent to identify ALL props
+   - Cross-reference with component source files if needed
+   - Missing props will cause TypeScript errors
+
+4. **Don't Create Nested Prop Objects**
+   - Flat interface is the established pattern
+   - Semantic grouping via comments, not objects
+   - Exception: spread operator for pre-existing complex types
+
+5. **Don't Forget to Update Decision Log**
+   - Update `/home/loshunter/HeroByte/docs/refactoring/MAINLAYOUT_DECISIONS.md` after each phase
+   - Document analysis findings, design decisions, test results, integration steps
+
+6. **Don't Skip TypeScript Verification**
+   - Run typecheck after component creation: `cd apps/client && pnpm exec tsc --noEmit`
+   - Run typecheck after integration
+   - Catch type errors early
+
+7. **Don't Overlook Inline Functions**
+   - HP editing callbacks are complex inline functions
+   - Decide whether to extract or keep inline
+   - Document decision in decision log
+
+---
+
+## Success Criteria for Extraction 4
+
+Before marking complete, verify:
+
+- ✅ BottomPanelLayout component created
+- ✅ Component total LOC <350
+- ✅ Props interface LOC <80
+- ✅ Props count 29-40 (reasonable range)
+- ✅ All characterization tests passing (40-60 tests expected)
+- ✅ TypeScript compilation passes
+- ✅ MainLayout LOC reduced by ~40-50 lines
+- ✅ Decision log updated with all findings and decisions
+- ✅ Git commit with clear message following convention
+
+**After Extraction 4, expected state:**
+- MainLayout: ~665-675 LOC (from 715)
+- 4 of 4 extractions complete
+- ~120-130 LOC reduction total (15-16%)
+- **Still ~465-475 LOC away from <200 target**
+
+**IMPORTANT REALIZATION:**
+After Extraction 4, MainLayout will still be ~665-675 LOC. The <200 LOC target requires **ADDITIONAL WORK** beyond the 4 planned extractions:
+- State management extraction
+- Hook consolidation
+- Handler extraction
+- Import cleanup
+
+---
+
+## After Extraction 4: Additional Work Required
+
+**Extraction 4 will NOT achieve the <200 LOC target.** Here's what remains:
+
+### Phase 2: Deep Refactoring (Estimated ~465-475 LOC reduction needed)
+
+1. **State Management Extraction** (~100-150 LOC)
+   - Extract state declarations to custom hooks
+   - Group related state (UI state, entity state, tool state)
+   - Create `useMainLayoutState` hook
+
+2. **Handler Extraction** (~150-200 LOC)
+   - Extract handler functions to custom hooks
+   - Create `useEntityActions`, `useToolActions`, `useLayoutActions` hooks
+   - Reduce MainLayout to orchestration only
+
+3. **Hook Consolidation** (~50-100 LOC)
+   - Review all useEffect, useMemo, useCallback hooks
+   - Extract to custom hooks where appropriate
+   - Reduce cognitive load in MainLayout
+
+4. **Import Cleanup** (~20-30 LOC)
+   - Remove unused imports after extractions
+   - Consolidate type imports
+   - Clean up dependencies
+
+5. **Props Interface Simplification** (~20-30 LOC)
+   - Review MainLayoutProps after all extractions
+   - Group related props into objects where appropriate
+   - Reduce prop spreading
+
+**Estimated Timeline:**
+- Extraction 4: 1-2 days
+- Phase 2 Deep Refactoring: 3-5 days
+- Total remaining: 4-7 days to <200 LOC target
+
+---
+
+## Quick Reference Commands
+
+```bash
+# Branch status
+git status
+
+# Run client tests
+pnpm test -- <test-file-name>
+
+# Run specific test file
+pnpm test -- BottomPanelLayout.characterization.test.tsx
+
+# TypeScript compilation check
+cd apps/client && pnpm exec tsc --noEmit
+
+# Measure LOC (use wc -l)
+wc -l apps/client/src/layouts/MainLayout.tsx
+
+# View decision log
+cat docs/refactoring/MAINLAYOUT_DECISIONS.md
+
+# Commit progress (after Extraction 4)
+git add apps/client/src/layouts/BottomPanelLayout.tsx \
+        apps/client/src/layouts/__tests__/BottomPanelLayout.characterization.test.tsx \
+        apps/client/src/layouts/MainLayout.tsx \
+        docs/refactoring/MAINLAYOUT_DECISIONS.md
+
+git commit -m "refactor: complete Extraction 4 - BottomPanelLayout
+
+Extract bottom panel section from MainLayout (lines ~616-679).
+
+New component: BottomPanelLayout.tsx (XXX LOC)
+- XX props across Y semantic groups
+- Components: EntitiesPanel with HP editing
+- Fixed positioning wrapper with bottomPanelRef
+
+Tests: XX characterization tests, all passing
+MainLayout reduced: 715 → XXX LOC (-XX LOC)
+
+Cumulative: 795 → XXX LOC (-XXX LOC)
+Extractions complete: 4 of 4
+
+Part of Phase 15 SOLID Refactor Initiative
+See: docs/refactoring/MAINLAYOUT_DECISIONS.md Extraction 4
+
+🤖 Generated with Claude Code
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+```
+
+---
+
+## Environment Info
+
+**Branch:** `refactor/main-layout/decompose`
+**Working Directory:** `/home/loshunter/HeroByte`
+**Package Manager:** pnpm
+**Test Framework:** Vitest
+**Current Date:** 2025-10-21
+
+**Key File Locations:**
+- Components: `/home/loshunter/HeroByte/apps/client/src/layouts/`
+- Tests: `/home/loshunter/HeroByte/apps/client/src/layouts/__tests__/`
+- Docs: `/home/loshunter/HeroByte/docs/refactoring/`
+
+**Current MainLayout State:** 715 LOC (after 3 extractions)
+
+---
+
+## Your First Actions
+
+When you receive the orchestrator prompt, you should:
+
+1. **Read this handoff document** (you're reading it now)
+
+2. **Read the decision log** to understand what was done in Extractions 1-3:
+   ```
+   Read /home/loshunter/HeroByte/docs/refactoring/MAINLAYOUT_DECISIONS.md
+   ```
+
+3. **Check current MainLayout state** (use wc -l, don't read full file):
+   ```bash
+   wc -l /home/loshunter/HeroByte/apps/client/src/layouts/MainLayout.tsx
+   ```
+   Expected: 715 LOC
+
+4. **Update todo list** with Extraction 4 tasks
+
+5. **Launch Explore agent** for BottomPanelLayout analysis (see Step 1 in workflow above)
+
+6. **Update decision log** with analysis findings
+
+7. **Proceed through steps 2-4** following the proven workflow pattern
+
+---
+
+## Final Notes
+
+**What You're Inheriting:**
+- A working, tested codebase with 3 successful extractions complete
+- Proven workflow patterns and agent delegation strategies
+- Comprehensive documentation and decision rationale
+- Clear path forward for Extraction 4
+- **Realistic understanding** that <200 LOC requires work beyond the 4 extractions
+
+**What's Expected of You:**
+- Follow the established patterns (don't reinvent)
+- Update decision log in real-time
+- Verify quality at each step (tests, TypeScript, LOC targets)
+- Ask for clarification if patterns are unclear
+- Complete Extraction 4 using the proven workflow
+- **Document findings** about additional work needed after Extraction 4
+
+**Success Looks Like:**
+- Extraction 4 complete in 1-2 days
+- MainLayout reduced to ~665-675 LOC
+- All tests passing (total ~270-290 tests)
+- Clear documentation of Phase 2 requirements
+- Ready to tackle deep refactoring work
+
+**Critical Success Factor for Extraction 4:**
+- **HP Editing Callbacks** must be handled correctly
+- These are the most complex inline functions in MainLayout
+- Decision to extract or keep inline will set precedent for Phase 2 work
+- Document this decision thoroughly in the decision log
+
+---
+
+**Handoff Complete**
+
+**Ready for:** Extraction 4 - BottomPanelLayout (MOST COMPLEX)
+**Next Orchestrator:** Follow the workflow in this document
+**Questions?** Review MAINLAYOUT_DECISIONS.md for context and patterns
 
 **Good luck! 🚀**
 
 ---
 
-**Handoff Complete**
-**Date:** 2025-10-21
-**Prepared by:** Code Analysis Claude Instance
-**Status:** ✅ Ready for Refactoring Team Manager
+**Last Updated:** 2025-10-21
+**Prepared By:** Refactoring Team Manager (Orchestrator Instance #2)
+**Extractions Complete:** 3 of 4 ✅
+**Git Commit:** ea7f2a8 (Extraction 3: FloatingPanelsLayout)
