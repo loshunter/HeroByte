@@ -94,7 +94,11 @@
       "Bash(npm run type-check:*)",
       "Bash(npx tsc:*)",
       "Bash(tree:*)",
-      "Bash(pgrep:*)"
+      "Bash(pgrep:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(npm run build:*)",
+      "Bash(cat:*)",
+      "Bash(npx prettier:*)"
     ],
     "deny": [],
     "ask": []
