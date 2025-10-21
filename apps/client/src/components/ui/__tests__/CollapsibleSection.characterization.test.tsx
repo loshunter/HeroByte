@@ -20,23 +20,7 @@
 import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-
-// For now, we need to extract the CollapsibleSection from DMMenu.tsx
-// This is a temporary solution - after extraction, import will change
-const CollapsibleSection = ({ isCollapsed, children }: { isCollapsed: boolean; children: React.ReactNode }) => {
-  return (
-    <div
-      style={{
-        maxHeight: isCollapsed ? "0" : "2000px",
-        opacity: isCollapsed ? 0 : 1,
-        overflow: "hidden",
-        transition: "max-height 150ms ease-in-out, opacity 150ms ease-in-out",
-      }}
-    >
-      {children}
-    </div>
-  );
-};
+import { CollapsibleSection } from "../CollapsibleSection";
 
 describe("CollapsibleSection - Characterization", () => {
   beforeEach(() => {
