@@ -156,12 +156,12 @@ const PropEditor = ({ prop, players, onUpdate, onDelete }: PropEditorProps) => {
 
   return (
     <JRPGPanel variant="simple" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-      <FormInput label="Label" value={label} onChange={setLabel} onBlur={handleLabelBlur} />
+      <FormInput label="Label" value={label} onChange={(v) => setLabel(v as string)} onBlur={handleLabelBlur} />
 
       <FormInput
         label="Image URL"
         value={imageUrl}
-        onChange={setImageUrl}
+        onChange={(v) => setImageUrl(v as string)}
         onBlur={handleImageUrlBlur}
       />
       <ImagePreview src={imageUrl} alt={`${prop.label} preview`} />
@@ -287,7 +287,7 @@ const NPCEditor = ({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) => {
 
   return (
     <JRPGPanel variant="simple" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-      <FormInput label="Name" value={name} onChange={setName} onBlur={handleNameBlur} />
+      <FormInput label="Name" value={name} onChange={(v) => setName(v as string)} onBlur={handleNameBlur} />
 
       <div style={{ display: "flex", gap: "8px" }}>
         <div style={{ flex: 1 }}>
@@ -295,7 +295,7 @@ const NPCEditor = ({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) => {
             label="HP"
             type="number"
             value={hpInput}
-            onChange={setHpInput}
+            onChange={(v) => setHpInput(v as string)}
             onBlur={handleHpBlur}
             min={0}
           />
@@ -305,7 +305,7 @@ const NPCEditor = ({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) => {
             label="Max HP"
             type="number"
             value={maxHpInput}
-            onChange={setMaxHpInput}
+            onChange={(v) => setMaxHpInput(v as string)}
             onBlur={handleMaxHpBlur}
             min={1}
           />
@@ -315,7 +315,7 @@ const NPCEditor = ({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) => {
       <FormInput
         label="Portrait URL"
         value={portrait}
-        onChange={setPortrait}
+        onChange={(v) => setPortrait(v as string)}
         onBlur={handlePortraitBlur}
       />
       <ImagePreview
@@ -329,7 +329,7 @@ const NPCEditor = ({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) => {
       <FormInput
         label="Token Image URL"
         value={tokenImage}
-        onChange={setTokenImage}
+        onChange={(v) => setTokenImage(v as string)}
         onBlur={handleTokenImageBlur}
       />
       <ImagePreview src={tokenImage} alt={`${npc.name} token preview`} />
@@ -1297,7 +1297,7 @@ export function DMMenu({
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 <JRPGPanel variant="simple" title="Session Save/Load">
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <FormInput label="Session Name" value={sessionName} onChange={setSessionName} />
+                    <FormInput label="Session Name" value={sessionName} onChange={(v) => setSessionName(v as string)} />
 
                     <div style={{ display: "flex", gap: "8px" }}>
                       <JRPGButton
