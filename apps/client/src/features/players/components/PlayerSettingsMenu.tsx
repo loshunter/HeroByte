@@ -9,6 +9,7 @@ import { createPortal } from "react-dom";
 import type { TokenSize } from "@shared";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
+import { useImageUrlNormalization } from "../../../hooks/useImageUrlNormalization";
 
 export interface StatusOption {
   value: string;
@@ -71,6 +72,12 @@ export function PlayerSettingsMenu({
   onDeleteCharacter,
 }: PlayerSettingsMenuProps): JSX.Element | null {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const { normalizeUrl } = useImageUrlNormalization();
+
+  const handleApplyTokenImage = async () => {
+    const normalizedUrl = await normalizeUrl(tokenImageInput.trim());
+    onTokenImageApply(normalizedUrl);
+  };
 
   if (!isOpen) {
     return null;
@@ -118,16 +125,16 @@ export function PlayerSettingsMenu({
               value={tokenImageInput}
               placeholder="https://example.com/token.png"
               onChange={(event) => onTokenImageInputChange(event.target.value)}
-              onBlur={() => onTokenImageApply(tokenImageInput.trim())}
+              onBlur={handleApplyTokenImage}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
-                  onTokenImageApply(tokenImageInput.trim());
+                  handleApplyTokenImage();
                 }
               }}
             />
             <div style={{ display: "flex", gap: "8px" }}>
               <JRPGButton
-                onClick={() => onTokenImageApply(tokenImageInput.trim())}
+                onClick={handleApplyTokenImage}
                 variant="primary"
                 style={{ flex: 1, fontSize: "10px", padding: "6px 8px" }}
               >
