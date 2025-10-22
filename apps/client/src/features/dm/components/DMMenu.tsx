@@ -4,7 +4,7 @@
 // Floating tools panel for Dungeon Masters. Provides access to map setup,
 // NPC management (scaffolding), and session utilities.
 
-import type { Character, PlayerStagingZone, Prop, Player, TokenSize } from "@shared";
+import type { Character, PlayerStagingZone, Prop, Player } from "@shared";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignment";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
