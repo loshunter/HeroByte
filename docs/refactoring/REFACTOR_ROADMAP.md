@@ -426,7 +426,8 @@ After all extractions, DMMenu.tsx is now **265 LOC** (FAR EXCEEDED 350 LOC targe
 |----------|--------|-----|-------------|--------------|--------|
 | 7 | `useKonvaNodeRefs` | 80 | `/hooks/useKonvaNodeRefs.ts` | Konva types | 5 days |
 
-**Phase 3 Reduction:** ~80 LOC → MapBoard.tsx down to ~791 LOC
+**Phase 3 Reduction (actual):** 15 LOC → MapBoard.tsx now ~880 LOC  
+_Note:_ Larger-than-planned footprint retained for clarity; marquee performance verified. Future phases can reclaim more LOC as logic moves outward.
 
 #### Phase 4: Feature Hooks (2 weeks)
 **Goal:** Extract complex feature logic
@@ -438,6 +439,12 @@ After all extractions, DMMenu.tsx is now **265 LOC** (FAR EXCEEDED 350 LOC targe
 | 10 | `useAlignmentVisualization` | 60 | `/features/map/useAlignmentVisualization.ts` | alignment state | 3 days |
 
 **Phase 4 Reduction:** ~210 LOC → MapBoard.tsx down to ~581 LOC
+
+> **Phase 4 Prep (2025-10-22):**
+> - Audit current marquee logic now that `useKonvaNodeRefs` exposes `getAllNodes` (identify responsibilities for `useMarqueeSelection`).
+> - Inventory keyboard shortcuts that still depend on MapBoard internals before carving out `useKeyboardNavigation`.
+> - Validate alignment overlay data flow to scope `useAlignmentVisualization` (check `alignmentPoints` & `alignmentSuggestion` inputs).
+> - Define shared test fixtures (mock nodes, selection scenarios) reusable across new hooks to keep coverage consistent.
 
 #### Phase 5: Presentational Components (1 week)
 **Goal:** Extract inline rendering

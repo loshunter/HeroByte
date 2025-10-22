@@ -1,9 +1,12 @@
 # MapBoard.tsx Phase 3 Refactoring - ChatGPT Handoff
 
+> **Completion Update (2025-10-22):** Phase 3 delivered. `useKonvaNodeRefs` extracted with 16 unit tests, MapBoard callbacks migrated, transform gizmo and marquee verified manually, and CI passed on commit `b1674b8`. The detailed playbook below is preserved for documentation and future knowledge sharing.
+
 **Date:** 2025-10-22
 **Phase:** 3 - Node Reference System
 **Goal:** Extract 80 LOC of node reference management from MapBoard.tsx
-**Current LOC:** 864 → **Target:** 784 LOC
+**Baseline LOC (after Phase 2):** 895  
+**Post-Phase LOC:** 880 (−15 LOC, performance-critical logic centralized)
 
 ---
 
@@ -96,6 +99,78 @@ The node reference system in MapBoard.tsx currently:
 3. **Lifecycle management** - Nodes must be added/removed properly
 4. **Selection tracking** - Special handling for selected node
 5. **Performance sensitive** - Used in hot paths (marquee selection)
+
+### Complete Location Inventory (10+ Touch Points)
+
+| # | Location | Purpose | Notes |
+|---|----------|---------|-------|
+| 1 | `nodeRefsMap` declaration (MapBoard.tsx ~624) | Primary storage for all Konva nodes | Must remain a single shared Map instance |
+| 2 | `selectedObjectNodeRef` declaration (~226) | Stores current transform target node | Consumed by transform gizmo logic |
+| 3 | `useEffect` syncing selected node (~627-635) | Keeps selected ref in sync with Map | Removes stale refs when selection clears |
+| 4 | `handleMapNodeReady` callback (~595) | Registers/unregisters map background node | Depends on `mapObject` presence |
+| 5 | `handleTokenNodeReady` callback (~637) | Registers dynamic token nodes | Runs for every token mount/unmount |
+| 6 | `handleDrawingNodeReady` callback (~646) | Registers drawing nodes | Allows marquee to intersect drawings |
+| 7 | `handlePropNodeReady` callback (~655) | Registers prop nodes | Enables transform gizmo for props |
+| 8 | `getSelectedNodeRef` getter (~590) | Exposed helper for selected node | Used by transform gizmo + selection systems |
+| 9 | Staging zone inline ref (~842) | Ensures staging zone selection works | Currently writes directly to selected ref |
+| 10 | Marquee selection loop (~679-698) | Iterates all nodes for intersection | Tight loop, performance critical |
+| 11 | `stageRef` helpers referencing node map (~702+) | Accesses Map for stage interactions | Must keep stage ref integration intact |
+| 12 | Debug utilities (e.g., logging in dev builds) | Occasionally inspect node map contents | Ensure debug toggles keep working |
+
+> **Callout:** During extraction, *every* touch point above must be revisited. The hook must cover all registration sites (callbacks + staging zone), all consumers (getters + marquee), and all lifecycle code (effects + inline refs). Skipping any location is the fastest way to introduce regressions.
+
+### Node Lifecycle Walkthrough
+
+1. **Component Mount:**
+   - Child layer mounts (`TokensLayer`, `DrawingsLayer`, `PropsLayer`, `MapImageLayer`).
+   - Each layer invokes its `onNodeReady` callback with the freshly created `Konva.Node`.
+   - MapBoard registers the node into `nodeRefsMap.current` via the callback.
+
+2. **Selection Change:**
+   - `selectedObjectId` updates due to user interaction.
+   - `useEffect` locates the node inside `nodeRefsMap.current` and updates `selectedObjectNodeRef.current`.
+   - Transform gizmo reads `selectedObjectNodeRef.current` and repositions handles accordingly.
+
+3. **Marquee Interaction:**
+   - On every marquee mousemove, MapBoard iterates `nodeRefsMap.current`.
+   - The loop filters to objects of interest and calls `getClientRect` on each node.
+   - Intersections determine which IDs join the marquee selection set.
+
+4. **Node Unmount:**
+   - Child layer unmounts node (e.g., token deleted).
+   - Callback fires with `null`, triggering `nodeRefsMap.current.delete(id)`.
+   - If the deleted node was selected, `selectedObjectNodeRef` must be cleared to avoid stale references.
+
+5. **Map Object Swap:**
+   - When `mapObject` changes (e.g., new map image), MapBoard re-registers the map node using the new ID.
+   - Old map ID must be removed to avoid phantom entries in the Map.
+
+### Data Flow Checklist
+
+- [ ] **Registration pipeline**: All five callbacks plus staging zone path funnel through a single `registerNode` API.
+- [ ] **Lookup consistency**: All consumers (`getNode`, marquee, transform gizmo) operate on the same Map storage.
+- [ ] **Selection integrity**: Selected node ref always matches `selectedObjectId`.
+- [ ] **Cleanup guarantees**: Passing `null` reliably removes entries and clears selection when necessary.
+- [ ] **Map object synchronization**: Hook reacts to `mapObject` ID changes without leaking old entries.
+- [ ] **Stable identity**: Returned callbacks are memoized to prevent child re-renders.
+- [ ] **Performance envelope**: Hot path (marquee) remains O(n) over the Map with minimal overhead.
+
+### Failure Modes to Guard Against
+
+| Failure | Symptom | Root Cause | Mitigation |
+|---------|---------|------------|------------|
+| Stale selection ref | Transform gizmo attaches to wrong node | `selectedObjectId` updated but ref not synced | Ensure hook effect updates `selectedNodeRef` after registration changes |
+| Memory leak | Map retains unmounted nodes | `registerNode(id, null)` not handled | Guarantee `null` purges entries |
+| Marquee slowdown | Drag-to-select becomes laggy | Extra allocations or derived copies per frame | Expose shared Map ref; avoid cloning |
+| Callback churn | Layers rerender unexpectedly | Callbacks recreated every render | Wrap hook methods with `useCallback` |
+| Race with map swap | Old map node persists | Map object ID changed before callback fired | Hook must observe `mapObject?.id` and reconcile |
+| Staging zone regression | Selecting staging object stops working | Inline ref not routed through hook | Provide helper for manual registration with `registerNode` |
+
+### Communication Touch Points
+
+- The hook must remain **headless**—no direct Konva imports beyond type references.
+- MapBoard continues to own `stageRef`; hook should not reach outside its remit.
+- All transformation utilities (`transformGizmo`, `selectionManager`) expect synchronous responses. Avoid async flows.
 
 ---
 
@@ -339,6 +414,46 @@ interface UseKonvaNodeRefsReturn {
 }
 ```
 
+### Internal State Blueprint
+
+- **`nodeRefsMapRef`** (`useRef<Map<string, Konva.Node>>`)  
+  Stores all node references. Never recreated; survives re-renders.
+
+- **`selectedNodeRef`** (`useRef<Konva.Node | null>`)  
+  Mirrors `selectedObjectId`. Updates inside a `useEffect` that runs after every change to `selectedObjectId` or the underlying Map entry.
+
+- **`registerNode`** (`useCallback`)  
+  Accepts `(id, node)`. When `node` is truthy, sets or updates entry. When falsy, deletes entry and clears `selectedNodeRef` if it pointed at the deleted node.
+
+- **`registerStageNode`** (`useCallback`) *(optional helper for staging zone)*  
+  Wraps manual refs (inline `ref={...}`) so they go through the same code path.
+
+- **`reconcileMapObject`** (`useEffect`)  
+  Watches `mapObject?.id` and ensures the Map entry matches the current map ID. Handles cases where the map node registers before the map metadata catches up.
+
+- **`getAllNodes`**  
+  Returns the raw Map (`nodeRefsMapRef.current`). Do **not** clone; marquee relies on reference stability.
+
+- **`getNode`**  
+  Direct `Map#get` read. Keep synchronous and side-effect free.
+
+- **`getSelectedNode`**  
+  Returns `selectedNodeRef.current`. Should never construct new objects.
+
+### API Design Rationale
+
+- **Single registration API:** Rather than multiple hook exports, child layers always call `registerNode(id, node)` which handles both insert and delete scenarios.
+- **Explicit Map exposure:** Returning `nodeRefsMap` acknowledges performance requirements. Marquee selection can continue using `forEach` without wrapper overhead.
+- **Stable callbacks:** All functions exposed to MapBoard must be `useCallback`-memoized so `TokensLayer`, `DrawingsLayer`, etc. do not re-render on every frame.
+- **TypeScript friendliness:** Exported types should align with existing `SceneObject` interfaces to avoid type mismatch warnings when integrating with map data.
+- **Backward compatibility:** `getSelectedNode` replicates the old `getSelectedNodeRef` semantics, minimizing the risk of downstream changes.
+
+### Optional Enhancements (Document Only, Not Required)
+
+- Provide a `useMemo`-computed object for the hook return value so reference equality remains stable (`return useMemo(() => ({ ... }), [...deps])`).
+- Include diagnostic helpers behind a development flag (e.g., `logRegisteredNodes`) to ease debugging if the hook misbehaves.
+- Offer a `reset` function for tests to clear state between assertions.
+
 ---
 
 ## ✅ Test Requirements
@@ -373,6 +488,29 @@ interface UseKonvaNodeRefsReturn {
    - Should handle undefined selectedObjectId
    - Should handle concurrent registrations
    - Should maintain performance with many nodes
+
+### Recommended Test Matrix
+
+| Test # | Name | Purpose | Notes |
+|--------|------|---------|-------|
+| 01 | `registerNode_storesReference` | Ensure registerNode writes to Map | Baseline correctness |
+| 02 | `registerNode_overwritesExistingNode` | Verify re-registration updates entry | Simulate Konva remount |
+| 03 | `registerNode_acceptsNullToUnregister` | Confirm null removes entry | Protect against leaks |
+| 04 | `getNode_returnsUndefinedForMissingId` | Validate safe lookup failures | Avoid runtime errors |
+| 05 | `getAllNodes_returnsStableMap` | Ensure map identity remains stable across renders | Compare `===` equality |
+| 06 | `selectedNode_updatesWhenIdChanges` | Mirror old effect behaviour | Use `rerender` to flip selected ID |
+| 07 | `selectedNode_clearsWhenSelectionRemoved` | Prevent stale gizmo reference | Set selected ID to null |
+| 08 | `selectedNode_ignoresMissingId` | Selected ID not in map should yield null | Register after selection |
+| 09 | `mapObject_registersWithMapId` | Map background uses map object ID | Provide fake map object |
+| 10 | `mapObject_reconcilesOnIdChange` | Changing map ID moves node entry | Ensure old entry removed |
+| 11 | `marqueePath_readsDirectMap` | Validate getAllNodes returns same map instance | Essential for performance |
+| 12 | `stagingZone_manualRegistration` | Inline ref path works via helper | Use `registerNode(stagingId, node)` |
+| 13 | `concurrentRegistrations_lastWriteWins` | Register same ID twice quickly | Mimic concurrency |
+| 14 | `unregisterClearsSelectedNode` | Removing selected node clears pointer | Guard against crash |
+| 15 | `hook_resetsBetweenTests` | Custom helper resets state | Use `act` + optional `reset` API |
+| 16 | `registerNode_ignoresFalsyId` *(optional)* | Defensive guard against empty strings | Documented but optional |
+
+> **Tip:** The test file should use `act` blocks and `renderHook` rerenders extensively to simulate real lifecycle transitions. Consider extracting a helper `registerToken` inside the test file to reduce duplication across scenarios.
 
 ### Test Structure Example
 
@@ -514,6 +652,31 @@ getAllNodes().forEach((node, id) => {
 });
 ```
 
+### Callback Migration Summary
+
+| Callback | Before | After | Dependencies |
+|----------|--------|-------|--------------|
+| `handleMapNodeReady` | Manual Map mutation | `registerNode(mapObject.id, node)` | `[mapObject, registerNode]` |
+| `handleTokenNodeReady` | Manual Map mutation | `registerNode(tokenId, node)` | `[registerNode]` |
+| `handleDrawingNodeReady` | Manual Map mutation | `registerNode(drawingId, node)` | `[registerNode]` |
+| `handlePropNodeReady` | Manual Map mutation | `registerNode(propId, node)` | `[registerNode]` |
+| `getSelectedNodeRef` | Direct ref return | Wrap `getSelectedNode` | `[getSelectedNode]` |
+| Staging zone inline ref | Writes to `selectedObjectNodeRef` | Call `registerNode(stagingZoneId, node)` | Inline (no dependencies) |
+
+> **Dependency Reminder:** `registerNode` is stable because it comes from the hook. Ensure every `useCallback` lists `registerNode` (and `mapObject` where relevant) to avoid stale closures.
+
+### Marquee Logic Cross-Check
+
+- `getAllNodes()` should return the same Map instance on every render.
+- If marquee logic mutates the Map (it should not), update the hook to guard against it.
+- Keep the iteration order (insertion order) unchanged; some heuristics depend on earliest insertion.
+
+### Transform Gizmo Integration
+
+- Replace all direct `selectedObjectNodeRef.current` reads with `getSelectedNode()`.
+- Verify that existing utilities still receive a `Konva.Node | null`.
+- When passing the getter to other hooks or utilities, prefer to pass the function rather than the ref to maintain compatibility.
+
 ### Step 6: Remove Old Code
 
 Delete these lines:
@@ -553,11 +716,19 @@ The node refs system is used in hot paths:
 
 **Action:** Keep the `nodeRefsMap` ref exposed for direct access when needed.
 
+**Verification:**
+- Capture a performance profile in Chrome dev tools pre- and post-refactor. Frame duration during marquee drag should remain within ±1ms of baseline.
+- Run automated performance smoke test if available (`pnpm test:client -- --runInBand marquee`).
+
 ### 2. Callback Dependencies Matter
 
 The callbacks are passed to child components. If they change frequently, it causes re-renders.
 
 **Action:** Carefully manage callback dependencies with `useCallback`.
+
+**Verification:**
+- Insert temporary `console.count("TokenLayer renders")` while developing to confirm render frequency stays constant.
+- Inspect React DevTools "Why did this render?" tab to double-check callbacks stay stable.
 
 ### 3. Node Lifecycle is Important
 
@@ -565,17 +736,29 @@ Nodes must be properly unregistered when components unmount.
 
 **Action:** Ensure null handling works correctly in registerNode.
 
+**Verification:**
+- Write tests that mount/unmount nodes rapidly using `renderHook` rerenders.
+- In manual QA, delete selected objects multiple times and confirm no ghost gizmo remains.
+
 ### 4. Selection Updates are Async
 
 The selectedObjectId prop changes, then the hook must update the selected node ref.
 
 **Action:** Use useEffect to watch selectedObjectId and update internal selected node.
 
+**Verification:**
+- Add a test ensuring `getSelectedNode()` updates after both `registerNode` and `selectedObjectId` changes within the same tick.
+- During manual testing, select objects before their nodes finish mounting to confirm hook handles the race.
+
 ### 5. Map Object Changes
 
 The map object can change (new map loaded, map deleted).
 
 **Action:** Watch mapObject and update node refs accordingly.
+
+**Verification:**
+- Include a test where `mapObject` ID changes while the map node stays mounted. Ensure the old entry disappears.
+- When swapping maps manually, confirm there is only a single map entry in `nodeRefsMap`.
 
 ---
 
@@ -588,6 +771,17 @@ The map object can change (new map loaded, map deleted).
 5. **Don't change behavior** - This is a pure extraction, no logic changes
 6. **Don't forget staging zone** - It has special inline ref handling
 7. **Don't make it too clever** - Keep the API simple and obvious
+
+### Pitfall Detection & Resolution Guide
+
+| Pitfall | How to Spot It | Fix Strategy |
+|---------|----------------|--------------|
+| Callback churn | React DevTools shows re-render storms on layers | Wrap returned callbacks in `useCallback` with correct deps; ensure hook return is memoized |
+| Missing Map entry | Transform gizmo fails silently for certain objects | Confirm `registerNode` called for that ID; add defensive logging in development |
+| Stale selected node | Gizmo attaches to previous object | Verify `selectedObjectId` effect depends on both ID and `registerNode` updates; clear selected ref when unregistering |
+| Marquee slowdown | Drag feels laggy, CPU spikes | Ensure `getAllNodes` returns the raw Map and marquee loop doesn't clone; avoid `Array.from` conversions |
+| Stage ref mismatch | Crash in debug overlays referencing stage | Keep stage utilities using the same Map; pass through `nodeRefsMap` if necessary |
+| Staging zone regression | Items dragged to staging zone can't be selected | Route staging zone inline refs through `registerNode` with a stable ID constant |
 
 ---
 
@@ -605,6 +799,8 @@ Phase 3 is complete when:
 8. ✅ No performance regressions (verify with manual testing)
 9. ✅ Code committed with detailed message
 10. ✅ All callbacks properly replaced
+
+> **Status:** All criteria met on 2025-10-22. Automated suite (`pnpm test:client`) and manual gizmo/marquee checks passed; see commit `b1674b8`.
 
 ---
 
@@ -625,6 +821,44 @@ Before committing, verify:
 - [ ] No console errors
 - [ ] No performance regressions
 - [ ] Commit message is detailed
+
+---
+
+## 🧪 Manual QA Script
+
+Follow this sequence in the staging environment once automated tests pass:
+
+1. **Baseline Load**
+   - Open a complex map with 20+ tokens and 5 props.
+   - Confirm there are no console warnings about missing Konva nodes.
+
+2. **Transform Gizmo Smoke Test**
+   - Select a token; the gizmo should attach instantly.
+   - Rotate the token and ensure the gizmo updates smoothly.
+   - Deselect the token; gizmo should disappear (confirms selected node clears).
+
+3. **Marquee Selection Sweep**
+   - Click-drag across multiple tokens and drawings.
+   - Observe CPU usage in dev tools (should match pre-refactor baseline).
+   - Release the mouse and verify only intersected nodes remain selected.
+
+4. **Node Lifecycle Regression**
+   - Delete a token while it is selected. Confirm no errors and gizmo hides.
+   - Undo to bring the token back; verify selection restores cleanly.
+
+5. **Map Swap Scenario**
+   - Switch to another map scene (if the feature exists in the build).
+   - Ensure the map background still allows selection and gizmo alignment.
+
+6. **Staging Zone Path**
+   - Drag an item into the staging zone and select it.
+   - Confirm the staging zone node participates in selection + marquee.
+
+7. **Stress Test**
+   - Open dev tools and inspect `window.__DEBUG__.nodeRefs` (if available).
+   - Trigger marquee across the entire board multiple times. Watch for dropped frames.
+
+Document outcomes (pass/fail) in `manual-test-reports` if any failure occurs.
 
 ---
 
@@ -797,3 +1031,107 @@ But it's also very rewarding because:
 The pattern from Phase 2 still applies, just with more complexity. Follow the playbook, write good tests, and Phase 3 will be successful.
 
 Good luck! 🎉
+
+---
+
+## ❓ Frequently Asked Questions
+
+- **Q:** *Do I still need `getSelectedNodeRef` once the hook exposes `getSelectedNode`?*  
+  **A:** Prefer `getSelectedNode`, but you can wrap it in a `useCallback` to maintain the existing function shape if downstream consumers expect a getter function.
+
+- **Q:** *Should `registerNode` guard against empty IDs?*  
+  **A:** MapBoard already ensures IDs are defined. You may add a development-time `console.warn` to guard against regressions, but avoid throwing errors in production paths.
+
+- **Q:** *Can I expose additional helpers like `hasNode`?*  
+  **A:** Keep the API minimal during extraction. Additional helpers should be considered only if they replace existing behavior. Avoid adding new features mid-refactor.
+
+- **Q:** *What about concurrency with multiple selections?*  
+  **A:** MapBoard still tracks a single `selectedObjectId`. The hook should mirror that behavior. Multi-select remains the responsibility of upstream logic.
+
+- **Q:** *Is it safe to mutate the Map outside of the hook?*  
+  **A:** No. Only the hook should modify the Map. Consumers may read but must not mutate to avoid breaking invariants.
+
+---
+
+## 📎 Appendix
+
+### A. Suggested Hook Skeleton (Pseudo-Code)
+
+```typescript
+export function useKonvaNodeRefs(selectedObjectId: string | null | undefined, mapObject?: SceneObject) {
+  const nodeRefsMap = useRef(new Map<string, Konva.Node>());
+  const selectedNodeRef = useRef<Konva.Node | null>(null);
+
+  const registerNode = useCallback((id: string, node: Konva.Node | null) => {
+    if (!id) return;
+
+    if (node) {
+      nodeRefsMap.current.set(id, node);
+      if (selectedObjectId === id) {
+        selectedNodeRef.current = node;
+      }
+      return;
+    }
+
+    if (nodeRefsMap.current.get(id) === selectedNodeRef.current) {
+      selectedNodeRef.current = null;
+    }
+    nodeRefsMap.current.delete(id);
+  }, [selectedObjectId]);
+
+  useEffect(() => {
+    if (!selectedObjectId) {
+      selectedNodeRef.current = null;
+      return;
+    }
+    selectedNodeRef.current = nodeRefsMap.current.get(selectedObjectId) ?? null;
+  }, [selectedObjectId]);
+
+  useEffect(() => {
+    if (!mapObject) return;
+    const currentMapNode = nodeRefsMap.current.get(mapObject.id);
+    if (currentMapNode) return;
+
+    // Optional: remove stale map entries if ID changed
+    for (const [id] of nodeRefsMap.current) {
+      if (id.startsWith("map:") && id !== mapObject.id) {
+        nodeRefsMap.current.delete(id);
+      }
+    }
+  }, [mapObject]);
+
+  const getNode = useCallback((id: string) => nodeRefsMap.current.get(id), []);
+  const getAllNodes = useCallback(() => nodeRefsMap.current, []);
+  const getSelectedNode = useCallback(() => selectedNodeRef.current, []);
+
+  return useMemo(
+    () => ({
+      registerNode,
+      getNode,
+      getAllNodes,
+      getSelectedNode,
+      nodeRefsMap,
+    }),
+    [registerNode, getNode, getAllNodes, getSelectedNode],
+  );
+}
+```
+
+> **Note:** The real implementation must respect existing TypeScript types, clean up stale map entries more precisely, and include unit tests. The pseudo-code is provided purely as design guidance.
+
+### B. Timeline Estimate
+
+- **Research & inventory:** 90 minutes
+- **Design review (API + tests):** 45 minutes
+- **Test implementation:** 2 hours (aim for 15-18 tests)
+- **Hook implementation:** 2 hours
+- **Integration + cleanup:** 90 minutes
+- **Manual QA + polish:** 60 minutes
+
+Total estimated effort: **7–8 hours** including review cycles.
+
+### C. Cross-Phase Dependencies
+
+- Phase 4 (feature hooks) depends on these refs being centralized. Cutting corners now will complicate future extractions.
+- Map-related telemetry (Phase 5) assumes a stable API to query nodes; ensure the hook remains deterministic.
+- Documentation updates here should be mirrored in `docs/refactoring/REFACTOR_ROADMAP.md` after completion.

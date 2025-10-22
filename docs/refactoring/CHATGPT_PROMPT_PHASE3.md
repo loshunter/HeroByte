@@ -1,5 +1,7 @@
 # ChatGPT Phase 3 Prompt
 
+> **Status (2025-10-22):** Phase 3 is complete. `useKonvaNodeRefs` now lives at `apps/client/src/hooks/useKonvaNodeRefs.ts`, MapBoard integration shipped in commit `b1674b8`, and CI is green. Keep this prompt for historical reference or future retrospectives—no additional extraction work remains for this phase.
+
 **Copy and paste this entire message to ChatGPT:**
 
 ---
@@ -77,6 +79,14 @@ Extract **ONE complex hook** from `apps/client/src/ui/MapBoard.tsx`:
    - Remove old refs and useEffect
    - Maintain performance
 
+## Non-Negotiable Guardrails
+
+- **No coding yet:** Do not write hook or integration code until we agree on understanding + tests.
+- **Plan in the open:** Walk me through the extraction plan, including how you'll keep callbacks stable and performant.
+- **Performance mindset:** Assume marquee selection is a hot path; avoid any approach that clones Maps or rebuilds callbacks per render.
+- **Verification cadence:** Pause after each milestone (understanding → tests → hook → integration) and wait for my explicit approval.
+- **Zero behavior drift:** This is an extraction only; if you think any behavior should change, flag it before touching code.
+
 ## Your Workflow
 
 This is a single complex extraction:
@@ -106,6 +116,7 @@ This is a single complex extraction:
 5. **Provide commit command:**
    - Detailed commit message
    - Include all changes
+   - Confirm manual verification steps for transform gizmo + marquee selection plan
 
 ## Deliverables
 
@@ -115,14 +126,14 @@ After completion, provide:
 3. Updated `MapBoard.tsx` with all callbacks replaced
 4. Git commit command with detailed message
 5. LOC reduction summary (target: -80 LOC)
-6. Verification that transform gizmo and marquee selection work
+6. Verification that transform gizmo and marquee selection work (describe manual checks you will perform)
 
 ## Important Context
 
 - **Project:** HeroByte VTT (virtual tabletop)
 - **Stack:** React, TypeScript, Vitest, Konva (canvas library)
 - **Current branch:** dev
-- **MapBoard.tsx current size:** 864 LOC
+- **MapBoard.tsx current size (post-phase):** 880 LOC (down from 895 pre-extraction)
 - **Phase 2 completed:** useGridConfig, useCursorStyle, useSceneObjectsData extracted
 - **Node reference system is scattered across:**
   - Line ~624: nodeRefsMap declaration
