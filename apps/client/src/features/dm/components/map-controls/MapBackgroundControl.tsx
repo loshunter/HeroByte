@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import { JRPGPanel, JRPGButton } from "../../../../components/ui/JRPGPanel";
 
 export interface MapBackgroundControlProps {
-  mapBackground: string | null;
+  mapBackground: string | undefined;
   onSetMapBackground: (url: string) => void;
 }
 
