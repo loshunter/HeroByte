@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from "react";
 import { JRPGPanel, JRPGButton } from "../../../../components/ui/JRPGPanel";
+import { useImageUrlNormalization } from "../../../../hooks/useImageUrlNormalization";
 
 export interface MapBackgroundControlProps {
   mapBackground: string | undefined;
@@ -17,14 +18,18 @@ export function MapBackgroundControl({
   onSetMapBackground,
 }: MapBackgroundControlProps) {
   const [mapUrl, setMapUrl] = useState(mapBackground ?? "");
+  const { normalizeUrl, isNormalizing, normalizationError } = useImageUrlNormalization();
 
   useEffect(() => {
     setMapUrl(mapBackground ?? "");
   }, [mapBackground]);
 
-  const handleMapApply = () => {
+  const handleMapApply = async () => {
     if (!mapUrl.trim()) return;
-    onSetMapBackground(mapUrl.trim());
+
+    // Automatically convert Imgur URLs to direct image links
+    const normalizedUrl = await normalizeUrl(mapUrl);
+    onSetMapBackground(normalizedUrl);
   };
 
   return (
@@ -46,11 +51,24 @@ export function MapBackgroundControl({
         <JRPGButton
           onClick={handleMapApply}
           variant="success"
-          disabled={!mapUrl.trim()}
+          disabled={!mapUrl.trim() || isNormalizing}
           style={{ fontSize: "10px" }}
         >
-          Apply Background
+          {isNormalizing ? "Converting URL..." : "Apply Background"}
         </JRPGButton>
+        {normalizationError && (
+          <div
+            style={{
+              fontSize: "9px",
+              color: "var(--jrpg-warning)",
+              padding: "4px",
+              background: "rgba(255, 200, 0, 0.1)",
+              borderRadius: "2px",
+            }}
+          >
+            {normalizationError}
+          </div>
+        )}
         {mapBackground && (
           <img
             src={mapBackground}
