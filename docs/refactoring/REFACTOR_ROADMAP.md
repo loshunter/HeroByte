@@ -14,8 +14,8 @@ This roadmap provides a systematic plan to refactor the three largest files in t
 |------|-------------|------------|-----------|---------------------|-------------|--------|
 | **App.tsx** | 1,850 → 519 | 300 | 72% | 27 clusters | 8-10 weeks | ✅ COMPLETE (All 7 Phases) |
 | **DMMenu.tsx** | 1,588 → 265 | 350 | 83% | 20 clusters | 6-8 weeks | ✅ COMPLETE (All 6 Phases) |
-| **MapBoard.tsx** | 1,041 | 400 | 62% | 32 clusters | 6-8 weeks | Not started |
-| **Total** | **4,479** → **1,823** | **1,050** | **59%** | **79 clusters** | **20-26 weeks** | **2,656 LOC reduced** |
+| **MapBoard.tsx** | 1,034 → 959 | 400 | 7% | 32 clusters | 6-8 weeks | 🔄 Phase 1 Complete |
+| **Total** | **4,479** → **1,743** | **1,050** | **61%** | **79 clusters** | **20-26 weeks** | **2,736 LOC reduced** |
 
 **🎉 MAJOR MILESTONES: App.tsx & DMMenu.tsx COMPLETE! 🎉**
 
@@ -33,6 +33,16 @@ This roadmap provides a systematic plan to refactor the three largest files in t
 - **Phase 1-3 Complete:** UI primitives, entity editors, and map controls extracted
 - **100% Test Coverage Maintained:** All tests passing, no regressions
 - **Completion Date:** 2025-10-22
+
+**MapBoard.tsx Refactoring Progress:**
+- **Phase 1 Complete:** Pure utilities extracted (2025-10-22)
+- **Current Reduction:** 75 LOC (7% reduction: 1,034 → 959)
+- **Extracted Modules:**
+  - useElementSize hook (15 LOC + tests)
+  - coordinateTransforms utility (20 LOC + tests)
+  - MapBoard.types (40 LOC)
+- **Test Coverage:** 11 new tests added, all passing
+- **Next Steps:** Phase 2 (Simple State Hooks) - 95 LOC reduction target
 
 **Phase 1 Milestone Achieved:** 2025-10-20
 - 9 extractions completed from App.tsx
@@ -383,16 +393,20 @@ After all extractions, DMMenu.tsx is now **265 LOC** (FAR EXCEEDED 350 LOC targe
 
 ### Extraction Strategy
 
-#### Phase 1: Pure Utilities (3 days)
+#### Phase 1: Pure Utilities ✅ COMPLETE (2025-10-22)
 **Goal:** Extract zero-dependency utilities
 
-| Priority | Module | LOC | Target Path | Dependencies | Effort |
-|----------|--------|-----|-------------|--------------|--------|
-| 1 | `MapBoardTypes` | 40 | `/ui/MapBoard.types.ts` | @shared types | 1 day |
-| 2 | `coordinateTransforms` | 20 | `/utils/coordinateTransforms.ts` | Math | 1 day |
-| 3 | `useElementSize` | 15 | `/hooks/useElementSize.ts` | ResizeObserver | 1 day |
+| Priority | Module | LOC | Actual LOC | Target Path | Status |
+|----------|--------|-----|------------|-------------|--------|
+| 1 | `MapBoardTypes` | 40 | -40 | `/ui/MapBoard.types.ts` | ✅ COMPLETE |
+| 2 | `coordinateTransforms` | 20 | -20 | `/utils/coordinateTransforms.ts` | ✅ COMPLETE |
+| 3 | `useElementSize` | 15 | -15 | `/hooks/useElementSize.ts` | ✅ COMPLETE |
 
-**Phase 1 Reduction:** ~75 LOC → MapBoard.tsx down to ~966 LOC
+**Phase 1 Results:**
+- **Extraction:** 3 modules (-75 LOC total)
+- **MapBoard.tsx:** 1,034 → 959 LOC
+- **Tests Added:** 11 tests (8 coordinateTransforms + 3 useElementSize)
+- **All tests passing, zero regressions**
 
 #### Phase 2: Simple State Hooks (1 week)
 **Goal:** Extract basic state management
