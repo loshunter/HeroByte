@@ -128,6 +128,46 @@ const MultiSelectBadge = memo(function MultiSelectBadge({
   );
 });
 
+interface StatusEffectBadgeProps {
+  x: number;
+  y: number;
+  size: number;
+  emoji: string;
+}
+
+const StatusEffectBadge = memo(function StatusEffectBadge({
+  x,
+  y,
+  size,
+  emoji,
+}: StatusEffectBadgeProps) {
+  const fontSize = size * 0.7;
+  const bgRadius = size / 2;
+
+  return (
+    <Group x={x} y={y}>
+      <Circle
+        radius={bgRadius}
+        fill="rgba(0, 0, 0, 0.7)"
+        stroke="var(--jrpg-border-gold)"
+        strokeWidth={1.5}
+      />
+      <Text
+        text={emoji}
+        fontSize={fontSize}
+        fontFamily="Arial"
+        fill="#FFFFFF"
+        align="center"
+        verticalAlign="middle"
+        width={size}
+        height={size}
+        x={-size / 2}
+        y={-size / 2}
+      />
+    </Group>
+  );
+});
+
 interface TokensLayerProps {
   cam: Camera;
   sceneObjects: SceneObject[];
@@ -146,6 +186,8 @@ interface TokensLayerProps {
   ) => void;
   onTokenNodeReady?: (tokenId: string, node: Konva.Node | null) => void;
   interactionsEnabled?: boolean;
+  /** Map of token owner UID to their active status effect emoji */
+  statusEffectsByOwner?: Record<string, string>;
 }
 
 export const TokensLayer = memo(function TokensLayer({
@@ -163,6 +205,7 @@ export const TokensLayer = memo(function TokensLayer({
   onSelectObject,
   onTokenNodeReady,
   interactionsEnabled = true,
+  statusEffectsByOwner = {},
 }: TokensLayerProps) {
   const localOverrides = useRef<Record<string, { x: number; y: number }>>({});
   const multiDragStartRef = useRef<Record<string, { x: number; y: number }>>({});
@@ -348,6 +391,14 @@ export const TokensLayer = memo(function TokensLayer({
                 size={gridSize * 0.25}
               />
             )}
+            {object.owner && statusEffectsByOwner[object.owner] && (
+              <StatusEffectBadge
+                x={object.transform.x * gridSize + gridSize * 0.15}
+                y={object.transform.y * gridSize + gridSize * 0.15}
+                size={gridSize * 0.3}
+                emoji={statusEffectsByOwner[object.owner]}
+              />
+            )}
             {isFirstSelected && (
               <MultiSelectBadge
                 x={object.transform.x * gridSize + gridSize * 0.85}
@@ -398,6 +449,14 @@ export const TokensLayer = memo(function TokensLayer({
                 x={object.transform.x * gridSize + gridSize / 2}
                 y={object.transform.y * gridSize + gridSize / 2 - gridSize * 0.45}
                 size={gridSize * 0.25}
+              />
+            )}
+            {object.owner && statusEffectsByOwner[object.owner] && (
+              <StatusEffectBadge
+                x={object.transform.x * gridSize + gridSize * 0.15}
+                y={object.transform.y * gridSize + gridSize * 0.15}
+                size={gridSize * 0.3}
+                emoji={statusEffectsByOwner[object.owner]}
               />
             )}
             {isFirstSelected && (
