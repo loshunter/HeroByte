@@ -4,7 +4,7 @@
 // Floating tools panel for Dungeon Masters. Provides access to map setup,
 // NPC management (scaffolding), and session utilities.
 
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Character, PlayerStagingZone, Prop, Player, TokenSize } from "@shared";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignment";
@@ -18,6 +18,7 @@ import { GridControl } from "./map-controls/GridControl";
 import { MapTransformControl } from "./map-controls/MapTransformControl";
 import { StagingZoneControl } from "./map-controls/StagingZoneControl";
 import { GridAlignmentWizard } from "./map-controls/GridAlignmentWizard";
+import { SessionPersistenceControl } from "./session-controls/SessionPersistenceControl";
 
 interface DMMenuProps {
   isDM: boolean;
@@ -134,7 +135,6 @@ export function DMMenu({
   const [passwordInput, setPasswordInput] = useState("");
   const [passwordConfirmInput, setPasswordConfirmInput] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const npcs = useMemo(
     () => characters.filter((character) => character.type === "npc"),
     [characters],
@@ -152,23 +152,6 @@ export function DMMenu({
       setOpen(false);
     }
   }, [isDM]);
-
-  const handleSaveSession = () => {
-    if (!onRequestSaveSession) return;
-    const trimmed = sessionName.trim();
-    onRequestSaveSession(trimmed.length > 0 ? trimmed : "session");
-  };
-
-  const handleLoadSession = (event: ChangeEvent<HTMLInputElement>) => {
-    if (!onRequestLoadSession) return;
-    const file = event.target.files?.[0];
-    if (file) {
-      onRequestLoadSession(file);
-    }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ""; // Reset so same file can be chosen again
-    }
-  };
 
   if (!isDM) {
     return null;
@@ -408,60 +391,14 @@ export function DMMenu({
 
             {activeTab === "session" && (
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                <JRPGPanel variant="simple" title="Session Save/Load">
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <label
-                      className="jrpg-text-small"
-                      style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-                    >
-                      Session Name
-                      <input
-                        type="text"
-                        value={sessionName}
-                        onChange={(event) => setSessionName(event.target.value)}
-                        style={{
-                          width: "100%",
-                          padding: "6px",
-                          background: "#111",
-                          color: "var(--jrpg-white)",
-                          border: "1px solid var(--jrpg-border-gold)",
-                        }}
-                      />
-                    </label>
-
-                    <div style={{ display: "flex", gap: "8px" }}>
-                      <JRPGButton
-                        onClick={handleSaveSession}
-                        variant="success"
-                        disabled={saveDisabled}
-                        title={
-                          saveDisabled
-                            ? "Save is unavailable until the room state is ready."
-                            : undefined
-                        }
-                        style={{ fontSize: "10px", flex: 1 }}
-                      >
-                        Save Game State
-                      </JRPGButton>
-                      <JRPGButton
-                        onClick={() => fileInputRef.current?.click()}
-                        variant="primary"
-                        disabled={loadDisabled}
-                        title={loadDisabled ? "Loading is unavailable at the moment." : undefined}
-                        style={{ fontSize: "10px", flex: 1 }}
-                      >
-                        Load Game State
-                      </JRPGButton>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="application/json"
-                        style={{ display: "none" }}
-                        onChange={handleLoadSession}
-                      />
-                    </div>
-                  </div>
-                </JRPGPanel>
+                <SessionPersistenceControl
+                  sessionName={sessionName}
+                  setSessionName={setSessionName}
+                  onRequestSaveSession={onRequestSaveSession}
+                  onRequestLoadSession={onRequestLoadSession}
+                  saveDisabled={saveDisabled}
+                  loadDisabled={loadDisabled}
+                />
 
                 <JRPGPanel variant="simple" title="Room Security">
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
