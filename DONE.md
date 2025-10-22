@@ -5,6 +5,76 @@
 
 ---
 
+## ✅ DMMenu.tsx Phase 6 Refactoring - COMPLETE (October 21, 2025)
+
+**Goal**: Extract tab view composition components from DMMenu.tsx to achieve final target of <300 LOC.
+
+### Achievement Summary
+
+**Status**: Phase 6 COMPLETE - All 4 tab view components extracted successfully!
+
+- ✅ **DMMenu.tsx: 392 → 284 LOC (-27.6% phase reduction, -108 LOC)**
+- ✅ **Cumulative: 1,588 → 284 LOC (-82.1% total reduction, -1,304 LOC)**
+- ✅ **Phase 6 Extractions: 4/4 complete** (-108 LOC, +191 tests)
+- ✅ **Total Test Suite: 383 characterization tests, 100% passing**
+- ✅ **Completion Date:** October 21, 2025
+- ✅ **Final Commits:** `caba901` (MapTab), `1418c6a` (NPCsTab, PropsTab, SessionTab)
+- ✅ **Branch:** `refactor/dm-menu/stateful-tabs`
+- 📄 **Detailed tracking:** See `/docs/refactoring/DMMENU_PHASE6_COMPLETE.md`
+
+### Phase 6 Completed Work
+
+**Tab View Composition Components Extracted:**
+
+1. **MapTab** (Priority 15)
+   - Component: 163 LOC
+   - Tests: 59 comprehensive tests
+   - Features: Composes 6 map control components (MapBackgroundControl, MapTransformControl, GridControl, GridAlignmentWizard, StagingZoneControl, DrawingControls)
+   - Commit: `caba901`
+   - Reduction: 54 LOC
+
+2. **NPCsTab** (Priority 16)
+   - Component: 94 LOC
+   - Tests: 43 comprehensive tests
+   - Features: NPCEditor list rendering with empty state
+   - Commit: `1418c6a`
+   - Reduction: 18 LOC
+
+3. **PropsTab** (Priority 17)
+   - Component: 94 LOC
+   - Tests: 42 comprehensive tests
+   - Features: PropEditor list rendering with empty state
+   - Commit: `1418c6a`
+   - Reduction: 18 LOC
+
+4. **SessionTab** (Priority 18)
+   - Component: 100 LOC
+   - Tests: 47 comprehensive tests
+   - Features: Composes SessionPersistenceControl, RoomPasswordControl, and Players panel
+   - Commit: `1418c6a`
+   - Reduction: 18 LOC
+
+**Phase 6 Total Impact:**
+
+- LOC Reduction: 108 lines
+- New Tests: 191 comprehensive tests (59+43+42+47)
+- New Directory: `apps/client/src/features/dm/components/tab-views/`
+- Agentic Efficiency: Completed in ~94K tokens (47% of context budget)
+- **FINAL STATE:** DMMenu.tsx is now a clean 284 LOC orchestrator (82.1% reduction from original)
+
+**Refactoring Goals ACHIEVED:**
+
+- ✅ Target: DMMenu.tsx < 300 LOC (achieved: 284 LOC)
+- ✅ Target: >80% reduction (achieved: 82.1%)
+- ✅ 15 focused components extracted across 6 phases
+- ✅ 383 comprehensive tests created
+- ✅ Zero behavior changes
+- ✅ All tests passing
+
+**Next Phase:** Optional Phase 7 - State Hook extraction (useDMMenuState) if further reduction desired
+
+---
+
 ## ✅ DMMenu.tsx Phase 5 Refactoring - COMPLETE (October 21, 2025)
 
 **Goal**: Extract session control components from DMMenu.tsx to reduce complexity and improve modularity.
@@ -41,6 +111,7 @@
    - Reduction: 93 LOC
 
 **Phase 5 Total Impact:**
+
 - LOC Reduction: 156 lines
 - New Tests: 72 comprehensive tests
 - New Directory: `apps/client/src/features/dm/components/session-controls/`
