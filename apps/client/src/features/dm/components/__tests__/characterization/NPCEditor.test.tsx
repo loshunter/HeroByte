@@ -10,204 +10,8 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import React from "react";
 import type { Character } from "@shared";
-
-// Inline NPCEditor component from DMMenu.tsx for characterization testing
-interface NPCEditorProps {
-  npc: Character;
-  onUpdate: (updates: {
-    name: string;
-    hp: number;
-    maxHp: number;
-    portrait?: string;
-    tokenImage?: string;
-  }) => void;
-  onPlace: () => void;
-  onDelete: () => void;
-}
-
-// Import the inline component from DMMenu for testing
-// This will be replaced with the extracted component once refactoring is complete
-const NPCEditor = ({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) => {
-  const [name, setName] = React.useState(npc.name);
-  const [hpInput, setHpInput] = React.useState(String(npc.hp));
-  const [maxHpInput, setMaxHpInput] = React.useState(String(npc.maxHp));
-  const [portrait, setPortrait] = React.useState(npc.portrait ?? "");
-  const [tokenImage, setTokenImage] = React.useState(npc.tokenImage ?? "");
-
-  React.useEffect(() => {
-    setName(npc.name);
-    setHpInput(String(npc.hp));
-    setMaxHpInput(String(npc.maxHp));
-    setPortrait(npc.portrait ?? "");
-    setTokenImage(npc.tokenImage ?? "");
-  }, [npc]);
-
-  const commitUpdate = (
-    overrides?: Partial<{
-      name: string;
-      hp: number;
-      maxHp: number;
-      portrait?: string;
-      tokenImage?: string;
-    }>,
-  ) => {
-    const baseHp = overrides?.hp ?? Number(hpInput);
-    const baseMaxHp = overrides?.maxHp ?? Number(maxHpInput);
-    const parsedHp = Math.max(0, Number.isFinite(baseHp) ? Number(baseHp) : 0);
-    const parsedMax = Math.max(1, Number.isFinite(baseMaxHp) ? Number(baseMaxHp) : 1);
-    const clampedHp = Math.min(parsedMax, parsedHp);
-
-    setHpInput(String(clampedHp));
-    setMaxHpInput(String(parsedMax));
-
-    const nextNameSource = overrides?.name ?? name;
-    const trimmedName = nextNameSource.trim();
-    const nextPortraitSource = overrides?.portrait ?? portrait;
-    const portraitValue = nextPortraitSource.trim();
-    const nextTokenImageSource = overrides?.tokenImage ?? tokenImage;
-    const tokenImageValue = nextTokenImageSource.trim();
-
-    onUpdate({
-      name: trimmedName.length > 0 ? trimmedName : "NPC",
-      hp: clampedHp,
-      maxHp: parsedMax,
-      portrait: portraitValue.length > 0 ? portraitValue : undefined,
-      tokenImage: tokenImageValue.length > 0 ? tokenImageValue : undefined,
-    });
-  };
-
-  const handleNameBlur = () => commitUpdate({ name });
-  const handleHpBlur = () => commitUpdate();
-  const handleMaxHpBlur = () => commitUpdate();
-  const handlePortraitBlur = () => commitUpdate({ portrait });
-  const handleTokenImageBlur = () => commitUpdate({ tokenImage });
-
-  return (
-    <div data-testid="npc-editor" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-        <label>
-          Name
-          <input
-            type="text"
-            data-testid="npc-name-input"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onBlur={handleNameBlur}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleNameBlur();
-            }}
-          />
-        </label>
-      </div>
-
-      <div style={{ display: "flex", gap: "8px" }}>
-        <label style={{ flex: 1 }}>
-          HP
-          <input
-            type="number"
-            data-testid="npc-hp-input"
-            min={0}
-            value={hpInput}
-            onChange={(e) => setHpInput(e.target.value)}
-            onBlur={handleHpBlur}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleHpBlur();
-            }}
-          />
-        </label>
-        <label style={{ flex: 1 }}>
-          Max HP
-          <input
-            type="number"
-            data-testid="npc-maxhp-input"
-            min={1}
-            value={maxHpInput}
-            onChange={(e) => setMaxHpInput(e.target.value)}
-            onBlur={handleMaxHpBlur}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleMaxHpBlur();
-            }}
-          />
-        </label>
-      </div>
-
-      <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-        Portrait URL
-        <input
-          type="text"
-          data-testid="npc-portrait-input"
-          value={portrait}
-          onChange={(e) => setPortrait(e.target.value)}
-          onBlur={handlePortraitBlur}
-        />
-      </label>
-      {portrait && (
-        <img
-          src={portrait}
-          alt={`${npc.name} portrait`}
-          data-testid="npc-portrait-preview"
-          style={{
-            width: "100%",
-            maxHeight: "100px",
-            objectFit: "cover",
-            borderRadius: "4px",
-          }}
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = "none";
-          }}
-        />
-      )}
-
-      <label style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-        Token Image URL
-        <input
-          type="text"
-          data-testid="npc-token-input"
-          value={tokenImage}
-          onChange={(e) => setTokenImage(e.target.value)}
-          onBlur={handleTokenImageBlur}
-        />
-      </label>
-      {tokenImage && (
-        <img
-          src={tokenImage}
-          alt={`${npc.name} token preview`}
-          data-testid="npc-token-preview"
-          style={{
-            width: "48px",
-            height: "48px",
-            objectFit: "cover",
-            borderRadius: "4px",
-            alignSelf: "flex-start",
-          }}
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = "none";
-          }}
-        />
-      )}
-
-      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-        <button
-          data-testid="npc-place-button"
-          onClick={() => {
-            commitUpdate();
-            onPlace();
-          }}
-          style={{ flex: 1 }}
-        >
-          Place on Map
-        </button>
-        <button data-testid="npc-delete-button" onClick={onDelete} style={{ flex: 1 }}>
-          Delete
-        </button>
-      </div>
-    </div>
-  );
-};
-
-import React from "react";
+import { NPCEditor } from "../../NPCEditor";
 
 describe("NPCEditor - Characterization Tests", () => {
   const mockNPC: Character = {
@@ -232,13 +36,13 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      expect(screen.getByTestId("npc-name-input")).toHaveValue("Goblin");
-      expect(screen.getByTestId("npc-hp-input")).toHaveValue(10);
-      expect(screen.getByTestId("npc-maxhp-input")).toHaveValue(15);
-      expect(screen.getByTestId("npc-portrait-input")).toHaveValue(
+      expect(screen.getByLabelText("Name")).toHaveValue("Goblin");
+      expect(screen.getByLabelText("HP")).toHaveValue(10);
+      expect(screen.getByLabelText("Max HP")).toHaveValue(15);
+      expect(screen.getByLabelText("Portrait URL")).toHaveValue(
         "https://example.com/goblin-portrait.jpg",
       );
-      expect(screen.getByTestId("npc-token-input")).toHaveValue(
+      expect(screen.getByLabelText("Token Image URL")).toHaveValue(
         "https://example.com/goblin-token.png",
       );
     });
@@ -247,8 +51,8 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const portraitPreview = screen.getByTestId("npc-portrait-preview");
-      const tokenPreview = screen.getByTestId("npc-token-preview");
+      const portraitPreview = screen.getByAltText("Goblin portrait");
+      const tokenPreview = screen.getByAltText("Goblin token preview");
 
       expect(portraitPreview).toBeInTheDocument();
       expect(portraitPreview).toHaveAttribute("src", "https://example.com/goblin-portrait.jpg");
@@ -258,11 +62,15 @@ describe("NPCEditor - Characterization Tests", () => {
 
     it("should not show previews when URLs are empty", () => {
       const handlers = createMockHandlers();
-      const npcWithoutImages: Character = { ...mockNPC, portrait: undefined, tokenImage: undefined };
+      const npcWithoutImages: Character = {
+        ...mockNPC,
+        portrait: undefined,
+        tokenImage: undefined,
+      };
       render(<NPCEditor npc={npcWithoutImages} {...handlers} />);
 
-      expect(screen.queryByTestId("npc-portrait-preview")).not.toBeInTheDocument();
-      expect(screen.queryByTestId("npc-token-preview")).not.toBeInTheDocument();
+      expect(screen.queryByAltText(/portrait/i)).not.toBeInTheDocument();
+      expect(screen.queryByAltText(/token preview/i)).not.toBeInTheDocument();
     });
   });
 
@@ -271,7 +79,7 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const nameInput = screen.getByTestId("npc-name-input");
+      const nameInput = screen.getByLabelText("Name");
       fireEvent.change(nameInput, { target: { value: "Orc Warrior" } });
 
       expect(nameInput).toHaveValue("Orc Warrior");
@@ -281,7 +89,7 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const nameInput = screen.getByTestId("npc-name-input");
+      const nameInput = screen.getByLabelText("Name");
       fireEvent.change(nameInput, { target: { value: "Orc Warrior" } });
       fireEvent.blur(nameInput);
 
@@ -298,7 +106,7 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const nameInput = screen.getByTestId("npc-name-input");
+      const nameInput = screen.getByLabelText("Name");
       fireEvent.change(nameInput, { target: { value: "Orc Warrior" } });
       fireEvent.keyDown(nameInput, { key: "Enter", code: "Enter" });
 
@@ -315,7 +123,7 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const nameInput = screen.getByTestId("npc-name-input");
+      const nameInput = screen.getByLabelText("Name");
       fireEvent.change(nameInput, { target: { value: "   " } });
       fireEvent.blur(nameInput);
 
@@ -332,7 +140,7 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const nameInput = screen.getByTestId("npc-name-input");
+      const nameInput = screen.getByLabelText("Name");
       fireEvent.change(nameInput, { target: { value: "  Orc Warrior  " } });
       fireEvent.blur(nameInput);
 
@@ -351,7 +159,7 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const hpInput = screen.getByTestId("npc-hp-input");
+      const hpInput = screen.getByLabelText("HP");
       fireEvent.change(hpInput, { target: { value: "12" } });
 
       expect(hpInput).toHaveValue(12);
@@ -361,7 +169,7 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const hpInput = screen.getByTestId("npc-hp-input");
+      const hpInput = screen.getByLabelText("HP");
       fireEvent.change(hpInput, { target: { value: "12" } });
       fireEvent.blur(hpInput);
 
@@ -378,7 +186,7 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const hpInput = screen.getByTestId("npc-hp-input");
+      const hpInput = screen.getByLabelText("HP");
       fireEvent.change(hpInput, { target: { value: "-5" } });
       fireEvent.blur(hpInput);
 
@@ -396,7 +204,7 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const hpInput = screen.getByTestId("npc-hp-input");
+      const hpInput = screen.getByLabelText("HP");
       fireEvent.change(hpInput, { target: { value: "20" } });
       fireEvent.blur(hpInput);
 
@@ -414,7 +222,7 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const hpInput = screen.getByTestId("npc-hp-input");
+      const hpInput = screen.getByLabelText("HP");
       fireEvent.change(hpInput, { target: { value: "abc" } });
       fireEvent.blur(hpInput);
 
@@ -433,7 +241,7 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const maxHpInput = screen.getByTestId("npc-maxhp-input");
+      const maxHpInput = screen.getByLabelText("Max HP");
       fireEvent.change(maxHpInput, { target: { value: "20" } });
 
       expect(maxHpInput).toHaveValue(20);
@@ -443,7 +251,7 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const maxHpInput = screen.getByTestId("npc-maxhp-input");
+      const maxHpInput = screen.getByLabelText("Max HP");
       fireEvent.change(maxHpInput, { target: { value: "20" } });
       fireEvent.blur(maxHpInput);
 
@@ -460,7 +268,7 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const maxHpInput = screen.getByTestId("npc-maxhp-input");
+      const maxHpInput = screen.getByLabelText("Max HP");
       fireEvent.change(maxHpInput, { target: { value: "0" } });
       fireEvent.blur(maxHpInput);
 
@@ -478,7 +286,7 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const maxHpInput = screen.getByTestId("npc-maxhp-input");
+      const maxHpInput = screen.getByLabelText("Max HP");
       fireEvent.change(maxHpInput, { target: { value: "5" } });
       fireEvent.blur(maxHpInput);
 
@@ -489,7 +297,7 @@ describe("NPCEditor - Characterization Tests", () => {
         portrait: "https://example.com/goblin-portrait.jpg",
         tokenImage: "https://example.com/goblin-token.png",
       });
-      expect(screen.getByTestId("npc-hp-input")).toHaveValue(5);
+      expect(screen.getByLabelText("HP")).toHaveValue(5);
     });
   });
 
@@ -498,8 +306,10 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const portraitInput = screen.getByTestId("npc-portrait-input");
-      fireEvent.change(portraitInput, { target: { value: "https://example.com/new-portrait.jpg" } });
+      const portraitInput = screen.getByLabelText("Portrait URL");
+      fireEvent.change(portraitInput, {
+        target: { value: "https://example.com/new-portrait.jpg" },
+      });
 
       expect(portraitInput).toHaveValue("https://example.com/new-portrait.jpg");
     });
@@ -508,8 +318,10 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const portraitInput = screen.getByTestId("npc-portrait-input");
-      fireEvent.change(portraitInput, { target: { value: "https://example.com/new-portrait.jpg" } });
+      const portraitInput = screen.getByLabelText("Portrait URL");
+      fireEvent.change(portraitInput, {
+        target: { value: "https://example.com/new-portrait.jpg" },
+      });
       fireEvent.blur(portraitInput);
 
       expect(handlers.onUpdate).toHaveBeenCalledWith({
@@ -525,7 +337,7 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const portraitInput = screen.getByTestId("npc-portrait-input");
+      const portraitInput = screen.getByLabelText("Portrait URL");
       fireEvent.change(portraitInput, { target: { value: "   " } });
       fireEvent.blur(portraitInput);
 
@@ -542,7 +354,7 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const preview = screen.getByTestId("npc-portrait-preview");
+      const preview = screen.getByAltText("Goblin portrait");
       expect(preview).toBeInTheDocument();
       expect(preview).toHaveStyle({ maxHeight: "100px" });
     });
@@ -553,7 +365,7 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const tokenInput = screen.getByTestId("npc-token-input");
+      const tokenInput = screen.getByLabelText("Token Image URL");
       fireEvent.change(tokenInput, { target: { value: "https://example.com/new-token.png" } });
 
       expect(tokenInput).toHaveValue("https://example.com/new-token.png");
@@ -563,7 +375,7 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const tokenInput = screen.getByTestId("npc-token-input");
+      const tokenInput = screen.getByLabelText("Token Image URL");
       fireEvent.change(tokenInput, { target: { value: "https://example.com/new-token.png" } });
       fireEvent.blur(tokenInput);
 
@@ -580,7 +392,7 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const tokenInput = screen.getByTestId("npc-token-input");
+      const tokenInput = screen.getByLabelText("Token Image URL");
       fireEvent.change(tokenInput, { target: { value: "   " } });
       fireEvent.blur(tokenInput);
 
@@ -597,7 +409,7 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const preview = screen.getByTestId("npc-token-preview");
+      const preview = screen.getByAltText("Goblin token preview");
       expect(preview).toBeInTheDocument();
       expect(preview).toHaveStyle({ width: "48px", height: "48px" });
     });
@@ -608,7 +420,7 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const placeButton = screen.getByTestId("npc-place-button");
+      const placeButton = screen.getByRole("button", { name: /place on map/i });
       fireEvent.click(placeButton);
 
       expect(handlers.onPlace).toHaveBeenCalledTimes(1);
@@ -618,10 +430,10 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const nameInput = screen.getByTestId("npc-name-input");
+      const nameInput = screen.getByLabelText("Name");
       fireEvent.change(nameInput, { target: { value: "Dragon" } });
 
-      const placeButton = screen.getByTestId("npc-place-button");
+      const placeButton = screen.getByRole("button", { name: /place on map/i });
       fireEvent.click(placeButton);
 
       expect(handlers.onUpdate).toHaveBeenCalledWith({
@@ -638,7 +450,7 @@ describe("NPCEditor - Characterization Tests", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
-      const deleteButton = screen.getByTestId("npc-delete-button");
+      const deleteButton = screen.getByRole("button", { name: /delete/i });
       fireEvent.click(deleteButton);
 
       expect(handlers.onDelete).toHaveBeenCalledTimes(1);
@@ -660,9 +472,9 @@ describe("NPCEditor - Characterization Tests", () => {
       rerender(<NPCEditor npc={updatedNPC} {...handlers} />);
 
       await waitFor(() => {
-        expect(screen.getByTestId("npc-name-input")).toHaveValue("Orc");
-        expect(screen.getByTestId("npc-hp-input")).toHaveValue(20);
-        expect(screen.getByTestId("npc-maxhp-input")).toHaveValue(25);
+        expect(screen.getByLabelText("Name")).toHaveValue("Orc");
+        expect(screen.getByLabelText("HP")).toHaveValue(20);
+        expect(screen.getByLabelText("Max HP")).toHaveValue(25);
       });
     });
   });
