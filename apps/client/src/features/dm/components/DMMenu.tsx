@@ -37,30 +37,20 @@ interface DMMenuProps {
   onRequestSaveSession?: (sessionName: string) => void;
   onRequestLoadSession?: (file: File) => void;
   onCreateNPC: () => void;
-  onUpdateNPC: (
-    id: string,
-    updates: { name: string; hp: number; maxHp: number; portrait?: string; tokenImage?: string },
-  ) => void;
+  onUpdateNPC: (id: string, updates: Partial<Character>) => void;
   onDeleteNPC: (id: string) => void;
   onPlaceNPCToken: (id: string) => void;
   props: Prop[];
   players: Player[];
   onCreateProp: () => void;
-  onUpdateProp: (
-    id: string,
-    updates: { label: string; imageUrl: string; owner: string | null; size: TokenSize },
-  ) => void;
+  onUpdateProp: (id: string, updates: Partial<Prop>) => void;
   onDeleteProp: (id: string) => void;
   mapLocked?: boolean;
   onMapLockToggle?: () => void;
   mapTransform?: { x: number; y: number; scaleX: number; scaleY: number; rotation: number };
-  onMapTransformChange?: (transform: {
-    x: number;
-    y: number;
-    scaleX: number;
-    scaleY: number;
-    rotation: number;
-  }) => void;
+  onMapTransformChange?: (
+    transform: Partial<{ x: number; y: number; scaleX: number; scaleY: number; rotation: number }>,
+  ) => void;
   alignmentModeActive: boolean;
   alignmentPoints: AlignmentPoint[];
   alignmentSuggestion: AlignmentSuggestion | null;
