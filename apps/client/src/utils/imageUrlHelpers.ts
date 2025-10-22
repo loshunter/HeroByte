@@ -21,7 +21,7 @@ export async function convertImgurUrl(url: string): Promise<string | null> {
     const trimmed = url.trim();
 
     // Already a direct image URL - return as-is
-    if (trimmed.includes('i.imgur.com/')) {
+    if (trimmed.includes("i.imgur.com/")) {
       return trimmed;
     }
 
@@ -29,18 +29,18 @@ export async function convertImgurUrl(url: string): Promise<string | null> {
     const urlObj = new URL(trimmed);
 
     // Not an Imgur URL - return null to indicate no conversion needed
-    if (!urlObj.hostname.includes('imgur.com')) {
+    if (!urlObj.hostname.includes("imgur.com")) {
       return null;
     }
 
     // Extract the ID from various Imgur URL formats
-    const pathParts = urlObj.pathname.split('/').filter(Boolean);
+    const pathParts = urlObj.pathname.split("/").filter(Boolean);
 
     // Album or gallery URL: /a/abc123 or /gallery/abc123
-    if (pathParts[0] === 'a' || pathParts[0] === 'gallery') {
+    if (pathParts[0] === "a" || pathParts[0] === "gallery") {
       const albumId = pathParts[1];
       if (!albumId) {
-        console.warn('[imageUrlHelpers] Could not extract album ID from URL:', url);
+        console.warn("[imageUrlHelpers] Could not extract album ID from URL:", url);
         return null;
       }
 
@@ -48,12 +48,12 @@ export async function convertImgurUrl(url: string): Promise<string | null> {
       try {
         const response = await fetch(`https://api.imgur.com/3/album/${albumId}`, {
           headers: {
-            'Authorization': 'Client-ID 546c25a59c58ad7' // Public client ID for anonymous access
-          }
+            Authorization: "Client-ID 546c25a59c58ad7", // Public client ID for anonymous access
+          },
         });
 
         if (!response.ok) {
-          console.warn('[imageUrlHelpers] Failed to fetch Imgur album data:', response.status);
+          console.warn("[imageUrlHelpers] Failed to fetch Imgur album data:", response.status);
           return null;
         }
 
@@ -61,14 +61,14 @@ export async function convertImgurUrl(url: string): Promise<string | null> {
         const firstImage = data?.data?.images?.[0];
 
         if (!firstImage?.link) {
-          console.warn('[imageUrlHelpers] No images found in Imgur album');
+          console.warn("[imageUrlHelpers] No images found in Imgur album");
           return null;
         }
 
-        console.log('[imageUrlHelpers] Converted Imgur album to direct URL:', firstImage.link);
+        console.log("[imageUrlHelpers] Converted Imgur album to direct URL:", firstImage.link);
         return firstImage.link;
       } catch (error) {
-        console.error('[imageUrlHelpers] Error fetching Imgur album:', error);
+        console.error("[imageUrlHelpers] Error fetching Imgur album:", error);
         return null;
       }
     }
@@ -76,39 +76,38 @@ export async function convertImgurUrl(url: string): Promise<string | null> {
     // Single image URL: /abc123
     const imageId = pathParts[0];
     if (!imageId) {
-      console.warn('[imageUrlHelpers] Could not extract image ID from URL:', url);
+      console.warn("[imageUrlHelpers] Could not extract image ID from URL:", url);
       return null;
     }
 
     // Try common image extensions
-    const extensions = ['jpg', 'png', 'jpeg', 'gif', 'webp'];
+    const extensions = ["jpg", "png", "jpeg", "gif", "webp"];
 
     // First, try to fetch image metadata from API
     try {
       const response = await fetch(`https://api.imgur.com/3/image/${imageId}`, {
         headers: {
-          'Authorization': 'Client-ID 546c25a59c58ad7' // Public client ID
-        }
+          Authorization: "Client-ID 546c25a59c58ad7", // Public client ID
+        },
       });
 
       if (response.ok) {
         const data = await response.json();
         if (data?.data?.link) {
-          console.log('[imageUrlHelpers] Converted Imgur image to direct URL:', data.data.link);
+          console.log("[imageUrlHelpers] Converted Imgur image to direct URL:", data.data.link);
           return data.data.link;
         }
       }
     } catch (error) {
-      console.warn('[imageUrlHelpers] Could not fetch image metadata, trying extensions:', error);
+      console.warn("[imageUrlHelpers] Could not fetch image metadata, trying extensions:", error);
     }
 
     // Fallback: try .jpg as most common format
     const directUrl = `https://i.imgur.com/${imageId}.jpg`;
-    console.log('[imageUrlHelpers] Using fallback direct URL:', directUrl);
+    console.log("[imageUrlHelpers] Using fallback direct URL:", directUrl);
     return directUrl;
-
   } catch (error) {
-    console.error('[imageUrlHelpers] Error converting Imgur URL:', error);
+    console.error("[imageUrlHelpers] Error converting Imgur URL:", error);
     return null;
   }
 }
@@ -131,7 +130,7 @@ export async function normalizeImageUrl(url: string): Promise<string> {
   }
 
   // Try Imgur conversion
-  if (trimmed.includes('imgur.com')) {
+  if (trimmed.includes("imgur.com")) {
     const converted = await convertImgurUrl(trimmed);
     if (converted) {
       return converted;
