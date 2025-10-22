@@ -10,7 +10,6 @@ import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignment";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import type { Camera } from "../../../hooks/useCamera";
-import { CollapsibleSection } from "../../../components/ui/CollapsibleSection";
 import { NPCEditor } from "./NPCEditor";
 import { PropEditor } from "./PropEditor";
 import { MapBackgroundControl } from "./map-controls/MapBackgroundControl";
@@ -18,6 +17,7 @@ import { DrawingControls } from "./map-controls/DrawingControls";
 import { GridControl } from "./map-controls/GridControl";
 import { MapTransformControl } from "./map-controls/MapTransformControl";
 import { StagingZoneControl } from "./map-controls/StagingZoneControl";
+import { GridAlignmentWizard } from "./map-controls/GridAlignmentWizard";
 
 interface DMMenuProps {
   isDM: boolean;
@@ -290,92 +290,18 @@ export function DMMenu({
                 />
 
                 {/* Step 4: Align Grid to Map (optional) */}
-                <CollapsibleSection isCollapsed={gridLocked}>
-                  <JRPGPanel variant="simple" title="Grid Alignment Wizard">
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                      <span className="jrpg-text-small" style={{ lineHeight: 1.4 }}>
-                        {alignmentModeActive
-                          ? "Alignment mode active — zoom in and click two opposite corners of a single map square."
-                          : "Capture two opposite corners of a map square to auto-match the map to the table grid."}
-                      </span>
-
-                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                        <JRPGButton
-                          variant={alignmentModeActive ? "primary" : "default"}
-                          onClick={onAlignmentStart}
-                          style={{ fontSize: "10px" }}
-                          disabled={alignmentModeActive}
-                        >
-                          Start Alignment
-                        </JRPGButton>
-                        <JRPGButton
-                          variant="default"
-                          onClick={onAlignmentReset}
-                          style={{ fontSize: "10px" }}
-                          disabled={alignmentPoints.length === 0}
-                        >
-                          Reset Points
-                        </JRPGButton>
-                        {alignmentModeActive && (
-                          <JRPGButton
-                            variant="danger"
-                            onClick={onAlignmentCancel}
-                            style={{ fontSize: "10px" }}
-                          >
-                            Cancel
-                          </JRPGButton>
-                        )}
-                      </div>
-
-                      <span className="jrpg-text-small" style={{ opacity: 0.8 }}>
-                        Captured Points: {Math.min(alignmentPoints.length, 2)} / 2
-                      </span>
-
-                      {alignmentSuggestion && (
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                            gap: "6px",
-                            fontSize: "10px",
-                            background: "rgba(0, 0, 0, 0.2)",
-                            padding: "8px",
-                            borderRadius: "4px",
-                          }}
-                        >
-                          <span>Scale</span>
-                          <span>{alignmentSuggestion.scale.toFixed(4)}×</span>
-                          <span>Rotation</span>
-                          <span>{alignmentSuggestion.rotation.toFixed(2)}°</span>
-                          <span>Offset X</span>
-                          <span>{alignmentSuggestion.transform.x.toFixed(1)}</span>
-                          <span>Offset Y</span>
-                          <span>{alignmentSuggestion.transform.y.toFixed(1)}</span>
-                          <span>Residual</span>
-                          <span>{alignmentSuggestion.error.toFixed(2)} px</span>
-                        </div>
-                      )}
-
-                      {alignmentError && (
-                        <span style={{ color: "#f87171", fontSize: "10px" }}>{alignmentError}</span>
-                      )}
-
-                      <JRPGButton
-                        variant="success"
-                        onClick={onAlignmentApply}
-                        style={{ fontSize: "10px" }}
-                        disabled={!alignmentSuggestion || !!alignmentError || mapLocked}
-                      >
-                        Apply Alignment
-                      </JRPGButton>
-                      {mapLocked && (
-                        <span style={{ color: "#facc15", fontSize: "10px" }}>
-                          Unlock the map before applying alignment.
-                        </span>
-                      )}
-                    </div>
-                  </JRPGPanel>
-                </CollapsibleSection>
+                <GridAlignmentWizard
+                  alignmentModeActive={alignmentModeActive}
+                  alignmentPoints={alignmentPoints}
+                  alignmentSuggestion={alignmentSuggestion}
+                  alignmentError={alignmentError}
+                  gridLocked={gridLocked}
+                  mapLocked={mapLocked}
+                  onAlignmentStart={onAlignmentStart}
+                  onAlignmentReset={onAlignmentReset}
+                  onAlignmentCancel={onAlignmentCancel}
+                  onAlignmentApply={onAlignmentApply}
+                />
 
                 {/* Step 5: Define Player Spawn Area */}
                 <StagingZoneControl
