@@ -16,10 +16,9 @@ describe("useGridConfig", () => {
   });
 
   it("should sync the grid size when the gridSize prop changes", () => {
-    const { result, rerender } = renderHook(
-      ({ gridSize }) => useGridConfig(gridSize),
-      { initialProps: { gridSize: 25 } },
-    );
+    const { result, rerender } = renderHook(({ gridSize }) => useGridConfig(gridSize), {
+      initialProps: { gridSize: 25 },
+    });
 
     expect(result.current.size).toBe(25);
 
@@ -29,10 +28,9 @@ describe("useGridConfig", () => {
   });
 
   it("should preserve static grid properties when the grid size changes", () => {
-    const { result, rerender } = renderHook(
-      ({ gridSize }) => useGridConfig(gridSize),
-      { initialProps: { gridSize: 10 } },
-    );
+    const { result, rerender } = renderHook(({ gridSize }) => useGridConfig(gridSize), {
+      initialProps: { gridSize: 10 },
+    });
 
     rerender({ gridSize: 32 });
 

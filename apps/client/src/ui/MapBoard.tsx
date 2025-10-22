@@ -15,15 +15,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Stage, Layer, Group, Circle, Line, Rect, Text } from "react-konva";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import type { SceneObject } from "@shared";
 import { useCamera } from "../hooks/useCamera.js";
 import { usePointerTool } from "../hooks/usePointerTool.js";
 import { useDrawingTool } from "../hooks/useDrawingTool.js";
 import { useDrawingSelection } from "../hooks/useDrawingSelection.js";
-import { useSceneObjects } from "../hooks/useSceneObjects.js";
 import { useElementSize } from "../hooks/useElementSize.js";
 import { useGridConfig } from "../hooks/useGridConfig.js";
 import { useCursorStyle } from "../hooks/useCursorStyle.js";
+import { useSceneObjectsData } from "../hooks/useSceneObjectsData.js";
 import {
   GridLayer,
   MapImageLayer,
@@ -93,54 +92,8 @@ export default function MapBoard({
   const { ref, w, h } = useElementSize<HTMLDivElement>();
   const stageRef = useRef<Konva.Stage | null>(null);
 
-  const sceneObjects = useSceneObjects(snapshot);
-  const mapObject = useMemo(
-    () => sceneObjects.find((object) => object.type === "map"),
-    [sceneObjects],
-  );
-  const drawingObjects = useMemo(
-    () =>
-      sceneObjects.filter(
-        (object): object is SceneObject & { type: "drawing" } => object.type === "drawing",
-      ),
-    [sceneObjects],
-  );
-
-  const stagingZoneObject = useMemo(
-    () =>
-      sceneObjects.find(
-        (object): object is SceneObject & { type: "staging-zone" } =>
-          object.type === "staging-zone",
-      ) ?? null,
-    [sceneObjects],
-  );
-
-  const stagingZoneDimensions = useMemo(() => {
-    if (!stagingZoneObject) {
-      console.log("[MapBoard] No staging zone object");
-      return null;
-    }
-
-    console.log("[MapBoard] Staging zone:", {
-      id: stagingZoneObject.id,
-      x: stagingZoneObject.transform.x,
-      y: stagingZoneObject.transform.y,
-      scaleX: stagingZoneObject.transform.scaleX,
-      scaleY: stagingZoneObject.transform.scaleY,
-      rotation: stagingZoneObject.transform.rotation,
-      width: stagingZoneObject.data.width,
-      height: stagingZoneObject.data.height,
-    });
-
-    return {
-      centerX: (stagingZoneObject.transform.x + 0.5) * gridSize,
-      centerY: (stagingZoneObject.transform.y + 0.5) * gridSize,
-      widthPx: stagingZoneObject.data.width * gridSize,
-      heightPx: stagingZoneObject.data.height * gridSize,
-      rotation: stagingZoneObject.transform.rotation,
-      label: stagingZoneObject.data.label ?? "Player Staging Zone",
-    };
-  }, [gridSize, stagingZoneObject]);
+  const { sceneObjects, mapObject, drawingObjects, stagingZoneObject, stagingZoneDimensions } =
+    useSceneObjectsData(snapshot, gridSize);
 
   // Transform gizmo state
   const selectedObjectNodeRef = useRef<Konva.Node | null>(null);
