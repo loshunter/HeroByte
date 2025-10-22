@@ -43,7 +43,7 @@ interface DMMenuProps {
   props: Prop[];
   players: Player[];
   onCreateProp: () => void;
-  onUpdateProp: (id: string, updates: Partial<Prop>) => void;
+  onUpdateProp: (id: string, updates: Pick<Prop, "label" | "imageUrl" | "owner" | "size">) => void;
   onDeleteProp: (id: string) => void;
   mapLocked?: boolean;
   onMapLockToggle?: () => void;

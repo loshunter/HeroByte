@@ -20,12 +20,14 @@ import type {
   TokenSize,
   PlayerState,
   PlayerStagingZone,
+  Character,
 } from "@shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../types/alignment";
 import type { RollResult } from "../../components/dice/types";
 import type { UseDrawingStateManagerReturn } from "../../hooks/useDrawingStateManager";
 import type { ToolMode } from "../../components/layout/Header";
 import type { CameraCommand } from "../../ui/MapBoard";
+import type { PropUpdate } from "../../hooks/usePropManagement";
 
 // ============================================================================
 // Type Aliases
@@ -318,10 +320,7 @@ export interface MainLayoutProps {
   /** Handler to create NPC */
   handleCreateNPC: () => void;
   /** Handler to update NPC */
-  handleUpdateNPC: (
-    id: string,
-    updates: { name?: string; hp?: number; maxHp?: number; portrait?: string; tokenImage?: string },
-  ) => void;
+  handleUpdateNPC: (id: string, updates: Partial<Character>) => void;
   /** Handler to delete NPC */
   handleDeleteNPC: (id: string) => void;
   /** Handler to place NPC token */
@@ -335,10 +334,7 @@ export interface MainLayoutProps {
   /** Handler to create prop */
   handleCreateProp: () => void;
   /** Handler to update prop */
-  handleUpdateProp: (
-    id: string,
-    updates: { label: string; imageUrl: string; owner: string | null; size: TokenSize },
-  ) => void;
+  handleUpdateProp: (id: string, updates: PropUpdate) => void;
   /** Handler to delete prop */
   handleDeleteProp: (id: string) => void;
 

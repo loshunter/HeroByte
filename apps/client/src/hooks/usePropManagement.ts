@@ -48,9 +48,9 @@ export interface UsePropManagementOptions {
 
 /**
  * Prop update fields. All fields are required as the server
- * expects a complete update.
+ * expects a complete update of prop properties.
  */
-export interface PropUpdateFields {
+export interface PropUpdate {
   /** Display label for the prop */
   label: string;
 
@@ -78,9 +78,9 @@ export interface UsePropManagementReturn {
    * Update an existing prop's properties.
    *
    * @param id - Unique identifier of the prop to update
-   * @param updates - New property values
+   * @param updates - New property values (all fields required)
    */
-  handleUpdateProp: (id: string, updates: PropUpdateFields) => void;
+  handleUpdateProp: (id: string, updates: PropUpdate) => void;
 
   /**
    * Delete a prop from the scene.
@@ -145,7 +145,7 @@ export function usePropManagement({
    * Spreads update fields into the message for a complete update.
    */
   const handleUpdateProp = useCallback(
-    (id: string, updates: PropUpdateFields) => {
+    (id: string, updates: PropUpdate) => {
       sendMessage({
         t: "update-prop",
         id,

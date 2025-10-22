@@ -11,9 +11,10 @@
  */
 
 import React from "react";
-import type { RoomSnapshot, TokenSize, PlayerStagingZone } from "@shared";
+import type { RoomSnapshot, PlayerStagingZone, Character } from "@shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import type { RollResult } from "../components/dice/types";
+import type { PropUpdate } from "../hooks/usePropManagement";
 import { DMMenu } from "../features/dm";
 import { ContextMenu } from "../components/ui/ContextMenu";
 import { VisualEffects } from "../components/effects/VisualEffects";
@@ -30,21 +31,6 @@ type Transform = { x: number; y: number; scaleX: number; scaleY: number; rotatio
 
 export interface RollLogEntry extends RollResult {
   playerName: string;
-}
-
-export interface NPCUpdate {
-  name?: string;
-  hp?: number;
-  maxHp?: number;
-  portrait?: string;
-  tokenImage?: string;
-}
-
-export interface PropUpdate {
-  label: string;
-  imageUrl: string;
-  owner: string | null;
-  size: TokenSize;
 }
 
 /**
@@ -96,7 +82,7 @@ export interface FloatingPanelsLayoutProps {
   onRequestLoadSession: ((file: File) => void) | undefined;
   // NPC Management (4)
   onCreateNPC: () => void;
-  onUpdateNPC: (id: string, updates: NPCUpdate) => void;
+  onUpdateNPC: (id: string, updates: Partial<Character>) => void;
   onDeleteNPC: (id: string) => void;
   onPlaceNPCToken: (npcId: string) => void;
   // Prop Management (3)
@@ -238,9 +224,13 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
             if (mapSceneObject) {
               transformSceneObject({
                 id: mapSceneObject.id,
-                position: { x: transform.x, y: transform.y },
-                scale: { x: transform.scaleX, y: transform.scaleY },
-                rotation: transform.rotation,
+                ...(transform.x !== undefined && transform.y !== undefined
+                  ? { position: { x: transform.x, y: transform.y } }
+                  : {}),
+                ...(transform.scaleX !== undefined && transform.scaleY !== undefined
+                  ? { scale: { x: transform.scaleX, y: transform.scaleY } }
+                  : {}),
+                ...(transform.rotation !== undefined ? { rotation: transform.rotation } : {}),
               });
             }
           }}
