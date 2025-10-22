@@ -15,13 +15,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Stage, Layer, Group, Circle, Line, Rect, Text } from "react-konva";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import type { RoomSnapshot, ClientMessage, SceneObject } from "@shared";
-import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
-import { useCamera, type Camera } from "../hooks/useCamera.js";
+import type { SceneObject } from "@shared";
+import { useCamera } from "../hooks/useCamera.js";
 import { usePointerTool } from "../hooks/usePointerTool.js";
 import { useDrawingTool } from "../hooks/useDrawingTool.js";
 import { useDrawingSelection } from "../hooks/useDrawingSelection.js";
 import { useSceneObjects } from "../hooks/useSceneObjects.js";
+import { useElementSize } from "../hooks/useElementSize.js";
 import {
   GridLayer,
   MapImageLayer,
@@ -33,97 +33,15 @@ import {
   PropsLayer,
 } from "../features/map/components";
 import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
+import { worldToMapLocal } from "../utils/coordinateTransforms";
+import type { CameraCommand, MapBoardProps, SelectionRequestOptions } from "./MapBoard.types";
 
-export type CameraCommand = { type: "focus-token"; tokenId: string } | { type: "reset" };
-
-// ----------------------------------------------------------------------------
-// HOOKS
-// ----------------------------------------------------------------------------
-
-/**
- * Hook to track the size of a DOM element
- * Updates whenever the element is resized
- */
-function useElementSize<T extends HTMLElement>() {
-  const ref = useRef<T | null>(null);
-  const [size, setSize] = useState({ w: 800, h: 600 });
-
-  useEffect(() => {
-    if (!ref.current) return;
-    const obs = new ResizeObserver(([entry]) => {
-      const cr = entry.contentRect;
-      setSize({ w: cr.width, h: cr.height });
-    });
-    obs.observe(ref.current);
-    return () => obs.disconnect();
-  }, []);
-
-  return { ref, ...size };
-}
-
-function worldToMapLocal(
-  world: { x: number; y: number },
-  transform: SceneObject["transform"],
-): { x: number; y: number } {
-  const { x, y, scaleX, scaleY, rotation } = transform;
-  const rad = (rotation * Math.PI) / 180;
-  const cos = Math.cos(rad);
-  const sin = Math.sin(rad);
-
-  const dx = world.x - x;
-  const dy = world.y - y;
-
-  const localX = (cos * dx + sin * dy) / (Math.abs(scaleX) < 1e-6 ? 1 : scaleX);
-  const localY = (-sin * dx + cos * dy) / (Math.abs(scaleY) < 1e-6 ? 1 : scaleY);
-
-  return { x: localX, y: localY };
-}
+// Re-export types for backward compatibility
+export type { CameraCommand, MapBoardProps, SelectionRequestOptions };
 
 // ----------------------------------------------------------------------------
 // MAIN COMPONENT
 // ----------------------------------------------------------------------------
-
-type SelectionRequestOptions = {
-  mode?: "replace" | "append" | "toggle" | "subtract";
-};
-
-interface MapBoardProps {
-  snapshot: RoomSnapshot | null; // Current room state
-  sendMessage: (msg: ClientMessage) => void; // Function to send messages to server
-  uid: string; // Current player's UID
-  gridSize: number; // Synchronized grid size
-  snapToGrid: boolean; // Whether to snap tokens to grid
-  pointerMode: boolean; // Pointer tool active
-  measureMode: boolean; // Measure tool active
-  drawMode: boolean; // Draw tool active
-  transformMode: boolean; // Transform tool active (gizmo mode)
-  selectMode: boolean; // Selection tool active
-  isDM: boolean; // Whether the current user can manage all objects
-  alignmentMode: boolean; // Alignment tool active
-  alignmentPoints?: AlignmentPoint[]; // Captured alignment points
-  alignmentSuggestion?: AlignmentSuggestion | null; // Preview transform for alignment
-  onAlignmentPointCapture?: (point: AlignmentPoint) => void;
-  drawTool: "freehand" | "line" | "rect" | "circle" | "eraser"; // Active drawing tool
-  drawColor: string; // Drawing color
-  drawWidth: number; // Drawing brush size
-  drawOpacity: number; // Drawing opacity (0-1)
-  drawFilled: boolean; // Whether shapes are filled
-  onRecolorToken: (sceneId: string, owner?: string | null) => void;
-  onTransformObject: (input: {
-    id: string;
-    position?: { x: number; y: number };
-    scale?: { x: number; y: number };
-    rotation?: number;
-  }) => void;
-  onDrawingComplete?: (drawingId: string) => void; // Called when a drawing is completed
-  cameraCommand: CameraCommand | null;
-  onCameraCommandHandled: () => void;
-  selectedObjectId?: string | null; // Currently selected object for transform gizmo
-  selectedObjectIds?: string[];
-  onSelectObject?: (objectId: string | null, options?: SelectionRequestOptions) => void; // Selection handler
-  onSelectObjects?: (objectIds: string[]) => void; // Batch selection handler
-  onCameraChange?: (camera: Camera) => void; // Called when camera changes
-}
 
 /**
  * MapBoard: Main VTT canvas component
