@@ -480,20 +480,7 @@ function AuthenticatedApp({
     };
   }, [viewingRoll, rollHistory]);
 
-  // Wrap handleLoadSession to match MainLayout's signature (no parameters)
-  // This will be called from a file input, so the wrapper triggers the file picker
-  const handleLoadSessionWrapper = useCallback(() => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".json";
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        await handleLoadSession(file);
-      }
-    };
-    input.click();
-  }, [handleLoadSession]);
+  // Note: No wrapper needed - SessionPersistenceControl has its own file input
 
   // -------------------------------------------------------------------------
   // RENDER
@@ -616,7 +603,7 @@ function AuthenticatedApp({
       handleDeleteProp={handleDeleteProp}
       // Session management
       handleSaveSession={handleSaveSession}
-      handleLoadSession={handleLoadSessionWrapper}
+      handleLoadSession={handleLoadSession}
       // DM management
       handleToggleDM={handleToggleDM}
       // Map actions

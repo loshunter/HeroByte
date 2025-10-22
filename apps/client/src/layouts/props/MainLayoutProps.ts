@@ -344,7 +344,7 @@ export interface MainLayoutProps {
   /** Handler to save session */
   handleSaveSession: (sessionName: string) => void;
   /** Handler to load session */
-  handleLoadSession: () => void;
+  handleLoadSession: (file: File) => void;
 
   // -------------------------------------------------------------------------
   // DM Management
