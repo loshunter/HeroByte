@@ -4,34 +4,15 @@
 // Floating tools panel for Dungeon Masters. Provides access to map setup,
 // NPC management (scaffolding), and session utilities.
 
-import { ChangeEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { Character, PlayerStagingZone, Prop, Player, TokenSize } from "@shared";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignment";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import type { Camera } from "../../../hooks/useCamera";
+import { CollapsibleSection } from "../../../components/ui/CollapsibleSection";
 import { NPCEditor } from "./NPCEditor";
 import { PropEditor } from "./PropEditor";
-
-interface CollapsibleSectionProps {
-  isCollapsed: boolean;
-  children: ReactNode;
-}
-
-const CollapsibleSection = ({ isCollapsed, children }: CollapsibleSectionProps) => {
-  return (
-    <div
-      style={{
-        maxHeight: isCollapsed ? "0" : "2000px",
-        opacity: isCollapsed ? 0 : 1,
-        overflow: "hidden",
-        transition: "max-height 150ms ease-in-out, opacity 150ms ease-in-out",
-      }}
-    >
-      {children}
-    </div>
-  );
-};
 
 interface DMMenuProps {
   isDM: boolean;
