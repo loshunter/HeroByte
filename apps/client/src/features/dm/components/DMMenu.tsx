@@ -4,11 +4,16 @@
 // Floating tools panel for Dungeon Masters. Provides access to map setup,
 // NPC management (scaffolding), and session utilities.
 
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
-import type { Character, PlayerStagingZone } from "@shared";
-import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
+import type { Character, PlayerStagingZone, Prop, Player } from "@shared";
+import { JRPGButton } from "../../../components/ui/JRPGPanel";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignment";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
+import type { Camera } from "../../../hooks/useCamera";
+import MapTab from "./tab-views/MapTab";
+import NPCsTab from "./tab-views/NPCsTab";
+import PropsTab from "./tab-views/PropsTab";
+import SessionTab from "./tab-views/SessionTab";
+import { useDMMenuState, type DMMenuTab } from "../hooks/useDMMenuState";
 
 interface DMMenuProps {
   isDM: boolean;
@@ -24,27 +29,28 @@ interface DMMenuProps {
   mapBackground?: string;
   playerStagingZone?: PlayerStagingZone;
   onSetPlayerStagingZone?: (zone: PlayerStagingZone | undefined) => void;
+  stagingZoneLocked?: boolean;
+  onStagingZoneLockToggle?: () => void;
+  camera: Camera;
   playerCount: number;
   characters: Character[];
   onRequestSaveSession?: (sessionName: string) => void;
   onRequestLoadSession?: (file: File) => void;
   onCreateNPC: () => void;
-  onUpdateNPC: (
-    id: string,
-    updates: { name: string; hp: number; maxHp: number; portrait?: string; tokenImage?: string },
-  ) => void;
+  onUpdateNPC: (id: string, updates: Partial<Character>) => void;
   onDeleteNPC: (id: string) => void;
   onPlaceNPCToken: (id: string) => void;
+  props: Prop[];
+  players: Player[];
+  onCreateProp: () => void;
+  onUpdateProp: (id: string, updates: Pick<Prop, "label" | "imageUrl" | "owner" | "size">) => void;
+  onDeleteProp: (id: string) => void;
   mapLocked?: boolean;
   onMapLockToggle?: () => void;
   mapTransform?: { x: number; y: number; scaleX: number; scaleY: number; rotation: number };
-  onMapTransformChange?: (transform: {
-    x: number;
-    y: number;
-    scaleX: number;
-    scaleY: number;
-    rotation: number;
-  }) => void;
+  onMapTransformChange?: (
+    transform: Partial<{ x: number; y: number; scaleX: number; scaleY: number; rotation: number }>,
+  ) => void;
   alignmentModeActive: boolean;
   alignmentPoints: AlignmentPoint[];
   alignmentSuggestion: AlignmentSuggestion | null;
@@ -58,234 +64,6 @@ interface DMMenuProps {
   roomPasswordPending?: boolean;
   onDismissRoomPasswordStatus?: () => void;
 }
-
-type DMMenuTab = "map" | "npcs" | "session";
-
-interface NPCEditorProps {
-  npc: Character;
-  onUpdate: (updates: {
-    name: string;
-    hp: number;
-    maxHp: number;
-    portrait?: string;
-    tokenImage?: string;
-  }) => void;
-  onPlace: () => void;
-  onDelete: () => void;
-}
-
-const NPCEditor = ({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) => {
-  const [name, setName] = useState(npc.name);
-  const [hpInput, setHpInput] = useState(String(npc.hp));
-  const [maxHpInput, setMaxHpInput] = useState(String(npc.maxHp));
-  const [portrait, setPortrait] = useState(npc.portrait ?? "");
-  const [tokenImage, setTokenImage] = useState(npc.tokenImage ?? "");
-
-  useEffect(() => {
-    setName(npc.name);
-    setHpInput(String(npc.hp));
-    setMaxHpInput(String(npc.maxHp));
-    setPortrait(npc.portrait ?? "");
-    setTokenImage(npc.tokenImage ?? "");
-  }, [npc]);
-
-  const commitUpdate = (
-    overrides?: Partial<{
-      name: string;
-      hp: number;
-      maxHp: number;
-      portrait?: string;
-      tokenImage?: string;
-    }>,
-  ) => {
-    const baseHp = overrides?.hp ?? Number(hpInput);
-    const baseMaxHp = overrides?.maxHp ?? Number(maxHpInput);
-    const parsedHp = Math.max(0, Number.isFinite(baseHp) ? Number(baseHp) : 0);
-    const parsedMax = Math.max(1, Number.isFinite(baseMaxHp) ? Number(baseMaxHp) : 1);
-    const clampedHp = Math.min(parsedMax, parsedHp);
-
-    setHpInput(String(clampedHp));
-    setMaxHpInput(String(parsedMax));
-
-    const nextNameSource = overrides?.name ?? name;
-    const trimmedName = nextNameSource.trim();
-    const nextPortraitSource = overrides?.portrait ?? portrait;
-    const portraitValue = nextPortraitSource.trim();
-    const nextTokenImageSource = overrides?.tokenImage ?? tokenImage;
-    const tokenImageValue = nextTokenImageSource.trim();
-
-    onUpdate({
-      name: trimmedName.length > 0 ? trimmedName : "NPC",
-      hp: clampedHp,
-      maxHp: parsedMax,
-      portrait: portraitValue.length > 0 ? portraitValue : undefined,
-      tokenImage: tokenImageValue.length > 0 ? tokenImageValue : undefined,
-    });
-  };
-
-  const handleNameBlur = () => commitUpdate({ name });
-  const handleHpBlur = () => commitUpdate();
-  const handleMaxHpBlur = () => commitUpdate();
-  const handlePortraitBlur = () => commitUpdate({ portrait });
-  const handleTokenImageBlur = () => commitUpdate({ tokenImage });
-
-  return (
-    <JRPGPanel variant="simple" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-        <label className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-          Name
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onBlur={handleNameBlur}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleNameBlur();
-            }}
-            style={{
-              width: "100%",
-              padding: "4px",
-              background: "#111",
-              color: "var(--jrpg-white)",
-              border: "1px solid var(--jrpg-border-gold)",
-            }}
-          />
-        </label>
-      </div>
-
-      <div style={{ display: "flex", gap: "8px" }}>
-        <label className="jrpg-text-small" style={{ flex: 1 }}>
-          HP
-          <input
-            type="number"
-            min={0}
-            value={hpInput}
-            onChange={(e) => setHpInput(e.target.value)}
-            onBlur={handleHpBlur}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleHpBlur();
-            }}
-            style={{
-              width: "100%",
-              padding: "4px",
-              background: "#111",
-              color: "var(--jrpg-white)",
-              border: "1px solid var(--jrpg-border-gold)",
-            }}
-          />
-        </label>
-        <label className="jrpg-text-small" style={{ flex: 1 }}>
-          Max HP
-          <input
-            type="number"
-            min={1}
-            value={maxHpInput}
-            onChange={(e) => setMaxHpInput(e.target.value)}
-            onBlur={handleMaxHpBlur}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleMaxHpBlur();
-            }}
-            style={{
-              width: "100%",
-              padding: "4px",
-              background: "#111",
-              color: "var(--jrpg-white)",
-              border: "1px solid var(--jrpg-border-gold)",
-            }}
-          />
-        </label>
-      </div>
-
-      <label
-        className="jrpg-text-small"
-        style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-      >
-        Portrait URL
-        <input
-          type="text"
-          value={portrait}
-          onChange={(e) => setPortrait(e.target.value)}
-          onBlur={handlePortraitBlur}
-          style={{
-            width: "100%",
-            padding: "4px",
-            background: "#111",
-            color: "var(--jrpg-white)",
-            border: "1px solid var(--jrpg-border-gold)",
-          }}
-        />
-      </label>
-      {portrait && (
-        <img
-          src={portrait}
-          alt={`${npc.name} portrait`}
-          style={{
-            width: "100%",
-            maxHeight: "100px",
-            objectFit: "cover",
-            borderRadius: "4px",
-          }}
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = "none";
-          }}
-        />
-      )}
-
-      <label
-        className="jrpg-text-small"
-        style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-      >
-        Token Image URL
-        <input
-          type="text"
-          value={tokenImage}
-          onChange={(e) => setTokenImage(e.target.value)}
-          onBlur={handleTokenImageBlur}
-          style={{
-            width: "100%",
-            padding: "4px",
-            background: "#111",
-            color: "var(--jrpg-white)",
-            border: "1px solid var(--jrpg-border-gold)",
-          }}
-        />
-      </label>
-      {tokenImage && (
-        <img
-          src={tokenImage}
-          alt={`${npc.name} token preview`}
-          style={{
-            width: "48px",
-            height: "48px",
-            objectFit: "cover",
-            borderRadius: "4px",
-            border: "1px solid var(--jrpg-border-gold)",
-            alignSelf: "flex-start",
-          }}
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = "none";
-          }}
-        />
-      )}
-
-      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-        <JRPGButton
-          variant="primary"
-          onClick={() => {
-            commitUpdate();
-            onPlace();
-          }}
-          style={{ fontSize: "10px", flex: 1 }}
-        >
-          Place on Map
-        </JRPGButton>
-        <JRPGButton variant="danger" onClick={onDelete} style={{ fontSize: "10px", flex: 1 }}>
-          Delete
-        </JRPGButton>
-      </div>
-    </JRPGPanel>
-  );
-};
 
 export function DMMenu({
   isDM,
@@ -301,6 +79,9 @@ export function DMMenu({
   mapBackground,
   playerStagingZone,
   onSetPlayerStagingZone,
+  stagingZoneLocked,
+  onStagingZoneLockToggle,
+  camera,
   playerCount,
   characters,
   onRequestSaveSession,
@@ -309,6 +90,11 @@ export function DMMenu({
   onUpdateNPC,
   onDeleteNPC,
   onPlaceNPCToken,
+  props,
+  players,
+  onCreateProp,
+  onUpdateProp,
+  onDeleteProp,
   mapLocked,
   onMapLockToggle,
   mapTransform,
@@ -326,162 +112,18 @@ export function DMMenu({
   roomPasswordPending = false,
   onDismissRoomPasswordStatus,
 }: DMMenuProps) {
-  const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<DMMenuTab>("map");
-  const [mapUrl, setMapUrl] = useState(mapBackground ?? "");
-  const [sessionName, setSessionName] = useState("session");
-  const [passwordInput, setPasswordInput] = useState("");
-  const [passwordConfirmInput, setPasswordConfirmInput] = useState("");
-  const [passwordError, setPasswordError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const npcs = useMemo(
-    () => characters.filter((character) => character.type === "npc"),
-    [characters],
-  );
-  const [stagingInputs, setStagingInputs] = useState({
-    x: "0",
-    y: "0",
-    width: "6",
-    height: "6",
-    rotation: "0",
-  });
-
-  useEffect(() => {
-    setMapUrl(mapBackground ?? "");
-  }, [mapBackground]);
-
-  useEffect(() => {
-    if (roomPasswordStatus?.type === "success") {
-      setPasswordInput("");
-      setPasswordConfirmInput("");
-    }
-  }, [roomPasswordStatus]);
-
-  useEffect(() => {
-    if (!isDM) {
-      setOpen(false);
-    }
-  }, [isDM]);
-
-  useEffect(() => {
-    if (playerStagingZone) {
-      setStagingInputs({
-        x: playerStagingZone.x.toFixed(2),
-        y: playerStagingZone.y.toFixed(2),
-        width: playerStagingZone.width.toFixed(2),
-        height: playerStagingZone.height.toFixed(2),
-        rotation: (playerStagingZone.rotation ?? 0).toFixed(1),
-      });
-    } else {
-      setStagingInputs({
-        x: "0",
-        y: "0",
-        width: "6",
-        height: "6",
-        rotation: "0",
-      });
-    }
-  }, [playerStagingZone]);
-
-  const handleMapApply = () => {
-    if (!mapUrl.trim()) return;
-    onSetMapBackground(mapUrl.trim());
-  };
-
-  const handleStagingInputChange = (field: keyof typeof stagingInputs, value: string) => {
-    setStagingInputs((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleStagingZoneApply = () => {
-    if (!onSetPlayerStagingZone) return;
-
-    const x = Number.parseFloat(stagingInputs.x);
-    const y = Number.parseFloat(stagingInputs.y);
-    const width = Number.parseFloat(stagingInputs.width);
-    const height = Number.parseFloat(stagingInputs.height);
-    const rotation = Number.parseFloat(stagingInputs.rotation);
-
-    if ([x, y, width, height, rotation].some((value) => Number.isNaN(value))) {
-      window.alert("Staging zone values must be valid numbers.");
-      return;
-    }
-
-    onSetPlayerStagingZone({
-      x,
-      y,
-      width: Math.max(0.5, Math.abs(width)),
-      height: Math.max(0.5, Math.abs(height)),
-      rotation: Number.isNaN(rotation) ? 0 : rotation,
+  const { open, setOpen, toggleOpen, activeTab, setActiveTab, sessionName, setSessionName, npcs } =
+    useDMMenuState({
+      isDM,
+      characters,
     });
-  };
-
-  const handleStagingZoneClear = () => {
-    if (!onSetPlayerStagingZone) return;
-    onSetPlayerStagingZone(undefined);
-  };
-
-  const handleStagingZoneCenterOnMap = () => {
-    if (!mapTransform) return;
-    setStagingInputs((prev) => ({
-      ...prev,
-      x: mapTransform.x.toFixed(2),
-      y: mapTransform.y.toFixed(2),
-    }));
-  };
-
-  const handleClearDrawings = () => {
-    if (window.confirm("Clear all drawings from the map?")) {
-      onClearDrawings();
-    }
-  };
-
-  const handleSaveSession = () => {
-    if (!onRequestSaveSession) return;
-    const trimmed = sessionName.trim();
-    onRequestSaveSession(trimmed.length > 0 ? trimmed : "session");
-  };
-
-  const handleLoadSession = (event: ChangeEvent<HTMLInputElement>) => {
-    if (!onRequestLoadSession) return;
-    const file = event.target.files?.[0];
-    if (file) {
-      onRequestLoadSession(file);
-    }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ""; // Reset so same file can be chosen again
-    }
-  };
 
   if (!isDM) {
     return null;
   }
 
-  const handlePasswordSubmit = () => {
-    if (!onSetRoomPassword) return;
-
-    const trimmed = passwordInput.trim();
-    const confirm = passwordConfirmInput.trim();
-
-    if (trimmed.length < 6) {
-      setPasswordError("Password must be at least 6 characters.");
-      return;
-    }
-
-    if (trimmed !== confirm) {
-      setPasswordError("Passwords do not match.");
-      return;
-    }
-
-    setPasswordError(null);
-    onDismissRoomPasswordStatus?.();
-    onSetRoomPassword(trimmed);
-  };
-
   const saveDisabled = !onRequestSaveSession;
   const loadDisabled = !onRequestLoadSession;
-
-  const formatSquareSize = (value: number) =>
-    Number.isInteger(value) ? `${value}` : value.toFixed(1);
 
   const TabButton = ({ tab, label }: { tab: DMMenuTab; label: string }) => (
     <JRPGButton
@@ -504,7 +146,7 @@ export function DMMenu({
         }}
       >
         <JRPGButton
-          onClick={() => setOpen((prev) => !prev)}
+          onClick={toggleOpen}
           variant={open ? "primary" : "default"}
           style={{ fontSize: "10px", padding: "10px 16px" }}
         >
@@ -528,699 +170,91 @@ export function DMMenu({
             <div
               style={{
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
+                justifyContent: "flex-end",
                 marginBottom: "12px",
               }}
             >
-              <label
-                className="jrpg-text-small"
-                style={{ display: "flex", alignItems: "center", gap: "8px" }}
-              >
-                <input
-                  type="checkbox"
-                  checked={isDM}
-                  onChange={(event) => onToggleDM(event.target.checked)}
-                  style={{ transform: "scale(1.2)" }}
-                />
-                DM Mode
-              </label>
-
               <JRPGButton
                 onClick={() => onToggleDM(false)}
                 variant="danger"
-                style={{ fontSize: "10px", padding: "4px 10px" }}
+                style={{ fontSize: "10px", padding: "6px 12px" }}
               >
-                Exit DM
+                🔓 EXIT DM MODE
               </JRPGButton>
             </div>
 
             <div style={{ display: "flex", gap: "8px", marginBottom: "12px", flexWrap: "wrap" }}>
               <TabButton tab="map" label="Map Setup" />
               <TabButton tab="npcs" label="NPCs & Monsters" />
+              <TabButton tab="props" label="Props & Objects" />
               <TabButton tab="session" label="Session" />
             </div>
 
             {activeTab === "map" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                <JRPGPanel variant="simple" title="Map Background">
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <input
-                      type="text"
-                      value={mapUrl}
-                      placeholder="Paste image URL"
-                      onChange={(event) => setMapUrl(event.target.value)}
-                      style={{
-                        width: "100%",
-                        padding: "6px",
-                        background: "#111",
-                        color: "var(--jrpg-white)",
-                        border: "1px solid var(--jrpg-border-gold)",
-                      }}
-                    />
-                    <JRPGButton
-                      onClick={handleMapApply}
-                      variant="success"
-                      disabled={!mapUrl.trim()}
-                      style={{ fontSize: "10px" }}
-                    >
-                      Apply Background
-                    </JRPGButton>
-                    {mapBackground && (
-                      <img
-                        src={mapBackground}
-                        alt="Current map background"
-                        style={{
-                          width: "100%",
-                          maxHeight: "120px",
-                          objectFit: "cover",
-                          borderRadius: "4px",
-                        }}
-                      />
-                    )}
-                  </div>
-                </JRPGPanel>
-
-                <JRPGPanel variant="simple" title="Player Staging Zone">
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <div
-                      style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px" }}
-                    >
-                      <label
-                        className="jrpg-text-small"
-                        style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-                      >
-                        Center X
-                        <input
-                          type="number"
-                          value={stagingInputs.x}
-                          onChange={(event) => handleStagingInputChange("x", event.target.value)}
-                          style={{
-                            width: "100%",
-                            padding: "6px",
-                            background: "#111",
-                            color: "var(--jrpg-white)",
-                            border: "1px solid var(--jrpg-border-gold)",
-                          }}
-                          step={0.1}
-                        />
-                      </label>
-                      <label
-                        className="jrpg-text-small"
-                        style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-                      >
-                        Center Y
-                        <input
-                          type="number"
-                          value={stagingInputs.y}
-                          onChange={(event) => handleStagingInputChange("y", event.target.value)}
-                          style={{
-                            width: "100%",
-                            padding: "6px",
-                            background: "#111",
-                            color: "var(--jrpg-white)",
-                            border: "1px solid var(--jrpg-border-gold)",
-                          }}
-                          step={0.1}
-                        />
-                      </label>
-                      <label
-                        className="jrpg-text-small"
-                        style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-                      >
-                        Width (tiles)
-                        <input
-                          type="number"
-                          min={0.5}
-                          value={stagingInputs.width}
-                          onChange={(event) =>
-                            handleStagingInputChange("width", event.target.value)
-                          }
-                          style={{
-                            width: "100%",
-                            padding: "6px",
-                            background: "#111",
-                            color: "var(--jrpg-white)",
-                            border: "1px solid var(--jrpg-border-gold)",
-                          }}
-                          step={0.5}
-                        />
-                      </label>
-                      <label
-                        className="jrpg-text-small"
-                        style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-                      >
-                        Height (tiles)
-                        <input
-                          type="number"
-                          min={0.5}
-                          value={stagingInputs.height}
-                          onChange={(event) =>
-                            handleStagingInputChange("height", event.target.value)
-                          }
-                          style={{
-                            width: "100%",
-                            padding: "6px",
-                            background: "#111",
-                            color: "var(--jrpg-white)",
-                            border: "1px solid var(--jrpg-border-gold)",
-                          }}
-                          step={0.5}
-                        />
-                      </label>
-                    </div>
-                    <label
-                      className="jrpg-text-small"
-                      style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-                    >
-                      Rotation (degrees)
-                      <input
-                        type="number"
-                        value={stagingInputs.rotation}
-                        onChange={(event) =>
-                          handleStagingInputChange("rotation", event.target.value)
-                        }
-                        style={{
-                          width: "100%",
-                          padding: "6px",
-                          background: "#111",
-                          color: "var(--jrpg-white)",
-                          border: "1px solid var(--jrpg-border-gold)",
-                        }}
-                        step={1}
-                      />
-                    </label>
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                      <JRPGButton
-                        onClick={handleStagingZoneApply}
-                        variant="primary"
-                        style={{ fontSize: "10px", flex: "1 1 120px" }}
-                        disabled={!onSetPlayerStagingZone}
-                      >
-                        Apply Zone
-                      </JRPGButton>
-                      <JRPGButton
-                        onClick={handleStagingZoneCenterOnMap}
-                        style={{ fontSize: "10px", flex: "1 1 120px" }}
-                      >
-                        Center on Map
-                      </JRPGButton>
-                      <JRPGButton
-                        onClick={handleStagingZoneClear}
-                        variant="danger"
-                        style={{ fontSize: "10px", flex: "1 1 120px" }}
-                        disabled={!onSetPlayerStagingZone}
-                      >
-                        Clear Zone
-                      </JRPGButton>
-                    </div>
-                    <span
-                      className="jrpg-text-tiny"
-                      style={{ color: "var(--jrpg-white)", opacity: 0.6 }}
-                    >
-                      Players spawn randomly within this area when they join the session.
-                    </span>
-                  </div>
-                </JRPGPanel>
-
-                <JRPGPanel variant="simple" title="Grid Controls">
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <span className="jrpg-text-small">Grid Size</span>
-                      <span className="jrpg-text-small">{gridSize}px</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={10}
-                      max={500}
-                      step={5}
-                      value={gridSize}
-                      onChange={(event) => onGridSizeChange(Number(event.target.value))}
-                      disabled={gridLocked}
-                      style={{ width: "100%" }}
-                    />
-                    <JRPGButton
-                      onClick={onGridLockToggle}
-                      variant={gridLocked ? "danger" : "primary"}
-                      style={{ fontSize: "10px" }}
-                    >
-                      {gridLocked ? "Grid Locked" : "Lock Grid"}
-                    </JRPGButton>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        marginTop: "8px",
-                      }}
-                    >
-                      <span className="jrpg-text-small">Square Size</span>
-                      <span className="jrpg-text-small">{formatSquareSize(gridSquareSize)} ft</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={1}
-                      max={100}
-                      step={1}
-                      value={Math.min(100, Math.max(1, gridSquareSize))}
-                      onChange={(event) => onGridSquareSizeChange?.(Number(event.target.value))}
-                      disabled={!onGridSquareSizeChange}
-                      style={{ width: "100%" }}
-                    />
-                    <span
-                      style={{
-                        fontSize: "10px",
-                        opacity: 0.8,
-                        lineHeight: 1.3,
-                        display: "block",
-                      }}
-                    >
-                      Measurement tool displays distances as squares and feet using this value.
-                    </span>
-                  </div>
-                </JRPGPanel>
-
-                <JRPGPanel variant="simple" title="Grid Alignment Wizard">
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <span className="jrpg-text-small" style={{ lineHeight: 1.4 }}>
-                      {alignmentModeActive
-                        ? "Alignment mode active — zoom in and click two opposite corners of a single map square."
-                        : "Capture two opposite corners of a map square to auto-match the map to the table grid."}
-                    </span>
-
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                      <JRPGButton
-                        variant={alignmentModeActive ? "primary" : "default"}
-                        onClick={onAlignmentStart}
-                        style={{ fontSize: "10px" }}
-                        disabled={alignmentModeActive}
-                      >
-                        Start Alignment
-                      </JRPGButton>
-                      <JRPGButton
-                        variant="default"
-                        onClick={onAlignmentReset}
-                        style={{ fontSize: "10px" }}
-                        disabled={alignmentPoints.length === 0}
-                      >
-                        Reset Points
-                      </JRPGButton>
-                      {alignmentModeActive && (
-                        <JRPGButton
-                          variant="danger"
-                          onClick={onAlignmentCancel}
-                          style={{ fontSize: "10px" }}
-                        >
-                          Cancel
-                        </JRPGButton>
-                      )}
-                    </div>
-
-                    <span className="jrpg-text-small" style={{ opacity: 0.8 }}>
-                      Captured Points: {Math.min(alignmentPoints.length, 2)} / 2
-                    </span>
-
-                    {alignmentSuggestion && (
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                          gap: "6px",
-                          fontSize: "10px",
-                          background: "rgba(0, 0, 0, 0.2)",
-                          padding: "8px",
-                          borderRadius: "4px",
-                        }}
-                      >
-                        <span>Scale</span>
-                        <span>{alignmentSuggestion.scale.toFixed(4)}×</span>
-                        <span>Rotation</span>
-                        <span>{alignmentSuggestion.rotation.toFixed(2)}°</span>
-                        <span>Offset X</span>
-                        <span>{alignmentSuggestion.transform.x.toFixed(1)}</span>
-                        <span>Offset Y</span>
-                        <span>{alignmentSuggestion.transform.y.toFixed(1)}</span>
-                        <span>Residual</span>
-                        <span>{alignmentSuggestion.error.toFixed(2)} px</span>
-                      </div>
-                    )}
-
-                    {alignmentError && (
-                      <span style={{ color: "#f87171", fontSize: "10px" }}>{alignmentError}</span>
-                    )}
-
-                    <JRPGButton
-                      variant="success"
-                      onClick={onAlignmentApply}
-                      style={{ fontSize: "10px" }}
-                      disabled={!alignmentSuggestion || !!alignmentError || mapLocked}
-                    >
-                      Apply Alignment
-                    </JRPGButton>
-                    {mapLocked && (
-                      <span style={{ color: "#facc15", fontSize: "10px" }}>
-                        Unlock the map before applying alignment.
-                      </span>
-                    )}
-                  </div>
-                </JRPGPanel>
-
-                {onMapLockToggle && onMapTransformChange && mapTransform && (
-                  <JRPGPanel variant="simple" title="Map Transform">
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                      <JRPGButton
-                        onClick={onMapLockToggle}
-                        variant={mapLocked ? "primary" : "default"}
-                        style={{ fontSize: "10px" }}
-                        title={mapLocked ? "Map is locked" : "Map is unlocked"}
-                      >
-                        {mapLocked ? "🔒 Map Locked" : "🔓 Map Unlocked"}
-                      </JRPGButton>
-
-                      <div style={{ opacity: mapLocked ? 0.5 : 1 }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            marginBottom: "4px",
-                          }}
-                        >
-                          <span className="jrpg-text-small">Scale</span>
-                          <span className="jrpg-text-small">{mapTransform.scaleX.toFixed(2)}x</span>
-                        </div>
-                        <input
-                          type="range"
-                          min={0.1}
-                          max={3}
-                          step={0.1}
-                          value={mapTransform.scaleX}
-                          onChange={(event) =>
-                            onMapTransformChange({
-                              ...mapTransform,
-                              scaleX: Number(event.target.value),
-                              scaleY: Number(event.target.value),
-                            })
-                          }
-                          disabled={mapLocked}
-                          style={{ width: "100%" }}
-                        />
-
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            marginTop: "8px",
-                            marginBottom: "4px",
-                          }}
-                        >
-                          <span className="jrpg-text-small">Rotation</span>
-                          <span className="jrpg-text-small">
-                            {Math.round(mapTransform.rotation)}°
-                          </span>
-                        </div>
-                        <input
-                          type="range"
-                          min={0}
-                          max={360}
-                          step={5}
-                          value={mapTransform.rotation}
-                          onChange={(event) =>
-                            onMapTransformChange({
-                              ...mapTransform,
-                              rotation: Number(event.target.value),
-                            })
-                          }
-                          disabled={mapLocked}
-                          style={{ width: "100%" }}
-                        />
-
-                        <div style={{ marginTop: "8px", display: "flex", gap: "4px" }}>
-                          <div style={{ flex: 1 }}>
-                            <label className="jrpg-text-small" style={{ display: "block" }}>
-                              X
-                            </label>
-                            <input
-                              type="number"
-                              value={Math.round(mapTransform.x)}
-                              onChange={(event) =>
-                                onMapTransformChange({
-                                  ...mapTransform,
-                                  x: Number(event.target.value),
-                                })
-                              }
-                              disabled={mapLocked}
-                              style={{
-                                width: "100%",
-                                padding: "4px",
-                                background: "#111",
-                                color: "var(--jrpg-white)",
-                                border: "1px solid var(--jrpg-border-gold)",
-                                fontSize: "10px",
-                              }}
-                            />
-                          </div>
-                          <div style={{ flex: 1 }}>
-                            <label className="jrpg-text-small" style={{ display: "block" }}>
-                              Y
-                            </label>
-                            <input
-                              type="number"
-                              value={Math.round(mapTransform.y)}
-                              onChange={(event) =>
-                                onMapTransformChange({
-                                  ...mapTransform,
-                                  y: Number(event.target.value),
-                                })
-                              }
-                              disabled={mapLocked}
-                              style={{
-                                width: "100%",
-                                padding: "4px",
-                                background: "#111",
-                                color: "var(--jrpg-white)",
-                                border: "1px solid var(--jrpg-border-gold)",
-                                fontSize: "10px",
-                              }}
-                            />
-                          </div>
-                        </div>
-
-                        <JRPGButton
-                          onClick={() =>
-                            onMapTransformChange({
-                              x: 0,
-                              y: 0,
-                              scaleX: 1,
-                              scaleY: 1,
-                              rotation: 0,
-                            })
-                          }
-                          variant="default"
-                          disabled={mapLocked}
-                          style={{ fontSize: "10px", marginTop: "8px" }}
-                        >
-                          Reset Transform
-                        </JRPGButton>
-                      </div>
-                    </div>
-                  </JRPGPanel>
-                )}
-
-                <JRPGButton
-                  onClick={handleClearDrawings}
-                  variant="danger"
-                  style={{ fontSize: "10px" }}
-                >
-                  Clear All Drawings
-                </JRPGButton>
-              </div>
+              <MapTab
+                mapBackground={mapBackground}
+                onSetMapBackground={onSetMapBackground}
+                mapTransform={mapTransform}
+                mapLocked={mapLocked}
+                onMapTransformChange={onMapTransformChange}
+                onMapLockToggle={onMapLockToggle}
+                gridSize={gridSize}
+                gridSquareSize={gridSquareSize}
+                gridLocked={gridLocked}
+                onGridSizeChange={onGridSizeChange}
+                onGridSquareSizeChange={onGridSquareSizeChange}
+                onGridLockToggle={onGridLockToggle}
+                alignmentModeActive={alignmentModeActive}
+                alignmentPoints={alignmentPoints}
+                alignmentSuggestion={alignmentSuggestion}
+                alignmentError={alignmentError}
+                onAlignmentStart={onAlignmentStart}
+                onAlignmentReset={onAlignmentReset}
+                onAlignmentCancel={onAlignmentCancel}
+                onAlignmentApply={onAlignmentApply}
+                playerStagingZone={playerStagingZone}
+                camera={camera}
+                stagingZoneLocked={stagingZoneLocked}
+                onStagingZoneLockToggle={onStagingZoneLockToggle}
+                onSetPlayerStagingZone={onSetPlayerStagingZone}
+                onClearDrawings={onClearDrawings}
+              />
             )}
 
             {activeTab === "npcs" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <h4 className="jrpg-text-command" style={{ margin: 0 }}>
-                    NPCs & Monsters
-                  </h4>
-                  <JRPGButton
-                    variant="success"
-                    onClick={onCreateNPC}
-                    style={{ fontSize: "10px", padding: "6px 12px" }}
-                  >
-                    + Add NPC
-                  </JRPGButton>
-                </div>
+              <NPCsTab
+                npcs={npcs}
+                onCreateNPC={onCreateNPC}
+                onUpdateNPC={onUpdateNPC}
+                onPlaceNPCToken={onPlaceNPCToken}
+                onDeleteNPC={onDeleteNPC}
+              />
+            )}
 
-                {npcs.length === 0 ? (
-                  <JRPGPanel
-                    variant="simple"
-                    style={{ color: "var(--jrpg-white)", fontSize: "12px" }}
-                  >
-                    No NPCs yet. Use &ldquo;Add NPC&rdquo; to create one.
-                  </JRPGPanel>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                    {npcs.map((npc) => (
-                      <NPCEditor
-                        key={npc.id}
-                        npc={npc}
-                        onUpdate={(updates) => onUpdateNPC(npc.id, updates)}
-                        onPlace={() => onPlaceNPCToken(npc.id)}
-                        onDelete={() => onDeleteNPC(npc.id)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
+            {activeTab === "props" && (
+              <PropsTab
+                props={props}
+                players={players}
+                onCreateProp={onCreateProp}
+                onUpdateProp={onUpdateProp}
+                onDeleteProp={onDeleteProp}
+              />
             )}
 
             {activeTab === "session" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                <JRPGPanel variant="simple" title="Session Save/Load">
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <label
-                      className="jrpg-text-small"
-                      style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-                    >
-                      Session Name
-                      <input
-                        type="text"
-                        value={sessionName}
-                        onChange={(event) => setSessionName(event.target.value)}
-                        style={{
-                          width: "100%",
-                          padding: "6px",
-                          background: "#111",
-                          color: "var(--jrpg-white)",
-                          border: "1px solid var(--jrpg-border-gold)",
-                        }}
-                      />
-                    </label>
-
-                    <div style={{ display: "flex", gap: "8px" }}>
-                      <JRPGButton
-                        onClick={handleSaveSession}
-                        variant="success"
-                        disabled={saveDisabled}
-                        title={
-                          saveDisabled
-                            ? "Save is unavailable until the room state is ready."
-                            : undefined
-                        }
-                        style={{ fontSize: "10px", flex: 1 }}
-                      >
-                        Save Game State
-                      </JRPGButton>
-                      <JRPGButton
-                        onClick={() => fileInputRef.current?.click()}
-                        variant="primary"
-                        disabled={loadDisabled}
-                        title={loadDisabled ? "Loading is unavailable at the moment." : undefined}
-                        style={{ fontSize: "10px", flex: 1 }}
-                      >
-                        Load Game State
-                      </JRPGButton>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="application/json"
-                        style={{ display: "none" }}
-                        onChange={handleLoadSession}
-                      />
-                    </div>
-                  </div>
-                </JRPGPanel>
-
-                <JRPGPanel variant="simple" title="Room Security">
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <p
-                      className="jrpg-text-small"
-                      style={{ margin: 0, color: "var(--jrpg-white)" }}
-                    >
-                      Update the shared room password. Current players remain connected; new
-                      entrants must use the new secret.
-                    </p>
-                    <input
-                      type="password"
-                      value={passwordInput}
-                      placeholder="New password"
-                      onChange={(event) => {
-                        setPasswordInput(event.target.value);
-                        setPasswordError(null);
-                        onDismissRoomPasswordStatus?.();
-                      }}
-                      style={{
-                        width: "100%",
-                        padding: "6px",
-                        background: "#111",
-                        color: "var(--jrpg-white)",
-                        border: "1px solid var(--jrpg-border-gold)",
-                      }}
-                    />
-                    <input
-                      type="password"
-                      value={passwordConfirmInput}
-                      placeholder="Confirm password"
-                      onChange={(event) => {
-                        setPasswordConfirmInput(event.target.value);
-                        setPasswordError(null);
-                        onDismissRoomPasswordStatus?.();
-                      }}
-                      style={{
-                        width: "100%",
-                        padding: "6px",
-                        background: "#111",
-                        color: "var(--jrpg-white)",
-                        border: "1px solid var(--jrpg-border-gold)",
-                      }}
-                    />
-                    {passwordError ? (
-                      <p style={{ color: "#f87171", margin: 0, fontSize: "0.85rem" }}>
-                        {passwordError}
-                      </p>
-                    ) : null}
-                    {roomPasswordStatus ? (
-                      <p
-                        style={{
-                          color: roomPasswordStatus.type === "success" ? "#4ade80" : "#f87171",
-                          margin: 0,
-                          fontSize: "0.85rem",
-                        }}
-                      >
-                        {roomPasswordStatus.message}
-                      </p>
-                    ) : null}
-                    <JRPGButton
-                      onClick={handlePasswordSubmit}
-                      variant="primary"
-                      disabled={roomPasswordPending || !onSetRoomPassword}
-                      style={{ fontSize: "10px" }}
-                    >
-                      {roomPasswordPending ? "Updating…" : "Update Password"}
-                    </JRPGButton>
-                  </div>
-                </JRPGPanel>
-
-                <JRPGPanel variant="simple" title="Players">
-                  <div className="jrpg-text-small" style={{ color: "var(--jrpg-white)" }}>
-                    {playerCount} player{playerCount === 1 ? "" : "s"} currently online
-                  </div>
-                </JRPGPanel>
-              </div>
+              <SessionTab
+                sessionName={sessionName}
+                setSessionName={setSessionName}
+                onRequestSaveSession={onRequestSaveSession}
+                onRequestLoadSession={onRequestLoadSession}
+                saveDisabled={saveDisabled}
+                loadDisabled={loadDisabled}
+                onSetRoomPassword={onSetRoomPassword}
+                roomPasswordStatus={roomPasswordStatus}
+                roomPasswordPending={roomPasswordPending}
+                onDismissRoomPasswordStatus={onDismissRoomPasswordStatus}
+                playerCount={playerCount}
+              />
             )}
           </div>
         </DraggableWindow>

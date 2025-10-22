@@ -7,6 +7,7 @@ import { TokenService } from "../../domains/token/service.js";
 import { MapService } from "../../domains/map/service.js";
 import { DiceService } from "../../domains/dice/service.js";
 import { CharacterService } from "../../domains/character/service.js";
+import { PropService } from "../../domains/prop/service.js";
 import { SelectionService } from "../../domains/selection/service.js";
 import { AuthService } from "../../domains/auth/service.js";
 import type { WebSocket, WebSocketServer } from "ws";
@@ -22,6 +23,7 @@ describe("MessageRouter", () => {
   let mockMapService: MapService;
   let mockDiceService: DiceService;
   let mockCharacterService: CharacterService;
+  let mockPropService: PropService;
   let mockSelectionService: SelectionService;
   let mockAuthService: AuthService;
   let mockWss: WebSocketServer;
@@ -59,6 +61,7 @@ describe("MessageRouter", () => {
       sceneObjects: [],
       selectionState: new Map() as RoomState["selectionState"],
       playerStagingZone: undefined,
+      props: [],
     };
 
     // Mock services
@@ -124,6 +127,12 @@ describe("MessageRouter", () => {
       linkToken: vi.fn(() => true),
     } as unknown as CharacterService;
 
+    mockPropService = {
+      createProp: vi.fn(() => ({ id: "prop-1" })),
+      updateProp: vi.fn(() => true),
+      deleteProp: vi.fn(() => true),
+    } as unknown as PropService;
+
     mockSelectionService = {
       selectObject: vi.fn(() => true),
       deselect: vi.fn(() => true),
@@ -148,6 +157,7 @@ describe("MessageRouter", () => {
       mockMapService,
       mockDiceService,
       mockCharacterService,
+      mockPropService,
       mockSelectionService,
       mockAuthService,
       mockWss,
@@ -540,6 +550,7 @@ describe("MessageRouter", () => {
       const tokenService = mockTokenService;
       const diceService = mockDiceService;
       const characterService = mockCharacterService;
+      const propService = mockPropService;
       const authService = mockAuthService;
 
       integrationRouter = new MessageRouter(
@@ -549,6 +560,7 @@ describe("MessageRouter", () => {
         integrationMapService,
         diceService,
         characterService,
+        propService,
         integrationSelectionService,
         authService,
         mockWss,

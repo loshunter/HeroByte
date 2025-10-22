@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import React from "react";
 import { DMMenu } from "./DMMenu";
@@ -81,7 +81,7 @@ const createProps = () => ({
 });
 
 describe("DMMenu", () => {
-  it("renders map setup controls and applies the background URL", () => {
+  it("renders map setup controls and applies the background URL", async () => {
     const props = createProps();
 
     render(<DMMenu {...props} />);
@@ -92,7 +92,10 @@ describe("DMMenu", () => {
     fireEvent.change(input, { target: { value: "https://example.com/map.png" } });
     fireEvent.click(screen.getByRole("button", { name: "Apply Background" }));
 
-    expect(props.onSetMapBackground).toHaveBeenCalledWith("https://example.com/map.png");
+    // Wait for async URL normalization to complete
+    await waitFor(() => {
+      expect(props.onSetMapBackground).toHaveBeenCalledWith("https://example.com/map.png");
+    });
   });
 
   it("switches to the NPC tab and triggers NPC creation", () => {

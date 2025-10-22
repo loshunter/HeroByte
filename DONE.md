@@ -1,7 +1,584 @@
 # HeroByte Completed Work
 
-**Last Updated**: October 19, 2025
+**Last Updated**: October 21, 2025
 **Source**: Archived from `TODO.md` to keep the active roadmap lean.
+
+---
+
+## ✅ DMMenu.tsx Phase 6 Refactoring - COMPLETE (October 21, 2025)
+
+**Goal**: Extract tab view composition components from DMMenu.tsx to achieve final target of <300 LOC.
+
+### Achievement Summary
+
+**Status**: Phase 6 COMPLETE - All 4 tab view components extracted successfully!
+
+- ✅ **DMMenu.tsx: 392 → 284 LOC (-27.6% phase reduction, -108 LOC)**
+- ✅ **Cumulative: 1,588 → 284 LOC (-82.1% total reduction, -1,304 LOC)**
+- ✅ **Phase 6 Extractions: 4/4 complete** (-108 LOC, +191 tests)
+- ✅ **Total Test Suite: 383 characterization tests, 100% passing**
+- ✅ **Completion Date:** October 21, 2025
+- ✅ **Final Commits:** `caba901` (MapTab), `1418c6a` (NPCsTab, PropsTab, SessionTab)
+- ✅ **Branch:** `refactor/dm-menu/stateful-tabs`
+- 📄 **Detailed tracking:** See `/docs/refactoring/DMMENU_PHASE6_COMPLETE.md`
+
+### Phase 6 Completed Work
+
+**Tab View Composition Components Extracted:**
+
+1. **MapTab** (Priority 15)
+   - Component: 163 LOC
+   - Tests: 59 comprehensive tests
+   - Features: Composes 6 map control components (MapBackgroundControl, MapTransformControl, GridControl, GridAlignmentWizard, StagingZoneControl, DrawingControls)
+   - Commit: `caba901`
+   - Reduction: 54 LOC
+
+2. **NPCsTab** (Priority 16)
+   - Component: 94 LOC
+   - Tests: 43 comprehensive tests
+   - Features: NPCEditor list rendering with empty state
+   - Commit: `1418c6a`
+   - Reduction: 18 LOC
+
+3. **PropsTab** (Priority 17)
+   - Component: 94 LOC
+   - Tests: 42 comprehensive tests
+   - Features: PropEditor list rendering with empty state
+   - Commit: `1418c6a`
+   - Reduction: 18 LOC
+
+4. **SessionTab** (Priority 18)
+   - Component: 100 LOC
+   - Tests: 47 comprehensive tests
+   - Features: Composes SessionPersistenceControl, RoomPasswordControl, and Players panel
+   - Commit: `1418c6a`
+   - Reduction: 18 LOC
+
+**Phase 6 Total Impact:**
+
+- LOC Reduction: 108 lines
+- New Tests: 191 comprehensive tests (59+43+42+47)
+- New Directory: `apps/client/src/features/dm/components/tab-views/`
+- Agentic Efficiency: Completed in ~94K tokens (47% of context budget)
+- **FINAL STATE:** DMMenu.tsx is now a clean 284 LOC orchestrator (82.1% reduction from original)
+
+**Refactoring Goals ACHIEVED:**
+
+- ✅ Target: DMMenu.tsx < 300 LOC (achieved: 284 LOC)
+- ✅ Target: >80% reduction (achieved: 82.1%)
+- ✅ 15 focused components extracted across 6 phases
+- ✅ 383 comprehensive tests created
+- ✅ Zero behavior changes
+- ✅ All tests passing
+
+**Next Phase:** Optional Phase 7 - State Hook extraction (useDMMenuState) if further reduction desired
+
+---
+
+## ✅ DMMenu.tsx Phase 5 Refactoring - COMPLETE (October 21, 2025)
+
+**Goal**: Extract session control components from DMMenu.tsx to reduce complexity and improve modularity.
+
+### Achievement Summary
+
+**Status**: Phase 5 COMPLETE - Both session control components extracted successfully!
+
+- ✅ **DMMenu.tsx: 548 → 392 LOC (-28.5% phase reduction, -156 LOC)**
+- ✅ **Cumulative: 1,588 → 392 LOC (-75.3% total reduction, -1,196 LOC)**
+- ✅ **Phase 5 Extractions: 2/2 complete** (-156 LOC, +72 tests)
+- ✅ **Total Test Suite: 264+ characterization tests, 100% passing**
+- ✅ **Completion Date:** October 21, 2025
+- ✅ **Final Commits:** `1daa97d` (SessionPersistenceControl), `fbf4d2a` (RoomPasswordControl)
+- ✅ **Branch:** `refactor/dm-menu/stateful-tabs` (pushed to remote)
+- 📄 **Detailed tracking:** See `/docs/refactoring/DMMENU_PHASE6_HANDOFF.md`
+
+### Phase 5 Completed Work
+
+**Session Control Components Extracted:**
+
+1. **SessionPersistenceControl** (Priority 13)
+   - Component: 139 LOC
+   - Tests: 33 comprehensive tests
+   - Features: Session name input, save/load buttons, file picker (JSON-only), auto-trimming
+   - Commit: `1daa97d`
+   - Reduction: 63 LOC
+
+2. **RoomPasswordControl** (Priority 14)
+   - Component: 162 LOC
+   - Tests: 39 comprehensive tests
+   - Features: Dual password inputs (new + confirm), client validation (6+ chars, matching), server status display, auto-clear on success
+   - Commit: `fbf4d2a`
+   - Reduction: 93 LOC
+
+**Phase 5 Total Impact:**
+
+- LOC Reduction: 156 lines
+- New Tests: 72 comprehensive tests
+- New Directory: `apps/client/src/features/dm/components/session-controls/`
+- Agentic Efficiency: Completed in ~74K tokens (37% of context budget)
+
+**Next Phase:** Phase 6 - Tab Views Composition (Priorities 15-18)
+
+---
+
+## ✅ DMMenu.tsx Phase 4 Refactoring - COMPLETE (October 21, 2025)
+
+**Goal**: Extract complex map controls from DMMenu.tsx to reduce complexity and improve testability.
+
+### Achievement Summary
+
+**Status**: Phase 4 COMPLETE - All 3 complex map control components extracted successfully!
+
+- ✅ **DMMenu.tsx: 1,588 → 548 LOC (-65.5% reduction, -1,040 LOC)**
+- ✅ **Phase 4 Extractions: 3/3 complete** (-474 LOC, +139 tests)
+- ✅ **Cumulative Progress: 192 characterization tests, 100% passing**
+- ✅ **Completion Date:** October 21, 2025
+- ✅ **Final Commit:** `049a61e`
+- ✅ **Branch:** `refactor/dm-menu/stateful-tabs` (pushed to remote)
+- 📄 **Detailed tracking:** See `/docs/refactoring/DMMENU_PHASE4_FINAL_HANDOFF.md`
+
+### Phase 4 Completed Work
+
+**Complex Map Controls Extracted:**
+
+1. **MapTransformControl** (Priority 10)
+   - Component: 216 LOC
+   - Tests: 47 comprehensive tests
+   - Features: Scale slider (0.1x-3.0x), X/Y position inputs, rotation slider (0°-360°), lock/unlock toggle
+   - Commit: `df0da26`
+   - Reduction: 148 LOC
+
+2. **StagingZoneControl** (Priority 11)
+   - Component: 350 LOC
+   - Tests: 36 comprehensive tests
+   - Features: X/Y/Width/Height/Rotation inputs, viewport-to-world coordinate conversion, grid size calculations
+   - Commit: `0fd6dc0`
+   - Reduction: 252 LOC
+
+3. **GridAlignmentWizard** (Priority 12)
+   - Component: 160 LOC
+   - Tests: 56 comprehensive tests
+   - Features: Multi-step alignment workflow, point capture UI, auto-suggestion display
+   - Commit: `049a61e`
+   - Reduction: 74 LOC
+
+**Phase 4 Total Impact:**
+
+- 3 components extracted
+- 474 LOC reduced
+- 139 new characterization tests
+- Zero behavioral changes
+- All mathematical logic preserved
+
+### Cumulative Progress
+
+**Phase 2 (Entity Editors):** 1,588 → 1,210 LOC (-378 LOC, 53 tests)
+
+- NPCEditor (210 LOC, 29 tests)
+- PropEditor (191 LOC, 24 tests)
+
+**Phase 3 (Simple Controls):** 1,210 → 1,022 LOC (-188 LOC)
+
+- CollapsibleSection, MapBackgroundControl, DrawingControls, GridControl
+
+**Phase 4 (Complex Controls):** 1,022 → 548 LOC (-474 LOC, 139 tests)
+
+- MapTransformControl, StagingZoneControl, GridAlignmentWizard
+
+**Total Reduction:** 1,040 LOC (65.5% reduction from original)
+**Total Tests:** 192 characterization tests, all passing
+
+### Files Created
+
+**Map Control Components:**
+
+- `apps/client/src/features/dm/components/map-controls/MapTransformControl.tsx`
+- `apps/client/src/features/dm/components/map-controls/StagingZoneControl.tsx`
+- `apps/client/src/features/dm/components/map-controls/GridAlignmentWizard.tsx`
+
+**Tests:**
+
+- `apps/client/src/features/dm/components/__tests__/characterization/MapTransformControl.test.tsx` (47 tests)
+- `apps/client/src/features/dm/components/__tests__/characterization/StagingZoneControl.test.tsx` (36 tests)
+- `apps/client/src/features/dm/components/__tests__/characterization/GridAlignmentWizard.test.tsx` (56 tests)
+
+**Documentation:**
+
+- `docs/refactoring/DMMENU_PHASE4_FINAL_HANDOFF.md` - Updated to reflect completion
+
+### Success Criteria Achieved
+
+- ✅ DMMenu.tsx reduced from 1,588 to 548 LOC (65.5% reduction)
+- ✅ All 3 Phase 4 components extracted (<350 LOC each)
+- ✅ Comprehensive test coverage (139 new tests in Phase 4, 192 total)
+- ✅ All components follow TDD/characterization-test-first pattern
+- ✅ Zero behavioral changes - complete behavior preservation
+- ✅ TypeScript compilation passes with no errors
+- ✅ All mathematical logic preserved exactly as-is
+- ✅ Clean separation of concerns achieved
+
+### Technical Metrics
+
+**LOC Reduction by Phase:**
+
+- Phase 2 (Entity Editors): -378 LOC
+- Phase 3 (Simple Controls): -188 LOC
+- Phase 4 (Complex Controls): -474 LOC
+- **Total**: -1,040 LOC (65.5%)
+
+**Test Coverage:**
+
+- Phase 2: 53 tests
+- Phase 3: 0 tests (simple utilities)
+- Phase 4: 139 tests
+- **Total**: 192 characterization tests
+
+**Code Quality:**
+
+- TypeScript: Strict mode, no errors
+- TDD methodology: Tests written before extraction
+- Accessible queries: getByLabelText, getByRole, getByText
+- FireEvent: All tests use fireEvent (no userEvent dependency)
+- JSDoc: Comprehensive documentation on all components
+
+### Key Achievement
+
+**DMMenu.tsx Phase 4 complete!** From 1,588 lines to 548 lines through systematic extraction of complex controls with:
+
+- Mathematical logic preservation (viewport calculations, coordinate conversions, rotation transforms)
+- Comprehensive characterization tests (139 new tests in Phase 4)
+- Zero behavioral changes (all existing functionality preserved)
+- Clean component boundaries (each <350 LOC)
+- Proven 4-step TDD pattern (tests → extract → integrate → commit)
+
+**This demonstrates the effectiveness of the characterization-test-first pattern for safe refactoring of complex UI components.**
+
+### Future Work
+
+**Phase 5 Targets (Next):**
+
+- SessionPersistenceControl (Priority 13, ~60 LOC)
+- RoomPasswordControl (Priority 14, ~80 LOC)
+- Expected reduction: ~140 LOC → DMMenu.tsx down to ~408 LOC
+
+See `docs/refactoring/DMMENU_PHASE5_HANDOFF.md` for Phase 5 details.
+
+---
+
+## ✅ Phase 15: SOLID Refactor Initiative - MainLayout.tsx COMPLETE (October 21, 2025)
+
+**Goal**: Decompose MainLayout.tsx from 795 LOC "god file" to well-organized composition component with clean separation of concerns.
+
+### MainLayout.tsx Refactoring Achievement
+
+**Status**: MainLayout.tsx refactoring COMPLETE - All planned extractions and organization improvements finished!
+
+- ✅ **MainLayout.tsx: 795 → 364 LOC (-54.2% reduction, -431 LOC)**
+- ✅ **Phase 1 COMPLETE:** 4/4 layout component extractions (-70 LOC from MainLayout, +1,012 LOC in new components)
+- ✅ **Phase 2 COMPLETE:** Props interface separation + handler extraction (-361 LOC, better organization)
+- ✅ **Completion Date:** October 21, 2025
+- 📄 **Detailed tracking:** See `/docs/refactoring/PHASE2_COMPLETION.md` and `/docs/refactoring/MAINLAYOUT_DECISIONS.md`
+
+### Completed Work
+
+#### Phase 1: Layout Component Extractions ✅ COMPLETE
+
+**4 Sub-Layout Components Created:**
+
+1. **TopPanelLayout** (171 LOC, 22 props, 46 tests)
+   - Extracted: ServerStatus, DrawingToolbar, Header, MultiSelectToolbar
+   - Purpose: Top panel with connection status and tool controls
+
+2. **CenterCanvasLayout** (241 LOC, 26 props, 70 tests)
+   - Extracted: MapBoard with dynamic positioning wrapper
+   - Purpose: Central canvas with map and drawing surface
+
+3. **FloatingPanelsLayout** (299 LOC, 52 props, 113 tests)
+   - Extracted: DMMenu, ContextMenu, VisualEffects, DiceRoller, RollLog, ToastContainer
+   - Purpose: Floating UI panels for DM controls and dice rolling
+
+4. **BottomPanelLayout** (301 LOC, 40 props, 78 tests)
+   - Extracted: EntitiesPanel with complex HP editing
+   - Purpose: Bottom panel with player/NPC character cards
+
+**Total Phase 1 Impact:**
+
+- MainLayout reduced: 795 → 725 LOC (-70 LOC, 8.8%)
+- New components: 1,012 LOC total across 4 files
+- Total tests: 307 characterization tests, all passing
+- All components <350 LOC (within target ✅)
+- All props interfaces <110 LOC
+
+#### Phase 2: Code Organization ✅ COMPLETE
+
+**Better Organization Through Separation:**
+
+1. **Extraction 5: Props Interface Separation**
+   - Created: `layouts/props/MainLayoutProps.ts` (376 LOC)
+   - Result: MainLayout 725 → 381 LOC (-344 LOC, 47.4% reduction)
+   - Benefit: Cleaner separation, reusable types, better organization
+
+2. **Extraction 6: Handler Hook Extraction**
+   - Created: `hooks/useEntityEditHandlers.ts` (152 LOC)
+   - Result: MainLayout 381 → 365 LOC (-16 LOC)
+   - Benefit: Better testability, cleaner component body
+
+3. **Extraction 8: Import Cleanup**
+   - Result: MainLayout 365 → 364 LOC (-1 LOC)
+   - Benefit: Removed unused MapBoard import
+
+**Phase 2 Key Insight:**
+MainLayout is a **pure composition component** (0 state, 0 logic, 110 props forwarding) serving as the API contract between App.tsx and layout components. The 364 LOC is appropriate for this role. Further reduction would harm code quality.
+
+**Effective Component Body:** 204 LOC (excluding 160 LOC mechanical props destructuring) ✅ Achieves <250 LOC target!
+
+### Files Created
+
+**Layout Components:**
+
+- `apps/client/src/layouts/TopPanelLayout.tsx`
+- `apps/client/src/layouts/CenterCanvasLayout.tsx`
+- `apps/client/src/layouts/FloatingPanelsLayout.tsx`
+- `apps/client/src/layouts/BottomPanelLayout.tsx`
+
+**Props & Hooks:**
+
+- `apps/client/src/layouts/props/MainLayoutProps.ts`
+- `apps/client/src/layouts/props/index.ts`
+- `apps/client/src/hooks/useEntityEditHandlers.ts`
+
+**Tests:**
+
+- `apps/client/src/layouts/__tests__/TopPanelLayout.characterization.test.tsx` (46 tests)
+- `apps/client/src/layouts/__tests__/CenterCanvasLayout.characterization.test.tsx` (70 tests)
+- `apps/client/src/layouts/__tests__/FloatingPanelsLayout.characterization.test.tsx` (113 tests)
+- `apps/client/src/layouts/__tests__/BottomPanelLayout.characterization.test.tsx` (78 tests)
+
+**Documentation:**
+
+- `docs/refactoring/MAINLAYOUT_DECISIONS.md` - Complete decision log
+- `docs/refactoring/PHASE2_COMPLETION.md` - Phase 2 analysis and completion report
+- `docs/refactoring/archive/MAINLAYOUT_HANDOFF.md` - Archived handoff document
+- `docs/refactoring/archive/MAINLAYOUT_REFACTOR_BRIEF.md` - Archived original brief
+- `docs/refactoring/archive/MAINLAYOUT_MANAGER_PROMPT.txt` - Archived manager instructions
+
+### Success Criteria Achieved
+
+- ✅ MainLayout.tsx reduced from 795 to 364 LOC (54.2% reduction)
+- ✅ All 4 sub-layout components created (<350 LOC each)
+- ✅ Props interface separated for better organization
+- ✅ Handler hook extracted for better testability
+- ✅ All components follow SRP/SoC principles
+- ✅ Comprehensive test coverage (307 characterization tests, 100% passing)
+- ✅ All 923 client tests passing (100% pass rate)
+- ✅ Zero behavioral changes - complete behavior preservation
+- ✅ TypeScript compilation passes with no errors
+- ✅ Clean code organization with explicit prop passing
+
+### Technical Metrics
+
+**LOC Reduction:**
+
+- MainLayout.tsx: 795 → 364 LOC (-431 LOC, -54.2%)
+- Props interface: Relocated to dedicated file (376 LOC)
+- Handler logic: Relocated to custom hook (152 LOC)
+
+**Test Coverage:**
+
+- Characterization tests: 307 tests (46 + 70 + 113 + 78)
+- All client tests: 923 passing
+- Execution time: Fast (<2 seconds for all layout tests)
+- Coverage: 100% behavior preservation verified
+
+**Code Quality:**
+
+- TypeScript: Strict mode, no errors
+- Explicit prop passing: Clear data flow
+- React.memo: Performance optimization
+- JSDoc: Comprehensive documentation
+- Clean separation: Interface, logic, presentation
+
+### Key Achievement
+
+**MainLayout.tsx is now a clean composition component!** From a 795-line "god file" to a well-organized 364-line orchestrator with:
+
+- Clear separation of concerns (4 sub-layout components)
+- Explicit prop forwarding (110 props, type-safe)
+- Dedicated props interface file (reusable types)
+- Extracted handler hook (testable logic)
+- Comprehensive test coverage (307 characterization tests)
+
+**This establishes the pattern for future SOLID refactoring across the codebase.**
+
+### Future Work
+
+**Note**: The following Phase 15 targets remain for future refactoring:
+
+- DMMenu.tsx modularization
+- MapBoard.tsx decomposition
+- Drawing workflow cleanup
+- Networking & messaging boundaries
+- Server domain isolation
+- Shared models partitioning
+
+These are documented in TODO.md as future work under "Phase 15: SOLID Refactor Initiative (Future Work)".
+
+---
+
+## ✅ Phase 15: SOLID Refactor Initiative - App.tsx COMPLETE (October 20, 2025)
+
+**Goal**: Break down oversized "god files", restore SRP/SoC boundaries, and pair each change with forward-looking tests.
+
+### App.tsx Refactoring Achievement
+
+**Status**: App.tsx refactoring COMPLETE - All planned extractions finished!
+
+- ✅ **App.tsx: 1,850 → 519 LOC (-72% reduction, -1,331 LOC)**
+- ✅ **Phase 1 COMPLETE:** 9/9 extractions from App.tsx (-547 LOC)
+- ✅ **Phase 4 COMPLETE:** 2/2 active extractions from App.tsx (-65 LOC, +48 tests)
+- ✅ **Completion Date:** October 20, 2025
+- 📄 **Detailed tracking:** See `/docs/refactoring/REFACTOR_ROADMAP.md` and `/docs/refactoring/PHASE4_SUMMARY.md`
+
+### Completed Work
+
+#### Guardrails & Baseline ✅ COMPLETE
+
+- [x] Record current line counts and responsibilities for top 10 files
+- [x] Define max LOC per component (<350) and cross-domain import rules
+- [x] Update CONTRIBUTING.md with SOLID/SOC checklist and reviewer prompts
+- [x] CI enforcement active (structure guardrails)
+
+#### TDD & Safety Net ✅ COMPLETE
+
+- [x] Capture characterization tests for each hotspot before refactor
+- [x] All Phase 1 & 4 extractions include comprehensive tests
+- [x] Coverage maintained at >80% per module
+- [x] 365 tests passing (100% pass rate)
+
+#### Client Shell Decomposition ✅ COMPLETE (App.tsx)
+
+All extractions from App.tsx completed:
+
+1. **Auth gate extracted:** `AuthenticationGate` component (Phase 1, Priority 7)
+2. **Server event handling:** `useServerEventHandlers` hook (Phase 4, Priority 18)
+3. **NPC management:** `useNpcManagement` hook (Phase 4, Priority 19)
+4. **Visual effects:** `VisualEffects` component (Phase 1, Priority 6)
+5. **Context menu:** `ContextMenu` component (Phase 1, Priority 8)
+6. **Multi-select toolbar:** `MultiSelectToolbar` component (Phase 1, Priority 9)
+7. **Keyboard shortcuts:** `useKeyboardShortcuts` hook (Priority 28)
+8. **Map alignment:** `useMapAlignment` hook (Priority 26)
+9. All other planned extractions completed
+
+### Success Criteria Achieved
+
+- ✅ App.tsx reduced from 1,850 to 519 LOC (72% reduction)
+- ✅ All extracted modules follow SRP/SoC principles
+- ✅ Comprehensive test coverage for all extractions (>80% per module)
+- ✅ 365 tests passing (100% pass rate)
+- ✅ CI enforcement active for structural guardrails
+- ✅ CONTRIBUTING.md updated with SOLID/SOC guidelines
+
+### Future Work
+
+**Note**: The following Phase 15 targets remain for future refactoring:
+
+- DMMenu.tsx modularization (Phase 15.2)
+- MapBoard.tsx decomposition (Phase 15.3)
+- Drawing workflow cleanup (Phase 15.4)
+- Networking & messaging boundaries (Phase 15.5)
+- Server domain isolation (Phase 15.6)
+- Shared models partitioning (Phase 15.7)
+
+These are documented in TODO.md as future work under "Phase 15: SOLID Refactor Initiative (Future Work)".
+
+### Key Achievement
+
+**App.tsx is now lean and focused!** From a 1,850-line "god component" to a clean 519-line orchestrator. All business logic properly extracted into focused, tested modules. This establishes the pattern for future SOLID refactoring across the codebase.
+
+---
+
+## ✅ Multi-Character Support for Single Players (October 20, 2025)
+
+### Feature Overview
+
+Allows one physical player to control multiple characters over a single WebSocket connection. Players can create additional character cards via Player Settings, each with independent HP, portraits, tokens, and drawings.
+
+### Core Implementation
+
+- [x] **Player-Initiated Character Creation**
+  - [x] "Add Character" button in Player Settings menu (non-DM players only)
+  - [x] Confirmation dialog: "Are you sure you want to have 2 separate characters in the campaign?"
+  - [x] Character name prompt with default "Character 2"
+  - [x] Creates PC-type character with token at spawn position
+  - [x] Auto-claims character for requesting player
+
+- [x] **UI Architecture Refactor**
+  - [x] EntitiesPanel now renders one card per Character (not per Player)
+  - [x] Filters characters by `ownedByPlayerUID` to show all player characters
+  - [x] Each card displays character-specific name, HP, maxHp, and portrait
+  - [x] Players with 0 characters show no cards (only if DM deleted all)
+  - [x] DM player separation preserved (appears first with visual divider)
+
+- [x] **Server-Side Architecture**
+  - [x] New message type: `add-player-character` with name and optional maxHp
+  - [x] Validation middleware for character creation messages
+  - [x] Auto-creates first character when player connects
+  - [x] Character-token linkage via `character.tokenId`
+  - [x] 1:many relationship: One player UID owns multiple characters
+
+- [x] **Connection Handler Integration**
+  - [x] Auto-creates character for new players on first connect
+  - [x] Uses player's name and portrait for initial character
+  - [x] Creates token at spawn position and links to character
+  - [x] Backward compatibility with existing player data
+
+### Technical Details
+
+**Message Flow:**
+
+1. Client sends `{ t: "add-player-character", name: string, maxHp?: number }`
+2. Server creates PC character, auto-claims for requesting player
+3. Server creates token at spawn position and links to character
+4. Broadcast triggers UI update showing new character card
+
+**Character-Player Relationship:**
+
+- Characters have `ownedByPlayerUID` field (player UID)
+- Tokens have `owner` field (player UID)
+- Characters link to tokens via `tokenId`
+- Multiple characters can share same `ownedByPlayerUID`
+
+### Files Changed
+
+**Shared Types:**
+
+- `packages/shared/src/index.ts` - Added `add-player-character` message type
+
+**Server:**
+
+- `apps/server/src/middleware/validation.ts` - Validation for new message
+- `apps/server/src/ws/messageRouter.ts` - Handler for character creation
+- `apps/server/src/ws/connectionHandler.ts` - Auto-create character on connect
+
+**Client:**
+
+- `apps/client/src/ui/App.tsx` - Handler for add character action
+- `apps/client/src/components/layout/EntitiesPanel.tsx` - Render by character
+- `apps/client/src/features/players/components/PlayerCard.tsx` - Pass handler
+- `apps/client/src/features/players/components/PlayerSettingsMenu.tsx` - UI button
+
+### Use Cases
+
+- **Multi-character player**: One person controls 2 characters in campaign
+- **Character replacement**: Player creates new character mid-campaign
+- **Party composition**: Flexible character management per player
+- **Edge case support**: Handles groups where one player controls multiple PCs
+
+### Benefits
+
+Players can now manage multiple characters simultaneously without needing separate connections. Each character maintains independent game state (HP, portrait, token, drawings) while sharing player identity (UID, WebSocket connection, voice chat). Perfect for solo campaigns or players controlling multiple party members.
+
+**Status**: Feature complete. All tests passing. Ready for production use.
 
 ---
 

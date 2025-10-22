@@ -26,9 +26,15 @@ interface EntitiesPanelProps {
   onNameInputChange: (value: string) => void;
   onNameEdit: (uid: string, currentName: string) => void;
   onNameSubmit: () => void;
+  onCharacterNameUpdate: (characterId: string, name: string) => void;
   onPortraitLoad: () => void;
   onToggleMic: () => void;
-  onHpChange: (hp: number, maxHp: number) => void;
+  onCharacterHpChange: (characterId: string, hp: number, maxHp: number) => void;
+  editingHpUID: string | null;
+  hpInput: string;
+  onHpInputChange: (value: string) => void;
+  onHpEdit: (uid: string, currentHp: number) => void;
+  onHpSubmit: () => void;
   onMaxHpInputChange: (value: string) => void;
   onMaxHpEdit: (uid: string, currentMaxHp: number) => void;
   onMaxHpSubmit: () => void;
@@ -46,6 +52,8 @@ interface EntitiesPanelProps {
   onPlayerTokenDelete: (tokenId: string) => void;
   onToggleTokenLock: (sceneObjectId: string, locked: boolean) => void;
   onTokenSizeChange: (tokenId: string, size: TokenSize) => void;
+  onAddCharacter: (name: string) => void;
+  onDeleteCharacter: (characterId: string) => void;
   bottomPanelRef?: React.RefObject<HTMLDivElement>;
 }
 
@@ -61,16 +69,17 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   drawings,
   uid,
   micEnabled,
-  editingPlayerUID,
-  nameInput,
   editingMaxHpUID,
   maxHpInput,
-  onNameInputChange,
-  onNameEdit,
-  onNameSubmit,
+  onCharacterNameUpdate,
   onPortraitLoad,
   onToggleMic,
-  onHpChange,
+  onCharacterHpChange,
+  editingHpUID,
+  hpInput,
+  onHpInputChange,
+  onHpEdit,
+  onHpSubmit,
   onMaxHpInputChange,
   onMaxHpEdit,
   onMaxHpSubmit,
@@ -84,9 +93,13 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   onNpcPlaceToken,
   onToggleTokenLock,
   onTokenSizeChange,
+  onAddCharacter,
+  onDeleteCharacter,
   bottomPanelRef,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
+  const [characterNameInput, setCharacterNameInput] = useState("");
 
   const npcCharacters = useMemo(
     () => characters.filter((character) => character.type === "npc"),
@@ -117,15 +130,33 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   }, [drawings]);
 
   const entities = useMemo(() => {
-    const playerEntities = players.map((player) => {
-      const token = tokens.find((t: Token) => t.owner === player.uid);
-      return {
-        kind: "player" as const,
-        id: player.uid,
-        player,
-        token,
-        isMe: player.uid === uid,
-      };
+    // For each player, create character entities for all their owned characters
+    const characterEntitiesByPlayer = players.flatMap((player) => {
+      // Find all characters owned by this player
+      const playerCharacters = characters.filter((c) => c.ownedByPlayerUID === player.uid);
+
+      // If player has no characters, don't show any cards
+      // This only happens if DM deleted all their characters
+      // (new players spawn with at least one character from connection handler)
+      if (playerCharacters.length === 0) {
+        return [];
+      }
+
+      // Create an entity for each character owned by this player
+      return playerCharacters.map((character) => {
+        const token = character.tokenId
+          ? tokens.find((t: Token) => t.id === character.tokenId)
+          : tokens.find((t: Token) => t.owner === player.uid);
+
+        return {
+          kind: "character" as const,
+          id: `${player.uid}-${character.id}`,
+          player,
+          character,
+          token,
+          isMe: player.uid === uid,
+        };
+      });
     });
 
     const npcEntities = npcCharacters.map((character) => ({
@@ -138,13 +169,11 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
     // DM appears first (left-most) and is visually distinct from players
     // FUTURE: When initiative is implemented, filter out DM (players.filter(p => !p.isDM))
     // and keep DM in fixed position while other players reorder
-    const dmEntity = playerEntities.find((e) => e.player.isDM);
-    const regularPlayers = playerEntities.filter((e) => !e.player.isDM);
+    const dmEntities = characterEntitiesByPlayer.filter((e) => e.player.isDM);
+    const regularEntities = characterEntitiesByPlayer.filter((e) => !e.player.isDM);
 
-    return dmEntity
-      ? [dmEntity, ...regularPlayers, ...npcEntities]
-      : [...regularPlayers, ...npcEntities];
-  }, [players, tokens, npcCharacters, uid]);
+    return [...dmEntities, ...regularEntities, ...npcEntities];
+  }, [players, characters, tokens, npcCharacters, uid]);
 
   return (
     <div
@@ -214,16 +243,26 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
               }}
             >
               {entities.map((entity, index) => {
-                if (entity.kind === "player") {
-                  const { player, token, isMe } = entity;
+                if (entity.kind === "character") {
+                  const { player, character, token, isMe } = entity;
                   const tokenSceneObject = token ? (tokenSceneMap.get(token.id) ?? null) : null;
                   const playerDrawings = drawingsByOwner.get(player.uid) ?? [];
                   const isDM = player.isDM ?? false;
                   const isFirstDM = isDM && index === 0;
 
+                  // Merge player data with character-specific data
+                  const displayPlayer = {
+                    ...player,
+                    name: character.name,
+                    hp: character.hp,
+                    maxHp: character.maxHp,
+                    // Use player.portrait (set via PlayerSettingsMenu), fallback to character.portrait
+                    portrait: player.portrait ?? character.portrait,
+                  };
+
                   return (
                     <div
-                      key={`player-${player.uid}`}
+                      key={entity.id}
                       style={{
                         position: "relative",
                         width: "160px",
@@ -237,28 +276,44 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                       }}
                     >
                       <PlayerCard
-                        player={player}
+                        player={displayPlayer}
                         isMe={isMe}
                         tokenColor={token?.color}
-                        token={token}
+                        token={token ?? undefined}
                         tokenSceneObject={tokenSceneObject}
                         playerDrawings={playerDrawings}
                         statusEffects={player.statusEffects}
                         micEnabled={micEnabled}
-                        editingPlayerUID={editingPlayerUID}
-                        nameInput={nameInput}
-                        onNameInputChange={onNameInputChange}
-                        onNameEdit={onNameEdit}
-                        onNameSubmit={onNameSubmit}
+                        editingPlayerUID={editingCharacterId === character.id ? player.uid : null}
+                        nameInput={characterNameInput}
+                        onNameInputChange={setCharacterNameInput}
+                        onNameEdit={() => {
+                          setEditingCharacterId(character.id);
+                          setCharacterNameInput(character.name);
+                        }}
+                        onNameSubmit={() => {
+                          if (characterNameInput.trim()) {
+                            onCharacterNameUpdate(character.id, characterNameInput.trim());
+                          }
+                          setEditingCharacterId(null);
+                          setCharacterNameInput("");
+                        }}
                         onPortraitLoad={onPortraitLoad}
                         onToggleMic={onToggleMic}
-                        onHpChange={(hp) => onHpChange(hp, player.maxHp ?? 100)}
+                        onHpChange={(hp) =>
+                          onCharacterHpChange(character.id, hp, displayPlayer.maxHp ?? 100)
+                        }
+                        editingHpUID={editingHpUID}
+                        hpInput={hpInput}
+                        onHpInputChange={onHpInputChange}
+                        onHpEdit={onHpEdit}
+                        onHpSubmit={onHpSubmit}
                         editingMaxHpUID={editingMaxHpUID}
                         maxHpInput={maxHpInput}
                         onMaxHpInputChange={onMaxHpInputChange}
                         onMaxHpEdit={onMaxHpEdit}
                         onMaxHpSubmit={onMaxHpSubmit}
-                        tokenImageUrl={token?.imageUrl ?? undefined}
+                        tokenImageUrl={character?.tokenImage ?? token?.imageUrl ?? undefined}
                         onTokenImageSubmit={
                           isMe && token ? (url) => onTokenImageChange(token.id, url) : undefined
                         }
@@ -288,6 +343,9 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                             ? (size: TokenSize) => onTokenSizeChange(token.id, size)
                             : undefined
                         }
+                        onAddCharacter={isMe ? onAddCharacter : undefined}
+                        characterId={character.id}
+                        onDeleteCharacter={isMe ? onDeleteCharacter : undefined}
                       />
                     </div>
                   );

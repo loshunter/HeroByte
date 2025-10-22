@@ -42,6 +42,9 @@ interface PlayerSettingsMenuProps {
   onToggleTokenLock?: (locked: boolean) => void;
   tokenSize?: TokenSize;
   onTokenSizeChange?: (size: TokenSize) => void;
+  onAddCharacter?: (name: string) => void;
+  characterId?: string;
+  onDeleteCharacter?: (characterId: string) => void;
 }
 
 export function PlayerSettingsMenu({
@@ -63,6 +66,9 @@ export function PlayerSettingsMenu({
   onToggleTokenLock,
   tokenSize = "medium",
   onTokenSizeChange,
+  onAddCharacter,
+  characterId,
+  onDeleteCharacter,
 }: PlayerSettingsMenuProps): JSX.Element | null {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -289,6 +295,52 @@ export function PlayerSettingsMenu({
             })}
           </div>
         </JRPGPanel>
+
+        {/* Add Character - only show for non-DM players */}
+        {!isDM && onAddCharacter && (
+          <JRPGPanel
+            variant="simple"
+            style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
+          >
+            <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
+              Multiple Characters
+            </span>
+            <JRPGButton
+              onClick={() => {
+                const confirmed = confirm(
+                  "Are you sure you want to have 2 separate characters in the campaign?\n\nThis will create a new character card with its own HP, portrait, and token that you control.",
+                );
+                if (confirmed) {
+                  const name = prompt("Enter character name:", "Character 2");
+                  if (name && name.trim()) {
+                    onAddCharacter(name.trim());
+                  }
+                }
+              }}
+              variant="primary"
+              style={{ fontSize: "10px" }}
+            >
+              ➕ Add Character
+            </JRPGButton>
+            {characterId && onDeleteCharacter && (
+              <JRPGButton
+                onClick={() => {
+                  if (
+                    confirm(
+                      "Delete this character? This will remove the character and their token.",
+                    )
+                  ) {
+                    onDeleteCharacter(characterId);
+                  }
+                }}
+                variant="danger"
+                style={{ fontSize: "10px" }}
+              >
+                🗑️ Delete this character
+              </JRPGButton>
+            )}
+          </JRPGPanel>
+        )}
 
         {isDM && onDeleteToken && (
           <JRPGPanel variant="simple" style={{ padding: "12px" }}>

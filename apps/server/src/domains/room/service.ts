@@ -89,6 +89,7 @@ export class RoomService {
             tokenImage: character.tokenImage ?? null,
             tokenId: character.tokenId ?? null,
           })),
+          props: data.props || [],
           mapBackground: data.mapBackground,
           pointers: [], // Don't persist pointers - they expire
           drawings: data.drawings || [],
@@ -118,6 +119,7 @@ export class RoomService {
         tokens: this.state.tokens,
         players: this.state.players,
         characters: this.state.characters,
+        props: this.state.props,
         mapBackground: this.state.mapBackground,
         drawings: this.state.drawings,
         gridSize: this.state.gridSize,
@@ -175,6 +177,7 @@ export class RoomService {
       tokens: snapshot.tokens ?? [],
       players: mergedPlayers,
       characters: loadedCharacters,
+      props: snapshot.props ?? [],
       mapBackground: snapshot.mapBackground,
       pointers: [], // Clear pointers on load
       drawings: hasSceneObjects ? [] : (snapshot.drawings ?? []),
@@ -352,6 +355,14 @@ export class RoomService {
         if (!isDM) return false;
         if (!this.state.playerStagingZone) return false;
 
+        console.log("[DEBUG] Staging zone transform:", {
+          position: changes.position,
+          scale: changes.scale,
+          rotation: changes.rotation,
+          currentTransform: object.transform,
+          currentZone: this.state.playerStagingZone,
+        });
+
         if (changes.position) {
           this.state.playerStagingZone.x = changes.position.x;
           this.state.playerStagingZone.y = changes.position.y;
@@ -359,23 +370,18 @@ export class RoomService {
         }
 
         if (changes.scale) {
-          const { scaleX, scaleY } = object.transform;
-          const nextScaleX = changes.scale.x;
-          const nextScaleY = changes.scale.y;
-          const baseWidth =
-            this.state.playerStagingZone.width / (Math.abs(scaleX) < 1e-6 ? 1 : scaleX);
-          const baseHeight =
-            this.state.playerStagingZone.height / (Math.abs(scaleY) < 1e-6 ? 1 : scaleY);
+          // Apply scale to transform (don't bake into width/height)
+          // The width/height remain as "base" values, and we scale them via transform
+          applyScale(changes.scale);
 
-          this.state.playerStagingZone.width = Math.max(1, baseWidth * nextScaleX);
-          this.state.playerStagingZone.height = Math.max(1, baseHeight * nextScaleY);
-
-          object.transform.scaleX = 1;
-          object.transform.scaleY = 1;
-          if (object.type === "staging-zone") {
-            object.data.width = this.state.playerStagingZone.width;
-            object.data.height = this.state.playerStagingZone.height;
-          }
+          console.log("[DEBUG] Staging zone scale applied:", {
+            baseWidth: this.state.playerStagingZone.width,
+            baseHeight: this.state.playerStagingZone.height,
+            scaleX: changes.scale.x,
+            scaleY: changes.scale.y,
+            finalWidth: this.state.playerStagingZone.width * changes.scale.x,
+            finalHeight: this.state.playerStagingZone.height * changes.scale.y,
+          });
         }
 
         if (typeof changes.rotation === "number") {
@@ -402,7 +408,29 @@ export class RoomService {
       }
 
       case "prop": {
-        if (!isDM && object.owner && object.owner !== actorUid) return false;
+        // Find the source prop entity
+        const propId = object.id.replace(/^prop:/, "");
+        const prop = this.state.props.find((candidate) => candidate.id === propId);
+        if (!prop) return false;
+
+        // Permission check: DM can always edit, owner="*" means everyone, or specific owner
+        const canEdit = isDM || prop.owner === "*" || prop.owner === actorUid;
+        if (!canEdit) return false;
+
+        // Update source Prop entity
+        if (changes.position) {
+          prop.x = changes.position.x;
+          prop.y = changes.position.y;
+        }
+        if (changes.scale) {
+          prop.scaleX = changes.scale.x;
+          prop.scaleY = changes.scale.y;
+        }
+        if (typeof changes.rotation === "number") {
+          prop.rotation = changes.rotation;
+        }
+
+        // Apply to SceneObject
         applyPosition(changes.position);
         applyScale(changes.scale);
         applyRotation(changes.rotation);
@@ -491,6 +519,31 @@ export class RoomService {
       });
     }
 
+    // Props -> scene objects
+    for (const prop of this.state.props) {
+      const id = `prop:${prop.id}`;
+      const prev = existing.get(id);
+      next.push({
+        id,
+        type: "prop",
+        owner: prop.owner,
+        locked: prev?.locked ?? false,
+        zIndex: prev?.zIndex ?? 7, // Above drawings (5), below tokens (10)
+        transform: {
+          x: prop.x,
+          y: prop.y,
+          scaleX: prop.scaleX,
+          scaleY: prop.scaleY,
+          rotation: prop.rotation,
+        },
+        data: {
+          imageUrl: prop.imageUrl,
+          label: prop.label,
+          size: prop.size,
+        },
+      });
+    }
+
     // Player staging zone
     if (this.state.playerStagingZone) {
       const zone = this.state.playerStagingZone;
@@ -500,13 +553,13 @@ export class RoomService {
         id,
         type: "staging-zone",
         owner: null,
-        locked: prev?.locked ?? true,
-        zIndex: prev?.zIndex ?? -80,
+        locked: prev?.locked ?? false,
+        zIndex: prev?.zIndex ?? 1,
         transform: {
           x: zone.x,
           y: zone.y,
-          scaleX: 1,
-          scaleY: 1,
+          scaleX: prev?.type === "staging-zone" ? prev.transform.scaleX : 1,
+          scaleY: prev?.type === "staging-zone" ? prev.transform.scaleY : 1,
           rotation: zone.rotation ?? 0,
         },
         data: {

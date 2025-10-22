@@ -9,11 +9,15 @@ interface HPBarProps {
   hp: number;
   maxHp: number;
   isMe: boolean;
+  isEditingHp: boolean;
+  hpInput: string;
   isEditingMaxHp: boolean;
   maxHpInput: string;
   playerUid: string;
   onHpChange: (hp: number) => void;
-  onHpSet?: (hp: number) => void;
+  onHpInputChange: (value: string) => void;
+  onHpEdit: (uid: string, hp: number) => void;
+  onHpSubmit: (value: string) => void;
   onMaxHpInputChange: (value: string) => void;
   onMaxHpEdit: (uid: string, maxHp: number) => void;
   onMaxHpSubmit: (value: string) => void;
@@ -23,11 +27,15 @@ export const HPBar: React.FC<HPBarProps> = ({
   hp,
   maxHp,
   isMe,
+  isEditingHp,
+  hpInput,
   isEditingMaxHp,
   maxHpInput,
   playerUid,
   onHpChange,
-  onHpSet,
+  onHpInputChange,
+  onHpEdit,
+  onHpSubmit,
   onMaxHpInputChange,
   onMaxHpEdit,
   onMaxHpSubmit,
@@ -62,23 +70,44 @@ export const HPBar: React.FC<HPBarProps> = ({
   return (
     <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "4px" }}>
       <div className="jrpg-text-small" style={{ color: "var(--jrpg-gold)", textAlign: "center" }}>
-        <span
-          onDoubleClick={() => {
-            if (!isMe || !onHpSet) return;
-            const input = prompt("Set current HP", String(hp));
-            if (input === null) return;
-            const numeric = Number.parseInt(input, 10);
-            if (Number.isNaN(numeric)) return;
-            const clamped = Math.max(0, Math.min(numeric, maxHp));
-            onHpSet(clamped);
-          }}
-          style={{
-            cursor: isMe && onHpSet ? "pointer" : "default",
-            textDecoration: isMe && onHpSet ? "underline" : "none",
-          }}
-        >
-          HP: {hp}
-        </span>
+        HP:{" "}
+        {isEditingHp ? (
+          <input
+            type="number"
+            value={hpInput}
+            onChange={(e) => onHpInputChange(e.target.value)}
+            onBlur={() => onHpSubmit(hpInput)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                onHpSubmit(hpInput);
+              }
+            }}
+            autoFocus
+            style={{
+              width: "40px",
+              fontSize: "8px",
+              background: "var(--jrpg-navy)",
+              color: "var(--jrpg-cyan)",
+              border: "1px solid var(--jrpg-border-gold)",
+              padding: "2px",
+              textAlign: "center",
+            }}
+          />
+        ) : (
+          <span
+            onClick={() => {
+              if (isMe) {
+                onHpEdit(playerUid, hp);
+              }
+            }}
+            style={{
+              cursor: isMe ? "pointer" : "default",
+              textDecoration: isMe ? "underline" : "none",
+            }}
+          >
+            {hp}
+          </span>
+        )}
         {" / "}
         {isEditingMaxHp ? (
           <input

@@ -251,10 +251,30 @@ export class ConnectionHandler {
       player = this.container.playerService.createPlayer(state, uid);
     }
 
-    const existingToken = this.container.tokenService.findTokenByOwner(state, uid);
-    if (!existingToken) {
+    // Create character if player doesn't have one
+    const existingCharacter = this.container.characterService.findCharacterByOwner(state, uid);
+    if (!existingCharacter) {
+      const character = this.container.characterService.createCharacter(
+        state,
+        player.name,
+        100, // default maxHp
+        player.portrait,
+        "pc",
+      );
+      this.container.characterService.claimCharacter(state, character.id, uid);
+
+      // Create token for the character
       const spawn = this.container.roomService.getPlayerSpawnPosition();
-      this.container.tokenService.createToken(state, uid, spawn.x, spawn.y);
+      const token = this.container.tokenService.createToken(state, uid, spawn.x, spawn.y);
+      this.container.characterService.linkToken(state, character.id, token.id);
+    } else {
+      // Player reconnecting - ensure they have a token
+      const existingToken = this.container.tokenService.findTokenByOwner(state, uid);
+      if (!existingToken) {
+        const spawn = this.container.roomService.getPlayerSpawnPosition();
+        const token = this.container.tokenService.createToken(state, uid, spawn.x, spawn.y);
+        this.container.characterService.linkToken(state, existingCharacter.id, token.id);
+      }
     }
 
     // Track authentication state

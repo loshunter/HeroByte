@@ -25,11 +25,16 @@ export interface PlayerCardProps {
   editingPlayerUID: string | null;
   nameInput: string;
   onNameInputChange: (name: string) => void;
-  onNameEdit: (uid: string, name: string) => void;
-  onNameSubmit: (name: string) => void;
+  onNameEdit: () => void;
+  onNameSubmit: () => void;
   onPortraitLoad: () => void;
   onToggleMic: () => void;
   onHpChange: (hp: number) => void;
+  editingHpUID: string | null;
+  hpInput: string;
+  onHpInputChange: (hp: string) => void;
+  onHpEdit: (uid: string, hp: number) => void;
+  onHpSubmit: (hp: string) => void;
   editingMaxHpUID: string | null;
   maxHpInput: string;
   onMaxHpInputChange: (maxHp: string) => void;
@@ -47,6 +52,9 @@ export interface PlayerCardProps {
   onToggleTokenLock?: (locked: boolean) => void;
   tokenSize?: TokenSize;
   onTokenSizeChange?: (size: TokenSize) => void;
+  onAddCharacter?: (name: string) => void;
+  characterId?: string;
+  onDeleteCharacter?: (characterId: string) => void;
 }
 
 export const PlayerCard = memo<PlayerCardProps>(
@@ -67,6 +75,11 @@ export const PlayerCard = memo<PlayerCardProps>(
     onPortraitLoad,
     onToggleMic,
     onHpChange,
+    editingHpUID,
+    hpInput,
+    onHpInputChange,
+    onHpEdit,
+    onHpSubmit,
     editingMaxHpUID,
     maxHpInput,
     onMaxHpInputChange,
@@ -84,9 +97,13 @@ export const PlayerCard = memo<PlayerCardProps>(
     tokenSize,
     onTokenSizeChange,
     onStatusEffectsChange,
+    onAddCharacter,
+    characterId,
+    onDeleteCharacter,
   }) => {
     const editing = editingPlayerUID === player.uid;
-    const editingMaxHp = editingMaxHpUID === player.uid;
+    const editingHp = editingHpUID === (characterId ?? player.uid);
+    const editingMaxHp = editingMaxHpUID === (characterId ?? player.uid);
     const [tokenImageInput, setTokenImageInput] = useState(tokenImageUrl ?? "");
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [statusOption, setStatusOption] = useState<StatusOption | null>(null);
@@ -240,11 +257,15 @@ export const PlayerCard = memo<PlayerCardProps>(
           hp={player.hp ?? 100}
           maxHp={player.maxHp ?? 100}
           isMe={isMe}
+          isEditingHp={editingHp}
+          hpInput={hpInput}
           isEditingMaxHp={editingMaxHp}
           maxHpInput={maxHpInput}
-          playerUid={player.uid}
+          playerUid={characterId ?? player.uid}
           onHpChange={onHpChange}
-          onHpSet={onHpChange}
+          onHpInputChange={onHpInputChange}
+          onHpEdit={onHpEdit}
+          onHpSubmit={onHpSubmit}
           onMaxHpInputChange={onMaxHpInputChange}
           onMaxHpEdit={onMaxHpEdit}
           onMaxHpSubmit={onMaxHpSubmit}
@@ -279,6 +300,9 @@ export const PlayerCard = memo<PlayerCardProps>(
           onToggleTokenLock={onToggleTokenLock}
           tokenSize={tokenSize}
           onTokenSizeChange={onTokenSizeChange}
+          onAddCharacter={onAddCharacter}
+          characterId={characterId}
+          onDeleteCharacter={onDeleteCharacter}
         />
       </div>
     );

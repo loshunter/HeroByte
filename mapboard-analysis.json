@@ -1,0 +1,818 @@
+{
+  "file": "/home/loshunter/HeroByte/apps/client/src/ui/MapBoard.tsx",
+  "totalLines": 1042,
+  "analysis": {
+    "summary": "MapBoard.tsx is a complex Konva-based canvas component that orchestrates VTT rendering and interaction. It handles camera controls, tool coordination, stage rendering, object management, and event routing. The file manages too many concerns and would benefit from extracting specialized modules.",
+    "responsibilityClusters": [
+      {
+        "name": "Element Size Tracking",
+        "lineRanges": [[46, 61]],
+        "primaryResponsibility": "Custom React hook to track DOM element dimensions using ResizeObserver API",
+        "dependencies": ["React (useRef, useState, useEffect)", "ResizeObserver API"],
+        "dependents": ["MapBoard component (lines 172)", "Used to determine Stage dimensions"],
+        "complexityScore": 2,
+        "extractionTarget": {
+          "moduleName": "useElementSize",
+          "location": "/home/loshunter/HeroByte/apps/client/src/hooks/useElementSize.ts",
+          "reasoning": "Generic utility hook that has no VTT-specific logic. Can be reused across any React component needing element size tracking."
+        }
+      },
+      {
+        "name": "World-to-Local Coordinate Transform",
+        "lineRanges": [[63, 79]],
+        "primaryResponsibility": "Mathematical utility to convert world coordinates to local map coordinates considering transform (position, scale, rotation)",
+        "dependencies": ["SceneObject transform type", "Math utilities (cos, sin)"],
+        "dependents": ["handleAlignmentClick (line 292)"],
+        "complexityScore": 3,
+        "extractionTarget": {
+          "moduleName": "coordinateTransforms",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/utils/coordinateTransforms.ts",
+          "reasoning": "Pure mathematical utility function. Should be extracted to a map utilities module alongside other coordinate transformation functions."
+        }
+      },
+      {
+        "name": "Props Interface & Type Definitions",
+        "lineRanges": [[85, 125]],
+        "primaryResponsibility": "Type definitions for MapBoard component props including tool states, callbacks, and configuration",
+        "dependencies": [
+          "RoomSnapshot, ClientMessage, SceneObject types",
+          "AlignmentPoint, AlignmentSuggestion types",
+          "Camera type from useCamera hook"
+        ],
+        "dependents": ["MapBoard component signature (line 136)", "Parent components (App.tsx)"],
+        "complexityScore": 2,
+        "extractionTarget": {
+          "moduleName": "MapBoardTypes",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/types/MapBoardTypes.ts",
+          "reasoning": "Type definitions should be extracted for reusability and to reduce file size. The CameraCommand and SelectionRequestOptions types are also candidates."
+        }
+      },
+      {
+        "name": "Scene Object Management",
+        "lineRanges": [[175, 222]],
+        "primaryResponsibility": "Extract and compute derived scene objects (map, drawings, staging zone) from snapshot with memoization",
+        "dependencies": ["useSceneObjects hook", "React useMemo", "gridSize prop"],
+        "dependents": [
+          "Rendering layers (MapImageLayer, DrawingsLayer, etc.)",
+          "Transform handlers",
+          "Alignment logic"
+        ],
+        "complexityScore": 3,
+        "extractionTarget": {
+          "moduleName": "useMapSceneObjects",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/hooks/useMapSceneObjects.ts",
+          "reasoning": "Encapsulate scene object extraction and staging zone dimension calculations. This logic is tightly coupled to map rendering but can be isolated as a specialized hook."
+        }
+      },
+      {
+        "name": "Transform Gizmo State Management",
+        "lineRanges": [
+          [224, 229],
+          [612, 622]
+        ],
+        "primaryResponsibility": "Manage selected object state and node references for transform gizmo interactions",
+        "dependencies": ["sceneObjects", "selectedObjectId prop", "nodeRefsMap ref"],
+        "dependents": [
+          "TransformGizmo component (line 1031)",
+          "Layer components (for node ref callbacks)"
+        ],
+        "complexityScore": 2,
+        "extractionTarget": {
+          "moduleName": "useTransformGizmoState",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/hooks/useTransformGizmoState.ts",
+          "reasoning": "Isolate transform gizmo state management including node ref tracking and selection. Currently split across multiple locations in the file."
+        }
+      },
+      {
+        "name": "Drawing Selection State",
+        "lineRanges": [[232, 236]],
+        "primaryResponsibility": "Hook to manage selected drawing state (separate from general object selection)",
+        "dependencies": ["useDrawingSelection hook", "selectMode prop", "sendMessage callback"],
+        "dependents": ["Delete key handler (line 344)", "DrawingsLayer component (line 904)"],
+        "complexityScore": 2,
+        "extractionTarget": {
+          "moduleName": "Already extracted",
+          "location": "/home/loshunter/HeroByte/apps/client/src/hooks/useDrawingSelection.ts",
+          "reasoning": "This is already extracted as a hook, which is good separation of concerns."
+        }
+      },
+      {
+        "name": "Marquee Selection State",
+        "lineRanges": [[238, 247]],
+        "primaryResponsibility": "Manage marquee selection rectangle state (start and current positions)",
+        "dependencies": ["React useState, useEffect", "selectMode prop"],
+        "dependents": [
+          "Mouse event handlers (lines 428-440, 451-456)",
+          "applyMarqueeSelection function (line 651)",
+          "Marquee rendering (line 1013)"
+        ],
+        "complexityScore": 2,
+        "extractionTarget": {
+          "moduleName": "useMarqueeSelection",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/hooks/useMarqueeSelection.ts",
+          "reasoning": "Extract marquee selection logic including state, handlers, and intersection detection into a dedicated hook. This would clean up event handlers significantly."
+        }
+      },
+      {
+        "name": "Camera Control Integration",
+        "lineRanges": [
+          [249, 264],
+          [463, 491]
+        ],
+        "primaryResponsibility": "Integrate camera control hook and handle camera commands (reset, focus-token)",
+        "dependencies": [
+          "useCamera hook",
+          "cameraCommand prop",
+          "onCameraCommandHandled callback",
+          "snapshot, gridSize, viewport dimensions"
+        ],
+        "dependents": [
+          "Stage transformation (via cam state)",
+          "Mouse event handlers",
+          "Parent component (via onCameraChange)"
+        ],
+        "complexityScore": 3,
+        "extractionTarget": {
+          "moduleName": "useCameraController",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/hooks/useCameraController.ts",
+          "reasoning": "Combine useCamera hook with camera command handling logic. This would encapsulate all camera-related state and imperative operations in one place."
+        }
+      },
+      {
+        "name": "Pointer & Measure Tool Integration",
+        "lineRanges": [[266, 278]],
+        "primaryResponsibility": "Integrate pointer and measure tool hook for pointer indicators and distance measurement",
+        "dependencies": [
+          "usePointerTool hook",
+          "pointerMode, measureMode props",
+          "toWorld function from camera",
+          "sendMessage callback"
+        ],
+        "dependents": [
+          "onStageClick handler (line 417)",
+          "onMouseMove handler (line 448)",
+          "PointersLayer rendering (line 943)",
+          "MeasureLayer rendering (line 952)"
+        ],
+        "complexityScore": 2,
+        "extractionTarget": {
+          "moduleName": "Already extracted",
+          "location": "/home/loshunter/HeroByte/apps/client/src/hooks/usePointerTool.js",
+          "reasoning": "Already properly extracted as a hook. Good separation of concerns."
+        }
+      },
+      {
+        "name": "Alignment Tool Logic",
+        "lineRanges": [[280, 297]],
+        "primaryResponsibility": "Handle alignment point capture when user clicks in alignment mode",
+        "dependencies": [
+          "alignmentMode, onAlignmentPointCapture props",
+          "mapObject from scene",
+          "toWorld from camera",
+          "worldToMapLocal utility"
+        ],
+        "dependents": [
+          "onStageClick handler (line 396-399)",
+          "Alignment visualization (lines 959-1009)"
+        ],
+        "complexityScore": 3,
+        "extractionTarget": {
+          "moduleName": "useAlignmentTool",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/hooks/useAlignmentTool.ts",
+          "reasoning": "Extract alignment logic into a dedicated hook. Currently scattered across event handlers and rendering. Should include click handler, visualization data, and coordinate transformation."
+        }
+      },
+      {
+        "name": "Drawing Tool Integration",
+        "lineRanges": [[299, 316]],
+        "primaryResponsibility": "Integrate drawing tool hook for freehand, line, rect, circle drawing",
+        "dependencies": [
+          "useDrawingTool hook",
+          "drawMode, drawTool, drawColor, drawWidth, drawOpacity, drawFilled props",
+          "toWorld from camera",
+          "sendMessage callback"
+        ],
+        "dependents": [
+          "Mouse event handlers (lines 426, 449, 728)",
+          "DrawingsLayer currentDrawing prop (line 894)"
+        ],
+        "complexityScore": 2,
+        "extractionTarget": {
+          "moduleName": "Already extracted",
+          "location": "/home/loshunter/HeroByte/apps/client/src/hooks/useDrawingTool.js",
+          "reasoning": "Already properly extracted as a hook. Good separation of concerns."
+        }
+      },
+      {
+        "name": "Token Interaction State",
+        "lineRanges": [[318, 324]],
+        "primaryResponsibility": "Track hovered token state for visual feedback, reset on draw mode activation",
+        "dependencies": ["React useState, useEffect", "drawMode prop"],
+        "dependents": ["TokensLayer hoveredTokenId prop (line 928)"],
+        "complexityScore": 1,
+        "extractionTarget": {
+          "moduleName": "useTokenInteraction",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/hooks/useTokenInteraction.ts",
+          "reasoning": "Minor state management that could be combined with other token-specific interaction logic or left inline."
+        }
+      },
+      {
+        "name": "Grid Configuration State",
+        "lineRanges": [[326, 342]],
+        "primaryResponsibility": "Manage grid display configuration (size, color, opacity, major lines)",
+        "dependencies": ["React useState, useEffect", "gridSize prop"],
+        "dependents": ["GridLayer component (lines 826-835)"],
+        "complexityScore": 1,
+        "extractionTarget": {
+          "moduleName": "useGridConfig",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/hooks/useGridConfig.ts",
+          "reasoning": "Simple state management. Could extract to a hook or keep inline. If grid configuration becomes more complex, extraction would be beneficial."
+        }
+      },
+      {
+        "name": "Keyboard Event Handlers",
+        "lineRanges": [[344, 387]],
+        "primaryResponsibility": "Handle Delete key for deleting objects and Escape key for deselecting",
+        "dependencies": [
+          "selectedDrawingId, selectedObjectId",
+          "selectMode prop",
+          "sendMessage callback",
+          "onSelectObject callback"
+        ],
+        "dependents": ["Global window event listeners"],
+        "complexityScore": 2,
+        "extractionTarget": {
+          "moduleName": "useMapKeyboardShortcuts",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/hooks/useMapKeyboardShortcuts.ts",
+          "reasoning": "Extract keyboard event handling to dedicated hook. Would improve testability and allow easier extension of keyboard shortcuts."
+        }
+      },
+      {
+        "name": "Unified Stage Click Handler",
+        "lineRanges": [[393, 418]],
+        "primaryResponsibility": "Route click events to appropriate tool handler based on active mode (alignment, select, pointer, measure)",
+        "dependencies": [
+          "alignmentMode, selectMode, pointerMode, measureMode, drawMode props",
+          "handleAlignmentClick, handlePointerClick functions",
+          "onSelectObject callback",
+          "deselectIfEmpty function"
+        ],
+        "dependents": ["Stage onClick prop (line 811)"],
+        "complexityScore": 3,
+        "extractionTarget": {
+          "moduleName": "useStageEventRouter",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/hooks/useStageEventRouter.ts",
+          "reasoning": "Extract event routing logic to a dedicated hook. This would encapsulate the complex conditional logic for delegating events to different tools."
+        }
+      },
+      {
+        "name": "Unified Mouse Down Handler",
+        "lineRanges": [[420, 441]],
+        "primaryResponsibility": "Route mouse down events to camera pan, drawing tool, and marquee selection",
+        "dependencies": [
+          "alignmentMode, pointerMode, measureMode, drawMode, selectMode props",
+          "handleCameraMouseDown, handleDrawMouseDown",
+          "stageRef",
+          "marquee state setter"
+        ],
+        "dependents": ["Stage onMouseDown prop (line 812)"],
+        "complexityScore": 3,
+        "extractionTarget": {
+          "moduleName": "useStageEventRouter",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/hooks/useStageEventRouter.ts",
+          "reasoning": "Should be combined with other event routing logic. Currently scattered across multiple handler functions."
+        }
+      },
+      {
+        "name": "Unified Mouse Move Handler",
+        "lineRanges": [[443, 457]],
+        "primaryResponsibility": "Route mouse move events to camera, pointer tool, drawing tool, and marquee selection",
+        "dependencies": [
+          "handleCameraMouseMove, handlePointerMouseMove, handleDrawMouseMove",
+          "marquee state",
+          "stageRef"
+        ],
+        "dependents": ["Stage onMouseMove prop (line 813)"],
+        "complexityScore": 2,
+        "extractionTarget": {
+          "moduleName": "useStageEventRouter",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/hooks/useStageEventRouter.ts",
+          "reasoning": "Part of event routing system. Should be extracted with other event handlers."
+        }
+      },
+      {
+        "name": "Unified Mouse Up Handler",
+        "lineRanges": [[726, 734]],
+        "primaryResponsibility": "Route mouse up events to camera, drawing tool, and marquee selection finalization",
+        "dependencies": [
+          "handleCameraMouseUp, handleDrawMouseUp",
+          "marquee state",
+          "applyMarqueeSelection function"
+        ],
+        "dependents": ["Stage onMouseUp prop (line 814)"],
+        "complexityScore": 2,
+        "extractionTarget": {
+          "moduleName": "useStageEventRouter",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/hooks/useStageEventRouter.ts",
+          "reasoning": "Part of event routing system. Should be extracted with other event handlers."
+        }
+      },
+      {
+        "name": "Cursor Style Logic",
+        "lineRanges": [[493, 503]],
+        "primaryResponsibility": "Determine cursor style based on active tool mode (grab, crosshair, none, etc.)",
+        "dependencies": [
+          "isPanning from camera",
+          "pointerMode, measureMode, drawMode, selectMode props"
+        ],
+        "dependents": ["Stage style prop (line 815)"],
+        "complexityScore": 1,
+        "extractionTarget": {
+          "moduleName": "useCursorStyle",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/hooks/useCursorStyle.ts",
+          "reasoning": "Simple derived value. Could extract to a hook or keep inline as it's straightforward."
+        }
+      },
+      {
+        "name": "Token Interaction Flag",
+        "lineRanges": [[505, 506]],
+        "primaryResponsibility": "Determine if token interactions should be enabled (disabled during draw mode)",
+        "dependencies": ["drawMode prop"],
+        "dependents": ["TokensLayer interactionsEnabled prop (line 937)"],
+        "complexityScore": 1,
+        "extractionTarget": {
+          "moduleName": "Inline",
+          "location": "N/A",
+          "reasoning": "Simple boolean flag. Not worth extracting."
+        }
+      },
+      {
+        "name": "Object Transform Handlers",
+        "lineRanges": [[507, 576]],
+        "primaryResponsibility": "Handle transform events from tokens, props, drawings, and gizmo with coordinate conversion logic",
+        "dependencies": ["onTransformObject callback", "sceneObjects", "gridSize"],
+        "dependents": [
+          "TokensLayer onTransformToken (line 930)",
+          "PropsLayer onTransformProp (line 921)",
+          "DrawingsLayer onTransformDrawing (line 906)",
+          "TransformGizmo onTransform (line 1033)"
+        ],
+        "complexityScore": 4,
+        "extractionTarget": {
+          "moduleName": "useObjectTransformHandlers",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/hooks/useObjectTransformHandlers.ts",
+          "reasoning": "Extract complex transform handling logic that varies by object type. Includes coordinate conversion (grid vs pixel) and type-specific transform constraints."
+        }
+      },
+      {
+        "name": "Node Reference Management",
+        "lineRanges": [[578, 649]],
+        "primaryResponsibility": "Manage Konva node references for all scene objects (map, tokens, drawings, props) and provide refs to TransformGizmo",
+        "dependencies": [
+          "nodeRefsMap ref",
+          "selectedObjectNodeRef ref",
+          "mapObject, selectedObjectId"
+        ],
+        "dependents": [
+          "Layer components (via onNodeReady callbacks)",
+          "TransformGizmo getNodeRef prop (line 1034)"
+        ],
+        "complexityScore": 3,
+        "extractionTarget": {
+          "moduleName": "useNodeRefManager",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/hooks/useNodeRefManager.ts",
+          "reasoning": "Extract node reference management system. Currently scattered across multiple callbacks. Should provide a unified API for registering and accessing node refs."
+        }
+      },
+      {
+        "name": "Map Click Selection Handler",
+        "lineRanges": [[596, 609]],
+        "primaryResponsibility": "Handle map click to select map object in transform mode (with tool mode guards)",
+        "dependencies": [
+          "transformMode, pointerMode, measureMode, drawMode, selectMode props",
+          "mapObject",
+          "onSelectObject callback"
+        ],
+        "dependents": ["MapImageLayer onClick prop (line 824)"],
+        "complexityScore": 2,
+        "extractionTarget": {
+          "moduleName": "useObjectSelection",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/hooks/useObjectSelection.ts",
+          "reasoning": "Part of object selection system. Could be combined with other selection handlers in a dedicated hook."
+        }
+      },
+      {
+        "name": "Marquee Selection Logic",
+        "lineRanges": [[651, 724]],
+        "primaryResponsibility": "Apply marquee selection by detecting intersections between marquee rectangle and object bounds",
+        "dependencies": [
+          "marquee state",
+          "stageRef",
+          "nodeRefsMap",
+          "onSelectObject, onSelectObjects callbacks"
+        ],
+        "dependents": ["onMouseUp handler (line 730)"],
+        "complexityScore": 4,
+        "extractionTarget": {
+          "moduleName": "useMarqueeSelection",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/hooks/useMarqueeSelection.ts",
+          "reasoning": "Complex intersection detection logic. Should be extracted with marquee state management into a comprehensive hook."
+        }
+      },
+      {
+        "name": "Marquee Rectangle Computation",
+        "lineRanges": [[713, 724]],
+        "primaryResponsibility": "Compute marquee rectangle bounds from start/current positions for rendering",
+        "dependencies": ["marquee state", "React useMemo"],
+        "dependents": ["Marquee rendering (line 1013)"],
+        "complexityScore": 1,
+        "extractionTarget": {
+          "moduleName": "useMarqueeSelection",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/hooks/useMarqueeSelection.ts",
+          "reasoning": "Should be part of marquee selection hook."
+        }
+      },
+      {
+        "name": "E2E Test Support",
+        "lineRanges": [[740, 766]],
+        "primaryResponsibility": "Expose internal state to window object for E2E testing (non-production)",
+        "dependencies": [
+          "snapshot, uid, gridSize, cam, viewport dimensions",
+          "import.meta.env.MODE"
+        ],
+        "dependents": ["E2E tests"],
+        "complexityScore": 1,
+        "extractionTarget": {
+          "moduleName": "useE2ETestSupport",
+          "location": "/home/loshunter/HeroByte/apps/client/src/hooks/useE2ETestSupport.ts",
+          "reasoning": "Extract test support utilities to keep MapBoard clean. This pattern could be reused in other components."
+        }
+      },
+      {
+        "name": "Alignment Mode UI Overlay",
+        "lineRanges": [[780, 803]],
+        "primaryResponsibility": "Render instructional overlay for alignment mode showing current step",
+        "dependencies": ["alignmentMode prop", "alignmentPoints array"],
+        "dependents": ["None (pure UI)"],
+        "complexityScore": 1,
+        "extractionTarget": {
+          "moduleName": "AlignmentModeOverlay",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/components/AlignmentModeOverlay.tsx",
+          "reasoning": "Extract to a presentational component. Simple conditional rendering based on alignment state."
+        }
+      },
+      {
+        "name": "Konva Stage Setup",
+        "lineRanges": [[806, 816]],
+        "primaryResponsibility": "Configure root Konva Stage with event handlers and cursor style",
+        "dependencies": [
+          "stageRef",
+          "viewport dimensions (w, h)",
+          "handleWheel",
+          "onStageClick, onMouseDown, onMouseMove, onMouseUp",
+          "getCursor"
+        ],
+        "dependents": ["All child layers"],
+        "complexityScore": 2,
+        "extractionTarget": {
+          "moduleName": "Keep in MapBoard",
+          "location": "N/A",
+          "reasoning": "Stage is the root element and must remain in main component. However, event handlers should be extracted."
+        }
+      },
+      {
+        "name": "Background Layer Rendering",
+        "lineRanges": [[817, 836]],
+        "primaryResponsibility": "Render map image and grid as non-interactive background layer",
+        "dependencies": [
+          "MapImageLayer component",
+          "GridLayer component",
+          "cam state",
+          "mapObject, grid config",
+          "viewport dimensions"
+        ],
+        "dependents": ["Visual foundation for all other layers"],
+        "complexityScore": 1,
+        "extractionTarget": {
+          "moduleName": "BackgroundLayer",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/components/BackgroundLayer.tsx",
+          "reasoning": "Extract background rendering (map + grid) to a dedicated component. This layer has distinct non-interactive characteristics."
+        }
+      },
+      {
+        "name": "Game Layer Rendering",
+        "lineRanges": [[838, 939]],
+        "primaryResponsibility": "Render interactive game objects (staging zone, drawings, props, tokens) with selection and transform support",
+        "dependencies": [
+          "DrawingsLayer, PropsLayer, TokensLayer components",
+          "Staging zone rendering logic (lines 840-889)",
+          "cam state",
+          "sceneObjects",
+          "Multiple interaction handlers"
+        ],
+        "dependents": ["User interactions with game objects"],
+        "complexityScore": 4,
+        "extractionTarget": {
+          "moduleName": "GameObjectsLayer",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/components/GameObjectsLayer.tsx",
+          "reasoning": "Extract game layer to a dedicated component. Includes staging zone rendering which is complex and inline. Would reduce MapBoard size significantly."
+        }
+      },
+      {
+        "name": "Staging Zone Rendering",
+        "lineRanges": [[840, 889]],
+        "primaryResponsibility": "Render player staging zone with label, visual styling, and DM-only selection capability",
+        "dependencies": [
+          "stagingZoneDimensions computed value",
+          "stagingZoneObject",
+          "cam state",
+          "isDM prop",
+          "selectMode, transformMode props",
+          "onSelectObject callback"
+        ],
+        "dependents": ["Game layer"],
+        "complexityScore": 3,
+        "extractionTarget": {
+          "moduleName": "StagingZoneLayer",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/components/StagingZoneLayer.tsx",
+          "reasoning": "Extract to dedicated component. Complex inline rendering with transform logic. Should be a layer component like tokens/drawings."
+        }
+      },
+      {
+        "name": "Overlay Layer Rendering",
+        "lineRanges": [[941, 1011]],
+        "primaryResponsibility": "Render non-interactive overlays (pointers, measure tool, alignment indicators)",
+        "dependencies": [
+          "PointersLayer, MeasureLayer components",
+          "Alignment visualization logic (lines 959-1009)",
+          "cam state",
+          "snapshot data",
+          "alignmentMode, alignmentPoints, alignmentSuggestion"
+        ],
+        "dependents": ["Visual feedback for tools"],
+        "complexityScore": 3,
+        "extractionTarget": {
+          "moduleName": "OverlayLayer",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/components/OverlayLayer.tsx",
+          "reasoning": "Extract overlay rendering to dedicated component. Includes inline alignment visualization that should be componentized."
+        }
+      },
+      {
+        "name": "Alignment Visualization",
+        "lineRanges": [[959, 1009]],
+        "primaryResponsibility": "Render alignment point markers, connecting lines, and suggestion preview",
+        "dependencies": [
+          "alignmentMode prop",
+          "alignmentPoints array",
+          "alignmentSuggestion",
+          "cam state"
+        ],
+        "dependents": ["Overlay layer"],
+        "complexityScore": 2,
+        "extractionTarget": {
+          "moduleName": "AlignmentVisualization",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/components/AlignmentVisualization.tsx",
+          "reasoning": "Extract to presentational component. Pure visual rendering of alignment state."
+        }
+      },
+      {
+        "name": "Marquee Selection Rendering",
+        "lineRanges": [[1013, 1026]],
+        "primaryResponsibility": "Render marquee selection rectangle with styling",
+        "dependencies": ["marqueeRect computed value"],
+        "dependents": ["Visual feedback for selection"],
+        "complexityScore": 1,
+        "extractionTarget": {
+          "moduleName": "MarqueeSelectionLayer",
+          "location": "/home/loshunter/HeroByte/apps/client/src/features/map/components/MarqueeSelectionLayer.tsx",
+          "reasoning": "Extract to small presentational component. Could also be part of a selection utilities module."
+        }
+      },
+      {
+        "name": "Transform Gizmo Layer Rendering",
+        "lineRanges": [[1028, 1037]],
+        "primaryResponsibility": "Render transform gizmo for selected object (only visible in transform mode)",
+        "dependencies": [
+          "TransformGizmo component",
+          "transformMode prop",
+          "selectedObject",
+          "handleGizmoTransform",
+          "getSelectedNodeRef"
+        ],
+        "dependents": ["Visual transform controls"],
+        "complexityScore": 1,
+        "extractionTarget": {
+          "moduleName": "Keep in MapBoard",
+          "location": "N/A",
+          "reasoning": "Simple conditional layer. Can remain in MapBoard. The TransformGizmo component itself is already extracted."
+        }
+      }
+    ],
+    "crossCuttingConcerns": [
+      {
+        "concern": "Camera State Threading",
+        "description": "The 'cam' state is passed to nearly every layer component and visualization. It's a fundamental dependency that enables world-to-screen coordinate transformation.",
+        "affectedClusters": [
+          "Background Layer",
+          "Game Layer",
+          "Overlay Layer",
+          "All rendering components"
+        ],
+        "recommendation": "Keep camera state at MapBoard level and continue passing to children. Consider React Context if prop drilling becomes excessive."
+      },
+      {
+        "concern": "Tool Mode Conditionals",
+        "description": "Multiple boolean flags (pointerMode, measureMode, drawMode, selectMode, transformMode, alignmentMode) are checked throughout event handlers and rendering logic.",
+        "affectedClusters": [
+          "All event handlers",
+          "Cursor logic",
+          "Click handlers",
+          "Selection logic"
+        ],
+        "recommendation": "Consider consolidating into a single 'activeToolMode' enum to simplify conditionals and prevent conflicting tool states."
+      },
+      {
+        "concern": "Object Selection System",
+        "description": "Selection logic is split between selectedObjectId (single), selectedObjectIds (multiple), selectedDrawingId (drawings via select tool), and marquee selection.",
+        "affectedClusters": [
+          "Transform Gizmo State",
+          "Drawing Selection",
+          "Marquee Selection",
+          "Map Click Selection"
+        ],
+        "recommendation": "Unify selection system into a single hook that manages all selection types. Consider a selection manager with consistent API for single/multi selection."
+      },
+      {
+        "concern": "Node Reference Tracking",
+        "description": "nodeRefsMap tracks Konva node references for all scene objects. Each layer has an onNodeReady callback to register refs.",
+        "affectedClusters": [
+          "Node Reference Management",
+          "Transform Gizmo",
+          "Marquee Selection",
+          "All layer components"
+        ],
+        "recommendation": "Extract to useNodeRefManager hook with a consistent registration API. This would centralize ref tracking and simplify layer components."
+      },
+      {
+        "concern": "Event Handler Composition",
+        "description": "Mouse events (down, move, up) delegate to multiple tool-specific handlers based on active mode. Logic is split across event handlers.",
+        "affectedClusters": [
+          "Unified Stage Click Handler",
+          "Unified Mouse Down Handler",
+          "Unified Mouse Move Handler",
+          "Unified Mouse Up Handler"
+        ],
+        "recommendation": "Extract to useStageEventRouter hook that encapsulates tool-based event delegation. Would significantly clean up MapBoard."
+      },
+      {
+        "concern": "Grid Size Dependency",
+        "description": "gridSize prop is used for coordinate conversions (grid units to pixels) in transforms, camera focus, and staging zone calculations.",
+        "affectedClusters": [
+          "Scene Object Management",
+          "Camera Control",
+          "Object Transform Handlers",
+          "Token/Prop layers"
+        ],
+        "recommendation": "Keep as prop. It's a fundamental unit of measure for the VTT. Ensure consistent usage in coordinate conversion utilities."
+      },
+      {
+        "concern": "DM Permission Checks",
+        "description": "isDM prop is checked in various places to enable/disable object management capabilities (staging zone selection, drawing deletion).",
+        "affectedClusters": ["Staging Zone Rendering", "Keyboard Event Handlers", "DrawingsLayer"],
+        "recommendation": "Permissions are currently simple boolean checks. If permissions become more complex, consider a permissions hook or context."
+      }
+    ],
+    "extractionOrder": [
+      {
+        "priority": 1,
+        "modules": ["useElementSize", "coordinateTransforms", "MapBoardTypes"],
+        "reasoning": "These are pure utilities with no dependencies on other MapBoard logic. Extract first as foundation."
+      },
+      {
+        "priority": 2,
+        "modules": ["useGridConfig", "useCursorStyle", "useE2ETestSupport", "useTokenInteraction"],
+        "reasoning": "Simple, self-contained state management with minimal dependencies. Easy wins for reducing file size."
+      },
+      {
+        "priority": 3,
+        "modules": ["useMapSceneObjects", "useNodeRefManager"],
+        "reasoning": "Core data management hooks that other systems depend on. Extract before dependent systems."
+      },
+      {
+        "priority": 4,
+        "modules": ["useMarqueeSelection", "useMapKeyboardShortcuts", "useAlignmentTool"],
+        "reasoning": "Feature-specific hooks with moderate complexity. Extract after foundation is in place."
+      },
+      {
+        "priority": 5,
+        "modules": ["useObjectTransformHandlers", "useCameraController", "useTransformGizmoState"],
+        "reasoning": "Complex hooks that orchestrate multiple concerns. Extract after simpler hooks are extracted."
+      },
+      {
+        "priority": 6,
+        "modules": ["useStageEventRouter"],
+        "reasoning": "Complex event routing that depends on many other hooks. Extract late when dependencies are stable."
+      },
+      {
+        "priority": 7,
+        "modules": [
+          "AlignmentModeOverlay",
+          "AlignmentVisualization",
+          "MarqueeSelectionLayer",
+          "StagingZoneLayer"
+        ],
+        "reasoning": "Presentational components. Extract after related hooks are extracted."
+      },
+      {
+        "priority": 8,
+        "modules": ["BackgroundLayer", "GameObjectsLayer", "OverlayLayer"],
+        "reasoning": "Higher-level layer components that compose multiple features. Extract last after all dependencies are extracted."
+      }
+    ],
+    "recommendations": {
+      "immediateActions": [
+        {
+          "action": "Extract useElementSize",
+          "impact": "Quick win, reusable utility, ~15 lines",
+          "effort": "Low"
+        },
+        {
+          "action": "Extract coordinateTransforms utility",
+          "impact": "Reusable math utilities, ~17 lines",
+          "effort": "Low"
+        },
+        {
+          "action": "Extract MapBoardTypes",
+          "impact": "Improve type organization, ~40 lines",
+          "effort": "Low"
+        },
+        {
+          "action": "Extract useMarqueeSelection hook",
+          "impact": "Remove ~100 lines of complex selection logic",
+          "effort": "Medium"
+        },
+        {
+          "action": "Extract StagingZoneLayer component",
+          "impact": "Remove ~50 lines of inline rendering",
+          "effort": "Medium"
+        }
+      ],
+      "mediumTermActions": [
+        {
+          "action": "Extract useStageEventRouter hook",
+          "impact": "Centralize event routing, remove ~200 lines",
+          "effort": "High"
+        },
+        {
+          "action": "Extract useObjectTransformHandlers hook",
+          "impact": "Isolate complex transform logic, ~70 lines",
+          "effort": "Medium"
+        },
+        {
+          "action": "Extract GameObjectsLayer component",
+          "impact": "Major reduction in MapBoard complexity, ~100 lines",
+          "effort": "High"
+        },
+        {
+          "action": "Unify selection system",
+          "impact": "Reduce selection state fragmentation, improve maintainability",
+          "effort": "High"
+        }
+      ],
+      "architecturalImprovements": [
+        {
+          "improvement": "Consider consolidating tool modes into enum",
+          "rationale": "Multiple boolean flags create complex conditionals and potential for conflicting states. A single 'activeToolMode' enum would simplify logic."
+        },
+        {
+          "improvement": "Create a hooks/features structure",
+          "rationale": "Current hooks are in /hooks (shared) vs /features/map/hooks (map-specific). Establish clear organization for extracted hooks."
+        },
+        {
+          "improvement": "Extract layer composition logic",
+          "rationale": "MapBoard currently handles both event orchestration AND layer composition. Consider separating layer rendering into dedicated components."
+        },
+        {
+          "improvement": "Consider useReducer for complex state",
+          "rationale": "Multiple interdependent useState calls (marquee, hoveredToken, grid) could benefit from reducer pattern for atomic state updates."
+        }
+      ]
+    },
+    "metrics": {
+      "totalResponsibilityClusters": 32,
+      "highComplexityClusters": 5,
+      "mediumComplexityClusters": 13,
+      "lowComplexityClusters": 14,
+      "extractionCandidates": 28,
+      "alreadyExtracted": 3,
+      "estimatedLinesReduction": "~500-600 lines (48-58% reduction)",
+      "primaryBottlenecks": [
+        "Event routing logic (4 handlers, ~140 lines)",
+        "Transform handlers (4 handlers, ~70 lines)",
+        "Inline rendering (staging zone, alignment, ~100 lines)",
+        "Node reference management (~70 lines)",
+        "Marquee selection (~110 lines)"
+      ]
+    }
+  }
+}

@@ -15,6 +15,7 @@ import { TokenService } from "../../domains/token/service.js";
 import { MapService } from "../../domains/map/service.js";
 import { DiceService } from "../../domains/dice/service.js";
 import { CharacterService } from "../../domains/character/service.js";
+import { PropService } from "../../domains/prop/service.js";
 import { SelectionService } from "../../domains/selection/service.js";
 import { MessageRouter } from "../messageRouter.js";
 import { RateLimiter } from "../../middleware/rateLimit.js";
@@ -66,6 +67,7 @@ const setupContainer = () => {
   const mapService = new MapService();
   const diceService = new DiceService();
   const characterService = new CharacterService();
+  const propService = new PropService();
   const selectionService = new SelectionService();
   const authService = new AuthService({ storagePath: "./test-room-secret.json" });
   const fakeNodeServer = { clients: new Set<WebSocket>() } as unknown as WebSocketServer;
@@ -76,6 +78,7 @@ const setupContainer = () => {
     mapService,
     diceService,
     characterService,
+    propService,
     selectionService,
     authService,
     fakeNodeServer,

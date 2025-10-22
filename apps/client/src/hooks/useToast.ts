@@ -3,7 +3,7 @@
 // ============================================================================
 // Hook to manage toast notifications
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import type { ToastMessage, ToastType } from "../components/ui/Toast";
 
 let toastIdCounter = 0;
@@ -55,12 +55,15 @@ export function useToast() {
     setMessages((prev) => prev.filter((msg) => msg.id !== id));
   }, []);
 
-  return {
-    messages,
-    success,
-    error,
-    warning,
-    info,
-    dismiss,
-  };
+  return useMemo(
+    () => ({
+      messages,
+      success,
+      error,
+      warning,
+      info,
+      dismiss,
+    }),
+    [messages, success, error, warning, info, dismiss],
+  );
 }

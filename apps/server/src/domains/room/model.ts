@@ -11,6 +11,7 @@ import type {
   Drawing,
   DiceRoll,
   Character,
+  Prop,
   SceneObject,
   SelectionState,
   SelectionStateEntry,
@@ -28,6 +29,7 @@ export interface RoomState {
   tokens: Token[]; // All tokens on the map
   players: Player[]; // Player metadata
   characters: Character[]; // Character data (PCs and NPCs)
+  props: Prop[]; // Props on the map (items, scenery, objects)
   mapBackground?: string; // Background image URL/base64
   pointers: Pointer[]; // Temporary pointer indicators
   drawings: Drawing[]; // Freehand drawings
@@ -50,6 +52,7 @@ export function createEmptyRoomState(): RoomState {
     tokens: [],
     players: [],
     characters: [],
+    props: [],
     mapBackground: undefined,
     pointers: [],
     drawings: [],
@@ -114,6 +117,7 @@ export function toSnapshot(state: RoomState): RoomSnapshot {
     tokens: state.tokens,
     players: state.players,
     characters: state.characters,
+    props: state.props,
     mapBackground: state.mapBackground,
     pointers: state.pointers,
     drawings: state.drawings,

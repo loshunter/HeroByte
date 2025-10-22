@@ -103,12 +103,12 @@ function validatePartialSegment(segment: unknown, index: number): ValidationResu
 }
 
 function validateStagingZone(value: unknown, context: string): ValidationResult {
-  if (value === null) {
+  if (value === null || value === undefined) {
     return { valid: true };
   }
 
   if (!isRecord(value)) {
-    return { valid: false, error: `${context}: zone must be an object or null` };
+    return { valid: false, error: `${context}: zone must be an object, null, or undefined` };
   }
 
   const zone = value as MessageRecord;
@@ -387,9 +387,102 @@ export function validateMessage(raw: unknown): ValidationResult {
       break;
     }
 
+    case "create-prop": {
+      const { label, imageUrl, owner, size, viewport } = message;
+      if (typeof label !== "string" || label.length === 0 || label.length > 50) {
+        return { valid: false, error: "create-prop: label must be 1-50 characters" };
+      }
+      if (typeof imageUrl !== "string") {
+        return { valid: false, error: "create-prop: imageUrl must be a string" };
+      }
+      if (owner !== null && owner !== "*" && typeof owner !== "string") {
+        return { valid: false, error: "create-prop: owner must be null, '*', or a player UID" };
+      }
+      const validSizes = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
+      if (typeof size !== "string" || !validSizes.includes(size)) {
+        return { valid: false, error: "create-prop: size must be a valid TokenSize" };
+      }
+      if (
+        !viewport ||
+        typeof viewport !== "object" ||
+        !("x" in viewport) ||
+        !("y" in viewport) ||
+        !("scale" in viewport) ||
+        typeof viewport.x !== "number" ||
+        typeof viewport.y !== "number" ||
+        typeof viewport.scale !== "number"
+      ) {
+        return { valid: false, error: "create-prop: viewport must be {x, y, scale}" };
+      }
+      break;
+    }
+
+    case "update-prop": {
+      const { id, label, imageUrl, owner, size } = message;
+      if (typeof id !== "string" || id.length === 0) {
+        return { valid: false, error: "update-prop: missing or invalid id" };
+      }
+      if (typeof label !== "string" || label.length === 0 || label.length > 50) {
+        return { valid: false, error: "update-prop: label must be 1-50 characters" };
+      }
+      if (typeof imageUrl !== "string") {
+        return { valid: false, error: "update-prop: imageUrl must be a string" };
+      }
+      if (owner !== null && owner !== "*" && typeof owner !== "string") {
+        return { valid: false, error: "update-prop: owner must be null, '*', or a player UID" };
+      }
+      const validSizes = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
+      if (typeof size !== "string" || !validSizes.includes(size)) {
+        return { valid: false, error: "update-prop: size must be a valid TokenSize" };
+      }
+      break;
+    }
+
+    case "delete-prop": {
+      if (typeof message.id !== "string" || message.id.length === 0) {
+        return { valid: false, error: "delete-prop: missing or invalid id" };
+      }
+      break;
+    }
+
     case "claim-character": {
       if (typeof message.characterId !== "string" || message.characterId.length === 0) {
         return { valid: false, error: "claim-character: missing or invalid characterId" };
+      }
+      break;
+    }
+
+    case "add-player-character": {
+      if (
+        typeof message.name !== "string" ||
+        message.name.length === 0 ||
+        message.name.length > 100
+      ) {
+        return { valid: false, error: "add-player-character: name must be 1-100 characters" };
+      }
+      if (message.maxHp !== undefined && (!isFiniteNumber(message.maxHp) || message.maxHp <= 0)) {
+        return { valid: false, error: "add-player-character: maxHp must be positive" };
+      }
+      break;
+    }
+
+    case "delete-player-character": {
+      if (typeof message.characterId !== "string" || message.characterId.length === 0) {
+        return { valid: false, error: "delete-player-character: missing or invalid characterId" };
+      }
+      break;
+    }
+
+    case "update-character-name": {
+      if (typeof message.characterId !== "string" || message.characterId.length === 0) {
+        return { valid: false, error: "update-character-name: missing or invalid characterId" };
+      }
+      if (
+        typeof message.name !== "string" ||
+        message.name.length === 0 ||
+        message.name.length > 100
+      ) {
+        return { valid: false, error: "update-character-name: name must be 1-100 characters" };
       }
       break;
     }
@@ -775,12 +868,16 @@ export function validateMessage(raw: unknown): ValidationResult {
         if (scale.x <= 0 || scale.y <= 0) {
           return { valid: false, error: "transform-object: scale must be positive" };
         }
-        // Prevent extreme scale values that can break rendering
-        if (scale.x > 10 || scale.y > 10) {
-          return { valid: false, error: "transform-object: scale must not exceed 10x" };
-        }
-        if (scale.x < 0.1 || scale.y < 0.1) {
-          return { valid: false, error: "transform-object: scale must be at least 0.1x" };
+        // Staging zone handles scale differently (converts to width/height), so skip strict limits
+        const isStagingZone = message.id === "staging-zone";
+        if (!isStagingZone) {
+          // Prevent extreme scale values that can break rendering
+          if (scale.x > 10 || scale.y > 10) {
+            return { valid: false, error: "transform-object: scale must not exceed 10x" };
+          }
+          if (scale.x < 0.1 || scale.y < 0.1) {
+            return { valid: false, error: "transform-object: scale must be at least 0.1x" };
+          }
         }
       }
       if ("rotation" in message && message.rotation !== undefined) {

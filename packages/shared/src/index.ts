@@ -58,8 +58,9 @@ export interface PointerSceneData {
 }
 
 export interface PropSceneData {
-  assetId?: string;
+  imageUrl: string;
   label?: string;
+  size: TokenSize;
 }
 
 export interface StagingZoneSceneData {
@@ -210,6 +211,23 @@ export interface Character {
   // permissions?: CharacterPermissions; // Advanced ownership/visibility
 }
 
+/**
+ * Prop: Represents a placeable object, item, or scenery on the map
+ * Props can be assigned ownership to control who can move/transform them
+ */
+export interface Prop {
+  id: string; // Unique prop identifier
+  label: string; // Display name
+  imageUrl: string; // Image to render
+  owner: string | null; // null="DM only", "*"="Everyone", playerId="Specific player"
+  size: TokenSize; // Base size preset (tiny/small/medium/large/huge/gargantuan)
+  x: number; // Grid X position
+  y: number; // Grid Y position
+  scaleX: number; // Scale multiplier (applied on top of size preset)
+  scaleY: number; // Scale multiplier (applied on top of size preset)
+  rotation: number; // Rotation in degrees
+}
+
 // ----------------------------------------------------------------------------
 // ROOM STATE
 // ----------------------------------------------------------------------------
@@ -223,6 +241,7 @@ export interface RoomSnapshot {
   tokens: Token[]; // All tokens on the map
   players: Player[]; // All connected players
   characters: Character[]; // All characters (PCs and NPCs)
+  props?: Prop[]; // Props placed on the map (items, scenery, objects)
   mapBackground?: string; // Base64 encoded background image or URL
   pointers: Pointer[]; // Active pointer indicators
   drawings: Drawing[]; // All drawings on the canvas
@@ -326,6 +345,9 @@ export type ClientMessage =
   // Character actions (Phase 1: PCs only)
   | { t: "create-character"; name: string; maxHp: number; portrait?: string } // DM creates PC slot
   | { t: "claim-character"; characterId: string } // Player claims unclaimed PC
+  | { t: "add-player-character"; name: string; maxHp?: number } // Player creates additional character for themselves
+  | { t: "delete-player-character"; characterId: string } // Player deletes one of their characters
+  | { t: "update-character-name"; characterId: string; name: string } // Player updates their character's name
   | { t: "update-character-hp"; characterId: string; hp: number; maxHp: number } // Update character HP
   | { t: "link-token"; characterId: string; tokenId: string } // Link token to character
   | {
@@ -347,6 +369,25 @@ export type ClientMessage =
     }
   | { t: "delete-npc"; id: string }
   | { t: "place-npc-token"; id: string }
+
+  // Prop actions
+  | {
+      t: "create-prop";
+      label: string;
+      imageUrl: string;
+      owner: string | null;
+      size: TokenSize;
+      viewport: { x: number; y: number; scale: number };
+    }
+  | {
+      t: "update-prop";
+      id: string;
+      label: string;
+      imageUrl: string;
+      owner: string | null;
+      size: TokenSize;
+    }
+  | { t: "delete-prop"; id: string }
 
   // Map/canvas actions
   | { t: "map-background"; data: string } // Set map background image

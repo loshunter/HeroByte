@@ -30,7 +30,7 @@ interface MapImageLayerProps {
  * - Inner Group: Map object transform (position/scale/rotation)
  */
 export function MapImageLayer({ cam, src, transform, onNodeReady, onClick }: MapImageLayerProps) {
-  const [img] = useImage(src || "");
+  const [img, status] = useImage(src || "");
   const transformGroupRef = useRef<Konva.Group>(null);
 
   // Expose the transform group ref to parent
@@ -39,6 +39,18 @@ export function MapImageLayer({ cam, src, transform, onNodeReady, onClick }: Map
       onNodeReady(transformGroupRef.current);
     }
   }, [onNodeReady]);
+
+  // Log image loading status for debugging
+  useEffect(() => {
+    if (src && status === "failed") {
+      console.error("[MapImageLayer] Failed to load map image:", src);
+      console.error(
+        "[MapImageLayer] This may be due to CORS restrictions, expired CDN tokens, or network issues.",
+      );
+    } else if (src && status === "loaded") {
+      console.log("[MapImageLayer] Map image loaded successfully");
+    }
+  }, [src, status]);
 
   if (!img) return null;
 

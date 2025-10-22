@@ -1,14 +1,12 @@
 # HeroByte TODO
 
+> **Note**: Completed work has been archived in [DONE.md](DONE.md) to keep this list focused on active and future work.
+
 ## Goal
 
 Ship a table-ready MVP to run live playtests with real players and a DM. Prioritize drawing/selection stability, DM session controls, and player-facing feedback so we can gather real game-night data fast.
 
-## 1. Launch Blockers (must ship before scheduling playtest)
-
-_All launch blockers complete! See [DONE.md](DONE.md) for details._
-
-## 2. High-Priority Polish (tackle right after blockers)
+## 1. High-Priority Polish
 
 ### Player Experience
 
@@ -21,14 +19,14 @@ _All launch blockers complete! See [DONE.md](DONE.md) for details._
 - [ ] Add a shortcut/command to select all tokens owned by a player (with safe undo).
 - [ ] Improve map background management (upload feedback, loading spinner).
 
-## 3. QA & Release Prep
+## 2. QA & Release Prep
 
 - [ ] Run full automated suite (`pnpm test`, `pnpm --filter vtt-server test`, Playwright smoke).
 - [ ] Manual two-browser checklist: auth, drawing, partial erase, multi-select, load/save, dice, voice. Archive findings in `test-results/`.
 - [ ] Document MVP playtest setup (DM prep steps, recommended browsers, troubleshooting cheatsheet).
 - [ ] Update README quick-start with playtest instructions and link to the new checklist.
 
-## 4. Deferred Until After MVP
+## 3. Deferred Until After MVP
 
 - README visual assets refresh (screenshots, GIF/video demo).
 - Public roadmap and issue labeling workflow.
@@ -39,16 +37,11 @@ _All launch blockers complete! See [DONE.md](DONE.md) for details._
 
 ---
 
-## CRITICAL: Contributor Readiness (BLOCKING)
+## CRITICAL: Contributor Readiness
 
 **These items are essential for making the repo stable and contributor-friendly.**
 
 _Completed milestones are archived in [DONE.md](DONE.md) to keep this list focused on upcoming work._
-
-### Testing Infrastructure
-
-- [ ] **E2E Tests** (optional for now) — unit/integration coverage complete (see `DONE.md`)
-  - _All core E2E infrastructure complete! See [DONE.md](DONE.md) for details._
 
 ### README Improvements
 
@@ -56,9 +49,6 @@ _Completed milestones are archived in [DONE.md](DONE.md) to keep this list focus
   - [ ] Add screenshots of gameplay (map, dice roller, voice chat)
   - [ ] Add GIF/video demo of core features
   - [ ] Show UI for drawing tools, token movement
-
-- [ ] **Better Documentation**
-  - _Core documentation complete! See [DONE.md](DONE.md) for completed items._
   - [ ] Add architecture diagram (optional)
 
 ### Security Hardening
@@ -85,112 +75,11 @@ _Completed milestones are archived in [DONE.md](DONE.md) to keep this list focus
 
 _Completed phase summaries now live in [DONE.md](DONE.md)._
 
-## Phase 13: Selection & Drawing Polish (Future)
+## Phase 13: Future Drawing & Interaction Polish
 
-**Priority**: High - Critical UX improvements for drawing and object manipulation
+**Priority**: Medium - Additional polish for drawing workflows
 
-### Multi-Select (Optional)
-
-- [ ] Visual indicator showing multiple selected objects
-- [ ] Codify multi-select orchestration in dedicated module to avoid overloading base selection hook
-- [ ] Add integration tests (written first) covering multi-select transformations
-
-### Partial Erasing for Freehand Drawings
-
-**Current Issue**: Eraser deletes entire drawings when touching any part. Users cannot erase just a portion of a detailed sketch.
-
-**Goal**: Allow erasing parts of freehand drawings, splitting them into segments. Lines/shapes still get fully deleted (they're simple enough to redraw).
-
-**Methodology**: Test-Driven Development (write tests first, then implement)
-
-- [ ] **Phase 1: TDD - Write Tests First**
-  - [ ] Create `partialErasing.test.ts` test file
-  - [ ] Test: `splitFreehandDrawing()` removes middle → creates 2 segments
-  - [ ] Test: `splitFreehandDrawing()` removes start → creates 1 segment
-  - [ ] Test: `splitFreehandDrawing()` removes end → creates 1 segment
-  - [ ] Test: `splitFreehandDrawing()` removes entire drawing → returns empty array
-  - [ ] Test: Multiple erase passes create correct segments
-  - [ ] Test: Filter out segments with < 2 points
-  - [ ] Test: Preserve drawing properties (color, width, opacity, owner)
-  - [ ] Test: Handle transformed drawings (moved/rotated coordinates)
-  - [ ] Test: Edge case - eraser path doesn't intersect (returns original)
-  - [ ] Test: Edge case - very close points near eraser boundary
-  - [ ] Run tests - all should FAIL (red phase) ❌
-
-- [ ] **Phase 2: TDD - Implement Core Logic**
-  - [ ] Create `splitFreehandDrawing(drawing, eraserPath, eraserWidth)` utility function
-  - [ ] Implement point-to-eraser distance calculation
-  - [ ] Mark points as "keep" or "erase" based on distance < hitRadius
-  - [ ] Group consecutive "keep" points into segments
-  - [ ] Filter out segments with < 2 points
-  - [ ] Handle edge cases: entire drawing erased, only start/end erased, multiple gaps
-  - [ ] Run tests - core splitting tests should PASS (green phase) ✅
-
-- [ ] **Phase 3: TDD - Message Protocol Tests**
-  - [ ] Add test: `erase-partial` message validation accepts valid message
-  - [ ] Add test: `erase-partial` message validation rejects missing fields
-  - [ ] Add test: `erase-partial` message validation rejects invalid segment data
-  - [ ] Add test: Message router routes `erase-partial` to correct handler
-  - [ ] Run tests - all should FAIL (red phase) ❌
-
-- [ ] **Phase 4: TDD - Implement Message Protocol**
-  - [ ] Create new `erase-partial` message type in @shared/index.ts
-  - [ ] Message schema: `{ t: "erase-partial", deleteId: string, segments: DrawingData[] }`
-  - [ ] Add validation middleware for erase-partial messages
-  - [ ] Update messageRouter to handle erase-partial
-  - [ ] Run tests - message protocol tests should PASS (green phase) ✅
-
-- [ ] **Phase 5: TDD - Server-Side Processing Tests**
-  - [ ] Add test: Server deletes original drawing atomically
-  - [ ] Add test: Server creates all segments atomically
-  - [ ] Add test: Transaction fails if deleteId not found
-  - [ ] Add test: Broadcast erase-partial to all clients
-  - [ ] Add test: Scene graph updated with new segments
-  - [ ] Run tests - all should FAIL (red phase) ❌
-
-- [ ] **Phase 6: TDD - Implement Server Processing**
-  - [ ] Implement RoomService.handlePartialErase() method
-  - [ ] Delete original drawing from state
-  - [ ] Create new segment drawings with unique IDs
-  - [ ] Update scene graph atomically
-  - [ ] Broadcast changes to all clients
-  - [ ] Run tests - server processing tests should PASS (green phase) ✅
-
-- [ ] **Phase 7: TDD - Client Integration Tests**
-  - [ ] Add test: useDrawingTool calls splitFreehandDrawing on eraser release
-  - [ ] Add test: Client sends erase-partial message with correct data
-  - [ ] Add test: Lines/rects/circles still use delete-drawing (no splitting)
-  - [ ] Add test: Client doesn't send message if no segments created
-  - [ ] Run tests - all should FAIL (red phase) ❌
-
-- [ ] **Phase 8: TDD - Implement Client Integration**
-  - [ ] Update useDrawingTool.ts eraser logic to call splitFreehandDrawing
-  - [ ] Send erase-partial message instead of delete-drawing for freehand
-  - [ ] Preserve full deletion for line/rect/circle shapes
-  - [ ] Handle case where splitting produces no segments (full deletion)
-  - [ ] Run tests - client integration tests should PASS (green phase) ✅
-
-- [ ] **Phase 12: Final Validation**
-  - [ ] Code review and documentation
-  - [ ] Verify coverage maintained >80%
-  - [ ] Commit with comprehensive test results in commit message
-
-**Success Criteria**:
-
-- Users can erase portions of freehand drawings without losing entire sketch
-- Eraser creates clean splits (no visual artifacts)
-- All drawing properties preserved in segments
-- Undo/redo works correctly for partial erasing
-- Performance acceptable for typical drawings (50-500 points)
-
-### Critical Bug Fixes
-
-- [ ] Portrait placeholder UX (`PortraitSection`): show a token-colored call-to-action square when no portrait is set, while keeping the click-to-change affordance.
-  - [ ] Write failing visual/state tests before implementation (snapshot + interaction)
-  - [ ] Keep placeholder rendering/styling isolated from portrait upload handlers to maintain SRP
-- [ ] Auth landing state: disable the connect button and animate the "Connecting…" status while the client establishes a session.
-  - [ ] Add first a failing test capturing disabled state + animation trigger
-  - [ ] Separate connection state management from UI animation logic to uphold SoC
+_Multi-select orchestration and partial erasing complete! See [DONE.md](DONE.md) for details._
 
 ## Engineering Guardrails (Applies to All Phases)
 
@@ -360,7 +249,7 @@ _Shared planning brief with Phase 19: `docs/planning/phase19-20-briefing.md`._
 - [ ] Keep synchronization responsibilities separated (asset service vs real-time transport)
 - [ ] Add E2E-style tests validating bundle round-trips and sync opt-in/out behaviors
 
-## Phase 14.4: Polish & Edge Cases (Future)
+## Phase 14: Transform Tool Polish & Edge Cases (Future)
 
 **Objective**: Handle edge cases, improve UX, add keyboard shortcuts
 
@@ -373,7 +262,6 @@ _Shared planning brief with Phase 19: `docs/planning/phase19-20-briefing.md`._
   - [ ] Ctrl while rotating: Disable snap to 15°
 
 - [ ] **Edge case handling**
-  - [ ] Multiple objects selected (Phase 15 feature, show placeholder)
   - [ ] Transform during camera pan/zoom (disable or queue)
   - [ ] Very small/large scales (min 0.1x, max 10x)
   - [ ] Rotation wrapping (0° to 360°, then back to 0°)
@@ -385,45 +273,20 @@ _Shared planning brief with Phase 19: `docs/planning/phase19-20-briefing.md`._
   - [ ] Transform preview (ghosted outline during drag?)
   - [ ] Undo/redo stack visualization
 
-- [ ] **DM Menu integration**
-  - [ ] Keep numeric inputs in DM Menu as alternative
-  - [ ] Update DM Menu inputs when gizmo used
-  - [ ] Bidirectional sync: Menu ↔ Gizmo
+## Phase 15: SOLID Refactor Initiative (Future Work)
 
-**Success Criteria**:
+**Goal**: Break down remaining oversized "god files", restore SRP/SoC boundaries, and pair each change with forward-looking tests.
 
-- Keyboard shortcuts work intuitively
-- Edge cases handled gracefully
-- Visual polish: smooth, responsive, professional
-- DM Menu and Gizmo stay in sync
+**Status**: App.tsx and MainLayout.tsx refactoring COMPLETE (see [DONE.md](DONE.md)). Remaining targets below.
 
-## Phase 15: SOLID Refactor Initiative (Planned)
+### Remaining Refactoring Targets
 
-**Goal**: Break down oversized "god files", restore SRP/SoC boundaries, and pair each change with forward-looking tests.
-
-- [ ] **Guardrails & Baseline**
-  - [ ] Record current line counts and responsibilities for top 10 files (`rg --files` + `wc -l` or dedicated script)
-  - [ ] Define max LOC per component (<350) and cross-domain import rules
-  - [ ] Update CONTRIBUTING.md with SOLID/SOC checklist and reviewer prompts
-
-- [ ] **TDD & Safety Net**
-  - [ ] Capture characterization tests for each hotspot before refactor (App shell, DM menu, Map board, WebSocket service, validation pipeline)
-  - [ ] Create snapshot of critical integration pathways (scene transforms, DM controls, connection lifecycle) using shared fixtures
-  - [ ] Stand up golden-path contract tests to enforce message shapes across client/server boundaries
-  - [ ] Add mutation/coverage gates for new modules to ensure tests drive code (min 80% per module)
-
-- [ ] **Client Shell Decomposition**
-  - [ ] Split `apps/client/src/ui/App.tsx` into `AppProviders`, `SessionLifecycle`, and `HudLayout`
-  - [ ] Move auth gate UI/state into an `AuthGate` component + `useRoomAuth` hook
-  - [ ] Extract dice orchestration into a `DicePanel` feature module
-  - [ ] Write feature tests around session join/leave, dice roll propagation, and HUD visibility toggles before/after split
-
-- [ ] **DM Controls Modularization**
+- [ ] **DM Controls Modularization** (DMMenu.tsx)
   - [ ] Break `apps/client/src/features/dm/components/DMMenu.tsx` into panels (`MapControls`, `TokenControls`, `RoomManagement`, `DebugPanel`)
   - [ ] Introduce `useDMMenuState` hook to isolate derived state/effects
   - [ ] Cover each panel with interaction tests (e.g., lock toggles, fog controls) and storybook smoke checks
 
-- [ ] **Map Interaction Layers**
+- [ ] **Map Interaction Layers** (MapBoard.tsx)
   - [ ] Decompose `apps/client/src/ui/MapBoard.tsx` into `CameraController`, `SelectionLayer`, and `ToolLayer`
   - [ ] Move pointer/measure/draw orchestration into strategy modules reusable by `TransformGizmo`
   - [ ] Add Vitest suites for camera commands, selection propagation, and tool switching; ensure e2e coverage through transform pipeline tests
@@ -457,34 +320,14 @@ _Shared planning brief with Phase 19: `docs/planning/phase19-20-briefing.md`._
   - [ ] Add CI guard (lint rule or script) verifying max component size and enforcing boundary checks
   - [ ] Track structural metrics (LOC, dependency graph density) in CI to catch new god-file drift
 
-**Success Criteria**:
+**Success Criteria** (same as App.tsx refactoring):
 
 - No targeted file exceeds agreed LOC threshold or mixes unrelated responsibilities
 - Refactored modules ship with tests authored or updated during refactor (TDD pass)
 - Contributor documentation highlights SOLID/SOC guardrails and test requirements for reviews
 - CI enforces structural limits and contract tests to prevent regression
 
-## Phase 13: Asset System & Initiative Prep (Future)
-
-- [ ] Asset Manager Foundations
-  - [ ] `AssetManager.tsx` with tabs (Maps, Tokens, Portraits, Props)
-  - [ ] URL-based registry persisted to localStorage
-  - [ ] DM import flow for map/token assets
-
-- [ ] Initiative & Status Hooks
-  - [ ] Store optional `initiative` stat on scene objects (when relevant)
-  - [ ] Extend status-effect system to broadcast to tokens (portrait + token badge)
-  - [ ] Prototype initiative ordering UI leveraging unified scene objects
-
-- [ ] Session & Networking
-  - [ ] Include asset references when exporting session
-  - [ ] Improve reconnect UX (show spinner while waiting for transforms to sync)
-
-- [ ] Onboarding & Demo Polish
-  - [ ] Enhance welcome overlay (password hint, uptime notice)
-  - [ ] Add optional interactive tutorial for transform controls
-
-## High Priority (Post-Phase 10)
+## High Priority (Post-MVP)
 
 - [ ] Initiative tracker
   - [ ] Add/remove combatants

@@ -1,17 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { joinDefaultRoom } from "./helpers";
+import { joinDefaultRoomAsDM } from "./helpers";
 import type { RoomSnapshot } from "@shared";
 
 test.describe("HeroByte session load", () => {
   test("can load a session snapshot with tokens, characters, and scene objects", async ({
     page,
   }) => {
-    await joinDefaultRoom(page);
-
-    await page.waitForFunction(() => {
-      const data = window.__HERO_BYTE_E2E__;
-      return Boolean(data?.snapshot && data.uid);
-    });
+    await joinDefaultRoomAsDM(page);
 
     // Create a sample session snapshot
     const sampleSnapshot: RoomSnapshot = {
@@ -55,7 +50,7 @@ test.describe("HeroByte session load", () => {
           id: "char-1",
           name: "Gandalf",
           type: "pc",
-          owner: "player-2",
+          ownedByPlayerUID: "player-2",
           hp: 45,
           maxHp: 60,
         },
@@ -63,9 +58,37 @@ test.describe("HeroByte session load", () => {
           id: "char-2",
           name: "Goblin",
           type: "npc",
-          owner: "dm-1",
+          ownedByPlayerUID: "dm-1",
           hp: 15,
           maxHp: 20,
+        },
+      ],
+      props: [
+        {
+          id: "prop-1",
+          label: "Treasure Chest",
+          imageUrl:
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%23cd853f' width='100' height='100'/%3E%3C/svg%3E",
+          owner: null,
+          size: "large",
+          x: 12,
+          y: 15,
+          scaleX: 1,
+          scaleY: 1,
+          rotation: 0,
+        },
+        {
+          id: "prop-2",
+          label: "Barrel",
+          imageUrl:
+            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Ccircle fill='%238b4513' cx='50' cy='50' r='40'/%3E%3C/svg%3E",
+          owner: "player-1",
+          size: "medium",
+          x: 20,
+          y: 18,
+          scaleX: 1.2,
+          scaleY: 0.9,
+          rotation: 45,
         },
       ],
       drawings: [
@@ -121,6 +144,34 @@ test.describe("HeroByte session load", () => {
             rotation: 0,
             scaleX: 1,
             scaleY: 1,
+          },
+          locked: false,
+          owner: "player-1",
+        },
+        {
+          id: "scene-prop-1",
+          type: "prop",
+          sourceId: "prop-1",
+          transform: {
+            x: 600,
+            y: 750,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+          },
+          locked: false,
+          owner: null,
+        },
+        {
+          id: "scene-prop-2",
+          type: "prop",
+          sourceId: "prop-2",
+          transform: {
+            x: 1000,
+            y: 900,
+            rotation: 45,
+            scaleX: 1.2,
+            scaleY: 0.9,
           },
           locked: false,
           owner: "player-1",
@@ -195,6 +246,27 @@ test.describe("HeroByte session load", () => {
     expect(charactersLoaded.goblin).toBeTruthy();
     expect(charactersLoaded.goblin?.type).toBe("npc");
 
+    // Verify props were loaded
+    const propsLoaded = await page.evaluate(() => {
+      const data = window.__HERO_BYTE_E2E__;
+      const props = data?.snapshot?.props ?? [];
+      return {
+        count: props.length,
+        chest: props.find((p) => p.id === "prop-1"),
+        barrel: props.find((p) => p.id === "prop-2"),
+      };
+    });
+
+    expect(propsLoaded.count).toBeGreaterThanOrEqual(2);
+    expect(propsLoaded.chest).toBeTruthy();
+    expect(propsLoaded.chest?.label).toBe("Treasure Chest");
+    expect(propsLoaded.chest?.x).toBe(12);
+    expect(propsLoaded.chest?.y).toBe(15);
+    expect(propsLoaded.chest?.size).toBe("large");
+    expect(propsLoaded.barrel).toBeTruthy();
+    expect(propsLoaded.barrel?.label).toBe("Barrel");
+    expect(propsLoaded.barrel?.rotation).toBe(45);
+
     // Verify drawings were loaded
     const drawingsLoaded = await page.evaluate(() => {
       const data = window.__HERO_BYTE_E2E__;
@@ -258,12 +330,7 @@ test.describe("HeroByte session load", () => {
   });
 
   test("loads session and preserves current player connections", async ({ page }) => {
-    await joinDefaultRoom(page);
-
-    await page.waitForFunction(() => {
-      const data = window.__HERO_BYTE_E2E__;
-      return Boolean(data?.snapshot && data.uid);
-    });
+    await joinDefaultRoomAsDM(page);
 
     const myUid = await page.evaluate(() => window.__HERO_BYTE_E2E__?.uid ?? null);
     expect(myUid).not.toBeNull();
@@ -281,6 +348,7 @@ test.describe("HeroByte session load", () => {
         },
       ],
       characters: [],
+      props: [],
       drawings: [],
       sceneObjects: [],
       pointers: [],
@@ -312,12 +380,7 @@ test.describe("HeroByte session load", () => {
   });
 
   test("handles session load with missing optional fields gracefully", async ({ page }) => {
-    await joinDefaultRoom(page);
-
-    await page.waitForFunction(() => {
-      const data = window.__HERO_BYTE_E2E__;
-      return Boolean(data?.snapshot && data.uid);
-    });
+    await joinDefaultRoomAsDM(page);
 
     // Minimal snapshot with only required fields
     const minimalSnapshot: Partial<RoomSnapshot> = {

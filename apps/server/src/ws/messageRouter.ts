@@ -12,6 +12,7 @@ import { TokenService } from "../domains/token/service.js";
 import { MapService } from "../domains/map/service.js";
 import { DiceService } from "../domains/dice/service.js";
 import { CharacterService } from "../domains/character/service.js";
+import { PropService } from "../domains/prop/service.js";
 import { SelectionService } from "../domains/selection/service.js";
 import { AuthService } from "../domains/auth/service.js";
 
@@ -25,6 +26,7 @@ export class MessageRouter {
   private mapService: MapService;
   private diceService: DiceService;
   private characterService: CharacterService;
+  private propService: PropService;
   private selectionService: SelectionService;
   private authService: AuthService;
   private wss: WebSocketServer;
@@ -38,6 +40,7 @@ export class MessageRouter {
     mapService: MapService,
     diceService: DiceService,
     characterService: CharacterService,
+    propService: PropService,
     selectionService: SelectionService,
     authService: AuthService,
     wss: WebSocketServer,
@@ -50,6 +53,7 @@ export class MessageRouter {
     this.mapService = mapService;
     this.diceService = diceService;
     this.characterService = characterService;
+    this.propService = propService;
     this.selectionService = selectionService;
     this.authService = authService;
     this.wss = wss;
@@ -253,12 +257,136 @@ export class MessageRouter {
           }
           break;
 
+        // PROP ACTIONS
+        case "create-prop": {
+          if (!this.isDM(senderUid)) {
+            console.warn(`Non-DM ${senderUid} attempted to create prop`);
+            break;
+          }
+          this.propService.createProp(
+            state,
+            message.label,
+            message.imageUrl,
+            message.owner,
+            message.size,
+            message.viewport,
+            state.gridSize,
+          );
+          this.broadcast();
+          this.roomService.saveState();
+          break;
+        }
+
+        case "update-prop":
+          if (!this.isDM(senderUid)) {
+            console.warn(`Non-DM ${senderUid} attempted to update prop`);
+            break;
+          }
+          if (
+            this.propService.updateProp(state, message.id, {
+              label: message.label,
+              imageUrl: message.imageUrl,
+              owner: message.owner,
+              size: message.size,
+            })
+          ) {
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+
+        case "delete-prop": {
+          if (!this.isDM(senderUid)) {
+            console.warn(`Non-DM ${senderUid} attempted to delete prop`);
+            break;
+          }
+          const removed = this.propService.deleteProp(state, message.id);
+          if (removed) {
+            // Remove from selection state
+            this.selectionService.removeObject(state, `prop:${message.id}`);
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+        }
+
         case "claim-character":
           if (this.characterService.claimCharacter(state, message.characterId, senderUid)) {
             this.broadcast();
             this.roomService.saveState();
           }
           break;
+
+        case "add-player-character": {
+          // Create character for the requesting player
+          const maxHp = message.maxHp ?? 100;
+          const character = this.characterService.createCharacter(
+            state,
+            message.name,
+            maxHp,
+            undefined, // portrait - player can set later
+            "pc",
+          );
+
+          // Auto-claim for the requesting player
+          this.characterService.claimCharacter(state, character.id, senderUid);
+
+          // Create and link token at spawn position
+          const spawn = this.roomService.getPlayerSpawnPosition();
+          const token = this.tokenService.createToken(state, senderUid, spawn.x, spawn.y);
+          this.characterService.linkToken(state, character.id, token.id);
+
+          console.log(`Player ${senderUid} created additional character: ${character.name}`);
+          this.broadcast();
+          this.roomService.saveState();
+          break;
+        }
+
+        case "delete-player-character": {
+          // Find the character to delete
+          const characterToDelete = this.characterService.findCharacter(state, message.characterId);
+
+          // Permission check: Only allow if player owns this character
+          if (!characterToDelete || characterToDelete.ownedByPlayerUID !== senderUid) {
+            console.warn(`Player ${senderUid} tried to delete character they don't own`);
+            break;
+          }
+
+          // Delete the character
+          const deleted = this.characterService.deleteCharacter(state, message.characterId);
+          if (deleted) {
+            // Delete linked token if exists
+            if (deleted.tokenId) {
+              this.tokenService.forceDeleteToken(state, deleted.tokenId);
+              this.selectionService.removeObject(state, deleted.tokenId);
+            }
+            console.log(`Player ${senderUid} deleted character: ${deleted.name}`);
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+        }
+
+        case "update-character-name": {
+          // Find the character to rename
+          const characterToRename = this.characterService.findCharacter(state, message.characterId);
+
+          // Permission check: Only allow if player owns this character
+          if (!characterToRename || characterToRename.ownedByPlayerUID !== senderUid) {
+            console.warn(`Player ${senderUid} tried to rename character they don't own`);
+            break;
+          }
+
+          // Update the character name
+          if (this.characterService.updateName(state, message.characterId, message.name)) {
+            console.log(
+              `Player ${senderUid} renamed character to: ${message.name} (ID: ${message.characterId})`,
+            );
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+        }
 
         case "update-character-hp":
           if (
@@ -293,13 +421,27 @@ export class MessageRouter {
           break;
 
         case "set-player-staging-zone": {
+          console.log("[DEBUG] Received set-player-staging-zone message:", {
+            senderUid,
+            zone: message.zone,
+            timestamp: new Date().toISOString(),
+          });
           const sender = state.players.find((player) => player.uid === senderUid);
+          console.log("[DEBUG] Sender found:", {
+            uid: sender?.uid,
+            isDM: sender?.isDM,
+            name: sender?.name,
+          });
           if (!sender?.isDM) {
+            console.log("[DEBUG] Rejected: sender is not DM");
             break;
           }
-          if (this.roomService.setPlayerStagingZone(message.zone)) {
+          const result = this.roomService.setPlayerStagingZone(message.zone);
+          console.log("[DEBUG] setPlayerStagingZone result:", result);
+          if (result) {
             this.broadcast();
             this.roomService.saveState();
+            console.log("[DEBUG] Staging zone set successfully and saved");
           }
           break;
         }

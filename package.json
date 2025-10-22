@@ -26,6 +26,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "lint:structure": "node scripts/structure-report.mjs --limit 50 --threshold 350",
+    "lint:structure:enforce": "node scripts/structure-report.mjs --threshold 350 --fail-on-new",
     "format": "prettier --write \"apps/**/*.{ts,tsx,js,json,md}\" \"packages/**/*.{ts,tsx,js,json,md}\" \"*.{js,json,md}\"",
     "format:check": "prettier --check \"apps/**/*.{ts,tsx,js,json,md}\" \"packages/**/*.{ts,tsx,js,json,md}\" \"*.{js,json,md}\""
   },
