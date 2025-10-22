@@ -1,0 +1,28 @@
+I'm continuing the DMMenu.tsx Phase 4 refactoring. Read the handoff document at /home/loshunter/HeroByte/docs/refactoring/DMMENU_PHASE4_HANDOFF.md to understand the current state.
+
+Current status:
+- DMMenu.tsx is at 1,022 LOC (down from 1,588)
+- Phases 2-3 complete (entity editors and simple controls extracted)
+- Branch: refactor/dm-menu/stateful-tabs
+- 566 LOC reduced so far (36%)
+
+Phase 4 goal: Extract 3 complex map controls (~430 LOC reduction)
+1. MapTransformControl (Priority 10, ~160 LOC) - lines 355-511
+2. StagingZoneControl (Priority 11, ~180 LOC) - lines 732-787
+3. GridAlignmentWizard (Priority 12, ~90 LOC) - lines 522-650
+
+CRITICAL: Use agents effectively to minimize your context usage:
+- Use Explore agent for code searches
+- Use general-purpose agents to write tests (follow NPCEditor.test.tsx pattern)
+- Use general-purpose agents to extract components
+- Launch agents in PARALLEL when possible (single message, multiple Task calls)
+
+Follow the proven 4-step extraction pattern from Phases 2-3:
+1. Write characterization tests (use agent)
+2. Extract component file (use agent)
+3. Update tests to import extracted component
+4. Integrate into DMMenu.tsx and commit
+
+Start with MapTransformControl (Priority 10, lines 355-511). Use a general-purpose agent to write comprehensive characterization tests following the NPCEditor.test.tsx pattern at /home/loshunter/HeroByte/apps/client/src/features/dm/components/__tests__/characterization/NPCEditor.test.tsx. Then extract the component using another agent.
+
+Remember: Use fireEvent (NOT userEvent), use accessible queries (getByLabelText, getByRole), and preserve mathematical logic exactly as-is.

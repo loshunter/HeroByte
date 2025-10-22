@@ -5,6 +5,266 @@
 
 ---
 
+## ✅ DMMenu.tsx Phase 6 Refactoring - COMPLETE (October 21, 2025)
+
+**Goal**: Extract tab view composition components from DMMenu.tsx to achieve final target of <300 LOC.
+
+### Achievement Summary
+
+**Status**: Phase 6 COMPLETE - All 4 tab view components extracted successfully!
+
+- ✅ **DMMenu.tsx: 392 → 284 LOC (-27.6% phase reduction, -108 LOC)**
+- ✅ **Cumulative: 1,588 → 284 LOC (-82.1% total reduction, -1,304 LOC)**
+- ✅ **Phase 6 Extractions: 4/4 complete** (-108 LOC, +191 tests)
+- ✅ **Total Test Suite: 383 characterization tests, 100% passing**
+- ✅ **Completion Date:** October 21, 2025
+- ✅ **Final Commits:** `caba901` (MapTab), `1418c6a` (NPCsTab, PropsTab, SessionTab)
+- ✅ **Branch:** `refactor/dm-menu/stateful-tabs`
+- 📄 **Detailed tracking:** See `/docs/refactoring/DMMENU_PHASE6_COMPLETE.md`
+
+### Phase 6 Completed Work
+
+**Tab View Composition Components Extracted:**
+
+1. **MapTab** (Priority 15)
+   - Component: 163 LOC
+   - Tests: 59 comprehensive tests
+   - Features: Composes 6 map control components (MapBackgroundControl, MapTransformControl, GridControl, GridAlignmentWizard, StagingZoneControl, DrawingControls)
+   - Commit: `caba901`
+   - Reduction: 54 LOC
+
+2. **NPCsTab** (Priority 16)
+   - Component: 94 LOC
+   - Tests: 43 comprehensive tests
+   - Features: NPCEditor list rendering with empty state
+   - Commit: `1418c6a`
+   - Reduction: 18 LOC
+
+3. **PropsTab** (Priority 17)
+   - Component: 94 LOC
+   - Tests: 42 comprehensive tests
+   - Features: PropEditor list rendering with empty state
+   - Commit: `1418c6a`
+   - Reduction: 18 LOC
+
+4. **SessionTab** (Priority 18)
+   - Component: 100 LOC
+   - Tests: 47 comprehensive tests
+   - Features: Composes SessionPersistenceControl, RoomPasswordControl, and Players panel
+   - Commit: `1418c6a`
+   - Reduction: 18 LOC
+
+**Phase 6 Total Impact:**
+
+- LOC Reduction: 108 lines
+- New Tests: 191 comprehensive tests (59+43+42+47)
+- New Directory: `apps/client/src/features/dm/components/tab-views/`
+- Agentic Efficiency: Completed in ~94K tokens (47% of context budget)
+- **FINAL STATE:** DMMenu.tsx is now a clean 284 LOC orchestrator (82.1% reduction from original)
+
+**Refactoring Goals ACHIEVED:**
+
+- ✅ Target: DMMenu.tsx < 300 LOC (achieved: 284 LOC)
+- ✅ Target: >80% reduction (achieved: 82.1%)
+- ✅ 15 focused components extracted across 6 phases
+- ✅ 383 comprehensive tests created
+- ✅ Zero behavior changes
+- ✅ All tests passing
+
+**Next Phase:** Optional Phase 7 - State Hook extraction (useDMMenuState) if further reduction desired
+
+---
+
+## ✅ DMMenu.tsx Phase 5 Refactoring - COMPLETE (October 21, 2025)
+
+**Goal**: Extract session control components from DMMenu.tsx to reduce complexity and improve modularity.
+
+### Achievement Summary
+
+**Status**: Phase 5 COMPLETE - Both session control components extracted successfully!
+
+- ✅ **DMMenu.tsx: 548 → 392 LOC (-28.5% phase reduction, -156 LOC)**
+- ✅ **Cumulative: 1,588 → 392 LOC (-75.3% total reduction, -1,196 LOC)**
+- ✅ **Phase 5 Extractions: 2/2 complete** (-156 LOC, +72 tests)
+- ✅ **Total Test Suite: 264+ characterization tests, 100% passing**
+- ✅ **Completion Date:** October 21, 2025
+- ✅ **Final Commits:** `1daa97d` (SessionPersistenceControl), `fbf4d2a` (RoomPasswordControl)
+- ✅ **Branch:** `refactor/dm-menu/stateful-tabs` (pushed to remote)
+- 📄 **Detailed tracking:** See `/docs/refactoring/DMMENU_PHASE6_HANDOFF.md`
+
+### Phase 5 Completed Work
+
+**Session Control Components Extracted:**
+
+1. **SessionPersistenceControl** (Priority 13)
+   - Component: 139 LOC
+   - Tests: 33 comprehensive tests
+   - Features: Session name input, save/load buttons, file picker (JSON-only), auto-trimming
+   - Commit: `1daa97d`
+   - Reduction: 63 LOC
+
+2. **RoomPasswordControl** (Priority 14)
+   - Component: 162 LOC
+   - Tests: 39 comprehensive tests
+   - Features: Dual password inputs (new + confirm), client validation (6+ chars, matching), server status display, auto-clear on success
+   - Commit: `fbf4d2a`
+   - Reduction: 93 LOC
+
+**Phase 5 Total Impact:**
+
+- LOC Reduction: 156 lines
+- New Tests: 72 comprehensive tests
+- New Directory: `apps/client/src/features/dm/components/session-controls/`
+- Agentic Efficiency: Completed in ~74K tokens (37% of context budget)
+
+**Next Phase:** Phase 6 - Tab Views Composition (Priorities 15-18)
+
+---
+
+## ✅ DMMenu.tsx Phase 4 Refactoring - COMPLETE (October 21, 2025)
+
+**Goal**: Extract complex map controls from DMMenu.tsx to reduce complexity and improve testability.
+
+### Achievement Summary
+
+**Status**: Phase 4 COMPLETE - All 3 complex map control components extracted successfully!
+
+- ✅ **DMMenu.tsx: 1,588 → 548 LOC (-65.5% reduction, -1,040 LOC)**
+- ✅ **Phase 4 Extractions: 3/3 complete** (-474 LOC, +139 tests)
+- ✅ **Cumulative Progress: 192 characterization tests, 100% passing**
+- ✅ **Completion Date:** October 21, 2025
+- ✅ **Final Commit:** `049a61e`
+- ✅ **Branch:** `refactor/dm-menu/stateful-tabs` (pushed to remote)
+- 📄 **Detailed tracking:** See `/docs/refactoring/DMMENU_PHASE4_FINAL_HANDOFF.md`
+
+### Phase 4 Completed Work
+
+**Complex Map Controls Extracted:**
+
+1. **MapTransformControl** (Priority 10)
+   - Component: 216 LOC
+   - Tests: 47 comprehensive tests
+   - Features: Scale slider (0.1x-3.0x), X/Y position inputs, rotation slider (0°-360°), lock/unlock toggle
+   - Commit: `df0da26`
+   - Reduction: 148 LOC
+
+2. **StagingZoneControl** (Priority 11)
+   - Component: 350 LOC
+   - Tests: 36 comprehensive tests
+   - Features: X/Y/Width/Height/Rotation inputs, viewport-to-world coordinate conversion, grid size calculations
+   - Commit: `0fd6dc0`
+   - Reduction: 252 LOC
+
+3. **GridAlignmentWizard** (Priority 12)
+   - Component: 160 LOC
+   - Tests: 56 comprehensive tests
+   - Features: Multi-step alignment workflow, point capture UI, auto-suggestion display
+   - Commit: `049a61e`
+   - Reduction: 74 LOC
+
+**Phase 4 Total Impact:**
+
+- 3 components extracted
+- 474 LOC reduced
+- 139 new characterization tests
+- Zero behavioral changes
+- All mathematical logic preserved
+
+### Cumulative Progress
+
+**Phase 2 (Entity Editors):** 1,588 → 1,210 LOC (-378 LOC, 53 tests)
+
+- NPCEditor (210 LOC, 29 tests)
+- PropEditor (191 LOC, 24 tests)
+
+**Phase 3 (Simple Controls):** 1,210 → 1,022 LOC (-188 LOC)
+
+- CollapsibleSection, MapBackgroundControl, DrawingControls, GridControl
+
+**Phase 4 (Complex Controls):** 1,022 → 548 LOC (-474 LOC, 139 tests)
+
+- MapTransformControl, StagingZoneControl, GridAlignmentWizard
+
+**Total Reduction:** 1,040 LOC (65.5% reduction from original)
+**Total Tests:** 192 characterization tests, all passing
+
+### Files Created
+
+**Map Control Components:**
+
+- `apps/client/src/features/dm/components/map-controls/MapTransformControl.tsx`
+- `apps/client/src/features/dm/components/map-controls/StagingZoneControl.tsx`
+- `apps/client/src/features/dm/components/map-controls/GridAlignmentWizard.tsx`
+
+**Tests:**
+
+- `apps/client/src/features/dm/components/__tests__/characterization/MapTransformControl.test.tsx` (47 tests)
+- `apps/client/src/features/dm/components/__tests__/characterization/StagingZoneControl.test.tsx` (36 tests)
+- `apps/client/src/features/dm/components/__tests__/characterization/GridAlignmentWizard.test.tsx` (56 tests)
+
+**Documentation:**
+
+- `docs/refactoring/DMMENU_PHASE4_FINAL_HANDOFF.md` - Updated to reflect completion
+
+### Success Criteria Achieved
+
+- ✅ DMMenu.tsx reduced from 1,588 to 548 LOC (65.5% reduction)
+- ✅ All 3 Phase 4 components extracted (<350 LOC each)
+- ✅ Comprehensive test coverage (139 new tests in Phase 4, 192 total)
+- ✅ All components follow TDD/characterization-test-first pattern
+- ✅ Zero behavioral changes - complete behavior preservation
+- ✅ TypeScript compilation passes with no errors
+- ✅ All mathematical logic preserved exactly as-is
+- ✅ Clean separation of concerns achieved
+
+### Technical Metrics
+
+**LOC Reduction by Phase:**
+
+- Phase 2 (Entity Editors): -378 LOC
+- Phase 3 (Simple Controls): -188 LOC
+- Phase 4 (Complex Controls): -474 LOC
+- **Total**: -1,040 LOC (65.5%)
+
+**Test Coverage:**
+
+- Phase 2: 53 tests
+- Phase 3: 0 tests (simple utilities)
+- Phase 4: 139 tests
+- **Total**: 192 characterization tests
+
+**Code Quality:**
+
+- TypeScript: Strict mode, no errors
+- TDD methodology: Tests written before extraction
+- Accessible queries: getByLabelText, getByRole, getByText
+- FireEvent: All tests use fireEvent (no userEvent dependency)
+- JSDoc: Comprehensive documentation on all components
+
+### Key Achievement
+
+**DMMenu.tsx Phase 4 complete!** From 1,588 lines to 548 lines through systematic extraction of complex controls with:
+
+- Mathematical logic preservation (viewport calculations, coordinate conversions, rotation transforms)
+- Comprehensive characterization tests (139 new tests in Phase 4)
+- Zero behavioral changes (all existing functionality preserved)
+- Clean component boundaries (each <350 LOC)
+- Proven 4-step TDD pattern (tests → extract → integrate → commit)
+
+**This demonstrates the effectiveness of the characterization-test-first pattern for safe refactoring of complex UI components.**
+
+### Future Work
+
+**Phase 5 Targets (Next):**
+
+- SessionPersistenceControl (Priority 13, ~60 LOC)
+- RoomPasswordControl (Priority 14, ~80 LOC)
+- Expected reduction: ~140 LOC → DMMenu.tsx down to ~408 LOC
+
+See `docs/refactoring/DMMENU_PHASE5_HANDOFF.md` for Phase 5 details.
+
+---
+
 ## ✅ Phase 15: SOLID Refactor Initiative - MainLayout.tsx COMPLETE (October 21, 2025)
 
 **Goal**: Decompose MainLayout.tsx from 795 LOC "god file" to well-organized composition component with clean separation of concerns.
@@ -42,6 +302,7 @@
    - Purpose: Bottom panel with player/NPC character cards
 
 **Total Phase 1 Impact:**
+
 - MainLayout reduced: 795 → 725 LOC (-70 LOC, 8.8%)
 - New components: 1,012 LOC total across 4 files
 - Total tests: 307 characterization tests, all passing
@@ -74,23 +335,27 @@ MainLayout is a **pure composition component** (0 state, 0 logic, 110 props forw
 ### Files Created
 
 **Layout Components:**
+
 - `apps/client/src/layouts/TopPanelLayout.tsx`
 - `apps/client/src/layouts/CenterCanvasLayout.tsx`
 - `apps/client/src/layouts/FloatingPanelsLayout.tsx`
 - `apps/client/src/layouts/BottomPanelLayout.tsx`
 
 **Props & Hooks:**
+
 - `apps/client/src/layouts/props/MainLayoutProps.ts`
 - `apps/client/src/layouts/props/index.ts`
 - `apps/client/src/hooks/useEntityEditHandlers.ts`
 
 **Tests:**
+
 - `apps/client/src/layouts/__tests__/TopPanelLayout.characterization.test.tsx` (46 tests)
 - `apps/client/src/layouts/__tests__/CenterCanvasLayout.characterization.test.tsx` (70 tests)
 - `apps/client/src/layouts/__tests__/FloatingPanelsLayout.characterization.test.tsx` (113 tests)
 - `apps/client/src/layouts/__tests__/BottomPanelLayout.characterization.test.tsx` (78 tests)
 
 **Documentation:**
+
 - `docs/refactoring/MAINLAYOUT_DECISIONS.md` - Complete decision log
 - `docs/refactoring/PHASE2_COMPLETION.md` - Phase 2 analysis and completion report
 - `docs/refactoring/archive/MAINLAYOUT_HANDOFF.md` - Archived handoff document
@@ -113,17 +378,20 @@ MainLayout is a **pure composition component** (0 state, 0 logic, 110 props forw
 ### Technical Metrics
 
 **LOC Reduction:**
+
 - MainLayout.tsx: 795 → 364 LOC (-431 LOC, -54.2%)
 - Props interface: Relocated to dedicated file (376 LOC)
 - Handler logic: Relocated to custom hook (152 LOC)
 
 **Test Coverage:**
+
 - Characterization tests: 307 tests (46 + 70 + 113 + 78)
 - All client tests: 923 passing
 - Execution time: Fast (<2 seconds for all layout tests)
 - Coverage: 100% behavior preservation verified
 
 **Code Quality:**
+
 - TypeScript: Strict mode, no errors
 - Explicit prop passing: Clear data flow
 - React.memo: Performance optimization
@@ -133,6 +401,7 @@ MainLayout is a **pure composition component** (0 state, 0 logic, 110 props forw
 ### Key Achievement
 
 **MainLayout.tsx is now a clean composition component!** From a 795-line "god file" to a well-organized 364-line orchestrator with:
+
 - Clear separation of concerns (4 sub-layout components)
 - Explicit prop forwarding (110 props, type-safe)
 - Dedicated props interface file (reusable types)
