@@ -40,7 +40,7 @@ export interface MapTabProps {
   // MapTransformControl props (conditional rendering)
   mapTransform?: { x: number; y: number; scaleX: number; scaleY: number; rotation: number };
   mapLocked?: boolean;
-  onMapTransformChange?: (transform: any) => void;
+  onMapTransformChange?: (transform: Partial<{ x: number; y: number; scaleX: number; scaleY: number; rotation: number }>) => void;
   onMapLockToggle?: () => void;
 
   // GridControl props

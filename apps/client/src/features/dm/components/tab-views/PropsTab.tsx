@@ -25,7 +25,7 @@ interface PropsTabProps {
   /** Callback invoked when the user clicks the "Add Prop" button */
   onCreateProp: () => void;
   /** Callback invoked when a prop is updated via the PropEditor */
-  onUpdateProp: (id: string, updates: any) => void;
+  onUpdateProp: (id: string, updates: Partial<Prop>) => void;
   /** Callback invoked when a prop is deleted via the PropEditor */
   onDeleteProp: (id: string) => void;
 }

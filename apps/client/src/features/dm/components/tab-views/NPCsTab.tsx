@@ -25,7 +25,7 @@ interface NPCsTabProps {
   /** Callback to create a new NPC */
   onCreateNPC: () => void;
   /** Callback to update an NPC's properties */
-  onUpdateNPC: (id: string, updates: any) => void;
+  onUpdateNPC: (id: string, updates: Partial<Character>) => void;
   /** Callback to place an NPC token on the map */
   onPlaceNPCToken: (id: string) => void;
   /** Callback to delete an NPC */

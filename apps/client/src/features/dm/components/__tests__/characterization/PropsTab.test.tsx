@@ -22,7 +22,7 @@ interface PropsTabProps {
   props: Prop[];
   players: Player[];
   onCreateProp: () => void;
-  onUpdateProp: (id: string, updates: any) => void;
+  onUpdateProp: (id: string, updates: Partial<Prop>) => void;
   onDeleteProp: (id: string) => void;
 }
 
@@ -597,7 +597,7 @@ describe("PropsTab - Characterization Tests", () => {
           activeTab="props"
           props={[]}
           players={[]}
-          onCreateProp={undefined as any}
+          onCreateProp={undefined as unknown as () => void}
           {...otherHandlers}
         />,
       );
