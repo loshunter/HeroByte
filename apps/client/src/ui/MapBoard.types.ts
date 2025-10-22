@@ -1,4 +1,4 @@
-import type { RoomSnapshot, ClientMessage, SceneObject } from "@shared";
+import type { RoomSnapshot, ClientMessage } from "@shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import type { Camera } from "../hooks/useCamera";
 
