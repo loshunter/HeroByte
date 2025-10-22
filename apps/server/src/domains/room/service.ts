@@ -184,8 +184,8 @@ export class RoomService {
     ];
 
     // Preserve tokens belonging to currently connected players
-    const currentPlayerTokens = this.state.tokens.filter(
-      (token) => currentPlayerUIDs.has(token.owner),
+    const currentPlayerTokens = this.state.tokens.filter((token) =>
+      currentPlayerUIDs.has(token.owner),
     );
 
     // Get IDs of preserved tokens to avoid duplicates
