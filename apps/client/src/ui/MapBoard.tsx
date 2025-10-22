@@ -24,6 +24,9 @@ import { useGridConfig } from "../hooks/useGridConfig.js";
 import { useCursorStyle } from "../hooks/useCursorStyle.js";
 import { useSceneObjectsData } from "../hooks/useSceneObjectsData.js";
 import { useKonvaNodeRefs } from "../hooks/useKonvaNodeRefs.js";
+import { useMarqueeSelection } from "../hooks/useMarqueeSelection.js";
+import { useKeyboardNavigation } from "../hooks/useKeyboardNavigation.js";
+import { useAlignmentVisualization } from "../hooks/useAlignmentVisualization.js";
 import {
   GridLayer,
   MapImageLayer,
@@ -35,7 +38,6 @@ import {
   PropsLayer,
 } from "../features/map/components";
 import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
-import { worldToMapLocal } from "../utils/coordinateTransforms";
 import type { CameraCommand, MapBoardProps, SelectionRequestOptions } from "./MapBoard.types";
 
 // Re-export types for backward compatibility
@@ -113,16 +115,22 @@ export default function MapBoard({
     deselectIfEmpty,
   } = useDrawingSelection({ selectMode, sendMessage, drawingObjects });
 
-  const [marquee, setMarquee] = useState<{
-    start: { x: number; y: number };
-    current: { x: number; y: number };
-  } | null>(null);
-
-  useEffect(() => {
-    if (!selectMode) {
-      setMarquee(null);
-    }
-  }, [selectMode]);
+  const {
+    isActive: isMarqueeActive,
+    marqueeRect,
+    handlePointerDown: handleMarqueePointerDown,
+    handlePointerMove: handleMarqueePointerMove,
+    handlePointerUp: handleMarqueePointerUp,
+  } = useMarqueeSelection({
+    stageRef,
+    selectMode,
+    pointerMode,
+    measureMode,
+    drawMode,
+    getAllNodes,
+    onSelectObject,
+    onSelectObjects,
+  });
 
   // Camera controls (pan/zoom)
   const {
@@ -155,24 +163,20 @@ export default function MapBoard({
     sendMessage,
   });
 
-  const handleAlignmentClick = useCallback(
-    (event: KonvaEventObject<MouseEvent | PointerEvent>) => {
-      if (!alignmentMode || !onAlignmentPointCapture || !mapObject) {
-        return;
-      }
-
-      const stage = event.target.getStage();
-      if (!stage) return;
-      const pointer = stage.getPointerPosition();
-      if (!pointer) return;
-
-      const world = toWorld(pointer.x, pointer.y);
-      const local = worldToMapLocal(world, mapObject.transform);
-
-      onAlignmentPointCapture({ world, local });
-    },
-    [alignmentMode, onAlignmentPointCapture, mapObject, toWorld],
-  );
+  const {
+    instruction: alignmentInstruction,
+    previewPoints: alignmentPreviewPoints,
+    previewLine: alignmentPreviewLine,
+    suggestionLine: alignmentSuggestionLine,
+    handleAlignmentClick,
+  } = useAlignmentVisualization({
+    alignmentMode,
+    alignmentPoints,
+    alignmentSuggestion,
+    mapObject,
+    toWorld,
+    onAlignmentPointCapture,
+  });
 
   // Drawing tool
   const {
@@ -204,54 +208,14 @@ export default function MapBoard({
   // Grid configuration
   const grid = useGridConfig(gridSize);
 
-  // -------------------------------------------------------------------------
-  // EFFECTS
-  // -------------------------------------------------------------------------
-
-  // Delete key handler for selected objects (drawings via select tool, or any object via transform gizmo)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't delete if typing in an input field
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-
-      if (e.key === "Delete") {
-        // Priority 1: Delete selected drawing (via select tool)
-        if (selectedDrawingId && selectMode) {
-          sendMessage({ t: "delete-drawing", id: selectedDrawingId });
-          handleSelectDrawing(null);
-          return;
-        }
-
-        // Priority 2: Delete selected object now handled in App.tsx
-        // (App.tsx has DM check and proper permission handling)
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [
+  useKeyboardNavigation({
     selectedDrawingId,
     selectMode,
     sendMessage,
     handleSelectDrawing,
     selectedObjectId,
     onSelectObject,
-    sceneObjects,
-  ]);
-
-  // ESC key handler to deselect transform gizmo
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && selectedObjectId && onSelectObject) {
-        onSelectObject(null);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedObjectId, onSelectObject]);
+  });
 
   // -------------------------------------------------------------------------
   // UNIFIED EVENT HANDLERS
@@ -291,20 +255,7 @@ export default function MapBoard({
     const shouldPan = !alignmentMode && !pointerMode && !measureMode && !drawMode && !selectMode;
     handleCameraMouseDown(event, stageRef, shouldPan);
     handleDrawMouseDown(stageRef);
-
-    if (
-      selectMode &&
-      !pointerMode &&
-      !measureMode &&
-      !drawMode &&
-      event.evt.button === 0 &&
-      stageRef.current
-    ) {
-      const pointer = stageRef.current.getPointerPosition();
-      if (pointer && event.target === stageRef.current) {
-        setMarquee({ start: pointer, current: pointer });
-      }
-    }
+    handleMarqueePointerDown(event);
   };
 
   /**
@@ -314,13 +265,7 @@ export default function MapBoard({
     handleCameraMouseMove(stageRef);
     handlePointerMouseMove(stageRef);
     handleDrawMouseMove(stageRef);
-
-    if (marquee && stageRef.current) {
-      const pointer = stageRef.current.getPointerPosition();
-      if (pointer) {
-        setMarquee((prev) => (prev ? { ...prev, current: pointer } : prev));
-      }
-    }
+    handleMarqueePointerMove();
   };
 
   /**
@@ -505,89 +450,12 @@ export default function MapBoard({
     [registerNode],
   );
 
-  const applyMarqueeSelection = useCallback(() => {
-    if (!marquee || !stageRef.current) {
-      return;
-    }
-
-    const { start, current } = marquee;
-    const minX = Math.min(start.x, current.x);
-    const minY = Math.min(start.y, current.y);
-    const maxX = Math.max(start.x, current.x);
-    const maxY = Math.max(start.y, current.y);
-
-    const width = maxX - minX;
-    const height = maxY - minY;
-
-    const matches: string[] = [];
-    const nodes = getAllNodes();
-
-    nodes.forEach((node, id) => {
-      if (
-        !node ||
-        (!id.startsWith("token:") && !id.startsWith("drawing:") && !id.startsWith("prop:"))
-      ) {
-        return;
-      }
-
-      const rect = node.getClientRect({ relativeTo: stageRef.current! });
-      const nodeMinX = rect.x;
-      const nodeMinY = rect.y;
-      const nodeMaxX = rect.x + rect.width;
-      const nodeMaxY = rect.y + rect.height;
-
-      const intersects =
-        nodeMinX <= maxX && nodeMaxX >= minX && nodeMinY <= maxY && nodeMaxY >= minY;
-
-      if (intersects) {
-        matches.push(id);
-      }
-    });
-
-    // If the marquee is very small (likely a click) and no objects were found, deselect
-    if (width < 4 && height < 4 && matches.length === 0) {
-      console.log("[Marquee] Small marquee, no matches - deselecting");
-      onSelectObject?.(null);
-      return;
-    }
-
-    // If no objects were found in a larger marquee, also deselect
-    if (matches.length === 0) {
-      console.log("[Marquee] No matches found - deselecting");
-      onSelectObject?.(null);
-      return;
-    }
-
-    console.log("[Marquee] Selecting", matches.length, "objects:", matches);
-    if (onSelectObjects) {
-      onSelectObjects(matches);
-    } else if (onSelectObject) {
-      matches.forEach((id, index) => {
-        onSelectObject(id, { mode: index === 0 ? "replace" : "append" });
-      });
-    }
-  }, [getAllNodes, marquee, onSelectObject, onSelectObjects]);
-
-  const marqueeRect = useMemo(() => {
-    if (!marquee) {
-      return null;
-    }
-    const { start, current } = marquee;
-    return {
-      x: Math.min(start.x, current.x),
-      y: Math.min(start.y, current.y),
-      width: Math.abs(start.x - current.x),
-      height: Math.abs(start.y - current.y),
-    };
-  }, [marquee]);
-
   const onMouseUp = () => {
     handleCameraMouseUp();
     handleDrawMouseUp();
 
-    if (marquee) {
-      applyMarqueeSelection();
-      setMarquee(null);
+    if (isMarqueeActive) {
+      handleMarqueePointerUp();
     }
   };
 
@@ -616,7 +484,7 @@ export default function MapBoard({
         position: "relative",
       }}
     >
-      {alignmentMode && (
+      {alignmentMode && alignmentInstruction && (
         <div
           style={{
             position: "absolute",
@@ -633,11 +501,7 @@ export default function MapBoard({
           }}
         >
           <strong style={{ color: "var(--jrpg-gold)" }}>Alignment Mode</strong>
-          <div style={{ marginTop: "4px" }}>
-            {alignmentPoints.length === 0 && "Click the first corner of a map square."}
-            {alignmentPoints.length === 1 && "Click the opposite corner of the same square."}
-            {alignmentPoints.length >= 2 && "Review the preview and apply when ready."}
-          </div>
+          <div style={{ marginTop: "4px" }}>{alignmentInstruction}</div>
         </div>
       )}
 
@@ -795,9 +659,9 @@ export default function MapBoard({
             gridSize={grid.size}
             gridSquareSize={snapshot?.gridSquareSize}
           />
-          {alignmentMode && alignmentPoints.length > 0 && (
+          {alignmentMode && alignmentPreviewPoints.length > 0 && (
             <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale} listening={false}>
-              {alignmentPoints.slice(0, 2).map((point, index) => (
+              {alignmentPreviewPoints.map((point, index) => (
                 <Group key={`align-point-${index}`}>
                   <Circle
                     x={point.world.x}
@@ -817,28 +681,18 @@ export default function MapBoard({
                   />
                 </Group>
               ))}
-              {alignmentPoints.length === 2 && (
+              {alignmentPreviewLine && (
                 <Line
-                  points={[
-                    alignmentPoints[0].world.x,
-                    alignmentPoints[0].world.y,
-                    alignmentPoints[1].world.x,
-                    alignmentPoints[1].world.y,
-                  ]}
+                  points={alignmentPreviewLine}
                   stroke="#facc15"
                   strokeWidth={2 / cam.scale}
                   dash={[8 / cam.scale, 6 / cam.scale]}
                   listening={false}
                 />
               )}
-              {alignmentSuggestion && (
+              {alignmentSuggestionLine && (
                 <Line
-                  points={[
-                    alignmentSuggestion.targetA.x,
-                    alignmentSuggestion.targetA.y,
-                    alignmentSuggestion.targetB.x,
-                    alignmentSuggestion.targetB.y,
-                  ]}
+                  points={alignmentSuggestionLine}
                   stroke="#4de5c0"
                   strokeWidth={2 / cam.scale}
                   dash={[4 / cam.scale, 6 / cam.scale]}
