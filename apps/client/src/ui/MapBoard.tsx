@@ -23,6 +23,7 @@ import { useElementSize } from "../hooks/useElementSize.js";
 import { useGridConfig } from "../hooks/useGridConfig.js";
 import { useCursorStyle } from "../hooks/useCursorStyle.js";
 import { useSceneObjectsData } from "../hooks/useSceneObjectsData.js";
+import { useKonvaNodeRefs } from "../hooks/useKonvaNodeRefs.js";
 import {
   GridLayer,
   MapImageLayer,
@@ -95,11 +96,14 @@ export default function MapBoard({
   const { sceneObjects, mapObject, drawingObjects, stagingZoneObject, stagingZoneDimensions } =
     useSceneObjectsData(snapshot, gridSize);
 
-  // Transform gizmo state
-  const selectedObjectNodeRef = useRef<Konva.Node | null>(null);
   const selectedObject = useMemo(
     () => sceneObjects.find((obj) => obj.id === selectedObjectId) || null,
     [sceneObjects, selectedObjectId],
+  );
+
+  const { registerNode, getSelectedNode, getAllNodes } = useKonvaNodeRefs(
+    selectedObjectId,
+    mapObject,
   );
 
   // Drawing selection
@@ -449,21 +453,17 @@ export default function MapBoard({
   );
 
   const getSelectedNodeRef = useCallback(() => {
-    return selectedObjectNodeRef.current;
-  }, []);
+    return getSelectedNode();
+  }, [getSelectedNode]);
 
   // Callback to receive node reference from MapImageLayer
   const handleMapNodeReady = useCallback(
     (node: Konva.Node | null) => {
       if (mapObject) {
-        if (node) {
-          nodeRefsMap.current.set(mapObject.id, node);
-        } else {
-          nodeRefsMap.current.delete(mapObject.id);
-        }
+        registerNode(mapObject.id, node);
       }
     },
-    [mapObject],
+    [mapObject, registerNode],
   );
 
   // Click handler to select the map (only in transform mode)
@@ -481,45 +481,29 @@ export default function MapBoard({
     }
   }, [mapObject, onSelectObject, transformMode, pointerMode, measureMode, drawMode, selectMode]);
 
-  // Store all node refs (keyed by object ID)
-  const nodeRefsMap = useRef<Map<string, Konva.Node>>(new Map());
-
-  // Clear the selected node ref when selection changes
-  useEffect(() => {
-    if (selectedObjectId) {
-      const node = nodeRefsMap.current.get(selectedObjectId);
-      selectedObjectNodeRef.current = node || null;
-    } else {
-      selectedObjectNodeRef.current = null;
-    }
-  }, [selectedObjectId]);
-
   // Callback to receive node reference from TokensLayer
-  const handleTokenNodeReady = useCallback((tokenId: string, node: Konva.Node | null) => {
-    if (node) {
-      nodeRefsMap.current.set(tokenId, node);
-    } else {
-      nodeRefsMap.current.delete(tokenId);
-    }
-  }, []);
+  const handleTokenNodeReady = useCallback(
+    (tokenId: string, node: Konva.Node | null) => {
+      registerNode(tokenId, node);
+    },
+    [registerNode],
+  );
 
   // Callback to receive node reference from DrawingsLayer
-  const handleDrawingNodeReady = useCallback((drawingId: string, node: Konva.Node | null) => {
-    if (node) {
-      nodeRefsMap.current.set(drawingId, node);
-    } else {
-      nodeRefsMap.current.delete(drawingId);
-    }
-  }, []);
+  const handleDrawingNodeReady = useCallback(
+    (drawingId: string, node: Konva.Node | null) => {
+      registerNode(drawingId, node);
+    },
+    [registerNode],
+  );
 
   // Callback to receive node reference from PropsLayer
-  const handlePropNodeReady = useCallback((propId: string, node: Konva.Node | null) => {
-    if (node) {
-      nodeRefsMap.current.set(propId, node);
-    } else {
-      nodeRefsMap.current.delete(propId);
-    }
-  }, []);
+  const handlePropNodeReady = useCallback(
+    (propId: string, node: Konva.Node | null) => {
+      registerNode(propId, node);
+    },
+    [registerNode],
+  );
 
   const applyMarqueeSelection = useCallback(() => {
     if (!marquee || !stageRef.current) {
@@ -536,8 +520,9 @@ export default function MapBoard({
     const height = maxY - minY;
 
     const matches: string[] = [];
+    const nodes = getAllNodes();
 
-    nodeRefsMap.current.forEach((node, id) => {
+    nodes.forEach((node, id) => {
       if (
         !node ||
         (!id.startsWith("token:") && !id.startsWith("drawing:") && !id.startsWith("prop:"))
@@ -581,7 +566,7 @@ export default function MapBoard({
         onSelectObject(id, { mode: index === 0 ? "replace" : "append" });
       });
     }
-  }, [marquee, onSelectObject, onSelectObjects]);
+  }, [getAllNodes, marquee, onSelectObject, onSelectObjects]);
 
   const marqueeRect = useMemo(() => {
     if (!marquee) {
@@ -700,8 +685,8 @@ export default function MapBoard({
                 scaleX={stagingZoneObject.transform.scaleX || 1}
                 scaleY={stagingZoneObject.transform.scaleY || 1}
                 ref={(node) => {
-                  if (node && stagingZoneObject && selectedObjectId === stagingZoneObject.id) {
-                    selectedObjectNodeRef.current = node;
+                  if (stagingZoneObject) {
+                    registerNode(stagingZoneObject.id, node);
                   }
                 }}
               >
