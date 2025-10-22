@@ -80,9 +80,6 @@ export async function convertImgurUrl(url: string): Promise<string | null> {
       return null;
     }
 
-    // Try common image extensions
-    const extensions = ["jpg", "png", "jpeg", "gif", "webp"];
-
     // First, try to fetch image metadata from API
     try {
       const response = await fetch(`https://api.imgur.com/3/image/${imageId}`, {
