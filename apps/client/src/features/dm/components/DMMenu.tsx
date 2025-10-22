@@ -12,12 +12,7 @@ import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import type { Camera } from "../../../hooks/useCamera";
 import { NPCEditor } from "./NPCEditor";
 import { PropEditor } from "./PropEditor";
-import { MapBackgroundControl } from "./map-controls/MapBackgroundControl";
-import { DrawingControls } from "./map-controls/DrawingControls";
-import { GridControl } from "./map-controls/GridControl";
-import { MapTransformControl } from "./map-controls/MapTransformControl";
-import { StagingZoneControl } from "./map-controls/StagingZoneControl";
-import { GridAlignmentWizard } from "./map-controls/GridAlignmentWizard";
+import MapTab from "./tab-views/MapTab";
 import { SessionPersistenceControl } from "./session-controls/SessionPersistenceControl";
 import { RoomPasswordControl } from "./session-controls/RoomPasswordControl";
 
@@ -217,58 +212,34 @@ export function DMMenu({
             </div>
 
             {activeTab === "map" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                <MapBackgroundControl
-                  mapBackground={mapBackground}
-                  onSetMapBackground={onSetMapBackground}
-                />
-
-                {/* Step 2: Adjust Map Transform (scale, position, rotation) */}
-                {onMapLockToggle && onMapTransformChange && mapTransform && (
-                  <MapTransformControl
-                    mapTransform={mapTransform}
-                    mapLocked={mapLocked ?? false}
-                    onMapTransformChange={onMapTransformChange}
-                    onMapLockToggle={onMapLockToggle}
-                  />
-                )}
-
-                <GridControl
-                  gridSize={gridSize}
-                  gridSquareSize={gridSquareSize}
-                  gridLocked={gridLocked}
-                  onGridSizeChange={onGridSizeChange}
-                  onGridSquareSizeChange={onGridSquareSizeChange}
-                  onGridLockToggle={onGridLockToggle}
-                />
-
-                {/* Step 4: Align Grid to Map (optional) */}
-                <GridAlignmentWizard
-                  alignmentModeActive={alignmentModeActive}
-                  alignmentPoints={alignmentPoints}
-                  alignmentSuggestion={alignmentSuggestion}
-                  alignmentError={alignmentError}
-                  gridLocked={gridLocked}
-                  mapLocked={mapLocked}
-                  onAlignmentStart={onAlignmentStart}
-                  onAlignmentReset={onAlignmentReset}
-                  onAlignmentCancel={onAlignmentCancel}
-                  onAlignmentApply={onAlignmentApply}
-                />
-
-                {/* Step 5: Define Player Spawn Area */}
-                <StagingZoneControl
-                  playerStagingZone={playerStagingZone}
-                  camera={camera}
-                  gridSize={gridSize}
-                  stagingZoneLocked={stagingZoneLocked ?? false}
-                  onStagingZoneLockToggle={onStagingZoneLockToggle}
-                  onSetPlayerStagingZone={onSetPlayerStagingZone}
-                />
-
-                {/* Step 6: Session Cleanup */}
-                <DrawingControls onClearDrawings={onClearDrawings} />
-              </div>
+              <MapTab
+                mapBackground={mapBackground}
+                onSetMapBackground={onSetMapBackground}
+                mapTransform={mapTransform}
+                mapLocked={mapLocked}
+                onMapTransformChange={onMapTransformChange}
+                onMapLockToggle={onMapLockToggle}
+                gridSize={gridSize}
+                gridSquareSize={gridSquareSize}
+                gridLocked={gridLocked}
+                onGridSizeChange={onGridSizeChange}
+                onGridSquareSizeChange={onGridSquareSizeChange}
+                onGridLockToggle={onGridLockToggle}
+                alignmentModeActive={alignmentModeActive}
+                alignmentPoints={alignmentPoints}
+                alignmentSuggestion={alignmentSuggestion}
+                alignmentError={alignmentError}
+                onAlignmentStart={onAlignmentStart}
+                onAlignmentReset={onAlignmentReset}
+                onAlignmentCancel={onAlignmentCancel}
+                onAlignmentApply={onAlignmentApply}
+                playerStagingZone={playerStagingZone}
+                camera={camera}
+                stagingZoneLocked={stagingZoneLocked}
+                onStagingZoneLockToggle={onStagingZoneLockToggle}
+                onSetPlayerStagingZone={onSetPlayerStagingZone}
+                onClearDrawings={onClearDrawings}
+              />
             )}
 
             {activeTab === "npcs" && (
