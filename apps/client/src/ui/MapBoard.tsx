@@ -23,6 +23,7 @@ import { useDrawingSelection } from "../hooks/useDrawingSelection.js";
 import { useSceneObjects } from "../hooks/useSceneObjects.js";
 import { useElementSize } from "../hooks/useElementSize.js";
 import { useGridConfig } from "../hooks/useGridConfig.js";
+import { useCursorStyle } from "../hooks/useCursorStyle.js";
 import {
   GridLayer,
   MapImageLayer,
@@ -402,14 +403,13 @@ export default function MapBoard({
   /**
    * Determine cursor style based on active mode
    */
-  const getCursor = () => {
-    if (isPanning) return "grabbing";
-    if (pointerMode) return "none";
-    if (measureMode) return "crosshair";
-    if (drawMode) return "crosshair";
-    if (selectMode) return "default";
-    return "grab";
-  };
+  const cursor = useCursorStyle({
+    isPanning,
+    pointerMode,
+    measureMode,
+    drawMode,
+    selectMode,
+  });
 
   const tokenInteractionsEnabled = !drawMode;
 
@@ -713,7 +713,7 @@ export default function MapBoard({
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
-        style={{ cursor: getCursor() }}
+        style={{ cursor }}
       >
         {/* Background Layer: Map image and grid (non-interactive) */}
         <Layer>
