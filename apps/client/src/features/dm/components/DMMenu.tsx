@@ -13,6 +13,9 @@ import type { Camera } from "../../../hooks/useCamera";
 import { CollapsibleSection } from "../../../components/ui/CollapsibleSection";
 import { NPCEditor } from "./NPCEditor";
 import { PropEditor } from "./PropEditor";
+import { MapBackgroundControl } from "./map-controls/MapBackgroundControl";
+import { DrawingControls } from "./map-controls/DrawingControls";
+import { GridControl } from "./map-controls/GridControl";
 
 interface DMMenuProps {
   isDM: boolean;
@@ -125,7 +128,6 @@ export function DMMenu({
 }: DMMenuProps) {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<DMMenuTab>("map");
-  const [mapUrl, setMapUrl] = useState(mapBackground ?? "");
   const [sessionName, setSessionName] = useState("session");
   const [passwordInput, setPasswordInput] = useState("");
   const [passwordConfirmInput, setPasswordConfirmInput] = useState("");
@@ -142,10 +144,6 @@ export function DMMenu({
     height: "6",
     rotation: "0",
   });
-
-  useEffect(() => {
-    setMapUrl(mapBackground ?? "");
-  }, [mapBackground]);
 
   useEffect(() => {
     if (roomPasswordStatus?.type === "success") {
@@ -179,11 +177,6 @@ export function DMMenu({
       });
     }
   }, [playerStagingZone]);
-
-  const handleMapApply = () => {
-    if (!mapUrl.trim()) return;
-    onSetMapBackground(mapUrl.trim());
-  };
 
   const handleStagingInputChange = (field: keyof typeof stagingInputs, value: string) => {
     setStagingInputs((prev) => ({ ...prev, [field]: value }));
@@ -241,12 +234,6 @@ export function DMMenu({
     onSetPlayerStagingZone(undefined);
   };
 
-  const handleClearDrawings = () => {
-    if (window.confirm("Clear all drawings from the map?")) {
-      onClearDrawings();
-    }
-  };
-
   const handleSaveSession = () => {
     if (!onRequestSaveSession) return;
     const trimmed = sessionName.trim();
@@ -291,9 +278,6 @@ export function DMMenu({
 
   const saveDisabled = !onRequestSaveSession;
   const loadDisabled = !onRequestLoadSession;
-
-  const formatSquareSize = (value: number) =>
-    Number.isInteger(value) ? `${value}` : value.toFixed(1);
 
   const TabButton = ({ tab, label }: { tab: DMMenuTab; label: string }) => (
     <JRPGButton
@@ -362,44 +346,10 @@ export function DMMenu({
 
             {activeTab === "map" && (
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                {/* Step 1: Load Map Background */}
-                <JRPGPanel variant="simple" title="Map Background">
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <input
-                      type="text"
-                      value={mapUrl}
-                      placeholder="Paste image URL"
-                      onChange={(event) => setMapUrl(event.target.value)}
-                      style={{
-                        width: "100%",
-                        padding: "6px",
-                        background: "#111",
-                        color: "var(--jrpg-white)",
-                        border: "1px solid var(--jrpg-border-gold)",
-                      }}
-                    />
-                    <JRPGButton
-                      onClick={handleMapApply}
-                      variant="success"
-                      disabled={!mapUrl.trim()}
-                      style={{ fontSize: "10px" }}
-                    >
-                      Apply Background
-                    </JRPGButton>
-                    {mapBackground && (
-                      <img
-                        src={mapBackground}
-                        alt="Current map background"
-                        style={{
-                          width: "100%",
-                          maxHeight: "120px",
-                          objectFit: "cover",
-                          borderRadius: "4px",
-                        }}
-                      />
-                    )}
-                  </div>
-                </JRPGPanel>
+                <MapBackgroundControl
+                  mapBackground={mapBackground}
+                  onSetMapBackground={onSetMapBackground}
+                />
 
                 {/* Step 2: Adjust Map Transform (scale, position, rotation) */}
                 {onMapLockToggle && onMapTransformChange && mapTransform && (
@@ -560,92 +510,14 @@ export function DMMenu({
                   </JRPGPanel>
                 )}
 
-                {/* Step 3: Configure Grid */}
-                <JRPGPanel
-                  variant="simple"
-                  title="Grid Controls"
-                  style={{
-                    padding: gridLocked ? "8px" : "12px",
-                    transition: "padding 150ms ease-in-out",
-                    border: gridLocked
-                      ? "2px solid rgba(136, 136, 136, 0.5)"
-                      : "2px solid var(--jrpg-border-gold)",
-                  }}
-                >
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <JRPGButton
-                      onClick={onGridLockToggle}
-                      variant={gridLocked ? "default" : "primary"}
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: "bold",
-                        padding: "8px",
-                        background: gridLocked ? "rgba(136, 136, 136, 0.2)" : undefined,
-                        color: gridLocked ? "#aaa" : undefined,
-                      }}
-                    >
-                      {gridLocked ? "🔒 GRID LOCKED ▲" : "🔓 GRID UNLOCKED ▼"}
-                    </JRPGButton>
-
-                    <CollapsibleSection isCollapsed={gridLocked}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <span className="jrpg-text-small">Grid Size</span>
-                          <span className="jrpg-text-small">{gridSize}px</span>
-                        </div>
-                        <input
-                          type="range"
-                          min={10}
-                          max={500}
-                          step={5}
-                          value={gridSize}
-                          onChange={(event) => onGridSizeChange(Number(event.target.value))}
-                          style={{ width: "100%" }}
-                        />
-
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            marginTop: "8px",
-                          }}
-                        >
-                          <span className="jrpg-text-small">Square Size</span>
-                          <span className="jrpg-text-small">
-                            {formatSquareSize(gridSquareSize)} ft
-                          </span>
-                        </div>
-                        <input
-                          type="range"
-                          min={1}
-                          max={100}
-                          step={1}
-                          value={Math.min(100, Math.max(1, gridSquareSize))}
-                          onChange={(event) => onGridSquareSizeChange?.(Number(event.target.value))}
-                          disabled={!onGridSquareSizeChange}
-                          style={{ width: "100%" }}
-                        />
-                        <span
-                          style={{
-                            fontSize: "10px",
-                            opacity: 0.8,
-                            lineHeight: 1.3,
-                            display: "block",
-                          }}
-                        >
-                          Measurement tool displays distances as squares and feet using this value.
-                        </span>
-                      </div>
-                    </CollapsibleSection>
-                  </div>
-                </JRPGPanel>
+                <GridControl
+                  gridSize={gridSize}
+                  gridSquareSize={gridSquareSize}
+                  gridLocked={gridLocked}
+                  onGridSizeChange={onGridSizeChange}
+                  onGridSquareSizeChange={onGridSquareSizeChange}
+                  onGridLockToggle={onGridLockToggle}
+                />
 
                 {/* Step 4: Align Grid to Map (optional) */}
                 <CollapsibleSection isCollapsed={gridLocked}>
@@ -916,13 +788,7 @@ export function DMMenu({
                 </JRPGPanel>
 
                 {/* Step 6: Session Cleanup */}
-                <JRPGButton
-                  onClick={handleClearDrawings}
-                  variant="danger"
-                  style={{ fontSize: "10px" }}
-                >
-                  Clear All Drawings
-                </JRPGButton>
+                <DrawingControls onClearDrawings={onClearDrawings} />
               </div>
             )}
 
