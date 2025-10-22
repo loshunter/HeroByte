@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import type { Prop, Player } from "@shared";
 import { PropEditor } from "../../PropEditor";
 
@@ -190,7 +190,7 @@ describe("PropEditor - Characterization Tests", () => {
       expect(imageInput).toHaveValue("https://example.com/orb.png");
     });
 
-    it("should commit image URL on blur", () => {
+    it("should commit image URL on blur", async () => {
       const handlers = createMockHandlers();
       render(<PropEditor prop={mockProp} players={mockPlayers} {...handlers} />);
 
@@ -198,15 +198,17 @@ describe("PropEditor - Characterization Tests", () => {
       fireEvent.change(imageInput, { target: { value: "https://example.com/orb.png" } });
       fireEvent.blur(imageInput);
 
-      expect(handlers.onUpdate).toHaveBeenCalledWith({
-        label: "Treasure Chest",
-        imageUrl: "https://example.com/orb.png",
-        owner: null,
-        size: "medium",
+      await waitFor(() => {
+        expect(handlers.onUpdate).toHaveBeenCalledWith({
+          label: "Treasure Chest",
+          imageUrl: "https://example.com/orb.png",
+          owner: null,
+          size: "medium",
+        });
       });
     });
 
-    it("should trim whitespace from image URL", () => {
+    it("should trim whitespace from image URL", async () => {
       const handlers = createMockHandlers();
       render(<PropEditor prop={mockProp} players={mockPlayers} {...handlers} />);
 
@@ -214,11 +216,13 @@ describe("PropEditor - Characterization Tests", () => {
       fireEvent.change(imageInput, { target: { value: "  https://example.com/orb.png  " } });
       fireEvent.blur(imageInput);
 
-      expect(handlers.onUpdate).toHaveBeenCalledWith({
-        label: "Treasure Chest",
-        imageUrl: "https://example.com/orb.png",
-        owner: null,
-        size: "medium",
+      await waitFor(() => {
+        expect(handlers.onUpdate).toHaveBeenCalledWith({
+          label: "Treasure Chest",
+          imageUrl: "https://example.com/orb.png",
+          owner: null,
+          size: "medium",
+        });
       });
     });
   });
