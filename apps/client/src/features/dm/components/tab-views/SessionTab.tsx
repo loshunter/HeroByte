@@ -25,9 +25,9 @@ interface SessionTabProps {
   /** Callback to update session name */
   setSessionName: (name: string) => void;
   /** Optional callback to request saving the session */
-  onRequestSaveSession?: () => void;
+  onRequestSaveSession?: (sessionName: string) => void;
   /** Optional callback to request loading a session */
-  onRequestLoadSession?: () => void;
+  onRequestLoadSession?: (file: File) => void;
   /** Whether the save button should be disabled */
   saveDisabled: boolean;
   /** Whether the load button should be disabled */
@@ -35,7 +35,7 @@ interface SessionTabProps {
 
   // RoomPasswordControl props
   /** Optional callback to set or clear the room password */
-  onSetRoomPassword?: (password: string | null) => void;
+  onSetRoomPassword?: (secret: string) => void;
   /** Status message for room password operations */
   roomPasswordStatus?: { type: "success" | "error"; message: string } | null;
   /** Whether a room password operation is in progress */

@@ -4,7 +4,6 @@
 // Floating tools panel for Dungeon Masters. Provides access to map setup,
 // NPC management (scaffolding), and session utilities.
 
-import { useEffect, useMemo, useState } from "react";
 import type { Character, PlayerStagingZone, Prop, Player, TokenSize } from "@shared";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignment";
@@ -14,6 +13,7 @@ import MapTab from "./tab-views/MapTab";
 import NPCsTab from "./tab-views/NPCsTab";
 import PropsTab from "./tab-views/PropsTab";
 import SessionTab from "./tab-views/SessionTab";
+import { useDMMenuState, type DMMenuTab } from "../hooks/useDMMenuState";
 
 interface DMMenuProps {
   isDM: boolean;
@@ -75,8 +75,6 @@ interface DMMenuProps {
   onDismissRoomPasswordStatus?: () => void;
 }
 
-type DMMenuTab = "map" | "npcs" | "props" | "session";
-
 export function DMMenu({
   isDM,
   onToggleDM,
@@ -124,19 +122,11 @@ export function DMMenu({
   roomPasswordPending = false,
   onDismissRoomPasswordStatus,
 }: DMMenuProps) {
-  const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<DMMenuTab>("map");
-  const [sessionName, setSessionName] = useState("session");
-  const npcs = useMemo(
-    () => characters.filter((character) => character.type === "npc"),
-    [characters],
-  );
-
-  useEffect(() => {
-    if (!isDM) {
-      setOpen(false);
-    }
-  }, [isDM]);
+  const { open, setOpen, toggleOpen, activeTab, setActiveTab, sessionName, setSessionName, npcs } =
+    useDMMenuState({
+      isDM,
+      characters,
+    });
 
   if (!isDM) {
     return null;
@@ -166,7 +156,7 @@ export function DMMenu({
         }}
       >
         <JRPGButton
-          onClick={() => setOpen((prev) => !prev)}
+          onClick={toggleOpen}
           variant={open ? "primary" : "default"}
           style={{ fontSize: "10px", padding: "10px 16px" }}
         >
