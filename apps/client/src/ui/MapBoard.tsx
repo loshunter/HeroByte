@@ -22,6 +22,7 @@ import { useDrawingTool } from "../hooks/useDrawingTool.js";
 import { useDrawingSelection } from "../hooks/useDrawingSelection.js";
 import { useSceneObjects } from "../hooks/useSceneObjects.js";
 import { useElementSize } from "../hooks/useElementSize.js";
+import { useGridConfig } from "../hooks/useGridConfig.js";
 import {
   GridLayer,
   MapImageLayer,
@@ -243,22 +244,11 @@ export default function MapBoard({
   }, [drawMode]);
 
   // Grid configuration
-  const [grid, setGrid] = useState({
-    show: true,
-    size: gridSize,
-    color: "#447DF7",
-    majorEvery: 5,
-    opacity: 0.15,
-  });
+  const grid = useGridConfig(gridSize);
 
   // -------------------------------------------------------------------------
   // EFFECTS
   // -------------------------------------------------------------------------
-
-  // Sync grid size from props
-  useEffect(() => {
-    setGrid((prev) => ({ ...prev, size: gridSize }));
-  }, [gridSize]);
 
   // Delete key handler for selected objects (drawings via select tool, or any object via transform gizmo)
   useEffect(() => {
