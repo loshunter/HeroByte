@@ -17,6 +17,7 @@ import { MapBackgroundControl } from "./map-controls/MapBackgroundControl";
 import { DrawingControls } from "./map-controls/DrawingControls";
 import { GridControl } from "./map-controls/GridControl";
 import { MapTransformControl } from "./map-controls/MapTransformControl";
+import { StagingZoneControl } from "./map-controls/StagingZoneControl";
 
 interface DMMenuProps {
   isDM: boolean;
@@ -138,13 +139,6 @@ export function DMMenu({
     () => characters.filter((character) => character.type === "npc"),
     [characters],
   );
-  const [stagingInputs, setStagingInputs] = useState({
-    x: "0",
-    y: "0",
-    width: "6",
-    height: "6",
-    rotation: "0",
-  });
 
   useEffect(() => {
     if (roomPasswordStatus?.type === "success") {
@@ -158,82 +152,6 @@ export function DMMenu({
       setOpen(false);
     }
   }, [isDM]);
-
-  useEffect(() => {
-    if (playerStagingZone) {
-      setStagingInputs({
-        x: playerStagingZone.x.toFixed(2),
-        y: playerStagingZone.y.toFixed(2),
-        width: playerStagingZone.width.toFixed(2),
-        height: playerStagingZone.height.toFixed(2),
-        rotation: (playerStagingZone.rotation ?? 0).toFixed(1),
-      });
-    } else {
-      setStagingInputs({
-        x: "0",
-        y: "0",
-        width: "6",
-        height: "6",
-        rotation: "0",
-      });
-    }
-  }, [playerStagingZone]);
-
-  const handleStagingInputChange = (field: keyof typeof stagingInputs, value: string) => {
-    setStagingInputs((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleStagingZoneApply = () => {
-    if (!onSetPlayerStagingZone) return;
-
-    // Calculate viewport center in world coordinates
-    const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 800;
-    const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 600;
-    const centerScreenX = viewportWidth / 2;
-    const centerScreenY = viewportHeight / 2;
-
-    // Convert screen center to world coordinates
-    const centerWorldX = (centerScreenX - camera.x) / camera.scale;
-    const centerWorldY = (centerScreenY - camera.y) / camera.scale;
-
-    // Calculate staging zone size based on viewport and current zoom
-    // Aim for about 40% of viewport width, minimum 1 grid unit
-    const viewportWidthInWorld = viewportWidth / camera.scale;
-    const viewportHeightInWorld = viewportHeight / camera.scale;
-
-    // Size as a fraction of viewport, converted to grid units
-    const sizeWidthInPixels = viewportWidthInWorld * 0.4;
-    const sizeHeightInPixels = viewportHeightInWorld * 0.4;
-
-    const calculatedWidth = Math.max(1, sizeWidthInPixels / gridSize);
-    const calculatedHeight = Math.max(1, sizeHeightInPixels / gridSize);
-
-    // Convert world pixel coordinates to grid coordinates
-    const gridX = centerWorldX / gridSize;
-    const gridY = centerWorldY / gridSize;
-
-    // Update the input fields to reflect calculated values
-    setStagingInputs({
-      x: gridX.toFixed(2),
-      y: gridY.toFixed(2),
-      width: calculatedWidth.toFixed(2),
-      height: calculatedHeight.toFixed(2),
-      rotation: "0",
-    });
-
-    onSetPlayerStagingZone({
-      x: gridX,
-      y: gridY,
-      width: calculatedWidth,
-      height: calculatedHeight,
-      rotation: 0,
-    });
-  };
-
-  const handleStagingZoneClear = () => {
-    if (!onSetPlayerStagingZone) return;
-    onSetPlayerStagingZone(undefined);
-  };
 
   const handleSaveSession = () => {
     if (!onRequestSaveSession) return;
@@ -460,184 +378,14 @@ export function DMMenu({
                 </CollapsibleSection>
 
                 {/* Step 5: Define Player Spawn Area */}
-                <JRPGPanel
-                  variant="simple"
-                  title="Player Staging Zone"
-                  style={{
-                    padding: stagingZoneLocked ? "8px" : "12px",
-                    transition: "padding 150ms ease-in-out",
-                    border: stagingZoneLocked
-                      ? "2px solid rgba(136, 136, 136, 0.5)"
-                      : "2px solid var(--jrpg-border-gold)",
-                  }}
-                >
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    {onStagingZoneLockToggle && (
-                      <JRPGButton
-                        onClick={onStagingZoneLockToggle}
-                        variant={stagingZoneLocked ? "default" : "primary"}
-                        style={{
-                          fontSize: "11px",
-                          fontWeight: "bold",
-                          padding: "8px",
-                          background: stagingZoneLocked ? "rgba(136, 136, 136, 0.2)" : undefined,
-                          color: stagingZoneLocked ? "#aaa" : undefined,
-                        }}
-                        title={
-                          stagingZoneLocked ? "Staging zone is locked" : "Staging zone is unlocked"
-                        }
-                      >
-                        {stagingZoneLocked ? "🔒 ZONE LOCKED ▲" : "🔓 ZONE UNLOCKED ▼"}
-                      </JRPGButton>
-                    )}
-
-                    <CollapsibleSection isCollapsed={stagingZoneLocked ?? false}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "repeat(2, 1fr)",
-                            gap: "8px",
-                          }}
-                        >
-                          <label
-                            className="jrpg-text-small"
-                            style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-                          >
-                            Center X
-                            <input
-                              type="number"
-                              value={stagingInputs.x}
-                              onChange={(event) =>
-                                handleStagingInputChange("x", event.target.value)
-                              }
-                              style={{
-                                width: "100%",
-                                padding: "6px",
-                                background: "#111",
-                                color: "var(--jrpg-white)",
-                                border: "1px solid var(--jrpg-border-gold)",
-                              }}
-                              step={0.1}
-                            />
-                          </label>
-                          <label
-                            className="jrpg-text-small"
-                            style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-                          >
-                            Center Y
-                            <input
-                              type="number"
-                              value={stagingInputs.y}
-                              onChange={(event) =>
-                                handleStagingInputChange("y", event.target.value)
-                              }
-                              style={{
-                                width: "100%",
-                                padding: "6px",
-                                background: "#111",
-                                color: "var(--jrpg-white)",
-                                border: "1px solid var(--jrpg-border-gold)",
-                              }}
-                              step={0.1}
-                            />
-                          </label>
-                          <label
-                            className="jrpg-text-small"
-                            style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-                          >
-                            Width (tiles)
-                            <input
-                              type="number"
-                              min={0.5}
-                              value={stagingInputs.width}
-                              onChange={(event) =>
-                                handleStagingInputChange("width", event.target.value)
-                              }
-                              style={{
-                                width: "100%",
-                                padding: "6px",
-                                background: "#111",
-                                color: "var(--jrpg-white)",
-                                border: "1px solid var(--jrpg-border-gold)",
-                              }}
-                              step={0.5}
-                            />
-                          </label>
-                          <label
-                            className="jrpg-text-small"
-                            style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-                          >
-                            Height (tiles)
-                            <input
-                              type="number"
-                              min={0.5}
-                              value={stagingInputs.height}
-                              onChange={(event) =>
-                                handleStagingInputChange("height", event.target.value)
-                              }
-                              style={{
-                                width: "100%",
-                                padding: "6px",
-                                background: "#111",
-                                color: "var(--jrpg-white)",
-                                border: "1px solid var(--jrpg-border-gold)",
-                              }}
-                              step={0.5}
-                            />
-                          </label>
-                        </div>
-                        <label
-                          className="jrpg-text-small"
-                          style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-                        >
-                          Rotation (degrees)
-                          <input
-                            type="number"
-                            value={stagingInputs.rotation}
-                            onChange={(event) =>
-                              handleStagingInputChange("rotation", event.target.value)
-                            }
-                            style={{
-                              width: "100%",
-                              padding: "6px",
-                              background: "#111",
-                              color: "var(--jrpg-white)",
-                              border: "1px solid var(--jrpg-border-gold)",
-                            }}
-                            step={1}
-                          />
-                        </label>
-                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                          <JRPGButton
-                            onClick={handleStagingZoneApply}
-                            variant="primary"
-                            style={{ fontSize: "10px", flex: "1 1 auto" }}
-                            disabled={!onSetPlayerStagingZone}
-                          >
-                            Apply Zone
-                          </JRPGButton>
-                          <JRPGButton
-                            onClick={handleStagingZoneClear}
-                            variant="danger"
-                            style={{ fontSize: "10px", flex: "1 1 auto" }}
-                            disabled={!onSetPlayerStagingZone}
-                          >
-                            Clear Zone
-                          </JRPGButton>
-                        </div>
-                        <span
-                          className="jrpg-text-tiny"
-                          style={{ color: "var(--jrpg-white)", opacity: 0.6 }}
-                        >
-                          Click &ldquo;Apply Zone&rdquo; to create/update the staging zone. Use the
-                          Transform tool to move and resize it on the map. Players spawn randomly
-                          within this area.
-                        </span>
-                      </div>
-                    </CollapsibleSection>
-                  </div>
-                </JRPGPanel>
+                <StagingZoneControl
+                  playerStagingZone={playerStagingZone}
+                  camera={camera}
+                  gridSize={gridSize}
+                  stagingZoneLocked={stagingZoneLocked ?? false}
+                  onStagingZoneLockToggle={onStagingZoneLockToggle}
+                  onSetPlayerStagingZone={onSetPlayerStagingZone}
+                />
 
                 {/* Step 6: Session Cleanup */}
                 <DrawingControls onClearDrawings={onClearDrawings} />
