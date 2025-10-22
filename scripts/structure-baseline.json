@@ -1,17 +1,8 @@
 {
-  "generatedAt": "2025-10-21T21:03:08.322Z",
+  "generatedAt": "2025-10-22T16:12:00.869Z",
   "threshold": 350,
   "includeTests": false,
   "files": [
-    {
-      "path": "apps/client/src/features/dm/components/DMMenu.tsx",
-      "loc": 1589,
-      "category": "client:dm",
-      "flagged": true,
-      "hint": "See docs/refactoring/REFACTOR_ROADMAP.md - 20 clusters identified, start with Phase 1 (CollapsibleSection, NPCEditor, PropEditor)",
-      "roadmapRef": "DMMenu.tsx Phases 1-6",
-      "sizeBytes": 59420
-    },
     {
       "path": "apps/client/src/ui/MapBoard.tsx",
       "loc": 1035,
@@ -194,12 +185,12 @@
     },
     {
       "path": "apps/client/src/layouts/props/MainLayoutProps.ts",
-      "loc": 377,
+      "loc": 373,
       "category": "client:misc",
       "flagged": true,
       "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
       "roadmapRef": "",
-      "sizeBytes": 14906
+      "sizeBytes": 14826
     },
     {
       "path": "apps/client/src/features/players/components/PlayerSettingsMenu.tsx",
@@ -218,6 +209,15 @@
       "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
       "roadmapRef": "",
       "sizeBytes": 10875
+    },
+    {
+      "path": "apps/client/src/features/dm/components/map-controls/StagingZoneControl.tsx",
+      "loc": 339,
+      "category": "client:dm",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 12328
     },
     {
       "path": "apps/client/src/features/players/components/PlayerCard.tsx",
@@ -301,15 +301,6 @@
       "sizeBytes": 10269
     },
     {
-      "path": "apps/client/src/layouts/FloatingPanelsLayout.tsx",
-      "loc": 306,
-      "category": "client:misc",
-      "flagged": false,
-      "hint": "",
-      "roadmapRef": "",
-      "sizeBytes": 9803
-    },
-    {
       "path": "apps/e2e/ui-state.spec.ts",
       "loc": 298,
       "category": "other",
@@ -317,6 +308,15 @@
       "hint": "",
       "roadmapRef": "",
       "sizeBytes": 9456
+    },
+    {
+      "path": "apps/client/src/layouts/FloatingPanelsLayout.tsx",
+      "loc": 296,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 9908
     },
     {
       "path": "apps/e2e/undo-redo.spec.ts",
@@ -362,6 +362,15 @@
       "hint": "",
       "roadmapRef": "",
       "sizeBytes": 8445
+    },
+    {
+      "path": "apps/client/src/features/dm/components/DMMenu.tsx",
+      "loc": 265,
+      "category": "client:dm",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 8703
     },
     {
       "path": "apps/client/src/components/dice/DiceToken.tsx",
@@ -452,6 +461,1185 @@
       "hint": "",
       "roadmapRef": "",
       "sizeBytes": 7547
+    },
+    {
+      "path": "apps/client/src/features/players/components/NpcCard.tsx",
+      "loc": 238,
+      "category": "client:players",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 7384
+    },
+    {
+      "path": "apps/client/src/hooks/useSceneObjectActions.ts",
+      "loc": 238,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 5803
+    },
+    {
+      "path": "apps/client/src/features/dm/components/NPCEditor.tsx",
+      "loc": 236,
+      "category": "client:dm",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 7430
+    },
+    {
+      "path": "apps/client/src/hooks/useDiceRolling.ts",
+      "loc": 229,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 6697
+    },
+    {
+      "path": "apps/client/src/components/dice/DraggableWindow.tsx",
+      "loc": 225,
+      "category": "client:dice",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 6622
+    },
+    {
+      "path": "apps/client/src/features/players/components/NpcSettingsMenu.tsx",
+      "loc": 225,
+      "category": "client:players",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 7794
+    },
+    {
+      "path": "apps/client/src/components/dice/DiceBar.tsx",
+      "loc": 224,
+      "category": "client:dice",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 7811
+    },
+    {
+      "path": "apps/client/src/hooks/useObjectSelection.ts",
+      "loc": 224,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 6686
+    },
+    {
+      "path": "apps/server/src/domains/character/service.ts",
+      "loc": 224,
+      "category": "server:domains",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 6106
+    },
+    {
+      "path": "apps/e2e/map-navigation.spec.ts",
+      "loc": 218,
+      "category": "other",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 6772
+    },
+    {
+      "path": "apps/client/src/features/dm/components/map-controls/MapTransformControl.tsx",
+      "loc": 217,
+      "category": "client:dm",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 7405
+    },
+    {
+      "path": "apps/server/src/domains/token/service.ts",
+      "loc": 199,
+      "category": "server:domains",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 5370
+    },
+    {
+      "path": "apps/client/src/components/layout/Header.tsx",
+      "loc": 198,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 6781
+    },
+    {
+      "path": "apps/client/src/hooks/useServerEventHandlers.ts",
+      "loc": 194,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 5690
+    },
+    {
+      "path": "apps/client/src/features/dm/components/PropEditor.tsx",
+      "loc": 191,
+      "category": "client:dm",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 5958
+    },
+    {
+      "path": "apps/client/src/hooks/useDMManagement.ts",
+      "loc": 185,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 5075
+    },
+    {
+      "path": "apps/server/src/domains/selection/service.ts",
+      "loc": 185,
+      "category": "server:domains",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 5093
+    },
+    {
+      "path": "apps/client/src/components/dice/RollLog.tsx",
+      "loc": 181,
+      "category": "client:dice",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 6472
+    },
+    {
+      "path": "apps/client/src/features/players/components/PortraitSection.tsx",
+      "loc": 180,
+      "category": "client:players",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 5327
+    },
+    {
+      "path": "apps/client/src/hooks/usePropManagement.ts",
+      "loc": 174,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 4145
+    },
+    {
+      "path": "apps/server/src/domains/prop/service.ts",
+      "loc": 173,
+      "category": "server:domains",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 4913
+    },
+    {
+      "path": "apps/client/src/layouts/TopPanelLayout.tsx",
+      "loc": 172,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 5410
+    },
+    {
+      "path": "apps/client/src/components/ui/Toast.tsx",
+      "loc": 169,
+      "category": "client:ui",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 4474
+    },
+    {
+      "path": "apps/client/src/features/dm/components/tab-views/MapTab.tsx",
+      "loc": 167,
+      "category": "client:dm",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 5753
+    },
+    {
+      "path": "apps/client/src/hooks/useNpcManagement.ts",
+      "loc": 167,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 3876
+    },
+    {
+      "path": "apps/client/src/features/players/components/HPBar.tsx",
+      "loc": 166,
+      "category": "client:players",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 4642
+    },
+    {
+      "path": "apps/client/src/features/dm/hooks/useDMMenuState.ts",
+      "loc": 164,
+      "category": "client:dm",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 3738
+    },
+    {
+      "path": "apps/client/src/hooks/useSceneObjectSelectors.ts",
+      "loc": 164,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 4562
+    },
+    {
+      "path": "apps/client/src/features/dm/components/session-controls/RoomPasswordControl.tsx",
+      "loc": 163,
+      "category": "client:dm",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 5278
+    },
+    {
+      "path": "apps/client/src/components/layout/MultiSelectToolbar.tsx",
+      "loc": 162,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 4309
+    },
+    {
+      "path": "apps/client/src/features/dm/components/map-controls/GridAlignmentWizard.tsx",
+      "loc": 161,
+      "category": "client:dm",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 6387
+    },
+    {
+      "path": "apps/client/src/features/map/components/PropsLayer.tsx",
+      "loc": 160,
+      "category": "client:map",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 4891
+    },
+    {
+      "path": "apps/client/src/components/ui/FormInput.tsx",
+      "loc": 159,
+      "category": "client:ui",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 3743
+    },
+    {
+      "path": "apps/client/src/hooks/useEntityEditHandlers.ts",
+      "loc": 155,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 5171
+    },
+    {
+      "path": "apps/server/src/http/routes.ts",
+      "loc": 155,
+      "category": "server:core",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 4961
+    },
+    {
+      "path": "apps/client/src/ui/useVoiceChat.ts",
+      "loc": 154,
+      "category": "client:ui",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 4572
+    },
+    {
+      "path": "apps/client/src/components/dice/DiceRoller.tsx",
+      "loc": 153,
+      "category": "client:dice",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 4614
+    },
+    {
+      "path": "apps/client/src/hooks/useWebSocket.ts",
+      "loc": 152,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 4542
+    },
+    {
+      "path": "apps/client/src/features/dm/components/session-controls/SessionPersistenceControl.tsx",
+      "loc": 149,
+      "category": "client:dm",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 4544
+    },
+    {
+      "path": "apps/server/src/index.ts",
+      "loc": 148,
+      "category": "server:core",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 4657
+    },
+    {
+      "path": "apps/client/src/hooks/useCamera.ts",
+      "loc": 147,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 4118
+    },
+    {
+      "path": "apps/client/src/features/auth/AuthGate.tsx",
+      "loc": 146,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 4337
+    },
+    {
+      "path": "apps/client/src/hooks/useToolMode.ts",
+      "loc": 143,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 3090
+    },
+    {
+      "path": "apps/client/src/utils/imageUrlHelpers.ts",
+      "loc": 140,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 4569
+    },
+    {
+      "path": "apps/client/src/hooks/useDrawingState.ts",
+      "loc": 134,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 3961
+    },
+    {
+      "path": "apps/client/src/hooks/useSceneObjects.ts",
+      "loc": 134,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 3392
+    },
+    {
+      "path": "apps/client/src/features/multiselect/handlers/multiSelectActions.ts",
+      "loc": 133,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 3629
+    },
+    {
+      "path": "apps/client/src/hooks/usePlayerEditing.ts",
+      "loc": 133,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 3682
+    },
+    {
+      "path": "apps/server/src/domains/player/service.ts",
+      "loc": 133,
+      "category": "server:domains",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 3255
+    },
+    {
+      "path": "apps/client/src/components/ui/ImagePreview.tsx",
+      "loc": 132,
+      "category": "client:ui",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 3611
+    },
+    {
+      "path": "apps/server/src/domains/room/model.ts",
+      "loc": 132,
+      "category": "server:domains",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 3784
+    },
+    {
+      "path": "apps/client/src/utils/sessionPersistence.ts",
+      "loc": 130,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 4400
+    },
+    {
+      "path": "apps/client/src/hooks/useMicrophone.ts",
+      "loc": 125,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 3892
+    },
+    {
+      "path": "apps/client/src/utils/useE2ETestingSupport.ts",
+      "loc": 125,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 3662
+    },
+    {
+      "path": "apps/client/src/features/dm/components/map-controls/GridControl.tsx",
+      "loc": 116,
+      "category": "client:dm",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 3832
+    },
+    {
+      "path": "apps/server/src/container.ts",
+      "loc": 111,
+      "category": "server:core",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 3873
+    },
+    {
+      "path": "apps/client/src/hooks/useCameraCommands.ts",
+      "loc": 108,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 3416
+    },
+    {
+      "path": "apps/client/src/hooks/useVoiceChatManager.ts",
+      "loc": 106,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 2487
+    },
+    {
+      "path": "apps/server/src/middleware/rateLimit.ts",
+      "loc": 106,
+      "category": "server:middleware",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 2537
+    },
+    {
+      "path": "apps/client/src/features/dm/components/tab-views/SessionTab.tsx",
+      "loc": 105,
+      "category": "client:dm",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 3845
+    },
+    {
+      "path": "apps/client/src/hooks/usePointerTool.ts",
+      "loc": 103,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 3021
+    },
+    {
+      "path": "apps/client/src/components/dice/BuildStrip.tsx",
+      "loc": 98,
+      "category": "client:dice",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 2625
+    },
+    {
+      "path": "apps/client/src/utils/mapAlignment.ts",
+      "loc": 97,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 2495
+    },
+    {
+      "path": "apps/client/src/hooks/useMapActions.ts",
+      "loc": 95,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 2510
+    },
+    {
+      "path": "apps/client/src/features/dm/components/tab-views/NPCsTab.tsx",
+      "loc": 94,
+      "category": "client:dm",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 3002
+    },
+    {
+      "path": "apps/client/src/components/dice/diceLogic.ts",
+      "loc": 93,
+      "category": "client:dice",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 2135
+    },
+    {
+      "path": "apps/client/src/features/dm/components/tab-views/PropsTab.tsx",
+      "loc": 91,
+      "category": "client:dm",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 3153
+    },
+    {
+      "path": "apps/client/src/features/map/components/GridLayer.tsx",
+      "loc": 91,
+      "category": "client:map",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 2678
+    },
+    {
+      "path": "apps/client/src/components/ui/ContextMenu.tsx",
+      "loc": 89,
+      "category": "client:ui",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 2039
+    },
+    {
+      "path": "apps/client/src/features/dm/components/map-controls/MapBackgroundControl.tsx",
+      "loc": 88,
+      "category": "client:dm",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 2750
+    },
+    {
+      "path": "apps/e2e/token-movement.spec.ts",
+      "loc": 86,
+      "category": "other",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 2944
+    },
+    {
+      "path": "apps/client/src/features/auth/AuthenticationGate.styles.ts",
+      "loc": 81,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 2037
+    },
+    {
+      "path": "apps/client/src/features/map/components/LockIndicator.tsx",
+      "loc": 81,
+      "category": "client:map",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 1951
+    },
+    {
+      "path": "apps/client/src/components/ui/JRPGPanel.tsx",
+      "loc": 80,
+      "category": "client:ui",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 1905
+    },
+    {
+      "path": "apps/client/src/features/map/components/MapImageLayer.tsx",
+      "loc": 79,
+      "category": "client:map",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 2708
+    },
+    {
+      "path": "apps/client/src/components/dice/RollButton.tsx",
+      "loc": 78,
+      "category": "client:dice",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 2622
+    },
+    {
+      "path": "apps/client/src/utils/sanitize.ts",
+      "loc": 78,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 2200
+    },
+    {
+      "path": "apps/client/src/hooks/useImageUrlNormalization.ts",
+      "loc": 77,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 2301
+    },
+    {
+      "path": "apps/client/src/features/players/components/NameEditor.tsx",
+      "loc": 76,
+      "category": "client:players",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 1846
+    },
+    {
+      "path": "apps/client/src/hooks/useDrawingSelection.ts",
+      "loc": 76,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 2252
+    },
+    {
+      "path": "apps/client/src/components/effects/VisualEffects.tsx",
+      "loc": 72,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 1742
+    },
+    {
+      "path": "apps/e2e/drawing-tools.spec.ts",
+      "loc": 71,
+      "category": "other",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 2365
+    },
+    {
+      "path": "apps/client/src/hooks/useToast.ts",
+      "loc": 70,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 1681
+    },
+    {
+      "path": "apps/client/src/components/ui/CollapsibleSection.tsx",
+      "loc": 66,
+      "category": "client:ui",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 1727
+    },
+    {
+      "path": "apps/client/src/hooks/useStatusEffects.ts",
+      "loc": 62,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 1602
+    },
+    {
+      "path": "apps/server/src/config/security.ts",
+      "loc": 61,
+      "category": "server:core",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 1803
+    },
+    {
+      "path": "apps/client/src/features/map/components/MeasureLayer.tsx",
+      "loc": 59,
+      "category": "client:map",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 1911
+    },
+    {
+      "path": "apps/server/src/config/auth.ts",
+      "loc": 59,
+      "category": "server:core",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 1704
+    },
+    {
+      "path": "apps/client/src/features/multiselect/handlers/marqueeSelection.ts",
+      "loc": 58,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 1615
+    },
+    {
+      "path": "apps/e2e/dice.spec.ts",
+      "loc": 57,
+      "category": "other",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 2184
+    },
+    {
+      "path": "apps/client/src/components/ui/EmptyState.tsx",
+      "loc": 56,
+      "category": "client:ui",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 1766
+    },
+    {
+      "path": "apps/e2e/helpers.ts",
+      "loc": 53,
+      "category": "other",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 1645
+    },
+    {
+      "path": "apps/client/src/config.ts",
+      "loc": 47,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 1700
+    },
+    {
+      "path": "apps/client/src/features/players/components/CardControls.tsx",
+      "loc": 46,
+      "category": "client:players",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 1201
+    },
+    {
+      "path": "apps/client/src/components/dice/types.ts",
+      "loc": 45,
+      "category": "client:dice",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 1034
+    },
+    {
+      "path": "apps/client/src/components/layout/ServerStatus.tsx",
+      "loc": 44,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 1351
+    },
+    {
+      "path": "apps/client/src/features/multiselect/types/multiselect.ts",
+      "loc": 44,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 1134
+    },
+    {
+      "path": "packages/adapters-net/src/index.ts",
+      "loc": 44,
+      "category": "other",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 1086
+    },
+    {
+      "path": "apps/client/src/hooks/useDMRole.ts",
+      "loc": 42,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 1231
+    },
+    {
+      "path": "apps/client/src/hooks/useHeartbeat.ts",
+      "loc": 41,
+      "category": "client:hooks",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 1114
+    },
+    {
+      "path": "apps/server/src/domains/dice/service.ts",
+      "loc": 41,
+      "category": "server:domains",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 958
+    },
+    {
+      "path": "apps/client/src/features/multiselect/types/transform.ts",
+      "loc": 34,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 754
+    },
+    {
+      "path": "apps/client/vite.config.ts",
+      "loc": 31,
+      "category": "other",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 604
+    },
+    {
+      "path": "apps/client/src/features/multiselect/types/marquee.ts",
+      "loc": 30,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 528
+    },
+    {
+      "path": "apps/client/src/utils/session.ts",
+      "loc": 29,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 822
+    },
+    {
+      "path": "apps/client/src/utils/uuid.ts",
+      "loc": 27,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 974
+    },
+    {
+      "path": "apps/client/src/features/dm/components/map-controls/DrawingControls.tsx",
+      "loc": 26,
+      "category": "client:dm",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 836
+    },
+    {
+      "path": "apps/e2e/global-setup.ts",
+      "loc": 25,
+      "category": "other",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 758
+    },
+    {
+      "path": "apps/client/src/main.tsx",
+      "loc": 22,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 497
+    },
+    {
+      "path": "apps/client/src/features/multiselect/handlers/index.ts",
+      "loc": 20,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 390
+    },
+    {
+      "path": "apps/server/src/domains/map/types.ts",
+      "loc": 19,
+      "category": "server:domains",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 335
+    },
+    {
+      "path": "apps/client/src/layouts/props/index.ts",
+      "loc": 18,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 335
+    },
+    {
+      "path": "apps/server/vitest.config.ts",
+      "loc": 18,
+      "category": "other",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 400
+    },
+    {
+      "path": "packages/shared/vitest.config.ts",
+      "loc": 18,
+      "category": "shared",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 445
+    },
+    {
+      "path": "apps/client/vitest.config.ts",
+      "loc": 17,
+      "category": "other",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 369
+    },
+    {
+      "path": "apps/client/src/features/selection/index.ts",
+      "loc": 16,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 372
+    },
+    {
+      "path": "apps/client/src/types/alignment.ts",
+      "loc": 16,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 365
+    },
+    {
+      "path": "apps/client/src/features/map/types.ts",
+      "loc": 15,
+      "category": "client:map",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 306
+    },
+    {
+      "path": "apps/client/src/features/map/components/index.ts",
+      "loc": 14,
+      "category": "client:map",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 616
+    },
+    {
+      "path": "apps/client/src/features/multiselect/types/index.ts",
+      "loc": 14,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 365
+    },
+    {
+      "path": "apps/client/vitest.setup.ts",
+      "loc": 12,
+      "category": "other",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 277
+    },
+    {
+      "path": "apps/client/src/features/auth/index.ts",
+      "loc": 11,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 260
+    },
+    {
+      "path": "apps/client/src/features/players/components/index.ts",
+      "loc": 10,
+      "category": "client:players",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 421
+    },
+    {
+      "path": "apps/e2e/smoke.spec.ts",
+      "loc": 9,
+      "category": "other",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 229
+    },
+    {
+      "path": "apps/client/src/features/dm/hooks/index.ts",
+      "loc": 8,
+      "category": "client:dm",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 362
+    },
+    {
+      "path": "apps/client/src/features/session/index.ts",
+      "loc": 7,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 187
+    },
+    {
+      "path": "packages/shared/src/index.js",
+      "loc": 7,
+      "category": "shared",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 341
+    },
+    {
+      "path": "apps/client/src/features/drawing/components/index.ts",
+      "loc": 3,
+      "category": "client:misc",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 112
+    },
+    {
+      "path": "apps/client/src/features/map/index.ts",
+      "loc": 3,
+      "category": "client:map",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 141
+    },
+    {
+      "path": "apps/client/src/features/dm/components/index.ts",
+      "loc": 2,
+      "category": "client:dm",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 35
+    },
+    {
+      "path": "apps/client/src/features/dm/index.ts",
+      "loc": 2,
+      "category": "client:dm",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 30
     }
   ]
 }

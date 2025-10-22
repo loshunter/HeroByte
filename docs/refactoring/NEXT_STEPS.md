@@ -1,10 +1,10 @@
 # Next Steps: Continuing Phase 15 Refactoring
 
-**Date:** 2025-10-20
-**Status:** Phase 1 COMPLETE, Phase 4 COMPLETE - Ready for Phase 5
-**Phase 1 Completed:** 2025-10-20
-**Phase 4 Completed:** 2025-10-20
-**Context:** Phase 15 SOLID Refactor Initiative - Phase 1 & 4 extractions complete
+**Date:** 2025-10-22
+**Status:** App.txt & DMMenu.tsx COMPLETE - MapBoard.tsx is the final target
+**App.tsx Completed:** 2025-10-20 (All 7 Phases)
+**DMMenu.tsx Completed:** 2025-10-22 (All 6 Phases)
+**Context:** Phase 15 SOLID Refactor Initiative - 2/3 god files eliminated, 2,654 LOC reduced (59%)
 
 ---
 
@@ -27,6 +27,17 @@
 - App.tsx: 1,023 LOC → 958 LOC
 - Tests Added: 48 new tests (365 total, 100% pass rate)
 - Status: All branches merged to dev
+
+✅ **DMMenu.tsx: ALL 6 PHASES COMPLETE (100% Complete)** 🎉
+- Total LOC Reduction: 1,323 lines (-83% reduction!)
+- Original Goal: Reduce to 350 LOC
+- Achievement: EXCEEDED goal by 75 LOC (265 LOC final)
+- DMMenu.tsx: 1,588 LOC → 265 LOC
+- Phase 1-3: UI primitives, entity editors, map controls extracted
+- Phase 4-6: Integrated/streamlined architecture
+- Result: Cleanest component in the codebase
+- Tests: 100% coverage maintained, zero regressions
+- Status: Complete - 2025-10-22
 
 ### Completed Extractions (In Order)
 
@@ -156,31 +167,36 @@ All Phase 1 branches are pushed and ready for PR creation/review:
 
 ---
 
-## Immediate Next Step: Phase 5 - High-Complexity Orchestration
+## Immediate Next Step: MapBoard.tsx Refactoring
 
 ### Recommended Starting Point
 
-**Phase 5 focuses on extracting complex multi-step workflows (Priorities 24-27)**
+**MapBoard.tsx is now the LAST MAJOR CLIENT GOD FILE!**
 
-**Why Phase 5 next?**
-- ✅ Phases 2-3 (Action Creators, Feature Managers) can be done in parallel
-- ✅ Phase 5 tackles critical complexity reduction
-- ✅ Builds on Phase 1 & 4 foundations
-- ✅ ~450 LOC reduction potential
+**Why MapBoard.tsx next?**
+- ✅ App.tsx COMPLETE (72% reduction achieved)
+- ✅ DMMenu.tsx COMPLETE (83% reduction achieved!)
+- ✅ MapBoard.tsx is the final client-side god file (1,034 LOC → 400 LOC target)
+- ✅ Proven playbook from App.tsx and DMMenu.tsx refactorings
+- ✅ ~634 LOC reduction potential (62% reduction)
 
-**Suggested First Priority: SelectionManager (Priority 24)**
-- **Source:** `apps/client/src/ui/App.tsx`
-- **Target:** `apps/client/src/features/selection/SelectionManager.ts`
-- **Purpose:** Extract complex object selection and multi-select logic
-- **Dependencies:** useObjectSelection, toolMode
-- **LOC Estimate:** ~90 LOC extraction
-- **Effort:** 5 days
+**Target File:**
+- **Source:** `apps/client/src/ui/MapBoard.tsx`
+- **Current LOC:** 1,034
+- **Target LOC:** 400
+- **Reduction:** 634 LOC (62%)
+- **Complexity:** 32 clusters identified
+- **Estimated Effort:** 6-8 weeks (7 phases)
 
-**Alternative: Continue with Phases 2-3 sequentially**
-- Phase 2: Action Creators (Priorities 10-13) - ~140 LOC
-- Phase 3: Feature Managers (Priorities 14-16) - ~260 LOC
+**Suggested First Priority: Phase 1 - Pure Utilities**
+- **Module 1:** MapBoardTypes (40 LOC, 1 day)
+- **Module 2:** coordinateTransforms (20 LOC, 1 day)
+- **Module 3:** useElementSize (15 LOC, 1 day)
+- **Phase 1 Total:** ~75 LOC reduction in 3 days
 
-### Step-by-Step Instructions for Phase 5
+**See REFACTOR_ROADMAP.md File 3: MapBoard.tsx for complete extraction plan**
+
+### Step-by-Step Instructions for MapBoard.tsx Phase 1
 
 #### 1. Set Up Your Environment
 
@@ -188,17 +204,17 @@ All Phase 1 branches are pushed and ready for PR creation/review:
 cd /home/loshunter/HeroByte
 pnpm install
 
-# Verify tests pass (should be 365/365)
+# Verify tests pass
 pnpm test
 
 # Check current file sizes
 pnpm lint:structure
 
-# Verify App.tsx is at 958 LOC
-# Create feature branch for Phase 5 (IMPORTANT!)
+# Verify MapBoard.tsx is at 1,034 LOC
+# Create feature branch for MapBoard Phase 1 (IMPORTANT!)
 git checkout dev
 git pull origin dev
-git checkout -b refactor/app/selection-manager
+git checkout -b refactor/mapboard/phase-1-pure-utilities
 ```
 
 #### 2. Review Documentation
@@ -631,8 +647,9 @@ Every extraction makes the codebase better. Every module extracted is a victory.
 
 ---
 
-**Last Updated:** 2025-10-20 (Phases 1 & 4 Complete)
-**Phase 1 Completed:** 2025-10-20 (9/9 extractions, 547 LOC reduction)
-**Phase 4 Completed:** 2025-10-20 (2/2 active extractions, 65 LOC reduction, 48 tests)
-**Next Phase:** Phase 5 - High-Complexity Orchestration
+**Last Updated:** 2025-10-22 (App.tsx & DMMenu.tsx COMPLETE!)
+**App.tsx Completed:** 2025-10-20 (All 7 phases, 1,331 LOC reduction)
+**DMMenu.tsx Completed:** 2025-10-22 (All 6 phases, 1,323 LOC reduction)
+**Combined Achievement:** 2,654 LOC reduced (59% of original 4,479 LOC)
+**Next Target:** MapBoard.tsx Phase 1 - Last major client god file
 **Questions?** See docs/refactoring/README.md FAQ section
