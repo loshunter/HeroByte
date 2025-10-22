@@ -10,11 +10,10 @@ import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignment";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import type { Camera } from "../../../hooks/useCamera";
-import { NPCEditor } from "./NPCEditor";
-import { PropEditor } from "./PropEditor";
 import MapTab from "./tab-views/MapTab";
-import { SessionPersistenceControl } from "./session-controls/SessionPersistenceControl";
-import { RoomPasswordControl } from "./session-controls/RoomPasswordControl";
+import NPCsTab from "./tab-views/NPCsTab";
+import PropsTab from "./tab-views/PropsTab";
+import SessionTab from "./tab-views/SessionTab";
 
 interface DMMenuProps {
   isDM: boolean;
@@ -243,117 +242,39 @@ export function DMMenu({
             )}
 
             {activeTab === "npcs" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <h4 className="jrpg-text-command" style={{ margin: 0 }}>
-                    NPCs & Monsters
-                  </h4>
-                  <JRPGButton
-                    variant="success"
-                    onClick={onCreateNPC}
-                    style={{ fontSize: "10px", padding: "6px 12px" }}
-                  >
-                    + Add NPC
-                  </JRPGButton>
-                </div>
-
-                {npcs.length === 0 ? (
-                  <JRPGPanel
-                    variant="simple"
-                    style={{ color: "var(--jrpg-white)", fontSize: "12px" }}
-                  >
-                    No NPCs yet. Use &ldquo;Add NPC&rdquo; to create one.
-                  </JRPGPanel>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                    {npcs.map((npc) => (
-                      <NPCEditor
-                        key={npc.id}
-                        npc={npc}
-                        onUpdate={(updates) => onUpdateNPC(npc.id, updates)}
-                        onPlace={() => onPlaceNPCToken(npc.id)}
-                        onDelete={() => onDeleteNPC(npc.id)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
+              <NPCsTab
+                npcs={npcs}
+                onCreateNPC={onCreateNPC}
+                onUpdateNPC={onUpdateNPC}
+                onPlaceNPCToken={onPlaceNPCToken}
+                onDeleteNPC={onDeleteNPC}
+              />
             )}
 
             {activeTab === "props" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <h4 className="jrpg-text-command" style={{ margin: 0 }}>
-                    Props & Objects
-                  </h4>
-                  <JRPGButton
-                    variant="success"
-                    onClick={onCreateProp}
-                    style={{ fontSize: "10px", padding: "6px 12px" }}
-                  >
-                    + Add Prop
-                  </JRPGButton>
-                </div>
-
-                {props.length === 0 ? (
-                  <JRPGPanel
-                    variant="simple"
-                    style={{ color: "var(--jrpg-white)", fontSize: "12px" }}
-                  >
-                    No props yet. Use &ldquo;Add Prop&rdquo; to create one.
-                  </JRPGPanel>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                    {props.map((prop) => (
-                      <PropEditor
-                        key={prop.id}
-                        prop={prop}
-                        players={players}
-                        onUpdate={(updates) => onUpdateProp(prop.id, updates)}
-                        onDelete={() => onDeleteProp(prop.id)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
+              <PropsTab
+                props={props}
+                players={players}
+                onCreateProp={onCreateProp}
+                onUpdateProp={onUpdateProp}
+                onDeleteProp={onDeleteProp}
+              />
             )}
 
             {activeTab === "session" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                <SessionPersistenceControl
-                  sessionName={sessionName}
-                  setSessionName={setSessionName}
-                  onRequestSaveSession={onRequestSaveSession}
-                  onRequestLoadSession={onRequestLoadSession}
-                  saveDisabled={saveDisabled}
-                  loadDisabled={loadDisabled}
-                />
-
-                <RoomPasswordControl
-                  onSetRoomPassword={onSetRoomPassword}
-                  roomPasswordStatus={roomPasswordStatus}
-                  roomPasswordPending={roomPasswordPending}
-                  onDismissRoomPasswordStatus={onDismissRoomPasswordStatus}
-                />
-
-                <JRPGPanel variant="simple" title="Players">
-                  <div className="jrpg-text-small" style={{ color: "var(--jrpg-white)" }}>
-                    {playerCount} player{playerCount === 1 ? "" : "s"} currently online
-                  </div>
-                </JRPGPanel>
-              </div>
+              <SessionTab
+                sessionName={sessionName}
+                setSessionName={setSessionName}
+                onRequestSaveSession={onRequestSaveSession}
+                onRequestLoadSession={onRequestLoadSession}
+                saveDisabled={saveDisabled}
+                loadDisabled={loadDisabled}
+                onSetRoomPassword={onSetRoomPassword}
+                roomPasswordStatus={roomPasswordStatus}
+                roomPasswordPending={roomPasswordPending}
+                onDismissRoomPasswordStatus={onDismissRoomPasswordStatus}
+                playerCount={playerCount}
+              />
             )}
           </div>
         </DraggableWindow>
