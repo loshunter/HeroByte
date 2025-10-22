@@ -166,6 +166,37 @@ export class RoomService {
       return { ...currentPlayer, isDM: currentPlayer.isDM ?? false };
     });
 
+    // Get UIDs of currently connected players
+    const currentPlayerUIDs = new Set(this.state.players.map((p) => p.uid));
+
+    // Preserve characters belonging to currently connected players
+    const currentPlayerCharacters = this.state.characters.filter(
+      (char) => char.ownedByPlayerUID && currentPlayerUIDs.has(char.ownedByPlayerUID),
+    );
+
+    // Get IDs of preserved characters to avoid duplicates
+    const preservedCharacterIds = new Set(currentPlayerCharacters.map((c) => c.id));
+
+    // Add loaded characters that don't conflict with preserved ones
+    const mergedCharacters = [
+      ...currentPlayerCharacters,
+      ...loadedCharacters.filter((char) => !preservedCharacterIds.has(char.id)),
+    ];
+
+    // Preserve tokens belonging to currently connected players
+    const currentPlayerTokens = this.state.tokens.filter(
+      (token) => currentPlayerUIDs.has(token.owner),
+    );
+
+    // Get IDs of preserved tokens to avoid duplicates
+    const preservedTokenIds = new Set(currentPlayerTokens.map((t) => t.id));
+
+    // Add loaded tokens that don't conflict with preserved ones
+    const mergedTokens = [
+      ...currentPlayerTokens,
+      ...(snapshot.tokens ?? []).filter((token) => !preservedTokenIds.has(token.id)),
+    ];
+
     const currentGridSquareSize = this.state.gridSquareSize ?? 5;
 
     // If snapshot has sceneObjects, don't load legacy drawings array
@@ -174,9 +205,9 @@ export class RoomService {
 
     this.state = {
       users: this.state.users, // Keep current WebSocket connections
-      tokens: snapshot.tokens ?? [],
+      tokens: mergedTokens,
       players: mergedPlayers,
-      characters: loadedCharacters,
+      characters: mergedCharacters,
       props: snapshot.props ?? [],
       mapBackground: snapshot.mapBackground,
       pointers: [], // Clear pointers on load
@@ -191,7 +222,11 @@ export class RoomService {
       playerStagingZone: this.sanitizeStagingZone(snapshot.playerStagingZone),
     };
     this.rebuildSceneGraph();
-    console.log(`Loaded session snapshot from client - merged ${mergedPlayers.length} players`);
+    console.log(
+      `Loaded session snapshot from client - merged ${mergedPlayers.length} players, ` +
+        `preserved ${currentPlayerCharacters.length} current characters, ` +
+        `preserved ${currentPlayerTokens.length} current tokens`,
+    );
   }
 
   /**
@@ -370,6 +405,9 @@ export class RoomService {
         }
 
         if (changes.scale) {
+          // Persist scale to the staging zone state
+          this.state.playerStagingZone.scaleX = changes.scale.x;
+          this.state.playerStagingZone.scaleY = changes.scale.y;
           // Apply scale to transform (don't bake into width/height)
           // The width/height remain as "base" values, and we scale them via transform
           applyScale(changes.scale);
@@ -558,8 +596,8 @@ export class RoomService {
         transform: {
           x: zone.x,
           y: zone.y,
-          scaleX: prev?.type === "staging-zone" ? prev.transform.scaleX : 1,
-          scaleY: prev?.type === "staging-zone" ? prev.transform.scaleY : 1,
+          scaleX: zone.scaleX ?? 1,
+          scaleY: zone.scaleY ?? 1,
           rotation: zone.rotation ?? 0,
         },
         data: {

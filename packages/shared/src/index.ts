@@ -259,6 +259,8 @@ export interface PlayerStagingZone {
   width: number;
   height: number;
   rotation?: number;
+  scaleX?: number;
+  scaleY?: number;
 }
 
 // ----------------------------------------------------------------------------

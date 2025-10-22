@@ -171,6 +171,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
 
     // Session management
     handleSaveSession,
+    handleLoadSession,
 
     // DM management
     handleToggleDM,
@@ -335,7 +336,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onAlignmentCancel={handleAlignmentCancel}
         onAlignmentApply={handleAlignmentApply}
         onRequestSaveSession={snapshot ? handleSaveSession : undefined}
-        onRequestLoadSession={undefined}
+        onRequestLoadSession={handleLoadSession}
         onCreateNPC={handleCreateNPC}
         onUpdateNPC={handleUpdateNPC}
         onDeleteNPC={handleDeleteNPC}
