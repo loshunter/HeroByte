@@ -591,7 +591,7 @@ describe("PropsTab - Characterization Tests", () => {
 
   describe("Edge Cases", () => {
     it("should handle undefined onCreateProp gracefully", () => {
-      const { onCreateProp, ...otherHandlers } = createMockHandlers();
+      const { onCreateProp: _onCreateProp, ...otherHandlers } = createMockHandlers();
       render(
         <PropsTab
           activeTab="props"

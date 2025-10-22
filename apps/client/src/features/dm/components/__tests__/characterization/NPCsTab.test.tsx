@@ -178,7 +178,7 @@ describe("NPCsTab - Characterization Tests", () => {
       const handlers = createMockHandlers();
       const npcs = [createMockNPC({ id: "npc-1" }), createMockNPC({ id: "npc-2" })];
 
-      const { container } = render(<NPCsTab npcs={npcs} {...handlers} />);
+      render(<NPCsTab npcs={npcs} {...handlers} />);
 
       // NPCEditor has a delete button, so count those
       const deleteButtons = screen.getAllByRole("button", { name: /delete/i });
@@ -439,7 +439,7 @@ describe("NPCsTab - Characterization Tests", () => {
   describe("Add NPC Button Styling", () => {
     it("should render button with success variant", () => {
       const handlers = createMockHandlers();
-      const { container } = render(<NPCsTab npcs={[]} {...handlers} />);
+      render(<NPCsTab npcs={[]} {...handlers} />);
 
       const button = screen.getByRole("button", { name: "+ Add NPC" });
       // JRPGButton with variant="success" gets specific styling

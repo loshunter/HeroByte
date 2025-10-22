@@ -5,7 +5,7 @@
 // NPC management (scaffolding), and session utilities.
 
 import type { Character, PlayerStagingZone, Prop, Player, TokenSize } from "@shared";
-import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
+import { JRPGButton } from "../../../components/ui/JRPGPanel";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignment";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import type { Camera } from "../../../hooks/useCamera";
