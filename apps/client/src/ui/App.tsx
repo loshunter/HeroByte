@@ -216,7 +216,7 @@ function AuthenticatedApp({
   const [crtFilter, setCrtFilter] = useState(false);
 
   // Camera commands
-  const { cameraCommand, handleFocusSelf, handleResetCamera, handleCameraCommandHandled } =
+  const { cameraCommand, handleFocusToken, handleResetCamera, handleCameraCommandHandled } =
     useCameraCommands({ snapshot, uid });
 
   // Camera state (from MapBoard)
@@ -531,7 +531,7 @@ function AuthenticatedApp({
       cameraCommand={cameraCommand}
       handleCameraCommandHandled={handleCameraCommandHandled}
       setCameraState={handleCameraChange}
-      handleFocusSelf={handleFocusSelf}
+      handleFocusToken={handleFocusToken}
       handleResetCamera={handleResetCamera}
       // Drawing
       drawingToolbarProps={drawingManager.toolbarProps}

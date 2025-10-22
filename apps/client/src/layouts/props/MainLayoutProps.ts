@@ -161,8 +161,8 @@ export interface MainLayoutProps {
   handleCameraCommandHandled: () => void;
   /** Handler for camera state changes */
   setCameraState: (state: { x: number; y: number; scale: number }) => void;
-  /** Handler to focus on self */
-  handleFocusSelf: () => void;
+  /** Handler to focus on a specific token by ID */
+  handleFocusToken: (tokenId: string) => void;
   /** Handler to reset camera */
   handleResetCamera: () => void;
 
