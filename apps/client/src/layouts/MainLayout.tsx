@@ -90,7 +90,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     cameraCommand,
     handleCameraCommandHandled,
     setCameraState,
-    handleFocusSelf,
+    handleFocusToken,
     handleResetCamera,
     camera,
 
@@ -220,7 +220,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         rollLogOpen={rollLogOpen}
         toggleDiceRoller={toggleDiceRoller}
         toggleRollLog={toggleRollLog}
-        handleFocusSelf={handleFocusSelf}
         handleResetCamera={handleResetCamera}
         topPanelRef={topPanelRef}
         topHeight={topHeight}
@@ -303,6 +302,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onTokenImageChange={updateTokenImage}
         onAddCharacter={playerActions.addCharacter}
         onDeleteCharacter={playerActions.deleteCharacter}
+        onFocusToken={handleFocusToken}
       />
 
       {/* Floating Panels - DM menu, context menu, visual effects, dice roller, roll log, toasts */}

@@ -24,6 +24,7 @@ interface NpcCardProps {
   onToggleTokenLock?: (locked: boolean) => void;
   tokenSize?: TokenSize;
   onTokenSizeChange?: (size: TokenSize) => void;
+  onFocusToken?: () => void;
 }
 
 export function NpcCard({
@@ -36,6 +37,7 @@ export function NpcCard({
   onToggleTokenLock,
   tokenSize,
   onTokenSizeChange,
+  onFocusToken,
 }: NpcCardProps): JSX.Element {
   const [editingHp, setEditingHp] = useState(false);
   const [hpInput, setHpInput] = useState(String(character.hp));
@@ -171,6 +173,7 @@ export function NpcCard({
           onRequestChange={handlePortraitChange}
           statusIcon={statusIcon}
           tokenColor="#D63C53"
+          onFocusToken={onFocusToken}
         />
       </div>
 

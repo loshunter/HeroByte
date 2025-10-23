@@ -159,6 +159,10 @@ export interface BottomPanelLayoutProps {
   onAddCharacter: (name: string) => void;
   /** Handler to delete a character */
   onDeleteCharacter: (characterId: string) => void;
+
+  // Camera (1 prop)
+  /** Handler to focus camera on a specific token */
+  onFocusToken: (tokenId: string) => void;
 }
 
 /**
@@ -258,6 +262,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
     onTokenImageChange,
     onAddCharacter,
     onDeleteCharacter,
+    onFocusToken,
   }) => {
     return (
       <EntitiesPanel
@@ -300,6 +305,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
         onTokenImageChange={onTokenImageChange}
         onAddCharacter={onAddCharacter}
         onDeleteCharacter={onDeleteCharacter}
+        onFocusToken={onFocusToken}
         bottomPanelRef={bottomPanelRef}
       />
     );

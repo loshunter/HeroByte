@@ -54,6 +54,7 @@ interface EntitiesPanelProps {
   onTokenSizeChange: (tokenId: string, size: TokenSize) => void;
   onAddCharacter: (name: string) => void;
   onDeleteCharacter: (characterId: string) => void;
+  onFocusToken: (tokenId: string) => void;
   bottomPanelRef?: React.RefObject<HTMLDivElement>;
 }
 
@@ -95,6 +96,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   onTokenSizeChange,
   onAddCharacter,
   onDeleteCharacter,
+  onFocusToken,
   bottomPanelRef,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -346,6 +348,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                         onAddCharacter={isMe ? onAddCharacter : undefined}
                         characterId={character.id}
                         onDeleteCharacter={isMe ? onDeleteCharacter : undefined}
+                        onFocusToken={token ? () => onFocusToken(token.id) : undefined}
                       />
                     </div>
                   );
@@ -387,6 +390,11 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                       onTokenSizeChange={
                         currentIsDM && entity.character.tokenId
                           ? (size: TokenSize) => onTokenSizeChange(entity.character.tokenId!, size)
+                          : undefined
+                      }
+                      onFocusToken={
+                        entity.character.tokenId
+                          ? () => onFocusToken(entity.character.tokenId!)
                           : undefined
                       }
                     />

@@ -7,6 +7,7 @@
 import { useState, useEffect } from "react";
 import type { Prop, Player, TokenSize } from "@shared";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
+import { useImageUrlNormalization } from "../../../hooks/useImageUrlNormalization";
 
 interface PropEditorProps {
   prop: Prop;
@@ -25,6 +26,7 @@ export function PropEditor({ prop, players, onUpdate, onDelete }: PropEditorProp
   const [imageUrl, setImageUrl] = useState(prop.imageUrl);
   const [owner, setOwner] = useState<string | null>(prop.owner);
   const [size, setSize] = useState<TokenSize>(prop.size);
+  const { normalizeUrl } = useImageUrlNormalization();
 
   useEffect(() => {
     setLabel(prop.label);
@@ -55,7 +57,11 @@ export function PropEditor({ prop, players, onUpdate, onDelete }: PropEditorProp
   };
 
   const handleLabelBlur = () => commitUpdate({ label });
-  const handleImageUrlBlur = () => commitUpdate({ imageUrl });
+  const handleImageUrlBlur = async () => {
+    const normalizedImageUrl = await normalizeUrl(imageUrl);
+    setImageUrl(normalizedImageUrl);
+    commitUpdate({ imageUrl: normalizedImageUrl });
+  };
   const handleOwnerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     const newOwner = value === "null" ? null : value === "*" ? "*" : value;

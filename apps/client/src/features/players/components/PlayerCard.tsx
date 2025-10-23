@@ -55,6 +55,7 @@ export interface PlayerCardProps {
   onAddCharacter?: (name: string) => void;
   characterId?: string;
   onDeleteCharacter?: (characterId: string) => void;
+  onFocusToken?: () => void;
 }
 
 export const PlayerCard = memo<PlayerCardProps>(
@@ -100,6 +101,7 @@ export const PlayerCard = memo<PlayerCardProps>(
     onAddCharacter,
     characterId,
     onDeleteCharacter,
+    onFocusToken,
   }) => {
     const editing = editingPlayerUID === player.uid;
     const editingHp = editingHpUID === (characterId ?? player.uid);
@@ -251,6 +253,7 @@ export const PlayerCard = memo<PlayerCardProps>(
           onRequestChange={onPortraitLoad}
           statusIcon={portraitStatus}
           tokenColor={tokenColor}
+          onFocusToken={onFocusToken}
         />
 
         <HPBar

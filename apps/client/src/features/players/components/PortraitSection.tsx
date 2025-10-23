@@ -13,6 +13,7 @@ interface PortraitSectionProps {
   onRequestChange?: () => void;
   statusIcon?: { emoji: string; label: string } | null;
   tokenColor?: string;
+  onFocusToken?: () => void;
 }
 
 export const PortraitSection: React.FC<PortraitSectionProps> = ({
@@ -22,10 +23,20 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
   onRequestChange,
   statusIcon,
   tokenColor = "#5AFFAD",
+  onFocusToken,
 }) => {
-  const handleClick = () => {
+  const handlePortraitClick = () => {
+    // Click portrait to change image (when editable)
     if (isEditable && onRequestChange) {
       onRequestChange();
+    }
+  };
+
+  const handleStatusIconClick = (e: React.MouseEvent) => {
+    // Click status icon to focus on token
+    e.stopPropagation(); // Prevent portrait click
+    if (onFocusToken) {
+      onFocusToken();
     }
   };
 
@@ -58,8 +69,10 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
         width: "100%",
       }}
     >
-      <div
+      <button
+        type="button"
         className="jrpg-icon"
+        onClick={handleStatusIconClick}
         style={{
           position: "relative",
           width: "26px",
@@ -71,8 +84,12 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
           justifyContent: "center",
           fontSize: "14px",
           boxShadow: "0 0 6px var(--jrpg-border-gold)",
+          cursor: onFocusToken ? "pointer" : "default",
+          padding: 0,
         }}
-        title="Status effects"
+        title={onFocusToken ? "Focus on token" : "Status effects"}
+        disabled={!onFocusToken}
+        aria-label={onFocusToken ? "Focus camera on token" : "Status effects"}
       >
         {statusIcon ? statusIcon.emoji : "⚔️"}
         {statusIcon && (
@@ -95,12 +112,12 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
             {sanitizeText(statusIcon.label)}
           </span>
         )}
-      </div>
+      </button>
       <button
         type="button"
         className="jrpg-portrait-frame"
         style={frameStyles}
-        onClick={handleClick}
+        onClick={handlePortraitClick}
         aria-label={isEditable ? "Change portrait" : "Player portrait"}
         disabled={!isEditable}
         tabIndex={isEditable ? 0 : -1}

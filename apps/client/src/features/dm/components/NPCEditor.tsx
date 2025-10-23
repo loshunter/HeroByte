@@ -7,6 +7,7 @@
 import { useState, useEffect } from "react";
 import type { Character } from "@shared";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
+import { useImageUrlNormalization } from "../../../hooks/useImageUrlNormalization";
 
 interface NPCEditorProps {
   npc: Character;
@@ -27,6 +28,7 @@ export function NPCEditor({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) 
   const [maxHpInput, setMaxHpInput] = useState(String(npc.maxHp));
   const [portrait, setPortrait] = useState(npc.portrait ?? "");
   const [tokenImage, setTokenImage] = useState(npc.tokenImage ?? "");
+  const { normalizeUrl } = useImageUrlNormalization();
 
   useEffect(() => {
     setName(npc.name);
@@ -73,8 +75,16 @@ export function NPCEditor({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) 
   const handleNameBlur = () => commitUpdate({ name });
   const handleHpBlur = () => commitUpdate();
   const handleMaxHpBlur = () => commitUpdate();
-  const handlePortraitBlur = () => commitUpdate({ portrait });
-  const handleTokenImageBlur = () => commitUpdate({ tokenImage });
+  const handlePortraitBlur = async () => {
+    const normalizedPortrait = await normalizeUrl(portrait);
+    setPortrait(normalizedPortrait);
+    commitUpdate({ portrait: normalizedPortrait });
+  };
+  const handleTokenImageBlur = async () => {
+    const normalizedTokenImage = await normalizeUrl(tokenImage);
+    setTokenImage(normalizedTokenImage);
+    commitUpdate({ tokenImage: normalizedTokenImage });
+  };
 
   return (
     <JRPGPanel variant="simple" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>

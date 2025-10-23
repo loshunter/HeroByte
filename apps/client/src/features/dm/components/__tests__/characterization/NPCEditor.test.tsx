@@ -314,7 +314,7 @@ describe("NPCEditor - Characterization Tests", () => {
       expect(portraitInput).toHaveValue("https://example.com/new-portrait.jpg");
     });
 
-    it("should commit portrait URL on blur", () => {
+    it("should commit portrait URL on blur", async () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
@@ -324,16 +324,18 @@ describe("NPCEditor - Characterization Tests", () => {
       });
       fireEvent.blur(portraitInput);
 
-      expect(handlers.onUpdate).toHaveBeenCalledWith({
-        name: "Goblin",
-        hp: 10,
-        maxHp: 15,
-        portrait: "https://example.com/new-portrait.jpg",
-        tokenImage: "https://example.com/goblin-token.png",
+      await waitFor(() => {
+        expect(handlers.onUpdate).toHaveBeenCalledWith({
+          name: "Goblin",
+          hp: 10,
+          maxHp: 15,
+          portrait: "https://example.com/new-portrait.jpg",
+          tokenImage: "https://example.com/goblin-token.png",
+        });
       });
     });
 
-    it("should set portrait to undefined when URL is empty or whitespace", () => {
+    it("should set portrait to undefined when URL is empty or whitespace", async () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
@@ -341,12 +343,14 @@ describe("NPCEditor - Characterization Tests", () => {
       fireEvent.change(portraitInput, { target: { value: "   " } });
       fireEvent.blur(portraitInput);
 
-      expect(handlers.onUpdate).toHaveBeenCalledWith({
-        name: "Goblin",
-        hp: 10,
-        maxHp: 15,
-        portrait: undefined,
-        tokenImage: "https://example.com/goblin-token.png",
+      await waitFor(() => {
+        expect(handlers.onUpdate).toHaveBeenCalledWith({
+          name: "Goblin",
+          hp: 10,
+          maxHp: 15,
+          portrait: undefined,
+          tokenImage: "https://example.com/goblin-token.png",
+        });
       });
     });
 
@@ -371,7 +375,7 @@ describe("NPCEditor - Characterization Tests", () => {
       expect(tokenInput).toHaveValue("https://example.com/new-token.png");
     });
 
-    it("should commit token image URL on blur", () => {
+    it("should commit token image URL on blur", async () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
@@ -379,16 +383,18 @@ describe("NPCEditor - Characterization Tests", () => {
       fireEvent.change(tokenInput, { target: { value: "https://example.com/new-token.png" } });
       fireEvent.blur(tokenInput);
 
-      expect(handlers.onUpdate).toHaveBeenCalledWith({
-        name: "Goblin",
-        hp: 10,
-        maxHp: 15,
-        portrait: "https://example.com/goblin-portrait.jpg",
-        tokenImage: "https://example.com/new-token.png",
+      await waitFor(() => {
+        expect(handlers.onUpdate).toHaveBeenCalledWith({
+          name: "Goblin",
+          hp: 10,
+          maxHp: 15,
+          portrait: "https://example.com/goblin-portrait.jpg",
+          tokenImage: "https://example.com/new-token.png",
+        });
       });
     });
 
-    it("should set token image to undefined when URL is empty or whitespace", () => {
+    it("should set token image to undefined when URL is empty or whitespace", async () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
@@ -396,12 +402,14 @@ describe("NPCEditor - Characterization Tests", () => {
       fireEvent.change(tokenInput, { target: { value: "   " } });
       fireEvent.blur(tokenInput);
 
-      expect(handlers.onUpdate).toHaveBeenCalledWith({
-        name: "Goblin",
-        hp: 10,
-        maxHp: 15,
-        portrait: "https://example.com/goblin-portrait.jpg",
-        tokenImage: undefined,
+      await waitFor(() => {
+        expect(handlers.onUpdate).toHaveBeenCalledWith({
+          name: "Goblin",
+          hp: 10,
+          maxHp: 15,
+          portrait: "https://example.com/goblin-portrait.jpg",
+          tokenImage: undefined,
+        });
       });
     });
 

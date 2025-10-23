@@ -72,13 +72,11 @@ export interface TopPanelLayoutProps {
   /** Whether the roll log panel is open */
   rollLogOpen: boolean;
 
-  // ===== UI Handlers (4 props) =====
+  // ===== UI Handlers (3 props) =====
   /** Handler to toggle the dice roller panel */
   toggleDiceRoller: (value: boolean) => void;
   /** Handler to toggle the roll log panel */
   toggleRollLog: (value: boolean) => void;
-  /** Handler to focus the camera on the current user's token */
-  handleFocusSelf: () => void;
   /** Handler to reset the camera to default position */
   handleResetCamera: () => void;
 
@@ -121,7 +119,6 @@ export const TopPanelLayout = React.memo<TopPanelLayoutProps>(
     rollLogOpen,
     toggleDiceRoller,
     toggleRollLog,
-    handleFocusSelf,
     handleResetCamera,
     topPanelRef,
     topHeight,
@@ -151,7 +148,6 @@ export const TopPanelLayout = React.memo<TopPanelLayoutProps>(
           onDiceRollerToggle={toggleDiceRoller}
           onRollLogToggle={toggleRollLog}
           topPanelRef={topPanelRef}
-          onFocusSelf={handleFocusSelf}
           onResetCamera={handleResetCamera}
         />
 

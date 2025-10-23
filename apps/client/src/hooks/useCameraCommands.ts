@@ -46,6 +46,8 @@ interface UseCameraCommandsReturn {
   cameraCommand: CameraCommand | null;
   /** Focus camera on user's token (shows alert if no token exists) */
   handleFocusSelf: () => void;
+  /** Focus camera on a specific token by ID */
+  handleFocusToken: (tokenId: string) => void;
   /** Reset camera to default position/zoom */
   handleResetCamera: () => void;
   /** Clear the current camera command after it has been handled */
@@ -84,6 +86,14 @@ export function useCameraCommands({
   }, [snapshot?.tokens, uid]);
 
   /**
+   * Focus camera on a specific token by ID.
+   * Used when clicking portraits to snap to any token.
+   */
+  const handleFocusToken = useCallback((tokenId: string) => {
+    setCameraCommand({ type: "focus-token", tokenId });
+  }, []);
+
+  /**
    * Reset camera to default position and zoom level.
    */
   const handleResetCamera = useCallback(() => {
@@ -101,6 +111,7 @@ export function useCameraCommands({
   return {
     cameraCommand,
     handleFocusSelf,
+    handleFocusToken,
     handleResetCamera,
     handleCameraCommandHandled,
   };

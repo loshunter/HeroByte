@@ -39,6 +39,7 @@ import {
 } from "../features/map/components";
 import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 import type { CameraCommand, MapBoardProps, SelectionRequestOptions } from "./MapBoard.types";
+import { STATUS_OPTIONS } from "../features/players/components/PlayerSettingsMenu";
 
 // Re-export types for backward compatibility
 export type { CameraCommand, MapBoardProps, SelectionRequestOptions };
@@ -102,6 +103,27 @@ export default function MapBoard({
     () => sceneObjects.find((obj) => obj.id === selectedObjectId) || null,
     [sceneObjects, selectedObjectId],
   );
+
+  // Build statusEffectsByOwner map from players array
+  const statusEffectsByOwner = useMemo(() => {
+    if (!snapshot?.players) return {};
+
+    const result: Record<string, string> = {};
+    for (const player of snapshot.players) {
+      const statusEffects = player.statusEffects;
+      if (!statusEffects || statusEffects.length === 0) continue;
+
+      const activeEffect = statusEffects[0];
+      if (!activeEffect) continue;
+
+      // Find the emoji for this status effect
+      const statusOption = STATUS_OPTIONS.find((opt) => opt.value === activeEffect);
+      if (statusOption?.emoji) {
+        result[player.uid] = statusOption.emoji;
+      }
+    }
+    return result;
+  }, [snapshot?.players]);
 
   const { registerNode, getSelectedNode, getAllNodes } = useKonvaNodeRefs(
     selectedObjectId,
@@ -638,6 +660,7 @@ export default function MapBoard({
             onSelectObject={onSelectObject}
             onTokenNodeReady={handleTokenNodeReady}
             interactionsEnabled={tokenInteractionsEnabled}
+            statusEffectsByOwner={statusEffectsByOwner}
           />
         </Layer>
 
