@@ -15,6 +15,7 @@ import { CharacterService } from "../domains/character/service.js";
 import { PropService } from "../domains/prop/service.js";
 import { SelectionService } from "../domains/selection/service.js";
 import { AuthService } from "../domains/auth/service.js";
+import { getRoomSecret } from "../config/auth.js";
 
 /**
  * Message router - handles all WebSocket messages and dispatches to domain services
@@ -622,7 +623,11 @@ export class MessageRouter {
           }
 
           const nextSecret = message.secret?.trim() ?? "";
-          if (nextSecret.length < 6 || nextSecret.length > 128) {
+          const defaultSecret = getRoomSecret();
+          const isDefaultPassword = nextSecret === defaultSecret;
+
+          // Allow default password to bypass length validation
+          if (!isDefaultPassword && (nextSecret.length < 6 || nextSecret.length > 128)) {
             this.sendControlMessage(senderUid, {
               t: "room-password-update-failed",
               reason: "Password must be between 6 and 128 characters.",
