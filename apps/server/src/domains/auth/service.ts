@@ -81,7 +81,12 @@ export class AuthService {
    */
   update(secret: string): RoomPasswordSummary {
     const trimmed = secret.trim();
-    if (trimmed.length < 6 || trimmed.length > 128) {
+    const defaultSecret = getRoomSecret();
+
+    // Allow the default development password even if it's < 6 characters
+    const isDefaultPassword = trimmed === defaultSecret;
+
+    if (!isDefaultPassword && (trimmed.length < 6 || trimmed.length > 128)) {
       throw new Error("Password must be between 6 and 128 characters.");
     }
 
@@ -90,7 +95,7 @@ export class AuthService {
       hash,
       salt,
       updatedAt: Date.now(),
-      source: "user",
+      source: isDefaultPassword ? "fallback" : "user",
     };
 
     this.secret = record;
