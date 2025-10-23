@@ -160,7 +160,7 @@ export function RoomPasswordControl({
         </JRPGButton>
         <JRPGButton
           onClick={resetToDefault}
-          variant="secondary"
+          variant="default"
           disabled={roomPasswordPending || !onSetRoomPassword}
           style={{ fontSize: "10px" }}
         >
