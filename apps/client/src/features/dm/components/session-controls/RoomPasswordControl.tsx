@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from "react";
 import { JRPGPanel, JRPGButton } from "../../../../components/ui/JRPGPanel";
+import { useResetRoomPassword } from "../../hooks/useResetRoomPassword";
 
 /**
  * Props for the RoomPasswordControl component.
@@ -59,6 +60,7 @@ export function RoomPasswordControl({
   const [passwordInput, setPasswordInput] = useState("");
   const [passwordConfirmInput, setPasswordConfirmInput] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const { resetToDefault } = useResetRoomPassword(onSetRoomPassword);
 
   // Clear password inputs when server confirms successful update
   useEffect(() => {
@@ -155,6 +157,14 @@ export function RoomPasswordControl({
           style={{ fontSize: "10px" }}
         >
           {roomPasswordPending ? "Updating…" : "Update Password"}
+        </JRPGButton>
+        <JRPGButton
+          onClick={resetToDefault}
+          variant="secondary"
+          disabled={roomPasswordPending || !onSetRoomPassword}
+          style={{ fontSize: "10px" }}
+        >
+          Reset to Default
         </JRPGButton>
       </div>
     </JRPGPanel>
