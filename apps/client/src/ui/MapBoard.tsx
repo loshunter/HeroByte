@@ -36,6 +36,7 @@ import {
   MeasureLayer,
   TransformGizmo,
   PropsLayer,
+  MarqueeOverlay,
 } from "../features/map/components";
 import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 import type { CameraCommand, MapBoardProps, SelectionRequestOptions } from "./MapBoard.types";
@@ -726,20 +727,7 @@ export default function MapBoard({
           )}
         </Layer>
 
-        {marqueeRect && (
-          <Layer listening={false}>
-            <Rect
-              x={marqueeRect.x}
-              y={marqueeRect.y}
-              width={marqueeRect.width}
-              height={marqueeRect.height}
-              stroke="#4de5c0"
-              dash={[8, 4]}
-              strokeWidth={1.5}
-              fill="rgba(77, 229, 192, 0.15)"
-            />
-          </Layer>
-        )}
+        <MarqueeOverlay marqueeRect={marqueeRect} />
 
         {/* Transform Gizmo Layer: Visual handles for selected objects (only in transform mode) */}
         {transformMode && (
