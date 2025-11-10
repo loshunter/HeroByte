@@ -11,3 +11,4 @@ export { MeasureLayer } from "./MeasureLayer";
 export { TransformGizmo } from "./TransformGizmo";
 export { LockIndicator } from "./LockIndicator";
 export { PropsLayer } from "./PropsLayer";
+export { AlignmentOverlay } from "./AlignmentOverlay";
