@@ -15,7 +15,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Stage, Layer, Circle, Line, Rect, Text } from "react-konva";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import { useCamera } from "../hooks/useCamera.js";
 import { usePointerTool } from "../hooks/usePointerTool.js";
 import { useDrawingTool } from "../hooks/useDrawingTool.js";
 import { useDrawingSelection } from "../hooks/useDrawingSelection.js";
@@ -28,6 +27,7 @@ import { useMarqueeSelection } from "../hooks/useMarqueeSelection.js";
 import { useKeyboardNavigation } from "../hooks/useKeyboardNavigation.js";
 import { useAlignmentVisualization } from "../hooks/useAlignmentVisualization.js";
 import { useObjectTransformHandlers } from "../hooks/useObjectTransformHandlers.js";
+import { useCameraControl } from "../hooks/useCameraControl.js";
 import {
   GridLayer,
   MapImageLayer,
@@ -159,22 +159,25 @@ export default function MapBoard({
     onSelectObjects,
   });
 
-  // Camera controls (pan/zoom)
+  // Camera controls (pan/zoom) and command handling
   const {
     cam,
     setCam,
     isPanning,
-    onWheel: handleWheel,
-    onMouseDown: handleCameraMouseDown,
-    onMouseMove: handleCameraMouseMove,
-    onMouseUp: handleCameraMouseUp,
+    handleWheel,
+    handleCameraMouseDown,
+    handleCameraMouseMove,
+    handleCameraMouseUp,
     toWorld,
-  } = useCamera();
-
-  // Notify parent when camera changes
-  useEffect(() => {
-    onCameraChange?.(cam);
-  }, [cam, onCameraChange]);
+  } = useCameraControl({
+    cameraCommand,
+    onCameraCommandHandled,
+    snapshot,
+    gridSize,
+    w,
+    h,
+    onCameraChange,
+  });
 
   // Pointer and measure tool
   const {
@@ -306,37 +309,6 @@ export default function MapBoard({
   /**
    * Unified mouse up handler (camera, drawing)
    */
-  // Camera command handler
-  useEffect(() => {
-    if (!cameraCommand) return;
-
-    if (cameraCommand.type === "reset") {
-      setCam((prev) => ({ ...prev, x: 0, y: 0, scale: 1 }));
-      onCameraCommandHandled();
-      return;
-    }
-
-    if (cameraCommand.type === "focus-token") {
-      const token = snapshot?.tokens?.find((t) => t.id === cameraCommand.tokenId);
-      if (!token) {
-        window.alert("Token not found.");
-        onCameraCommandHandled();
-        return;
-      }
-
-      setCam((prevCam) => {
-        const scale = prevCam.scale;
-        const centerX = token.x * gridSize + gridSize / 2;
-        const centerY = token.y * gridSize + gridSize / 2;
-        const newX = w / 2 - centerX * scale;
-        const newY = h / 2 - centerY * scale;
-        return { ...prevCam, x: newX, y: newY };
-      });
-
-      onCameraCommandHandled();
-    }
-  }, [cameraCommand, gridSize, onCameraCommandHandled, setCam, snapshot?.tokens, w, h]);
-
   /**
    * Determine cursor style based on active mode
    */
