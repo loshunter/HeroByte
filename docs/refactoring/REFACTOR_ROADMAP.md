@@ -378,12 +378,12 @@ After all extractions, DMMenu.tsx is now **265 LOC** (FAR EXCEEDED 350 LOC targe
 
 ---
 
-## File 3: MapBoard.tsx (1,034 LOC → 631 LOC) ✅ Phase 5 Complete
+## File 3: MapBoard.tsx (1,034 LOC → 656 LOC) ✅ Phase 5 Complete
 
 ### Current Status
 - **Starting LOC:** 1,034
-- **Current LOC:** 631 (estimated after all Phase 5 merges)
-- **Total Reduction:** 403 LOC (39% reduction)
+- **Current LOC:** 656 (actual after all Phase 5 merges)
+- **Total Reduction:** 378 LOC (37% reduction)
 - **Phase 1 Status:** ✅ COMPLETE (3/3 priorities) - Completed 2025-10-22
 - **Phase 2 Status:** ✅ COMPLETE (3/3 priorities) - Completed 2025-11-10
 - **Phase 3 Status:** ✅ COMPLETE (1/1 priority) - Completed 2025-11-10
@@ -473,12 +473,12 @@ After all extractions, DMMenu.tsx is now **265 LOC** (FAR EXCEEDED 350 LOC targe
 | 14 | `MarqueeOverlay` | -12 | 52 | `/features/map/components/MarqueeOverlay.tsx` | `refactor/map-board/marquee-overlay` | ✅ COMPLETE |
 
 **Phase 5 Results:**
-- **Extraction:** 4 components (-101 LOC from MapBoard estimated, actual will be confirmed on merge)
+- **Extraction:** 4 components (-101 LOC from MapBoard)
 - **Components Created:** 324 LOC total (114 + 98 + 60 + 52)
 - **Tests Added:** 61 characterization tests (17 + 17 + 14 + 13)
-- **MapBoard.tsx:** 757 → ~631 LOC (estimated after all merges)
-- **All tests passing (1700+ tests), zero regressions**
-- **4 separate branches ready for sequential merge**
+- **MapBoard.tsx:** 757 → 656 LOC (actual after all merges)
+- **All tests passing (1750 tests), zero regressions**
+- **4 branches successfully merged into dev**
 
 **Note:** Original Phase 5 also included BackgroundLayer (40 LOC), but analysis shows the Background Layer wrapper is minimal and should stay inline. Priorities adjusted to focus on complex inline rendering: StagingZoneLayer, AlignmentOverlay, and instruction overlays.
 
