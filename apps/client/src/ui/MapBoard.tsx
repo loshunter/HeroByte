@@ -12,7 +12,7 @@
 // - Map background image support
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Stage, Layer, Group, Circle, Line, Rect, Text } from "react-konva";
+import { Stage, Layer, Circle, Line, Rect, Text } from "react-konva";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { useCamera } from "../hooks/useCamera.js";
@@ -36,6 +36,7 @@ import {
   MeasureLayer,
   TransformGizmo,
   PropsLayer,
+  StagingZoneLayer,
 } from "../features/map/components";
 import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 import type { CameraCommand, MapBoardProps, SelectionRequestOptions } from "./MapBoard.types";
@@ -562,57 +563,16 @@ export default function MapBoard({
 
         {/* Game Layer: Drawings and tokens (interactive) */}
         <Layer>
-          {stagingZoneDimensions && stagingZoneObject ? (
-            <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale}>
-              <Group
-                x={stagingZoneDimensions.centerX}
-                y={stagingZoneDimensions.centerY}
-                rotation={stagingZoneDimensions.rotation}
-                scaleX={stagingZoneObject.transform.scaleX || 1}
-                scaleY={stagingZoneObject.transform.scaleY || 1}
-                ref={(node) => {
-                  if (stagingZoneObject) {
-                    registerNode(stagingZoneObject.id, node);
-                  }
-                }}
-              >
-                <Rect
-                  x={-stagingZoneDimensions.widthPx / 2}
-                  y={-stagingZoneDimensions.heightPx / 2}
-                  width={stagingZoneDimensions.widthPx}
-                  height={stagingZoneDimensions.heightPx}
-                  stroke="rgba(77, 229, 192, 0.75)"
-                  strokeWidth={2 / cam.scale}
-                  dash={[8 / cam.scale, 6 / cam.scale]}
-                  fill="rgba(77, 229, 192, 0.12)"
-                  cornerRadius={8 / cam.scale}
-                  listening={isDM && (selectMode || transformMode)}
-                  onClick={(e) => {
-                    if (isDM && (selectMode || transformMode)) {
-                      e.cancelBubble = true;
-                      onSelectObject?.(stagingZoneObject.id);
-                    }
-                  }}
-                  onTap={(e) => {
-                    if (isDM && (selectMode || transformMode)) {
-                      e.cancelBubble = true;
-                      onSelectObject?.(stagingZoneObject.id);
-                    }
-                  }}
-                />
-                <Text
-                  text={stagingZoneDimensions.label}
-                  fontSize={14 / cam.scale}
-                  fill="#4de5c0"
-                  align="center"
-                  width={stagingZoneDimensions.widthPx}
-                  x={-stagingZoneDimensions.widthPx / 2}
-                  y={-stagingZoneDimensions.heightPx / 2 - 18 / cam.scale}
-                  listening={false}
-                />
-              </Group>
-            </Group>
-          ) : null}
+          <StagingZoneLayer
+            cam={cam}
+            stagingZoneDimensions={stagingZoneDimensions}
+            stagingZoneObject={stagingZoneObject}
+            isDM={isDM}
+            selectMode={selectMode}
+            transformMode={transformMode}
+            onSelectObject={onSelectObject}
+            registerNode={registerNode}
+          />
           <DrawingsLayer
             cam={cam}
             drawingObjects={drawingObjects}
