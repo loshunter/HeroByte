@@ -27,6 +27,7 @@ import { useKonvaNodeRefs } from "../hooks/useKonvaNodeRefs.js";
 import { useMarqueeSelection } from "../hooks/useMarqueeSelection.js";
 import { useKeyboardNavigation } from "../hooks/useKeyboardNavigation.js";
 import { useAlignmentVisualization } from "../hooks/useAlignmentVisualization.js";
+import { useObjectTransformHandlers } from "../hooks/useObjectTransformHandlers.js";
 import {
   GridLayer,
   MapImageLayer,
@@ -243,6 +244,14 @@ export default function MapBoard({
     onSelectObject,
   });
 
+  // Object transform handlers
+  const { handleTransformToken, handleTransformProp, handleTransformDrawing, handleGizmoTransform } =
+    useObjectTransformHandlers({
+      onTransformObject,
+      sceneObjects,
+      gridSize: grid.size,
+    });
+
   // -------------------------------------------------------------------------
   // UNIFIED EVENT HANDLERS
   // -------------------------------------------------------------------------
@@ -341,86 +350,11 @@ export default function MapBoard({
 
   const tokenInteractionsEnabled = !drawMode;
 
-  const handleTransformToken = useCallback(
-    (sceneId: string, position: { x: number; y: number }) => {
-      onTransformObject({ id: sceneId, position });
-    },
-    [onTransformObject],
-  );
-
-  const handleTransformProp = useCallback(
-    (sceneId: string, position: { x: number; y: number }) => {
-      onTransformObject({ id: sceneId, position });
-    },
-    [onTransformObject],
-  );
-
-  const handleTransformDrawing = useCallback(
-    (sceneId: string, transform: { position?: { x: number; y: number } }) => {
-      onTransformObject({ id: sceneId, ...transform });
-    },
-    [onTransformObject],
-  );
-
   const handleRecolorToken = useCallback(
     (sceneId: string, owner?: string | null) => {
       onRecolorToken(sceneId, owner);
     },
     [onRecolorToken],
-  );
-
-  // Transform gizmo handlers
-  const handleGizmoTransform = useCallback(
-    (transform: {
-      id: string;
-      position?: { x: number; y: number };
-      scale?: { x: number; y: number };
-      rotation?: number;
-    }) => {
-      // Find the object to determine its type
-      const obj = sceneObjects.find((o) => o.id === transform.id);
-
-      if (!obj) {
-        console.warn(`Object ${transform.id} not found`);
-        return;
-      }
-
-      // For tokens, don't send position (it's in grid coords, not pixels)
-      // Only send scale and rotation
-      if (obj.type === "token") {
-        onTransformObject({
-          id: transform.id,
-          scale: transform.scale,
-          rotation: transform.rotation,
-          // Position should only be updated via dragging (which handles grid snapping)
-        });
-      } else if (obj.type === "staging-zone") {
-        // For staging zone, convert position from pixels to grid units
-        onTransformObject({
-          id: transform.id,
-          position: transform.position
-            ? { x: transform.position.x / gridSize, y: transform.position.y / gridSize }
-            : undefined,
-          scale: transform.scale,
-          rotation: transform.rotation,
-        });
-      } else if (obj.type === "prop") {
-        // For props, convert position from pixels to grid units (same as staging-zone)
-        // Props are rendered with transform.x * gridSize, so position must be in grid units
-        onTransformObject({
-          id: transform.id,
-          position: transform.position
-            ? { x: transform.position.x / gridSize, y: transform.position.y / gridSize }
-            : undefined,
-          scale: transform.scale,
-          rotation: transform.rotation,
-        });
-      } else {
-        // For map and drawings, send full transform
-        onTransformObject(transform);
-      }
-    },
-    [onTransformObject, sceneObjects],
   );
 
   const getSelectedNodeRef = useCallback(() => {
