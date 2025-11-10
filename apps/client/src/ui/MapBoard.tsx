@@ -36,6 +36,7 @@ import {
   MeasureLayer,
   TransformGizmo,
   PropsLayer,
+  AlignmentInstructionOverlay,
 } from "../features/map/components";
 import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 import type { CameraCommand, MapBoardProps, SelectionRequestOptions } from "./MapBoard.types";
@@ -506,26 +507,10 @@ export default function MapBoard({
         position: "relative",
       }}
     >
-      {alignmentMode && alignmentInstruction && (
-        <div
-          style={{
-            position: "absolute",
-            top: "12px",
-            right: "12px",
-            background: "rgba(12, 18, 38, 0.9)",
-            border: "1px solid var(--jrpg-border-gold)",
-            borderRadius: "6px",
-            padding: "8px 12px",
-            fontSize: "10px",
-            lineHeight: 1.4,
-            zIndex: 10,
-            pointerEvents: "none",
-          }}
-        >
-          <strong style={{ color: "var(--jrpg-gold)" }}>Alignment Mode</strong>
-          <div style={{ marginTop: "4px" }}>{alignmentInstruction}</div>
-        </div>
-      )}
+      <AlignmentInstructionOverlay
+        alignmentMode={alignmentMode}
+        alignmentInstruction={alignmentInstruction}
+      />
 
       {/* Stage is the viewport; world content is translated/scaled by cam in child Groups */}
       <Stage
