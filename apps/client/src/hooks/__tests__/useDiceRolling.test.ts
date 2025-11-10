@@ -178,6 +178,7 @@ describe("useDiceRolling - Characterization", () => {
       expect(result.current.rollHistory[0]).toEqual({
         id: "roll-1",
         playerName: "Alice",
+        formula: "2d20 + 5",
         tokens: [],
         perDie: [
           { tokenId: "t1", die: "d20", rolls: [15, 10], subtotal: 25 },

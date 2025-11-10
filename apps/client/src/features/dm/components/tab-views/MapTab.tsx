@@ -36,6 +36,8 @@ export interface MapTabProps {
   // MapBackgroundControl props
   mapBackground?: string;
   onSetMapBackground: (url: string) => void;
+  onMapBackgroundSuccess?: (message: string) => void;
+  onMapBackgroundError?: (message: string) => void;
 
   // MapTransformControl props (conditional rendering)
   mapTransform?: { x: number; y: number; scaleX: number; scaleY: number; rotation: number };
@@ -87,6 +89,8 @@ export interface MapTabProps {
 export default function MapTab({
   mapBackground,
   onSetMapBackground,
+  onMapBackgroundSuccess,
+  onMapBackgroundError,
   mapTransform,
   mapLocked,
   onMapTransformChange,
@@ -114,7 +118,12 @@ export default function MapTab({
 }: MapTabProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-      <MapBackgroundControl mapBackground={mapBackground} onSetMapBackground={onSetMapBackground} />
+      <MapBackgroundControl
+        mapBackground={mapBackground}
+        onSetMapBackground={onSetMapBackground}
+        onSuccess={onMapBackgroundSuccess}
+        onError={onMapBackgroundError}
+      />
 
       {/* Step 2: Adjust Map Transform (scale, position, rotation) */}
       {onMapLockToggle && onMapTransformChange && mapTransform && (

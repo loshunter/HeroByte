@@ -225,6 +225,8 @@ export interface MainLayoutProps {
   lockSelected: () => void;
   /** Handler to unlock selected objects */
   unlockSelected: () => void;
+  /** Handler to select all tokens owned by a specific player (DM shortcut) */
+  selectPlayerTokens: (playerUid: string) => void;
 
   // -------------------------------------------------------------------------
   // Player Actions

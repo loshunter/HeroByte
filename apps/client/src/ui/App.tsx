@@ -38,6 +38,7 @@ import { useNpcManagement } from "../hooks/useNpcManagement";
 import { usePropManagement } from "../hooks/usePropManagement";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { useDMManagement } from "../hooks/useDMManagement";
+import { usePlayerTokenSelection } from "../hooks/usePlayerTokenSelection";
 import { MainLayout } from "../layouts/MainLayout";
 
 // ----------------------------------------------------------------------------
@@ -191,6 +192,13 @@ function AuthenticatedApp({
     sendMessage,
     transformMode,
     selectMode,
+  });
+
+  // Player token selection shortcuts for DM
+  const { selectPlayerTokens, undoSelection, canUndo } = usePlayerTokenSelection({
+    sceneObjects: snapshot?.sceneObjects || [],
+    selectedObjectIds,
+    selectMultiple: handleObjectSelectionBatch,
   });
 
   // UI layout (fixed panels)
@@ -403,6 +411,8 @@ function AuthenticatedApp({
     clearSelection,
     drawMode,
     drawingManager,
+    undoSelection,
+    canUndoSelection: canUndo,
   });
 
   // -------------------------------------------------------------------------
@@ -560,6 +570,8 @@ function AuthenticatedApp({
       handleObjectSelectionBatch={handleObjectSelectionBatch}
       lockSelected={lockSelected}
       unlockSelected={unlockSelected}
+      // Player token selection (DM shortcuts)
+      selectPlayerTokens={selectPlayerTokens}
       // Player actions
       playerActions={playerActions}
       // Scene objects

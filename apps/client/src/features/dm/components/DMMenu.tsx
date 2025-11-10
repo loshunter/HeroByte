@@ -4,7 +4,7 @@
 // Floating tools panel for Dungeon Masters. Provides access to map setup,
 // NPC management (scaffolding), and session utilities.
 
-import type { Character, PlayerStagingZone, Prop, Player } from "@shared";
+import type { Character, PlayerStagingZone, Prop, Player, SceneObject } from "@shared";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignment";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
@@ -12,6 +12,7 @@ import type { Camera } from "../../../hooks/useCamera";
 import MapTab from "./tab-views/MapTab";
 import NPCsTab from "./tab-views/NPCsTab";
 import PropsTab from "./tab-views/PropsTab";
+import PlayersTab from "./tab-views/PlayersTab";
 import SessionTab from "./tab-views/SessionTab";
 import { useDMMenuState, type DMMenuTab } from "../hooks/useDMMenuState";
 
@@ -27,6 +28,8 @@ interface DMMenuProps {
   onClearDrawings: () => void;
   onSetMapBackground: (url: string) => void;
   mapBackground?: string;
+  onMapBackgroundSuccess?: (message: string) => void;
+  onMapBackgroundError?: (message: string) => void;
   playerStagingZone?: PlayerStagingZone;
   onSetPlayerStagingZone?: (zone: PlayerStagingZone | undefined) => void;
   stagingZoneLocked?: boolean;
@@ -63,6 +66,8 @@ interface DMMenuProps {
   roomPasswordStatus?: { type: "success" | "error"; message: string } | null;
   roomPasswordPending?: boolean;
   onDismissRoomPasswordStatus?: () => void;
+  sceneObjects: SceneObject[];
+  onSelectPlayerTokens: (playerUid: string) => void;
 }
 
 export function DMMenu({
@@ -77,6 +82,8 @@ export function DMMenu({
   onClearDrawings,
   onSetMapBackground,
   mapBackground,
+  onMapBackgroundSuccess,
+  onMapBackgroundError,
   playerStagingZone,
   onSetPlayerStagingZone,
   stagingZoneLocked,
@@ -111,6 +118,8 @@ export function DMMenu({
   roomPasswordStatus = null,
   roomPasswordPending = false,
   onDismissRoomPasswordStatus,
+  sceneObjects,
+  onSelectPlayerTokens,
 }: DMMenuProps) {
   const { open, setOpen, toggleOpen, activeTab, setActiveTab, sessionName, setSessionName, npcs } =
     useDMMenuState({
@@ -187,6 +196,7 @@ export function DMMenu({
               <TabButton tab="map" label="Map Setup" />
               <TabButton tab="npcs" label="NPCs & Monsters" />
               <TabButton tab="props" label="Props & Objects" />
+              <TabButton tab="players" label="Players" />
               <TabButton tab="session" label="Session" />
             </div>
 
@@ -194,6 +204,8 @@ export function DMMenu({
               <MapTab
                 mapBackground={mapBackground}
                 onSetMapBackground={onSetMapBackground}
+                onMapBackgroundSuccess={onMapBackgroundSuccess}
+                onMapBackgroundError={onMapBackgroundError}
                 mapTransform={mapTransform}
                 mapLocked={mapLocked}
                 onMapTransformChange={onMapTransformChange}
@@ -238,6 +250,14 @@ export function DMMenu({
                 onCreateProp={onCreateProp}
                 onUpdateProp={onUpdateProp}
                 onDeleteProp={onDeleteProp}
+              />
+            )}
+
+            {activeTab === "players" && (
+              <PlayersTab
+                players={players}
+                sceneObjects={sceneObjects}
+                onSelectPlayerTokens={onSelectPlayerTokens}
               />
             )}
 

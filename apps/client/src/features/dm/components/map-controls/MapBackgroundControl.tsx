@@ -7,17 +7,23 @@
 import { useState, useEffect } from "react";
 import { JRPGPanel, JRPGButton } from "../../../../components/ui/JRPGPanel";
 import { useImageUrlNormalization } from "../../../../hooks/useImageUrlNormalization";
+import { Spinner } from "../../../../components/ui/Spinner";
 
 export interface MapBackgroundControlProps {
   mapBackground: string | undefined;
   onSetMapBackground: (url: string) => void;
+  onSuccess?: (message: string) => void;
+  onError?: (message: string) => void;
 }
 
 export function MapBackgroundControl({
   mapBackground,
   onSetMapBackground,
+  onSuccess,
+  onError,
 }: MapBackgroundControlProps) {
   const [mapUrl, setMapUrl] = useState(mapBackground ?? "");
+  const [isUploading, setIsUploading] = useState(false);
   const { normalizeUrl, isNormalizing, normalizationError } = useImageUrlNormalization();
 
   useEffect(() => {
@@ -27,9 +33,28 @@ export function MapBackgroundControl({
   const handleMapApply = async () => {
     if (!mapUrl.trim()) return;
 
-    // Automatically convert Imgur URLs to direct image links
-    const normalizedUrl = await normalizeUrl(mapUrl);
-    onSetMapBackground(normalizedUrl);
+    setIsUploading(true);
+    try {
+      // Automatically convert Imgur URLs to direct image links
+      const normalizedUrl = await normalizeUrl(mapUrl);
+
+      // Verify the image can be loaded
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error("Failed to load image"));
+        img.src = normalizedUrl;
+      });
+
+      onSetMapBackground(normalizedUrl);
+      onSuccess?.("Map background updated successfully");
+    } catch (error) {
+      console.error("[MapBackgroundControl] Error applying map background:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to load image";
+      onError?.(errorMessage);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -51,10 +76,23 @@ export function MapBackgroundControl({
         <JRPGButton
           onClick={handleMapApply}
           variant="success"
-          disabled={!mapUrl.trim() || isNormalizing}
-          style={{ fontSize: "10px" }}
+          disabled={!mapUrl.trim() || isNormalizing || isUploading}
+          style={{
+            fontSize: "10px",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            justifyContent: "center",
+          }}
         >
-          {isNormalizing ? "Converting URL..." : "Apply Background"}
+          {isNormalizing || isUploading ? (
+            <>
+              <Spinner size={12} color="var(--jrpg-white)" />
+              <span>{isNormalizing ? "Converting URL..." : "Loading image..."}</span>
+            </>
+          ) : (
+            "Apply Background"
+          )}
         </JRPGButton>
         {normalizationError && (
           <div

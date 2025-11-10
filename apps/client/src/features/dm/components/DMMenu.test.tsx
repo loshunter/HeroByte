@@ -82,6 +82,20 @@ const createProps = () => ({
 
 describe("DMMenu", () => {
   it("renders map setup controls and applies the background URL", async () => {
+    // Mock Image to simulate successful image load
+    const originalImage = global.Image;
+    global.Image = class MockImage {
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      src = "";
+
+      constructor() {
+        setTimeout(() => {
+          if (this.onload) this.onload();
+        }, 10);
+      }
+    } as unknown as typeof Image;
+
     const props = createProps();
 
     render(<DMMenu {...props} />);
@@ -92,10 +106,12 @@ describe("DMMenu", () => {
     fireEvent.change(input, { target: { value: "https://example.com/map.png" } });
     fireEvent.click(screen.getByRole("button", { name: "Apply Background" }));
 
-    // Wait for async URL normalization to complete
+    // Wait for async URL normalization and image loading to complete
     await waitFor(() => {
       expect(props.onSetMapBackground).toHaveBeenCalledWith("https://example.com/map.png");
     });
+
+    global.Image = originalImage;
   });
 
   it("switches to the NPC tab and triggers NPC creation", () => {

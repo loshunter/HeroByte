@@ -59,6 +59,7 @@ export interface UseDiceRollingReturn {
  */
 export interface RollLogEntry extends RollResult {
   playerName: string;
+  formula?: string; // Human-readable formula from server
 }
 
 /**
@@ -122,6 +123,7 @@ export function useDiceRolling({
     return (snapshot?.diceRolls || []).map((roll) => ({
       id: roll.id,
       playerName: roll.playerName,
+      formula: roll.formula, // Human-readable formula from server
       tokens: [], // Not needed for display
       perDie: roll.breakdown.map((b) => ({
         tokenId: b.tokenId,

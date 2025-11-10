@@ -17,7 +17,7 @@ import type { Character } from "@shared";
 /**
  * Type for DMMenu tab identifiers
  */
-export type DMMenuTab = "map" | "npcs" | "props" | "session";
+export type DMMenuTab = "map" | "npcs" | "props" | "players" | "session";
 
 /**
  * State object returned by useDMMenuState hook

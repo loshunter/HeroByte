@@ -123,6 +123,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     handleObjectSelectionBatch,
     lockSelected,
     unlockSelected,
+    selectPlayerTokens,
 
     // Scene objects
     mapSceneObject,
@@ -321,6 +322,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onClearDrawings={handleClearDrawings}
         camera={camera}
         snapshot={snapshot}
+        selectPlayerTokens={selectPlayerTokens}
         mapSceneObject={mapSceneObject}
         stagingZoneSceneObject={stagingZoneSceneObject}
         onSetMapBackground={setMapBackgroundURL}

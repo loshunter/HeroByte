@@ -5,8 +5,9 @@
  *
  * Handles:
  * - Delete/Backspace: Delete selected scene objects with permission checks
- * - Ctrl+Z/Cmd+Z: Undo drawing action
+ * - Ctrl+Z/Cmd+Z: Undo drawing action (in draw mode) or undo player token selection (DM only)
  * - Ctrl+Y/Cmd+Y or Ctrl+Shift+Z: Redo drawing action
+ * - Escape: Clear selection (when objects are selected)
  *
  * Extracted from: apps/client/src/ui/App.tsx (lines 389-516)
  * Extraction date: 2025-10-20
@@ -85,6 +86,16 @@ export interface UseKeyboardShortcutsOptions {
    * Drawing manager for undo/redo operations
    */
   drawingManager: DrawingManager;
+
+  /**
+   * Optional: Function to undo player token selection (DM only)
+   */
+  undoSelection?: () => void;
+
+  /**
+   * Optional: Whether there is a player token selection to undo (DM only)
+   */
+  canUndoSelection?: boolean;
 }
 
 /**
@@ -135,6 +146,8 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
     clearSelection,
     drawMode,
     drawingManager,
+    undoSelection,
+    canUndoSelection,
   } = options;
 
   useEffect(() => {
@@ -246,10 +259,19 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
 
       // Ctrl+Z or Cmd+Z for undo
       if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
-        // Only undo if draw mode is active and there's something to undo
+        // Priority 1: Undo drawing if draw mode is active and there's something to undo
         if (drawMode && drawingManager.canUndo) {
           e.preventDefault();
           drawingManager.handleUndo();
+          return;
+        }
+
+        // Priority 2: Undo player token selection (DM only) if available
+        if (isDM && canUndoSelection && undoSelection) {
+          e.preventDefault();
+          console.log("[KeyDown] Ctrl+Z: Undoing player token selection");
+          undoSelection();
+          return;
         }
       }
 
@@ -273,5 +295,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
     clearSelection,
     drawMode,
     drawingManager,
+    undoSelection,
+    canUndoSelection,
   ]);
 }

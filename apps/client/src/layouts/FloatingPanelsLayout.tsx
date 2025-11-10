@@ -108,7 +108,14 @@ export interface FloatingPanelsLayoutProps {
   // Visual Effects (1)
   crtFilter: boolean;
   // Toast Messages (1)
-  toast: { messages: ToastMessage[]; dismiss: (id: string) => void };
+  toast: {
+    messages: ToastMessage[];
+    dismiss: (id: string) => void;
+    success: (message: string) => void;
+    error: (message: string) => void;
+  };
+  // Player Token Selection (DM shortcut) (1)
+  selectPlayerTokens: (playerUid: string) => void;
 }
 
 /**
@@ -168,6 +175,7 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
     handleViewRoll,
     crtFilter,
     toast,
+    selectPlayerTokens,
   }) => {
     return (
       <>
@@ -182,6 +190,8 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
           onGridSquareSizeChange={onGridSquareSizeChange}
           onClearDrawings={onClearDrawings}
           onSetMapBackground={onSetMapBackground}
+          onMapBackgroundSuccess={toast.success}
+          onMapBackgroundError={toast.error}
           mapBackground={snapshot?.mapBackground}
           playerStagingZone={snapshot?.playerStagingZone}
           onSetPlayerStagingZone={onSetPlayerStagingZone}
@@ -246,6 +256,8 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
           roomPasswordStatus={roomPasswordStatus}
           roomPasswordPending={roomPasswordPending}
           onDismissRoomPasswordStatus={onDismissRoomPasswordStatus}
+          sceneObjects={snapshot?.sceneObjects || []}
+          onSelectPlayerTokens={selectPlayerTokens}
         />
 
         <ContextMenu
