@@ -28,6 +28,7 @@ import { useKeyboardNavigation } from "../hooks/useKeyboardNavigation.js";
 import { useAlignmentVisualization } from "../hooks/useAlignmentVisualization.js";
 import { useObjectTransformHandlers } from "../hooks/useObjectTransformHandlers.js";
 import { useCameraControl } from "../hooks/useCameraControl.js";
+import { useTransformGizmoIntegration } from "../hooks/useTransformGizmoIntegration.js";
 import {
   GridLayer,
   MapImageLayer,
@@ -103,11 +104,6 @@ export default function MapBoard({
 
   const { sceneObjects, mapObject, drawingObjects, stagingZoneObject, stagingZoneDimensions } =
     useSceneObjectsData(snapshot, gridSize);
-
-  const selectedObject = useMemo(
-    () => sceneObjects.find((obj) => obj.id === selectedObjectId) || null,
-    [sceneObjects, selectedObjectId],
-  );
 
   // Build statusEffectsByOwner map from players array
   const statusEffectsByOwner = useMemo(() => {
@@ -255,6 +251,13 @@ export default function MapBoard({
       gridSize: grid.size,
     });
 
+  // Transform gizmo integration
+  const { selectedObject, getSelectedNodeRef } = useTransformGizmoIntegration({
+    sceneObjects,
+    selectedObjectId,
+    getSelectedNode,
+  });
+
   // -------------------------------------------------------------------------
   // UNIFIED EVENT HANDLERS
   // -------------------------------------------------------------------------
@@ -328,10 +331,6 @@ export default function MapBoard({
     },
     [onRecolorToken],
   );
-
-  const getSelectedNodeRef = useCallback(() => {
-    return getSelectedNode();
-  }, [getSelectedNode]);
 
   // Callback to receive node reference from MapImageLayer
   const handleMapNodeReady = useCallback(
