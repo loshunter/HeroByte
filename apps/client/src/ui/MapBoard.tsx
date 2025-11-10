@@ -37,6 +37,7 @@ import {
   TransformGizmo,
   PropsLayer,
   StagingZoneLayer,
+  AlignmentOverlay,
 } from "../features/map/components";
 import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 import type { CameraCommand, MapBoardProps, SelectionRequestOptions } from "./MapBoard.types";
@@ -642,48 +643,13 @@ export default function MapBoard({
             gridSize={grid.size}
             gridSquareSize={snapshot?.gridSquareSize}
           />
-          {alignmentMode && alignmentPreviewPoints.length > 0 && (
-            <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale} listening={false}>
-              {alignmentPreviewPoints.map((point, index) => (
-                <Group key={`align-point-${index}`}>
-                  <Circle
-                    x={point.world.x}
-                    y={point.world.y}
-                    radius={8 / cam.scale}
-                    stroke="#facc15"
-                    strokeWidth={2 / cam.scale}
-                    fill="rgba(250, 204, 21, 0.2)"
-                  />
-                  <Text
-                    text={`${index + 1}`}
-                    x={point.world.x + 6 / cam.scale}
-                    y={point.world.y - 18 / cam.scale}
-                    fontSize={12 / cam.scale}
-                    fill="#facc15"
-                    listening={false}
-                  />
-                </Group>
-              ))}
-              {alignmentPreviewLine && (
-                <Line
-                  points={alignmentPreviewLine}
-                  stroke="#facc15"
-                  strokeWidth={2 / cam.scale}
-                  dash={[8 / cam.scale, 6 / cam.scale]}
-                  listening={false}
-                />
-              )}
-              {alignmentSuggestionLine && (
-                <Line
-                  points={alignmentSuggestionLine}
-                  stroke="#4de5c0"
-                  strokeWidth={2 / cam.scale}
-                  dash={[4 / cam.scale, 6 / cam.scale]}
-                  listening={false}
-                />
-              )}
-            </Group>
-          )}
+          <AlignmentOverlay
+            alignmentMode={alignmentMode}
+            alignmentPreviewPoints={alignmentPreviewPoints}
+            alignmentPreviewLine={alignmentPreviewLine}
+            alignmentSuggestionLine={alignmentSuggestionLine}
+            cam={cam}
+          />
         </Layer>
 
         {marqueeRect && (

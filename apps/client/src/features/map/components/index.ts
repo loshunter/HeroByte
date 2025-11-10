@@ -12,3 +12,4 @@ export { TransformGizmo } from "./TransformGizmo";
 export { LockIndicator } from "./LockIndicator";
 export { PropsLayer } from "./PropsLayer";
 export { StagingZoneLayer } from "./StagingZoneLayer";
+export { AlignmentOverlay } from "./AlignmentOverlay";
