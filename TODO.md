@@ -12,12 +12,12 @@ Ship a table-ready MVP to run live playtests with real players and a DM. Priorit
 
 - [ ] Verify voice indicator + portrait glow survive reconnects and DM toggles.
 - [ ] Refresh tips/tooltips for draw, measure, select so new players get guidance.
-- [ ] Bug bash dice log readability for long formulas; adjust formatting if needed.
+- [x] Bug bash dice log readability for long formulas; adjust formatting if needed.
 
 ### DM Workflow
 
-- [ ] Add a shortcut/command to select all tokens owned by a player (with safe undo).
-- [ ] Improve map background management (upload feedback, loading spinner).
+- [x] Add a shortcut/command to select all tokens owned by a player (with safe undo).
+- [x] Improve map background management (upload feedback, loading spinner).
 
 ## 2. QA & Release Prep
 
