@@ -13,3 +13,4 @@ export { LockIndicator } from "./LockIndicator";
 export { PropsLayer } from "./PropsLayer";
 export { StagingZoneLayer } from "./StagingZoneLayer";
 export { AlignmentOverlay } from "./AlignmentOverlay";
+export { AlignmentInstructionOverlay } from "./AlignmentInstructionOverlay";
