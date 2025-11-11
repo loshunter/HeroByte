@@ -433,6 +433,10 @@ export class MessageRouter {
           break;
 
         case "add-player-character": {
+          console.log(
+            `[MessageRouter] Received add-player-character from ${senderUid}:`,
+            message.name,
+          );
           // Create character for the requesting player
           const maxHp = message.maxHp ?? 100;
           const character = this.characterService.createCharacter(
@@ -451,9 +455,13 @@ export class MessageRouter {
           const token = this.tokenService.createToken(state, senderUid, spawn.x, spawn.y);
           this.characterService.linkToken(state, character.id, token.id);
 
-          console.log(`Player ${senderUid} created additional character: ${character.name}`);
+          console.log(
+            `[MessageRouter] Player ${senderUid} created additional character: ${character.name} (ID: ${character.id})`,
+          );
+          console.log(`[MessageRouter] Broadcasting update. Total characters: ${state.characters.length}`);
           this.broadcast();
           this.roomService.saveState();
+          console.log(`[MessageRouter] Broadcast and save complete`);
           break;
         }
 
