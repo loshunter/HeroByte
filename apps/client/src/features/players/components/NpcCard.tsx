@@ -43,7 +43,7 @@ export function NpcCard({
   onFocusToken,
   initiative,
   onInitiativeClick,
-  initiativeModifier,
+  initiativeModifier: _initiativeModifier,
 }: NpcCardProps): JSX.Element {
   const [editingHp, setEditingHp] = useState(false);
   const [hpInput, setHpInput] = useState(String(character.hp));

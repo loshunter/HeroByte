@@ -85,7 +85,14 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     const service = new WebSocketService({
       url,
       uid,
-      onMessage: setSnapshot,
+      onMessage: (newSnapshot) => {
+        // Debug: Log when snapshot changes
+        console.log(
+          "[useWebSocket] Snapshot updated, characters count:",
+          newSnapshot.characters?.length || 0,
+        );
+        setSnapshot(newSnapshot);
+      },
       onRtcSignal: (from, signal) => {
         // Use the ref to get the latest handler
         rtcHandlerRef.current?.(from, signal);
