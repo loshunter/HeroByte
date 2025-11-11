@@ -236,7 +236,7 @@ export interface MainLayoutProps {
     renamePlayer: (name: string) => void;
     setPortrait: (url: string) => void;
     setHP: (hp: number, maxHp: number) => void;
-    applyPlayerState: (state: PlayerState, tokenId?: string) => void;
+    applyPlayerState: (state: PlayerState, tokenId?: string, characterId?: string) => void;
     setStatusEffects: (effects: string[]) => void;
     setPlayerStagingZone: (zone: PlayerStagingZone | undefined) => void;
     addCharacter: (name: string) => void;

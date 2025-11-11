@@ -113,13 +113,15 @@ export interface UsePlayerActionsReturn {
    * - Name, HP, portrait, status effects
    * - Token color, image, size, transform
    * - Player drawings
+   * - Initiative modifier (if characterId provided)
    *
    * This is used for session loading and player state synchronization.
    *
    * @param state - Complete player state to apply
    * @param tokenId - Optional token ID to apply token-specific state
+   * @param characterId - Optional character ID to apply character-specific state
    */
-  applyPlayerState: (state: PlayerState, tokenId?: string) => void;
+  applyPlayerState: (state: PlayerState, tokenId?: string, characterId?: string) => void;
 
   /**
    * Set the player staging zone (DM-defined spawn area for player tokens).
@@ -285,7 +287,7 @@ export function usePlayerActions({
    * This is the most complex action creator and is used during session loading.
    */
   const applyPlayerState = useCallback(
-    (state: PlayerState, tokenId?: string) => {
+    (state: PlayerState, tokenId?: string, characterId?: string) => {
       // Always update basic player info
       sendMessage({ t: "rename", name: state.name });
       sendMessage({ t: "set-hp", hp: state.hp, maxHp: state.maxHp });
@@ -360,12 +362,27 @@ export function usePlayerActions({
         }
       }
 
+      // Update initiative modifier if present and characterId provided
+      if (characterId && state.initiativeModifier !== undefined) {
+        // Send set-initiative with current initiative (if any) and the modifier
+        // The server will update the modifier; if no initiative is set, it won't change
+        const currentCharacter = snapshot?.characters?.find((c) => c.id === characterId);
+        if (currentCharacter) {
+          sendMessage({
+            t: "set-initiative",
+            characterId,
+            initiative: currentCharacter.initiative ?? 0,
+            initiativeModifier: state.initiativeModifier,
+          });
+        }
+      }
+
       // Sync player drawings if present
       if (state.drawings !== undefined) {
         sendMessage({ t: "sync-player-drawings", drawings: state.drawings });
       }
     },
-    [sendMessage],
+    [sendMessage, snapshot?.characters],
   );
 
   /**

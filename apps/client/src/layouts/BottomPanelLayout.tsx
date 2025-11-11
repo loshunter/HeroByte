@@ -131,7 +131,7 @@ export interface BottomPanelLayoutProps {
   /** Handler to toggle DM mode on/off */
   onToggleDMMode: (next: boolean) => void;
   /** Handler to apply a player state (dead, unconscious, etc.) */
-  onApplyPlayerState: (state: PlayerState, tokenId?: string) => void;
+  onApplyPlayerState: (state: PlayerState, tokenId?: string, characterId?: string) => void;
   /** Handler to update status effects for a character */
   onStatusEffectsChange: (effects: string[]) => void;
   /** Handler to update a character's name */
