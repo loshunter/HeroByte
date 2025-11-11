@@ -176,20 +176,28 @@ export class WebSocketService {
    */
   send(message: ClientMessage): void {
     if (message.t === "authenticate") {
+      console.log("[WebSocket] Sending authenticate message immediately");
       this.sendRaw(message);
       return;
     }
 
-    if (this.canSendImmediately()) {
+    const canSend = this.canSendImmediately();
+    console.log(
+      `[WebSocket] send() called for message type=${message.t}, canSendImmediately=${canSend}, authState=${this.authState}, connectionState=${this.state}`
+    );
+
+    if (canSend) {
       this.sendRaw(message);
       return;
     }
 
     if (message.t === "heartbeat") {
       // Drop heartbeat attempts until authenticated to prevent queue bloat
+      console.log("[WebSocket] Dropping heartbeat message (not authenticated yet)");
       return;
     }
 
+    console.log(`[WebSocket] Queueing message type=${message.t}, queue length=${this.messageQueue.length + 1}`);
     this.queueMessage(message);
   }
 
@@ -387,9 +395,13 @@ export class WebSocketService {
 
   private flushMessageQueue(): void {
     if (!this.canSendImmediately()) {
+      console.log(
+        `[WebSocket] flushMessageQueue() - Cannot send, queue has ${this.messageQueue.length} messages`
+      );
       return;
     }
 
+    console.log(`[WebSocket] flushMessageQueue() - Flushing ${this.messageQueue.length} queued messages`);
     while (this.messageQueue.length > 0) {
       const message = this.messageQueue.shift();
       if (message) {
@@ -416,11 +428,15 @@ export class WebSocketService {
 
   private sendRaw(message: ClientMessage): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      console.log(
+        `[WebSocket] sendRaw() - WebSocket not ready (readyState=${this.ws?.readyState}), queueing message type=${message.t}`
+      );
       this.queueMessage(message);
       return;
     }
 
     try {
+      console.log(`[WebSocket] sendRaw() - Sending message type=${message.t} over wire`);
       this.ws.send(JSON.stringify(message));
     } catch (error) {
       console.error("[WebSocket] Send error:", error);
