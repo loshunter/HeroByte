@@ -319,32 +319,28 @@ export const PlayerCard = memo<PlayerCardProps>(
       </div>
     );
   },
-  (prevProps, nextProps) => {
-    // Custom comparison: only re-render if relevant props change
-    return (
-      prevProps.player.name === nextProps.player.name &&
-      prevProps.player.portrait === nextProps.player.portrait &&
-      prevProps.player.micLevel === nextProps.player.micLevel &&
-      prevProps.player.hp === nextProps.player.hp &&
-      prevProps.player.maxHp === nextProps.player.maxHp &&
-      (prevProps.player.isDM ?? false) === (nextProps.player.isDM ?? false) &&
-      prevProps.tokenImageUrl === nextProps.tokenImageUrl &&
-      prevProps.tokenId === nextProps.tokenId &&
-      prevProps.onApplyPlayerState === nextProps.onApplyPlayerState &&
-      prevProps.token === nextProps.token &&
-      prevProps.tokenSceneObject === nextProps.tokenSceneObject &&
-      prevProps.playerDrawings === nextProps.playerDrawings &&
-      prevProps.statusEffects === nextProps.statusEffects &&
-      prevProps.onStatusEffectsChange === nextProps.onStatusEffectsChange &&
-      prevProps.tokenColor === nextProps.tokenColor &&
-      prevProps.micEnabled === nextProps.micEnabled &&
-      prevProps.editingPlayerUID === nextProps.editingPlayerUID &&
-      prevProps.nameInput === nextProps.nameInput &&
-      prevProps.editingMaxHpUID === nextProps.editingMaxHpUID &&
-      prevProps.maxHpInput === nextProps.maxHpInput &&
-      prevProps.isDM === nextProps.isDM
-    );
-  },
+  (prevProps, nextProps) =>
+    prevProps.player.name === nextProps.player.name &&
+    prevProps.player.portrait === nextProps.player.portrait &&
+    prevProps.player.micLevel === nextProps.player.micLevel &&
+    prevProps.player.hp === nextProps.player.hp &&
+    prevProps.player.maxHp === nextProps.player.maxHp &&
+    (prevProps.player.isDM ?? false) === (nextProps.player.isDM ?? false) &&
+    prevProps.tokenImageUrl === nextProps.tokenImageUrl &&
+    prevProps.tokenId === nextProps.tokenId &&
+    prevProps.onApplyPlayerState === nextProps.onApplyPlayerState &&
+    prevProps.token === nextProps.token &&
+    prevProps.tokenSceneObject === nextProps.tokenSceneObject &&
+    prevProps.playerDrawings === nextProps.playerDrawings &&
+    prevProps.statusEffects === nextProps.statusEffects &&
+    prevProps.onStatusEffectsChange === nextProps.onStatusEffectsChange &&
+    prevProps.tokenColor === nextProps.tokenColor &&
+    prevProps.micEnabled === nextProps.micEnabled &&
+    prevProps.editingPlayerUID === nextProps.editingPlayerUID &&
+    prevProps.nameInput === nextProps.nameInput &&
+    prevProps.editingMaxHpUID === nextProps.editingMaxHpUID &&
+    prevProps.maxHpInput === nextProps.maxHpInput &&
+    prevProps.isDM === nextProps.isDM,
 );
 
 PlayerCard.displayName = "PlayerCard";
