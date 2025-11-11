@@ -154,7 +154,8 @@
       "Bash(refactor/map-board/use-object-transform-handlers )",
       "Bash(refactor/map-board/use-stage-event-router )",
       "Bash(refactor/map-board/use-transform-gizmo-integration)",
-      "Bash(pnpm --filter @shared build:*)"
+      "Bash(pnpm --filter @shared build:*)",
+      "Bash(pnpm lint:structure:*)"
     ],
     "deny": [],
     "ask": []

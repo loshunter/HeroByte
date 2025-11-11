@@ -405,6 +405,9 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
           character={initiativeModalCharacter}
           onClose={closeInitiativeModal}
           onSetInitiative={(initiative, modifier) => {
+            console.log(
+              `[EntitiesPanel] Calling onSetInitiative with characterId: ${initiativeModalCharacter.id}, initiative: ${initiative}, modifier: ${modifier}`,
+            );
             onSetInitiative(initiativeModalCharacter.id, initiative, modifier);
             closeInitiativeModal();
           }}

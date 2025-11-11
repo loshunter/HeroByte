@@ -79,10 +79,14 @@ export function InitiativeModal({ character, onClose, onSetInitiative }: Initiat
   // Handle save
   const handleSave = useCallback(() => {
     if (finalInitiative !== null) {
+      console.log(
+        `[InitiativeModal] Saving initiative: ${finalInitiative}, modifier: ${modifier} for character:`,
+        character.name,
+      );
       onSetInitiative(finalInitiative, modifier);
       onClose();
     }
-  }, [finalInitiative, modifier, onSetInitiative, onClose]);
+  }, [finalInitiative, modifier, onSetInitiative, onClose, character.name]);
 
   // Handle keyboard shortcuts
   useEffect(() => {
