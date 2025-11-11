@@ -232,7 +232,8 @@ export class CharacterService {
     const updatedCharacter: Character = {
       ...character,
       initiative,
-      initiativeModifier: initiativeModifier !== undefined ? initiativeModifier : character.initiativeModifier,
+      initiativeModifier:
+        initiativeModifier !== undefined ? initiativeModifier : character.initiativeModifier,
     };
 
     // Create a new array with the updated character to trigger React re-renders

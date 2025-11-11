@@ -155,7 +155,8 @@
       "Bash(refactor/map-board/use-stage-event-router )",
       "Bash(refactor/map-board/use-transform-gizmo-integration)",
       "Bash(pnpm --filter @shared build:*)",
-      "Bash(pnpm lint:structure:*)"
+      "Bash(pnpm lint:structure:*)",
+      "Bash(pnpm --filter vtt-server typecheck:*)"
     ],
     "deny": [],
     "ask": []
