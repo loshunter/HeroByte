@@ -511,6 +511,31 @@ export function validateMessage(raw: unknown): ValidationResult {
       break;
     }
 
+    case "set-initiative": {
+      if (typeof message.characterId !== "string" || message.characterId.length === 0) {
+        return { valid: false, error: "set-initiative: missing or invalid characterId" };
+      }
+      if (!isFiniteNumber(message.initiative)) {
+        return { valid: false, error: "set-initiative: initiative must be a number" };
+      }
+      if (
+        "initiativeModifier" in message &&
+        message.initiativeModifier !== undefined &&
+        !isFiniteNumber(message.initiativeModifier)
+      ) {
+        return { valid: false, error: "set-initiative: initiativeModifier must be a number" };
+      }
+      break;
+    }
+
+    case "start-combat":
+    case "end-combat":
+    case "next-turn":
+    case "previous-turn": {
+      // No parameters to validate - just needs to be authenticated
+      break;
+    }
+
     case "map-background": {
       const { data } = message;
       if (typeof data !== "string") {
