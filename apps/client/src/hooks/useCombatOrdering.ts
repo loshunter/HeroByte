@@ -99,10 +99,13 @@ export function useCombatOrdering({
       dmEntities[0].isFirstDM = true;
     }
 
-    // Order based on combat state
-    if (combatActive) {
+    // Check if any entities have initiative set
+    const allCombatants = [...regularEntities, ...npcEntities];
+    const hasAnyInitiative = allCombatants.some((e) => e.character.initiative !== undefined);
+
+    // Order based on combat state OR if any initiative is set
+    if (combatActive || hasAnyInitiative) {
       // Sort non-DM entities by initiative (highest first)
-      const allCombatants = [...regularEntities, ...npcEntities];
       const sorted = allCombatants.sort((a, b) => {
         const aInit = a.character.initiative ?? -1;
         const bInit = b.character.initiative ?? -1;
