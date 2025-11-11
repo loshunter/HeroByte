@@ -85,9 +85,9 @@ export function InitiativeModal({ character, onClose, onSetInitiative }: Initiat
         character: character.name,
       });
       onSetInitiative(finalInitiative, modifier);
-      onClose();
+      // Don't call onClose here - let the parent handle closing after the message is sent
     }
-  }, [finalInitiative, modifier, onSetInitiative, onClose, character.name]);
+  }, [finalInitiative, modifier, onSetInitiative, character.name]);
 
   // Handle keyboard shortcuts
   useEffect(() => {
