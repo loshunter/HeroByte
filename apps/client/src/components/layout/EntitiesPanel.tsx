@@ -44,7 +44,7 @@ interface EntitiesPanelProps {
   currentIsDM: boolean;
   onToggleDMMode: (next: boolean) => void;
   onTokenImageChange: (tokenId: string, imageUrl: string) => void;
-  onApplyPlayerState: (state: PlayerState, tokenId?: string) => void;
+  onApplyPlayerState: (state: PlayerState, tokenId?: string, characterId?: string) => void;
   onStatusEffectsChange: (effects: string[]) => void;
   onNpcUpdate: (
     id: string,
@@ -309,7 +309,9 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                         }
                         tokenId={token?.id}
                         onApplyPlayerState={
-                          isMe ? (state) => onApplyPlayerState(state, token?.id) : undefined
+                          isMe
+                            ? (state) => onApplyPlayerState(state, token?.id, character.id)
+                            : undefined
                         }
                         onStatusEffectsChange={
                           isMe ? (effects) => onStatusEffectsChange(effects) : undefined
@@ -339,6 +341,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                         onFocusToken={token ? () => onFocusToken(token.id) : undefined}
                         initiative={character.initiative}
                         onInitiativeClick={() => openInitiativeModal(character)}
+                        initiativeModifier={character.initiativeModifier}
                       />
                     </div>
                   );

@@ -43,7 +43,7 @@ export interface PlayerCardProps {
   tokenImageUrl?: string;
   onTokenImageSubmit?: (url: string) => void;
   tokenId?: string;
-  onApplyPlayerState?: (state: PlayerState, tokenId?: string) => void;
+  onApplyPlayerState?: (state: PlayerState, tokenId?: string, characterId?: string) => void;
   onDeleteToken?: (tokenId: string) => void;
   onStatusEffectsChange?: (effects: string[]) => void;
   isDM: boolean;
@@ -58,6 +58,7 @@ export interface PlayerCardProps {
   onFocusToken?: () => void;
   initiative?: number;
   onInitiativeClick?: () => void;
+  initiativeModifier?: number;
 }
 
 export const PlayerCard = memo<PlayerCardProps>(
@@ -106,6 +107,7 @@ export const PlayerCard = memo<PlayerCardProps>(
     onFocusToken,
     initiative,
     onInitiativeClick,
+    initiativeModifier,
   }) => {
     const editing = editingPlayerUID === player.uid;
     const editingHp = editingHpUID === (characterId ?? player.uid);
@@ -159,13 +161,14 @@ export const PlayerCard = memo<PlayerCardProps>(
         token: tokenForExport,
         tokenScene: tokenSceneObject ?? null,
         drawings: playerDrawings ?? [],
+        initiativeModifier,
       });
     };
 
     const handleLoadPlayerState = async (file: File) => {
       if (!isMe || !onApplyPlayerState) return;
       const state = await loadPlayerState(file);
-      onApplyPlayerState(state, tokenId);
+      onApplyPlayerState(state, tokenId, characterId);
       const nextImage = state.token?.imageUrl ?? state.tokenImage ?? "";
       setTokenImageInput(nextImage ?? "");
     };
