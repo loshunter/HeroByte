@@ -390,6 +390,9 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                           ? () => onFocusToken(entity.character.tokenId!)
                           : undefined
                       }
+                      initiative={entity.character.initiative}
+                      onInitiativeClick={() => openInitiativeModal(entity.character)}
+                      initiativeModifier={entity.character.initiativeModifier}
                     />
                   </div>
                 );

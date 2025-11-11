@@ -25,6 +25,9 @@ interface NpcCardProps {
   tokenSize?: TokenSize;
   onTokenSizeChange?: (size: TokenSize) => void;
   onFocusToken?: () => void;
+  initiative?: number;
+  onInitiativeClick?: () => void;
+  initiativeModifier?: number;
 }
 
 export function NpcCard({
@@ -38,6 +41,9 @@ export function NpcCard({
   tokenSize,
   onTokenSizeChange,
   onFocusToken,
+  initiative,
+  onInitiativeClick,
+  initiativeModifier,
 }: NpcCardProps): JSX.Element {
   const [editingHp, setEditingHp] = useState(false);
   const [hpInput, setHpInput] = useState(String(character.hp));
@@ -174,6 +180,8 @@ export function NpcCard({
           statusIcon={statusIcon}
           tokenColor="#D63C53"
           onFocusToken={onFocusToken}
+          initiative={initiative}
+          onInitiativeClick={onInitiativeClick}
         />
       </div>
 
