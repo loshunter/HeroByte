@@ -190,9 +190,11 @@ export class ConnectionHandler {
       }
 
       // Route to appropriate handler
+      console.log(`[ConnectionHandler] Received message type=${message.t} from uid=${uid}`);
       this.container.messageRouter.route(message, uid);
     } catch (err) {
-      console.error(`Failed to process message from ${uid}:`, err);
+      console.error(`[ConnectionHandler] Failed to process message from ${uid}:`, err);
+      console.error(`[ConnectionHandler] Message was:`, JSON.stringify(message));
     }
   }
 
