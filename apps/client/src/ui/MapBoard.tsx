@@ -12,9 +12,8 @@
 // - Map background image support
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Stage, Layer, Circle, Line, Rect, Text } from "react-konva";
+import { Stage, Layer } from "react-konva";
 import type Konva from "konva";
-import type { KonvaEventObject } from "konva/lib/Node";
 import { usePointerTool } from "../hooks/usePointerTool.js";
 import { useDrawingTool } from "../hooks/useDrawingTool.js";
 import { useDrawingSelection } from "../hooks/useDrawingSelection.js";
@@ -159,7 +158,6 @@ export default function MapBoard({
   // Camera controls (pan/zoom) and command handling
   const {
     cam,
-    setCam,
     isPanning,
     handleWheel,
     handleCameraMouseDown,
@@ -245,12 +243,16 @@ export default function MapBoard({
   });
 
   // Object transform handlers
-  const { handleTransformToken, handleTransformProp, handleTransformDrawing, handleGizmoTransform } =
-    useObjectTransformHandlers({
-      onTransformObject,
-      sceneObjects,
-      gridSize: grid.size,
-    });
+  const {
+    handleTransformToken,
+    handleTransformProp,
+    handleTransformDrawing,
+    handleGizmoTransform,
+  } = useObjectTransformHandlers({
+    onTransformObject,
+    sceneObjects,
+    gridSize: grid.size,
+  });
 
   // Transform gizmo integration
   const { selectedObject, getSelectedNodeRef } = useTransformGizmoIntegration({

@@ -13,7 +13,10 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
-import type { StagingZoneDimensions, StagingZoneSceneObject } from "../../../../hooks/useSceneObjectsData";
+import type {
+  StagingZoneDimensions,
+  StagingZoneSceneObject,
+} from "../../../../hooks/useSceneObjectsData";
 
 /**
  * Simulates the staging zone rendering logic from MapBoard.tsx:565-615

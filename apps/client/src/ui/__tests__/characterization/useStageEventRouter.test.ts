@@ -526,10 +526,9 @@ describe("useStageEventRouter", () => {
     });
 
     it("updates handlers when dependencies change", () => {
-      const { result, rerender } = renderHook(
-        (props) => useStageEventRouter(props),
-        { initialProps: defaultProps },
-      );
+      const { result, rerender } = renderHook((props) => useStageEventRouter(props), {
+        initialProps: defaultProps,
+      });
 
       const firstHandlers = result.current;
 
