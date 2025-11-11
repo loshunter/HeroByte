@@ -221,18 +221,31 @@ export class CharacterService {
     initiative: number,
     initiativeModifier?: number,
   ): boolean {
-    const character = this.findCharacter(state, characterId);
-    if (character) {
-      character.initiative = initiative;
-      if (initiativeModifier !== undefined) {
-        character.initiativeModifier = initiativeModifier;
-      }
-      console.log(
-        `Set initiative for ${character.name}: ${initiative} (modifier: ${character.initiativeModifier ?? 0})`,
-      );
-      return true;
+    const characterIndex = state.characters.findIndex((c) => c.id === characterId);
+    if (characterIndex === -1) {
+      return false;
     }
-    return false;
+
+    const character = state.characters[characterIndex];
+
+    // Create a new character object to trigger React re-renders
+    const updatedCharacter: Character = {
+      ...character,
+      initiative,
+      initiativeModifier: initiativeModifier !== undefined ? initiativeModifier : character.initiativeModifier,
+    };
+
+    // Create a new array with the updated character to trigger React re-renders
+    state.characters = [
+      ...state.characters.slice(0, characterIndex),
+      updatedCharacter,
+      ...state.characters.slice(characterIndex + 1),
+    ];
+
+    console.log(
+      `Set initiative for ${updatedCharacter.name}: ${initiative} (modifier: ${updatedCharacter.initiativeModifier ?? 0})`,
+    );
+    return true;
   }
 
   /**
