@@ -267,8 +267,7 @@ export class MessageRouter {
             break;
           }
           const canModify =
-            this.isDM(senderUid) ||
-            this.characterService.canControlCharacter(character, senderUid);
+            this.isDM(senderUid) || this.characterService.canControlCharacter(character, senderUid);
           if (!canModify) {
             console.warn(
               `Player ${senderUid} attempted to set initiative for character they don't own`,
@@ -350,8 +349,7 @@ export class MessageRouter {
           const currentIndex = charactersInOrder.findIndex(
             (c) => c.id === state.currentTurnCharacterId,
           );
-          const prevIndex =
-            currentIndex <= 0 ? charactersInOrder.length - 1 : currentIndex - 1;
+          const prevIndex = currentIndex <= 0 ? charactersInOrder.length - 1 : currentIndex - 1;
           state.currentTurnCharacterId = charactersInOrder[prevIndex].id;
           console.log(`Turn moved back to ${charactersInOrder[prevIndex].name}`);
           this.broadcast();
