@@ -112,13 +112,14 @@ export function useCombatOrdering({
         return bInit - aInit; // Descending
       });
 
+      const orderSummary = sorted
+        .map(
+          (e, idx) =>
+            `${idx + 1}. ${e.character.name} (init: ${e.character.initiative ?? "none"}, type: ${e.character.type})`,
+        )
+        .join("\n  ");
       console.log(
-        "[useCombatOrdering] Ordered by initiative:",
-        sorted.map((e) => ({
-          name: e.character.name,
-          initiative: e.character.initiative,
-          type: e.character.type,
-        })),
+        `[useCombatOrdering] Ordered by initiative (${sorted.length} entities):\n  ${orderSummary}`,
       );
 
       return [...dmEntities, ...sorted];

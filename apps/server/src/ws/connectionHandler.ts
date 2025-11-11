@@ -103,15 +103,22 @@ export class ConnectionHandler {
 
     // Close existing connection for this UID to prevent race conditions
     const existingWs = this.container.uidToWs.get(uid);
+    const wasAuthenticated = this.container.authenticatedUids.has(uid);
+
     if (existingWs && existingWs !== ws) {
-      console.log(`[WebSocket] Closing stale connection for ${uid}`);
+      console.log(
+        `[WebSocket] Replacing connection for ${uid} (was authenticated: ${wasAuthenticated})`,
+      );
       existingWs.close(4001, "Replaced by new connection");
     }
 
-    // Reset any previous authentication state for this UID
-    this.container.authenticatedUids.delete(uid);
-    this.container.authenticatedSessions.delete(uid);
-    state.users = state.users.filter((u) => u !== uid);
+    // Only clear authentication if this is a truly new connection (not a replacement)
+    // If the old connection was authenticated, keep the auth state for seamless reconnection
+    if (!wasAuthenticated) {
+      this.container.authenticatedUids.delete(uid);
+      this.container.authenticatedSessions.delete(uid);
+      state.users = state.users.filter((u) => u !== uid);
+    }
 
     // Register connection
     this.container.uidToWs.set(uid, ws);
