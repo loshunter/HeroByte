@@ -112,6 +112,15 @@ export function useCombatOrdering({
         return bInit - aInit; // Descending
       });
 
+      console.log(
+        "[useCombatOrdering] Ordered by initiative:",
+        sorted.map((e) => ({
+          name: e.character.name,
+          initiative: e.character.initiative,
+          type: e.character.type,
+        }))
+      );
+
       return [...dmEntities, ...sorted];
     }
 
