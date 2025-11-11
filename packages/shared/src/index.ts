@@ -144,6 +144,7 @@ export interface PlayerState {
   token?: PlayerStateTokenSnapshot;
   statusEffects?: string[];
   drawings?: Drawing[];
+  initiativeModifier?: number; // Initiative modifier saved with player state
 }
 
 export interface PlayerStateTokenSnapshot {
@@ -204,6 +205,8 @@ export interface Character {
   tokenId?: string | null; // ID of token on map (null if no token)
   ownedByPlayerUID?: string | null; // Player who controls this character (null = unclaimed)
   tokenImage?: string | null; // Optional token image URL for NPC tokens
+  initiative?: number; // Initiative roll value (d20 + modifier)
+  initiativeModifier?: number; // Initiative modifier (bonus/penalty added to d20 roll)
 
   // Future fields (Phase 2+):
   // templateId?: string;        // Link to character template (for NPCs)
@@ -251,6 +254,8 @@ export interface RoomSnapshot {
   sceneObjects?: SceneObject[]; // Unified scene graph (experimental)
   selectionState?: SelectionState; // Active object selections keyed by player UID
   playerStagingZone?: PlayerStagingZone; // DM-defined spawn area for player tokens
+  combatActive?: boolean; // Whether initiative tracking/combat mode is active
+  currentTurnCharacterId?: string; // Character ID of whose turn it currently is
 }
 
 export interface PlayerStagingZone {
@@ -371,6 +376,14 @@ export type ClientMessage =
     }
   | { t: "delete-npc"; id: string }
   | { t: "place-npc-token"; id: string }
+
+  // Initiative/Combat actions
+  | { t: "set-initiative"; characterId: string; initiative: number; initiativeModifier?: number }
+  | { t: "start-combat" } // Activates combat mode, sorts by initiative
+  | { t: "end-combat" } // Clears all initiative and exits combat mode
+  | { t: "next-turn" } // Advances to next character in initiative order
+  | { t: "previous-turn" } // Goes back to previous character in initiative order
+  | { t: "clear-all-initiative" } // Clears all initiative values without ending combat
 
   // Prop actions
   | {

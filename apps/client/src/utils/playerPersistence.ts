@@ -13,6 +13,7 @@ interface SavePlayerStateParams {
   token?: Token | null;
   tokenScene?: (SceneObject & { type: "token" }) | null;
   drawings?: Drawing[] | null;
+  initiativeModifier?: number;
 }
 
 const TOKEN_SIZES: TokenSize[] = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
@@ -180,6 +181,7 @@ export function savePlayerState({
   token,
   tokenScene,
   drawings = [],
+  initiativeModifier,
 }: SavePlayerStateParams): void {
   const tokenSnapshot: PlayerStateTokenSnapshot | undefined = token
     ? {
@@ -212,6 +214,7 @@ export function savePlayerState({
     token: tokenSnapshot,
     statusEffects: sanitizedStatus,
     drawings: sanitizedDrawings,
+    initiativeModifier: initiativeModifier !== undefined ? initiativeModifier : undefined,
   };
 
   const safeName = sanitizeFilenameSegment(player.name || "player");
@@ -319,6 +322,12 @@ export async function loadPlayerState(file: File): Promise<PlayerState> {
     drawings = sanitized;
   }
 
+  // Parse initiative modifier (optional number)
+  const initiativeModifier =
+    isFiniteNumber(parsed.initiativeModifier)
+      ? parsed.initiativeModifier
+      : undefined;
+
   return {
     name: name.trim(),
     hp,
@@ -329,5 +338,6 @@ export async function loadPlayerState(file: File): Promise<PlayerState> {
     token: tokenSnapshot,
     statusEffects,
     drawings,
+    initiativeModifier,
   };
 }

@@ -15,6 +15,7 @@
 
 import type { Player, SceneObject } from "@shared";
 import { JRPGButton, JRPGPanel } from "../../../../components/ui/JRPGPanel";
+import { TurnNavigationControls } from "../../../initiative/components/TurnNavigationControls";
 
 /**
  * Props for the PlayersTab component
@@ -26,6 +27,18 @@ interface PlayersTabProps {
   sceneObjects: SceneObject[];
   /** Callback to select all tokens owned by a player */
   onSelectPlayerTokens: (playerUid: string) => void;
+  /** Whether combat is currently active */
+  combatActive?: boolean;
+  /** Callback to start combat */
+  onStartCombat?: () => void;
+  /** Callback to end combat */
+  onEndCombat?: () => void;
+  /** Callback to clear all initiative values */
+  onClearAllInitiative?: () => void;
+  /** Callback to advance to next turn */
+  onNextTurn?: () => void;
+  /** Callback to go to previous turn */
+  onPreviousTurn?: () => void;
 }
 
 /**
@@ -52,9 +65,69 @@ export default function PlayersTab({
   players,
   sceneObjects,
   onSelectPlayerTokens,
+  combatActive = false,
+  onStartCombat,
+  onEndCombat,
+  onClearAllInitiative,
+  onNextTurn,
+  onPreviousTurn,
 }: PlayersTabProps) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      {/* Combat Controls Section */}
+      <div>
+        <h4 className="jrpg-text-command" style={{ margin: 0, marginBottom: "8px" }}>
+          Combat Controls
+        </h4>
+        <p className="jrpg-text-small" style={{ margin: 0, marginBottom: "12px", color: "var(--jrpg-white)" }}>
+          Manage initiative tracking and combat turns
+        </p>
+
+        <JRPGPanel variant="simple">
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {/* Combat State Controls */}
+            <div style={{ display: "flex", gap: "8px" }}>
+              <JRPGButton
+                onClick={onStartCombat}
+                variant={!combatActive ? "primary" : "default"}
+                disabled={combatActive}
+                style={{ flex: 1, fontSize: "10px", padding: "6px 8px" }}
+              >
+                ⚔️ Start Combat
+              </JRPGButton>
+              <JRPGButton
+                onClick={onEndCombat}
+                variant={combatActive ? "primary" : "default"}
+                disabled={!combatActive}
+                style={{ flex: 1, fontSize: "10px", padding: "6px 8px" }}
+              >
+                🏁 End Combat
+              </JRPGButton>
+            </div>
+
+            {/* Clear Initiative */}
+            <JRPGButton
+              onClick={onClearAllInitiative}
+              variant="default"
+              disabled={!combatActive}
+              style={{ width: "100%", fontSize: "10px", padding: "6px 8px" }}
+            >
+              🗑️ Clear All Initiative
+            </JRPGButton>
+
+            {/* Turn Navigation */}
+            {onNextTurn && onPreviousTurn && (
+              <TurnNavigationControls
+                combatActive={combatActive}
+                onNextTurn={onNextTurn}
+                onPreviousTurn={onPreviousTurn}
+              />
+            )}
+          </div>
+        </JRPGPanel>
+      </div>
+
+      {/* Player Token Shortcuts Section */}
       <div>
         <h4 className="jrpg-text-command" style={{ margin: 0, marginBottom: "8px" }}>
           Player Token Shortcuts

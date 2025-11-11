@@ -14,6 +14,8 @@ interface PortraitSectionProps {
   statusIcon?: { emoji: string; label: string } | null;
   tokenColor?: string;
   onFocusToken?: () => void;
+  initiative?: number;
+  onInitiativeClick?: () => void;
 }
 
 export const PortraitSection: React.FC<PortraitSectionProps> = ({
@@ -24,6 +26,8 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
   statusIcon,
   tokenColor = "#5AFFAD",
   onFocusToken,
+  initiative,
+  onInitiativeClick,
 }) => {
   const handlePortraitClick = () => {
     // Click portrait to change image (when editable)
@@ -69,50 +73,97 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
         width: "100%",
       }}
     >
-      <button
-        type="button"
-        className="jrpg-icon"
-        onClick={handleStatusIconClick}
+      {/* Icon column: Camera snap + Initiative button */}
+      <div
         style={{
-          position: "relative",
-          width: "26px",
-          height: "26px",
-          background: "linear-gradient(135deg, var(--jrpg-dice-blue) 0%, var(--jrpg-gold) 100%)",
-          border: "2px solid var(--jrpg-border-gold)",
           display: "flex",
+          flexDirection: "column",
+          gap: "6px",
           alignItems: "center",
-          justifyContent: "center",
-          fontSize: "14px",
-          boxShadow: "0 0 6px var(--jrpg-border-gold)",
-          cursor: onFocusToken ? "pointer" : "default",
-          padding: 0,
         }}
-        title={onFocusToken ? "Focus on token" : "Status effects"}
-        disabled={!onFocusToken}
-        aria-label={onFocusToken ? "Focus camera on token" : "Status effects"}
       >
-        {statusIcon ? statusIcon.emoji : "⚔️"}
-        {statusIcon && (
-          <span
-            className="jrpg-text-small"
-            style={{
-              position: "absolute",
-              top: "120%",
-              left: "50%",
-              transform: "translateX(-50%)",
-              whiteSpace: "nowrap",
-              background: "rgba(8, 12, 24, 0.9)",
-              padding: "2px 4px",
-              borderRadius: "4px",
-              fontSize: "0.55rem",
-              color: "var(--jrpg-white)",
-              pointerEvents: "none",
+        <button
+          type="button"
+          className="jrpg-icon"
+          onClick={handleStatusIconClick}
+          style={{
+            position: "relative",
+            width: "26px",
+            height: "26px",
+            background: "linear-gradient(135deg, var(--jrpg-dice-blue) 0%, var(--jrpg-gold) 100%)",
+            border: "2px solid var(--jrpg-border-gold)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "14px",
+            boxShadow: "0 0 6px var(--jrpg-border-gold)",
+            cursor: onFocusToken ? "pointer" : "default",
+            padding: 0,
+          }}
+          title={onFocusToken ? "Focus on token" : "Status effects"}
+          disabled={!onFocusToken}
+          aria-label={onFocusToken ? "Focus camera on token" : "Status effects"}
+        >
+          {statusIcon ? statusIcon.emoji : "⚔️"}
+          {statusIcon && (
+            <span
+              className="jrpg-text-small"
+              style={{
+                position: "absolute",
+                top: "120%",
+                left: "50%",
+                transform: "translateX(-50%)",
+                whiteSpace: "nowrap",
+                background: "rgba(8, 12, 24, 0.9)",
+                padding: "2px 4px",
+                borderRadius: "4px",
+                fontSize: "0.55rem",
+                color: "var(--jrpg-white)",
+                pointerEvents: "none",
+              }}
+            >
+              {sanitizeText(statusIcon.label)}
+            </span>
+          )}
+        </button>
+
+        {/* Initiative button */}
+        {onInitiativeClick && (
+          <button
+            type="button"
+            className="jrpg-icon jrpg-text-small"
+            onClick={(e) => {
+              e.stopPropagation();
+              onInitiativeClick();
             }}
+            style={{
+              position: "relative",
+              width: "40px",
+              height: "22px",
+              background: initiative !== undefined
+                ? "linear-gradient(135deg, var(--jrpg-gold) 0%, var(--jrpg-dice-blue) 100%)"
+                : "var(--jrpg-navy)",
+              border: "2px solid var(--jrpg-border-gold)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "11px",
+              fontWeight: "bold",
+              boxShadow: initiative !== undefined
+                ? "0 0 8px var(--jrpg-gold)"
+                : "0 0 4px var(--jrpg-border-gold)",
+              cursor: "pointer",
+              padding: 0,
+              color: "var(--jrpg-white)",
+            }}
+            title={initiative !== undefined ? `Initiative: ${initiative}` : "Set Initiative"}
+            aria-label="Set Initiative"
           >
-            {sanitizeText(statusIcon.label)}
-          </span>
+            {initiative !== undefined ? initiative : "Init"}
+          </button>
         )}
-      </button>
+      </div>
+
       <button
         type="button"
         className="jrpg-portrait-frame"

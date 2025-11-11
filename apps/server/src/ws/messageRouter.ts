@@ -258,6 +258,118 @@ export class MessageRouter {
           }
           break;
 
+        // INITIATIVE/COMBAT ACTIONS
+        case "set-initiative": {
+          // Check if sender owns the character or is DM
+          const character = this.characterService.findCharacter(state, message.characterId);
+          if (!character) {
+            console.warn(`Character ${message.characterId} not found`);
+            break;
+          }
+          const canModify =
+            this.isDM(senderUid) ||
+            this.characterService.canControlCharacter(character, senderUid);
+          if (!canModify) {
+            console.warn(
+              `Player ${senderUid} attempted to set initiative for character they don't own`,
+            );
+            break;
+          }
+          if (
+            this.characterService.setInitiative(
+              state,
+              message.characterId,
+              message.initiative,
+              message.initiativeModifier,
+            )
+          ) {
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+        }
+
+        case "start-combat": {
+          if (!this.isDM(senderUid)) {
+            console.warn(`Non-DM ${senderUid} attempted to start combat`);
+            break;
+          }
+          state.combatActive = true;
+          // Set first character with initiative as current turn
+          const charactersInOrder = this.characterService.getCharactersInInitiativeOrder(state);
+          if (charactersInOrder.length > 0) {
+            state.currentTurnCharacterId = charactersInOrder[0].id;
+          }
+          console.log(`Combat started by ${senderUid}`);
+          this.broadcast();
+          this.roomService.saveState();
+          break;
+        }
+
+        case "end-combat": {
+          if (!this.isDM(senderUid)) {
+            console.warn(`Non-DM ${senderUid} attempted to end combat`);
+            break;
+          }
+          state.combatActive = false;
+          state.currentTurnCharacterId = undefined;
+          this.characterService.clearAllInitiative(state);
+          console.log(`Combat ended by ${senderUid}`);
+          this.broadcast();
+          this.roomService.saveState();
+          break;
+        }
+
+        case "next-turn": {
+          if (!this.isDM(senderUid)) {
+            console.warn(`Non-DM ${senderUid} attempted to advance turn`);
+            break;
+          }
+          const charactersInOrder = this.characterService.getCharactersInInitiativeOrder(state);
+          if (charactersInOrder.length === 0) break;
+
+          const currentIndex = charactersInOrder.findIndex(
+            (c) => c.id === state.currentTurnCharacterId,
+          );
+          const nextIndex = (currentIndex + 1) % charactersInOrder.length;
+          state.currentTurnCharacterId = charactersInOrder[nextIndex].id;
+          console.log(`Turn advanced to ${charactersInOrder[nextIndex].name}`);
+          this.broadcast();
+          this.roomService.saveState();
+          break;
+        }
+
+        case "previous-turn": {
+          if (!this.isDM(senderUid)) {
+            console.warn(`Non-DM ${senderUid} attempted to go back turn`);
+            break;
+          }
+          const charactersInOrder = this.characterService.getCharactersInInitiativeOrder(state);
+          if (charactersInOrder.length === 0) break;
+
+          const currentIndex = charactersInOrder.findIndex(
+            (c) => c.id === state.currentTurnCharacterId,
+          );
+          const prevIndex =
+            currentIndex <= 0 ? charactersInOrder.length - 1 : currentIndex - 1;
+          state.currentTurnCharacterId = charactersInOrder[prevIndex].id;
+          console.log(`Turn moved back to ${charactersInOrder[prevIndex].name}`);
+          this.broadcast();
+          this.roomService.saveState();
+          break;
+        }
+
+        case "clear-all-initiative": {
+          if (!this.isDM(senderUid)) {
+            console.warn(`Non-DM ${senderUid} attempted to clear all initiative`);
+            break;
+          }
+          this.characterService.clearAllInitiative(state);
+          this.broadcast();
+          this.roomService.saveState();
+          break;
+        }
+
         // PROP ACTIONS
         case "create-prop": {
           if (!this.isDM(senderUid)) {
