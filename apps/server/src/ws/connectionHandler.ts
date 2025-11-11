@@ -134,6 +134,7 @@ export class ConnectionHandler {
    * Handle incoming WebSocket message
    */
   private handleMessage(buf: Buffer, uid: string): void {
+    let rawMessage: unknown;
     try {
       // Message size limit check (1MB) to prevent DoS attacks
       const MAX_MESSAGE_SIZE = 1024 * 1024; // 1MB
@@ -145,7 +146,7 @@ export class ConnectionHandler {
       }
 
       // Parse message
-      const message: ClientMessage = JSON.parse(buf.toString());
+      rawMessage = JSON.parse(buf.toString());
 
       // Rate limiting
       if (!this.container.rateLimiter.check(uid)) {
@@ -154,11 +155,14 @@ export class ConnectionHandler {
       }
 
       // Input validation
-      const validation = validateMessage(message);
+      const validation = validateMessage(rawMessage);
       if (!validation.valid) {
         console.warn(`Invalid message from ${uid}: ${validation.error}`);
         return;
       }
+
+      // At this point, message is validated as ClientMessage
+      const message = rawMessage as ClientMessage;
 
       // Authentication handling
       if (message.t === "authenticate") {
@@ -194,7 +198,11 @@ export class ConnectionHandler {
       this.container.messageRouter.route(message, uid);
     } catch (err) {
       console.error(`[ConnectionHandler] Failed to process message from ${uid}:`, err);
-      console.error(`[ConnectionHandler] Message was:`, JSON.stringify(message));
+      if (rawMessage !== undefined) {
+        console.error(`[ConnectionHandler] Message was:`, JSON.stringify(rawMessage));
+      } else {
+        console.error(`[ConnectionHandler] Failed to parse message buffer`);
+      }
     }
   }
 
