@@ -10,11 +10,7 @@ import { describe, expect, it, vi } from "vitest";
 import { usePlayerTokenSelection } from "../usePlayerTokenSelection.js";
 import type { SceneObject } from "@shared";
 
-function createToken(
-  id: string,
-  owner: string,
-  locked: boolean = false,
-): SceneObject {
+function createToken(id: string, owner: string, locked: boolean = false): SceneObject {
   return {
     id,
     type: "token",
@@ -148,9 +144,7 @@ describe("usePlayerTokenSelection", () => {
 
   it("clears undo state after undo is performed", () => {
     const selectMultiple = vi.fn();
-    const sceneObjects: SceneObject[] = [
-      createToken("token:1", "player-1"),
-    ];
+    const sceneObjects: SceneObject[] = [createToken("token:1", "player-1")];
 
     const { result } = renderHook(() =>
       usePlayerTokenSelection({
@@ -251,9 +245,7 @@ describe("usePlayerTokenSelection", () => {
 
   it("updates when sceneObjects change", () => {
     const selectMultiple = vi.fn();
-    let sceneObjects: SceneObject[] = [
-      createToken("token:1", "player-1"),
-    ];
+    let sceneObjects: SceneObject[] = [createToken("token:1", "player-1")];
 
     const { result, rerender } = renderHook(
       ({ sceneObjects }) =>

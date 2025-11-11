@@ -128,7 +128,10 @@ describe("AlignmentInstructionOverlay - Characterization", () => {
 
     it("should always render 'Alignment Mode' header", () => {
       render(
-        <AlignmentInstructionOverlayLogic alignmentMode={true} alignmentInstruction="Test instruction" />,
+        <AlignmentInstructionOverlayLogic
+          alignmentMode={true}
+          alignmentInstruction="Test instruction"
+        />,
       );
 
       const header = screen.getByText("Alignment Mode");
@@ -190,9 +193,7 @@ describe("AlignmentInstructionOverlay - Characterization", () => {
     });
 
     it("should have gold header color", () => {
-      render(
-        <AlignmentInstructionOverlayLogic alignmentMode={true} alignmentInstruction="Test" />,
-      );
+      render(<AlignmentInstructionOverlayLogic alignmentMode={true} alignmentInstruction="Test" />);
 
       const header = screen.getByText("Alignment Mode");
       expect(header).toHaveStyle({
@@ -202,7 +203,10 @@ describe("AlignmentInstructionOverlay - Characterization", () => {
 
     it("should have margin on instruction text container", () => {
       render(
-        <AlignmentInstructionOverlayLogic alignmentMode={true} alignmentInstruction="Test instruction" />,
+        <AlignmentInstructionOverlayLogic
+          alignmentMode={true}
+          alignmentInstruction="Test instruction"
+        />,
       );
 
       // Get the instruction text element and check its parent div has marginTop
@@ -231,7 +235,10 @@ describe("AlignmentInstructionOverlay - Characterization", () => {
         "This is a very long instruction that might wrap to multiple lines depending on the viewport size and font settings.";
 
       render(
-        <AlignmentInstructionOverlayLogic alignmentMode={true} alignmentInstruction={longInstruction} />,
+        <AlignmentInstructionOverlayLogic
+          alignmentMode={true}
+          alignmentInstruction={longInstruction}
+        />,
       );
 
       expect(screen.getByText(longInstruction)).toBeInTheDocument();

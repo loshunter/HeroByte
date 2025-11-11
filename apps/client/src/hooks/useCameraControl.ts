@@ -48,7 +48,15 @@ export interface UseCameraControlReturn {
   /**
    * Update camera state
    */
-  setCam: (cam: { x: number; y: number; scale: number } | ((prev: { x: number; y: number; scale: number }) => { x: number; y: number; scale: number })) => void;
+  setCam: (
+    cam:
+      | { x: number; y: number; scale: number }
+      | ((prev: { x: number; y: number; scale: number }) => {
+          x: number;
+          y: number;
+          scale: number;
+        }),
+  ) => void;
   /**
    * Whether camera is currently panning
    */
@@ -56,18 +64,11 @@ export interface UseCameraControlReturn {
   /**
    * Wheel event handler (zoom)
    */
-  handleWheel: (
-    e: any,
-    stageRef: React.RefObject<any>,
-  ) => void;
+  handleWheel: (e: any, stageRef: React.RefObject<any>) => void;
   /**
    * Mouse down handler (start pan)
    */
-  handleCameraMouseDown: (
-    e: any,
-    stageRef: React.RefObject<any>,
-    shouldPan: boolean,
-  ) => void;
+  handleCameraMouseDown: (e: any, stageRef: React.RefObject<any>, shouldPan: boolean) => void;
   /**
    * Mouse move handler (pan)
    */

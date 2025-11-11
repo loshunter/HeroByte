@@ -15,7 +15,10 @@
  */
 
 import { Group, Rect, Text } from "react-konva";
-import type { StagingZoneDimensions, StagingZoneSceneObject } from "../../../hooks/useSceneObjectsData";
+import type {
+  StagingZoneDimensions,
+  StagingZoneSceneObject,
+} from "../../../hooks/useSceneObjectsData";
 
 export interface StagingZoneLayerProps {
   /** Camera state for positioning and scaling */

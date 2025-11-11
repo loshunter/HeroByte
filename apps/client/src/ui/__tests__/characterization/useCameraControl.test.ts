@@ -42,7 +42,7 @@ describe("useCameraControl", () => {
     });
 
     it("should call onCameraChange when camera state changes", async () => {
-      const { result } = renderHook(() =>
+      renderHook(() =>
         useCameraControl({
           cameraCommand: null,
           onCameraCommandHandled: mockOnCameraCommandHandled,
@@ -95,7 +95,7 @@ describe("useCameraControl", () => {
       it("should reset camera even if already at default position", async () => {
         const resetCommand: CameraCommand = { type: "reset" };
 
-        const { result } = renderHook(() =>
+        renderHook(() =>
           useCameraControl({
             cameraCommand: resetCommand,
             onCameraCommandHandled: mockOnCameraCommandHandled,

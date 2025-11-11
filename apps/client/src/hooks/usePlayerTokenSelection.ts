@@ -127,10 +127,7 @@ export function usePlayerTokenSelection({
       return;
     }
 
-    console.log(
-      "[usePlayerTokenSelection] Restoring previous selection:",
-      previousSelection,
-    );
+    console.log("[usePlayerTokenSelection] Restoring previous selection:", previousSelection);
     const toRestore = previousSelection;
     setPreviousSelection(null); // Clear after restoring
     selectMultiple(toRestore);
