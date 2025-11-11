@@ -458,7 +458,9 @@ export class MessageRouter {
           console.log(
             `[MessageRouter] Player ${senderUid} created additional character: ${character.name} (ID: ${character.id})`,
           );
-          console.log(`[MessageRouter] Broadcasting update. Total characters: ${state.characters.length}`);
+          console.log(
+            `[MessageRouter] Broadcasting update. Total characters: ${state.characters.length}`,
+          );
           this.broadcast();
           this.roomService.saveState();
           console.log(`[MessageRouter] Broadcast and save complete`);
