@@ -275,7 +275,19 @@ export class WebSocketService {
       }
 
       // All other messages are room snapshots
-      this.config.onMessage(parsed as RoomSnapshot);
+      const snapshot = parsed as RoomSnapshot;
+      // Log character initiative values when snapshot is updated
+      if (snapshot.characters && snapshot.characters.length > 0) {
+        console.log(
+          "[WebSocket] Received snapshot with characters:",
+          snapshot.characters.map((c) => ({
+            name: c.name,
+            initiative: c.initiative,
+            initiativeModifier: c.initiativeModifier,
+          })),
+        );
+      }
+      this.config.onMessage(snapshot);
     } catch (error) {
       console.error("[WebSocket] Invalid message:", error, data);
     }
