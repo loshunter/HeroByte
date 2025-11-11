@@ -118,7 +118,7 @@ export function useCombatOrdering({
           name: e.character.name,
           initiative: e.character.initiative,
           type: e.character.type,
-        }))
+        })),
       );
 
       return [...dmEntities, ...sorted];
