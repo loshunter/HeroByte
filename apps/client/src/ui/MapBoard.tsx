@@ -29,6 +29,7 @@ import { useAlignmentVisualization } from "../hooks/useAlignmentVisualization.js
 import { useObjectTransformHandlers } from "../hooks/useObjectTransformHandlers.js";
 import { useCameraControl } from "../hooks/useCameraControl.js";
 import { useTransformGizmoIntegration } from "../hooks/useTransformGizmoIntegration.js";
+import { useStageEventRouter } from "../hooks/useStageEventRouter.js";
 import {
   GridLayer,
   MapImageLayer,
@@ -262,56 +263,31 @@ export default function MapBoard({
   // UNIFIED EVENT HANDLERS
   // -------------------------------------------------------------------------
 
-  /**
-   * Unified stage click handler (pointer/measure tools)
-   */
-  const onStageClick = (event: KonvaEventObject<MouseEvent | PointerEvent>) => {
-    if (alignmentMode) {
-      handleAlignmentClick(event);
-      return;
-    }
+  // Event router coordinates all mouse/pointer events across tools
+  const { onStageClick, onMouseDown, onMouseMove, onMouseUp } = useStageEventRouter({
+    alignmentMode,
+    selectMode,
+    pointerMode,
+    measureMode,
+    drawMode,
+    handleAlignmentClick,
+    handlePointerClick,
+    handleCameraMouseDown,
+    handleDrawMouseDown,
+    handleMarqueePointerDown,
+    handleCameraMouseMove,
+    handlePointerMouseMove,
+    handleDrawMouseMove,
+    handleMarqueePointerMove,
+    handleCameraMouseUp,
+    handleDrawMouseUp,
+    handleMarqueePointerUp,
+    isMarqueeActive,
+    onSelectObject,
+    deselectIfEmpty,
+    stageRef,
+  });
 
-    // In select mode, marquee selection handles everything - don't process stage clicks
-    if (selectMode) {
-      return;
-    }
-
-    if (!pointerMode && !measureMode && !drawMode) {
-      if (onSelectObject) {
-        const stage = event.target.getStage();
-        if (stage && event.target === stage) {
-          onSelectObject(null);
-        }
-      }
-      deselectIfEmpty(event);
-      return;
-    }
-    handlePointerClick(event);
-  };
-
-  /**
-   * Unified mouse down handler (camera pan, drawing)
-   */
-  const onMouseDown = (event: KonvaEventObject<PointerEvent>) => {
-    const shouldPan = !alignmentMode && !pointerMode && !measureMode && !drawMode && !selectMode;
-    handleCameraMouseDown(event, stageRef, shouldPan);
-    handleDrawMouseDown(stageRef);
-    handleMarqueePointerDown(event);
-  };
-
-  /**
-   * Unified mouse move handler (camera, drawing, measure)
-   */
-  const onMouseMove = () => {
-    handleCameraMouseMove(stageRef);
-    handlePointerMouseMove(stageRef);
-    handleDrawMouseMove(stageRef);
-    handleMarqueePointerMove();
-  };
-
-  /**
-   * Unified mouse up handler (camera, drawing)
-   */
   /**
    * Determine cursor style based on active mode
    */
@@ -380,15 +356,6 @@ export default function MapBoard({
     },
     [registerNode],
   );
-
-  const onMouseUp = () => {
-    handleCameraMouseUp();
-    handleDrawMouseUp();
-
-    if (isMarqueeActive) {
-      handleMarqueePointerUp();
-    }
-  };
 
   // -------------------------------------------------------------------------
   // RENDER
@@ -463,7 +430,7 @@ export default function MapBoard({
             selectMode={selectMode}
             transformMode={transformMode}
             onSelectObject={onSelectObject}
-            registerNode={registerNode}
+            registerNode={registerNode as (id: string, node: unknown) => void}
           />
           <DrawingsLayer
             cam={cam}
