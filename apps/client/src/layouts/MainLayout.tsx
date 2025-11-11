@@ -304,6 +304,22 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onAddCharacter={playerActions.addCharacter}
         onDeleteCharacter={playerActions.deleteCharacter}
         onFocusToken={handleFocusToken}
+        combatActive={snapshot?.combatActive}
+        currentTurnCharacterId={snapshot?.currentTurnCharacterId}
+        onSetInitiative={(characterId, initiative, initiativeModifier) => {
+          sendMessage({
+            t: "set-initiative",
+            characterId,
+            initiative,
+            initiativeModifier,
+          });
+        }}
+        onNextTurn={() => {
+          sendMessage({ t: "next-turn" });
+        }}
+        onPreviousTurn={() => {
+          sendMessage({ t: "previous-turn" });
+        }}
       />
 
       {/* Floating Panels - DM menu, context menu, visual effects, dice roller, roll log, toasts */}

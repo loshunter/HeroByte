@@ -47,7 +47,7 @@ export interface NPC {
 /**
  * Props for the BottomPanelLayout component
  *
- * Organized into 10 semantic groups for clarity:
+ * Organized into 11 semantic groups for clarity:
  * 1. Layout & Ref (1 prop)
  * 2. State Data (9 props)
  * 3. Name Editing (5 props)
@@ -58,6 +58,7 @@ export interface NPC {
  * 8. NPC Management (4 props)
  * 9. Token Management (3 props)
  * 10. Character Management (2 props)
+ * 11. Combat/Initiative (5 props)
  */
 export interface BottomPanelLayoutProps {
   // Layout & Ref (1 prop)
@@ -163,6 +164,18 @@ export interface BottomPanelLayoutProps {
   // Camera (1 prop)
   /** Handler to focus camera on a specific token */
   onFocusToken: (tokenId: string) => void;
+
+  // Combat/Initiative (5 props)
+  /** Whether combat is currently active */
+  combatActive?: boolean;
+  /** Character ID of the entity whose turn it currently is */
+  currentTurnCharacterId?: string;
+  /** Handler to set a character's initiative roll and modifier */
+  onSetInitiative: (characterId: string, initiative: number, modifier: number) => void;
+  /** Handler to advance to the next turn in combat */
+  onNextTurn?: () => void;
+  /** Handler to go back to the previous turn in combat */
+  onPreviousTurn?: () => void;
 }
 
 /**
@@ -263,6 +276,11 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
     onAddCharacter,
     onDeleteCharacter,
     onFocusToken,
+    combatActive,
+    currentTurnCharacterId,
+    onSetInitiative,
+    onNextTurn,
+    onPreviousTurn,
   }) => {
     return (
       <EntitiesPanel
@@ -307,6 +325,11 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
         onDeleteCharacter={onDeleteCharacter}
         onFocusToken={onFocusToken}
         bottomPanelRef={bottomPanelRef}
+        combatActive={combatActive}
+        currentTurnCharacterId={currentTurnCharacterId}
+        onSetInitiative={onSetInitiative}
+        onNextTurn={onNextTurn}
+        onPreviousTurn={onPreviousTurn}
       />
     );
   },

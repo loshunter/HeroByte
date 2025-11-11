@@ -213,6 +213,61 @@ export class CharacterService {
   }
 
   /**
+   * Set initiative for a character
+   */
+  setInitiative(
+    state: RoomState,
+    characterId: string,
+    initiative: number,
+    initiativeModifier?: number,
+  ): boolean {
+    const character = this.findCharacter(state, characterId);
+    if (character) {
+      character.initiative = initiative;
+      if (initiativeModifier !== undefined) {
+        character.initiativeModifier = initiativeModifier;
+      }
+      console.log(
+        `Set initiative for ${character.name}: ${initiative} (modifier: ${character.initiativeModifier ?? 0})`,
+      );
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Clear initiative for a specific character
+   */
+  clearInitiative(state: RoomState, characterId: string): boolean {
+    const character = this.findCharacter(state, characterId);
+    if (character) {
+      character.initiative = undefined;
+      console.log(`Cleared initiative for ${character.name}`);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Clear initiative for all characters
+   */
+  clearAllInitiative(state: RoomState): void {
+    state.characters.forEach((character) => {
+      character.initiative = undefined;
+    });
+    console.log("Cleared initiative for all characters");
+  }
+
+  /**
+   * Get characters in initiative order (highest to lowest)
+   */
+  getCharactersInInitiativeOrder(state: RoomState): Character[] {
+    return state.characters
+      .filter((c) => c.initiative !== undefined)
+      .sort((a, b) => (b.initiative ?? 0) - (a.initiative ?? 0));
+  }
+
+  /**
    * Check if player can control character
    */
   canControlCharacter(character: Character, playerUID: string): boolean {

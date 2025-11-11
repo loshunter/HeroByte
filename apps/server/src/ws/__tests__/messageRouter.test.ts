@@ -62,6 +62,8 @@ describe("MessageRouter", () => {
       selectionState: new Map() as RoomState["selectionState"],
       playerStagingZone: undefined,
       props: [],
+      combatActive: false,
+      currentTurnCharacterId: undefined,
     };
 
     // Mock services

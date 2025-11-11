@@ -8,6 +8,9 @@ import type { Character, Drawing, Player, PlayerState, Token, SceneObject } from
 import { PlayerCard } from "../../features/players/components";
 import { NpcCard } from "../../features/players/components/NpcCard";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
+import { InitiativeModal } from "../../features/initiative/components/InitiativeModal";
+import { useCombatOrdering } from "../../hooks/useCombatOrdering";
+import { useInitiativeModal } from "../../hooks/useInitiativeModal";
 
 import type { TokenSize } from "@shared";
 
@@ -56,6 +59,12 @@ interface EntitiesPanelProps {
   onDeleteCharacter: (characterId: string) => void;
   onFocusToken: (tokenId: string) => void;
   bottomPanelRef?: React.RefObject<HTMLDivElement>;
+  // Combat/Initiative props
+  combatActive?: boolean;
+  currentTurnCharacterId?: string;
+  onSetInitiative: (characterId: string, initiative: number, modifier: number) => void;
+  onNextTurn?: () => void;
+  onPreviousTurn?: () => void;
 }
 
 /**
@@ -98,15 +107,33 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   onDeleteCharacter,
   onFocusToken,
   bottomPanelRef,
+  // Combat/Initiative props
+  combatActive = false,
+  currentTurnCharacterId,
+  onSetInitiative,
+  onNextTurn: _onNextTurn,
+  onPreviousTurn: _onPreviousTurn,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
   const [characterNameInput, setCharacterNameInput] = useState("");
 
-  const npcCharacters = useMemo(
-    () => characters.filter((character) => character.type === "npc"),
-    [characters],
-  );
+  // Use tested hooks for combat ordering and initiative modal
+  const { orderedEntities } = useCombatOrdering({
+    players,
+    characters,
+    tokens,
+    currentUid: uid,
+    combatActive: combatActive ?? false,
+    currentTurnCharacterId,
+  });
+
+  const {
+    character: initiativeModalCharacter,
+    isOpen: isInitiativeModalOpen,
+    openModal: openInitiativeModal,
+    closeModal: closeInitiativeModal,
+  } = useInitiativeModal();
 
   const tokenSceneMap = useMemo(() => {
     const map = new Map<string, SceneObject & { type: "token" }>();
@@ -130,52 +157,6 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
     }
     return map;
   }, [drawings]);
-
-  const entities = useMemo(() => {
-    // For each player, create character entities for all their owned characters
-    const characterEntitiesByPlayer = players.flatMap((player) => {
-      // Find all characters owned by this player
-      const playerCharacters = characters.filter((c) => c.ownedByPlayerUID === player.uid);
-
-      // If player has no characters, don't show any cards
-      // This only happens if DM deleted all their characters
-      // (new players spawn with at least one character from connection handler)
-      if (playerCharacters.length === 0) {
-        return [];
-      }
-
-      // Create an entity for each character owned by this player
-      return playerCharacters.map((character) => {
-        const token = character.tokenId
-          ? tokens.find((t: Token) => t.id === character.tokenId)
-          : tokens.find((t: Token) => t.owner === player.uid);
-
-        return {
-          kind: "character" as const,
-          id: `${player.uid}-${character.id}`,
-          player,
-          character,
-          token,
-          isMe: player.uid === uid,
-        };
-      });
-    });
-
-    const npcEntities = npcCharacters.map((character) => ({
-      kind: "npc" as const,
-      id: character.id,
-      character,
-    }));
-
-    // Separate DM from regular players
-    // DM appears first (left-most) and is visually distinct from players
-    // FUTURE: When initiative is implemented, filter out DM (players.filter(p => !p.isDM))
-    // and keep DM in fixed position while other players reorder
-    const dmEntities = characterEntitiesByPlayer.filter((e) => e.player.isDM);
-    const regularEntities = characterEntitiesByPlayer.filter((e) => !e.player.isDM);
-
-    return [...dmEntities, ...regularEntities, ...npcEntities];
-  }, [players, characters, tokens, npcCharacters, uid]);
 
   return (
     <div
@@ -244,16 +225,18 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                 alignItems: "flex-start",
               }}
             >
-              {entities.map((entity, index) => {
+              {orderedEntities.map((entity) => {
                 if (entity.kind === "character") {
-                  const { player, character, token, isMe } = entity;
+                  const { player, character, token, isMe, isFirstDM, isCurrentTurn } = entity;
+
+                  // Type guard: player is always defined for character entities
+                  if (!player) return null;
+
                   const tokenSceneObject = token ? (tokenSceneMap.get(token.id) ?? null) : null;
                   const playerDrawings = drawingsByOwner.get(player.uid) ?? [];
-                  const isDM = player.isDM ?? false;
-                  const isFirstDM = isDM && index === 0;
 
                   // Merge player data with character-specific data
-                  const displayPlayer = {
+                  const displayPlayer: Player = {
                     ...player,
                     name: character.name,
                     hp: character.hp,
@@ -275,6 +258,11 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                         marginRight: isFirstDM ? "20px" : "0",
                         paddingRight: isFirstDM ? "20px" : "0",
                         borderRight: isFirstDM ? "2px solid rgba(255, 215, 0, 0.3)" : "none",
+                        border: isCurrentTurn ? "2px solid var(--jrpg-gold)" : undefined,
+                        boxShadow: isCurrentTurn ? "0 0 20px rgba(255, 215, 0, 0.6)" : undefined,
+                        borderRadius: isCurrentTurn ? "8px" : undefined,
+                        padding: isCurrentTurn ? "8px" : undefined,
+                        transition: "all 0.3s ease",
                       }}
                     >
                       <PlayerCard
@@ -349,6 +337,8 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                         characterId={character.id}
                         onDeleteCharacter={isMe ? onDeleteCharacter : undefined}
                         onFocusToken={token ? () => onFocusToken(token.id) : undefined}
+                        initiative={character.initiative}
+                        onInitiativeClick={() => openInitiativeModal(character)}
                       />
                     </div>
                   );
@@ -405,6 +395,18 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
           </div>
         )}
       </JRPGPanel>
+
+      {/* Initiative Modal */}
+      {isInitiativeModalOpen && initiativeModalCharacter && (
+        <InitiativeModal
+          character={initiativeModalCharacter}
+          onClose={closeInitiativeModal}
+          onSetInitiative={(initiative, modifier) => {
+            onSetInitiative(initiativeModalCharacter.id, initiative, modifier);
+            closeInitiativeModal();
+          }}
+        />
+      )}
     </div>
   );
 };

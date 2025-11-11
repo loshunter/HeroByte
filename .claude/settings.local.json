@@ -144,7 +144,17 @@
       "Bash(pnpm --filter herobyte-client lint:*)",
       "Bash(pnpm --filter vtt-client test MapBackgroundControl.test.tsx)",
       "Bash(pnpm --filter @client test:*)",
-      "Bash(pnpm --filter client test usePlayerTokenSelection)"
+      "Bash(pnpm --filter client test usePlayerTokenSelection)",
+      "Bash(git reset:*)",
+      "Bash(refactor/map-board/alignment-instruction-overlay )",
+      "Bash(refactor/map-board/alignment-overlay )",
+      "Bash(refactor/map-board/marquee-overlay )",
+      "Bash(refactor/map-board/staging-zone-layer )",
+      "Bash(refactor/map-board/use-camera-control )",
+      "Bash(refactor/map-board/use-object-transform-handlers )",
+      "Bash(refactor/map-board/use-stage-event-router )",
+      "Bash(refactor/map-board/use-transform-gizmo-integration)",
+      "Bash(pnpm --filter @shared build:*)"
     ],
     "deny": [],
     "ask": []
