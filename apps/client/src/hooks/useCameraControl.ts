@@ -1,7 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, type RefObject } from "react";
 import { useCamera } from "./useCamera.js";
 import type { CameraCommand } from "../ui/MapBoard.types";
 import type { RoomSnapshot } from "@shared";
+import type Konva from "konva";
+import type { KonvaEventObject } from "konva/lib/Node";
 
 /**
  * Hook parameters for camera control
@@ -64,15 +66,19 @@ export interface UseCameraControlReturn {
   /**
    * Wheel event handler (zoom)
    */
-  handleWheel: (e: any, stageRef: React.RefObject<any>) => void;
+  handleWheel: (e: KonvaEventObject<WheelEvent>, stageRef: RefObject<Konva.Stage | null>) => void;
   /**
    * Mouse down handler (start pan)
    */
-  handleCameraMouseDown: (e: any, stageRef: React.RefObject<any>, shouldPan: boolean) => void;
+  handleCameraMouseDown: (
+    e: KonvaEventObject<PointerEvent>,
+    stageRef: RefObject<Konva.Stage | null>,
+    shouldPan: boolean,
+  ) => void;
   /**
    * Mouse move handler (pan)
    */
-  handleCameraMouseMove: (stageRef: React.RefObject<any>) => void;
+  handleCameraMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
   /**
    * Mouse up handler (end pan)
    */
