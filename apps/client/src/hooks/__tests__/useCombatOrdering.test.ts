@@ -78,7 +78,10 @@ describe("useCombatOrdering", () => {
 
     it("should keep DM visually separated with border", () => {
       const players = [createMockPlayer("dm-1", true), createMockPlayer("player-1")];
-      const characters = [createMockCharacter("char-dm", "dm-1"), createMockCharacter("char-1", "player-1")];
+      const characters = [
+        createMockCharacter("char-dm", "dm-1"),
+        createMockCharacter("char-1", "player-1"),
+      ];
       const tokens: Token[] = [];
 
       const { result } = renderHook(() =>

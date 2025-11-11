@@ -323,10 +323,9 @@ export async function loadPlayerState(file: File): Promise<PlayerState> {
   }
 
   // Parse initiative modifier (optional number)
-  const initiativeModifier =
-    isFiniteNumber(parsed.initiativeModifier)
-      ? parsed.initiativeModifier
-      : undefined;
+  const initiativeModifier = isFiniteNumber(parsed.initiativeModifier)
+    ? parsed.initiativeModifier
+    : undefined;
 
   return {
     name: name.trim(),

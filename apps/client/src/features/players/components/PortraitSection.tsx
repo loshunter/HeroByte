@@ -140,18 +140,20 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
               position: "relative",
               width: "40px",
               height: "22px",
-              background: initiative !== undefined
-                ? "linear-gradient(135deg, var(--jrpg-gold) 0%, var(--jrpg-dice-blue) 100%)"
-                : "var(--jrpg-navy)",
+              background:
+                initiative !== undefined
+                  ? "linear-gradient(135deg, var(--jrpg-gold) 0%, var(--jrpg-dice-blue) 100%)"
+                  : "var(--jrpg-navy)",
               border: "2px solid var(--jrpg-border-gold)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               fontSize: "11px",
               fontWeight: "bold",
-              boxShadow: initiative !== undefined
-                ? "0 0 8px var(--jrpg-gold)"
-                : "0 0 4px var(--jrpg-border-gold)",
+              boxShadow:
+                initiative !== undefined
+                  ? "0 0 8px var(--jrpg-gold)"
+                  : "0 0 4px var(--jrpg-border-gold)",
               cursor: "pointer",
               padding: 0,
               color: "var(--jrpg-white)",

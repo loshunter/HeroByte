@@ -24,27 +24,30 @@ export function InitiativeModal({ character, onClose, onSetInitiative }: Initiat
   const finalInitiative = rolledValue !== null ? rolledValue + modifier : null;
 
   // Handle modifier drag
-  const handleModifierDrag = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    const element = e.currentTarget;
-    const startX = e.clientX;
-    const startModifier = modifier;
+  const handleModifierDrag = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const element = e.currentTarget;
+      const startX = e.clientX;
+      const startModifier = modifier;
 
-    const handlePointerMove = (moveEvent: PointerEvent) => {
-      const deltaX = moveEvent.clientX - startX;
-      const change = Math.floor(deltaX / 10); // 10px = 1 point
-      setModifier(Math.max(-20, Math.min(20, startModifier + change)));
-    };
+      const handlePointerMove = (moveEvent: PointerEvent) => {
+        const deltaX = moveEvent.clientX - startX;
+        const change = Math.floor(deltaX / 10); // 10px = 1 point
+        setModifier(Math.max(-20, Math.min(20, startModifier + change)));
+      };
 
-    const handlePointerUp = () => {
-      document.removeEventListener("pointermove", handlePointerMove);
-      document.removeEventListener("pointerup", handlePointerUp);
-      element.releasePointerCapture(e.pointerId);
-    };
+      const handlePointerUp = () => {
+        document.removeEventListener("pointermove", handlePointerMove);
+        document.removeEventListener("pointerup", handlePointerUp);
+        element.releasePointerCapture(e.pointerId);
+      };
 
-    element.setPointerCapture(e.pointerId);
-    document.addEventListener("pointermove", handlePointerMove);
-    document.addEventListener("pointerup", handlePointerUp);
-  }, [modifier]);
+      element.setPointerCapture(e.pointerId);
+      document.addEventListener("pointermove", handlePointerMove);
+      document.addEventListener("pointerup", handlePointerUp);
+    },
+    [modifier],
+  );
 
   // Roll d20
   const rollD20 = useCallback(() => {
@@ -160,7 +163,10 @@ export function InitiativeModal({ character, onClose, onSetInitiative }: Initiat
             {/* Manual Entry */}
             {manualMode && (
               <div>
-                <label className="jrpg-text-small" style={{ display: "block", marginBottom: "8px" }}>
+                <label
+                  className="jrpg-text-small"
+                  style={{ display: "block", marginBottom: "8px" }}
+                >
                   Enter d20 Roll (1-20)
                 </label>
                 <input

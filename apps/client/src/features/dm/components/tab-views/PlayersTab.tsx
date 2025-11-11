@@ -79,7 +79,10 @@ export default function PlayersTab({
         <h4 className="jrpg-text-command" style={{ margin: 0, marginBottom: "8px" }}>
           Combat Controls
         </h4>
-        <p className="jrpg-text-small" style={{ margin: 0, marginBottom: "12px", color: "var(--jrpg-white)" }}>
+        <p
+          className="jrpg-text-small"
+          style={{ margin: 0, marginBottom: "12px", color: "var(--jrpg-white)" }}
+        >
           Manage initiative tracking and combat turns
         </p>
 

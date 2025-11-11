@@ -24,7 +24,7 @@ describe("TurnNavigationControls", () => {
           combatActive={false}
           onNextTurn={vi.fn()}
           onPreviousTurn={vi.fn()}
-        />
+        />,
       );
 
       expect(container.firstChild).toBeNull();
@@ -36,7 +36,7 @@ describe("TurnNavigationControls", () => {
           combatActive={true}
           onNextTurn={vi.fn()}
           onPreviousTurn={vi.fn()}
-        />
+        />,
       );
 
       expect(screen.getByRole("button", { name: /previous/i })).toBeInTheDocument();
@@ -52,7 +52,7 @@ describe("TurnNavigationControls", () => {
           combatActive={true}
           onNextTurn={vi.fn()}
           onPreviousTurn={onPreviousTurn}
-        />
+        />,
       );
 
       fireEvent.click(screen.getByRole("button", { name: /previous/i }));
@@ -67,7 +67,7 @@ describe("TurnNavigationControls", () => {
           combatActive={true}
           onNextTurn={onNextTurn}
           onPreviousTurn={vi.fn()}
-        />
+        />,
       );
 
       fireEvent.click(screen.getByRole("button", { name: /next/i }));
@@ -83,7 +83,7 @@ describe("TurnNavigationControls", () => {
           combatActive={true}
           onNextTurn={vi.fn()}
           onPreviousTurn={vi.fn()}
-        />
+        />,
       );
 
       expect(screen.getByRole("button", { name: /previous/i })).not.toBeDisabled();
@@ -97,7 +97,7 @@ describe("TurnNavigationControls", () => {
           onNextTurn={vi.fn()}
           onPreviousTurn={vi.fn()}
           isFirstTurn={true}
-        />
+        />,
       );
 
       expect(screen.getByRole("button", { name: /previous/i })).toBeDisabled();
@@ -111,7 +111,7 @@ describe("TurnNavigationControls", () => {
           onNextTurn={vi.fn()}
           onPreviousTurn={vi.fn()}
           isLastTurn={true}
-        />
+        />,
       );
 
       expect(screen.getByRole("button", { name: /previous/i })).not.toBeDisabled();

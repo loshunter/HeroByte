@@ -111,8 +111,8 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   combatActive = false,
   currentTurnCharacterId,
   onSetInitiative,
-  onNextTurn,
-  onPreviousTurn,
+  onNextTurn: _onNextTurn,
+  onPreviousTurn: _onPreviousTurn,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
