@@ -307,9 +307,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         combatActive={snapshot?.combatActive}
         currentTurnCharacterId={snapshot?.currentTurnCharacterId}
         onSetInitiative={(characterId, initiative, initiativeModifier) => {
-          console.log(
-            `[MainLayout] Sending set-initiative message: characterId=${characterId}, initiative=${initiative}, initiativeModifier=${initiativeModifier}`,
-          );
           sendMessage({
             t: "set-initiative",
             characterId,
