@@ -208,6 +208,7 @@ export function usePlayerActions({
    */
   const addCharacter = useCallback(
     (name: string) => {
+      console.log("[usePlayerActions] Sending add-player-character:", { name, maxHp: 100 });
       sendMessage({ t: "add-player-character", name, maxHp: 100 });
     },
     [sendMessage],
