@@ -75,6 +75,7 @@ export class MessageRouter {
    * Route a message to the appropriate handler
    */
   route(message: ClientMessage, senderUid: string): void {
+    console.log(`[MessageRouter] Routing message type: ${message.t} from ${senderUid}`);
     const state = this.roomService.getState();
 
     try {
@@ -848,7 +849,8 @@ export class MessageRouter {
         }
       }
     } catch (err) {
-      console.error("Error routing message:", err);
+      console.error(`[MessageRouter] Error routing message type=${message.t} from=${senderUid}:`, err);
+      console.error(`[MessageRouter] Message details:`, JSON.stringify(message));
     }
   }
 
