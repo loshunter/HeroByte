@@ -41,6 +41,8 @@ export interface RoomState {
   sceneObjects: SceneObject[]; // Unified scene graph
   selectionState: SelectionStateMap; // Current object selections keyed by player UID
   playerStagingZone?: PlayerStagingZone; // Spawn area for player tokens
+  combatActive: boolean; // Whether combat/initiative tracking is active
+  currentTurnCharacterId?: string; // ID of character whose turn it currently is
 }
 
 /**
@@ -64,6 +66,8 @@ export function createEmptyRoomState(): RoomState {
     sceneObjects: [],
     selectionState: createSelectionMap(),
     playerStagingZone: undefined,
+    combatActive: false,
+    currentTurnCharacterId: undefined,
   };
 }
 
@@ -127,5 +131,7 @@ export function toSnapshot(state: RoomState): RoomSnapshot {
     sceneObjects: state.sceneObjects,
     selectionState: selectionMapToRecord(state.selectionState),
     playerStagingZone: state.playerStagingZone ?? undefined,
+    combatActive: state.combatActive,
+    currentTurnCharacterId: state.currentTurnCharacterId,
   };
 }

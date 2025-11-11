@@ -101,6 +101,8 @@ export class RoomService {
           sceneObjects,
           selectionState: createSelectionMap(),
           playerStagingZone: this.sanitizeStagingZone(data.playerStagingZone),
+          combatActive: data.combatActive ?? false,
+          currentTurnCharacterId: data.currentTurnCharacterId ?? undefined,
         };
         this.rebuildSceneGraph();
         console.log("Loaded state from disk");
@@ -220,6 +222,8 @@ export class RoomService {
       sceneObjects: snapshot.sceneObjects ?? this.state.sceneObjects,
       selectionState: createSelectionMap(),
       playerStagingZone: this.sanitizeStagingZone(snapshot.playerStagingZone),
+      combatActive: snapshot.combatActive ?? false,
+      currentTurnCharacterId: snapshot.currentTurnCharacterId ?? undefined,
     };
     this.rebuildSceneGraph();
     console.log(
