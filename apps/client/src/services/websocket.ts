@@ -25,7 +25,11 @@ type RtcSignalMessage = {
 
 type ControlMessage =
   | Extract<ServerMessage, { t: "room-password-updated" }>
-  | Extract<ServerMessage, { t: "room-password-update-failed" }>;
+  | Extract<ServerMessage, { t: "room-password-update-failed" }>
+  | Extract<ServerMessage, { t: "dm-status" }>
+  | Extract<ServerMessage, { t: "dm-elevation-failed" }>
+  | Extract<ServerMessage, { t: "dm-password-updated" }>
+  | Extract<ServerMessage, { t: "dm-password-update-failed" }>;
 
 function isRtcSignalMessage(value: unknown): value is RtcSignalMessage {
   if (!value || typeof value !== "object") return false;
@@ -52,7 +56,14 @@ function isAuthResponseMessage(value: unknown): value is AuthResponseMessage {
 function isControlMessage(value: unknown): value is ControlMessage {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<ControlMessage>;
-  return candidate.t === "room-password-updated" || candidate.t === "room-password-update-failed";
+  return (
+    candidate.t === "room-password-updated" ||
+    candidate.t === "room-password-update-failed" ||
+    candidate.t === "dm-status" ||
+    candidate.t === "dm-elevation-failed" ||
+    candidate.t === "dm-password-updated" ||
+    candidate.t === "dm-password-update-failed"
+  );
 }
 
 export enum AuthState {
