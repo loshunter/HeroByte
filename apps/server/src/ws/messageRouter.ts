@@ -849,7 +849,10 @@ export class MessageRouter {
         }
       }
     } catch (err) {
-      console.error(`[MessageRouter] Error routing message type=${message.t} from=${senderUid}:`, err);
+      console.error(
+        `[MessageRouter] Error routing message type=${message.t} from=${senderUid}:`,
+        err,
+      );
       console.error(`[MessageRouter] Message details:`, JSON.stringify(message));
     }
   }

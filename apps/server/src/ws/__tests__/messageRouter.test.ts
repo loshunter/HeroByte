@@ -1091,7 +1091,14 @@ describe("MessageRouter", () => {
       const msg: ClientMessage = { t: "move", id: "token-1", x: 10, y: 20 };
       expect(() => router.route(msg, "player-1")).not.toThrow();
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith("Error routing message:", expect.any(Error));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "[MessageRouter] Error routing message type=move from=player-1:",
+        expect.any(Error),
+      );
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "[MessageRouter] Message details:",
+        JSON.stringify(msg),
+      );
       consoleErrorSpy.mockRestore();
     });
 
