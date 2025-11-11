@@ -179,6 +179,12 @@ export function useServerEventHandlers({
       } else if ("t" in message && message.t === "dm-elevation-failed") {
         // DM elevation failed
         toast.error(`DM elevation failed: ${message.reason}`, 5000);
+      } else if ("t" in message && message.t === "dm-password-updated") {
+        // DM password updated successfully
+        toast.success("DM password updated successfully!", 3000);
+      } else if ("t" in message && message.t === "dm-password-update-failed") {
+        // DM password update failed
+        toast.error(`DM password update failed: ${message.reason}`, 5000);
       }
     });
   }, [registerServerEventHandler, toast]);
