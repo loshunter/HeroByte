@@ -275,7 +275,27 @@ export class WebSocketService {
       }
 
       // All other messages are room snapshots
-      this.config.onMessage(parsed as RoomSnapshot);
+      const snapshot = parsed as RoomSnapshot;
+
+      // Debug: Log initiative values when snapshot is received
+      if (snapshot.characters && snapshot.characters.length > 0) {
+        const withInitiative = snapshot.characters.filter(
+          (c) => c.initiative !== undefined && c.initiative !== null,
+        );
+        if (withInitiative.length > 0) {
+          console.log(
+            "[WebSocket] Snapshot received with initiative data:",
+            withInitiative.map((c) => ({
+              id: c.id,
+              name: c.name,
+              initiative: c.initiative,
+              initiativeModifier: c.initiativeModifier,
+            })),
+          );
+        }
+      }
+
+      this.config.onMessage(snapshot);
     } catch (error) {
       console.error("[WebSocket] Invalid message:", error, data);
     }

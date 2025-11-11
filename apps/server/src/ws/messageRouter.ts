@@ -274,6 +274,9 @@ export class MessageRouter {
             );
             break;
           }
+          console.log(
+            `[Server] Setting initiative for ${character.name} (${message.characterId}): initiative=${message.initiative}, modifier=${message.initiativeModifier}`,
+          );
           if (
             this.characterService.setInitiative(
               state,
@@ -282,6 +285,7 @@ export class MessageRouter {
               message.initiativeModifier,
             )
           ) {
+            console.log(`[Server] Broadcasting updated initiative for ${character.name}`);
             this.broadcast();
             this.roomService.saveState();
           }
