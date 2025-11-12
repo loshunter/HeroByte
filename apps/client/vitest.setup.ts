@@ -9,3 +9,12 @@ if (typeof globalThis.alert !== "function") {
 if (typeof globalThis.confirm !== "function") {
   globalThis.confirm = vi.fn(() => false);
 }
+
+// Mock ResizeObserver for components that use element size tracking
+if (typeof globalThis.ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
