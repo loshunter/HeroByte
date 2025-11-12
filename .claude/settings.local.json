@@ -160,7 +160,11 @@
       "Bash(pnpm test:e2e:*)",
       "Bash(pnpm exec playwright show-report:*)",
       "Bash(pnpm --filter herobyte-client exec tsc:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(scripts/structure-baseline.json)",
+      "Bash(pnpm build:server:*)",
+      "Bash(pnpm test:client:coverage:*)",
+      "Bash(pnpm --filter herobyte-client test:coverage --reporter=verbose)"
     ],
     "deny": [],
     "ask": []

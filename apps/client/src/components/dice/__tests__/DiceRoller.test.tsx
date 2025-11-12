@@ -13,13 +13,14 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { DiceRoller } from "../DiceRoller";
+import type { Build, Token } from "../types";
 
 // Mock dice logic
 const mockRollBuild = vi.fn();
 vi.mock("../diceLogic", () => ({
-  rollBuild: (build: any) => mockRollBuild(build),
+  rollBuild: (build: Build) => mockRollBuild(build),
 }));
 
 describe("DiceRoller", () => {
@@ -29,10 +30,10 @@ describe("DiceRoller", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
-    mockRollBuild.mockImplementation((build) => ({
+    mockRollBuild.mockImplementation((build: Build) => ({
       id: `roll-${Date.now()}`,
       tokens: build,
-      perDie: build.map((token: any) => ({
+      perDie: build.map((token: Token) => ({
         tokenId: token.id,
         die: token.kind === "die" ? token.die : undefined,
         rolls: token.kind === "die" ? [10] : undefined,
@@ -49,9 +50,7 @@ describe("DiceRoller", () => {
 
   describe("Initial Render", () => {
     it("should render without crashing", () => {
-      const { container } = render(
-        <DiceRoller onClose={mockOnClose} onRoll={mockOnRoll} />,
-      );
+      const { container } = render(<DiceRoller onClose={mockOnClose} onRoll={mockOnRoll} />);
 
       expect(container).toBeTruthy();
     });

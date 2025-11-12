@@ -16,32 +16,38 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { BuildStrip } from "../BuildStrip";
-import type { Build } from "../types";
+import type { Build, Token } from "../types";
+
+interface DiceTokenProps {
+  token: Token;
+  onRemove: () => void;
+  onUpdateQty?: (qty: number) => void;
+  onUpdateMod?: (value: number) => void;
+  isAnimating?: boolean;
+}
 
 // Mock DiceToken component
 vi.mock("../DiceToken", () => ({
-  DiceToken: ({ token, onRemove, onUpdateQty, onUpdateMod, isAnimating }: any) => (
+  DiceToken: ({ token, onRemove, onUpdateQty, onUpdateMod, isAnimating }: DiceTokenProps) => (
     <div data-testid={`dice-token-${token.id}`}>
       <span data-testid={`token-kind-${token.id}`}>{token.kind}</span>
       {token.kind === "die" && (
         <>
           <span data-testid={`token-die-${token.id}`}>{token.die}</span>
           <span data-testid={`token-qty-${token.id}`}>{token.qty}</span>
-          {onUpdateQty && (
-            <button onClick={() => onUpdateQty(token.qty + 1)}>Update Qty</button>
-          )}
+          {onUpdateQty && <button onClick={() => onUpdateQty(token.qty + 1)}>Update Qty</button>}
         </>
       )}
       {token.kind === "mod" && (
         <>
           <span data-testid={`token-value-${token.id}`}>{token.value}</span>
-          {onUpdateMod && (
-            <button onClick={() => onUpdateMod(token.value + 1)}>Update Mod</button>
-          )}
+          {onUpdateMod && <button onClick={() => onUpdateMod(token.value + 1)}>Update Mod</button>}
         </>
       )}
       <button onClick={onRemove}>Remove</button>
-      <span data-testid={`token-animating-${token.id}`}>{isAnimating ? "animating" : "static"}</span>
+      <span data-testid={`token-animating-${token.id}`}>
+        {isAnimating ? "animating" : "static"}
+      </span>
     </div>
   ),
 }));
@@ -153,7 +159,7 @@ describe("BuildStrip", () => {
         { kind: "die", die: "d20", qty: 1, id: "token-2" },
       ];
 
-      const { container } = render(<BuildStrip build={build} onUpdateBuild={mockOnUpdateBuild} />);
+      render(<BuildStrip build={build} onUpdateBuild={mockOnUpdateBuild} />);
 
       // Should have the + sign but only before the second token (which is a die, so no operator)
       // Actually, operators only show before modifiers, so in this case no operators
@@ -238,9 +244,7 @@ describe("BuildStrip", () => {
       const updateModButton = screen.getByText("Update Mod");
       updateModButton.click();
 
-      expect(mockOnUpdateBuild).toHaveBeenCalledWith([
-        { kind: "mod", value: 6, id: "token-1" },
-      ]);
+      expect(mockOnUpdateBuild).toHaveBeenCalledWith([{ kind: "mod", value: 6, id: "token-1" }]);
     });
 
     it("should update only the targeted token when updating quantity", () => {

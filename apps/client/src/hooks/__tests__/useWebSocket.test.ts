@@ -14,7 +14,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import { useWebSocket } from "../useWebSocket";
 import { ConnectionState, AuthState } from "../../services/websocket";
 import type { RoomSnapshot, ClientMessage, ServerMessage } from "@shared";
@@ -225,9 +225,7 @@ describe("useWebSocket", () => {
       // Message should be queued, not sent immediately
       const ws = wsInstances[0];
       const sentMessages = ws.sentMessages;
-      const moveMessages = sentMessages.filter((msg: string) =>
-        msg.includes('"t":"move"'),
-      );
+      const moveMessages = sentMessages.filter((msg: string) => msg.includes('"t":"move"'));
       expect(moveMessages.length).toBe(0);
     });
 
@@ -353,7 +351,7 @@ describe("useWebSocket", () => {
     it("should call onRtcSignal callback when receiving RTC signals", async () => {
       const onRtcSignal = vi.fn();
 
-      const { result } = renderHook(() =>
+      renderHook(() =>
         useWebSocket({
           url: "ws://localhost:3001",
           uid: "test-user",
@@ -585,9 +583,7 @@ describe("useWebSocket", () => {
       // Original queued message should eventually be sent
       const ws = wsInstances[1];
       const sentMessages = ws.sentMessages;
-      const hasMoveMessage = sentMessages.some((msg: string) =>
-        msg.includes('"t":"move"'),
-      );
+      const hasMoveMessage = sentMessages.some((msg: string) => msg.includes('"t":"move"'));
 
       expect(hasMoveMessage).toBe(true);
     });

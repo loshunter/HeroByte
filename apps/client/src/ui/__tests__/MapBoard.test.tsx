@@ -15,10 +15,23 @@ import MapBoard from "../MapBoard";
 import type { RoomSnapshot } from "@shared";
 import type { MapBoardProps } from "../MapBoard.types";
 
+interface MockComponentProps {
+  children?: React.ReactNode;
+  [key: string]: unknown;
+}
+
 // Mock Konva components
 vi.mock("react-konva", () => ({
-  Stage: ({ children, ...props }: any) => <div data-testid="konva-stage" {...props}>{children}</div>,
-  Layer: ({ children, ...props }: any) => <div data-testid="konva-layer" {...props}>{children}</div>,
+  Stage: ({ children, ...props }: MockComponentProps) => (
+    <div data-testid="konva-stage" {...props}>
+      {children}
+    </div>
+  ),
+  Layer: ({ children, ...props }: MockComponentProps) => (
+    <div data-testid="konva-layer" {...props}>
+      {children}
+    </div>
+  ),
 }));
 
 // Mock all the layer components
