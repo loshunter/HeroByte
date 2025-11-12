@@ -5,6 +5,7 @@
 
 [![CI](https://img.shields.io/github/actions/workflow/status/loshunter/HeroByte/ci.yml?branch=dev&label=CI&logo=github)](https://github.com/loshunter/HeroByte/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/badge/coverage-tracking-blueviolet?logo=codecov)](https://app.codecov.io/gh/loshunter/HeroByte/tree/dev)
+[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](LICENSE)
 
 **A retro-inspired virtual tabletop for epic adventures online**
 
@@ -12,9 +13,123 @@
 
 </div>
 
-HeroByte is a system-agnostic, real-time multiplayer VTT that brings the charm of classic NES/SNES RPGs into the modern web. Built with domain-driven design and comprehensive test coverage, it delivers professional-grade multiplayer synchronization, visual dice rolling, voice chat, and infinite canvas drawing tools—all in your browser, no installs required.
+HeroByte is a retro-inspired virtual tabletop that brings 16-bit RPG nostalgia to modern online play—roll dice, move tokens, and tell stories together in your browser.
 
-**📚 Quick Navigation:** [Features](#-features) • [Testing](#-testing) • [Quick Start](#-quick-start) • [How to Play](#-how-to-play) • [Architecture](#%EF%B8%8F-architecture) • [Contributing](#-contributing)
+<!--
+TODO: Add screenshot or GIF here after running a session with art assets
+Example format:
+<div align="center">
+  <img src="assets/demo.gif" alt="HeroByte Demo" width="800"/>
+</div>
+-->
+
+**📚 Quick Navigation:** [Quick Start](#-quick-start) • [Features](#-features) • [Testing](#-testing) • [How to Play](#-how-to-play) • [Architecture](#%EF%B8%8F-architecture) • [Roadmap](TODO.md) • [Contributing](#-contributing)
+
+---
+
+## 🚀 Quick Start
+
+```bash
+./dev-start.sh
+# Frontend: http://localhost:5173
+# Backend: http://localhost:8787
+```
+
+**Prerequisites:** Node.js 18+ • pnpm 8+
+
+<details>
+<summary>📦 Full Installation & Setup Guide</summary>
+
+### Installation
+
+```bash
+# Install dependencies
+pnpm install
+```
+
+### Running Locally
+
+**Recommended: One-Command Start**
+
+```bash
+# From project root - handles cleanup, build, and startup automatically
+./dev-start.sh
+```
+
+This script cleans up stuck processes, builds the backend, and starts both servers in the correct order.
+
+**Access the Application:**
+
+- **Frontend:** http://localhost:5173
+- **Backend:** http://localhost:8787
+- **Default Room Password:** `Fun1` (change via DM Menu → Session → Room Security)
+- **Default DM Password:** `FunDM` (use to elevate to Dungeon Master role)
+
+**Alternative: Manual Start**
+
+```bash
+# Terminal 1: Start the backend
+pnpm dev:server
+
+# Terminal 2: Start the frontend
+pnpm dev:client
+```
+
+**Port Issues?**
+
+If you get "port already in use" errors:
+
+```bash
+./kill-ports.sh  # Cleans up stuck processes
+```
+
+See [PORT_MANAGEMENT.md](PORT_MANAGEMENT.md) for detailed troubleshooting.
+
+### Network Access
+
+To use on your local network:
+
+- Find your IP address (e.g. `192.168.x.x`)
+- Access at: `http://YOUR_IP:5173`
+- The server automatically listens on all interfaces
+
+### Security Configuration
+
+Set environment variables in `.env`:
+
+```bash
+HEROBYTE_ROOM_SECRET="your-secure-room-password"
+HEROBYTE_DM_PASSWORD="your-secure-dm-password"
+HEROBYTE_ALLOWED_ORIGINS="https://yourdomain.com,https://staging.yourdomain.com"
+```
+
+- `HEROBYTE_ROOM_SECRET` – Override development fallback room password (`Fun1`)
+- `HEROBYTE_DM_PASSWORD` – Override development fallback DM password (`FunDM`)
+- `HEROBYTE_ALLOWED_ORIGINS` – Restrict HTTP/WebSocket origins (comma-separated)
+
+### Common Scripts
+
+| Command | Description |
+|---------|-------------|
+| `pnpm dev` | Run client and server concurrently |
+| `pnpm dev:server` | Start server in watch mode |
+| `pnpm dev:client` | Start client in watch mode |
+| `pnpm build` | Build both server and client bundles |
+| `pnpm test` | Run full test suite (352 tests) |
+| `pnpm test:e2e` | Run Playwright E2E tests (auto-starts servers) |
+| `pnpm test:shared` | Execute unit tests for shared domain models |
+| `pnpm test:coverage` | Generate coverage reports for all packages |
+
+### Troubleshooting
+
+- **Dev server says port 5173 is busy** – Run `./kill-ports.sh` (or `./kill-client-port.bat` on Windows)
+- **WebSocket refuses connections** – Confirm backend is running on `http://localhost:8787`
+- **Voice chat fails in Chrome** – WebRTC requires secure origins; use `https://` (Cloudflare tunnel, `mkcert`, or hosted demo)
+- **Tests fail with missing state file** – Delete `apps/server/herobyte-state.json` and re-run `pnpm test`
+- **"Room secret not set" warning** – Set `HEROBYTE_ROOM_SECRET` in `.env`
+- **Map images don't load (CORS errors)** – Use CORS-friendly hosting like Discord CDN, Imgur, or Cloudinary
+
+</details>
 
 ---
 
@@ -120,119 +235,6 @@ pnpm test:client    # Client features
 - [docs/automated-testing-strategy.md](docs/automated-testing-strategy.md) - Testing architecture guide
 - [docs/TESTING.md](docs/TESTING.md) - Comprehensive testing guide with Chrome DevTools MCP
 - [TESTING_SETUP.md](TESTING_SETUP.md) - Original testing setup guide
-
-</details>
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- **Node.js 18+**
-- **pnpm 8+**
-
-### Installation
-
-```bash
-# Install dependencies
-pnpm install
-```
-
-### Running Locally
-
-**Recommended: One-Command Start**
-
-```bash
-# From project root - handles cleanup, build, and startup automatically
-./dev-start.sh
-```
-
-This script cleans up stuck processes, builds the backend, and starts both servers in the correct order.
-
-**Access the Application:**
-
-- **Frontend:** http://localhost:5173
-- **Backend:** http://localhost:8787
-- **Default Room Password:** `Fun1` (change via DM Menu → Session → Room Security)
-- **Default DM Password:** `FunDM` (use to elevate to Dungeon Master role)
-
-<details>
-<summary>🔧 Manual Start (Alternative)</summary>
-
-```bash
-# Terminal 1: Start the backend
-pnpm dev:server
-
-# Terminal 2: Start the frontend
-pnpm dev:client
-```
-
-**Port Issues?**
-
-If you get "port already in use" errors:
-
-```bash
-./kill-ports.sh  # Cleans up stuck processes
-```
-
-See [PORT_MANAGEMENT.md](PORT_MANAGEMENT.md) for detailed troubleshooting.
-
-</details>
-
-<details>
-<summary>🌐 Network Access</summary>
-
-To use on your local network:
-
-- Find your IP address (e.g. `192.168.x.x`)
-- Access at: `http://YOUR_IP:5173`
-- The server automatically listens on all interfaces
-
-</details>
-
-<details>
-<summary>🔒 Security Configuration</summary>
-
-Set environment variables in `.env`:
-
-```bash
-HEROBYTE_ROOM_SECRET="your-secure-room-password"
-HEROBYTE_DM_PASSWORD="your-secure-dm-password"
-HEROBYTE_ALLOWED_ORIGINS="https://yourdomain.com,https://staging.yourdomain.com"
-```
-
-- `HEROBYTE_ROOM_SECRET` – Override development fallback room password (`Fun1`)
-- `HEROBYTE_DM_PASSWORD` – Override development fallback DM password (`FunDM`)
-- `HEROBYTE_ALLOWED_ORIGINS` – Restrict HTTP/WebSocket origins (comma-separated)
-
-</details>
-
-<details>
-<summary>🛠️ Common Scripts</summary>
-
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Run client and server concurrently |
-| `pnpm dev:server` | Start server in watch mode |
-| `pnpm dev:client` | Start client in watch mode |
-| `pnpm build` | Build both server and client bundles |
-| `pnpm test` | Run full test suite (352 tests) |
-| `pnpm test:e2e` | Run Playwright E2E tests (auto-starts servers) |
-| `pnpm test:shared` | Execute unit tests for shared domain models |
-| `pnpm test:coverage` | Generate coverage reports for all packages |
-
-</details>
-
-<details>
-<summary>⚠️ Troubleshooting</summary>
-
-- **Dev server says port 5173 is busy** – Run `./kill-ports.sh` (or `./kill-client-port.bat` on Windows)
-- **WebSocket refuses connections** – Confirm backend is running on `http://localhost:8787`
-- **Voice chat fails in Chrome** – WebRTC requires secure origins; use `https://` (Cloudflare tunnel, `mkcert`, or hosted demo)
-- **Tests fail with missing state file** – Delete `apps/server/herobyte-state.json` and re-run `pnpm test`
-- **"Room secret not set" warning** – Set `HEROBYTE_ROOM_SECRET` in `.env`
-- **Map images don't load (CORS errors)** – Use CORS-friendly hosting like Discord CDN, Imgur, or Cloudinary
 
 </details>
 
@@ -432,8 +434,16 @@ Before requesting review, double-check CI status locally. Mention uncertainties 
 
 ## 📄 License
 
-ISC
+Released under the [ISC License](LICENSE).
 
 ---
 
+<div align="center">
+
 ⚡ **HeroByte: Where classic pixels meet modern play.**
+
+Made with ❤️ by [Hunter / ScopicMedia](https://github.com/loshunter)
+
+[Report Bug](https://github.com/loshunter/HeroByte/issues) • [Request Feature](https://github.com/loshunter/HeroByte/discussions) • [View Roadmap](TODO.md)
+
+</div>
