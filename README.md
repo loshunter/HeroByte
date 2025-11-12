@@ -326,7 +326,7 @@ graph LR
     Persistence[(Disk Persistence)]
   end
   subgraph Shared Contracts
-    Schemas[@shared message types<br/>& validation]
+    Schemas[Shared message types<br/>& validation]
   end
 
   UI --> Hooks
