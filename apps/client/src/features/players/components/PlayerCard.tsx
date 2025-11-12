@@ -52,7 +52,8 @@ export interface PlayerCardProps {
   onToggleTokenLock?: (locked: boolean) => void;
   tokenSize?: TokenSize;
   onTokenSizeChange?: (size: TokenSize) => void;
-  onAddCharacter?: (name: string) => void;
+  onAddCharacter?: (name: string) => boolean;
+  isCreatingCharacter?: boolean;
   characterId?: string;
   onDeleteCharacter?: (characterId: string) => void;
   onFocusToken?: () => void;
@@ -102,6 +103,7 @@ export const PlayerCard = memo<PlayerCardProps>(
     onTokenSizeChange,
     onStatusEffectsChange,
     onAddCharacter,
+    isCreatingCharacter,
     characterId,
     onDeleteCharacter,
     onFocusToken,
@@ -313,6 +315,7 @@ export const PlayerCard = memo<PlayerCardProps>(
           tokenSize={tokenSize}
           onTokenSizeChange={onTokenSizeChange}
           onAddCharacter={onAddCharacter}
+          isCreatingCharacter={isCreatingCharacter}
           characterId={characterId}
           onDeleteCharacter={onDeleteCharacter}
         />

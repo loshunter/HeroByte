@@ -7,6 +7,9 @@
  * handlers in the codebase to trigger this menu. This component extracts
  * the rendering logic from App.tsx for future completion.
  *
+ * UPDATE (Phase 10 - 2025-01-11): Added confirmation dialog before token deletion
+ * to match the behavior of keyboard shortcuts (Delete/Backspace keys).
+ *
  * Extracted from: apps/client/src/ui/App.tsx (lines 1411-1439)
  * Extraction date: 2025-10-20
  *
@@ -77,8 +80,12 @@ export function ContextMenu({ menu, onDelete, onClose }: ContextMenuProps): JSX.
           width: "100%",
         }}
         onClick={() => {
-          onDelete(menu.tokenId);
-          onClose();
+          // Show confirmation dialog before deleting
+          // This matches the behavior of keyboard shortcuts (Delete/Backspace)
+          if (confirm("Delete this token? This cannot be undone.")) {
+            onDelete(menu.tokenId);
+            onClose();
+          }
         }}
       >
         Delete Token

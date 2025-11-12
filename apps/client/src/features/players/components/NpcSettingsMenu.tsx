@@ -5,6 +5,7 @@
 // deletion). Mirrors the styling of the player settings popover.
 
 import { createPortal } from "react-dom";
+import { useEffect, useState } from "react";
 
 import type { TokenSize } from "@shared";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
@@ -25,6 +26,10 @@ interface NpcSettingsMenuProps {
   onToggleTokenLock?: (locked: boolean) => void;
   tokenSize?: TokenSize;
   onTokenSizeChange?: (size: TokenSize) => void;
+  /** Whether NPC deletion is in progress */
+  isDeleting?: boolean;
+  /** Error message from deletion attempt */
+  deletionError?: string | null;
 }
 
 export function NpcSettingsMenu({
@@ -43,7 +48,21 @@ export function NpcSettingsMenu({
   onToggleTokenLock,
   tokenSize = "medium",
   onTokenSizeChange,
+  isDeleting = false,
+  deletionError = null,
 }: NpcSettingsMenuProps): JSX.Element | null {
+  const [wasDeleting, setWasDeleting] = useState(false);
+
+  // Auto-close when deletion completes successfully
+  useEffect(() => {
+    if (wasDeleting && !isDeleting && !deletionError) {
+      // Deletion finished successfully
+      console.log("[NpcSettingsMenu] Deletion completed, closing menu");
+      onClose();
+    }
+    setWasDeleting(isDeleting);
+  }, [isDeleting, wasDeleting, deletionError, onClose]);
+
   if (!isOpen) {
     return null;
   }
@@ -213,8 +232,30 @@ export function NpcSettingsMenu({
               );
             })}
           </div>
-          <button className="btn btn-danger" style={{ fontSize: "0.65rem" }} onClick={onDelete}>
-            Delete NPC
+
+          {deletionError && (
+            <div
+              className="jrpg-text-small"
+              style={{
+                color: "var(--jrpg-red)",
+                padding: "4px",
+                textAlign: "center",
+                border: "1px solid var(--jrpg-red)",
+                borderRadius: "4px",
+                background: "rgba(214, 60, 83, 0.1)",
+              }}
+            >
+              {deletionError}
+            </div>
+          )}
+
+          <button
+            className="btn btn-danger"
+            style={{ fontSize: "0.65rem" }}
+            onClick={onDelete}
+            disabled={isDeleting}
+          >
+            {isDeleting ? "Deleting..." : "Delete NPC"}
           </button>
         </div>
       </div>

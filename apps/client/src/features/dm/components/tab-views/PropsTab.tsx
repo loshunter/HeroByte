@@ -28,6 +28,22 @@ interface PropsTabProps {
   onUpdateProp: (id: string, updates: Pick<Prop, "label" | "imageUrl" | "owner" | "size">) => void;
   /** Callback invoked when a prop is deleted via the PropEditor */
   onDeleteProp: (id: string) => void;
+  /** Whether prop creation is in progress */
+  isCreatingProp?: boolean;
+  /** Error message from prop creation attempt */
+  propCreationError?: string | null;
+  /** Whether prop deletion is in progress */
+  isDeletingProp?: boolean;
+  /** ID of the prop currently being deleted */
+  deletingPropId?: string | null;
+  /** Error message from prop deletion attempt */
+  propDeletionError?: string | null;
+  /** Whether prop update is in progress */
+  isUpdatingProp?: boolean;
+  /** Error message from prop update attempt */
+  propUpdateError?: string | null;
+  /** ID of the prop currently being updated */
+  updatingPropId?: string | null;
 }
 
 /**
@@ -46,6 +62,14 @@ export default function PropsTab({
   onCreateProp,
   onUpdateProp,
   onDeleteProp,
+  isCreatingProp = false,
+  propCreationError = null,
+  isDeletingProp = false,
+  deletingPropId = null,
+  propDeletionError = null,
+  isUpdatingProp = false,
+  propUpdateError = null,
+  updatingPropId = null,
 }: PropsTabProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -62,11 +86,27 @@ export default function PropsTab({
         <JRPGButton
           variant="success"
           onClick={onCreateProp}
+          disabled={isCreatingProp}
           style={{ fontSize: "10px", padding: "6px 12px" }}
         >
-          + Add Prop
+          {isCreatingProp ? "Creating..." : "+ Add Prop"}
         </JRPGButton>
       </div>
+
+      {propCreationError && (
+        <JRPGPanel
+          variant="simple"
+          style={{
+            color: "var(--jrpg-red)",
+            fontSize: "11px",
+            padding: "6px 8px",
+            border: "1px solid var(--jrpg-red)",
+            background: "rgba(214, 60, 83, 0.1)",
+          }}
+        >
+          {propCreationError}
+        </JRPGPanel>
+      )}
 
       {props.length === 0 ? (
         <JRPGPanel variant="simple" style={{ color: "var(--jrpg-white)", fontSize: "12px" }}>
@@ -74,15 +114,23 @@ export default function PropsTab({
         </JRPGPanel>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {props.map((prop) => (
-            <PropEditor
-              key={prop.id}
-              prop={prop}
-              players={players}
-              onUpdate={(updates) => onUpdateProp(prop.id, updates)}
-              onDelete={() => onDeleteProp(prop.id)}
-            />
-          ))}
+          {props.map((prop) => {
+            const isThisPropDeleting = isDeletingProp && deletingPropId === prop.id;
+            const isThisPropUpdating = isUpdatingProp && updatingPropId === prop.id;
+            return (
+              <PropEditor
+                key={prop.id}
+                prop={prop}
+                players={players}
+                onUpdate={(updates) => onUpdateProp(prop.id, updates)}
+                onDelete={() => onDeleteProp(prop.id)}
+                isDeleting={isThisPropDeleting}
+                deletionError={isThisPropDeleting ? propDeletionError : null}
+                isUpdating={isThisPropUpdating}
+                updateError={isThisPropUpdating ? propUpdateError : null}
+              />
+            );
+          })}
         </div>
       )}
     </div>

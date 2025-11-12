@@ -30,6 +30,22 @@ interface NPCsTabProps {
   onPlaceNPCToken: (id: string) => void;
   /** Callback to delete an NPC */
   onDeleteNPC: (id: string) => void;
+  /** Whether NPC creation is in progress */
+  isCreatingNpc?: boolean;
+  /** Error message from NPC creation attempt */
+  npcCreationError?: string | null;
+  /** Whether an NPC update is in progress */
+  isUpdatingNpc?: boolean;
+  /** Error message from NPC update attempt */
+  npcUpdateError?: string | null;
+  /** ID of the NPC currently being updated */
+  updatingNpcId?: string | null;
+  /** Whether a token placement is in progress */
+  isPlacingToken?: boolean;
+  /** Error message from token placement attempt */
+  tokenPlacementError?: string | null;
+  /** ID of the NPC whose token is being placed */
+  placingTokenForNpcId?: string | null;
 }
 
 /**
@@ -49,6 +65,14 @@ export default function NPCsTab({
   onUpdateNPC,
   onPlaceNPCToken,
   onDeleteNPC,
+  isCreatingNpc = false,
+  npcCreationError = null,
+  isUpdatingNpc = false,
+  npcUpdateError = null,
+  updatingNpcId = null,
+  isPlacingToken = false,
+  tokenPlacementError = null,
+  placingTokenForNpcId = null,
 }: NPCsTabProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -65,11 +89,27 @@ export default function NPCsTab({
         <JRPGButton
           variant="success"
           onClick={onCreateNPC}
+          disabled={isCreatingNpc}
           style={{ fontSize: "10px", padding: "6px 12px" }}
         >
-          + Add NPC
+          {isCreatingNpc ? "Creating..." : "+ Add NPC"}
         </JRPGButton>
       </div>
+
+      {npcCreationError && (
+        <JRPGPanel
+          variant="simple"
+          style={{
+            color: "var(--jrpg-red)",
+            fontSize: "11px",
+            padding: "6px 8px",
+            border: "1px solid var(--jrpg-red)",
+            background: "rgba(214, 60, 83, 0.1)",
+          }}
+        >
+          {npcCreationError}
+        </JRPGPanel>
+      )}
 
       {npcs.length === 0 ? (
         <JRPGPanel variant="simple" style={{ color: "var(--jrpg-white)", fontSize: "12px" }}>
@@ -84,6 +124,10 @@ export default function NPCsTab({
               onUpdate={(updates) => onUpdateNPC(npc.id, updates)}
               onPlace={() => onPlaceNPCToken(npc.id)}
               onDelete={() => onDeleteNPC(npc.id)}
+              isUpdating={isUpdatingNpc && updatingNpcId === npc.id}
+              updateError={updatingNpcId === npc.id ? npcUpdateError : null}
+              isPlacingToken={isPlacingToken && placingTokenForNpcId === npc.id}
+              tokenPlacementError={placingTokenForNpcId === npc.id ? tokenPlacementError : null}
             />
           ))}
         </div>

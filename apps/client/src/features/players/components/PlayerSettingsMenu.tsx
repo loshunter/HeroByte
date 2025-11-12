@@ -3,13 +3,14 @@
 // ============================================================================
 // Collapsible panel containing token image controls and state save/load actions
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import type { TokenSize } from "@shared";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import { useImageUrlNormalization } from "../../../hooks/useImageUrlNormalization";
+import { CharacterCreationModal } from "./CharacterCreationModal";
 
 export interface StatusOption {
   value: string;
@@ -43,7 +44,8 @@ interface PlayerSettingsMenuProps {
   onToggleTokenLock?: (locked: boolean) => void;
   tokenSize?: TokenSize;
   onTokenSizeChange?: (size: TokenSize) => void;
-  onAddCharacter?: (name: string) => void;
+  onAddCharacter?: (name: string) => boolean;
+  isCreatingCharacter?: boolean;
   characterId?: string;
   onDeleteCharacter?: (characterId: string) => void;
 }
@@ -68,11 +70,13 @@ export function PlayerSettingsMenu({
   tokenSize = "medium",
   onTokenSizeChange,
   onAddCharacter,
+  isCreatingCharacter,
   characterId,
   onDeleteCharacter,
 }: PlayerSettingsMenuProps): JSX.Element | null {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { normalizeUrl } = useImageUrlNormalization();
+  const [showCharacterModal, setShowCharacterModal] = useState(false);
 
   const handleApplyTokenImage = async () => {
     const normalizedUrl = await normalizeUrl(tokenImageInput.trim());
@@ -83,7 +87,7 @@ export function PlayerSettingsMenu({
     return null;
   }
 
-  return createPortal(
+  const settingsMenu = createPortal(
     <DraggableWindow
       title="🎮 Player Settings"
       onClose={onClose}
@@ -313,21 +317,12 @@ export function PlayerSettingsMenu({
               Multiple Characters
             </span>
             <JRPGButton
-              onClick={() => {
-                const confirmed = confirm(
-                  "Are you sure you want to have 2 separate characters in the campaign?\n\nThis will create a new character card with its own HP, portrait, and token that you control.",
-                );
-                if (confirmed) {
-                  const name = prompt("Enter character name:", "Character 2");
-                  if (name && name.trim()) {
-                    onAddCharacter(name.trim());
-                  }
-                }
-              }}
+              onClick={() => setShowCharacterModal(true)}
               variant="primary"
               style={{ fontSize: "10px" }}
+              disabled={isCreatingCharacter}
             >
-              ➕ Add Character
+              {isCreatingCharacter ? "Creating..." : "➕ Add Character"}
             </JRPGButton>
             {characterId && onDeleteCharacter && (
               <JRPGButton
@@ -367,5 +362,29 @@ export function PlayerSettingsMenu({
       </JRPGPanel>
     </DraggableWindow>,
     document.body,
+  );
+
+  const modal = onAddCharacter ? (
+    <CharacterCreationModal
+      isOpen={showCharacterModal}
+      onCreateCharacter={(name) => {
+        const success = onAddCharacter(name);
+        if (!success) {
+          // Creation already in progress, keep modal open
+          return false;
+        }
+        // Modal will auto-close when isCreating becomes false
+        return true;
+      }}
+      isCreating={isCreatingCharacter ?? false}
+      onClose={() => setShowCharacterModal(false)}
+    />
+  ) : null;
+
+  return (
+    <>
+      {settingsMenu}
+      {modal}
+    </>
   );
 }

@@ -137,7 +137,7 @@ export interface BottomPanelLayoutProps {
   /** Handler to update a character's name */
   onCharacterNameUpdate: (characterId: string, name: string) => void;
 
-  // NPC Management (4 props)
+  // NPC Management (6 props)
   /** Handler to update NPC properties */
   onNpcUpdate: (id: string, updates: Partial<NPC>) => void;
   /** Handler to delete an NPC */
@@ -146,6 +146,10 @@ export interface BottomPanelLayoutProps {
   onNpcPlaceToken: (id: string) => void;
   /** Handler to delete a player token from the board */
   onPlayerTokenDelete: (tokenId: string) => void;
+  /** Whether NPC deletion is in progress */
+  isDeletingNpc?: boolean;
+  /** Error message from NPC deletion attempt */
+  npcDeletionError?: string | null;
 
   // Token Management (3 props)
   /** Handler to toggle token lock state */
@@ -165,13 +169,17 @@ export interface BottomPanelLayoutProps {
   /** Handler to focus camera on a specific token */
   onFocusToken: (tokenId: string) => void;
 
-  // Combat/Initiative (5 props)
+  // Combat/Initiative (7 props)
   /** Whether combat is currently active */
   combatActive?: boolean;
   /** Character ID of the entity whose turn it currently is */
   currentTurnCharacterId?: string;
   /** Handler to set a character's initiative roll and modifier */
   onSetInitiative: (characterId: string, initiative: number, modifier: number) => void;
+  /** Whether an initiative setting operation is in progress */
+  isSettingInitiative?: boolean;
+  /** Error message from initiative setting operation */
+  initiativeError?: string | null;
   /** Handler to advance to the next turn in combat */
   onNextTurn?: () => void;
   /** Handler to go back to the previous turn in combat */
@@ -270,6 +278,8 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
     onNpcDelete,
     onNpcPlaceToken,
     onPlayerTokenDelete,
+    isDeletingNpc,
+    npcDeletionError,
     onToggleTokenLock,
     onTokenSizeChange,
     onTokenImageChange,
@@ -279,6 +289,8 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
     combatActive,
     currentTurnCharacterId,
     onSetInitiative,
+    isSettingInitiative,
+    initiativeError,
     onNextTurn,
     onPreviousTurn,
   }) => {
@@ -318,6 +330,8 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
         onNpcDelete={onNpcDelete}
         onNpcPlaceToken={onNpcPlaceToken}
         onPlayerTokenDelete={onPlayerTokenDelete}
+        isDeletingNpc={isDeletingNpc}
+        npcDeletionError={npcDeletionError}
         onToggleTokenLock={onToggleTokenLock}
         onTokenSizeChange={onTokenSizeChange}
         onTokenImageChange={onTokenImageChange}
@@ -328,6 +342,8 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
         combatActive={combatActive}
         currentTurnCharacterId={currentTurnCharacterId}
         onSetInitiative={onSetInitiative}
+        isSettingInitiative={isSettingInitiative}
+        initiativeError={initiativeError}
         onNextTurn={onNextTurn}
         onPreviousTurn={onPreviousTurn}
       />

@@ -1,4 +1,4 @@
-import type { RoomSnapshot } from "@shared";
+import type { RoomSnapshot, ClientMessage } from "@shared";
 
 type HeroByteE2EState = {
   snapshot?: RoomSnapshot | null;
@@ -6,6 +6,7 @@ type HeroByteE2EState = {
   gridSize?: number;
   cam?: { x: number; y: number; scale: number };
   viewport?: { width: number; height: number };
+  sendMessage?: (message: ClientMessage) => void;
 };
 
 declare global {

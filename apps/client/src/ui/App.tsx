@@ -34,12 +34,18 @@ import { usePlayerActions } from "../hooks/usePlayerActions";
 import { useVoiceChatManager } from "../hooks/useVoiceChatManager";
 import { useDiceRolling } from "../hooks/useDiceRolling";
 import { useServerEventHandlers } from "../hooks/useServerEventHandlers";
-import { useNpcManagement } from "../hooks/useNpcManagement";
-import { usePropManagement } from "../hooks/usePropManagement";
+import { useNpcDeletion } from "../hooks/useNpcDeletion";
+import { useNpcCreation } from "../hooks/useNpcCreation";
+import { useNpcUpdate } from "../hooks/useNpcUpdate";
+import { useNpcTokenPlacement } from "../hooks/useNpcTokenPlacement";
+import { usePropCreation } from "../hooks/usePropCreation";
+import { usePropDeletion } from "../hooks/usePropDeletion";
+import { usePropUpdate } from "../hooks/usePropUpdate";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { useDMManagement } from "../hooks/useDMManagement";
 import { usePlayerTokenSelection } from "../hooks/usePlayerTokenSelection";
 import { MainLayout } from "../layouts/MainLayout";
+import { DMElevationModal } from "../features/dm/components/DMElevationModal";
 
 // ----------------------------------------------------------------------------
 // MAIN APP COMPONENT
@@ -333,6 +339,7 @@ function AuthenticatedApp({
     snapshot,
     uid,
     gridSize,
+    sendMessage,
   });
 
   const mapSceneObject = useMemo(
@@ -345,12 +352,47 @@ function AuthenticatedApp({
     [snapshot?.sceneObjects],
   );
 
-  // NPC Management Hook
-  const { handleCreateNPC, handleUpdateNPC, handleDeleteNPC, handlePlaceNPCToken } =
-    useNpcManagement({
-      sendMessage,
-      snapshot,
-    });
+  // NPC Deletion Hook - provides loading state and server confirmation
+  const {
+    isDeleting: isDeletingNpc,
+    deleteNpc,
+    error: npcDeletionError,
+  } = useNpcDeletion({
+    snapshot,
+    sendMessage,
+  });
+
+  // NPC Creation Hook - provides loading state and server confirmation
+  const {
+    isCreating: isCreatingNpc,
+    createNpc,
+    error: npcCreationError,
+  } = useNpcCreation({
+    snapshot,
+    sendMessage,
+  });
+
+  // NPC Update Hook - provides loading state and server confirmation
+  const {
+    isUpdating: isUpdatingNpc,
+    updateNpc,
+    error: npcUpdateError,
+    targetNpcId: updatingNpcId,
+  } = useNpcUpdate({
+    snapshot,
+    sendMessage,
+  });
+
+  // NPC Token Placement Hook - provides loading state and server confirmation
+  const {
+    isPlacing: isPlacingToken,
+    placeToken,
+    error: tokenPlacementError,
+    placingTokenForNpcId,
+  } = useNpcTokenPlacement({
+    snapshot,
+    sendMessage,
+  });
 
   const handleDeletePlayerToken = useCallback(
     (tokenId: string) => {
@@ -359,10 +401,37 @@ function AuthenticatedApp({
     [sendMessage],
   );
 
-  // Prop Management Hook
-  const { handleCreateProp, handleUpdateProp, handleDeleteProp } = usePropManagement({
+  // Prop Creation Hook
+  const {
+    isCreating: isCreatingProp,
+    createProp,
+    error: propCreationError,
+  } = usePropCreation({
+    snapshot,
     sendMessage,
     cameraState,
+  });
+
+  // Prop Update Hook - provides loading state and server confirmation
+  const {
+    isUpdating: isUpdatingProp,
+    updateProp,
+    error: propUpdateError,
+    targetPropId: updatingPropId,
+  } = usePropUpdate({
+    snapshot,
+    sendMessage,
+  });
+
+  // Prop Deletion Hook
+  const {
+    isDeleting: isDeletingProp,
+    deleteProp: handleDeleteProp,
+    error: propDeletionError,
+    deletingPropId,
+  } = usePropDeletion({
+    snapshot,
+    sendMessage,
   });
 
   // Session Management Hook
@@ -373,12 +442,12 @@ function AuthenticatedApp({
   });
 
   // DM role detection
-  const { isDM, elevateToDM } = useDMRole({ snapshot, uid, send: sendMessage });
+  const { isDM } = useDMRole({ snapshot, uid, send: sendMessage });
 
-  // DM management (elevation and revocation)
-  const { handleToggleDM } = useDMManagement({
-    isDM,
-    elevateToDM,
+  // DM management (elevation and revocation) with modal state
+  const { handleToggleDM, modalState, modalActions } = useDMManagement({
+    snapshot,
+    uid,
     sendMessage,
     toast,
   });
@@ -497,135 +566,158 @@ function AuthenticatedApp({
   // -------------------------------------------------------------------------
 
   return (
-    <MainLayout
-      // Layout state
-      topHeight={topHeight}
-      bottomHeight={bottomHeight}
-      topPanelRef={topPanelRef}
-      bottomPanelRef={bottomPanelRef}
-      contextMenu={contextMenu}
-      setContextMenu={handleContextMenuChange}
-      // Connection state
-      isConnected={isConnected}
-      // Tool state
-      activeTool={activeTool}
-      setActiveTool={setActiveTool}
-      drawMode={drawMode}
-      pointerMode={pointerMode}
-      measureMode={measureMode}
-      transformMode={transformMode}
-      selectMode={selectMode}
-      alignmentMode={alignmentMode}
-      // UI state
-      snapToGrid={snapToGrid}
-      setSnapToGrid={setSnapToGrid}
-      crtFilter={crtFilter}
-      setCrtFilter={setCrtFilter}
-      diceRollerOpen={diceRollerOpen}
-      rollLogOpen={rollLogOpen}
-      toggleDiceRoller={toggleDiceRoller}
-      toggleRollLog={toggleRollLog}
-      micEnabled={micEnabled}
-      toggleMic={toggleMic}
-      gridLocked={gridLocked}
-      setGridLocked={setGridLocked}
-      // Data
-      snapshot={snapshot}
-      uid={uid}
-      gridSize={gridSize}
-      gridSquareSize={gridSquareSize}
-      isDM={isDM}
-      // Camera
-      cameraState={cameraState}
-      camera={camera}
-      cameraCommand={cameraCommand}
-      handleCameraCommandHandled={handleCameraCommandHandled}
-      setCameraState={handleCameraChange}
-      handleFocusToken={handleFocusToken}
-      handleResetCamera={handleResetCamera}
-      // Drawing
-      drawingToolbarProps={drawingManager.toolbarProps}
-      drawingProps={drawingManager.drawingProps}
-      handleClearDrawings={drawingManager.handleClearDrawings}
-      // Editing
-      editingPlayerUID={editingPlayerUID}
-      nameInput={nameInput}
-      editingHpUID={editingHpUID}
-      hpInput={hpInput}
-      editingMaxHpUID={editingMaxHpUID}
-      maxHpInput={maxHpInput}
-      updateNameInput={updateNameInput}
-      startNameEdit={handleStartNameEdit}
-      submitNameEdit={submitNameEdit}
-      updateHpInput={updateHpInput}
-      startHpEdit={handleStartHpEdit}
-      submitHpEdit={submitHpEdit}
-      updateMaxHpInput={updateMaxHpInput}
-      startMaxHpEdit={handleStartMaxHpEdit}
-      submitMaxHpEdit={submitMaxHpEdit}
-      // Selection
-      selectedObjectId={selectedObjectId}
-      selectedObjectIds={selectedObjectIds}
-      handleObjectSelection={handleObjectSelection}
-      handleObjectSelectionBatch={handleObjectSelectionBatch}
-      lockSelected={lockSelected}
-      unlockSelected={unlockSelected}
-      // Player token selection (DM shortcuts)
-      selectPlayerTokens={selectPlayerTokens}
-      // Player actions
-      playerActions={playerActions}
-      // Scene objects
-      mapSceneObject={mapSceneObjectForLayout}
-      stagingZoneSceneObject={stagingZoneSceneObjectForLayout}
-      recolorToken={recolorToken}
-      transformSceneObject={transformSceneObject}
-      toggleSceneObjectLock={toggleSceneObjectLock}
-      deleteToken={deleteToken}
-      updateTokenImage={updateTokenImage}
-      updateTokenSize={updateTokenSize}
-      // Alignment
-      alignmentPoints={alignmentPoints}
-      alignmentSuggestion={alignmentSuggestion}
-      alignmentError={alignmentError}
-      handleAlignmentStart={handleAlignmentStart}
-      handleAlignmentReset={handleAlignmentReset}
-      handleAlignmentCancel={handleAlignmentCancel}
-      handleAlignmentApply={handleAlignmentApply}
-      handleAlignmentPointCapture={handleAlignmentPointCapture}
-      // Dice
-      rollHistory={rollHistory}
-      viewingRoll={viewingRollForLayout}
-      handleRoll={handleRoll}
-      handleClearLog={handleClearLog}
-      handleViewRoll={handleViewRoll}
-      // Room password
-      roomPasswordStatus={roomPasswordStatus}
-      roomPasswordPending={roomPasswordPending}
-      handleSetRoomPassword={handleSetRoomPassword}
-      dismissRoomPasswordStatus={dismissRoomPasswordStatus}
-      // NPC management
-      handleCreateNPC={handleCreateNPC}
-      handleUpdateNPC={handleUpdateNPC}
-      handleDeleteNPC={handleDeleteNPC}
-      handlePlaceNPCToken={handlePlaceNPCToken}
-      handleDeletePlayerToken={handleDeletePlayerToken}
-      // Prop management
-      handleCreateProp={handleCreateProp}
-      handleUpdateProp={handleUpdateProp}
-      handleDeleteProp={handleDeleteProp}
-      // Session management
-      handleSaveSession={handleSaveSession}
-      handleLoadSession={handleLoadSession}
-      // DM management
-      handleToggleDM={handleToggleDM}
-      // Map actions
-      setMapBackgroundURL={setMapBackgroundURL}
-      setGridSize={setGridSize}
-      setGridSquareSize={setGridSquareSize}
-      // Toast
-      toast={toast}
-      // Other
-      sendMessage={sendMessage}
-    />
+    <>
+      <MainLayout
+        // Layout state
+        topHeight={topHeight}
+        bottomHeight={bottomHeight}
+        topPanelRef={topPanelRef}
+        bottomPanelRef={bottomPanelRef}
+        contextMenu={contextMenu}
+        setContextMenu={handleContextMenuChange}
+        // Connection state
+        isConnected={isConnected}
+        // Tool state
+        activeTool={activeTool}
+        setActiveTool={setActiveTool}
+        drawMode={drawMode}
+        pointerMode={pointerMode}
+        measureMode={measureMode}
+        transformMode={transformMode}
+        selectMode={selectMode}
+        alignmentMode={alignmentMode}
+        // UI state
+        snapToGrid={snapToGrid}
+        setSnapToGrid={setSnapToGrid}
+        crtFilter={crtFilter}
+        setCrtFilter={setCrtFilter}
+        diceRollerOpen={diceRollerOpen}
+        rollLogOpen={rollLogOpen}
+        toggleDiceRoller={toggleDiceRoller}
+        toggleRollLog={toggleRollLog}
+        micEnabled={micEnabled}
+        toggleMic={toggleMic}
+        gridLocked={gridLocked}
+        setGridLocked={setGridLocked}
+        // Data
+        snapshot={snapshot}
+        uid={uid}
+        gridSize={gridSize}
+        gridSquareSize={gridSquareSize}
+        isDM={isDM}
+        // Camera
+        cameraState={cameraState}
+        camera={camera}
+        cameraCommand={cameraCommand}
+        handleCameraCommandHandled={handleCameraCommandHandled}
+        setCameraState={handleCameraChange}
+        handleFocusToken={handleFocusToken}
+        handleResetCamera={handleResetCamera}
+        // Drawing
+        drawingToolbarProps={drawingManager.toolbarProps}
+        drawingProps={drawingManager.drawingProps}
+        handleClearDrawings={drawingManager.handleClearDrawings}
+        // Editing
+        editingPlayerUID={editingPlayerUID}
+        nameInput={nameInput}
+        editingHpUID={editingHpUID}
+        hpInput={hpInput}
+        editingMaxHpUID={editingMaxHpUID}
+        maxHpInput={maxHpInput}
+        updateNameInput={updateNameInput}
+        startNameEdit={handleStartNameEdit}
+        submitNameEdit={submitNameEdit}
+        updateHpInput={updateHpInput}
+        startHpEdit={handleStartHpEdit}
+        submitHpEdit={submitHpEdit}
+        updateMaxHpInput={updateMaxHpInput}
+        startMaxHpEdit={handleStartMaxHpEdit}
+        submitMaxHpEdit={submitMaxHpEdit}
+        // Selection
+        selectedObjectId={selectedObjectId}
+        selectedObjectIds={selectedObjectIds}
+        handleObjectSelection={handleObjectSelection}
+        handleObjectSelectionBatch={handleObjectSelectionBatch}
+        lockSelected={lockSelected}
+        unlockSelected={unlockSelected}
+        // Player token selection (DM shortcuts)
+        selectPlayerTokens={selectPlayerTokens}
+        // Player actions
+        playerActions={playerActions}
+        // Scene objects
+        mapSceneObject={mapSceneObjectForLayout}
+        stagingZoneSceneObject={stagingZoneSceneObjectForLayout}
+        recolorToken={recolorToken}
+        transformSceneObject={transformSceneObject}
+        toggleSceneObjectLock={toggleSceneObjectLock}
+        deleteToken={deleteToken}
+        updateTokenImage={updateTokenImage}
+        updateTokenSize={updateTokenSize}
+        // Alignment
+        alignmentPoints={alignmentPoints}
+        alignmentSuggestion={alignmentSuggestion}
+        alignmentError={alignmentError}
+        handleAlignmentStart={handleAlignmentStart}
+        handleAlignmentReset={handleAlignmentReset}
+        handleAlignmentCancel={handleAlignmentCancel}
+        handleAlignmentApply={handleAlignmentApply}
+        handleAlignmentPointCapture={handleAlignmentPointCapture}
+        // Dice
+        rollHistory={rollHistory}
+        viewingRoll={viewingRollForLayout}
+        handleRoll={handleRoll}
+        handleClearLog={handleClearLog}
+        handleViewRoll={handleViewRoll}
+        // Room password
+        roomPasswordStatus={roomPasswordStatus}
+        roomPasswordPending={roomPasswordPending}
+        handleSetRoomPassword={handleSetRoomPassword}
+        dismissRoomPasswordStatus={dismissRoomPasswordStatus}
+        // NPC management
+        handleCreateNPC={createNpc}
+        handleUpdateNPC={updateNpc}
+        handleDeleteNPC={deleteNpc}
+        isDeletingNpc={isDeletingNpc}
+        npcDeletionError={npcDeletionError}
+        isCreatingNpc={isCreatingNpc}
+        npcCreationError={npcCreationError}
+        isUpdatingNpc={isUpdatingNpc}
+        npcUpdateError={npcUpdateError}
+        updatingNpcId={updatingNpcId}
+        isPlacingToken={isPlacingToken}
+        tokenPlacementError={tokenPlacementError}
+        placingTokenForNpcId={placingTokenForNpcId}
+        handlePlaceNPCToken={placeToken}
+        handleDeletePlayerToken={handleDeletePlayerToken}
+        // Prop management
+        handleCreateProp={createProp}
+        handleUpdateProp={updateProp}
+        handleDeleteProp={handleDeleteProp}
+        isCreatingProp={isCreatingProp}
+        propCreationError={propCreationError}
+        isDeletingProp={isDeletingProp}
+        deletingPropId={deletingPropId}
+        propDeletionError={propDeletionError}
+        isUpdatingProp={isUpdatingProp}
+        propUpdateError={propUpdateError}
+        updatingPropId={updatingPropId}
+        // Session management
+        handleSaveSession={handleSaveSession}
+        handleLoadSession={handleLoadSession}
+        // DM management
+        handleToggleDM={handleToggleDM}
+        // Map actions
+        setMapBackgroundURL={setMapBackgroundURL}
+        setGridSize={setGridSize}
+        setGridSquareSize={setGridSquareSize}
+        // Toast
+        toast={toast}
+        // Other
+        sendMessage={sendMessage}
+      />
+
+      {/* DM Elevation Modal */}
+      <DMElevationModal {...modalState} {...modalActions} />
+    </>
   );
 }

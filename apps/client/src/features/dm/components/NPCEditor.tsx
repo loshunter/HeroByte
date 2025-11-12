@@ -20,9 +20,22 @@ interface NPCEditorProps {
   }) => void;
   onPlace: () => void;
   onDelete: () => void;
+  isUpdating?: boolean;
+  updateError?: string | null;
+  isPlacingToken?: boolean;
+  tokenPlacementError?: string | null;
 }
 
-export function NPCEditor({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) {
+export function NPCEditor({
+  npc,
+  onUpdate,
+  onPlace,
+  onDelete,
+  isUpdating = false,
+  updateError = null,
+  isPlacingToken = false,
+  tokenPlacementError = null,
+}: NPCEditorProps) {
   const [name, setName] = useState(npc.name);
   const [hpInput, setHpInput] = useState(String(npc.hp));
   const [maxHpInput, setMaxHpInput] = useState(String(npc.maxHp));
@@ -88,6 +101,64 @@ export function NPCEditor({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) 
 
   return (
     <JRPGPanel variant="simple" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      {updateError && (
+        <div
+          style={{
+            padding: "8px",
+            background: "rgba(255, 0, 0, 0.1)",
+            border: "1px solid rgba(255, 0, 0, 0.3)",
+            borderRadius: "4px",
+            color: "#ff4444",
+            fontSize: "12px",
+          }}
+        >
+          {updateError}
+        </div>
+      )}
+      {tokenPlacementError && (
+        <div
+          style={{
+            padding: "8px",
+            background: "rgba(255, 0, 0, 0.1)",
+            border: "1px solid rgba(255, 0, 0, 0.3)",
+            borderRadius: "4px",
+            color: "#ff4444",
+            fontSize: "12px",
+          }}
+        >
+          {tokenPlacementError}
+        </div>
+      )}
+      {isUpdating && (
+        <div
+          style={{
+            padding: "6px",
+            background: "rgba(218, 165, 32, 0.1)",
+            border: "1px solid var(--jrpg-border-gold)",
+            borderRadius: "4px",
+            color: "var(--jrpg-gold)",
+            fontSize: "11px",
+            textAlign: "center",
+          }}
+        >
+          Updating...
+        </div>
+      )}
+      {isPlacingToken && (
+        <div
+          style={{
+            padding: "6px",
+            background: "rgba(218, 165, 32, 0.1)",
+            border: "1px solid var(--jrpg-border-gold)",
+            borderRadius: "4px",
+            color: "var(--jrpg-gold)",
+            fontSize: "11px",
+            textAlign: "center",
+          }}
+        >
+          Placing token...
+        </div>
+      )}
       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
         <label className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
           Name
@@ -99,12 +170,15 @@ export function NPCEditor({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) 
             onKeyDown={(e) => {
               if (e.key === "Enter") handleNameBlur();
             }}
+            disabled={isUpdating}
             style={{
               width: "100%",
               padding: "4px",
               background: "#111",
               color: "var(--jrpg-white)",
               border: "1px solid var(--jrpg-border-gold)",
+              opacity: isUpdating ? 0.5 : 1,
+              cursor: isUpdating ? "not-allowed" : "text",
             }}
           />
         </label>
@@ -122,12 +196,15 @@ export function NPCEditor({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) 
             onKeyDown={(e) => {
               if (e.key === "Enter") handleHpBlur();
             }}
+            disabled={isUpdating}
             style={{
               width: "100%",
               padding: "4px",
               background: "#111",
               color: "var(--jrpg-white)",
               border: "1px solid var(--jrpg-border-gold)",
+              opacity: isUpdating ? 0.5 : 1,
+              cursor: isUpdating ? "not-allowed" : "text",
             }}
           />
         </label>
@@ -142,12 +219,15 @@ export function NPCEditor({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) 
             onKeyDown={(e) => {
               if (e.key === "Enter") handleMaxHpBlur();
             }}
+            disabled={isUpdating}
             style={{
               width: "100%",
               padding: "4px",
               background: "#111",
               color: "var(--jrpg-white)",
               border: "1px solid var(--jrpg-border-gold)",
+              opacity: isUpdating ? 0.5 : 1,
+              cursor: isUpdating ? "not-allowed" : "text",
             }}
           />
         </label>
@@ -163,12 +243,15 @@ export function NPCEditor({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) 
           value={portrait}
           onChange={(e) => setPortrait(e.target.value)}
           onBlur={handlePortraitBlur}
+          disabled={isUpdating}
           style={{
             width: "100%",
             padding: "4px",
             background: "#111",
             color: "var(--jrpg-white)",
             border: "1px solid var(--jrpg-border-gold)",
+            opacity: isUpdating ? 0.5 : 1,
+            cursor: isUpdating ? "not-allowed" : "text",
           }}
         />
       </label>
@@ -198,12 +281,15 @@ export function NPCEditor({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) 
           value={tokenImage}
           onChange={(e) => setTokenImage(e.target.value)}
           onBlur={handleTokenImageBlur}
+          disabled={isUpdating}
           style={{
             width: "100%",
             padding: "4px",
             background: "#111",
             color: "var(--jrpg-white)",
             border: "1px solid var(--jrpg-border-gold)",
+            opacity: isUpdating ? 0.5 : 1,
+            cursor: isUpdating ? "not-allowed" : "text",
           }}
         />
       </label>
@@ -232,11 +318,17 @@ export function NPCEditor({ npc, onUpdate, onPlace, onDelete }: NPCEditorProps) 
             commitUpdate();
             onPlace();
           }}
+          disabled={isUpdating || isPlacingToken}
           style={{ fontSize: "10px", flex: 1 }}
         >
-          Place on Map
+          {isPlacingToken ? "Placing..." : "Place on Map"}
         </JRPGButton>
-        <JRPGButton variant="danger" onClick={onDelete} style={{ fontSize: "10px", flex: 1 }}>
+        <JRPGButton
+          variant="danger"
+          onClick={onDelete}
+          disabled={isUpdating || isPlacingToken}
+          style={{ fontSize: "10px", flex: 1 }}
+        >
           Delete
         </JRPGButton>
       </div>

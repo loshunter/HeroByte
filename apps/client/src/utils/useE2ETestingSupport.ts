@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import type { RoomSnapshot } from "@shared";
+import type { RoomSnapshot, ClientMessage } from "@shared";
 
 /**
  * Interface for E2E testing support hook parameters
@@ -37,6 +37,12 @@ interface E2ETestingSupportProps {
    * Optional - enriched by MapBoard component when viewport is rendered
    */
   viewport?: { width: number; height: number };
+
+  /**
+   * Function to send messages to the server
+   * Optional - allows E2E tests to programmatically send messages
+   */
+  sendMessage?: (message: ClientMessage) => void;
 }
 
 /**
@@ -85,7 +91,7 @@ interface E2ETestingSupportProps {
  * });
  */
 export function useE2ETestingSupport(props: E2ETestingSupportProps): void {
-  const { snapshot, uid, gridSize, cam, viewport } = props;
+  const { snapshot, uid, gridSize, cam, viewport, sendMessage } = props;
 
   useEffect(() => {
     // SSR safety: Do nothing when window is undefined
@@ -106,6 +112,7 @@ export function useE2ETestingSupport(props: E2ETestingSupportProps): void {
         gridSize?: number;
         cam?: { x: number; y: number; scale: number };
         viewport?: { width: number; height: number };
+        sendMessage?: (message: ClientMessage) => void;
       };
     };
 
@@ -119,6 +126,7 @@ export function useE2ETestingSupport(props: E2ETestingSupportProps): void {
       // Conditionally add cam and viewport if provided
       ...(cam && { cam }),
       ...(viewport && { viewport }),
+      ...(sendMessage && { sendMessage }),
     };
-  }, [snapshot, uid, gridSize, cam, viewport]);
+  }, [snapshot, uid, gridSize, cam, viewport, sendMessage]);
 }
