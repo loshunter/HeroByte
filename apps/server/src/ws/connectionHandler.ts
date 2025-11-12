@@ -134,7 +134,7 @@ export class ConnectionHandler {
     ws.on("message", (buf) => this.handleMessage(Buffer.from(buf as ArrayBuffer), uid));
 
     // Disconnection handling
-    ws.on("close", () => this.handleDisconnection(uid, keepalive));
+    ws.on("close", () => this.handleDisconnection(uid, keepalive, ws));
   }
 
   /**
@@ -216,11 +216,19 @@ export class ConnectionHandler {
   /**
    * Handle client disconnection
    */
-  private handleDisconnection(uid: string, keepalive: NodeJS.Timeout): void {
+  private handleDisconnection(uid: string, keepalive: NodeJS.Timeout, ws: WebSocket): void {
     // Clear keepalive interval
     clearInterval(keepalive);
 
     const state = this.container.roomService.getState();
+
+    // Only clean up if THIS socket is still the current one for this UID
+    // This prevents race condition when an old connection closes during replacement
+    const currentWs = this.container.uidToWs.get(uid);
+    if (currentWs !== ws) {
+      console.log(`[WebSocket] Ignoring close event for replaced connection: ${uid}`);
+      return;
+    }
 
     // Clean up disconnected player's connection
     state.users = state.users.filter((u) => u !== uid);
