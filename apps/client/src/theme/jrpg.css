@@ -162,7 +162,7 @@
     inset 0 0 0 1px var(--jrpg-border-shadow),
     inset 2px 2px 0 rgba(0, 0, 0, 0.4),   /* Inverted shadows */
     0 1px 0 var(--jrpg-border-shadow);    /* Pressed down */
-  transform: translateY(2px);  /* Push down effect */
+  /* Removed transform to prevent interference with absolutely positioned buttons */
 }
 
 .jrpg-button-primary {
