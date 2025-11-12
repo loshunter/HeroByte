@@ -36,7 +36,7 @@ HeroByte is a system-agnostic, real-time multiplayer VTT that brings the charm o
 - **Grid System** – Adjustable grid (10-500px) with snap-to-grid and lock functionality
 
 ### 🎲 Dice & Combat
-- **Visual Dice Roller** – Interactive 3D-style dice with physics-based animations
+- **Visual Dice Roller** – Interactive dice interface with animated roll results
 - **Multi-die Support** – Roll d4, d6, d8, d10, d12, d20, d100 with modifiers
 - **Roll History** – Shared log with timestamps, player names, and expandable formulas
 - **HP Tracking** – Real-time hit point management with visual indicators
