@@ -3,7 +3,8 @@
 // ============================================================================
 // Handles room state management, persistence, and broadcasting
 
-import { writeFileSync, readFileSync, existsSync } from "fs";
+import { readFileSync, existsSync } from "fs";
+import { writeFile } from "fs/promises";
 import type { WebSocket } from "ws";
 import type { Player, RoomSnapshot, Character, SceneObject, PlayerStagingZone } from "@shared";
 import type { RoomState } from "./model.js";
@@ -114,26 +115,27 @@ export class RoomService {
 
   /**
    * Save game state to disk (called after every state change)
+   * Uses async file write to prevent blocking the event loop
    */
   saveState(): void {
-    try {
-      const persistentData = {
-        tokens: this.state.tokens,
-        players: this.state.players,
-        characters: this.state.characters,
-        props: this.state.props,
-        mapBackground: this.state.mapBackground,
-        drawings: this.state.drawings,
-        gridSize: this.state.gridSize,
-        gridSquareSize: this.state.gridSquareSize,
-        diceRolls: this.state.diceRolls,
-        sceneObjects: this.state.sceneObjects,
-        playerStagingZone: this.state.playerStagingZone,
-      };
-      writeFileSync(STATE_FILE, JSON.stringify(persistentData, null, 2));
-    } catch (err) {
+    const persistentData = {
+      tokens: this.state.tokens,
+      players: this.state.players,
+      characters: this.state.characters,
+      props: this.state.props,
+      mapBackground: this.state.mapBackground,
+      drawings: this.state.drawings,
+      gridSize: this.state.gridSize,
+      gridSquareSize: this.state.gridSquareSize,
+      diceRolls: this.state.diceRolls,
+      sceneObjects: this.state.sceneObjects,
+      playerStagingZone: this.state.playerStagingZone,
+    };
+
+    // Fire-and-forget async write to prevent blocking the event loop
+    writeFile(STATE_FILE, JSON.stringify(persistentData, null, 2)).catch((err) => {
       console.error("Failed to save state:", err);
-    }
+    });
   }
 
   /**

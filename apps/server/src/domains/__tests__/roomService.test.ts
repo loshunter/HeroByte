@@ -1,12 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("fs", () => ({
-  writeFileSync: vi.fn(),
   readFileSync: vi.fn(),
   existsSync: vi.fn().mockReturnValue(false),
 }));
 
-import { writeFileSync, readFileSync, existsSync } from "fs";
+vi.mock("fs/promises", () => ({
+  writeFile: vi.fn().mockResolvedValue(undefined),
+}));
+
+import { readFileSync, existsSync } from "fs";
+import { writeFile } from "fs/promises";
 import { RoomService } from "../room/service.js";
 import { WebSocket } from "ws";
 
@@ -84,7 +88,7 @@ describe("RoomService", () => {
     vi.mocked(existsSync).mockReturnValue(false);
   });
 
-  it("does not persist selection state when saving to disk", () => {
+  it("does not persist selection state when saving to disk", async () => {
     const service = new RoomService();
     const state = service.getState();
 
@@ -93,8 +97,12 @@ describe("RoomService", () => {
 
     service.saveState();
 
-    expect(writeFileSync).toHaveBeenCalledTimes(1);
-    const payload = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string);
+    // Wait for async write to complete
+    await vi.waitFor(() => {
+      expect(writeFile).toHaveBeenCalledTimes(1);
+    });
+
+    const payload = JSON.parse(vi.mocked(writeFile).mock.calls[0][1] as string);
     expect(payload.selectionState).toBeUndefined();
   });
 
@@ -130,7 +138,7 @@ describe("RoomService", () => {
     expect(merged.selectionState.size).toBe(0);
   });
 
-  it("broadcasts snapshots and prunes expired pointers", () => {
+  it("broadcasts snapshots and prunes expired pointers", async () => {
     const service = new RoomService();
     const state = service.getState();
     state.pointers.push({
@@ -155,8 +163,13 @@ describe("RoomService", () => {
     expect(payload.selectionState).toEqual({
       "uid-3": { mode: "single", objectId: "token-3" },
     });
-    expect(writeFileSync).toHaveBeenCalledTimes(1);
-    const persisted = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string);
+
+    // Wait for async write to complete
+    await vi.waitFor(() => {
+      expect(writeFile).toHaveBeenCalledTimes(1);
+    });
+
+    const persisted = JSON.parse(vi.mocked(writeFile).mock.calls[0][1] as string);
     expect(persisted.selectionState).toBeUndefined();
   });
 
@@ -666,17 +679,21 @@ describe("RoomService", () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it("handles save state errors gracefully", () => {
+    it("handles save state errors gracefully", async () => {
       const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-      vi.mocked(writeFileSync).mockImplementation(() => {
-        throw new Error("Write error");
-      });
+      vi.mocked(writeFile).mockRejectedValue(new Error("Write error"));
 
       const service = new RoomService();
       service.saveState();
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith("Failed to save state:", expect.any(Error));
+      // Wait for the promise rejection to be caught
+      await vi.waitFor(() => {
+        expect(consoleErrorSpy).toHaveBeenCalledWith("Failed to save state:", expect.any(Error));
+      });
+
       consoleErrorSpy.mockRestore();
+      // Reset mock to default behavior for other tests
+      vi.mocked(writeFile).mockResolvedValue(undefined);
     });
   });
 
