@@ -311,22 +311,22 @@ HeroByte is a monorepo built with **domain-driven design** and strict separation
 ```mermaid
 graph LR
   subgraph Browser
-    UI[React UI\n(Konva canvas, panels)]
-    Hooks[Custom Hooks\n(state & services)]
+    UI[React UI<br/>Konva canvas & panels]
+    Hooks[Custom Hooks<br/>state & services]
     Voice[WebRTC Voice Channel]
   end
   subgraph Client Runtime
-    WSClient[WebSocket Client\n(JSON messages)]
-    UndoRedo[Local History\n(undo/redo, selection)]
+    WSClient[WebSocket Client<br/>JSON messages]
+    UndoRedo[Local History<br/>undo/redo & selection]
   end
   subgraph Server
     Gateway[WebSocket Gateway]
-    Services[Domain Services\n(map, token, dice, selection)]
+    Services[Domain Services<br/>map, token, dice, selection]
     State[(RoomState Snapshot)]
     Persistence[(Disk Persistence)]
   end
   subgraph Shared Contracts
-    Schemas[@shared message types\n & validation]
+    Schemas[@shared message types<br/>& validation]
   end
 
   UI --> Hooks
