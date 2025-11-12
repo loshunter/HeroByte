@@ -19,9 +19,22 @@ interface PropEditorProps {
     size: TokenSize;
   }) => void;
   onDelete: () => void;
+  isDeleting?: boolean;
+  deletionError?: string | null;
+  isUpdating?: boolean;
+  updateError?: string | null;
 }
 
-export function PropEditor({ prop, players, onUpdate, onDelete }: PropEditorProps) {
+export function PropEditor({
+  prop,
+  players,
+  onUpdate,
+  onDelete,
+  isDeleting = false,
+  deletionError = null,
+  isUpdating = false,
+  updateError = null,
+}: PropEditorProps) {
   const [label, setLabel] = useState(prop.label);
   const [imageUrl, setImageUrl] = useState(prop.imageUrl);
   const [owner, setOwner] = useState<string | null>(prop.owner);
@@ -76,6 +89,35 @@ export function PropEditor({ prop, players, onUpdate, onDelete }: PropEditorProp
 
   return (
     <JRPGPanel variant="simple" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      {updateError && (
+        <div
+          style={{
+            padding: "8px",
+            background: "rgba(255, 0, 0, 0.1)",
+            border: "1px solid rgba(255, 0, 0, 0.3)",
+            borderRadius: "4px",
+            color: "#ff4444",
+            fontSize: "12px",
+          }}
+        >
+          {updateError}
+        </div>
+      )}
+      {isUpdating && (
+        <div
+          style={{
+            padding: "6px",
+            background: "rgba(218, 165, 32, 0.1)",
+            border: "1px solid var(--jrpg-border-gold)",
+            borderRadius: "4px",
+            color: "var(--jrpg-gold)",
+            fontSize: "11px",
+            textAlign: "center",
+          }}
+        >
+          Updating...
+        </div>
+      )}
       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
         <label className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
           Label
@@ -87,12 +129,15 @@ export function PropEditor({ prop, players, onUpdate, onDelete }: PropEditorProp
             onKeyDown={(e) => {
               if (e.key === "Enter") handleLabelBlur();
             }}
+            disabled={isUpdating}
             style={{
               width: "100%",
               padding: "4px",
               background: "#111",
               color: "var(--jrpg-white)",
               border: "1px solid var(--jrpg-border-gold)",
+              opacity: isUpdating ? 0.5 : 1,
+              cursor: isUpdating ? "not-allowed" : "text",
             }}
           />
         </label>
@@ -108,12 +153,15 @@ export function PropEditor({ prop, players, onUpdate, onDelete }: PropEditorProp
           value={imageUrl}
           onChange={(e) => setImageUrl(e.target.value)}
           onBlur={handleImageUrlBlur}
+          disabled={isUpdating}
           style={{
             width: "100%",
             padding: "4px",
             background: "#111",
             color: "var(--jrpg-white)",
             border: "1px solid var(--jrpg-border-gold)",
+            opacity: isUpdating ? 0.5 : 1,
+            cursor: isUpdating ? "not-allowed" : "text",
           }}
         />
       </label>
@@ -143,12 +191,15 @@ export function PropEditor({ prop, players, onUpdate, onDelete }: PropEditorProp
         <select
           value={owner ?? "null"}
           onChange={handleOwnerChange}
+          disabled={isUpdating}
           style={{
             width: "100%",
             padding: "4px",
             background: "#111",
             color: "var(--jrpg-white)",
             border: "1px solid var(--jrpg-border-gold)",
+            opacity: isUpdating ? 0.5 : 1,
+            cursor: isUpdating ? "not-allowed" : "pointer",
           }}
         >
           <option value="null">DM Only</option>
@@ -169,12 +220,15 @@ export function PropEditor({ prop, players, onUpdate, onDelete }: PropEditorProp
         <select
           value={size}
           onChange={handleSizeChange}
+          disabled={isUpdating}
           style={{
             width: "100%",
             padding: "4px",
             background: "#111",
             color: "var(--jrpg-white)",
             border: "1px solid var(--jrpg-border-gold)",
+            opacity: isUpdating ? 0.5 : 1,
+            cursor: isUpdating ? "not-allowed" : "pointer",
           }}
         >
           <option value="tiny">Tiny</option>
@@ -186,9 +240,29 @@ export function PropEditor({ prop, players, onUpdate, onDelete }: PropEditorProp
         </select>
       </label>
 
+      {deletionError && (
+        <JRPGPanel
+          variant="simple"
+          style={{
+            color: "var(--jrpg-red)",
+            fontSize: "11px",
+            padding: "6px 8px",
+            border: "1px solid var(--jrpg-red)",
+            background: "rgba(214, 60, 83, 0.1)",
+          }}
+        >
+          {deletionError}
+        </JRPGPanel>
+      )}
+
       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-        <JRPGButton variant="danger" onClick={onDelete} style={{ fontSize: "10px", flex: 1 }}>
-          Delete
+        <JRPGButton
+          variant="danger"
+          onClick={onDelete}
+          disabled={isDeleting || isUpdating}
+          style={{ fontSize: "10px", flex: 1 }}
+        >
+          {isDeleting ? "Deleting..." : "Delete"}
         </JRPGButton>
       </div>
     </JRPGPanel>

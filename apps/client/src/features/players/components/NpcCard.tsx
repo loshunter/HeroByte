@@ -28,6 +28,10 @@ interface NpcCardProps {
   initiative?: number;
   onInitiativeClick?: () => void;
   initiativeModifier?: number;
+  /** Whether NPC deletion is in progress */
+  isDeleting?: boolean;
+  /** Error message from deletion attempt */
+  deletionError?: string | null;
 }
 
 export function NpcCard({
@@ -44,6 +48,8 @@ export function NpcCard({
   initiative,
   onInitiativeClick,
   initiativeModifier: _initiativeModifier,
+  isDeleting = false,
+  deletionError = null,
 }: NpcCardProps): JSX.Element {
   const [editingHp, setEditingHp] = useState(false);
   const [hpInput, setHpInput] = useState(String(character.hp));
@@ -242,6 +248,8 @@ export function NpcCard({
         onToggleTokenLock={onToggleTokenLock}
         tokenSize={tokenSize}
         onTokenSizeChange={onTokenSizeChange}
+        isDeleting={isDeleting}
+        deletionError={deletionError}
       />
     </div>
   );

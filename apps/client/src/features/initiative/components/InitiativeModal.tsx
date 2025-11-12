@@ -11,14 +11,23 @@ interface InitiativeModalProps {
   character: Character;
   onClose: () => void;
   onSetInitiative: (initiative: number, modifier: number) => void;
+  isLoading?: boolean;
+  error?: string | null;
 }
 
-export function InitiativeModal({ character, onClose, onSetInitiative }: InitiativeModalProps) {
+export function InitiativeModal({
+  character,
+  onClose,
+  onSetInitiative,
+  isLoading = false,
+  error = null,
+}: InitiativeModalProps) {
   // State for initiative modifier and rolled value
   const [modifier, setModifier] = useState(character.initiativeModifier ?? 0);
   const [rolledValue, setRolledValue] = useState<number | null>(null);
   const [manualMode, setManualMode] = useState(false);
   const [manualValue, setManualValue] = useState<string>("");
+  const [wasLoading, setWasLoading] = useState(false);
 
   // Calculate final initiative
   const finalInitiative = rolledValue !== null ? rolledValue + modifier : null;
@@ -89,19 +98,29 @@ export function InitiativeModal({ character, onClose, onSetInitiative }: Initiat
     }
   }, [finalInitiative, modifier, onSetInitiative, character.name]);
 
+  // Auto-close when loading completes
+  useEffect(() => {
+    if (wasLoading && !isLoading && !error) {
+      // Initiative set successfully
+      console.log("[InitiativeModal] Initiative set successfully, closing modal");
+      onClose();
+    }
+    setWasLoading(isLoading);
+  }, [isLoading, wasLoading, error, onClose]);
+
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      if (e.key === "Escape" && !isLoading) {
         onClose();
-      } else if (e.key === "Enter" && finalInitiative !== null) {
+      } else if (e.key === "Enter" && finalInitiative !== null && !isLoading) {
         handleSave();
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, finalInitiative, handleSave]);
+  }, [onClose, finalInitiative, handleSave, isLoading]);
 
   return (
     <div
@@ -215,18 +234,34 @@ export function InitiativeModal({ character, onClose, onSetInitiative }: Initiat
               </div>
             )}
 
+            {/* Error Display */}
+            {error && (
+              <div
+                style={{
+                  padding: "12px",
+                  background: "rgba(255, 0, 0, 0.1)",
+                  border: "2px solid var(--jrpg-red)",
+                  borderRadius: "4px",
+                  color: "var(--jrpg-red)",
+                  textAlign: "center",
+                }}
+              >
+                {error}
+              </div>
+            )}
+
             {/* Action Buttons */}
             <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-              <JRPGButton onClick={onClose} style={{ flex: 1 }}>
+              <JRPGButton onClick={onClose} disabled={isLoading} style={{ flex: 1 }}>
                 Cancel
               </JRPGButton>
               <JRPGButton
                 variant="success"
                 onClick={handleSave}
-                disabled={finalInitiative === null}
+                disabled={finalInitiative === null || isLoading}
                 style={{ flex: 1 }}
               >
-                Save
+                {isLoading ? "Setting..." : "Save"}
               </JRPGButton>
             </div>
           </div>

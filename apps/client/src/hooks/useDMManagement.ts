@@ -4,20 +4,21 @@
  * Encapsulates DM (Dungeon Master) privilege management logic.
  * Handles toggling DM status, including elevation and revocation workflows.
  *
- * Extracted from: apps/client/src/ui/App.tsx (lines 519-550)
- * Extraction date: 2025-10-20
+ * Updated to use useDMElevation hook with proper state synchronization.
+ * Replaces fire-and-forget pattern with modal-based UI flow.
  *
  * This hook handles:
  * - DM elevation via password authentication
  * - DM status revocation with confirmation
- * - User interaction (prompts and confirmations)
+ * - Modal state management for elevation/revocation UI
  * - Toast notifications for status changes
  *
  * @module hooks/useDMManagement
  */
 
-import { useCallback } from "react";
-import type { ClientMessage } from "@shared";
+import { useCallback, useState } from "react";
+import type { RoomSnapshot, ClientMessage } from "@shared";
+import { useDMElevation } from "./useDMElevation";
 
 /**
  * Toast notification interface for displaying status messages.
@@ -58,22 +59,17 @@ export interface ToastManager {
  */
 export interface UseDMManagementOptions {
   /**
-   * Current DM status of the user.
-   * True if the user has DM privileges, false otherwise.
+   * Current snapshot state from the server.
    */
-  isDM: boolean;
+  snapshot: RoomSnapshot | null;
 
   /**
-   * Function to attempt DM elevation with a password.
-   * Called when a user wants to become DM.
-   *
-   * @param password - The DM password to validate
+   * Current player's unique identifier.
    */
-  elevateToDM: (password: string) => void;
+  uid: string;
 
   /**
    * WebSocket message sender for client-server communication.
-   * Used to send revoke-dm messages to the server.
    */
   sendMessage: (msg: ClientMessage) => void;
 
@@ -89,96 +85,137 @@ export interface UseDMManagementOptions {
 export interface UseDMManagementReturn {
   /**
    * Toggle DM status - either elevate to DM or revoke DM privileges.
-   *
-   * Behavior depends on requestDM parameter:
-   * - If requestDM is false: Revokes current DM status (with confirmation)
-   * - If requestDM is true and user is not DM: Prompts for password and elevates
-   * - If requestDM is true and user is already DM: No action taken
+   * Opens the DMElevationModal with appropriate mode.
    *
    * @param requestDM - True to request DM privileges, false to revoke them
    */
   handleToggleDM: (requestDM: boolean) => void;
+
+  /**
+   * Modal state management
+   */
+  modalState: {
+    isOpen: boolean;
+    mode: "elevate" | "revoke";
+    isLoading: boolean;
+    error: string | null;
+    currentIsDM: boolean;
+  };
+
+  /**
+   * Modal action handlers
+   */
+  modalActions: {
+    onElevate: (password: string) => void;
+    onRevoke: () => void;
+    onClose: () => void;
+  };
 }
 
 /**
  * Hook providing DM privilege management functionality.
  *
  * Manages the workflow for becoming DM (elevation) and stepping down from DM
- * (revocation). Includes user interaction flows with prompts and confirmations,
- * as well as appropriate feedback via toast notifications.
+ * (revocation). Uses DMElevationModal for proper state synchronization instead
+ * of fire-and-forget pattern.
  *
  * @param options - Hook dependencies
- * @returns DM management action functions
+ * @returns DM management action functions and modal state
  *
  * @example
  * ```tsx
- * const dmActions = useDMManagement({
- *   isDM,
- *   elevateToDM,
+ * const { handleToggleDM, modalState, modalActions } = useDMManagement({
+ *   snapshot,
+ *   uid,
  *   sendMessage,
  *   toast
  * });
  *
- * // Request DM elevation (prompts for password)
- * dmActions.handleToggleDM(true);
+ * // Open modal to request DM elevation
+ * handleToggleDM(true);
  *
- * // Revoke DM status (asks for confirmation)
- * dmActions.handleToggleDM(false);
+ * // Open modal to revoke DM status
+ * handleToggleDM(false);
+ *
+ * // Render the modal
+ * <DMElevationModal {...modalState} {...modalActions} />
  * ```
  */
 export function useDMManagement({
-  isDM,
-  elevateToDM,
+  snapshot,
+  uid,
   sendMessage,
   toast,
 }: UseDMManagementOptions): UseDMManagementReturn {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"elevate" | "revoke">("elevate");
+
+  // Use the new useDMElevation hook for state-aware DM management
+  const { isLoading, currentIsDM, elevate, revoke, error } = useDMElevation({
+    snapshot,
+    uid,
+    send: sendMessage,
+  });
+
   /**
-   * Toggle DM status based on requestDM parameter.
-   *
-   * Revocation flow:
-   * 1. Confirms user wants to revoke DM status
-   * 2. Sends revoke-dm message to server
-   * 3. Displays success notification
-   *
-   * Elevation flow:
-   * 1. Prompts for DM password
-   * 2. Calls elevateToDM with the password
-   * 3. elevateToDM handles the server communication and notifications
+   * Open modal to toggle DM status
    */
   const handleToggleDM = useCallback(
     (requestDM: boolean) => {
-      if (!requestDM) {
-        // Revoking DM mode
-        const confirmed = window.confirm(
-          "Are you sure you want to revoke your DM status? Another player will be able to become DM with the password.",
-        );
-        if (!confirmed) {
-          return;
-        }
-
-        // Send revoke-dm message
-        sendMessage({ t: "revoke-dm" });
-        toast.success("DM status revoked. You are now a player.", 3000);
+      if (requestDM && currentIsDM) {
+        // Already DM, no action needed
         return;
       }
 
-      if (isDM) {
-        // Already DM
-        return;
-      }
-
-      // Prompt for DM password
-      const dmPassword = window.prompt("Enter DM password to elevate:");
-      if (!dmPassword) {
-        return; // User cancelled
-      }
-
-      elevateToDM(dmPassword.trim());
+      setModalMode(requestDM ? "elevate" : "revoke");
+      setIsModalOpen(true);
     },
-    [isDM, elevateToDM, sendMessage, toast],
+    [currentIsDM],
   );
+
+  /**
+   * Handle DM elevation (called from modal)
+   */
+  const handleElevate = useCallback(
+    (password: string) => {
+      elevate(password);
+      // Modal will close automatically on success via useEffect in DMElevationModal
+    },
+    [elevate],
+  );
+
+  /**
+   * Handle DM revocation (called from modal)
+   */
+  const handleRevoke = useCallback(() => {
+    revoke();
+    // Show success toast on revocation
+    toast.success("DM status revoked. You are now a player.", 3000);
+    // Modal will close automatically on success via useEffect in DMElevationModal
+  }, [revoke, toast]);
+
+  /**
+   * Close modal
+   */
+  const handleCloseModal = useCallback(() => {
+    if (!isLoading) {
+      setIsModalOpen(false);
+    }
+  }, [isLoading]);
 
   return {
     handleToggleDM,
+    modalState: {
+      isOpen: isModalOpen,
+      mode: modalMode,
+      isLoading,
+      error,
+      currentIsDM,
+    },
+    modalActions: {
+      onElevate: handleElevate,
+      onRevoke: handleRevoke,
+      onClose: handleCloseModal,
+    },
   };
 }

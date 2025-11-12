@@ -11,6 +11,7 @@ import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
 import { InitiativeModal } from "../../features/initiative/components/InitiativeModal";
 import { useCombatOrdering } from "../../hooks/useCombatOrdering";
 import { useInitiativeModal } from "../../hooks/useInitiativeModal";
+import { useCharacterCreation } from "../../hooks/useCharacterCreation";
 
 import type { TokenSize } from "@shared";
 
@@ -53,6 +54,10 @@ interface EntitiesPanelProps {
   onNpcDelete: (id: string) => void;
   onNpcPlaceToken: (id: string) => void;
   onPlayerTokenDelete: (tokenId: string) => void;
+  /** Whether NPC deletion is in progress */
+  isDeletingNpc?: boolean;
+  /** Error message from NPC deletion attempt */
+  npcDeletionError?: string | null;
   onToggleTokenLock: (sceneObjectId: string, locked: boolean) => void;
   onTokenSizeChange: (tokenId: string, size: TokenSize) => void;
   onAddCharacter: (name: string) => void;
@@ -63,6 +68,8 @@ interface EntitiesPanelProps {
   combatActive?: boolean;
   currentTurnCharacterId?: string;
   onSetInitiative: (characterId: string, initiative: number, modifier: number) => void;
+  isSettingInitiative?: boolean;
+  initiativeError?: string | null;
   onNextTurn?: () => void;
   onPreviousTurn?: () => void;
 }
@@ -74,7 +81,6 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   players,
   characters,
   tokens,
-  onPlayerTokenDelete,
   sceneObjects,
   drawings,
   uid,
@@ -101,6 +107,9 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   onNpcUpdate,
   onNpcDelete,
   onNpcPlaceToken,
+  onPlayerTokenDelete,
+  isDeletingNpc = false,
+  npcDeletionError = null,
   onToggleTokenLock,
   onTokenSizeChange,
   onAddCharacter,
@@ -111,6 +120,8 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   combatActive = false,
   currentTurnCharacterId,
   onSetInitiative,
+  isSettingInitiative = false,
+  initiativeError = null,
   onNextTurn: _onNextTurn,
   onPreviousTurn: _onPreviousTurn,
 }) => {
@@ -134,6 +145,13 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
     openModal: openInitiativeModal,
     closeModal: closeInitiativeModal,
   } = useInitiativeModal();
+
+  // Use character creation hook for proper state synchronization
+  const characterCreation = useCharacterCreation({
+    addCharacter: onAddCharacter,
+    characters,
+    uid,
+  });
 
   const tokenSceneMap = useMemo(() => {
     const map = new Map<string, SceneObject & { type: "token" }>();
@@ -335,7 +353,8 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                             ? (size: TokenSize) => onTokenSizeChange(token.id, size)
                             : undefined
                         }
-                        onAddCharacter={isMe ? onAddCharacter : undefined}
+                        onAddCharacter={isMe ? characterCreation.createCharacter : undefined}
+                        isCreatingCharacter={isMe ? characterCreation.isCreating : false}
                         characterId={character.id}
                         onDeleteCharacter={isMe ? onDeleteCharacter : undefined}
                         onFocusToken={token ? () => onFocusToken(token.id) : undefined}
@@ -393,6 +412,8 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                       initiative={entity.character.initiative}
                       onInitiativeClick={() => openInitiativeModal(entity.character)}
                       initiativeModifier={entity.character.initiativeModifier}
+                      isDeleting={isDeletingNpc}
+                      deletionError={npcDeletionError}
                     />
                   </div>
                 );
@@ -415,8 +436,10 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
               modifier,
             });
             onSetInitiative(initiativeModalCharacter.id, initiative, modifier);
-            closeInitiativeModal();
+            // Don't close immediately - let the modal auto-close when the hook confirms success
           }}
+          isLoading={isSettingInitiative}
+          error={initiativeError}
         />
       )}
     </div>

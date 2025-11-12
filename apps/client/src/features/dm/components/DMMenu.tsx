@@ -43,11 +43,27 @@ interface DMMenuProps {
   onUpdateNPC: (id: string, updates: Partial<Character>) => void;
   onDeleteNPC: (id: string) => void;
   onPlaceNPCToken: (id: string) => void;
+  isCreatingNpc?: boolean;
+  npcCreationError?: string | null;
+  isUpdatingNpc?: boolean;
+  npcUpdateError?: string | null;
+  updatingNpcId?: string | null;
+  isPlacingToken?: boolean;
+  tokenPlacementError?: string | null;
+  placingTokenForNpcId?: string | null;
   props: Prop[];
   players: Player[];
   onCreateProp: () => void;
   onUpdateProp: (id: string, updates: Pick<Prop, "label" | "imageUrl" | "owner" | "size">) => void;
   onDeleteProp: (id: string) => void;
+  isCreatingProp?: boolean;
+  propCreationError?: string | null;
+  isDeletingProp?: boolean;
+  deletingPropId?: string | null;
+  propDeletionError?: string | null;
+  isUpdatingProp?: boolean;
+  propUpdateError?: string | null;
+  updatingPropId?: string | null;
   mapLocked?: boolean;
   onMapLockToggle?: () => void;
   mapTransform?: { x: number; y: number; scaleX: number; scaleY: number; rotation: number };
@@ -97,11 +113,27 @@ export function DMMenu({
   onUpdateNPC,
   onDeleteNPC,
   onPlaceNPCToken,
+  isCreatingNpc,
+  npcCreationError,
+  isUpdatingNpc,
+  npcUpdateError,
+  updatingNpcId,
+  isPlacingToken,
+  tokenPlacementError,
+  placingTokenForNpcId,
   props,
   players,
   onCreateProp,
   onUpdateProp,
   onDeleteProp,
+  isCreatingProp,
+  propCreationError,
+  isDeletingProp,
+  deletingPropId,
+  propDeletionError,
+  isUpdatingProp,
+  propUpdateError,
+  updatingPropId,
   mapLocked,
   onMapLockToggle,
   mapTransform,
@@ -240,6 +272,14 @@ export function DMMenu({
                 onUpdateNPC={onUpdateNPC}
                 onPlaceNPCToken={onPlaceNPCToken}
                 onDeleteNPC={onDeleteNPC}
+                isCreatingNpc={isCreatingNpc}
+                npcCreationError={npcCreationError}
+                isUpdatingNpc={isUpdatingNpc}
+                npcUpdateError={npcUpdateError}
+                updatingNpcId={updatingNpcId}
+                isPlacingToken={isPlacingToken}
+                tokenPlacementError={tokenPlacementError}
+                placingTokenForNpcId={placingTokenForNpcId}
               />
             )}
 
@@ -250,6 +290,14 @@ export function DMMenu({
                 onCreateProp={onCreateProp}
                 onUpdateProp={onUpdateProp}
                 onDeleteProp={onDeleteProp}
+                isCreatingProp={isCreatingProp}
+                propCreationError={propCreationError}
+                isDeletingProp={isDeletingProp}
+                deletingPropId={deletingPropId}
+                propDeletionError={propDeletionError}
+                isUpdatingProp={isUpdatingProp}
+                propUpdateError={propUpdateError}
+                updatingPropId={updatingPropId}
               />
             )}
 

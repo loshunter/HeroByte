@@ -325,6 +325,26 @@ export interface MainLayoutProps {
   handleUpdateNPC: (id: string, updates: Partial<Character>) => void;
   /** Handler to delete NPC */
   handleDeleteNPC: (id: string) => void;
+  /** Whether NPC deletion is in progress */
+  isDeletingNpc?: boolean;
+  /** Error message from NPC deletion attempt */
+  npcDeletionError?: string | null;
+  /** Whether NPC creation is in progress */
+  isCreatingNpc?: boolean;
+  /** Error message from NPC creation attempt */
+  npcCreationError?: string | null;
+  /** Whether NPC update is in progress */
+  isUpdatingNpc?: boolean;
+  /** Error message from NPC update attempt */
+  npcUpdateError?: string | null;
+  /** ID of the NPC currently being updated */
+  updatingNpcId?: string | null;
+  /** Whether NPC token placement is in progress */
+  isPlacingToken?: boolean;
+  /** Error message from token placement attempt */
+  tokenPlacementError?: string | null;
+  /** ID of the NPC whose token is being placed */
+  placingTokenForNpcId?: string | null;
   /** Handler to place NPC token */
   handlePlaceNPCToken: (id: string) => void;
   /** Handler to delete player token */
@@ -339,6 +359,22 @@ export interface MainLayoutProps {
   handleUpdateProp: (id: string, updates: PropUpdate) => void;
   /** Handler to delete prop */
   handleDeleteProp: (id: string) => void;
+  /** Whether prop creation is in progress */
+  isCreatingProp?: boolean;
+  /** Error message from prop creation attempt */
+  propCreationError?: string | null;
+  /** Whether prop deletion is in progress */
+  isDeletingProp?: boolean;
+  /** ID of the prop currently being deleted */
+  deletingPropId?: string | null;
+  /** Error message from prop deletion attempt */
+  propDeletionError?: string | null;
+  /** Whether prop update is in progress */
+  isUpdatingProp?: boolean;
+  /** Error message from prop update attempt */
+  propUpdateError?: string | null;
+  /** ID of the prop currently being updated */
+  updatingPropId?: string | null;
 
   // -------------------------------------------------------------------------
   // Session Management

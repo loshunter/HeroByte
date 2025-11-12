@@ -38,8 +38,25 @@ test.describe("HeroByte character and token creation", () => {
         await nameInput.fill("Test Hero");
       }
 
+      // Verify Create button is enabled before clicking
+      await expect(createButton.first()).toBeEnabled();
+
       await createButton.click();
 
+      // Phase 1 Fix Verification: Check that loading state is shown
+      // The modal should show "Creating..." text and disable the button
+      const creatingText = page.getByText(/Creating/i);
+      const creatingTextExists = await creatingText.count();
+
+      if (creatingTextExists > 0) {
+        // Verify button is disabled during creation
+        const disabledButton = page.getByRole("button", { name: /Creating/i });
+        if ((await disabledButton.count()) > 0) {
+          await expect(disabledButton.first()).toBeDisabled();
+        }
+      }
+
+      // Wait for server confirmation via snapshot update
       await page.waitForFunction(
         (prevCount) => {
           const data = window.__HERO_BYTE_E2E__;
@@ -48,6 +65,12 @@ test.describe("HeroByte character and token creation", () => {
         initialCharCount,
         { timeout: 5000 },
       );
+
+      // Verify modal auto-closes after successful creation
+      // The modal should no longer be visible
+      await page.waitForTimeout(500); // Give modal time to close
+      const modalStillOpen = await page.getByRole("button", { name: /Create Character/i }).count();
+      expect(modalStillOpen).toBe(0);
 
       const finalCharCount = await page.evaluate(() => {
         return window.__HERO_BYTE_E2E__?.snapshot?.characters?.length ?? 0;

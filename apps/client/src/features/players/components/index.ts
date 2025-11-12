@@ -5,5 +5,6 @@ export { PortraitSection } from "./PortraitSection";
 export { HPBar } from "./HPBar";
 export { CardControls } from "./CardControls";
 export { PlayerSettingsMenu } from "./PlayerSettingsMenu";
+export { CharacterCreationModal } from "./CharacterCreationModal";
 export { NpcCard } from "./NpcCard";
 export { NpcSettingsMenu } from "./NpcSettingsMenu";

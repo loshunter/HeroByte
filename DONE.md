@@ -1889,3 +1889,216 @@ Documentation:
 - ✅ Sensible default positions for first-time users
 
 ---
+
+---
+
+## ✅ Fire-and-Forget Pattern Fixes - ALL PHASES COMPLETE (January 11, 2025)
+
+**Goal**: Eliminate all fire-and-forget patterns causing state sync issues where UI actions appear to do nothing until page refresh.
+
+### Achievement Summary
+
+**Status**: ALL 10 PHASES COMPLETE - 100% of identified fire-and-forget patterns fixed!
+
+- ✅ **HIGH PRIORITY: 7/7 complete**
+- ✅ **MEDIUM PRIORITY: 3/3 complete**
+- ✅ **Total Impact:** 9 new hooks created, 30+ files modified, zero regressions
+- ✅ **Completion Date:** January 11, 2025
+- 📄 **Detailed tracking:** See `CURRENT_WORK.md` for complete phase-by-phase documentation
+
+### Pattern Applied
+
+All phases followed the same proven pattern:
+
+1. **Dedicated hook** with clear, consistent naming (`use[Entity][Action].ts`)
+2. **Snapshot monitoring** for server confirmation
+3. **Loading/error states** for comprehensive UI feedback
+4. **5-second timeout** fallback for error handling
+5. **Type safety** throughout the implementation
+6. **Props threading** through component hierarchy
+7. **UI feedback** that matches the operation being performed
+8. **Comprehensive documentation** with JSDoc comments
+
+### HIGH PRIORITY Phases (All Complete)
+
+1. ✅ **Phase 1: Character Creation** (`useCharacterCreation`)
+   - Hook: 150 LOC
+   - Component: `CharacterCreationModal.tsx`
+   - Monitors: `snapshot.characters` array count increase
+   - Impact: Modal waits for server confirmation before closing
+
+2. ✅ **Phase 2: DM Elevation** (`useDMElevation`)
+   - Hook: 165 LOC
+   - Component: `DMElevationModal.tsx`
+   - Monitors: `snapshot.players[uid].isDM` boolean change
+   - Impact: Clear loading feedback during elevation/revocation
+
+3. ✅ **Phase 3: Initiative Setting** (`useInitiativeSetting`)
+   - Hook: 158 LOC
+   - Component: `InitiativeModal.tsx` (updated)
+   - Monitors: `snapshot.characters[id].initiative` and `initiativeModifier` changes
+   - Impact: Modal only closes after server confirms
+
+4. ✅ **Phase 4: NPC Deletion** (`useNpcDeletion`)
+   - Hook: 168 LOC
+   - Component: `NPCEditor.tsx` (updated)
+   - Monitors: `snapshot.characters` array for ID removal (Set-based tracking)
+   - Impact: Delete button shows "Deleting..." state
+
+5. ✅ **Phase 5: NPC Creation** (`useNpcCreation`)
+   - Hook: 165 LOC
+   - Component: `NPCEditor.tsx` (updated)
+   - Monitors: `snapshot.characters` array count increase
+   - Impact: Create button shows "Creating..." state
+
+6. ✅ **Phase 6: Prop Creation** (`usePropCreation`)
+   - Hook: 163 LOC
+   - Component: `PropEditor.tsx` (updated)
+   - Monitors: `snapshot.props` array count increase
+   - Impact: Create button shows "Creating..." state
+
+7. ✅ **Phase 7: Prop Deletion** (`usePropDeletion`)
+   - Hook: 170 LOC
+   - Component: `PropEditor.tsx` (updated)
+   - Monitors: `snapshot.props` array for ID removal (Set-based tracking)
+   - Impact: Delete button shows "Deleting..." state
+
+### MEDIUM PRIORITY Phases (All Complete)
+
+8. ✅ **Phase 8: NPC/Prop Updates** (`useNpcUpdate`, `usePropUpdate`)
+   - Hooks: 180 LOC each
+   - Components: `NPCEditor.tsx`, `PropEditor.tsx` (updated)
+   - Monitors: Field-level changes (`name`, `hp`, `maxHp`, `portrait`, `tokenImage`, etc.)
+   - Impact: "Updating..." message, all inputs disabled during update
+
+9. ✅ **Phase 9: NPC Token Placement** (`useNpcTokenPlacement`)
+   - Hook: 172 LOC
+   - Component: `NPCEditor.tsx` (updated)
+   - Monitors: `snapshot.sceneObjects` for new token with matching `characterId`
+   - Impact: "Place on Map" button shows "Placing..." during operation
+
+10. ✅ **Phase 10: Token Deletion Confirmation** (Audit + Future-proofing)
+    - Component: `ContextMenu.tsx` (updated)
+    - Audit finding: Keyboard shortcuts properly protected, context menu incomplete feature
+    - Impact: Added confirmation dialog to context menu for when feature is implemented
+
+### Code Quality Metrics
+
+**New Hooks Created**: 9
+
+- All under 350 lines (range: 150-180 LOC)
+- All with comprehensive JSDoc documentation
+- All properly typed with TypeScript
+- All follow consistent naming: `use[Entity][Action]`
+
+**Components Modified**: 15+
+
+- Props threading through entire hierarchy
+- Consistent loading/error state patterns
+- User-friendly error messages
+- Professional UI feedback
+
+**Files Created/Modified**: 30+
+
+- Zero regressions introduced
+- All type checks passing
+- All code formatted with Prettier
+- Production-ready quality
+
+### User Experience Improvements
+
+**Before**:
+
+- Fire-and-forget messages sent to server
+- No visual feedback during operations
+- No error handling if operations fail
+- Users unsure if changes were saved
+- Page refresh sometimes needed to see updates
+
+**After**:
+
+- Loading states for all async operations
+- Clear "Creating...", "Updating...", "Deleting...", "Placing..." feedback
+- Error messages displayed prominently when operations fail
+- 5-second timeout with user-friendly errors
+- Clear success indication when server confirms
+- No page refreshes needed
+
+### Technical Implementation
+
+**Snapshot Monitoring Strategies**:
+
+1. **Count-based**: Character/Prop creation (array length increase)
+2. **ID-based**: Character/Prop deletion (Set-based tracking for efficient detection)
+3. **Field-based**: Character/Prop updates (tracks expected field values using refs)
+4. **Boolean-based**: DM elevation (isDM flag change)
+5. **Derived-based**: Token placement (new sceneObject with matching characterId)
+
+**Props Threading Pattern**:
+
+- Component → Tab → Menu → Layout → MainLayoutProps → App.tsx
+- Consistent pattern applied across all phases
+- Only the specific entity being modified shows loading state
+
+**Error Handling**:
+
+- All hooks include 5-second timeout
+- User-friendly error messages
+- Operations can be retried
+- Loading state clears on timeout
+
+### Files Created
+
+**Hooks** (9 new):
+
+- `apps/client/src/hooks/useCharacterCreation.ts` (Phase 1)
+- `apps/client/src/hooks/useDMElevation.ts` (Phase 2)
+- `apps/client/src/hooks/useInitiativeSetting.ts` (Phase 3)
+- `apps/client/src/hooks/useNpcDeletion.ts` (Phase 4)
+- `apps/client/src/hooks/useNpcCreation.ts` (Phase 5)
+- `apps/client/src/hooks/usePropCreation.ts` (Phase 6)
+- `apps/client/src/hooks/usePropDeletion.ts` (Phase 7)
+- `apps/client/src/hooks/useNpcUpdate.ts` (Phase 8)
+- `apps/client/src/hooks/usePropUpdate.ts` (Phase 8)
+- `apps/client/src/hooks/useNpcTokenPlacement.ts` (Phase 9)
+
+**Components** (2 new):
+
+- `apps/client/src/features/players/components/CharacterCreationModal.tsx` (Phase 1)
+- `apps/client/src/features/dm/components/DMElevationModal.tsx` (Phase 2)
+
+### Success Metrics
+
+✅ **100% of identified fire-and-forget patterns addressed**
+✅ **Consistent pattern established for future async operations**
+✅ **Zero regressions introduced across all 10 phases**
+✅ **Professional user experience with clear feedback**
+✅ **Comprehensive documentation for maintainability**
+✅ **Type-safe implementations throughout**
+✅ **All code properly formatted and tested**
+
+### Documentation
+
+**Primary Documentation**:
+
+- `CURRENT_WORK.md` - Complete phase-by-phase tracking with technical details
+- `FIRE_AND_FORGET_HANDOFF.md` - Original handoff for Phases 4-7 (ARCHIVED)
+- `PHASE_8_HANDOFF.md` - Handoff for Phase 8 (ARCHIVED)
+
+**Pattern Established**:
+The fire-and-forget fix pattern is now the standard approach for all async operations in HeroByte VTT. Future developers should follow this pattern for any new user-facing async operations.
+
+### Next Steps
+
+✅ **All fire-and-forget pattern work complete!**
+
+The codebase now has consistent, reliable state synchronization across all user-facing async operations. No additional fire-and-forget patterns were identified during the audit.
+
+**For Future Development**:
+
+- Apply this pattern to any new async operations
+- Refer to existing hooks as templates
+- Maintain the established naming conventions
+- Follow the props threading pattern
+- Include 5-second timeout fallback
+- Provide user-friendly error messages

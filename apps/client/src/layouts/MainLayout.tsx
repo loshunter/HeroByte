@@ -28,6 +28,7 @@ import { CenterCanvasLayout } from "./CenterCanvasLayout";
 import { FloatingPanelsLayout } from "./FloatingPanelsLayout";
 import { BottomPanelLayout } from "./BottomPanelLayout";
 import { useEntityEditHandlers } from "../hooks/useEntityEditHandlers";
+import { useInitiativeSetting } from "../hooks/useInitiativeSetting";
 
 // Re-export for backward compatibility
 export type { MainLayoutProps, RollLogEntry };
@@ -162,6 +163,16 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     handleCreateNPC,
     handleUpdateNPC,
     handleDeleteNPC,
+    isDeletingNpc,
+    npcDeletionError,
+    isCreatingNpc,
+    npcCreationError,
+    isUpdatingNpc,
+    npcUpdateError,
+    updatingNpcId,
+    isPlacingToken,
+    tokenPlacementError,
+    placingTokenForNpcId,
     handlePlaceNPCToken,
     handleDeletePlayerToken,
 
@@ -169,6 +180,14 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     handleCreateProp,
     handleUpdateProp,
     handleDeleteProp,
+    isCreatingProp,
+    propCreationError,
+    isDeletingProp,
+    deletingPropId,
+    propDeletionError,
+    isUpdatingProp,
+    propUpdateError,
+    updatingPropId,
 
     // Session management
     handleSaveSession,
@@ -201,6 +220,16 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     submitMaxHpEdit,
     submitNameEdit,
     playerActions,
+  });
+
+  // Initiative setting hook for server-confirmed updates
+  const {
+    isSetting: isSettingInitiative,
+    setInitiative,
+    error: initiativeError,
+  } = useInitiativeSetting({
+    snapshot,
+    sendMessage,
   });
 
   return (
@@ -298,6 +327,8 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onNpcDelete={handleDeleteNPC}
         onNpcPlaceToken={handlePlaceNPCToken}
         onPlayerTokenDelete={handleDeletePlayerToken}
+        isDeletingNpc={isDeletingNpc}
+        npcDeletionError={npcDeletionError}
         onToggleTokenLock={toggleSceneObjectLock}
         onTokenSizeChange={updateTokenSize}
         onTokenImageChange={updateTokenImage}
@@ -306,19 +337,9 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onFocusToken={handleFocusToken}
         combatActive={snapshot?.combatActive}
         currentTurnCharacterId={snapshot?.currentTurnCharacterId}
-        onSetInitiative={(characterId, initiative, initiativeModifier) => {
-          console.log("[MainLayout] Sending set-initiative:", {
-            characterId,
-            initiative,
-            initiativeModifier,
-          });
-          sendMessage({
-            t: "set-initiative",
-            characterId,
-            initiative,
-            initiativeModifier,
-          });
-        }}
+        onSetInitiative={setInitiative}
+        isSettingInitiative={isSettingInitiative}
+        initiativeError={initiativeError}
         onNextTurn={() => {
           sendMessage({ t: "next-turn" });
         }}
@@ -363,10 +384,26 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onCreateNPC={handleCreateNPC}
         onUpdateNPC={handleUpdateNPC}
         onDeleteNPC={handleDeleteNPC}
+        isCreatingNpc={isCreatingNpc}
+        npcCreationError={npcCreationError}
+        isUpdatingNpc={isUpdatingNpc}
+        npcUpdateError={npcUpdateError}
+        updatingNpcId={updatingNpcId}
+        isPlacingToken={isPlacingToken}
+        tokenPlacementError={tokenPlacementError}
+        placingTokenForNpcId={placingTokenForNpcId}
         onPlaceNPCToken={handlePlaceNPCToken}
         onCreateProp={handleCreateProp}
         onUpdateProp={handleUpdateProp}
         onDeleteProp={handleDeleteProp}
+        isCreatingProp={isCreatingProp}
+        propCreationError={propCreationError}
+        isDeletingProp={isDeletingProp}
+        deletingPropId={deletingPropId}
+        propDeletionError={propDeletionError}
+        isUpdatingProp={isUpdatingProp}
+        propUpdateError={propUpdateError}
+        updatingPropId={updatingPropId}
         onSetRoomPassword={handleSetRoomPassword}
         roomPasswordStatus={roomPasswordStatus}
         roomPasswordPending={roomPasswordPending}

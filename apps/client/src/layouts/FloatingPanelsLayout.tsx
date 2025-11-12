@@ -80,15 +80,31 @@ export interface FloatingPanelsLayoutProps {
   // Session Management (2)
   onRequestSaveSession: ((sessionName: string) => void) | undefined;
   onRequestLoadSession: ((file: File) => void) | undefined;
-  // NPC Management (4)
+  // NPC Management (12)
   onCreateNPC: () => void;
   onUpdateNPC: (id: string, updates: Partial<Character>) => void;
   onDeleteNPC: (id: string) => void;
   onPlaceNPCToken: (npcId: string) => void;
-  // Prop Management (3)
+  isCreatingNpc?: boolean;
+  npcCreationError?: string | null;
+  isUpdatingNpc?: boolean;
+  npcUpdateError?: string | null;
+  updatingNpcId?: string | null;
+  isPlacingToken?: boolean;
+  tokenPlacementError?: string | null;
+  placingTokenForNpcId?: string | null;
+  // Prop Management (8)
   onCreateProp: () => void;
   onUpdateProp: (id: string, updates: PropUpdate) => void;
   onDeleteProp: (id: string) => void;
+  isCreatingProp?: boolean;
+  propCreationError?: string | null;
+  isDeletingProp?: boolean;
+  deletingPropId?: string | null;
+  propDeletionError?: string | null;
+  isUpdatingProp?: boolean;
+  propUpdateError?: string | null;
+  updatingPropId?: string | null;
   // Room Password (4)
   onSetRoomPassword: (password: string) => void;
   roomPasswordStatus: PasswordStatus | null;
@@ -157,9 +173,25 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
     onUpdateNPC,
     onDeleteNPC,
     onPlaceNPCToken,
+    isCreatingNpc,
+    npcCreationError,
+    isUpdatingNpc,
+    npcUpdateError,
+    updatingNpcId,
+    isPlacingToken,
+    tokenPlacementError,
+    placingTokenForNpcId,
     onCreateProp,
     onUpdateProp,
     onDeleteProp,
+    isCreatingProp,
+    propCreationError,
+    isDeletingProp,
+    deletingPropId,
+    propDeletionError,
+    isUpdatingProp,
+    propUpdateError,
+    updatingPropId,
     onSetRoomPassword,
     roomPasswordStatus,
     roomPasswordPending,
@@ -204,11 +236,27 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
           onUpdateNPC={onUpdateNPC}
           onDeleteNPC={onDeleteNPC}
           onPlaceNPCToken={onPlaceNPCToken}
+          isCreatingNpc={isCreatingNpc}
+          npcCreationError={npcCreationError}
+          isUpdatingNpc={isUpdatingNpc}
+          npcUpdateError={npcUpdateError}
+          updatingNpcId={updatingNpcId}
+          isPlacingToken={isPlacingToken}
+          tokenPlacementError={tokenPlacementError}
+          placingTokenForNpcId={placingTokenForNpcId}
           props={snapshot?.props || []}
           players={snapshot?.players || []}
           onCreateProp={onCreateProp}
           onUpdateProp={onUpdateProp}
           onDeleteProp={onDeleteProp}
+          isCreatingProp={isCreatingProp}
+          propCreationError={propCreationError}
+          isDeletingProp={isDeletingProp}
+          deletingPropId={deletingPropId}
+          propDeletionError={propDeletionError}
+          isUpdatingProp={isUpdatingProp}
+          propUpdateError={propUpdateError}
+          updatingPropId={updatingPropId}
           mapLocked={mapSceneObject?.locked ?? true}
           onMapLockToggle={() => {
             if (mapSceneObject) {
