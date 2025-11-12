@@ -193,12 +193,12 @@ button:hover,
 .btn:hover {
   background: linear-gradient(180deg, #FFD700 0%, var(--hero-gold) 100%);
   box-shadow: 0 4px 0 var(--hero-navy-dark), 0 0 12px var(--hero-gold);
-  animation: button-bounce 0.6s ease-in-out;
+  /* Removed animation to prevent interference with absolutely positioned buttons */
 }
 
 button:active,
 .btn:active {
-  transform: var(--btn-translate-active);
+  /* Removed transform to prevent interference with absolutely positioned buttons */
   box-shadow: var(--btn-shadow-active);
 }
 
