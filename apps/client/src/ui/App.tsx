@@ -34,12 +34,10 @@ import { usePlayerActions } from "../hooks/usePlayerActions";
 import { useVoiceChatManager } from "../hooks/useVoiceChatManager";
 import { useDiceRolling } from "../hooks/useDiceRolling";
 import { useServerEventHandlers } from "../hooks/useServerEventHandlers";
-import { useNpcManagement } from "../hooks/useNpcManagement";
 import { useNpcDeletion } from "../hooks/useNpcDeletion";
 import { useNpcCreation } from "../hooks/useNpcCreation";
 import { useNpcUpdate } from "../hooks/useNpcUpdate";
 import { useNpcTokenPlacement } from "../hooks/useNpcTokenPlacement";
-import { usePropManagement } from "../hooks/usePropManagement";
 import { usePropCreation } from "../hooks/usePropCreation";
 import { usePropDeletion } from "../hooks/usePropDeletion";
 import { usePropUpdate } from "../hooks/usePropUpdate";
@@ -354,12 +352,6 @@ function AuthenticatedApp({
     [snapshot?.sceneObjects],
   );
 
-  // NPC Management Hook
-  const { handleCreateNPC, handleDeleteNPC, handlePlaceNPCToken } = useNpcManagement({
-    sendMessage,
-    snapshot,
-  });
-
   // NPC Deletion Hook - provides loading state and server confirmation
   const {
     isDeleting: isDeletingNpc,
@@ -440,12 +432,6 @@ function AuthenticatedApp({
   } = usePropDeletion({
     snapshot,
     sendMessage,
-  });
-
-  // Prop Management Hook (for updates only; deletion handled by usePropDeletion)
-  const { handleUpdateProp } = usePropManagement({
-    sendMessage,
-    cameraState,
   });
 
   // Session Management Hook
