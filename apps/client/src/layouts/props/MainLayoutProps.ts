@@ -238,6 +238,7 @@ export interface MainLayoutProps {
     setHP: (hp: number, maxHp: number) => void;
     applyPlayerState: (state: PlayerState, tokenId?: string, characterId?: string) => void;
     setStatusEffects: (effects: string[]) => void;
+    setCharacterStatusEffects: (characterId: string, effects: string[]) => void;
     setPlayerStagingZone: (zone: PlayerStagingZone | undefined) => void;
     addCharacter: (name: string) => void;
     deleteCharacter: (id: string) => void;
