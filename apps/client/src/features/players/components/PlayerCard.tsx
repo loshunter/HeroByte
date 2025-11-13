@@ -10,7 +10,7 @@ import { NameEditor } from "./NameEditor";
 import { PortraitSection } from "./PortraitSection";
 import { HPBar } from "./HPBar";
 import { CardControls } from "./CardControls";
-import { PlayerSettingsMenu, STATUS_OPTIONS } from "./PlayerSettingsMenu";
+import { PlayerSettingsMenu } from "./PlayerSettingsMenu";
 import { loadPlayerState, savePlayerState } from "../../../utils/playerPersistence";
 
 export interface PlayerCardProps {
