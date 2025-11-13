@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { Mock } from "vitest";
 import { MessageRouter } from "../messageRouter.js";
 import { RoomService } from "../../domains/room/service.js";
