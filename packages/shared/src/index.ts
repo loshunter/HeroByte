@@ -207,6 +207,7 @@ export interface Character {
   tokenImage?: string | null; // Optional token image URL for NPC tokens
   initiative?: number; // Initiative roll value (d20 + modifier)
   initiativeModifier?: number; // Initiative modifier (bonus/penalty added to d20 roll)
+  statusEffects?: string[]; // Active status effect identifiers/labels (per character)
 
   // Future fields (Phase 2+):
   // templateId?: string;        // Link to character template (for NPCs)
@@ -356,6 +357,7 @@ export type ClientMessage =
   | { t: "delete-player-character"; characterId: string } // Player deletes one of their characters
   | { t: "update-character-name"; characterId: string; name: string } // Player updates their character's name
   | { t: "update-character-hp"; characterId: string; hp: number; maxHp: number } // Update character HP
+  | { t: "set-character-status-effects"; characterId: string; effects: string[] } // Set status effects for character
   | { t: "link-token"; characterId: string; tokenId: string } // Link token to character
   | {
       t: "create-npc";

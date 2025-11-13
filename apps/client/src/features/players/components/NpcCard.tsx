@@ -10,6 +10,7 @@ import { PortraitSection } from "./PortraitSection";
 import { HPBar } from "./HPBar";
 import { NpcSettingsMenu } from "./NpcSettingsMenu";
 import { sanitizeText } from "../../../utils/sanitize";
+import { normalizeImageUrl } from "../../../utils/imageUrlHelpers";
 
 interface NpcCardProps {
   character: Character;
@@ -57,7 +58,6 @@ export function NpcCard({
   const [maxHpInput, setMaxHpInput] = useState(String(character.maxHp));
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tokenImageInput, setTokenImageInput] = useState(character.tokenImage ?? "");
-  const [statusIcon, setStatusIcon] = useState<{ emoji: string; label: string } | null>(null);
 
   useEffect(() => {
     setTokenImageInput(character.tokenImage ?? "");
@@ -101,11 +101,12 @@ export function NpcCard({
     [isDM, character.id, character.hp, onUpdate],
   );
 
-  const handlePortraitChange = useCallback(() => {
+  const handlePortraitChange = useCallback(async () => {
     if (!isDM) return;
     const url = prompt("Enter portrait URL", character.portrait ?? "");
     if (!url) return;
-    onUpdate(character.id, { portrait: url.trim() });
+    const normalizedUrl = await normalizeImageUrl(url.trim());
+    onUpdate(character.id, { portrait: normalizedUrl });
   }, [isDM, character.id, character.portrait, onUpdate]);
 
   const handleTokenImageApply = useCallback(
@@ -183,7 +184,7 @@ export function NpcCard({
           portrait={character.portrait ?? undefined}
           isEditable={canEdit}
           onRequestChange={handlePortraitChange}
-          statusIcon={statusIcon}
+          statusEffects={character.statusEffects ?? []}
           tokenColor="#D63C53"
           onFocusToken={onFocusToken}
           initiative={initiative}
@@ -242,8 +243,6 @@ export function NpcCard({
         }}
         onPlaceToken={() => onPlaceToken(character.id)}
         onDelete={() => onDelete(character.id)}
-        statusIcon={statusIcon}
-        onStatusChange={setStatusIcon}
         tokenLocked={tokenLocked}
         onToggleTokenLock={onToggleTokenLock}
         tokenSize={tokenSize}

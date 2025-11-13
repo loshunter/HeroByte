@@ -322,6 +322,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onToggleDMMode={handleToggleDM}
         onApplyPlayerState={playerActions.applyPlayerState}
         onStatusEffectsChange={playerActions.setStatusEffects}
+        onCharacterStatusEffectsChange={playerActions.setCharacterStatusEffects}
         onCharacterNameUpdate={playerActions.updateCharacterName}
         onNpcUpdate={handleUpdateNPC}
         onNpcDelete={handleDeleteNPC}

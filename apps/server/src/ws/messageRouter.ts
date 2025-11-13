@@ -33,6 +33,7 @@ export class MessageRouter {
   private wss: WebSocketServer;
   private uidToWs: Map<string, WebSocket>;
   private getAuthorizedClients: () => Set<WebSocket>;
+  private broadcastDebounceTimer: NodeJS.Timeout | null = null;
 
   constructor(
     roomService: RoomService,
@@ -523,6 +524,29 @@ export class MessageRouter {
           }
           break;
 
+        case "set-character-status-effects": {
+          // Find the character
+          const character = this.characterService.findCharacter(state, message.characterId);
+
+          // Permission check: Only allow if player owns this character or is DM
+          const canModify =
+            this.isDM(senderUid) ||
+            (character && this.characterService.canControlCharacter(character, senderUid));
+
+          if (!canModify) {
+            console.warn(
+              `Player ${senderUid} attempted to set status effects for character they don't control`,
+            );
+            break;
+          }
+
+          if (this.characterService.setStatusEffects(state, message.characterId, message.effects)) {
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+        }
+
         case "link-token":
           if (this.characterService.linkToken(state, message.characterId, message.tokenId)) {
             this.broadcast();
@@ -868,10 +892,24 @@ export class MessageRouter {
   }
 
   /**
-   * Broadcast room state to all clients
+   * Broadcast room state to all clients (immediate, no debouncing)
+   */
+  private broadcastImmediate(): void {
+    this.roomService.broadcast(this.getAuthorizedClients());
+  }
+
+  /**
+   * Debounced broadcast - batches rapid state changes into a single broadcast
+   * Waits 16ms (one frame at 60fps) before broadcasting to batch operations
    */
   private broadcast(): void {
-    this.roomService.broadcast(this.getAuthorizedClients());
+    if (this.broadcastDebounceTimer) {
+      clearTimeout(this.broadcastDebounceTimer);
+    }
+    this.broadcastDebounceTimer = setTimeout(() => {
+      this.broadcastDebounceTimer = null;
+      this.broadcastImmediate();
+    }, 16);
   }
 
   private sendControlMessage(targetUid: string, message: ServerMessage): void {

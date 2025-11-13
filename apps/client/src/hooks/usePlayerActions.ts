@@ -71,10 +71,18 @@ export interface UsePlayerActionsReturn {
 
   /**
    * Update the player's active status effects.
-   *
+   * @deprecated Use setCharacterStatusEffects instead
    * @param effects - Array of status effect identifiers
    */
   setStatusEffects: (effects: string[]) => void;
+
+  /**
+   * Update a character's active status effects.
+   *
+   * @param characterId - ID of the character to update
+   * @param effects - Array of status effect identifiers
+   */
+  setCharacterStatusEffects: (characterId: string, effects: string[]) => void;
 
   /**
    * Add a new player character.
@@ -195,10 +203,21 @@ export function usePlayerActions({
 
   /**
    * Update the player's status effects.
+   * @deprecated Use setCharacterStatusEffects instead
    */
   const setStatusEffects = useCallback(
     (effects: string[]) => {
       sendMessage({ t: "set-status-effects", effects });
+    },
+    [sendMessage],
+  );
+
+  /**
+   * Update a character's status effects.
+   */
+  const setCharacterStatusEffects = useCallback(
+    (characterId: string, effects: string[]) => {
+      sendMessage({ t: "set-character-status-effects", characterId, effects });
     },
     [sendMessage],
   );
@@ -402,6 +421,7 @@ export function usePlayerActions({
       setPortrait,
       setHP,
       setStatusEffects,
+      setCharacterStatusEffects,
       addCharacter,
       deleteCharacter,
       updateCharacterName,
@@ -414,6 +434,7 @@ export function usePlayerActions({
       setPortrait,
       setHP,
       setStatusEffects,
+      setCharacterStatusEffects,
       addCharacter,
       deleteCharacter,
       updateCharacterName,

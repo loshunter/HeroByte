@@ -109,16 +109,16 @@ HEROBYTE_ALLOWED_ORIGINS="https://yourdomain.com,https://staging.yourdomain.com"
 
 ### Common Scripts
 
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Run client and server concurrently |
-| `pnpm dev:server` | Start server in watch mode |
-| `pnpm dev:client` | Start client in watch mode |
-| `pnpm build` | Build both server and client bundles |
-| `pnpm test` | Run full test suite (352 tests) |
-| `pnpm test:e2e` | Run Playwright E2E tests (auto-starts servers) |
-| `pnpm test:shared` | Execute unit tests for shared domain models |
-| `pnpm test:coverage` | Generate coverage reports for all packages |
+| Command              | Description                                    |
+| -------------------- | ---------------------------------------------- |
+| `pnpm dev`           | Run client and server concurrently             |
+| `pnpm dev:server`    | Start server in watch mode                     |
+| `pnpm dev:client`    | Start client in watch mode                     |
+| `pnpm build`         | Build both server and client bundles           |
+| `pnpm test`          | Run full test suite (352 tests)                |
+| `pnpm test:e2e`      | Run Playwright E2E tests (auto-starts servers) |
+| `pnpm test:shared`   | Execute unit tests for shared domain models    |
+| `pnpm test:coverage` | Generate coverage reports for all packages     |
 
 ### Troubleshooting
 
@@ -136,12 +136,14 @@ HEROBYTE_ALLOWED_ORIGINS="https://yourdomain.com,https://staging.yourdomain.com"
 ## ✨ Features
 
 ### 🧠 Real-Time Multiplayer
+
 - **WebSocket Synchronization** – All player actions sync in real-time with server-side validation
 - **Persistent State** – Sessions auto-save to disk and restore on server restart
 - **Rate Limiting** – 100 messages/second per client with token bucket algorithm
 - **Session Management** – Heartbeat system prevents client timeouts
 
 ### 🗺️ Interactive Map Canvas
+
 - **Infinite Canvas** – Pan, zoom, and smooth interactions with performance optimization
 - **Universal Transform System** – Photoshop-style gizmo for maps, tokens, and drawings
   - Click any object to select and show 8 resize handles (4 corners, 4 edges)
@@ -151,12 +153,14 @@ HEROBYTE_ALLOWED_ORIGINS="https://yourdomain.com,https://staging.yourdomain.com"
 - **Grid System** – Adjustable grid (10-500px) with snap-to-grid and lock functionality
 
 ### 🎲 Dice & Combat
+
 - **Visual Dice Roller** – Interactive dice interface with animated roll results
 - **Multi-die Support** – Roll d4, d6, d8, d10, d12, d20, d100 with modifiers
 - **Roll History** – Shared log with timestamps, player names, and expandable formulas
 - **HP Tracking** – Real-time hit point management with visual indicators
 
 ### 🎨 Drawing & Visual Tools
+
 - **Advanced Drawing** – Freehand pen, line, rectangle, circle, and eraser
 - **Full Customization** – Adjustable color, width, opacity, and fill options
 - **Undo/Redo** – Drawing history with keyboard shortcuts (Ctrl+Z)
@@ -165,6 +169,7 @@ HEROBYTE_ALLOWED_ORIGINS="https://yourdomain.com,https://staging.yourdomain.com"
 - **CRT Filter** – Optional retro scanline effect with bloom and chromatic aberration
 
 ### 🎧 Voice & Characters
+
 - **WebRTC Voice Chat** – Peer-to-peer voice communication
 - **Animated Portraits** – Custom portraits that light up when you talk
 - **Character System** – Server-side PC/NPC management with ownership tracking
@@ -177,12 +182,12 @@ HeroByte maintains **100% automated testing** with comprehensive coverage across
 
 ### Test Suite Status: ✅ **352/352 Tests Passing**
 
-| Package | Tests | Coverage | Status |
-|---------|-------|----------|--------|
-| **Shared** | 31 tests | 99.57% | ✅ Passing |
-| **Server** | 235 tests | 80.99% | ✅ Passing |
-| **Client** | 76 tests | Unit coverage | ✅ Passing |
-| **E2E Suite** | 10 tests | Full user flows | ✅ Passing |
+| Package       | Tests     | Coverage        | Status     |
+| ------------- | --------- | --------------- | ---------- |
+| **Shared**    | 31 tests  | 99.57%          | ✅ Passing |
+| **Server**    | 235 tests | 80.99%          | ✅ Passing |
+| **Client**    | 76 tests  | Unit coverage   | ✅ Passing |
+| **E2E Suite** | 10 tests  | Full user flows | ✅ Passing |
 
 ### Major Testing Achievements
 
@@ -194,6 +199,7 @@ HeroByte maintains **100% automated testing** with comprehensive coverage across
 ### What's Tested
 
 **E2E Coverage** (10 comprehensive tests, ~46 seconds):
+
 - Authentication flow and WebSocket connection
 - Drawing tools with persistence through page reload
 - Partial erase and drawing segmentation
@@ -206,6 +212,7 @@ HeroByte maintains **100% automated testing** with comprehensive coverage across
 - Player state persistence (HP, tokens)
 
 **Unit & Integration** (342 tests):
+
 - Domain model validation (99.57% coverage)
 - Server-side services and middleware (80.99% coverage)
 - Client hooks and components (76 tests)
@@ -268,16 +275,16 @@ pnpm test:client    # Client features
 
 ### Tokens & Objects
 
-| Action | Control |
-|--------|---------|
-| **Move Token** | Drag token |
-| **Select Token** | Click to show transform gizmo |
-| **Scale** | Drag corner handles |
-| **Rotate** | Drag rotation handle (45° snap) |
-| **Deselect** | Press ESC |
-| **Lock/Unlock** | Token settings menu |
-| **Randomize Color** | Double-click token |
-| **Context Menu** | Right-click token |
+| Action              | Control                         |
+| ------------------- | ------------------------------- |
+| **Move Token**      | Drag token                      |
+| **Select Token**    | Click to show transform gizmo   |
+| **Scale**           | Drag corner handles             |
+| **Rotate**          | Drag rotation handle (45° snap) |
+| **Deselect**        | Press ESC                       |
+| **Lock/Unlock**     | Token settings menu             |
+| **Randomize Color** | Double-click token              |
+| **Context Menu**    | Right-click token               |
 
 ### Drawing Tools
 
@@ -298,13 +305,13 @@ HeroByte is a monorepo built with **domain-driven design** and strict separation
 
 ### Technology Stack
 
-| Layer | Technology | Purpose |
-|-------|------------|---------|
-| **Client** | React 18 + TypeScript + Konva + Vite | UI + Canvas Rendering |
-| **Server** | Node.js + ws + TypeScript | Real-time Sync, Validation |
-| **Shared** | TypeScript | Canonical message schemas and DTOs |
-| **Testing** | Vitest + Playwright | Unit, Integration, E2E |
-| **Voice** | SimplePeer (WebRTC) | Peer-to-peer voice communication |
+| Layer       | Technology                           | Purpose                            |
+| ----------- | ------------------------------------ | ---------------------------------- |
+| **Client**  | React 18 + TypeScript + Konva + Vite | UI + Canvas Rendering              |
+| **Server**  | Node.js + ws + TypeScript            | Real-time Sync, Validation         |
+| **Shared**  | TypeScript                           | Canonical message schemas and DTOs |
+| **Testing** | Vitest + Playwright                  | Unit, Integration, E2E             |
+| **Voice**   | SimplePeer (WebRTC)                  | Peer-to-peer voice communication   |
 
 ### High-Level Flow
 

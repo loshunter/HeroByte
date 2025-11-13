@@ -18,6 +18,7 @@
 
 import { useCallback } from "react";
 import type { RoomSnapshot } from "@shared";
+import { normalizeImageUrl } from "../utils/imageUrlHelpers";
 
 /**
  * Parameters for the useEntityEditHandlers hook
@@ -129,11 +130,13 @@ export function useEntityEditHandlers(
   /**
    * Handles loading a new portrait image.
    * Prompts the user for an image URL and updates the player's portrait if valid.
+   * Converts Imgur share links to direct image URLs automatically.
    */
-  const handlePortraitLoad = useCallback(() => {
+  const handlePortraitLoad = useCallback(async () => {
     const url = prompt("Enter image URL:");
     if (url && url.trim()) {
-      playerActions.setPortrait(url.trim());
+      const normalizedUrl = await normalizeImageUrl(url.trim());
+      playerActions.setPortrait(normalizedUrl);
     }
   }, [playerActions]);
 

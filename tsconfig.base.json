@@ -8,6 +8,7 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
+      "@shared": ["packages/shared/src"],
       "@shared/*": ["packages/shared/src/*"],
       "@adapters-net/*": ["packages/adapters-net/src/*"],
       "@adapters-render/*": ["packages/adapters-render/src/*"],

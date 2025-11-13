@@ -105,13 +105,14 @@ export default function MapBoard({
   const { sceneObjects, mapObject, drawingObjects, stagingZoneObject, stagingZoneDimensions } =
     useSceneObjectsData(snapshot, gridSize);
 
-  // Build statusEffectsByOwner map from players array
-  const statusEffectsByOwner = useMemo(() => {
-    if (!snapshot?.players) return {};
+  // Build statusEffectsByTokenId map from characters array
+  // Maps token IDs to their character's status effect emoji
+  const statusEffectsByTokenId = useMemo(() => {
+    if (!snapshot?.characters) return {};
 
     const result: Record<string, string> = {};
-    for (const player of snapshot.players) {
-      const statusEffects = player.statusEffects;
+    for (const character of snapshot.characters) {
+      const statusEffects = character.statusEffects;
       if (!statusEffects || statusEffects.length === 0) continue;
 
       const activeEffect = statusEffects[0];
@@ -119,12 +120,13 @@ export default function MapBoard({
 
       // Find the emoji for this status effect
       const statusOption = STATUS_OPTIONS.find((opt) => opt.value === activeEffect);
-      if (statusOption?.emoji) {
-        result[player.uid] = statusOption.emoji;
+      if (statusOption?.emoji && character.tokenId) {
+        // Map by full token scene ID (e.g., "token:abc123")
+        result[`token:${character.tokenId}`] = statusOption.emoji;
       }
     }
     return result;
-  }, [snapshot?.players]);
+  }, [snapshot?.characters]);
 
   const { registerNode, getSelectedNode, getAllNodes } = useKonvaNodeRefs(
     selectedObjectId,
@@ -481,7 +483,7 @@ export default function MapBoard({
             onSelectObject={onSelectObject}
             onTokenNodeReady={handleTokenNodeReady}
             interactionsEnabled={tokenInteractionsEnabled}
-            statusEffectsByOwner={statusEffectsByOwner}
+            statusEffectsByTokenId={statusEffectsByTokenId}
           />
         </Layer>
 

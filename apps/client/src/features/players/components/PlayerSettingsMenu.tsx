@@ -3,7 +3,7 @@
 // ============================================================================
 // Collapsible panel containing token image controls and state save/load actions
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import type { TokenSize } from "@shared";
@@ -19,10 +19,57 @@ export interface StatusOption {
 }
 
 export const STATUS_OPTIONS: StatusOption[] = [
-  { value: "", emoji: "", label: "None" },
-  { value: "poisoned", emoji: "☠️", label: "Poisoned" },
+  // Core D&D Conditions
+  { value: "prone", emoji: "🧎", label: "Prone" },
+  { value: "poisoned", emoji: "🤢", label: "Poisoned" },
+  { value: "grappled", emoji: "🪢", label: "Grappled" },
+  { value: "unconscious", emoji: "😴", label: "Unconscious" },
+  { value: "restrained", emoji: "⛓️", label: "Restrained" },
+  { value: "stunned", emoji: "😵", label: "Stunned" },
+  { value: "paralyzed", emoji: "🧊", label: "Paralyzed" },
+  { value: "blinded", emoji: "🙈", label: "Blinded" },
+  { value: "deafened", emoji: "🙉", label: "Deafened" },
+  { value: "petrified", emoji: "🗿", label: "Petrified" },
+  { value: "incapacitated", emoji: "🚫", label: "Incapacitated" },
+  { value: "frightened", emoji: "😱", label: "Frightened" },
+  { value: "charmed", emoji: "😍", label: "Charmed" },
+  { value: "invisible", emoji: "🫥", label: "Invisible" },
+  { value: "surprised", emoji: "😲", label: "Surprised" },
+
+  // Health States
+  { value: "dead", emoji: "💀", label: "Dead" },
+  { value: "dying", emoji: "☠️", label: "Dying" },
+  { value: "stabilized", emoji: "🤕", label: "Stabilized" },
+  { value: "exhausted", emoji: "😫", label: "Exhausted" },
+  { value: "bloodied", emoji: "💔", label: "Bloodied" },
+  { value: "diseased", emoji: "☣️", label: "Diseased" },
+
+  // Elemental Effects
   { value: "burning", emoji: "🔥", label: "Burning" },
   { value: "frozen", emoji: "❄️", label: "Frozen" },
+
+  // Buffs
+  { value: "blessed", emoji: "😇", label: "Blessed" },
+  { value: "bardic-inspiration", emoji: "🎶", label: "Bardic Inspiration" },
+  { value: "shield-of-faith", emoji: "🛡️", label: "Shield of Faith" },
+  { value: "heroic-inspiration", emoji: "🎖️", label: "Heroic Inspiration" },
+  { value: "hasted", emoji: "⚡", label: "Hasted" },
+
+  // Debuffs
+  { value: "hexed", emoji: "😈", label: "Hexed" },
+  { value: "hunters-mark", emoji: "🎯", label: "Hunter's Mark" },
+  { value: "bane", emoji: "👿", label: "Bane" },
+  { value: "slowed", emoji: "🐌", label: "Slowed" },
+
+  // Combat States
+  { value: "rage", emoji: "😠", label: "Rage" },
+  { value: "concentration", emoji: "🧠", label: "Concentration" },
+
+  // Special States
+  { value: "flying", emoji: "🪽", label: "Flying" },
+  { value: "polymorphed", emoji: "🐑", label: "Polymorphed" },
+  { value: "dazed", emoji: "😵‍💫", label: "Dazed" },
+  { value: "confused", emoji: "😕", label: "Confused" },
 ];
 
 interface PlayerSettingsMenuProps {
@@ -35,8 +82,8 @@ interface PlayerSettingsMenuProps {
   onTokenImageApply: (value: string) => void;
   onSavePlayerState: () => void;
   onLoadPlayerState: (file: File) => Promise<void>;
-  statusIcon: StatusOption | null;
-  onStatusChange: (option: StatusOption | null) => void;
+  selectedEffects: string[];
+  onStatusEffectsChange: (effects: string[]) => void;
   isDM: boolean;
   onToggleDMMode: (next: boolean) => void;
   onDeleteToken?: () => void;
@@ -60,8 +107,8 @@ export function PlayerSettingsMenu({
   onTokenImageApply,
   onSavePlayerState,
   onLoadPlayerState,
-  statusIcon,
-  onStatusChange,
+  selectedEffects,
+  onStatusEffectsChange,
   isDM,
   onToggleDMMode,
   onDeleteToken,
@@ -77,11 +124,34 @@ export function PlayerSettingsMenu({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { normalizeUrl } = useImageUrlNormalization();
   const [showCharacterModal, setShowCharacterModal] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   const handleApplyTokenImage = async () => {
     const normalizedUrl = await normalizeUrl(tokenImageInput.trim());
     onTokenImageApply(normalizedUrl);
   };
+
+  const handleToggleEffect = (value: string) => {
+    const newEffects = selectedEffects.includes(value)
+      ? selectedEffects.filter((e) => e !== value)
+      : [...selectedEffects, value];
+    onStatusEffectsChange(newEffects);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+
+    if (dropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [dropdownOpen]);
 
   if (!isOpen) {
     return null;
@@ -284,26 +354,77 @@ export function PlayerSettingsMenu({
           style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
         >
           <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-            Status Effect
+            Status Effects
           </span>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-            {STATUS_OPTIONS.map((option) => {
-              const isNone = option.value === "";
-              const active = statusIcon ? statusIcon.value === option.value : isNone;
-              const handleStatusClick = () => {
-                onStatusChange(isNone ? null : option);
-              };
-              return (
-                <JRPGButton
-                  key={option.value || "none"}
-                  onClick={handleStatusClick}
-                  variant={active ? "primary" : "default"}
-                  style={{ fontSize: "10px", padding: "6px 8px" }}
-                >
-                  {option.emoji ? `${option.emoji} ${option.label}` : option.label}
-                </JRPGButton>
-              );
-            })}
+          <div style={{ position: "relative" }} ref={dropdownRef}>
+            <JRPGButton
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              variant="default"
+              style={{ width: "100%", fontSize: "10px", padding: "6px 8px" }}
+            >
+              {selectedEffects.length === 0
+                ? "No Effects"
+                : `${selectedEffects.length} Active Effect${selectedEffects.length === 1 ? "" : "s"}`}
+            </JRPGButton>
+            {dropdownOpen && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  right: 0,
+                  marginTop: "4px",
+                  maxHeight: "300px",
+                  overflowY: "auto",
+                  background: "rgba(12, 18, 40, 0.98)",
+                  border: "2px solid var(--jrpg-border-gold)",
+                  borderRadius: "6px",
+                  padding: "8px",
+                  zIndex: 1000,
+                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.5)",
+                }}
+              >
+                {STATUS_OPTIONS.map((option) => {
+                  const isSelected = selectedEffects.includes(option.value);
+                  return (
+                    <label
+                      key={option.value}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        padding: "6px 8px",
+                        cursor: "pointer",
+                        borderRadius: "4px",
+                        transition: "background 0.2s",
+                        fontSize: "12px",
+                        color: isSelected ? "var(--jrpg-gold)" : "var(--jrpg-white)",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "rgba(255, 215, 0, 0.1)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "transparent";
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleToggleEffect(option.value)}
+                        style={{
+                          width: "16px",
+                          height: "16px",
+                          cursor: "pointer",
+                        }}
+                      />
+                      <span>
+                        {option.emoji} {option.label}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </JRPGPanel>
 
