@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 
 import type { TokenSize } from "@shared";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
+import { useImageUrlNormalization } from "../../../hooks/useImageUrlNormalization";
 
 interface NpcSettingsMenuProps {
   isOpen: boolean;
@@ -48,6 +49,12 @@ export function NpcSettingsMenu({
   deletionError = null,
 }: NpcSettingsMenuProps): JSX.Element | null {
   const [wasDeleting, setWasDeleting] = useState(false);
+  const { normalizeUrl } = useImageUrlNormalization();
+
+  const handleApplyTokenImage = async () => {
+    const normalizedUrl = await normalizeUrl(tokenImageInput.trim());
+    onTokenImageApply(normalizedUrl);
+  };
 
   // Auto-close when deletion completes successfully
   useEffect(() => {
@@ -92,10 +99,10 @@ export function NpcSettingsMenu({
             value={tokenImageInput}
             placeholder="https://enemy-token.png"
             onChange={(event) => onTokenImageInputChange(event.target.value)}
-            onBlur={() => onTokenImageApply(tokenImageInput.trim())}
+            onBlur={handleApplyTokenImage}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
-                onTokenImageApply(tokenImageInput.trim());
+                handleApplyTokenImage();
               }
             }}
             style={{
@@ -111,7 +118,7 @@ export function NpcSettingsMenu({
             <button
               className="btn btn-primary"
               style={{ flex: 1, fontSize: "0.65rem", padding: "4px 6px" }}
-              onClick={() => onTokenImageApply(tokenImageInput.trim())}
+              onClick={handleApplyTokenImage}
             >
               Apply
             </button>

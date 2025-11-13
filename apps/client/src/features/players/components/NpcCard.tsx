@@ -10,6 +10,7 @@ import { PortraitSection } from "./PortraitSection";
 import { HPBar } from "./HPBar";
 import { NpcSettingsMenu } from "./NpcSettingsMenu";
 import { sanitizeText } from "../../../utils/sanitize";
+import { normalizeImageUrl } from "../../../utils/imageUrlHelpers";
 
 interface NpcCardProps {
   character: Character;
@@ -100,11 +101,12 @@ export function NpcCard({
     [isDM, character.id, character.hp, onUpdate],
   );
 
-  const handlePortraitChange = useCallback(() => {
+  const handlePortraitChange = useCallback(async () => {
     if (!isDM) return;
     const url = prompt("Enter portrait URL", character.portrait ?? "");
     if (!url) return;
-    onUpdate(character.id, { portrait: url.trim() });
+    const normalizedUrl = await normalizeImageUrl(url.trim());
+    onUpdate(character.id, { portrait: normalizedUrl });
   }, [isDM, character.id, character.portrait, onUpdate]);
 
   const handleTokenImageApply = useCallback(
