@@ -46,7 +46,7 @@ interface EntitiesPanelProps {
   onToggleDMMode: (next: boolean) => void;
   onTokenImageChange: (tokenId: string, imageUrl: string) => void;
   onApplyPlayerState: (state: PlayerState, tokenId?: string, characterId?: string) => void;
-  onStatusEffectsChange: (effects: string[]) => void;
+  _onStatusEffectsChange: (effects: string[]) => void; // Deprecated - kept for backward compatibility
   onCharacterStatusEffectsChange: (characterId: string, effects: string[]) => void;
   onNpcUpdate: (
     id: string,
