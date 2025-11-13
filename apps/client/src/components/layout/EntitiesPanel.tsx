@@ -104,7 +104,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   onToggleDMMode,
   onTokenImageChange,
   onApplyPlayerState,
-  onStatusEffectsChange,
+  _onStatusEffectsChange, // Deprecated - kept for backward compatibility
   onCharacterStatusEffectsChange,
   onNpcUpdate,
   onNpcDelete,
