@@ -167,7 +167,10 @@
       "Bash(pnpm --filter herobyte-client test:coverage --reporter=verbose)",
       "WebSearch",
       "WebFetch(domain:github.com)",
-      "Bash(pnpm install)"
+      "Bash(pnpm install)",
+      "Bash(pnpm --filter herobyte-server typecheck:*)",
+      "Bash(pnpm --filter server typecheck:*)",
+      "Bash(pnpm --filter vtt-server test:*)"
     ],
     "deny": [],
     "ask": []

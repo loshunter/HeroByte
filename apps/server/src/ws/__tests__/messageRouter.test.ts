@@ -32,6 +32,8 @@ describe("MessageRouter", () => {
   let mockState: RoomState;
 
   beforeEach(() => {
+    // Use fake timers to handle debounced broadcasts
+    vi.useFakeTimers();
     // Create mock state
     mockState = {
       users: [],
@@ -168,10 +170,21 @@ describe("MessageRouter", () => {
     );
   });
 
+  afterEach(() => {
+    // Restore real timers after each test
+    vi.useRealTimers();
+  });
+
+  // Helper to route a message and flush debounced timers
+  const routeAndFlush = (msg: ClientMessage, senderUid: string) => {
+    router.route(msg, senderUid);
+    vi.runAllTimers(); // Flush debounced broadcast
+  };
+
   describe("Token Actions", () => {
     it("routes move message to tokenService", () => {
       const msg: ClientMessage = { t: "move", id: "token-1", x: 10, y: 20 };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockTokenService.moveToken).toHaveBeenCalledWith(
         mockState,
@@ -185,7 +198,7 @@ describe("MessageRouter", () => {
 
     it("routes recolor message to tokenService", () => {
       const msg: ClientMessage = { t: "recolor", id: "token-1" };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockTokenService.recolorToken).toHaveBeenCalledWith(mockState, "token-1", "player-1");
       expect(mockRoomService.broadcast).toHaveBeenCalled();
@@ -193,7 +206,7 @@ describe("MessageRouter", () => {
 
     it("routes delete-token message and broadcasts", () => {
       const msg: ClientMessage = { t: "delete-token", id: "token-1" };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockTokenService.deleteToken).toHaveBeenCalledWith(mockState, "token-1", "player-1");
       expect(mockSelectionService.removeObject).toHaveBeenCalledWith(mockState, "token-1");
@@ -204,7 +217,7 @@ describe("MessageRouter", () => {
       mockState.players[0].isDM = true;
       const msg: ClientMessage = { t: "delete-token", id: "token-2" };
 
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockTokenService.forceDeleteToken).toHaveBeenCalledWith(mockState, "token-2");
       expect(mockTokenService.deleteToken).not.toHaveBeenCalled();
@@ -218,7 +231,7 @@ describe("MessageRouter", () => {
         tokenId: "token-1",
         imageUrl: "http://example.com/img.png",
       };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockTokenService.setImageUrl).toHaveBeenCalledWith(
         mockState,
@@ -234,7 +247,7 @@ describe("MessageRouter", () => {
   describe("Player Actions", () => {
     it("routes portrait message and saves state", () => {
       const msg: ClientMessage = { t: "portrait", data: "base64data" };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockPlayerService.setPortrait).toHaveBeenCalledWith(
         mockState,
@@ -247,7 +260,7 @@ describe("MessageRouter", () => {
 
     it("routes rename message and saves state", () => {
       const msg: ClientMessage = { t: "rename", name: "Bob" };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockPlayerService.rename).toHaveBeenCalledWith(mockState, "player-1", "Bob");
       expect(mockRoomService.broadcast).toHaveBeenCalled();
@@ -256,7 +269,7 @@ describe("MessageRouter", () => {
 
     it("routes mic-level message", () => {
       const msg: ClientMessage = { t: "mic-level", level: 5 };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockPlayerService.setMicLevel).toHaveBeenCalledWith(mockState, "player-1", 5);
       expect(mockRoomService.broadcast).toHaveBeenCalled();
@@ -264,7 +277,7 @@ describe("MessageRouter", () => {
 
     it("routes set-hp message and saves state", () => {
       const msg: ClientMessage = { t: "set-hp", hp: 15, maxHp: 20 };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockPlayerService.setHP).toHaveBeenCalledWith(mockState, "player-1", 15, 20);
       expect(mockRoomService.broadcast).toHaveBeenCalled();
@@ -273,7 +286,7 @@ describe("MessageRouter", () => {
 
     it("ignores deprecated toggle-dm message", () => {
       const msg: ClientMessage = { t: "toggle-dm", isDM: true };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       // toggle-dm is deprecated and should be ignored
       expect(mockPlayerService.setDMMode).not.toHaveBeenCalled();
@@ -291,7 +304,7 @@ describe("MessageRouter", () => {
         maxHp: 100,
         portrait: "portrait-data",
       };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockCharacterService.createCharacter).toHaveBeenCalledWith(
         mockState,
@@ -313,7 +326,7 @@ describe("MessageRouter", () => {
         portrait: "goblin-portrait",
         tokenImage: "goblin-token",
       };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockCharacterService.createCharacter).toHaveBeenCalledWith(
         mockState,
@@ -338,7 +351,7 @@ describe("MessageRouter", () => {
         portrait: "new-portrait",
         tokenImage: "new-token",
       };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockCharacterService.updateNPC).toHaveBeenCalledWith(
         mockState,
@@ -359,7 +372,7 @@ describe("MessageRouter", () => {
     it("routes delete-npc and removes associated token", () => {
       mockState.players[0].isDM = true; // DM-only action
       const msg: ClientMessage = { t: "delete-npc", id: "npc-1" };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockCharacterService.deleteCharacter).toHaveBeenCalledWith(mockState, "npc-1");
       expect(mockTokenService.forceDeleteToken).toHaveBeenCalledWith(mockState, "token-1");
@@ -370,7 +383,7 @@ describe("MessageRouter", () => {
 
     it("routes claim-character message", () => {
       const msg: ClientMessage = { t: "claim-character", characterId: "char-1" };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockCharacterService.claimCharacter).toHaveBeenCalledWith(
         mockState,
@@ -388,7 +401,7 @@ describe("MessageRouter", () => {
         hp: 50,
         maxHp: 100,
       };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockCharacterService.updateHP).toHaveBeenCalledWith(mockState, "char-1", 50, 100);
       expect(mockRoomService.broadcast).toHaveBeenCalled();
@@ -397,7 +410,7 @@ describe("MessageRouter", () => {
 
     it("routes link-token message", () => {
       const msg: ClientMessage = { t: "link-token", characterId: "char-1", tokenId: "token-1" };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockCharacterService.linkToken).toHaveBeenCalledWith(mockState, "char-1", "token-1");
       expect(mockRoomService.broadcast).toHaveBeenCalled();
@@ -408,7 +421,7 @@ describe("MessageRouter", () => {
   describe("Map Actions", () => {
     it("routes map-background message", () => {
       const msg: ClientMessage = { t: "map-background", data: "background-data" };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockMapService.setBackground).toHaveBeenCalledWith(mockState, "background-data");
       expect(mockRoomService.broadcast).toHaveBeenCalled();
@@ -416,7 +429,7 @@ describe("MessageRouter", () => {
 
     it("routes grid-size message", () => {
       const msg: ClientMessage = { t: "grid-size", size: 100 };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockMapService.setGridSize).toHaveBeenCalledWith(mockState, 100);
       expect(mockRoomService.broadcast).toHaveBeenCalled();
@@ -424,7 +437,7 @@ describe("MessageRouter", () => {
 
     it("routes point message", () => {
       const msg: ClientMessage = { t: "point", x: 50, y: 75 };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockMapService.placePointer).toHaveBeenCalledWith(mockState, "player-1", 50, 75);
       expect(mockRoomService.broadcast).toHaveBeenCalled();
@@ -443,7 +456,7 @@ describe("MessageRouter", () => {
         opacity: 1,
       };
       const msg: ClientMessage = { t: "draw", drawing };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockMapService.addDrawing).toHaveBeenCalledWith(mockState, drawing, "player-1");
       expect(mockRoomService.broadcast).toHaveBeenCalled();
@@ -451,7 +464,7 @@ describe("MessageRouter", () => {
 
     it("routes undo-drawing message", () => {
       const msg: ClientMessage = { t: "undo-drawing" };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockMapService.undoDrawing).toHaveBeenCalledWith(mockState, "player-1");
       expect(mockRoomService.broadcast).toHaveBeenCalled();
@@ -459,7 +472,7 @@ describe("MessageRouter", () => {
 
     it("routes delete-drawing message and clears selection", () => {
       const msg: ClientMessage = { t: "delete-drawing", id: "draw-1" };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockMapService.deleteDrawing).toHaveBeenCalledWith(mockState, "draw-1");
       expect(mockSelectionService.removeObject).toHaveBeenCalledWith(mockState, "draw-1");
@@ -485,7 +498,7 @@ describe("MessageRouter", () => {
         segments,
       } as ClientMessage;
 
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockMapService.handlePartialErase).toHaveBeenCalledWith(
         mockState,
@@ -504,7 +517,7 @@ describe("MessageRouter", () => {
         { id: "draw-2" } as unknown as RoomState["drawings"][number],
       ];
       const msg: ClientMessage = { t: "clear-drawings" };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockMapService.clearDrawings).toHaveBeenCalledWith(mockState);
       expect(mockSelectionService.removeObject).toHaveBeenCalledWith(mockState, "draw-1");
@@ -620,6 +633,7 @@ describe("MessageRouter", () => {
       };
 
       integrationRouter.route(message, "player-1");
+      vi.runAllTimers(); // Flush debounced broadcast
 
       expect(integrationState.drawings).toHaveLength(2);
       const createdIds = integrationState.drawings.map((drawing) => drawing.id);
@@ -638,7 +652,7 @@ describe("MessageRouter", () => {
     it("routes select-object message when uid matches sender", () => {
       const msg: ClientMessage = { t: "select-object", uid: "player-1", objectId: "token-1" };
 
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockSelectionService.selectObject).toHaveBeenCalledWith(
         mockState,
@@ -654,7 +668,7 @@ describe("MessageRouter", () => {
       try {
         const msg: ClientMessage = { t: "select-object", uid: "player-2", objectId: "token-1" };
 
-        router.route(msg, "player-1");
+        routeAndFlush(msg, "player-1");
 
         expect(mockSelectionService.selectObject).not.toHaveBeenCalled();
         expect(mockRoomService.broadcast).not.toHaveBeenCalled();
@@ -667,7 +681,7 @@ describe("MessageRouter", () => {
     it("routes deselect-object message", () => {
       const msg: ClientMessage = { t: "deselect-object", uid: "player-1" };
 
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockSelectionService.deselect).toHaveBeenCalledWith(mockState, "player-1");
       expect(mockRoomService.broadcast).toHaveBeenCalled();
@@ -682,7 +696,7 @@ describe("MessageRouter", () => {
         mode: "append",
       };
 
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockSelectionService.selectMultiple).toHaveBeenCalledWith(
         mockState,
@@ -701,7 +715,7 @@ describe("MessageRouter", () => {
         objectIds: ["token-3"],
       };
 
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockSelectionService.selectMultiple).toHaveBeenCalledWith(
         mockState,
@@ -717,7 +731,7 @@ describe("MessageRouter", () => {
       mockSelectionService.selectObject = vi.fn(() => false);
       const msg: ClientMessage = { t: "select-object", uid: "player-1", objectId: "token-1" };
 
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockSelectionService.selectObject).toHaveBeenCalled();
       expect(mockRoomService.broadcast).not.toHaveBeenCalled();
@@ -736,7 +750,7 @@ describe("MessageRouter", () => {
         timestamp: Date.now(),
       };
       const msg: ClientMessage = { t: "dice-roll", roll };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockDiceService.addRoll).toHaveBeenCalledWith(mockState, roll);
       expect(mockRoomService.broadcast).toHaveBeenCalled();
@@ -744,7 +758,7 @@ describe("MessageRouter", () => {
 
     it("routes clear-roll-history message", () => {
       const msg: ClientMessage = { t: "clear-roll-history" };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockDiceService.clearHistory).toHaveBeenCalledWith(mockState);
       expect(mockRoomService.broadcast).toHaveBeenCalled();
@@ -771,7 +785,7 @@ describe("MessageRouter", () => {
         lastHeartbeat: Date.now(),
       });
       const msg: ClientMessage = { t: "clear-all-tokens" };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockTokenService.clearAllTokensExcept).toHaveBeenCalledWith(mockState, "player-1");
       expect(mockSelectionService.removeObject).toHaveBeenCalledWith(mockState, "token-removed");
@@ -783,7 +797,7 @@ describe("MessageRouter", () => {
     it("routes heartbeat message and updates timestamp", () => {
       const msg: ClientMessage = { t: "heartbeat" };
       const beforeTime = Date.now();
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
       const afterTime = Date.now();
 
       const player = mockState.players.find((p) => p.uid === "player-1");
@@ -799,7 +813,7 @@ describe("MessageRouter", () => {
         selectionState: selectionMapToRecord(mockState.selectionState),
       };
       const msg: ClientMessage = { t: "load-session", snapshot };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockRoomService.loadSnapshot).toHaveBeenCalledWith(snapshot);
       expect(mockRoomService.broadcast).toHaveBeenCalled();
@@ -814,7 +828,7 @@ describe("MessageRouter", () => {
         scale: { x: 1.5, y: 1.5 },
         rotation: 45,
       };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockRoomService.applySceneObjectTransform).toHaveBeenCalledWith("obj-1", "player-1", {
         position: { x: 10, y: 20 },
@@ -833,7 +847,7 @@ describe("MessageRouter", () => {
       (mockAuthService.update as unknown as Mock).mockReturnValue(summary);
 
       const msg: ClientMessage = { t: "set-room-password", secret: "Secret123" };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockAuthService.update).toHaveBeenCalledWith("Secret123");
       expect(ws.send).toHaveBeenCalledWith(
@@ -847,7 +861,7 @@ describe("MessageRouter", () => {
       mockUidToWs.set("player-1", ws);
 
       const msg: ClientMessage = { t: "set-room-password", secret: "Secret123" };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockAuthService.update).not.toHaveBeenCalled();
       expect(ws.send).toHaveBeenCalledWith(
@@ -870,7 +884,7 @@ describe("MessageRouter", () => {
 
       const signal = { type: "offer", sdp: "test-sdp" };
       const msg: ClientMessage = { t: "rtc-signal", target: "player-2", signal };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockTargetWs.send).toHaveBeenCalledWith(
         JSON.stringify({ t: "rtc-signal", from: "player-1", signal }),
@@ -881,7 +895,7 @@ describe("MessageRouter", () => {
       const signal = { type: "offer", sdp: "test-sdp" };
       const msg: ClientMessage = { t: "rtc-signal", target: "nonexistent", signal };
 
-      expect(() => router.route(msg, "player-1")).not.toThrow();
+      expect(() => routeAndFlush(msg, "player-1")).not.toThrow();
     });
   });
 
@@ -893,7 +907,7 @@ describe("MessageRouter", () => {
 
     it("routes set-token-size message to tokenService", () => {
       const msg: ClientMessage = { t: "set-token-size", tokenId: "token-1", size: "large" };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockTokenService.setTokenSize).toHaveBeenCalledWith(
         mockState,
@@ -911,7 +925,7 @@ describe("MessageRouter", () => {
       for (const size of sizes) {
         vi.clearAllMocks();
         const msg: ClientMessage = { t: "set-token-size", tokenId: "token-1", size };
-        router.route(msg, "player-1");
+        routeAndFlush(msg, "player-1");
 
         expect(mockTokenService.setTokenSize).toHaveBeenCalledWith(
           mockState,
@@ -927,7 +941,7 @@ describe("MessageRouter", () => {
     it("does not broadcast if setTokenSize returns false", () => {
       mockTokenService.setTokenSize = vi.fn(() => false);
       const msg: ClientMessage = { t: "set-token-size", tokenId: "token-1", size: "huge" };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockTokenService.setTokenSize).toHaveBeenCalled();
       expect(mockRoomService.broadcast).not.toHaveBeenCalled();
@@ -952,7 +966,7 @@ describe("MessageRouter", () => {
 
     it("routes set-token-color for the token owner", () => {
       const msg: ClientMessage = { t: "set-token-color", tokenId: "token-1", color: "#123456" };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockTokenService.setColor).toHaveBeenCalledWith(
         mockState,
@@ -968,7 +982,7 @@ describe("MessageRouter", () => {
     it("allows DMs to recolor any token", () => {
       mockState.players[0].isDM = true;
       const msg: ClientMessage = { t: "set-token-color", tokenId: "token-1", color: "#abcdef" };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockTokenService.setColorForToken).toHaveBeenCalledWith(
         mockState,
@@ -987,7 +1001,7 @@ describe("MessageRouter", () => {
 
     it("routes set-status-effects to playerService", () => {
       const msg: ClientMessage = { t: "set-status-effects", effects: ["poisoned", "burning"] };
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockPlayerService.setStatusEffects).toHaveBeenCalledWith(mockState, "player-1", [
         "poisoned",
@@ -1036,7 +1050,7 @@ describe("MessageRouter", () => {
         ],
       };
 
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockMapService.replacePlayerDrawings).toHaveBeenCalledWith(
         mockState,
@@ -1059,7 +1073,7 @@ describe("MessageRouter", () => {
       const zone = { x: 5, y: 5, width: 3, height: 2, rotation: 45 };
       const msg: ClientMessage = { t: "set-player-staging-zone", zone };
 
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockRoomService.setPlayerStagingZone).toHaveBeenCalledWith(zone);
       expect(mockRoomService.broadcast).toHaveBeenCalled();
@@ -1073,7 +1087,7 @@ describe("MessageRouter", () => {
         zone: { x: 0, y: 0, width: 4, height: 4, rotation: 0 },
       };
 
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(mockRoomService.setPlayerStagingZone).not.toHaveBeenCalled();
       expect(mockRoomService.broadcast).not.toHaveBeenCalled();
@@ -1089,7 +1103,7 @@ describe("MessageRouter", () => {
       });
 
       const msg: ClientMessage = { t: "move", id: "token-1", x: 10, y: 20 };
-      expect(() => router.route(msg, "player-1")).not.toThrow();
+      expect(() => routeAndFlush(msg, "player-1")).not.toThrow();
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         "[MessageRouter] Error routing message type=move from=player-1:",
@@ -1106,7 +1120,7 @@ describe("MessageRouter", () => {
       const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
       const msg = { t: "unknown-type" } as unknown as ClientMessage;
-      router.route(msg, "player-1");
+      routeAndFlush(msg, "player-1");
 
       expect(consoleWarnSpy).toHaveBeenCalledWith("Unknown message type:", "unknown-type");
       consoleWarnSpy.mockRestore();
