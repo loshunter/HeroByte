@@ -523,6 +523,29 @@ export class MessageRouter {
           }
           break;
 
+        case "set-character-status-effects": {
+          // Find the character
+          const character = this.characterService.findCharacter(state, message.characterId);
+
+          // Permission check: Only allow if player owns this character or is DM
+          const canModify =
+            this.isDM(senderUid) ||
+            (character && this.characterService.canControlCharacter(character, senderUid));
+
+          if (!canModify) {
+            console.warn(
+              `Player ${senderUid} attempted to set status effects for character they don't control`,
+            );
+            break;
+          }
+
+          if (this.characterService.setStatusEffects(state, message.characterId, message.effects)) {
+            this.broadcast();
+            this.roomService.saveState();
+          }
+          break;
+        }
+
         case "link-token":
           if (this.characterService.linkToken(state, message.characterId, message.tokenId)) {
             this.broadcast();

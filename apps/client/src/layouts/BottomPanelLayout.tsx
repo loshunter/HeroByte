@@ -127,13 +127,15 @@ export interface BottomPanelLayoutProps {
   /** Handler to toggle microphone on/off */
   onToggleMic: () => void;
 
-  // DM & Player State (4 props)
+  // DM & Player State (5 props)
   /** Handler to toggle DM mode on/off */
   onToggleDMMode: (next: boolean) => void;
   /** Handler to apply a player state (dead, unconscious, etc.) */
   onApplyPlayerState: (state: PlayerState, tokenId?: string, characterId?: string) => void;
-  /** Handler to update status effects for a character */
+  /** Handler to update status effects for a character (deprecated - use onCharacterStatusEffectsChange) */
   onStatusEffectsChange: (effects: string[]) => void;
+  /** Handler to update character status effects */
+  onCharacterStatusEffectsChange: (characterId: string, effects: string[]) => void;
   /** Handler to update a character's name */
   onCharacterNameUpdate: (characterId: string, name: string) => void;
 
@@ -273,6 +275,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
     onToggleDMMode,
     onApplyPlayerState,
     onStatusEffectsChange,
+    onCharacterStatusEffectsChange,
     onCharacterNameUpdate,
     onNpcUpdate,
     onNpcDelete,
@@ -325,6 +328,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
         onToggleDMMode={onToggleDMMode}
         onApplyPlayerState={onApplyPlayerState}
         onStatusEffectsChange={onStatusEffectsChange}
+        onCharacterStatusEffectsChange={onCharacterStatusEffectsChange}
         onCharacterNameUpdate={onCharacterNameUpdate}
         onNpcUpdate={onNpcUpdate}
         onNpcDelete={onNpcDelete}

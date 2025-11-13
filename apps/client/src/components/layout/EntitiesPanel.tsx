@@ -47,6 +47,7 @@ interface EntitiesPanelProps {
   onTokenImageChange: (tokenId: string, imageUrl: string) => void;
   onApplyPlayerState: (state: PlayerState, tokenId?: string, characterId?: string) => void;
   onStatusEffectsChange: (effects: string[]) => void;
+  onCharacterStatusEffectsChange: (characterId: string, effects: string[]) => void;
   onNpcUpdate: (
     id: string,
     updates: { name?: string; hp?: number; maxHp?: number; portrait?: string; tokenImage?: string },
@@ -104,6 +105,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   onTokenImageChange,
   onApplyPlayerState,
   onStatusEffectsChange,
+  onCharacterStatusEffectsChange,
   onNpcUpdate,
   onNpcDelete,
   onNpcPlaceToken,
@@ -332,7 +334,9 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                             : undefined
                         }
                         onStatusEffectsChange={
-                          isMe ? (effects) => onStatusEffectsChange(effects) : undefined
+                          isMe && character.id
+                            ? (effects) => onCharacterStatusEffectsChange(character.id, effects)
+                            : undefined
                         }
                         isDM={player.isDM ?? false}
                         onToggleDMMode={onToggleDMMode}

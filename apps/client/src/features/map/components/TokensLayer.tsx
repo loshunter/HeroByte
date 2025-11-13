@@ -186,8 +186,8 @@ interface TokensLayerProps {
   ) => void;
   onTokenNodeReady?: (tokenId: string, node: Konva.Node | null) => void;
   interactionsEnabled?: boolean;
-  /** Map of token owner UID to their active status effect emoji */
-  statusEffectsByOwner?: Record<string, string>;
+  /** Map of token scene ID (e.g., "token:abc123") to status effect emoji */
+  statusEffectsByTokenId?: Record<string, string>;
 }
 
 export const TokensLayer = memo(function TokensLayer({
@@ -205,7 +205,7 @@ export const TokensLayer = memo(function TokensLayer({
   onSelectObject,
   onTokenNodeReady,
   interactionsEnabled = true,
-  statusEffectsByOwner = {},
+  statusEffectsByTokenId = {},
 }: TokensLayerProps) {
   const localOverrides = useRef<Record<string, { x: number; y: number }>>({});
   const multiDragStartRef = useRef<Record<string, { x: number; y: number }>>({});
@@ -391,12 +391,12 @@ export const TokensLayer = memo(function TokensLayer({
                 size={gridSize * 0.25}
               />
             )}
-            {object.owner && statusEffectsByOwner[object.owner] && (
+            {statusEffectsByTokenId[object.id] && (
               <StatusEffectBadge
                 x={object.transform.x * gridSize + gridSize * 0.15}
                 y={object.transform.y * gridSize + gridSize * 0.15}
                 size={gridSize * 0.3}
-                emoji={statusEffectsByOwner[object.owner]}
+                emoji={statusEffectsByTokenId[object.id]}
               />
             )}
             {isFirstSelected && (
@@ -451,12 +451,12 @@ export const TokensLayer = memo(function TokensLayer({
                 size={gridSize * 0.25}
               />
             )}
-            {object.owner && statusEffectsByOwner[object.owner] && (
+            {statusEffectsByTokenId[object.id] && (
               <StatusEffectBadge
                 x={object.transform.x * gridSize + gridSize * 0.15}
                 y={object.transform.y * gridSize + gridSize * 0.15}
                 size={gridSize * 0.3}
-                emoji={statusEffectsByOwner[object.owner]}
+                emoji={statusEffectsByTokenId[object.id]}
               />
             )}
             {isFirstSelected && (

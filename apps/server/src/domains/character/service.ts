@@ -114,6 +114,19 @@ export class CharacterService {
   }
 
   /**
+   * Set status effects for a character
+   */
+  setStatusEffects(state: RoomState, characterId: string, effects: string[]): boolean {
+    const character = this.findCharacter(state, characterId);
+    if (character) {
+      character.statusEffects = [...effects];
+      console.log(`Set status effects for ${character.name}:`, effects);
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Update NPC metadata
    */
   updateNPC(
