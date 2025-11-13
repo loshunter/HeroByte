@@ -5,13 +5,14 @@
 
 import React from "react";
 import { sanitizeText } from "../../../utils/sanitize";
+import { STATUS_OPTIONS } from "./PlayerSettingsMenu";
 
 interface PortraitSectionProps {
   portrait?: string;
   micLevel?: number;
   isEditable?: boolean;
   onRequestChange?: () => void;
-  statusIcon?: { emoji: string; label: string } | null;
+  statusEffects: string[];
   tokenColor?: string;
   onFocusToken?: () => void;
   initiative?: number;
@@ -23,7 +24,7 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
   micLevel = 0,
   isEditable = false,
   onRequestChange,
-  statusIcon,
+  statusEffects,
   tokenColor = "#5AFFAD",
   onFocusToken,
   initiative,
@@ -43,6 +44,16 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
       onFocusToken();
     }
   };
+
+  // Get emojis for active status effects (up to 3)
+  const displayEffects = statusEffects.slice(0, 3).map((effectValue) => {
+    const option = STATUS_OPTIONS.find((opt) => opt.value === effectValue);
+    return option
+      ? { emoji: option.emoji, label: option.label }
+      : { emoji: "", label: effectValue };
+  });
+
+  const hasMoreEffects = statusEffects.length > 3;
 
   const animatedBoxShadow =
     micLevel > 0.1 ? "0 0 12px rgba(90, 255, 173, 0.35)" : "0 0 6px rgba(8, 12, 24, 0.6)";
@@ -95,35 +106,44 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: "14px",
+            fontSize: statusEffects.length === 0 ? "14px" : "10px",
             boxShadow: "0 0 6px var(--jrpg-border-gold)",
             cursor: onFocusToken ? "pointer" : "default",
             padding: 0,
+            lineHeight: 1,
           }}
-          title={onFocusToken ? "Focus on token" : "Status effects"}
+          title={
+            statusEffects.length > 0
+              ? displayEffects.map((e) => e.label).join(", ") +
+                (hasMoreEffects ? `, +${statusEffects.length - 3} more` : "")
+              : onFocusToken
+                ? "Focus on token"
+                : "No status effects"
+          }
           disabled={!onFocusToken}
           aria-label={onFocusToken ? "Focus camera on token" : "Status effects"}
         >
-          {statusIcon ? statusIcon.emoji : "⚔️"}
-          {statusIcon && (
-            <span
-              className="jrpg-text-small"
+          {statusEffects.length === 0 ? (
+            "⚔️"
+          ) : (
+            <div
               style={{
-                position: "absolute",
-                top: "120%",
-                left: "50%",
-                transform: "translateX(-50%)",
-                whiteSpace: "nowrap",
-                background: "rgba(8, 12, 24, 0.9)",
-                padding: "2px 4px",
-                borderRadius: "4px",
-                fontSize: "0.55rem",
-                color: "var(--jrpg-white)",
-                pointerEvents: "none",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "1px",
               }}
             >
-              {sanitizeText(statusIcon.label)}
-            </span>
+              {displayEffects.map((effect, i) => (
+                <span key={i} style={{ lineHeight: 0.8 }}>
+                  {effect.emoji}
+                </span>
+              ))}
+              {hasMoreEffects && (
+                <span style={{ fontSize: "8px", lineHeight: 1 }}>+{statusEffects.length - 3}</span>
+              )}
+            </div>
           )}
         </button>
 

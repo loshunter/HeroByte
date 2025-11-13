@@ -57,7 +57,6 @@ export function NpcCard({
   const [maxHpInput, setMaxHpInput] = useState(String(character.maxHp));
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tokenImageInput, setTokenImageInput] = useState(character.tokenImage ?? "");
-  const [statusIcon, setStatusIcon] = useState<{ emoji: string; label: string } | null>(null);
 
   useEffect(() => {
     setTokenImageInput(character.tokenImage ?? "");
@@ -183,7 +182,7 @@ export function NpcCard({
           portrait={character.portrait ?? undefined}
           isEditable={canEdit}
           onRequestChange={handlePortraitChange}
-          statusIcon={statusIcon}
+          statusEffects={character.statusEffects ?? []}
           tokenColor="#D63C53"
           onFocusToken={onFocusToken}
           initiative={initiative}
@@ -242,8 +241,6 @@ export function NpcCard({
         }}
         onPlaceToken={() => onPlaceToken(character.id)}
         onDelete={() => onDelete(character.id)}
-        statusIcon={statusIcon}
-        onStatusChange={setStatusIcon}
         tokenLocked={tokenLocked}
         onToggleTokenLock={onToggleTokenLock}
         tokenSize={tokenSize}

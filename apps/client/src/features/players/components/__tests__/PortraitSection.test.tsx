@@ -14,6 +14,7 @@ describe("PortraitSection", () => {
         portrait={undefined}
         onRequestChange={handleRequestChange}
         tokenColor={tokenColor}
+        statusEffects={[]}
       />,
     );
 
@@ -28,7 +29,7 @@ describe("PortraitSection", () => {
   });
 
   it("shows the portrait image when provided", () => {
-    render(<PortraitSection portrait="https://example.com/portrait.png" />);
+    render(<PortraitSection portrait="https://example.com/portrait.png" statusEffects={[]} />);
 
     const image = screen.getByRole("img", { name: /player portrait/i });
     expect(image).toBeVisible();
@@ -41,6 +42,7 @@ describe("PortraitSection", () => {
         portrait={undefined}
         isEditable={false}
         onRequestChange={handleRequestChange}
+        statusEffects={[]}
       />,
     );
 
@@ -49,5 +51,62 @@ describe("PortraitSection", () => {
 
     fireEvent.click(button);
     expect(handleRequestChange).not.toHaveBeenCalled();
+  });
+
+  describe("Status Effects Display", () => {
+    it("shows sword icon when no status effects are active", () => {
+      render(<PortraitSection portrait={undefined} statusEffects={[]} />);
+
+      const statusButton = screen.getByRole("button", { name: /status effects/i });
+      expect(statusButton).toHaveTextContent("⚔️");
+    });
+
+    it("displays up to 3 status effect emojis", () => {
+      render(
+        <PortraitSection portrait={undefined} statusEffects={["poisoned", "burning", "frozen"]} />,
+      );
+
+      const statusButton = screen.getByRole("button", { name: /status effects/i });
+      expect(statusButton).toHaveAttribute("title", "Poisoned, Burning, Frozen");
+      expect(statusButton).toHaveTextContent("🤢");
+      expect(statusButton).toHaveTextContent("🔥");
+      expect(statusButton).toHaveTextContent("❄️");
+    });
+
+    it("shows overflow indicator when more than 3 status effects", () => {
+      render(
+        <PortraitSection
+          portrait={undefined}
+          statusEffects={["poisoned", "burning", "frozen", "stunned", "paralyzed"]}
+        />,
+      );
+
+      const statusButton = screen.getByRole("button", { name: /status effects/i });
+      expect(statusButton).toHaveAttribute("title", "Poisoned, Burning, Frozen, +2 more");
+      expect(statusButton).toHaveTextContent("+2");
+    });
+
+    it("handles unknown status effects gracefully", () => {
+      render(<PortraitSection portrait={undefined} statusEffects={["custom-unknown-effect"]} />);
+
+      const statusButton = screen.getByRole("button", { name: /status effects/i });
+      expect(statusButton).toHaveAttribute("title", "custom-unknown-effect");
+    });
+
+    it("calls onFocusToken when status icon is clicked", () => {
+      const handleFocusToken = vi.fn();
+      render(
+        <PortraitSection
+          portrait={undefined}
+          statusEffects={["poisoned"]}
+          onFocusToken={handleFocusToken}
+        />,
+      );
+
+      const statusButton = screen.getByRole("button", { name: /focus camera on token/i });
+      fireEvent.click(statusButton);
+
+      expect(handleFocusToken).toHaveBeenCalledTimes(1);
+    });
   });
 });

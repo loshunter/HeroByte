@@ -164,7 +164,10 @@
       "Bash(scripts/structure-baseline.json)",
       "Bash(pnpm build:server:*)",
       "Bash(pnpm test:client:coverage:*)",
-      "Bash(pnpm --filter herobyte-client test:coverage --reporter=verbose)"
+      "Bash(pnpm --filter herobyte-client test:coverage --reporter=verbose)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(pnpm install)"
     ],
     "deny": [],
     "ask": []

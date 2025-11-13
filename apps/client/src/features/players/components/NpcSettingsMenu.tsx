@@ -20,8 +20,6 @@ interface NpcSettingsMenuProps {
   onTokenImageClear: () => void;
   onPlaceToken: () => void;
   onDelete: () => void;
-  statusIcon: { emoji: string; label: string } | null;
-  onStatusChange: (icon: { emoji: string; label: string } | null) => void;
   tokenLocked?: boolean;
   onToggleTokenLock?: (locked: boolean) => void;
   tokenSize?: TokenSize;
@@ -42,8 +40,6 @@ export function NpcSettingsMenu({
   onTokenImageClear,
   onPlaceToken,
   onDelete,
-  statusIcon,
-  onStatusChange,
   tokenLocked,
   onToggleTokenLock,
   tokenSize = "medium",
@@ -66,13 +62,6 @@ export function NpcSettingsMenu({
   if (!isOpen) {
     return null;
   }
-
-  const statusOptions = [
-    { emoji: "", label: "None" },
-    { emoji: "☠️", label: "Poisoned" },
-    { emoji: "🔥", label: "Burning" },
-    { emoji: "❄️", label: "Frozen" },
-  ];
 
   return createPortal(
     <DraggableWindow
@@ -212,26 +201,6 @@ export function NpcSettingsMenu({
               {tokenLocked ? "🔒 Locked" : "🔓 Unlocked"}
             </button>
           )}
-          <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
-            {statusOptions.map((icon) => {
-              const isNone = icon.label === "None";
-              const active = statusIcon?.label === icon.label || (!statusIcon && isNone);
-              const handleStatusClick = () => {
-                const nextStatus = isNone ? null : { emoji: icon.emoji || "", label: icon.label };
-                onStatusChange(nextStatus);
-              };
-              return (
-                <button
-                  key={icon.label}
-                  className={active ? "btn btn-primary" : "btn btn-secondary"}
-                  style={{ fontSize: "0.6rem", padding: "4px 6px" }}
-                  onClick={handleStatusClick}
-                >
-                  {icon.emoji ? `${icon.emoji} ${icon.label}` : icon.label}
-                </button>
-              );
-            })}
-          </div>
 
           {deletionError && (
             <div

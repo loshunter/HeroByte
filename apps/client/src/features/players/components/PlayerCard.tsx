@@ -4,13 +4,13 @@
 // Displays a single player's portrait, name, HP bar, and controls
 // Memoized to prevent unnecessary re-renders
 
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import type { Drawing, Player, PlayerState, SceneObject, Token, TokenSize } from "@shared";
 import { NameEditor } from "./NameEditor";
 import { PortraitSection } from "./PortraitSection";
 import { HPBar } from "./HPBar";
 import { CardControls } from "./CardControls";
-import { PlayerSettingsMenu, STATUS_OPTIONS, type StatusOption } from "./PlayerSettingsMenu";
+import { PlayerSettingsMenu, STATUS_OPTIONS } from "./PlayerSettingsMenu";
 import { loadPlayerState, savePlayerState } from "../../../utils/playerPersistence";
 
 export interface PlayerCardProps {
@@ -116,33 +116,10 @@ export const PlayerCard = memo<PlayerCardProps>(
     const editingMaxHp = editingMaxHpUID === (characterId ?? player.uid);
     const [tokenImageInput, setTokenImageInput] = useState(tokenImageUrl ?? "");
     const [settingsOpen, setSettingsOpen] = useState(false);
-    const [statusOption, setStatusOption] = useState<StatusOption | null>(null);
 
     useEffect(() => {
       setTokenImageInput(tokenImageUrl ?? "");
     }, [tokenImageUrl]);
-
-    useEffect(() => {
-      if (!statusEffects || statusEffects.length === 0) {
-        setStatusOption(null);
-        return;
-      }
-
-      const active = statusEffects[0] ?? "";
-      if (!active) {
-        setStatusOption(null);
-        return;
-      }
-
-      const match =
-        STATUS_OPTIONS.find((option) => option.value === active) ??
-        ({
-          value: active,
-          emoji: "",
-          label: active.charAt(0).toUpperCase() + active.slice(1),
-        } satisfies StatusOption);
-      setStatusOption(match);
-    }, [statusEffects]);
 
     const handleTokenImageApply = (value: string) => {
       if (!isMe || !onTokenImageSubmit) return;
@@ -175,19 +152,12 @@ export const PlayerCard = memo<PlayerCardProps>(
       setTokenImageInput(nextImage ?? "");
     };
 
-    const handleStatusChange = (option: StatusOption | null) => {
-      setStatusOption(option);
+    const handleStatusEffectsChange = (effects: string[]) => {
       if (!isMe || !onStatusEffectsChange) {
         return;
       }
-      const payload = option && option.value ? [option.value] : [];
-      onStatusEffectsChange(payload);
+      onStatusEffectsChange(effects);
     };
-
-    const portraitStatus = useMemo(
-      () => (statusOption ? { emoji: statusOption.emoji, label: statusOption.label } : null),
-      [statusOption],
-    );
 
     // Apply DM-specific styling when player.isDM is true
     const isDMPlayer = player.isDM ?? false;
@@ -260,7 +230,7 @@ export const PlayerCard = memo<PlayerCardProps>(
           micLevel={player.micLevel}
           isEditable={isMe}
           onRequestChange={onPortraitLoad}
-          statusIcon={portraitStatus}
+          statusEffects={statusEffects ?? []}
           tokenColor={tokenColor}
           onFocusToken={onFocusToken}
           initiative={initiative}
@@ -306,8 +276,8 @@ export const PlayerCard = memo<PlayerCardProps>(
           onDeleteToken={tokenId && onDeleteToken ? () => onDeleteToken(tokenId) : undefined}
           onSavePlayerState={handleSavePlayerState}
           onLoadPlayerState={handleLoadPlayerState}
-          statusIcon={statusOption}
-          onStatusChange={handleStatusChange}
+          selectedEffects={statusEffects ?? []}
+          onStatusEffectsChange={handleStatusEffectsChange}
           isDM={isDM}
           onToggleDMMode={onToggleDMMode}
           tokenLocked={tokenLocked}
