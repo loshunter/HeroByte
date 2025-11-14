@@ -9,6 +9,7 @@ import type { RoomState } from "./model.js";
 import { createEmptyRoomState, createSelectionMap, toSnapshot } from "./model.js";
 import { StagingZoneManager } from "./staging/StagingZoneManager.js";
 import { StatePersistence } from "./persistence/StatePersistence.js";
+import { SceneGraphBuilder } from "./scene/SceneGraphBuilder.js";
 
 /**
  * Room service - manages session state and persistence
@@ -17,9 +18,11 @@ export class RoomService {
   private state: RoomState;
   private stagingManager: StagingZoneManager;
   private persistence: StatePersistence;
+  private sceneGraphBuilder: SceneGraphBuilder;
 
   constructor() {
     this.state = createEmptyRoomState();
+    this.sceneGraphBuilder = new SceneGraphBuilder();
     this.stagingManager = new StagingZoneManager(this.state, () => this.rebuildSceneGraph());
     this.persistence = new StatePersistence(
       () => this.state,
@@ -416,160 +419,7 @@ export class RoomService {
   }
 
   private rebuildSceneGraph(): void {
-    const existing = new Map<string, SceneObject>(
-      this.state.sceneObjects.map((obj) => [obj.id, obj]),
-    );
-    const next: SceneObject[] = [];
-
-    // Map background -> scene object
-    if (this.state.mapBackground) {
-      const mapId = "map";
-      const prev = existing.get(mapId);
-      next.push({
-        id: mapId,
-        type: "map",
-        owner: null,
-        locked: prev?.locked ?? true,
-        zIndex: prev?.zIndex ?? -100,
-        transform: prev?.transform ?? { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
-        data: {
-          imageUrl: this.state.mapBackground,
-          width: prev?.type === "map" ? prev.data.width : undefined,
-          height: prev?.type === "map" ? prev.data.height : undefined,
-        },
-      });
-    }
-
-    // Tokens -> scene objects
-    for (const token of this.state.tokens) {
-      const id = `token:${token.id}`;
-      const prev = existing.get(id);
-      const transform = prev?.transform ?? {
-        x: token.x,
-        y: token.y,
-        scaleX: 1,
-        scaleY: 1,
-        rotation: 0,
-      };
-      transform.x = token.x;
-      transform.y = token.y;
-
-      next.push({
-        id,
-        type: "token",
-        owner: token.owner,
-        locked: prev?.locked ?? false,
-        zIndex: prev?.zIndex ?? 10,
-        transform: { ...transform },
-        data: {
-          characterId: prev?.type === "token" ? prev.data.characterId : undefined,
-          color: token.color,
-          imageUrl: token.imageUrl,
-          size: token.size ?? "medium",
-        },
-      });
-    }
-
-    // Drawings -> scene objects
-    for (const drawing of this.state.drawings) {
-      const id = `drawing:${drawing.id}`;
-      const prev = existing.get(id);
-      next.push({
-        id,
-        type: "drawing",
-        owner: drawing.owner ?? null,
-        locked: prev?.locked ?? false,
-        zIndex: prev?.zIndex ?? 5,
-        transform: prev?.transform ?? { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
-        data: { drawing },
-      });
-    }
-
-    // Props -> scene objects
-    for (const prop of this.state.props) {
-      const id = `prop:${prop.id}`;
-      const prev = existing.get(id);
-      next.push({
-        id,
-        type: "prop",
-        owner: prop.owner,
-        locked: prev?.locked ?? false,
-        zIndex: prev?.zIndex ?? 7, // Above drawings (5), below tokens (10)
-        transform: {
-          x: prop.x,
-          y: prop.y,
-          scaleX: prop.scaleX,
-          scaleY: prop.scaleY,
-          rotation: prop.rotation,
-        },
-        data: {
-          imageUrl: prop.imageUrl,
-          label: prop.label,
-          size: prop.size,
-        },
-      });
-    }
-
-    // Player staging zone
-    if (this.state.playerStagingZone) {
-      const zone = this.state.playerStagingZone;
-      const id = "staging-zone";
-      const prev = existing.get(id);
-      next.push({
-        id,
-        type: "staging-zone",
-        owner: null,
-        locked: prev?.locked ?? false,
-        zIndex: prev?.zIndex ?? 1,
-        transform: {
-          x: zone.x,
-          y: zone.y,
-          scaleX: zone.scaleX ?? 1,
-          scaleY: zone.scaleY ?? 1,
-          rotation: zone.rotation ?? 0,
-        },
-        data: {
-          width: zone.width,
-          height: zone.height,
-          rotation: zone.rotation ?? 0,
-          label:
-            prev?.type === "staging-zone" && prev.data.label
-              ? prev.data.label
-              : "Player Staging Zone",
-        },
-      });
-    }
-
-    // Pointers (ephemeral)
-    for (const pointer of this.state.pointers) {
-      const pointerKey = pointer.id ?? pointer.uid;
-      const id = `pointer:${pointerKey}`;
-      const prev = existing.get(id);
-      next.push({
-        id,
-        type: "pointer",
-        owner: pointer.uid,
-        locked: true,
-        zIndex: prev?.zIndex ?? 20,
-        transform: prev?.transform ?? {
-          x: pointer.x,
-          y: pointer.y,
-          scaleX: 1,
-          scaleY: 1,
-          rotation: 0,
-        },
-        data: { uid: pointer.uid, pointerId: pointerKey, name: pointer.name },
-      });
-    }
-
-    this.state.sceneObjects = next;
-
-    // Debug: Check for duplicate IDs
-    const ids = next.map((obj) => obj.id);
-    const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index);
-    if (duplicates.length > 0) {
-      console.error(`[rebuildSceneGraph] DUPLICATE IDs FOUND:`, duplicates);
-    }
+    this.state.sceneObjects = this.sceneGraphBuilder.rebuild(this.state);
   }
 
   /**
