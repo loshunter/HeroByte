@@ -194,6 +194,59 @@ describe("ConnectionHandler", () => {
     expect(checkSpy).toHaveBeenCalled();
   });
 
+  it("refreshes lastHeartbeat immediately on re-authentication", () => {
+    const socket = new FakeWebSocket();
+    wss.emitConnection(socket, { url: "/?uid=user-reconnect" });
+
+    const authMessage: ClientMessage = { t: "authenticate", secret: "Fun1" };
+    socket.emit("message", Buffer.from(JSON.stringify(authMessage)));
+
+    const state = container.roomService.getState();
+    const player = state.players.find((p) => p.uid === "user-reconnect");
+    expect(player).toBeDefined();
+    if (!player) {
+      throw new Error("Expected player to exist after authentication");
+    }
+
+    player.lastHeartbeat = Date.now() - 10 * 60 * 1000;
+
+    vi.setSystemTime(new Date("2024-01-01T00:10:00.000Z"));
+    const expectedHeartbeat = Date.now();
+
+    socket.emit("message", Buffer.from(JSON.stringify(authMessage)));
+
+    expect(player.lastHeartbeat).toBe(expectedHeartbeat);
+    expect(socket.send).toHaveBeenCalledWith(JSON.stringify({ t: "auth-ok" }));
+  });
+
+  it("retains existing session room and updates authedAt on re-authentication", () => {
+    const socket = new FakeWebSocket();
+    wss.emitConnection(socket, { url: "/?uid=session-user" });
+
+    const authMessage: ClientMessage = { t: "authenticate", secret: "Fun1" };
+    socket.emit("message", Buffer.from(JSON.stringify(authMessage)));
+
+    const existingSession = container.authenticatedSessions.get("session-user");
+    expect(existingSession).toBeDefined();
+    if (!existingSession) {
+      throw new Error("Expected authenticated session to exist after authentication");
+    }
+
+    container.authenticatedSessions.set("session-user", {
+      roomId: "custom-room-id",
+      authedAt: Date.now() - 60_000,
+    });
+
+    vi.setSystemTime(new Date("2024-01-01T00:05:00.000Z"));
+    const expectedAuthedAt = Date.now();
+
+    socket.emit("message", Buffer.from(JSON.stringify(authMessage)));
+
+    const refreshedSession = container.authenticatedSessions.get("session-user");
+    expect(refreshedSession).toEqual({ roomId: "custom-room-id", authedAt: expectedAuthedAt });
+    expect(socket.send).toHaveBeenCalledWith(JSON.stringify({ t: "auth-ok" }));
+  });
+
   it("cleans up on disconnect", () => {
     const socket = new FakeWebSocket();
     wss.emitConnection(socket, { url: "/?uid=user-3" });
