@@ -5,6 +5,7 @@
 
 import type { ValidationResult, MessageRecord } from "./commonValidators.js";
 import { isFiniteNumber, VALID_TOKEN_SIZES } from "./commonValidators.js";
+import { STRING_LIMITS } from "./constants.js";
 
 /**
  * Validate move message (token movement)
@@ -54,7 +55,7 @@ export function validateUpdateTokenImageMessage(message: MessageRecord): Validat
   if (typeof message.imageUrl !== "string") {
     return { valid: false, error: "update-token-image: imageUrl must be a string" };
   }
-  if (message.imageUrl.length > 2048) {
+  if (message.imageUrl.length > STRING_LIMITS.IMAGE_URL_MAX) {
     return { valid: false, error: "update-token-image: imageUrl too long (max 2048 chars)" };
   }
   return { valid: true };
@@ -92,10 +93,10 @@ export function validateSetTokenColorMessage(message: MessageRecord): Validation
     return { valid: false, error: "set-token-color: color must be a string" };
   }
   const trimmed = message.color.trim();
-  if (trimmed.length === 0) {
+  if (trimmed.length < STRING_LIMITS.COLOR_MIN) {
     return { valid: false, error: "set-token-color: color cannot be empty" };
   }
-  if (trimmed.length > 128) {
+  if (trimmed.length > STRING_LIMITS.COLOR_MAX) {
     return { valid: false, error: "set-token-color: color too long (max 128 chars)" };
   }
   return { valid: true };
