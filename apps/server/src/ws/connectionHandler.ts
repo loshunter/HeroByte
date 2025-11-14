@@ -6,7 +6,7 @@
 
 import type { WebSocket, WebSocketServer } from "ws";
 import type { IncomingMessage } from "http";
-import type { ClientMessage } from "@shared";
+import type { ClientMessage, Player } from "@shared";
 import type { Container } from "../container.js";
 import { validateMessage } from "../middleware/validation.js";
 import { getDefaultRoomId } from "../config/auth.js";
@@ -250,8 +250,17 @@ export class ConnectionHandler {
       return;
     }
 
+    const state = this.container.roomService.getState();
+    let player = this.container.playerService.findPlayer(state, uid);
+    const now = Date.now();
+
     if (this.container.authenticatedUids.has(uid)) {
-      ws.send(JSON.stringify({ t: "auth-ok" }));
+      if (player) {
+        this.touchPlayerHeartbeat(player, now);
+      }
+
+      this.refreshAuthenticatedSession(uid, now);
+      this.sendAuthOk(ws);
       return;
     }
 
@@ -268,13 +277,12 @@ export class ConnectionHandler {
       return;
     }
 
-    const state = this.container.roomService.getState();
-
     // Create or reconnect player entities
-    let player = this.container.playerService.findPlayer(state, uid);
     if (!player) {
       player = this.container.playerService.createPlayer(state, uid);
     }
+
+    this.touchPlayerHeartbeat(player, now);
 
     // Create character if player doesn't have one
     const existingCharacter = this.container.characterService.findCharacterByOwner(state, uid);
@@ -304,16 +312,13 @@ export class ConnectionHandler {
 
     // Track authentication state
     this.container.authenticatedUids.add(uid);
-    this.container.authenticatedSessions.set(uid, {
-      roomId: requestedRoomId,
-      authedAt: Date.now(),
-    });
+    this.refreshAuthenticatedSession(uid, now, requestedRoomId);
 
     // Register user for session lists
     state.users = state.users.filter((u) => u !== uid);
     state.users.push(uid);
 
-    ws.send(JSON.stringify({ t: "auth-ok" }));
+    this.sendAuthOk(ws);
     console.log(`Client authenticated: ${uid}`);
 
     // Broadcast updated room state to authenticated clients
@@ -327,6 +332,24 @@ export class ConnectionHandler {
         ws.close(4001, reason);
       }
     }, 100);
+  }
+
+  private touchPlayerHeartbeat(player: Player, timestamp: number): void {
+    player.lastHeartbeat = timestamp;
+  }
+
+  private refreshAuthenticatedSession(uid: string, authedAt: number, roomId?: string): void {
+    const existingSession = this.container.authenticatedSessions.get(uid);
+    const effectiveRoomId = roomId ?? existingSession?.roomId ?? this.defaultRoomId;
+
+    this.container.authenticatedSessions.set(uid, {
+      roomId: effectiveRoomId,
+      authedAt,
+    });
+  }
+
+  private sendAuthOk(ws: WebSocket): void {
+    ws.send(JSON.stringify({ t: "auth-ok" }));
   }
 
   /**
