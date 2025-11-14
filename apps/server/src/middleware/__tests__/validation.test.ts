@@ -947,4 +947,537 @@ describe("validateMessage", () => {
       });
     });
   });
+
+  describe("Edge Cases: Character Management", () => {
+    it("validates add-player-character with minimal fields", () => {
+      expect(
+        validateMessage({
+          t: "add-player-character",
+          name: "Gandalf",
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("validates add-player-character with maxHp", () => {
+      expect(
+        validateMessage({
+          t: "add-player-character",
+          name: "Aragorn",
+          maxHp: 50,
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("rejects add-player-character with empty name", () => {
+      expect(
+        validateMessage({
+          t: "add-player-character",
+          name: "",
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "add-player-character: name must be 1-100 characters",
+      });
+    });
+
+    it("rejects add-player-character with name exceeding 100 chars", () => {
+      expect(
+        validateMessage({
+          t: "add-player-character",
+          name: "a".repeat(101),
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "add-player-character: name must be 1-100 characters",
+      });
+    });
+
+    it("accepts add-player-character with name at exactly 100 chars", () => {
+      expect(
+        validateMessage({
+          t: "add-player-character",
+          name: "a".repeat(100),
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("rejects add-player-character with zero maxHp", () => {
+      expect(
+        validateMessage({
+          t: "add-player-character",
+          name: "Test",
+          maxHp: 0,
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "add-player-character: maxHp must be positive",
+      });
+    });
+
+    it("rejects add-player-character with negative maxHp", () => {
+      expect(
+        validateMessage({
+          t: "add-player-character",
+          name: "Test",
+          maxHp: -10,
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "add-player-character: maxHp must be positive",
+      });
+    });
+
+    it("validates delete-player-character", () => {
+      expect(
+        validateMessage({
+          t: "delete-player-character",
+          characterId: "char-123",
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("rejects delete-player-character with empty characterId", () => {
+      expect(
+        validateMessage({
+          t: "delete-player-character",
+          characterId: "",
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "delete-player-character: missing or invalid characterId",
+      });
+    });
+
+    it("validates update-character-name", () => {
+      expect(
+        validateMessage({
+          t: "update-character-name",
+          characterId: "char-123",
+          name: "New Name",
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("accepts update-character-name with exactly 100 chars", () => {
+      expect(
+        validateMessage({
+          t: "update-character-name",
+          characterId: "char-123",
+          name: "a".repeat(100),
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("rejects update-character-name with name exceeding 100 chars", () => {
+      expect(
+        validateMessage({
+          t: "update-character-name",
+          characterId: "char-123",
+          name: "a".repeat(101),
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "update-character-name: name must be 1-100 characters",
+      });
+    });
+
+    it("validates set-initiative with initiativeModifier", () => {
+      expect(
+        validateMessage({
+          t: "set-initiative",
+          characterId: "char-123",
+          initiative: 15,
+          initiativeModifier: 3,
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("validates set-initiative without initiativeModifier", () => {
+      expect(
+        validateMessage({
+          t: "set-initiative",
+          characterId: "char-123",
+          initiative: 18,
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("rejects set-initiative with non-number initiativeModifier", () => {
+      expect(
+        validateMessage({
+          t: "set-initiative",
+          characterId: "char-123",
+          initiative: 15,
+          initiativeModifier: "3",
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "set-initiative: initiativeModifier must be a number",
+      });
+    });
+  });
+
+  describe("Edge Cases: Combat Messages", () => {
+    it("validates start-combat", () => {
+      expect(validateMessage({ t: "start-combat" })).toEqual({ valid: true });
+    });
+
+    it("validates end-combat", () => {
+      expect(validateMessage({ t: "end-combat" })).toEqual({ valid: true });
+    });
+
+    it("validates next-turn", () => {
+      expect(validateMessage({ t: "next-turn" })).toEqual({ valid: true });
+    });
+
+    it("validates previous-turn", () => {
+      expect(validateMessage({ t: "previous-turn" })).toEqual({ valid: true });
+    });
+  });
+
+  describe("Edge Cases: DM Password Messages", () => {
+    it("validates elevate-to-dm", () => {
+      expect(
+        validateMessage({
+          t: "elevate-to-dm",
+          dmPassword: "secret123",
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("rejects elevate-to-dm with empty dmPassword", () => {
+      expect(
+        validateMessage({
+          t: "elevate-to-dm",
+          dmPassword: "",
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "elevate-to-dm: missing or invalid dmPassword",
+      });
+    });
+
+    it("rejects elevate-to-dm with excessively long dmPassword", () => {
+      expect(
+        validateMessage({
+          t: "elevate-to-dm",
+          dmPassword: "a".repeat(257),
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "elevate-to-dm: dmPassword too long",
+      });
+    });
+
+    it("accepts elevate-to-dm with dmPassword at exactly 256 chars", () => {
+      expect(
+        validateMessage({
+          t: "elevate-to-dm",
+          dmPassword: "a".repeat(256),
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("validates set-dm-password", () => {
+      expect(
+        validateMessage({
+          t: "set-dm-password",
+          dmPassword: "newSecret456",
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("rejects set-dm-password with empty dmPassword", () => {
+      expect(
+        validateMessage({
+          t: "set-dm-password",
+          dmPassword: "",
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "set-dm-password: missing or invalid dmPassword",
+      });
+    });
+
+    it("rejects set-dm-password with excessively long dmPassword", () => {
+      expect(
+        validateMessage({
+          t: "set-dm-password",
+          dmPassword: "a".repeat(257),
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "set-dm-password: dmPassword too long",
+      });
+    });
+
+    it("validates revoke-dm", () => {
+      expect(validateMessage({ t: "revoke-dm" })).toEqual({ valid: true });
+    });
+  });
+
+  describe("Edge Cases: Boundary Values", () => {
+    it("accepts name at exactly 50 chars for create-character", () => {
+      expect(
+        validateMessage({
+          t: "create-character",
+          name: "a".repeat(50),
+          maxHp: 20,
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("rejects name at 51 chars for create-character", () => {
+      expect(
+        validateMessage({
+          t: "create-character",
+          name: "a".repeat(51),
+          maxHp: 20,
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "create-character: name must be 1-50 characters",
+      });
+    });
+
+    it("accepts effect label at exactly 64 chars", () => {
+      expect(
+        validateMessage({
+          t: "set-status-effects",
+          effects: ["a".repeat(64)],
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("rejects effect label at 65 chars", () => {
+      expect(
+        validateMessage({
+          t: "set-status-effects",
+          effects: ["a".repeat(65)],
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "set-status-effects: effect labels too long (max 64 chars)",
+      });
+    });
+
+    it("accepts exactly 50 partial segments in erase-partial", () => {
+      const segments = Array(50).fill(basePartialSegment);
+      expect(
+        validateMessage({
+          t: "erase-partial",
+          deleteId: "drawing-1",
+          segments,
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("rejects 51 partial segments in erase-partial", () => {
+      const segments = Array(51).fill(basePartialSegment);
+      expect(
+        validateMessage({
+          t: "erase-partial",
+          deleteId: "drawing-1",
+          segments,
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "erase-partial: too many segments (max 50)",
+      });
+    });
+
+    it("accepts drawing with exactly 10,000 points", () => {
+      const points = Array(10000)
+        .fill(null)
+        .map(() => ({ x: 0, y: 0 }));
+      expect(
+        validateMessage({
+          t: "draw",
+          drawing: { ...baseDrawing, points },
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("rejects drawing with 10,001 points", () => {
+      const points = Array(10001)
+        .fill(null)
+        .map(() => ({ x: 0, y: 0 }));
+      expect(
+        validateMessage({
+          t: "draw",
+          drawing: { ...baseDrawing, points },
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "draw: drawing exceeds point limit (max 10000)",
+      });
+    });
+
+    it("accepts exactly 16 status effects", () => {
+      const effects = Array(16).fill("effect");
+      expect(
+        validateMessage({
+          t: "set-status-effects",
+          effects,
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("rejects 17 status effects", () => {
+      const effects = Array(17).fill("effect");
+      expect(
+        validateMessage({
+          t: "set-status-effects",
+          effects,
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "set-status-effects: too many effects (max 16)",
+      });
+    });
+
+    it("accepts exactly 100 objectIds in select-multiple", () => {
+      const objectIds = Array.from({ length: 100 }, (_, i) => `obj-${i}`);
+      expect(
+        validateMessage({
+          t: "select-multiple",
+          uid: "uid-1",
+          objectIds,
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("accepts exactly 200 drawings in sync-player-drawings", () => {
+      const drawings = Array(200).fill({
+        id: "draw-1",
+        type: "freehand",
+        points: [
+          { x: 0, y: 0 },
+          { x: 1, y: 1 },
+        ],
+        color: "#fff",
+        width: 2,
+        opacity: 1,
+      });
+      expect(
+        validateMessage({
+          t: "sync-player-drawings",
+          drawings,
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("rejects 201 drawings in sync-player-drawings", () => {
+      const drawings = Array(201).fill({
+        id: "draw-1",
+        type: "freehand",
+        points: [
+          { x: 0, y: 0 },
+          { x: 1, y: 1 },
+        ],
+        color: "#fff",
+        width: 2,
+        opacity: 1,
+      });
+      expect(
+        validateMessage({
+          t: "sync-player-drawings",
+          drawings,
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "sync-player-drawings: too many drawings (max 200)",
+      });
+    });
+  });
+
+  describe("Edge Cases: Staging Zone Minimal Size", () => {
+    it("accepts staging zone with width/height at exactly 0.5", () => {
+      expect(
+        validateMessage({
+          t: "set-player-staging-zone",
+          zone: { x: 0, y: 0, width: 0.5, height: 0.5 },
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("rejects staging zone with width below 0.5", () => {
+      expect(
+        validateMessage({
+          t: "set-player-staging-zone",
+          zone: { x: 0, y: 0, width: 0.4, height: 1 },
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "set-player-staging-zone: zone width/height must be at least 0.5",
+      });
+    });
+
+    it("rejects staging zone with height below 0.5", () => {
+      expect(
+        validateMessage({
+          t: "set-player-staging-zone",
+          zone: { x: 0, y: 0, width: 1, height: 0.4 },
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "set-player-staging-zone: zone width/height must be at least 0.5",
+      });
+    });
+
+    it("accepts staging zone with negative width exceeding -0.5", () => {
+      expect(
+        validateMessage({
+          t: "set-player-staging-zone",
+          zone: { x: 0, y: 0, width: -1, height: 1 },
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("rejects staging zone with negative width below -0.5", () => {
+      expect(
+        validateMessage({
+          t: "set-player-staging-zone",
+          zone: { x: 0, y: 0, width: -0.4, height: 1 },
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "set-player-staging-zone: zone width/height must be at least 0.5",
+      });
+    });
+  });
+
+  describe("Edge Cases: Transform Staging Zone", () => {
+    it("accepts transform-object for staging-zone with large scale", () => {
+      expect(
+        validateMessage({
+          t: "transform-object",
+          id: "staging-zone",
+          scale: { x: 50, y: 50 },
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("accepts transform-object for staging-zone with small scale", () => {
+      expect(
+        validateMessage({
+          t: "transform-object",
+          id: "staging-zone",
+          scale: { x: 0.01, y: 0.01 },
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("accepts transform-object for staging-zone with position and scale", () => {
+      expect(
+        validateMessage({
+          t: "transform-object",
+          id: "staging-zone",
+          position: { x: 100, y: 200 },
+          scale: { x: 25, y: 15 },
+          rotation: 45,
+        }),
+      ).toEqual({ valid: true });
+    });
+  });
 });
