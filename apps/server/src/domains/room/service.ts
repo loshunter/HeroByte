@@ -9,6 +9,7 @@ import type { WebSocket } from "ws";
 import type { Player, RoomSnapshot, Character, SceneObject, PlayerStagingZone } from "@shared";
 import type { RoomState } from "./model.js";
 import { createEmptyRoomState, createSelectionMap, toSnapshot } from "./model.js";
+import { StagingZoneManager } from "./staging/StagingZoneManager.js";
 
 const STATE_FILE = "./herobyte-state.json";
 
@@ -17,41 +18,14 @@ const STATE_FILE = "./herobyte-state.json";
  */
 export class RoomService {
   private state: RoomState;
+  private stagingManager: StagingZoneManager;
 
   constructor() {
     this.state = createEmptyRoomState();
+    this.stagingManager = new StagingZoneManager(this.state, () => this.rebuildSceneGraph());
     this.rebuildSceneGraph();
   }
 
-  private sanitizeStagingZone(zone: unknown): PlayerStagingZone | undefined {
-    if (!zone || typeof zone !== "object") {
-      return undefined;
-    }
-    const candidate = zone as Partial<PlayerStagingZone>;
-    const x = Number(candidate.x);
-    const y = Number(candidate.y);
-    const width = Number(candidate.width);
-    const height = Number(candidate.height);
-    if (
-      !Number.isFinite(x) ||
-      !Number.isFinite(y) ||
-      !Number.isFinite(width) ||
-      !Number.isFinite(height)
-    ) {
-      return undefined;
-    }
-    const normalized: PlayerStagingZone = {
-      x,
-      y,
-      width: Math.max(1, Math.abs(width)),
-      height: Math.max(1, Math.abs(height)),
-      rotation:
-        candidate.rotation !== undefined && Number.isFinite(Number(candidate.rotation))
-          ? Number(candidate.rotation)
-          : 0,
-    };
-    return normalized;
-  }
 
   /**
    * Get current room state
@@ -101,7 +75,7 @@ export class RoomService {
           drawingRedoStacks: {},
           sceneObjects,
           selectionState: createSelectionMap(),
-          playerStagingZone: this.sanitizeStagingZone(data.playerStagingZone),
+          playerStagingZone: this.stagingManager.sanitize(data.playerStagingZone),
           combatActive: data.combatActive ?? false,
           currentTurnCharacterId: data.currentTurnCharacterId ?? undefined,
         };
@@ -223,7 +197,7 @@ export class RoomService {
       drawingRedoStacks: {},
       sceneObjects: snapshot.sceneObjects ?? this.state.sceneObjects,
       selectionState: createSelectionMap(),
-      playerStagingZone: this.sanitizeStagingZone(snapshot.playerStagingZone),
+      playerStagingZone: this.stagingManager.sanitize(snapshot.playerStagingZone),
       combatActive: snapshot.combatActive ?? false,
       currentTurnCharacterId: snapshot.currentTurnCharacterId ?? undefined,
     };
@@ -654,10 +628,7 @@ export class RoomService {
    * Set or clear the player staging zone
    */
   setPlayerStagingZone(zone: PlayerStagingZone | undefined): boolean {
-    const sanitized = this.sanitizeStagingZone(zone);
-    this.state.playerStagingZone = sanitized;
-    this.rebuildSceneGraph();
-    return true;
+    return this.stagingManager.setZone(zone);
   }
 
   /**
@@ -665,24 +636,6 @@ export class RoomService {
    * Uses the staging zone if available; otherwise defaults to (0,0).
    */
   getPlayerSpawnPosition(): { x: number; y: number } {
-    const zone = this.state.playerStagingZone;
-    if (!zone) {
-      return { x: 0, y: 0 };
-    }
-
-    const angle = ((zone.rotation ?? 0) * Math.PI) / 180;
-    const halfWidth = zone.width / 2;
-    const halfHeight = zone.height / 2;
-
-    const randomX = Math.random() * zone.width - halfWidth;
-    const randomY = Math.random() * zone.height - halfHeight;
-
-    const rotatedX = randomX * Math.cos(angle) - randomY * Math.sin(angle);
-    const rotatedY = randomX * Math.sin(angle) + randomY * Math.cos(angle);
-
-    return {
-      x: zone.x + rotatedX,
-      y: zone.y + rotatedY,
-    };
+    return this.stagingManager.getSpawnPosition();
   }
 }
