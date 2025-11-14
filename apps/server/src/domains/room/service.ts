@@ -3,15 +3,12 @@
 // ============================================================================
 // Handles room state management, persistence, and broadcasting
 
-import { readFileSync, existsSync } from "fs";
-import { writeFile } from "fs/promises";
 import type { WebSocket } from "ws";
 import type { Player, RoomSnapshot, Character, SceneObject, PlayerStagingZone } from "@shared";
 import type { RoomState } from "./model.js";
 import { createEmptyRoomState, createSelectionMap, toSnapshot } from "./model.js";
 import { StagingZoneManager } from "./staging/StagingZoneManager.js";
-
-const STATE_FILE = "./herobyte-state.json";
+import { StatePersistence } from "./persistence/StatePersistence.js";
 
 /**
  * Room service - manages session state and persistence
@@ -19,10 +16,17 @@ const STATE_FILE = "./herobyte-state.json";
 export class RoomService {
   private state: RoomState;
   private stagingManager: StagingZoneManager;
+  private persistence: StatePersistence;
 
   constructor() {
     this.state = createEmptyRoomState();
     this.stagingManager = new StagingZoneManager(this.state, () => this.rebuildSceneGraph());
+    this.persistence = new StatePersistence(
+      () => this.state,
+      (newState) => { this.state = newState; },
+      this.stagingManager,
+      () => this.rebuildSceneGraph(),
+    );
     this.rebuildSceneGraph();
   }
 
@@ -45,46 +49,7 @@ export class RoomService {
    * Load game state from disk on server startup
    */
   loadState(): void {
-    if (existsSync(STATE_FILE)) {
-      try {
-        const data = JSON.parse(readFileSync(STATE_FILE, "utf-8"));
-        const sceneObjects: SceneObject[] = data.sceneObjects || [];
-
-        this.state = {
-          users: [], // Don't persist users - they reconnect
-          tokens: data.tokens || [],
-          players: (data.players || []).map((player: Player) => ({
-            ...player,
-            isDM: player.isDM ?? false,
-            statusEffects: Array.isArray(player.statusEffects) ? [...player.statusEffects] : [],
-          })),
-          characters: (data.characters || []).map((character: Character) => ({
-            ...character,
-            type: character.type === "npc" ? ("npc" as const) : ("pc" as const),
-            tokenImage: character.tokenImage ?? null,
-            tokenId: character.tokenId ?? null,
-          })),
-          props: data.props || [],
-          mapBackground: data.mapBackground,
-          pointers: [], // Don't persist pointers - they expire
-          drawings: data.drawings || [],
-          gridSize: data.gridSize || 50,
-          gridSquareSize: data.gridSquareSize || 5,
-          diceRolls: data.diceRolls || [],
-          drawingUndoStacks: {},
-          drawingRedoStacks: {},
-          sceneObjects,
-          selectionState: createSelectionMap(),
-          playerStagingZone: this.stagingManager.sanitize(data.playerStagingZone),
-          combatActive: data.combatActive ?? false,
-          currentTurnCharacterId: data.currentTurnCharacterId ?? undefined,
-        };
-        this.rebuildSceneGraph();
-        console.log("Loaded state from disk");
-      } catch (err) {
-        console.error("Failed to load state:", err);
-      }
-    }
+    this.persistence.loadFromDisk();
   }
 
   /**
@@ -92,24 +57,7 @@ export class RoomService {
    * Uses async file write to prevent blocking the event loop
    */
   saveState(): void {
-    const persistentData = {
-      tokens: this.state.tokens,
-      players: this.state.players,
-      characters: this.state.characters,
-      props: this.state.props,
-      mapBackground: this.state.mapBackground,
-      drawings: this.state.drawings,
-      gridSize: this.state.gridSize,
-      gridSquareSize: this.state.gridSquareSize,
-      diceRolls: this.state.diceRolls,
-      sceneObjects: this.state.sceneObjects,
-      playerStagingZone: this.state.playerStagingZone,
-    };
-
-    // Fire-and-forget async write to prevent blocking the event loop
-    writeFile(STATE_FILE, JSON.stringify(persistentData, null, 2)).catch((err) => {
-      console.error("Failed to save state:", err);
-    });
+    this.persistence.saveToDisk();
   }
 
   /**
