@@ -10,6 +10,7 @@ import { createEmptyRoomState, createSelectionMap, toSnapshot } from "./model.js
 import { StagingZoneManager } from "./staging/StagingZoneManager.js";
 import { StatePersistence } from "./persistence/StatePersistence.js";
 import { SceneGraphBuilder } from "./scene/SceneGraphBuilder.js";
+import { SnapshotLoader } from "./snapshot/SnapshotLoader.js";
 
 /**
  * Room service - manages session state and persistence
@@ -19,10 +20,12 @@ export class RoomService {
   private stagingManager: StagingZoneManager;
   private persistence: StatePersistence;
   private sceneGraphBuilder: SceneGraphBuilder;
+  private snapshotLoader: SnapshotLoader;
 
   constructor() {
     this.state = createEmptyRoomState();
     this.sceneGraphBuilder = new SceneGraphBuilder();
+    this.snapshotLoader = new SnapshotLoader();
     this.stagingManager = new StagingZoneManager(this.state, () => this.rebuildSceneGraph());
     this.persistence = new StatePersistence(
       () => this.state,
@@ -68,93 +71,21 @@ export class RoomService {
    * Merges loaded data with currently connected players
    */
   loadSnapshot(snapshot: RoomSnapshot): void {
-    // Merge players: Keep currently connected players, update their data if they exist in snapshot
-    const loadedPlayers = (snapshot.players ?? []).map((player) => ({
-      ...player,
-      isDM: player.isDM ?? false,
-      statusEffects: Array.isArray(player.statusEffects) ? [...player.statusEffects] : [],
-    }));
-    const loadedCharacters = (snapshot.characters ?? []).map((character) => ({
-      ...character,
-      type: character.type === "npc" ? ("npc" as const) : ("pc" as const),
-      tokenId: character.tokenId ?? null,
-      tokenImage: character.tokenImage ?? null,
-    }));
-    const mergedPlayers = this.state.players.map((currentPlayer) => {
-      // Find matching player in loaded snapshot by UID
-      const savedPlayer = loadedPlayers.find((p: Player) => p.uid === currentPlayer.uid);
-      if (savedPlayer) {
-        // Merge: Keep current connection data (lastHeartbeat, micLevel), restore saved data
-        return {
-          ...savedPlayer,
-          lastHeartbeat: currentPlayer.lastHeartbeat, // Keep current heartbeat
-          micLevel: currentPlayer.micLevel, // Keep current mic level
-        };
-      }
-      // Player is currently connected but wasn't in saved session - keep them
-      return { ...currentPlayer, isDM: currentPlayer.isDM ?? false };
-    });
-
-    // Get UIDs of currently connected players
+    // Count before merging for logging
     const currentPlayerUIDs = new Set(this.state.players.map((p) => p.uid));
-
-    // Preserve characters belonging to currently connected players
     const currentPlayerCharacters = this.state.characters.filter(
       (char) => char.ownedByPlayerUID && currentPlayerUIDs.has(char.ownedByPlayerUID),
     );
-
-    // Get IDs of preserved characters to avoid duplicates
-    const preservedCharacterIds = new Set(currentPlayerCharacters.map((c) => c.id));
-
-    // Add loaded characters that don't conflict with preserved ones
-    const mergedCharacters = [
-      ...currentPlayerCharacters,
-      ...loadedCharacters.filter((char) => !preservedCharacterIds.has(char.id)),
-    ];
-
-    // Preserve tokens belonging to currently connected players
     const currentPlayerTokens = this.state.tokens.filter((token) =>
       currentPlayerUIDs.has(token.owner),
     );
 
-    // Get IDs of preserved tokens to avoid duplicates
-    const preservedTokenIds = new Set(currentPlayerTokens.map((t) => t.id));
-
-    // Add loaded tokens that don't conflict with preserved ones
-    const mergedTokens = [
-      ...currentPlayerTokens,
-      ...(snapshot.tokens ?? []).filter((token) => !preservedTokenIds.has(token.id)),
-    ];
-
-    const currentGridSquareSize = this.state.gridSquareSize ?? 5;
-
-    // If snapshot has sceneObjects, don't load legacy drawings array
-    // (rebuildSceneGraph will recreate drawings from sceneObjects if needed)
-    const hasSceneObjects = snapshot.sceneObjects && snapshot.sceneObjects.length > 0;
-
-    this.state = {
-      users: this.state.users, // Keep current WebSocket connections
-      tokens: mergedTokens,
-      players: mergedPlayers,
-      characters: mergedCharacters,
-      props: snapshot.props ?? [],
-      mapBackground: snapshot.mapBackground,
-      pointers: [], // Clear pointers on load
-      drawings: hasSceneObjects ? [] : (snapshot.drawings ?? []),
-      gridSize: snapshot.gridSize ?? 50,
-      gridSquareSize: snapshot.gridSquareSize ?? currentGridSquareSize,
-      diceRolls: snapshot.diceRolls ?? [],
-      drawingUndoStacks: {},
-      drawingRedoStacks: {},
-      sceneObjects: snapshot.sceneObjects ?? this.state.sceneObjects,
-      selectionState: createSelectionMap(),
-      playerStagingZone: this.stagingManager.sanitize(snapshot.playerStagingZone),
-      combatActive: snapshot.combatActive ?? false,
-      currentTurnCharacterId: snapshot.currentTurnCharacterId ?? undefined,
-    };
+    // Merge snapshot with current state
+    this.state = this.snapshotLoader.mergeSnapshot(snapshot, this.state, this.stagingManager);
     this.rebuildSceneGraph();
+
     console.log(
-      `Loaded session snapshot from client - merged ${mergedPlayers.length} players, ` +
+      `Loaded session snapshot from client - merged ${this.state.players.length} players, ` +
         `preserved ${currentPlayerCharacters.length} current characters, ` +
         `preserved ${currentPlayerTokens.length} current tokens`,
     );
