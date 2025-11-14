@@ -5,6 +5,7 @@
 
 import type { ValidationResult, MessageRecord } from "./commonValidators.js";
 import { isRecord, isFiniteNumber, validateStagingZone } from "./commonValidators.js";
+import { STRING_LIMITS } from "./constants.js";
 
 /**
  * Validate set-player-staging-zone message
@@ -26,7 +27,7 @@ export function validateSetRoomPasswordMessage(message: MessageRecord): Validati
   if (trimmed.length === 0) {
     return { valid: false, error: "set-room-password: secret is empty" };
   }
-  if (trimmed.length > 256) {
+  if (trimmed.length > STRING_LIMITS.SECRET_MAX) {
     return { valid: false, error: "set-room-password: secret too long" };
   }
   return { valid: true };
@@ -70,7 +71,7 @@ export function validateAuthenticateMessage(message: MessageRecord): ValidationR
   if (typeof message.secret !== "string" || message.secret.length === 0) {
     return { valid: false, error: "authenticate: missing or invalid secret" };
   }
-  if (message.secret.length > 256) {
+  if (message.secret.length > STRING_LIMITS.SECRET_MAX) {
     return { valid: false, error: "authenticate: secret too long" };
   }
   if ("roomId" in message && message.roomId !== undefined && typeof message.roomId !== "string") {
@@ -87,7 +88,7 @@ export function validateElevateToDmMessage(message: MessageRecord): ValidationRe
   if (typeof message.dmPassword !== "string" || message.dmPassword.length === 0) {
     return { valid: false, error: "elevate-to-dm: missing or invalid dmPassword" };
   }
-  if (message.dmPassword.length > 256) {
+  if (message.dmPassword.length > STRING_LIMITS.SECRET_MAX) {
     return { valid: false, error: "elevate-to-dm: dmPassword too long" };
   }
   return { valid: true };
@@ -101,7 +102,7 @@ export function validateSetDmPasswordMessage(message: MessageRecord): Validation
   if (typeof message.dmPassword !== "string" || message.dmPassword.length === 0) {
     return { valid: false, error: "set-dm-password: missing or invalid dmPassword" };
   }
-  if (message.dmPassword.length > 256) {
+  if (message.dmPassword.length > STRING_LIMITS.SECRET_MAX) {
     return { valid: false, error: "set-dm-password: dmPassword too long" };
   }
   return { valid: true };

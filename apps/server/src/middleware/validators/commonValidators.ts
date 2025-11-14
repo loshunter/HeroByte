@@ -4,6 +4,7 @@
 // Shared type guards, helpers, and constants used across domain validators
 
 import type { DrawingSegmentPayload } from "@shared";
+import { STRING_LIMITS } from "./constants.js";
 
 /**
  * Validation result
@@ -111,7 +112,7 @@ export function validatePartialSegment(segment: unknown, index: number): Validat
   if (
     typeof payload.color !== "string" ||
     payload.color.length === 0 ||
-    payload.color.length > 128
+    payload.color.length > STRING_LIMITS.COLOR_MAX
   ) {
     return { valid: false, error: "erase-partial: segment color must be a non-empty string" };
   }
@@ -211,7 +212,7 @@ export function validateDrawingPayload(drawing: unknown, context: string): Valid
   if (
     typeof payload.color !== "string" ||
     payload.color.length === 0 ||
-    payload.color.length > 128
+    payload.color.length > STRING_LIMITS.COLOR_MAX
   ) {
     return { valid: false, error: `${context}: drawing color must be a non-empty string` };
   }

@@ -5,6 +5,7 @@
 
 import type { ValidationResult, MessageRecord } from "./commonValidators.js";
 import { VALID_TOKEN_SIZES } from "./commonValidators.js";
+import { STRING_LIMITS } from "./constants.js";
 
 /**
  * Validate create-prop message
@@ -14,7 +15,7 @@ import { VALID_TOKEN_SIZES } from "./commonValidators.js";
 export function validateCreatePropMessage(message: MessageRecord): ValidationResult {
   const { label, imageUrl, owner, size, viewport } = message;
 
-  if (typeof label !== "string" || label.length === 0 || label.length > 50) {
+  if (typeof label !== "string" || label.length === 0 || label.length > STRING_LIMITS.PROP_LABEL_MAX) {
     return { valid: false, error: "create-prop: label must be 1-50 characters" };
   }
   if (typeof imageUrl !== "string") {
@@ -55,7 +56,7 @@ export function validateUpdatePropMessage(message: MessageRecord): ValidationRes
   if (typeof id !== "string" || id.length === 0) {
     return { valid: false, error: "update-prop: missing or invalid id" };
   }
-  if (typeof label !== "string" || label.length === 0 || label.length > 50) {
+  if (typeof label !== "string" || label.length === 0 || label.length > STRING_LIMITS.PROP_LABEL_MAX) {
     return { valid: false, error: "update-prop: label must be 1-50 characters" };
   }
   if (typeof imageUrl !== "string") {
