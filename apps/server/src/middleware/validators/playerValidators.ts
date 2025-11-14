@@ -5,6 +5,12 @@
 
 import type { ValidationResult, MessageRecord } from "./commonValidators.js";
 import { isFiniteNumber } from "./commonValidators.js";
+import {
+  PAYLOAD_LIMITS,
+  STRING_LIMITS,
+  ARRAY_LIMITS,
+  RANGE_LIMITS,
+} from "./constants.js";
 
 /**
  * Validate portrait message (player portrait update)
@@ -15,7 +21,7 @@ export function validatePortraitMessage(message: MessageRecord): ValidationResul
   if (typeof data !== "string") {
     return { valid: false, error: "portrait: missing or invalid data" };
   }
-  if (data.length > 2 * 1024 * 1024) {
+  if (data.length > PAYLOAD_LIMITS.PORTRAIT_SIZE) {
     return { valid: false, error: "portrait: data too large (max 2MB)" };
   }
   return { valid: true };
@@ -30,7 +36,7 @@ export function validateRenameMessage(message: MessageRecord): ValidationResult 
   if (typeof name !== "string") {
     return { valid: false, error: "rename: missing or invalid name" };
   }
-  if (name.length === 0 || name.length > 50) {
+  if (name.length < STRING_LIMITS.PLAYER_NAME_MIN || name.length > STRING_LIMITS.PLAYER_NAME_MAX) {
     return { valid: false, error: "rename: name must be 1-50 characters" };
   }
   return { valid: true };
@@ -42,7 +48,7 @@ export function validateRenameMessage(message: MessageRecord): ValidationResult 
  */
 export function validateMicLevelMessage(message: MessageRecord): ValidationResult {
   const { level } = message;
-  if (!isFiniteNumber(level) || level < 0 || level > 1) {
+  if (!isFiniteNumber(level) || level < RANGE_LIMITS.MIC_LEVEL_MIN || level > RANGE_LIMITS.MIC_LEVEL_MAX) {
     return { valid: false, error: "mic-level: level must be between 0 and 1" };
   }
   return { valid: true };
@@ -72,7 +78,7 @@ export function validateSetStatusEffectsMessage(message: MessageRecord): Validat
   if (!Array.isArray(effects)) {
     return { valid: false, error: "set-status-effects: effects must be an array" };
   }
-  if (effects.length > 16) {
+  if (effects.length > ARRAY_LIMITS.STATUS_EFFECTS) {
     return { valid: false, error: "set-status-effects: too many effects (max 16)" };
   }
   for (const effect of effects) {
@@ -80,10 +86,10 @@ export function validateSetStatusEffectsMessage(message: MessageRecord): Validat
       return { valid: false, error: "set-status-effects: effects must be strings" };
     }
     const trimmed = effect.trim();
-    if (trimmed.length === 0) {
+    if (trimmed.length < STRING_LIMITS.STATUS_EFFECT_MIN) {
       return { valid: false, error: "set-status-effects: effect labels cannot be empty" };
     }
-    if (trimmed.length > 64) {
+    if (trimmed.length > STRING_LIMITS.STATUS_EFFECT_MAX) {
       return {
         valid: false,
         error: "set-status-effects: effect labels too long (max 64 chars)",

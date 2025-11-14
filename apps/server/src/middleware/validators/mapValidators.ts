@@ -10,6 +10,7 @@ import {
   validatePartialSegment,
   MAX_PARTIAL_SEGMENTS,
 } from "./commonValidators.js";
+import { PAYLOAD_LIMITS, RANGE_LIMITS, ARRAY_LIMITS } from "./constants.js";
 
 /**
  * Validate map-background message
@@ -20,7 +21,7 @@ export function validateMapBackgroundMessage(message: MessageRecord): Validation
   if (typeof data !== "string") {
     return { valid: false, error: "map-background: missing or invalid data" };
   }
-  if (data.length > 10 * 1024 * 1024) {
+  if (data.length > PAYLOAD_LIMITS.MAP_SIZE) {
     return { valid: false, error: "map-background: data too large (max 10MB)" };
   }
   return { valid: true };
@@ -32,7 +33,7 @@ export function validateMapBackgroundMessage(message: MessageRecord): Validation
  */
 export function validateGridSizeMessage(message: MessageRecord): ValidationResult {
   const { size } = message;
-  if (!isFiniteNumber(size) || size < 10 || size > 500) {
+  if (!isFiniteNumber(size) || size < RANGE_LIMITS.GRID_SIZE_MIN || size > RANGE_LIMITS.GRID_SIZE_MAX) {
     return { valid: false, error: "grid-size: size must be between 10 and 500" };
   }
   return { valid: true };
@@ -44,7 +45,7 @@ export function validateGridSizeMessage(message: MessageRecord): ValidationResul
  */
 export function validateGridSquareSizeMessage(message: MessageRecord): ValidationResult {
   const { size } = message;
-  if (!isFiniteNumber(size) || size < 0.1 || size > 100) {
+  if (!isFiniteNumber(size) || size < RANGE_LIMITS.GRID_SQUARE_SIZE_MIN || size > RANGE_LIMITS.GRID_SQUARE_SIZE_MAX) {
     return { valid: false, error: "grid-square-size: size must be between 0.1 and 100 feet" };
   }
   return { valid: true };
@@ -140,7 +141,7 @@ export function validateSyncPlayerDrawingsMessage(message: MessageRecord): Valid
   if (!Array.isArray(message.drawings)) {
     return { valid: false, error: "sync-player-drawings: drawings must be an array" };
   }
-  if (message.drawings.length > 200) {
+  if (message.drawings.length > ARRAY_LIMITS.SYNCED_DRAWINGS) {
     return { valid: false, error: "sync-player-drawings: too many drawings (max 200)" };
   }
   for (let index = 0; index < message.drawings.length; index += 1) {

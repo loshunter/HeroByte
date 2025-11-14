@@ -5,6 +5,7 @@
 
 import type { ValidationResult, MessageRecord } from "./commonValidators.js";
 import { SELECTION_MODES } from "./commonValidators.js";
+import { ARRAY_LIMITS } from "./constants.js";
 
 /**
  * Validate select-object message
@@ -46,7 +47,7 @@ export function validateSelectMultipleMessage(message: MessageRecord): Validatio
       error: "select-multiple: objectIds must be a non-empty string array",
     };
   }
-  if (message.objectIds.length > 100) {
+  if (message.objectIds.length > ARRAY_LIMITS.SELECTION_OBJECTS) {
     return { valid: false, error: "select-multiple: too many objectIds (max 100)" };
   }
   if (!message.objectIds.every((id) => typeof id === "string" && id.length > 0)) {
@@ -83,7 +84,7 @@ export function validateLockSelectedMessage(message: MessageRecord): ValidationR
       error: "lock-selected: objectIds must be a non-empty string array",
     };
   }
-  if (message.objectIds.length > 100) {
+  if (message.objectIds.length > ARRAY_LIMITS.SELECTION_OBJECTS) {
     return { valid: false, error: "lock-selected: too many objectIds (max 100)" };
   }
   if (!message.objectIds.every((id) => typeof id === "string" && id.length > 0)) {
@@ -109,7 +110,7 @@ export function validateUnlockSelectedMessage(message: MessageRecord): Validatio
       error: "unlock-selected: objectIds must be a non-empty string array",
     };
   }
-  if (message.objectIds.length > 100) {
+  if (message.objectIds.length > ARRAY_LIMITS.SELECTION_OBJECTS) {
     return { valid: false, error: "unlock-selected: too many objectIds (max 100)" };
   }
   if (!message.objectIds.every((id) => typeof id === "string" && id.length > 0)) {
