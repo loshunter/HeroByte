@@ -18,6 +18,7 @@ import { AuthService } from "../domains/auth/service.js";
 import { getRoomSecret } from "../config/auth.js";
 import { HeartbeatHandler } from "./handlers/HeartbeatHandler.js";
 import { RTCSignalHandler } from "./handlers/RTCSignalHandler.js";
+import { PointerHandler } from "./handlers/PointerHandler.js";
 
 /**
  * Message router - handles all WebSocket messages and dispatches to domain services
@@ -34,6 +35,7 @@ export class MessageRouter {
   private authService: AuthService;
   private heartbeatHandler: HeartbeatHandler;
   private rtcSignalHandler: RTCSignalHandler;
+  private pointerHandler: PointerHandler;
   private wss: WebSocketServer;
   private uidToWs: Map<string, WebSocket>;
   private getAuthorizedClients: () => Set<WebSocket>;
@@ -67,6 +69,7 @@ export class MessageRouter {
     this.getAuthorizedClients = getAuthorizedClients;
     this.heartbeatHandler = new HeartbeatHandler();
     this.rtcSignalHandler = new RTCSignalHandler(uidToWs);
+    this.pointerHandler = new PointerHandler(mapService);
   }
 
   /**
@@ -603,8 +606,9 @@ export class MessageRouter {
         }
 
         case "point":
-          this.mapService.placePointer(state, senderUid, message.x, message.y);
-          this.broadcast();
+          if (this.pointerHandler.handlePointer(state, senderUid, message.x, message.y)) {
+            this.broadcast();
+          }
           break;
 
         case "draw":
