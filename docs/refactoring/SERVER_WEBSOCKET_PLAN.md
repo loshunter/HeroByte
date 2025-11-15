@@ -855,18 +855,149 @@ The client WebSocket refactoring (512 → 238 LOC, 54% reduction) demonstrated t
 
 ---
 
-## Next Steps
+## Progress Tracking
 
-1. **Mark plan task complete** in TODO list
-2. **Create feature branch:** `refactor/server/connection-handler-managers`
-3. **Start Phase 1:** DisconnectionCleanupManager extraction (Day 1)
-4. **Follow extraction order** from this plan
-5. **Regular testing** after each manager extraction
-6. **Merge to dev** when all phases complete
+### ✅ Phase 1: DisconnectionCleanupManager (COMPLETE)
+**Branch:** `refactor/server/disconnection-cleanup-manager`
+**Status:** Merged to dev
+**Date Completed:** 2025-01-14
+
+**Deliverables:**
+- Created `DisconnectionCleanupManager.ts` (122 LOC)
+- 12 characterization tests covering all cleanup scenarios
+- Updated `HeartbeatTimeoutManager` to use new manager
+- Updated `ConnectionHandler` to use new manager
+- ConnectionHandler: 197 → 197 LOC (no change, manager extracted from duplicated code)
+
+**Key Features:**
+- Centralized cleanup logic (eliminates duplication)
+- Race condition prevention with WebSocket reference check
+- Optional cleanup modes (close WS, remove tokens, remove player)
+- Comprehensive error handling
 
 ---
 
-**Last Updated:** 2025-01-14
+### ✅ Phase 2: Message Processing (COMPLETE)
+**Duration:** 2 days
+**Status:** Merged to dev
+**Date Completed:** 2025-01-14
+
+#### ✅ MessagePipelineManager (Day 2)
+**Branch:** `refactor/server/message-pipeline-manager`
+**Status:** Merged to dev
+
+**Deliverables:**
+- Created `MessagePipelineManager.ts` (205 LOC)
+- 27 characterization tests covering validation pipeline
+- ConnectionHandler: 197 → 175 LOC (-22 LOC, 11.2% reduction)
+
+**Key Features:**
+- Multi-stage validation: size check → JSON parse → rate limit → schema validation
+- DoS protection with configurable message size limit (1MB default)
+- Callback-based architecture for valid/invalid messages
+- Comprehensive error logging
+
+#### ✅ MessageAuthenticator (Day 3)
+**Branch:** `refactor/server/message-authenticator`
+**Status:** Merged to dev
+
+**Deliverables:**
+- Created `MessageAuthenticator.ts` (169 LOC)
+- 37 characterization tests covering authentication routing
+- ConnectionHandler: 175 → 162 LOC (-13 LOC, 7.4% reduction)
+
+**Key Features:**
+- Authentication message detection and routing
+- DM-related message handling (elevate, revoke, set-password)
+- Access control enforcement (drops unauthenticated messages)
+- Clean separation of auth concerns from connection handling
+
+**Phase 2 Total Reduction:** 197 → 162 LOC (-35 LOC, 17.8% reduction)
+
+---
+
+### ✅ Phase 3: ConnectionLifecycleManager (COMPLETE)
+**Branch:** `refactor/server/connection-lifecycle-manager`
+**Status:** Merged to dev
+**Date Completed:** 2025-01-15
+
+**Deliverables:**
+- Created `ConnectionLifecycleManager.ts` (169 LOC)
+- 36 characterization tests covering connection lifecycle
+- ConnectionHandler: 162 → 140 LOC (-22 LOC, 13.6% reduction)
+
+**Key Features:**
+- UID extraction from connection URL
+- Connection replacement with race condition prevention
+- Seamless reconnection (preserves auth state for authenticated connections)
+- Keepalive ping management (25s interval)
+- Complete connection registration and tracking
+
+**Tests Cover:**
+- UID extraction from URL (6 tests)
+- Connection replacement detection (4 tests)
+- Seamless reconnection logic (4 tests)
+- Connection registration (3 tests)
+- Keepalive ping management (5 tests)
+- Stop keepalive on disconnection (2 tests)
+- Race condition prevention (3 tests)
+- Complete connection lifecycle (4 tests)
+- Edge cases (5 tests)
+
+---
+
+### 🚧 Phase 4: Orchestration (PENDING)
+**Branch:** `refactor/server/connection-handler-orchestrator`
+**Status:** Not started
+**Estimated Duration:** 1 day
+
+**Goals:**
+- Update ConnectionHandler to pure orchestrator pattern
+- Remove any remaining inline logic
+- Target: ~80 LOC (additional ~60 LOC reduction)
+- Comprehensive integration tests
+
+---
+
+## Current Metrics
+
+**ConnectionHandler LOC Evolution:**
+- Original: 201 LOC
+- After Phase 1: 197 LOC (-4 LOC, 2.0%)
+- After Phase 2: 162 LOC (-39 LOC, 19.4%)
+- After Phase 3: 140 LOC (-61 LOC, 30.3%)
+- **Target:** ~80 LOC (total ~60% reduction)
+
+**Managers Created:**
+- DisconnectionCleanupManager: 122 LOC
+- MessagePipelineManager: 205 LOC
+- MessageAuthenticator: 169 LOC
+- ConnectionLifecycleManager: 169 LOC
+- **Total:** 665 LOC across 4 focused managers
+
+**Test Coverage:**
+- DisconnectionCleanupManager: 12 tests
+- MessagePipelineManager: 27 tests
+- MessageAuthenticator: 37 tests
+- ConnectionLifecycleManager: 36 tests
+- **Total:** 112 new characterization tests
+
+---
+
+## Next Steps
+
+1. ✅ ~~Phase 1: DisconnectionCleanupManager~~ (COMPLETE)
+2. ✅ ~~Phase 2: Message Processing~~ (COMPLETE)
+3. ✅ ~~Phase 3: ConnectionLifecycleManager~~ (COMPLETE)
+4. 🚧 **Phase 4: ConnectionHandler Orchestration** (NEXT)
+   - Remove any remaining inline logic
+   - Ensure pure delegation to managers
+   - Add integration tests
+   - Target: ~80 LOC
+
+---
+
+**Last Updated:** 2025-01-15
 **Created By:** Claude Code (Phase 15 Initiative)
 **Related Documents:**
 - [CLIENT_WEBSOCKET_PLAN.md](./CLIENT_WEBSOCKET_PLAN.md)
