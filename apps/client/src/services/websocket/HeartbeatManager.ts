@@ -176,11 +176,7 @@ export class HeartbeatManager {
     }
 
     // Send heartbeat message (only when authenticated and WebSocket is open)
-    if (
-      authState === AuthState.AUTHENTICATED &&
-      this.ws &&
-      this.ws.readyState === WebSocket.OPEN
-    ) {
+    if (authState === AuthState.AUTHENTICATED && this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify({ t: "heartbeat" }));
     }
   }

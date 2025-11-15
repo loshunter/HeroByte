@@ -94,11 +94,7 @@ export class MessageQueueManager {
    * @param ws - The WebSocket connection (or null if not connected)
    * @param canSendFn - Function that returns true if can send immediately (e.g., authenticated)
    */
-  send(
-    message: ClientMessage,
-    ws: WebSocket | null,
-    canSendFn: () => boolean,
-  ): void {
+  send(message: ClientMessage, ws: WebSocket | null, canSendFn: () => boolean): void {
     // Authenticate messages always send immediately
     if (message.t === "authenticate") {
       console.log("[WebSocket] Sending authenticate message immediately");

@@ -356,10 +356,7 @@ describe("MessageQueueManager - Characterization Tests", () => {
 
       expect(errorWebSocket.send).toHaveBeenCalledOnce();
       expect(queueManager.getQueueLength()).toBe(1);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "[WebSocket] Send error:",
-        expect.any(Error),
-      );
+      expect(consoleErrorSpy).toHaveBeenCalledWith("[WebSocket] Send error:", expect.any(Error));
 
       consoleErrorSpy.mockRestore();
     });

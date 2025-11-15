@@ -194,9 +194,7 @@ describe("HeartbeatManager - Characterization Tests", () => {
       // Check if heartbeat was sent (when authenticated)
       heartbeatManager.checkHeartbeat(AuthState.AUTHENTICATED);
 
-      expect(mockWebSocket.send).toHaveBeenCalledWith(
-        JSON.stringify({ t: "heartbeat" }),
-      );
+      expect(mockWebSocket.send).toHaveBeenCalledWith(JSON.stringify({ t: "heartbeat" }));
     });
 
     it("should NOT send heartbeat message when not authenticated", () => {
@@ -401,9 +399,7 @@ describe("HeartbeatManager - Characterization Tests", () => {
       heartbeatManager.checkHeartbeat(AuthState.AUTHENTICATED);
 
       // Should send heartbeat
-      expect(mockWebSocket.send).toHaveBeenCalledWith(
-        JSON.stringify({ t: "heartbeat" }),
-      );
+      expect(mockWebSocket.send).toHaveBeenCalledWith(JSON.stringify({ t: "heartbeat" }));
 
       // Should NOT timeout (only 1x interval has passed)
       expect(onTimeoutCallback).not.toHaveBeenCalled();

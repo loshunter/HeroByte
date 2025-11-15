@@ -56,10 +56,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import {
-  ConnectionLifecycleManager,
-  ConnectionState,
-} from "../ConnectionLifecycleManager";
+import { ConnectionLifecycleManager, ConnectionState } from "../ConnectionLifecycleManager";
 
 describe("ConnectionLifecycleManager - Characterization Tests", () => {
   let manager: ConnectionLifecycleManager;
@@ -176,10 +173,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
 
       manager.connect();
 
-      expect(addEventListenerSpy).toHaveBeenCalledWith(
-        "visibilitychange",
-        expect.any(Function),
-      );
+      expect(addEventListenerSpy).toHaveBeenCalledWith("visibilitychange", expect.any(Function));
     });
   });
 
@@ -256,10 +250,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       manager.connect();
       manager.disconnect();
 
-      expect(removeEventListenerSpy).toHaveBeenCalledWith(
-        "visibilitychange",
-        expect.any(Function),
-      );
+      expect(removeEventListenerSpy).toHaveBeenCalledWith("visibilitychange", expect.any(Function));
     });
 
     it("should clear all timers on disconnect", () => {
@@ -362,9 +353,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
 
       // Last reconnection should be capped at 30000ms
       mockWebSocketInstance.onclose({ code: 1000, reason: "Normal" });
-      expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining("Reconnecting in 30000ms"),
-      );
+      expect(console.log).toHaveBeenCalledWith(expect.stringContaining("Reconnecting in 30000ms"));
     });
 
     it("should respect maxReconnectAttempts and set state to FAILED when exceeded", () => {
@@ -598,10 +587,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       manager.connect();
       manager.disconnect();
 
-      expect(removeEventListenerSpy).toHaveBeenCalledWith(
-        "visibilitychange",
-        expect.any(Function),
-      );
+      expect(removeEventListenerSpy).toHaveBeenCalledWith("visibilitychange", expect.any(Function));
     });
   });
 
@@ -684,10 +670,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       manager.connect();
       manager.disconnect();
 
-      expect(removeEventListenerSpy).toHaveBeenCalledWith(
-        "visibilitychange",
-        expect.any(Function),
-      );
+      expect(removeEventListenerSpy).toHaveBeenCalledWith("visibilitychange", expect.any(Function));
     });
 
     it("should clear all timers on cleanup", () => {

@@ -287,10 +287,8 @@ export class WebSocketService {
     }
 
     // Delegate to MessageQueueManager
-    this.messageQueueManager.send(
-      message,
-      this.connectionManager.getWebSocket(),
-      () => this.canSendImmediately(),
+    this.messageQueueManager.send(message, this.connectionManager.getWebSocket(), () =>
+      this.canSendImmediately(),
     );
   }
 
@@ -433,9 +431,8 @@ export class WebSocketService {
    * @private Called after successful authentication
    */
   private flushMessageQueue(): void {
-    this.messageQueueManager.flush(
-      this.connectionManager.getWebSocket(),
-      () => this.canSendImmediately(),
+    this.messageQueueManager.flush(this.connectionManager.getWebSocket(), () =>
+      this.canSendImmediately(),
     );
   }
 
