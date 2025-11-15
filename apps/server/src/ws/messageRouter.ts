@@ -23,6 +23,7 @@ import { TokenMessageHandler } from "./handlers/TokenMessageHandler.js";
 import { CharacterMessageHandler } from "./handlers/CharacterMessageHandler.js";
 import { NPCMessageHandler } from "./handlers/NPCMessageHandler.js";
 import { PropMessageHandler } from "./handlers/PropMessageHandler.js";
+import { PlayerMessageHandler } from "./handlers/PlayerMessageHandler.js";
 
 /**
  * Message router - handles all WebSocket messages and dispatches to domain services
@@ -44,6 +45,7 @@ export class MessageRouter {
   private characterMessageHandler: CharacterMessageHandler;
   private npcMessageHandler: NPCMessageHandler;
   private propMessageHandler: PropMessageHandler;
+  private playerMessageHandler: PlayerMessageHandler;
   private wss: WebSocketServer;
   private uidToWs: Map<string, WebSocket>;
   private getAuthorizedClients: () => Set<WebSocket>;
@@ -96,6 +98,7 @@ export class MessageRouter {
       selectionService,
     );
     this.propMessageHandler = new PropMessageHandler(propService, selectionService);
+    this.playerMessageHandler = new PlayerMessageHandler(playerService, roomService);
   }
 
   /**
@@ -187,45 +190,56 @@ export class MessageRouter {
         }
 
         // PLAYER ACTIONS
-        case "portrait":
-          if (this.playerService.setPortrait(state, senderUid, message.data)) {
-            this.broadcast();
-            this.roomService.saveState();
-          }
+        case "portrait": {
+          const result = this.playerMessageHandler.handlePortrait(state, senderUid, message.data);
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
-        case "rename":
-          if (this.playerService.rename(state, senderUid, message.name)) {
-            this.broadcast();
-            this.roomService.saveState();
-          }
+        case "rename": {
+          const result = this.playerMessageHandler.handleRename(state, senderUid, message.name);
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
-        case "mic-level":
-          if (this.playerService.setMicLevel(state, senderUid, message.level)) {
-            this.broadcast();
-          }
+        case "mic-level": {
+          const result = this.playerMessageHandler.handleMicLevel(state, senderUid, message.level);
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
-        case "set-hp":
-          if (this.playerService.setHP(state, senderUid, message.hp, message.maxHp)) {
-            this.broadcast();
-            this.roomService.saveState();
-          }
+        case "set-hp": {
+          const result = this.playerMessageHandler.handleSetHP(
+            state,
+            senderUid,
+            message.hp,
+            message.maxHp,
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
-        case "set-status-effects":
-          if (this.playerService.setStatusEffects(state, senderUid, message.effects)) {
-            this.broadcast();
-            this.roomService.saveState();
-          }
+        case "set-status-effects": {
+          const result = this.playerMessageHandler.handleSetStatusEffects(
+            state,
+            senderUid,
+            message.effects,
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
-        case "toggle-dm":
+        case "toggle-dm": {
           // DEPRECATED: This action is replaced by elevate-to-dm flow
           // Kept for backwards compatibility but should not be used
-          console.warn(`toggle-dm message from ${senderUid} ignored - use elevate-to-dm instead`);
+          this.playerMessageHandler.handleToggleDM(senderUid);
           break;
+        }
 
         // CHARACTER ACTIONS
         case "create-character": {
