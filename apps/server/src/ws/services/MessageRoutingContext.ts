@@ -1,4 +1,4 @@
-import type { RoomState } from "@shared";
+import type { RoomState } from "../../domains/room/model.js";
 import type { RoomService } from "../../domains/room/service.js";
 import type { AuthorizationService } from "./AuthorizationService.js";
 

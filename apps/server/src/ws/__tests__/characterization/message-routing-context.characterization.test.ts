@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import type { RoomState } from "@shared";
+import type { RoomState } from "../../../domains/room/model.js";
 
 /**
  * CHARACTERIZATION TESTS: MessageRoutingContext Service
