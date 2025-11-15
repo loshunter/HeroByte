@@ -220,8 +220,8 @@ describe("StatePersistence - Characterization Tests", () => {
       const state = roomService.getState();
 
       expect(state.characters[0].type).toBe("npc");
-      expect(state.characters[0].tokenImage).toBe(null);
-      expect(state.characters[0].tokenId).toBe(null);
+      expect(state.characters[0].tokenImage).toBeUndefined();
+      expect(state.characters[0].tokenId).toBeUndefined();
       expect(state.characters[1].type).toBe("pc"); // invalid type becomes "pc"
     });
 
