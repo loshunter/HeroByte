@@ -25,6 +25,7 @@ import { NPCMessageHandler } from "./handlers/NPCMessageHandler.js";
 import { PropMessageHandler } from "./handlers/PropMessageHandler.js";
 import { PlayerMessageHandler } from "./handlers/PlayerMessageHandler.js";
 import { InitiativeMessageHandler } from "./handlers/InitiativeMessageHandler.js";
+import { MapMessageHandler } from "./handlers/MapMessageHandler.js";
 
 /**
  * Message router - handles all WebSocket messages and dispatches to domain services
@@ -48,6 +49,7 @@ export class MessageRouter {
   private propMessageHandler: PropMessageHandler;
   private playerMessageHandler: PlayerMessageHandler;
   private initiativeMessageHandler: InitiativeMessageHandler;
+  private mapMessageHandler: MapMessageHandler;
   private wss: WebSocketServer;
   private uidToWs: Map<string, WebSocket>;
   private getAuthorizedClients: () => Set<WebSocket>;
@@ -102,6 +104,7 @@ export class MessageRouter {
     this.propMessageHandler = new PropMessageHandler(propService, selectionService);
     this.playerMessageHandler = new PlayerMessageHandler(playerService, roomService);
     this.initiativeMessageHandler = new InitiativeMessageHandler(characterService, roomService);
+    this.mapMessageHandler = new MapMessageHandler(mapService, roomService);
   }
 
   /**
@@ -518,44 +521,36 @@ export class MessageRouter {
         }
 
         // MAP ACTIONS
-        case "map-background":
-          this.mapService.setBackground(state, message.data);
-          this.broadcast();
+        case "map-background": {
+          const result = this.mapMessageHandler.handleMapBackground(state, message.data);
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
-        case "grid-size":
-          this.mapService.setGridSize(state, message.size);
-          this.broadcast();
+        case "grid-size": {
+          const result = this.mapMessageHandler.handleGridSize(state, message.size);
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
-        case "grid-square-size":
-          this.mapService.setGridSquareSize(state, message.size);
-          this.broadcast();
+        case "grid-square-size": {
+          const result = this.mapMessageHandler.handleGridSquareSize(state, message.size);
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
         case "set-player-staging-zone": {
-          console.log("[DEBUG] Received set-player-staging-zone message:", {
+          const result = this.mapMessageHandler.handleSetPlayerStagingZone(
+            state,
             senderUid,
-            zone: message.zone,
-            timestamp: new Date().toISOString(),
-          });
-          const sender = state.players.find((player) => player.uid === senderUid);
-          console.log("[DEBUG] Sender found:", {
-            uid: sender?.uid,
-            isDM: sender?.isDM,
-            name: sender?.name,
-          });
-          if (!sender?.isDM) {
-            console.log("[DEBUG] Rejected: sender is not DM");
-            break;
-          }
-          const result = this.roomService.setPlayerStagingZone(message.zone);
-          console.log("[DEBUG] setPlayerStagingZone result:", result);
-          if (result) {
-            this.broadcast();
-            this.roomService.saveState();
-            console.log("[DEBUG] Staging zone set successfully and saved");
-          }
+            message.zone,
+            this.isDM(senderUid),
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
         }
 
