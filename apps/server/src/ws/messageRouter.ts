@@ -16,6 +16,7 @@ import { PropService } from "../domains/prop/service.js";
 import { SelectionService } from "../domains/selection/service.js";
 import { AuthService } from "../domains/auth/service.js";
 import { getRoomSecret } from "../config/auth.js";
+import { HeartbeatHandler } from "./handlers/HeartbeatHandler.js";
 
 /**
  * Message router - handles all WebSocket messages and dispatches to domain services
@@ -30,6 +31,7 @@ export class MessageRouter {
   private propService: PropService;
   private selectionService: SelectionService;
   private authService: AuthService;
+  private heartbeatHandler: HeartbeatHandler;
   private wss: WebSocketServer;
   private uidToWs: Map<string, WebSocket>;
   private getAuthorizedClients: () => Set<WebSocket>;
@@ -58,6 +60,7 @@ export class MessageRouter {
     this.propService = propService;
     this.selectionService = selectionService;
     this.authService = authService;
+    this.heartbeatHandler = new HeartbeatHandler();
     this.wss = wss;
     this.uidToWs = uidToWs;
     this.getAuthorizedClients = getAuthorizedClients;
@@ -827,13 +830,9 @@ export class MessageRouter {
         }
 
         case "heartbeat": {
-          const player = state.players.find((p) => p.uid === senderUid);
-          if (player) {
-            player.lastHeartbeat = Date.now();
+          if (this.heartbeatHandler.handleHeartbeat(state, senderUid)) {
+            this.broadcast();
           }
-          console.log(`[DEBUG] Heartbeat received from ${senderUid}`);
-          // Broadcast to keep client connection alive (prevents heartbeat timeout)
-          this.broadcast();
           break;
         }
 
