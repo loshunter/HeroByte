@@ -256,7 +256,7 @@ describe("DrawingMessageHandler", () => {
 
   describe("handleErasePartial", () => {
     it("should handle partial erase, remove from selection, and broadcast", () => {
-      const segments = [{ type: "line", points: [0, 0, 1, 1], color: "black", strokeWidth: 2 }];
+      const segments = [{ type: "line", points: [0, 0, 1, 1], color: "black", strokeWidth: 2, width: 800, opacity: 1 }];
 
       const result = handler.handleErasePartial(state, "draw1", segments, "player1");
 
@@ -273,7 +273,7 @@ describe("DrawingMessageHandler", () => {
 
     it("should not broadcast on failure", () => {
       mockMapService.handlePartialErase = vi.fn(() => false);
-      const segments = [{ type: "line", points: [0, 0, 1, 1], color: "black", strokeWidth: 2 }];
+      const segments = [{ type: "line", points: [0, 0, 1, 1], color: "black", strokeWidth: 2, width: 800, opacity: 1 }];
 
       const result = handler.handleErasePartial(state, "draw1", segments, "player1");
 

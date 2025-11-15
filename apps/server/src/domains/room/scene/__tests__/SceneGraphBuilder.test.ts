@@ -255,7 +255,7 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
         {
           id: "drawing-2",
           owner: null,
-          lines: [],
+          points: [], width: 800, opacity: 1,
         },
       ];
 
@@ -285,7 +285,7 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
         {
           id: "drawing-1",
           owner: "player-1",
-          lines: [],
+          points: [], width: 800, opacity: 1,
         },
       ];
 
@@ -596,7 +596,7 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
       const tokens: Token[] = [
         { id: "t1", owner: "p1", x: 10, y: 20, color: "red", imageUrl: undefined, size: "medium" },
       ];
-      const drawings: Drawing[] = [{ id: "d1", owner: "p1", lines: [] }];
+      const drawings: Drawing[] = [{ id: "d1", owner: "p1", points: [], width: 800, opacity: 1 }];
       const props: Prop[] = [
         {
           id: "pr1",
@@ -613,7 +613,7 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
       ];
       const stagingZone: PlayerStagingZone = { x: 50, y: 60, width: 100, height: 100 };
       const pointers: Pointer[] = [
-        { uid: "p1", name: "Player", x: 70, y: 80, timestamp: Date.now() },
+        { id: `pointer-${"p1"}`, uid: "p1", name: "Player", x: 70, y: 80, timestamp: Date.now() },
       ];
 
       roomService.setState({

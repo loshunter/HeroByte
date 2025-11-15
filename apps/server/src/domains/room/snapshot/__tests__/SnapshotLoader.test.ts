@@ -39,6 +39,7 @@ describe("SnapshotLoader - Characterization Tests", () => {
 
       // Load snapshot with same player but different saved data
       const snapshot: RoomSnapshot = {
+        users: [],
         players: [
           {
             uid: "player-1",
@@ -55,6 +56,7 @@ describe("SnapshotLoader - Characterization Tests", () => {
         characters: [],
         tokens: [],
         props: [],
+        pointers: [],
         drawings: [],
         gridSize: 50,
         gridSquareSize: 5,
@@ -113,6 +115,8 @@ describe("SnapshotLoader - Characterization Tests", () => {
 
       // Load snapshot with only player-1
       const snapshot: RoomSnapshot = {
+        users: [],
+        pointers: [],
         players: [
           {
             uid: "player-1",
@@ -170,6 +174,8 @@ describe("SnapshotLoader - Characterization Tests", () => {
       });
 
       const snapshot: RoomSnapshot = {
+        users: [],
+        pointers: [],
         players: [],
         characters: [],
         tokens: [],
@@ -209,6 +215,8 @@ describe("SnapshotLoader - Characterization Tests", () => {
       });
 
       const snapshot: RoomSnapshot = {
+        users: [],
+        pointers: [],
         players: [
           {
             uid: "player-1",
@@ -258,6 +266,8 @@ describe("SnapshotLoader - Characterization Tests", () => {
       });
 
       const snapshot: RoomSnapshot = {
+        users: [],
+        pointers: [],
         players: [
           {
             uid: "player-1",
@@ -323,6 +333,8 @@ describe("SnapshotLoader - Characterization Tests", () => {
 
       // Load snapshot with different character
       const snapshot: RoomSnapshot = {
+        users: [],
+        pointers: [],
         players: [],
         characters: [
           {
@@ -332,7 +344,6 @@ describe("SnapshotLoader - Characterization Tests", () => {
             type: "pc",
             hp: 10,
             maxHp: 10,
-            ac: 14,
             tokenId: null,
             tokenImage: null,
           },
@@ -395,6 +406,8 @@ describe("SnapshotLoader - Characterization Tests", () => {
 
       // Load snapshot with same character ID
       const snapshot: RoomSnapshot = {
+        users: [],
+        pointers: [],
         players: [],
         characters: [
           {
@@ -404,7 +417,6 @@ describe("SnapshotLoader - Characterization Tests", () => {
             type: "pc",
             hp: 10,
             maxHp: 10,
-            ac: 14,
             tokenId: null,
             tokenImage: null,
           },
@@ -431,6 +443,8 @@ describe("SnapshotLoader - Characterization Tests", () => {
 
     it("should normalize character type to pc or npc", () => {
       const snapshot: RoomSnapshot = {
+        users: [],
+        pointers: [],
         players: [],
         characters: [
           {
@@ -440,7 +454,6 @@ describe("SnapshotLoader - Characterization Tests", () => {
             type: "npc",
             hp: 10,
             maxHp: 10,
-            ac: 14,
             tokenId: null,
             tokenImage: null,
           },
@@ -451,7 +464,6 @@ describe("SnapshotLoader - Characterization Tests", () => {
             type: "invalid" as unknown as "pc" | "npc", // Invalid type
             hp: 10,
             maxHp: 10,
-            ac: 14,
             tokenId: null,
             tokenImage: null,
           },
@@ -475,6 +487,8 @@ describe("SnapshotLoader - Characterization Tests", () => {
 
     it("should normalize tokenId and tokenImage to null if missing", () => {
       const snapshot: RoomSnapshot = {
+        users: [],
+        pointers: [],
         players: [],
         characters: [
           {
@@ -484,7 +498,6 @@ describe("SnapshotLoader - Characterization Tests", () => {
             type: "npc",
             hp: 10,
             maxHp: 10,
-            ac: 14,
             // tokenId and tokenImage omitted
           } as Character,
         ],
@@ -538,6 +551,8 @@ describe("SnapshotLoader - Characterization Tests", () => {
 
       // Load snapshot with different token
       const snapshot: RoomSnapshot = {
+        users: [],
+        pointers: [],
         players: [],
         characters: [],
         tokens: [
@@ -604,6 +619,8 @@ describe("SnapshotLoader - Characterization Tests", () => {
       });
 
       const snapshot: RoomSnapshot = {
+        users: [],
+        pointers: [],
         players: [],
         characters: [],
         tokens: [
@@ -640,6 +657,8 @@ describe("SnapshotLoader - Characterization Tests", () => {
   describe("Other state fields", () => {
     it("should load props directly from snapshot", () => {
       const snapshot: RoomSnapshot = {
+        users: [],
+        pointers: [],
         players: [],
         characters: [],
         tokens: [],
@@ -687,6 +706,8 @@ describe("SnapshotLoader - Characterization Tests", () => {
       });
 
       const snapshot: RoomSnapshot = {
+        users: [],
+        pointers: [],
         players: [],
         characters: [],
         tokens: [],
@@ -709,6 +730,8 @@ describe("SnapshotLoader - Characterization Tests", () => {
       // Case 1: sceneObjects present - drawings should be empty (even if provided)
       // Need to have tokens in snapshot so rebuildSceneGraph creates scene objects
       const snapshotWithSceneObjects: RoomSnapshot = {
+        users: [],
+        pointers: [],
         players: [],
         characters: [],
         tokens: [
@@ -727,7 +750,7 @@ describe("SnapshotLoader - Characterization Tests", () => {
           {
             id: "drawing-1",
             owner: "player-1",
-            lines: [],
+            points: [],
           },
         ],
         gridSize: 50,
@@ -756,6 +779,8 @@ describe("SnapshotLoader - Characterization Tests", () => {
       // Case 2: No sceneObjects - drawings loaded
       roomService = new RoomService();
       const snapshotWithoutSceneObjects: RoomSnapshot = {
+        users: [],
+        pointers: [],
         players: [],
         characters: [],
         tokens: [],
@@ -764,7 +789,7 @@ describe("SnapshotLoader - Characterization Tests", () => {
           {
             id: "drawing-1",
             owner: "player-1",
-            lines: [],
+            points: [],
           },
         ],
         gridSize: 50,
@@ -782,6 +807,8 @@ describe("SnapshotLoader - Characterization Tests", () => {
       roomService.setState({ gridSquareSize: 10 });
 
       const snapshot: RoomSnapshot = {
+        users: [],
+        pointers: [],
         players: [],
         characters: [],
         tokens: [],
@@ -806,6 +833,8 @@ describe("SnapshotLoader - Characterization Tests", () => {
       });
 
       const snapshot: RoomSnapshot = {
+        users: [],
+        pointers: [],
         players: [],
         characters: [],
         tokens: [],
@@ -831,6 +860,8 @@ describe("SnapshotLoader - Characterization Tests", () => {
       roomService.setState({ selectionState: selectionMap });
 
       const snapshot: RoomSnapshot = {
+        users: [],
+        pointers: [],
         players: [],
         characters: [],
         tokens: [],
@@ -851,6 +882,8 @@ describe("SnapshotLoader - Characterization Tests", () => {
 
     it("should load combat state", () => {
       const snapshot: RoomSnapshot = {
+        users: [],
+        pointers: [],
         players: [],
         characters: [],
         tokens: [],
@@ -874,6 +907,8 @@ describe("SnapshotLoader - Characterization Tests", () => {
   describe("Staging zone sanitization", () => {
     it("should sanitize staging zone via StagingZoneManager", () => {
       const snapshot: RoomSnapshot = {
+        users: [],
+        pointers: [],
         players: [],
         characters: [],
         tokens: [],
@@ -907,6 +942,8 @@ describe("SnapshotLoader - Characterization Tests", () => {
 
     it("should handle invalid staging zone (sanitize returns undefined)", () => {
       const snapshot: RoomSnapshot = {
+        users: [],
+        pointers: [],
         players: [],
         characters: [],
         tokens: [],

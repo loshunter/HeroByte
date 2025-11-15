@@ -354,6 +354,8 @@ describe("TransformHandler - Characterization Tests", () => {
         points: [0, 0, 100, 100],
         color: "black",
         strokeWidth: 2,
+        width: 800,
+        opacity: 1,
       };
       roomService.setState({
         drawings: [drawing],
@@ -421,12 +423,14 @@ describe("TransformHandler - Characterization Tests", () => {
       const prop: Prop = {
         id: "prop-1",
         owner: playerUid,
+        label: "Test Prop",
         x: 0,
         y: 0,
         scaleX: 1,
         scaleY: 1,
         rotation: 0,
         imageUrl: "prop.png",
+        size: "medium",
       };
       roomService.setState({
         props: [prop],
@@ -485,12 +489,14 @@ describe("TransformHandler - Characterization Tests", () => {
       const sharedProp: Prop = {
         id: "prop-shared",
         owner: "*",
+        label: "Shared Prop",
         x: 0,
         y: 0,
         scaleX: 1,
         scaleY: 1,
         rotation: 0,
         imageUrl: "shared.png",
+        size: "medium",
       };
       roomService.setState({
         props: [sharedProp],
@@ -531,7 +537,9 @@ describe("TransformHandler - Characterization Tests", () => {
       roomService.setState({
         pointers: [
           {
+            id: `pointer-${playerUid}`,
             uid: playerUid,
+            name: "Player",
             x: 0,
             y: 0,
             timestamp: Date.now(),
