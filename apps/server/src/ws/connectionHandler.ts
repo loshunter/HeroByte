@@ -8,7 +8,6 @@ import type { WebSocket, WebSocketServer } from "ws";
 import type { IncomingMessage } from "http";
 import type { ClientMessage } from "@shared";
 import type { Container } from "../container.js";
-import { getDefaultRoomId } from "../config/auth.js";
 import { AuthenticationHandler } from "./auth/AuthenticationHandler.js";
 import { HeartbeatTimeoutManager } from "./lifecycle/HeartbeatTimeoutManager.js";
 import { DisconnectionCleanupManager } from "./lifecycle/DisconnectionCleanupManager.js";
@@ -29,12 +28,10 @@ export class ConnectionHandler {
   private heartbeatManager: HeartbeatTimeoutManager;
   private pipelineManager: MessagePipelineManager;
   private authenticator: MessageAuthenticator;
-  private readonly defaultRoomId: string;
 
   constructor(container: Container, wss: WebSocketServer) {
     this.container = container;
     this.wss = wss;
-    this.defaultRoomId = getDefaultRoomId();
     this.authHandler = new AuthenticationHandler(
       container,
       container.uidToWs,
@@ -91,13 +88,13 @@ export class ConnectionHandler {
    */
   private handleConnection(ws: WebSocket, req: IncomingMessage): void {
     // Delegate connection lifecycle to ConnectionLifecycleManager
-    const { uid, keepalive } = this.lifecycleManager.handleConnection(ws, req);
+    const { uid } = this.lifecycleManager.handleConnection(ws, req);
 
     // Message handling
     ws.on("message", (buf) => this.handleMessage(Buffer.from(buf as ArrayBuffer), uid));
 
     // Disconnection handling
-    ws.on("close", () => this.handleDisconnection(uid, keepalive, ws));
+    ws.on("close", () => this.handleDisconnection(uid, ws));
   }
 
   /**
@@ -122,18 +119,17 @@ export class ConnectionHandler {
     }
 
     // Route to appropriate handler
-    console.log(`[ConnectionHandler] Received message type=${message.t} from uid=${uid}`);
     this.container.messageRouter.route(message, uid);
   }
 
   /**
    * Handle client disconnection
    */
-  private handleDisconnection(uid: string, keepalive: NodeJS.Timeout, ws: WebSocket): void {
-    // Clear keepalive interval
-    clearInterval(keepalive);
+  private handleDisconnection(uid: string, ws: WebSocket): void {
+    // Delegate keepalive cleanup to ConnectionLifecycleManager
+    this.lifecycleManager.stopKeepalive(uid);
 
-    // Delegate cleanup to DisconnectionCleanupManager
+    // Delegate player cleanup to DisconnectionCleanupManager
     // Pass WebSocket for race condition check
     this.cleanupManager.cleanupPlayer(uid, { ws });
   }

@@ -8,8 +8,7 @@
 
 import type { WebSocket } from "ws";
 import type { IncomingMessage } from "http";
-import type { RoomService } from "../../services/room/roomService.js";
-import type { SessionData } from "../auth/AuthenticationHandler.js";
+import type { RoomService } from "../../domains/room/service.js";
 
 /**
  * Configuration for ConnectionLifecycleManager
@@ -36,11 +35,6 @@ export interface ConnectionLifecycleResult {
    * Extracted client UID from connection URL
    */
   uid: string;
-
-  /**
-   * Keepalive interval handle for ping management
-   */
-  keepalive: NodeJS.Timeout;
 }
 
 /**
@@ -77,17 +71,18 @@ export interface ConnectionLifecycleResult {
  * );
  *
  * // Handle new connection
- * const { uid, keepalive } = lifecycleManager.handleConnection(ws, req);
+ * const { uid } = lifecycleManager.handleConnection(ws, req);
  *
- * // Later, on disconnection, clear keepalive
- * clearInterval(keepalive);
+ * // Later, on disconnection
+ * lifecycleManager.stopKeepalive(uid);
  * ```
  */
 export class ConnectionLifecycleManager {
   private config: ConnectionLifecycleConfig;
   private uidToWs: Map<string, WebSocket>;
   private authenticatedUids: Set<string>;
-  private authenticatedSessions: Map<string, SessionData>;
+  private authenticatedSessions: Map<string, { roomId: string; authedAt: number }>;
+  private keepalives: Map<string, NodeJS.Timeout>;
 
   /**
    * Create a new ConnectionLifecycleManager
@@ -101,12 +96,13 @@ export class ConnectionLifecycleManager {
     config: ConnectionLifecycleConfig,
     uidToWs: Map<string, WebSocket>,
     authenticatedUids: Set<string>,
-    authenticatedSessions: Map<string, SessionData>,
+    authenticatedSessions: Map<string, { roomId: string; authedAt: number }>,
   ) {
     this.config = config;
     this.uidToWs = uidToWs;
     this.authenticatedUids = authenticatedUids;
     this.authenticatedSessions = authenticatedSessions;
+    this.keepalives = new Map();
   }
 
   /**
@@ -144,6 +140,9 @@ export class ConnectionLifecycleManager {
       );
       existingWs.close(4001, "Replaced by new connection");
       this.config.onConnectionReplaced?.(uid, wasAuthenticated);
+
+      // Stop keepalive for replaced connection
+      this.stopKeepalive(uid);
     }
 
     // Only clear authentication if this is a truly new connection (not a replacement)
@@ -151,19 +150,52 @@ export class ConnectionLifecycleManager {
     if (!wasAuthenticated) {
       this.authenticatedUids.delete(uid);
       this.authenticatedSessions.delete(uid);
-      state.users = state.users.filter((u) => u !== uid);
+      state.users = state.users.filter((u: string) => u !== uid);
     }
 
     // Register connection
     this.uidToWs.set(uid, ws);
 
-    // Keepalive ping to prevent cloud provider timeout
+    // Setup keepalive ping to prevent cloud provider timeout
     const keepalive = setInterval(() => {
       if (ws.readyState === 1) {
         ws.ping();
       }
     }, 25000);
 
-    return { uid, keepalive };
+    // Track keepalive internally for cleanup
+    this.keepalives.set(uid, keepalive);
+
+    return { uid };
+  }
+
+  /**
+   * Stop keepalive ping for a connection
+   *
+   * Clears the interval and removes it from internal tracking.
+   * Safe to call even if no keepalive exists for the UID.
+   *
+   * @param uid - Client unique identifier
+   */
+  stopKeepalive(uid: string): void {
+    const keepalive = this.keepalives.get(uid);
+    if (keepalive) {
+      clearInterval(keepalive);
+      this.keepalives.delete(uid);
+    }
+  }
+
+  /**
+   * Check if a WebSocket is the current connection for a UID
+   *
+   * Used to prevent race conditions when a connection is replaced
+   * before the old connection's close handler runs.
+   *
+   * @param uid - Client unique identifier
+   * @param ws - WebSocket to check
+   * @returns True if this WebSocket is still the current connection for the UID
+   */
+  isCurrentConnection(uid: string, ws: WebSocket): boolean {
+    return this.uidToWs.get(uid) === ws;
   }
 }
