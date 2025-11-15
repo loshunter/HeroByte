@@ -56,7 +56,7 @@ describe("MapMessageHandler", () => {
     mockRoomService = {
       getState: vi.fn(() => state),
       saveState: vi.fn(),
-      setPlayerStagingZone: vi.fn((zone: StagingZone) => {
+      setPlayerStagingZone: vi.fn((_zone: StagingZone) => {
         // Simulate successful setting
         return true;
       }),

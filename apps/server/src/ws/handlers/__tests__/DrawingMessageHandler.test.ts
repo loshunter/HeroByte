@@ -63,7 +63,7 @@ describe("DrawingMessageHandler", () => {
         state.drawings = [];
       }),
       selectDrawing: vi.fn(() => true),
-      deselectDrawing: vi.fn((state: RoomState, owner: string) => {}),
+      deselectDrawing: vi.fn((_state: RoomState, _owner: string) => {}),
       moveDrawing: vi.fn(() => true),
       deleteDrawing: vi.fn((state: RoomState, id: string) => {
         const index = state.drawings.findIndex((d) => d.id === id);
@@ -77,7 +77,7 @@ describe("DrawingMessageHandler", () => {
     } as unknown as MapService;
 
     mockSelectionService = {
-      removeObject: vi.fn((state: RoomState, id: string) => {}),
+      removeObject: vi.fn((_state: RoomState, _id: string) => {}),
     } as unknown as SelectionService;
 
     mockRoomService = {

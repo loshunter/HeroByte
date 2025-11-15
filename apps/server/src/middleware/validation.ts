@@ -3,7 +3,7 @@
 // ============================================================================
 // Validates incoming WebSocket messages using domain-specific validators
 
-import type { ValidationResult, MessageRecord } from "./validators/index.js";
+import type { ValidationResult } from "./validators/index.js";
 import { isRecord } from "./validators/index.js";
 
 // Token validators
