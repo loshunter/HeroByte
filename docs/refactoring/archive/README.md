@@ -1,11 +1,11 @@
-# MainLayout Refactoring Archive
+# Refactoring Archive
 
-This folder contains archived documentation from the completed MainLayout.tsx refactoring project.
+This folder contains archived documentation from completed refactoring projects.
 
-## Completion Date
-October 21, 2025
+## Archived Refactoring Projects
 
-## Final Outcome
+### 1. MainLayout.tsx Refactoring
+**Completion Date:** October 21, 2025
 - MainLayout.tsx reduced: 795 → 364 LOC (-54.2%)
 - 4 sub-layout components created
 - Props interface separated
@@ -13,28 +13,52 @@ October 21, 2025
 - 307 characterization tests added
 - All 923 client tests passing
 
+### 2. App.tsx Refactoring
+**Completion Date:** October 20, 2025
+- App.tsx reduced: 1,850 → ~958 LOC (48% reduction)
+- All 7 phases completed
+- 9 Phase 1 priorities extracted
+- Phase 4 extractions (useServerEventHandlers, useNpcManagement)
+
+### 3. DMMenu.tsx Refactoring
+**Completion Date:** October 22, 2025
+- DMMenu.tsx reduced: 1,588 → 265 LOC (83% reduction!)
+- All 6 phases completed
+- UI primitives, entity editors, map controls extracted
+- Cleanest component in the codebase
+
 ## Why These Docs Are Archived
 
 These documents served as planning and handoff materials during the active refactoring work. Now that the work is complete, they're archived for historical reference while keeping the active `docs/refactoring/` folder focused on current and future work.
 
 ### Archived Documents
 
-1. **MAINLAYOUT_HANDOFF.md** - Handoff document for orchestrator continuation
-   - Detailed workflow for Extraction 4
-   - Copy-paste agent prompts
-   - Complete context of Extractions 1-3
-   - Common pitfalls and patterns
+#### MainLayout Refactoring
+- **MAINLAYOUT_HANDOFF.md** - Handoff document for orchestrator continuation
+- **MAINLAYOUT_REFACTOR_BRIEF.md** - Original comprehensive refactoring brief
+- **PHASE7_COMPLETE.md** - Phase 7 completion report
 
-2. **MAINLAYOUT_REFACTOR_BRIEF.md** - Original comprehensive refactoring brief
-   - Initial planning and strategy
-   - Root cause analysis
-   - Agent delegation patterns
-   - Step-by-step execution guide
+#### App.tsx Refactoring
+- **CHATGPT_PROMPT.md** - ChatGPT prompts for Phase 1 work
+- **CHATGPT_PROMPT_PHASE3.md** - ChatGPT prompts for Phase 3 work
+- **HANDOFF_CHATGPT_PHASE2.md** - Phase 2 handoff to ChatGPT
+- **HANDOFF_CHATGPT_PHASE3.md** - Phase 3 handoff to ChatGPT
+- **PHASE2_COMPLETION.md** - Phase 2 completion report
+- **PHASE4_COPY_PASTE_PROMPT.md** - Phase 4 copy-paste prompt
+- **PHASE4_SUMMARY.md** - Phase 4 summary
+- **PHASES_2_3_SUMMARY.md** - Combined Phases 2-3 summary
+- **PHASE_6_HANDOFF.md** - Phase 6 handoff document
+- **PHASE_7_COMPLETE.md** - Phase 7 completion report
 
-3. **MAINLAYOUT_MANAGER_PROMPT.txt** - Manager role instructions
-   - Orchestrator responsibilities
-   - Quick reference for starting work
-   - Critical workflow reminders
+#### DMMenu.tsx Refactoring
+- **DMMENU_PHASE2_HANDOFF.md** - Phase 2 handoff document
+- **DMMENU_PHASE2_COMPLETION.md** - Phase 2 completion report
+- **DMMENU_PHASE4_HANDOFF.md** - Phase 4 handoff document
+- **DMMENU_PHASE4_FINAL_HANDOFF.md** - Phase 4 final handoff
+- **DMMENU_PHASE5_HANDOFF.md** - Phase 5 handoff document
+- **DMMENU_PHASE6_HANDOFF.md** - Phase 6 handoff document
+- **DMMENU_PHASE6_COMPLETE.md** - Phase 6 completion report
+- **DMMENU_PHASE7_HANDOFF.md** - Phase 7 handoff document
 
 ### Active Documentation (Not Archived)
 

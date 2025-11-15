@@ -172,7 +172,12 @@
       "Bash(pnpm --filter server typecheck:*)",
       "Bash(pnpm --filter vtt-server test:*)",
       "Bash(pnpm --filter vtt-server lint)",
-      "Bash(gh pr view:*)"
+      "Bash(gh pr view:*)",
+      "Bash(gh pr comment:*)",
+      "Bash(pnpm --filter vtt-server exec tsc:*)",
+      "Bash(pnpm -r exec tsc:*)",
+      "Bash(chmod:*)",
+      "Bash(pnpm baseline:update:*)"
     ],
     "deny": [],
     "ask": []
