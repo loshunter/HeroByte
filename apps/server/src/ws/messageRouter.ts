@@ -21,6 +21,7 @@ import { RTCSignalHandler } from "./handlers/RTCSignalHandler.js";
 import { PointerHandler } from "./handlers/PointerHandler.js";
 import { TokenMessageHandler } from "./handlers/TokenMessageHandler.js";
 import { CharacterMessageHandler } from "./handlers/CharacterMessageHandler.js";
+import { NPCMessageHandler } from "./handlers/NPCMessageHandler.js";
 
 /**
  * Message router - handles all WebSocket messages and dispatches to domain services
@@ -40,6 +41,7 @@ export class MessageRouter {
   private pointerHandler: PointerHandler;
   private tokenMessageHandler: TokenMessageHandler;
   private characterMessageHandler: CharacterMessageHandler;
+  private npcMessageHandler: NPCMessageHandler;
   private wss: WebSocketServer;
   private uidToWs: Map<string, WebSocket>;
   private getAuthorizedClients: () => Set<WebSocket>;
@@ -85,6 +87,11 @@ export class MessageRouter {
       tokenService,
       selectionService,
       roomService,
+    );
+    this.npcMessageHandler = new NPCMessageHandler(
+      characterService,
+      tokenService,
+      selectionService,
     );
   }
 
@@ -234,71 +241,61 @@ export class MessageRouter {
           break;
         }
 
-        case "create-npc":
+        case "create-npc": {
           if (!this.isDM(senderUid)) {
             console.warn(`Non-DM ${senderUid} attempted to create NPC`);
             break;
           }
-          this.characterService.createCharacter(
+          const result = this.npcMessageHandler.handleCreateNPC(
             state,
             message.name,
             message.maxHp,
             message.portrait,
-            "npc",
             { hp: message.hp, tokenImage: message.tokenImage },
           );
-          this.broadcast();
-          this.roomService.saveState();
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
-        case "update-npc":
+        case "update-npc": {
           if (!this.isDM(senderUid)) {
             console.warn(`Non-DM ${senderUid} attempted to update NPC`);
             break;
           }
-          if (
-            this.characterService.updateNPC(state, this.tokenService, message.id, {
-              name: message.name,
-              hp: message.hp,
-              maxHp: message.maxHp,
-              portrait: message.portrait,
-              tokenImage: message.tokenImage,
-            })
-          ) {
-            this.broadcast();
-            this.roomService.saveState();
-          }
+          const result = this.npcMessageHandler.handleUpdateNPC(state, message.id, {
+            name: message.name,
+            hp: message.hp,
+            maxHp: message.maxHp,
+            portrait: message.portrait,
+            tokenImage: message.tokenImage,
+          });
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
         case "delete-npc": {
           if (!this.isDM(senderUid)) {
             console.warn(`Non-DM ${senderUid} attempted to delete NPC`);
             break;
           }
-          const removed = this.characterService.deleteCharacter(state, message.id);
-          if (removed) {
-            if (removed.tokenId) {
-              this.tokenService.forceDeleteToken(state, removed.tokenId);
-              this.selectionService.removeObject(state, removed.tokenId);
-            }
-            this.broadcast();
-            this.roomService.saveState();
-          }
+          const result = this.npcMessageHandler.handleDeleteNPC(state, message.id);
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
         }
 
-        case "place-npc-token":
+        case "place-npc-token": {
           if (!this.isDM(senderUid)) {
             console.warn(`Non-DM ${senderUid} attempted to place NPC token`);
             break;
           }
-          if (
-            this.characterService.placeNPCToken(state, this.tokenService, message.id, senderUid)
-          ) {
-            this.broadcast();
-            this.roomService.saveState();
-          }
+          const result = this.npcMessageHandler.handlePlaceNPCToken(state, message.id, senderUid);
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
         // INITIATIVE/COMBAT ACTIONS
         case "set-initiative": {
