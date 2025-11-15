@@ -26,6 +26,7 @@ import { PropMessageHandler } from "./handlers/PropMessageHandler.js";
 import { PlayerMessageHandler } from "./handlers/PlayerMessageHandler.js";
 import { InitiativeMessageHandler } from "./handlers/InitiativeMessageHandler.js";
 import { MapMessageHandler } from "./handlers/MapMessageHandler.js";
+import { DrawingMessageHandler } from "./handlers/DrawingMessageHandler.js";
 
 /**
  * Message router - handles all WebSocket messages and dispatches to domain services
@@ -50,6 +51,7 @@ export class MessageRouter {
   private playerMessageHandler: PlayerMessageHandler;
   private initiativeMessageHandler: InitiativeMessageHandler;
   private mapMessageHandler: MapMessageHandler;
+  private drawingMessageHandler: DrawingMessageHandler;
   private wss: WebSocketServer;
   private uidToWs: Map<string, WebSocket>;
   private getAuthorizedClients: () => Set<WebSocket>;
@@ -105,6 +107,11 @@ export class MessageRouter {
     this.playerMessageHandler = new PlayerMessageHandler(playerService, roomService);
     this.initiativeMessageHandler = new InitiativeMessageHandler(characterService, roomService);
     this.mapMessageHandler = new MapMessageHandler(mapService, roomService);
+    this.drawingMessageHandler = new DrawingMessageHandler(
+      mapService,
+      selectionService,
+      roomService,
+    );
   }
 
   /**
@@ -560,58 +567,66 @@ export class MessageRouter {
           }
           break;
 
-        case "draw":
-          this.mapService.addDrawing(state, message.drawing, senderUid);
-          this.broadcast();
-          break;
-
-        case "sync-player-drawings": {
-          const removedIds = state.drawings
-            .filter((drawing) => drawing.owner === senderUid)
-            .map((drawing) => drawing.id);
-          this.mapService.replacePlayerDrawings(state, senderUid, message.drawings);
-          for (const id of removedIds) {
-            this.selectionService.removeObject(state, id);
-          }
-          this.broadcast();
-          this.roomService.saveState();
+        case "draw": {
+          const result = this.drawingMessageHandler.handleDraw(state, message.drawing, senderUid);
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
         }
 
-        case "undo-drawing":
-          if (this.mapService.undoDrawing(state, senderUid)) {
-            this.broadcast();
-          }
+        case "sync-player-drawings": {
+          const result = this.drawingMessageHandler.handleSyncPlayerDrawings(
+            state,
+            senderUid,
+            message.drawings,
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
-        case "redo-drawing":
-          if (this.mapService.redoDrawing(state, senderUid)) {
-            this.broadcast();
-          }
+        case "undo-drawing": {
+          const result = this.drawingMessageHandler.handleUndoDrawing(state, senderUid);
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
-        case "clear-drawings":
-          if (!this.isDM(senderUid)) {
-            console.warn(`Non-DM ${senderUid} attempted to clear all drawings`);
-            break;
-          }
-          for (const drawing of state.drawings) {
-            this.selectionService.removeObject(state, drawing.id);
-          }
-          this.mapService.clearDrawings(state);
-          this.broadcast();
+        case "redo-drawing": {
+          const result = this.drawingMessageHandler.handleRedoDrawing(state, senderUid);
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
-        case "select-drawing":
-          if (this.mapService.selectDrawing(state, message.id, senderUid)) {
-            this.broadcast();
-          }
+        case "clear-drawings": {
+          const result = this.drawingMessageHandler.handleClearDrawings(
+            state,
+            senderUid,
+            this.isDM(senderUid),
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
-        case "deselect-drawing":
-          this.mapService.deselectDrawing(state, senderUid);
-          this.broadcast();
+        case "select-drawing": {
+          const result = this.drawingMessageHandler.handleSelectDrawing(
+            state,
+            message.id,
+            senderUid,
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
+
+        case "deselect-drawing": {
+          const result = this.drawingMessageHandler.handleDeselectDrawing(state, senderUid);
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
+          break;
+        }
 
         case "select-object": {
           if (message.uid !== senderUid) {
@@ -684,27 +699,37 @@ export class MessageRouter {
           break;
         }
 
-        case "move-drawing":
-          if (this.mapService.moveDrawing(state, message.id, message.dx, message.dy, senderUid)) {
-            this.broadcast();
-          }
+        case "move-drawing": {
+          const result = this.drawingMessageHandler.handleMoveDrawing(
+            state,
+            message.id,
+            message.dx,
+            message.dy,
+            senderUid,
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
-        case "delete-drawing":
-          if (this.mapService.deleteDrawing(state, message.id)) {
-            this.selectionService.removeObject(state, message.id);
-            this.broadcast();
-          }
+        case "delete-drawing": {
+          const result = this.drawingMessageHandler.handleDeleteDrawing(state, message.id);
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
-        case "erase-partial":
-          if (
-            this.mapService.handlePartialErase(state, message.deleteId, message.segments, senderUid)
-          ) {
-            this.selectionService.removeObject(state, message.deleteId);
-            this.broadcast();
-          }
+        case "erase-partial": {
+          const result = this.drawingMessageHandler.handleErasePartial(
+            state,
+            message.deleteId,
+            message.segments,
+            senderUid,
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
         // DICE ACTIONS
         case "dice-roll":
