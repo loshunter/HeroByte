@@ -248,20 +248,14 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
           id: "drawing-1",
           owner: "player-1",
           type: "line",
-          points: [{ x: 0, y: 0 }, { x: 10, y: 10 }],
+          points: [
+            { x: 0, y: 0 },
+            { x: 10, y: 10 },
+          ],
           color: "red",
           width: 800,
           opacity: 1,
         },
-
-
-
-
-
-
-
-
-
 
         {
           id: "drawing-2",
