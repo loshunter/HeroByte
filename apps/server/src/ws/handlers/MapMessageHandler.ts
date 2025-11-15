@@ -15,7 +15,7 @@
  * @module ws/handlers/MapMessageHandler
  */
 
-import type { StagingZone } from "@shared"
+import type { PlayerStagingZone } from "@shared";
 import type { RoomState } from "../../domains/room/model.js";
 import type { MapService } from "../../domains/map/service.js";
 import type { RoomService } from "../../domains/room/service.js";

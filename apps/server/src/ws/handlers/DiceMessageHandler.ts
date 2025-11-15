@@ -13,7 +13,7 @@
  * @module ws/handlers/DiceMessageHandler
  */
 
-import type { RoomState } from "../model.js";
+import type { RoomState } from "../../domains/room/model.js";
 import type { DiceRoll } from "@shared";
 import type { DiceService } from "../../domains/dice/service.js";
 

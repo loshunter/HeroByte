@@ -19,7 +19,7 @@
  * @module ws/handlers/TokenMessageHandler
  */
 
-import type { TokenSize } from "@shared"
+import type { TokenSize } from "@shared";
 import type { RoomState } from "../../domains/room/model.js";
 import type { TokenService } from "../../domains/token/service.js";
 import type { CharacterService } from "../../domains/character/service.js";

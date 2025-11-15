@@ -351,9 +351,11 @@ describe("TransformHandler - Characterization Tests", () => {
         id: "drawing-1",
         owner: playerUid,
         type: "line",
-        points: [0, 0, 100, 100],
+        points: [
+          { x: 0, y: 0 },
+          { x: 100, y: 100 },
+        ],
         color: "black",
-        strokeWidth: 2,
         width: 800,
         opacity: 1,
       };

@@ -10,7 +10,7 @@
  * @module ws/handlers/HeartbeatHandler
  */
 
-import type {  } from "@shared"
+import type {} from "@shared";
 import type { RoomState } from "../../domains/room/model.js";
 
 /**

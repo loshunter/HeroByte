@@ -12,7 +12,7 @@
  * @module ws/handlers/TransformMessageHandler
  */
 
-import type { RoomState } from "../model.js";
+import type { RoomState } from "../../domains/room/model.js";
 import type { Transform } from "@shared";
 import type { RoomService } from "../../domains/room/service.js";
 

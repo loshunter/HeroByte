@@ -248,7 +248,6 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
               tool: "pen",
               points: [0, 0, 10, 10],
               color: "red",
-              strokeWidth: 2,
             },
           ],
         },

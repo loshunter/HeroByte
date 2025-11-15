@@ -11,7 +11,7 @@
  * @module domains/room/staging/StagingZoneManager
  */
 
-import type { PlayerStagingZone,  } from "@shared"
+import type { PlayerStagingZone } from "@shared";
 import type { RoomState } from "../model.js";
 
 /**

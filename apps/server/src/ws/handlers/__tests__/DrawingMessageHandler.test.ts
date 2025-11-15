@@ -21,7 +21,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { DrawingMessageHandler } from "../DrawingMessageHandler.js";
-import type { Drawing } from "@shared"
+import type { Drawing } from "@shared";
 import type { RoomState } from "../../domains/room/model.js";
 import type { MapService } from "../../../domains/map/service.js";
 import type { SelectionService } from "../../../domains/selection/service.js";
@@ -260,9 +260,11 @@ describe("DrawingMessageHandler", () => {
       const segments = [
         {
           type: "line",
-          points: [0, 0, 1, 1],
+          points: [
+            { x: 0, y: 0 },
+            { x: 1, y: 1 },
+          ],
           color: "black",
-          strokeWidth: 2,
           width: 800,
           opacity: 1,
         },
@@ -286,9 +288,11 @@ describe("DrawingMessageHandler", () => {
       const segments = [
         {
           type: "line",
-          points: [0, 0, 1, 1],
+          points: [
+            { x: 0, y: 0 },
+            { x: 1, y: 1 },
+          ],
           color: "black",
-          strokeWidth: 2,
           width: 800,
           opacity: 1,
         },

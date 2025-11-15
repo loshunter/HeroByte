@@ -16,7 +16,7 @@
  * @module ws/handlers/SelectionMessageHandler
  */
 
-import type { RoomState } from "../model.js";
+import type { RoomState } from "../../domains/room/model.js";
 import type { SelectionService } from "../../domains/selection/service.js";
 import type { RoomService } from "../../domains/room/service.js";
 
