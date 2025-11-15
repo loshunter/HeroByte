@@ -6,10 +6,12 @@
 
 import type { WebSocket, WebSocketServer } from "ws";
 import type { IncomingMessage } from "http";
-import type { ClientMessage, Player } from "@shared";
+import type { ClientMessage } from "@shared";
 import type { Container } from "../container.js";
 import { validateMessage } from "../middleware/validation.js";
 import { getDefaultRoomId } from "../config/auth.js";
+import { AuthenticationHandler } from "./auth/AuthenticationHandler.js";
+import { HeartbeatTimeoutManager } from "./lifecycle/HeartbeatTimeoutManager.js";
 
 /**
  * WebSocket connection handler
@@ -18,14 +20,22 @@ import { getDefaultRoomId } from "../config/auth.js";
 export class ConnectionHandler {
   private container: Container;
   private wss: WebSocketServer;
-  private timeoutCheckInterval: NodeJS.Timeout | null = null;
-  private readonly HEARTBEAT_TIMEOUT = 5 * 60 * 1000; // 5 minutes without heartbeat before timeout
+  private authHandler: AuthenticationHandler;
+  private heartbeatManager: HeartbeatTimeoutManager;
   private readonly defaultRoomId: string;
 
   constructor(container: Container, wss: WebSocketServer) {
     this.container = container;
     this.wss = wss;
     this.defaultRoomId = getDefaultRoomId();
+    this.authHandler = new AuthenticationHandler(
+      container,
+      container.uidToWs,
+      container.authenticatedUids,
+      container.authenticatedSessions,
+      container.getAuthenticatedClients.bind(container),
+    );
+    this.heartbeatManager = new HeartbeatTimeoutManager(container);
   }
 
   /**
@@ -35,60 +45,7 @@ export class ConnectionHandler {
     this.wss.on("connection", (ws, req) => this.handleConnection(ws, req));
 
     // Start heartbeat timeout checker
-    this.startTimeoutChecker();
-  }
-
-  /**
-   * Start periodic check for timed-out players
-   */
-  private startTimeoutChecker(): void {
-    // Check every 30 seconds for timed-out players
-    this.timeoutCheckInterval = setInterval(() => {
-      this.checkForTimedOutPlayers();
-    }, 30000);
-  }
-
-  /**
-   * Check for and remove players that haven't sent heartbeat
-   */
-  private checkForTimedOutPlayers(): void {
-    const state = this.container.roomService.getState();
-    const now = Date.now();
-    const timedOutPlayers: string[] = [];
-
-    // Find players who haven't sent heartbeat in timeout window
-    for (const player of state.players) {
-      const lastHeartbeat = player.lastHeartbeat || 0;
-      if (now - lastHeartbeat > this.HEARTBEAT_TIMEOUT) {
-        timedOutPlayers.push(player.uid);
-      }
-    }
-
-    // Remove timed out players and their tokens
-    if (timedOutPlayers.length > 0) {
-      console.log(`Removing ${timedOutPlayers.length} timed-out players:`, timedOutPlayers);
-
-      for (const uid of timedOutPlayers) {
-        const socket = this.container.uidToWs.get(uid);
-        if (socket && socket.readyState === 1) {
-          socket.close(4000, "Heartbeat timeout");
-        }
-        // Remove player
-        state.players = state.players.filter((p) => p.uid !== uid);
-        // Remove their token
-        state.tokens = state.tokens.filter((t) => t.owner !== uid);
-        // Remove from users list
-        state.users = state.users.filter((u) => u !== uid);
-        // Clean up WebSocket connection map
-        this.container.uidToWs.delete(uid);
-        this.container.authenticatedUids.delete(uid);
-        this.container.authenticatedSessions.delete(uid);
-        this.container.selectionService.deselect(state, uid);
-      }
-
-      // Broadcast updated state
-      this.container.roomService.broadcast(this.container.getAuthenticatedClients());
-    }
+    this.heartbeatManager.start();
   }
 
   /**
@@ -173,7 +130,7 @@ export class ConnectionHandler {
 
       // Authentication handling
       if (message.t === "authenticate") {
-        this.handleAuthentication(uid, message.secret, message.roomId);
+        this.authHandler.authenticate(uid, message.secret, message.roomId);
         return;
       }
 
@@ -184,19 +141,19 @@ export class ConnectionHandler {
 
       // DM elevation handling
       if (message.t === "elevate-to-dm") {
-        this.handleDMElevation(uid, message.dmPassword);
+        this.authHandler.elevateToDM(uid, message.dmPassword);
         return;
       }
 
       // DM revocation handling
       if (message.t === "revoke-dm") {
-        this.handleDMRevocation(uid);
+        this.authHandler.revokeDM(uid);
         return;
       }
 
       // DM password management (DM-only action)
       if (message.t === "set-dm-password") {
-        this.handleSetDMPassword(uid, message.dmPassword);
+        this.authHandler.setDMPassword(uid, message.dmPassword);
         return;
       }
 
@@ -241,239 +198,4 @@ export class ConnectionHandler {
     this.container.roomService.broadcast(this.container.getAuthenticatedClients());
   }
 
-  /**
-   * Authenticate a client connection using the shared room secret
-   */
-  private handleAuthentication(uid: string, secret: string, roomId?: string): void {
-    const ws = this.container.uidToWs.get(uid);
-    if (!ws) {
-      return;
-    }
-
-    const state = this.container.roomService.getState();
-    let player = this.container.playerService.findPlayer(state, uid);
-    const now = Date.now();
-
-    if (this.container.authenticatedUids.has(uid)) {
-      if (player) {
-        this.touchPlayerHeartbeat(player, now);
-      }
-
-      this.refreshAuthenticatedSession(uid, now);
-      this.sendAuthOk(ws);
-      return;
-    }
-
-    const requestedRoomId = roomId?.trim() || this.defaultRoomId;
-    if (requestedRoomId !== this.defaultRoomId) {
-      this.rejectAuthentication(ws, "Unknown room");
-      return;
-    }
-
-    const normalizedSecret = secret.trim();
-    if (!this.container.authService.verify(normalizedSecret)) {
-      console.warn(`Authentication failed for uid ${uid}`);
-      this.rejectAuthentication(ws, "Invalid room password");
-      return;
-    }
-
-    // Create or reconnect player entities
-    if (!player) {
-      player = this.container.playerService.createPlayer(state, uid);
-    }
-
-    this.touchPlayerHeartbeat(player, now);
-
-    // Create character if player doesn't have one
-    const existingCharacter = this.container.characterService.findCharacterByOwner(state, uid);
-    if (!existingCharacter) {
-      const character = this.container.characterService.createCharacter(
-        state,
-        player.name,
-        100, // default maxHp
-        player.portrait,
-        "pc",
-      );
-      this.container.characterService.claimCharacter(state, character.id, uid);
-
-      // Create token for the character
-      const spawn = this.container.roomService.getPlayerSpawnPosition();
-      const token = this.container.tokenService.createToken(state, uid, spawn.x, spawn.y);
-      this.container.characterService.linkToken(state, character.id, token.id);
-    } else {
-      // Player reconnecting - ensure they have a token
-      const existingToken = this.container.tokenService.findTokenByOwner(state, uid);
-      if (!existingToken) {
-        const spawn = this.container.roomService.getPlayerSpawnPosition();
-        const token = this.container.tokenService.createToken(state, uid, spawn.x, spawn.y);
-        this.container.characterService.linkToken(state, existingCharacter.id, token.id);
-      }
-    }
-
-    // Track authentication state
-    this.container.authenticatedUids.add(uid);
-    this.refreshAuthenticatedSession(uid, now, requestedRoomId);
-
-    // Register user for session lists
-    state.users = state.users.filter((u) => u !== uid);
-    state.users.push(uid);
-
-    this.sendAuthOk(ws);
-    console.log(`Client authenticated: ${uid}`);
-
-    // Broadcast updated room state to authenticated clients
-    this.container.roomService.broadcast(this.container.getAuthenticatedClients());
-  }
-
-  private rejectAuthentication(ws: WebSocket, reason: string): void {
-    ws.send(JSON.stringify({ t: "auth-failed", reason }));
-    setTimeout(() => {
-      if (ws.readyState === 1) {
-        ws.close(4001, reason);
-      }
-    }, 100);
-  }
-
-  private touchPlayerHeartbeat(player: Player, timestamp: number): void {
-    player.lastHeartbeat = timestamp;
-  }
-
-  private refreshAuthenticatedSession(uid: string, authedAt: number, roomId?: string): void {
-    const existingSession = this.container.authenticatedSessions.get(uid);
-    const effectiveRoomId = roomId ?? existingSession?.roomId ?? this.defaultRoomId;
-
-    this.container.authenticatedSessions.set(uid, {
-      roomId: effectiveRoomId,
-      authedAt,
-    });
-  }
-
-  private sendAuthOk(ws: WebSocket): void {
-    ws.send(JSON.stringify({ t: "auth-ok" }));
-  }
-
-  /**
-   * Handle DM elevation request
-   */
-  private handleDMElevation(uid: string, dmPassword: string): void {
-    const ws = this.container.uidToWs.get(uid);
-    if (!ws) {
-      return;
-    }
-
-    const state = this.container.roomService.getState();
-    const player = this.container.playerService.findPlayer(state, uid);
-
-    if (!player) {
-      ws.send(JSON.stringify({ t: "dm-elevation-failed", reason: "Player not found" }));
-      return;
-    }
-
-    // Check if DM password is even set
-    if (!this.container.authService.hasDMPassword()) {
-      ws.send(
-        JSON.stringify({
-          t: "dm-elevation-failed",
-          reason: "No DM password configured. Use set-dm-password to create one.",
-        }),
-      );
-      return;
-    }
-
-    // Verify DM password
-    const normalizedPassword = dmPassword.trim();
-    if (!this.container.authService.verifyDMPassword(normalizedPassword)) {
-      console.warn(`DM elevation failed for uid ${uid}: Invalid password`);
-      ws.send(JSON.stringify({ t: "dm-elevation-failed", reason: "Invalid DM password" }));
-      return;
-    }
-
-    // Grant DM powers
-    player.isDM = true;
-    ws.send(JSON.stringify({ t: "dm-status", isDM: true }));
-    console.log(`DM elevation granted to ${uid}`);
-
-    // Broadcast updated state
-    this.container.roomService.broadcast(this.container.getAuthenticatedClients());
-  }
-
-  /**
-   * Handle DM revocation request
-   */
-  private handleDMRevocation(uid: string): void {
-    const ws = this.container.uidToWs.get(uid);
-    if (!ws) {
-      return;
-    }
-
-    const state = this.container.roomService.getState();
-    const player = this.container.playerService.findPlayer(state, uid);
-
-    if (!player) {
-      console.warn(`DM revocation failed: player ${uid} not found`);
-      return;
-    }
-
-    if (!player.isDM) {
-      console.warn(`DM revocation ignored: player ${uid} is not DM`);
-      return;
-    }
-
-    // Revoke DM status
-    player.isDM = false;
-    ws.send(JSON.stringify({ t: "dm-status", isDM: false }));
-    console.log(`DM status revoked for ${uid}`);
-
-    // Broadcast updated state
-    this.container.roomService.broadcast(this.container.getAuthenticatedClients());
-  }
-
-  /**
-   * Handle DM password set/update request (DM-only action)
-   */
-  private handleSetDMPassword(uid: string, dmPassword: string): void {
-    const ws = this.container.uidToWs.get(uid);
-    if (!ws) {
-      return;
-    }
-
-    const state = this.container.roomService.getState();
-    const player = this.container.playerService.findPlayer(state, uid);
-
-    if (!player) {
-      ws.send(JSON.stringify({ t: "dm-password-update-failed", reason: "Player not found" }));
-      return;
-    }
-
-    // Only current DM can set/update DM password
-    // OR if no DM password exists yet, anyone can set it (bootstrap case)
-    const hasDMPassword = this.container.authService.hasDMPassword();
-    if (hasDMPassword && !player.isDM) {
-      ws.send(
-        JSON.stringify({
-          t: "dm-password-update-failed",
-          reason: "Only DM can update DM password",
-        }),
-      );
-      return;
-    }
-
-    // Update DM password
-    try {
-      const summary = this.container.authService.updateDMPassword(dmPassword);
-      ws.send(JSON.stringify({ t: "dm-password-updated", updatedAt: summary.updatedAt }));
-      console.log(`DM password updated by ${uid}`);
-
-      // If this is first-time setup and player doesn't have DM status yet, grant it
-      if (!hasDMPassword && !player.isDM) {
-        player.isDM = true;
-        ws.send(JSON.stringify({ t: "dm-status", isDM: true }));
-        console.log(`DM status granted to ${uid} (first-time DM password setup)`);
-        this.container.roomService.broadcast(this.container.getAuthenticatedClients());
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      ws.send(JSON.stringify({ t: "dm-password-update-failed", reason: errorMessage }));
-    }
-  }
 }

@@ -15,7 +15,6 @@ import { CharacterService } from "../domains/character/service.js";
 import { PropService } from "../domains/prop/service.js";
 import { SelectionService } from "../domains/selection/service.js";
 import { AuthService } from "../domains/auth/service.js";
-import { getRoomSecret } from "../config/auth.js";
 import { HeartbeatHandler } from "./handlers/HeartbeatHandler.js";
 import { RTCSignalHandler } from "./handlers/RTCSignalHandler.js";
 import { PointerHandler } from "./handlers/PointerHandler.js";
@@ -122,7 +121,11 @@ export class MessageRouter {
     );
     this.selectionMessageHandler = new SelectionMessageHandler(selectionService, roomService);
     this.diceMessageHandler = new DiceMessageHandler(diceService);
-    this.roomMessageHandler = new RoomMessageHandler(roomService);
+    this.roomMessageHandler = new RoomMessageHandler(
+      roomService,
+      authService,
+      this.sendControlMessage.bind(this),
+    );
     this.transformMessageHandler = new TransformMessageHandler(roomService);
   }
 
@@ -749,45 +752,7 @@ export class MessageRouter {
 
         // ROOM MANAGEMENT
         case "set-room-password": {
-          const sender = state.players.find((p) => p.uid === senderUid);
-          const isDM = sender?.isDM ?? false;
-
-          if (!isDM) {
-            this.sendControlMessage(senderUid, {
-              t: "room-password-update-failed",
-              reason: "Only Dungeon Masters can update the room password.",
-            });
-            break;
-          }
-
-          const nextSecret = message.secret?.trim() ?? "";
-          const defaultSecret = getRoomSecret();
-          const isDefaultPassword = nextSecret === defaultSecret;
-
-          // Allow default password to bypass length validation
-          if (!isDefaultPassword && (nextSecret.length < 6 || nextSecret.length > 128)) {
-            this.sendControlMessage(senderUid, {
-              t: "room-password-update-failed",
-              reason: "Password must be between 6 and 128 characters.",
-            });
-            break;
-          }
-
-          try {
-            const summary = this.authService.update(nextSecret);
-            this.sendControlMessage(senderUid, {
-              t: "room-password-updated",
-              updatedAt: summary.updatedAt,
-              source: summary.source,
-            });
-            console.log(`DM ${senderUid} updated the room password.`);
-          } catch (error) {
-            console.error("Failed to update room password:", error);
-            this.sendControlMessage(senderUid, {
-              t: "room-password-update-failed",
-              reason: "Unable to update password. Check server logs.",
-            });
-          }
+          this.roomMessageHandler.handleSetRoomPassword(state, senderUid, message.secret);
           break;
         }
 
