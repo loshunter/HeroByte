@@ -56,8 +56,8 @@ export class CharacterService {
       portrait,
       hp: normalizedHp,
       maxHp: normalizedMaxHp,
-      tokenId: null,
-      ownedByPlayerUID: null,
+      tokenId: undefined,
+      ownedByPlayerUID: undefined,
       tokenImage: tokenImage ?? null,
     };
 

@@ -437,7 +437,7 @@ describe("StatePersistence - Characterization Tests", () => {
             x: 5,
             y: 10,
             color: "blue",
-            imageUrl: null,
+            imageUrl: undefined,
             size: "medium",
           },
         ],
@@ -497,7 +497,7 @@ describe("StatePersistence - Characterization Tests", () => {
             x: 0,
             y: 0,
             color: "red",
-            imageUrl: null,
+            imageUrl: undefined,
             size: "medium",
           },
         ],
@@ -516,13 +516,13 @@ describe("StatePersistence - Characterization Tests", () => {
     it("should save all persistent fields", async () => {
       roomService.setState({
         tokens: [
-          { id: "t1", owner: "p1", x: 0, y: 0, color: "red", imageUrl: null, size: "medium" },
+          { id: "t1", owner: "p1", x: 0, y: 0, color: "red", imageUrl: undefined, size: "medium" },
         ],
         players: [
           {
             uid: "p1",
             name: "Player 1",
-            portrait: null,
+            portrait: undefined,
             micLevel: 0,
             hp: 10,
             maxHp: 10,
@@ -535,7 +535,7 @@ describe("StatePersistence - Characterization Tests", () => {
             id: "c1",
             type: "pc",
             name: "Hero",
-            portrait: null,
+            portrait: undefined,
             hp: 10,
             maxHp: 10,
             ownedByPlayerUID: "p1",

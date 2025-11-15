@@ -60,7 +60,7 @@ describe("NPCMessageHandler - Characterization Tests", () => {
     // Mock WebSocket infrastructure
     mockWss = {} as WebSocketServer;
     mockUidToWs = new Map();
-    mockGetAuthorizedClients = vi.fn(() => new Set());
+    mockGetAuthorizedClients = vi.fn(() => new Set<WebSocket>());
 
     // Setup initial state with players
     roomService.setState({
@@ -136,6 +136,7 @@ describe("NPCMessageHandler - Characterization Tests", () => {
         t: "create-npc",
         name: "Hacked NPC",
         maxHp: 100,
+        hp: 100,
         portrait: "",
       };
 
@@ -244,8 +245,8 @@ describe("NPCMessageHandler - Characterization Tests", () => {
       messageRouter.route(deleteMessage, dmUid);
 
       const state = roomService.getState();
-      const selectedObject = state.selectedObjects?.[dmUid];
-      expect(selectedObject).toBeUndefined();
+      const selectedEntry = state.selectionState.get(dmUid);
+      expect(selectedEntry).toBeUndefined();
     });
 
     it("should not delete NPC when non-DM tries", () => {

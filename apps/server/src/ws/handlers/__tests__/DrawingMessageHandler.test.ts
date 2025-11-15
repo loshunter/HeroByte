@@ -21,8 +21,9 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { DrawingMessageHandler } from "../DrawingMessageHandler.js";
-import type { Drawing } from "@shared";
-import type { RoomState } from "../../domains/room/model.js";
+import type { Drawing, DrawingSegmentPayload } from "@shared";
+import { createEmptyRoomState } from "../../../domains/room/model.js";
+import type { RoomState } from "../../../domains/room/model.js";
 import type { MapService } from "../../../domains/map/service.js";
 import type { SelectionService } from "../../../domains/selection/service.js";
 import type { RoomService } from "../../../domains/room/service.js";
@@ -36,18 +37,7 @@ describe("DrawingMessageHandler", () => {
 
   beforeEach(() => {
     // Create mock state
-    state = {
-      players: [],
-      tokens: [],
-      npcs: [],
-      characters: [],
-      props: [],
-      map: { background: null, gridSize: 50, gridSquareSize: 5 },
-      drawings: [],
-      selected: [],
-      combatActive: false,
-      currentTurnCharacterId: undefined,
-    } as unknown as RoomState;
+    state = createEmptyRoomState();
 
     // Create mock services
     mockMapService = {
@@ -257,7 +247,7 @@ describe("DrawingMessageHandler", () => {
 
   describe("handleErasePartial", () => {
     it("should handle partial erase, remove from selection, and broadcast", () => {
-      const segments = [
+      const segments: DrawingSegmentPayload[] = [
         {
           type: "line",
           points: [
@@ -285,7 +275,7 @@ describe("DrawingMessageHandler", () => {
 
     it("should not broadcast on failure", () => {
       mockMapService.handlePartialErase = vi.fn(() => false);
-      const segments = [
+      const segments: DrawingSegmentPayload[] = [
         {
           type: "line",
           points: [

@@ -18,7 +18,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { InitiativeMessageHandler } from "../InitiativeMessageHandler.js";
 import type { Character } from "@shared";
-import type { RoomState } from "../../domains/room/model.js";
+import { createEmptyRoomState } from "../../../domains/room/model.js";
+import type { RoomState } from "../../../domains/room/model.js";
 import type { CharacterService } from "../../../domains/character/service.js";
 import type { RoomService } from "../../../domains/room/service.js";
 
@@ -30,49 +31,39 @@ describe("InitiativeMessageHandler", () => {
 
   beforeEach(() => {
     // Create mock state with characters
-    state = {
-      players: [],
-      tokens: [],
-      npcs: [],
-      characters: [
-        {
-          id: "char1",
-          name: "Fighter",
-          ownerUid: "player1",
-          initiative: null,
-          initiativeModifier: 0,
-          hp: { current: 20, max: 20 },
-          statusEffects: [],
-          color: "#ff0000",
-        },
-        {
-          id: "char2",
-          name: "Wizard",
-          ownerUid: "player2",
-          initiative: null,
-          initiativeModifier: 0,
-          hp: { current: 15, max: 15 },
-          statusEffects: [],
-          color: "#0000ff",
-        },
-        {
-          id: "char3",
-          name: "Goblin",
-          ownerUid: null, // NPC
-          initiative: null,
-          initiativeModifier: 0,
-          hp: { current: 10, max: 10 },
-          statusEffects: [],
-          color: "#00ff00",
-        },
-      ],
-      props: [],
-      map: { background: null, gridSize: 50, gridSquareSize: 5 },
-      drawings: [],
-      selected: [],
-      combatActive: false,
-      currentTurnCharacterId: undefined,
-    } as unknown as RoomState;
+    state = createEmptyRoomState();
+    state.characters = [
+      {
+        id: "char1",
+        name: "Fighter",
+        type: "pc",
+        ownedByPlayerUID: "player1",
+        hp: 20,
+        maxHp: 20,
+        initiative: undefined,
+        initiativeModifier: 0,
+      },
+      {
+        id: "char2",
+        name: "Wizard",
+        type: "pc",
+        ownedByPlayerUID: "player2",
+        hp: 15,
+        maxHp: 15,
+        initiative: undefined,
+        initiativeModifier: 0,
+      },
+      {
+        id: "char3",
+        name: "Goblin",
+        type: "npc",
+        ownedByPlayerUID: null,
+        hp: 10,
+        maxHp: 10,
+        initiative: undefined,
+        initiativeModifier: 0,
+      },
+    ];
 
     // Create mock services
     mockCharacterService = {
@@ -80,7 +71,7 @@ describe("InitiativeMessageHandler", () => {
         state.characters.find((c) => c.id === id),
       ),
       canControlCharacter: vi.fn((character: Character, senderUid: string) => {
-        return character.ownerUid === senderUid;
+        return character.ownedByPlayerUID === senderUid;
       }),
       setInitiative: vi.fn(
         (state: RoomState, characterId: string, initiative: number, modifier: number) => {
@@ -95,16 +86,16 @@ describe("InitiativeMessageHandler", () => {
       ),
       getCharactersInInitiativeOrder: vi.fn((state: RoomState) => {
         return state.characters
-          .filter((c) => c.initiative !== null)
+          .filter((c) => c.initiative !== undefined)
           .sort((a, b) => {
-            const aTotal = (a.initiative ?? 0) + a.initiativeModifier;
-            const bTotal = (b.initiative ?? 0) + b.initiativeModifier;
+            const aTotal = (a.initiative ?? 0) + (a.initiativeModifier ?? 0);
+            const bTotal = (b.initiative ?? 0) + (b.initiativeModifier ?? 0);
             return bTotal - aTotal; // Higher initiative first
           });
       }),
       clearAllInitiative: vi.fn((state: RoomState) => {
         state.characters.forEach((c) => {
-          c.initiative = null;
+          c.initiative = undefined;
           c.initiativeModifier = 0;
         });
       }),
@@ -204,7 +195,7 @@ describe("InitiativeMessageHandler", () => {
 
     it("should start combat with no current turn if no characters have initiative", () => {
       state.characters.forEach((c) => {
-        c.initiative = null;
+        c.initiative = undefined;
         c.initiativeModifier = 0;
       });
 
@@ -287,7 +278,7 @@ describe("InitiativeMessageHandler", () => {
 
     it("should do nothing if no characters in initiative order", () => {
       state.characters.forEach((c) => {
-        c.initiative = null;
+        c.initiative = undefined;
       });
 
       const result = handler.handleNextTurn(state, "dmPlayer", true);
@@ -339,7 +330,7 @@ describe("InitiativeMessageHandler", () => {
 
     it("should do nothing if no characters in initiative order", () => {
       state.characters.forEach((c) => {
-        c.initiative = null;
+        c.initiative = undefined;
       });
 
       const result = handler.handlePreviousTurn(state, "dmPlayer", true);

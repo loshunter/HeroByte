@@ -65,7 +65,7 @@ export class InitiativeMessageHandler {
     characterId: string,
     senderUid: string,
     initiative: number,
-    initiativeModifier: number,
+    initiativeModifier: number | undefined,
     isDM: boolean,
   ): InitiativeMessageResult {
     // Check if sender owns the character or is DM
@@ -81,11 +81,13 @@ export class InitiativeMessageHandler {
       return { broadcast: false, save: false };
     }
 
+    const modifier = initiativeModifier ?? 0;
+
     console.log(
-      `[Server] Setting initiative for ${character.name} (${characterId}): initiative=${initiative}, modifier=${initiativeModifier}`,
+      `[Server] Setting initiative for ${character.name} (${characterId}): initiative=${initiative}, modifier=${modifier}`,
     );
 
-    if (this.characterService.setInitiative(state, characterId, initiative, initiativeModifier)) {
+    if (this.characterService.setInitiative(state, characterId, initiative, modifier)) {
       console.log(`[Server] Broadcasting updated initiative for ${character.name}`);
       return { broadcast: true, save: true };
     }

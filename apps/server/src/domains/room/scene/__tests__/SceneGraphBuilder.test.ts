@@ -166,7 +166,7 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
       // Manually update scene object transform (simulating user scaling/rotating)
       const state = roomService.getState();
       const tokenObject = state.sceneObjects.find((obj) => obj.id === "token:token-1");
-      if (tokenObject) {
+      if (tokenObject?.type === "token") {
         tokenObject.transform = { x: 10, y: 20, scaleX: 2, scaleY: 2, rotation: 90 };
         tokenObject.data.characterId = "char-123";
       }
@@ -198,7 +198,11 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
         scaleY: 2,
         rotation: 90,
       });
-      expect(newTokenObject?.data.characterId).toBe("char-123");
+      if (newTokenObject?.type === "token") {
+        expect(newTokenObject.data.characterId).toBe("char-123");
+      } else {
+        throw new Error("Expected token scene object to exist");
+      }
     });
 
     it("should preserve locked state and zIndex from previous scene object", () => {
@@ -243,18 +247,27 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
         {
           id: "drawing-1",
           owner: "player-1",
-          lines: [
-            {
-              tool: "pen",
-              points: [0, 0, 10, 10],
-              color: "red",
-            },
-          ],
+          type: "line",
+          points: [{ x: 0, y: 0 }, { x: 10, y: 10 }],
+          color: "red",
+          width: 800,
+          opacity: 1,
         },
+
+
+
+
+
+
+
+
+
+
         {
           id: "drawing-2",
-          owner: null,
+          type: "line",
           points: [],
+          color: "blue",
           width: 800,
           opacity: 1,
         },
@@ -286,7 +299,9 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
         {
           id: "drawing-1",
           owner: "player-1",
+          type: "line",
           points: [],
+          color: "red",
           width: 800,
           opacity: 1,
         },
@@ -514,6 +529,7 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
     it("should create scene objects for all pointers", () => {
       const pointers: Pointer[] = [
         {
+          id: "player-1",
           uid: "player-1",
           name: "Player One",
           x: 50,
@@ -557,6 +573,7 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
     it("should preserve transform from previous scene object for pointers", () => {
       const pointers: Pointer[] = [
         {
+          id: "player-1",
           uid: "player-1",
           name: "Player One",
           x: 50,
@@ -599,7 +616,9 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
       const tokens: Token[] = [
         { id: "t1", owner: "p1", x: 10, y: 20, color: "red", imageUrl: undefined, size: "medium" },
       ];
-      const drawings: Drawing[] = [{ id: "d1", owner: "p1", points: [], width: 800, opacity: 1 }];
+      const drawings: Drawing[] = [
+        { id: "d1", owner: "p1", type: "line", points: [], color: "red", width: 800, opacity: 1 },
+      ];
       const props: Prop[] = [
         {
           id: "pr1",

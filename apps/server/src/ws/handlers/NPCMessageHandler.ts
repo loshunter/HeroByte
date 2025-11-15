@@ -15,7 +15,6 @@
  * @module ws/handlers/NPCMessageHandler
  */
 
-import type {} from "@shared";
 import type { RoomState } from "../../domains/room/model.js";
 import type { CharacterService } from "../../domains/character/service.js";
 import type { TokenService } from "../../domains/token/service.js";
@@ -43,9 +42,9 @@ export interface CreateNPCOptions {
  * Options for updating an NPC
  */
 export interface UpdateNPCOptions {
-  name?: string;
-  hp?: number;
-  maxHp?: number;
+  name: string;
+  hp: number;
+  maxHp: number;
   portrait?: string;
   tokenImage?: string;
 }
@@ -135,7 +134,12 @@ export class NPCMessageHandler {
    * @returns Result indicating broadcast/save needs
    */
   handlePlaceNPCToken(state: RoomState, npcId: string, senderUid: string): NPCMessageResult {
-    const placed = this.characterService.placeNPCToken(state, this.tokenService, npcId, senderUid);
+    const placed = !!this.characterService.placeNPCToken(
+      state,
+      this.tokenService,
+      npcId,
+      senderUid,
+    );
     return { broadcast: placed, save: placed };
   }
 }

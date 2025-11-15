@@ -15,8 +15,9 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { MapMessageHandler } from "../MapMessageHandler.js";
-import type { StagingZone } from "@shared";
-import type { RoomState } from "../../domains/room/model.js";
+import type { PlayerStagingZone } from "@shared";
+import { createEmptyRoomState } from "../../../domains/room/model.js";
+import type { RoomState } from "../../../domains/room/model.js";
 import type { MapService } from "../../../domains/map/service.js";
 import type { RoomService } from "../../../domains/room/service.js";
 
@@ -28,36 +29,25 @@ describe("MapMessageHandler", () => {
 
   beforeEach(() => {
     // Create mock state
-    state = {
-      players: [],
-      tokens: [],
-      npcs: [],
-      characters: [],
-      props: [],
-      map: { background: null, gridSize: 50, gridSquareSize: 5 },
-      drawings: [],
-      selected: [],
-      combatActive: false,
-      currentTurnCharacterId: undefined,
-    } as unknown as RoomState;
+    state = createEmptyRoomState();
 
     // Create mock services
     mockMapService = {
       setBackground: vi.fn((state: RoomState, background: string | null) => {
-        state.map.background = background;
+        state.mapBackground = background ?? undefined;
       }),
       setGridSize: vi.fn((state: RoomState, size: number) => {
-        state.map.gridSize = size;
+        state.gridSize = size;
       }),
       setGridSquareSize: vi.fn((state: RoomState, size: number) => {
-        state.map.gridSquareSize = size;
+        state.gridSquareSize = size;
       }),
     } as unknown as MapService;
 
     mockRoomService = {
       getState: vi.fn(() => state),
       saveState: vi.fn(),
-      setPlayerStagingZone: vi.fn((_zone: StagingZone) => {
+      setPlayerStagingZone: vi.fn((_zone: PlayerStagingZone) => {
         // Simulate successful setting
         return true;
       }),
@@ -79,7 +69,7 @@ describe("MapMessageHandler", () => {
     });
 
     it("should allow clearing map background", () => {
-      state.map.background = "https://example.com/old.jpg";
+      state.mapBackground = "https://example.com/old.jpg";
 
       const result = handler.handleMapBackground(state, null);
 
@@ -99,7 +89,7 @@ describe("MapMessageHandler", () => {
     });
 
     it("should allow changing grid size", () => {
-      state.map.gridSize = 50;
+      state.gridSize = 50;
 
       const result = handler.handleGridSize(state, 75);
 
@@ -119,7 +109,7 @@ describe("MapMessageHandler", () => {
     });
 
     it("should allow changing grid square size", () => {
-      state.map.gridSquareSize = 5;
+      state.gridSquareSize = 5;
 
       const result = handler.handleGridSquareSize(state, 15);
 
@@ -130,7 +120,7 @@ describe("MapMessageHandler", () => {
   });
 
   describe("handleSetPlayerStagingZone", () => {
-    const testZone: StagingZone = {
+    const testZone: PlayerStagingZone = {
       x: 100,
       y: 200,
       width: 300,

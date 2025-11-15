@@ -63,7 +63,7 @@ describe("CharacterMessageHandler - Characterization Tests", () => {
     // Mock WebSocket infrastructure
     mockWss = {} as WebSocketServer;
     mockUidToWs = new Map();
-    mockGetAuthorizedClients = vi.fn(() => new Set());
+    mockGetAuthorizedClients = vi.fn(() => new Set<WebSocket>());
 
     // Setup initial state with players
     roomService.setState({
@@ -279,8 +279,8 @@ describe("CharacterMessageHandler - Characterization Tests", () => {
       messageRouter.route(deleteMessage, playerUid);
 
       const state = roomService.getState();
-      const selectedObject = state.selectedObjects?.[playerUid];
-      expect(selectedObject).toBeUndefined();
+      const selectedEntry = state.selectionState.get(playerUid);
+      expect(selectedEntry).toBeUndefined();
     });
   });
 

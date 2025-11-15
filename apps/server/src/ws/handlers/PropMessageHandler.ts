@@ -19,6 +19,8 @@ import type { RoomState } from "../../domains/room/model.js";
 import type { PropService } from "../../domains/prop/service.js";
 import type { SelectionService } from "../../domains/selection/service.js";
 
+type Viewport = { x: number; y: number; scale: number };
+
 /**
  * Result of handling a prop message
  */
@@ -33,10 +35,10 @@ export interface PropMessageResult {
  * Options for updating a prop
  */
 export interface UpdatePropOptions {
-  label?: string;
-  imageUrl?: string;
-  owner?: string;
-  size?: TokenSize;
+  label: string;
+  imageUrl: string;
+  owner: string | null;
+  size: TokenSize;
 }
 
 /**
@@ -67,7 +69,7 @@ export class PropMessageHandler {
     state: RoomState,
     label: string,
     imageUrl: string,
-    owner: string,
+    owner: string | null,
     size: TokenSize,
     viewport: Viewport,
     gridSize: number,

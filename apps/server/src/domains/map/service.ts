@@ -74,8 +74,8 @@ export class MapService {
   /**
    * Set map background image
    */
-  setBackground(state: RoomState, backgroundData: string): void {
-    state.mapBackground = backgroundData;
+  setBackground(state: RoomState, backgroundData: string | null): void {
+    state.mapBackground = backgroundData ?? undefined;
   }
 
   /**

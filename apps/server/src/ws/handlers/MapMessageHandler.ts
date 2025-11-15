@@ -15,6 +15,7 @@
  * @module ws/handlers/MapMessageHandler
  */
 
+import type { PlayerStagingZone } from "@shared";
 import type { RoomState } from "../../domains/room/model.js";
 import type { MapService } from "../../domains/map/service.js";
 import type { RoomService } from "../../domains/room/service.js";
@@ -98,7 +99,7 @@ export class MapMessageHandler {
   handleSetPlayerStagingZone(
     state: RoomState,
     senderUid: string,
-    zone: StagingZone,
+    zone: PlayerStagingZone | undefined,
     isDM: boolean,
   ): MapMessageResult {
     console.log("[DEBUG] Received set-player-staging-zone message:", {

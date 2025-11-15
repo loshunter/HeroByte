@@ -59,7 +59,7 @@ describe("PropMessageHandler - Characterization Tests", () => {
     // Mock WebSocket infrastructure
     mockWss = {} as WebSocketServer;
     mockUidToWs = new Map();
-    mockGetAuthorizedClients = vi.fn(() => new Set());
+    mockGetAuthorizedClients = vi.fn(() => new Set<WebSocket>());
 
     // Setup initial state with players
     roomService.setState({
@@ -116,7 +116,7 @@ describe("PropMessageHandler - Characterization Tests", () => {
         imageUrl: "chest.png",
         owner: dmUid,
         size: "medium",
-        viewport: { x: 100, y: 100, zoom: 1 },
+        viewport: { x: 100, y: 100, scale: 1 },
       };
 
       messageRouter.route(createMessage, dmUid);
@@ -136,7 +136,7 @@ describe("PropMessageHandler - Characterization Tests", () => {
         imageUrl: "hack.png",
         owner: playerUid,
         size: "small",
-        viewport: { x: 0, y: 0, zoom: 1 },
+        viewport: { x: 0, y: 0, scale: 1 },
       };
 
       messageRouter.route(createMessage, playerUid);
@@ -158,7 +158,7 @@ describe("PropMessageHandler - Characterization Tests", () => {
         "old.png",
         dmUid,
         "small",
-        { x: 0, y: 0, zoom: 1 },
+        { x: 0, y: 0, scale: 1 },
         state.gridSize,
       );
       propId = prop.id;
@@ -191,6 +191,8 @@ describe("PropMessageHandler - Characterization Tests", () => {
         id: propId,
         label: "Hacked Prop",
         imageUrl: "hack.png",
+        owner: dmUid,
+        size: "small",
       };
 
       messageRouter.route(updateMessage, playerUid);
@@ -214,7 +216,7 @@ describe("PropMessageHandler - Characterization Tests", () => {
         "delete.png",
         dmUid,
         "medium",
-        { x: 50, y: 50, zoom: 1 },
+        { x: 50, y: 50, scale: 1 },
         state.gridSize,
       );
       propId = prop.id;
@@ -246,8 +248,8 @@ describe("PropMessageHandler - Characterization Tests", () => {
       messageRouter.route(deleteMessage, dmUid);
 
       const state = roomService.getState();
-      const selectedObject = state.selectedObjects?.[dmUid];
-      expect(selectedObject).toBeUndefined();
+      const selectedEntry = state.selectionState.get(dmUid);
+      expect(selectedEntry).toBeUndefined();
     });
 
     it("should not delete prop when non-DM tries", () => {

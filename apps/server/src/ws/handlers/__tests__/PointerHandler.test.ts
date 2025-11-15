@@ -57,7 +57,7 @@ describe("PointerHandler - Characterization Tests", () => {
     // Mock WebSocket infrastructure
     mockWss = {} as WebSocketServer;
     mockUidToWs = new Map();
-    mockGetAuthorizedClients = vi.fn(() => new Set());
+    mockGetAuthorizedClients = vi.fn(() => new Set<WebSocket>());
 
     // Setup players in state
     roomService.setState({

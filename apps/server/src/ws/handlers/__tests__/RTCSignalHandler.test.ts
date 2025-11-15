@@ -58,7 +58,7 @@ describe("RTCSignalHandler - Characterization Tests", () => {
     // Mock WebSocket infrastructure
     mockWss = {} as WebSocketServer;
     mockUidToWs = new Map();
-    mockGetAuthorizedClients = vi.fn(() => new Set());
+    mockGetAuthorizedClients = vi.fn(() => new Set<WebSocket>());
 
     // Create MessageRouter instance
     messageRouter = new MessageRouter(

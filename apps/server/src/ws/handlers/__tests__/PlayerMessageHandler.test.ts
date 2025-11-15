@@ -62,7 +62,7 @@ describe("PlayerMessageHandler - Characterization Tests", () => {
     // Mock WebSocket infrastructure
     mockWss = {} as WebSocketServer;
     mockUidToWs = new Map();
-    mockGetAuthorizedClients = vi.fn(() => new Set());
+    mockGetAuthorizedClients = vi.fn(() => new Set<WebSocket>());
 
     // Setup initial state with players
     roomService.setState({
@@ -318,6 +318,7 @@ describe("PlayerMessageHandler - Characterization Tests", () => {
 
       const toggleDmMessage: ClientMessage = {
         t: "toggle-dm",
+        isDM: true,
       };
 
       messageRouter.route(toggleDmMessage, playerUid);

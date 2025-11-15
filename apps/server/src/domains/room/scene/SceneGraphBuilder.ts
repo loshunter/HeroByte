@@ -74,7 +74,7 @@ export class SceneGraphBuilder {
     return {
       id: mapId,
       type: "map",
-      owner: null,
+      owner: undefined,
       locked: prev?.locked ?? true,
       zIndex: prev?.zIndex ?? -100,
       transform: prev?.transform ?? { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
@@ -216,7 +216,7 @@ export class SceneGraphBuilder {
     return {
       id,
       type: "staging-zone",
-      owner: null,
+      owner: undefined,
       locked: prev?.locked ?? false,
       zIndex: prev?.zIndex ?? 1,
       transform: {

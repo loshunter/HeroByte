@@ -13,8 +13,9 @@
  */
 
 import type { RoomState } from "../../domains/room/model.js";
-import type { Transform } from "@shared";
 import type { RoomService } from "../../domains/room/service.js";
+
+type SceneTransformPayload = Parameters<RoomService["applySceneObjectTransform"]>[2];
 
 /**
  * Result of handling a transform message
@@ -51,7 +52,7 @@ export class TransformMessageHandler {
     state: RoomState,
     senderUid: string,
     objectId: string,
-    transform: Transform,
+    transform: SceneTransformPayload,
   ): TransformMessageResult {
     if (this.roomService.applySceneObjectTransform(objectId, senderUid, transform)) {
       return { broadcast: true, save: true };

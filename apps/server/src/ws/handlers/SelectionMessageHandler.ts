@@ -16,6 +16,7 @@
  * @module ws/handlers/SelectionMessageHandler
  */
 
+import type { SelectionMode } from "@shared";
 import type { RoomState } from "../../domains/room/model.js";
 import type { SelectionService } from "../../domains/selection/service.js";
 import type { RoomService } from "../../domains/room/service.js";
@@ -116,7 +117,7 @@ export class SelectionMessageHandler {
     senderUid: string,
     messageUid: string,
     objectIds: string[],
-    mode: "replace" | "add" | "remove",
+    mode?: SelectionMode,
   ): SelectionMessageResult {
     if (messageUid !== senderUid) {
       console.warn(`select-multiple spoofed uid from ${senderUid}`);

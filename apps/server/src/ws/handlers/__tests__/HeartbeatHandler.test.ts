@@ -55,7 +55,7 @@ describe("HeartbeatHandler - Characterization Tests", () => {
     // Mock WebSocket infrastructure
     mockWss = {} as WebSocketServer;
     mockUidToWs = new Map();
-    mockGetAuthorizedClients = vi.fn(() => new Set());
+    mockGetAuthorizedClients = vi.fn(() => new Set<WebSocket>());
 
     // Setup players in state
     roomService.setState({
@@ -166,7 +166,7 @@ describe("HeartbeatHandler - Characterization Tests", () => {
       // First heartbeat
       messageRouter.route(heartbeatMessage, playerUid);
       const state1 = roomService.getState();
-      const firstHeartbeat = state1.players.find((p) => p.uid === playerUid)!.lastHeartbeat;
+      const firstHeartbeat = state1.players.find((p) => p.uid === playerUid)!.lastHeartbeat ?? 0;
 
       // Wait a bit
       vi.useFakeTimers();
@@ -175,7 +175,7 @@ describe("HeartbeatHandler - Characterization Tests", () => {
       // Second heartbeat
       messageRouter.route(heartbeatMessage, playerUid);
       const state2 = roomService.getState();
-      const secondHeartbeat = state2.players.find((p) => p.uid === playerUid)!.lastHeartbeat;
+      const secondHeartbeat = state2.players.find((p) => p.uid === playerUid)!.lastHeartbeat ?? 0;
 
       vi.useRealTimers();
 

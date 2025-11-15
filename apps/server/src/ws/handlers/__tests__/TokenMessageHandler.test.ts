@@ -66,7 +66,7 @@ describe("TokenMessageHandler - Characterization Tests", () => {
     // Mock WebSocket infrastructure
     mockWss = {} as WebSocketServer;
     mockUidToWs = new Map();
-    mockGetAuthorizedClients = vi.fn(() => new Set());
+    mockGetAuthorizedClients = vi.fn(() => new Set<WebSocket>());
 
     // Setup initial state with players and tokens
     roomService.setState({
@@ -111,8 +111,8 @@ describe("TokenMessageHandler - Characterization Tests", () => {
           maxHp: 20,
           hp: 20,
           portrait: "",
-          type: "player",
-          claimedBy: null,
+          type: "pc",
+          ownedByPlayerUID: null,
         },
       ],
     });
@@ -224,9 +224,9 @@ describe("TokenMessageHandler - Characterization Tests", () => {
       messageRouter.route(deleteMessage, playerUid);
 
       const state = roomService.getState();
-      // Selection service removes the object, so selectedObjects should not have this player's selection anymore
-      const selectedObject = state.selectedObjects?.[playerUid];
-      expect(selectedObject).toBeUndefined();
+      // Selection service removes the object, so selectionState should not have this player's entry anymore
+      const selectedEntry = state.selectionState.get(playerUid);
+      expect(selectedEntry).toBeUndefined();
     });
 
     it("should not delete token when non-owner tries", () => {
@@ -454,8 +454,8 @@ describe("TokenMessageHandler - Characterization Tests", () => {
       messageRouter.route(clearMessage, dmUid);
 
       const state = roomService.getState();
-      const selectedObject = state.selectedObjects?.["other-player"];
-      expect(selectedObject).toBeUndefined();
+      const selectedEntry = state.selectionState.get("other-player");
+      expect(selectedEntry).toBeUndefined();
     });
   });
 });
