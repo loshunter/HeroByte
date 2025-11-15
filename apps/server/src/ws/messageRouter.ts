@@ -27,6 +27,10 @@ import { PlayerMessageHandler } from "./handlers/PlayerMessageHandler.js";
 import { InitiativeMessageHandler } from "./handlers/InitiativeMessageHandler.js";
 import { MapMessageHandler } from "./handlers/MapMessageHandler.js";
 import { DrawingMessageHandler } from "./handlers/DrawingMessageHandler.js";
+import { SelectionMessageHandler } from "./handlers/SelectionMessageHandler.js";
+import { DiceMessageHandler } from "./handlers/DiceMessageHandler.js";
+import { RoomMessageHandler } from "./handlers/RoomMessageHandler.js";
+import { TransformMessageHandler } from "./handlers/TransformMessageHandler.js";
 
 /**
  * Message router - handles all WebSocket messages and dispatches to domain services
@@ -52,6 +56,10 @@ export class MessageRouter {
   private initiativeMessageHandler: InitiativeMessageHandler;
   private mapMessageHandler: MapMessageHandler;
   private drawingMessageHandler: DrawingMessageHandler;
+  private selectionMessageHandler: SelectionMessageHandler;
+  private diceMessageHandler: DiceMessageHandler;
+  private roomMessageHandler: RoomMessageHandler;
+  private transformMessageHandler: TransformMessageHandler;
   private wss: WebSocketServer;
   private uidToWs: Map<string, WebSocket>;
   private getAuthorizedClients: () => Set<WebSocket>;
@@ -112,6 +120,10 @@ export class MessageRouter {
       selectionService,
       roomService,
     );
+    this.selectionMessageHandler = new SelectionMessageHandler(selectionService, roomService);
+    this.diceMessageHandler = new DiceMessageHandler(diceService);
+    this.roomMessageHandler = new RoomMessageHandler(roomService);
+    this.transformMessageHandler = new TransformMessageHandler(roomService);
   }
 
   /**
@@ -629,73 +641,62 @@ export class MessageRouter {
         }
 
         case "select-object": {
-          if (message.uid !== senderUid) {
-            console.warn(`select-object spoofed uid from ${senderUid}`);
-            break;
-          }
-          console.info(`[DEBUG] select-object from ${senderUid}: objectId=${message.objectId}`);
-          if (this.selectionService.selectObject(state, senderUid, message.objectId)) {
-            this.broadcast();
-          }
+          const result = this.selectionMessageHandler.handleSelectObject(
+            state,
+            senderUid,
+            message.uid,
+            message.objectId,
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
         }
 
         case "deselect-object": {
-          if (message.uid !== senderUid) {
-            console.warn(`deselect-object spoofed uid from ${senderUid}`);
-            break;
-          }
-          console.info(`[DEBUG] deselect-object from ${senderUid}`);
-          if (this.selectionService.deselect(state, senderUid)) {
-            this.broadcast();
-          }
+          const result = this.selectionMessageHandler.handleDeselectObject(
+            state,
+            senderUid,
+            message.uid,
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
         }
 
         case "select-multiple": {
-          if (message.uid !== senderUid) {
-            console.warn(`select-multiple spoofed uid from ${senderUid}`);
-            break;
-          }
-          console.info(
-            `[DEBUG] select-multiple from ${senderUid}: objectIds=${JSON.stringify(message.objectIds)}, mode=${message.mode ?? "replace"}`,
+          const result = this.selectionMessageHandler.handleSelectMultiple(
+            state,
+            senderUid,
+            message.uid,
+            message.objectIds,
+            message.mode ?? "replace",
           );
-          if (
-            this.selectionService.selectMultiple(
-              state,
-              senderUid,
-              message.objectIds,
-              message.mode ?? "replace",
-            )
-          ) {
-            this.broadcast();
-          }
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
         }
 
         case "lock-selected": {
-          if (message.uid !== senderUid) {
-            console.warn(`lock-selected spoofed uid from ${senderUid}`);
-            break;
-          }
-          const lockCount = this.roomService.lockSelectedObjects(senderUid, message.objectIds);
-          if (lockCount > 0) {
-            this.broadcast();
-            this.roomService.saveState();
-          }
+          const result = this.selectionMessageHandler.handleLockSelected(
+            state,
+            senderUid,
+            message.uid,
+            message.objectIds,
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
         }
 
         case "unlock-selected": {
-          if (message.uid !== senderUid) {
-            console.warn(`unlock-selected spoofed uid from ${senderUid}`);
-            break;
-          }
-          const unlockCount = this.roomService.unlockSelectedObjects(senderUid, message.objectIds);
-          if (unlockCount > 0) {
-            this.broadcast();
-            this.roomService.saveState();
-          }
+          const result = this.selectionMessageHandler.handleUnlockSelected(
+            state,
+            senderUid,
+            message.uid,
+            message.objectIds,
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
         }
 
@@ -732,15 +733,19 @@ export class MessageRouter {
         }
 
         // DICE ACTIONS
-        case "dice-roll":
-          this.diceService.addRoll(state, message.roll);
-          this.broadcast();
+        case "dice-roll": {
+          const result = this.diceMessageHandler.handleDiceRoll(state, message.roll);
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
-        case "clear-roll-history":
-          this.diceService.clearHistory(state);
-          this.broadcast();
+        case "clear-roll-history": {
+          const result = this.diceMessageHandler.handleClearRollHistory(state);
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
         // ROOM MANAGEMENT
         case "set-room-password": {
@@ -805,28 +810,31 @@ export class MessageRouter {
         }
 
         case "load-session": {
-          if (!this.isDM(senderUid)) {
-            console.warn(`Non-DM ${senderUid} attempted to load session`);
-            break;
-          }
-          this.roomService.loadSnapshot(message.snapshot);
-          this.broadcast();
-          this.roomService.saveState();
+          const result = this.roomMessageHandler.handleLoadSession(
+            state,
+            senderUid,
+            message.snapshot,
+            this.isDM(senderUid),
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
         }
 
         case "transform-object": {
-          if (
-            this.roomService.applySceneObjectTransform(message.id, senderUid, {
+          const result = this.transformMessageHandler.handleTransformObject(
+            state,
+            senderUid,
+            message.id,
+            {
               position: message.position,
               scale: message.scale,
               rotation: message.rotation,
               locked: message.locked,
-            })
-          ) {
-            this.broadcast();
-            this.roomService.saveState();
-          }
+            },
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
         }
 
