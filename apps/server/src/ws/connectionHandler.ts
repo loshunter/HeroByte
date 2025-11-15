@@ -12,6 +12,7 @@ import { getDefaultRoomId } from "../config/auth.js";
 import { AuthenticationHandler } from "./auth/AuthenticationHandler.js";
 import { HeartbeatTimeoutManager } from "./lifecycle/HeartbeatTimeoutManager.js";
 import { DisconnectionCleanupManager } from "./lifecycle/DisconnectionCleanupManager.js";
+import { ConnectionLifecycleManager } from "./lifecycle/ConnectionLifecycleManager.js";
 import { MessagePipelineManager } from "./message/MessagePipelineManager.js";
 import { MessageAuthenticator } from "./auth/MessageAuthenticator.js";
 
@@ -24,6 +25,7 @@ export class ConnectionHandler {
   private wss: WebSocketServer;
   private authHandler: AuthenticationHandler;
   private cleanupManager: DisconnectionCleanupManager;
+  private lifecycleManager: ConnectionLifecycleManager;
   private heartbeatManager: HeartbeatTimeoutManager;
   private pipelineManager: MessagePipelineManager;
   private authenticator: MessageAuthenticator;
@@ -45,6 +47,14 @@ export class ConnectionHandler {
         roomService: container.roomService,
         selectionService: container.selectionService,
         getAuthenticatedClients: container.getAuthenticatedClients.bind(container),
+      },
+      container.uidToWs,
+      container.authenticatedUids,
+      container.authenticatedSessions,
+    );
+    this.lifecycleManager = new ConnectionLifecycleManager(
+      {
+        roomService: container.roomService,
       },
       container.uidToWs,
       container.authenticatedUids,
@@ -80,40 +90,8 @@ export class ConnectionHandler {
    * Handle new WebSocket connection
    */
   private handleConnection(ws: WebSocket, req: IncomingMessage): void {
-    // Extract player UID from connection URL
-    const params = new URL(req.url || "", "http://localhost").searchParams;
-    const uid = params.get("uid") || "anon";
-
-    const state = this.container.roomService.getState();
-
-    // Close existing connection for this UID to prevent race conditions
-    const existingWs = this.container.uidToWs.get(uid);
-    const wasAuthenticated = this.container.authenticatedUids.has(uid);
-
-    if (existingWs && existingWs !== ws) {
-      console.log(
-        `[WebSocket] Replacing connection for ${uid} (was authenticated: ${wasAuthenticated})`,
-      );
-      existingWs.close(4001, "Replaced by new connection");
-    }
-
-    // Only clear authentication if this is a truly new connection (not a replacement)
-    // If the old connection was authenticated, keep the auth state for seamless reconnection
-    if (!wasAuthenticated) {
-      this.container.authenticatedUids.delete(uid);
-      this.container.authenticatedSessions.delete(uid);
-      state.users = state.users.filter((u) => u !== uid);
-    }
-
-    // Register connection
-    this.container.uidToWs.set(uid, ws);
-
-    // Keepalive ping to prevent cloud provider timeout
-    const keepalive = setInterval(() => {
-      if (ws.readyState === 1) {
-        ws.ping();
-      }
-    }, 25000);
+    // Delegate connection lifecycle to ConnectionLifecycleManager
+    const { uid, keepalive } = this.lifecycleManager.handleConnection(ws, req);
 
     // Message handling
     ws.on("message", (buf) => this.handleMessage(Buffer.from(buf as ArrayBuffer), uid));
