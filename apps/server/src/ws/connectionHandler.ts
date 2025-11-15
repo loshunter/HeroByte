@@ -12,6 +12,7 @@ import { validateMessage } from "../middleware/validation.js";
 import { getDefaultRoomId } from "../config/auth.js";
 import { AuthenticationHandler } from "./auth/AuthenticationHandler.js";
 import { HeartbeatTimeoutManager } from "./lifecycle/HeartbeatTimeoutManager.js";
+import { DisconnectionCleanupManager } from "./lifecycle/DisconnectionCleanupManager.js";
 
 /**
  * WebSocket connection handler
@@ -21,6 +22,7 @@ export class ConnectionHandler {
   private container: Container;
   private wss: WebSocketServer;
   private authHandler: AuthenticationHandler;
+  private cleanupManager: DisconnectionCleanupManager;
   private heartbeatManager: HeartbeatTimeoutManager;
   private readonly defaultRoomId: string;
 
@@ -35,7 +37,17 @@ export class ConnectionHandler {
       container.authenticatedSessions,
       container.getAuthenticatedClients.bind(container),
     );
-    this.heartbeatManager = new HeartbeatTimeoutManager(container);
+    this.cleanupManager = new DisconnectionCleanupManager(
+      {
+        roomService: container.roomService,
+        selectionService: container.selectionService,
+        getAuthenticatedClients: container.getAuthenticatedClients.bind(container),
+      },
+      container.uidToWs,
+      container.authenticatedUids,
+      container.authenticatedSessions,
+    );
+    this.heartbeatManager = new HeartbeatTimeoutManager(container, this.cleanupManager);
   }
 
   /**
@@ -177,24 +189,8 @@ export class ConnectionHandler {
     // Clear keepalive interval
     clearInterval(keepalive);
 
-    const state = this.container.roomService.getState();
-
-    // Only clean up if THIS socket is still the current one for this UID
-    // This prevents race condition when an old connection closes during replacement
-    const currentWs = this.container.uidToWs.get(uid);
-    if (currentWs !== ws) {
-      console.log(`[WebSocket] Ignoring close event for replaced connection: ${uid}`);
-      return;
-    }
-
-    // Clean up disconnected player's connection
-    state.users = state.users.filter((u) => u !== uid);
-    this.container.authenticatedUids.delete(uid);
-    this.container.authenticatedSessions.delete(uid);
-    this.container.uidToWs.delete(uid);
-    this.container.selectionService.deselect(state, uid);
-
-    // Broadcast updated state
-    this.container.roomService.broadcast(this.container.getAuthenticatedClients());
+    // Delegate cleanup to DisconnectionCleanupManager
+    // Pass WebSocket for race condition check
+    this.cleanupManager.cleanupPlayer(uid, { ws });
   }
 }
