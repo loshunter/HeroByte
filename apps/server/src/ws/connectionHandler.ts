@@ -13,6 +13,7 @@ import { AuthenticationHandler } from "./auth/AuthenticationHandler.js";
 import { HeartbeatTimeoutManager } from "./lifecycle/HeartbeatTimeoutManager.js";
 import { DisconnectionCleanupManager } from "./lifecycle/DisconnectionCleanupManager.js";
 import { MessagePipelineManager } from "./message/MessagePipelineManager.js";
+import { MessageAuthenticator } from "./auth/MessageAuthenticator.js";
 
 /**
  * WebSocket connection handler
@@ -25,6 +26,7 @@ export class ConnectionHandler {
   private cleanupManager: DisconnectionCleanupManager;
   private heartbeatManager: HeartbeatTimeoutManager;
   private pipelineManager: MessagePipelineManager;
+  private authenticator: MessageAuthenticator;
   private readonly defaultRoomId: string;
 
   constructor(container: Container, wss: WebSocketServer) {
@@ -55,6 +57,12 @@ export class ConnectionHandler {
         onValidMessage: (message, uid) => this.handleValidatedMessage(message, uid),
       },
       container.rateLimiter,
+    );
+    this.authenticator = new MessageAuthenticator(
+      {
+        authHandler: this.authHandler,
+      },
+      container.authenticatedUids,
     );
   }
 
@@ -127,32 +135,11 @@ export class ConnectionHandler {
    * Performs authentication routing and message dispatch
    */
   private handleValidatedMessage(message: ClientMessage, uid: string): void {
-    // Authentication handling
-    if (message.t === "authenticate") {
-      this.authHandler.authenticate(uid, message.secret, message.roomId);
-      return;
-    }
+    // Check authentication and route auth messages
+    const wasHandled = this.authenticator.checkAuthentication(message, uid);
 
-    if (!this.container.authenticatedUids.has(uid)) {
-      console.warn(`Unauthenticated message from ${uid}, dropping.`);
-      return;
-    }
-
-    // DM elevation handling
-    if (message.t === "elevate-to-dm") {
-      this.authHandler.elevateToDM(uid, message.dmPassword);
-      return;
-    }
-
-    // DM revocation handling
-    if (message.t === "revoke-dm") {
-      this.authHandler.revokeDM(uid);
-      return;
-    }
-
-    // DM password management (DM-only action)
-    if (message.t === "set-dm-password") {
-      this.authHandler.setDMPassword(uid, message.dmPassword);
+    // If message was handled (auth message or dropped), return
+    if (wasHandled) {
       return;
     }
 
