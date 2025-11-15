@@ -45,7 +45,7 @@ import {
 } from "../features/map/components";
 import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 import type { CameraCommand, MapBoardProps, SelectionRequestOptions } from "./MapBoard.types";
-import { STATUS_OPTIONS } from "../features/players/components/PlayerSettingsMenu";
+import { STATUS_OPTIONS, type StatusOption } from "../features/players/constants/statusOptions";
 
 // Re-export types for backward compatibility
 export type { CameraCommand, MapBoardProps, SelectionRequestOptions };
@@ -119,7 +119,7 @@ export default function MapBoard({
       if (!activeEffect) continue;
 
       // Find the emoji for this status effect
-      const statusOption = STATUS_OPTIONS.find((opt) => opt.value === activeEffect);
+      const statusOption = STATUS_OPTIONS.find((opt: StatusOption) => opt.value === activeEffect);
       if (statusOption?.emoji && character.tokenId) {
         // Map by full token scene ID (e.g., "token:abc123")
         result[`token:${character.tokenId}`] = statusOption.emoji;

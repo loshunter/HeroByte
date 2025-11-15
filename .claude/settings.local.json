@@ -170,7 +170,18 @@
       "Bash(pnpm install)",
       "Bash(pnpm --filter herobyte-server typecheck:*)",
       "Bash(pnpm --filter server typecheck:*)",
-      "Bash(pnpm --filter vtt-server test:*)"
+      "Bash(pnpm --filter vtt-server test:*)",
+      "Bash(pnpm --filter vtt-server lint)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr comment:*)",
+      "Bash(pnpm --filter vtt-server exec tsc:*)",
+      "Bash(pnpm -r exec tsc:*)",
+      "Bash(chmod:*)",
+      "Bash(pnpm baseline:update:*)",
+      "Bash(pnpm vitest run:*)",
+      "Bash(__NEW_LINE__ echo \"=== TEST TYPE ANALYSIS ===\" echo \"\" echo \"Characterization tests (marked with .characterization):\" find /home/loshunter/HeroByte -name \"*.characterization.test.*\" -o -name \"*.characterization.spec.*\")",
+      "Bash(cloc:*)",
+      "Bash(pnpm --filter vtt-server build:*)"
     ],
     "deny": [],
     "ask": []

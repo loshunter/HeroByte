@@ -4,7 +4,7 @@
 // Player portrait with class icon and mic level animation
 
 import React from "react";
-import { STATUS_OPTIONS } from "./PlayerSettingsMenu";
+import { STATUS_OPTIONS } from "../constants/statusOptions";
 
 interface PortraitSectionProps {
   portrait?: string;
