@@ -40,7 +40,7 @@ describe("DM Authorization Enforcement - Current Behavior", () => {
   describe("Authorization Check", () => {
     it("should allow action when user is DM", () => {
       const isDM = true;
-      const senderUid = "dm-user-123";
+      const _senderUid = "dm-user-123";
 
       // BEFORE pattern: !this.isDM(senderUid) returns false for DMs
       const shouldBlock = !isDM;
@@ -51,7 +51,7 @@ describe("DM Authorization Enforcement - Current Behavior", () => {
 
     it("should block action when user is not DM", () => {
       const isDM = false;
-      const senderUid = "player-user-456";
+      const _senderUid = "player-user-456";
 
       // BEFORE pattern: !this.isDM(senderUid) returns true for non-DMs
       const shouldBlock = !isDM;

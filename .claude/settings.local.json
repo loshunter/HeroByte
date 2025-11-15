@@ -179,7 +179,8 @@
       "Bash(chmod:*)",
       "Bash(pnpm baseline:update:*)",
       "Bash(pnpm vitest run:*)",
-      "Bash(__NEW_LINE__ echo \"=== TEST TYPE ANALYSIS ===\" echo \"\" echo \"Characterization tests (marked with .characterization):\" find /home/loshunter/HeroByte -name \"*.characterization.test.*\" -o -name \"*.characterization.spec.*\")"
+      "Bash(__NEW_LINE__ echo \"=== TEST TYPE ANALYSIS ===\" echo \"\" echo \"Characterization tests (marked with .characterization):\" find /home/loshunter/HeroByte -name \"*.characterization.test.*\" -o -name \"*.characterization.spec.*\")",
+      "Bash(cloc:*)"
     ],
     "deny": [],
     "ask": []

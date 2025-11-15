@@ -73,7 +73,7 @@ describe("AuthorizationService", () => {
           uid: "undefined-dm",
           name: "Undefined DM",
           portrait: undefined,
-          isDM: undefined as any,
+          isDM: undefined as unknown as boolean,
           hp: 10,
           maxHp: 10,
           micLevel: 0,

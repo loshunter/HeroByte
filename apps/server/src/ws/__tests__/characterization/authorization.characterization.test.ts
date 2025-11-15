@@ -279,7 +279,7 @@ describe("MessageRouter - Authorization Characterization", () => {
           uid: "undefined-dm-user",
           name: "Undefined DM",
           portrait: undefined,
-          isDM: undefined as any, // Simulate missing field
+          isDM: undefined as unknown as boolean, // Simulate missing field
           hp: 10,
           maxHp: 10,
           micLevel: 0,
@@ -399,7 +399,7 @@ describe("MessageRouter - Authorization Characterization", () => {
       });
 
       it(`should block non-DM from executing ${type}`, () => {
-        const spy = handlerCheck; // Capture the spy check
+        const _spy = handlerCheck; // Capture the spy check
 
         router.route(message, "regular-user");
         flushBroadcasts();

@@ -6,6 +6,7 @@
  *
  * Extracted from: apps/server/src/ws/messageRouter.ts (lines 599-602)
  * Extraction date: 2025-11-14
+ * Refactored: 2025-11-15 (Week 8: Handler Pattern Standardization)
  *
  * @module ws/handlers/PointerHandler
  */
@@ -15,7 +16,24 @@ import type { RoomState } from "../../domains/room/model.js";
 import type { MapService } from "../../domains/map/service.js";
 
 /**
+ * Result object returned by pointer handler methods
+ */
+export interface PointerHandlerResult {
+  broadcast: boolean;
+  save?: boolean;
+}
+
+/**
  * Handler for pointer placement messages
+ *
+ * **Week 8 Refactoring:**
+ * - Changed return type from `boolean` to `{ broadcast: boolean, save?: boolean }`
+ * - Now follows the standard RouteResultHandler pattern used by all other handlers
+ * - Ensures consistent message handling across the entire messageRouter
+ *
+ * **Pattern Consistency:**
+ * Before Week 8: `if (handler.handlePointer(...)) this.broadcast()`
+ * After Week 8: `this.routeResultHandler.handleResult(handler.handlePointer(...))`
  */
 export class PointerHandler {
   private mapService: MapService;
@@ -35,23 +53,25 @@ export class PointerHandler {
    * Places a temporary pointer on the map at the specified coordinates.
    * Pointers are used by players to indicate locations during gameplay.
    *
+   * **Week 8 Change:**
+   * Now returns a result object `{ broadcast: true }` instead of `boolean`,
+   * following the standard pattern used by all other message handlers.
+   *
    * @param state - Room state containing pointers
    * @param senderUid - UID of the player placing the pointer
    * @param x - X coordinate on the map
    * @param y - Y coordinate on the map
-   * @returns true if broadcast is needed (always true for pointer updates)
+   * @returns Result object indicating broadcast is needed (always true for pointer updates)
    *
    * @example
    * ```typescript
    * const handler = new PointerHandler(mapService);
-   * const needsBroadcast = handler.handlePointer(state, "player-123", 100, 200);
-   * if (needsBroadcast) {
-   *   broadcast();
-   * }
+   * const result = handler.handlePointer(state, "player-123", 100, 200);
+   * routeResultHandler.handleResult(result); // Uses RouteResultHandler pattern
    * ```
    */
-  handlePointer(state: RoomState, senderUid: string, x: number, y: number): boolean {
+  handlePointer(state: RoomState, senderUid: string, x: number, y: number): PointerHandlerResult {
     this.mapService.placePointer(state, senderUid, x, y);
-    return true; // Always broadcast to update all clients with pointer position
+    return { broadcast: true }; // Always broadcast to update all clients with pointer position
   }
 }

@@ -55,11 +55,7 @@ export class MessageRoutingContext {
    * ```
    */
   create(senderUid: string): RoutingContext {
-    return new RoutingContext(
-      senderUid,
-      this.roomService,
-      this.authorizationService,
-    );
+    return new RoutingContext(senderUid, this.roomService, this.authorizationService);
   }
 }
 

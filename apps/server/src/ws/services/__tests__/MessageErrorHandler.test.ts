@@ -281,7 +281,7 @@ describe("MessageErrorHandler", () => {
 
     it("should handle messages with circular references gracefully", () => {
       const error = new Error("Test error");
-      const circularMsg: any = { t: "custom" };
+      const circularMsg: { t: string; self?: unknown } = { t: "custom" };
       circularMsg.self = circularMsg; // Create circular reference
 
       // JSON.stringify will throw on circular references

@@ -37,14 +37,11 @@ describe("MessageRoutingContext", () => {
 
     mockAuthorizationService = {
       isDM: vi.fn((state: RoomState, uid: string) => {
-        return state.players.find(p => p.uid === uid)?.isDM ?? false;
+        return state.players.find((p) => p.uid === uid)?.isDM ?? false;
       }),
     } as unknown as AuthorizationService;
 
-    messageRoutingContext = new MessageRoutingContext(
-      mockRoomService,
-      mockAuthorizationService,
-    );
+    messageRoutingContext = new MessageRoutingContext(mockRoomService, mockAuthorizationService);
   });
 
   describe("create", () => {
@@ -128,7 +125,7 @@ describe("MessageRoutingContext", () => {
             { uid: "new-player", name: "New", isDM: false, color: "#0000ff", micLevel: 0.7 },
           ],
         };
-        (mockRoomService.getState as any).mockReturnValue(newState);
+        vi.mocked(mockRoomService.getState).mockReturnValue(newState);
 
         // Context should still return cached state
         const state2 = context.getState();
@@ -146,7 +143,7 @@ describe("MessageRoutingContext", () => {
           ...mockState,
           gridSize: 100,
         };
-        (mockRoomService.getState as any).mockReturnValue(newState);
+        vi.mocked(mockRoomService.getState).mockReturnValue(newState);
 
         const context2 = messageRoutingContext.create("user-2");
         const state2 = context2.getState();
@@ -216,10 +213,7 @@ describe("MessageRoutingContext", () => {
 
         context.isDM();
 
-        expect(mockAuthorizationService.isDM).toHaveBeenCalledWith(
-          mockState,
-          senderUid,
-        );
+        expect(mockAuthorizationService.isDM).toHaveBeenCalledWith(mockState, senderUid);
       });
 
       it("should use same state snapshot for isDM check", () => {
@@ -229,7 +223,7 @@ describe("MessageRoutingContext", () => {
         const cachedState = context.getState();
 
         // Clear the mock to verify isDM doesn't call getState again
-        (mockRoomService.getState as any).mockClear();
+        vi.mocked(mockRoomService.getState).mockClear();
 
         // Call isDM
         context.isDM();
@@ -238,10 +232,7 @@ describe("MessageRoutingContext", () => {
         expect(mockRoomService.getState).not.toHaveBeenCalled();
 
         // Should have used the cached state
-        expect(mockAuthorizationService.isDM).toHaveBeenCalledWith(
-          cachedState,
-          "dm-uid",
-        );
+        expect(mockAuthorizationService.isDM).toHaveBeenCalledWith(cachedState, "dm-uid");
       });
     });
 
@@ -340,8 +331,8 @@ describe("MessageRoutingContext", () => {
         expect(state).toBe(mockState);
 
         // But context doesn't provide any methods to modify it
-        expect(typeof (context as any).setState).toBe("undefined");
-        expect(typeof (context as any).modifyState).toBe("undefined");
+        expect(typeof (context as Record<string, unknown>).setState).toBe("undefined");
+        expect(typeof (context as Record<string, unknown>).modifyState).toBe("undefined");
       });
 
       it("should not allow changing sender UID", () => {
@@ -350,7 +341,7 @@ describe("MessageRoutingContext", () => {
         expect(context.getSenderUid()).toBe("original-uid");
 
         // Context doesn't provide any methods to modify sender UID
-        expect(typeof (context as any).setSenderUid).toBe("undefined");
+        expect(typeof (context as Record<string, unknown>).setSenderUid).toBe("undefined");
 
         expect(context.getSenderUid()).toBe("original-uid");
       });
@@ -359,7 +350,7 @@ describe("MessageRoutingContext", () => {
     describe("Edge Cases", () => {
       it("should handle null state gracefully", () => {
         const nullState = null as unknown as RoomState;
-        (mockRoomService.getState as any).mockReturnValue(nullState);
+        vi.mocked(mockRoomService.getState).mockReturnValue(nullState);
 
         const context = messageRoutingContext.create("test-uid");
         const state = context.getState();
@@ -372,7 +363,7 @@ describe("MessageRoutingContext", () => {
           ...mockState,
           players: [],
         };
-        (mockRoomService.getState as any).mockReturnValue(emptyState);
+        vi.mocked(mockRoomService.getState).mockReturnValue(emptyState);
 
         const context = messageRoutingContext.create("any-uid");
         const isDM = context.isDM();
@@ -394,7 +385,7 @@ describe("MessageRoutingContext", () => {
       });
 
       it("should handle authorization service throwing error", () => {
-        (mockAuthorizationService.isDM as any).mockImplementation(() => {
+        vi.mocked(mockAuthorizationService.isDM).mockImplementation(() => {
           throw new Error("Authorization service error");
         });
 
@@ -404,7 +395,7 @@ describe("MessageRoutingContext", () => {
       });
 
       it("should handle room service throwing error", () => {
-        (mockRoomService.getState as any).mockImplementation(() => {
+        vi.mocked(mockRoomService.getState).mockImplementation(() => {
           throw new Error("Room service error");
         });
 
@@ -415,7 +406,7 @@ describe("MessageRoutingContext", () => {
 
       it("should cache even after error recovery", () => {
         let callCount = 0;
-        (mockRoomService.getState as any).mockImplementation(() => {
+        vi.mocked(mockRoomService.getState).mockImplementation(() => {
           callCount++;
           if (callCount === 1) {
             throw new Error("First call error");
@@ -456,7 +447,7 @@ describe("MessageRoutingContext", () => {
         });
 
         // Each context should cache its own state
-        contexts.forEach(context => {
+        contexts.forEach((context) => {
           context.getState();
         });
 
@@ -486,10 +477,7 @@ describe("MessageRoutingContext", () => {
         const isDM = context.isDM();
 
         expect(isDM).toBe(true);
-        expect(mockAuthorizationService.isDM).toHaveBeenCalledWith(
-          mockState,
-          "dm-uid",
-        );
+        expect(mockAuthorizationService.isDM).toHaveBeenCalledWith(mockState, "dm-uid");
       });
 
       it("should pass correct parameters to services", () => {
@@ -500,10 +488,7 @@ describe("MessageRoutingContext", () => {
         context.isDM();
 
         expect(mockRoomService.getState).toHaveBeenCalled();
-        expect(mockAuthorizationService.isDM).toHaveBeenCalledWith(
-          mockState,
-          senderUid,
-        );
+        expect(mockAuthorizationService.isDM).toHaveBeenCalledWith(mockState, senderUid);
       });
 
       it("should maintain service contract through caching", () => {

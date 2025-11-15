@@ -593,11 +593,11 @@ export class MessageRouter {
           break;
         }
 
-        case "point":
-          if (this.pointerHandler.handlePointer(state, senderUid, message.x, message.y)) {
-            this.broadcast();
-          }
+        case "point": {
+          const result = this.pointerHandler.handlePointer(state, senderUid, message.x, message.y);
+          this.routeResultHandler.handleResult(result);
           break;
+        }
 
         case "draw": {
           const result = this.drawingMessageHandler.handleDraw(state, message.drawing, senderUid);
@@ -770,9 +770,8 @@ export class MessageRouter {
         }
 
         case "heartbeat": {
-          if (this.heartbeatHandler.handleHeartbeat(state, senderUid)) {
-            this.broadcast();
-          }
+          const result = this.heartbeatHandler.handleHeartbeat(state, senderUid);
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -822,19 +821,14 @@ export class MessageRouter {
   }
 
   /**
-   * Broadcast room state to all clients (immediate, no debouncing)
-   * Delegates to BroadcastService
-   */
-  private broadcastImmediate(): void {
-    this.broadcastService.broadcastImmediate(() => {
-      this.roomService.broadcast(this.getAuthorizedClients());
-    });
-  }
-
-  /**
    * Debounced broadcast - batches rapid state changes into a single broadcast
    * Waits 16ms (one frame at 60fps) before broadcasting to batch operations
    * Delegates to BroadcastService
+   *
+   * **Week 8 Note:**
+   * This method is used as a callback by RouteResultHandler (line 116).
+   * It cannot be removed despite appearing "private" because it's part of the
+   * handler result pattern established in Week 4.
    */
   private broadcast(): void {
     this.broadcastService.broadcast(() => {
@@ -845,6 +839,11 @@ export class MessageRouter {
   /**
    * Send a control message to a specific client
    * Delegates to DirectMessageService
+   *
+   * **Week 8 Note:**
+   * This method is used as a callback by RoomMessageHandler (line 159).
+   * It cannot be removed despite appearing unused in messageRouter because
+   * it's passed to and invoked by external handlers.
    */
   private sendControlMessage(targetUid: string, message: ServerMessage): void {
     this.directMessageService.sendControlMessage(targetUid, message);

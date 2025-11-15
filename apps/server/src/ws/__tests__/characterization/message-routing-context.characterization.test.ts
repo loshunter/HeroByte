@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import type { RoomState } from "@shared";
 
 /**
@@ -48,7 +48,13 @@ describe("MessageRoutingContext - Characterization Tests", () => {
       const mockState: RoomState = {
         players: [
           { uid: "dm-uid", name: "DM Player", isDM: true, color: "#ff0000", micLevel: 0.5 },
-          { uid: "player-uid", name: "Regular Player", isDM: false, color: "#00ff00", micLevel: 0.3 },
+          {
+            uid: "player-uid",
+            name: "Regular Player",
+            isDM: false,
+            color: "#00ff00",
+            micLevel: 0.3,
+          },
         ],
         characters: [],
         tokens: [],
@@ -71,7 +77,7 @@ describe("MessageRoutingContext - Characterization Tests", () => {
 
       const authorizationService = {
         isDM: vi.fn((state: RoomState, uid: string) => {
-          return state.players.find(p => p.uid === uid)?.isDM ?? false;
+          return state.players.find((p) => p.uid === uid)?.isDM ?? false;
         }),
       };
 
@@ -123,12 +129,12 @@ describe("MessageRoutingContext - Characterization Tests", () => {
       };
 
       // Get state at start of routing
-      const state1 = roomService.getState();
-      const version1 = (state1 as any).version;
+      const state1 = roomService.getState() as RoomState & { version: number };
+      const version1 = state1.version;
 
       // Even if state changes in roomService, our cached state should be the same
-      const state2 = roomService.getState(); // This would get a new version
-      const version2 = (state2 as any).version;
+      const state2 = roomService.getState() as RoomState & { version: number }; // This would get a new version
+      const version2 = state2.version;
 
       // With context caching, we should reuse state1, not get state2
       expect(version1).toBe(1);
@@ -162,7 +168,7 @@ describe("MessageRoutingContext - Characterization Tests", () => {
 
       const authorizationService = {
         isDM: vi.fn((state: RoomState, uid: string) => {
-          return state.players.find(p => p.uid === uid)?.isDM ?? false;
+          return state.players.find((p) => p.uid === uid)?.isDM ?? false;
         }),
       };
 
@@ -207,7 +213,7 @@ describe("MessageRoutingContext - Characterization Tests", () => {
 
       const authorizationService = {
         isDM: vi.fn((state: RoomState, uid: string) => {
-          return state.players.find(p => p.uid === uid)?.isDM ?? false;
+          return state.players.find((p) => p.uid === uid)?.isDM ?? false;
         }),
       };
 
@@ -358,7 +364,7 @@ describe("MessageRoutingContext - Characterization Tests", () => {
       const authorizationService = {
         isDM: vi.fn((state: RoomState, uid: string) => {
           // Authorization check should not modify state
-          return state.players.find(p => p.uid === uid)?.isDM ?? false;
+          return state.players.find((p) => p.uid === uid)?.isDM ?? false;
         }),
       };
 
@@ -430,7 +436,7 @@ describe("MessageRoutingContext - Characterization Tests", () => {
 
       const authorizationService = {
         isDM: vi.fn((state: RoomState, uid: string) => {
-          return state.players.find(p => p.uid === uid)?.isDM ?? false;
+          return state.players.find((p) => p.uid === uid)?.isDM ?? false;
         }),
       };
 
@@ -477,13 +483,13 @@ describe("MessageRoutingContext - Characterization Tests", () => {
 
       const authorizationService = {
         isDM: vi.fn((state: RoomState, uid: string) => {
-          return state.players.find(p => p.uid === uid)?.isDM ?? false;
+          return state.players.find((p) => p.uid === uid)?.isDM ?? false;
         }),
       };
 
       // Check multiple users
-      const checks = ["user-1", "user-2", "user-3", "nonexistent"].map(uid =>
-        authorizationService.isDM(mockState, uid)
+      const checks = ["user-1", "user-2", "user-3", "nonexistent"].map((uid) =>
+        authorizationService.isDM(mockState, uid),
       );
 
       expect(checks).toEqual([true, false, false, false]);
@@ -522,7 +528,7 @@ describe("MessageRoutingContext - Characterization Tests", () => {
 
       const authorizationService = {
         isDM: vi.fn((state: RoomState, uid: string) => {
-          return state.players.find(p => p.uid === uid)?.isDM ?? false;
+          return state.players.find((p) => p.uid === uid)?.isDM ?? false;
         }),
       };
 
@@ -577,7 +583,7 @@ describe("MessageRoutingContext - Characterization Tests", () => {
 
       const authorizationService = {
         isDM: vi.fn((state: RoomState, uid: string) => {
-          return state.players.find(p => p.uid === uid)?.isDM ?? false;
+          return state.players.find((p) => p.uid === uid)?.isDM ?? false;
         }),
       };
 

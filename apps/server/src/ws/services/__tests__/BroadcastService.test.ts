@@ -263,16 +263,13 @@ describe("BroadcastService", () => {
     });
 
     it("should execute callback with proper context", async () => {
-      let callbackContext: any = null;
-      const callback = function (this: any) {
-        callbackContext = this;
-      };
+      const callback = vi.fn();
 
       service.broadcast(callback);
       await vi.advanceTimersByTimeAsync(16);
 
-      // Callback should execute (context will be undefined in strict mode)
-      expect(callback).toHaveBeenCalled;
+      // Callback should execute
+      expect(callback).toHaveBeenCalled();
     });
   });
 

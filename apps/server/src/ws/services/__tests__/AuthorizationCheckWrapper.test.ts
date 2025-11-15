@@ -160,7 +160,7 @@ describe("AuthorizationCheckWrapper", () => {
 
     it("should preserve handler context", () => {
       let handlerExecuted = false;
-      const handler = function (this: any) {
+      const handler = () => {
         handlerExecuted = true;
         return "result";
       };
