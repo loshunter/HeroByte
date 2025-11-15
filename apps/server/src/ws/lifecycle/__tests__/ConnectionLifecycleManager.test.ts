@@ -58,7 +58,9 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
   describe("UID extraction from connection URL", () => {
     it("extracts UID from query parameter", () => {
       // Setup: URL with uid parameter
-      const req = new FakeIncomingMessage("http://localhost?uid=player123") as unknown as IncomingMessage;
+      const req = new FakeIncomingMessage(
+        "http://localhost?uid=player123",
+      ) as unknown as IncomingMessage;
 
       // Execute: extract UID (simulating lines 84-85)
       const params = new URL(req.url || "", "http://localhost").searchParams;
@@ -94,7 +96,9 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
 
     it("handles anonymous UID string 'anon'", () => {
       // Setup: URL explicitly sets uid=anon
-      const req = new FakeIncomingMessage("http://localhost?uid=anon") as unknown as IncomingMessage;
+      const req = new FakeIncomingMessage(
+        "http://localhost?uid=anon",
+      ) as unknown as IncomingMessage;
 
       // Execute: extract UID
       const params = new URL(req.url || "", "http://localhost").searchParams;
@@ -106,7 +110,9 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
 
     it("extracts UID with special characters", () => {
       // Setup: UID with UUID format
-      const req = new FakeIncomingMessage("http://localhost?uid=550e8400-e29b-41d4-a716-446655440000") as unknown as IncomingMessage;
+      const req = new FakeIncomingMessage(
+        "http://localhost?uid=550e8400-e29b-41d4-a716-446655440000",
+      ) as unknown as IncomingMessage;
 
       // Execute: extract UID
       const params = new URL(req.url || "", "http://localhost").searchParams;
@@ -118,7 +124,9 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
 
     it("extracts first UID when multiple uid parameters provided", () => {
       // Setup: URL with multiple uid parameters
-      const req = new FakeIncomingMessage("http://localhost?uid=first&uid=second") as unknown as IncomingMessage;
+      const req = new FakeIncomingMessage(
+        "http://localhost?uid=first&uid=second",
+      ) as unknown as IncomingMessage;
 
       // Execute: extract UID
       const params = new URL(req.url || "", "http://localhost").searchParams;
@@ -539,7 +547,9 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
   describe("Complete connection lifecycle", () => {
     it("performs full connection setup for new authenticated user", () => {
       // Setup: new connection URL
-      const req = new FakeIncomingMessage("http://localhost?uid=player1") as unknown as IncomingMessage;
+      const req = new FakeIncomingMessage(
+        "http://localhost?uid=player1",
+      ) as unknown as IncomingMessage;
       const ws = new FakeWebSocket() as unknown as WebSocket;
 
       // Execute: full connection setup
@@ -589,7 +599,9 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       authenticatedSessions.set(uid, { roomId: "room1", authedAt: Date.now() });
 
       // New connection attempt
-      const req = new FakeIncomingMessage(`http://localhost?uid=${uid}`) as unknown as IncomingMessage;
+      const req = new FakeIncomingMessage(
+        `http://localhost?uid=${uid}`,
+      ) as unknown as IncomingMessage;
       const newWs = new FakeWebSocket() as unknown as WebSocket;
 
       // Execute: reconnection flow
@@ -690,7 +702,9 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
   describe("Edge cases", () => {
     it("handles URL with multiple query parameters", () => {
       // Setup: URL with multiple params
-      const req = new FakeIncomingMessage("http://localhost?foo=bar&uid=player1&baz=qux") as unknown as IncomingMessage;
+      const req = new FakeIncomingMessage(
+        "http://localhost?foo=bar&uid=player1&baz=qux",
+      ) as unknown as IncomingMessage;
 
       // Execute: extract UID
       const params = new URL(req.url || "", "http://localhost").searchParams;
@@ -702,7 +716,9 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
 
     it("handles encoded UID characters", () => {
       // Setup: URL with encoded characters
-      const req = new FakeIncomingMessage("http://localhost?uid=player%2F1") as unknown as IncomingMessage;
+      const req = new FakeIncomingMessage(
+        "http://localhost?uid=player%2F1",
+      ) as unknown as IncomingMessage;
 
       // Execute: extract UID
       const params = new URL(req.url || "", "http://localhost").searchParams;

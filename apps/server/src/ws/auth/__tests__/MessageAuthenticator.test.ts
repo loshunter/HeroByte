@@ -287,9 +287,7 @@ describe("MessageAuthenticator - Characterization Tests", () => {
 
       // Assert: warning logged
       expect(consoleWarnSpy).toHaveBeenCalledOnce();
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        `Unauthenticated message from ${uid}, dropping.`,
-      );
+      expect(consoleWarnSpy).toHaveBeenCalledWith(`Unauthenticated message from ${uid}, dropping.`);
 
       // Assert: callback invoked
       expect(onUnauthenticatedMessageCallback).toHaveBeenCalledWith(uid);
@@ -338,9 +336,7 @@ describe("MessageAuthenticator - Characterization Tests", () => {
       expect(result).toBe(true);
 
       // Assert: warning logged
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        `Unauthenticated message from ${uid}, dropping.`,
-      );
+      expect(consoleWarnSpy).toHaveBeenCalledWith(`Unauthenticated message from ${uid}, dropping.`);
 
       // Assert: NOT routed to elevateToDM
       expect(mockAuthHandler.elevateToDM).not.toHaveBeenCalled();
@@ -363,9 +359,7 @@ describe("MessageAuthenticator - Characterization Tests", () => {
       expect(result).toBe(true);
 
       // Assert: warning logged
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        `Unauthenticated message from ${uid}, dropping.`,
-      );
+      expect(consoleWarnSpy).toHaveBeenCalledWith(`Unauthenticated message from ${uid}, dropping.`);
 
       // Assert: NOT routed to revokeDM
       expect(mockAuthHandler.revokeDM).not.toHaveBeenCalled();
@@ -389,9 +383,7 @@ describe("MessageAuthenticator - Characterization Tests", () => {
       expect(result).toBe(true);
 
       // Assert: warning logged
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        `Unauthenticated message from ${uid}, dropping.`,
-      );
+      expect(consoleWarnSpy).toHaveBeenCalledWith(`Unauthenticated message from ${uid}, dropping.`);
 
       // Assert: NOT routed to setDMPassword
       expect(mockAuthHandler.setDMPassword).not.toHaveBeenCalled();
@@ -530,9 +522,7 @@ describe("MessageAuthenticator - Characterization Tests", () => {
       const result = checkAuth(message, uid);
 
       // Assert: message dropped (auth check happens before routing)
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        `Unauthenticated message from ${uid}, dropping.`,
-      );
+      expect(consoleWarnSpy).toHaveBeenCalledWith(`Unauthenticated message from ${uid}, dropping.`);
 
       // Assert: NOT routed to elevateToDM
       expect(mockAuthHandler.elevateToDM).not.toHaveBeenCalled();
@@ -589,9 +579,7 @@ describe("MessageAuthenticator - Characterization Tests", () => {
 
       // Assert: warning logged with uid
       expect(consoleWarnSpy).toHaveBeenCalledOnce();
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        `Unauthenticated message from ${uid}, dropping.`,
-      );
+      expect(consoleWarnSpy).toHaveBeenCalledWith(`Unauthenticated message from ${uid}, dropping.`);
     });
 
     it("does not log warning for 'authenticate' message", () => {
@@ -649,9 +637,7 @@ describe("MessageAuthenticator - Characterization Tests", () => {
 
       // Assert: warning logged for each message
       expect(consoleWarnSpy).toHaveBeenCalledTimes(3);
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        "Unauthenticated message from user1, dropping.",
-      );
+      expect(consoleWarnSpy).toHaveBeenCalledWith("Unauthenticated message from user1, dropping.");
     });
   });
 
@@ -731,9 +717,7 @@ describe("MessageAuthenticator - Characterization Tests", () => {
 
       // Assert: user2 message dropped
       expect(result2).toBe(true);
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        "Unauthenticated message from user2, dropping.",
-      );
+      expect(consoleWarnSpy).toHaveBeenCalledWith("Unauthenticated message from user2, dropping.");
     });
 
     it("handles all four auth message types in sequence", () => {
