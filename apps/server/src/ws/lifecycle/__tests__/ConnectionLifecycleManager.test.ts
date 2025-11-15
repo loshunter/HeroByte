@@ -226,7 +226,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       // Setup: authenticated user reconnecting
       const uid = "player1";
       const existingWs = new FakeWebSocket() as unknown as WebSocket;
-      const newWs = new FakeWebSocket() as unknown as WebSocket;
+      const _newWs = new FakeWebSocket() as unknown as WebSocket;
 
       uidToWs.set(uid, existingWs);
       authenticatedUids.add(uid);
