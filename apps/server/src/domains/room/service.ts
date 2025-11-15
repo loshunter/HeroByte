@@ -4,9 +4,9 @@
 // Handles room state management, persistence, and broadcasting
 
 import type { WebSocket } from "ws";
-import type { Player, RoomSnapshot, Character, SceneObject, PlayerStagingZone } from "@shared";
+import type { RoomSnapshot, PlayerStagingZone } from "@shared";
 import type { RoomState } from "./model.js";
-import { createEmptyRoomState, createSelectionMap, toSnapshot } from "./model.js";
+import { createEmptyRoomState, toSnapshot } from "./model.js";
 import { StagingZoneManager } from "./staging/StagingZoneManager.js";
 import { StatePersistence } from "./persistence/StatePersistence.js";
 import { SceneGraphBuilder } from "./scene/SceneGraphBuilder.js";

@@ -12,7 +12,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { RoomService } from "../../service.js";
-import type { RoomSnapshot, Player, Character, Token } from "@shared";
+import type { RoomSnapshot, Player } from "@shared";
 
 describe("SnapshotLoader - Characterization Tests", () => {
   let roomService: RoomService;

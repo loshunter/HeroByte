@@ -15,7 +15,7 @@
  * @module domains/room/transform
  */
 
-import type { SceneObject, Token, Prop, Drawing, PlayerStagingZone } from "@shared";
+import type { SceneObject, PlayerStagingZone } from "@shared";
 import type { RoomState } from "../model.js";
 
 /**
