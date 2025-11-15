@@ -16,7 +16,7 @@ describe("MessageAuthenticator - Characterization Tests", () => {
   let onAuthMessageCallback: MockInstance;
   let onUnauthenticatedMessageCallback: MockInstance;
   let consoleWarnSpy: MockInstance;
-  let consoleLogSpy: MockInstance;
+  let _consoleLogSpy: MockInstance;
 
   beforeEach(() => {
     // Clear all mocks between tests
@@ -30,7 +30,7 @@ describe("MessageAuthenticator - Characterization Tests", () => {
 
     // Setup spies
     consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    _consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
   });
 
   describe("Authentication message detection", () => {

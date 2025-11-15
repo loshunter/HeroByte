@@ -8,7 +8,6 @@ vi.mock("../../../middleware/validation.js", () => ({
 
 import type { ClientMessage } from "@shared";
 import { validateMessage } from "../../../middleware/validation.js";
-import type { RateLimiter } from "../../../middleware/rateLimit.js";
 
 // Mock RateLimiter class
 class MockRateLimiter {
@@ -377,9 +376,7 @@ describe("MessagePipelineManager - Characterization Tests", () => {
       processMessage(buffer, "user1");
 
       // Assert: Warning logged with message details
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        "Invalid message from user1: Validation error",
-      );
+      expect(consoleWarnSpy).toHaveBeenCalledWith("Invalid message from user1: Validation error");
     });
 
     it("logs error without message details when JSON parsing fails", () => {

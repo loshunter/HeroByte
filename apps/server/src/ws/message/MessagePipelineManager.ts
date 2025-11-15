@@ -159,7 +159,7 @@ export class MessagePipelineManager {
   private parseJSON(buffer: Buffer, uid: string): unknown | null {
     try {
       return JSON.parse(buffer.toString());
-    } catch (err) {
+    } catch (_err) {
       const reason = "Invalid JSON";
       console.warn(`Invalid message from ${uid}: ${reason}`);
       this.config.onInvalidMessage?.(uid, reason);
