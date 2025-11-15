@@ -28,7 +28,7 @@ const ignoreDirectories = new Set([
 ]);
 
 const threshold = 350;
-const includeTests = false;
+const includeTests = true; // Include ALL files in baseline to properly track new violations
 
 const repoRoot = process.cwd();
 const scanRoots = [path.join(repoRoot, "apps"), path.join(repoRoot, "packages")];
