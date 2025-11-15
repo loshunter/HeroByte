@@ -464,7 +464,14 @@ describe("StatePersistence - Characterization Tests", () => {
       // Set state with ephemeral data
       const state = roomService.getState();
       state.users.push("user-1");
-      state.pointers.push({ x: 10, y: 20, uid: "player-1", timestamp: Date.now() });
+      state.pointers.push({
+        id: "pointer-1",
+        name: "Player 1",
+        uid: "player-1",
+        x: 10,
+        y: 20,
+        timestamp: Date.now(),
+      });
       state.drawingUndoStacks["player-1"] = [];
       state.drawingRedoStacks["player-1"] = [];
 
