@@ -42,8 +42,8 @@ describe("StatePersistence - Characterization Tests", () => {
   });
 
   afterEach(async () => {
-    // Wait for any pending async file writes to complete
-    await new Promise((resolve) => setTimeout(resolve, 250));
+    // Wait for any pending async file writes to complete (increased for CI reliability)
+    await new Promise((resolve) => setTimeout(resolve, 600));
 
     // Clean up test state file
     if (existsSync(TEST_STATE_FILE)) {
@@ -447,8 +447,8 @@ describe("StatePersistence - Characterization Tests", () => {
       // Save state
       roomService.saveState();
 
-      // Wait for async file write (increased timeout for reliability)
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      // Wait for async file write (increased timeout for reliability, especially on CI)
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Verify file exists
       expect(existsSync(PROD_STATE_FILE)).toBe(true);
@@ -476,7 +476,7 @@ describe("StatePersistence - Characterization Tests", () => {
       state.drawingRedoStacks["player-1"] = [];
 
       roomService.saveState();
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       const savedData = JSON.parse(readFileSync(PROD_STATE_FILE, "utf-8"));
 
@@ -504,7 +504,7 @@ describe("StatePersistence - Characterization Tests", () => {
       });
 
       roomService.saveState();
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       const fileContent = readFileSync(PROD_STATE_FILE, "utf-8");
 
@@ -554,7 +554,7 @@ describe("StatePersistence - Characterization Tests", () => {
       });
 
       roomService.saveState();
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       const savedData = JSON.parse(readFileSync(PROD_STATE_FILE, "utf-8"));
 
