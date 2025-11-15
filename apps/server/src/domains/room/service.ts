@@ -12,6 +12,7 @@ import { StatePersistence } from "./persistence/StatePersistence.js";
 import { SceneGraphBuilder } from "./scene/SceneGraphBuilder.js";
 import { SnapshotLoader } from "./snapshot/SnapshotLoader.js";
 import { TransformHandler } from "./transform/TransformHandler.js";
+import { LockingHandler } from "./locking/LockingHandler.js";
 
 /**
  * Room service - manages session state and persistence
@@ -23,12 +24,14 @@ export class RoomService {
   private sceneGraphBuilder: SceneGraphBuilder;
   private snapshotLoader: SnapshotLoader;
   private transformHandler: TransformHandler;
+  private lockingHandler: LockingHandler;
 
   constructor() {
     this.state = createEmptyRoomState();
     this.sceneGraphBuilder = new SceneGraphBuilder();
     this.snapshotLoader = new SnapshotLoader();
     this.transformHandler = new TransformHandler();
+    this.lockingHandler = new LockingHandler();
     this.stagingManager = new StagingZoneManager(this.state, () => this.rebuildSceneGraph());
     this.persistence = new StatePersistence(
       () => this.state,
@@ -133,23 +136,7 @@ export class RoomService {
    * Returns number of objects successfully locked
    */
   lockSelectedObjects(actorUid: string, objectIds: string[]): number {
-    const actor = this.state.players.find((player) => player.uid === actorUid);
-    const isDM = actor?.isDM ?? false;
-
-    if (!isDM) {
-      return 0;
-    }
-
-    let lockCount = 0;
-    for (const id of objectIds) {
-      const object = this.state.sceneObjects.find((candidate) => candidate.id === id);
-      if (object) {
-        object.locked = true;
-        lockCount++;
-      }
-    }
-
-    return lockCount;
+    return this.lockingHandler.lockObjects(actorUid, objectIds, this.state);
   }
 
   /**
@@ -157,23 +144,7 @@ export class RoomService {
    * Returns number of objects successfully unlocked
    */
   unlockSelectedObjects(actorUid: string, objectIds: string[]): number {
-    const actor = this.state.players.find((player) => player.uid === actorUid);
-    const isDM = actor?.isDM ?? false;
-
-    if (!isDM) {
-      return 0;
-    }
-
-    let unlockCount = 0;
-    for (const id of objectIds) {
-      const object = this.state.sceneObjects.find((candidate) => candidate.id === id);
-      if (object) {
-        object.locked = false;
-        unlockCount++;
-      }
-    }
-
-    return unlockCount;
+    return this.lockingHandler.unlockObjects(actorUid, objectIds, this.state);
   }
 
   applySceneObjectTransform(
