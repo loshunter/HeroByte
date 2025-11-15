@@ -11,6 +11,7 @@ import { StagingZoneManager } from "./staging/StagingZoneManager.js";
 import { StatePersistence } from "./persistence/StatePersistence.js";
 import { SceneGraphBuilder } from "./scene/SceneGraphBuilder.js";
 import { SnapshotLoader } from "./snapshot/SnapshotLoader.js";
+import { TransformHandler } from "./transform/TransformHandler.js";
 
 /**
  * Room service - manages session state and persistence
@@ -21,11 +22,13 @@ export class RoomService {
   private persistence: StatePersistence;
   private sceneGraphBuilder: SceneGraphBuilder;
   private snapshotLoader: SnapshotLoader;
+  private transformHandler: TransformHandler;
 
   constructor() {
     this.state = createEmptyRoomState();
     this.sceneGraphBuilder = new SceneGraphBuilder();
     this.snapshotLoader = new SnapshotLoader();
+    this.transformHandler = new TransformHandler();
     this.stagingManager = new StagingZoneManager(this.state, () => this.rebuildSceneGraph());
     this.persistence = new StatePersistence(
       () => this.state,
@@ -183,170 +186,7 @@ export class RoomService {
       locked?: boolean;
     },
   ): boolean {
-    const object = this.state.sceneObjects.find((candidate) => candidate.id === id);
-    if (!object) {
-      return false;
-    }
-
-    const actor = this.state.players.find((player) => player.uid === actorUid);
-    const isDM = actor?.isDM ?? false;
-
-    // Handle locked state change (DM only)
-    if (typeof changes.locked === "boolean") {
-      if (!isDM) return false;
-      object.locked = changes.locked;
-      return true;
-    }
-
-    if (object.locked && !isDM) {
-      return false;
-    }
-
-    const applyRotation = (value: number | undefined) => {
-      if (typeof value === "number") {
-        object.transform.rotation = value;
-      }
-    };
-
-    const applyScale = (value: { x: number; y: number } | undefined) => {
-      if (value) {
-        object.transform.scaleX = value.x;
-        object.transform.scaleY = value.y;
-      }
-    };
-
-    const applyPosition = (value: { x: number; y: number } | undefined) => {
-      if (value) {
-        object.transform.x = value.x;
-        object.transform.y = value.y;
-      }
-    };
-
-    switch (object.type) {
-      case "map": {
-        if (!isDM) return false;
-        applyPosition(changes.position);
-        applyScale(changes.scale);
-        applyRotation(changes.rotation);
-        return true;
-      }
-
-      case "token": {
-        const tokenId = object.id.replace(/^token:/, "");
-        const token = this.state.tokens.find((candidate) => candidate.id === tokenId);
-        if (!token) return false;
-        if (!isDM && token.owner !== actorUid) return false;
-
-        if (changes.position) {
-          token.x = changes.position.x;
-          token.y = changes.position.y;
-        }
-
-        applyPosition(changes.position);
-        applyScale(changes.scale);
-        applyRotation(changes.rotation);
-        return true;
-      }
-
-      case "staging-zone": {
-        if (!isDM) return false;
-        if (!this.state.playerStagingZone) return false;
-
-        console.log("[DEBUG] Staging zone transform:", {
-          position: changes.position,
-          scale: changes.scale,
-          rotation: changes.rotation,
-          currentTransform: object.transform,
-          currentZone: this.state.playerStagingZone,
-        });
-
-        if (changes.position) {
-          this.state.playerStagingZone.x = changes.position.x;
-          this.state.playerStagingZone.y = changes.position.y;
-          applyPosition(changes.position);
-        }
-
-        if (changes.scale) {
-          // Persist scale to the staging zone state
-          this.state.playerStagingZone.scaleX = changes.scale.x;
-          this.state.playerStagingZone.scaleY = changes.scale.y;
-          // Apply scale to transform (don't bake into width/height)
-          // The width/height remain as "base" values, and we scale them via transform
-          applyScale(changes.scale);
-
-          console.log("[DEBUG] Staging zone scale applied:", {
-            baseWidth: this.state.playerStagingZone.width,
-            baseHeight: this.state.playerStagingZone.height,
-            scaleX: changes.scale.x,
-            scaleY: changes.scale.y,
-            finalWidth: this.state.playerStagingZone.width * changes.scale.x,
-            finalHeight: this.state.playerStagingZone.height * changes.scale.y,
-          });
-        }
-
-        if (typeof changes.rotation === "number") {
-          this.state.playerStagingZone.rotation = changes.rotation;
-          applyRotation(changes.rotation);
-          if (object.type === "staging-zone") {
-            object.data.rotation = changes.rotation;
-          }
-        }
-
-        return true;
-      }
-
-      case "drawing": {
-        const drawingId = object.id.replace(/^drawing:/, "");
-        const drawing = this.state.drawings.find((candidate) => candidate.id === drawingId);
-        const canEdit = isDM || drawing?.owner === actorUid;
-        if (!drawing || !canEdit) return false;
-
-        applyPosition(changes.position);
-        applyScale(changes.scale);
-        applyRotation(changes.rotation);
-        return true;
-      }
-
-      case "prop": {
-        // Find the source prop entity
-        const propId = object.id.replace(/^prop:/, "");
-        const prop = this.state.props.find((candidate) => candidate.id === propId);
-        if (!prop) return false;
-
-        // Permission check: DM can always edit, owner="*" means everyone, or specific owner
-        const canEdit = isDM || prop.owner === "*" || prop.owner === actorUid;
-        if (!canEdit) return false;
-
-        // Update source Prop entity
-        if (changes.position) {
-          prop.x = changes.position.x;
-          prop.y = changes.position.y;
-        }
-        if (changes.scale) {
-          prop.scaleX = changes.scale.x;
-          prop.scaleY = changes.scale.y;
-        }
-        if (typeof changes.rotation === "number") {
-          prop.rotation = changes.rotation;
-        }
-
-        // Apply to SceneObject
-        applyPosition(changes.position);
-        applyScale(changes.scale);
-        applyRotation(changes.rotation);
-        return true;
-      }
-
-      case "pointer": {
-        // Pointers are ephemeral and follow owner interactions only
-        if (object.owner !== actorUid) return false;
-        applyPosition(changes.position);
-        return true;
-      }
-
-      default:
-        return false;
-    }
+    return this.transformHandler.applyTransform(id, actorUid, changes, this.state);
   }
 
   private rebuildSceneGraph(): void {
