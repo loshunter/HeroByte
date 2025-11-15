@@ -53,8 +53,8 @@ describe("StatePersistence - Characterization Tests", () => {
   });
 
   afterEach(async () => {
-    // Wait for any pending async file writes to complete (increased for CI reliability)
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    // Wait for any pending async file writes to complete
+    await roomService.awaitPendingWrites();
 
     // Clean up test state file
     if (existsSync(TEST_STATE_FILE)) {
@@ -458,8 +458,8 @@ describe("StatePersistence - Characterization Tests", () => {
       // Save state
       roomService.saveState();
 
-      // Wait for async file write (increased timeout for reliability, especially on CI)
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Wait for async file write to complete
+      await roomService.awaitPendingWrites();
 
       // Verify file exists
       expect(existsSync(PROD_STATE_FILE)).toBe(true);
@@ -487,7 +487,7 @@ describe("StatePersistence - Characterization Tests", () => {
       state.drawingRedoStacks["player-1"] = [];
 
       roomService.saveState();
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await roomService.awaitPendingWrites();
 
       const savedData = JSON.parse(readFileSync(PROD_STATE_FILE, "utf-8"));
 
@@ -515,7 +515,7 @@ describe("StatePersistence - Characterization Tests", () => {
       });
 
       roomService.saveState();
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await roomService.awaitPendingWrites();
 
       const fileContent = readFileSync(PROD_STATE_FILE, "utf-8");
 
@@ -565,7 +565,7 @@ describe("StatePersistence - Characterization Tests", () => {
       });
 
       roomService.saveState();
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await roomService.awaitPendingWrites();
 
       const savedData = JSON.parse(readFileSync(PROD_STATE_FILE, "utf-8"));
 
@@ -601,7 +601,7 @@ describe("StatePersistence - Characterization Tests", () => {
       writeFileSpy.mockRejectedValueOnce(new Error("Disk full"));
 
       expect(() => roomService.saveState()).not.toThrow();
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await roomService.awaitPendingWrites();
 
       expect(consoleSpy).toHaveBeenCalledWith("Failed to save state:", expect.any(Error));
 
@@ -648,7 +648,7 @@ describe("StatePersistence - Characterization Tests", () => {
         roomService.saveState();
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 900));
+      await roomService.awaitPendingWrites();
 
       expect(maxConcurrentWrites).toBe(1);
 

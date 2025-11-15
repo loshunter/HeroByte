@@ -74,6 +74,14 @@ export class RoomService {
   }
 
   /**
+   * Wait for all pending state saves to complete.
+   * Primarily for testing to ensure writes finish before assertions.
+   */
+  awaitPendingWrites(): Promise<void> {
+    return this.persistence.awaitPendingWrites();
+  }
+
+  /**
    * Load a snapshot from client (from saved session file)
    * Merges loaded data with currently connected players
    */

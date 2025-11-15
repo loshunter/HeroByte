@@ -179,4 +179,23 @@ export class StatePersistence {
         console.error("Failed to save state:", err);
       });
   }
+
+  /**
+   * Waits for all pending writes to complete.
+   *
+   * This method is primarily intended for testing to ensure that all
+   * async write operations have finished before making assertions.
+   *
+   * @returns Promise that resolves when all pending writes are complete
+   *
+   * @example
+   * ```typescript
+   * persistence.saveToDisk();
+   * await persistence.awaitPendingWrites(); // Wait for write to finish
+   * // Now safe to read and assert on the file content
+   * ```
+   */
+  awaitPendingWrites(): Promise<void> {
+    return this.writeQueue;
+  }
 }
