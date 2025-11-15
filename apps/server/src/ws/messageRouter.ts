@@ -30,12 +30,28 @@ import { SelectionMessageHandler } from "./handlers/SelectionMessageHandler.js";
 import { DiceMessageHandler } from "./handlers/DiceMessageHandler.js";
 import { RoomMessageHandler } from "./handlers/RoomMessageHandler.js";
 import { TransformMessageHandler } from "./handlers/TransformMessageHandler.js";
+import { AuthorizationService } from "./services/AuthorizationService.js";
+import { MessageErrorHandler } from "./services/MessageErrorHandler.js";
+import { BroadcastService } from "./services/BroadcastService.js";
+import { DirectMessageService } from "./services/DirectMessageService.js";
+import { RouteResultHandler } from "./services/RouteResultHandler.js";
+import { DMAuthorizationEnforcer } from "./services/DMAuthorizationEnforcer.js";
+import { AuthorizationCheckWrapper } from "./services/AuthorizationCheckWrapper.js";
+import { MessageLogger } from "./services/MessageLogger.js";
 
 /**
  * Message router - handles all WebSocket messages and dispatches to domain services
  */
 export class MessageRouter {
   private roomService: RoomService;
+  private authorizationService: AuthorizationService;
+  private messageErrorHandler: MessageErrorHandler;
+  private broadcastService: BroadcastService;
+  private directMessageService: DirectMessageService;
+  private routeResultHandler: RouteResultHandler;
+  private dmAuthorizationEnforcer: DMAuthorizationEnforcer;
+  private authorizationCheckWrapper: AuthorizationCheckWrapper;
+  private messageLogger: MessageLogger;
   private playerService: PlayerService;
   private tokenService: TokenService;
   private mapService: MapService;
@@ -62,7 +78,6 @@ export class MessageRouter {
   private wss: WebSocketServer;
   private uidToWs: Map<string, WebSocket>;
   private getAuthorizedClients: () => Set<WebSocket>;
-  private broadcastDebounceTimer: NodeJS.Timeout | null = null;
 
   constructor(
     roomService: RoomService,
@@ -90,6 +105,17 @@ export class MessageRouter {
     this.wss = wss;
     this.uidToWs = uidToWs;
     this.getAuthorizedClients = getAuthorizedClients;
+    this.authorizationService = new AuthorizationService();
+    this.messageLogger = new MessageLogger();
+    this.messageErrorHandler = new MessageErrorHandler(this.messageLogger);
+    this.broadcastService = new BroadcastService();
+    this.directMessageService = new DirectMessageService(uidToWs);
+    this.routeResultHandler = new RouteResultHandler(
+      () => this.broadcast(),
+      () => this.roomService.saveState(),
+    );
+    this.dmAuthorizationEnforcer = new DMAuthorizationEnforcer(this.messageLogger);
+    this.authorizationCheckWrapper = new AuthorizationCheckWrapper(this.dmAuthorizationEnforcer);
     this.heartbeatHandler = new HeartbeatHandler();
     this.rtcSignalHandler = new RTCSignalHandler(uidToWs);
     this.pointerHandler = new PointerHandler(mapService);
@@ -131,18 +157,18 @@ export class MessageRouter {
 
   /**
    * Check if a player has DM privileges
+   * Delegates to AuthorizationService
    */
   private isDM(senderUid: string): boolean {
     const state = this.roomService.getState();
-    const player = state.players.find((p) => p.uid === senderUid);
-    return player?.isDM ?? false;
+    return this.authorizationService.isDM(state, senderUid);
   }
 
   /**
    * Route a message to the appropriate handler
    */
   route(message: ClientMessage, senderUid: string): void {
-    console.log(`[MessageRouter] Routing message type: ${message.t} from ${senderUid}`);
+    this.messageLogger.logMessageRouting(message.t, senderUid);
     const state = this.roomService.getState();
 
     try {
@@ -156,15 +182,13 @@ export class MessageRouter {
             message.x,
             message.y,
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
         case "recolor": {
           const result = this.tokenMessageHandler.handleRecolor(state, message.id, senderUid);
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -175,8 +199,7 @@ export class MessageRouter {
             senderUid,
             this.isDM(senderUid),
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -187,8 +210,7 @@ export class MessageRouter {
             senderUid,
             message.imageUrl,
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -199,8 +221,7 @@ export class MessageRouter {
             senderUid,
             message.size,
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -212,30 +233,26 @@ export class MessageRouter {
             message.color,
             this.isDM(senderUid),
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
         // PLAYER ACTIONS
         case "portrait": {
           const result = this.playerMessageHandler.handlePortrait(state, senderUid, message.data);
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
         case "rename": {
           const result = this.playerMessageHandler.handleRename(state, senderUid, message.name);
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
         case "mic-level": {
           const result = this.playerMessageHandler.handleMicLevel(state, senderUid, message.level);
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -246,8 +263,7 @@ export class MessageRouter {
             message.hp,
             message.maxHp,
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -257,8 +273,7 @@ export class MessageRouter {
             senderUid,
             message.effects,
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -271,74 +286,87 @@ export class MessageRouter {
 
         // CHARACTER ACTIONS
         case "create-character": {
-          if (!this.isDM(senderUid)) {
-            console.warn(`Non-DM ${senderUid} attempted to create character`);
-            break;
-          }
-          const result = this.characterMessageHandler.handleCreateCharacter(
-            state,
-            message.name,
-            message.maxHp,
-            message.portrait,
+          const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
+            senderUid,
+            this.isDM(senderUid),
+            "create character",
+            () =>
+              this.characterMessageHandler.handleCreateCharacter(
+                state,
+                message.name,
+                message.maxHp,
+                message.portrait,
+              ),
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          if (result) {
+            this.routeResultHandler.handleResult(result);
+          }
           break;
         }
 
         case "create-npc": {
-          if (!this.isDM(senderUid)) {
-            console.warn(`Non-DM ${senderUid} attempted to create NPC`);
-            break;
-          }
-          const result = this.npcMessageHandler.handleCreateNPC(
-            state,
-            message.name,
-            message.maxHp,
-            message.portrait,
-            { hp: message.hp, tokenImage: message.tokenImage },
+          const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
+            senderUid,
+            this.isDM(senderUid),
+            "create NPC",
+            () =>
+              this.npcMessageHandler.handleCreateNPC(
+                state,
+                message.name,
+                message.maxHp,
+                message.portrait,
+                { hp: message.hp, tokenImage: message.tokenImage },
+              ),
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          if (result) {
+            this.routeResultHandler.handleResult(result);
+          }
           break;
         }
 
         case "update-npc": {
-          if (!this.isDM(senderUid)) {
-            console.warn(`Non-DM ${senderUid} attempted to update NPC`);
-            break;
+          const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
+            senderUid,
+            this.isDM(senderUid),
+            "update NPC",
+            () =>
+              this.npcMessageHandler.handleUpdateNPC(state, message.id, {
+                name: message.name,
+                hp: message.hp,
+                maxHp: message.maxHp,
+                portrait: message.portrait,
+                tokenImage: message.tokenImage,
+              }),
+          );
+          if (result) {
+            this.routeResultHandler.handleResult(result);
           }
-          const result = this.npcMessageHandler.handleUpdateNPC(state, message.id, {
-            name: message.name,
-            hp: message.hp,
-            maxHp: message.maxHp,
-            portrait: message.portrait,
-            tokenImage: message.tokenImage,
-          });
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
           break;
         }
 
         case "delete-npc": {
-          if (!this.isDM(senderUid)) {
-            console.warn(`Non-DM ${senderUid} attempted to delete NPC`);
-            break;
+          const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
+            senderUid,
+            this.isDM(senderUid),
+            "delete NPC",
+            () => this.npcMessageHandler.handleDeleteNPC(state, message.id),
+          );
+          if (result) {
+            this.routeResultHandler.handleResult(result);
           }
-          const result = this.npcMessageHandler.handleDeleteNPC(state, message.id);
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
           break;
         }
 
         case "place-npc-token": {
-          if (!this.isDM(senderUid)) {
-            console.warn(`Non-DM ${senderUid} attempted to place NPC token`);
-            break;
+          const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
+            senderUid,
+            this.isDM(senderUid),
+            "place NPC token",
+            () => this.npcMessageHandler.handlePlaceNPCToken(state, message.id, senderUid),
+          );
+          if (result) {
+            this.routeResultHandler.handleResult(result);
           }
-          const result = this.npcMessageHandler.handlePlaceNPCToken(state, message.id, senderUid);
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
           break;
         }
 
@@ -352,8 +380,7 @@ export class MessageRouter {
             message.initiativeModifier,
             this.isDM(senderUid),
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -363,8 +390,7 @@ export class MessageRouter {
             senderUid,
             this.isDM(senderUid),
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -374,8 +400,7 @@ export class MessageRouter {
             senderUid,
             this.isDM(senderUid),
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -385,8 +410,7 @@ export class MessageRouter {
             senderUid,
             this.isDM(senderUid),
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -396,8 +420,7 @@ export class MessageRouter {
             senderUid,
             this.isDM(senderUid),
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -407,55 +430,62 @@ export class MessageRouter {
             senderUid,
             this.isDM(senderUid),
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
         // PROP ACTIONS
         case "create-prop": {
-          if (!this.isDM(senderUid)) {
-            console.warn(`Non-DM ${senderUid} attempted to create prop`);
-            break;
-          }
-          const result = this.propMessageHandler.handleCreateProp(
-            state,
-            message.label,
-            message.imageUrl,
-            message.owner,
-            message.size,
-            message.viewport,
-            state.gridSize,
+          const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
+            senderUid,
+            this.isDM(senderUid),
+            "create prop",
+            () =>
+              this.propMessageHandler.handleCreateProp(
+                state,
+                message.label,
+                message.imageUrl,
+                message.owner,
+                message.size,
+                message.viewport,
+                state.gridSize,
+              ),
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          if (result) {
+            this.routeResultHandler.handleResult(result);
+          }
           break;
         }
 
         case "update-prop": {
-          if (!this.isDM(senderUid)) {
-            console.warn(`Non-DM ${senderUid} attempted to update prop`);
-            break;
+          const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
+            senderUid,
+            this.isDM(senderUid),
+            "update prop",
+            () =>
+              this.propMessageHandler.handleUpdateProp(state, message.id, {
+                label: message.label,
+                imageUrl: message.imageUrl,
+                owner: message.owner,
+                size: message.size,
+              }),
+          );
+          if (result) {
+            this.routeResultHandler.handleResult(result);
           }
-          const result = this.propMessageHandler.handleUpdateProp(state, message.id, {
-            label: message.label,
-            imageUrl: message.imageUrl,
-            owner: message.owner,
-            size: message.size,
-          });
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
           break;
         }
 
         case "delete-prop": {
-          if (!this.isDM(senderUid)) {
-            console.warn(`Non-DM ${senderUid} attempted to delete prop`);
-            break;
+          const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
+            senderUid,
+            this.isDM(senderUid),
+            "delete prop",
+            () => this.propMessageHandler.handleDeleteProp(state, message.id),
+          );
+          if (result) {
+            this.routeResultHandler.handleResult(result);
           }
-          const result = this.propMessageHandler.handleDeleteProp(state, message.id);
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
           break;
         }
 
@@ -465,8 +495,7 @@ export class MessageRouter {
             message.characterId,
             senderUid,
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -477,9 +506,8 @@ export class MessageRouter {
             message.name,
             message.maxHp,
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
-          console.log(`[MessageRouter] Broadcast and save complete`);
+          this.routeResultHandler.handleResult(result);
+          this.messageLogger.logBroadcastComplete();
           break;
         }
 
@@ -489,8 +517,7 @@ export class MessageRouter {
             message.characterId,
             senderUid,
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -501,8 +528,7 @@ export class MessageRouter {
             senderUid,
             message.name,
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -513,8 +539,7 @@ export class MessageRouter {
             message.hp,
             message.maxHp,
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -526,8 +551,7 @@ export class MessageRouter {
             message.effects,
             this.isDM(senderUid),
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -537,30 +561,26 @@ export class MessageRouter {
             message.characterId,
             message.tokenId,
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
         // MAP ACTIONS
         case "map-background": {
           const result = this.mapMessageHandler.handleMapBackground(state, message.data);
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
         case "grid-size": {
           const result = this.mapMessageHandler.handleGridSize(state, message.size);
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
         case "grid-square-size": {
           const result = this.mapMessageHandler.handleGridSquareSize(state, message.size);
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -571,8 +591,7 @@ export class MessageRouter {
             message.zone,
             this.isDM(senderUid),
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -584,8 +603,7 @@ export class MessageRouter {
 
         case "draw": {
           const result = this.drawingMessageHandler.handleDraw(state, message.drawing, senderUid);
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -595,22 +613,19 @@ export class MessageRouter {
             senderUid,
             message.drawings,
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
         case "undo-drawing": {
           const result = this.drawingMessageHandler.handleUndoDrawing(state, senderUid);
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
         case "redo-drawing": {
           const result = this.drawingMessageHandler.handleRedoDrawing(state, senderUid);
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -620,8 +635,7 @@ export class MessageRouter {
             senderUid,
             this.isDM(senderUid),
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -631,15 +645,13 @@ export class MessageRouter {
             message.id,
             senderUid,
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
         case "deselect-drawing": {
           const result = this.drawingMessageHandler.handleDeselectDrawing(state, senderUid);
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -650,8 +662,7 @@ export class MessageRouter {
             message.uid,
             message.objectId,
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -661,8 +672,7 @@ export class MessageRouter {
             senderUid,
             message.uid,
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -674,8 +684,7 @@ export class MessageRouter {
             message.objectIds,
             message.mode ?? "replace",
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -686,8 +695,7 @@ export class MessageRouter {
             message.uid,
             message.objectIds,
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -698,8 +706,7 @@ export class MessageRouter {
             message.uid,
             message.objectIds,
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -711,15 +718,13 @@ export class MessageRouter {
             message.dy,
             senderUid,
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
         case "delete-drawing": {
           const result = this.drawingMessageHandler.handleDeleteDrawing(state, message.id);
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -730,23 +735,20 @@ export class MessageRouter {
             message.segments,
             senderUid,
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
         // DICE ACTIONS
         case "dice-roll": {
           const result = this.diceMessageHandler.handleDiceRoll(state, message.roll);
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
         case "clear-roll-history": {
           const result = this.diceMessageHandler.handleClearRollHistory(state);
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -757,13 +759,15 @@ export class MessageRouter {
         }
 
         case "clear-all-tokens": {
-          if (!this.isDM(senderUid)) {
-            console.warn(`Non-DM ${senderUid} attempted to clear all tokens`);
-            break;
+          const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
+            senderUid,
+            this.isDM(senderUid),
+            "clear all tokens",
+            () => this.tokenMessageHandler.handleClearAll(state, senderUid),
+          );
+          if (result) {
+            this.routeResultHandler.handleResult(result);
           }
-          const result = this.tokenMessageHandler.handleClearAll(state, senderUid);
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
           break;
         }
 
@@ -781,8 +785,7 @@ export class MessageRouter {
             message.snapshot,
             this.isDM(senderUid),
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -798,8 +801,7 @@ export class MessageRouter {
               locked: message.locked,
             },
           );
-          if (result.broadcast) this.broadcast();
-          if (result.save) this.roomService.saveState();
+          this.routeResultHandler.handleResult(result);
           break;
         }
 
@@ -813,43 +815,40 @@ export class MessageRouter {
         }
 
         default: {
-          console.warn("Unknown message type:", (message as ClientMessage).t);
+          this.messageLogger.logUnknownMessageType((message as ClientMessage).t);
         }
       }
     } catch (err) {
-      console.error(
-        `[MessageRouter] Error routing message type=${message.t} from=${senderUid}:`,
-        err,
-      );
-      console.error(`[MessageRouter] Message details:`, JSON.stringify(message));
+      this.messageErrorHandler.handleError(err, message, senderUid);
     }
   }
 
   /**
    * Broadcast room state to all clients (immediate, no debouncing)
+   * Delegates to BroadcastService
    */
   private broadcastImmediate(): void {
-    this.roomService.broadcast(this.getAuthorizedClients());
+    this.broadcastService.broadcastImmediate(() => {
+      this.roomService.broadcast(this.getAuthorizedClients());
+    });
   }
 
   /**
    * Debounced broadcast - batches rapid state changes into a single broadcast
    * Waits 16ms (one frame at 60fps) before broadcasting to batch operations
+   * Delegates to BroadcastService
    */
   private broadcast(): void {
-    if (this.broadcastDebounceTimer) {
-      clearTimeout(this.broadcastDebounceTimer);
-    }
-    this.broadcastDebounceTimer = setTimeout(() => {
-      this.broadcastDebounceTimer = null;
-      this.broadcastImmediate();
-    }, 16);
+    this.broadcastService.broadcast(() => {
+      this.roomService.broadcast(this.getAuthorizedClients());
+    });
   }
 
+  /**
+   * Send a control message to a specific client
+   * Delegates to DirectMessageService
+   */
   private sendControlMessage(targetUid: string, message: ServerMessage): void {
-    const ws = this.uidToWs.get(targetUid);
-    if (ws && ws.readyState === 1) {
-      ws.send(JSON.stringify(message));
-    }
+    this.directMessageService.sendControlMessage(targetUid, message);
   }
 }
