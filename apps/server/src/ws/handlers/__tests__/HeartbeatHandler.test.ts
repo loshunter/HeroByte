@@ -245,9 +245,7 @@ describe("HeartbeatHandler - Characterization Tests", () => {
       // Modify player state (HP and name)
       roomService.setState({
         players: state.players.map((p) =>
-          p.uid === playerUid
-            ? { ...p, hp: 5, maxHp: 15, name: "Modified Player" }
-            : p
+          p.uid === playerUid ? { ...p, hp: 5, maxHp: 15, name: "Modified Player" } : p,
         ),
       });
 

@@ -70,10 +70,7 @@ describe("DiceService", () => {
       { tokenId: "token-2", subtotal: 5 },
       { tokenId: "token-3", die: "d4", rolls: [3], subtotal: 3 },
     ];
-    const expectedTotal = breakdown.reduce(
-      (sum, part) => sum + part.subtotal,
-      0,
-    );
+    const expectedTotal = breakdown.reduce((sum, part) => sum + part.subtotal, 0);
 
     const roll = {
       id: "roll-calculated",
@@ -95,13 +92,7 @@ describe("DiceService", () => {
   it("retrieves roll history in correct order with multiple rolls", () => {
     // Test that rolls are stored and retrieved in chronological order
     const state = createEmptyRoomState();
-    const rolls = [
-      createRoll(1),
-      createRoll(2),
-      createRoll(3),
-      createRoll(4),
-      createRoll(5),
-    ];
+    const rolls = [createRoll(1), createRoll(2), createRoll(3), createRoll(4), createRoll(5)];
 
     rolls.forEach((roll) => service.addRoll(state, roll));
     const history = service.getHistory(state);
@@ -124,9 +115,7 @@ describe("DiceService", () => {
       playerName: "Player",
       formula: "3d20",
       total: 3,
-      breakdown: [
-        { tokenId: "token-1", die: "d20", rolls: [1, 1, 1], subtotal: 3 },
-      ],
+      breakdown: [{ tokenId: "token-1", die: "d20", rolls: [1, 1, 1], subtotal: 3 }],
       timestamp: Date.now(),
     };
 
@@ -147,9 +136,7 @@ describe("DiceService", () => {
       playerName: "Player",
       formula: "4d6",
       total: 24,
-      breakdown: [
-        { tokenId: "token-1", die: "d6", rolls: [6, 6, 6, 6], subtotal: 24 },
-      ],
+      breakdown: [{ tokenId: "token-1", die: "d6", rolls: [6, 6, 6, 6], subtotal: 24 }],
       timestamp: Date.now(),
     };
 

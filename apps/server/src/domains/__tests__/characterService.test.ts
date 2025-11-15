@@ -335,9 +335,9 @@ describe("CharacterService", () => {
     it("returns only unclaimed characters in mixed scenario", () => {
       const state = createEmptyRoomState();
       const char1 = service.createCharacter(state, "Claimed1", 10);
-      const char2 = service.createCharacter(state, "Unclaimed1", 15);
+      const _char2 = service.createCharacter(state, "Unclaimed1", 15);
       const char3 = service.createCharacter(state, "Claimed2", 20);
-      const char4 = service.createCharacter(state, "Unclaimed2", 25);
+      const _char4 = service.createCharacter(state, "Unclaimed2", 25);
 
       service.claimCharacter(state, char1.id, "player-1");
       service.claimCharacter(state, char3.id, "player-2");
