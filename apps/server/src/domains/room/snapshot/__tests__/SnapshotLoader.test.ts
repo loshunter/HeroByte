@@ -12,7 +12,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { RoomService } from "../../service.js";
-import type { RoomSnapshot, Player } from "@shared";
+import type { RoomSnapshot, Player, Character, PlayerStagingZone } from "@shared";
 
 describe("SnapshotLoader - Characterization Tests", () => {
   let roomService: RoomService;
@@ -220,7 +220,7 @@ describe("SnapshotLoader - Characterization Tests", () => {
             maxHp: 10,
             // isDM field omitted
             statusEffects: [],
-          } as any,
+          } as Player,
         ],
         characters: [],
         tokens: [],
@@ -268,7 +268,7 @@ describe("SnapshotLoader - Characterization Tests", () => {
             hp: 10,
             maxHp: 10,
             isDM: false,
-            statusEffects: null as any, // Invalid value
+            statusEffects: null as unknown as string[], // Invalid value
           },
         ],
         characters: [],
@@ -448,7 +448,7 @@ describe("SnapshotLoader - Characterization Tests", () => {
             id: "char-2",
             name: "PC Character",
             ownedByPlayerUID: "player-1",
-            type: "invalid" as any, // Invalid type
+            type: "invalid" as unknown as "pc" | "npc", // Invalid type
             hp: 10,
             maxHp: 10,
             ac: 14,
@@ -486,7 +486,7 @@ describe("SnapshotLoader - Characterization Tests", () => {
             maxHp: 10,
             ac: 14,
             // tokenId and tokenImage omitted
-          } as any,
+          } as Character,
         ],
         tokens: [],
         props: [],
@@ -792,7 +792,7 @@ describe("SnapshotLoader - Characterization Tests", () => {
         diceRolls: [],
         sceneObjects: [],
         combatActive: false,
-      } as any;
+      } as RoomSnapshot;
 
       roomService.loadSnapshot(snapshot);
 
@@ -922,7 +922,7 @@ describe("SnapshotLoader - Characterization Tests", () => {
           y: 200,
           width: 300,
           height: 400,
-        } as any,
+        } as PlayerStagingZone,
       };
 
       roomService.loadSnapshot(snapshot);

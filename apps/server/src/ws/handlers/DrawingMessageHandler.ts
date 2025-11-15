@@ -22,7 +22,7 @@
  * @module ws/handlers/DrawingMessageHandler
  */
 
-import type { RoomState, Drawing } from "@shared";
+import type { RoomState, Drawing, DrawingSegmentPayload } from "@shared";
 import type { MapService } from "../../domains/map/service.js";
 import type { SelectionService } from "../../domains/selection/service.js";
 import type { RoomService } from "../../domains/room/service.js";
@@ -238,7 +238,7 @@ export class DrawingMessageHandler {
   handleErasePartial(
     state: RoomState,
     deleteId: string,
-    segments: any[],
+    segments: DrawingSegmentPayload[],
     senderUid: string,
   ): DrawingMessageResult {
     if (this.mapService.handlePartialErase(state, deleteId, segments, senderUid)) {

@@ -14,8 +14,9 @@
  * @module ws/handlers/RoomMessageHandler
  */
 
-import type { RoomState } from "../model.js";
+import type { RoomState } from "../../domains/room/model.js";
 import type { RoomService } from "../../domains/room/service.js";
+import type { RoomSnapshot } from "@shared";
 
 /**
  * Result of handling a room message
@@ -52,7 +53,7 @@ export class RoomMessageHandler {
   handleLoadSession(
     state: RoomState,
     senderUid: string,
-    snapshot: any,
+    snapshot: RoomSnapshot,
     isDM: boolean,
   ): RoomMessageResult {
     if (!isDM) {
