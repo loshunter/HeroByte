@@ -197,5 +197,4 @@ export class ConnectionHandler {
     // Broadcast updated state
     this.container.roomService.broadcast(this.container.getAuthenticatedClients());
   }
-
 }
