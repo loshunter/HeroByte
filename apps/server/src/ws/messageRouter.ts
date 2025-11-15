@@ -38,6 +38,7 @@ import { RouteResultHandler } from "./services/RouteResultHandler.js";
 import { DMAuthorizationEnforcer } from "./services/DMAuthorizationEnforcer.js";
 import { AuthorizationCheckWrapper } from "./services/AuthorizationCheckWrapper.js";
 import { MessageLogger } from "./services/MessageLogger.js";
+import { MessageRoutingContext } from "./services/MessageRoutingContext.js";
 
 /**
  * Message router - handles all WebSocket messages and dispatches to domain services
@@ -52,6 +53,7 @@ export class MessageRouter {
   private dmAuthorizationEnforcer: DMAuthorizationEnforcer;
   private authorizationCheckWrapper: AuthorizationCheckWrapper;
   private messageLogger: MessageLogger;
+  private messageRoutingContext: MessageRoutingContext;
   private playerService: PlayerService;
   private tokenService: TokenService;
   private mapService: MapService;
@@ -116,6 +118,10 @@ export class MessageRouter {
     );
     this.dmAuthorizationEnforcer = new DMAuthorizationEnforcer(this.messageLogger);
     this.authorizationCheckWrapper = new AuthorizationCheckWrapper(this.dmAuthorizationEnforcer);
+    this.messageRoutingContext = new MessageRoutingContext(
+      this.roomService,
+      this.authorizationService,
+    );
     this.heartbeatHandler = new HeartbeatHandler();
     this.rtcSignalHandler = new RTCSignalHandler(uidToWs);
     this.pointerHandler = new PointerHandler(mapService);
@@ -156,20 +162,12 @@ export class MessageRouter {
   }
 
   /**
-   * Check if a player has DM privileges
-   * Delegates to AuthorizationService
-   */
-  private isDM(senderUid: string): boolean {
-    const state = this.roomService.getState();
-    return this.authorizationService.isDM(state, senderUid);
-  }
-
-  /**
    * Route a message to the appropriate handler
    */
   route(message: ClientMessage, senderUid: string): void {
     this.messageLogger.logMessageRouting(message.t, senderUid);
-    const state = this.roomService.getState();
+    const context = this.messageRoutingContext.create(senderUid);
+    const state = context.getState();
 
     try {
       switch (message.t) {
@@ -197,7 +195,7 @@ export class MessageRouter {
             state,
             message.id,
             senderUid,
-            this.isDM(senderUid),
+            context.isDM(),
           );
           this.routeResultHandler.handleResult(result);
           break;
@@ -231,7 +229,7 @@ export class MessageRouter {
             message.tokenId,
             senderUid,
             message.color,
-            this.isDM(senderUid),
+            context.isDM(),
           );
           this.routeResultHandler.handleResult(result);
           break;
@@ -288,7 +286,7 @@ export class MessageRouter {
         case "create-character": {
           const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
             senderUid,
-            this.isDM(senderUid),
+            context.isDM(),
             "create character",
             () =>
               this.characterMessageHandler.handleCreateCharacter(
@@ -307,7 +305,7 @@ export class MessageRouter {
         case "create-npc": {
           const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
             senderUid,
-            this.isDM(senderUid),
+            context.isDM(),
             "create NPC",
             () =>
               this.npcMessageHandler.handleCreateNPC(
@@ -327,7 +325,7 @@ export class MessageRouter {
         case "update-npc": {
           const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
             senderUid,
-            this.isDM(senderUid),
+            context.isDM(),
             "update NPC",
             () =>
               this.npcMessageHandler.handleUpdateNPC(state, message.id, {
@@ -347,7 +345,7 @@ export class MessageRouter {
         case "delete-npc": {
           const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
             senderUid,
-            this.isDM(senderUid),
+            context.isDM(),
             "delete NPC",
             () => this.npcMessageHandler.handleDeleteNPC(state, message.id),
           );
@@ -360,7 +358,7 @@ export class MessageRouter {
         case "place-npc-token": {
           const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
             senderUid,
-            this.isDM(senderUid),
+            context.isDM(),
             "place NPC token",
             () => this.npcMessageHandler.handlePlaceNPCToken(state, message.id, senderUid),
           );
@@ -378,7 +376,7 @@ export class MessageRouter {
             senderUid,
             message.initiative,
             message.initiativeModifier,
-            this.isDM(senderUid),
+            context.isDM(),
           );
           this.routeResultHandler.handleResult(result);
           break;
@@ -388,7 +386,7 @@ export class MessageRouter {
           const result = this.initiativeMessageHandler.handleStartCombat(
             state,
             senderUid,
-            this.isDM(senderUid),
+            context.isDM(),
           );
           this.routeResultHandler.handleResult(result);
           break;
@@ -398,7 +396,7 @@ export class MessageRouter {
           const result = this.initiativeMessageHandler.handleEndCombat(
             state,
             senderUid,
-            this.isDM(senderUid),
+            context.isDM(),
           );
           this.routeResultHandler.handleResult(result);
           break;
@@ -408,7 +406,7 @@ export class MessageRouter {
           const result = this.initiativeMessageHandler.handleNextTurn(
             state,
             senderUid,
-            this.isDM(senderUid),
+            context.isDM(),
           );
           this.routeResultHandler.handleResult(result);
           break;
@@ -418,7 +416,7 @@ export class MessageRouter {
           const result = this.initiativeMessageHandler.handlePreviousTurn(
             state,
             senderUid,
-            this.isDM(senderUid),
+            context.isDM(),
           );
           this.routeResultHandler.handleResult(result);
           break;
@@ -428,7 +426,7 @@ export class MessageRouter {
           const result = this.initiativeMessageHandler.handleClearAllInitiative(
             state,
             senderUid,
-            this.isDM(senderUid),
+            context.isDM(),
           );
           this.routeResultHandler.handleResult(result);
           break;
@@ -438,7 +436,7 @@ export class MessageRouter {
         case "create-prop": {
           const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
             senderUid,
-            this.isDM(senderUid),
+            context.isDM(),
             "create prop",
             () =>
               this.propMessageHandler.handleCreateProp(
@@ -460,7 +458,7 @@ export class MessageRouter {
         case "update-prop": {
           const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
             senderUid,
-            this.isDM(senderUid),
+            context.isDM(),
             "update prop",
             () =>
               this.propMessageHandler.handleUpdateProp(state, message.id, {
@@ -479,7 +477,7 @@ export class MessageRouter {
         case "delete-prop": {
           const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
             senderUid,
-            this.isDM(senderUid),
+            context.isDM(),
             "delete prop",
             () => this.propMessageHandler.handleDeleteProp(state, message.id),
           );
@@ -549,7 +547,7 @@ export class MessageRouter {
             message.characterId,
             senderUid,
             message.effects,
-            this.isDM(senderUid),
+            context.isDM(),
           );
           this.routeResultHandler.handleResult(result);
           break;
@@ -589,7 +587,7 @@ export class MessageRouter {
             state,
             senderUid,
             message.zone,
-            this.isDM(senderUid),
+            context.isDM(),
           );
           this.routeResultHandler.handleResult(result);
           break;
@@ -633,7 +631,7 @@ export class MessageRouter {
           const result = this.drawingMessageHandler.handleClearDrawings(
             state,
             senderUid,
-            this.isDM(senderUid),
+            context.isDM(),
           );
           this.routeResultHandler.handleResult(result);
           break;
@@ -761,7 +759,7 @@ export class MessageRouter {
         case "clear-all-tokens": {
           const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
             senderUid,
-            this.isDM(senderUid),
+            context.isDM(),
             "clear all tokens",
             () => this.tokenMessageHandler.handleClearAll(state, senderUid),
           );
@@ -783,7 +781,7 @@ export class MessageRouter {
             state,
             senderUid,
             message.snapshot,
-            this.isDM(senderUid),
+            context.isDM(),
           );
           this.routeResultHandler.handleResult(result);
           break;
