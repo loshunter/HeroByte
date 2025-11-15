@@ -33,6 +33,7 @@ const DEFAULT_STATE_FILE = "./herobyte-state.json";
  */
 export class StatePersistence {
   private readonly stateFile: string;
+  private writeQueue: Promise<void> = Promise.resolve();
 
   /**
    * Creates a new StatePersistence instance.
@@ -168,9 +169,14 @@ export class StatePersistence {
       playerStagingZone: state.playerStagingZone,
     };
 
-    // Fire-and-forget async write to prevent blocking the event loop
-    writeFile(this.stateFile, JSON.stringify(persistentData, null, 2)).catch((err) => {
-      console.error("Failed to save state:", err);
-    });
+    // Queue writes to avoid overlapping file operations that can corrupt JSON.
+    this.writeQueue = this.writeQueue
+      .catch(() => {
+        // Swallow errors from previous writes so the queue can continue.
+      })
+      .then(() => writeFile(this.stateFile, JSON.stringify(persistentData, null, 2)))
+      .catch((err) => {
+        console.error("Failed to save state:", err);
+      });
   }
 }
