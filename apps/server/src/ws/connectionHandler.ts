@@ -8,11 +8,12 @@ import type { WebSocket, WebSocketServer } from "ws";
 import type { IncomingMessage } from "http";
 import type { ClientMessage } from "@shared";
 import type { Container } from "../container.js";
-import { validateMessage } from "../middleware/validation.js";
 import { getDefaultRoomId } from "../config/auth.js";
 import { AuthenticationHandler } from "./auth/AuthenticationHandler.js";
 import { HeartbeatTimeoutManager } from "./lifecycle/HeartbeatTimeoutManager.js";
 import { DisconnectionCleanupManager } from "./lifecycle/DisconnectionCleanupManager.js";
+import { MessagePipelineManager } from "./message/MessagePipelineManager.js";
+import { MessageAuthenticator } from "./auth/MessageAuthenticator.js";
 
 /**
  * WebSocket connection handler
@@ -24,6 +25,8 @@ export class ConnectionHandler {
   private authHandler: AuthenticationHandler;
   private cleanupManager: DisconnectionCleanupManager;
   private heartbeatManager: HeartbeatTimeoutManager;
+  private pipelineManager: MessagePipelineManager;
+  private authenticator: MessageAuthenticator;
   private readonly defaultRoomId: string;
 
   constructor(container: Container, wss: WebSocketServer) {
@@ -48,6 +51,19 @@ export class ConnectionHandler {
       container.authenticatedSessions,
     );
     this.heartbeatManager = new HeartbeatTimeoutManager(container, this.cleanupManager);
+    this.pipelineManager = new MessagePipelineManager(
+      {
+        maxMessageSize: 1024 * 1024, // 1MB
+        onValidMessage: (message, uid) => this.handleValidatedMessage(message, uid),
+      },
+      container.rateLimiter,
+    );
+    this.authenticator = new MessageAuthenticator(
+      {
+        authHandler: this.authHandler,
+      },
+      container.authenticatedUids,
+    );
   }
 
   /**
@@ -110,76 +126,26 @@ export class ConnectionHandler {
    * Handle incoming WebSocket message
    */
   private handleMessage(buf: Buffer, uid: string): void {
-    let rawMessage: unknown;
-    try {
-      // Message size limit check (1MB) to prevent DoS attacks
-      const MAX_MESSAGE_SIZE = 1024 * 1024; // 1MB
-      if (buf.length > MAX_MESSAGE_SIZE) {
-        console.warn(
-          `Message from ${uid} exceeds size limit: ${buf.length} bytes (max: ${MAX_MESSAGE_SIZE})`,
-        );
-        return;
-      }
+    // Delegate to message pipeline for validation
+    this.pipelineManager.processMessage(buf, uid);
+  }
 
-      // Parse message
-      rawMessage = JSON.parse(buf.toString());
+  /**
+   * Handle validated message from pipeline
+   * Performs authentication routing and message dispatch
+   */
+  private handleValidatedMessage(message: ClientMessage, uid: string): void {
+    // Check authentication and route auth messages
+    const wasHandled = this.authenticator.checkAuthentication(message, uid);
 
-      // Rate limiting
-      if (!this.container.rateLimiter.check(uid)) {
-        console.warn(`Rate limit exceeded for client ${uid}`);
-        return;
-      }
-
-      // Input validation
-      const validation = validateMessage(rawMessage);
-      if (!validation.valid) {
-        console.warn(`Invalid message from ${uid}: ${validation.error}`);
-        return;
-      }
-
-      // At this point, message is validated as ClientMessage
-      const message = rawMessage as ClientMessage;
-
-      // Authentication handling
-      if (message.t === "authenticate") {
-        this.authHandler.authenticate(uid, message.secret, message.roomId);
-        return;
-      }
-
-      if (!this.container.authenticatedUids.has(uid)) {
-        console.warn(`Unauthenticated message from ${uid}, dropping.`);
-        return;
-      }
-
-      // DM elevation handling
-      if (message.t === "elevate-to-dm") {
-        this.authHandler.elevateToDM(uid, message.dmPassword);
-        return;
-      }
-
-      // DM revocation handling
-      if (message.t === "revoke-dm") {
-        this.authHandler.revokeDM(uid);
-        return;
-      }
-
-      // DM password management (DM-only action)
-      if (message.t === "set-dm-password") {
-        this.authHandler.setDMPassword(uid, message.dmPassword);
-        return;
-      }
-
-      // Route to appropriate handler
-      console.log(`[ConnectionHandler] Received message type=${message.t} from uid=${uid}`);
-      this.container.messageRouter.route(message, uid);
-    } catch (err) {
-      console.error(`[ConnectionHandler] Failed to process message from ${uid}:`, err);
-      if (rawMessage !== undefined) {
-        console.error(`[ConnectionHandler] Message was:`, JSON.stringify(rawMessage));
-      } else {
-        console.error(`[ConnectionHandler] Failed to parse message buffer`);
-      }
+    // If message was handled (auth message or dropped), return
+    if (wasHandled) {
+      return;
     }
+
+    // Route to appropriate handler
+    console.log(`[ConnectionHandler] Received message type=${message.t} from uid=${uid}`);
+    this.container.messageRouter.route(message, uid);
   }
 
   /**
