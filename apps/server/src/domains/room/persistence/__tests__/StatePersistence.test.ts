@@ -147,7 +147,6 @@ describe("StatePersistence - Characterization Tests", () => {
     });
 
     it("should normalize player data (isDM, statusEffects)", () => {
-      
       const stateWithMissingFields = {
         tokens: [],
         players: [
@@ -185,7 +184,6 @@ describe("StatePersistence - Characterization Tests", () => {
     });
 
     it("should normalize character data (type, tokenImage, tokenId)", () => {
-      
       const stateWithCharacters = {
         tokens: [],
         players: [],
@@ -228,7 +226,6 @@ describe("StatePersistence - Characterization Tests", () => {
     });
 
     it("should always reset users to empty array", () => {
-      
       const stateWithUsers = {
         tokens: [],
         players: [],
@@ -253,7 +250,6 @@ describe("StatePersistence - Characterization Tests", () => {
     });
 
     it("should always reset pointers to empty array", () => {
-      
       const stateWithPointers = {
         tokens: [],
         players: [],
@@ -278,7 +274,6 @@ describe("StatePersistence - Characterization Tests", () => {
     });
 
     it("should always reset drawingUndoStacks and drawingRedoStacks to empty objects", () => {
-      
       const stateWithUndoRedo = {
         tokens: [],
         players: [],
@@ -307,7 +302,6 @@ describe("StatePersistence - Characterization Tests", () => {
     });
 
     it("should always reset selectionState to empty Map", () => {
-      
       const stateWithSelections = {
         tokens: [],
         players: [],
@@ -333,7 +327,6 @@ describe("StatePersistence - Characterization Tests", () => {
     });
 
     it("should sanitize invalid staging zone data", () => {
-      
       // Note: NaN in JSON becomes null, which JSON.parse converts to 0 (valid)
       // So we need to test with string "not-a-number" instead
       const stateWithInvalidZone = {
@@ -363,7 +356,6 @@ describe("StatePersistence - Characterization Tests", () => {
     });
 
     it("should provide default values for missing fields", () => {
-      
       const minimalState = {
         // Only required fields, others should get defaults
       };
@@ -385,7 +377,6 @@ describe("StatePersistence - Characterization Tests", () => {
     });
 
     it("should handle corrupted JSON gracefully (error logged, state unchanged)", () => {
-      
       writeFileSync(PROD_STATE_FILE, "{ this is not valid JSON }", "utf-8");
 
       const initialState = roomService.getState();
@@ -403,7 +394,6 @@ describe("StatePersistence - Characterization Tests", () => {
     });
 
     it("should rebuild scene graph after loading state", () => {
-      
       const stateWithStagingZone = {
         tokens: [],
         players: [],
