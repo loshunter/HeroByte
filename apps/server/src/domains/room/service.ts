@@ -35,13 +35,14 @@ export class RoomService {
     this.stagingManager = new StagingZoneManager(this.state, () => this.rebuildSceneGraph());
     this.persistence = new StatePersistence(
       () => this.state,
-      (newState) => { this.state = newState; },
+      (newState) => {
+        this.state = newState;
+      },
       this.stagingManager,
       () => this.rebuildSceneGraph(),
     );
     this.rebuildSceneGraph();
   }
-
 
   /**
    * Get current room state

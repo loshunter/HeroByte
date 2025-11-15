@@ -177,7 +177,8 @@
       "Bash(pnpm --filter vtt-server exec tsc:*)",
       "Bash(pnpm -r exec tsc:*)",
       "Bash(chmod:*)",
-      "Bash(pnpm baseline:update:*)"
+      "Bash(pnpm baseline:update:*)",
+      "Bash(pnpm vitest run:*)"
     ],
     "deny": [],
     "ask": []

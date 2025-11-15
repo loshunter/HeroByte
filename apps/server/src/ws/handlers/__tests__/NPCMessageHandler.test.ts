@@ -152,14 +152,10 @@ describe("NPCMessageHandler - Characterization Tests", () => {
     beforeEach(() => {
       // Create an NPC
       const state = roomService.getState();
-      const npc = characterService.createCharacter(
-        state,
-        "Orc",
-        80,
-        "orc.png",
-        "npc",
-        { hp: 80, tokenImage: "orc-token.png" },
-      );
+      const npc = characterService.createCharacter(state, "Orc", 80, "orc.png", "npc", {
+        hp: 80,
+        tokenImage: "orc-token.png",
+      });
       npcId = npc.id;
       roomService.createSnapshot();
     });
@@ -272,14 +268,9 @@ describe("NPCMessageHandler - Characterization Tests", () => {
     beforeEach(() => {
       // Create an NPC without a token
       const state = roomService.getState();
-      const npc = characterService.createCharacter(
-        state,
-        "Dragon",
-        200,
-        "dragon.png",
-        "npc",
-        { tokenImage: "dragon-token.png" },
-      );
+      const npc = characterService.createCharacter(state, "Dragon", 200, "dragon.png", "npc", {
+        tokenImage: "dragon-token.png",
+      });
       npcId = npc.id;
       roomService.createSnapshot();
     });

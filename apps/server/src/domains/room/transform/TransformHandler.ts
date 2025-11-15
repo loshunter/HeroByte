@@ -275,10 +275,7 @@ export class TransformHandler {
   /**
    * Apply position changes to scene object transform
    */
-  private applyPosition(
-    object: SceneObject,
-    value: { x: number; y: number } | undefined,
-  ): void {
+  private applyPosition(object: SceneObject, value: { x: number; y: number } | undefined): void {
     if (value) {
       object.transform.x = value.x;
       object.transform.y = value.y;

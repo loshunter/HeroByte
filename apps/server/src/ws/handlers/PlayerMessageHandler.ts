@@ -101,12 +101,7 @@ export class PlayerMessageHandler {
    * @param maxHp - Maximum HP
    * @returns Result indicating broadcast/save needs
    */
-  handleSetHP(
-    state: RoomState,
-    senderUid: string,
-    hp: number,
-    maxHp: number,
-  ): PlayerMessageResult {
+  handleSetHP(state: RoomState, senderUid: string, hp: number, maxHp: number): PlayerMessageResult {
     const updated = this.playerService.setHP(state, senderUid, hp, maxHp);
     return { broadcast: updated, save: updated };
   }
@@ -140,9 +135,7 @@ export class PlayerMessageHandler {
    * @returns Result indicating no action taken
    */
   handleToggleDM(senderUid: string): PlayerMessageResult {
-    console.warn(
-      `toggle-dm message from ${senderUid} ignored - use elevate-to-dm instead`,
-    );
+    console.warn(`toggle-dm message from ${senderUid} ignored - use elevate-to-dm instead`);
     return { broadcast: false, save: false };
   }
 }

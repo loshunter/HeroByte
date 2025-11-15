@@ -13,13 +13,13 @@ Successfully decomposed the monolithic 927-LOC `validation.ts` into 8 domain-foc
 
 ### Key Metrics
 
-| Metric | Before | After | Change |
-|--------|--------|-------|--------|
-| Main orchestrator (validation.ts) | 927 LOC | 260 LOC | **-72%** ⬇️ |
-| Validation test coverage | 58 tests | 123 tests | **+112%** ⬆️ |
-| Total validator code | 927 LOC (1 file) | ~870 LOC (8 files) | **+8 modules** |
-| Average file size | 927 LOC | ~110 LOC | **88% smaller files** |
-| Server test suite | 285 tests | 285 tests | ✅ **100% passing** |
+| Metric                            | Before           | After              | Change                |
+| --------------------------------- | ---------------- | ------------------ | --------------------- |
+| Main orchestrator (validation.ts) | 927 LOC          | 260 LOC            | **-72%** ⬇️           |
+| Validation test coverage          | 58 tests         | 123 tests          | **+112%** ⬆️          |
+| Total validator code              | 927 LOC (1 file) | ~870 LOC (8 files) | **+8 modules**        |
+| Average file size                 | 927 LOC          | ~110 LOC           | **88% smaller files** |
+| Server test suite                 | 285 tests        | 285 tests          | ✅ **100% passing**   |
 
 ---
 
@@ -47,9 +47,11 @@ apps/server/src/middleware/
 ### Validator Module Breakdown
 
 #### 1. **commonValidators.ts** (234 LOC)
+
 **Purpose:** Shared validation utilities and constants
 
 **Exports:**
+
 - **Type Guards:**
   - `isRecord(value)` - Check if value is non-null object
   - `isFiniteNumber(value)` - Check if value is finite number
@@ -75,9 +77,11 @@ apps/server/src/middleware/
 ---
 
 #### 2. **tokenValidators.ts** (107 LOC)
+
 **Purpose:** Token-related message validation
 
 **Validators:** (6 total)
+
 1. `validateMoveMessage` - Token movement (id, x, y)
 2. `validateRecolorMessage` - Token recoloring (id)
 3. `validateDeleteTokenMessage` - Token deletion (id)
@@ -86,6 +90,7 @@ apps/server/src/middleware/
 6. `validateSetTokenColorMessage` - Token color changes (tokenId, color max 128 chars)
 
 **Security Considerations:**
+
 - ✅ Prevents XSS via length limits on color/imageUrl
 - ✅ Validates enum values for token sizes
 - ✅ Requires non-empty IDs
@@ -94,9 +99,11 @@ apps/server/src/middleware/
 ---
 
 #### 3. **playerValidators.ts** (108 LOC)
+
 **Purpose:** Player-related message validation
 
 **Validators:** (6 total)
+
 1. `validatePortraitMessage` - Player portraits (data max 2MB)
 2. `validateRenameMessage` - Player name changes (1-50 chars)
 3. `validateMicLevelMessage` - Voice chat mic levels (0-1 range)
@@ -105,6 +112,7 @@ apps/server/src/middleware/
 6. `validateToggleDmMessage` - DM status toggle (boolean)
 
 **Security Considerations:**
+
 - ✅ DoS protection: portrait size limit (2MB)
 - ✅ Input sanitization: name length limits
 - ✅ Array bombing prevention: max 16 status effects
@@ -113,9 +121,11 @@ apps/server/src/middleware/
 ---
 
 #### 4. **characterValidators.ts** (229 LOC)
+
 **Purpose:** Character, NPC, and combat-related validation
 
 **Validators:** (16 total)
+
 - **Character Management:** (7)
   - `validateCreateCharacterMessage` - Create characters (name 1-50, maxHp positive)
   - `validateClaimCharacterMessage` - Claim characters (characterId)
@@ -136,6 +146,7 @@ apps/server/src/middleware/
   - `validateCombatControlMessage` - Start/end combat, next/previous turn (no params)
 
 **Key Design Decisions:**
+
 - ✅ Character names allow 1-100 chars vs player names 1-50 (intentional flexibility)
 - ✅ NPCs can have hp=0 (dead state) but maxHp must be positive
 - ✅ Combat control messages require no payload validation (authentication-only)
@@ -144,9 +155,11 @@ apps/server/src/middleware/
 ---
 
 #### 5. **mapValidators.ts** (132 LOC)
+
 **Purpose:** Map, grid, and drawing-related validation
 
 **Validators:** (14 total)
+
 - **Map Configuration:** (3)
   - `validateMapBackgroundMessage` - Map images (max 10MB)
   - `validateGridSizeMessage` - Grid size (10-500 pixels)
@@ -162,6 +175,7 @@ apps/server/src/middleware/
   - `validateSyncPlayerDrawingsMessage` - Sync player drawings (max 200)
 
 **Security Considerations:**
+
 - ✅ DoS protection: map background 10MB limit (larger than portraits)
 - ✅ Array bombing: max 50 partial segments, max 200 synced drawings
 - ✅ Point flooding: max 10,000 points per drawing segment
@@ -170,14 +184,17 @@ apps/server/src/middleware/
 ---
 
 #### 6. **propValidators.ts** (82 LOC)
+
 **Purpose:** Scene prop validation
 
 **Validators:** (3 total)
+
 1. `validateCreatePropMessage` - Create props (label 1-50, imageUrl, owner, size, viewport)
 2. `validateUpdatePropMessage` - Update props (all fields)
 3. `validateDeletePropMessage` - Delete props (id)
 
 **Key Features:**
+
 - ✅ Owner can be `null`, `"*"` (public), or player UID
 - ✅ Size must be valid TokenSize enum
 - ✅ Viewport requires `{x, y, scale}` structure
@@ -186,9 +203,11 @@ apps/server/src/middleware/
 ---
 
 #### 7. **roomValidators.ts** (192 LOC)
+
 **Purpose:** Room management, sessions, auth, and transforms
 
 **Validators:** (9 total)
+
 - **Room Configuration:** (3)
   - `validateSetPlayerStagingZoneMessage` - Staging zones (uses common validator)
   - `validateSetRoomPasswordMessage` - Room password (1-256 chars)
@@ -208,12 +227,14 @@ apps/server/src/middleware/
   - `validateRtcSignalMessage` - WebRTC signaling (target, signal)
 
 **Complex Validation Logic:**
+
 - **Transform Scale Validation:**
   - Regular objects: 0.1x - 10x scale range
   - Staging zones: unlimited scale (special case)
   - Prevents rendering crashes from extreme values
 
 **Security Considerations:**
+
 - ✅ Credential length limits (256 chars)
 - ✅ Non-empty string validation after trim
 - ✅ Scale bounds prevent rendering exploits
@@ -222,9 +243,11 @@ apps/server/src/middleware/
 ---
 
 #### 8. **selectionValidators.ts** (126 LOC)
+
 **Purpose:** Multi-select and object selection validation
 
 **Validators:** (5 total)
+
 1. `validateSelectObjectMessage` - Single object selection (uid, objectId)
 2. `validateDeselectObjectMessage` - Deselect all (uid)
 3. `validateSelectMultipleMessage` - Multi-select (uid, objectIds max 100, optional mode)
@@ -232,6 +255,7 @@ apps/server/src/middleware/
 5. `validateUnlockSelectedMessage` - Unlock objects (uid, objectIds max 100)
 
 **Security Considerations:**
+
 - ✅ Array bombing: max 100 objectIds per operation
 - ✅ UID validation prevents spoofing
 - ✅ Mode enum validation (replace/append/subtract)
@@ -244,58 +268,94 @@ apps/server/src/middleware/
 ### Test File: `validation.test.ts` (1,484 LOC)
 
 **Test Structure:**
+
 ```typescript
 describe("validateMessage", () => {
   // 123 total tests organized into 15 describe blocks
 
   // Core message validation (2 tests)
-  it("accepts all supported message variations")
-  it("rejects unknown message types")
+  it("accepts all supported message variations");
+  it("rejects unknown message types");
 
   // Domain-specific suites (10 suites, 85 tests)
-  describe("erase-partial validation", () => { /* 5 tests */ })
-  describe("Security: Injection & Malformed Data", () => { /* 10 tests */ })
-  describe("Security: DoS Prevention", () => { /* 4 tests */ })
-  describe("Edge Cases: NPC Management", () => { /* 4 tests */ })
-  describe("Edge Cases: Token Management", () => { /* 3 tests */ })
-  describe("Edge Cases: Player Metadata", () => { /* 3 tests */ })
-  describe("Edge Cases: Staging Zone", () => { /* 3 tests */ })
-  describe("Edge Cases: Authentication", () => { /* 5 tests */ })
-  describe("Edge Cases: Scene Objects", () => { /* 20 tests */ })
-  describe("Edge Cases: Toggle DM", () => { /* 4 tests */ })
+  describe("erase-partial validation", () => {
+    /* 5 tests */
+  });
+  describe("Security: Injection & Malformed Data", () => {
+    /* 10 tests */
+  });
+  describe("Security: DoS Prevention", () => {
+    /* 4 tests */
+  });
+  describe("Edge Cases: NPC Management", () => {
+    /* 4 tests */
+  });
+  describe("Edge Cases: Token Management", () => {
+    /* 3 tests */
+  });
+  describe("Edge Cases: Player Metadata", () => {
+    /* 3 tests */
+  });
+  describe("Edge Cases: Staging Zone", () => {
+    /* 3 tests */
+  });
+  describe("Edge Cases: Authentication", () => {
+    /* 5 tests */
+  });
+  describe("Edge Cases: Scene Objects", () => {
+    /* 20 tests */
+  });
+  describe("Edge Cases: Toggle DM", () => {
+    /* 4 tests */
+  });
 
   // Phase-specific suites (3 suites, 14 tests)
-  describe("Phase 11: Token Size Validation", () => { /* 6 tests */ })
-  describe("Edge Cases: Character Management", () => { /* 17 tests */ })
-  describe("Edge Cases: Combat Messages", () => { /* 4 tests */ })
-  describe("Edge Cases: DM Password Messages", () => { /* 7 tests */ })
+  describe("Phase 11: Token Size Validation", () => {
+    /* 6 tests */
+  });
+  describe("Edge Cases: Character Management", () => {
+    /* 17 tests */
+  });
+  describe("Edge Cases: Combat Messages", () => {
+    /* 4 tests */
+  });
+  describe("Edge Cases: DM Password Messages", () => {
+    /* 7 tests */
+  });
 
   // Boundary value testing (3 suites, 22 tests)
-  describe("Edge Cases: Boundary Values", () => { /* 12 tests */ })
-  describe("Edge Cases: Staging Zone Minimal Size", () => { /* 5 tests */ })
-  describe("Edge Cases: Transform Staging Zone", () => { /* 3 tests */ })
-})
+  describe("Edge Cases: Boundary Values", () => {
+    /* 12 tests */
+  });
+  describe("Edge Cases: Staging Zone Minimal Size", () => {
+    /* 5 tests */
+  });
+  describe("Edge Cases: Transform Staging Zone", () => {
+    /* 3 tests */
+  });
+});
 ```
 
 ### Test Coverage Breakdown
 
-| Category | Tests | Coverage |
-|----------|-------|----------|
-| **Core Validation** | 2 | Unknown types, message structure |
-| **Security Tests** | 14 | Injection, XSS, DoS, payload limits |
-| **Token Messages** | 9 | All 6 token validators + edge cases |
-| **Player Messages** | 10 | All 6 player validators + edge cases |
-| **Character/NPC** | 21 | All 16 character validators + edge cases |
-| **Map/Drawing** | 18 | All 14 map validators + edge cases |
-| **Prop Messages** | 3 | All 3 prop validators |
-| **Room/Session** | 12 | All 9 room validators + auth edge cases |
-| **Selection** | 11 | All 5 selection validators + boundary tests |
-| **Boundary Values** | 23 | Min/max limits, edge cases |
-| **Total** | **123** | **Comprehensive** ✅ |
+| Category            | Tests   | Coverage                                    |
+| ------------------- | ------- | ------------------------------------------- |
+| **Core Validation** | 2       | Unknown types, message structure            |
+| **Security Tests**  | 14      | Injection, XSS, DoS, payload limits         |
+| **Token Messages**  | 9       | All 6 token validators + edge cases         |
+| **Player Messages** | 10      | All 6 player validators + edge cases        |
+| **Character/NPC**   | 21      | All 16 character validators + edge cases    |
+| **Map/Drawing**     | 18      | All 14 map validators + edge cases          |
+| **Prop Messages**   | 3       | All 3 prop validators                       |
+| **Room/Session**    | 12      | All 9 room validators + auth edge cases     |
+| **Selection**       | 11      | All 5 selection validators + boundary tests |
+| **Boundary Values** | 23      | Min/max limits, edge cases                  |
+| **Total**           | **123** | **Comprehensive** ✅                        |
 
 ### New Tests Added (65 tests, 533 LOC)
 
 **Character Management Edge Cases:** (17 tests)
+
 - `add-player-character` with/without maxHp
 - Character name length boundaries (1, 100, 101 chars)
 - Zero and negative maxHp rejection
@@ -304,10 +364,12 @@ describe("validateMessage", () => {
 - Initiative modifier type validation
 
 **Combat Control Messages:** (4 tests)
+
 - `start-combat`, `end-combat`, `next-turn`, `previous-turn`
 - No-parameter validation confirmation
 
 **DM Password Messages:** (7 tests)
+
 - `elevate-to-dm` validation
 - `set-dm-password` validation
 - Empty dmPassword rejection
@@ -316,6 +378,7 @@ describe("validateMessage", () => {
 - `revoke-dm` validation
 
 **Boundary Value Testing:** (12 tests)
+
 - Character names at 50/51 chars
 - Status effect labels at 64/65 chars
 - Partial segments at 50/51
@@ -325,17 +388,20 @@ describe("validateMessage", () => {
 - Synced drawings at 200/201
 
 **Staging Zone Minimal Size:** (5 tests)
+
 - Width/height at exactly 0.5
 - Rejection below 0.5
 - Negative width/height handling
 - Absolute value validation
 
 **Transform Staging Zone:** (3 tests)
+
 - Staging zone with large scale (50x)
 - Staging zone with small scale (0.01x)
 - Unrestricted scale for staging-zone id
 
 **Character/NPC Additions:** (17 tests)
+
 - All character CRUD operations
 - NPC lifecycle validation
 - Dead NPC handling (hp=0)
@@ -347,27 +413,28 @@ describe("validateMessage", () => {
 
 ### DoS Attack Prevention
 
-| Attack Vector | Mitigation | Limit |
-|---------------|------------|-------|
-| **Large payloads** | Size limits on base64 data | Portrait: 2MB, Map: 10MB |
-| **String bombing** | Length limits on strings | Names: 50-100, Colors: 128, URLs: 2048 |
-| **Array bombing** | Max array lengths | Status effects: 16, ObjectIds: 100, Drawings: 200 |
-| **Point flooding** | Max points per drawing | 10,000 points/segment |
-| **Segment flooding** | Max partial segments | 50 segments/erase |
+| Attack Vector        | Mitigation                 | Limit                                             |
+| -------------------- | -------------------------- | ------------------------------------------------- |
+| **Large payloads**   | Size limits on base64 data | Portrait: 2MB, Map: 10MB                          |
+| **String bombing**   | Length limits on strings   | Names: 50-100, Colors: 128, URLs: 2048            |
+| **Array bombing**    | Max array lengths          | Status effects: 16, ObjectIds: 100, Drawings: 200 |
+| **Point flooding**   | Max points per drawing     | 10,000 points/segment                             |
+| **Segment flooding** | Max partial segments       | 50 segments/erase                                 |
 
 ### Injection Attack Prevention
 
-| Attack Type | Mitigation | Implementation |
-|-------------|------------|----------------|
-| **XSS** | Input sanitization | Length limits, type validation |
-| **SQL Injection** | N/A | No SQL database (in-memory state) |
-| **Command Injection** | N/A | No shell commands from user input |
-| **Prototype Pollution** | Object validation | `isRecord()` type guard checks |
-| **Type Confusion** | Strict type checking | `isFiniteNumber()`, `isPoint()`, enum validation |
+| Attack Type             | Mitigation           | Implementation                                   |
+| ----------------------- | -------------------- | ------------------------------------------------ |
+| **XSS**                 | Input sanitization   | Length limits, type validation                   |
+| **SQL Injection**       | N/A                  | No SQL database (in-memory state)                |
+| **Command Injection**   | N/A                  | No shell commands from user input                |
+| **Prototype Pollution** | Object validation    | `isRecord()` type guard checks                   |
+| **Type Confusion**      | Strict type checking | `isFiniteNumber()`, `isPoint()`, enum validation |
 
 ### Boundary Validation
 
 **Number Ranges:**
+
 - Mic level: `0-1` (inclusive)
 - Grid size: `10-500` pixels
 - Grid square size: `0.1-100` feet
@@ -376,6 +443,7 @@ describe("validateMessage", () => {
 - HP values: `>= 0` (allows dead state)
 
 **String Lengths:**
+
 - Player names: `1-50` chars
 - Character names: `1-100` chars
 - Status effect labels: `1-64` chars
@@ -384,6 +452,7 @@ describe("validateMessage", () => {
 - Image URLs: `1-2048` chars
 
 **Array Limits:**
+
 - Status effects: `<= 16`
 - Selection objectIds: `<= 100`
 - Partial segments: `<= 50`
@@ -445,6 +514,7 @@ describe("validateMessage", () => {
    - **Issue:** Some limits hardcoded in validator functions
    - **Example:** `if (data.length > 2 * 1024 * 1024)` in portrait validation
    - **Recommendation:** Extract to constants module
+
    ```typescript
    // In commonValidators.ts
    export const MAX_PORTRAIT_SIZE = 2 * 1024 * 1024; // 2MB
@@ -456,6 +526,7 @@ describe("validateMessage", () => {
    - **Issue:** Some validators repeat similar patterns
    - **Example:** ID validation repeated in many validators
    - **Recommendation:** Create reusable validation helpers
+
    ```typescript
    export function validateId(id: unknown, context: string): ValidationResult {
      if (typeof id !== "string" || id.length === 0) {
@@ -468,6 +539,7 @@ describe("validateMessage", () => {
 3. **Error Code Standardization**
    - **Issue:** Errors are strings, not error codes
    - **Recommendation:** Consider error codes for i18n/logging
+
    ```typescript
    interface ValidationResult {
      valid: boolean;
@@ -484,13 +556,17 @@ describe("validateMessage", () => {
 5. **Schema-Based Validation**
    - **Issue:** Manual validation code is verbose
    - **Recommendation:** Consider Zod/Yup for complex objects
+
    ```typescript
-   import { z } from 'zod';
+   import { z } from "zod";
 
    const CreateCharacterSchema = z.object({
      name: z.string().min(1).max(50),
      maxHp: z.number().positive(),
-     portrait: z.string().max(2 * 1024 * 1024).optional()
+     portrait: z
+       .string()
+       .max(2 * 1024 * 1024)
+       .optional(),
    });
    ```
 
@@ -501,6 +577,7 @@ describe("validateMessage", () => {
 ### Current Implementation
 
 **Validation Performance:**
+
 - ✅ All validators are pure functions (no I/O)
 - ✅ O(1) validation for most messages
 - ✅ O(n) validation for arrays (with bounded n)
@@ -545,6 +622,7 @@ describe("validateMessage", () => {
 ### Files That Import Validation
 
 **Current Consumers:**
+
 ```typescript
 // apps/server/src/ws/connectionHandler.ts
 import { validateMessage } from "../middleware/validation.js";
@@ -552,15 +630,18 @@ import { validateMessage } from "../middleware/validation.js";
 // Usage: validates all incoming WebSocket messages
 const validation = validateMessage(parsed);
 if (!validation.valid) {
-  ws.send(JSON.stringify({
-    type: "error",
-    message: validation.error
-  }));
+  ws.send(
+    JSON.stringify({
+      type: "error",
+      message: validation.error,
+    }),
+  );
   return;
 }
 ```
 
 **Backward Compatibility:**
+
 - ✅ Public API unchanged: `validateMessage(raw)` signature identical
 - ✅ Return type unchanged: `ValidationResult { valid, error? }`
 - ✅ Error message formats preserved
@@ -573,6 +654,7 @@ if (!validation.valid) {
 ### Immediate Next Steps (This PR)
 
 **Before Merging:**
+
 1. ✅ All tests pass (285/285)
 2. ✅ No type errors introduced
 3. ✅ Code formatted with Prettier
@@ -583,11 +665,12 @@ if (!validation.valid) {
 ### Short-Term Improvements (Next 1-2 PRs)
 
 **1. Extract Magic Number Constants**
+
 ```typescript
 // New file: middleware/validators/constants.ts
 export const PAYLOAD_LIMITS = {
-  PORTRAIT_SIZE: 2 * 1024 * 1024,      // 2MB
-  MAP_SIZE: 10 * 1024 * 1024,          // 10MB
+  PORTRAIT_SIZE: 2 * 1024 * 1024, // 2MB
+  MAP_SIZE: 10 * 1024 * 1024, // 10MB
   IMAGE_URL_LENGTH: 2048,
   COLOR_LENGTH: 128,
   PLAYER_NAME_LENGTH: 50,
@@ -612,13 +695,14 @@ export const RANGE_LIMITS = {
 ```
 
 **2. Create Reusable Validation Helpers**
+
 ```typescript
 // New file: middleware/validators/helpers.ts
 export function validateStringLength(
   value: unknown,
   context: string,
   min: number,
-  max: number
+  max: number,
 ): ValidationResult {
   if (typeof value !== "string") {
     return { valid: false, error: `${context}: must be a string` };
@@ -629,10 +713,7 @@ export function validateStringLength(
   return { valid: true };
 }
 
-export function validateId(
-  id: unknown,
-  context: string
-): ValidationResult {
+export function validateId(id: unknown, context: string): ValidationResult {
   if (typeof id !== "string" || id.length === 0) {
     return { valid: false, error: `${context}: missing or invalid id` };
   }
@@ -643,7 +724,7 @@ export function validateArrayLength<T>(
   arr: unknown,
   context: string,
   max: number,
-  validator?: (item: T, index: number) => ValidationResult
+  validator?: (item: T, index: number) => ValidationResult,
 ): ValidationResult {
   if (!Array.isArray(arr)) {
     return { valid: false, error: `${context}: must be an array` };
@@ -662,6 +743,7 @@ export function validateArrayLength<T>(
 ```
 
 **3. Add Error Codes for Better Logging**
+
 ```typescript
 export enum ValidationErrorCode {
   MISSING_TYPE = "MISSING_TYPE",
@@ -683,21 +765,25 @@ export interface ValidationResult {
 ### Medium-Term Improvements (Phase 15 Roadmap)
 
 **1. Move Validators to Shared Package** (Task D1 - Week 7)
+
 - Move `validators/` to `packages/shared/src/validation/`
 - Enable client-side validation (prevent invalid messages)
 - Reduce server load (client validates before sending)
 
 **2. Schema-Based Validation** (Future Phase)
+
 - Replace manual validators with Zod schemas
 - Type inference from schemas
 - Better composition and error messages
 
 **3. Async Validation Support** (Future Phase)
+
 - Support async validators for database lookups
 - Validate user/character existence
 - Rate limiting integration
 
 **4. Custom Error Messages** (Future Phase)
+
 - i18n-ready error messages
 - User-friendly error responses
 - Error aggregation (return all errors, not just first)
@@ -709,10 +795,12 @@ export interface ValidationResult {
 ### Current Progress
 
 **Phase A: Server Foundation (In Progress)**
+
 - ✅ **Task A1:** Decompose validation.ts (Complete)
 - ⏳ **Task A2:** Decompose room/service.ts (Next)
 
 **Lessons Learned:**
+
 1. **Characterization tests are critical** - 65 new tests caught edge cases
 2. **Small, focused modules** - 8 validators at ~110 LOC each
 3. **Domain-driven organization** - Clear boundaries by message type
@@ -720,6 +808,7 @@ export interface ValidationResult {
 5. **Test-first approach** - Tests before refactoring
 
 **Patterns to Reuse:**
+
 - ✅ Extract to domain modules pattern
 - ✅ Keep orchestrator thin (delegation only)
 - ✅ Shared utilities module (commonValidators)
@@ -731,6 +820,7 @@ export interface ValidationResult {
 **Next: Task A2 - Decompose room/service.ts (688 LOC)**
 
 **Planned Structure:**
+
 ```
 domains/room/
   service.ts (300 LOC - state management core)
@@ -750,34 +840,34 @@ domains/room/
 
 ### Code Metrics
 
-| Metric | Before | After | Change |
-|--------|--------|-------|--------|
-| **Files in middleware/** | 3 | 11 | +267% |
-| **Lines in validation.ts** | 927 | 260 | -72% |
-| **Lines in validators/** | 0 | 1,110 | +1,110 |
-| **Average file size** | 309 | 126 | -59% |
-| **Cyclomatic complexity** | High | Low | ⬇️ |
-| **Max function length** | 700+ LOC | ~30 LOC | ⬇️ |
+| Metric                     | Before   | After   | Change |
+| -------------------------- | -------- | ------- | ------ |
+| **Files in middleware/**   | 3        | 11      | +267%  |
+| **Lines in validation.ts** | 927      | 260     | -72%   |
+| **Lines in validators/**   | 0        | 1,110   | +1,110 |
+| **Average file size**      | 309      | 126     | -59%   |
+| **Cyclomatic complexity**  | High     | Low     | ⬇️     |
+| **Max function length**    | 700+ LOC | ~30 LOC | ⬇️     |
 
 ### Test Metrics
 
-| Metric | Before | After | Change |
-|--------|--------|-------|--------|
-| **Test count** | 58 | 123 | +112% |
-| **Test LOC** | 950 | 1,484 | +56% |
-| **Coverage categories** | 5 | 11 | +120% |
-| **Security tests** | 4 | 14 | +250% |
-| **Boundary tests** | 8 | 23 | +188% |
+| Metric                  | Before | After | Change |
+| ----------------------- | ------ | ----- | ------ |
+| **Test count**          | 58     | 123   | +112%  |
+| **Test LOC**            | 950    | 1,484 | +56%   |
+| **Coverage categories** | 5      | 11    | +120%  |
+| **Security tests**      | 4      | 14    | +250%  |
+| **Boundary tests**      | 8      | 23    | +188%  |
 
 ### Maintainability Metrics
 
-| Metric | Rating | Justification |
-|--------|--------|---------------|
-| **Modularity** | ⭐⭐⭐⭐⭐ | 8 focused modules vs 1 monolith |
-| **Testability** | ⭐⭐⭐⭐⭐ | 123 tests, pure functions |
-| **Readability** | ⭐⭐⭐⭐⭐ | Clear naming, JSDoc, organized |
-| **Reusability** | ⭐⭐⭐⭐ | Validators can be imported independently |
-| **Security** | ⭐⭐⭐⭐⭐ | Comprehensive input validation |
+| Metric          | Rating     | Justification                            |
+| --------------- | ---------- | ---------------------------------------- |
+| **Modularity**  | ⭐⭐⭐⭐⭐ | 8 focused modules vs 1 monolith          |
+| **Testability** | ⭐⭐⭐⭐⭐ | 123 tests, pure functions                |
+| **Readability** | ⭐⭐⭐⭐⭐ | Clear naming, JSDoc, organized           |
+| **Reusability** | ⭐⭐⭐⭐   | Validators can be imported independently |
+| **Security**    | ⭐⭐⭐⭐⭐ | Comprehensive input validation           |
 
 ---
 
@@ -841,16 +931,19 @@ domains/room/
 ### Recommendations
 
 **Immediate Actions:**
+
 1. ✅ **Merge PR #7** after review approval
 2. ⏳ **Monitor CI checks** for any environment-specific issues
 3. ⏳ **Deploy to staging** for integration testing
 
 **Short-Term Follow-Ups:**
+
 1. Extract magic number constants to shared file
 2. Create reusable validation helper functions
 3. Add error codes for better logging/monitoring
 
 **Long-Term Roadmap:**
+
 1. Move validators to shared package (enable client-side validation)
 2. Consider schema-based validation (Zod/Yup)
 3. Add async validation support when needed
@@ -858,6 +951,7 @@ domains/room/
 ### Impact
 
 This refactoring establishes a **scalable, maintainable validation architecture** that:
+
 - Makes validation logic easy to find and modify
 - Reduces cognitive load (smaller files)
 - Improves testability (pure functions)
@@ -873,14 +967,17 @@ This refactoring establishes a **scalable, maintainable validation architecture*
 ### Complete Message Type Inventory (40 types)
 
 **Token Messages (6):**
+
 - move, recolor, delete-token
 - update-token-image, set-token-size, set-token-color
 
 **Player Messages (6):**
+
 - portrait, rename, mic-level
 - set-hp, set-status-effects, toggle-dm
 
 **Character/NPC Messages (16):**
+
 - create-character, create-npc, update-npc, delete-npc
 - place-npc-token, claim-character
 - add-player-character, delete-player-character
@@ -889,6 +986,7 @@ This refactoring establishes a **scalable, maintainable validation architecture*
 - start-combat, end-combat, next-turn, previous-turn
 
 **Map/Drawing Messages (14):**
+
 - map-background, grid-size, grid-square-size
 - point, draw
 - undo-drawing, redo-drawing, clear-drawings, deselect-drawing
@@ -896,13 +994,16 @@ This refactoring establishes a **scalable, maintainable validation architecture*
 - erase-partial, sync-player-drawings
 
 **Prop Messages (3):**
+
 - create-prop, update-prop, delete-prop
 
 **Selection Messages (5):**
+
 - select-object, deselect-object, select-multiple
 - lock-selected, unlock-selected
 
 **Room/Session/Auth Messages (12):**
+
 - set-player-staging-zone, set-room-password
 - clear-all-tokens, heartbeat, load-session
 - authenticate, elevate-to-dm, set-dm-password, revoke-dm

@@ -839,7 +839,11 @@ export class MessageRouter {
         }
 
         case "rtc-signal": {
-          this.rtcSignalHandler.forwardSignal(message.target, senderUid, message.signal as SignalData);
+          this.rtcSignalHandler.forwardSignal(
+            message.target,
+            senderUid,
+            message.signal as SignalData,
+          );
           break;
         }
 

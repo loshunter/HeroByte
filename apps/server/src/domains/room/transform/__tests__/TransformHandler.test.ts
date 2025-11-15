@@ -156,9 +156,9 @@ describe("TransformHandler - Characterization Tests", () => {
       expect(success).toBe(true);
 
       // Check SceneObject transform
-      const updatedTokenObject = roomService.getState().sceneObjects.find(
-        (obj) => obj.id === "token:token-1"
-      );
+      const updatedTokenObject = roomService
+        .getState()
+        .sceneObjects.find((obj) => obj.id === "token:token-1");
       expect(updatedTokenObject?.transform.x).toBe(150);
       expect(updatedTokenObject?.transform.y).toBe(250);
 
@@ -177,9 +177,9 @@ describe("TransformHandler - Characterization Tests", () => {
       });
 
       expect(success).toBe(true);
-      const updatedTokenObject = roomService.getState().sceneObjects.find(
-        (obj) => obj.id === "token:token-1"
-      );
+      const updatedTokenObject = roomService
+        .getState()
+        .sceneObjects.find((obj) => obj.id === "token:token-1");
       expect(updatedTokenObject?.transform.scaleX).toBe(1.5);
       expect(updatedTokenObject?.transform.scaleY).toBe(1.5);
     });
@@ -193,9 +193,9 @@ describe("TransformHandler - Characterization Tests", () => {
       });
 
       expect(success).toBe(true);
-      const updatedTokenObject = roomService.getState().sceneObjects.find(
-        (obj) => obj.id === "token:token-1"
-      );
+      const updatedTokenObject = roomService
+        .getState()
+        .sceneObjects.find((obj) => obj.id === "token:token-1");
       expect(updatedTokenObject?.transform.rotation).toBe(90);
     });
 
@@ -255,9 +255,9 @@ describe("TransformHandler - Characterization Tests", () => {
       expect(success).toBe(true);
 
       // Check SceneObject
-      const updatedZoneObject = roomService.getState().sceneObjects.find(
-        (obj) => obj.type === "staging-zone"
-      );
+      const updatedZoneObject = roomService
+        .getState()
+        .sceneObjects.find((obj) => obj.type === "staging-zone");
       expect(updatedZoneObject?.transform.x).toBe(50);
       expect(updatedZoneObject?.transform.y).toBe(75);
 
@@ -278,9 +278,9 @@ describe("TransformHandler - Characterization Tests", () => {
       expect(success).toBe(true);
 
       // Check SceneObject
-      const updatedZoneObject = roomService.getState().sceneObjects.find(
-        (obj) => obj.type === "staging-zone"
-      );
+      const updatedZoneObject = roomService
+        .getState()
+        .sceneObjects.find((obj) => obj.type === "staging-zone");
       expect(updatedZoneObject?.transform.scaleX).toBe(2.0);
       expect(updatedZoneObject?.transform.scaleY).toBe(1.5);
 
@@ -303,9 +303,9 @@ describe("TransformHandler - Characterization Tests", () => {
       expect(success).toBe(true);
 
       // Check SceneObject
-      const updatedZoneObject = roomService.getState().sceneObjects.find(
-        (obj) => obj.type === "staging-zone"
-      );
+      const updatedZoneObject = roomService
+        .getState()
+        .sceneObjects.find((obj) => obj.type === "staging-zone");
       expect(updatedZoneObject?.transform.rotation).toBe(45);
 
       // Check backing state
@@ -373,9 +373,9 @@ describe("TransformHandler - Characterization Tests", () => {
       });
 
       expect(success).toBe(true);
-      const updatedDrawingObject = roomService.getState().sceneObjects.find(
-        (obj) => obj.id === "drawing:drawing-1"
-      );
+      const updatedDrawingObject = roomService
+        .getState()
+        .sceneObjects.find((obj) => obj.id === "drawing:drawing-1");
       expect(updatedDrawingObject?.transform.x).toBe(200);
       expect(updatedDrawingObject?.transform.y).toBe(300);
       expect(updatedDrawingObject?.transform.scaleX).toBe(1.2);
@@ -392,9 +392,9 @@ describe("TransformHandler - Characterization Tests", () => {
       });
 
       expect(success).toBe(true);
-      const updatedDrawingObject = roomService.getState().sceneObjects.find(
-        (obj) => obj.id === "drawing:drawing-1"
-      );
+      const updatedDrawingObject = roomService
+        .getState()
+        .sceneObjects.find((obj) => obj.id === "drawing:drawing-1");
       expect(updatedDrawingObject?.transform.x).toBe(500);
       expect(updatedDrawingObject?.transform.y).toBe(600);
     });
@@ -408,9 +408,9 @@ describe("TransformHandler - Characterization Tests", () => {
       });
 
       expect(success).toBe(false);
-      const updatedDrawingObject = roomService.getState().sceneObjects.find(
-        (obj) => obj.id === "drawing:drawing-1"
-      );
+      const updatedDrawingObject = roomService
+        .getState()
+        .sceneObjects.find((obj) => obj.id === "drawing:drawing-1");
       expect(updatedDrawingObject?.transform.x).toBe(0);
       expect(updatedDrawingObject?.transform.y).toBe(0);
     });
@@ -448,9 +448,9 @@ describe("TransformHandler - Characterization Tests", () => {
       expect(success).toBe(true);
 
       // Check SceneObject
-      const updatedPropObject = roomService.getState().sceneObjects.find(
-        (obj) => obj.id === "prop:prop-1"
-      );
+      const updatedPropObject = roomService
+        .getState()
+        .sceneObjects.find((obj) => obj.id === "prop:prop-1");
       expect(updatedPropObject?.transform.x).toBe(100);
       expect(updatedPropObject?.transform.y).toBe(200);
       expect(updatedPropObject?.transform.scaleX).toBe(2.0);
@@ -544,7 +544,7 @@ describe("TransformHandler - Characterization Tests", () => {
     it("should allow owner to transform their pointer position", () => {
       const state = roomService.getState();
       const pointerObject = state.sceneObjects.find(
-        (obj) => obj.type === "pointer" && obj.owner === playerUid
+        (obj) => obj.type === "pointer" && obj.owner === playerUid,
       );
       expect(pointerObject).toBeDefined();
 
@@ -558,9 +558,9 @@ describe("TransformHandler - Characterization Tests", () => {
       });
 
       expect(success).toBe(true);
-      const updatedPointerObject = roomService.getState().sceneObjects.find(
-        (obj) => obj.id === pointerObject!.id
-      );
+      const updatedPointerObject = roomService
+        .getState()
+        .sceneObjects.find((obj) => obj.id === pointerObject!.id);
       expect(updatedPointerObject?.transform.x).toBe(150);
       expect(updatedPointerObject?.transform.y).toBe(250);
     });
@@ -568,7 +568,7 @@ describe("TransformHandler - Characterization Tests", () => {
     it("should deny non-owner from transforming pointer", () => {
       const state = roomService.getState();
       const pointerObject = state.sceneObjects.find(
-        (obj) => obj.type === "pointer" && obj.owner === playerUid
+        (obj) => obj.type === "pointer" && obj.owner === playerUid,
       );
 
       const success = roomService.applySceneObjectTransform(pointerObject!.id, otherPlayerUid, {
@@ -576,9 +576,9 @@ describe("TransformHandler - Characterization Tests", () => {
       });
 
       expect(success).toBe(false);
-      const updatedPointerObject = roomService.getState().sceneObjects.find(
-        (obj) => obj.id === pointerObject!.id
-      );
+      const updatedPointerObject = roomService
+        .getState()
+        .sceneObjects.find((obj) => obj.id === pointerObject!.id);
       expect(updatedPointerObject?.transform.x).toBe(0);
       expect(updatedPointerObject?.transform.y).toBe(0);
     });

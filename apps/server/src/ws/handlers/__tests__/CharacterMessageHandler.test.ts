@@ -407,7 +407,9 @@ describe("CharacterMessageHandler - Characterization Tests", () => {
       const state = roomService.getState();
       const character = state.characters.find((c) => c.id === characterId);
       // Status effects should be undefined (not set) or empty
-      expect(character?.statusEffects === undefined || character?.statusEffects?.length === 0).toBe(true);
+      expect(character?.statusEffects === undefined || character?.statusEffects?.length === 0).toBe(
+        true,
+      );
     });
   });
 });

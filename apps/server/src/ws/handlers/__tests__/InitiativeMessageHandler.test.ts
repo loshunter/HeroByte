@@ -81,15 +81,17 @@ describe("InitiativeMessageHandler", () => {
       canControlCharacter: vi.fn((character: Character, senderUid: string) => {
         return character.ownerUid === senderUid;
       }),
-      setInitiative: vi.fn((state: RoomState, characterId: string, initiative: number, modifier: number) => {
-        const character = state.characters.find((c) => c.id === characterId);
-        if (character) {
-          character.initiative = initiative;
-          character.initiativeModifier = modifier;
-          return true;
-        }
-        return false;
-      }),
+      setInitiative: vi.fn(
+        (state: RoomState, characterId: string, initiative: number, modifier: number) => {
+          const character = state.characters.find((c) => c.id === characterId);
+          if (character) {
+            character.initiative = initiative;
+            character.initiativeModifier = modifier;
+            return true;
+          }
+          return false;
+        },
+      ),
       getCharactersInInitiativeOrder: vi.fn((state: RoomState) => {
         return state.characters
           .filter((c) => c.initiative !== null)
@@ -162,14 +164,7 @@ describe("InitiativeMessageHandler", () => {
     });
 
     it("should reject initiative setting for non-existent character", () => {
-      const result = handler.handleSetInitiative(
-        state,
-        "nonexistent",
-        "player1",
-        15,
-        2,
-        false,
-      );
+      const result = handler.handleSetInitiative(state, "nonexistent", "player1", 15, 2, false);
 
       expect(result.broadcast).toBe(false);
       expect(result.save).toBe(false);

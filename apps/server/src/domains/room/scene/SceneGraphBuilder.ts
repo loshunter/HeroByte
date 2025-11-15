@@ -28,9 +28,7 @@ export class SceneGraphBuilder {
    * @returns Array of scene objects representing all entities
    */
   rebuild(state: RoomState): SceneObject[] {
-    const existing = new Map<string, SceneObject>(
-      state.sceneObjects.map((obj) => [obj.id, obj]),
-    );
+    const existing = new Map<string, SceneObject>(state.sceneObjects.map((obj) => [obj.id, obj]));
     const next: SceneObject[] = [];
 
     // Build scene objects for each entity type
@@ -95,10 +93,7 @@ export class SceneGraphBuilder {
    * @param existing - Map of existing scene objects for preserving properties
    * @returns Array of token scene objects
    */
-  private buildTokenObjects(
-    tokens: Token[],
-    existing: Map<string, SceneObject>,
-  ): SceneObject[] {
+  private buildTokenObjects(tokens: Token[], existing: Map<string, SceneObject>): SceneObject[] {
     const result: SceneObject[] = [];
 
     for (const token of tokens) {
@@ -171,10 +166,7 @@ export class SceneGraphBuilder {
    * @param existing - Map of existing scene objects for preserving properties
    * @returns Array of prop scene objects
    */
-  private buildPropObjects(
-    props: Prop[],
-    existing: Map<string, SceneObject>,
-  ): SceneObject[] {
+  private buildPropObjects(props: Prop[], existing: Map<string, SceneObject>): SceneObject[] {
     const result: SceneObject[] = [];
 
     for (const prop of props) {

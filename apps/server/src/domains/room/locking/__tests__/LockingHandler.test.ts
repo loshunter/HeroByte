@@ -100,9 +100,9 @@ describe("LockingHandler - Characterization Tests", () => {
       const count = roomService.lockSelectedObjects(dmUid, ["token:token-1"]);
 
       expect(count).toBe(1);
-      const updatedToken = roomService.getState().sceneObjects.find(
-        (obj) => obj.id === "token:token-1"
-      );
+      const updatedToken = roomService
+        .getState()
+        .sceneObjects.find((obj) => obj.id === "token:token-1");
       expect(updatedToken?.locked).toBe(true);
     });
 
@@ -132,10 +132,7 @@ describe("LockingHandler - Characterization Tests", () => {
     });
 
     it("should handle non-existent object IDs", () => {
-      const count = roomService.lockSelectedObjects(dmUid, [
-        "non-existent-1",
-        "non-existent-2",
-      ]);
+      const count = roomService.lockSelectedObjects(dmUid, ["non-existent-1", "non-existent-2"]);
 
       expect(count).toBe(0);
     });
@@ -231,11 +228,7 @@ describe("LockingHandler - Characterization Tests", () => {
       roomService.createSnapshot(); // Triggers rebuildSceneGraph
 
       // Lock all objects
-      roomService.lockSelectedObjects(dmUid, [
-        "token:token-1",
-        "token:token-2",
-        "prop:prop-1",
-      ]);
+      roomService.lockSelectedObjects(dmUid, ["token:token-1", "token:token-2", "prop:prop-1"]);
     });
 
     it("should allow DM to unlock single object", () => {
@@ -246,9 +239,9 @@ describe("LockingHandler - Characterization Tests", () => {
       const count = roomService.unlockSelectedObjects(dmUid, ["token:token-1"]);
 
       expect(count).toBe(1);
-      const updatedToken = roomService.getState().sceneObjects.find(
-        (obj) => obj.id === "token:token-1"
-      );
+      const updatedToken = roomService
+        .getState()
+        .sceneObjects.find((obj) => obj.id === "token:token-1");
       expect(updatedToken?.locked).toBe(false);
     });
 
@@ -278,10 +271,7 @@ describe("LockingHandler - Characterization Tests", () => {
     });
 
     it("should handle non-existent object IDs", () => {
-      const count = roomService.unlockSelectedObjects(dmUid, [
-        "non-existent-1",
-        "non-existent-2",
-      ]);
+      const count = roomService.unlockSelectedObjects(dmUid, ["non-existent-1", "non-existent-2"]);
 
       expect(count).toBe(0);
     });
@@ -374,9 +364,7 @@ describe("LockingHandler - Characterization Tests", () => {
       expect(unlockCount).toBe(1);
 
       const unlockedState = roomService.getState();
-      const unlockedToken = unlockedState.sceneObjects.find(
-        (obj) => obj.id === "token:token-1"
-      );
+      const unlockedToken = unlockedState.sceneObjects.find((obj) => obj.id === "token:token-1");
       expect(unlockedToken?.locked).toBe(false);
     });
   });

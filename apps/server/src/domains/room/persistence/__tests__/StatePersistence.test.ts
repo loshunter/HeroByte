@@ -12,8 +12,8 @@
  * Target: apps/server/src/domains/room/persistence/StatePersistence.ts
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { existsSync, unlinkSync, readFileSync } from "fs";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { existsSync, unlinkSync, readFileSync, writeFileSync } from "fs";
 import { RoomService } from "../../service.js";
 
 const TEST_STATE_FILE = "./test-herobyte-state.json";
@@ -52,8 +52,7 @@ describe("StatePersistence - Characterization Tests", () => {
 
     // Restore production state file if it existed
     if (originalStateFileExists) {
-      const fs = require("fs");
-      fs.writeFileSync(PROD_STATE_FILE, originalStateFileContent, "utf-8");
+      writeFileSync(PROD_STATE_FILE, originalStateFileContent, "utf-8");
     } else if (existsSync(PROD_STATE_FILE)) {
       // Remove if it was created during tests
       unlinkSync(PROD_STATE_FILE);
@@ -76,7 +75,6 @@ describe("StatePersistence - Characterization Tests", () => {
 
     it("should load valid state from disk", () => {
       // Create a valid state file
-      const fs = require("fs");
       const validState = {
         tokens: [
           {
@@ -130,7 +128,7 @@ describe("StatePersistence - Characterization Tests", () => {
         },
       };
 
-      fs.writeFileSync(PROD_STATE_FILE, JSON.stringify(validState), "utf-8");
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(validState), "utf-8");
 
       roomService.loadState();
       const state = roomService.getState();
@@ -149,7 +147,7 @@ describe("StatePersistence - Characterization Tests", () => {
     });
 
     it("should normalize player data (isDM, statusEffects)", () => {
-      const fs = require("fs");
+      
       const stateWithMissingFields = {
         tokens: [],
         players: [
@@ -175,7 +173,7 @@ describe("StatePersistence - Characterization Tests", () => {
         sceneObjects: [],
       };
 
-      fs.writeFileSync(PROD_STATE_FILE, JSON.stringify(stateWithMissingFields), "utf-8");
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(stateWithMissingFields), "utf-8");
 
       roomService.loadState();
       const state = roomService.getState();
@@ -187,7 +185,7 @@ describe("StatePersistence - Characterization Tests", () => {
     });
 
     it("should normalize character data (type, tokenImage, tokenId)", () => {
-      const fs = require("fs");
+      
       const stateWithCharacters = {
         tokens: [],
         players: [],
@@ -218,7 +216,7 @@ describe("StatePersistence - Characterization Tests", () => {
         sceneObjects: [],
       };
 
-      fs.writeFileSync(PROD_STATE_FILE, JSON.stringify(stateWithCharacters), "utf-8");
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(stateWithCharacters), "utf-8");
 
       roomService.loadState();
       const state = roomService.getState();
@@ -230,7 +228,7 @@ describe("StatePersistence - Characterization Tests", () => {
     });
 
     it("should always reset users to empty array", () => {
-      const fs = require("fs");
+      
       const stateWithUsers = {
         tokens: [],
         players: [],
@@ -246,7 +244,7 @@ describe("StatePersistence - Characterization Tests", () => {
         ],
       };
 
-      fs.writeFileSync(PROD_STATE_FILE, JSON.stringify(stateWithUsers), "utf-8");
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(stateWithUsers), "utf-8");
 
       roomService.loadState();
       const state = roomService.getState();
@@ -255,7 +253,7 @@ describe("StatePersistence - Characterization Tests", () => {
     });
 
     it("should always reset pointers to empty array", () => {
-      const fs = require("fs");
+      
       const stateWithPointers = {
         tokens: [],
         players: [],
@@ -271,7 +269,7 @@ describe("StatePersistence - Characterization Tests", () => {
         ],
       };
 
-      fs.writeFileSync(PROD_STATE_FILE, JSON.stringify(stateWithPointers), "utf-8");
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(stateWithPointers), "utf-8");
 
       roomService.loadState();
       const state = roomService.getState();
@@ -280,7 +278,7 @@ describe("StatePersistence - Characterization Tests", () => {
     });
 
     it("should always reset drawingUndoStacks and drawingRedoStacks to empty objects", () => {
-      const fs = require("fs");
+      
       const stateWithUndoRedo = {
         tokens: [],
         players: [],
@@ -299,7 +297,7 @@ describe("StatePersistence - Characterization Tests", () => {
         },
       };
 
-      fs.writeFileSync(PROD_STATE_FILE, JSON.stringify(stateWithUndoRedo), "utf-8");
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(stateWithUndoRedo), "utf-8");
 
       roomService.loadState();
       const state = roomService.getState();
@@ -309,7 +307,7 @@ describe("StatePersistence - Characterization Tests", () => {
     });
 
     it("should always reset selectionState to empty Map", () => {
-      const fs = require("fs");
+      
       const stateWithSelections = {
         tokens: [],
         players: [],
@@ -325,7 +323,7 @@ describe("StatePersistence - Characterization Tests", () => {
         },
       };
 
-      fs.writeFileSync(PROD_STATE_FILE, JSON.stringify(stateWithSelections), "utf-8");
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(stateWithSelections), "utf-8");
 
       roomService.loadState();
       const state = roomService.getState();
@@ -335,7 +333,7 @@ describe("StatePersistence - Characterization Tests", () => {
     });
 
     it("should sanitize invalid staging zone data", () => {
-      const fs = require("fs");
+      
       // Note: NaN in JSON becomes null, which JSON.parse converts to 0 (valid)
       // So we need to test with string "not-a-number" instead
       const stateWithInvalidZone = {
@@ -356,7 +354,7 @@ describe("StatePersistence - Characterization Tests", () => {
         },
       };
 
-      fs.writeFileSync(PROD_STATE_FILE, JSON.stringify(stateWithInvalidZone), "utf-8");
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(stateWithInvalidZone), "utf-8");
 
       roomService.loadState();
       const state = roomService.getState();
@@ -365,12 +363,12 @@ describe("StatePersistence - Characterization Tests", () => {
     });
 
     it("should provide default values for missing fields", () => {
-      const fs = require("fs");
+      
       const minimalState = {
         // Only required fields, others should get defaults
       };
 
-      fs.writeFileSync(PROD_STATE_FILE, JSON.stringify(minimalState), "utf-8");
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(minimalState), "utf-8");
 
       roomService.loadState();
       const state = roomService.getState();
@@ -387,8 +385,8 @@ describe("StatePersistence - Characterization Tests", () => {
     });
 
     it("should handle corrupted JSON gracefully (error logged, state unchanged)", () => {
-      const fs = require("fs");
-      fs.writeFileSync(PROD_STATE_FILE, "{ this is not valid JSON }", "utf-8");
+      
+      writeFileSync(PROD_STATE_FILE, "{ this is not valid JSON }", "utf-8");
 
       const initialState = roomService.getState();
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -399,16 +397,13 @@ describe("StatePersistence - Characterization Tests", () => {
       // State should remain unchanged
       expect(stateAfterLoad).toEqual(initialState);
       // Error should be logged
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "Failed to load state:",
-        expect.any(Error),
-      );
+      expect(consoleSpy).toHaveBeenCalledWith("Failed to load state:", expect.any(Error));
 
       consoleSpy.mockRestore();
     });
 
     it("should rebuild scene graph after loading state", () => {
-      const fs = require("fs");
+      
       const stateWithStagingZone = {
         tokens: [],
         players: [],
@@ -428,7 +423,7 @@ describe("StatePersistence - Characterization Tests", () => {
         },
       };
 
-      fs.writeFileSync(PROD_STATE_FILE, JSON.stringify(stateWithStagingZone), "utf-8");
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(stateWithStagingZone), "utf-8");
 
       roomService.loadState();
       const state = roomService.getState();
@@ -498,7 +493,17 @@ describe("StatePersistence - Characterization Tests", () => {
 
     it("should format JSON with 2-space indentation", async () => {
       roomService.setState({
-        tokens: [{ id: "token-1", owner: "player-1", x: 0, y: 0, color: "red", imageUrl: null, size: "medium" }],
+        tokens: [
+          {
+            id: "token-1",
+            owner: "player-1",
+            x: 0,
+            y: 0,
+            color: "red",
+            imageUrl: null,
+            size: "medium",
+          },
+        ],
       });
 
       roomService.saveState();
@@ -508,14 +513,39 @@ describe("StatePersistence - Characterization Tests", () => {
 
       // Check for 2-space indentation (formatted JSON)
       expect(fileContent).toContain('  "tokens"');
-      expect(fileContent).toContain('    {');
+      expect(fileContent).toContain("    {");
     });
 
     it("should save all persistent fields", async () => {
       roomService.setState({
-        tokens: [{ id: "t1", owner: "p1", x: 0, y: 0, color: "red", imageUrl: null, size: "medium" }],
-        players: [{ uid: "p1", name: "Player 1", portrait: null, micLevel: 0, hp: 10, maxHp: 10, isDM: false, statusEffects: [] }],
-        characters: [{ id: "c1", type: "pc", name: "Hero", portrait: null, hp: 10, maxHp: 10, ownedByPlayerUID: "p1", tokenId: null, tokenImage: null }],
+        tokens: [
+          { id: "t1", owner: "p1", x: 0, y: 0, color: "red", imageUrl: null, size: "medium" },
+        ],
+        players: [
+          {
+            uid: "p1",
+            name: "Player 1",
+            portrait: null,
+            micLevel: 0,
+            hp: 10,
+            maxHp: 10,
+            isDM: false,
+            statusEffects: [],
+          },
+        ],
+        characters: [
+          {
+            id: "c1",
+            type: "pc",
+            name: "Hero",
+            portrait: null,
+            hp: 10,
+            maxHp: 10,
+            ownedByPlayerUID: "p1",
+            tokenId: null,
+            tokenImage: null,
+          },
+        ],
         props: [],
         mapBackground: "https://example.com/map.jpg",
         drawings: [],

@@ -86,7 +86,13 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
       const newSceneObjects = roomService.getState().sceneObjects;
       const newMapObject = newSceneObjects.find((obj) => obj.type === "map");
 
-      expect(newMapObject?.transform).toEqual({ x: 100, y: 200, scaleX: 2, scaleY: 2, rotation: 45 });
+      expect(newMapObject?.transform).toEqual({
+        x: 100,
+        y: 200,
+        scaleX: 2,
+        scaleY: 2,
+        rotation: 45,
+      });
       expect(newMapObject?.data.imageUrl).toBe("https://example.com/map2.jpg");
       expect(newMapObject?.data.width).toBe(1000);
       expect(newMapObject?.data.height).toBe(800);
@@ -185,7 +191,13 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
       const newTokenObject = newSceneObjects.find((obj) => obj.id === "token:token-1");
 
       // Position updated, scale and rotation preserved
-      expect(newTokenObject?.transform).toEqual({ x: 100, y: 200, scaleX: 2, scaleY: 2, rotation: 90 });
+      expect(newTokenObject?.transform).toEqual({
+        x: 100,
+        y: 200,
+        scaleX: 2,
+        scaleY: 2,
+        rotation: 90,
+      });
       expect(newTokenObject?.data.characterId).toBe("char-123");
     });
 
@@ -294,7 +306,13 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
       const newSceneObjects = roomService.getState().sceneObjects;
       const newDrawingObject = newSceneObjects.find((obj) => obj.id === "drawing:drawing-1");
 
-      expect(newDrawingObject?.transform).toEqual({ x: 50, y: 60, scaleX: 1.5, scaleY: 1.5, rotation: 30 });
+      expect(newDrawingObject?.transform).toEqual({
+        x: 50,
+        y: 60,
+        scaleX: 1.5,
+        scaleY: 1.5,
+        rotation: 30,
+      });
     });
   });
 
@@ -414,7 +432,13 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
       expect(stagingObject?.owner).toBeNull();
       expect(stagingObject?.locked).toBe(false);
       expect(stagingObject?.zIndex).toBe(1);
-      expect(stagingObject?.transform).toEqual({ x: 500, y: 600, scaleX: 1.5, scaleY: 1.5, rotation: 30 });
+      expect(stagingObject?.transform).toEqual({
+        x: 500,
+        y: 600,
+        scaleX: 1.5,
+        scaleY: 1.5,
+        rotation: 30,
+      });
       expect(stagingObject?.data.width).toBe(200);
       expect(stagingObject?.data.height).toBe(100);
       expect(stagingObject?.data.rotation).toBe(30);
@@ -434,7 +458,13 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
       const sceneObjects = roomService.getState().sceneObjects;
       const stagingObject = sceneObjects.find((obj) => obj.type === "staging-zone");
 
-      expect(stagingObject?.transform).toEqual({ x: 100, y: 200, scaleX: 1, scaleY: 1, rotation: 0 });
+      expect(stagingObject?.transform).toEqual({
+        x: 100,
+        y: 200,
+        scaleX: 1,
+        scaleY: 1,
+        rotation: 0,
+      });
       expect(stagingObject?.data.rotation).toBe(0);
     });
 
@@ -550,14 +580,22 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
       const newPointerObject = newSceneObjects.find((obj) => obj.id === "pointer:player-1");
 
       // Transform should be preserved for pointers
-      expect(newPointerObject?.transform).toEqual({ x: 100, y: 200, scaleX: 2, scaleY: 2, rotation: 45 });
+      expect(newPointerObject?.transform).toEqual({
+        x: 100,
+        y: 200,
+        scaleX: 2,
+        scaleY: 2,
+        rotation: 45,
+      });
     });
   });
 
   describe("Mixed entities", () => {
     it("should create scene objects for all entity types in correct order", () => {
       const mapBackground = "https://example.com/map.jpg";
-      const tokens: Token[] = [{ id: "t1", owner: "p1", x: 10, y: 20, color: "red", imageUrl: undefined, size: "medium" }];
+      const tokens: Token[] = [
+        { id: "t1", owner: "p1", x: 10, y: 20, color: "red", imageUrl: undefined, size: "medium" },
+      ];
       const drawings: Drawing[] = [{ id: "d1", owner: "p1", lines: [] }];
       const props: Prop[] = [
         {
@@ -574,7 +612,9 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
         },
       ];
       const stagingZone: PlayerStagingZone = { x: 50, y: 60, width: 100, height: 100 };
-      const pointers: Pointer[] = [{ uid: "p1", name: "Player", x: 70, y: 80, timestamp: Date.now() }];
+      const pointers: Pointer[] = [
+        { uid: "p1", name: "Player", x: 70, y: 80, timestamp: Date.now() },
+      ];
 
       roomService.setState({
         mapBackground,
@@ -606,8 +646,24 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
       // In the actual implementation, it logs to console.error
 
       const tokens: Token[] = [
-        { id: "token-1", owner: "p1", x: 10, y: 20, color: "red", imageUrl: undefined, size: "medium" },
-        { id: "token-1", owner: "p2", x: 30, y: 40, color: "blue", imageUrl: undefined, size: "medium" }, // Duplicate ID
+        {
+          id: "token-1",
+          owner: "p1",
+          x: 10,
+          y: 20,
+          color: "red",
+          imageUrl: undefined,
+          size: "medium",
+        },
+        {
+          id: "token-1",
+          owner: "p2",
+          x: 30,
+          y: 40,
+          color: "blue",
+          imageUrl: undefined,
+          size: "medium",
+        }, // Duplicate ID
       ];
 
       // Should not throw

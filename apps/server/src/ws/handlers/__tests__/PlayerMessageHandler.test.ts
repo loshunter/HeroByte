@@ -326,9 +326,7 @@ describe("PlayerMessageHandler - Characterization Tests", () => {
       const player = state.players.find((p) => p.uid === playerUid);
       expect(player?.isDM).toBe(false); // Should not change
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining("toggle-dm message from"),
-      );
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("toggle-dm message from"));
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining("ignored - use elevate-to-dm instead"),
       );

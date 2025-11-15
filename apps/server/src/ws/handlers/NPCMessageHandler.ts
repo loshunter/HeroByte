@@ -96,11 +96,7 @@ export class NPCMessageHandler {
    * @param updates - Properties to update
    * @returns Result indicating broadcast/save needs
    */
-  handleUpdateNPC(
-    state: RoomState,
-    npcId: string,
-    updates: UpdateNPCOptions,
-  ): NPCMessageResult {
+  handleUpdateNPC(state: RoomState, npcId: string, updates: UpdateNPCOptions): NPCMessageResult {
     const updated = this.characterService.updateNPC(state, this.tokenService, npcId, updates);
     return { broadcast: updated, save: updated };
   }
@@ -137,11 +133,7 @@ export class NPCMessageHandler {
    * @param senderUid - UID of DM placing the token
    * @returns Result indicating broadcast/save needs
    */
-  handlePlaceNPCToken(
-    state: RoomState,
-    npcId: string,
-    senderUid: string,
-  ): NPCMessageResult {
+  handlePlaceNPCToken(state: RoomState, npcId: string, senderUid: string): NPCMessageResult {
     const placed = this.characterService.placeNPCToken(state, this.tokenService, npcId, senderUid);
     return { broadcast: placed, save: placed };
   }

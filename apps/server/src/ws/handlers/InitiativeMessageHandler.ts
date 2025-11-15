@@ -84,9 +84,7 @@ export class InitiativeMessageHandler {
       `[Server] Setting initiative for ${character.name} (${characterId}): initiative=${initiative}, modifier=${initiativeModifier}`,
     );
 
-    if (
-      this.characterService.setInitiative(state, characterId, initiative, initiativeModifier)
-    ) {
+    if (this.characterService.setInitiative(state, characterId, initiative, initiativeModifier)) {
       console.log(`[Server] Broadcasting updated initiative for ${character.name}`);
       return { broadcast: true, save: true };
     }

@@ -5,12 +5,7 @@
 
 import type { ValidationResult, MessageRecord } from "./commonValidators.js";
 import { isFiniteNumber } from "./commonValidators.js";
-import {
-  PAYLOAD_LIMITS,
-  STRING_LIMITS,
-  ARRAY_LIMITS,
-  RANGE_LIMITS,
-} from "./constants.js";
+import { PAYLOAD_LIMITS, STRING_LIMITS, ARRAY_LIMITS, RANGE_LIMITS } from "./constants.js";
 
 /**
  * Validate portrait message (player portrait update)
@@ -48,7 +43,11 @@ export function validateRenameMessage(message: MessageRecord): ValidationResult 
  */
 export function validateMicLevelMessage(message: MessageRecord): ValidationResult {
   const { level } = message;
-  if (!isFiniteNumber(level) || level < RANGE_LIMITS.MIC_LEVEL_MIN || level > RANGE_LIMITS.MIC_LEVEL_MAX) {
+  if (
+    !isFiniteNumber(level) ||
+    level < RANGE_LIMITS.MIC_LEVEL_MIN ||
+    level > RANGE_LIMITS.MIC_LEVEL_MAX
+  ) {
     return { valid: false, error: "mic-level: level must be between 0 and 1" };
   }
   return { valid: true };

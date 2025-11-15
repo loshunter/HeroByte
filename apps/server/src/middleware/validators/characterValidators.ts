@@ -14,7 +14,11 @@ import { PAYLOAD_LIMITS, STRING_LIMITS } from "./constants.js";
  */
 export function validateCreateCharacterMessage(message: MessageRecord): ValidationResult {
   const { name, maxHp, portrait } = message;
-  if (typeof name !== "string" || name.length === 0 || name.length > STRING_LIMITS.PLAYER_NAME_MAX) {
+  if (
+    typeof name !== "string" ||
+    name.length === 0 ||
+    name.length > STRING_LIMITS.PLAYER_NAME_MAX
+  ) {
     return { valid: false, error: "create-character: name must be 1-50 characters" };
   }
   if (!isFiniteNumber(maxHp) || maxHp <= 0) {
@@ -38,7 +42,11 @@ export function validateCreateCharacterMessage(message: MessageRecord): Validati
  */
 export function validateCreateNpcMessage(message: MessageRecord): ValidationResult {
   const { name, hp, maxHp, portrait, tokenImage } = message;
-  if (typeof name !== "string" || name.length === 0 || name.length > STRING_LIMITS.PLAYER_NAME_MAX) {
+  if (
+    typeof name !== "string" ||
+    name.length === 0 ||
+    name.length > STRING_LIMITS.PLAYER_NAME_MAX
+  ) {
     return { valid: false, error: "create-npc: name must be 1-50 characters" };
   }
   if (!isFiniteNumber(hp) || hp <= 0) {
@@ -66,7 +74,11 @@ export function validateUpdateNpcMessage(message: MessageRecord): ValidationResu
   if (typeof id !== "string" || id.length === 0) {
     return { valid: false, error: "update-npc: missing or invalid id" };
   }
-  if (typeof name !== "string" || name.length === 0 || name.length > STRING_LIMITS.PLAYER_NAME_MAX) {
+  if (
+    typeof name !== "string" ||
+    name.length === 0 ||
+    name.length > STRING_LIMITS.PLAYER_NAME_MAX
+  ) {
     return { valid: false, error: "update-npc: name must be 1-50 characters" };
   }
   if (!isFiniteNumber(hp) || hp < 0) {
@@ -123,7 +135,11 @@ export function validateClaimCharacterMessage(message: MessageRecord): Validatio
  * Optional: maxHp (positive finite number)
  */
 export function validateAddPlayerCharacterMessage(message: MessageRecord): ValidationResult {
-  if (typeof message.name !== "string" || message.name.length === 0 || message.name.length > STRING_LIMITS.CHARACTER_NAME_MAX) {
+  if (
+    typeof message.name !== "string" ||
+    message.name.length === 0 ||
+    message.name.length > STRING_LIMITS.CHARACTER_NAME_MAX
+  ) {
     return { valid: false, error: "add-player-character: name must be 1-100 characters" };
   }
   if (message.maxHp !== undefined && (!isFiniteNumber(message.maxHp) || message.maxHp <= 0)) {
@@ -151,7 +167,11 @@ export function validateUpdateCharacterNameMessage(message: MessageRecord): Vali
   if (typeof message.characterId !== "string" || message.characterId.length === 0) {
     return { valid: false, error: "update-character-name: missing or invalid characterId" };
   }
-  if (typeof message.name !== "string" || message.name.length === 0 || message.name.length > STRING_LIMITS.CHARACTER_NAME_MAX) {
+  if (
+    typeof message.name !== "string" ||
+    message.name.length === 0 ||
+    message.name.length > STRING_LIMITS.CHARACTER_NAME_MAX
+  ) {
     return { valid: false, error: "update-character-name: name must be 1-100 characters" };
   }
   return { valid: true };
