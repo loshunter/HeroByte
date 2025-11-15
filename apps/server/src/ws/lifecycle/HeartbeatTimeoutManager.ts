@@ -5,6 +5,7 @@
 // Single responsibility: Monitor and remove timed-out players
 
 import type { Container } from "../../container.js";
+import type { DisconnectionCleanupManager } from "./DisconnectionCleanupManager.js";
 
 /**
  * Heartbeat timeout manager
@@ -13,12 +14,14 @@ import type { Container } from "../../container.js";
  */
 export class HeartbeatTimeoutManager {
   private container: Container;
+  private cleanupManager: DisconnectionCleanupManager;
   private timeoutCheckInterval: NodeJS.Timeout | null = null;
   private readonly HEARTBEAT_TIMEOUT = 5 * 60 * 1000; // 5 minutes without heartbeat before timeout
   private readonly CHECK_INTERVAL = 30000; // Check every 30 seconds
 
-  constructor(container: Container) {
+  constructor(container: Container, cleanupManager: DisconnectionCleanupManager) {
     this.container = container;
+    this.cleanupManager = cleanupManager;
   }
 
   /**
@@ -74,25 +77,14 @@ export class HeartbeatTimeoutManager {
       console.log(`Removing ${timedOutPlayers.length} timed-out players:`, timedOutPlayers);
 
       for (const uid of timedOutPlayers) {
-        const socket = this.container.uidToWs.get(uid);
-        if (socket && socket.readyState === 1) {
-          socket.close(4000, "Heartbeat timeout");
-        }
-        // Remove player
-        state.players = state.players.filter((p) => p.uid !== uid);
-        // Remove their token
-        state.tokens = state.tokens.filter((t) => t.owner !== uid);
-        // Remove from users list
-        state.users = state.users.filter((u) => u !== uid);
-        // Clean up WebSocket connection map
-        this.container.uidToWs.delete(uid);
-        this.container.authenticatedUids.delete(uid);
-        this.container.authenticatedSessions.delete(uid);
-        this.container.selectionService.deselect(state, uid);
+        // Delegate cleanup to DisconnectionCleanupManager
+        // Use timeout-specific options: close WebSocket, remove player/tokens
+        this.cleanupManager.cleanupPlayer(uid, {
+          closeWebSocket: true,
+          removePlayer: true,
+          removeTokens: true,
+        });
       }
-
-      // Broadcast updated state
-      this.container.roomService.broadcast(this.container.getAuthenticatedClients());
     }
   }
 }
