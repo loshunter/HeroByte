@@ -22,6 +22,7 @@ import { PointerHandler } from "./handlers/PointerHandler.js";
 import { TokenMessageHandler } from "./handlers/TokenMessageHandler.js";
 import { CharacterMessageHandler } from "./handlers/CharacterMessageHandler.js";
 import { NPCMessageHandler } from "./handlers/NPCMessageHandler.js";
+import { PropMessageHandler } from "./handlers/PropMessageHandler.js";
 
 /**
  * Message router - handles all WebSocket messages and dispatches to domain services
@@ -42,6 +43,7 @@ export class MessageRouter {
   private tokenMessageHandler: TokenMessageHandler;
   private characterMessageHandler: CharacterMessageHandler;
   private npcMessageHandler: NPCMessageHandler;
+  private propMessageHandler: PropMessageHandler;
   private wss: WebSocketServer;
   private uidToWs: Map<string, WebSocket>;
   private getAuthorizedClients: () => Set<WebSocket>;
@@ -93,6 +95,7 @@ export class MessageRouter {
       tokenService,
       selectionService,
     );
+    this.propMessageHandler = new PropMessageHandler(propService, selectionService);
   }
 
   /**
@@ -417,7 +420,7 @@ export class MessageRouter {
             console.warn(`Non-DM ${senderUid} attempted to create prop`);
             break;
           }
-          this.propService.createProp(
+          const result = this.propMessageHandler.handleCreateProp(
             state,
             message.label,
             message.imageUrl,
@@ -426,41 +429,35 @@ export class MessageRouter {
             message.viewport,
             state.gridSize,
           );
-          this.broadcast();
-          this.roomService.saveState();
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
         }
 
-        case "update-prop":
+        case "update-prop": {
           if (!this.isDM(senderUid)) {
             console.warn(`Non-DM ${senderUid} attempted to update prop`);
             break;
           }
-          if (
-            this.propService.updateProp(state, message.id, {
-              label: message.label,
-              imageUrl: message.imageUrl,
-              owner: message.owner,
-              size: message.size,
-            })
-          ) {
-            this.broadcast();
-            this.roomService.saveState();
-          }
+          const result = this.propMessageHandler.handleUpdateProp(state, message.id, {
+            label: message.label,
+            imageUrl: message.imageUrl,
+            owner: message.owner,
+            size: message.size,
+          });
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
         case "delete-prop": {
           if (!this.isDM(senderUid)) {
             console.warn(`Non-DM ${senderUid} attempted to delete prop`);
             break;
           }
-          const removed = this.propService.deleteProp(state, message.id);
-          if (removed) {
-            // Remove from selection state
-            this.selectionService.removeObject(state, `prop:${message.id}`);
-            this.broadcast();
-            this.roomService.saveState();
-          }
+          const result = this.propMessageHandler.handleDeleteProp(state, message.id);
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
         }
 
