@@ -20,6 +20,7 @@ import { HeartbeatHandler } from "./handlers/HeartbeatHandler.js";
 import { RTCSignalHandler } from "./handlers/RTCSignalHandler.js";
 import { PointerHandler } from "./handlers/PointerHandler.js";
 import { TokenMessageHandler } from "./handlers/TokenMessageHandler.js";
+import { CharacterMessageHandler } from "./handlers/CharacterMessageHandler.js";
 
 /**
  * Message router - handles all WebSocket messages and dispatches to domain services
@@ -38,6 +39,7 @@ export class MessageRouter {
   private rtcSignalHandler: RTCSignalHandler;
   private pointerHandler: PointerHandler;
   private tokenMessageHandler: TokenMessageHandler;
+  private characterMessageHandler: CharacterMessageHandler;
   private wss: WebSocketServer;
   private uidToWs: Map<string, WebSocket>;
   private getAuthorizedClients: () => Set<WebSocket>;
@@ -75,6 +77,12 @@ export class MessageRouter {
     this.tokenMessageHandler = new TokenMessageHandler(
       tokenService,
       characterService,
+      selectionService,
+      roomService,
+    );
+    this.characterMessageHandler = new CharacterMessageHandler(
+      characterService,
+      tokenService,
       selectionService,
       roomService,
     );
@@ -210,20 +218,21 @@ export class MessageRouter {
           break;
 
         // CHARACTER ACTIONS
-        case "create-character":
+        case "create-character": {
           if (!this.isDM(senderUid)) {
             console.warn(`Non-DM ${senderUid} attempted to create character`);
             break;
           }
-          this.characterService.createCharacter(
+          const result = this.characterMessageHandler.handleCreateCharacter(
             state,
             message.name,
             message.maxHp,
             message.portrait,
           );
-          this.broadcast();
-          this.roomService.saveState();
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
         case "create-npc":
           if (!this.isDM(senderUid)) {
@@ -458,123 +467,75 @@ export class MessageRouter {
           break;
         }
 
-        case "claim-character":
-          if (this.characterService.claimCharacter(state, message.characterId, senderUid)) {
-            this.broadcast();
-            this.roomService.saveState();
-          }
+        case "claim-character": {
+          const result = this.characterMessageHandler.handleClaimCharacter(
+            state,
+            message.characterId,
+            senderUid,
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
         case "add-player-character": {
-          console.log(
-            `[MessageRouter] Received add-player-character from ${senderUid}:`,
-            message.name,
-          );
-          // Create character for the requesting player
-          const maxHp = message.maxHp ?? 100;
-          const character = this.characterService.createCharacter(
+          const result = this.characterMessageHandler.handleAddPlayerCharacter(
             state,
+            senderUid,
             message.name,
-            maxHp,
-            undefined, // portrait - player can set later
-            "pc",
+            message.maxHp,
           );
-
-          // Auto-claim for the requesting player
-          this.characterService.claimCharacter(state, character.id, senderUid);
-
-          // Create and link token at spawn position
-          const spawn = this.roomService.getPlayerSpawnPosition();
-          const token = this.tokenService.createToken(state, senderUid, spawn.x, spawn.y);
-          this.characterService.linkToken(state, character.id, token.id);
-
-          console.log(
-            `[MessageRouter] Player ${senderUid} created additional character: ${character.name} (ID: ${character.id})`,
-          );
-          console.log(
-            `[MessageRouter] Broadcasting update. Total characters: ${state.characters.length}`,
-          );
-          this.broadcast();
-          this.roomService.saveState();
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           console.log(`[MessageRouter] Broadcast and save complete`);
           break;
         }
 
         case "delete-player-character": {
-          // Find the character to delete
-          const characterToDelete = this.characterService.findCharacter(state, message.characterId);
-
-          // Permission check: Only allow if player owns this character
-          if (!characterToDelete || characterToDelete.ownedByPlayerUID !== senderUid) {
-            console.warn(`Player ${senderUid} tried to delete character they don't own`);
-            break;
-          }
-
-          // Delete the character
-          const deleted = this.characterService.deleteCharacter(state, message.characterId);
-          if (deleted) {
-            // Delete linked token if exists
-            if (deleted.tokenId) {
-              this.tokenService.forceDeleteToken(state, deleted.tokenId);
-              this.selectionService.removeObject(state, deleted.tokenId);
-            }
-            console.log(`Player ${senderUid} deleted character: ${deleted.name}`);
-            this.broadcast();
-            this.roomService.saveState();
-          }
+          const result = this.characterMessageHandler.handleDeletePlayerCharacter(
+            state,
+            message.characterId,
+            senderUid,
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
         }
 
         case "update-character-name": {
-          // Find the character to rename
-          const characterToRename = this.characterService.findCharacter(state, message.characterId);
-
-          // Permission check: Only allow if player owns this character
-          if (!characterToRename || characterToRename.ownedByPlayerUID !== senderUid) {
-            console.warn(`Player ${senderUid} tried to rename character they don't own`);
-            break;
-          }
-
-          // Update the character name
-          if (this.characterService.updateName(state, message.characterId, message.name)) {
-            console.log(
-              `Player ${senderUid} renamed character to: ${message.name} (ID: ${message.characterId})`,
-            );
-            this.broadcast();
-            this.roomService.saveState();
-          }
+          const result = this.characterMessageHandler.handleUpdateCharacterName(
+            state,
+            message.characterId,
+            senderUid,
+            message.name,
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
         }
 
-        case "update-character-hp":
-          if (
-            this.characterService.updateHP(state, message.characterId, message.hp, message.maxHp)
-          ) {
-            this.broadcast();
-            this.roomService.saveState();
-          }
+        case "update-character-hp": {
+          const result = this.characterMessageHandler.handleUpdateCharacterHP(
+            state,
+            message.characterId,
+            message.hp,
+            message.maxHp,
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
         case "set-character-status-effects": {
-          // Find the character
-          const character = this.characterService.findCharacter(state, message.characterId);
-
-          // Permission check: Only allow if player owns this character or is DM
-          const canModify =
-            this.isDM(senderUid) ||
-            (character && this.characterService.canControlCharacter(character, senderUid));
-
-          if (!canModify) {
-            console.warn(
-              `Player ${senderUid} attempted to set status effects for character they don't control`,
-            );
-            break;
-          }
-
-          if (this.characterService.setStatusEffects(state, message.characterId, message.effects)) {
-            this.broadcast();
-            this.roomService.saveState();
-          }
+          const result = this.characterMessageHandler.handleSetCharacterStatusEffects(
+            state,
+            message.characterId,
+            senderUid,
+            message.effects,
+            this.isDM(senderUid),
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
         }
 
