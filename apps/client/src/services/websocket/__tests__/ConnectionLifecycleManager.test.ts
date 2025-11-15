@@ -66,7 +66,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
   let mockOnError: ReturnType<typeof vi.fn>;
   let mockOnMessage: ReturnType<typeof vi.fn>;
   let MockWebSocketClass: ReturnType<typeof vi.fn>;
-  let mockWebSocketInstance: any;
+  let mockWebSocketInstance: WebSocket;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -90,7 +90,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
     };
 
     MockWebSocketClass = vi.fn(() => mockWebSocketInstance);
-    global.WebSocket = MockWebSocketClass as any;
+    global.WebSocket = MockWebSocketClass as unknown as typeof WebSocket;
 
     // Mock console methods
     vi.spyOn(console, "log").mockImplementation(() => {});
