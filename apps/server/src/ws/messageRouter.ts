@@ -24,6 +24,7 @@ import { CharacterMessageHandler } from "./handlers/CharacterMessageHandler.js";
 import { NPCMessageHandler } from "./handlers/NPCMessageHandler.js";
 import { PropMessageHandler } from "./handlers/PropMessageHandler.js";
 import { PlayerMessageHandler } from "./handlers/PlayerMessageHandler.js";
+import { InitiativeMessageHandler } from "./handlers/InitiativeMessageHandler.js";
 
 /**
  * Message router - handles all WebSocket messages and dispatches to domain services
@@ -46,6 +47,7 @@ export class MessageRouter {
   private npcMessageHandler: NPCMessageHandler;
   private propMessageHandler: PropMessageHandler;
   private playerMessageHandler: PlayerMessageHandler;
+  private initiativeMessageHandler: InitiativeMessageHandler;
   private wss: WebSocketServer;
   private uidToWs: Map<string, WebSocket>;
   private getAuthorizedClients: () => Set<WebSocket>;
@@ -99,6 +101,7 @@ export class MessageRouter {
     );
     this.propMessageHandler = new PropMessageHandler(propService, selectionService);
     this.playerMessageHandler = new PlayerMessageHandler(playerService, roomService);
+    this.initiativeMessageHandler = new InitiativeMessageHandler(characterService, roomService);
   }
 
   /**
@@ -316,115 +319,71 @@ export class MessageRouter {
 
         // INITIATIVE/COMBAT ACTIONS
         case "set-initiative": {
-          // Check if sender owns the character or is DM
-          const character = this.characterService.findCharacter(state, message.characterId);
-          if (!character) {
-            console.warn(`Character ${message.characterId} not found`);
-            break;
-          }
-          const canModify =
-            this.isDM(senderUid) || this.characterService.canControlCharacter(character, senderUid);
-          if (!canModify) {
-            console.warn(
-              `Player ${senderUid} attempted to set initiative for character they don't own`,
-            );
-            break;
-          }
-          console.log(
-            `[Server] Setting initiative for ${character.name} (${message.characterId}): initiative=${message.initiative}, modifier=${message.initiativeModifier}`,
+          const result = this.initiativeMessageHandler.handleSetInitiative(
+            state,
+            message.characterId,
+            senderUid,
+            message.initiative,
+            message.initiativeModifier,
+            this.isDM(senderUid),
           );
-          if (
-            this.characterService.setInitiative(
-              state,
-              message.characterId,
-              message.initiative,
-              message.initiativeModifier,
-            )
-          ) {
-            console.log(`[Server] Broadcasting updated initiative for ${character.name}`);
-            this.broadcast();
-            this.roomService.saveState();
-          }
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
         }
 
         case "start-combat": {
-          if (!this.isDM(senderUid)) {
-            console.warn(`Non-DM ${senderUid} attempted to start combat`);
-            break;
-          }
-          state.combatActive = true;
-          // Set first character with initiative as current turn
-          const charactersInOrder = this.characterService.getCharactersInInitiativeOrder(state);
-          if (charactersInOrder.length > 0) {
-            state.currentTurnCharacterId = charactersInOrder[0].id;
-          }
-          console.log(`Combat started by ${senderUid}`);
-          this.broadcast();
-          this.roomService.saveState();
+          const result = this.initiativeMessageHandler.handleStartCombat(
+            state,
+            senderUid,
+            this.isDM(senderUid),
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
         }
 
         case "end-combat": {
-          if (!this.isDM(senderUid)) {
-            console.warn(`Non-DM ${senderUid} attempted to end combat`);
-            break;
-          }
-          state.combatActive = false;
-          state.currentTurnCharacterId = undefined;
-          this.characterService.clearAllInitiative(state);
-          console.log(`Combat ended by ${senderUid}`);
-          this.broadcast();
-          this.roomService.saveState();
+          const result = this.initiativeMessageHandler.handleEndCombat(
+            state,
+            senderUid,
+            this.isDM(senderUid),
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
         }
 
         case "next-turn": {
-          if (!this.isDM(senderUid)) {
-            console.warn(`Non-DM ${senderUid} attempted to advance turn`);
-            break;
-          }
-          const charactersInOrder = this.characterService.getCharactersInInitiativeOrder(state);
-          if (charactersInOrder.length === 0) break;
-
-          const currentIndex = charactersInOrder.findIndex(
-            (c) => c.id === state.currentTurnCharacterId,
+          const result = this.initiativeMessageHandler.handleNextTurn(
+            state,
+            senderUid,
+            this.isDM(senderUid),
           );
-          const nextIndex = (currentIndex + 1) % charactersInOrder.length;
-          state.currentTurnCharacterId = charactersInOrder[nextIndex].id;
-          console.log(`Turn advanced to ${charactersInOrder[nextIndex].name}`);
-          this.broadcast();
-          this.roomService.saveState();
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
         }
 
         case "previous-turn": {
-          if (!this.isDM(senderUid)) {
-            console.warn(`Non-DM ${senderUid} attempted to go back turn`);
-            break;
-          }
-          const charactersInOrder = this.characterService.getCharactersInInitiativeOrder(state);
-          if (charactersInOrder.length === 0) break;
-
-          const currentIndex = charactersInOrder.findIndex(
-            (c) => c.id === state.currentTurnCharacterId,
+          const result = this.initiativeMessageHandler.handlePreviousTurn(
+            state,
+            senderUid,
+            this.isDM(senderUid),
           );
-          const prevIndex = currentIndex <= 0 ? charactersInOrder.length - 1 : currentIndex - 1;
-          state.currentTurnCharacterId = charactersInOrder[prevIndex].id;
-          console.log(`Turn moved back to ${charactersInOrder[prevIndex].name}`);
-          this.broadcast();
-          this.roomService.saveState();
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
         }
 
         case "clear-all-initiative": {
-          if (!this.isDM(senderUid)) {
-            console.warn(`Non-DM ${senderUid} attempted to clear all initiative`);
-            break;
-          }
-          this.characterService.clearAllInitiative(state);
-          this.broadcast();
-          this.roomService.saveState();
+          const result = this.initiativeMessageHandler.handleClearAllInitiative(
+            state,
+            senderUid,
+            this.isDM(senderUid),
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
         }
 
