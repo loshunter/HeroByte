@@ -10,7 +10,8 @@
  * @module ws/handlers/PointerHandler
  */
 
-import type { RoomState } from "@shared";
+import type {  } from "@shared"
+import type { RoomState } from "../../domains/room/model.js";
 import type { MapService } from "../../domains/map/service.js";
 
 /**

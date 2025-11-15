@@ -10,7 +10,8 @@
  * @module ws/handlers/HeartbeatHandler
  */
 
-import type { RoomState } from "@shared";
+import type {  } from "@shared"
+import type { RoomState } from "../../domains/room/model.js";
 
 /**
  * Handler for client heartbeat messages

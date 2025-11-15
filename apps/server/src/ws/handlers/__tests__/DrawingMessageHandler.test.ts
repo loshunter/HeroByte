@@ -21,7 +21,8 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { DrawingMessageHandler } from "../DrawingMessageHandler.js";
-import type { RoomState, Drawing } from "@shared";
+import type { Drawing } from "@shared"
+import type { RoomState } from "../../domains/room/model.js";
 import type { MapService } from "../../../domains/map/service.js";
 import type { SelectionService } from "../../../domains/selection/service.js";
 import type { RoomService } from "../../../domains/room/service.js";

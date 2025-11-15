@@ -18,7 +18,8 @@
  * @module ws/handlers/PlayerMessageHandler
  */
 
-import type { RoomState } from "@shared";
+import type {  } from "@shared"
+import type { RoomState } from "../../domains/room/model.js";
 import type { PlayerService } from "../../domains/player/service.js";
 import type { RoomService } from "../../domains/room/service.js";
 

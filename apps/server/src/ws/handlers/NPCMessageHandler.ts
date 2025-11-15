@@ -15,7 +15,8 @@
  * @module ws/handlers/NPCMessageHandler
  */
 
-import type { RoomState } from "@shared";
+import type {  } from "@shared"
+import type { RoomState } from "../../domains/room/model.js";
 import type { CharacterService } from "../../domains/character/service.js";
 import type { TokenService } from "../../domains/token/service.js";
 import type { SelectionService } from "../../domains/selection/service.js";

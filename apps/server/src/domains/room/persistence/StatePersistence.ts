@@ -12,7 +12,8 @@
 
 import { readFileSync, existsSync } from "fs";
 import { writeFile } from "fs/promises";
-import type { Player, Character, SceneObject, RoomState } from "@shared";
+import type { Player, Character, SceneObject,  } from "@shared"
+import type { RoomState } from "../model.js";
 import { createSelectionMap } from "../model.js";
 import type { StagingZoneManager } from "../staging/StagingZoneManager.js";
 

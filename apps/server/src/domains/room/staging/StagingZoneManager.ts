@@ -11,7 +11,8 @@
  * @module domains/room/staging/StagingZoneManager
  */
 
-import type { PlayerStagingZone, RoomState } from "@shared";
+import type { PlayerStagingZone,  } from "@shared"
+import type { RoomState } from "../model.js";
 
 /**
  * Manages player staging zone operations including validation, persistence,

@@ -17,7 +17,8 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { InitiativeMessageHandler } from "../InitiativeMessageHandler.js";
-import type { RoomState, Character } from "@shared";
+import type { Character } from "@shared"
+import type { RoomState } from "../../domains/room/model.js";
 import type { CharacterService } from "../../../domains/character/service.js";
 import type { RoomService } from "../../../domains/room/service.js";
 

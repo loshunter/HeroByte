@@ -22,7 +22,8 @@
  * @module ws/handlers/DrawingMessageHandler
  */
 
-import type { RoomState, Drawing, DrawingSegmentPayload } from "@shared";
+import type { Drawing, DrawingSegmentPayload } from "@shared"
+import type { RoomState } from "../../domains/room/model.js";
 import type { MapService } from "../../domains/map/service.js";
 import type { SelectionService } from "../../domains/selection/service.js";
 import type { RoomService } from "../../domains/room/service.js";

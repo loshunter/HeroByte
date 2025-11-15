@@ -18,7 +18,8 @@
  * @module ws/handlers/InitiativeMessageHandler
  */
 
-import type { RoomState } from "@shared";
+import type {  } from "@shared"
+import type { RoomState } from "../../domains/room/model.js";
 import type { CharacterService } from "../../domains/character/service.js";
 import type { RoomService } from "../../domains/room/service.js";
 

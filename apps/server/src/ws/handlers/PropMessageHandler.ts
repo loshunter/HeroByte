@@ -14,7 +14,8 @@
  * @module ws/handlers/PropMessageHandler
  */
 
-import type { RoomState, TokenSize, Viewport } from "@shared";
+import type { TokenSize, Viewport } from "@shared"
+import type { RoomState } from "../../domains/room/model.js";
 import type { PropService } from "../../domains/prop/service.js";
 import type { SelectionService } from "../../domains/selection/service.js";
 
