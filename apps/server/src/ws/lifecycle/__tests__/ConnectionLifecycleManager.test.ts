@@ -142,7 +142,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       // Setup: existing connection for uid
       const uid = "player1";
       const existingWs = new FakeWebSocket() as unknown as WebSocket;
-      const _newWs = new FakeWebSocket() as unknown as WebSocket;
+      const newWs = new FakeWebSocket() as unknown as WebSocket;
 
       uidToWs.set(uid, existingWs);
 
@@ -178,7 +178,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       // Setup: existing authenticated connection
       const uid = "player1";
       const existingWs = new FakeWebSocket() as unknown as WebSocket;
-      const _newWs = new FakeWebSocket() as unknown as WebSocket;
+      const newWs = new FakeWebSocket() as unknown as WebSocket;
 
       uidToWs.set(uid, existingWs);
       authenticatedUids.add(uid);
@@ -203,7 +203,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
     it("does not log or close when no existing connection", () => {
       // Setup: no existing connection
       const uid = "player1";
-      const _newWs = new FakeWebSocket() as unknown as WebSocket;
+      const newWs = new FakeWebSocket() as unknown as WebSocket;
 
       // Execute: check for existing connection
       const existingConnection = uidToWs.get(uid);
@@ -226,7 +226,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       // Setup: authenticated user reconnecting
       const uid = "player1";
       const existingWs = new FakeWebSocket() as unknown as WebSocket;
-      const _newWs = new FakeWebSocket() as unknown as WebSocket;
+      const newWs = new FakeWebSocket() as unknown as WebSocket;
 
       uidToWs.set(uid, existingWs);
       authenticatedUids.add(uid);
@@ -324,7 +324,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       // Setup: existing connection
       const uid = "player1";
       const oldWs = new FakeWebSocket() as unknown as WebSocket;
-      const _newWs = new FakeWebSocket() as unknown as WebSocket;
+      const newWs = new FakeWebSocket() as unknown as WebSocket;
 
       uidToWs.set(uid, oldWs);
 
@@ -602,7 +602,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       const req = new FakeIncomingMessage(
         `http://localhost?uid=${uid}`,
       ) as unknown as IncomingMessage;
-      const _newWs = new FakeWebSocket() as unknown as WebSocket;
+      const newWs = new FakeWebSocket() as unknown as WebSocket;
 
       // Execute: reconnection flow
       const params = new URL(req.url || "", "http://localhost").searchParams;
