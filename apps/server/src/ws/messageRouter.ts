@@ -19,6 +19,7 @@ import { getRoomSecret } from "../config/auth.js";
 import { HeartbeatHandler } from "./handlers/HeartbeatHandler.js";
 import { RTCSignalHandler } from "./handlers/RTCSignalHandler.js";
 import { PointerHandler } from "./handlers/PointerHandler.js";
+import { TokenMessageHandler } from "./handlers/TokenMessageHandler.js";
 
 /**
  * Message router - handles all WebSocket messages and dispatches to domain services
@@ -36,6 +37,7 @@ export class MessageRouter {
   private heartbeatHandler: HeartbeatHandler;
   private rtcSignalHandler: RTCSignalHandler;
   private pointerHandler: PointerHandler;
+  private tokenMessageHandler: TokenMessageHandler;
   private wss: WebSocketServer;
   private uidToWs: Map<string, WebSocket>;
   private getAuthorizedClients: () => Set<WebSocket>;
@@ -70,6 +72,12 @@ export class MessageRouter {
     this.heartbeatHandler = new HeartbeatHandler();
     this.rtcSignalHandler = new RTCSignalHandler(uidToWs);
     this.pointerHandler = new PointerHandler(mapService);
+    this.tokenMessageHandler = new TokenMessageHandler(
+      tokenService,
+      characterService,
+      selectionService,
+      roomService,
+    );
   }
 
   /**
@@ -91,58 +99,72 @@ export class MessageRouter {
     try {
       switch (message.t) {
         // TOKEN ACTIONS
-        case "move":
-          if (this.tokenService.moveToken(state, message.id, senderUid, message.x, message.y)) {
-            this.broadcast();
-          }
-          break;
-
-        case "recolor":
-          if (this.tokenService.recolorToken(state, message.id, senderUid)) {
-            this.broadcast();
-          }
-          break;
-
-        case "delete-token": {
-          // Check if sender is a DM - DMs can delete any token
-          const sender = state.players.find((p) => p.uid === senderUid);
-          const isDM = sender?.isDM ?? false;
-
-          const success = isDM
-            ? this.tokenService.forceDeleteToken(state, message.id)
-            : this.tokenService.deleteToken(state, message.id, senderUid);
-
-          if (success) {
-            this.selectionService.removeObject(state, message.id);
-            this.broadcast();
-          }
+        case "move": {
+          const result = this.tokenMessageHandler.handleMove(
+            state,
+            message.id,
+            senderUid,
+            message.x,
+            message.y,
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
         }
 
-        case "update-token-image":
-          if (this.tokenService.setImageUrl(state, message.tokenId, senderUid, message.imageUrl)) {
-            this.broadcast();
-            this.roomService.saveState();
-          }
+        case "recolor": {
+          const result = this.tokenMessageHandler.handleRecolor(state, message.id, senderUid);
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
-        case "set-token-size":
-          if (this.tokenService.setTokenSize(state, message.tokenId, senderUid, message.size)) {
-            this.broadcast();
-            this.roomService.saveState();
-          }
+        case "delete-token": {
+          const result = this.tokenMessageHandler.handleDelete(
+            state,
+            message.id,
+            senderUid,
+            this.isDM(senderUid),
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
+
+        case "update-token-image": {
+          const result = this.tokenMessageHandler.handleUpdateImage(
+            state,
+            message.tokenId,
+            senderUid,
+            message.imageUrl,
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
+          break;
+        }
+
+        case "set-token-size": {
+          const result = this.tokenMessageHandler.handleSetSize(
+            state,
+            message.tokenId,
+            senderUid,
+            message.size,
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
+          break;
+        }
 
         case "set-token-color": {
-          const sender = state.players.find((p) => p.uid === senderUid);
-          const isDM = sender?.isDM ?? false;
-          const updated = isDM
-            ? this.tokenService.setColorForToken(state, message.tokenId, message.color)
-            : this.tokenService.setColor(state, message.tokenId, senderUid, message.color);
-          if (updated) {
-            this.broadcast();
-            this.roomService.saveState();
-          }
+          const result = this.tokenMessageHandler.handleSetColor(
+            state,
+            message.tokenId,
+            senderUid,
+            message.color,
+            this.isDM(senderUid),
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
         }
 
@@ -556,12 +578,16 @@ export class MessageRouter {
           break;
         }
 
-        case "link-token":
-          if (this.characterService.linkToken(state, message.characterId, message.tokenId)) {
-            this.broadcast();
-            this.roomService.saveState();
-          }
+        case "link-token": {
+          const result = this.tokenMessageHandler.handleLinkToken(
+            state,
+            message.characterId,
+            message.tokenId,
+          );
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
+        }
 
         // MAP ACTIONS
         case "map-background":
@@ -817,22 +843,9 @@ export class MessageRouter {
             console.warn(`Non-DM ${senderUid} attempted to clear all tokens`);
             break;
           }
-          const removedIds = state.tokens
-            .filter((token) => token.owner !== senderUid)
-            .map((token) => token.id);
-          this.tokenService.clearAllTokensExcept(state, senderUid);
-          for (const tokenId of removedIds) {
-            this.selectionService.removeObject(state, tokenId);
-          }
-          const removedPlayerUids = state.players
-            .filter((player) => player.uid !== senderUid)
-            .map((player) => player.uid);
-          state.players = state.players.filter((p) => p.uid === senderUid);
-          for (const uid of removedPlayerUids) {
-            this.selectionService.deselect(state, uid);
-          }
-          this.broadcast();
-          this.roomService.saveState();
+          const result = this.tokenMessageHandler.handleClearAll(state, senderUid);
+          if (result.broadcast) this.broadcast();
+          if (result.save) this.roomService.saveState();
           break;
         }
 
