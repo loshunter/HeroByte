@@ -41,7 +41,10 @@ describe("StatePersistence - Characterization Tests", () => {
     roomService = new RoomService();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    // Wait for any pending async file writes to complete
+    await new Promise((resolve) => setTimeout(resolve, 250));
+
     // Clean up test state file
     if (existsSync(TEST_STATE_FILE)) {
       unlinkSync(TEST_STATE_FILE);
@@ -438,7 +441,7 @@ describe("StatePersistence - Characterization Tests", () => {
     });
   });
 
-  describe("saveState()", () => {
+  describe.sequential("saveState()", () => {
     it("should create state file with correct JSON structure", async () => {
       // Modify state
       roomService.setState({
@@ -459,8 +462,8 @@ describe("StatePersistence - Characterization Tests", () => {
       // Save state
       roomService.saveState();
 
-      // Wait for async file write
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Wait for async file write (increased timeout for reliability)
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       // Verify file exists
       expect(existsSync(PROD_STATE_FILE)).toBe(true);
@@ -481,7 +484,7 @@ describe("StatePersistence - Characterization Tests", () => {
       state.drawingRedoStacks["player-1"] = [];
 
       roomService.saveState();
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       const savedData = JSON.parse(readFileSync(PROD_STATE_FILE, "utf-8"));
 
@@ -499,7 +502,7 @@ describe("StatePersistence - Characterization Tests", () => {
       });
 
       roomService.saveState();
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       const fileContent = readFileSync(PROD_STATE_FILE, "utf-8");
 
@@ -524,7 +527,7 @@ describe("StatePersistence - Characterization Tests", () => {
       });
 
       roomService.saveState();
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
       const savedData = JSON.parse(readFileSync(PROD_STATE_FILE, "utf-8"));
 
