@@ -1,0 +1,291 @@
+Continue the Phase 15 SOLID Refactor Initiative for HeroByte. The RoomService refactor is complete (688 → 181 LOC, 74% reduction). Your task is to refactor apps/server/src/ws/messageRouter.ts (921 LOC → ~200 LOC target).
+
+CURRENT STATE:
+- Branch: dev (clean, RoomService refactor complete)
+- messageRouter.ts: 921 LOC (LARGEST file in entire codebase!)
+- Server tests: 418/418 passing ✅
+- 61 message types in one giant switch statement
+
+YOUR MISSION:
+Refactor messageRouter.ts following the proven RoomService pattern
+- Target: 921 LOC → ~200 LOC (~75% reduction)
+- Extract message handlers by category (token, character, NPC, combat, etc.)
+- Create focused handler modules with single responsibility
+- Keep MessageRouter as orchestrator only
+- Estimated time: 5-7 days
+
+CRITICAL RULES:
+⚠️ MAX 2 AGENTS AT ONCE (WSL crash prevention - NEVER run more than 2 agents in parallel!)
+✅ Write characterization tests BEFORE extraction
+✅ One module per branch (refactor/server/[handler-name])
+✅ Follow the 17-step playbook exactly
+🚫 NO feature additions during refactoring
+✅ Use TodoWrite to track progress
+
+ESSENTIAL READING (in order):
+1. /home/loshunter/HeroByte/docs/refactoring/ROOM_SERVICE_REFACTOR_COMPLETE.md
+   - Read this FIRST! Shows the exact pattern to follow
+   - 688 → 181 LOC example with lessons learned
+   - Characterization test patterns
+   - Common pitfalls and solutions
+
+2. /home/loshunter/HeroByte/docs/refactoring/REFACTOR_PLAYBOOK.md
+   - 17-step extraction process
+   - Step-by-step checklist
+   - Testing patterns
+
+3. /home/loshunter/HeroByte/docs/guides/PREVENTING_GOD_OBJECTS.md
+   - Why we refactor
+   - 350 LOC threshold
+   - Prevention strategies
+
+CURRENT FILE ANALYSIS:
+File: apps/server/src/ws/messageRouter.ts (921 LOC)
+
+Message Categories (61 total):
+1. Token operations (8): move, recolor, delete-token, update-token-image, set-token-size, set-token-color, link-token, clear-all-tokens
+2. Character operations (7): create-character, add-player-character, delete-player-character, claim-character, update-character-name, update-character-hp, set-character-status-effects
+3. NPC operations (4): create-npc, update-npc, delete-npc, place-npc-token
+4. Prop operations (3): create-prop, update-prop, delete-prop
+5. Drawing operations (10): draw, delete-drawing, select-drawing, deselect-drawing, move-drawing, undo-drawing, redo-drawing, erase-partial, clear-drawings, sync-player-drawings
+6. Combat/Initiative (6): set-initiative, start-combat, end-combat, next-turn, previous-turn, clear-all-initiative
+7. Player state (6): portrait, rename, mic-level, set-hp, set-status-effects, toggle-dm
+8. Map/Grid (4): map-background, grid-size, grid-square-size, set-player-staging-zone
+9. Selection (6): select-object, deselect-object, select-multiple, lock-selected, unlock-selected, transform-object
+10. Dice (2): dice-roll, clear-roll-history
+11. Session (2): load-session, set-room-password
+12. Connection (2): rtc-signal, heartbeat
+13. Pointer (1): point
+
+SUGGESTED REFACTOR PHASES:
+
+Phase 1: Utilities (2-3 modules, 2 days)
+- Extract HeartbeatHandler (heartbeat message)
+- Extract RTCSignalHandler (rtc-signal, WebRTC signaling)
+- Extract PointerHandler (point message)
+Goal: Remove simple, isolated handlers first
+
+Phase 2: Domain Handlers (5-6 modules, 3 days)
+- Extract TokenMessageHandler (8 token operations)
+- Extract CharacterMessageHandler (7 character operations)
+- Extract NPCMessageHandler (4 NPC operations)
+- Extract PropMessageHandler (3 prop operations)
+- Extract DrawingMessageHandler (10 drawing operations)
+- Extract CombatMessageHandler (6 combat/initiative operations)
+Goal: Group related domain operations
+
+Phase 3: State & Session (3-4 modules, 2 days)
+- Extract PlayerStateHandler (6 player state operations)
+- Extract MapConfigHandler (4 map/grid operations)
+- Extract SessionHandler (2 session operations)
+- Extract SelectionHandler (6 selection operations)
+- Extract DiceHandler (2 dice operations)
+Goal: Extract remaining specialized handlers
+
+Phase 4: Orchestrator (1 day)
+- Refactor MessageRouter to delegate to handlers
+- Keep only routing logic and broadcast coordination
+- Clean up constructor (inject handlers, not all services)
+Goal: Slim orchestrator that just routes messages
+
+EXTRACTION PATTERN (follow RoomService example):
+
+For each handler module:
+1. Create characterization tests (capture current behavior)
+2. Create handler class with focused responsibility
+3. Extract message handling logic from messageRouter.ts
+4. Update messageRouter.ts to delegate
+5. Run all tests (must stay green!)
+6. Commit and push
+
+Example: TokenMessageHandler
+- Create: apps/server/src/ws/handlers/TokenMessageHandler.ts
+- Tests: apps/server/src/ws/handlers/__tests__/TokenMessageHandler.test.ts
+- Methods: handleMove(), handleRecolor(), handleDelete(), etc.
+- Inject: TokenService, RoomService (for state/broadcast)
+- Return: boolean (true = needs broadcast)
+
+STARTING POINT:
+
+Step 1: Read the completion summary
+Read /home/loshunter/HeroByte/docs/refactoring/ROOM_SERVICE_REFACTOR_COMPLETE.md
+Pay special attention to:
+- "Lessons Learned" section (scene graph rebuild pattern, etc.)
+- "Challenges Overcome" section (common pitfalls)
+- Test patterns used
+
+Step 2: Verify clean state
+```bash
+cd /home/loshunter/HeroByte
+git status  # Should be clean
+git checkout dev
+git pull origin dev
+pnpm test:server  # Should show 418/418 passing
+```
+
+Step 3: Check current structure
+```bash
+pnpm lint:structure | grep messageRouter
+# Should show: 922 LOC, server:websocket category
+```
+
+Step 4: Create Phase 1 branch
+```bash
+git checkout -b refactor/server/heartbeat-handler
+```
+
+Step 5: Start with simplest extraction (HeartbeatHandler)
+- Read messageRouter.ts lines for "heartbeat" case
+- Write characterization tests
+- Extract handler module
+- Update messageRouter to delegate
+- Verify 418/418 tests still passing
+
+Step 6: Use TodoWrite to track phases
+Create todos for all Phase 1 extractions:
+1. Extract HeartbeatHandler
+2. Extract RTCSignalHandler
+3. Extract PointerHandler
+
+ARCHITECTURE GOALS:
+
+Before (Current):
+```
+MessageRouter (921 LOC)
+├── Giant switch statement (61 cases)
+├── Direct service calls
+├── Inline permission checks
+└── Broadcast logic scattered
+```
+
+After (Target):
+```
+MessageRouter (orchestrator, ~200 LOC)
+├── HeartbeatHandler (~30 LOC)
+├── RTCSignalHandler (~40 LOC)
+├── PointerHandler (~20 LOC)
+├── TokenMessageHandler (~120 LOC)
+├── CharacterMessageHandler (~100 LOC)
+├── NPCMessageHandler (~60 LOC)
+├── PropMessageHandler (~50 LOC)
+├── DrawingMessageHandler (~150 LOC)
+├── CombatMessageHandler (~90 LOC)
+├── PlayerStateHandler (~80 LOC)
+├── MapConfigHandler (~60 LOC)
+├── SessionHandler (~40 LOC)
+├── SelectionHandler (~90 LOC)
+└── DiceHandler (~40 LOC)
+```
+
+Each handler:
+- Single responsibility (one message category)
+- Injected dependencies (services they need)
+- Returns boolean (broadcast needed?)
+- Comprehensive tests
+- Under 200 LOC
+
+VERIFICATION COMMANDS:
+
+After each extraction:
+```bash
+# Run server tests
+pnpm test:server
+# Should show 418/418 passing (or more if you add tests)
+
+# Check structure
+pnpm lint:structure:enforce
+# Should pass (no new violations)
+
+# TypeScript check
+pnpm --filter vtt-server typecheck
+# Should pass
+
+# Format code
+pnpm format
+```
+
+SUCCESS CRITERIA:
+
+✅ messageRouter.ts reduced to <250 LOC (orchestrator only)
+✅ 12-14 handler modules created (each <200 LOC)
+✅ All existing tests passing (418+)
+✅ Characterization tests for each handler
+✅ Zero behavioral changes
+✅ CI passing (pnpm lint:structure:enforce)
+✅ Comprehensive JSDoc for all modules
+
+COMMON PITFALLS (from RoomService refactor):
+
+1. **Forgetting to call createSnapshot()**
+   - After state changes, call roomService.createSnapshot() to trigger scene graph rebuild
+   - This was the #1 test failure in RoomService refactor
+
+2. **Missing permissions checks**
+   - Many handlers need isDM checks or ownership validation
+   - Don't skip these when extracting!
+
+3. **Broadcast timing**
+   - Some operations need immediate broadcast, others debounced
+   - Preserve existing broadcast behavior
+
+4. **State mutations**
+   - Handlers can mutate state directly (pass state reference)
+   - Follow RoomService pattern: handlers receive state, mutate it, return boolean
+
+USEFUL COMMANDS:
+
+```bash
+# Search for specific message type
+grep -n "case \"move\"" apps/server/src/ws/messageRouter.ts
+
+# Count lines in a case block
+sed -n '85,90p' apps/server/src/ws/messageRouter.ts | wc -l
+
+# See all imports
+head -20 apps/server/src/ws/messageRouter.ts
+
+# Check test count
+pnpm test:server | grep "Test Files"
+
+# View recent refactor commits
+git log --oneline --grep="refactor: extract" | head -10
+```
+
+REFERENCE EXAMPLES:
+
+See these successfully completed extractions:
+- apps/server/src/domains/room/transform/TransformHandler.ts (292 LOC)
+  - Shows how to handle complex switch logic with type-specific methods
+- apps/server/src/domains/room/scene/SceneGraphBuilder.ts (298 LOC)
+  - Shows how to handle 6 entity types with focused methods
+- apps/server/src/domains/room/locking/LockingHandler.ts (77 LOC)
+  - Shows simple, focused handler pattern
+
+NEXT STEPS AFTER READING THIS:
+
+1. Read ROOM_SERVICE_REFACTOR_COMPLETE.md (20 min)
+2. Read REFACTOR_PLAYBOOK.md (15 min)
+3. Run verification commands (git status, tests)
+4. Create Phase 1 branch
+5. Start TodoWrite with Phase 1 tasks
+6. Extract HeartbeatHandler (simplest case)
+7. Follow playbook for each subsequent extraction
+
+REMEMBER:
+- Work incrementally (one handler at a time)
+- Write tests first (characterization tests)
+- Keep main branch green (all tests passing)
+- Commit frequently (atomic commits per handler)
+- Use TodoWrite to track progress
+- Follow RoomService pattern exactly
+- MAX 2 agents at once (WSL crash prevention!)
+
+You've got this! The RoomService refactor proved the pattern works. Now apply it to the biggest file in the codebase. 🚀
+
+---
+
+**Current State**: Clean dev branch, 418 tests passing, ready to start
+**Goal**: messageRouter.ts 921 → ~200 LOC (75% reduction)
+**Pattern**: Follow ROOM_SERVICE_REFACTOR_COMPLETE.md exactly
+**Timeline**: 5-7 days
+**Impact**: Massive server maintainability win, clearest WebSocket architecture ever
