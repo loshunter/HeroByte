@@ -14,6 +14,17 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { existsSync, unlinkSync, readFileSync, writeFileSync } from "fs";
+
+vi.mock("fs/promises", async () => {
+  const actual = await vi.importActual<typeof import("fs/promises")>("fs/promises");
+  const writeFileMock = vi.fn(actual.writeFile);
+  return {
+    ...actual,
+    writeFile: writeFileMock,
+  };
+});
+
+import * as fsPromises from "fs/promises";
 import { RoomService } from "../../service.js";
 
 const TEST_STATE_FILE = "./test-herobyte-state.json";
@@ -584,11 +595,70 @@ describe("StatePersistence - Characterization Tests", () => {
     });
 
     it("should handle save errors gracefully (error logged, no throw)", async () => {
-      // Force an error by making the file path invalid (not testable easily without mocking)
-      // Instead, verify that save doesn't throw
-      expect(() => {
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const actualFs = await vi.importActual<typeof import("fs/promises")>("fs/promises");
+      const writeFileSpy = fsPromises.writeFile as ReturnType<typeof vi.fn>;
+      writeFileSpy.mockRejectedValueOnce(new Error("Disk full"));
+
+      expect(() => roomService.saveState()).not.toThrow();
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      expect(consoleSpy).toHaveBeenCalledWith("Failed to save state:", expect.any(Error));
+
+      writeFileSpy.mockImplementation(actualFs.writeFile);
+      consoleSpy.mockRestore();
+    });
+
+    it("should serialize rapid save requests to avoid overlapping file writes", async () => {
+      const actualFs = await vi.importActual<typeof import("fs/promises")>("fs/promises");
+      const actualWriteFile = actualFs.writeFile;
+      type WriteFileArgs = Parameters<typeof actualWriteFile>;
+      let concurrentWrites = 0;
+      let maxConcurrentWrites = 0;
+
+      const writeFileSpy = fsPromises.writeFile as ReturnType<typeof vi.fn>;
+      writeFileSpy.mockImplementation(async (...args: WriteFileArgs) => {
+        concurrentWrites += 1;
+        maxConcurrentWrites = Math.max(maxConcurrentWrites, concurrentWrites);
+        // Slow down writes enough so overlapping calls would be noticeable without serialization.
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        try {
+          return await actualWriteFile(...args);
+        } finally {
+          concurrentWrites -= 1;
+        }
+      });
+
+      // Kick off several saves without awaiting their completion.
+      for (let i = 0; i < 5; i += 1) {
+        roomService.setState({
+          gridSize: 50 + i,
+          tokens: [
+            {
+              id: `token-${i}`,
+              owner: "player",
+              x: i,
+              y: i,
+              color: "red",
+              imageUrl: undefined,
+              size: "medium",
+            },
+          ],
+        });
         roomService.saveState();
-      }).not.toThrow();
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 900));
+
+      expect(maxConcurrentWrites).toBe(1);
+
+      const fileContent = readFileSync(PROD_STATE_FILE, "utf-8");
+      const savedData = JSON.parse(fileContent);
+      expect(savedData.gridSize).toBe(54);
+      expect(savedData.tokens).toHaveLength(1);
+      expect(savedData.tokens[0].id).toBe("token-4");
+
+      writeFileSpy.mockImplementation(actualWriteFile);
     });
   });
 });
