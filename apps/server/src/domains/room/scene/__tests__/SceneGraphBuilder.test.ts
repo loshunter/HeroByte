@@ -46,7 +46,7 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
       expect(mapObject).toBeDefined();
       expect(mapObject?.id).toBe("map");
       expect(mapObject?.type).toBe("map");
-      expect(mapObject?.owner).toBeNull();
+      expect(mapObject?.owner).toBeUndefined();
       expect(mapObject?.locked).toBe(true);
       expect(mapObject?.zIndex).toBe(-100);
       expect(mapObject?.transform).toEqual({ x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 });
@@ -441,7 +441,7 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
       expect(stagingObject).toBeDefined();
       expect(stagingObject?.id).toBe("staging-zone");
       expect(stagingObject?.type).toBe("staging-zone");
-      expect(stagingObject?.owner).toBeNull();
+      expect(stagingObject?.owner).toBeUndefined();
       expect(stagingObject?.locked).toBe(false);
       expect(stagingObject?.zIndex).toBe(1);
       expect(stagingObject?.transform).toEqual({

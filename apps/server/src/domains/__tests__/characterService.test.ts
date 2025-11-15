@@ -27,7 +27,7 @@ describe("CharacterService", () => {
     expect(randomUUID).toHaveBeenCalled();
     expect(character.id).toBe("character-1");
     expect(character.hp).toBe(30);
-    expect(character.ownedByPlayerUID).toBeNull();
+    expect(character.ownedByPlayerUID).toBeUndefined();
     expect(state.characters).toHaveLength(1);
   });
 

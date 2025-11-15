@@ -90,8 +90,8 @@ export class StatePersistence {
           characters: (data.characters || []).map((character: Character) => ({
             ...character,
             type: character.type === "npc" ? ("npc" as const) : ("pc" as const),
-            tokenImage: character.tokenImage ?? null,
-            tokenId: character.tokenId ?? null,
+            tokenImage: character.tokenImage ?? undefined,
+            tokenId: character.tokenId ?? undefined,
           })),
           props: data.props || [],
           mapBackground: data.mapBackground,
