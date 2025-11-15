@@ -255,7 +255,9 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
         {
           id: "drawing-2",
           owner: null,
-          points: [], width: 800, opacity: 1,
+          points: [],
+          width: 800,
+          opacity: 1,
         },
       ];
 
@@ -285,7 +287,9 @@ describe("SceneGraphBuilder - Characterization Tests", () => {
         {
           id: "drawing-1",
           owner: "player-1",
-          points: [], width: 800, opacity: 1,
+          points: [],
+          width: 800,
+          opacity: 1,
         },
       ];
 
