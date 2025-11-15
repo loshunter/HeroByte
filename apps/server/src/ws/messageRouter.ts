@@ -17,6 +17,7 @@ import { SelectionService } from "../domains/selection/service.js";
 import { AuthService } from "../domains/auth/service.js";
 import { getRoomSecret } from "../config/auth.js";
 import { HeartbeatHandler } from "./handlers/HeartbeatHandler.js";
+import { RTCSignalHandler } from "./handlers/RTCSignalHandler.js";
 
 /**
  * Message router - handles all WebSocket messages and dispatches to domain services
@@ -32,6 +33,7 @@ export class MessageRouter {
   private selectionService: SelectionService;
   private authService: AuthService;
   private heartbeatHandler: HeartbeatHandler;
+  private rtcSignalHandler: RTCSignalHandler;
   private wss: WebSocketServer;
   private uidToWs: Map<string, WebSocket>;
   private getAuthorizedClients: () => Set<WebSocket>;
@@ -60,10 +62,11 @@ export class MessageRouter {
     this.propService = propService;
     this.selectionService = selectionService;
     this.authService = authService;
-    this.heartbeatHandler = new HeartbeatHandler();
     this.wss = wss;
     this.uidToWs = uidToWs;
     this.getAuthorizedClients = getAuthorizedClients;
+    this.heartbeatHandler = new HeartbeatHandler();
+    this.rtcSignalHandler = new RTCSignalHandler(uidToWs);
   }
 
   /**
@@ -863,7 +866,7 @@ export class MessageRouter {
         }
 
         case "rtc-signal": {
-          this.forwardRtcSignal(message.target, senderUid, message.signal as SignalData);
+          this.rtcSignalHandler.forwardSignal(message.target, senderUid, message.signal as SignalData);
           break;
         }
 
@@ -877,16 +880,6 @@ export class MessageRouter {
         err,
       );
       console.error(`[MessageRouter] Message details:`, JSON.stringify(message));
-    }
-  }
-
-  /**
-   * Forward WebRTC signaling to target peer
-   */
-  private forwardRtcSignal(targetUid: string, fromUid: string, signal: SignalData): void {
-    const targetWs = this.uidToWs.get(targetUid);
-    if (targetWs && targetWs.readyState === 1) {
-      targetWs.send(JSON.stringify({ t: "rtc-signal", from: fromUid, signal }));
     }
   }
 
