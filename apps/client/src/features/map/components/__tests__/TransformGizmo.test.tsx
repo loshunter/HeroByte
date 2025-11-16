@@ -35,10 +35,7 @@ import type Konva from "konva";
 const propsMap = new WeakMap<HTMLElement, Record<string, unknown>>();
 
 // Mock event listeners storage
-const eventListeners: Record<
-  string,
-  Array<{ event: string; handler: (e?: unknown) => void }>
-> = {};
+const eventListeners: Record<string, Array<{ event: string; handler: (e?: unknown) => void }>> = {};
 
 // Mock node reference
 let mockNodeRef: Partial<Konva.Node> | null = null;
@@ -194,9 +191,7 @@ const createMockNode = (overrides?: Partial<Konva.Node>): Partial<Konva.Node> =>
   ...overrides,
 });
 
-const createDefaultProps = (
-  overrides?: Partial<React.ComponentProps<typeof TransformGizmo>>,
-) => ({
+const createDefaultProps = (overrides?: Partial<React.ComponentProps<typeof TransformGizmo>>) => ({
   selectedObject: createSceneObject(),
   onTransform: vi.fn(),
   getNodeRef: vi.fn(() => mockNodeRef as Konva.Node),
@@ -417,9 +412,7 @@ describe("TransformGizmo", () => {
       expect(container.querySelector('[data-testid="konva-transformer"]')).toBeTruthy();
 
       // Update to locked - should not render
-      rerender(
-        <TransformGizmo {...props} selectedObject={createSceneObject({ locked: true })} />,
-      );
+      rerender(<TransformGizmo {...props} selectedObject={createSceneObject({ locked: true })} />);
       expect(container.querySelector('[data-testid="konva-transformer"]')).toBeNull();
     });
   });
@@ -1216,9 +1209,7 @@ describe("TransformGizmo", () => {
       const { container, rerender } = render(<TransformGizmo {...props} />);
 
       // Lock object
-      rerender(
-        <TransformGizmo {...props} selectedObject={createSceneObject({ locked: true })} />,
-      );
+      rerender(<TransformGizmo {...props} selectedObject={createSceneObject({ locked: true })} />);
 
       // Handle and transformer should not be rendered
       const group = container.querySelector('[data-testid="konva-group"]');

@@ -21,11 +21,18 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { DrawingsLayer } from "../DrawingsLayer";
 import type { SceneObject } from "@shared";
 import type { Camera } from "../../../../hooks/useCamera";
-import type Konva from "konva";
 
 // Mock Konva components
 vi.mock("react-konva", () => ({
-  Group: ({ children, onClick, onTap, onDragStart, onDragMove, onDragEnd, ...props }: any) => (
+  Group: ({
+    children,
+    onClick,
+    onTap,
+    onDragStart,
+    onDragMove,
+    onDragEnd,
+    ...props
+  }: React.PropsWithChildren<Record<string, unknown>>) => (
     <div
       data-testid="konva-group"
       data-x={props.x}
@@ -43,7 +50,7 @@ vi.mock("react-konva", () => ({
       {children}
     </div>
   ),
-  Line: ({ onClick, onTap, ...props }: any) => (
+  Line: ({ onClick, onTap, ...props }: Record<string, unknown>) => (
     <div
       data-testid="konva-line"
       data-points={JSON.stringify(props.points)}
@@ -58,7 +65,7 @@ vi.mock("react-konva", () => ({
       onTouchStart={(e) => onTap?.({ cancelBubble: false, evt: e, target: e.target })}
     />
   ),
-  Rect: ({ onClick, onTap, ...props }: any) => (
+  Rect: ({ onClick, onTap, ...props }: Record<string, unknown>) => (
     <div
       data-testid="konva-rect"
       data-x={props.x}
@@ -74,7 +81,7 @@ vi.mock("react-konva", () => ({
       onTouchStart={(e) => onTap?.({ cancelBubble: false, evt: e, target: e.target })}
     />
   ),
-  Circle: ({ onClick, onTap, ...props }: any) => (
+  Circle: ({ onClick, onTap, ...props }: Record<string, unknown>) => (
     <div
       data-testid="konva-circle"
       data-x={props.x}
@@ -634,12 +641,12 @@ describe("DrawingsLayer", () => {
     it("should call onSelectObject with replace mode on click", () => {
       const drawing = createDrawingObject();
 
-      render(
-        <DrawingsLayer {...defaultProps} drawingObjects={[drawing]} selectMode={true} />,
-      );
+      render(<DrawingsLayer {...defaultProps} drawingObjects={[drawing]} selectMode={true} />);
 
       const lines = screen.getAllByTestId("konva-line");
-      const interactiveLine = lines.find((line) => line.getAttribute("data-stroke") === "transparent");
+      const interactiveLine = lines.find(
+        (line) => line.getAttribute("data-stroke") === "transparent",
+      );
 
       fireEvent.click(interactiveLine!);
 
@@ -649,12 +656,12 @@ describe("DrawingsLayer", () => {
     it("should call onSelectObject with append mode when shift key is pressed", () => {
       const drawing = createDrawingObject();
 
-      render(
-        <DrawingsLayer {...defaultProps} drawingObjects={[drawing]} selectMode={true} />,
-      );
+      render(<DrawingsLayer {...defaultProps} drawingObjects={[drawing]} selectMode={true} />);
 
       const lines = screen.getAllByTestId("konva-line");
-      const interactiveLine = lines.find((line) => line.getAttribute("data-stroke") === "transparent");
+      const interactiveLine = lines.find(
+        (line) => line.getAttribute("data-stroke") === "transparent",
+      );
 
       fireEvent.click(interactiveLine!, { shiftKey: true });
 
@@ -664,12 +671,12 @@ describe("DrawingsLayer", () => {
     it("should call onSelectObject with toggle mode when ctrl key is pressed", () => {
       const drawing = createDrawingObject();
 
-      render(
-        <DrawingsLayer {...defaultProps} drawingObjects={[drawing]} selectMode={true} />,
-      );
+      render(<DrawingsLayer {...defaultProps} drawingObjects={[drawing]} selectMode={true} />);
 
       const lines = screen.getAllByTestId("konva-line");
-      const interactiveLine = lines.find((line) => line.getAttribute("data-stroke") === "transparent");
+      const interactiveLine = lines.find(
+        (line) => line.getAttribute("data-stroke") === "transparent",
+      );
 
       fireEvent.click(interactiveLine!, { ctrlKey: true });
 
@@ -679,12 +686,12 @@ describe("DrawingsLayer", () => {
     it("should call onSelectObject with toggle mode when meta key is pressed", () => {
       const drawing = createDrawingObject();
 
-      render(
-        <DrawingsLayer {...defaultProps} drawingObjects={[drawing]} selectMode={true} />,
-      );
+      render(<DrawingsLayer {...defaultProps} drawingObjects={[drawing]} selectMode={true} />);
 
       const lines = screen.getAllByTestId("konva-line");
-      const interactiveLine = lines.find((line) => line.getAttribute("data-stroke") === "transparent");
+      const interactiveLine = lines.find(
+        (line) => line.getAttribute("data-stroke") === "transparent",
+      );
 
       fireEvent.click(interactiveLine!, { metaKey: true });
 
@@ -704,7 +711,9 @@ describe("DrawingsLayer", () => {
       );
 
       const lines = screen.getAllByTestId("konva-line");
-      const interactiveLine = lines.find((line) => line.getAttribute("data-stroke") === "transparent");
+      const interactiveLine = lines.find(
+        (line) => line.getAttribute("data-stroke") === "transparent",
+      );
 
       fireEvent.click(interactiveLine!);
 
@@ -714,12 +723,12 @@ describe("DrawingsLayer", () => {
     it("should handle tap events for mobile", () => {
       const drawing = createDrawingObject();
 
-      render(
-        <DrawingsLayer {...defaultProps} drawingObjects={[drawing]} selectMode={true} />,
-      );
+      render(<DrawingsLayer {...defaultProps} drawingObjects={[drawing]} selectMode={true} />);
 
       const lines = screen.getAllByTestId("konva-line");
-      const interactiveLine = lines.find((line) => line.getAttribute("data-stroke") === "transparent");
+      const interactiveLine = lines.find(
+        (line) => line.getAttribute("data-stroke") === "transparent",
+      );
 
       fireEvent.touchStart(interactiveLine!);
 
@@ -739,7 +748,9 @@ describe("DrawingsLayer", () => {
       );
 
       const lines = screen.getAllByTestId("konva-line");
-      const interactiveLine = lines.find((line) => line.getAttribute("data-stroke") === "transparent");
+      const interactiveLine = lines.find(
+        (line) => line.getAttribute("data-stroke") === "transparent",
+      );
 
       expect(interactiveLine).toBeFalsy();
     });
@@ -809,9 +820,7 @@ describe("DrawingsLayer", () => {
       );
 
       const lines = screen.getAllByTestId("konva-line");
-      const selectionLines = lines.filter(
-        (line) => line.getAttribute("data-stroke") === "#447DF7",
-      );
+      const selectionLines = lines.filter((line) => line.getAttribute("data-stroke") === "#447DF7");
 
       expect(selectionLines).toHaveLength(2);
     });
@@ -1020,9 +1029,7 @@ describe("DrawingsLayer", () => {
         transform: { x: 100, y: 100, scaleX: 1, scaleY: 1, rotation: 0 },
       });
 
-      const { rerender } = render(
-        <DrawingsLayer {...defaultProps} drawingObjects={[drawing]} />,
-      );
+      const { rerender } = render(<DrawingsLayer {...defaultProps} drawingObjects={[drawing]} />);
 
       // Trigger drag to create override
       const drawingWithOverride = createDrawingObject({
@@ -1047,9 +1054,7 @@ describe("DrawingsLayer", () => {
     it("should cleanup overrides when drawing object is removed", () => {
       const drawing = createDrawingObject();
 
-      const { rerender } = render(
-        <DrawingsLayer {...defaultProps} drawingObjects={[drawing]} />,
-      );
+      const { rerender } = render(<DrawingsLayer {...defaultProps} drawingObjects={[drawing]} />);
 
       rerender(<DrawingsLayer {...defaultProps} drawingObjects={[]} />);
 
@@ -1063,9 +1068,7 @@ describe("DrawingsLayer", () => {
         transform: { x: 50, y: 50, scaleX: 1, scaleY: 1, rotation: 0 },
       });
 
-      const { rerender } = render(
-        <DrawingsLayer {...defaultProps} drawingObjects={[drawing]} />,
-      );
+      const { rerender } = render(<DrawingsLayer {...defaultProps} drawingObjects={[drawing]} />);
 
       // Simulate server update matching override
       const updatedDrawing = createDrawingObject({
@@ -1571,12 +1574,12 @@ describe("DrawingsLayer", () => {
     it("should allow selecting locked objects", () => {
       const drawing = createDrawingObject({ locked: true });
 
-      render(
-        <DrawingsLayer {...defaultProps} drawingObjects={[drawing]} selectMode={true} />,
-      );
+      render(<DrawingsLayer {...defaultProps} drawingObjects={[drawing]} selectMode={true} />);
 
       const lines = screen.getAllByTestId("konva-line");
-      const interactiveLine = lines.find((line) => line.getAttribute("data-stroke") === "transparent");
+      const interactiveLine = lines.find(
+        (line) => line.getAttribute("data-stroke") === "transparent",
+      );
 
       fireEvent.click(interactiveLine!);
 
@@ -1696,11 +1699,7 @@ describe("DrawingsLayer", () => {
 
       expect(() => {
         render(
-          <DrawingsLayer
-            {...defaultProps}
-            drawingObjects={[drawing]}
-            selectedObjectIds={[]}
-          />,
+          <DrawingsLayer {...defaultProps} drawingObjects={[drawing]} selectedObjectIds={[]} />,
         );
       }).not.toThrow();
     });
@@ -1710,11 +1709,7 @@ describe("DrawingsLayer", () => {
 
       expect(() => {
         render(
-          <DrawingsLayer
-            {...defaultProps}
-            drawingObjects={[drawing]}
-            selectedDrawingId={null}
-          />,
+          <DrawingsLayer {...defaultProps} drawingObjects={[drawing]} selectedDrawingId={null} />,
         );
       }).not.toThrow();
     });
@@ -1724,11 +1719,7 @@ describe("DrawingsLayer", () => {
 
       expect(() => {
         render(
-          <DrawingsLayer
-            {...defaultProps}
-            drawingObjects={[drawing]}
-            selectedObjectId={null}
-          />,
+          <DrawingsLayer {...defaultProps} drawingObjects={[drawing]} selectedObjectId={null} />,
         );
       }).not.toThrow();
     });
@@ -1865,7 +1856,7 @@ describe("DrawingsLayer", () => {
         data: {
           drawing: {
             id: "draw-1",
-            type: "unknown" as any,
+            type: "unknown" as never,
             points: [
               { x: 0, y: 0 },
               { x: 10, y: 10 },
@@ -1887,12 +1878,12 @@ describe("DrawingsLayer", () => {
     it("should cancel bubble on click events", () => {
       const drawing = createDrawingObject();
 
-      render(
-        <DrawingsLayer {...defaultProps} drawingObjects={[drawing]} selectMode={true} />,
-      );
+      render(<DrawingsLayer {...defaultProps} drawingObjects={[drawing]} selectMode={true} />);
 
       const lines = screen.getAllByTestId("konva-line");
-      const interactiveLine = lines.find((line) => line.getAttribute("data-stroke") === "transparent");
+      const interactiveLine = lines.find(
+        (line) => line.getAttribute("data-stroke") === "transparent",
+      );
 
       const event = new MouseEvent("click", { bubbles: true });
       const cancelBubbleSpy = vi.fn();

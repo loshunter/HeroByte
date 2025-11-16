@@ -24,7 +24,18 @@ vi.mock("react-dom", () => ({
 
 // Mock DraggableWindow component
 vi.mock("../../../../components/dice/DraggableWindow", () => ({
-  DraggableWindow: ({ title, onClose, children, initialX, initialY, width, minWidth, maxWidth, storageKey, zIndex }: any) => (
+  DraggableWindow: ({
+    title,
+    onClose,
+    children,
+    initialX,
+    initialY,
+    width,
+    minWidth,
+    maxWidth,
+    storageKey,
+    zIndex,
+  }: any) => (
     <div data-testid="draggable-window">
       <div data-testid="draggable-window-title">{title}</div>
       <div data-testid="draggable-window-props">
@@ -79,7 +90,9 @@ interface NpcSettingsMenuPropsFactory {
 /**
  * Factory function to create default NpcSettingsMenu props
  */
-function createProps(overrides: NpcSettingsMenuPropsFactory = {}): Required<NpcSettingsMenuPropsFactory> {
+function createProps(
+  overrides: NpcSettingsMenuPropsFactory = {},
+): Required<NpcSettingsMenuPropsFactory> {
   return {
     isOpen: true,
     onClose: vi.fn(),
@@ -332,7 +345,10 @@ describe("NpcSettingsMenu", () => {
         onTokenImageApply,
       });
       mockNormalizeUrl.mockImplementation(
-        () => new Promise((resolve) => setTimeout(() => resolve("https://async-normalized.com/token.png"), 50))
+        () =>
+          new Promise((resolve) =>
+            setTimeout(() => resolve("https://async-normalized.com/token.png"), 50),
+          ),
       );
 
       render(<NpcSettingsMenu {...props} />);
@@ -686,9 +702,13 @@ describe("NpcSettingsMenu", () => {
 
       // Verify token size section renders
       expect(screen.getByText("Token Size")).toBeInTheDocument();
-      expect(screen.getAllByRole("button").filter(btn =>
-        ["Tiny", "Small", "Med", "Large", "Huge", "Garg"].includes(btn.textContent || "")
-      )).toHaveLength(6);
+      expect(
+        screen
+          .getAllByRole("button")
+          .filter((btn) =>
+            ["Tiny", "Small", "Med", "Large", "Huge", "Garg"].includes(btn.textContent || ""),
+          ),
+      ).toHaveLength(6);
     });
   });
 
@@ -979,7 +999,9 @@ describe("NpcSettingsMenu", () => {
       rerender(<NpcSettingsMenu {...props} isDeleting={false} deletionError={null} />);
 
       await waitFor(() => {
-        expect(consoleSpy).toHaveBeenCalledWith("[NpcSettingsMenu] Deletion completed, closing menu");
+        expect(consoleSpy).toHaveBeenCalledWith(
+          "[NpcSettingsMenu] Deletion completed, closing menu",
+        );
       });
 
       consoleSpy.mockRestore();
@@ -1093,14 +1115,30 @@ describe("NpcSettingsMenu", () => {
 
       // Update tokenImageInput
       rerender(<NpcSettingsMenu {...props} tokenImageInput="https://example.com/token.png" />);
-      expect(screen.getByPlaceholderText("https://enemy-token.png")).toHaveValue("https://example.com/token.png");
+      expect(screen.getByPlaceholderText("https://enemy-token.png")).toHaveValue(
+        "https://example.com/token.png",
+      );
 
       // Update tokenImageUrl
-      rerender(<NpcSettingsMenu {...props} tokenImageInput="https://example.com/token.png" tokenImageUrl="https://example.com/token.png" />);
+      rerender(
+        <NpcSettingsMenu
+          {...props}
+          tokenImageInput="https://example.com/token.png"
+          tokenImageUrl="https://example.com/token.png"
+        />,
+      );
       expect(screen.getByAltText("Token preview")).toBeInTheDocument();
 
       // Update tokenSize
-      rerender(<NpcSettingsMenu {...props} tokenImageInput="https://example.com/token.png" tokenImageUrl="https://example.com/token.png" tokenSize="large" onTokenSizeChange={vi.fn()} />);
+      rerender(
+        <NpcSettingsMenu
+          {...props}
+          tokenImageInput="https://example.com/token.png"
+          tokenImageUrl="https://example.com/token.png"
+          tokenSize="large"
+          onTokenSizeChange={vi.fn()}
+        />,
+      );
       expect(screen.getByRole("button", { name: "Large" })).toHaveClass("btn-primary");
     });
 
@@ -1159,7 +1197,9 @@ describe("NpcSettingsMenu", () => {
       render(<NpcSettingsMenu {...props} />);
 
       // Trigger various callbacks
-      fireEvent.change(screen.getByPlaceholderText("https://enemy-token.png"), { target: { value: "test" } });
+      fireEvent.change(screen.getByPlaceholderText("https://enemy-token.png"), {
+        target: { value: "test" },
+      });
       expect(callbacks.onTokenImageInputChange).toHaveBeenCalled();
 
       fireEvent.click(screen.getByRole("button", { name: "Clear" }));

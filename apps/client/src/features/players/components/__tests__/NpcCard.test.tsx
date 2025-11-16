@@ -33,23 +33,89 @@ import { sanitizeText } from "../../../../utils/sanitize";
 import { normalizeImageUrl } from "../../../../utils/imageUrlHelpers";
 
 // Mock child components
+interface MockPortraitSectionProps {
+  portrait: string | null;
+  isEditable: boolean;
+  onRequestChange?: () => void;
+  statusEffects: string[];
+  tokenColor: string;
+  onFocusToken?: () => void;
+  initiative?: number | null;
+  onInitiativeClick?: () => void;
+}
+
 vi.mock("../PortraitSection", () => ({
-  PortraitSection: ({ portrait, isEditable, onRequestChange, statusEffects, tokenColor, onFocusToken, initiative, onInitiativeClick }: any) => (
+  PortraitSection: ({
+    portrait,
+    isEditable,
+    onRequestChange,
+    statusEffects,
+    tokenColor,
+    onFocusToken,
+    initiative,
+    onInitiativeClick,
+  }: MockPortraitSectionProps) => (
     <div data-testid="portrait-section">
       <span data-testid="portrait-section-portrait">{portrait}</span>
       <span data-testid="portrait-section-is-editable">{String(isEditable)}</span>
       <span data-testid="portrait-section-status-effects">{statusEffects.join(",")}</span>
       <span data-testid="portrait-section-token-color">{tokenColor}</span>
       <span data-testid="portrait-section-initiative">{initiative}</span>
-      {onRequestChange && <button data-testid="portrait-section-change" onClick={onRequestChange}>Change Portrait</button>}
-      {onFocusToken && <button data-testid="portrait-section-focus" onClick={onFocusToken}>Focus Token</button>}
-      {onInitiativeClick && <button data-testid="portrait-section-initiative-click" onClick={onInitiativeClick}>Initiative Click</button>}
+      {onRequestChange && (
+        <button data-testid="portrait-section-change" onClick={onRequestChange}>
+          Change Portrait
+        </button>
+      )}
+      {onFocusToken && (
+        <button data-testid="portrait-section-focus" onClick={onFocusToken}>
+          Focus Token
+        </button>
+      )}
+      {onInitiativeClick && (
+        <button data-testid="portrait-section-initiative-click" onClick={onInitiativeClick}>
+          Initiative Click
+        </button>
+      )}
     </div>
   ),
 }));
 
+interface MockHPBarProps {
+  hp: number;
+  maxHp: number;
+  isMe: boolean;
+  isEditingHp: boolean;
+  hpInput: string;
+  isEditingMaxHp: boolean;
+  maxHpInput: string;
+  playerUid: string;
+  onHpChange: (hp: number) => void;
+  onHpInputChange: (input: string) => void;
+  onHpEdit: (uid: string) => void;
+  onHpSubmit: (input: string) => void;
+  onMaxHpInputChange: (input: string) => void;
+  onMaxHpEdit: () => void;
+  onMaxHpSubmit: (input: string) => void;
+}
+
 vi.mock("../HPBar", () => ({
-  HPBar: ({ hp, maxHp, isMe, isEditingHp, hpInput, isEditingMaxHp, maxHpInput, playerUid, onHpChange, onHpInputChange, onHpEdit, onHpSubmit, onMaxHpInputChange, onMaxHpEdit, onMaxHpSubmit }: any) => (
+  HPBar: ({
+    hp,
+    maxHp,
+    isMe,
+    isEditingHp,
+    hpInput,
+    isEditingMaxHp,
+    maxHpInput,
+    playerUid,
+    onHpChange,
+    onHpInputChange,
+    onHpEdit,
+    onHpSubmit,
+    onMaxHpInputChange,
+    onMaxHpEdit,
+    onMaxHpSubmit,
+  }: MockHPBarProps) => (
     <div data-testid="hp-bar">
       <span data-testid="hp-bar-hp">{hp}</span>
       <span data-testid="hp-bar-max-hp">{maxHp}</span>
@@ -59,19 +125,67 @@ vi.mock("../HPBar", () => ({
       <span data-testid="hp-bar-is-editing-max-hp">{String(isEditingMaxHp)}</span>
       <span data-testid="hp-bar-max-hp-input">{maxHpInput}</span>
       <span data-testid="hp-bar-player-uid">{playerUid}</span>
-      <button data-testid="hp-bar-change-hp" onClick={() => onHpChange(50)}>Change HP</button>
-      <button data-testid="hp-bar-change-hp-input" onClick={() => onHpInputChange("75")}>Change HP Input</button>
-      <button data-testid="hp-bar-edit-hp" onClick={() => onHpEdit(playerUid)}>Edit HP</button>
-      <button data-testid="hp-bar-submit-hp" onClick={() => onHpSubmit("90")}>Submit HP</button>
-      <button data-testid="hp-bar-change-max-hp-input" onClick={() => onMaxHpInputChange("150")}>Change Max HP Input</button>
-      <button data-testid="hp-bar-edit-max-hp" onClick={onMaxHpEdit}>Edit Max HP</button>
-      <button data-testid="hp-bar-submit-max-hp" onClick={() => onMaxHpSubmit("200")}>Submit Max HP</button>
+      <button data-testid="hp-bar-change-hp" onClick={() => onHpChange(50)}>
+        Change HP
+      </button>
+      <button data-testid="hp-bar-change-hp-input" onClick={() => onHpInputChange("75")}>
+        Change HP Input
+      </button>
+      <button data-testid="hp-bar-edit-hp" onClick={() => onHpEdit(playerUid)}>
+        Edit HP
+      </button>
+      <button data-testid="hp-bar-submit-hp" onClick={() => onHpSubmit("90")}>
+        Submit HP
+      </button>
+      <button data-testid="hp-bar-change-max-hp-input" onClick={() => onMaxHpInputChange("150")}>
+        Change Max HP Input
+      </button>
+      <button data-testid="hp-bar-edit-max-hp" onClick={onMaxHpEdit}>
+        Edit Max HP
+      </button>
+      <button data-testid="hp-bar-submit-max-hp" onClick={() => onMaxHpSubmit("200")}>
+        Submit Max HP
+      </button>
     </div>
   ),
 }));
 
+interface MockNpcSettingsMenuProps {
+  isOpen: boolean;
+  onClose: () => void;
+  tokenImageInput: string;
+  tokenImageUrl: string;
+  onTokenImageInputChange: (input: string) => void;
+  onTokenImageApply: (input: string) => void;
+  onTokenImageClear: () => void;
+  onPlaceToken: () => void;
+  onDelete: () => void;
+  tokenLocked: boolean;
+  onToggleTokenLock?: (locked: boolean) => void;
+  tokenSize: TokenSize;
+  onTokenSizeChange?: (size: string) => void;
+  isDeleting: boolean;
+  deletionError: string;
+}
+
 vi.mock("../NpcSettingsMenu", () => ({
-  NpcSettingsMenu: ({ isOpen, onClose, tokenImageInput, tokenImageUrl, onTokenImageInputChange, onTokenImageApply, onTokenImageClear, onPlaceToken, onDelete, tokenLocked, onToggleTokenLock, tokenSize, onTokenSizeChange, isDeleting, deletionError }: any) => (
+  NpcSettingsMenu: ({
+    isOpen,
+    onClose,
+    tokenImageInput,
+    tokenImageUrl,
+    onTokenImageInputChange,
+    onTokenImageApply,
+    onTokenImageClear,
+    onPlaceToken,
+    onDelete,
+    tokenLocked,
+    onToggleTokenLock,
+    tokenSize,
+    onTokenSizeChange,
+    isDeleting,
+    deletionError,
+  }: MockNpcSettingsMenuProps) => (
     <div data-testid="npc-settings-menu">
       <span data-testid="settings-is-open">{String(isOpen)}</span>
       <span data-testid="settings-token-image-input">{tokenImageInput}</span>
@@ -80,14 +194,37 @@ vi.mock("../NpcSettingsMenu", () => ({
       <span data-testid="settings-token-size">{tokenSize}</span>
       <span data-testid="settings-is-deleting">{String(isDeleting)}</span>
       <span data-testid="settings-deletion-error">{deletionError}</span>
-      <button data-testid="settings-close" onClick={onClose}>Close</button>
-      <button data-testid="settings-change-token-input" onClick={() => onTokenImageInputChange("new-image.png")}>Change Token Input</button>
-      <button data-testid="settings-apply-token" onClick={() => onTokenImageApply(tokenImageInput)}>Apply Token</button>
-      <button data-testid="settings-clear-token" onClick={onTokenImageClear}>Clear Token</button>
-      <button data-testid="settings-place-token" onClick={onPlaceToken}>Place Token</button>
-      <button data-testid="settings-delete" onClick={onDelete}>Delete</button>
-      {onToggleTokenLock && <button data-testid="settings-toggle-lock" onClick={() => onToggleTokenLock(!tokenLocked)}>Toggle Lock</button>}
-      {onTokenSizeChange && <button data-testid="settings-change-size" onClick={() => onTokenSizeChange("large")}>Change Size</button>}
+      <button data-testid="settings-close" onClick={onClose}>
+        Close
+      </button>
+      <button
+        data-testid="settings-change-token-input"
+        onClick={() => onTokenImageInputChange("new-image.png")}
+      >
+        Change Token Input
+      </button>
+      <button data-testid="settings-apply-token" onClick={() => onTokenImageApply(tokenImageInput)}>
+        Apply Token
+      </button>
+      <button data-testid="settings-clear-token" onClick={onTokenImageClear}>
+        Clear Token
+      </button>
+      <button data-testid="settings-place-token" onClick={onPlaceToken}>
+        Place Token
+      </button>
+      <button data-testid="settings-delete" onClick={onDelete}>
+        Delete
+      </button>
+      {onToggleTokenLock && (
+        <button data-testid="settings-toggle-lock" onClick={() => onToggleTokenLock(!tokenLocked)}>
+          Toggle Lock
+        </button>
+      )}
+      {onTokenSizeChange && (
+        <button data-testid="settings-change-size" onClick={() => onTokenSizeChange("large")}>
+          Change Size
+        </button>
+      )}
     </div>
   ),
 }));
@@ -200,7 +337,9 @@ describe("NpcCard", () => {
       });
       render(<NpcCard {...props} />);
 
-      expect(screen.getByTestId("portrait-section-status-effects")).toHaveTextContent("poisoned,burning");
+      expect(screen.getByTestId("portrait-section-status-effects")).toHaveTextContent(
+        "poisoned,burning",
+      );
     });
 
     it("passes empty array when statusEffects is undefined", () => {
@@ -322,7 +461,7 @@ describe("NpcCard", () => {
 
       const nameElements = container.querySelectorAll("div");
       // Find the name element (it won't have the title when isDM is false)
-      const nameElement = Array.from(nameElements).find(el => el.textContent === "Goblin");
+      const nameElement = Array.from(nameElements).find((el) => el.textContent === "Goblin");
       expect(nameElement).toHaveStyle({ cursor: "default" });
     });
 
@@ -342,7 +481,7 @@ describe("NpcCard", () => {
       const { container } = render(<NpcCard {...props} />);
 
       const nameElements = container.querySelectorAll("div");
-      const nameElement = Array.from(nameElements).find(el => el.textContent === "Goblin");
+      const nameElement = Array.from(nameElements).find((el) => el.textContent === "Goblin");
       fireEvent.doubleClick(nameElement!);
 
       expect(mockPrompt).not.toHaveBeenCalled();
@@ -524,7 +663,7 @@ describe("NpcCard", () => {
 
     it("normalizes URL before updating", async () => {
       mockPrompt.mockReturnValue("  https://imgur.com/abc123  ");
-      (normalizeImageUrl as any).mockResolvedValue("https://i.imgur.com/abc123.jpg");
+      vi.mocked(normalizeImageUrl).mockResolvedValue("https://i.imgur.com/abc123.jpg");
       const onUpdate = vi.fn();
       const props = createDefaultProps({
         character: createMockCharacter({ id: "npc-123" }),
@@ -537,13 +676,15 @@ describe("NpcCard", () => {
 
       await waitFor(() => {
         expect(normalizeImageUrl).toHaveBeenCalledWith("https://imgur.com/abc123");
-        expect(onUpdate).toHaveBeenCalledWith("npc-123", { portrait: "https://i.imgur.com/abc123.jpg" });
+        expect(onUpdate).toHaveBeenCalledWith("npc-123", {
+          portrait: "https://i.imgur.com/abc123.jpg",
+        });
       });
     });
 
     it("calls onUpdate with normalized URL and character.id", async () => {
       mockPrompt.mockReturnValue("portrait.png");
-      (normalizeImageUrl as any).mockResolvedValue("portrait.png");
+      vi.mocked(normalizeImageUrl).mockResolvedValue("portrait.png");
       const onUpdate = vi.fn();
       const props = createDefaultProps({
         character: createMockCharacter({ id: "npc-456" }),
@@ -561,8 +702,8 @@ describe("NpcCard", () => {
 
     it("handles async normalizeImageUrl", async () => {
       mockPrompt.mockReturnValue("test.jpg");
-      (normalizeImageUrl as any).mockImplementation(async (url: string) => {
-        await new Promise(resolve => setTimeout(resolve, 10));
+      vi.mocked(normalizeImageUrl).mockImplementation(async (url: string) => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
         return url;
       });
       const onUpdate = vi.fn();
@@ -690,7 +831,10 @@ describe("NpcCard", () => {
 
     it("rejects negative HP", () => {
       const onUpdate = vi.fn();
-      const props = createDefaultProps({ onUpdate, character: createMockCharacter({ hp: 50, maxHp: 100 }) });
+      const props = createDefaultProps({
+        onUpdate,
+        character: createMockCharacter({ hp: 50, maxHp: 100 }),
+      });
       const { rerender } = render(<NpcCard {...props} />);
 
       // Simulate entering edit mode and submitting negative value
@@ -699,7 +843,10 @@ describe("NpcCard", () => {
 
       // Note: Full validation is tested in integration, here we verify the prop passing
       expect(screen.getByTestId("hp-bar")).toBeInTheDocument();
-      expect(onUpdate).not.toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ hp: -5 }));
+      expect(onUpdate).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ hp: -5 }),
+      );
     });
 
     it("rejects non-numeric HP", () => {
@@ -1185,7 +1332,9 @@ describe("NpcCard", () => {
       const char1 = createMockCharacter({ id: "npc-1", name: "Goblin" });
       const char2 = createMockCharacter({ id: "npc-2", name: "Orc" });
 
-      const { rerender } = render(<NpcCard {...createDefaultProps({ character: char1, onUpdate })} />);
+      const { rerender } = render(
+        <NpcCard {...createDefaultProps({ character: char1, onUpdate })} />,
+      );
 
       fireEvent.click(screen.getByTestId("hp-bar-change-hp"));
       expect(onUpdate).toHaveBeenCalledWith("npc-1", { hp: 50 });
@@ -1207,7 +1356,7 @@ describe("NpcCard", () => {
 
     it("handles character with null portrait", () => {
       const props = createDefaultProps({
-        character: createMockCharacter({ portrait: null as any }),
+        character: createMockCharacter({ portrait: null }),
       });
       render(<NpcCard {...props} />);
 

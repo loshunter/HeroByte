@@ -18,12 +18,7 @@ vi.mock("../../ui/JRPGPanel", () => ({
     style,
     title,
   }: React.ComponentProps<typeof JRPGButton>) => (
-    <button
-      onClick={onClick}
-      data-variant={variant}
-      style={style}
-      title={title}
-    >
+    <button onClick={onClick} data-variant={variant} style={style} title={title}>
       {children}
     </button>
   ),

@@ -318,7 +318,11 @@ describe("HPBar", () => {
 
     it("onChange updates input value via onMaxHpInputChange", () => {
       const onMaxHpInputChange = vi.fn();
-      const props = createDefaultProps({ isEditingMaxHp: true, maxHpInput: "150", onMaxHpInputChange });
+      const props = createDefaultProps({
+        isEditingMaxHp: true,
+        maxHpInput: "150",
+        onMaxHpInputChange,
+      });
       render(<HPBar {...props} />);
 
       const input = screen.getByDisplayValue("150");

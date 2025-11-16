@@ -91,12 +91,7 @@ vi.mock("use-image", () => ({
 // Mock LockIndicator
 vi.mock("../LockIndicator", () => ({
   LockIndicator: ({ x, y, size }: { x: number; y: number; size: number }) => (
-    <div
-      data-testid="lock-indicator"
-      data-x={x}
-      data-y={y}
-      data-size={size}
-    />
+    <div data-testid="lock-indicator" data-x={x} data-y={y} data-size={size} />
   ),
 }));
 
@@ -135,9 +130,7 @@ const createTokenObject = (
   ...overrides,
 });
 
-const createDefaultProps = (
-  overrides?: Partial<React.ComponentProps<typeof TokensLayer>>,
-) => ({
+const createDefaultProps = (overrides?: Partial<React.ComponentProps<typeof TokensLayer>>) => ({
   cam: createCamera(),
   sceneObjects: [],
   uid: "test-user",
@@ -837,7 +830,10 @@ describe("TokensLayer", () => {
       const rect = container.querySelector('[data-testid="konva-rect"]');
       const rectProps = getProps(rect);
 
-      const event = { evt: { shiftKey: false, ctrlKey: false, metaKey: false }, cancelBubble: false };
+      const event = {
+        evt: { shiftKey: false, ctrlKey: false, metaKey: false },
+        cancelBubble: false,
+      };
       const onClick = rectProps.onClick;
       onClick(event);
 
@@ -1086,10 +1082,7 @@ describe("TokensLayer", () => {
         target: {},
       });
 
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        "[TokensLayer] Drag error:",
-        expect.any(Error),
-      );
+      expect(consoleWarnSpy).toHaveBeenCalledWith("[TokensLayer] Drag error:", expect.any(Error));
 
       consoleWarnSpy.mockRestore();
     });
@@ -1447,9 +1440,7 @@ describe("TokensLayer", () => {
       const updatedToken = createTokenObject("token:1", "test-user", {
         transform: { x: 1, y: 2, scaleX: 1, scaleY: 1, rotation: 0 },
       });
-      rerender(
-        <TokensLayer {...props} sceneObjects={[updatedToken]} />,
-      );
+      rerender(<TokensLayer {...props} sceneObjects={[updatedToken]} />);
 
       // Override should be cleaned up when server position matches
       const updatedRect = container.querySelector('[data-testid="konva-rect"]');

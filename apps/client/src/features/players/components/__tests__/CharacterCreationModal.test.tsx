@@ -66,7 +66,7 @@ vi.mock("../../../../components/ui/JRPGPanel", () => ({
 // ============================================================================
 
 const createDefaultProps = (
-  overrides?: Partial<React.ComponentProps<typeof CharacterCreationModal>>
+  overrides?: Partial<React.ComponentProps<typeof CharacterCreationModal>>,
 ) => ({
   isOpen: true,
   onCreateCharacter: vi.fn(() => true),
@@ -144,8 +144,8 @@ describe("CharacterCreationModal", () => {
 
       expect(
         screen.getByText(
-          "Create a new character with its own HP, portrait, and token that you control."
-        )
+          "Create a new character with its own HP, portrait, and token that you control.",
+        ),
       ).toBeInTheDocument();
     });
 
@@ -687,7 +687,7 @@ describe("CharacterCreationModal", () => {
       const { container } = render(<CharacterCreationModal {...props} />);
 
       const modalContent = container.querySelector(
-        'div[style*="position: fixed"] > div'
+        'div[style*="position: fixed"] > div',
       ) as HTMLElement;
       fireEvent.click(modalContent);
 
@@ -801,7 +801,7 @@ describe("CharacterCreationModal", () => {
 
       await waitFor(() => {
         expect(consoleLogSpy).toHaveBeenCalledWith(
-          "[CharacterCreationModal] Creation completed, closing modal"
+          "[CharacterCreationModal] Creation completed, closing modal",
         );
       });
     });
@@ -958,14 +958,14 @@ describe("CharacterCreationModal", () => {
       rerender(
         <CharacterCreationModal
           {...createDefaultProps({ isCreating: true, onCreateCharacter, onClose })}
-        />
+        />,
       );
 
       // Simulate creation completing
       rerender(
         <CharacterCreationModal
           {...createDefaultProps({ isCreating: false, onCreateCharacter, onClose })}
-        />
+        />,
       );
 
       // Should auto-close
@@ -996,12 +996,12 @@ describe("CharacterCreationModal", () => {
       rerender(
         <CharacterCreationModal
           {...createDefaultProps({ isCreating: true, onCreateCharacter, onClose })}
-        />
+        />,
       );
       rerender(
         <CharacterCreationModal
           {...createDefaultProps({ isCreating: false, onCreateCharacter, onClose })}
-        />
+        />,
       );
 
       await waitFor(() => {

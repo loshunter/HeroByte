@@ -324,7 +324,7 @@ describe("DrawingToolbar", () => {
     it("should render all 12 preset color buttons", () => {
       const { container } = render(<DrawingToolbar {...defaultProps} />);
 
-      const colorButtons = container.querySelectorAll('button[title]');
+      const colorButtons = container.querySelectorAll("button[title]");
       const presetColorButtons = Array.from(colorButtons).filter(
         (btn) => btn.getAttribute("title")?.startsWith("#") ?? false,
       );
@@ -591,7 +591,8 @@ describe("DrawingToolbar", () => {
 
       const sliders = container.querySelectorAll('input[type="range"]');
       const opacitySlider = Array.from(sliders).find(
-        (slider) => (slider as HTMLInputElement).max === "100" && (slider as HTMLInputElement).min === "0",
+        (slider) =>
+          (slider as HTMLInputElement).max === "100" && (slider as HTMLInputElement).min === "0",
       );
 
       expect(opacitySlider).toBeInTheDocument();
@@ -602,7 +603,8 @@ describe("DrawingToolbar", () => {
 
       const sliders = container.querySelectorAll('input[type="range"]');
       const opacitySlider = Array.from(sliders).find(
-        (slider) => (slider as HTMLInputElement).max === "100" && (slider as HTMLInputElement).min === "0",
+        (slider) =>
+          (slider as HTMLInputElement).max === "100" && (slider as HTMLInputElement).min === "0",
       ) as HTMLInputElement;
 
       expect(opacitySlider.min).toBe("0");
@@ -613,7 +615,8 @@ describe("DrawingToolbar", () => {
 
       const sliders = container.querySelectorAll('input[type="range"]');
       const opacitySlider = Array.from(sliders).find(
-        (slider) => (slider as HTMLInputElement).max === "100" && (slider as HTMLInputElement).min === "0",
+        (slider) =>
+          (slider as HTMLInputElement).max === "100" && (slider as HTMLInputElement).min === "0",
       ) as HTMLInputElement;
 
       expect(opacitySlider.max).toBe("100");
@@ -648,7 +651,8 @@ describe("DrawingToolbar", () => {
 
       const sliders = container.querySelectorAll('input[type="range"]');
       const opacitySlider = Array.from(sliders).find(
-        (slider) => (slider as HTMLInputElement).max === "100" && (slider as HTMLInputElement).min === "0",
+        (slider) =>
+          (slider as HTMLInputElement).max === "100" && (slider as HTMLInputElement).min === "0",
       ) as HTMLInputElement;
 
       expect(opacitySlider.value).toBe("60");
@@ -662,7 +666,8 @@ describe("DrawingToolbar", () => {
 
       const sliders = container.querySelectorAll('input[type="range"]');
       const opacitySlider = Array.from(sliders).find(
-        (slider) => (slider as HTMLInputElement).max === "100" && (slider as HTMLInputElement).min === "0",
+        (slider) =>
+          (slider as HTMLInputElement).max === "100" && (slider as HTMLInputElement).min === "0",
       ) as HTMLInputElement;
 
       fireEvent.change(opacitySlider, { target: { value: "50" } });
@@ -678,7 +683,8 @@ describe("DrawingToolbar", () => {
 
       const sliders = container.querySelectorAll('input[type="range"]');
       const opacitySlider = Array.from(sliders).find(
-        (slider) => (slider as HTMLInputElement).max === "100" && (slider as HTMLInputElement).min === "0",
+        (slider) =>
+          (slider as HTMLInputElement).max === "100" && (slider as HTMLInputElement).min === "0",
       ) as HTMLInputElement;
 
       fireEvent.change(opacitySlider, { target: { value: "75" } });
@@ -687,7 +693,7 @@ describe("DrawingToolbar", () => {
     });
 
     it("should not render opacity slider when using eraser", () => {
-      const { container } = render(<DrawingToolbar {...defaultProps} drawTool="eraser" />);
+      render(<DrawingToolbar {...defaultProps} drawTool="eraser" />);
 
       const opacityLabel = screen.queryByText(/Opacity:/i);
       expect(opacityLabel).not.toBeInTheDocument();
