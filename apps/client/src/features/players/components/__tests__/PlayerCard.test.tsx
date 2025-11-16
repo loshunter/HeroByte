@@ -651,7 +651,7 @@ describe("PlayerCard", () => {
 
     it("defaults player.isDM to false when undefined", () => {
       const player = createMockPlayer();
-      delete (player as any).isDM;
+      delete (player as Partial<typeof player>).isDM;
       const props = createDefaultProps({ player });
       const { container } = render(<PlayerCard {...props} />);
 
@@ -1604,7 +1604,7 @@ describe("PlayerCard", () => {
 
       it("defaults hp to 100 when player.hp is undefined", () => {
         const player = createMockPlayer();
-        delete (player as any).hp;
+        delete (player as Partial<typeof player>).hp;
         const props = createDefaultProps({ player });
         render(<PlayerCard {...props} />);
 
@@ -1621,7 +1621,7 @@ describe("PlayerCard", () => {
 
       it("defaults maxHp to 100 when player.maxHp is undefined", () => {
         const player = createMockPlayer();
-        delete (player as any).maxHp;
+        delete (player as Partial<typeof player>).maxHp;
         const props = createDefaultProps({ player });
         render(<PlayerCard {...props} />);
 
@@ -1981,7 +1981,7 @@ describe("PlayerCard", () => {
   describe("HP Defaults", () => {
     it("player.hp defaults to 100 if undefined", () => {
       const player = createMockPlayer();
-      delete (player as any).hp;
+      delete (player as Partial<typeof player>).hp;
       const props = createDefaultProps({ player });
       render(<PlayerCard {...props} />);
 
@@ -1990,7 +1990,7 @@ describe("PlayerCard", () => {
 
     it("player.maxHp defaults to 100 if undefined", () => {
       const player = createMockPlayer();
-      delete (player as any).maxHp;
+      delete (player as Partial<typeof player>).maxHp;
       const props = createDefaultProps({ player });
       render(<PlayerCard {...props} />);
 
