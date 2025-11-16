@@ -1,5 +1,79 @@
 # Test Deprecation Schedule
 
+## Partial Erase E2E Test Deprecation
+
+### Status: In Parallel Validation (Started: 2025-11-16)
+
+### Files Affected
+- **Deprecated:** `apps/e2e/partial-erase.spec.ts` (763 LOC, 4 tests)
+- **Replacement:**
+  - `apps/server/src/domains/__tests__/mapService.test.ts` (319 LOC, 10 tests)
+  - `apps/server/src/ws/handlers/__tests__/DrawingMessageHandler.test.ts` (298 LOC, 17 tests)
+  - `apps/client/src/hooks/__tests__/useDrawingTool.test.ts` (269 LOC, 4 tests)
+  - `apps/e2e/partial-erase.smoke.spec.ts` (145 LOC, 1 test)
+
+### Timeline
+
+**Week 1-2 (2025-11-16 to 2025-11-30): Parallel Validation**
+- ✅ Both test suites running in CI
+- ✅ Deprecated test marked with clear warning
+- 🔄 Monitor for any discrepancies or failures
+- 🔄 Verify smoke test + integration tests provide same confidence
+
+**Week 3 (2025-12-01 to 2025-12-07): Decision Point**
+- [ ] Review results from parallel runs
+- [ ] Confirm no test failures in either suite
+- [ ] Verify integration tests catch all issues old e2e test caught
+- [ ] Get team sign-off for deletion
+
+**Week 4 (2025-12-08): Removal**
+- [ ] Delete `apps/e2e/partial-erase.spec.ts`
+- [ ] Update documentation
+- [ ] Celebrate 50-80 second savings per test run! 🎉
+
+### Validation Checklist
+
+During the parallel validation period, verify:
+
+- [ ] Integration tests (mapService.test.ts) pass consistently
+- [ ] Integration tests (DrawingMessageHandler.test.ts) pass consistently
+- [ ] Integration tests (useDrawingTool.test.ts) pass consistently
+- [ ] Smoke tests (partial-erase.smoke.spec.ts) pass consistently
+- [ ] Deprecated e2e test still passes (no regressions)
+- [ ] All test suites run in CI without issues
+- [ ] No bugs escape that old e2e test would have caught
+- [ ] Developers comfortable with new test structure
+- [ ] Code coverage maintained or improved
+
+### Success Criteria
+
+Before deletion, confirm:
+1. **Zero test failures** in new test suite over 2-week period
+2. **Zero production bugs** that old test would have caught
+3. **Team confidence** in new test structure
+4. **Documentation** updated and reviewed
+
+### Rollback Plan
+
+If issues arise during validation:
+1. Keep deprecated test permanently
+2. Investigate why new tests didn't catch issue
+3. Add missing test case to integration tests
+4. Retry deprecation timeline
+
+### Performance Metrics
+
+Track these metrics during validation:
+
+| Metric | Old E2E | New Tests | Improvement |
+|--------|---------|-----------|-------------|
+| Runtime | ~60-90s | ~10.33s | 87-93% faster |
+| Coverage | 4 tests | 32 tests | 700% more |
+| Reliability | ~90-95% (e2e) | ~99%+ (integration) | Higher |
+| Debugability | Hard (browser) | Easy (direct) | Much better |
+
+---
+
 ## Session Load E2E Test Deprecation
 
 ### Status: In Parallel Validation (Started: 2025-01-15)
@@ -70,14 +144,16 @@ Track these metrics during validation:
 
 ### Next Candidates for Migration
 
-After successful deprecation of session-load tests, migrate these next:
+After successful deprecation of all current migrations, consider these next:
 
-1. **transform-tool.spec.ts** (431 LOC) - Similar pattern
-2. **staging-zone.spec.ts** (402 LOC) - Heavy setup overhead
-3. **character-creation.spec.ts** (297 LOC) - Form validation
-4. **player-state.spec.ts** (306 LOC) - State management
+1. **comprehensive-mvp.spec.ts** (442 LOC) - ~25-40s savings
+2. **multi-client-sync.spec.ts** (377 LOC) - ~20-35s savings
+3. **player-npc-initiative.spec.ts** (369 LOC) - ~20-30s savings
+4. **player-state.spec.ts** (306 LOC) - ~15s savings
+5. **ui-state.spec.ts** (297 LOC) - ~15s savings
+6. **undo-redo.spec.ts** (290 LOC) - ~12s savings
 
-**Estimated total additional savings: 2-3 minutes per CI run**
+**Estimated total additional savings: ~107-157 seconds per CI run**
 
 ---
 

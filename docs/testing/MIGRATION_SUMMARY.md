@@ -6,7 +6,18 @@ This document tracks the cumulative progress of migrating slow e2e tests to fast
 
 ## Completed Migrations
 
-### 1. Session Load Tests ✅
+### 1. Partial Erase Tests ✅
+- **Status:** In parallel validation
+- **Old:** `partial-erase.spec.ts` (763 LOC, 4 tests, ~60-90s)
+- **New:** Integration tests (886 LOC, 31 tests, <330ms) + smoke test
+  - `mapService.test.ts` (319 LOC, 10 tests)
+  - `DrawingMessageHandler.test.ts` (298 LOC, 17 tests)
+  - `useDrawingTool.test.ts` (269 LOC, 4 tests)
+- **Time Saved:** 50-80 seconds per run (87-93% faster)
+- **Coverage:** +27 tests (+775%)
+- **Documentation:** [PARTIAL_ERASE_MIGRATION.md](./PARTIAL_ERASE_MIGRATION.md)
+
+### 2. Session Load Tests ✅
 - **Status:** In parallel validation
 - **Old:** `session-load.spec.ts` (433 LOC, 3 tests, ~45s)
 - **New:** `SnapshotLoader.test.ts` (978 LOC, 20 tests, 16ms) + smoke test
@@ -31,7 +42,7 @@ This document tracks the cumulative progress of migrating slow e2e tests to fast
 - **Special:** Fixed flaky test suite (toggle-dm broken in e2e)
 - **Documentation:** Part of E2E_TO_INTEGRATION_MIGRATION.md
 
-### 4. Character Creation Tests ✅
+### 5. Character Creation Tests ✅
 - **Status:** In parallel validation
 - **Old:** `character-creation.spec.ts` (297 LOC, 6 tests, ~45-60s)
 - **New:** 5 integration test suites (3,161 LOC, 99+ tests, <330ms) + smoke test
@@ -51,27 +62,29 @@ This document tracks the cumulative progress of migrating slow e2e tests to fast
 
 | Migration | Time Saved | New Runtime |
 |-----------|------------|-------------|
+| Partial Erase | 50-80s | ~10s |
 | Session Load | 35s | ~10s |
 | Transform Tool | 22s | ~8s |
 | Staging Zone | 3s | ~5s |
 | Character Creation | 35-50s | ~10s |
-| **TOTAL** | **95-110s per run** | **~33s total** |
+| **TOTAL** | **145-190s per run** | **~43s total** |
 
-**Per Run Savings:** 95-110 seconds (73-77% faster)
-**Daily Savings (20 test runs):** 32-37 minutes
-**Weekly Savings:** ~3.2-3.7 hours
-**Monthly Savings:** ~13-15 hours
-**Yearly Savings:** ~156-180 hours
+**Per Run Savings:** 145-190 seconds (77-82% faster)
+**Daily Savings (20 test runs):** 48-63 minutes
+**Weekly Savings:** ~4.8-6.3 hours
+**Monthly Savings:** ~19-25 hours
+**Yearly Savings:** ~232-304 hours
 
 ### Test Coverage Improvements
 
 | Migration | Tests Before | Tests After | Increase |
 |-----------|--------------|-------------|----------|
+| Partial Erase | 4 | 31 | +775% |
 | Session Load | 3 | 20 | +567% |
 | Transform Tool | 5 | 32 | +540% |
 | Staging Zone | 1 (6 skipped) | 29 | +2,800% |
 | Character Creation | 6 | 99+ | +1,550% |
-| **TOTAL** | **15 active** | **180+** | **+1,100%** |
+| **TOTAL** | **19 active** | **211+** | **+1,011%** |
 
 ### Code Quality Improvements
 
@@ -173,22 +186,23 @@ Each migration follows this proven pattern:
 
 | Activity | Time Spent |
 |----------|------------|
+| Partial Erase Migration | 2.0 hours |
 | Session Load Migration | 3.5 hours |
 | Transform Tool Migration | 2.5 hours |
 | Staging Zone Migration | 1.5 hours |
 | Character Creation Migration | 1.5 hours |
 | Documentation | 2.0 hours |
-| **TOTAL** | **11 hours** |
+| **TOTAL** | **13 hours** |
 
 ### Time Savings
 
-**Per Day (20 runs):** 32-37 minutes
-**Breakeven:** After ~18 test runs (~1 day of development)
-**Long-term:** 156-180 hours saved per year
+**Per Day (20 runs):** 48-63 minutes
+**Breakeven:** After ~16 test runs (~1 day of development)
+**Long-term:** 232-304 hours saved per year
 
 ### Return on Investment
 
-- **Direct:** 14-16x ROI in first year (11 hours invested, 156-180 hours saved)
+- **Direct:** 18-23x ROI in first year (13 hours invested, 232-304 hours saved)
 - **Indirect:**
   - Faster development iterations
   - Easier debugging (integration tests pinpoint issues)
@@ -219,17 +233,17 @@ Each migration follows this proven pattern:
 
 The e2e-to-integration migration strategy has proven highly successful:
 
-- **95-110 seconds saved per test run** (73-77% faster)
-- **+165 tests added** (1,100% more coverage)
+- **145-190 seconds saved per test run** (77-82% faster)
+- **+192 tests added** (1,011% more coverage)
 - **3 flaky test suites fixed**
 - **Reusable test infrastructure created**
 - **Clear patterns established for future migrations**
-- **14-16x ROI in first year**
+- **18-23x ROI in first year**
 
-The 2-week parallel validation period ensures safe migration with zero risk of losing coverage. All four migrations are currently in validation and on track for completion in Feb 2025.
+The 2-week parallel validation period ensures safe migration with zero risk of losing coverage. All five migrations are currently in validation and on track for completion in Dec 2025.
 
 ---
 
-**Last Updated:** 2025-01-15
-**Status:** 4 migrations completed, in parallel validation
-**Next Review:** 2025-01-30
+**Last Updated:** 2025-11-16
+**Status:** 5 migrations completed, in parallel validation
+**Next Review:** 2025-11-30

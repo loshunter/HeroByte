@@ -1,3 +1,24 @@
+/**
+ * ⚠️ DEPRECATED - This E2E test is being replaced by integration tests + smoke test
+ *
+ * STATUS: Parallel validation (running alongside new tests for 2 weeks)
+ * DELETE AFTER: 2025-12-01
+ *
+ * MIGRATION:
+ * - Business logic: Now tested in 31 integration tests (886 LOC, <330ms runtime)
+ * - WebSocket transport: Covered by partial-erase.smoke.spec.ts (145 LOC, ~10s runtime)
+ *
+ * See docs/testing/PARTIAL_ERASE_MIGRATION.md for full details.
+ *
+ * Integration tests provide:
+ * - 10 mapService tests (319 LOC): partial erase segmentation, undo/redo logic
+ * - 17 DrawingMessageHandler tests (298 LOC): WebSocket message handling
+ * - 4 useDrawingTool tests (269 LOC): Client-side drawing state
+ *
+ * Time savings: ~50-80 seconds per run (87-93% faster)
+ * Coverage: +27 tests (775% increase)
+ */
+
 import { expect, test } from "@playwright/test";
 import { joinDefaultRoom } from "./helpers";
 
