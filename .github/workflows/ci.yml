@@ -99,6 +99,8 @@ jobs:
         run: ${{ matrix.test-command }}
         env:
           NODE_OPTIONS: ${{ matrix.node-options || '' }}
+          CLIENT_COVERAGE_CHUNK_SIZE: 10
+          CLIENT_COVERAGE_CONCURRENCY: 4
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
