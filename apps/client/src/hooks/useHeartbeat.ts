@@ -10,7 +10,15 @@ interface UseHeartbeatOptions {
   sendMessage: (msg: ClientMessage) => void;
   interval?: number; // Heartbeat interval in ms (default: 30 seconds)
   enabled?: boolean; // Whether heartbeats should be active
+  createInterval?: (callback: () => void, interval: number) => () => void;
 }
+
+const defaultCreateInterval = (callback: () => void, interval: number) => {
+  const intervalId = setInterval(callback, interval);
+  return () => {
+    clearInterval(intervalId);
+  };
+};
 
 /**
  * Hook to send periodic heartbeat messages to server
@@ -19,6 +27,7 @@ export function useHeartbeat({
   sendMessage,
   interval = 30000,
   enabled = true,
+  createInterval = defaultCreateInterval,
 }: UseHeartbeatOptions): void {
   useEffect(() => {
     if (!enabled) {
@@ -29,12 +38,8 @@ export function useHeartbeat({
     sendMessage({ t: "heartbeat" });
 
     // Then send periodic heartbeats
-    const heartbeatInterval = setInterval(() => {
+    return createInterval(() => {
       sendMessage({ t: "heartbeat" });
     }, interval);
-
-    return () => {
-      clearInterval(heartbeatInterval);
-    };
-  }, [enabled, interval, sendMessage]);
+  }, [enabled, interval, createInterval, sendMessage]);
 }

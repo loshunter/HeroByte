@@ -8,8 +8,11 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: "./vitest.setup.ts",
     globals: true,
+    pool: "forks",
     coverage: {
-      provider: "v8",
+      provider: "istanbul",
+      reporter: ["text", "json", "lcov"],
+      reportsDirectory: "./coverage",
     },
     css: false,
   },

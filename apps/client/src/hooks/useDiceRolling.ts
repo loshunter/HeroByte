@@ -125,7 +125,7 @@ export function useDiceRolling({
       playerName: roll.playerName,
       formula: roll.formula, // Human-readable formula from server
       tokens: [], // Not needed for display
-      perDie: roll.breakdown.map((b) => ({
+      perDie: (roll.breakdown || []).map((b) => ({
         tokenId: b.tokenId,
         die: b.die as DieType | undefined,
         rolls: b.rolls,

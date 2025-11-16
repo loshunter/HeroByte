@@ -1140,9 +1140,9 @@ describe("TransformGizmo", () => {
           rotation: expect.any(Number),
         }),
       );
-      // Check that rotation is 0 (handles both 0 and -0)
+      // Check that rotation normalizes to zero (handles both 0 and -0)
       const call = onTransform.mock.calls[0][0] as { rotation: number };
-      expect(call.rotation).toBe(0);
+      expect(call.rotation).toBeCloseTo(0);
     });
 
     it("should handle very large rotation values", () => {
