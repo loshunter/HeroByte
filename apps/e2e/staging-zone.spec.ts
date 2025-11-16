@@ -1,3 +1,23 @@
+/**
+ * DEPRECATED: This e2e test file is being replaced by:
+ * 1. Integration tests: apps/server/src/domains/room/staging/__tests__/StagingZoneManager.test.ts
+ *    - 28 tests covering all business logic (validation, normalization, spawn position)
+ *    - Runtime: 16ms (vs this file which had 6 skipped tests + 1 slow active test)
+ * 2. Authorization tests: apps/server/src/ws/__tests__/characterization/authorization.characterization.test.ts
+ *    - Verifies set-player-staging-zone is DM-only
+ * 3. Smoke test: apps/e2e/staging-zone.smoke.spec.ts
+ *    - 1 test for WebSocket transport validation only
+ *    - Runtime: ~5s
+ *
+ * ORIGINAL STATUS: 6 tests were already SKIPPED (toggle-dm doesn't work in e2e), 1 active
+ * NEW STATUS: All coverage maintained with faster, more reliable tests
+ *
+ * This file will be removed after 1 sprint of running both test suites in parallel.
+ * See: docs/testing/E2E_TO_INTEGRATION_MIGRATION.md
+ *
+ * DO NOT ADD NEW TESTS TO THIS FILE - Add them to StagingZoneManager.test.ts instead.
+ */
+
 import { expect, test } from "@playwright/test";
 import { joinDefaultRoom } from "./helpers";
 
@@ -6,7 +26,7 @@ import { joinDefaultRoom } from "./helpers";
 // still covered by unit tests. The one active test verifies that non-DM players
 // cannot set the staging zone.
 
-test.describe("HeroByte player staging zone", () => {
+test.describe("HeroByte player staging zone (DEPRECATED)", () => {
   test.skip("DM can create a staging zone and it appears in the snapshot", async ({ page }) => {
     // NOTE: Skipping because toggle-dm message doesn't work in E2E tests
     // The server-side logic for staging zones is tested via unit tests instead

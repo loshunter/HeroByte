@@ -1,7 +1,37 @@
+/**
+ * DEPRECATED: This e2e test file is being replaced by:
+ * 1. Integration tests: apps/server/src/domains/__tests__/characterService.test.ts
+ *    - 20+ tests covering character creation, deletion, HP validation, ownership
+ *    - Runtime: <50ms (vs this file ~45-60s)
+ * 2. Message handler tests: apps/server/src/ws/handlers/__tests__/CharacterMessageHandler.test.ts
+ *    - 15+ tests covering authorization, message parsing, error handling
+ *    - Runtime: <50ms
+ * 3. UI tests: apps/client/src/features/players/components/__tests__/CharacterCreationModal.test.tsx
+ *    - 30+ tests covering modal behavior, loading states, validation, keyboard handling
+ *    - Runtime: <100ms
+ * 4. Hook tests: apps/client/src/hooks/__tests__/useCharacterCreation.test.ts
+ *    - 25+ tests covering state management, server confirmation detection, auto-close
+ *    - Runtime: <100ms
+ * 5. Token tests: apps/server/src/domains/__tests__/tokenService.test.ts
+ *    - 8+ tests covering token creation, color changes, linking to characters
+ *    - Runtime: <30ms
+ * 6. Smoke test: apps/e2e/character-creation.smoke.spec.ts
+ *    - 1 test for WebSocket transport validation only
+ *    - Runtime: ~10s
+ *
+ * ORIGINAL STATUS: 6 tests covering UI flows and business logic
+ * NEW STATUS: All coverage maintained with faster, more reliable tests
+ *
+ * This file will be removed after 1 sprint of running both test suites in parallel.
+ * See: docs/testing/CHARACTER_CREATION_MIGRATION.md
+ *
+ * DO NOT ADD NEW TESTS TO THIS FILE - Add them to the appropriate integration test instead.
+ */
+
 import { expect, test } from "@playwright/test";
 import { joinDefaultRoom } from "./helpers";
 
-test.describe("HeroByte character and token creation", () => {
+test.describe("HeroByte character and token creation (DEPRECATED)", () => {
   test("player can create a new character", async ({ page }) => {
     await joinDefaultRoom(page);
 

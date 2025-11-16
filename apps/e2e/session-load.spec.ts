@@ -1,8 +1,23 @@
+/**
+ * DEPRECATED: This comprehensive e2e test is being replaced by:
+ * 1. Integration tests: apps/server/src/domains/room/snapshot/__tests__/SnapshotLoader.test.ts
+ *    - 20 tests covering all business logic (player merging, character preservation, etc.)
+ *    - Runtime: 16ms (vs 45s for this e2e test)
+ * 2. Smoke test: apps/e2e/session-load.smoke.spec.ts
+ *    - 2 tests for WebSocket transport validation only
+ *    - Runtime: ~10s
+ *
+ * This file will be removed after 1 sprint of running both test suites in parallel.
+ * See: docs/testing/E2E_TO_INTEGRATION_MIGRATION.md
+ *
+ * DO NOT ADD NEW TESTS TO THIS FILE - Add them to SnapshotLoader.test.ts instead.
+ */
+
 import { expect, test } from "@playwright/test";
 import { joinDefaultRoomAsDM } from "./helpers";
 import type { RoomSnapshot } from "@shared";
 
-test.describe("HeroByte session load", () => {
+test.describe("HeroByte session load (DEPRECATED)", () => {
   test("can load a session snapshot with tokens, characters, and scene objects", async ({
     page,
   }) => {

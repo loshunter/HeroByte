@@ -1,7 +1,23 @@
+/**
+ * DEPRECATED: This comprehensive e2e test is being replaced by:
+ * 1. Integration tests: apps/server/src/domains/room/transform/__tests__/TransformHandler.test.ts
+ *    - 30+ tests covering all business logic (map, token, staging zone, drawing, prop, pointer transforms)
+ *    - Locked state handling, authorization, edge cases
+ *    - Runtime: ~20ms (vs ~30s for this e2e test)
+ * 2. Smoke test: apps/e2e/transform-tool.smoke.spec.ts
+ *    - 1 test for WebSocket transport validation only
+ *    - Runtime: ~8s
+ *
+ * This file will be removed after 1 sprint of running both test suites in parallel.
+ * See: docs/testing/E2E_TO_INTEGRATION_MIGRATION.md
+ *
+ * DO NOT ADD NEW TESTS TO THIS FILE - Add them to TransformHandler.test.ts instead.
+ */
+
 import { expect, test } from "@playwright/test";
 import { joinDefaultRoom } from "./helpers";
 
-test.describe("HeroByte transform tool", () => {
+test.describe("HeroByte transform tool (DEPRECATED)", () => {
   test("player can select and move a scene object", async ({ page }) => {
     await joinDefaultRoom(page);
 
