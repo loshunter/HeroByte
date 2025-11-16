@@ -382,11 +382,7 @@ describe("EmptyState - React.memo Optimization", () => {
     it("should not re-render when parent re-renders with same props", () => {
       let renderCount = 0;
 
-      const TestEmptyState = React.memo(function TestEmptyState({
-        message,
-      }: {
-        message: string;
-      }) {
+      const TestEmptyState = React.memo(function TestEmptyState({ message }: { message: string }) {
         renderCount++;
         return <EmptyState message={message} />;
       });

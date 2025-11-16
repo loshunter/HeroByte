@@ -6,8 +6,8 @@
 // token image management, state persistence, status effects, and memo optimization
 
 import React from "react";
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, within, cleanup } from "@testing-library/react";
+import { describe, expect, it, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import type { Player, Token, SceneObject, Drawing, PlayerState, TokenSize } from "@shared";
 
 // ============================================================================
@@ -560,10 +560,9 @@ describe("PlayerCard", () => {
         isMe: false,
         player: createMockPlayer({ isDM: true }),
       });
-      const { container } = render(<PlayerCard {...props} />);
+      render(<PlayerCard {...props} />);
 
       const badge = screen.getByText("Dungeon Master");
-      const style = window.getComputedStyle(badge);
       expect(badge).toHaveStyle({ color: "var(--jrpg-gold)" });
     });
 
@@ -883,7 +882,7 @@ describe("PlayerCard", () => {
         tokenImageUrl: "fallback.png",
         onTokenImageSubmit,
       });
-      const { rerender } = render(<PlayerCard {...props} />);
+      render(<PlayerCard {...props} />);
 
       // Change input to whitespace-only
       const changeButton = screen.getByTestId("settings-change-token-input");

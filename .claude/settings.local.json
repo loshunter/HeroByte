@@ -187,7 +187,8 @@
       "Bash(pnpm vitest:*)",
       "Bash(pnpm --filter vtt-server tsc:*)",
       "Bash(curl:*)",
-      "Bash(pnpm exec playwright test:*)"
+      "Bash(pnpm exec playwright test:*)",
+      "Bash(pnpm --filter herobyte-client exec eslint --fix \"src/components/ui/__tests__/EmptyState.test.tsx\")"
     ],
     "deny": [],
     "ask": []
