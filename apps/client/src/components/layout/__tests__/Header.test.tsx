@@ -286,11 +286,14 @@ describe("Header", () => {
         screen.getByRole("button", { name: "🖱️ Select" }),
       ];
 
-      allButtons.forEach(btn => expect(btn).toHaveAttribute("data-variant", "default"));
+      allButtons.forEach((btn) => expect(btn).toHaveAttribute("data-variant", "default"));
 
       rerender(<Header {...props} activeTool="pointer" />);
-      expect(screen.getByRole("button", { name: "👆 Pointer" })).toHaveAttribute("data-variant", "primary");
-      allButtons.slice(1).forEach(btn => expect(btn).toHaveAttribute("data-variant", "default"));
+      expect(screen.getByRole("button", { name: "👆 Pointer" })).toHaveAttribute(
+        "data-variant",
+        "primary",
+      );
+      allButtons.slice(1).forEach((btn) => expect(btn).toHaveAttribute("data-variant", "default"));
     });
 
     it("should handle non-displayed tool modes (align)", () => {
@@ -303,28 +306,47 @@ describe("Header", () => {
         screen.getByRole("button", { name: "🖱️ Select" }),
       ];
 
-      allButtons.forEach(btn => expect(btn).toHaveAttribute("data-variant", "default"));
+      allButtons.forEach((btn) => expect(btn).toHaveAttribute("data-variant", "default"));
     });
 
     it("should switch between different tool modes correctly", () => {
       const { rerender } = render(<Header {...props} activeTool="pointer" />);
-      expect(screen.getByRole("button", { name: "👆 Pointer" })).toHaveAttribute("data-variant", "primary");
+      expect(screen.getByRole("button", { name: "👆 Pointer" })).toHaveAttribute(
+        "data-variant",
+        "primary",
+      );
 
       rerender(<Header {...props} activeTool="measure" />);
-      expect(screen.getByRole("button", { name: "📏 Measure" })).toHaveAttribute("data-variant", "primary");
+      expect(screen.getByRole("button", { name: "📏 Measure" })).toHaveAttribute(
+        "data-variant",
+        "primary",
+      );
 
       rerender(<Header {...props} activeTool="draw" />);
-      expect(screen.getByRole("button", { name: "✏️ Draw Tools" })).toHaveAttribute("data-variant", "primary");
+      expect(screen.getByRole("button", { name: "✏️ Draw Tools" })).toHaveAttribute(
+        "data-variant",
+        "primary",
+      );
 
       rerender(<Header {...props} activeTool="transform" />);
-      expect(screen.getByRole("button", { name: "🔄 Transform" })).toHaveAttribute("data-variant", "primary");
+      expect(screen.getByRole("button", { name: "🔄 Transform" })).toHaveAttribute(
+        "data-variant",
+        "primary",
+      );
 
       rerender(<Header {...props} activeTool="select" />);
-      expect(screen.getByRole("button", { name: "🖱️ Select" })).toHaveAttribute("data-variant", "primary");
+      expect(screen.getByRole("button", { name: "🖱️ Select" })).toHaveAttribute(
+        "data-variant",
+        "primary",
+      );
     });
   });
 
-  describe.each<{ prop: "crtFilter" | "diceRollerOpen" | "rollLogOpen"; label: string; handler: string }>([
+  describe.each<{
+    prop: "crtFilter" | "diceRollerOpen" | "rollLogOpen";
+    label: string;
+    handler: string;
+  }>([
     { prop: "crtFilter", label: "📺 CRT", handler: "onCrtFilterChange" },
     { prop: "diceRollerOpen", label: "⚂ Dice", handler: "onDiceRollerToggle" },
     { prop: "rollLogOpen", label: "📜 Log", handler: "onRollLogToggle" },
@@ -359,11 +381,61 @@ describe("Header", () => {
       render(<Header {...props} />);
 
       const testCases = [
-        { name: "Snap", handler: "onSnapToGridChange", excluded: ["onToolSelect", "onCrtFilterChange", "onDiceRollerToggle", "onRollLogToggle", "onResetCamera"] },
-        { name: "👆 Pointer", handler: "onToolSelect", excluded: ["onSnapToGridChange", "onCrtFilterChange", "onDiceRollerToggle", "onRollLogToggle", "onResetCamera"] },
-        { name: "📺 CRT", handler: "onCrtFilterChange", excluded: ["onSnapToGridChange", "onToolSelect", "onDiceRollerToggle", "onRollLogToggle", "onResetCamera"] },
-        { name: "⚂ Dice", handler: "onDiceRollerToggle", excluded: ["onSnapToGridChange", "onToolSelect", "onCrtFilterChange", "onRollLogToggle", "onResetCamera"] },
-        { name: "📜 Log", handler: "onRollLogToggle", excluded: ["onSnapToGridChange", "onToolSelect", "onCrtFilterChange", "onDiceRollerToggle", "onResetCamera"] },
+        {
+          name: "Snap",
+          handler: "onSnapToGridChange",
+          excluded: [
+            "onToolSelect",
+            "onCrtFilterChange",
+            "onDiceRollerToggle",
+            "onRollLogToggle",
+            "onResetCamera",
+          ],
+        },
+        {
+          name: "👆 Pointer",
+          handler: "onToolSelect",
+          excluded: [
+            "onSnapToGridChange",
+            "onCrtFilterChange",
+            "onDiceRollerToggle",
+            "onRollLogToggle",
+            "onResetCamera",
+          ],
+        },
+        {
+          name: "📺 CRT",
+          handler: "onCrtFilterChange",
+          excluded: [
+            "onSnapToGridChange",
+            "onToolSelect",
+            "onDiceRollerToggle",
+            "onRollLogToggle",
+            "onResetCamera",
+          ],
+        },
+        {
+          name: "⚂ Dice",
+          handler: "onDiceRollerToggle",
+          excluded: [
+            "onSnapToGridChange",
+            "onToolSelect",
+            "onCrtFilterChange",
+            "onRollLogToggle",
+            "onResetCamera",
+          ],
+        },
+        {
+          name: "📜 Log",
+          handler: "onRollLogToggle",
+          excluded: [
+            "onSnapToGridChange",
+            "onToolSelect",
+            "onCrtFilterChange",
+            "onDiceRollerToggle",
+            "onResetCamera",
+          ],
+        },
       ];
 
       testCases.forEach(({ name, handler, excluded }) => {
@@ -371,12 +443,12 @@ describe("Header", () => {
         fireEvent.click(button);
 
         expect(props[handler as keyof typeof props]).toHaveBeenCalled();
-        excluded.forEach(excludedHandler => {
+        excluded.forEach((excludedHandler) => {
           expect(props[excludedHandler as keyof typeof props]).not.toHaveBeenCalled();
         });
 
         // Reset mocks for next iteration
-        Object.values(props).forEach(val => {
+        Object.values(props).forEach((val) => {
           if (typeof val === "function" && "mockClear" in val) {
             (val as any).mockClear();
           }

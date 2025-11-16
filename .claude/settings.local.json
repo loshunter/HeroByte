@@ -190,7 +190,10 @@
       "Bash(pnpm exec playwright test:*)",
       "Bash(pnpm --filter herobyte-client exec eslint --fix \"src/components/ui/__tests__/EmptyState.test.tsx\")",
       "Bash(git rm:*)",
-      "Bash(gh pr merge:*)"
+      "Bash(gh pr merge:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh api:*)",
+      "Bash(time pnpm test:parallel:*)"
     ],
     "deny": [],
     "ask": []
