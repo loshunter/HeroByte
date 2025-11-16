@@ -58,8 +58,14 @@ jobs:
       - name: Build packages
         run: pnpm build
 
-      - name: Run tests with coverage
-        run: pnpm test:coverage
+      - name: Run shared tests with coverage
+        run: pnpm test:shared:coverage
+
+      - name: Run server tests with coverage
+        run: pnpm test:server:coverage
+
+      - name: Run client tests with coverage
+        run: pnpm test:client:coverage
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -68,6 +74,7 @@ jobs:
           files: |
             packages/shared/coverage/coverage-final.json
             apps/server/coverage/coverage-final.json
+            apps/client/coverage/coverage-final.json
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: unit
           fail_ci_if_error: false
