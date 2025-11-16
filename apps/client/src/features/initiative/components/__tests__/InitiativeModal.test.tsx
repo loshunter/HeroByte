@@ -26,7 +26,7 @@ if (typeof PointerEvent === "undefined") {
     public pointerType: string;
     public isPrimary: boolean;
 
-    constructor(type: string, params: any = {}) {
+    constructor(type: string, params: PointerEventInit & MouseEventInit = {}) {
       // Pass all params to MouseEvent including clientX/clientY
       super(type, {
         bubbles: params.bubbles,
@@ -59,7 +59,8 @@ if (typeof PointerEvent === "undefined") {
     }
   }
 
-  (global as any).PointerEvent = PointerEventPolyfill;
+  (global as unknown as { PointerEvent: typeof PointerEventPolyfill }).PointerEvent =
+    PointerEventPolyfill;
 }
 
 // ============================================================================
@@ -95,12 +96,7 @@ vi.mock("../../../../components/ui/JRPGPanel", () => ({
     variant?: string;
     style?: React.CSSProperties;
   }) => (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      data-variant={variant}
-      style={style}
-    >
+    <button onClick={onClick} disabled={disabled} data-variant={variant} style={style}>
       {children}
     </button>
   ),
@@ -110,9 +106,7 @@ vi.mock("../../../../components/ui/JRPGPanel", () => ({
 // TEST UTILITIES
 // ============================================================================
 
-function createMockCharacter(
-  overrides: Partial<Character> = {},
-): Character {
+function createMockCharacter(overrides: Partial<Character> = {}): Character {
   return {
     id: "char-1",
     name: "Test Character",
@@ -127,13 +121,15 @@ function createMockCharacter(
   } as Character;
 }
 
-function createDefaultProps(overrides: {
-  character?: Character;
-  onClose?: () => void;
-  onSetInitiative?: (initiative: number, modifier: number) => void;
-  isLoading?: boolean;
-  error?: string | null;
-} = {}) {
+function createDefaultProps(
+  overrides: {
+    character?: Character;
+    onClose?: () => void;
+    onSetInitiative?: (initiative: number, modifier: number) => void;
+    isLoading?: boolean;
+    error?: string | null;
+  } = {},
+) {
   return {
     character: createMockCharacter(),
     onClose: vi.fn(),
@@ -169,9 +165,7 @@ describe("InitiativeModal - Initial Rendering", () => {
     const props = createDefaultProps({ character });
     render(<InitiativeModal {...props} />);
 
-    expect(screen.getByTestId("jrpg-panel-title")).toHaveTextContent(
-      "Initiative: Aragorn",
-    );
+    expect(screen.getByTestId("jrpg-panel-title")).toHaveTextContent("Initiative: Aragorn");
   });
 
   it("shows modifier from character", () => {
@@ -233,9 +227,7 @@ describe("InitiativeModal - Initial Rendering", () => {
     const props = createDefaultProps();
     render(<InitiativeModal {...props} />);
 
-    expect(
-      screen.queryByPlaceholderText("Enter roll..."),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Enter roll...")).not.toBeInTheDocument();
   });
 
   it("does not show result display initially", () => {
@@ -251,9 +243,7 @@ describe("InitiativeModal - Initial Rendering", () => {
     const props = createDefaultProps();
     const { container } = render(<InitiativeModal {...props} />);
 
-    const errorBoxes = container.querySelectorAll(
-      '[style*="rgba(255, 0, 0, 0.1)"]',
-    );
+    const errorBoxes = container.querySelectorAll('[style*="rgba(255, 0, 0, 0.1)"]');
     expect(errorBoxes).toHaveLength(0);
   });
 });
@@ -318,9 +308,7 @@ describe("InitiativeModal - Modifier State", () => {
     const props = createDefaultProps();
     render(<InitiativeModal {...props} />);
 
-    expect(
-      screen.getByText("Click and drag left/right to adjust"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Click and drag left/right to adjust")).toBeInTheDocument();
   });
 
   it("modifier display has correct styling", () => {
@@ -486,14 +474,8 @@ describe("InitiativeModal - Modifier Drag Interaction", () => {
     fireEvent.pointerDown(modifierDisplay, { clientX: 100, pointerId: 1, bubbles: true });
     fireEvent.pointerUp(document);
 
-    expect(removeEventListenerSpy).toHaveBeenCalledWith(
-      "pointermove",
-      expect.any(Function),
-    );
-    expect(removeEventListenerSpy).toHaveBeenCalledWith(
-      "pointerup",
-      expect.any(Function),
-    );
+    expect(removeEventListenerSpy).toHaveBeenCalledWith("pointermove", expect.any(Function));
+    expect(removeEventListenerSpy).toHaveBeenCalledWith("pointerup", expect.any(Function));
 
     removeEventListenerSpy.mockRestore();
   });
@@ -651,9 +633,7 @@ describe("InitiativeModal - Roll Initiative", () => {
     });
     fireEvent.click(rollButton);
 
-    expect(
-      screen.queryByPlaceholderText("Enter roll..."),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Enter roll...")).not.toBeInTheDocument();
   });
 
   it("clears manual value when rolling", () => {
@@ -676,9 +656,7 @@ describe("InitiativeModal - Roll Initiative", () => {
     fireEvent.click(rollButton);
 
     // Manual value should be cleared (input not visible)
-    expect(
-      screen.queryByPlaceholderText("Enter roll..."),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Enter roll...")).not.toBeInTheDocument();
   });
 
   it("multiple rolls update value", () => {
@@ -944,9 +922,7 @@ describe("InitiativeModal - Manual Entry Mode", () => {
     });
     fireEvent.click(manualButton);
 
-    const input = screen.getByPlaceholderText(
-      "Enter roll...",
-    ) as HTMLInputElement;
+    const input = screen.getByPlaceholderText("Enter roll...") as HTMLInputElement;
     fireEvent.change(input, { target: { value: "15" } });
 
     expect(input.value).toBe("15");
@@ -1248,9 +1224,7 @@ describe("InitiativeModal - Result Display", () => {
     });
     fireEvent.click(rollButton);
 
-    const resultBox = container.querySelector(
-      '[style*="rgba(255, 215, 0, 0.1)"]',
-    );
+    const resultBox = container.querySelector('[style*="rgba(255, 215, 0, 0.1)"]');
     expect(resultBox).toBeInTheDocument();
   });
 
@@ -1446,14 +1420,11 @@ describe("InitiativeModal - Save Functionality", () => {
     const saveButton = screen.getByRole("button", { name: "Save" });
     fireEvent.click(saveButton);
 
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      "[InitiativeModal] Saving initiative:",
-      {
-        finalInitiative: 13,
-        modifier: 2,
-        character: "TestChar",
-      },
-    );
+    expect(consoleLogSpy).toHaveBeenCalledWith("[InitiativeModal] Saving initiative:", {
+      finalInitiative: 13,
+      modifier: 2,
+      character: "TestChar",
+    });
   });
 
   it("save button has success variant", () => {
@@ -1509,9 +1480,7 @@ describe("InitiativeModal - Auto-Close on Success", () => {
     const props = createDefaultProps({ isLoading: true, onClose });
     const { rerender } = render(<InitiativeModal {...props} />);
 
-    rerender(
-      <InitiativeModal {...props} isLoading={false} error="Test error" />,
-    );
+    rerender(<InitiativeModal {...props} isLoading={false} error="Test error" />);
 
     await waitFor(() => {
       expect(onClose).not.toHaveBeenCalled();
@@ -1576,9 +1545,7 @@ describe("InitiativeModal - Auto-Close on Success", () => {
     });
     const { rerender } = render(<InitiativeModal {...props} />);
 
-    rerender(
-      <InitiativeModal {...props} isLoading={false} error="Test error" />,
-    );
+    rerender(<InitiativeModal {...props} isLoading={false} error="Test error" />);
 
     await waitFor(() => {
       expect(onClose).not.toHaveBeenCalled();
@@ -1612,9 +1579,7 @@ describe("InitiativeModal - Error Display", () => {
     const props = createDefaultProps({ error: "Failed to set initiative" });
     const { container } = render(<InitiativeModal {...props} />);
 
-    const errorBox = container.querySelector(
-      '[style*="rgba(255, 0, 0, 0.1)"]',
-    );
+    const errorBox = container.querySelector('[style*="rgba(255, 0, 0, 0.1)"]');
     expect(errorBox).toBeInTheDocument();
   });
 
@@ -1631,9 +1596,7 @@ describe("InitiativeModal - Error Display", () => {
     const props = createDefaultProps({ error: null });
     const { container } = render(<InitiativeModal {...props} />);
 
-    const errorBoxes = container.querySelectorAll(
-      '[style*="rgba(255, 0, 0, 0.1)"]',
-    );
+    const errorBoxes = container.querySelectorAll('[style*="rgba(255, 0, 0, 0.1)"]');
     expect(errorBoxes).toHaveLength(0);
   });
 
@@ -1641,9 +1604,7 @@ describe("InitiativeModal - Error Display", () => {
     const props = createDefaultProps({ error: undefined });
     const { container } = render(<InitiativeModal {...props} />);
 
-    const errorBoxes = container.querySelectorAll(
-      '[style*="rgba(255, 0, 0, 0.1)"]',
-    );
+    const errorBoxes = container.querySelectorAll('[style*="rgba(255, 0, 0, 0.1)"]');
     expect(errorBoxes).toHaveLength(0);
   });
 
@@ -1651,9 +1612,7 @@ describe("InitiativeModal - Error Display", () => {
     const props = createDefaultProps({ error: "Test error" });
     const { container } = render(<InitiativeModal {...props} />);
 
-    const errorBox = container.querySelector(
-      '[style*="rgba(255, 0, 0, 0.1)"]',
-    );
+    const errorBox = container.querySelector('[style*="rgba(255, 0, 0, 0.1)"]');
     expect(errorBox).toHaveAttribute(
       "style",
       expect.stringContaining("border: 2px solid var(--jrpg-red)"),
@@ -1676,13 +1635,8 @@ describe("InitiativeModal - Error Display", () => {
     const props = createDefaultProps({ error: "Centered error" });
     const { container } = render(<InitiativeModal {...props} />);
 
-    const errorBox = container.querySelector(
-      '[style*="rgba(255, 0, 0, 0.1)"]',
-    );
-    expect(errorBox).toHaveAttribute(
-      "style",
-      expect.stringContaining("text-align: center"),
-    );
+    const errorBox = container.querySelector('[style*="rgba(255, 0, 0, 0.1)"]');
+    expect(errorBox).toHaveAttribute("style", expect.stringContaining("text-align: center"));
   });
 
   it("shows error and result display simultaneously", () => {
@@ -1782,10 +1736,7 @@ describe("InitiativeModal - Keyboard Shortcuts", () => {
     const props = createDefaultProps();
     render(<InitiativeModal {...props} />);
 
-    expect(addEventListenerSpy).toHaveBeenCalledWith(
-      "keydown",
-      expect.any(Function),
-    );
+    expect(addEventListenerSpy).toHaveBeenCalledWith("keydown", expect.any(Function));
 
     addEventListenerSpy.mockRestore();
   });
@@ -1797,10 +1748,7 @@ describe("InitiativeModal - Keyboard Shortcuts", () => {
 
     unmount();
 
-    expect(removeEventListenerSpy).toHaveBeenCalledWith(
-      "keydown",
-      expect.any(Function),
-    );
+    expect(removeEventListenerSpy).toHaveBeenCalledWith("keydown", expect.any(Function));
 
     removeEventListenerSpy.mockRestore();
   });
@@ -2078,9 +2026,7 @@ describe("InitiativeModal - Props Validation", () => {
     const props = createDefaultProps({ character });
     render(<InitiativeModal {...props} />);
 
-    expect(
-      screen.getByTestId("jrpg-panel-title"),
-    ).toHaveTextContent("Initiative: TestChar");
+    expect(screen.getByTestId("jrpg-panel-title")).toHaveTextContent("Initiative: TestChar");
   });
 
   it("required prop: onClose", () => {
@@ -2126,9 +2072,7 @@ describe("InitiativeModal - Props Validation", () => {
     // Not passing error explicitly
     const { container } = render(<InitiativeModal {...props} />);
 
-    const errorBoxes = container.querySelectorAll(
-      '[style*="rgba(255, 0, 0, 0.1)"]',
-    );
+    const errorBoxes = container.querySelectorAll('[style*="rgba(255, 0, 0, 0.1)"]');
     expect(errorBoxes).toHaveLength(0);
   });
 
@@ -2169,9 +2113,7 @@ describe("InitiativeModal - Props Validation", () => {
     const props = createDefaultProps({ character });
     render(<InitiativeModal {...props} />);
 
-    expect(
-      screen.getByTestId("jrpg-panel-title"),
-    ).toHaveTextContent("Initiative: Different Name");
+    expect(screen.getByTestId("jrpg-panel-title")).toHaveTextContent("Initiative: Different Name");
   });
 
   it("handles character with all properties", () => {
@@ -2189,9 +2131,7 @@ describe("InitiativeModal - Props Validation", () => {
     const props = createDefaultProps({ character });
     render(<InitiativeModal {...props} />);
 
-    expect(
-      screen.getByTestId("jrpg-panel-title"),
-    ).toHaveTextContent("Initiative: Full Character");
+    expect(screen.getByTestId("jrpg-panel-title")).toHaveTextContent("Initiative: Full Character");
     expect(screen.getByText("+3")).toBeInTheDocument();
   });
 });
@@ -2301,9 +2241,7 @@ describe("InitiativeModal - Integration Tests", () => {
     });
     fireEvent.click(rollButton);
     expect(screen.getByText("Initiative: 19")).toBeInTheDocument();
-    expect(
-      screen.queryByPlaceholderText("Enter roll..."),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Enter roll...")).not.toBeInTheDocument();
 
     // Save
     const saveButton = screen.getByRole("button", { name: "Save" });
@@ -2384,9 +2322,7 @@ describe("InitiativeModal - Integration Tests", () => {
     const props = createDefaultProps({ isLoading: true, onClose });
     const { rerender } = render(<InitiativeModal {...props} />);
 
-    rerender(
-      <InitiativeModal {...props} isLoading={false} error="Test error" />,
-    );
+    rerender(<InitiativeModal {...props} isLoading={false} error="Test error" />);
 
     await waitFor(() => {
       expect(onClose).not.toHaveBeenCalled();

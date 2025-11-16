@@ -27,7 +27,27 @@ import { savePlayerState, loadPlayerState } from "../../../../utils/playerPersis
 
 // Mock child components
 vi.mock("../NameEditor", () => ({
-  NameEditor: ({ isEditing, isMe, playerName, playerUid, nameInput, tokenColor, onNameInputChange, onNameEdit, onNameSubmit }: any) => (
+  NameEditor: ({
+    isEditing,
+    isMe,
+    playerName,
+    playerUid,
+    nameInput,
+    tokenColor,
+    onNameInputChange,
+    onNameEdit,
+    onNameSubmit,
+  }: {
+    isEditing: boolean;
+    isMe: boolean;
+    playerName: string;
+    playerUid: string;
+    nameInput: string;
+    tokenColor?: string;
+    onNameInputChange: (value: string) => void;
+    onNameEdit: (uid: string, name: string) => void;
+    onNameSubmit: (value: string) => void;
+  }) => (
     <div data-testid="name-editor">
       <span data-testid="name-editor-name">{playerName}</span>
       <span data-testid="name-editor-is-editing">{String(isEditing)}</span>
@@ -35,15 +55,41 @@ vi.mock("../NameEditor", () => ({
       <span data-testid="name-editor-uid">{playerUid}</span>
       <span data-testid="name-editor-input">{nameInput}</span>
       <span data-testid="name-editor-color">{tokenColor}</span>
-      <button data-testid="name-editor-change" onClick={() => onNameInputChange("new-name")}>Change Name Input</button>
-      <button data-testid="name-editor-edit" onClick={onNameEdit}>Edit</button>
-      <button data-testid="name-editor-submit" onClick={onNameSubmit}>Submit</button>
+      <button data-testid="name-editor-change" onClick={() => onNameInputChange("new-name")}>
+        Change Name Input
+      </button>
+      <button data-testid="name-editor-edit" onClick={onNameEdit}>
+        Edit
+      </button>
+      <button data-testid="name-editor-submit" onClick={onNameSubmit}>
+        Submit
+      </button>
     </div>
   ),
 }));
 
 vi.mock("../PortraitSection", () => ({
-  PortraitSection: ({ portrait, micLevel, isEditable, onRequestChange, statusEffects, tokenColor, onFocusToken, initiative, onInitiativeClick }: any) => (
+  PortraitSection: ({
+    portrait,
+    micLevel,
+    isEditable,
+    onRequestChange,
+    statusEffects,
+    tokenColor,
+    onFocusToken,
+    initiative,
+    onInitiativeClick,
+  }: {
+    portrait?: string;
+    micLevel?: number;
+    isEditable?: boolean;
+    onRequestChange?: () => void;
+    statusEffects: string[];
+    tokenColor?: string;
+    onFocusToken?: () => void;
+    initiative?: number;
+    onInitiativeClick?: () => void;
+  }) => (
     <div data-testid="portrait-section">
       <span data-testid="portrait-section-portrait">{portrait}</span>
       <span data-testid="portrait-section-mic-level">{micLevel}</span>
@@ -51,15 +97,53 @@ vi.mock("../PortraitSection", () => ({
       <span data-testid="portrait-section-status-effects">{statusEffects.join(",")}</span>
       <span data-testid="portrait-section-token-color">{tokenColor}</span>
       <span data-testid="portrait-section-initiative">{initiative}</span>
-      <button data-testid="portrait-section-change" onClick={onRequestChange}>Change Portrait</button>
-      <button data-testid="portrait-section-focus" onClick={onFocusToken}>Focus Token</button>
-      <button data-testid="portrait-section-initiative-click" onClick={onInitiativeClick}>Initiative Click</button>
+      <button data-testid="portrait-section-change" onClick={onRequestChange}>
+        Change Portrait
+      </button>
+      <button data-testid="portrait-section-focus" onClick={onFocusToken}>
+        Focus Token
+      </button>
+      <button data-testid="portrait-section-initiative-click" onClick={onInitiativeClick}>
+        Initiative Click
+      </button>
     </div>
   ),
 }));
 
 vi.mock("../HPBar", () => ({
-  HPBar: ({ hp, maxHp, isMe, isEditingHp, hpInput, isEditingMaxHp, maxHpInput, playerUid, onHpChange, onHpInputChange, onHpEdit, onHpSubmit, onMaxHpInputChange, onMaxHpEdit, onMaxHpSubmit }: any) => (
+  HPBar: ({
+    hp,
+    maxHp,
+    isMe,
+    isEditingHp,
+    hpInput,
+    isEditingMaxHp,
+    maxHpInput,
+    playerUid,
+    onHpChange,
+    onHpInputChange,
+    onHpEdit,
+    onHpSubmit,
+    onMaxHpInputChange,
+    onMaxHpEdit,
+    onMaxHpSubmit,
+  }: {
+    hp: number;
+    maxHp: number;
+    isMe: boolean;
+    isEditingHp: boolean;
+    hpInput: string;
+    isEditingMaxHp: boolean;
+    maxHpInput: string;
+    playerUid: string;
+    onHpChange: (hp: number) => void;
+    onHpInputChange: (value: string) => void;
+    onHpEdit: (uid: string, hp: number) => void;
+    onHpSubmit: (value: string) => void;
+    onMaxHpInputChange: (value: string) => void;
+    onMaxHpEdit: (uid: string, maxHp: number) => void;
+    onMaxHpSubmit: (value: string) => void;
+  }) => (
     <div data-testid="hp-bar">
       <span data-testid="hp-bar-hp">{hp}</span>
       <span data-testid="hp-bar-max-hp">{maxHp}</span>
@@ -69,30 +153,104 @@ vi.mock("../HPBar", () => ({
       <span data-testid="hp-bar-is-editing-max-hp">{String(isEditingMaxHp)}</span>
       <span data-testid="hp-bar-max-hp-input">{maxHpInput}</span>
       <span data-testid="hp-bar-player-uid">{playerUid}</span>
-      <button data-testid="hp-bar-change-hp" onClick={() => onHpChange(50)}>Change HP</button>
-      <button data-testid="hp-bar-change-hp-input" onClick={() => onHpInputChange("75")}>Change HP Input</button>
-      <button data-testid="hp-bar-edit-hp" onClick={() => onHpEdit(playerUid, 80)}>Edit HP</button>
-      <button data-testid="hp-bar-submit-hp" onClick={() => onHpSubmit("90")}>Submit HP</button>
-      <button data-testid="hp-bar-change-max-hp-input" onClick={() => onMaxHpInputChange("150")}>Change Max HP Input</button>
-      <button data-testid="hp-bar-edit-max-hp" onClick={() => onMaxHpEdit(playerUid, 120)}>Edit Max HP</button>
-      <button data-testid="hp-bar-submit-max-hp" onClick={() => onMaxHpSubmit("200")}>Submit Max HP</button>
+      <button data-testid="hp-bar-change-hp" onClick={() => onHpChange(50)}>
+        Change HP
+      </button>
+      <button data-testid="hp-bar-change-hp-input" onClick={() => onHpInputChange("75")}>
+        Change HP Input
+      </button>
+      <button data-testid="hp-bar-edit-hp" onClick={() => onHpEdit(playerUid, 80)}>
+        Edit HP
+      </button>
+      <button data-testid="hp-bar-submit-hp" onClick={() => onHpSubmit("90")}>
+        Submit HP
+      </button>
+      <button data-testid="hp-bar-change-max-hp-input" onClick={() => onMaxHpInputChange("150")}>
+        Change Max HP Input
+      </button>
+      <button data-testid="hp-bar-edit-max-hp" onClick={() => onMaxHpEdit(playerUid, 120)}>
+        Edit Max HP
+      </button>
+      <button data-testid="hp-bar-submit-max-hp" onClick={() => onMaxHpSubmit("200")}>
+        Submit Max HP
+      </button>
     </div>
   ),
 }));
 
 vi.mock("../CardControls", () => ({
-  CardControls: ({ isMe, micEnabled, onToggleMic, onOpenSettings }: any) => (
+  CardControls: ({
+    isMe,
+    micEnabled,
+    onToggleMic,
+    onOpenSettings,
+  }: {
+    isMe: boolean;
+    micEnabled: boolean;
+    onToggleMic: () => void;
+    onOpenSettings: () => void;
+  }) => (
     <div data-testid="card-controls">
       <span data-testid="card-controls-is-me">{String(isMe)}</span>
       <span data-testid="card-controls-mic-enabled">{String(micEnabled)}</span>
-      <button data-testid="card-controls-toggle-mic" onClick={onToggleMic}>Toggle Mic</button>
-      <button data-testid="card-controls-open-settings" onClick={onOpenSettings}>Open Settings</button>
+      <button data-testid="card-controls-toggle-mic" onClick={onToggleMic}>
+        Toggle Mic
+      </button>
+      <button data-testid="card-controls-open-settings" onClick={onOpenSettings}>
+        Open Settings
+      </button>
     </div>
   ),
 }));
 
 vi.mock("../PlayerSettingsMenu", () => ({
-  PlayerSettingsMenu: ({ isOpen, onClose, tokenImageInput, tokenImageUrl, onTokenImageInputChange, onTokenImageApply, onTokenImageClear, onDeleteToken, onSavePlayerState, onLoadPlayerState, selectedEffects, onStatusEffectsChange, isDM, onToggleDMMode, tokenLocked, onToggleTokenLock, tokenSize, onTokenSizeChange, onAddCharacter, isCreatingCharacter, characterId, onDeleteCharacter }: any) => (
+  PlayerSettingsMenu: ({
+    isOpen,
+    onClose,
+    tokenImageInput,
+    tokenImageUrl,
+    onTokenImageInputChange,
+    onTokenImageApply,
+    onTokenImageClear,
+    onDeleteToken,
+    onSavePlayerState,
+    onLoadPlayerState,
+    selectedEffects,
+    onStatusEffectsChange,
+    isDM,
+    onToggleDMMode,
+    tokenLocked,
+    onToggleTokenLock,
+    tokenSize,
+    onTokenSizeChange,
+    onAddCharacter,
+    isCreatingCharacter,
+    characterId,
+    onDeleteCharacter,
+  }: {
+    isOpen: boolean;
+    onClose: () => void;
+    tokenImageInput: string;
+    tokenImageUrl?: string;
+    onTokenImageInputChange: (value: string) => void;
+    onTokenImageClear: () => void;
+    onTokenImageApply: (value: string) => void;
+    onSavePlayerState: () => void;
+    onLoadPlayerState: (file: File) => Promise<void>;
+    selectedEffects: string[];
+    onStatusEffectsChange: (effects: string[]) => void;
+    isDM: boolean;
+    onToggleDMMode: (next: boolean) => void;
+    onDeleteToken?: () => void;
+    tokenLocked?: boolean;
+    onToggleTokenLock?: (locked: boolean) => void;
+    tokenSize?: string;
+    onTokenSizeChange?: (size: string) => void;
+    onAddCharacter?: (name: string) => boolean;
+    isCreatingCharacter?: boolean;
+    characterId?: string;
+    onDeleteCharacter?: (characterId: string) => void;
+  }) => (
     <div data-testid="player-settings-menu">
       <span data-testid="settings-is-open">{String(isOpen)}</span>
       <span data-testid="settings-token-image-input">{tokenImageInput}</span>
@@ -103,22 +261,73 @@ vi.mock("../PlayerSettingsMenu", () => ({
       <span data-testid="settings-token-size">{tokenSize}</span>
       <span data-testid="settings-is-creating-character">{String(isCreatingCharacter)}</span>
       <span data-testid="settings-character-id">{characterId}</span>
-      <button data-testid="settings-close" onClick={onClose}>Close</button>
-      <button data-testid="settings-change-token-input" onClick={() => onTokenImageInputChange("new-image.png")}>Change Token Input</button>
-      <button data-testid="settings-apply-token" onClick={() => onTokenImageApply(tokenImageInput)}>Apply Token</button>
-      <button data-testid="settings-clear-token" onClick={onTokenImageClear}>Clear Token</button>
-      {onDeleteToken && <button data-testid="settings-delete-token" onClick={onDeleteToken}>Delete Token</button>}
-      <button data-testid="settings-save-state" onClick={onSavePlayerState}>Save State</button>
-      <button data-testid="settings-load-state" onClick={() => {
-        const file = new File(['{"name":"Test"}'], "test.json", { type: "application/json" });
-        onLoadPlayerState(file);
-      }}>Load State</button>
-      <button data-testid="settings-change-effects" onClick={() => onStatusEffectsChange(["poisoned", "burning"])}>Change Effects</button>
-      <button data-testid="settings-toggle-dm" onClick={() => onToggleDMMode(!isDM)}>Toggle DM</button>
-      {onToggleTokenLock && <button data-testid="settings-toggle-lock" onClick={() => onToggleTokenLock(!tokenLocked)}>Toggle Lock</button>}
-      {onTokenSizeChange && <button data-testid="settings-change-size" onClick={() => onTokenSizeChange("large")}>Change Size</button>}
-      {onAddCharacter && <button data-testid="settings-add-character" onClick={() => onAddCharacter("New Character")}>Add Character</button>}
-      {onDeleteCharacter && <button data-testid="settings-delete-character" onClick={() => onDeleteCharacter(characterId)}>Delete Character</button>}
+      <button data-testid="settings-close" onClick={onClose}>
+        Close
+      </button>
+      <button
+        data-testid="settings-change-token-input"
+        onClick={() => onTokenImageInputChange("new-image.png")}
+      >
+        Change Token Input
+      </button>
+      <button data-testid="settings-apply-token" onClick={() => onTokenImageApply(tokenImageInput)}>
+        Apply Token
+      </button>
+      <button data-testid="settings-clear-token" onClick={onTokenImageClear}>
+        Clear Token
+      </button>
+      {onDeleteToken && (
+        <button data-testid="settings-delete-token" onClick={onDeleteToken}>
+          Delete Token
+        </button>
+      )}
+      <button data-testid="settings-save-state" onClick={onSavePlayerState}>
+        Save State
+      </button>
+      <button
+        data-testid="settings-load-state"
+        onClick={() => {
+          const file = new File(['{"name":"Test"}'], "test.json", { type: "application/json" });
+          onLoadPlayerState(file);
+        }}
+      >
+        Load State
+      </button>
+      <button
+        data-testid="settings-change-effects"
+        onClick={() => onStatusEffectsChange(["poisoned", "burning"])}
+      >
+        Change Effects
+      </button>
+      <button data-testid="settings-toggle-dm" onClick={() => onToggleDMMode(!isDM)}>
+        Toggle DM
+      </button>
+      {onToggleTokenLock && (
+        <button data-testid="settings-toggle-lock" onClick={() => onToggleTokenLock(!tokenLocked)}>
+          Toggle Lock
+        </button>
+      )}
+      {onTokenSizeChange && (
+        <button data-testid="settings-change-size" onClick={() => onTokenSizeChange("large")}>
+          Change Size
+        </button>
+      )}
+      {onAddCharacter && (
+        <button
+          data-testid="settings-add-character"
+          onClick={() => onAddCharacter("New Character")}
+        >
+          Add Character
+        </button>
+      )}
+      {onDeleteCharacter && (
+        <button
+          data-testid="settings-delete-character"
+          onClick={() => onDeleteCharacter(characterId)}
+        >
+          Delete Character
+        </button>
+      )}
     </div>
   ),
 }));
@@ -160,7 +369,9 @@ const createMockToken = (overrides?: Partial<Token>): Token => ({
   ...overrides,
 });
 
-const createMockSceneObject = (overrides?: Partial<SceneObject & { type: "token" }>): SceneObject & { type: "token" } => ({
+const createMockSceneObject = (
+  overrides?: Partial<SceneObject & { type: "token" }>,
+): SceneObject & { type: "token" } => ({
   id: "scene-1",
   type: "token" as const,
   transform: {
@@ -176,7 +387,10 @@ const createMockSceneObject = (overrides?: Partial<SceneObject & { type: "token"
 const createMockDrawing = (overrides?: Partial<Drawing>): Drawing => ({
   id: "drawing-1",
   type: "freehand",
-  points: [{ x: 0, y: 0 }, { x: 10, y: 10 }],
+  points: [
+    { x: 0, y: 0 },
+    { x: 10, y: 10 },
+  ],
   color: "#000000",
   width: 2,
   opacity: 1,
@@ -544,7 +758,9 @@ describe("PlayerCard", () => {
       });
       render(<PlayerCard {...props} />);
 
-      expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent("initial-token.png");
+      expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent(
+        "initial-token.png",
+      );
     });
 
     it("updates tokenImageInput when tokenImageUrl prop changes", () => {
@@ -553,14 +769,18 @@ describe("PlayerCard", () => {
       });
       const { rerender } = render(<PlayerCard {...props} />);
 
-      expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent("initial-token.png");
+      expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent(
+        "initial-token.png",
+      );
 
       const updatedProps = createDefaultProps({
         tokenImageUrl: "updated-token.png",
       });
       rerender(<PlayerCard {...updatedProps} />);
 
-      expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent("updated-token.png");
+      expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent(
+        "updated-token.png",
+      );
     });
 
     it("defaults tokenImageInput to empty string when tokenImageUrl is undefined", () => {
@@ -578,7 +798,9 @@ describe("PlayerCard", () => {
       });
       const { rerender } = render(<PlayerCard {...props} />);
 
-      expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent("initial-token.png");
+      expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent(
+        "initial-token.png",
+      );
 
       const updatedProps = createDefaultProps({
         tokenImageUrl: undefined,
@@ -799,7 +1021,7 @@ describe("PlayerCard", () => {
           token: expect.objectContaining({
             imageUrl: "fallback.png",
           }),
-        })
+        }),
       );
     });
 
@@ -822,7 +1044,7 @@ describe("PlayerCard", () => {
           token: expect.objectContaining({
             imageUrl: "token-image.png",
           }),
-        })
+        }),
       );
     });
 
@@ -842,7 +1064,7 @@ describe("PlayerCard", () => {
       expect(savePlayerState).toHaveBeenCalledWith(
         expect.objectContaining({
           token: undefined,
-        })
+        }),
       );
     });
 
@@ -862,7 +1084,7 @@ describe("PlayerCard", () => {
       expect(savePlayerState).toHaveBeenCalledWith(
         expect.objectContaining({
           token: undefined,
-        })
+        }),
       );
     });
 
@@ -882,7 +1104,7 @@ describe("PlayerCard", () => {
       expect(savePlayerState).toHaveBeenCalledWith(
         expect.objectContaining({
           drawings: [],
-        })
+        }),
       );
     });
 
@@ -902,7 +1124,7 @@ describe("PlayerCard", () => {
       expect(savePlayerState).toHaveBeenCalledWith(
         expect.objectContaining({
           initiativeModifier: 5,
-        })
+        }),
       );
     });
 
@@ -922,7 +1144,7 @@ describe("PlayerCard", () => {
       expect(savePlayerState).toHaveBeenCalledWith(
         expect.objectContaining({
           initiativeModifier: undefined,
-        })
+        }),
       );
     });
   });
@@ -949,7 +1171,7 @@ describe("PlayerCard", () => {
       fireEvent.click(loadButton);
 
       // Wait a bit to ensure no async calls happen
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       expect(loadPlayerState).not.toHaveBeenCalled();
       expect(onApplyPlayerState).not.toHaveBeenCalled();
@@ -966,7 +1188,7 @@ describe("PlayerCard", () => {
       fireEvent.click(loadButton);
 
       // Wait a bit to ensure no async calls happen
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       expect(loadPlayerState).not.toHaveBeenCalled();
     });
@@ -1047,7 +1269,9 @@ describe("PlayerCard", () => {
       fireEvent.click(loadButton);
 
       await vi.waitFor(() => {
-        expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent("token-from-state.png");
+        expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent(
+          "token-from-state.png",
+        );
       });
     });
 
@@ -1072,7 +1296,9 @@ describe("PlayerCard", () => {
       fireEvent.click(loadButton);
 
       await vi.waitFor(() => {
-        expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent("fallback-token.png");
+        expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent(
+          "fallback-token.png",
+        );
       });
     });
 
