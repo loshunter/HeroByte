@@ -47,7 +47,7 @@ vi.mock("../../../../components/ui/JRPGPanel", () => ({
     variant?: string;
   }) => (
     <button
-      onClick={(e) => {
+      onClick={(_e) => {
         // Allow tests to fire onClick even when disabled
         // This enables testing defensive code paths
         if (onClick) onClick();

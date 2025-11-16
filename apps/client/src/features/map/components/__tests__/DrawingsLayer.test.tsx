@@ -940,7 +940,7 @@ describe("DrawingsLayer", () => {
     it("should call onTransformDrawing on drag end", () => {
       const drawing = createDrawingObject();
 
-      const { container } = render(
+      render(
         <DrawingsLayer
           {...defaultProps}
           drawingObjects={[drawing]}

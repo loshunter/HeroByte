@@ -12,7 +12,7 @@
 // Coverage: 475 LOC → 100%
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { TokensLayer } from "../TokensLayer";
 import type { SceneObject } from "@shared";
 import type { Camera } from "../../types";

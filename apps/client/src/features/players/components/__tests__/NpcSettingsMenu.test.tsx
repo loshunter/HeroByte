@@ -23,6 +23,19 @@ vi.mock("react-dom", () => ({
 }));
 
 // Mock DraggableWindow component
+interface MockDraggableWindowProps {
+  title: string;
+  onClose?: () => void;
+  children: React.ReactNode;
+  initialX?: number;
+  initialY?: number;
+  width?: number;
+  minWidth?: number;
+  maxWidth?: number;
+  storageKey?: string;
+  zIndex?: number;
+}
+
 vi.mock("../../../../components/dice/DraggableWindow", () => ({
   DraggableWindow: ({
     title,
@@ -35,7 +48,7 @@ vi.mock("../../../../components/dice/DraggableWindow", () => ({
     maxWidth,
     storageKey,
     zIndex,
-  }: any) => (
+  }: MockDraggableWindowProps) => (
     <div data-testid="draggable-window">
       <div data-testid="draggable-window-title">{title}</div>
       <div data-testid="draggable-window-props">
@@ -1151,7 +1164,7 @@ describe("NpcSettingsMenu", () => {
     });
 
     it("handles tokenImageUrl as null", () => {
-      const props = createProps({ tokenImageUrl: null as any });
+      const props = createProps({ tokenImageUrl: null as never });
       render(<NpcSettingsMenu {...props} />);
 
       expect(screen.queryByAltText("Token preview")).not.toBeInTheDocument();

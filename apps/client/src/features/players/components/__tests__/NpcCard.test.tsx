@@ -835,7 +835,7 @@ describe("NpcCard", () => {
         onUpdate,
         character: createMockCharacter({ hp: 50, maxHp: 100 }),
       });
-      const { rerender } = render(<NpcCard {...props} />);
+      render(<NpcCard {...props} />);
 
       // Simulate entering edit mode and submitting negative value
       // The validation logic in handleHpSubmit should reject it
