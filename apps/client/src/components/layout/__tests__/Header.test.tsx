@@ -450,7 +450,7 @@ describe("Header", () => {
         // Reset mocks for next iteration
         Object.values(props).forEach((val) => {
           if (typeof val === "function" && "mockClear" in val) {
-            (val as any).mockClear();
+            (val as { mockClear: () => void }).mockClear();
           }
         });
       });
