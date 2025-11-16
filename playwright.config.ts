@@ -11,7 +11,7 @@ export default defineConfig({
   expect: {
     timeout: 10_000,
   },
-  fullyParallel: false, // Disable parallel execution to avoid room state conflicts
+  fullyParallel: true, // Enable parallel execution with worker-isolated state files
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"], ["html", { open: "never" }]],
@@ -25,12 +25,19 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: "pnpm dev",
+      // Use production build for faster startup (no watch processes)
+      command: "pnpm build && pnpm --filter vtt-server start:e2e",
       port: PORT,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
       stdout: "pipe",
       stderr: "pipe",
+      // Set worker-specific state file to avoid conflicts in parallel execution
+      env: {
+        ROOM_STATE_FILE: process.env.PLAYWRIGHT_WORKER_INDEX
+          ? `herobyte-state.worker-${process.env.PLAYWRIGHT_WORKER_INDEX}.json`
+          : "herobyte-state.json",
+      },
     },
   ],
   projects: [

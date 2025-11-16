@@ -33,6 +33,10 @@ export class RoomService {
     this.transformHandler = new TransformHandler();
     this.lockingHandler = new LockingHandler();
     this.stagingManager = new StagingZoneManager(this.state, () => this.rebuildSceneGraph());
+
+    // Support custom state file path via ROOM_STATE_FILE env var for parallel E2E tests
+    const stateFilePath = process.env.ROOM_STATE_FILE;
+
     this.persistence = new StatePersistence(
       () => this.state,
       (newState) => {
@@ -40,6 +44,7 @@ export class RoomService {
       },
       this.stagingManager,
       () => this.rebuildSceneGraph(),
+      stateFilePath, // Pass custom path if provided
     );
     this.rebuildSceneGraph();
   }

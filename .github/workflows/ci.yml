@@ -99,6 +99,10 @@ jobs:
         run: ${{ matrix.test-command }}
         env:
           NODE_OPTIONS: ${{ matrix.node-options || '' }}
+          # Batched test runner settings (auto-detects CI, these are explicit overrides)
+          CLIENT_TEST_CHUNK_SIZE: 10
+          CLIENT_TEST_CONCURRENCY: 4
+          # Coverage-specific batching settings
           CLIENT_COVERAGE_CHUNK_SIZE: 10
           CLIENT_COVERAGE_CONCURRENCY: 4
 

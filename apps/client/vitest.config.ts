@@ -11,7 +11,12 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: "./vitest.setup.ts",
     globals: true,
-    pool: "forks",
+    pool: "threads",
+    poolMatchGlobs: [
+      // Use forks only for tests that need true isolation (WebRTC, konva state, etc.)
+      ["**/__tests__/**/webrtc*.test.{ts,tsx}", "forks"],
+      ["**/__tests__/**/MapBoard*.test.{ts,tsx}", "forks"],
+    ],
     silent: shouldSilenceConsoleOutput,
     coverage: {
       provider: "istanbul",
