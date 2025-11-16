@@ -226,6 +226,9 @@ HeroByte maintains **100% automated testing** with comprehensive coverage across
 # Run all tests (352 total, ~3 minutes)
 pnpm test
 
+# Run tests in parallel across workspaces (2x faster, requires ~4GB+ RAM)
+pnpm test:parallel
+
 # Run E2E tests only (10 tests, ~46 seconds)
 pnpm test:e2e
 
@@ -236,6 +239,131 @@ pnpm test:coverage
 pnpm test:shared    # Domain models
 pnpm test:server    # Server logic
 pnpm test:client    # Client features
+```
+
+### Testing Architecture
+
+HeroByte implements a **3-tier test optimization strategy** that maintains 100% coverage while reducing runtime by 70-80% through intelligent batching, suite optimizations, and parallel execution.
+
+#### Tier 1: CI Matrix Batching
+
+Parallel test execution with intelligent workload distribution:
+
+- **CPU-aware chunking** via `run-vitest-coverage.mjs`
+- **Heavy file separation** for characterization tests
+- **Dynamic batch sizing** controlled by environment variables:
+  - `CLIENT_COVERAGE_CHUNK_SIZE` - Tests per batch (default: CPU-aware)
+  - `CLIENT_COVERAGE_CONCURRENCY` - Parallel batch limit
+  - `VITEST_SILENT` - Suppress console noise in CI
+- **Coverage merging** via Istanbul for unified reports
+
+Used in CI to distribute tests across matrix jobs efficiently.
+
+#### Tier 2: Suite-Level Optimizations
+
+Test suite patterns that reduce execution time while maintaining coverage:
+
+**Pattern: Data-Driven Tests with describe.each**
+
+```typescript
+describe.each([
+  { modifier: 3, display: "+3", color: "var(--jrpg-green)" },
+  { modifier: -2, display: "-2", color: "var(--jrpg-red)" },
+  { modifier: 0, display: "+0", color: "var(--jrpg-green)" },
+])("Modifier display - $modifier", ({ modifier, display, color }) => {
+  it(`should display ${display} with correct color`, () => {
+    const character = createMockCharacter({ initiativeModifier: modifier });
+    renderModal({ character });
+
+    const modifierDisplay = screen.getByText(display);
+    expect(modifierDisplay).toHaveStyle({ color });
+  });
+});
+```
+
+**Pattern: Factory Builders**
+
+```typescript
+// Reusable factory pattern for test data
+function createMockCharacter(overrides = {}) {
+  return {
+    id: "char-1",
+    name: "Test Character",
+    maxHp: 10,
+    currentHp: 10,
+    initiativeModifier: 2,
+    ...overrides,
+  };
+}
+
+// Shared render helper reduces boilerplate
+function renderModal(overrides = {}) {
+  const props = createDefaultProps(overrides);
+  const result = render(<InitiativeModal {...props} />);
+  return { ...result, props };
+}
+```
+
+**Pattern: Fake Timers for Time-Dependent Tests**
+
+```typescript
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+
+afterEach(() => {
+  vi.runOnlyPendingTimers();
+  vi.useRealTimers();
+});
+
+it("should auto-dismiss after 3000ms", () => {
+  renderToast();
+  vi.advanceTimersByTime(3000);
+  expect(onDismiss).toHaveBeenCalled();
+});
+```
+
+**Results:** Reduced test count from ~150 to ~40 in optimized suites while maintaining 100% coverage.
+
+#### Tier 3: Parallel Opt-In
+
+Fork-based parallelism for local development:
+
+- **Config:** `pool: "forks"` in `vitest.config.ts`
+- **Isolation:** Each test file runs in separate process
+- **Safety:** WSL-compatible when adequate RAM available
+
+Enable via `pnpm test:parallel` (requires ~4GB+ RAM).
+
+### Test Utilities
+
+**SnapshotBuilder** (`/apps/client/src/test-utils/SnapshotBuilder.ts`)
+
+Fluent API for building test room snapshots:
+
+```typescript
+const snapshot = new SnapshotBuilder()
+  .withGridSize(60)
+  .withCharacter({ id: "char-1", name: "Gandalf" })
+  .withToken({ id: "token-1", characterId: "char-1", x: 10, y: 10 })
+  .build();
+```
+
+### WSL Testing Notes
+
+Running tests on Windows Subsystem for Linux:
+
+- **Default mode** (`pnpm test`): Safe for all environments, sequential execution
+- **Parallel mode** (`pnpm test:parallel`): Requires adequate RAM allocation in `.wslconfig`
+- **CI mode**: Automatically adjusts concurrency based on available CPU cores
+- **Console output**: Silenced in CI via `VITEST_SILENT=true`
+
+**Recommended `.wslconfig` for parallel tests:**
+
+```ini
+[wsl2]
+memory=8GB
+processors=4
 ```
 
 <details>

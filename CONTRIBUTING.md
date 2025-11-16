@@ -177,13 +177,46 @@ This guardrail ensures the codebase remains maintainable and prevents technical 
 
 ## Testing Expectations
 
-- Unit tests: use Vitest. Place files alongside source (`*.test.ts` / `*.test.tsx`).
-- Shared package: aim for >80% coverage on domain models/types.
-- Server package: add tests for middleware, domain services, and websocket logic when touched.
-- End-to-end (Playwright/Cypress) tests are optional today but welcome.
-- Include coverage if your change touches critical code paths (`pnpm test:coverage`).
+HeroByte uses a **3-tier optimization strategy** to maintain 100% coverage while keeping test execution fast and efficient, especially on resource-constrained environments like WSL.
 
-When submitting your PR, document the exact commands you ran (e.g. `pnpm lint && pnpm test`).
+### Quick Commands
+
+```bash
+# Run all tests sequentially (safe for WSL/low-memory systems)
+pnpm test
+
+# Run tests in parallel across workspaces (2x faster, requires ~4GB+ RAM)
+pnpm test:parallel
+
+# Run tests with coverage reports
+pnpm test:coverage
+```
+
+### WSL Considerations
+
+If running on Windows Subsystem for Linux (WSL):
+
+- **Recommended:** Use `pnpm test` for stability
+- **Parallel mode:** Available via `pnpm test:parallel` but requires adequate RAM
+- **CI environment:** Tests automatically optimize for available CPU cores
+
+### Writing Tests
+
+- **Location:** Place test files alongside source code (`*.test.ts`, `*.test.tsx`)
+- **Coverage target:** Aim for >80% coverage on critical paths (domain models, business logic)
+- **Test utilities:** Use helpers from `/apps/client/src/test-utils/` (see Testing Architecture in README)
+- **Optimization patterns:** Follow describe.each patterns for data-driven tests (reduces test count by 70-80%)
+
+### Before Submitting PRs
+
+1. Run `pnpm test` locally to verify all tests pass
+2. Run `pnpm lint` to check code style
+3. Document test commands used in your PR description
+4. Include coverage reports if touching critical code paths
+
+For detailed testing patterns and architecture, see the [Testing Architecture](README.md#testing-architecture) section in README.md.
+
+**Test Quality Standards:** Follow the [Test Quality Guidelines](docs/TEST_QUALITY_GUIDELINES.md) to maintain test performance and prevent regression.
 
 ---
 
