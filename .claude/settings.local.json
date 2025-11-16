@@ -181,7 +181,10 @@
       "Bash(pnpm vitest run:*)",
       "Bash(__NEW_LINE__ echo \"=== TEST TYPE ANALYSIS ===\" echo \"\" echo \"Characterization tests (marked with .characterization):\" find /home/loshunter/HeroByte -name \"*.characterization.test.*\" -o -name \"*.characterization.spec.*\")",
       "Bash(cloc:*)",
-      "Bash(pnpm --filter vtt-server build:*)"
+      "Bash(pnpm --filter vtt-server build:*)",
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=8192\" npm test:*)",
+      "Bash(done)",
+      "Bash(pnpm vitest:*)"
     ],
     "deny": [],
     "ask": []
