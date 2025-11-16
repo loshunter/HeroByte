@@ -66,6 +66,8 @@ jobs:
 
       - name: Run client tests with coverage
         run: pnpm test:client:coverage
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
