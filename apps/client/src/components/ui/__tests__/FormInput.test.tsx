@@ -17,7 +17,7 @@
  */
 
 import React from "react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { FormInput } from "../FormInput";
 
@@ -32,9 +32,7 @@ describe("FormInput - Initial State", () => {
 
     it("should render label as a label element", () => {
       const onChange = vi.fn();
-      const { container } = render(
-        <FormInput label="Test Label" value="" onChange={onChange} />,
-      );
+      const { container } = render(<FormInput label="Test Label" value="" onChange={onChange} />);
 
       const labelElement = container.querySelector("label");
       expect(labelElement).toBeInTheDocument();
@@ -58,28 +56,14 @@ describe("FormInput - Initial State", () => {
 
     it("should render with initial number value", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="Age"
-          type="number"
-          value={25}
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="Age" type="number" value={25} onChange={onChange} />);
 
       expect(screen.getByDisplayValue("25")).toBeInTheDocument();
     });
 
     it("should render with zero value", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="Count"
-          type="number"
-          value={0}
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="Count" type="number" value={0} onChange={onChange} />);
 
       expect(screen.getByDisplayValue("0")).toBeInTheDocument();
     });
@@ -130,9 +114,7 @@ describe("FormInput - Initial State", () => {
 
     it("should apply jrpg-text-small class to label", () => {
       const onChange = vi.fn();
-      const { container } = render(
-        <FormInput label="Test" value="" onChange={onChange} />,
-      );
+      const { container } = render(<FormInput label="Test" value="" onChange={onChange} />);
 
       const label = container.querySelector("label");
       expect(label).toHaveClass("jrpg-text-small");
@@ -140,9 +122,7 @@ describe("FormInput - Initial State", () => {
 
     it("should apply flex layout to label", () => {
       const onChange = vi.fn();
-      const { container } = render(
-        <FormInput label="Test" value="" onChange={onChange} />,
-      );
+      const { container } = render(<FormInput label="Test" value="" onChange={onChange} />);
 
       const label = container.querySelector("label") as HTMLLabelElement;
       expect(label.style.display).toBe("flex");
@@ -260,9 +240,7 @@ describe("FormInput - Text Input Type", () => {
 
     it("should use 4px padding for text type explicitly specified", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput label="Name" type="text" value="" onChange={onChange} />,
-      );
+      render(<FormInput label="Name" type="text" value="" onChange={onChange} />);
 
       const input = screen.getByDisplayValue("") as HTMLInputElement;
       expect(input.style.padding).toBe("4px");
@@ -274,14 +252,7 @@ describe("FormInput - Number Input Type", () => {
   describe("onChange with number parsing", () => {
     it("should call onChange with parsed integer", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="HP"
-          type="number"
-          value={0}
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="HP" type="number" value={0} onChange={onChange} />);
 
       const input = screen.getByDisplayValue("0");
       fireEvent.change(input, { target: { value: "42" } });
@@ -292,14 +263,7 @@ describe("FormInput - Number Input Type", () => {
 
     it("should parse string to integer using parseInt", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="Level"
-          type="number"
-          value={1}
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="Level" type="number" value={1} onChange={onChange} />);
 
       const input = screen.getByDisplayValue("1");
       fireEvent.change(input, { target: { value: "99" } });
@@ -309,14 +273,7 @@ describe("FormInput - Number Input Type", () => {
 
     it("should call onChange with integer for each change", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="Count"
-          type="number"
-          value={0}
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="Count" type="number" value={0} onChange={onChange} />);
 
       const input = screen.getByDisplayValue("0");
       fireEvent.change(input, { target: { value: "5" } });
@@ -331,14 +288,7 @@ describe("FormInput - Number Input Type", () => {
   describe("NaN handling", () => {
     it("should convert NaN to 0", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="HP"
-          type="number"
-          value={10}
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="HP" type="number" value={10} onChange={onChange} />);
 
       const input = screen.getByDisplayValue("10");
       fireEvent.change(input, { target: { value: "" } });
@@ -348,14 +298,7 @@ describe("FormInput - Number Input Type", () => {
 
     it("should convert invalid string to 0", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="HP"
-          type="number"
-          value={10}
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="HP" type="number" value={10} onChange={onChange} />);
 
       const input = screen.getByDisplayValue("10");
       fireEvent.change(input, { target: { value: "abc" } });
@@ -365,14 +308,7 @@ describe("FormInput - Number Input Type", () => {
 
     it("should convert non-numeric string to 0", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="HP"
-          type="number"
-          value={10}
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="HP" type="number" value={10} onChange={onChange} />);
 
       const input = screen.getByDisplayValue("10");
       fireEvent.change(input, { target: { value: "not a number" } });
@@ -382,14 +318,7 @@ describe("FormInput - Number Input Type", () => {
 
     it("should handle special characters as NaN → 0", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="HP"
-          type="number"
-          value={10}
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="HP" type="number" value={10} onChange={onChange} />);
 
       const input = screen.getByDisplayValue("10");
       fireEvent.change(input, { target: { value: "!@#$" } });
@@ -401,14 +330,7 @@ describe("FormInput - Number Input Type", () => {
   describe("negative number handling", () => {
     it("should handle negative numbers", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="Temp"
-          type="number"
-          value={0}
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="Temp" type="number" value={0} onChange={onChange} />);
 
       const input = screen.getByDisplayValue("0");
       fireEvent.change(input, { target: { value: "-5" } });
@@ -418,14 +340,7 @@ describe("FormInput - Number Input Type", () => {
 
     it("should parse negative string to negative integer", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="Delta"
-          type="number"
-          value={0}
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="Delta" type="number" value={0} onChange={onChange} />);
 
       const input = screen.getByDisplayValue("0");
       fireEvent.change(input, { target: { value: "-100" } });
@@ -435,14 +350,7 @@ describe("FormInput - Number Input Type", () => {
 
     it("should handle large negative numbers", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="Value"
-          type="number"
-          value={0}
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="Value" type="number" value={0} onChange={onChange} />);
 
       const input = screen.getByDisplayValue("0");
       fireEvent.change(input, { target: { value: "-9999" } });
@@ -454,14 +362,7 @@ describe("FormInput - Number Input Type", () => {
   describe("decimal string handling (parseInt behavior)", () => {
     it("should truncate decimal strings using parseInt", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="HP"
-          type="number"
-          value={0}
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="HP" type="number" value={0} onChange={onChange} />);
 
       const input = screen.getByDisplayValue("0");
       fireEvent.change(input, { target: { value: "42.7" } });
@@ -471,14 +372,7 @@ describe("FormInput - Number Input Type", () => {
 
     it("should handle decimal with parseInt truncation", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="Value"
-          type="number"
-          value={0}
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="Value" type="number" value={0} onChange={onChange} />);
 
       const input = screen.getByDisplayValue("0");
       fireEvent.change(input, { target: { value: "99.999" } });
@@ -488,14 +382,7 @@ describe("FormInput - Number Input Type", () => {
 
     it("should handle negative decimal with parseInt truncation", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="Value"
-          type="number"
-          value={0}
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="Value" type="number" value={0} onChange={onChange} />);
 
       const input = screen.getByDisplayValue("0");
       fireEvent.change(input, { target: { value: "-5.8" } });
@@ -505,14 +392,7 @@ describe("FormInput - Number Input Type", () => {
 
     it("should handle decimal-only string (e.g., '.5') as NaN → 0", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="Value"
-          type="number"
-          value={10}
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="Value" type="number" value={10} onChange={onChange} />);
 
       const input = screen.getByDisplayValue("10");
       fireEvent.change(input, { target: { value: ".5" } });
@@ -524,15 +404,7 @@ describe("FormInput - Number Input Type", () => {
   describe("min, max, step attributes", () => {
     it("should render with min attribute", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="HP"
-          type="number"
-          value={10}
-          onChange={onChange}
-          min={0}
-        />,
-      );
+      render(<FormInput label="HP" type="number" value={10} onChange={onChange} min={0} />);
 
       const input = screen.getByDisplayValue("10") as HTMLInputElement;
       expect(input.min).toBe("0");
@@ -540,15 +412,7 @@ describe("FormInput - Number Input Type", () => {
 
     it("should render with max attribute", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="HP"
-          type="number"
-          value={50}
-          onChange={onChange}
-          max={100}
-        />,
-      );
+      render(<FormInput label="HP" type="number" value={50} onChange={onChange} max={100} />);
 
       const input = screen.getByDisplayValue("50") as HTMLInputElement;
       expect(input.max).toBe("100");
@@ -556,15 +420,7 @@ describe("FormInput - Number Input Type", () => {
 
     it("should render with step attribute", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="Value"
-          type="number"
-          value={0}
-          onChange={onChange}
-          step={5}
-        />,
-      );
+      render(<FormInput label="Value" type="number" value={0} onChange={onChange} step={5} />);
 
       const input = screen.getByDisplayValue("0") as HTMLInputElement;
       expect(input.step).toBe("5");
@@ -592,14 +448,7 @@ describe("FormInput - Number Input Type", () => {
 
     it("should not render min attribute when not provided", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="HP"
-          type="number"
-          value={10}
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="HP" type="number" value={10} onChange={onChange} />);
 
       const input = screen.getByDisplayValue("10") as HTMLInputElement;
       expect(input.min).toBe("");
@@ -607,14 +456,7 @@ describe("FormInput - Number Input Type", () => {
 
     it("should not render max attribute when not provided", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="HP"
-          type="number"
-          value={10}
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="HP" type="number" value={10} onChange={onChange} />);
 
       const input = screen.getByDisplayValue("10") as HTMLInputElement;
       expect(input.max).toBe("");
@@ -622,14 +464,7 @@ describe("FormInput - Number Input Type", () => {
 
     it("should not render step attribute when not provided", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="HP"
-          type="number"
-          value={10}
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="HP" type="number" value={10} onChange={onChange} />);
 
       const input = screen.getByDisplayValue("10") as HTMLInputElement;
       expect(input.step).toBe("");
@@ -639,14 +474,7 @@ describe("FormInput - Number Input Type", () => {
   describe("padding", () => {
     it("should use 4px padding for number type", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="HP"
-          type="number"
-          value={10}
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="HP" type="number" value={10} onChange={onChange} />);
 
       const input = screen.getByDisplayValue("10") as HTMLInputElement;
       expect(input.style.padding).toBe("4px");
@@ -656,14 +484,7 @@ describe("FormInput - Number Input Type", () => {
   describe("type attribute", () => {
     it("should render with type='number'", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="HP"
-          type="number"
-          value={10}
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="HP" type="number" value={10} onChange={onChange} />);
 
       const input = screen.getByDisplayValue("10") as HTMLInputElement;
       expect(input.type).toBe("number");
@@ -675,14 +496,7 @@ describe("FormInput - Password Input Type", () => {
   describe("type attribute", () => {
     it("should render with type='password'", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="Password"
-          type="password"
-          value=""
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="Password" type="password" value="" onChange={onChange} />);
 
       const input = screen.getByDisplayValue("") as HTMLInputElement;
       expect(input.type).toBe("password");
@@ -692,14 +506,7 @@ describe("FormInput - Password Input Type", () => {
   describe("onChange behavior", () => {
     it("should call onChange with string value", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="Password"
-          type="password"
-          value=""
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="Password" type="password" value="" onChange={onChange} />);
 
       const input = screen.getByDisplayValue("");
       fireEvent.change(input, { target: { value: "secret123" } });
@@ -710,14 +517,7 @@ describe("FormInput - Password Input Type", () => {
 
     it("should handle password changes", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="Password"
-          type="password"
-          value=""
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="Password" type="password" value="" onChange={onChange} />);
 
       const input = screen.getByDisplayValue("");
       fireEvent.change(input, { target: { value: "mypassword" } });
@@ -727,14 +527,7 @@ describe("FormInput - Password Input Type", () => {
 
     it("should handle special characters in password", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="Password"
-          type="password"
-          value=""
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="Password" type="password" value="" onChange={onChange} />);
 
       const input = screen.getByDisplayValue("");
       fireEvent.change(input, { target: { value: "P@ssw0rd!#$" } });
@@ -746,14 +539,7 @@ describe("FormInput - Password Input Type", () => {
   describe("padding (different from text/number)", () => {
     it("should use 6px padding for password type", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="Password"
-          type="password"
-          value=""
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="Password" type="password" value="" onChange={onChange} />);
 
       const input = screen.getByDisplayValue("") as HTMLInputElement;
       expect(input.style.padding).toBe("6px");
@@ -764,22 +550,12 @@ describe("FormInput - Password Input Type", () => {
 
       // Render password input
       const { container: passwordContainer } = render(
-        <FormInput
-          label="Password"
-          type="password"
-          value=""
-          onChange={onChange}
-        />,
+        <FormInput label="Password" type="password" value="" onChange={onChange} />,
       );
 
       // Render text input
       const { container: textContainer } = render(
-        <FormInput
-          label="Text"
-          type="text"
-          value=""
-          onChange={onChange}
-        />,
+        <FormInput label="Text" type="text" value="" onChange={onChange} />,
       );
 
       const passwordInput = passwordContainer.querySelector("input") as HTMLInputElement;
@@ -793,14 +569,7 @@ describe("FormInput - Password Input Type", () => {
   describe("visual masking", () => {
     it("should mask input visually with password type", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="Password"
-          type="password"
-          value="secret"
-          onChange={onChange}
-        />,
-      );
+      render(<FormInput label="Password" type="password" value="secret" onChange={onChange} />);
 
       const input = screen.getByDisplayValue("secret") as HTMLInputElement;
       // Type attribute is "password" which browsers render as masked
@@ -814,14 +583,7 @@ describe("FormInput - Blur Handling", () => {
     it("should call onBlur when input loses focus", () => {
       const onChange = vi.fn();
       const onBlur = vi.fn();
-      render(
-        <FormInput
-          label="Name"
-          value=""
-          onChange={onChange}
-          onBlur={onBlur}
-        />,
-      );
+      render(<FormInput label="Name" value="" onChange={onChange} onBlur={onBlur} />);
 
       const input = screen.getByDisplayValue("");
       fireEvent.blur(input);
@@ -832,14 +594,7 @@ describe("FormInput - Blur Handling", () => {
     it("should call onBlur without arguments", () => {
       const onChange = vi.fn();
       const onBlur = vi.fn();
-      render(
-        <FormInput
-          label="Name"
-          value=""
-          onChange={onChange}
-          onBlur={onBlur}
-        />,
-      );
+      render(<FormInput label="Name" value="" onChange={onChange} onBlur={onBlur} />);
 
       const input = screen.getByDisplayValue("");
       fireEvent.blur(input);
@@ -850,14 +605,7 @@ describe("FormInput - Blur Handling", () => {
     it("should call onBlur multiple times for multiple blurs", () => {
       const onChange = vi.fn();
       const onBlur = vi.fn();
-      render(
-        <FormInput
-          label="Name"
-          value=""
-          onChange={onChange}
-          onBlur={onBlur}
-        />,
-      );
+      render(<FormInput label="Name" value="" onChange={onChange} onBlur={onBlur} />);
 
       const input = screen.getByDisplayValue("");
       fireEvent.blur(input);
@@ -870,15 +618,7 @@ describe("FormInput - Blur Handling", () => {
     it("should call onBlur for number input", () => {
       const onChange = vi.fn();
       const onBlur = vi.fn();
-      render(
-        <FormInput
-          label="HP"
-          type="number"
-          value={10}
-          onChange={onChange}
-          onBlur={onBlur}
-        />,
-      );
+      render(<FormInput label="HP" type="number" value={10} onChange={onChange} onBlur={onBlur} />);
 
       const input = screen.getByDisplayValue("10");
       fireEvent.blur(input);
@@ -890,13 +630,7 @@ describe("FormInput - Blur Handling", () => {
       const onChange = vi.fn();
       const onBlur = vi.fn();
       render(
-        <FormInput
-          label="Password"
-          type="password"
-          value=""
-          onChange={onChange}
-          onBlur={onBlur}
-        />,
+        <FormInput label="Password" type="password" value="" onChange={onChange} onBlur={onBlur} />,
       );
 
       const input = screen.getByDisplayValue("");
@@ -936,14 +670,7 @@ describe("FormInput - Blur Handling", () => {
       onChange.mockImplementation(() => callOrder.push("onChange"));
       onBlur.mockImplementation(() => callOrder.push("onBlur"));
 
-      render(
-        <FormInput
-          label="Name"
-          value=""
-          onChange={onChange}
-          onBlur={onBlur}
-        />,
-      );
+      render(<FormInput label="Name" value="" onChange={onChange} onBlur={onBlur} />);
 
       const input = screen.getByDisplayValue("");
       fireEvent.change(input, { target: { value: "test" } });
@@ -955,15 +682,7 @@ describe("FormInput - Blur Handling", () => {
     it("should call both onChange and onBlur in sequence", () => {
       const onChange = vi.fn();
       const onBlur = vi.fn();
-      render(
-        <FormInput
-          label="HP"
-          type="number"
-          value={0}
-          onChange={onChange}
-          onBlur={onBlur}
-        />,
-      );
+      render(<FormInput label="HP" type="number" value={0} onChange={onChange} onBlur={onBlur} />);
 
       const input = screen.getByDisplayValue("0");
       fireEvent.change(input, { target: { value: "50" } });
@@ -976,14 +695,7 @@ describe("FormInput - Blur Handling", () => {
     it("should call onBlur independently of onChange", () => {
       const onChange = vi.fn();
       const onBlur = vi.fn();
-      render(
-        <FormInput
-          label="Name"
-          value="initial"
-          onChange={onChange}
-          onBlur={onBlur}
-        />,
-      );
+      render(<FormInput label="Name" value="initial" onChange={onChange} onBlur={onBlur} />);
 
       const input = screen.getByDisplayValue("initial");
       // Blur without changing
@@ -999,14 +711,7 @@ describe("FormInput - Optional Props", () => {
   describe("placeholder", () => {
     it("should render with placeholder", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="Name"
-          value=""
-          onChange={onChange}
-          placeholder="Enter your name"
-        />,
-      );
+      render(<FormInput label="Name" value="" onChange={onChange} placeholder="Enter your name" />);
 
       const input = screen.getByPlaceholderText("Enter your name");
       expect(input).toBeInTheDocument();
@@ -1030,13 +735,7 @@ describe("FormInput - Optional Props", () => {
     it("should render placeholder correctly for number input", () => {
       const onChange = vi.fn();
       render(
-        <FormInput
-          label="HP"
-          type="number"
-          value={0}
-          onChange={onChange}
-          placeholder="Enter HP"
-        />,
+        <FormInput label="HP" type="number" value={0} onChange={onChange} placeholder="Enter HP" />,
       );
 
       expect(screen.getByPlaceholderText("Enter HP")).toBeInTheDocument();
@@ -1059,9 +758,7 @@ describe("FormInput - Optional Props", () => {
 
     it("should not render placeholder when not provided", () => {
       const onChange = vi.fn();
-      const { container } = render(
-        <FormInput label="Name" value="" onChange={onChange} />,
-      );
+      const { container } = render(<FormInput label="Name" value="" onChange={onChange} />);
 
       const input = container.querySelector("input") as HTMLInputElement;
       expect(input.placeholder).toBe("");
@@ -1071,9 +768,7 @@ describe("FormInput - Optional Props", () => {
   describe("disabled state", () => {
     it("should render as disabled when disabled is true", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput label="Name" value="" onChange={onChange} disabled={true} />,
-      );
+      render(<FormInput label="Name" value="" onChange={onChange} disabled={true} />);
 
       const input = screen.getByDisplayValue("") as HTMLInputElement;
       expect(input.disabled).toBe(true);
@@ -1089,9 +784,7 @@ describe("FormInput - Optional Props", () => {
 
     it("should be enabled when disabled is false", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput label="Name" value="" onChange={onChange} disabled={false} />,
-      );
+      render(<FormInput label="Name" value="" onChange={onChange} disabled={false} />);
 
       const input = screen.getByDisplayValue("") as HTMLInputElement;
       expect(input.disabled).toBe(false);
@@ -1101,14 +794,7 @@ describe("FormInput - Optional Props", () => {
   describe("className", () => {
     it("should apply custom className to input", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="Name"
-          value=""
-          onChange={onChange}
-          className="custom-class"
-        />,
-      );
+      render(<FormInput label="Name" value="" onChange={onChange} className="custom-class" />);
 
       const input = screen.getByDisplayValue("");
       expect(input).toHaveClass("custom-class");
@@ -1117,12 +803,7 @@ describe("FormInput - Optional Props", () => {
     it("should apply multiple classes", () => {
       const onChange = vi.fn();
       render(
-        <FormInput
-          label="Name"
-          value=""
-          onChange={onChange}
-          className="class1 class2 class3"
-        />,
+        <FormInput label="Name" value="" onChange={onChange} className="class1 class2 class3" />,
       );
 
       const input = screen.getByDisplayValue("");
@@ -1131,9 +812,7 @@ describe("FormInput - Optional Props", () => {
 
     it("should not apply className when not provided", () => {
       const onChange = vi.fn();
-      const { container } = render(
-        <FormInput label="Name" value="" onChange={onChange} />,
-      );
+      const { container } = render(<FormInput label="Name" value="" onChange={onChange} />);
 
       const input = container.querySelector("input") as HTMLInputElement;
       expect(input.className).toBe("");
@@ -1143,14 +822,7 @@ describe("FormInput - Optional Props", () => {
   describe("style (merged correctly)", () => {
     it("should merge custom styles with default styles", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="Name"
-          value=""
-          onChange={onChange}
-          style={{ fontSize: "16px" }}
-        />,
-      );
+      render(<FormInput label="Name" value="" onChange={onChange} style={{ fontSize: "16px" }} />);
 
       const input = screen.getByDisplayValue("") as HTMLInputElement;
       expect(input.style.fontSize).toBe("16px");
@@ -1161,14 +833,7 @@ describe("FormInput - Optional Props", () => {
 
     it("should override default styles with custom styles", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="Name"
-          value=""
-          onChange={onChange}
-          style={{ background: "red" }}
-        />,
-      );
+      render(<FormInput label="Name" value="" onChange={onChange} style={{ background: "red" }} />);
 
       const input = screen.getByDisplayValue("") as HTMLInputElement;
       // Custom style should override default
@@ -1177,14 +842,7 @@ describe("FormInput - Optional Props", () => {
 
     it("should override default padding with custom style", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="Name"
-          value=""
-          onChange={onChange}
-          style={{ padding: "10px" }}
-        />,
-      );
+      render(<FormInput label="Name" value="" onChange={onChange} style={{ padding: "10px" }} />);
 
       const input = screen.getByDisplayValue("") as HTMLInputElement;
       expect(input.style.padding).toBe("10px");
@@ -1192,14 +850,7 @@ describe("FormInput - Optional Props", () => {
 
     it("should override default width with custom style", () => {
       const onChange = vi.fn();
-      render(
-        <FormInput
-          label="Name"
-          value=""
-          onChange={onChange}
-          style={{ width: "50%" }}
-        />,
-      );
+      render(<FormInput label="Name" value="" onChange={onChange} style={{ width: "50%" }} />);
 
       const input = screen.getByDisplayValue("") as HTMLInputElement;
       expect(input.style.width).toBe("50%");
@@ -1265,9 +916,7 @@ describe("FormInput - React.memo Optimization", () => {
 
     it("should re-render when value prop changes", () => {
       const onChange = vi.fn();
-      const { rerender } = render(
-        <FormInput label="Name" value="initial" onChange={onChange} />,
-      );
+      const { rerender } = render(<FormInput label="Name" value="initial" onChange={onChange} />);
 
       expect(screen.getByDisplayValue("initial")).toBeInTheDocument();
 
@@ -1279,9 +928,7 @@ describe("FormInput - React.memo Optimization", () => {
 
     it("should re-render when label prop changes", () => {
       const onChange = vi.fn();
-      const { rerender } = render(
-        <FormInput label="First Name" value="" onChange={onChange} />,
-      );
+      const { rerender } = render(<FormInput label="First Name" value="" onChange={onChange} />);
 
       expect(screen.getByText("First Name")).toBeInTheDocument();
 
@@ -1300,14 +947,7 @@ describe("FormInput - React.memo Optimization", () => {
       let input = screen.getByDisplayValue("") as HTMLInputElement;
       expect(input.type).toBe("text");
 
-      rerender(
-        <FormInput
-          label="Field"
-          type="password"
-          value=""
-          onChange={onChange}
-        />,
-      );
+      rerender(<FormInput label="Field" type="password" value="" onChange={onChange} />);
 
       input = screen.getByDisplayValue("") as HTMLInputElement;
       expect(input.type).toBe("password");
@@ -1317,9 +957,7 @@ describe("FormInput - React.memo Optimization", () => {
       const onChange1 = vi.fn();
       const onChange2 = vi.fn();
 
-      const { rerender } = render(
-        <FormInput label="Name" value="" onChange={onChange1} />,
-      );
+      const { rerender } = render(<FormInput label="Name" value="" onChange={onChange1} />);
 
       const input = screen.getByDisplayValue("");
       fireEvent.change(input, { target: { value: "test" } });
@@ -1338,9 +976,7 @@ describe("FormInput - React.memo Optimization", () => {
   describe("prop stability", () => {
     it("should work with stable onChange reference", () => {
       const onChange = vi.fn();
-      const { rerender } = render(
-        <FormInput label="Name" value="test1" onChange={onChange} />,
-      );
+      const { rerender } = render(<FormInput label="Name" value="test1" onChange={onChange} />);
 
       // Re-render with same onChange reference
       rerender(<FormInput label="Name" value="test2" onChange={onChange} />);
@@ -1356,23 +992,11 @@ describe("FormInput - React.memo Optimization", () => {
       const onBlur = vi.fn();
 
       const { rerender } = render(
-        <FormInput
-          label="Name"
-          value="test1"
-          onChange={onChange}
-          onBlur={onBlur}
-        />,
+        <FormInput label="Name" value="test1" onChange={onChange} onBlur={onBlur} />,
       );
 
       // Re-render with same onBlur reference
-      rerender(
-        <FormInput
-          label="Name"
-          value="test2"
-          onChange={onChange}
-          onBlur={onBlur}
-        />,
-      );
+      rerender(<FormInput label="Name" value="test2" onChange={onChange} onBlur={onBlur} />);
 
       const input = screen.getByDisplayValue("test2");
       fireEvent.blur(input);
