@@ -22,7 +22,7 @@
 
 import { expect, test } from "@playwright/test";
 import { joinDefaultRoomAsDM } from "./helpers";
-import { SnapshotBuilder } from "../apps/client/src/test-utils";
+import { SnapshotBuilder } from "../client/src/test-utils";
 
 test.describe("Session Load - Smoke Tests", () => {
   test("DM can load session via WebSocket and state updates", async ({ page }) => {
@@ -32,7 +32,7 @@ test.describe("Session Load - Smoke Tests", () => {
     const snapshot = new SnapshotBuilder()
       .withGridSize(60)
       .withCharacter({ id: "char-smoke", name: "Smoke Test Character" })
-      .withToken({ id: "token-smoke", characterId: "char-smoke", x: 10, y: 10 })
+      .withToken({ id: "token-smoke", owner: "dm-1", x: 10, y: 10 })
       .build();
 
     // Send load-session message via WebSocket
