@@ -19,7 +19,9 @@ export default defineConfig({
     ],
     silent: shouldSilenceConsoleOutput,
     coverage: {
-      provider: "istanbul",
+      // Switched to v8 provider for better performance (15-20% faster than istanbul)
+      // No Babel transform overhead, better source maps, lower memory usage
+      provider: "v8",
       reporter: ["text", "json", "lcov"],
       reportsDirectory: "./coverage",
     },

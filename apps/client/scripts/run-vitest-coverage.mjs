@@ -16,8 +16,10 @@ const projectRoot = path.resolve(path.dirname(__filename), "..");
 const coverageDir = path.join(projectRoot, "coverage");
 
 const cpuCount = os.cpus()?.length ?? 4;
-const ciDefaultChunkSize = Math.max(2, Math.floor(cpuCount / 2));
-const localDefaultChunkSize = Math.max(2, cpuCount - 2);
+// Increased chunk size to reduce number of Vitest cold starts
+// With 110 test files: 15 chunks = ~7-8 batches (vs 11 with size 10)
+const ciDefaultChunkSize = 15;
+const localDefaultChunkSize = 20;
 const defaultChunkSize = process.env.CI ? ciDefaultChunkSize : localDefaultChunkSize;
 const chunkSizeInput = Number(process.env.CLIENT_COVERAGE_CHUNK_SIZE ?? defaultChunkSize);
 const chunkSize = Number.isFinite(chunkSizeInput) && chunkSizeInput > 0 ? Math.floor(chunkSizeInput) : defaultChunkSize;
@@ -112,7 +114,8 @@ const baseCoverageArgs = [
   "true",
   "--coverage.reporter",
   "json",
-  "--no-file-parallelism",
+  // Removed --no-file-parallelism to enable intra-batch concurrency
+  // Tests requiring isolation are handled by poolMatchGlobs in vitest.config.ts
   "--reporter",
   "dot",
 ];
