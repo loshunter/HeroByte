@@ -141,6 +141,7 @@ HEROBYTE_ALLOWED_ORIGINS="https://yourdomain.com,https://staging.yourdomain.com"
 - **Persistent State** – Sessions auto-save to disk and restore on server restart
 - **Rate Limiting** – 100 messages/second per client with token bucket algorithm
 - **Session Management** – Heartbeat system prevents client timeouts
+- **Error Resilience** – Error boundary component with graceful error handling and recovery options
 
 ### 🗺️ Interactive Map Canvas
 
@@ -180,20 +181,22 @@ HEROBYTE_ALLOWED_ORIGINS="https://yourdomain.com,https://staging.yourdomain.com"
 
 HeroByte maintains **100% automated testing** with comprehensive coverage across all layers:
 
-### Test Suite Status: ✅ **352/352 Tests Passing**
+### Test Suite Status: ✅ **All Tests Passing**
 
-| Package       | Tests     | Coverage        | Status     |
-| ------------- | --------- | --------------- | ---------- |
-| **Shared**    | 31 tests  | 99.57%          | ✅ Passing |
-| **Server**    | 235 tests | 80.99%          | ✅ Passing |
-| **Client**    | 76 tests  | Unit coverage   | ✅ Passing |
-| **E2E Suite** | 10 tests  | Full user flows | ✅ Passing |
+| Package       | Test Files | Coverage        | Status     |
+| ------------- | ---------- | --------------- | ---------- |
+| **Shared**    | 3 files    | 99.57%          | ✅ Passing |
+| **Server**    | ~50 files  | 80.99%          | ✅ Passing |
+| **Client**    | 110 files  | Comprehensive   | ✅ Passing |
+| **E2E Suite** | 10 tests   | Full user flows | ✅ Passing |
 
 ### Major Testing Achievements
 
+- **Comprehensive Component Coverage** (November 2025) – Added 28,000+ LOC of test coverage across UI components, hooks, and features
 - **Complete E2E Automation** (October 2025) – All critical user flows automated, eliminating 30-60 min manual testing workflows
+- **CI Optimization** – Memory-optimized test execution with 8GB heap allocation and batched test runs
+- **Enhanced Test Infrastructure** – Custom coverage scripts and improved vitest configuration for better reporting
 - **10-20x Efficiency Gain** – Full test suite runs in ~3 minutes vs manual testing
-- **CI/CD Integration** – Automated testing on all PRs via GitHub Actions
 - **Zero Regressions** – Systematic fire-and-forget pattern fixes with no breaking changes
 
 ### What's Tested
