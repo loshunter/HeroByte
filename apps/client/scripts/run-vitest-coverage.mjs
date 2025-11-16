@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import fg from "fast-glob";
@@ -14,8 +15,12 @@ const __filename = fileURLToPath(import.meta.url);
 const projectRoot = path.resolve(path.dirname(__filename), "..");
 const coverageDir = path.join(projectRoot, "coverage");
 
-const chunkSizeInput = Number(process.env.CLIENT_COVERAGE_CHUNK_SIZE ?? 1);
-const chunkSize = Number.isFinite(chunkSizeInput) && chunkSizeInput > 0 ? chunkSizeInput : 1;
+const cpuCount = os.cpus()?.length ?? 4;
+const ciDefaultChunkSize = Math.max(2, Math.floor(cpuCount / 2));
+const localDefaultChunkSize = Math.max(2, cpuCount - 2);
+const defaultChunkSize = process.env.CI ? ciDefaultChunkSize : localDefaultChunkSize;
+const chunkSizeInput = Number(process.env.CLIENT_COVERAGE_CHUNK_SIZE ?? defaultChunkSize);
+const chunkSize = Number.isFinite(chunkSizeInput) && chunkSizeInput > 0 ? Math.floor(chunkSizeInput) : defaultChunkSize;
 
 const globPatterns = ["src/**/*.{test,spec}.{ts,tsx}", "src/**/*.{test,spec}.?(c|m)[jt]s?(x)"];
 const ignorePatterns = ["**/node_modules/**", "**/dist/**"];
@@ -32,6 +37,10 @@ if (allTests.length === 0) {
   console.error("[coverage] No test files found. Aborting.");
   process.exit(1);
 }
+
+console.log(
+  `[coverage] Discovered ${allTests.length} test files. Using batch size ${chunkSize} (override with CLIENT_COVERAGE_CHUNK_SIZE).`,
+);
 
 const toPosix = (p) => p.replace(/\\/g, "/");
 const heavyFiles = allTests.filter((file) => toPosix(file).includes("/characterization/"));
