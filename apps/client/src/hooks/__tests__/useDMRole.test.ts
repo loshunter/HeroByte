@@ -36,9 +36,7 @@ describe("useDMRole - isDM Computation", () => {
         diceRolls: [],
       };
 
-      const { result } = renderHook(() =>
-        useDMRole({ snapshot, uid: testUid, send: mockSend }),
-      );
+      const { result } = renderHook(() => useDMRole({ snapshot, uid: testUid, send: mockSend }));
 
       expect(result.current.isDM).toBe(true);
     });
@@ -55,9 +53,7 @@ describe("useDMRole - isDM Computation", () => {
         diceRolls: [],
       };
 
-      const { result } = renderHook(() =>
-        useDMRole({ snapshot, uid: testUid, send: mockSend }),
-      );
+      const { result } = renderHook(() => useDMRole({ snapshot, uid: testUid, send: mockSend }));
 
       expect(result.current.isDM).toBe(true);
     });
@@ -76,9 +72,7 @@ describe("useDMRole - isDM Computation", () => {
         diceRolls: [],
       };
 
-      const { result } = renderHook(() =>
-        useDMRole({ snapshot, uid: testUid, send: mockSend }),
-      );
+      const { result } = renderHook(() => useDMRole({ snapshot, uid: testUid, send: mockSend }));
 
       expect(result.current.isDM).toBe(false);
     });
@@ -95,9 +89,7 @@ describe("useDMRole - isDM Computation", () => {
         diceRolls: [],
       };
 
-      const { result } = renderHook(() =>
-        useDMRole({ snapshot, uid: testUid, send: mockSend }),
-      );
+      const { result } = renderHook(() => useDMRole({ snapshot, uid: testUid, send: mockSend }));
 
       expect(result.current.isDM).toBe(false);
     });
@@ -126,9 +118,7 @@ describe("useDMRole - isDM Computation", () => {
         diceRolls: [],
       };
 
-      const { result } = renderHook(() =>
-        useDMRole({ snapshot, uid: testUid, send: mockSend }),
-      );
+      const { result } = renderHook(() => useDMRole({ snapshot, uid: testUid, send: mockSend }));
 
       expect(result.current.isDM).toBe(false);
     });
@@ -146,9 +136,7 @@ describe("useDMRole - isDM Computation", () => {
         diceRolls: [],
       } as RoomSnapshot;
 
-      const { result } = renderHook(() =>
-        useDMRole({ snapshot, uid: testUid, send: mockSend }),
-      );
+      const { result } = renderHook(() => useDMRole({ snapshot, uid: testUid, send: mockSend }));
 
       expect(result.current.isDM).toBe(false);
     });
@@ -170,9 +158,7 @@ describe("useDMRole - isDM Computation", () => {
         diceRolls: [],
       };
 
-      const { result } = renderHook(() =>
-        useDMRole({ snapshot, uid: testUid, send: mockSend }),
-      );
+      const { result } = renderHook(() => useDMRole({ snapshot, uid: testUid, send: mockSend }));
 
       expect(result.current.isDM).toBe(false);
     });
@@ -189,9 +175,7 @@ describe("useDMRole - isDM Computation", () => {
         diceRolls: [],
       };
 
-      const { result } = renderHook(() =>
-        useDMRole({ snapshot, uid: "", send: mockSend }),
-      );
+      const { result } = renderHook(() => useDMRole({ snapshot, uid: "", send: mockSend }));
 
       expect(result.current.isDM).toBe(false);
     });
@@ -219,9 +203,7 @@ describe("useDMRole - elevateToDM Function", () => {
         diceRolls: [],
       };
 
-      const { result } = renderHook(() =>
-        useDMRole({ snapshot, uid: testUid, send: mockSend }),
-      );
+      const { result } = renderHook(() => useDMRole({ snapshot, uid: testUid, send: mockSend }));
 
       result.current.elevateToDM("secret-password");
 
@@ -244,9 +226,7 @@ describe("useDMRole - elevateToDM Function", () => {
         diceRolls: [],
       };
 
-      const { result } = renderHook(() =>
-        useDMRole({ snapshot, uid: testUid, send: mockSend }),
-      );
+      const { result } = renderHook(() => useDMRole({ snapshot, uid: testUid, send: mockSend }));
 
       result.current.elevateToDM("");
 
@@ -268,9 +248,7 @@ describe("useDMRole - elevateToDM Function", () => {
         diceRolls: [],
       };
 
-      const { result } = renderHook(() =>
-        useDMRole({ snapshot, uid: testUid, send: mockSend }),
-      );
+      const { result } = renderHook(() => useDMRole({ snapshot, uid: testUid, send: mockSend }));
 
       const specialPassword = "p@$$w0rd!#$%^&*()";
       result.current.elevateToDM(specialPassword);
@@ -293,9 +271,7 @@ describe("useDMRole - elevateToDM Function", () => {
         diceRolls: [],
       };
 
-      const { result } = renderHook(() =>
-        useDMRole({ snapshot, uid: testUid, send: mockSend }),
-      );
+      const { result } = renderHook(() => useDMRole({ snapshot, uid: testUid, send: mockSend }));
 
       const passwordWithSpaces = "  password with spaces  ";
       result.current.elevateToDM(passwordWithSpaces);
@@ -318,9 +294,7 @@ describe("useDMRole - elevateToDM Function", () => {
         diceRolls: [],
       };
 
-      const { result } = renderHook(() =>
-        useDMRole({ snapshot, uid: testUid, send: mockSend }),
-      );
+      const { result } = renderHook(() => useDMRole({ snapshot, uid: testUid, send: mockSend }));
 
       const unicodePassword = "пароль密码🔒";
       result.current.elevateToDM(unicodePassword);
@@ -345,9 +319,7 @@ describe("useDMRole - elevateToDM Function", () => {
         diceRolls: [],
       };
 
-      const { result } = renderHook(() =>
-        useDMRole({ snapshot, uid: testUid, send: mockSend }),
-      );
+      const { result } = renderHook(() => useDMRole({ snapshot, uid: testUid, send: mockSend }));
 
       result.current.elevateToDM("password1");
       result.current.elevateToDM("password2");
@@ -555,9 +527,7 @@ describe("useDMRole - Return Value", () => {
       diceRolls: [],
     };
 
-    const { result } = renderHook(() =>
-      useDMRole({ snapshot, uid: testUid, send: mockSend }),
-    );
+    const { result } = renderHook(() => useDMRole({ snapshot, uid: testUid, send: mockSend }));
 
     expect(result.current).toHaveProperty("isDM");
     expect(result.current).toHaveProperty("elevateToDM");
@@ -575,9 +545,7 @@ describe("useDMRole - Return Value", () => {
       diceRolls: [],
     };
 
-    const { result } = renderHook(() =>
-      useDMRole({ snapshot, uid: testUid, send: mockSend }),
-    );
+    const { result } = renderHook(() => useDMRole({ snapshot, uid: testUid, send: mockSend }));
 
     expect(typeof result.current.isDM).toBe("boolean");
   });
@@ -594,9 +562,7 @@ describe("useDMRole - Return Value", () => {
       diceRolls: [],
     };
 
-    const { result } = renderHook(() =>
-      useDMRole({ snapshot, uid: testUid, send: mockSend }),
-    );
+    const { result } = renderHook(() => useDMRole({ snapshot, uid: testUid, send: mockSend }));
 
     expect(typeof result.current.elevateToDM).toBe("function");
   });

@@ -448,7 +448,7 @@ describe("RollButton", () => {
       expect(button.style.borderRadius).toBe("8px");
     });
 
-    it('should have 4px solid border', () => {
+    it("should have 4px solid border", () => {
       render(<RollButton onClick={vi.fn()} />);
 
       const button = screen.getByRole("button");

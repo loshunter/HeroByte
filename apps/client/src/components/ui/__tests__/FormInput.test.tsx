@@ -903,7 +903,7 @@ describe("FormInput - React.memo Optimization", () => {
 
       const { rerender } = render(<TestWrapper value="test" />);
 
-      const initialRenderCount = renderCount;
+      const _initialRenderCount = renderCount;
 
       // Re-render with same props
       rerender(<TestWrapper value="test" />);

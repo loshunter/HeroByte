@@ -23,33 +23,25 @@ describe("ImagePreview", () => {
 
   describe("Src Validation - Null and Empty Values", () => {
     it("should return null when src is null", () => {
-      const { container } = render(
-        <ImagePreview src={null} alt="Test alt" />
-      );
+      const { container } = render(<ImagePreview src={null} alt="Test alt" />);
 
       expect(container.firstChild).toBeNull();
     });
 
     it("should return null when src is empty string", () => {
-      const { container } = render(
-        <ImagePreview src="" alt="Test alt" />
-      );
+      const { container } = render(<ImagePreview src="" alt="Test alt" />);
 
       expect(container.firstChild).toBeNull();
     });
 
     it("should return null when src is single space", () => {
-      const { container } = render(
-        <ImagePreview src=" " alt="Test alt" />
-      );
+      const { container } = render(<ImagePreview src=" " alt="Test alt" />);
 
       expect(container.firstChild).toBeNull();
     });
 
     it("should return null when src is multiple spaces", () => {
-      const { container } = render(
-        <ImagePreview src="   " alt="Test alt" />
-      );
+      const { container } = render(<ImagePreview src="   " alt="Test alt" />);
 
       expect(container.firstChild).toBeNull();
     });
@@ -57,9 +49,7 @@ describe("ImagePreview", () => {
     it("should return null when src is tab character", () => {
       // Using actual tab character in string
       const tabSrc = "	"; // This is a real tab character
-      const { container } = render(
-        <ImagePreview src={tabSrc} alt="Test alt" />
-      );
+      const { container } = render(<ImagePreview src={tabSrc} alt="Test alt" />);
 
       expect(container.firstChild).toBeNull();
     });
@@ -68,9 +58,7 @@ describe("ImagePreview", () => {
       // Using actual newline character in string
       const newlineSrc = `
 `;
-      const { container } = render(
-        <ImagePreview src={newlineSrc} alt="Test alt" />
-      );
+      const { container } = render(<ImagePreview src={newlineSrc} alt="Test alt" />);
 
       expect(container.firstChild).toBeNull();
     });
@@ -79,9 +67,7 @@ describe("ImagePreview", () => {
       // Using actual whitespace characters in string
       const mixedWhitespace = `
  `;
-      const { container } = render(
-        <ImagePreview src={mixedWhitespace} alt="Test alt" />
-      );
+      const { container } = render(<ImagePreview src={mixedWhitespace} alt="Test alt" />);
 
       expect(container.firstChild).toBeNull();
     });
@@ -89,36 +75,21 @@ describe("ImagePreview", () => {
 
   describe("Src Validation - Valid Values", () => {
     it("should render img when src is valid URL", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/image.png"
-          alt="Valid image"
-        />
-      );
+      render(<ImagePreview src="https://example.com/image.png" alt="Valid image" />);
 
       const img = screen.getByRole("img");
       expect(img).toBeInTheDocument();
     });
 
     it("should render img when src is relative path", () => {
-      render(
-        <ImagePreview
-          src="/images/test.png"
-          alt="Relative path"
-        />
-      );
+      render(<ImagePreview src="/images/test.png" alt="Relative path" />);
 
       const img = screen.getByRole("img");
       expect(img).toBeInTheDocument();
     });
 
     it("should render img when src has leading whitespace but valid content", () => {
-      render(
-        <ImagePreview
-          src="  https://example.com/image.png"
-          alt="Leading space"
-        />
-      );
+      render(<ImagePreview src="  https://example.com/image.png" alt="Leading space" />);
 
       const img = screen.getByRole("img");
       expect(img).toBeInTheDocument();
@@ -126,12 +97,7 @@ describe("ImagePreview", () => {
     });
 
     it("should render img when src has trailing whitespace but valid content", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/image.png  "
-          alt="Trailing space"
-        />
-      );
+      render(<ImagePreview src="https://example.com/image.png  " alt="Trailing space" />);
 
       const img = screen.getByRole("img");
       expect(img).toBeInTheDocument();
@@ -139,25 +105,16 @@ describe("ImagePreview", () => {
     });
 
     it("should render img when src has leading and trailing whitespace", () => {
-      render(
-        <ImagePreview
-          src="  https://example.com/image.png  "
-          alt="Both spaces"
-        />
-      );
+      render(<ImagePreview src="  https://example.com/image.png  " alt="Both spaces" />);
 
       const img = screen.getByRole("img");
       expect(img).toBeInTheDocument();
     });
 
     it("should render img when src is data URL", () => {
-      const dataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-      render(
-        <ImagePreview
-          src={dataUrl}
-          alt="Data URL"
-        />
-      );
+      const dataUrl =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+      render(<ImagePreview src={dataUrl} alt="Data URL" />);
 
       const img = screen.getByRole("img");
       expect(img).toBeInTheDocument();
@@ -166,12 +123,7 @@ describe("ImagePreview", () => {
 
   describe("Initial Rendering - Basic Attributes", () => {
     it("should render img element with valid src", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Test"
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt="Test" />);
 
       const img = screen.getByRole("img");
       expect(img.tagName).toBe("IMG");
@@ -179,12 +131,7 @@ describe("ImagePreview", () => {
 
     it("should set src attribute correctly", () => {
       const testSrc = "https://example.com/image.jpg";
-      render(
-        <ImagePreview
-          src={testSrc}
-          alt="Test"
-        />
-      );
+      render(<ImagePreview src={testSrc} alt="Test" />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveAttribute("src", testSrc);
@@ -192,36 +139,21 @@ describe("ImagePreview", () => {
 
     it("should set alt attribute correctly", () => {
       const testAlt = "Test alternative text";
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt={testAlt}
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt={testAlt} />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveAttribute("alt", testAlt);
     });
 
     it("should have img role for accessibility", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Accessible image"
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt="Accessible image" />);
 
       const img = screen.getByRole("img");
       expect(img).toBeInTheDocument();
     });
 
     it("should render with empty alt attribute", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt=""
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt="" />);
 
       const img = screen.getByRole("img", { hidden: true });
       expect(img).toHaveAttribute("alt", "");
@@ -230,25 +162,14 @@ describe("ImagePreview", () => {
 
   describe("Size Props - Width (Default: 48px)", () => {
     it("should apply default width of 48px when not provided", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Default width"
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt="Default width" />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveStyle({ width: "48px" });
     });
 
     it("should apply string width in pixels", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Custom width"
-          width="100px"
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt="Custom width" width="100px" />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveStyle({ width: "100px" });
@@ -256,11 +177,7 @@ describe("ImagePreview", () => {
 
     it("should apply string width in percentage", () => {
       render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Percentage width"
-          width="50%"
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Percentage width" width="50%" />,
       );
 
       const img = screen.getByRole("img");
@@ -268,13 +185,7 @@ describe("ImagePreview", () => {
     });
 
     it("should apply 100% string width", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Full width"
-          width="100%"
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt="Full width" width="100%" />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveStyle({ width: "100%" });
@@ -282,11 +193,7 @@ describe("ImagePreview", () => {
 
     it("should convert number width to px - 100", () => {
       render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Number width 100"
-          width={100}
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Number width 100" width={100} />,
       );
 
       const img = screen.getByRole("img");
@@ -294,13 +201,7 @@ describe("ImagePreview", () => {
     });
 
     it("should convert number width to px - 48", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Number width 48"
-          width={48}
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt="Number width 48" width={48} />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveStyle({ width: "48px" });
@@ -308,11 +209,7 @@ describe("ImagePreview", () => {
 
     it("should convert number width to px - 200", () => {
       render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Number width 200"
-          width={200}
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Number width 200" width={200} />,
       );
 
       const img = screen.getByRole("img");
@@ -321,11 +218,7 @@ describe("ImagePreview", () => {
 
     it("should handle width undefined explicitly", () => {
       render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Undefined width"
-          width={undefined}
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Undefined width" width={undefined} />,
       );
 
       const img = screen.getByRole("img");
@@ -333,26 +226,14 @@ describe("ImagePreview", () => {
     });
 
     it("should apply string width in rem units", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Rem width"
-          width="3rem"
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt="Rem width" width="3rem" />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveStyle({ width: "3rem" });
     });
 
     it("should apply string width in em units", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Em width"
-          width="4em"
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt="Em width" width="4em" />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveStyle({ width: "4em" });
@@ -361,12 +242,7 @@ describe("ImagePreview", () => {
 
   describe("Size Props - Height (Default: 48px)", () => {
     it("should apply default height of 48px when not provided", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Default height"
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt="Default height" />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveStyle({ height: "48px" });
@@ -374,11 +250,7 @@ describe("ImagePreview", () => {
 
     it("should apply string height in pixels", () => {
       render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Custom height"
-          height="100px"
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Custom height" height="100px" />,
       );
 
       const img = screen.getByRole("img");
@@ -387,11 +259,7 @@ describe("ImagePreview", () => {
 
     it("should apply string height in percentage", () => {
       render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Percentage height"
-          height="75%"
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Percentage height" height="75%" />,
       );
 
       const img = screen.getByRole("img");
@@ -399,13 +267,7 @@ describe("ImagePreview", () => {
     });
 
     it("should apply 100% string height", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Full height"
-          height="100%"
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt="Full height" height="100%" />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveStyle({ height: "100%" });
@@ -413,11 +275,7 @@ describe("ImagePreview", () => {
 
     it("should convert number height to px - 100", () => {
       render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Number height 100"
-          height={100}
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Number height 100" height={100} />,
       );
 
       const img = screen.getByRole("img");
@@ -426,11 +284,7 @@ describe("ImagePreview", () => {
 
     it("should convert number height to px - 48", () => {
       render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Number height 48"
-          height={48}
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Number height 48" height={48} />,
       );
 
       const img = screen.getByRole("img");
@@ -439,11 +293,7 @@ describe("ImagePreview", () => {
 
     it("should convert number height to px - 150", () => {
       render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Number height 150"
-          height={150}
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Number height 150" height={150} />,
       );
 
       const img = screen.getByRole("img");
@@ -456,7 +306,7 @@ describe("ImagePreview", () => {
           src="https://example.com/test.png"
           alt="Undefined height"
           height={undefined}
-        />
+        />,
       );
 
       const img = screen.getByRole("img");
@@ -464,26 +314,14 @@ describe("ImagePreview", () => {
     });
 
     it("should apply string height in rem units", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Rem height"
-          height="2rem"
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt="Rem height" height="2rem" />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveStyle({ height: "2rem" });
     });
 
     it("should apply string height in em units", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Em height"
-          height="5em"
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt="Em height" height="5em" />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveStyle({ height: "5em" });
@@ -492,12 +330,7 @@ describe("ImagePreview", () => {
 
   describe("Size Props - MaxHeight (Optional)", () => {
     it("should not apply maxHeight by default", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="No max height"
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt="No max height" />);
 
       const img = screen.getByRole("img");
       expect(img.style.maxHeight).toBe("");
@@ -505,11 +338,7 @@ describe("ImagePreview", () => {
 
     it("should apply string maxHeight in pixels", () => {
       render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Max height px"
-          maxHeight="100px"
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Max height px" maxHeight="100px" />,
       );
 
       const img = screen.getByRole("img");
@@ -522,7 +351,7 @@ describe("ImagePreview", () => {
           src="https://example.com/test.png"
           alt="Max height percent"
           maxHeight="80%"
-        />
+        />,
       );
 
       const img = screen.getByRole("img");
@@ -535,7 +364,7 @@ describe("ImagePreview", () => {
           src="https://example.com/test.png"
           alt="Max height number 100"
           maxHeight={100}
-        />
+        />,
       );
 
       const img = screen.getByRole("img");
@@ -548,7 +377,7 @@ describe("ImagePreview", () => {
           src="https://example.com/test.png"
           alt="Max height number 200"
           maxHeight={200}
-        />
+        />,
       );
 
       const img = screen.getByRole("img");
@@ -561,7 +390,7 @@ describe("ImagePreview", () => {
           src="https://example.com/test.png"
           alt="Undefined max height"
           maxHeight={undefined}
-        />
+        />,
       );
 
       const img = screen.getByRole("img");
@@ -570,11 +399,7 @@ describe("ImagePreview", () => {
 
     it("should apply string maxHeight in rem units", () => {
       render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Max height rem"
-          maxHeight="6rem"
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Max height rem" maxHeight="6rem" />,
       );
 
       const img = screen.getByRole("img");
@@ -589,7 +414,7 @@ describe("ImagePreview", () => {
           width="100%"
           maxHeight="100px"
           showBorder={false}
-        />
+        />,
       );
 
       const img = screen.getByRole("img");
@@ -599,12 +424,7 @@ describe("ImagePreview", () => {
 
   describe("ObjectFit Prop - Default: cover", () => {
     it("should apply default objectFit of cover", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Default object fit"
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt="Default object fit" />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveStyle({ objectFit: "cover" });
@@ -612,11 +432,7 @@ describe("ImagePreview", () => {
 
     it("should apply objectFit contain when specified", () => {
       render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Contain fit"
-          objectFit="contain"
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Contain fit" objectFit="contain" />,
       );
 
       const img = screen.getByRole("img");
@@ -624,13 +440,7 @@ describe("ImagePreview", () => {
     });
 
     it("should apply objectFit cover when explicitly specified", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Cover fit"
-          objectFit="cover"
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt="Cover fit" objectFit="cover" />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveStyle({ objectFit: "cover" });
@@ -644,7 +454,7 @@ describe("ImagePreview", () => {
           width={200}
           height={200}
           objectFit="contain"
-        />
+        />,
       );
 
       const img = screen.getByRole("img");
@@ -654,12 +464,7 @@ describe("ImagePreview", () => {
 
   describe("AlignSelf Prop - Default: flex-start", () => {
     it("should apply default alignSelf of flex-start", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Default align"
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt="Default align" />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveStyle({ alignSelf: "flex-start" });
@@ -667,11 +472,7 @@ describe("ImagePreview", () => {
 
     it("should apply alignSelf center when specified", () => {
       render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Center align"
-          alignSelf="center"
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Center align" alignSelf="center" />,
       );
 
       const img = screen.getByRole("img");
@@ -684,7 +485,7 @@ describe("ImagePreview", () => {
           src="https://example.com/test.png"
           alt="Flex start align"
           alignSelf="flex-start"
-        />
+        />,
       );
 
       const img = screen.getByRole("img");
@@ -698,7 +499,7 @@ describe("ImagePreview", () => {
           alt="Custom size centered"
           width="100%"
           alignSelf="center"
-        />
+        />,
       );
 
       const img = screen.getByRole("img");
@@ -708,12 +509,7 @@ describe("ImagePreview", () => {
 
   describe("Border Styling - Default: true", () => {
     it("should apply default border when showBorder not specified", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Default border"
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt="Default border" />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveStyle({ border: "1px solid var(--jrpg-border-gold)" });
@@ -721,11 +517,7 @@ describe("ImagePreview", () => {
 
     it("should apply border when showBorder is true", () => {
       render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Explicit border"
-          showBorder={true}
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Explicit border" showBorder={true} />,
       );
 
       const img = screen.getByRole("img");
@@ -734,11 +526,7 @@ describe("ImagePreview", () => {
 
     it("should not apply border when showBorder is false", () => {
       render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="No border"
-          showBorder={false}
-        />
+        <ImagePreview src="https://example.com/test.png" alt="No border" showBorder={false} />,
       );
 
       const img = screen.getByRole("img");
@@ -747,11 +535,7 @@ describe("ImagePreview", () => {
 
     it("should apply borderRadius regardless of showBorder", () => {
       render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Border radius"
-          showBorder={false}
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Border radius" showBorder={false} />,
       );
 
       const img = screen.getByRole("img");
@@ -764,7 +548,7 @@ describe("ImagePreview", () => {
           src="https://example.com/test.png"
           alt="Border and radius"
           showBorder={true}
-        />
+        />,
       );
 
       const img = screen.getByRole("img");
@@ -779,7 +563,7 @@ describe("ImagePreview", () => {
           width={48}
           height={48}
           showBorder={true}
-        />
+        />,
       );
 
       const img = screen.getByRole("img");
@@ -794,7 +578,7 @@ describe("ImagePreview", () => {
           width="100%"
           maxHeight="100px"
           showBorder={false}
-        />
+        />,
       );
 
       const img = screen.getByRole("img");
@@ -804,12 +588,7 @@ describe("ImagePreview", () => {
 
   describe("Error Handling - Load Failures", () => {
     it("should hide element when onError is triggered", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/broken.png"
-          alt="Broken image"
-        />
-      );
+      render(<ImagePreview src="https://example.com/broken.png" alt="Broken image" />);
 
       const img = screen.getByRole("img");
       fireEvent.error(img);
@@ -825,7 +604,7 @@ describe("ImagePreview", () => {
           src="https://example.com/broken.png"
           alt="Broken image"
           onLoadError={mockOnLoadError}
-        />
+        />,
       );
 
       const img = screen.getByRole("img");
@@ -836,12 +615,7 @@ describe("ImagePreview", () => {
 
     it("should not throw error when onLoadError not provided and error occurs", () => {
       expect(() => {
-        render(
-          <ImagePreview
-            src="https://example.com/broken.png"
-            alt="Broken image"
-          />
-        );
+        render(<ImagePreview src="https://example.com/broken.png" alt="Broken image" />);
 
         const img = screen.getByRole("img");
         fireEvent.error(img);
@@ -856,7 +630,7 @@ describe("ImagePreview", () => {
           src="https://example.com/broken.png"
           alt="Broken image"
           onLoadError={mockOnLoadError}
-        />
+        />,
       );
 
       const img = screen.getByRole("img");
@@ -867,12 +641,7 @@ describe("ImagePreview", () => {
     });
 
     it("should persist hidden state after error", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/broken.png"
-          alt="Broken image"
-        />
-      );
+      render(<ImagePreview src="https://example.com/broken.png" alt="Broken image" />);
 
       const img = screen.getByRole("img");
       fireEvent.error(img);
@@ -891,7 +660,7 @@ describe("ImagePreview", () => {
           src="https://example.com/broken.png"
           alt="Broken image"
           onLoadError={mockOnLoadError}
-        />
+        />,
       );
 
       const img = screen.getByRole("img");
@@ -911,7 +680,7 @@ describe("ImagePreview", () => {
           src="https://example.com/broken.png"
           alt="Broken image"
           onLoadError={mockOnLoadError}
-        />
+        />,
       );
 
       const img = screen.getByRole("img");
@@ -928,7 +697,7 @@ describe("ImagePreview", () => {
       const mockOnLoadError1 = vi.fn();
       const mockOnLoadError2 = vi.fn();
 
-      const { rerender } = render(
+      render(
         <>
           <ImagePreview
             src="https://example.com/broken1.png"
@@ -940,7 +709,7 @@ describe("ImagePreview", () => {
             alt="Broken 2"
             onLoadError={mockOnLoadError2}
           />
-        </>
+        </>,
       );
 
       const images = screen.getAllByRole("img");
@@ -979,22 +748,12 @@ describe("ImagePreview", () => {
     });
 
     it("should re-render when src changes", () => {
-      const { rerender } = render(
-        <ImagePreview
-          src="https://example.com/test1.png"
-          alt="Test"
-        />
-      );
+      const { rerender } = render(<ImagePreview src="https://example.com/test1.png" alt="Test" />);
 
       const img1 = screen.getByRole("img");
       expect(img1).toHaveAttribute("src", "https://example.com/test1.png");
 
-      rerender(
-        <ImagePreview
-          src="https://example.com/test2.png"
-          alt="Test"
-        />
-      );
+      rerender(<ImagePreview src="https://example.com/test2.png" alt="Test" />);
 
       const img2 = screen.getByRole("img");
       expect(img2).toHaveAttribute("src", "https://example.com/test2.png");
@@ -1002,21 +761,13 @@ describe("ImagePreview", () => {
 
     it("should re-render when alt changes", () => {
       const { rerender } = render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="First alt"
-        />
+        <ImagePreview src="https://example.com/test.png" alt="First alt" />,
       );
 
       const img1 = screen.getByRole("img");
       expect(img1).toHaveAttribute("alt", "First alt");
 
-      rerender(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Second alt"
-        />
-      );
+      rerender(<ImagePreview src="https://example.com/test.png" alt="Second alt" />);
 
       const img2 = screen.getByRole("img");
       expect(img2).toHaveAttribute("alt", "Second alt");
@@ -1024,23 +775,13 @@ describe("ImagePreview", () => {
 
     it("should re-render when width changes", () => {
       const { rerender } = render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Test"
-          width={48}
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Test" width={48} />,
       );
 
       const img1 = screen.getByRole("img");
       expect(img1).toHaveStyle({ width: "48px" });
 
-      rerender(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Test"
-          width={100}
-        />
-      );
+      rerender(<ImagePreview src="https://example.com/test.png" alt="Test" width={100} />);
 
       const img2 = screen.getByRole("img");
       expect(img2).toHaveStyle({ width: "100px" });
@@ -1048,23 +789,13 @@ describe("ImagePreview", () => {
 
     it("should re-render when height changes", () => {
       const { rerender } = render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Test"
-          height={48}
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Test" height={48} />,
       );
 
       const img1 = screen.getByRole("img");
       expect(img1).toHaveStyle({ height: "48px" });
 
-      rerender(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Test"
-          height={100}
-        />
-      );
+      rerender(<ImagePreview src="https://example.com/test.png" alt="Test" height={100} />);
 
       const img2 = screen.getByRole("img");
       expect(img2).toHaveStyle({ height: "100px" });
@@ -1072,23 +803,13 @@ describe("ImagePreview", () => {
 
     it("should re-render when maxHeight changes", () => {
       const { rerender } = render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Test"
-          maxHeight={50}
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Test" maxHeight={50} />,
       );
 
       const img1 = screen.getByRole("img");
       expect(img1).toHaveStyle({ maxHeight: "50px" });
 
-      rerender(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Test"
-          maxHeight={100}
-        />
-      );
+      rerender(<ImagePreview src="https://example.com/test.png" alt="Test" maxHeight={100} />);
 
       const img2 = screen.getByRole("img");
       expect(img2).toHaveStyle({ maxHeight: "100px" });
@@ -1096,23 +817,13 @@ describe("ImagePreview", () => {
 
     it("should re-render when objectFit changes", () => {
       const { rerender } = render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Test"
-          objectFit="cover"
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Test" objectFit="cover" />,
       );
 
       const img1 = screen.getByRole("img");
       expect(img1).toHaveStyle({ objectFit: "cover" });
 
-      rerender(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Test"
-          objectFit="contain"
-        />
-      );
+      rerender(<ImagePreview src="https://example.com/test.png" alt="Test" objectFit="contain" />);
 
       const img2 = screen.getByRole("img");
       expect(img2).toHaveStyle({ objectFit: "contain" });
@@ -1120,23 +831,13 @@ describe("ImagePreview", () => {
 
     it("should re-render when alignSelf changes", () => {
       const { rerender } = render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Test"
-          alignSelf="flex-start"
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Test" alignSelf="flex-start" />,
       );
 
       const img1 = screen.getByRole("img");
       expect(img1).toHaveStyle({ alignSelf: "flex-start" });
 
-      rerender(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Test"
-          alignSelf="center"
-        />
-      );
+      rerender(<ImagePreview src="https://example.com/test.png" alt="Test" alignSelf="center" />);
 
       const img2 = screen.getByRole("img");
       expect(img2).toHaveStyle({ alignSelf: "center" });
@@ -1144,23 +845,13 @@ describe("ImagePreview", () => {
 
     it("should re-render when showBorder changes", () => {
       const { rerender } = render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Test"
-          showBorder={true}
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Test" showBorder={true} />,
       );
 
       const img1 = screen.getByRole("img");
       expect(img1).toHaveStyle({ border: "1px solid var(--jrpg-border-gold)" });
 
-      rerender(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Test"
-          showBorder={false}
-        />
-      );
+      rerender(<ImagePreview src="https://example.com/test.png" alt="Test" showBorder={false} />);
 
       const img2 = screen.getByRole("img");
       expect(img2.style.border).toBe("");
@@ -1175,7 +866,7 @@ describe("ImagePreview", () => {
           src="https://example.com/test.png"
           alt="Test"
           onLoadError={mockOnLoadError1}
-        />
+        />,
       );
 
       // Re-render with new callback (different reference means re-render happens)
@@ -1184,7 +875,7 @@ describe("ImagePreview", () => {
           src="https://example.com/test.png"
           alt="Test"
           onLoadError={mockOnLoadError2}
-        />
+        />,
       );
 
       // Verify that the new callback is used
@@ -1212,7 +903,7 @@ describe("ImagePreview", () => {
           width={48}
           height={48}
           showBorder={true}
-        />
+        />,
       );
 
       const img = screen.getByRole("img");
@@ -1221,7 +912,7 @@ describe("ImagePreview", () => {
       expect(img).toHaveStyle({
         width: "48px",
         height: "48px",
-        border: "1px solid var(--jrpg-border-gold)"
+        border: "1px solid var(--jrpg-border-gold)",
       });
     });
 
@@ -1233,7 +924,7 @@ describe("ImagePreview", () => {
           width="100%"
           maxHeight="100px"
           showBorder={false}
-        />
+        />,
       );
 
       const img = screen.getByRole("img");
@@ -1241,18 +932,13 @@ describe("ImagePreview", () => {
       expect(img).toHaveAttribute("alt", "Portrait preview");
       expect(img).toHaveStyle({
         width: "100%",
-        maxHeight: "100px"
+        maxHeight: "100px",
       });
       expect(img.style.border).toBe("");
     });
 
     it("should render prop variant with all expected props", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/prop.png"
-          alt="Prop preview"
-        />
-      );
+      render(<ImagePreview src="https://example.com/prop.png" alt="Prop preview" />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveAttribute("src", "https://example.com/prop.png");
@@ -1263,7 +949,7 @@ describe("ImagePreview", () => {
         border: "1px solid var(--jrpg-border-gold)",
         borderRadius: "4px",
         objectFit: "cover",
-        alignSelf: "flex-start"
+        alignSelf: "flex-start",
       });
     });
 
@@ -1281,7 +967,7 @@ describe("ImagePreview", () => {
           alignSelf="center"
           showBorder={false}
           onLoadError={mockOnLoadError}
-        />
+        />,
       );
 
       const img = screen.getByRole("img");
@@ -1291,7 +977,7 @@ describe("ImagePreview", () => {
         maxHeight: "180px",
         objectFit: "contain",
         alignSelf: "center",
-        borderRadius: "4px"
+        borderRadius: "4px",
       });
       expect(img.style.border).toBe("");
 
@@ -1302,65 +988,35 @@ describe("ImagePreview", () => {
 
   describe("Edge Cases - Size Normalization", () => {
     it("should handle zero width", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Zero width"
-          width={0}
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt="Zero width" width={0} />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveStyle({ width: "0px" });
     });
 
     it("should handle zero height", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Zero height"
-          height={0}
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt="Zero height" height={0} />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveStyle({ height: "0px" });
     });
 
     it("should handle very large number width", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Large width"
-          width={9999}
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt="Large width" width={9999} />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveStyle({ width: "9999px" });
     });
 
     it("should handle very large number height", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Large height"
-          height={9999}
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt="Large height" height={9999} />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveStyle({ height: "9999px" });
     });
 
     it("should handle negative number width", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Negative width"
-          width={-50}
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt="Negative width" width={-50} />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveStyle({ width: "-50px" });
@@ -1368,11 +1024,7 @@ describe("ImagePreview", () => {
 
     it("should handle negative number height", () => {
       render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Negative height"
-          height={-50}
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Negative height" height={-50} />,
       );
 
       const img = screen.getByRole("img");
@@ -1380,13 +1032,7 @@ describe("ImagePreview", () => {
     });
 
     it("should handle decimal number width", () => {
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Decimal width"
-          width={48.5}
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt="Decimal width" width={48.5} />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveStyle({ width: "48.5px" });
@@ -1394,11 +1040,7 @@ describe("ImagePreview", () => {
 
     it("should handle decimal number height", () => {
       render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Decimal height"
-          height={48.7}
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Decimal height" height={48.7} />,
       );
 
       const img = screen.getByRole("img");
@@ -1411,7 +1053,7 @@ describe("ImagePreview", () => {
           src="https://example.com/test.png"
           alt="Calc width"
           width="calc(100% - 20px)"
-        />
+        />,
       );
 
       const img = screen.getByRole("img");
@@ -1420,11 +1062,7 @@ describe("ImagePreview", () => {
 
     it("should handle height with vw units", () => {
       render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Viewport width"
-          height="10vw"
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Viewport width" height="10vw" />,
       );
 
       const img = screen.getByRole("img");
@@ -1433,11 +1071,7 @@ describe("ImagePreview", () => {
 
     it("should handle maxHeight with vh units", () => {
       render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Viewport height"
-          maxHeight="20vh"
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Viewport height" maxHeight="20vh" />,
       );
 
       const img = screen.getByRole("img");
@@ -1448,12 +1082,7 @@ describe("ImagePreview", () => {
   describe("Edge Cases - Alt Text", () => {
     it("should handle very long alt text", () => {
       const longAlt = "A".repeat(1000);
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt={longAlt}
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt={longAlt} />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveAttribute("alt", longAlt);
@@ -1461,12 +1090,7 @@ describe("ImagePreview", () => {
 
     it("should handle alt text with special characters", () => {
       const specialAlt = "Test & <script>alert('xss')</script> \"quotes\"";
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt={specialAlt}
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt={specialAlt} />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveAttribute("alt", specialAlt);
@@ -1474,12 +1098,7 @@ describe("ImagePreview", () => {
 
     it("should handle alt text with unicode characters", () => {
       const unicodeAlt = "测试 🎮 тест";
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt={unicodeAlt}
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt={unicodeAlt} />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveAttribute("alt", unicodeAlt);
@@ -1487,12 +1106,7 @@ describe("ImagePreview", () => {
 
     it("should handle alt text with newlines", () => {
       const multilineAlt = "Line 1\nLine 2\nLine 3";
-      render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt={multilineAlt}
-        />
-      );
+      render(<ImagePreview src="https://example.com/test.png" alt={multilineAlt} />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveAttribute("alt", multilineAlt);
@@ -1502,12 +1116,7 @@ describe("ImagePreview", () => {
   describe("Edge Cases - Src URLs", () => {
     it("should handle very long URL", () => {
       const longUrl = "https://example.com/" + "a".repeat(1000) + ".png";
-      render(
-        <ImagePreview
-          src={longUrl}
-          alt="Long URL"
-        />
-      );
+      render(<ImagePreview src={longUrl} alt="Long URL" />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveAttribute("src", longUrl);
@@ -1515,12 +1124,7 @@ describe("ImagePreview", () => {
 
     it("should handle URL with query parameters", () => {
       const urlWithParams = "https://example.com/image.png?w=100&h=100&fit=crop";
-      render(
-        <ImagePreview
-          src={urlWithParams}
-          alt="URL with params"
-        />
-      );
+      render(<ImagePreview src={urlWithParams} alt="URL with params" />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveAttribute("src", urlWithParams);
@@ -1528,12 +1132,7 @@ describe("ImagePreview", () => {
 
     it("should handle URL with hash fragment", () => {
       const urlWithHash = "https://example.com/image.png#section";
-      render(
-        <ImagePreview
-          src={urlWithHash}
-          alt="URL with hash"
-        />
-      );
+      render(<ImagePreview src={urlWithHash} alt="URL with hash" />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveAttribute("src", urlWithHash);
@@ -1541,12 +1140,7 @@ describe("ImagePreview", () => {
 
     it("should handle URL with special characters encoded", () => {
       const encodedUrl = "https://example.com/image%20with%20spaces.png";
-      render(
-        <ImagePreview
-          src={encodedUrl}
-          alt="Encoded URL"
-        />
-      );
+      render(<ImagePreview src={encodedUrl} alt="Encoded URL" />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveAttribute("src", encodedUrl);
@@ -1554,12 +1148,7 @@ describe("ImagePreview", () => {
 
     it("should handle blob URL", () => {
       const blobUrl = "blob:https://example.com/550e8400-e29b-41d4-a716-446655440000";
-      render(
-        <ImagePreview
-          src={blobUrl}
-          alt="Blob URL"
-        />
-      );
+      render(<ImagePreview src={blobUrl} alt="Blob URL" />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveAttribute("src", blobUrl);
@@ -1567,12 +1156,7 @@ describe("ImagePreview", () => {
 
     it("should handle file protocol URL", () => {
       const fileUrl = "file:///path/to/image.png";
-      render(
-        <ImagePreview
-          src={fileUrl}
-          alt="File URL"
-        />
-      );
+      render(<ImagePreview src={fileUrl} alt="File URL" />);
 
       const img = screen.getByRole("img");
       expect(img).toHaveAttribute("src", fileUrl);
@@ -1590,7 +1174,7 @@ describe("ImagePreview", () => {
           src="https://example.com/broken.png"
           alt="Async callback"
           onLoadError={mockOnLoadError}
-        />
+        />,
       );
 
       const img = screen.getByRole("img");
@@ -1608,7 +1192,7 @@ describe("ImagePreview", () => {
           src="https://example.com/broken.png"
           alt="Changing callback"
           onLoadError={mockOnLoadError1}
-        />
+        />,
       );
 
       rerender(
@@ -1616,7 +1200,7 @@ describe("ImagePreview", () => {
           src="https://example.com/broken.png"
           alt="Changing callback"
           onLoadError={mockOnLoadError2}
-        />
+        />,
       );
 
       const img = screen.getByRole("img");
@@ -1634,15 +1218,10 @@ describe("ImagePreview", () => {
           src="https://example.com/broken.png"
           alt="Removing callback"
           onLoadError={mockOnLoadError}
-        />
+        />,
       );
 
-      rerender(
-        <ImagePreview
-          src="https://example.com/broken.png"
-          alt="Removing callback"
-        />
-      );
+      rerender(<ImagePreview src="https://example.com/broken.png" alt="Removing callback" />);
 
       const img = screen.getByRole("img");
       fireEvent.error(img);
@@ -1655,22 +1234,10 @@ describe("ImagePreview", () => {
     it("should render multiple ImagePreview components independently", () => {
       render(
         <>
-          <ImagePreview
-            src="https://example.com/image1.png"
-            alt="Image 1"
-            width={48}
-          />
-          <ImagePreview
-            src="https://example.com/image2.png"
-            alt="Image 2"
-            width={100}
-          />
-          <ImagePreview
-            src="https://example.com/image3.png"
-            alt="Image 3"
-            width={200}
-          />
-        </>
+          <ImagePreview src="https://example.com/image1.png" alt="Image 1" width={48} />
+          <ImagePreview src="https://example.com/image2.png" alt="Image 2" width={100} />
+          <ImagePreview src="https://example.com/image3.png" alt="Image 3" width={200} />
+        </>,
       );
 
       const images = screen.getAllByRole("img");
@@ -1691,16 +1258,13 @@ describe("ImagePreview", () => {
             alt="Broken 1"
             onLoadError={mockOnLoadError1}
           />
-          <ImagePreview
-            src="https://example.com/working.png"
-            alt="Working"
-          />
+          <ImagePreview src="https://example.com/working.png" alt="Working" />
           <ImagePreview
             src="https://example.com/broken2.png"
             alt="Broken 2"
             onLoadError={mockOnLoadError2}
           />
-        </>
+        </>,
       );
 
       const images = screen.getAllByRole("img");
@@ -1715,12 +1279,12 @@ describe("ImagePreview", () => {
     });
 
     it("should handle mixed valid and null src values", () => {
-      const { container } = render(
+      render(
         <>
           <ImagePreview src={null} alt="Null" />
           <ImagePreview src="https://example.com/valid.png" alt="Valid" />
           <ImagePreview src="" alt="Empty" />
-        </>
+        </>,
       );
 
       const images = screen.getAllByRole("img");
@@ -1741,7 +1305,7 @@ describe("ImagePreview", () => {
           objectFit="contain"
           alignSelf="center"
           showBorder={true}
-        />
+        />,
       );
 
       const img = screen.getByRole("img");
@@ -1752,7 +1316,7 @@ describe("ImagePreview", () => {
         objectFit: "contain",
         borderRadius: "4px",
         border: "1px solid var(--jrpg-border-gold)",
-        alignSelf: "center"
+        alignSelf: "center",
       });
     });
 
@@ -1764,35 +1328,27 @@ describe("ImagePreview", () => {
           width={100}
           height="80px"
           maxHeight={90}
-        />
+        />,
       );
 
       const img = screen.getByRole("img");
       expect(img).toHaveStyle({
         width: "100px",
         height: "80px",
-        maxHeight: "90px"
+        maxHeight: "90px",
       });
     });
 
     it("should preserve borderRadius with all border configurations", () => {
       const { rerender } = render(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Border radius"
-          showBorder={true}
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Border radius" showBorder={true} />,
       );
 
       const img = screen.getByRole("img");
       expect(img).toHaveStyle({ borderRadius: "4px" });
 
       rerender(
-        <ImagePreview
-          src="https://example.com/test.png"
-          alt="Border radius"
-          showBorder={false}
-        />
+        <ImagePreview src="https://example.com/test.png" alt="Border radius" showBorder={false} />,
       );
 
       expect(img).toHaveStyle({ borderRadius: "4px" });

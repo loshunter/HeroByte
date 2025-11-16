@@ -115,9 +115,7 @@ describe("DraggableWindow", () => {
         </DraggableWindow>,
       );
 
-      const windowElement = container.querySelector(
-        "div[style*='position: fixed']",
-      ) as HTMLElement;
+      const windowElement = container.querySelector("div[style*='position: fixed']") as HTMLElement;
 
       expect(windowElement.style.left).toBe("100px");
     });
@@ -129,9 +127,7 @@ describe("DraggableWindow", () => {
         </DraggableWindow>,
       );
 
-      const windowElement = container.querySelector(
-        "div[style*='position: fixed']",
-      ) as HTMLElement;
+      const windowElement = container.querySelector("div[style*='position: fixed']") as HTMLElement;
 
       expect(windowElement.style.top).toBe("100px");
     });
@@ -143,9 +139,7 @@ describe("DraggableWindow", () => {
         </DraggableWindow>,
       );
 
-      const windowElement = container.querySelector(
-        "div[style*='position: fixed']",
-      ) as HTMLElement;
+      const windowElement = container.querySelector("div[style*='position: fixed']") as HTMLElement;
 
       // jsdom computes clamp() - check for width value containing 600px
       expect(windowElement.style.width).toContain("600px");
@@ -158,9 +152,7 @@ describe("DraggableWindow", () => {
         </DraggableWindow>,
       );
 
-      const windowElement = container.querySelector(
-        "div[style*='position: fixed']",
-      ) as HTMLElement;
+      const windowElement = container.querySelector("div[style*='position: fixed']") as HTMLElement;
 
       expect(windowElement.style.zIndex).toBe("1000");
     });
@@ -172,9 +164,7 @@ describe("DraggableWindow", () => {
         </DraggableWindow>,
       );
 
-      const windowElement = container.querySelector(
-        "div[style*='position: fixed']",
-      ) as HTMLElement;
+      const windowElement = container.querySelector("div[style*='position: fixed']") as HTMLElement;
 
       expect(windowElement.style.cursor).toBe("default");
     });
@@ -186,9 +176,7 @@ describe("DraggableWindow", () => {
         </DraggableWindow>,
       );
 
-      const windowElement = container.querySelector(
-        "div[style*='position: fixed']",
-      ) as HTMLElement;
+      const windowElement = container.querySelector("div[style*='position: fixed']") as HTMLElement;
 
       expect(windowElement.style.position).toBe("fixed");
     });
@@ -200,9 +188,7 @@ describe("DraggableWindow", () => {
         </DraggableWindow>,
       );
 
-      const windowElement = container.querySelector(
-        "div[style*='position: fixed']",
-      ) as HTMLElement;
+      const windowElement = container.querySelector("div[style*='position: fixed']") as HTMLElement;
 
       expect(windowElement.style.height).toBe("auto");
     });
@@ -220,9 +206,7 @@ describe("DraggableWindow", () => {
         </DraggableWindow>,
       );
 
-      const windowElement = container.querySelector(
-        "div[style*='position: fixed']",
-      ) as HTMLElement;
+      const windowElement = container.querySelector("div[style*='position: fixed']") as HTMLElement;
 
       expect(windowElement.style.left).toBe("200px");
     });
@@ -234,9 +218,7 @@ describe("DraggableWindow", () => {
         </DraggableWindow>,
       );
 
-      const windowElement = container.querySelector(
-        "div[style*='position: fixed']",
-      ) as HTMLElement;
+      const windowElement = container.querySelector("div[style*='position: fixed']") as HTMLElement;
 
       expect(windowElement.style.top).toBe("300px");
     });
@@ -248,9 +230,7 @@ describe("DraggableWindow", () => {
         </DraggableWindow>,
       );
 
-      const windowElement = container.querySelector(
-        "div[style*='position: fixed']",
-      ) as HTMLElement;
+      const windowElement = container.querySelector("div[style*='position: fixed']") as HTMLElement;
 
       expect(windowElement.style.width).toContain("500px");
     });
@@ -262,9 +242,7 @@ describe("DraggableWindow", () => {
         </DraggableWindow>,
       );
 
-      const windowElement = container.querySelector(
-        "div[style*='position: fixed']",
-      ) as HTMLElement;
+      const windowElement = container.querySelector("div[style*='position: fixed']") as HTMLElement;
 
       expect(windowElement.style.height).toBe("400px");
     });
@@ -276,9 +254,7 @@ describe("DraggableWindow", () => {
         </DraggableWindow>,
       );
 
-      const windowElement = container.querySelector(
-        "div[style*='position: fixed']",
-      ) as HTMLElement;
+      const windowElement = container.querySelector("div[style*='position: fixed']") as HTMLElement;
 
       expect(windowElement.style.zIndex).toBe("2000");
     });
@@ -311,9 +287,7 @@ describe("DraggableWindow", () => {
         </DraggableWindow>,
       );
 
-      const windowElement = container.querySelector(
-        "div[style*='position: fixed']",
-      ) as HTMLElement;
+      const windowElement = container.querySelector("div[style*='position: fixed']") as HTMLElement;
 
       expect(windowElement.style.left).toBe("250px");
       expect(windowElement.style.top).toBe("350px");
@@ -321,19 +295,12 @@ describe("DraggableWindow", () => {
 
     it("should use initialX/initialY when localStorage is empty", () => {
       const { container } = render(
-        <DraggableWindow
-          title="Test Window"
-          storageKey="testKey"
-          initialX={150}
-          initialY={200}
-        >
+        <DraggableWindow title="Test Window" storageKey="testKey" initialX={150} initialY={200}>
           <div>Content</div>
         </DraggableWindow>,
       );
 
-      const windowElement = container.querySelector(
-        "div[style*='position: fixed']",
-      ) as HTMLElement;
+      const windowElement = container.querySelector("div[style*='position: fixed']") as HTMLElement;
 
       expect(windowElement.style.left).toBe("150px");
       expect(windowElement.style.top).toBe("200px");
@@ -349,9 +316,7 @@ describe("DraggableWindow", () => {
         </DraggableWindow>,
       );
 
-      const windowElement = container.querySelector(
-        "div[style*='position: fixed']",
-      ) as HTMLElement;
+      const windowElement = container.querySelector("div[style*='position: fixed']") as HTMLElement;
 
       // Should fall back to default position
       expect(windowElement.style.left).toBe("100px");
@@ -377,9 +342,7 @@ describe("DraggableWindow", () => {
         </DraggableWindow>,
       );
 
-      const windowElement = container.querySelector(
-        "div[style*='position: fixed']",
-      ) as HTMLElement;
+      const windowElement = container.querySelector("div[style*='position: fixed']") as HTMLElement;
 
       // Should clamp to maxX = 1920 - 200 = 1720, maxY = 1080 - 100 = 980
       expect(parseInt(windowElement.style.left)).toBeLessThanOrEqual(1720);
@@ -398,9 +361,7 @@ describe("DraggableWindow", () => {
         </DraggableWindow>,
       );
 
-      const windowElement = container.querySelector(
-        "div[style*='position: fixed']",
-      ) as HTMLElement;
+      const windowElement = container.querySelector("div[style*='position: fixed']") as HTMLElement;
 
       expect(windowElement.style.left).toBe("0px");
       expect(windowElement.style.top).toBe("0px");
@@ -420,9 +381,7 @@ describe("DraggableWindow", () => {
       );
 
       const closeButton = screen.getByText("×");
-      const windowElement = container.querySelector(
-        "div[style*='position: fixed']",
-      ) as HTMLElement;
+      const windowElement = container.querySelector("div[style*='position: fixed']") as HTMLElement;
 
       fireEvent.mouseDown(closeButton, { clientX: 150, clientY: 120 });
       fireEvent.mouseMove(document, { clientX: 200, clientY: 170 });
@@ -493,9 +452,7 @@ describe("DraggableWindow", () => {
         </DraggableWindow>,
       );
 
-      expect(window.localStorage.getItem).toHaveBeenCalledWith(
-        "herobyte-window-position-myWindow",
-      );
+      expect(window.localStorage.getItem).toHaveBeenCalledWith("herobyte-window-position-myWindow");
     });
   });
 
@@ -511,9 +468,7 @@ describe("DraggableWindow", () => {
         </DraggableWindow>,
       );
 
-      const windowElement = container.querySelector(
-        "div[style*='position: fixed']",
-      ) as HTMLElement;
+      const windowElement = container.querySelector("div[style*='position: fixed']") as HTMLElement;
 
       // Initial position (within bounds)
       expect(windowElement.style.left).toBe("1500px");
@@ -545,9 +500,7 @@ describe("DraggableWindow", () => {
         </DraggableWindow>,
       );
 
-      const windowElement = container.querySelector(
-        "div[style*='position: fixed']",
-      ) as HTMLElement;
+      const windowElement = container.querySelector("div[style*='position: fixed']") as HTMLElement;
 
       expect(windowElement.style.overflow).toBe("hidden");
     });
@@ -559,9 +512,7 @@ describe("DraggableWindow", () => {
         </DraggableWindow>,
       );
 
-      const windowElement = container.querySelector(
-        "div[style*='position: fixed']",
-      ) as HTMLElement;
+      const windowElement = container.querySelector("div[style*='position: fixed']") as HTMLElement;
 
       expect(windowElement.style.display).toBe("flex");
     });
@@ -573,9 +524,7 @@ describe("DraggableWindow", () => {
         </DraggableWindow>,
       );
 
-      const windowElement = container.querySelector(
-        "div[style*='position: fixed']",
-      ) as HTMLElement;
+      const windowElement = container.querySelector("div[style*='position: fixed']") as HTMLElement;
 
       expect(windowElement.style.flexDirection).toBe("column");
     });

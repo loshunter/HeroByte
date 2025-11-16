@@ -471,8 +471,7 @@ describe("useCharacterCreation", () => {
 
       // Should not log confirmation after cancel
       const confirmationCalls = consoleLogSpy.mock.calls.filter(
-        (call) =>
-          call[0] === "[useCharacterCreation] Character creation confirmed:",
+        (call) => call[0] === "[useCharacterCreation] Character creation confirmed:",
       );
       expect(confirmationCalls).toHaveLength(0);
 

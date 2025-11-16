@@ -85,7 +85,11 @@ function createModToken(value: number, id: string = "mod-1"): Token {
   return { kind: "mod", value, id };
 }
 
-function createRollResult(tokens: Token[], perDie: RollResult["perDie"], total: number): RollResult {
+function createRollResult(
+  tokens: Token[],
+  perDie: RollResult["perDie"],
+  total: number,
+): RollResult {
   return {
     id: "result-1",
     tokens,
@@ -447,11 +451,7 @@ describe("ResultPanel", () => {
 
   describe("Modifier Token Rendering", () => {
     it("should render positive modifier with + sign", () => {
-      const result = createRollResult(
-        [createModToken(5)],
-        [{ tokenId: "mod-1", subtotal: 5 }],
-        5,
-      );
+      const result = createRollResult([createModToken(5)], [{ tokenId: "mod-1", subtotal: 5 }], 5);
 
       render(<ResultPanel result={result} onClose={vi.fn()} />);
 
@@ -472,11 +472,7 @@ describe("ResultPanel", () => {
     });
 
     it("should render zero modifier with + sign", () => {
-      const result = createRollResult(
-        [createModToken(0)],
-        [{ tokenId: "mod-1", subtotal: 0 }],
-        0,
-      );
+      const result = createRollResult([createModToken(0)], [{ tokenId: "mod-1", subtotal: 0 }], 0);
 
       render(<ResultPanel result={result} onClose={vi.fn()} />);
 
@@ -484,11 +480,7 @@ describe("ResultPanel", () => {
     });
 
     it("should render modifier subtotal", () => {
-      const result = createRollResult(
-        [createModToken(7)],
-        [{ tokenId: "mod-1", subtotal: 7 }],
-        7,
-      );
+      const result = createRollResult([createModToken(7)], [{ tokenId: "mod-1", subtotal: 7 }], 7);
 
       render(<ResultPanel result={result} onClose={vi.fn()} />);
 
@@ -497,11 +489,7 @@ describe("ResultPanel", () => {
     });
 
     it("should not render rolls array for modifiers", () => {
-      const result = createRollResult(
-        [createModToken(5)],
-        [{ tokenId: "mod-1", subtotal: 5 }],
-        5,
-      );
+      const result = createRollResult([createModToken(5)], [{ tokenId: "mod-1", subtotal: 5 }], 5);
 
       const { container } = render(<ResultPanel result={result} onClose={vi.fn()} />);
 
