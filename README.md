@@ -369,10 +369,11 @@ processors=4
 <details>
 <summary>📖 Testing Documentation</summary>
 
+- [docs/TEST_QUALITY_GUIDELINES.md](docs/TEST_QUALITY_GUIDELINES.md) - Test quality standards and optimization patterns
 - [docs/e2e-testing-success.md](docs/e2e-testing-success.md) - Complete E2E automation success story
 - [docs/automated-testing-strategy.md](docs/automated-testing-strategy.md) - Testing architecture guide
 - [docs/TESTING.md](docs/TESTING.md) - Comprehensive testing guide with Chrome DevTools MCP
-- [TESTING_SETUP.md](TESTING_SETUP.md) - Original testing setup guide
+- [TESTING_SETUP.md](TESTING_SETUP.md) - Legacy setup guide (historical reference)
 
 </details>
 
@@ -548,7 +549,7 @@ Before requesting review, double-check CI status locally. Mention uncertainties 
 ### Development Resources
 
 - [DEVELOPMENT.md](DEVELOPMENT.md) – Branching, naming, and feature cadence
-- [TESTING_SETUP.md](TESTING_SETUP.md) – Expanding automated coverage
+- [docs/TEST_QUALITY_GUIDELINES.md](docs/TEST_QUALITY_GUIDELINES.md) – Test quality standards and patterns
 - [PRODUCTION_CHECKLIST.md](PRODUCTION_CHECKLIST.md) – Pre-release validation
 - [TODO.md](TODO.md) – Phased roadmap and contributor priorities
 
@@ -561,7 +562,6 @@ Before requesting review, double-check CI status locally. Mention uncertainties 
 - **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** – Common tasks and shortcuts
 - **[docs/DEMO_SERVER_WORKFLOW.md](docs/DEMO_SERVER_WORKFLOW.md)** – Managing passwords and sessions for casual games
 - **[DEVELOPMENT.md](DEVELOPMENT.md)** – Day-to-day workflow tips
-- **[TESTING_SETUP.md](TESTING_SETUP.md)** – Step-by-step testing playbook
 - **[docs/LOCAL_SYNC.md](docs/LOCAL_SYNC.md)** – Pull latest Playwright changes into `dev` branch
 - **[TODO.md](TODO.md)** – Phased roadmap and contributor priorities
 - **[DONE.md](DONE.md)** – Archive of completed phases and milestones

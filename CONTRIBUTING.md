@@ -226,7 +226,7 @@ If you modify behavior, configs, or workflows, update relevant docs:
 
 - `README.md` – high-level overview, commands, screenshots, badges
 - `DEVELOPMENT.md` – workflow/process adjustments
-- `TESTING_SETUP.md` – changes to testing approach or tooling
+- `docs/TEST_QUALITY_GUIDELINES.md` – changes to testing patterns or standards
 - `TODO.md` / `CHATGPT_NEXT_TASKS.md` – keep task board in sync
 
 Screenshots or GIFs are encouraged for UI changes.
