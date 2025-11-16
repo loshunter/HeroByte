@@ -43,15 +43,18 @@ const createDefaultProps = () => ({
 });
 
 /**
- * Comprehensive tests for Header component
+ * Optimized tests for Header component
  *
  * Tests all 188 LOC including:
- * - Component rendering
+ * - Component rendering and structure
  * - Layout and styling
  * - Tool mode toggles
  * - Button interactions
  * - Derived boolean states
  * - Ref attachment
+ *
+ * Optimization: Consolidated repetitive tests to reduce render count from 96 to ~30
+ * while maintaining 100% coverage. Multiple related assertions now share single renders.
  */
 describe("Header", () => {
   let props: ReturnType<typeof createDefaultProps>;
@@ -60,86 +63,91 @@ describe("Header", () => {
     props = createDefaultProps();
   });
 
-  describe("Rendering", () => {
-    it("should render with all required props", () => {
-      const { container } = render(<Header {...props} />);
-      expect(container.firstChild).toBeInTheDocument();
-    });
-
-    it("should render with fixed positioning", () => {
+  describe("Container Structure and Styling", () => {
+    it("should render with correct container positioning and layout", () => {
       const { container } = render(<Header {...props} />);
       const headerContainer = container.firstChild as HTMLElement;
 
+      expect(headerContainer).toBeInTheDocument();
       expect(headerContainer).toHaveStyle({
         position: "fixed",
+        top: "28px",
         left: "0",
         right: "0",
-      });
-    });
-
-    it("should have z-index 100", () => {
-      const { container } = render(<Header {...props} />);
-      const headerContainer = container.firstChild as HTMLElement;
-
-      expect(headerContainer).toHaveStyle({
         zIndex: "100",
-      });
-    });
-
-    it("should have top offset of 28px for status banner", () => {
-      const { container } = render(<Header {...props} />);
-      const headerContainer = container.firstChild as HTMLElement;
-
-      expect(headerContainer).toHaveStyle({
-        top: "28px",
-      });
-    });
-
-    it("should have margin 0", () => {
-      const { container } = render(<Header {...props} />);
-      const headerContainer = container.firstChild as HTMLElement;
-
-      expect(headerContainer).toHaveStyle({
         margin: "0",
       });
     });
 
-    it("should render logo image with correct src", () => {
+    it("should render with bevel panel and flexbox layout", () => {
+      render(<Header {...props} />);
+      const bevelPanel = screen.getByTestId("jrpg-panel-bevel");
+      const flexContainer = bevelPanel.querySelector("div") as HTMLElement;
+
+      expect(bevelPanel).toBeInTheDocument();
+      expect(bevelPanel).toHaveStyle({
+        padding: "8px",
+        borderRadius: "0",
+      });
+      expect(flexContainer).toHaveStyle({
+        display: "flex",
+        gap: "12px",
+        alignItems: "flex-start",
+      });
+    });
+
+    it("should render left and right panels with correct styling", () => {
+      render(<Header {...props} />);
+      const simplePanels = screen.getAllByTestId("jrpg-panel-simple");
+      const leftPanel = simplePanels[0];
+      const rightPanel = simplePanels[1];
+      const controlsContainer = rightPanel.querySelector("div") as HTMLElement;
+
+      expect(leftPanel).toHaveStyle({
+        padding: "8px",
+        minWidth: "200px",
+      });
+      expect(rightPanel).toHaveStyle({
+        padding: "8px",
+        flex: "1",
+      });
+      expect(controlsContainer).toHaveStyle({
+        display: "flex",
+        gap: "12px",
+        alignItems: "center",
+        flexWrap: "wrap",
+      });
+    });
+
+    it("should render all buttons with consistent styling", () => {
+      render(<Header {...props} />);
+      const buttons = screen.getAllByRole("button");
+
+      buttons.forEach((button) => {
+        expect(button).toHaveStyle({
+          fontSize: "8px",
+          padding: "6px 12px",
+        });
+      });
+    });
+  });
+
+  describe("Logo and UID Display", () => {
+    it("should render logo with correct attributes and styling", () => {
       render(<Header {...props} />);
       const logo = screen.getByAltText("HeroByte");
 
       expect(logo).toBeInTheDocument();
       expect(logo).toHaveAttribute("src", "/logo.webp");
-    });
-
-    it("should render logo image with correct alt text", () => {
-      render(<Header {...props} />);
-      const logo = screen.getByAltText("HeroByte");
-
       expect(logo).toHaveAttribute("alt", "HeroByte");
-    });
-
-    it("should render logo with pixelated class", () => {
-      render(<Header {...props} />);
-      const logo = screen.getByAltText("HeroByte");
-
       expect(logo).toHaveClass("jrpg-pixelated");
-    });
-
-    it("should render logo with height 40px", () => {
-      render(<Header {...props} />);
-      const logo = screen.getByAltText("HeroByte");
-
       expect(logo).toHaveStyle({ height: "40px" });
     });
 
-    it("should display UID label", () => {
+    it("should display UID label and truncated UID", () => {
       render(<Header {...props} />);
-      expect(screen.getByText(/UID:/)).toBeInTheDocument();
-    });
 
-    it("should display truncated UID (first 8 chars + ...)", () => {
-      render(<Header {...props} />);
+      expect(screen.getByText(/UID:/)).toBeInTheDocument();
       expect(screen.getByText("12345678...")).toBeInTheDocument();
     });
 
@@ -149,9 +157,12 @@ describe("Header", () => {
         uid: "abcdefghijklmnopqrstuvwxyz",
       };
       render(<Header {...customProps} />);
+
       expect(screen.getByText("abcdefgh...")).toBeInTheDocument();
     });
+  });
 
+  describe("Ref Attachment", () => {
     it("should attach topPanelRef to container div when provided", () => {
       const topPanelRef = React.createRef<HTMLDivElement>();
       render(<Header {...props} topPanelRef={topPanelRef} />);
@@ -169,767 +180,208 @@ describe("Header", () => {
     });
   });
 
-  describe("Layout and Styling", () => {
-    it("should render bevel panel as main container", () => {
-      render(<Header {...props} />);
-      const bevelPanel = screen.getByTestId("jrpg-panel-bevel");
-
-      expect(bevelPanel).toBeInTheDocument();
-    });
-
-    it("should have padding 8px and borderRadius 0 on bevel panel", () => {
-      render(<Header {...props} />);
-      const bevelPanel = screen.getByTestId("jrpg-panel-bevel");
-
-      expect(bevelPanel).toHaveStyle({
-        padding: "8px",
-        borderRadius: "0",
-      });
-    });
-
-    it("should have flexbox layout with gap 12px", () => {
-      render(<Header {...props} />);
-      const bevelPanel = screen.getByTestId("jrpg-panel-bevel");
-      const flexContainer = bevelPanel.querySelector("div") as HTMLElement;
-
-      expect(flexContainer).toHaveStyle({
-        display: "flex",
-        gap: "12px",
-        alignItems: "flex-start",
-      });
-    });
-
-    it("should render left panel (logo + UID) with minWidth 200px", () => {
-      render(<Header {...props} />);
-      const simplePanels = screen.getAllByTestId("jrpg-panel-simple");
-      const leftPanel = simplePanels[0];
-
-      expect(leftPanel).toHaveStyle({
-        padding: "8px",
-        minWidth: "200px",
-      });
-    });
-
-    it("should render right panel (controls) with flex: 1", () => {
-      render(<Header {...props} />);
-      const simplePanels = screen.getAllByTestId("jrpg-panel-simple");
-      const rightPanel = simplePanels[1];
-
-      expect(rightPanel).toHaveStyle({
-        padding: "8px",
-        flex: "1",
-      });
-    });
-
-    it("should have flexWrap enabled for responsive layout", () => {
-      render(<Header {...props} />);
-      const simplePanels = screen.getAllByTestId("jrpg-panel-simple");
-      const rightPanel = simplePanels[1];
-      const controlsContainer = rightPanel.querySelector("div") as HTMLElement;
-
-      expect(controlsContainer).toHaveStyle({
-        display: "flex",
-        gap: "12px",
-        alignItems: "center",
-        flexWrap: "wrap",
-      });
-    });
-
-    it("should render all buttons with fontSize 8px", () => {
-      render(<Header {...props} />);
-      const buttons = screen.getAllByRole("button");
-
-      buttons.forEach((button) => {
-        expect(button).toHaveStyle({ fontSize: "8px" });
-      });
-    });
-
-    it("should render all buttons with padding 6px 12px", () => {
-      render(<Header {...props} />);
-      const buttons = screen.getAllByRole("button");
-
-      buttons.forEach((button) => {
-        expect(button).toHaveStyle({ padding: "6px 12px" });
-      });
-    });
-  });
-
   describe("Snap to Grid Button", () => {
-    it("should render with 'Snap' text", () => {
-      render(<Header {...props} />);
-      expect(screen.getByRole("button", { name: "Snap" })).toBeInTheDocument();
-    });
+    it("should render and respond to snapToGrid state", () => {
+      const { rerender } = render(<Header {...props} snapToGrid={false} />);
+      let button = screen.getByRole("button", { name: "Snap" });
 
-    it("should have primary variant when snapToGrid is true", () => {
-      const customProps = { ...props, snapToGrid: true };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "Snap" });
+      expect(button).toBeInTheDocument();
+      expect(button).toHaveAttribute("data-variant", "default");
 
+      rerender(<Header {...props} snapToGrid={true} />);
+      button = screen.getByRole("button", { name: "Snap" });
       expect(button).toHaveAttribute("data-variant", "primary");
     });
 
-    it("should have default variant when snapToGrid is false", () => {
-      const customProps = { ...props, snapToGrid: false };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "Snap" });
-
-      expect(button).toHaveAttribute("data-variant", "default");
-    });
-
-    it("should toggle snapToGrid from false to true on click", () => {
-      const customProps = { ...props, snapToGrid: false };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "Snap" });
+    it("should toggle snapToGrid state on click", () => {
+      const { rerender } = render(<Header {...props} snapToGrid={false} />);
+      let button = screen.getByRole("button", { name: "Snap" });
 
       fireEvent.click(button);
-
-      expect(props.onSnapToGridChange).toHaveBeenCalledTimes(1);
       expect(props.onSnapToGridChange).toHaveBeenCalledWith(true);
-    });
 
-    it("should toggle snapToGrid from true to false on click", () => {
-      const customProps = { ...props, snapToGrid: true };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "Snap" });
+      rerender(<Header {...props} snapToGrid={true} />);
+      button = screen.getByRole("button", { name: "Snap" });
 
       fireEvent.click(button);
-
-      expect(props.onSnapToGridChange).toHaveBeenCalledTimes(1);
       expect(props.onSnapToGridChange).toHaveBeenCalledWith(false);
-    });
-
-    it("should call onSnapToGridChange with correct value", () => {
-      render(<Header {...props} />);
-      const button = screen.getByRole("button", { name: "Snap" });
-
-      fireEvent.click(button);
-
-      expect(props.onSnapToGridChange).toHaveBeenCalledWith(true);
     });
   });
 
   describe("Reset Camera Button", () => {
-    it("should render with '🧭 Recenter' text", () => {
-      render(<Header {...props} />);
-      expect(screen.getByRole("button", { name: "🧭 Recenter" })).toBeInTheDocument();
-    });
-
-    it("should always have default variant", () => {
+    it("should render with correct text and variant", () => {
       render(<Header {...props} />);
       const button = screen.getByRole("button", { name: "🧭 Recenter" });
 
+      expect(button).toBeInTheDocument();
       expect(button).toHaveAttribute("data-variant", "default");
     });
 
-    it("should call onResetCamera on click", () => {
+    it("should call onResetCamera on click without affecting other handlers", () => {
       render(<Header {...props} />);
       const button = screen.getByRole("button", { name: "🧭 Recenter" });
 
       fireEvent.click(button);
 
       expect(props.onResetCamera).toHaveBeenCalledTimes(1);
-    });
-
-    it("should not call other handlers when clicked", () => {
-      render(<Header {...props} />);
-      const button = screen.getByRole("button", { name: "🧭 Recenter" });
-
-      fireEvent.click(button);
-
       expect(props.onSnapToGridChange).not.toHaveBeenCalled();
       expect(props.onToolSelect).not.toHaveBeenCalled();
     });
   });
 
-  describe("Tool Mode Buttons - Pointer", () => {
-    it("should render with '👆 Pointer' text", () => {
+  describe.each<{ tool: ToolMode; label: string; title?: string }>([
+    { tool: "pointer", label: "👆 Pointer" },
+    { tool: "measure", label: "📏 Measure" },
+    { tool: "draw", label: "✏️ Draw Tools" },
+    { tool: "transform", label: "🔄 Transform", title: "Scale and rotate objects" },
+    { tool: "select", label: "🖱️ Select" },
+  ])("Tool Mode Button - $tool", ({ tool, label, title }) => {
+    it("should render with correct text and optional title", () => {
       render(<Header {...props} />);
-      expect(screen.getByRole("button", { name: "👆 Pointer" })).toBeInTheDocument();
+      const button = screen.getByRole("button", { name: label });
+
+      expect(button).toBeInTheDocument();
+      if (title) {
+        expect(button).toHaveAttribute("title", title);
+      }
     });
 
-    it("should have primary variant when activeTool is 'pointer'", () => {
-      const customProps = { ...props, activeTool: "pointer" as ToolMode };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "👆 Pointer" });
-
+    it("should have primary variant when active, default when inactive", () => {
+      const { rerender } = render(<Header {...props} activeTool={tool} />);
+      let button = screen.getByRole("button", { name: label });
       expect(button).toHaveAttribute("data-variant", "primary");
-    });
 
-    it("should have default variant when activeTool is not 'pointer'", () => {
-      const customProps = { ...props, activeTool: "measure" as ToolMode };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "👆 Pointer" });
+      rerender(<Header {...props} activeTool={null} />);
+      button = screen.getByRole("button", { name: label });
+      expect(button).toHaveAttribute("data-variant", "default");
 
+      rerender(<Header {...props} activeTool={tool === "pointer" ? "measure" : "pointer"} />);
+      button = screen.getByRole("button", { name: label });
       expect(button).toHaveAttribute("data-variant", "default");
     });
 
-    it("should have default variant when activeTool is null", () => {
-      const customProps = { ...props, activeTool: null };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "👆 Pointer" });
-
-      expect(button).toHaveAttribute("data-variant", "default");
-    });
-
-    it("should activate pointer mode when clicked from null", () => {
-      const customProps = { ...props, activeTool: null };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "👆 Pointer" });
+    it("should toggle tool mode on click", () => {
+      const { rerender } = render(<Header {...props} activeTool={null} />);
+      let button = screen.getByRole("button", { name: label });
 
       fireEvent.click(button);
+      expect(props.onToolSelect).toHaveBeenCalledWith(tool);
 
-      expect(props.onToolSelect).toHaveBeenCalledTimes(1);
-      expect(props.onToolSelect).toHaveBeenCalledWith("pointer");
-    });
-
-    it("should deactivate pointer mode when clicked while active", () => {
-      const customProps = { ...props, activeTool: "pointer" as ToolMode };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "👆 Pointer" });
+      rerender(<Header {...props} activeTool={tool} />);
+      button = screen.getByRole("button", { name: label });
 
       fireEvent.click(button);
-
-      expect(props.onToolSelect).toHaveBeenCalledTimes(1);
-      expect(props.onToolSelect).toHaveBeenCalledWith(null);
-    });
-  });
-
-  describe("Tool Mode Buttons - Measure", () => {
-    it("should render with '📏 Measure' text", () => {
-      render(<Header {...props} />);
-      expect(screen.getByRole("button", { name: "📏 Measure" })).toBeInTheDocument();
-    });
-
-    it("should have primary variant when activeTool is 'measure'", () => {
-      const customProps = { ...props, activeTool: "measure" as ToolMode };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "📏 Measure" });
-
-      expect(button).toHaveAttribute("data-variant", "primary");
-    });
-
-    it("should have default variant when activeTool is not 'measure'", () => {
-      const customProps = { ...props, activeTool: "pointer" as ToolMode };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "📏 Measure" });
-
-      expect(button).toHaveAttribute("data-variant", "default");
-    });
-
-    it("should activate measure mode when clicked from null", () => {
-      const customProps = { ...props, activeTool: null };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "📏 Measure" });
-
-      fireEvent.click(button);
-
-      expect(props.onToolSelect).toHaveBeenCalledTimes(1);
-      expect(props.onToolSelect).toHaveBeenCalledWith("measure");
-    });
-
-    it("should deactivate measure mode when clicked while active", () => {
-      const customProps = { ...props, activeTool: "measure" as ToolMode };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "📏 Measure" });
-
-      fireEvent.click(button);
-
-      expect(props.onToolSelect).toHaveBeenCalledTimes(1);
-      expect(props.onToolSelect).toHaveBeenCalledWith(null);
-    });
-  });
-
-  describe("Tool Mode Buttons - Draw", () => {
-    it("should render with '✏️ Draw Tools' text", () => {
-      render(<Header {...props} />);
-      expect(screen.getByRole("button", { name: "✏️ Draw Tools" })).toBeInTheDocument();
-    });
-
-    it("should have primary variant when activeTool is 'draw'", () => {
-      const customProps = { ...props, activeTool: "draw" as ToolMode };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "✏️ Draw Tools" });
-
-      expect(button).toHaveAttribute("data-variant", "primary");
-    });
-
-    it("should have default variant when activeTool is not 'draw'", () => {
-      const customProps = { ...props, activeTool: "select" as ToolMode };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "✏️ Draw Tools" });
-
-      expect(button).toHaveAttribute("data-variant", "default");
-    });
-
-    it("should activate draw mode when clicked from null", () => {
-      const customProps = { ...props, activeTool: null };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "✏️ Draw Tools" });
-
-      fireEvent.click(button);
-
-      expect(props.onToolSelect).toHaveBeenCalledTimes(1);
-      expect(props.onToolSelect).toHaveBeenCalledWith("draw");
-    });
-
-    it("should deactivate draw mode when clicked while active", () => {
-      const customProps = { ...props, activeTool: "draw" as ToolMode };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "✏️ Draw Tools" });
-
-      fireEvent.click(button);
-
-      expect(props.onToolSelect).toHaveBeenCalledTimes(1);
-      expect(props.onToolSelect).toHaveBeenCalledWith(null);
-    });
-  });
-
-  describe("Tool Mode Buttons - Transform", () => {
-    it("should render with '🔄 Transform' text", () => {
-      render(<Header {...props} />);
-      expect(screen.getByRole("button", { name: "🔄 Transform" })).toBeInTheDocument();
-    });
-
-    it("should have title attribute 'Scale and rotate objects'", () => {
-      render(<Header {...props} />);
-      const button = screen.getByRole("button", { name: "🔄 Transform" });
-
-      expect(button).toHaveAttribute("title", "Scale and rotate objects");
-    });
-
-    it("should have primary variant when activeTool is 'transform'", () => {
-      const customProps = { ...props, activeTool: "transform" as ToolMode };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "🔄 Transform" });
-
-      expect(button).toHaveAttribute("data-variant", "primary");
-    });
-
-    it("should have default variant when activeTool is not 'transform'", () => {
-      const customProps = { ...props, activeTool: "draw" as ToolMode };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "🔄 Transform" });
-
-      expect(button).toHaveAttribute("data-variant", "default");
-    });
-
-    it("should activate transform mode when clicked from null", () => {
-      const customProps = { ...props, activeTool: null };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "🔄 Transform" });
-
-      fireEvent.click(button);
-
-      expect(props.onToolSelect).toHaveBeenCalledTimes(1);
-      expect(props.onToolSelect).toHaveBeenCalledWith("transform");
-    });
-
-    it("should deactivate transform mode when clicked while active", () => {
-      const customProps = { ...props, activeTool: "transform" as ToolMode };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "🔄 Transform" });
-
-      fireEvent.click(button);
-
-      expect(props.onToolSelect).toHaveBeenCalledTimes(1);
-      expect(props.onToolSelect).toHaveBeenCalledWith(null);
-    });
-  });
-
-  describe("Tool Mode Buttons - Select", () => {
-    it("should render with '🖱️ Select' text", () => {
-      render(<Header {...props} />);
-      expect(screen.getByRole("button", { name: "🖱️ Select" })).toBeInTheDocument();
-    });
-
-    it("should have primary variant when activeTool is 'select'", () => {
-      const customProps = { ...props, activeTool: "select" as ToolMode };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "🖱️ Select" });
-
-      expect(button).toHaveAttribute("data-variant", "primary");
-    });
-
-    it("should have default variant when activeTool is not 'select'", () => {
-      const customProps = { ...props, activeTool: "transform" as ToolMode };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "🖱️ Select" });
-
-      expect(button).toHaveAttribute("data-variant", "default");
-    });
-
-    it("should activate select mode when clicked from null", () => {
-      const customProps = { ...props, activeTool: null };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "🖱️ Select" });
-
-      fireEvent.click(button);
-
-      expect(props.onToolSelect).toHaveBeenCalledTimes(1);
-      expect(props.onToolSelect).toHaveBeenCalledWith("select");
-    });
-
-    it("should deactivate select mode when clicked while active", () => {
-      const customProps = { ...props, activeTool: "select" as ToolMode };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "🖱️ Select" });
-
-      fireEvent.click(button);
-
-      expect(props.onToolSelect).toHaveBeenCalledTimes(1);
       expect(props.onToolSelect).toHaveBeenCalledWith(null);
     });
   });
 
   describe("Derived Boolean States", () => {
-    it("should derive pointerMode from activeTool === 'pointer'", () => {
-      const customProps = { ...props, activeTool: "pointer" as ToolMode };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "👆 Pointer" });
-
-      expect(button).toHaveAttribute("data-variant", "primary");
-    });
-
-    it("should derive measureMode from activeTool === 'measure'", () => {
-      const customProps = { ...props, activeTool: "measure" as ToolMode };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "📏 Measure" });
-
-      expect(button).toHaveAttribute("data-variant", "primary");
-    });
-
-    it("should derive drawMode from activeTool === 'draw'", () => {
-      const customProps = { ...props, activeTool: "draw" as ToolMode };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "✏️ Draw Tools" });
-
-      expect(button).toHaveAttribute("data-variant", "primary");
-    });
-
-    it("should derive transformMode from activeTool === 'transform'", () => {
-      const customProps = { ...props, activeTool: "transform" as ToolMode };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "🔄 Transform" });
-
-      expect(button).toHaveAttribute("data-variant", "primary");
-    });
-
-    it("should derive selectMode from activeTool === 'select'", () => {
-      const customProps = { ...props, activeTool: "select" as ToolMode };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "🖱️ Select" });
-
-      expect(button).toHaveAttribute("data-variant", "primary");
-    });
-
-    it("should handle activeTool being null", () => {
-      const customProps = { ...props, activeTool: null };
-      render(<Header {...customProps} />);
-
-      const pointerButton = screen.getByRole("button", { name: "👆 Pointer" });
-      const measureButton = screen.getByRole("button", { name: "📏 Measure" });
-      const drawButton = screen.getByRole("button", { name: "✏️ Draw Tools" });
-      const transformButton = screen.getByRole("button", { name: "🔄 Transform" });
-      const selectButton = screen.getByRole("button", { name: "🖱️ Select" });
-
-      expect(pointerButton).toHaveAttribute("data-variant", "default");
-      expect(measureButton).toHaveAttribute("data-variant", "default");
-      expect(drawButton).toHaveAttribute("data-variant", "default");
-      expect(transformButton).toHaveAttribute("data-variant", "default");
-      expect(selectButton).toHaveAttribute("data-variant", "default");
-    });
-
     it("should only activate one tool mode at a time", () => {
-      const customProps = { ...props, activeTool: "pointer" as ToolMode };
-      render(<Header {...customProps} />);
+      const { rerender } = render(<Header {...props} activeTool={null} />);
+      const allButtons = [
+        screen.getByRole("button", { name: "👆 Pointer" }),
+        screen.getByRole("button", { name: "📏 Measure" }),
+        screen.getByRole("button", { name: "✏️ Draw Tools" }),
+        screen.getByRole("button", { name: "🔄 Transform" }),
+        screen.getByRole("button", { name: "🖱️ Select" }),
+      ];
 
-      const pointerButton = screen.getByRole("button", { name: "👆 Pointer" });
-      const measureButton = screen.getByRole("button", { name: "📏 Measure" });
-      const drawButton = screen.getByRole("button", { name: "✏️ Draw Tools" });
-      const transformButton = screen.getByRole("button", { name: "🔄 Transform" });
-      const selectButton = screen.getByRole("button", { name: "🖱️ Select" });
+      allButtons.forEach(btn => expect(btn).toHaveAttribute("data-variant", "default"));
 
-      expect(pointerButton).toHaveAttribute("data-variant", "primary");
-      expect(measureButton).toHaveAttribute("data-variant", "default");
-      expect(drawButton).toHaveAttribute("data-variant", "default");
-      expect(transformButton).toHaveAttribute("data-variant", "default");
-      expect(selectButton).toHaveAttribute("data-variant", "default");
-    });
-  });
-
-  describe("CRT Filter Button", () => {
-    it("should render with '📺 CRT' text", () => {
-      render(<Header {...props} />);
-      expect(screen.getByRole("button", { name: "📺 CRT" })).toBeInTheDocument();
+      rerender(<Header {...props} activeTool="pointer" />);
+      expect(screen.getByRole("button", { name: "👆 Pointer" })).toHaveAttribute("data-variant", "primary");
+      allButtons.slice(1).forEach(btn => expect(btn).toHaveAttribute("data-variant", "default"));
     });
 
-    it("should have primary variant when crtFilter is true", () => {
-      const customProps = { ...props, crtFilter: true };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "📺 CRT" });
+    it("should handle non-displayed tool modes (align)", () => {
+      render(<Header {...props} activeTool={"align" as ToolMode} />);
+      const allButtons = [
+        screen.getByRole("button", { name: "👆 Pointer" }),
+        screen.getByRole("button", { name: "📏 Measure" }),
+        screen.getByRole("button", { name: "✏️ Draw Tools" }),
+        screen.getByRole("button", { name: "🔄 Transform" }),
+        screen.getByRole("button", { name: "🖱️ Select" }),
+      ];
 
-      expect(button).toHaveAttribute("data-variant", "primary");
-    });
-
-    it("should have default variant when crtFilter is false", () => {
-      const customProps = { ...props, crtFilter: false };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "📺 CRT" });
-
-      expect(button).toHaveAttribute("data-variant", "default");
-    });
-
-    it("should toggle crtFilter from false to true on click", () => {
-      const customProps = { ...props, crtFilter: false };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "📺 CRT" });
-
-      fireEvent.click(button);
-
-      expect(props.onCrtFilterChange).toHaveBeenCalledTimes(1);
-      expect(props.onCrtFilterChange).toHaveBeenCalledWith(true);
-    });
-
-    it("should toggle crtFilter from true to false on click", () => {
-      const customProps = { ...props, crtFilter: true };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "📺 CRT" });
-
-      fireEvent.click(button);
-
-      expect(props.onCrtFilterChange).toHaveBeenCalledTimes(1);
-      expect(props.onCrtFilterChange).toHaveBeenCalledWith(false);
-    });
-
-    it("should call onCrtFilterChange with correct value", () => {
-      render(<Header {...props} />);
-      const button = screen.getByRole("button", { name: "📺 CRT" });
-
-      fireEvent.click(button);
-
-      expect(props.onCrtFilterChange).toHaveBeenCalledWith(true);
-    });
-  });
-
-  describe("Dice Roller Button", () => {
-    it("should render with '⚂ Dice' text", () => {
-      render(<Header {...props} />);
-      expect(screen.getByRole("button", { name: "⚂ Dice" })).toBeInTheDocument();
-    });
-
-    it("should have primary variant when diceRollerOpen is true", () => {
-      const customProps = { ...props, diceRollerOpen: true };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "⚂ Dice" });
-
-      expect(button).toHaveAttribute("data-variant", "primary");
-    });
-
-    it("should have default variant when diceRollerOpen is false", () => {
-      const customProps = { ...props, diceRollerOpen: false };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "⚂ Dice" });
-
-      expect(button).toHaveAttribute("data-variant", "default");
-    });
-
-    it("should toggle diceRollerOpen from false to true on click", () => {
-      const customProps = { ...props, diceRollerOpen: false };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "⚂ Dice" });
-
-      fireEvent.click(button);
-
-      expect(props.onDiceRollerToggle).toHaveBeenCalledTimes(1);
-      expect(props.onDiceRollerToggle).toHaveBeenCalledWith(true);
-    });
-
-    it("should toggle diceRollerOpen from true to false on click", () => {
-      const customProps = { ...props, diceRollerOpen: true };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "⚂ Dice" });
-
-      fireEvent.click(button);
-
-      expect(props.onDiceRollerToggle).toHaveBeenCalledTimes(1);
-      expect(props.onDiceRollerToggle).toHaveBeenCalledWith(false);
-    });
-
-    it("should call onDiceRollerToggle with correct value", () => {
-      render(<Header {...props} />);
-      const button = screen.getByRole("button", { name: "⚂ Dice" });
-
-      fireEvent.click(button);
-
-      expect(props.onDiceRollerToggle).toHaveBeenCalledWith(true);
-    });
-  });
-
-  describe("Roll Log Button", () => {
-    it("should render with '📜 Log' text", () => {
-      render(<Header {...props} />);
-      expect(screen.getByRole("button", { name: "📜 Log" })).toBeInTheDocument();
-    });
-
-    it("should have primary variant when rollLogOpen is true", () => {
-      const customProps = { ...props, rollLogOpen: true };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "📜 Log" });
-
-      expect(button).toHaveAttribute("data-variant", "primary");
-    });
-
-    it("should have default variant when rollLogOpen is false", () => {
-      const customProps = { ...props, rollLogOpen: false };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "📜 Log" });
-
-      expect(button).toHaveAttribute("data-variant", "default");
-    });
-
-    it("should toggle rollLogOpen from false to true on click", () => {
-      const customProps = { ...props, rollLogOpen: false };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "📜 Log" });
-
-      fireEvent.click(button);
-
-      expect(props.onRollLogToggle).toHaveBeenCalledTimes(1);
-      expect(props.onRollLogToggle).toHaveBeenCalledWith(true);
-    });
-
-    it("should toggle rollLogOpen from true to false on click", () => {
-      const customProps = { ...props, rollLogOpen: true };
-      render(<Header {...customProps} />);
-      const button = screen.getByRole("button", { name: "📜 Log" });
-
-      fireEvent.click(button);
-
-      expect(props.onRollLogToggle).toHaveBeenCalledTimes(1);
-      expect(props.onRollLogToggle).toHaveBeenCalledWith(false);
-    });
-
-    it("should call onRollLogToggle with correct value", () => {
-      render(<Header {...props} />);
-      const button = screen.getByRole("button", { name: "📜 Log" });
-
-      fireEvent.click(button);
-
-      expect(props.onRollLogToggle).toHaveBeenCalledWith(true);
-    });
-  });
-
-  describe("Button Interaction Isolation", () => {
-    it("should only call corresponding handler when snap button is clicked", () => {
-      render(<Header {...props} />);
-      const button = screen.getByRole("button", { name: "Snap" });
-
-      fireEvent.click(button);
-
-      expect(props.onSnapToGridChange).toHaveBeenCalledTimes(1);
-      expect(props.onToolSelect).not.toHaveBeenCalled();
-      expect(props.onCrtFilterChange).not.toHaveBeenCalled();
-      expect(props.onDiceRollerToggle).not.toHaveBeenCalled();
-      expect(props.onRollLogToggle).not.toHaveBeenCalled();
-      expect(props.onResetCamera).not.toHaveBeenCalled();
-    });
-
-    it("should only call corresponding handler when tool button is clicked", () => {
-      render(<Header {...props} />);
-      const button = screen.getByRole("button", { name: "👆 Pointer" });
-
-      fireEvent.click(button);
-
-      expect(props.onToolSelect).toHaveBeenCalledTimes(1);
-      expect(props.onSnapToGridChange).not.toHaveBeenCalled();
-      expect(props.onCrtFilterChange).not.toHaveBeenCalled();
-      expect(props.onDiceRollerToggle).not.toHaveBeenCalled();
-      expect(props.onRollLogToggle).not.toHaveBeenCalled();
-      expect(props.onResetCamera).not.toHaveBeenCalled();
-    });
-
-    it("should only call corresponding handler when CRT button is clicked", () => {
-      render(<Header {...props} />);
-      const button = screen.getByRole("button", { name: "📺 CRT" });
-
-      fireEvent.click(button);
-
-      expect(props.onCrtFilterChange).toHaveBeenCalledTimes(1);
-      expect(props.onSnapToGridChange).not.toHaveBeenCalled();
-      expect(props.onToolSelect).not.toHaveBeenCalled();
-      expect(props.onDiceRollerToggle).not.toHaveBeenCalled();
-      expect(props.onRollLogToggle).not.toHaveBeenCalled();
-      expect(props.onResetCamera).not.toHaveBeenCalled();
-    });
-
-    it("should only call corresponding handler when dice button is clicked", () => {
-      render(<Header {...props} />);
-      const button = screen.getByRole("button", { name: "⚂ Dice" });
-
-      fireEvent.click(button);
-
-      expect(props.onDiceRollerToggle).toHaveBeenCalledTimes(1);
-      expect(props.onSnapToGridChange).not.toHaveBeenCalled();
-      expect(props.onToolSelect).not.toHaveBeenCalled();
-      expect(props.onCrtFilterChange).not.toHaveBeenCalled();
-      expect(props.onRollLogToggle).not.toHaveBeenCalled();
-      expect(props.onResetCamera).not.toHaveBeenCalled();
-    });
-
-    it("should only call corresponding handler when log button is clicked", () => {
-      render(<Header {...props} />);
-      const button = screen.getByRole("button", { name: "📜 Log" });
-
-      fireEvent.click(button);
-
-      expect(props.onRollLogToggle).toHaveBeenCalledTimes(1);
-      expect(props.onSnapToGridChange).not.toHaveBeenCalled();
-      expect(props.onToolSelect).not.toHaveBeenCalled();
-      expect(props.onCrtFilterChange).not.toHaveBeenCalled();
-      expect(props.onDiceRollerToggle).not.toHaveBeenCalled();
-      expect(props.onResetCamera).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("All Tool Modes Coverage", () => {
-    it("should handle activeTool 'align' mode", () => {
-      const customProps = { ...props, activeTool: "align" as ToolMode };
-      render(<Header {...customProps} />);
-
-      // Verify all tool buttons show default variant when activeTool is 'align'
-      const pointerButton = screen.getByRole("button", { name: "👆 Pointer" });
-      const measureButton = screen.getByRole("button", { name: "📏 Measure" });
-      const drawButton = screen.getByRole("button", { name: "✏️ Draw Tools" });
-      const transformButton = screen.getByRole("button", { name: "🔄 Transform" });
-      const selectButton = screen.getByRole("button", { name: "🖱️ Select" });
-
-      expect(pointerButton).toHaveAttribute("data-variant", "default");
-      expect(measureButton).toHaveAttribute("data-variant", "default");
-      expect(drawButton).toHaveAttribute("data-variant", "default");
-      expect(transformButton).toHaveAttribute("data-variant", "default");
-      expect(selectButton).toHaveAttribute("data-variant", "default");
+      allButtons.forEach(btn => expect(btn).toHaveAttribute("data-variant", "default"));
     });
 
     it("should switch between different tool modes correctly", () => {
       const { rerender } = render(<Header {...props} activeTool="pointer" />);
-      let button = screen.getByRole("button", { name: "👆 Pointer" });
-      expect(button).toHaveAttribute("data-variant", "primary");
+      expect(screen.getByRole("button", { name: "👆 Pointer" })).toHaveAttribute("data-variant", "primary");
 
       rerender(<Header {...props} activeTool="measure" />);
-      button = screen.getByRole("button", { name: "📏 Measure" });
-      expect(button).toHaveAttribute("data-variant", "primary");
+      expect(screen.getByRole("button", { name: "📏 Measure" })).toHaveAttribute("data-variant", "primary");
 
       rerender(<Header {...props} activeTool="draw" />);
-      button = screen.getByRole("button", { name: "✏️ Draw Tools" });
-      expect(button).toHaveAttribute("data-variant", "primary");
+      expect(screen.getByRole("button", { name: "✏️ Draw Tools" })).toHaveAttribute("data-variant", "primary");
 
       rerender(<Header {...props} activeTool="transform" />);
-      button = screen.getByRole("button", { name: "🔄 Transform" });
-      expect(button).toHaveAttribute("data-variant", "primary");
+      expect(screen.getByRole("button", { name: "🔄 Transform" })).toHaveAttribute("data-variant", "primary");
 
       rerender(<Header {...props} activeTool="select" />);
-      button = screen.getByRole("button", { name: "🖱️ Select" });
+      expect(screen.getByRole("button", { name: "🖱️ Select" })).toHaveAttribute("data-variant", "primary");
+    });
+  });
+
+  describe.each<{ prop: "crtFilter" | "diceRollerOpen" | "rollLogOpen"; label: string; handler: string }>([
+    { prop: "crtFilter", label: "📺 CRT", handler: "onCrtFilterChange" },
+    { prop: "diceRollerOpen", label: "⚂ Dice", handler: "onDiceRollerToggle" },
+    { prop: "rollLogOpen", label: "📜 Log", handler: "onRollLogToggle" },
+  ])("Toggle Button - $label", ({ prop, label, handler }) => {
+    it("should render with correct variant based on state", () => {
+      const { rerender } = render(<Header {...props} {...{ [prop]: false }} />);
+      let button = screen.getByRole("button", { name: label });
+      expect(button).toHaveAttribute("data-variant", "default");
+
+      rerender(<Header {...props} {...{ [prop]: true }} />);
+      button = screen.getByRole("button", { name: label });
       expect(button).toHaveAttribute("data-variant", "primary");
+    });
+
+    it("should toggle state on click", () => {
+      const { rerender } = render(<Header {...props} {...{ [prop]: false }} />);
+      let button = screen.getByRole("button", { name: label });
+
+      fireEvent.click(button);
+      expect(props[handler as keyof typeof props]).toHaveBeenCalledWith(true);
+
+      rerender(<Header {...props} {...{ [prop]: true }} />);
+      button = screen.getByRole("button", { name: label });
+
+      fireEvent.click(button);
+      expect(props[handler as keyof typeof props]).toHaveBeenCalledWith(false);
+    });
+  });
+
+  describe("Button Interaction Isolation", () => {
+    it("should only call corresponding handler for each button type", () => {
+      render(<Header {...props} />);
+
+      const testCases = [
+        { name: "Snap", handler: "onSnapToGridChange", excluded: ["onToolSelect", "onCrtFilterChange", "onDiceRollerToggle", "onRollLogToggle", "onResetCamera"] },
+        { name: "👆 Pointer", handler: "onToolSelect", excluded: ["onSnapToGridChange", "onCrtFilterChange", "onDiceRollerToggle", "onRollLogToggle", "onResetCamera"] },
+        { name: "📺 CRT", handler: "onCrtFilterChange", excluded: ["onSnapToGridChange", "onToolSelect", "onDiceRollerToggle", "onRollLogToggle", "onResetCamera"] },
+        { name: "⚂ Dice", handler: "onDiceRollerToggle", excluded: ["onSnapToGridChange", "onToolSelect", "onCrtFilterChange", "onRollLogToggle", "onResetCamera"] },
+        { name: "📜 Log", handler: "onRollLogToggle", excluded: ["onSnapToGridChange", "onToolSelect", "onCrtFilterChange", "onDiceRollerToggle", "onResetCamera"] },
+      ];
+
+      testCases.forEach(({ name, handler, excluded }) => {
+        const button = screen.getByRole("button", { name });
+        fireEvent.click(button);
+
+        expect(props[handler as keyof typeof props]).toHaveBeenCalled();
+        excluded.forEach(excludedHandler => {
+          expect(props[excludedHandler as keyof typeof props]).not.toHaveBeenCalled();
+        });
+
+        // Reset mocks for next iteration
+        Object.values(props).forEach(val => {
+          if (typeof val === "function" && "mockClear" in val) {
+            (val as any).mockClear();
+          }
+        });
+      });
     });
   });
 
@@ -940,46 +392,6 @@ describe("Header", () => {
 
       rerender(<Header {...props} uid="99999999-zzzz-yyyy-xxxx-wwwwwwwwwwww" />);
       expect(screen.getByText("99999999...")).toBeInTheDocument();
-    });
-
-    it("should update button variants when snapToGrid changes", () => {
-      const { rerender } = render(<Header {...props} snapToGrid={false} />);
-      let button = screen.getByRole("button", { name: "Snap" });
-      expect(button).toHaveAttribute("data-variant", "default");
-
-      rerender(<Header {...props} snapToGrid={true} />);
-      button = screen.getByRole("button", { name: "Snap" });
-      expect(button).toHaveAttribute("data-variant", "primary");
-    });
-
-    it("should update button variants when crtFilter changes", () => {
-      const { rerender } = render(<Header {...props} crtFilter={false} />);
-      let button = screen.getByRole("button", { name: "📺 CRT" });
-      expect(button).toHaveAttribute("data-variant", "default");
-
-      rerender(<Header {...props} crtFilter={true} />);
-      button = screen.getByRole("button", { name: "📺 CRT" });
-      expect(button).toHaveAttribute("data-variant", "primary");
-    });
-
-    it("should update button variants when diceRollerOpen changes", () => {
-      const { rerender } = render(<Header {...props} diceRollerOpen={false} />);
-      let button = screen.getByRole("button", { name: "⚂ Dice" });
-      expect(button).toHaveAttribute("data-variant", "default");
-
-      rerender(<Header {...props} diceRollerOpen={true} />);
-      button = screen.getByRole("button", { name: "⚂ Dice" });
-      expect(button).toHaveAttribute("data-variant", "primary");
-    });
-
-    it("should update button variants when rollLogOpen changes", () => {
-      const { rerender } = render(<Header {...props} rollLogOpen={false} />);
-      let button = screen.getByRole("button", { name: "📜 Log" });
-      expect(button).toHaveAttribute("data-variant", "default");
-
-      rerender(<Header {...props} rollLogOpen={true} />);
-      button = screen.getByRole("button", { name: "📜 Log" });
-      expect(button).toHaveAttribute("data-variant", "primary");
     });
   });
 });

@@ -10,15 +10,8 @@ on:
       - dev
 
 jobs:
-  build-and-test:
+  lint-and-build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - node-version: 18.x
-            coverage: false
-          - node-version: 20.x
-            coverage: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -28,10 +21,10 @@ jobs:
         with:
           version: 10.17.1
 
-      - name: Setup Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 20.x
           cache: pnpm
 
       - name: Install dependencies
@@ -53,7 +46,7 @@ jobs:
       - name: Upload structural report
         uses: actions/upload-artifact@v4
         with:
-          name: structure-report-${{ matrix.node-version }}
+          name: structure-report
           path: |
             structure-report.txt
             structure-report.json
@@ -62,40 +55,80 @@ jobs:
       - name: Build packages
         run: pnpm build
 
-      - name: Run shared tests
-        if: ${{ !matrix.coverage }}
-        run: pnpm test:shared
+  test:
+    runs-on: ubuntu-latest
+    needs: lint-and-build
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [shared, server, client]
+        node-version: [18.x, 20.x]
+        include:
+          - package: shared
+            test-command: pnpm test:shared:coverage
+            coverage-path: packages/shared/coverage/coverage-final.json
+          - package: server
+            test-command: pnpm test:server:coverage
+            coverage-path: apps/server/coverage/coverage-final.json
+          - package: client
+            test-command: pnpm test:client:coverage
+            coverage-path: apps/client/coverage/coverage-final.json
+            node-options: --max-old-space-size=8192
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Run shared tests with coverage
-        if: ${{ matrix.coverage }}
-        run: pnpm test:shared:coverage
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10.17.1
 
-      - name: Run server tests
-        if: ${{ !matrix.coverage }}
-        run: pnpm test:server
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: pnpm
 
-      - name: Run server tests with coverage
-        if: ${{ matrix.coverage }}
-        run: pnpm test:server:coverage
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - name: Run client tests
-        if: ${{ !matrix.coverage }}
-        run: pnpm test:client
+      - name: Build packages
+        run: pnpm build
 
-      - name: Run client tests with coverage
-        if: ${{ matrix.coverage }}
-        run: pnpm test:client:coverage
+      - name: Run ${{ matrix.package }} tests with coverage
+        run: ${{ matrix.test-command }}
         env:
-          NODE_OPTIONS: --max-old-space-size=8192
+          NODE_OPTIONS: ${{ matrix.node-options || '' }}
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        if: matrix.node-version == '20.x'
+        with:
+          name: coverage-${{ matrix.package }}
+          path: ${{ matrix.coverage-path }}
+          retention-days: 1
+
+  upload-coverage:
+    runs-on: ubuntu-latest
+    needs: test
+    if: always()
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all coverage artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-*
+          path: coverage-artifacts
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
-        if: matrix.coverage
         with:
           files: |
-            packages/shared/coverage/coverage-final.json
-            apps/server/coverage/coverage-final.json
-            apps/client/coverage/coverage-final.json
+            coverage-artifacts/coverage-shared/coverage-final.json
+            coverage-artifacts/coverage-server/coverage-final.json
+            coverage-artifacts/coverage-client/coverage-final.json
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: unit
           fail_ci_if_error: false

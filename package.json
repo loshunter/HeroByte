@@ -12,6 +12,7 @@
     "build:client": "pnpm --filter herobyte-client build",
     "build": "pnpm build:server && pnpm build:client",
     "test": "pnpm test:shared && pnpm test:server && pnpm test:client",
+    "test:parallel": "pnpm -r --workspace-concurrency=2 run test",
     "test:coverage": "pnpm test:shared:coverage && pnpm test:server:coverage && pnpm test:client:coverage",
     "test:shared": "pnpm --filter @shared test",
     "test:shared:coverage": "pnpm --filter @shared test:coverage",
