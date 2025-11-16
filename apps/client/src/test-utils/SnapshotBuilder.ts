@@ -109,9 +109,7 @@ export class SnapshotBuilder {
    * Add a token to the snapshot
    * Provides defaults for all required fields
    */
-  withToken(
-    partial: Partial<Token> & { id: string; x: number; y: number; owner?: string }
-  ): this {
+  withToken(partial: Partial<Token> & { id: string; x: number; y: number; owner?: string }): this {
     const token: Token = {
       owner: "player-default",
       color: "hsl(120, 70%, 50%)",
@@ -159,9 +157,7 @@ export class SnapshotBuilder {
   /**
    * Add a prop to the snapshot
    */
-  withProp(
-    partial: Partial<Prop> & { id: string; label: string; x: number; y: number }
-  ): this {
+  withProp(partial: Partial<Prop> & { id: string; label: string; x: number; y: number }): this {
     const prop: Prop = {
       imageUrl: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3C/svg%3E",
       owner: null,
@@ -180,7 +176,7 @@ export class SnapshotBuilder {
    * Add a drawing to the snapshot
    */
   withDrawing(
-    partial: Partial<Drawing> & { id: string; type: Drawing["type"]; points: Drawing["points"] }
+    partial: Partial<Drawing> & { id: string; type: Drawing["type"]; points: Drawing["points"] },
   ): this {
     const drawing: Drawing = {
       color: "#000000",
@@ -213,7 +209,7 @@ export class SnapshotBuilder {
       playerUid: string;
       playerName: string;
       formula: string;
-    }
+    },
   ): this {
     const diceRoll: DiceRoll = {
       timestamp: Date.now(),
