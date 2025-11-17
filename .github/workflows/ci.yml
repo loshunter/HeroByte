@@ -114,6 +114,50 @@ jobs:
           path: ${{ matrix.coverage-path }}
           retention-days: 1
 
+  e2e-smoke-tests:
+    runs-on: ubuntu-latest
+    needs: lint-and-build
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10.17.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run smoke tests (stable only)
+        run: pnpm exec playwright test apps/e2e/smoke.spec.ts apps/e2e/character-creation.smoke.spec.ts apps/e2e/session-load.smoke.spec.ts apps/e2e/partial-erase.smoke.spec.ts
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Upload test artifacts (screenshots, videos)
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 7
+
   upload-coverage:
     runs-on: ubuntu-latest
     needs: test

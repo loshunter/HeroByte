@@ -119,6 +119,22 @@ export function validatePlaceNpcTokenMessage(message: MessageRecord): Validation
 }
 
 /**
+ * Validate toggle-npc-visibility message
+ * Required: id (string), visible (boolean)
+ */
+export function validateToggleNpcVisibilityMessage(message: MessageRecord): ValidationResult {
+  if (typeof message.id !== "string" || message.id.length === 0) {
+    return { valid: false, error: "toggle-npc-visibility: missing or invalid id" };
+  }
+
+  if (typeof message.visible !== "boolean") {
+    return { valid: false, error: "toggle-npc-visibility: visible must be boolean" };
+  }
+
+  return { valid: true };
+}
+
+/**
  * Validate claim-character message
  * Required: characterId (string)
  */

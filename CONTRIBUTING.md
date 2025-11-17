@@ -216,6 +216,53 @@ If running on Windows Subsystem for Linux (WSL):
 
 For detailed testing patterns and architecture, see the [Testing Architecture](README.md#testing-architecture) section in README.md.
 
+### End-to-End (E2E) Tests
+
+E2E tests verify full-stack flows using Playwright. **Only smoke tests run in CI** to keep pipelines fast.
+
+**Quick Commands:**
+
+```bash
+# Run all E2E tests locally (requires both client & server running)
+pnpm test:e2e
+
+# Run only smoke tests (fast, focused on critical paths)
+pnpm test:e2e:smoke
+
+# Run deprecated tests (being migrated to integration tests)
+pnpm test:e2e:deprecated
+
+# Run with UI mode (interactive debugging)
+pnpm test:e2e:ui
+```
+
+**Expected Runtime:**
+
+- **Smoke tests (CI):** ~1-2 minutes (4 stable tests)
+- **Full E2E suite (local):** ~3-5 minutes (includes deprecated tests)
+
+**CI Behavior:**
+
+- Only **stable smoke tests** run in CI (4 tests currently)
+- Stable: `smoke.spec.ts`, `character-creation.smoke.spec.ts`, `session-load.smoke.spec.ts`, `partial-erase.smoke.spec.ts`
+- Unstable (tracked for future stabilization): `staging-zone.smoke.spec.ts`, `transform-tool.smoke.spec.ts`
+- Timeout: 5 minutes (job will fail if exceeded)
+- Runs on Node 20.x with Chromium browser
+- Builds client/server once, then runs tests
+
+**Local Development:**
+
+- Playwright auto-starts both client (port 5173) and server (port 8787)
+- State files are cleaned between runs via global setup
+- Use `pnpm test:e2e:ui` for interactive debugging with browser
+- Screenshots/videos saved on failure to `test-results/`
+
+**When to Add E2E Tests:**
+
+- ❌ **Don't** add E2E tests for business logic (use integration tests instead)
+- ✅ **Do** add smoke tests for critical user flows (login, game creation, character creation)
+- ✅ **Do** keep E2E tests minimal and fast (< 30 seconds per test)
+
 **Test Quality Standards:** Follow the [Test Quality Guidelines](docs/TEST_QUALITY_GUIDELINES.md) to maintain test performance and prevent regression.
 
 ---

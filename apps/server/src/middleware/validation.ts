@@ -33,6 +33,7 @@ import {
   validateUpdateNpcMessage,
   validateDeleteNpcMessage,
   validatePlaceNpcTokenMessage,
+  validateToggleNpcVisibilityMessage,
   validateClaimCharacterMessage,
   validateAddPlayerCharacterMessage,
   validateDeletePlayerCharacterMessage,
@@ -144,6 +145,8 @@ export function validateMessage(raw: unknown): ValidationResult {
       return validateDeleteNpcMessage(message);
     case "place-npc-token":
       return validatePlaceNpcTokenMessage(message);
+    case "toggle-npc-visibility":
+      return validateToggleNpcVisibilityMessage(message);
     case "claim-character":
       return validateClaimCharacterMessage(message);
     case "add-player-character":
