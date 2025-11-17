@@ -207,7 +207,13 @@ describe("Room Model - toSnapshot", () => {
       const state = createEmptyRoomState();
 
       // Create NPCs and tokens
-      const visibleNPC = characterService.createCharacter(state, "Visible NPC", 10, undefined, "npc");
+      const visibleNPC = characterService.createCharacter(
+        state,
+        "Visible NPC",
+        10,
+        undefined,
+        "npc",
+      );
       const hiddenNPC = characterService.createCharacter(state, "Hidden NPC", 10, undefined, "npc");
       characterService.setNPCVisibility(state, hiddenNPC.id, false);
 
