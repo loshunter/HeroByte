@@ -425,6 +425,30 @@ describe("validateMessage", () => {
       expect(validateMessage({ t: "place-npc-token", id: "npc-1" })).toEqual({ valid: true });
       expect(validateMessage({ t: "place-npc-token", id: "" })).toMatchObject({ valid: false });
     });
+
+    it("validates toggle-npc-visibility", () => {
+      expect(
+        validateMessage({ t: "toggle-npc-visibility", id: "npc-1", visible: false }),
+      ).toEqual({ valid: true });
+    });
+
+    it("rejects toggle-npc-visibility with missing id", () => {
+      expect(
+        validateMessage({ t: "toggle-npc-visibility", id: "", visible: true }),
+      ).toMatchObject({
+        valid: false,
+        error: "toggle-npc-visibility: missing or invalid id",
+      });
+    });
+
+    it("rejects toggle-npc-visibility with non-boolean visible", () => {
+      expect(
+        validateMessage({ t: "toggle-npc-visibility", id: "npc-1", visible: "yes" }),
+      ).toMatchObject({
+        valid: false,
+        error: "toggle-npc-visibility: visible must be boolean",
+      });
+    });
   });
 
   describe("Edge Cases: Token Management", () => {
