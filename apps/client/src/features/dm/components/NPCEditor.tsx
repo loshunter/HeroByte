@@ -231,6 +231,26 @@ export function NPCEditor({
             }}
           />
         </label>
+        <label className="jrpg-text-small" style={{ flex: 1 }}>
+          Init Mod
+          <input
+            type="number"
+            min={-20}
+            max={20}
+            value={npc.initiativeModifier ?? 0}
+            disabled
+            title="Initiative modifier is set when rolling initiative"
+            style={{
+              width: "100%",
+              padding: "4px",
+              background: "#0a0a0a",
+              color: "var(--jrpg-border-gold)",
+              border: "1px solid var(--jrpg-border-gold)",
+              opacity: 0.7,
+              cursor: "not-allowed",
+            }}
+          />
+        </label>
       </div>
 
       <label
