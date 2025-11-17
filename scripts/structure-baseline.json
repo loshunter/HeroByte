@@ -3,7 +3,7 @@
 > node scripts/structure-report.mjs --limit 50 --threshold 350 --json
 
 {
-  "generatedAt": "2025-11-17T02:08:28.222Z",
+  "generatedAt": "2025-11-17T02:12:00.118Z",
   "threshold": 350,
   "includeTests": false,
   "files": [
