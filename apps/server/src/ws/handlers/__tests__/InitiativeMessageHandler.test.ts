@@ -190,6 +190,70 @@ describe("InitiativeMessageHandler", () => {
       expect(mockCharacterService.setInitiative).not.toHaveBeenCalled();
       expect(state.characters[0].initiative).toBeUndefined();
     });
+
+    it("should set currentTurnCharacterId when setting first initiative during active combat", () => {
+      // Start combat with no initiative set
+      state.combatActive = true;
+      state.currentTurnCharacterId = undefined;
+
+      // Set initiative for first character
+      const result = handler.handleSetInitiative(
+        state,
+        "char1",
+        "player1",
+        15,
+        2,
+        false, // not DM
+      );
+
+      expect(result.broadcast).toBe(true);
+      expect(result.save).toBe(true);
+      expect(state.currentTurnCharacterId).toBe("char1");
+      expect(mockCharacterService.getCharactersInInitiativeOrder).toHaveBeenCalled();
+    });
+
+    it("should not change currentTurnCharacterId when already set during active combat", () => {
+      // Start combat with initiative already set
+      state.combatActive = true;
+      state.characters[0].initiative = 20;
+      state.currentTurnCharacterId = "char1";
+
+      // Set initiative for second character
+      const result = handler.handleSetInitiative(
+        state,
+        "char2",
+        "player2",
+        15,
+        2,
+        false, // not DM
+      );
+
+      expect(result.broadcast).toBe(true);
+      expect(result.save).toBe(true);
+      // currentTurnCharacterId should remain unchanged
+      expect(state.currentTurnCharacterId).toBe("char1");
+    });
+
+    it("should not set currentTurnCharacterId when combat is not active", () => {
+      // Combat is not active
+      state.combatActive = false;
+      state.currentTurnCharacterId = undefined;
+
+      // Set initiative
+      const result = handler.handleSetInitiative(
+        state,
+        "char1",
+        "player1",
+        15,
+        2,
+        false, // not DM
+      );
+
+      expect(result.broadcast).toBe(true);
+      expect(result.save).toBe(true);
+      // currentTurnCharacterId should remain undefined
+      expect(state.currentTurnCharacterId).toBeUndefined();
+    });
   });
 
   describe("handleStartCombat", () => {

@@ -97,6 +97,18 @@ export class InitiativeMessageHandler {
 
     if (this.characterService.setInitiative(state, characterId, initiative, modifier)) {
       console.log(`[Server] Broadcasting updated initiative for ${character.name}`);
+
+      // If combat is active but no turn is set, set the first character with initiative as current turn
+      if (state.combatActive && !state.currentTurnCharacterId) {
+        const charactersInOrder = this.characterService.getCharactersInInitiativeOrder(state);
+        if (charactersInOrder.length > 0) {
+          state.currentTurnCharacterId = charactersInOrder[0].id;
+          console.log(
+            `[Server] Combat active with no current turn, setting first character as current turn: ${charactersInOrder[0].name}`,
+          );
+        }
+      }
+
       return { broadcast: true, save: true };
     }
 
