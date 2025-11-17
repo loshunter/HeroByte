@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import type { Character } from "@shared";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import { useImageUrlNormalization } from "../../../hooks/useImageUrlNormalization";
+import { StatusBanner } from "../../../components/ui/StatusBanner";
 
 interface NPCEditorProps {
   npc: Character;
@@ -113,64 +114,14 @@ export function NPCEditor({
 
   return (
     <JRPGPanel variant="simple" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-      {updateError && (
-        <div
-          style={{
-            padding: "8px",
-            background: "rgba(255, 0, 0, 0.1)",
-            border: "1px solid rgba(255, 0, 0, 0.3)",
-            borderRadius: "4px",
-            color: "#ff4444",
-            fontSize: "12px",
-          }}
-        >
-          {updateError}
-        </div>
-      )}
-      {tokenPlacementError && (
-        <div
-          style={{
-            padding: "8px",
-            background: "rgba(255, 0, 0, 0.1)",
-            border: "1px solid rgba(255, 0, 0, 0.3)",
-            borderRadius: "4px",
-            color: "#ff4444",
-            fontSize: "12px",
-          }}
-        >
-          {tokenPlacementError}
-        </div>
-      )}
-      {isUpdating && (
-        <div
-          style={{
-            padding: "6px",
-            background: "rgba(218, 165, 32, 0.1)",
-            border: "1px solid var(--jrpg-border-gold)",
-            borderRadius: "4px",
-            color: "var(--jrpg-gold)",
-            fontSize: "11px",
-            textAlign: "center",
-          }}
-        >
-          Updating...
-        </div>
-      )}
-      {isPlacingToken && (
-        <div
-          style={{
-            padding: "6px",
-            background: "rgba(218, 165, 32, 0.1)",
-            border: "1px solid var(--jrpg-border-gold)",
-            borderRadius: "4px",
-            color: "var(--jrpg-gold)",
-            fontSize: "11px",
-            textAlign: "center",
-          }}
-        >
-          Placing token...
-        </div>
-      )}
+      <StatusBanner variant="error" message={updateError ?? ""} visible={!!updateError} />
+      <StatusBanner
+        variant="error"
+        message={tokenPlacementError ?? ""}
+        visible={!!tokenPlacementError}
+      />
+      <StatusBanner variant="loading" message="Updating..." visible={isUpdating} />
+      <StatusBanner variant="loading" message="Placing token..." visible={isPlacingToken} />
       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
         <label className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
           Name
