@@ -296,12 +296,12 @@ describe("InitiativeMessageHandler", () => {
       expect(state.currentTurnCharacterId).toBe("char2");
     });
 
-    it("should reject non-DM advancing turn", () => {
+    it("should allow non-DM advancing turn", () => {
       const result = handler.handleNextTurn(state, "player1", false);
 
-      expect(result.broadcast).toBe(false);
-      expect(result.save).toBe(false);
-      expect(state.currentTurnCharacterId).toBe("char2");
+      expect(result.broadcast).toBe(true);
+      expect(result.save).toBe(true);
+      expect(state.currentTurnCharacterId).toBe("char1");
     });
 
     it("should do nothing if no characters in initiative order", () => {
@@ -348,12 +348,12 @@ describe("InitiativeMessageHandler", () => {
       expect(state.currentTurnCharacterId).toBe("char3");
     });
 
-    it("should reject non-DM going back turn", () => {
+    it("should allow non-DM going back turn", () => {
       const result = handler.handlePreviousTurn(state, "player1", false);
 
-      expect(result.broadcast).toBe(false);
-      expect(result.save).toBe(false);
-      expect(state.currentTurnCharacterId).toBe("char1");
+      expect(result.broadcast).toBe(true);
+      expect(result.save).toBe(true);
+      expect(state.currentTurnCharacterId).toBe("char2");
     });
 
     it("should do nothing if no characters in initiative order", () => {

@@ -9,6 +9,7 @@ import { PlayerCard } from "../../features/players/components";
 import { NpcCard } from "../../features/players/components/NpcCard";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
 import { InitiativeModal } from "../../features/initiative/components/InitiativeModal";
+import { TurnNavigationControls } from "../../features/initiative/components/TurnNavigationControls";
 import { useCombatOrdering } from "../../hooks/useCombatOrdering";
 import { useInitiativeModal } from "../../hooks/useInitiativeModal";
 import { useCharacterCreation } from "../../hooks/useCharacterCreation";
@@ -128,8 +129,8 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   onClearInitiative,
   isSettingInitiative = false,
   initiativeError = null,
-  onNextTurn: _onNextTurn,
-  onPreviousTurn: _onPreviousTurn,
+  onNextTurn,
+  onPreviousTurn,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
@@ -254,7 +255,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
-                    gap: "4px",
+                    gap: "8px",
                     padding: "8px 16px",
                     background: "rgba(12, 18, 40, 0.85)",
                     border: "1px solid var(--jrpg-border-gold)",
@@ -268,6 +269,13 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                       Turn {currentTurnIndexDisplay >= 0 ? currentTurnIndexDisplay + 1 : 1} of{" "}
                       {initiativeCombatants.length}
                     </span>
+                  )}
+                  {onNextTurn && onPreviousTurn && (
+                    <TurnNavigationControls
+                      combatActive={combatActive}
+                      onNextTurn={onNextTurn}
+                      onPreviousTurn={onPreviousTurn}
+                    />
                   )}
                 </JRPGPanel>
               </div>

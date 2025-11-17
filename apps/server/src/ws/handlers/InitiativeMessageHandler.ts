@@ -161,7 +161,7 @@ export class InitiativeMessageHandler {
    *
    * Advances to the next character in initiative order.
    * Wraps around to the first character if at the end.
-   * Only DMs can advance turns.
+   * All players can advance turns.
    *
    * @param state - Current room state
    * @param senderUid - UID of the sender
@@ -169,11 +169,6 @@ export class InitiativeMessageHandler {
    * @returns Result indicating if broadcast/save is needed
    */
   handleNextTurn(state: RoomState, senderUid: string, isDM: boolean): InitiativeMessageResult {
-    if (!isDM) {
-      console.warn(`Non-DM ${senderUid} attempted to advance turn`);
-      return { broadcast: false, save: false };
-    }
-
     const charactersInOrder = this.characterService.getCharactersInInitiativeOrder(state);
     if (charactersInOrder.length === 0) {
       return { broadcast: false, save: false };
@@ -182,7 +177,7 @@ export class InitiativeMessageHandler {
     const currentIndex = charactersInOrder.findIndex((c) => c.id === state.currentTurnCharacterId);
     const nextIndex = (currentIndex + 1) % charactersInOrder.length;
     state.currentTurnCharacterId = charactersInOrder[nextIndex].id;
-    console.log(`Turn advanced to ${charactersInOrder[nextIndex].name}`);
+    console.log(`Turn advanced to ${charactersInOrder[nextIndex].name} by ${senderUid}`);
 
     return { broadcast: true, save: true };
   }
@@ -192,7 +187,7 @@ export class InitiativeMessageHandler {
    *
    * Goes back to the previous character in initiative order.
    * Wraps around to the last character if at the beginning.
-   * Only DMs can go back turns.
+   * All players can go back turns.
    *
    * @param state - Current room state
    * @param senderUid - UID of the sender
@@ -200,11 +195,6 @@ export class InitiativeMessageHandler {
    * @returns Result indicating if broadcast/save is needed
    */
   handlePreviousTurn(state: RoomState, senderUid: string, isDM: boolean): InitiativeMessageResult {
-    if (!isDM) {
-      console.warn(`Non-DM ${senderUid} attempted to go back turn`);
-      return { broadcast: false, save: false };
-    }
-
     const charactersInOrder = this.characterService.getCharactersInInitiativeOrder(state);
     if (charactersInOrder.length === 0) {
       return { broadcast: false, save: false };
@@ -213,7 +203,7 @@ export class InitiativeMessageHandler {
     const currentIndex = charactersInOrder.findIndex((c) => c.id === state.currentTurnCharacterId);
     const prevIndex = currentIndex <= 0 ? charactersInOrder.length - 1 : currentIndex - 1;
     state.currentTurnCharacterId = charactersInOrder[prevIndex].id;
-    console.log(`Turn moved back to ${charactersInOrder[prevIndex].name}`);
+    console.log(`Turn moved back to ${charactersInOrder[prevIndex].name} by ${senderUid}`);
 
     return { broadcast: true, save: true };
   }
