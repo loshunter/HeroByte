@@ -47,6 +47,7 @@ export interface UpdateNPCOptions {
   maxHp: number;
   portrait?: string;
   tokenImage?: string;
+  initiativeModifier?: number;
 }
 
 /**

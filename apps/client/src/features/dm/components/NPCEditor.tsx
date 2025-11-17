@@ -17,6 +17,7 @@ interface NPCEditorProps {
     maxHp: number;
     portrait?: string;
     tokenImage?: string;
+    initiativeModifier?: number;
   }) => void;
   onPlace: () => void;
   onDelete: () => void;
@@ -39,6 +40,9 @@ export function NPCEditor({
   const [name, setName] = useState(npc.name);
   const [hpInput, setHpInput] = useState(String(npc.hp));
   const [maxHpInput, setMaxHpInput] = useState(String(npc.maxHp));
+  const [initiativeModifierInput, setInitiativeModifierInput] = useState(
+    String(npc.initiativeModifier ?? 0),
+  );
   const [portrait, setPortrait] = useState(npc.portrait ?? "");
   const [tokenImage, setTokenImage] = useState(npc.tokenImage ?? "");
   const { normalizeUrl } = useImageUrlNormalization();
@@ -47,6 +51,7 @@ export function NPCEditor({
     setName(npc.name);
     setHpInput(String(npc.hp));
     setMaxHpInput(String(npc.maxHp));
+    setInitiativeModifierInput(String(npc.initiativeModifier ?? 0));
     setPortrait(npc.portrait ?? "");
     setTokenImage(npc.tokenImage ?? "");
   }, [npc]);
@@ -58,6 +63,7 @@ export function NPCEditor({
       maxHp: number;
       portrait?: string;
       tokenImage?: string;
+      initiativeModifier?: number;
     }>,
   ) => {
     const baseHp = overrides?.hp ?? Number(hpInput);
@@ -66,8 +72,12 @@ export function NPCEditor({
     const parsedMax = Math.max(1, Number.isFinite(baseMaxHp) ? Number(baseMaxHp) : 1);
     const clampedHp = Math.min(parsedMax, parsedHp);
 
+    const baseInitMod = overrides?.initiativeModifier ?? Number(initiativeModifierInput);
+    const parsedInitMod = Number.isFinite(baseInitMod) ? Number(baseInitMod) : 0;
+
     setHpInput(String(clampedHp));
     setMaxHpInput(String(parsedMax));
+    setInitiativeModifierInput(String(parsedInitMod));
 
     const nextNameSource = overrides?.name ?? name;
     const trimmedName = nextNameSource.trim();
@@ -82,12 +92,14 @@ export function NPCEditor({
       maxHp: parsedMax,
       portrait: portraitValue.length > 0 ? portraitValue : undefined,
       tokenImage: tokenImageValue.length > 0 ? tokenImageValue : undefined,
+      initiativeModifier: parsedInitMod,
     });
   };
 
   const handleNameBlur = () => commitUpdate({ name });
   const handleHpBlur = () => commitUpdate();
   const handleMaxHpBlur = () => commitUpdate();
+  const handleInitiativeModifierBlur = () => commitUpdate();
   const handlePortraitBlur = async () => {
     const normalizedPortrait = await normalizeUrl(portrait);
     setPortrait(normalizedPortrait);
@@ -237,17 +249,22 @@ export function NPCEditor({
             type="number"
             min={-20}
             max={20}
-            value={npc.initiativeModifier ?? 0}
-            disabled
-            title="Initiative modifier is set when rolling initiative"
+            value={initiativeModifierInput}
+            onChange={(e) => setInitiativeModifierInput(e.target.value)}
+            onBlur={handleInitiativeModifierBlur}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleInitiativeModifierBlur();
+            }}
+            disabled={isUpdating}
+            title="Initiative modifier added to d20 rolls"
             style={{
               width: "100%",
               padding: "4px",
-              background: "#0a0a0a",
-              color: "var(--jrpg-border-gold)",
+              background: "#111",
+              color: "var(--jrpg-white)",
               border: "1px solid var(--jrpg-border-gold)",
-              opacity: 0.7,
-              cursor: "not-allowed",
+              opacity: isUpdating ? 0.5 : 1,
+              cursor: isUpdating ? "not-allowed" : "text",
             }}
           />
         </label>

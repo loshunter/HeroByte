@@ -67,10 +67,10 @@ export function validateCreateNpcMessage(message: MessageRecord): ValidationResu
 /**
  * Validate update-npc message
  * Required: id (string), name (string, 1-50 chars), hp (non-negative), maxHp (positive)
- * Optional: portrait (string), tokenImage (string)
+ * Optional: portrait (string), tokenImage (string), initiativeModifier (number)
  */
 export function validateUpdateNpcMessage(message: MessageRecord): ValidationResult {
-  const { id, name, hp, maxHp, portrait, tokenImage } = message;
+  const { id, name, hp, maxHp, portrait, tokenImage, initiativeModifier } = message;
   if (typeof id !== "string" || id.length === 0) {
     return { valid: false, error: "update-npc: missing or invalid id" };
   }
@@ -92,6 +92,9 @@ export function validateUpdateNpcMessage(message: MessageRecord): ValidationResu
   }
   if (tokenImage !== undefined && typeof tokenImage !== "string") {
     return { valid: false, error: "update-npc: tokenImage must be a string" };
+  }
+  if (initiativeModifier !== undefined && !isFiniteNumber(initiativeModifier)) {
+    return { valid: false, error: "update-npc: initiativeModifier must be a number" };
   }
   return { valid: true };
 }

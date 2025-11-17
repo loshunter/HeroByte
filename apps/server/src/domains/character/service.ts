@@ -139,6 +139,7 @@ export class CharacterService {
       maxHp: number;
       portrait?: string;
       tokenImage?: string;
+      initiativeModifier?: number;
     },
   ): boolean {
     const character = this.findCharacter(state, characterId);
@@ -152,6 +153,11 @@ export class CharacterService {
     character.portrait = updates.portrait || undefined;
     character.type = "npc";
     character.tokenImage = updates.tokenImage?.trim() || null;
+
+    // Update initiative modifier if provided
+    if (updates.initiativeModifier !== undefined) {
+      character.initiativeModifier = updates.initiativeModifier;
+    }
 
     if (character.tokenId) {
       tokenService.setImageUrlForToken(state, character.tokenId, character.tokenImage ?? undefined);
