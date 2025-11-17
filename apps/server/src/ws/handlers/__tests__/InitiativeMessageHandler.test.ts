@@ -84,6 +84,15 @@ describe("InitiativeMessageHandler", () => {
           return false;
         },
       ),
+      clearInitiative: vi.fn((state: RoomState, characterId: string) => {
+        const character = state.characters.find((c) => c.id === characterId);
+        if (character) {
+          character.initiative = undefined;
+          character.initiativeModifier = 0;
+          return true;
+        }
+        return false;
+      }),
       getCharactersInInitiativeOrder: vi.fn((state: RoomState) => {
         return state.characters
           .filter((c) => c.initiative !== undefined)
@@ -161,6 +170,25 @@ describe("InitiativeMessageHandler", () => {
       expect(result.broadcast).toBe(false);
       expect(result.save).toBe(false);
       expect(mockCharacterService.setInitiative).not.toHaveBeenCalled();
+    });
+
+    it("should clear initiative when initiative value is undefined", () => {
+      state.characters[0].initiative = 16;
+
+      const result = handler.handleSetInitiative(
+        state,
+        "char1",
+        "player1",
+        undefined,
+        undefined,
+        false,
+      );
+
+      expect(result.broadcast).toBe(true);
+      expect(result.save).toBe(true);
+      expect(mockCharacterService.clearInitiative).toHaveBeenCalledWith(state, "char1");
+      expect(mockCharacterService.setInitiative).not.toHaveBeenCalled();
+      expect(state.characters[0].initiative).toBeUndefined();
     });
   });
 

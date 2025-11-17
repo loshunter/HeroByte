@@ -382,7 +382,12 @@ export type ClientMessage =
   | { t: "toggle-npc-visibility"; id: string; visible: boolean }
 
   // Initiative/Combat actions
-  | { t: "set-initiative"; characterId: string; initiative: number; initiativeModifier?: number }
+  | {
+      t: "set-initiative";
+      characterId: string;
+      initiative?: number;
+      initiativeModifier?: number;
+    }
   | { t: "start-combat" } // Activates combat mode, sorts by initiative
   | { t: "end-combat" } // Clears all initiative and exits combat mode
   | { t: "next-turn" } // Advances to next character in initiative order

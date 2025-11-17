@@ -64,7 +64,7 @@ export class InitiativeMessageHandler {
     state: RoomState,
     characterId: string,
     senderUid: string,
-    initiative: number,
+    initiative: number | undefined,
     initiativeModifier: number | undefined,
     isDM: boolean,
   ): InitiativeMessageResult {
@@ -78,6 +78,14 @@ export class InitiativeMessageHandler {
     const canModify = isDM || this.characterService.canControlCharacter(character, senderUid);
     if (!canModify) {
       console.warn(`Player ${senderUid} attempted to set initiative for character they don't own`);
+      return { broadcast: false, save: false };
+    }
+
+    if (initiative === undefined) {
+      if (this.characterService.clearInitiative(state, characterId)) {
+        console.log(`[Server] Cleared initiative for ${character.name}`);
+        return { broadcast: true, save: true };
+      }
       return { broadcast: false, save: false };
     }
 

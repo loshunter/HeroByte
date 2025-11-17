@@ -184,6 +184,8 @@ export interface BottomPanelLayoutProps {
   isSettingInitiative?: boolean;
   /** Error message from initiative setting operation */
   initiativeError?: string | null;
+  /** Handler to clear initiative for a single character */
+  onClearInitiative?: (characterId: string) => void;
   /** Handler to advance to the next turn in combat */
   onNextTurn?: () => void;
   /** Handler to go back to the previous turn in combat */
@@ -297,6 +299,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
     onSetInitiative,
     isSettingInitiative,
     initiativeError,
+    onClearInitiative,
     onNextTurn,
     onPreviousTurn,
   }) => {
@@ -352,6 +355,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
         onSetInitiative={onSetInitiative}
         isSettingInitiative={isSettingInitiative}
         initiativeError={initiativeError}
+        onClearInitiative={onClearInitiative}
         onNextTurn={onNextTurn}
         onPreviousTurn={onPreviousTurn}
       />

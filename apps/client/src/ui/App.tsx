@@ -403,6 +403,27 @@ function AuthenticatedApp({
     sendMessage,
   });
 
+  // Combat controls - DM actions for initiative tracker
+  const handleStartCombat = useCallback(() => {
+    sendMessage({ t: "start-combat" });
+  }, [sendMessage]);
+
+  const handleEndCombat = useCallback(() => {
+    sendMessage({ t: "end-combat" });
+  }, [sendMessage]);
+
+  const handleClearAllInitiative = useCallback(() => {
+    sendMessage({ t: "clear-all-initiative" });
+  }, [sendMessage]);
+
+  const handleNextTurn = useCallback(() => {
+    sendMessage({ t: "next-turn" });
+  }, [sendMessage]);
+
+  const handlePreviousTurn = useCallback(() => {
+    sendMessage({ t: "previous-turn" });
+  }, [sendMessage]);
+
   const handleDeletePlayerToken = useCallback(
     (tokenId: string) => {
       sendMessage({ t: "delete-token", id: tokenId });
@@ -724,6 +745,11 @@ function AuthenticatedApp({
         toast={toast}
         // Other
         sendMessage={sendMessage}
+        onStartCombat={handleStartCombat}
+        onEndCombat={handleEndCombat}
+        onClearAllInitiative={handleClearAllInitiative}
+        onNextTurn={handleNextTurn}
+        onPreviousTurn={handlePreviousTurn}
       />
 
       {/* DM Elevation Modal */}

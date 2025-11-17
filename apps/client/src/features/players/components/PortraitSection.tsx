@@ -16,6 +16,8 @@ interface PortraitSectionProps {
   onFocusToken?: () => void;
   initiative?: number;
   onInitiativeClick?: () => void;
+  initiativeModifier?: number;
+  isCurrentTurn?: boolean;
 }
 
 export const PortraitSection: React.FC<PortraitSectionProps> = ({
@@ -28,6 +30,8 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
   onFocusToken,
   initiative,
   onInitiativeClick,
+  initiativeModifier,
+  isCurrentTurn = false,
 }) => {
   const handlePortraitClick = () => {
     // Click portrait to change image (when editable)
@@ -56,6 +60,7 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
 
   const animatedBoxShadow =
     micLevel > 0.1 ? "0 0 12px rgba(90, 255, 173, 0.35)" : "0 0 6px rgba(8, 12, 24, 0.6)";
+  const currentTurnGlow = "0 0 18px rgba(255, 215, 0, 0.85), 0 0 32px rgba(255, 215, 0, 0.35)";
 
   const frameStyles: React.CSSProperties = {
     position: "relative",
@@ -67,11 +72,12 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
     background: "var(--jrpg-navy)",
     transform: micLevel > 0.1 ? `scale(${1 + micLevel * 0.15})` : "scale(1)",
     transition: "transform 0.1s ease-out, box-shadow 0.2s ease",
-    boxShadow: animatedBoxShadow,
+    boxShadow: isCurrentTurn ? currentTurnGlow : animatedBoxShadow,
     aspectRatio: "1 / 1",
     padding: 0,
     cursor: isEditable ? "pointer" : "default",
     outline: "none",
+    borderColor: isCurrentTurn ? "var(--jrpg-gold)" : "var(--jrpg-border-gold)",
   };
 
   return (
@@ -260,6 +266,39 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
                 Click to enter an image URL.
               </span>
             ) : null}
+          </div>
+        )}
+        {initiative !== undefined && (
+          <div
+            style={{
+              position: "absolute",
+              bottom: "8px",
+              left: "8px",
+              background: "rgba(8, 12, 24, 0.85)",
+              border: "1px solid var(--jrpg-border-gold)",
+              borderRadius: "6px",
+              padding: "4px 6px",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              fontSize: "10px",
+              fontWeight: 600,
+              color: "var(--jrpg-gold)",
+              textShadow: "0 0 6px rgba(0, 0, 0, 0.6)",
+              pointerEvents: "none",
+            }}
+          >
+            <span>Init: {initiative}</span>
+            {initiativeModifier !== undefined && initiativeModifier !== 0 && (
+              <span
+                style={{
+                  color: initiativeModifier > 0 ? "#7CFFB2" : "#FFB2B2",
+                  fontWeight: 700,
+                }}
+              >
+                ({initiativeModifier > 0 ? `+${initiativeModifier}` : initiativeModifier})
+              </span>
+            )}
           </div>
         )}
       </button>

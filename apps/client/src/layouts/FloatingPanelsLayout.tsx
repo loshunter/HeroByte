@@ -132,6 +132,13 @@ export interface FloatingPanelsLayoutProps {
   };
   // Player Token Selection (DM shortcut) (1)
   selectPlayerTokens: (playerUid: string) => void;
+  // Combat Controls (6)
+  combatActive?: boolean;
+  onStartCombat?: () => void;
+  onEndCombat?: () => void;
+  onClearAllInitiative?: () => void;
+  onNextTurn?: () => void;
+  onPreviousTurn?: () => void;
 }
 
 /**
@@ -208,6 +215,12 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
     crtFilter,
     toast,
     selectPlayerTokens,
+    combatActive,
+    onStartCombat,
+    onEndCombat,
+    onClearAllInitiative,
+    onNextTurn,
+    onPreviousTurn,
   }) => {
     return (
       <>
@@ -306,6 +319,12 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
           onDismissRoomPasswordStatus={onDismissRoomPasswordStatus}
           sceneObjects={snapshot?.sceneObjects || []}
           onSelectPlayerTokens={selectPlayerTokens}
+          combatActive={combatActive}
+          onStartCombat={onStartCombat}
+          onEndCombat={onEndCombat}
+          onClearAllInitiative={onClearAllInitiative}
+          onNextTurn={onNextTurn}
+          onPreviousTurn={onPreviousTurn}
         />
 
         <ContextMenu

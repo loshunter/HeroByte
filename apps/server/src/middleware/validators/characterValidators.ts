@@ -234,7 +234,7 @@ export function validateSetInitiativeMessage(message: MessageRecord): Validation
   if (typeof message.characterId !== "string" || message.characterId.length === 0) {
     return { valid: false, error: "set-initiative: missing or invalid characterId" };
   }
-  if (!isFiniteNumber(message.initiative)) {
+  if (message.initiative !== undefined && !isFiniteNumber(message.initiative)) {
     return { valid: false, error: "set-initiative: initiative must be a number" };
   }
   if (
