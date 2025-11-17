@@ -75,9 +75,9 @@ export function useInitiativeSetting({
    * @param initiative - Final initiative value (roll + modifier)
    * @param initiativeModifier - Initiative modifier
    */
-  const setInitiative = useCallback(
-    (characterId: string, initiative: number, initiativeModifier: number) => {
-      console.log("[useInitiativeSetting] Setting initiative:", {
+  const sendInitiativeUpdate = useCallback(
+    (characterId: string, initiative?: number, initiativeModifier?: number) => {
+      console.log("[useInitiativeSetting] Updating initiative:", {
         characterId,
         initiative,
         initiativeModifier,
@@ -87,14 +87,17 @@ export function useInitiativeSetting({
       setError(null);
       setTargetCharacterId(characterId);
 
-      // Capture current values to detect changes
       const char = snapshot?.characters?.find((c) => c.id === characterId);
       prevInitiativeRef.current = char?.initiative;
       prevModifierRef.current = char?.initiativeModifier;
 
-      sendMessage({ t: "set-initiative", characterId, initiative, initiativeModifier });
+      sendMessage({
+        t: "set-initiative",
+        characterId,
+        ...(initiative !== undefined ? { initiative } : {}),
+        ...(initiativeModifier !== undefined ? { initiativeModifier } : {}),
+      });
 
-      // Timeout fallback (5 seconds)
       setTimeout(() => {
         setIsSetting((prev) => {
           if (prev) {
@@ -110,5 +113,19 @@ export function useInitiativeSetting({
     [sendMessage, snapshot?.characters],
   );
 
-  return { isSetting, setInitiative, error };
+  const setInitiative = useCallback(
+    (characterId: string, initiative: number, initiativeModifier: number) => {
+      sendInitiativeUpdate(characterId, initiative, initiativeModifier);
+    },
+    [sendInitiativeUpdate],
+  );
+
+  const clearInitiative = useCallback(
+    (characterId: string) => {
+      sendInitiativeUpdate(characterId);
+    },
+    [sendInitiativeUpdate],
+  );
+
+  return { isSetting, setInitiative, clearInitiative, error };
 }

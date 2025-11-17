@@ -29,6 +29,8 @@ interface NpcSettingsMenuProps {
   isDeleting?: boolean;
   /** Error message from deletion attempt */
   deletionError?: string | null;
+  onClearInitiative?: () => void;
+  hasInitiative?: boolean;
 }
 
 export function NpcSettingsMenu({
@@ -47,6 +49,8 @@ export function NpcSettingsMenu({
   onTokenSizeChange,
   isDeleting = false,
   deletionError = null,
+  onClearInitiative,
+  hasInitiative = false,
 }: NpcSettingsMenuProps): JSX.Element | null {
   const [wasDeleting, setWasDeleting] = useState(false);
   const { normalizeUrl } = useImageUrlNormalization();
@@ -193,6 +197,27 @@ export function NpcSettingsMenu({
                     },
                   )}
                 </div>
+              </div>
+              <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "4px 0" }} />
+            </>
+          )}
+
+          {onClearInitiative && (
+            <>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "4px" }}
+              >
+                <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
+                  Initiative
+                </span>
+                <button
+                  className="btn btn-secondary"
+                  style={{ fontSize: "0.65rem" }}
+                  onClick={onClearInitiative}
+                  disabled={!hasInitiative}
+                >
+                  🧹 Clear Initiative
+                </button>
               </div>
               <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "4px 0" }} />
             </>

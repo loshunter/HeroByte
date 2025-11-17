@@ -410,4 +410,20 @@ export interface MainLayoutProps {
   // -------------------------------------------------------------------------
   /** Handler to send messages to server */
   sendMessage: (message: ClientMessage) => void;
+
+  // -------------------------------------------------------------------------
+  // Combat Controls
+  // -------------------------------------------------------------------------
+  /** Handler to start combat and enable initiative tracking */
+  onStartCombat?: () => void;
+  /** Handler to end combat and clear combat state */
+  onEndCombat?: () => void;
+  /** Handler to clear initiative for all characters */
+  onClearAllInitiative?: () => void;
+  /** Handler to advance to the next combat turn */
+  onNextTurn?: () => void;
+  /** Handler to move back to the previous combat turn */
+  onPreviousTurn?: () => void;
+  /** Handler to clear initiative for a single character */
+  onClearInitiative?: (characterId: string) => void;
 }

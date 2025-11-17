@@ -205,6 +205,14 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
 
     // WebSocket
     sendMessage,
+
+    // Combat controls
+    onStartCombat,
+    onEndCombat,
+    onClearAllInitiative,
+    onNextTurn,
+    onPreviousTurn,
+    onClearInitiative: onClearInitiativeProp,
   } = props;
 
   // Extract entity editing handlers to custom hook
@@ -227,11 +235,14 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
   const {
     isSetting: isSettingInitiative,
     setInitiative,
+    clearInitiative,
     error: initiativeError,
   } = useInitiativeSetting({
     snapshot,
     sendMessage,
   });
+
+  const clearInitiativeHandler = onClearInitiativeProp ?? clearInitiative;
 
   return (
     <div onClick={() => setContextMenu(null)} style={{ height: "100vh", overflow: "hidden" }}>
@@ -343,12 +354,9 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onSetInitiative={setInitiative}
         isSettingInitiative={isSettingInitiative}
         initiativeError={initiativeError}
-        onNextTurn={() => {
-          sendMessage({ t: "next-turn" });
-        }}
-        onPreviousTurn={() => {
-          sendMessage({ t: "previous-turn" });
-        }}
+        onClearInitiative={clearInitiativeHandler}
+        onNextTurn={onNextTurn}
+        onPreviousTurn={onPreviousTurn}
       />
 
       {/* Floating Panels - DM menu, context menu, visual effects, dice roller, roll log, toasts */}
@@ -422,6 +430,12 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         handleViewRoll={handleViewRoll}
         crtFilter={crtFilter}
         toast={toast}
+        combatActive={snapshot?.combatActive}
+        onStartCombat={onStartCombat}
+        onEndCombat={onEndCombat}
+        onClearAllInitiative={onClearAllInitiative}
+        onNextTurn={onNextTurn}
+        onPreviousTurn={onPreviousTurn}
       />
     </div>
   );

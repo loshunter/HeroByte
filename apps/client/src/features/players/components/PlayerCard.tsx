@@ -60,6 +60,8 @@ export interface PlayerCardProps {
   initiative?: number;
   onInitiativeClick?: () => void;
   initiativeModifier?: number;
+  isCurrentTurn?: boolean;
+  onClearInitiative?: () => void;
 }
 
 export const PlayerCard = memo<PlayerCardProps>(
@@ -110,6 +112,8 @@ export const PlayerCard = memo<PlayerCardProps>(
     initiative,
     onInitiativeClick,
     initiativeModifier,
+    isCurrentTurn = false,
+    onClearInitiative,
   }) => {
     const editing = editingPlayerUID === player.uid;
     const editingHp = editingHpUID === (characterId ?? player.uid);
@@ -190,6 +194,19 @@ export const PlayerCard = memo<PlayerCardProps>(
 
     return (
       <div className="player-card" style={cardStyle}>
+        {isCurrentTurn && (
+          <div
+            className="jrpg-text-small"
+            style={{
+              color: "#FFE8A3",
+              fontWeight: 700,
+              letterSpacing: "0.05em",
+              textTransform: "uppercase",
+            }}
+          >
+            {isMe ? "🎯 YOUR TURN" : "⚔️ CURRENT TURN"}
+          </div>
+        )}
         <div
           style={{
             width: "100%",
@@ -235,6 +252,8 @@ export const PlayerCard = memo<PlayerCardProps>(
           onFocusToken={onFocusToken}
           initiative={initiative}
           onInitiativeClick={onInitiativeClick}
+          initiativeModifier={initiativeModifier}
+          isCurrentTurn={isCurrentTurn}
         />
 
         <HPBar
@@ -288,6 +307,8 @@ export const PlayerCard = memo<PlayerCardProps>(
           isCreatingCharacter={isCreatingCharacter}
           characterId={characterId}
           onDeleteCharacter={onDeleteCharacter}
+          initiative={initiative}
+          onClearInitiative={onClearInitiative}
         />
       </div>
     );
@@ -313,7 +334,10 @@ export const PlayerCard = memo<PlayerCardProps>(
     prevProps.nameInput === nextProps.nameInput &&
     prevProps.editingMaxHpUID === nextProps.editingMaxHpUID &&
     prevProps.maxHpInput === nextProps.maxHpInput &&
-    prevProps.isDM === nextProps.isDM,
+    prevProps.isDM === nextProps.isDM &&
+    prevProps.initiative === nextProps.initiative &&
+    prevProps.initiativeModifier === nextProps.initiativeModifier &&
+    prevProps.isCurrentTurn === nextProps.isCurrentTurn,
 );
 
 PlayerCard.displayName = "PlayerCard";

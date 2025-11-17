@@ -35,6 +35,8 @@ interface NpcCardProps {
   deletionError?: string | null;
   /** Toggle NPC visibility to players */
   onToggleVisibility?: (id: string, visible: boolean) => void;
+  onClearInitiative?: () => void;
+  isCurrentTurn?: boolean;
 }
 
 export function NpcCard({
@@ -54,6 +56,8 @@ export function NpcCard({
   isDeleting = false,
   deletionError = null,
   onToggleVisibility,
+  onClearInitiative,
+  isCurrentTurn = false,
 }: NpcCardProps): JSX.Element {
   const [editingHp, setEditingHp] = useState(false);
   const [hpInput, setHpInput] = useState(String(character.hp));
@@ -160,6 +164,18 @@ export function NpcCard({
           gap: "4px",
         }}
       >
+        {isCurrentTurn && (
+          <div
+            className="jrpg-text-small"
+            style={{
+              color: "#FFE8A3",
+              fontWeight: 700,
+              letterSpacing: "0.05em",
+            }}
+          >
+            ⚔️ CURRENT TURN
+          </div>
+        )}
         <div
           style={{
             fontWeight: 600,
@@ -192,6 +208,8 @@ export function NpcCard({
           onFocusToken={onFocusToken}
           initiative={initiative}
           onInitiativeClick={onInitiativeClick}
+          initiativeModifier={_initiativeModifier}
+          isCurrentTurn={isCurrentTurn}
         />
       </div>
 
@@ -273,6 +291,8 @@ export function NpcCard({
         onTokenSizeChange={onTokenSizeChange}
         isDeleting={isDeleting}
         deletionError={deletionError}
+        onClearInitiative={onClearInitiative}
+        hasInitiative={character.initiative !== undefined}
       />
     </div>
   );

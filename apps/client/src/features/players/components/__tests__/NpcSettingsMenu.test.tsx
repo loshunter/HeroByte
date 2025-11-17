@@ -98,6 +98,8 @@ interface NpcSettingsMenuPropsFactory {
   onTokenSizeChange?: (size: TokenSize) => void;
   isDeleting?: boolean;
   deletionError?: string | null;
+  onClearInitiative?: () => void;
+  hasInitiative?: boolean;
 }
 
 /**
@@ -122,6 +124,8 @@ function createProps(
     onTokenSizeChange: vi.fn(),
     isDeleting: false,
     deletionError: null,
+    onClearInitiative: undefined,
+    hasInitiative: false,
     ...overrides,
   };
 }
@@ -222,6 +226,31 @@ describe("NpcSettingsMenu", () => {
       rerender(<NpcSettingsMenu {...props} isOpen={true} />);
 
       expect(screen.getByTestId("draggable-window")).toBeInTheDocument();
+    });
+  });
+
+  describe("Initiative Controls", () => {
+    it("renders clear initiative button when handler is provided", () => {
+      const onClearInitiative = vi.fn();
+      const props = createProps({ onClearInitiative, hasInitiative: true });
+
+      render(<NpcSettingsMenu {...props} />);
+
+      const button = screen.getByRole("button", { name: /clear initiative/i });
+      expect(button).toBeEnabled();
+
+      fireEvent.click(button);
+      expect(onClearInitiative).toHaveBeenCalledTimes(1);
+    });
+
+    it("disables clear initiative button when NPC has no initiative", () => {
+      const onClearInitiative = vi.fn();
+      const props = createProps({ onClearInitiative, hasInitiative: false });
+
+      render(<NpcSettingsMenu {...props} />);
+
+      const button = screen.getByRole("button", { name: /clear initiative/i });
+      expect(button).toBeDisabled();
     });
   });
 

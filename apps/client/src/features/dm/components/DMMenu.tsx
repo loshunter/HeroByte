@@ -1,9 +1,3 @@
-// ============================================================================
-// DM MENU COMPONENT
-// ============================================================================
-// Floating tools panel for Dungeon Masters. Provides access to map setup,
-// NPC management (scaffolding), and session utilities.
-
 import type { Character, PlayerStagingZone, Prop, Player, SceneObject } from "@shared";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignment";
@@ -84,6 +78,12 @@ interface DMMenuProps {
   onDismissRoomPasswordStatus?: () => void;
   sceneObjects: SceneObject[];
   onSelectPlayerTokens: (playerUid: string) => void;
+  combatActive?: boolean;
+  onStartCombat?: () => void;
+  onEndCombat?: () => void;
+  onClearAllInitiative?: () => void;
+  onNextTurn?: () => void;
+  onPreviousTurn?: () => void;
 }
 
 export function DMMenu({
@@ -152,6 +152,12 @@ export function DMMenu({
   onDismissRoomPasswordStatus,
   sceneObjects,
   onSelectPlayerTokens,
+  combatActive,
+  onStartCombat,
+  onEndCombat,
+  onClearAllInitiative,
+  onNextTurn,
+  onPreviousTurn,
 }: DMMenuProps) {
   const { open, setOpen, toggleOpen, activeTab, setActiveTab, sessionName, setSessionName, npcs } =
     useDMMenuState({
@@ -306,6 +312,12 @@ export function DMMenu({
                 players={players}
                 sceneObjects={sceneObjects}
                 onSelectPlayerTokens={onSelectPlayerTokens}
+                combatActive={combatActive}
+                onStartCombat={onStartCombat}
+                onEndCombat={onEndCombat}
+                onClearAllInitiative={onClearAllInitiative}
+                onNextTurn={onNextTurn}
+                onPreviousTurn={onPreviousTurn}
               />
             )}
 

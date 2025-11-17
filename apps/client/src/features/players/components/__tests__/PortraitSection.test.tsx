@@ -109,4 +109,34 @@ describe("PortraitSection", () => {
       expect(handleFocusToken).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe("Initiative Badge", () => {
+    it("renders initiative value when provided", () => {
+      render(<PortraitSection portrait={undefined} statusEffects={[]} initiative={18} />);
+
+      expect(screen.getByText(/Init: 18/)).toBeInTheDocument();
+    });
+
+    it("renders modifier when provided", () => {
+      render(
+        <PortraitSection
+          portrait={undefined}
+          statusEffects={[]}
+          initiative={14}
+          initiativeModifier={2}
+        />,
+      );
+
+      expect(screen.getByText("(+2)")).toBeInTheDocument();
+    });
+
+    it("applies highlight styles when it's the current turn", () => {
+      render(
+        <PortraitSection portrait={undefined} statusEffects={[]} initiative={12} isCurrentTurn />,
+      );
+
+      const portraitButton = screen.getByRole("button", { name: /player portrait/i });
+      expect(portraitButton).toHaveStyle("border-color: var(--jrpg-gold)");
+    });
+  });
 });

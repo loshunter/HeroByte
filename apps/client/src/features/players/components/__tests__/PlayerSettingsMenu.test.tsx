@@ -162,4 +162,31 @@ describe("PlayerSettingsMenu", () => {
       expect(screen.getByText(/player settings/i)).toBeInTheDocument();
     });
   });
+
+  describe("Initiative Controls", () => {
+    it("renders clear initiative button when handler is provided", () => {
+      const onClearInitiative = vi.fn();
+      render(
+        <PlayerSettingsMenu
+          {...defaultProps}
+          initiative={16}
+          onClearInitiative={onClearInitiative}
+        />,
+      );
+
+      const button = screen.getByRole("button", { name: /clear initiative/i });
+      expect(button).toBeEnabled();
+
+      fireEvent.click(button);
+      expect(onClearInitiative).toHaveBeenCalledTimes(1);
+    });
+
+    it("disables clear initiative button when initiative is not set", () => {
+      const onClearInitiative = vi.fn();
+      render(<PlayerSettingsMenu {...defaultProps} onClearInitiative={onClearInitiative} />);
+
+      const button = screen.getByRole("button", { name: /clear initiative/i });
+      expect(button).toBeDisabled();
+    });
+  });
 });

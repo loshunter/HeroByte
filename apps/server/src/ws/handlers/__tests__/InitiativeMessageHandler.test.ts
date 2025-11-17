@@ -84,6 +84,15 @@ describe("InitiativeMessageHandler", () => {
           return false;
         },
       ),
+      clearInitiative: vi.fn((state: RoomState, characterId: string) => {
+        const character = state.characters.find((c) => c.id === characterId);
+        if (character) {
+          character.initiative = undefined;
+          character.initiativeModifier = 0;
+          return true;
+        }
+        return false;
+      }),
       getCharactersInInitiativeOrder: vi.fn((state: RoomState) => {
         return state.characters
           .filter((c) => c.initiative !== undefined)
@@ -161,6 +170,89 @@ describe("InitiativeMessageHandler", () => {
       expect(result.broadcast).toBe(false);
       expect(result.save).toBe(false);
       expect(mockCharacterService.setInitiative).not.toHaveBeenCalled();
+    });
+
+    it("should clear initiative when initiative value is undefined", () => {
+      state.characters[0].initiative = 16;
+
+      const result = handler.handleSetInitiative(
+        state,
+        "char1",
+        "player1",
+        undefined,
+        undefined,
+        false,
+      );
+
+      expect(result.broadcast).toBe(true);
+      expect(result.save).toBe(true);
+      expect(mockCharacterService.clearInitiative).toHaveBeenCalledWith(state, "char1");
+      expect(mockCharacterService.setInitiative).not.toHaveBeenCalled();
+      expect(state.characters[0].initiative).toBeUndefined();
+    });
+
+    it("should set currentTurnCharacterId when setting first initiative during active combat", () => {
+      // Start combat with no initiative set
+      state.combatActive = true;
+      state.currentTurnCharacterId = undefined;
+
+      // Set initiative for first character
+      const result = handler.handleSetInitiative(
+        state,
+        "char1",
+        "player1",
+        15,
+        2,
+        false, // not DM
+      );
+
+      expect(result.broadcast).toBe(true);
+      expect(result.save).toBe(true);
+      expect(state.currentTurnCharacterId).toBe("char1");
+      expect(mockCharacterService.getCharactersInInitiativeOrder).toHaveBeenCalled();
+    });
+
+    it("should not change currentTurnCharacterId when already set during active combat", () => {
+      // Start combat with initiative already set
+      state.combatActive = true;
+      state.characters[0].initiative = 20;
+      state.currentTurnCharacterId = "char1";
+
+      // Set initiative for second character
+      const result = handler.handleSetInitiative(
+        state,
+        "char2",
+        "player2",
+        15,
+        2,
+        false, // not DM
+      );
+
+      expect(result.broadcast).toBe(true);
+      expect(result.save).toBe(true);
+      // currentTurnCharacterId should remain unchanged
+      expect(state.currentTurnCharacterId).toBe("char1");
+    });
+
+    it("should not set currentTurnCharacterId when combat is not active", () => {
+      // Combat is not active
+      state.combatActive = false;
+      state.currentTurnCharacterId = undefined;
+
+      // Set initiative
+      const result = handler.handleSetInitiative(
+        state,
+        "char1",
+        "player1",
+        15,
+        2,
+        false, // not DM
+      );
+
+      expect(result.broadcast).toBe(true);
+      expect(result.save).toBe(true);
+      // currentTurnCharacterId should remain undefined
+      expect(state.currentTurnCharacterId).toBeUndefined();
     });
   });
 
@@ -268,12 +360,12 @@ describe("InitiativeMessageHandler", () => {
       expect(state.currentTurnCharacterId).toBe("char2");
     });
 
-    it("should reject non-DM advancing turn", () => {
+    it("should allow non-DM advancing turn", () => {
       const result = handler.handleNextTurn(state, "player1", false);
 
-      expect(result.broadcast).toBe(false);
-      expect(result.save).toBe(false);
-      expect(state.currentTurnCharacterId).toBe("char2");
+      expect(result.broadcast).toBe(true);
+      expect(result.save).toBe(true);
+      expect(state.currentTurnCharacterId).toBe("char1");
     });
 
     it("should do nothing if no characters in initiative order", () => {
@@ -320,12 +412,12 @@ describe("InitiativeMessageHandler", () => {
       expect(state.currentTurnCharacterId).toBe("char3");
     });
 
-    it("should reject non-DM going back turn", () => {
+    it("should allow non-DM going back turn", () => {
       const result = handler.handlePreviousTurn(state, "player1", false);
 
-      expect(result.broadcast).toBe(false);
-      expect(result.save).toBe(false);
-      expect(state.currentTurnCharacterId).toBe("char1");
+      expect(result.broadcast).toBe(true);
+      expect(result.save).toBe(true);
+      expect(state.currentTurnCharacterId).toBe("char2");
     });
 
     it("should do nothing if no characters in initiative order", () => {

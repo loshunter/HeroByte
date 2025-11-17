@@ -36,6 +36,8 @@ interface PlayerSettingsMenuProps {
   isCreatingCharacter?: boolean;
   characterId?: string;
   onDeleteCharacter?: (characterId: string) => void;
+  initiative?: number;
+  onClearInitiative?: () => void;
 }
 
 export function PlayerSettingsMenu({
@@ -61,6 +63,8 @@ export function PlayerSettingsMenu({
   isCreatingCharacter,
   characterId,
   onDeleteCharacter,
+  initiative,
+  onClearInitiative,
 }: PlayerSettingsMenuProps): JSX.Element | null {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { normalizeUrl } = useImageUrlNormalization();
@@ -231,6 +235,28 @@ export function PlayerSettingsMenu({
             {isDM ? "DM Mode: ON" : "DM Mode: OFF"}
           </JRPGButton>
         </JRPGPanel>
+
+        {onClearInitiative && (
+          <JRPGPanel
+            variant="simple"
+            style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
+          >
+            <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
+              Initiative Status
+            </span>
+            <div className="jrpg-text-small" style={{ color: "var(--jrpg-white)" }}>
+              {initiative !== undefined ? `Active: ${initiative}` : "No initiative set"}
+            </div>
+            <JRPGButton
+              onClick={onClearInitiative}
+              variant="default"
+              disabled={initiative === undefined}
+              style={{ fontSize: "10px", padding: "6px 8px" }}
+            >
+              🧹 Clear Initiative
+            </JRPGButton>
+          </JRPGPanel>
+        )}
 
         {/* Token Size - only show for non-DM players who have tokens */}
         {!isDM && onTokenSizeChange && (
