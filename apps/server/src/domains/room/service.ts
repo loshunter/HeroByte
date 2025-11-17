@@ -139,7 +139,7 @@ export class RoomService {
 
       // Determine if this client is a DM
       const isDM = playerUid
-        ? this.state.players.find((p) => p.uid === playerUid)?.isDM ?? false
+        ? (this.state.players.find((p) => p.uid === playerUid)?.isDM ?? false)
         : false;
 
       // Generate snapshot with appropriate visibility filtering

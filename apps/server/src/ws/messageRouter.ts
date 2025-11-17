@@ -373,7 +373,8 @@ export class MessageRouter {
             senderUid,
             context.isDM(),
             "toggle NPC visibility",
-            () => this.npcMessageHandler.handleToggleNPCVisibility(state, message.id, message.visible),
+            () =>
+              this.npcMessageHandler.handleToggleNPCVisibility(state, message.id, message.visible),
           );
           if (result) {
             this.routeResultHandler.handleResult(result);

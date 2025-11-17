@@ -127,9 +127,9 @@ export function toSnapshot(state: RoomState, isDM: boolean = true): RoomSnapshot
   // Get IDs of hidden NPC tokens to filter from tokens array
   const hiddenCharacterTokenIds = isDM
     ? []
-    : state.characters
+    : (state.characters
         .filter((c) => c.visibleToPlayers === false && c.tokenId)
-        .map((c) => c.tokenId) as string[];
+        .map((c) => c.tokenId) as string[]);
 
   // Filter tokens to exclude hidden NPC tokens
   const visibleTokens = isDM

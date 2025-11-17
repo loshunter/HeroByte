@@ -12,10 +12,22 @@ describe("Room Model - toSnapshot", () => {
       const state = createEmptyRoomState();
 
       // Create visible NPC
-      const visibleNPC = characterService.createCharacter(state, "Visible Guard", 20, undefined, "npc");
+      const visibleNPC = characterService.createCharacter(
+        state,
+        "Visible Guard",
+        20,
+        undefined,
+        "npc",
+      );
 
       // Create hidden NPC
-      const hiddenNPC = characterService.createCharacter(state, "Hidden Assassin", 15, undefined, "npc");
+      const hiddenNPC = characterService.createCharacter(
+        state,
+        "Hidden Assassin",
+        15,
+        undefined,
+        "npc",
+      );
       characterService.setNPCVisibility(state, hiddenNPC.id, false);
 
       // Place tokens for both NPCs
@@ -39,10 +51,22 @@ describe("Room Model - toSnapshot", () => {
       const state = createEmptyRoomState();
 
       // Create visible NPC
-      const visibleNPC = characterService.createCharacter(state, "Visible Guard", 20, undefined, "npc");
+      const visibleNPC = characterService.createCharacter(
+        state,
+        "Visible Guard",
+        20,
+        undefined,
+        "npc",
+      );
 
       // Create hidden NPC
-      const hiddenNPC = characterService.createCharacter(state, "Hidden Assassin", 15, undefined, "npc");
+      const hiddenNPC = characterService.createCharacter(
+        state,
+        "Hidden Assassin",
+        15,
+        undefined,
+        "npc",
+      );
       characterService.setNPCVisibility(state, hiddenNPC.id, false);
 
       // Place tokens for both NPCs
@@ -102,7 +126,7 @@ describe("Room Model - toSnapshot", () => {
       const state = createEmptyRoomState();
 
       // Create multiple NPCs with different visibility states
-      const npc1 = characterService.createCharacter(state, "NPC1", 10, undefined, "npc"); // undefined
+      characterService.createCharacter(state, "NPC1", 10, undefined, "npc"); // undefined
       const npc2 = characterService.createCharacter(state, "NPC2", 10, undefined, "npc");
       characterService.setNPCVisibility(state, npc2.id, true); // true
       const npc3 = characterService.createCharacter(state, "NPC3", 10, undefined, "npc");
@@ -125,7 +149,13 @@ describe("Room Model - toSnapshot", () => {
       characterService.claimCharacter(state, playerChar.id, "player-1");
 
       // Create hidden NPC
-      const hiddenNPC = characterService.createCharacter(state, "Hidden Enemy", 15, undefined, "npc");
+      const hiddenNPC = characterService.createCharacter(
+        state,
+        "Hidden Enemy",
+        15,
+        undefined,
+        "npc",
+      );
       characterService.setNPCVisibility(state, hiddenNPC.id, false);
 
       // Get snapshot for player
