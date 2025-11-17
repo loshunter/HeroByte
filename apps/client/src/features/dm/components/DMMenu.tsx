@@ -325,7 +325,6 @@ export function DMMenu({
                 onPreviousTurn={onPreviousTurn}
               />
             )}
-
             {activeTab === "session" && (
               <SessionTab
                 sessionName={sessionName}
