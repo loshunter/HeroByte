@@ -139,6 +139,7 @@ export class CharacterService {
       maxHp: number;
       portrait?: string;
       tokenImage?: string;
+      initiativeModifier?: number;
     },
   ): boolean {
     const character = this.findCharacter(state, characterId);
@@ -152,6 +153,11 @@ export class CharacterService {
     character.portrait = updates.portrait || undefined;
     character.type = "npc";
     character.tokenImage = updates.tokenImage?.trim() || null;
+
+    // Update initiative modifier if provided
+    if (updates.initiativeModifier !== undefined) {
+      character.initiativeModifier = updates.initiativeModifier;
+    }
 
     if (character.tokenId) {
       tokenService.setImageUrlForToken(state, character.tokenId, character.tokenImage ?? undefined);
@@ -286,12 +292,22 @@ export class CharacterService {
   }
 
   /**
-   * Get characters in initiative order (highest to lowest)
+   * Get characters in initiative order (highest to lowest).
+   * Tiebreaker: initiative > PC before NPC > creation order.
    */
   getCharactersInInitiativeOrder(state: RoomState): Character[] {
+    const indexMap = new Map<string, number>();
+    state.characters.forEach((c, index) => indexMap.set(c.id, index));
+
     return state.characters
       .filter((c) => c.initiative !== undefined)
-      .sort((a, b) => (b.initiative ?? 0) - (a.initiative ?? 0));
+      .sort((a, b) => {
+        const initDiff = (b.initiative ?? 0) - (a.initiative ?? 0);
+        if (initDiff !== 0) return initDiff;
+        if (a.type === "pc" && b.type === "npc") return -1;
+        if (a.type === "npc" && b.type === "pc") return 1;
+        return (indexMap.get(a.id) ?? 0) - (indexMap.get(b.id) ?? 0);
+      });
   }
 
   /**

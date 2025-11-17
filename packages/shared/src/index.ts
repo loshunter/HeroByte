@@ -376,6 +376,7 @@ export type ClientMessage =
       maxHp: number;
       portrait?: string;
       tokenImage?: string;
+      initiativeModifier?: number;
     }
   | { t: "delete-npc"; id: string }
   | { t: "place-npc-token"; id: string }

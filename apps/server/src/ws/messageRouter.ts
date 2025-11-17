@@ -334,6 +334,7 @@ export class MessageRouter {
                 maxHp: message.maxHp,
                 portrait: message.portrait,
                 tokenImage: message.tokenImage,
+                initiativeModifier: message.initiativeModifier,
               }),
           );
           if (result) {

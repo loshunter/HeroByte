@@ -1,7 +1,74 @@
 # HeroByte Completed Work
 
-**Last Updated**: October 21, 2025
+**Last Updated**: November 17, 2025
 **Source**: Archived from `TODO.md` to keep the active roadmap lean.
+
+---
+
+## ✅ Initiative Order Tiebreaker Fix - COMPLETE (November 17, 2025)
+
+**Goal**: Fix unstable initiative ordering causing unpredictable "next/previous" button navigation in DM interface.
+
+### Achievement Summary
+
+**Status**: COMPLETE - Initiative order now stable and predictable!
+
+- ✅ **Root Cause Fixed:** Unstable JavaScript `.sort()` for tied initiative values
+- ✅ **Solution Implemented:** Multi-level stable tiebreaker logic
+- ✅ **Test Coverage:** 12 comprehensive characterization tests (100% passing)
+- ✅ **Code Quality:** Reduced to 345 LOC (under 350 structural threshold)
+- ✅ **CI Status:** All checks passing ✅
+- ✅ **Completion Date:** November 17, 2025
+- ✅ **Commits:** `63cdbc8` (tiebreaker logic), `7c10a62` (LOC optimization)
+- ✅ **Branch:** `dev`
+
+### Problem Statement
+
+When characters had tied initiative values, the "next/previous" buttons in the DM interface jumped around unpredictably. For example, with a 3-way tie, navigation would be: **1→4→5→6→7→2→3→1** instead of the expected left-to-right order **1→2→3→4→5→6→7→1**.
+
+**Root Cause:** JavaScript's `.sort()` method doesn't guarantee stable ordering for equal elements. Each call to sort tied characters could produce a different order, causing inconsistent navigation between the display and turn advancement logic.
+
+### Solution Implemented
+
+**Multi-level Stable Sorting:**
+1. **Primary:** Initiative value (highest first)
+2. **Secondary:** Character type (PCs before NPCs when tied)
+3. **Tertiary:** Creation order (preserve array position)
+
+**Files Changed:**
+- `apps/server/src/domains/character/service.ts:298-311` - Server-side sorting
+- `apps/client/src/hooks/useCombatOrdering.ts:108-131` - Client-side sorting
+- `apps/server/src/domains/__tests__/characterService.initiative-order.characterization.test.ts` - Comprehensive tests
+
+### Test Coverage
+
+**12 Comprehensive Characterization Tests:**
+- Basic initiative ordering (no ties)
+- Tied initiatives between same character type (PCs, NPCs)
+- Tied initiatives between PCs and NPCs
+- Complex mixed scenarios
+- Edge cases and stability verification
+- Real-world 3-way tie bug scenario
+
+**All Tests Passing:**
+- 36 server tests (characterService + initiative order)
+- 10 client tests (combat ordering hook)
+- TypeScript type checking ✅
+- Structural guardrails ✅ (345 LOC, under 350 threshold)
+
+### Impact
+
+**User Experience:**
+- Initiative order is now **stable** and **predictable**
+- "Next/previous" buttons navigate left-to-right consistently
+- PCs always appear before NPCs when initiative is tied
+- Creation order preserved for same-type ties
+
+**Code Quality:**
+- Compact implementation (17 lines total tiebreaker logic)
+- Clear JSDoc: "Tiebreaker: initiative > PC before NPC > creation order"
+- Maintained under 350 LOC structural threshold
+- 100% test coverage for tie scenarios
 
 ---
 

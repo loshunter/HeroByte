@@ -99,6 +99,7 @@ describe("NPCEditor - Characterization Tests", () => {
         maxHp: 15,
         portrait: "https://example.com/goblin-portrait.jpg",
         tokenImage: "https://example.com/goblin-token.png",
+        initiativeModifier: 0,
       });
     });
 
@@ -116,6 +117,7 @@ describe("NPCEditor - Characterization Tests", () => {
         maxHp: 15,
         portrait: "https://example.com/goblin-portrait.jpg",
         tokenImage: "https://example.com/goblin-token.png",
+        initiativeModifier: 0,
       });
     });
 
@@ -133,6 +135,7 @@ describe("NPCEditor - Characterization Tests", () => {
         maxHp: 15,
         portrait: "https://example.com/goblin-portrait.jpg",
         tokenImage: "https://example.com/goblin-token.png",
+        initiativeModifier: 0,
       });
     });
 
@@ -150,6 +153,7 @@ describe("NPCEditor - Characterization Tests", () => {
         maxHp: 15,
         portrait: "https://example.com/goblin-portrait.jpg",
         tokenImage: "https://example.com/goblin-token.png",
+        initiativeModifier: 0,
       });
     });
   });
@@ -179,6 +183,7 @@ describe("NPCEditor - Characterization Tests", () => {
         maxHp: 15,
         portrait: "https://example.com/goblin-portrait.jpg",
         tokenImage: "https://example.com/goblin-token.png",
+        initiativeModifier: 0,
       });
     });
 
@@ -196,6 +201,7 @@ describe("NPCEditor - Characterization Tests", () => {
         maxHp: 15,
         portrait: "https://example.com/goblin-portrait.jpg",
         tokenImage: "https://example.com/goblin-token.png",
+        initiativeModifier: 0,
       });
       expect(hpInput).toHaveValue(0);
     });
@@ -214,6 +220,7 @@ describe("NPCEditor - Characterization Tests", () => {
         maxHp: 15,
         portrait: "https://example.com/goblin-portrait.jpg",
         tokenImage: "https://example.com/goblin-token.png",
+        initiativeModifier: 0,
       });
       expect(hpInput).toHaveValue(15);
     });
@@ -232,6 +239,7 @@ describe("NPCEditor - Characterization Tests", () => {
         maxHp: 15,
         portrait: "https://example.com/goblin-portrait.jpg",
         tokenImage: "https://example.com/goblin-token.png",
+        initiativeModifier: 0,
       });
     });
   });
@@ -261,6 +269,7 @@ describe("NPCEditor - Characterization Tests", () => {
         maxHp: 20,
         portrait: "https://example.com/goblin-portrait.jpg",
         tokenImage: "https://example.com/goblin-token.png",
+        initiativeModifier: 0,
       });
     });
 
@@ -278,6 +287,7 @@ describe("NPCEditor - Characterization Tests", () => {
         maxHp: 1,
         portrait: "https://example.com/goblin-portrait.jpg",
         tokenImage: "https://example.com/goblin-token.png",
+        initiativeModifier: 0,
       });
       expect(maxHpInput).toHaveValue(1);
     });
@@ -296,6 +306,7 @@ describe("NPCEditor - Characterization Tests", () => {
         maxHp: 5,
         portrait: "https://example.com/goblin-portrait.jpg",
         tokenImage: "https://example.com/goblin-token.png",
+        initiativeModifier: 0,
       });
       expect(screen.getByLabelText("HP")).toHaveValue(5);
     });
@@ -331,6 +342,7 @@ describe("NPCEditor - Characterization Tests", () => {
           maxHp: 15,
           portrait: "https://example.com/new-portrait.jpg",
           tokenImage: "https://example.com/goblin-token.png",
+          initiativeModifier: 0,
         });
       });
     });
@@ -350,6 +362,7 @@ describe("NPCEditor - Characterization Tests", () => {
           maxHp: 15,
           portrait: undefined,
           tokenImage: "https://example.com/goblin-token.png",
+          initiativeModifier: 0,
         });
       });
     });
@@ -390,6 +403,7 @@ describe("NPCEditor - Characterization Tests", () => {
           maxHp: 15,
           portrait: "https://example.com/goblin-portrait.jpg",
           tokenImage: "https://example.com/new-token.png",
+          initiativeModifier: 0,
         });
       });
     });
@@ -409,6 +423,7 @@ describe("NPCEditor - Characterization Tests", () => {
           maxHp: 15,
           portrait: "https://example.com/goblin-portrait.jpg",
           tokenImage: undefined,
+          initiativeModifier: 0,
         });
       });
     });
@@ -450,6 +465,7 @@ describe("NPCEditor - Characterization Tests", () => {
         maxHp: 15,
         portrait: "https://example.com/goblin-portrait.jpg",
         tokenImage: "https://example.com/goblin-token.png",
+        initiativeModifier: 0,
       });
       expect(handlers.onPlace).toHaveBeenCalledTimes(1);
     });
@@ -484,6 +500,73 @@ describe("NPCEditor - Characterization Tests", () => {
         expect(screen.getByLabelText("HP")).toHaveValue(20);
         expect(screen.getByLabelText("Max HP")).toHaveValue(25);
       });
+    });
+  });
+
+  describe("Initiative Modifier Editing", () => {
+    it("should render with initiative modifier value", () => {
+      const handlers = createMockHandlers();
+      const npcWithModifier: Character = {
+        ...mockNPC,
+        initiativeModifier: 3,
+      };
+      render(<NPCEditor npc={npcWithModifier} {...handlers} />);
+
+      expect(screen.getByLabelText("Init Mod")).toHaveValue(3);
+    });
+
+    it("should default to 0 when initiative modifier is undefined", () => {
+      const handlers = createMockHandlers();
+      render(<NPCEditor npc={mockNPC} {...handlers} />);
+
+      expect(screen.getByLabelText("Init Mod")).toHaveValue(0);
+    });
+
+    it("should update initiative modifier on blur", () => {
+      const handlers = createMockHandlers();
+      render(<NPCEditor npc={mockNPC} {...handlers} />);
+
+      const initModInput = screen.getByLabelText("Init Mod");
+      fireEvent.change(initModInput, { target: { value: "5" } });
+      fireEvent.blur(initModInput);
+
+      expect(handlers.onUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          initiativeModifier: 5,
+        }),
+      );
+    });
+
+    it("should clamp initiative modifier to -20 minimum", () => {
+      const handlers = createMockHandlers();
+      render(<NPCEditor npc={mockNPC} {...handlers} />);
+
+      const initModInput = screen.getByLabelText("Init Mod");
+      fireEvent.change(initModInput, { target: { value: "-25" } });
+      fireEvent.blur(initModInput);
+
+      expect(handlers.onUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          initiativeModifier: -20,
+        }),
+      );
+      expect(initModInput).toHaveValue(-20);
+    });
+
+    it("should clamp initiative modifier to +20 maximum", () => {
+      const handlers = createMockHandlers();
+      render(<NPCEditor npc={mockNPC} {...handlers} />);
+
+      const initModInput = screen.getByLabelText("Init Mod");
+      fireEvent.change(initModInput, { target: { value: "25" } });
+      fireEvent.blur(initModInput);
+
+      expect(handlers.onUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          initiativeModifier: 20,
+        }),
+      );
+      expect(initModInput).toHaveValue(20);
     });
   });
 });

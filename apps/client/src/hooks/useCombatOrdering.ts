@@ -105,11 +105,29 @@ export function useCombatOrdering({
 
     // Order based on combat state OR if any initiative is set
     if (combatActive || hasAnyInitiative) {
-      // Sort non-DM entities by initiative (highest first)
+      // Create index map to preserve creation order based on full characters array
+      const indexMap = new Map<string, number>();
+      characters.forEach((c, index) => {
+        indexMap.set(c.id, index);
+      });
+
+      // Sort non-DM entities by initiative with stable tiebreakers
       const sorted = allCombatants.sort((a, b) => {
         const aInit = a.character.initiative ?? -1;
         const bInit = b.character.initiative ?? -1;
-        return bInit - aInit; // Descending
+
+        // Primary: Initiative value (highest first)
+        const initDiff = bInit - aInit;
+        if (initDiff !== 0) return initDiff;
+
+        // Secondary: PC before NPC (when initiative is tied)
+        if (a.character.type === "pc" && b.character.type === "npc") return -1;
+        if (a.character.type === "npc" && b.character.type === "pc") return 1;
+
+        // Tertiary: Creation order (preserve original array position)
+        const aIndex = indexMap.get(a.character.id) ?? 0;
+        const bIndex = indexMap.get(b.character.id) ?? 0;
+        return aIndex - bIndex;
       });
 
       const orderSummary = sorted

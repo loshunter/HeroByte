@@ -84,6 +84,11 @@ interface DMMenuProps {
   onClearAllInitiative?: () => void;
   onNextTurn?: () => void;
   onPreviousTurn?: () => void;
+  toast?: {
+    success: (message: string) => void;
+    error: (message: string) => void;
+  };
+  onSetInitiative?: (characterId: string, initiative: number, modifier: number) => void;
 }
 
 export function DMMenu({
@@ -158,6 +163,8 @@ export function DMMenu({
   onClearAllInitiative,
   onNextTurn,
   onPreviousTurn,
+  toast,
+  onSetInitiative,
 }: DMMenuProps) {
   const { open, setOpen, toggleOpen, activeTab, setActiveTab, sessionName, setSessionName, npcs } =
     useDMMenuState({
@@ -237,7 +244,6 @@ export function DMMenu({
               <TabButton tab="players" label="Players" />
               <TabButton tab="session" label="Session" />
             </div>
-
             {activeTab === "map" && (
               <MapTab
                 mapBackground={mapBackground}
@@ -270,7 +276,6 @@ export function DMMenu({
                 onClearDrawings={onClearDrawings}
               />
             )}
-
             {activeTab === "npcs" && (
               <NPCsTab
                 npcs={npcs}
@@ -286,9 +291,10 @@ export function DMMenu({
                 isPlacingToken={isPlacingToken}
                 tokenPlacementError={tokenPlacementError}
                 placingTokenForNpcId={placingTokenForNpcId}
+                toast={toast}
+                onSetInitiative={onSetInitiative}
               />
             )}
-
             {activeTab === "props" && (
               <PropsTab
                 props={props}
@@ -306,7 +312,6 @@ export function DMMenu({
                 updatingPropId={updatingPropId}
               />
             )}
-
             {activeTab === "players" && (
               <PlayersTab
                 players={players}
@@ -320,7 +325,6 @@ export function DMMenu({
                 onPreviousTurn={onPreviousTurn}
               />
             )}
-
             {activeTab === "session" && (
               <SessionTab
                 sessionName={sessionName}

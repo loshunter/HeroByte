@@ -33,6 +33,7 @@ export interface NpcUpdateFields {
   maxHp?: number;
   portrait?: string | null;
   tokenImage?: string | null;
+  initiativeModifier?: number | null;
 }
 
 export interface UseNpcUpdateReturn {
@@ -90,6 +91,7 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
     maxHp: number;
     portrait?: string;
     tokenImage?: string | null;
+    initiativeModifier?: number;
   } | null>(null);
 
   // Get current NPC from snapshot
@@ -109,9 +111,15 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
     const maxHpMatches = currentNpc.maxHp === expected.maxHp;
     const portraitMatches = currentNpc.portrait === expected.portrait;
     const tokenImageMatches = currentNpc.tokenImage === expected.tokenImage;
+    const initiativeModifierMatches = currentNpc.initiativeModifier === expected.initiativeModifier;
 
     const allFieldsMatch =
-      nameMatches && hpMatches && maxHpMatches && portraitMatches && tokenImageMatches;
+      nameMatches &&
+      hpMatches &&
+      maxHpMatches &&
+      portraitMatches &&
+      tokenImageMatches &&
+      initiativeModifierMatches;
 
     if (allFieldsMatch) {
       console.log("[useNpcUpdate] NPC update confirmed:", {
@@ -154,6 +162,7 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
         maxHp: updates.maxHp ?? existing.maxHp,
         portrait: updates.portrait ?? existing.portrait,
         tokenImage: updates.tokenImage ?? existing.tokenImage ?? undefined,
+        initiativeModifier: updates.initiativeModifier ?? existing.initiativeModifier,
       };
 
       // Set loading state BEFORE sending message

@@ -98,8 +98,16 @@ export class InitiativeMessageHandler {
     if (this.characterService.setInitiative(state, characterId, initiative, modifier)) {
       console.log(`[Server] Broadcasting updated initiative for ${character.name}`);
 
+      // Auto-start combat if not already active and this is the first initiative roll
+      if (!state.combatActive) {
+        state.combatActive = true;
+        state.currentTurnCharacterId = characterId;
+        console.log(
+          `[Server] Auto-starting combat with first initiative roll from ${character.name}`,
+        );
+      }
       // If combat is active but no turn is set, set the first character with initiative as current turn
-      if (state.combatActive && !state.currentTurnCharacterId) {
+      else if (!state.currentTurnCharacterId) {
         const charactersInOrder = this.characterService.getCharactersInInitiativeOrder(state);
         if (charactersInOrder.length > 0) {
           state.currentTurnCharacterId = charactersInOrder[0].id;

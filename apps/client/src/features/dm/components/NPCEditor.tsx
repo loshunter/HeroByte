@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import type { Character } from "@shared";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import { useImageUrlNormalization } from "../../../hooks/useImageUrlNormalization";
+import { StatusBanner } from "../../../components/ui/StatusBanner";
 
 interface NPCEditorProps {
   npc: Character;
@@ -17,6 +18,7 @@ interface NPCEditorProps {
     maxHp: number;
     portrait?: string;
     tokenImage?: string;
+    initiativeModifier?: number;
   }) => void;
   onPlace: () => void;
   onDelete: () => void;
@@ -39,6 +41,9 @@ export function NPCEditor({
   const [name, setName] = useState(npc.name);
   const [hpInput, setHpInput] = useState(String(npc.hp));
   const [maxHpInput, setMaxHpInput] = useState(String(npc.maxHp));
+  const [initiativeModifierInput, setInitiativeModifierInput] = useState(
+    String(npc.initiativeModifier ?? 0),
+  );
   const [portrait, setPortrait] = useState(npc.portrait ?? "");
   const [tokenImage, setTokenImage] = useState(npc.tokenImage ?? "");
   const { normalizeUrl } = useImageUrlNormalization();
@@ -47,6 +52,7 @@ export function NPCEditor({
     setName(npc.name);
     setHpInput(String(npc.hp));
     setMaxHpInput(String(npc.maxHp));
+    setInitiativeModifierInput(String(npc.initiativeModifier ?? 0));
     setPortrait(npc.portrait ?? "");
     setTokenImage(npc.tokenImage ?? "");
   }, [npc]);
@@ -58,6 +64,7 @@ export function NPCEditor({
       maxHp: number;
       portrait?: string;
       tokenImage?: string;
+      initiativeModifier?: number;
     }>,
   ) => {
     const baseHp = overrides?.hp ?? Number(hpInput);
@@ -66,8 +73,12 @@ export function NPCEditor({
     const parsedMax = Math.max(1, Number.isFinite(baseMaxHp) ? Number(baseMaxHp) : 1);
     const clampedHp = Math.min(parsedMax, parsedHp);
 
+    const baseInitMod = overrides?.initiativeModifier ?? Number(initiativeModifierInput);
+    const parsedInitMod = Number.isFinite(baseInitMod) ? Number(baseInitMod) : 0;
+
     setHpInput(String(clampedHp));
     setMaxHpInput(String(parsedMax));
+    setInitiativeModifierInput(String(parsedInitMod));
 
     const nextNameSource = overrides?.name ?? name;
     const trimmedName = nextNameSource.trim();
@@ -82,12 +93,14 @@ export function NPCEditor({
       maxHp: parsedMax,
       portrait: portraitValue.length > 0 ? portraitValue : undefined,
       tokenImage: tokenImageValue.length > 0 ? tokenImageValue : undefined,
+      initiativeModifier: parsedInitMod,
     });
   };
 
   const handleNameBlur = () => commitUpdate({ name });
   const handleHpBlur = () => commitUpdate();
   const handleMaxHpBlur = () => commitUpdate();
+  const handleInitiativeModifierBlur = () => commitUpdate();
   const handlePortraitBlur = async () => {
     const normalizedPortrait = await normalizeUrl(portrait);
     setPortrait(normalizedPortrait);
@@ -101,64 +114,14 @@ export function NPCEditor({
 
   return (
     <JRPGPanel variant="simple" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-      {updateError && (
-        <div
-          style={{
-            padding: "8px",
-            background: "rgba(255, 0, 0, 0.1)",
-            border: "1px solid rgba(255, 0, 0, 0.3)",
-            borderRadius: "4px",
-            color: "#ff4444",
-            fontSize: "12px",
-          }}
-        >
-          {updateError}
-        </div>
-      )}
-      {tokenPlacementError && (
-        <div
-          style={{
-            padding: "8px",
-            background: "rgba(255, 0, 0, 0.1)",
-            border: "1px solid rgba(255, 0, 0, 0.3)",
-            borderRadius: "4px",
-            color: "#ff4444",
-            fontSize: "12px",
-          }}
-        >
-          {tokenPlacementError}
-        </div>
-      )}
-      {isUpdating && (
-        <div
-          style={{
-            padding: "6px",
-            background: "rgba(218, 165, 32, 0.1)",
-            border: "1px solid var(--jrpg-border-gold)",
-            borderRadius: "4px",
-            color: "var(--jrpg-gold)",
-            fontSize: "11px",
-            textAlign: "center",
-          }}
-        >
-          Updating...
-        </div>
-      )}
-      {isPlacingToken && (
-        <div
-          style={{
-            padding: "6px",
-            background: "rgba(218, 165, 32, 0.1)",
-            border: "1px solid var(--jrpg-border-gold)",
-            borderRadius: "4px",
-            color: "var(--jrpg-gold)",
-            fontSize: "11px",
-            textAlign: "center",
-          }}
-        >
-          Placing token...
-        </div>
-      )}
+      <StatusBanner variant="error" message={updateError ?? ""} visible={!!updateError} />
+      <StatusBanner
+        variant="error"
+        message={tokenPlacementError ?? ""}
+        visible={!!tokenPlacementError}
+      />
+      <StatusBanner variant="loading" message="Updating..." visible={isUpdating} />
+      <StatusBanner variant="loading" message="Placing token..." visible={isPlacingToken} />
       <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
         <label className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
           Name
@@ -220,6 +183,31 @@ export function NPCEditor({
               if (e.key === "Enter") handleMaxHpBlur();
             }}
             disabled={isUpdating}
+            style={{
+              width: "100%",
+              padding: "4px",
+              background: "#111",
+              color: "var(--jrpg-white)",
+              border: "1px solid var(--jrpg-border-gold)",
+              opacity: isUpdating ? 0.5 : 1,
+              cursor: isUpdating ? "not-allowed" : "text",
+            }}
+          />
+        </label>
+        <label className="jrpg-text-small" style={{ flex: 1 }}>
+          Init Mod
+          <input
+            type="number"
+            min={-20}
+            max={20}
+            value={initiativeModifierInput}
+            onChange={(e) => setInitiativeModifierInput(e.target.value)}
+            onBlur={handleInitiativeModifierBlur}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleInitiativeModifierBlur();
+            }}
+            disabled={isUpdating}
+            title="Initiative modifier added to d20 rolls"
             style={{
               width: "100%",
               padding: "4px",

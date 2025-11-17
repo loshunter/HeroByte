@@ -15,6 +15,7 @@
 import type { Character } from "@shared";
 import { JRPGButton, JRPGPanel } from "../../../../components/ui/JRPGPanel";
 import { NPCEditor } from "../NPCEditor";
+import { useBulkInitiativeRoll } from "../../../../hooks/useBulkInitiativeRoll";
 
 /**
  * Props for the NPCsTab component
@@ -46,6 +47,13 @@ interface NPCsTabProps {
   tokenPlacementError?: string | null;
   /** ID of the NPC whose token is being placed */
   placingTokenForNpcId?: string | null;
+  /** Toast notification functions */
+  toast?: {
+    success: (message: string) => void;
+    error: (message: string) => void;
+  };
+  /** Callback to set initiative for a character */
+  onSetInitiative?: (characterId: string, initiative: number, modifier: number) => void;
 }
 
 /**
@@ -73,7 +81,30 @@ export default function NPCsTab({
   isPlacingToken = false,
   tokenPlacementError = null,
   placingTokenForNpcId = null,
+  toast,
+  onSetInitiative,
 }: NPCsTabProps) {
+  // Callback to set initiative for a character - uses proper set-initiative WebSocket message
+  const handleSetInitiative = (
+    characterId: string,
+    initiative: number,
+    initiativeModifier: number,
+  ) => {
+    if (onSetInitiative) {
+      onSetInitiative(characterId, initiative, initiativeModifier);
+    }
+  };
+
+  const { rollAllInitiative, isRolling } = useBulkInitiativeRoll(npcs, handleSetInitiative);
+
+  const handleRollAllInitiative = async () => {
+    const count = await rollAllInitiative();
+    if (count > 0 && toast) {
+      toast.success(`Rolled initiative for ${count} NPC${count === 1 ? "" : "s"}`);
+    } else if (count === 0 && toast) {
+      toast.error("No NPCs without initiative to roll for");
+    }
+  };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
       <div
@@ -86,14 +117,26 @@ export default function NPCsTab({
         <h4 className="jrpg-text-command" style={{ margin: 0 }}>
           NPCs & Monsters
         </h4>
-        <JRPGButton
-          variant="success"
-          onClick={onCreateNPC}
-          disabled={isCreatingNpc}
-          style={{ fontSize: "10px", padding: "6px 12px" }}
-        >
-          {isCreatingNpc ? "Creating..." : "+ Add NPC"}
-        </JRPGButton>
+        <div style={{ display: "flex", gap: "8px" }}>
+          {npcs.length > 0 && (
+            <JRPGButton
+              variant="primary"
+              onClick={handleRollAllInitiative}
+              disabled={isRolling || !toast}
+              style={{ fontSize: "10px", padding: "6px 12px" }}
+            >
+              {isRolling ? "Rolling..." : "⚔️ Roll all Initiative"}
+            </JRPGButton>
+          )}
+          <JRPGButton
+            variant="success"
+            onClick={onCreateNPC}
+            disabled={isCreatingNpc}
+            style={{ fontSize: "10px", padding: "6px 12px" }}
+          >
+            {isCreatingNpc ? "Creating..." : "+ Add NPC"}
+          </JRPGButton>
+        </div>
       </div>
 
       {npcCreationError && (
