@@ -4,7 +4,6 @@
 
 import React from "react";
 import type { RollResult } from "./types";
-import { formatRollText } from "./diceLogic";
 import { DIE_SYMBOLS } from "./types";
 import { DraggableWindow } from "./DraggableWindow";
 
@@ -15,10 +14,6 @@ interface ResultPanelProps {
 
 export const ResultPanel: React.FC<ResultPanelProps> = ({ result, onClose }) => {
   if (!result) return null;
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(formatRollText(result));
-  };
 
   return (
     <DraggableWindow
@@ -160,20 +155,6 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({ result, onClose }) => 
               {result.total}
             </div>
           </div>
-
-          {/* Copy button */}
-          <button
-            onClick={copyToClipboard}
-            className="btn"
-            style={{
-              width: "100%",
-              marginTop: "16px",
-              padding: "12px",
-              fontSize: "14px",
-            }}
-          >
-            📋 Copy as Text
-          </button>
         </div>
       </div>
     </DraggableWindow>

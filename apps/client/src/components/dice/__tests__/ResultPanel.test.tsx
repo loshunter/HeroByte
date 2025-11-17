@@ -10,7 +10,6 @@
  * - Die token rendering (symbols, quantities, rolls, subtotals)
  * - Modifier token rendering (positive, negative, zero modifiers)
  * - Total display (correct value, TOTAL text, data-testid)
- * - Copy to clipboard functionality
  * - Defensive checks for missing/invalid tokens
  * - Mixed scenarios (dice + modifiers, complex rolls)
  *
@@ -18,7 +17,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { ResultPanel } from "../ResultPanel";
 import type { RollResult, Token, DieType } from "../types";
 import { DIE_SYMBOLS } from "../types";
@@ -66,13 +65,6 @@ vi.mock("../DraggableWindow", () => ({
   ),
 }));
 
-// Mock formatRollText
-vi.mock("../diceLogic", () => ({
-  formatRollText: vi.fn((result: RollResult) => {
-    return `Mocked roll text for ${result.id}`;
-  }),
-}));
-
 // ============================================================================
 // TEST DATA FACTORIES
 // ============================================================================
@@ -104,20 +96,7 @@ function createRollResult(
 // ============================================================================
 
 describe("ResultPanel", () => {
-  let mockClipboard: { writeText: ReturnType<typeof vi.fn> };
-
   beforeEach(() => {
-    // Mock clipboard API
-    mockClipboard = {
-      writeText: vi.fn().mockResolvedValue(undefined),
-    };
-
-    Object.defineProperty(navigator, "clipboard", {
-      value: mockClipboard,
-      writable: true,
-      configurable: true,
-    });
-
     // Mock console.warn for defensive checks
     vi.spyOn(console, "warn").mockImplementation(() => {});
 
@@ -589,73 +568,7 @@ describe("ResultPanel", () => {
   });
 
   // ==========================================================================
-  // GROUP 6: Copy to Clipboard
-  // ==========================================================================
-
-  describe("Copy to Clipboard", () => {
-    it("should render copy button", () => {
-      const result = createRollResult(
-        [createDieToken("d20")],
-        [{ tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 }],
-        15,
-      );
-
-      render(<ResultPanel result={result} onClose={vi.fn()} />);
-
-      expect(screen.getByText("📋 Copy as Text")).toBeInTheDocument();
-    });
-
-    it("should call navigator.clipboard.writeText when clicked", async () => {
-      const result = createRollResult(
-        [createDieToken("d20")],
-        [{ tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 }],
-        15,
-      );
-
-      render(<ResultPanel result={result} onClose={vi.fn()} />);
-
-      const copyButton = screen.getByText("📋 Copy as Text");
-      fireEvent.click(copyButton);
-
-      expect(mockClipboard.writeText).toHaveBeenCalledTimes(1);
-    });
-
-    it("should call formatRollText with correct result", async () => {
-      const { formatRollText } = await import("../diceLogic");
-      const result = createRollResult(
-        [createDieToken("d20")],
-        [{ tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 }],
-        15,
-      );
-
-      render(<ResultPanel result={result} onClose={vi.fn()} />);
-
-      const copyButton = screen.getByText("📋 Copy as Text");
-      fireEvent.click(copyButton);
-
-      expect(formatRollText).toHaveBeenCalledWith(result);
-    });
-
-    it("should handle clipboard API errors gracefully", async () => {
-      mockClipboard.writeText.mockRejectedValueOnce(new Error("Clipboard error"));
-
-      const result = createRollResult(
-        [createDieToken("d20")],
-        [{ tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 }],
-        15,
-      );
-
-      render(<ResultPanel result={result} onClose={vi.fn()} />);
-
-      const copyButton = screen.getByText("📋 Copy as Text");
-
-      // Should not throw error
-      expect(() => fireEvent.click(copyButton)).not.toThrow();
-    });
-  });
-
-  // ==========================================================================
-  // GROUP 7: Defensive Checks
+  // GROUP 6: Defensive Checks
   // ==========================================================================
 
   describe("Defensive Checks", () => {
@@ -733,7 +646,7 @@ describe("ResultPanel", () => {
   });
 
   // ==========================================================================
-  // GROUP 8: Mixed Scenarios
+  // GROUP 7: Mixed Scenarios
   // ==========================================================================
 
   describe("Mixed Scenarios", () => {
@@ -910,7 +823,7 @@ describe("ResultPanel", () => {
   });
 
   // ==========================================================================
-  // GROUP 9: Edge Cases
+  // GROUP 8: Edge Cases
   // ==========================================================================
 
   describe("Edge Cases", () => {
