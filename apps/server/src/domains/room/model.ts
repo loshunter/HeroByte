@@ -124,17 +124,31 @@ export function toSnapshot(state: RoomState, isDM: boolean = true): RoomSnapshot
     ? state.characters
     : state.characters.filter((c) => c.visibleToPlayers !== false);
 
-  // Get IDs of hidden NPC tokens to filter from tokens array
+  // Collect IDs of hidden NPC tokens to filter from tokens and scene objects
   const hiddenCharacterTokenIds = isDM
-    ? []
-    : (state.characters
-        .filter((c) => c.visibleToPlayers === false && c.tokenId)
-        .map((c) => c.tokenId) as string[]);
+    ? null
+    : new Set(
+        state.characters
+          .filter((c) => c.visibleToPlayers === false && c.tokenId)
+          .map((c) => c.tokenId as string),
+      );
 
   // Filter tokens to exclude hidden NPC tokens
   const visibleTokens = isDM
     ? state.tokens
-    : state.tokens.filter((t) => !hiddenCharacterTokenIds.includes(t.id));
+    : state.tokens.filter((t) => !hiddenCharacterTokenIds?.has(t.id));
+
+  // Filter scene objects to exclude hidden NPC token objects (other objects remain)
+  const visibleSceneObjects = isDM
+    ? state.sceneObjects
+    : state.sceneObjects.filter((object) => {
+        if (object.type !== "token" || !hiddenCharacterTokenIds) {
+          return true;
+        }
+
+        const tokenId = object.id.startsWith("token:") ? object.id.slice("token:".length) : null;
+        return !tokenId || !hiddenCharacterTokenIds.has(tokenId);
+      });
 
   return {
     users: state.users,
@@ -148,7 +162,7 @@ export function toSnapshot(state: RoomState, isDM: boolean = true): RoomSnapshot
     gridSize: state.gridSize,
     gridSquareSize: state.gridSquareSize,
     diceRolls: state.diceRolls,
-    sceneObjects: state.sceneObjects,
+    sceneObjects: visibleSceneObjects,
     selectionState: selectionMapToRecord(state.selectionState),
     playerStagingZone: state.playerStagingZone ?? undefined,
     combatActive: state.combatActive,

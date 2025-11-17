@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { createEmptyRoomState, toSnapshot } from "../room/model.js";
+import { SceneGraphBuilder } from "../room/scene/SceneGraphBuilder.js";
 import { CharacterService } from "../character/service.js";
 import { TokenService } from "../token/service.js";
 
 describe("Room Model - toSnapshot", () => {
   const characterService = new CharacterService();
   const tokenService = new TokenService();
+  const sceneGraphBuilder = new SceneGraphBuilder();
 
   describe("NPC visibility filtering", () => {
     it("filters hidden NPCs and their tokens for non-DM players", () => {
@@ -199,6 +201,36 @@ describe("Room Model - toSnapshot", () => {
       expect(tokenIds).toContain(playerToken.id);
       expect(tokenIds).toContain(visibleNPC.tokenId);
       expect(tokenIds).not.toContain(hiddenNPC.tokenId);
+    });
+
+    it("filters hidden NPC token scene objects for non-DM players", () => {
+      const state = createEmptyRoomState();
+
+      // Create NPCs and tokens
+      const visibleNPC = characterService.createCharacter(state, "Visible NPC", 10, undefined, "npc");
+      const hiddenNPC = characterService.createCharacter(state, "Hidden NPC", 10, undefined, "npc");
+      characterService.setNPCVisibility(state, hiddenNPC.id, false);
+
+      characterService.placeNPCToken(state, tokenService, visibleNPC.id, "dm-uid");
+      characterService.placeNPCToken(state, tokenService, hiddenNPC.id, "dm-uid");
+
+      // Rebuild scene graph to populate token objects
+      state.sceneObjects = sceneGraphBuilder.rebuild(state);
+
+      expect(visibleNPC.tokenId).toBeTruthy();
+      expect(hiddenNPC.tokenId).toBeTruthy();
+
+      const visibleTokenSceneId = `token:${visibleNPC.tokenId!}`;
+      const hiddenTokenSceneId = `token:${hiddenNPC.tokenId!}`;
+
+      const playerSnapshot = toSnapshot(state, false);
+      const dmSnapshot = toSnapshot(state, true);
+
+      expect(playerSnapshot.sceneObjects.some((obj) => obj.id === visibleTokenSceneId)).toBe(true);
+      expect(playerSnapshot.sceneObjects.some((obj) => obj.id === hiddenTokenSceneId)).toBe(false);
+
+      expect(dmSnapshot.sceneObjects.some((obj) => obj.id === visibleTokenSceneId)).toBe(true);
+      expect(dmSnapshot.sceneObjects.some((obj) => obj.id === hiddenTokenSceneId)).toBe(true);
     });
   });
 });
