@@ -427,15 +427,13 @@ describe("validateMessage", () => {
     });
 
     it("validates toggle-npc-visibility", () => {
-      expect(
-        validateMessage({ t: "toggle-npc-visibility", id: "npc-1", visible: false }),
-      ).toEqual({ valid: true });
+      expect(validateMessage({ t: "toggle-npc-visibility", id: "npc-1", visible: false })).toEqual({
+        valid: true,
+      });
     });
 
     it("rejects toggle-npc-visibility with missing id", () => {
-      expect(
-        validateMessage({ t: "toggle-npc-visibility", id: "", visible: true }),
-      ).toMatchObject({
+      expect(validateMessage({ t: "toggle-npc-visibility", id: "", visible: true })).toMatchObject({
         valid: false,
         error: "toggle-npc-visibility: missing or invalid id",
       });
