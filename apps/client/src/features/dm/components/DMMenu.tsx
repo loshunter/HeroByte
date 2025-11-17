@@ -244,7 +244,6 @@ export function DMMenu({
               <TabButton tab="players" label="Players" />
               <TabButton tab="session" label="Session" />
             </div>
-
             {activeTab === "map" && (
               <MapTab
                 mapBackground={mapBackground}
@@ -277,7 +276,6 @@ export function DMMenu({
                 onClearDrawings={onClearDrawings}
               />
             )}
-
             {activeTab === "npcs" && (
               <NPCsTab
                 npcs={npcs}
@@ -297,7 +295,6 @@ export function DMMenu({
                 onSetInitiative={onSetInitiative}
               />
             )}
-
             {activeTab === "props" && (
               <PropsTab
                 props={props}
@@ -315,7 +312,6 @@ export function DMMenu({
                 updatingPropId={updatingPropId}
               />
             )}
-
             {activeTab === "players" && (
               <PlayersTab
                 players={players}
