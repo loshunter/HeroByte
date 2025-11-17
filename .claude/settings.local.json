@@ -194,7 +194,13 @@
       "Bash(gh pr list:*)",
       "Bash(gh api:*)",
       "Bash(time pnpm test:parallel:*)",
-      "Bash(pnpm --filter @shared typecheck:*)"
+      "Bash(pnpm --filter @shared typecheck:*)",
+      "Bash(pnpm exec vitest:*)",
+      "Bash(pnpm test:e2e:smoke:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(playwright test:*)",
+      "Bash(pnpm --filter herobyte-client test:simple:*)",
+      "Bash(git cherry-pick:*)"
     ],
     "deny": [],
     "ask": []
