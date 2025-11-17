@@ -157,6 +157,8 @@ The tests run in GitHub Actions CI:
 - [ ] Measure WebSocket latency
 - [ ] Canvas rendering performance
 
+See [TESTING.md - Test Performance](./TESTING.md#test-performance) for current optimization status (CI runtime reduced 19% to 3m 53s).
+
 ### Visual Regression Testing
 - [ ] Screenshot comparisons
 - [ ] UI consistency checks

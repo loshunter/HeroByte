@@ -170,6 +170,7 @@ These are **not urgent** but represent opportunities to further reduce test runt
 
 ## Resources
 
+- **Test Performance:** [TESTING.md - Test Performance](./TESTING.md#test-performance) - Batching, V8 coverage, parallel execution
 - **Testing Architecture Overview:** [README.md - Testing Architecture](../README.md#testing-architecture)
 - **Contributing Guide:** [CONTRIBUTING.md - Testing Expectations](../CONTRIBUTING.md#testing-expectations)
 - **Example Optimized Tests:**

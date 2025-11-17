@@ -411,6 +411,62 @@ pnpm --filter herobyte-client dev
 
 ---
 
+## Test Performance
+
+### Current Metrics
+- **CI Runtime**: ~3m 53s (down from 4m 48s - 19% improvement)
+- **Client Tests**: Batched execution with optimal chunk sizes
+- **Coverage**: V8 provider for 15-20% faster collection
+
+### Optimization Techniques
+
+#### 1. Batching Strategy
+Tests are automatically batched to reduce Vitest cold starts:
+- **Chunk Size**: 15 files per batch (CI), 20 files (local)
+- **Concurrency**: CPU-based parallel execution
+- **Heavy Tests**: Characterization tests run in isolated batches
+
+Environment variables:
+```bash
+CLIENT_TEST_CHUNK_SIZE=15        # Files per batch
+CLIENT_TEST_CONCURRENCY=4        # Parallel batches
+CLIENT_TEST_INCLUDE="hooks"      # Filter by pattern
+```
+
+#### 2. V8 Coverage Provider
+Switched from Istanbul to V8 for better performance:
+- No Babel transformation overhead
+- Native Node.js coverage instrumentation
+- Lower memory usage, better source maps
+
+#### 3. Parallel Execution
+```bash
+# Fast validation (no coverage)
+pnpm test:parallel
+
+# Coverage across all workspaces in parallel
+pnpm test:coverage:parallel
+
+# Individual workspace tests
+pnpm test:client
+pnpm test:server
+pnpm test:shared
+```
+
+### Performance Tips
+
+**For Local Development:**
+- Use `pnpm test:client` for quick feedback
+- Use filters to run subset: `CLIENT_TEST_INCLUDE="hooks" pnpm test:client`
+- Increase chunk size for fewer cold starts: `CLIENT_TEST_CHUNK_SIZE=30`
+
+**For CI:**
+- Split fast tests from coverage runs
+- Run test:parallel for quick smoke tests
+- Run coverage in separate job for independent scaling
+
+---
+
 ## Continuous Integration
 
 ### GitHub Actions (Existing)
@@ -427,6 +483,7 @@ pnpm --filter herobyte-client dev
 - [ ] Add visual regression testing (Percy, Chromatic)
 - [ ] Add performance budgets (Lighthouse CI)
 - [ ] Add chrome-devtools MCP to CI pipeline
+- [ ] Test sharding for parallel execution across machines
 
 ---
 
