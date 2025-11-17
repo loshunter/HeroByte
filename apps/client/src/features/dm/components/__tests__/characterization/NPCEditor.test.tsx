@@ -486,4 +486,71 @@ describe("NPCEditor - Characterization Tests", () => {
       });
     });
   });
+
+  describe("Initiative Modifier Editing", () => {
+    it("should render with initiative modifier value", () => {
+      const handlers = createMockHandlers();
+      const npcWithModifier: Character = {
+        ...mockNPC,
+        initiativeModifier: 3,
+      };
+      render(<NPCEditor npc={npcWithModifier} {...handlers} />);
+
+      expect(screen.getByLabelText("Init Mod")).toHaveValue(3);
+    });
+
+    it("should default to 0 when initiative modifier is undefined", () => {
+      const handlers = createMockHandlers();
+      render(<NPCEditor npc={mockNPC} {...handlers} />);
+
+      expect(screen.getByLabelText("Init Mod")).toHaveValue(0);
+    });
+
+    it("should update initiative modifier on blur", () => {
+      const handlers = createMockHandlers();
+      render(<NPCEditor npc={mockNPC} {...handlers} />);
+
+      const initModInput = screen.getByLabelText("Init Mod");
+      fireEvent.change(initModInput, { target: { value: "5" } });
+      fireEvent.blur(initModInput);
+
+      expect(handlers.onUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          initiativeModifier: 5,
+        }),
+      );
+    });
+
+    it("should clamp initiative modifier to -20 minimum", () => {
+      const handlers = createMockHandlers();
+      render(<NPCEditor npc={mockNPC} {...handlers} />);
+
+      const initModInput = screen.getByLabelText("Init Mod");
+      fireEvent.change(initModInput, { target: { value: "-25" } });
+      fireEvent.blur(initModInput);
+
+      expect(handlers.onUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          initiativeModifier: -20,
+        }),
+      );
+      expect(initModInput).toHaveValue(-20);
+    });
+
+    it("should clamp initiative modifier to +20 maximum", () => {
+      const handlers = createMockHandlers();
+      render(<NPCEditor npc={mockNPC} {...handlers} />);
+
+      const initModInput = screen.getByLabelText("Init Mod");
+      fireEvent.change(initModInput, { target: { value: "25" } });
+      fireEvent.blur(initModInput);
+
+      expect(handlers.onUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          initiativeModifier: 20,
+        }),
+      );
+      expect(initModInput).toHaveValue(20);
+    });
+  });
 });

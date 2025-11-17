@@ -234,12 +234,12 @@ describe("InitiativeMessageHandler", () => {
       expect(state.currentTurnCharacterId).toBe("char1");
     });
 
-    it("should not set currentTurnCharacterId when combat is not active", () => {
+    it("should auto-start combat when setting first initiative", () => {
       // Combat is not active
       state.combatActive = false;
       state.currentTurnCharacterId = undefined;
 
-      // Set initiative
+      // Set initiative for first character
       const result = handler.handleSetInitiative(
         state,
         "char1",
@@ -251,8 +251,31 @@ describe("InitiativeMessageHandler", () => {
 
       expect(result.broadcast).toBe(true);
       expect(result.save).toBe(true);
-      // currentTurnCharacterId should remain undefined
-      expect(state.currentTurnCharacterId).toBeUndefined();
+      // Combat should now be active
+      expect(state.combatActive).toBe(true);
+      // currentTurnCharacterId should be set to the character who rolled
+      expect(state.currentTurnCharacterId).toBe("char1");
+    });
+
+    it("should auto-start combat and set current turn for subsequent initiative rolls", () => {
+      // Combat is not active
+      state.combatActive = false;
+      state.currentTurnCharacterId = undefined;
+
+      // First character sets initiative
+      handler.handleSetInitiative(state, "char1", "player1", 15, 2, false);
+
+      expect(state.combatActive).toBe(true);
+      expect(state.currentTurnCharacterId).toBe("char1");
+
+      // Second character sets initiative - current turn should not change
+      const result = handler.handleSetInitiative(state, "char2", "player2", 18, 3, false);
+
+      expect(result.broadcast).toBe(true);
+      expect(result.save).toBe(true);
+      expect(state.combatActive).toBe(true);
+      // Current turn should remain with first character who rolled
+      expect(state.currentTurnCharacterId).toBe("char1");
     });
   });
 
