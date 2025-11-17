@@ -116,7 +116,7 @@ function AuthenticatedApp({
   registerRtcHandler,
   registerServerEventHandler,
   isConnected,
-  authState: _authState,
+  authState,
 }: AuthenticatedAppProps): JSX.Element {
   // Tool modes
   const {
@@ -145,8 +145,11 @@ function AuthenticatedApp({
     setActiveTool,
   });
 
-  // Heartbeat to prevent timeout (only after authentication)
-  useHeartbeat({ sendMessage });
+  // Heartbeat to prevent timeout (only when authenticated to avoid server drops)
+  useHeartbeat({
+    sendMessage,
+    enabled: authState === AuthState.AUTHENTICATED,
+  });
   const {
     editingPlayerUID,
     nameInput,
