@@ -72,7 +72,7 @@ test.describe("Session Load - Smoke Tests", () => {
 
   test("non-DM cannot load session (authorization check)", async ({ page }) => {
     // Join as regular player (not DM)
-    await page.goto("http://localhost:3000?room=test-room");
+    await page.goto("/?room=test-room");
     await page.waitForTimeout(1000);
 
     const snapshot = new SnapshotBuilder().withGridSize(70).build();

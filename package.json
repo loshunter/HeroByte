@@ -29,6 +29,8 @@
     "lint:shared": "pnpm --filter @shared lint",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:e2e:smoke": "playwright test --grep \"smoke\"",
+    "test:e2e:deprecated": "playwright test partial-erase.spec.ts session-load.spec.ts transform-tool.spec.ts staging-zone.spec.ts character-creation.spec.ts",
     "lint:structure": "node scripts/structure-report.mjs --limit 50 --threshold 350",
     "lint:structure:enforce": "node scripts/structure-report.mjs --threshold 350 --fail-on-new",
     "baseline:update": "node scripts/update-baseline.mjs",
