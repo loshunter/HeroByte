@@ -174,6 +174,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     tokenPlacementError,
     placingTokenForNpcId,
     handlePlaceNPCToken,
+    handleToggleNPCVisibility,
     handleDeletePlayerToken,
 
     // Prop management
@@ -327,6 +328,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onNpcUpdate={handleUpdateNPC}
         onNpcDelete={handleDeleteNPC}
         onNpcPlaceToken={handlePlaceNPCToken}
+        onNpcToggleVisibility={handleToggleNPCVisibility}
         onPlayerTokenDelete={handleDeletePlayerToken}
         isDeletingNpc={isDeletingNpc}
         npcDeletionError={npcDeletionError}

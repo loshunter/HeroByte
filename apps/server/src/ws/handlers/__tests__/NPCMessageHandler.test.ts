@@ -316,4 +316,104 @@ describe("NPCMessageHandler - Characterization Tests", () => {
       expect(state.tokens).toHaveLength(tokenCountBefore); // Should not change
     });
   });
+
+  describe("toggle-npc-visibility message", () => {
+    let npcId: string;
+
+    beforeEach(() => {
+      // Create an NPC
+      const state = roomService.getState();
+      const npc = characterService.createCharacter(state, "Assassin", 40, "assassin.png", "npc");
+      npcId = npc.id;
+      roomService.createSnapshot();
+    });
+
+    it("should toggle NPC visibility when DM toggles it", () => {
+      const state = roomService.getState();
+      const npc = state.characters.find((c) => c.id === npcId);
+
+      // Initially should be undefined (visible by default)
+      expect(npc?.visibleToPlayers).toBeUndefined();
+
+      // Hide NPC
+      const hideMessage: ClientMessage = {
+        t: "toggle-npc-visibility",
+        id: npcId,
+        visible: false,
+      };
+
+      messageRouter.route(hideMessage, dmUid);
+
+      expect(npc?.visibleToPlayers).toBe(false);
+
+      // Reveal NPC
+      const showMessage: ClientMessage = {
+        t: "toggle-npc-visibility",
+        id: npcId,
+        visible: true,
+      };
+
+      messageRouter.route(showMessage, dmUid);
+
+      expect(npc?.visibleToPlayers).toBe(true);
+    });
+
+    it("should not toggle visibility when non-DM tries", () => {
+      const state = roomService.getState();
+      const npc = state.characters.find((c) => c.id === npcId);
+
+      // Player attempts to hide NPC
+      const hideMessage: ClientMessage = {
+        t: "toggle-npc-visibility",
+        id: npcId,
+        visible: false,
+      };
+
+      messageRouter.route(hideMessage, playerUid);
+
+      // Visibility should remain unchanged (undefined = visible)
+      expect(npc?.visibleToPlayers).toBeUndefined();
+    });
+
+    it("should handle visibility toggle for NPC with token", () => {
+      const state = roomService.getState();
+      const npc = state.characters.find((c) => c.id === npcId)!;
+
+      // Place token for NPC
+      characterService.placeNPCToken(state, tokenService, npcId, dmUid);
+      expect(npc.tokenId).toBeDefined();
+
+      // Hide NPC
+      const hideMessage: ClientMessage = {
+        t: "toggle-npc-visibility",
+        id: npcId,
+        visible: false,
+      };
+
+      messageRouter.route(hideMessage, dmUid);
+
+      expect(npc.visibleToPlayers).toBe(false);
+
+      // Token should still exist in state (filtering happens in toSnapshot)
+      const token = state.tokens.find((t) => t.id === npc.tokenId);
+      expect(token).toBeDefined();
+    });
+
+    it("should handle toggle for non-existent NPC gracefully", () => {
+      const toggleMessage: ClientMessage = {
+        t: "toggle-npc-visibility",
+        id: "non-existent-npc-id",
+        visible: false,
+      };
+
+      // Should not throw error
+      expect(() => {
+        messageRouter.route(toggleMessage, dmUid);
+      }).not.toThrow();
+
+      // State should remain unchanged
+      const state = roomService.getState();
+      expect(state.characters).toHaveLength(1);
+    });
+  });
 });

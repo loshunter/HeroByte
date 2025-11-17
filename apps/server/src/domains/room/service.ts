@@ -121,16 +121,30 @@ export class RoomService {
 
   /**
    * Broadcast current room state to all connected clients
+   * Generates per-player snapshots with visibility filtering
+   * @param clients - Set of authenticated WebSocket clients
+   * @param uidToWs - Map of player UID to WebSocket (for looking up player info)
    */
-  broadcast(clients: Set<WebSocket>): void {
-    const snapshot = this.createSnapshot();
-    const json = JSON.stringify(snapshot);
+  broadcast(clients: Set<WebSocket>, uidToWs?: Map<string, WebSocket>): void {
+    this.cleanupPointers();
+    this.rebuildSceneGraph();
 
     clients.forEach((client) => {
-      if (client.readyState === 1) {
-        // OPEN
-        client.send(json);
-      }
+      if (client.readyState !== 1) return; // Skip if not OPEN
+
+      // Find player UID for this client by reverse lookup
+      const playerUid = uidToWs
+        ? Array.from(uidToWs.entries()).find(([_, ws]) => ws === client)?.[0]
+        : undefined;
+
+      // Determine if this client is a DM
+      const isDM = playerUid
+        ? this.state.players.find((p) => p.uid === playerUid)?.isDM ?? false
+        : false;
+
+      // Generate snapshot with appropriate visibility filtering
+      const snapshot = toSnapshot(this.state, isDM);
+      client.send(JSON.stringify(snapshot));
     });
 
     this.saveState();

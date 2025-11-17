@@ -114,13 +114,33 @@ export function selectionMapToRecord(map: SelectionStateMap): SelectionState {
 
 /**
  * Convert room state to snapshot for client
+ * @param state - Room state
+ * @param isDM - Whether the recipient is a DM (default: true for backward compatibility)
+ * @returns Snapshot with visibility filtering applied for non-DM players
  */
-export function toSnapshot(state: RoomState): RoomSnapshot {
+export function toSnapshot(state: RoomState, isDM: boolean = true): RoomSnapshot {
+  // Filter characters based on visibility (DM sees all, players only see visible NPCs)
+  const visibleCharacters = isDM
+    ? state.characters
+    : state.characters.filter((c) => c.visibleToPlayers !== false);
+
+  // Get IDs of hidden NPC tokens to filter from tokens array
+  const hiddenCharacterTokenIds = isDM
+    ? []
+    : state.characters
+        .filter((c) => c.visibleToPlayers === false && c.tokenId)
+        .map((c) => c.tokenId) as string[];
+
+  // Filter tokens to exclude hidden NPC tokens
+  const visibleTokens = isDM
+    ? state.tokens
+    : state.tokens.filter((t) => !hiddenCharacterTokenIds.includes(t.id));
+
   return {
     users: state.users,
-    tokens: state.tokens,
+    tokens: visibleTokens,
     players: state.players,
-    characters: state.characters,
+    characters: visibleCharacters,
     props: state.props,
     mapBackground: state.mapBackground,
     pointers: state.pointers,

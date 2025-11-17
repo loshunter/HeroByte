@@ -33,6 +33,8 @@ interface NpcCardProps {
   isDeleting?: boolean;
   /** Error message from deletion attempt */
   deletionError?: string | null;
+  /** Toggle NPC visibility to players */
+  onToggleVisibility?: (id: string, visible: boolean) => void;
 }
 
 export function NpcCard({
@@ -51,6 +53,7 @@ export function NpcCard({
   initiativeModifier: _initiativeModifier,
   isDeleting = false,
   deletionError = null,
+  onToggleVisibility,
 }: NpcCardProps): JSX.Element {
   const [editingHp, setEditingHp] = useState(false);
   const [hpInput, setHpInput] = useState(String(character.hp));
@@ -219,6 +222,27 @@ export function NpcCard({
       />
 
       <div style={{ display: "flex", gap: "6px" }}>
+        {onToggleVisibility && canEdit && (
+          <button
+            className="btn btn-secondary"
+            style={{
+              fontSize: "0.7rem",
+              padding: "4px 8px",
+              opacity: character.visibleToPlayers === false ? 0.5 : 1,
+            }}
+            onClick={() => {
+              const newVisibility = character.visibleToPlayers === false;
+              onToggleVisibility(character.id, newVisibility);
+            }}
+            title={
+              character.visibleToPlayers === false
+                ? "Hidden from players (click to show)"
+                : "Visible to players (click to hide)"
+            }
+          >
+            {character.visibleToPlayers === false ? "👁️‍🗨️" : "👁️"}
+          </button>
+        )}
         <button
           className="btn btn-secondary"
           style={{ fontSize: "0.7rem", padding: "4px 8px" }}

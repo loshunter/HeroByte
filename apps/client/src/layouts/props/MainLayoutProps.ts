@@ -348,6 +348,8 @@ export interface MainLayoutProps {
   placingTokenForNpcId?: string | null;
   /** Handler to place NPC token */
   handlePlaceNPCToken: (id: string) => void;
+  /** Handler to toggle NPC visibility to players */
+  handleToggleNPCVisibility: (id: string, visible: boolean) => void;
   /** Handler to delete player token */
   handleDeletePlayerToken: (tokenId: string) => void;
 

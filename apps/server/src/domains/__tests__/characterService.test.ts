@@ -347,4 +347,58 @@ describe("CharacterService", () => {
       expect(unclaimed.map((c) => c.name)).toEqual(["Unclaimed1", "Unclaimed2"]);
     });
   });
+
+  // Test 16: NPC visibility control
+  describe("NPC visibility control", () => {
+    it("sets NPC visibility to hidden and visible", () => {
+      const state = createEmptyRoomState();
+      const npc = service.createCharacter(state, "Goblin Scout", 12, undefined, "npc");
+
+      // Default visibility (should be undefined or true)
+      expect(npc.visibleToPlayers).toBeUndefined();
+
+      // Hide NPC from players
+      const hidResult = service.setNPCVisibility(state, npc.id, false);
+      expect(hidResult).toBe(true);
+      expect(npc.visibleToPlayers).toBe(false);
+
+      // Reveal NPC to players
+      const showResult = service.setNPCVisibility(state, npc.id, true);
+      expect(showResult).toBe(true);
+      expect(npc.visibleToPlayers).toBe(true);
+    });
+
+    it("fails to set visibility when character doesn't exist", () => {
+      const state = createEmptyRoomState();
+      const result = service.setNPCVisibility(state, "non-existent-id", false);
+      expect(result).toBe(false);
+    });
+
+    it("fails to set visibility when character is not an NPC", () => {
+      const state = createEmptyRoomState();
+      const playerChar = service.createCharacter(state, "Player Hero", 30, undefined, "pc");
+
+      const result = service.setNPCVisibility(state, playerChar.id, false);
+      expect(result).toBe(false);
+      expect(playerChar.visibleToPlayers).toBeUndefined();
+    });
+
+    it("persists visibility state across multiple operations", () => {
+      const state = createEmptyRoomState();
+      const npc = service.createCharacter(state, "Hidden Enemy", 15, undefined, "npc");
+
+      // Hide the NPC
+      service.setNPCVisibility(state, npc.id, false);
+
+      // Perform other operations
+      service.updateHP(state, npc.id, 10, 20);
+      service.updateName(state, npc.id, "Ambushing Enemy");
+
+      // Visibility should remain hidden
+      const updated = service.findCharacter(state, npc.id);
+      expect(updated?.visibleToPlayers).toBe(false);
+      expect(updated?.hp).toBe(10);
+      expect(updated?.name).toBe("Ambushing Enemy");
+    });
+  });
 });

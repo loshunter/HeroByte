@@ -146,6 +146,8 @@ export interface BottomPanelLayoutProps {
   onNpcDelete: (id: string) => void;
   /** Handler to place an NPC token on the board */
   onNpcPlaceToken: (id: string) => void;
+  /** Handler to toggle NPC visibility to players */
+  onNpcToggleVisibility: (id: string, visible: boolean) => void;
   /** Handler to delete a player token from the board */
   onPlayerTokenDelete: (tokenId: string) => void;
   /** Whether NPC deletion is in progress */
@@ -280,6 +282,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
     onNpcUpdate,
     onNpcDelete,
     onNpcPlaceToken,
+    onNpcToggleVisibility,
     onPlayerTokenDelete,
     isDeletingNpc,
     npcDeletionError,
@@ -333,6 +336,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
         onNpcUpdate={onNpcUpdate}
         onNpcDelete={onNpcDelete}
         onNpcPlaceToken={onNpcPlaceToken}
+        onNpcToggleVisibility={onNpcToggleVisibility}
         onPlayerTokenDelete={onPlayerTokenDelete}
         isDeletingNpc={isDeletingNpc}
         npcDeletionError={npcDeletionError}

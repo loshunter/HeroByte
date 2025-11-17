@@ -368,6 +368,19 @@ export class MessageRouter {
           break;
         }
 
+        case "toggle-npc-visibility": {
+          const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
+            senderUid,
+            context.isDM(),
+            "toggle NPC visibility",
+            () => this.npcMessageHandler.handleToggleNPCVisibility(state, message.id, message.visible),
+          );
+          if (result) {
+            this.routeResultHandler.handleResult(result);
+          }
+          break;
+        }
+
         // INITIATIVE/COMBAT ACTIONS
         case "set-initiative": {
           const result = this.initiativeMessageHandler.handleSetInitiative(
@@ -832,7 +845,7 @@ export class MessageRouter {
    */
   private broadcast(): void {
     this.broadcastService.broadcast(() => {
-      this.roomService.broadcast(this.getAuthorizedClients());
+      this.roomService.broadcast(this.getAuthorizedClients(), this.uidToWs);
     });
   }
 

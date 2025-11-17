@@ -38,6 +38,7 @@ import { useNpcDeletion } from "../hooks/useNpcDeletion";
 import { useNpcCreation } from "../hooks/useNpcCreation";
 import { useNpcUpdate } from "../hooks/useNpcUpdate";
 import { useNpcTokenPlacement } from "../hooks/useNpcTokenPlacement";
+import { useNpcVisibility } from "../hooks/useNpcVisibility";
 import { usePropCreation } from "../hooks/usePropCreation";
 import { usePropDeletion } from "../hooks/usePropDeletion";
 import { usePropUpdate } from "../hooks/usePropUpdate";
@@ -394,6 +395,11 @@ function AuthenticatedApp({
     sendMessage,
   });
 
+  // NPC Visibility Hook - allows DM to toggle NPC visibility for players
+  const { toggleNpcVisibility } = useNpcVisibility({
+    sendMessage,
+  });
+
   const handleDeletePlayerToken = useCallback(
     (tokenId: string) => {
       sendMessage({ t: "delete-token", id: tokenId });
@@ -688,6 +694,7 @@ function AuthenticatedApp({
         tokenPlacementError={tokenPlacementError}
         placingTokenForNpcId={placingTokenForNpcId}
         handlePlaceNPCToken={placeToken}
+        handleToggleNPCVisibility={toggleNpcVisibility}
         handleDeletePlayerToken={handleDeletePlayerToken}
         // Prop management
         handleCreateProp={createProp}

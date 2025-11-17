@@ -208,6 +208,7 @@ export interface Character {
   initiative?: number; // Initiative roll value (d20 + modifier)
   initiativeModifier?: number; // Initiative modifier (bonus/penalty added to d20 roll)
   statusEffects?: string[]; // Active status effect identifiers/labels (per character)
+  visibleToPlayers?: boolean; // DM can hide NPCs from players (undefined/true = visible, false = hidden)
 
   // Future fields (Phase 2+):
   // templateId?: string;        // Link to character template (for NPCs)
@@ -378,6 +379,7 @@ export type ClientMessage =
     }
   | { t: "delete-npc"; id: string }
   | { t: "place-npc-token"; id: string }
+  | { t: "toggle-npc-visibility"; id: string; visible: boolean }
 
   // Initiative/Combat actions
   | { t: "set-initiative"; characterId: string; initiative: number; initiativeModifier?: number }

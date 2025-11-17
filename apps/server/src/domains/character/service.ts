@@ -295,6 +295,30 @@ export class CharacterService {
   }
 
   /**
+   * Set NPC visibility to players
+   * @param state - Room state
+   * @param npcId - ID of NPC to update
+   * @param visible - Whether NPC should be visible to players
+   * @returns true if visibility was set successfully
+   */
+  setNPCVisibility(state: RoomState, npcId: string, visible: boolean): boolean {
+    const character = this.findCharacter(state, npcId);
+    if (!character) {
+      console.error(`Cannot set visibility: NPC ${npcId} not found`);
+      return false;
+    }
+
+    if (character.type !== "npc") {
+      console.error(`Cannot set visibility: Character ${npcId} is not an NPC`);
+      return false;
+    }
+
+    character.visibleToPlayers = visible;
+    console.log(`Set NPC ${character.name} visibility to players: ${visible}`);
+    return true;
+  }
+
+  /**
    * Check if player can control character
    */
   canControlCharacter(character: Character, playerUID: string): boolean {

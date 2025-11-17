@@ -54,6 +54,7 @@ interface EntitiesPanelProps {
   ) => void;
   onNpcDelete: (id: string) => void;
   onNpcPlaceToken: (id: string) => void;
+  onNpcToggleVisibility: (id: string, visible: boolean) => void;
   onPlayerTokenDelete: (tokenId: string) => void;
   /** Whether NPC deletion is in progress */
   isDeletingNpc?: boolean;
@@ -109,6 +110,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   onNpcUpdate,
   onNpcDelete,
   onNpcPlaceToken,
+  onNpcToggleVisibility,
   onPlayerTokenDelete,
   isDeletingNpc = false,
   npcDeletionError = null,
@@ -381,6 +383,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                       onUpdate={onNpcUpdate}
                       onDelete={onNpcDelete}
                       onPlaceToken={onNpcPlaceToken}
+                      onToggleVisibility={onNpcToggleVisibility}
                       tokenLocked={
                         entity.character.tokenId
                           ? sceneObjects.find(

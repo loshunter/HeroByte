@@ -142,4 +142,20 @@ export class NPCMessageHandler {
     );
     return { broadcast: placed, save: placed };
   }
+
+  /**
+   * Handle toggle NPC visibility message (DM only)
+   *
+   * Toggles whether an NPC is visible to players. Hidden NPCs and their tokens
+   * will not appear in player snapshots.
+   *
+   * @param state - Room state
+   * @param npcId - ID of NPC to toggle visibility for
+   * @param visible - Whether NPC should be visible to players
+   * @returns Result indicating broadcast/save needs
+   */
+  handleToggleNPCVisibility(state: RoomState, npcId: string, visible: boolean): NPCMessageResult {
+    const updated = this.characterService.setNPCVisibility(state, npcId, visible);
+    return { broadcast: updated, save: updated };
+  }
 }
