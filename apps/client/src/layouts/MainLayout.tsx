@@ -436,6 +436,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onClearAllInitiative={onClearAllInitiative}
         onNextTurn={onNextTurn}
         onPreviousTurn={onPreviousTurn}
+        onSetInitiative={setInitiative}
       />
     </div>
   );

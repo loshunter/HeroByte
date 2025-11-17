@@ -84,6 +84,11 @@ interface DMMenuProps {
   onClearAllInitiative?: () => void;
   onNextTurn?: () => void;
   onPreviousTurn?: () => void;
+  toast?: {
+    success: (message: string) => void;
+    error: (message: string) => void;
+  };
+  onSetInitiative?: (characterId: string, initiative: number, modifier: number) => void;
 }
 
 export function DMMenu({
@@ -158,6 +163,8 @@ export function DMMenu({
   onClearAllInitiative,
   onNextTurn,
   onPreviousTurn,
+  toast,
+  onSetInitiative,
 }: DMMenuProps) {
   const { open, setOpen, toggleOpen, activeTab, setActiveTab, sessionName, setSessionName, npcs } =
     useDMMenuState({
@@ -286,6 +293,8 @@ export function DMMenu({
                 isPlacingToken={isPlacingToken}
                 tokenPlacementError={tokenPlacementError}
                 placingTokenForNpcId={placingTokenForNpcId}
+                toast={toast}
+                onSetInitiative={onSetInitiative}
               />
             )}
 

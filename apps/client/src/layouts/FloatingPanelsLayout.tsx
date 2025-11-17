@@ -132,13 +132,14 @@ export interface FloatingPanelsLayoutProps {
   };
   // Player Token Selection (DM shortcut) (1)
   selectPlayerTokens: (playerUid: string) => void;
-  // Combat Controls (6)
+  // Combat Controls (7)
   combatActive?: boolean;
   onStartCombat?: () => void;
   onEndCombat?: () => void;
   onClearAllInitiative?: () => void;
   onNextTurn?: () => void;
   onPreviousTurn?: () => void;
+  onSetInitiative?: (characterId: string, initiative: number, modifier: number) => void;
 }
 
 /**
@@ -221,6 +222,7 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
     onClearAllInitiative,
     onNextTurn,
     onPreviousTurn,
+    onSetInitiative,
   }) => {
     return (
       <>
@@ -325,6 +327,8 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
           onClearAllInitiative={onClearAllInitiative}
           onNextTurn={onNextTurn}
           onPreviousTurn={onPreviousTurn}
+          toast={toast}
+          onSetInitiative={onSetInitiative}
         />
 
         <ContextMenu
