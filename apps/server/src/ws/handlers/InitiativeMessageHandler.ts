@@ -168,7 +168,7 @@ export class InitiativeMessageHandler {
    * @param isDM - Whether sender is DM
    * @returns Result indicating if broadcast/save is needed
    */
-  handleNextTurn(state: RoomState, senderUid: string, isDM: boolean): InitiativeMessageResult {
+  handleNextTurn(state: RoomState, senderUid: string, _isDM: boolean): InitiativeMessageResult {
     const charactersInOrder = this.characterService.getCharactersInInitiativeOrder(state);
     if (charactersInOrder.length === 0) {
       return { broadcast: false, save: false };
@@ -194,7 +194,7 @@ export class InitiativeMessageHandler {
    * @param isDM - Whether sender is DM
    * @returns Result indicating if broadcast/save is needed
    */
-  handlePreviousTurn(state: RoomState, senderUid: string, isDM: boolean): InitiativeMessageResult {
+  handlePreviousTurn(state: RoomState, senderUid: string, _isDM: boolean): InitiativeMessageResult {
     const charactersInOrder = this.characterService.getCharactersInInitiativeOrder(state);
     if (charactersInOrder.length === 0) {
       return { broadcast: false, save: false };
