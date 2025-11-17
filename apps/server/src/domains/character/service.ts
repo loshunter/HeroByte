@@ -293,11 +293,34 @@ export class CharacterService {
 
   /**
    * Get characters in initiative order (highest to lowest)
+   * Tiebreaker rules:
+   * 1. Initiative value (highest first)
+   * 2. Character type (PCs before NPCs)
+   * 3. Creation order (preserve array position)
    */
   getCharactersInInitiativeOrder(state: RoomState): Character[] {
+    // Create index map to preserve creation order
+    const indexMap = new Map<string, number>();
+    state.characters.forEach((c, index) => {
+      indexMap.set(c.id, index);
+    });
+
     return state.characters
       .filter((c) => c.initiative !== undefined)
-      .sort((a, b) => (b.initiative ?? 0) - (a.initiative ?? 0));
+      .sort((a, b) => {
+        // Primary: Initiative value (highest first)
+        const initDiff = (b.initiative ?? 0) - (a.initiative ?? 0);
+        if (initDiff !== 0) return initDiff;
+
+        // Secondary: PC before NPC (when initiative is tied)
+        if (a.type === "pc" && b.type === "npc") return -1;
+        if (a.type === "npc" && b.type === "pc") return 1;
+
+        // Tertiary: Creation order (preserve original array position)
+        const aIndex = indexMap.get(a.id) ?? 0;
+        const bIndex = indexMap.get(b.id) ?? 0;
+        return aIndex - bIndex;
+      });
   }
 
   /**
