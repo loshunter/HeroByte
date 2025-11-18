@@ -110,24 +110,51 @@ describe("PortraitSection", () => {
     });
   });
 
-  describe("Initiative Badge", () => {
-    it("renders initiative value when provided", () => {
-      render(<PortraitSection portrait={undefined} statusEffects={[]} initiative={18} />);
+  describe("Initiative Button", () => {
+    it("renders initiative button with value when provided", () => {
+      const handleInitiativeClick = vi.fn();
+      render(
+        <PortraitSection
+          portrait={undefined}
+          statusEffects={[]}
+          initiative={18}
+          onInitiativeClick={handleInitiativeClick}
+        />,
+      );
 
-      expect(screen.getByText(/Init: 18/)).toBeInTheDocument();
+      const initiativeButton = screen.getByRole("button", { name: /set initiative/i });
+      expect(initiativeButton).toHaveTextContent("18");
     });
 
-    it("renders modifier when provided", () => {
+    it("renders 'Init' text when no initiative value is set", () => {
+      const handleInitiativeClick = vi.fn();
+      render(
+        <PortraitSection
+          portrait={undefined}
+          statusEffects={[]}
+          onInitiativeClick={handleInitiativeClick}
+        />,
+      );
+
+      const initiativeButton = screen.getByRole("button", { name: /set initiative/i });
+      expect(initiativeButton).toHaveTextContent("Init");
+    });
+
+    it("calls onInitiativeClick when button is clicked", () => {
+      const handleInitiativeClick = vi.fn();
       render(
         <PortraitSection
           portrait={undefined}
           statusEffects={[]}
           initiative={14}
-          initiativeModifier={2}
+          onInitiativeClick={handleInitiativeClick}
         />,
       );
 
-      expect(screen.getByText("(+2)")).toBeInTheDocument();
+      const initiativeButton = screen.getByRole("button", { name: /set initiative/i });
+      fireEvent.click(initiativeButton);
+
+      expect(handleInitiativeClick).toHaveBeenCalledTimes(1);
     });
 
     it("applies highlight styles when it's the current turn", () => {
