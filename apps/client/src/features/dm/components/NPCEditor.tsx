@@ -75,10 +75,11 @@ export function NPCEditor({
 
     const baseInitMod = overrides?.initiativeModifier ?? Number(initiativeModifierInput);
     const parsedInitMod = Number.isFinite(baseInitMod) ? Number(baseInitMod) : 0;
+    const clampedInitMod = Math.max(-20, Math.min(20, parsedInitMod));
 
     setHpInput(String(clampedHp));
     setMaxHpInput(String(parsedMax));
-    setInitiativeModifierInput(String(parsedInitMod));
+    setInitiativeModifierInput(String(clampedInitMod));
 
     const nextNameSource = overrides?.name ?? name;
     const trimmedName = nextNameSource.trim();
@@ -93,7 +94,7 @@ export function NPCEditor({
       maxHp: parsedMax,
       portrait: portraitValue.length > 0 ? portraitValue : undefined,
       tokenImage: tokenImageValue.length > 0 ? tokenImageValue : undefined,
-      initiativeModifier: parsedInitMod,
+      initiativeModifier: clampedInitMod,
     });
   };
 
