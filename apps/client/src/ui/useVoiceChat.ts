@@ -1,6 +1,16 @@
+/**
+ * Voice Chat Hook with Lazy Simple-Peer Loading
+ *
+ * Performance Optimization:
+ * SimplePeer (~30 KB gzipped) is dynamically imported only when the hook
+ * is enabled (mic is turned on), deferring the WebRTC dependency until needed.
+ */
 import { useEffect, useRef, useState } from "react";
-import SimplePeer, { type SignalData } from "simple-peer";
 import type { ClientMessage } from "@shared";
+
+// Type-only import (no runtime cost)
+import type SimplePeer from "simple-peer";
+import type { SignalData } from "simple-peer";
 
 interface VoiceChatOptions {
   sendMessage: (msg: ClientMessage) => void;
@@ -21,11 +31,29 @@ export function useVoiceChat({
 }: VoiceChatOptions) {
   const peersRef = useRef<Map<string, SimplePeer.Instance>>(new Map());
   const [connectedPeers, setConnectedPeers] = useState<string[]>([]);
+  const [SimplePeerConstructor, setSimplePeerConstructor] = useState<typeof SimplePeer | null>(
+    null,
+  );
   const otherPlayerUIDsStr = JSON.stringify(otherPlayerUIDs);
 
+  // Lazy load SimplePeer only when voice chat is enabled
   useEffect(() => {
-    if (!enabled || !stream) {
-      // Clean up all peers when disabled
+    if (enabled && !SimplePeerConstructor) {
+      console.log("[VoiceChat] Loading SimplePeer library...");
+      import("simple-peer")
+        .then((module) => {
+          setSimplePeerConstructor(() => module.default);
+          console.log("[VoiceChat] SimplePeer loaded successfully");
+        })
+        .catch((err) => {
+          console.error("[VoiceChat] Failed to load SimplePeer:", err);
+        });
+    }
+  }, [enabled, SimplePeerConstructor]);
+
+  useEffect(() => {
+    if (!enabled || !stream || !SimplePeerConstructor) {
+      // Clean up all peers when disabled or module not loaded yet
       peersRef.current.forEach((peer) => {
         try {
           peer.destroy();
@@ -44,7 +72,7 @@ export function useVoiceChat({
 
       if (!peer) {
         // Create a new peer connection (not initiator, because they initiated)
-        peer = new SimplePeer({
+        peer = new SimplePeerConstructor({
           initiator: false,
           stream: stream,
           trickle: true,
@@ -92,7 +120,7 @@ export function useVoiceChat({
     otherPlayerUIDs.forEach((targetUID) => {
       if (!peersRef.current.has(targetUID)) {
         // Create a new peer connection (initiator)
-        const peer = new SimplePeer({
+        const peer = new SimplePeerConstructor({
           initiator: true,
           stream: stream,
           trickle: true,
@@ -139,7 +167,7 @@ export function useVoiceChat({
         setConnectedPeers((prev) => prev.filter((p) => p !== peerUID));
       }
     });
-  }, [onRtcSignal, uid, otherPlayerUIDsStr, enabled, stream, sendMessage]);
+  }, [onRtcSignal, uid, otherPlayerUIDsStr, enabled, stream, sendMessage, SimplePeerConstructor]);
 
   // Cleanup on unmount
   useEffect(() => {

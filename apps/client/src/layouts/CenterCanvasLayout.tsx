@@ -20,12 +20,15 @@
  * footer panels.
  */
 
-import React from "react";
+import React, { Suspense } from "react";
 import type { RoomSnapshot, ClientMessage } from "@shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import type { CameraCommand } from "../ui/MapBoard";
 import type { UseDrawingStateManagerReturn } from "../hooks/useDrawingStateManager";
-import MapBoard from "../ui/MapBoard";
+import { MapLoading } from "../components/ui/MapLoading";
+
+// Lazy load MapBoard to reduce initial bundle size
+const MapBoard = React.lazy(() => import("../ui/MapBoard"));
 
 // Type alias for drawing board props
 type DrawingBoardProps = UseDrawingStateManagerReturn["drawingProps"];
@@ -206,33 +209,35 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
           overflow: "hidden",
         }}
       >
-        <MapBoard
-          snapshot={snapshot}
-          sendMessage={sendMessage}
-          uid={uid}
-          gridSize={gridSize}
-          snapToGrid={snapToGrid}
-          pointerMode={pointerMode}
-          measureMode={measureMode}
-          drawMode={drawMode}
-          transformMode={transformMode}
-          selectMode={selectMode}
-          isDM={isDM}
-          alignmentMode={alignmentMode}
-          alignmentPoints={alignmentPoints}
-          alignmentSuggestion={alignmentSuggestion}
-          onAlignmentPointCapture={onAlignmentPointCapture}
-          {...drawingProps}
-          onRecolorToken={onRecolorToken}
-          onTransformObject={onTransformObject}
-          cameraCommand={cameraCommand}
-          onCameraCommandHandled={onCameraCommandHandled}
-          onCameraChange={onCameraChange}
-          selectedObjectId={selectedObjectId}
-          selectedObjectIds={selectedObjectIds}
-          onSelectObject={onSelectObject}
-          onSelectObjects={onSelectObjects}
-        />
+        <Suspense fallback={<MapLoading />}>
+          <MapBoard
+            snapshot={snapshot}
+            sendMessage={sendMessage}
+            uid={uid}
+            gridSize={gridSize}
+            snapToGrid={snapToGrid}
+            pointerMode={pointerMode}
+            measureMode={measureMode}
+            drawMode={drawMode}
+            transformMode={transformMode}
+            selectMode={selectMode}
+            isDM={isDM}
+            alignmentMode={alignmentMode}
+            alignmentPoints={alignmentPoints}
+            alignmentSuggestion={alignmentSuggestion}
+            onAlignmentPointCapture={onAlignmentPointCapture}
+            {...drawingProps}
+            onRecolorToken={onRecolorToken}
+            onTransformObject={onTransformObject}
+            cameraCommand={cameraCommand}
+            onCameraCommandHandled={onCameraCommandHandled}
+            onCameraChange={onCameraChange}
+            selectedObjectId={selectedObjectId}
+            selectedObjectIds={selectedObjectIds}
+            onSelectObject={onSelectObject}
+            onSelectObjects={onSelectObjects}
+          />
+        </Suspense>
       </div>
     );
   },

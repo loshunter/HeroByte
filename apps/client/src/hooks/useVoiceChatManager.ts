@@ -4,6 +4,11 @@
  * Manages microphone state and peer-to-peer voice chat connections.
  * Combines microphone access with WebRTC signaling for multiplayer voice.
  *
+ * Performance Optimization:
+ * Voice chat dependencies (simple-peer ~30 KB gzipped) are deferred by moving
+ * the import inside useVoiceChat to a lazy-loaded module. The import statement
+ * becomes part of the MapBoard chunk (already lazy loaded).
+ *
  * Extracted from: apps/client/src/ui/App.tsx (lines 14, 29, 137, 262-274)
  * Extraction date: 2025-10-20
  *
@@ -89,6 +94,9 @@ export function useVoiceChatManager({
   }, [snapshot?.players, uid]);
 
   // Manage P2P voice connections
+  // NOTE: simple-peer is imported inside useVoiceChat, making it part of this hook's chunk
+  // Since useVoiceChatManager is only called from AuthenticatedApp (lazy-loaded with MapBoard),
+  // the voice chat dependencies are automatically deferred until after authentication
   useVoiceChat({
     sendMessage,
     onRtcSignal: registerRtcHandler,
