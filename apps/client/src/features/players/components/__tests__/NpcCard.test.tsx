@@ -798,7 +798,7 @@ describe("NpcCard", () => {
       expect(screen.getByTestId("hp-bar-hp-input")).toHaveTextContent("42");
     });
 
-    it("validates and clamps HP to maxHp on submit", () => {
+    it("auto-adjusts maxHp when HP exceeds maxHp on submit (QoL feature)", () => {
       const onUpdate = vi.fn();
       const props = createDefaultProps({
         character: createMockCharacter({ id: "npc-123", maxHp: 50 }),
@@ -809,10 +809,11 @@ describe("NpcCard", () => {
       // Enter edit mode
       fireEvent.click(screen.getByTestId("hp-bar-edit-hp"));
 
-      // Submit HP greater than maxHp
+      // Submit HP greater than maxHp (90 > 50)
+      // New behavior: maxHp should auto-adjust to match HP
       fireEvent.click(screen.getByTestId("hp-bar-submit-hp"));
 
-      expect(onUpdate).toHaveBeenCalledWith("npc-123", { hp: 50 });
+      expect(onUpdate).toHaveBeenCalledWith("npc-123", { hp: 90, maxHp: 90 });
     });
 
     it("accepts valid HP less than maxHp", () => {
@@ -826,7 +827,8 @@ describe("NpcCard", () => {
       fireEvent.click(screen.getByTestId("hp-bar-edit-hp"));
       fireEvent.click(screen.getByTestId("hp-bar-submit-hp"));
 
-      expect(onUpdate).toHaveBeenCalledWith("npc-123", { hp: 90 });
+      // HP is 90, maxHp is 100, so no adjustment needed
+      expect(onUpdate).toHaveBeenCalledWith("npc-123", { hp: 90, maxHp: 100 });
     });
 
     it("rejects negative HP", () => {
