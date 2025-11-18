@@ -11,10 +11,9 @@
  */
 
 import React, { Suspense, lazy } from "react";
-import type { RoomSnapshot, PlayerStagingZone, Character } from "@shared";
+import type { RoomSnapshot, PlayerStagingZone } from "@shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import type { RollResult } from "../components/dice/types";
-import type { PropUpdate } from "../hooks/usePropManagement";
 import { ContextMenu } from "../components/ui/ContextMenu";
 import { VisualEffects } from "../components/effects/VisualEffects";
 import { DiceRoller } from "../components/dice/DiceRoller";
@@ -83,7 +82,7 @@ export interface FloatingPanelsLayoutProps {
   onAlignmentApply: () => void;
   // WebSocket Communication (1)
   // Note: sendMessage is now passed to DMMenuContainer which handles all DM hooks internally
-  sendMessage: (message: any) => void;
+  sendMessage: (message: unknown) => void;
   // Room Password (4)
   onSetRoomPassword: (password: string) => void;
   roomPasswordStatus: PasswordStatus | null;

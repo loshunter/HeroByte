@@ -20,14 +20,12 @@ import type {
   TokenSize,
   PlayerState,
   PlayerStagingZone,
-  Character,
 } from "@shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../types/alignment";
 import type { RollResult } from "../../components/dice/types";
 import type { UseDrawingStateManagerReturn } from "../../hooks/useDrawingStateManager";
 import type { ToolMode } from "../../components/layout/Header";
 import type { CameraCommand } from "../../ui/MapBoard";
-import type { PropUpdate } from "../../hooks/usePropManagement";
 
 // ============================================================================
 // Type Aliases
@@ -356,5 +354,4 @@ export interface MainLayoutProps {
   // -------------------------------------------------------------------------
   /** Handler to send messages to server */
   sendMessage: (message: ClientMessage) => void;
-
 }

@@ -12,7 +12,7 @@
  */
 
 import React from "react";
-import type { RoomSnapshot, ClientMessage, PlayerStagingZone, Character, Prop } from "@shared";
+import type { RoomSnapshot, ClientMessage, PlayerStagingZone } from "@shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignment";
 import type { Camera } from "../../../hooks/useCamera";
 import { useDMContext, type UseDMContextOptions } from "../hooks/useDMContext";
