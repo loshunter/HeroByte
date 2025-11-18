@@ -6,9 +6,10 @@
 
 import { useMemo } from "react";
 import type { Character, Player, Token } from "@shared";
+import { shouldCharacterParticipateInCombat } from "@shared";
 
 export interface EntityInfo {
-  kind: "character" | "npc";
+  kind: "character" | "npc" | "dm";
   id: string;
   character: Character;
   player?: Player;
@@ -32,7 +33,7 @@ interface UseCombatOrderingProps {
  *
  * **Responsibilities**:
  * - Order entities by initiative when combat is active
- * - Keep DM entities in fixed first position
+ * - Separate DM entities from combatants (DM always displayed, never in combat)
  * - Mark current turn entity
  * - Link characters to their tokens and players
  *
@@ -49,7 +50,10 @@ export function useCombatOrdering({
   combatActive,
   currentTurnCharacterId,
 }: UseCombatOrderingProps) {
-  const orderedEntities = useMemo<EntityInfo[]>(() => {
+  const { dmEntities, orderedEntities } = useMemo<{
+    dmEntities: EntityInfo[];
+    orderedEntities: EntityInfo[];
+  }>(() => {
     // Build character entities (PCs)
     const characterEntities = players.flatMap((player) => {
       const playerCharacters = characters.filter(
@@ -65,14 +69,17 @@ export function useCombatOrdering({
           ? tokens.find((t) => t.id === character.tokenId)
           : tokens.find((t) => t.owner === player.uid);
 
+        // DM characters should be marked with kind "dm"
+        const kind = player.isDM ? ("dm" as const) : ("character" as const);
+
         return {
-          kind: "character" as const,
+          kind,
           id: `${player.uid}-${character.id}`,
           character,
           player,
           token,
           isMe: player.uid === currentUid,
-          isFirstDM: false, // Will be set below
+          isFirstDM: false, // Will be set below for DM entities
           isCurrentTurn: combatActive && currentTurnCharacterId === character.id,
         };
       });
@@ -91,16 +98,24 @@ export function useCombatOrdering({
       }));
 
     // Separate DM from regular entities
-    const dmEntities = characterEntities.filter((e) => e.player?.isDM);
-    const regularEntities = characterEntities.filter((e) => !e.player?.isDM);
+    const dmEntities = characterEntities.filter((e) => e.kind === "dm");
+    const regularEntities = characterEntities.filter((e) => e.kind === "character");
 
     // Mark first DM for visual separation
     if (dmEntities.length > 0) {
       dmEntities[0].isFirstDM = true;
     }
 
-    // Check if any entities have initiative set
-    const allCombatants = [...regularEntities, ...npcEntities];
+    // Filter entities for combat eligibility (excludes DM's player characters)
+    const combatEligibleCharacters = regularEntities.filter((e) =>
+      shouldCharacterParticipateInCombat(e.character, players),
+    );
+    const combatEligibleNpcs = npcEntities.filter((e) =>
+      shouldCharacterParticipateInCombat(e.character, players),
+    );
+
+    // Check if any combat-eligible entities have initiative set
+    const allCombatants = [...combatEligibleCharacters, ...combatEligibleNpcs];
     const hasAnyInitiative = allCombatants.some((e) => e.character.initiative !== undefined);
 
     // Order based on combat state OR if any initiative is set
@@ -140,12 +155,13 @@ export function useCombatOrdering({
         `[useCombatOrdering] Ordered by initiative (${sorted.length} entities):\n  ${orderSummary}`,
       );
 
-      return [...dmEntities, ...sorted];
+      // In combat mode: DM entities separate, combatants sorted by initiative
+      return { dmEntities, orderedEntities: sorted };
     }
 
-    // Default order: DM, players, NPCs
-    return [...dmEntities, ...regularEntities, ...npcEntities];
+    // Default order (non-combat): DM separate, then players, then NPCs
+    return { dmEntities, orderedEntities: [...regularEntities, ...npcEntities] };
   }, [players, characters, tokens, currentUid, combatActive, currentTurnCharacterId]);
 
-  return { orderedEntities };
+  return { dmEntities, orderedEntities };
 }

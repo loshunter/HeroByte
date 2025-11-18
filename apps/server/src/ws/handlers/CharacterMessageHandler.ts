@@ -125,10 +125,14 @@ export class CharacterMessageHandler {
     // Auto-claim for the requesting player
     this.characterService.claimCharacter(state, character.id, senderUid);
 
-    // Create and link token at spawn position
-    const spawn = this.roomService.getPlayerSpawnPosition();
-    const token = this.tokenService.createToken(state, senderUid, spawn.x, spawn.y);
-    this.characterService.linkToken(state, character.id, token.id);
+    // Create and link token at spawn position (ONLY if not a DM)
+    // DM players should never have tokens on the map
+    const player = state.players.find((p) => p.uid === senderUid);
+    if (player && !player.isDM) {
+      const spawn = this.roomService.getPlayerSpawnPosition();
+      const token = this.tokenService.createToken(state, senderUid, spawn.x, spawn.y);
+      this.characterService.linkToken(state, character.id, token.id);
+    }
 
     console.log(
       `[MessageRouter] Player ${senderUid} created additional character: ${character.name} (ID: ${character.id})`,

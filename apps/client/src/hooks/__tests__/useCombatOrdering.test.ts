@@ -66,14 +66,15 @@ describe("useCombatOrdering", () => {
         }),
       );
 
-      expect(result.current.orderedEntities).toHaveLength(4);
-      // DM should be first
-      expect(result.current.orderedEntities[0].character.id).toBe("char-dm");
-      // Players next
-      expect(result.current.orderedEntities[1].character.id).toBe("char-1");
-      expect(result.current.orderedEntities[2].character.id).toBe("char-2");
-      // NPCs last
-      expect(result.current.orderedEntities[3].character.id).toBe("npc-1");
+      // DM entities are separated
+      expect(result.current.dmEntities).toHaveLength(1);
+      expect(result.current.dmEntities[0].character.id).toBe("char-dm");
+
+      // Regular entities: players then NPCs
+      expect(result.current.orderedEntities).toHaveLength(3);
+      expect(result.current.orderedEntities[0].character.id).toBe("char-1");
+      expect(result.current.orderedEntities[1].character.id).toBe("char-2");
+      expect(result.current.orderedEntities[2].character.id).toBe("npc-1");
     });
 
     it("should keep DM visually separated with border", () => {
@@ -94,13 +95,15 @@ describe("useCombatOrdering", () => {
         }),
       );
 
-      const dmEntity = result.current.orderedEntities[0];
+      // DM should be in dmEntities, not orderedEntities
+      expect(result.current.dmEntities).toHaveLength(1);
+      const dmEntity = result.current.dmEntities[0];
       expect(dmEntity.isFirstDM).toBe(true);
     });
   });
 
   describe("when combat IS active", () => {
-    it("should reorder non-DM entities by initiative (highest first)", () => {
+    it("should reorder entities by initiative and exclude DM's player characters", () => {
       const players = [
         createMockPlayer("dm-1", true),
         createMockPlayer("player-1"),
@@ -108,7 +111,7 @@ describe("useCombatOrdering", () => {
       ];
 
       const characters = [
-        createMockCharacter("char-dm", "dm-1", 15), // DM with initiative
+        createMockCharacter("char-dm", "dm-1", 15), // DM with initiative - EXCLUDED from combat
         createMockCharacter("char-1", "player-1", 10), // Lower initiative
         createMockCharacter("char-2", "player-2", 20), // Highest initiative
         createMockCharacter("npc-1", "", 18, "npc"), // NPC with high initiative
@@ -126,13 +129,12 @@ describe("useCombatOrdering", () => {
         }),
       );
 
-      expect(result.current.orderedEntities).toHaveLength(4);
-      // DM should still be first (fixed position)
-      expect(result.current.orderedEntities[0].character.id).toBe("char-dm");
-      // Then sorted by initiative: char-2 (20), npc-1 (18), char-1 (10)
-      expect(result.current.orderedEntities[1].character.id).toBe("char-2");
-      expect(result.current.orderedEntities[2].character.id).toBe("npc-1");
-      expect(result.current.orderedEntities[3].character.id).toBe("char-1");
+      // DM's character should be excluded, so only 3 entities
+      expect(result.current.orderedEntities).toHaveLength(3);
+      // Sorted by initiative: char-2 (20), npc-1 (18), char-1 (10)
+      expect(result.current.orderedEntities[0].character.id).toBe("char-2");
+      expect(result.current.orderedEntities[1].character.id).toBe("npc-1");
+      expect(result.current.orderedEntities[2].character.id).toBe("char-1");
     });
 
     it("should handle entities with no initiative (treat as -1)", () => {

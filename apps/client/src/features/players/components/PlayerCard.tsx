@@ -263,7 +263,6 @@ export const PlayerCard = memo<PlayerCardProps>(
           onFocusToken={onFocusToken}
           initiative={initiative}
           onInitiativeClick={onInitiativeClick}
-          initiativeModifier={initiativeModifier}
           isCurrentTurn={isCurrentTurn}
         />
 

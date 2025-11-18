@@ -16,7 +16,6 @@ interface PortraitSectionProps {
   onFocusToken?: () => void;
   initiative?: number;
   onInitiativeClick?: () => void;
-  initiativeModifier?: number;
   isCurrentTurn?: boolean;
 }
 
@@ -30,7 +29,6 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
   onFocusToken,
   initiative,
   onInitiativeClick,
-  initiativeModifier,
   isCurrentTurn = false,
 }) => {
   const handlePortraitClick = () => {
@@ -266,39 +264,6 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
                 Click to enter an image URL.
               </span>
             ) : null}
-          </div>
-        )}
-        {initiative !== undefined && (
-          <div
-            style={{
-              position: "absolute",
-              bottom: "8px",
-              left: "8px",
-              background: "rgba(8, 12, 24, 0.85)",
-              border: "1px solid var(--jrpg-border-gold)",
-              borderRadius: "6px",
-              padding: "4px 6px",
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-              fontSize: "10px",
-              fontWeight: 600,
-              color: "var(--jrpg-gold)",
-              textShadow: "0 0 6px rgba(0, 0, 0, 0.6)",
-              pointerEvents: "none",
-            }}
-          >
-            <span>Init: {initiative}</span>
-            {initiativeModifier !== undefined && initiativeModifier !== 0 && (
-              <span
-                style={{
-                  color: initiativeModifier > 0 ? "#7CFFB2" : "#FFB2B2",
-                  fontWeight: 700,
-                }}
-              >
-                ({initiativeModifier > 0 ? `+${initiativeModifier}` : initiativeModifier})
-              </span>
-            )}
           </div>
         )}
       </button>

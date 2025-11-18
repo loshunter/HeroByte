@@ -201,7 +201,8 @@
       "Bash(playwright test:*)",
       "Bash(pnpm --filter herobyte-client test:simple:*)",
       "Bash(git cherry-pick:*)",
-      "Bash(pnpm lint:client:*)"
+      "Bash(pnpm lint:client:*)",
+      "Bash(pnpm --filter @shared test combatUtils)"
     ],
     "deny": [],
     "ask": []

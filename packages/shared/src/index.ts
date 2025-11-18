@@ -11,6 +11,13 @@ export { TokenModel, PlayerModel, CharacterModel } from "./models.js";
 export { normalizeHPValues, parseHPInput, parseMaxHPInput } from "./hpUtils.js";
 export type { NormalizedHP } from "./hpUtils.js";
 
+// Export combat utilities
+export {
+  shouldCharacterParticipateInCombat,
+  filterCombatEligibleCharacters,
+  isDMCharacter,
+} from "./combatUtils.js";
+
 // ----------------------------------------------------------------------------
 // GAME ENTITY TYPES
 // ----------------------------------------------------------------------------

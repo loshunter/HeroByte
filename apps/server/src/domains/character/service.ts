@@ -9,6 +9,20 @@ import type { RoomState } from "../room/model.js";
 import type { TokenService } from "../token/service.js";
 
 /**
+ * Determine if a character should participate in combat.
+ * DM players do not participate in combat - their characters are excluded.
+ */
+function shouldCharacterParticipateInCombat(
+  character: Character,
+  players: { uid: string; isDM?: boolean }[],
+): boolean {
+  if (character.type === "npc") return true;
+  const dmPlayer = players.find((p) => p.isDM === true);
+  if (!dmPlayer) return true;
+  return character.ownedByPlayerUID !== dmPlayer.uid;
+}
+
+/**
  * Character service - manages character data and actions
  */
 export class CharacterService {
@@ -294,6 +308,8 @@ export class CharacterService {
   /**
    * Get characters in initiative order (highest to lowest).
    * Tiebreaker: initiative > PC before NPC > creation order.
+   *
+   * **Business Rule**: Excludes DM's player characters from combat.
    */
   getCharactersInInitiativeOrder(state: RoomState): Character[] {
     const indexMap = new Map<string, number>();
@@ -301,6 +317,7 @@ export class CharacterService {
 
     return state.characters
       .filter((c) => c.initiative !== undefined)
+      .filter((c) => shouldCharacterParticipateInCombat(c, state.players))
       .sort((a, b) => {
         const initDiff = (b.initiative ?? 0) - (a.initiative ?? 0);
         if (initDiff !== 0) return initDiff;

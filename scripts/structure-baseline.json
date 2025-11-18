@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2025-11-18T01:24:34.989Z",
+  "generatedAt": "2025-11-18T03:18:52.831Z",
   "threshold": 350,
   "includeTests": false,
   "files": [
@@ -31,6 +31,15 @@
       "sizeBytes": 23969
     },
     {
+      "path": "apps/client/src/components/layout/EntitiesPanel.tsx",
+      "loc": 693,
+      "category": "client:misc",
+      "flagged": true,
+      "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
+      "roadmapRef": "",
+      "sizeBytes": 28958
+    },
+    {
       "path": "packages/shared/src/models.ts",
       "loc": 599,
       "category": "shared",
@@ -58,22 +67,13 @@
       "sizeBytes": 15650
     },
     {
-      "path": "apps/client/src/components/layout/EntitiesPanel.tsx",
-      "loc": 526,
-      "category": "client:misc",
-      "flagged": true,
-      "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
-      "roadmapRef": "",
-      "sizeBytes": 20707
-    },
-    {
       "path": "packages/shared/src/index.ts",
-      "loc": 484,
+      "loc": 491,
       "category": "shared",
       "flagged": true,
       "hint": "Partition shared models into domain-specific slices (scene.ts, player.ts, token.ts, drawing.ts).",
       "roadmapRef": "",
-      "sizeBytes": 17774
+      "sizeBytes": 17927
     },
     {
       "path": "apps/client/src/features/players/components/PlayerSettingsMenu.tsx",
@@ -247,6 +247,15 @@
       "sizeBytes": 12328
     },
     {
+      "path": "apps/server/src/domains/character/service.ts",
+      "loc": 350,
+      "category": "server:domains",
+      "flagged": true,
+      "hint": "Split domain orchestration vs persistence vs validation. Follow DDD boundaries.",
+      "roadmapRef": "",
+      "sizeBytes": 10128
+    },
+    {
       "path": "apps/client/src/features/dm/components/DMMenu.tsx",
       "loc": 349,
       "category": "client:dm",
@@ -254,15 +263,6 @@
       "hint": "",
       "roadmapRef": "",
       "sizeBytes": 11635
-    },
-    {
-      "path": "apps/server/src/domains/character/service.ts",
-      "loc": 346,
-      "category": "server:domains",
-      "flagged": false,
-      "hint": "",
-      "roadmapRef": "",
-      "sizeBytes": 9917
     },
     {
       "path": "apps/client/src/utils/playerPersistence.ts",
@@ -328,6 +328,15 @@
       "sizeBytes": 9118
     },
     {
+      "path": "apps/server/src/ws/auth/AuthenticationHandler.ts",
+      "loc": 321,
+      "category": "server:websocket",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 10666
+    },
+    {
       "path": "apps/client/src/features/map/useMapAlignment.ts",
       "loc": 320,
       "category": "client:map",
@@ -344,15 +353,6 @@
       "hint": "",
       "roadmapRef": "",
       "sizeBytes": 9640
-    },
-    {
-      "path": "apps/server/src/ws/auth/AuthenticationHandler.ts",
-      "loc": 315,
-      "category": "server:websocket",
-      "flagged": false,
-      "hint": "",
-      "roadmapRef": "",
-      "sizeBytes": 10430
     },
     {
       "path": "apps/client/src/features/map/components/TransformGizmo.tsx",

@@ -99,17 +99,23 @@ export class AuthenticationHandler {
       );
       this.container.characterService.claimCharacter(state, character.id, uid);
 
-      // Create token for the character
-      const spawn = this.container.roomService.getPlayerSpawnPosition();
-      const token = this.container.tokenService.createToken(state, uid, spawn.x, spawn.y);
-      this.container.characterService.linkToken(state, character.id, token.id);
-    } else {
-      // Player reconnecting - ensure they have a token
-      const existingToken = this.container.tokenService.findTokenByOwner(state, uid);
-      if (!existingToken) {
+      // Create token for the character (ONLY if not a DM)
+      // DM players should never have tokens on the map
+      if (!player.isDM) {
         const spawn = this.container.roomService.getPlayerSpawnPosition();
         const token = this.container.tokenService.createToken(state, uid, spawn.x, spawn.y);
-        this.container.characterService.linkToken(state, existingCharacter.id, token.id);
+        this.container.characterService.linkToken(state, character.id, token.id);
+      }
+    } else {
+      // Player reconnecting - ensure they have a token (ONLY if not a DM)
+      // DM players should never have tokens on the map
+      if (!player.isDM) {
+        const existingToken = this.container.tokenService.findTokenByOwner(state, uid);
+        if (!existingToken) {
+          const spawn = this.container.roomService.getPlayerSpawnPosition();
+          const token = this.container.tokenService.createToken(state, uid, spawn.x, spawn.y);
+          this.container.characterService.linkToken(state, existingCharacter.id, token.id);
+        }
       }
     }
 

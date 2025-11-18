@@ -147,7 +147,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   const [characterNameInput, setCharacterNameInput] = useState("");
 
   // Use tested hooks for combat ordering and initiative modal
-  const { orderedEntities } = useCombatOrdering({
+  const { dmEntities, orderedEntities } = useCombatOrdering({
     players,
     characters,
     tokens,
@@ -291,211 +291,378 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
               </div>
             )}
 
+            {/* Horizontal Layout: DM on left, separator, then Players/NPCs */}
             <div
               style={{
                 display: "flex",
-                flexWrap: "wrap",
                 gap: "12px",
-                justifyContent: "center",
                 alignItems: "flex-start",
               }}
             >
-              {orderedEntities.map((entity) => {
-                if (entity.kind === "character") {
-                  const { player, character, token, isMe, isFirstDM, isCurrentTurn } = entity;
+              {/* DM Section - Pinned to left with separator */}
+              {dmEntities.length > 0 && (
+                <>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "12px",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {dmEntities.map((entity) => {
+                      const { player, character, token, isMe } = entity;
+                      if (!player) return null;
 
-                  // Type guard: player is always defined for character entities
-                  if (!player) return null;
+                      const tokenSceneObject = token ? (tokenSceneMap.get(token.id) ?? null) : null;
+                      const playerDrawings = drawingsByOwner.get(player.uid) ?? [];
 
-                  const tokenSceneObject = token ? (tokenSceneMap.get(token.id) ?? null) : null;
-                  const playerDrawings = drawingsByOwner.get(player.uid) ?? [];
+                      const displayPlayer: Player = {
+                        ...player,
+                        name: character.name,
+                        hp: character.hp,
+                        maxHp: character.maxHp,
+                        portrait: player.portrait ?? character.portrait,
+                      };
 
-                  // Merge player data with character-specific data
-                  const displayPlayer: Player = {
-                    ...player,
-                    name: character.name,
-                    hp: character.hp,
-                    maxHp: character.maxHp,
-                    // Use player.portrait (set via PlayerSettingsMenu), fallback to character.portrait
-                    portrait: player.portrait ?? character.portrait,
-                  };
+                      return (
+                        <div
+                          key={entity.id}
+                          style={{
+                            position: "relative",
+                            width: "160px",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          <PlayerCard
+                            player={displayPlayer}
+                            isMe={isMe}
+                            tokenColor={token?.color}
+                            token={token ?? undefined}
+                            tokenSceneObject={tokenSceneObject}
+                            playerDrawings={playerDrawings}
+                            statusEffects={player.statusEffects}
+                            micEnabled={micEnabled}
+                            editingPlayerUID={
+                              editingCharacterId === character.id ? player.uid : null
+                            }
+                            nameInput={characterNameInput}
+                            onNameInputChange={setCharacterNameInput}
+                            onNameEdit={() => {
+                              setEditingCharacterId(character.id);
+                              setCharacterNameInput(character.name);
+                            }}
+                            onNameSubmit={() => {
+                              if (characterNameInput.trim()) {
+                                onCharacterNameUpdate(character.id, characterNameInput.trim());
+                              }
+                              setEditingCharacterId(null);
+                              setCharacterNameInput("");
+                            }}
+                            onPortraitLoad={onPortraitLoad}
+                            onToggleMic={onToggleMic}
+                            onHpChange={(hp) =>
+                              onCharacterHpChange(
+                                character.id,
+                                hp,
+                                displayPlayer.maxHp ?? 100,
+                                displayPlayer.tempHp,
+                              )
+                            }
+                            editingHpUID={editingHpUID}
+                            hpInput={hpInput}
+                            onHpInputChange={onHpInputChange}
+                            onHpEdit={onHpEdit}
+                            onHpSubmit={onHpSubmit}
+                            editingMaxHpUID={editingMaxHpUID}
+                            maxHpInput={maxHpInput}
+                            onMaxHpInputChange={onMaxHpInputChange}
+                            onMaxHpEdit={onMaxHpEdit}
+                            onMaxHpSubmit={onMaxHpSubmit}
+                            editingTempHpUID={editingTempHpUID}
+                            tempHpInput={tempHpInput}
+                            onTempHpInputChange={onTempHpInputChange}
+                            onTempHpEdit={onTempHpEdit}
+                            onTempHpSubmit={onTempHpSubmit}
+                            tokenImageUrl={character?.tokenImage ?? token?.imageUrl ?? undefined}
+                            onTokenImageSubmit={
+                              isMe && token ? (url) => onTokenImageChange(token.id, url) : undefined
+                            }
+                            tokenId={token?.id}
+                            onApplyPlayerState={
+                              isMe
+                                ? (state) => onApplyPlayerState(state, token?.id, character.id)
+                                : undefined
+                            }
+                            onStatusEffectsChange={
+                              isMe && character.id
+                                ? (effects) => onCharacterStatusEffectsChange(character.id, effects)
+                                : undefined
+                            }
+                            isDM={true}
+                            onToggleDMMode={onToggleDMMode}
+                            tokenLocked={
+                              token
+                                ? sceneObjects.find((obj) => obj.id === `token:${token.id}`)?.locked
+                                : undefined
+                            }
+                            onToggleTokenLock={
+                              currentIsDM && token
+                                ? (locked: boolean) =>
+                                    onToggleTokenLock(`token:${token.id}`, locked)
+                                : undefined
+                            }
+                            onDeleteToken={currentIsDM ? onPlayerTokenDelete : undefined}
+                            tokenSize={token?.size}
+                            onTokenSizeChange={
+                              isMe && token
+                                ? (size: TokenSize) => onTokenSizeChange(token.id, size)
+                                : undefined
+                            }
+                            onAddCharacter={isMe ? characterCreation.createCharacter : undefined}
+                            isCreatingCharacter={isMe ? characterCreation.isCreating : false}
+                            characterId={character.id}
+                            onDeleteCharacter={isMe ? onDeleteCharacter : undefined}
+                            onFocusToken={token ? () => onFocusToken(token.id) : undefined}
+                            initiative={character.initiative}
+                            onInitiativeClick={() => openInitiativeModal(character)}
+                            initiativeModifier={character.initiativeModifier}
+                            onClearInitiative={
+                              onClearInitiative ? () => onClearInitiative(character.id) : undefined
+                            }
+                            isCurrentTurn={false}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Vertical Separator */}
+                  <div
+                    style={{
+                      width: "2px",
+                      backgroundColor: "var(--jrpg-gold)",
+                      alignSelf: "stretch",
+                      flexShrink: 0,
+                      opacity: 0.5,
+                    }}
+                  />
+
+                  {/* Gap spacing (1 card width) */}
+                  <div style={{ width: "160px", flexShrink: 0 }} />
+                </>
+              )}
+
+              {/* Players and NPCs Section */}
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "12px",
+                  justifyContent: "center",
+                  alignItems: "flex-start",
+                  flex: 1,
+                }}
+              >
+                {orderedEntities.map((entity) => {
+                  if (entity.kind === "character") {
+                    const { player, character, token, isMe, isCurrentTurn } = entity;
+
+                    // Type guard: player is always defined for character entities
+                    if (!player) return null;
+
+                    const tokenSceneObject = token ? (tokenSceneMap.get(token.id) ?? null) : null;
+                    const playerDrawings = drawingsByOwner.get(player.uid) ?? [];
+
+                    // Merge player data with character-specific data
+                    const displayPlayer: Player = {
+                      ...player,
+                      name: character.name,
+                      hp: character.hp,
+                      maxHp: character.maxHp,
+                      // Use player.portrait (set via PlayerSettingsMenu), fallback to character.portrait
+                      portrait: player.portrait ?? character.portrait,
+                    };
+
+                    return (
+                      <div
+                        key={entity.id}
+                        style={{
+                          position: "relative",
+                          width: "160px",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: "6px",
+                          border: isCurrentTurn ? "2px solid var(--jrpg-gold)" : undefined,
+                          boxShadow: isCurrentTurn ? "0 0 20px rgba(255, 215, 0, 0.6)" : undefined,
+                          borderRadius: isCurrentTurn ? "8px" : undefined,
+                          padding: isCurrentTurn ? "8px" : undefined,
+                          transition: "all 0.3s ease",
+                        }}
+                      >
+                        <PlayerCard
+                          player={displayPlayer}
+                          isMe={isMe}
+                          tokenColor={token?.color}
+                          token={token ?? undefined}
+                          tokenSceneObject={tokenSceneObject}
+                          playerDrawings={playerDrawings}
+                          statusEffects={player.statusEffects}
+                          micEnabled={micEnabled}
+                          editingPlayerUID={editingCharacterId === character.id ? player.uid : null}
+                          nameInput={characterNameInput}
+                          onNameInputChange={setCharacterNameInput}
+                          onNameEdit={() => {
+                            setEditingCharacterId(character.id);
+                            setCharacterNameInput(character.name);
+                          }}
+                          onNameSubmit={() => {
+                            if (characterNameInput.trim()) {
+                              onCharacterNameUpdate(character.id, characterNameInput.trim());
+                            }
+                            setEditingCharacterId(null);
+                            setCharacterNameInput("");
+                          }}
+                          onPortraitLoad={onPortraitLoad}
+                          onToggleMic={onToggleMic}
+                          onHpChange={(hp) =>
+                            onCharacterHpChange(
+                              character.id,
+                              hp,
+                              displayPlayer.maxHp ?? 100,
+                              displayPlayer.tempHp,
+                            )
+                          }
+                          editingHpUID={editingHpUID}
+                          hpInput={hpInput}
+                          onHpInputChange={onHpInputChange}
+                          onHpEdit={onHpEdit}
+                          onHpSubmit={onHpSubmit}
+                          editingMaxHpUID={editingMaxHpUID}
+                          maxHpInput={maxHpInput}
+                          onMaxHpInputChange={onMaxHpInputChange}
+                          onMaxHpEdit={onMaxHpEdit}
+                          onMaxHpSubmit={onMaxHpSubmit}
+                          editingTempHpUID={editingTempHpUID}
+                          tempHpInput={tempHpInput}
+                          onTempHpInputChange={onTempHpInputChange}
+                          onTempHpEdit={onTempHpEdit}
+                          onTempHpSubmit={onTempHpSubmit}
+                          tokenImageUrl={character?.tokenImage ?? token?.imageUrl ?? undefined}
+                          onTokenImageSubmit={
+                            isMe && token ? (url) => onTokenImageChange(token.id, url) : undefined
+                          }
+                          tokenId={token?.id}
+                          onApplyPlayerState={
+                            isMe
+                              ? (state) => onApplyPlayerState(state, token?.id, character.id)
+                              : undefined
+                          }
+                          onStatusEffectsChange={
+                            isMe && character.id
+                              ? (effects) => onCharacterStatusEffectsChange(character.id, effects)
+                              : undefined
+                          }
+                          isDM={player.isDM ?? false}
+                          onToggleDMMode={onToggleDMMode}
+                          tokenLocked={
+                            token
+                              ? sceneObjects.find((obj) => obj.id === `token:${token.id}`)?.locked
+                              : undefined
+                          }
+                          onToggleTokenLock={
+                            currentIsDM && token
+                              ? (locked: boolean) => onToggleTokenLock(`token:${token.id}`, locked)
+                              : undefined
+                          }
+                          onDeleteToken={currentIsDM ? onPlayerTokenDelete : undefined}
+                          tokenSize={token?.size}
+                          onTokenSizeChange={
+                            isMe && token
+                              ? (size: TokenSize) => onTokenSizeChange(token.id, size)
+                              : undefined
+                          }
+                          onAddCharacter={isMe ? characterCreation.createCharacter : undefined}
+                          isCreatingCharacter={isMe ? characterCreation.isCreating : false}
+                          characterId={character.id}
+                          onDeleteCharacter={isMe ? onDeleteCharacter : undefined}
+                          onFocusToken={token ? () => onFocusToken(token.id) : undefined}
+                          initiative={character.initiative}
+                          onInitiativeClick={() => openInitiativeModal(character)}
+                          initiativeModifier={character.initiativeModifier}
+                          onClearInitiative={
+                            onClearInitiative ? () => onClearInitiative(character.id) : undefined
+                          }
+                          isCurrentTurn={isCurrentTurn}
+                        />
+                      </div>
+                    );
+                  }
 
                   return (
                     <div
-                      key={entity.id}
-                      style={{
-                        position: "relative",
-                        width: "160px",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "6px",
-                        marginRight: isFirstDM ? "20px" : "0",
-                        paddingRight: isFirstDM ? "20px" : "0",
-                        borderRight: isFirstDM ? "2px solid rgba(255, 215, 0, 0.3)" : "none",
-                        border: isCurrentTurn ? "2px solid var(--jrpg-gold)" : undefined,
-                        boxShadow: isCurrentTurn ? "0 0 20px rgba(255, 215, 0, 0.6)" : undefined,
-                        borderRadius: isCurrentTurn ? "8px" : undefined,
-                        padding: isCurrentTurn ? "8px" : undefined,
-                        transition: "all 0.3s ease",
-                      }}
+                      key={`npc-${entity.id}`}
+                      style={{ width: "160px", display: "flex", justifyContent: "center" }}
                     >
-                      <PlayerCard
-                        player={displayPlayer}
-                        isMe={isMe}
-                        tokenColor={token?.color}
-                        token={token ?? undefined}
-                        tokenSceneObject={tokenSceneObject}
-                        playerDrawings={playerDrawings}
-                        statusEffects={player.statusEffects}
-                        micEnabled={micEnabled}
-                        editingPlayerUID={editingCharacterId === character.id ? player.uid : null}
-                        nameInput={characterNameInput}
-                        onNameInputChange={setCharacterNameInput}
-                        onNameEdit={() => {
-                          setEditingCharacterId(character.id);
-                          setCharacterNameInput(character.name);
-                        }}
-                        onNameSubmit={() => {
-                          if (characterNameInput.trim()) {
-                            onCharacterNameUpdate(character.id, characterNameInput.trim());
-                          }
-                          setEditingCharacterId(null);
-                          setCharacterNameInput("");
-                        }}
-                        onPortraitLoad={onPortraitLoad}
-                        onToggleMic={onToggleMic}
-                        onHpChange={(hp) =>
-                          onCharacterHpChange(
-                            character.id,
-                            hp,
-                            displayPlayer.maxHp ?? 100,
-                            displayPlayer.tempHp,
-                          )
-                        }
-                        editingHpUID={editingHpUID}
-                        hpInput={hpInput}
-                        onHpInputChange={onHpInputChange}
-                        onHpEdit={onHpEdit}
-                        onHpSubmit={onHpSubmit}
-                        editingMaxHpUID={editingMaxHpUID}
-                        maxHpInput={maxHpInput}
-                        onMaxHpInputChange={onMaxHpInputChange}
-                        onMaxHpEdit={onMaxHpEdit}
-                        onMaxHpSubmit={onMaxHpSubmit}
-                        editingTempHpUID={editingTempHpUID}
-                        tempHpInput={tempHpInput}
-                        onTempHpInputChange={onTempHpInputChange}
-                        onTempHpEdit={onTempHpEdit}
-                        onTempHpSubmit={onTempHpSubmit}
-                        tokenImageUrl={character?.tokenImage ?? token?.imageUrl ?? undefined}
-                        onTokenImageSubmit={
-                          isMe && token ? (url) => onTokenImageChange(token.id, url) : undefined
-                        }
-                        tokenId={token?.id}
-                        onApplyPlayerState={
-                          isMe
-                            ? (state) => onApplyPlayerState(state, token?.id, character.id)
-                            : undefined
-                        }
-                        onStatusEffectsChange={
-                          isMe && character.id
-                            ? (effects) => onCharacterStatusEffectsChange(character.id, effects)
-                            : undefined
-                        }
-                        isDM={player.isDM ?? false}
-                        onToggleDMMode={onToggleDMMode}
+                      <NpcCard
+                        character={entity.character}
+                        isDM={currentIsDM}
+                        onUpdate={onNpcUpdate}
+                        onDelete={onNpcDelete}
+                        onPlaceToken={onNpcPlaceToken}
+                        onToggleVisibility={onNpcToggleVisibility}
                         tokenLocked={
-                          token
-                            ? sceneObjects.find((obj) => obj.id === `token:${token.id}`)?.locked
+                          entity.character.tokenId
+                            ? sceneObjects.find(
+                                (obj) => obj.id === `token:${entity.character.tokenId}`,
+                              )?.locked
                             : undefined
                         }
                         onToggleTokenLock={
-                          currentIsDM && token
-                            ? (locked: boolean) => onToggleTokenLock(`token:${token.id}`, locked)
+                          currentIsDM && entity.character.tokenId
+                            ? (locked: boolean) =>
+                                onToggleTokenLock(`token:${entity.character.tokenId}`, locked)
                             : undefined
                         }
-                        onDeleteToken={currentIsDM ? onPlayerTokenDelete : undefined}
-                        tokenSize={token?.size}
+                        tokenSize={
+                          entity.character.tokenId
+                            ? (
+                                sceneObjects.find(
+                                  (obj) => obj.id === `token:${entity.character.tokenId}`,
+                                ) as (SceneObject & { type: "token" }) | undefined
+                              )?.data.size
+                            : undefined
+                        }
                         onTokenSizeChange={
-                          isMe && token
-                            ? (size: TokenSize) => onTokenSizeChange(token.id, size)
+                          currentIsDM && entity.character.tokenId
+                            ? (size: TokenSize) =>
+                                onTokenSizeChange(entity.character.tokenId!, size)
                             : undefined
                         }
-                        onAddCharacter={isMe ? characterCreation.createCharacter : undefined}
-                        isCreatingCharacter={isMe ? characterCreation.isCreating : false}
-                        characterId={character.id}
-                        onDeleteCharacter={isMe ? onDeleteCharacter : undefined}
-                        onFocusToken={token ? () => onFocusToken(token.id) : undefined}
-                        initiative={character.initiative}
-                        onInitiativeClick={() => openInitiativeModal(character)}
-                        initiativeModifier={character.initiativeModifier}
-                        onClearInitiative={
-                          onClearInitiative ? () => onClearInitiative(character.id) : undefined
+                        onFocusToken={
+                          entity.character.tokenId
+                            ? () => onFocusToken(entity.character.tokenId!)
+                            : undefined
                         }
-                        isCurrentTurn={isCurrentTurn}
+                        initiative={entity.character.initiative}
+                        onInitiativeClick={() => openInitiativeModal(entity.character)}
+                        initiativeModifier={entity.character.initiativeModifier}
+                        isDeleting={isDeletingNpc}
+                        deletionError={npcDeletionError}
+                        onClearInitiative={
+                          onClearInitiative
+                            ? () => onClearInitiative(entity.character.id)
+                            : undefined
+                        }
+                        isCurrentTurn={entity.isCurrentTurn}
                       />
                     </div>
                   );
-                }
-
-                return (
-                  <div
-                    key={`npc-${entity.id}`}
-                    style={{ width: "160px", display: "flex", justifyContent: "center" }}
-                  >
-                    <NpcCard
-                      character={entity.character}
-                      isDM={currentIsDM}
-                      onUpdate={onNpcUpdate}
-                      onDelete={onNpcDelete}
-                      onPlaceToken={onNpcPlaceToken}
-                      onToggleVisibility={onNpcToggleVisibility}
-                      tokenLocked={
-                        entity.character.tokenId
-                          ? sceneObjects.find(
-                              (obj) => obj.id === `token:${entity.character.tokenId}`,
-                            )?.locked
-                          : undefined
-                      }
-                      onToggleTokenLock={
-                        currentIsDM && entity.character.tokenId
-                          ? (locked: boolean) =>
-                              onToggleTokenLock(`token:${entity.character.tokenId}`, locked)
-                          : undefined
-                      }
-                      tokenSize={
-                        entity.character.tokenId
-                          ? (
-                              sceneObjects.find(
-                                (obj) => obj.id === `token:${entity.character.tokenId}`,
-                              ) as (SceneObject & { type: "token" }) | undefined
-                            )?.data.size
-                          : undefined
-                      }
-                      onTokenSizeChange={
-                        currentIsDM && entity.character.tokenId
-                          ? (size: TokenSize) => onTokenSizeChange(entity.character.tokenId!, size)
-                          : undefined
-                      }
-                      onFocusToken={
-                        entity.character.tokenId
-                          ? () => onFocusToken(entity.character.tokenId!)
-                          : undefined
-                      }
-                      initiative={entity.character.initiative}
-                      onInitiativeClick={() => openInitiativeModal(entity.character)}
-                      initiativeModifier={entity.character.initiativeModifier}
-                      isDeleting={isDeletingNpc}
-                      deletionError={npcDeletionError}
-                      onClearInitiative={
-                        onClearInitiative ? () => onClearInitiative(entity.character.id) : undefined
-                      }
-                      isCurrentTurn={entity.isCurrentTurn}
-                    />
-                  </div>
-                );
-              })}
+                })}
+              </div>
             </div>
           </div>
         )}
