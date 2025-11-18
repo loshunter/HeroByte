@@ -205,7 +205,7 @@ export function usePlayerActions({
         t: "set-hp",
         hp: normalized.hp,
         maxHp: normalized.maxHp,
-        tempHp
+        tempHp,
       });
     },
     [sendMessage],
@@ -306,7 +306,7 @@ export function usePlayerActions({
         characterId,
         hp: normalized.hp,
         maxHp: normalized.maxHp,
-        tempHp
+        tempHp,
       });
     },
     [sendMessage],
@@ -335,7 +335,7 @@ export function usePlayerActions({
         t: "set-hp",
         hp: normalized.hp,
         maxHp: normalized.maxHp,
-        tempHp: state.tempHp
+        tempHp: state.tempHp,
       });
 
       // Update portrait if present (including null to clear)
