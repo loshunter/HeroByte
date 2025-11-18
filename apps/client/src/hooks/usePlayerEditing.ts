@@ -1,7 +1,7 @@
 // ============================================================================
 // USE PLAYER EDITING HOOK
 // ============================================================================
-// Manages player name and max HP editing state
+// Manages player name, HP, max HP, and temp HP editing state
 
 import { useState, useCallback } from "react";
 
@@ -12,6 +12,8 @@ interface UsePlayerEditingReturn {
   hpInput: string;
   editingMaxHpUID: string | null;
   maxHpInput: string;
+  editingTempHpUID: string | null;
+  tempHpInput: string;
   startNameEdit: (uid: string, currentName: string) => void;
   updateNameInput: (name: string) => void;
   submitNameEdit: (onSubmit: (name: string) => void) => void;
@@ -21,6 +23,9 @@ interface UsePlayerEditingReturn {
   startMaxHpEdit: (uid: string, currentMaxHp: number) => void;
   updateMaxHpInput: (maxHp: string) => void;
   submitMaxHpEdit: (onSubmit: (maxHp: number) => void) => void;
+  startTempHpEdit: (uid: string) => void;
+  updateTempHpInput: (tempHp: string) => void;
+  submitTempHpEdit: (onSubmit: (tempHp: number) => void) => void;
 }
 
 /**
@@ -49,6 +54,10 @@ export function usePlayerEditing(): UsePlayerEditingReturn {
   // Max HP editing
   const [editingMaxHpUID, setEditingMaxHpUID] = useState<string | null>(null);
   const [maxHpInput, setMaxHpInput] = useState("");
+
+  // Temp HP editing
+  const [editingTempHpUID, setEditingTempHpUID] = useState<string | null>(null);
+  const [tempHpInput, setTempHpInput] = useState("");
 
   const startNameEdit = useCallback((uid: string, currentName: string) => {
     setEditingPlayerUID(uid);
@@ -112,6 +121,27 @@ export function usePlayerEditing(): UsePlayerEditingReturn {
     [maxHpInput],
   );
 
+  const startTempHpEdit = useCallback((uid: string) => {
+    setEditingTempHpUID(uid);
+    setTempHpInput("0");
+  }, []);
+
+  const updateTempHpInput = useCallback((tempHp: string) => {
+    setTempHpInput(tempHp);
+  }, []);
+
+  const submitTempHpEdit = useCallback(
+    (onSubmit: (tempHp: number) => void) => {
+      const parsed = parseInt(tempHpInput, 10);
+      if (!isNaN(parsed) && parsed >= 0) {
+        onSubmit(parsed);
+      }
+      setEditingTempHpUID(null);
+      setTempHpInput("");
+    },
+    [tempHpInput],
+  );
+
   return {
     editingPlayerUID,
     nameInput,
@@ -119,6 +149,8 @@ export function usePlayerEditing(): UsePlayerEditingReturn {
     hpInput,
     editingMaxHpUID,
     maxHpInput,
+    editingTempHpUID,
+    tempHpInput,
     startNameEdit,
     updateNameInput,
     submitNameEdit,
@@ -128,5 +160,8 @@ export function usePlayerEditing(): UsePlayerEditingReturn {
     startMaxHpEdit,
     updateMaxHpInput,
     submitMaxHpEdit,
+    startTempHpEdit,
+    updateTempHpInput,
+    submitTempHpEdit,
   };
 }

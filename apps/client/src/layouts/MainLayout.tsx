@@ -104,17 +104,22 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     editingPlayerUID,
     editingHpUID,
     editingMaxHpUID,
+    editingTempHpUID,
     nameInput,
     hpInput,
     maxHpInput,
+    tempHpInput,
     updateNameInput,
     startNameEdit,
     updateHpInput,
     startHpEdit,
     updateMaxHpInput,
     startMaxHpEdit,
+    updateTempHpInput,
+    startTempHpEdit,
     submitHpEdit,
     submitMaxHpEdit,
+    submitTempHpEdit,
     submitNameEdit,
 
     // Selection
@@ -219,14 +224,17 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
   const {
     handleCharacterHpSubmit,
     handleCharacterMaxHpSubmit,
+    handleCharacterTempHpSubmit,
     handlePortraitLoad,
     handleNameSubmit,
   } = useEntityEditHandlers({
     editingHpUID,
     editingMaxHpUID,
+    editingTempHpUID,
     snapshot,
     submitHpEdit,
     submitMaxHpEdit,
+    submitTempHpEdit,
     submitNameEdit,
     playerActions,
   });
@@ -329,6 +337,11 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onMaxHpInputChange={updateMaxHpInput}
         onMaxHpEdit={startMaxHpEdit}
         onMaxHpSubmit={handleCharacterMaxHpSubmit}
+        editingTempHpUID={editingTempHpUID}
+        tempHpInput={tempHpInput}
+        onTempHpInputChange={updateTempHpInput}
+        onTempHpEdit={startTempHpEdit}
+        onTempHpSubmit={handleCharacterTempHpSubmit}
         onPortraitLoad={handlePortraitLoad}
         onToggleMic={toggleMic}
         onToggleDMMode={handleToggleDM}

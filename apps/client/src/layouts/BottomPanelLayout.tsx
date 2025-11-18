@@ -107,7 +107,7 @@ export interface BottomPanelLayoutProps {
   /** Handler to submit the HP edit */
   onHpSubmit: () => void;
   /** Handler to update a character's HP values */
-  onCharacterHpChange: (characterId: string, hp: number, maxHp: number) => void;
+  onCharacterHpChange: (characterId: string, hp: number, maxHp: number, tempHp?: number) => void;
 
   // Max HP Editing (5 props)
   /** UID of the character whose max HP is being edited (null if none) */
@@ -120,6 +120,18 @@ export interface BottomPanelLayoutProps {
   onMaxHpEdit: (uid: string, currentMaxHp: number) => void;
   /** Handler to submit the max HP edit */
   onMaxHpSubmit: () => void;
+
+  // Temp HP Editing (5 props)
+  /** UID of the character whose temp HP is being edited (null if none) */
+  editingTempHpUID: string | null;
+  /** Current value of the temp HP input field */
+  tempHpInput: string;
+  /** Handler to update the temp HP input value */
+  onTempHpInputChange: (value: string) => void;
+  /** Handler to start editing a character's temp HP */
+  onTempHpEdit: (uid: string) => void;
+  /** Handler to submit the temp HP edit */
+  onTempHpSubmit: () => void;
 
   // Portrait & Mic (2 props)
   /** Handler to load a new portrait image */
@@ -274,6 +286,11 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
     onMaxHpInputChange,
     onMaxHpEdit,
     onMaxHpSubmit,
+    editingTempHpUID,
+    tempHpInput,
+    onTempHpInputChange,
+    onTempHpEdit,
+    onTempHpSubmit,
     onPortraitLoad,
     onToggleMic,
     onToggleDMMode,
@@ -329,6 +346,11 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
         onMaxHpInputChange={onMaxHpInputChange}
         onMaxHpEdit={onMaxHpEdit}
         onMaxHpSubmit={onMaxHpSubmit}
+        editingTempHpUID={editingTempHpUID}
+        tempHpInput={tempHpInput}
+        onTempHpInputChange={onTempHpInputChange}
+        onTempHpEdit={onTempHpEdit}
+        onTempHpSubmit={onTempHpSubmit}
         onPortraitLoad={onPortraitLoad}
         onToggleMic={onToggleMic}
         onToggleDMMode={onToggleDMMode}

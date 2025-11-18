@@ -191,6 +191,10 @@ export interface MainLayoutProps {
   editingMaxHpUID: string | null;
   /** Current max HP input value */
   maxHpInput: string;
+  /** UID of character whose temp HP is being edited */
+  editingTempHpUID: string | null;
+  /** Current temp HP input value */
+  tempHpInput: string;
   /** Handler to update name input */
   updateNameInput: (value: string) => void;
   /** Handler to start name edit */
@@ -209,6 +213,12 @@ export interface MainLayoutProps {
   startMaxHpEdit: (uid: string) => void;
   /** Handler to submit max HP edit */
   submitMaxHpEdit: (callback: (maxHp: number) => void) => void;
+  /** Handler to update temp HP input */
+  updateTempHpInput: (value: string) => void;
+  /** Handler to start temp HP edit */
+  startTempHpEdit: (uid: string) => void;
+  /** Handler to submit temp HP edit */
+  submitTempHpEdit: (callback: (tempHp: number) => void) => void;
 
   // -------------------------------------------------------------------------
   // Selection

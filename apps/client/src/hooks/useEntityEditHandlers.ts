@@ -28,18 +28,22 @@ export interface UseEntityEditHandlersParams {
   editingHpUID: string | null;
   /** UID of the character whose max HP is currently being edited */
   editingMaxHpUID: string | null;
+  /** UID of the character whose temp HP is currently being edited */
+  editingTempHpUID: string | null;
   /** Current room snapshot containing character data */
   snapshot: RoomSnapshot | null;
   /** Function to submit HP edits with a callback that receives the new HP value */
   submitHpEdit: (callback: (hp: number) => void) => void;
   /** Function to submit max HP edits with a callback that receives the new max HP value */
   submitMaxHpEdit: (callback: (maxHp: number) => void) => void;
+  /** Function to submit temp HP edits with a callback that receives the new temp HP value */
+  submitTempHpEdit: (callback: (tempHp: number) => void) => void;
   /** Function to submit name edits with a callback that receives the new name */
   submitNameEdit: (callback: (name: string) => void) => void;
   /** Player action handlers */
   playerActions: {
     /** Update a character's HP and max HP */
-    updateCharacterHP: (characterId: string, hp: number, maxHp: number) => void;
+    updateCharacterHP: (characterId: string, hp: number, maxHp: number, tempHp?: number) => void;
     /** Set the player's portrait URL */
     setPortrait: (url: string) => void;
     /** Rename the player */
@@ -55,6 +59,8 @@ export interface UseEntityEditHandlersReturn {
   handleCharacterHpSubmit: () => void;
   /** Handler for submitting character max HP changes */
   handleCharacterMaxHpSubmit: () => void;
+  /** Handler for submitting character temp HP changes */
+  handleCharacterTempHpSubmit: () => void;
   /** Handler for loading a new portrait image */
   handlePortraitLoad: () => void;
   /** Handler for submitting player name changes */
@@ -94,38 +100,53 @@ export function useEntityEditHandlers(
   const {
     editingHpUID,
     editingMaxHpUID,
+    editingTempHpUID,
     snapshot,
     submitHpEdit,
     submitMaxHpEdit,
+    submitTempHpEdit,
     submitNameEdit,
     playerActions,
   } = params;
 
   /**
    * Handles submission of character HP changes.
-   * Finds the character being edited and updates their HP while preserving max HP.
+   * Finds the character being edited and updates their HP while preserving max HP and temp HP.
    */
   const handleCharacterHpSubmit = useCallback(() => {
     submitHpEdit((hp) => {
       if (!editingHpUID) return;
       const character = snapshot?.characters?.find((c) => c.id === editingHpUID);
       if (!character) return;
-      playerActions.updateCharacterHP(character.id, hp, character.maxHp);
+      playerActions.updateCharacterHP(character.id, hp, character.maxHp, character.tempHp);
     });
   }, [submitHpEdit, editingHpUID, snapshot?.characters, playerActions]);
 
   /**
    * Handles submission of character max HP changes.
-   * Finds the character being edited and updates their max HP while preserving current HP.
+   * Finds the character being edited and updates their max HP while preserving current HP and temp HP.
    */
   const handleCharacterMaxHpSubmit = useCallback(() => {
     submitMaxHpEdit((maxHp) => {
       if (!editingMaxHpUID) return;
       const character = snapshot?.characters?.find((c) => c.id === editingMaxHpUID);
       if (!character) return;
-      playerActions.updateCharacterHP(character.id, character.hp, maxHp);
+      playerActions.updateCharacterHP(character.id, character.hp, maxHp, character.tempHp);
     });
   }, [submitMaxHpEdit, editingMaxHpUID, snapshot?.characters, playerActions]);
+
+  /**
+   * Handles submission of character temp HP changes.
+   * Finds the character being edited and updates their temp HP while preserving current HP and max HP.
+   */
+  const handleCharacterTempHpSubmit = useCallback(() => {
+    submitTempHpEdit((tempHp) => {
+      if (!editingTempHpUID) return;
+      const character = snapshot?.characters?.find((c) => c.id === editingTempHpUID);
+      if (!character) return;
+      playerActions.updateCharacterHP(character.id, character.hp, character.maxHp, tempHp);
+    });
+  }, [submitTempHpEdit, editingTempHpUID, snapshot?.characters, playerActions]);
 
   /**
    * Handles loading a new portrait image.
@@ -151,6 +172,7 @@ export function useEntityEditHandlers(
   return {
     handleCharacterHpSubmit,
     handleCharacterMaxHpSubmit,
+    handleCharacterTempHpSubmit,
     handlePortraitLoad,
     handleNameSubmit,
   };

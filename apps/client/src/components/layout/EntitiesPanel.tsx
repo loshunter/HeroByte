@@ -28,13 +28,15 @@ interface EntitiesPanelProps {
   nameInput: string;
   editingMaxHpUID: string | null;
   maxHpInput: string;
+  editingTempHpUID: string | null;
+  tempHpInput: string;
   onNameInputChange: (value: string) => void;
   onNameEdit: (uid: string, currentName: string) => void;
   onNameSubmit: () => void;
   onCharacterNameUpdate: (characterId: string, name: string) => void;
   onPortraitLoad: () => void;
   onToggleMic: () => void;
-  onCharacterHpChange: (characterId: string, hp: number, maxHp: number) => void;
+  onCharacterHpChange: (characterId: string, hp: number, maxHp: number, tempHp?: number) => void;
   editingHpUID: string | null;
   hpInput: string;
   onHpInputChange: (value: string) => void;
@@ -43,6 +45,9 @@ interface EntitiesPanelProps {
   onMaxHpInputChange: (value: string) => void;
   onMaxHpEdit: (uid: string, currentMaxHp: number) => void;
   onMaxHpSubmit: () => void;
+  onTempHpInputChange: (value: string) => void;
+  onTempHpEdit: (uid: string) => void;
+  onTempHpSubmit: () => void;
   currentIsDM: boolean;
   onToggleDMMode: (next: boolean) => void;
   onTokenImageChange: (tokenId: string, imageUrl: string) => void;
@@ -91,6 +96,8 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   micEnabled,
   editingMaxHpUID,
   maxHpInput,
+  editingTempHpUID,
+  tempHpInput,
   onCharacterNameUpdate,
   onPortraitLoad,
   onToggleMic,
@@ -103,6 +110,9 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   onMaxHpInputChange,
   onMaxHpEdit,
   onMaxHpSubmit,
+  onTempHpInputChange,
+  onTempHpEdit,
+  onTempHpSubmit,
   currentIsDM,
   onToggleDMMode,
   onTokenImageChange,
@@ -356,7 +366,12 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                         onPortraitLoad={onPortraitLoad}
                         onToggleMic={onToggleMic}
                         onHpChange={(hp) =>
-                          onCharacterHpChange(character.id, hp, displayPlayer.maxHp ?? 100)
+                          onCharacterHpChange(
+                            character.id,
+                            hp,
+                            displayPlayer.maxHp ?? 100,
+                            displayPlayer.tempHp,
+                          )
                         }
                         editingHpUID={editingHpUID}
                         hpInput={hpInput}
@@ -368,6 +383,11 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                         onMaxHpInputChange={onMaxHpInputChange}
                         onMaxHpEdit={onMaxHpEdit}
                         onMaxHpSubmit={onMaxHpSubmit}
+                        editingTempHpUID={editingTempHpUID}
+                        tempHpInput={tempHpInput}
+                        onTempHpInputChange={onTempHpInputChange}
+                        onTempHpEdit={onTempHpEdit}
+                        onTempHpSubmit={onTempHpSubmit}
                         tokenImageUrl={character?.tokenImage ?? token?.imageUrl ?? undefined}
                         onTokenImageSubmit={
                           isMe && token ? (url) => onTokenImageChange(token.id, url) : undefined

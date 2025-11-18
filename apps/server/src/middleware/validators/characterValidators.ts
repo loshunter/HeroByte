@@ -38,10 +38,10 @@ export function validateCreateCharacterMessage(message: MessageRecord): Validati
 /**
  * Validate create-npc message
  * Required: name (string, 1-50 chars), hp (positive), maxHp (positive)
- * Optional: portrait (string), tokenImage (string)
+ * Optional: portrait (string), tokenImage (string), tempHp (non-negative)
  */
 export function validateCreateNpcMessage(message: MessageRecord): ValidationResult {
-  const { name, hp, maxHp, portrait, tokenImage } = message;
+  const { name, hp, maxHp, tempHp, portrait, tokenImage } = message;
   if (
     typeof name !== "string" ||
     name.length === 0 ||
@@ -55,6 +55,9 @@ export function validateCreateNpcMessage(message: MessageRecord): ValidationResu
   if (!isFiniteNumber(maxHp) || maxHp <= 0) {
     return { valid: false, error: "create-npc: maxHp must be positive" };
   }
+  if (tempHp !== undefined && (!isFiniteNumber(tempHp) || tempHp < 0)) {
+    return { valid: false, error: "create-npc: tempHp must be non-negative" };
+  }
   if (portrait !== undefined && typeof portrait !== "string") {
     return { valid: false, error: "create-npc: portrait must be a string" };
   }
@@ -67,10 +70,10 @@ export function validateCreateNpcMessage(message: MessageRecord): ValidationResu
 /**
  * Validate update-npc message
  * Required: id (string), name (string, 1-50 chars), hp (non-negative), maxHp (positive)
- * Optional: portrait (string), tokenImage (string), initiativeModifier (number)
+ * Optional: portrait (string), tokenImage (string), tempHp (non-negative), initiativeModifier (number)
  */
 export function validateUpdateNpcMessage(message: MessageRecord): ValidationResult {
-  const { id, name, hp, maxHp, portrait, tokenImage, initiativeModifier } = message;
+  const { id, name, hp, maxHp, tempHp, portrait, tokenImage, initiativeModifier } = message;
   if (typeof id !== "string" || id.length === 0) {
     return { valid: false, error: "update-npc: missing or invalid id" };
   }
@@ -86,6 +89,9 @@ export function validateUpdateNpcMessage(message: MessageRecord): ValidationResu
   }
   if (!isFiniteNumber(maxHp) || maxHp <= 0) {
     return { valid: false, error: "update-npc: maxHp must be positive" };
+  }
+  if (tempHp !== undefined && (!isFiniteNumber(tempHp) || tempHp < 0)) {
+    return { valid: false, error: "update-npc: tempHp must be non-negative" };
   }
   if (portrait !== undefined && typeof portrait !== "string") {
     return { valid: false, error: "update-npc: portrait must be a string" };
@@ -199,9 +205,10 @@ export function validateUpdateCharacterNameMessage(message: MessageRecord): Vali
 /**
  * Validate update-character-hp message
  * Required: characterId (string), hp (non-negative), maxHp (non-negative)
+ * Optional: tempHp (non-negative)
  */
 export function validateUpdateCharacterHpMessage(message: MessageRecord): ValidationResult {
-  const { characterId, hp, maxHp } = message;
+  const { characterId, hp, maxHp, tempHp } = message;
   if (typeof characterId !== "string" || characterId.length === 0) {
     return { valid: false, error: "update-character-hp: missing or invalid characterId" };
   }
@@ -210,6 +217,9 @@ export function validateUpdateCharacterHpMessage(message: MessageRecord): Valida
   }
   if (hp < 0 || maxHp < 0) {
     return { valid: false, error: "update-character-hp: hp/maxHp cannot be negative" };
+  }
+  if (tempHp !== undefined && (!isFiniteNumber(tempHp) || tempHp < 0)) {
+    return { valid: false, error: "update-character-hp: tempHp must be non-negative" };
   }
   return { valid: true };
 }

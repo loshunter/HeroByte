@@ -31,11 +31,13 @@ When characters had tied initiative values, the "next/previous" buttons in the D
 ### Solution Implemented
 
 **Multi-level Stable Sorting:**
+
 1. **Primary:** Initiative value (highest first)
 2. **Secondary:** Character type (PCs before NPCs when tied)
 3. **Tertiary:** Creation order (preserve array position)
 
 **Files Changed:**
+
 - `apps/server/src/domains/character/service.ts:298-311` - Server-side sorting
 - `apps/client/src/hooks/useCombatOrdering.ts:108-131` - Client-side sorting
 - `apps/server/src/domains/__tests__/characterService.initiative-order.characterization.test.ts` - Comprehensive tests
@@ -43,6 +45,7 @@ When characters had tied initiative values, the "next/previous" buttons in the D
 ### Test Coverage
 
 **12 Comprehensive Characterization Tests:**
+
 - Basic initiative ordering (no ties)
 - Tied initiatives between same character type (PCs, NPCs)
 - Tied initiatives between PCs and NPCs
@@ -51,6 +54,7 @@ When characters had tied initiative values, the "next/previous" buttons in the D
 - Real-world 3-way tie bug scenario
 
 **All Tests Passing:**
+
 - 36 server tests (characterService + initiative order)
 - 10 client tests (combat ordering hook)
 - TypeScript type checking ✅
@@ -59,12 +63,14 @@ When characters had tied initiative values, the "next/previous" buttons in the D
 ### Impact
 
 **User Experience:**
+
 - Initiative order is now **stable** and **predictable**
 - "Next/previous" buttons navigate left-to-right consistently
 - PCs always appear before NPCs when initiative is tied
 - Creation order preserved for same-type ties
 
 **Code Quality:**
+
 - Compact implementation (17 lines total tiebreaker logic)
 - Clear JSDoc: "Tiebreaker: initiative > PC before NPC > creation order"
 - Maintained under 350 LOC structural threshold
