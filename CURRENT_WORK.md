@@ -1195,3 +1195,214 @@ All identified fire-and-forget patterns have been addressed:
 - 1 audit + future-proofing improvement
 
 The codebase now has consistent, reliable state synchronization across all user-facing async operations.
+
+---
+
+## DM Lazy Loading - Test Updates (2025-01-18) ✓
+
+### Background
+
+Following the DM tooling code-splitting work (bundle reduced from ~106 KB to 53 KB gzipped), 63 tests were failing because they expected DMMenu to be eagerly loaded but it's now lazy-loaded via React.lazy() only when `isDM` is true.
+
+### Problem
+
+- `DMMenuContainer` is lazy-loaded from `../features/dm/lazy-entry`
+- Tests were mocking `../features/dm` (old location)
+- Tests used synchronous `getByTestId("dm-menu")` queries
+- Tests didn't set `isDM: true` by default, so DMMenu never rendered
+
+### Solution Applied
+
+#### 1. Updated Test Mocks
+
+**FloatingPanelsLayout.characterization.test.tsx**:
+- Changed mock from `../features/dm` → `../features/dm/lazy-entry`
+- Changed component from `DMMenu` → `DMMenuContainer`
+- Updated mock props to match DMMenuContainer interface (includes `snapshot`, `sendMessage`, `toast`)
+
+**App.test.tsx**:
+- Same mock update pattern
+
+#### 2. Converted Synchronous to Async Queries
+
+All `screen.getByTestId("dm-menu")` → `await screen.findByTestId("dm-menu")`
+
+This allows tests to wait for React.lazy() to load the component:
+- Used `sed` to replace 71 instances in FloatingPanelsLayout.characterization.test.tsx
+- Marked all affected test functions as `async`
+
+#### 3. Updated Test Fixtures
+
+Changed default props in `createDefaultProps()`:
+- `isDM: false` → `isDM: true`
+
+This ensures DMMenuContainer renders by default (since it's conditionally rendered only when isDM is true).
+
+#### 4. Fixed Edge Case Tests
+
+Three tests explicitly set `isDM: false` and expected DMMenu to render:
+- "should pass isDM=false to DMMenu" → "should NOT render DMMenu when isDM=false"
+- "should handle all boolean flags set to false" → removed dm-menu assertions
+- "should handle simultaneous state changes" → check dm-menu is absent initially
+
+### Test Results
+
+✅ All 113 tests passing in FloatingPanelsLayout.characterization.test.tsx
+✅ All 7 tests passing in App.test.tsx
+✅ Full test suite: 766 tests passing (client), 2,173 total across all packages
+
+### Bundle Size
+
+✅ Entry bundle: 53.52 KB gzipped (175 KB limit)
+✅ 122.73 KB remaining (29.9% of budget used)
+
+### Testing Pattern for Lazy-Loaded Components
+
+When testing components that use React.lazy():
+
+1. **Always await lazy content**: Use `findBy*` queries instead of `getBy*`
+2. **Ensure render conditions are met**: If component is conditionally rendered, ensure condition is true
+3. **Mock the lazy entry**: Mock the actual lazy entry point, not the original import
+4. **Update prop interfaces**: Lazy container components may have different props than the original
+
+### Files Modified
+
+- `apps/client/src/layouts/__tests__/FloatingPanelsLayout.characterization.test.tsx`
+- `apps/client/src/ui/App.test.tsx`
+
+### Related Documentation
+
+See user's instructions about DM lazy loading at the start of this conversation for detailed technical approach.
+
+---
+
+## Performance Baseline (2025-01-18) 📊
+
+### Bundle Size Metrics (Post-DM Lazy Loading)
+
+Captured after completing DM tooling code-splitting work. All measurements are **production builds** with Vite compression.
+
+#### JavaScript Bundles
+
+| Bundle | Raw Size | Gzipped | Description | Notes |
+|--------|----------|---------|-------------|-------|
+| **index-Bvi2CRXe.js** | 185.41 kB | **53.52 kB** | Main entry bundle | ✅ Within 175 kB limit (70% reduction from pre-split ~106 kB) |
+| lazy-entry-DihOyBru.js | 53.33 kB | 11.85 kB | DM tooling (lazy) | Only loads when isDM = true |
+| MapBoard-DDn6IaTm.js | 47.21 kB | 15.38 kB | Map rendering | Code-split separately |
+| vendor-konva-D28PZsvs.js | 293.59 kB | 90.95 kB | Konva canvas library | Vendor chunk |
+| vendor-react-CeDR-QCE.js | 129.71 kB | 41.65 kB | React core | Vendor chunk |
+| vendor-voice-WuEnP5gD.js | 100.50 kB | 30.30 kB | Voice chat libs | Vendor chunk |
+
+#### CSS
+
+| File | Raw Size | Gzipped |
+|------|----------|---------|
+| index-DGfw5Yfv.css | 21.30 kB | 4.69 kB |
+
+#### Total Bundle Breakdown
+
+- **Initial Load (non-DM user)**: 53.52 kB + 90.95 kB + 41.65 kB + 30.30 kB + 15.38 kB + 4.69 kB = **236.49 kB gzipped**
+- **DM User (additional)**: +11.85 kB gzipped = **248.34 kB total gzipped**
+
+#### Budget Status
+
+- **Entry bundle limit**: 175 kB
+- **Current entry bundle**: 53.52 kB gzipped
+- **Remaining budget**: 121.48 kB (69.4% under budget)
+- **Guard threshold**: 350 LOC per new file (enforced via `lint:structure:enforce`)
+
+### Performance Impact
+
+#### Before DM Lazy Loading
+- Entry bundle: ~106 kB gzipped
+- DM code always loaded regardless of user role
+
+#### After DM Lazy Loading
+- Entry bundle: 53.52 kB gzipped (**49.5% reduction**)
+- DM code: 11.85 kB lazy chunk (only loads for DMs)
+- Regular players save 11.85 kB of unnecessary code
+
+### Build Performance
+
+- **Build time**: ~2.75s (consistent)
+- **Transform**: 341 modules
+- **Vite version**: 5.4.20
+
+### Recommendations for Future Monitoring
+
+#### 1. CI Bundle Guard (Already in place ✅)
+- Script: `scripts/check-bundle-size.mjs`
+- Enforces 175 kB gzipped limit on entry bundle
+- Runs in GitHub Actions on every push
+
+#### 2. Suggested Additions
+
+**Option A: Lighthouse CI**
+```yaml
+# .github/workflows/lighthouse.yml
+- name: Run Lighthouse
+  uses: treosh/lighthouse-ci-action@v9
+  with:
+    urls: http://localhost:5173
+    budgetPath: .github/lighthouse-budget.json
+```
+
+**Option B: Playwright Performance Profiles**
+```typescript
+// apps/e2e/performance.spec.ts
+test('TTI baseline for regular player', async ({ page }) => {
+  const metrics = await page.evaluate(() => {
+    const nav = performance.getEntriesByType('navigation')[0];
+    return {
+      tti: nav.loadEventEnd - nav.fetchStart,
+      fcp: performance.getEntriesByName('first-contentful-paint')[0]?.startTime
+    };
+  });
+  expect(metrics.tti).toBeLessThan(3000); // 3s baseline
+});
+```
+
+**Option C: Bundle Analysis in CI**
+```bash
+# Generate bundle report on PR
+pnpm --filter herobyte-client build --mode analyze
+# Upload to PR comment or artifact
+```
+
+#### 3. Metrics to Track
+
+**Bundle Metrics**:
+- Entry bundle size (gzipped)
+- Lazy chunk sizes
+- Total vendor chunk size
+- Per-route code splitting
+
+**Runtime Metrics** (when CI environment is available):
+- Time to Interactive (TTI)
+- First Contentful Paint (FCP)
+- Largest Contentful Paint (LCP)
+- Total Blocking Time (TBT)
+- Cumulative Layout Shift (CLS)
+
+**Regression Thresholds** (suggested):
+- Entry bundle: 175 kB (hard limit)
+- TTI: <3s for regular player, <4s for DM
+- FCP: <1.5s
+- LCP: <2.5s
+
+### Next Steps
+
+1. ✅ **Baseline captured** (this document)
+2. ⏳ **Create GitHub issue** with CI integration recommendations
+3. ⏳ **Consider adding Lighthouse CI** for Web Vitals tracking
+4. ⏳ **Add bundle visualization** (e.g., `rollup-plugin-visualizer`) to PR previews
+
+### Historical Context
+
+This baseline was captured immediately after completing:
+- DM tooling code-splitting (Phase 15 refactoring)
+- Test suite updates for lazy-loaded components
+- All 766 client tests passing
+- Bundle guard enforcement in CI
+
+The 49.5% reduction in entry bundle size represents significant UX improvement for regular players, who previously loaded DM-only code unnecessarily.
