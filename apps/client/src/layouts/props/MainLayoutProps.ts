@@ -328,74 +328,10 @@ export interface MainLayoutProps {
   dismissRoomPasswordStatus: () => void;
 
   // -------------------------------------------------------------------------
-  // NPC Management
+  // DM Tools (NPC/Prop/Session/Combat)
   // -------------------------------------------------------------------------
-  /** Handler to create NPC */
-  handleCreateNPC: () => void;
-  /** Handler to update NPC */
-  handleUpdateNPC: (id: string, updates: Partial<Character>) => void;
-  /** Handler to delete NPC */
-  handleDeleteNPC: (id: string) => void;
-  /** Whether NPC deletion is in progress */
-  isDeletingNpc?: boolean;
-  /** Error message from NPC deletion attempt */
-  npcDeletionError?: string | null;
-  /** Whether NPC creation is in progress */
-  isCreatingNpc?: boolean;
-  /** Error message from NPC creation attempt */
-  npcCreationError?: string | null;
-  /** Whether NPC update is in progress */
-  isUpdatingNpc?: boolean;
-  /** Error message from NPC update attempt */
-  npcUpdateError?: string | null;
-  /** ID of the NPC currently being updated */
-  updatingNpcId?: string | null;
-  /** Whether NPC token placement is in progress */
-  isPlacingToken?: boolean;
-  /** Error message from token placement attempt */
-  tokenPlacementError?: string | null;
-  /** ID of the NPC whose token is being placed */
-  placingTokenForNpcId?: string | null;
-  /** Handler to place NPC token */
-  handlePlaceNPCToken: (id: string) => void;
-  /** Handler to toggle NPC visibility to players */
-  handleToggleNPCVisibility: (id: string, visible: boolean) => void;
-  /** Handler to delete player token */
-  handleDeletePlayerToken: (tokenId: string) => void;
-
-  // -------------------------------------------------------------------------
-  // Prop Management
-  // -------------------------------------------------------------------------
-  /** Handler to create prop */
-  handleCreateProp: () => void;
-  /** Handler to update prop */
-  handleUpdateProp: (id: string, updates: PropUpdate) => void;
-  /** Handler to delete prop */
-  handleDeleteProp: (id: string) => void;
-  /** Whether prop creation is in progress */
-  isCreatingProp?: boolean;
-  /** Error message from prop creation attempt */
-  propCreationError?: string | null;
-  /** Whether prop deletion is in progress */
-  isDeletingProp?: boolean;
-  /** ID of the prop currently being deleted */
-  deletingPropId?: string | null;
-  /** Error message from prop deletion attempt */
-  propDeletionError?: string | null;
-  /** Whether prop update is in progress */
-  isUpdatingProp?: boolean;
-  /** Error message from prop update attempt */
-  propUpdateError?: string | null;
-  /** ID of the prop currently being updated */
-  updatingPropId?: string | null;
-
-  // -------------------------------------------------------------------------
-  // Session Management
-  // -------------------------------------------------------------------------
-  /** Handler to save session */
-  handleSaveSession: (sessionName: string) => void;
-  /** Handler to load session */
-  handleLoadSession: (file: File) => void;
+  // Note: These hooks are now handled internally by DMMenuContainer (lazy-loaded)
+  // This reduces the bundle size for non-DM players by ~12-18 KB
 
   // -------------------------------------------------------------------------
   // DM Management
@@ -421,19 +357,4 @@ export interface MainLayoutProps {
   /** Handler to send messages to server */
   sendMessage: (message: ClientMessage) => void;
 
-  // -------------------------------------------------------------------------
-  // Combat Controls
-  // -------------------------------------------------------------------------
-  /** Handler to start combat and enable initiative tracking */
-  onStartCombat?: () => void;
-  /** Handler to end combat and clear combat state */
-  onEndCombat?: () => void;
-  /** Handler to clear initiative for all characters */
-  onClearAllInitiative?: () => void;
-  /** Handler to advance to the next combat turn */
-  onNextTurn?: () => void;
-  /** Handler to move back to the previous combat turn */
-  onPreviousTurn?: () => void;
-  /** Handler to clear initiative for a single character */
-  onClearInitiative?: (characterId: string) => void;
 }

@@ -202,7 +202,9 @@
       "Bash(pnpm --filter herobyte-client test:simple:*)",
       "Bash(git cherry-pick:*)",
       "Bash(pnpm lint:client:*)",
-      "Bash(pnpm --filter @shared test combatUtils)"
+      "Bash(pnpm --filter @shared test combatUtils)",
+      "Bash(pnpm --filter herobyte-client add:*)",
+      "Bash(pnpm --filter herobyte-client build:analyze:*)"
     ],
     "deny": [],
     "ask": []

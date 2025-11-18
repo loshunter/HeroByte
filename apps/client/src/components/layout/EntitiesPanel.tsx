@@ -54,14 +54,14 @@ interface EntitiesPanelProps {
   onApplyPlayerState: (state: PlayerState, tokenId?: string, characterId?: string) => void;
   _onStatusEffectsChange: (effects: string[]) => void; // Deprecated - kept for backward compatibility
   onCharacterStatusEffectsChange: (characterId: string, effects: string[]) => void;
-  onNpcUpdate: (
+  onNpcUpdate?: (
     id: string,
     updates: { name?: string; hp?: number; maxHp?: number; portrait?: string; tokenImage?: string },
   ) => void;
-  onNpcDelete: (id: string) => void;
-  onNpcPlaceToken: (id: string) => void;
-  onNpcToggleVisibility: (id: string, visible: boolean) => void;
-  onPlayerTokenDelete: (tokenId: string) => void;
+  onNpcDelete?: (id: string) => void;
+  onNpcPlaceToken?: (id: string) => void;
+  onNpcToggleVisibility?: (id: string, visible: boolean) => void;
+  onPlayerTokenDelete?: (tokenId: string) => void;
   /** Whether NPC deletion is in progress */
   isDeletingNpc?: boolean;
   /** Error message from NPC deletion attempt */

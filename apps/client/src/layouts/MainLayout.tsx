@@ -164,42 +164,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     handleSetRoomPassword,
     dismissRoomPasswordStatus,
 
-    // NPC management
-    handleCreateNPC,
-    handleUpdateNPC,
-    handleDeleteNPC,
-    isDeletingNpc,
-    npcDeletionError,
-    isCreatingNpc,
-    npcCreationError,
-    isUpdatingNpc,
-    npcUpdateError,
-    updatingNpcId,
-    isPlacingToken,
-    tokenPlacementError,
-    placingTokenForNpcId,
-    handlePlaceNPCToken,
-    handleToggleNPCVisibility,
-    handleDeletePlayerToken,
-
-    // Prop management
-    handleCreateProp,
-    handleUpdateProp,
-    handleDeleteProp,
-    isCreatingProp,
-    propCreationError,
-    isDeletingProp,
-    deletingPropId,
-    propDeletionError,
-    isUpdatingProp,
-    propUpdateError,
-    updatingPropId,
-
-    // Session management
-    handleSaveSession,
-    handleLoadSession,
-
-    // DM management
+    // DM management (hooks now in DMMenuContainer)
     handleToggleDM,
     setMapBackgroundURL,
     setGridSize,
@@ -210,14 +175,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
 
     // WebSocket
     sendMessage,
-
-    // Combat controls
-    onStartCombat,
-    onEndCombat,
-    onClearAllInitiative,
-    onNextTurn,
-    onPreviousTurn,
-    onClearInitiative: onClearInitiativeProp,
   } = props;
 
   // Extract entity editing handlers to custom hook
@@ -249,8 +206,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     snapshot,
     sendMessage,
   });
-
-  const clearInitiativeHandler = onClearInitiativeProp ?? clearInitiative;
 
   return (
     <div onClick={() => setContextMenu(null)} style={{ height: "100vh", overflow: "hidden" }}>
@@ -349,13 +304,13 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onStatusEffectsChange={playerActions.setStatusEffects}
         onCharacterStatusEffectsChange={playerActions.setCharacterStatusEffects}
         onCharacterNameUpdate={playerActions.updateCharacterName}
-        onNpcUpdate={handleUpdateNPC}
-        onNpcDelete={handleDeleteNPC}
-        onNpcPlaceToken={handlePlaceNPCToken}
-        onNpcToggleVisibility={handleToggleNPCVisibility}
-        onPlayerTokenDelete={handleDeletePlayerToken}
-        isDeletingNpc={isDeletingNpc}
-        npcDeletionError={npcDeletionError}
+        onNpcUpdate={undefined}
+        onNpcDelete={undefined}
+        onNpcPlaceToken={undefined}
+        onNpcToggleVisibility={undefined}
+        onPlayerTokenDelete={undefined}
+        isDeletingNpc={undefined}
+        npcDeletionError={undefined}
         onToggleTokenLock={toggleSceneObjectLock}
         onTokenSizeChange={updateTokenSize}
         onTokenImageChange={updateTokenImage}
@@ -367,9 +322,9 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onSetInitiative={setInitiative}
         isSettingInitiative={isSettingInitiative}
         initiativeError={initiativeError}
-        onClearInitiative={clearInitiativeHandler}
-        onNextTurn={onNextTurn}
-        onPreviousTurn={onPreviousTurn}
+        onClearInitiative={clearInitiative}
+        onNextTurn={undefined}
+        onPreviousTurn={undefined}
       />
 
       {/* Floating Panels - DM menu, context menu, visual effects, dice roller, roll log, toasts */}
@@ -403,31 +358,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onAlignmentReset={handleAlignmentReset}
         onAlignmentCancel={handleAlignmentCancel}
         onAlignmentApply={handleAlignmentApply}
-        onRequestSaveSession={snapshot ? handleSaveSession : undefined}
-        onRequestLoadSession={handleLoadSession}
-        onCreateNPC={handleCreateNPC}
-        onUpdateNPC={handleUpdateNPC}
-        onDeleteNPC={handleDeleteNPC}
-        isCreatingNpc={isCreatingNpc}
-        npcCreationError={npcCreationError}
-        isUpdatingNpc={isUpdatingNpc}
-        npcUpdateError={npcUpdateError}
-        updatingNpcId={updatingNpcId}
-        isPlacingToken={isPlacingToken}
-        tokenPlacementError={tokenPlacementError}
-        placingTokenForNpcId={placingTokenForNpcId}
-        onPlaceNPCToken={handlePlaceNPCToken}
-        onCreateProp={handleCreateProp}
-        onUpdateProp={handleUpdateProp}
-        onDeleteProp={handleDeleteProp}
-        isCreatingProp={isCreatingProp}
-        propCreationError={propCreationError}
-        isDeletingProp={isDeletingProp}
-        deletingPropId={deletingPropId}
-        propDeletionError={propDeletionError}
-        isUpdatingProp={isUpdatingProp}
-        propUpdateError={propUpdateError}
-        updatingPropId={updatingPropId}
+        sendMessage={sendMessage}
         onSetRoomPassword={handleSetRoomPassword}
         roomPasswordStatus={roomPasswordStatus}
         roomPasswordPending={roomPasswordPending}
@@ -443,12 +374,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         handleViewRoll={handleViewRoll}
         crtFilter={crtFilter}
         toast={toast}
-        combatActive={snapshot?.combatActive}
-        onStartCombat={onStartCombat}
-        onEndCombat={onEndCombat}
-        onClearAllInitiative={onClearAllInitiative}
-        onNextTurn={onNextTurn}
-        onPreviousTurn={onPreviousTurn}
         onSetInitiative={setInitiative}
       />
     </div>

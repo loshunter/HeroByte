@@ -22,7 +22,6 @@ import { useCameraCommands } from "../hooks/useCameraCommands";
 import { useSceneObjectActions } from "../hooks/useSceneObjectActions";
 import { useSelectionManager } from "../features/selection";
 import { getSessionUID } from "../utils/session";
-import { useSessionManagement } from "../features/session";
 import { AuthState } from "../services/websocket";
 import { useToast } from "../hooks/useToast";
 import { useStatusEffects } from "../hooks/useStatusEffects";
@@ -34,14 +33,6 @@ import { usePlayerActions } from "../hooks/usePlayerActions";
 import { useVoiceChatManager } from "../hooks/useVoiceChatManager";
 import { useDiceRolling } from "../hooks/useDiceRolling";
 import { useServerEventHandlers } from "../hooks/useServerEventHandlers";
-import { useNpcDeletion } from "../hooks/useNpcDeletion";
-import { useNpcCreation } from "../hooks/useNpcCreation";
-import { useNpcUpdate } from "../hooks/useNpcUpdate";
-import { useNpcTokenPlacement } from "../hooks/useNpcTokenPlacement";
-import { useNpcVisibility } from "../hooks/useNpcVisibility";
-import { usePropCreation } from "../hooks/usePropCreation";
-import { usePropDeletion } from "../hooks/usePropDeletion";
-import { usePropUpdate } from "../hooks/usePropUpdate";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { useDMManagement } from "../hooks/useDMManagement";
 import { usePlayerTokenSelection } from "../hooks/usePlayerTokenSelection";
@@ -361,120 +352,9 @@ function AuthenticatedApp({
     [snapshot?.sceneObjects],
   );
 
-  // NPC Deletion Hook - provides loading state and server confirmation
-  const {
-    isDeleting: isDeletingNpc,
-    deleteNpc,
-    error: npcDeletionError,
-  } = useNpcDeletion({
-    snapshot,
-    sendMessage,
-  });
-
-  // NPC Creation Hook - provides loading state and server confirmation
-  const {
-    isCreating: isCreatingNpc,
-    createNpc,
-    error: npcCreationError,
-  } = useNpcCreation({
-    snapshot,
-    sendMessage,
-  });
-
-  // NPC Update Hook - provides loading state and server confirmation
-  const {
-    isUpdating: isUpdatingNpc,
-    updateNpc,
-    error: npcUpdateError,
-    targetNpcId: updatingNpcId,
-  } = useNpcUpdate({
-    snapshot,
-    sendMessage,
-  });
-
-  // NPC Token Placement Hook - provides loading state and server confirmation
-  const {
-    isPlacing: isPlacingToken,
-    placeToken,
-    error: tokenPlacementError,
-    placingTokenForNpcId,
-  } = useNpcTokenPlacement({
-    snapshot,
-    sendMessage,
-  });
-
-  // NPC Visibility Hook - allows DM to toggle NPC visibility for players
-  const { toggleNpcVisibility } = useNpcVisibility({
-    sendMessage,
-  });
-
-  // Combat controls - DM actions for initiative tracker
-  const handleStartCombat = useCallback(() => {
-    sendMessage({ t: "start-combat" });
-  }, [sendMessage]);
-
-  const handleEndCombat = useCallback(() => {
-    sendMessage({ t: "end-combat" });
-  }, [sendMessage]);
-
-  const handleClearAllInitiative = useCallback(() => {
-    sendMessage({ t: "clear-all-initiative" });
-  }, [sendMessage]);
-
-  const handleNextTurn = useCallback(() => {
-    sendMessage({ t: "next-turn" });
-  }, [sendMessage]);
-
-  const handlePreviousTurn = useCallback(() => {
-    sendMessage({ t: "previous-turn" });
-  }, [sendMessage]);
-
-  const handleDeletePlayerToken = useCallback(
-    (tokenId: string) => {
-      sendMessage({ t: "delete-token", id: tokenId });
-    },
-    [sendMessage],
-  );
-
-  // Prop Creation Hook
-  const {
-    isCreating: isCreatingProp,
-    createProp,
-    error: propCreationError,
-  } = usePropCreation({
-    snapshot,
-    sendMessage,
-    cameraState,
-  });
-
-  // Prop Update Hook - provides loading state and server confirmation
-  const {
-    isUpdating: isUpdatingProp,
-    updateProp,
-    error: propUpdateError,
-    targetPropId: updatingPropId,
-  } = usePropUpdate({
-    snapshot,
-    sendMessage,
-  });
-
-  // Prop Deletion Hook
-  const {
-    isDeleting: isDeletingProp,
-    deleteProp: handleDeleteProp,
-    error: propDeletionError,
-    deletingPropId,
-  } = usePropDeletion({
-    snapshot,
-    sendMessage,
-  });
-
-  // Session Management Hook
-  const { handleSaveSession, handleLoadSession } = useSessionManagement({
-    snapshot,
-    sendMessage,
-    toast,
-  });
+  // DM-specific hooks have been moved to useDMContext
+  // and are now instantiated only when isDM is true via DMMenuContainer
+  // This reduces bundle size for non-DM players by ~12-18 KB
 
   // DM role detection
   const { isDM } = useDMRole({ snapshot, uid, send: sendMessage });
@@ -721,39 +601,7 @@ function AuthenticatedApp({
         roomPasswordPending={roomPasswordPending}
         handleSetRoomPassword={handleSetRoomPassword}
         dismissRoomPasswordStatus={dismissRoomPasswordStatus}
-        // NPC management
-        handleCreateNPC={createNpc}
-        handleUpdateNPC={updateNpc}
-        handleDeleteNPC={deleteNpc}
-        isDeletingNpc={isDeletingNpc}
-        npcDeletionError={npcDeletionError}
-        isCreatingNpc={isCreatingNpc}
-        npcCreationError={npcCreationError}
-        isUpdatingNpc={isUpdatingNpc}
-        npcUpdateError={npcUpdateError}
-        updatingNpcId={updatingNpcId}
-        isPlacingToken={isPlacingToken}
-        tokenPlacementError={tokenPlacementError}
-        placingTokenForNpcId={placingTokenForNpcId}
-        handlePlaceNPCToken={placeToken}
-        handleToggleNPCVisibility={toggleNpcVisibility}
-        handleDeletePlayerToken={handleDeletePlayerToken}
-        // Prop management
-        handleCreateProp={createProp}
-        handleUpdateProp={updateProp}
-        handleDeleteProp={handleDeleteProp}
-        isCreatingProp={isCreatingProp}
-        propCreationError={propCreationError}
-        isDeletingProp={isDeletingProp}
-        deletingPropId={deletingPropId}
-        propDeletionError={propDeletionError}
-        isUpdatingProp={isUpdatingProp}
-        propUpdateError={propUpdateError}
-        updatingPropId={updatingPropId}
-        // Session management
-        handleSaveSession={handleSaveSession}
-        handleLoadSession={handleLoadSession}
-        // DM management
+        // DM management (hooks now handled in DMMenuContainer)
         handleToggleDM={handleToggleDM}
         // Map actions
         setMapBackgroundURL={setMapBackgroundURL}
@@ -761,13 +609,8 @@ function AuthenticatedApp({
         setGridSquareSize={setGridSquareSize}
         // Toast
         toast={toast}
-        // Other
+        // WebSocket communication
         sendMessage={sendMessage}
-        onStartCombat={handleStartCombat}
-        onEndCombat={handleEndCombat}
-        onClearAllInitiative={handleClearAllInitiative}
-        onNextTurn={handleNextTurn}
-        onPreviousTurn={handlePreviousTurn}
       />
 
       {/* DM Elevation Modal */}

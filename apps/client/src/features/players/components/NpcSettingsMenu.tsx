@@ -19,8 +19,8 @@ interface NpcSettingsMenuProps {
   onTokenImageInputChange: (value: string) => void;
   onTokenImageApply: (value: string) => void;
   onTokenImageClear: () => void;
-  onPlaceToken: () => void;
-  onDelete: () => void;
+  onPlaceToken?: () => void;
+  onDelete?: () => void;
   tokenLocked?: boolean;
   onToggleTokenLock?: (locked: boolean) => void;
   tokenSize?: TokenSize;
@@ -250,14 +250,16 @@ export function NpcSettingsMenu({
             </div>
           )}
 
-          <button
-            className="btn btn-danger"
-            style={{ fontSize: "0.65rem" }}
-            onClick={onDelete}
-            disabled={isDeleting}
-          >
-            {isDeleting ? "Deleting..." : "Delete NPC"}
-          </button>
+          {onDelete && (
+            <button
+              className="btn btn-danger"
+              style={{ fontSize: "0.65rem" }}
+              onClick={onDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete NPC"}
+            </button>
+          )}
         </div>
       </div>
     </DraggableWindow>,
