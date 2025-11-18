@@ -5,6 +5,7 @@
 
 import { randomUUID } from "crypto";
 import type { Character } from "@shared";
+import { shouldCharacterParticipateInCombat } from "@shared";
 import type { RoomState } from "../room/model.js";
 import type { TokenService } from "../token/service.js";
 
@@ -294,6 +295,8 @@ export class CharacterService {
   /**
    * Get characters in initiative order (highest to lowest).
    * Tiebreaker: initiative > PC before NPC > creation order.
+   *
+   * **Business Rule**: Excludes DM's player characters from combat.
    */
   getCharactersInInitiativeOrder(state: RoomState): Character[] {
     const indexMap = new Map<string, number>();
@@ -301,6 +304,7 @@ export class CharacterService {
 
     return state.characters
       .filter((c) => c.initiative !== undefined)
+      .filter((c) => shouldCharacterParticipateInCombat(c, state.players))
       .sort((a, b) => {
         const initDiff = (b.initiative ?? 0) - (a.initiative ?? 0);
         if (initDiff !== 0) return initDiff;
