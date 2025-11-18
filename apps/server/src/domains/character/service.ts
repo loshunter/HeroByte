@@ -5,9 +5,22 @@
 
 import { randomUUID } from "crypto";
 import type { Character } from "@shared";
-import { shouldCharacterParticipateInCombat } from "@shared";
 import type { RoomState } from "../room/model.js";
 import type { TokenService } from "../token/service.js";
+
+/**
+ * Determine if a character should participate in combat.
+ * DM players do not participate in combat - their characters are excluded.
+ */
+function shouldCharacterParticipateInCombat(
+  character: Character,
+  players: { uid: string; isDM?: boolean }[],
+): boolean {
+  if (character.type === "npc") return true;
+  const dmPlayer = players.find((p) => p.isDM === true);
+  if (!dmPlayer) return true;
+  return character.ownedByPlayerUID !== dmPlayer.uid;
+}
 
 /**
  * Character service - manages character data and actions
