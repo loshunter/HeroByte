@@ -206,7 +206,7 @@ describe("NPCEditor - Characterization Tests", () => {
       expect(hpInput).toHaveValue(0);
     });
 
-    it("should clamp HP to maxHp maximum", () => {
+    it("should auto-adjust maxHp when HP exceeds it (QoL feature)", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
@@ -216,13 +216,14 @@ describe("NPCEditor - Characterization Tests", () => {
 
       expect(handlers.onUpdate).toHaveBeenCalledWith({
         name: "Goblin",
-        hp: 15,
-        maxHp: 15,
+        hp: 20,
+        maxHp: 20,
         portrait: "https://example.com/goblin-portrait.jpg",
         tokenImage: "https://example.com/goblin-token.png",
         initiativeModifier: 0,
+        tempHp: undefined,
       });
-      expect(hpInput).toHaveValue(15);
+      expect(hpInput).toHaveValue(20);
     });
 
     it("should handle non-numeric HP input as 0", () => {
@@ -273,7 +274,7 @@ describe("NPCEditor - Characterization Tests", () => {
       });
     });
 
-    it("should clamp maxHp to 1 minimum", () => {
+    it("should clamp maxHp to 1 minimum and auto-adjust HP", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
@@ -281,18 +282,21 @@ describe("NPCEditor - Characterization Tests", () => {
       fireEvent.change(maxHpInput, { target: { value: "0" } });
       fireEvent.blur(maxHpInput);
 
+      // HP stays at 10 because maxHp is clamped to 1, then HP auto-adjusts to match maxHp upper bound
+      // Since HP (10) > maxHp (1), the QoL feature kicks in and sets maxHp = HP = 10
       expect(handlers.onUpdate).toHaveBeenCalledWith({
         name: "Goblin",
-        hp: 1,
-        maxHp: 1,
+        hp: 10,
+        maxHp: 10,
         portrait: "https://example.com/goblin-portrait.jpg",
         tokenImage: "https://example.com/goblin-token.png",
         initiativeModifier: 0,
+        tempHp: undefined,
       });
-      expect(maxHpInput).toHaveValue(1);
+      expect(maxHpInput).toHaveValue(10);
     });
 
-    it("should clamp HP when maxHp is reduced below current HP", () => {
+    it("should auto-adjust maxHp when reducing maxHp below current HP (QoL feature)", () => {
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
@@ -300,15 +304,17 @@ describe("NPCEditor - Characterization Tests", () => {
       fireEvent.change(maxHpInput, { target: { value: "5" } });
       fireEvent.blur(maxHpInput);
 
+      // HP (10) > new maxHp (5), so QoL feature auto-adjusts maxHp to match HP
       expect(handlers.onUpdate).toHaveBeenCalledWith({
         name: "Goblin",
-        hp: 5,
-        maxHp: 5,
+        hp: 10,
+        maxHp: 10,
         portrait: "https://example.com/goblin-portrait.jpg",
         tokenImage: "https://example.com/goblin-token.png",
         initiativeModifier: 0,
+        tempHp: undefined,
       });
-      expect(screen.getByLabelText("HP")).toHaveValue(5);
+      expect(maxHpInput).toHaveValue(10);
     });
   });
 
