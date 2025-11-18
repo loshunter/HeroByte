@@ -16,7 +16,6 @@ interface PortraitSectionProps {
   onFocusToken?: () => void;
   initiative?: number;
   onInitiativeClick?: () => void;
-  initiativeModifier?: number;
   isCurrentTurn?: boolean;
 }
 
@@ -30,7 +29,6 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
   onFocusToken,
   initiative,
   onInitiativeClick,
-  initiativeModifier,
   isCurrentTurn = false,
 }) => {
   const handlePortraitClick = () => {

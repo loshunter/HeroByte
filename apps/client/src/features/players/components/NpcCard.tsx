@@ -227,7 +227,6 @@ export function NpcCard({
           onFocusToken={onFocusToken}
           initiative={initiative}
           onInitiativeClick={onInitiativeClick}
-          initiativeModifier={_initiativeModifier}
           isCurrentTurn={isCurrentTurn}
         />
       </div>
