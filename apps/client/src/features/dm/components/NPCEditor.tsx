@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from "react";
 import type { Character } from "@shared";
+import { normalizeHPValues, parseHPInput, parseMaxHPInput } from "@shared";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import { useImageUrlNormalization } from "../../../hooks/useImageUrlNormalization";
 import { StatusBanner } from "../../../components/ui/StatusBanner";
@@ -16,6 +17,7 @@ interface NPCEditorProps {
     name: string;
     hp: number;
     maxHp: number;
+    tempHp?: number;
     portrait?: string;
     tokenImage?: string;
     initiativeModifier?: number;
@@ -41,6 +43,7 @@ export function NPCEditor({
   const [name, setName] = useState(npc.name);
   const [hpInput, setHpInput] = useState(String(npc.hp));
   const [maxHpInput, setMaxHpInput] = useState(String(npc.maxHp));
+  const [tempHpInput, setTempHpInput] = useState(String(npc.tempHp ?? 0));
   const [initiativeModifierInput, setInitiativeModifierInput] = useState(
     String(npc.initiativeModifier ?? 0),
   );
@@ -52,6 +55,7 @@ export function NPCEditor({
     setName(npc.name);
     setHpInput(String(npc.hp));
     setMaxHpInput(String(npc.maxHp));
+    setTempHpInput(String(npc.tempHp ?? 0));
     setInitiativeModifierInput(String(npc.initiativeModifier ?? 0));
     setPortrait(npc.portrait ?? "");
     setTokenImage(npc.tokenImage ?? "");
@@ -62,23 +66,32 @@ export function NPCEditor({
       name: string;
       hp: number;
       maxHp: number;
+      tempHp?: number;
       portrait?: string;
       tokenImage?: string;
       initiativeModifier?: number;
     }>,
   ) => {
-    const baseHp = overrides?.hp ?? Number(hpInput);
-    const baseMaxHp = overrides?.maxHp ?? Number(maxHpInput);
-    const parsedHp = Math.max(0, Number.isFinite(baseHp) ? Number(baseHp) : 0);
-    const parsedMax = Math.max(1, Number.isFinite(baseMaxHp) ? Number(baseMaxHp) : 1);
-    const clampedHp = Math.min(parsedMax, parsedHp);
+    // Parse HP values
+    const baseHp = overrides?.hp ?? parseHPInput(hpInput, 0);
+    const baseMaxHp = overrides?.maxHp ?? parseMaxHPInput(maxHpInput, 1);
 
+    // Use new QoL validation: if HP > Max HP, auto-adjust Max HP
+    const normalized = normalizeHPValues(baseHp, baseMaxHp);
+
+    // Parse Temp HP
+    const baseTempHp = overrides?.tempHp ?? parseHPInput(tempHpInput, 0);
+    const parsedTempHp = Math.max(0, baseTempHp);
+
+    // Parse Initiative Modifier
     const baseInitMod = overrides?.initiativeModifier ?? Number(initiativeModifierInput);
     const parsedInitMod = Number.isFinite(baseInitMod) ? Number(baseInitMod) : 0;
     const clampedInitMod = Math.max(-20, Math.min(20, parsedInitMod));
 
-    setHpInput(String(clampedHp));
-    setMaxHpInput(String(parsedMax));
+    // Update input fields to reflect normalized values
+    setHpInput(String(normalized.hp));
+    setMaxHpInput(String(normalized.maxHp));
+    setTempHpInput(String(parsedTempHp));
     setInitiativeModifierInput(String(clampedInitMod));
 
     const nextNameSource = overrides?.name ?? name;
@@ -90,8 +103,9 @@ export function NPCEditor({
 
     onUpdate({
       name: trimmedName.length > 0 ? trimmedName : "NPC",
-      hp: clampedHp,
-      maxHp: parsedMax,
+      hp: normalized.hp,
+      maxHp: normalized.maxHp,
+      tempHp: parsedTempHp > 0 ? parsedTempHp : undefined,
       portrait: portraitValue.length > 0 ? portraitValue : undefined,
       tokenImage: tokenImageValue.length > 0 ? tokenImageValue : undefined,
       initiativeModifier: clampedInitMod,
@@ -101,6 +115,7 @@ export function NPCEditor({
   const handleNameBlur = () => commitUpdate({ name });
   const handleHpBlur = () => commitUpdate();
   const handleMaxHpBlur = () => commitUpdate();
+  const handleTempHpBlur = () => commitUpdate();
   const handleInitiativeModifierBlur = () => commitUpdate();
   const handlePortraitBlur = async () => {
     const normalizedPortrait = await normalizeUrl(portrait);
@@ -184,6 +199,30 @@ export function NPCEditor({
               if (e.key === "Enter") handleMaxHpBlur();
             }}
             disabled={isUpdating}
+            style={{
+              width: "100%",
+              padding: "4px",
+              background: "#111",
+              color: "var(--jrpg-white)",
+              border: "1px solid var(--jrpg-border-gold)",
+              opacity: isUpdating ? 0.5 : 1,
+              cursor: isUpdating ? "not-allowed" : "text",
+            }}
+          />
+        </label>
+        <label className="jrpg-text-small" style={{ flex: 1 }}>
+          Temp HP
+          <input
+            type="number"
+            min={0}
+            value={tempHpInput}
+            onChange={(e) => setTempHpInput(e.target.value)}
+            onBlur={handleTempHpBlur}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleTempHpBlur();
+            }}
+            disabled={isUpdating}
+            title="Temporary hit points absorbed before regular HP"
             style={{
               width: "100%",
               padding: "4px",

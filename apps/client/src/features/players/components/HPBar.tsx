@@ -8,11 +8,14 @@ import React from "react";
 interface HPBarProps {
   hp: number;
   maxHp: number;
+  tempHp?: number;
   isMe: boolean;
   isEditingHp: boolean;
   hpInput: string;
   isEditingMaxHp: boolean;
   maxHpInput: string;
+  isEditingTempHp?: boolean;
+  tempHpInput?: string;
   playerUid: string;
   onHpChange: (hp: number) => void;
   onHpInputChange: (value: string) => void;
@@ -21,16 +24,22 @@ interface HPBarProps {
   onMaxHpInputChange: (value: string) => void;
   onMaxHpEdit: (uid: string, maxHp: number) => void;
   onMaxHpSubmit: (value: string) => void;
+  onTempHpInputChange?: (value: string) => void;
+  onTempHpEdit?: () => void;
+  onTempHpSubmit?: (value: string) => void;
 }
 
 export const HPBar: React.FC<HPBarProps> = ({
   hp,
   maxHp,
+  tempHp,
   isMe,
   isEditingHp,
   hpInput,
   isEditingMaxHp,
   maxHpInput,
+  isEditingTempHp = false,
+  tempHpInput = "0",
   playerUid,
   onHpChange,
   onHpInputChange,
@@ -39,6 +48,9 @@ export const HPBar: React.FC<HPBarProps> = ({
   onMaxHpInputChange,
   onMaxHpEdit,
   onMaxHpSubmit,
+  onTempHpInputChange,
+  onTempHpEdit,
+  onTempHpSubmit,
 }) => {
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isMe) return;
@@ -66,6 +78,8 @@ export const HPBar: React.FC<HPBarProps> = ({
 
   const hpPercent = (hp / maxHp) * 100;
   const hpState = hpPercent > 66 ? "high" : hpPercent > 33 ? "medium" : "low";
+
+  const displayHp = tempHp && tempHp > 0 ? `${hp} (+${tempHp})` : hp;
 
   return (
     <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -105,7 +119,7 @@ export const HPBar: React.FC<HPBarProps> = ({
               textDecoration: isMe ? "underline" : "none",
             }}
           >
-            {hp}
+            {displayHp}
           </span>
         )}
         {" / "}
@@ -147,6 +161,45 @@ export const HPBar: React.FC<HPBarProps> = ({
           </span>
         )}
       </div>
+      {isMe && onTempHpEdit && onTempHpSubmit && onTempHpInputChange && (
+        <div className="jrpg-text-small" style={{ color: "var(--jrpg-cyan)", textAlign: "center" }}>
+          Temp HP:{" "}
+          {isEditingTempHp ? (
+            <input
+              type="number"
+              value={tempHpInput}
+              onChange={(e) => onTempHpInputChange(e.target.value)}
+              onBlur={() => onTempHpSubmit(tempHpInput)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  onTempHpSubmit(tempHpInput);
+                }
+              }}
+              autoFocus
+              style={{
+                width: "40px",
+                fontSize: "8px",
+                background: "var(--jrpg-navy)",
+                color: "var(--jrpg-cyan)",
+                border: "1px solid var(--jrpg-border-gold)",
+                padding: "2px",
+                textAlign: "center",
+              }}
+            />
+          ) : (
+            <span
+              onClick={onTempHpEdit}
+              style={{
+                cursor: "pointer",
+                textDecoration: "underline",
+              }}
+              title="Temporary HP absorbed before regular HP"
+            >
+              {tempHp ?? 0}
+            </span>
+          )}
+        </div>
+      )}
       <div
         className="jrpg-hp-bar"
         style={{

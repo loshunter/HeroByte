@@ -40,6 +40,11 @@ export interface PlayerCardProps {
   onMaxHpInputChange: (maxHp: string) => void;
   onMaxHpEdit: (uid: string, maxHp: number) => void;
   onMaxHpSubmit: (maxHp: string) => void;
+  editingTempHpUID?: string | null;
+  tempHpInput?: string;
+  onTempHpInputChange?: (tempHp: string) => void;
+  onTempHpEdit?: (uid: string) => void;
+  onTempHpSubmit?: (tempHp: string) => void;
   tokenImageUrl?: string;
   onTokenImageSubmit?: (url: string) => void;
   tokenId?: string;
@@ -92,6 +97,11 @@ export const PlayerCard = memo<PlayerCardProps>(
     onMaxHpInputChange,
     onMaxHpEdit,
     onMaxHpSubmit,
+    editingTempHpUID,
+    tempHpInput,
+    onTempHpInputChange,
+    onTempHpEdit,
+    onTempHpSubmit,
     tokenImageUrl,
     onTokenImageSubmit,
     tokenId,
@@ -118,6 +128,7 @@ export const PlayerCard = memo<PlayerCardProps>(
     const editing = editingPlayerUID === player.uid;
     const editingHp = editingHpUID === (characterId ?? player.uid);
     const editingMaxHp = editingMaxHpUID === (characterId ?? player.uid);
+    const editingTempHp = editingTempHpUID === (characterId ?? player.uid);
     const [tokenImageInput, setTokenImageInput] = useState(tokenImageUrl ?? "");
     const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -259,11 +270,14 @@ export const PlayerCard = memo<PlayerCardProps>(
         <HPBar
           hp={player.hp ?? 100}
           maxHp={player.maxHp ?? 100}
+          tempHp={player.tempHp}
           isMe={isMe}
           isEditingHp={editingHp}
           hpInput={hpInput}
           isEditingMaxHp={editingMaxHp}
           maxHpInput={maxHpInput}
+          isEditingTempHp={editingTempHp}
+          tempHpInput={tempHpInput}
           playerUid={characterId ?? player.uid}
           onHpChange={onHpChange}
           onHpInputChange={onHpInputChange}
@@ -272,6 +286,9 @@ export const PlayerCard = memo<PlayerCardProps>(
           onMaxHpInputChange={onMaxHpInputChange}
           onMaxHpEdit={onMaxHpEdit}
           onMaxHpSubmit={onMaxHpSubmit}
+          onTempHpInputChange={onTempHpInputChange}
+          onTempHpEdit={onTempHpEdit ? () => onTempHpEdit(characterId ?? player.uid) : undefined}
+          onTempHpSubmit={onTempHpSubmit}
         />
 
         <CardControls
@@ -319,6 +336,7 @@ export const PlayerCard = memo<PlayerCardProps>(
     prevProps.player.micLevel === nextProps.player.micLevel &&
     prevProps.player.hp === nextProps.player.hp &&
     prevProps.player.maxHp === nextProps.player.maxHp &&
+    prevProps.player.tempHp === nextProps.player.tempHp &&
     (prevProps.player.isDM ?? false) === (nextProps.player.isDM ?? false) &&
     prevProps.tokenImageUrl === nextProps.tokenImageUrl &&
     prevProps.tokenId === nextProps.tokenId &&
@@ -334,6 +352,8 @@ export const PlayerCard = memo<PlayerCardProps>(
     prevProps.nameInput === nextProps.nameInput &&
     prevProps.editingMaxHpUID === nextProps.editingMaxHpUID &&
     prevProps.maxHpInput === nextProps.maxHpInput &&
+    prevProps.editingTempHpUID === nextProps.editingTempHpUID &&
+    prevProps.tempHpInput === nextProps.tempHpInput &&
     prevProps.isDM === nextProps.isDM &&
     prevProps.initiative === nextProps.initiative &&
     prevProps.initiativeModifier === nextProps.initiativeModifier &&

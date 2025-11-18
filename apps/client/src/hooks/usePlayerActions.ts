@@ -22,6 +22,7 @@ import type {
   RoomSnapshot,
   Character,
 } from "@shared";
+import { normalizeHPValues } from "@shared";
 
 /**
  * Dependencies required by the usePlayerActions hook.
@@ -66,8 +67,9 @@ export interface UsePlayerActionsReturn {
    *
    * @param hp - Current hit points
    * @param maxHp - Maximum hit points
+   * @param tempHp - Temporary hit points (optional)
    */
-  setHP: (hp: number, maxHp: number) => void;
+  setHP: (hp: number, maxHp: number, tempHp?: number) => void;
 
   /**
    * Update the player's active status effects.
@@ -113,8 +115,9 @@ export interface UsePlayerActionsReturn {
    * @param characterId - ID of the character to update
    * @param hp - Current hit points
    * @param maxHp - Maximum hit points
+   * @param tempHp - Temporary hit points (optional)
    */
-  updateCharacterHP: (characterId: string, hp: number, maxHp: number) => void;
+  updateCharacterHP: (characterId: string, hp: number, maxHp: number, tempHp?: number) => void;
 
   /**
    * Apply a complete player state snapshot, including:
@@ -192,11 +195,18 @@ export function usePlayerActions({
   );
 
   /**
-   * Update the player's HP values.
+   * Update the player's HP values with automatic normalization.
+   * If HP exceeds Max HP, Max HP is automatically adjusted to match HP.
    */
   const setHP = useCallback(
-    (hp: number, maxHp: number) => {
-      sendMessage({ t: "set-hp", hp, maxHp });
+    (hp: number, maxHp: number, tempHp?: number) => {
+      const normalized = normalizeHPValues(hp, maxHp);
+      sendMessage({
+        t: "set-hp",
+        hp: normalized.hp,
+        maxHp: normalized.maxHp,
+        tempHp
+      });
     },
     [sendMessage],
   );
@@ -285,11 +295,19 @@ export function usePlayerActions({
   );
 
   /**
-   * Update a character's HP values.
+   * Update a character's HP values with automatic normalization.
+   * If HP exceeds Max HP, Max HP is automatically adjusted to match HP.
    */
   const updateCharacterHP = useCallback(
-    (characterId: string, hp: number, maxHp: number) => {
-      sendMessage({ t: "update-character-hp", characterId, hp, maxHp });
+    (characterId: string, hp: number, maxHp: number, tempHp?: number) => {
+      const normalized = normalizeHPValues(hp, maxHp);
+      sendMessage({
+        t: "update-character-hp",
+        characterId,
+        hp: normalized.hp,
+        maxHp: normalized.maxHp,
+        tempHp
+      });
     },
     [sendMessage],
   );
@@ -310,7 +328,15 @@ export function usePlayerActions({
     (state: PlayerState, tokenId?: string, characterId?: string) => {
       // Always update basic player info
       sendMessage({ t: "rename", name: state.name });
-      sendMessage({ t: "set-hp", hp: state.hp, maxHp: state.maxHp });
+
+      // Apply HP normalization before sending
+      const normalized = normalizeHPValues(state.hp, state.maxHp);
+      sendMessage({
+        t: "set-hp",
+        hp: normalized.hp,
+        maxHp: normalized.maxHp,
+        tempHp: state.tempHp
+      });
 
       // Update portrait if present (including null to clear)
       if (state.portrait !== undefined) {

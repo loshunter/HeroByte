@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { Character, TokenSize } from "@shared";
+import { normalizeHPValues, parseHPInput, parseMaxHPInput } from "@shared";
 import { PortraitSection } from "./PortraitSection";
 import { HPBar } from "./HPBar";
 import { NpcSettingsMenu } from "./NpcSettingsMenu";
@@ -17,7 +18,14 @@ interface NpcCardProps {
   isDM: boolean;
   onUpdate: (
     id: string,
-    updates: { name?: string; hp?: number; maxHp?: number; portrait?: string; tokenImage?: string },
+    updates: {
+      name?: string;
+      hp?: number;
+      maxHp?: number;
+      tempHp?: number;
+      portrait?: string;
+      tokenImage?: string;
+    },
   ) => void;
   onDelete: (id: string) => void;
   onPlaceToken: (id: string) => void;
@@ -63,6 +71,8 @@ export function NpcCard({
   const [hpInput, setHpInput] = useState(String(character.hp));
   const [editingMaxHp, setEditingMaxHp] = useState(false);
   const [maxHpInput, setMaxHpInput] = useState(String(character.maxHp));
+  const [editingTempHp, setEditingTempHp] = useState(false);
+  const [tempHpInput, setTempHpInput] = useState(String(character.tempHp ?? 0));
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tokenImageInput, setTokenImageInput] = useState(character.tokenImage ?? "");
 
@@ -80,13 +90,13 @@ export function NpcCard({
   const handleHpSubmit = useCallback(
     (value: string) => {
       if (!isDM) return;
-      const numeric = Number.parseInt(value, 10);
-      if (!Number.isFinite(numeric) || numeric < 0) {
-        setEditingHp(false);
-        return;
-      }
-      const nextHp = Math.min(numeric, character.maxHp);
-      onUpdate(character.id, { hp: nextHp });
+      const parsedHp = parseHPInput(value, 0);
+      const parsedMaxHp = character.maxHp;
+
+      // Use new QoL validation: if HP > Max HP, auto-adjust Max HP
+      const normalized = normalizeHPValues(parsedHp, parsedMaxHp);
+
+      onUpdate(character.id, { hp: normalized.hp, maxHp: normalized.maxHp });
       setEditingHp(false);
     },
     [isDM, character.id, character.maxHp, onUpdate],
@@ -95,17 +105,26 @@ export function NpcCard({
   const handleMaxHpSubmit = useCallback(
     (value: string) => {
       if (!isDM) return;
-      const numeric = Number.parseInt(value, 10);
-      if (!Number.isFinite(numeric) || numeric <= 0) {
-        setEditingMaxHp(false);
-        return;
-      }
-      const nextMax = numeric;
-      const nextHp = Math.min(character.hp, nextMax);
-      onUpdate(character.id, { maxHp: nextMax, hp: nextHp });
+      const parsedMaxHp = parseMaxHPInput(value, 1);
+      const parsedHp = character.hp;
+
+      // Use new QoL validation: if HP > Max HP, auto-adjust Max HP
+      const normalized = normalizeHPValues(parsedHp, parsedMaxHp);
+
+      onUpdate(character.id, { hp: normalized.hp, maxHp: normalized.maxHp });
       setEditingMaxHp(false);
     },
     [isDM, character.id, character.hp, onUpdate],
+  );
+
+  const handleTempHpSubmit = useCallback(
+    (value: string) => {
+      if (!isDM) return;
+      const parsedTempHp = parseHPInput(value, 0);
+      onUpdate(character.id, { tempHp: parsedTempHp > 0 ? parsedTempHp : undefined });
+      setEditingTempHp(false);
+    },
+    [isDM, character.id, onUpdate],
   );
 
   const handlePortraitChange = useCallback(async () => {
@@ -216,6 +235,7 @@ export function NpcCard({
       <HPBar
         hp={character.hp}
         maxHp={character.maxHp}
+        tempHp={character.tempHp}
         isMe={canEdit}
         isEditingHp={editingHp}
         hpInput={hpInput}
@@ -237,6 +257,15 @@ export function NpcCard({
           setMaxHpInput(String(character.maxHp));
         }}
         onMaxHpSubmit={handleMaxHpSubmit}
+        isEditingTempHp={editingTempHp}
+        tempHpInput={tempHpInput}
+        onTempHpInputChange={setTempHpInput}
+        onTempHpEdit={() => {
+          if (!canEdit) return;
+          setEditingTempHp(true);
+          setTempHpInput(String(character.tempHp ?? 0));
+        }}
+        onTempHpSubmit={handleTempHpSubmit}
       />
 
       <div style={{ display: "flex", gap: "6px" }}>

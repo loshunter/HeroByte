@@ -157,6 +157,8 @@ function AuthenticatedApp({
     hpInput,
     editingMaxHpUID,
     maxHpInput,
+    editingTempHpUID,
+    tempHpInput,
     startNameEdit,
     updateNameInput,
     submitNameEdit,
@@ -166,6 +168,9 @@ function AuthenticatedApp({
     startMaxHpEdit,
     updateMaxHpInput,
     submitMaxHpEdit,
+    startTempHpEdit,
+    updateTempHpInput,
+    submitTempHpEdit,
   } = usePlayerEditing();
 
   // Toast notifications
@@ -555,6 +560,14 @@ function AuthenticatedApp({
     [snapshot?.characters, startMaxHpEdit],
   );
 
+  // Wrap startTempHpEdit to match MainLayout's signature (uid only)
+  const handleStartTempHpEdit = useCallback(
+    (uid: string) => {
+      startTempHpEdit(uid);
+    },
+    [startTempHpEdit],
+  );
+
   // Transform mapSceneObject to extract only needed properties
   const mapSceneObjectForLayout = useMemo(() => {
     if (!mapSceneObject) return null;
@@ -654,6 +667,8 @@ function AuthenticatedApp({
         hpInput={hpInput}
         editingMaxHpUID={editingMaxHpUID}
         maxHpInput={maxHpInput}
+        editingTempHpUID={editingTempHpUID}
+        tempHpInput={tempHpInput}
         updateNameInput={updateNameInput}
         startNameEdit={handleStartNameEdit}
         submitNameEdit={submitNameEdit}
@@ -663,6 +678,9 @@ function AuthenticatedApp({
         updateMaxHpInput={updateMaxHpInput}
         startMaxHpEdit={handleStartMaxHpEdit}
         submitMaxHpEdit={submitMaxHpEdit}
+        updateTempHpInput={updateTempHpInput}
+        startTempHpEdit={handleStartTempHpEdit}
+        submitTempHpEdit={submitTempHpEdit}
         // Selection
         selectedObjectId={selectedObjectId}
         selectedObjectIds={selectedObjectIds}

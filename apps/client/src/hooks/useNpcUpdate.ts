@@ -31,6 +31,7 @@ export interface NpcUpdateFields {
   name?: string;
   hp?: number;
   maxHp?: number;
+  tempHp?: number;
   portrait?: string | null;
   tokenImage?: string | null;
   initiativeModifier?: number | null;
@@ -89,6 +90,7 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
     name: string;
     hp: number;
     maxHp: number;
+    tempHp?: number;
     portrait?: string;
     tokenImage?: string | null;
     initiativeModifier?: number;
@@ -109,6 +111,7 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
     const nameMatches = currentNpc.name === expected.name;
     const hpMatches = currentNpc.hp === expected.hp;
     const maxHpMatches = currentNpc.maxHp === expected.maxHp;
+    const tempHpMatches = currentNpc.tempHp === expected.tempHp;
     const portraitMatches = currentNpc.portrait === expected.portrait;
     const tokenImageMatches = currentNpc.tokenImage === expected.tokenImage;
     const initiativeModifierMatches = currentNpc.initiativeModifier === expected.initiativeModifier;
@@ -117,6 +120,7 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
       nameMatches &&
       hpMatches &&
       maxHpMatches &&
+      tempHpMatches &&
       portraitMatches &&
       tokenImageMatches &&
       initiativeModifierMatches;
@@ -160,6 +164,7 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
         name: updates.name ?? existing.name,
         hp: updates.hp ?? existing.hp,
         maxHp: updates.maxHp ?? existing.maxHp,
+        tempHp: updates.tempHp ?? existing.tempHp,
         portrait: updates.portrait ?? existing.portrait,
         tokenImage: updates.tokenImage ?? existing.tokenImage ?? undefined,
         initiativeModifier: updates.initiativeModifier ?? existing.initiativeModifier,

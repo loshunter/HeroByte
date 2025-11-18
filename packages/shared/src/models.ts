@@ -136,6 +136,7 @@ export class PlayerModel {
     public micLevel?: number,
     public hp?: number,
     public maxHp?: number,
+    public tempHp?: number,
     public isDM: boolean = false,
     public statusEffects: string[] = [],
   ) {}
@@ -151,6 +152,7 @@ export class PlayerModel {
       data.micLevel,
       data.hp,
       data.maxHp,
+      data.tempHp,
       data.isDM ?? false,
       Array.isArray(data.statusEffects) ? [...data.statusEffects] : [],
     );
@@ -167,6 +169,7 @@ export class PlayerModel {
       micLevel: this.micLevel,
       hp: this.hp,
       maxHp: this.maxHp,
+      tempHp: this.tempHp,
       isDM: this.isDM,
       statusEffects: this.statusEffects.length > 0 ? [...this.statusEffects] : undefined,
     };
@@ -183,6 +186,7 @@ export class PlayerModel {
       this.micLevel,
       this.hp,
       this.maxHp,
+      this.tempHp,
       this.isDM,
       [...this.statusEffects],
     );
@@ -199,6 +203,7 @@ export class PlayerModel {
       this.micLevel,
       this.hp,
       this.maxHp,
+      this.tempHp,
       this.isDM,
       [...this.statusEffects],
     );
@@ -215,15 +220,16 @@ export class PlayerModel {
       Math.max(0, Math.min(1, level)), // Clamp to 0-1
       this.hp,
       this.maxHp,
+      this.tempHp,
       this.isDM,
       [...this.statusEffects],
     );
   }
 
   /**
-   * Update HP
+   * Update HP and optionally tempHp
    */
-  setHP(hp: number, maxHp?: number): PlayerModel {
+  setHP(hp: number, maxHp?: number, tempHp?: number): PlayerModel {
     return new PlayerModel(
       this.uid,
       this.name,
@@ -231,16 +237,35 @@ export class PlayerModel {
       this.micLevel,
       hp,
       maxHp ?? this.maxHp,
+      tempHp ?? this.tempHp,
       this.isDM,
       [...this.statusEffects],
     );
   }
 
   /**
-   * Take damage
+   * Take damage (consumes tempHp first, then hp)
    */
   takeDamage(amount: number): PlayerModel {
-    const newHp = Math.max(0, (this.hp ?? 0) - amount);
+    const currentTempHp = this.tempHp ?? 0;
+    const currentHp = this.hp ?? 0;
+
+    let remainingDamage = amount;
+    let newTempHp = currentTempHp;
+    let newHp = currentHp;
+
+    // Consume temp HP first
+    if (currentTempHp > 0) {
+      const tempHpAbsorbed = Math.min(currentTempHp, remainingDamage);
+      newTempHp = currentTempHp - tempHpAbsorbed;
+      remainingDamage -= tempHpAbsorbed;
+    }
+
+    // Apply remaining damage to regular HP
+    if (remainingDamage > 0) {
+      newHp = Math.max(0, currentHp - remainingDamage);
+    }
+
     return new PlayerModel(
       this.uid,
       this.name,
@@ -248,13 +273,14 @@ export class PlayerModel {
       this.micLevel,
       newHp,
       this.maxHp,
+      newTempHp > 0 ? newTempHp : undefined,
       this.isDM,
       [...this.statusEffects],
     );
   }
 
   /**
-   * Heal
+   * Heal (increases hp up to maxHp, does not affect tempHp)
    */
   heal(amount: number): PlayerModel {
     const newHp = Math.min(this.maxHp ?? Infinity, (this.hp ?? 0) + amount);
@@ -265,6 +291,7 @@ export class PlayerModel {
       this.micLevel,
       newHp,
       this.maxHp,
+      this.tempHp,
       this.isDM,
       [...this.statusEffects],
     );
@@ -303,6 +330,7 @@ export class PlayerModel {
       this.micLevel,
       this.hp,
       this.maxHp,
+      this.tempHp,
       isDM,
       [...this.statusEffects],
     );
@@ -319,8 +347,26 @@ export class PlayerModel {
       this.micLevel,
       this.hp,
       this.maxHp,
+      this.tempHp,
       this.isDM,
       [...effects],
+    );
+  }
+
+  /**
+   * Set temporary HP
+   */
+  setTempHP(tempHp: number): PlayerModel {
+    return new PlayerModel(
+      this.uid,
+      this.name,
+      this.portrait,
+      this.micLevel,
+      this.hp,
+      this.maxHp,
+      tempHp > 0 ? tempHp : undefined,
+      this.isDM,
+      [...this.statusEffects],
     );
   }
 }
@@ -340,6 +386,7 @@ export class CharacterModel {
     public tokenId: string | null = null,
     public ownedByPlayerUID: string | null = null,
     public tokenImage: string | null = null,
+    public tempHp?: number,
   ) {}
 
   /**
@@ -356,6 +403,7 @@ export class CharacterModel {
       data.tokenId ?? null,
       data.ownedByPlayerUID ?? null,
       data.tokenImage ?? null,
+      data.tempHp,
     );
   }
 
@@ -368,6 +416,7 @@ export class CharacterModel {
       name: this.name,
       hp: this.hp,
       maxHp: this.maxHp,
+      tempHp: this.tempHp,
       type: this.type,
       portrait: this.portrait,
       tokenId: this.tokenId ?? undefined,
@@ -377,9 +426,9 @@ export class CharacterModel {
   }
 
   /**
-   * Update HP values
+   * Update HP values and optionally tempHp
    */
-  setHP(hp: number, maxHp: number = this.maxHp): CharacterModel {
+  setHP(hp: number, maxHp: number = this.maxHp, tempHp?: number): CharacterModel {
     const normalizedMaxHp = Math.max(0, maxHp);
     const normalizedHp = Math.min(normalizedMaxHp, Math.max(0, hp));
 
@@ -393,14 +442,34 @@ export class CharacterModel {
       this.tokenId,
       this.ownedByPlayerUID,
       this.tokenImage,
+      tempHp ?? this.tempHp,
     );
   }
 
   /**
-   * Apply incoming damage
+   * Apply incoming damage (consumes tempHp first, then hp)
    */
   takeDamage(amount: number): CharacterModel {
-    return this.setHP(this.hp - amount);
+    const currentTempHp = this.tempHp ?? 0;
+    const currentHp = this.hp;
+
+    let remainingDamage = amount;
+    let newTempHp = currentTempHp;
+    let newHp = currentHp;
+
+    // Consume temp HP first
+    if (currentTempHp > 0) {
+      const tempHpAbsorbed = Math.min(currentTempHp, remainingDamage);
+      newTempHp = currentTempHp - tempHpAbsorbed;
+      remainingDamage -= tempHpAbsorbed;
+    }
+
+    // Apply remaining damage to regular HP
+    if (remainingDamage > 0) {
+      newHp = Math.max(0, currentHp - remainingDamage);
+    }
+
+    return this.setHP(newHp, this.maxHp, newTempHp > 0 ? newTempHp : undefined);
   }
 
   /**
@@ -424,6 +493,7 @@ export class CharacterModel {
       tokenId,
       this.ownedByPlayerUID,
       this.tokenImage,
+      this.tempHp,
     );
   }
 
@@ -441,6 +511,7 @@ export class CharacterModel {
       this.tokenId,
       playerUid,
       this.tokenImage,
+      this.tempHp,
     );
   }
 
@@ -452,6 +523,7 @@ export class CharacterModel {
     portrait?: string | null;
     hp?: number;
     maxHp?: number;
+    tempHp?: number;
     type?: "pc" | "npc";
     tokenImage?: string | null;
   }): CharacterModel {
@@ -469,6 +541,7 @@ export class CharacterModel {
       this.tokenId,
       this.ownedByPlayerUID,
       details.tokenImage === undefined ? this.tokenImage : details.tokenImage?.trim() || null,
+      details.tempHp ?? this.tempHp,
     );
   }
 
@@ -486,6 +559,25 @@ export class CharacterModel {
       this.tokenId,
       this.ownedByPlayerUID,
       imageUrl && imageUrl.trim().length > 0 ? imageUrl.trim() : null,
+      this.tempHp,
+    );
+  }
+
+  /**
+   * Set temporary HP
+   */
+  setTempHP(tempHp: number): CharacterModel {
+    return new CharacterModel(
+      this.id,
+      this.name,
+      this.hp,
+      this.maxHp,
+      this.type,
+      this.portrait,
+      this.tokenId,
+      this.ownedByPlayerUID,
+      this.tokenImage,
+      tempHp > 0 ? tempHp : undefined,
     );
   }
 

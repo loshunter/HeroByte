@@ -7,6 +7,10 @@
 // Export domain models
 export { TokenModel, PlayerModel, CharacterModel } from "./models.js";
 
+// Export HP utilities
+export { normalizeHPValues, parseHPInput, parseMaxHPInput } from "./hpUtils.js";
+export type { NormalizedHP } from "./hpUtils.js";
+
 // ----------------------------------------------------------------------------
 // GAME ENTITY TYPES
 // ----------------------------------------------------------------------------
@@ -126,6 +130,7 @@ export interface Player {
   micLevel?: number; // Current microphone level (0-1) for visual feedback
   hp?: number; // Current hit points
   maxHp?: number; // Maximum hit points
+  tempHp?: number; // Temporary hit points (absorbed before regular HP)
   lastHeartbeat?: number; // Timestamp of last heartbeat (for timeout detection)
   isDM?: boolean; // Whether the player currently has DM tools enabled
   statusEffects?: string[]; // Active status effect identifiers/labels
@@ -138,6 +143,7 @@ export interface PlayerState {
   name: string;
   hp: number;
   maxHp: number;
+  tempHp?: number; // Temporary hit points (absorbed before regular HP)
   portrait?: string | null;
   tokenImage?: string | null; // Legacy support (deprecated in favor of token.imageUrl)
   color?: string; // Legacy support (mirrors token.color)
@@ -202,6 +208,7 @@ export interface Character {
   portrait?: string; // Character portrait (Base64 or URL)
   hp: number; // Current hit points
   maxHp: number; // Maximum hit points
+  tempHp?: number; // Temporary hit points (absorbed before regular HP)
   tokenId?: string | null; // ID of token on map (null if no token)
   ownedByPlayerUID?: string | null; // Player who controls this character (null = unclaimed)
   tokenImage?: string | null; // Optional token image URL for NPC tokens
@@ -347,7 +354,7 @@ export type ClientMessage =
   | { t: "portrait"; data: string } // Update player portrait
   | { t: "rename"; name: string } // Change player name
   | { t: "mic-level"; level: number } // Update mic level for visual feedback
-  | { t: "set-hp"; hp: number; maxHp: number } // Update player HP
+  | { t: "set-hp"; hp: number; maxHp: number; tempHp?: number } // Update player HP
   | { t: "toggle-dm"; isDM: boolean } // Toggle DM role flag
   | { t: "set-status-effects"; effects: string[] } // Replace active status effects for the player
 
@@ -357,7 +364,7 @@ export type ClientMessage =
   | { t: "add-player-character"; name: string; maxHp?: number } // Player creates additional character for themselves
   | { t: "delete-player-character"; characterId: string } // Player deletes one of their characters
   | { t: "update-character-name"; characterId: string; name: string } // Player updates their character's name
-  | { t: "update-character-hp"; characterId: string; hp: number; maxHp: number } // Update character HP
+  | { t: "update-character-hp"; characterId: string; hp: number; maxHp: number; tempHp?: number } // Update character HP
   | { t: "set-character-status-effects"; characterId: string; effects: string[] } // Set status effects for character
   | { t: "link-token"; characterId: string; tokenId: string } // Link token to character
   | {
@@ -365,6 +372,7 @@ export type ClientMessage =
       name: string;
       hp: number;
       maxHp: number;
+      tempHp?: number;
       portrait?: string;
       tokenImage?: string;
     }
@@ -374,6 +382,7 @@ export type ClientMessage =
       name: string;
       hp: number;
       maxHp: number;
+      tempHp?: number;
       portrait?: string;
       tokenImage?: string;
       initiativeModifier?: number;
