@@ -21,7 +21,7 @@
  * ensure proper spacing.
  */
 
-import React from "react";
+import React, { useCallback } from "react";
 import type { MainLayoutProps, RollLogEntry } from "./props/MainLayoutProps";
 import { TopPanelLayout } from "./TopPanelLayout";
 import { CenterCanvasLayout } from "./CenterCanvasLayout";
@@ -207,6 +207,15 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     sendMessage,
   });
 
+  // Turn navigation handlers for combat controls
+  const handleNextTurn = useCallback(() => {
+    sendMessage({ t: "next-turn" });
+  }, [sendMessage]);
+
+  const handlePreviousTurn = useCallback(() => {
+    sendMessage({ t: "previous-turn" });
+  }, [sendMessage]);
+
   return (
     <div onClick={() => setContextMenu(null)} style={{ height: "100vh", overflow: "hidden" }}>
       {/* Top Panel - Server status, drawing toolbar, header, and multi-select toolbar */}
@@ -323,8 +332,8 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         isSettingInitiative={isSettingInitiative}
         initiativeError={initiativeError}
         onClearInitiative={clearInitiative}
-        onNextTurn={undefined}
-        onPreviousTurn={undefined}
+        onNextTurn={handleNextTurn}
+        onPreviousTurn={handlePreviousTurn}
       />
 
       {/* Floating Panels - DM menu, context menu, visual effects, dice roller, roll log, toasts */}
