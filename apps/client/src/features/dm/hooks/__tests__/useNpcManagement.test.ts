@@ -10,7 +10,7 @@
 
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { useNpcManagement } from "../useNpcManagement.js";
+import { useNpcManagement } from "../useNpcManagement";
 import type { RoomSnapshot, Character } from "@shared";
 
 describe("useNpcManagement - Characterization", () => {

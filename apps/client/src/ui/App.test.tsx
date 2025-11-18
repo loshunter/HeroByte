@@ -86,8 +86,8 @@ vi.mock("../hooks/useDMRole", () => ({
 
 let latestDMMenuProps: Record<string, unknown> | null = null;
 
-vi.mock("../features/dm", () => ({
-  DMMenu: (props: Record<string, unknown>) => {
+vi.mock("../features/dm/lazy-entry", () => ({
+  DMMenuContainer: (props: Record<string, unknown>) => {
     latestDMMenuProps = props;
     return <div data-testid="dm-menu">DM Menu</div>;
   },

@@ -19,13 +19,13 @@
 
 import { useCallback } from "react";
 import type { RoomSnapshot, ClientMessage, Character, Prop } from "@shared";
-import { useNpcCreation } from "../../../hooks/useNpcCreation";
-import { useNpcUpdate } from "../../../hooks/useNpcUpdate";
-import { useNpcDeletion } from "../../../hooks/useNpcDeletion";
-import { useNpcTokenPlacement } from "../../../hooks/useNpcTokenPlacement";
-import { usePropCreation } from "../../../hooks/usePropCreation";
-import { usePropUpdate } from "../../../hooks/usePropUpdate";
-import { usePropDeletion } from "../../../hooks/usePropDeletion";
+import { useNpcCreation } from "./useNpcCreation";
+import { useNpcUpdate } from "./useNpcUpdate";
+import { useNpcDeletion } from "./useNpcDeletion";
+import { useNpcTokenPlacement } from "./useNpcTokenPlacement";
+import { usePropCreation } from "./usePropCreation";
+import { usePropUpdate } from "./usePropUpdate";
+import { usePropDeletion } from "./usePropDeletion";
 import { useSessionManagement, type ToastManager } from "../../session/useSessionManagement";
 
 export interface UseDMContextOptions {

@@ -30,9 +30,10 @@ import type { Camera } from "../../hooks/useCamera";
 // MOCK CHILD COMPONENTS
 // ============================================================================
 
-// Mock DMMenu with detailed prop tracking
-vi.mock("../../features/dm", () => ({
-  DMMenu: (props: {
+// Mock DMMenuContainer with detailed prop tracking
+// Note: FloatingPanelsLayout now lazy-loads DMMenuContainer via React.lazy()
+vi.mock("../../features/dm/lazy-entry", () => ({
+  DMMenuContainer: (props: {
     isDM: boolean;
     onToggleDM: (next: boolean) => void;
     gridSize: number;
@@ -46,20 +47,12 @@ vi.mock("../../features/dm", () => ({
     mapBackground?: string;
     playerStagingZone?: unknown;
     onSetPlayerStagingZone?: (zone: unknown) => void;
+    snapshot: unknown;
+    sendMessage: (message: unknown) => void;
     camera: Camera;
-    playerCount: number;
-    characters: unknown[];
-    onRequestSaveSession?: (sessionName: string) => void;
-    onRequestLoadSession?: (file: File) => void;
-    onCreateNPC: () => void;
-    onUpdateNPC: (id: string, updates: unknown) => void;
-    onDeleteNPC: (id: string) => void;
-    onPlaceNPCToken: (id: string) => void;
-    props: unknown[];
-    players: unknown[];
-    onCreateProp: () => void;
-    onUpdateProp: (id: string, updates: unknown) => void;
-    onDeleteProp: (id: string) => void;
+    toast: unknown;
+    onSelectPlayerTokens: (playerUid: string) => void;
+    onSetInitiative?: (characterId: string, initiative: number, modifier: number) => void;
     mapLocked?: boolean;
     onMapLockToggle?: () => void;
     stagingZoneLocked?: boolean;
@@ -78,35 +71,44 @@ vi.mock("../../features/dm", () => ({
     roomPasswordStatus?: { type: "success" | "error"; message: string } | null;
     roomPasswordPending?: boolean;
     onDismissRoomPasswordStatus?: () => void;
-  }) => (
-    <div
-      data-testid="dm-menu"
-      data-is-dm={props.isDM}
-      data-grid-size={props.gridSize}
-      data-grid-square-size={props.gridSquareSize ?? 0}
-      data-grid-locked={props.gridLocked}
-      data-camera-x={props.camera.x}
-      data-camera-y={props.camera.y}
-      data-camera-scale={props.camera.scale}
-      data-player-count={props.playerCount}
-      data-characters-count={props.characters.length}
-      data-alignment-mode-active={props.alignmentModeActive}
-      data-alignment-points-count={props.alignmentPoints.length}
-      data-alignment-suggestion-present={props.alignmentSuggestion !== null}
-      data-alignment-error-present={
-        props.alignmentError !== null && props.alignmentError !== undefined
-      }
-      data-room-password-status-type={props.roomPasswordStatus?.type ?? "null"}
-      data-room-password-pending={props.roomPasswordPending ?? false}
-      data-map-background={props.mapBackground ?? ""}
-      data-props-count={props.props.length}
-      data-players-count={props.players.length}
-      data-map-locked={props.mapLocked ?? true}
-      data-staging-zone-locked={props.stagingZoneLocked ?? false}
-    >
-      DMMenu
-    </div>
-  ),
+  }) => {
+    // Extract characters, props, players from snapshot for data attributes
+    const snapshot = props.snapshot as any;
+    const characters = snapshot?.characters || [];
+    const propsArray = snapshot?.props || [];
+    const players = snapshot?.players || [];
+    const playerCount = players.length;
+
+    return (
+      <div
+        data-testid="dm-menu"
+        data-is-dm={props.isDM}
+        data-grid-size={props.gridSize}
+        data-grid-square-size={props.gridSquareSize ?? 0}
+        data-grid-locked={props.gridLocked}
+        data-camera-x={props.camera.x}
+        data-camera-y={props.camera.y}
+        data-camera-scale={props.camera.scale}
+        data-player-count={playerCount}
+        data-characters-count={characters.length}
+        data-alignment-mode-active={props.alignmentModeActive}
+        data-alignment-points-count={props.alignmentPoints.length}
+        data-alignment-suggestion-present={props.alignmentSuggestion !== null}
+        data-alignment-error-present={
+          props.alignmentError !== null && props.alignmentError !== undefined
+        }
+        data-room-password-status-type={props.roomPasswordStatus?.type ?? "null"}
+        data-room-password-pending={props.roomPasswordPending ?? false}
+        data-map-background={props.mapBackground ?? ""}
+        data-props-count={propsArray.length}
+        data-players-count={players.length}
+        data-map-locked={props.mapLocked ?? true}
+        data-staging-zone-locked={props.stagingZoneLocked ?? false}
+      >
+        DMMenuContainer
+      </div>
+    );
+  },
 }));
 
 // Mock ContextMenu with prop tracking
@@ -241,7 +243,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
     uid: "test-user-uid",
     gridSize: 50,
     gridSquareSize: 5,
-    isDM: false,
+    isDM: true,
 
     // Camera
     cameraState: { x: 0, y: 0, scale: 1 },
@@ -394,87 +396,95 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
   // ============================================================================
 
   describe("DMMenu rendering", () => {
-    it("should always render DMMenu component", () => {
+    it("should always render DMMenu component", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       render(<MainLayout {...props} />);
 
-      expect(screen.getByTestId("dm-menu")).toBeInTheDocument();
+      expect(await screen.findByTestId("dm-menu")).toBeInTheDocument();
     });
 
-    it("should pass isDM prop to DMMenu", () => {
+    it("should pass isDM prop to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.isDM = true;
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-is-dm", "true");
     });
 
-    it("should pass isDM=false to DMMenu", () => {
+    it("should NOT render DMMenu when isDM=false", async () => {
       const props = createDefaultProps();
       props.isDM = false;
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
-      expect(dmMenu).toHaveAttribute("data-is-dm", "false");
+      // DMMenuContainer is lazy-loaded only when isDM is true, so it should not be present
+      expect(screen.queryByTestId("dm-menu")).not.toBeInTheDocument();
     });
 
-    it("should pass gridSize prop to DMMenu", () => {
+    it("should pass gridSize prop to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.gridSize = 75;
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-grid-size", "75");
     });
 
-    it("should pass gridSquareSize prop to DMMenu", () => {
+    it("should pass gridSquareSize prop to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.gridSquareSize = 10;
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-grid-square-size", "10");
     });
 
-    it("should pass gridLocked prop to DMMenu", () => {
+    it("should pass gridLocked prop to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.gridLocked = true;
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-grid-locked", "true");
     });
 
-    it("should pass gridLocked=false to DMMenu", () => {
+    it("should pass gridLocked=false to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.gridLocked = false;
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-grid-locked", "false");
     });
 
-    it("should pass camera prop to DMMenu", () => {
+    it("should pass camera prop to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.camera = { x: 100, y: 200, scale: 1.5 };
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-camera-x", "100");
       expect(dmMenu).toHaveAttribute("data-camera-y", "200");
       expect(dmMenu).toHaveAttribute("data-camera-scale", "1.5");
     });
 
-    it("should pass playerCount from snapshot to DMMenu", () => {
+    it("should pass playerCount from snapshot to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.snapshot = {
         players: [{}, {}, {}] as unknown[],
         characters: [],
@@ -488,22 +498,24 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-player-count", "3");
     });
 
-    it("should pass playerCount=0 when snapshot is null", () => {
+    it("should pass playerCount=0 when snapshot is null", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.snapshot = null;
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-player-count", "0");
     });
 
-    it("should pass characters from snapshot to DMMenu", () => {
+    it("should pass characters from snapshot to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.snapshot = {
         players: [],
         characters: [{}, {}] as unknown[],
@@ -517,42 +529,46 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-characters-count", "2");
     });
 
-    it("should pass empty characters array when snapshot is null", () => {
+    it("should pass empty characters array when snapshot is null", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.snapshot = null;
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-characters-count", "0");
     });
 
-    it("should pass alignmentMode as alignmentModeActive to DMMenu", () => {
+    it("should pass alignmentMode as alignmentModeActive to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.alignmentMode = true;
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-alignment-mode-active", "true");
     });
 
-    it("should pass alignmentMode=false to DMMenu", () => {
+    it("should pass alignmentMode=false to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.alignmentMode = false;
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-alignment-mode-active", "false");
     });
 
-    it("should pass alignmentPoints to DMMenu", () => {
+    it("should pass alignmentPoints to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.alignmentPoints = [
         { world: { x: 0, y: 0 }, local: { x: 0, y: 0 } },
         { world: { x: 100, y: 100 }, local: { x: 50, y: 50 } },
@@ -560,32 +576,35 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-alignment-points-count", "2");
     });
 
-    it("should pass empty alignmentPoints array to DMMenu", () => {
+    it("should pass empty alignmentPoints array to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.alignmentPoints = [];
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-alignment-points-count", "0");
     });
 
-    it("should pass null alignmentSuggestion to DMMenu", () => {
+    it("should pass null alignmentSuggestion to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.alignmentSuggestion = null;
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-alignment-suggestion-present", "false");
     });
 
-    it("should pass non-null alignmentSuggestion to DMMenu", () => {
+    it("should pass non-null alignmentSuggestion to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.alignmentSuggestion = {
         position: { x: 100, y: 100 },
         scale: { x: 1, y: 1 },
@@ -594,82 +613,90 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-alignment-suggestion-present", "true");
     });
 
-    it("should pass null alignmentError to DMMenu", () => {
+    it("should pass null alignmentError to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.alignmentError = null;
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-alignment-error-present", "false");
     });
 
-    it("should pass non-null alignmentError to DMMenu", () => {
+    it("should pass non-null alignmentError to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.alignmentError = "Alignment failed";
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-alignment-error-present", "true");
     });
 
-    it("should pass roomPasswordStatus to DMMenu", () => {
+    it("should pass roomPasswordStatus to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.roomPasswordStatus = { type: "success", message: "Password set" };
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-room-password-status-type", "success");
     });
 
-    it("should pass roomPasswordStatus type=error to DMMenu", () => {
+    it("should pass roomPasswordStatus type=error to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.roomPasswordStatus = { type: "error", message: "Password failed" };
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-room-password-status-type", "error");
     });
 
-    it("should pass null roomPasswordStatus to DMMenu", () => {
+    it("should pass null roomPasswordStatus to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.roomPasswordStatus = null;
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-room-password-status-type", "null");
     });
 
-    it("should pass roomPasswordPending to DMMenu", () => {
+    it("should pass roomPasswordPending to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.roomPasswordPending = true;
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-room-password-pending", "true");
     });
 
-    it("should pass roomPasswordPending=false to DMMenu", () => {
+    it("should pass roomPasswordPending=false to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.roomPasswordPending = false;
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-room-password-pending", "false");
     });
 
-    it("should pass mapBackground from snapshot to DMMenu", () => {
+    it("should pass mapBackground from snapshot to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.snapshot = {
         players: [],
         characters: [],
@@ -684,12 +711,13 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-map-background", "https://example.com/map.jpg");
     });
 
-    it("should pass props from snapshot to DMMenu", () => {
+    it("should pass props from snapshot to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.snapshot = {
         players: [],
         characters: [],
@@ -704,12 +732,13 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-props-count", "2");
     });
 
-    it("should pass players from snapshot to DMMenu", () => {
+    it("should pass players from snapshot to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.snapshot = {
         players: [{}, {}, {}] as unknown[],
         characters: [],
@@ -723,12 +752,13 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-players-count", "3");
     });
 
-    it("should pass mapLocked from mapSceneObject to DMMenu", () => {
+    it("should pass mapLocked from mapSceneObject to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.mapSceneObject = {
         id: "map-1",
         type: "image",
@@ -739,22 +769,24 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-map-locked", "false");
     });
 
-    it("should pass mapLocked=true when mapSceneObject is null", () => {
+    it("should pass mapLocked=true when mapSceneObject is null", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.mapSceneObject = null;
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-map-locked", "true");
     });
 
-    it("should pass stagingZoneLocked from stagingZoneSceneObject to DMMenu", () => {
+    it("should pass stagingZoneLocked from stagingZoneSceneObject to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.stagingZoneSceneObject = {
         id: "staging-1",
         type: "image",
@@ -765,22 +797,24 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-staging-zone-locked", "true");
     });
 
-    it("should pass stagingZoneLocked=false when stagingZoneSceneObject is null", () => {
+    it("should pass stagingZoneLocked=false when stagingZoneSceneObject is null", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.stagingZoneSceneObject = null;
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-staging-zone-locked", "false");
     });
 
-    it("should pass all DMMenu handler props", () => {
+    it("should pass all DMMenu handler props", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       const mockHandlers = {
         handleToggleDM: vi.fn(),
         setGridLocked: vi.fn(),
@@ -815,11 +849,12 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       render(<MainLayout {...props} />);
 
       // DMMenu should be rendered with all handlers
-      expect(screen.getByTestId("dm-menu")).toBeInTheDocument();
+      expect(await screen.findByTestId("dm-menu")).toBeInTheDocument();
     });
 
-    it("should pass onRequestSaveSession when snapshot exists", () => {
+    it("should pass onRequestSaveSession when snapshot exists", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.snapshot = {
         players: [],
         characters: [],
@@ -834,20 +869,22 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
       render(<MainLayout {...props} />);
 
-      expect(screen.getByTestId("dm-menu")).toBeInTheDocument();
+      expect(await screen.findByTestId("dm-menu")).toBeInTheDocument();
     });
 
-    it("should NOT pass onRequestSaveSession when snapshot is null", () => {
+    it("should NOT pass onRequestSaveSession when snapshot is null", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.snapshot = null;
 
       render(<MainLayout {...props} />);
 
-      expect(screen.getByTestId("dm-menu")).toBeInTheDocument();
+      expect(await screen.findByTestId("dm-menu")).toBeInTheDocument();
     });
 
-    it("should pass mapTransform from mapSceneObject to DMMenu", () => {
+    it("should pass mapTransform from mapSceneObject to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.mapSceneObject = {
         id: "map-1",
         type: "image",
@@ -858,25 +895,27 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
       render(<MainLayout {...props} />);
 
-      expect(screen.getByTestId("dm-menu")).toBeInTheDocument();
+      expect(await screen.findByTestId("dm-menu")).toBeInTheDocument();
     });
 
-    it("should pass default mapTransform when mapSceneObject is null", () => {
+    it("should pass default mapTransform when mapSceneObject is null", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.mapSceneObject = null;
 
       render(<MainLayout {...props} />);
 
-      expect(screen.getByTestId("dm-menu")).toBeInTheDocument();
+      expect(await screen.findByTestId("dm-menu")).toBeInTheDocument();
     });
 
-    it("should update DMMenu props when camera changes", () => {
+    it("should update DMMenu props when camera changes", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.camera = { x: 0, y: 0, scale: 1 };
 
       const { rerender } = render(<MainLayout {...props} />);
 
-      let dmMenu = screen.getByTestId("dm-menu");
+      let dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-camera-x", "0");
       expect(dmMenu).toHaveAttribute("data-camera-y", "0");
       expect(dmMenu).toHaveAttribute("data-camera-scale", "1");
@@ -884,53 +923,56 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       props.camera = { x: 250, y: 350, scale: 2 };
       rerender(<MainLayout {...props} />);
 
-      dmMenu = screen.getByTestId("dm-menu");
+      dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-camera-x", "250");
       expect(dmMenu).toHaveAttribute("data-camera-y", "350");
       expect(dmMenu).toHaveAttribute("data-camera-scale", "2");
     });
 
-    it("should update DMMenu props when gridSize changes", () => {
+    it("should update DMMenu props when gridSize changes", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.gridSize = 50;
 
       const { rerender } = render(<MainLayout {...props} />);
 
-      let dmMenu = screen.getByTestId("dm-menu");
+      let dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-grid-size", "50");
 
       props.gridSize = 100;
       rerender(<MainLayout {...props} />);
 
-      dmMenu = screen.getByTestId("dm-menu");
+      dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-grid-size", "100");
     });
 
-    it("should update DMMenu props when gridSquareSize changes", () => {
+    it("should update DMMenu props when gridSquareSize changes", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.gridSquareSize = 5;
 
       const { rerender } = render(<MainLayout {...props} />);
 
-      let dmMenu = screen.getByTestId("dm-menu");
+      let dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-grid-square-size", "5");
 
       props.gridSquareSize = 10;
       rerender(<MainLayout {...props} />);
 
-      dmMenu = screen.getByTestId("dm-menu");
+      dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-grid-square-size", "10");
     });
 
-    it("should update DMMenu props when alignment state changes", () => {
+    it("should update DMMenu props when alignment state changes", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.alignmentMode = false;
       props.alignmentPoints = [];
       props.alignmentSuggestion = null;
 
       const { rerender } = render(<MainLayout {...props} />);
 
-      let dmMenu = screen.getByTestId("dm-menu");
+      let dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-alignment-mode-active", "false");
       expect(dmMenu).toHaveAttribute("data-alignment-points-count", "0");
       expect(dmMenu).toHaveAttribute("data-alignment-suggestion-present", "false");
@@ -944,14 +986,15 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       };
       rerender(<MainLayout {...props} />);
 
-      dmMenu = screen.getByTestId("dm-menu");
+      dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-alignment-mode-active", "true");
       expect(dmMenu).toHaveAttribute("data-alignment-points-count", "1");
       expect(dmMenu).toHaveAttribute("data-alignment-suggestion-present", "true");
     });
 
-    it("should pass playerStagingZone from snapshot to DMMenu", () => {
+    it("should pass playerStagingZone from snapshot to DMMenu", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.snapshot = {
         players: [],
         characters: [],
@@ -968,11 +1011,12 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
       render(<MainLayout {...props} />);
 
-      expect(screen.getByTestId("dm-menu")).toBeInTheDocument();
+      expect(await screen.findByTestId("dm-menu")).toBeInTheDocument();
     });
 
-    it("should handle snapshot with no playerStagingZone", () => {
+    it("should handle snapshot with no playerStagingZone", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.snapshot = {
         players: [],
         characters: [],
@@ -986,7 +1030,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
       render(<MainLayout {...props} />);
 
-      expect(screen.getByTestId("dm-menu")).toBeInTheDocument();
+      expect(await screen.findByTestId("dm-menu")).toBeInTheDocument();
     });
   });
 
@@ -995,14 +1039,14 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
   // ============================================================================
 
   describe("ContextMenu rendering", () => {
-    it("should always render ContextMenu component", () => {
+    it("should always render ContextMenu component", async () => {
       const props = createDefaultProps();
       render(<MainLayout {...props} />);
 
       expect(screen.getByTestId("context-menu")).toBeInTheDocument();
     });
 
-    it("should pass null contextMenu to ContextMenu", () => {
+    it("should pass null contextMenu to ContextMenu", async () => {
       const props = createDefaultProps();
       props.contextMenu = null;
 
@@ -1012,7 +1056,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(contextMenu).toHaveAttribute("data-menu-present", "false");
     });
 
-    it("should pass non-null contextMenu to ContextMenu", () => {
+    it("should pass non-null contextMenu to ContextMenu", async () => {
       const props = createDefaultProps();
       props.contextMenu = { x: 100, y: 200, tokenId: "token-123" };
 
@@ -1025,7 +1069,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(contextMenu).toHaveAttribute("data-menu-token-id", "token-123");
     });
 
-    it("should pass contextMenu with different coordinates", () => {
+    it("should pass contextMenu with different coordinates", async () => {
       const props = createDefaultProps();
       props.contextMenu = { x: 500, y: 300, tokenId: "another-token" };
 
@@ -1037,7 +1081,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(contextMenu).toHaveAttribute("data-menu-token-id", "another-token");
     });
 
-    it("should update when contextMenu changes from null to non-null", () => {
+    it("should update when contextMenu changes from null to non-null", async () => {
       const props = createDefaultProps();
       props.contextMenu = null;
 
@@ -1059,14 +1103,14 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
   // ============================================================================
 
   describe("VisualEffects rendering", () => {
-    it("should always render VisualEffects component", () => {
+    it("should always render VisualEffects component", async () => {
       const props = createDefaultProps();
       render(<MainLayout {...props} />);
 
       expect(screen.getByTestId("visual-effects")).toBeInTheDocument();
     });
 
-    it("should pass crtFilter=true to VisualEffects", () => {
+    it("should pass crtFilter=true to VisualEffects", async () => {
       const props = createDefaultProps();
       props.crtFilter = true;
 
@@ -1076,7 +1120,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(visualEffects).toHaveAttribute("data-crt-filter", "true");
     });
 
-    it("should pass crtFilter=false to VisualEffects", () => {
+    it("should pass crtFilter=false to VisualEffects", async () => {
       const props = createDefaultProps();
       props.crtFilter = false;
 
@@ -1086,7 +1130,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(visualEffects).toHaveAttribute("data-crt-filter", "false");
     });
 
-    it("should update when crtFilter changes", () => {
+    it("should update when crtFilter changes", async () => {
       const props = createDefaultProps();
       props.crtFilter = false;
 
@@ -1108,7 +1152,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
   // ============================================================================
 
   describe("DiceRoller conditional rendering", () => {
-    it("should render DiceRoller when diceRollerOpen is true", () => {
+    it("should render DiceRoller when diceRollerOpen is true", async () => {
       const props = createDefaultProps();
       props.diceRollerOpen = true;
 
@@ -1119,7 +1163,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(diceRollers.length).toBeGreaterThanOrEqual(1);
     });
 
-    it("should NOT render DiceRoller when diceRollerOpen is false", () => {
+    it("should NOT render DiceRoller when diceRollerOpen is false", async () => {
       const props = createDefaultProps();
       props.diceRollerOpen = false;
       props.viewingRoll = null;
@@ -1129,7 +1173,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.queryByTestId("dice-roller")).not.toBeInTheDocument();
     });
 
-    it("should render DiceRoller when diceRollerOpen changes to true", () => {
+    it("should render DiceRoller when diceRollerOpen changes to true", async () => {
       const props = createDefaultProps();
       props.diceRollerOpen = false;
 
@@ -1143,7 +1187,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.getByTestId("dice-roller")).toBeInTheDocument();
     });
 
-    it("should remove DiceRoller when diceRollerOpen changes to false", () => {
+    it("should remove DiceRoller when diceRollerOpen changes to false", async () => {
       const props = createDefaultProps();
       props.diceRollerOpen = true;
 
@@ -1157,7 +1201,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.queryByTestId("dice-roller")).not.toBeInTheDocument();
     });
 
-    it("should pass handleRoll to DiceRoller onRoll prop", () => {
+    it("should pass handleRoll to DiceRoller onRoll prop", async () => {
       const props = createDefaultProps();
       props.diceRollerOpen = true;
       props.handleRoll = vi.fn();
@@ -1168,7 +1212,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(diceRoller).toHaveAttribute("data-on-roll-present", "true");
     });
 
-    it("should pass onClose handler that calls toggleDiceRoller(false)", () => {
+    it("should pass onClose handler that calls toggleDiceRoller(false)", async () => {
       const props = createDefaultProps();
       props.diceRollerOpen = true;
       props.toggleDiceRoller = vi.fn();
@@ -1178,7 +1222,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.getByTestId("dice-roller")).toBeInTheDocument();
     });
 
-    it("should maintain DiceRoller when other props change", () => {
+    it("should maintain DiceRoller when other props change", async () => {
       const props = createDefaultProps();
       props.diceRollerOpen = true;
 
@@ -1194,7 +1238,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.getByTestId("dice-roller")).toBeInTheDocument();
     });
 
-    it("should render DiceRoller independently of rollLogOpen state", () => {
+    it("should render DiceRoller independently of rollLogOpen state", async () => {
       const props = createDefaultProps();
       props.diceRollerOpen = true;
       props.rollLogOpen = false;
@@ -1211,7 +1255,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
   // ============================================================================
 
   describe("RollLog conditional rendering", () => {
-    it("should render RollLog when rollLogOpen is true", () => {
+    it("should render RollLog when rollLogOpen is true", async () => {
       const props = createDefaultProps();
       props.rollLogOpen = true;
 
@@ -1220,7 +1264,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.getByTestId("roll-log")).toBeInTheDocument();
     });
 
-    it("should NOT render RollLog when rollLogOpen is false", () => {
+    it("should NOT render RollLog when rollLogOpen is false", async () => {
       const props = createDefaultProps();
       props.rollLogOpen = false;
 
@@ -1229,7 +1273,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.queryByTestId("roll-log")).not.toBeInTheDocument();
     });
 
-    it("should render RollLog wrapper div with correct styles when rollLogOpen is true", () => {
+    it("should render RollLog wrapper div with correct styles when rollLogOpen is true", async () => {
       const props = createDefaultProps();
       props.rollLogOpen = true;
 
@@ -1246,7 +1290,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(wrapper?.style.zIndex).toBe("1000");
     });
 
-    it("should pass rollHistory to RollLog", () => {
+    it("should pass rollHistory to RollLog", async () => {
       const props = createDefaultProps();
       props.rollLogOpen = true;
       props.rollHistory = [
@@ -1274,7 +1318,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(rollLog).toHaveAttribute("data-rolls-count", "2");
     });
 
-    it("should pass empty rollHistory to RollLog", () => {
+    it("should pass empty rollHistory to RollLog", async () => {
       const props = createDefaultProps();
       props.rollLogOpen = true;
       props.rollHistory = [];
@@ -1285,7 +1329,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(rollLog).toHaveAttribute("data-rolls-count", "0");
     });
 
-    it("should render RollLog when rollLogOpen changes to true", () => {
+    it("should render RollLog when rollLogOpen changes to true", async () => {
       const props = createDefaultProps();
       props.rollLogOpen = false;
 
@@ -1299,7 +1343,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.getByTestId("roll-log")).toBeInTheDocument();
     });
 
-    it("should remove RollLog when rollLogOpen changes to false", () => {
+    it("should remove RollLog when rollLogOpen changes to false", async () => {
       const props = createDefaultProps();
       props.rollLogOpen = true;
 
@@ -1313,7 +1357,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.queryByTestId("roll-log")).not.toBeInTheDocument();
     });
 
-    it("should pass handleClearLog to RollLog onClearLog prop", () => {
+    it("should pass handleClearLog to RollLog onClearLog prop", async () => {
       const props = createDefaultProps();
       props.rollLogOpen = true;
       props.handleClearLog = vi.fn();
@@ -1323,7 +1367,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.getByTestId("roll-log")).toBeInTheDocument();
     });
 
-    it("should pass handleViewRoll to RollLog onViewRoll prop", () => {
+    it("should pass handleViewRoll to RollLog onViewRoll prop", async () => {
       const props = createDefaultProps();
       props.rollLogOpen = true;
       props.handleViewRoll = vi.fn();
@@ -1333,7 +1377,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.getByTestId("roll-log")).toBeInTheDocument();
     });
 
-    it("should pass onClose handler that calls toggleRollLog(false)", () => {
+    it("should pass onClose handler that calls toggleRollLog(false)", async () => {
       const props = createDefaultProps();
       props.rollLogOpen = true;
       props.toggleRollLog = vi.fn();
@@ -1343,7 +1387,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.getByTestId("roll-log")).toBeInTheDocument();
     });
 
-    it("should update rollHistory prop when it changes", () => {
+    it("should update rollHistory prop when it changes", async () => {
       const props = createDefaultProps();
       props.rollLogOpen = true;
       props.rollHistory = [];
@@ -1385,7 +1429,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(rollLog).toHaveAttribute("data-rolls-count", "3");
     });
 
-    it("should maintain RollLog when other props change", () => {
+    it("should maintain RollLog when other props change", async () => {
       const props = createDefaultProps();
       props.rollLogOpen = true;
 
@@ -1402,7 +1446,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.getByTestId("roll-log")).toBeInTheDocument();
     });
 
-    it("should render RollLog independently of diceRollerOpen state", () => {
+    it("should render RollLog independently of diceRollerOpen state", async () => {
       const props = createDefaultProps();
       props.rollLogOpen = true;
       props.diceRollerOpen = false;
@@ -1413,7 +1457,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.queryByTestId("dice-roller")).not.toBeInTheDocument();
     });
 
-    it("should render RollLog and DiceRoller simultaneously when both are open", () => {
+    it("should render RollLog and DiceRoller simultaneously when both are open", async () => {
       const props = createDefaultProps();
       props.rollLogOpen = true;
       props.diceRollerOpen = true;
@@ -1430,7 +1474,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
   // ============================================================================
 
   describe("DiceRoller viewing mode conditional rendering", () => {
-    it("should render viewing DiceRoller when viewingRoll is not null", () => {
+    it("should render viewing DiceRoller when viewingRoll is not null", async () => {
       const props = createDefaultProps();
       props.viewingRoll = {
         id: "roll-1",
@@ -1447,7 +1491,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(diceRollers.length).toBeGreaterThanOrEqual(1);
     });
 
-    it("should NOT render viewing DiceRoller when viewingRoll is null", () => {
+    it("should NOT render viewing DiceRoller when viewingRoll is null", async () => {
       const props = createDefaultProps();
       props.viewingRoll = null;
       props.diceRollerOpen = false;
@@ -1457,7 +1501,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.queryByTestId("dice-roller")).not.toBeInTheDocument();
     });
 
-    it("should render viewing DiceRoller wrapper div with correct styles when viewingRoll is not null", () => {
+    it("should render viewing DiceRoller wrapper div with correct styles when viewingRoll is not null", async () => {
       const props = createDefaultProps();
       props.viewingRoll = {
         id: "roll-1",
@@ -1482,7 +1526,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(wrapper.style.zIndex).toBe("2000");
     });
 
-    it("should render viewing DiceRoller when viewingRoll changes from null to non-null", () => {
+    it("should render viewing DiceRoller when viewingRoll changes from null to non-null", async () => {
       const props = createDefaultProps();
       props.viewingRoll = null;
       props.diceRollerOpen = false;
@@ -1504,7 +1548,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.getByTestId("dice-roller")).toBeInTheDocument();
     });
 
-    it("should remove viewing DiceRoller when viewingRoll changes to null", () => {
+    it("should remove viewing DiceRoller when viewingRoll changes to null", async () => {
       const props = createDefaultProps();
       props.viewingRoll = {
         id: "roll-1",
@@ -1525,7 +1569,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.queryByTestId("dice-roller")).not.toBeInTheDocument();
     });
 
-    it("should render both DiceRoller and viewing DiceRoller when both conditions are true", () => {
+    it("should render both DiceRoller and viewing DiceRoller when both conditions are true", async () => {
       const props = createDefaultProps();
       props.diceRollerOpen = true;
       props.viewingRoll = {
@@ -1543,7 +1587,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(diceRollers.length).toBe(2);
     });
 
-    it("should pass empty onRoll function to viewing DiceRoller", () => {
+    it("should pass empty onRoll function to viewing DiceRoller", async () => {
       const props = createDefaultProps();
       props.viewingRoll = {
         id: "roll-1",
@@ -1559,7 +1603,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.getByTestId("dice-roller")).toBeInTheDocument();
     });
 
-    it("should pass onClose handler that calls handleViewRoll(null)", () => {
+    it("should pass onClose handler that calls handleViewRoll(null)", async () => {
       const props = createDefaultProps();
       props.viewingRoll = {
         id: "roll-1",
@@ -1576,7 +1620,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.getByTestId("dice-roller")).toBeInTheDocument();
     });
 
-    it("should update viewing DiceRoller when viewingRoll changes to different roll", () => {
+    it("should update viewing DiceRoller when viewingRoll changes to different roll", async () => {
       const props = createDefaultProps();
       props.viewingRoll = {
         id: "roll-1",
@@ -1604,7 +1648,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.getByTestId("dice-roller")).toBeInTheDocument();
     });
 
-    it("should maintain viewing DiceRoller when other props change", () => {
+    it("should maintain viewing DiceRoller when other props change", async () => {
       const props = createDefaultProps();
       props.viewingRoll = {
         id: "roll-1",
@@ -1628,7 +1672,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.getByTestId("dice-roller")).toBeInTheDocument();
     });
 
-    it("should render viewing DiceRoller independently of diceRollerOpen state", () => {
+    it("should render viewing DiceRoller independently of diceRollerOpen state", async () => {
       const props = createDefaultProps();
       props.viewingRoll = {
         id: "roll-1",
@@ -1646,7 +1690,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(diceRollers.length).toBe(1);
     });
 
-    it("should have higher z-index for viewing DiceRoller than regular DiceRoller", () => {
+    it("should have higher z-index for viewing DiceRoller than regular DiceRoller", async () => {
       const props = createDefaultProps();
       props.diceRollerOpen = true;
       props.viewingRoll = {
@@ -1675,14 +1719,14 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
   // ============================================================================
 
   describe("ToastContainer rendering", () => {
-    it("should always render ToastContainer component", () => {
+    it("should always render ToastContainer component", async () => {
       const props = createDefaultProps();
       render(<MainLayout {...props} />);
 
       expect(screen.getByTestId("toast-container")).toBeInTheDocument();
     });
 
-    it("should pass empty messages array to ToastContainer", () => {
+    it("should pass empty messages array to ToastContainer", async () => {
       const props = createDefaultProps();
       props.toast = {
         messages: [],
@@ -1695,7 +1739,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(toastContainer).toHaveAttribute("data-messages-count", "0");
     });
 
-    it("should pass populated messages array to ToastContainer", () => {
+    it("should pass populated messages array to ToastContainer", async () => {
       const props = createDefaultProps();
       props.toast = {
         messages: [
@@ -1711,7 +1755,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(toastContainer).toHaveAttribute("data-messages-count", "2");
     });
 
-    it("should update when toast messages change", () => {
+    it("should update when toast messages change", async () => {
       const props = createDefaultProps();
       props.toast = {
         messages: [],
@@ -1739,12 +1783,13 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
   // ============================================================================
 
   describe("FloatingPanelsLayout component hierarchy and order", () => {
-    it("should render all always-visible components in correct order", () => {
+    it("should render all always-visible components in correct order", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
 
       const { container } = render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       const contextMenu = screen.getByTestId("context-menu");
       const visualEffects = screen.getByTestId("visual-effects");
       const toastContainer = screen.getByTestId("toast-container");
@@ -1776,7 +1821,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(visualEffectsIndex).toBeLessThan(toastContainerIndex);
     });
 
-    it("should render conditional components in correct order when all are visible", () => {
+    it("should render conditional components in correct order when all are visible", async () => {
       const props = createDefaultProps();
       props.diceRollerOpen = true;
       props.rollLogOpen = true;
@@ -1805,50 +1850,55 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
   // ============================================================================
 
   describe("Edge cases", () => {
-    it("should handle gridSize of 0", () => {
+    it("should handle gridSize of 0", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.gridSize = 0;
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-grid-size", "0");
     });
 
-    it("should handle very large gridSize", () => {
+    it("should handle very large gridSize", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.gridSize = 99999;
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-grid-size", "99999");
     });
 
-    it("should handle negative camera coordinates", () => {
+    it("should handle negative camera coordinates", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.camera = { x: -100, y: -200, scale: 0.5 };
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-camera-x", "-100");
       expect(dmMenu).toHaveAttribute("data-camera-y", "-200");
       expect(dmMenu).toHaveAttribute("data-camera-scale", "0.5");
     });
 
-    it("should handle very large camera scale", () => {
+    it("should handle very large camera scale", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.camera = { x: 0, y: 0, scale: 10 };
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-camera-scale", "10");
     });
 
-    it("should handle empty snapshot with all arrays empty", () => {
+    it("should handle empty snapshot with all arrays empty", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.snapshot = {
         players: [],
         characters: [],
@@ -1863,14 +1913,15 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-player-count", "0");
       expect(dmMenu).toHaveAttribute("data-characters-count", "0");
       expect(dmMenu).toHaveAttribute("data-props-count", "0");
     });
 
-    it("should handle many alignment points", () => {
+    it("should handle many alignment points", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.alignmentPoints = Array.from({ length: 100 }, (_, i) => ({
         world: { x: i * 10, y: i * 10 },
         local: { x: i * 5, y: i * 5 },
@@ -1878,12 +1929,13 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-alignment-points-count", "100");
     });
 
-    it("should handle many roll history entries", () => {
+    it("should handle many roll history entries", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.rollLogOpen = true;
       props.rollHistory = Array.from({ length: 50 }, (_, i) => ({
         id: `roll-${i}`,
@@ -1900,8 +1952,9 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(rollLog).toHaveAttribute("data-rolls-count", "50");
     });
 
-    it("should handle many toast messages", () => {
+    it("should handle many toast messages", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.toast = {
         messages: Array.from({ length: 20 }, (_, i) => ({
           id: `toast-${i}`,
@@ -1916,8 +1969,9 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(toastContainer).toHaveAttribute("data-messages-count", "20");
     });
 
-    it("should handle all boolean flags set to true", () => {
+    it("should handle all boolean flags set to true", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.isDM = true;
       props.gridLocked = true;
       props.crtFilter = true;
@@ -1928,16 +1982,16 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
       render(<MainLayout {...props} />);
 
-      expect(screen.getByTestId("dm-menu")).toHaveAttribute("data-is-dm", "true");
-      expect(screen.getByTestId("dm-menu")).toHaveAttribute("data-grid-locked", "true");
+      expect(await screen.findByTestId("dm-menu")).toHaveAttribute("data-is-dm", "true");
+      expect(await screen.findByTestId("dm-menu")).toHaveAttribute("data-grid-locked", "true");
       expect(screen.getByTestId("visual-effects")).toHaveAttribute("data-crt-filter", "true");
       expect(screen.getByTestId("dice-roller")).toBeInTheDocument();
       expect(screen.getByTestId("roll-log")).toBeInTheDocument();
-      expect(screen.getByTestId("dm-menu")).toHaveAttribute("data-alignment-mode-active", "true");
-      expect(screen.getByTestId("dm-menu")).toHaveAttribute("data-room-password-pending", "true");
+      expect(await screen.findByTestId("dm-menu")).toHaveAttribute("data-alignment-mode-active", "true");
+      expect(await screen.findByTestId("dm-menu")).toHaveAttribute("data-room-password-pending", "true");
     });
 
-    it("should handle all boolean flags set to false", () => {
+    it("should handle all boolean flags set to false", async () => {
       const props = createDefaultProps();
       props.isDM = false;
       props.gridLocked = false;
@@ -1950,17 +2004,16 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
       render(<MainLayout {...props} />);
 
-      expect(screen.getByTestId("dm-menu")).toHaveAttribute("data-is-dm", "false");
-      expect(screen.getByTestId("dm-menu")).toHaveAttribute("data-grid-locked", "false");
+      // DMMenuContainer is not rendered when isDM is false (lazy-loaded only for DMs)
+      expect(screen.queryByTestId("dm-menu")).not.toBeInTheDocument();
       expect(screen.getByTestId("visual-effects")).toHaveAttribute("data-crt-filter", "false");
       expect(screen.queryByTestId("dice-roller")).not.toBeInTheDocument();
       expect(screen.queryByTestId("roll-log")).not.toBeInTheDocument();
-      expect(screen.getByTestId("dm-menu")).toHaveAttribute("data-alignment-mode-active", "false");
-      expect(screen.getByTestId("dm-menu")).toHaveAttribute("data-room-password-pending", "false");
     });
 
-    it("should handle rapid toggling of conditional components", () => {
+    it("should handle rapid toggling of conditional components", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.diceRollerOpen = false;
       props.rollLogOpen = false;
 
@@ -1989,8 +2042,9 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.queryByTestId("roll-log")).not.toBeInTheDocument();
     });
 
-    it("should handle complex state with all components visible and populated", () => {
+    it("should handle complex state with all components visible and populated", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.isDM = true;
       props.gridSize = 75;
       props.gridSquareSize = 10;
@@ -2038,7 +2092,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       render(<MainLayout {...props} />);
 
       // All components should be present
-      expect(screen.getByTestId("dm-menu")).toBeInTheDocument();
+      expect(await screen.findByTestId("dm-menu")).toBeInTheDocument();
       expect(screen.getByTestId("context-menu")).toBeInTheDocument();
       expect(screen.getByTestId("visual-effects")).toBeInTheDocument();
       expect(screen.getAllByTestId("dice-roller").length).toBe(2);
@@ -2046,7 +2100,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.getByTestId("toast-container")).toBeInTheDocument();
 
       // Verify complex state is passed correctly
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-is-dm", "true");
       expect(dmMenu).toHaveAttribute("data-grid-size", "75");
       expect(dmMenu).toHaveAttribute("data-alignment-points-count", "2");
@@ -2065,7 +2119,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(toastContainer).toHaveAttribute("data-messages-count", "1");
     });
 
-    it("should handle simultaneous state changes across all components", () => {
+    it("should handle simultaneous state changes across all components", async () => {
       const props = createDefaultProps();
       props.isDM = false;
       props.crtFilter = false;
@@ -2077,8 +2131,8 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
       const { rerender } = render(<MainLayout {...props} />);
 
-      // Verify initial state
-      expect(screen.getByTestId("dm-menu")).toHaveAttribute("data-is-dm", "false");
+      // Verify initial state - DMMenuContainer is not rendered when isDM is false
+      expect(screen.queryByTestId("dm-menu")).not.toBeInTheDocument();
       expect(screen.getByTestId("visual-effects")).toHaveAttribute("data-crt-filter", "false");
       expect(screen.queryByTestId("dice-roller")).not.toBeInTheDocument();
       expect(screen.queryByTestId("roll-log")).not.toBeInTheDocument();
@@ -2106,7 +2160,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       rerender(<MainLayout {...props} />);
 
       // Verify all states changed
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-is-dm", "true");
       expect(dmMenu).toHaveAttribute("data-grid-size", "100");
       expect(dmMenu).toHaveAttribute("data-camera-x", "500");
@@ -2122,8 +2176,9 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.getByTestId("roll-log")).toBeInTheDocument();
     });
 
-    it("should maintain component isolation - changes to one component should not affect others", () => {
+    it("should maintain component isolation - changes to one component should not affect others", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.diceRollerOpen = true;
       props.rollLogOpen = true;
       props.crtFilter = true;
@@ -2154,8 +2209,9 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.getByTestId("visual-effects")).toHaveAttribute("data-crt-filter", "false");
     });
 
-    it("should handle null values for all nullable props", () => {
+    it("should handle null values for all nullable props", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.snapshot = null;
       props.contextMenu = null;
       props.viewingRoll = null;
@@ -2167,7 +2223,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-player-count", "0");
       expect(dmMenu).toHaveAttribute("data-characters-count", "0");
       expect(dmMenu).toHaveAttribute("data-alignment-suggestion-present", "false");
@@ -2180,8 +2236,9 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.queryByTestId("dice-roller")).not.toBeInTheDocument();
     });
 
-    it("should handle extreme values for numeric props", () => {
+    it("should handle extreme values for numeric props", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.gridSize = Number.MAX_SAFE_INTEGER;
       props.gridSquareSize = Number.MAX_SAFE_INTEGER;
       props.camera = {
@@ -2192,7 +2249,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-grid-size", String(Number.MAX_SAFE_INTEGER));
       expect(dmMenu).toHaveAttribute("data-grid-square-size", String(Number.MAX_SAFE_INTEGER));
       expect(dmMenu).toHaveAttribute("data-camera-x", String(Number.MAX_SAFE_INTEGER));
@@ -2200,8 +2257,9 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(dmMenu).toHaveAttribute("data-camera-scale", String(Number.MAX_SAFE_INTEGER));
     });
 
-    it("should handle very long strings in contextMenu tokenId", () => {
+    it("should handle very long strings in contextMenu tokenId", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       const longTokenId = "a".repeat(10000);
       props.contextMenu = { x: 100, y: 200, tokenId: longTokenId };
 
@@ -2211,8 +2269,9 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(contextMenu).toHaveAttribute("data-menu-token-id", longTokenId);
     });
 
-    it("should handle very long mapBackground URLs", () => {
+    it("should handle very long mapBackground URLs", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       const longUrl = "https://example.com/" + "a".repeat(5000) + ".jpg";
       props.snapshot = {
         players: [],
@@ -2228,12 +2287,13 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-map-background", longUrl);
     });
 
-    it("should handle rapid state transitions of all conditional components", () => {
+    it("should handle rapid state transitions of all conditional components", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
 
       const { rerender } = render(<MainLayout {...props} />);
 
@@ -2257,15 +2317,16 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
         rerender(<MainLayout {...props} />);
 
         // Verify always-visible components are still present
-        expect(screen.getByTestId("dm-menu")).toBeInTheDocument();
+        expect(await screen.findByTestId("dm-menu")).toBeInTheDocument();
         expect(screen.getByTestId("context-menu")).toBeInTheDocument();
         expect(screen.getByTestId("visual-effects")).toBeInTheDocument();
         expect(screen.getByTestId("toast-container")).toBeInTheDocument();
       }
     });
 
-    it("should handle all arrays at maximum capacity", () => {
+    it("should handle all arrays at maximum capacity", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       const largeNumber = 1000;
 
       props.alignmentPoints = Array.from({ length: largeNumber }, (_, i) => ({
@@ -2302,7 +2363,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
       render(<MainLayout {...props} />);
 
-      const dmMenu = screen.getByTestId("dm-menu");
+      const dmMenu = await screen.findByTestId("dm-menu");
       expect(dmMenu).toHaveAttribute("data-alignment-points-count", String(largeNumber));
       expect(dmMenu).toHaveAttribute("data-player-count", String(largeNumber));
       expect(dmMenu).toHaveAttribute("data-characters-count", String(largeNumber));
@@ -2315,8 +2376,9 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(toastContainer).toHaveAttribute("data-messages-count", String(largeNumber));
     });
 
-    it("should preserve component rendering order across multiple re-renders", () => {
+    it("should preserve component rendering order across multiple re-renders", async () => {
       const props = createDefaultProps();
+      props.isDM = true;
       props.diceRollerOpen = true;
       props.rollLogOpen = true;
       props.viewingRoll = {

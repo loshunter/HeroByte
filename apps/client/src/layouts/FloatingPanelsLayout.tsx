@@ -23,7 +23,7 @@ import type { ToastMessage } from "../components/ui/Toast";
 
 // Lazy-load DMMenuContainer to defer DM-specific code until DM elevation
 const DMMenuContainer = lazy(() =>
-  import("../features/dm").then((mod) => ({ default: mod.DMMenuContainer })),
+  import("../features/dm/lazy-entry").then((mod) => ({ default: mod.DMMenuContainer })),
 );
 
 type Camera = { x: number; y: number; scale: number };
