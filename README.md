@@ -142,6 +142,7 @@ HEROBYTE_ALLOWED_ORIGINS="https://yourdomain.com,https://staging.yourdomain.com"
 - **Rate Limiting** – 100 messages/second per client with token bucket algorithm
 - **Session Management** – Heartbeat system prevents client timeouts
 - **Error Resilience** – Error boundary component with graceful error handling and recovery options
+- **Performance Optimized** – 53 KB entry bundle (gzipped), lazy-loaded DM tools save 11.85 KB for regular players
 
 ### 🗺️ Interactive Map Canvas
 
@@ -444,6 +445,22 @@ HeroByte is a monorepo built with **domain-driven design** and strict separation
 | **Shared**  | TypeScript                           | Canonical message schemas and DTOs |
 | **Testing** | Vitest + Playwright                  | Unit, Integration, E2E             |
 | **Voice**   | SimplePeer (WebRTC)                  | Peer-to-peer voice communication   |
+
+### Performance Architecture
+
+HeroByte uses **role-based code splitting** to optimize bundle size:
+
+- **Entry Bundle**: 53 KB (gzipped) – Core game features load immediately for all users
+- **DM Tooling**: 11.85 KB lazy chunk – Only loads when user elevates to Dungeon Master
+- **Map Rendering**: 15.38 KB lazy chunk – Konva-based canvas split separately
+- **Total Savings**: Regular players load 49.5% less code compared to pre-split architecture
+
+**Performance Monitoring**:
+
+- **Bundle Guard**: CI enforces 175 KB gzipped limit on entry bundle (121.48 KB remaining, 69.4% under budget)
+- **Lighthouse CI**: Tracks Web Vitals (LCP <3s, TBT <250ms, CLS <0.1) on every PR
+- **Reports**: Available in GitHub artifacts and PR comments (7-day retention)
+- **Philosophy**: Non-blocking warnings encourage optimization without blocking features
 
 ### High-Level Flow
 

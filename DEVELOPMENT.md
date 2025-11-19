@@ -161,3 +161,48 @@ packages/shared/src/
 - Use `--limit`, `--threshold`, `--json`, and `--include-tests` to tailor reports or feed structured output into CI.
 - Capture characterization tests before reshaping a flagged module so behaviour remains stable during decomposition.
 - CI automatically runs `pnpm lint:structure`; reviews should inspect the attached report artifacts before approving large diffs.
+
+## Performance CI Checks
+
+### Lighthouse CI
+
+Lighthouse CI runs automatically on PRs that modify `apps/client/**` or `packages/shared/**` to catch performance regressions before merge.
+
+**What it checks:**
+
+- **Bundle sizes**: Scripts <175 KB, total <300 KB (resource budgets)
+- **Web Vitals**: LCP <3s, FCP <2s, TTI <4.5s, TBT <250ms, CLS <0.1
+- **Accessibility**: Score ≥98 (allows minor issues without blocking)
+- **Best Practices**: Score = 100 (blocks merge if violated)
+- **SEO**: Score ≥90 (warning only)
+
+**Where to find reports:**
+
+- **PR comments**: Summary table with scores for each category
+- **GitHub artifacts**: Full HTML reports (Actions → Lighthouse CI → Artifacts, retained 7 days)
+- **Temporary storage**: Public URLs in PR comment (auto-deleted after 7 days)
+
+**If checks fail:**
+
+- **Performance/SEO warnings**: Non-blocking, but investigate what caused the regression
+- **Accessibility warnings**: Fix if possible, discuss trade-offs in PR description if intentional
+- **Best practices errors**: Must fix before merge (usually quick wins like HTTPS, CSP headers, etc.)
+
+**Local testing:**
+
+```bash
+# Build production client
+pnpm --filter herobyte-client build
+
+# Run Lighthouse CI locally
+pnpm dlx @lhci/cli autorun --config=lighthouse/lighthouserc.json
+```
+
+**Tuning budgets:**
+
+If budgets are too strict/loose after observing real CI results:
+
+1. Edit `lighthouse/budget.json` (timing/resource budgets)
+2. Edit `lighthouse/lighthouserc.json` (assertion thresholds)
+3. Open PR with changes, explain rationale in description
+4. Monitor next 3-5 PRs to validate new thresholds
