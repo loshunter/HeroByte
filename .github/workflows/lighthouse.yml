@@ -79,17 +79,18 @@ jobs:
                 return `| ${result.url} | ${perf} | ${acc} | ${bp} | ${seo} |`;
               }).join('\n');
 
-              const comment = `## 🚦 Lighthouse CI Results
-
-| URL | Performance | Accessibility | Best Practices | SEO |
-|-----|-------------|---------------|----------------|-----|
-${results}
-
-📊 [View Full Reports](${manifest[0].reportUrl})
-
-**Thresholds**: Performance 90+, Accessibility 98+, Best Practices 100, SEO 90+
-**Reports retained**: 7 days in GitHub artifacts
-`;
+              const comment = [
+                '## Lighthouse CI Results',
+                '',
+                '| URL | Performance | Accessibility | Best Practices | SEO |',
+                '|-----|-------------|---------------|----------------|-----|',
+                results,
+                '',
+                `[View Full Reports](${manifest[0].reportUrl})`,
+                '',
+                '**Thresholds**: Performance 90+, Accessibility 98+, Best Practices 100, SEO 90+',
+                '**Reports retained**: 7 days in GitHub artifacts'
+              ].join('\n');
 
               await github.rest.issues.createComment({
                 issue_number: context.issue.number,
