@@ -61,6 +61,7 @@ import {
   ConnectionLifecycleManager,
   ConnectionState,
 } from "./websocket/ConnectionLifecycleManager";
+import { ServerWarmupManager } from "./websocket/ServerWarmupManager";
 
 type MessageHandler = (snapshot: RoomSnapshot) => void;
 type RtcSignalHandler = (from: string, signal: SignalData) => void;
@@ -146,6 +147,7 @@ export class WebSocketService {
   private messageQueueManager: MessageQueueManager;
   private heartbeatManager: HeartbeatManager;
   private connectionManager: ConnectionLifecycleManager;
+  private warmupManager: ServerWarmupManager;
 
   /**
    * Create a new WebSocketService orchestrator
@@ -216,6 +218,8 @@ export class WebSocketService {
       onOpen: this.handleOpen.bind(this),
       onMessage: this.handleMessage.bind(this),
     });
+
+    this.warmupManager = new ServerWarmupManager(this.config.url);
   }
 
   // =========================================================================
@@ -239,6 +243,9 @@ export class WebSocketService {
    */
   connect(): void {
     this.authManager.reset();
+    this.warmupManager.ensureWarmup().catch((error) => {
+      console.warn("[Warmup] Warmup request rejected:", error);
+    });
     this.connectionManager.connect();
   }
 
