@@ -27,13 +27,13 @@ if (wsOverride) {
   computedWsUrl = import.meta.env.VITE_WS_URL;
 } else {
   // Fallback: Auto-detect WebSocket URL from current hostname
-  // Production will use wss://herobyte-server.onrender.com
+  // Production will always use the secure wss:// protocol to avoid handshake 3xx errors
   // Development will use ws://localhost:8787
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const wsHost = import.meta.env.DEV
     ? window.location.hostname || "localhost"
     : "herobyte-server.onrender.com";
   const wsPort = import.meta.env.DEV ? ":8787" : "";
+  const protocol = import.meta.env.DEV ? "ws:" : "wss:";
   computedWsUrl = `${protocol}//${wsHost}${wsPort}`;
 }
 

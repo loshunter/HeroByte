@@ -35,6 +35,19 @@ Implemented Lighthouse CI to track Web Vitals and prevent performance regression
 
 **Performance tracking is now live!** Contributors will see Lighthouse scores in PR comments (once permissions fix is pushed) and can access full HTML reports in GitHub artifacts (7-day retention).
 
+### Follow-up (2025-11-19): Console + SEO fixes ✓
+
+1. **robots.txt added**: Placed a permissive crawler policy at `apps/client/public/robots.txt` so production, preview, and CI builds all serve a valid file. This cleared the Lighthouse SEO error that blocked `categories:seo`.
+2. **WebSocket fallback hardened** (`apps/client/src/config.ts`): Production builds now default to `wss://herobyte-server.onrender.com` (instead of mirroring the current page protocol). This prevents Chromium from attempting an insecure `ws://` handshake during CI/preview runs, which previously triggered `[WebSocket] Error: [object Event]` log spam and failed the `errors-in-console` audit.
+3. **Latest lhci autorun (Playwright Chromium 141)**:
+   - **Performance** 100, **Accessibility** 100, **Best Practices** 100, **SEO** 100
+   - `errors-in-console` ✅ (no console noise)
+   - `robots-txt` ✅ (file served from preview build)
+   - Remaining assertion noise: existing budget warnings (`unused-javascript`, `total-byte-weight`, `render-blocking`), plus PWA items from the `lighthouse:recommended` preset (`bf-cache`, `installable-manifest`, `maskable-icon`, etc.). These match pre-existing tech debt and can be handled when we tune budgets/PWA settings.
+4. **TODOs**:
+   - Keep the performance budgets discussion open (network dependency tree insight + unused JS) – defer until we intentionally re-tune `lighthouse/budget.json`.
+   - Revisit PWA manifest/splash assets + theme color when we prioritize installability (not blocking current release).
+
 ## Previous: Documentation Updates (2025-01-18) ✓
 
 Following the completion of DM lazy loading architecture, updated documentation to reflect:
