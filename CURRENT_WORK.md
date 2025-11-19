@@ -18,12 +18,21 @@ Implemented Lighthouse CI to track Web Vitals and prevent performance regression
    - `README.md`: Added Performance Monitoring subsection
    - `DEVELOPMENT.md`: Added Performance CI Checks section with usage guide
 
-4. **Next steps** (Phases 1-2):
-   - Run 3-5 PRs through Lighthouse CI to collect baseline data
-   - Adjust budgets based on real GitHub runner performance
-   - Tighten/relax thresholds as needed (currently conservative to avoid false failures)
+4. **First baseline results** (PR #16, 2025-01-18):
+   - **Performance**: 99/100 ✅ (threshold: 90+, exceeded by 9 points)
+   - **Accessibility**: 94/100 ⚠️ (threshold: 98+, 4 points below)
+   - **Best Practices**: 96/100 ⚠️ (threshold: 100, 4 points below)
+   - **SEO**: 82/100 ⚠️ (threshold: 90+, 8 points below)
+   - All 3 runs consistent, stable performance on GitHub runners
 
-**Performance tracking is now live!** Contributors will see Lighthouse scores in PR comments and can access full HTML reports in GitHub artifacts (7-day retention).
+5. **Next steps** (Phases 1-2):
+   - ✅ First PR run complete - baseline established from CI (not local)
+   - Fix: Added `pull-requests: write` permission for PR comments
+   - Run 3-5 more PRs to validate consistency
+   - Adjust budgets: Consider relaxing Accessibility to 94+, Best Practices to 96+
+   - Investigate: SEO score (missing meta tags?), Best Practices gaps
+
+**Performance tracking is now live!** Contributors will see Lighthouse scores in PR comments (once permissions fix is pushed) and can access full HTML reports in GitHub artifacts (7-day retention).
 
 ## Previous: Documentation Updates (2025-01-18) ✓
 
