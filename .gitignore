@@ -37,6 +37,10 @@ playwright-report/
 test-results/
 .tmp/
 
+# Lighthouse CI cache
+.lighthouseci/
+C:\\Users\\*\\AppData\\Local\\lighthouse.*/
+
 # MCP config with secrets
 .mcp.json
 
