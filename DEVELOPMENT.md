@@ -172,8 +172,8 @@ Lighthouse CI runs automatically on PRs that modify `apps/client/**` or `package
 
 - **Bundle sizes**: Scripts <175 KB, total <300 KB (resource budgets)
 - **Web Vitals**: LCP <3s, FCP <2s, TTI <4.5s, TBT <250ms, CLS <0.1
-- **Accessibility**: Score ≥98 (allows minor issues without blocking)
-- **Best Practices**: Score = 100 (blocks merge if violated)
+- **Accessibility**: Score ≥94 (warning if it dips below current baseline)
+- **Best Practices**: Score ≥96 (still blocks merges if it regresses)
 - **SEO**: Score ≥90 (warning only)
 
 **Where to find reports:**

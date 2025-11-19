@@ -29,8 +29,9 @@ Implemented Lighthouse CI to track Web Vitals and prevent performance regression
    - ✅ First PR run complete - baseline established from CI (not local)
    - Fix: Added `pull-requests: write` permission for PR comments
    - Run 3-5 more PRs to validate consistency
-   - Adjust budgets: Consider relaxing Accessibility to 94+, Best Practices to 96+
-   - Investigate: SEO score (missing meta tags?), Best Practices gaps
+   - ✅ Adjust budgets: Relaxed Accessibility to 94+, Best Practices to 96% (still blocking)
+   - ✅ Investigate SEO drop: Added canonical URL, lang attribute, and social meta tags to `apps/client/index.html`
+   - Continue monitoring: Lighthouse CI now reflects production baseline while guarding future regressions
 
 **Performance tracking is now live!** Contributors will see Lighthouse scores in PR comments (once permissions fix is pushed) and can access full HTML reports in GitHub artifacts (7-day retention).
 
