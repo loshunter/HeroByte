@@ -73,7 +73,11 @@ vi.mock("../../features/dm/lazy-entry", () => ({
     onDismissRoomPasswordStatus?: () => void;
   }) => {
     // Extract characters, props, players from snapshot for data attributes
-    const snapshot = props.snapshot as any;
+    const snapshot = props.snapshot as unknown as {
+      characters?: unknown[];
+      props?: unknown[];
+      players?: unknown[];
+    };
     const characters = snapshot?.characters || [];
     const propsArray = snapshot?.props || [];
     const players = snapshot?.players || [];
@@ -1987,8 +1991,14 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.getByTestId("visual-effects")).toHaveAttribute("data-crt-filter", "true");
       expect(screen.getByTestId("dice-roller")).toBeInTheDocument();
       expect(screen.getByTestId("roll-log")).toBeInTheDocument();
-      expect(await screen.findByTestId("dm-menu")).toHaveAttribute("data-alignment-mode-active", "true");
-      expect(await screen.findByTestId("dm-menu")).toHaveAttribute("data-room-password-pending", "true");
+      expect(await screen.findByTestId("dm-menu")).toHaveAttribute(
+        "data-alignment-mode-active",
+        "true",
+      );
+      expect(await screen.findByTestId("dm-menu")).toHaveAttribute(
+        "data-room-password-pending",
+        "true",
+      );
     });
 
     it("should handle all boolean flags set to false", async () => {
