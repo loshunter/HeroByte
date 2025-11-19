@@ -103,6 +103,7 @@ export function useDMElevation({
   const revoke = useCallback(() => {
     setIsRevoking(true);
     setError(null);
+    console.trace("[useDMElevation] revoke() sending revoke-dm");
     send({ t: "revoke-dm" });
 
     // Set a timeout in case server doesn't respond

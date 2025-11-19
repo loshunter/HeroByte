@@ -53,6 +53,7 @@ export function JRPGButton({
   disabled = false,
   className = "",
   style = {},
+  type = "button",
   ...buttonProps
 }: JRPGButtonProps) {
   const variantClass = {
@@ -71,6 +72,7 @@ export function JRPGButton({
         cursor: disabled ? "not-allowed" : "pointer",
         ...style,
       }}
+      type={type}
       {...buttonProps}
     >
       {children}
