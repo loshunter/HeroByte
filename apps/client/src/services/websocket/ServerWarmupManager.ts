@@ -60,9 +60,11 @@ export class ServerWarmupManager {
     const warmupUrl = this.buildWarmupUrl();
     console.log("[Warmup] Pinging", warmupUrl, "to wake server");
 
-    const AbortControllerCtor = (globalThis as typeof globalThis & {
-      AbortController?: typeof AbortController;
-    }).AbortController;
+    const AbortControllerCtor = (
+      globalThis as typeof globalThis & {
+        AbortController?: typeof AbortController;
+      }
+    ).AbortController;
 
     const controller = typeof AbortControllerCtor === "function" ? new AbortControllerCtor() : null;
     const timeoutId =
