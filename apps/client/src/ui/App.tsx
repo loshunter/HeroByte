@@ -356,14 +356,29 @@ function AuthenticatedApp({
   // and are now instantiated only when isDM is true via DMMenuContainer
   // This reduces bundle size for non-DM players by ~12-18 KB
 
-  // DM role detection
-  const { isDM } = useDMRole({ snapshot, uid, send: sendMessage });
+  // DM role detection (client override allows immediate DM menu closing during revocation)
+  const { isDM: serverIsDM } = useDMRole({ snapshot, uid, send: sendMessage });
+  const [dmRevocationPending, setDmRevocationPending] = useState(false);
+  const isDM = serverIsDM && !dmRevocationPending;
+
+  useEffect(() => {
+    if (!serverIsDM) {
+      setDmRevocationPending(false);
+    }
+  }, [serverIsDM]);
 
   // Cache the last DM-visible snapshot so NPCs/tokens don't disappear
   const [cachedDmSnapshot, setCachedDmSnapshot] = useState<RoomSnapshot | null>(null);
   const [dmSnapshotPending, setDmSnapshotPending] = useState(false);
   const [dmSnapshotPendingSince, setDmSnapshotPendingSince] = useState<number | null>(null);
   const previousIsDMRef = useRef(isDM);
+
+  const handleLocalDMRevocationStart = useCallback(() => {
+    setDmRevocationPending(true);
+    setCachedDmSnapshot(null);
+    setDmSnapshotPending(false);
+    setDmSnapshotPendingSince(null);
+  }, []);
 
   useEffect(() => {
     const previouslyDM = previousIsDMRef.current;
@@ -434,6 +449,15 @@ function AuthenticatedApp({
     sendMessage,
     toast,
   });
+  const modalActionsWithSync = useMemo(() => {
+    return {
+      ...modalActions,
+      onRevoke: () => {
+        handleLocalDMRevocationStart();
+        modalActions.onRevoke();
+      },
+    };
+  }, [modalActions, handleLocalDMRevocationStart]);
 
   // Map alignment
   const {
@@ -682,7 +706,7 @@ function AuthenticatedApp({
       />
 
       {/* DM Elevation Modal */}
-      <DMElevationModal {...modalState} {...modalActions} />
+      <DMElevationModal {...modalState} {...modalActionsWithSync} />
     </>
   );
 }
