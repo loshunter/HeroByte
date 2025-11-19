@@ -16,7 +16,7 @@ import { normalizeImageUrl } from "../../../utils/imageUrlHelpers";
 interface NpcCardProps {
   character: Character;
   isDM: boolean;
-  onUpdate: (
+  onUpdate?: (
     id: string,
     updates: {
       name?: string;
@@ -27,8 +27,8 @@ interface NpcCardProps {
       tokenImage?: string;
     },
   ) => void;
-  onDelete: (id: string) => void;
-  onPlaceToken: (id: string) => void;
+  onDelete?: (id: string) => void;
+  onPlaceToken?: (id: string) => void;
   tokenLocked?: boolean;
   onToggleTokenLock?: (locked: boolean) => void;
   tokenSize?: TokenSize;
@@ -82,7 +82,7 @@ export function NpcCard({
 
   const handleHpChange = useCallback(
     (nextHp: number) => {
-      onUpdate(character.id, { hp: nextHp });
+      onUpdate?.(character.id, { hp: nextHp });
     },
     [character.id, onUpdate],
   );
@@ -96,7 +96,7 @@ export function NpcCard({
       // Use new QoL validation: if HP > Max HP, auto-adjust Max HP
       const normalized = normalizeHPValues(parsedHp, parsedMaxHp);
 
-      onUpdate(character.id, { hp: normalized.hp, maxHp: normalized.maxHp });
+      onUpdate?.(character.id, { hp: normalized.hp, maxHp: normalized.maxHp });
       setEditingHp(false);
     },
     [isDM, character.id, character.maxHp, onUpdate],
@@ -111,7 +111,7 @@ export function NpcCard({
       // Use new QoL validation: if HP > Max HP, auto-adjust Max HP
       const normalized = normalizeHPValues(parsedHp, parsedMaxHp);
 
-      onUpdate(character.id, { hp: normalized.hp, maxHp: normalized.maxHp });
+      onUpdate?.(character.id, { hp: normalized.hp, maxHp: normalized.maxHp });
       setEditingMaxHp(false);
     },
     [isDM, character.id, character.hp, onUpdate],
@@ -121,7 +121,7 @@ export function NpcCard({
     (value: string) => {
       if (!isDM) return;
       const parsedTempHp = parseHPInput(value, 0);
-      onUpdate(character.id, { tempHp: parsedTempHp > 0 ? parsedTempHp : undefined });
+      onUpdate?.(character.id, { tempHp: parsedTempHp > 0 ? parsedTempHp : undefined });
       setEditingTempHp(false);
     },
     [isDM, character.id, onUpdate],
@@ -132,14 +132,14 @@ export function NpcCard({
     const url = prompt("Enter portrait URL", character.portrait ?? "");
     if (!url) return;
     const normalizedUrl = await normalizeImageUrl(url.trim());
-    onUpdate(character.id, { portrait: normalizedUrl });
+    onUpdate?.(character.id, { portrait: normalizedUrl });
   }, [isDM, character.id, character.portrait, onUpdate]);
 
   const handleTokenImageApply = useCallback(
     (value: string) => {
       if (!isDM) return;
       const trimmed = value.trim();
-      onUpdate(character.id, { tokenImage: trimmed.length > 0 ? trimmed : undefined });
+      onUpdate?.(character.id, { tokenImage: trimmed.length > 0 ? trimmed : undefined });
     },
     [isDM, character.id, onUpdate],
   );
@@ -207,7 +207,7 @@ export function NpcCard({
             if (!canEdit) return;
             const newName = prompt("Rename NPC", character.name);
             if (!newName || newName.trim() === character.name) return;
-            onUpdate(character.id, { name: newName.trim() });
+            onUpdate?.(character.id, { name: newName.trim() });
           }}
         >
           {sanitizeText(character.name)}
@@ -311,8 +311,8 @@ export function NpcCard({
           setTokenImageInput("");
           handleTokenImageApply("");
         }}
-        onPlaceToken={() => onPlaceToken(character.id)}
-        onDelete={() => onDelete(character.id)}
+        onPlaceToken={onPlaceToken ? () => onPlaceToken(character.id) : undefined}
+        onDelete={onDelete ? () => onDelete(character.id) : undefined}
         tokenLocked={tokenLocked}
         onToggleTokenLock={onToggleTokenLock}
         tokenSize={tokenSize}

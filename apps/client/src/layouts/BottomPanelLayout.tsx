@@ -151,17 +151,17 @@ export interface BottomPanelLayoutProps {
   /** Handler to update a character's name */
   onCharacterNameUpdate: (characterId: string, name: string) => void;
 
-  // NPC Management (6 props)
+  // NPC Management (6 props) - DM-only, undefined for non-DMs
   /** Handler to update NPC properties */
-  onNpcUpdate: (id: string, updates: Partial<NPC>) => void;
+  onNpcUpdate?: (id: string, updates: Partial<NPC>) => void;
   /** Handler to delete an NPC */
-  onNpcDelete: (id: string) => void;
+  onNpcDelete?: (id: string) => void;
   /** Handler to place an NPC token on the board */
-  onNpcPlaceToken: (id: string) => void;
+  onNpcPlaceToken?: (id: string) => void;
   /** Handler to toggle NPC visibility to players */
-  onNpcToggleVisibility: (id: string, visible: boolean) => void;
+  onNpcToggleVisibility?: (id: string, visible: boolean) => void;
   /** Handler to delete a player token from the board */
-  onPlayerTokenDelete: (tokenId: string) => void;
+  onPlayerTokenDelete?: (tokenId: string) => void;
   /** Whether NPC deletion is in progress */
   isDeletingNpc?: boolean;
   /** Error message from NPC deletion attempt */

@@ -202,7 +202,16 @@
       "Bash(pnpm --filter herobyte-client test:simple:*)",
       "Bash(git cherry-pick:*)",
       "Bash(pnpm lint:client:*)",
-      "Bash(pnpm --filter @shared test combatUtils)"
+      "Bash(pnpm --filter @shared test combatUtils)",
+      "Bash(pnpm --filter herobyte-client add:*)",
+      "Bash(pnpm --filter herobyte-client build:analyze:*)",
+      "Bash(git mv:*)",
+      "Bash(pnpm --filter herobyte-client build:check:*)",
+      "Bash(pnpm --filter herobyte-client exec vitest run src/layouts/__tests__/FloatingPanelsLayout.characterization.test.tsx --reporter=verbose)",
+      "Bash(pnpm --filter herobyte-client exec vitest run:*)",
+      "Bash(gh issue create:*)",
+      "Bash(gh label list:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []

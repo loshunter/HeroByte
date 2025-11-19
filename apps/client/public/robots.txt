@@ -1,0 +1,6 @@
+# Allow all crawlers to index the app
+User-agent: *
+Allow: /
+
+# Short-circuit other environments (CI/preview) with the same config
+# so Lighthouse SEO audit always sees a valid robots.txt
