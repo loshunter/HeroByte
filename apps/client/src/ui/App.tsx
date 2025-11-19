@@ -359,6 +359,74 @@ function AuthenticatedApp({
   // DM role detection
   const { isDM } = useDMRole({ snapshot, uid, send: sendMessage });
 
+  // Cache the last DM-visible snapshot so NPCs/tokens don't disappear
+  const [cachedDmSnapshot, setCachedDmSnapshot] = useState<RoomSnapshot | null>(null);
+  const [dmSnapshotPending, setDmSnapshotPending] = useState(false);
+  const [dmSnapshotPendingSince, setDmSnapshotPendingSince] = useState<number | null>(null);
+  const previousIsDMRef = useRef(isDM);
+
+  useEffect(() => {
+    const previouslyDM = previousIsDMRef.current;
+    if (!previouslyDM && isDM) {
+      if (cachedDmSnapshot) {
+        setDmSnapshotPending(true);
+        setDmSnapshotPendingSince(Date.now());
+      }
+    } else if (previouslyDM && !isDM) {
+      setDmSnapshotPending(false);
+      setDmSnapshotPendingSince(null);
+    }
+    previousIsDMRef.current = isDM;
+  }, [isDM, cachedDmSnapshot]);
+
+  useEffect(() => {
+    if (!isDM || !snapshot) {
+      return;
+    }
+
+    if (dmSnapshotPending) {
+      if (!cachedDmSnapshot) {
+        setCachedDmSnapshot(snapshot);
+        setDmSnapshotPending(false);
+        setDmSnapshotPendingSince(null);
+        return;
+      }
+
+      const cachedNpcCount =
+        cachedDmSnapshot.characters?.filter((character) => character.type === "npc").length ?? 0;
+      const currentNpcCount =
+        snapshot.characters?.filter((character) => character.type === "npc").length ?? 0;
+      const snapshotHasHiddenNpc =
+        snapshot.characters?.some((character) => character.visibleToPlayers === false) ?? false;
+      const pendingDuration =
+        dmSnapshotPendingSince !== null ? Date.now() - dmSnapshotPendingSince : 0;
+      const pendingTimedOut = pendingDuration > 2000;
+
+      if (
+        currentNpcCount >= cachedNpcCount ||
+        cachedNpcCount === 0 ||
+        snapshotHasHiddenNpc ||
+        pendingTimedOut
+      ) {
+        setCachedDmSnapshot(snapshot);
+        setDmSnapshotPending(false);
+        setDmSnapshotPendingSince(null);
+      }
+    } else {
+      setCachedDmSnapshot(snapshot);
+    }
+  }, [snapshot, isDM, dmSnapshotPending, cachedDmSnapshot, dmSnapshotPendingSince]);
+
+  const layoutSnapshot = useMemo(() => {
+    if (isDM && dmSnapshotPending && cachedDmSnapshot) {
+      return cachedDmSnapshot;
+    }
+    if (!snapshot && cachedDmSnapshot) {
+      return cachedDmSnapshot;
+    }
+    return snapshot;
+  }, [snapshot, cachedDmSnapshot, isDM, dmSnapshotPending]);
+
   // DM management (elevation and revocation) with modal state
   const { handleToggleDM, modalState, modalActions } = useDMManagement({
     snapshot,
@@ -523,7 +591,7 @@ function AuthenticatedApp({
         gridLocked={gridLocked}
         setGridLocked={setGridLocked}
         // Data
-        snapshot={snapshot}
+        snapshot={layoutSnapshot}
         uid={uid}
         gridSize={gridSize}
         gridSquareSize={gridSquareSize}

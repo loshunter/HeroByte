@@ -211,7 +211,8 @@
       "Bash(pnpm --filter herobyte-client exec vitest run:*)",
       "Bash(gh issue create:*)",
       "Bash(gh label list:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(git rev-parse:*)"
     ],
     "deny": [],
     "ask": []

@@ -29,6 +29,7 @@ import { FloatingPanelsLayout } from "./FloatingPanelsLayout";
 import { BottomPanelLayout } from "./BottomPanelLayout";
 import { useEntityEditHandlers } from "../hooks/useEntityEditHandlers";
 import { useInitiativeSetting } from "../hooks/useInitiativeSetting";
+import { useNpcVisibility } from "../hooks/useNpcVisibility";
 
 // Re-export for backward compatibility
 export type { MainLayoutProps, RollLogEntry };
@@ -207,6 +208,9 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     sendMessage,
   });
 
+  // DM-only NPC visibility toggles
+  const { toggleNpcVisibility } = useNpcVisibility({ sendMessage });
+
   // Turn navigation handlers for combat controls
   const handleNextTurn = useCallback(() => {
     sendMessage({ t: "next-turn" });
@@ -316,7 +320,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onNpcUpdate={undefined}
         onNpcDelete={undefined}
         onNpcPlaceToken={undefined}
-        onNpcToggleVisibility={undefined}
+        onNpcToggleVisibility={isDM ? toggleNpcVisibility : undefined}
         onPlayerTokenDelete={undefined}
         isDeletingNpc={undefined}
         npcDeletionError={undefined}
