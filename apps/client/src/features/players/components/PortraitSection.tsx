@@ -55,6 +55,10 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
   });
 
   const hasMoreEffects = statusEffects.length > 3;
+  const overflowLabels = statusEffects.slice(3).map((effectValue) => {
+    const option = STATUS_OPTIONS.find((opt) => opt.value === effectValue);
+    return option?.label ?? effectValue;
+  });
 
   const animatedBoxShadow =
     micLevel > 0.1 ? "0 0 12px rgba(90, 255, 173, 0.35)" : "0 0 6px rgba(8, 12, 24, 0.6)";
@@ -274,7 +278,7 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
               right: 6,
               display: "flex",
               gap: "4px",
-              pointerEvents: "none",
+              pointerEvents: "auto",
             }}
           >
             {displayEffects.map((effect, index) => (
@@ -290,8 +294,11 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
                   alignItems: "center",
                   justifyContent: "center",
                   fontSize: "14px",
+                  pointerEvents: "auto",
                 }}
                 title={effect.label}
+                onMouseDown={(event) => event.stopPropagation()}
+                onClick={(event) => event.stopPropagation()}
               >
                 {effect.emoji || "?"}
               </div>
@@ -309,8 +316,11 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
                   justifyContent: "center",
                   fontSize: "12px",
                   color: "var(--jrpg-white)",
+                  pointerEvents: "auto",
                 }}
-                title={`+${statusEffects.length - 3} more`}
+                title={`+${statusEffects.length - 3} more: ${overflowLabels.join(", ")}`}
+                onMouseDown={(event) => event.stopPropagation()}
+                onClick={(event) => event.stopPropagation()}
               >
                 +{statusEffects.length - 3}
               </div>
