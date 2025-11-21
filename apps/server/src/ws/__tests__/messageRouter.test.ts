@@ -11,7 +11,7 @@ import { PropService } from "../../domains/prop/service.js";
 import { SelectionService } from "../../domains/selection/service.js";
 import { AuthService } from "../../domains/auth/service.js";
 import type { WebSocket, WebSocketServer } from "ws";
-import type { ClientMessage } from "@shared";
+import type { Character, ClientMessage } from "@shared";
 import type { RoomState } from "../../domains/room/model.js";
 import { createEmptyRoomState, selectionMapToRecord } from "../../domains/room/model.js";
 
@@ -129,6 +129,18 @@ describe("MessageRouter", () => {
       claimCharacter: vi.fn(() => true),
       updateHP: vi.fn(() => true),
       linkToken: vi.fn(() => true),
+      findCharacter: vi.fn(
+        () =>
+          ({
+            id: "char-1",
+            name: "Test",
+            hp: 10,
+            maxHp: 10,
+            type: "pc",
+            ownedByPlayerUID: "player-1",
+          }) as Character,
+      ),
+      canControlCharacter: vi.fn(() => true),
       setPortrait: vi.fn(() => true),
     } as unknown as CharacterService;
 
