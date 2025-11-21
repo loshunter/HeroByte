@@ -361,7 +361,9 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                               setEditingCharacterId(null);
                               setCharacterNameInput("");
                             }}
-                            onPortraitLoad={onPortraitLoad}
+                            onPortraitLoad={(requestedCharacterId) =>
+                              onPortraitLoad(requestedCharacterId ?? character.id)
+                            }
                             onToggleMic={onToggleMic}
                             onHpChange={(hp) =>
                               onCharacterHpChange(

@@ -410,7 +410,7 @@ export default function MapBoard({
             src={mapObject?.data.imageUrl ?? snapshot?.mapBackground ?? null}
             transform={mapObject?.transform}
             onNodeReady={handleMapNodeReady}
-            onClick={handleMapClick}
+            onClick={transformMode ? handleMapClick : undefined}
           />
           {grid.show && (
             <GridLayer
