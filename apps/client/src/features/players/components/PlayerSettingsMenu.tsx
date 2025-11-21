@@ -294,7 +294,6 @@ export function PlayerSettingsMenu({
                       variant={active ? "primary" : "default"}
                       style={{ fontSize: "10px", padding: "6px 4px" }}
                       title={size.charAt(0).toUpperCase() + size.slice(1)}
-                      onClick={() => handleToggleEffect(option.value)}
                     >
                       {sizeLabels[size]}
                     </JRPGButton>

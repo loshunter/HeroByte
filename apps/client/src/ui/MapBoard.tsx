@@ -123,7 +123,7 @@ export default function MapBoard({
         character.statusEffects && character.statusEffects.length > 0
           ? character.statusEffects
           : character.ownedByPlayerUID
-            ? playerStatusMap.get(character.ownedByPlayerUID) ?? []
+            ? (playerStatusMap.get(character.ownedByPlayerUID) ?? [])
             : [];
 
       if (!ownedStatuses || ownedStatuses.length === 0) continue;
