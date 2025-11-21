@@ -225,6 +225,28 @@ export function validateUpdateCharacterHpMessage(message: MessageRecord): Valida
 }
 
 /**
+ * Validate set-character-portrait message
+ * Required: characterId (string)
+ * Optional: portrait (string up to PORTRAIT_SIZE)
+ */
+export function validateSetCharacterPortraitMessage(message: MessageRecord): ValidationResult {
+  if (typeof message.characterId !== "string" || message.characterId.length === 0) {
+    return { valid: false, error: "set-character-portrait: missing or invalid characterId" };
+  }
+
+  if (message.portrait !== undefined) {
+    if (typeof message.portrait !== "string") {
+      return { valid: false, error: "set-character-portrait: portrait must be a string" };
+    }
+    if (message.portrait.length > PAYLOAD_LIMITS.PORTRAIT_SIZE) {
+      return { valid: false, error: "set-character-portrait: portrait too large (max 2MB)" };
+    }
+  }
+
+  return { valid: true };
+}
+
+/**
  * Validate link-token message (link character to token)
  * Required: characterId (string), tokenId (string)
  */

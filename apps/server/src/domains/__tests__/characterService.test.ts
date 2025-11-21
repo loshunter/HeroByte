@@ -211,6 +211,17 @@ describe("CharacterService", () => {
     expect(persisted?.statusEffects).toEqual(["blessed", "inspired"]);
   });
 
+  it("updates and clears character portraits", () => {
+    const state = createEmptyRoomState();
+    const character = service.createCharacter(state, "Bard", 20);
+
+    expect(service.setPortrait(state, character.id, "https://example.com/portrait.png")).toBe(true);
+    expect(character.portrait).toBe("https://example.com/portrait.png");
+
+    expect(service.setPortrait(state, character.id, "   ")).toBe(true);
+    expect(character.portrait).toBeUndefined();
+  });
+
   // Test 10: Character claiming race conditions
   it("handles simultaneous claiming attempts correctly", () => {
     const state = createEmptyRoomState();

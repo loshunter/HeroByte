@@ -34,7 +34,7 @@ interface EntitiesPanelProps {
   onNameEdit: (uid: string, currentName: string) => void;
   onNameSubmit: () => void;
   onCharacterNameUpdate: (characterId: string, name: string) => void;
-  onPortraitLoad: () => void;
+  onPortraitLoad: (characterId?: string) => void;
   onToggleMic: () => void;
   onCharacterHpChange: (characterId: string, hp: number, maxHp: number, tempHp?: number) => void;
   editingHpUID: string | null;
@@ -321,7 +321,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                         name: character.name,
                         hp: character.hp,
                         maxHp: character.maxHp,
-                        portrait: player.portrait ?? character.portrait,
+                        portrait: character.portrait ?? player.portrait,
                       };
 
                       return (
@@ -482,8 +482,8 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                       name: character.name,
                       hp: character.hp,
                       maxHp: character.maxHp,
-                      // Use player.portrait (set via PlayerSettingsMenu), fallback to character.portrait
-                      portrait: player.portrait ?? character.portrait,
+                      // Prefer character-specific portrait, fallback to player's portrait
+                      portrait: character.portrait ?? player.portrait,
                     };
 
                     return (

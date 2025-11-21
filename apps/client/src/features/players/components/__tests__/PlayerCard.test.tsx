@@ -1583,12 +1583,25 @@ describe("PlayerCard", () => {
 
         fireEvent.click(screen.getByTestId("portrait-section-change"));
         expect(onPortraitLoad).toHaveBeenCalledTimes(1);
+        expect(onPortraitLoad).toHaveBeenCalledWith(undefined);
 
         fireEvent.click(screen.getByTestId("portrait-section-focus"));
         expect(onFocusToken).toHaveBeenCalledTimes(1);
 
         fireEvent.click(screen.getByTestId("portrait-section-initiative-click"));
         expect(onInitiativeClick).toHaveBeenCalledTimes(1);
+      });
+
+      it("passes characterId to onPortraitLoad when provided", () => {
+        const onPortraitLoad = vi.fn();
+        const props = createDefaultProps({
+          onPortraitLoad,
+          characterId: "char-123",
+        });
+        render(<PlayerCard {...props} />);
+
+        fireEvent.click(screen.getByTestId("portrait-section-change"));
+        expect(onPortraitLoad).toHaveBeenCalledWith("char-123");
       });
     });
 

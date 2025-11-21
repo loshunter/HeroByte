@@ -372,6 +372,7 @@ export type ClientMessage =
   | { t: "delete-player-character"; characterId: string } // Player deletes one of their characters
   | { t: "update-character-name"; characterId: string; name: string } // Player updates their character's name
   | { t: "update-character-hp"; characterId: string; hp: number; maxHp: number; tempHp?: number } // Update character HP
+  | { t: "set-character-portrait"; characterId: string; portrait?: string } // Update character portrait
   | { t: "set-character-status-effects"; characterId: string; effects: string[] } // Set status effects for character
   | { t: "link-token"; characterId: string; tokenId: string } // Link token to character
   | {

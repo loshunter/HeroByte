@@ -568,6 +568,18 @@ export class MessageRouter {
           break;
         }
 
+        case "set-character-portrait": {
+          const result = this.characterMessageHandler.handleSetCharacterPortrait(
+            state,
+            message.characterId,
+            senderUid,
+            message.portrait,
+            context.isDM(),
+          );
+          this.routeResultHandler.handleResult(result);
+          break;
+        }
+
         case "link-token": {
           const result = this.tokenMessageHandler.handleLinkToken(
             state,

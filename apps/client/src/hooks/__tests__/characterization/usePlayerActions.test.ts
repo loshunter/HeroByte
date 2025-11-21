@@ -126,6 +126,26 @@ describe("usePlayerActions - Characterization Tests", () => {
         effects: ["Poisoned", "Stunned"],
       });
     });
+
+    it("should set character portrait", () => {
+      const { result } = renderHook(() =>
+        usePlayerActions({
+          sendMessage: mockSendMessage,
+          snapshot: mockSnapshot,
+          uid: "player-1",
+        }),
+      );
+
+      act(() => {
+        result.current.setCharacterPortrait("char-1", "https://example.com/portrait.png");
+      });
+
+      expect(mockSendMessage).toHaveBeenCalledWith({
+        t: "set-character-portrait",
+        characterId: "char-1",
+        portrait: "https://example.com/portrait.png",
+      });
+    });
   });
 
   describe("Character Management", () => {

@@ -135,7 +135,7 @@ export interface BottomPanelLayoutProps {
 
   // Portrait & Mic (2 props)
   /** Handler to load a new portrait image */
-  onPortraitLoad: () => void;
+  onPortraitLoad: (characterId?: string) => void;
   /** Handler to toggle microphone on/off */
   onToggleMic: () => void;
 

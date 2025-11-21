@@ -128,6 +128,20 @@ export class CharacterService {
   }
 
   /**
+   * Update a character's portrait reference
+   */
+  setPortrait(state: RoomState, characterId: string, portrait?: string): boolean {
+    const character = this.findCharacter(state, characterId);
+    if (!character) {
+      return false;
+    }
+
+    const normalized = portrait?.trim();
+    character.portrait = normalized && normalized.length > 0 ? normalized : undefined;
+    return true;
+  }
+
+  /**
    * Set status effects for a character
    */
   setStatusEffects(state: RoomState, characterId: string, effects: string[]): boolean {

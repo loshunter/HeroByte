@@ -39,6 +39,7 @@ import {
   validateDeletePlayerCharacterMessage,
   validateUpdateCharacterNameMessage,
   validateUpdateCharacterHpMessage,
+  validateSetCharacterPortraitMessage,
   validateLinkTokenMessage,
   validateSetInitiativeMessage,
   validateCombatControlMessage,
@@ -157,6 +158,8 @@ export function validateMessage(raw: unknown): ValidationResult {
       return validateUpdateCharacterNameMessage(message);
     case "update-character-hp":
       return validateUpdateCharacterHpMessage(message);
+    case "set-character-portrait":
+      return validateSetCharacterPortraitMessage(message);
     case "link-token":
       return validateLinkTokenMessage(message);
     case "set-initiative":

@@ -46,6 +46,8 @@ export interface UseEntityEditHandlersParams {
     updateCharacterHP: (characterId: string, hp: number, maxHp: number, tempHp?: number) => void;
     /** Set the player's portrait URL */
     setPortrait: (url: string) => void;
+    /** Set a specific character's portrait URL */
+    setCharacterPortrait: (characterId: string, url: string) => void;
     /** Rename the player */
     renamePlayer: (name: string) => void;
   };
@@ -62,7 +64,7 @@ export interface UseEntityEditHandlersReturn {
   /** Handler for submitting character temp HP changes */
   handleCharacterTempHpSubmit: () => void;
   /** Handler for loading a new portrait image */
-  handlePortraitLoad: () => void;
+  handlePortraitLoad: (characterId?: string) => void;
   /** Handler for submitting player name changes */
   handleNameSubmit: () => void;
 }
@@ -153,13 +155,22 @@ export function useEntityEditHandlers(
    * Prompts the user for an image URL and updates the player's portrait if valid.
    * Converts Imgur share links to direct image URLs automatically.
    */
-  const handlePortraitLoad = useCallback(async () => {
-    const url = prompt("Enter image URL:");
-    if (url && url.trim()) {
+  const handlePortraitLoad = useCallback(
+    async (characterId?: string) => {
+      const url = prompt("Enter image URL:");
+      if (!url || !url.trim()) {
+        return;
+      }
+
       const normalizedUrl = await normalizeImageUrl(url.trim());
-      playerActions.setPortrait(normalizedUrl);
-    }
-  }, [playerActions]);
+      if (characterId) {
+        playerActions.setCharacterPortrait(characterId, normalizedUrl);
+      } else {
+        playerActions.setPortrait(normalizedUrl);
+      }
+    },
+    [playerActions],
+  );
 
   /**
    * Handles submission of player name changes.
