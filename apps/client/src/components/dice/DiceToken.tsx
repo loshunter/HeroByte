@@ -25,6 +25,9 @@ export const DiceToken: React.FC<DiceTokenProps> = ({
   const [editValue, setEditValue] = React.useState("");
 
   const handleClick = () => {
+    if (isEditing) {
+      return;
+    }
     if (token.kind === "die" && onUpdateQty) {
       setIsEditing(true);
       setEditValue(String(token.qty));
@@ -128,6 +131,7 @@ export const DiceToken: React.FC<DiceTokenProps> = ({
                 if (e.key === "Escape") setIsEditing(false);
               }}
               autoFocus
+              onClick={(e) => e.stopPropagation()}
               style={{
                 width: "40px",
                 padding: "2px 4px",
@@ -183,13 +187,13 @@ export const DiceToken: React.FC<DiceTokenProps> = ({
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          minWidth: "48px",
-          height: "36px",
-          padding: "0 12px",
-          background: "linear-gradient(135deg, var(--hero-gold) 0%, var(--hero-gold-light) 100%)",
-          border: "3px solid var(--hero-navy-dark)",
-          borderRadius: "18px",
-          boxShadow: "0 0 8px rgba(0,0,0,0.5), inset 0 2px 0 rgba(255,255,255,0.3)",
+          minWidth: "60px",
+          height: "40px",
+          padding: "0 14px",
+          background: "linear-gradient(135deg, #6EA9FF 0%, #9CC4FF 100%)",
+          border: "3px solid var(--hero-gold)",
+          borderRadius: "20px",
+          boxShadow: "0 6px 0 var(--hero-navy-dark), 0 0 12px rgba(156, 196, 255, 0.8)",
           cursor: "pointer",
           userSelect: "none",
         }}
@@ -197,7 +201,14 @@ export const DiceToken: React.FC<DiceTokenProps> = ({
       >
         {/* Modifier value */}
         {!isEditing && (
-          <div style={{ fontSize: "16px", fontWeight: "bold", color: "var(--hero-navy-dark)" }}>
+          <div
+            style={{
+              fontSize: "20px",
+              fontWeight: "bold",
+              color: "var(--hero-gold)",
+              textShadow: "0 0 6px rgba(255,215,137,0.8)",
+            }}
+          >
             {token.value >= 0 ? `+${token.value}` : token.value}
           </div>
         )}
@@ -214,6 +225,7 @@ export const DiceToken: React.FC<DiceTokenProps> = ({
               if (e.key === "Escape") setIsEditing(false);
             }}
             autoFocus
+            onClick={(e) => e.stopPropagation()}
             style={{
               width: "50px",
               padding: "2px 4px",

@@ -63,7 +63,7 @@ export const BuildStrip: React.FC<BuildStripProps> = ({
             <div
               style={{
                 fontSize: "24px",
-                color: "var(--hero-text-dim)",
+                color: "var(--hero-text-accent)",
                 fontWeight: "bold",
               }}
             >
@@ -74,7 +74,7 @@ export const BuildStrip: React.FC<BuildStripProps> = ({
             <div
               style={{
                 fontSize: "24px",
-                color: "var(--hero-text-dim)",
+                color: "var(--hero-text-accent)",
                 fontWeight: "bold",
               }}
             >

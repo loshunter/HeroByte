@@ -134,7 +134,7 @@ export function useDiceRolling({
       total: roll.total,
       timestamp: roll.timestamp,
     }));
-  }, [snapshot?.diceRolls]);
+  }, [snapshot]);
 
   // -------------------------------------------------------------------------
   // HANDLERS
