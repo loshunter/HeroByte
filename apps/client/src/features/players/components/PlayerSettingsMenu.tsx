@@ -71,6 +71,7 @@ export function PlayerSettingsMenu({
   const [showCharacterModal, setShowCharacterModal] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const [localEffects, setLocalEffects] = useState<string[]>(selectedEffects);
 
   const handleApplyTokenImage = async () => {
     const normalizedUrl = await normalizeUrl(tokenImageInput.trim());
@@ -78,11 +79,18 @@ export function PlayerSettingsMenu({
   };
 
   const handleToggleEffect = (value: string) => {
-    const newEffects = selectedEffects.includes(value)
-      ? selectedEffects.filter((e) => e !== value)
-      : [...selectedEffects, value];
+    const newEffects = localEffects.includes(value)
+      ? localEffects.filter((e) => e !== value)
+      : [...localEffects, value];
+    setLocalEffects(newEffects);
     onStatusEffectsChange(newEffects);
   };
+
+  useEffect(() => {
+    if (!dropdownOpen) {
+      setLocalEffects(selectedEffects);
+    }
+  }, [selectedEffects, dropdownOpen]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -286,6 +294,7 @@ export function PlayerSettingsMenu({
                       variant={active ? "primary" : "default"}
                       style={{ fontSize: "10px", padding: "6px 4px" }}
                       title={size.charAt(0).toUpperCase() + size.slice(1)}
+                      onClick={() => handleToggleEffect(option.value)}
                     >
                       {sizeLabels[size]}
                     </JRPGButton>
@@ -329,9 +338,9 @@ export function PlayerSettingsMenu({
               variant="default"
               style={{ width: "100%", fontSize: "10px", padding: "6px 8px" }}
             >
-              {selectedEffects.length === 0
+              {localEffects.length === 0
                 ? "No Effects"
-                : `${selectedEffects.length} Active Effect${selectedEffects.length === 1 ? "" : "s"}`}
+                : `${localEffects.length} Active Effect${localEffects.length === 1 ? "" : "s"}`}
             </JRPGButton>
             {dropdownOpen && (
               <div
@@ -352,7 +361,7 @@ export function PlayerSettingsMenu({
                 }}
               >
                 {STATUS_OPTIONS.map((option) => {
-                  const isSelected = selectedEffects.includes(option.value);
+                  const isSelected = localEffects.includes(option.value);
                   return (
                     <label
                       key={option.value}
@@ -377,7 +386,10 @@ export function PlayerSettingsMenu({
                       <input
                         type="checkbox"
                         checked={isSelected}
-                        onChange={() => handleToggleEffect(option.value)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleToggleEffect(option.value);
+                        }}
                         style={{
                           width: "16px",
                           height: "16px",

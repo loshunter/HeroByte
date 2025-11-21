@@ -67,6 +67,7 @@ export interface PlayerCardProps {
   initiativeModifier?: number;
   isCurrentTurn?: boolean;
   onClearInitiative?: () => void;
+  canEditStatusEffects?: boolean;
 }
 
 export const PlayerCard = memo<PlayerCardProps>(
@@ -124,6 +125,7 @@ export const PlayerCard = memo<PlayerCardProps>(
     initiativeModifier,
     isCurrentTurn = false,
     onClearInitiative,
+    canEditStatusEffects = isMe,
   }) => {
     const editing = editingPlayerUID === player.uid;
     const editingHp = editingHpUID === (characterId ?? player.uid);
@@ -168,7 +170,7 @@ export const PlayerCard = memo<PlayerCardProps>(
     };
 
     const handleStatusEffectsChange = (effects: string[]) => {
-      if (!isMe || !onStatusEffectsChange) {
+      if (!canEditStatusEffects || !onStatusEffectsChange) {
         return;
       }
       onStatusEffectsChange(effects);

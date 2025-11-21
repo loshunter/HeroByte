@@ -110,12 +110,25 @@ export default function MapBoard({
   const statusEffectsByTokenId = useMemo(() => {
     if (!snapshot?.characters) return {};
 
+    const playerStatusMap = new Map<string, string[]>();
+    for (const player of snapshot.players ?? []) {
+      if (player.statusEffects && player.statusEffects.length > 0) {
+        playerStatusMap.set(player.uid, player.statusEffects);
+      }
+    }
+
     const result: Record<string, string> = {};
     for (const character of snapshot.characters) {
-      const statusEffects = character.statusEffects;
-      if (!statusEffects || statusEffects.length === 0) continue;
+      const ownedStatuses =
+        character.statusEffects && character.statusEffects.length > 0
+          ? character.statusEffects
+          : character.ownedByPlayerUID
+            ? playerStatusMap.get(character.ownedByPlayerUID) ?? []
+            : [];
 
-      const activeEffect = statusEffects[0];
+      if (!ownedStatuses || ownedStatuses.length === 0) continue;
+
+      const activeEffect = ownedStatuses[0];
       if (!activeEffect) continue;
 
       // Find the emoji for this status effect
@@ -126,7 +139,7 @@ export default function MapBoard({
       }
     }
     return result;
-  }, [snapshot?.characters]);
+  }, [snapshot?.characters, snapshot?.players]);
 
   const { registerNode, getSelectedNode, getAllNodes } = useKonvaNodeRefs(
     selectedObjectId,

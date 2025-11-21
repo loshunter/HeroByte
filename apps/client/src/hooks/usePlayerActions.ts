@@ -236,8 +236,15 @@ export function usePlayerActions({
   const setCharacterStatusEffects = useCallback(
     (characterId: string, effects: string[]) => {
       sendMessage({ t: "set-character-status-effects", characterId, effects });
+
+      // If this character belongs to the current player, mirror the change
+      // to the legacy player-level status effects for backward compatibility.
+      const character = snapshot?.characters?.find((c) => c.id === characterId);
+      if (character?.ownedByPlayerUID === uid) {
+        sendMessage({ t: "set-status-effects", effects });
+      }
     },
-    [sendMessage],
+    [sendMessage, snapshot?.characters, uid],
   );
 
   /**

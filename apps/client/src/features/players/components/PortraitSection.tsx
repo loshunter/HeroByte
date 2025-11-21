@@ -266,6 +266,57 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
             ) : null}
           </div>
         )}
+        {statusEffects.length > 0 && (
+          <div
+            style={{
+              position: "absolute",
+              bottom: 6,
+              right: 6,
+              display: "flex",
+              gap: "4px",
+              pointerEvents: "none",
+            }}
+          >
+            {displayEffects.map((effect, index) => (
+              <div
+                key={`${effect.label}-${index}`}
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: "50%",
+                  background: "rgba(0,0,0,0.65)",
+                  border: "1px solid var(--jrpg-border-gold)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "14px",
+                }}
+                title={effect.label}
+              >
+                {effect.emoji || "?"}
+              </div>
+            ))}
+            {hasMoreEffects && (
+              <div
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: "50%",
+                  background: "rgba(0,0,0,0.65)",
+                  border: "1px solid var(--jrpg-border-gold)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "12px",
+                  color: "var(--jrpg-white)",
+                }}
+                title={`+${statusEffects.length - 3} more`}
+              >
+                +{statusEffects.length - 3}
+              </div>
+            )}
+          </div>
+        )}
       </button>
     </div>
   );

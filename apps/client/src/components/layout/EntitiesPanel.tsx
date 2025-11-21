@@ -343,7 +343,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                             token={token ?? undefined}
                             tokenSceneObject={tokenSceneObject}
                             playerDrawings={playerDrawings}
-                            statusEffects={player.statusEffects}
+                            statusEffects={character.statusEffects ?? player.statusEffects}
                             micEnabled={micEnabled}
                             editingPlayerUID={
                               editingCharacterId === character.id ? player.uid : null
@@ -399,10 +399,11 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                                 : undefined
                             }
                             onStatusEffectsChange={
-                              isMe && character.id
+                              (isMe || currentIsDM) && character.id
                                 ? (effects) => onCharacterStatusEffectsChange(character.id, effects)
                                 : undefined
                             }
+                            canEditStatusEffects={isMe || currentIsDM}
                             isDM={true}
                             onToggleDMMode={onToggleDMMode}
                             tokenLocked={
@@ -512,7 +513,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                           token={token ?? undefined}
                           tokenSceneObject={tokenSceneObject}
                           playerDrawings={playerDrawings}
-                          statusEffects={player.statusEffects}
+                          statusEffects={character.statusEffects ?? player.statusEffects}
                           micEnabled={micEnabled}
                           editingPlayerUID={editingCharacterId === character.id ? player.uid : null}
                           nameInput={characterNameInput}
@@ -564,10 +565,11 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                               : undefined
                           }
                           onStatusEffectsChange={
-                            isMe && character.id
+                            (isMe || currentIsDM) && character.id
                               ? (effects) => onCharacterStatusEffectsChange(character.id, effects)
                               : undefined
                           }
+                          canEditStatusEffects={isMe || currentIsDM}
                           isDM={player.isDM ?? false}
                           onToggleDMMode={onToggleDMMode}
                           tokenLocked={
