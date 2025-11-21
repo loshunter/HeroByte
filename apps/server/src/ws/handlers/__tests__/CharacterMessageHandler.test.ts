@@ -412,4 +412,58 @@ describe("CharacterMessageHandler - Characterization Tests", () => {
       );
     });
   });
+
+  describe("set-character-portrait message", () => {
+    let characterId: string;
+
+    beforeEach(() => {
+      const state = roomService.getState();
+      const character = characterService.createCharacter(state, "Portrait Hero", 80, "", "pc");
+      character.ownedByPlayerUID = playerUid;
+      characterId = character.id;
+      roomService.createSnapshot();
+    });
+
+    it("should allow owners to update portrait", () => {
+      const message: ClientMessage = {
+        t: "set-character-portrait",
+        characterId,
+        portrait: "https://example.com/hero.png",
+      };
+
+      messageRouter.route(message, playerUid);
+
+      const state = roomService.getState();
+      const character = state.characters.find((c) => c.id === characterId);
+      expect(character?.portrait).toBe("https://example.com/hero.png");
+    });
+
+    it("should allow DMs to update portrait", () => {
+      const message: ClientMessage = {
+        t: "set-character-portrait",
+        characterId,
+        portrait: "https://example.com/dm-override.png",
+      };
+
+      messageRouter.route(message, dmUid);
+
+      const state = roomService.getState();
+      const character = state.characters.find((c) => c.id === characterId);
+      expect(character?.portrait).toBe("https://example.com/dm-override.png");
+    });
+
+    it("should block non-owners from updating portrait", () => {
+      const message: ClientMessage = {
+        t: "set-character-portrait",
+        characterId,
+        portrait: "https://example.com/invalid.png",
+      };
+
+      messageRouter.route(message, "intruder");
+
+      const state = roomService.getState();
+      const character = state.characters.find((c) => c.id === characterId);
+      expect(character?.portrait).toBe("");
+    });
+  });
 });

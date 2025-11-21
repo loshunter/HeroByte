@@ -123,6 +123,7 @@ describe("AuthorizationService", () => {
       "delete-player-character",
       "update-character-name",
       "update-character-hp",
+      "set-character-portrait",
       "set-character-status-effects",
       "set-initiative",
       "start-combat",

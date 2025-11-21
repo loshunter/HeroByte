@@ -87,6 +87,14 @@ export interface UsePlayerActionsReturn {
   setCharacterStatusEffects: (characterId: string, effects: string[]) => void;
 
   /**
+   * Update a character's portrait image URL.
+   *
+   * @param characterId - ID of the character to update
+   * @param portrait - Optional portrait URL (undefined to clear)
+   */
+  setCharacterPortrait: (characterId: string, portrait: string) => void;
+
+  /**
    * Add a new player character.
    *
    * @param name - Character name
@@ -228,6 +236,16 @@ export function usePlayerActions({
   const setCharacterStatusEffects = useCallback(
     (characterId: string, effects: string[]) => {
       sendMessage({ t: "set-character-status-effects", characterId, effects });
+    },
+    [sendMessage],
+  );
+
+  /**
+   * Update a character's portrait image URL.
+   */
+  const setCharacterPortrait = useCallback(
+    (characterId: string, portrait: string) => {
+      sendMessage({ t: "set-character-portrait", characterId, portrait });
     },
     [sendMessage],
   );
@@ -448,6 +466,7 @@ export function usePlayerActions({
       setHP,
       setStatusEffects,
       setCharacterStatusEffects,
+      setCharacterPortrait,
       addCharacter,
       deleteCharacter,
       updateCharacterName,
@@ -461,6 +480,7 @@ export function usePlayerActions({
       setHP,
       setStatusEffects,
       setCharacterStatusEffects,
+      setCharacterPortrait,
       addCharacter,
       deleteCharacter,
       updateCharacterName,

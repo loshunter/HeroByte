@@ -57,6 +57,7 @@ describe("validateMessage", () => {
       { t: "create-character", name: "Ayla", maxHp: 45, portrait: "img" },
       { t: "claim-character", characterId: "char-1" },
       { t: "update-character-hp", characterId: "char-1", hp: 10, maxHp: 20 },
+      { t: "set-character-portrait", characterId: "char-1", portrait: "img" },
       { t: "link-token", characterId: "char-1", tokenId: "token-1" },
       { t: "map-background", data: "data:image/png;base64,BBB" },
       { t: "grid-size", size: 50 },
@@ -163,6 +164,28 @@ describe("validateMessage", () => {
       expect(validateMessage(message)).toMatchObject({
         valid: false,
         error: "erase-partial: segments must contain at least 2 points",
+      });
+    });
+  });
+
+  describe("set-character-portrait validation", () => {
+    it("rejects missing characterId", () => {
+      const message = { t: "set-character-portrait", portrait: "img" } as ClientMessage;
+      expect(validateMessage(message)).toMatchObject({
+        valid: false,
+        error: "set-character-portrait: missing or invalid characterId",
+      });
+    });
+
+    it("rejects non-string portrait payload", () => {
+      const message = {
+        t: "set-character-portrait",
+        characterId: "char-1",
+        portrait: 123,
+      } as unknown as ClientMessage;
+      expect(validateMessage(message)).toMatchObject({
+        valid: false,
+        error: "set-character-portrait: portrait must be a string",
       });
     });
   });

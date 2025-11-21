@@ -70,7 +70,7 @@ vi.mock("../../components/layout/EntitiesPanel", () => ({
     onMaxHpSubmit: () => void;
 
     // Portrait & Mic (2 props)
-    onPortraitLoad: () => void;
+    onPortraitLoad: (characterId?: string) => void;
     onToggleMic: () => void;
 
     // DM & Player State (4 props)
@@ -159,7 +159,7 @@ export interface BottomPanelLayoutProps {
   onMaxHpSubmit: () => void;
 
   // Portrait & Mic (2 props)
-  onPortraitLoad: () => void;
+  onPortraitLoad: (characterId?: string) => void;
   onToggleMic: () => void;
 
   // DM & Player State (4 props)

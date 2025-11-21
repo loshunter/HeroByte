@@ -129,6 +129,7 @@ describe("MessageRouter", () => {
       claimCharacter: vi.fn(() => true),
       updateHP: vi.fn(() => true),
       linkToken: vi.fn(() => true),
+      setPortrait: vi.fn(() => true),
     } as unknown as CharacterService;
 
     mockPropService = {
@@ -404,6 +405,23 @@ describe("MessageRouter", () => {
       routeAndFlush(msg, "player-1");
 
       expect(mockCharacterService.updateHP).toHaveBeenCalledWith(mockState, "char-1", 50, 100);
+      expect(mockRoomService.broadcast).toHaveBeenCalled();
+      expect(mockRoomService.saveState).toHaveBeenCalled();
+    });
+
+    it("routes set-character-portrait message", () => {
+      const msg: ClientMessage = {
+        t: "set-character-portrait",
+        characterId: "char-1",
+        portrait: "portrait-url",
+      };
+      routeAndFlush(msg, "player-1");
+
+      expect(mockCharacterService.setPortrait).toHaveBeenCalledWith(
+        mockState,
+        "char-1",
+        "portrait-url",
+      );
       expect(mockRoomService.broadcast).toHaveBeenCalled();
       expect(mockRoomService.saveState).toHaveBeenCalled();
     });

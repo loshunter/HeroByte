@@ -27,7 +27,7 @@ export interface PlayerCardProps {
   onNameInputChange: (name: string) => void;
   onNameEdit: () => void;
   onNameSubmit: () => void;
-  onPortraitLoad: () => void;
+  onPortraitLoad: (characterId?: string) => void;
   onToggleMic: () => void;
   onHpChange: (hp: number) => void;
   editingHpUID: string | null;
@@ -257,7 +257,7 @@ export const PlayerCard = memo<PlayerCardProps>(
           portrait={player.portrait}
           micLevel={player.micLevel}
           isEditable={isMe}
-          onRequestChange={onPortraitLoad}
+          onRequestChange={() => onPortraitLoad(characterId)}
           statusEffects={statusEffects ?? []}
           tokenColor={tokenColor}
           onFocusToken={onFocusToken}

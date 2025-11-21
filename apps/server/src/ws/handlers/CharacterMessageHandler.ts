@@ -270,4 +270,29 @@ export class CharacterMessageHandler {
     const updated = this.characterService.setStatusEffects(state, characterId, effects);
     return { broadcast: updated, save: updated };
   }
+
+  /**
+   * Handle set character portrait message
+   */
+  handleSetCharacterPortrait(
+    state: RoomState,
+    characterId: string,
+    senderUid: string,
+    portrait: string | undefined,
+    isDM: boolean,
+  ): CharacterMessageResult {
+    const character = this.characterService.findCharacter(state, characterId);
+    const canModify =
+      isDM || (character && this.characterService.canControlCharacter(character, senderUid));
+
+    if (!canModify) {
+      console.warn(
+        `Player ${senderUid} attempted to set portrait for character they don't control`,
+      );
+      return { broadcast: false, save: false };
+    }
+
+    const updated = this.characterService.setPortrait(state, characterId, portrait);
+    return { broadcast: updated, save: updated };
+  }
 }
