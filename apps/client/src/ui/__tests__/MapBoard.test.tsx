@@ -30,26 +30,23 @@ function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
   }
 }
 
-function createKonvaMock(
-  testId: string,
-  options: { omitProps?: string[] } = {},
-) {
-  return forwardRef<HTMLDivElement, MockComponentProps>(({ children, ...props }, ref) => {
-    const safeProps = { ...props };
+function createKonvaMock(testId: string, options: { omitProps?: string[] } = {}) {
+  const Component = forwardRef<HTMLDivElement, MockComponentProps>((props, ref) => {
+    const { children, ...rest } = props;
+    const safeProps = { ...rest };
     for (const key of options.omitProps ?? []) {
       delete safeProps[key];
     }
 
     return (
-      <div
-        data-testid={testId}
-        ref={(node) => assignRef(ref, node)}
-        {...safeProps}
-      >
+      <div data-testid={testId} ref={(node) => assignRef(ref, node)} {...safeProps}>
         {children}
       </div>
     );
   });
+
+  Component.displayName = `Mock${testId}`;
+  return Component;
 }
 
 // Mock Konva components

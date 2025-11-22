@@ -99,7 +99,7 @@ function createMockComponent(
   testId: string,
   options: { withChildren?: boolean; getRefValue?: () => unknown } = {},
 ) {
-  return forwardRef<any, Record<string, unknown> & { children?: ReactNode }>(
+  const Component = forwardRef<HTMLDivElement, Record<string, unknown> & { children?: ReactNode }>(
     ({ children, ...props }, ref) => {
       const setRef = (el: HTMLElement | null) => {
         if (el) {
@@ -124,6 +124,9 @@ function createMockComponent(
       return <div data-testid={testId} ref={setRef} />;
     },
   );
+
+  Component.displayName = `Mock${testId}`;
+  return Component;
 }
 
 // Mock Konva components

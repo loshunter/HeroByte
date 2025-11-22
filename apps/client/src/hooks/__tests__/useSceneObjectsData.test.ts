@@ -1,5 +1,5 @@
 import { renderHook } from "@testing-library/react";
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import type { Drawing, RoomSnapshot, SceneObject } from "@shared";
 import { useSceneObjectsData } from "../useSceneObjectsData";
 

@@ -34,11 +34,8 @@ function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
   }
 }
 
-function createMockKonvaComponent(
-  testId: string,
-  options: { withChildren?: boolean } = {},
-) {
-  return forwardRef<HTMLElement, Record<string, unknown> & { children?: ReactNode }>(
+function createMockKonvaComponent(testId: string, options: { withChildren?: boolean } = {}) {
+  const Component = forwardRef<HTMLElement, Record<string, unknown> & { children?: ReactNode }>(
     ({ children, ...props }, ref) => {
       const setRef = (el: HTMLElement | null) => {
         if (el) {
@@ -58,6 +55,9 @@ function createMockKonvaComponent(
       return <div data-testid={testId} ref={setRef} />;
     },
   );
+
+  Component.displayName = `Mock${testId}`;
+  return Component;
 }
 
 // Mock Konva components
@@ -142,7 +142,12 @@ const createDefaultProps = (overrides?: Partial<ComponentProps<typeof TokensLaye
   ...overrides,
 });
 
-const invokeHandler = (handler: ((event: any) => void) | undefined, event: any) => {
+type TestEventPayload = Record<string, unknown>;
+
+const invokeHandler = (
+  handler: ((event: TestEventPayload) => void) | undefined,
+  event: TestEventPayload,
+) => {
   expect(typeof handler).toBe("function");
   act(() => {
     handler?.(event);
