@@ -71,7 +71,7 @@ describe("Header", () => {
       expect(headerContainer).toBeInTheDocument();
       expect(headerContainer).toHaveStyle({
         position: "fixed",
-        top: "28px",
+        top: "24px",
         left: "0",
         right: "0",
         zIndex: "100",
@@ -86,13 +86,14 @@ describe("Header", () => {
 
       expect(bevelPanel).toBeInTheDocument();
       expect(bevelPanel).toHaveStyle({
-        padding: "8px",
+        padding: "6px 10px",
         borderRadius: "0",
       });
       expect(flexContainer).toHaveStyle({
         display: "flex",
         gap: "12px",
-        alignItems: "flex-start",
+        alignItems: "center",
+        flexWrap: "wrap",
       });
     });
 
@@ -104,16 +105,21 @@ describe("Header", () => {
       const controlsContainer = rightPanel.querySelector("div") as HTMLElement;
 
       expect(leftPanel).toHaveStyle({
-        padding: "8px",
-        minWidth: "200px",
+        padding: "6px 10px",
+        minWidth: "180px",
+        display: "flex",
+        alignItems: "center",
+        gap: "10px",
       });
       expect(rightPanel).toHaveStyle({
-        padding: "8px",
+        padding: "6px 10px",
         flex: "1",
+        display: "flex",
+        alignItems: "center",
       });
       expect(controlsContainer).toHaveStyle({
         display: "flex",
-        gap: "12px",
+        gap: "8px",
         alignItems: "center",
         flexWrap: "wrap",
       });
@@ -126,7 +132,7 @@ describe("Header", () => {
       buttons.forEach((button) => {
         expect(button).toHaveStyle({
           fontSize: "8px",
-          padding: "6px 12px",
+          padding: "4px 10px",
         });
       });
     });
@@ -141,13 +147,13 @@ describe("Header", () => {
       expect(logo).toHaveAttribute("src", "/logo.webp");
       expect(logo).toHaveAttribute("alt", "HeroByte");
       expect(logo).toHaveClass("jrpg-pixelated");
-      expect(logo).toHaveStyle({ height: "40px" });
+      expect(logo).toHaveStyle({ height: "32px" });
     });
 
     it("should display UID label and truncated UID", () => {
       render(<Header {...props} />);
 
-      expect(screen.getByText(/UID:/)).toBeInTheDocument();
+      expect(screen.getByText("UID", { selector: "strong" })).toBeInTheDocument();
       expect(screen.getByText("12345678...")).toBeInTheDocument();
     });
 
@@ -170,7 +176,7 @@ describe("Header", () => {
       expect(topPanelRef.current).toBeInTheDocument();
       expect(topPanelRef.current).toHaveStyle({
         position: "fixed",
-        top: "28px",
+        top: "24px",
       });
     });
 

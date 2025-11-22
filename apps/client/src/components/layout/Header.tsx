@@ -54,46 +54,57 @@ export const Header: React.FC<HeaderProps> = ({
       ref={topPanelRef}
       style={{
         position: "fixed",
-        top: "28px", // Offset for status banner
+        top: "24px", // Offset for status banner
         left: 0,
         right: 0,
         zIndex: 100,
         margin: 0,
       }}
     >
-      <JRPGPanel variant="bevel" style={{ padding: "8px", borderRadius: 0 }}>
-        <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
-          {/* Left side: Logo and UID */}
-          <JRPGPanel variant="simple" style={{ padding: "8px", minWidth: "200px" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {/* Logo */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <img
-                  src="/logo.webp"
-                  alt="HeroByte"
-                  className="jrpg-pixelated"
-                  style={{ height: "40px" }}
-                />
-              </div>
-              {/* UID Display */}
-              <div style={{ textAlign: "center" }}>
-                <p className="jrpg-text-small" style={{ margin: 0, color: "var(--jrpg-white)" }}>
-                  <strong style={{ color: "var(--jrpg-gold)" }}>UID:</strong>
-                  <br />
-                  {uid.substring(0, 8)}...
-                </p>
-              </div>
+      <JRPGPanel variant="bevel" style={{ padding: "6px 10px", borderRadius: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "12px",
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          {/* Left side: Logo and UID packed tightly */}
+          <JRPGPanel
+            variant="simple"
+            style={{
+              padding: "6px 10px",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              minWidth: "180px",
+            }}
+          >
+            <img
+              src="/logo.webp"
+              alt="HeroByte"
+              className="jrpg-pixelated"
+              style={{ height: "32px" }}
+            />
+            <div style={{ textAlign: "left" }}>
+              <p className="jrpg-text-small" style={{ margin: 0, color: "var(--jrpg-white)" }}>
+                <strong style={{ color: "var(--jrpg-gold)" }}>UID</strong> {uid.substring(0, 8)}...
+              </p>
             </div>
           </JRPGPanel>
 
           {/* Right side: Controls and Tools */}
-          <JRPGPanel variant="simple" style={{ padding: "8px", flex: 1 }}>
-            <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
+          <JRPGPanel
+            variant="simple"
+            style={{ padding: "6px 10px", flex: 1, display: "flex", alignItems: "center" }}
+          >
+            <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
               {/* Snap to Grid */}
               <JRPGButton
                 onClick={() => onSnapToGridChange(!snapToGrid)}
                 variant={snapToGrid ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "6px 12px" }}
+                style={{ fontSize: "8px", padding: "4px 10px" }}
               >
                 Snap
               </JRPGButton>
@@ -102,7 +113,7 @@ export const Header: React.FC<HeaderProps> = ({
               <JRPGButton
                 onClick={onResetCamera}
                 variant="default"
-                style={{ fontSize: "8px", padding: "6px 12px" }}
+                style={{ fontSize: "8px", padding: "4px 10px" }}
               >
                 🧭 Recenter
               </JRPGButton>
@@ -111,7 +122,7 @@ export const Header: React.FC<HeaderProps> = ({
               <JRPGButton
                 onClick={() => onToolSelect(pointerMode ? null : "pointer")}
                 variant={pointerMode ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "6px 12px" }}
+                style={{ fontSize: "8px", padding: "4px 10px" }}
               >
                 👆 Pointer
               </JRPGButton>
@@ -120,7 +131,7 @@ export const Header: React.FC<HeaderProps> = ({
               <JRPGButton
                 onClick={() => onToolSelect(measureMode ? null : "measure")}
                 variant={measureMode ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "6px 12px" }}
+                style={{ fontSize: "8px", padding: "4px 10px" }}
               >
                 📏 Measure
               </JRPGButton>
@@ -129,7 +140,7 @@ export const Header: React.FC<HeaderProps> = ({
               <JRPGButton
                 onClick={() => onToolSelect(drawMode ? null : "draw")}
                 variant={drawMode ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "6px 12px" }}
+                style={{ fontSize: "8px", padding: "4px 10px" }}
               >
                 ✏️ Draw Tools
               </JRPGButton>
@@ -138,7 +149,7 @@ export const Header: React.FC<HeaderProps> = ({
               <JRPGButton
                 onClick={() => onToolSelect(transformMode ? null : "transform")}
                 variant={transformMode ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "6px 12px" }}
+                style={{ fontSize: "8px", padding: "4px 10px" }}
                 title="Scale and rotate objects"
               >
                 🔄 Transform
@@ -148,7 +159,7 @@ export const Header: React.FC<HeaderProps> = ({
               <JRPGButton
                 onClick={() => onToolSelect(selectMode ? null : "select")}
                 variant={selectMode ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "6px 12px" }}
+                style={{ fontSize: "8px", padding: "4px 10px" }}
               >
                 🖱️ Select
               </JRPGButton>
@@ -157,7 +168,7 @@ export const Header: React.FC<HeaderProps> = ({
               <JRPGButton
                 onClick={() => onCrtFilterChange(!crtFilter)}
                 variant={crtFilter ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "6px 12px" }}
+                style={{ fontSize: "8px", padding: "4px 10px" }}
               >
                 📺 CRT
               </JRPGButton>
@@ -166,7 +177,7 @@ export const Header: React.FC<HeaderProps> = ({
               <JRPGButton
                 onClick={() => onDiceRollerToggle(!diceRollerOpen)}
                 variant={diceRollerOpen ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "6px 12px" }}
+                style={{ fontSize: "8px", padding: "4px 10px" }}
               >
                 ⚂ Dice
               </JRPGButton>
@@ -175,7 +186,7 @@ export const Header: React.FC<HeaderProps> = ({
               <JRPGButton
                 onClick={() => onRollLogToggle(!rollLogOpen)}
                 variant={rollLogOpen ? "primary" : "default"}
-                style={{ fontSize: "8px", padding: "6px 12px" }}
+                style={{ fontSize: "8px", padding: "4px 10px" }}
               >
                 📜 Log
               </JRPGButton>

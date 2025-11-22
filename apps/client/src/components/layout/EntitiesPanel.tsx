@@ -3,7 +3,7 @@
 // ============================================================================
 // Fixed bottom panel displaying both players and NPCs in the scene.
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import type { Character, Drawing, Player, PlayerState, Token, SceneObject } from "@shared";
 import { PlayerCard } from "../../features/players/components";
 import { NpcCard } from "../../features/players/components/NpcCard";
@@ -146,6 +146,16 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
   const [characterNameInput, setCharacterNameInput] = useState("");
 
+  // Prompt layout to re-measure when the panel collapses/expands so the map
+  // spacing updates immediately instead of waiting for other updates.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const frame = window.requestAnimationFrame(() => {
+      window.dispatchEvent(new Event("resize"));
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [isCollapsed]);
+
   // Use tested hooks for combat ordering and initiative modal
   const { dmEntities, orderedEntities } = useCombatOrdering({
     players,
@@ -227,28 +237,33 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
         {isCollapsed ? "▲ SHOW ENTITIES" : "▼ HIDE ENTITIES"}
       </JRPGButton>
 
-      <JRPGPanel
-        variant="bevel"
-        style={{
-          padding: "8px",
-          borderRadius: 0,
-          maxHeight: "320px",
-          overflowY: "auto",
-        }}
-      >
-        {isCollapsed ? (
-          <div
-            className="jrpg-text-small"
-            style={{
-              padding: "8px",
-              textAlign: "center",
-              color: "var(--jrpg-white)",
-              opacity: 0.6,
-            }}
-          >
-            Entities panel collapsed - click &ldquo;SHOW ENTITIES&rdquo; to expand
-          </div>
-        ) : (
+      {isCollapsed ? (
+        <div
+          className="jrpg-text-small"
+          style={{
+            margin: "0 auto",
+            padding: "6px 12px",
+            background: "rgba(12, 18, 40, 0.85)",
+            border: "1px solid rgba(255, 255, 255, 0.15)",
+            borderRadius: "6px",
+            textAlign: "center",
+            color: "var(--jrpg-white)",
+            maxWidth: "260px",
+            opacity: 0.85,
+          }}
+        >
+          Entities panel collapsed - click &ldquo;SHOW ENTITIES&rdquo; to expand
+        </div>
+      ) : (
+        <JRPGPanel
+          variant="bevel"
+          style={{
+            padding: "8px",
+            borderRadius: 0,
+            maxHeight: "320px",
+            overflowY: "auto",
+          }}
+        >
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             <h3
               className="jrpg-text-command jrpg-text-highlight"
@@ -669,8 +684,8 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
               </div>
             </div>
           </div>
-        )}
-      </JRPGPanel>
+        </JRPGPanel>
+      )}
 
       {/* Initiative Modal */}
       {isInitiativeModalOpen && initiativeModalCharacter && (
