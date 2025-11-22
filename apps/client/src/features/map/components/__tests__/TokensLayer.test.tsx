@@ -12,7 +12,9 @@
 // Coverage: 475 LOC → 100%
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
+import { forwardRef } from "react";
+import type { ComponentProps, ReactNode, Ref } from "react";
 import { TokensLayer } from "../TokensLayer";
 import type { SceneObject } from "@shared";
 import type { Camera } from "../../types";
@@ -24,56 +26,47 @@ import type { Camera } from "../../types";
 // Store props in a WeakMap to handle non-serializable values (functions, etc.)
 const propsMap = new WeakMap<HTMLElement, Record<string, unknown>>();
 
+function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
+  if (typeof ref === "function") {
+    ref(value);
+  } else if (ref && typeof ref === "object") {
+    (ref as { current: T | null }).current = value;
+  }
+}
+
+function createMockKonvaComponent(
+  testId: string,
+  options: { withChildren?: boolean } = {},
+) {
+  return forwardRef<HTMLElement, Record<string, unknown> & { children?: ReactNode }>(
+    ({ children, ...props }, ref) => {
+      const setRef = (el: HTMLElement | null) => {
+        if (el) {
+          propsMap.set(el, props);
+        }
+        assignRef(ref, el);
+      };
+
+      if (options.withChildren) {
+        return (
+          <div data-testid={testId} ref={setRef}>
+            {children}
+          </div>
+        );
+      }
+
+      return <div data-testid={testId} ref={setRef} />;
+    },
+  );
+}
+
 // Mock Konva components
 vi.mock("react-konva", () => ({
-  Group: ({ children, ...props }: { children?: React.ReactNode }) => {
-    const ref = (el: HTMLElement | null) => {
-      if (el) propsMap.set(el, props);
-    };
-    return (
-      <div data-testid="konva-group" ref={ref}>
-        {children}
-      </div>
-    );
-  },
-  Rect: (props: Record<string, unknown>) => {
-    const ref = (el: HTMLElement | null) => {
-      if (el) {
-        propsMap.set(el, props);
-        // Call the component's ref callback if it exists
-        if (typeof props.ref === "function") {
-          // Cast el to any to match Konva.Node signature
-          (props.ref as (node: unknown) => void)(el);
-        }
-      }
-    };
-    return <div data-testid="konva-rect" ref={ref} />;
-  },
-  Image: (props: Record<string, unknown>) => {
-    const ref = (el: HTMLElement | null) => {
-      if (el) {
-        propsMap.set(el, props);
-        // Call the component's ref callback if it exists
-        if (typeof props.ref === "function") {
-          // Cast el to any to match Konva.Node signature
-          (props.ref as (node: unknown) => void)(el);
-        }
-      }
-    };
-    return <div data-testid="konva-image" ref={ref} />;
-  },
-  Circle: (props: Record<string, unknown>) => {
-    const ref = (el: HTMLElement | null) => {
-      if (el) propsMap.set(el, props);
-    };
-    return <div data-testid="konva-circle" ref={ref} />;
-  },
-  Text: (props: Record<string, unknown>) => {
-    const ref = (el: HTMLElement | null) => {
-      if (el) propsMap.set(el, props);
-    };
-    return <div data-testid="konva-text" ref={ref} />;
-  },
+  Group: createMockKonvaComponent("konva-group", { withChildren: true }),
+  Rect: createMockKonvaComponent("konva-rect"),
+  Image: createMockKonvaComponent("konva-image"),
+  Circle: createMockKonvaComponent("konva-circle"),
+  Text: createMockKonvaComponent("konva-text"),
 }));
 
 // Helper to get props from element
@@ -130,7 +123,7 @@ const createTokenObject = (
   ...overrides,
 });
 
-const createDefaultProps = (overrides?: Partial<React.ComponentProps<typeof TokensLayer>>) => ({
+const createDefaultProps = (overrides?: Partial<ComponentProps<typeof TokensLayer>>) => ({
   cam: createCamera(),
   sceneObjects: [],
   uid: "test-user",
@@ -148,6 +141,13 @@ const createDefaultProps = (overrides?: Partial<React.ComponentProps<typeof Toke
   statusEffectsByTokenId: {},
   ...overrides,
 });
+
+const invokeHandler = (handler: ((event: any) => void) | undefined, event: any) => {
+  expect(typeof handler).toBe("function");
+  act(() => {
+    handler?.(event);
+  });
+};
 
 // ============================================================================
 // TESTS - TOKENSPRITE SUBCOMPONENT
@@ -882,8 +882,7 @@ describe("TokensLayer", () => {
       const rect = container.querySelector('[data-testid="konva-rect"]');
       const rectProps = getProps(rect);
 
-      const onDragEnd = rectProps.onDragEnd;
-      onDragEnd({
+      invokeHandler(rectProps.onDragEnd, {
         target: {
           position: () => ({ x: 50, y: 100 }),
         },
@@ -911,8 +910,7 @@ describe("TokensLayer", () => {
       const mockPosition = vi.fn();
       mockPosition.mockReturnValueOnce({ x: 48, y: 52 }); // Should snap to 50, 50
 
-      const onDragEnd = rectProps.onDragEnd;
-      onDragEnd({
+      invokeHandler(rectProps.onDragEnd, {
         target: {
           position: mockPosition,
         },
@@ -939,8 +937,7 @@ describe("TokensLayer", () => {
       const rect = container.querySelector('[data-testid="konva-rect"]');
       const rectProps = getProps(rect);
 
-      const onDragEnd = rectProps.onDragEnd;
-      onDragEnd({
+      invokeHandler(rectProps.onDragEnd, {
         target: {
           position: () => ({ x: 48, y: 52 }),
         },
@@ -973,14 +970,12 @@ describe("TokensLayer", () => {
       const rectProps = getProps(firstRect);
 
       // Simulate drag start
-      const onDragStart = rectProps.onDragStart;
-      onDragStart({
+      invokeHandler(rectProps.onDragStart, {
         evt: { shiftKey: false, ctrlKey: false, metaKey: false },
       });
 
       // Simulate drag end - move 1 grid square right
-      const onDragEnd = rectProps.onDragEnd;
-      onDragEnd({
+      invokeHandler(rectProps.onDragEnd, {
         target: {
           position: () => ({ x: 50, y: 0 }),
         },
@@ -1006,8 +1001,7 @@ describe("TokensLayer", () => {
       const rect = container.querySelector('[data-testid="konva-rect"]');
       const rectProps = getProps(rect);
 
-      const onDragStart = rectProps.onDragStart;
-      onDragStart({
+      invokeHandler(rectProps.onDragStart, {
         evt: { shiftKey: false, ctrlKey: false, metaKey: false },
       });
 
@@ -1029,8 +1023,7 @@ describe("TokensLayer", () => {
       const rect = container.querySelector('[data-testid="konva-rect"]');
       const rectProps = getProps(rect);
 
-      const onDragStart = rectProps.onDragStart;
-      onDragStart({
+      invokeHandler(rectProps.onDragStart, {
         evt: { shiftKey: true, ctrlKey: false, metaKey: false },
       });
 
@@ -1052,8 +1045,7 @@ describe("TokensLayer", () => {
       const rect = container.querySelector('[data-testid="konva-rect"]');
       const rectProps = getProps(rect);
 
-      const onDragStart = rectProps.onDragStart;
-      onDragStart({
+      invokeHandler(rectProps.onDragStart, {
         evt: { shiftKey: false, ctrlKey: true, metaKey: false },
       });
 
@@ -1076,9 +1068,8 @@ describe("TokensLayer", () => {
       const rect = container.querySelector('[data-testid="konva-rect"]');
       const rectProps = getProps(rect);
 
-      const onDragEnd = rectProps.onDragEnd;
       // Trigger error by not providing position
-      onDragEnd({
+      invokeHandler(rectProps.onDragEnd, {
         target: {},
       });
 
@@ -1417,9 +1408,8 @@ describe("TokensLayer", () => {
       const rectProps = getProps(rect);
 
       // Start drag
-      const onDragStart = rectProps.onDragStart;
-      expect(onDragStart).toBeDefined();
-      onDragStart({
+      expect(rectProps.onDragStart).toBeDefined();
+      invokeHandler(rectProps.onDragStart, {
         evt: { shiftKey: false, ctrlKey: false, metaKey: false },
       });
 
@@ -1427,8 +1417,7 @@ describe("TokensLayer", () => {
       const mockPosition = vi.fn();
       mockPosition.mockReturnValue({ x: 50, y: 100 });
 
-      const onDragEnd = rectProps.onDragEnd;
-      onDragEnd({
+      invokeHandler(rectProps.onDragEnd, {
         target: {
           position: mockPosition,
         },
@@ -1466,15 +1455,13 @@ describe("TokensLayer", () => {
       const rectProps = getProps(rect);
 
       // Perform drag
-      const onDragStart = rectProps.onDragStart;
-      expect(onDragStart).toBeDefined();
-      onDragStart({
+      expect(rectProps.onDragStart).toBeDefined();
+      invokeHandler(rectProps.onDragStart, {
         evt: { shiftKey: false, ctrlKey: false, metaKey: false },
       });
 
-      const onDragEnd = rectProps.onDragEnd;
-      expect(onDragEnd).toBeDefined();
-      onDragEnd({
+      expect(rectProps.onDragEnd).toBeDefined();
+      invokeHandler(rectProps.onDragEnd, {
         target: {
           position: () => ({ x: 50, y: 100 }),
         },
@@ -1614,15 +1601,13 @@ describe("TokensLayer", () => {
       const rect = container.querySelector('[data-testid="konva-rect"]');
       const rectProps = getProps(rect);
 
-      const onDragStart = rectProps.onDragStart;
-      expect(onDragStart).toBeDefined();
-      onDragStart({
+      expect(rectProps.onDragStart).toBeDefined();
+      invokeHandler(rectProps.onDragStart, {
         evt: { shiftKey: false, ctrlKey: false, metaKey: false },
       });
 
-      const onDragEnd = rectProps.onDragEnd;
-      expect(onDragEnd).toBeDefined();
-      onDragEnd({
+      expect(rectProps.onDragEnd).toBeDefined();
+      invokeHandler(rectProps.onDragEnd, {
         target: {
           position: () => ({ x: 50, y: 0 }),
         },

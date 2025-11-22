@@ -1403,7 +1403,7 @@ Captured after completing DM tooling code-splitting work. All measurements are *
 
 #### 2. Suggested Additions
 
-**Option A: Lighthouse CI**
+**Option A: Lighthouse CI** (✅ implemented via `.github/workflows/lighthouse.yml` + `lighthouse/` configs; left here for historical context)
 
 ```yaml
 # .github/workflows/lighthouse.yml

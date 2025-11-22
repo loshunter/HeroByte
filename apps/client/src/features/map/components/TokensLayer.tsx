@@ -3,7 +3,7 @@
 // ============================================================================
 // Renders tokens from the unified scene graph with drag support.
 
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Group, Rect, Image as KonvaImage, Circle, Text } from "react-konva";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
@@ -11,6 +11,7 @@ import type { SceneObject } from "@shared";
 import useImage from "use-image";
 import type { Camera } from "../types";
 import { LockIndicator } from "./LockIndicator";
+import type { StatusOption } from "../../players/constants/statusOptions";
 
 interface TokenSpriteProps {
   object: SceneObject & { type: "token" };
@@ -58,7 +59,14 @@ const TokenSprite = memo(function TokenSprite({
   const size = gridSize * 0.75 * sizeMultiplier;
   const offset = size / 2;
 
-  const commonProps = {
+  const nodeRef = useCallback(
+    (node: Konva.Node | null) => {
+      onNodeReady?.(node);
+    },
+    [onNodeReady],
+  );
+
+  const baseProps = {
     x: transform.x * gridSize + gridSize / 2 - offset,
     y: transform.y * gridSize + gridSize / 2 - offset,
     width: size,
@@ -80,18 +88,14 @@ const TokenSprite = memo(function TokenSprite({
     id,
     name: id,
     attrs: { "data-token-id": id },
-    ref: (node: Konva.Node | null) => {
-      if (onNodeReady) {
-        onNodeReady(node);
-      }
-    },
   } as const;
+  const shapeProps = onNodeReady ? { ...baseProps, ref: nodeRef } : baseProps;
 
   if (data.imageUrl && status === "loaded" && image) {
-    return <KonvaImage image={image} {...commonProps} />;
+    return <KonvaImage image={image} {...shapeProps} />;
   }
 
-  return <Rect fill={data.color} {...commonProps} />;
+  return <Rect fill={data.color} {...shapeProps} />;
 });
 
 interface MultiSelectBadgeProps {
@@ -133,6 +137,8 @@ interface StatusEffectBadgeProps {
   y: number;
   size: number;
   emoji: string;
+  label: string;
+  onHover?: (event: KonvaEventObject<MouseEvent>, text: string | null) => void;
 }
 
 const StatusEffectBadge = memo(function StatusEffectBadge({
@@ -140,12 +146,19 @@ const StatusEffectBadge = memo(function StatusEffectBadge({
   y,
   size,
   emoji,
+  label,
+  onHover,
 }: StatusEffectBadgeProps) {
   const fontSize = size * 0.7;
   const bgRadius = size / 2;
 
   return (
-    <Group x={x} y={y}>
+    <Group
+      x={x}
+      y={y}
+      onMouseEnter={(event) => onHover?.(event, label)}
+      onMouseLeave={(event) => onHover?.(event, null)}
+    >
       <Circle
         radius={bgRadius}
         fill="rgba(0, 0, 0, 0.7)"
@@ -154,6 +167,57 @@ const StatusEffectBadge = memo(function StatusEffectBadge({
       />
       <Text
         text={emoji}
+        fontSize={fontSize}
+        fontFamily="Arial"
+        fill="#FFFFFF"
+        align="center"
+        verticalAlign="middle"
+        width={size}
+        height={size}
+        x={-size / 2}
+        y={-size / 2}
+      />
+    </Group>
+  );
+});
+
+interface StatusEffectOverflowBadgeProps {
+  x: number;
+  y: number;
+  size: number;
+  count: number;
+  labels: string[];
+  onHover?: (event: KonvaEventObject<MouseEvent>, text: string | null) => void;
+}
+
+const StatusEffectOverflowBadge = memo(function StatusEffectOverflowBadge({
+  x,
+  y,
+  size,
+  count,
+  labels,
+  onHover,
+}: StatusEffectOverflowBadgeProps) {
+  const fontSize = size * 0.6;
+  const bgRadius = size / 2;
+
+  const tooltipText = `+${count} more: ${labels.join(", ")}`;
+
+  return (
+    <Group
+      x={x}
+      y={y}
+      onMouseEnter={(event) => onHover?.(event, tooltipText)}
+      onMouseLeave={(event) => onHover?.(event, null)}
+    >
+      <Circle
+        radius={bgRadius}
+        fill="rgba(0, 0, 0, 0.7)"
+        stroke="var(--jrpg-border-gold)"
+        strokeWidth={1.5}
+      />
+      <Text
+        text={`+${count}`}
         fontSize={fontSize}
         fontFamily="Arial"
         fill="#FFFFFF"
@@ -186,8 +250,8 @@ interface TokensLayerProps {
   ) => void;
   onTokenNodeReady?: (tokenId: string, node: Konva.Node | null) => void;
   interactionsEnabled?: boolean;
-  /** Map of token scene ID (e.g., "token:abc123") to status effect emoji */
-  statusEffectsByTokenId?: Record<string, string>;
+  /** Map of token scene ID (e.g., "token:abc123") to status effect metadata */
+  statusEffectsByTokenId?: Record<string, StatusOption[] | string>;
 }
 
 export const TokensLayer = memo(function TokensLayer({
@@ -274,6 +338,73 @@ export const TokensLayer = memo(function TokensLayer({
       multiDragStartRef.current = {};
     }
   };
+
+  const handleBadgeHover = useCallback(
+    (event: KonvaEventObject<MouseEvent>, text: string | null) => {
+      const container = event.target?.getStage()?.container();
+      if (!container) {
+        return;
+      }
+      if (text) {
+        container.setAttribute("title", text);
+      } else {
+        container.removeAttribute("title");
+      }
+    },
+    [],
+  );
+
+  const renderStatusBadges = useCallback(
+    (object: SceneObject & { type: "token" }) => {
+      const rawEffects = statusEffectsByTokenId[object.id];
+      let effects: StatusOption[] = [];
+      if (Array.isArray(rawEffects)) {
+        effects = rawEffects;
+      } else if (typeof rawEffects === "string") {
+        effects = [{ value: rawEffects, label: rawEffects, emoji: rawEffects }];
+      }
+
+      if (effects.length === 0) {
+        return null;
+      }
+
+      const badgeSize = gridSize * 0.3;
+      const spacing = gridSize * 0.05;
+      const baseX = object.transform.x * gridSize + gridSize * 0.1;
+      const baseY = object.transform.y * gridSize + gridSize * 0.1;
+
+      const displayEffects = effects.slice(0, 3);
+      const overflow = effects.slice(3);
+
+      return (
+        <>
+          {displayEffects.map((effect, index) => (
+            <StatusEffectBadge
+              key={`${object.id}-effect-${effect.value}-${index}`}
+              x={baseX}
+              y={baseY + index * (badgeSize + spacing)}
+              size={badgeSize}
+              emoji={effect.emoji}
+              label={effect.label}
+              onHover={handleBadgeHover}
+            />
+          ))}
+          {overflow.length > 0 && (
+            <StatusEffectOverflowBadge
+              key={`${object.id}-effect-overflow`}
+              x={baseX}
+              y={baseY + displayEffects.length * (badgeSize + spacing)}
+              size={badgeSize}
+              count={overflow.length}
+              labels={overflow.map((effect) => effect.label)}
+              onHover={handleBadgeHover}
+            />
+          )}
+        </>
+      );
+    },
+    [gridSize, handleBadgeHover, statusEffectsByTokenId],
+  );
 
   const handleDragStart = (sceneId: string, event: KonvaEventObject<DragEvent>) => {
     setDraggingId(sceneId);
@@ -391,14 +522,7 @@ export const TokensLayer = memo(function TokensLayer({
                 size={gridSize * 0.25}
               />
             )}
-            {statusEffectsByTokenId[object.id] && (
-              <StatusEffectBadge
-                x={object.transform.x * gridSize + gridSize * 0.15}
-                y={object.transform.y * gridSize + gridSize * 0.15}
-                size={gridSize * 0.3}
-                emoji={statusEffectsByTokenId[object.id]}
-              />
-            )}
+            {renderStatusBadges(object)}
             {isFirstSelected && (
               <MultiSelectBadge
                 x={object.transform.x * gridSize + gridSize * 0.85}
@@ -451,14 +575,7 @@ export const TokensLayer = memo(function TokensLayer({
                 size={gridSize * 0.25}
               />
             )}
-            {statusEffectsByTokenId[object.id] && (
-              <StatusEffectBadge
-                x={object.transform.x * gridSize + gridSize * 0.15}
-                y={object.transform.y * gridSize + gridSize * 0.15}
-                size={gridSize * 0.3}
-                emoji={statusEffectsByTokenId[object.id]}
-              />
-            )}
+            {renderStatusBadges(object)}
             {isFirstSelected && (
               <MultiSelectBadge
                 x={object.transform.x * gridSize + gridSize * 0.85}

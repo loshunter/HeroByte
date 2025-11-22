@@ -481,7 +481,7 @@ pnpm test:shared
 ### Future Enhancements
 - [ ] Expand Playwright scenarios (token movement, dice roller, drawing tools)
 - [ ] Add visual regression testing (Percy, Chromatic)
-- [ ] Add performance budgets (Lighthouse CI)
+- [x] Add performance monitoring (Lighthouse CI workflow + budgets)
 - [ ] Add chrome-devtools MCP to CI pipeline
 - [ ] Test sharding for parallel execution across machines
 

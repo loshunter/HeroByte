@@ -23,6 +23,8 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render } from "@testing-library/react";
+import { forwardRef } from "react";
+import type { ReactNode, Ref } from "react";
 import { TransformGizmo } from "../TransformGizmo";
 import type { SceneObject } from "@shared";
 import type Konva from "konva";
@@ -85,45 +87,53 @@ const createMockTransformer = () => ({
   }),
 });
 
+function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
+  if (typeof ref === "function") {
+    ref(value);
+  } else if (ref && typeof ref === "object") {
+    (ref as { current: T | null }).current = value;
+  }
+}
+
+function createMockComponent(
+  testId: string,
+  options: { withChildren?: boolean; getRefValue?: () => unknown } = {},
+) {
+  return forwardRef<any, Record<string, unknown> & { children?: ReactNode }>(
+    ({ children, ...props }, ref) => {
+      const setRef = (el: HTMLElement | null) => {
+        if (el) {
+          propsMap.set(el, props);
+        }
+        if (options.getRefValue) {
+          const value = el ? (options.getRefValue() as never) : null;
+          assignRef(ref, value);
+        } else {
+          assignRef(ref, el);
+        }
+      };
+
+      if (options.withChildren) {
+        return (
+          <div data-testid={testId} ref={setRef}>
+            {children}
+          </div>
+        );
+      }
+
+      return <div data-testid={testId} ref={setRef} />;
+    },
+  );
+}
+
 // Mock Konva components
 vi.mock("react-konva", () => ({
-  Transformer: ({ ref, ...props }: { ref?: unknown } & Record<string, unknown>) => {
-    const elementRef = (el: HTMLElement | null) => {
-      if (el) {
-        propsMap.set(el, props);
-        // Use the existing mockTransformerRef (created in beforeEach)
-        // Call ref callback if it exists
-        if (typeof ref === "function") {
-          ref(mockTransformerRef as unknown as Konva.Transformer);
-        } else if (ref && typeof ref === "object" && "current" in ref) {
-          (ref as { current: unknown }).current = mockTransformerRef;
-        }
-      }
-    };
-    return <div data-testid="konva-transformer" ref={elementRef} />;
-  },
-  Group: ({ children, ...props }: { children?: React.ReactNode } & Record<string, unknown>) => {
-    const elementRef = (el: HTMLElement | null) => {
-      if (el) propsMap.set(el, props);
-    };
-    return (
-      <div data-testid="konva-group" ref={elementRef}>
-        {children}
-      </div>
-    );
-  },
-  Rect: (props: Record<string, unknown>) => {
-    const elementRef = (el: HTMLElement | null) => {
-      if (el) propsMap.set(el, props);
-    };
-    return <div data-testid="konva-rect" ref={elementRef} />;
-  },
-  Line: (props: Record<string, unknown>) => {
-    const elementRef = (el: HTMLElement | null) => {
-      if (el) propsMap.set(el, props);
-    };
-    return <div data-testid="konva-line" ref={elementRef} />;
-  },
+  Transformer: createMockComponent("konva-transformer", {
+    getRefValue: () => mockTransformerRef as Konva.Transformer,
+  }),
+  Group: createMockComponent("konva-group", { withChildren: true }),
+  Rect: createMockComponent("konva-rect"),
+  Line: createMockComponent("konva-line"),
 }));
 
 // Helper to get props from element
