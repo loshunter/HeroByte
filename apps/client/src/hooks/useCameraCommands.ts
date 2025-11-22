@@ -79,7 +79,9 @@ export function useCameraCommands({
   const handleFocusSelf = useCallback(() => {
     const myToken = snapshot?.tokens?.find((t) => t.owner === uid);
     if (!myToken) {
-      window.alert("You don't have a token on the map yet.");
+      if (typeof window !== "undefined" && typeof window.alert === "function") {
+        window.alert("You don't have a token on the map yet.");
+      }
       return;
     }
     setCameraCommand({ type: "focus-token", tokenId: myToken.id });

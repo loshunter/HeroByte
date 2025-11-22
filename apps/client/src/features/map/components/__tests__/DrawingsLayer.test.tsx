@@ -1915,67 +1915,6 @@ describe("DrawingsLayer", () => {
   });
 
   describe("Console Logging", () => {
-    it("should log drag start positions", () => {
-      const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-
-      const drawing = createDrawingObject();
-
-      render(
-        <DrawingsLayer
-          {...defaultProps}
-          drawingObjects={[drawing]}
-          selectMode={true}
-          selectedObjectIds={["drawing-1"]}
-        />,
-      );
-
-      const groups = screen.getAllByTestId("konva-group");
-      const draggableGroup = groups.find((g) => g.getAttribute("data-draggable") === "true");
-
-      fireEvent.dragStart(draggableGroup!);
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining("handleDragStart"),
-        expect.anything(),
-      );
-
-      consoleSpy.mockRestore();
-    });
-
-    it("should log drag end details", () => {
-      const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-
-      const drawing = createDrawingObject();
-
-      render(
-        <DrawingsLayer
-          {...defaultProps}
-          drawingObjects={[drawing]}
-          selectMode={true}
-          selectedObjectIds={["drawing-1"]}
-        />,
-      );
-
-      const groups = screen.getAllByTestId("konva-group");
-      const draggableGroup = groups.find((g) => g.getAttribute("data-draggable") === "true");
-
-      fireEvent.dragStart(draggableGroup!);
-
-      const mockEvent = {
-        target: {
-          position: () => ({ x: 50, y: 50 }),
-        },
-      };
-      fireEvent.dragEnd(draggableGroup!, mockEvent);
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining("handleDragEnd"),
-        expect.anything(),
-      );
-
-      consoleSpy.mockRestore();
-    });
-
     it("should warn when drag end occurs without start position", () => {
       const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 

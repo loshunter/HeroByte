@@ -93,7 +93,6 @@ export const DrawingsLayer = memo(function DrawingsLayer({
         };
       }
     }
-    console.log("[DrawingsLayer] handleDragStart - stored positions:", dragStartPositions.current);
   };
 
   const handleDragMove = (sceneId: string, event: KonvaEventObject<DragEvent>) => {
@@ -144,8 +143,6 @@ export const DrawingsLayer = memo(function DrawingsLayer({
     const deltaX = newPosition.x - startPos.x;
     const deltaY = newPosition.y - startPos.y;
 
-    console.log("[DrawingsLayer] handleDragEnd - delta:", { deltaX, deltaY, selectedObjectIds });
-
     // Apply the delta to all selected objects
     for (const id of selectedObjectIds) {
       const startPosition = dragStartPositions.current[id];
@@ -163,7 +160,6 @@ export const DrawingsLayer = memo(function DrawingsLayer({
 
         // Send transform update to server for each selected object
         onTransformDrawing(id, { position: nextPosition });
-        console.log("[DrawingsLayer] Moving object:", id, "to", nextPosition);
       }
     }
 

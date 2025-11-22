@@ -171,6 +171,7 @@ describe("MapBoard", () => {
   const mockOnRecolorToken = vi.fn();
   const mockOnTransformObject = vi.fn();
   const mockOnCameraCommandHandled = vi.fn();
+  const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
 
   const getDefaultProps = (overrides?: Partial<MapBoardProps>): MapBoardProps => ({
     snapshot: null,
@@ -195,6 +196,10 @@ describe("MapBoard", () => {
     cameraCommand: null,
     onCameraCommandHandled: mockOnCameraCommandHandled,
     ...overrides,
+  });
+
+  afterAll(() => {
+    alertSpy.mockRestore();
   });
 
   describe("Basic Rendering", () => {

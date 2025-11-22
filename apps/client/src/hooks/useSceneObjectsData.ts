@@ -57,20 +57,8 @@ export function useSceneObjectsData(
 
   const stagingZoneDimensions = useMemo<StagingZoneDimensions | null>(() => {
     if (!stagingZoneObject) {
-      console.log("[MapBoard] No staging zone object");
       return null;
     }
-
-    console.log("[MapBoard] Staging zone:", {
-      id: stagingZoneObject.id,
-      x: stagingZoneObject.transform.x,
-      y: stagingZoneObject.transform.y,
-      scaleX: stagingZoneObject.transform.scaleX,
-      scaleY: stagingZoneObject.transform.scaleY,
-      rotation: stagingZoneObject.transform.rotation,
-      width: stagingZoneObject.data.width,
-      height: stagingZoneObject.data.height,
-    });
 
     return {
       centerX: (stagingZoneObject.transform.x + 0.5) * gridSize,

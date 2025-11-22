@@ -143,7 +143,9 @@ export function useCameraControl({
     if (cameraCommand.type === "focus-token") {
       const token = snapshot?.tokens?.find((t) => t.id === cameraCommand.tokenId);
       if (!token) {
-        window.alert("Token not found.");
+        if (typeof window !== "undefined" && typeof window.alert === "function") {
+          window.alert("Token not found.");
+        }
         onCameraCommandHandled();
         return;
       }

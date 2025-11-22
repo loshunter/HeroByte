@@ -64,14 +64,7 @@ function createSnapshot(overrides: Partial<RoomSnapshot> = {}): RoomSnapshot {
 }
 
 describe("useSceneObjectsData", () => {
-  let consoleLogSpy: ReturnType<typeof vi.spyOn>;
-
-  beforeEach(() => {
-    consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-  });
-
   afterEach(() => {
-    consoleLogSpy.mockRestore();
     vi.restoreAllMocks();
   });
 
@@ -128,7 +121,6 @@ describe("useSceneObjectsData", () => {
 
     expect(result.current.stagingZoneObject).toBeNull();
     expect(result.current.stagingZoneDimensions).toBeNull();
-    expect(consoleLogSpy).toHaveBeenCalledWith("[MapBoard] No staging zone object");
   });
 
   it("should calculate staging zone dimensions", () => {
@@ -143,16 +135,6 @@ describe("useSceneObjectsData", () => {
       heightPx: 3 * 40,
       rotation: 45,
       label: "Custom Zone",
-    });
-    expect(consoleLogSpy).toHaveBeenCalledWith("[MapBoard] Staging zone:", {
-      id: "staging-zone-1",
-      x: 10,
-      y: 5,
-      scaleX: 1,
-      scaleY: 1,
-      rotation: 45,
-      width: 4,
-      height: 3,
     });
   });
 
