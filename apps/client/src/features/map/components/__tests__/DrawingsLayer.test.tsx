@@ -46,95 +46,107 @@ const wrapEvent = (handler?: (event: MockKonvaEvent) => void) => (evt: Event | S
   });
 
 // Mock Konva components
-const GroupMock = forwardRef<HTMLDivElement, PropsWithChildren<Record<string, unknown>>>(
-  ({ children, onClick, onTap, onDragStart, onDragMove, onDragEnd, ...props }, ref) => (
-    <div
-      data-testid="konva-group"
-      data-x={props.x}
-      data-y={props.y}
-      data-scale-x={props.scaleX}
-      data-scale-y={props.scaleY}
-      data-rotation={props.rotation}
-      data-draggable={props.draggable !== undefined ? String(props.draggable) : undefined}
-      onClick={wrapEvent(onClick as ((event: MockKonvaEvent) => void) | undefined)}
-      onTouchStart={(e) => onTap?.({ cancelBubble: false, evt: e, target: e.target })}
-      onDragStart={wrapEvent(onDragStart as ((event: MockKonvaEvent) => void) | undefined)}
-      onDragOver={wrapEvent(onDragMove as ((event: MockKonvaEvent) => void) | undefined)}
-      onDragEnd={wrapEvent(onDragEnd as ((event: MockKonvaEvent) => void) | undefined)}
-      ref={(node) => assignRef(ref, node)}
-    >
-      {children}
-    </div>
-  ),
-);
-GroupMock.displayName = "MockKonvaGroup";
+function createGroupMock() {
+  const Component = forwardRef<HTMLDivElement, PropsWithChildren<Record<string, unknown>>>(
+    ({ children, onClick, onTap, onDragStart, onDragMove, onDragEnd, ...props }, ref) => (
+      <div
+        data-testid="konva-group"
+        data-x={props.x}
+        data-y={props.y}
+        data-scale-x={props.scaleX}
+        data-scale-y={props.scaleY}
+        data-rotation={props.rotation}
+        data-draggable={props.draggable !== undefined ? String(props.draggable) : undefined}
+        onClick={wrapEvent(onClick as ((event: MockKonvaEvent) => void) | undefined)}
+        onTouchStart={(e) => onTap?.({ cancelBubble: false, evt: e, target: e.target })}
+        onDragStart={wrapEvent(onDragStart as ((event: MockKonvaEvent) => void) | undefined)}
+        onDragOver={wrapEvent(onDragMove as ((event: MockKonvaEvent) => void) | undefined)}
+        onDragEnd={wrapEvent(onDragEnd as ((event: MockKonvaEvent) => void) | undefined)}
+        ref={(node) => assignRef(ref, node)}
+      >
+        {children}
+      </div>
+    ),
+  );
+  Component.displayName = "MockKonvaGroup";
+  return Component;
+}
 
-const LineMock = forwardRef<HTMLDivElement, Record<string, unknown>>(
-  ({ onClick, onTap, ...props }, ref) => (
-    <div
-      data-testid="konva-line"
-      data-points={JSON.stringify(props.points)}
-      data-stroke={props.stroke}
-      data-stroke-width={props.strokeWidth}
-      data-line-cap={props.lineCap}
-      data-line-join={props.lineJoin}
-      data-opacity={props.opacity}
-      data-listening={props.listening}
-      data-dash={JSON.stringify(props.dash)}
-      onClick={wrapEvent(onClick as ((event: MockKonvaEvent) => void) | undefined)}
-      onTouchStart={wrapEvent(onTap as ((event: MockKonvaEvent) => void) | undefined)}
-      ref={(node) => assignRef(ref, node)}
-    />
-  ),
-);
-LineMock.displayName = "MockKonvaLine";
+function createLineMock() {
+  const Component = forwardRef<HTMLDivElement, Record<string, unknown>>(
+    ({ onClick, onTap, ...props }, ref) => (
+      <div
+        data-testid="konva-line"
+        data-points={JSON.stringify(props.points)}
+        data-stroke={props.stroke}
+        data-stroke-width={props.strokeWidth}
+        data-line-cap={props.lineCap}
+        data-line-join={props.lineJoin}
+        data-opacity={props.opacity}
+        data-listening={props.listening}
+        data-dash={JSON.stringify(props.dash)}
+        onClick={wrapEvent(onClick as ((event: MockKonvaEvent) => void) | undefined)}
+        onTouchStart={wrapEvent(onTap as ((event: MockKonvaEvent) => void) | undefined)}
+        ref={(node) => assignRef(ref, node)}
+      />
+    ),
+  );
+  Component.displayName = "MockKonvaLine";
+  return Component;
+}
 
-const RectMock = forwardRef<HTMLDivElement, Record<string, unknown>>(
-  ({ onClick, onTap, ...props }, ref) => (
-    <div
-      data-testid="konva-rect"
-      data-x={props.x}
-      data-y={props.y}
-      data-width={props.width}
-      data-height={props.height}
-      data-fill={props.fill || ""}
-      data-stroke={props.stroke}
-      data-stroke-width={props.strokeWidth}
-      data-opacity={props.opacity}
-      data-dash={JSON.stringify(props.dash)}
-      onClick={wrapEvent(onClick as ((event: MockKonvaEvent) => void) | undefined)}
-      onTouchStart={wrapEvent(onTap as ((event: MockKonvaEvent) => void) | undefined)}
-      ref={(node) => assignRef(ref, node)}
-    />
-  ),
-);
-RectMock.displayName = "MockKonvaRect";
+function createRectMock() {
+  const Component = forwardRef<HTMLDivElement, Record<string, unknown>>(
+    ({ onClick, onTap, ...props }, ref) => (
+      <div
+        data-testid="konva-rect"
+        data-x={props.x}
+        data-y={props.y}
+        data-width={props.width}
+        data-height={props.height}
+        data-fill={props.fill || ""}
+        data-stroke={props.stroke}
+        data-stroke-width={props.strokeWidth}
+        data-opacity={props.opacity}
+        data-dash={JSON.stringify(props.dash)}
+        onClick={wrapEvent(onClick as ((event: MockKonvaEvent) => void) | undefined)}
+        onTouchStart={wrapEvent(onTap as ((event: MockKonvaEvent) => void) | undefined)}
+        ref={(node) => assignRef(ref, node)}
+      />
+    ),
+  );
+  Component.displayName = "MockKonvaRect";
+  return Component;
+}
 
-const CircleMock = forwardRef<HTMLDivElement, Record<string, unknown>>(
-  ({ onClick, onTap, ...props }, ref) => (
-    <div
-      data-testid="konva-circle"
-      data-x={props.x}
-      data-y={props.y}
-      data-radius={props.radius}
-      data-fill={props.fill || ""}
-      data-stroke={props.stroke}
-      data-stroke-width={props.strokeWidth}
-      data-opacity={props.opacity}
-      data-dash={JSON.stringify(props.dash)}
-      onClick={wrapEvent(onClick as ((event: MockKonvaEvent) => void) | undefined)}
-      onTouchStart={wrapEvent(onTap as ((event: MockKonvaEvent) => void) | undefined)}
-      ref={(node) => assignRef(ref, node)}
-    />
-  ),
-);
-CircleMock.displayName = "MockKonvaCircle";
+function createCircleMock() {
+  const Component = forwardRef<HTMLDivElement, Record<string, unknown>>(
+    ({ onClick, onTap, ...props }, ref) => (
+      <div
+        data-testid="konva-circle"
+        data-x={props.x}
+        data-y={props.y}
+        data-radius={props.radius}
+        data-fill={props.fill || ""}
+        data-stroke={props.stroke}
+        data-stroke-width={props.strokeWidth}
+        data-opacity={props.opacity}
+        data-dash={JSON.stringify(props.dash)}
+        onClick={wrapEvent(onClick as ((event: MockKonvaEvent) => void) | undefined)}
+        onTouchStart={wrapEvent(onTap as ((event: MockKonvaEvent) => void) | undefined)}
+        ref={(node) => assignRef(ref, node)}
+      />
+    ),
+  );
+  Component.displayName = "MockKonvaCircle";
+  return Component;
+}
 
 vi.mock("react-konva", () => ({
-  Group: GroupMock,
-  Line: LineMock,
-  Rect: RectMock,
-  Circle: CircleMock,
+  Group: createGroupMock(),
+  Line: createLineMock(),
+  Rect: createRectMock(),
+  Circle: createCircleMock(),
 }));
 
 describe("DrawingsLayer", () => {
