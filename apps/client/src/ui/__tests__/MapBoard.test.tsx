@@ -11,27 +11,51 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
+import { forwardRef } from "react";
+import type { ReactNode, Ref } from "react";
 import MapBoard from "../MapBoard";
 import type { RoomSnapshot } from "@shared";
 import type { MapBoardProps } from "../MapBoard.types";
 
 interface MockComponentProps {
-  children?: React.ReactNode;
+  children?: ReactNode;
   [key: string]: unknown;
+}
+
+function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
+  if (typeof ref === "function") {
+    ref(value);
+  } else if (ref && typeof ref === "object") {
+    (ref as { current: T | null }).current = value;
+  }
+}
+
+function createKonvaMock(
+  testId: string,
+  options: { omitProps?: string[] } = {},
+) {
+  return forwardRef<HTMLDivElement, MockComponentProps>(({ children, ...props }, ref) => {
+    const safeProps = { ...props };
+    for (const key of options.omitProps ?? []) {
+      delete safeProps[key];
+    }
+
+    return (
+      <div
+        data-testid={testId}
+        ref={(node) => assignRef(ref, node)}
+        {...safeProps}
+      >
+        {children}
+      </div>
+    );
+  });
 }
 
 // Mock Konva components
 vi.mock("react-konva", () => ({
-  Stage: ({ children, ...props }: MockComponentProps) => (
-    <div data-testid="konva-stage" {...props}>
-      {children}
-    </div>
-  ),
-  Layer: ({ children, ...props }: MockComponentProps) => (
-    <div data-testid="konva-layer" {...props}>
-      {children}
-    </div>
-  ),
+  Stage: createKonvaMock("konva-stage"),
+  Layer: createKonvaMock("konva-layer", { omitProps: ["listening"] }),
 }));
 
 // Mock all the layer components

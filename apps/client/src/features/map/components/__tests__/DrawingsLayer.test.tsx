@@ -18,21 +18,30 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { forwardRef } from "react";
+import type { PropsWithChildren, Ref } from "react";
 import { DrawingsLayer } from "../DrawingsLayer";
 import type { SceneObject } from "@shared";
 import type { Camera } from "../../../../hooks/useCamera";
 
+function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
+  if (typeof ref === "function") {
+    ref(value);
+  } else if (ref && typeof ref === "object") {
+    (ref as { current: T | null }).current = value;
+  }
+}
+
+function wrapEvent(handler?: (event: any) => void) {
+  return (e: unknown) => handler?.({ cancelBubble: false, evt: e, target: (e as any)?.target });
+}
+
 // Mock Konva components
 vi.mock("react-konva", () => ({
-  Group: ({
-    children,
-    onClick,
-    onTap,
-    onDragStart,
-    onDragMove,
-    onDragEnd,
-    ...props
-  }: React.PropsWithChildren<Record<string, unknown>>) => (
+  Group: forwardRef<
+    HTMLDivElement,
+    PropsWithChildren<Record<string, unknown>>
+  >(({ children, onClick, onTap, onDragStart, onDragMove, onDragEnd, ...props }, ref) => (
     <div
       data-testid="konva-group"
       data-x={props.x}
@@ -41,16 +50,17 @@ vi.mock("react-konva", () => ({
       data-scale-y={props.scaleY}
       data-rotation={props.rotation}
       data-draggable={props.draggable !== undefined ? String(props.draggable) : undefined}
-      onClick={onClick}
-      onTouchStart={onTap}
-      onDragStart={onDragStart}
-      onDragOver={onDragMove}
-      onDragEnd={onDragEnd}
+      onClick={wrapEvent(onClick as ((event: any) => void) | undefined)}
+      onTouchStart={(e) => onTap?.({ cancelBubble: false, evt: e, target: e.target })}
+      onDragStart={wrapEvent(onDragStart as ((event: any) => void) | undefined)}
+      onDragOver={wrapEvent(onDragMove as ((event: any) => void) | undefined)}
+      onDragEnd={wrapEvent(onDragEnd as ((event: any) => void) | undefined)}
+      ref={(node) => assignRef(ref, node)}
     >
       {children}
     </div>
-  ),
-  Line: ({ onClick, onTap, ...props }: Record<string, unknown>) => (
+  )),
+  Line: forwardRef<HTMLDivElement, Record<string, unknown>>(({ onClick, onTap, ...props }, ref) => (
     <div
       data-testid="konva-line"
       data-points={JSON.stringify(props.points)}
@@ -61,11 +71,12 @@ vi.mock("react-konva", () => ({
       data-opacity={props.opacity}
       data-listening={props.listening}
       data-dash={JSON.stringify(props.dash)}
-      onClick={(e) => onClick?.({ cancelBubble: false, evt: e, target: e.target })}
-      onTouchStart={(e) => onTap?.({ cancelBubble: false, evt: e, target: e.target })}
+      onClick={wrapEvent(onClick as ((event: any) => void) | undefined)}
+      onTouchStart={wrapEvent(onTap as ((event: any) => void) | undefined)}
+      ref={(node) => assignRef(ref, node)}
     />
-  ),
-  Rect: ({ onClick, onTap, ...props }: Record<string, unknown>) => (
+  )),
+  Rect: forwardRef<HTMLDivElement, Record<string, unknown>>(({ onClick, onTap, ...props }, ref) => (
     <div
       data-testid="konva-rect"
       data-x={props.x}
@@ -77,24 +88,28 @@ vi.mock("react-konva", () => ({
       data-stroke-width={props.strokeWidth}
       data-opacity={props.opacity}
       data-dash={JSON.stringify(props.dash)}
-      onClick={(e) => onClick?.({ cancelBubble: false, evt: e, target: e.target })}
-      onTouchStart={(e) => onTap?.({ cancelBubble: false, evt: e, target: e.target })}
+      onClick={wrapEvent(onClick as ((event: any) => void) | undefined)}
+      onTouchStart={wrapEvent(onTap as ((event: any) => void) | undefined)}
+      ref={(node) => assignRef(ref, node)}
     />
-  ),
-  Circle: ({ onClick, onTap, ...props }: Record<string, unknown>) => (
-    <div
-      data-testid="konva-circle"
-      data-x={props.x}
-      data-y={props.y}
-      data-radius={props.radius}
-      data-fill={props.fill || ""}
-      data-stroke={props.stroke}
-      data-stroke-width={props.strokeWidth}
-      data-opacity={props.opacity}
-      data-dash={JSON.stringify(props.dash)}
-      onClick={(e) => onClick?.({ cancelBubble: false, evt: e, target: e.target })}
-      onTouchStart={(e) => onTap?.({ cancelBubble: false, evt: e, target: e.target })}
-    />
+  )),
+  Circle: forwardRef<HTMLDivElement, Record<string, unknown>>(
+    ({ onClick, onTap, ...props }, ref) => (
+      <div
+        data-testid="konva-circle"
+        data-x={props.x}
+        data-y={props.y}
+        data-radius={props.radius}
+        data-fill={props.fill || ""}
+        data-stroke={props.stroke}
+        data-stroke-width={props.strokeWidth}
+        data-opacity={props.opacity}
+        data-dash={JSON.stringify(props.dash)}
+        onClick={wrapEvent(onClick as ((event: any) => void) | undefined)}
+        onTouchStart={wrapEvent(onTap as ((event: any) => void) | undefined)}
+        ref={(node) => assignRef(ref, node)}
+      />
+    ),
   ),
 }));
 
