@@ -587,5 +587,55 @@ describe("useWebSocket", () => {
 
       expect(hasMoveMessage).toBe(true);
     });
+
+    it("should automatically reauthenticate after reconnect using cached credentials", async () => {
+      const { result } = renderHook(() =>
+        useWebSocket({
+          url: "ws://localhost:3001",
+          uid: "test-user",
+          autoConnect: true,
+        }),
+      );
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(20);
+      });
+
+      // Authenticate once to cache credentials and reach authenticated state
+      act(() => {
+        result.current.authenticate("test-secret", "room-1");
+      });
+
+      await act(async () => {
+        const ws = wsInstances[0];
+        ws.simulateMessage({ t: "auth-ok" });
+      });
+
+      expect(result.current.authState).toBe(AuthState.AUTHENTICATED);
+
+      // Simulate a network drop
+      await act(async () => {
+        const ws = wsInstances[0];
+        ws.close(1006, "network error");
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      // Auth state should reset while connection manager prepares to reconnect
+      expect(result.current.authState).toBe(AuthState.UNAUTHENTICATED);
+
+      // Allow reconnection attempt and WebSocket open
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(3000);
+        await vi.advanceTimersByTimeAsync(20);
+      });
+
+      const ws = wsInstances[1];
+      const authMessages = ws.sentMessages.filter((msg: string) =>
+        msg.includes('"t":"authenticate"'),
+      );
+
+      expect(authMessages.length).toBeGreaterThan(0);
+      expect(result.current.authState).toBe(AuthState.PENDING);
+    });
   });
 });

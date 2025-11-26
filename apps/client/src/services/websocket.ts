@@ -148,6 +148,8 @@ export class WebSocketService {
   private heartbeatManager: HeartbeatManager;
   private connectionManager: ConnectionLifecycleManager;
   private warmupManager: ServerWarmupManager;
+  private lastAuthSecret: string | null = null;
+  private lastAuthRoomId: string | undefined;
 
   /**
    * Create a new WebSocketService orchestrator
@@ -216,6 +218,7 @@ export class WebSocketService {
       maxReconnectAttempts: this.config.maxReconnectAttempts,
       onStateChange: this.config.onStateChange,
       onOpen: this.handleOpen.bind(this),
+      onClose: this.handleClose.bind(this),
       onMessage: this.handleMessage.bind(this),
     });
 
@@ -332,6 +335,8 @@ export class WebSocketService {
    * @param roomId - Optional room ID to join
    */
   authenticate(secret: string, roomId?: string): void {
+    this.lastAuthSecret = secret;
+    this.lastAuthRoomId = roomId;
     this.authManager.authenticate(this.connectionManager.getWebSocket(), secret, roomId);
   }
 
@@ -363,8 +368,22 @@ export class WebSocketService {
     if (ws) {
       this.heartbeatManager.start(ws);
     }
+    this.reauthenticateIfPossible();
     // Do NOT flush message queue here - wait for auth-ok response
     // Messages will be flushed after successful authentication
+  }
+
+  /**
+   * Handle WebSocket close events
+   *
+   * Stops heartbeat timers and resets authentication state so that queued
+   * messages remain blocked until the next authentication attempt succeeds.
+   * The last known credentials are preserved for automatic reauthentication
+   * when the connection is re-established.
+   */
+  private handleClose(): void {
+    this.heartbeatManager.stop();
+    this.authManager.reset();
   }
 
   /**
@@ -419,6 +438,27 @@ export class WebSocketService {
     if (message.t === "auth-ok") {
       this.flushMessageQueue();
     }
+  }
+
+  /**
+   * Attempt to automatically reauthenticate using the last known credentials.
+   *
+   * This is invoked after a connection re-opens to ensure transient network
+   * hiccups do not leave the client connected but unauthenticated. If no
+   * credentials have been provided yet, this is a no-op.
+   */
+  private reauthenticateIfPossible(): void {
+    if (!this.lastAuthSecret) {
+      return;
+    }
+
+    const ws = this.connectionManager.getWebSocket();
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    console.log("[WebSocket] Reauthenticating after reconnect");
+    this.authManager.authenticate(ws, this.lastAuthSecret, this.lastAuthRoomId);
   }
 
   /**
