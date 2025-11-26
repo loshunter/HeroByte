@@ -1,16 +1,20 @@
+
+> herobyte@0.9.0-beta.1 lint:structure /home/loshunter/HeroByte_codex_review
+> node scripts/structure-report.mjs --limit 50 --threshold 350 --json
+
 {
-  "generatedAt": "2025-11-18T03:18:52.831Z",
+  "generatedAt": "2025-11-26T20:04:11.067Z",
   "threshold": 350,
   "includeTests": false,
   "files": [
     {
       "path": "apps/server/src/ws/messageRouter.ts",
-      "loc": 867,
+      "loc": 1012,
       "category": "server:websocket",
       "flagged": true,
       "hint": "Modularize handlers per message type & connection lifecycle. Extract auth, heartbeat, and message routing.",
       "roadmapRef": "",
-      "sizeBytes": 28622
+      "sizeBytes": 33140
     },
     {
       "path": "apps/e2e/partial-erase.spec.ts",
@@ -23,21 +27,30 @@
     },
     {
       "path": "apps/client/src/ui/App.tsx",
-      "loc": 778,
+      "loc": 713,
       "category": "client:ui",
       "flagged": true,
       "hint": "See docs/refactoring/REFACTOR_ROADMAP.md - 27 clusters identified, start with Phase 1 (quick wins: useLayoutMeasurement, useToolMode, etc.)",
       "roadmapRef": "App.tsx Phases 1-7",
-      "sizeBytes": 23969
+      "sizeBytes": 22566
     },
     {
       "path": "apps/client/src/components/layout/EntitiesPanel.tsx",
-      "loc": 693,
+      "loc": 712,
       "category": "client:misc",
       "flagged": true,
       "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
       "roadmapRef": "",
-      "sizeBytes": 28958
+      "sizeBytes": 29933
+    },
+    {
+      "path": "apps/client/src/features/map/components/TokensLayer.tsx",
+      "loc": 658,
+      "category": "client:map",
+      "flagged": true,
+      "hint": "Separate camera, selection, and tool orchestration. Extract hooks first, then components.",
+      "roadmapRef": "",
+      "sizeBytes": 20160
     },
     {
       "path": "packages/shared/src/models.ts",
@@ -49,85 +62,76 @@
       "sizeBytes": 13199
     },
     {
+      "path": "apps/client/src/services/websocket.ts",
+      "loc": 580,
+      "category": "client:services",
+      "flagged": true,
+      "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
+      "roadmapRef": "",
+      "sizeBytes": 20959
+    },
+    {
       "path": "apps/client/src/features/map/components/DrawingsLayer.tsx",
-      "loc": 568,
+      "loc": 564,
       "category": "client:map",
       "flagged": true,
       "hint": "Separate camera, selection, and tool orchestration. Extract hooks first, then components.",
       "roadmapRef": "",
-      "sizeBytes": 18492
+      "sizeBytes": 18214
     },
     {
       "path": "apps/client/src/ui/MapBoard.tsx",
-      "loc": 533,
+      "loc": 562,
       "category": "client:ui",
       "flagged": true,
       "hint": "See docs/refactoring/REFACTOR_ROADMAP.md - 32 clusters identified, start with Phase 1 (pure utilities: MapBoardTypes, coordinateTransforms)",
       "roadmapRef": "MapBoard.tsx Phases 1-7",
-      "sizeBytes": 15650
+      "sizeBytes": 16582
     },
     {
       "path": "packages/shared/src/index.ts",
-      "loc": 491,
+      "loc": 544,
       "category": "shared",
       "flagged": true,
       "hint": "Partition shared models into domain-specific slices (scene.ts, player.ts, token.ts, drawing.ts).",
       "roadmapRef": "",
-      "sizeBytes": 17927
-    },
-    {
-      "path": "apps/client/src/features/players/components/PlayerSettingsMenu.tsx",
-      "loc": 479,
-      "category": "client:players",
-      "flagged": true,
-      "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
-      "roadmapRef": "",
-      "sizeBytes": 16587
-    },
-    {
-      "path": "apps/client/src/features/map/components/TokensLayer.tsx",
-      "loc": 476,
-      "category": "client:map",
-      "flagged": true,
-      "hint": "Separate camera, selection, and tool orchestration. Extract hooks first, then components.",
-      "roadmapRef": "",
-      "sizeBytes": 14949
+      "sizeBytes": 19854
     },
     {
       "path": "apps/client/src/hooks/usePlayerActions.ts",
-      "loc": 473,
+      "loc": 500,
       "category": "client:hooks",
       "flagged": true,
       "hint": "Divide hook responsibilities per tool/state segment. Each hook should have ONE purpose (SRP).",
       "roadmapRef": "",
-      "sizeBytes": 13532
+      "sizeBytes": 14485
+    },
+    {
+      "path": "apps/client/src/features/players/components/PlayerSettingsMenu.tsx",
+      "loc": 499,
+      "category": "client:players",
+      "flagged": true,
+      "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
+      "roadmapRef": "",
+      "sizeBytes": 17389
     },
     {
       "path": "apps/client/src/services/websocket/ConnectionLifecycleManager.ts",
-      "loc": 473,
+      "loc": 499,
       "category": "client:services",
       "flagged": true,
       "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
       "roadmapRef": "",
-      "sizeBytes": 14708
+      "sizeBytes": 15487
     },
     {
-      "path": "apps/client/src/services/websocket.ts",
-      "loc": 469,
+      "path": "apps/client/src/services/websocket/MessageRouter.ts",
+      "loc": 460,
       "category": "client:services",
       "flagged": true,
       "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
       "roadmapRef": "",
-      "sizeBytes": 16597
-    },
-    {
-      "path": "apps/client/src/layouts/MainLayout.tsx",
-      "loc": 457,
-      "category": "client:misc",
-      "flagged": true,
-      "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
-      "roadmapRef": "",
-      "sizeBytes": 13883
+      "sizeBytes": 13808
     },
     {
       "path": "apps/e2e/session-load.spec.ts",
@@ -157,15 +161,6 @@
       "sizeBytes": 14555
     },
     {
-      "path": "apps/client/src/layouts/props/MainLayoutProps.ts",
-      "loc": 440,
-      "category": "client:misc",
-      "flagged": true,
-      "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
-      "roadmapRef": "",
-      "sizeBytes": 17828
-    },
-    {
       "path": "apps/e2e/staging-zone.spec.ts",
       "loc": 423,
       "category": "other",
@@ -173,6 +168,15 @@
       "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
       "roadmapRef": "",
       "sizeBytes": 13797
+    },
+    {
+      "path": "apps/client/src/layouts/MainLayout.tsx",
+      "loc": 395,
+      "category": "client:misc",
+      "flagged": true,
+      "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
+      "roadmapRef": "",
+      "sizeBytes": 12093
     },
     {
       "path": "apps/e2e/npc-visibility.spec.ts",
@@ -184,31 +188,22 @@
       "sizeBytes": 12458
     },
     {
+      "path": "apps/server/src/domains/map/service.ts",
+      "loc": 390,
+      "category": "server:domains",
+      "flagged": true,
+      "hint": "Split domain orchestration vs persistence vs validation. Follow DDD boundaries.",
+      "roadmapRef": "",
+      "sizeBytes": 11210
+    },
+    {
       "path": "apps/client/src/layouts/BottomPanelLayout.tsx",
       "loc": 389,
       "category": "client:misc",
       "flagged": true,
       "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
       "roadmapRef": "",
-      "sizeBytes": 13250
-    },
-    {
-      "path": "apps/server/src/domains/map/service.ts",
-      "loc": 388,
-      "category": "server:domains",
-      "flagged": true,
-      "hint": "Split domain orchestration vs persistence vs validation. Follow DDD boundaries.",
-      "roadmapRef": "",
-      "sizeBytes": 11128
-    },
-    {
-      "path": "apps/client/src/layouts/FloatingPanelsLayout.tsx",
-      "loc": 379,
-      "category": "client:misc",
-      "flagged": true,
-      "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
-      "roadmapRef": "",
-      "sizeBytes": 12629
+      "sizeBytes": 13308
     },
     {
       "path": "apps/e2e/multi-client-sync.spec.ts",
@@ -218,6 +213,15 @@
       "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
       "roadmapRef": "",
       "sizeBytes": 13129
+    },
+    {
+      "path": "apps/server/src/domains/character/service.ts",
+      "loc": 377,
+      "category": "server:domains",
+      "flagged": true,
+      "hint": "Split domain orchestration vs persistence vs validation. Follow DDD boundaries.",
+      "roadmapRef": "",
+      "sizeBytes": 10926
     },
     {
       "path": "apps/e2e/player-npc-initiative.spec.ts",
@@ -239,21 +243,30 @@
     },
     {
       "path": "apps/client/src/features/players/components/PlayerCard.tsx",
-      "loc": 364,
+      "loc": 365,
       "category": "client:players",
       "flagged": true,
       "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
       "roadmapRef": "",
-      "sizeBytes": 12328
+      "sizeBytes": 12400
     },
     {
-      "path": "apps/server/src/domains/character/service.ts",
-      "loc": 350,
-      "category": "server:domains",
+      "path": "apps/client/src/layouts/props/MainLayoutProps.ts",
+      "loc": 359,
+      "category": "client:misc",
       "flagged": true,
-      "hint": "Split domain orchestration vs persistence vs validation. Follow DDD boundaries.",
+      "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
       "roadmapRef": "",
-      "sizeBytes": 10128
+      "sizeBytes": 14522
+    },
+    {
+      "path": "apps/client/src/services/websocket/MessageQueueManager.ts",
+      "loc": 354,
+      "category": "client:services",
+      "flagged": true,
+      "hint": "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.",
+      "roadmapRef": "",
+      "sizeBytes": 10989
     },
     {
       "path": "apps/client/src/features/dm/components/DMMenu.tsx",
@@ -292,6 +305,15 @@
       "sizeBytes": 8769
     },
     {
+      "path": "apps/client/src/features/players/components/PortraitSection.tsx",
+      "loc": 334,
+      "category": "client:players",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 10815
+    },
+    {
       "path": "apps/client/src/features/selection/SelectionManager.ts",
       "loc": 330,
       "category": "client:misc",
@@ -301,13 +323,22 @@
       "sizeBytes": 9746
     },
     {
-      "path": "apps/client/src/features/players/components/NpcCard.tsx",
+      "path": "apps/server/src/ws/auth/AuthenticationHandler.ts",
       "loc": 329,
+      "category": "server:websocket",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 10874
+    },
+    {
+      "path": "apps/client/src/features/players/components/NpcCard.tsx",
+      "loc": 328,
       "category": "client:players",
       "flagged": false,
       "hint": "",
       "roadmapRef": "",
-      "sizeBytes": 10470
+      "sizeBytes": 10486
     },
     {
       "path": "apps/e2e/character-creation.spec.ts",
@@ -328,15 +359,6 @@
       "sizeBytes": 9118
     },
     {
-      "path": "apps/server/src/ws/auth/AuthenticationHandler.ts",
-      "loc": 321,
-      "category": "server:websocket",
-      "flagged": false,
-      "hint": "",
-      "roadmapRef": "",
-      "sizeBytes": 10666
-    },
-    {
       "path": "apps/client/src/features/map/useMapAlignment.ts",
       "loc": 320,
       "category": "client:map",
@@ -355,6 +377,15 @@
       "sizeBytes": 9640
     },
     {
+      "path": "apps/server/src/ws/handlers/TokenMessageHandler.ts",
+      "loc": 314,
+      "category": "server:websocket",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 9045
+    },
+    {
       "path": "apps/client/src/features/map/components/TransformGizmo.tsx",
       "loc": 313,
       "category": "client:map",
@@ -362,24 +393,6 @@
       "hint": "",
       "roadmapRef": "",
       "sizeBytes": 9336
-    },
-    {
-      "path": "apps/client/src/services/websocket/MessageRouter.ts",
-      "loc": 313,
-      "category": "client:services",
-      "flagged": false,
-      "hint": "",
-      "roadmapRef": "",
-      "sizeBytes": 9267
-    },
-    {
-      "path": "apps/client/src/features/players/components/PortraitSection.tsx",
-      "loc": 308,
-      "category": "client:players",
-      "flagged": false,
-      "hint": "",
-      "roadmapRef": "",
-      "sizeBytes": 9808
     },
     {
       "path": "apps/client/src/test-utils/SnapshotBuilder.ts",
@@ -418,6 +431,15 @@
       "sizeBytes": 8567
     },
     {
+      "path": "apps/server/src/ws/handlers/CharacterMessageHandler.ts",
+      "loc": 299,
+      "category": "server:websocket",
+      "flagged": false,
+      "hint": "",
+      "roadmapRef": "",
+      "sizeBytes": 9578
+    },
+    {
       "path": "apps/e2e/ui-state.spec.ts",
       "loc": 298,
       "category": "other",
@@ -427,31 +449,13 @@
       "sizeBytes": 9456
     },
     {
-      "path": "apps/e2e/undo-redo.spec.ts",
-      "loc": 291,
-      "category": "other",
+      "path": "apps/client/src/features/dm/hooks/useDMContext.ts",
+      "loc": 294,
+      "category": "client:dm",
       "flagged": false,
       "hint": "",
       "roadmapRef": "",
-      "sizeBytes": 9354
-    },
-    {
-      "path": "apps/server/src/domains/room/scene/SceneGraphBuilder.ts",
-      "loc": 291,
-      "category": "server:domains",
-      "flagged": false,
-      "hint": "",
-      "roadmapRef": "",
-      "sizeBytes": 8383
-    },
-    {
-      "path": "apps/e2e/player-npc-initiative-ui.spec.ts",
-      "loc": 281,
-      "category": "other",
-      "flagged": false,
-      "hint": "",
-      "roadmapRef": "",
-      "sizeBytes": 10735
+      "sizeBytes": 7411
     }
   ]
 }
