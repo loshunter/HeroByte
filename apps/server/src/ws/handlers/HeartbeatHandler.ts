@@ -58,7 +58,7 @@ export class HeartbeatHandler {
     }
     console.log(`[DEBUG] Heartbeat received from ${senderUid}`);
 
-    // No broadcast required; server responds directly with heartbeat-ack.
-    return { broadcast: false };
+    // Broadcast required to keep connection alive and align with refactor pattern.
+    return { broadcast: true };
   }
 }

@@ -59,6 +59,7 @@ export interface RouteHandlerResult {
   save?: unknown;
   reason?: string;
   delta?: PendingDelta;
+  skipBroadcast?: boolean;
 }
 
 export class RouteResultHandler {
@@ -123,7 +124,7 @@ export class RouteResultHandler {
     }
 
     // Execute broadcast if needed (truthy check handles all truthy values)
-    if (result.broadcast) {
+    if (result.broadcast && !result.skipBroadcast) {
       this.broadcastCallback(result.reason);
     }
 

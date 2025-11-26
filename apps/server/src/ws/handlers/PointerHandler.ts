@@ -73,7 +73,7 @@ export class PointerHandler {
   handlePointer(state: RoomState, senderUid: string, x: number, y: number): PointerHandlerResult {
     const pointer = this.mapService.placePointer(state, senderUid, x, y);
     return {
-      broadcast: false,
+      broadcast: true,
       preview: pointer,
     };
   }

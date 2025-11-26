@@ -52,7 +52,8 @@ describe("PointerHandler - Characterization Tests (Week 8)", () => {
     it("should return result object when placing a pointer", () => {
       const result = pointerHandler.handlePointer(state, "player-1", 100, 200);
 
-      expect(result).toEqual({ broadcast: true });
+      expect(result).toMatchObject({ broadcast: true });
+      expect(result.preview).toBeDefined();
       expect(typeof result).toBe("object");
       expect(result).toHaveProperty("broadcast");
       expect(result.broadcast).toBe(true);
@@ -63,9 +64,12 @@ describe("PointerHandler - Characterization Tests (Week 8)", () => {
       const result2 = pointerHandler.handlePointer(state, "player-1", 999, 999);
       const result3 = pointerHandler.handlePointer(state, "player-1", -50, -50);
 
-      expect(result1).toEqual({ broadcast: true });
-      expect(result2).toEqual({ broadcast: true });
-      expect(result3).toEqual({ broadcast: true });
+      expect(result1).toMatchObject({ broadcast: true });
+      expect(result2).toMatchObject({ broadcast: true });
+      expect(result3).toMatchObject({ broadcast: true });
+      expect(result1.preview).toBeDefined();
+      expect(result2.preview).toBeDefined();
+      expect(result3.preview).toBeDefined();
     });
 
     it("should always return broadcast:true regardless of player", () => {
@@ -73,9 +77,12 @@ describe("PointerHandler - Characterization Tests (Week 8)", () => {
       const result2 = pointerHandler.handlePointer(state, "player-2", 100, 200);
       const result3 = pointerHandler.handlePointer(state, "unknown-player", 100, 200);
 
-      expect(result1).toEqual({ broadcast: true });
-      expect(result2).toEqual({ broadcast: true });
-      expect(result3).toEqual({ broadcast: true });
+      expect(result1).toMatchObject({ broadcast: true });
+      expect(result2).toMatchObject({ broadcast: true });
+      expect(result3).toMatchObject({ broadcast: true });
+      expect(result1.preview).toBeDefined();
+      expect(result2.preview).toBeDefined();
+      expect(result3.preview).toBeDefined();
     });
   });
 
@@ -149,10 +156,10 @@ describe("PointerHandler - Characterization Tests (Week 8)", () => {
       const result = pointerHandler.handlePointer(state, "player-1", 100, 200);
 
       // Week 8 achievement: result object pattern
-      const expectedResult = { broadcast: true };
-      expect(result).toEqual(expectedResult);
+      expect(result).toMatchObject({ broadcast: true });
       expect(result).toHaveProperty("broadcast");
       expect(typeof result.broadcast).toBe("boolean");
+      expect(result.preview).toBeDefined();
     });
   });
 });

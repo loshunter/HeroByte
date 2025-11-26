@@ -887,13 +887,18 @@ export class MessageRouter {
     }
 
     this.skipNextBroadcastVersionBump = shouldSkipBroadcastVersionBump;
-    this.routeResultHandler.handleResult({ ...result, reason });
+    const pointerResult = result as PointerHandlerResult;
+    const shouldSuppressBroadcast =
+      reason === "point" || reason === "heartbeat" || Boolean(pointerResult.preview);
+    const routeResult = { ...result, reason };
+    const routeResultInput = shouldSuppressBroadcast
+      ? { ...routeResult, broadcast: false }
+      : routeResult;
+    this.routeResultHandler.handleResult(routeResultInput);
 
     if (!result.broadcast) {
       this.skipNextBroadcastVersionBump = false;
     }
-
-    const pointerResult = result as PointerHandlerResult;
     if (pointerResult.preview) {
       this.broadcastPointerPreview(pointerResult.preview, reason);
     }
