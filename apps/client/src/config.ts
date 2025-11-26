@@ -44,3 +44,8 @@ console.log(
   WS_URL,
   wsOverride ? "(URL override)" : import.meta.env.VITE_WS_URL ? "(from env)" : "(auto-detected)",
 );
+
+const dragPreviewEnv = import.meta.env.VITE_ENABLE_DRAG_PREVIEWS;
+export const ENABLE_DRAG_PREVIEWS = typeof dragPreviewEnv === "string"
+  ? dragPreviewEnv.toLowerCase() === "true"
+  : false;

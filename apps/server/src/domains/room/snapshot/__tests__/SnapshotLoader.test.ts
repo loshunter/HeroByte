@@ -975,4 +975,57 @@ describe("SnapshotLoader - Characterization Tests", () => {
       expect(roomService.getState().playerStagingZone).toBeUndefined();
     });
   });
+
+  describe("Asset hydration", () => {
+    it("hydrates map background and drawings from asset references", () => {
+      const snapshot: RoomSnapshot = {
+        users: [],
+        pointers: [],
+        players: [],
+        characters: [],
+        tokens: [],
+        props: [],
+        gridSize: 50,
+        gridSquareSize: 5,
+        diceRolls: [],
+        sceneObjects: [],
+        combatActive: false,
+        assets: [
+          {
+            id: "map-background:abc",
+            type: "map-background",
+            hash: "abc",
+            size: 10,
+            payload: "https://example.com/map.png",
+          },
+          {
+            id: "drawings:def",
+            type: "drawings",
+            hash: "def",
+            size: 10,
+            payload: [
+              {
+                id: "drawing-1",
+                type: "freehand",
+                points: [{ x: 0, y: 0 }],
+                color: "#fff",
+                width: 2,
+                opacity: 1,
+              },
+            ],
+          },
+        ],
+        assetRefs: {
+          "map-background": "map-background:abc",
+          drawings: "drawings:def",
+        },
+      };
+
+      roomService.loadSnapshot(snapshot);
+      const state = roomService.getState();
+      expect(state.mapBackground).toBe("https://example.com/map.png");
+      expect(state.drawings).toHaveLength(1);
+      expect(state.drawings[0]?.id).toBe("drawing-1");
+    });
+  });
 });

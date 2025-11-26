@@ -159,6 +159,19 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       expect(mockOnStateChange).not.toHaveBeenCalled();
     });
 
+    it("should warn when connection attempt is already in progress", () => {
+      manager.connect();
+      mockOnStateChange.mockClear();
+
+      manager.connect();
+
+      expect(console.warn).toHaveBeenCalledWith(
+        "[WebSocket] Connection attempt already in progress",
+      );
+      expect(MockWebSocketClass).toHaveBeenCalledOnce();
+      expect(mockOnStateChange).not.toHaveBeenCalled();
+    });
+
     it("should set up WebSocket event handlers (onopen, onclose, onerror, onmessage)", () => {
       manager.connect();
 
@@ -221,7 +234,43 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
   });
 
   // =========================================================================
-  // GROUP 3: Disconnect Behavior
+  // GROUP 3: Event Guarding
+  // =========================================================================
+
+  describe("Event Guarding", () => {
+    it("should ignore close events from stale sockets", () => {
+      manager.connect();
+      const staleSocket = mockWebSocketInstance;
+      staleSocket.readyState = WebSocket.OPEN;
+      staleSocket.onopen?.();
+      expect(manager.getState()).toBe(ConnectionState.CONNECTED);
+
+      const replacementSocket: WebSocket = {
+        readyState: WebSocket.OPEN,
+        send: vi.fn(),
+        close: vi.fn(),
+        onopen: null,
+        onmessage: null,
+        onclose: null,
+        onerror: null,
+      } as unknown as WebSocket;
+
+      // Force internal ws reference to point to replacement socket
+      // @ts-expect-error accessing private field for test verification
+      manager.ws = replacementSocket;
+
+      staleSocket.onclose?.({ code: 4001, reason: "Replaced" } as CloseEvent);
+
+      expect(console.log).toHaveBeenCalledWith(
+        "[WebSocket] Ignoring close event for stale socket",
+      );
+      expect(mockOnClose).not.toHaveBeenCalled();
+      expect(manager.getState()).toBe(ConnectionState.CONNECTED);
+    });
+  });
+
+  // =========================================================================
+  // GROUP 4: Disconnect Behavior
   // =========================================================================
 
   describe("Disconnect Behavior", () => {
@@ -808,13 +857,12 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       manager.connect();
       expect(manager.getState()).toBe(ConnectionState.CONNECTING);
 
-      // Connect while still connecting - should not be blocked
-      // The early return only happens when already CONNECTED
       manager.connect();
 
-      // Second connect() will create a new connection since state is CONNECTING, not CONNECTED
-      // This is the actual behavior - only blocks when CONNECTED
-      expect(MockWebSocketClass.mock.calls.length).toBe(2);
+      expect(console.warn).toHaveBeenCalledWith(
+        "[WebSocket] Connection attempt already in progress",
+      );
+      expect(MockWebSocketClass.mock.calls.length).toBe(1);
     });
 
     it("should only close WebSocket in cleanup() when readyState is OPEN", () => {

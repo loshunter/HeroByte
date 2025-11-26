@@ -27,6 +27,24 @@ interface UseObjectSelectionResult {
 
 const MAX_SELECTION = 100;
 
+const selectionDebugEnv = import.meta.env.VITE_DEBUG_SELECTION;
+const isSelectionDebugEnabled =
+  typeof selectionDebugEnv === "string" ? selectionDebugEnv.toLowerCase() === "true" : false;
+
+function logSelectionDebug(...args: unknown[]) {
+  if (!isSelectionDebugEnabled) {
+    return;
+  }
+  console.log(...args);
+}
+
+function logSelectionDebugWithStack(message: string) {
+  if (!isSelectionDebugEnabled) {
+    return;
+  }
+  console.log(message, new Error().stack);
+}
+
 function normalizeIds(ids: string[]): string[] {
   const normalized: string[] = [];
   const seen = new Set<string>();
@@ -75,7 +93,7 @@ export function useObjectSelection({
 
   // Clear optimistic state once the authoritative snapshot catches up
   useEffect(() => {
-    console.log(
+    logSelectionDebug(
       "[useObjectSelection] serverEntry changed, clearing optimistic state. serverEntry:",
       serverEntry,
     );
@@ -100,10 +118,7 @@ export function useObjectSelection({
         if (!activeEntry) {
           return;
         }
-        console.log(
-          "[useObjectSelection] selectObject(null) called - deselecting",
-          new Error().stack,
-        );
+        logSelectionDebugWithStack("[useObjectSelection] selectObject(null) called - deselecting");
         setOptimisticEntry(null);
         sendMessage({ t: "deselect-object", uid });
         return;
@@ -123,14 +138,14 @@ export function useObjectSelection({
     if (!activeEntry) {
       return;
     }
-    console.log("[useObjectSelection] deselect() called", new Error().stack);
+    logSelectionDebugWithStack("[useObjectSelection] deselect() called");
     setOptimisticEntry(null);
     sendMessage({ t: "deselect-object", uid });
   }, [activeEntry, sendMessage, uid]);
 
   const selectMultiple = useCallback(
     (objectIds: string[], mode: SelectionMode = "replace") => {
-      console.log("[useObjectSelection] selectMultiple called:", objectIds, "mode:", mode);
+      logSelectionDebug("[useObjectSelection] selectMultiple called:", objectIds, "mode:", mode);
       const currentIds = entryToIds(activeEntry);
       const normalizedIncoming = normalizeIds(objectIds);
 
@@ -157,18 +172,18 @@ export function useObjectSelection({
         }
       }
 
-      console.log("[useObjectSelection] currentIds:", currentIds, "nextIds:", nextIds);
+      logSelectionDebug("[useObjectSelection] currentIds:", currentIds, "nextIds:", nextIds);
 
       const unchanged =
         currentIds.length === nextIds.length &&
         currentIds.every((value, index) => value === nextIds[index]);
       if (unchanged) {
-        console.log("[useObjectSelection] Selection unchanged, skipping");
+        logSelectionDebug("[useObjectSelection] Selection unchanged, skipping");
         return;
       }
 
       if (nextIds.length === 0) {
-        console.log("[useObjectSelection] nextIds is empty - deselecting", new Error().stack);
+        logSelectionDebugWithStack("[useObjectSelection] nextIds is empty - deselecting");
         setOptimisticEntry(null);
         if (mode === "replace") {
           sendMessage({ t: "deselect-object", uid });
@@ -178,7 +193,7 @@ export function useObjectSelection({
         return;
       }
 
-      console.log("[useObjectSelection] Setting selection to:", nextIds);
+      logSelectionDebug("[useObjectSelection] Setting selection to:", nextIds);
       setOptimisticEntry(toSelectionEntry(nextIds));
       if (mode === "replace" && nextIds.length === 1) {
         sendMessage({ t: "select-object", uid, objectId: nextIds[0]! });

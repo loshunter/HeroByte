@@ -11,16 +11,16 @@
  * @module ws/handlers/PointerHandler
  */
 
-import type {} from "@shared";
+import type { Pointer } from "@shared";
 import type { RoomState } from "../../domains/room/model.js";
 import type { MapService } from "../../domains/map/service.js";
+import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 
 /**
  * Result object returned by pointer handler methods
  */
-export interface PointerHandlerResult {
-  broadcast: boolean;
-  save?: boolean;
+export interface PointerHandlerResult extends RouteHandlerResult {
+  preview?: Pointer;
 }
 
 /**
@@ -61,7 +61,7 @@ export class PointerHandler {
    * @param senderUid - UID of the player placing the pointer
    * @param x - X coordinate on the map
    * @param y - Y coordinate on the map
-   * @returns Result object indicating broadcast is needed (always true for pointer updates)
+   * @returns Result object emitting pointer delta without forcing a full broadcast
    *
    * @example
    * ```typescript
@@ -71,7 +71,10 @@ export class PointerHandler {
    * ```
    */
   handlePointer(state: RoomState, senderUid: string, x: number, y: number): PointerHandlerResult {
-    this.mapService.placePointer(state, senderUid, x, y);
-    return { broadcast: true }; // Always broadcast to update all clients with pointer position
+    const pointer = this.mapService.placePointer(state, senderUid, x, y);
+    return {
+      broadcast: false,
+      preview: pointer,
+    };
   }
 }

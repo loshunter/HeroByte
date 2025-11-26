@@ -40,14 +40,9 @@ export class HeartbeatHandler {
    *
    * Updates the player's lastHeartbeat timestamp to the current time.
    * This is used to detect client disconnections and timeout inactive players.
-   *
-   * **Week 8 Change:**
-   * Now returns a result object `{ broadcast: true }` instead of `boolean`,
-   * following the standard pattern used by all other message handlers.
-   *
    * @param state - Room state containing players
    * @param senderUid - UID of the player sending heartbeat
-   * @returns Result object indicating broadcast is needed (always true to keep connection alive)
+   * @returns Result object indicating no broadcast is required (ack is sent directly)
    *
    * @example
    * ```typescript
@@ -63,7 +58,7 @@ export class HeartbeatHandler {
     }
     console.log(`[DEBUG] Heartbeat received from ${senderUid}`);
 
-    // Always broadcast to keep client connection alive (prevents heartbeat timeout)
-    return { broadcast: true };
+    // No broadcast required; server responds directly with heartbeat-ack.
+    return { broadcast: false };
   }
 }

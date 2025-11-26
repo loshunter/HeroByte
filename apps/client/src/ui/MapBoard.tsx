@@ -14,6 +14,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Stage, Layer } from "react-konva";
 import type Konva from "konva";
+import type { DragPreviewUpdate } from "@shared";
+import { ENABLE_DRAG_PREVIEWS } from "../config.js";
 import { usePointerTool } from "../hooks/usePointerTool.js";
 import { useDrawingTool } from "../hooks/useDrawingTool.js";
 import { useDrawingSelection } from "../hooks/useDrawingSelection.js";
@@ -316,6 +318,20 @@ export default function MapBoard({
   });
 
   const tokenInteractionsEnabled = !drawMode;
+  const dragPreviewEnabled = ENABLE_DRAG_PREVIEWS;
+
+  const handleDragPreview = useCallback(
+    (updates: DragPreviewUpdate[]) => {
+      if (!updates || updates.length === 0) {
+        return;
+      }
+      if (!dragPreviewEnabled) {
+        return;
+      }
+      sendMessage({ t: "drag-preview", objects: updates });
+    },
+    [sendMessage, dragPreviewEnabled],
+  );
 
   const handleRecolorToken = useCallback(
     (sceneId: string, owner?: string | null) => {
@@ -495,6 +511,7 @@ export default function MapBoard({
             onSelectObject={onSelectObject}
             onTokenNodeReady={handleTokenNodeReady}
             interactionsEnabled={tokenInteractionsEnabled}
+            onDragPreview={dragPreviewEnabled ? handleDragPreview : undefined}
             statusEffectsByTokenId={statusEffectsByTokenId}
           />
         </Layer>

@@ -62,6 +62,11 @@ import {
   ConnectionState,
 } from "./websocket/ConnectionLifecycleManager";
 import { ServerWarmupManager } from "./websocket/ServerWarmupManager";
+import {
+  SnapshotReconciler,
+  type SnapshotResyncReason,
+} from "./websocket/SnapshotReconciler";
+import { CommandAckManager } from "./websocket/CommandAckManager";
 
 type MessageHandler = (snapshot: RoomSnapshot) => void;
 type RtcSignalHandler = (from: string, signal: SignalData) => void;
@@ -148,6 +153,8 @@ export class WebSocketService {
   private heartbeatManager: HeartbeatManager;
   private connectionManager: ConnectionLifecycleManager;
   private warmupManager: ServerWarmupManager;
+  private snapshotReconciler: SnapshotReconciler;
+  private commandAckManager: CommandAckManager;
   private lastAuthSecret: string | null = null;
   private lastAuthRoomId: string | undefined;
 
@@ -190,17 +197,48 @@ export class WebSocketService {
       onAuthEvent: this.config.onAuthEvent,
     });
 
+    this.snapshotReconciler = new SnapshotReconciler({
+      onSnapshot: (snapshot) => this.config.onMessage(snapshot),
+      requestResync: (details) => this.requestStateResync(details),
+    });
+
+    this.commandAckManager = new CommandAckManager();
+
     // Initialize MessageRouter (independent)
     this.messageRouter = new MessageRouter({
-      onMessage: this.config.onMessage,
+      onMessage: (snapshot) => this.snapshotReconciler.applySnapshot(snapshot),
       onRtcSignal: this.config.onRtcSignal,
       onAuthResponse: this.handleAuthResponse.bind(this),
       onControlMessage: this.config.onControlMessage,
+      onDelta: (delta) => this.snapshotReconciler.applyDelta(delta),
+      onPointerPreview: (pointer) => this.snapshotReconciler.applyPointerPreview(pointer),
+      onDragPreview: (preview) => this.snapshotReconciler.applyDragPreview(preview),
+      onHeartbeatAck: (timestamp) => this.heartbeatManager.recordHeartbeatAck(timestamp),
+      onAck: (commandId) => {
+        this.commandAckManager.handleAck(commandId);
+        this.messageQueueManager.handleCommandResult(commandId);
+      },
+      onNack: (commandId, reason) => {
+        this.commandAckManager.handleNack(commandId, reason);
+        this.messageQueueManager.handleCommandResult(commandId);
+      },
     });
 
     // Initialize MessageQueueManager (independent)
     this.messageQueueManager = new MessageQueueManager({
       maxQueueSize: 200,
+      onQueueOverflow: (message, queueSize) => {
+        console.warn(
+          `[WebSocket] Queue overflow detected (length=${queueSize}) dropping message type=${message.t}`,
+        );
+        this.commandAckManager.handleDrop(message, "queue-overflow");
+      },
+      onRetryDispatch: (message) => {
+        this.dispatchMessage(message);
+      },
+      onRetryExhausted: (message) => {
+        this.commandAckManager.handleDrop(message, "retry-exhausted");
+      },
     });
 
     // Initialize HeartbeatManager (needs auth state accessor)
@@ -246,6 +284,9 @@ export class WebSocketService {
    */
   connect(): void {
     this.authManager.reset();
+    this.snapshotReconciler.reset();
+    this.messageQueueManager.resetRetries();
+    this.commandAckManager.reset();
     this.warmupManager.ensureWarmup().catch((error) => {
       console.warn("[Warmup] Warmup request rejected:", error);
     });
@@ -269,6 +310,9 @@ export class WebSocketService {
   disconnect(): void {
     this.authManager.reset();
     this.heartbeatManager.stop();
+    this.snapshotReconciler.reset();
+    this.messageQueueManager.resetRetries();
+    this.commandAckManager.reset();
     this.connectionManager.disconnect();
   }
 
@@ -297,9 +341,8 @@ export class WebSocketService {
     }
 
     // Delegate to MessageQueueManager
-    this.messageQueueManager.send(message, this.connectionManager.getWebSocket(), () =>
-      this.canSendImmediately(),
-    );
+    const messageWithCommandId = this.commandAckManager.attachCommandId(message);
+    this.dispatchMessage(messageWithCommandId);
   }
 
   /**
@@ -384,6 +427,9 @@ export class WebSocketService {
   private handleClose(): void {
     this.heartbeatManager.stop();
     this.authManager.reset();
+    this.snapshotReconciler.reset();
+    this.messageQueueManager.resetRetries();
+    this.commandAckManager.reset();
   }
 
   /**
@@ -438,6 +484,27 @@ export class WebSocketService {
     if (message.t === "auth-ok") {
       this.flushMessageQueue();
     }
+  }
+
+  private requestStateResync(details: {
+    lastSeenVersion: number;
+    receivedVersion?: number;
+    reason: SnapshotResyncReason;
+  }): void {
+    console.warn(
+      `[WebSocket] Requesting room resync (reason=${details.reason}, last=${details.lastSeenVersion}, received=${details.receivedVersion ?? "n/a"})`,
+    );
+    this.send({
+      t: "request-room-resync",
+      lastSeenVersion: details.lastSeenVersion,
+      reason: details.reason,
+    });
+  }
+
+  private dispatchMessage(message: ClientMessage): void {
+    this.messageQueueManager.send(message, this.connectionManager.getWebSocket(), () =>
+      this.canSendImmediately(),
+    );
   }
 
   /**

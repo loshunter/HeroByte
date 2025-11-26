@@ -75,6 +75,41 @@ _Completed milestones are archived in [DONE.md](DONE.md) to keep this list focus
 
 _Completed phase summaries now live in [DONE.md](DONE.md)._
 
+## Networking Reliability & Sync Modernization (SOLID + TDD)
+
+**Goal**: Move from full-snapshot spam to modern, efficient, and observable real-time sync while preserving SRP/SoC and driving each change with failing tests first.
+
+- [ ] **Baseline & Observability (test-first)**
+  - [x] Add snapshot size/latency metrics + structured logs for broadcast frequency; write regression tests that assert log/metric shapes (server Jest + client Vitest).
+  - [x] Capture canonical message transcript fixtures for regression (auth → join → move → draw) to power contract tests before code changes.
+- [ ] **Heartbeat becomes ACK-only**
+  - [x] Add `heartbeat-ack` control message; server stops broadcasting on heartbeat (update `HeartbeatHandler` + router). Write tests covering: lastHeartbeat update, ack delivery, no broadcast side-effects.
+  - [x] Client HeartbeatManager honors ack (timeout resets on any message or ack); add failing tests first.
+- [ ] **State Versioning & Delta Pipeline**
+  - [x] Introduce monotonically increasing `stateVersion` on server snapshots; add contract tests asserting version increments on state changes.
+  - [x] Emit targeted deltas for high-volume actions (token move, pointer, draw, transform) with SRP handlers; keep full snapshot only for join/recover. Write TDD suites for each delta type and a reconciliation test that applies deltas then compares to full snapshot.
+  - [x] Add client-side version tracking + resync request when gap detected; integration tests simulate skipped messages and verify recovery.
+- [ ] **Command IDs, Acks, and Backpressure**
+  - [x] Add client-generated `commandId` to mutating messages; server responds with `{t:"ack", commandId}` or `{t:"nack", reason}`; contract tests cover success/failure paths.
+  - [x] Expose queue overflow telemetry (drop reason + size) and add tests to assert logging instead of silent drops.
+  - [x] Update MessageQueueManager to retry unacked commands with bounded attempts; TDD around retry/backoff and idempotent server handling.
+- [ ] **Asset & Payload Slimming**
+  - [x] Split heavy assets (map background, drawings) into reference payloads with deterministic hashes and hydrate them client-side from cached assets.
+  - [x] Add snapshot size guardrails so oversized broadcasts surface telemetry before landing in CI.
+  - [x] Add gzip/brotli check in CI for average snapshot size regression guard.
+- [ ] **High-Frequency Channels**
+- [x] Route pointer previews over a lightweight channel so high-frequency input never triggers room persistence or broadcast.
+  - [x] Move drag previews to a lightweight update channel (or RTC shim) isolated from authoritative state; tests ensure these never trigger room persistence or full broadcast.
+- [ ] **Multi-Room & Horizontal Scalability Ready**
+  - [x] Introduce room-scoped store abstraction with in-memory adapter to prepare for Redis-backed multi-room fan-out.
+  - [x] Capture Redis/pub-sub rollout plan in `docs/planning/multi-room-store.md` so the adapter scope is locked in.
+  - [x] Build RoomRegistry + RedisRoomStore scaffolding with contract tests so room fan-out can be exercised per roomId before enabling Redis.
+  - [ ] Add Redis/pub-sub adapter behind feature flag. Contract tests verify fanout per room and isolation between rooms.
+  - [ ] Persist `stateVersion` and asset references in store; add migration test to ensure cold start loads the same versioned state.
+- [ ] **Rollout & Guardrails**
+  - [x] Feature-flag deltas/acks so we can ship incrementally; add tests ensuring flags default to current behavior until enabled.
+  - [ ] Update docs/architecture diagrams to reflect new messaging contracts; add lint/CI rule to forbid new full-snapshot broadcasts outside explicit recovery paths.
+
 ## Phase 13: Future Drawing & Interaction Polish
 
 **Priority**: Medium - Additional polish for drawing workflows

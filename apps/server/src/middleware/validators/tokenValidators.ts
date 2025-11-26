@@ -4,7 +4,7 @@
 // Validates token-related messages: move, recolor, delete, update-image, set-size, set-color
 
 import type { ValidationResult, MessageRecord } from "./commonValidators.js";
-import { isFiniteNumber, VALID_TOKEN_SIZES } from "./commonValidators.js";
+import { isFiniteNumber, isRecord, VALID_TOKEN_SIZES } from "./commonValidators.js";
 import { STRING_LIMITS } from "./constants.js";
 
 /**
@@ -99,5 +99,36 @@ export function validateSetTokenColorMessage(message: MessageRecord): Validation
   if (trimmed.length > STRING_LIMITS.COLOR_MAX) {
     return { valid: false, error: "set-token-color: color too long (max 128 chars)" };
   }
+  return { valid: true };
+}
+
+/**
+ * Validate drag-preview message
+ * Required: objects (array of { id: string; x: number; y: number })
+ */
+export function validateDragPreviewMessage(message: MessageRecord): ValidationResult {
+  if (!Array.isArray(message.objects)) {
+    return { valid: false, error: "drag-preview: objects must be an array" };
+  }
+
+  if (message.objects.length === 0) {
+    return { valid: false, error: "drag-preview: objects cannot be empty" };
+  }
+
+  for (let index = 0; index < message.objects.length; index++) {
+    const entry = message.objects[index];
+    if (!isRecord(entry)) {
+      return { valid: false, error: `drag-preview: object ${index} must be an object` };
+    }
+
+    if (typeof entry.id !== "string" || entry.id.length === 0) {
+      return { valid: false, error: `drag-preview: object ${index} missing id` };
+    }
+
+    if (!isFiniteNumber(entry.x) || !isFiniteNumber(entry.y)) {
+      return { valid: false, error: `drag-preview: object ${index} missing coordinates` };
+    }
+  }
+
   return { valid: true };
 }

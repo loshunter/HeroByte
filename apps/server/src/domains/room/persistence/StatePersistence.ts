@@ -82,6 +82,7 @@ export class StatePersistence {
         // Replace entire state with loaded data
         const loadedState: RoomState = {
           users: [], // Don't persist users - they reconnect
+          stateVersion: typeof data.stateVersion === "number" ? data.stateVersion : 0,
           tokens: data.tokens || [],
           players: (data.players || []).map((player: Player) => ({
             ...player,
@@ -167,6 +168,7 @@ export class StatePersistence {
       diceRolls: state.diceRolls,
       sceneObjects: state.sceneObjects,
       playerStagingZone: state.playerStagingZone,
+      stateVersion: state.stateVersion,
     };
 
     // Queue writes to avoid overlapping file operations that can corrupt JSON.

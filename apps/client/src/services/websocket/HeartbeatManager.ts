@@ -144,6 +144,15 @@ export class HeartbeatManager {
   }
 
   /**
+   * Record an explicit heartbeat acknowledgement from the server.
+   * Currently this is equivalent to recordMessage but provides a semantic hook
+   * for future latency metrics.
+   */
+  recordHeartbeatAck(_serverTimestamp?: number): void {
+    this.recordMessage();
+  }
+
+  /**
    * Get the time in milliseconds since the last message was received
    *
    * @returns Time in milliseconds since last message

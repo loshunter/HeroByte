@@ -16,6 +16,7 @@ import { SelectionService } from "./domains/selection/service.js";
 import { MessageRouter } from "./ws/messageRouter.js";
 import { RateLimiter } from "./middleware/rateLimit.js";
 import { AuthService } from "./domains/auth/service.js";
+import { RoomRegistry } from "./domains/room/RoomRegistry.js";
 
 /**
  * Application container holding all services
@@ -23,6 +24,7 @@ import { AuthService } from "./domains/auth/service.js";
  */
 export class Container {
   // Domain services
+  public readonly roomRegistry: RoomRegistry;
   public readonly roomService: RoomService;
   public readonly playerService: PlayerService;
   public readonly tokenService: TokenService;
@@ -44,7 +46,8 @@ export class Container {
 
   constructor(wss: WebSocketServer, authService: AuthService) {
     // Initialize services (no dependencies between them)
-    this.roomService = new RoomService();
+    this.roomRegistry = new RoomRegistry();
+    this.roomService = this.roomRegistry.get("default-room");
     this.playerService = new PlayerService();
     this.tokenService = new TokenService();
     this.mapService = new MapService();
@@ -92,6 +95,7 @@ export class Container {
     this.authenticatedSessions.clear();
 
     // Future: Add any cleanup logic for services
+    void this.roomRegistry.destroy();
   }
 
   /**

@@ -170,9 +170,18 @@ export class ConnectionLifecycleManager {
    * - If WebSocket constructor throws, logs error and triggers handleDisconnect()
    */
   connect(): void {
-    if (this.ws && this.state === ConnectionState.CONNECTED) {
-      console.warn("[WebSocket] Already connected");
-      return;
+    if (this.ws) {
+      if (this.state === ConnectionState.CONNECTED) {
+        console.warn("[WebSocket] Already connected");
+        return;
+      }
+      if (
+        this.state === ConnectionState.CONNECTING ||
+        this.state === ConnectionState.RECONNECTING
+      ) {
+        console.warn("[WebSocket] Connection attempt already in progress");
+        return;
+      }
     }
 
     this.setState(ConnectionState.CONNECTING);
@@ -254,9 +263,15 @@ export class ConnectionLifecycleManager {
    * - Adds document visibility change listener to reconnect when tab becomes visible
    */
   private setupEventHandlers(): void {
-    if (!this.ws) return;
+    const socket = this.ws;
+    if (!socket) return;
+    const isCurrentSocket = (): boolean => this.ws === socket;
 
-    this.ws.onopen = () => {
+    socket.onopen = () => {
+      if (!isCurrentSocket()) {
+        console.log("[WebSocket] Ignoring open event for stale socket");
+        return;
+      }
       console.log("[WebSocket] Connected as", this.config.uid);
       this.clearConnectTimer();
       this.setState(ConnectionState.CONNECTED);
@@ -264,18 +279,29 @@ export class ConnectionLifecycleManager {
       this.config.onOpen();
     };
 
-    this.ws.onmessage = (event) => {
+    socket.onmessage = (event) => {
+      if (!isCurrentSocket()) {
+        return;
+      }
       this.config.onMessage(event.data);
     };
 
-    this.ws.onclose = (event) => {
+    socket.onclose = (event) => {
+      if (!isCurrentSocket()) {
+        console.log("[WebSocket] Ignoring close event for stale socket");
+        return;
+      }
       console.log("[WebSocket] Disconnected", event.code, event.reason);
       this.clearConnectTimer();
       this.config.onClose(event);
       this.handleDisconnect();
     };
 
-    this.ws.onerror = (error) => {
+    socket.onerror = (error) => {
+      if (!isCurrentSocket()) {
+        console.log("[WebSocket] Ignoring error event for stale socket");
+        return;
+      }
       console.error("[WebSocket] Error:", error);
       this.config.onError(error);
     };

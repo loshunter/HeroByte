@@ -178,6 +178,19 @@ describe("HeartbeatManager - Characterization Tests", () => {
       heartbeatManager.recordMessage();
       expect(heartbeatManager.getTimeSinceLastMessage()).toBe(0);
     });
+
+    it("should reset timer when recordHeartbeatAck() is called", () => {
+      const initialTime = Date.now();
+      vi.setSystemTime(initialTime);
+
+      heartbeatManager.start(mockWebSocket);
+
+      vi.advanceTimersByTime(8000);
+      expect(heartbeatManager.getTimeSinceLastMessage()).toBe(8000);
+
+      heartbeatManager.recordHeartbeatAck(1234567890);
+      expect(heartbeatManager.getTimeSinceLastMessage()).toBe(0);
+    });
   });
 
   // =========================================================================

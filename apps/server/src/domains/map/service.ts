@@ -4,7 +4,7 @@
 // Handles map-related features: background, grid, drawings, pointers
 
 import { randomUUID } from "crypto";
-import type { Drawing, DrawingSegmentPayload } from "@shared";
+import type { Drawing, DrawingSegmentPayload, Pointer } from "@shared";
 import type { RoomState } from "../room/model.js";
 import type { DrawingOperation, DrawingOperationStack } from "./types.js";
 
@@ -95,13 +95,15 @@ export class MapService {
   /**
    * Add pointer indicator (supports multiple simultaneous pointers)
    */
-  placePointer(state: RoomState, uid: string, x: number, y: number): void {
+  placePointer(state: RoomState, uid: string, x: number, y: number): Pointer | undefined {
     const player = state.players.find((p) => p.uid === uid);
     const name = player?.name ?? uid.slice(0, 6);
     const now = Date.now();
     // Add new pointer with unique ID based on timestamp
     const pointerId = `${uid}-${now}`;
-    state.pointers.push({ uid, x, y, timestamp: now, id: pointerId, name });
+    const pointer: Pointer = { uid, x, y, timestamp: now, id: pointerId, name };
+    state.pointers.push(pointer);
+    return pointer;
   }
 
   /**

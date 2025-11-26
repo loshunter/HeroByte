@@ -169,6 +169,8 @@ export class DisconnectionCleanupManager {
     this.config.selectionService.deselect(state, uid);
 
     // Broadcast updated state to all authenticated clients
-    this.config.roomService.broadcast(this.config.getAuthenticatedClients());
+    this.config.roomService.broadcast(this.config.getAuthenticatedClients(), undefined, {
+      reason: "disconnection-cleanup",
+    });
   }
 }

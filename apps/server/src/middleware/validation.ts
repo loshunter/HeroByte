@@ -14,6 +14,7 @@ import {
   validateUpdateTokenImageMessage,
   validateSetTokenSizeMessage,
   validateSetTokenColorMessage,
+  validateDragPreviewMessage,
 } from "./validators/index.js";
 
 // Player validators
@@ -116,6 +117,8 @@ export function validateMessage(raw: unknown): ValidationResult {
       return validateSetTokenSizeMessage(message);
     case "set-token-color":
       return validateSetTokenColorMessage(message);
+    case "drag-preview":
+      return validateDragPreviewMessage(message);
 
     // ========================================================================
     // PLAYER MESSAGES

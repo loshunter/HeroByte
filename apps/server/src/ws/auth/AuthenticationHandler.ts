@@ -131,7 +131,9 @@ export class AuthenticationHandler {
     console.log(`Client authenticated: ${uid}`);
 
     // Broadcast updated room state to authenticated clients
-    this.container.roomService.broadcast(this.getAuthenticatedClients());
+    this.container.roomService.broadcast(this.getAuthenticatedClients(), undefined, {
+      reason: "auth-success",
+    });
   }
 
   /**
@@ -179,7 +181,9 @@ export class AuthenticationHandler {
     console.log(`DM elevation granted to ${uid}`);
 
     // Broadcast updated state
-    this.container.roomService.broadcast(this.getAuthenticatedClients());
+    this.container.roomService.broadcast(this.getAuthenticatedClients(), undefined, {
+      reason: "dm-elevated",
+    });
   }
 
   /**
@@ -212,7 +216,9 @@ export class AuthenticationHandler {
     console.log(`DM status revoked for ${uid}`);
 
     // Broadcast updated state
-    this.container.roomService.broadcast(this.getAuthenticatedClients());
+    this.container.roomService.broadcast(this.getAuthenticatedClients(), undefined, {
+      reason: "dm-revoked",
+    });
   }
 
   /**
@@ -259,7 +265,9 @@ export class AuthenticationHandler {
         player.isDM = true;
         ws.send(JSON.stringify({ t: "dm-status", isDM: true }));
         console.log(`DM status granted to ${uid} (first-time DM password setup)`);
-        this.container.roomService.broadcast(this.getAuthenticatedClients());
+        this.container.roomService.broadcast(this.getAuthenticatedClients(), undefined, {
+          reason: "dm-bootstrapped",
+        });
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";

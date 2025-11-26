@@ -49,14 +49,17 @@ export function validateLoadSessionMessage(message: MessageRecord): ValidationRe
   if (!isRecord(snapshot)) {
     return { valid: false, error: "load-session: missing or invalid snapshot data" };
   }
-  if (
-    !Array.isArray(snapshot.players) ||
-    !Array.isArray(snapshot.tokens) ||
-    !Array.isArray(snapshot.drawings)
-  ) {
+  const hasPlayers = Array.isArray(snapshot.players);
+  const hasTokens = Array.isArray(snapshot.tokens);
+  const hasDrawingArray = Array.isArray(snapshot.drawings);
+  const hasDrawingAsset =
+    snapshot.assetRefs && typeof snapshot.assetRefs.drawings === "string";
+
+  if (!hasPlayers || !hasTokens || (!hasDrawingArray && !hasDrawingAsset)) {
     return {
       valid: false,
-      error: "load-session: snapshot must contain players, tokens, and drawings arrays",
+      error:
+        "load-session: snapshot must contain players, tokens, and drawings (array or assetRef)",
     };
   }
   return { valid: true };

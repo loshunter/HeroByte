@@ -63,6 +63,7 @@ describe("validateMessage", () => {
       { t: "grid-size", size: 50 },
       { t: "grid-square-size", size: 5 },
       { t: "point", x: 1, y: 2 },
+      { t: "drag-preview", objects: [{ id: "token:1", x: 1, y: 2 }] },
       { t: "draw", drawing: baseDrawing },
       { t: "undo-drawing" },
       { t: "redo-drawing" },
@@ -254,6 +255,41 @@ describe("validateMessage", () => {
     });
 
     expect(result).toMatchObject({ valid: false });
+  });
+
+  describe("drag-preview validation", () => {
+    it("rejects payloads without an objects array", () => {
+      expect(validateMessage({ t: "drag-preview" })).toMatchObject({
+        valid: false,
+        error: "drag-preview: objects must be an array",
+      });
+    });
+
+    it("rejects empty object arrays", () => {
+      expect(validateMessage({ t: "drag-preview", objects: [] })).toMatchObject({
+        valid: false,
+        error: "drag-preview: objects cannot be empty",
+      });
+    });
+
+    it("rejects entries missing ids or coordinates", () => {
+      expect(
+        validateMessage({ t: "drag-preview", objects: [{ id: "", x: 1, y: 1 }] }),
+      ).toMatchObject({
+        valid: false,
+        error: "drag-preview: object 0 missing id",
+      });
+
+      expect(
+        validateMessage({
+          t: "drag-preview",
+          objects: [{ id: "token:1", x: "nope", y: 2 }],
+        }),
+      ).toMatchObject({
+        valid: false,
+        error: "drag-preview: object 0 missing coordinates",
+      });
+    });
   });
 
   describe("selection message validation", () => {

@@ -302,6 +302,41 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       );
     });
 
+    it("should only show toast when transitioning from non-DM to DM", () => {
+      let eventHandler: ((message: ServerMessage) => void) | null = null;
+      const registerServerEventHandler = vi.fn((handler) => {
+        eventHandler = handler;
+      });
+      const toast = {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
+        dismiss: vi.fn(),
+        messages: [],
+      };
+
+      renderHook(() => useServerEventHandlers({ registerServerEventHandler, toast }));
+
+      act(() => {
+        eventHandler!({ t: "dm-status", isDM: true });
+      });
+      act(() => {
+        eventHandler!({ t: "dm-status", isDM: true });
+      });
+
+      expect(toast.success).toHaveBeenCalledTimes(1);
+
+      act(() => {
+        eventHandler!({ t: "dm-status", isDM: false });
+      });
+      act(() => {
+        eventHandler!({ t: "dm-status", isDM: true });
+      });
+
+      expect(toast.success).toHaveBeenCalledTimes(2);
+    });
+
     it("should not show toast when isDM is false", () => {
       let eventHandler: ((message: ServerMessage) => void) | null = null;
       const registerServerEventHandler = vi.fn((handler) => {

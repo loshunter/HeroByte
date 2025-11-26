@@ -11,7 +11,7 @@
  * @module hooks/useServerEventHandlers
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClientMessage, ServerMessage } from "@shared";
 
 /**
@@ -153,11 +153,15 @@ export function useServerEventHandlers({
     [sendMessage, startRoomPasswordUpdate],
   );
 
+  const lastDmStatusRef = useRef<boolean | null>(null);
+
   /**
    * Register handler for server events
    * Handles room password updates and DM elevation events
    */
   useEffect(() => {
+    lastDmStatusRef.current = null;
+
     registerServerEventHandler((message: ServerMessage) => {
       if ("t" in message && message.t === "room-password-updated") {
         setRoomPasswordPending(false);
@@ -172,8 +176,11 @@ export function useServerEventHandlers({
           message: message.reason ?? "Unable to update room password.",
         });
       } else if ("t" in message && message.t === "dm-status") {
-        // DM elevation successful
-        if (message.isDM) {
+        const previousStatus = lastDmStatusRef.current;
+        lastDmStatusRef.current = message.isDM;
+
+        // DM elevation successful (only toast on transition to DM)
+        if (message.isDM && previousStatus !== true) {
           toast.success("DM elevation successful! You are now the Dungeon Master.", 4000);
         }
       } else if ("t" in message && message.t === "dm-elevation-failed") {

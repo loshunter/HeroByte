@@ -47,6 +47,12 @@ describe("RouteResultHandler", () => {
   });
 
   describe("Broadcast Flag Handling", () => {
+    it("passes through reason metadata when provided", () => {
+      const result = { broadcast: true, save: false, reason: "token-move" };
+      handler.handleResult(result);
+      expect(broadcastSpy).toHaveBeenCalledWith("token-move");
+    });
+
     it("should call broadcast callback when broadcast flag is true", () => {
       // GIVEN: A result with broadcast=true
       const result = { broadcast: true, save: false };
@@ -415,7 +421,7 @@ describe("RouteResultHandler", () => {
       handler.handleResult(result);
 
       // THEN: Callbacks are called with no arguments
-      expect(broadcastSpy).toHaveBeenCalledWith();
+      expect(broadcastSpy).toHaveBeenCalledWith(undefined);
       expect(saveSpy).toHaveBeenCalledWith();
     });
 

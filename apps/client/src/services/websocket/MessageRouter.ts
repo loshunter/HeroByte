@@ -16,7 +16,7 @@
  * @see CLIENT_WEBSOCKET_PLAN.md - Manager 5: MessageRouter
  */
 
-import type { RoomSnapshot, ServerMessage } from "@shared";
+import type { DragPreviewEvent, Pointer, RoomSnapshot, ServerMessage } from "@shared";
 import type { SignalData } from "simple-peer";
 
 /**
@@ -49,6 +49,17 @@ type ControlMessage =
   | Extract<ServerMessage, { t: "dm-password-updated" }>
   | Extract<ServerMessage, { t: "dm-password-update-failed" }>;
 
+type HeartbeatAckMessage = Extract<ServerMessage, { t: "heartbeat-ack" }>;
+
+type DeltaMessage = Extract<ServerMessage, { t: "token-updated" }>;
+
+type PointerPreviewMessage = Extract<ServerMessage, { t: "pointer-preview" }>;
+
+type DragPreviewMessage = Extract<ServerMessage, { t: "drag-preview" }>;
+
+type AckMessage = Extract<ServerMessage, { t: "ack" }>;
+type NackMessage = Extract<ServerMessage, { t: "nack" }>;
+
 /**
  * Configuration for MessageRouter
  */
@@ -77,6 +88,38 @@ export interface MessageRouterConfig {
    * @param message - Control message from server
    */
   onControlMessage?: (message: ControlMessage) => void;
+
+  /**
+   * Optional callback for delta messages (partial updates)
+   * @param message - Delta message from server
+   */
+  onDelta?: (message: DeltaMessage) => void;
+
+  /**
+   * Optional callback for pointer preview messages
+   */
+  onPointerPreview?: (pointer: Pointer) => void;
+
+  /**
+   * Optional callback for drag preview messages
+   */
+  onDragPreview?: (preview: DragPreviewEvent) => void;
+
+  /**
+   * Optional callback for heartbeat acknowledgements
+   * @param timestamp - Server timestamp when ack was emitted
+   */
+  onHeartbeatAck?: (timestamp: number) => void;
+
+  /**
+   * Optional callback for command acknowledgements
+   */
+  onAck?: (commandId: string) => void;
+
+  /**
+   * Optional callback for command rejections
+   */
+  onNack?: (commandId: string, reason?: string) => void;
 }
 
 /**
@@ -148,6 +191,38 @@ export class MessageRouter {
       // Route control messages
       if (this.isControlMessage(parsed)) {
         this.handleControlMessage(parsed);
+        return;
+      }
+
+      // Route delta messages (partial updates)
+      if (this.isDeltaMessage(parsed)) {
+        this.handleDeltaMessage(parsed);
+        return;
+      }
+
+      if (this.isPointerPreviewMessage(parsed)) {
+        this.handlePointerPreviewMessage(parsed);
+        return;
+      }
+
+      if (this.isDragPreviewMessage(parsed)) {
+        this.handleDragPreviewMessage(parsed);
+        return;
+      }
+
+      // Route heartbeat acknowledgements
+      if (this.isHeartbeatAckMessage(parsed)) {
+        this.handleHeartbeatAck(parsed);
+        return;
+      }
+
+      if (this.isAckMessage(parsed)) {
+        this.handleAck(parsed);
+        return;
+      }
+
+      if (this.isNackMessage(parsed)) {
+        this.handleNack(parsed);
         return;
       }
 
@@ -233,6 +308,48 @@ export class MessageRouter {
     );
   }
 
+  /**
+   * Type guard for delta messages
+   */
+  private isDeltaMessage(value: unknown): value is DeltaMessage {
+    if (!value || typeof value !== "object") return false;
+    const candidate = value as Partial<DeltaMessage>;
+    return candidate.t === "token-updated" && typeof candidate.stateVersion === "number";
+  }
+
+  private isPointerPreviewMessage(value: unknown): value is PointerPreviewMessage {
+    if (!value || typeof value !== "object") return false;
+    const candidate = value as Partial<PointerPreviewMessage>;
+    return candidate.t === "pointer-preview" && Boolean(candidate.pointer);
+  }
+
+  private isDragPreviewMessage(value: unknown): value is DragPreviewMessage {
+    if (!value || typeof value !== "object") return false;
+    const candidate = value as Partial<DragPreviewMessage>;
+    return candidate.t === "drag-preview" && Boolean(candidate.preview);
+  }
+
+  /**
+   * Type guard for heartbeat acknowledgement messages
+   */
+  private isHeartbeatAckMessage(value: unknown): value is HeartbeatAckMessage {
+    if (!value || typeof value !== "object") return false;
+    const candidate = value as Partial<HeartbeatAckMessage>;
+    return candidate.t === "heartbeat-ack" && typeof candidate.timestamp === "number";
+  }
+
+  private isAckMessage(value: unknown): value is AckMessage {
+    if (!value || typeof value !== "object") return false;
+    const candidate = value as Partial<AckMessage>;
+    return candidate.t === "ack" && typeof candidate.commandId === "string";
+  }
+
+  private isNackMessage(value: unknown): value is NackMessage {
+    if (!value || typeof value !== "object") return false;
+    const candidate = value as Partial<NackMessage>;
+    return candidate.t === "nack" && typeof candidate.commandId === "string";
+  }
+
   // =========================================================================
   // MESSAGE HANDLERS
   // =========================================================================
@@ -271,6 +388,36 @@ export class MessageRouter {
    */
   private handleControlMessage(message: ControlMessage): void {
     this.config.onControlMessage?.(message);
+  }
+
+  /**
+   * Handle delta messages
+   */
+  private handleDeltaMessage(message: DeltaMessage): void {
+    this.config.onDelta?.(message);
+  }
+
+  private handlePointerPreviewMessage(message: PointerPreviewMessage): void {
+    this.config.onPointerPreview?.(message.pointer);
+  }
+
+  private handleDragPreviewMessage(message: DragPreviewMessage): void {
+    this.config.onDragPreview?.(message.preview);
+  }
+
+  /**
+   * Handle heartbeat acknowledgement message
+   */
+  private handleHeartbeatAck(message: HeartbeatAckMessage): void {
+    this.config.onHeartbeatAck?.(message.timestamp);
+  }
+
+  private handleAck(message: AckMessage): void {
+    this.config.onAck?.(message.commandId);
+  }
+
+  private handleNack(message: NackMessage): void {
+    this.config.onNack?.(message.commandId, message.reason);
   }
 
   /**

@@ -27,7 +27,7 @@
  * Extracting to: apps/client/src/services/websocket/MessageQueueManager.ts
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { ClientMessage } from "@shared";
 import { MessageQueueManager } from "../websocket/MessageQueueManager";
 
@@ -219,6 +219,96 @@ describe("MessageQueueManager - Characterization Tests", () => {
       queueManager.send(message3, mockWebSocket, notAuthenticatedFn);
 
       expect(queueManager.getQueueLength()).toBe(3);
+    });
+  });
+
+  describe("Retry logic", () => {
+    let resendSpy: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      resendSpy = vi.fn();
+      queueManager = new MessageQueueManager({
+        maxQueueSize: 200,
+        retryBackoffMs: 100,
+        onRetryDispatch: resendSpy,
+      });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("dispatches retry when ack is missing", () => {
+      const message: ClientMessage = { t: "move", id: "token-1", x: 1, y: 2, commandId: "cmd-1" };
+      queueManager.send(message, mockWebSocket, canSendFn);
+
+      expect(resendSpy).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(100);
+      expect(resendSpy).toHaveBeenCalledWith(message);
+    });
+
+    it("stops retry timer after command result handled", () => {
+      const message: ClientMessage = { t: "move", id: "token-2", x: 3, y: 4, commandId: "cmd-2" };
+      queueManager.send(message, mockWebSocket, canSendFn);
+      queueManager.handleCommandResult("cmd-2");
+      vi.advanceTimersByTime(500);
+      expect(resendSpy).not.toHaveBeenCalled();
+    });
+
+    it("invokes exhaustion callback after max retries", () => {
+      const exhaustionSpy = vi.fn();
+      queueManager = new MessageQueueManager({
+        maxQueueSize: 200,
+        maxRetries: 1,
+        retryBackoffMs: 50,
+        onRetryExhausted: exhaustionSpy,
+        onRetryDispatch: (message) => {
+          queueManager.send(message, mockWebSocket, canSendFn);
+        },
+      });
+
+      const message: ClientMessage = { t: "move", id: "token-3", x: 5, y: 6, commandId: "cmd-3" };
+      queueManager.send(message, mockWebSocket, canSendFn);
+
+      vi.advanceTimersByTime(50); // First retry (re-dispatched)
+      vi.advanceTimersByTime(100); // Exhaustion after second timeout
+
+      expect(exhaustionSpy).toHaveBeenCalledWith(message);
+    });
+
+    it("does not register retries for drag-preview commands", () => {
+      const message = {
+        t: "drag-preview",
+        objects: [{ id: "token:1", x: 1, y: 2 }],
+        commandId: "cmd-preview",
+      } as unknown as ClientMessage;
+
+      queueManager.send(message, mockWebSocket, canSendFn);
+      vi.advanceTimersByTime(500);
+
+      expect(resendSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Queue overflow telemetry", () => {
+    it("logs and invokes callback when the queue overflows", () => {
+      const onOverflow = vi.fn();
+      queueManager = new MessageQueueManager({ maxQueueSize: 1, onQueueOverflow: onOverflow });
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const notAuthenticatedFn = vi.fn(() => false);
+
+      const first: ClientMessage = { t: "move", id: "tok-1", x: 0, y: 0 };
+      const second: ClientMessage = { t: "move", id: "tok-2", x: 1, y: 1 };
+
+      queueManager.send(first, mockWebSocket, notAuthenticatedFn);
+      queueManager.send(second, mockWebSocket, notAuthenticatedFn);
+
+      expect(onOverflow).toHaveBeenCalledWith(first, 0);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Queue overflow"),
+      );
+      warnSpy.mockRestore();
     });
   });
 

@@ -19,12 +19,14 @@
  * @module ws/handlers/TokenMessageHandler
  */
 
-import type { TokenSize } from "@shared";
+import type { DragPreviewEvent, DragPreviewUpdate, Token, TokenSize } from "@shared";
+import { isDeltaChannelEnabled } from "../../config/featureFlags.js";
 import type { RoomState } from "../../domains/room/model.js";
 import type { TokenService } from "../../domains/token/service.js";
 import type { CharacterService } from "../../domains/character/service.js";
 import type { SelectionService } from "../../domains/selection/service.js";
 import type { RoomService } from "../../domains/room/service.js";
+import type { PendingDelta } from "../types.js";
 
 /**
  * Result of handling a token message
@@ -34,6 +36,8 @@ export interface TokenMessageResult {
   broadcast: boolean;
   /** Whether state should be saved */
   save: boolean;
+  /** Optional delta payload describing targeted updates */
+  delta?: PendingDelta;
 }
 
 /**
@@ -75,7 +79,82 @@ export class TokenMessageHandler {
     y: number,
   ): TokenMessageResult {
     const moved = this.tokenService.moveToken(state, tokenId, senderUid, x, y);
-    return { broadcast: moved, save: false };
+    const deltasEnabled = isDeltaChannelEnabled();
+    let delta: PendingDelta | undefined;
+    if (moved && deltasEnabled) {
+      const token = state.tokens.find((t) => t.id === tokenId) as Token | undefined;
+      if (token) {
+        delta = { t: "token-updated", token };
+      }
+    }
+    return { broadcast: deltasEnabled ? false : moved, save: false, delta };
+  }
+
+  /**
+   * Build a drag preview payload without mutating state.
+   *
+   * Filters updates so only authorized tokens are included and annotates each
+   * entry with the canonical tokenId for downstream reconciliation.
+   */
+  buildDragPreview(
+    state: RoomState,
+    senderUid: string,
+    updates: DragPreviewUpdate[],
+    isDM: boolean,
+  ): DragPreviewEvent | null {
+    if (!updates || updates.length === 0) {
+      return null;
+    }
+
+    const sanitized: DragPreviewEvent["objects"] = [];
+    for (const update of updates) {
+      const entry = this.toPreviewObject(state, senderUid, update, isDM);
+      if (entry) {
+        sanitized.push(entry);
+      }
+    }
+
+    if (sanitized.length === 0) {
+      return null;
+    }
+
+    return {
+      uid: senderUid,
+      timestamp: Date.now(),
+      objects: sanitized,
+    };
+  }
+
+  private toPreviewObject(
+    state: RoomState,
+    senderUid: string,
+    update: DragPreviewUpdate,
+    isDM: boolean,
+  ) {
+    if (!update || typeof update.id !== "string") {
+      return null;
+    }
+
+    const tokenId = update.id.replace(/^token:/, "");
+    if (!tokenId) {
+      return null;
+    }
+
+    const token = state.tokens.find((candidate) => candidate.id === tokenId);
+    if (!token) {
+      return null;
+    }
+
+    if (!isDM && token.owner !== senderUid) {
+      return null;
+    }
+
+    return {
+      tokenId,
+      id: `token:${tokenId}`,
+      x: update.x,
+      y: update.y,
+    };
   }
 
   /**

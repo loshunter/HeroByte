@@ -138,6 +138,50 @@ describe("RoomService", () => {
     expect(merged.selectionState.size).toBe(0);
   });
 
+  it("bundles heavy assets into snapshot metadata", () => {
+    const service = new RoomService();
+    const state = service.getState();
+    state.mapBackground = "https://example.com/bg.png";
+    state.drawings.push({
+      id: "drawing-1",
+      type: "freehand",
+      points: [{ x: 0, y: 0 }],
+      color: "#fff",
+      width: 2,
+      opacity: 1,
+    });
+
+    const snapshot = service.createSnapshot();
+
+    expect(snapshot.mapBackground).toBeUndefined();
+    expect(snapshot.drawings).toBeUndefined();
+    expect(snapshot.assetRefs?.["map-background"]).toContain("map-background");
+    expect(snapshot.assetRefs?.drawings).toContain("drawings");
+    expect(snapshot.assets).toHaveLength(2);
+  });
+
+  it("warns when snapshot payload exceeds guard", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const service = new RoomService();
+    const state = service.getState();
+    state.players.push({
+      uid: "dm-1",
+      name: "DM",
+      isDM: true,
+      hp: 10,
+      maxHp: 10,
+    });
+    state.mapBackground = "x".repeat(800 * 1024); // > guard
+
+    const client = createClient();
+    service.broadcast(new Set([client]));
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Snapshot size"),
+    );
+    warnSpy.mockRestore();
+  });
+
   it("broadcasts snapshots and prunes expired pointers", async () => {
     const service = new RoomService();
     const state = service.getState();

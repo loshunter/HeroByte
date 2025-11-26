@@ -7,7 +7,7 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Group, Rect, Image as KonvaImage, Circle, Text } from "react-konva";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import type { SceneObject } from "@shared";
+import type { DragPreviewUpdate, SceneObject } from "@shared";
 import useImage from "use-image";
 import type { Camera } from "../types";
 import { LockIndicator } from "./LockIndicator";
@@ -22,6 +22,7 @@ interface TokenSpriteProps {
   draggable?: boolean;
   onDragEnd?: (event: KonvaEventObject<DragEvent>) => void;
   onDragStart?: (event: KonvaEventObject<DragEvent>) => void;
+  onDragMove?: (event: KonvaEventObject<DragEvent>) => void;
   onHover: (id: string | null) => void;
   onDoubleClick?: () => void;
   onClick?: (event: KonvaEventObject<MouseEvent>) => void;
@@ -37,6 +38,7 @@ const TokenSprite = memo(function TokenSprite({
   interactive,
   onDragEnd,
   onDragStart,
+  onDragMove,
   onHover,
   onDoubleClick,
   onClick,
@@ -57,7 +59,7 @@ const TokenSprite = memo(function TokenSprite({
   const sizeMultiplier = sizeMultipliers[data.size ?? "medium"] ?? 1.0;
 
   const size = gridSize * 0.75 * sizeMultiplier;
-  const offset = size / 2;
+  const halfSize = size / 2;
 
   const nodeRef = useCallback(
     (node: Konva.Node | null) => {
@@ -67,8 +69,10 @@ const TokenSprite = memo(function TokenSprite({
   );
 
   const baseProps = {
-    x: transform.x * gridSize + gridSize / 2 - offset,
-    y: transform.y * gridSize + gridSize / 2 - offset,
+    x: transform.x * gridSize + gridSize / 2,
+    y: transform.y * gridSize + gridSize / 2,
+    offsetX: halfSize,
+    offsetY: halfSize,
     width: size,
     height: size,
     rotation: transform.rotation,
@@ -80,6 +84,7 @@ const TokenSprite = memo(function TokenSprite({
     draggable,
     onDragEnd,
     onDragStart,
+    onDragMove,
     onMouseEnter: () => onHover(id),
     onMouseLeave: () => onHover(null),
     listening: interactive,
@@ -252,6 +257,7 @@ interface TokensLayerProps {
   interactionsEnabled?: boolean;
   /** Map of token scene ID (e.g., "token:abc123") to status effect metadata */
   statusEffectsByTokenId?: Record<string, StatusOption[] | string>;
+  onDragPreview?: (updates: DragPreviewUpdate[]) => void;
 }
 
 export const TokensLayer = memo(function TokensLayer({
@@ -270,6 +276,7 @@ export const TokensLayer = memo(function TokensLayer({
   onTokenNodeReady,
   interactionsEnabled = true,
   statusEffectsByTokenId = {},
+  onDragPreview,
 }: TokensLayerProps) {
   const localOverrides = useRef<Record<string, { x: number; y: number }>>({});
   const multiDragStartRef = useRef<Record<string, { x: number; y: number }>>({});
@@ -286,53 +293,110 @@ export const TokensLayer = memo(function TokensLayer({
   // Count selected tokens for multi-select badge
   const selectedTokenCount = selectedObjectIds.filter((id) => id.startsWith("token:")).length;
 
+  const snapToGridPosition = useCallback(
+    (pos: { x: number; y: number }) => {
+      const normalize = (value: number) => (value - gridSize / 2) / gridSize;
+      if (snapToGrid) {
+        return {
+          x: Math.round(normalize(pos.x)),
+          y: Math.round(normalize(pos.y)),
+        };
+      }
+      return {
+        x: normalize(pos.x),
+        y: normalize(pos.y),
+      };
+    },
+    [gridSize, snapToGrid],
+  );
+
+  const computeDragPreviewPayload = useCallback(
+    (sceneId: string, gridPosition: { x: number; y: number }) => {
+      const startPositions = multiDragStartRef.current;
+      const overrides: Record<string, { x: number; y: number }> = {};
+      const updates: DragPreviewUpdate[] = [];
+
+      if (!startPositions || Object.keys(startPositions).length === 0) {
+        overrides[sceneId] = gridPosition;
+        updates.push({ id: sceneId, x: gridPosition.x, y: gridPosition.y });
+        return { overrides, updates };
+      }
+
+      const base = startPositions[sceneId];
+      if (!base) {
+        overrides[sceneId] = gridPosition;
+        updates.push({ id: sceneId, x: gridPosition.x, y: gridPosition.y });
+        return { overrides, updates };
+      }
+
+      const deltaX = gridPosition.x - base.x;
+      const deltaY = gridPosition.y - base.y;
+      const entries = Object.entries(startPositions);
+      if (entries.length === 0) {
+        overrides[sceneId] = gridPosition;
+        updates.push({ id: sceneId, x: gridPosition.x, y: gridPosition.y });
+        return { overrides, updates };
+      }
+
+      for (const [id, start] of entries) {
+        const nextX = start.x + deltaX;
+        const nextY = start.y + deltaY;
+        overrides[id] = { x: nextX, y: nextY };
+        updates.push({ id, x: nextX, y: nextY });
+      }
+
+      return { overrides, updates };
+    },
+    [],
+  );
+
+  const handleDragMove = (sceneId: string, event: KonvaEventObject<DragEvent>) => {
+    try {
+      const pos = event.target.position();
+      const gridPosition = snapToGridPosition(pos);
+      event.target.position({
+        x: gridPosition.x * gridSize + gridSize / 2,
+        y: gridPosition.y * gridSize + gridSize / 2,
+      });
+      const { overrides, updates } = computeDragPreviewPayload(sceneId, gridPosition);
+      if (updates.length === 0) {
+        return;
+      }
+      localOverrides.current = { ...localOverrides.current, ...overrides };
+      forceRerender((value) => value + 1);
+      onDragPreview?.(updates);
+    } catch (error) {
+      console.warn("[TokensLayer] Drag move error:", error);
+    }
+  };
+
   const handleDrag = (sceneId: string, event: KonvaEventObject<DragEvent>) => {
     try {
       const pos = event.target.position();
+      const gridPosition = snapToGridPosition(pos);
+      event.target.position({
+        x: gridPosition.x * gridSize + gridSize / 2,
+        y: gridPosition.y * gridSize + gridSize / 2,
+      });
 
-      let gx: number;
-      let gy: number;
-      if (snapToGrid) {
-        gx = Math.round(pos.x / gridSize);
-        gy = Math.round(pos.y / gridSize);
-      } else {
-        gx = pos.x / gridSize;
-        gy = pos.y / gridSize;
+      const { overrides, updates } = computeDragPreviewPayload(sceneId, gridPosition);
+      if (updates.length === 0) {
+        setDraggingId(null);
+        multiDragStartRef.current = {};
+        return;
       }
 
-      const snappedX = gx * gridSize;
-      const snappedY = gy * gridSize;
-      event.target.position({ x: snappedX, y: snappedY });
-
-      const startPositions = multiDragStartRef.current;
-      const base = startPositions[sceneId];
-      if (base) {
-        const deltaX = gx - base.x;
-        const deltaY = gy - base.y;
-
-        const entries = Object.entries(startPositions);
-        if (entries.length > 0) {
-          for (const [id, start] of entries) {
-            const nextX = start.x + deltaX;
-            const nextY = start.y + deltaY;
-            localOverrides.current[id] = { x: nextX, y: nextY };
-            onTransformToken(id, { x: nextX, y: nextY });
-          }
-        } else {
-          localOverrides.current[sceneId] = { x: gx, y: gy };
-          onTransformToken(sceneId, { x: gx, y: gy });
-        }
-      } else {
-        localOverrides.current[sceneId] = { x: gx, y: gy };
-        onTransformToken(sceneId, { x: gx, y: gy });
+      localOverrides.current = { ...localOverrides.current, ...overrides };
+      for (const update of updates) {
+        onTransformToken(update.id, { x: update.x, y: update.y });
       }
+      onDragPreview?.(updates);
 
       forceRerender((value) => value + 1);
 
       setDraggingId(null);
       multiDragStartRef.current = {};
     } catch (error) {
-      // Ignore errors during drag (transformer may still be detaching)
       console.warn("[TokensLayer] Drag error:", error);
       setDraggingId(null);
       multiDragStartRef.current = {};
@@ -548,6 +612,7 @@ export const TokensLayer = memo(function TokensLayer({
               draggable={!object.locked && interactionsEnabled}
               interactive={interactionsEnabled}
               onDragStart={(event) => handleDragStart(object.id, event)}
+              onDragMove={(event) => handleDragMove(object.id, event)}
               onDragEnd={(event) => handleDrag(object.id, event)}
               onHover={onHover}
               onDoubleClick={() => onRecolorToken(object.id, object.owner)}

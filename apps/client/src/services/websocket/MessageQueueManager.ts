@@ -39,6 +39,30 @@ export interface MessageQueueManagerConfig {
    * Default: 200
    */
   maxQueueSize?: number;
+  /**
+   * Optional hook invoked when the queue overflows and a message is dropped
+   */
+  onQueueOverflow?: (message: ClientMessage, queueLength: number) => void;
+
+  /**
+   * Maximum number of resend attempts before giving up (default: 3)
+   */
+  maxRetries?: number;
+
+  /**
+   * Base delay in milliseconds for retry backoff (default: 500ms)
+   */
+  retryBackoffMs?: number;
+
+  /**
+   * Callback invoked when a retry should be dispatched
+   */
+  onRetryDispatch?: (message: ClientMessage) => void;
+
+  /**
+   * Callback invoked when a command exceeds retry attempts
+   */
+  onRetryExhausted?: (message: ClientMessage) => void;
 }
 
 /**
@@ -70,9 +94,30 @@ export interface MessageQueueManagerConfig {
 export class MessageQueueManager {
   private messageQueue: ClientMessage[] = [];
   private readonly maxQueueSize: number;
+  private readonly onQueueOverflow?: (message: ClientMessage, queueLength: number) => void;
+  private readonly maxRetries: number;
+  private readonly retryBackoffMs: number;
+  private readonly onRetryDispatch?: (message: ClientMessage) => void;
+  private readonly onRetryExhausted?: (message: ClientMessage) => void;
+  private readonly nonRetriableTypes = new Set<ClientMessage["t"]>([
+    "authenticate",
+    "heartbeat",
+    "rtc-signal",
+    "request-room-resync",
+    "drag-preview",
+  ]);
+  private pendingRetries = new Map<
+    string,
+    { attempts: number; timerId: ReturnType<typeof setTimeout> | null; message: ClientMessage }
+  >();
 
   constructor(config: MessageQueueManagerConfig = {}) {
     this.maxQueueSize = config.maxQueueSize ?? 200;
+    this.onQueueOverflow = config.onQueueOverflow;
+    this.maxRetries = config.maxRetries ?? 3;
+    this.retryBackoffMs = config.retryBackoffMs ?? 500;
+    this.onRetryDispatch = config.onRetryDispatch;
+    this.onRetryExhausted = config.onRetryExhausted;
   }
 
   /**
@@ -195,7 +240,13 @@ export class MessageQueueManager {
    */
   private queueMessage(message: ClientMessage): void {
     if (this.messageQueue.length >= this.maxQueueSize) {
-      this.messageQueue.shift();
+      const dropped = this.messageQueue.shift();
+      if (dropped) {
+        console.warn(
+          `[WebSocket] Queue overflow (max=${this.maxQueueSize}) dropping oldest message type=${dropped.t}`,
+        );
+        this.onQueueOverflow?.(dropped, this.messageQueue.length);
+      }
     }
     this.messageQueue.push(message);
   }
@@ -223,9 +274,80 @@ export class MessageQueueManager {
     try {
       console.log(`[WebSocket] sendRaw() - Sending message type=${message.t} over wire`);
       ws.send(JSON.stringify(message));
+      this.registerInFlight(message);
     } catch (error) {
       console.error("[WebSocket] Send error:", error);
       this.queueMessage(message);
     }
+  }
+
+  /**
+   * Clear pending retries (used when connection resets)
+   */
+  resetRetries(): void {
+    this.pendingRetries.forEach((entry) => {
+      if (entry.timerId) {
+        clearTimeout(entry.timerId);
+      }
+    });
+    this.pendingRetries.clear();
+  }
+
+  handleCommandResult(commandId: string): void {
+    const entry = this.pendingRetries.get(commandId);
+    if (!entry) {
+      return;
+    }
+    if (entry.timerId) {
+      clearTimeout(entry.timerId);
+    }
+    this.pendingRetries.delete(commandId);
+  }
+
+  private registerInFlight(message: ClientMessage): void {
+    if (!this.shouldRetry(message)) {
+      return;
+    }
+    const commandId = message.commandId as string;
+    const existing = this.pendingRetries.get(commandId);
+    if (existing?.timerId) {
+      clearTimeout(existing.timerId);
+    }
+    const attempts = existing?.attempts ?? 0;
+    const timerId = this.createRetryTimer(commandId, attempts);
+    this.pendingRetries.set(commandId, { message, attempts, timerId });
+  }
+
+  private createRetryTimer(commandId: string, attempts: number): ReturnType<typeof setTimeout> {
+    const delay = this.retryBackoffMs * Math.pow(2, attempts);
+    return setTimeout(() => this.handleRetry(commandId), delay);
+  }
+
+  private handleRetry(commandId: string): void {
+    const entry = this.pendingRetries.get(commandId);
+    if (!entry) {
+      return;
+    }
+
+    if (entry.attempts + 1 > this.maxRetries) {
+      this.pendingRetries.delete(commandId);
+      console.error(
+        `[WebSocket] Command id=${commandId} exceeded max retries (${this.maxRetries})`,
+      );
+      this.onRetryExhausted?.(entry.message);
+      return;
+    }
+
+    entry.attempts += 1;
+    entry.timerId = null;
+    this.pendingRetries.set(commandId, entry);
+    console.warn(
+      `[WebSocket] Retrying command id=${commandId} (attempt ${entry.attempts}/${this.maxRetries})`,
+    );
+    this.onRetryDispatch?.(entry.message);
+  }
+
+  private shouldRetry(message: ClientMessage): boolean {
+    return Boolean(message.commandId && !this.nonRetriableTypes.has(message.t));
   }
 }

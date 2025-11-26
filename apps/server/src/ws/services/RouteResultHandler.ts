@@ -52,8 +52,17 @@
  * resultHandler.handleResult(result);
  * ```
  */
+import type { PendingDelta } from "../types.js";
+
+export interface RouteHandlerResult {
+  broadcast?: unknown;
+  save?: unknown;
+  reason?: string;
+  delta?: PendingDelta;
+}
+
 export class RouteResultHandler {
-  private broadcastCallback: () => void;
+  private broadcastCallback: (reason?: string) => void;
   private saveCallback: () => void;
 
   /**
@@ -70,7 +79,7 @@ export class RouteResultHandler {
    * );
    * ```
    */
-  constructor(broadcastCallback: () => void, saveCallback: () => void) {
+  constructor(broadcastCallback: (reason?: string) => void, saveCallback: () => void) {
     this.broadcastCallback = broadcastCallback;
     this.saveCallback = saveCallback;
   }
@@ -108,10 +117,14 @@ export class RouteResultHandler {
    * handler.handleResult({ broadcast: false, save: false });
    * ```
    */
-  handleResult(result: { broadcast?: unknown; save?: unknown }): void {
+  handleResult(result?: RouteHandlerResult | null): void {
+    if (!result) {
+      return;
+    }
+
     // Execute broadcast if needed (truthy check handles all truthy values)
     if (result.broadcast) {
-      this.broadcastCallback();
+      this.broadcastCallback(result.reason);
     }
 
     // Execute save if needed (truthy check handles all truthy values)

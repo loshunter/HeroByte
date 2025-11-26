@@ -17,6 +17,7 @@ import type {
   SelectionStateEntry,
   PlayerStagingZone,
 } from "@shared";
+import { buildSnapshotAssets } from "./assets/SnapshotAssetBuilder.js";
 import type { DrawingOperation } from "../map/types.js";
 
 /**
@@ -26,6 +27,7 @@ export type SelectionStateMap = Map<string, SelectionStateEntry>;
 
 export interface RoomState {
   users: string[]; // Connected user UIDs (legacy)
+  stateVersion: number; // Monotonic state counter
   tokens: Token[]; // All tokens on the map
   players: Player[]; // Player metadata
   characters: Character[]; // Character data (PCs and NPCs)
@@ -51,6 +53,7 @@ export interface RoomState {
 export function createEmptyRoomState(): RoomState {
   return {
     users: [],
+    stateVersion: 0,
     tokens: [],
     players: [],
     characters: [],
@@ -150,15 +153,16 @@ export function toSnapshot(state: RoomState, isDM: boolean = true): RoomSnapshot
         return !tokenId || !hiddenCharacterTokenIds.has(tokenId);
       });
 
-  return {
+  const { assets, assetRefs } = buildSnapshotAssets(state);
+
+  const snapshot: RoomSnapshot = {
     users: state.users,
+    stateVersion: state.stateVersion,
     tokens: visibleTokens,
     players: state.players,
     characters: visibleCharacters,
     props: state.props,
-    mapBackground: state.mapBackground,
     pointers: state.pointers,
-    drawings: state.drawings,
     gridSize: state.gridSize,
     gridSquareSize: state.gridSquareSize,
     diceRolls: state.diceRolls,
@@ -168,4 +172,14 @@ export function toSnapshot(state: RoomState, isDM: boolean = true): RoomSnapshot
     combatActive: state.combatActive,
     currentTurnCharacterId: state.currentTurnCharacterId,
   };
+
+  if (assets.length > 0) {
+    snapshot.assets = assets;
+  }
+
+  if (Object.keys(assetRefs).length > 0) {
+    snapshot.assetRefs = assetRefs;
+  }
+
+  return snapshot;
 }

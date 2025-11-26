@@ -183,6 +183,32 @@ export interface Pointer {
 }
 
 /**
+ * DragPreviewUpdate: Client-supplied drag preview payload describing a scene object position.
+ * Scene IDs follow the scene graph naming convention (e.g., "token:abc123").
+ */
+export interface DragPreviewUpdate {
+  id: string;
+  x: number;
+  y: number;
+}
+
+/**
+ * DragPreviewObject: Server-resolved drag preview entry including canonical tokenId.
+ */
+export interface DragPreviewObject extends DragPreviewUpdate {
+  tokenId: string;
+}
+
+/**
+ * DragPreviewEvent: High-frequency token drag preview payload broadcast to clients.
+ */
+export interface DragPreviewEvent {
+  uid: string;
+  timestamp: number;
+  objects: DragPreviewObject[];
+}
+
+/**
  * Drawing: Represents any drawing on the map canvas
  * Supports multiple tool types: freehand, line, rectangle, circle, etc.
  */
@@ -255,15 +281,29 @@ export interface Prop {
  * RoomSnapshot: Complete state of the game room
  * This is broadcast to all clients whenever any state changes
  */
+export type SnapshotAssetType = "map-background" | "drawings";
+
+export interface SnapshotAsset<TPayload = unknown> {
+  id: string;
+  type: SnapshotAssetType;
+  hash: string;
+  size: number;
+  encoding?: "string" | "json";
+  payload?: TPayload;
+}
+
+export type SnapshotAssetRefs = Partial<Record<SnapshotAssetType, string>>;
+
 export interface RoomSnapshot {
   users: string[]; // Legacy array of UIDs (deprecated, use players)
   tokens: Token[]; // All tokens on the map
   players: Player[]; // All connected players
   characters: Character[]; // All characters (PCs and NPCs)
+  stateVersion?: number; // Monotonically increasing room state version
   props?: Prop[]; // Props placed on the map (items, scenery, objects)
   mapBackground?: string; // Base64 encoded background image or URL
   pointers: Pointer[]; // Active pointer indicators
-  drawings: Drawing[]; // All drawings on the canvas
+  drawings?: Drawing[]; // All drawings on the canvas
   gridSize: number; // Synchronized grid size for all clients
   gridSquareSize?: number; // How many feet per grid square (default: 5ft)
   diceRolls: DiceRoll[]; // History of dice rolls
@@ -272,6 +312,8 @@ export interface RoomSnapshot {
   playerStagingZone?: PlayerStagingZone; // DM-defined spawn area for player tokens
   combatActive?: boolean; // Whether initiative tracking/combat mode is active
   currentTurnCharacterId?: string; // Character ID of whose turn it currently is
+  assets?: SnapshotAsset[];
+  assetRefs?: SnapshotAssetRefs;
 }
 
 export interface PlayerStagingZone {
@@ -341,7 +383,7 @@ export type SelectionState = Record<string, SelectionStateEntry>;
 /**
  * ClientMessage: Messages sent from client to server
  */
-export type ClientMessage =
+type ClientMessagePayload =
   // Token actions
   | { t: "move"; id: string; x: number; y: number } // Move a token to new position
   | { t: "recolor"; id: string } // Randomize token color
@@ -436,6 +478,7 @@ export type ClientMessage =
   | { t: "grid-size"; size: number } // Change grid size (synced)
   | { t: "grid-square-size"; size: number } // Change grid square size in feet (default: 5ft)
   | { t: "point"; x: number; y: number } // Place pointer indicator
+  | { t: "drag-preview"; objects: DragPreviewUpdate[] }
   | { t: "draw"; drawing: Drawing } // Add a drawing
   | { t: "undo-drawing" } // Undo last drawing by this player
   | { t: "redo-drawing" } // Redo last undone drawing by this player
@@ -456,6 +499,7 @@ export type ClientMessage =
   | { t: "clear-all-tokens" } // Remove all tokens/players except self
   | { t: "heartbeat" } // Keep-alive ping from client
   | { t: "load-session"; snapshot: RoomSnapshot } // Load a saved session state
+  | { t: "request-room-resync"; lastSeenVersion?: number; reason?: string } // Request fresh snapshot when client detects version gap
   | {
       t: "transform-object";
       id: string;
@@ -475,6 +519,8 @@ export type ClientMessage =
   // WebRTC signaling
   | { t: "rtc-signal"; target: string; signal: unknown }; // P2P voice chat signaling
 
+export type ClientMessage = ClientMessagePayload & { commandId?: string };
+
 /**
  * ServerMessage: Messages sent from server to clients
  */
@@ -483,6 +529,12 @@ export type ServerMessage =
   | { t: "rtc-signal"; from: string; signal: unknown } // WebRTC signal from another peer
   | { t: "auth-ok" } // Authentication succeeded
   | { t: "auth-failed"; reason?: string } // Authentication failed
+  | { t: "heartbeat-ack"; timestamp: number } // Acknowledgement for keepalive checks
+  | { t: "ack"; commandId: string }
+  | { t: "nack"; commandId: string; reason?: string }
+  | { t: "token-updated"; stateVersion: number; token: Token } // Token delta update
+  | { t: "pointer-preview"; pointer: Pointer } // Pointer preview event (high-frequency channel)
+  | { t: "drag-preview"; preview: DragPreviewEvent } // Drag preview event (high-frequency channel)
   | { t: "dm-status"; isDM: boolean } // DM elevation status update
   | { t: "dm-elevation-failed"; reason?: string } // DM elevation failed
   | { t: "dm-password-updated"; updatedAt: number } // DM password set/updated successfully

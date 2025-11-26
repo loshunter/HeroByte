@@ -5,7 +5,8 @@
 
 import type { WebSocket, WebSocketServer } from "ws";
 import type { SignalData } from "simple-peer";
-import type { ClientMessage, ServerMessage } from "@shared";
+import type { ClientMessage, DragPreviewEvent, Pointer, ServerMessage } from "@shared";
+import { isCommandAckEnabled, isDragPreviewEnabled } from "../config/featureFlags.js";
 import { RoomService } from "../domains/room/service.js";
 import { PlayerService } from "../domains/player/service.js";
 import { TokenService } from "../domains/token/service.js";
@@ -17,7 +18,7 @@ import { SelectionService } from "../domains/selection/service.js";
 import { AuthService } from "../domains/auth/service.js";
 import { HeartbeatHandler } from "./handlers/HeartbeatHandler.js";
 import { RTCSignalHandler } from "./handlers/RTCSignalHandler.js";
-import { PointerHandler } from "./handlers/PointerHandler.js";
+import { PointerHandler, type PointerHandlerResult } from "./handlers/PointerHandler.js";
 import { TokenMessageHandler } from "./handlers/TokenMessageHandler.js";
 import { CharacterMessageHandler } from "./handlers/CharacterMessageHandler.js";
 import { NPCMessageHandler } from "./handlers/NPCMessageHandler.js";
@@ -34,11 +35,12 @@ import { AuthorizationService } from "./services/AuthorizationService.js";
 import { MessageErrorHandler } from "./services/MessageErrorHandler.js";
 import { BroadcastService } from "./services/BroadcastService.js";
 import { DirectMessageService } from "./services/DirectMessageService.js";
-import { RouteResultHandler } from "./services/RouteResultHandler.js";
+import { RouteResultHandler, type RouteHandlerResult } from "./services/RouteResultHandler.js";
 import { DMAuthorizationEnforcer } from "./services/DMAuthorizationEnforcer.js";
 import { AuthorizationCheckWrapper } from "./services/AuthorizationCheckWrapper.js";
 import { MessageLogger } from "./services/MessageLogger.js";
 import { MessageRoutingContext } from "./services/MessageRoutingContext.js";
+import type { PendingDelta } from "./types.js";
 
 /**
  * Message router - handles all WebSocket messages and dispatches to domain services
@@ -80,6 +82,7 @@ export class MessageRouter {
   private wss: WebSocketServer;
   private uidToWs: Map<string, WebSocket>;
   private getAuthorizedClients: () => Set<WebSocket>;
+  private skipNextBroadcastVersionBump = false;
 
   constructor(
     roomService: RoomService,
@@ -113,7 +116,7 @@ export class MessageRouter {
     this.broadcastService = new BroadcastService();
     this.directMessageService = new DirectMessageService(uidToWs);
     this.routeResultHandler = new RouteResultHandler(
-      () => this.broadcast(),
+      (reason) => this.broadcast(reason),
       () => this.roomService.saveState(),
     );
     this.dmAuthorizationEnforcer = new DMAuthorizationEnforcer(this.messageLogger);
@@ -180,13 +183,29 @@ export class MessageRouter {
             message.x,
             message.y,
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
+          break;
+        }
+
+        case "drag-preview": {
+          if (!isDragPreviewEnabled()) {
+            break;
+          }
+          const preview = this.tokenMessageHandler.buildDragPreview(
+            state,
+            senderUid,
+            message.objects,
+            context.isDM(),
+          );
+          if (preview) {
+            this.broadcastDragPreview(preview, message.t);
+          }
           break;
         }
 
         case "recolor": {
           const result = this.tokenMessageHandler.handleRecolor(state, message.id, senderUid);
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -197,7 +216,7 @@ export class MessageRouter {
             senderUid,
             context.isDM(),
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -208,7 +227,7 @@ export class MessageRouter {
             senderUid,
             message.imageUrl,
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -219,7 +238,7 @@ export class MessageRouter {
             senderUid,
             message.size,
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -231,26 +250,26 @@ export class MessageRouter {
             message.color,
             context.isDM(),
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
         // PLAYER ACTIONS
         case "portrait": {
           const result = this.playerMessageHandler.handlePortrait(state, senderUid, message.data);
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
         case "rename": {
           const result = this.playerMessageHandler.handleRename(state, senderUid, message.name);
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
         case "mic-level": {
           const result = this.playerMessageHandler.handleMicLevel(state, senderUid, message.level);
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -261,7 +280,7 @@ export class MessageRouter {
             message.hp,
             message.maxHp,
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -271,7 +290,7 @@ export class MessageRouter {
             senderUid,
             message.effects,
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -297,7 +316,7 @@ export class MessageRouter {
               ),
           );
           if (result) {
-            this.routeResultHandler.handleResult(result);
+            this.handleRouteResult(result, message.t);
           }
           break;
         }
@@ -317,7 +336,7 @@ export class MessageRouter {
               ),
           );
           if (result) {
-            this.routeResultHandler.handleResult(result);
+            this.handleRouteResult(result, message.t);
           }
           break;
         }
@@ -338,7 +357,7 @@ export class MessageRouter {
               }),
           );
           if (result) {
-            this.routeResultHandler.handleResult(result);
+            this.handleRouteResult(result, message.t);
           }
           break;
         }
@@ -351,7 +370,7 @@ export class MessageRouter {
             () => this.npcMessageHandler.handleDeleteNPC(state, message.id),
           );
           if (result) {
-            this.routeResultHandler.handleResult(result);
+            this.handleRouteResult(result, message.t);
           }
           break;
         }
@@ -364,7 +383,7 @@ export class MessageRouter {
             () => this.npcMessageHandler.handlePlaceNPCToken(state, message.id, senderUid),
           );
           if (result) {
-            this.routeResultHandler.handleResult(result);
+            this.handleRouteResult(result, message.t);
           }
           break;
         }
@@ -378,7 +397,7 @@ export class MessageRouter {
               this.npcMessageHandler.handleToggleNPCVisibility(state, message.id, message.visible),
           );
           if (result) {
-            this.routeResultHandler.handleResult(result);
+            this.handleRouteResult(result, message.t);
           }
           break;
         }
@@ -393,7 +412,7 @@ export class MessageRouter {
             message.initiativeModifier,
             context.isDM(),
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -403,7 +422,7 @@ export class MessageRouter {
             senderUid,
             context.isDM(),
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -413,7 +432,7 @@ export class MessageRouter {
             senderUid,
             context.isDM(),
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -423,7 +442,7 @@ export class MessageRouter {
             senderUid,
             context.isDM(),
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -433,7 +452,7 @@ export class MessageRouter {
             senderUid,
             context.isDM(),
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -443,7 +462,7 @@ export class MessageRouter {
             senderUid,
             context.isDM(),
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -465,7 +484,7 @@ export class MessageRouter {
               ),
           );
           if (result) {
-            this.routeResultHandler.handleResult(result);
+            this.handleRouteResult(result, message.t);
           }
           break;
         }
@@ -484,7 +503,7 @@ export class MessageRouter {
               }),
           );
           if (result) {
-            this.routeResultHandler.handleResult(result);
+            this.handleRouteResult(result, message.t);
           }
           break;
         }
@@ -497,7 +516,7 @@ export class MessageRouter {
             () => this.propMessageHandler.handleDeleteProp(state, message.id),
           );
           if (result) {
-            this.routeResultHandler.handleResult(result);
+            this.handleRouteResult(result, message.t);
           }
           break;
         }
@@ -508,7 +527,7 @@ export class MessageRouter {
             message.characterId,
             senderUid,
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -519,7 +538,7 @@ export class MessageRouter {
             message.name,
             message.maxHp,
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           this.messageLogger.logBroadcastComplete();
           break;
         }
@@ -530,7 +549,7 @@ export class MessageRouter {
             message.characterId,
             senderUid,
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -541,7 +560,7 @@ export class MessageRouter {
             senderUid,
             message.name,
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -552,7 +571,7 @@ export class MessageRouter {
             message.hp,
             message.maxHp,
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -564,7 +583,7 @@ export class MessageRouter {
             message.effects,
             context.isDM(),
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -576,7 +595,7 @@ export class MessageRouter {
             message.portrait,
             context.isDM(),
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -586,26 +605,26 @@ export class MessageRouter {
             message.characterId,
             message.tokenId,
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
         // MAP ACTIONS
         case "map-background": {
           const result = this.mapMessageHandler.handleMapBackground(state, message.data);
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
         case "grid-size": {
           const result = this.mapMessageHandler.handleGridSize(state, message.size);
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
         case "grid-square-size": {
           const result = this.mapMessageHandler.handleGridSquareSize(state, message.size);
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -616,19 +635,19 @@ export class MessageRouter {
             message.zone,
             context.isDM(),
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
         case "point": {
           const result = this.pointerHandler.handlePointer(state, senderUid, message.x, message.y);
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
         case "draw": {
           const result = this.drawingMessageHandler.handleDraw(state, message.drawing, senderUid);
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -638,19 +657,19 @@ export class MessageRouter {
             senderUid,
             message.drawings,
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
         case "undo-drawing": {
           const result = this.drawingMessageHandler.handleUndoDrawing(state, senderUid);
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
         case "redo-drawing": {
           const result = this.drawingMessageHandler.handleRedoDrawing(state, senderUid);
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -660,7 +679,7 @@ export class MessageRouter {
             senderUid,
             context.isDM(),
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -670,13 +689,13 @@ export class MessageRouter {
             message.id,
             senderUid,
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
         case "deselect-drawing": {
           const result = this.drawingMessageHandler.handleDeselectDrawing(state, senderUid);
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -687,7 +706,7 @@ export class MessageRouter {
             message.uid,
             message.objectId,
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -697,7 +716,7 @@ export class MessageRouter {
             senderUid,
             message.uid,
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -709,7 +728,7 @@ export class MessageRouter {
             message.objectIds,
             message.mode ?? "replace",
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -720,7 +739,7 @@ export class MessageRouter {
             message.uid,
             message.objectIds,
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -731,7 +750,7 @@ export class MessageRouter {
             message.uid,
             message.objectIds,
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -743,13 +762,13 @@ export class MessageRouter {
             message.dy,
             senderUid,
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
         case "delete-drawing": {
           const result = this.drawingMessageHandler.handleDeleteDrawing(state, message.id);
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -760,20 +779,20 @@ export class MessageRouter {
             message.segments,
             senderUid,
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
         // DICE ACTIONS
         case "dice-roll": {
           const result = this.diceMessageHandler.handleDiceRoll(state, message.roll);
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
         case "clear-roll-history": {
           const result = this.diceMessageHandler.handleClearRollHistory(state);
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -791,14 +810,21 @@ export class MessageRouter {
             () => this.tokenMessageHandler.handleClearAll(state, senderUid),
           );
           if (result) {
-            this.routeResultHandler.handleResult(result);
+            this.handleRouteResult(result, message.t);
           }
           break;
         }
 
         case "heartbeat": {
           const result = this.heartbeatHandler.handleHeartbeat(state, senderUid);
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
+          this.sendControlMessage(senderUid, { t: "heartbeat-ack", timestamp: Date.now() });
+          break;
+        }
+
+        case "request-room-resync": {
+          const snapshot = this.roomService.createSnapshotForPlayer(senderUid);
+          this.sendControlMessage(senderUid, snapshot);
           break;
         }
 
@@ -809,7 +835,7 @@ export class MessageRouter {
             message.snapshot,
             context.isDM(),
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -825,7 +851,7 @@ export class MessageRouter {
               locked: message.locked,
             },
           );
-          this.routeResultHandler.handleResult(result);
+          this.handleRouteResult(result, message.t);
           break;
         }
 
@@ -842,8 +868,34 @@ export class MessageRouter {
           this.messageLogger.logUnknownMessageType((message as ClientMessage).t);
         }
       }
+      this.acknowledgeSuccess(message, senderUid);
     } catch (err) {
       this.messageErrorHandler.handleError(err, message, senderUid);
+      this.acknowledgeFailure(message, senderUid, err);
+    }
+  }
+
+  private handleRouteResult(result: RouteHandlerResult | null | undefined, reason: string): void {
+    if (!result) {
+      return;
+    }
+
+    const shouldSkipBroadcastVersionBump = Boolean(result.delta && result.broadcast);
+
+    if (result.delta) {
+      this.emitDelta(result.delta, reason);
+    }
+
+    this.skipNextBroadcastVersionBump = shouldSkipBroadcastVersionBump;
+    this.routeResultHandler.handleResult({ ...result, reason });
+
+    if (!result.broadcast) {
+      this.skipNextBroadcastVersionBump = false;
+    }
+
+    const pointerResult = result as PointerHandlerResult;
+    if (pointerResult.preview) {
+      this.broadcastPointerPreview(pointerResult.preview, reason);
     }
   }
 
@@ -857,9 +909,58 @@ export class MessageRouter {
    * It cannot be removed despite appearing "private" because it's part of the
    * handler result pattern established in Week 4.
    */
-  private broadcast(): void {
+  private emitDelta(delta: PendingDelta, reason: string): void {
+    const stateVersion = this.roomService.bumpStateVersion();
+    const message = this.buildDeltaMessage(delta, stateVersion);
+    this.sendToAuthorizedClients(message);
+    this.messageLogger.logMessageRouting(`${delta.t}-delta`, reason);
+  }
+
+  private buildDeltaMessage(delta: PendingDelta, stateVersion: number): ServerMessage {
+    switch (delta.t) {
+      case "token-updated":
+        return { t: "token-updated", stateVersion, token: delta.token };
+      default: {
+        const exhaustiveCheck: never = delta;
+        throw new Error(`Unsupported delta type: ${exhaustiveCheck}`);
+      }
+    }
+  }
+
+  private sendToAuthorizedClients(message: ServerMessage): void {
+    const payload = JSON.stringify(message);
+    const clients = this.getAuthorizedClients();
+    clients.forEach((client) => {
+      if (client.readyState === 1) {
+        client.send(payload);
+      }
+    });
+  }
+
+  private broadcastPointerPreview(pointer: Pointer, reason: string): void {
+    if (!pointer) {
+      return;
+    }
+    this.sendToAuthorizedClients({ t: "pointer-preview", pointer });
+    this.messageLogger.logMessageRouting("pointer-preview", reason);
+  }
+
+  private broadcastDragPreview(preview: DragPreviewEvent, reason?: string): void {
+    if (!preview || preview.objects.length === 0) {
+      return;
+    }
+    this.sendToAuthorizedClients({ t: "drag-preview", preview });
+    this.messageLogger.logMessageRouting("drag-preview", reason);
+  }
+
+  private broadcast(reason?: string): void {
+    const skipVersionBump = this.skipNextBroadcastVersionBump;
+    this.skipNextBroadcastVersionBump = false;
     this.broadcastService.broadcast(() => {
-      this.roomService.broadcast(this.getAuthorizedClients(), this.uidToWs);
+      this.roomService.broadcast(this.getAuthorizedClients(), this.uidToWs, {
+        reason,
+        skipVersionBump,
+      });
     });
   }
 
@@ -874,5 +975,37 @@ export class MessageRouter {
    */
   private sendControlMessage(targetUid: string, message: ServerMessage): void {
     this.directMessageService.sendControlMessage(targetUid, message);
+  }
+
+  private acknowledgeSuccess(message: ClientMessage, senderUid: string): void {
+    if (!this.shouldAcknowledge(message)) {
+      return;
+    }
+    this.sendControlMessage(senderUid, { t: "ack", commandId: message.commandId! });
+  }
+
+  private acknowledgeFailure(message: ClientMessage, senderUid: string, error: unknown): void {
+    if (!this.shouldAcknowledge(message)) {
+      return;
+    }
+    this.sendControlMessage(senderUid, {
+      t: "nack",
+      commandId: message.commandId!,
+      reason: error instanceof Error ? error.message : undefined,
+    });
+  }
+
+  private shouldAcknowledge(message: ClientMessage): boolean {
+    if (!isCommandAckEnabled() || !message.commandId) {
+      return false;
+    }
+    switch (message.t) {
+      case "authenticate":
+      case "heartbeat":
+      case "rtc-signal":
+        return false;
+      default:
+        return true;
+    }
   }
 }

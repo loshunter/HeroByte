@@ -11,7 +11,7 @@ import { PropService } from "../../domains/prop/service.js";
 import { SelectionService } from "../../domains/selection/service.js";
 import { AuthService } from "../../domains/auth/service.js";
 import type { WebSocket, WebSocketServer } from "ws";
-import type { Character, ClientMessage } from "@shared";
+import type { Character, ClientMessage, RoomSnapshot, ServerMessage } from "@shared";
 import type { RoomState } from "../../domains/room/model.js";
 import { createEmptyRoomState, selectionMapToRecord } from "../../domains/room/model.js";
 
@@ -37,6 +37,7 @@ describe("MessageRouter", () => {
     // Create mock state
     mockState = {
       users: [],
+      stateVersion: 0,
       players: [
         {
           uid: "player-1",
@@ -68,6 +69,21 @@ describe("MessageRouter", () => {
       currentTurnCharacterId: undefined,
     };
 
+    const snapshotTemplate: RoomSnapshot = {
+      users: [],
+      stateVersion: 0,
+      tokens: [],
+      players: [],
+      characters: [],
+      props: [],
+      pointers: [],
+      drawings: [],
+      gridSize: 50,
+      gridSquareSize: 5,
+      diceRolls: [],
+      sceneObjects: [],
+    };
+
     // Mock services
     mockRoomService = {
       getState: vi.fn(() => mockState),
@@ -76,6 +92,12 @@ describe("MessageRouter", () => {
       loadSnapshot: vi.fn(),
       applySceneObjectTransform: vi.fn(() => true),
       setPlayerStagingZone: vi.fn(() => true),
+      bumpStateVersion: vi.fn(() => {
+        mockState.stateVersion += 1;
+        return mockState.stateVersion;
+      }),
+      createSnapshotForPlayer: vi.fn(() => ({ ...snapshotTemplate, stateVersion: mockState.stateVersion })),
+      createSnapshot: vi.fn(() => ({ ...snapshotTemplate, stateVersion: mockState.stateVersion })),
     } as unknown as RoomService;
 
     mockPlayerService = {
@@ -206,7 +228,7 @@ describe("MessageRouter", () => {
         10,
         20,
       );
-      expect(mockRoomService.broadcast).toHaveBeenCalled();
+      expect(mockRoomService.broadcast).not.toHaveBeenCalled();
     });
 
     it("routes recolor message to tokenService", () => {
@@ -470,7 +492,7 @@ describe("MessageRouter", () => {
       routeAndFlush(msg, "player-1");
 
       expect(mockMapService.placePointer).toHaveBeenCalledWith(mockState, "player-1", 50, 75);
-      expect(mockRoomService.broadcast).toHaveBeenCalled();
+      expect(mockRoomService.broadcast).not.toHaveBeenCalled();
     });
 
     it("routes draw message", () => {
@@ -824,7 +846,12 @@ describe("MessageRouter", () => {
       expect(mockRoomService.saveState).toHaveBeenCalled();
     });
 
-    it("routes heartbeat message and updates timestamp", () => {
+    it("routes heartbeat message, updates timestamp, and sends ack without broadcast", () => {
+      mockRoomService.broadcast.mockClear();
+      const controlSpy = vi.spyOn(
+        router as unknown as { sendControlMessage: (uid: string, message: unknown) => void },
+        "sendControlMessage",
+      );
       const msg: ClientMessage = { t: "heartbeat" };
       const beforeTime = Date.now();
       routeAndFlush(msg, "player-1");
@@ -833,6 +860,91 @@ describe("MessageRouter", () => {
       const player = mockState.players.find((p) => p.uid === "player-1");
       expect(player?.lastHeartbeat).toBeGreaterThanOrEqual(beforeTime);
       expect(player?.lastHeartbeat).toBeLessThanOrEqual(afterTime);
+      expect(controlSpy).toHaveBeenCalledWith(
+        "player-1",
+        expect.objectContaining({ t: "heartbeat-ack", timestamp: expect.any(Number) }),
+      );
+      expect(mockRoomService.broadcast).not.toHaveBeenCalled();
+      controlSpy.mockRestore();
+    });
+
+    it("routes request-room-resync by sending targeted snapshot", () => {
+      const controlSpy = vi.spyOn(
+        router as unknown as { sendControlMessage: (uid: string, message: RoomSnapshot) => void },
+        "sendControlMessage",
+      );
+      const snapshot: RoomSnapshot = {
+        users: [],
+        stateVersion: 42,
+        tokens: [],
+        players: [],
+        characters: [],
+        props: [],
+        pointers: [],
+        drawings: [],
+        gridSize: 50,
+        gridSquareSize: 5,
+        diceRolls: [],
+        sceneObjects: [],
+      };
+      const snapshotSpy = mockRoomService.createSnapshotForPlayer as unknown as Mock;
+      snapshotSpy.mockReturnValue(snapshot);
+
+      const msg: ClientMessage = { t: "request-room-resync", lastSeenVersion: 40 };
+      routeAndFlush(msg, "player-1");
+
+      expect(snapshotSpy).toHaveBeenCalledWith("player-1");
+      expect(controlSpy).toHaveBeenCalledWith("player-1", snapshot);
+      expect(mockRoomService.broadcast).not.toHaveBeenCalled();
+      controlSpy.mockRestore();
+    });
+
+    it("sends ack control message when command completes", () => {
+      const controlSpy = vi.spyOn(
+        router as unknown as { sendControlMessage: (uid: string, message: ServerMessage) => void },
+        "sendControlMessage",
+      );
+      const msg: ClientMessage = { t: "move", id: "token-1", x: 1, y: 2, commandId: "cmd-123" };
+
+      routeAndFlush(msg, "player-1");
+
+      expect(controlSpy).toHaveBeenCalledWith("player-1", { t: "ack", commandId: "cmd-123" });
+      controlSpy.mockRestore();
+    });
+
+    it("skips ack control messages when feature flag disabled", () => {
+      const original = process.env.FEATURE_FLAG_ACKS;
+      process.env.FEATURE_FLAG_ACKS = "false";
+      const controlSpy = vi.spyOn(
+        router as unknown as { sendControlMessage: (uid: string, message: ServerMessage) => void },
+        "sendControlMessage",
+      );
+      const msg: ClientMessage = { t: "move", id: "token-1", x: 1, y: 2, commandId: "cmd-321" };
+
+      routeAndFlush(msg, "player-1");
+
+      expect(controlSpy).not.toHaveBeenCalled();
+      controlSpy.mockRestore();
+      process.env.FEATURE_FLAG_ACKS = original;
+    });
+
+    it("sends nack when handler throws", () => {
+      const controlSpy = vi.spyOn(
+        router as unknown as { sendControlMessage: (uid: string, message: ServerMessage) => void },
+        "sendControlMessage",
+      );
+      (mockTokenService.moveToken as Mock).mockImplementationOnce(() => {
+        throw new Error("boom");
+      });
+      const msg: ClientMessage = { t: "move", id: "token-1", x: 1, y: 2, commandId: "cmd-999" };
+
+      routeAndFlush(msg, "player-1");
+
+      expect(controlSpy).toHaveBeenCalledWith(
+        "player-1",
+        expect.objectContaining({ t: "nack", commandId: "cmd-999" }),
+      );
+      controlSpy.mockRestore();
     });
 
     it("routes load-session message", () => {
@@ -1154,6 +1266,172 @@ describe("MessageRouter", () => {
 
       expect(consoleWarnSpy).toHaveBeenCalledWith("Unknown message type:", "unknown-type");
       consoleWarnSpy.mockRestore();
+    });
+  });
+
+  describe("Delta broadcasting", () => {
+    it("sends token-updated delta alongside move broadcast", () => {
+      const mockSocket = {
+        readyState: 1,
+        send: vi.fn(),
+      } as unknown as WebSocket;
+      mockGetAuthorizedClients.mockReturnValue(new Set([mockSocket]));
+
+      mockState.tokens.push({
+        id: "token-1",
+        owner: "player-1",
+        x: 0,
+        y: 0,
+        color: "#fff",
+      } as RoomState["tokens"][number]);
+
+      (mockTokenService.moveToken as Mock).mockImplementationOnce(
+        (state: RoomState, tokenId: string, _uid: string, x: number, y: number) => {
+          const token = state.tokens.find((t) => t.id === tokenId);
+          if (token) {
+            token.x = x;
+            token.y = y;
+          }
+          return true;
+        },
+      );
+
+      const msg: ClientMessage = { t: "move", id: "token-1", x: 10, y: 20 };
+      routeAndFlush(msg, "player-1");
+
+      expect(mockSocket.send).toHaveBeenCalledTimes(1);
+      const delta = JSON.parse(mockSocket.send.mock.calls[0][0]);
+      expect(delta.t).toBe("token-updated");
+      expect(delta.token.x).toBe(10);
+      expect(delta.token.y).toBe(20);
+      expect(delta.stateVersion).toBe(1);
+      expect(mockRoomService.broadcast).not.toHaveBeenCalled();
+    });
+
+    it("sends pointer-preview high-frequency message when placing pointers", () => {
+      const mockSocket = {
+        readyState: 1,
+        send: vi.fn(),
+      } as unknown as WebSocket;
+      mockGetAuthorizedClients.mockReturnValue(new Set([mockSocket]));
+
+      const pointer = {
+        id: "pointer-123",
+        uid: "player-1",
+        x: 5,
+        y: 6,
+        timestamp: Date.now(),
+        name: "Alice",
+      };
+      (mockMapService.placePointer as Mock).mockReturnValue(pointer);
+
+      const msg: ClientMessage = { t: "point", x: 5, y: 6 };
+      routeAndFlush(msg, "player-1");
+
+      expect(mockSocket.send).toHaveBeenCalledTimes(1);
+      const delta = JSON.parse(mockSocket.send.mock.calls[0][0]);
+      expect(delta.t).toBe("pointer-preview");
+      expect(delta.pointer.id).toBe("pointer-123");
+      expect(delta.pointer.x).toBe(5);
+      expect(delta.pointer.y).toBe(6);
+      expect(delta.stateVersion).toBeUndefined();
+      expect(mockRoomService.broadcast).not.toHaveBeenCalled();
+    });
+
+    it("sends drag-preview high-frequency message for token drags", () => {
+      const mockSocket = {
+        readyState: 1,
+        send: vi.fn(),
+      } as unknown as WebSocket;
+      mockGetAuthorizedClients.mockReturnValue(new Set([mockSocket]));
+
+      mockState.tokens.push({
+        id: "token-1",
+        owner: "player-1",
+        x: 0,
+        y: 0,
+        color: "#fff",
+      } as RoomState["tokens"][number]);
+
+      const msg: ClientMessage = {
+        t: "drag-preview",
+        objects: [
+          { id: "token:token-1", x: 2, y: 3 },
+          { id: "token:unknown", x: 10, y: 10 },
+        ],
+      };
+
+      routeAndFlush(msg, "player-1");
+
+      expect(mockSocket.send).toHaveBeenCalledTimes(1);
+      const payload = JSON.parse(mockSocket.send.mock.calls[0][0]);
+      expect(payload.t).toBe("drag-preview");
+      expect(payload.preview.uid).toBe("player-1");
+      expect(payload.preview.objects).toHaveLength(1);
+      expect(payload.preview.objects[0]).toMatchObject({
+        tokenId: "token-1",
+        id: "token:token-1",
+        x: 2,
+        y: 3,
+      });
+      expect(mockRoomService.broadcast).not.toHaveBeenCalled();
+    });
+
+    it("drops drag-preview messages when feature flag disabled", () => {
+      const original = process.env.FEATURE_FLAG_DRAG_PREVIEWS;
+      process.env.FEATURE_FLAG_DRAG_PREVIEWS = "false";
+
+      const mockSocket = {
+        readyState: 1,
+        send: vi.fn(),
+      } as unknown as WebSocket;
+      mockGetAuthorizedClients.mockReturnValue(new Set([mockSocket]));
+
+      mockState.tokens.push({
+        id: "token-disabled",
+        owner: "player-1",
+        x: 0,
+        y: 0,
+        color: "#fff",
+      } as RoomState["tokens"][number]);
+
+      const msg: ClientMessage = {
+        t: "drag-preview",
+        objects: [{ id: "token:token-disabled", x: 1, y: 2 }],
+      };
+
+      routeAndFlush(msg, "player-1");
+
+      expect(mockSocket.send).not.toHaveBeenCalled();
+      expect(mockRoomService.broadcast).not.toHaveBeenCalled();
+
+      process.env.FEATURE_FLAG_DRAG_PREVIEWS = original;
+    });
+
+    it("falls back to broadcast when delta channel disabled", () => {
+      const original = process.env.FEATURE_FLAG_DELTAS;
+      process.env.FEATURE_FLAG_DELTAS = "false";
+      const mockSocket = {
+        readyState: 1,
+        send: vi.fn(),
+      } as unknown as WebSocket;
+      mockGetAuthorizedClients.mockReturnValue(new Set([mockSocket]));
+
+      mockState.tokens.push({
+        id: "token-flag",
+        owner: "player-1",
+        x: 0,
+        y: 0,
+        color: "#fff",
+      } as RoomState["tokens"][number]);
+
+      const msg: ClientMessage = { t: "move", id: "token-flag", x: 5, y: 6 };
+      routeAndFlush(msg, "player-1");
+
+      expect(mockRoomService.broadcast).toHaveBeenCalled();
+      expect(mockSocket.send).not.toHaveBeenCalled();
+
+      process.env.FEATURE_FLAG_DELTAS = original;
     });
   });
 });

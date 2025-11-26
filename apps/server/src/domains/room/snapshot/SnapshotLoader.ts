@@ -3,7 +3,7 @@
 // ============================================================================
 // Loads and merges saved game sessions with current server state
 
-import type { Player, RoomSnapshot } from "@shared";
+import type { Drawing, Player, RoomSnapshot } from "@shared";
 import type { RoomState } from "../model.js";
 import { createSelectionMap } from "../model.js";
 import type { StagingZoneManager } from "../staging/StagingZoneManager.js";
@@ -101,16 +101,23 @@ export class SnapshotLoader {
     // If snapshot has sceneObjects, don't load legacy drawings array
     // (rebuildSceneGraph will recreate drawings from sceneObjects if needed)
     const hasSceneObjects = snapshot.sceneObjects && snapshot.sceneObjects.length > 0;
+    const assetMap = buildAssetMap(snapshot);
+    const mapBackground = resolveMapBackground(snapshot, assetMap);
+    const drawings = hasSceneObjects ? [] : resolveDrawings(snapshot, assetMap);
 
     return {
       users: currentState.users, // Keep current WebSocket connections
+      stateVersion: Math.max(
+        currentState.stateVersion ?? 0,
+        typeof snapshot.stateVersion === "number" ? snapshot.stateVersion : 0,
+      ),
       tokens: mergedTokens,
       players: mergedPlayers,
       characters: mergedCharacters,
       props: snapshot.props ?? [],
-      mapBackground: snapshot.mapBackground,
+      mapBackground,
       pointers: [], // Clear pointers on load
-      drawings: hasSceneObjects ? [] : (snapshot.drawings ?? []),
+      drawings,
       gridSize: snapshot.gridSize ?? 50,
       gridSquareSize: snapshot.gridSquareSize ?? currentGridSquareSize,
       diceRolls: snapshot.diceRolls ?? [],
@@ -123,4 +130,38 @@ export class SnapshotLoader {
       currentTurnCharacterId: snapshot.currentTurnCharacterId ?? undefined,
     };
   }
+}
+
+function buildAssetMap(snapshot: RoomSnapshot): Map<string, unknown> {
+  const entries = new Map<string, unknown>();
+  snapshot.assets?.forEach((asset) => {
+    if (asset?.id) {
+      entries.set(asset.id, asset.payload);
+    }
+  });
+  return entries;
+}
+
+function resolveMapBackground(snapshot: RoomSnapshot, assets: Map<string, unknown>): string | undefined {
+  if (typeof snapshot.mapBackground === "string") {
+    return snapshot.mapBackground;
+  }
+  const assetId = snapshot.assetRefs?.["map-background"];
+  if (!assetId) {
+    return undefined;
+  }
+  const payload = assets.get(assetId);
+  return typeof payload === "string" ? payload : undefined;
+}
+
+function resolveDrawings(snapshot: RoomSnapshot, assets: Map<string, unknown>): Drawing[] {
+  if (Array.isArray(snapshot.drawings)) {
+    return snapshot.drawings;
+  }
+  const assetId = snapshot.assetRefs?.drawings;
+  if (!assetId) {
+    return [];
+  }
+  const payload = assets.get(assetId);
+  return Array.isArray(payload) ? (payload as Drawing[]) : [];
 }

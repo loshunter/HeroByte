@@ -139,6 +139,7 @@ const createDefaultProps = (overrides?: Partial<ComponentProps<typeof TokensLaye
   onTokenNodeReady: vi.fn(),
   interactionsEnabled: true,
   statusEffectsByTokenId: {},
+  onDragPreview: vi.fn(),
   ...overrides,
 });
 
@@ -381,12 +382,10 @@ describe("TokensLayer", () => {
 
       const rect = container.querySelector('[data-testid="konva-rect"]');
       const rectProps = getProps(rect);
-      // x = transform.x * gridSize + gridSize / 2 - offset
-      // offset = size / 2 = 37.5 / 2 = 18.75
-      // x = 2 * 50 + 25 - 18.75 = 106.25
-      expect(rectProps.x).toBe(106.25);
-      // y = 3 * 50 + 25 - 18.75 = 156.25
-      expect(rectProps.y).toBe(156.25);
+      // x = transform.x * gridSize + gridSize / 2 = 2 * 50 + 25 = 125
+      expect(rectProps.x).toBe(125);
+      // y = transform.y * gridSize + gridSize / 2 = 3 * 50 + 25 = 175
+      expect(rectProps.y).toBe(175);
     });
 
     it("applies transform rotation", () => {
@@ -889,7 +888,7 @@ describe("TokensLayer", () => {
 
       invokeHandler(rectProps.onDragEnd, {
         target: {
-          position: () => ({ x: 50, y: 100 }),
+          position: () => ({ x: 75, y: 125 }),
         },
       });
 
@@ -913,7 +912,7 @@ describe("TokensLayer", () => {
       const rectProps = getProps(rect);
 
       const mockPosition = vi.fn();
-      mockPosition.mockReturnValueOnce({ x: 48, y: 52 }); // Should snap to 50, 50
+      mockPosition.mockReturnValueOnce({ x: 73, y: 78 }); // Should snap to 75, 75
 
       invokeHandler(rectProps.onDragEnd, {
         target: {
@@ -922,7 +921,7 @@ describe("TokensLayer", () => {
       });
 
       // Should be called twice: once to get, once to set snapped position
-      expect(mockPosition).toHaveBeenCalledWith({ x: 50, y: 50 });
+      expect(mockPosition).toHaveBeenCalledWith({ x: 75, y: 75 });
       expect(onTransformToken).toHaveBeenCalledWith("token:1", { x: 1, y: 1 });
     });
 
@@ -944,11 +943,41 @@ describe("TokensLayer", () => {
 
       invokeHandler(rectProps.onDragEnd, {
         target: {
-          position: () => ({ x: 48, y: 52 }),
+          position: () => ({ x: 73, y: 77 }),
         },
       });
 
       expect(onTransformToken).toHaveBeenCalledWith("token:1", { x: 0.96, y: 1.04 });
+    });
+
+    it("emits drag preview updates during drag move", () => {
+      const onDragPreview = vi.fn();
+      const token = createTokenObject("token:1", "test-user");
+      const props = createDefaultProps({
+        sceneObjects: [token],
+        selectedObjectIds: ["token:1"],
+        onDragPreview,
+        uid: "test-user",
+      });
+
+      const { container } = render(<TokensLayer {...props} />);
+
+      const rect = container.querySelector('[data-testid="konva-rect"]');
+      const rectProps = getProps(rect);
+
+      invokeHandler(rectProps.onDragStart, {
+        evt: { shiftKey: false, ctrlKey: false, metaKey: false },
+      });
+
+      invokeHandler(rectProps.onDragMove, {
+        target: {
+          position: () => ({ x: 75, y: 75 }),
+        },
+      });
+
+      expect(onDragPreview).toHaveBeenCalledWith([
+        expect.objectContaining({ id: "token:1", x: 1, y: 1 }),
+      ]);
     });
 
     it("handles multi-token drag", () => {
@@ -982,7 +1011,7 @@ describe("TokensLayer", () => {
       // Simulate drag end - move 1 grid square right
       invokeHandler(rectProps.onDragEnd, {
         target: {
-          position: () => ({ x: 50, y: 0 }),
+          position: () => ({ x: 75, y: 25 }),
         },
       });
 
@@ -1420,7 +1449,7 @@ describe("TokensLayer", () => {
 
       // End drag at new position
       const mockPosition = vi.fn();
-      mockPosition.mockReturnValue({ x: 50, y: 100 });
+      mockPosition.mockReturnValue({ x: 75, y: 125 });
 
       invokeHandler(rectProps.onDragEnd, {
         target: {
@@ -1439,8 +1468,8 @@ describe("TokensLayer", () => {
       // Override should be cleaned up when server position matches
       const updatedRect = container.querySelector('[data-testid="konva-rect"]');
       const updatedRectProps = getProps(updatedRect);
-      // x = 1 * 50 + 25 - 18.75 = 56.25
-      expect(updatedRectProps.x).toBe(56.25);
+      // x = 1 * 50 + 25 = 75
+      expect(updatedRectProps.x).toBe(75);
     });
 
     it("cleans up override when token no longer exists", () => {
@@ -1468,7 +1497,7 @@ describe("TokensLayer", () => {
       expect(rectProps.onDragEnd).toBeDefined();
       invokeHandler(rectProps.onDragEnd, {
         target: {
-          position: () => ({ x: 50, y: 100 }),
+          position: () => ({ x: 75, y: 125 }),
         },
       });
 
@@ -1614,7 +1643,7 @@ describe("TokensLayer", () => {
       expect(rectProps.onDragEnd).toBeDefined();
       invokeHandler(rectProps.onDragEnd, {
         target: {
-          position: () => ({ x: 50, y: 0 }),
+          position: () => ({ x: 75, y: 25 }),
         },
       });
 
