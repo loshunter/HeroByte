@@ -920,10 +920,8 @@ export class MessageRouter {
     switch (delta.t) {
       case "token-updated":
         return { t: "token-updated", stateVersion, token: delta.token };
-      default: {
-        const exhaustiveCheck: never = delta;
-        throw new Error(`Unsupported delta type: ${exhaustiveCheck}`);
-      }
+      default:
+        throw new Error(`Unsupported delta type: ${delta.t}`);
     }
   }
 
@@ -950,7 +948,7 @@ export class MessageRouter {
       return;
     }
     this.sendToAuthorizedClients({ t: "drag-preview", preview });
-    this.messageLogger.logMessageRouting("drag-preview", reason);
+    this.messageLogger.logMessageRouting("drag-preview", reason ?? "drag-preview");
   }
 
   private broadcast(reason?: string): void {

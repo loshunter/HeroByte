@@ -185,6 +185,7 @@ export class SnapshotBuilder {
       owner: "player-default",
       ...partial,
     };
+    this.snapshot.drawings = this.snapshot.drawings ?? [];
     this.snapshot.drawings.push(drawing);
     return this;
   }
