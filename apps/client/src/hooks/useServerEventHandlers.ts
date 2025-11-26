@@ -154,6 +154,7 @@ export function useServerEventHandlers({
   );
 
   const lastDmStatusRef = useRef<boolean | null>(null);
+  const { success: toastSuccess, error: toastError } = toast;
 
   /**
    * Register handler for server events
@@ -181,20 +182,20 @@ export function useServerEventHandlers({
 
         // DM elevation successful (only toast on transition to DM)
         if (message.isDM && previousStatus !== true) {
-          toast.success("DM elevation successful! You are now the Dungeon Master.", 4000);
+          toastSuccess("DM elevation successful! You are now the Dungeon Master.", 4000);
         }
       } else if ("t" in message && message.t === "dm-elevation-failed") {
         // DM elevation failed
-        toast.error(`DM elevation failed: ${message.reason}`, 5000);
+        toastError(`DM elevation failed: ${message.reason}`, 5000);
       } else if ("t" in message && message.t === "dm-password-updated") {
         // DM password updated successfully
-        toast.success("DM password updated successfully!", 3000);
+        toastSuccess("DM password updated successfully!", 3000);
       } else if ("t" in message && message.t === "dm-password-update-failed") {
         // DM password update failed
-        toast.error(`DM password update failed: ${message.reason}`, 5000);
+        toastError(`DM password update failed: ${message.reason}`, 5000);
       }
     });
-  }, [registerServerEventHandler, toast]);
+  }, [registerServerEventHandler, toastSuccess, toastError]);
 
   return {
     roomPasswordStatus,

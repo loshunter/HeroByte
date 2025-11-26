@@ -1,4 +1,4 @@
-import { Redis as RedisConnection } from "ioredis";
+import { Redis } from "ioredis";
 import { RoomService } from "./service.js";
 import type { RoomStore } from "./store/RoomStore.js";
 import { InMemoryRoomStore } from "./store/RoomStore.js";
@@ -19,7 +19,7 @@ export class RoomRegistry {
   private readonly services = new Map<string, RoomService>();
   private readonly store: RoomStore;
   private readonly metricsLoggerFactory?: () => BroadcastMetricsLogger;
-  private redisClient: InstanceType<typeof RedisConnection> | null = null;
+  private redisClient: Redis | null = null;
 
   constructor(options: RoomRegistryOptions = {}) {
     this.metricsLoggerFactory = options.metricsLoggerFactory;
@@ -62,7 +62,7 @@ export class RoomRegistry {
     if (process.env.ROOM_STORE === "redis") {
       try {
         const url = process.env.REDIS_URL ?? "redis://127.0.0.1:6379";
-        this.redisClient = new RedisConnection(url);
+        this.redisClient = new Redis(url);
         const redisStore = new RedisRoomStore({ client: this.redisClient });
         redisStore.hydrate().catch((error) => {
           console.error("[RoomRegistry] Failed to hydrate RedisRoomStore", error);
