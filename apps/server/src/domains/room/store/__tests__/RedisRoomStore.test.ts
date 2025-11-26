@@ -27,7 +27,13 @@ describe("RedisRoomStore", () => {
 
   it("hydrates cache from redis hash", async () => {
     const state = createEmptyRoomState();
-    state.tokens.push({ id: "token-1", owner: "u1", x: 1, y: 2, color: "#fff" } as RoomState["tokens"][number]);
+    state.tokens.push({
+      id: "token-1",
+      owner: "u1",
+      x: 1,
+      y: 2,
+      color: "#fff",
+    } as RoomState["tokens"][number]);
     client.hkeys.mockResolvedValue(["room-a"]);
     client.hget.mockResolvedValue(JSON.stringify(state));
 

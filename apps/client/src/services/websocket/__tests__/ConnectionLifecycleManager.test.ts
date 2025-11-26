@@ -261,9 +261,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
 
       staleSocket.onclose?.({ code: 4001, reason: "Replaced" } as CloseEvent);
 
-      expect(console.log).toHaveBeenCalledWith(
-        "[WebSocket] Ignoring close event for stale socket",
-      );
+      expect(console.log).toHaveBeenCalledWith("[WebSocket] Ignoring close event for stale socket");
       expect(mockOnClose).not.toHaveBeenCalled();
       expect(manager.getState()).toBe(ConnectionState.CONNECTED);
     });

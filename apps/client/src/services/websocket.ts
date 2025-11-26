@@ -62,10 +62,7 @@ import {
   ConnectionState,
 } from "./websocket/ConnectionLifecycleManager";
 import { ServerWarmupManager } from "./websocket/ServerWarmupManager";
-import {
-  SnapshotReconciler,
-  type SnapshotResyncReason,
-} from "./websocket/SnapshotReconciler";
+import { SnapshotReconciler, type SnapshotResyncReason } from "./websocket/SnapshotReconciler";
 import { CommandAckManager } from "./websocket/CommandAckManager";
 
 type MessageHandler = (snapshot: RoomSnapshot) => void;

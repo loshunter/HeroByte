@@ -96,8 +96,14 @@ describe("MessageRouter", () => {
         mockState.stateVersion += 1;
         return mockState.stateVersion;
       }),
-      createSnapshotForPlayer: vi.fn(() => ({ ...snapshotTemplate, stateVersion: mockState.stateVersion })),
-      createSnapshot: vi.fn(() => ({ ...snapshotTemplate, stateVersion: mockState.stateVersion })),
+      createSnapshotForPlayer: vi.fn(() => ({
+        ...snapshotTemplate,
+        stateVersion: mockState.stateVersion,
+      })),
+      createSnapshot: vi.fn(() => ({
+        ...snapshotTemplate,
+        stateVersion: mockState.stateVersion,
+      })),
     } as unknown as RoomService;
 
     mockPlayerService = {

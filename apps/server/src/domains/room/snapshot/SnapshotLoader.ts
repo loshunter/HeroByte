@@ -142,7 +142,10 @@ function buildAssetMap(snapshot: RoomSnapshot): Map<string, unknown> {
   return entries;
 }
 
-function resolveMapBackground(snapshot: RoomSnapshot, assets: Map<string, unknown>): string | undefined {
+function resolveMapBackground(
+  snapshot: RoomSnapshot,
+  assets: Map<string, unknown>,
+): string | undefined {
   if (typeof snapshot.mapBackground === "string") {
     return snapshot.mapBackground;
   }

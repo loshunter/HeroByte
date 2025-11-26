@@ -190,9 +190,7 @@ describe("SnapshotReconciler", () => {
     expect(onSnapshot).toHaveBeenCalledWith(
       expect.objectContaining({
         mapBackground: "https://example.com/map.png",
-        drawings: [
-          expect.objectContaining({ id: "drawing-1", type: "freehand" }),
-        ],
+        drawings: [expect.objectContaining({ id: "drawing-1", type: "freehand" })],
       }),
     );
   });
@@ -254,9 +252,7 @@ describe("SnapshotReconciler", () => {
 
     expect(onSnapshot).toHaveBeenCalledWith(
       expect.objectContaining({
-        pointers: [
-          expect.objectContaining({ id: "pointer-1", x: 10, y: 20, uid: "player-1" }),
-        ],
+        pointers: [expect.objectContaining({ id: "pointer-1", x: 10, y: 20, uid: "player-1" })],
       }),
     );
   });
@@ -292,9 +288,7 @@ describe("SnapshotReconciler", () => {
     reconciler.applyDragPreview({
       uid: "player-2",
       timestamp: 123,
-      objects: [
-        { tokenId: "token-1", id: "token:token-1", x: 5, y: 7 },
-      ],
+      objects: [{ tokenId: "token-1", id: "token:token-1", x: 5, y: 7 }],
     });
 
     expect(onSnapshot).toHaveBeenCalledWith(

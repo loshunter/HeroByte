@@ -43,17 +43,13 @@ describe("CommandAckManager", () => {
   it("logs nack reasons and clears pending entries", () => {
     const decorated = manager.attachCommandId(baseMessage);
     manager.handleNack(decorated.commandId!, "invalid");
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining("Command rejected"),
-    );
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining("Command rejected"));
   });
 
   it("warns when pending command is dropped", () => {
     const decorated = manager.attachCommandId(baseMessage);
     manager.handleDrop(decorated, "queue-overflow");
-    expect(console.warn).toHaveBeenCalledWith(
-      expect.stringContaining("queue-overflow"),
-    );
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("queue-overflow"));
   });
 
   it("warns when ack received for unknown command", () => {

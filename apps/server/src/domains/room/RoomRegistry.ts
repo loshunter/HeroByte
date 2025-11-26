@@ -32,7 +32,11 @@ export class RoomRegistry {
     }
     let service = this.services.get(roomId);
     if (!service) {
-      service = new RoomService({ store: this.store, roomId, metricsLogger: this.metricsLoggerFactory?.() });
+      service = new RoomService({
+        store: this.store,
+        roomId,
+        metricsLogger: this.metricsLoggerFactory?.(),
+      });
       this.services.set(roomId, service);
     }
     return service;

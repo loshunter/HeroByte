@@ -305,9 +305,7 @@ describe("MessageQueueManager - Characterization Tests", () => {
       queueManager.send(second, mockWebSocket, notAuthenticatedFn);
 
       expect(onOverflow).toHaveBeenCalledWith(first, 0);
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining("Queue overflow"),
-      );
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Queue overflow"));
       warnSpy.mockRestore();
     });
   });

@@ -176,9 +176,7 @@ describe("RoomService", () => {
     const client = createClient();
     service.broadcast(new Set([client]));
 
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining("Snapshot size"),
-    );
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Snapshot size"));
     warnSpy.mockRestore();
   });
 

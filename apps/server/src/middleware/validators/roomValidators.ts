@@ -52,8 +52,7 @@ export function validateLoadSessionMessage(message: MessageRecord): ValidationRe
   const hasPlayers = Array.isArray(snapshot.players);
   const hasTokens = Array.isArray(snapshot.tokens);
   const hasDrawingArray = Array.isArray(snapshot.drawings);
-  const hasDrawingAsset =
-    snapshot.assetRefs && typeof snapshot.assetRefs.drawings === "string";
+  const hasDrawingAsset = snapshot.assetRefs && typeof snapshot.assetRefs.drawings === "string";
 
   if (!hasPlayers || !hasTokens || (!hasDrawingArray && !hasDrawingAsset)) {
     return {
