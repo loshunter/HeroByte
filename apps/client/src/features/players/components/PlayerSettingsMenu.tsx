@@ -371,16 +371,25 @@ export function PlayerSettingsMenu({
                         padding: "6px 8px",
                         cursor: "pointer",
                         borderRadius: "4px",
-                        transition: "background 0.2s",
+                        transition: "background 0.2s, border 0.2s",
                         fontSize: "12px",
                         color: isSelected ? "var(--jrpg-gold)" : "var(--jrpg-white)",
+                        background: isSelected ? "rgba(255, 215, 0, 0.15)" : "transparent",
+                        border: isSelected
+                          ? "1px solid rgba(255, 215, 0, 0.4)"
+                          : "1px solid transparent",
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "rgba(255, 215, 0, 0.1)";
+                        if (!isSelected) {
+                          e.currentTarget.style.background = "rgba(255, 215, 0, 0.1)";
+                        }
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "transparent";
+                        if (!isSelected) {
+                          e.currentTarget.style.background = "transparent";
+                        }
                       }}
+                      onClick={() => handleToggleEffect(option.value)}
                     >
                       <input
                         type="checkbox"

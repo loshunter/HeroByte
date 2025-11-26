@@ -106,7 +106,7 @@ export default function MapBoard({
     useSceneObjectsData(snapshot, gridSize);
 
   // Build statusEffectsByTokenId map from characters array
-  // Maps token IDs to their character's status effect emoji
+  // Maps token IDs to their character's status effect details
   const statusEffectsByTokenId = useMemo(() => {
     if (!snapshot?.characters) return {};
 
@@ -117,8 +117,10 @@ export default function MapBoard({
       }
     }
 
-    const result: Record<string, string> = {};
+    const result: Record<string, StatusOption[]> = {};
     for (const character of snapshot.characters) {
+      if (!character.tokenId) continue;
+
       const ownedStatuses =
         character.statusEffects && character.statusEffects.length > 0
           ? character.statusEffects
@@ -126,17 +128,14 @@ export default function MapBoard({
             ? (playerStatusMap.get(character.ownedByPlayerUID) ?? [])
             : [];
 
-      if (!ownedStatuses || ownedStatuses.length === 0) continue;
+      if (ownedStatuses.length === 0) continue;
 
-      const activeEffect = ownedStatuses[0];
-      if (!activeEffect) continue;
+      const mapped = ownedStatuses.map((value) => {
+        const option = STATUS_OPTIONS.find((opt) => opt.value === value);
+        return option ?? { value, label: value, emoji: "?" };
+      });
 
-      // Find the emoji for this status effect
-      const statusOption = STATUS_OPTIONS.find((opt: StatusOption) => opt.value === activeEffect);
-      if (statusOption?.emoji && character.tokenId) {
-        // Map by full token scene ID (e.g., "token:abc123")
-        result[`token:${character.tokenId}`] = statusOption.emoji;
-      }
+      result[`token:${character.tokenId}`] = mapped;
     }
     return result;
   }, [snapshot?.characters, snapshot?.players]);
