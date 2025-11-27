@@ -890,11 +890,13 @@ export class MessageRouter {
     const pointerResult = result as PointerHandlerResult;
     const shouldSuppressBroadcast =
       reason === "point" || reason === "heartbeat" || Boolean(pointerResult.preview);
-    const routeResult = { ...result, reason };
-    const routeResultInput = shouldSuppressBroadcast
-      ? { ...routeResult, broadcast: false }
-      : routeResult;
-    this.routeResultHandler.handleResult(routeResultInput);
+    console.log("[DEBUG] suppressBroadcast", reason, shouldSuppressBroadcast);
+
+    this.routeResultHandler.handleResult({
+      ...result,
+      reason,
+      skipBroadcast: shouldSuppressBroadcast,
+    });
 
     if (!result.broadcast) {
       this.skipNextBroadcastVersionBump = false;
