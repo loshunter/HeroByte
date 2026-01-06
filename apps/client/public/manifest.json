@@ -1,0 +1,21 @@
+{
+  "name": "HeroByte",
+  "short_name": "HeroByte",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0b0d12",
+  "theme_color": "#0b0d12",
+  "description": "A virtual tabletop for role-playing games.",
+  "icons": [
+    {
+      "src": "LogoSm.webp",
+      "sizes": "192x192",
+      "type": "image/webp"
+    },
+    {
+      "src": "LogoSm.webp",
+      "sizes": "512x512",
+      "type": "image/webp"
+    }
+  ]
+}

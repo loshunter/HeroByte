@@ -9,6 +9,7 @@
     />
     <meta name="robots" content="index,follow" />
     <link rel="canonical" href="https://herobyte.app/" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: wss:;" />
     <meta name="theme-color" content="#0b0d12" />
     <meta property="og:title" content="HeroByte - Virtual Tabletop" />
     <meta
@@ -27,9 +28,12 @@
     <meta name="twitter:image" content="/logo.webp" />
     <title>HeroByte - Virtual Tabletop</title>
     <link rel="icon" type="image/webp" href="/logo.webp" />
+    <link rel="manifest" href="/manifest.json" />
   </head>
   <body style="margin:0;background:#0b0d12;color:#dbe1ff;">
-    <div id="root"></div>
+    <main>
+      <div id="root"></div>
+    </main>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
