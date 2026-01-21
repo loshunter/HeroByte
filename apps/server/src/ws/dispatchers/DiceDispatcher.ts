@@ -9,7 +9,7 @@ export class DiceDispatcher {
   dispatch(
     message: ClientMessage,
     context: MessageRoutingContext,
-    senderUid: string
+    _senderUid: string,
   ): RouteHandlerResult | null {
     const state = context.getState();
 

@@ -9,13 +9,13 @@ export class CharacterDispatcher {
   constructor(
     private characterHandler: CharacterMessageHandler,
     private npcHandler: NPCMessageHandler,
-    private authWrapper: AuthorizationCheckWrapper
+    private authWrapper: AuthorizationCheckWrapper,
   ) {}
 
   dispatch(
     message: ClientMessage,
     context: MessageRoutingContext,
-    senderUid: string
+    senderUid: string,
   ): RouteHandlerResult | null {
     const state = context.getState();
     const isDM = context.isDM();
@@ -23,39 +23,33 @@ export class CharacterDispatcher {
     switch (message.t) {
       // Character Actions
       case "create-character":
-        return this.authWrapper.executeIfDMAuthorized(
-          senderUid,
-          isDM,
-          "create character",
-          () =>
+        return (
+          this.authWrapper.executeIfDMAuthorized(senderUid, isDM, "create character", () =>
             this.characterHandler.handleCreateCharacter(
               state,
               message.name,
               message.maxHp,
-              message.portrait
-            )
-        ) || null; // Return null if auth fails (result is undefined)
+              message.portrait,
+            ),
+          ) || null
+        ); // Return null if auth fails (result is undefined)
 
       case "claim-character":
-        return this.characterHandler.handleClaimCharacter(
-          state,
-          message.characterId,
-          senderUid
-        );
+        return this.characterHandler.handleClaimCharacter(state, message.characterId, senderUid);
 
       case "add-player-character":
         return this.characterHandler.handleAddPlayerCharacter(
           state,
           senderUid,
           message.name,
-          message.maxHp
+          message.maxHp,
         );
 
       case "delete-player-character":
         return this.characterHandler.handleDeletePlayerCharacter(
           state,
           message.characterId,
-          senderUid
+          senderUid,
         );
 
       case "update-character-name":
@@ -63,7 +57,7 @@ export class CharacterDispatcher {
           state,
           message.characterId,
           senderUid,
-          message.name
+          message.name,
         );
 
       case "update-character-hp":
@@ -71,7 +65,7 @@ export class CharacterDispatcher {
           state,
           message.characterId,
           message.hp,
-          message.maxHp
+          message.maxHp,
         );
 
       case "set-character-status-effects":
@@ -80,7 +74,7 @@ export class CharacterDispatcher {
           message.characterId,
           senderUid,
           message.effects,
-          isDM
+          isDM,
         );
 
       case "set-character-portrait":
@@ -89,31 +83,23 @@ export class CharacterDispatcher {
           message.characterId,
           senderUid,
           message.portrait,
-          isDM
+          isDM,
         );
 
       // NPC Actions
       case "create-npc":
-        return this.authWrapper.executeIfDMAuthorized(
-          senderUid,
-          isDM,
-          "create NPC",
-          () =>
-            this.npcHandler.handleCreateNPC(
-              state,
-              message.name,
-              message.maxHp,
-              message.portrait,
-              { hp: message.hp, tokenImage: message.tokenImage }
-            )
-        ) || null;
+        return (
+          this.authWrapper.executeIfDMAuthorized(senderUid, isDM, "create NPC", () =>
+            this.npcHandler.handleCreateNPC(state, message.name, message.maxHp, message.portrait, {
+              hp: message.hp,
+              tokenImage: message.tokenImage,
+            }),
+          ) || null
+        );
 
       case "update-npc":
-        return this.authWrapper.executeIfDMAuthorized(
-          senderUid,
-          isDM,
-          "update NPC",
-          () =>
+        return (
+          this.authWrapper.executeIfDMAuthorized(senderUid, isDM, "update NPC", () =>
             this.npcHandler.handleUpdateNPC(state, message.id, {
               name: message.name,
               hp: message.hp,
@@ -121,37 +107,30 @@ export class CharacterDispatcher {
               portrait: message.portrait,
               tokenImage: message.tokenImage,
               initiativeModifier: message.initiativeModifier,
-            })
-        ) || null;
+            }),
+          ) || null
+        );
 
       case "delete-npc":
-        return this.authWrapper.executeIfDMAuthorized(
-          senderUid,
-          isDM,
-          "delete NPC",
-          () => this.npcHandler.handleDeleteNPC(state, message.id)
-        ) || null;
+        return (
+          this.authWrapper.executeIfDMAuthorized(senderUid, isDM, "delete NPC", () =>
+            this.npcHandler.handleDeleteNPC(state, message.id),
+          ) || null
+        );
 
       case "place-npc-token":
-        return this.authWrapper.executeIfDMAuthorized(
-          senderUid,
-          isDM,
-          "place NPC token",
-          () => this.npcHandler.handlePlaceNPCToken(state, message.id, senderUid)
-        ) || null;
+        return (
+          this.authWrapper.executeIfDMAuthorized(senderUid, isDM, "place NPC token", () =>
+            this.npcHandler.handlePlaceNPCToken(state, message.id, senderUid),
+          ) || null
+        );
 
       case "toggle-npc-visibility":
-        return this.authWrapper.executeIfDMAuthorized(
-          senderUid,
-          isDM,
-          "toggle NPC visibility",
-          () =>
-            this.npcHandler.handleToggleNPCVisibility(
-              state,
-              message.id,
-              message.visible
-            )
-        ) || null;
+        return (
+          this.authWrapper.executeIfDMAuthorized(senderUid, isDM, "toggle NPC visibility", () =>
+            this.npcHandler.handleToggleNPCVisibility(state, message.id, message.visible),
+          ) || null
+        );
 
       default:
         return null;

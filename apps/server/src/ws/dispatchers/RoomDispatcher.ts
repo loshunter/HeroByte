@@ -1,4 +1,4 @@
-import type { ClientMessage, SignalData } from "@shared";
+import type { ClientMessage, SignalData, ServerMessage } from "@shared";
 import type { HeartbeatHandler } from "../handlers/HeartbeatHandler.js";
 import type { RTCSignalHandler } from "../handlers/RTCSignalHandler.js";
 import type { RoomMessageHandler } from "../handlers/RoomMessageHandler.js";
@@ -18,13 +18,13 @@ export class RoomDispatcher {
     private tokenHandler: TokenMessageHandler,
     private roomService: RoomService,
     private authWrapper: AuthorizationCheckWrapper,
-    private sendControlMessage: (targetUid: string, message: any) => void
+    private sendControlMessage: (targetUid: string, message: ServerMessage) => void,
   ) {}
 
   dispatch(
     message: ClientMessage,
     context: MessageRoutingContext,
-    senderUid: string
+    senderUid: string,
   ): RouteHandlerResult | null {
     const state = context.getState();
     const isDM = context.isDM();
@@ -34,45 +34,37 @@ export class RoomDispatcher {
         this.roomHandler.handleSetRoomPassword(state, senderUid, message.secret);
         return { broadcast: false, save: false }; // Handled internally
 
-      case "heartbeat":
+      case "heartbeat": {
         const result = this.heartbeatHandler.handleHeartbeat(state, senderUid);
         this.sendControlMessage(senderUid, {
           t: "heartbeat-ack",
           timestamp: Date.now(),
         });
         return result;
+      }
 
-      case "request-room-resync":
+      case "request-room-resync": {
         const snapshot = this.roomService.createSnapshotForPlayer(senderUid);
         this.sendControlMessage(senderUid, snapshot);
         return { broadcast: false, save: false };
+      }
 
       case "load-session":
-        return this.roomHandler.handleLoadSession(
-          state,
-          senderUid,
-          message.snapshot,
-          isDM
-        );
+        return this.roomHandler.handleLoadSession(state, senderUid, message.snapshot, isDM);
 
       case "transform-object":
-        return this.transformHandler.handleTransformObject(
-          state,
-          senderUid,
-          message.id,
-          {
-            position: message.position,
-            scale: message.scale,
-            rotation: message.rotation,
-            locked: message.locked,
-          }
-        );
+        return this.transformHandler.handleTransformObject(state, senderUid, message.id, {
+          position: message.position,
+          scale: message.scale,
+          rotation: message.rotation,
+          locked: message.locked,
+        });
 
       case "rtc-signal":
         this.rtcSignalHandler.forwardSignal(
           message.target,
           senderUid,
-          message.signal as SignalData
+          message.signal as SignalData,
         );
         return { broadcast: false, save: false };
 

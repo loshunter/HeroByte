@@ -9,7 +9,7 @@ export class PlayerDispatcher {
   dispatch(
     message: ClientMessage,
     context: MessageRoutingContext,
-    senderUid: string
+    senderUid: string,
   ): RouteHandlerResult | null {
     const state = context.getState();
 
@@ -24,19 +24,10 @@ export class PlayerDispatcher {
         return this.handler.handleMicLevel(state, senderUid, message.level);
 
       case "set-hp":
-        return this.handler.handleSetHP(
-          state,
-          senderUid,
-          message.hp,
-          message.maxHp
-        );
+        return this.handler.handleSetHP(state, senderUid, message.hp, message.maxHp);
 
       case "set-status-effects":
-        return this.handler.handleSetStatusEffects(
-          state,
-          senderUid,
-          message.effects
-        );
+        return this.handler.handleSetStatusEffects(state, senderUid, message.effects);
 
       case "toggle-dm":
         return this.handler.handleToggleDM(senderUid);

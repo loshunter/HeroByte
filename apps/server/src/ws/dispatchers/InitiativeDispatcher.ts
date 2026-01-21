@@ -9,7 +9,7 @@ export class InitiativeDispatcher {
   dispatch(
     message: ClientMessage,
     context: MessageRoutingContext,
-    senderUid: string
+    senderUid: string,
   ): RouteHandlerResult | null {
     const state = context.getState();
     const isDM = context.isDM();
@@ -22,7 +22,7 @@ export class InitiativeDispatcher {
           senderUid,
           message.initiative,
           message.initiativeModifier,
-          isDM
+          isDM,
         );
 
       case "start-combat":

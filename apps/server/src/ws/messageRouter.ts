@@ -4,9 +4,8 @@
 // Routes incoming WebSocket messages to appropriate domain services
 
 import type { WebSocket, WebSocketServer } from "ws";
-import type { SignalData } from "simple-peer";
 import type { ClientMessage, DragPreviewEvent, Pointer, ServerMessage } from "@shared";
-import { isCommandAckEnabled, isDragPreviewEnabled } from "../config/featureFlags.js";
+import { isCommandAckEnabled } from "../config/featureFlags.js";
 import { RoomService } from "../domains/room/service.js";
 import { PlayerService } from "../domains/player/service.js";
 import { TokenService } from "../domains/token/service.js";
@@ -36,10 +35,10 @@ import { MessageErrorHandler } from "./services/MessageErrorHandler.js";
 import { BroadcastService } from "./services/BroadcastService.js";
 import { DirectMessageService } from "./services/DirectMessageService.js";
 import { RouteResultHandler, type RouteHandlerResult } from "./services/RouteResultHandler.js";
-import { TokenDispatcher, type TokenDispatcherResult } from "./dispatchers/TokenDispatcher.js";
+import { TokenDispatcher } from "./dispatchers/TokenDispatcher.js";
 import { CharacterDispatcher } from "./dispatchers/CharacterDispatcher.js";
 import { PlayerDispatcher } from "./dispatchers/PlayerDispatcher.js";
-import { MapDispatcher, type MapDispatcherResult } from "./dispatchers/MapDispatcher.js";
+import { MapDispatcher } from "./dispatchers/MapDispatcher.js";
 import { PropDispatcher } from "./dispatchers/PropDispatcher.js";
 import { InitiativeDispatcher } from "./dispatchers/InitiativeDispatcher.js";
 import { SelectionDispatcher } from "./dispatchers/SelectionDispatcher.js";
@@ -150,7 +149,10 @@ export class MessageRouter {
       selectionService,
       roomService,
     );
-    this.tokenDispatcher = new TokenDispatcher(this.tokenMessageHandler, this.authorizationCheckWrapper);
+    this.tokenDispatcher = new TokenDispatcher(
+      this.tokenMessageHandler,
+      this.authorizationCheckWrapper,
+    );
     this.characterMessageHandler = new CharacterMessageHandler(
       characterService,
       tokenService,
@@ -168,7 +170,10 @@ export class MessageRouter {
       this.authorizationCheckWrapper,
     );
     this.propMessageHandler = new PropMessageHandler(propService, selectionService);
-    this.propDispatcher = new PropDispatcher(this.propMessageHandler, this.authorizationCheckWrapper);
+    this.propDispatcher = new PropDispatcher(
+      this.propMessageHandler,
+      this.authorizationCheckWrapper,
+    );
     this.playerMessageHandler = new PlayerMessageHandler(playerService, roomService);
     this.playerDispatcher = new PlayerDispatcher(this.playerMessageHandler);
     this.initiativeMessageHandler = new InitiativeMessageHandler(characterService, roomService);
@@ -212,7 +217,6 @@ export class MessageRouter {
   route(message: ClientMessage, senderUid: string): void {
     this.messageLogger.logMessageRouting(message.t, senderUid);
     const context = this.messageRoutingContext.create(senderUid);
-    const state = context.getState();
 
     try {
       // Delegate to TokenDispatcher

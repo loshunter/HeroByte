@@ -13,13 +13,13 @@ export class MapDispatcher {
   constructor(
     private mapHandler: MapMessageHandler,
     private pointerHandler: PointerHandler,
-    private drawingHandler: DrawingMessageHandler
+    private drawingHandler: DrawingMessageHandler,
   ) {}
 
   dispatch(
     message: ClientMessage,
     context: MessageRoutingContext,
-    senderUid: string
+    senderUid: string,
   ): MapDispatcherResult | null {
     const state = context.getState();
     const isDM = context.isDM();
@@ -36,21 +36,11 @@ export class MapDispatcher {
         return this.mapHandler.handleGridSquareSize(state, message.size);
 
       case "set-player-staging-zone":
-        return this.mapHandler.handleSetPlayerStagingZone(
-          state,
-          senderUid,
-          message.zone,
-          isDM
-        );
+        return this.mapHandler.handleSetPlayerStagingZone(state, senderUid, message.zone, isDM);
 
       // Pointer Handler
       case "point": {
-        const result = this.pointerHandler.handlePointer(
-          state,
-          senderUid,
-          message.x,
-          message.y
-        );
+        const result = this.pointerHandler.handlePointer(state, senderUid, message.x, message.y);
         return {
           ...result,
           pointerPreview: result.preview,
@@ -59,18 +49,10 @@ export class MapDispatcher {
 
       // Drawing Handler
       case "draw":
-        return this.drawingHandler.handleDraw(
-          state,
-          message.drawing,
-          senderUid
-        );
+        return this.drawingHandler.handleDraw(state, message.drawing, senderUid);
 
       case "sync-player-drawings":
-        return this.drawingHandler.handleSyncPlayerDrawings(
-          state,
-          senderUid,
-          message.drawings
-        );
+        return this.drawingHandler.handleSyncPlayerDrawings(state, senderUid, message.drawings);
 
       case "undo-drawing":
         return this.drawingHandler.handleUndoDrawing(state, senderUid);
@@ -82,11 +64,7 @@ export class MapDispatcher {
         return this.drawingHandler.handleClearDrawings(state, senderUid, isDM);
 
       case "select-drawing":
-        return this.drawingHandler.handleSelectDrawing(
-          state,
-          message.id,
-          senderUid
-        );
+        return this.drawingHandler.handleSelectDrawing(state, message.id, senderUid);
 
       case "deselect-drawing":
         return this.drawingHandler.handleDeselectDrawing(state, senderUid);
@@ -97,7 +75,7 @@ export class MapDispatcher {
           message.id,
           message.dx,
           message.dy,
-          senderUid
+          senderUid,
         );
 
       case "delete-drawing":
@@ -108,7 +86,7 @@ export class MapDispatcher {
           state,
           message.deleteId,
           message.segments,
-          senderUid
+          senderUid,
         );
 
       default:
