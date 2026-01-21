@@ -36,6 +36,15 @@ import { MessageErrorHandler } from "./services/MessageErrorHandler.js";
 import { BroadcastService } from "./services/BroadcastService.js";
 import { DirectMessageService } from "./services/DirectMessageService.js";
 import { RouteResultHandler, type RouteHandlerResult } from "./services/RouteResultHandler.js";
+import { TokenDispatcher, type TokenDispatcherResult } from "./dispatchers/TokenDispatcher.js";
+import { CharacterDispatcher } from "./dispatchers/CharacterDispatcher.js";
+import { PlayerDispatcher } from "./dispatchers/PlayerDispatcher.js";
+import { MapDispatcher, type MapDispatcherResult } from "./dispatchers/MapDispatcher.js";
+import { PropDispatcher } from "./dispatchers/PropDispatcher.js";
+import { InitiativeDispatcher } from "./dispatchers/InitiativeDispatcher.js";
+import { SelectionDispatcher } from "./dispatchers/SelectionDispatcher.js";
+import { DiceDispatcher } from "./dispatchers/DiceDispatcher.js";
+import { RoomDispatcher } from "./dispatchers/RoomDispatcher.js";
 import { DMAuthorizationEnforcer } from "./services/DMAuthorizationEnforcer.js";
 import { AuthorizationCheckWrapper } from "./services/AuthorizationCheckWrapper.js";
 import { MessageLogger } from "./services/MessageLogger.js";
@@ -79,10 +88,17 @@ export class MessageRouter {
   private diceMessageHandler: DiceMessageHandler;
   private roomMessageHandler: RoomMessageHandler;
   private transformMessageHandler: TransformMessageHandler;
+  private tokenDispatcher: TokenDispatcher;
+  private characterDispatcher: CharacterDispatcher;
+  private playerDispatcher: PlayerDispatcher;
+  private mapDispatcher: MapDispatcher;
+  private propDispatcher: PropDispatcher;
+  private initiativeDispatcher: InitiativeDispatcher;
+  private selectionDispatcher: SelectionDispatcher;
+  private diceDispatcher: DiceDispatcher;
+  private roomDispatcher: RoomDispatcher;
   private wss: WebSocketServer;
   private uidToWs: Map<string, WebSocket>;
-  private getAuthorizedClients: () => Set<WebSocket>;
-  private skipNextBroadcastVersionBump = false;
 
   constructor(
     roomService: RoomService,
@@ -134,6 +150,7 @@ export class MessageRouter {
       selectionService,
       roomService,
     );
+    this.tokenDispatcher = new TokenDispatcher(this.tokenMessageHandler, this.authorizationCheckWrapper);
     this.characterMessageHandler = new CharacterMessageHandler(
       characterService,
       tokenService,
@@ -145,23 +162,48 @@ export class MessageRouter {
       tokenService,
       selectionService,
     );
+    this.characterDispatcher = new CharacterDispatcher(
+      this.characterMessageHandler,
+      this.npcMessageHandler,
+      this.authorizationCheckWrapper,
+    );
     this.propMessageHandler = new PropMessageHandler(propService, selectionService);
+    this.propDispatcher = new PropDispatcher(this.propMessageHandler, this.authorizationCheckWrapper);
     this.playerMessageHandler = new PlayerMessageHandler(playerService, roomService);
+    this.playerDispatcher = new PlayerDispatcher(this.playerMessageHandler);
     this.initiativeMessageHandler = new InitiativeMessageHandler(characterService, roomService);
+    this.initiativeDispatcher = new InitiativeDispatcher(this.initiativeMessageHandler);
     this.mapMessageHandler = new MapMessageHandler(mapService, roomService);
     this.drawingMessageHandler = new DrawingMessageHandler(
       mapService,
       selectionService,
       roomService,
     );
+    this.mapDispatcher = new MapDispatcher(
+      this.mapMessageHandler,
+      this.pointerHandler,
+      this.drawingMessageHandler,
+    );
     this.selectionMessageHandler = new SelectionMessageHandler(selectionService, roomService);
+    this.selectionDispatcher = new SelectionDispatcher(this.selectionMessageHandler);
     this.diceMessageHandler = new DiceMessageHandler(diceService);
+    this.diceDispatcher = new DiceDispatcher(this.diceMessageHandler);
     this.roomMessageHandler = new RoomMessageHandler(
       roomService,
       authService,
-      this.sendControlMessage.bind(this),
+      (targetUid, message) => this.sendControlMessage(targetUid, message),
     );
     this.transformMessageHandler = new TransformMessageHandler(roomService);
+    this.roomDispatcher = new RoomDispatcher(
+      this.roomMessageHandler,
+      this.heartbeatHandler,
+      this.rtcSignalHandler,
+      this.transformMessageHandler,
+      this.tokenMessageHandler,
+      this.roomService,
+      this.authorizationCheckWrapper,
+      (targetUid, message) => this.sendControlMessage(targetUid, message),
+    );
   }
 
   /**
@@ -173,701 +215,82 @@ export class MessageRouter {
     const state = context.getState();
 
     try {
-      switch (message.t) {
-        // TOKEN ACTIONS
-        case "move": {
-          const result = this.tokenMessageHandler.handleMove(
-            state,
-            message.id,
-            senderUid,
-            message.x,
-            message.y,
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "drag-preview": {
-          if (!isDragPreviewEnabled()) {
-            break;
-          }
-          const preview = this.tokenMessageHandler.buildDragPreview(
-            state,
-            senderUid,
-            message.objects,
-            context.isDM(),
-          );
-          if (preview) {
-            this.broadcastDragPreview(preview, message.t);
-          }
-          break;
-        }
-
-        case "recolor": {
-          const result = this.tokenMessageHandler.handleRecolor(state, message.id, senderUid);
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "delete-token": {
-          const result = this.tokenMessageHandler.handleDelete(
-            state,
-            message.id,
-            senderUid,
-            context.isDM(),
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "update-token-image": {
-          const result = this.tokenMessageHandler.handleUpdateImage(
-            state,
-            message.tokenId,
-            senderUid,
-            message.imageUrl,
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "set-token-size": {
-          const result = this.tokenMessageHandler.handleSetSize(
-            state,
-            message.tokenId,
-            senderUid,
-            message.size,
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "set-token-color": {
-          const result = this.tokenMessageHandler.handleSetColor(
-            state,
-            message.tokenId,
-            senderUid,
-            message.color,
-            context.isDM(),
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        // PLAYER ACTIONS
-        case "portrait": {
-          const result = this.playerMessageHandler.handlePortrait(state, senderUid, message.data);
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "rename": {
-          const result = this.playerMessageHandler.handleRename(state, senderUid, message.name);
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "mic-level": {
-          const result = this.playerMessageHandler.handleMicLevel(state, senderUid, message.level);
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "set-hp": {
-          const result = this.playerMessageHandler.handleSetHP(
-            state,
-            senderUid,
-            message.hp,
-            message.maxHp,
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "set-status-effects": {
-          const result = this.playerMessageHandler.handleSetStatusEffects(
-            state,
-            senderUid,
-            message.effects,
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "toggle-dm": {
-          // DEPRECATED: This action is replaced by elevate-to-dm flow
-          // Kept for backwards compatibility but should not be used
-          this.playerMessageHandler.handleToggleDM(senderUid);
-          break;
-        }
-
-        // CHARACTER ACTIONS
-        case "create-character": {
-          const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
-            senderUid,
-            context.isDM(),
-            "create character",
-            () =>
-              this.characterMessageHandler.handleCreateCharacter(
-                state,
-                message.name,
-                message.maxHp,
-                message.portrait,
-              ),
-          );
-          if (result) {
-            this.handleRouteResult(result, message.t);
-          }
-          break;
-        }
-
-        case "create-npc": {
-          const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
-            senderUid,
-            context.isDM(),
-            "create NPC",
-            () =>
-              this.npcMessageHandler.handleCreateNPC(
-                state,
-                message.name,
-                message.maxHp,
-                message.portrait,
-                { hp: message.hp, tokenImage: message.tokenImage },
-              ),
-          );
-          if (result) {
-            this.handleRouteResult(result, message.t);
-          }
-          break;
-        }
-
-        case "update-npc": {
-          const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
-            senderUid,
-            context.isDM(),
-            "update NPC",
-            () =>
-              this.npcMessageHandler.handleUpdateNPC(state, message.id, {
-                name: message.name,
-                hp: message.hp,
-                maxHp: message.maxHp,
-                portrait: message.portrait,
-                tokenImage: message.tokenImage,
-                initiativeModifier: message.initiativeModifier,
-              }),
-          );
-          if (result) {
-            this.handleRouteResult(result, message.t);
-          }
-          break;
-        }
-
-        case "delete-npc": {
-          const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
-            senderUid,
-            context.isDM(),
-            "delete NPC",
-            () => this.npcMessageHandler.handleDeleteNPC(state, message.id),
-          );
-          if (result) {
-            this.handleRouteResult(result, message.t);
-          }
-          break;
-        }
-
-        case "place-npc-token": {
-          const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
-            senderUid,
-            context.isDM(),
-            "place NPC token",
-            () => this.npcMessageHandler.handlePlaceNPCToken(state, message.id, senderUid),
-          );
-          if (result) {
-            this.handleRouteResult(result, message.t);
-          }
-          break;
-        }
-
-        case "toggle-npc-visibility": {
-          const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
-            senderUid,
-            context.isDM(),
-            "toggle NPC visibility",
-            () =>
-              this.npcMessageHandler.handleToggleNPCVisibility(state, message.id, message.visible),
-          );
-          if (result) {
-            this.handleRouteResult(result, message.t);
-          }
-          break;
-        }
-
-        // INITIATIVE/COMBAT ACTIONS
-        case "set-initiative": {
-          const result = this.initiativeMessageHandler.handleSetInitiative(
-            state,
-            message.characterId,
-            senderUid,
-            message.initiative,
-            message.initiativeModifier,
-            context.isDM(),
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "start-combat": {
-          const result = this.initiativeMessageHandler.handleStartCombat(
-            state,
-            senderUid,
-            context.isDM(),
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "end-combat": {
-          const result = this.initiativeMessageHandler.handleEndCombat(
-            state,
-            senderUid,
-            context.isDM(),
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "next-turn": {
-          const result = this.initiativeMessageHandler.handleNextTurn(
-            state,
-            senderUid,
-            context.isDM(),
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "previous-turn": {
-          const result = this.initiativeMessageHandler.handlePreviousTurn(
-            state,
-            senderUid,
-            context.isDM(),
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "clear-all-initiative": {
-          const result = this.initiativeMessageHandler.handleClearAllInitiative(
-            state,
-            senderUid,
-            context.isDM(),
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        // PROP ACTIONS
-        case "create-prop": {
-          const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
-            senderUid,
-            context.isDM(),
-            "create prop",
-            () =>
-              this.propMessageHandler.handleCreateProp(
-                state,
-                message.label,
-                message.imageUrl,
-                message.owner,
-                message.size,
-                message.viewport,
-                state.gridSize,
-              ),
-          );
-          if (result) {
-            this.handleRouteResult(result, message.t);
-          }
-          break;
-        }
-
-        case "update-prop": {
-          const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
-            senderUid,
-            context.isDM(),
-            "update prop",
-            () =>
-              this.propMessageHandler.handleUpdateProp(state, message.id, {
-                label: message.label,
-                imageUrl: message.imageUrl,
-                owner: message.owner,
-                size: message.size,
-              }),
-          );
-          if (result) {
-            this.handleRouteResult(result, message.t);
-          }
-          break;
-        }
-
-        case "delete-prop": {
-          const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
-            senderUid,
-            context.isDM(),
-            "delete prop",
-            () => this.propMessageHandler.handleDeleteProp(state, message.id),
-          );
-          if (result) {
-            this.handleRouteResult(result, message.t);
-          }
-          break;
-        }
-
-        case "claim-character": {
-          const result = this.characterMessageHandler.handleClaimCharacter(
-            state,
-            message.characterId,
-            senderUid,
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "add-player-character": {
-          const result = this.characterMessageHandler.handleAddPlayerCharacter(
-            state,
-            senderUid,
-            message.name,
-            message.maxHp,
-          );
-          this.handleRouteResult(result, message.t);
-          this.messageLogger.logBroadcastComplete();
-          break;
-        }
-
-        case "delete-player-character": {
-          const result = this.characterMessageHandler.handleDeletePlayerCharacter(
-            state,
-            message.characterId,
-            senderUid,
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "update-character-name": {
-          const result = this.characterMessageHandler.handleUpdateCharacterName(
-            state,
-            message.characterId,
-            senderUid,
-            message.name,
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "update-character-hp": {
-          const result = this.characterMessageHandler.handleUpdateCharacterHP(
-            state,
-            message.characterId,
-            message.hp,
-            message.maxHp,
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "set-character-status-effects": {
-          const result = this.characterMessageHandler.handleSetCharacterStatusEffects(
-            state,
-            message.characterId,
-            senderUid,
-            message.effects,
-            context.isDM(),
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "set-character-portrait": {
-          const result = this.characterMessageHandler.handleSetCharacterPortrait(
-            state,
-            message.characterId,
-            senderUid,
-            message.portrait,
-            context.isDM(),
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "link-token": {
-          const result = this.tokenMessageHandler.handleLinkToken(
-            state,
-            message.characterId,
-            message.tokenId,
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        // MAP ACTIONS
-        case "map-background": {
-          const result = this.mapMessageHandler.handleMapBackground(state, message.data);
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "grid-size": {
-          const result = this.mapMessageHandler.handleGridSize(state, message.size);
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "grid-square-size": {
-          const result = this.mapMessageHandler.handleGridSquareSize(state, message.size);
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "set-player-staging-zone": {
-          const result = this.mapMessageHandler.handleSetPlayerStagingZone(
-            state,
-            senderUid,
-            message.zone,
-            context.isDM(),
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "point": {
-          const result = this.pointerHandler.handlePointer(state, senderUid, message.x, message.y);
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "draw": {
-          const result = this.drawingMessageHandler.handleDraw(state, message.drawing, senderUid);
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "sync-player-drawings": {
-          const result = this.drawingMessageHandler.handleSyncPlayerDrawings(
-            state,
-            senderUid,
-            message.drawings,
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "undo-drawing": {
-          const result = this.drawingMessageHandler.handleUndoDrawing(state, senderUid);
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "redo-drawing": {
-          const result = this.drawingMessageHandler.handleRedoDrawing(state, senderUid);
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "clear-drawings": {
-          const result = this.drawingMessageHandler.handleClearDrawings(
-            state,
-            senderUid,
-            context.isDM(),
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "select-drawing": {
-          const result = this.drawingMessageHandler.handleSelectDrawing(
-            state,
-            message.id,
-            senderUid,
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "deselect-drawing": {
-          const result = this.drawingMessageHandler.handleDeselectDrawing(state, senderUid);
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "select-object": {
-          const result = this.selectionMessageHandler.handleSelectObject(
-            state,
-            senderUid,
-            message.uid,
-            message.objectId,
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "deselect-object": {
-          const result = this.selectionMessageHandler.handleDeselectObject(
-            state,
-            senderUid,
-            message.uid,
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "select-multiple": {
-          const result = this.selectionMessageHandler.handleSelectMultiple(
-            state,
-            senderUid,
-            message.uid,
-            message.objectIds,
-            message.mode ?? "replace",
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "lock-selected": {
-          const result = this.selectionMessageHandler.handleLockSelected(
-            state,
-            senderUid,
-            message.uid,
-            message.objectIds,
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "unlock-selected": {
-          const result = this.selectionMessageHandler.handleUnlockSelected(
-            state,
-            senderUid,
-            message.uid,
-            message.objectIds,
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "move-drawing": {
-          const result = this.drawingMessageHandler.handleMoveDrawing(
-            state,
-            message.id,
-            message.dx,
-            message.dy,
-            senderUid,
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "delete-drawing": {
-          const result = this.drawingMessageHandler.handleDeleteDrawing(state, message.id);
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "erase-partial": {
-          const result = this.drawingMessageHandler.handleErasePartial(
-            state,
-            message.deleteId,
-            message.segments,
-            senderUid,
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        // DICE ACTIONS
-        case "dice-roll": {
-          const result = this.diceMessageHandler.handleDiceRoll(state, message.roll);
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "clear-roll-history": {
-          const result = this.diceMessageHandler.handleClearRollHistory(state);
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        // ROOM MANAGEMENT
-        case "set-room-password": {
-          this.roomMessageHandler.handleSetRoomPassword(state, senderUid, message.secret);
-          break;
-        }
-
-        case "clear-all-tokens": {
-          const result = this.authorizationCheckWrapper.executeIfDMAuthorized(
-            senderUid,
-            context.isDM(),
-            "clear all tokens",
-            () => this.tokenMessageHandler.handleClearAll(state, senderUid),
-          );
-          if (result) {
-            this.handleRouteResult(result, message.t);
-          }
-          break;
-        }
-
-        case "heartbeat": {
-          const result = this.heartbeatHandler.handleHeartbeat(state, senderUid);
-          this.handleRouteResult(result, message.t);
-          this.sendControlMessage(senderUid, { t: "heartbeat-ack", timestamp: Date.now() });
-          break;
-        }
-
-        case "request-room-resync": {
-          const snapshot = this.roomService.createSnapshotForPlayer(senderUid);
-          this.sendControlMessage(senderUid, snapshot);
-          break;
-        }
-
-        case "load-session": {
-          const result = this.roomMessageHandler.handleLoadSession(
-            state,
-            senderUid,
-            message.snapshot,
-            context.isDM(),
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "transform-object": {
-          const result = this.transformMessageHandler.handleTransformObject(
-            state,
-            senderUid,
-            message.id,
-            {
-              position: message.position,
-              scale: message.scale,
-              rotation: message.rotation,
-              locked: message.locked,
-            },
-          );
-          this.handleRouteResult(result, message.t);
-          break;
-        }
-
-        case "rtc-signal": {
-          this.rtcSignalHandler.forwardSignal(
-            message.target,
-            senderUid,
-            message.signal as SignalData,
-          );
-          break;
-        }
-
-        default: {
-          this.messageLogger.logUnknownMessageType((message as ClientMessage).t);
-        }
+      // Delegate to TokenDispatcher
+      const tokenResult = this.tokenDispatcher.dispatch(message, context, senderUid);
+      if (tokenResult) {
+        if (tokenResult.dragPreview) {
+          this.broadcastDragPreview(tokenResult.dragPreview, message.t);
+        }
+        this.handleRouteResult(tokenResult, message.t);
+        this.acknowledgeSuccess(message, senderUid);
+        return;
       }
+
+      // Delegate to CharacterDispatcher
+      const characterResult = this.characterDispatcher.dispatch(message, context, senderUid);
+      if (characterResult) {
+        this.handleRouteResult(characterResult, message.t);
+        this.acknowledgeSuccess(message, senderUid);
+        return;
+      }
+
+      // Delegate to PlayerDispatcher
+      const playerResult = this.playerDispatcher.dispatch(message, context, senderUid);
+      if (playerResult) {
+        this.handleRouteResult(playerResult, message.t);
+        this.acknowledgeSuccess(message, senderUid);
+        return;
+      }
+
+      // Delegate to MapDispatcher
+      const mapResult = this.mapDispatcher.dispatch(message, context, senderUid);
+      if (mapResult) {
+        this.handleRouteResult(mapResult, message.t);
+        this.acknowledgeSuccess(message, senderUid);
+        return;
+      }
+
+      // Delegate to PropDispatcher
+      const propResult = this.propDispatcher.dispatch(message, context, senderUid);
+      if (propResult) {
+        this.handleRouteResult(propResult, message.t);
+        this.acknowledgeSuccess(message, senderUid);
+        return;
+      }
+
+      // Delegate to InitiativeDispatcher
+      const initiativeResult = this.initiativeDispatcher.dispatch(message, context, senderUid);
+      if (initiativeResult) {
+        this.handleRouteResult(initiativeResult, message.t);
+        this.acknowledgeSuccess(message, senderUid);
+        return;
+      }
+
+      // Delegate to SelectionDispatcher
+      const selectionResult = this.selectionDispatcher.dispatch(message, context, senderUid);
+      if (selectionResult) {
+        this.handleRouteResult(selectionResult, message.t);
+        this.acknowledgeSuccess(message, senderUid);
+        return;
+      }
+
+      // Delegate to DiceDispatcher
+      const diceResult = this.diceDispatcher.dispatch(message, context, senderUid);
+      if (diceResult) {
+        this.handleRouteResult(diceResult, message.t);
+        this.acknowledgeSuccess(message, senderUid);
+        return;
+      }
+
+      // Delegate to RoomDispatcher
+      const roomResult = this.roomDispatcher.dispatch(message, context, senderUid);
+      if (roomResult) {
+        this.handleRouteResult(roomResult, message.t);
+        this.acknowledgeSuccess(message, senderUid);
+        return;
+      }
+
+      this.messageLogger.logUnknownMessageType((message as ClientMessage).t);
       this.acknowledgeSuccess(message, senderUid);
     } catch (err) {
       this.messageErrorHandler.handleError(err, message, senderUid);

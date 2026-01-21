@@ -32,7 +32,16 @@ _(CSS Property Warning resolved in commit 1e8fd0f - converted 168 properties acr
 
 ### Architecture
 
-1. **~~Large Bundle Size (628KB minified)~~** ✅ **RESOLVED**
+1. **God Object Violations (Critical)**
+   - **Issue**: Several core files significantly exceed the project's 350 LOC limit (`docs/guides/PREVENTING_GOD_OBJECTS.md`).
+     - `apps/server/src/ws/messageRouter.ts`: ~1012 LOC. Handles all WebSocket routing; critical bottleneck.
+     - `apps/client/src/ui/App.tsx`: ~713 LOC. Remains a monolithic orchestrator despite previous refactoring attempts.
+     - `packages/shared/src/models.ts`: ~599 LOC. "Dumping ground" for mixed domain types.
+   - **Documentation Drift**: `TODO.md` claims `App.tsx` refactoring is complete, contradicting the actual code state.
+   - **Recommendation**: Prioritize splitting `messageRouter.ts` into domain handlers and decomposing `App.tsx`.
+   - **Priority**: High
+
+2. **~~Large Bundle Size (628KB minified)~~** ✅ **RESOLVED**
    - **Previous**: Single-chunk bundle at 628KB (190KB gzipped)
    - **Current**: 53 KB entry bundle (gzipped) with lazy-loaded chunks
    - **Implementation**:
