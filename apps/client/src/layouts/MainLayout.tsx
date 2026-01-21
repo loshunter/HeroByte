@@ -221,7 +221,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
   }, [sendMessage]);
 
   return (
-    <div onClick={() => setContextMenu(null)} style={{ height: "100vh", overflow: "hidden" }}>
+    <main onClick={() => setContextMenu(null)} style={{ height: "100vh", overflow: "hidden" }}>
       {/* Top Panel - Server status, drawing toolbar, header, and multi-select toolbar */}
       <TopPanelLayout
         isConnected={isConnected}
@@ -389,6 +389,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         toast={toast}
         onSetInitiative={setInitiative}
       />
-    </div>
+    </main>
   );
 });

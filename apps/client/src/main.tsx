@@ -19,6 +19,14 @@ declare global {
 window.Buffer = Buffer;
 window.process = processPolyfill;
 
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {
+      // Fail silently
+    });
+  });
+}
+
 createRoot(document.getElementById("root")!).render(
   <ErrorBoundary>
     <App />
