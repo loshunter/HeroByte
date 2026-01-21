@@ -98,6 +98,8 @@ export class MessageRouter {
   private roomDispatcher: RoomDispatcher;
   private wss: WebSocketServer;
   private uidToWs: Map<string, WebSocket>;
+  private getAuthorizedClients: () => Set<WebSocket>;
+  private skipNextBroadcastVersionBump: boolean = false;
 
   constructor(
     roomService: RoomService,

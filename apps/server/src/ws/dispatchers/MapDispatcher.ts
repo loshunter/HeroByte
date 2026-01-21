@@ -2,7 +2,7 @@ import type { ClientMessage, Pointer } from "@shared";
 import type { DrawingMessageHandler } from "../handlers/DrawingMessageHandler.js";
 import type { MapMessageHandler } from "../handlers/MapMessageHandler.js";
 import type { PointerHandler } from "../handlers/PointerHandler.js";
-import type { MessageRoutingContext } from "../services/MessageRoutingContext.js";
+import type { RoutingContext } from "../services/MessageRoutingContext.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 
 export interface MapDispatcherResult extends RouteHandlerResult {
@@ -18,7 +18,7 @@ export class MapDispatcher {
 
   dispatch(
     message: ClientMessage,
-    context: MessageRoutingContext,
+    context: RoutingContext,
     senderUid: string,
   ): MapDispatcherResult | null {
     const state = context.getState();

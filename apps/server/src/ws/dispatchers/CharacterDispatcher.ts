@@ -2,7 +2,7 @@ import type { ClientMessage } from "@shared";
 import type { CharacterMessageHandler } from "../handlers/CharacterMessageHandler.js";
 import type { NPCMessageHandler } from "../handlers/NPCMessageHandler.js";
 import type { AuthorizationCheckWrapper } from "../services/AuthorizationCheckWrapper.js";
-import type { MessageRoutingContext } from "../services/MessageRoutingContext.js";
+import type { RoutingContext } from "../services/MessageRoutingContext.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 
 export class CharacterDispatcher {
@@ -14,7 +14,7 @@ export class CharacterDispatcher {
 
   dispatch(
     message: ClientMessage,
-    context: MessageRoutingContext,
+    context: RoutingContext,
     senderUid: string,
   ): RouteHandlerResult | null {
     const state = context.getState();

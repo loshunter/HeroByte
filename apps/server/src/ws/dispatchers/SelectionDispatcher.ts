@@ -1,6 +1,6 @@
 import type { ClientMessage } from "@shared";
 import type { SelectionMessageHandler } from "../handlers/SelectionMessageHandler.js";
-import type { MessageRoutingContext } from "../services/MessageRoutingContext.js";
+import type { RoutingContext } from "../services/MessageRoutingContext.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 
 export class SelectionDispatcher {
@@ -8,7 +8,7 @@ export class SelectionDispatcher {
 
   dispatch(
     message: ClientMessage,
-    context: MessageRoutingContext,
+    context: RoutingContext,
     senderUid: string,
   ): RouteHandlerResult | null {
     const state = context.getState();

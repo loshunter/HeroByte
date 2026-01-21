@@ -1,6 +1,6 @@
 import type { ClientMessage } from "@shared";
 import type { DiceMessageHandler } from "../handlers/DiceMessageHandler.js";
-import type { MessageRoutingContext } from "../services/MessageRoutingContext.js";
+import type { RoutingContext } from "../services/MessageRoutingContext.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 
 export class DiceDispatcher {
@@ -8,7 +8,7 @@ export class DiceDispatcher {
 
   dispatch(
     message: ClientMessage,
-    context: MessageRoutingContext,
+    context: RoutingContext,
     _senderUid: string,
   ): RouteHandlerResult | null {
     const state = context.getState();

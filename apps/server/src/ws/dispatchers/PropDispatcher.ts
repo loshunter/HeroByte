@@ -1,7 +1,7 @@
 import type { ClientMessage } from "@shared";
 import type { PropMessageHandler } from "../handlers/PropMessageHandler.js";
 import type { AuthorizationCheckWrapper } from "../services/AuthorizationCheckWrapper.js";
-import type { MessageRoutingContext } from "../services/MessageRoutingContext.js";
+import type { RoutingContext } from "../services/MessageRoutingContext.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 
 export class PropDispatcher {
@@ -12,7 +12,7 @@ export class PropDispatcher {
 
   dispatch(
     message: ClientMessage,
-    context: MessageRoutingContext,
+    context: RoutingContext,
     senderUid: string,
   ): RouteHandlerResult | null {
     const state = context.getState();

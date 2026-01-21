@@ -2,7 +2,7 @@ import type { ClientMessage, DragPreviewEvent } from "@shared";
 import { isDragPreviewEnabled } from "../../config/featureFlags.js";
 import type { TokenMessageHandler } from "../handlers/TokenMessageHandler.js";
 import type { AuthorizationCheckWrapper } from "../services/AuthorizationCheckWrapper.js";
-import type { MessageRoutingContext } from "../services/MessageRoutingContext.js";
+import type { RoutingContext } from "../services/MessageRoutingContext.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 
 export interface TokenDispatcherResult extends RouteHandlerResult {
@@ -17,7 +17,7 @@ export class TokenDispatcher {
 
   dispatch(
     message: ClientMessage,
-    context: MessageRoutingContext,
+    context: RoutingContext,
     senderUid: string,
   ): TokenDispatcherResult | null {
     const state = context.getState();

@@ -1,11 +1,12 @@
-import type { ClientMessage, SignalData, ServerMessage } from "@shared";
+import type { ClientMessage, ServerMessage } from "@shared";
+import type { SignalData } from "simple-peer";
 import type { HeartbeatHandler } from "../handlers/HeartbeatHandler.js";
 import type { RTCSignalHandler } from "../handlers/RTCSignalHandler.js";
 import type { RoomMessageHandler } from "../handlers/RoomMessageHandler.js";
 import type { TokenMessageHandler } from "../handlers/TokenMessageHandler.js";
 import type { TransformMessageHandler } from "../handlers/TransformMessageHandler.js";
 import type { AuthorizationCheckWrapper } from "../services/AuthorizationCheckWrapper.js";
-import type { MessageRoutingContext } from "../services/MessageRoutingContext.js";
+import type { RoutingContext } from "../services/MessageRoutingContext.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 import type { RoomService } from "../../domains/room/service.js";
 
@@ -23,7 +24,7 @@ export class RoomDispatcher {
 
   dispatch(
     message: ClientMessage,
-    context: MessageRoutingContext,
+    context: RoutingContext,
     senderUid: string,
   ): RouteHandlerResult | null {
     const state = context.getState();
