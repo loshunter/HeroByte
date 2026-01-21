@@ -11,7 +11,7 @@ Ship a table-ready MVP to run live playtests with real players and a DM. Priorit
 ### Player Experience
 
 - [ ] Verify voice indicator + portrait glow survive reconnects and DM toggles.
-- [ ] Refresh tips/tooltips for draw, measure, select so new players get guidance.
+- [x] Refresh tips/tooltips for draw, measure, select so new players get guidance.
 - [x] Bug bash dice log readability for long formulas; adjust formatting if needed.
 
 ### DM Workflow
@@ -21,7 +21,7 @@ Ship a table-ready MVP to run live playtests with real players and a DM. Priorit
 
 ## 2. QA & Release Prep
 
-- [ ] Run full automated suite (`pnpm test`, `pnpm --filter vtt-server test`, Playwright smoke).
+- [x] Run full automated suite (`pnpm test`, `pnpm --filter vtt-server test`, Playwright smoke).
 - [ ] Manual two-browser checklist: auth, drawing, partial erase, multi-select, load/save, dice, voice. Archive findings in `test-results/`.
 - [ ] Document MVP playtest setup (DM prep steps, recommended browsers, troubleshooting cheatsheet).
 - [ ] Update README quick-start with playtest instructions and link to the new checklist.
@@ -316,15 +316,15 @@ _Shared planning brief with Phase 19: `docs/planning/phase19-20-briefing.md`._
 
 ### Remaining Refactoring Targets
 
-- [ ] **DM Controls Modularization** (DMMenu.tsx)
-  - [ ] Break `apps/client/src/features/dm/components/DMMenu.tsx` into panels (`MapControls`, `TokenControls`, `RoomManagement`, `DebugPanel`)
-  - [ ] Introduce `useDMMenuState` hook to isolate derived state/effects
-  - [ ] Cover each panel with interaction tests (e.g., lock toggles, fog controls) and storybook smoke checks
+- [x] **DM Controls Modularization** (DMMenu.tsx)
+  - [x] Break `apps/client/src/features/dm/components/DMMenu.tsx` into panels (`MapControls`, `TokenControls`, `RoomManagement`, `DebugPanel`)
+  - [x] Introduce `useDMMenuState` hook to isolate derived state/effects
+  - [x] Cover each panel with interaction tests (e.g., lock toggles, fog controls) and storybook smoke checks
 
-- [ ] **Map Interaction Layers** (MapBoard.tsx)
-  - [ ] Decompose `apps/client/src/ui/MapBoard.tsx` into `CameraController`, `SelectionLayer`, and `ToolLayer`
-  - [ ] Move pointer/measure/draw orchestration into strategy modules reusable by `TransformGizmo`
-  - [ ] Add Vitest suites for camera commands, selection propagation, and tool switching; ensure e2e coverage through transform pipeline tests
+- [x] **Map Interaction Layers** (MapBoard.tsx)
+  - [x] Decompose `apps/client/src/ui/MapBoard.tsx` into `CameraController`, `SelectionLayer`, and `ToolLayer`
+  - [x] Move pointer/measure/draw orchestration into strategy modules reusable by `TransformGizmo`
+  - [x] Add Vitest suites for camera commands, selection propagation, and tool switching; ensure e2e coverage through transform pipeline tests
 
 - [ ] **Drawing Workflow Cleanup**
   - [ ] Split `apps/client/src/features/map/components/DrawingsLayer.tsx` into rendering vs state adapters

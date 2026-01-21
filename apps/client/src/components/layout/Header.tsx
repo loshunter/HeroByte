@@ -105,6 +105,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => onSnapToGridChange(!snapToGrid)}
                 variant={snapToGrid ? "primary" : "default"}
                 style={{ fontSize: "8px", padding: "4px 10px" }}
+                title="Toggle snap-to-grid for tokens and measurements"
               >
                 Snap
               </JRPGButton>
@@ -114,6 +115,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={onResetCamera}
                 variant="default"
                 style={{ fontSize: "8px", padding: "4px 10px" }}
+                title="Reset camera to center of map"
               >
                 🧭 Recenter
               </JRPGButton>
@@ -123,6 +125,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => onToolSelect(pointerMode ? null : "pointer")}
                 variant={pointerMode ? "primary" : "default"}
                 style={{ fontSize: "8px", padding: "4px 10px" }}
+                title="Point at locations on the map (visible to others)"
               >
                 👆 Pointer
               </JRPGButton>
@@ -132,6 +135,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => onToolSelect(measureMode ? null : "measure")}
                 variant={measureMode ? "primary" : "default"}
                 style={{ fontSize: "8px", padding: "4px 10px" }}
+                title="Measure distances on the grid"
               >
                 📏 Measure
               </JRPGButton>
@@ -141,6 +145,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => onToolSelect(drawMode ? null : "draw")}
                 variant={drawMode ? "primary" : "default"}
                 style={{ fontSize: "8px", padding: "4px 10px" }}
+                title="Open drawing tools menu"
               >
                 ✏️ Draw Tools
               </JRPGButton>
@@ -160,6 +165,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => onToolSelect(selectMode ? null : "select")}
                 variant={selectMode ? "primary" : "default"}
                 style={{ fontSize: "8px", padding: "4px 10px" }}
+                title="Select multiple objects"
               >
                 🖱️ Select
               </JRPGButton>
@@ -169,6 +175,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => onCrtFilterChange(!crtFilter)}
                 variant={crtFilter ? "primary" : "default"}
                 style={{ fontSize: "8px", padding: "4px 10px" }}
+                title="Toggle retro CRT visual effect"
               >
                 📺 CRT
               </JRPGButton>
@@ -178,6 +185,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => onDiceRollerToggle(!diceRollerOpen)}
                 variant={diceRollerOpen ? "primary" : "default"}
                 style={{ fontSize: "8px", padding: "4px 10px" }}
+                title="Open 3D dice roller"
               >
                 ⚂ Dice
               </JRPGButton>
@@ -187,6 +195,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => onRollLogToggle(!rollLogOpen)}
                 variant={rollLogOpen ? "primary" : "default"}
                 style={{ fontSize: "8px", padding: "4px 10px" }}
+                title="View dice roll history"
               >
                 📜 Log
               </JRPGButton>
