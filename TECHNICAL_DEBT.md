@@ -52,7 +52,7 @@ _(CSS Property Warning resolved in commit 1e8fd0f - converted 168 properties acr
    - **Status**: ✅ Complete (Phase 15, January 2025)
    - **CI Guard**: 175 KB gzipped limit enforced via `scripts/check-bundle-size.mjs`
 
-2. **Player Persistence Logic Scattered**
+3. **Player Persistence Logic Scattered**
    - **Current**: Player state save/load logic in multiple places
    - **Location**: `apps/client/src/utils/playerPersistence.ts` + inline in components
    - **Recommendation**: Consolidate into single service/hook
@@ -60,7 +60,7 @@ _(CSS Property Warning resolved in commit 1e8fd0f - converted 168 properties acr
    - **Effort**: Small (~1 hour)
    - **Priority**: Low
 
-3. **Transform Logic Could Be Service**
+4. **Transform Logic Could Be Service**
    - **Current**: Transform operations mixed into component callbacks
    - **Recommendation**: Extract to `useSceneTransform` hook or service
    - **Benefits**: Easier testing, clearer separation of concerns
@@ -77,12 +77,10 @@ _(CSS Property Warning resolved in commit 1e8fd0f - converted 168 properties acr
    - **Impact**: Eliminated 30-60 min manual testing workflows, 10-20x efficiency gain
    - **Status**: ✅ Complete (October 2025)
 
-2. **Scene Graph Migration Needs More Test Coverage**
-   - **Current**: Basic migration tested via `useSceneObjects` hook
-   - **Missing**: Complex legacy data scenarios (100+ objects, mixed types)
-   - **Recommendation**: Add unit tests for `rebuildSceneGraph` edge cases
-   - **Effort**: Small (~1 hour)
-   - **Priority**: Medium
+2. **~~Scene Graph Migration Needs More Test Coverage~~** ✅ **RESOLVED**
+   - **Previous**: Basic migration tested via `useSceneObjects` hook
+   - **Current**: Added dedicated `useSceneObjects.test.ts` covering all legacy migration paths (maps, tokens, drawings, staging zones, pointers) and mixed scenarios.
+   - **Status**: ✅ Complete (January 2026)
 
 ### Performance
 
@@ -183,11 +181,11 @@ _(CSS Property Warning resolved in commit 1e8fd0f - converted 168 properties acr
 - [x] Add E2E smoke tests for basic flows (October 2025 - 10 tests)
 - [x] Implement code splitting for bundle size (Phase 15 - January 2025)
 - [x] Fix fire-and-forget patterns (Phases 1-10 - January 2025)
+- [x] Add scene graph migration tests (January 2026)
 
 ### Future Work
 
 - Consolidate player persistence logic
-- Add scene graph migration tests
 
 ### Phase 12+
 
