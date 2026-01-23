@@ -140,6 +140,6 @@ export function AuthGate({
           </button>
         ) : null}
       </div>
-    </div>
+    </main>
   );
 }
