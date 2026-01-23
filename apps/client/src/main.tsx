@@ -20,10 +20,8 @@ window.Buffer = Buffer;
 window.process = processPolyfill;
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {
-      // Fail silently
-    });
+  navigator.serviceWorker.register("/sw.js").catch(() => {
+    // Fail silently
   });
 }
 

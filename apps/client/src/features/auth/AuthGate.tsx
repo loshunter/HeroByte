@@ -67,7 +67,7 @@ export function AuthGate({
   const primaryDisabled = !canSubmit || isHandshakeActive;
 
   return (
-    <main style={authGateContainerStyle}>
+    <div style={authGateContainerStyle}>
       <div style={authGateCardStyle}>
         <h1 style={{ margin: "0 0 16px" }}>Join Your Room</h1>
         <p style={{ margin: "0 0 24px", color: "#cbd5f5", fontSize: "0.95rem" }}>
@@ -140,6 +140,6 @@ export function AuthGate({
           </button>
         ) : null}
       </div>
-    </main>
+    </div>
   );
 }
