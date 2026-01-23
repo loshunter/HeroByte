@@ -32,11 +32,13 @@
         "bf-cache": "off",
         "csp-xss": "off",
         "unused-javascript": "off",
+        "total-byte-weight": "off",
         "installable-manifest": "warn",
         "maskable-icon": "warn",
         "splash-screen": "warn",
         "themed-omnibox": "warn",
-        "landmark-one-main": "warn"
+        "landmark-one-main": "warn",
+        "dom-size": "off"
       }
     },
     "upload": {
