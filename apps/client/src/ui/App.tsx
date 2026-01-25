@@ -275,7 +275,10 @@ function AuthenticatedApp({
     } else {
       // Auto-detect if not explicitly set
       const userAgent =
-        navigator.userAgent || navigator.vendor || (window as Window & { opera?: string }).opera || "";
+        navigator.userAgent ||
+        navigator.vendor ||
+        (window as Window & { opera?: string }).opera ||
+        "";
       const isMobileDevice = /android|ipad|iphone|ipod|windows phone/i.test(userAgent);
       setIsMobile(isMobileDevice);
     }
