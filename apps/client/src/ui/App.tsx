@@ -37,6 +37,7 @@ import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { useDMManagement } from "../hooks/useDMManagement";
 import { usePlayerTokenSelection } from "../hooks/usePlayerTokenSelection";
 import { MainLayout } from "../layouts/MainLayout";
+import { MobileLayout } from "../layouts/MobileLayout";
 import { DMElevationModal } from "../features/dm/components/DMElevationModal";
 
 // ----------------------------------------------------------------------------
@@ -260,6 +261,13 @@ function AuthenticatedApp({
     toast,
     sendMessage,
   });
+
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setIsMobile(params.get("mobile") === "true");
+  }, []);
 
   // -------------------------------------------------------------------------
   // EFFECTS
@@ -580,130 +588,132 @@ function AuthenticatedApp({
   // RENDER
   // -------------------------------------------------------------------------
 
+  const layoutProps = {
+    // Layout state
+    topHeight,
+    bottomHeight,
+    topPanelRef,
+    bottomPanelRef,
+    contextMenu,
+    setContextMenu: handleContextMenuChange,
+    // Connection state
+    isConnected,
+    // Tool state
+    activeTool,
+    setActiveTool,
+    drawMode,
+    pointerMode,
+    measureMode,
+    transformMode,
+    selectMode,
+    alignmentMode,
+    // UI state
+    snapToGrid,
+    setSnapToGrid,
+    crtFilter,
+    setCrtFilter,
+    diceRollerOpen,
+    rollLogOpen,
+    toggleDiceRoller,
+    toggleRollLog,
+    micEnabled,
+    toggleMic,
+    gridLocked,
+    setGridLocked,
+    // Data
+    snapshot: layoutSnapshot,
+    uid,
+    gridSize,
+    gridSquareSize,
+    isDM,
+    // Camera
+    cameraState,
+    camera,
+    cameraCommand,
+    handleCameraCommandHandled,
+    setCameraState: handleCameraChange,
+    handleFocusToken,
+    handleResetCamera,
+    // Drawing
+    drawingToolbarProps: drawingManager.toolbarProps,
+    drawingProps: drawingManager.drawingProps,
+    handleClearDrawings: drawingManager.handleClearDrawings,
+    // Editing
+    editingPlayerUID,
+    nameInput,
+    editingHpUID,
+    hpInput,
+    editingMaxHpUID,
+    maxHpInput,
+    editingTempHpUID,
+    tempHpInput,
+    updateNameInput,
+    startNameEdit: handleStartNameEdit,
+    submitNameEdit,
+    updateHpInput,
+    startHpEdit: handleStartHpEdit,
+    submitHpEdit,
+    updateMaxHpInput,
+    updateTempHpInput,
+    startMaxHpEdit: handleStartMaxHpEdit,
+    submitMaxHpEdit,
+    startTempHpEdit: handleStartTempHpEdit,
+    submitTempHpEdit,
+    // Selection
+    selectedObjectId,
+    selectedObjectIds,
+    handleObjectSelection,
+    handleObjectSelectionBatch,
+    lockSelected,
+    unlockSelected,
+    // Player token selection (DM shortcuts)
+    selectPlayerTokens,
+    // Player actions
+    playerActions,
+    // Scene objects
+    mapSceneObject: mapSceneObjectForLayout,
+    stagingZoneSceneObject: stagingZoneSceneObjectForLayout,
+    recolorToken,
+    transformSceneObject,
+    toggleSceneObjectLock,
+    deleteToken,
+    updateTokenImage,
+    updateTokenSize,
+    // Alignment
+    alignmentPoints,
+    alignmentSuggestion,
+    alignmentError,
+    handleAlignmentStart,
+    handleAlignmentReset,
+    handleAlignmentCancel,
+    handleAlignmentApply,
+    handleAlignmentPointCapture,
+    // Dice
+    rollHistory,
+    viewingRoll: viewingRollForLayout,
+    handleRoll,
+    handleClearLog,
+    handleViewRoll,
+    // Room password
+    roomPasswordStatus,
+    roomPasswordPending,
+    handleSetRoomPassword,
+    dismissRoomPasswordStatus,
+    // DM management (hooks now handled in DMMenuContainer)
+    handleToggleDM,
+    // Map actions
+    setMapBackgroundURL,
+    setGridSize,
+    setGridSquareSize,
+    // Toast
+    toast,
+    // WebSocket communication
+    sendMessage,
+  };
+
   return (
     <>
-      <MainLayout
-        // Layout state
-        topHeight={topHeight}
-        bottomHeight={bottomHeight}
-        topPanelRef={topPanelRef}
-        bottomPanelRef={bottomPanelRef}
-        contextMenu={contextMenu}
-        setContextMenu={handleContextMenuChange}
-        // Connection state
-        isConnected={isConnected}
-        // Tool state
-        activeTool={activeTool}
-        setActiveTool={setActiveTool}
-        drawMode={drawMode}
-        pointerMode={pointerMode}
-        measureMode={measureMode}
-        transformMode={transformMode}
-        selectMode={selectMode}
-        alignmentMode={alignmentMode}
-        // UI state
-        snapToGrid={snapToGrid}
-        setSnapToGrid={setSnapToGrid}
-        crtFilter={crtFilter}
-        setCrtFilter={setCrtFilter}
-        diceRollerOpen={diceRollerOpen}
-        rollLogOpen={rollLogOpen}
-        toggleDiceRoller={toggleDiceRoller}
-        toggleRollLog={toggleRollLog}
-        micEnabled={micEnabled}
-        toggleMic={toggleMic}
-        gridLocked={gridLocked}
-        setGridLocked={setGridLocked}
-        // Data
-        snapshot={layoutSnapshot}
-        uid={uid}
-        gridSize={gridSize}
-        gridSquareSize={gridSquareSize}
-        isDM={isDM}
-        // Camera
-        cameraState={cameraState}
-        camera={camera}
-        cameraCommand={cameraCommand}
-        handleCameraCommandHandled={handleCameraCommandHandled}
-        setCameraState={handleCameraChange}
-        handleFocusToken={handleFocusToken}
-        handleResetCamera={handleResetCamera}
-        // Drawing
-        drawingToolbarProps={drawingManager.toolbarProps}
-        drawingProps={drawingManager.drawingProps}
-        handleClearDrawings={drawingManager.handleClearDrawings}
-        // Editing
-        editingPlayerUID={editingPlayerUID}
-        nameInput={nameInput}
-        editingHpUID={editingHpUID}
-        hpInput={hpInput}
-        editingMaxHpUID={editingMaxHpUID}
-        maxHpInput={maxHpInput}
-        editingTempHpUID={editingTempHpUID}
-        tempHpInput={tempHpInput}
-        updateNameInput={updateNameInput}
-        startNameEdit={handleStartNameEdit}
-        submitNameEdit={submitNameEdit}
-        updateHpInput={updateHpInput}
-        startHpEdit={handleStartHpEdit}
-        submitHpEdit={submitHpEdit}
-        updateMaxHpInput={updateMaxHpInput}
-        startMaxHpEdit={handleStartMaxHpEdit}
-        submitMaxHpEdit={submitMaxHpEdit}
-        updateTempHpInput={updateTempHpInput}
-        startTempHpEdit={handleStartTempHpEdit}
-        submitTempHpEdit={submitTempHpEdit}
-        // Selection
-        selectedObjectId={selectedObjectId}
-        selectedObjectIds={selectedObjectIds}
-        handleObjectSelection={handleObjectSelection}
-        handleObjectSelectionBatch={handleObjectSelectionBatch}
-        lockSelected={lockSelected}
-        unlockSelected={unlockSelected}
-        // Player token selection (DM shortcuts)
-        selectPlayerTokens={selectPlayerTokens}
-        // Player actions
-        playerActions={playerActions}
-        // Scene objects
-        mapSceneObject={mapSceneObjectForLayout}
-        stagingZoneSceneObject={stagingZoneSceneObjectForLayout}
-        recolorToken={recolorToken}
-        transformSceneObject={transformSceneObject}
-        toggleSceneObjectLock={toggleSceneObjectLock}
-        deleteToken={deleteToken}
-        updateTokenImage={updateTokenImage}
-        updateTokenSize={updateTokenSize}
-        // Alignment
-        alignmentPoints={alignmentPoints}
-        alignmentSuggestion={alignmentSuggestion}
-        alignmentError={alignmentError}
-        handleAlignmentStart={handleAlignmentStart}
-        handleAlignmentReset={handleAlignmentReset}
-        handleAlignmentCancel={handleAlignmentCancel}
-        handleAlignmentApply={handleAlignmentApply}
-        handleAlignmentPointCapture={handleAlignmentPointCapture}
-        // Dice
-        rollHistory={rollHistory}
-        viewingRoll={viewingRollForLayout}
-        handleRoll={handleRoll}
-        handleClearLog={handleClearLog}
-        handleViewRoll={handleViewRoll}
-        // Room password
-        roomPasswordStatus={roomPasswordStatus}
-        roomPasswordPending={roomPasswordPending}
-        handleSetRoomPassword={handleSetRoomPassword}
-        dismissRoomPasswordStatus={dismissRoomPasswordStatus}
-        // DM management (hooks now handled in DMMenuContainer)
-        handleToggleDM={handleToggleDM}
-        // Map actions
-        setMapBackgroundURL={setMapBackgroundURL}
-        setGridSize={setGridSize}
-        setGridSquareSize={setGridSquareSize}
-        // Toast
-        toast={toast}
-        // WebSocket communication
-        sendMessage={sendMessage}
-      />
+      {isMobile ? <MobileLayout {...layoutProps} /> : <MainLayout {...layoutProps} />}
 
       {/* DM Elevation Modal */}
       <DMElevationModal {...modalState} {...modalActionsWithSync} />

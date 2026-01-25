@@ -45,7 +45,7 @@ export default defineConfig({
     },
     {
       // Serve the built client with vite preview (required for E2E tests to load UI)
-      command: "pnpm --filter herobyte-client exec vite preview --port 5173 --strictPort",
+      command: `pnpm --filter herobyte-client exec vite preview --port ${PORT} --strictPort`,
       port: PORT,
       reuseExistingServer: !process.env.CI,
       timeout: 30_000,
