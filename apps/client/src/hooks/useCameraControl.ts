@@ -94,7 +94,10 @@ export interface UseCameraControlReturn {
   /**
    * Touch move handler (pan/pinch)
    */
-  handleTouchMove: (e: KonvaEventObject<TouchEvent>, stageRef: RefObject<Konva.Stage | null>) => void;
+  handleTouchMove: (
+    e: KonvaEventObject<TouchEvent>,
+    stageRef: RefObject<Konva.Stage | null>,
+  ) => void;
   /**
    * Touch end handler (end pan/pinch)
    */

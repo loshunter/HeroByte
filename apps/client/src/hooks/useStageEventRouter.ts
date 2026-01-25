@@ -63,7 +63,10 @@ export interface UseStageEventRouterProps {
     stageRef: RefObject<Konva.Stage | null>,
     shouldPan: boolean,
   ) => void;
-  handleTouchMove: (e: KonvaEventObject<TouchEvent>, stageRef: RefObject<Konva.Stage | null>) => void;
+  handleTouchMove: (
+    e: KonvaEventObject<TouchEvent>,
+    stageRef: RefObject<Konva.Stage | null>,
+  ) => void;
   handleTouchEnd: () => void;
 
   // Marquee state
@@ -285,15 +288,7 @@ export function useStageEventRouter({
       const shouldPan = !alignmentMode && !pointerMode && !measureMode && !drawMode && !selectMode;
       handleTouchStart(event, stageRef, shouldPan);
     },
-    [
-      alignmentMode,
-      pointerMode,
-      measureMode,
-      drawMode,
-      selectMode,
-      handleTouchStart,
-      stageRef,
-    ],
+    [alignmentMode, pointerMode, measureMode, drawMode, selectMode, handleTouchStart, stageRef],
   );
 
   /**

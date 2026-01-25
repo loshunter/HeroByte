@@ -190,7 +190,7 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
    */
   const onTouchMove = (
     event: KonvaEventObject<TouchEvent>,
-    stageRef: RefObject<Konva.Stage | null>,
+    _stageRef: RefObject<Konva.Stage | null>,
   ) => {
     const touches = event.evt.touches;
 
