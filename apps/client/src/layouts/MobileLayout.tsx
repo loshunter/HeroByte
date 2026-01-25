@@ -32,7 +32,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
 
     // Tool state (simplified for mobile)
     drawMode,
-    pointerMode,
+    pointerMode: _pointerMode,
     measureMode,
     transformMode,
     selectMode,

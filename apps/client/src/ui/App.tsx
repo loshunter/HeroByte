@@ -274,7 +274,8 @@ function AuthenticatedApp({
       setIsMobile(false);
     } else {
       // Auto-detect if not explicitly set
-      const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+      const userAgent =
+        navigator.userAgent || navigator.vendor || (window as Window & { opera?: string }).opera;
       const isMobileDevice = /android|ipad|iphone|ipod|windows phone/i.test(userAgent);
       setIsMobile(isMobileDevice);
     }
