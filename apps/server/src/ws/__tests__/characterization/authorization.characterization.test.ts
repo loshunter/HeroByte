@@ -482,6 +482,7 @@ describe("MessageRouter - Authorization Characterization", () => {
         "token-1",
         "regular-user",
         "#00FF00",
+        false,
       );
       expect(mockTokenService.setColorForToken).not.toHaveBeenCalled();
     });

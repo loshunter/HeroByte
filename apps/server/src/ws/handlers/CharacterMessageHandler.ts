@@ -152,18 +152,20 @@ export class CharacterMessageHandler {
    * @param state - Room state
    * @param characterId - ID of character to delete
    * @param senderUid - UID of player deleting the character
+   * @param isDM - Whether sender is a DM
    * @returns Result indicating broadcast/save needs
    */
   handleDeletePlayerCharacter(
     state: RoomState,
     characterId: string,
     senderUid: string,
+    isDM: boolean,
   ): CharacterMessageResult {
     // Find the character to delete
     const characterToDelete = this.characterService.findCharacter(state, characterId);
 
-    // Permission check: Only allow if player owns this character
-    if (!characterToDelete || characterToDelete.ownedByPlayerUID !== senderUid) {
+    // Permission check: Only allow if player owns this character or is DM
+    if (!characterToDelete || (!isDM && characterToDelete.ownedByPlayerUID !== senderUid)) {
       console.warn(`Player ${senderUid} tried to delete character they don't own`);
       return { broadcast: false, save: false };
     }
@@ -190,6 +192,7 @@ export class CharacterMessageHandler {
    * @param characterId - ID of character to rename
    * @param senderUid - UID of player renaming the character
    * @param name - New name
+   * @param isDM - Whether sender is a DM
    * @returns Result indicating broadcast/save needs
    */
   handleUpdateCharacterName(
@@ -197,12 +200,13 @@ export class CharacterMessageHandler {
     characterId: string,
     senderUid: string,
     name: string,
+    isDM: boolean,
   ): CharacterMessageResult {
     // Find the character to rename
     const characterToRename = this.characterService.findCharacter(state, characterId);
 
-    // Permission check: Only allow if player owns this character
-    if (!characterToRename || characterToRename.ownedByPlayerUID !== senderUid) {
+    // Permission check: Only allow if player owns this character or is DM
+    if (!characterToRename || (!isDM && characterToRename.ownedByPlayerUID !== senderUid)) {
       console.warn(`Player ${senderUid} tried to rename character they don't own`);
       return { broadcast: false, save: false };
     }

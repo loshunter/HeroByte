@@ -69,6 +69,7 @@ export class TokenMessageHandler {
    * @param senderUid - UID of player moving the token
    * @param x - New X coordinate
    * @param y - New Y coordinate
+   * @param isDM - Whether sender is a DM
    * @returns Result indicating broadcast/save needs
    */
   handleMove(
@@ -77,8 +78,9 @@ export class TokenMessageHandler {
     senderUid: string,
     x: number,
     y: number,
+    isDM: boolean,
   ): TokenMessageResult {
-    const moved = this.tokenService.moveToken(state, tokenId, senderUid, x, y);
+    const moved = this.tokenService.moveToken(state, tokenId, senderUid, x, y, isDM);
     const deltasEnabled = isDeltaChannelEnabled();
     let delta: PendingDelta | undefined;
     if (moved && deltasEnabled) {
@@ -163,10 +165,16 @@ export class TokenMessageHandler {
    * @param state - Room state
    * @param tokenId - ID of token to recolor
    * @param senderUid - UID of player recoloring the token
+   * @param isDM - Whether sender is a DM
    * @returns Result indicating broadcast/save needs
    */
-  handleRecolor(state: RoomState, tokenId: string, senderUid: string): TokenMessageResult {
-    const recolored = this.tokenService.recolorToken(state, tokenId, senderUid);
+  handleRecolor(
+    state: RoomState,
+    tokenId: string,
+    senderUid: string,
+    isDM: boolean,
+  ): TokenMessageResult {
+    const recolored = this.tokenService.recolorToken(state, tokenId, senderUid, isDM);
     return { broadcast: recolored, save: false };
   }
 
@@ -203,6 +211,7 @@ export class TokenMessageHandler {
    * @param tokenId - ID of token to update
    * @param senderUid - UID of player updating the token
    * @param imageUrl - New image URL
+   * @param isDM - Whether sender is a DM
    * @returns Result indicating broadcast/save needs
    */
   handleUpdateImage(
@@ -210,8 +219,9 @@ export class TokenMessageHandler {
     tokenId: string,
     senderUid: string,
     imageUrl: string,
+    isDM: boolean,
   ): TokenMessageResult {
-    const updated = this.tokenService.setImageUrl(state, tokenId, senderUid, imageUrl);
+    const updated = this.tokenService.setImageUrl(state, tokenId, senderUid, imageUrl, isDM);
     return { broadcast: updated, save: updated };
   }
 
@@ -253,7 +263,7 @@ export class TokenMessageHandler {
   ): TokenMessageResult {
     const updated = isDM
       ? this.tokenService.setColorForToken(state, tokenId, color)
-      : this.tokenService.setColor(state, tokenId, senderUid, color);
+      : this.tokenService.setColor(state, tokenId, senderUid, color, isDM);
 
     return { broadcast: updated, save: updated };
   }

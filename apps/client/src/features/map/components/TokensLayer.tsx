@@ -258,6 +258,7 @@ interface TokensLayerProps {
   /** Map of token scene ID (e.g., "token:abc123") to status effect metadata */
   statusEffectsByTokenId?: Record<string, StatusOption[] | string>;
   onDragPreview?: (updates: DragPreviewUpdate[]) => void;
+  isDM: boolean;
 }
 
 export const TokensLayer = memo(function TokensLayer({
@@ -277,6 +278,7 @@ export const TokensLayer = memo(function TokensLayer({
   interactionsEnabled = true,
   statusEffectsByTokenId = {},
   onDragPreview,
+  isDM,
 }: TokensLayerProps) {
   const localOverrides = useRef<Record<string, { x: number; y: number }>>({});
   const multiDragStartRef = useRef<Record<string, { x: number; y: number }>>({});
@@ -561,6 +563,10 @@ export const TokensLayer = memo(function TokensLayer({
               }
               strokeWidth={isSelected ? 3 / cam.scale : 2 / cam.scale}
               interactive={interactionsEnabled}
+              draggable={isDM && !object.locked && interactionsEnabled}
+              onDragStart={(event) => handleDragStart(object.id, event)}
+              onDragMove={(event) => handleDragMove(object.id, event)}
+              onDragEnd={(event) => handleDrag(object.id, event)}
               onHover={onHover}
               onClick={(event) => {
                 if (!onSelectObject) {

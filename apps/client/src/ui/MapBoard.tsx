@@ -530,6 +530,7 @@ export default function MapBoard({
             interactionsEnabled={tokenInteractionsEnabled}
             onDragPreview={dragPreviewEnabled ? handleDragPreview : undefined}
             statusEffectsByTokenId={statusEffectsByTokenId}
+            isDM={isDM}
           />
         </Layer>
 

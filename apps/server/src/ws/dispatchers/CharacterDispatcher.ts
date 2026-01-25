@@ -50,6 +50,7 @@ export class CharacterDispatcher {
           state,
           message.characterId,
           senderUid,
+          isDM,
         );
 
       case "update-character-name":
@@ -58,6 +59,7 @@ export class CharacterDispatcher {
           message.characterId,
           senderUid,
           message.name,
+          isDM,
         );
 
       case "update-character-hp":

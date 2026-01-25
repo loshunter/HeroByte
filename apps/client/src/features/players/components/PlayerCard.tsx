@@ -52,6 +52,7 @@ export interface PlayerCardProps {
   onDeleteToken?: (tokenId: string) => void;
   onStatusEffectsChange?: (effects: string[]) => void;
   isDM: boolean;
+  viewerIsDM: boolean;
   onToggleDMMode: (next: boolean) => void;
   tokenLocked?: boolean;
   onToggleTokenLock?: (locked: boolean) => void;
@@ -109,6 +110,7 @@ export const PlayerCard = memo<PlayerCardProps>(
     onApplyPlayerState,
     onDeleteToken,
     isDM,
+    viewerIsDM,
     onToggleDMMode,
     tokenLocked,
     onToggleTokenLock,
@@ -139,12 +141,12 @@ export const PlayerCard = memo<PlayerCardProps>(
     }, [tokenImageUrl]);
 
     const handleTokenImageApply = (value: string) => {
-      if (!isMe || !onTokenImageSubmit) return;
+      if ((!isMe && !viewerIsDM) || !onTokenImageSubmit) return;
       onTokenImageSubmit(value);
     };
 
     const handleSavePlayerState = () => {
-      if (!isMe) return;
+      if (!isMe && !viewerIsDM) return;
       const imageRef = tokenImageInput.trim() || tokenImageUrl || undefined;
       const tokenForExport: Token | undefined = token
         ? {
@@ -162,7 +164,7 @@ export const PlayerCard = memo<PlayerCardProps>(
     };
 
     const handleLoadPlayerState = async (file: File) => {
-      if (!isMe || !onApplyPlayerState) return;
+      if ((!isMe && !viewerIsDM) || !onApplyPlayerState) return;
       const state = await loadPlayerState(file);
       onApplyPlayerState(state, tokenId, characterId);
       const nextImage = state.token?.imageUrl ?? state.tokenImage ?? "";
@@ -234,7 +236,7 @@ export const PlayerCard = memo<PlayerCardProps>(
         >
           <NameEditor
             isEditing={editing}
-            isMe={isMe}
+            isMe={isMe || viewerIsDM}
             playerName={player.name}
             playerUid={player.uid}
             nameInput={nameInput}
@@ -258,7 +260,7 @@ export const PlayerCard = memo<PlayerCardProps>(
         <PortraitSection
           portrait={player.portrait}
           micLevel={player.micLevel}
-          isEditable={isMe}
+          isEditable={isMe || viewerIsDM}
           onRequestChange={() => onPortraitLoad(characterId)}
           statusEffects={statusEffects ?? []}
           tokenColor={tokenColor}
@@ -293,14 +295,15 @@ export const PlayerCard = memo<PlayerCardProps>(
         />
 
         <CardControls
-          isMe={isMe}
+          canControlMic={isMe}
+          canOpenSettings={isMe || viewerIsDM}
           micEnabled={micEnabled}
           onToggleMic={onToggleMic}
           onOpenSettings={() => setSettingsOpen((value) => !value)}
         />
 
         <PlayerSettingsMenu
-          isOpen={isMe && settingsOpen}
+          isOpen={(isMe || viewerIsDM) && settingsOpen}
           onClose={() => setSettingsOpen(false)}
           tokenImageInput={tokenImageInput}
           tokenImageUrl={tokenImageUrl}
@@ -356,6 +359,7 @@ export const PlayerCard = memo<PlayerCardProps>(
     prevProps.editingTempHpUID === nextProps.editingTempHpUID &&
     prevProps.tempHpInput === nextProps.tempHpInput &&
     prevProps.isDM === nextProps.isDM &&
+    prevProps.viewerIsDM === nextProps.viewerIsDM &&
     prevProps.initiative === nextProps.initiative &&
     prevProps.initiativeModifier === nextProps.initiativeModifier &&
     prevProps.isCurrentTurn === nextProps.isCurrentTurn,

@@ -25,7 +25,7 @@ export class TokenDispatcher {
 
     switch (message.t) {
       case "move":
-        return this.handler.handleMove(state, message.id, senderUid, message.x, message.y);
+        return this.handler.handleMove(state, message.id, senderUid, message.x, message.y, isDM);
 
       case "drag-preview": {
         if (!isDragPreviewEnabled()) {
@@ -36,13 +36,19 @@ export class TokenDispatcher {
       }
 
       case "recolor":
-        return this.handler.handleRecolor(state, message.id, senderUid);
+        return this.handler.handleRecolor(state, message.id, senderUid, isDM);
 
       case "delete-token":
         return this.handler.handleDelete(state, message.id, senderUid, isDM);
 
       case "update-token-image":
-        return this.handler.handleUpdateImage(state, message.tokenId, senderUid, message.imageUrl);
+        return this.handler.handleUpdateImage(
+          state,
+          message.tokenId,
+          senderUid,
+          message.imageUrl,
+          isDM,
+        );
 
       case "set-token-size":
         return this.handler.handleSetSize(state, message.tokenId, senderUid, message.size);

@@ -180,18 +180,21 @@ vi.mock("../HPBar", () => ({
 
 vi.mock("../CardControls", () => ({
   CardControls: ({
-    isMe,
+    canControlMic,
+    canOpenSettings,
     micEnabled,
     onToggleMic,
     onOpenSettings,
   }: {
-    isMe: boolean;
+    canControlMic: boolean;
+    canOpenSettings: boolean;
     micEnabled: boolean;
     onToggleMic: () => void;
     onOpenSettings: () => void;
   }) => (
     <div data-testid="card-controls">
-      <span data-testid="card-controls-is-me">{String(isMe)}</span>
+      <span data-testid="card-controls-can-control-mic">{String(canControlMic)}</span>
+      <span data-testid="card-controls-can-open-settings">{String(canOpenSettings)}</span>
       <span data-testid="card-controls-mic-enabled">{String(micEnabled)}</span>
       <button data-testid="card-controls-toggle-mic" onClick={onToggleMic}>
         Toggle Mic
@@ -431,6 +434,7 @@ const createDefaultProps = (overrides?: Partial<React.ComponentProps<typeof Play
   onDeleteToken: vi.fn(),
   onStatusEffectsChange: vi.fn(),
   isDM: false,
+  viewerIsDM: false,
   onToggleDMMode: vi.fn(),
   tokenLocked: false,
   onToggleTokenLock: vi.fn(),
@@ -699,8 +703,8 @@ describe("PlayerCard", () => {
       expect(screen.getByTestId("settings-is-open")).toHaveTextContent("true");
     });
 
-    it("PlayerSettingsMenu isOpen is false when isMe is false even if settingsOpen is true", () => {
-      const props = createDefaultProps({ isMe: false });
+    it("PlayerSettingsMenu isOpen is false when isMe and viewerIsDM are false", () => {
+      const props = createDefaultProps({ isMe: false, viewerIsDM: false });
       render(<PlayerCard {...props} />);
 
       const settingsButton = screen.getByTestId("card-controls-open-settings");
@@ -724,24 +728,33 @@ describe("PlayerCard", () => {
       expect(screen.getByTestId("settings-is-open")).toHaveTextContent("false");
     });
 
-    it("settings only visible when isMe is true", () => {
-      // Test when isMe is false - settings should stay closed even after clicking
-      const propsNotMe = createDefaultProps({ isMe: false });
-      render(<PlayerCard {...propsNotMe} />);
+    it("settings visible when isMe or viewerIsDM is true", () => {
+      // Test when neither - settings should stay closed
+      const propsNone = createDefaultProps({ isMe: false, viewerIsDM: false });
+      render(<PlayerCard {...propsNone} />);
 
       const settingsButton1 = screen.getByTestId("card-controls-open-settings");
       fireEvent.click(settingsButton1);
       expect(screen.getByTestId("settings-is-open")).toHaveTextContent("false");
 
-      // Clean up for second test
       cleanup();
 
-      // Test when isMe is true - settings should open after clicking
-      const propsIsMe = createDefaultProps({ isMe: true });
+      // Test when isMe is true
+      const propsIsMe = createDefaultProps({ isMe: true, viewerIsDM: false });
       render(<PlayerCard {...propsIsMe} />);
 
       const settingsButton2 = screen.getByTestId("card-controls-open-settings");
       fireEvent.click(settingsButton2);
+      expect(screen.getByTestId("settings-is-open")).toHaveTextContent("true");
+
+      cleanup();
+
+      // Test when viewerIsDM is true
+      const propsDM = createDefaultProps({ isMe: false, viewerIsDM: true });
+      render(<PlayerCard {...propsDM} />);
+
+      const settingsButton3 = screen.getByTestId("card-controls-open-settings");
+      fireEvent.click(settingsButton3);
       expect(screen.getByTestId("settings-is-open")).toHaveTextContent("true");
     });
   });
@@ -1750,11 +1763,22 @@ describe("PlayerCard", () => {
     });
 
     describe("CardControls props", () => {
-      it("receives isMe", () => {
+      it("receives canControlMic as isMe", () => {
         const props = createDefaultProps({ isMe: true });
         render(<PlayerCard {...props} />);
 
-        expect(screen.getByTestId("card-controls-is-me")).toHaveTextContent("true");
+        expect(screen.getByTestId("card-controls-can-control-mic")).toHaveTextContent("true");
+      });
+
+      it("receives canOpenSettings as isMe || viewerIsDM", () => {
+        const props = createDefaultProps({ isMe: true, viewerIsDM: false });
+        render(<PlayerCard {...props} />);
+        expect(screen.getByTestId("card-controls-can-open-settings")).toHaveTextContent("true");
+
+        cleanup();
+        const propsDM = createDefaultProps({ isMe: false, viewerIsDM: true });
+        render(<PlayerCard {...propsDM} />);
+        expect(screen.getByTestId("card-controls-can-open-settings")).toHaveTextContent("true");
       });
 
       it("receives micEnabled", () => {

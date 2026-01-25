@@ -405,11 +405,13 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                             onTempHpSubmit={onTempHpSubmit}
                             tokenImageUrl={character?.tokenImage ?? token?.imageUrl ?? undefined}
                             onTokenImageSubmit={
-                              isMe && token ? (url) => onTokenImageChange(token.id, url) : undefined
+                              (isMe || currentIsDM) && token
+                                ? (url) => onTokenImageChange(token.id, url)
+                                : undefined
                             }
                             tokenId={token?.id}
                             onApplyPlayerState={
-                              isMe
+                              isMe || currentIsDM
                                 ? (state) => onApplyPlayerState(state, token?.id, character.id)
                                 : undefined
                             }
@@ -420,6 +422,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                             }
                             canEditStatusEffects={isMe || currentIsDM}
                             isDM={true}
+                            viewerIsDM={currentIsDM}
                             onToggleDMMode={onToggleDMMode}
                             tokenLocked={
                               token
@@ -571,11 +574,13 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                           onTempHpSubmit={onTempHpSubmit}
                           tokenImageUrl={character?.tokenImage ?? token?.imageUrl ?? undefined}
                           onTokenImageSubmit={
-                            isMe && token ? (url) => onTokenImageChange(token.id, url) : undefined
+                            (isMe || currentIsDM) && token
+                              ? (url) => onTokenImageChange(token.id, url)
+                              : undefined
                           }
                           tokenId={token?.id}
                           onApplyPlayerState={
-                            isMe
+                            isMe || currentIsDM
                               ? (state) => onApplyPlayerState(state, token?.id, character.id)
                               : undefined
                           }
@@ -586,6 +591,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                           }
                           canEditStatusEffects={isMe || currentIsDM}
                           isDM={player.isDM ?? false}
+                          viewerIsDM={currentIsDM}
                           onToggleDMMode={onToggleDMMode}
                           tokenLocked={
                             token

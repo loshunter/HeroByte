@@ -233,6 +233,7 @@ describe("MessageRouter", () => {
         "player-1",
         10,
         20,
+        false,
       );
       expect(mockRoomService.broadcast).not.toHaveBeenCalled();
     });
@@ -241,7 +242,12 @@ describe("MessageRouter", () => {
       const msg: ClientMessage = { t: "recolor", id: "token-1" };
       routeAndFlush(msg, "player-1");
 
-      expect(mockTokenService.recolorToken).toHaveBeenCalledWith(mockState, "token-1", "player-1");
+      expect(mockTokenService.recolorToken).toHaveBeenCalledWith(
+        mockState,
+        "token-1",
+        "player-1",
+        false,
+      );
       expect(mockRoomService.broadcast).toHaveBeenCalled();
     });
 
@@ -279,6 +285,7 @@ describe("MessageRouter", () => {
         "token-1",
         "player-1",
         "http://example.com/img.png",
+        false,
       );
       expect(mockRoomService.broadcast).toHaveBeenCalled();
       expect(mockRoomService.saveState).toHaveBeenCalled();
@@ -1121,6 +1128,7 @@ describe("MessageRouter", () => {
         "token-1",
         "player-1",
         "#123456",
+        false,
       );
       expect(mockTokenService.setColorForToken).not.toHaveBeenCalled();
       expect(mockRoomService.broadcast).toHaveBeenCalled();
