@@ -284,6 +284,24 @@ export default function MapBoard({
   // UNIFIED EVENT HANDLERS
   // -------------------------------------------------------------------------
 
+  /**
+   * Handle double tap to ping
+   * Triggered regardless of tool mode to allow quick communication
+   */
+  const handleDoubleTap = useCallback(
+    (event: Konva.KonvaEventObject<MouseEvent | PointerEvent | TouchEvent>) => {
+      const stage = event.target.getStage();
+      if (!stage) return;
+
+      const pointer = stage.getPointerPosition();
+      if (!pointer) return;
+
+      const world = toWorld(pointer.x, pointer.y);
+      sendMessage({ t: "point", x: world.x, y: world.y });
+    },
+    [toWorld, sendMessage],
+  );
+
   // Event router coordinates all mouse/pointer events across tools
   const {
     onStageClick,
@@ -293,6 +311,7 @@ export default function MapBoard({
     onTouchStart,
     onTouchMove,
     onTouchEnd,
+    onDblTap,
   } = useStageEventRouter({
     alignmentMode,
     selectMode,
@@ -314,6 +333,7 @@ export default function MapBoard({
     handleTouchStart: handleCameraTouchStart,
     handleTouchMove: handleCameraTouchMove,
     handleTouchEnd: handleCameraTouchEnd,
+    handleDoubleTap,
     isMarqueeActive,
     onSelectObject,
     deselectIfEmpty,
@@ -446,6 +466,8 @@ export default function MapBoard({
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
+        onDblTap={onDblTap}
+        onDblClick={onDblTap}
         style={{ cursor }}
       >
         {/* Background Layer: Map image and grid (non-interactive) */}

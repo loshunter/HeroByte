@@ -76,6 +76,9 @@ export interface UseStageEventRouterProps {
   onSelectObject?: ((id: string | null) => void) | undefined;
   deselectIfEmpty: (event: KonvaEventObject<MouseEvent | PointerEvent>) => void;
 
+  // Double tap handler
+  handleDoubleTap?: (event: KonvaEventObject<MouseEvent | PointerEvent | TouchEvent>) => void;
+
   // Stage reference
   stageRef: RefObject<Konva.Stage | null>;
 }
@@ -91,6 +94,7 @@ export interface UseStageEventRouterReturn {
   onTouchStart: (event: KonvaEventObject<TouchEvent>) => void;
   onTouchMove: (event: KonvaEventObject<TouchEvent>) => void;
   onTouchEnd: () => void;
+  onDblTap: (event: KonvaEventObject<MouseEvent | PointerEvent | TouchEvent>) => void;
 }
 
 /**
@@ -157,6 +161,7 @@ export function useStageEventRouter({
   handleTouchStart,
   handleTouchMove,
   handleTouchEnd,
+  handleDoubleTap,
   isMarqueeActive,
   onSelectObject,
   deselectIfEmpty,
@@ -308,6 +313,18 @@ export function useStageEventRouter({
     handleTouchEnd();
   }, [handleTouchEnd]);
 
+  /**
+   * Unified double tap handler
+   */
+  const onDblTap = useCallback(
+    (event: KonvaEventObject<MouseEvent | PointerEvent | TouchEvent>) => {
+      if (handleDoubleTap) {
+        handleDoubleTap(event);
+      }
+    },
+    [handleDoubleTap],
+  );
+
   return {
     onStageClick,
     onMouseDown,
@@ -316,5 +333,6 @@ export function useStageEventRouter({
     onTouchStart,
     onTouchMove,
     onTouchEnd,
+    onDblTap,
   };
 }

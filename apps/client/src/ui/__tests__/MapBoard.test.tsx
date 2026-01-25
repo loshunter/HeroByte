@@ -51,7 +51,7 @@ function createKonvaMock(testId: string, options: { omitProps?: string[] } = {})
 
 // Mock Konva components
 vi.mock("react-konva", () => ({
-  Stage: createKonvaMock("konva-stage"),
+  Stage: createKonvaMock("konva-stage", { omitProps: ["onDblTap", "onDblClick"] }),
   Layer: createKonvaMock("konva-layer", { omitProps: ["listening"] }),
 }));
 

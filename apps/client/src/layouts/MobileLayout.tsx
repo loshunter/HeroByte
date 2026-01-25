@@ -8,10 +8,12 @@
 import React, { Suspense, useState, useCallback } from "react";
 import type { MainLayoutProps } from "./props/MainLayoutProps";
 import { MapLoading } from "../components/ui/MapLoading";
-import { DiceRoller } from "../components/dice/DiceRoller";
+import { MobileDiceRoller } from "../components/dice/MobileDiceRoller";
 import { RollLog } from "../components/dice/RollLog";
 import { ResultPanel } from "../components/dice/ResultPanel";
 import { TurnNavigationControls } from "../features/initiative/components/TurnNavigationControls";
+import { MobileEntitiesList } from "../components/layout/MobileEntitiesList";
+import { useEntityEditHandlers } from "../hooks/useEntityEditHandlers";
 
 // Lazy load MapBoard to reduce initial bundle size
 const MapBoard = React.lazy(() => import("../ui/MapBoard"));
@@ -19,7 +21,7 @@ const MapBoard = React.lazy(() => import("../ui/MapBoard"));
 /**
  * MobileLayout Component
  *
- * Renders a full-screen map with minimal UI controls.
+ * Renders a full-screen map with minimal UI controls and mobile-optimized overlays.
  */
 export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutProps): JSX.Element {
   const {
@@ -74,10 +76,37 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
 
     // WebSocket
     sendMessage,
+
+    // Entity Data & Actions (Added for Mobile Entities List)
+    playerActions,
+    editingHpUID,
+    editingMaxHpUID,
+    editingTempHpUID,
+    hpInput,
+    updateHpInput,
+    startHpEdit,
+    submitHpEdit,
+    submitMaxHpEdit,
+    submitTempHpEdit,
+    submitNameEdit,
   } = props;
 
   // Mobile specific UI state
   const [showControls, setShowControls] = useState(false);
+  const [showEntities, setShowEntities] = useState(false);
+
+  // Extract entity editing handlers
+  const { handleCharacterHpSubmit } = useEntityEditHandlers({
+    editingHpUID,
+    editingMaxHpUID,
+    editingTempHpUID,
+    snapshot,
+    submitHpEdit,
+    submitMaxHpEdit,
+    submitTempHpEdit,
+    submitNameEdit,
+    playerActions,
+  });
 
   // Turn navigation handlers
   const handleNextTurn = useCallback(() => {
@@ -153,6 +182,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
           flexDirection: "column",
           gap: 10,
           pointerEvents: "none", // Allow clicks to pass through container
+          zIndex: 1500, // Ensure above map but below overlays
         }}
       >
         {/* Toggle Controls Button */}
@@ -180,7 +210,27 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
         {showControls && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10, pointerEvents: "auto" }}>
             <button
-              onClick={() => toggleDiceRoller(!diceRollerOpen)}
+              onClick={() => {
+                setShowEntities(true);
+                setShowControls(false);
+              }}
+              style={{
+                background: "rgba(0, 0, 0, 0.7)",
+                color: "white",
+                padding: "10px",
+                borderRadius: 8,
+                border: "1px solid rgba(255, 255, 255, 0.2)",
+                cursor: "pointer",
+                textAlign: "right",
+              }}
+            >
+              👥 Party
+            </button>
+            <button
+              onClick={() => {
+                toggleDiceRoller(!diceRollerOpen);
+                setShowControls(false);
+              }}
               style={{
                 background: diceRollerOpen ? "#4a9eff" : "rgba(0, 0, 0, 0.7)",
                 color: "white",
@@ -188,12 +238,16 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
                 borderRadius: 8,
                 border: "1px solid rgba(255, 255, 255, 0.2)",
                 cursor: "pointer",
+                textAlign: "right",
               }}
             >
               🎲 Dice
             </button>
             <button
-              onClick={() => toggleRollLog(!rollLogOpen)}
+              onClick={() => {
+                toggleRollLog(!rollLogOpen);
+                setShowControls(false);
+              }}
               style={{
                 background: rollLogOpen ? "#4a9eff" : "rgba(0, 0, 0, 0.7)",
                 color: "white",
@@ -201,6 +255,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
                 borderRadius: 8,
                 border: "1px solid rgba(255, 255, 255, 0.2)",
                 cursor: "pointer",
+                textAlign: "right",
               }}
             >
               📜 Log
@@ -209,12 +264,41 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
         )}
       </div>
 
-      {/* Dice Roller Overlay */}
+      {/* Mobile Dice Roller Overlay */}
       {diceRollerOpen && (
-        <div style={{ position: "absolute", bottom: 80, right: 20, pointerEvents: "auto" }}>
-          <DiceRoller onRoll={handleRoll} onClose={() => toggleDiceRoller(false)} />
-        </div>
+        <MobileDiceRoller onRoll={handleRoll} onClose={() => toggleDiceRoller(false)} />
       )}
+
+      {/* Mobile Entities List Overlay */}
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 2000,
+          pointerEvents: showEntities ? "auto" : "none",
+          transform: showEntities ? "translateX(0)" : "translateX(100%)",
+          transition: "transform 0.3s ease",
+        }}
+      >
+        {showEntities && (
+          <MobileEntitiesList
+            players={snapshot?.players || []}
+            characters={snapshot?.characters || []}
+            uid={uid}
+            isDM={isDM}
+            onClose={() => setShowEntities(false)}
+            editingHpUID={editingHpUID}
+            hpInput={hpInput}
+            onHpInputChange={updateHpInput}
+            onHpEdit={startHpEdit}
+            onHpSubmit={handleCharacterHpSubmit}
+            onCharacterHpChange={playerActions.updateCharacterHP}
+            onCharacterStatusEffectsChange={playerActions.setCharacterStatusEffects}
+          />
+        )}
+      </div>
 
       {/* Roll Log Overlay */}
       {rollLogOpen && (
@@ -225,6 +309,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             right: 20,
             maxHeight: "50vh",
             pointerEvents: "auto",
+            zIndex: 1600,
           }}
         >
           <RollLog
@@ -245,7 +330,9 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             left: "50%",
             transform: "translate(-50%, -50%)",
             pointerEvents: "auto",
-            zIndex: 1000,
+            zIndex: 2100, // Topmost
+            width: "90%",
+            maxWidth: "400px",
           }}
         >
           <ResultPanel result={viewingRoll} onClose={() => handleViewRoll(null)} />
