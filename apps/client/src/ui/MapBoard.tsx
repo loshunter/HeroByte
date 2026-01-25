@@ -311,7 +311,7 @@ export default function MapBoard({
     onTouchStart,
     onTouchMove,
     onTouchEnd,
-    onDblTap,
+    onTap,
   } = useStageEventRouter({
     alignmentMode,
     selectMode,
@@ -460,14 +460,13 @@ export default function MapBoard({
         height={h}
         onWheel={(e) => handleWheel(e, stageRef)}
         onClick={onStageClick}
+        onTap={onTap}
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        onDblTap={onDblTap}
-        onDblClick={onDblTap}
         style={{ cursor }}
       >
         {/* Background Layer: Map image and grid (non-interactive) */}

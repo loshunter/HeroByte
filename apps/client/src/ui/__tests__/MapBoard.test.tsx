@@ -152,10 +152,14 @@ vi.mock("../hooks/useTransformGizmoIntegration", () => ({
 
 vi.mock("../hooks/useStageEventRouter", () => ({
   useStageEventRouter: () => ({
-    handleMouseDown: vi.fn(),
-    handleMouseMove: vi.fn(),
-    handleMouseUp: vi.fn(),
-    handleWheel: vi.fn(),
+    onStageClick: vi.fn(),
+    onMouseDown: vi.fn(),
+    onMouseMove: vi.fn(),
+    onMouseUp: vi.fn(),
+    onTouchStart: vi.fn(),
+    onTouchMove: vi.fn(),
+    onTouchEnd: vi.fn(),
+    onTap: vi.fn(),
   }),
 }));
 
