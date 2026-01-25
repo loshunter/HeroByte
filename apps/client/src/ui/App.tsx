@@ -266,7 +266,18 @@ function AuthenticatedApp({
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    setIsMobile(params.get("mobile") === "true");
+    const mobileParam = params.get("mobile");
+
+    if (mobileParam === "true") {
+      setIsMobile(true);
+    } else if (mobileParam === "false") {
+      setIsMobile(false);
+    } else {
+      // Auto-detect if not explicitly set
+      const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+      const isMobileDevice = /android|ipad|iphone|ipod|windows phone/i.test(userAgent);
+      setIsMobile(isMobileDevice);
+    }
   }, []);
 
   // -------------------------------------------------------------------------
