@@ -179,6 +179,9 @@ export default function MapBoard({
     handleCameraMouseDown,
     handleCameraMouseMove,
     handleCameraMouseUp,
+    handleTouchStart: handleCameraTouchStart,
+    handleTouchMove: handleCameraTouchMove,
+    handleTouchEnd: handleCameraTouchEnd,
     toWorld,
   } = useCameraControl({
     cameraCommand,
@@ -282,7 +285,15 @@ export default function MapBoard({
   // -------------------------------------------------------------------------
 
   // Event router coordinates all mouse/pointer events across tools
-  const { onStageClick, onMouseDown, onMouseMove, onMouseUp } = useStageEventRouter({
+  const {
+    onStageClick,
+    onMouseDown,
+    onMouseMove,
+    onMouseUp,
+    onTouchStart,
+    onTouchMove,
+    onTouchEnd,
+  } = useStageEventRouter({
     alignmentMode,
     selectMode,
     pointerMode,
@@ -300,6 +311,9 @@ export default function MapBoard({
     handleCameraMouseUp,
     handleDrawMouseUp,
     handleMarqueePointerUp,
+    handleTouchStart: handleCameraTouchStart,
+    handleTouchMove: handleCameraTouchMove,
+    handleTouchEnd: handleCameraTouchEnd,
     isMarqueeActive,
     onSelectObject,
     deselectIfEmpty,
@@ -429,6 +443,9 @@ export default function MapBoard({
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
         style={{ cursor }}
       >
         {/* Background Layer: Map image and grid (non-interactive) */}

@@ -57,6 +57,15 @@ export interface UseStageEventRouterProps {
   handleDrawMouseUp: () => void;
   handleMarqueePointerUp: () => void;
 
+  // Touch handlers
+  handleTouchStart: (
+    e: KonvaEventObject<TouchEvent>,
+    stageRef: RefObject<Konva.Stage | null>,
+    shouldPan: boolean,
+  ) => void;
+  handleTouchMove: (e: KonvaEventObject<TouchEvent>, stageRef: RefObject<Konva.Stage | null>) => void;
+  handleTouchEnd: () => void;
+
   // Marquee state
   isMarqueeActive: boolean;
 
@@ -76,6 +85,9 @@ export interface UseStageEventRouterReturn {
   onMouseDown: (event: KonvaEventObject<PointerEvent>) => void;
   onMouseMove: () => void;
   onMouseUp: () => void;
+  onTouchStart: (event: KonvaEventObject<TouchEvent>) => void;
+  onTouchMove: (event: KonvaEventObject<TouchEvent>) => void;
+  onTouchEnd: () => void;
 }
 
 /**
@@ -95,11 +107,11 @@ export interface UseStageEventRouterReturn {
  * 4. Default (selection clearing)
  *
  * @param props - Tool modes and handler functions
- * @returns Unified event handlers (onStageClick, onMouseDown, onMouseMove, onMouseUp)
+ * @returns Unified event handlers (onStageClick, onMouseDown, onMouseMove, onMouseUp, onTouchStart, onTouchMove, onTouchEnd)
  *
  * @example
  * ```tsx
- * const { onStageClick, onMouseDown, onMouseMove, onMouseUp } = useStageEventRouter({
+ * const { onStageClick, onMouseDown, onMouseMove, onMouseUp, onTouchStart, ... } = useStageEventRouter({
  *   alignmentMode: false,
  *   selectMode: true,
  *   pointerMode: false,
@@ -115,6 +127,9 @@ export interface UseStageEventRouterReturn {
  *   onMouseDown={onMouseDown}
  *   onMouseMove={onMouseMove}
  *   onMouseUp={onMouseUp}
+ *   onTouchStart={onTouchStart}
+ *   onTouchMove={onTouchMove}
+ *   onTouchEnd={onTouchEnd}
  * />
  * ```
  */
@@ -136,6 +151,9 @@ export function useStageEventRouter({
   handleCameraMouseUp,
   handleDrawMouseUp,
   handleMarqueePointerUp,
+  handleTouchStart,
+  handleTouchMove,
+  handleTouchEnd,
   isMarqueeActive,
   onSelectObject,
   deselectIfEmpty,
@@ -259,10 +277,49 @@ export function useStageEventRouter({
     }
   }, [handleCameraMouseUp, handleDrawMouseUp, handleMarqueePointerUp, isMarqueeActive]);
 
+  /**
+   * Unified touch start handler
+   */
+  const onTouchStart = useCallback(
+    (event: KonvaEventObject<TouchEvent>) => {
+      const shouldPan = !alignmentMode && !pointerMode && !measureMode && !drawMode && !selectMode;
+      handleTouchStart(event, stageRef, shouldPan);
+    },
+    [
+      alignmentMode,
+      pointerMode,
+      measureMode,
+      drawMode,
+      selectMode,
+      handleTouchStart,
+      stageRef,
+    ],
+  );
+
+  /**
+   * Unified touch move handler
+   */
+  const onTouchMove = useCallback(
+    (event: KonvaEventObject<TouchEvent>) => {
+      handleTouchMove(event, stageRef);
+    },
+    [handleTouchMove, stageRef],
+  );
+
+  /**
+   * Unified touch end handler
+   */
+  const onTouchEnd = useCallback(() => {
+    handleTouchEnd();
+  }, [handleTouchEnd]);
+
   return {
     onStageClick,
     onMouseDown,
     onMouseMove,
     onMouseUp,
+    onTouchStart,
+    onTouchMove,
+    onTouchEnd,
   };
 }

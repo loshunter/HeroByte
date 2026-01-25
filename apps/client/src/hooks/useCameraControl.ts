@@ -84,6 +84,22 @@ export interface UseCameraControlReturn {
    */
   handleCameraMouseUp: () => void;
   /**
+   * Touch start handler (start pan/pinch)
+   */
+  handleTouchStart: (
+    e: KonvaEventObject<TouchEvent>,
+    stageRef: RefObject<Konva.Stage | null>,
+    shouldPan: boolean,
+  ) => void;
+  /**
+   * Touch move handler (pan/pinch)
+   */
+  handleTouchMove: (e: KonvaEventObject<TouchEvent>, stageRef: RefObject<Konva.Stage | null>) => void;
+  /**
+   * Touch end handler (end pan/pinch)
+   */
+  handleTouchEnd: () => void;
+  /**
    * Convert screen coordinates to world coordinates
    */
   toWorld: (screenX: number, screenY: number) => { x: number; y: number };
@@ -122,6 +138,9 @@ export function useCameraControl({
     onMouseDown: handleCameraMouseDown,
     onMouseMove: handleCameraMouseMove,
     onMouseUp: handleCameraMouseUp,
+    onTouchStart: handleTouchStart,
+    onTouchMove: handleTouchMove,
+    onTouchEnd: handleTouchEnd,
     toWorld,
   } = useCamera();
 
@@ -171,6 +190,9 @@ export function useCameraControl({
     handleCameraMouseDown,
     handleCameraMouseMove,
     handleCameraMouseUp,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
     toWorld,
   };
 }
