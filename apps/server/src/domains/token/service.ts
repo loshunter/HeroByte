@@ -61,7 +61,14 @@ export class TokenService {
   /**
    * Move a token (with ownership validation or DM override)
    */
-  moveToken(state: RoomState, tokenId: string, ownerUid: string, x: number, y: number, isDM: boolean = false): boolean {
+  moveToken(
+    state: RoomState,
+    tokenId: string,
+    ownerUid: string,
+    x: number,
+    y: number,
+    isDM: boolean = false,
+  ): boolean {
     const token = state.tokens.find((t) => t.id === tokenId);
     if (token && (token.owner === ownerUid || isDM)) {
       token.x = x;
@@ -74,7 +81,12 @@ export class TokenService {
   /**
    * Change token color (with ownership validation or DM override)
    */
-  recolorToken(state: RoomState, tokenId: string, ownerUid: string, isDM: boolean = false): boolean {
+  recolorToken(
+    state: RoomState,
+    tokenId: string,
+    ownerUid: string,
+    isDM: boolean = false,
+  ): boolean {
     const token = state.tokens.find((t) => t.id === tokenId);
     if (token && (token.owner === ownerUid || isDM)) {
       token.color = this.randomColor();
@@ -110,7 +122,13 @@ export class TokenService {
   /**
    * Update or clear a token image (with ownership validation or DM override)
    */
-  setImageUrl(state: RoomState, tokenId: string, ownerUid: string, imageUrl: string, isDM: boolean = false): boolean {
+  setImageUrl(
+    state: RoomState,
+    tokenId: string,
+    ownerUid: string,
+    imageUrl: string,
+    isDM: boolean = false,
+  ): boolean {
     const token = state.tokens.find((t) => t.id === tokenId);
     if (token && (token.owner === ownerUid || isDM)) {
       const trimmed = imageUrl.trim();
@@ -136,7 +154,13 @@ export class TokenService {
   /**
    * Update token color explicitly (with ownership validation or DM override)
    */
-  setColor(state: RoomState, tokenId: string, ownerUid: string, color: string, isDM: boolean = false): boolean {
+  setColor(
+    state: RoomState,
+    tokenId: string,
+    ownerUid: string,
+    color: string,
+    isDM: boolean = false,
+  ): boolean {
     const token = state.tokens.find((t) => t.id === tokenId);
     if (token && (token.owner === ownerUid || isDM)) {
       const trimmed = color.trim();
