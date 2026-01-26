@@ -100,7 +100,7 @@ export const HPBar: React.FC<HPBarProps> = ({
 
     document.addEventListener("touchmove", handleTouchMove, { passive: false });
     document.addEventListener("touchend", handleTouchEnd);
-    
+
     // Initial move for the start touch
     const touch = e.touches[0];
     const x = touch.clientX - rect.left;

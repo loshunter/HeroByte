@@ -23,6 +23,8 @@ interface MobileEntitiesListProps {
   onHpSubmit: () => void;
   onCharacterHpChange: (characterId: string, hp: number, maxHp: number, tempHp?: number) => void;
   onCharacterStatusEffectsChange: (characterId: string, effects: string[]) => void;
+  onCharacterNameUpdate: (characterId: string, name: string) => void;
+  onCharacterPortraitUpdate: (characterId: string, url: string) => void;
 }
 
 export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
@@ -38,6 +40,8 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   onHpSubmit,
   onCharacterHpChange,
   onCharacterStatusEffectsChange,
+  onCharacterNameUpdate,
+  onCharacterPortraitUpdate,
 }) => {
   // Merge player and character data
   const entities = players.map((player) => {
@@ -133,6 +137,8 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
             onStatusEffectsChange={(effects) =>
               onCharacterStatusEffectsChange(entity.characterId, effects)
             }
+            onCharacterNameUpdate={onCharacterNameUpdate}
+            onCharacterPortraitUpdate={onCharacterPortraitUpdate}
           />
         ))}
       </div>

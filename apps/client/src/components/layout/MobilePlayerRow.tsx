@@ -8,9 +8,10 @@ import type { Player } from "@shared";
 import { HPBar } from "../../features/players/components/HPBar";
 import { STATUS_OPTIONS } from "../../features/players/constants/statusOptions";
 import { JRPGButton } from "../ui/JRPGPanel";
+import { PlayerSettingsMenu } from "../../features/players/components/PlayerSettingsMenu";
 
 interface MobilePlayerRowProps {
-  player: Player;
+  player: Player & { characterId: string };
   isMe: boolean;
   isDM: boolean;
   // HP Editing
@@ -22,6 +23,8 @@ interface MobilePlayerRowProps {
   // State handlers
   onStatusEffectsChange?: (effects: string[]) => void;
   onCharacterHpChange: (hp: number) => void;
+  onCharacterNameUpdate: (characterId: string, name: string) => void;
+  onCharacterPortraitUpdate: (characterId: string, url: string) => void;
 }
 
 export const MobilePlayerRow = memo<MobilePlayerRowProps>(
@@ -36,9 +39,14 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     onHpSubmit,
     onStatusEffectsChange,
     onCharacterHpChange,
+    onCharacterNameUpdate,
+    onCharacterPortraitUpdate,
   }) => {
     const isEditingHp = editingHpUID === player.uid;
     const [isEditingEffects, setIsEditingEffects] = useState(false);
+    const [settingsOpen, setSettingsOpen] = useState(false);
+    const [localNameInput, setLocalNameInput] = useState(player.name);
+    const [portraitImageInput, setPortraitImageInput] = useState(player.portrait ?? "");
 
     const activeEffects = player.statusEffects || [];
 
@@ -122,6 +130,15 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
               {player.isDM ? "Dungeon Master" : "Adventurer"}
             </div>
           </div>
+          {isMe && (
+            <JRPGButton
+              onClick={() => setSettingsOpen(true)}
+              variant="primary"
+              style={{ padding: "4px 8px", fontSize: "10px" }}
+            >
+              ⚙️ EDIT
+            </JRPGButton>
+          )}
         </div>
 
         {/* HP Bar */}
@@ -160,7 +177,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
                     background: "rgba(0,0,0,0.5)",
                     padding: "2px 6px",
                     borderRadius: "4px",
-                    border: "1px solid rgba(255,255,255,0.2)",
+                    border: "1px solid rgba(255, 255, 255, 0.2)",
                     color: "#ddd",
                   }}
                 >
@@ -226,6 +243,34 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
             )}
           </div>
         )}
+
+        {/* Mobile Settings Menu Overlay */}
+        <PlayerSettingsMenu
+          isOpen={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          nameInput={localNameInput}
+          onNameInputChange={setLocalNameInput}
+          onNameSubmit={() => {
+            if (localNameInput.trim()) {
+              onCharacterNameUpdate(player.characterId, localNameInput.trim());
+            }
+          }}
+          portraitImageInput={portraitImageInput}
+          onPortraitInputChange={setPortraitImageInput}
+          onPortraitApply={(url) => {
+            onCharacterPortraitUpdate(player.characterId, url);
+          }}
+          tokenImageInput="" // Add placeholders for required props if necessary
+          onTokenImageInputChange={() => {}}
+          onTokenImageApply={() => {}}
+          onTokenImageClear={() => {}}
+          onSavePlayerState={() => {}}
+          onLoadPlayerState={async () => {}}
+          selectedEffects={activeEffects}
+          onStatusEffectsChange={onStatusEffectsChange ?? (() => {})}
+          isDM={isDM}
+          onToggleDMMode={() => {}}
+        />
       </div>
     );
   },

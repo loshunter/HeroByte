@@ -189,10 +189,7 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   };
 
   return (
-    <div
-      ref={windowRef}
-      style={isMobile ? mobileStyles : desktopStyles}
-    >
+    <div ref={windowRef} style={isMobile ? mobileStyles : desktopStyles}>
       {/* Title bar - draggable on desktop */}
       <div
         onMouseDown={handleMouseDown}
@@ -206,10 +203,12 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
           textAlign: "center",
           position: "relative",
           boxShadow: "inset 0 -2px 0 rgba(0,0,0,0.3)",
-          cursor: isMobile ? "default" : (isDragging ? "grabbing" : "grab"),
+          cursor: isMobile ? "default" : isDragging ? "grabbing" : "grab",
           userSelect: "none",
           border: isMobile ? "none" : "2px solid var(--jrpg-border-outer)",
-          borderBottom: isMobile ? "2px solid var(--jrpg-border-gold)" : "2px solid var(--jrpg-border-outer)",
+          borderBottom: isMobile
+            ? "2px solid var(--jrpg-border-gold)"
+            : "2px solid var(--jrpg-border-outer)",
           textShadow: "none",
         }}
       >

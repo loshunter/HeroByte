@@ -296,6 +296,8 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             onHpSubmit={handleCharacterHpSubmit}
             onCharacterHpChange={playerActions.updateCharacterHP}
             onCharacterStatusEffectsChange={playerActions.setCharacterStatusEffects}
+            onCharacterNameUpdate={playerActions.updateCharacterName}
+            onCharacterPortraitUpdate={playerActions.setCharacterPortrait}
           />
         )}
       </div>
