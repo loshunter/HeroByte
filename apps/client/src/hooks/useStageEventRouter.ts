@@ -18,9 +18,10 @@
  * @module hooks/useStageEventRouter
  */
 
-import { useCallback, useRef, type RefObject } from "react";
+import { useCallback, type RefObject } from "react";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
+import { useDoubleTap } from "./useDoubleTap";
 
 /**
  * Props for useStageEventRouter hook
@@ -167,65 +168,10 @@ export function useStageEventRouter({
   deselectIfEmpty,
   stageRef,
 }: UseStageEventRouterProps): UseStageEventRouterReturn {
-  // State for manual double tap/click detection
-  const lastTapRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  // Use the useDoubleTap hook for unified double-tap detection
+  const detectDoubleTap = useDoubleTap({ onDoubleTap: handleDoubleTap });
 
-  /**
-   * Manual double tap detection logic
-   * Returns true if a double tap was detected and handled
-   */
-  const detectDoubleTap = useCallback(
-    (event: KonvaEventObject<MouseEvent | PointerEvent | TouchEvent>) => {
-      // Defensive checks for tests and edge cases
-      if (!event.target || typeof event.target.getStage !== "function") return false;
-      const stage = event.target.getStage();
-      if (!stage || typeof stage.getPointerPosition !== "function") return false;
-
-      const pointer = stage.getPointerPosition();
-      if (!pointer) return false;
-
-      // Ignore multi-touch events for double tap detection
-      if ("evt" in event && "touches" in event.evt && event.evt.touches.length > 1) {
-        lastTapRef.current = null;
-        return false;
-      }
-
-      const now = Date.now();
-      const lastTap = lastTapRef.current;
-
-      if (lastTap) {
-        const timeDiff = now - lastTap.time;
-        const dist = Math.sqrt(
-          Math.pow(pointer.x - lastTap.x, 2) + Math.pow(pointer.y - lastTap.y, 2),
-        );
-
-        // Strict thresholds for intentional double tap:
-        // - Time: 50ms - 350ms
-        // - Distance: < 20 pixels
-        if (timeDiff > 50 && timeDiff < 350 && dist < 20) {
-          if (handleDoubleTap) {
-            handleDoubleTap(event);
-            lastTapRef.current = null; // Clear to prevent triple-tap
-            return true;
-          }
-        }
-      }
-
-      lastTapRef.current = { x: pointer.x, y: pointer.y, time: now };
-      return false;
-    },
-    [handleDoubleTap],
-  );
-
-  /**
-   * Unified stage click handler
-   *
-   * Routes clicks based on active tool mode priority:
-   * 1. Alignment mode → handleAlignmentClick
-   * 2. Select mode → early return (marquee handles it)
-   * 3. Pointer/measure/draw mode → handlePointerClick
-   * 4. Default → clear selection
-   */
+  /** Unified stage click handler (routes based on tool priority) */
   const onStageClick = useCallback(
     (event: KonvaEventObject<MouseEvent | PointerEvent>) => {
       // Priority 0: Custom double-click detection
@@ -286,14 +232,7 @@ export function useStageEventRouter({
     [detectDoubleTap, onStageClick],
   );
 
-  /**
-   * Unified mouse down handler
-   *
-   * Determines if camera panning should be enabled based on active modes,
-   * then delegates to camera, drawing, and marquee handlers.
-   *
-   * Camera panning is disabled when any tool mode is active.
-   */
+  /** Unified mouse down handler (delegates to camera/draw/marquee) */
   const onMouseDown = useCallback(
     (event: KonvaEventObject<PointerEvent>) => {
       // Calculate shouldPan: only pan when no tools are active
@@ -317,15 +256,7 @@ export function useStageEventRouter({
     ],
   );
 
-  /**
-   * Unified mouse move handler
-   *
-   * Delegates to all movement handlers unconditionally:
-   * - Camera (for panning)
-   * - Pointer (for pointer preview and measure tool)
-   * - Drawing (for freehand drawing)
-   * - Marquee (for selection box)
-   */
+  /** Unified mouse move handler (delegates to all movement handlers) */
   const onMouseMove = useCallback(() => {
     handleCameraMouseMove(stageRef);
     handlePointerMouseMove(stageRef);
@@ -339,12 +270,7 @@ export function useStageEventRouter({
     stageRef,
   ]);
 
-  /**
-   * Unified mouse up handler
-   *
-   * Finalizes camera panning and drawing operations.
-   * Conditionally finalizes marquee selection if active.
-   */
+  /** Unified mouse up handler (finalizes operations) */
   const onMouseUp = useCallback(() => {
     handleCameraMouseUp();
     handleDrawMouseUp();
