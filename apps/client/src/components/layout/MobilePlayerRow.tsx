@@ -20,6 +20,12 @@ interface MobilePlayerRowProps {
   onHpInputChange: (value: string) => void;
   onHpEdit: (uid: string, currentHp: number) => void;
   onHpSubmit: (hp: string) => void;
+  // Max HP Editing
+  editingMaxHpUID: string | null;
+  maxHpInput: string;
+  onMaxHpInputChange: (value: string) => void;
+  onMaxHpEdit: (uid: string, currentMaxHp: number) => void;
+  onMaxHpSubmit: (maxHp: string) => void;
   // State handlers
   onStatusEffectsChange?: (effects: string[]) => void;
   onCharacterHpChange: (hp: number) => void;
@@ -37,12 +43,18 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     onHpInputChange,
     onHpEdit,
     onHpSubmit,
+    editingMaxHpUID,
+    maxHpInput,
+    onMaxHpInputChange,
+    onMaxHpEdit,
+    onMaxHpSubmit,
     onStatusEffectsChange,
     onCharacterHpChange,
     onCharacterNameUpdate,
     onCharacterPortraitUpdate,
   }) => {
     const isEditingHp = editingHpUID === player.uid;
+    const isEditingMaxHp = editingMaxHpUID === player.uid;
     const [isEditingEffects, setIsEditingEffects] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [localNameInput, setLocalNameInput] = useState(player.name);
@@ -150,16 +162,16 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
             isMe={isMe}
             isEditingHp={isEditingHp}
             hpInput={hpInput}
-            isEditingMaxHp={false} // Simplify mobile view: only edit current HP
-            maxHpInput=""
+            isEditingMaxHp={isEditingMaxHp}
+            maxHpInput={maxHpInput}
             playerUid={player.uid}
             onHpChange={onCharacterHpChange}
             onHpInputChange={onHpInputChange}
             onHpEdit={onHpEdit}
             onHpSubmit={onHpSubmit}
-            onMaxHpInputChange={() => {}}
-            onMaxHpEdit={() => {}}
-            onMaxHpSubmit={() => {}}
+            onMaxHpInputChange={onMaxHpInputChange}
+            onMaxHpEdit={onMaxHpEdit}
+            onMaxHpSubmit={onMaxHpSubmit}
             onTempHpInputChange={() => {}} // Simplify mobile view
           />
         </div>

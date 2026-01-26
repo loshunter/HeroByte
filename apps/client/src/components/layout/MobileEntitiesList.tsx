@@ -21,6 +21,11 @@ interface MobileEntitiesListProps {
   onHpInputChange: (value: string) => void;
   onHpEdit: (uid: string, currentHp: number) => void;
   onHpSubmit: () => void;
+  editingMaxHpUID: string | null;
+  maxHpInput: string;
+  onMaxHpInputChange: (value: string) => void;
+  onMaxHpEdit: (uid: string, currentMaxHp: number) => void;
+  onMaxHpSubmit: () => void;
   onCharacterHpChange: (characterId: string, hp: number, maxHp: number, tempHp?: number) => void;
   onCharacterStatusEffectsChange: (characterId: string, effects: string[]) => void;
   onCharacterNameUpdate: (characterId: string, name: string) => void;
@@ -38,6 +43,11 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   onHpInputChange,
   onHpEdit,
   onHpSubmit,
+  editingMaxHpUID,
+  maxHpInput,
+  onMaxHpInputChange,
+  onMaxHpEdit,
+  onMaxHpSubmit,
   onCharacterHpChange,
   onCharacterStatusEffectsChange,
   onCharacterNameUpdate,
@@ -130,6 +140,14 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
               // HPBar passes the string value, but onHpSubmit expects void in EntitiesPanel
               // Here we just trigger the submit logic
               onHpSubmit();
+            }}
+            editingMaxHpUID={editingMaxHpUID}
+            maxHpInput={maxHpInput}
+            onMaxHpInputChange={onMaxHpInputChange}
+            onMaxHpEdit={onMaxHpEdit}
+            onMaxHpSubmit={(_maxHpStr) => {
+              // HPBar passes the string value, but onMaxHpSubmit expects void here
+              onMaxHpSubmit();
             }}
             onCharacterHpChange={(hp) =>
               onCharacterHpChange(entity.characterId, hp, entity.maxHp ?? 100, entity.tempHp)

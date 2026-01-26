@@ -84,7 +84,10 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     editingTempHpUID,
     hpInput,
     updateHpInput,
+    maxHpInput,
+    updateMaxHpInput,
     startHpEdit,
+    startMaxHpEdit,
     submitHpEdit,
     submitMaxHpEdit,
     submitTempHpEdit,
@@ -96,7 +99,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
   const [showEntities, setShowEntities] = useState(false);
 
   // Extract entity editing handlers
-  const { handleCharacterHpSubmit } = useEntityEditHandlers({
+  const { handleCharacterHpSubmit, handleCharacterMaxHpSubmit } = useEntityEditHandlers({
     editingHpUID,
     editingMaxHpUID,
     editingTempHpUID,
@@ -294,6 +297,11 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             onHpInputChange={updateHpInput}
             onHpEdit={startHpEdit}
             onHpSubmit={handleCharacterHpSubmit}
+            editingMaxHpUID={editingMaxHpUID}
+            maxHpInput={maxHpInput}
+            onMaxHpInputChange={updateMaxHpInput}
+            onMaxHpEdit={startMaxHpEdit}
+            onMaxHpSubmit={handleCharacterMaxHpSubmit}
             onCharacterHpChange={playerActions.updateCharacterHP}
             onCharacterStatusEffectsChange={playerActions.setCharacterStatusEffects}
             onCharacterNameUpdate={playerActions.updateCharacterName}
