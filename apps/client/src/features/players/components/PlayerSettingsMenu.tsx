@@ -140,7 +140,7 @@ export function PlayerSettingsMenu({
       minWidth={280}
       maxWidth={350}
       storageKey="player-settings-menu"
-      zIndex={1001}
+      zIndex={2500}
     >
       <JRPGPanel
         variant="bevel"
