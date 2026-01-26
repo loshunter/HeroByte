@@ -47,6 +47,7 @@ export interface PlayerCardProps {
   onTempHpSubmit?: (tempHp: string) => void;
   tokenImageUrl?: string;
   onTokenImageSubmit?: (url: string) => void;
+  onPortraitSubmit?: (url: string) => void;
   tokenId?: string;
   onApplyPlayerState?: (state: PlayerState, tokenId?: string, characterId?: string) => void;
   onDeleteToken?: (tokenId: string) => void;
@@ -106,6 +107,7 @@ export const PlayerCard = memo<PlayerCardProps>(
     onTempHpSubmit,
     tokenImageUrl,
     onTokenImageSubmit,
+    onPortraitSubmit,
     tokenId,
     onApplyPlayerState,
     onDeleteToken,
@@ -134,15 +136,25 @@ export const PlayerCard = memo<PlayerCardProps>(
     const editingMaxHp = editingMaxHpUID === (characterId ?? player.uid);
     const editingTempHp = editingTempHpUID === (characterId ?? player.uid);
     const [tokenImageInput, setTokenImageInput] = useState(tokenImageUrl ?? "");
+    const [portraitImageInput, setPortraitImageInput] = useState(player.portrait ?? "");
     const [settingsOpen, setSettingsOpen] = useState(false);
 
     useEffect(() => {
       setTokenImageInput(tokenImageUrl ?? "");
     }, [tokenImageUrl]);
 
+    useEffect(() => {
+      setPortraitImageInput(player.portrait ?? "");
+    }, [player.portrait]);
+
     const handleTokenImageApply = (value: string) => {
       if ((!isMe && !viewerIsDM) || !onTokenImageSubmit) return;
       onTokenImageSubmit(value);
+    };
+
+    const handlePortraitApply = (value: string) => {
+      if ((!isMe && !viewerIsDM) || !onPortraitSubmit) return;
+      onPortraitSubmit(value);
     };
 
     const handleSavePlayerState = () => {
@@ -167,8 +179,10 @@ export const PlayerCard = memo<PlayerCardProps>(
       if ((!isMe && !viewerIsDM) || !onApplyPlayerState) return;
       const state = await loadPlayerState(file);
       onApplyPlayerState(state, tokenId, characterId);
-      const nextImage = state.token?.imageUrl ?? state.tokenImage ?? "";
-      setTokenImageInput(nextImage ?? "");
+      const nextTokenImage = state.token?.imageUrl ?? state.tokenImage ?? "";
+      const nextPortrait = state.portrait ?? "";
+      setTokenImageInput(nextTokenImage ?? "");
+      setPortraitImageInput(nextPortrait ?? "");
     };
 
     const handleStatusEffectsChange = (effects: string[]) => {
@@ -330,6 +344,13 @@ export const PlayerCard = memo<PlayerCardProps>(
           onDeleteCharacter={onDeleteCharacter}
           initiative={initiative}
           onClearInitiative={onClearInitiative}
+          // New props for name and portrait editing
+          nameInput={nameInput}
+          onNameInputChange={onNameInputChange}
+          onNameSubmit={onNameSubmit}
+          portraitImageInput={portraitImageInput}
+          onPortraitInputChange={setPortraitImageInput}
+          onPortraitApply={handlePortraitApply}
         />
       </div>
     );

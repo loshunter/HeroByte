@@ -76,6 +76,39 @@ export const HPBar: React.FC<HPBarProps> = ({
     handleMouseMove(e.nativeEvent);
   };
 
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!isMe) return;
+
+    // Prevent scrolling while dragging the HP bar
+    // We don't call preventDefault() here because it marks the event as passive
+    // and Chrome complains. Instead we use touch-action: none in styles.
+    const bar = e.currentTarget;
+    const rect = bar.getBoundingClientRect();
+
+    const handleTouchMove = (moveEvent: TouchEvent) => {
+      const touch = moveEvent.touches[0];
+      const x = touch.clientX - rect.left;
+      const percentage = Math.max(0, Math.min(1, x / rect.width));
+      const newHp = Math.round(percentage * maxHp);
+      onHpChange(newHp);
+    };
+
+    const handleTouchEnd = () => {
+      document.removeEventListener("touchmove", handleTouchMove);
+      document.removeEventListener("touchend", handleTouchEnd);
+    };
+
+    document.addEventListener("touchmove", handleTouchMove, { passive: false });
+    document.addEventListener("touchend", handleTouchEnd);
+    
+    // Initial move for the start touch
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const percentage = Math.max(0, Math.min(1, x / rect.width));
+    const newHp = Math.round(percentage * maxHp);
+    onHpChange(newHp);
+  };
+
   const hpPercent = (hp / maxHp) * 100;
   const hpState = hpPercent > 66 ? "high" : hpPercent > 33 ? "medium" : "low";
 
@@ -204,8 +237,10 @@ export const HPBar: React.FC<HPBarProps> = ({
         className="jrpg-hp-bar"
         style={{
           cursor: isMe ? "ew-resize" : "default",
+          touchAction: "none", // Critical for preventing scroll while dragging
         }}
         onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
       >
         <div
           className="jrpg-hp-bar-fill"

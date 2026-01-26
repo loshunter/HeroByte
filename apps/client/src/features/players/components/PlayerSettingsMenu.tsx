@@ -38,6 +38,13 @@ interface PlayerSettingsMenuProps {
   onDeleteCharacter?: (characterId: string) => void;
   initiative?: number;
   onClearInitiative?: () => void;
+  // New props for name and portrait editing
+  nameInput?: string;
+  onNameInputChange?: (value: string) => void;
+  onNameSubmit?: () => void;
+  portraitImageInput?: string;
+  onPortraitInputChange?: (value: string) => void;
+  onPortraitApply?: (value: string) => void;
 }
 
 export function PlayerSettingsMenu({
@@ -65,6 +72,12 @@ export function PlayerSettingsMenu({
   onDeleteCharacter,
   initiative,
   onClearInitiative,
+  nameInput,
+  onNameInputChange,
+  onNameSubmit,
+  portraitImageInput,
+  onPortraitInputChange,
+  onPortraitApply,
 }: PlayerSettingsMenuProps): JSX.Element | null {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { normalizeUrl } = useImageUrlNormalization();
@@ -76,6 +89,13 @@ export function PlayerSettingsMenu({
   const handleApplyTokenImage = async () => {
     const normalizedUrl = await normalizeUrl(tokenImageInput.trim());
     onTokenImageApply(normalizedUrl);
+  };
+
+  const handleApplyPortraitImage = async () => {
+    if (onPortraitApply && portraitImageInput) {
+      const normalizedUrl = await normalizeUrl(portraitImageInput.trim());
+      onPortraitApply(normalizedUrl);
+    }
   };
 
   const handleToggleEffect = (value: string) => {
@@ -132,6 +152,73 @@ export function PlayerSettingsMenu({
           background: "rgba(12, 18, 40, 0.95)",
         }}
       >
+        {/* Name Editing */}
+        {onNameInputChange && onNameSubmit && nameInput !== undefined && (
+          <JRPGPanel
+            variant="simple"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+              padding: "12px",
+            }}
+          >
+            <label className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
+              Character Name
+            </label>
+            <input
+              className="jrpg-input"
+              type="text"
+              value={nameInput}
+              placeholder="Enter Name"
+              onChange={(event) => onNameInputChange(event.target.value)}
+              onBlur={onNameSubmit}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  onNameSubmit();
+                }
+              }}
+            />
+          </JRPGPanel>
+        )}
+
+        {/* Portrait URL Editing */}
+        {onPortraitInputChange && onPortraitApply && portraitImageInput !== undefined && (
+          <JRPGPanel
+            variant="simple"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+              padding: "12px",
+            }}
+          >
+            <label className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
+              Portrait Image URL
+            </label>
+            <input
+              className="jrpg-input"
+              type="text"
+              value={portraitImageInput}
+              placeholder="https://example.com/portrait.png"
+              onChange={(event) => onPortraitInputChange(event.target.value)}
+              onBlur={handleApplyPortraitImage}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  handleApplyPortraitImage();
+                }
+              }}
+            />
+            <JRPGButton
+              onClick={handleApplyPortraitImage}
+              variant="primary"
+              style={{ fontSize: "10px", padding: "6px 8px" }}
+            >
+              Apply Portrait
+            </JRPGButton>
+          </JRPGPanel>
+        )}
+
         {/* DM players don't have tokens, so hide token controls when isDM is true */}
         {!isDM && (
           <JRPGPanel
