@@ -28,7 +28,7 @@ interface MobilePlayerRowProps {
   onMaxHpSubmit: (maxHp: string) => void;
   // State handlers
   onStatusEffectsChange?: (effects: string[]) => void;
-  onCharacterHpChange: (hp: number) => void;
+  onCharacterHpChange: (characterId: string, hp: number, maxHp: number, tempHp?: number) => void;
   onCharacterNameUpdate: (characterId: string, name: string) => void;
   onCharacterPortraitUpdate: (characterId: string, url: string) => void;
 }
@@ -53,8 +53,8 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     onCharacterNameUpdate,
     onCharacterPortraitUpdate,
   }) => {
-    const isEditingHp = editingHpUID === player.uid;
-    const isEditingMaxHp = editingMaxHpUID === player.uid;
+    const isEditingHp = editingHpUID === player.characterId;
+    const isEditingMaxHp = editingMaxHpUID === player.characterId;
     const [isEditingEffects, setIsEditingEffects] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [localNameInput, setLocalNameInput] = useState(player.name);
@@ -164,8 +164,10 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
             hpInput={hpInput}
             isEditingMaxHp={isEditingMaxHp}
             maxHpInput={maxHpInput}
-            playerUid={player.uid}
-            onHpChange={onCharacterHpChange}
+            playerUid={player.characterId}
+            onHpChange={(newHp) =>
+              onCharacterHpChange(player.characterId, newHp, player.maxHp ?? 100, player.tempHp)
+            }
             onHpInputChange={onHpInputChange}
             onHpEdit={onHpEdit}
             onHpSubmit={onHpSubmit}

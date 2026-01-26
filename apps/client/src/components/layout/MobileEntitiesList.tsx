@@ -149,9 +149,7 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
               // HPBar passes the string value, but onMaxHpSubmit expects void here
               onMaxHpSubmit();
             }}
-            onCharacterHpChange={(hp) =>
-              onCharacterHpChange(entity.characterId, hp, entity.maxHp ?? 100, entity.tempHp)
-            }
+            onCharacterHpChange={onCharacterHpChange}
             onStatusEffectsChange={(effects) =>
               onCharacterStatusEffectsChange(entity.characterId, effects)
             }
