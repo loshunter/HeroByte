@@ -133,7 +133,10 @@ export function useEntityEditHandlers(
       if (!editingMaxHpUID) return;
       const character = snapshot?.characters?.find((c) => c.id === editingMaxHpUID);
       if (!character) return;
-      playerActions.updateCharacterHP(character.id, character.hp, maxHp, character.tempHp);
+
+      // Ensure HP doesn't exceed new Max HP (QoL: clamp HP down if Max HP is lowered below it)
+      const newHp = Math.min(character.hp, maxHp);
+      playerActions.updateCharacterHP(character.id, newHp, maxHp, character.tempHp);
     });
   }, [submitMaxHpEdit, editingMaxHpUID, snapshot?.characters, playerActions]);
 
