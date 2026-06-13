@@ -54,3 +54,4 @@ Thumbs.db
 *.xcf
 *.afdesign
 *.afphoto
+*:Zone.Identifier
