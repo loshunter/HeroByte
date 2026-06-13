@@ -1,3 +1,6 @@
 node_modules/
 dist/
 coverage/
+
+# Runtime artifacts (git-ignored in nested .gitignore files prettier doesn't read)
+test-secret.json

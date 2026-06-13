@@ -1,0 +1,24 @@
+# Normalize all text files to LF in the repository and on checkout.
+# This keeps prettier/eslint (which enforce LF) green on every platform.
+* text=auto eol=lf
+
+# Windows batch scripts must keep CRLF to run reliably under cmd.exe.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary assets — never touch line endings.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.mp3 binary
+*.ogg binary
+*.wav binary
+*.zip binary
+*.pdf binary
