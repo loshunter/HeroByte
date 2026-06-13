@@ -39,9 +39,7 @@ export function validateCreateCharacterMessage(message: MessageRecord): Validati
  * Validate set-character-status-effects message
  * Required: characterId (non-empty string), effects (array of 1-64 char strings, max 16)
  */
-export function validateSetCharacterStatusEffectsMessage(
-  message: MessageRecord,
-): ValidationResult {
+export function validateSetCharacterStatusEffectsMessage(message: MessageRecord): ValidationResult {
   const { characterId, effects } = message;
   if (typeof characterId !== "string" || characterId.length === 0) {
     return {
