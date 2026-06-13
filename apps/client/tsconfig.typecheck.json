@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "include": ["src", "vitest.setup.ts"],
+  "compilerOptions": {
+    "outDir": "dist",
+    "noEmit": true,
+    "types": ["vite/client", "node", "vitest/globals"]
+  }
+}

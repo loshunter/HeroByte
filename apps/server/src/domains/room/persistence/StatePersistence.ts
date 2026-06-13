@@ -171,12 +171,26 @@ export class StatePersistence {
       stateVersion: state.stateVersion,
     };
 
+    // Serialize NOW (synchronously) so the queued write captures a consistent
+    // snapshot of the state as it was when the save was requested. The fields in
+    // persistentData are live references into RoomState — if serialization were
+    // deferred into the queued .then() callback (as it was previously), any
+    // mutations applied while an earlier write was still in flight would leak
+    // into this "earlier" save.
+    let serialized: string;
+    try {
+      serialized = JSON.stringify(persistentData, null, 2);
+    } catch (err) {
+      console.error("Failed to serialize state for save:", err);
+      return;
+    }
+
     // Queue writes to avoid overlapping file operations that can corrupt JSON.
     this.writeQueue = this.writeQueue
       .catch(() => {
         // Swallow errors from previous writes so the queue can continue.
       })
-      .then(() => writeFile(this.stateFile, JSON.stringify(persistentData, null, 2)))
+      .then(() => writeFile(this.stateFile, serialized))
       .catch((err) => {
         console.error("Failed to save state:", err);
       });

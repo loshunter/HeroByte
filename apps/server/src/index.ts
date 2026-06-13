@@ -14,6 +14,7 @@ import { Container } from "./container.js";
 import { ConnectionHandler } from "./ws/connectionHandler.js";
 import { isOriginAllowed } from "./config/security.js";
 import { AuthService } from "./domains/auth/service.js";
+import { RoomRegistry } from "./domains/room/RoomRegistry.js";
 
 // ----------------------------------------------------------------------------
 // CONFIGURATION
@@ -30,7 +31,7 @@ const HOST = "0.0.0.0";
  * Bootstrap the application
  * Creates all infrastructure and wires dependencies
  */
-function bootstrap() {
+async function bootstrap() {
   const authService = new AuthService();
   // Create HTTP routes
   const app = createRoutes(authService);
@@ -119,8 +120,14 @@ function bootstrap() {
     },
   });
 
+  // Initialize room registry and wait for the backing store to hydrate
+  // (no-op for the in-memory store; required for Redis so rooms are not
+  // initialized from empty state before the cache is warm).
+  const roomRegistry = new RoomRegistry();
+  await roomRegistry.whenReady();
+
   // Initialize dependency container
-  const container = new Container(wss, authService);
+  const container = new Container(wss, authService, roomRegistry);
 
   // Attach WebSocket connection handler
   const connectionHandler = new ConnectionHandler(container, wss);
@@ -144,4 +151,7 @@ function bootstrap() {
 }
 
 // Start the application
-bootstrap();
+bootstrap().catch((error) => {
+  console.error("Fatal error during bootstrap:", error);
+  process.exit(1);
+});

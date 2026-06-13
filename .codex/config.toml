@@ -1,7 +1,51 @@
+[mcp_servers.Ref]
+url = "https://api.ref.tools/mcp?apiKey=ref-e22899ec589837952d99"
+
 [mcp_servers.chrome-devtools]
-command = "npx"
 args = [
     "-y",
     "chrome-devtools-mcp@latest",
 ]
-startup_timeout_ms = 20_000
+command = "npx"
+startup_timeout_ms = 20000
+
+[mcp_servers.cloudflare-bindings]
+args = [
+    "mcp-remote",
+    "https://bindings.mcp.cloudflare.com/sse",
+]
+command = "npx"
+
+[mcp_servers.cloudflare-observability]
+args = [
+    "mcp-remote",
+    "https://observability.mcp.cloudflare.com/sse",
+]
+command = "npx"
+
+[mcp_servers.github-mcp]
+url = "https://api.githubcopilot.com/mcp"
+
+[mcp_servers.semgrep]
+args = [
+    "-y",
+    "semgrep-mcp@latest",
+]
+command = "npx"
+
+[mcp_servers.sequential-thinking]
+args = [
+    "-y",
+    "@modelcontextprotocol/server-sequential-thinking",
+]
+command = "npx"
+
+[mcp_servers.vercel]
+url = "https://mcp.vercel.com"
+
+[mcp_servers.vibe-check]
+args = [
+    "-y",
+    "vibe-check-mcp@latest",
+]
+command = "npx"

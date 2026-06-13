@@ -16,6 +16,14 @@ export default defineConfig({
       reportsDirectory: "./coverage",
       include: ["src/**/*.ts"],
       exclude: ["src/**/*.test.ts", "dist/**"],
+      // Floor below current coverage (~81% lines as of 2026-06) so regressions
+      // fail CI. Ratchet upward as coverage improves.
+      thresholds: {
+        lines: 75,
+        statements: 75,
+        functions: 75,
+        branches: 70,
+      },
     },
   },
 });

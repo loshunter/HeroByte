@@ -44,9 +44,12 @@ export class Container {
   public readonly authenticatedUids: Set<string>;
   public readonly authenticatedSessions: Map<string, { roomId: string; authedAt: number }>;
 
-  constructor(wss: WebSocketServer, authService: AuthService) {
-    // Initialize services (no dependencies between them)
-    this.roomRegistry = new RoomRegistry();
+  constructor(wss: WebSocketServer, authService: AuthService, roomRegistry?: RoomRegistry) {
+    // Initialize services (no dependencies between them).
+    // A pre-hydrated RoomRegistry can be injected (bootstrap awaits
+    // registry.whenReady() before constructing the container so Redis-backed
+    // rooms are not initialized from empty state).
+    this.roomRegistry = roomRegistry ?? new RoomRegistry();
     this.roomService = this.roomRegistry.get("default-room");
     this.playerService = new PlayerService();
     this.tokenService = new TokenService();

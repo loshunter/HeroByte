@@ -154,11 +154,8 @@ export function useMarqueeSelection({
       });
 
       if (matches.length === 0) {
-        if (rect.width < minSelectionSize && rect.height < minSelectionSize) {
-          onSelectObject?.(null);
-        } else {
-          onSelectObject?.(null);
-        }
+        // Empty marquee (any size) clears the current selection.
+        onSelectObject?.(null);
         return;
       }
 

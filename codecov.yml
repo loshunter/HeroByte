@@ -1,0 +1,22 @@
+# Codecov configuration
+#
+# The client package's coverage is produced by a chunked vitest runner
+# (run-vitest-coverage.mjs) and merged afterwards, so per-run vitest
+# coverage.thresholds cannot gate it. Project-level gating happens here
+# instead: a PR that drops overall coverage by more than 1% fails the
+# Codecov status check. Server and shared packages additionally enforce
+# local vitest thresholds.
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+    patch:
+      default:
+        informational: true
+
+comment:
+  layout: "diff, flags, files"
+  behavior: default
+  require_changes: true

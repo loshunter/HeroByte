@@ -8,6 +8,11 @@ on:
   pull_request:
     branches:
       - dev
+      - main
+  schedule:
+    # Nightly full E2E run on dev (02:30 UTC) — the PR pipeline only runs the
+    # 4-spec smoke suite, so this keeps the remaining specs from rotting.
+    - cron: "30 2 * * *"
 
 jobs:
   lint-and-build:
@@ -54,6 +59,15 @@ jobs:
 
       - name: Build packages
         run: pnpm build
+
+      # Production code is typechecked by the build (client build runs `tsc`,
+      # server build runs `tsc -p`). This step additionally typechecks TEST
+      # files, which both package tsconfigs exclude. It is non-blocking until
+      # the existing test suite typechecks clean — promote to a hard failure
+      # (remove continue-on-error) once `pnpm typecheck` passes locally.
+      - name: Typecheck (including test files)
+        run: pnpm typecheck
+        continue-on-error: true
 
       - name: Check bundle size (client)
         run: node apps/client/scripts/check-bundle-size.mjs
@@ -158,6 +172,54 @@ jobs:
         if: failure()
         with:
           name: test-results
+          path: test-results/
+          retention-days: 7
+
+  e2e-full-suite:
+    # Nightly only: runs every Playwright spec (the PR pipeline runs the
+    # 4-spec smoke subset). Can also be triggered by pushing to dev/main.
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10.17.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run full E2E suite
+        run: pnpm exec playwright test
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-full
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Upload test artifacts (screenshots, videos)
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results-full
           path: test-results/
           retention-days: 7
 

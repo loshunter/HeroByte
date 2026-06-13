@@ -86,11 +86,14 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
       url,
       uid,
       onMessage: (newSnapshot) => {
-        // Debug: Log when snapshot changes
-        console.log(
-          "[useWebSocket] Snapshot updated, characters count:",
-          newSnapshot.characters?.length || 0,
-        );
+        // Debug-only: snapshots arrive at high frequency during combat
+        // (token-update deltas), so never log them in production builds.
+        if (import.meta.env.DEV) {
+          console.log(
+            "[useWebSocket] Snapshot updated, characters count:",
+            newSnapshot.characters?.length || 0,
+          );
+        }
         setSnapshot(newSnapshot);
       },
       onRtcSignal: (from, signal) => {

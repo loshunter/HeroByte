@@ -69,13 +69,7 @@ export class RoomDispatcher {
         );
         return { broadcast: false, save: false };
 
-      case "clear-all-tokens":
-        // Moved from TokenDispatcher because it was under Room Management in router
-        // Actually TokenDispatcher handles it now. So RoomDispatcher shouldn't?
-        // Let's check router. It had clear-all-tokens.
-        // But I moved it to TokenDispatcher in Step 26.
-        // So I don't need it here.
-        return null;
+      // Note: "clear-all-tokens" is handled by TokenDispatcher.
 
       default:
         return null;

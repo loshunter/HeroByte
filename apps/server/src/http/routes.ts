@@ -4,7 +4,7 @@
 // HTTP endpoint definitions for health checks and API routes
 
 import { Hono } from "hono";
-import { getRoomSecret } from "../config/auth.js";
+import { getRoomSecret, isDemoMode } from "../config/auth.js";
 import type { AuthService } from "../domains/auth/service.js";
 import { isOriginAllowed } from "../config/security.js";
 
@@ -53,8 +53,13 @@ export function createRoutes(authService: AuthService): Hono {
 
     let passwordHintHtml = "";
     if (secretSource === "fallback") {
-      const secret = getRoomSecret();
-      passwordHintHtml = `
+      // Only render the plaintext fallback password when the operator has
+      // explicitly opted in to demo mode (HEROBYTE_DEMO_MODE=true). An
+      // unconfigured, internet-reachable server must not hand its room
+      // password to every anonymous HTTP visitor.
+      if (isDemoMode()) {
+        const secret = getRoomSecret();
+        passwordHintHtml = `
         <p class="hint">
           While waiting, make sure everyone joining knows the current room password:
         </p>
@@ -63,6 +68,15 @@ export function createRoutes(authService: AuthService): Hono {
           Enter that password on the client welcome screen to hop into the shared
           tabletop once the server is online.
         </p>`;
+      } else {
+        passwordHintHtml = `
+        <p class="hint">
+          This server is using the development fallback room password. Ask your
+          host for it, and set <code>HEROBYTE_ROOM_SECRET</code> (or
+          <code>HEROBYTE_DEMO_MODE=true</code> to display the fallback here) in
+          the server environment.
+        </p>`;
+      }
     } else if (secretSource === "env") {
       passwordHintHtml = `
         <p class="hint">

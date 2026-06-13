@@ -20,10 +20,21 @@ export class RoomRegistry {
   private readonly store: RoomStore;
   private readonly metricsLoggerFactory?: () => BroadcastMetricsLogger;
   private redisClient: Redis | null = null;
+  private hydration: Promise<void> = Promise.resolve();
 
   constructor(options: RoomRegistryOptions = {}) {
     this.metricsLoggerFactory = options.metricsLoggerFactory;
     this.store = options.store ?? this.initializeStore();
+  }
+
+  /**
+   * Resolves once the backing store has finished hydrating (e.g. Redis cache
+   * warm-up). Callers MUST await this before requesting RoomService instances
+   * at startup — creating a service for a room before hydration completes
+   * would initialize it with empty state and overwrite the persisted copy.
+   */
+  whenReady(): Promise<void> {
+    return this.hydration;
   }
 
   get(roomId: string): RoomService {
@@ -64,7 +75,10 @@ export class RoomRegistry {
         const url = process.env.REDIS_URL ?? "redis://127.0.0.1:6379";
         this.redisClient = new Redis(url);
         const redisStore = new RedisRoomStore({ client: this.redisClient });
-        redisStore.hydrate().catch((error) => {
+        // Track hydration so bootstrap can await it (see whenReady). Previously
+        // this was fire-and-forget, so a RoomService created before hydration
+        // finished would silently start from (and persist) empty state.
+        this.hydration = redisStore.hydrate().catch((error) => {
           console.error("[RoomRegistry] Failed to hydrate RedisRoomStore", error);
         });
         return redisStore;

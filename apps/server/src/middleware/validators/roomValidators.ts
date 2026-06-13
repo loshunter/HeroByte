@@ -40,9 +40,23 @@ export function validateRoomControlMessage(): ValidationResult {
   return { valid: true };
 }
 
+/** Per-collection entry caps for loaded session snapshots */
+const SNAPSHOT_LIMITS = {
+  players: 100,
+  tokens: 1000,
+  drawings: 5000,
+  props: 500,
+  characters: 500,
+  diceRolls: 1000,
+  sceneObjects: 5000,
+} as const;
+
 /**
  * Validate load-session message
  * Required: snapshot (object with players, tokens, drawings arrays)
+ *
+ * Snapshot collections are merged into live room state, so each collection is
+ * bounded and every entry must at least be an object (not a primitive).
  */
 export function validateLoadSessionMessage(message: MessageRecord): ValidationResult {
   const snapshot = message.snapshot;
@@ -61,6 +75,28 @@ export function validateLoadSessionMessage(message: MessageRecord): ValidationRe
       error:
         "load-session: snapshot must contain players, tokens, and drawings (array or assetRef)",
     };
+  }
+
+  for (const [key, limit] of Object.entries(SNAPSHOT_LIMITS)) {
+    const collection = snapshot[key];
+    if (collection === undefined) {
+      continue;
+    }
+    if (!Array.isArray(collection)) {
+      return { valid: false, error: `load-session: snapshot ${key} must be an array` };
+    }
+    if (collection.length > limit) {
+      return {
+        valid: false,
+        error: `load-session: snapshot ${key} exceeds limit (max ${limit} entries)`,
+      };
+    }
+    if (!collection.every((entry) => isRecord(entry))) {
+      return {
+        valid: false,
+        error: `load-session: snapshot ${key} entries must be objects`,
+      };
+    }
   }
   return { valid: true };
 }
@@ -164,13 +200,99 @@ export function validateTransformObjectMessage(message: MessageRecord): Validati
   return { valid: true };
 }
 
+/** Maximum breakdown entries per dice roll */
+const DICE_BREAKDOWN_MAX = 64;
+/** Maximum individual die results per breakdown entry */
+const DICE_ROLLS_PER_ENTRY_MAX = 200;
+/** Maximum formula string length */
+const DICE_FORMULA_MAX = 256;
+
 /**
  * Validate dice-roll message
- * Required: roll (object)
+ * Required: roll (object with id, playerUid, playerName, formula, total, breakdown, timestamp)
+ *
+ * These fields are persisted and re-broadcast verbatim to all clients, so every
+ * field is bounded to prevent state pollution / oversized payload injection.
  */
 export function validateDiceRollMessage(message: MessageRecord): ValidationResult {
   if (!isRecord(message.roll)) {
     return { valid: false, error: "dice-roll: missing or invalid roll object" };
+  }
+  const roll = message.roll;
+
+  if (typeof roll.id !== "string" || roll.id.length === 0 || roll.id.length > 128) {
+    return { valid: false, error: "dice-roll: id must be a 1-128 character string" };
+  }
+  if (typeof roll.playerUid !== "string" || roll.playerUid.length > 128) {
+    return { valid: false, error: "dice-roll: playerUid must be a string (max 128 chars)" };
+  }
+  if (
+    typeof roll.playerName !== "string" ||
+    roll.playerName.length > STRING_LIMITS.CHARACTER_NAME_MAX
+  ) {
+    return { valid: false, error: "dice-roll: playerName must be a string (max 100 chars)" };
+  }
+  if (typeof roll.formula !== "string" || roll.formula.length > DICE_FORMULA_MAX) {
+    return { valid: false, error: "dice-roll: formula must be a string (max 256 chars)" };
+  }
+  if (!isFiniteNumber(roll.total)) {
+    return { valid: false, error: "dice-roll: total must be a finite number" };
+  }
+  if (!isFiniteNumber(roll.timestamp)) {
+    return { valid: false, error: "dice-roll: timestamp must be a finite number" };
+  }
+  if (!Array.isArray(roll.breakdown) || roll.breakdown.length > DICE_BREAKDOWN_MAX) {
+    return { valid: false, error: "dice-roll: breakdown must be an array (max 64 entries)" };
+  }
+  for (const entry of roll.breakdown) {
+    if (!isRecord(entry)) {
+      return { valid: false, error: "dice-roll: breakdown entries must be objects" };
+    }
+    if (typeof entry.tokenId !== "string" || entry.tokenId.length > 128) {
+      return { valid: false, error: "dice-roll: breakdown tokenId must be a string" };
+    }
+    if (!isFiniteNumber(entry.subtotal)) {
+      return { valid: false, error: "dice-roll: breakdown subtotal must be a finite number" };
+    }
+    if (entry.die !== undefined && (typeof entry.die !== "string" || entry.die.length > 16)) {
+      return { valid: false, error: "dice-roll: breakdown die must be a short string" };
+    }
+    if (entry.rolls !== undefined) {
+      if (
+        !Array.isArray(entry.rolls) ||
+        entry.rolls.length > DICE_ROLLS_PER_ENTRY_MAX ||
+        !entry.rolls.every((value) => isFiniteNumber(value))
+      ) {
+        return {
+          valid: false,
+          error: "dice-roll: breakdown rolls must be an array of finite numbers (max 200)",
+        };
+      }
+    }
+  }
+  return { valid: true };
+}
+
+/**
+ * Validate request-room-resync message
+ * Optional: lastSeenVersion (non-negative finite number), reason (string, max 256 chars)
+ */
+export function validateRequestRoomResyncMessage(message: MessageRecord): ValidationResult {
+  if (message.lastSeenVersion !== undefined) {
+    if (!isFiniteNumber(message.lastSeenVersion) || message.lastSeenVersion < 0) {
+      return {
+        valid: false,
+        error: "request-room-resync: lastSeenVersion must be a non-negative number",
+      };
+    }
+  }
+  if (message.reason !== undefined) {
+    if (typeof message.reason !== "string" || message.reason.length > 256) {
+      return {
+        valid: false,
+        error: "request-room-resync: reason must be a string (max 256 chars)",
+      };
+    }
   }
   return { valid: true };
 }

@@ -215,7 +215,11 @@ export class AuthService {
           hash: parsed.hash,
           salt: parsed.salt,
           updatedAt: parsed.updatedAt,
-          source: parsed.source === "user" ? "user" : "user",
+          // Preserve the persisted source when it's a known value; default to
+          // "user" otherwise. (A previous version of this line collapsed every
+          // value to "user", which made the landing page report the wrong
+          // password-hint state for env-sourced secrets.)
+          source: parsed.source === "env" || parsed.source === "fallback" ? parsed.source : "user",
           dmHash: parsed.dmHash,
           dmSalt: parsed.dmSalt,
           dmUpdatedAt: parsed.dmUpdatedAt,

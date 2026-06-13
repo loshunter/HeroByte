@@ -234,9 +234,6 @@ function AuthenticatedApp({
   const { cameraCommand, handleFocusToken, handleResetCamera, handleCameraCommandHandled } =
     useCameraCommands({ snapshot, uid });
 
-  // Camera state (from MapBoard)
-  const [camera, _setCamera] = useState<Camera>({ x: 0, y: 0, scale: 1 });
-
   // Dice rolling state and handlers
   const {
     diceRollerOpen,
@@ -597,6 +594,13 @@ function AuthenticatedApp({
     };
   }, [viewingRoll, rollHistory]);
 
+  const handleCharacterPortraitUpdate = useCallback(
+    (characterId: string, url: string) => {
+      playerActions.setCharacterPortrait(characterId, url);
+    },
+    [playerActions],
+  );
+
   // Note: No wrapper needed - SessionPersistenceControl has its own file input
 
   // -------------------------------------------------------------------------
@@ -643,7 +647,11 @@ function AuthenticatedApp({
     isDM,
     // Camera
     cameraState,
-    camera,
+    // `camera` previously came from a dead useState whose setter was never
+    // called, so DMMenu always saw a frozen { x: 0, y: 0, scale: 1 } viewport
+    // (breaking viewport-relative prop placement). cameraState is the live
+    // value updated by MapBoard via handleCameraChange.
+    camera: cameraState,
     cameraCommand,
     handleCameraCommandHandled,
     setCameraState: handleCameraChange,
@@ -674,6 +682,7 @@ function AuthenticatedApp({
     submitMaxHpEdit,
     startTempHpEdit: handleStartTempHpEdit,
     submitTempHpEdit,
+    onCharacterPortraitUpdate: handleCharacterPortraitUpdate,
     // Selection
     selectedObjectId,
     selectedObjectIds,

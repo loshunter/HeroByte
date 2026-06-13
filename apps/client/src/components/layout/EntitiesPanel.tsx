@@ -35,6 +35,7 @@ interface EntitiesPanelProps {
   onNameSubmit: () => void;
   onCharacterNameUpdate: (characterId: string, name: string) => void;
   onPortraitLoad: (characterId?: string) => void;
+  onCharacterPortraitUpdate: (characterId: string, url: string) => void;
   onToggleMic: () => void;
   onCharacterHpChange: (characterId: string, hp: number, maxHp: number, tempHp?: number) => void;
   editingHpUID: string | null;
@@ -100,6 +101,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   tempHpInput,
   onCharacterNameUpdate,
   onPortraitLoad,
+  onCharacterPortraitUpdate,
   onToggleMic,
   onCharacterHpChange,
   editingHpUID,
@@ -379,6 +381,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                             onPortraitLoad={(requestedCharacterId) =>
                               onPortraitLoad(requestedCharacterId ?? character.id)
                             }
+                            onPortraitSubmit={(url) => onCharacterPortraitUpdate(character.id, url)}
                             onToggleMic={onToggleMic}
                             onHpChange={(hp) =>
                               onCharacterHpChange(
@@ -548,6 +551,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                             setCharacterNameInput("");
                           }}
                           onPortraitLoad={onPortraitLoad}
+                          onPortraitSubmit={(url) => onCharacterPortraitUpdate(character.id, url)}
                           onToggleMic={onToggleMic}
                           onHpChange={(hp) =>
                             onCharacterHpChange(

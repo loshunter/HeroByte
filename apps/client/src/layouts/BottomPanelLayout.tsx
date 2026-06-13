@@ -133,9 +133,11 @@ export interface BottomPanelLayoutProps {
   /** Handler to submit the temp HP edit */
   onTempHpSubmit: () => void;
 
-  // Portrait & Mic (2 props)
+  // Portrait & Mic (3 props)
   /** Handler to load a new portrait image */
   onPortraitLoad: (characterId?: string) => void;
+  /** Handler to update character portrait URL */
+  onCharacterPortraitUpdate: (characterId: string, url: string) => void;
   /** Handler to toggle microphone on/off */
   onToggleMic: () => void;
 
@@ -292,6 +294,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
     onTempHpEdit,
     onTempHpSubmit,
     onPortraitLoad,
+    onCharacterPortraitUpdate,
     onToggleMic,
     onToggleDMMode,
     onApplyPlayerState,
@@ -352,6 +355,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
         onTempHpEdit={onTempHpEdit}
         onTempHpSubmit={onTempHpSubmit}
         onPortraitLoad={onPortraitLoad}
+        onCharacterPortraitUpdate={onCharacterPortraitUpdate}
         onToggleMic={onToggleMic}
         onToggleDMMode={onToggleDMMode}
         onApplyPlayerState={onApplyPlayerState}

@@ -217,6 +217,8 @@ export interface MainLayoutProps {
   startTempHpEdit: (uid: string) => void;
   /** Handler to submit temp HP edit */
   submitTempHpEdit: (callback: (tempHp: number) => void) => void;
+  /** Handler to update character portrait URL */
+  onCharacterPortraitUpdate: (characterId: string, url: string) => void;
 
   // -------------------------------------------------------------------------
   // Selection

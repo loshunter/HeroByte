@@ -5,7 +5,7 @@
 
 import type { ValidationResult, MessageRecord } from "./commonValidators.js";
 import { isFiniteNumber } from "./commonValidators.js";
-import { PAYLOAD_LIMITS, STRING_LIMITS } from "./constants.js";
+import { ARRAY_LIMITS, PAYLOAD_LIMITS, STRING_LIMITS } from "./constants.js";
 
 /**
  * Validate create-character message
@@ -30,6 +30,47 @@ export function validateCreateCharacterMessage(message: MessageRecord): Validati
     }
     if (portrait.length > PAYLOAD_LIMITS.PORTRAIT_SIZE) {
       return { valid: false, error: "create-character: portrait too large (max 2MB)" };
+    }
+  }
+  return { valid: true };
+}
+
+/**
+ * Validate set-character-status-effects message
+ * Required: characterId (non-empty string), effects (array of 1-64 char strings, max 16)
+ */
+export function validateSetCharacterStatusEffectsMessage(
+  message: MessageRecord,
+): ValidationResult {
+  const { characterId, effects } = message;
+  if (typeof characterId !== "string" || characterId.length === 0) {
+    return {
+      valid: false,
+      error: "set-character-status-effects: missing or invalid characterId",
+    };
+  }
+  if (!Array.isArray(effects)) {
+    return { valid: false, error: "set-character-status-effects: effects must be an array" };
+  }
+  if (effects.length > ARRAY_LIMITS.STATUS_EFFECTS) {
+    return { valid: false, error: "set-character-status-effects: too many effects (max 16)" };
+  }
+  for (const effect of effects) {
+    if (typeof effect !== "string") {
+      return { valid: false, error: "set-character-status-effects: effects must be strings" };
+    }
+    const trimmed = effect.trim();
+    if (trimmed.length < STRING_LIMITS.STATUS_EFFECT_MIN) {
+      return {
+        valid: false,
+        error: "set-character-status-effects: effect labels cannot be empty",
+      };
+    }
+    if (trimmed.length > STRING_LIMITS.STATUS_EFFECT_MAX) {
+      return {
+        valid: false,
+        error: "set-character-status-effects: effect labels too long (max 64 chars)",
+      };
     }
   }
   return { valid: true };

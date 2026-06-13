@@ -56,3 +56,16 @@ export function getDMPassword(): string {
 export function getDefaultRoomId(): string {
   return process.env.HEROBYTE_DEFAULT_ROOM_ID?.trim() || DEFAULT_ROOM_ID;
 }
+
+/**
+ * Whether the server is explicitly running in demo mode.
+ *
+ * Demo mode opts in to convenience behaviors that are unsafe for real
+ * deployments — currently, rendering the fallback room password in plaintext
+ * on the HTTP landing page. It must be enabled explicitly via
+ * HEROBYTE_DEMO_MODE=true; an unconfigured server no longer exposes its
+ * fallback password to anonymous HTTP visitors.
+ */
+export function isDemoMode(): boolean {
+  return process.env.HEROBYTE_DEMO_MODE?.trim().toLowerCase() === "true";
+}

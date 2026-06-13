@@ -122,6 +122,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     submitMaxHpEdit,
     submitTempHpEdit,
     submitNameEdit,
+    onCharacterPortraitUpdate,
 
     // Selection
     selectedObjectId,
@@ -311,6 +312,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onTempHpEdit={startTempHpEdit}
         onTempHpSubmit={handleCharacterTempHpSubmit}
         onPortraitLoad={handlePortraitLoad}
+        onCharacterPortraitUpdate={onCharacterPortraitUpdate}
         onToggleMic={toggleMic}
         onToggleDMMode={handleToggleDM}
         onApplyPlayerState={playerActions.applyPlayerState}

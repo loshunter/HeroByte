@@ -23,6 +23,17 @@ interface PropsSpriteProps {
   onDragEnd?: (event: KonvaEventObject<DragEvent>) => void;
 }
 
+// Size multiplier per size category (same as tokens; module scope for stable
+// identity instead of re-creating the object on every render)
+const SIZE_MULTIPLIERS: Record<string, number> = {
+  tiny: 0.5,
+  small: 0.75,
+  medium: 1.0,
+  large: 1.5,
+  huge: 2.0,
+  gargantuan: 3.0,
+};
+
 const PropSprite = memo(function PropSprite({
   object,
   gridSize,
@@ -37,15 +48,7 @@ const PropSprite = memo(function PropSprite({
   const [image, status] = useImage(data.imageUrl);
 
   // Calculate size multiplier based on size category (same as tokens)
-  const sizeMultipliers: Record<string, number> = {
-    tiny: 0.5,
-    small: 0.75,
-    medium: 1.0,
-    large: 1.5,
-    huge: 2.0,
-    gargantuan: 3.0,
-  };
-  const sizeMultiplier = sizeMultipliers[data.size ?? "medium"] ?? 1.0;
+  const sizeMultiplier = SIZE_MULTIPLIERS[data.size ?? "medium"] ?? 1.0;
 
   const size = gridSize * 0.75 * sizeMultiplier;
   const offset = size / 2;
