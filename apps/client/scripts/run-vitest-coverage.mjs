@@ -135,6 +135,8 @@ const runBatch = async (index, files) => {
       cwd: projectRoot,
       stdio: "inherit",
       env: process.env,
+      // pnpm resolves to pnpm.cmd on Windows, which spawn() can't exec without a shell
+      shell: process.platform === "win32",
     });
 
     child.on("error", reject);
