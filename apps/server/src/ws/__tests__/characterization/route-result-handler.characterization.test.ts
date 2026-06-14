@@ -33,6 +33,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  * Move this repeated logic into RouteResultHandler service following SRP.
  */
 describe("Route Result Handler - Current Behavior", () => {
+  /** Shape of a handler result: both flags are optional, mirroring the router pattern. */
+  type HandlerResult = { broadcast?: boolean; save?: boolean };
+
   let broadcastSpy: ReturnType<typeof vi.fn>;
   let saveSpy: ReturnType<typeof vi.fn>;
 
@@ -70,7 +73,7 @@ describe("Route Result Handler - Current Behavior", () => {
 
     it("should NOT call broadcast when result.broadcast is undefined", () => {
       // GIVEN: A result with undefined broadcast flag
-      const result = { save: false };
+      const result: HandlerResult = { save: false };
 
       // WHEN: Handling the result
       if (result.broadcast) broadcastSpy();
@@ -111,7 +114,7 @@ describe("Route Result Handler - Current Behavior", () => {
 
     it("should NOT call save when result.save is undefined", () => {
       // GIVEN: A result with undefined save flag
-      const result = { broadcast: false };
+      const result: HandlerResult = { broadcast: false };
 
       // WHEN: Handling the result
       if (result.broadcast) broadcastSpy();
@@ -175,7 +178,7 @@ describe("Route Result Handler - Current Behavior", () => {
 
     it("should not call anything when result is empty object", () => {
       // GIVEN: An empty result object
-      const result = {};
+      const result: HandlerResult = {};
 
       // WHEN: Handling the result
       if (result.broadcast) broadcastSpy();

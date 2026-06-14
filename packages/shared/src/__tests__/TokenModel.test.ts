@@ -140,5 +140,23 @@ describe("TokenModel", () => {
       expect(withImage.size).toBe("small");
       expect(withImage.imageUrl).toBe("https://example.com/img.png");
     });
+
+    it("updates size immutably", () => {
+      const token = new TokenModel(
+        "id-1",
+        "player-1",
+        10,
+        20,
+        "red",
+        "https://example.com/img.png",
+        "small",
+      );
+
+      const resized = token.setSize("huge");
+
+      expect(resized.size).toBe("huge");
+      expect(resized.imageUrl).toBe("https://example.com/img.png");
+      expect(token.size).toBe("small");
+    });
   });
 });

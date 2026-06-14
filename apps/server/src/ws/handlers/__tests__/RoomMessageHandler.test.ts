@@ -10,7 +10,7 @@
  * Target: apps/server/src/ws/handlers/RoomMessageHandler.ts
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi, type Mock } from "vitest";
 import { MessageRouter } from "../../messageRouter.js";
 import { RoomService } from "../../../domains/room/service.js";
 import { PlayerService } from "../../../domains/player/service.js";
@@ -133,7 +133,7 @@ describe("RoomMessageHandler - Characterization Tests", () => {
 
       // Verify success message was sent
       expect(mockDmWs.send).toHaveBeenCalledTimes(1);
-      const sentMessage = JSON.parse((mockDmWs.send as vi.Mock).mock.calls[0][0]);
+      const sentMessage = JSON.parse((mockDmWs.send as Mock).mock.calls[0][0]);
       expect(sentMessage.t).toBe("room-password-updated");
       expect(sentMessage.updatedAt).toBeTypeOf("number");
       expect(sentMessage.source).toBe("user");
@@ -156,7 +156,7 @@ describe("RoomMessageHandler - Characterization Tests", () => {
 
       // Verify failure message was sent
       expect(mockPlayerWs.send).toHaveBeenCalledTimes(1);
-      const sentMessage = JSON.parse((mockPlayerWs.send as vi.Mock).mock.calls[0][0]);
+      const sentMessage = JSON.parse((mockPlayerWs.send as Mock).mock.calls[0][0]);
       expect(sentMessage.t).toBe("room-password-update-failed");
       expect(sentMessage.reason).toBe("Only Dungeon Masters can update the room password.");
     });
@@ -171,7 +171,7 @@ describe("RoomMessageHandler - Characterization Tests", () => {
 
       // Verify failure message was sent
       expect(mockDmWs.send).toHaveBeenCalledTimes(1);
-      const sentMessage = JSON.parse((mockDmWs.send as vi.Mock).mock.calls[0][0]);
+      const sentMessage = JSON.parse((mockDmWs.send as Mock).mock.calls[0][0]);
       expect(sentMessage.t).toBe("room-password-update-failed");
       expect(sentMessage.reason).toBe("Password must be between 6 and 128 characters.");
     });
@@ -187,7 +187,7 @@ describe("RoomMessageHandler - Characterization Tests", () => {
 
       // Verify failure message was sent
       expect(mockDmWs.send).toHaveBeenCalledTimes(1);
-      const sentMessage = JSON.parse((mockDmWs.send as vi.Mock).mock.calls[0][0]);
+      const sentMessage = JSON.parse((mockDmWs.send as Mock).mock.calls[0][0]);
       expect(sentMessage.t).toBe("room-password-update-failed");
       expect(sentMessage.reason).toBe("Password must be between 6 and 128 characters.");
     });
@@ -205,7 +205,7 @@ describe("RoomMessageHandler - Characterization Tests", () => {
 
       // Verify success message was sent (default password bypasses length check)
       expect(mockDmWs.send).toHaveBeenCalledTimes(1);
-      const sentMessage = JSON.parse((mockDmWs.send as vi.Mock).mock.calls[0][0]);
+      const sentMessage = JSON.parse((mockDmWs.send as Mock).mock.calls[0][0]);
       expect(sentMessage.t).toBe("room-password-updated");
       expect(sentMessage.source).toBe("fallback"); // Default password has source "fallback"
       expect(sentMessage.updatedAt).toBeTypeOf("number");
@@ -229,7 +229,7 @@ describe("RoomMessageHandler - Characterization Tests", () => {
 
       // Verify success message was sent (trimmed password is valid)
       expect(mockDmWs.send).toHaveBeenCalledTimes(1);
-      const sentMessage = JSON.parse((mockDmWs.send as vi.Mock).mock.calls[0][0]);
+      const sentMessage = JSON.parse((mockDmWs.send as Mock).mock.calls[0][0]);
       expect(sentMessage.t).toBe("room-password-updated");
 
       consoleSpy.mockRestore();
@@ -245,7 +245,7 @@ describe("RoomMessageHandler - Characterization Tests", () => {
 
       // Verify failure message was sent
       expect(mockDmWs.send).toHaveBeenCalledTimes(1);
-      const sentMessage = JSON.parse((mockDmWs.send as vi.Mock).mock.calls[0][0]);
+      const sentMessage = JSON.parse((mockDmWs.send as Mock).mock.calls[0][0]);
       expect(sentMessage.t).toBe("room-password-update-failed");
       expect(sentMessage.reason).toBe("Password must be between 6 and 128 characters.");
     });
@@ -260,7 +260,7 @@ describe("RoomMessageHandler - Characterization Tests", () => {
 
       // Empty string (0 chars) should fail validation
       expect(mockDmWs.send).toHaveBeenCalledTimes(1);
-      const sentMessage = JSON.parse((mockDmWs.send as vi.Mock).mock.calls[0][0]);
+      const sentMessage = JSON.parse((mockDmWs.send as Mock).mock.calls[0][0]);
       expect(sentMessage.t).toBe("room-password-update-failed");
       expect(sentMessage.reason).toBe("Password must be between 6 and 128 characters.");
     });
@@ -275,7 +275,7 @@ describe("RoomMessageHandler - Characterization Tests", () => {
 
       // undefined -> trim() -> "" should fail validation
       expect(mockDmWs.send).toHaveBeenCalledTimes(1);
-      const sentMessage = JSON.parse((mockDmWs.send as vi.Mock).mock.calls[0][0]);
+      const sentMessage = JSON.parse((mockDmWs.send as Mock).mock.calls[0][0]);
       expect(sentMessage.t).toBe("room-password-update-failed");
       expect(sentMessage.reason).toBe("Password must be between 6 and 128 characters.");
     });
@@ -296,7 +296,7 @@ describe("RoomMessageHandler - Characterization Tests", () => {
 
       // Verify failure message was sent
       expect(mockDmWs.send).toHaveBeenCalledTimes(1);
-      const sentMessage = JSON.parse((mockDmWs.send as vi.Mock).mock.calls[0][0]);
+      const sentMessage = JSON.parse((mockDmWs.send as Mock).mock.calls[0][0]);
       expect(sentMessage.t).toBe("room-password-update-failed");
       expect(sentMessage.reason).toBe("Unable to update password. Check server logs.");
 
@@ -322,7 +322,7 @@ describe("RoomMessageHandler - Characterization Tests", () => {
 
       // Verify success message has timestamp
       expect(mockDmWs.send).toHaveBeenCalledTimes(1);
-      const sentMessage = JSON.parse((mockDmWs.send as vi.Mock).mock.calls[0][0]);
+      const sentMessage = JSON.parse((mockDmWs.send as Mock).mock.calls[0][0]);
       expect(sentMessage.t).toBe("room-password-updated");
       expect(sentMessage.updatedAt).toBeGreaterThanOrEqual(beforeTime);
       expect(sentMessage.updatedAt).toBeLessThanOrEqual(afterTime);
@@ -338,7 +338,7 @@ describe("RoomMessageHandler - Characterization Tests", () => {
 
       // Verify success message has source field
       expect(mockDmWs.send).toHaveBeenCalledTimes(1);
-      const sentMessage = JSON.parse((mockDmWs.send as vi.Mock).mock.calls[0][0]);
+      const sentMessage = JSON.parse((mockDmWs.send as Mock).mock.calls[0][0]);
       expect(sentMessage.t).toBe("room-password-updated");
       expect(sentMessage.source).toBe("user");
     });
@@ -361,7 +361,7 @@ describe("RoomMessageHandler - Characterization Tests", () => {
 
       // Verify failure message was sent (unknown user is treated as non-DM)
       expect(mockUnknownWs.send).toHaveBeenCalledTimes(1);
-      const sentMessage = JSON.parse((mockUnknownWs.send as vi.Mock).mock.calls[0][0]);
+      const sentMessage = JSON.parse((mockUnknownWs.send as Mock).mock.calls[0][0]);
       expect(sentMessage.t).toBe("room-password-update-failed");
       expect(sentMessage.reason).toBe("Only Dungeon Masters can update the room password.");
     });
@@ -377,7 +377,7 @@ describe("RoomMessageHandler - Characterization Tests", () => {
 
       // Verify success message was sent
       expect(mockDmWs.send).toHaveBeenCalledTimes(1);
-      const sentMessage = JSON.parse((mockDmWs.send as vi.Mock).mock.calls[0][0]);
+      const sentMessage = JSON.parse((mockDmWs.send as Mock).mock.calls[0][0]);
       expect(sentMessage.t).toBe("room-password-updated");
 
       consoleSpy.mockRestore();
@@ -395,15 +395,16 @@ describe("RoomMessageHandler - Characterization Tests", () => {
 
       // Verify success message was sent
       expect(mockDmWs.send).toHaveBeenCalledTimes(1);
-      const sentMessage = JSON.parse((mockDmWs.send as vi.Mock).mock.calls[0][0]);
+      const sentMessage = JSON.parse((mockDmWs.send as Mock).mock.calls[0][0]);
       expect(sentMessage.t).toBe("room-password-updated");
 
       consoleSpy.mockRestore();
     });
 
     it("should not send message when WebSocket is not in ready state", () => {
-      // Set WebSocket to closing state
-      mockDmWs.readyState = 2;
+      // Set WebSocket to closing state (readyState is read-only on the real type,
+      // but our mock is a plain object so a targeted cast is safe here)
+      (mockDmWs as { readyState: number }).readyState = 2;
 
       const passwordMessage: ClientMessage = {
         t: "set-room-password",
@@ -442,7 +443,7 @@ describe("RoomMessageHandler - Characterization Tests", () => {
 
       // Verify success message was sent
       expect(mockDmWs.send).toHaveBeenCalledTimes(1);
-      const sentMessage = JSON.parse((mockDmWs.send as vi.Mock).mock.calls[0][0]);
+      const sentMessage = JSON.parse((mockDmWs.send as Mock).mock.calls[0][0]);
       expect(sentMessage.t).toBe("room-password-updated");
 
       consoleSpy.mockRestore();
@@ -459,7 +460,7 @@ describe("RoomMessageHandler - Characterization Tests", () => {
 
       // Verify success message was sent
       expect(mockDmWs.send).toHaveBeenCalledTimes(1);
-      const sentMessage = JSON.parse((mockDmWs.send as vi.Mock).mock.calls[0][0]);
+      const sentMessage = JSON.parse((mockDmWs.send as Mock).mock.calls[0][0]);
       expect(sentMessage.t).toBe("room-password-updated");
 
       consoleSpy.mockRestore();
@@ -483,7 +484,7 @@ describe("RoomMessageHandler - Characterization Tests", () => {
 
       // Verify failure message was sent
       expect(mockDmWs.send).toHaveBeenCalledTimes(1);
-      const sentMessage = JSON.parse((mockDmWs.send as vi.Mock).mock.calls[0][0]);
+      const sentMessage = JSON.parse((mockDmWs.send as Mock).mock.calls[0][0]);
       expect(sentMessage.t).toBe("room-password-update-failed");
       expect(sentMessage.reason).toBe("Only Dungeon Masters can update the room password.");
     });
@@ -501,7 +502,7 @@ describe("RoomMessageHandler - Characterization Tests", () => {
 
       // Verify success message (default password bypasses length check after trim)
       expect(mockDmWs.send).toHaveBeenCalledTimes(1);
-      const sentMessage = JSON.parse((mockDmWs.send as vi.Mock).mock.calls[0][0]);
+      const sentMessage = JSON.parse((mockDmWs.send as Mock).mock.calls[0][0]);
       expect(sentMessage.t).toBe("room-password-updated");
       expect(sentMessage.source).toBe("fallback");
 

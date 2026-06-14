@@ -47,7 +47,7 @@ describe("DirectMessageService", () => {
         const mockWs = createMockWebSocket(1);
         uidToWs.set("player-1", mockWs);
 
-        const message: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
+        const message: ServerMessage = { t: "ack", commandId: "player-1" };
         service.sendControlMessage("player-1", message);
 
         expect(mockWs.send).toHaveBeenCalledTimes(1);
@@ -59,25 +59,27 @@ describe("DirectMessageService", () => {
         uidToWs.set("player-1", mockWs);
 
         const message: ServerMessage = {
-          t: "elevate-to-dm",
-          uid: "player-1",
+          t: "ack",
+          commandId: "player-1",
         };
         service.sendControlMessage("player-1", message);
 
         const sentData = (mockWs.send as ReturnType<typeof vi.fn>).mock.calls[0][0];
-        expect(sentData).toBe('{"t":"elevate-to-dm","uid":"player-1"}');
+        expect(sentData).toBe('{"t":"ack","commandId":"player-1"}');
       });
 
       it("should handle complex message structures", () => {
         const mockWs = createMockWebSocket(1);
         uidToWs.set("dm-1", mockWs);
 
-        const message = {
-          t: "state" as const,
-          state: {
-            players: [{ uid: "p1", name: "Alice" }],
-            tokens: [{ id: "t1", owner: "p1", x: 10, y: 20 }],
-          },
+        const message: ServerMessage = {
+          users: ["p1"],
+          players: [{ uid: "p1", name: "Alice" }],
+          tokens: [{ id: "t1", owner: "p1", x: 10, y: 20, color: "hsl(0, 70%, 50%)" }],
+          characters: [],
+          pointers: [],
+          gridSize: 50,
+          diceRolls: [],
         };
         service.sendControlMessage("dm-1", message);
 
@@ -89,11 +91,10 @@ describe("DirectMessageService", () => {
         const mockWs = createMockWebSocket(1);
         uidToWs.set("player-1", mockWs);
 
-        const message = {
-          t: "state" as const,
-          state: {
-            text: 'Special chars: "quotes", \\backslash, \n newline, \t tab',
-          },
+        const message: ServerMessage = {
+          t: "nack",
+          commandId: "special-chars",
+          reason: 'Special chars: "quotes", \\backslash, \n newline, \t tab',
         };
         service.sendControlMessage("player-1", message);
 
@@ -107,14 +108,14 @@ describe("DirectMessageService", () => {
         const mockWs = createMockWebSocket(1);
         uidToWs.set("player-1", mockWs);
 
-        const message: ServerMessage = { t: "elevate-to-dm", uid: "player-2" };
+        const message: ServerMessage = { t: "ack", commandId: "player-2" };
         service.sendControlMessage("player-2", message);
 
         expect(mockWs.send).not.toHaveBeenCalled();
       });
 
       it("should handle empty uidToWs map gracefully", () => {
-        const message: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
+        const message: ServerMessage = { t: "ack", commandId: "player-1" };
 
         expect(() => {
           service.sendControlMessage("player-1", message);
@@ -122,7 +123,7 @@ describe("DirectMessageService", () => {
       });
 
       it("should handle undefined UID lookup gracefully", () => {
-        const message: ServerMessage = { t: "elevate-to-dm", uid: "nonexistent" };
+        const message: ServerMessage = { t: "ack", commandId: "nonexistent" };
 
         expect(() => {
           service.sendControlMessage("nonexistent", message);
@@ -135,7 +136,7 @@ describe("DirectMessageService", () => {
         const mockWs = createMockWebSocket(0);
         uidToWs.set("player-1", mockWs);
 
-        const message: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
+        const message: ServerMessage = { t: "ack", commandId: "player-1" };
         service.sendControlMessage("player-1", message);
 
         expect(mockWs.send).not.toHaveBeenCalled();
@@ -145,7 +146,7 @@ describe("DirectMessageService", () => {
         const mockWs = createMockWebSocket(2);
         uidToWs.set("player-1", mockWs);
 
-        const message: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
+        const message: ServerMessage = { t: "ack", commandId: "player-1" };
         service.sendControlMessage("player-1", message);
 
         expect(mockWs.send).not.toHaveBeenCalled();
@@ -155,7 +156,7 @@ describe("DirectMessageService", () => {
         const mockWs = createMockWebSocket(3);
         uidToWs.set("player-1", mockWs);
 
-        const message: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
+        const message: ServerMessage = { t: "ack", commandId: "player-1" };
         service.sendControlMessage("player-1", message);
 
         expect(mockWs.send).not.toHaveBeenCalled();
@@ -173,7 +174,7 @@ describe("DirectMessageService", () => {
           const mockWs = createMockWebSocket(readyState);
           uidToWs.set(`player-${readyState}`, mockWs);
 
-          const message: ServerMessage = { t: "elevate-to-dm", uid: `player-${readyState}` };
+          const message: ServerMessage = { t: "ack", commandId: `player-${readyState}` };
           service.sendControlMessage(`player-${readyState}`, message);
 
           if (shouldSend) {
@@ -195,7 +196,7 @@ describe("DirectMessageService", () => {
         uidToWs.set("player-2", mockWs2);
         uidToWs.set("player-3", mockWs3);
 
-        const message: ServerMessage = { t: "elevate-to-dm", uid: "player-2" };
+        const message: ServerMessage = { t: "ack", commandId: "player-2" };
         service.sendControlMessage("player-2", message);
 
         expect(mockWs1.send).not.toHaveBeenCalled();
@@ -210,8 +211,8 @@ describe("DirectMessageService", () => {
         uidToWs.set("player-1", mockWs1);
         uidToWs.set("player-2", mockWs2);
 
-        const message1: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
-        const message2: ServerMessage = { t: "elevate-to-dm", uid: "player-2" };
+        const message1: ServerMessage = { t: "ack", commandId: "player-1" };
+        const message2: ServerMessage = { t: "ack", commandId: "player-2" };
 
         service.sendControlMessage("player-1", message1);
         service.sendControlMessage("player-2", message2);
@@ -231,7 +232,7 @@ describe("DirectMessageService", () => {
         uidToWs.set("open", mockWsOpen);
         uidToWs.set("closed", mockWsClosed);
 
-        const message: ServerMessage = { t: "elevate-to-dm", uid: "test" };
+        const message: ServerMessage = { t: "ack", commandId: "test" };
 
         service.sendControlMessage("connecting", message);
         service.sendControlMessage("open", message);
@@ -247,7 +248,7 @@ describe("DirectMessageService", () => {
       it("should handle null WebSocket in map", () => {
         uidToWs.set("player-1", null as unknown as WebSocket);
 
-        const message: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
+        const message: ServerMessage = { t: "ack", commandId: "player-1" };
 
         expect(() => {
           service.sendControlMessage("player-1", message);
@@ -257,7 +258,7 @@ describe("DirectMessageService", () => {
       it("should handle undefined WebSocket in map", () => {
         uidToWs.set("player-1", undefined as unknown as WebSocket);
 
-        const message: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
+        const message: ServerMessage = { t: "ack", commandId: "player-1" };
 
         expect(() => {
           service.sendControlMessage("player-1", message);
@@ -268,7 +269,7 @@ describe("DirectMessageService", () => {
         const mockWs = createMockWebSocket(1);
         uidToWs.set("", mockWs);
 
-        const message: ServerMessage = { t: "elevate-to-dm", uid: "" };
+        const message: ServerMessage = { t: "ack", commandId: "" };
         service.sendControlMessage("", message);
 
         expect(mockWs.send).toHaveBeenCalledTimes(1);
@@ -279,7 +280,7 @@ describe("DirectMessageService", () => {
         const specialUid = "player-!@#$%^&*()_+{}[]|\\:;\"'<>?,./";
         uidToWs.set(specialUid, mockWs);
 
-        const message: ServerMessage = { t: "elevate-to-dm", uid: specialUid };
+        const message: ServerMessage = { t: "ack", commandId: specialUid };
         service.sendControlMessage(specialUid, message);
 
         expect(mockWs.send).toHaveBeenCalledTimes(1);
@@ -290,7 +291,7 @@ describe("DirectMessageService", () => {
         const longUid = "a".repeat(1000);
         uidToWs.set(longUid, mockWs);
 
-        const message: ServerMessage = { t: "elevate-to-dm", uid: longUid };
+        const message: ServerMessage = { t: "ack", commandId: longUid };
         service.sendControlMessage(longUid, message);
 
         expect(mockWs.send).toHaveBeenCalledTimes(1);
@@ -302,9 +303,9 @@ describe("DirectMessageService", () => {
         const mockWs = createMockWebSocket(1);
         uidToWs.set("player-1", mockWs);
 
-        const message1: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
-        const message2: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
-        const message3: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
+        const message1: ServerMessage = { t: "ack", commandId: "player-1" };
+        const message2: ServerMessage = { t: "ack", commandId: "player-1" };
+        const message3: ServerMessage = { t: "ack", commandId: "player-1" };
 
         service.sendControlMessage("player-1", message1);
         service.sendControlMessage("player-1", message2);
@@ -317,8 +318,8 @@ describe("DirectMessageService", () => {
         const mockWs = createMockWebSocket(1);
         uidToWs.set("player-1", mockWs);
 
-        const message1: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
-        const message2: ServerMessage = { t: "elevate-to-dm", uid: "player-2" };
+        const message1: ServerMessage = { t: "ack", commandId: "player-1" };
+        const message2: ServerMessage = { t: "ack", commandId: "player-2" };
 
         service.sendControlMessage("player-1", message1);
         service.sendControlMessage("player-1", message2);
@@ -386,22 +387,22 @@ describe("DirectMessageService", () => {
       expect(service.isClientReady("player-1")).toBe(false);
 
       // Simulate connection opening
-      mockWs.readyState = 1;
+      (mockWs as unknown as { readyState: number }).readyState = 1;
       expect(service.isClientReady("player-1")).toBe(true);
 
       // Simulate connection closing
-      mockWs.readyState = 2;
+      (mockWs as unknown as { readyState: number }).readyState = 2;
       expect(service.isClientReady("player-1")).toBe(false);
 
       // Simulate connection closed
-      mockWs.readyState = 3;
+      (mockWs as unknown as { readyState: number }).readyState = 3;
       expect(service.isClientReady("player-1")).toBe(false);
     });
   });
 
   describe("Integration Scenarios", () => {
     it("should handle client map being modified after service creation", () => {
-      const message: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
+      const message: ServerMessage = { t: "ack", commandId: "player-1" };
 
       // Initially no client
       service.sendControlMessage("player-1", message);
@@ -419,7 +420,7 @@ describe("DirectMessageService", () => {
       const mockWs = createMockWebSocket(1);
       uidToWs.set("player-1", mockWs);
 
-      const message: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
+      const message: ServerMessage = { t: "ack", commandId: "player-1" };
 
       // Should send initially
       service.sendControlMessage("player-1", message);
@@ -439,7 +440,7 @@ describe("DirectMessageService", () => {
 
       uidToWs.set("player-1", mockWs1);
 
-      const message: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
+      const message: ServerMessage = { t: "ack", commandId: "player-1" };
 
       // Send to first WebSocket
       service.sendControlMessage("player-1", message);

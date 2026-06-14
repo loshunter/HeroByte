@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { MockInstance } from "vitest";
+import type { Mock, MockInstance } from "vitest";
 import type { ClientMessage } from "@shared";
 
 // Mock AuthenticationHandler
@@ -13,8 +13,8 @@ class MockAuthenticationHandler {
 describe("MessageAuthenticator - Characterization Tests", () => {
   let mockAuthHandler: MockAuthenticationHandler;
   let authenticatedUids: Set<string>;
-  let onAuthMessageCallback: MockInstance;
-  let onUnauthenticatedMessageCallback: MockInstance;
+  let onAuthMessageCallback: Mock<(uid: string, message: ClientMessage) => void>;
+  let onUnauthenticatedMessageCallback: Mock<(uid: string) => void>;
   let consoleWarnSpy: MockInstance;
   let _consoleLogSpy: MockInstance;
 
@@ -25,8 +25,8 @@ describe("MessageAuthenticator - Characterization Tests", () => {
     // Create fresh mocks for each test
     mockAuthHandler = new MockAuthenticationHandler();
     authenticatedUids = new Set<string>();
-    onAuthMessageCallback = vi.fn();
-    onUnauthenticatedMessageCallback = vi.fn();
+    onAuthMessageCallback = vi.fn<(uid: string, message: ClientMessage) => void>();
+    onUnauthenticatedMessageCallback = vi.fn<(uid: string) => void>();
 
     // Setup spies
     consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -865,7 +865,8 @@ describe("MessageAuthenticator - Characterization Tests", () => {
 
       // Check authentication for all other messages
       if (!authenticatedUids.has(uid)) {
-        consoleWarnSpy(`Unauthenticated message from ${uid}, dropping.`);
+        // console.warn is replaced by consoleWarnSpy via vi.spyOn, so this records on the spy
+        console.warn(`Unauthenticated message from ${uid}, dropping.`);
         onUnauthenticatedMessageCallback(uid);
         return true;
       }

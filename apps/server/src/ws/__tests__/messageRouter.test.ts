@@ -28,7 +28,7 @@ describe("MessageRouter", () => {
   let mockAuthService: AuthService;
   let mockWss: WebSocketServer;
   let mockUidToWs: Map<string, WebSocket>;
-  let mockGetAuthorizedClients: () => Set<WebSocket>;
+  let mockGetAuthorizedClients: Mock<() => Set<WebSocket>>;
   let mockState: RoomState;
 
   beforeEach(() => {
@@ -860,7 +860,7 @@ describe("MessageRouter", () => {
     });
 
     it("routes heartbeat message, updates timestamp, and sends ack without broadcast", () => {
-      mockRoomService.broadcast.mockClear();
+      (mockRoomService.broadcast as Mock).mockClear();
       const controlSpy = vi.spyOn(
         router as unknown as { sendControlMessage: (uid: string, message: unknown) => void },
         "sendControlMessage",
@@ -1314,7 +1314,7 @@ describe("MessageRouter", () => {
       routeAndFlush(msg, "player-1");
 
       expect(mockSocket.send).toHaveBeenCalledTimes(1);
-      const delta = JSON.parse(mockSocket.send.mock.calls[0][0]);
+      const delta = JSON.parse((mockSocket.send as Mock).mock.calls[0][0]);
       expect(delta.t).toBe("token-updated");
       expect(delta.token.x).toBe(10);
       expect(delta.token.y).toBe(20);
@@ -1343,7 +1343,7 @@ describe("MessageRouter", () => {
       routeAndFlush(msg, "player-1");
 
       expect(mockSocket.send).toHaveBeenCalledTimes(1);
-      const delta = JSON.parse(mockSocket.send.mock.calls[0][0]);
+      const delta = JSON.parse((mockSocket.send as Mock).mock.calls[0][0]);
       expect(delta.t).toBe("pointer-preview");
       expect(delta.pointer.id).toBe("pointer-123");
       expect(delta.pointer.x).toBe(5);
@@ -1378,7 +1378,7 @@ describe("MessageRouter", () => {
       routeAndFlush(msg, "player-1");
 
       expect(mockSocket.send).toHaveBeenCalledTimes(1);
-      const payload = JSON.parse(mockSocket.send.mock.calls[0][0]);
+      const payload = JSON.parse((mockSocket.send as Mock).mock.calls[0][0]);
       expect(payload.t).toBe("drag-preview");
       expect(payload.preview.uid).toBe("player-1");
       expect(payload.preview.objects).toHaveLength(1);

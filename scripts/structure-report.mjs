@@ -81,6 +81,10 @@ for (let i = 0; i < args.length; i += 1) {
 const repoRoot = process.cwd();
 const scanRoots = [path.join(repoRoot, "apps"), path.join(repoRoot, "packages")];
 
+function toRepoPath(filePath) {
+  return path.relative(repoRoot, filePath).split(path.sep).join("/");
+}
+
 async function walk(dir) {
   let entries;
   try {
@@ -110,7 +114,7 @@ async function walk(dir) {
 }
 
 function classify(filePath) {
-  const relPath = path.relative(repoRoot, filePath);
+  const relPath = toRepoPath(filePath);
 
   if (relPath.startsWith("apps/client/src")) {
     if (relPath.includes("/features/dm")) return "client:dm";
@@ -140,7 +144,7 @@ function classify(filePath) {
 async function measureFile(filePath) {
   const fileContent = await readFile(filePath, "utf8");
   const loc = fileContent.split("\n").length;
-  const relPath = path.relative(repoRoot, filePath);
+  const relPath = toRepoPath(filePath);
 
   const category = classify(filePath);
   const flagged = loc >= threshold;

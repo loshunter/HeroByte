@@ -11,6 +11,7 @@ describe("PlayerModel", () => {
     expect(fromJson).toBeInstanceOf(PlayerModel);
     expect(fromJson).not.toBe(basePlayer);
     expect(fromJson).toEqual(basePlayer);
+    expect(json.statusEffects).toBeUndefined();
   });
 
   it("tracks DM mode flag consistently", () => {
@@ -60,12 +61,27 @@ describe("PlayerModel", () => {
     expect(damaged.hp).toBe(0);
   });
 
+  it("consumes temporary HP before regular HP", () => {
+    const protectedPlayer = basePlayer.setTempHP(15);
+
+    const partlyAbsorbed = protectedPlayer.takeDamage(10);
+    expect(partlyAbsorbed.tempHp).toBe(5);
+    expect(partlyAbsorbed.hp).toBe(80);
+
+    const overflow = protectedPlayer.takeDamage(20);
+    expect(overflow.tempHp).toBeUndefined();
+    expect(overflow.hp).toBe(75);
+  });
+
   it("heals without exceeding max HP", () => {
     const wounded = basePlayer.takeDamage(30);
     const healed = wounded.heal(50);
 
     expect(healed.hp).toBe(100); // 50 + 50 = 100, clamped to maxHp
     expect(healed.maxHp).toBe(basePlayer.maxHp);
+
+    const noHpInfo = new PlayerModel("uid-2", "Mystery");
+    expect(noHpInfo.heal(5).hp).toBe(5);
   });
 
   it("reports alive status correctly", () => {
@@ -84,5 +100,23 @@ describe("PlayerModel", () => {
   it("detects speaking state using threshold", () => {
     expect(basePlayer.isSpeaking()).toBe(true);
     expect(basePlayer.isSpeaking(0.25)).toBe(false);
+    expect(new PlayerModel("uid-4", "Silent").isSpeaking()).toBe(false);
+  });
+
+  it("updates status effects immutably", () => {
+    const effects = ["poisoned", "blinded"];
+
+    const updated = basePlayer.setStatusEffects(effects);
+    effects.push("stunned");
+
+    expect(updated.statusEffects).toEqual(["poisoned", "blinded"]);
+    expect(basePlayer.statusEffects).toEqual([]);
+    expect(updated.toJSON().statusEffects).toEqual(["poisoned", "blinded"]);
+  });
+
+  it("clears non-positive temporary HP values", () => {
+    expect(basePlayer.setTempHP(8).tempHp).toBe(8);
+    expect(basePlayer.setTempHP(0).tempHp).toBeUndefined();
+    expect(basePlayer.setTempHP(-4).tempHp).toBeUndefined();
   });
 });

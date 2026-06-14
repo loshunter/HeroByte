@@ -9,6 +9,8 @@ vi.mock("../../../middleware/validation.js", () => ({
 import type { ClientMessage } from "@shared";
 import { validateMessage } from "../../../middleware/validation.js";
 
+const validateMessageSpy = vi.mocked(validateMessage);
+
 // Mock RateLimiter class
 class MockRateLimiter {
   public check = vi.fn<(clientId: string) => boolean>();
@@ -16,11 +18,12 @@ class MockRateLimiter {
 
 describe("MessagePipelineManager - Characterization Tests", () => {
   let mockRateLimiter: MockRateLimiter;
-  let validateMessageSpy: MockInstance;
   let consoleWarnSpy: MockInstance;
   let consoleErrorSpy: MockInstance;
-  let onValidMessageCallback: MockInstance;
-  let onInvalidMessageCallback: MockInstance;
+  let onValidMessageCallback: ReturnType<
+    typeof vi.fn<(message: ClientMessage, uid: string) => void>
+  >;
+  let onInvalidMessageCallback: ReturnType<typeof vi.fn<(uid: string, error?: string) => void>>;
 
   beforeEach(() => {
     // Clear all mocks between tests
@@ -32,7 +35,6 @@ describe("MessagePipelineManager - Characterization Tests", () => {
     onInvalidMessageCallback = vi.fn();
 
     // Setup spies
-    validateMessageSpy = vi.mocked(validateMessage);
     consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -603,7 +605,7 @@ describe("MessagePipelineManager - Characterization Tests", () => {
         // Message size limit check (1MB) to prevent DoS attacks
         const MAX_MESSAGE_SIZE = 1024 * 1024; // 1MB
         if (buf.length > MAX_MESSAGE_SIZE) {
-          consoleWarnSpy(
+          console.warn(
             `Message from ${uid} exceeds size limit: ${buf.length} bytes (max: ${MAX_MESSAGE_SIZE})`,
           );
           return false;
@@ -614,14 +616,14 @@ describe("MessagePipelineManager - Characterization Tests", () => {
 
         // Rate limiting
         if (!mockRateLimiter.check(uid)) {
-          consoleWarnSpy(`Rate limit exceeded for client ${uid}`);
+          console.warn(`Rate limit exceeded for client ${uid}`);
           return false;
         }
 
         // Input validation
         const validation = validateMessageSpy(rawMessage);
         if (!validation.valid) {
-          consoleWarnSpy(`Invalid message from ${uid}: ${validation.error}`);
+          console.warn(`Invalid message from ${uid}: ${validation.error}`);
           onInvalidMessageCallback?.(uid, validation.error);
           return false;
         }
@@ -633,11 +635,11 @@ describe("MessagePipelineManager - Characterization Tests", () => {
         onValidMessageCallback(message, uid);
         return true;
       } catch (err) {
-        consoleErrorSpy(`[ConnectionHandler] Failed to process message from ${uid}:`, err);
+        console.error(`[ConnectionHandler] Failed to process message from ${uid}:`, err);
         if (rawMessage !== undefined) {
-          consoleErrorSpy(`[ConnectionHandler] Message was:`, JSON.stringify(rawMessage));
+          console.error(`[ConnectionHandler] Message was:`, JSON.stringify(rawMessage));
         } else {
-          consoleErrorSpy(`[ConnectionHandler] Failed to parse message buffer`);
+          console.error(`[ConnectionHandler] Failed to parse message buffer`);
         }
         return false;
       }

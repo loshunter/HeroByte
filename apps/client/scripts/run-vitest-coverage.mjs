@@ -107,8 +107,10 @@ const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "client-coverage-"));
 
 console.log(`[coverage] Running ${concurrency} batch${concurrency === 1 ? "" : "es"} in parallel (override with CLIENT_COVERAGE_CONCURRENCY).`);
 
+const vitestCli = path.join(projectRoot, "node_modules", "vitest", "vitest.mjs");
+
 const baseCoverageArgs = [
-  "vitest",
+  vitestCli,
   "run",
   "--coverage.enabled",
   "true",
@@ -131,12 +133,10 @@ const runBatch = async (index, files) => {
   const args = [...baseCoverageArgs, "--coverage.reportsDirectory", outputDir, ...files];
 
   await new Promise((resolve, reject) => {
-    const child = spawn("pnpm", args, {
+    const child = spawn(process.execPath, args, {
       cwd: projectRoot,
       stdio: "inherit",
       env: process.env,
-      // pnpm resolves to pnpm.cmd on Windows, which spawn() can't exec without a shell
-      shell: process.platform === "win32",
     });
 
     child.on("error", reject);

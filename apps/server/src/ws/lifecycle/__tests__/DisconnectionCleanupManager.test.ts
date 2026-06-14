@@ -10,8 +10,8 @@ vi.mock("fs", () => ({
 import { DisconnectionCleanupManager } from "../DisconnectionCleanupManager.js";
 import type { RoomService } from "../../../domains/room/service.js";
 import type { SelectionService } from "../../../domains/selection/service.js";
+import { createEmptyRoomState, type RoomState } from "../../../domains/room/model.js";
 import type { WebSocket } from "ws";
-import type { RoomSnapshot } from "@shared";
 
 class FakeWebSocket {
   public readyState = 1;
@@ -29,7 +29,7 @@ describe("DisconnectionCleanupManager - Characterization Tests", () => {
   let authenticatedUids: Set<string>;
   let authenticatedSessions: Map<string, { roomId: string; authedAt: number }>;
   let getAuthenticatedClients: () => Set<WebSocket>;
-  let roomState: RoomSnapshot;
+  let roomState: RoomState;
   let broadcastSpy: MockInstance;
   let deselectSpy: MockInstance;
   let consoleLogSpy: MockInstance;
@@ -42,44 +42,30 @@ describe("DisconnectionCleanupManager - Characterization Tests", () => {
 
     // Initialize room state with test data
     roomState = {
-      gridSize: 50,
-      gridSquareSize: 5,
-      mapBackground: null,
+      ...createEmptyRoomState(),
       users: ["user1", "user2"],
       players: [
-        { uid: "user1", name: "Player 1", portrait: null, isDM: false },
-        { uid: "user2", name: "Player 2", portrait: null, isDM: false },
+        { uid: "user1", name: "Player 1", isDM: false },
+        { uid: "user2", name: "Player 2", isDM: false },
       ],
       tokens: [
         {
           id: "token1",
           owner: "user1",
-          name: "Token 1",
           x: 100,
           y: 100,
           color: "#ff0000",
-          size: 1,
+          size: "medium",
         },
         {
           id: "token2",
           owner: "user2",
-          name: "Token 2",
           x: 200,
           y: 200,
           color: "#00ff00",
-          size: 1,
+          size: "medium",
         },
       ],
-      characters: [],
-      drawings: [],
-      pointers: [],
-      rollHistory: [],
-      props: [],
-      selectionState: {},
-      initiativeOrder: null,
-      currentTurn: null,
-      combatActive: false,
-      playerStagingZone: null,
     };
 
     // Mock RoomService
@@ -243,7 +229,7 @@ describe("DisconnectionCleanupManager - Characterization Tests", () => {
       // Setup: WebSocket is closed (readyState = 3)
       const uid = "user1";
       const ws = new FakeWebSocket() as unknown as WebSocket;
-      ws.readyState = 3; // Closed
+      (ws as unknown as { readyState: number }).readyState = 3; // Closed
       uidToWs.set(uid, ws);
 
       // Execute: cleanupPlayer(uid, { closeWebSocket: true })

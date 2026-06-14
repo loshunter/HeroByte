@@ -29,6 +29,18 @@ describe("CharacterModel", () => {
     expect(fromJson.ownedByPlayerUID).toBe("uid-4");
     expect(fromJson.tokenImage).toBe("https://example.com/token.png");
     expect(fromJson.type).toBe("npc");
+
+    const withDefaults = CharacterModel.fromJSON({
+      id: "char-default",
+      name: "Default",
+      hp: 1,
+      maxHp: 2,
+    } as unknown as Parameters<typeof CharacterModel.fromJSON>[0]);
+
+    expect(withDefaults.type).toBe("pc");
+    expect(withDefaults.tokenId).toBeNull();
+    expect(withDefaults.ownedByPlayerUID).toBeNull();
+    expect(withDefaults.tokenImage).toBeNull();
   });
 
   it("updates HP with clamping", () => {
@@ -43,6 +55,18 @@ describe("CharacterModel", () => {
 
     const healed = damaged.heal(50);
     expect(healed.hp).toBe(60);
+  });
+
+  it("consumes temporary HP before character HP", () => {
+    const protectedCharacter = baseCharacter.setTempHP(12);
+
+    const partlyAbsorbed = protectedCharacter.takeDamage(7);
+    expect(partlyAbsorbed.tempHp).toBe(5);
+    expect(partlyAbsorbed.hp).toBe(42);
+
+    const overflow = protectedCharacter.takeDamage(20);
+    expect(overflow.tempHp).toBeUndefined();
+    expect(overflow.hp).toBe(34);
   });
 
   it("links token and claims ownership immutably", () => {
@@ -76,6 +100,65 @@ describe("CharacterModel", () => {
     expect(cleared.tokenImage).toBeNull();
   });
 
+  it("preserves existing metadata when update fields are omitted", () => {
+    const original = new CharacterModel(
+      "char-2",
+      "Borin",
+      20,
+      30,
+      "npc",
+      "portrait",
+      "token-1",
+      "player-1",
+      "token-image",
+      4,
+    );
+
+    const updated = original.update({});
+
+    expect(updated.name).toBe("Borin");
+    expect(updated.hp).toBe(20);
+    expect(updated.maxHp).toBe(30);
+    expect(updated.type).toBe("npc");
+    expect(updated.portrait).toBe("portrait");
+    expect(updated.tokenImage).toBe("token-image");
+    expect(updated.tempHp).toBe(4);
+  });
+
+  it("normalizes nullable and blank update fields", () => {
+    const withMetadata = new CharacterModel(
+      "char-3",
+      "Cora",
+      20,
+      30,
+      "pc",
+      "portrait",
+      null,
+      null,
+      "token-image",
+    );
+
+    const updated = withMetadata.update({
+      portrait: null,
+      tokenImage: "   ",
+      hp: 99,
+      maxHp: -1,
+      tempHp: 0,
+    });
+
+    expect(updated.portrait).toBeUndefined();
+    expect(updated.tokenImage).toBeNull();
+    expect(updated.hp).toBe(0);
+    expect(updated.maxHp).toBe(0);
+    expect(updated.tempHp).toBe(0);
+  });
+
+  it("trims non-empty token image values", () => {
+    const updated = baseCharacter.setTokenImage(" https://example.com/token.png ");
+
+    expect(updated.tokenImage).toBe("https://example.com/token.png");
+  });
+
   it("reports defeat state and HP percentage", () => {
     expect(baseCharacter.isDead()).toBe(false);
     expect(baseCharacter.getHPPercent()).toBeCloseTo(0.7, 5);
@@ -83,5 +166,14 @@ describe("CharacterModel", () => {
     const defeated = baseCharacter.takeDamage(100);
     expect(defeated.isDead()).toBe(true);
     expect(defeated.getHPPercent()).toBe(0);
+
+    const noMaxHp = new CharacterModel("char-zero", "Zero", 0, 0);
+    expect(noMaxHp.getHPPercent()).toBe(0);
+  });
+
+  it("clears non-positive temporary HP values", () => {
+    expect(baseCharacter.setTempHP(6).tempHp).toBe(6);
+    expect(baseCharacter.setTempHP(0).tempHp).toBeUndefined();
+    expect(baseCharacter.setTempHP(-3).tempHp).toBeUndefined();
   });
 });

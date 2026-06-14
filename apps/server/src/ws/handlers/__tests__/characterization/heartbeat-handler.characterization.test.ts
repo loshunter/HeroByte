@@ -15,7 +15,7 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { HeartbeatHandler } from "../../HeartbeatHandler.js";
-import type { RoomState } from "../../../../domains/room/model.js";
+import { createEmptyRoomState, type RoomState } from "../../../../domains/room/model.js";
 
 describe("HeartbeatHandler - Characterization Tests (Week 8)", () => {
   let heartbeatHandler: HeartbeatHandler;
@@ -30,23 +30,12 @@ describe("HeartbeatHandler - Characterization Tests (Week 8)", () => {
 
     // Minimal state with players
     state = {
+      ...createEmptyRoomState(),
       players: [
         { uid: "player-1", name: "Alice", isDM: false, lastHeartbeat: 1000 },
         { uid: "player-2", name: "Bob", isDM: false, lastHeartbeat: 2000 },
       ],
-      pointers: {},
-      tokens: [],
-      characters: [],
-      drawings: [],
-      props: [],
-      stagingZone: [],
-      selectionState: {},
-      mapBackground: null,
-      gridSize: 50,
-      gridSquareSize: 5,
-      rollHistory: [],
-      combatState: null,
-    } as RoomState;
+    };
   });
 
   afterEach(() => {

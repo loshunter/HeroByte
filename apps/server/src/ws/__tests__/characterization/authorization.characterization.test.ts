@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import type { Mock } from "vitest";
+import type { MockInstance } from "vitest";
 import { MessageRouter } from "../../messageRouter.js";
 import { RoomService } from "../../../domains/room/service.js";
 import { PlayerService } from "../../../domains/player/service.js";
@@ -45,7 +45,7 @@ describe("MessageRouter - Authorization Characterization", () => {
   let mockUidToWs: Map<string, WebSocket>;
   let mockGetAuthorizedClients: () => Set<WebSocket>;
   let mockState: RoomState;
-  let consoleWarnSpy: Mock;
+  let consoleWarnSpy: MockInstance<typeof console.warn>;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -54,6 +54,7 @@ describe("MessageRouter - Authorization Characterization", () => {
     // State with both DM and non-DM players for testing
     mockState = {
       users: [],
+      stateVersion: 0,
       players: [
         {
           uid: "dm-user",
@@ -193,7 +194,7 @@ describe("MessageRouter - Authorization Characterization", () => {
 
     mockWss = {} as WebSocketServer;
     mockUidToWs = new Map();
-    mockGetAuthorizedClients = vi.fn(() => new Set());
+    mockGetAuthorizedClients = vi.fn(() => new Set<WebSocket>());
 
     router = new MessageRouter(
       mockRoomService,
@@ -361,7 +362,7 @@ describe("MessageRouter - Authorization Characterization", () => {
           imageUrl: "chest.png",
           owner: "dm-user",
           size: "medium",
-          viewport: { x: 0, y: 0, width: 100, height: 100, zoom: 1 },
+          viewport: { x: 0, y: 0, scale: 1 },
         },
         handlerCheck: () => expect(mockPropService.createProp).toHaveBeenCalled(),
       },
@@ -408,14 +409,14 @@ describe("MessageRouter - Authorization Characterization", () => {
         // Handler should NOT be called - check by expecting it NOT to be called
         // We can't reuse handlerCheck since it expects to be called, so we verify the opposite
         const serviceCalls = [
-          mockCharacterService.createCharacter,
-          mockCharacterService.updateNPC,
-          mockCharacterService.deleteCharacter,
-          mockCharacterService.placeNPCToken,
-          mockPropService.createProp,
-          mockPropService.updateProp,
-          mockPropService.deleteProp,
-          mockTokenService.clearAllTokensExcept,
+          vi.mocked(mockCharacterService.createCharacter),
+          vi.mocked(mockCharacterService.updateNPC),
+          vi.mocked(mockCharacterService.deleteCharacter),
+          vi.mocked(mockCharacterService.placeNPCToken),
+          vi.mocked(mockPropService.createProp),
+          vi.mocked(mockPropService.updateProp),
+          vi.mocked(mockPropService.deleteProp),
+          vi.mocked(mockTokenService.clearAllTokensExcept),
         ];
         // At least one handler should NOT have been called (the one for this message)
         expect(serviceCalls.some((call) => call.mock.calls.length === 0)).toBe(true);

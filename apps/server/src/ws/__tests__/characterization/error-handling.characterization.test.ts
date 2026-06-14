@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import type { Mock } from "vitest";
+import type { MockInstance } from "vitest";
 import { MessageRouter } from "../../messageRouter.js";
 import { RoomService } from "../../../domains/room/service.js";
 import { PlayerService } from "../../../domains/player/service.js";
@@ -46,7 +46,7 @@ describe("MessageRouter - Error Handling Characterization", () => {
   let mockUidToWs: Map<string, WebSocket>;
   let mockGetAuthorizedClients: () => Set<WebSocket>;
   let mockState: RoomState;
-  let consoleErrorSpy: Mock;
+  let consoleErrorSpy: MockInstance<typeof console.error>;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -54,6 +54,7 @@ describe("MessageRouter - Error Handling Characterization", () => {
 
     mockState = {
       users: [],
+      stateVersion: 0,
       players: [
         {
           uid: "player-1",
@@ -181,7 +182,7 @@ describe("MessageRouter - Error Handling Characterization", () => {
 
     mockWss = {} as WebSocketServer;
     mockUidToWs = new Map();
-    mockGetAuthorizedClients = vi.fn(() => new Set());
+    mockGetAuthorizedClients = vi.fn(() => new Set<WebSocket>());
 
     router = new MessageRouter(
       mockRoomService,
@@ -261,14 +262,15 @@ describe("MessageRouter - Error Handling Characterization", () => {
         drawing: {
           id: "drawing-1",
           owner: "player-1",
-          strokes: [
-            { x: 10, y: 20, color: "#FF0000", size: 2 },
-            { x: 30, y: 40, color: "#00FF00", size: 3 },
+          type: "freehand",
+          points: [
+            { x: 10, y: 20 },
+            { x: 30, y: 40 },
           ],
-          locked: false,
-          position: { x: 0, y: 0 },
-          scale: { x: 1, y: 1 },
-          rotation: 0,
+          color: "#FF0000",
+          width: 2,
+          opacity: 1,
+          filled: false,
         },
       };
 
@@ -336,7 +338,18 @@ describe("MessageRouter - Error Handling Characterization", () => {
           expectedType: "portrait",
         },
         {
-          msg: { t: "dice-roll", roll: { formula: "1d20", result: 15 } },
+          msg: {
+            t: "dice-roll",
+            roll: {
+              id: "roll-1",
+              playerUid: "player-1",
+              playerName: "Alice",
+              formula: "1d20",
+              total: 15,
+              breakdown: [{ tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 }],
+              timestamp: Date.now(),
+            },
+          },
           mockSetup: () => {
             mockDiceService.addRoll = vi.fn(() => {
               throw new Error("Dice error");
@@ -369,7 +382,7 @@ describe("MessageRouter - Error Handling Characterization", () => {
     });
 
     it("should handle errors from unknown/invalid message types", () => {
-      const invalidMsg = { t: "invalid-message-type" } as ClientMessage;
+      const invalidMsg = { t: "invalid-message-type" } as unknown as ClientMessage;
 
       // Should log warning for unknown type (not an error)
       const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});

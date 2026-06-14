@@ -56,7 +56,7 @@ describe("DirectMessageService Characterization Tests", () => {
       const mockWs = createMockWebSocket(1); // OPEN state
       uidToWs.set("player-1", mockWs);
 
-      const message: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
+      const message: ServerMessage = { t: "ack", commandId: "player-1" };
       simulator.sendControlMessage("player-1", message);
 
       expect(mockWs.send).toHaveBeenCalledTimes(1);
@@ -68,25 +68,28 @@ describe("DirectMessageService Characterization Tests", () => {
       uidToWs.set("player-1", mockWs);
 
       const message: ServerMessage = {
-        t: "elevate-to-dm",
-        uid: "player-1",
+        t: "ack",
+        commandId: "player-1",
       };
       simulator.sendControlMessage("player-1", message);
 
       const sentData = (mockWs.send as ReturnType<typeof vi.fn>).mock.calls[0][0];
-      expect(sentData).toBe('{"t":"elevate-to-dm","uid":"player-1"}');
+      expect(sentData).toBe('{"t":"ack","commandId":"player-1"}');
     });
 
     it("should handle complex message structures", () => {
       const mockWs = createMockWebSocket(1);
       uidToWs.set("dm-1", mockWs);
 
-      const message = {
-        t: "state" as const,
-        state: {
-          players: [{ uid: "p1", name: "Alice" }],
-          tokens: [{ id: "t1", owner: "p1", x: 10, y: 20 }],
-        },
+      // RoomSnapshot is the untagged "full state" member of the ServerMessage union
+      const message: ServerMessage = {
+        users: ["p1"],
+        players: [{ uid: "p1", name: "Alice" }],
+        tokens: [{ id: "t1", owner: "p1", x: 10, y: 20, color: "hsl(0, 70%, 50%)" }],
+        characters: [],
+        pointers: [],
+        gridSize: 50,
+        diceRolls: [],
       };
       simulator.sendControlMessage("dm-1", message);
 
@@ -100,14 +103,14 @@ describe("DirectMessageService Characterization Tests", () => {
       const mockWs = createMockWebSocket(1);
       uidToWs.set("player-1", mockWs);
 
-      const message: ServerMessage = { t: "elevate-to-dm", uid: "player-2" };
+      const message: ServerMessage = { t: "ack", commandId: "player-2" };
       simulator.sendControlMessage("player-2", message); // Different UID
 
       expect(mockWs.send).not.toHaveBeenCalled();
     });
 
     it("should handle empty uidToWs map gracefully", () => {
-      const message: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
+      const message: ServerMessage = { t: "ack", commandId: "player-1" };
 
       // Should not throw error
       expect(() => {
@@ -121,7 +124,7 @@ describe("DirectMessageService Characterization Tests", () => {
       const mockWs = createMockWebSocket(0); // CONNECTING
       uidToWs.set("player-1", mockWs);
 
-      const message: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
+      const message: ServerMessage = { t: "ack", commandId: "player-1" };
       simulator.sendControlMessage("player-1", message);
 
       expect(mockWs.send).not.toHaveBeenCalled();
@@ -131,7 +134,7 @@ describe("DirectMessageService Characterization Tests", () => {
       const mockWs = createMockWebSocket(2); // CLOSING
       uidToWs.set("player-1", mockWs);
 
-      const message: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
+      const message: ServerMessage = { t: "ack", commandId: "player-1" };
       simulator.sendControlMessage("player-1", message);
 
       expect(mockWs.send).not.toHaveBeenCalled();
@@ -141,7 +144,7 @@ describe("DirectMessageService Characterization Tests", () => {
       const mockWs = createMockWebSocket(3); // CLOSED
       uidToWs.set("player-1", mockWs);
 
-      const message: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
+      const message: ServerMessage = { t: "ack", commandId: "player-1" };
       simulator.sendControlMessage("player-1", message);
 
       expect(mockWs.send).not.toHaveBeenCalled();
@@ -159,7 +162,7 @@ describe("DirectMessageService Characterization Tests", () => {
         const mockWs = createMockWebSocket(readyState);
         uidToWs.set(`player-${readyState}`, mockWs);
 
-        const message: ServerMessage = { t: "elevate-to-dm", uid: `player-${readyState}` };
+        const message: ServerMessage = { t: "ack", commandId: `player-${readyState}` };
         simulator.sendControlMessage(`player-${readyState}`, message);
 
         if (shouldSend) {
@@ -181,7 +184,7 @@ describe("DirectMessageService Characterization Tests", () => {
       uidToWs.set("player-2", mockWs2);
       uidToWs.set("player-3", mockWs3);
 
-      const message: ServerMessage = { t: "elevate-to-dm", uid: "player-2" };
+      const message: ServerMessage = { t: "ack", commandId: "player-2" };
       simulator.sendControlMessage("player-2", message);
 
       expect(mockWs1.send).not.toHaveBeenCalled();
@@ -196,8 +199,8 @@ describe("DirectMessageService Characterization Tests", () => {
       uidToWs.set("player-1", mockWs1);
       uidToWs.set("player-2", mockWs2);
 
-      const message1: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
-      const message2: ServerMessage = { t: "elevate-to-dm", uid: "player-2" };
+      const message1: ServerMessage = { t: "ack", commandId: "player-1" };
+      const message2: ServerMessage = { t: "ack", commandId: "player-2" };
 
       simulator.sendControlMessage("player-1", message1);
       simulator.sendControlMessage("player-2", message2);
@@ -213,7 +216,7 @@ describe("DirectMessageService Characterization Tests", () => {
     it("should handle null WebSocket in map", () => {
       uidToWs.set("player-1", null as unknown as WebSocket);
 
-      const message: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
+      const message: ServerMessage = { t: "ack", commandId: "player-1" };
 
       // Should not throw error
       expect(() => {
@@ -224,7 +227,7 @@ describe("DirectMessageService Characterization Tests", () => {
     it("should handle undefined WebSocket in map", () => {
       uidToWs.set("player-1", undefined as unknown as WebSocket);
 
-      const message: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
+      const message: ServerMessage = { t: "ack", commandId: "player-1" };
 
       // Should not throw error
       expect(() => {
@@ -236,7 +239,7 @@ describe("DirectMessageService Characterization Tests", () => {
       const mockWs = createMockWebSocket(1);
       uidToWs.set("", mockWs);
 
-      const message: ServerMessage = { t: "elevate-to-dm", uid: "" };
+      const message: ServerMessage = { t: "ack", commandId: "" };
       simulator.sendControlMessage("", message);
 
       expect(mockWs.send).toHaveBeenCalledTimes(1);
@@ -247,7 +250,7 @@ describe("DirectMessageService Characterization Tests", () => {
       const specialUid = "player-!@#$%^&*()_+{}[]|\\:;\"'<>?,./";
       uidToWs.set(specialUid, mockWs);
 
-      const message: ServerMessage = { t: "elevate-to-dm", uid: specialUid };
+      const message: ServerMessage = { t: "ack", commandId: specialUid };
       simulator.sendControlMessage(specialUid, message);
 
       expect(mockWs.send).toHaveBeenCalledTimes(1);
@@ -259,9 +262,9 @@ describe("DirectMessageService Characterization Tests", () => {
       const mockWs = createMockWebSocket(1);
       uidToWs.set("player-1", mockWs);
 
-      const message1: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
-      const message2: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
-      const message3: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
+      const message1: ServerMessage = { t: "ack", commandId: "player-1" };
+      const message2: ServerMessage = { t: "ack", commandId: "player-1" };
+      const message3: ServerMessage = { t: "ack", commandId: "player-1" };
 
       simulator.sendControlMessage("player-1", message1);
       simulator.sendControlMessage("player-1", message2);
@@ -274,8 +277,8 @@ describe("DirectMessageService Characterization Tests", () => {
       const mockWs = createMockWebSocket(1);
       uidToWs.set("player-1", mockWs);
 
-      const message1: ServerMessage = { t: "elevate-to-dm", uid: "player-1" };
-      const message2: ServerMessage = { t: "elevate-to-dm", uid: "player-2" };
+      const message1: ServerMessage = { t: "ack", commandId: "player-1" };
+      const message2: ServerMessage = { t: "ack", commandId: "player-2" };
 
       simulator.sendControlMessage("player-1", message1);
       simulator.sendControlMessage("player-1", message2);

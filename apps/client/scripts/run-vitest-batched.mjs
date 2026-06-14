@@ -100,8 +100,10 @@ const concurrency = Math.min(batches.length, requestedConcurrency);
 
 console.log(`[test] Running ${concurrency} batch${concurrency === 1 ? "" : "es"} in parallel (override with CLIENT_TEST_CONCURRENCY).`);
 
+const vitestCli = path.join(projectRoot, "node_modules", "vitest", "vitest.mjs");
+
 const baseTestArgs = [
-  "vitest",
+  vitestCli,
   "run",
   "--no-file-parallelism",
   "--reporter",
@@ -115,12 +117,10 @@ const runBatch = async (index, files) => {
   const args = [...baseTestArgs, ...files];
 
   await new Promise((resolve, reject) => {
-    const child = spawn("pnpm", args, {
+    const child = spawn(process.execPath, args, {
       cwd: projectRoot,
       stdio: "inherit",
       env: process.env,
-      // pnpm resolves to pnpm.cmd on Windows, which spawn() can't exec without a shell
-      shell: process.platform === "win32",
     });
 
     child.on("error", reject);

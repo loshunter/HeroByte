@@ -371,7 +371,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
 
     it("calls ws.ping() when readyState is OPEN (1)", () => {
       // Setup: open WebSocket
-      const ws = new FakeWebSocket() as unknown as WebSocket;
+      const ws = new FakeWebSocket();
       ws.readyState = 1; // OPEN
 
       // Execute: start keepalive and advance timer
@@ -391,7 +391,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
 
     it("does not call ws.ping() when readyState is not OPEN", () => {
       // Setup: closed WebSocket
-      const ws = new FakeWebSocket() as unknown as WebSocket;
+      const ws = new FakeWebSocket();
       ws.readyState = 3; // CLOSED
 
       // Execute: start keepalive and advance timer
@@ -411,7 +411,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
 
     it("calls ws.ping() multiple times at correct intervals", () => {
       // Setup: open WebSocket
-      const ws = new FakeWebSocket() as unknown as WebSocket;
+      const ws = new FakeWebSocket();
       ws.readyState = 1;
 
       // Execute: start keepalive and advance timer multiple times
@@ -433,7 +433,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
 
     it("stops calling ping after readyState changes to closed", () => {
       // Setup: initially open WebSocket
-      const ws = new FakeWebSocket() as unknown as WebSocket;
+      const ws = new FakeWebSocket();
       ws.readyState = 1;
 
       // Execute: start keepalive, ping once, close socket, advance timer
@@ -478,7 +478,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
 
     it("prevents ping after keepalive stopped", () => {
       // Setup: active keepalive with one ping
-      const ws = new FakeWebSocket() as unknown as WebSocket;
+      const ws = new FakeWebSocket();
       ws.readyState = 1;
 
       const keepalive = setInterval(() => {
@@ -638,10 +638,10 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
 
     it("handles complete disconnection cleanup", () => {
       // Setup: active connection with keepalive
-      const ws = new FakeWebSocket() as unknown as WebSocket;
+      const ws = new FakeWebSocket();
       const uid = "player1";
 
-      uidToWs.set(uid, ws);
+      uidToWs.set(uid, ws as unknown as WebSocket);
       ws.readyState = 1;
 
       const keepalive = setInterval(() => {
@@ -742,7 +742,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
 
     it("handles keepalive with readyState transitions", () => {
       // Setup: WebSocket that transitions between states
-      const ws = new FakeWebSocket() as unknown as WebSocket;
+      const ws = new FakeWebSocket();
       ws.readyState = 1; // Start OPEN
 
       const keepalive = setInterval(() => {

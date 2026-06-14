@@ -431,6 +431,7 @@ export class CharacterModel {
   setHP(hp: number, maxHp: number = this.maxHp, tempHp?: number): CharacterModel {
     const normalizedMaxHp = Math.max(0, maxHp);
     const normalizedHp = Math.min(normalizedMaxHp, Math.max(0, hp));
+    const nextTempHp = arguments.length >= 3 ? tempHp : this.tempHp;
 
     return new CharacterModel(
       this.id,
@@ -442,7 +443,7 @@ export class CharacterModel {
       this.tokenId,
       this.ownedByPlayerUID,
       this.tokenImage,
-      tempHp ?? this.tempHp,
+      nextTempHp,
     );
   }
 

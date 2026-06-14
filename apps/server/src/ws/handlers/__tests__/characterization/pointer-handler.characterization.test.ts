@@ -16,7 +16,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { PointerHandler } from "../../PointerHandler.js";
 import { MapService } from "../../../../domains/map/service.js";
-import type { RoomState } from "../../../../domains/room/model.js";
+import { createEmptyRoomState, type RoomState } from "../../../../domains/room/model.js";
 
 describe("PointerHandler - Characterization Tests (Week 8)", () => {
   let pointerHandler: PointerHandler;
@@ -29,23 +29,12 @@ describe("PointerHandler - Characterization Tests (Week 8)", () => {
 
     // Minimal state with players
     state = {
+      ...createEmptyRoomState(),
       players: [
         { uid: "player-1", name: "Alice", isDM: false, lastHeartbeat: Date.now() },
         { uid: "player-2", name: "Bob", isDM: false, lastHeartbeat: Date.now() },
       ],
-      pointers: [], // Array, not object
-      tokens: [],
-      characters: [],
-      drawings: [],
-      props: [],
-      stagingZone: [],
-      selectionState: {},
-      mapBackground: null,
-      gridSize: 50,
-      gridSquareSize: 5,
-      rollHistory: [],
-      combatState: null,
-    } as RoomState;
+    };
   });
 
   describe("Week 8 Refactored Behavior - Returns Result Object", () => {

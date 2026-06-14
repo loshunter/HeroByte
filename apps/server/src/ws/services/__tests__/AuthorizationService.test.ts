@@ -11,6 +11,7 @@ describe("AuthorizationService", () => {
 
     mockState = {
       users: [],
+      stateVersion: 0,
       players: [
         {
           uid: "dm-user",

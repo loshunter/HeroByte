@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { MessageRoutingContext, RoutingContext } from "../MessageRoutingContext.js";
-import type { RoomState } from "../../../domains/room/model.js";
+import { createEmptyRoomState, type RoomState } from "../../../domains/room/model.js";
 import type { RoomService } from "../../../domains/room/service.js";
 import type { AuthorizationService } from "../AuthorizationService.js";
 
@@ -12,23 +12,11 @@ describe("MessageRoutingContext", () => {
 
   beforeEach(() => {
     mockState = {
+      ...createEmptyRoomState(),
       players: [
-        { uid: "dm-uid", name: "DM Player", isDM: true, color: "#ff0000", micLevel: 0.5 },
-        { uid: "player-uid", name: "Regular Player", isDM: false, color: "#00ff00", micLevel: 0.3 },
+        { uid: "dm-uid", name: "DM Player", isDM: true, micLevel: 0.5 },
+        { uid: "player-uid", name: "Regular Player", isDM: false, micLevel: 0.3 },
       ],
-      characters: [],
-      tokens: [],
-      maps: [],
-      currentMapId: null,
-      dice: { history: [] },
-      drawings: [],
-      playerDrawings: {},
-      selections: {},
-      pointers: [],
-      gridSize: 50,
-      gridSquareSize: 5,
-      initiative: { order: [], currentTurn: null, round: 0, isActive: false },
-      props: [],
     };
 
     mockRoomService = {
@@ -122,7 +110,7 @@ describe("MessageRoutingContext", () => {
           ...mockState,
           players: [
             ...mockState.players,
-            { uid: "new-player", name: "New", isDM: false, color: "#0000ff", micLevel: 0.7 },
+            { uid: "new-player", name: "New", isDM: false, micLevel: 0.7 },
           ],
         };
         vi.mocked(mockRoomService.getState).mockReturnValue(newState);
@@ -331,8 +319,10 @@ describe("MessageRoutingContext", () => {
         expect(state).toBe(mockState);
 
         // But context doesn't provide any methods to modify it
-        expect(typeof (context as Record<string, unknown>).setState).toBe("undefined");
-        expect(typeof (context as Record<string, unknown>).modifyState).toBe("undefined");
+        expect(typeof (context as unknown as Record<string, unknown>).setState).toBe("undefined");
+        expect(typeof (context as unknown as Record<string, unknown>).modifyState).toBe(
+          "undefined",
+        );
       });
 
       it("should not allow changing sender UID", () => {
@@ -341,7 +331,9 @@ describe("MessageRoutingContext", () => {
         expect(context.getSenderUid()).toBe("original-uid");
 
         // Context doesn't provide any methods to modify sender UID
-        expect(typeof (context as Record<string, unknown>).setSenderUid).toBe("undefined");
+        expect(typeof (context as unknown as Record<string, unknown>).setSenderUid).toBe(
+          "undefined",
+        );
 
         expect(context.getSenderUid()).toBe("original-uid");
       });

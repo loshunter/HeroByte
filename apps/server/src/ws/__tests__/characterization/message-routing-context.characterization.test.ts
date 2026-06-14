@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
+import type { Player } from "@shared";
 import type { RoomState } from "../../../domains/room/model.js";
+import { createEmptyRoomState } from "../../../domains/room/model.js";
 
 /**
  * CHARACTERIZATION TESTS: MessageRoutingContext Service
@@ -38,6 +40,14 @@ import type { RoomState } from "../../../domains/room/model.js";
  *   const isDM = context.isDM();
  */
 
+/** Build a valid RoomState fixture with optional overrides */
+function makeRoomState(players: Player[] = []): RoomState {
+  return {
+    ...createEmptyRoomState(),
+    players,
+  };
+}
+
 describe("MessageRoutingContext - Characterization Tests", () => {
   describe("State Retrieval", () => {
     it("should retrieve room state once and cache it", () => {
@@ -45,31 +55,15 @@ describe("MessageRoutingContext - Characterization Tests", () => {
       // messageRouter.ts:172 gets state once at start of route()
       // This state should be cached for the entire message routing lifecycle
 
-      const mockState: RoomState = {
-        players: [
-          { uid: "dm-uid", name: "DM Player", isDM: true, color: "#ff0000", micLevel: 0.5 },
-          {
-            uid: "player-uid",
-            name: "Regular Player",
-            isDM: false,
-            color: "#00ff00",
-            micLevel: 0.3,
-          },
-        ],
-        characters: [],
-        tokens: [],
-        maps: [],
-        currentMapId: null,
-        dice: { history: [] },
-        drawings: [],
-        playerDrawings: {},
-        selections: {},
-        pointers: [],
-        gridSize: 50,
-        gridSquareSize: 5,
-        initiative: { order: [], currentTurn: null, round: 0, isActive: false },
-        props: [],
-      };
+      const mockState: RoomState = makeRoomState([
+        { uid: "dm-uid", name: "DM Player", isDM: true, micLevel: 0.5 },
+        {
+          uid: "player-uid",
+          name: "Regular Player",
+          isDM: false,
+          micLevel: 0.3,
+        },
+      ]);
 
       const roomService = {
         getState: vi.fn(() => mockState),
@@ -108,32 +102,19 @@ describe("MessageRoutingContext - Characterization Tests", () => {
 
       let stateVersion = 1;
       const roomService = {
-        getState: vi.fn(() => ({
-          players: [],
-          characters: [],
-          tokens: [],
-          maps: [],
-          currentMapId: null,
-          dice: { history: [] },
-          drawings: [],
-          playerDrawings: {},
-          selections: {},
-          pointers: [],
-          gridSize: 50,
-          gridSquareSize: 5,
-          initiative: { order: [], currentTurn: null, round: 0, isActive: false },
-          props: [],
+        getState: vi.fn((): RoomState & { version: number } => ({
+          ...makeRoomState(),
           // Track which version of state this is
           version: stateVersion++,
         })),
       };
 
       // Get state at start of routing
-      const state1 = roomService.getState() as RoomState & { version: number };
+      const state1 = roomService.getState();
       const version1 = state1.version;
 
       // Even if state changes in roomService, our cached state should be the same
-      const state2 = roomService.getState() as RoomState & { version: number }; // This would get a new version
+      const state2 = roomService.getState(); // This would get a new version
       const version2 = state2.version;
 
       // With context caching, we should reuse state1, not get state2
@@ -146,25 +127,10 @@ describe("MessageRoutingContext - Characterization Tests", () => {
   describe("DM Authorization Check", () => {
     it("should check DM status using cached state", () => {
       // CURRENT BEHAVIOR: messageRouter.ts:162-165
-      const mockState: RoomState = {
-        players: [
-          { uid: "dm-1", name: "DM", isDM: true, color: "#ff0000", micLevel: 0.5 },
-          { uid: "player-1", name: "Player", isDM: false, color: "#00ff00", micLevel: 0.3 },
-        ],
-        characters: [],
-        tokens: [],
-        maps: [],
-        currentMapId: null,
-        dice: { history: [] },
-        drawings: [],
-        playerDrawings: {},
-        selections: {},
-        pointers: [],
-        gridSize: 50,
-        gridSquareSize: 5,
-        initiative: { order: [], currentTurn: null, round: 0, isActive: false },
-        props: [],
-      };
+      const mockState: RoomState = makeRoomState([
+        { uid: "dm-1", name: "DM", isDM: true, micLevel: 0.5 },
+        { uid: "player-1", name: "Player", isDM: false, micLevel: 0.3 },
+      ]);
 
       const authorizationService = {
         isDM: vi.fn((state: RoomState, uid: string) => {
@@ -192,24 +158,9 @@ describe("MessageRoutingContext - Characterization Tests", () => {
       // isDM() is called multiple times for the same sender during routing
       // We can optimize by caching the result
 
-      const mockState: RoomState = {
-        players: [
-          { uid: "sender-uid", name: "Sender", isDM: true, color: "#ff0000", micLevel: 0.5 },
-        ],
-        characters: [],
-        tokens: [],
-        maps: [],
-        currentMapId: null,
-        dice: { history: [] },
-        drawings: [],
-        playerDrawings: {},
-        selections: {},
-        pointers: [],
-        gridSize: 50,
-        gridSquareSize: 5,
-        initiative: { order: [], currentTurn: null, round: 0, isActive: false },
-        props: [],
-      };
+      const mockState: RoomState = makeRoomState([
+        { uid: "sender-uid", name: "Sender", isDM: true, micLevel: 0.5 },
+      ]);
 
       const authorizationService = {
         isDM: vi.fn((state: RoomState, uid: string) => {
@@ -247,24 +198,9 @@ describe("MessageRoutingContext - Characterization Tests", () => {
       // - state (from roomService.getState())
 
       const senderUid = "test-sender";
-      const mockState: RoomState = {
-        players: [
-          { uid: "test-sender", name: "Test", isDM: false, color: "#ff0000", micLevel: 0.5 },
-        ],
-        characters: [],
-        tokens: [],
-        maps: [],
-        currentMapId: null,
-        dice: { history: [] },
-        drawings: [],
-        playerDrawings: {},
-        selections: {},
-        pointers: [],
-        gridSize: 50,
-        gridSquareSize: 5,
-        initiative: { order: [], currentTurn: null, round: 0, isActive: false },
-        props: [],
-      };
+      const mockState: RoomState = makeRoomState([
+        { uid: "test-sender", name: "Test", isDM: false, micLevel: 0.5 },
+      ]);
 
       // Context should encapsulate both pieces of information
       const context = {
@@ -281,39 +217,13 @@ describe("MessageRoutingContext - Characterization Tests", () => {
       // Each route() call creates a new routing context
       // State is fetched fresh for each message
 
-      const mockState1: RoomState = {
-        players: [{ uid: "uid1", name: "P1", isDM: false, color: "#ff0000", micLevel: 0.5 }],
-        characters: [],
-        tokens: [],
-        maps: [],
-        currentMapId: null,
-        dice: { history: [] },
-        drawings: [],
-        playerDrawings: {},
-        selections: {},
-        pointers: [],
-        gridSize: 50,
-        gridSquareSize: 5,
-        initiative: { order: [], currentTurn: null, round: 0, isActive: false },
-        props: [],
-      };
+      const mockState1: RoomState = makeRoomState([
+        { uid: "uid1", name: "P1", isDM: false, micLevel: 0.5 },
+      ]);
 
-      const mockState2: RoomState = {
-        players: [{ uid: "uid2", name: "P2", isDM: true, color: "#00ff00", micLevel: 0.3 }],
-        characters: [],
-        tokens: [],
-        maps: [],
-        currentMapId: null,
-        dice: { history: [] },
-        drawings: [],
-        playerDrawings: {},
-        selections: {},
-        pointers: [],
-        gridSize: 50,
-        gridSquareSize: 5,
-        initiative: { order: [], currentTurn: null, round: 0, isActive: false },
-        props: [],
-      };
+      const mockState2: RoomState = makeRoomState([
+        { uid: "uid2", name: "P2", isDM: true, micLevel: 0.3 },
+      ]);
 
       let stateIndex = 0;
       const states = [mockState1, mockState2];
@@ -340,22 +250,9 @@ describe("MessageRoutingContext - Characterization Tests", () => {
       // The routing context only reads state, never modifies it
       // State modifications happen through domain services
 
-      const mockState: RoomState = {
-        players: [{ uid: "uid1", name: "P1", isDM: false, color: "#ff0000", micLevel: 0.5 }],
-        characters: [],
-        tokens: [],
-        maps: [],
-        currentMapId: null,
-        dice: { history: [] },
-        drawings: [],
-        playerDrawings: {},
-        selections: {},
-        pointers: [],
-        gridSize: 50,
-        gridSquareSize: 5,
-        initiative: { order: [], currentTurn: null, round: 0, isActive: false },
-        props: [],
-      };
+      const mockState: RoomState = makeRoomState([
+        { uid: "uid1", name: "P1", isDM: false, micLevel: 0.5 },
+      ]);
 
       // Create a snapshot of the original state
       const originalPlayersLength = mockState.players.length;
@@ -382,22 +279,7 @@ describe("MessageRoutingContext - Characterization Tests", () => {
       // Context provides state for reading, not writing
       // This is enforced by TypeScript types in the actual implementation
 
-      const mockState: RoomState = {
-        players: [],
-        characters: [],
-        tokens: [],
-        maps: [],
-        currentMapId: null,
-        dice: { history: [] },
-        drawings: [],
-        playerDrawings: {},
-        selections: {},
-        pointers: [],
-        gridSize: 50,
-        gridSquareSize: 5,
-        initiative: { order: [], currentTurn: null, round: 0, isActive: false },
-        props: [],
-      };
+      const mockState: RoomState = makeRoomState();
 
       // Context should only allow reading state
       const context = {
@@ -414,25 +296,10 @@ describe("MessageRoutingContext - Characterization Tests", () => {
       // CURRENT BEHAVIOR: messageRouter.ts:163-164
       // isDM delegates to authorizationService.isDM(state, senderUid)
 
-      const mockState: RoomState = {
-        players: [
-          { uid: "dm-uid", name: "DM", isDM: true, color: "#ff0000", micLevel: 0.5 },
-          { uid: "player-uid", name: "Player", isDM: false, color: "#00ff00", micLevel: 0.3 },
-        ],
-        characters: [],
-        tokens: [],
-        maps: [],
-        currentMapId: null,
-        dice: { history: [] },
-        drawings: [],
-        playerDrawings: {},
-        selections: {},
-        pointers: [],
-        gridSize: 50,
-        gridSquareSize: 5,
-        initiative: { order: [], currentTurn: null, round: 0, isActive: false },
-        props: [],
-      };
+      const mockState: RoomState = makeRoomState([
+        { uid: "dm-uid", name: "DM", isDM: true, micLevel: 0.5 },
+        { uid: "player-uid", name: "Player", isDM: false, micLevel: 0.3 },
+      ]);
 
       const authorizationService = {
         isDM: vi.fn((state: RoomState, uid: string) => {
@@ -460,26 +327,11 @@ describe("MessageRoutingContext - Characterization Tests", () => {
       // All DM checks go through AuthorizationService
       // Context should maintain this pattern
 
-      const mockState: RoomState = {
-        players: [
-          { uid: "user-1", name: "U1", isDM: true, color: "#ff0000", micLevel: 0.5 },
-          { uid: "user-2", name: "U2", isDM: false, color: "#00ff00", micLevel: 0.3 },
-          { uid: "user-3", name: "U3", isDM: false, color: "#0000ff", micLevel: 0.7 },
-        ],
-        characters: [],
-        tokens: [],
-        maps: [],
-        currentMapId: null,
-        dice: { history: [] },
-        drawings: [],
-        playerDrawings: {},
-        selections: {},
-        pointers: [],
-        gridSize: 50,
-        gridSquareSize: 5,
-        initiative: { order: [], currentTurn: null, round: 0, isActive: false },
-        props: [],
-      };
+      const mockState: RoomState = makeRoomState([
+        { uid: "user-1", name: "U1", isDM: true, micLevel: 0.5 },
+        { uid: "user-2", name: "U2", isDM: false, micLevel: 0.3 },
+        { uid: "user-3", name: "U3", isDM: false, micLevel: 0.7 },
+      ]);
 
       const authorizationService = {
         isDM: vi.fn((state: RoomState, uid: string) => {
@@ -505,24 +357,9 @@ describe("MessageRoutingContext - Characterization Tests", () => {
 
       let getStateCallCount = 0;
       const roomService = {
-        getState: vi.fn(() => {
+        getState: vi.fn((): RoomState => {
           getStateCallCount++;
-          return {
-            players: [{ uid: "uid1", name: "P1", isDM: true, color: "#ff0000", micLevel: 0.5 }],
-            characters: [],
-            tokens: [],
-            maps: [],
-            currentMapId: null,
-            dice: { history: [] },
-            drawings: [],
-            playerDrawings: {},
-            selections: {},
-            pointers: [],
-            gridSize: 50,
-            gridSquareSize: 5,
-            initiative: { order: [], currentTurn: null, round: 0, isActive: false },
-            props: [],
-          };
+          return makeRoomState([{ uid: "uid1", name: "P1", isDM: true, micLevel: 0.5 }]);
         }),
       };
 
@@ -564,22 +401,9 @@ describe("MessageRoutingContext - Characterization Tests", () => {
       // Once we check if sender isDM, we can cache that result
       // for the duration of the message routing
 
-      const mockState: RoomState = {
-        players: [{ uid: "sender", name: "S", isDM: true, color: "#ff0000", micLevel: 0.5 }],
-        characters: [],
-        tokens: [],
-        maps: [],
-        currentMapId: null,
-        dice: { history: [] },
-        drawings: [],
-        playerDrawings: {},
-        selections: {},
-        pointers: [],
-        gridSize: 50,
-        gridSquareSize: 5,
-        initiative: { order: [], currentTurn: null, round: 0, isActive: false },
-        props: [],
-      };
+      const mockState: RoomState = makeRoomState([
+        { uid: "sender", name: "S", isDM: true, micLevel: 0.5 },
+      ]);
 
       const authorizationService = {
         isDM: vi.fn((state: RoomState, uid: string) => {

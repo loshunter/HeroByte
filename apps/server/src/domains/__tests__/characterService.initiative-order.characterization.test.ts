@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CharacterService } from "../character/service.js";
 import { createEmptyRoomState } from "../room/model.js";
-import type { Character } from "@herobyte/shared";
+import type { Character } from "@shared";
 
 /**
  * CHARACTERIZATION TESTS for Initiative Order Tiebreaker Logic

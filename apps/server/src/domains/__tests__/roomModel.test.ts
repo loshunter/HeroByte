@@ -232,11 +232,15 @@ describe("Room Model - toSnapshot", () => {
       const playerSnapshot = toSnapshot(state, false);
       const dmSnapshot = toSnapshot(state, true);
 
-      expect(playerSnapshot.sceneObjects.some((obj) => obj.id === visibleTokenSceneId)).toBe(true);
-      expect(playerSnapshot.sceneObjects.some((obj) => obj.id === hiddenTokenSceneId)).toBe(false);
+      // RoomSnapshot.sceneObjects is optional in @shared, but toSnapshot always populates it
+      expect(playerSnapshot.sceneObjects).toBeDefined();
+      expect(dmSnapshot.sceneObjects).toBeDefined();
 
-      expect(dmSnapshot.sceneObjects.some((obj) => obj.id === visibleTokenSceneId)).toBe(true);
-      expect(dmSnapshot.sceneObjects.some((obj) => obj.id === hiddenTokenSceneId)).toBe(true);
+      expect(playerSnapshot.sceneObjects!.some((obj) => obj.id === visibleTokenSceneId)).toBe(true);
+      expect(playerSnapshot.sceneObjects!.some((obj) => obj.id === hiddenTokenSceneId)).toBe(false);
+
+      expect(dmSnapshot.sceneObjects!.some((obj) => obj.id === visibleTokenSceneId)).toBe(true);
+      expect(dmSnapshot.sceneObjects!.some((obj) => obj.id === hiddenTokenSceneId)).toBe(true);
     });
   });
 });

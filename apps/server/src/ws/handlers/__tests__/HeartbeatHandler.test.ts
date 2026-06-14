@@ -200,7 +200,7 @@ describe("HeartbeatHandler - Characterization Tests", () => {
 
         const state = roomService.getState();
         const player = state.players.find((p) => p.uid === playerUid);
-        timestamps.push(player!.lastHeartbeat);
+        timestamps.push(player!.lastHeartbeat!);
       }
 
       vi.useRealTimers();
@@ -279,8 +279,8 @@ describe("HeartbeatHandler - Characterization Tests", () => {
       const stateBefore = roomService.getState();
       const playerBefore = stateBefore.players.find((p) => p.uid === playerUid)!;
 
-      // Capture initial heartbeat value
-      const initialHeartbeat = playerBefore.lastHeartbeat;
+      // Capture initial heartbeat value (always set by the fixture in beforeEach)
+      const initialHeartbeat = playerBefore.lastHeartbeat!;
 
       // Advance time to ensure timestamp will be different
       vi.advanceTimersByTime(100);
@@ -357,7 +357,7 @@ describe("HeartbeatHandler - Characterization Tests", () => {
 
         const state = roomService.getState();
         const player = state.players.find((p) => p.uid === playerUid);
-        timestamps.push(player!.lastHeartbeat);
+        timestamps.push(player!.lastHeartbeat!);
       }
 
       vi.useRealTimers();

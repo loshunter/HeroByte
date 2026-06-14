@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { RedisRoomStore } from "../RedisRoomStore.js";
+import { RedisRoomStore, type RedisRoomStoreOptions } from "../RedisRoomStore.js";
 import { createEmptyRoomState } from "../../model.js";
 import type { RoomState } from "../../model.js";
 
 const createMockClient = () => {
   const client = {
-    hget: vi.fn<Promise<string | null>, [string, string]>(),
-    hset: vi.fn<Promise<number>, [string, string, string]>(),
-    hdel: vi.fn<Promise<number>, [string, ...string[]]>(),
-    hkeys: vi.fn<Promise<string[]>, [string]>(),
+    hget: vi.fn<(key: string, field: string) => Promise<string | null>>(),
+    hset: vi.fn<(key: string, field: string, value: string) => Promise<number>>(),
+    hdel: vi.fn<(key: string, ...fields: string[]) => Promise<number>>(),
+    hkeys: vi.fn<(key: string) => Promise<string[]>>(),
   };
   client.hset.mockResolvedValue(1);
   client.hdel.mockResolvedValue(1);
@@ -22,7 +22,12 @@ describe("RedisRoomStore", () => {
 
   beforeEach(() => {
     client = createMockClient();
-    store = new RedisRoomStore({ client });
+    // The mock implements only the methods RedisRoomStore uses; cast through
+    // the option's client type because ioredis' real method signatures are
+    // heavily overloaded and not worth reproducing on the mock.
+    store = new RedisRoomStore({
+      client: client as unknown as RedisRoomStoreOptions["client"],
+    });
   });
 
   it("hydrates cache from redis hash", async () => {

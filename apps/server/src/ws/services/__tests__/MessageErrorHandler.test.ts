@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import type { Mock } from "vitest";
+import type { MockInstance } from "vitest";
 import { MessageErrorHandler } from "../MessageErrorHandler.js";
 import { MessageLogger } from "../MessageLogger.js";
 import type { ClientMessage } from "@shared";
@@ -15,7 +15,7 @@ import type { ClientMessage } from "@shared";
 describe("MessageErrorHandler", () => {
   let errorHandler: MessageErrorHandler;
   let messageLogger: MessageLogger;
-  let consoleErrorSpy: Mock;
+  let consoleErrorSpy: MockInstance<typeof console.error>;
 
   beforeEach(() => {
     messageLogger = new MessageLogger();
@@ -77,14 +77,15 @@ describe("MessageErrorHandler", () => {
         drawing: {
           id: "drawing-1",
           owner: "player-1",
-          strokes: [
-            { x: 10, y: 20, color: "#FF0000", size: 2 },
-            { x: 30, y: 40, color: "#00FF00", size: 3 },
+          type: "freehand",
+          points: [
+            { x: 10, y: 20 },
+            { x: 30, y: 40 },
           ],
-          locked: false,
-          position: { x: 0, y: 0 },
-          scale: { x: 1, y: 1 },
-          rotation: 0,
+          color: "#FF0000",
+          width: 2,
+          opacity: 1,
+          filled: false,
         },
       };
 
@@ -179,7 +180,21 @@ describe("MessageErrorHandler", () => {
       { msg: { t: "portrait", data: "portrait.png" }, expectedType: "portrait" },
       { msg: { t: "rename", name: "NewName" }, expectedType: "rename" },
       { msg: { t: "move", id: "token-1", x: 100, y: 200 }, expectedType: "move" },
-      { msg: { t: "dice-roll", roll: { formula: "1d20", result: 15 } }, expectedType: "dice-roll" },
+      {
+        msg: {
+          t: "dice-roll",
+          roll: {
+            id: "roll-1",
+            playerUid: "player-1",
+            playerName: "Player One",
+            formula: "1d20",
+            total: 15,
+            breakdown: [{ tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 }],
+            timestamp: 1700000000000,
+          },
+        },
+        expectedType: "dice-roll",
+      },
       { msg: { t: "grid-size", size: 60 }, expectedType: "grid-size" },
       {
         msg: { t: "create-character", name: "Hero", maxHp: 25, portrait: undefined },
@@ -259,7 +274,8 @@ describe("MessageErrorHandler", () => {
   describe("Edge Cases", () => {
     it("should handle empty message type", () => {
       const error = new Error("Test error");
-      const message = { t: "" } as ClientMessage;
+      // Intentionally invalid: tests how the handler logs a message with an empty type
+      const message = { t: "" } as unknown as ClientMessage;
 
       errorHandler.handleError(error, message, "player-1");
 
@@ -287,7 +303,8 @@ describe("MessageErrorHandler", () => {
       // JSON.stringify will throw on circular references
       // The service should handle this gracefully (or we document it's expected to throw)
       expect(() => {
-        errorHandler.handleError(error, circularMsg, "player-1");
+        // Intentionally invalid message shape: tests circular-reference serialization behavior
+        errorHandler.handleError(error, circularMsg as unknown as ClientMessage, "player-1");
       }).toThrow(); // This is expected behavior for circular refs
     });
   });

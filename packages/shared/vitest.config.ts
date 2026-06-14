@@ -15,7 +15,7 @@ export default defineConfig({
       reporter: ["text", "html", "json"],
       reportsDirectory: "./coverage",
       include: ["src/**/*.ts"],
-      exclude: ["**/__tests__/**", "dist/**"],
+      exclude: ["**/__tests__/**", "dist/**", "src/index.ts"],
       // Floor below current coverage (~99.5% lines as of 2026-06) so
       // regressions fail CI.
       thresholds: {
