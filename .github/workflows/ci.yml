@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - dev
@@ -176,10 +177,10 @@ jobs:
           retention-days: 7
 
   e2e-full-suite:
-    # Nightly only: runs the active Playwright suite (the PR pipeline runs the
-    # 4-spec smoke subset). Deprecated specs remain available through
-    # pnpm test:e2e:deprecated while their replacements are validated.
-    if: github.event_name == 'schedule'
+    # Scheduled and manual runs execute the active Playwright suite. The PR
+    # pipeline uses the 4-spec smoke subset. Deprecated specs remain available
+    # through pnpm test:e2e:deprecated while replacements are validated.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
