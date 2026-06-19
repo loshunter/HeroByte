@@ -19,7 +19,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { forwardRef } from "react";
-import type { PropsWithChildren, Ref, SyntheticEvent } from "react";
+import type { PropsWithChildren, ReactNode, Ref, SyntheticEvent } from "react";
 import { DrawingsLayer } from "../DrawingsLayer";
 import type { SceneObject } from "@shared";
 import type { Camera } from "../../../../hooks/useCamera";
@@ -58,13 +58,19 @@ function createGroupMock() {
         data-rotation={props.rotation}
         data-draggable={props.draggable !== undefined ? String(props.draggable) : undefined}
         onClick={wrapEvent(onClick as ((event: MockKonvaEvent) => void) | undefined)}
-        onTouchStart={(e) => onTap?.({ cancelBubble: false, evt: e, target: e.target })}
+        onTouchStart={(e) =>
+          (onTap as ((event: MockKonvaEvent) => void) | undefined)?.({
+            cancelBubble: false,
+            evt: e,
+            target: e.target,
+          })
+        }
         onDragStart={wrapEvent(onDragStart as ((event: MockKonvaEvent) => void) | undefined)}
         onDragOver={wrapEvent(onDragMove as ((event: MockKonvaEvent) => void) | undefined)}
         onDragEnd={wrapEvent(onDragEnd as ((event: MockKonvaEvent) => void) | undefined)}
         ref={(node) => assignRef(ref, node)}
       >
-        {children}
+        {children as ReactNode}
       </div>
     ),
   );
@@ -154,7 +160,6 @@ describe("DrawingsLayer", () => {
     x: 0,
     y: 0,
     scale: 1,
-    setCamera: vi.fn(),
   };
 
   const mockOnSelectDrawing = vi.fn();
@@ -239,7 +244,6 @@ describe("DrawingsLayer", () => {
         x: 100,
         y: 200,
         scale: 1.5,
-        setCamera: vi.fn(),
       };
 
       render(<DrawingsLayer {...defaultProps} cam={camera} />);
@@ -1347,7 +1351,6 @@ describe("DrawingsLayer", () => {
         x: 0,
         y: 0,
         scale: 2,
-        setCamera: vi.fn(),
       };
 
       const drawing = createDrawingObject({
@@ -1380,7 +1383,6 @@ describe("DrawingsLayer", () => {
         x: 0,
         y: 0,
         scale: 2,
-        setCamera: vi.fn(),
       };
 
       const drawing = createDrawingObject();
@@ -1407,7 +1409,6 @@ describe("DrawingsLayer", () => {
         x: 0,
         y: 0,
         scale: 2,
-        setCamera: vi.fn(),
       };
 
       const drawing = createDrawingObject();

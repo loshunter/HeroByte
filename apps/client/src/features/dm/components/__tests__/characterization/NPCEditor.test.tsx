@@ -22,7 +22,6 @@ describe("NPCEditor - Characterization Tests", () => {
     maxHp: 15,
     portrait: "https://example.com/goblin-portrait.jpg",
     tokenImage: "https://example.com/goblin-token.png",
-    uid: "user-123",
   };
 
   const createMockHandlers = () => ({

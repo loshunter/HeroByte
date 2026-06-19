@@ -16,7 +16,7 @@
 
 import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../types/alignment";
 import type { CameraCommand } from "../../ui/MapBoard";
 import type { Camera } from "../../hooks/useCamera";
@@ -191,7 +191,7 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
     cameraCommand: null,
     handleCameraCommandHandled: vi.fn(),
     setCameraState: vi.fn(),
-    handleFocusSelf: vi.fn(),
+    handleFocusToken: vi.fn(),
     handleResetCamera: vi.fn(),
 
     // Drawing
@@ -230,6 +230,8 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
     hpInput: "",
     editingMaxHpUID: null,
     maxHpInput: "",
+    editingTempHpUID: null,
+    tempHpInput: "",
     updateNameInput: vi.fn(),
     startNameEdit: vi.fn(),
     submitNameEdit: vi.fn(),
@@ -239,6 +241,10 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
     updateMaxHpInput: vi.fn(),
     startMaxHpEdit: vi.fn(),
     submitMaxHpEdit: vi.fn(),
+    updateTempHpInput: vi.fn(),
+    startTempHpEdit: vi.fn(),
+    submitTempHpEdit: vi.fn(),
+    onCharacterPortraitUpdate: vi.fn(),
 
     // Selection
     selectedObjectId: null,
@@ -247,14 +253,17 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
     handleObjectSelectionBatch: vi.fn(),
     lockSelected: vi.fn(),
     unlockSelected: vi.fn(),
+    selectPlayerTokens: vi.fn(),
 
     // Player Actions
     playerActions: {
       renamePlayer: vi.fn(),
       setPortrait: vi.fn(),
+      setCharacterPortrait: vi.fn(),
       setHP: vi.fn(),
       applyPlayerState: vi.fn(),
       setStatusEffects: vi.fn(),
+      setCharacterStatusEffects: vi.fn(),
       setPlayerStagingZone: vi.fn(),
       addCharacter: vi.fn(),
       deleteCharacter: vi.fn(),
@@ -295,22 +304,6 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
     handleSetRoomPassword: vi.fn(),
     dismissRoomPasswordStatus: vi.fn(),
 
-    // NPC Management
-    handleCreateNPC: vi.fn(),
-    handleUpdateNPC: vi.fn(),
-    handleDeleteNPC: vi.fn(),
-    handlePlaceNPCToken: vi.fn(),
-    handleDeletePlayerToken: vi.fn(),
-
-    // Prop Management
-    handleCreateProp: vi.fn(),
-    handleUpdateProp: vi.fn(),
-    handleDeleteProp: vi.fn(),
-
-    // Session Management
-    handleSaveSession: vi.fn(),
-    handleLoadSession: vi.fn(),
-
     // DM Management
     handleToggleDM: vi.fn(),
     setMapBackgroundURL: vi.fn(),
@@ -320,6 +313,10 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
     // Toast
     toast: {
       messages: [],
+      success: vi.fn(),
+      error: vi.fn(),
+      warning: vi.fn(),
+      info: vi.fn(),
       dismiss: vi.fn(),
     },
 
@@ -336,9 +333,10 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
   // ============================================================================
 
   describe("Wrapper div rendering", () => {
-    it("should render the fixed-position wrapper div", () => {
+    it("should render the fixed-position wrapper div", async () => {
       const props = createDefaultProps();
       const { container } = render(<MainLayout {...props} />);
+      await act(async () => {});
 
       // Find the wrapper div by its distinctive styling
       const wrapperDivs = Array.from(container.querySelectorAll("div")).filter((div) => {
@@ -565,6 +563,8 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
     it("should pass non-null snapshot to MapBoard", () => {
       const props = createDefaultProps();
       props.snapshot = {
+        users: [],
+        diceRolls: [],
         players: [],
         characters: [],
         tokens: [],
@@ -893,9 +893,12 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
     it("should pass non-null alignmentSuggestion to MapBoard", () => {
       const props = createDefaultProps();
       props.alignmentSuggestion = {
-        position: { x: 100, y: 100 },
-        scale: { x: 1, y: 1 },
+        transform: { x: 100, y: 100, scaleX: 1, scaleY: 1, rotation: 0 },
+        targetA: { x: 0, y: 0 },
+        targetB: { x: 50, y: 50 },
+        scale: 1,
         rotation: 0,
+        error: 0,
       };
 
       render(<MainLayout {...props} />);
@@ -1287,6 +1290,8 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
       props.topHeight = 180;
       props.bottomHeight = 210;
       props.snapshot = {
+        users: [],
+        diceRolls: [],
         players: [],
         characters: [],
         tokens: [],

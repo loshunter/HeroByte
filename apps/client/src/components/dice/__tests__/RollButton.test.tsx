@@ -110,7 +110,7 @@ describe("RollButton", () => {
       render(<RollButton onClick={vi.fn()} />);
 
       const button = screen.getByRole("button");
-      expect(button.disabled).toBe(false);
+      expect((button as HTMLButtonElement).disabled).toBe(false);
     });
 
     it('should have cursor "pointer" by default', () => {

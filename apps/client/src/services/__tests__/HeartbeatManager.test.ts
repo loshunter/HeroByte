@@ -269,7 +269,10 @@ describe("HeartbeatManager - Characterization Tests", () => {
 
     it("should NOT send heartbeat when WebSocket is not OPEN", () => {
       // Set WebSocket to CONNECTING state
-      mockWebSocket.readyState = WebSocket.CONNECTING;
+      Object.defineProperty(mockWebSocket, "readyState", {
+        configurable: true,
+        value: WebSocket.CONNECTING,
+      });
 
       heartbeatManager.start(mockWebSocket);
 

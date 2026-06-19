@@ -154,6 +154,7 @@ describe("MessageRouter", () => {
       updateNPC: vi.fn(() => true),
       deleteCharacter: vi.fn(() => ({ id: "char-1", name: "NPC", tokenId: "token-1" })),
       placeNPCToken: vi.fn(() => true),
+      setNPCVisibility: vi.fn(() => true),
       claimCharacter: vi.fn(() => true),
       updateHP: vi.fn(() => true),
       linkToken: vi.fn(() => true),
@@ -386,6 +387,25 @@ describe("MessageRouter", () => {
       );
       expect(mockRoomService.broadcast).toHaveBeenCalled();
       expect(mockRoomService.saveState).toHaveBeenCalled();
+    });
+
+    it("treats an unauthorized DM action as handled", () => {
+      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const msg: ClientMessage = {
+        t: "toggle-npc-visibility",
+        id: "npc-1",
+        visible: false,
+      };
+
+      routeAndFlush(msg, "player-1");
+
+      expect(mockCharacterService.setNPCVisibility).not.toHaveBeenCalled();
+      expect(mockRoomService.broadcast).not.toHaveBeenCalled();
+      expect(mockRoomService.saveState).not.toHaveBeenCalled();
+      expect(consoleWarnSpy.mock.calls).toEqual([
+        ["Non-DM player-1 attempted to toggle NPC visibility"],
+      ]);
+      consoleWarnSpy.mockRestore();
     });
 
     it("routes update-npc message", () => {

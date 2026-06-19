@@ -10,22 +10,23 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import type { PlayerState, PlayerStagingZone, Snapshot, Character } from "@shared";
+import type { PlayerState, PlayerStagingZone, RoomSnapshot, Character } from "@shared";
 import { usePlayerActions } from "../../usePlayerActions";
 
 // Mock dependencies
 const mockSendMessage = vi.fn();
-const mockSnapshot: Snapshot = {
+const mockSnapshot: RoomSnapshot = {
+  users: [],
   gridSize: 50,
   gridSquareSize: 5,
-  mapBackgroundURL: "",
+  mapBackground: "",
   players: [],
   characters: [
     {
       id: "char-1",
       name: "Test Character",
       ownedByPlayerUID: "player-1",
-      type: "player-character",
+      type: "pc",
       hp: 100,
       maxHp: 100,
     },
@@ -220,7 +221,7 @@ describe("usePlayerActions - Characterization Tests", () => {
             id: "char-1",
             name: "Test Character",
             ownedByPlayerUID: "player-1",
-            type: "player-character",
+            type: "pc",
             hp: 100,
             maxHp: 100,
           },
@@ -228,7 +229,7 @@ describe("usePlayerActions - Characterization Tests", () => {
             id: "char-2",
             name: "Another Character",
             ownedByPlayerUID: "player-1",
-            type: "player-character",
+            type: "pc",
             hp: 100,
             maxHp: 100,
           },
@@ -268,7 +269,7 @@ describe("usePlayerActions - Characterization Tests", () => {
             id: "char-1",
             name: "Test Character",
             ownedByPlayerUID: "player-1",
-            type: "player-character",
+            type: "pc",
             hp: 100,
             maxHp: 100,
           },
@@ -306,7 +307,7 @@ describe("usePlayerActions - Characterization Tests", () => {
             id: "char-1",
             name: "Last Character",
             ownedByPlayerUID: "player-1",
-            type: "player-character",
+            type: "pc",
             hp: 100,
             maxHp: 100,
           },
@@ -658,11 +659,15 @@ describe("usePlayerActions - Characterization Tests", () => {
         drawings: [
           {
             id: "drawing-1",
-            uid: "player-1",
-            points: [10, 20, 30, 40],
+            owner: "player-1",
+            type: "freehand",
+            points: [
+              { x: 10, y: 20 },
+              { x: 30, y: 40 },
+            ],
             color: "red",
-            brushSize: 5,
-            tool: "pen",
+            width: 5,
+            opacity: 1,
           },
         ],
       };

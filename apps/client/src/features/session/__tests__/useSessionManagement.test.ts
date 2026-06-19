@@ -40,7 +40,7 @@ describe("useSessionManagement - Characterization", () => {
     users: [],
     tokens: [],
     players: [],
-    characters: [{ id: "char1", name: "Test Character", visible: true }],
+    characters: [{ id: "char1", type: "pc", name: "Test Character", hp: 10, maxHp: 10 }],
     props: [],
     mapBackground: undefined,
     pointers: [],
@@ -48,7 +48,16 @@ describe("useSessionManagement - Characterization", () => {
     gridSize: 50,
     diceRolls: [],
     gridSquareSize: 50,
-    sceneObjects: [{ id: "obj1", type: "token", locked: false, x: 0, y: 0 }],
+    sceneObjects: [
+      {
+        id: "obj1",
+        type: "token",
+        locked: false,
+        zIndex: 0,
+        transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+        data: { color: "#000000", size: "medium" },
+      },
+    ],
     playerStagingZone: undefined,
     ...overrides,
   });
@@ -216,9 +225,21 @@ describe("useSessionManagement - Characterization", () => {
 
     it("should save session with snapshot containing all data", () => {
       const snapshot = createMockSnapshot({
-        users: [{ uid: "user1", name: "Player 1", cursor: { x: 0, y: 0 } }],
-        tokens: [{ id: "token1", x: 0, y: 0, characterId: "char1", visible: true }],
-        drawings: [{ id: "draw1", type: "path", points: [0, 0, 1, 1], color: "#000" }],
+        users: ["user1"],
+        tokens: [{ id: "token1", owner: "user1", x: 0, y: 0, color: "#000000" }],
+        drawings: [
+          {
+            id: "draw1",
+            type: "freehand",
+            points: [
+              { x: 0, y: 0 },
+              { x: 1, y: 1 },
+            ],
+            color: "#000000",
+            width: 1,
+            opacity: 1,
+          },
+        ],
       });
       const handleSaveSession = createHandleSaveSession(snapshot);
 
@@ -475,8 +496,9 @@ describe("useSessionManagement - Characterization", () => {
     it("should warn when loaded snapshot has undefined characters", async () => {
       const handleLoadSession = createHandleLoadSession();
       const mockFile = new File(["{}"], "test.json", { type: "application/json" });
-      // @ts-expect-error - Testing undefined characters
-      const loadedSnapshot = createMockSnapshot({ characters: undefined });
+      const loadedSnapshot = createMockSnapshot({
+        characters: undefined as unknown as RoomSnapshot["characters"],
+      });
       mockLoadSession.mockResolvedValue(loadedSnapshot);
 
       await handleLoadSession(mockFile);
@@ -679,10 +701,10 @@ describe("useSessionManagement - Characterization", () => {
       const largeSnapshot = createMockSnapshot({
         tokens: Array.from({ length: 100 }, (_, i) => ({
           id: `token${i}`,
+          owner: "user1",
           x: i,
           y: i,
-          characterId: `char${i}`,
-          visible: true,
+          color: "#000000",
         })),
       });
       mockSaveSession.mockReturnValue(undefined);

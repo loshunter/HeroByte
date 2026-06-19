@@ -14,6 +14,7 @@
  */
 
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import type { MockInstance } from "vitest";
 import { renderHook } from "@testing-library/react";
 import type { RoomSnapshot, SceneObject } from "@shared";
 
@@ -210,8 +211,20 @@ function createSceneObject(
     return {
       ...baseObject,
       type: "drawing",
-      data: { drawing: { id: "1", type: "path", points: [0, 0, 1, 1], color: "#000" } },
-    } as SceneObject;
+      data: {
+        drawing: {
+          id: "1",
+          type: "freehand",
+          points: [
+            { x: 0, y: 0 },
+            { x: 1, y: 1 },
+          ],
+          color: "#000",
+          width: 1,
+          opacity: 1,
+        },
+      },
+    } as unknown as SceneObject;
   } else {
     return { ...baseObject, type: "map", data: {} } as SceneObject;
   }
@@ -222,9 +235,9 @@ describe("useKeyboardShortcuts - Characterization", () => {
   let mockClearSelection: ReturnType<typeof vi.fn>;
   let mockHandleUndo: ReturnType<typeof vi.fn>;
   let mockHandleRedo: ReturnType<typeof vi.fn>;
-  let mockAlert: ReturnType<typeof vi.spyOn>;
-  let mockConfirm: ReturnType<typeof vi.spyOn>;
-  let mockConsoleLog: ReturnType<typeof vi.spyOn>;
+  let mockAlert: MockInstance<typeof window.alert>;
+  let mockConfirm: MockInstance<typeof window.confirm>;
+  let mockConsoleLog: MockInstance<typeof console.log>;
 
   beforeEach(() => {
     mockSendMessage = vi.fn();

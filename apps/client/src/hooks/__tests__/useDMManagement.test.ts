@@ -9,6 +9,7 @@
  */
 
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import type { MockInstance } from "vitest";
 
 describe("useDMManagement - Characterization", () => {
   const mockSendMessage = vi.fn();
@@ -20,8 +21,8 @@ describe("useDMManagement - Characterization", () => {
   };
 
   // Mock window.confirm and window.prompt
-  let confirmSpy: ReturnType<typeof vi.spyOn>;
-  let promptSpy: ReturnType<typeof vi.spyOn>;
+  let confirmSpy: MockInstance<typeof window.confirm>;
+  let promptSpy: MockInstance<typeof window.prompt>;
 
   beforeEach(() => {
     mockSendMessage.mockClear();

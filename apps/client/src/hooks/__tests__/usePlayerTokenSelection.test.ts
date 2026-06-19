@@ -16,8 +16,9 @@ function createToken(id: string, owner: string, locked: boolean = false): SceneO
     type: "token",
     owner,
     locked,
-    position: { x: 0, y: 0 },
-    size: { width: 50, height: 50 },
+    zIndex: 0,
+    transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+    data: { color: "#000000", size: "medium" },
   };
 }
 
@@ -27,8 +28,19 @@ function createDrawing(id: string, owner: string): SceneObject {
     type: "drawing",
     owner,
     locked: false,
-    position: { x: 0, y: 0 },
-    size: { width: 100, height: 100 },
+    zIndex: 0,
+    transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+    data: {
+      drawing: {
+        id,
+        owner,
+        type: "freehand",
+        points: [],
+        color: "#000000",
+        width: 1,
+        opacity: 1,
+      },
+    },
   };
 }
 

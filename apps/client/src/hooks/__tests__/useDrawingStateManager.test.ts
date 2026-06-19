@@ -17,8 +17,8 @@ import { useDrawingStateManager } from "../useDrawingStateManager";
 import type { ClientMessage } from "@shared";
 
 describe("useDrawingStateManager - Characterization", () => {
-  let sendMessageMock: ReturnType<typeof vi.fn<[ClientMessage], void>>;
-  let setActiveToolMock: ReturnType<typeof vi.fn<[string | null], void>>;
+  let sendMessageMock: ReturnType<typeof vi.fn<(message: ClientMessage) => void>>;
+  let setActiveToolMock: ReturnType<typeof vi.fn<(tool: string | null) => void>>;
 
   beforeEach(() => {
     sendMessageMock = vi.fn();

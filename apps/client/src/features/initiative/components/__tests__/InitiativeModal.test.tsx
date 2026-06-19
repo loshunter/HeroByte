@@ -2120,12 +2120,10 @@ describe("InitiativeModal - Props Validation", () => {
     const character = createMockCharacter({
       id: "test-id",
       name: "Full Character",
-      race: "Elf",
-      characterClass: "Wizard",
-      level: 5,
+      type: "pc",
       maxHp: 30,
-      currentHp: 25,
-      armorClass: 14,
+      hp: 25,
+      tempHp: 5,
       initiativeModifier: 3,
     });
     const props = createDefaultProps({ character });

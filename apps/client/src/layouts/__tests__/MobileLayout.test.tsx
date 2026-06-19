@@ -3,10 +3,9 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MobileLayout } from "../MobileLayout";
 import type { MainLayoutProps } from "../props/MainLayoutProps";
-import type { RollResult } from "../../../components/dice/types";
-import type { DrawingToolbarProps } from "../../../features/drawing/components/DrawingToolbar";
-import type { DrawingProps } from "../../../features/drawing/components/DrawingCanvas";
-import type { PlayerActions } from "../../../features/player/usePlayerActions";
+type DrawingToolbarProps = MainLayoutProps["drawingToolbarProps"];
+type DrawingProps = MainLayoutProps["drawingProps"];
+type PlayerActions = MainLayoutProps["playerActions"];
 
 // Mock child components
 vi.mock("../../ui/MapBoard", () => ({
@@ -108,7 +107,7 @@ describe("MobileLayout", () => {
     cameraCommand: null,
     handleCameraCommandHandled: vi.fn(),
     setCameraState: vi.fn(),
-    handleFocusSelf: vi.fn(),
+    handleFocusToken: vi.fn(),
     handleResetCamera: vi.fn(),
     drawingToolbarProps: {} as DrawingToolbarProps,
     drawingProps: {} as DrawingProps,
@@ -119,6 +118,8 @@ describe("MobileLayout", () => {
     hpInput: "",
     editingMaxHpUID: null,
     maxHpInput: "",
+    editingTempHpUID: null,
+    tempHpInput: "",
     updateNameInput: vi.fn(),
     startNameEdit: vi.fn(),
     submitNameEdit: vi.fn(),
@@ -128,12 +129,17 @@ describe("MobileLayout", () => {
     updateMaxHpInput: vi.fn(),
     startMaxHpEdit: vi.fn(),
     submitMaxHpEdit: vi.fn(),
+    updateTempHpInput: vi.fn(),
+    startTempHpEdit: vi.fn(),
+    submitTempHpEdit: vi.fn(),
+    onCharacterPortraitUpdate: vi.fn(),
     selectedObjectId: null,
     selectedObjectIds: [],
     handleObjectSelection: vi.fn(),
     handleObjectSelectionBatch: vi.fn(),
     lockSelected: vi.fn(),
     unlockSelected: vi.fn(),
+    selectPlayerTokens: vi.fn(),
     playerActions: {} as PlayerActions,
     mapSceneObject: null,
     stagingZoneSceneObject: null,
@@ -156,20 +162,22 @@ describe("MobileLayout", () => {
     handleRoll: vi.fn(),
     handleClearLog: vi.fn(),
     handleViewRoll: vi.fn(),
-    handleRequestSaveSession: vi.fn(),
-    handleRequestLoadSession: vi.fn(),
-    handleCreateNPC: vi.fn(),
-    handleUpdateNPC: vi.fn(),
-    handleDeleteNPC: vi.fn(),
-    handlePlaceNPCToken: vi.fn(),
-    handleCreateProp: vi.fn(),
-    handleUpdateProp: vi.fn(),
-    handleDeleteProp: vi.fn(),
     handleSetRoomPassword: vi.fn(),
     roomPasswordStatus: null,
     roomPasswordPending: false,
-    handleDismissRoomPasswordStatus: vi.fn(),
-    toast: { messages: [], dismiss: vi.fn() },
+    dismissRoomPasswordStatus: vi.fn(),
+    handleToggleDM: vi.fn(),
+    setMapBackgroundURL: vi.fn(),
+    setGridSize: vi.fn(),
+    setGridSquareSize: vi.fn(),
+    toast: {
+      messages: [],
+      success: vi.fn(),
+      error: vi.fn(),
+      warning: vi.fn(),
+      info: vi.fn(),
+      dismiss: vi.fn(),
+    },
     sendMessage: vi.fn(),
   });
 
@@ -255,7 +263,7 @@ describe("MobileLayout", () => {
 
   it("renders ResultPanel when viewingRoll is present", () => {
     const props = createDefaultProps();
-    props.viewingRoll = { total: 20 } as RollResult;
+    props.viewingRoll = { total: 20, playerName: "Test Player" } as MainLayoutProps["viewingRoll"];
     render(<MobileLayout {...props} />);
 
     expect(screen.getByTestId("result-panel")).toBeInTheDocument();

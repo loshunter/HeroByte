@@ -11,7 +11,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useState, useEffect } from "react";
-import type { ToolMode } from "../../components/layout/Header";
+import type { ToolMode } from "../../../components/layout/Header";
 
 /**
  * Simplified version of the hook logic from App.tsx for characterization testing

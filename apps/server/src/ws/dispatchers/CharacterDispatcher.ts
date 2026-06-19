@@ -31,8 +31,8 @@ export class CharacterDispatcher {
               message.maxHp,
               message.portrait,
             ),
-          ) || null
-        ); // Return null if auth fails (result is undefined)
+          ) ?? {}
+        );
 
       case "claim-character":
         return this.characterHandler.handleClaimCharacter(state, message.characterId, senderUid);
@@ -96,7 +96,7 @@ export class CharacterDispatcher {
               hp: message.hp,
               tokenImage: message.tokenImage,
             }),
-          ) || null
+          ) ?? {}
         );
 
       case "update-npc":
@@ -110,28 +110,28 @@ export class CharacterDispatcher {
               tokenImage: message.tokenImage,
               initiativeModifier: message.initiativeModifier,
             }),
-          ) || null
+          ) ?? {}
         );
 
       case "delete-npc":
         return (
           this.authWrapper.executeIfDMAuthorized(senderUid, isDM, "delete NPC", () =>
             this.npcHandler.handleDeleteNPC(state, message.id),
-          ) || null
+          ) ?? {}
         );
 
       case "place-npc-token":
         return (
           this.authWrapper.executeIfDMAuthorized(senderUid, isDM, "place NPC token", () =>
             this.npcHandler.handlePlaceNPCToken(state, message.id, senderUid),
-          ) || null
+          ) ?? {}
         );
 
       case "toggle-npc-visibility":
         return (
           this.authWrapper.executeIfDMAuthorized(senderUid, isDM, "toggle NPC visibility", () =>
             this.npcHandler.handleToggleNPCVisibility(state, message.id, message.visible),
-          ) || null
+          ) ?? {}
         );
 
       default:

@@ -18,7 +18,7 @@
 
 import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import type { DrawingToolbarProps } from "../../features/drawing/components/DrawingToolbar";
 import type { ToolMode } from "../../components/layout/Header";
 
@@ -184,7 +184,7 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
     cameraCommand: null,
     handleCameraCommandHandled: vi.fn(),
     setCameraState: vi.fn(),
-    handleFocusSelf: vi.fn(),
+    handleFocusToken: vi.fn(),
     handleResetCamera: vi.fn(),
 
     // Drawing
@@ -194,24 +194,25 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
       drawWidth: 2,
       drawOpacity: 1,
       drawFilled: false,
+      canUndo: false,
+      canRedo: false,
       onToolChange: vi.fn(),
       onColorChange: vi.fn(),
       onWidthChange: vi.fn(),
       onOpacityChange: vi.fn(),
       onFilledChange: vi.fn(),
+      onUndo: vi.fn(),
+      onRedo: vi.fn(),
       onClearAll: vi.fn(),
+      onClose: vi.fn(),
     },
     drawingProps: {
-      drawings: [],
       drawTool: "freehand" as const,
       drawColor: "#000000",
       drawWidth: 2,
       drawOpacity: 1,
       drawFilled: false,
-      isDrawing: false,
-      onDrawingStart: vi.fn(),
-      onDrawingMove: vi.fn(),
-      onDrawingEnd: vi.fn(),
+      onDrawingComplete: vi.fn(),
     },
     handleClearDrawings: vi.fn(),
 
@@ -222,6 +223,8 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
     hpInput: "",
     editingMaxHpUID: null,
     maxHpInput: "",
+    editingTempHpUID: null,
+    tempHpInput: "",
     updateNameInput: vi.fn(),
     startNameEdit: vi.fn(),
     submitNameEdit: vi.fn(),
@@ -231,6 +234,10 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
     updateMaxHpInput: vi.fn(),
     startMaxHpEdit: vi.fn(),
     submitMaxHpEdit: vi.fn(),
+    updateTempHpInput: vi.fn(),
+    startTempHpEdit: vi.fn(),
+    submitTempHpEdit: vi.fn(),
+    onCharacterPortraitUpdate: vi.fn(),
 
     // Selection
     selectedObjectId: null,
@@ -239,14 +246,17 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
     handleObjectSelectionBatch: vi.fn(),
     lockSelected: vi.fn(),
     unlockSelected: vi.fn(),
+    selectPlayerTokens: vi.fn(),
 
     // Player Actions
     playerActions: {
       renamePlayer: vi.fn(),
       setPortrait: vi.fn(),
+      setCharacterPortrait: vi.fn(),
       setHP: vi.fn(),
       applyPlayerState: vi.fn(),
       setStatusEffects: vi.fn(),
+      setCharacterStatusEffects: vi.fn(),
       setPlayerStagingZone: vi.fn(),
       addCharacter: vi.fn(),
       deleteCharacter: vi.fn(),
@@ -281,26 +291,28 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
     handleClearLog: vi.fn(),
     handleViewRoll: vi.fn(),
 
-    // DM Menu
-    handleRequestSaveSession: vi.fn(),
-    handleRequestLoadSession: vi.fn(),
-    handleCreateNPC: vi.fn(),
-    handleUpdateNPC: vi.fn(),
-    handleDeleteNPC: vi.fn(),
-    handlePlaceNPCToken: vi.fn(),
-    handleCreateProp: vi.fn(),
-    handleUpdateProp: vi.fn(),
-    handleDeleteProp: vi.fn(),
-    handleSetRoomPassword: vi.fn(),
+    // Room Password
     roomPasswordStatus: null,
     roomPasswordPending: false,
-    handleDismissRoomPasswordStatus: vi.fn(),
+    handleSetRoomPassword: vi.fn(),
+    dismissRoomPasswordStatus: vi.fn(),
+
+    // DM Management
+    handleToggleDM: vi.fn(),
+    setMapBackgroundURL: vi.fn(),
+    setGridSize: vi.fn(),
+    setGridSquareSize: vi.fn(),
 
     // Toast
     toast: {
       messages: [],
+      success: vi.fn(),
+      error: vi.fn(),
+      warning: vi.fn(),
+      info: vi.fn(),
       dismiss: vi.fn(),
     },
+    sendMessage: vi.fn(),
   });
 
   beforeEach(() => {
@@ -312,9 +324,10 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
   // ============================================================================
 
   describe("ServerStatus rendering", () => {
-    it("should always render ServerStatus component", () => {
+    it("should always render ServerStatus component", async () => {
       const props = createDefaultProps();
       render(<MainLayout {...props} />);
+      await act(async () => {});
 
       expect(screen.getByTestId("server-status")).toBeInTheDocument();
     });
@@ -367,6 +380,7 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
       const props = createDefaultProps();
       props.drawMode = true;
       props.drawingToolbarProps = {
+        ...props.drawingToolbarProps,
         drawTool: "circle",
         drawColor: "#ff0000",
         drawWidth: 5,
@@ -394,6 +408,7 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
       const props = createDefaultProps();
       props.drawMode = true;
       props.drawingToolbarProps = {
+        ...props.drawingToolbarProps,
         drawTool: "line",
         drawColor: "#00ff00",
         drawWidth: 3,
@@ -566,7 +581,7 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
       const mockSetCrtFilter = vi.fn();
       const mockToggleDiceRoller = vi.fn();
       const mockToggleRollLog = vi.fn();
-      const mockHandleFocusSelf = vi.fn();
+      const mockHandleFocusToken = vi.fn();
       const mockHandleResetCamera = vi.fn();
 
       props.setSnapToGrid = mockSetSnapToGrid;
@@ -574,7 +589,7 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
       props.setCrtFilter = mockSetCrtFilter;
       props.toggleDiceRoller = mockToggleDiceRoller;
       props.toggleRollLog = mockToggleRollLog;
-      props.handleFocusSelf = mockHandleFocusSelf;
+      props.handleFocusToken = mockHandleFocusToken;
       props.handleResetCamera = mockHandleResetCamera;
 
       render(<MainLayout {...props} />);

@@ -17,22 +17,19 @@ describe("useNpcManagement - Characterization", () => {
   const mockSendMessage = vi.fn();
 
   const createMockSnapshot = (characters: Character[] = []): RoomSnapshot => ({
+    users: [],
     players: [],
     characters,
     tokens: [],
     sceneObjects: [],
     drawings: [],
+    pointers: [],
     mapBackground: undefined,
     playerStagingZone: undefined,
     gridSize: 50,
     gridSquareSize: 5,
     diceRolls: [],
     props: [],
-    dmPassword: undefined,
-    dmPasswordUpdatedAt: undefined,
-    roomSecret: "test-secret",
-    roomSecretUpdatedAt: Date.now(),
-    roomSecretSource: "env",
   });
 
   const createMockNPC = (

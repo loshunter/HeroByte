@@ -25,6 +25,8 @@ import { render, screen } from "@testing-library/react";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../types/alignment";
 import type { RollLogEntry } from "../MainLayout";
 import type { Camera } from "../../hooks/useCamera";
+import type { Character, Player, Prop } from "@shared";
+import type { ToastMessage } from "../../components/ui/Toast";
 
 // ============================================================================
 // MOCK CHILD COMPONENTS
@@ -205,6 +207,26 @@ import { MainLayout } from "../MainLayout";
 import type { MainLayoutProps } from "../MainLayout";
 
 describe("FloatingPanelsLayout Section - Characterization Tests", () => {
+  const createAlignmentSuggestion = (
+    x: number,
+    y: number,
+    scale: number,
+    rotation: number,
+  ): AlignmentSuggestion => ({
+    transform: { x, y, scaleX: scale, scaleY: scale, rotation },
+    targetA: { x: 0, y: 0 },
+    targetB: { x: 50, y: 50 },
+    scale,
+    rotation,
+    error: 0,
+  });
+
+  const createToastMessage = (id: string, message: string): ToastMessage => ({
+    id,
+    type: "info",
+    message,
+  });
+
   // Minimal props fixture for testing
   const createDefaultProps = (): MainLayoutProps => ({
     // Connection State
@@ -255,7 +277,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
     cameraCommand: null,
     handleCameraCommandHandled: vi.fn(),
     setCameraState: vi.fn(),
-    handleFocusSelf: vi.fn(),
+    handleFocusToken: vi.fn(),
     handleResetCamera: vi.fn(),
 
     // Drawing
@@ -294,6 +316,8 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
     hpInput: "",
     editingMaxHpUID: null,
     maxHpInput: "",
+    editingTempHpUID: null,
+    tempHpInput: "",
     updateNameInput: vi.fn(),
     startNameEdit: vi.fn(),
     submitNameEdit: vi.fn(),
@@ -303,6 +327,10 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
     updateMaxHpInput: vi.fn(),
     startMaxHpEdit: vi.fn(),
     submitMaxHpEdit: vi.fn(),
+    updateTempHpInput: vi.fn(),
+    startTempHpEdit: vi.fn(),
+    submitTempHpEdit: vi.fn(),
+    onCharacterPortraitUpdate: vi.fn(),
 
     // Selection
     selectedObjectId: null,
@@ -311,14 +339,17 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
     handleObjectSelectionBatch: vi.fn(),
     lockSelected: vi.fn(),
     unlockSelected: vi.fn(),
+    selectPlayerTokens: vi.fn(),
 
     // Player Actions
     playerActions: {
       renamePlayer: vi.fn(),
       setPortrait: vi.fn(),
+      setCharacterPortrait: vi.fn(),
       setHP: vi.fn(),
       applyPlayerState: vi.fn(),
       setStatusEffects: vi.fn(),
+      setCharacterStatusEffects: vi.fn(),
       setPlayerStagingZone: vi.fn(),
       addCharacter: vi.fn(),
       deleteCharacter: vi.fn(),
@@ -359,22 +390,6 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
     handleSetRoomPassword: vi.fn(),
     dismissRoomPasswordStatus: vi.fn(),
 
-    // NPC Management
-    handleCreateNPC: vi.fn(),
-    handleUpdateNPC: vi.fn(),
-    handleDeleteNPC: vi.fn(),
-    handlePlaceNPCToken: vi.fn(),
-    handleDeletePlayerToken: vi.fn(),
-
-    // Prop Management
-    handleCreateProp: vi.fn(),
-    handleUpdateProp: vi.fn(),
-    handleDeleteProp: vi.fn(),
-
-    // Session Management
-    handleSaveSession: vi.fn(),
-    handleLoadSession: vi.fn(),
-
     // DM Management
     handleToggleDM: vi.fn(),
     setMapBackgroundURL: vi.fn(),
@@ -384,6 +399,10 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
     // Toast
     toast: {
       messages: [],
+      success: vi.fn(),
+      error: vi.fn(),
+      warning: vi.fn(),
+      info: vi.fn(),
       dismiss: vi.fn(),
     },
 
@@ -490,7 +509,13 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       const props = createDefaultProps();
       props.isDM = true;
       props.snapshot = {
-        players: [{}, {}, {}] as unknown[],
+        users: [],
+        diceRolls: [],
+        players: [
+          { uid: "player-1", name: "Player 1" },
+          { uid: "player-2", name: "Player 2" },
+          { uid: "player-3", name: "Player 3" },
+        ] as Player[],
         characters: [],
         tokens: [],
         sceneObjects: [],
@@ -521,8 +546,13 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       const props = createDefaultProps();
       props.isDM = true;
       props.snapshot = {
+        users: [],
+        diceRolls: [],
         players: [],
-        characters: [{}, {}] as unknown[],
+        characters: [
+          { id: "char-1", type: "pc", name: "Character 1", hp: 10, maxHp: 10 },
+          { id: "char-2", type: "pc", name: "Character 2", hp: 10, maxHp: 10 },
+        ] as Character[],
         tokens: [],
         sceneObjects: [],
         drawings: [],
@@ -609,11 +639,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
     it("should pass non-null alignmentSuggestion to DMMenu", async () => {
       const props = createDefaultProps();
       props.isDM = true;
-      props.alignmentSuggestion = {
-        position: { x: 100, y: 100 },
-        scale: { x: 1, y: 1 },
-        rotation: 0,
-      };
+      props.alignmentSuggestion = createAlignmentSuggestion(100, 100, 1, 0);
 
       render(<MainLayout {...props} />);
 
@@ -702,6 +728,8 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       const props = createDefaultProps();
       props.isDM = true;
       props.snapshot = {
+        users: [],
+        diceRolls: [],
         players: [],
         characters: [],
         tokens: [],
@@ -723,6 +751,8 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       const props = createDefaultProps();
       props.isDM = true;
       props.snapshot = {
+        users: [],
+        diceRolls: [],
         players: [],
         characters: [],
         tokens: [],
@@ -731,7 +761,32 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
         pointers: [],
         gridSize: 50,
         gridSquareSize: 5,
-        props: [{}, {}] as unknown[],
+        props: [
+          {
+            id: "prop-1",
+            label: "Prop 1",
+            imageUrl: "prop-1.png",
+            owner: null,
+            size: "medium",
+            x: 0,
+            y: 0,
+            scaleX: 1,
+            scaleY: 1,
+            rotation: 0,
+          },
+          {
+            id: "prop-2",
+            label: "Prop 2",
+            imageUrl: "prop-2.png",
+            owner: null,
+            size: "medium",
+            x: 0,
+            y: 0,
+            scaleX: 1,
+            scaleY: 1,
+            rotation: 0,
+          },
+        ] as Prop[],
       };
 
       render(<MainLayout {...props} />);
@@ -744,7 +799,13 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       const props = createDefaultProps();
       props.isDM = true;
       props.snapshot = {
-        players: [{}, {}, {}] as unknown[],
+        users: [],
+        diceRolls: [],
+        players: [
+          { uid: "player-1", name: "Player 1" },
+          { uid: "player-2", name: "Player 2" },
+          { uid: "player-3", name: "Player 3" },
+        ] as Player[],
         characters: [],
         tokens: [],
         sceneObjects: [],
@@ -765,8 +826,6 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       props.isDM = true;
       props.mapSceneObject = {
         id: "map-1",
-        type: "image",
-        imageUrl: "map.jpg",
         transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
         locked: false,
       };
@@ -793,9 +852,6 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       props.isDM = true;
       props.stagingZoneSceneObject = {
         id: "staging-1",
-        type: "image",
-        imageUrl: "staging.jpg",
-        transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
         locked: true,
       };
 
@@ -860,6 +916,8 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       const props = createDefaultProps();
       props.isDM = true;
       props.snapshot = {
+        users: [],
+        diceRolls: [],
         players: [],
         characters: [],
         tokens: [],
@@ -869,8 +927,6 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
         gridSize: 50,
         gridSquareSize: 5,
       };
-      props.handleSaveSession = vi.fn();
-
       render(<MainLayout {...props} />);
 
       expect(await screen.findByTestId("dm-menu")).toBeInTheDocument();
@@ -891,8 +947,6 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       props.isDM = true;
       props.mapSceneObject = {
         id: "map-1",
-        type: "image",
-        imageUrl: "map.jpg",
         transform: { x: 100, y: 200, scaleX: 1.5, scaleY: 1.2, rotation: 45 },
         locked: false,
       };
@@ -983,11 +1037,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
       props.alignmentMode = true;
       props.alignmentPoints = [{ world: { x: 0, y: 0 }, local: { x: 0, y: 0 } }];
-      props.alignmentSuggestion = {
-        position: { x: 100, y: 100 },
-        scale: { x: 1, y: 1 },
-        rotation: 0,
-      };
+      props.alignmentSuggestion = createAlignmentSuggestion(100, 100, 1, 0);
       rerender(<MainLayout {...props} />);
 
       dmMenu = await screen.findByTestId("dm-menu");
@@ -1000,6 +1050,8 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       const props = createDefaultProps();
       props.isDM = true;
       props.snapshot = {
+        users: [],
+        diceRolls: [],
         players: [],
         characters: [],
         tokens: [],
@@ -1009,7 +1061,10 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
         gridSize: 50,
         gridSquareSize: 5,
         playerStagingZone: {
-          imageUrl: "staging.jpg",
+          x: 0,
+          y: 0,
+          width: 4,
+          height: 3,
         },
       };
 
@@ -1022,6 +1077,8 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       const props = createDefaultProps();
       props.isDM = true;
       props.snapshot = {
+        users: [],
+        diceRolls: [],
         players: [],
         characters: [],
         tokens: [],
@@ -1733,8 +1790,8 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
     it("should pass empty messages array to ToastContainer", async () => {
       const props = createDefaultProps();
       props.toast = {
+        ...props.toast,
         messages: [],
-        dismiss: vi.fn(),
       };
 
       render(<MainLayout {...props} />);
@@ -1746,11 +1803,8 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
     it("should pass populated messages array to ToastContainer", async () => {
       const props = createDefaultProps();
       props.toast = {
-        messages: [
-          { id: "1", message: "Toast 1" },
-          { id: "2", message: "Toast 2" },
-        ] as unknown[],
-        dismiss: vi.fn(),
+        ...props.toast,
+        messages: [createToastMessage("1", "Toast 1"), createToastMessage("2", "Toast 2")],
       };
 
       render(<MainLayout {...props} />);
@@ -1762,8 +1816,8 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
     it("should update when toast messages change", async () => {
       const props = createDefaultProps();
       props.toast = {
+        ...props.toast,
         messages: [],
-        dismiss: vi.fn(),
       };
 
       const { rerender } = render(<MainLayout {...props} />);
@@ -1772,8 +1826,8 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(toastContainer).toHaveAttribute("data-messages-count", "0");
 
       props.toast = {
-        messages: [{ id: "1", message: "New toast" }] as unknown[],
-        dismiss: vi.fn(),
+        ...props.toast,
+        messages: [createToastMessage("1", "New toast")],
       };
       rerender(<MainLayout {...props} />);
 
@@ -1904,6 +1958,8 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       const props = createDefaultProps();
       props.isDM = true;
       props.snapshot = {
+        users: [],
+        diceRolls: [],
         players: [],
         characters: [],
         tokens: [],
@@ -1960,11 +2016,12 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       const props = createDefaultProps();
       props.isDM = true;
       props.toast = {
+        ...props.toast,
         messages: Array.from({ length: 20 }, (_, i) => ({
           id: `toast-${i}`,
+          type: "info" as const,
           message: `Toast message ${i}`,
-        })) as unknown[],
-        dismiss: vi.fn(),
+        })),
       };
 
       render(<MainLayout {...props} />);
@@ -2077,11 +2134,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
         { world: { x: 0, y: 0 }, local: { x: 0, y: 0 } },
         { world: { x: 100, y: 100 }, local: { x: 50, y: 50 } },
       ];
-      props.alignmentSuggestion = {
-        position: { x: 50, y: 50 },
-        scale: { x: 1.2, y: 1.2 },
-        rotation: 45,
-      };
+      props.alignmentSuggestion = createAlignmentSuggestion(50, 50, 1.2, 45);
       props.roomPasswordStatus = { type: "success", message: "Password set" };
       props.roomPasswordPending = false;
       props.rollHistory = [
@@ -2095,8 +2148,8 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
         },
       ];
       props.toast = {
-        messages: [{ id: "toast-1", message: "Test toast" }] as unknown[],
-        dismiss: vi.fn(),
+        ...props.toast,
+        messages: [createToastMessage("toast-1", "Test toast")],
       };
 
       render(<MainLayout {...props} />);
@@ -2162,9 +2215,9 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       };
       props.contextMenu = { x: 400, y: 500, tokenId: "ctx-token" };
       props.toast.messages = [
-        { id: "t1", message: "Toast 1" },
-        { id: "t2", message: "Toast 2" },
-      ] as unknown[];
+        createToastMessage("t1", "Toast 1"),
+        createToastMessage("t2", "Toast 2"),
+      ];
       props.gridSize = 100;
       props.camera = { x: 500, y: 600, scale: 2.5 };
       rerender(<MainLayout {...props} />);
@@ -2284,6 +2337,8 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       props.isDM = true;
       const longUrl = "https://example.com/" + "a".repeat(5000) + ".jpg";
       props.snapshot = {
+        users: [],
+        diceRolls: [],
         players: [],
         characters: [],
         tokens: [],
@@ -2356,19 +2411,42 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
       props.toast.messages = Array.from({ length: largeNumber }, (_, i) => ({
         id: `toast-${i}`,
+        type: "info" as const,
         message: `Message ${i}`,
-      })) as unknown[];
+      }));
 
       props.snapshot = {
-        players: Array(largeNumber).fill({}) as unknown[],
-        characters: Array(largeNumber).fill({}) as unknown[],
+        users: [],
+        diceRolls: [],
+        players: Array.from({ length: largeNumber }, (_, i) => ({
+          uid: `player-${i}`,
+          name: `Player ${i}`,
+        })),
+        characters: Array.from({ length: largeNumber }, (_, i) => ({
+          id: `character-${i}`,
+          type: "pc" as const,
+          name: `Character ${i}`,
+          hp: 10,
+          maxHp: 10,
+        })),
         tokens: [],
         sceneObjects: [],
         drawings: [],
         pointers: [],
         gridSize: 50,
         gridSquareSize: 5,
-        props: Array(largeNumber).fill({}) as unknown[],
+        props: Array.from({ length: largeNumber }, (_, i) => ({
+          id: `prop-${i}`,
+          label: `Prop ${i}`,
+          imageUrl: `prop-${i}.png`,
+          owner: null,
+          size: "medium" as const,
+          x: 0,
+          y: 0,
+          scaleX: 1,
+          scaleY: 1,
+          rotation: 0,
+        })),
       };
 
       render(<MainLayout {...props} />);

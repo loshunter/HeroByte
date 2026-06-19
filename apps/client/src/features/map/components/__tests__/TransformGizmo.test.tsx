@@ -34,16 +34,43 @@ import type Konva from "konva";
 // ============================================================================
 
 // Store props in a WeakMap to handle non-serializable values (functions, etc.)
-const propsMap = new WeakMap<HTMLElement, Record<string, unknown>>();
+interface MockComponentProps {
+  children?: ReactNode;
+  [key: string]: unknown;
+}
+
+const propsMap = new WeakMap<HTMLElement, MockComponentProps>();
 
 // Mock event listeners storage
 const eventListeners: Record<string, Array<{ event: string; handler: (e?: unknown) => void }>> = {};
 
-// Mock node reference
-let mockNodeRef: Partial<Konva.Node> | null = null;
+interface MockNode {
+  draggable: ReturnType<typeof vi.fn>;
+  getAttr: ReturnType<typeof vi.fn>;
+  setAttr: ReturnType<typeof vi.fn>;
+  startDrag: ReturnType<typeof vi.fn>;
+  scaleX: ReturnType<typeof vi.fn>;
+  scaleY: ReturnType<typeof vi.fn>;
+  rotation: ReturnType<typeof vi.fn>;
+  x: ReturnType<typeof vi.fn>;
+  y: ReturnType<typeof vi.fn>;
+  position: ReturnType<typeof vi.fn>;
+  on: ReturnType<typeof vi.fn>;
+  off: ReturnType<typeof vi.fn>;
+}
 
-// Mock transformer reference
-let mockTransformerRef: Partial<Konva.Transformer> | null = null;
+interface MockTransformer {
+  nodes: ReturnType<typeof vi.fn>;
+  getStage: ReturnType<typeof vi.fn>;
+  getLayer: ReturnType<typeof vi.fn>;
+  getClientRect: ReturnType<typeof vi.fn>;
+  rotationSnaps: ReturnType<typeof vi.fn>;
+  on: ReturnType<typeof vi.fn>;
+  off: ReturnType<typeof vi.fn>;
+}
+
+let mockNodeRef: MockNode | null = null;
+let mockTransformerRef: MockTransformer | null = null;
 
 // Mock stage container
 const mockStageContainer = {
@@ -51,7 +78,7 @@ const mockStageContainer = {
 };
 
 // Factory function to create mock transformer with current state
-const createMockTransformer = () => ({
+const createMockTransformer = (): MockTransformer => ({
   nodes: vi.fn((nodes?: Konva.Node[]) => {
     // nodes() is both a getter and setter
     if (nodes !== undefined) {
@@ -99,7 +126,7 @@ function createMockComponent(
   testId: string,
   options: { withChildren?: boolean; getRefValue?: () => unknown } = {},
 ) {
-  const Component = forwardRef<HTMLDivElement, Record<string, unknown> & { children?: ReactNode }>(
+  const Component = forwardRef<HTMLDivElement, MockComponentProps>(
     ({ children, ...props }, ref) => {
       const setRef = (el: HTMLElement | null) => {
         if (el) {
@@ -116,7 +143,7 @@ function createMockComponent(
       if (options.withChildren) {
         return (
           <div data-testid={testId} ref={setRef}>
-            {children}
+            {children as ReactNode}
           </div>
         );
       }
@@ -132,7 +159,7 @@ function createMockComponent(
 // Mock Konva components
 vi.mock("react-konva", () => ({
   Transformer: createMockComponent("konva-transformer", {
-    getRefValue: () => mockTransformerRef as Konva.Transformer,
+    getRefValue: () => mockTransformerRef as unknown as Konva.Transformer,
   }),
   Group: createMockComponent("konva-group", { withChildren: true }),
   Rect: createMockComponent("konva-rect"),
@@ -149,7 +176,11 @@ const getProps = (element: Element | null): Record<string, unknown> => {
 // TEST DATA
 // ============================================================================
 
-const createSceneObject = (overrides?: Partial<SceneObject>): SceneObject => ({
+type TokenSceneObject = Extract<SceneObject, { type: "token" }>;
+
+const createSceneObject = (
+  overrides?: Partial<Omit<TokenSceneObject, "id" | "type">>,
+): TokenSceneObject => ({
   id: "obj-1",
   type: "token",
   owner: "user-1",
@@ -162,15 +193,17 @@ const createSceneObject = (overrides?: Partial<SceneObject>): SceneObject => ({
     scaleY: 1,
     rotation: 0,
   },
-  data: {},
+  data: { color: "#ff0000", size: "medium" },
   ...overrides,
 });
 
-const createMockNode = (overrides?: Partial<Konva.Node>): Partial<Konva.Node> => ({
+const createMockNode = (overrides?: Partial<MockNode>): MockNode => ({
   draggable: vi.fn((value?: boolean) => {
     if (value !== undefined) {
-      mockNodeRef = { ...mockNodeRef, draggable: vi.fn(() => value) };
-      return mockNodeRef as Konva.Node;
+      if (mockNodeRef) {
+        mockNodeRef = { ...mockNodeRef, draggable: vi.fn(() => value) };
+      }
+      return mockNodeRef as unknown as Konva.Node;
     }
     return false;
   }),
@@ -207,7 +240,7 @@ const createMockNode = (overrides?: Partial<Konva.Node>): Partial<Konva.Node> =>
 const createDefaultProps = (overrides?: Partial<React.ComponentProps<typeof TransformGizmo>>) => ({
   selectedObject: createSceneObject(),
   onTransform: vi.fn(),
-  getNodeRef: vi.fn(() => mockNodeRef as Konva.Node),
+  getNodeRef: vi.fn(() => mockNodeRef as unknown as Konva.Node),
   ...overrides,
 });
 
@@ -1207,7 +1240,7 @@ describe("TransformGizmo", () => {
 
     it("should handle missing getLayer on transformer", () => {
       mockTransformerRef = {
-        ...mockTransformerRef,
+        ...createMockTransformer(),
         getLayer: vi.fn(() => null),
       };
 

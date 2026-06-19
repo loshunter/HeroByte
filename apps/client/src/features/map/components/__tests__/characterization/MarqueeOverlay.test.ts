@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import type { MarqueeRect } from "../../../../hooks/useMarqueeSelection";
+import type { MarqueeRect } from "../../../../../hooks/useMarqueeSelection";
 
 interface MarqueeRenderResult {
   rendered: boolean;

@@ -10,8 +10,8 @@ describe("useCameraControl", () => {
 
   const mockSnapshot: Partial<RoomSnapshot> = {
     tokens: [
-      { id: "token-1", x: 10, y: 20, owner: "player-1", name: "Hero", color: "#ff0000" },
-      { id: "token-2", x: 5, y: 8, owner: "player-2", name: "Villain", color: "#0000ff" },
+      { id: "token-1", x: 10, y: 20, owner: "player-1", color: "#ff0000" },
+      { id: "token-2", x: 5, y: 8, owner: "player-2", color: "#0000ff" },
     ],
   };
 

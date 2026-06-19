@@ -63,7 +63,7 @@ export class TokenDispatcher {
         return (
           this.authWrapper.executeIfDMAuthorized(senderUid, isDM, "clear all tokens", () =>
             this.handler.handleClearAll(state, senderUid),
-          ) || null
+          ) ?? {}
         );
 
       default:

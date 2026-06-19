@@ -3,6 +3,17 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { useE2ETestingSupport } from "../useE2ETestingSupport";
 import type { RoomSnapshot } from "@shared";
 
+const createSnapshot = (overrides: Partial<RoomSnapshot> = {}): RoomSnapshot => ({
+  users: [],
+  tokens: [],
+  players: [],
+  characters: [],
+  pointers: [],
+  gridSize: 50,
+  diceRolls: [],
+  ...overrides,
+});
+
 describe("useE2ETestingSupport", () => {
   let originalWindow: typeof window | undefined;
   let originalEnvMode: string;
@@ -18,7 +29,6 @@ describe("useE2ETestingSupport", () => {
     if (originalWindow) {
       global.window = originalWindow;
     }
-    // @ts-expect-error - Setting env mode for testing
     import.meta.env.MODE = originalEnvMode;
 
     // Clean up E2E state
@@ -43,16 +53,9 @@ describe("useE2ETestingSupport", () => {
 
   describe("Production guard", () => {
     it("does nothing in production mode", () => {
-      // @ts-expect-error - Setting env mode for testing
       import.meta.env.MODE = "production";
 
-      const mockSnapshot: RoomSnapshot = {
-        roomId: "test-room",
-        sceneObjects: [],
-        gridSize: 50,
-        worldHeight: 1000,
-        worldWidth: 1000,
-      };
+      const mockSnapshot = createSnapshot();
 
       renderHook(() =>
         useE2ETestingSupport({
@@ -69,18 +72,11 @@ describe("useE2ETestingSupport", () => {
   describe("State exposure", () => {
     beforeEach(() => {
       // Ensure we're in test mode (non-production)
-      // @ts-expect-error - Setting env mode for testing
       import.meta.env.MODE = "test";
     });
 
     it("correctly sets window.__HERO_BYTE_E2E__ with provided state", () => {
-      const mockSnapshot: RoomSnapshot = {
-        roomId: "test-room",
-        sceneObjects: [],
-        gridSize: 50,
-        worldHeight: 1000,
-        worldWidth: 1000,
-      };
+      const mockSnapshot = createSnapshot();
 
       renderHook(() =>
         useE2ETestingSupport({
@@ -97,13 +93,7 @@ describe("useE2ETestingSupport", () => {
     });
 
     it("exposes camera state when provided", () => {
-      const mockSnapshot: RoomSnapshot = {
-        roomId: "test-room",
-        sceneObjects: [],
-        gridSize: 50,
-        worldHeight: 1000,
-        worldWidth: 1000,
-      };
+      const mockSnapshot = createSnapshot();
 
       const mockCam = { x: 100, y: 200, scale: 1.5 };
 
@@ -120,13 +110,7 @@ describe("useE2ETestingSupport", () => {
     });
 
     it("exposes viewport state when provided", () => {
-      const mockSnapshot: RoomSnapshot = {
-        roomId: "test-room",
-        sceneObjects: [],
-        gridSize: 50,
-        worldHeight: 1000,
-        worldWidth: 1000,
-      };
+      const mockSnapshot = createSnapshot();
 
       const mockViewport = { width: 1920, height: 1080 };
 
@@ -159,18 +143,11 @@ describe("useE2ETestingSupport", () => {
 
   describe("Non-destructive merge", () => {
     beforeEach(() => {
-      // @ts-expect-error - Setting env mode for testing
       import.meta.env.MODE = "test";
     });
 
     it("preserves existing properties when updating", () => {
-      const mockSnapshot: RoomSnapshot = {
-        roomId: "test-room",
-        sceneObjects: [],
-        gridSize: 50,
-        worldHeight: 1000,
-        worldWidth: 1000,
-      };
+      const mockSnapshot = createSnapshot();
 
       // Set initial E2E state
       window.__HERO_BYTE_E2E__ = {
@@ -199,13 +176,7 @@ describe("useE2ETestingSupport", () => {
     });
 
     it("allows multiple hook calls to enrich state", () => {
-      const mockSnapshot: RoomSnapshot = {
-        roomId: "test-room",
-        sceneObjects: [],
-        gridSize: 50,
-        worldHeight: 1000,
-        worldWidth: 1000,
-      };
+      const mockSnapshot = createSnapshot();
 
       // First call: App.tsx sets base state
       renderHook(() =>
@@ -249,26 +220,12 @@ describe("useE2ETestingSupport", () => {
 
   describe("Re-runs on dependency changes", () => {
     beforeEach(() => {
-      // @ts-expect-error - Setting env mode for testing
       import.meta.env.MODE = "test";
     });
 
     it("updates when snapshot changes", () => {
-      const mockSnapshot1: RoomSnapshot = {
-        roomId: "room-1",
-        sceneObjects: [],
-        gridSize: 50,
-        worldHeight: 1000,
-        worldWidth: 1000,
-      };
-
-      const mockSnapshot2: RoomSnapshot = {
-        roomId: "room-2",
-        sceneObjects: [],
-        gridSize: 50,
-        worldHeight: 1000,
-        worldWidth: 1000,
-      };
+      const mockSnapshot1 = createSnapshot();
+      const mockSnapshot2 = createSnapshot();
 
       const { rerender } = renderHook(
         ({ snapshot }) =>
@@ -288,13 +245,7 @@ describe("useE2ETestingSupport", () => {
     });
 
     it("updates when uid changes", () => {
-      const mockSnapshot: RoomSnapshot = {
-        roomId: "test-room",
-        sceneObjects: [],
-        gridSize: 50,
-        worldHeight: 1000,
-        worldWidth: 1000,
-      };
+      const mockSnapshot = createSnapshot();
 
       const { rerender } = renderHook(
         ({ uid }) =>
@@ -314,13 +265,7 @@ describe("useE2ETestingSupport", () => {
     });
 
     it("updates when gridSize changes", () => {
-      const mockSnapshot: RoomSnapshot = {
-        roomId: "test-room",
-        sceneObjects: [],
-        gridSize: 50,
-        worldHeight: 1000,
-        worldWidth: 1000,
-      };
+      const mockSnapshot = createSnapshot();
 
       const { rerender } = renderHook(
         ({ gridSize }) =>
@@ -340,13 +285,7 @@ describe("useE2ETestingSupport", () => {
     });
 
     it("updates when cam changes", () => {
-      const mockSnapshot: RoomSnapshot = {
-        roomId: "test-room",
-        sceneObjects: [],
-        gridSize: 50,
-        worldHeight: 1000,
-        worldWidth: 1000,
-      };
+      const mockSnapshot = createSnapshot();
 
       const cam1 = { x: 100, y: 200, scale: 1.0 };
       const cam2 = { x: 300, y: 400, scale: 2.0 };
@@ -370,13 +309,7 @@ describe("useE2ETestingSupport", () => {
     });
 
     it("updates when viewport changes", () => {
-      const mockSnapshot: RoomSnapshot = {
-        roomId: "test-room",
-        sceneObjects: [],
-        gridSize: 50,
-        worldHeight: 1000,
-        worldWidth: 1000,
-      };
+      const mockSnapshot = createSnapshot();
 
       const viewport1 = { width: 1920, height: 1080 };
       const viewport2 = { width: 1280, height: 720 };
@@ -402,18 +335,11 @@ describe("useE2ETestingSupport", () => {
 
   describe("Optional properties", () => {
     beforeEach(() => {
-      // @ts-expect-error - Setting env mode for testing
       import.meta.env.MODE = "test";
     });
 
     it("handles missing cam gracefully", () => {
-      const mockSnapshot: RoomSnapshot = {
-        roomId: "test-room",
-        sceneObjects: [],
-        gridSize: 50,
-        worldHeight: 1000,
-        worldWidth: 1000,
-      };
+      const mockSnapshot = createSnapshot();
 
       renderHook(() =>
         useE2ETestingSupport({
@@ -432,13 +358,7 @@ describe("useE2ETestingSupport", () => {
     });
 
     it("handles missing viewport gracefully", () => {
-      const mockSnapshot: RoomSnapshot = {
-        roomId: "test-room",
-        sceneObjects: [],
-        gridSize: 50,
-        worldHeight: 1000,
-        worldWidth: 1000,
-      };
+      const mockSnapshot = createSnapshot();
 
       renderHook(() =>
         useE2ETestingSupport({
@@ -457,13 +377,7 @@ describe("useE2ETestingSupport", () => {
     });
 
     it("handles both cam and viewport missing", () => {
-      const mockSnapshot: RoomSnapshot = {
-        roomId: "test-room",
-        sceneObjects: [],
-        gridSize: 50,
-        worldHeight: 1000,
-        worldWidth: 1000,
-      };
+      const mockSnapshot = createSnapshot();
 
       renderHook(() =>
         useE2ETestingSupport({
@@ -482,13 +396,7 @@ describe("useE2ETestingSupport", () => {
     });
 
     it("allows adding cam to existing state without cam", () => {
-      const mockSnapshot: RoomSnapshot = {
-        roomId: "test-room",
-        sceneObjects: [],
-        gridSize: 50,
-        worldHeight: 1000,
-        worldWidth: 1000,
-      };
+      const mockSnapshot = createSnapshot();
 
       // First render without cam
       const { rerender } = renderHook(
@@ -499,7 +407,11 @@ describe("useE2ETestingSupport", () => {
             gridSize: 50,
             cam,
           }),
-        { initialProps: { cam: undefined } },
+        {
+          initialProps: {
+            cam: undefined as { x: number; y: number; scale: number } | undefined,
+          },
+        },
       );
 
       expect(window.__HERO_BYTE_E2E__?.cam).toBeUndefined();

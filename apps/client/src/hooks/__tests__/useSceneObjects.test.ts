@@ -70,7 +70,10 @@ describe("useSceneObjects - Migration Logic", () => {
       id: "d1",
       owner: "player1",
       type: "freehand",
-      points: [0, 0, 10, 10],
+      points: [
+        { x: 0, y: 0 },
+        { x: 10, y: 10 },
+      ],
       color: "#00ff00",
       width: 5,
       opacity: 0.5,
@@ -120,7 +123,7 @@ describe("useSceneObjects - Migration Logic", () => {
       x: 50,
       y: 50,
       name: "User 1",
-      color: "#000",
+      timestamp: Date.now(),
     };
 
     const snapshot = createLegacySnapshot({
@@ -169,7 +172,9 @@ describe("useSceneObjects - Migration Logic", () => {
     const { result } = renderHook(() => useSceneObjects(snapshot));
 
     expect(result.current).toHaveLength(1);
-    expect(result.current[0].data.imageUrl).toBe("new-map.jpg");
+    expect(result.current[0].type === "map" ? result.current[0].data.imageUrl : undefined).toBe(
+      "new-map.jpg",
+    );
   });
 
   it("should return empty array for null snapshot", () => {

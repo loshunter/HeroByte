@@ -14,7 +14,9 @@ type StageStub = {
   getStage: () => StageStub;
 };
 
-function createStage(pointer: Pointer | null): StageStub {
+type TestStage = StageStub & Konva.Stage;
+
+function createStage(pointer: Pointer | null): TestStage {
   const stage: StageStub = {
     pointer,
     getPointerPosition: () => stage.pointer,
@@ -23,17 +25,14 @@ function createStage(pointer: Pointer | null): StageStub {
     },
     getStage: () => stage,
   };
-  return stage;
+  return stage as unknown as TestStage;
 }
 
-function createEvent(
-  target: StageStub | { getStage: () => StageStub },
-  button = 0,
-): KonvaEventObject<PointerEvent> {
+function createEvent(target: Konva.Node, button = 0): KonvaEventObject<PointerEvent> {
   return {
     target,
     evt: { button } as PointerEvent,
-  } as KonvaEventObject<PointerEvent>;
+  } as unknown as KonvaEventObject<PointerEvent>;
 }
 
 type MockNodeRect = { x: number; y: number; width: number; height: number };
@@ -45,9 +44,11 @@ function createMockNode(rect: MockNodeRect, id: string): Konva.Node {
   } as unknown as Konva.Node;
 }
 
-function createOptions(
-  overrides: Partial<UseMarqueeSelectionOptions> = {},
-): UseMarqueeSelectionOptions {
+type TestMarqueeOptions = Omit<UseMarqueeSelectionOptions, "stageRef"> & {
+  stageRef: { current: TestStage };
+};
+
+function createOptions(overrides: Partial<TestMarqueeOptions> = {}): TestMarqueeOptions {
   const stage = createStage({ x: 0, y: 0 });
   const getAllNodes = vi.fn(() => new Map<string, Konva.Node>());
   return {
@@ -133,7 +134,8 @@ describe("useMarqueeSelection", () => {
   });
 
   it("falls back to onSelectObject when multi-selection callback is absent", () => {
-    const onSelectObject = vi.fn<[string | null, SelectionRequestOptions | undefined], void>();
+    const onSelectObject =
+      vi.fn<(id: string | null, options: SelectionRequestOptions | undefined) => void>();
     const node = createMockNode({ x: 0, y: 0, width: 2, height: 2 }, "prop:1");
     const options = createOptions({
       onSelectObject,
@@ -158,7 +160,8 @@ describe("useMarqueeSelection", () => {
   });
 
   it("deselects when marquee is tiny and no matches were found", () => {
-    const onSelectObject = vi.fn<[string | null, SelectionRequestOptions | undefined], void>();
+    const onSelectObject =
+      vi.fn<(id: string | null, options: SelectionRequestOptions | undefined) => void>();
     const options = createOptions({ onSelectObject });
     const { result } = renderHook(() => useMarqueeSelection(options));
 

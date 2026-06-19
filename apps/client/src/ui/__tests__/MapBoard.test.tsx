@@ -40,7 +40,7 @@ function createKonvaMock(testId: string, options: { omitProps?: string[] } = {})
 
     return (
       <div data-testid={testId} ref={(node) => assignRef(ref, node)} {...safeProps}>
-        {children}
+        {children as ReactNode}
       </div>
     );
   });
@@ -51,7 +51,7 @@ function createKonvaMock(testId: string, options: { omitProps?: string[] } = {})
 
 // Mock Konva components
 vi.mock("react-konva", () => ({
-  Stage: createKonvaMock("konva-stage", { omitProps: ["onDblTap", "onDblClick"] }),
+  Stage: createKonvaMock("konva-stage", { omitProps: ["onDblTap", "onDblClick", "onTap"] }),
   Layer: createKonvaMock("konva-layer", { omitProps: ["listening"] }),
 }));
 
@@ -227,6 +227,7 @@ describe("MapBoard", () => {
 
     it("should render with empty snapshot", () => {
       const emptySnapshot: RoomSnapshot = {
+        users: [],
         gridSize: 50,
         gridSquareSize: 5,
         mapBackground: "",

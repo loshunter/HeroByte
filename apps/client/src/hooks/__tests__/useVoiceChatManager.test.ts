@@ -69,6 +69,7 @@ describe("useVoiceChatManager - Characterization Tests", () => {
 
     it("should compute otherPlayerUIDs from snapshot", () => {
       const mockSnapshot: RoomSnapshot = {
+        users: [],
         gridSize: 50,
         gridSquareSize: 5,
         mapBackground: "",
@@ -104,6 +105,7 @@ describe("useVoiceChatManager - Characterization Tests", () => {
 
     it("should exclude current player from otherPlayerUIDs", () => {
       const mockSnapshot: RoomSnapshot = {
+        users: [],
         gridSize: 50,
         gridSquareSize: 5,
         mapBackground: "",
@@ -157,6 +159,7 @@ describe("useVoiceChatManager - Characterization Tests", () => {
 
     it("should pass correct params to useVoiceChat", () => {
       const mockSnapshot: RoomSnapshot = {
+        users: [],
         gridSize: 50,
         gridSquareSize: 5,
         mapBackground: "",
@@ -288,6 +291,7 @@ describe("useVoiceChatManager - Characterization Tests", () => {
 
     it("should update otherPlayerUIDs when snapshot changes", () => {
       const initialSnapshot: RoomSnapshot = {
+        users: [],
         gridSize: 50,
         gridSquareSize: 5,
         mapBackground: "",

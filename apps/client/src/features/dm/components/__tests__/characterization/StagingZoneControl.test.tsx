@@ -431,11 +431,11 @@ describe("StagingZoneControl - Characterization Tests", () => {
       const rotationInput = screen.getByLabelText("Rotation (degrees)");
 
       // Values are updated (exact values depend on camera/gridSize calculation)
-      expect(centerXInput.value).not.toBe("");
-      expect(centerYInput.value).not.toBe("");
-      expect(widthInput.value).not.toBe("");
-      expect(heightInput.value).not.toBe("");
-      expect(rotationInput.value).toBe("0"); // Rotation is always reset to 0
+      expect(centerXInput).not.toHaveValue("");
+      expect(centerYInput).not.toHaveValue("");
+      expect(widthInput).not.toHaveValue("");
+      expect(heightInput).not.toHaveValue("");
+      expect(rotationInput).toHaveValue(0); // Rotation is always reset to 0
     });
   });
 

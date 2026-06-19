@@ -13,6 +13,16 @@ import { renderHook, act } from "@testing-library/react";
 import type { RoomSnapshot } from "@shared";
 import { useCameraCommands } from "../../../hooks/useCameraCommands";
 
+const createSnapshot = ({ tokens }: Pick<RoomSnapshot, "tokens">): RoomSnapshot => ({
+  users: [],
+  tokens,
+  players: [],
+  characters: [],
+  pointers: [],
+  gridSize: 50,
+  diceRolls: [],
+});
+
 describe("useCameraCommands - Characterization", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -34,20 +44,18 @@ describe("useCameraCommands - Characterization", () => {
 
   describe("handleFocusSelf", () => {
     it("should set focus command when user token exists", () => {
-      const snapshot: RoomSnapshot = {
+      const snapshot = createSnapshot({
         tokens: [
           {
             id: "token1",
             owner: "user123",
-            name: "Player Token",
             x: 100,
             y: 200,
             size: "medium" as const,
             color: "#ff0000",
-            imageUrl: null,
           },
         ],
-      } as RoomSnapshot;
+      });
 
       const { result } = renderHook(() => useCameraCommands({ snapshot, uid: "user123" }));
 
@@ -62,20 +70,18 @@ describe("useCameraCommands - Characterization", () => {
     });
 
     it("should show alert and not set command when user has no token", () => {
-      const snapshot: RoomSnapshot = {
+      const snapshot = createSnapshot({
         tokens: [
           {
             id: "token1",
             owner: "otherUser",
-            name: "Other Token",
             x: 100,
             y: 200,
             size: "medium" as const,
             color: "#ff0000",
-            imageUrl: null,
           },
         ],
-      } as RoomSnapshot;
+      });
 
       const { result } = renderHook(() => useCameraCommands({ snapshot, uid: "user123" }));
 
@@ -99,9 +105,9 @@ describe("useCameraCommands - Characterization", () => {
     });
 
     it("should show alert when tokens array is empty", () => {
-      const snapshot: RoomSnapshot = {
+      const snapshot = createSnapshot({
         tokens: [],
-      } as RoomSnapshot;
+      });
 
       const { result } = renderHook(() => useCameraCommands({ snapshot, uid: "user123" }));
 
@@ -114,40 +120,34 @@ describe("useCameraCommands - Characterization", () => {
     });
 
     it("should find correct token when multiple tokens exist", () => {
-      const snapshot: RoomSnapshot = {
+      const snapshot = createSnapshot({
         tokens: [
           {
             id: "token1",
             owner: "otherUser1",
-            name: "Token 1",
             x: 100,
             y: 200,
             size: "medium" as const,
             color: "#ff0000",
-            imageUrl: null,
           },
           {
             id: "token2",
             owner: "user123",
-            name: "My Token",
             x: 150,
             y: 250,
             size: "medium" as const,
             color: "#00ff00",
-            imageUrl: null,
           },
           {
             id: "token3",
             owner: "otherUser2",
-            name: "Token 3",
             x: 200,
             y: 300,
             size: "medium" as const,
             color: "#0000ff",
-            imageUrl: null,
           },
         ],
-      } as RoomSnapshot;
+      });
 
       const { result } = renderHook(() => useCameraCommands({ snapshot, uid: "user123" }));
 
@@ -176,9 +176,9 @@ describe("useCameraCommands - Characterization", () => {
     });
 
     it("should set reset command regardless of snapshot state", () => {
-      const snapshot: RoomSnapshot = {
+      const snapshot = createSnapshot({
         tokens: [],
-      } as RoomSnapshot;
+      });
 
       const { result } = renderHook(() => useCameraCommands({ snapshot, uid: "user123" }));
 
@@ -192,20 +192,18 @@ describe("useCameraCommands - Characterization", () => {
     });
 
     it("should override existing focus command", () => {
-      const snapshot: RoomSnapshot = {
+      const snapshot = createSnapshot({
         tokens: [
           {
             id: "token1",
             owner: "user123",
-            name: "Player Token",
             x: 100,
             y: 200,
             size: "medium" as const,
             color: "#ff0000",
-            imageUrl: null,
           },
         ],
-      } as RoomSnapshot;
+      });
 
       const { result } = renderHook(() => useCameraCommands({ snapshot, uid: "user123" }));
 
@@ -248,20 +246,18 @@ describe("useCameraCommands - Characterization", () => {
     });
 
     it("should clear focus command", () => {
-      const snapshot: RoomSnapshot = {
+      const snapshot = createSnapshot({
         tokens: [
           {
             id: "token1",
             owner: "user123",
-            name: "Player Token",
             x: 100,
             y: 200,
             size: "medium" as const,
             color: "#ff0000",
-            imageUrl: null,
           },
         ],
-      } as RoomSnapshot;
+      });
 
       const { result } = renderHook(() => useCameraCommands({ snapshot, uid: "user123" }));
 
@@ -298,20 +294,18 @@ describe("useCameraCommands - Characterization", () => {
 
   describe("command lifecycle", () => {
     it("should support complete lifecycle: focus -> handle -> reset -> handle", () => {
-      const snapshot: RoomSnapshot = {
+      const snapshot = createSnapshot({
         tokens: [
           {
             id: "token1",
             owner: "user123",
-            name: "Player Token",
             x: 100,
             y: 200,
             size: "medium" as const,
             color: "#ff0000",
-            imageUrl: null,
           },
         ],
-      } as RoomSnapshot;
+      });
 
       const { result } = renderHook(() => useCameraCommands({ snapshot, uid: "user123" }));
 
@@ -349,20 +343,18 @@ describe("useCameraCommands - Characterization", () => {
 
   describe("dependency handling", () => {
     it("should update handleFocusSelf when snapshot changes", () => {
-      const snapshot1: RoomSnapshot = {
+      const snapshot1 = createSnapshot({
         tokens: [
           {
             id: "token1",
             owner: "user123",
-            name: "Token 1",
             x: 100,
             y: 200,
             size: "medium" as const,
             color: "#ff0000",
-            imageUrl: null,
           },
         ],
-      } as RoomSnapshot;
+      });
 
       const { result, rerender } = renderHook(
         ({ snapshot, uid }) => useCameraCommands({ snapshot, uid }),
@@ -386,20 +378,18 @@ describe("useCameraCommands - Characterization", () => {
       });
 
       // Update snapshot with new token
-      const snapshot2: RoomSnapshot = {
+      const snapshot2 = createSnapshot({
         tokens: [
           {
             id: "token2",
             owner: "user123",
-            name: "Token 2",
             x: 150,
             y: 250,
             size: "medium" as const,
             color: "#00ff00",
-            imageUrl: null,
           },
         ],
-      } as RoomSnapshot;
+      });
 
       rerender({ snapshot: snapshot2, uid: "user123" });
 
@@ -414,30 +404,26 @@ describe("useCameraCommands - Characterization", () => {
     });
 
     it("should update handleFocusSelf when uid changes", () => {
-      const snapshot: RoomSnapshot = {
+      const snapshot = createSnapshot({
         tokens: [
           {
             id: "token1",
             owner: "user123",
-            name: "Token 1",
             x: 100,
             y: 200,
             size: "medium" as const,
             color: "#ff0000",
-            imageUrl: null,
           },
           {
             id: "token2",
             owner: "user456",
-            name: "Token 2",
             x: 150,
             y: 250,
             size: "medium" as const,
             color: "#00ff00",
-            imageUrl: null,
           },
         ],
-      } as RoomSnapshot;
+      });
 
       const { result, rerender } = renderHook(
         ({ snapshot, uid }) => useCameraCommands({ snapshot, uid }),

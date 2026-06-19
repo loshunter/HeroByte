@@ -58,6 +58,16 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { ConnectionLifecycleManager, ConnectionState } from "../ConnectionLifecycleManager";
 
+type MockWebSocket = {
+  readyState: number;
+  send: ReturnType<typeof vi.fn>;
+  close: ReturnType<typeof vi.fn>;
+  onopen: () => void;
+  onmessage: (event: { data: string }) => void;
+  onclose: (event: { code: number; reason: string }) => void;
+  onerror: (event: Event) => void;
+};
+
 describe("ConnectionLifecycleManager - Characterization Tests", () => {
   let manager: ConnectionLifecycleManager;
   let mockOnStateChange: ReturnType<typeof vi.fn>;
@@ -66,7 +76,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
   let mockOnError: ReturnType<typeof vi.fn>;
   let mockOnMessage: ReturnType<typeof vi.fn>;
   let MockWebSocketClass: ReturnType<typeof vi.fn>;
-  let mockWebSocketInstance: WebSocket;
+  let mockWebSocketInstance: MockWebSocket;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -83,10 +93,10 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       readyState: WebSocket.CONNECTING,
       send: vi.fn(),
       close: vi.fn(),
-      onopen: null,
-      onmessage: null,
-      onclose: null,
-      onerror: null,
+      onopen: null as unknown as MockWebSocket["onopen"],
+      onmessage: null as unknown as MockWebSocket["onmessage"],
+      onclose: null as unknown as MockWebSocket["onclose"],
+      onerror: null as unknown as MockWebSocket["onerror"],
     };
 
     MockWebSocketClass = vi.fn(() => mockWebSocketInstance);
@@ -245,15 +255,15 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       staleSocket.onopen?.();
       expect(manager.getState()).toBe(ConnectionState.CONNECTED);
 
-      const replacementSocket: WebSocket = {
+      const replacementSocket: MockWebSocket = {
         readyState: WebSocket.OPEN,
         send: vi.fn(),
         close: vi.fn(),
-        onopen: null,
-        onmessage: null,
-        onclose: null,
-        onerror: null,
-      } as unknown as WebSocket;
+        onopen: null as unknown as MockWebSocket["onopen"],
+        onmessage: null as unknown as MockWebSocket["onmessage"],
+        onclose: null as unknown as MockWebSocket["onclose"],
+        onerror: null as unknown as MockWebSocket["onerror"],
+      };
 
       // Force internal ws reference to point to replacement socket
       // @ts-expect-error accessing private field for test verification

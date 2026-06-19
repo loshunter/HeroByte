@@ -144,7 +144,7 @@ describe("useSceneObjectsData", () => {
         baseSceneObjects[0],
         baseSceneObjects[1],
         {
-          ...baseSceneObjects[2],
+          ...(baseSceneObjects[2] as Extract<SceneObject, { type: "staging-zone" }>),
           data: { width: 2, height: 2, rotation: 15 },
         },
       ],

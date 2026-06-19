@@ -53,7 +53,7 @@ describe("MessageQueueManager - Characterization Tests", () => {
 
   describe("Send Immediately - Happy Path", () => {
     it("should send message immediately when connected and authenticated", () => {
-      const message: ClientMessage = { t: "move", x: 100, y: 200 };
+      const message: ClientMessage = { t: "move", id: "token-1", x: 100, y: 200 };
 
       queueManager.send(message, mockWebSocket, canSendFn);
 
@@ -63,8 +63,8 @@ describe("MessageQueueManager - Characterization Tests", () => {
     });
 
     it("should send multiple messages immediately when conditions allow", () => {
-      const message1: ClientMessage = { t: "move", x: 100, y: 200 };
-      const message2: ClientMessage = { t: "move", x: 150, y: 250 };
+      const message1: ClientMessage = { t: "move", id: "token-1", x: 100, y: 200 };
+      const message2: ClientMessage = { t: "move", id: "token-1", x: 150, y: 250 };
 
       queueManager.send(message1, mockWebSocket, canSendFn);
       queueManager.send(message2, mockWebSocket, canSendFn);
@@ -74,7 +74,7 @@ describe("MessageQueueManager - Characterization Tests", () => {
     });
 
     it("should call canSendFn to determine if can send", () => {
-      const message: ClientMessage = { t: "move", x: 100, y: 200 };
+      const message: ClientMessage = { t: "move", id: "token-1", x: 100, y: 200 };
 
       queueManager.send(message, mockWebSocket, canSendFn);
 
@@ -178,7 +178,7 @@ describe("MessageQueueManager - Characterization Tests", () => {
   describe("Message Queueing - When Cannot Send", () => {
     it("should queue message when not authenticated", () => {
       const notAuthenticatedFn = vi.fn(() => false);
-      const message: ClientMessage = { t: "move", x: 100, y: 200 };
+      const message: ClientMessage = { t: "move", id: "token-1", x: 100, y: 200 };
 
       queueManager.send(message, mockWebSocket, notAuthenticatedFn);
 
@@ -187,7 +187,7 @@ describe("MessageQueueManager - Characterization Tests", () => {
     });
 
     it("should queue message when WebSocket is null", () => {
-      const message: ClientMessage = { t: "move", x: 100, y: 200 };
+      const message: ClientMessage = { t: "move", id: "token-1", x: 100, y: 200 };
 
       queueManager.send(message, null, canSendFn);
 
@@ -200,7 +200,7 @@ describe("MessageQueueManager - Characterization Tests", () => {
         send: vi.fn(),
       } as unknown as WebSocket;
 
-      const message: ClientMessage = { t: "move", x: 100, y: 200 };
+      const message: ClientMessage = { t: "move", id: "token-1", x: 100, y: 200 };
 
       queueManager.send(message, connectingWebSocket, canSendFn);
 
@@ -210,9 +210,9 @@ describe("MessageQueueManager - Characterization Tests", () => {
 
     it("should queue multiple messages in FIFO order", () => {
       const notAuthenticatedFn = vi.fn(() => false);
-      const message1: ClientMessage = { t: "move", x: 100, y: 200 };
-      const message2: ClientMessage = { t: "move", x: 150, y: 250 };
-      const message3: ClientMessage = { t: "move", x: 200, y: 300 };
+      const message1: ClientMessage = { t: "move", id: "token-1", x: 100, y: 200 };
+      const message2: ClientMessage = { t: "move", id: "token-1", x: 150, y: 250 };
+      const message3: ClientMessage = { t: "move", id: "token-1", x: 200, y: 300 };
 
       queueManager.send(message1, mockWebSocket, notAuthenticatedFn);
       queueManager.send(message2, mockWebSocket, notAuthenticatedFn);
@@ -316,7 +316,7 @@ describe("MessageQueueManager - Characterization Tests", () => {
 
       // Queue 201 messages
       for (let i = 0; i < 201; i++) {
-        const message: ClientMessage = { t: "move", x: i, y: i };
+        const message: ClientMessage = { t: "move", id: "token-1", x: i, y: i };
         queueManager.send(message, mockWebSocket, notAuthenticatedFn);
       }
 
@@ -329,12 +329,12 @@ describe("MessageQueueManager - Characterization Tests", () => {
 
       // Fill queue to 200
       for (let i = 0; i < 200; i++) {
-        const message: ClientMessage = { t: "move", x: i, y: i };
+        const message: ClientMessage = { t: "move", id: "token-1", x: i, y: i };
         queueManager.send(message, mockWebSocket, notAuthenticatedFn);
       }
 
       // Add one more message (should drop first message)
-      const newMessage: ClientMessage = { t: "move", x: 999, y: 999 };
+      const newMessage: ClientMessage = { t: "move", id: "token-1", x: 999, y: 999 };
       queueManager.send(newMessage, mockWebSocket, notAuthenticatedFn);
 
       expect(queueManager.getQueueLength()).toBe(200);
@@ -346,7 +346,7 @@ describe("MessageQueueManager - Characterization Tests", () => {
 
       // Queue 51 messages
       for (let i = 0; i < 51; i++) {
-        const message: ClientMessage = { t: "move", x: i, y: i };
+        const message: ClientMessage = { t: "move", id: "token-1", x: i, y: i };
         customQueueManager.send(message, mockWebSocket, notAuthenticatedFn);
       }
 
@@ -361,9 +361,9 @@ describe("MessageQueueManager - Characterization Tests", () => {
       const nowAuthenticatedFn = vi.fn(() => true);
 
       // Queue 3 messages
-      const message1: ClientMessage = { t: "move", x: 100, y: 200 };
-      const message2: ClientMessage = { t: "move", x: 150, y: 250 };
-      const message3: ClientMessage = { t: "move", x: 200, y: 300 };
+      const message1: ClientMessage = { t: "move", id: "token-1", x: 100, y: 200 };
+      const message2: ClientMessage = { t: "move", id: "token-1", x: 150, y: 250 };
+      const message3: ClientMessage = { t: "move", id: "token-1", x: 200, y: 300 };
 
       queueManager.send(message1, mockWebSocket, notAuthenticatedFn);
       queueManager.send(message2, mockWebSocket, notAuthenticatedFn);
@@ -382,9 +382,9 @@ describe("MessageQueueManager - Characterization Tests", () => {
       const notAuthenticatedFn = vi.fn(() => false);
       const nowAuthenticatedFn = vi.fn(() => true);
 
-      const message1: ClientMessage = { t: "move", x: 1, y: 1 };
-      const message2: ClientMessage = { t: "move", x: 2, y: 2 };
-      const message3: ClientMessage = { t: "move", x: 3, y: 3 };
+      const message1: ClientMessage = { t: "move", id: "token-1", x: 1, y: 1 };
+      const message2: ClientMessage = { t: "move", id: "token-1", x: 2, y: 2 };
+      const message3: ClientMessage = { t: "move", id: "token-1", x: 3, y: 3 };
 
       queueManager.send(message1, mockWebSocket, notAuthenticatedFn);
       queueManager.send(message2, mockWebSocket, notAuthenticatedFn);
@@ -400,7 +400,7 @@ describe("MessageQueueManager - Characterization Tests", () => {
     it("should NOT flush when cannot send", () => {
       const notAuthenticatedFn = vi.fn(() => false);
 
-      const message: ClientMessage = { t: "move", x: 100, y: 200 };
+      const message: ClientMessage = { t: "move", id: "token-1", x: 100, y: 200 };
       queueManager.send(message, mockWebSocket, notAuthenticatedFn);
 
       queueManager.flush(mockWebSocket, notAuthenticatedFn);
@@ -410,7 +410,7 @@ describe("MessageQueueManager - Characterization Tests", () => {
     });
 
     it("should NOT flush when WebSocket is null", () => {
-      const message: ClientMessage = { t: "move", x: 100, y: 200 };
+      const message: ClientMessage = { t: "move", id: "token-1", x: 100, y: 200 };
       queueManager.send(message, null, canSendFn);
 
       queueManager.flush(null, canSendFn);
@@ -438,7 +438,7 @@ describe("MessageQueueManager - Characterization Tests", () => {
 
       const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-      const message: ClientMessage = { t: "move", x: 100, y: 200 };
+      const message: ClientMessage = { t: "move", id: "token-1", x: 100, y: 200 };
 
       queueManager.send(message, errorWebSocket, canSendFn);
 
@@ -451,7 +451,7 @@ describe("MessageQueueManager - Characterization Tests", () => {
 
     it("should queue message when WebSocket becomes unavailable during sendRaw", () => {
       // First send works
-      const message1: ClientMessage = { t: "move", x: 100, y: 200 };
+      const message1: ClientMessage = { t: "move", id: "token-1", x: 100, y: 200 };
       queueManager.send(message1, mockWebSocket, canSendFn);
       expect(mockWebSocket.send).toHaveBeenCalledOnce();
 
@@ -462,7 +462,7 @@ describe("MessageQueueManager - Characterization Tests", () => {
       } as unknown as WebSocket;
 
       // Second send should queue
-      const message2: ClientMessage = { t: "move", x: 150, y: 250 };
+      const message2: ClientMessage = { t: "move", id: "token-1", x: 150, y: 250 };
       queueManager.send(message2, closedWebSocket, canSendFn);
 
       expect(closedWebSocket.send).not.toHaveBeenCalled();
@@ -476,7 +476,7 @@ describe("MessageQueueManager - Characterization Tests", () => {
 
       // Queue several messages
       for (let i = 0; i < 10; i++) {
-        const message: ClientMessage = { t: "move", x: i, y: i };
+        const message: ClientMessage = { t: "move", id: "token-1", x: i, y: i };
         queueManager.send(message, mockWebSocket, notAuthenticatedFn);
       }
 
@@ -502,11 +502,11 @@ describe("MessageQueueManager - Characterization Tests", () => {
 
       expect(queueManager.getQueueLength()).toBe(0);
 
-      const message1: ClientMessage = { t: "move", x: 100, y: 200 };
+      const message1: ClientMessage = { t: "move", id: "token-1", x: 100, y: 200 };
       queueManager.send(message1, mockWebSocket, notAuthenticatedFn);
       expect(queueManager.getQueueLength()).toBe(1);
 
-      const message2: ClientMessage = { t: "move", x: 150, y: 250 };
+      const message2: ClientMessage = { t: "move", id: "token-1", x: 150, y: 250 };
       queueManager.send(message2, mockWebSocket, notAuthenticatedFn);
       expect(queueManager.getQueueLength()).toBe(2);
 
@@ -546,7 +546,7 @@ describe("MessageQueueManager - Characterization Tests", () => {
     it("should log when queueing message", () => {
       const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
       const notAuthenticatedFn = vi.fn(() => false);
-      const message: ClientMessage = { t: "move", x: 100, y: 200 };
+      const message: ClientMessage = { t: "move", id: "token-1", x: 100, y: 200 };
 
       queueManager.send(message, mockWebSocket, notAuthenticatedFn);
 
@@ -562,7 +562,7 @@ describe("MessageQueueManager - Characterization Tests", () => {
       const notAuthenticatedFn = vi.fn(() => false);
       const nowAuthenticatedFn = vi.fn(() => true);
 
-      const message: ClientMessage = { t: "move", x: 100, y: 200 };
+      const message: ClientMessage = { t: "move", id: "token-1", x: 100, y: 200 };
       queueManager.send(message, mockWebSocket, notAuthenticatedFn);
 
       queueManager.flush(mockWebSocket, nowAuthenticatedFn);
@@ -587,7 +587,7 @@ describe("MessageQueueManager - Characterization Tests", () => {
     it("should handle rapid send calls", () => {
       // Rapidly send 100 messages
       for (let i = 0; i < 100; i++) {
-        const message: ClientMessage = { t: "move", x: i, y: i };
+        const message: ClientMessage = { t: "move", id: "token-1", x: i, y: i };
         queueManager.send(message, mockWebSocket, canSendFn);
       }
 
@@ -598,12 +598,12 @@ describe("MessageQueueManager - Characterization Tests", () => {
       const notAuthenticatedFn = vi.fn(() => false);
       const nowAuthenticatedFn = vi.fn(() => true);
 
-      const message1: ClientMessage = { t: "move", x: 1, y: 1 };
+      const message1: ClientMessage = { t: "move", id: "token-1", x: 1, y: 1 };
       queueManager.send(message1, mockWebSocket, notAuthenticatedFn);
 
       queueManager.flush(mockWebSocket, nowAuthenticatedFn);
 
-      const message2: ClientMessage = { t: "move", x: 2, y: 2 };
+      const message2: ClientMessage = { t: "move", id: "token-1", x: 2, y: 2 };
       queueManager.send(message2, mockWebSocket, nowAuthenticatedFn);
 
       expect(mockWebSocket.send).toHaveBeenCalledTimes(2);

@@ -5,7 +5,7 @@ import type { ClientMessage } from "@shared";
 
 describe("useStatusEffects - Characterization Tests", () => {
   it("should provide a setStatusEffects function", () => {
-    const sendMessage = vi.fn<[ClientMessage], void>();
+    const sendMessage = vi.fn<(message: ClientMessage) => void>();
     const { result } = renderHook(() => useStatusEffects({ sendMessage }));
 
     expect(result.current).toHaveProperty("setStatusEffects");
@@ -13,7 +13,7 @@ describe("useStatusEffects - Characterization Tests", () => {
   });
 
   it("should send set-status-effects message with correct payload", () => {
-    const sendMessage = vi.fn<[ClientMessage], void>();
+    const sendMessage = vi.fn<(message: ClientMessage) => void>();
     const { result } = renderHook(() => useStatusEffects({ sendMessage }));
 
     const effects = ["poisoned", "stunned"];
@@ -30,7 +30,7 @@ describe("useStatusEffects - Characterization Tests", () => {
   });
 
   it("should handle empty effects array", () => {
-    const sendMessage = vi.fn<[ClientMessage], void>();
+    const sendMessage = vi.fn<(message: ClientMessage) => void>();
     const { result } = renderHook(() => useStatusEffects({ sendMessage }));
 
     act(() => {
@@ -44,7 +44,7 @@ describe("useStatusEffects - Characterization Tests", () => {
   });
 
   it("should maintain callback stability when sendMessage is stable", () => {
-    const sendMessage = vi.fn<[ClientMessage], void>();
+    const sendMessage = vi.fn<(message: ClientMessage) => void>();
     const { result, rerender } = renderHook(() => useStatusEffects({ sendMessage }));
 
     const firstCallback = result.current.setStatusEffects;
@@ -55,7 +55,7 @@ describe("useStatusEffects - Characterization Tests", () => {
   });
 
   it("should update callback when sendMessage changes", () => {
-    const sendMessage1 = vi.fn<[ClientMessage], void>();
+    const sendMessage1 = vi.fn<(message: ClientMessage) => void>();
     const { result, rerender } = renderHook(
       ({ sendMessage }: { sendMessage: (msg: ClientMessage) => void }) =>
         useStatusEffects({ sendMessage }),
@@ -64,7 +64,7 @@ describe("useStatusEffects - Characterization Tests", () => {
 
     const firstCallback = result.current.setStatusEffects;
 
-    const sendMessage2 = vi.fn<[ClientMessage], void>();
+    const sendMessage2 = vi.fn<(message: ClientMessage) => void>();
     rerender({ sendMessage: sendMessage2 });
 
     const secondCallback = result.current.setStatusEffects;

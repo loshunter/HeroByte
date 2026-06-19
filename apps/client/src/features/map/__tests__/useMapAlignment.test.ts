@@ -514,7 +514,7 @@ describe("useMapAlignment - Characterization", () => {
       //   setAlignmentError(null);
       //   return;
       // }
-      const activeTool = "select";
+      const activeTool: string = "select";
 
       if (activeTool !== "align") {
         const clearedPoints: AlignmentPoint[] = [];
@@ -548,7 +548,7 @@ describe("useMapAlignment - Characterization", () => {
 
     it("should clear state when switching from align to draw", () => {
       // CURRENT BEHAVIOR: Tool switch effect
-      const activeTool = "draw";
+      const activeTool: string = "draw";
 
       if (activeTool !== "align") {
         const clearedPoints: AlignmentPoint[] = [];
@@ -586,7 +586,7 @@ describe("useMapAlignment - Characterization", () => {
       // if (activeTool !== "align") {
       //   return;
       // }
-      const activeTool = "select";
+      const activeTool: string = "select";
       const points = [mockPoint1, mockPoint2];
 
       if (activeTool !== "align") {
@@ -888,7 +888,7 @@ describe("useMapAlignment - Characterization", () => {
 
       // Check error threshold
       const tolerance = Math.max(0.5, gridSize * 0.02);
-      if (suggestion.error > tolerance) {
+      if (suggestion && suggestion.error > tolerance) {
         error = `Alignment residual ${suggestion.error.toFixed(2)}px — consider recapturing points.`;
       }
 

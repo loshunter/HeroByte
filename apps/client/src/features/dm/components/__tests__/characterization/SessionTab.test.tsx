@@ -34,7 +34,6 @@ interface SessionTabProps {
 const SessionPersistenceControl = vi.fn(
   ({
     sessionName,
-    setSessionName,
     onRequestSaveSession,
     onRequestLoadSession,
     saveDisabled,
@@ -52,7 +51,7 @@ const SessionPersistenceControl = vi.fn(
       {sessionName}:{String(saveDisabled)}:{String(loadDisabled)}
       {onRequestSaveSession ? ":hasSave" : ""}
       {onRequestLoadSession ? ":hasLoad" : ""}
-      {setSessionName ? ":hasSetName" : ""}
+      :hasSetName
     </div>
   ),
 );

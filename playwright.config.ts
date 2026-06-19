@@ -7,23 +7,14 @@ const WS_PORT = Number(process.env.E2E_WS_PORT ?? 8787);
 const WS_HOST = process.env.E2E_WS_HOST ?? "localhost";
 const E2E_STATE_FILE = process.env.E2E_STATE_FILE ?? "herobyte-state.e2e.json";
 
-export const deprecatedE2ETests = [
-  "**/character-creation.spec.ts",
-  "**/partial-erase.spec.ts",
-  "**/player-npc-initiative.spec.ts",
-  "**/session-load.spec.ts",
-  "**/staging-zone.spec.ts",
-  "**/transform-tool.spec.ts",
-];
-
 export default defineConfig({
   testDir: "./apps/e2e",
-  testIgnore: deprecatedE2ETests,
   timeout: 30_000,
   expect: {
     timeout: 10_000,
   },
-  // The E2E server owns one mutable room, so tests must not mutate it concurrently.
+  // HeroByte is intentionally a single-room server. Serial execution prevents
+  // one test's reset from invalidating another test's active connection.
   fullyParallel: false,
   workers: 1,
   forbidOnly: !!process.env.CI,

@@ -33,7 +33,7 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       };
 
       const { result } = renderHook(() =>
-        useServerEventHandlers({ registerServerEventHandler, toast }),
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
       );
 
       expect(result.current.roomPasswordStatus).toBeNull();
@@ -51,7 +51,7 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       };
 
       const { result } = renderHook(() =>
-        useServerEventHandlers({ registerServerEventHandler, toast }),
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
       );
 
       expect(result.current.roomPasswordPending).toBe(false);
@@ -68,7 +68,9 @@ describe("useServerEventHandlers - Characterization Tests", () => {
         messages: [],
       };
 
-      renderHook(() => useServerEventHandlers({ registerServerEventHandler, toast }));
+      renderHook(() =>
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
+      );
 
       expect(registerServerEventHandler).toHaveBeenCalledTimes(1);
       expect(typeof registerServerEventHandler.mock.calls[0][0]).toBe("function");
@@ -86,7 +88,7 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       };
 
       const { result } = renderHook(() =>
-        useServerEventHandlers({ registerServerEventHandler, toast }),
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
       );
 
       expect(result.current).toHaveProperty("dismissRoomPasswordStatus");
@@ -105,7 +107,7 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       };
 
       const { result } = renderHook(() =>
-        useServerEventHandlers({ registerServerEventHandler, toast }),
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
       );
 
       expect(result.current).toHaveProperty("startRoomPasswordUpdate");
@@ -129,7 +131,7 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       };
 
       const { result } = renderHook(() =>
-        useServerEventHandlers({ registerServerEventHandler, toast }),
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
       );
 
       expect(eventHandler).not.toBeNull();
@@ -163,7 +165,7 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       };
 
       const { result } = renderHook(() =>
-        useServerEventHandlers({ registerServerEventHandler, toast }),
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
       );
 
       // Simulate pending state (this would normally be set by the component)
@@ -196,7 +198,7 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       };
 
       const { result } = renderHook(() =>
-        useServerEventHandlers({ registerServerEventHandler, toast }),
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
       );
 
       act(() => {
@@ -227,7 +229,7 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       };
 
       const { result } = renderHook(() =>
-        useServerEventHandlers({ registerServerEventHandler, toast }),
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
       );
 
       act(() => {
@@ -257,7 +259,7 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       };
 
       const { result } = renderHook(() =>
-        useServerEventHandlers({ registerServerEventHandler, toast }),
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
       );
 
       act(() => {
@@ -286,7 +288,9 @@ describe("useServerEventHandlers - Characterization Tests", () => {
         messages: [],
       };
 
-      renderHook(() => useServerEventHandlers({ registerServerEventHandler, toast }));
+      renderHook(() =>
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
+      );
 
       act(() => {
         eventHandler!({
@@ -316,7 +320,9 @@ describe("useServerEventHandlers - Characterization Tests", () => {
         messages: [],
       };
 
-      renderHook(() => useServerEventHandlers({ registerServerEventHandler, toast }));
+      renderHook(() =>
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
+      );
 
       act(() => {
         eventHandler!({ t: "dm-status", isDM: true });
@@ -351,7 +357,9 @@ describe("useServerEventHandlers - Characterization Tests", () => {
         messages: [],
       };
 
-      renderHook(() => useServerEventHandlers({ registerServerEventHandler, toast }));
+      renderHook(() =>
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
+      );
 
       act(() => {
         eventHandler!({
@@ -380,7 +388,9 @@ describe("useServerEventHandlers - Characterization Tests", () => {
         messages: [],
       };
 
-      renderHook(() => useServerEventHandlers({ registerServerEventHandler, toast }));
+      renderHook(() =>
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
+      );
 
       act(() => {
         eventHandler!({
@@ -407,7 +417,9 @@ describe("useServerEventHandlers - Characterization Tests", () => {
         messages: [],
       };
 
-      renderHook(() => useServerEventHandlers({ registerServerEventHandler, toast }));
+      renderHook(() =>
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
+      );
 
       act(() => {
         eventHandler!({
@@ -433,7 +445,7 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       };
 
       const { result } = renderHook(() =>
-        useServerEventHandlers({ registerServerEventHandler, toast }),
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
       );
 
       expect(result.current.roomPasswordPending).toBe(false);
@@ -460,7 +472,7 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       };
 
       const { result } = renderHook(() =>
-        useServerEventHandlers({ registerServerEventHandler, toast }),
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
       );
 
       // Set a status first
@@ -494,7 +506,7 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       };
 
       const { result, rerender } = renderHook(() =>
-        useServerEventHandlers({ registerServerEventHandler, toast }),
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
       );
 
       const firstCallback = result.current.startRoomPasswordUpdate;
@@ -521,7 +533,7 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       };
 
       const { result } = renderHook(() =>
-        useServerEventHandlers({ registerServerEventHandler, toast }),
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
       );
 
       // Set a status first
@@ -555,7 +567,7 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       };
 
       const { result, rerender } = renderHook(() =>
-        useServerEventHandlers({ registerServerEventHandler, toast }),
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
       );
 
       const firstCallback = result.current.dismissRoomPasswordStatus;
@@ -582,7 +594,7 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       };
 
       const { result } = renderHook(() =>
-        useServerEventHandlers({ registerServerEventHandler, toast }),
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
       );
 
       // Send a different message type
@@ -615,7 +627,7 @@ describe("useServerEventHandlers - Characterization Tests", () => {
 
       const { rerender } = renderHook(
         ({ registerServerEventHandler }) =>
-          useServerEventHandlers({ registerServerEventHandler, toast }),
+          useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
         { initialProps: { registerServerEventHandler: registerServerEventHandler1 } },
       );
 
@@ -646,7 +658,8 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       };
 
       const { rerender } = renderHook(
-        ({ toast }) => useServerEventHandlers({ registerServerEventHandler, toast }),
+        ({ toast }) =>
+          useServerEventHandlers({ registerServerEventHandler, toast, sendMessage: vi.fn() }),
         {
           initialProps: { toast: toast1 },
         },

@@ -203,6 +203,7 @@ describe("MessageRouter - Characterization Tests", () => {
   describe("Room Snapshot Routing", () => {
     it("should route basic room snapshot to onMessage callback", () => {
       const snapshot: RoomSnapshot = {
+        users: [],
         gridSize: 50,
         gridSquareSize: 5,
         mapBackground: "test.png",
@@ -224,6 +225,7 @@ describe("MessageRouter - Characterization Tests", () => {
 
     it("should route snapshot with characters to onMessage", () => {
       const snapshot: RoomSnapshot = {
+        users: [],
         gridSize: 50,
         gridSquareSize: 5,
         mapBackground: "test.png",
@@ -231,10 +233,10 @@ describe("MessageRouter - Characterization Tests", () => {
         characters: [
           {
             id: "char-1",
+            type: "pc",
             name: "Warrior",
-            position: { x: 100, y: 200 },
-            color: "red",
-            size: 1,
+            hp: 20,
+            maxHp: 20,
           },
         ],
         tokens: [],
@@ -393,6 +395,7 @@ describe("MessageRouter - Characterization Tests", () => {
       const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
       const snapshot: RoomSnapshot = {
+        users: [],
         gridSize: 50,
         gridSquareSize: 5,
         mapBackground: "test.png",
@@ -400,19 +403,19 @@ describe("MessageRouter - Characterization Tests", () => {
         characters: [
           {
             id: "char-1",
+            type: "pc",
             name: "Fighter",
-            position: { x: 100, y: 100 },
-            color: "red",
-            size: 1,
+            hp: 20,
+            maxHp: 20,
             initiative: 18,
             initiativeModifier: 2,
           },
           {
             id: "char-2",
+            type: "pc",
             name: "Wizard",
-            position: { x: 200, y: 200 },
-            color: "blue",
-            size: 1,
+            hp: 15,
+            maxHp: 15,
             initiative: 14,
             initiativeModifier: 1,
           },
@@ -441,6 +444,7 @@ describe("MessageRouter - Characterization Tests", () => {
       const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
       const snapshot: RoomSnapshot = {
+        users: [],
         gridSize: 50,
         gridSquareSize: 5,
         mapBackground: "test.png",
@@ -448,10 +452,10 @@ describe("MessageRouter - Characterization Tests", () => {
         characters: [
           {
             id: "char-1",
+            type: "pc",
             name: "Fighter",
-            position: { x: 100, y: 100 },
-            color: "red",
-            size: 1,
+            hp: 20,
+            maxHp: 20,
             // No initiative data
           },
         ],

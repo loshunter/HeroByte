@@ -31,7 +31,7 @@ export class PropDispatcher {
               message.viewport,
               state.gridSize,
             ),
-          ) || null
+          ) ?? {}
         );
 
       case "update-prop":
@@ -43,14 +43,14 @@ export class PropDispatcher {
               owner: message.owner,
               size: message.size,
             }),
-          ) || null
+          ) ?? {}
         );
 
       case "delete-prop":
         return (
           this.authWrapper.executeIfDMAuthorized(senderUid, isDM, "delete prop", () =>
             this.handler.handleDeleteProp(state, message.id),
-          ) || null
+          ) ?? {}
         );
 
       default:

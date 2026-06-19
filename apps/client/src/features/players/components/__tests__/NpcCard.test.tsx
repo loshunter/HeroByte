@@ -424,7 +424,9 @@ describe("NpcCard", () => {
       expect(playerCard).toHaveStyle({
         background: "rgba(40, 9, 15, 0.9)",
       });
-      expect(playerCard?.style.boxShadow).toContain("rgba(214, 60, 83, 0.45)");
+      expect((playerCard as HTMLElement | null)?.style.boxShadow).toContain(
+        "rgba(214, 60, 83, 0.45)",
+      );
     });
 
     it("passes isDeleting to NpcSettingsMenu", () => {
@@ -1358,7 +1360,7 @@ describe("NpcCard", () => {
 
     it("handles character with null portrait", () => {
       const props = createDefaultProps({
-        character: createMockCharacter({ portrait: null }),
+        character: createMockCharacter({ portrait: null as unknown as string }),
       });
       render(<NpcCard {...props} />);
 

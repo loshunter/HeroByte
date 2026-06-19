@@ -24,7 +24,21 @@ import type { Camera } from "../../types";
 // ============================================================================
 
 // Store props in a WeakMap to handle non-serializable values (functions, etc.)
-const propsMap = new WeakMap<HTMLElement, Record<string, unknown>>();
+type TestEventPayload = Record<string, unknown>;
+
+interface MockKonvaProps {
+  children?: ReactNode;
+  onClick?: (event: TestEventPayload) => void;
+  onDragStart?: (event: TestEventPayload) => void;
+  onDragMove?: (event: TestEventPayload) => void;
+  onDragEnd?: (event: TestEventPayload) => void;
+  onDblClick?: (event: TestEventPayload) => void;
+  onMouseEnter?: (event: TestEventPayload) => void;
+  onMouseLeave?: (event: TestEventPayload) => void;
+  [key: string]: unknown;
+}
+
+const propsMap = new WeakMap<HTMLElement, MockKonvaProps>();
 
 function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
   if (typeof ref === "function") {
@@ -35,26 +49,24 @@ function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
 }
 
 function createMockKonvaComponent(testId: string, options: { withChildren?: boolean } = {}) {
-  const Component = forwardRef<HTMLElement, Record<string, unknown> & { children?: ReactNode }>(
-    ({ children, ...props }, ref) => {
-      const setRef = (el: HTMLElement | null) => {
-        if (el) {
-          propsMap.set(el, props);
-        }
-        assignRef(ref, el);
-      };
-
-      if (options.withChildren) {
-        return (
-          <div data-testid={testId} ref={setRef}>
-            {children}
-          </div>
-        );
+  const Component = forwardRef<HTMLElement, MockKonvaProps>(({ children, ...props }, ref) => {
+    const setRef = (el: HTMLElement | null) => {
+      if (el) {
+        propsMap.set(el, props);
       }
+      assignRef(ref, el);
+    };
 
-      return <div data-testid={testId} ref={setRef} />;
-    },
-  );
+    if (options.withChildren) {
+      return (
+        <div data-testid={testId} ref={setRef}>
+          {children as ReactNode}
+        </div>
+      );
+    }
+
+    return <div data-testid={testId} ref={setRef} />;
+  });
 
   Component.displayName = `Mock${testId}`;
   return Component;
@@ -70,7 +82,7 @@ vi.mock("react-konva", () => ({
 }));
 
 // Helper to get props from element
-const getProps = (element: Element | null): Record<string, unknown> => {
+const getProps = (element: Element | null): MockKonvaProps => {
   if (!element) return {};
   return propsMap.get(element as HTMLElement) || {};
 };
@@ -99,11 +111,13 @@ const createCamera = (overrides?: Partial<Camera>): Camera => ({
   ...overrides,
 });
 
+type TokenSceneObject = Extract<SceneObject, { type: "token" }>;
+
 const createTokenObject = (
   id: string,
   owner: string | null,
-  overrides?: Partial<SceneObject>,
-): SceneObject & { type: "token" } => ({
+  overrides?: Partial<Omit<TokenSceneObject, "id" | "type" | "owner">>,
+): TokenSceneObject => ({
   id,
   type: "token",
   owner,
@@ -123,7 +137,9 @@ const createTokenObject = (
   ...overrides,
 });
 
-const createDefaultProps = (overrides?: Partial<ComponentProps<typeof TokensLayer>>) => ({
+const createDefaultProps = (
+  overrides?: Partial<ComponentProps<typeof TokensLayer>>,
+): ComponentProps<typeof TokensLayer> => ({
   cam: createCamera(),
   sceneObjects: [],
   uid: "test-user",
@@ -140,10 +156,9 @@ const createDefaultProps = (overrides?: Partial<ComponentProps<typeof TokensLaye
   interactionsEnabled: true,
   statusEffectsByTokenId: {},
   onDragPreview: vi.fn(),
+  isDM: false,
   ...overrides,
 });
-
-type TestEventPayload = Record<string, unknown>;
 
 const invokeHandler = (
   handler: ((event: TestEventPayload) => void) | undefined,
@@ -759,7 +774,7 @@ describe("TokensLayer", () => {
 
       // Simulate click
       const onClick = rectProps.onClick;
-      onClick({ evt: { shiftKey: false, ctrlKey: false, metaKey: false }, cancelBubble: false });
+      onClick?.({ evt: { shiftKey: false, ctrlKey: false, metaKey: false }, cancelBubble: false });
 
       expect(onSelectObject).toHaveBeenCalledWith("token:1", { mode: "replace" });
     });
@@ -778,7 +793,7 @@ describe("TokensLayer", () => {
       const rectProps = getProps(rect);
 
       const onClick = rectProps.onClick;
-      onClick({ evt: { shiftKey: true, ctrlKey: false, metaKey: false }, cancelBubble: false });
+      onClick?.({ evt: { shiftKey: true, ctrlKey: false, metaKey: false }, cancelBubble: false });
 
       expect(onSelectObject).toHaveBeenCalledWith("token:1", { mode: "append" });
     });
@@ -797,7 +812,7 @@ describe("TokensLayer", () => {
       const rectProps = getProps(rect);
 
       const onClick = rectProps.onClick;
-      onClick({ evt: { shiftKey: false, ctrlKey: true, metaKey: false }, cancelBubble: false });
+      onClick?.({ evt: { shiftKey: false, ctrlKey: true, metaKey: false }, cancelBubble: false });
 
       expect(onSelectObject).toHaveBeenCalledWith("token:1", { mode: "toggle" });
     });
@@ -816,7 +831,7 @@ describe("TokensLayer", () => {
       const rectProps = getProps(rect);
 
       const onClick = rectProps.onClick;
-      onClick({ evt: { shiftKey: false, ctrlKey: false, metaKey: true }, cancelBubble: false });
+      onClick?.({ evt: { shiftKey: false, ctrlKey: false, metaKey: true }, cancelBubble: false });
 
       expect(onSelectObject).toHaveBeenCalledWith("token:1", { mode: "toggle" });
     });
@@ -839,7 +854,7 @@ describe("TokensLayer", () => {
         cancelBubble: false,
       };
       const onClick = rectProps.onClick;
-      onClick(event);
+      onClick?.(event);
 
       expect(event.cancelBubble).toBe(true);
     });
@@ -858,7 +873,10 @@ describe("TokensLayer", () => {
 
       const onClick = rectProps.onClick;
       expect(() => {
-        onClick({ evt: { shiftKey: false, ctrlKey: false, metaKey: false }, cancelBubble: false });
+        onClick?.({
+          evt: { shiftKey: false, ctrlKey: false, metaKey: false },
+          cancelBubble: false,
+        });
       }).not.toThrow();
     });
   });
@@ -1133,7 +1151,7 @@ describe("TokensLayer", () => {
 
       const onMouseEnter = rectProps.onMouseEnter;
       expect(onMouseEnter).toBeDefined();
-      onMouseEnter();
+      onMouseEnter?.({});
 
       expect(onHover).toHaveBeenCalledWith("token:1");
     });
@@ -1153,7 +1171,7 @@ describe("TokensLayer", () => {
 
       const onMouseLeave = rectProps.onMouseLeave;
       expect(onMouseLeave).toBeDefined();
-      onMouseLeave();
+      onMouseLeave?.({});
 
       expect(onHover).toHaveBeenCalledWith(null);
     });
@@ -1209,7 +1227,7 @@ describe("TokensLayer", () => {
 
       const onDblClick = rectProps.onDblClick;
       expect(onDblClick).toBeDefined();
-      onDblClick();
+      onDblClick?.({});
 
       expect(onRecolorToken).toHaveBeenCalledWith("token:1", "test-user");
     });

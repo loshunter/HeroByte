@@ -13,6 +13,7 @@ import fg from "fast-glob";
 
 const __filename = fileURLToPath(import.meta.url);
 const projectRoot = path.resolve(path.dirname(__filename), "..");
+const maxDefaultConcurrency = 8;
 
 const cpuCount = os.cpus()?.length ?? 4;
 const ciDefaultChunkSize = Math.max(2, Math.floor(cpuCount / 2));
@@ -21,8 +22,8 @@ const defaultChunkSize = process.env.CI ? ciDefaultChunkSize : localDefaultChunk
 const chunkSizeInput = Number(process.env.CLIENT_TEST_CHUNK_SIZE ?? defaultChunkSize);
 const chunkSize = Number.isFinite(chunkSizeInput) && chunkSizeInput > 0 ? Math.floor(chunkSizeInput) : defaultChunkSize;
 
-const ciDefaultConcurrency = Math.max(2, Math.floor(cpuCount / 2));
-const localDefaultConcurrency = Math.max(2, cpuCount - 2);
+const ciDefaultConcurrency = Math.min(maxDefaultConcurrency, Math.max(2, Math.floor(cpuCount / 2)));
+const localDefaultConcurrency = Math.min(maxDefaultConcurrency, Math.max(2, cpuCount - 2));
 const defaultConcurrency = process.env.CI ? ciDefaultConcurrency : localDefaultConcurrency;
 const concurrencyInput = Number(process.env.CLIENT_TEST_CONCURRENCY ?? defaultConcurrency);
 const requestedConcurrency = Number.isFinite(concurrencyInput) && concurrencyInput > 0 ? Math.floor(concurrencyInput) : defaultConcurrency;

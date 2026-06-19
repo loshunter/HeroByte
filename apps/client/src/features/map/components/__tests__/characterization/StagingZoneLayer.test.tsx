@@ -16,7 +16,7 @@ import { describe, it, expect, vi } from "vitest";
 import type {
   StagingZoneDimensions,
   StagingZoneSceneObject,
-} from "../../../../hooks/useSceneObjectsData";
+} from "../../../../../hooks/useSceneObjectsData";
 
 /**
  * Simulates the staging zone rendering logic from MapBoard.tsx:565-615
@@ -98,7 +98,8 @@ describe("StagingZoneLayer - Characterization", () => {
   const mockObject: StagingZoneSceneObject = {
     id: "staging-zone-1",
     type: "staging-zone",
-    data: { x: 10, y: 10, width: 4, height: 3 },
+    zIndex: 0,
+    data: { width: 4, height: 3 },
     transform: { x: 10, y: 10, scaleX: 1, scaleY: 1, rotation: 0 },
   };
 
@@ -218,7 +219,11 @@ describe("StagingZoneLayer - Characterization", () => {
     it("should default to scale 1 if transform scales are undefined", () => {
       const objectNoScale: StagingZoneSceneObject = {
         ...mockObject,
-        transform: { ...mockObject.transform, scaleX: undefined, scaleY: undefined },
+        transform: {
+          ...mockObject.transform,
+          scaleX: undefined as unknown as number,
+          scaleY: undefined as unknown as number,
+        },
       };
       const registerNode = vi.fn();
 

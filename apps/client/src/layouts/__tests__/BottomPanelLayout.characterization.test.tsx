@@ -154,18 +154,26 @@ export interface BottomPanelLayoutProps {
   // Max HP Editing (4 props)
   editingMaxHpUID: string | null;
   maxHpInput: string;
+  editingTempHpUID: string | null;
+  tempHpInput: string;
   onMaxHpInputChange: (value: string) => void;
   onMaxHpEdit: (uid: string, currentMaxHp: number) => void;
   onMaxHpSubmit: () => void;
+  onTempHpInputChange: (value: string) => void;
+  onTempHpEdit: (uid: string) => void;
+  onTempHpSubmit: () => void;
 
   // Portrait & Mic (2 props)
   onPortraitLoad: (characterId?: string) => void;
+  onCharacterPortraitUpdate: (characterId: string, url: string) => void;
   onToggleMic: () => void;
 
   // DM & Player State (4 props)
   onToggleDMMode: (next: boolean) => void;
   onApplyPlayerState: (state: PlayerState, tokenId?: string) => void;
   onStatusEffectsChange: (effects: string[]) => void;
+  _onStatusEffectsChange: (effects: string[]) => void;
+  onCharacterStatusEffectsChange: (characterId: string, effects: string[]) => void;
   onCharacterNameUpdate: (characterId: string, name: string) => void;
 
   // NPC Management (4 props)
@@ -182,6 +190,8 @@ export interface BottomPanelLayoutProps {
   // Character Management (2 props)
   onAddCharacter: (name: string) => void;
   onDeleteCharacter: (characterId: string) => void;
+  onFocusToken: (tokenId: string) => void;
+  onSetInitiative: (characterId: string, initiative: number, modifier: number) => void;
 }
 
 // Import EntitiesPanel AFTER the mock is set up
@@ -227,18 +237,26 @@ describe("BottomPanelLayout - Characterization Tests", () => {
     // Max HP Editing
     editingMaxHpUID: null,
     maxHpInput: "",
+    editingTempHpUID: null,
+    tempHpInput: "",
     onMaxHpInputChange: vi.fn(),
     onMaxHpEdit: vi.fn(),
     onMaxHpSubmit: vi.fn(),
+    onTempHpInputChange: vi.fn(),
+    onTempHpEdit: vi.fn(),
+    onTempHpSubmit: vi.fn(),
 
     // Portrait & Mic
     onPortraitLoad: vi.fn(),
+    onCharacterPortraitUpdate: vi.fn(),
     onToggleMic: vi.fn(),
 
     // DM & Player State
     onToggleDMMode: vi.fn(),
     onApplyPlayerState: vi.fn(),
     onStatusEffectsChange: vi.fn(),
+    _onStatusEffectsChange: vi.fn(),
+    onCharacterStatusEffectsChange: vi.fn(),
     onCharacterNameUpdate: vi.fn(),
 
     // NPC Management
@@ -255,6 +273,8 @@ describe("BottomPanelLayout - Characterization Tests", () => {
     // Character Management
     onAddCharacter: vi.fn(),
     onDeleteCharacter: vi.fn(),
+    onFocusToken: vi.fn(),
+    onSetInitiative: vi.fn(),
   });
 
   beforeEach(() => {

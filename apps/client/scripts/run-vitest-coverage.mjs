@@ -14,18 +14,18 @@ const { createCoverageMap } = coverage;
 const __filename = fileURLToPath(import.meta.url);
 const projectRoot = path.resolve(path.dirname(__filename), "..");
 const coverageDir = path.join(projectRoot, "coverage");
+const maxDefaultConcurrency = 8;
 
 const cpuCount = os.cpus()?.length ?? 4;
-// Increased chunk size to reduce number of Vitest cold starts
-// With 110 test files: 15 chunks = ~7-8 batches (vs 11 with size 10)
+// Larger chunks reduce Vitest cold starts; characterization tests still run alone.
 const ciDefaultChunkSize = 15;
 const localDefaultChunkSize = 20;
 const defaultChunkSize = process.env.CI ? ciDefaultChunkSize : localDefaultChunkSize;
 const chunkSizeInput = Number(process.env.CLIENT_COVERAGE_CHUNK_SIZE ?? defaultChunkSize);
 const chunkSize = Number.isFinite(chunkSizeInput) && chunkSizeInput > 0 ? Math.floor(chunkSizeInput) : defaultChunkSize;
 
-const ciDefaultConcurrency = Math.max(2, Math.floor(cpuCount / 2));
-const localDefaultConcurrency = Math.max(2, cpuCount - 2);
+const ciDefaultConcurrency = Math.min(maxDefaultConcurrency, Math.max(2, Math.floor(cpuCount / 2)));
+const localDefaultConcurrency = Math.min(maxDefaultConcurrency, Math.max(2, cpuCount - 2));
 const defaultConcurrency = process.env.CI ? ciDefaultConcurrency : localDefaultConcurrency;
 const concurrencyInput = Number(process.env.CLIENT_COVERAGE_CONCURRENCY ?? defaultConcurrency);
 const requestedConcurrency = Number.isFinite(concurrencyInput) && concurrencyInput > 0 ? Math.floor(concurrencyInput) : defaultConcurrency;
@@ -116,8 +116,8 @@ const baseCoverageArgs = [
   "true",
   "--coverage.reporter",
   "json",
-  // Removed --no-file-parallelism to enable intra-batch concurrency
-  // Tests requiring isolation are handled by poolMatchGlobs in vitest.config.ts
+  // Batch-level concurrency already saturates the available workers.
+  "--no-file-parallelism",
   "--reporter",
   "dot",
 ];

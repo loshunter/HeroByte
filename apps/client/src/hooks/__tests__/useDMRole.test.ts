@@ -13,7 +13,7 @@ import { useDMRole } from "../useDMRole.js";
 import type { RoomSnapshot, ClientMessage, Player } from "@shared";
 
 describe("useDMRole - isDM Computation", () => {
-  const mockSend = vi.fn<[ClientMessage], void>();
+  const mockSend = vi.fn<(message: ClientMessage) => void>();
   const testUid = "player-123";
 
   beforeEach(() => {
@@ -134,7 +134,7 @@ describe("useDMRole - isDM Computation", () => {
         drawings: [],
         gridSize: 50,
         diceRolls: [],
-      } as RoomSnapshot;
+      } as unknown as RoomSnapshot;
 
       const { result } = renderHook(() => useDMRole({ snapshot, uid: testUid, send: mockSend }));
 
@@ -183,7 +183,7 @@ describe("useDMRole - isDM Computation", () => {
 });
 
 describe("useDMRole - elevateToDM Function", () => {
-  const mockSend = vi.fn<[ClientMessage], void>();
+  const mockSend = vi.fn<(message: ClientMessage) => void>();
   const testUid = "player-123";
 
   beforeEach(() => {
@@ -347,7 +347,7 @@ describe("useDMRole - Callback Stability", () => {
 
   describe("isDM memoization", () => {
     it("should recompute isDM when snapshot.players changes", () => {
-      const mockSend = vi.fn<[ClientMessage], void>();
+      const mockSend = vi.fn<(message: ClientMessage) => void>();
 
       const snapshot1: RoomSnapshot = {
         users: [],
@@ -379,7 +379,7 @@ describe("useDMRole - Callback Stability", () => {
     });
 
     it("should recompute isDM when uid changes", () => {
-      const mockSend = vi.fn<[ClientMessage], void>();
+      const mockSend = vi.fn<(message: ClientMessage) => void>();
 
       const snapshot: RoomSnapshot = {
         users: [],
@@ -408,7 +408,7 @@ describe("useDMRole - Callback Stability", () => {
     });
 
     it("should not recompute isDM when unrelated snapshot properties change", () => {
-      const mockSend = vi.fn<[ClientMessage], void>();
+      const mockSend = vi.fn<(message: ClientMessage) => void>();
 
       const players: Player[] = [{ uid: testUid, name: "Player", isDM: true }];
 
@@ -446,7 +446,7 @@ describe("useDMRole - Callback Stability", () => {
 
   describe("elevateToDM callback stability", () => {
     it("should maintain callback reference when send is stable", () => {
-      const mockSend = vi.fn<[ClientMessage], void>();
+      const mockSend = vi.fn<(message: ClientMessage) => void>();
 
       const snapshot: RoomSnapshot = {
         users: [],
@@ -471,8 +471,8 @@ describe("useDMRole - Callback Stability", () => {
     });
 
     it("should update callback when send function changes", () => {
-      const mockSend1 = vi.fn<[ClientMessage], void>();
-      const mockSend2 = vi.fn<[ClientMessage], void>();
+      const mockSend1 = vi.fn<(message: ClientMessage) => void>();
+      const mockSend2 = vi.fn<(message: ClientMessage) => void>();
 
       const snapshot: RoomSnapshot = {
         users: [],
@@ -512,7 +512,7 @@ describe("useDMRole - Callback Stability", () => {
 });
 
 describe("useDMRole - Return Value", () => {
-  const mockSend = vi.fn<[ClientMessage], void>();
+  const mockSend = vi.fn<(message: ClientMessage) => void>();
   const testUid = "player-123";
 
   it("should return object with isDM and elevateToDM properties", () => {

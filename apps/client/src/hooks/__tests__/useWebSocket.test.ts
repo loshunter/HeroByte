@@ -71,12 +71,14 @@ describe("useWebSocket", () => {
   beforeEach(() => {
     wsInstances = [];
     vi.useFakeTimers();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(undefined));
     // Mock WebSocket globally
     global.WebSocket = MockWebSocket as unknown as typeof WebSocket;
   });
 
   afterEach(() => {
     wsInstances = [];
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
     vi.useRealTimers();
   });
@@ -256,7 +258,7 @@ describe("useWebSocket", () => {
       // Queue multiple messages before authentication
       const messages: ClientMessage[] = [
         { t: "move", id: "token-1", x: 100, y: 200 },
-        { t: "recolor", id: "token-1", color: "red" },
+        { t: "recolor", id: "token-1" },
       ];
 
       act(() => {
@@ -336,6 +338,7 @@ describe("useWebSocket", () => {
       });
 
       const mockSnapshot: RoomSnapshot = {
+        users: [],
         gridSize: 50,
         gridSquareSize: 5,
         mapBackground: "test.png",
@@ -443,6 +446,8 @@ describe("useWebSocket", () => {
 
       const controlMessage: ServerMessage = {
         t: "room-password-updated",
+        updatedAt: Date.now(),
+        source: "user",
       };
 
       await act(async () => {

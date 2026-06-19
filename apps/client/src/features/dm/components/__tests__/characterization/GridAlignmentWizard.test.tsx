@@ -9,7 +9,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import type { AlignmentPoint, AlignmentSuggestion } from "../../../../types/alignment";
+import type { AlignmentPoint, AlignmentSuggestion } from "../../../../../types/alignment";
 import { GridAlignmentWizard } from "../../map-controls/GridAlignmentWizard";
 
 describe("GridAlignmentWizard - Characterization Tests", () => {
@@ -26,7 +26,7 @@ describe("GridAlignmentWizard - Characterization Tests", () => {
   };
 
   const mockAlignmentSuggestion: AlignmentSuggestion = {
-    transform: { x: 10.5, y: 20.3, rotation: 15.75, scale: 1.2345 },
+    transform: { x: 10.5, y: 20.3, rotation: 15.75, scaleX: 1.2345, scaleY: 1.2345 },
     targetA: { x: 0, y: 0 },
     targetB: { x: 100, y: 100 },
     scale: 1.2345,
@@ -371,7 +371,7 @@ describe("GridAlignmentWizard - Characterization Tests", () => {
     it("should display all suggestion values correctly", () => {
       const handlers = createMockHandlers();
       const customSuggestion: AlignmentSuggestion = {
-        transform: { x: 100.789, y: -50.234, rotation: -45.123, scale: 0.5678 },
+        transform: { x: 100.789, y: -50.234, rotation: -45.123, scaleX: 0.5678, scaleY: 0.5678 },
         targetA: { x: 0, y: 0 },
         targetB: { x: 100, y: 100 },
         scale: 0.5678,
@@ -972,7 +972,7 @@ describe("GridAlignmentWizard - Characterization Tests", () => {
     it("should handle zero values in alignment suggestion", () => {
       const handlers = createMockHandlers();
       const zeroSuggestion: AlignmentSuggestion = {
-        transform: { x: 0, y: 0, rotation: 0, scale: 1 },
+        transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 },
         targetA: { x: 0, y: 0 },
         targetB: { x: 0, y: 0 },
         scale: 1,
@@ -999,7 +999,7 @@ describe("GridAlignmentWizard - Characterization Tests", () => {
     it("should handle negative values in alignment suggestion", () => {
       const handlers = createMockHandlers();
       const negativeSuggestion: AlignmentSuggestion = {
-        transform: { x: -100.5, y: -200.3, rotation: -90.75, scale: 0.5 },
+        transform: { x: -100.5, y: -200.3, rotation: -90.75, scaleX: 0.5, scaleY: 0.5 },
         targetA: { x: 0, y: 0 },
         targetB: { x: 0, y: 0 },
         scale: 0.5,
@@ -1026,7 +1026,13 @@ describe("GridAlignmentWizard - Characterization Tests", () => {
     it("should handle very large values in alignment suggestion", () => {
       const handlers = createMockHandlers();
       const largeSuggestion: AlignmentSuggestion = {
-        transform: { x: 9999.999, y: -8888.888, rotation: 360.99, scale: 100.9999 },
+        transform: {
+          x: 9999.999,
+          y: -8888.888,
+          rotation: 360.99,
+          scaleX: 100.9999,
+          scaleY: 100.9999,
+        },
         targetA: { x: 0, y: 0 },
         targetB: { x: 0, y: 0 },
         scale: 100.9999,

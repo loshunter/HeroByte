@@ -18,26 +18,10 @@ describe("PropEditor - Characterization Tests", () => {
     {
       uid: "player-1",
       name: "Alice",
-      character: {
-        id: "char-1",
-        name: "Alice",
-        type: "pc",
-        hp: 20,
-        maxHp: 20,
-        uid: "player-1",
-      },
     },
     {
       uid: "player-2",
       name: "Bob",
-      character: {
-        id: "char-2",
-        name: "Bob",
-        type: "pc",
-        hp: 15,
-        maxHp: 15,
-        uid: "player-2",
-      },
     },
   ];
 
@@ -45,9 +29,13 @@ describe("PropEditor - Characterization Tests", () => {
     id: "prop-1",
     label: "Treasure Chest",
     imageUrl: "https://example.com/chest.png",
-    position: { x: 100, y: 100 },
+    x: 100,
+    y: 100,
     owner: null,
     size: "medium",
+    scaleX: 1,
+    scaleY: 1,
+    rotation: 0,
   };
 
   const createMockHandlers = () => ({
@@ -399,9 +387,13 @@ describe("PropEditor - Characterization Tests", () => {
         id: "prop-2",
         label: "Ancient Relic",
         imageUrl: "https://example.com/relic.png",
-        position: { x: 200, y: 200 },
+        x: 200,
+        y: 200,
         owner: "player-1",
         size: "small",
+        scaleX: 1,
+        scaleY: 1,
+        rotation: 0,
       };
 
       rerender(<PropEditor prop={newProp} players={mockPlayers} {...handlers} />);

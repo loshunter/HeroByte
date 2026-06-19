@@ -542,16 +542,16 @@ describe("MapTab - Characterization Tests", () => {
     it("should pass alignmentPoints prop to GridAlignmentWizard", () => {
       const props = createMockProps();
       props.alignmentPoints = [
-        { index: 0, cellX: 0, cellY: 0, canvasX: 100, canvasY: 100 },
-        { index: 1, cellX: 5, cellY: 5, canvasX: 350, canvasY: 350 },
+        { world: { x: 0, y: 0 }, local: { x: 100, y: 100 } },
+        { world: { x: 5, y: 5 }, local: { x: 350, y: 350 } },
       ];
       render(<MapTab {...props} />);
 
       expect(GridAlignmentWizard).toHaveBeenCalledWith(
         expect.objectContaining({
           alignmentPoints: [
-            { index: 0, cellX: 0, cellY: 0, canvasX: 100, canvasY: 100 },
-            { index: 1, cellX: 5, cellY: 5, canvasX: 350, canvasY: 350 },
+            { world: { x: 0, y: 0 }, local: { x: 100, y: 100 } },
+            { world: { x: 5, y: 5 }, local: { x: 350, y: 350 } },
           ],
         }),
         expect.anything(),
@@ -561,18 +561,24 @@ describe("MapTab - Characterization Tests", () => {
     it("should pass alignmentSuggestion prop to GridAlignmentWizard", () => {
       const props = createMockProps();
       props.alignmentSuggestion = {
-        gridSize: 50,
-        gridOffsetX: 10,
-        gridOffsetY: 20,
+        transform: { x: 10, y: 20, scaleX: 1, scaleY: 1, rotation: 0 },
+        targetA: { x: 0, y: 0 },
+        targetB: { x: 50, y: 50 },
+        scale: 1,
+        rotation: 0,
+        error: 0,
       };
       render(<MapTab {...props} />);
 
       expect(GridAlignmentWizard).toHaveBeenCalledWith(
         expect.objectContaining({
           alignmentSuggestion: {
-            gridSize: 50,
-            gridOffsetX: 10,
-            gridOffsetY: 20,
+            transform: { x: 10, y: 20, scaleX: 1, scaleY: 1, rotation: 0 },
+            targetA: { x: 0, y: 0 },
+            targetB: { x: 50, y: 50 },
+            scale: 1,
+            rotation: 0,
+            error: 0,
           },
         }),
         expect.anything(),
@@ -934,18 +940,18 @@ describe("MapTab - Characterization Tests", () => {
     it("should handle multiple alignmentPoints", () => {
       const props = createMockProps();
       props.alignmentPoints = [
-        { index: 0, cellX: 0, cellY: 0, canvasX: 100, canvasY: 100 },
-        { index: 1, cellX: 5, cellY: 5, canvasX: 350, canvasY: 350 },
-        { index: 2, cellX: 10, cellY: 10, canvasX: 600, canvasY: 600 },
+        { world: { x: 0, y: 0 }, local: { x: 100, y: 100 } },
+        { world: { x: 5, y: 5 }, local: { x: 350, y: 350 } },
+        { world: { x: 10, y: 10 }, local: { x: 600, y: 600 } },
       ];
       render(<MapTab {...props} />);
 
       expect(GridAlignmentWizard).toHaveBeenCalledWith(
         expect.objectContaining({
           alignmentPoints: expect.arrayContaining([
-            expect.objectContaining({ index: 0 }),
-            expect.objectContaining({ index: 1 }),
-            expect.objectContaining({ index: 2 }),
+            expect.objectContaining({ world: { x: 0, y: 0 } }),
+            expect.objectContaining({ world: { x: 5, y: 5 } }),
+            expect.objectContaining({ world: { x: 10, y: 10 } }),
           ]),
         }),
         expect.anything(),

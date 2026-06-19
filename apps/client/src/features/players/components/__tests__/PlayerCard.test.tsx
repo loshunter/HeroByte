@@ -7,7 +7,7 @@
 
 import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
 import type { Player, Token, SceneObject, Drawing, PlayerState, TokenSize } from "@shared";
 
 // ============================================================================
@@ -24,6 +24,8 @@ vi.mock("../../../../utils/playerPersistence", () => ({
 import { PlayerCard } from "../PlayerCard";
 // Import mocked functions
 import { savePlayerState, loadPlayerState } from "../../../../utils/playerPersistence";
+
+const mockedLoadPlayerState = vi.mocked(loadPlayerState);
 
 // Mock child components
 vi.mock("../NameEditor", () => ({
@@ -58,10 +60,10 @@ vi.mock("../NameEditor", () => ({
       <button data-testid="name-editor-change" onClick={() => onNameInputChange("new-name")}>
         Change Name Input
       </button>
-      <button data-testid="name-editor-edit" onClick={onNameEdit}>
+      <button data-testid="name-editor-edit" onClick={() => onNameEdit(playerUid, playerName)}>
         Edit
       </button>
-      <button data-testid="name-editor-submit" onClick={onNameSubmit}>
+      <button data-testid="name-editor-submit" onClick={() => onNameSubmit(nameInput)}>
         Submit
       </button>
     </div>
@@ -323,7 +325,7 @@ vi.mock("../PlayerSettingsMenu", () => ({
           Add Character
         </button>
       )}
-      {onDeleteCharacter && (
+      {onDeleteCharacter && characterId && (
         <button
           data-testid="settings-delete-character"
           onClick={() => onDeleteCharacter(characterId)}
@@ -364,6 +366,7 @@ const createMockPlayer = (overrides?: Partial<Player>): Player => ({
 
 const createMockToken = (overrides?: Partial<Token>): Token => ({
   id: "token-1",
+  owner: "player-1",
   imageUrl: "token.png",
   color: "#ff0000",
   x: 100,
@@ -372,11 +375,15 @@ const createMockToken = (overrides?: Partial<Token>): Token => ({
   ...overrides,
 });
 
+type TokenSceneObject = Extract<SceneObject, { type: "token" }>;
+
 const createMockSceneObject = (
-  overrides?: Partial<SceneObject & { type: "token" }>,
-): SceneObject & { type: "token" } => ({
+  overrides?: Partial<Omit<TokenSceneObject, "type">>,
+): TokenSceneObject => ({
   id: "scene-1",
   type: "token" as const,
+  owner: "player-1",
+  zIndex: 0,
   transform: {
     x: 100,
     y: 150,
@@ -384,6 +391,7 @@ const createMockSceneObject = (
     scaleX: 1.5,
     scaleY: 1.5,
   },
+  data: { color: "#ff0000", size: "medium" },
   ...overrides,
 });
 
@@ -1168,7 +1176,7 @@ describe("PlayerCard", () => {
   describe("Load Player State", () => {
     beforeEach(() => {
       // Reset the mock before each test
-      loadPlayerState.mockReset();
+      mockedLoadPlayerState.mockReset();
     });
 
     it("only works when isMe is true", async () => {
@@ -1213,7 +1221,7 @@ describe("PlayerCard", () => {
         portrait: "loaded.jpg",
         tokenImage: "loaded-token.png",
       };
-      loadPlayerState.mockResolvedValue(mockState);
+      mockedLoadPlayerState.mockResolvedValue(mockState);
 
       const onApplyPlayerState = vi.fn();
       const props = createDefaultProps({
@@ -1225,7 +1233,7 @@ describe("PlayerCard", () => {
       const loadButton = screen.getByTestId("settings-load-state");
       fireEvent.click(loadButton);
 
-      await vi.waitFor(() => {
+      await waitFor(() => {
         expect(loadPlayerState).toHaveBeenCalledTimes(1);
       });
     });
@@ -1238,7 +1246,7 @@ describe("PlayerCard", () => {
         portrait: "loaded.jpg",
         tokenImage: "loaded-token.png",
       };
-      loadPlayerState.mockResolvedValue(mockState);
+      mockedLoadPlayerState.mockResolvedValue(mockState);
 
       const onApplyPlayerState = vi.fn();
       const props = createDefaultProps({
@@ -1252,7 +1260,7 @@ describe("PlayerCard", () => {
       const loadButton = screen.getByTestId("settings-load-state");
       fireEvent.click(loadButton);
 
-      await vi.waitFor(() => {
+      await waitFor(() => {
         expect(onApplyPlayerState).toHaveBeenCalledTimes(1);
         expect(onApplyPlayerState).toHaveBeenCalledWith(mockState, "token-123", "char-456");
       });
@@ -1268,7 +1276,7 @@ describe("PlayerCard", () => {
           imageUrl: "token-from-state.png",
         },
       };
-      loadPlayerState.mockResolvedValue(mockState);
+      mockedLoadPlayerState.mockResolvedValue(mockState);
 
       const onApplyPlayerState = vi.fn();
       const props = createDefaultProps({
@@ -1280,7 +1288,7 @@ describe("PlayerCard", () => {
       const loadButton = screen.getByTestId("settings-load-state");
       fireEvent.click(loadButton);
 
-      await vi.waitFor(() => {
+      await waitFor(() => {
         expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent(
           "token-from-state.png",
         );
@@ -1295,7 +1303,7 @@ describe("PlayerCard", () => {
         portrait: "loaded.jpg",
         tokenImage: "fallback-token.png",
       };
-      loadPlayerState.mockResolvedValue(mockState);
+      mockedLoadPlayerState.mockResolvedValue(mockState);
 
       const onApplyPlayerState = vi.fn();
       const props = createDefaultProps({
@@ -1307,7 +1315,7 @@ describe("PlayerCard", () => {
       const loadButton = screen.getByTestId("settings-load-state");
       fireEvent.click(loadButton);
 
-      await vi.waitFor(() => {
+      await waitFor(() => {
         expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent(
           "fallback-token.png",
         );
@@ -1321,7 +1329,7 @@ describe("PlayerCard", () => {
         maxHp: 120,
         portrait: "loaded.jpg",
       };
-      loadPlayerState.mockResolvedValue(mockState);
+      mockedLoadPlayerState.mockResolvedValue(mockState);
 
       const onApplyPlayerState = vi.fn();
       const props = createDefaultProps({
@@ -1336,7 +1344,7 @@ describe("PlayerCard", () => {
       const loadButton = screen.getByTestId("settings-load-state");
       fireEvent.click(loadButton);
 
-      await vi.waitFor(() => {
+      await waitFor(() => {
         expect(screen.getByTestId("settings-token-image-input")).toHaveTextContent("");
       });
     });

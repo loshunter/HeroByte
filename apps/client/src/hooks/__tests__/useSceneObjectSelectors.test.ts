@@ -296,7 +296,7 @@ describe("useSceneObjectSelectors - Characterization", () => {
             clearSelection: mockClearSelection,
           }),
         {
-          initialProps: { selectedObjectIds: [] },
+          initialProps: { selectedObjectIds: [] as string[] },
         },
       );
 

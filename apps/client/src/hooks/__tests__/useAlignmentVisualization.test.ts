@@ -70,7 +70,7 @@ describe("useAlignmentVisualization", () => {
     const event = {
       target: stage,
       evt: {} as PointerEvent,
-    } as KonvaEventObject<PointerEvent>;
+    } as unknown as KonvaEventObject<PointerEvent>;
 
     result.current.handleAlignmentClick(event);
 

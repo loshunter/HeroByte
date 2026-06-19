@@ -95,12 +95,15 @@ describe("PropsTab - Characterization Tests", () => {
     y: 100,
     owner: null,
     size: "medium" as const,
+    scaleX: 1,
+    scaleY: 1,
+    rotation: 0,
     ...overrides,
   });
 
   const createMockPlayer = (overrides?: Partial<Player>): Player =>
     ({
-      id: "player-1",
+      uid: "player-1",
       name: "Test Player",
       ...overrides,
     }) as Player;
@@ -307,8 +310,8 @@ describe("PropsTab - Characterization Tests", () => {
       const handlers = createMockHandlers();
       const props = [createMockProp()];
       const players = [
-        createMockPlayer({ id: "p1", name: "Alice" }),
-        createMockPlayer({ id: "p2", name: "Bob" }),
+        createMockPlayer({ uid: "p1", name: "Alice" }),
+        createMockPlayer({ uid: "p2", name: "Bob" }),
       ];
 
       render(<PropsTab activeTab="props" props={props} players={players} {...handlers} />);
@@ -525,7 +528,7 @@ describe("PropsTab - Characterization Tests", () => {
     it("should pass updated players array to all PropEditors", () => {
       const handlers = createMockHandlers();
       const props = [createMockProp({ id: "prop-1" }), createMockProp({ id: "prop-2" })];
-      const initialPlayers = [createMockPlayer({ id: "p1" })];
+      const initialPlayers = [createMockPlayer({ uid: "p1" })];
 
       const { rerender } = render(
         <PropsTab activeTab="props" props={props} players={initialPlayers} {...handlers} />,
@@ -534,9 +537,9 @@ describe("PropsTab - Characterization Tests", () => {
       expect(screen.getAllByText("Players count: 1")).toHaveLength(2);
 
       const updatedPlayers = [
-        createMockPlayer({ id: "p1" }),
-        createMockPlayer({ id: "p2" }),
-        createMockPlayer({ id: "p3" }),
+        createMockPlayer({ uid: "p1" }),
+        createMockPlayer({ uid: "p2" }),
+        createMockPlayer({ uid: "p3" }),
       ];
 
       rerender(<PropsTab activeTab="props" props={props} players={updatedPlayers} {...handlers} />);
@@ -547,7 +550,7 @@ describe("PropsTab - Characterization Tests", () => {
     it("should handle players array becoming empty", () => {
       const handlers = createMockHandlers();
       const props = [createMockProp()];
-      const players = [createMockPlayer({ id: "p1" })];
+      const players = [createMockPlayer({ uid: "p1" })];
 
       const { rerender } = render(
         <PropsTab activeTab="props" props={props} players={players} {...handlers} />,
@@ -642,7 +645,7 @@ describe("PropsTab - Characterization Tests", () => {
       const handlers = createMockHandlers();
       const props = [createMockProp()];
       const players = Array.from({ length: 100 }, (_, i) =>
-        createMockPlayer({ id: `player-${i}`, name: `Player ${i}` }),
+        createMockPlayer({ uid: `player-${i}`, name: `Player ${i}` }),
       );
 
       render(<PropsTab activeTab="props" props={props} players={players} {...handlers} />);

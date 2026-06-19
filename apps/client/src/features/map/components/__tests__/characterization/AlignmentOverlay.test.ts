@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import type { AlignmentPoint } from "../../../../types/alignment";
+import type { AlignmentPoint } from "../../../../../types/alignment";
 
 interface AlignmentRenderResult {
   rendered: boolean;

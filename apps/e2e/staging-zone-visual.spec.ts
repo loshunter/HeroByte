@@ -2,7 +2,7 @@ import { expect, test } from "./fixtures";
 import { joinDefaultRoomAsDM } from "./helpers";
 
 test.describe("Staging Zone Visual Rendering", () => {
-  test("staging zone appears on canvas when DM sets it", async ({ page }) => {
+  test("staging zone appears on canvas when DM sets it", async ({ page }, testInfo) => {
     await joinDefaultRoomAsDM(page);
 
     // Wait for room to be ready
@@ -71,7 +71,7 @@ test.describe("Staging Zone Visual Rendering", () => {
     expect(stagingZoneObject?.id).toBe("staging-zone");
 
     // Take a screenshot to visually verify
-    await page.screenshot({ path: "staging-zone-test.png" });
+    await page.screenshot({ path: testInfo.outputPath("staging-zone-test.png") });
 
     // Check if the staging zone is actually rendered on the canvas
     // Look for the cyan/teal stroke color in the canvas
@@ -114,7 +114,7 @@ test.describe("Staging Zone Visual Rendering", () => {
     expect(canvasCheck.found).toBe(true);
   });
 
-  test("staging zone renders with custom position", async ({ page }) => {
+  test("staging zone renders with custom position", async ({ page }, testInfo) => {
     await joinDefaultRoomAsDM(page);
 
     await page.waitForFunction(() => {
@@ -187,7 +187,7 @@ test.describe("Staging Zone Visual Rendering", () => {
     expect(sceneObjectCheck.data?.width).toBe(10);
     expect(sceneObjectCheck.data?.height).toBe(8);
 
-    await page.screenshot({ path: "staging-zone-custom-position.png" });
+    await page.screenshot({ path: testInfo.outputPath("staging-zone-custom-position.png") });
   });
 
   test("no staging zone visible when not set", async ({ page }) => {

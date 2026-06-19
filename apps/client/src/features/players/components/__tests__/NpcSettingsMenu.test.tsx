@@ -112,7 +112,7 @@ function createProps(
     isOpen: true,
     onClose: vi.fn(),
     tokenImageInput: "",
-    tokenImageUrl: undefined,
+    tokenImageUrl: "",
     onTokenImageInputChange: vi.fn(),
     onTokenImageApply: vi.fn(),
     onTokenImageClear: vi.fn(),
@@ -124,7 +124,7 @@ function createProps(
     onTokenSizeChange: vi.fn(),
     isDeleting: false,
     deletionError: null,
-    onClearInitiative: undefined,
+    onClearInitiative: vi.fn(),
     hasInitiative: false,
     ...overrides,
   };

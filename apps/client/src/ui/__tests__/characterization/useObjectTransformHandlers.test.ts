@@ -10,34 +10,52 @@ describe("useObjectTransformHandlers", () => {
     {
       id: "token-1",
       type: "token",
-      data: { owner: "player-1", name: "Hero" },
-      transform: { x: 100, y: 100, scale: { x: 1, y: 1 }, rotation: 0 },
+      owner: "player-1",
+      zIndex: 0,
+      data: { color: "#ff0000", size: "medium" },
+      transform: { x: 100, y: 100, scaleX: 1, scaleY: 1, rotation: 0 },
     },
     {
       id: "prop-1",
       type: "prop",
-      data: { imageUrl: "prop.png" },
-      transform: { x: 200, y: 200, scale: { x: 1, y: 1 }, rotation: 0 },
+      zIndex: 0,
+      data: { imageUrl: "prop.png", size: "medium" },
+      transform: { x: 200, y: 200, scaleX: 1, scaleY: 1, rotation: 0 },
     },
     {
       id: "drawing-1",
       type: "drawing",
-      data: { tool: "pen", points: [0, 0, 10, 10] },
-      transform: { x: 300, y: 300, scale: { x: 1, y: 1 }, rotation: 0 },
+      zIndex: 0,
+      data: {
+        drawing: {
+          id: "drawing-1",
+          type: "freehand",
+          points: [
+            { x: 0, y: 0 },
+            { x: 10, y: 10 },
+          ],
+          color: "#000000",
+          width: 1,
+          opacity: 1,
+        },
+      },
+      transform: { x: 300, y: 300, scaleX: 1, scaleY: 1, rotation: 0 },
     },
     {
       id: "staging-zone-1",
       type: "staging-zone",
-      data: {},
-      transform: { x: 400, y: 400, scale: { x: 1, y: 1 }, rotation: 0 },
+      zIndex: 0,
+      data: { width: 4, height: 3 },
+      transform: { x: 400, y: 400, scaleX: 1, scaleY: 1, rotation: 0 },
     },
     {
       id: "map-1",
       type: "map",
+      zIndex: 0,
       data: { imageUrl: "map.png" },
-      transform: { x: 0, y: 0, scale: { x: 1, y: 1 }, rotation: 0 },
+      transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
     },
-  ] as SceneObject[];
+  ];
 
   describe("handleTransformToken", () => {
     it("should call onTransformObject with token position", () => {

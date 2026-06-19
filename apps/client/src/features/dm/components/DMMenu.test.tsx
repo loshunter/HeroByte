@@ -59,7 +59,13 @@ const createProps = () => ({
   onSetMapBackground: vi.fn(),
   mapBackground: undefined as string | undefined,
   playerCount: 2,
+  camera: { x: 0, y: 0, scale: 1 },
   characters: [] as Character[],
+  props: [],
+  players: [],
+  onCreateProp: vi.fn(),
+  onUpdateProp: vi.fn(),
+  onDeleteProp: vi.fn(),
   onRequestSaveSession: undefined as ((name: string) => void) | undefined,
   onRequestLoadSession: vi.fn(),
   onCreateNPC: vi.fn(),
@@ -78,6 +84,8 @@ const createProps = () => ({
   onAlignmentReset: vi.fn(),
   onAlignmentCancel: vi.fn(),
   onAlignmentApply: vi.fn(),
+  sceneObjects: [],
+  onSelectPlayerTokens: vi.fn(),
 });
 
 describe("DMMenu", () => {
