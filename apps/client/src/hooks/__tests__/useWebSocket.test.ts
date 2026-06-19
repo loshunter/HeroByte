@@ -192,6 +192,17 @@ describe("useWebSocket", () => {
 
       expect(result.current.authState).toBe(AuthState.FAILED);
       expect(result.current.authError).toBe("Invalid credentials");
+
+      await act(async () => {
+        wsInstances[0].close(1008, "authentication failed");
+        await vi.advanceTimersByTimeAsync(3000);
+        await vi.advanceTimersByTimeAsync(20);
+      });
+
+      const retriedAuthMessages = wsInstances[1].sentMessages.filter((message: string) =>
+        message.includes('"t":"authenticate"'),
+      );
+      expect(retriedAuthMessages).toHaveLength(0);
     });
   });
 

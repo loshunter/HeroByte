@@ -20,7 +20,7 @@
  * - And 18+ other edge cases
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { joinDefaultRoomAsDM } from "./helpers";
 import { SnapshotBuilder } from "../client/src/test-utils";
 

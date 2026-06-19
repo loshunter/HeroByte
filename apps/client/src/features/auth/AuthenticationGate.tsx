@@ -11,7 +11,7 @@
  * @module features/auth/AuthenticationGate
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AuthState, ConnectionState } from "../../services/websocket";
 import { AuthGate } from "./AuthGate";
 
@@ -143,6 +143,7 @@ export function AuthenticationGate({
   const [authSecret, setAuthSecret] = useState("");
   const [passwordInput, setPasswordInput] = useState(initialSecret || "");
   const [hasAuthenticated, setHasAuthenticated] = useState(false);
+  const activeAuthAttemptRef = useRef<string | null>(null);
 
   // -------------------------------------------------------------------------
   // EFFECTS
@@ -164,15 +165,24 @@ export function AuthenticationGate({
     if (!authSecret) return;
     if (authState !== AuthState.UNAUTHENTICATED) return;
     if (!isConnected) return;
+    if (activeAuthAttemptRef.current === authSecret) return;
 
+    activeAuthAttemptRef.current = authSecret;
     onAuthenticate(authSecret);
   }, [authSecret, authState, onAuthenticate, isConnected]);
+
+  useEffect(() => {
+    if (!isConnected) {
+      activeAuthAttemptRef.current = null;
+    }
+  }, [isConnected]);
 
   /**
    * Persist room secret to sessionStorage on successful authentication
    */
   useEffect(() => {
     if (authState === AuthState.AUTHENTICATED && authSecret) {
+      activeAuthAttemptRef.current = null;
       try {
         sessionStorage.setItem(ROOM_SECRET_STORAGE_KEY, authSecret);
       } catch (error) {
@@ -186,6 +196,7 @@ export function AuthenticationGate({
    */
   useEffect(() => {
     if (authState === AuthState.FAILED && authSecret) {
+      activeAuthAttemptRef.current = null;
       try {
         sessionStorage.removeItem(ROOM_SECRET_STORAGE_KEY);
       } catch (error) {
@@ -230,6 +241,7 @@ export function AuthenticationGate({
         return;
       }
 
+      activeAuthAttemptRef.current = trimmed;
       onAuthenticate(trimmed);
     },
     [onAuthenticate, onConnect, isConnected, passwordInput],

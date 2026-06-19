@@ -56,7 +56,7 @@ export class RoomService {
     this.persistence = new StatePersistence(
       () => this.state,
       (newState) => {
-        this.state = newState;
+        Object.assign(this.state, newState);
         this.store.set(this.roomId, this.state);
       },
       this.stagingManager,
@@ -77,8 +77,16 @@ export class RoomService {
    * Update room state
    */
   setState(newState: Partial<RoomState>): void {
-    this.state = { ...this.state, ...newState };
+    Object.assign(this.state, newState);
     this.store.set(this.roomId, this.state);
+  }
+
+  /** Reset the room in place so stateful collaborators keep a valid reference. */
+  resetState(): void {
+    Object.assign(this.state, createEmptyRoomState());
+    this.store.set(this.roomId, this.state);
+    this.rebuildSceneGraph();
+    this.saveState();
   }
 
   /**
@@ -127,7 +135,12 @@ export class RoomService {
     );
 
     // Merge snapshot with current state
-    this.state = this.snapshotLoader.mergeSnapshot(snapshot, this.state, this.stagingManager);
+    const mergedState = this.snapshotLoader.mergeSnapshot(
+      snapshot,
+      this.state,
+      this.stagingManager,
+    );
+    Object.assign(this.state, mergedState);
     this.store.set(this.roomId, this.state);
     this.rebuildSceneGraph();
 

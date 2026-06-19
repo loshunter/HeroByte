@@ -17,7 +17,7 @@
  * @see docs/testing/PARTIAL_ERASE_MIGRATION.md for full migration details
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { joinDefaultRoom } from "./helpers";
 
 test.describe("HeroByte partial erase - Smoke Test", () => {

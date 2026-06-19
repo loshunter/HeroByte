@@ -1,44 +1,9 @@
-import { expect, test, type Page } from "@playwright/test";
-import { joinDefaultRoom } from "./helpers";
-
-async function elevateToDM(page: Page) {
-  const settingsIcon = page.locator('button[title*="settings" i], button:has(svg)').last();
-
-  if (await settingsIcon.isVisible({ timeout: 2000 })) {
-    await settingsIcon.click();
-    await page.waitForTimeout(500);
-
-    const dmOption = page.locator("text=/Elevate.*DM|DM.*Mode|Request.*DM/i").first();
-
-    if (await dmOption.isVisible({ timeout: 2000 })) {
-      await dmOption.click();
-      await page.waitForTimeout(500);
-
-      const dmPasswordInput = page
-        .locator('input[placeholder*="DM" i], input[type="password"]')
-        .first();
-      if (await dmPasswordInput.isVisible({ timeout: 2000 })) {
-        await dmPasswordInput.fill("FunDM");
-        await page.keyboard.press("Enter");
-        await page.waitForTimeout(1000);
-      }
-    }
-  }
-
-  // Wait for DM status to be confirmed
-  await page.waitForFunction(
-    () => {
-      const data = window.__HERO_BYTE_E2E__;
-      const player = data?.snapshot?.players?.find((p) => p.uid === data.uid);
-      return player?.isDM === true;
-    },
-    { timeout: 10000 },
-  );
-}
+import { expect, test } from "./fixtures";
+import { joinDefaultRoomAsDM } from "./helpers";
 
 test.describe("Staging Zone Visual Rendering", () => {
   test("staging zone appears on canvas when DM sets it", async ({ page }) => {
-    await joinDefaultRoom(page);
+    await joinDefaultRoomAsDM(page);
 
     // Wait for room to be ready
     await page.waitForFunction(() => {
@@ -47,8 +12,6 @@ test.describe("Staging Zone Visual Rendering", () => {
       return data.snapshot.players.some((p) => p.uid === data.uid);
     });
 
-    // Elevate to DM
-    await elevateToDM(page);
     console.log("DM elevation successful");
 
     // Create a staging zone
@@ -70,7 +33,19 @@ test.describe("Staging Zone Visual Rendering", () => {
       });
     }, testZone);
 
-    await page.waitForTimeout(1000);
+    await page.waitForFunction(
+      (zone) => {
+        const current = window.__HERO_BYTE_E2E__?.snapshot?.playerStagingZone;
+        return (
+          current?.x === zone.x &&
+          current.y === zone.y &&
+          current.width === zone.width &&
+          current.height === zone.height
+        );
+      },
+      testZone,
+      { timeout: 15_000 },
+    );
 
     // Check if staging zone is in the snapshot
     const snapshotCheck = await page.evaluate(() => {
@@ -101,38 +76,35 @@ test.describe("Staging Zone Visual Rendering", () => {
     // Check if the staging zone is actually rendered on the canvas
     // Look for the cyan/teal stroke color in the canvas
     const canvasCheck = await page.evaluate(() => {
-      const canvas = document.querySelector("canvas");
-      if (!canvas) return { found: false, reason: "No canvas element found" };
-
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return { found: false, reason: "No 2d context" };
-
-      // Get image data from the canvas
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
+      const canvases = Array.from(document.querySelectorAll("canvas"));
+      if (canvases.length === 0) return { found: false, reason: "No canvas element found" };
 
       // Look for cyan/teal color (rgba(77, 229, 192, ...))
       // The staging zone uses stroke="rgba(77, 229, 192, 0.75)"
       let cyanPixelCount = 0;
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-        // Check if pixel is close to cyan (77, 229, 192)
-        if (
-          Math.abs(r - 77) < 30 &&
-          Math.abs(g - 229) < 30 &&
-          Math.abs(b - 192) < 30 &&
-          data[i + 3] > 0
-        ) {
-          cyanPixelCount++;
+      for (const canvas of canvases) {
+        const ctx = canvas.getContext("2d");
+        if (!ctx) continue;
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          if (
+            Math.abs(r - 77) < 30 &&
+            Math.abs(g - 229) < 30 &&
+            Math.abs(b - 192) < 30 &&
+            data[i + 3] > 0
+          ) {
+            cyanPixelCount++;
+          }
         }
       }
 
       return {
         found: cyanPixelCount > 0,
         reason: cyanPixelCount > 0 ? `Found ${cyanPixelCount} cyan pixels` : "No cyan pixels found",
-        canvasSize: { width: canvas.width, height: canvas.height },
+        canvasCount: canvases.length,
       };
     });
 
@@ -143,16 +115,13 @@ test.describe("Staging Zone Visual Rendering", () => {
   });
 
   test("staging zone renders with custom position", async ({ page }) => {
-    await joinDefaultRoom(page);
+    await joinDefaultRoomAsDM(page);
 
     await page.waitForFunction(() => {
       const data = window.__HERO_BYTE_E2E__;
       if (!data?.snapshot || !data.uid) return false;
       return data.snapshot.players.some((p) => p.uid === data.uid);
     });
-
-    // Elevate to DM
-    await elevateToDM(page);
 
     // Set grid size to a known value
     await page.evaluate(() => {
@@ -181,7 +150,21 @@ test.describe("Staging Zone Visual Rendering", () => {
       });
     }, testZone);
 
-    await page.waitForTimeout(1000);
+    await page.waitForFunction(
+      (zone) => {
+        const stagingObject = window.__HERO_BYTE_E2E__?.snapshot?.sceneObjects?.find(
+          (object) => object.type === "staging-zone",
+        );
+        return (
+          stagingObject?.transform.x === zone.x &&
+          stagingObject.transform.y === zone.y &&
+          stagingObject.data.width === zone.width &&
+          stagingObject.data.height === zone.height
+        );
+      },
+      testZone,
+      { timeout: 15_000 },
+    );
 
     // Verify the scene object has correct dimensions
     const sceneObjectCheck = await page.evaluate(() => {
@@ -208,16 +191,24 @@ test.describe("Staging Zone Visual Rendering", () => {
   });
 
   test("no staging zone visible when not set", async ({ page }) => {
-    await joinDefaultRoom(page);
+    await joinDefaultRoomAsDM(page);
+
+    await page.evaluate(() => {
+      window.__HERO_BYTE_E2E__?.sendMessage?.({
+        t: "set-player-staging-zone",
+        zone: undefined,
+      });
+    });
+
+    await page.waitForFunction(() => {
+      return window.__HERO_BYTE_E2E__?.snapshot?.playerStagingZone === undefined;
+    });
 
     await page.waitForFunction(() => {
       const data = window.__HERO_BYTE_E2E__;
       if (!data?.snapshot || !data.uid) return false;
       return data.snapshot.players.some((p) => p.uid === data.uid);
     });
-
-    // Elevate to DM
-    await elevateToDM(page);
 
     await page.waitForTimeout(500);
 

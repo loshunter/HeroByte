@@ -31,7 +31,7 @@
  * doesn't work reliably in E2E tests. This smoke test validates the basic WebSocket flow works.
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { joinDefaultRoomAsDM } from "./helpers";
 
 test.describe("Player Staging Zone - Smoke Tests", () => {
@@ -65,8 +65,19 @@ test.describe("Player Staging Zone - Smoke Tests", () => {
       });
     }, testZone);
 
-    // Wait for WebSocket round-trip
-    await page.waitForTimeout(500);
+    await page.waitForFunction(
+      (zone) => {
+        const current = window.__HERO_BYTE_E2E__?.snapshot?.playerStagingZone;
+        return (
+          current?.x === zone.x &&
+          current.y === zone.y &&
+          current.width === zone.width &&
+          current.height === zone.height
+        );
+      },
+      testZone,
+      { timeout: 15_000 },
+    );
 
     // Verify staging zone appears in snapshot
     const stagingZone = await page.evaluate(() => {

@@ -176,8 +176,9 @@ jobs:
           retention-days: 7
 
   e2e-full-suite:
-    # Nightly only: runs every Playwright spec (the PR pipeline runs the
-    # 4-spec smoke subset). Can also be triggered by pushing to dev/main.
+    # Nightly only: runs the active Playwright suite (the PR pipeline runs the
+    # 4-spec smoke subset). Deprecated specs remain available through
+    # pnpm test:e2e:deprecated while their replacements are validated.
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 30

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { joinDefaultRoomAsDM } from "./helpers";
 
 test.describe("HeroByte entity and initiative management", () => {
@@ -24,17 +24,20 @@ test.describe("HeroByte entity and initiative management", () => {
     // Step 3: Add 4 NPCs programmatically
     console.log("✅ Step 3: Adding 4 NPCs");
     for (let i = 1; i <= 4; i++) {
-      await page.evaluate((npcName) => {
-        const data = window.__HERO_BYTE_E2E__;
-        if (data?.sendMessage) {
-          data.sendMessage({
-            t: "create-npc",
-            name: npcName,
-            hp: 20 + i * 5,
-            maxHp: 30 + i * 5,
-          });
-        }
-      }, `Test NPC ${i}`);
+      await page.evaluate(
+        (npc) => {
+          const data = window.__HERO_BYTE_E2E__;
+          if (data?.sendMessage) {
+            data.sendMessage({
+              t: "create-npc",
+              name: npc.name,
+              hp: npc.hp,
+              maxHp: npc.maxHp,
+            });
+          }
+        },
+        { name: `Test NPC ${i}`, hp: 20 + i * 5, maxHp: 30 + i * 5 },
+      );
       await page.waitForTimeout(300);
     }
 

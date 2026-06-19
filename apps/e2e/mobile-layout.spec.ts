@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 const ROOM_PASSWORD = process.env.E2E_ROOM_PASSWORD ?? "Fun1";
 
@@ -58,6 +58,6 @@ test.describe("Mobile Layout", () => {
     // Check if Dice Roller component is visible
     // The actual component has title "⚂ DICE ROLLER" and a roll button
     await expect(page.getByText(/DICE ROLLER/i)).toBeVisible();
-    await expect(page.getByLabel("Roll dice")).toBeVisible();
+    await expect(page.getByRole("button", { name: /ROLL!/i })).toBeVisible();
   });
 });

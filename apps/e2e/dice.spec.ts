@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { joinDefaultRoom } from "./helpers";
 
 test.describe("HeroByte dice", () => {

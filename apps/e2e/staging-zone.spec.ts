@@ -18,7 +18,7 @@
  * DO NOT ADD NEW TESTS TO THIS FILE - Add them to StagingZoneManager.test.ts instead.
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { joinDefaultRoom } from "./helpers";
 
 // NOTE: Most tests in this file are skipped because the toggle-dm message

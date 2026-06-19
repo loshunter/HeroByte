@@ -36,7 +36,7 @@
  * covered by integration tests. This smoke test validates the basic WebSocket flow works.
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { joinDefaultRoom } from "./helpers";
 
 test.describe("Character Creation - Smoke Tests", () => {

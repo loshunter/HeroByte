@@ -13,7 +13,7 @@
  * DO NOT ADD NEW TESTS TO THIS FILE - Add them to SnapshotLoader.test.ts instead.
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { joinDefaultRoomAsDM } from "./helpers";
 import type { RoomSnapshot } from "@shared";
 

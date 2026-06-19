@@ -12,7 +12,7 @@ import { isOriginAllowed } from "../config/security.js";
  * Create and configure HTTP routes
  * Separates route definitions from server bootstrap
  */
-export function createRoutes(authService: AuthService): Hono {
+export function createRoutes(authService: AuthService, resetE2EState?: () => void): Hono {
   const app = new Hono();
   const ALLOWED_METHODS = "GET,POST,OPTIONS";
   const DEFAULT_ALLOWED_HEADERS = "Content-Type, Authorization";
@@ -163,6 +163,13 @@ export function createRoutes(authService: AuthService): Hono {
 
   // Health check endpoint (plain text for monitoring tools)
   app.get("/healthz", (c) => c.text("ok"));
+
+  if (process.env.HEROBYTE_E2E === "true" && resetE2EState) {
+    app.post("/__e2e/reset", (c) => {
+      resetE2EState();
+      return c.json({ status: "reset" });
+    });
+  }
 
   return app;
 }

@@ -131,7 +131,7 @@ export class AuthenticationHandler {
     console.log(`Client authenticated: ${uid}`);
 
     // Broadcast updated room state to authenticated clients
-    this.container.roomService.broadcast(this.getAuthenticatedClients(), undefined, {
+    this.container.roomService.broadcast(this.getAuthenticatedClients(), this.uidToWs, {
       reason: "auth-success",
     });
   }
@@ -181,7 +181,7 @@ export class AuthenticationHandler {
     console.log(`DM elevation granted to ${uid}`);
 
     // Broadcast updated state
-    this.container.roomService.broadcast(this.getAuthenticatedClients(), undefined, {
+    this.container.roomService.broadcast(this.getAuthenticatedClients(), this.uidToWs, {
       reason: "dm-elevated",
     });
   }
@@ -216,7 +216,7 @@ export class AuthenticationHandler {
     console.log(`DM status revoked for ${uid}`);
 
     // Broadcast updated state
-    this.container.roomService.broadcast(this.getAuthenticatedClients(), undefined, {
+    this.container.roomService.broadcast(this.getAuthenticatedClients(), this.uidToWs, {
       reason: "dm-revoked",
     });
   }
@@ -265,7 +265,7 @@ export class AuthenticationHandler {
         player.isDM = true;
         ws.send(JSON.stringify({ t: "dm-status", isDM: true }));
         console.log(`DM status granted to ${uid} (first-time DM password setup)`);
-        this.container.roomService.broadcast(this.getAuthenticatedClients(), undefined, {
+        this.container.roomService.broadcast(this.getAuthenticatedClients(), this.uidToWs, {
           reason: "dm-bootstrapped",
         });
       }

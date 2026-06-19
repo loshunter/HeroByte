@@ -1,11 +1,11 @@
-import { expect, test } from "@playwright/test";
-import { joinDefaultRoom } from "./helpers";
+import { expect, test } from "./fixtures";
+import { elevateToDM, joinDefaultRoomAsDM } from "./helpers";
 
 test.describe("HeroByte multi-select and group lock", () => {
   test("DM can select multiple tokens, lock them, and verify locked state persists", async ({
     page,
   }) => {
-    await joinDefaultRoom(page);
+    await joinDefaultRoomAsDM(page);
 
     // Wait for initial token to appear
     await page.waitForFunction(() => {
@@ -17,65 +17,49 @@ test.describe("HeroByte multi-select and group lock", () => {
       );
     });
 
-    // Enable DM mode
-    await page.evaluate(() => {
+    const npcNames = ["Multi Select NPC 1", "Multi Select NPC 2"];
+    await page.evaluate((names) => {
       const data = window.__HERO_BYTE_E2E__;
-      if (!data?.sendMessage || !data.uid) return;
-      data.sendMessage({ t: "toggle-dm", isDM: true });
-    });
-
-    // Wait for DM status to update
-    await page.waitForFunction(() => {
-      const data = window.__HERO_BYTE_E2E__;
-      const player = data?.snapshot?.players?.find((p) => p.uid === data.uid);
-      return player?.isDM === true;
-    });
-
-    // Create additional test tokens
-    const tokenIds = await page.evaluate(() => {
-      const data = window.__HERO_BYTE_E2E__;
-      if (!data?.sendMessage || !data.uid) return [];
-
-      const existingToken = data.snapshot?.tokens?.find((t) => t.owner === data.uid);
-      const ids = existingToken ? [existingToken.id] : [];
-
-      // Create two more tokens
-      for (let i = 0; i < 2; i++) {
-        const mockToken = {
-          id: `test-token-${i}`,
-          owner: data.uid,
-          x: 1 + i,
-          y: 1,
-          color: `hsl(${i * 120}, 70%, 50%)`,
-        };
-        ids.push(mockToken.id);
-        // Simulate adding token (in real scenario, this would go through proper API)
+      if (!data?.sendMessage) return;
+      for (const name of names) {
+        data.sendMessage({ t: "create-npc", name, hp: 20, maxHp: 20 });
       }
+    }, npcNames);
 
-      return ids;
-    });
-
-    // Wait for scene objects to be built
-    await page.waitForFunction(() => {
+    await page.waitForFunction((names) => {
       const data = window.__HERO_BYTE_E2E__;
-      return data?.snapshot?.sceneObjects && data.snapshot.sceneObjects.length > 0;
-    });
+      return names.every((name) => data?.snapshot?.characters?.some((c) => c.name === name));
+    }, npcNames);
 
-    // Get scene object IDs for our tokens
-    const sceneObjectIds = await page.evaluate(() => {
+    const npcIds = await page.evaluate((names) => {
+      const characters = window.__HERO_BYTE_E2E__?.snapshot?.characters ?? [];
+      return characters.filter((character) => names.includes(character.name)).map((c) => c.id);
+    }, npcNames);
+
+    await page.evaluate((ids) => {
+      const sendMessage = window.__HERO_BYTE_E2E__?.sendMessage;
+      for (const id of ids) {
+        sendMessage?.({ t: "place-npc-token", id });
+      }
+    }, npcIds);
+
+    await page.waitForFunction((ids) => {
       const data = window.__HERO_BYTE_E2E__;
-      if (!data?.snapshot?.sceneObjects) return [];
-
-      const tokenObjects = data.snapshot.sceneObjects.filter(
-        (obj) => obj.type === "token" && obj.owner === data.uid,
+      return ids.every((id) =>
+        data?.snapshot?.characters?.some((character) => character.id === id && character.tokenId),
       );
+    }, npcIds);
 
-      return tokenObjects.map((obj) => obj.id);
-    });
+    const sceneObjectIds = await page.evaluate((ids) => {
+      const characters = window.__HERO_BYTE_E2E__?.snapshot?.characters ?? [];
+      return characters
+        .filter((character) => ids.includes(character.id) && character.tokenId)
+        .map((character) => `token:${character.tokenId}`);
+    }, npcIds);
 
     console.log("Scene object IDs:", sceneObjectIds);
 
-    if (sceneObjectIds.length < 1) {
+    if (sceneObjectIds.length < 2) {
       test.skip(true, "Not enough tokens to test multi-select");
       return;
     }
@@ -167,7 +151,7 @@ test.describe("HeroByte multi-select and group lock", () => {
     await page.evaluate(() => {
       const data = window.__HERO_BYTE_E2E__;
       if (!data?.sendMessage || !data.uid) return;
-      data.sendMessage({ t: "toggle-dm", isDM: false });
+      data.sendMessage({ t: "revoke-dm" });
     });
 
     await page.waitForFunction(() => {
@@ -207,17 +191,7 @@ test.describe("HeroByte multi-select and group lock", () => {
     expect(unchangedPosition?.x).not.toBe(10);
 
     // Re-enable DM mode
-    await page.evaluate(() => {
-      const data = window.__HERO_BYTE_E2E__;
-      if (!data?.sendMessage || !data.uid) return;
-      data.sendMessage({ t: "toggle-dm", isDM: true });
-    });
-
-    await page.waitForFunction(() => {
-      const data = window.__HERO_BYTE_E2E__;
-      const player = data?.snapshot?.players?.find((p) => p.uid === data.uid);
-      return player?.isDM === true;
-    });
+    await elevateToDM(page);
 
     // Test bulk unlock
     await page.evaluate((objectIds) => {

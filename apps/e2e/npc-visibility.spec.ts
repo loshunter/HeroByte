@@ -5,7 +5,7 @@
  * Verifies server-side filtering ensures hidden NPCs never reach non-DM clients.
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { joinDefaultRoom, joinDefaultRoomAsDM } from "./helpers";
 
 test.describe("NPC visibility toggle", () => {
@@ -66,8 +66,10 @@ test.describe("NPC visibility toggle", () => {
       // Get NPC ID
       const npcId = await dmPage.evaluate(() => {
         const data = window.__HERO_BYTE_E2E__;
-        const npcs = data?.snapshot?.characters?.filter((c) => c.type === "npc") ?? [];
-        return npcs[0]?.id ?? null;
+        return (
+          data?.snapshot?.characters?.find((character) => character.name === "Hidden Goblin")?.id ??
+          null
+        );
       });
 
       expect(npcId).not.toBeNull();
@@ -95,19 +97,26 @@ test.describe("NPC visibility toggle", () => {
         });
       }, npcId);
 
-      // Wait for visibility update to sync
-      await dmPage.waitForFunction(
-        (id) => {
-          const data = window.__HERO_BYTE_E2E__;
-          const npc = data?.snapshot?.characters?.find((c) => c.id === id);
-          return npc?.visibleToPlayers === false;
-        },
-        npcId,
-        { timeout: 5000 },
-      );
-
-      // Small delay to ensure player snapshot update
-      await playerPage.waitForTimeout(500);
+      // Wait for role-aware snapshots to reach both clients.
+      await Promise.all([
+        dmPage.waitForFunction(
+          (id) => {
+            const data = window.__HERO_BYTE_E2E__;
+            const currentPlayer = data?.snapshot?.players?.find((p) => p.uid === data.uid);
+            const npc = data?.snapshot?.characters?.find((c) => c.id === id);
+            return currentPlayer?.isDM === true && npc?.visibleToPlayers === false;
+          },
+          npcId,
+          { timeout: 5000 },
+        ),
+        playerPage.waitForFunction(
+          (id) => {
+            return !window.__HERO_BYTE_E2E__?.snapshot?.characters?.some((c) => c.id === id);
+          },
+          npcId,
+          { timeout: 5000 },
+        ),
+      ]);
 
       // Verify DM still sees the NPC
       const dmStillSeesNPC = await dmPage.evaluate((id) => {
@@ -208,8 +217,10 @@ test.describe("NPC visibility toggle", () => {
       const npcId = await dmPage.waitForFunction(
         () => {
           const data = window.__HERO_BYTE_E2E__;
-          const npcs = data?.snapshot?.characters?.filter((c) => c.type === "npc") ?? [];
-          return npcs.length > 0 ? npcs[0]?.id : null;
+          return (
+            data?.snapshot?.characters?.find((character) => character.name === "Assassin")?.id ??
+            null
+          );
         },
         { timeout: 5000 },
       );
@@ -272,13 +283,14 @@ test.describe("NPC visibility toggle", () => {
       // Small delay for player snapshot update
       await playerPage.waitForTimeout(500);
 
-      // Verify DM still sees the token
-      const dmSeesToken = await dmPage.evaluate((tId) => {
-        const data = window.__HERO_BYTE_E2E__;
-        return data?.snapshot?.tokens?.some((t) => t.id === tId) ?? false;
-      }, tokenIdValue);
-
-      expect(dmSeesToken).toBe(true);
+      // Verify the DM-specific snapshot still includes the hidden token.
+      await dmPage.waitForFunction(
+        (tId) => {
+          return window.__HERO_BYTE_E2E__?.snapshot?.tokens?.some((token) => token.id === tId);
+        },
+        tokenIdValue,
+        { timeout: 5_000 },
+      );
 
       // Verify player no longer sees the token
       const playerSeesToken = await playerPage.evaluate((tId) => {
@@ -326,8 +338,9 @@ test.describe("NPC visibility toggle", () => {
       const npcId = await dmPage.waitForFunction(
         () => {
           const data = window.__HERO_BYTE_E2E__;
-          const npcs = data?.snapshot?.characters?.filter((c) => c.type === "npc") ?? [];
-          return npcs.length > 0 ? npcs[0]?.id : null;
+          return (
+            data?.snapshot?.characters?.find((character) => character.name === "Guard")?.id ?? null
+          );
         },
         { timeout: 5000 },
       );

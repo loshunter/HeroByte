@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { joinDefaultRoom } from "./helpers";
 
 const DM_PASSWORD = process.env.E2E_DM_PASSWORD ?? "FunDM";

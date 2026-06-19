@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { joinDefaultRoom } from "./helpers";
 
 test.describe("HeroByte UI state and accessibility", () => {
@@ -16,7 +16,7 @@ test.describe("HeroByte UI state and accessibility", () => {
     await expect(page.locator("text=DRAWING TOOLS")).not.toBeVisible({ timeout: 5000 });
 
     // Test Dice panel
-    const diceButton = page.getByRole("button", { name: /Dice/i });
+    const diceButton = page.locator('button[title="Open 3D dice roller"]');
     await expect(diceButton).toBeVisible();
     await diceButton.click();
     await expect(page.locator("text=DICE ROLLER")).toBeVisible({ timeout: 5000 });
@@ -199,8 +199,7 @@ test.describe("HeroByte UI state and accessibility", () => {
     // Refresh the page
     await page.reload();
 
-    // Re-join the room
-    await joinDefaultRoom(page);
+    await expect(page.getByRole("button", { name: "Snap" })).toBeVisible({ timeout: 15_000 });
 
     await page.waitForFunction(() => {
       const data = window.__HERO_BYTE_E2E__;

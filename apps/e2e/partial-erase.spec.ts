@@ -19,7 +19,7 @@
  * Coverage: +27 tests (775% increase)
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { joinDefaultRoom } from "./helpers";
 
 test.describe("HeroByte partial erase", () => {

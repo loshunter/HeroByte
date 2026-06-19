@@ -21,7 +21,7 @@
  * - Authorization (DM vs player permissions)
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { joinDefaultRoom } from "./helpers";
 
 test.describe("Transform Tool - Smoke Tests", () => {
@@ -37,21 +37,11 @@ test.describe("Transform Tool - Smoke Tests", () => {
       { timeout: 10000 },
     );
 
-    // Check if there are any scene objects to transform
-    const hasSceneObjects = await page.evaluate(() => {
-      const data = window.__HERO_BYTE_E2E__;
-      return (data?.snapshot?.sceneObjects?.length ?? 0) > 0;
-    });
-
-    if (!hasSceneObjects) {
-      test.skip(true, "No scene objects available for transform smoke test");
-      return;
-    }
-
-    // Get first object's info
+    // Target the current player's token so prior tests cannot affect ownership.
     const objectInfo = await page.evaluate(() => {
       const data = window.__HERO_BYTE_E2E__;
-      const obj = data?.snapshot?.sceneObjects?.[0];
+      const token = data?.snapshot?.tokens?.find((entry) => entry.owner === data.uid);
+      const obj = data?.snapshot?.sceneObjects?.find((entry) => entry.id === `token:${token?.id}`);
       return {
         id: obj?.id ?? null,
         initialX: obj?.transform?.x ?? 0,

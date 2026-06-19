@@ -480,6 +480,10 @@ export class WebSocketService {
     // Flush message queue on successful authentication
     if (message.t === "auth-ok") {
       this.flushMessageQueue();
+    } else {
+      // Rejected credentials must not be replayed on the reconnect that follows.
+      this.lastAuthSecret = null;
+      this.lastAuthRoomId = undefined;
     }
   }
 

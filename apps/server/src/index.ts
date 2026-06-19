@@ -33,8 +33,14 @@ const HOST = "0.0.0.0";
  */
 async function bootstrap() {
   const authService = new AuthService();
+  let resetE2EState: (() => void) | undefined;
   // Create HTTP routes
-  const app = createRoutes(authService);
+  const app = createRoutes(authService, () => {
+    if (!resetE2EState) {
+      throw new Error("E2E reset requested before server initialization");
+    }
+    resetE2EState();
+  });
 
   const buildFetchRequest = (req: IncomingMessage): Request => {
     const protocolHeader = req.headers["x-forwarded-proto"];
@@ -128,6 +134,7 @@ async function bootstrap() {
 
   // Initialize dependency container
   const container = new Container(wss, authService, roomRegistry);
+  resetE2EState = () => container.resetForE2E();
 
   // Attach WebSocket connection handler
   const connectionHandler = new ConnectionHandler(container, wss);

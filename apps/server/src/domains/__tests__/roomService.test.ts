@@ -495,9 +495,7 @@ describe("RoomService", () => {
         position: { x: 10, y: 20 },
       });
 
-      // Currently locked objects can still be transformed by their owner unless they're DM-only
-      // The lock check happens before ownership, so this should work
-      expect(result).toBe(true);
+      expect(result).toBe(false);
     });
 
     it("allows DM to transform locked object", () => {
@@ -911,6 +909,27 @@ describe("RoomService", () => {
   });
 
   describe("Player staging zone", () => {
+    it("keeps staging updates attached after loading a snapshot", () => {
+      const service = new RoomService();
+      const state = service.getState();
+
+      service.loadSnapshot({
+        users: [],
+        tokens: [],
+        players: [],
+        characters: [],
+        pointers: [],
+        drawings: [],
+        gridSize: 50,
+        diceRolls: [],
+      });
+      service.setPlayerStagingZone({ x: 8, y: 9, width: 4, height: 3, rotation: 0 });
+
+      expect(service.getState()).toBe(state);
+      expect(service.getState().playerStagingZone).toMatchObject({ x: 8, y: 9 });
+      expect(service.getState().sceneObjects.some((obj) => obj.type === "staging-zone")).toBe(true);
+    });
+
     it("updates scene objects when staging zone changes", () => {
       const service = new RoomService();
       service.setPlayerStagingZone({ x: 6, y: 7, width: 4, height: 2, rotation: 30 });

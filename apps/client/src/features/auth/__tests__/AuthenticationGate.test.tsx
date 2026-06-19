@@ -264,6 +264,7 @@ describe("AuthenticationGate - Characterization", () => {
       fireEvent.click(submitButton);
 
       expect(mockAuthenticate).toHaveBeenCalledWith("test-password");
+      expect(mockAuthenticate).toHaveBeenCalledTimes(1);
       expect(mockConnect).not.toHaveBeenCalled();
     });
 

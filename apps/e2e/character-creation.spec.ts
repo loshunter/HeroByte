@@ -28,7 +28,7 @@
  * DO NOT ADD NEW TESTS TO THIS FILE - Add them to the appropriate integration test instead.
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { joinDefaultRoom } from "./helpers";
 
 test.describe("HeroByte character and token creation (DEPRECATED)", () => {

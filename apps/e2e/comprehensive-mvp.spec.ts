@@ -11,104 +11,59 @@
  * 6. Two-browser synchronization
  */
 
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures";
+import { elevateToDM, joinDefaultRoom } from "./helpers";
 
-const SERVER_URL = "http://localhost:5173";
 const DEFAULT_ROOM_PASSWORD = "Fun1"; // DEV_FALLBACK_SECRET from apps/server/src/config/auth.ts
-const DEFAULT_DM_PASSWORD = "dmpass";
 
 /**
  * Helper: Connect to room with player password
  */
 async function connectAsPlayer(page: Page, playerName: string = "Player1") {
-  await page.goto(SERVER_URL);
-  await page.waitForSelector('input[type="password"]', { timeout: 10000 });
-
-  // Wait for WebSocket to connect first (Connection status: Connected)
-  await page.waitForSelector("text=/Connection status:.*Connected/i", { timeout: 15000 });
-
-  // Enter room password
-  await page.fill('input[type="password"]', DEFAULT_ROOM_PASSWORD);
-
-  // Wait a moment for the form to be ready
-  await page.waitForTimeout(500);
-
-  // Click enter room button
-  await page.click('button:has-text("ENTER ROOM")');
-
-  // Wait for authentication to complete and canvas to appear
-  await page.waitForSelector("canvas", { timeout: 15000 });
-
+  await joinDefaultRoom(page);
   return page;
-}
-
-/**
- * Helper: Elevate to DM
- */
-async function elevateToDM(page: Page) {
-  // Click the settings/gear icon in the player card
-  const settingsIcon = page.locator('button[title*="settings" i], button:has(svg)').last();
-
-  if (await settingsIcon.isVisible({ timeout: 2000 })) {
-    await settingsIcon.click();
-    await page.waitForTimeout(500);
-
-    // Look for DM/Elevate option in the menu
-    const dmOption = page.locator("text=/Elevate.*DM|DM.*Mode|Request.*DM/i").first();
-
-    if (await dmOption.isVisible({ timeout: 2000 })) {
-      await dmOption.click();
-      await page.waitForTimeout(500);
-
-      // Enter DM password if prompted
-      const dmPasswordInput = page
-        .locator('input[placeholder*="DM" i], input[type="password"]')
-        .first();
-      if (await dmPasswordInput.isVisible({ timeout: 2000 })) {
-        await dmPasswordInput.fill(DEFAULT_DM_PASSWORD);
-        await page.keyboard.press("Enter");
-        await page.waitForTimeout(1000);
-      }
-    }
-  }
 }
 
 test.describe("HeroByte Comprehensive MVP Tests", () => {
   test.beforeEach(async ({ page }) => {
     // Clear any previous state
-    await page.goto(SERVER_URL);
+    await page.goto("/");
   });
 
   test("1. Authentication Flow - Player and DM passwords work", async ({ page }) => {
     // Test player authentication
-    await page.goto(SERVER_URL);
+    await page.goto("/");
     await page.waitForSelector('input[type="password"]', { timeout: 10000 });
 
     // Wait for WebSocket connection
     await page.waitForSelector("text=/Connection status:.*Connected/i", { timeout: 15000 });
 
     // Try wrong password - should fail authentication
-    await page.fill('input[type="password"]', "wrongpassword");
-    await page.waitForTimeout(500);
-    await page.click('button:has-text("ENTER ROOM")');
+    const passwordInput = page.getByPlaceholder("Room password");
+    const enterRoomButton = page.getByRole("button", { name: /Enter Room/i });
+
+    await passwordInput.fill("wrongpassword");
+    await expect(enterRoomButton).toBeEnabled();
+    await enterRoomButton.click();
 
     // Wait and check - should stay on auth screen
-    await page.waitForTimeout(2000);
+    await expect(passwordInput).toBeEnabled({ timeout: 10_000 });
+    await expect(passwordInput).toHaveValue("");
     const hasCanvas = await page.locator("canvas").count();
     expect(hasCanvas).toBe(0); // Should not connect with wrong password
 
     // Try correct password
-    await page.fill('input[type="password"]', DEFAULT_ROOM_PASSWORD);
-    await page.waitForTimeout(500);
-    await page.click('button:has-text("ENTER ROOM")');
+    await page.waitForSelector("text=/Connection status:.*Connected/i", { timeout: 15_000 });
+    await passwordInput.fill(DEFAULT_ROOM_PASSWORD);
+    await expect(enterRoomButton).toBeEnabled();
+    await enterRoomButton.click();
 
     // Should connect successfully and show canvas
     await page.waitForSelector("canvas", { timeout: 15000 });
     expect(await page.locator("canvas").count()).toBeGreaterThan(0);
 
     // Verify we're in the game (check for key UI elements)
-    const hasToolbar = await page.locator('button:has-text("MY TOKEN")').count();
-    expect(hasToolbar).toBeGreaterThan(0);
+    await expect(page.getByRole("button", { name: "Snap" })).toBeVisible();
 
     // Note: DM elevation test skipped for now - requires more complex UI interaction
     // TODO: Add DM elevation test once we understand the exact UI flow
@@ -144,11 +99,12 @@ test.describe("HeroByte Comprehensive MVP Tests", () => {
 
         // Drawing should persist
         await page.reload();
-        await connectAsPlayer(page);
-        await page.waitForTimeout(1000);
+        await expect(page.getByRole("button", { name: "Snap" })).toBeVisible({ timeout: 15_000 });
 
-        // Verify drawing is still there after reload
-        expect(await page.locator("canvas").count()).toBeGreaterThan(0);
+        // Verify the lazy-loaded map returns after reconnecting.
+        await expect(page.getByTestId("map-board").locator("canvas").first()).toBeVisible({
+          timeout: 15_000,
+        });
       }
     }
   });
@@ -403,20 +359,11 @@ test.describe("HeroByte Comprehensive MVP Tests", () => {
     // Simulate disconnect by reloading
     await page.reload();
 
-    // Should show auth screen again
-    await page.waitForSelector('input[type="password"]', { timeout: 10000 });
-
-    // Wait for WebSocket to reconnect
-    await page.waitForSelector("text=/Connection status:.*Connected/i", { timeout: 15000 });
-
-    // Reconnect with password
-    await page.fill('input[type="password"]', DEFAULT_ROOM_PASSWORD);
-    await page.waitForTimeout(500);
-    await page.click('button:has-text("ENTER ROOM")');
-
-    // Should reconnect successfully
-    await page.waitForSelector("canvas", { timeout: 15000 });
-    expect(await page.locator("canvas").count()).toBeGreaterThan(0);
+    // The client restores its authenticated session automatically.
+    await expect(page.getByRole("button", { name: "Snap" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("map-board").locator("canvas").first()).toBeVisible({
+      timeout: 15_000,
+    });
   });
 
   test("10. Player State Persistence - Player data survives reload", async ({ page }) => {
@@ -433,10 +380,11 @@ test.describe("HeroByte Comprehensive MVP Tests", () => {
 
     // Reload page
     await page.reload();
-    await connectAsPlayer(page);
-    await page.waitForTimeout(2000);
+    await expect(page.getByRole("button", { name: "Snap" })).toBeVisible({ timeout: 15_000 });
 
     // Player state should persist (token still exists)
-    expect(await page.locator("canvas").count()).toBeGreaterThan(0);
+    await expect(page.getByTestId("map-board").locator("canvas").first()).toBeVisible({
+      timeout: 15_000,
+    });
   });
 });

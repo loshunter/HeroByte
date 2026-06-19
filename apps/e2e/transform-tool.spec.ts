@@ -14,7 +14,7 @@
  * DO NOT ADD NEW TESTS TO THIS FILE - Add them to TransformHandler.test.ts instead.
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { joinDefaultRoom } from "./helpers";
 
 test.describe("HeroByte transform tool (DEPRECATED)", () => {

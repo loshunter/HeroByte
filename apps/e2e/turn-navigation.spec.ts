@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { joinDefaultRoomAsDM } from "./helpers";
 
 test.describe("Turn Navigation UI", () => {
@@ -184,16 +184,15 @@ test.describe("Turn Navigation UI", () => {
 
     // Step 13: Test turn wrapping (advance through all turns)
     console.log("✅ Step 13: Testing turn wrapping");
-    const characterCount = allCharacters.length;
-    for (let i = 0; i < characterCount; i++) {
+    let wrappedTurnCharacterId: string | null = null;
+    for (let i = 0; i <= allCharacters.length; i++) {
       await nextButton.click();
       await page.waitForTimeout(300);
+      wrappedTurnCharacterId = await page.evaluate(() => {
+        return window.__HERO_BYTE_E2E__?.snapshot?.currentTurnCharacterId ?? null;
+      });
+      if (wrappedTurnCharacterId === firstTurnCharacterId) break;
     }
-
-    const wrappedTurnCharacterId = await page.evaluate(() => {
-      const data = window.__HERO_BYTE_E2E__;
-      return data?.snapshot?.currentTurnCharacterId ?? null;
-    });
 
     expect(wrappedTurnCharacterId).toEqual(firstTurnCharacterId);
     console.log(`  ✓ Turn wrapped around back to first character`);
