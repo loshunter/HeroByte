@@ -235,7 +235,7 @@ jobs:
           path: coverage-artifacts
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         with:
           files: |
             coverage-artifacts/coverage-shared/coverage-final.json
