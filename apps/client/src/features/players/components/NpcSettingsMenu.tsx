@@ -7,7 +7,7 @@
 import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 
-import type { TokenSize } from "@shared";
+import type { TokenSize } from "@herobyte/shared";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import { useImageUrlNormalization } from "../../../hooks/useImageUrlNormalization";
 

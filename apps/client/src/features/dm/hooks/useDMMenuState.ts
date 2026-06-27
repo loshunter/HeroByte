@@ -12,7 +12,7 @@
 // Extraction date: 2025-10-21
 
 import { useState, useMemo, useEffect, useCallback } from "react";
-import type { Character } from "@shared";
+import type { Character } from "@herobyte/shared";
 
 /**
  * Type for DMMenu tab identifiers

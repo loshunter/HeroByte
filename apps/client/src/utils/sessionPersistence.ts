@@ -3,7 +3,7 @@
 // ============================================================================
 // Helpers to export and import complete room snapshots for offline storage.
 
-import type { PlayerStagingZone, RoomSnapshot } from "@shared";
+import type { PlayerStagingZone, RoomSnapshot } from "@herobyte/shared";
 
 /**
  * Trigger a download of the provided room snapshot as a JSON file.

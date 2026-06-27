@@ -3,7 +3,7 @@
 // ============================================================================
 // Manages object selection state for connected clients
 
-import type { SelectionMode, SelectionStateEntry } from "@shared";
+import type { SelectionMode, SelectionStateEntry } from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
 
 const MAX_SELECTION = 100;

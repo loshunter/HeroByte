@@ -21,7 +21,7 @@
  */
 
 import React, { Suspense } from "react";
-import type { RoomSnapshot, ClientMessage } from "@shared";
+import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import type { CameraCommand } from "../ui/MapBoard";
 import type { UseDrawingStateManagerReturn } from "../hooks/useDrawingStateManager";

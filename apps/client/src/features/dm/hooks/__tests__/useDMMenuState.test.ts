@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import type { Character } from "@shared";
+import type { Character } from "@herobyte/shared";
 import { useDMMenuState } from "../useDMMenuState";
 
 // ============================================================================

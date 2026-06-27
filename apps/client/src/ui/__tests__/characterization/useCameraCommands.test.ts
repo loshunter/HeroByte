@@ -10,7 +10,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import type { RoomSnapshot } from "@shared";
+import type { RoomSnapshot } from "@herobyte/shared";
 import { useCameraCommands } from "../../../hooks/useCameraCommands";
 
 const createSnapshot = ({ tokens }: Pick<RoomSnapshot, "tokens">): RoomSnapshot => ({

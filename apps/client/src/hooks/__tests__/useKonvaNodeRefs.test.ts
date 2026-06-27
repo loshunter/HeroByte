@@ -1,7 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
 import type Konva from "konva";
-import type { SceneObject } from "@shared";
+import type { SceneObject } from "@herobyte/shared";
 import { useKonvaNodeRefs } from "../useKonvaNodeRefs";
 
 type MockNodeOptions = {

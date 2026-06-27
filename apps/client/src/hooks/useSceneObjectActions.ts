@@ -17,7 +17,7 @@
  */
 
 import { useCallback } from "react";
-import type { ClientMessage, TokenSize } from "@shared";
+import type { ClientMessage, TokenSize } from "@herobyte/shared";
 
 /**
  * Dependencies required by the useSceneObjectActions hook.

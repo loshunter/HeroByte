@@ -13,7 +13,7 @@
 // This is a pure composition component that arranges existing UI components
 // (JRPGPanel, JRPGButton) without implementing business logic.
 
-import type { Player, SceneObject } from "@shared";
+import type { Player, SceneObject } from "@herobyte/shared";
 import { JRPGButton, JRPGPanel } from "../../../../components/ui/JRPGPanel";
 import { TurnNavigationControls } from "../../../initiative/components/TurnNavigationControls";
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { worldToMapLocal } from "../coordinateTransforms";
-import type { SceneObject } from "@shared";
+import type { SceneObject } from "@herobyte/shared";
 
 describe("coordinateTransforms", () => {
   describe("worldToMapLocal", () => {

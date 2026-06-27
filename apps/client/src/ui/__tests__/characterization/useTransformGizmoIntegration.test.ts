@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useTransformGizmoIntegration } from "../../../hooks/useTransformGizmoIntegration";
-import type { SceneObject } from "@shared";
+import type { SceneObject } from "@herobyte/shared";
 
 describe("useTransformGizmoIntegration", () => {
   const mockGetSelectedNode = vi.fn();

@@ -1,7 +1,7 @@
 import { useEffect, type RefObject } from "react";
 import { useCamera } from "./useCamera.js";
 import type { CameraCommand } from "../ui/MapBoard.types";
-import type { RoomSnapshot } from "@shared";
+import type { RoomSnapshot } from "@herobyte/shared";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 

@@ -17,7 +17,7 @@
  */
 
 import { useCallback, useState } from "react";
-import type { RoomSnapshot, ClientMessage } from "@shared";
+import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
 import { useDMElevation } from "./useDMElevation";
 
 /**

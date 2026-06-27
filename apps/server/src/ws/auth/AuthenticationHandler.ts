@@ -5,7 +5,7 @@
 // Single responsibility: Authentication flow management
 
 import type { WebSocket } from "ws";
-import type { Player } from "@shared";
+import type { Player } from "@herobyte/shared";
 import type { Container } from "../../container.js";
 import { getDefaultRoomId } from "../../config/auth.js";
 

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useCameraControl } from "../../../hooks/useCameraControl";
 import type { CameraCommand } from "../../MapBoard.types";
-import type { RoomSnapshot } from "@shared";
+import type { RoomSnapshot } from "@herobyte/shared";
 
 describe("useCameraControl", () => {
   const mockOnCameraChange = vi.fn();

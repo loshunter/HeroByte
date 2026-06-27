@@ -1,6 +1,6 @@
 import { renderHook } from "@testing-library/react";
 import { describe, it, expect, afterEach, vi } from "vitest";
-import type { Drawing, RoomSnapshot, SceneObject } from "@shared";
+import type { Drawing, RoomSnapshot, SceneObject } from "@herobyte/shared";
 import { useSceneObjectsData } from "../useSceneObjectsData";
 
 function createDrawing(id: string): Drawing {

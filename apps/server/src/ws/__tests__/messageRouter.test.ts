@@ -11,7 +11,7 @@ import { PropService } from "../../domains/prop/service.js";
 import { SelectionService } from "../../domains/selection/service.js";
 import { AuthService } from "../../domains/auth/service.js";
 import type { WebSocket, WebSocketServer } from "ws";
-import type { Character, ClientMessage, RoomSnapshot, ServerMessage } from "@shared";
+import type { Character, ClientMessage, RoomSnapshot, ServerMessage } from "@herobyte/shared";
 import type { RoomState } from "../../domains/room/model.js";
 import { createEmptyRoomState, selectionMapToRecord } from "../../domains/room/model.js";
 

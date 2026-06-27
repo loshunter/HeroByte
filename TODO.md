@@ -8,6 +8,14 @@ Ship a table-ready MVP to run live playtests with real players and a DM. Priorit
 
 ## 1. High-Priority Polish
 
+### Map Studio
+
+- [x] Establish versioned map documents, persistence, collaboration-safe commands, layers, grids, shape editing, and production/E2E coverage.
+- [x] Add portable export and publish-to-live-scene for authored Map Studio documents.
+- [x] Add wall and door creation with movement/vision-blocking metadata.
+- [ ] Complete the remaining table-ready loop: direct manipulation, real snapping, wall/door editing, live lighting/fog, and non-destructive republish.
+- [ ] Add asset library authoring, VTT-native lighting/fog, and commercial collaboration features per [the Map Studio roadmap](docs/planning/map-studio-roadmap.md).
+
 ### Player Experience
 
 - [ ] Verify voice indicator + portrait glow survive reconnects and DM toggles.

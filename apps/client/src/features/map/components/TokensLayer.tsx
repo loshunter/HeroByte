@@ -7,7 +7,7 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Group, Rect, Image as KonvaImage, Circle, Text } from "react-konva";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import type { DragPreviewUpdate, SceneObject } from "@shared";
+import type { DragPreviewUpdate, SceneObject } from "@herobyte/shared";
 import useImage from "use-image";
 import type { Camera } from "../types";
 import { LockIndicator } from "./LockIndicator";

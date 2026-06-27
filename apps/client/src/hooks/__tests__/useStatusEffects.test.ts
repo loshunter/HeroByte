@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useStatusEffects } from "../useStatusEffects.js";
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 
 describe("useStatusEffects - Characterization Tests", () => {
   it("should provide a setStatusEffects function", () => {

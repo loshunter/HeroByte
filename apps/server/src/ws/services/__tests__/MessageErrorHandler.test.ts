@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { MockInstance } from "vitest";
 import { MessageErrorHandler } from "../MessageErrorHandler.js";
 import { MessageLogger } from "../MessageLogger.js";
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 
 /**
  * Unit Tests: MessageErrorHandler Service

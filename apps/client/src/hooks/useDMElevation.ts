@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { RoomSnapshot, ClientMessage } from "@shared";
+import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
 
 /**
  * Hook for managing DM elevation and revocation with proper state synchronization.

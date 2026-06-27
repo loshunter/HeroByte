@@ -12,7 +12,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ClientMessage, ServerMessage } from "@shared";
+import type { ClientMessage, ServerMessage } from "@herobyte/shared";
 
 /**
  * Status of a room password update operation
@@ -54,6 +54,19 @@ export interface UseServerEventHandlersOptions {
    * WebSocket message sender for client-server communication
    */
   sendMessage: (msg: ClientMessage) => void;
+
+  onMapStudioMessage?: (
+    message: Extract<
+      ServerMessage,
+      {
+        t:
+          | "map-studio-documents"
+          | "map-studio-document"
+          | "map-studio-deleted"
+          | "map-studio-error";
+      }
+    >,
+  ) => void;
 }
 
 /**
@@ -120,6 +133,7 @@ export function useServerEventHandlers({
   registerServerEventHandler,
   toast,
   sendMessage,
+  onMapStudioMessage,
 }: UseServerEventHandlersOptions): UseServerEventHandlersReturn {
   // State for room password operations
   const [roomPasswordStatus, setRoomPasswordStatus] = useState<RoomPasswordStatus | null>(null);
@@ -193,9 +207,17 @@ export function useServerEventHandlers({
       } else if ("t" in message && message.t === "dm-password-update-failed") {
         // DM password update failed
         toastError(`DM password update failed: ${message.reason}`, 5000);
+      } else if (
+        "t" in message &&
+        (message.t === "map-studio-documents" ||
+          message.t === "map-studio-document" ||
+          message.t === "map-studio-deleted" ||
+          message.t === "map-studio-error")
+      ) {
+        onMapStudioMessage?.(message);
       }
     });
-  }, [registerServerEventHandler, toastSuccess, toastError]);
+  }, [registerServerEventHandler, toastSuccess, toastError, onMapStudioMessage]);
 
   return {
     roomPasswordStatus,

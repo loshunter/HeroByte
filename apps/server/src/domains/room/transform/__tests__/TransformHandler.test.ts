@@ -12,7 +12,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { RoomService } from "../../service.js";
-import type { Token, Prop, Drawing, PlayerStagingZone } from "@shared";
+import type { Token, Prop, Drawing, PlayerStagingZone } from "@herobyte/shared";
 
 describe("TransformHandler - Characterization Tests", () => {
   let roomService: RoomService;

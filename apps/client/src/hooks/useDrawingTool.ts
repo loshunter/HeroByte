@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import type Konva from "konva";
-import type { ClientMessage, SceneObject } from "@shared";
+import type { ClientMessage, SceneObject } from "@herobyte/shared";
 import { generateUUID } from "../utils/uuid";
 import { evaluatePartialErase } from "../features/drawing/utils/partialErase";
 

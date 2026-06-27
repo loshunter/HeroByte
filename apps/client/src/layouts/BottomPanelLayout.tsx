@@ -30,7 +30,7 @@ import type {
   Drawing,
   PlayerState,
   TokenSize,
-} from "@shared";
+} from "@herobyte/shared";
 import { EntitiesPanel } from "../components/layout/EntitiesPanel";
 
 /**

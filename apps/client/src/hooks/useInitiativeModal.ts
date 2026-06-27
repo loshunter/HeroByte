@@ -5,7 +5,7 @@
 // Separates modal state from presentation and business logic
 
 import { useState, useCallback } from "react";
-import type { Character } from "@shared";
+import type { Character } from "@herobyte/shared";
 
 /**
  * Custom hook for managing initiative modal state.

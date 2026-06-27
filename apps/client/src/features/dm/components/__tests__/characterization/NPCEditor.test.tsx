@@ -10,7 +10,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import type { Character } from "@shared";
+import type { Character } from "@herobyte/shared";
 import { NPCEditor } from "../../NPCEditor";
 
 describe("NPCEditor - Characterization Tests", () => {

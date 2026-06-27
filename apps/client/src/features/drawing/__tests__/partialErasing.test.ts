@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { Drawing, SceneObject } from "@shared";
+import type { Drawing, SceneObject } from "@herobyte/shared";
 import { splitFreehandDrawing } from "../utils/splitFreehandDrawing";
 
 type DrawingPoint = { x: number; y: number };

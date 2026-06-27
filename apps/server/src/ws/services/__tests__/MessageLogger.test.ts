@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 import { MessageLogger } from "../MessageLogger.js";
 
 describe("MessageLogger", () => {

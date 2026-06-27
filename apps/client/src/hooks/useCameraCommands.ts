@@ -31,7 +31,7 @@
  */
 
 import { useState, useCallback } from "react";
-import type { RoomSnapshot } from "@shared";
+import type { RoomSnapshot } from "@herobyte/shared";
 import type { CameraCommand } from "../ui/MapBoard";
 
 interface UseCameraCommandsParams {

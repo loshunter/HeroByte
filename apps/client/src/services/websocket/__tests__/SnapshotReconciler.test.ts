@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { RoomSnapshot } from "@shared";
+import type { RoomSnapshot } from "@herobyte/shared";
 import { SnapshotReconciler } from "../SnapshotReconciler";
 
 function createSnapshot(overrides: Partial<RoomSnapshot> = {}): RoomSnapshot {

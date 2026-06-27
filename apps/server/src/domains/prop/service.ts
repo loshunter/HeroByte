@@ -4,7 +4,7 @@
 // Handles prop-related business logic (items, scenery, objects)
 
 import { randomUUID } from "crypto";
-import type { Prop, TokenSize } from "@shared";
+import type { Prop, TokenSize } from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
 
 /**

@@ -5,8 +5,8 @@
 // player card while using a red accent to indicate an enemy.
 
 import { useCallback, useEffect, useState } from "react";
-import type { Character, TokenSize } from "@shared";
-import { normalizeHPValues, parseHPInput, parseMaxHPInput } from "@shared";
+import type { Character, TokenSize } from "@herobyte/shared";
+import { normalizeHPValues, parseHPInput, parseMaxHPInput } from "@herobyte/shared";
 import { PortraitSection } from "./PortraitSection";
 import { HPBar } from "./HPBar";
 import { NpcSettingsMenu } from "./NpcSettingsMenu";

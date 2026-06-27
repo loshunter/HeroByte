@@ -15,7 +15,7 @@
  */
 
 import { useCallback, useMemo, useRef, useState, useEffect } from "react";
-import type { RoomSnapshot, ClientMessage } from "@shared";
+import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
 import type { RollResult, DieType } from "../components/dice/types";
 
 /**

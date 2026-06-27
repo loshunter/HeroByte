@@ -6,7 +6,7 @@
 import { describe, it, expect } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useInitiativeModal } from "../useInitiativeModal";
-import type { Character } from "@shared";
+import type { Character } from "@herobyte/shared";
 
 describe("useInitiativeModal", () => {
   const createMockCharacter = (id: string, initiative?: number): Character => ({

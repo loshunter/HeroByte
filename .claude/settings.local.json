@@ -212,7 +212,9 @@
       "Bash(gh issue create:*)",
       "Bash(gh label list:*)",
       "Bash(python3:*)",
-      "Bash(git rev-parse:*)"
+      "Bash(git rev-parse:*)",
+      "Bash(pnpm --version)",
+      "Bash(pnpm approve-builds *)"
     ],
     "deny": [],
     "ask": []

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 import { CommandAckManager } from "../../websocket/CommandAckManager";
 
 describe("CommandAckManager", () => {

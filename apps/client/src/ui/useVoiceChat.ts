@@ -6,7 +6,7 @@
  * is enabled (mic is turned on), deferring the WebRTC dependency until needed.
  */
 import { useEffect, useRef, useState } from "react";
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 
 // Type-only import (no runtime cost)
 import type SimplePeer from "simple-peer";

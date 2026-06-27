@@ -1,0 +1,380 @@
+import { act, renderHook } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createMapDocument, type ClientMessage } from "@herobyte/shared";
+import { useMapStudio } from "../useMapStudio";
+
+describe("useMapStudio", () => {
+  const sendMessage = vi.fn<(message: ClientMessage) => void>();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("requests the room's map document list", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    act(() => result.current.refresh());
+
+    expect(result.current.loading).toBe(true);
+    expect(sendMessage).toHaveBeenCalledWith({ t: "map-studio-list" });
+  });
+
+  it("creates and activates a new document from its server response", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    let id = "";
+    act(() => {
+      id = result.current.createDocument("Keep", 4096, 2048);
+    });
+    expect(sendMessage).toHaveBeenCalledWith({
+      t: "map-studio-create",
+      document: { id, name: "Keep", width: 4096, height: 2048 },
+    });
+
+    const document = createMapDocument({ id, name: "Keep", width: 4096, timestamp: 10 });
+    act(() => result.current.handleServerMessage({ t: "map-studio-document", document }));
+
+    expect(result.current.activeDocument?.id).toBe(id);
+    expect(result.current.documents[0]).toMatchObject({ id, name: "Keep" });
+    expect(result.current.loading).toBe(false);
+  });
+
+  it("loads summaries and opens a selected document", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-documents",
+        documents: [
+          {
+            id: "map",
+            name: "Keep",
+            width: 2048,
+            height: 2048,
+            revision: 2,
+            createdAt: 1,
+            updatedAt: 2,
+          },
+        ],
+      }),
+    );
+    expect(result.current.documents).toHaveLength(1);
+
+    act(() => result.current.openDocument("map"));
+    expect(sendMessage).toHaveBeenLastCalledWith({ t: "map-studio-get", documentId: "map" });
+    expect(result.current.loading).toBe(true);
+
+    const document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
+    act(() => result.current.handleServerMessage({ t: "map-studio-document", document }));
+    expect(result.current.activeDocument?.id).toBe("map");
+  });
+
+  it("does not replace the active document when another DM edits a different map", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    const active = createMapDocument({ id: "active", name: "Active", timestamp: 1 });
+    act(() => result.current.handleServerMessage({ t: "map-studio-document", document: active }));
+
+    const other = createMapDocument({ id: "other", name: "Other", timestamp: 2 });
+    act(() => result.current.handleServerMessage({ t: "map-studio-document", document: other }));
+
+    expect(result.current.activeDocument?.id).toBe("active");
+    expect(result.current.documents.map((document) => document.id)).toEqual(["other", "active"]);
+  });
+
+  it("sequences rapid revision-aware edits using each server revision", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    const document = createMapDocument({ id: "map", name: "Map", timestamp: 1 });
+    document.revision = 7;
+    act(() => result.current.handleServerMessage({ t: "map-studio-document", document }));
+
+    act(() => result.current.updateLayer("terrain", { opacity: 0.5 }));
+    const updateMessage = sendMessage.mock.calls.at(-1)?.[0];
+    expect(updateMessage).toMatchObject({
+      t: "map-studio-command",
+      command: {
+        documentId: "map",
+        baseRevision: 7,
+        type: "update-layer",
+        layerId: "terrain",
+        update: { opacity: 0.5 },
+      },
+    });
+    const firstCommandId =
+      updateMessage?.t === "map-studio-command" ? updateMessage.command.commandId : "";
+
+    act(() => result.current.moveLayer("terrain", 2));
+    expect(sendMessage).toHaveBeenCalledTimes(1);
+    expect(result.current.saving).toBe(true);
+
+    const revised = { ...document, revision: 8, updatedAt: 2 };
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-document",
+        document: revised,
+        appliedCommandId: firstCommandId,
+      }),
+    );
+    expect(sendMessage.mock.calls.at(-1)?.[0]).toMatchObject({
+      t: "map-studio-command",
+      command: {
+        documentId: "map",
+        baseRevision: 8,
+        type: "move-layer",
+        layerId: "terrain",
+        targetIndex: 2,
+      },
+    });
+  });
+
+  it("creates and removes map shapes through the command queue", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    const document = createMapDocument({ id: "map", name: "Map", timestamp: 1 });
+    act(() => result.current.handleServerMessage({ t: "map-studio-document", document }));
+
+    let shapeId: string | null = null;
+    act(() => {
+      shapeId = result.current.addShape({
+        layerId: "terrain",
+        shape: "ellipse",
+        x: 64,
+        y: 96,
+        width: 256,
+        height: 128,
+        fill: "#111111",
+        stroke: "#eeeeee",
+      });
+    });
+    expect(shapeId).toBeTruthy();
+    expect(sendMessage.mock.calls.at(-1)?.[0]).toMatchObject({
+      t: "map-studio-command",
+      command: {
+        type: "add-element",
+        element: {
+          id: shapeId,
+          type: "shape",
+          layerId: "terrain",
+          transform: { x: 64, y: 96 },
+          data: {
+            shape: "ellipse",
+            points: [
+              { x: 0, y: 0 },
+              { x: 256, y: 128 },
+            ],
+          },
+        },
+      },
+    });
+  });
+
+  it("creates wall and door elements through revision-aware commands", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    const document = createMapDocument({ id: "map", name: "Map", timestamp: 1 });
+    act(() => result.current.handleServerMessage({ t: "map-studio-document", document }));
+
+    let wallId: string | null = null;
+    act(() => {
+      wallId = result.current.addWall({
+        layerId: "walls",
+        x1: 10,
+        y1: 20,
+        x2: 200,
+        y2: 20,
+        blocksMovement: true,
+        blocksVision: true,
+      });
+    });
+    expect(sendMessage).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        t: "map-studio-command",
+        command: expect.objectContaining({
+          type: "add-element",
+          element: expect.objectContaining({
+            id: wallId,
+            type: "wall",
+            layerId: "walls",
+            data: expect.objectContaining({
+              points: [
+                { x: 10, y: 20 },
+                { x: 200, y: 20 },
+              ],
+              blocksMovement: true,
+              blocksVision: true,
+            }),
+          }),
+        }),
+      }),
+    );
+
+    const sent = sendMessage.mock.calls.at(-1)?.[0];
+    const commandId = sent?.t === "map-studio-command" ? sent.command.commandId : "";
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-document",
+        document: { ...document, revision: 1, updatedAt: 2 },
+        appliedCommandId: commandId,
+      }),
+    );
+
+    let doorId: string | null = null;
+    act(() => {
+      doorId = result.current.addDoor({
+        layerId: "walls",
+        x: 100,
+        y: 20,
+        width: 50,
+        rotation: 90,
+        state: "locked",
+        blocksMovement: true,
+        blocksVision: false,
+      });
+    });
+    expect(sendMessage).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        t: "map-studio-command",
+        command: expect.objectContaining({
+          type: "add-element",
+          baseRevision: 1,
+          element: expect.objectContaining({
+            id: doorId,
+            type: "door",
+            layerId: "walls",
+            transform: expect.objectContaining({ x: 100, y: 20, rotation: 90 }),
+            data: {
+              width: 50,
+              state: "locked",
+              blocksMovement: true,
+              blocksVision: false,
+            },
+          }),
+        }),
+      }),
+    );
+  });
+
+  it("recovers from a revision conflict by reloading before the next queued edit", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    const document = createMapDocument({ id: "map", name: "Map", timestamp: 1 });
+    act(() => result.current.handleServerMessage({ t: "map-studio-document", document }));
+    act(() => result.current.updateLayer("terrain", { visible: false }));
+    act(() => result.current.moveLayer("terrain", 2));
+    const sent = sendMessage.mock.calls[0]?.[0];
+    const commandId = sent?.t === "map-studio-command" ? sent.command.commandId : "";
+
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-error",
+        commandId,
+        documentId: "map",
+        code: "revision-conflict",
+        reason: "Map changed elsewhere",
+        actualRevision: 1,
+      }),
+    );
+    expect(result.current.error).toBe("Map changed elsewhere");
+    expect(sendMessage).toHaveBeenLastCalledWith({ t: "map-studio-get", documentId: "map" });
+
+    const current = { ...document, revision: 1, updatedAt: 2 };
+    act(() => result.current.handleServerMessage({ t: "map-studio-document", document: current }));
+    expect(sendMessage).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        t: "map-studio-command",
+        command: expect.objectContaining({ type: "move-layer", baseRevision: 1 }),
+      }),
+    );
+  });
+
+  it("does not send editing commands without an active document", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    act(() => result.current.updateLayer("terrain", { visible: false }));
+    act(() => result.current.moveLayer("terrain", 0));
+    act(() => result.current.updateGrid({ size: 64 }));
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
+
+  it("sends document grid changes as revision-aware commands", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    const document = createMapDocument({ id: "map", name: "Map", timestamp: 1 });
+    act(() => result.current.handleServerMessage({ t: "map-studio-document", document }));
+    act(() => result.current.updateGrid({ type: "isometric", size: 80, snap: false }));
+
+    expect(sendMessage).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        t: "map-studio-command",
+        command: expect.objectContaining({
+          documentId: "map",
+          baseRevision: 0,
+          type: "update-grid",
+          update: { type: "isometric", size: 80, snap: false },
+        }),
+      }),
+    );
+  });
+
+  it("updates an element transform through the revision queue", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    const document = createMapDocument({ id: "map", name: "Map", timestamp: 1 });
+    act(() => result.current.handleServerMessage({ t: "map-studio-document", document }));
+    const transform = { x: 120, y: 80, scaleX: 1.5, scaleY: 1, rotation: 30 };
+    act(() => result.current.updateElement("shape", { transform, hidden: true }));
+
+    expect(sendMessage).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        t: "map-studio-command",
+        command: expect.objectContaining({
+          type: "update-element",
+          elementId: "shape",
+          update: { transform, hidden: true },
+        }),
+      }),
+    );
+  });
+
+  it("uses server-backed history state for undo and redo", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    const document = createMapDocument({ id: "map", name: "Map", timestamp: 1 });
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-document",
+        document,
+        history: { canUndo: true, canRedo: false },
+      }),
+    );
+    expect(result.current.canUndo).toBe(true);
+    expect(result.current.canRedo).toBe(false);
+
+    act(() => result.current.undo());
+    expect(sendMessage).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        t: "map-studio-command",
+        command: expect.objectContaining({ type: "undo", baseRevision: 0 }),
+      }),
+    );
+
+    const command = sendMessage.mock.calls.at(-1)?.[0];
+    const commandId = command?.t === "map-studio-command" ? command.command.commandId : "";
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-document",
+        document: { ...document, revision: 1 },
+        appliedCommandId: commandId,
+        history: { canUndo: false, canRedo: true },
+      }),
+    );
+    expect(result.current.canRedo).toBe(true);
+    act(() => result.current.redo());
+    expect(sendMessage.mock.calls.at(-1)?.[0]).toMatchObject({
+      t: "map-studio-command",
+      command: { type: "redo", baseRevision: 1 },
+    });
+  });
+
+  it("deletes documents and clears the active selection after confirmation response", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    const document = createMapDocument({ id: "map", name: "Map" });
+    act(() => result.current.handleServerMessage({ t: "map-studio-document", document }));
+
+    act(() => result.current.deleteDocument("map"));
+    expect(sendMessage).toHaveBeenLastCalledWith({ t: "map-studio-delete", documentId: "map" });
+
+    act(() => result.current.handleServerMessage({ t: "map-studio-deleted", documentId: "map" }));
+    expect(result.current.activeDocument).toBeNull();
+    expect(result.current.documents).toEqual([]);
+  });
+});

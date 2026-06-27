@@ -1,4 +1,4 @@
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 import type { SelectionMessageHandler } from "../handlers/SelectionMessageHandler.js";
 import type { RoutingContext } from "../services/MessageRoutingContext.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";

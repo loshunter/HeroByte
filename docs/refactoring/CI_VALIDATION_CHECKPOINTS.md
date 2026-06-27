@@ -159,7 +159,7 @@ or update the baseline if this is intentional: pnpm baseline:update
 **What Gets Tested**:
 ```bash
 # Shared package tests
-pnpm --filter @shared test:coverage
+pnpm --filter @herobyte/shared test:coverage
 
 # Server tests
 pnpm --filter vtt-server test:coverage

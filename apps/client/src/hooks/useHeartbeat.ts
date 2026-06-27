@@ -4,7 +4,7 @@
 // Sends periodic heartbeat messages to the server to prevent timeout
 
 import { useEffect } from "react";
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 
 interface UseHeartbeatOptions {
   sendMessage: (msg: ClientMessage) => void;

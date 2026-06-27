@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { validateMessage } from "../validation.js";
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 
 const baseDrawing = {
   id: "drawing-1",

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import type { Character } from "@shared";
+import type { Character } from "@herobyte/shared";
 import { useBulkInitiativeRoll } from "../useBulkInitiativeRoll";
 
 describe("useBulkInitiativeRoll", () => {

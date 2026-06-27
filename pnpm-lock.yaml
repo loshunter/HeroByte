@@ -50,10 +50,10 @@ importers:
 
   apps/client:
     dependencies:
-      '@adapters-net':
+      '@herobyte/adapters-net':
         specifier: workspace:*
         version: link:../../packages/adapters-net
-      '@shared':
+      '@herobyte/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       buffer:
@@ -147,12 +147,12 @@ importers:
 
   apps/server:
     dependencies:
+      '@herobyte/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@hono/node-server':
         specifier: ^1.12.0
         version: 1.19.5(hono@4.9.9)
-      '@shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       '@types/node':
         specifier: ^24.6.1
         version: 24.6.1

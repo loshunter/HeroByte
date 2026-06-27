@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useMapActions } from "../useMapActions.js";
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 
 describe("useMapActions - Characterization", () => {
   it("should provide setMapBackground function that sends map-background message", () => {

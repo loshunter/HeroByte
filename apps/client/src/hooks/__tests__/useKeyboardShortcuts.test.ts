@@ -16,7 +16,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import type { MockInstance } from "vitest";
 import { renderHook } from "@testing-library/react";
-import type { RoomSnapshot, SceneObject } from "@shared";
+import type { RoomSnapshot, SceneObject } from "@herobyte/shared";
 
 // Mock hook implementation that simulates the CURRENT behavior in App.tsx
 function useKeyboardShortcuts(options: {

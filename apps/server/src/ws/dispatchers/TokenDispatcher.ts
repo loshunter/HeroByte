@@ -1,4 +1,4 @@
-import type { ClientMessage, DragPreviewEvent } from "@shared";
+import type { ClientMessage, DragPreviewEvent } from "@herobyte/shared";
 import { isDragPreviewEnabled } from "../../config/featureFlags.js";
 import type { TokenMessageHandler } from "../handlers/TokenMessageHandler.js";
 import type { AuthorizationCheckWrapper } from "../services/AuthorizationCheckWrapper.js";

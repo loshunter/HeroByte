@@ -4,7 +4,7 @@
 // Compact player/character row for mobile list view.
 
 import React, { memo, useState } from "react";
-import type { Player } from "@shared";
+import type { Player } from "@herobyte/shared";
 import { HPBar } from "../../features/players/components/HPBar";
 import { STATUS_OPTIONS } from "../../features/players/constants/statusOptions";
 import { JRPGButton } from "../ui/JRPGPanel";

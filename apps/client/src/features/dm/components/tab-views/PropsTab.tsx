@@ -10,7 +10,7 @@
 // The component handles the display of an empty state when no props exist,
 // and renders a scrollable list of PropEditor components when props are present.
 
-import type { Prop, Player } from "@shared";
+import type { Prop, Player } from "@herobyte/shared";
 import { JRPGButton, JRPGPanel } from "../../../../components/ui/JRPGPanel";
 import { PropEditor } from "../PropEditor";
 

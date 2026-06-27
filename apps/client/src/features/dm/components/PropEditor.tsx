@@ -5,7 +5,7 @@
 // Provides editing interface for prop properties including label, image, ownership, and size.
 
 import { useState, useEffect } from "react";
-import type { Prop, Player, TokenSize } from "@shared";
+import type { Prop, Player, TokenSize } from "@herobyte/shared";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import { useImageUrlNormalization } from "../../../hooks/useImageUrlNormalization";
 

@@ -16,7 +16,7 @@
  * @see CLIENT_WEBSOCKET_PLAN.md - Manager 5: MessageRouter
  */
 
-import type { DragPreviewEvent, Pointer, RoomSnapshot, ServerMessage } from "@shared";
+import type { DragPreviewEvent, Pointer, RoomSnapshot, ServerMessage } from "@herobyte/shared";
 import type { SignalData } from "simple-peer";
 
 /**
@@ -47,7 +47,11 @@ type ControlMessage =
   | Extract<ServerMessage, { t: "dm-status" }>
   | Extract<ServerMessage, { t: "dm-elevation-failed" }>
   | Extract<ServerMessage, { t: "dm-password-updated" }>
-  | Extract<ServerMessage, { t: "dm-password-update-failed" }>;
+  | Extract<ServerMessage, { t: "dm-password-update-failed" }>
+  | Extract<ServerMessage, { t: "map-studio-documents" }>
+  | Extract<ServerMessage, { t: "map-studio-document" }>
+  | Extract<ServerMessage, { t: "map-studio-deleted" }>
+  | Extract<ServerMessage, { t: "map-studio-error" }>;
 
 type HeartbeatAckMessage = Extract<ServerMessage, { t: "heartbeat-ack" }>;
 
@@ -304,7 +308,11 @@ export class MessageRouter {
       candidate.t === "dm-status" ||
       candidate.t === "dm-elevation-failed" ||
       candidate.t === "dm-password-updated" ||
-      candidate.t === "dm-password-update-failed"
+      candidate.t === "dm-password-update-failed" ||
+      candidate.t === "map-studio-documents" ||
+      candidate.t === "map-studio-document" ||
+      candidate.t === "map-studio-deleted" ||
+      candidate.t === "map-studio-error"
     );
   }
 

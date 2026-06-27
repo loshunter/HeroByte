@@ -19,7 +19,7 @@
  */
 
 import { useState, useCallback, useEffect } from "react";
-import type { SceneObject } from "@shared";
+import type { SceneObject } from "@herobyte/shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../types/alignment";
 import { computeMapAlignmentTransform } from "../../utils/mapAlignment";
 import type { ToolMode } from "../../components/layout/Header";

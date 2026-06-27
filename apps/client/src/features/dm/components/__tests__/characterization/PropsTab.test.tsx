@@ -10,7 +10,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import type { Prop, Player } from "@shared";
+import type { Prop, Player } from "@herobyte/shared";
 
 // ============================================================================
 // INLINE COMPONENT STUB

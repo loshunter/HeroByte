@@ -5,7 +5,7 @@
 // legacy tokens/drawings/map if the server has not yet populated sceneObjects.
 
 import { useMemo } from "react";
-import type { RoomSnapshot, SceneObject } from "@shared";
+import type { RoomSnapshot, SceneObject } from "@herobyte/shared";
 
 const DEFAULT_TRANSFORM = { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 };
 

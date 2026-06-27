@@ -26,7 +26,7 @@ import { render } from "@testing-library/react";
 import { forwardRef } from "react";
 import type { ReactNode, Ref } from "react";
 import { TransformGizmo } from "../TransformGizmo";
-import type { SceneObject } from "@shared";
+import type { SceneObject } from "@herobyte/shared";
 import type Konva from "konva";
 
 // ============================================================================

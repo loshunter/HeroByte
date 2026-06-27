@@ -5,7 +5,7 @@
 // Extracted from: apps/server/src/ws/messageRouter.ts
 
 import type { WebSocket } from "ws";
-import type { ServerMessage } from "@shared";
+import type { ServerMessage } from "@herobyte/shared";
 
 /**
  * Service responsible for sending direct messages to specific WebSocket clients.

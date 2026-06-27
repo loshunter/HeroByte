@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi, afterEach } from "vitest";
-import type { SceneObject } from "@shared";
+import type { SceneObject } from "@herobyte/shared";
 import { useDrawingTool } from "../useDrawingTool.js";
 import * as splitModule from "../../features/drawing/utils/splitFreehandDrawing.js";
 

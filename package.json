@@ -55,10 +55,5 @@
     "eslint-plugin-react-hooks": "^6.1.1",
     "playwright": "^1.56.0",
     "prettier": "^3.6.2"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
   }
 }

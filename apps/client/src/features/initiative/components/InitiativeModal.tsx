@@ -5,7 +5,7 @@
 
 import React, { useState, useCallback, useEffect } from "react";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
-import type { Character } from "@shared";
+import type { Character } from "@herobyte/shared";
 
 interface InitiativeModalProps {
   character: Character;

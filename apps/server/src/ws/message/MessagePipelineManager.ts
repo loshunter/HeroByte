@@ -4,7 +4,7 @@
 // Validates incoming WebSocket messages through a multi-stage pipeline
 // Single responsibility: Message validation and pre-processing
 
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 import type { RateLimiter } from "../../middleware/rateLimit.js";
 import { validateMessage } from "../../middleware/validation.js";
 

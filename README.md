@@ -503,11 +503,11 @@ graph LR
 
 - **Domain-Driven Design** – Business logic organized into domain services (Room, Player, Token, Map, Dice, Character)
 - **Dependency Injection** – Container pattern for service orchestration
-- **Message Validation** – All WebSocket payloads validated against `@shared` schemas
+- **Message Validation** – All WebSocket payloads validated against `@herobyte/shared` schemas
 - **Optimistic Updates** – Client predictions confirmed by server (fire-and-forget patterns eliminated)
 - **Middleware Pipeline** – Authentication, validation, and rate limiting layers
 
-Contributors should familiarize themselves with the `@shared` schemas first—they define every WebSocket payload, ensuring the client and server stay in lockstep.
+Contributors should familiarize themselves with the `@herobyte/shared` schemas first—they define every WebSocket payload, ensuring the client and server stay in lockstep.
 
 <details>
 <summary>📁 Project Structure</summary>
@@ -580,6 +580,7 @@ Before requesting review, double-check CI status locally. Mention uncertainties 
 - **[docs/DEMO_SERVER_WORKFLOW.md](docs/DEMO_SERVER_WORKFLOW.md)** – Managing passwords and sessions for casual games
 - **[DEVELOPMENT.md](DEVELOPMENT.md)** – Day-to-day workflow tips
 - **[docs/LOCAL_SYNC.md](docs/LOCAL_SYNC.md)** – Pull latest Playwright changes into `dev` branch
+- **[docs/planning/map-studio-roadmap.md](docs/planning/map-studio-roadmap.md)** – Competitive battlemap editor roadmap
 - **[TODO.md](TODO.md)** – Phased roadmap and contributor priorities
 - **[DONE.md](DONE.md)** – Archive of completed phases and milestones
 - **[DEPLOYMENT.md](DEPLOYMENT.md)** – Deployment instructions

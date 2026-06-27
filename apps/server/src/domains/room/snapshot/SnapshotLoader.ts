@@ -3,7 +3,7 @@
 // ============================================================================
 // Loads and merges saved game sessions with current server state
 
-import type { Drawing, Player, RoomSnapshot } from "@shared";
+import type { Drawing, Player, RoomSnapshot } from "@herobyte/shared";
 import type { RoomState } from "../model.js";
 import { createSelectionMap } from "../model.js";
 import type { StagingZoneManager } from "../staging/StagingZoneManager.js";

@@ -23,7 +23,7 @@ import { CharacterService } from "../../../domains/character/service.js";
 import { PropService } from "../../../domains/prop/service.js";
 import { SelectionService } from "../../../domains/selection/service.js";
 import { AuthService } from "../../../domains/auth/service.js";
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 import type { WebSocketServer, WebSocket } from "ws";
 
 describe("PropMessageHandler - Characterization Tests", () => {

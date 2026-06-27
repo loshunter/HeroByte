@@ -16,7 +16,7 @@
 // This is purely a composition component - it does not contain business logic,
 // only arranges child components and passes through their props.
 
-import type { PlayerStagingZone } from "@shared";
+import type { PlayerStagingZone } from "@herobyte/shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../../../types/alignment";
 import type { Camera } from "../../../../hooks/useCamera";
 import { MapBackgroundControl } from "../map-controls/MapBackgroundControl";
@@ -25,6 +25,8 @@ import { GridControl } from "../map-controls/GridControl";
 import { GridAlignmentWizard } from "../map-controls/GridAlignmentWizard";
 import { StagingZoneControl } from "../map-controls/StagingZoneControl";
 import { DrawingControls } from "../map-controls/DrawingControls";
+import { MapStudioControl } from "../map-controls/MapStudioControl";
+import type { MapStudioController } from "../../../map-studio";
 
 /**
  * Props for the MapTab component.
@@ -74,6 +76,7 @@ export interface MapTabProps {
 
   // DrawingControls props
   onClearDrawings: () => void;
+  mapStudio?: MapStudioController;
 }
 
 /**
@@ -115,6 +118,7 @@ export default function MapTab({
   onStagingZoneLockToggle,
   onSetPlayerStagingZone,
   onClearDrawings,
+  mapStudio,
 }: MapTabProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -124,6 +128,17 @@ export default function MapTab({
         onSuccess={onMapBackgroundSuccess}
         onError={onMapBackgroundError}
       />
+
+      {mapStudio && (
+        <MapStudioControl
+          controller={mapStudio}
+          onPublishToLiveMap={({ backgroundUrl, gridSize, documentName }) => {
+            onSetMapBackground(backgroundUrl);
+            onGridSizeChange(gridSize);
+            onMapBackgroundSuccess?.(`Published "${documentName}" to the live map.`);
+          }}
+        />
+      )}
 
       {/* Step 2: Adjust Map Transform (scale, position, rotation) */}
       {onMapLockToggle && onMapTransformChange && mapTransform && (

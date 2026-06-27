@@ -6,7 +6,12 @@
 // state propagates over the WebSocket snapshot stream.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { ClientMessage, RoomSnapshot, SelectionMode, SelectionStateEntry } from "@shared";
+import type {
+  ClientMessage,
+  RoomSnapshot,
+  SelectionMode,
+  SelectionStateEntry,
+} from "@herobyte/shared";
 
 interface UseObjectSelectionOptions {
   uid: string;

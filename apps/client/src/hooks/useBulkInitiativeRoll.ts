@@ -4,7 +4,7 @@
 // Custom hook for rolling initiative for multiple NPCs at once
 
 import { useState, useCallback } from "react";
-import type { Character } from "@shared";
+import type { Character } from "@herobyte/shared";
 
 /**
  * Hook for bulk initiative rolling

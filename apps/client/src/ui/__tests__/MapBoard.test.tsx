@@ -14,7 +14,7 @@ import { render } from "@testing-library/react";
 import { forwardRef } from "react";
 import type { ReactNode, Ref } from "react";
 import MapBoard from "../MapBoard";
-import type { RoomSnapshot } from "@shared";
+import type { RoomSnapshot } from "@herobyte/shared";
 import type { MapBoardProps } from "../MapBoard.types";
 
 interface MockComponentProps {

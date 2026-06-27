@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 
 /**
  * Options for the useMapActions hook

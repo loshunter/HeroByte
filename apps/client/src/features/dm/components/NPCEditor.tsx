@@ -5,8 +5,8 @@
 // Provides editing interface for NPC properties including name, HP, and images.
 
 import { useState, useEffect } from "react";
-import type { Character } from "@shared";
-import { normalizeHPValues, parseHPInput, parseMaxHPInput } from "@shared";
+import type { Character } from "@herobyte/shared";
+import { normalizeHPValues, parseHPInput, parseMaxHPInput } from "@herobyte/shared";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import { useImageUrlNormalization } from "../../../hooks/useImageUrlNormalization";
 import { StatusBanner } from "../../../components/ui/StatusBanner";

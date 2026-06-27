@@ -12,11 +12,12 @@
  */
 
 import React from "react";
-import type { RoomSnapshot, ClientMessage, PlayerStagingZone } from "@shared";
+import type { RoomSnapshot, ClientMessage, PlayerStagingZone } from "@herobyte/shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignment";
 import type { Camera } from "../../../hooks/useCamera";
 import { useDMContext, type UseDMContextOptions } from "../hooks/useDMContext";
 import { DMMenu } from "./DMMenu";
+import type { MapStudioController } from "../../map-studio";
 
 interface DMMenuContainerProps {
   // DM Status
@@ -78,6 +79,7 @@ interface DMMenuContainerProps {
   // Other actions
   onSelectPlayerTokens: (playerUid: string) => void;
   onSetInitiative?: (characterId: string, initiative: number, modifier: number) => void;
+  mapStudio?: MapStudioController;
 }
 
 /**
@@ -129,6 +131,7 @@ export function DMMenuContainer({
   toast,
   onSelectPlayerTokens,
   onSetInitiative,
+  mapStudio,
 }: DMMenuContainerProps) {
   // Instantiate DM context with all DM-specific hooks
   const dmContext = useDMContext({
@@ -222,6 +225,7 @@ export function DMMenuContainer({
       onPreviousTurn={dmContext.combatControls.handlePreviousTurn}
       toast={toast}
       onSetInitiative={onSetInitiative}
+      mapStudio={mapStudio}
     />
   );
 }

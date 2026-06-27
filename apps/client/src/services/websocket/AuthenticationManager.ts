@@ -25,7 +25,7 @@
  * - Auth state transitions in connect/disconnect
  */
 
-import type { ServerMessage } from "@shared";
+import type { ServerMessage } from "@herobyte/shared";
 
 /**
  * Authentication state enum

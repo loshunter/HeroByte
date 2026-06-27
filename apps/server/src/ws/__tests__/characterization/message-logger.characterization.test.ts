@@ -21,7 +21,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 import { MessageErrorHandler } from "../../services/MessageErrorHandler.js";
 import { DMAuthorizationEnforcer } from "../../services/DMAuthorizationEnforcer.js";
 import { MessageLogger } from "../../services/MessageLogger.js";

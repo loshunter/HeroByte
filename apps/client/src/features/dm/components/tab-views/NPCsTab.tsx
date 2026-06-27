@@ -12,7 +12,7 @@
 // This is a pure composition component that arranges existing UI components
 // (JRPGPanel, JRPGButton, NPCEditor) without implementing business logic.
 
-import type { Character } from "@shared";
+import type { Character } from "@herobyte/shared";
 import { JRPGButton, JRPGPanel } from "../../../../components/ui/JRPGPanel";
 import { NPCEditor } from "../NPCEditor";
 import { useBulkInitiativeRoll } from "../../../../hooks/useBulkInitiativeRoll";

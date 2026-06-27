@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ClientMessage, RoomSnapshot } from "@shared/index";
+import type { ClientMessage, RoomSnapshot } from "@herobyte/shared/index";
 
 export interface UsePropDeletionOptions {
   snapshot: RoomSnapshot | null;

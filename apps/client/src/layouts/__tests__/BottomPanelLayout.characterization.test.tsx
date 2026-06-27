@@ -25,7 +25,7 @@ import type {
   Drawing,
   PlayerState,
   TokenSize,
-} from "@shared";
+} from "@herobyte/shared";
 
 // ============================================================================
 // MOCK CHILD COMPONENTS
@@ -119,7 +119,7 @@ vi.mock("../../components/layout/EntitiesPanel", () => ({
 
 // Import BottomPanelLayout component
 // NOTE: This component doesn't exist yet - it will be created after these tests pass
-import type { Player as PlayerType, Character as CharacterType } from "@shared";
+import type { Player as PlayerType, Character as CharacterType } from "@herobyte/shared";
 
 // Define the expected BottomPanelLayout props interface
 export interface BottomPanelLayoutProps {

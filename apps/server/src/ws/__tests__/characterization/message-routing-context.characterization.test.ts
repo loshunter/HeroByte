@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import type { Player } from "@shared";
+import type { Player } from "@herobyte/shared";
 import type { RoomState } from "../../../domains/room/model.js";
 import { createEmptyRoomState } from "../../../domains/room/model.js";
 

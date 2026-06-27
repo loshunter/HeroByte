@@ -4,6 +4,9 @@
 // These types are shared between the client and server to ensure type safety
 // across the WebSocket communication layer and data structures.
 
+import type { CreateMapDocumentInput, MapDocument, MapDocumentSummary } from "./mapStudioTypes.js";
+import type { MapStudioCommand } from "./mapStudioCommands.js";
+
 // Export domain models
 export { TokenModel, PlayerModel, CharacterModel } from "./models.js";
 
@@ -17,6 +20,10 @@ export {
   filterCombatEligibleCharacters,
   isDMCharacter,
 } from "./combatUtils.js";
+
+// Export the versioned map-authoring model separately from live room state.
+export * from "./mapStudio.js";
+export * from "./mapStudioCommands.js";
 
 // ----------------------------------------------------------------------------
 // GAME ENTITY TYPES
@@ -491,6 +498,13 @@ type ClientMessagePayload =
   | { t: "sync-player-drawings"; drawings: Drawing[] } // Replace player's drawings with provided set
   | { t: "set-player-staging-zone"; zone: PlayerStagingZone | undefined } // DM sets/clears player staging zone
 
+  // Map Studio authoring (DM-only; kept separate from live RoomSnapshot)
+  | { t: "map-studio-list" }
+  | { t: "map-studio-create"; document: CreateMapDocumentInput }
+  | { t: "map-studio-get"; documentId: string }
+  | { t: "map-studio-command"; command: MapStudioCommand }
+  | { t: "map-studio-delete"; documentId: string }
+
   // Dice rolls
   | { t: "dice-roll"; roll: DiceRoll } // Broadcast a dice roll
   | { t: "clear-roll-history" } // Clear all dice rolls
@@ -535,6 +549,22 @@ export type ServerMessage =
   | { t: "token-updated"; stateVersion: number; token: Token } // Token delta update
   | { t: "pointer-preview"; pointer: Pointer } // Pointer preview event (high-frequency channel)
   | { t: "drag-preview"; preview: DragPreviewEvent } // Drag preview event (high-frequency channel)
+  | { t: "map-studio-documents"; documents: MapDocumentSummary[] }
+  | {
+      t: "map-studio-document";
+      document: MapDocument;
+      appliedCommandId?: string;
+      history?: { canUndo: boolean; canRedo: boolean };
+    }
+  | { t: "map-studio-deleted"; documentId: string }
+  | {
+      t: "map-studio-error";
+      commandId: string;
+      documentId: string;
+      code: "revision-conflict" | "command-rejected";
+      reason: string;
+      actualRevision?: number;
+    }
   | { t: "dm-status"; isDM: boolean } // DM elevation status update
   | { t: "dm-elevation-failed"; reason?: string } // DM elevation failed
   | { t: "dm-password-updated"; updatedAt: number } // DM password set/updated successfully

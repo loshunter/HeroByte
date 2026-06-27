@@ -2,7 +2,7 @@ import { renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../types/alignment";
 import type { KonvaEventObject } from "konva/lib/Node";
-import type { SceneObject } from "@shared";
+import type { SceneObject } from "@herobyte/shared";
 import { useAlignmentVisualization } from "../useAlignmentVisualization";
 
 const mapObject: SceneObject & { type: "map" } = {

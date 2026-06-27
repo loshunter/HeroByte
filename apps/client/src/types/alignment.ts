@@ -1,4 +1,4 @@
-import type { SceneObjectTransform } from "@shared";
+import type { SceneObjectTransform } from "@herobyte/shared";
 
 export interface AlignmentPoint {
   world: { x: number; y: number };

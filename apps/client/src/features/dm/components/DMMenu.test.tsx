@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import React from "react";
 import { DMMenu } from "./DMMenu";
-import type { Character } from "@shared";
+import type { Character } from "@herobyte/shared";
 
 vi.mock("../../../components/ui/JRPGPanel", () => {
   const JRPGPanel = ({

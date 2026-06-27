@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { SceneObject } from "@shared";
+import type { SceneObject } from "@herobyte/shared";
 import {
   analyzeObjectsForDeletion,
   shouldBlockDelete,

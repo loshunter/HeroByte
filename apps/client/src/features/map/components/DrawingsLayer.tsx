@@ -8,7 +8,7 @@ import { memo, useEffect, useRef, useState } from "react";
 import { Circle, Group, Line, Rect } from "react-konva";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import type { SceneObject } from "@shared";
+import type { SceneObject } from "@herobyte/shared";
 import type { Camera } from "../../../hooks/useCamera";
 
 interface DrawingsLayerProps {

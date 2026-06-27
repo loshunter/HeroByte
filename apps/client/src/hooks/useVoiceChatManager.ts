@@ -16,7 +16,7 @@
  */
 
 import React from "react";
-import type { RoomSnapshot, ClientMessage, Player } from "@shared";
+import type { RoomSnapshot, ClientMessage, Player } from "@herobyte/shared";
 import { useMicrophone } from "./useMicrophone";
 import { useVoiceChat } from "../ui/useVoiceChat";
 

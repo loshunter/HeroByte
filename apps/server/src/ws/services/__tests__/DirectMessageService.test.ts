@@ -6,7 +6,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { WebSocket } from "ws";
-import type { ServerMessage } from "@shared";
+import type { ServerMessage } from "@herobyte/shared";
 import { DirectMessageService } from "../DirectMessageService.js";
 
 /**

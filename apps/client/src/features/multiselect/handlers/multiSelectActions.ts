@@ -3,7 +3,7 @@
  * Pure utility functions for multi-select operations (delete, lock, etc.)
  */
 
-import type { SceneObject } from "@shared";
+import type { SceneObject } from "@herobyte/shared";
 import type { DeleteAnalysisResult, DeleteBlockReason } from "../types/index.js";
 
 /**

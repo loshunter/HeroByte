@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import type { KonvaEventObject } from "konva/lib/Node";
-import type { SceneObject } from "@shared";
+import type { SceneObject } from "@herobyte/shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import { worldToMapLocal } from "../utils/coordinateTransforms";
 

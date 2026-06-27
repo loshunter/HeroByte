@@ -15,7 +15,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { MapMessageHandler } from "../MapMessageHandler.js";
-import type { PlayerStagingZone } from "@shared";
+import type { PlayerStagingZone } from "@herobyte/shared";
 import { createEmptyRoomState } from "../../../domains/room/model.js";
 import type { RoomState } from "../../../domains/room/model.js";
 import type { MapService } from "../../../domains/map/service.js";

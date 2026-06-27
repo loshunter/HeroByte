@@ -18,7 +18,7 @@
  */
 
 import { useCallback } from "react";
-import type { RoomSnapshot, ClientMessage, Character, Prop } from "@shared";
+import type { RoomSnapshot, ClientMessage, Character, Prop } from "@herobyte/shared";
 import { useNpcCreation } from "./useNpcCreation";
 import { useNpcUpdate } from "./useNpcUpdate";
 import { useNpcDeletion } from "./useNpcDeletion";

@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useMemo } from "react";
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 import type { ToolMode } from "../components/layout/Header";
 import { useDrawingState } from "./useDrawingState";
 

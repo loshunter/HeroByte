@@ -4,7 +4,7 @@
 // Handles room state management, persistence, and broadcasting
 
 import type { WebSocket } from "ws";
-import type { RoomSnapshot, PlayerStagingZone } from "@shared";
+import type { RoomSnapshot, PlayerStagingZone } from "@herobyte/shared";
 import type { RoomState } from "./model.js";
 import { createEmptyRoomState, toSnapshot } from "./model.js";
 import { StagingZoneManager } from "./staging/StagingZoneManager.js";

@@ -10,7 +10,7 @@
 // "set-character-status-effects" were routed by dispatchers but unreachable in
 // production because the validator switch didn't know about them.)
 
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 import type { ValidationResult, MessageRecord } from "./validators/index.js";
 import { isRecord } from "./validators/index.js";
 
@@ -67,6 +67,10 @@ import {
   validateMoveDrawingMessage,
   validateErasePartialMessage,
   validateSyncPlayerDrawingsMessage,
+  validateMapStudioControlMessage,
+  validateMapStudioCreateMessage,
+  validateMapStudioDocumentIdMessage,
+  validateMapStudioCommandMessage,
 } from "./validators/index.js";
 
 // Prop validators
@@ -178,6 +182,11 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   "move-drawing": validateMoveDrawingMessage,
   "erase-partial": validateErasePartialMessage,
   "sync-player-drawings": validateSyncPlayerDrawingsMessage,
+  "map-studio-list": validateMapStudioControlMessage,
+  "map-studio-create": validateMapStudioCreateMessage,
+  "map-studio-get": validateMapStudioDocumentIdMessage,
+  "map-studio-command": validateMapStudioCommandMessage,
+  "map-studio-delete": validateMapStudioDocumentIdMessage,
 
   // ==========================================================================
   // PROP MESSAGES

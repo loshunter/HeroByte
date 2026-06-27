@@ -5,7 +5,7 @@
 
 import { memo, useEffect, useMemo, useState } from "react";
 import { Group, Circle, Text } from "react-konva";
-import type { Pointer, Player, Token } from "@shared";
+import type { Pointer, Player, Token } from "@herobyte/shared";
 import type { Camera } from "../types";
 
 const POINTER_LIFESPAN_MS = 3000;

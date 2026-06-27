@@ -18,7 +18,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 import { useHeartbeat } from "../useHeartbeat";
 
 type MockTimer = {

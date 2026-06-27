@@ -6,7 +6,7 @@
 
 import type { WebSocket, WebSocketServer } from "ws";
 import type { IncomingMessage } from "http";
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 import type { Container } from "../container.js";
 import { AuthenticationHandler } from "./auth/AuthenticationHandler.js";
 import { HeartbeatTimeoutManager } from "./lifecycle/HeartbeatTimeoutManager.js";

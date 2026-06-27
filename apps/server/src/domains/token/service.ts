@@ -4,7 +4,7 @@
 // Handles token-related business logic
 
 import { randomUUID } from "crypto";
-import type { Token, TokenSize } from "@shared";
+import type { Token, TokenSize } from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
 
 /**

@@ -3,7 +3,14 @@
 // ============================================================================
 // Builds scene objects from room state entities
 
-import type { SceneObject, Token, Drawing, Prop, PlayerStagingZone, Pointer } from "@shared";
+import type {
+  SceneObject,
+  Token,
+  Drawing,
+  Prop,
+  PlayerStagingZone,
+  Pointer,
+} from "@herobyte/shared";
 import type { RoomState } from "../model.js";
 
 /**

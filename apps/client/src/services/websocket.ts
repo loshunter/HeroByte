@@ -47,7 +47,7 @@
  * See: docs/refactoring/CLIENT_WEBSOCKET_PLAN.md
  */
 
-import type { RoomSnapshot, ClientMessage, ServerMessage } from "@shared";
+import type { RoomSnapshot, ClientMessage, ServerMessage } from "@herobyte/shared";
 import type { SignalData } from "simple-peer";
 import { MessageRouter } from "./websocket/MessageRouter";
 import {
@@ -80,7 +80,11 @@ type ControlMessage =
   | Extract<ServerMessage, { t: "dm-status" }>
   | Extract<ServerMessage, { t: "dm-elevation-failed" }>
   | Extract<ServerMessage, { t: "dm-password-updated" }>
-  | Extract<ServerMessage, { t: "dm-password-update-failed" }>;
+  | Extract<ServerMessage, { t: "dm-password-update-failed" }>
+  | Extract<ServerMessage, { t: "map-studio-documents" }>
+  | Extract<ServerMessage, { t: "map-studio-document" }>
+  | Extract<ServerMessage, { t: "map-studio-deleted" }>
+  | Extract<ServerMessage, { t: "map-studio-error" }>;
 
 // Re-export for backward compatibility
 export { AuthState, type AuthEvent, ConnectionState };
@@ -475,6 +479,14 @@ export class WebSocketService {
    * @private Callback from MessageRouter
    */
   private handleAuthResponse(message: AuthResponseMessage): void {
+    // Never replay credentials that the server has explicitly rejected. The
+    // server closes rejected sockets, so retaining this secret would create an
+    // automatic reconnect/authentication loop that prevents password recovery.
+    if (message.t === "auth-failed") {
+      this.lastAuthSecret = null;
+      this.lastAuthRoomId = undefined;
+    }
+
     this.authManager.handleAuthResponse(message);
 
     // Flush message queue on successful authentication

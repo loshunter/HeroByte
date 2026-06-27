@@ -4,7 +4,7 @@
 // Handles character-related business logic (Phase 1: PCs only)
 
 import { randomUUID } from "crypto";
-import type { Character } from "@shared";
+import type { Character } from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
 import type { TokenService } from "../token/service.js";
 

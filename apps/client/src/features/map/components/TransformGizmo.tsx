@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Transformer, Group, Rect, Line } from "react-konva";
 import type Konva from "konva";
-import type { SceneObject } from "@shared";
+import type { SceneObject } from "@herobyte/shared";
 
 interface TransformGizmoProps {
   selectedObject: SceneObject | null;

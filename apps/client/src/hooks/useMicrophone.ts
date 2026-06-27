@@ -5,7 +5,7 @@
 // Handles browser audio permissions and real-time level detection
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 
 interface UseMicrophoneOptions {
   sendMessage: (message: ClientMessage) => void;

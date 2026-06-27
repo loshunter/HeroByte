@@ -1,4 +1,4 @@
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 import type { PropMessageHandler } from "../handlers/PropMessageHandler.js";
 import type { AuthorizationCheckWrapper } from "../services/AuthorizationCheckWrapper.js";
 import type { RoutingContext } from "../services/MessageRoutingContext.js";

@@ -3,7 +3,7 @@
 // ============================================================================
 // Handles dice rolling and roll history
 
-import type { DiceRoll } from "@shared";
+import type { DiceRoll } from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
 
 /**

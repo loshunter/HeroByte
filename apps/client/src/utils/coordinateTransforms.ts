@@ -1,4 +1,4 @@
-import type { SceneObject } from "@shared";
+import type { SceneObject } from "@herobyte/shared";
 
 /**
  * Convert world coordinates to local coordinates relative to a scene object.

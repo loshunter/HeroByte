@@ -11,7 +11,7 @@
 import React from "react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import type { TokenSize } from "@shared";
+import type { TokenSize } from "@herobyte/shared";
 
 // ============================================================================
 // MOCKS

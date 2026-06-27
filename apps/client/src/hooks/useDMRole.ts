@@ -5,7 +5,7 @@
 // a helper to toggle the flag via WebSocket.
 
 import { useMemo, useCallback } from "react";
-import type { RoomSnapshot, ClientMessage } from "@shared";
+import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
 
 interface UseDMRoleOptions {
   snapshot: RoomSnapshot | null;

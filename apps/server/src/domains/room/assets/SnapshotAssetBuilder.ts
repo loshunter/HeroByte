@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { Drawing, SnapshotAsset, SnapshotAssetRefs } from "@shared";
+import type { Drawing, SnapshotAsset, SnapshotAssetRefs } from "@herobyte/shared";
 import type { RoomState } from "../model.js";
 
 interface SnapshotAssetBuildResult {

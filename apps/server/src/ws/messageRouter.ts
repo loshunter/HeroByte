@@ -4,7 +4,7 @@
 // Routes incoming WebSocket messages to appropriate domain services
 
 import type { WebSocket, WebSocketServer } from "ws";
-import type { ClientMessage, DragPreviewEvent, Pointer, ServerMessage } from "@shared";
+import type { ClientMessage, DragPreviewEvent, Pointer, ServerMessage } from "@herobyte/shared";
 import { isCommandAckEnabled } from "../config/featureFlags.js";
 import { RoomService } from "../domains/room/service.js";
 import { PlayerService } from "../domains/player/service.js";
@@ -15,6 +15,7 @@ import { CharacterService } from "../domains/character/service.js";
 import { PropService } from "../domains/prop/service.js";
 import { SelectionService } from "../domains/selection/service.js";
 import { AuthService } from "../domains/auth/service.js";
+import { MapStudioService } from "../domains/mapStudio/service.js";
 import { HeartbeatHandler } from "./handlers/HeartbeatHandler.js";
 import { RTCSignalHandler } from "./handlers/RTCSignalHandler.js";
 import { PointerHandler, type PointerHandlerResult } from "./handlers/PointerHandler.js";
@@ -30,6 +31,7 @@ import { SelectionMessageHandler } from "./handlers/SelectionMessageHandler.js";
 import { DiceMessageHandler } from "./handlers/DiceMessageHandler.js";
 import { RoomMessageHandler } from "./handlers/RoomMessageHandler.js";
 import { TransformMessageHandler } from "./handlers/TransformMessageHandler.js";
+import { MapStudioMessageHandler } from "./handlers/MapStudioMessageHandler.js";
 import { AuthorizationService } from "./services/AuthorizationService.js";
 import { MessageErrorHandler } from "./services/MessageErrorHandler.js";
 import { BroadcastService } from "./services/BroadcastService.js";
@@ -87,6 +89,7 @@ export class MessageRouter {
   private diceMessageHandler: DiceMessageHandler;
   private roomMessageHandler: RoomMessageHandler;
   private transformMessageHandler: TransformMessageHandler;
+  private mapStudioMessageHandler: MapStudioMessageHandler;
   private tokenDispatcher: TokenDispatcher;
   private characterDispatcher: CharacterDispatcher;
   private playerDispatcher: PlayerDispatcher;
@@ -99,6 +102,7 @@ export class MessageRouter {
   private wss: WebSocketServer;
   private uidToWs: Map<string, WebSocket>;
   private getAuthorizedClients: () => Set<WebSocket>;
+  private getRoomIdForUid: (uid: string) => string;
   private skipNextBroadcastVersionBump: boolean = false;
 
   constructor(
@@ -114,6 +118,8 @@ export class MessageRouter {
     wss: WebSocketServer,
     uidToWs: Map<string, WebSocket>,
     getAuthorizedClients: () => Set<WebSocket>,
+    mapStudioService: MapStudioService = new MapStudioService(),
+    getRoomIdForUid: (uid: string) => string = () => "default",
   ) {
     this.roomService = roomService;
     this.playerService = playerService;
@@ -127,6 +133,7 @@ export class MessageRouter {
     this.wss = wss;
     this.uidToWs = uidToWs;
     this.getAuthorizedClients = getAuthorizedClients;
+    this.getRoomIdForUid = getRoomIdForUid;
     this.authorizationService = new AuthorizationService();
     this.messageLogger = new MessageLogger();
     this.messageErrorHandler = new MessageErrorHandler(this.messageLogger);
@@ -211,6 +218,11 @@ export class MessageRouter {
       this.authorizationCheckWrapper,
       (targetUid, message) => this.sendControlMessage(targetUid, message),
     );
+    this.mapStudioMessageHandler = new MapStudioMessageHandler(
+      mapStudioService,
+      (targetUid, message) => this.sendControlMessage(targetUid, message),
+      (roomId, message) => this.sendMapStudioMessageToDMs(roomId, message),
+    );
   }
 
   /**
@@ -244,6 +256,18 @@ export class MessageRouter {
       const playerResult = this.playerDispatcher.dispatch(message, context, senderUid);
       if (playerResult) {
         this.handleRouteResult(playerResult, message.t);
+        this.acknowledgeSuccess(message, senderUid);
+        return;
+      }
+
+      const mapStudioResult = this.mapStudioMessageHandler.handle(
+        message,
+        senderUid,
+        this.getRoomIdForUid(senderUid),
+        context.isDM(),
+      );
+      if (mapStudioResult) {
+        this.handleRouteResult(mapStudioResult, message.t);
         this.acknowledgeSuccess(message, senderUid);
         return;
       }
@@ -407,6 +431,13 @@ export class MessageRouter {
    */
   private sendControlMessage(targetUid: string, message: ServerMessage): void {
     this.directMessageService.sendControlMessage(targetUid, message);
+  }
+
+  private sendMapStudioMessageToDMs(roomId: string, message: ServerMessage): void {
+    const state = this.roomService.getState();
+    state.players
+      .filter((player) => player.isDM && this.getRoomIdForUid(player.uid) === roomId)
+      .forEach((player) => this.sendControlMessage(player.uid, message));
   }
 
   private acknowledgeSuccess(message: ClientMessage, senderUid: string): void {

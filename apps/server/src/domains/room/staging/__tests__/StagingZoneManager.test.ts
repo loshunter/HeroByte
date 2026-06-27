@@ -14,7 +14,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { RoomService } from "../../service.js";
-import type { PlayerStagingZone } from "@shared";
+import type { PlayerStagingZone } from "@herobyte/shared";
 
 describe("StagingZoneManager - Characterization Tests", () => {
   let roomService: RoomService;

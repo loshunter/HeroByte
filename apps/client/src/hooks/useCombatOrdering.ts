@@ -5,8 +5,8 @@
 // Separates combat ordering logic from presentation concerns
 
 import { useMemo } from "react";
-import type { Character, Player, Token } from "@shared";
-import { shouldCharacterParticipateInCombat } from "@shared";
+import type { Character, Player, Token } from "@herobyte/shared";
+import { shouldCharacterParticipateInCombat } from "@herobyte/shared";
 
 export interface EntityInfo {
   kind: "character" | "npc" | "dm";

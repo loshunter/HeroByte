@@ -19,7 +19,7 @@
  * @module ws/handlers/TokenMessageHandler
  */
 
-import type { DragPreviewEvent, DragPreviewUpdate, Token, TokenSize } from "@shared";
+import type { DragPreviewEvent, DragPreviewUpdate, Token, TokenSize } from "@herobyte/shared";
 import { isDeltaChannelEnabled } from "../../config/featureFlags.js";
 import type { RoomState } from "../../domains/room/model.js";
 import type { TokenService } from "../../domains/token/service.js";

@@ -20,7 +20,8 @@ import type {
   TokenSize,
   PlayerState,
   PlayerStagingZone,
-} from "@shared";
+} from "@herobyte/shared";
+import type { MapStudioController } from "../../features/map-studio";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../types/alignment";
 import type { RollResult } from "../../components/dice/types";
 import type { UseDrawingStateManagerReturn } from "../../hooks/useDrawingStateManager";
@@ -357,4 +358,7 @@ export interface MainLayoutProps {
   // -------------------------------------------------------------------------
   /** Handler to send messages to server */
   sendMessage: (message: ClientMessage) => void;
+
+  /** Versioned Map Studio authoring state and actions */
+  mapStudio?: MapStudioController;
 }

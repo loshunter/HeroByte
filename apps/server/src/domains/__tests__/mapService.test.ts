@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Player } from "@shared";
+import type { Player } from "@herobyte/shared";
 import { MapService } from "../map/service.js";
 import type { DrawingOperation } from "../map/types.js";
 import { createEmptyRoomState } from "../room/model.js";

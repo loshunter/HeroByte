@@ -6,7 +6,7 @@
 import { describe, it, expect } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useCombatOrdering } from "../useCombatOrdering";
-import type { Character, Player, Token } from "@shared";
+import type { Character, Player, Token } from "@herobyte/shared";
 
 describe("useCombatOrdering", () => {
   const createMockPlayer = (uid: string, isDM = false): Player => ({

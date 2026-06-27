@@ -1,4 +1,4 @@
-import type { ClientMessage, ServerMessage } from "@shared";
+import type { ClientMessage, ServerMessage } from "@herobyte/shared";
 import type { SignalData } from "simple-peer";
 import type { HeartbeatHandler } from "../handlers/HeartbeatHandler.js";
 import type { RTCSignalHandler } from "../handlers/RTCSignalHandler.js";

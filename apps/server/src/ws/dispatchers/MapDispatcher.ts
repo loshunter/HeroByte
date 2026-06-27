@@ -1,4 +1,4 @@
-import type { ClientMessage, Pointer } from "@shared";
+import type { ClientMessage, Pointer } from "@herobyte/shared";
 import type { DrawingMessageHandler } from "../handlers/DrawingMessageHandler.js";
 import type { MapMessageHandler } from "../handlers/MapMessageHandler.js";
 import type { PointerHandler } from "../handlers/PointerHandler.js";

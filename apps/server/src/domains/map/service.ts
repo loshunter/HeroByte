@@ -4,7 +4,7 @@
 // Handles map-related features: background, grid, drawings, pointers
 
 import { randomUUID } from "crypto";
-import type { Drawing, DrawingSegmentPayload, Pointer } from "@shared";
+import type { Drawing, DrawingSegmentPayload, Pointer } from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
 import type { DrawingOperation, DrawingOperationStack } from "./types.js";
 

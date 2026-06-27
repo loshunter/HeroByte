@@ -291,7 +291,7 @@ export class MessagePipelineManager {
 
 - `RateLimiter` (from Container)
 - `validateMessage()` (from middleware/validation.ts)
-- `ClientMessage` type (from @shared)
+- `ClientMessage` type (from @herobyte/shared)
 
 **Tests Needed:**
 
@@ -444,7 +444,7 @@ export class MessageAuthenticator {
 
 - `AuthenticationHandler` (from Container)
 - `authenticatedUids: Set<string>` (from Container)
-- `ClientMessage` type (from @shared)
+- `ClientMessage` type (from @herobyte/shared)
 
 **Tests Needed:**
 

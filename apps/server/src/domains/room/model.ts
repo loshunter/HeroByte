@@ -16,7 +16,7 @@ import type {
   SelectionState,
   SelectionStateEntry,
   PlayerStagingZone,
-} from "@shared";
+} from "@herobyte/shared";
 import { buildSnapshotAssets } from "./assets/SnapshotAssetBuilder.js";
 import type { DrawingOperation } from "../map/types.js";
 

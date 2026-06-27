@@ -22,12 +22,14 @@ import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { visualizer } from "rollup-plugin-visualizer";
 
+const bundleStatsFile = process.env.HEROBYTE_BUNDLE_STATS_FILE ?? "./dist/stats.html";
+
 export default defineConfig({
   plugins: [
     react(),
     tsconfigPaths(),
     visualizer({
-      filename: "./dist/stats.html",
+      filename: bundleStatsFile,
       open: false,
       gzipSize: true,
       brotliSize: true,

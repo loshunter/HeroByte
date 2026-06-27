@@ -7,7 +7,7 @@
 import { useState, useEffect, type RefObject } from "react";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 
 interface UsePointerToolOptions {
   pointerMode: boolean;

@@ -13,7 +13,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { RoomService } from "../../service.js";
-import type { Token, Prop } from "@shared";
+import type { Token, Prop } from "@herobyte/shared";
 
 describe("LockingHandler - Characterization Tests", () => {
   let roomService: RoomService;

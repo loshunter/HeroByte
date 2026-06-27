@@ -5,7 +5,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { WebSocketService, ConnectionState, AuthState, AuthEvent } from "../services/websocket";
-import type { RoomSnapshot, ClientMessage, ServerMessage } from "@shared";
+import type { RoomSnapshot, ClientMessage, ServerMessage } from "@herobyte/shared";
 
 interface UseWebSocketOptions {
   url: string;

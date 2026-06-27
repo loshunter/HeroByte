@@ -11,7 +11,7 @@
 // - Integrates with existing selection system
 
 import { useCallback, useState } from "react";
-import type { SceneObject } from "@shared";
+import type { SceneObject } from "@herobyte/shared";
 
 interface UsePlayerTokenSelectionOptions {
   /**

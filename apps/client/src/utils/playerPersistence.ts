@@ -6,7 +6,7 @@ import type {
   SceneObject,
   Token,
   TokenSize,
-} from "@shared";
+} from "@herobyte/shared";
 
 interface SavePlayerStateParams {
   player: Player;

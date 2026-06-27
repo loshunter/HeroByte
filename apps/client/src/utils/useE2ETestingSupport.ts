@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import type { RoomSnapshot, ClientMessage } from "@shared";
+import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
 
 /**
  * Interface for E2E testing support hook parameters

@@ -5,7 +5,7 @@ import type {
   SnapshotAssetType,
   Token,
   Pointer,
-} from "@shared";
+} from "@herobyte/shared";
 
 type DeltaMessage = Extract<ServerMessage, { t: "token-updated" }>;
 

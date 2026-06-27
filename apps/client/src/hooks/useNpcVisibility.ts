@@ -8,7 +8,7 @@
  */
 
 import { useCallback } from "react";
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 
 export interface UseNpcVisibilityOptions {
   /**

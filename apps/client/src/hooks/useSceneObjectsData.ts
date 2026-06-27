@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { RoomSnapshot, SceneObject } from "@shared";
+import type { RoomSnapshot, SceneObject } from "@herobyte/shared";
 import { useSceneObjects } from "./useSceneObjects.js";
 
 export type MapSceneObject = SceneObject & { type: "map" };

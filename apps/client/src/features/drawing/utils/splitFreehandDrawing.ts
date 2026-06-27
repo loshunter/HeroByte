@@ -1,4 +1,4 @@
-import type { Drawing, SceneObject, SceneObjectTransform } from "@shared";
+import type { Drawing, SceneObject, SceneObjectTransform } from "@herobyte/shared";
 
 type DrawingSceneObject = SceneObject & { type: "drawing" };
 type Point = { x: number; y: number };

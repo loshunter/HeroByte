@@ -5,7 +5,7 @@
 // Memoized to prevent unnecessary re-renders
 
 import { memo, useEffect, useState } from "react";
-import type { Drawing, Player, PlayerState, SceneObject, Token, TokenSize } from "@shared";
+import type { Drawing, Player, PlayerState, SceneObject, Token, TokenSize } from "@herobyte/shared";
 import { NameEditor } from "./NameEditor";
 import { PortraitSection } from "./PortraitSection";
 import { HPBar } from "./HPBar";

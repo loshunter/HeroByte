@@ -15,7 +15,7 @@
  * @module domains/room/transform
  */
 
-import type { SceneObject } from "@shared";
+import type { SceneObject } from "@herobyte/shared";
 import type { RoomState } from "../model.js";
 
 /**

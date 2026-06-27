@@ -14,7 +14,7 @@
 import { renderHook, act } from "@testing-library/react";
 import { vi } from "vitest";
 import { useDrawingStateManager } from "../useDrawingStateManager";
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 
 describe("useDrawingStateManager - Characterization", () => {
   let sendMessageMock: ReturnType<typeof vi.fn<(message: ClientMessage) => void>>;

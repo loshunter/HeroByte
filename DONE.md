@@ -1887,7 +1887,7 @@ Documentation:
 - [x] **Token Size System**
   - [x] Add `size` property to Token model (default: medium)
   - [x] Size variants: tiny (0.5x), small (0.75x), medium (1x), large (1.5x), huge (2x), gargantuan (3x)
-  - [x] Add set-token-size message type to @shared
+  - [x] Add set-token-size message type to @herobyte/shared
   - [x] Implement TokenService.setTokenSize with lock check
   - [x] Implement TokenService.setTokenSizeByDM for DM override
   - [x] Add validation middleware for set-token-size

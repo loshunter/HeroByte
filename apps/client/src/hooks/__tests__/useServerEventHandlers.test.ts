@@ -16,7 +16,7 @@
 
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { ServerMessage } from "@shared";
+import type { ServerMessage } from "@herobyte/shared";
 import { useServerEventHandlers } from "../useServerEventHandlers.js";
 
 describe("useServerEventHandlers - Characterization Tests", () => {

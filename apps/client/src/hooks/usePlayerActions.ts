@@ -21,8 +21,8 @@ import type {
   PlayerStagingZone,
   RoomSnapshot,
   Character,
-} from "@shared";
-import { normalizeHPValues } from "@shared";
+} from "@herobyte/shared";
+import { normalizeHPValues } from "@herobyte/shared";
 
 /**
  * Dependencies required by the usePlayerActions hook.

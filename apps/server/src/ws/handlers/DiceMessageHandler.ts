@@ -14,7 +14,7 @@
  */
 
 import type { RoomState } from "../../domains/room/model.js";
-import type { DiceRoll } from "@shared";
+import type { DiceRoll } from "@herobyte/shared";
 import type { DiceService } from "../../domains/dice/service.js";
 
 /**

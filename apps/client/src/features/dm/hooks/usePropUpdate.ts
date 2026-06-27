@@ -13,7 +13,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import type { RoomSnapshot, ClientMessage, TokenSize } from "@shared";
+import type { RoomSnapshot, ClientMessage, TokenSize } from "@herobyte/shared";
 
 export interface UsePropUpdateOptions {
   /**

@@ -3,7 +3,7 @@
 // ============================================================================
 // Shared type guards, helpers, and constants used across domain validators
 
-import type { DrawingSegmentPayload } from "@shared";
+import type { DrawingSegmentPayload } from "@herobyte/shared";
 import { STRING_LIMITS } from "./constants.js";
 
 /**

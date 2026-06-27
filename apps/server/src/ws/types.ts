@@ -1,4 +1,4 @@
-import type { Token } from "@shared";
+import type { Token } from "@herobyte/shared";
 
 /**
  * Pending delta payload emitted by message handlers before stateVersion

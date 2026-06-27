@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useObjectSelection } from "../useObjectSelection.js";
-import type { RoomSnapshot, SelectionState } from "@shared";
+import type { RoomSnapshot, SelectionState } from "@herobyte/shared";
 
 function createSnapshot(overrides: Partial<RoomSnapshot> = {}): RoomSnapshot {
   return {

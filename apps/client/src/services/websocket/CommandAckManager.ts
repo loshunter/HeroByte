@@ -1,4 +1,4 @@
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 
 type AckEligibleType = ClientMessage["t"];
 

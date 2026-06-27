@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import type { SceneObject } from "@shared";
+import type { SceneObject } from "@herobyte/shared";
 
 /**
  * Hook parameters for object transform handlers

@@ -6,7 +6,7 @@
 //
 // Extracted from ConnectionHandler.handleValidatedMessage() (lines 130-163)
 
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 import type { AuthenticationHandler } from "./AuthenticationHandler.js";
 
 /**

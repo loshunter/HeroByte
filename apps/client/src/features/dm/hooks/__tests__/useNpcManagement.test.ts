@@ -11,7 +11,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useNpcManagement } from "../useNpcManagement";
-import type { RoomSnapshot, Character } from "@shared";
+import type { RoomSnapshot, Character } from "@herobyte/shared";
 
 describe("useNpcManagement - Characterization", () => {
   const mockSendMessage = vi.fn();

@@ -6,7 +6,7 @@ vi.mock("../../../middleware/validation.js", () => ({
   validateMessage: vi.fn(),
 }));
 
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 import { validateMessage } from "../../../middleware/validation.js";
 
 const validateMessageSpy = vi.mocked(validateMessage);

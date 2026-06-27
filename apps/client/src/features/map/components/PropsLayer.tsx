@@ -6,7 +6,7 @@
 import { memo } from "react";
 import { Group, Rect, Image as KonvaImage } from "react-konva";
 import type Konva from "konva";
-import type { SceneObject } from "@shared";
+import type { SceneObject } from "@herobyte/shared";
 import useImage from "use-image";
 import type { KonvaEventObject } from "konva/lib/Node";
 import type { Camera } from "../types";

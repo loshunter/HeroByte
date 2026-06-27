@@ -1,4 +1,4 @@
-import type { Character, PlayerStagingZone, Prop, Player, SceneObject } from "@shared";
+import type { Character, PlayerStagingZone, Prop, Player, SceneObject } from "@herobyte/shared";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignment";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
@@ -9,12 +9,13 @@ import PropsTab from "./tab-views/PropsTab";
 import PlayersTab from "./tab-views/PlayersTab";
 import SessionTab from "./tab-views/SessionTab";
 import { useDMMenuState, type DMMenuTab } from "../hooks/useDMMenuState";
+import type { MapStudioController } from "../../map-studio";
 
 interface DMMenuProps {
   isDM: boolean;
   onToggleDM: (next: boolean) => void;
   gridSize: number;
-  gridSquareSize?: number; // Feet per square
+  gridSquareSize?: number;
   gridLocked: boolean;
   onGridLockToggle: () => void;
   onGridSizeChange: (size: number) => void;
@@ -89,6 +90,7 @@ interface DMMenuProps {
     error: (message: string) => void;
   };
   onSetInitiative?: (characterId: string, initiative: number, modifier: number) => void;
+  mapStudio?: MapStudioController;
 }
 
 export function DMMenu({
@@ -165,6 +167,7 @@ export function DMMenu({
   onPreviousTurn,
   toast,
   onSetInitiative,
+  mapStudio,
 }: DMMenuProps) {
   const { open, setOpen, toggleOpen, activeTab, setActiveTab, sessionName, setSessionName, npcs } =
     useDMMenuState({
@@ -176,14 +179,10 @@ export function DMMenu({
     return null;
   }
 
-  const saveDisabled = !onRequestSaveSession;
-  const loadDisabled = !onRequestLoadSession;
-
   const TabButton = ({ tab, label }: { tab: DMMenuTab; label: string }) => (
     <JRPGButton
       onClick={() => setActiveTab(tab)}
       variant={activeTab === tab ? "primary" : "default"}
-      style={{ fontSize: "10px", padding: "4px 12px" }}
     >
       {label}
     </JRPGButton>
@@ -274,6 +273,7 @@ export function DMMenu({
                 onStagingZoneLockToggle={onStagingZoneLockToggle}
                 onSetPlayerStagingZone={onSetPlayerStagingZone}
                 onClearDrawings={onClearDrawings}
+                mapStudio={mapStudio}
               />
             )}
             {activeTab === "npcs" && (
@@ -331,8 +331,8 @@ export function DMMenu({
                 setSessionName={setSessionName}
                 onRequestSaveSession={onRequestSaveSession}
                 onRequestLoadSession={onRequestLoadSession}
-                saveDisabled={saveDisabled}
-                loadDisabled={loadDisabled}
+                saveDisabled={!onRequestSaveSession}
+                loadDisabled={!onRequestLoadSession}
                 onSetRoomPassword={onSetRoomPassword}
                 roomPasswordStatus={roomPasswordStatus}
                 roomPasswordPending={roomPasswordPending}

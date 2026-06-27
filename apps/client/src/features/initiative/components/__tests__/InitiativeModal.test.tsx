@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { InitiativeModal } from "../InitiativeModal";
-import type { Character } from "@shared";
+import type { Character } from "@herobyte/shared";
 
 // ============================================================================
 // POLYFILLS FOR TEST ENVIRONMENT

@@ -4,7 +4,7 @@
 // Slide-out drawer for viewing players/entities on mobile.
 
 import React from "react";
-import type { Player, Character } from "@shared";
+import type { Player, Character } from "@herobyte/shared";
 import { MobilePlayerRow } from "./MobilePlayerRow";
 import { JRPGButton } from "../ui/JRPGPanel";
 

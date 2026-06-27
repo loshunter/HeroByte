@@ -10,7 +10,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Camera } from "../hooks/useCamera";
-import type { RoomSnapshot, ClientMessage, ServerMessage } from "@shared";
+import type { RoomSnapshot, ClientMessage, ServerMessage } from "@herobyte/shared";
 import { WS_URL } from "../config";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useDrawingStateManager } from "../hooks/useDrawingStateManager";
@@ -39,6 +39,7 @@ import { usePlayerTokenSelection } from "../hooks/usePlayerTokenSelection";
 import { MainLayout } from "../layouts/MainLayout";
 import { MobileLayout } from "../layouts/MobileLayout";
 import { DMElevationModal } from "../features/dm/components/DMElevationModal";
+import { useMapStudio } from "../features/map-studio";
 
 // ----------------------------------------------------------------------------
 // MAIN APP COMPONENT
@@ -248,6 +249,7 @@ function AuthenticatedApp({
   } = useDiceRolling({ snapshot, sendMessage, uid });
 
   // Server event handlers (room password, DM elevation)
+  const mapStudio = useMapStudio(sendMessage);
   const {
     roomPasswordStatus,
     roomPasswordPending,
@@ -257,6 +259,7 @@ function AuthenticatedApp({
     registerServerEventHandler,
     toast,
     sendMessage,
+    onMapStudioMessage: mapStudio.handleServerMessage,
   });
 
   // Mobile detection
@@ -733,6 +736,7 @@ function AuthenticatedApp({
     toast,
     // WebSocket communication
     sendMessage,
+    mapStudio,
   };
 
   return (

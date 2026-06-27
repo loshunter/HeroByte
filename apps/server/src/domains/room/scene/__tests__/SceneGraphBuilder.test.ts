@@ -12,7 +12,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { RoomService } from "../../service.js";
-import type { Token, Drawing, Prop, Pointer, PlayerStagingZone } from "@shared";
+import type { Token, Drawing, Prop, Pointer, PlayerStagingZone } from "@herobyte/shared";
 
 describe("SceneGraphBuilder - Characterization Tests", () => {
   let roomService: RoomService;

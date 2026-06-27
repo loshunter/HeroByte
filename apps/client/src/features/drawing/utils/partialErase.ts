@@ -1,4 +1,4 @@
-import type { Drawing, SceneObject } from "@shared";
+import type { Drawing, SceneObject } from "@herobyte/shared";
 import { splitFreehandDrawing } from "./splitFreehandDrawing";
 
 type DrawingSceneObject = SceneObject & { type: "drawing" };

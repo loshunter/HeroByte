@@ -3,7 +3,7 @@
 // ============================================================================
 // Handles player-related business logic
 
-import type { Player } from "@shared";
+import type { Player } from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
 
 /**

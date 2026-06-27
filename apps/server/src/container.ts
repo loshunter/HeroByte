@@ -17,6 +17,9 @@ import { MessageRouter } from "./ws/messageRouter.js";
 import { RateLimiter } from "./middleware/rateLimit.js";
 import { AuthService } from "./domains/auth/service.js";
 import { RoomRegistry } from "./domains/room/RoomRegistry.js";
+import { MapStudioService } from "./domains/mapStudio/service.js";
+import { FileMapDocumentStore } from "./domains/mapStudio/fileStore.js";
+import { getDefaultRoomId } from "./config/auth.js";
 
 /**
  * Application container holding all services
@@ -34,6 +37,7 @@ export class Container {
   public readonly propService: PropService;
   public readonly selectionService: SelectionService;
   public readonly authService: AuthService;
+  public readonly mapStudioService: MapStudioService;
 
   // Middleware
   public readonly rateLimiter: RateLimiter;
@@ -44,7 +48,12 @@ export class Container {
   public readonly authenticatedUids: Set<string>;
   public readonly authenticatedSessions: Map<string, { roomId: string; authedAt: number }>;
 
-  constructor(wss: WebSocketServer, authService: AuthService, roomRegistry?: RoomRegistry) {
+  constructor(
+    wss: WebSocketServer,
+    authService: AuthService,
+    roomRegistry?: RoomRegistry,
+    mapStudioService?: MapStudioService,
+  ) {
     // Initialize services (no dependencies between them).
     // A pre-hydrated RoomRegistry can be injected (bootstrap awaits
     // registry.whenReady() before constructing the container so Redis-backed
@@ -59,6 +68,7 @@ export class Container {
     this.propService = new PropService();
     this.selectionService = new SelectionService();
     this.authService = authService;
+    this.mapStudioService = mapStudioService ?? new MapStudioService(new FileMapDocumentStore());
 
     // Initialize middleware
     this.rateLimiter = new RateLimiter({ maxMessages: 100, windowMs: 1000 });
@@ -82,6 +92,8 @@ export class Container {
       wss,
       this.uidToWs,
       () => this.getAuthenticatedClients(),
+      this.mapStudioService,
+      (uid) => this.authenticatedSessions.get(uid)?.roomId ?? getDefaultRoomId(),
     );
 
     // Load persisted state
@@ -99,6 +111,18 @@ export class Container {
 
     // Future: Add any cleanup logic for services
     void this.roomRegistry.destroy();
+    void this.mapStudioService.flush();
+  }
+
+  resetForE2E(): void {
+    if (this.getAuthenticatedClients().size > 0) {
+      throw new Error("Cannot reset E2E state while clients are connected");
+    }
+    this.uidToWs.clear();
+    this.authenticatedUids.clear();
+    this.authenticatedSessions.clear();
+    this.roomService.resetState();
+    this.mapStudioService.resetRoom(getDefaultRoomId());
   }
 
   resetForE2E(): void {

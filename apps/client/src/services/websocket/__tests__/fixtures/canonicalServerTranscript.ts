@@ -1,4 +1,4 @@
-import type { RoomSnapshot } from "@shared";
+import type { RoomSnapshot } from "@herobyte/shared";
 import type { SignalData } from "simple-peer";
 
 export interface TranscriptEntry {

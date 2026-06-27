@@ -9,6 +9,7 @@ export * from "./tokenValidators.js";
 export * from "./playerValidators.js";
 export * from "./characterValidators.js";
 export * from "./mapValidators.js";
+export * from "./mapStudioValidators.js";
 export * from "./propValidators.js";
 export * from "./roomValidators.js";
 export * from "./selectionValidators.js";

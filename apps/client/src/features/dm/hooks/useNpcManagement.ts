@@ -11,7 +11,7 @@
  */
 
 import { useCallback } from "react";
-import type { ClientMessage, RoomSnapshot } from "@shared";
+import type { ClientMessage, RoomSnapshot } from "@herobyte/shared";
 
 /**
  * Parameters for useNpcManagement hook

@@ -1,4 +1,4 @@
-import type { Drawing } from "@shared";
+import type { Drawing } from "@herobyte/shared";
 
 export type DrawingOperation =
   | {

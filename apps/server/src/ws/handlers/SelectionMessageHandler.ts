@@ -16,7 +16,7 @@
  * @module ws/handlers/SelectionMessageHandler
  */
 
-import type { SelectionMode } from "@shared";
+import type { SelectionMode } from "@herobyte/shared";
 import type { RoomState } from "../../domains/room/model.js";
 import type { SelectionService } from "../../domains/selection/service.js";
 import type { RoomService } from "../../domains/room/service.js";

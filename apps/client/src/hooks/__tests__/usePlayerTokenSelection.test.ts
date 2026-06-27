@@ -8,7 +8,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { usePlayerTokenSelection } from "../usePlayerTokenSelection.js";
-import type { SceneObject } from "@shared";
+import type { SceneObject } from "@herobyte/shared";
 
 function createToken(id: string, owner: string, locked: boolean = false): SceneObject {
   return {

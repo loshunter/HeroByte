@@ -17,7 +17,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useWebSocket } from "../useWebSocket";
 import { ConnectionState, AuthState } from "../../services/websocket";
-import type { RoomSnapshot, ClientMessage, ServerMessage } from "@shared";
+import type { RoomSnapshot, ClientMessage, ServerMessage } from "@herobyte/shared";
 
 // Global registry to access created WebSocket instances
 let wsInstances: MockWebSocket[] = [];
@@ -652,6 +652,45 @@ describe("useWebSocket", () => {
 
       expect(authMessages.length).toBeGreaterThan(0);
       expect(result.current.authState).toBe(AuthState.PENDING);
+    });
+
+    it("should not replay rejected credentials after reconnect", async () => {
+      const { result } = renderHook(() =>
+        useWebSocket({
+          url: "ws://localhost:3001",
+          uid: "test-user",
+          autoConnect: true,
+        }),
+      );
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(20);
+      });
+
+      act(() => {
+        result.current.authenticate("wrong-secret", "room-1");
+      });
+
+      await act(async () => {
+        wsInstances[0].simulateMessage({ t: "auth-failed", reason: "Invalid credentials" });
+      });
+
+      expect(result.current.authState).toBe(AuthState.FAILED);
+
+      await act(async () => {
+        wsInstances[0].close(4001, "Invalid credentials");
+        await vi.advanceTimersByTimeAsync(0);
+        await vi.advanceTimersByTimeAsync(3000);
+        await vi.advanceTimersByTimeAsync(20);
+      });
+
+      const authMessages = wsInstances[1].sentMessages.filter((message) =>
+        message.includes('"t":"authenticate"'),
+      );
+
+      expect(authMessages).toEqual([]);
+      expect(result.current.connectionState).toBe(ConnectionState.CONNECTED);
+      expect(result.current.authState).toBe(AuthState.UNAUTHENTICATED);
     });
   });
 });

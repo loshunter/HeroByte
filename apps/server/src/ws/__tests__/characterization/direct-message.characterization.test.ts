@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { WebSocket } from "ws";
-import type { ServerMessage } from "@shared";
+import type { ServerMessage } from "@herobyte/shared";
 
 /**
  * Mock WebSocket for testing

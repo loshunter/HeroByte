@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { useE2ETestingSupport } from "../useE2ETestingSupport";
-import type { RoomSnapshot } from "@shared";
+import type { RoomSnapshot } from "@herobyte/shared";
 
 const createSnapshot = (overrides: Partial<RoomSnapshot> = {}): RoomSnapshot => ({
   users: [],

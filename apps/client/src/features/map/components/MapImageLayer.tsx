@@ -8,7 +8,7 @@ import { Group, Image as KonvaImage } from "react-konva";
 import useImage from "use-image";
 import type Konva from "konva";
 import type { Camera } from "../types";
-import type { SceneObjectTransform } from "@shared";
+import type { SceneObjectTransform } from "@herobyte/shared";
 
 interface MapImageLayerProps {
   cam: Camera;

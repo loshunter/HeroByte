@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useObjectTransformHandlers } from "../../../hooks/useObjectTransformHandlers";
-import type { SceneObject } from "@shared";
+import type { SceneObject } from "@herobyte/shared";
 
 describe("useObjectTransformHandlers", () => {
   const gridSize = 50;

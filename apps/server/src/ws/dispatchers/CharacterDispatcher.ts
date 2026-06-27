@@ -1,4 +1,4 @@
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 import type { CharacterMessageHandler } from "../handlers/CharacterMessageHandler.js";
 import type { NPCMessageHandler } from "../handlers/NPCMessageHandler.js";
 import type { AuthorizationCheckWrapper } from "../services/AuthorizationCheckWrapper.js";

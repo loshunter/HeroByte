@@ -28,7 +28,7 @@
  * - OCP: Extensible via new with* methods without modifying core logic
  * - LSP: N/A (not using inheritance)
  * - ISP: Single focused interface (builder methods + build)
- * - DIP: Depends on @shared types (abstractions), not concrete implementations
+ * - DIP: Depends on @herobyte/shared types (abstractions), not concrete implementations
  */
 
 import type {
@@ -42,7 +42,7 @@ import type {
   DiceRoll,
   Pointer,
   PlayerStagingZone,
-} from "@shared";
+} from "@herobyte/shared";
 
 export class SnapshotBuilder {
   private snapshot: RoomSnapshot;

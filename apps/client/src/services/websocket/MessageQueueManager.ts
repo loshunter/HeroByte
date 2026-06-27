@@ -28,7 +28,7 @@
  * - messageQueue property (line 77)
  */
 
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 
 /**
  * Configuration for MessageQueueManager

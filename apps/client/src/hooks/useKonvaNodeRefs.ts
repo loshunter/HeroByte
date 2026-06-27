@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { MutableRefObject } from "react";
 import type Konva from "konva";
-import type { SceneObject } from "@shared";
+import type { SceneObject } from "@herobyte/shared";
 
 export interface UseKonvaNodeRefsReturn {
   registerNode: (id: string, node: Konva.Node | null) => void;

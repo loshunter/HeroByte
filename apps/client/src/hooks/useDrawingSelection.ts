@@ -7,7 +7,7 @@
 import { useState, useCallback, useEffect } from "react";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import type { ClientMessage, SceneObject } from "@shared";
+import type { ClientMessage, SceneObject } from "@herobyte/shared";
 
 export interface UseDrawingSelectionProps {
   selectMode: boolean;

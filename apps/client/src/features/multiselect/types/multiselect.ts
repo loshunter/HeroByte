@@ -3,7 +3,7 @@
  * Types for multi-object selection and manipulation
  */
 
-import type { SceneObject } from "@shared";
+import type { SceneObject } from "@herobyte/shared";
 
 /**
  * Selection mode for multi-select operations

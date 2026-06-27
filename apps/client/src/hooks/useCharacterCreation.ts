@@ -13,7 +13,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import type { Character } from "@shared";
+import type { Character } from "@herobyte/shared";
 
 export interface UseCharacterCreationOptions {
   /**

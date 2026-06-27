@@ -21,7 +21,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { forwardRef } from "react";
 import type { PropsWithChildren, ReactNode, Ref, SyntheticEvent } from "react";
 import { DrawingsLayer } from "../DrawingsLayer";
-import type { SceneObject } from "@shared";
+import type { SceneObject } from "@herobyte/shared";
 import type { Camera } from "../../../../hooks/useCamera";
 
 function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {

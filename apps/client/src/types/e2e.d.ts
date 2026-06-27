@@ -1,4 +1,4 @@
-import type { RoomSnapshot, ClientMessage } from "@shared";
+import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
 
 type HeroByteE2EState = {
   snapshot?: RoomSnapshot | null;

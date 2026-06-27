@@ -16,7 +16,7 @@
  */
 
 import { useEffect } from "react";
-import type { RoomSnapshot, ClientMessage } from "@shared";
+import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
 
 /**
  * Drawing manager interface for undo/redo operations

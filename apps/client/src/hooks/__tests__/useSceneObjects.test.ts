@@ -1,6 +1,6 @@
 import { renderHook } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
-import type { RoomSnapshot, Token, Drawing, PlayerStagingZone, Pointer } from "@shared";
+import type { RoomSnapshot, Token, Drawing, PlayerStagingZone, Pointer } from "@herobyte/shared";
 import { useSceneObjects } from "../useSceneObjects";
 
 // Helper to create a minimal valid snapshot

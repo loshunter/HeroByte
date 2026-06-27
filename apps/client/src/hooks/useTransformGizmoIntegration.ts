@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import type { SceneObject } from "@shared";
+import type { SceneObject } from "@herobyte/shared";
 import type Konva from "konva";
 
 /**

@@ -21,7 +21,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { DrawingMessageHandler } from "../DrawingMessageHandler.js";
-import type { Drawing, DrawingSegmentPayload } from "@shared";
+import type { Drawing, DrawingSegmentPayload } from "@herobyte/shared";
 import { createEmptyRoomState } from "../../../domains/room/model.js";
 import type { RoomState } from "../../../domains/room/model.js";
 import type { MapService } from "../../../domains/map/service.js";

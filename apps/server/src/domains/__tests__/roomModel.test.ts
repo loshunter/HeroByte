@@ -232,7 +232,7 @@ describe("Room Model - toSnapshot", () => {
       const playerSnapshot = toSnapshot(state, false);
       const dmSnapshot = toSnapshot(state, true);
 
-      // RoomSnapshot.sceneObjects is optional in @shared, but toSnapshot always populates it
+      // RoomSnapshot.sceneObjects is optional in @herobyte/shared, but toSnapshot always populates it
       expect(playerSnapshot.sceneObjects).toBeDefined();
       expect(dmSnapshot.sceneObjects).toBeDefined();
 

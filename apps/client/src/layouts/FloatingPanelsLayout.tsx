@@ -11,7 +11,7 @@
  */
 
 import React, { Suspense, lazy } from "react";
-import type { RoomSnapshot, PlayerStagingZone, ClientMessage } from "@shared";
+import type { RoomSnapshot, PlayerStagingZone, ClientMessage } from "@herobyte/shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import type { RollResult } from "../components/dice/types";
 import { ContextMenu } from "../components/ui/ContextMenu";
@@ -20,6 +20,7 @@ import { DiceRoller } from "../components/dice/DiceRoller";
 import { RollLog } from "../components/dice/RollLog";
 import { ToastContainer } from "../components/ui/Toast";
 import type { ToastMessage } from "../components/ui/Toast";
+import type { MapStudioController } from "../features/map-studio";
 
 // Lazy-load DMMenuContainer to defer DM-specific code until DM elevation
 const DMMenuContainer = lazy(() =>
@@ -114,6 +115,7 @@ export interface FloatingPanelsLayoutProps {
   selectPlayerTokens: (playerUid: string) => void;
   // Initiative Management (1)
   onSetInitiative?: (characterId: string, initiative: number, modifier: number) => void;
+  mapStudio?: MapStudioController;
 }
 
 /**
@@ -167,6 +169,7 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
     toast,
     selectPlayerTokens,
     onSetInitiative,
+    mapStudio,
   }) => {
     return (
       <>
@@ -239,6 +242,7 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
               toast={toast}
               onSelectPlayerTokens={selectPlayerTokens}
               onSetInitiative={onSetInitiative}
+              mapStudio={mapStudio}
             />
           </Suspense>
         )}

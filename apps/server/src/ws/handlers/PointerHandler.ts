@@ -11,7 +11,7 @@
  * @module ws/handlers/PointerHandler
  */
 
-import type { Pointer } from "@shared";
+import type { Pointer } from "@herobyte/shared";
 import type { RoomState } from "../../domains/room/model.js";
 import type { MapService } from "../../domains/map/service.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";

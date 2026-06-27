@@ -15,7 +15,7 @@
  */
 
 import { useCallback } from "react";
-import type { ClientMessage, TokenSize } from "@shared";
+import type { ClientMessage, TokenSize } from "@herobyte/shared";
 
 /**
  * Camera state for viewport-based positioning.

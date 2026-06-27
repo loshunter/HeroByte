@@ -177,6 +177,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
 
     // WebSocket
     sendMessage,
+    mapStudio,
   } = props;
 
   // Extract entity editing handlers to custom hook
@@ -390,6 +391,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         crtFilter={crtFilter}
         toast={toast}
         onSetInitiative={setInitiative}
+        mapStudio={mapStudio}
       />
     </div>
   );
