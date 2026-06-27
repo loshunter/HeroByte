@@ -125,16 +125,6 @@ export class Container {
     this.mapStudioService.resetRoom(getDefaultRoomId());
   }
 
-  resetForE2E(): void {
-    if (this.getAuthenticatedClients().size > 0) {
-      throw new Error("Cannot reset E2E state while clients are connected");
-    }
-    this.uidToWs.clear();
-    this.authenticatedUids.clear();
-    this.authenticatedSessions.clear();
-    this.roomService.resetState();
-  }
-
   /**
    * Collect WebSocket clients that have completed authentication
    */
