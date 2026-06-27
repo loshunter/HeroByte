@@ -10,7 +10,7 @@
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { useDMRole } from "../useDMRole.js";
-import type { RoomSnapshot, ClientMessage, Player } from "@shared";
+import type { RoomSnapshot, ClientMessage, Player } from "@herobyte/shared";
 
 describe("useDMRole - isDM Computation", () => {
   const mockSend = vi.fn<(message: ClientMessage) => void>();

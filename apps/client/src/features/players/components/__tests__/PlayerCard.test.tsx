@@ -8,7 +8,7 @@
 import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
-import type { Player, Token, SceneObject, Drawing, PlayerState, TokenSize } from "@shared";
+import type { Player, Token, SceneObject, Drawing, PlayerState, TokenSize } from "@herobyte/shared";
 
 // ============================================================================
 // MOCKS

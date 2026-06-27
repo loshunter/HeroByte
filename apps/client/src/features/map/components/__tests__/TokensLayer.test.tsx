@@ -16,7 +16,7 @@ import { act, render, screen } from "@testing-library/react";
 import { forwardRef } from "react";
 import type { ComponentProps, ReactNode, Ref } from "react";
 import { TokensLayer } from "../TokensLayer";
-import type { SceneObject } from "@shared";
+import type { SceneObject } from "@herobyte/shared";
 import type { Camera } from "../../types";
 
 // ============================================================================

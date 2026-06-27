@@ -28,7 +28,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import type { ClientMessage } from "@shared";
+import type { ClientMessage } from "@herobyte/shared";
 import { MessageQueueManager } from "../websocket/MessageQueueManager";
 
 describe("MessageQueueManager - Characterization Tests", () => {

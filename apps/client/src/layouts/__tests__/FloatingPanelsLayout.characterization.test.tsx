@@ -25,7 +25,7 @@ import { render, screen } from "@testing-library/react";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../types/alignment";
 import type { RollLogEntry } from "../MainLayout";
 import type { Camera } from "../../hooks/useCamera";
-import type { Character, Player, Prop } from "@shared";
+import type { Character, Player, Prop } from "@herobyte/shared";
 import type { ToastMessage } from "../../components/ui/Toast";
 
 // ============================================================================

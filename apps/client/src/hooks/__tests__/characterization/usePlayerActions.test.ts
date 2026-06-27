@@ -10,7 +10,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import type { PlayerState, PlayerStagingZone, RoomSnapshot, Character } from "@shared";
+import type { PlayerState, PlayerStagingZone, RoomSnapshot, Character } from "@herobyte/shared";
 import { usePlayerActions } from "../../usePlayerActions";
 
 // Mock dependencies

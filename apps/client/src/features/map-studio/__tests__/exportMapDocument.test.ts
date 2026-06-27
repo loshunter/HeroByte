@@ -108,7 +108,11 @@ describe("Map Studio export", () => {
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
       drawImage,
     } as unknown as CanvasRenderingContext2D);
-    vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation(function (callback, type) {
+    vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation(function (
+      this: HTMLCanvasElement,
+      callback,
+      type,
+    ) {
       expect(this.width).toBe(320);
       expect(this.height).toBe(160);
       callback(new Blob(["raster"], { type: type ?? "image/png" }));
