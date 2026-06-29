@@ -13,12 +13,7 @@
 
 ### Medium Priority
 
-1. **Port 5173 Conflict in WSL Environment**
-   - **Issue**: Dev server fails to start on default port 5173
-   - **Workaround**: Using port 5174 instead
-   - **Root Cause**: Likely Windows process holding port (WSL networking quirk)
-   - **Fix**: Investigate Windows port usage, or update dev scripts to use 5174 by default
-   - **File**: `apps/client/package.json` (dev script)
+**None Currently** ✅
 
 ### Low Priority
 
@@ -178,6 +173,7 @@ _(CSS Property Warning resolved in commit 1e8fd0f - converted 168 properties acr
 ### Completed
 
 - [x] Fix CSS property warnings during transform gizmo work (completed in 1e8fd0f)
+- [x] Standardize local dev ports on frontend `5174` and backend `8787`
 - [x] Add E2E smoke tests for basic flows (October 2025 - 10 tests)
 - [x] Implement code splitting for bundle size (Phase 15 - January 2025)
 - [x] Fix fire-and-forget patterns (Phases 1-10 - January 2025)

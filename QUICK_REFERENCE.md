@@ -73,7 +73,7 @@ HEROBYTE_ROOM_SECRET="Fun1"
 HEROBYTE_DM_PASSWORD="FunDM"
 
 # CORS whitelist (comma-separated)
-HEROBYTE_ALLOWED_ORIGINS="http://localhost:5173,https://yourdomain.com"
+HEROBYTE_ALLOWED_ORIGINS="http://localhost:5174,https://yourdomain.com"
 
 # Default room ID (future multi-room support)
 HEROBYTE_DEFAULT_ROOM_ID="default"
@@ -120,7 +120,7 @@ HEROBYTE_DEFAULT_ROOM_ID="default"
 ### Port Already in Use
 
 ```bash
-./kill-ports.sh  # Clean up stuck processes
+./kill-ports.sh  # Stop prior HeroByte dev processes
 ```
 
 ### Start Fresh
@@ -143,19 +143,22 @@ pnpm dev              # Restart server
 
 | Service        | URL                   |
 | -------------- | --------------------- |
-| Client         | http://localhost:5173 |
+| Client         | http://localhost:5174 |
 | Server         | http://localhost:8787 |
-| Network Access | http://YOUR_IP:5173   |
+| Network Access | http://YOUR_IP:5174   |
+
+For LAN play, add the matching origin to `HEROBYTE_ALLOWED_ORIGINS`, for example `http://YOUR_IP:5174`.
 
 ## Documentation
 
-| Topic         | File                                                             |
-| ------------- | ---------------------------------------------------------------- |
-| Demo Workflow | [docs/DEMO_SERVER_WORKFLOW.md](docs/DEMO_SERVER_WORKFLOW.md)     |
-| Auth System   | [ROOM_AUTH_FLOW.md](ROOM_AUTH_FLOW.md)                           |
-| Development   | [DEVELOPMENT.md](DEVELOPMENT.md)                                 |
-| Testing       | [TESTING_SETUP.md](TESTING_SETUP.md)                             |
-| Deployment    | [CLOUDFLARE_PAGES_DEPLOYMENT.md](CLOUDFLARE_PAGES_DEPLOYMENT.md) |
+| Topic          | File                                                             |
+| -------------- | ---------------------------------------------------------------- |
+| Demo Workflow  | [docs/DEMO_SERVER_WORKFLOW.md](docs/DEMO_SERVER_WORKFLOW.md)     |
+| Playtest Setup | [docs/playtest-setup-guide.md](docs/playtest-setup-guide.md)     |
+| Auth System    | [ROOM_AUTH_FLOW.md](ROOM_AUTH_FLOW.md)                           |
+| Development    | [DEVELOPMENT.md](DEVELOPMENT.md)                                 |
+| Testing        | [TESTING_SETUP.md](TESTING_SETUP.md)                             |
+| Deployment     | [CLOUDFLARE_PAGES_DEPLOYMENT.md](CLOUDFLARE_PAGES_DEPLOYMENT.md) |
 
 ## Need Help?
 

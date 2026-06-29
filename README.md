@@ -31,7 +31,7 @@ Example format:
 
 ```bash
 ./dev-start.sh
-# Frontend: http://localhost:5173
+# Frontend: http://localhost:5174
 # Backend: http://localhost:8787
 ```
 
@@ -52,18 +52,19 @@ pnpm install
 **Recommended: One-Command Start**
 
 ```bash
-# From project root - handles cleanup, build, and startup automatically
+# From project root - handles prior dev processes, build, and startup automatically
 ./dev-start.sh
 ```
 
-This script cleans up stuck processes, builds the backend, and starts both servers in the correct order.
+This script stops existing HeroByte dev processes, builds the backend, and starts both servers in the correct order.
 
 **Access the Application:**
 
-- **Frontend:** http://localhost:5173
+- **Frontend:** http://localhost:5174
 - **Backend:** http://localhost:8787
 - **Default Room Password:** `Fun1` (change via DM Menu → Session → Room Security)
 - **Default DM Password:** `FunDM` (use to elevate to Dungeon Master role)
+- **Playtest Guide:** [docs/playtest-setup-guide.md](docs/playtest-setup-guide.md)
 
 **Alternative: Manual Start**
 
@@ -75,12 +76,12 @@ pnpm dev:server
 pnpm dev:client
 ```
 
-**Port Issues?**
+**Port Already in Use?**
 
 If you get "port already in use" errors:
 
 ```bash
-./kill-ports.sh  # Cleans up stuck processes
+./kill-ports.sh  # Stops prior HeroByte dev processes
 ```
 
 See [PORT_MANAGEMENT.md](PORT_MANAGEMENT.md) for detailed troubleshooting.
@@ -90,7 +91,8 @@ See [PORT_MANAGEMENT.md](PORT_MANAGEMENT.md) for detailed troubleshooting.
 To use on your local network:
 
 - Find your IP address (e.g. `192.168.x.x`)
-- Access at: `http://YOUR_IP:5173`
+- Access at: `http://YOUR_IP:5174`
+- Add that origin to `HEROBYTE_ALLOWED_ORIGINS`, for example `http://YOUR_IP:5174`
 - The server automatically listens on all interfaces
 
 ### Security Configuration
@@ -122,7 +124,7 @@ HEROBYTE_ALLOWED_ORIGINS="https://yourdomain.com,https://staging.yourdomain.com"
 
 ### Troubleshooting
 
-- **Dev server says port 5173 is busy** – Run `./kill-ports.sh` (or `./kill-client-port.bat` on Windows)
+- **Dev server says port 5174 is busy** – Run `./kill-ports.sh` (or `./kill-client-port.bat` on Windows)
 - **WebSocket refuses connections** – Confirm backend is running on `http://localhost:8787`
 - **Voice chat fails in Chrome** – WebRTC requires secure origins; use `https://` (Cloudflare tunnel, `mkcert`, or hosted demo)
 - **Tests fail with missing state file** – Delete `apps/server/herobyte-state.json` and re-run `pnpm test`

@@ -1,17 +1,16 @@
 @echo off
 setlocal
 
-set PORT=5173
-set PROJECT_PATH=~/HeroByte
-set WSL_DISTRO=Ubuntu
+cd /d "%~dp0"
 
-:: Step 1: ensure Windows isn't holding the port
+set VITE_WS_URL=ws://localhost:8787
+
+echo === HeroByte Client Dev Startup ===
+echo.
+echo Starting HeroByte client from %CD%
+echo Client URL: http://localhost:5174/
+echo.
 call "%~dp0kill-windows-port.bat"
-
-:: Step 2: clean up WSL processes on the same port
-wsl -d %WSL_DISTRO% --cd /home/loshunter/HeroByte -e bash -lc "cd %PROJECT_PATH% && ./kill-ports.sh"
-
-:: Step 3: start client
-wsl -d %WSL_DISTRO% --cd /home/loshunter/HeroByte -e bash -lc "cd %PROJECT_PATH% && git checkout dev && pnpm --filter herobyte-client dev"
+pnpm --filter herobyte-client dev
 
 endlocal

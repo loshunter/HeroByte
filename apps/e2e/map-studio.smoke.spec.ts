@@ -52,7 +52,9 @@ test.describe("Map Studio smoke", () => {
     await expect(page.getByRole("button", { name: "Delete door 3" })).toBeVisible();
 
     await page.getByRole("button", { name: "PUBLISH TO LIVE MAP" }).click();
-    await expect(page.getByRole("status")).toHaveText("Published \"Smoke Test Dungeon\" to the live map.");
+    await expect(page.getByRole("status")).toHaveText(
+      'Published "Smoke Test Dungeon" to the live map.',
+    );
     await page.waitForFunction(() => {
       const snapshot = window.__HERO_BYTE_E2E__?.snapshot;
       return snapshot?.mapBackground?.startsWith("data:image/svg+xml") && snapshot.gridSize === 64;

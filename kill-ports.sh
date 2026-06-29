@@ -1,8 +1,7 @@
 #!/bin/bash
-# Kill processes on specific ports using WSL-friendly methods
-# This script works better than trying to kill by process name
+# Kill HeroByte dev processes on the canonical ports.
 
-echo "=== Port Cleanup Script for WSL ==="
+echo "=== HeroByte Port Cleanup ==="
 echo ""
 
 # Function to kill process on a specific port
@@ -53,8 +52,7 @@ kill_dev_processes() {
 
 # Main execution
 echo "Method 1: Killing specific ports..."
-kill_port 5173  # Vite dev server
-kill_port 5174  # Alternate Vite port
+kill_port 5174  # Frontend dev server
 kill_port 8787  # Backend server
 
 kill_dev_processes
@@ -67,7 +65,7 @@ echo ""
 echo "=== Verification ==="
 echo "Checking if ports are now free..."
 WINDOWS_PORTS_IN_USE=()
-for port in 5173 5174 8787; do
+for port in 5174 8787; do
     if lsof -ti:$port &>/dev/null || netstat -tlnp 2>/dev/null | grep -q ":$port "; then
         echo "  ⚠ Port $port is still in use (WSL side)"
     else
@@ -88,14 +86,13 @@ done
 if [ ${#WINDOWS_PORTS_IN_USE[@]} -gt 0 ]; then
     echo ""
     echo "⚠️  WARNING: Windows processes are holding ports: ${WINDOWS_PORTS_IN_USE[*]}"
-    echo "This is usually svchost.exe (Hyper-V/NAT service)."
+    echo "If this is not a Node/Vite process, prefer restarting WSL before changing ports."
     echo ""
     echo "To fix this, run PowerShell as Administrator and execute:"
     echo "  Get-NetNatStaticMapping | Remove-NetNatStaticMapping"
     echo "  Get-NetNat | Remove-NetNat"
     echo "  Restart-Service -Name 'LxssManager' -Force"
     echo ""
-    echo "Or try using different ports in your dev configuration."
     echo "See PORT_MANAGEMENT.md for more details."
 fi
 

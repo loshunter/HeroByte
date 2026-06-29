@@ -4,8 +4,25 @@
 
 set -e  # Exit on error
 
-PROJECT_ROOT="/home/loshunter/HeroByte"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_ROOT"
+
+SERVER_PID=""
+CLIENT_PID=""
+
+cleanup() {
+    echo ""
+    echo "Stopping HeroByte development servers..."
+    if [ -n "$CLIENT_PID" ]; then
+        kill "$CLIENT_PID" 2>/dev/null || true
+    fi
+    if [ -n "$SERVER_PID" ]; then
+        kill "$SERVER_PID" 2>/dev/null || true
+    fi
+    wait "$CLIENT_PID" "$SERVER_PID" 2>/dev/null || true
+}
+
+trap cleanup INT TERM EXIT
 
 echo "╔═══════════════════════════════════════════════════════════╗"
 echo "║         HeroByte Development Server Startup              ║"
@@ -46,7 +63,7 @@ echo "✅ Backend server running"
 
 # Step 4: Start frontend client
 echo ""
-echo "4️⃣  Starting frontend client (port 5173)..."
+echo "4️⃣  Starting frontend client (port 5174)..."
 pnpm --filter herobyte-client dev &
 CLIENT_PID=$!
 echo "   Frontend PID: $CLIENT_PID"
@@ -67,7 +84,7 @@ echo "╔═══════════════════════�
 echo "║              🎮 Development Servers Ready! 🎮            ║"
 echo "╠═══════════════════════════════════════════════════════════╣"
 echo "║  Backend:  http://localhost:8787                          ║"
-echo "║  Frontend: http://localhost:5173                          ║"
+echo "║  Frontend: http://localhost:5174                          ║"
 echo "║  Password: Fun1                                           ║"
 echo "╠═══════════════════════════════════════════════════════════╣"
 echo "║  Server PID:  $SERVER_PID                                      ║"

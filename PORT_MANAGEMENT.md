@@ -1,27 +1,29 @@
-# Port Management Guide for WSL Development
+# Port Management Guide for Local Development
 
-## ⚠️ IMPORTANT: Windows/Hyper-V Port Conflicts
+## HeroByte Port Policy
 
-If `./kill-ports.sh` reports that a **Windows process** is holding port 5173, this is usually `svchost.exe` from Hyper-V or Windows NAT service. This is a known WSL issue.
+HeroByte uses one local port policy:
 
-### Quick Fix (Run in PowerShell as Administrator):
+| Port | Service        | Command                             |
+| ---- | -------------- | ----------------------------------- |
+| 5174 | Frontend       | `pnpm --filter herobyte-client dev` |
+| 8787 | Backend Server | `pnpm --filter vtt-server dev`      |
 
-```powershell
-# Option 1: Remove NAT mappings and restart WSL manager
-Get-NetNatStaticMapping | Remove-NetNatStaticMapping
-Get-NetNat | Remove-NetNat
-Restart-Service -Name 'LxssManager' -Force
+The frontend is configured with Vite `--strictPort`, so it fails clearly if `5174` is already in use. It should not silently move to another port.
 
-# Option 2: Restart WSL completely
-wsl --shutdown
-# Wait 10 seconds, then restart WSL
-```
+## What Was Fixed
 
-### Alternative: Use a different port
+The local development setup now uses the same ports across the app, scripts, tests, and documentation:
 
-Edit [apps/client/vite.config.ts](apps/client/vite.config.ts) to use port 5174 instead.
+- Client dev server: `5174`
+- Server dev/API/WebSocket port: `8787`
+- Playwright default frontend port: `5174`
+- Playwright default WebSocket host: `127.0.0.1`
+- Server allowed development origins: `http://localhost:5174` and `http://127.0.0.1:5174`
+- Cleanup scripts: target `5174` and `8787`
+- Startup script: shuts down child client/server processes when stopped
 
----
+This means a port conflict should be explicit: stop the process that owns the port, then restart on the same configured port.
 
 ## Quick Start
 
@@ -31,68 +33,27 @@ Edit [apps/client/vite.config.ts](apps/client/vite.config.ts) to use port 5174 i
 ./dev-start.sh
 ```
 
-### Stop/Clean Up Ports
-
-```bash
-./kill-ports.sh
-```
-
----
-
-## The Port 5173 Problem
-
-### Why This Happens
-
-When running Vite dev servers in WSL, sometimes the process doesn't cleanly release the port when terminated. This is especially common when:
-
-- You close the terminal without stopping the server
-- The process crashes
-- You use Ctrl+C multiple times rapidly
-- Windows and WSL processes get out of sync
-
-### Solution Hierarchy
-
-#### 1. **Use the kill-ports.sh Script** (Recommended)
-
-```bash
-./kill-ports.sh
-```
-
-This script tries multiple methods to free the ports.
-
-#### 2. **Manual Port Cleanup**
-
-```bash
-# Find what's using the port
-lsof -ti:5173
-# or
-netstat -tlnp | grep :5173
-
-# Kill it
-kill -9 <PID>
-```
-
-#### 3. **Nuclear Option - Kill All Dev Processes**
-
-```bash
-pkill -9 -f vite
-pkill -9 -f "pnpm.*dev"
-pkill -9 -f "node.*dist"
-```
-
-#### 4. **Windows-Side Cleanup** (If WSL can't kill it)
-
-From PowerShell or CMD as Administrator:
+Or, from PowerShell/CMD:
 
 ```powershell
-# Find process using port
-netstat -ano | findstr :5173
-
-# Kill it (replace <PID> with the actual PID)
-taskkill /F /PID <PID>
+pnpm dev
 ```
 
----
+### Stop Development Servers
+
+Press `Ctrl+C` once in the terminal running the dev servers and wait for shutdown.
+
+If a previous dev process is still using a HeroByte port:
+
+```bash
+./kill-ports.sh
+```
+
+On Windows:
+
+```powershell
+.\kill-client-port.bat
+```
 
 ## Available Scripts
 
@@ -100,152 +61,101 @@ taskkill /F /PID <PID>
 
 **Comprehensive startup script**
 
-- Automatically cleans up ports
+- Stops existing HeroByte dev processes on `5174` and `8787`
 - Builds the backend
 - Starts both servers in order
 - Shows status and PIDs
-- Waits for user interrupt (Ctrl+C)
+- Stops child processes when interrupted
 
 ### `./kill-ports.sh`
 
 **Port cleanup script**
 
-- Kills processes on ports 5173, 5174, 8787
-- Kills all dev server processes
-- Verifies ports are free
-- Multiple detection methods
+- Stops processes on ports `5174` and `8787`
+- Stops common HeroByte dev server processes
+- Verifies the ports are free
 
 ### `./clean-start-dev.sh` (Legacy)
 
 **Original cleanup script**
 
-- Still works but less comprehensive
-- Use `dev-start.sh` instead
-
----
-
-## Port Reference
-
-| Port | Service        | Command                             |
-| ---- | -------------- | ----------------------------------- |
-| 5173 | Vite Frontend  | `pnpm --filter herobyte-client dev` |
-| 5174 | Alternate Vite | Fallback if 5173 is taken           |
-| 8787 | Backend Server | `pnpm --filter vtt-server start`    |
-
----
+- Still works, but `dev-start.sh` is the preferred startup path
 
 ## Troubleshooting
 
-### "Port already in use" error
+### "Port 5174 is already in use"
 
-**Option 1: Use the kill script**
+This is expected if another frontend dev server is already running. Vite is intentionally configured to stop instead of choosing another port.
+
+Use:
 
 ```bash
 ./kill-ports.sh
 ./dev-start.sh
 ```
 
-**Option 2: Change the port**
-Edit `apps/client/vite.config.ts`:
-
-```typescript
-export default defineConfig({
-  server: {
-    port: 5174, // Changed from 5173
-    // ...
-  },
-});
-```
-
-### "Permission denied" when killing process
-
-The process might be owned by Windows. Options:
-
-1. Close WSL terminal and reopen
-2. Run PowerShell as admin and kill from Windows side
-3. Restart WSL: `wsl --shutdown` (from PowerShell)
-
-### Processes keep coming back
-
-Check if you have `nodemon` or similar watchers running:
+Or identify the process manually:
 
 ```bash
-ps aux | grep -E "(node|vite|pnpm|tsx)"
+lsof -i :5174
+lsof -i :8787
 ```
 
-Kill them all:
+On Windows:
+
+```powershell
+netstat -ano | findstr :5174
+netstat -ano | findstr :8787
+```
+
+Then stop the owning process if it is a previous Node/Vite/HeroByte process.
+
+### Windows or WSL owns the port
+
+If the port owner is a normal HeroByte Node/Vite process, stop it. If Windows reports the owner as `svchost.exe`, prefer restarting WSL instead of killing the service-host process directly:
+
+```powershell
+wsl --shutdown
+```
+
+Then restart HeroByte.
+
+### "Permission denied" when stopping a process
+
+The process might be owned by Windows or another terminal session. Options:
+
+1. Close the terminal that started the dev server
+2. Run PowerShell as Administrator and stop the process from Windows
+3. Restart WSL with `wsl --shutdown`
+
+### WebSocket refuses connections
+
+Confirm the backend is running:
 
 ```bash
-killall -9 node vite pnpm tsx 2>/dev/null
+curl http://localhost:8787/healthz
 ```
 
-### WSL and Windows processes out of sync
+The expected response is:
 
-Sometimes WSL can't see Windows processes. Try:
-
-1. From WSL: `./kill-ports.sh`
-2. From PowerShell (as admin):
-   ```powershell
-   Get-NetTCPConnection -LocalPort 5173 | ForEach-Object {
-       Stop-Process -Id $_.OwningProcess -Force
-   }
-   ```
-
----
-
-## Best Practices
-
-1. **Always use the startup script**: `./dev-start.sh`
-   - Handles cleanup automatically
-   - Builds before starting
-   - Easier to stop (Ctrl+C)
-
-2. **Clean shutdown**: Press Ctrl+C once and wait
-   - Don't spam Ctrl+C
-   - Let processes shut down gracefully
-
-3. **If port is stuck**: Run `./kill-ports.sh` before starting
-
-4. **Regular cleanup**: Periodically run:
-
-   ```bash
-   ./kill-ports.sh
-   # Wait a few seconds
-   ./dev-start.sh
-   ```
-
-5. **WSL maintenance**: Occasionally restart WSL to clear cruft:
-   ```powershell
-   # From PowerShell
-   wsl --shutdown
-   ```
-
----
+```text
+ok
+```
 
 ## Development Workflow
 
 ### Typical Session
 
 ```bash
-# Morning start
 cd /home/loshunter/HeroByte
 ./dev-start.sh
-
-# Work on features...
-
-# When done or switching branches
-# Press Ctrl+C
-# Or in new terminal:
-./kill-ports.sh
-
-# Next session
-./dev-start.sh  # Automatically cleans up
 ```
+
+When finished, press `Ctrl+C` once and wait for shutdown.
 
 ### Quick Restart
 
 ```bash
-# If servers are misbehaving
 ./kill-ports.sh
 ./dev-start.sh
 ```
@@ -253,94 +163,34 @@ cd /home/loshunter/HeroByte
 ### After Git Operations
 
 ```bash
-# After pull/merge/checkout
-./kill-ports.sh      # Clean up old processes
-pnpm install         # Update dependencies if needed
-./dev-start.sh       # Start fresh
+./kill-ports.sh
+pnpm install
+./dev-start.sh
 ```
 
----
+## Checks
 
-## Advanced: Process Monitoring
-
-### Check what's running
+### Show Port Usage
 
 ```bash
-# Show all Node/Vite processes
-ps aux | grep -E "(node|vite|pnpm)" | grep -v grep
-
-# Show port usage
-lsof -i :5173
+lsof -i :5174
 lsof -i :8787
-
-# Network stats
-netstat -tlnp | grep -E "(5173|8787)"
 ```
 
-### Monitor in real-time
+```powershell
+Get-NetTCPConnection -LocalPort 5174,8787
+```
+
+### Confirm App Health
 
 ```bash
-# Watch port usage
-watch -n 2 'lsof -i :5173,8787'
-
-# Watch process list
-watch -n 2 'ps aux | grep -E "(node|vite)" | grep -v grep'
+curl http://localhost:5174/
+curl http://localhost:8787/healthz
 ```
 
----
+## Rules for Future Changes
 
-## Emergency Recovery
-
-If nothing works:
-
-1. **Kill everything Node-related**
-
-   ```bash
-   killall -9 node
-   ```
-
-2. **Restart WSL completely**
-
-   ```powershell
-   # From PowerShell
-   wsl --shutdown
-   # Wait 10 seconds
-   wsl
-   ```
-
-3. **Reboot** (last resort)
-   - Sometimes Windows holds onto ports
-   - A full reboot clears everything
-
----
-
-## Preventing Port Conflicts
-
-### Use the provided scripts
-
-The `dev-start.sh` script handles cleanup automatically.
-
-### Close terminals properly
-
-Always Ctrl+C to stop servers before closing the terminal.
-
-### One dev environment at a time
-
-Don't run multiple instances of the dev servers.
-
-### Check before starting
-
-```bash
-lsof -i :5173,5174,8787 && echo "Ports in use!" || ./dev-start.sh
-```
-
----
-
-## Questions?
-
-If you continue having issues:
-
-1. Check if antivirus is blocking port cleanup
-2. Check Windows Firewall rules
-3. Try running WSL as administrator (not recommended normally)
-4. Consider using Docker for more isolation
+- Do not change the local frontend port without updating Vite, Playwright, docs, and server allowed origins together.
+- Keep Vite `--strictPort` enabled for local development.
+- Keep cleanup scripts targeted to the same documented ports.
+- Treat a busy port as a process cleanup task, not a reason to add alternate ports.

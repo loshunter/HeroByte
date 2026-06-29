@@ -706,9 +706,9 @@ Players can now manage multiple characters simultaneously without needing separa
   - `elevateToDM(page)` - Complex UI interaction for DM elevation
 
 - [x] **Test Configuration**
-  - Server URL: http://localhost:5173
+  - Client URL: http://localhost:5174
   - Room Password: `Fun1` (dev fallback)
-  - DM Password: `dmpass`
+  - DM Password: `FunDM`
   - Test Timeout: 60 seconds per test
   - Workers: 1 (sequential execution for stability)
 
@@ -820,7 +820,7 @@ PWDEBUG=1 npx playwright test comprehensive-mvp.spec.ts  # Inspector
 ```
 Test Passwords:
 - Room Password (dev): Fun1
-- DM Password: dmpass
+- DM Password: FunDM
 
 Test Commands:
 - pnpm test              # All unit tests

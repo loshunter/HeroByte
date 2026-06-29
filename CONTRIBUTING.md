@@ -252,7 +252,7 @@ pnpm test:e2e:ui
 
 **Local Development:**
 
-- Playwright auto-starts both client (port 5173) and server (port 8787)
+- Playwright auto-starts both client (port 5174) and server (port 8787)
 - State files are cleaned between runs via global setup
 - Use `pnpm test:e2e:ui` for interactive debugging with browser
 - Screenshots/videos saved on failure to `test-results/`

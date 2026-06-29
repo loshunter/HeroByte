@@ -10,8 +10,8 @@
  * - URL Override: Add ?ws=ws://IP:PORT to URL to override
  *
  * Smart hostname detection allows:
- * - Desktop: http://localhost:5173 → ws://localhost:8787
- * - Laptop: http://192.168.50.226:5173 → ws://192.168.50.226:8787
+ * - Desktop: http://localhost:5174 → ws://localhost:8787
+ * - Laptop: http://192.168.50.226:5174 → ws://192.168.50.226:8787
  */
 const urlParams = new URLSearchParams(window.location.search);
 const wsOverride = urlParams.get("ws");

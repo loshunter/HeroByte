@@ -31,8 +31,8 @@ Ship a table-ready MVP to run live playtests with real players and a DM. Priorit
 
 - [x] Run full automated suite (`pnpm test`, `pnpm --filter vtt-server test`, Playwright smoke).
 - [ ] Manual two-browser checklist: auth, drawing, partial erase, multi-select, load/save, dice, voice. Archive findings in `test-results/`.
-- [ ] Document MVP playtest setup (DM prep steps, recommended browsers, troubleshooting cheatsheet).
-- [ ] Update README quick-start with playtest instructions and link to the new checklist.
+- [x] Document MVP playtest setup (DM prep steps, recommended browsers, troubleshooting cheatsheet).
+- [x] Update README quick-start with playtest instructions and link to the new checklist.
 
 ## 3. Deferred Until After MVP
 
@@ -77,7 +77,7 @@ _Completed milestones are archived in [DONE.md](DONE.md) to keep this list focus
 
 ### Networking Follow-up
 
-- [ ] Investigate LAN access (Safari failing to load at `http://192.168.50.226:5173` despite allowed origins) and document resolution
+- [ ] Investigate LAN access (Safari failing to load at `http://192.168.50.226:5174` despite allowed origins) and document resolution
 
 ---
 

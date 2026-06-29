@@ -56,7 +56,7 @@ HEROBYTE_DM_PASSWORD="your-secure-dm-password"
    - Download saves as a JSON file
    - Store it somewhere safe (Google Drive, Dropbox, etc.)
 
-2. **Reset to Demo Defaults** *(Feature coming soon!)*
+2. **Reset to Demo Defaults** _(Feature coming soon!)_
    - DM Menu → Session → "Reset to Demo Mode"
    - This will:
      - Reset room password to `Fun1`
@@ -120,6 +120,7 @@ The server will recreate these files with default values.
 ### For Production Deployments
 
 1. Set environment variables for strong passwords:
+
    ```bash
    HEROBYTE_ROOM_SECRET="$(openssl rand -base64 32)"
    HEROBYTE_DM_PASSWORD="$(openssl rand -base64 32)"
@@ -136,12 +137,12 @@ The server will recreate these files with default values.
 
 ## Environment Variables Reference
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `HEROBYTE_ROOM_SECRET` | `Fun1` | Room entry password (6-128 chars) |
-| `HEROBYTE_DM_PASSWORD` | `FunDM` | DM elevation password (8-128 chars) |
-| `HEROBYTE_ALLOWED_ORIGINS` | `localhost:5173` | CORS whitelist (comma-separated) |
-| `HEROBYTE_DEFAULT_ROOM_ID` | `default` | Room identifier (future multi-room support) |
+| Variable                   | Default                 | Purpose                                     |
+| -------------------------- | ----------------------- | ------------------------------------------- |
+| `HEROBYTE_ROOM_SECRET`     | `Fun1`                  | Room entry password (6-128 chars)           |
+| `HEROBYTE_DM_PASSWORD`     | `FunDM`                 | DM elevation password (8-128 chars)         |
+| `HEROBYTE_ALLOWED_ORIGINS` | `http://localhost:5174` | CORS whitelist (comma-separated)            |
+| `HEROBYTE_DEFAULT_ROOM_ID` | `default`               | Room identifier (future multi-room support) |
 
 ## Troubleshooting
 
@@ -182,11 +183,13 @@ Planned features to improve the demo workflow:
 ## Contributing
 
 If you'd like to help implement the "Reset to Demo Mode" feature, see:
+
 - `apps/server/src/domains/auth/service.ts` - Password management
 - `apps/client/src/features/dm/components/DMMenu.tsx` - DM UI
 - `packages/shared/src/index.ts` - Message type definitions
 
 The implementation would involve:
+
 1. New client message: `{ t: "reset-to-demo-mode"; clearState: boolean }`
 2. Server handler that resets passwords and optionally clears state
 3. UI button in DM Menu → Session tab

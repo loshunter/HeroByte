@@ -1,6 +1,7 @@
 @echo off
-echo Attempting to free port 5173...
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr :5173 ^| findstr LISTENING') do call :killprocess %%a
+set PORT=5174
+echo Attempting to free port %PORT%...
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr :%PORT% ^| findstr LISTENING') do call :killprocess %%a
 if errorlevel 1 goto :end
 timeout /t 2 /nobreak >nul
 echo Starting HeroByte Client...
@@ -9,7 +10,7 @@ pause
 goto :end
 
 :killprocess
-echo Stopping process on port 5173 (PID %1)...
+echo Stopping process on port %PORT% (PID %1)...
 taskkill /PID %1 >nul 2>&1
 if errorlevel 1 (
     echo WARNING: Could not stop process %1 - it may require admin privileges

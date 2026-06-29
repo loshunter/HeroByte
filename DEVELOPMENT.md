@@ -23,10 +23,9 @@ start-client-dev.bat
 
 These scripts will:
 
-1. Automatically switch to the `dev` branch
-2. Start the development servers
-3. Client runs on http://localhost:5173
-4. Server runs on http://localhost:8787
+1. Start the development servers from the current checkout
+2. Client runs on http://localhost:5174
+3. Server runs on http://localhost:8787
 
 ### Running the Main Branch
 

@@ -7,16 +7,19 @@ This guide covers manual and automated testing approaches for HeroByte, includin
 ## Testing Levels
 
 ### 1. Unit Tests (Vitest)
+
 - **Location**: `packages/shared/__tests__/`, `apps/server/src/**/__tests__/`
 - **Coverage**: 80.99% overall, 99.57% on shared package
 - **Run**: `pnpm test` or `pnpm test:coverage`
 
 ### 2. Integration Tests (Vitest + WebSocket)
+
 - **Location**: `apps/server/src/**/__tests__/`
 - **Coverage**: WebSocket lifecycle, message routing, validation, rate limiting
 - **Run**: `pnpm --filter vtt-server test`
 
 ### 3. E2E Tests (Playwright)
+
 - **Status**: Implemented
 - **Location**: `apps/e2e/`
 - **Runner**: `@playwright/test` with [`playwright.config.ts`](../playwright.config.ts)
@@ -31,6 +34,7 @@ This guide covers manual and automated testing approaches for HeroByte, includin
 ## Playwright Setup
 
 ### Prerequisites
+
 - Node.js v20.19+
 - Chromium runtime (installed via `pnpm exec playwright install --with-deps chromium`)
 - `pnpm` v10+
@@ -49,10 +53,11 @@ pnpm test:e2e
 
 Environment variables:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `E2E_BASE_URL` | `http://127.0.0.1:5173` | Override when pointing tests at a deployed preview |
-| `E2E_ROOM_PASSWORD` | `Fun1` | Default password for the public demo room |
+| Variable                    | Default                 | Description                                                                            |
+| --------------------------- | ----------------------- | -------------------------------------------------------------------------------------- |
+| `E2E_BASE_URL`              | `http://127.0.0.1:5174` | Page URL under test. The reset endpoint still uses `E2E_WS_HOST` and `E2E_WS_PORT`.    |
+| `E2E_ROOM_PASSWORD`         | `Fun1`                  | Default password for the public demo room                                              |
+| `E2E_REUSE_EXISTING_SERVER` | unset                   | Set to `true` only when both the frontend and backend are already running in E2E mode. |
 
 Playwright automatically boots both the client and server via the `webServer` configuration. Logs, traces, screenshots, and videos are captured on failure and written to `playwright-report/`.
 
@@ -61,6 +66,7 @@ Playwright automatically boots both the client and server via the `webServer` co
 ## Chrome DevTools MCP Setup
 
 ### Prerequisites
+
 - Node.js v20.19+
 - Chrome browser installed
 - Claude Code or compatible MCP client
@@ -130,8 +136,10 @@ The chrome-devtools MCP server provides 26+ tools across 6 categories:
 ### Phase 14.5: Transform Gizmo Testing
 
 #### Test 1: Map Transform Visual Validation
+
 **Steps**:
-1. Start server: `pnpm --filter herobyte-server start`
+
+1. Start server: `pnpm --filter vtt-server start`
 2. Start client: `pnpm --filter herobyte-client dev`
 3. Open browser to `http://localhost:5174`
 4. Join as DM
@@ -139,6 +147,7 @@ The chrome-devtools MCP server provides 26+ tools across 6 categories:
 6. Open DM Menu → Map Controls
 
 **Validation**:
+
 - [ ] Scale slider (0.1x - 3x) visually scales the map
 - [ ] Rotation slider (0° - 360°) visually rotates the map
 - [ ] Position X/Y inputs move the map
@@ -146,6 +155,7 @@ The chrome-devtools MCP server provides 26+ tools across 6 categories:
 - [ ] Reset button restores default transform
 
 **Expected Behavior**:
+
 - Map scales/rotates smoothly without flickering
 - Transform persists across page refresh
 - All clients see the same transform in real-time
@@ -153,11 +163,14 @@ The chrome-devtools MCP server provides 26+ tools across 6 categories:
 ---
 
 #### Test 2: Transform Gizmo Visual Handles
+
 **Steps**:
+
 1. Select the map object (click on it)
 2. Verify transform gizmo appears
 
 **Validation**:
+
 - [ ] Dashed blue bounding box appears (#447DF7)
 - [ ] 8 resize handles visible (4 corners, 4 edges)
 - [ ] Rotation handle visible (offset from corners)
@@ -165,6 +178,7 @@ The chrome-devtools MCP server provides 26+ tools across 6 categories:
 - [ ] Locked objects do NOT show gizmo
 
 **Expected Behavior**:
+
 - Gizmo appears immediately on selection
 - ESC key deselects and hides gizmo
 - Click empty space deselects
@@ -172,13 +186,16 @@ The chrome-devtools MCP server provides 26+ tools across 6 categories:
 ---
 
 #### Test 3: Gizmo Drag Operations
+
 **Steps**:
+
 1. Select map object
 2. Drag corner handle to resize
 3. Drag rotation handle to rotate
 4. Release handle
 
 **Validation**:
+
 - [ ] Corner drag scales map proportionally
 - [ ] Edge drag scales in one direction only
 - [ ] Rotation snaps to 45° increments
@@ -187,6 +204,7 @@ The chrome-devtools MCP server provides 26+ tools across 6 categories:
 - [ ] DM Menu values update to match gizmo
 
 **Expected Behavior**:
+
 - Smooth dragging with no lag
 - Transform applies in real-time
 - Server validates and broadcasts to all clients
@@ -194,12 +212,15 @@ The chrome-devtools MCP server provides 26+ tools across 6 categories:
 ---
 
 #### Test 4: Token Transform Integration
+
 **Steps**:
+
 1. Create a player token
 2. Click token to select it
 3. Observe transform gizmo
 
 **Validation**:
+
 - [ ] Gizmo appears around token
 - [ ] Scale handles work (0.1x - 10x limits)
 - [ ] Rotation handles work
@@ -207,6 +228,7 @@ The chrome-devtools MCP server provides 26+ tools across 6 categories:
 - [ ] Token can still be dragged to move (position)
 
 **Expected Behavior**:
+
 - Gizmo deselects when token drag starts
 - Token size setting + gizmo scale combine correctly
 - Players can transform their own tokens (if unlocked)
@@ -215,12 +237,15 @@ The chrome-devtools MCP server provides 26+ tools across 6 categories:
 ---
 
 #### Test 5: Drawing Transform Integration
+
 **Steps**:
+
 1. Draw a freehand line or shape
 2. Click drawing to select it
 3. Observe transform gizmo
 
 **Validation**:
+
 - [ ] Gizmo appears around drawing
 - [ ] Scale handles resize drawing
 - [ ] Rotation handles rotate drawing
@@ -228,6 +253,7 @@ The chrome-devtools MCP server provides 26+ tools across 6 categories:
 - [ ] Transform persists in scene graph
 
 **Expected Behavior**:
+
 - Drawings can be scaled and rotated
 - Visual quality maintained (no pixelation)
 - Undo/redo works with transforms
@@ -235,7 +261,9 @@ The chrome-devtools MCP server provides 26+ tools across 6 categories:
 ---
 
 #### Test 6: Multi-Client Synchronization
+
 **Steps**:
+
 1. Open two browser windows (different browsers or incognito)
 2. Join as DM in Window 1
 3. Join as Player in Window 2
@@ -243,12 +271,14 @@ The chrome-devtools MCP server provides 26+ tools across 6 categories:
 5. Observe Window 2
 
 **Validation**:
+
 - [ ] Window 2 sees transform in real-time
 - [ ] Gizmo selection state syncs (both see selection)
 - [ ] Transform handles sync across clients
 - [ ] No visual artifacts or desyncs
 
 **Expected Behavior**:
+
 - <100ms latency for transform updates
 - No conflicts when multiple users select objects
 - Locked state respected on all clients
@@ -256,7 +286,9 @@ The chrome-devtools MCP server provides 26+ tools across 6 categories:
 ---
 
 #### Test 7: Edge Cases
+
 **Steps**:
+
 1. Scale map to 0.1x (minimum)
 2. Scale map to 10x (maximum)
 3. Rotate 360° and beyond
@@ -264,6 +296,7 @@ The chrome-devtools MCP server provides 26+ tools across 6 categories:
 5. Try to transform locked object
 
 **Validation**:
+
 - [ ] Min scale (0.1x) enforced, no smaller
 - [ ] Max scale (10x) enforced, no larger
 - [ ] Rotation wraps correctly (0°-360°)
@@ -271,6 +304,7 @@ The chrome-devtools MCP server provides 26+ tools across 6 categories:
 - [ ] Locked objects cannot be transformed
 
 **Expected Behavior**:
+
 - Server validation prevents invalid values
 - UI shows helpful feedback for limits
 - No crashes or corruption
@@ -278,18 +312,22 @@ The chrome-devtools MCP server provides 26+ tools across 6 categories:
 ---
 
 #### Test 8: Performance Benchmarks
+
 **Steps**:
+
 1. Create a complex scene (map + 20 tokens + 50 drawings)
 2. Select map and transform with gizmo
 3. Monitor FPS and network traffic
 
 **Validation**:
+
 - [ ] FPS stays above 30 during transform
 - [ ] No visible lag or stuttering
 - [ ] Network traffic <10 KB/transform
 - [ ] React.memo optimizations working (check DevTools)
 
 **Expected Behavior**:
+
 - Smooth 60 FPS on modern hardware
 - Optimistic updates feel instant
 - Server broadcasts efficiently
@@ -303,6 +341,7 @@ The chrome-devtools MCP server provides 26+ tools across 6 categories:
 Once chrome-devtools MCP is configured, you can use AI-driven test prompts:
 
 #### 1. Performance Test
+
 ```
 Open http://localhost:5174 and record a performance trace while:
 1. Uploading a map
@@ -312,6 +351,7 @@ Open http://localhost:5174 and record a performance trace while:
 ```
 
 #### 2. Visual Regression Test
+
 ```
 Open http://localhost:5174 and:
 1. Join as DM
@@ -322,6 +362,7 @@ Open http://localhost:5174 and:
 ```
 
 #### 3. Multi-Client Sync Test
+
 ```
 Open two tabs:
 Tab 1: http://localhost:5174?user=dm
@@ -338,6 +379,7 @@ In Tab 2:
 ```
 
 #### 4. Console Error Detection
+
 ```
 Open http://localhost:5174 and:
 1. Perform all transform gizmo operations
@@ -350,9 +392,10 @@ Open http://localhost:5174 and:
 ## Manual Test Execution
 
 ### Quick Smoke Test (5 minutes)
+
 ```bash
 # Terminal 1: Start server
-pnpm --filter herobyte-server start
+pnpm --filter vtt-server start
 
 # Terminal 2: Start client
 pnpm --filter herobyte-client dev
@@ -366,6 +409,7 @@ pnpm --filter herobyte-client dev
 ```
 
 ### Full Regression Test (30 minutes)
+
 - Run all 8 test cases above
 - Document results in `docs/test-results/phase-14.5.md`
 - Take screenshots of key features
@@ -383,28 +427,31 @@ pnpm --filter herobyte-client dev
 **Date**: YYYY-MM-DD
 **Tester**: [Name]
 **Environment**:
+
 - OS: [Linux/Windows/Mac]
 - Browser: [Chrome 131, Firefox 133, etc.]
 - Node: v20.19.0
 
 ## Test Results
 
-| Test ID | Test Name | Status | Notes |
-|---------|-----------|--------|-------|
-| Test 1  | Map Transform Visual | ✅ PASS | All sliders work |
-| Test 2  | Gizmo Visual Handles | ✅ PASS | JRPG styling correct |
-| Test 3  | Gizmo Drag Operations | ⚠️ PARTIAL | Rotation snap not working |
-| Test 4  | Token Transform | ✅ PASS | - |
-| Test 5  | Drawing Transform | ✅ PASS | - |
-| Test 6  | Multi-Client Sync | ✅ PASS | <50ms latency |
-| Test 7  | Edge Cases | ❌ FAIL | Off-screen selection broken |
-| Test 8  | Performance | ✅ PASS | 60 FPS maintained |
+| Test ID | Test Name             | Status     | Notes                       |
+| ------- | --------------------- | ---------- | --------------------------- |
+| Test 1  | Map Transform Visual  | ✅ PASS    | All sliders work            |
+| Test 2  | Gizmo Visual Handles  | ✅ PASS    | JRPG styling correct        |
+| Test 3  | Gizmo Drag Operations | ⚠️ PARTIAL | Rotation snap not working   |
+| Test 4  | Token Transform       | ✅ PASS    | -                           |
+| Test 5  | Drawing Transform     | ✅ PASS    | -                           |
+| Test 6  | Multi-Client Sync     | ✅ PASS    | <50ms latency               |
+| Test 7  | Edge Cases            | ❌ FAIL    | Off-screen selection broken |
+| Test 8  | Performance           | ✅ PASS    | 60 FPS maintained           |
 
 ## Issues Found
+
 1. **Rotation snap inconsistent** - Sometimes snaps to 30° instead of 45°
 2. **Off-screen selection** - Objects with negative X/Y cannot be selected
 
 ## Recommendations
+
 - Fix rotation snap logic in TransformGizmo.tsx
 - Add bounding box check for off-screen selection
 ```
@@ -414,6 +461,7 @@ pnpm --filter herobyte-client dev
 ## Test Performance
 
 ### Current Metrics
+
 - **CI Runtime**: ~3m 53s (down from 4m 48s - 19% improvement)
 - **Client Tests**: Batched execution with optimal chunk sizes
 - **Coverage**: V8 provider for 15-20% faster collection
@@ -421,12 +469,15 @@ pnpm --filter herobyte-client dev
 ### Optimization Techniques
 
 #### 1. Batching Strategy
+
 Tests are automatically batched to reduce Vitest cold starts:
+
 - **Chunk Size**: 15 files per batch (CI), 20 files (local)
 - **Concurrency**: CPU-based parallel execution
 - **Heavy Tests**: Characterization tests run in isolated batches
 
 Environment variables:
+
 ```bash
 CLIENT_TEST_CHUNK_SIZE=15        # Files per batch
 CLIENT_TEST_CONCURRENCY=4        # Parallel batches
@@ -434,12 +485,15 @@ CLIENT_TEST_INCLUDE="hooks"      # Filter by pattern
 ```
 
 #### 2. V8 Coverage Provider
+
 Switched from Istanbul to V8 for better performance:
+
 - No Babel transformation overhead
 - Native Node.js coverage instrumentation
 - Lower memory usage, better source maps
 
 #### 3. Parallel Execution
+
 ```bash
 # Fast validation (no coverage)
 pnpm test:parallel
@@ -456,11 +510,13 @@ pnpm test:shared
 ### Performance Tips
 
 **For Local Development:**
+
 - Use `pnpm test:client` for quick feedback
 - Use filters to run subset: `CLIENT_TEST_INCLUDE="hooks" pnpm test:client`
 - Increase chunk size for fewer cold starts: `CLIENT_TEST_CHUNK_SIZE=30`
 
 **For CI:**
+
 - Split fast tests from coverage runs
 - Run test:parallel for quick smoke tests
 - Run coverage in separate job for independent scaling
@@ -470,6 +526,7 @@ pnpm test:shared
 ## Continuous Integration
 
 ### GitHub Actions (Existing)
+
 ```yaml
 # .github/workflows/ci.yml already includes:
 - Linting (eslint + prettier)
@@ -479,6 +536,7 @@ pnpm test:shared
 ```
 
 ### Future Enhancements
+
 - [ ] Expand Playwright scenarios (token movement, dice roller, drawing tools)
 - [ ] Add visual regression testing (Percy, Chromatic)
 - [x] Add performance monitoring (Lighthouse CI workflow + budgets)
@@ -500,6 +558,7 @@ pnpm test:shared
 ## Contributing
 
 When adding new features:
+
 1. Write tests FIRST (TDD methodology)
 2. Achieve >80% code coverage
 3. Run manual smoke tests

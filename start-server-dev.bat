@@ -1,16 +1,21 @@
 @echo off
 setlocal
 
-set PROJECT_PATH=/home/loshunter/HeroByte
-set WSL_DISTRO=Ubuntu
+cd /d "%~dp0"
 
 echo === HeroByte Server Dev Startup ===
 echo.
-echo Releasing port 8787 inside WSL...
-wsl -d %WSL_DISTRO% --cd %PROJECT_PATH% -e bash -lc "lsof -ti:8787 2>/dev/null | xargs -r kill -9 2>/dev/null; exit 0"
+set PORT=8787
+set HEROBYTE_ALLOWED_ORIGINS=http://localhost:5174,http://127.0.0.1:5174
+
+echo Starting HeroByte server from %CD%
+echo Server URL: ws://localhost:8787
 echo.
-echo Starting HeroByte Server (dev branch)...
-wsl -d %WSL_DISTRO% --cd %PROJECT_PATH% -e bash -lc "git checkout dev && pnpm --filter vtt-server dev"
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "try { $conns = Get-NetTCPConnection -LocalPort %PORT% -State Listen -ErrorAction Stop } catch { $conns = @() };" ^
+  "foreach ($conn in $conns) { Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue }"
+
+pnpm --filter vtt-server dev
 
 echo.
 pause

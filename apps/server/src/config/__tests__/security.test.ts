@@ -18,7 +18,7 @@ afterEach(() => {
 describe("security config", () => {
   it("returns default origins when env not set", () => {
     const origins = getAllowedOrigins();
-    expect(origins).toContain("http://localhost:5173");
+    expect(origins).toContain("http://localhost:5174");
     expect(origins).toContain("https://herobyte.pages.dev");
   });
 

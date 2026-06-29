@@ -1,8 +1,8 @@
 @echo off
-:: Kill any Windows process holding port 5173 before starting the client
+:: Kill any Windows process holding the HeroByte client port before starting the client
 
 setlocal
-set PORT=5173
+set PORT=5174
 
 echo === Releasing Windows hold on port %PORT% ===
 
@@ -27,6 +27,5 @@ if errorlevel 1 (
 echo.
 echo === Done ===
 echo.
-pause
 endlocal
 exit /b 0

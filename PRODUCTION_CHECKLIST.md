@@ -18,7 +18,7 @@ Use this checklist before deploying to production to catch issues early.
 
 ### 2. Local Testing
 
-- [ ] Run `pnpm dev` and test at http://localhost:5173
+- [ ] Run `pnpm dev` and test at http://localhost:5174
 - [ ] Check browser console shows: `[Config] WebSocket URL: ws://localhost:8787`
 - [ ] Verify WebSocket connects (check Network tab)
 - [ ] Test core features:
@@ -51,7 +51,7 @@ Use this checklist before deploying to production to catch issues early.
 # From repo root
 git checkout dev
 pnpm dev
-# Test thoroughly at localhost:5173
+# Test thoroughly at localhost:5174
 ```
 
 ### 2. Merge to Main
