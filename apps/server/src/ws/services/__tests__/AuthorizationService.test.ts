@@ -52,6 +52,7 @@ describe("AuthorizationService", () => {
       props: [],
       combatActive: false,
       currentTurnCharacterId: undefined,
+      fogEnabled: false,
     };
   });
 

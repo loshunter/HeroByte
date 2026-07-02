@@ -72,6 +72,8 @@ describe("compileScene", () => {
       sourceDocumentId: "map-1",
       sourceRevision: 7,
       compiledAt: 99,
+      width: 2048,
+      height: 2048,
       walls: [],
       doors: [],
       lights: [],

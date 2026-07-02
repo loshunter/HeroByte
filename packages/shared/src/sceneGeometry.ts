@@ -83,8 +83,13 @@ function onSegment(a: ScenePoint, b: ScenePoint, p: ScenePoint): boolean {
 
 function toWorldPoint(x: number, y: number, transform?: SceneTransform): ScenePoint {
   if (!transform) return { x, y };
-  const scaledX = x * transform.scaleX;
-  const scaledY = y * transform.scaleY;
+  return transformScenePoint(transform, { x, y });
+}
+
+/** Scene/document space -> world space (Konva order: scale, rotate, translate). */
+export function transformScenePoint(transform: SceneTransform, point: ScenePoint): ScenePoint {
+  const scaledX = point.x * transform.scaleX;
+  const scaledY = point.y * transform.scaleY;
   const radians = (transform.rotation * Math.PI) / 180;
   const cos = Math.cos(radians);
   const sin = Math.sin(radians);
@@ -92,4 +97,19 @@ function toWorldPoint(x: number, y: number, transform?: SceneTransform): ScenePo
     x: transform.x + scaledX * cos - scaledY * sin,
     y: transform.y + scaledX * sin + scaledY * cos,
   };
+}
+
+/** World space -> scene/document space. Inverse of transformScenePoint. */
+export function inverseTransformScenePoint(
+  transform: SceneTransform,
+  point: ScenePoint,
+): ScenePoint {
+  const dx = point.x - transform.x;
+  const dy = point.y - transform.y;
+  const radians = (-transform.rotation * Math.PI) / 180;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  const rotatedX = dx * cos - dy * sin;
+  const rotatedY = dx * sin + dy * cos;
+  return { x: rotatedX / transform.scaleX, y: rotatedY / transform.scaleY };
 }

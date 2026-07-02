@@ -47,6 +47,7 @@ export interface RoomState {
   combatActive: boolean; // Whether combat/initiative tracking is active
   currentTurnCharacterId?: string; // ID of character whose turn it currently is
   compiledScene?: CompiledScene; // Geometry compiled from the last published Map Studio document
+  fogEnabled: boolean; // Whether fog of war hides the map beyond player sightlines
 }
 
 /**
@@ -74,6 +75,7 @@ export function createEmptyRoomState(): RoomState {
     combatActive: false,
     currentTurnCharacterId: undefined,
     compiledScene: undefined,
+    fogEnabled: false,
   };
 }
 
@@ -174,16 +176,32 @@ export function toSnapshot(state: RoomState, isDM: boolean = true): RoomSnapshot
     playerStagingZone: state.playerStagingZone ?? undefined,
     combatActive: state.combatActive,
     currentTurnCharacterId: state.currentTurnCharacterId,
+    fogEnabled: state.fogEnabled,
   };
 
   if (state.compiledScene) {
-    // Secret doors render as plain wall to players; they must never reach a
-    // non-DM client. Blocking is enforced server-side from state, so
-    // stripping them from the player snapshot loses nothing.
+    // Secret doors must be indistinguishable from wall to players: they leave
+    // the doors list entirely and reappear as anonymous wall segments, so
+    // client-side vision still cannot see through them and nothing in the
+    // payload hints that a door exists.
     snapshot.compiledScene = isDM
       ? state.compiledScene
       : {
           ...state.compiledScene,
+          walls: [
+            ...state.compiledScene.walls,
+            ...state.compiledScene.doors
+              .filter((door) => door.state === "secret")
+              .map((door) => ({
+                id: door.id,
+                x1: door.x1,
+                y1: door.y1,
+                x2: door.x2,
+                y2: door.y2,
+                blocksMovement: door.blocksMovement,
+                blocksVision: door.blocksVision,
+              })),
+          ],
           doors: state.compiledScene.doors.filter((door) => door.state !== "secret"),
         };
   }

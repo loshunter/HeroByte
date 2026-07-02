@@ -84,6 +84,7 @@ describe("MessageRouter - Error Handling Characterization", () => {
       props: [],
       combatActive: false,
       currentTurnCharacterId: undefined,
+      fogEnabled: false,
     };
 
     mockRoomService = {

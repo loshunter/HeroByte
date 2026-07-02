@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { CompiledDoor } from "@herobyte/shared";
 import { createEmptyRoomState, type RoomState } from "../../../domains/room/model.js";
-import { DoorMessageHandler } from "../DoorMessageHandler.js";
+import { SceneMessageHandler } from "../SceneMessageHandler.js";
 
 function door(id: string, state: CompiledDoor["state"]): CompiledDoor {
   return {
@@ -16,9 +16,9 @@ function door(id: string, state: CompiledDoor["state"]): CompiledDoor {
   };
 }
 
-describe("DoorMessageHandler", () => {
+describe("SceneMessageHandler", () => {
   let roomState: RoomState;
-  let handler: DoorMessageHandler;
+  let handler: SceneMessageHandler;
 
   beforeEach(() => {
     roomState = createEmptyRoomState();
@@ -27,6 +27,8 @@ describe("DoorMessageHandler", () => {
       sourceDocumentId: "map",
       sourceRevision: 1,
       compiledAt: 1,
+      width: 2048,
+      height: 2048,
       walls: [],
       doors: [
         door("door-closed", "closed"),
@@ -36,7 +38,7 @@ describe("DoorMessageHandler", () => {
       ],
       lights: [],
     };
-    handler = new DoorMessageHandler(() => roomState);
+    handler = new SceneMessageHandler(() => roomState);
   });
 
   function doorState(id: string): string | undefined {
@@ -104,5 +106,23 @@ describe("DoorMessageHandler", () => {
       handler.handle({ t: "set-door-state", doorId: "door-closed", state: "open" }, "room", false),
     ).toThrow("require DM permission");
     expect(doorState("door-closed")).toBe("closed");
+  });
+
+  it("lets the DM toggle fog of war on and off", () => {
+    expect(handler.handle({ t: "set-fog-enabled", enabled: true }, "room", true)).toEqual({
+      broadcast: true,
+      save: true,
+    });
+    expect(roomState.fogEnabled).toBe(true);
+
+    handler.handle({ t: "set-fog-enabled", enabled: false }, "room", true);
+    expect(roomState.fogEnabled).toBe(false);
+  });
+
+  it("rejects fog changes from players", () => {
+    expect(() => handler.handle({ t: "set-fog-enabled", enabled: true }, "room", false)).toThrow(
+      "require DM permission",
+    );
+    expect(roomState.fogEnabled).toBe(false);
   });
 });

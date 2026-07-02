@@ -186,6 +186,9 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
               onGridLockToggle={onGridLockToggle}
               onGridSizeChange={onGridSizeChange}
               onGridSquareSizeChange={onGridSquareSizeChange}
+              fogEnabled={snapshot?.fogEnabled ?? false}
+              hasCompiledScene={Boolean(snapshot?.compiledScene)}
+              onFogEnabledChange={(enabled) => sendMessage({ t: "set-fog-enabled", enabled })}
               onClearDrawings={onClearDrawings}
               onSetMapBackground={onSetMapBackground}
               mapBackground={snapshot?.mapBackground}

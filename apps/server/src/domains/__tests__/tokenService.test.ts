@@ -9,6 +9,8 @@ function compiledSceneWithWall(): CompiledScene {
     sourceDocumentId: "map",
     sourceRevision: 1,
     compiledAt: 1,
+    width: 2048,
+    height: 2048,
     walls: [
       {
         id: "wall-1#0",

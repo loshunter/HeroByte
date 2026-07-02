@@ -67,6 +67,7 @@ describe("MessageRouter", () => {
       props: [],
       combatActive: false,
       currentTurnCharacterId: undefined,
+      fogEnabled: false,
     };
 
     const snapshotTemplate: RoomSnapshot = {

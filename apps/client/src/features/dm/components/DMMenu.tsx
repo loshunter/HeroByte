@@ -21,6 +21,9 @@ interface DMMenuProps {
   onGridLockToggle: () => void;
   onGridSizeChange: (size: number) => void;
   onGridSquareSizeChange?: (size: number) => void;
+  fogEnabled?: boolean;
+  hasCompiledScene?: boolean;
+  onFogEnabledChange?: (enabled: boolean) => void;
   onClearDrawings: () => void;
   onSetMapBackground: (url: string) => void;
   mapBackground?: string;
@@ -104,6 +107,9 @@ export function DMMenu({
   onGridLockToggle,
   onGridSizeChange,
   onGridSquareSizeChange,
+  fogEnabled,
+  hasCompiledScene,
+  onFogEnabledChange,
   onClearDrawings,
   onSetMapBackground,
   mapBackground,
@@ -252,6 +258,9 @@ export function DMMenu({
                 onGridSizeChange={onGridSizeChange}
                 onGridSquareSizeChange={onGridSquareSizeChange}
                 onGridLockToggle={onGridLockToggle}
+                fogEnabled={fogEnabled}
+                hasCompiledScene={hasCompiledScene}
+                onFogEnabledChange={onFogEnabledChange}
                 alignmentModeActive={alignmentModeActive}
                 alignmentPoints={alignmentPoints}
                 alignmentSuggestion={alignmentSuggestion}

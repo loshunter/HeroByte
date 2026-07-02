@@ -91,6 +91,17 @@ function isDoorId(doorId: unknown): doorId is string {
 }
 
 /**
+ * Validate set-fog-enabled message
+ * Required: enabled (boolean)
+ */
+export function validateSetFogEnabledMessage(message: MessageRecord): ValidationResult {
+  if (typeof message.enabled !== "boolean") {
+    return { valid: false, error: "set-fog-enabled: enabled must be a boolean" };
+  }
+  return { valid: true };
+}
+
+/**
  * Validate point message (pointer/cursor position)
  * Required: x (finite number), y (finite number)
  */

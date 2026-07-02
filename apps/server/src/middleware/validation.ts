@@ -74,6 +74,7 @@ import {
   validateMapStudioPublishMessage,
   validateToggleDoorMessage,
   validateSetDoorStateMessage,
+  validateSetFogEnabledMessage,
 } from "./validators/index.js";
 
 // Prop validators
@@ -193,6 +194,7 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   "map-studio-publish": validateMapStudioPublishMessage,
   "toggle-door": validateToggleDoorMessage,
   "set-door-state": validateSetDoorStateMessage,
+  "set-fog-enabled": validateSetFogEnabledMessage,
 
   // ==========================================================================
   // PROP MESSAGES

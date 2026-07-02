@@ -30,6 +30,7 @@ export * from "./mapStudioCommands.js";
 // play-surface geometry (walls, doors, lights) a live room enforces.
 export * from "./sceneCompiler.js";
 export * from "./sceneGeometry.js";
+export * from "./visibility.js";
 
 // ----------------------------------------------------------------------------
 // GAME ENTITY TYPES
@@ -326,6 +327,7 @@ export interface RoomSnapshot {
   combatActive?: boolean; // Whether initiative tracking/combat mode is active
   currentTurnCharacterId?: string; // Character ID of whose turn it currently is
   compiledScene?: CompiledScene; // Play-surface geometry compiled at Map Studio publish (secret doors stripped for players)
+  fogEnabled?: boolean; // Whether fog of war hides the map beyond player token sightlines
   assets?: SnapshotAsset[];
   assetRefs?: SnapshotAssetRefs;
 }
@@ -516,6 +518,7 @@ type ClientMessagePayload =
   // Live scene interactions (compiled doors are clickable at the table)
   | { t: "toggle-door"; doorId: string } // Flip a door open/closed; locked and secret doors refuse non-DM toggles
   | { t: "set-door-state"; doorId: string; state: CompiledDoorState } // DM-only: set any door state (lock, unlock, reveal)
+  | { t: "set-fog-enabled"; enabled: boolean } // DM-only: toggle fog of war for the published scene
 
   // Dice rolls
   | { t: "dice-roll"; roll: DiceRoll } // Broadcast a dice roll

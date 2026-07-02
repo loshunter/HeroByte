@@ -129,6 +129,7 @@ export class SnapshotLoader {
       combatActive: snapshot.combatActive ?? false,
       currentTurnCharacterId: snapshot.currentTurnCharacterId ?? undefined,
       compiledScene: snapshot.compiledScene ?? undefined,
+      fogEnabled: snapshot.fogEnabled ?? false,
     };
   }
 }

@@ -22,6 +22,7 @@ import type { Camera } from "../../../../hooks/useCamera";
 import { MapBackgroundControl } from "../map-controls/MapBackgroundControl";
 import { MapTransformControl } from "../map-controls/MapTransformControl";
 import { GridControl } from "../map-controls/GridControl";
+import { FogControl } from "../map-controls/FogControl";
 import { GridAlignmentWizard } from "../map-controls/GridAlignmentWizard";
 import { StagingZoneControl } from "../map-controls/StagingZoneControl";
 import { DrawingControls } from "../map-controls/DrawingControls";
@@ -56,6 +57,11 @@ export interface MapTabProps {
   onGridSizeChange: (size: number) => void;
   onGridSquareSizeChange?: (size: number) => void;
   onGridLockToggle: () => void;
+
+  // FogControl props
+  fogEnabled?: boolean;
+  hasCompiledScene?: boolean;
+  onFogEnabledChange?: (enabled: boolean) => void;
 
   // GridAlignmentWizard props
   alignmentModeActive: boolean;
@@ -105,6 +111,9 @@ export default function MapTab({
   onGridSizeChange,
   onGridSquareSizeChange,
   onGridLockToggle,
+  fogEnabled,
+  hasCompiledScene,
+  onFogEnabledChange,
   alignmentModeActive,
   alignmentPoints,
   alignmentSuggestion,
@@ -163,6 +172,14 @@ export default function MapTab({
         onGridSquareSizeChange={onGridSquareSizeChange}
         onGridLockToggle={onGridLockToggle}
       />
+
+      {onFogEnabledChange && (
+        <FogControl
+          fogEnabled={fogEnabled ?? false}
+          hasCompiledScene={hasCompiledScene ?? false}
+          onFogEnabledChange={onFogEnabledChange}
+        />
+      )}
 
       {/* Step 4: Align Grid to Map (optional) */}
       <GridAlignmentWizard

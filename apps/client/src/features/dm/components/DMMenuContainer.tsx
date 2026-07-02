@@ -32,6 +32,11 @@ interface DMMenuContainerProps {
   onGridSizeChange: (size: number) => void;
   onGridSquareSizeChange?: (size: number) => void;
 
+  // Fog of war
+  fogEnabled?: boolean;
+  hasCompiledScene?: boolean;
+  onFogEnabledChange?: (enabled: boolean) => void;
+
   // Map
   onClearDrawings: () => void;
   onSetMapBackground: (url: string) => void;
@@ -103,6 +108,9 @@ export function DMMenuContainer({
   onGridLockToggle,
   onGridSizeChange,
   onGridSquareSizeChange,
+  fogEnabled,
+  hasCompiledScene,
+  onFogEnabledChange,
   onClearDrawings,
   onSetMapBackground,
   mapBackground,
@@ -162,6 +170,9 @@ export function DMMenuContainer({
       onGridLockToggle={onGridLockToggle}
       onGridSizeChange={onGridSizeChange}
       onGridSquareSizeChange={onGridSquareSizeChange}
+      fogEnabled={fogEnabled}
+      hasCompiledScene={hasCompiledScene}
+      onFogEnabledChange={onFogEnabledChange}
       onClearDrawings={onClearDrawings}
       onSetMapBackground={onSetMapBackground}
       onMapBackgroundSuccess={toast.success}

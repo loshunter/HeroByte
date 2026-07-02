@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { findBlockingSegment, segmentsIntersect, type CompiledScene } from "../index.js";
+import {
+  findBlockingSegment,
+  inverseTransformScenePoint,
+  segmentsIntersect,
+  transformScenePoint,
+  type CompiledScene,
+} from "../index.js";
 
 function point(x: number, y: number) {
   return { x, y };
@@ -31,12 +37,34 @@ describe("segmentsIntersect", () => {
   });
 });
 
+describe("scene point transforms", () => {
+  const transform = { x: 100, y: 200, scaleX: 2, scaleY: 0.5, rotation: 30 };
+
+  it("round-trips world -> scene -> world", () => {
+    const original = { x: 37.5, y: -12.25 };
+    const world = transformScenePoint(transform, original);
+    const back = inverseTransformScenePoint(transform, world);
+
+    expect(back.x).toBeCloseTo(original.x);
+    expect(back.y).toBeCloseTo(original.y);
+  });
+
+  it("maps the scene origin to the transform translation", () => {
+    expect(transformScenePoint(transform, { x: 0, y: 0 })).toEqual({ x: 100, y: 200 });
+    const back = inverseTransformScenePoint(transform, { x: 100, y: 200 });
+    expect(back.x).toBeCloseTo(0);
+    expect(back.y).toBeCloseTo(0);
+  });
+});
+
 describe("findBlockingSegment", () => {
   const scene: CompiledScene = {
     schemaVersion: 1,
     sourceDocumentId: "map",
     sourceRevision: 1,
     compiledAt: 1,
+    width: 2048,
+    height: 2048,
     walls: [
       { id: "wall-1#0", x1: 50, y1: 0, x2: 50, y2: 100, blocksMovement: true, blocksVision: true },
       {

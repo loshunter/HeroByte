@@ -35,6 +35,7 @@ import {
   GridLayer,
   MapImageLayer,
   DoorsLayer,
+  FogLayer,
   TokensLayer,
   PointersLayer,
   DrawingsLayer,
@@ -594,6 +595,18 @@ export default function MapBoard({
             isDM={isDM}
           />
         </Layer>
+
+        {/* Fog of war: players see only what their own tokens can see */}
+        {!isDM && snapshot?.fogEnabled && snapshot.compiledScene && (
+          <FogLayer
+            cam={cam}
+            compiledScene={snapshot.compiledScene}
+            mapTransform={mapObject?.transform}
+            viewers={(snapshot.tokens ?? [])
+              .filter((token) => token.owner === uid)
+              .map((token) => ({ x: token.x, y: token.y }))}
+          />
+        )}
 
         {/* Overlay Layer: Pointers and measure tool (top-most) */}
         <Layer listening={false}>

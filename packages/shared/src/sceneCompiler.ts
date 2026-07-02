@@ -49,6 +49,9 @@ export interface CompiledScene {
   sourceDocumentId: string;
   sourceRevision: number;
   compiledAt: number;
+  /** Document dimensions in pixels — the bounds fog of war covers. */
+  width: number;
+  height: number;
   walls: CompiledWallSegment[];
   doors: CompiledDoor[];
   lights: CompiledLight[];
@@ -119,6 +122,8 @@ export function compileScene(document: MapDocument, timestamp: number = Date.now
     sourceDocumentId: document.id,
     sourceRevision: document.revision,
     compiledAt: timestamp,
+    width: document.width,
+    height: document.height,
     walls,
     doors,
     lights,
@@ -148,6 +153,21 @@ export function getMovementBlockingSegments(scene: CompiledScene): BlockingSegme
   }
   for (const door of scene.doors) {
     if (doorBlocksMovement(door)) {
+      segments.push({ id: door.id, x1: door.x1, y1: door.y1, x2: door.x2, y2: door.y2 });
+    }
+  }
+  return segments;
+}
+
+export function getVisionBlockingSegments(scene: CompiledScene): BlockingSegment[] {
+  const segments: BlockingSegment[] = [];
+  for (const wall of scene.walls) {
+    if (wall.blocksVision) {
+      segments.push({ id: wall.id, x1: wall.x1, y1: wall.y1, x2: wall.x2, y2: wall.y2 });
+    }
+  }
+  for (const door of scene.doors) {
+    if (doorBlocksVision(door)) {
       segments.push({ id: door.id, x1: door.x1, y1: door.y1, x2: door.x2, y2: door.y2 });
     }
   }

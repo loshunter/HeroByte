@@ -17,6 +17,8 @@ describe("Room Model - toSnapshot", () => {
         sourceDocumentId: "map",
         sourceRevision: 3,
         compiledAt: 100,
+        width: 2048,
+        height: 2048,
         walls: [
           {
             id: "wall-1#0",
@@ -68,13 +70,23 @@ describe("Room Model - toSnapshot", () => {
       ]);
     });
 
-    it("strips secret doors from player snapshots without touching server state", () => {
+    it("disguises secret doors as walls in player snapshots without touching server state", () => {
       const state = stateWithCompiledScene();
 
       const snapshot = toSnapshot(state, false);
 
       expect(snapshot.compiledScene?.doors.map((door) => door.id)).toEqual(["door-open"]);
-      expect(snapshot.compiledScene?.walls).toHaveLength(1);
+      // The secret door still occludes vision and movement — as a wall.
+      expect(snapshot.compiledScene?.walls).toHaveLength(2);
+      expect(snapshot.compiledScene?.walls[1]).toEqual({
+        id: "door-secret",
+        x1: 200,
+        y1: 0,
+        x2: 250,
+        y2: 0,
+        blocksMovement: true,
+        blocksVision: true,
+      });
       expect(state.compiledScene?.doors).toHaveLength(2);
     });
   });

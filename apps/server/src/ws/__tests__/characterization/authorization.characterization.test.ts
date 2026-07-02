@@ -95,6 +95,7 @@ describe("MessageRouter - Authorization Characterization", () => {
       props: [],
       combatActive: false,
       currentTurnCharacterId: undefined,
+      fogEnabled: false,
     };
 
     // Create minimal mocks that return success without deep execution

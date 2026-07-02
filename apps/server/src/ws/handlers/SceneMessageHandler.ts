@@ -1,6 +1,6 @@
-// Live door interactions against the compiled scene. Doors are the first
-// compiled elements players can touch at the table: publish compiles them,
-// this handler flips them, and the snapshot broadcast animates every client.
+// Live interactions against the compiled scene: publish compiles the
+// geometry, this handler makes it playable — doors flip, fog toggles — and
+// the snapshot broadcast animates every client.
 
 import type { ClientMessage, CompiledDoor } from "@herobyte/shared";
 import type { RoomState } from "../../domains/room/model.js";
@@ -8,7 +8,7 @@ import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 
 type GetRoomState = (roomId: string) => RoomState;
 
-export class DoorMessageHandler {
+export class SceneMessageHandler {
   constructor(private readonly getRoomState: GetRoomState) {}
 
   handle(message: ClientMessage, roomId: string, isDM: boolean): RouteHandlerResult | null {
@@ -21,6 +21,13 @@ export class DoorMessageHandler {
         throw new Error("Door state changes require DM permission");
       }
       this.requireDoor(roomId, message.doorId, true).state = message.state;
+      return { broadcast: true, save: true };
+    }
+    if (message.t === "set-fog-enabled") {
+      if (!isDM) {
+        throw new Error("Fog of war changes require DM permission");
+      }
+      this.getRoomState(roomId).fogEnabled = message.enabled;
       return { broadcast: true, save: true };
     }
     return null;
