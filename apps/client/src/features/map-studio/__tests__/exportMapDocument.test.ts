@@ -84,6 +84,58 @@ describe("Map Studio export", () => {
     expect(renderMapDocumentSvg(document)).not.toContain("Do not export");
   });
 
+  describe("terrain boundary autotiling", () => {
+    function tile(id: string, x: number, y: number, assetId = "terrain:stone-floor") {
+      return {
+        id,
+        type: "tile" as const,
+        layerId: "terrain",
+        locked: false,
+        hidden: false,
+        transform: { x, y, scaleX: 1, scaleY: 1, rotation: 0 },
+        data: { assetId, columns: 1, rows: 1 },
+      };
+    }
+
+    it("draws no border on the shared edge between same-terrain tiles", () => {
+      let document = createMapDocument({ id: "map", name: "Keep", timestamp: 10 });
+      document = addMapElement(document, tile("a", 0, 0), 20);
+      document = addMapElement(document, tile("b", 50, 0), 21);
+
+      const svg = renderMapDocumentSvg(document);
+
+      // Tile "a" borders: top, bottom, left — but NOT its right edge (x=50).
+      const tileA = svg.match(/<g transform="translate\(0 0\)[^>]*>.*?<\/g>/)?.[0] ?? "";
+      expect(tileA).toContain("M 0 0 H 50"); // top
+      expect(tileA).toContain("M 0 50 H 50"); // bottom
+      expect(tileA).toContain("M 0 0 V 50"); // left
+      expect(tileA).not.toContain("M 50 0 V 50"); // right edge fused
+    });
+
+    it("draws a border where terrains differ", () => {
+      let document = createMapDocument({ id: "map", name: "Keep", timestamp: 10 });
+      document = addMapElement(document, tile("a", 0, 0), 20);
+      document = addMapElement(document, tile("b", 50, 0, "terrain:water"), 21);
+
+      const svg = renderMapDocumentSvg(document);
+
+      const tileA = svg.match(/<g transform="translate\(0 0\)[^>]*>.*?<\/g>/)?.[0] ?? "";
+      expect(tileA).toContain("M 50 0 V 50"); // right edge shows against water
+    });
+
+    it("outlines an isolated tile on all four sides", () => {
+      let document = createMapDocument({ id: "map", name: "Keep", timestamp: 10 });
+      document = addMapElement(document, tile("lone", 100, 100), 20);
+
+      const svg = renderMapDocumentSvg(document);
+      const lone = svg.match(/<g transform="translate\(100 100\)[^>]*>.*?<\/g>/)?.[0] ?? "";
+      expect(lone).toContain("M 0 0 H 50");
+      expect(lone).toContain("M 0 50 H 50");
+      expect(lone).toContain("M 0 0 V 50");
+      expect(lone).toContain("M 50 0 V 50");
+    });
+  });
+
   it("creates an SVG data URL for publishing to the live scene", () => {
     const document = createMapDocument({ id: "map", name: "Keep & Crypt", timestamp: 10 });
 

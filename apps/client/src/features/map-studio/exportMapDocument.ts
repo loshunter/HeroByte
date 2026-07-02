@@ -11,10 +11,13 @@ export function serializeMapDocument(document: MapDocument): string {
 export function renderMapDocumentSvg(document: MapDocument): string {
   const grid = getGridGeometry(document.grid.type, document.grid.size);
   const layers = new Map(document.layers.map((layer) => [layer.id, layer]));
+  const occupancy = buildTileOccupancy(document);
   const elements = document.elements
     .filter((element) => visible(element, layers.get(element.layerId)))
     .sort((a, b) => (layers.get(a.layerId)?.zIndex ?? 0) - (layers.get(b.layerId)?.zIndex ?? 0))
-    .map((element) => renderElement(element, layers.get(element.layerId)!, document.grid.size))
+    .map((element) =>
+      renderElement(element, layers.get(element.layerId)!, document.grid.size, occupancy),
+    )
     .join("");
   const pattern = document.grid.visible
     ? `<defs><pattern id="grid" width="${grid.width}" height="${grid.height}" patternUnits="userSpaceOnUse" x="${document.grid.offsetX}" y="${document.grid.offsetY}"><path d="${grid.path}" fill="none" stroke="#ffffff" stroke-opacity="0.16" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#grid)"/>`
@@ -100,7 +103,80 @@ function imageMime(format: Extract<MapExportFormat, "png" | "webp">): "image/png
   return format === "webp" ? "image/webp" : "image/png";
 }
 
-function renderElement(element: MapElement, layer: MapLayer, gridSize: number): string {
+// ---------------------------------------------------------------------------
+// Terrain boundary autotiling: same-terrain tiles fuse into one surface,
+// with borders drawn only where a cell faces different (or no) terrain.
+// ---------------------------------------------------------------------------
+
+type TileOccupancy = Map<string, string>;
+
+/** Grid-cell -> assetId for every axis-aligned, untransformed tile. */
+function buildTileOccupancy(document: MapDocument): TileOccupancy {
+  const occupancy: TileOccupancy = new Map();
+  const gridSize = document.grid.size;
+  for (const element of document.elements) {
+    if (!isAutotileCandidate(element)) continue;
+    const baseX = Math.round(element.transform.x / gridSize);
+    const baseY = Math.round(element.transform.y / gridSize);
+    for (let column = 0; column < element.data.columns; column += 1) {
+      for (let row = 0; row < element.data.rows; row += 1) {
+        occupancy.set(`${baseX + column},${baseY + row}`, element.data.assetId);
+      }
+    }
+  }
+  return occupancy;
+}
+
+function isAutotileCandidate(
+  element: MapElement,
+): element is Extract<MapElement, { type: "tile" }> {
+  return (
+    element.type === "tile" &&
+    !element.hidden &&
+    element.transform.rotation === 0 &&
+    element.transform.scaleX === 1 &&
+    element.transform.scaleY === 1
+  );
+}
+
+/**
+ * Border path (element-local coordinates) covering only the edges where the
+ * tile's cells face a different terrain family.
+ */
+function tileBoundaryPath(
+  element: Extract<MapElement, { type: "tile" }>,
+  gridSize: number,
+  occupancy: TileOccupancy,
+): string {
+  const baseX = Math.round(element.transform.x / gridSize);
+  const baseY = Math.round(element.transform.y / gridSize);
+  const family = element.data.assetId;
+  const differs = (cellX: number, cellY: number) => occupancy.get(`${cellX},${cellY}`) !== family;
+
+  const segments: string[] = [];
+  for (let column = 0; column < element.data.columns; column += 1) {
+    for (let row = 0; row < element.data.rows; row += 1) {
+      const cellX = baseX + column;
+      const cellY = baseY + row;
+      const left = column * gridSize;
+      const top = row * gridSize;
+      const right = left + gridSize;
+      const bottom = top + gridSize;
+      if (differs(cellX, cellY - 1)) segments.push(`M ${left} ${top} H ${right}`);
+      if (differs(cellX, cellY + 1)) segments.push(`M ${left} ${bottom} H ${right}`);
+      if (differs(cellX - 1, cellY)) segments.push(`M ${left} ${top} V ${bottom}`);
+      if (differs(cellX + 1, cellY)) segments.push(`M ${right} ${top} V ${bottom}`);
+    }
+  }
+  return segments.join(" ");
+}
+
+function renderElement(
+  element: MapElement,
+  layer: MapLayer,
+  gridSize: number,
+  occupancy: TileOccupancy,
+): string {
   const transform = element.transform;
   const attributes = `transform="translate(${transform.x} ${transform.y}) rotate(${transform.rotation}) scale(${transform.scaleX} ${transform.scaleY})" opacity="${layer.opacity}"`;
   if (element.type === "shape") {
@@ -136,6 +212,15 @@ function renderElement(element: MapElement, layer: MapLayer, gridSize: number): 
   const height = element.type === "stamp" ? element.data.height : element.data.rows * gridSize;
   const asset = getMapStudioTileAsset(element.data.assetId);
   const fill = element.data.tint ?? asset.fill;
+  if (element.type === "tile" && isAutotileCandidate(element)) {
+    // Autotiled terrain: no per-tile outline; borders appear only where a
+    // cell faces different terrain, so contiguous paint reads as one surface.
+    const boundary = tileBoundaryPath(element, gridSize, occupancy);
+    const boundaryMarkup = boundary
+      ? `<path d="${boundary}" fill="none" stroke="${xml(asset.stroke)}" stroke-width="2"/>`
+      : "";
+    return `<g ${attributes} data-asset-id="${xml(element.data.assetId)}"><rect width="${width}" height="${height}" fill="${xml(fill)}"/>${boundaryMarkup}</g>`;
+  }
   return `<g ${attributes} data-asset-id="${xml(element.data.assetId)}"><rect width="${width}" height="${height}" fill="${xml(fill)}" stroke="${xml(asset.stroke)}" stroke-width="2"/><path d="M 0 ${height / 2} H ${width} M ${width / 2} 0 V ${height}" stroke="${xml(asset.accent ?? asset.stroke)}" stroke-opacity="0.55" stroke-width="1"/></g>`;
 }
 

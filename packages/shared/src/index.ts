@@ -32,6 +32,9 @@ export * from "./sceneCompiler.js";
 export * from "./sceneGeometry.js";
 export * from "./visibility.js";
 
+// The Terrain Brush's pure autotiling core (47-blob + quarter-tile math).
+export * from "./autotile.js";
+
 // ----------------------------------------------------------------------------
 // GAME ENTITY TYPES
 // ----------------------------------------------------------------------------
