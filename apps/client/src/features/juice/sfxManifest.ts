@@ -19,7 +19,9 @@ export type SfxName =
   | "turnAdvance"
   | "ping"
   | "uiOpen"
-  | "uiClose";
+  | "uiClose"
+  | "doorCreak"
+  | "doorClunk";
 
 export interface SfxSpec {
   /** URL of the WAV sample, relative to the site root. */
@@ -79,6 +81,20 @@ export const SFX_MANIFEST: Record<SfxName, SfxSpec> = {
   ping: { url: `${base}/ping.wav`, gain: 0.4, rate: 1, rateJitter: 0.05, reverbSend: 0.35 },
   uiOpen: { url: `${base}/ui-open.wav`, gain: 0.4, rate: 1, rateJitter: 0, reverbSend: 0.15 },
   uiClose: { url: `${base}/ui-close.wav`, gain: 0.4, rate: 1, rateJitter: 0, reverbSend: 0.15 },
+  doorCreak: {
+    url: `${base}/door-creak.wav`,
+    gain: 0.55,
+    rate: 1,
+    rateJitter: 0.07,
+    reverbSend: 0.4,
+  },
+  doorClunk: {
+    url: `${base}/door-clunk.wav`,
+    gain: 0.6,
+    rate: 1,
+    rateJitter: 0.05,
+    reverbSend: 0.3,
+  },
 };
 
 export const ALL_SFX_NAMES = Object.keys(SFX_MANIFEST) as SfxName[];

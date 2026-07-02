@@ -205,6 +205,41 @@ function ping() {
   return normalize(lowpass(out, 0.6), 0.7);
 }
 
+function doorCreak() {
+  const n = seconds(0.45);
+  const out = new Float32Array(n);
+  // Slow detuned groan sliding upward — hinges complaining — with a soft
+  // wooden knock as the door settles.
+  for (let i = 0; i < n; i++) {
+    const p = i / n;
+    const f = 180 + 120 * p;
+    const groan = (sine(f, i) + sine(f * 1.04, i) * 0.7) * 0.5;
+    const wobble = 0.7 + 0.3 * sine(9, i);
+    out[i] = groan * wobble * ad(i, n, 0.08) * 0.8;
+  }
+  const knockStart = Math.floor(n * 0.82);
+  for (let i = knockStart; i < n; i++) {
+    out[i] += sine(120, i - knockStart) * decay(i - knockStart, n - knockStart, 10) * 0.5;
+  }
+  return normalize(lowpass(out, 0.35), 0.75);
+}
+
+function doorClunk() {
+  const n = seconds(0.22);
+  const out = new Float32Array(n);
+  // Heavy latch: two tight metallic knocks a semitone apart.
+  const knocks = [0, 0.09];
+  for (const start of knocks) {
+    const s = Math.floor(start * SAMPLE_RATE);
+    const len = seconds(0.08);
+    for (let i = 0; i < len && s + i < n; i++) {
+      const metal = sine(320, i) * 0.5 + sine(475, i) * 0.3;
+      out[s + i] += (metal + noise() * 0.25) * decay(i, len, 12);
+    }
+  }
+  return normalize(lowpass(out, 0.45), 0.8);
+}
+
 function sweep(up) {
   const n = seconds(0.14);
   const out = new Float32Array(n);
@@ -266,6 +301,8 @@ const VOICES = {
   ping: ping,
   "ui-open": () => sweep(true),
   "ui-close": () => sweep(false),
+  "door-creak": doorCreak,
+  "door-clunk": doorClunk,
 };
 
 mkdirSync(OUT_DIR, { recursive: true });

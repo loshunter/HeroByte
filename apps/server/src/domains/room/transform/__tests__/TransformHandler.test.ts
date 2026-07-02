@@ -168,6 +168,47 @@ describe("TransformHandler - Characterization Tests", () => {
       expect(updatedToken?.y).toBe(250);
     });
 
+    it("blocks a player transform whose path crosses a compiled wall", () => {
+      roomService.setState({
+        compiledScene: {
+          schemaVersion: 1,
+          sourceDocumentId: "map",
+          sourceRevision: 1,
+          compiledAt: 1,
+          width: 2048,
+          height: 2048,
+          walls: [
+            {
+              id: "wall-1#0",
+              x1: 75,
+              y1: -100,
+              x2: 75,
+              y2: 100,
+              blocksMovement: true,
+              blocksVision: true,
+            },
+          ],
+          doors: [],
+          lights: [],
+        },
+      });
+      const state = roomService.getState();
+      const tokenObject = state.sceneObjects.find((obj) => obj.id === "token:token-1");
+
+      const blocked = roomService.applySceneObjectTransform(tokenObject!.id, playerUid, {
+        position: { x: 150, y: 0 },
+      });
+      expect(blocked).toBe(false);
+      expect(roomService.getState().tokens.find((t) => t.id === "token-1")?.x).toBe(0);
+
+      // The DM drags through walls freely.
+      const dmMove = roomService.applySceneObjectTransform(tokenObject!.id, dmUid, {
+        position: { x: 150, y: 0 },
+      });
+      expect(dmMove).toBe(true);
+      expect(roomService.getState().tokens.find((t) => t.id === "token-1")?.x).toBe(150);
+    });
+
     it("should allow owner to transform their token scale", () => {
       const state = roomService.getState();
       const tokenObject = state.sceneObjects.find((obj) => obj.id === "token:token-1");

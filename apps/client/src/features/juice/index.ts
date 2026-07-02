@@ -17,6 +17,7 @@ export {
 export { useJuiceSettings, useReducedMotion, useMotionLevel } from "./useJuiceSettings";
 export { useJuiceRuntime } from "./useJuiceRuntime";
 export { useTurnChime } from "./useTurnChime";
+export { useDoorSfx } from "./useDoorSfx";
 export { useSfx } from "./useSfx";
 export { sfxEngine } from "./sfxEngine";
 export type { SfxName } from "./sfxManifest";

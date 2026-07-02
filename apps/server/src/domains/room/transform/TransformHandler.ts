@@ -17,6 +17,7 @@
 
 import type { SceneObject } from "@herobyte/shared";
 import type { RoomState } from "../model.js";
+import { isTokenMoveBlocked } from "../scene/movementBlocking.js";
 
 /**
  * Transform changes that can be applied to a scene object
@@ -125,6 +126,15 @@ export class TransformHandler {
 
     // Permission check: DM or token owner
     if (!isDM && token.owner !== actorUid) return false;
+
+    // Compiled walls and shut doors block player movement on every path.
+    if (
+      changes.position &&
+      !isDM &&
+      isTokenMoveBlocked(state, { x: token.x, y: token.y }, changes.position)
+    ) {
+      return false;
+    }
 
     // Sync position to Token entity
     if (changes.position) {

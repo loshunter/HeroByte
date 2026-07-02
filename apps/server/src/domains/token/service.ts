@@ -4,8 +4,9 @@
 // Handles token-related business logic
 
 import { randomUUID } from "crypto";
-import { findBlockingSegment, type Token, type TokenSize } from "@herobyte/shared";
+import type { Token, TokenSize } from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
+import { isTokenMoveBlocked } from "../room/scene/movementBlocking.js";
 
 /**
  * Token service - manages tokens on the map
@@ -77,17 +78,8 @@ export class TokenService {
     if (!token || (token.owner !== ownerUid && !isDM)) {
       return false;
     }
-    if (!isDM && state.compiledScene) {
-      const mapTransform = state.sceneObjects.find((object) => object.type === "map")?.transform;
-      const blocked = findBlockingSegment(
-        state.compiledScene,
-        { x: token.x, y: token.y },
-        { x, y },
-        mapTransform,
-      );
-      if (blocked) {
-        return false;
-      }
+    if (!isDM && isTokenMoveBlocked(state, { x: token.x, y: token.y }, { x, y })) {
+      return false;
     }
     token.x = x;
     token.y = y;

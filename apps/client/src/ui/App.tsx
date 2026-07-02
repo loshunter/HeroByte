@@ -40,7 +40,7 @@ import { MainLayout } from "../layouts/MainLayout";
 import { MobileLayout } from "../layouts/MobileLayout";
 import { DMElevationModal } from "../features/dm/components/DMElevationModal";
 import { useMapStudio } from "../features/map-studio";
-import { useJuiceRuntime, useTurnChime } from "../features/juice";
+import { useDoorSfx, useJuiceRuntime, useTurnChime } from "../features/juice";
 
 // ----------------------------------------------------------------------------
 // MAIN APP COMPONENT
@@ -117,6 +117,9 @@ function AuthenticatedApp({
 }: AuthenticatedAppProps): JSX.Element {
   // Chime when the active combatant changes.
   useTurnChime(snapshot?.currentTurnCharacterId);
+
+  // Creak and clunk when compiled doors change state, on every screen.
+  useDoorSfx(snapshot?.compiledScene?.doors);
 
   // Tool modes
   const {
