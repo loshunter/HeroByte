@@ -55,6 +55,31 @@ describe("SnapshotReconciler", () => {
     expect(requestResync).not.toHaveBeenCalled();
   });
 
+  it("advances the version on state-sync without emitting a snapshot", () => {
+    const snapshot = createSnapshot({
+      stateVersion: 5,
+      tokens: [{ id: "token-1", owner: "p1", x: 0, y: 0, color: "#fff" }],
+    });
+    reconciler.applySnapshot(snapshot);
+    onSnapshot.mockClear();
+
+    // A move happened elsewhere but its content is hidden from this client.
+    reconciler.applyDelta({ t: "state-sync", stateVersion: 6 });
+
+    expect(onSnapshot).not.toHaveBeenCalled();
+    expect(requestResync).not.toHaveBeenCalled();
+
+    // The next visible delta applies cleanly — no version gap.
+    reconciler.applyDelta({
+      t: "token-updated",
+      stateVersion: 7,
+      token: { id: "token-1", owner: "p1", x: 10, y: 20, color: "#000" },
+    });
+
+    expect(onSnapshot).toHaveBeenCalledWith(expect.objectContaining({ stateVersion: 7 }));
+    expect(requestResync).not.toHaveBeenCalled();
+  });
+
   it("requests resync when delta arrives without a base snapshot", () => {
     reconciler.applyDelta({
       t: "token-updated",

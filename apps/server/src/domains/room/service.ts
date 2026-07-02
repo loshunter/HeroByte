@@ -195,7 +195,7 @@ export class RoomService {
         : false;
 
       // Generate snapshot with appropriate visibility filtering
-      const snapshot = toSnapshot(this.state, isDM);
+      const snapshot = toSnapshot(this.state, isDM, playerUid);
       const payload = JSON.stringify(snapshot);
       const payloadBytes = Buffer.byteLength(payload, "utf8");
       this.guardSnapshotSize(payloadBytes, options?.reason);
@@ -245,7 +245,7 @@ export class RoomService {
       ? Boolean(this.state.players.find((player) => player.uid === playerUid)?.isDM)
       : true;
 
-    return toSnapshot(this.state, isDM);
+    return toSnapshot(this.state, isDM, playerUid);
   }
 
   /**

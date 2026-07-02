@@ -55,7 +55,7 @@ type ControlMessage =
 
 type HeartbeatAckMessage = Extract<ServerMessage, { t: "heartbeat-ack" }>;
 
-type DeltaMessage = Extract<ServerMessage, { t: "token-updated" }>;
+type DeltaMessage = Extract<ServerMessage, { t: "token-updated" | "state-sync" }>;
 
 type PointerPreviewMessage = Extract<ServerMessage, { t: "pointer-preview" }>;
 
@@ -322,7 +322,10 @@ export class MessageRouter {
   private isDeltaMessage(value: unknown): value is DeltaMessage {
     if (!value || typeof value !== "object") return false;
     const candidate = value as Partial<DeltaMessage>;
-    return candidate.t === "token-updated" && typeof candidate.stateVersion === "number";
+    return (
+      (candidate.t === "token-updated" || candidate.t === "state-sync") &&
+      typeof candidate.stateVersion === "number"
+    );
   }
 
   private isPointerPreviewMessage(value: unknown): value is PointerPreviewMessage {

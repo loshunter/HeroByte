@@ -14,7 +14,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Stage, Layer } from "react-konva";
 import type Konva from "konva";
-import type { CompiledDoorState, DragPreviewUpdate } from "@herobyte/shared";
+import {
+  gridCellToWorldPoint,
+  type CompiledDoorState,
+  type DragPreviewUpdate,
+} from "@herobyte/shared";
 import { ENABLE_DRAG_PREVIEWS } from "../config.js";
 import { usePointerTool } from "../hooks/usePointerTool.js";
 import { useDrawingTool } from "../hooks/useDrawingTool.js";
@@ -596,7 +600,9 @@ export default function MapBoard({
           />
         </Layer>
 
-        {/* Fog of war: players see only what their own tokens can see */}
+        {/* Fog of war: players see only what their own tokens can see.
+            Token positions are grid cells; vision origins are their world-
+            pixel centers, matching the renderer. */}
         {!isDM && snapshot?.fogEnabled && snapshot.compiledScene && (
           <FogLayer
             cam={cam}
@@ -604,7 +610,7 @@ export default function MapBoard({
             mapTransform={mapObject?.transform}
             viewers={(snapshot.tokens ?? [])
               .filter((token) => token.owner === uid)
-              .map((token) => ({ x: token.x, y: token.y }))}
+              .map((token) => gridCellToWorldPoint(grid.size, { x: token.x, y: token.y }))}
           />
         )}
 

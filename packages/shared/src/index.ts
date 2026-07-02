@@ -563,6 +563,7 @@ export type ServerMessage =
   | { t: "ack"; commandId: string }
   | { t: "nack"; commandId: string; reason?: string }
   | { t: "token-updated"; stateVersion: number; token: Token } // Token delta update
+  | { t: "state-sync"; stateVersion: number } // Contentless version advance for deltas withheld by vision filtering
   | { t: "pointer-preview"; pointer: Pointer } // Pointer preview event (high-frequency channel)
   | { t: "drag-preview"; preview: DragPreviewEvent } // Drag preview event (high-frequency channel)
   | { t: "map-studio-documents"; documents: MapDocumentSummary[] }

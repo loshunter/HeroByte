@@ -7,7 +7,7 @@ import type {
   Pointer,
 } from "@herobyte/shared";
 
-type DeltaMessage = Extract<ServerMessage, { t: "token-updated" }>;
+type DeltaMessage = Extract<ServerMessage, { t: "token-updated" | "state-sync" }>;
 
 export type SnapshotResyncReason = "no-base-snapshot" | "version-gap";
 
@@ -78,6 +78,14 @@ export class SnapshotReconciler {
     const expectedVersion = this.lastVersion + 1;
     if (delta.stateVersion !== expectedVersion) {
       this.requestResyncOnce("version-gap", delta.stateVersion);
+      return;
+    }
+
+    if (delta.t === "state-sync") {
+      // A delta happened elsewhere but its content is hidden from us by
+      // vision filtering — advance the version without touching state.
+      this.currentSnapshot.stateVersion = delta.stateVersion;
+      this.lastVersion = delta.stateVersion;
       return;
     }
 

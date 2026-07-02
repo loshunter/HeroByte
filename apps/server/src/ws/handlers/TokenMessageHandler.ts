@@ -80,6 +80,8 @@ export class TokenMessageHandler {
     y: number,
     isDM: boolean,
   ): TokenMessageResult {
+    const before = state.tokens.find((t) => t.id === tokenId);
+    const previousCell = before ? { x: before.x, y: before.y } : undefined;
     const moved = this.tokenService.moveToken(state, tokenId, senderUid, x, y, isDM);
     const deltasEnabled = isDeltaChannelEnabled();
     let delta: PendingDelta | undefined;
@@ -87,7 +89,7 @@ export class TokenMessageHandler {
     if (deltasEnabled && token) {
       // A refused move (blocked by a wall/door or unauthorized) still emits
       // the token's authoritative position so optimistic clients snap back.
-      delta = { t: "token-updated", token };
+      delta = { t: "token-updated", token, previousCell };
     }
     return { broadcast: deltasEnabled ? false : moved, save: false, delta };
   }

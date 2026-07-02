@@ -4,7 +4,21 @@
 // Routes incoming WebSocket messages to appropriate domain services
 
 import type { WebSocket, WebSocketServer } from "ws";
-import type { ClientMessage, DragPreviewEvent, Pointer, ServerMessage } from "@herobyte/shared";
+import {
+  gridCellToWorldPoint,
+  type ClientMessage,
+  type DragPreviewEvent,
+  type Pointer,
+  type ScenePoint,
+  type ServerMessage,
+} from "@herobyte/shared";
+import {
+  createVisionContext,
+  getHiddenNpcTokenIds,
+  isWorldPointVisible,
+  visionSignature,
+  type VisionContext,
+} from "../domains/room/scene/visionFilter.js";
 import { isCommandAckEnabled } from "../config/featureFlags.js";
 import { RoomService } from "../domains/room/service.js";
 import { PlayerService } from "../domains/player/service.js";
@@ -106,6 +120,11 @@ export class MessageRouter {
   private getAuthorizedClients: () => Set<WebSocket>;
   private getRoomIdForUid: (uid: string) => string;
   private skipNextBroadcastVersionBump: boolean = false;
+  // Per-recipient vision, memoized on a signature of its actual inputs (own
+  // token cells, door states, map transform, grid, scene identity). Other
+  // players' moves and drag previews leave the signature untouched, so a
+  // whole drag — and every unrelated delta — reuses the cached polygons.
+  private visionCache = new Map<string, { signature: string; context: VisionContext | null }>();
 
   constructor(
     roomService: RoomService,
@@ -385,8 +404,119 @@ export class MessageRouter {
   private emitDelta(delta: PendingDelta, reason: string): void {
     const stateVersion = this.roomService.bumpStateVersion();
     const message = this.buildDeltaMessage(delta, stateVersion);
-    this.sendToAuthorizedClients(message);
+    if (delta.t === "token-updated") {
+      this.emitTokenDelta(message, delta, stateVersion);
+    } else {
+      this.sendToAuthorizedClients(message);
+    }
     this.messageLogger.logMessageRouting(`${delta.t}-delta`, reason);
+  }
+
+  /**
+   * Secrecy-aware token delta. Per recipient:
+   * - DMs always get the raw delta.
+   * - Hidden-NPC tokens never reach players — they get a state-sync so the
+   *   version stream stays gapless (this applies with fog on OR off).
+   * - The token's owner gets a fresh filtered snapshot when their own move
+   *   relocated their vision origin (newly visible entities must arrive),
+   *   otherwise the raw delta (e.g. a blocked-move correction).
+   * - Others get the delta while the token stays inside their vision, a
+   *   filtered snapshot when it crosses their vision boundary (a delta would
+   *   leak the hidden destination or leave a stale ghost), and a state-sync
+   *   when it stays hidden.
+   */
+  private emitTokenDelta(
+    message: ServerMessage,
+    delta: Extract<PendingDelta, { t: "token-updated" }>,
+    stateVersion: number,
+  ): void {
+    const state = this.roomService.getState();
+    const isHiddenNpc = getHiddenNpcTokenIds(state).has(delta.token.id);
+    const fogActive = this.fogFilteringActive();
+    if (!isHiddenNpc && !fogActive) {
+      this.sendToAuthorizedClients(message);
+      return;
+    }
+
+    const payload = JSON.stringify(message);
+    const syncPayload = JSON.stringify({ t: "state-sync", stateVersion });
+    const newWorld = gridCellToWorldPoint(state.gridSize, {
+      x: delta.token.x,
+      y: delta.token.y,
+    });
+    const previousWorld = delta.previousCell
+      ? gridCellToWorldPoint(state.gridSize, delta.previousCell)
+      : newWorld;
+    const ownerMoved =
+      !delta.previousCell ||
+      delta.previousCell.x !== delta.token.x ||
+      delta.previousCell.y !== delta.token.y;
+    const wsToUid = this.buildWsToUid();
+
+    this.getAuthorizedClients().forEach((client) => {
+      if (client.readyState !== 1) return;
+      const uid = wsToUid.get(client);
+      if (!uid) return; // fail closed: unidentified sockets learn nothing
+      if (this.isRecipientDM(uid)) {
+        client.send(payload);
+        return;
+      }
+      if (isHiddenNpc) {
+        client.send(syncPayload);
+        return;
+      }
+      if (uid === delta.token.owner) {
+        if (fogActive && ownerMoved) {
+          client.send(JSON.stringify(this.roomService.createSnapshotForPlayer(uid)));
+        } else {
+          client.send(payload);
+        }
+        return;
+      }
+      const context = this.getVisionContextFor(uid);
+      if (!context) {
+        client.send(payload);
+        return;
+      }
+      const sawBefore = isWorldPointVisible(context, previousWorld);
+      const seesNow = isWorldPointVisible(context, newWorld);
+      if (sawBefore && seesNow) {
+        client.send(payload);
+      } else if (sawBefore !== seesNow) {
+        client.send(JSON.stringify(this.roomService.createSnapshotForPlayer(uid)));
+      } else {
+        client.send(syncPayload);
+      }
+    });
+  }
+
+  private fogFilteringActive(): boolean {
+    const state = this.roomService.getState();
+    return Boolean(state.fogEnabled && state.compiledScene);
+  }
+
+  private buildWsToUid(): Map<WebSocket, string> {
+    const wsToUid = new Map<WebSocket, string>();
+    for (const [uid, ws] of this.uidToWs.entries()) {
+      wsToUid.set(ws, uid);
+    }
+    return wsToUid;
+  }
+
+  private isRecipientDM(uid: string): boolean {
+    return this.roomService.getState().players.find((p) => p.uid === uid)?.isDM ?? false;
+  }
+
+  private getVisionContextFor(uid: string): VisionContext | null {
+    const state = this.roomService.getState();
+    const signature = visionSignature(state, uid);
+    const cached = this.visionCache.get(uid);
+    if (cached && cached.signature === signature) {
+      return cached.context;
+    }
+    const context = createVisionContext(state, uid);
+    this.visionCache.set(uid, { signature, context });
+    return context;
   }
 
   private buildDeltaMessage(delta: PendingDelta, stateVersion: number): ServerMessage {
@@ -412,7 +542,18 @@ export class MessageRouter {
     if (!pointer) {
       return;
     }
-    this.sendToAuthorizedClients({ t: "pointer-preview", pointer });
+    // DM pings are narration — always visible to the whole table. Player
+    // pings inside unseen rooms stay unseen; the pinger always gets their
+    // own echo. Pointer coordinates are world pixels.
+    if (!this.fogFilteringActive() || this.isRecipientDM(pointer.uid)) {
+      this.sendToAuthorizedClients({ t: "pointer-preview", pointer });
+    } else {
+      this.sendToVisionFilteredClients(
+        { t: "pointer-preview", pointer },
+        { x: pointer.x, y: pointer.y },
+        pointer.uid,
+      );
+    }
     this.messageLogger.logMessageRouting("pointer-preview", reason);
   }
 
@@ -420,8 +561,80 @@ export class MessageRouter {
     if (!preview || preview.objects.length === 0) {
       return;
     }
-    this.sendToAuthorizedClients({ t: "drag-preview", preview });
+    const state = this.roomService.getState();
+    const hiddenNpcIds = getHiddenNpcTokenIds(state);
+    const involvesHiddenNpc = preview.objects.some((object) => hiddenNpcIds.has(object.tokenId));
+    if (this.fogFilteringActive() || involvesHiddenNpc) {
+      this.broadcastFilteredDragPreview(preview, hiddenNpcIds);
+    } else {
+      this.sendToAuthorizedClients({ t: "drag-preview", preview });
+    }
     this.messageLogger.logMessageRouting("drag-preview", reason ?? "drag-preview");
+  }
+
+  /**
+   * Per-recipient drag previews. DMs see everything; hidden-NPC tokens never
+   * reach players even while the DM drags them. Otherwise a recipient
+   * receives the dragger's own preview, previews of tokens they own, and
+   * previews inside their vision. A token dragged behind a wall simply
+   * vanishes from the preview; the committed move resolves it via the delta
+   * channel.
+   */
+  private broadcastFilteredDragPreview(preview: DragPreviewEvent, hiddenNpcIds: Set<string>): void {
+    const state = this.roomService.getState();
+    const fogActive = this.fogFilteringActive();
+    const tokenOwners = new Map(state.tokens.map((token) => [token.id, token.owner]));
+    const fullPayload = JSON.stringify({ t: "drag-preview", preview });
+    const wsToUid = this.buildWsToUid();
+
+    this.getAuthorizedClients().forEach((client) => {
+      if (client.readyState !== 1) return;
+      const uid = wsToUid.get(client);
+      if (!uid) return; // fail closed
+      if (this.isRecipientDM(uid)) {
+        client.send(fullPayload);
+        return;
+      }
+      const context = fogActive ? this.getVisionContextFor(uid) : null;
+      const objects = preview.objects.filter((object) => {
+        if (hiddenNpcIds.has(object.tokenId)) return false;
+        if (uid === preview.uid || tokenOwners.get(object.tokenId) === uid) return true;
+        if (!fogActive || !context) return true;
+        return isWorldPointVisible(
+          context,
+          gridCellToWorldPoint(state.gridSize, { x: object.x, y: object.y }),
+        );
+      });
+      if (objects.length === 0) return;
+      client.send(
+        objects.length === preview.objects.length
+          ? fullPayload
+          : JSON.stringify({ t: "drag-preview", preview: { ...preview, objects } }),
+      );
+    });
+  }
+
+  /** Send to owners/DMs always, others only when the point is inside their vision. */
+  private sendToVisionFilteredClients(
+    message: ServerMessage,
+    worldPoint: ScenePoint,
+    ownerUid?: string,
+  ): void {
+    const payload = JSON.stringify(message);
+    const wsToUid = this.buildWsToUid();
+    this.getAuthorizedClients().forEach((client) => {
+      if (client.readyState !== 1) return;
+      const uid = wsToUid.get(client);
+      if (!uid) return; // fail closed
+      if (uid === ownerUid || this.isRecipientDM(uid)) {
+        client.send(payload);
+        return;
+      }
+      const context = this.getVisionContextFor(uid);
+      if (!context || isWorldPointVisible(context, worldPoint)) {
+        client.send(payload);
+      }
+    });
   }
 
   private broadcast(reason?: string): void {

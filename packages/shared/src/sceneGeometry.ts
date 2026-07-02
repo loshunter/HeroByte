@@ -99,6 +99,15 @@ export function transformScenePoint(transform: SceneTransform, point: ScenePoint
   };
 }
 
+/**
+ * Token grid-cell coordinates -> world pixels (cell center). Mirrors the
+ * client renderer's `x * gridSize + gridSize / 2`; every geometry check
+ * against tokens must convert through this first.
+ */
+export function gridCellToWorldPoint(gridSize: number, cell: ScenePoint): ScenePoint {
+  return { x: cell.x * gridSize + gridSize / 2, y: cell.y * gridSize + gridSize / 2 };
+}
+
 /** World space -> scene/document space. Inverse of transformScenePoint. */
 export function inverseTransformScenePoint(
   transform: SceneTransform,

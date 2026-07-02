@@ -91,6 +91,161 @@ describe("Room Model - toSnapshot", () => {
     });
   });
 
+  describe("vision filtering (fog of war)", () => {
+    function stateWithFogAndWall() {
+      const state = createEmptyRoomState();
+      state.fogEnabled = true;
+      state.compiledScene = {
+        schemaVersion: 1,
+        sourceDocumentId: "map",
+        sourceRevision: 1,
+        compiledAt: 1,
+        width: 400,
+        height: 400,
+        walls: [
+          {
+            id: "divider",
+            x1: 200,
+            y1: 0,
+            x2: 200,
+            y2: 400,
+            blocksMovement: true,
+            blocksVision: true,
+          },
+        ],
+        doors: [],
+        lights: [],
+      };
+      // Token positions are grid cells (gridSize 50): cell (1,3) = pixel
+      // (75,175) left of the wall; cell (6,3) = (325,175) behind it; cell
+      // (20,20) = (1025,1025), outside the 400px map rect entirely.
+      state.tokens = [
+        { id: "mine", owner: "player-1", x: 1, y: 3, color: "red" },
+        { id: "hidden-enemy", owner: "player-2", x: 6, y: 3, color: "blue" },
+        { id: "off-map", owner: "player-2", x: 20, y: 20, color: "green" },
+      ];
+      state.sceneObjects = state.tokens.map((token) => ({
+        id: `token:${token.id}`,
+        type: "token" as const,
+        owner: token.owner,
+        locked: false,
+        zIndex: 0,
+        transform: { x: token.x, y: token.y, scaleX: 1, scaleY: 1, rotation: 0 },
+        data: { color: token.color },
+      }));
+      state.pointers = [
+        { uid: "player-2", x: 300, y: 200, timestamp: 1, id: "ptr-hidden", name: "P2" },
+        { uid: "player-2", x: 150, y: 200, timestamp: 1, id: "ptr-seen", name: "P2" },
+      ];
+      return state;
+    }
+
+    it("strips tokens, scene objects, and pointers the recipient cannot see", () => {
+      const snapshot = toSnapshot(stateWithFogAndWall(), false, "player-1");
+
+      expect(snapshot.tokens.map((token) => token.id)).toEqual(["mine", "off-map"]);
+      expect(snapshot.sceneObjects?.map((object) => object.id)).toEqual([
+        "token:mine",
+        "token:off-map",
+      ]);
+      expect(snapshot.pointers.map((pointer) => pointer.id)).toEqual(["ptr-seen"]);
+    });
+
+    it("always includes the recipient's own tokens, even outside their vision", () => {
+      const state = stateWithFogAndWall();
+      // A second token of player-1's, stranded behind the wall (cell (6,6)).
+      state.tokens.push({ id: "mine-far", owner: "player-1", x: 6, y: 6, color: "red" });
+
+      const snapshot = toSnapshot(state, false, "player-1");
+
+      expect(snapshot.tokens.map((token) => token.id)).toContain("mine-far");
+    });
+
+    it("does not filter when fog is disabled or for the DM", () => {
+      const state = stateWithFogAndWall();
+
+      const dmSnapshot = toSnapshot(state, true, "dm-uid");
+      expect(dmSnapshot.tokens).toHaveLength(3);
+
+      state.fogEnabled = false;
+      const playerSnapshot = toSnapshot(state, false, "player-1");
+      expect(playerSnapshot.tokens).toHaveLength(3);
+      expect(playerSnapshot.pointers).toHaveLength(2);
+    });
+
+    it("does not filter when no recipient uid is provided (legacy callers)", () => {
+      const snapshot = toSnapshot(stateWithFogAndWall(), false);
+      expect(snapshot.tokens).toHaveLength(3);
+    });
+
+    it("keeps the recipient's own pings and all DM pings, wherever they land", () => {
+      const state = stateWithFogAndWall();
+      state.players = [
+        {
+          uid: "dm-uid",
+          name: "DM",
+          isDM: true,
+          hp: 10,
+          maxHp: 10,
+          micLevel: 0,
+          lastHeartbeat: 1,
+          statusEffects: [],
+        },
+      ];
+      state.pointers = [
+        { uid: "player-1", x: 300, y: 200, timestamp: 1, id: "own-hidden", name: "Me" },
+        { uid: "dm-uid", x: 300, y: 200, timestamp: 1, id: "dm-hidden", name: "DM" },
+        { uid: "player-2", x: 300, y: 200, timestamp: 1, id: "other-hidden", name: "P2" },
+      ];
+
+      const snapshot = toSnapshot(state, false, "player-1");
+
+      expect(snapshot.pointers.map((pointer) => pointer.id)).toEqual(["own-hidden", "dm-hidden"]);
+    });
+
+    it("strips props inside fogged rooms but keeps owned and visible ones", () => {
+      const state = stateWithFogAndWall();
+      const prop = (id: string, x: number, y: number, owner: string | null) => ({
+        id,
+        label: id,
+        imageUrl: "url",
+        owner,
+        size: "medium" as const,
+        x,
+        y,
+        scaleX: 1,
+        scaleY: 1,
+        rotation: 0,
+      });
+      state.props = [
+        prop("hidden-chest", 6, 3, null),
+        prop("own-marker", 6, 3, "player-1"),
+        prop("visible-barrel", 1, 1, null),
+      ];
+
+      const snapshot = toSnapshot(state, false, "player-1");
+
+      expect(snapshot.props?.map((p) => p.id)).toEqual(["own-marker", "visible-barrel"]);
+    });
+
+    it("strips selection entries that reference unseen objects", () => {
+      const state = stateWithFogAndWall();
+      state.selectionState.set("dm-uid", { mode: "single", objectId: "token:hidden-enemy" });
+      state.selectionState.set("player-2", {
+        mode: "multiple",
+        objectIds: ["token:hidden-enemy", "token:mine"],
+      });
+
+      const snapshot = toSnapshot(state, false, "player-1");
+
+      expect(snapshot.selectionState?.["dm-uid"]).toBeUndefined();
+      expect(snapshot.selectionState?.["player-2"]).toEqual({
+        mode: "multiple",
+        objectIds: ["token:mine"],
+      });
+    });
+  });
+
   describe("NPC visibility filtering", () => {
     it("filters hidden NPCs and their tokens for non-DM players", () => {
       const state = createEmptyRoomState();

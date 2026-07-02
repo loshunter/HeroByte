@@ -195,18 +195,20 @@ describe("TransformHandler - Characterization Tests", () => {
       const state = roomService.getState();
       const tokenObject = state.sceneObjects.find((obj) => obj.id === "token:token-1");
 
+      // Token positions are grid cells: cell 0 = world 25px, cell 3 = 175px,
+      // so the move crosses the wall at pixel x=75.
       const blocked = roomService.applySceneObjectTransform(tokenObject!.id, playerUid, {
-        position: { x: 150, y: 0 },
+        position: { x: 3, y: 0 },
       });
       expect(blocked).toBe(false);
       expect(roomService.getState().tokens.find((t) => t.id === "token-1")?.x).toBe(0);
 
       // The DM drags through walls freely.
       const dmMove = roomService.applySceneObjectTransform(tokenObject!.id, dmUid, {
-        position: { x: 150, y: 0 },
+        position: { x: 3, y: 0 },
       });
       expect(dmMove).toBe(true);
-      expect(roomService.getState().tokens.find((t) => t.id === "token-1")?.x).toBe(150);
+      expect(roomService.getState().tokens.find((t) => t.id === "token-1")?.x).toBe(3);
     });
 
     it("should allow owner to transform their token scale", () => {

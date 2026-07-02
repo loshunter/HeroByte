@@ -67,12 +67,15 @@ describe("TokenService", () => {
   });
 
   describe("movement blocking against the compiled scene", () => {
+    // Tokens are in GRID CELLS (default gridSize 50): cell (0,0) is world
+    // pixel (25,25). The test wall stands at pixel x=50, so moving from cell
+    // 0 to cell 2 (25px -> 125px) crosses it.
     it("refuses a player move whose path crosses a blocking wall", () => {
       const state = createEmptyRoomState();
       state.compiledScene = compiledSceneWithWall();
       const token = service.createToken(state, "owner-1", 0, 0);
 
-      expect(service.moveToken(state, token.id, "owner-1", 100, 0)).toBe(false);
+      expect(service.moveToken(state, token.id, "owner-1", 2, 0)).toBe(false);
       expect(state.tokens[0]).toMatchObject({ x: 0, y: 0 });
     });
 
@@ -81,8 +84,8 @@ describe("TokenService", () => {
       state.compiledScene = compiledSceneWithWall();
       const token = service.createToken(state, "owner-1", 0, 0);
 
-      expect(service.moveToken(state, token.id, "owner-1", 40, 80)).toBe(true);
-      expect(state.tokens[0]).toMatchObject({ x: 40, y: 80 });
+      expect(service.moveToken(state, token.id, "owner-1", 0, 1)).toBe(true);
+      expect(state.tokens[0]).toMatchObject({ x: 0, y: 1 });
     });
 
     it("lets the DM move tokens through walls", () => {
@@ -90,8 +93,8 @@ describe("TokenService", () => {
       state.compiledScene = compiledSceneWithWall();
       const token = service.createToken(state, "owner-1", 0, 0);
 
-      expect(service.moveToken(state, token.id, "dm-uid", 100, 0, true)).toBe(true);
-      expect(state.tokens[0]).toMatchObject({ x: 100, y: 0 });
+      expect(service.moveToken(state, token.id, "dm-uid", 2, 0, true)).toBe(true);
+      expect(state.tokens[0]).toMatchObject({ x: 2, y: 0 });
     });
 
     it("respects the live map transform when testing walls", () => {
@@ -111,16 +114,17 @@ describe("TokenService", () => {
       ];
       const token = service.createToken(state, "owner-1", 0, 0);
 
-      expect(service.moveToken(state, token.id, "owner-1", 100, 0)).toBe(true);
-      expect(service.moveToken(state, token.id, "owner-1", 300, 0)).toBe(false);
-      expect(state.tokens[0]).toMatchObject({ x: 100, y: 0 });
+      // Cell 2 (125px) stays left of the shifted wall; cell 6 (325px) crosses.
+      expect(service.moveToken(state, token.id, "owner-1", 2, 0)).toBe(true);
+      expect(service.moveToken(state, token.id, "owner-1", 6, 0)).toBe(false);
+      expect(state.tokens[0]).toMatchObject({ x: 2, y: 0 });
     });
 
     it("moves freely when no scene has been published", () => {
       const state = createEmptyRoomState();
       const token = service.createToken(state, "owner-1", 0, 0);
 
-      expect(service.moveToken(state, token.id, "owner-1", 500, 500)).toBe(true);
+      expect(service.moveToken(state, token.id, "owner-1", 10, 10)).toBe(true);
     });
   });
 
