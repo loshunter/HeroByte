@@ -98,6 +98,28 @@ describe("useMapStudio", () => {
     );
   });
 
+  it("imports a backup under a fresh id and activates the restored document", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    const backup = createMapDocument({ id: "old-id", name: "Backup Keep", timestamp: 1 });
+
+    let importedId = "";
+    act(() => {
+      importedId = result.current.importDocument(backup);
+    });
+
+    expect(importedId).not.toBe("old-id");
+    expect(result.current.loading).toBe(true);
+    expect(sendMessage).toHaveBeenLastCalledWith({
+      t: "map-studio-import",
+      document: { ...backup, id: importedId },
+    });
+
+    const restored = { ...backup, id: importedId };
+    act(() => result.current.handleServerMessage({ t: "map-studio-document", document: restored }));
+    expect(result.current.activeDocument?.id).toBe(importedId);
+    expect(result.current.loading).toBe(false);
+  });
+
   it("does not replace the active document when another DM edits a different map", () => {
     const { result } = renderHook(() => useMapStudio(sendMessage));
     const active = createMapDocument({ id: "active", name: "Active", timestamp: 1 });

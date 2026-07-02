@@ -249,6 +249,29 @@ export function validateMapStudioCommandMessage(message: MessageRecord): Validat
   return validate(z.object({ t: z.literal("map-studio-command"), command }), message);
 }
 
+const importDocument = z
+  .object({
+    schemaVersion: z.literal(1),
+    id,
+    name,
+    width: positive.max(32768),
+    height: positive.max(32768),
+    grid: grid.required(),
+    layers: z.array(layer).min(1).max(200),
+    elements: z.array(element).max(20000),
+    revision: z.number().int().nonnegative(),
+    createdAt: finite.nonnegative(),
+    updatedAt: finite.nonnegative(),
+  })
+  .strict();
+
+export function validateMapStudioImportMessage(message: MessageRecord): ValidationResult {
+  return validate(
+    z.object({ t: z.literal("map-studio-import"), document: importDocument }),
+    message,
+  );
+}
+
 export function validateMapStudioPublishMessage(message: MessageRecord): ValidationResult {
   return validate(
     z.object({

@@ -75,6 +75,11 @@ export class MapStudioMessageHandler {
           documentId: message.documentId,
         });
         break;
+      case "map-studio-import": {
+        const document = this.service.import(roomId, message.document, this.now());
+        this.broadcastDocument(roomId, document);
+        break;
+      }
       case "map-studio-publish": {
         // Publish compiles, never flattens: the background is cosmetic while
         // the compiled walls/doors/lights become server-enforced live state.

@@ -64,6 +64,48 @@ export function createMapDocument(input: CreateMapDocumentInput): MapDocument {
   };
 }
 
+/**
+ * Rebuild a serialized document (a JSON backup) into a fresh, fully
+ * sanitized document. Import deliberately bypasses per-command editability:
+ * a backup restoring its own elements onto its own locked layers is not an
+ * edit. Every layer and element still passes the shared sanitizers.
+ */
+export function importMapDocument(input: MapDocument, timestamp: number = Date.now()): MapDocument {
+  if (input.schemaVersion !== MAP_DOCUMENT_SCHEMA_VERSION) {
+    throw new Error(`Unsupported map document schema version: ${input.schemaVersion}`);
+  }
+  if (!Array.isArray(input.layers) || input.layers.length === 0) {
+    throw new Error("Map document import requires at least one layer");
+  }
+
+  const base = createMapDocument({
+    id: input.id,
+    name: input.name,
+    width: input.width,
+    height: input.height,
+    grid: input.grid,
+    timestamp,
+  });
+
+  const layers = input.layers.map((layer) => sanitizeLayer(layer));
+  const layerIds = new Set(layers.map((layer) => layer.id));
+
+  const elementIds = new Set<string>();
+  const elements = (input.elements ?? []).map((element) => {
+    const sanitized = sanitizeElement(element);
+    if (!layerIds.has(sanitized.layerId)) {
+      throw new Error(`Unknown map layer: ${sanitized.layerId}`);
+    }
+    if (elementIds.has(sanitized.id)) {
+      throw new Error(`Map element already exists: ${sanitized.id}`);
+    }
+    elementIds.add(sanitized.id);
+    return sanitized;
+  });
+
+  return { ...base, layers, elements };
+}
+
 export function updateMapGrid(
   document: MapDocument,
   update: MapGridUpdate,

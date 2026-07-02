@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import type { MapDocumentSummary } from "@herobyte/shared";
 import { JRPGButton, JRPGPanel } from "../../../components/ui/JRPGPanel";
 import { StudioTopBar } from "./MapStudioWorkspaceControls";
@@ -19,6 +20,8 @@ interface MapStudioEmptyStateProps {
   onRedo: () => void;
   onPublish: () => void;
   onExit: () => void;
+  /** Receives the raw text of a chosen .json backup file. */
+  onImportFile?: (fileText: string) => void;
 }
 
 export function MapStudioEmptyState({
@@ -37,7 +40,17 @@ export function MapStudioEmptyState({
   onRedo,
   onPublish,
   onExit,
+  onImportFile,
 }: MapStudioEmptyStateProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChosen = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !onImportFile) return;
+    void file.text().then(onImportFile);
+  };
+
   return (
     <div style={workspaceStyle}>
       <StudioTopBar
@@ -89,6 +102,24 @@ export function MapStudioEmptyState({
             >
               CREATE MAP
             </JRPGButton>
+            {onImportFile && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/json,.json"
+                  aria-label="Studio import backup file"
+                  style={{ display: "none" }}
+                  onChange={handleFileChosen}
+                />
+                <JRPGButton
+                  disabled={loading || saving}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  IMPORT JSON BACKUP
+                </JRPGButton>
+              </>
+            )}
           </div>
         </JRPGPanel>
       </div>

@@ -74,6 +74,18 @@ export function useMapStudio(sendMessage: (message: ClientMessage) => void): Map
     [sendMessage],
   );
 
+  const importDocument = useCallback(
+    (document: MapDocument) => {
+      // A fresh id lets the same backup restore repeatedly without colliding.
+      const id = generateUUID();
+      requestedDocumentId.current = id;
+      setLoading(true);
+      sendMessage({ t: "map-studio-import", document: { ...document, id } });
+      return id;
+    },
+    [sendMessage],
+  );
+
   const dispatchNextCommand = useCallback(
     (document: MapDocument | null = activeDocumentRef.current) => {
       if (inFlightCommandId.current) return;
@@ -212,6 +224,7 @@ export function useMapStudio(sendMessage: (message: ClientMessage) => void): Map
     undo,
     redo,
     publishDocument,
+    importDocument,
     handleServerMessage,
   };
 }

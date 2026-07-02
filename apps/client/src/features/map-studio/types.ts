@@ -82,5 +82,7 @@ export interface MapStudioController {
   redo: () => void;
   /** Publish the active document: the server compiles walls/doors/lights into the live scene. */
   publishDocument: (background: string) => boolean;
+  /** Restore a serialized JSON backup as a new document (fresh id, server-sanitized). */
+  importDocument: (document: MapDocument) => string;
   handleServerMessage: (message: MapStudioServerMessage) => void;
 }

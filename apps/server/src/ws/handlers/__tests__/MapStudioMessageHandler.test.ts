@@ -151,6 +151,37 @@ describe("MapStudioMessageHandler", () => {
     expect(service.list("room")).toEqual([]);
   });
 
+  describe("map-studio-import", () => {
+    function serializedDocument(id = "restored") {
+      const source = service.create("room", { id: "source", name: "Backup Keep", timestamp: 1 });
+      return JSON.parse(JSON.stringify({ ...source, id })) as typeof source;
+    }
+
+    it("restores a serialized document and broadcasts it to DMs", () => {
+      const document = serializedDocument();
+
+      const result = handler.handle({ t: "map-studio-import", document }, "dm", "room", true);
+
+      expect(result).toEqual({ broadcast: false, save: false });
+      expect(service.get("room", "restored").name).toBe("Backup Keep");
+      expect(broadcast).toHaveBeenCalledWith(
+        "room",
+        expect.objectContaining({
+          t: "map-studio-document",
+          document: expect.objectContaining({ id: "restored", createdAt: 100 }),
+        }),
+      );
+    });
+
+    it("rejects importing over an existing document id", () => {
+      const document = serializedDocument("source");
+
+      expect(() =>
+        handler.handle({ t: "map-studio-import", document }, "dm", "room", true),
+      ).toThrow("Map document already exists: source");
+    });
+  });
+
   describe("map-studio-publish", () => {
     const wall: MapWallElement = {
       id: "wall-1",

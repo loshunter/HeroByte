@@ -39,6 +39,7 @@ export function MapStudioWorkspace({
     undo,
     redo,
     publishDocument,
+    importDocument,
   } = controller;
   const requestedInitialDocuments = useRef(false);
   const [tool, setTool] = useState<StudioTool>("tile");
@@ -148,6 +149,23 @@ export function MapStudioWorkspace({
     onPublishStatus?.(message);
   };
 
+  const handleImportFile = (fileText: string) => {
+    try {
+      const parsed: unknown = JSON.parse(fileText);
+      if (
+        typeof parsed !== "object" ||
+        parsed === null ||
+        (parsed as { schemaVersion?: unknown }).schemaVersion !== 1
+      ) {
+        throw new Error("Not a HeroByte map backup");
+      }
+      importDocument(parsed as Parameters<typeof importDocument>[0]);
+      onPublishStatus?.("Importing map backup…");
+    } catch {
+      onPublishStatus?.("Import failed: that file is not a HeroByte map JSON backup.");
+    }
+  };
+
   if (!activeDocument) {
     return (
       <MapStudioEmptyState
@@ -166,6 +184,7 @@ export function MapStudioWorkspace({
         onRedo={redo}
         onPublish={handlePublish}
         onExit={onExit}
+        onImportFile={handleImportFile}
       />
     );
   }

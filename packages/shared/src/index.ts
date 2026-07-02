@@ -513,6 +513,7 @@ type ClientMessagePayload =
   | { t: "map-studio-get"; documentId: string }
   | { t: "map-studio-command"; command: MapStudioCommand }
   | { t: "map-studio-delete"; documentId: string }
+  | { t: "map-studio-import"; document: MapDocument } // Restore a serialized JSON backup as a new document
   | { t: "map-studio-publish"; documentId: string; background: string } // Compile document into the live scene (server-authoritative geometry)
 
   // Live scene interactions (compiled doors are clickable at the table)

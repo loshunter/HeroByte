@@ -19,8 +19,50 @@ describe("Map Studio message validation", () => {
       },
     },
     { t: "map-studio-publish", documentId: "map", background: "data:image/svg+xml,render" },
+    {
+      t: "map-studio-import",
+      document: {
+        schemaVersion: 1,
+        id: "restored",
+        name: "Backup Keep",
+        width: 2048,
+        height: 2048,
+        grid: {
+          type: "square",
+          size: 50,
+          squareSize: 5,
+          offsetX: 0,
+          offsetY: 0,
+          visible: true,
+          snap: true,
+        },
+        layers: [
+          {
+            id: "terrain",
+            name: "Terrain",
+            kind: "terrain",
+            visible: true,
+            locked: false,
+            opacity: 1,
+            zIndex: 10,
+          },
+        ],
+        elements: [],
+        revision: 4,
+        createdAt: 1,
+        updatedAt: 2,
+      },
+    },
   ])("accepts control message $t", (message) => {
     expect(validateMessage(message)).toEqual({ valid: true });
+  });
+
+  it.each([
+    { t: "map-studio-import" },
+    { t: "map-studio-import", document: { schemaVersion: 2 } },
+    { t: "map-studio-import", document: { schemaVersion: 1, id: "x" } },
+  ])("rejects malformed import payload %#", (message) => {
+    expect(validateMessage(message).valid).toBe(false);
   });
 
   it.each([

@@ -6,6 +6,7 @@ import {
   addMapLayer,
   createMapDocument,
   getVisibleMapElements,
+  importMapDocument,
   moveMapLayer,
   removeMapElement,
   removeMapLayer,
@@ -470,5 +471,90 @@ describe("Map Studio elements", () => {
     expect(() => addMapLayer(createDocument(), createLayer(), Number.NaN)).toThrow(
       "Map document timestamp must be a finite number",
     );
+  });
+});
+
+describe("Map Studio import", () => {
+  function exportedDocument(): MapDocument {
+    let document = createDocument({ width: 1024, height: 512 });
+    document = updateMapGrid(document, { type: "hex-row", size: 64 }, 101);
+    document = addMapLayer(document, createLayer(), 102);
+    document = updateMapLayer(document, "walls", { visible: false }, 103);
+    document = addMapElement(document, createStamp(), 104);
+    document = addMapElement(
+      document,
+      createStamp({ id: "stamp-weather", layerId: "weather" }),
+      105,
+    );
+    return document;
+  }
+
+  it("round-trips a serialized document through import", () => {
+    const original = exportedDocument();
+    const serialized = JSON.parse(JSON.stringify(original)) as MapDocument;
+
+    const imported = importMapDocument({ ...serialized, id: "map-2" }, 500);
+
+    expect(imported.id).toBe("map-2");
+    expect(imported.name).toBe(original.name);
+    expect(imported.width).toBe(1024);
+    expect(imported.height).toBe(512);
+    expect(imported.grid).toEqual(original.grid);
+    expect(imported.layers).toEqual(original.layers);
+    expect(imported.elements).toEqual(original.elements);
+    expect(imported.schemaVersion).toBe(MAP_DOCUMENT_SCHEMA_VERSION);
+    expect(imported.createdAt).toBe(500);
+  });
+
+  it("imports elements on locked layers, since a backup restores itself", () => {
+    let document = createDocument();
+    document = {
+      ...document,
+      layers: document.layers.map((layer) =>
+        layer.id === "objects" ? { ...layer, locked: true } : layer,
+      ),
+    };
+    document = { ...document, elements: [createStamp()] };
+
+    const imported = importMapDocument(document, 500);
+
+    expect(imported.elements).toHaveLength(1);
+    expect(imported.layers.find((layer) => layer.id === "objects")?.locked).toBe(true);
+  });
+
+  it("rejects unsupported schema versions", () => {
+    const document = { ...exportedDocument(), schemaVersion: 2 as never };
+    expect(() => importMapDocument(document, 500)).toThrow(
+      "Unsupported map document schema version: 2",
+    );
+  });
+
+  it("rejects elements that reference missing layers", () => {
+    const document = {
+      ...exportedDocument(),
+      elements: [createStamp({ layerId: "ghost-layer" })],
+    };
+    expect(() => importMapDocument(document, 500)).toThrow("Unknown map layer: ghost-layer");
+  });
+
+  it("rejects duplicate element ids", () => {
+    const document = {
+      ...exportedDocument(),
+      elements: [createStamp(), createStamp()],
+    };
+    expect(() => importMapDocument(document, 500)).toThrow("Map element already exists: stamp-1");
+  });
+
+  it("rejects documents without layers", () => {
+    const document = { ...exportedDocument(), layers: [], elements: [] };
+    expect(() => importMapDocument(document, 500)).toThrow("at least one layer");
+  });
+
+  it("sanitizes malformed elements through the shared validation", () => {
+    const broken = createStamp();
+    broken.data = { ...broken.data, width: -5 };
+    const document = { ...exportedDocument(), elements: [broken] };
+
+    expect(() => importMapDocument(document, 500)).toThrow("Stamp width must be greater than zero");
   });
 });

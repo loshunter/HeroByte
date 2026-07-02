@@ -1,6 +1,7 @@
 import {
   applyMapDocumentCommand,
   createMapDocument,
+  importMapDocument,
   MapDocumentRevisionConflictError,
   type AppliedMapDocumentCommand,
   type CreateMapDocumentInput,
@@ -44,6 +45,16 @@ export class MapStudioService {
       throw new MapDocumentAlreadyExistsError(input.id.trim());
     }
     const document = createMapDocument(input);
+    this.store.set(roomId, document);
+    return cloneMapDocument(document);
+  }
+
+  import(roomId: string, input: MapDocument, timestamp: number = Date.now()): MapDocument {
+    requireRoomId(roomId);
+    if (this.store.get(roomId, input.id.trim())) {
+      throw new MapDocumentAlreadyExistsError(input.id.trim());
+    }
+    const document = importMapDocument(input, timestamp);
     this.store.set(roomId, document);
     return cloneMapDocument(document);
   }

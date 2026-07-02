@@ -30,6 +30,7 @@ function controller(overrides: Partial<MapStudioController> = {}): MapStudioCont
     undo: vi.fn(),
     redo: vi.fn(),
     publishDocument: vi.fn(() => true),
+    importDocument: vi.fn(() => "imported-id"),
     handleServerMessage: vi.fn(),
     ...overrides,
   };
