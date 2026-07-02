@@ -10,6 +10,7 @@ import type { ClientMessage } from "@herobyte/shared";
 import type { Container } from "../container.js";
 import { AuthenticationHandler } from "./auth/AuthenticationHandler.js";
 import { HeartbeatTimeoutManager } from "./lifecycle/HeartbeatTimeoutManager.js";
+import { IdleRoomUnloadManager } from "./lifecycle/IdleRoomUnloadManager.js";
 import { DisconnectionCleanupManager } from "./lifecycle/DisconnectionCleanupManager.js";
 import { ConnectionLifecycleManager } from "./lifecycle/ConnectionLifecycleManager.js";
 import { MessagePipelineManager } from "./message/MessagePipelineManager.js";
@@ -26,6 +27,7 @@ export class ConnectionHandler {
   private cleanupManager: DisconnectionCleanupManager;
   private lifecycleManager: ConnectionLifecycleManager;
   private heartbeatManager: HeartbeatTimeoutManager;
+  private idleRoomManager: IdleRoomUnloadManager;
   private pipelineManager: MessagePipelineManager;
   private authenticator: MessageAuthenticator;
 
@@ -59,6 +61,7 @@ export class ConnectionHandler {
       container.authenticatedSessions,
     );
     this.heartbeatManager = new HeartbeatTimeoutManager(container, this.cleanupManager);
+    this.idleRoomManager = new IdleRoomUnloadManager(container);
     this.pipelineManager = new MessagePipelineManager(
       {
         maxMessageSize: 1024 * 1024, // 1MB
@@ -82,6 +85,9 @@ export class ConnectionHandler {
 
     // Start heartbeat timeout checker
     this.heartbeatManager.start();
+
+    // Start idle-room unloader (dormant tables cost no memory)
+    this.idleRoomManager.start();
   }
 
   /**

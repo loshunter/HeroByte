@@ -122,6 +122,7 @@ const setupContainer = () => {
     // Room-aware surface: this harness is single-room, so every resolver
     // points at the one RoomService/router above.
     roomIdForUid: (uid: string) => authenticatedSessions.get(uid)?.roomId ?? "default",
+    touchRoomActivity: () => {},
     getRoomServiceForRoom: () => roomService,
     getRouterForRoom: () => messageRouter,
     routerForUid: () => messageRouter,

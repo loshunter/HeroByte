@@ -53,6 +53,8 @@ export class Container {
   // One MessageRouter per room: each router binds its room's RoomService,
   // broadcast debounce, and vision cache, so isolation is structural.
   private readonly routers = new Map<string, MessageRouter>();
+  // Last time each room saw a routed message or a join, for idle unload.
+  private readonly roomActivity = new Map<string, number>();
 
   constructor(
     wss: WebSocketServer,
@@ -134,7 +136,42 @@ export class Container {
 
   /** Route a message through the sender's room. */
   routerForUid(uid: string): MessageRouter {
-    return this.getRouterForRoom(this.roomIdForUid(uid));
+    const roomId = this.roomIdForUid(uid);
+    this.touchRoomActivity(roomId);
+    return this.getRouterForRoom(roomId);
+  }
+
+  /** Record activity so the idle sweeper leaves the room alone. */
+  touchRoomActivity(roomId: string): void {
+    this.roomActivity.set(roomId, Date.now());
+  }
+
+  /**
+   * Unload rooms that have been idle with no connected players. Their state
+   * is flushed to durable storage first and restored on the next join. The
+   * default room is never unloaded (it backs the legacy single-room surface).
+   */
+  async unloadIdleRooms(idleMs: number): Promise<string[]> {
+    const now = Date.now();
+    const unloaded: string[] = [];
+    for (const roomId of this.roomRegistry.listRooms()) {
+      if (roomId === this.defaultRoomId) continue;
+      if (this.getAuthenticatedClientsForRoom(roomId).size > 0) continue;
+      const lastActivity = this.roomActivity.get(roomId) ?? 0;
+      if (now - lastActivity < idleMs) continue;
+
+      const roomService = this.roomRegistry.get(roomId);
+      roomService.saveState();
+      await roomService.awaitPendingWrites();
+      this.routers.delete(roomId);
+      this.roomRegistry.unload(roomId);
+      this.roomActivity.delete(roomId);
+      unloaded.push(roomId);
+    }
+    if (unloaded.length > 0) {
+      console.log(`[Container] Unloaded ${unloaded.length} idle room(s): ${unloaded.join(", ")}`);
+    }
+    return unloaded;
   }
 
   /**

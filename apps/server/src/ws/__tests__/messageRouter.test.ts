@@ -1025,7 +1025,7 @@ describe("MessageRouter", () => {
       const msg: ClientMessage = { t: "set-room-password", secret: "Secret123" };
       routeAndFlush(msg, "player-1");
 
-      expect(mockAuthService.update).toHaveBeenCalledWith("Secret123");
+      expect(mockAuthService.update).toHaveBeenCalledWith("Secret123", "default");
       expect(ws.send).toHaveBeenCalledWith(
         JSON.stringify({ t: "room-password-updated", updatedAt: 12345, source: "user" }),
       );

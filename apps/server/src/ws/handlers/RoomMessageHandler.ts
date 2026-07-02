@@ -42,15 +42,18 @@ export class RoomMessageHandler {
   private roomService: RoomService;
   private authService: AuthService;
   private sendControlMessage: SendControlMessage;
+  private getRoomIdForUid?: (uid: string) => string;
 
   constructor(
     roomService: RoomService,
     authService: AuthService,
     sendControlMessage: SendControlMessage,
+    getRoomIdForUid?: (uid: string) => string,
   ) {
     this.roomService = roomService;
     this.authService = authService;
     this.sendControlMessage = sendControlMessage;
+    this.getRoomIdForUid = getRoomIdForUid;
   }
 
   /**
@@ -120,7 +123,9 @@ export class RoomMessageHandler {
     }
 
     try {
-      const summary = this.authService.update(nextSecret);
+      // Scope the change to the sender's room; the default room updates the
+      // server-wide password exactly as before.
+      const summary = this.authService.update(nextSecret, this.getRoomIdForUid?.(senderUid));
       this.sendControlMessage(senderUid, {
         t: "room-password-updated",
         updatedAt: summary.updatedAt,

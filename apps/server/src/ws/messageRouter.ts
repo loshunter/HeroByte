@@ -230,6 +230,7 @@ export class MessageRouter {
       roomService,
       authService,
       (targetUid, message) => this.sendControlMessage(targetUid, message),
+      (uid) => this.getRoomIdForUid(uid),
     );
     this.transformMessageHandler = new TransformMessageHandler(roomService);
     this.roomDispatcher = new RoomDispatcher(

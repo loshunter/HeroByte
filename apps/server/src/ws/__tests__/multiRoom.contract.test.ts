@@ -224,3 +224,106 @@ describe("authentication creates and scopes rooms", () => {
     expect(container.roomService.getState().players.map((p) => p.uid)).toEqual(["homer"]);
   });
 });
+
+describe("per-room secrets", () => {
+  it("scopes password checks to the requested room with default fallback", async () => {
+    const { AuthService } = await import("../../domains/auth/service.js");
+    const auth = new AuthService({ storagePath: "./test-room-secret.json" });
+
+    // Fresh rooms fall back to the default room secret.
+    const defaultSecret = "Fun1";
+    expect(auth.verify(defaultSecret, "room-a")).toBe(true);
+    expect(auth.verify(defaultSecret, "room-b")).toBe(true);
+
+    // Room A sets its own password: it stops accepting the default,
+    // room B and the default room are untouched.
+    auth.update("room-a-secret", "room-a");
+    expect(auth.verify("room-a-secret", "room-a")).toBe(true);
+    expect(auth.verify(defaultSecret, "room-a")).toBe(false);
+    expect(auth.verify("room-a-secret", "room-b")).toBe(false);
+    expect(auth.verify(defaultSecret, "room-b")).toBe(true);
+    expect(auth.verify("room-a-secret")).toBe(false);
+    expect(auth.verify(defaultSecret)).toBe(true);
+  });
+
+  it("scopes DM passwords per room with default fallback", async () => {
+    const { AuthService } = await import("../../domains/auth/service.js");
+    const auth = new AuthService({ storagePath: "./test-room-secret.json" });
+
+    // Dev fallback DM password elevates in any room until overridden.
+    expect(auth.verifyDMPassword("FunDM", "room-a")).toBe(true);
+
+    auth.updateDMPassword("room-a-dm-pass", "room-a");
+    expect(auth.verifyDMPassword("room-a-dm-pass", "room-a")).toBe(true);
+    expect(auth.verifyDMPassword("FunDM", "room-a")).toBe(false);
+    // Other rooms keep the fallback.
+    expect(auth.verifyDMPassword("FunDM", "room-b")).toBe(true);
+    expect(auth.verifyDMPassword("room-a-dm-pass", "room-b")).toBe(false);
+    expect(auth.hasDMPassword("room-b")).toBe(true);
+  });
+});
+
+describe("idle-room unload", () => {
+  let container: Container;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    container = new Container(
+      {} as unknown as WebSocketServer,
+      authServiceStub,
+      new RoomRegistry({ defaultRoomId: "default" }),
+    );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("unloads idle empty rooms but keeps active ones and the default room", async () => {
+    // room-idle: created, then everyone leaves.
+    container.getRoomServiceForRoom("room-idle");
+    container.touchRoomActivity("room-idle");
+
+    // room-live: has a connected, authenticated player.
+    const socket = fakeSocket();
+    container.uidToWs.set("busy", socket as unknown as WebSocket);
+    container.authenticatedUids.add("busy");
+    container.authenticatedSessions.set("busy", { roomId: "room-live", authedAt: Date.now() });
+    container.getRoomServiceForRoom("room-live");
+    container.touchRoomActivity("room-live");
+
+    vi.advanceTimersByTime(31 * 60 * 1000);
+    const unloaded = await container.unloadIdleRooms(30 * 60 * 1000);
+
+    expect(unloaded).toEqual(["room-idle"]);
+    expect(container.roomRegistry.listRooms().sort()).toEqual(["default", "room-live"]);
+  });
+
+  it("restores an unloaded room's state from durable storage on the next join", async () => {
+    const roomService = container.getRoomServiceForRoom("room-back");
+    roomService.getState().tokens.push({ id: "keepsake", owner: "p1", x: 1, y: 1, color: "red" });
+    roomService.setState({}); // sync token push into the store
+    container.touchRoomActivity("room-back");
+
+    vi.advanceTimersByTime(31 * 60 * 1000);
+    await container.unloadIdleRooms(30 * 60 * 1000);
+    expect(container.roomRegistry.listRooms()).not.toContain("room-back");
+
+    // Rejoining recreates the room; with fs mocked the disk file is empty,
+    // but the load path runs — the real restore round-trip is covered by
+    // StatePersistence tests. Here we prove the room comes back cleanly.
+    const restored = container.getRoomServiceForRoom("room-back");
+    expect(restored.getState()).toBeDefined();
+    expect(container.roomRegistry.listRooms()).toContain("room-back");
+  });
+
+  it("never unloads a room that saw recent activity", async () => {
+    container.getRoomServiceForRoom("room-fresh");
+    container.touchRoomActivity("room-fresh");
+
+    const unloaded = await container.unloadIdleRooms(30 * 60 * 1000);
+
+    expect(unloaded).toEqual([]);
+    expect(container.roomRegistry.listRooms()).toContain("room-fresh");
+  });
+});

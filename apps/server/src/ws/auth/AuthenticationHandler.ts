@@ -71,9 +71,9 @@ export class AuthenticationHandler {
       return;
     }
 
-    // Verify room password
+    // Verify room password (per-room secret, falling back to the default)
     const normalizedSecret = secret.trim();
-    if (!this.container.authService.verify(normalizedSecret)) {
+    if (!this.container.authService.verify(normalizedSecret, requestedRoomId)) {
       console.warn(`Authentication failed for uid ${uid}`);
       this.rejectAuthentication(ws, "Invalid room password");
       return;
@@ -125,6 +125,7 @@ export class AuthenticationHandler {
     // Track authentication state
     this.authenticatedUids.add(uid);
     this.refreshAuthenticatedSession(uid, now, requestedRoomId);
+    this.container.touchRoomActivity(requestedRoomId);
 
     // Register user for session lists
     state.users = state.users.filter((u) => u !== uid);
@@ -165,8 +166,8 @@ export class AuthenticationHandler {
       return;
     }
 
-    // Check if DM password is even set
-    if (!this.container.authService.hasDMPassword()) {
+    // Check if DM password is even set (the room's own, or the default)
+    if (!this.container.authService.hasDMPassword(roomId)) {
       ws.send(
         JSON.stringify({
           t: "dm-elevation-failed",
@@ -178,7 +179,7 @@ export class AuthenticationHandler {
 
     // Verify DM password
     const normalizedPassword = dmPassword.trim();
-    if (!this.container.authService.verifyDMPassword(normalizedPassword)) {
+    if (!this.container.authService.verifyDMPassword(normalizedPassword, roomId)) {
       console.warn(`DM elevation failed for uid ${uid}: Invalid password`);
       ws.send(JSON.stringify({ t: "dm-elevation-failed", reason: "Invalid DM password" }));
       return;
@@ -256,7 +257,7 @@ export class AuthenticationHandler {
 
     // Only current DM can set/update DM password
     // OR if no DM password exists yet, anyone can set it (bootstrap case)
-    const hasDMPassword = this.container.authService.hasDMPassword();
+    const hasDMPassword = this.container.authService.hasDMPassword(roomId);
     if (hasDMPassword && !player.isDM) {
       ws.send(
         JSON.stringify({
@@ -269,7 +270,7 @@ export class AuthenticationHandler {
 
     // Update DM password
     try {
-      const summary = this.container.authService.updateDMPassword(dmPassword);
+      const summary = this.container.authService.updateDMPassword(dmPassword, roomId);
       ws.send(JSON.stringify({ t: "dm-password-updated", updatedAt: summary.updatedAt }));
       console.log(`DM password updated by ${uid}`);
 

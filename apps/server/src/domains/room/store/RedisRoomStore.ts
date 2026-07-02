@@ -55,6 +55,13 @@ export class RedisRoomStore implements RoomStore {
     });
   }
 
+  // Deliberately keeps the cache entry: reads are synchronous, so a room
+  // evicted from this cache could not be restored without an async re-hydrate
+  // — and a recreated RoomService would overwrite Redis with empty state.
+  // Idle unload therefore only drops the RoomService/router for Redis-backed
+  // rooms; freeing the cache needs hydrate-on-demand (follow-up).
+  evict(_roomId: string): void {}
+
   listRoomIds(): string[] {
     return Array.from(this.cache.keys());
   }

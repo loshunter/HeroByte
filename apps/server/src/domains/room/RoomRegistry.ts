@@ -77,6 +77,16 @@ export class RoomRegistry {
     this.services.delete(roomId);
   }
 
+  /**
+   * Drop a room's service and in-memory state, keeping durable storage so the
+   * next get() restores it (from its state file, or Redis for redis-backed
+   * stores). Used by idle-room unload.
+   */
+  unload(roomId: string): void {
+    this.services.delete(roomId);
+    this.store.evict(roomId);
+  }
+
   listRooms(): string[] {
     return Array.from(this.services.keys());
   }
