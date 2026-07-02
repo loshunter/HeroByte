@@ -14,6 +14,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AuthState, ConnectionState } from "../../services/websocket";
 import { AuthGate } from "./AuthGate";
+import { RoomLobby } from "../rooms/RoomLobby";
+import { currentRoomId, rememberRoom } from "../rooms/roomDirectory";
 
 // ============================================================================
 // CONSTANTS
@@ -214,6 +216,11 @@ export function AuthenticationGate({
   useEffect(() => {
     if (authState === AuthState.AUTHENTICATED) {
       setHasAuthenticated(true);
+      // Add this table to the browser's shelf of remembered rooms.
+      const roomId = currentRoomId();
+      if (roomId) {
+        rememberRoom(roomId);
+      }
     } else if (authState === AuthState.FAILED) {
       setHasAuthenticated(false);
     }
@@ -299,6 +306,7 @@ export function AuthenticationGate({
         onPasswordChange={handlePasswordChange}
         onSubmit={handlePasswordSubmit}
         onRetry={onConnect}
+        roomSlot={<RoomLobby />}
       />
     );
   }

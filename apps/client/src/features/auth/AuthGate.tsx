@@ -34,6 +34,8 @@ export interface AuthGateProps {
   onPasswordChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onRetry: () => void;
+  /** Optional table shelf (room lobby) rendered at the bottom of the card. */
+  roomSlot?: React.ReactNode;
 }
 
 /**
@@ -53,6 +55,7 @@ export function AuthGate({
   onPasswordChange,
   onSubmit,
   onRetry,
+  roomSlot,
 }: AuthGateProps): JSX.Element {
   const isConnecting =
     connectionState === ConnectionState.CONNECTING ||
@@ -139,6 +142,7 @@ export function AuthGate({
             Retry Connection
           </button>
         ) : null}
+        {roomSlot}
       </div>
     </div>
   );
