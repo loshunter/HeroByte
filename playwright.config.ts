@@ -1,11 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const PORT = Number(process.env.E2E_PORT ?? 5174);
+sanitizeColorEnv(process.env);
+
+const PORT = Number(process.env.E2E_PORT ?? 5175);
 const HOST = process.env.E2E_HOST ?? "127.0.0.1";
 const baseURL = process.env.E2E_BASE_URL ?? `http://${HOST}:${PORT}`;
-const WS_PORT = Number(process.env.E2E_WS_PORT ?? 8787);
+const WS_PORT = Number(process.env.E2E_WS_PORT ?? 8788);
 const WS_HOST = process.env.E2E_WS_HOST ?? "127.0.0.1";
 const E2E_STATE_FILE = process.env.E2E_STATE_FILE ?? "herobyte-state.e2e.json";
+const E2E_MAP_STORE_FILE = process.env.E2E_MAP_STORE_FILE ?? "herobyte-maps.e2e.json";
 const REUSE_EXISTING_SERVERS = process.env.E2E_REUSE_EXISTING_SERVER === "true";
 
 export default defineConfig({
@@ -44,8 +47,10 @@ export default defineConfig({
         HEROBYTE_ALLOWED_ORIGINS: new URL(baseURL).origin,
         HEROBYTE_E2E: "true",
         E2E_STATE_FILE,
+        E2E_MAP_STORE_FILE,
         PORT: String(WS_PORT),
         ROOM_STATE_FILE: E2E_STATE_FILE,
+        HEROBYTE_MAP_STORE_FILE: E2E_MAP_STORE_FILE,
       },
     },
     {
@@ -65,3 +70,7 @@ export default defineConfig({
     },
   ],
 });
+
+function sanitizeColorEnv(env: NodeJS.ProcessEnv): void {
+  delete env.NO_COLOR;
+}

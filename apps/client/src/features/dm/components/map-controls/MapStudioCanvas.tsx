@@ -7,7 +7,10 @@ import type {
   MapLayer,
 } from "@herobyte/shared";
 import { MapElementInspector } from "./MapElementInspector";
-import { MapStudioElementPreview, MapStudioSelectionOverlay } from "./MapStudioElementPreview";
+import {
+  MapStudioElementPreview,
+  MapStudioSelectionOverlay,
+} from "../../../map-studio/components/MapStudioElementPreview";
 import { getGridGeometry } from "../../../map-studio/gridGeometry";
 import { mapKeyboardNudgeStep, snapPointToGrid } from "../../../map-studio/snapToGrid";
 
@@ -154,8 +157,18 @@ export function MapStudioCanvas({
               onPointerDown={(event) => handlePointerDown(event, element, layer)}
               style={{ cursor: canMove ? "grab" : "default" }}
             >
-              <MapStudioElementPreview element={previewElement} layer={layer} />
-              {selected && <MapStudioSelectionOverlay element={previewElement} layer={layer} />}
+              <MapStudioElementPreview
+                element={previewElement}
+                layer={layer}
+                gridSize={document.grid.size}
+              />
+              {selected && (
+                <MapStudioSelectionOverlay
+                  element={previewElement}
+                  layer={layer}
+                  gridSize={document.grid.size}
+                />
+              )}
             </g>
           );
         })}

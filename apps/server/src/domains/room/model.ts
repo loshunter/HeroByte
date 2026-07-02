@@ -4,6 +4,7 @@
 // Defines the room state structure and snapshot
 
 import type {
+  CompiledScene,
   RoomSnapshot,
   Token,
   Player,
@@ -45,6 +46,7 @@ export interface RoomState {
   playerStagingZone?: PlayerStagingZone; // Spawn area for player tokens
   combatActive: boolean; // Whether combat/initiative tracking is active
   currentTurnCharacterId?: string; // ID of character whose turn it currently is
+  compiledScene?: CompiledScene; // Geometry compiled from the last published Map Studio document
 }
 
 /**
@@ -71,6 +73,7 @@ export function createEmptyRoomState(): RoomState {
     playerStagingZone: undefined,
     combatActive: false,
     currentTurnCharacterId: undefined,
+    compiledScene: undefined,
   };
 }
 
@@ -172,6 +175,18 @@ export function toSnapshot(state: RoomState, isDM: boolean = true): RoomSnapshot
     combatActive: state.combatActive,
     currentTurnCharacterId: state.currentTurnCharacterId,
   };
+
+  if (state.compiledScene) {
+    // Secret doors render as plain wall to players; they must never reach a
+    // non-DM client. Blocking is enforced server-side from state, so
+    // stripping them from the player snapshot loses nothing.
+    snapshot.compiledScene = isDM
+      ? state.compiledScene
+      : {
+          ...state.compiledScene,
+          doors: state.compiledScene.doors.filter((door) => door.state !== "secret"),
+        };
+  }
 
   if (assets.length > 0) {
     snapshot.assets = assets;

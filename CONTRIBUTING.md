@@ -42,15 +42,14 @@ We use PNPM workspaces. Scripts run from the repo root unless otherwise noted.
 git clone https://github.com/loshunter/HeroByte.git
 cd HeroByte
 
-# enable pnpm (Node 18+ recommended)
+# enable the pinned pnpm version (Node 20+ recommended)
 corepack enable pnpm
 
 # install dependencies
 pnpm install
 
-# run the dev servers (in separate terminals)
-pnpm dev:server
-pnpm dev:client
+# run the dev servers
+pnpm dev
 ```
 
 Useful scripts:
@@ -177,27 +176,25 @@ This guardrail ensures the codebase remains maintainable and prevents technical 
 
 ## Testing Expectations
 
-HeroByte uses a **3-tier optimization strategy** to maintain 100% coverage while keeping test execution fast and efficient, especially on resource-constrained environments like WSL.
+HeroByte uses a **3-tier optimization strategy** to maintain 100% coverage while keeping test execution fast and efficient, especially on resource-constrained environments.
 
 ### Quick Commands
 
 ```bash
-# Run all tests sequentially (safe for WSL/low-memory systems)
+# Run all tests sequentially (cross-platform and safe for low-memory systems)
 pnpm test
 
-# Run tests in parallel across workspaces (2x faster, requires ~4GB+ RAM)
+# Run tests in parallel across workspaces (bash/WSL/Git Bash only, requires ~4GB+ RAM)
 pnpm test:parallel
 
 # Run tests with coverage reports
 pnpm test:coverage
 ```
 
-### WSL Considerations
+### Local Test Environment Notes
 
-If running on Windows Subsystem for Linux (WSL):
-
-- **Recommended:** Use `pnpm test` for stability
-- **Parallel mode:** Available via `pnpm test:parallel` but requires adequate RAM
+- **Recommended:** Use `pnpm test` for stability on every platform
+- **Parallel mode:** Available via `pnpm test:parallel`, but it requires a bash-compatible shell and adequate RAM
 - **CI environment:** Tests automatically optimize for available CPU cores
 
 ### Writing Tests
@@ -223,14 +220,11 @@ E2E tests verify full-stack flows using Playwright. **Only smoke tests run in CI
 **Quick Commands:**
 
 ```bash
-# Run all E2E tests locally (requires both client & server running)
+# Run all E2E tests locally (auto-starts isolated client and server)
 pnpm test:e2e
 
 # Run only smoke tests (fast, focused on critical paths)
 pnpm test:e2e:smoke
-
-# Run deprecated tests (being migrated to integration tests)
-pnpm test:e2e:deprecated
 
 # Run with UI mode (interactive debugging)
 pnpm test:e2e:ui
@@ -252,7 +246,8 @@ pnpm test:e2e:ui
 
 **Local Development:**
 
-- Playwright auto-starts both client (port 5174) and server (port 8787)
+- Playwright auto-starts both the E2E client (`5175`) and E2E server (`8788`)
+- Normal dev can stay open on `5174` and `8787` while E2E tests run
 - State files are cleaned between runs via global setup
 - Use `pnpm test:e2e:ui` for interactive debugging with browser
 - Screenshots/videos saved on failure to `test-results/`

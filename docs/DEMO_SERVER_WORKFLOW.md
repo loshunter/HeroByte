@@ -87,10 +87,9 @@ Until the "Reset to Demo Mode" button is implemented, you can manually clean up:
 
 If you need to manually reset server state:
 
-```bash
+```powershell
 # From project root
-rm apps/server/herobyte-state.json        # Clears game state
-rm apps/server/herobyte-room-secret.json  # Resets passwords to defaults
+Remove-Item -LiteralPath apps/server/herobyte-state.json, apps/server/herobyte-room-secret.json -ErrorAction SilentlyContinue
 ```
 
 After deleting these files, restart the server:
@@ -160,10 +159,9 @@ The server will recreate these files with default values.
 
 ### Want to start completely fresh
 
-```bash
+```powershell
 # Stop the server (Ctrl+C)
-rm apps/server/herobyte-state.json
-rm apps/server/herobyte-room-secret.json
+Remove-Item -LiteralPath apps/server/herobyte-state.json, apps/server/herobyte-room-secret.json -ErrorAction SilentlyContinue
 pnpm dev
 ```
 

@@ -128,6 +128,7 @@ export class SnapshotLoader {
       playerStagingZone: stagingManager.sanitize(snapshot.playerStagingZone),
       combatActive: snapshot.combatActive ?? false,
       currentTurnCharacterId: snapshot.currentTurnCharacterId ?? undefined,
+      compiledScene: snapshot.compiledScene ?? undefined,
     };
   }
 }

@@ -12,6 +12,7 @@ import { HPBar } from "./HPBar";
 import { NpcSettingsMenu } from "./NpcSettingsMenu";
 import { sanitizeText } from "../../../utils/sanitize";
 import { normalizeImageUrl } from "../../../utils/imageUrlHelpers";
+import { useHpFeedback, FloatingDamageNumber } from "../../juice";
 
 interface NpcCardProps {
   character: Character;
@@ -75,6 +76,7 @@ export function NpcCard({
   const [tempHpInput, setTempHpInput] = useState(String(character.tempHp ?? 0));
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tokenImageInput, setTokenImageInput] = useState(character.tokenImage ?? "");
+  const { feedback, flashClass } = useHpFeedback(character.hp);
 
   useEffect(() => {
     setTokenImageInput(character.tokenImage ?? "");
@@ -153,7 +155,7 @@ export function NpcCard({
 
   return (
     <div
-      className="player-card"
+      className={`player-card player-card--npc${flashClass ? ` ${flashClass}` : ""}`}
       style={{
         display: "flex",
         flexDirection: "column",
@@ -161,27 +163,26 @@ export function NpcCard({
         justifyContent: "space-between",
         color: "#fbe1e1",
         fontSize: "0.8rem",
-        gap: "6px",
+        gap: "var(--player-card-gap, 6px)",
         position: "relative",
-        width: "150px",
-        padding: "8px",
+        padding: "var(--player-card-padding, 8px)",
         background: "rgba(40, 9, 15, 0.9)",
         border: "1px solid var(--jrpg-border-gold)",
         boxShadow: "0 0 12px rgba(214, 60, 83, 0.45)",
         borderRadius: "8px",
       }}
     >
+      {feedback && (
+        <FloatingDamageNumber
+          amount={feedback.amount}
+          kind={feedback.kind}
+          animationKey={feedback.animationKey}
+        />
+      )}
       <div
-        style={{
-          width: "100%",
-          textAlign: "center",
-          borderBottom: "1px solid rgba(255, 190, 190, 0.25)",
-          marginBottom: "4px",
-          fontSize: "0.7rem",
-          display: "flex",
-          flexDirection: "column",
-          gap: "4px",
-        }}
+        className="player-card-topbar"
+        data-card-resize-anchor="top"
+        style={{ borderBottomColor: "rgba(255, 190, 190, 0.25)" }}
       >
         {isCurrentTurn && (
           <div
@@ -196,6 +197,7 @@ export function NpcCard({
           </div>
         )}
         <div
+          className="player-card-title"
           style={{
             fontWeight: 600,
             textTransform: "uppercase",
@@ -212,12 +214,12 @@ export function NpcCard({
         >
           {sanitizeText(character.name)}
         </div>
-        <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
+        <span className="jrpg-text-small player-card-role" style={{ color: "var(--jrpg-gold)" }}>
           Enemy
         </span>
       </div>
 
-      <div style={{ width: "110px" }}>
+      <div className="player-card-portrait-wrap">
         <PortraitSection
           portrait={character.portrait ?? undefined}
           isEditable={canEdit}
@@ -267,13 +269,13 @@ export function NpcCard({
         onTempHpSubmit={handleTempHpSubmit}
       />
 
-      <div style={{ display: "flex", gap: "6px" }}>
+      <div className="player-card-controls">
         {onToggleVisibility && canEdit && (
           <button
             className="btn btn-secondary"
             style={{
-              fontSize: "0.7rem",
-              padding: "4px 8px",
+              fontSize: "var(--player-card-control-font-size, 0.7rem)",
+              padding: "var(--player-card-control-padding, 4px 8px)",
               opacity: character.visibleToPlayers === false ? 0.5 : 1,
             }}
             onClick={() => {
@@ -291,7 +293,10 @@ export function NpcCard({
         )}
         <button
           className="btn btn-secondary"
-          style={{ fontSize: "0.7rem", padding: "4px 8px" }}
+          style={{
+            fontSize: "var(--player-card-control-font-size, 0.7rem)",
+            padding: "var(--player-card-control-padding, 4px 8px)",
+          }}
           onClick={handleSettingsToggle}
           disabled={!canEdit}
           title="NPC settings"

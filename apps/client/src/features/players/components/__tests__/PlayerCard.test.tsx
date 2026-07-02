@@ -477,6 +477,15 @@ describe("PlayerCard", () => {
       expect(playerCard).toBeInTheDocument();
     });
 
+    it("renders a resize-ready top bar", () => {
+      const props = createDefaultProps();
+      const { container } = render(<PlayerCard {...props} />);
+
+      const topbar = container.querySelector(".player-card-topbar");
+      expect(topbar).toBeInTheDocument();
+      expect(topbar).toHaveAttribute("data-card-resize-anchor", "top");
+    });
+
     it("displays NameEditor component", () => {
       const props = createDefaultProps();
       render(<PlayerCard {...props} />);
@@ -2378,6 +2387,41 @@ describe("PlayerCard", () => {
       rerender(<PlayerCard {...updatedProps} />);
 
       expect(screen.getByTestId("name-editor-input")).toHaveTextContent("updated");
+    });
+
+    it("re-renders when editingHpUID changes", () => {
+      const player = createMockPlayer({ uid: "player-1" });
+      const props = createDefaultProps({
+        player,
+        editingHpUID: null,
+      });
+      const { rerender } = render(<PlayerCard {...props} />);
+
+      expect(screen.getByTestId("hp-bar-is-editing-hp")).toHaveTextContent("false");
+
+      const updatedProps = createDefaultProps({
+        player,
+        editingHpUID: "player-1",
+      });
+      rerender(<PlayerCard {...updatedProps} />);
+
+      expect(screen.getByTestId("hp-bar-is-editing-hp")).toHaveTextContent("true");
+    });
+
+    it("re-renders when hpInput changes", () => {
+      const props = createDefaultProps({
+        hpInput: "80",
+      });
+      const { rerender } = render(<PlayerCard {...props} />);
+
+      expect(screen.getByTestId("hp-bar-hp-input")).toHaveTextContent("80");
+
+      const updatedProps = createDefaultProps({
+        hpInput: "75",
+      });
+      rerender(<PlayerCard {...updatedProps} />);
+
+      expect(screen.getByTestId("hp-bar-hp-input")).toHaveTextContent("75");
     });
 
     it("re-renders when editingMaxHpUID changes", () => {

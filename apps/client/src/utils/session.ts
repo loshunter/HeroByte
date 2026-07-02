@@ -6,12 +6,32 @@
 import { generateUUID } from "./uuid";
 
 const SESSION_UID_KEY = "herobyte-session-uid";
+const SESSION_UID_OVERRIDE_PARAM = "sessionUid";
+
+function getSessionUIDOverride(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const override = new URLSearchParams(window.location.search)
+    .get(SESSION_UID_OVERRIDE_PARAM)
+    ?.trim();
+
+  if (!override || !/^[a-zA-Z0-9_-]{1,128}$/.test(override)) {
+    return null;
+  }
+
+  return override;
+}
 
 /**
  * Get or create a unique session ID for this browser
  * Stored in localStorage to persist across page reloads
  */
 export function getSessionUID(): string {
+  const override = getSessionUIDOverride();
+  if (override) return override;
+
   const existing = localStorage.getItem(SESSION_UID_KEY);
   if (existing) return existing;
 

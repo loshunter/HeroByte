@@ -30,7 +30,7 @@ export const DIE_COLORS: Record<DieType, string> = {
   d10: "#FFD93D", // Yellow
   d12: "#A8E6CF", // Light green
   d20: "#447DF7", // HeroByte blue
-  d100: "#FF3C64E", // HeroByte gold
+  d100: "#F3C64E", // HeroByte gold
 };
 
 export const DIE_SYMBOLS: Record<DieType, string> = {

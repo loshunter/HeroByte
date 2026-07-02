@@ -40,6 +40,7 @@ import { MainLayout } from "../layouts/MainLayout";
 import { MobileLayout } from "../layouts/MobileLayout";
 import { DMElevationModal } from "../features/dm/components/DMElevationModal";
 import { useMapStudio } from "../features/map-studio";
+import { useJuiceRuntime, useTurnChime } from "../features/juice";
 
 // ----------------------------------------------------------------------------
 // MAIN APP COMPONENT
@@ -49,6 +50,9 @@ export const App: React.FC = () => {
   // -------------------------------------------------------------------------
   // STATE
   // -------------------------------------------------------------------------
+
+  // Game-feel runtime: motion attribute, audio unlock, SFX preload.
+  useJuiceRuntime();
 
   // Network and session
   const uid = getSessionUID(); // This player's unique ID
@@ -111,6 +115,9 @@ function AuthenticatedApp({
   isConnected,
   authState,
 }: AuthenticatedAppProps): JSX.Element {
+  // Chime when the active combatant changes.
+  useTurnChime(snapshot?.currentTurnCharacterId);
+
   // Tool modes
   const {
     activeTool,
@@ -121,7 +128,12 @@ function AuthenticatedApp({
     transformMode,
     selectMode,
     alignmentMode,
+    mapStudioMode,
   } = useToolMode();
+
+  const openMapStudio = useCallback(() => {
+    setActiveTool("map-studio");
+  }, [setActiveTool]);
 
   // Custom hooks for state management
   const { micEnabled, toggleMic } = useVoiceChatManager({
@@ -270,18 +282,32 @@ function AuthenticatedApp({
 
     if (mobileParam === "true") {
       setIsMobile(true);
+      return;
     } else if (mobileParam === "false") {
       setIsMobile(false);
-    } else {
-      // Auto-detect if not explicitly set
-      const userAgent =
-        navigator.userAgent ||
-        navigator.vendor ||
-        (window as Window & { opera?: string }).opera ||
-        "";
-      const isMobileDevice = /android|ipad|iphone|ipod|windows phone/i.test(userAgent);
-      setIsMobile(isMobileDevice);
+      return;
     }
+
+    const mobileLayoutQuery =
+      typeof window.matchMedia === "function"
+        ? window.matchMedia("(max-width: 700px), (pointer: coarse) and (max-width: 1024px)")
+        : null;
+    const updateMobileLayout = () => {
+      const narrowViewport = window.innerWidth <= 700;
+      const shortViewport = window.innerHeight <= 520 && window.innerWidth <= 900;
+      setIsMobile(Boolean(mobileLayoutQuery?.matches) || narrowViewport || shortViewport);
+    };
+
+    updateMobileLayout();
+    mobileLayoutQuery?.addEventListener("change", updateMobileLayout);
+    window.addEventListener("resize", updateMobileLayout);
+    window.addEventListener("orientationchange", updateMobileLayout);
+
+    return () => {
+      mobileLayoutQuery?.removeEventListener("change", updateMobileLayout);
+      window.removeEventListener("resize", updateMobileLayout);
+      window.removeEventListener("orientationchange", updateMobileLayout);
+    };
   }, []);
 
   // -------------------------------------------------------------------------
@@ -629,6 +655,7 @@ function AuthenticatedApp({
     transformMode,
     selectMode,
     alignmentMode,
+    mapStudioMode,
     // UI state
     snapToGrid,
     setSnapToGrid,
@@ -737,6 +764,7 @@ function AuthenticatedApp({
     // WebSocket communication
     sendMessage,
     mapStudio,
+    openMapStudio,
   };
 
   return (

@@ -30,12 +30,13 @@ Example format:
 ## 🚀 Quick Start
 
 ```bash
-./dev-start.sh
+pnpm install
+pnpm dev
 # Frontend: http://localhost:5174
 # Backend: http://localhost:8787
 ```
 
-**Prerequisites:** Node.js 18+ • pnpm 8+
+**Prerequisites:** Node.js 20+ • pnpm 10 via Corepack (`corepack enable pnpm`)
 
 <details>
 <summary>📦 Full Installation & Setup Guide</summary>
@@ -43,6 +44,9 @@ Example format:
 ### Installation
 
 ```bash
+# Enable the pinned pnpm version from package.json
+corepack enable pnpm
+
 # Install dependencies
 pnpm install
 ```
@@ -52,11 +56,26 @@ pnpm install
 **Recommended: One-Command Start**
 
 ```bash
-# From project root - handles prior dev processes, build, and startup automatically
+# From project root - handles prior dev processes and starts both servers
+pnpm dev
+```
+
+This command checks the fixed HeroByte dev ports, releases stale HeroByte-owned processes when safe, and starts the backend and frontend together.
+
+**Windows Double-Click Option**
+
+```batch
+start-server-dev.bat
+start-client-dev.bat
+```
+
+**Bash/WSL Alternative**
+
+```bash
 ./dev-start.sh
 ```
 
-This script stops existing HeroByte dev processes, builds the backend, and starts both servers in the correct order.
+The bash script is optional. It is useful in Unix-like shells, but WSL is not required to run HeroByte on Windows.
 
 **Access the Application:**
 
@@ -81,7 +100,8 @@ pnpm dev:client
 If you get "port already in use" errors:
 
 ```bash
-./kill-ports.sh  # Stops prior HeroByte dev processes
+pnpm dev:doctor  # Shows what owns the HeroByte dev ports
+pnpm dev:free    # Safely stops stale HeroByte dev processes
 ```
 
 See [PORT_MANAGEMENT.md](PORT_MANAGEMENT.md) for detailed troubleshooting.
@@ -111,20 +131,24 @@ HEROBYTE_ALLOWED_ORIGINS="https://yourdomain.com,https://staging.yourdomain.com"
 
 ### Common Scripts
 
-| Command              | Description                                    |
-| -------------------- | ---------------------------------------------- |
-| `pnpm dev`           | Run client and server concurrently             |
-| `pnpm dev:server`    | Start server in watch mode                     |
-| `pnpm dev:client`    | Start client in watch mode                     |
-| `pnpm build`         | Build both server and client bundles           |
-| `pnpm test`          | Run full test suite (352 tests)                |
-| `pnpm test:e2e`      | Run Playwright E2E tests (auto-starts servers) |
-| `pnpm test:shared`   | Execute unit tests for shared domain models    |
-| `pnpm test:coverage` | Generate coverage reports for all packages     |
+| Command              | Description                                             |
+| -------------------- | ------------------------------------------------------- |
+| `pnpm dev`           | Run client and server concurrently on `5174` and `8787` |
+| `pnpm dev:server`    | Start server in watch mode                              |
+| `pnpm dev:client`    | Start client in watch mode                              |
+| `pnpm dev:doctor`    | Inspect the normal dev ports without stopping anything  |
+| `pnpm dev:free`      | Safely release stale HeroByte dev processes             |
+| `pnpm build`         | Build both server and client bundles                    |
+| `pnpm test`          | Run full test suite (352 tests)                         |
+| `pnpm test:e2e`      | Run Playwright E2E tests on isolated `5175` and `8788`  |
+| `pnpm e2e:doctor`    | Inspect the E2E ports without stopping anything         |
+| `pnpm test:shared`   | Execute unit tests for shared domain models             |
+| `pnpm test:coverage` | Generate coverage reports for all packages              |
 
 ### Troubleshooting
 
-- **Dev server says port 5174 is busy** – Run `./kill-ports.sh` (or `./kill-client-port.bat` on Windows)
+- **Dev server says port 5174 is busy** – Run `pnpm dev:doctor`; `pnpm dev` and `pnpm dev:free` safely release stale HeroByte owners
+- **E2E says port 5175 or 8788 is busy** – Run `pnpm e2e:doctor`; `pnpm test:e2e` preflights those isolated ports automatically
 - **WebSocket refuses connections** – Confirm backend is running on `http://localhost:8787`
 - **Voice chat fails in Chrome** – WebRTC requires secure origins; use `https://` (Cloudflare tunnel, `mkcert`, or hosted demo)
 - **Tests fail with missing state file** – Delete `apps/server/herobyte-state.json` and re-run `pnpm test`
@@ -229,7 +253,7 @@ HeroByte maintains **100% automated testing** with comprehensive coverage across
 # Run all tests (352 total, ~3 minutes)
 pnpm test
 
-# Run tests in parallel across workspaces (2x faster, requires ~4GB+ RAM)
+# Run tests in parallel across workspaces (bash/WSL/Git Bash only, requires ~4GB+ RAM)
 pnpm test:parallel
 
 # Run E2E tests only (10 tests, ~46 seconds)
@@ -243,6 +267,8 @@ pnpm test:shared    # Domain models
 pnpm test:server    # Server logic
 pnpm test:client    # Client features
 ```
+
+Playwright runs on isolated local ports (`5175` frontend, `8788` backend), so E2E tests can run while the normal dev server is still open on `5174` and `8787`.
 
 ### Testing Architecture
 
@@ -334,9 +360,9 @@ Fork-based parallelism for local development:
 
 - **Config:** `pool: "forks"` in `vitest.config.ts`
 - **Isolation:** Each test file runs in separate process
-- **Safety:** WSL-compatible when adequate RAM available
+- **Safety:** Works when the host has adequate RAM available
 
-Enable via `pnpm test:parallel` (requires ~4GB+ RAM).
+Enable via `pnpm test:parallel` from a bash-compatible shell (requires ~4GB+ RAM). On native Windows PowerShell or Command Prompt, use `pnpm test`.
 
 ### Test Utilities
 
@@ -352,16 +378,14 @@ const snapshot = new SnapshotBuilder()
   .build();
 ```
 
-### WSL Testing Notes
+### Local Testing Notes
 
-Running tests on Windows Subsystem for Linux:
-
-- **Default mode** (`pnpm test`): Safe for all environments, sequential execution
-- **Parallel mode** (`pnpm test:parallel`): Requires adequate RAM allocation in `.wslconfig`
+- **Default mode** (`pnpm test`): Cross-platform and safe for normal local development
+- **Parallel mode** (`pnpm test:parallel`): Requires a bash-compatible shell and enough RAM
 - **CI mode**: Automatically adjusts concurrency based on available CPU cores
 - **Console output**: Silenced in CI via `VITEST_SILENT=true`
 
-**Recommended `.wslconfig` for parallel tests:**
+If you do use WSL for development, allocate enough memory before running parallel tests:
 
 ```ini
 [wsl2]

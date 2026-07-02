@@ -35,6 +35,8 @@ herobyte-state.e2e.json
 herobyte-state.e2e.json.tmp
 herobyte-maps.json
 herobyte-maps.json.tmp
+herobyte-maps*.json
+herobyte-maps*.json.tmp
 vtt-state.json
 herobyte-room-secret.json
 test-secret.json

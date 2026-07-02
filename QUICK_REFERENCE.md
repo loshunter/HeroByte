@@ -43,10 +43,9 @@
 
 ### Reset to Demo Defaults (Manual)
 
-```bash
+```powershell
 # Stop the server (Ctrl+C)
-rm apps/server/herobyte-state.json
-rm apps/server/herobyte-room-secret.json
+Remove-Item -LiteralPath apps/server/herobyte-state.json, apps/server/herobyte-room-secret.json -ErrorAction SilentlyContinue
 pnpm dev
 ```
 
@@ -120,14 +119,15 @@ HEROBYTE_DEFAULT_ROOM_ID="default"
 ### Port Already in Use
 
 ```bash
-./kill-ports.sh  # Stop prior HeroByte dev processes
+pnpm dev:doctor  # Show what owns the dev ports
+pnpm dev:free    # Safely stop stale HeroByte dev processes
 ```
 
 ### Start Fresh
 
-```bash
-rm apps/server/*.json  # Delete all state
-pnpm dev              # Restart server
+```powershell
+Remove-Item -Path apps/server/*.json -ErrorAction SilentlyContinue
+pnpm dev
 ```
 
 ## File Locations

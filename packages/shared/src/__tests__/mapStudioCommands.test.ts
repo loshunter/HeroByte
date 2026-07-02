@@ -6,6 +6,7 @@ import {
   type MapDocument,
   type MapDocumentCommand,
   type MapStampElement,
+  type MapTileElement,
 } from "../index.js";
 
 function document(): MapDocument {
@@ -35,6 +36,18 @@ function stamp(): MapStampElement {
     hidden: false,
     transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
     data: { assetId: "asset:barrel", width: 50, height: 50 },
+  };
+}
+
+function tile(id: string, x: number, y: number): MapTileElement {
+  return {
+    id,
+    layerId: "terrain",
+    type: "tile",
+    locked: false,
+    hidden: false,
+    transform: { x, y, scaleX: 1, scaleY: 1, rotation: 0 },
+    data: { assetId: "terrain:stone-floor", columns: 1, rows: 1 },
   };
 }
 
@@ -158,6 +171,13 @@ describe("applyMapDocumentCommand", () => {
         element: stamp(),
       }),
       (baseRevision) => ({
+        commandId: "add-elements",
+        documentId: "map-1",
+        baseRevision,
+        type: "add-elements",
+        elements: [tile("floor-a", 0, 0), tile("floor-b", 50, 0)],
+      }),
+      (baseRevision) => ({
         commandId: "update-element",
         documentId: "map-1",
         baseRevision,
@@ -189,9 +209,26 @@ describe("applyMapDocumentCommand", () => {
       ).document;
     });
 
-    expect(current.revision).toBe(7);
+    expect(current.revision).toBe(8);
     expect(current.grid).toMatchObject({ size: 64, snap: false });
     expect(current.layers.some((layer) => layer.id === "weather")).toBe(false);
-    expect(current.elements).toEqual([]);
+    expect(current.elements.map((element) => element.id)).toEqual(["floor-a", "floor-b"]);
+  });
+
+  it("adds multiple elements in one revision", () => {
+    const result = applyMapDocumentCommand(
+      document(),
+      {
+        commandId: "batch",
+        documentId: "map-1",
+        baseRevision: 0,
+        type: "add-elements",
+        elements: [tile("floor-a", 0, 0), tile("floor-b", 50, 0)],
+      },
+      20,
+    );
+
+    expect(result.revision).toBe(1);
+    expect(result.document.elements.map((element) => element.id)).toEqual(["floor-a", "floor-b"]);
   });
 });

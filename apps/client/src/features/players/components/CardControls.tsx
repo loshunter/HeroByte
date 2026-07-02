@@ -25,11 +25,14 @@ export const CardControls: React.FC<CardControlsProps> = ({
   }
 
   return (
-    <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
+    <div className="player-card-controls">
       {canControlMic && (
         <button
           className={micEnabled ? "btn btn-danger" : "btn btn-success"}
-          style={{ fontSize: "0.7rem", padding: "4px 8px" }}
+          style={{
+            fontSize: "var(--player-card-control-font-size, 0.7rem)",
+            padding: "var(--player-card-control-padding, 4px 8px)",
+          }}
           onClick={onToggleMic}
           title={micEnabled ? "Mute mic" : "Enable mic"}
         >
@@ -39,7 +42,10 @@ export const CardControls: React.FC<CardControlsProps> = ({
       {canOpenSettings && (
         <button
           className="btn btn-secondary"
-          style={{ fontSize: "0.7rem", padding: "4px 8px" }}
+          style={{
+            fontSize: "var(--player-card-control-font-size, 0.7rem)",
+            padding: "var(--player-card-control-padding, 4px 8px)",
+          }}
           onClick={onOpenSettings}
           title="Open player settings"
         >

@@ -15,6 +15,8 @@ import { TurnNavigationControls } from "../features/initiative/components/TurnNa
 import { MobileEntitiesList } from "../components/layout/MobileEntitiesList";
 import { MobileFloatingControls } from "../components/layout/MobileFloatingControls";
 import { useEntityEditHandlers } from "../hooks/useEntityEditHandlers";
+import { MapStudioWorkspace } from "../features/map-studio";
+import { MobileDrawingControls } from "./MobileDrawingControls";
 
 // Lazy load MapBoard to reduce initial bundle size
 const MapBoard = React.lazy(() => import("../ui/MapBoard"));
@@ -34,19 +36,25 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     isDM,
 
     // Tool state (simplified for mobile)
+    activeTool,
+    setActiveTool,
+    setSnapToGrid,
     drawMode,
-    pointerMode: _pointerMode,
+    pointerMode,
     measureMode,
     transformMode,
     selectMode,
     alignmentMode,
+    mapStudioMode,
 
     // Camera
     cameraCommand,
     handleCameraCommandHandled,
     setCameraState,
+    handleResetCamera,
 
     // Drawing
+    drawingToolbarProps,
     drawingProps,
 
     // Selection
@@ -54,6 +62,8 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     selectedObjectIds,
     handleObjectSelection,
     handleObjectSelectionBatch,
+    lockSelected,
+    unlockSelected,
 
     // Scene objects
     recolorToken,
@@ -77,6 +87,8 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
 
     // WebSocket
     sendMessage,
+    mapStudio,
+    toast,
 
     // Entity Data & Actions (Added for Mobile Entities List)
     playerActions,
@@ -97,6 +109,8 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
 
   // Mobile specific UI state
   const [showEntities, setShowEntities] = useState(false);
+
+  const selectedObjectCount = selectedObjectIds.length || (selectedObjectId ? 1 : 0);
 
   // Extract entity editing handlers
   const { handleCharacterHpSubmit, handleCharacterMaxHpSubmit } = useEntityEditHandlers({
@@ -120,10 +134,22 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     sendMessage({ t: "previous-turn" });
   }, [sendMessage]);
 
+  if (mapStudioMode && isDM && mapStudio) {
+    return (
+      <div className="mobile-layout-root">
+        <MapStudioWorkspace
+          controller={mapStudio}
+          onExit={() => setActiveTool(null)}
+          onPublishStatus={toast.success}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div style={{ height: "100vh", width: "100vw", overflow: "hidden", position: "relative" }}>
+    <div className="mobile-layout-root">
       {/* Full screen map */}
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}>
+      <div className="mobile-map-surface">
         <Suspense fallback={<MapLoading />}>
           <MapBoard
             snapshot={snapshot}
@@ -131,7 +157,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             uid={uid}
             gridSize={gridSize}
             snapToGrid={snapToGrid}
-            pointerMode={false} // Force false to enable "drag background to pan" behavior
+            pointerMode={pointerMode}
             measureMode={measureMode}
             drawMode={drawMode}
             transformMode={transformMode}
@@ -157,16 +183,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
 
       {/* Turn Controls */}
       {snapshot?.combatActive && (
-        <div
-          style={{
-            position: "absolute",
-            top: 20,
-            left: "50%",
-            transform: "translateX(-50%)",
-            pointerEvents: "auto",
-            zIndex: 100,
-          }}
-        >
+        <div className="mobile-combat-strip">
           <TurnNavigationControls
             combatActive={true}
             onNextTurn={handleNextTurn}
@@ -180,9 +197,64 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
         onShowEntities={() => setShowEntities(true)}
         onToggleDiceRoller={() => toggleDiceRoller(!diceRollerOpen)}
         onToggleRollLog={() => toggleRollLog(!rollLogOpen)}
+        onToolSelect={setActiveTool}
+        onSnapToGridChange={setSnapToGrid}
+        onResetCamera={handleResetCamera}
+        activeTool={activeTool}
+        snapToGrid={snapToGrid}
         diceRollerOpen={diceRollerOpen}
         rollLogOpen={rollLogOpen}
+        isDM={isDM}
       />
+
+      {selectedObjectCount > 0 && (transformMode || selectMode) && (
+        <div className="mobile-selection-sheet" role="region" aria-label="Selected object actions">
+          <strong>{selectedObjectCount} selected</strong>
+          <button
+            type="button"
+            className={transformMode ? "mobile-chip mobile-chip--active" : "mobile-chip"}
+            onClick={() => setActiveTool("transform")}
+          >
+            Transform
+          </button>
+          {isDM && (
+            <>
+              <button type="button" className="mobile-chip" onClick={lockSelected}>
+                Lock
+              </button>
+              <button type="button" className="mobile-chip" onClick={unlockSelected}>
+                Unlock
+              </button>
+            </>
+          )}
+          <button
+            type="button"
+            className="mobile-chip"
+            onClick={() => {
+              handleObjectSelection(null);
+              handleObjectSelectionBatch([]);
+            }}
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
+      {drawMode && (
+        <MobileDrawingControls
+          drawTool={drawingToolbarProps.drawTool}
+          drawColor={drawingToolbarProps.drawColor}
+          drawWidth={drawingToolbarProps.drawWidth}
+          canUndo={drawingToolbarProps.canUndo}
+          canRedo={drawingToolbarProps.canRedo}
+          onToolChange={drawingToolbarProps.onToolChange}
+          onColorChange={drawingToolbarProps.onColorChange}
+          onWidthChange={drawingToolbarProps.onWidthChange}
+          onUndo={drawingToolbarProps.onUndo}
+          onRedo={drawingToolbarProps.onRedo}
+          onClose={() => setActiveTool(null)}
+        />
+      )}
 
       {/* Mobile Dice Roller Overlay */}
       {diceRollerOpen && (
@@ -229,16 +301,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
 
       {/* Roll Log Overlay */}
       {rollLogOpen && (
-        <div
-          style={{
-            position: "absolute",
-            top: 20,
-            right: 20,
-            maxHeight: "50vh",
-            pointerEvents: "auto",
-            zIndex: 1600,
-          }}
-        >
+        <div className="mobile-roll-log-panel">
           <RollLog
             rolls={rollHistory}
             onClearLog={handleClearLog}

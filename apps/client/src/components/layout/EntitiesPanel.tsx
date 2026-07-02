@@ -309,23 +309,11 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
             )}
 
             {/* Horizontal Layout: DM on left, separator, then Players/NPCs */}
-            <div
-              style={{
-                display: "flex",
-                gap: "12px",
-                alignItems: "flex-start",
-              }}
-            >
+            <div className="entities-panel-main-row">
               {/* DM Section - Pinned to left with separator */}
               {dmEntities.length > 0 && (
                 <>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "12px",
-                      flexShrink: 0,
-                    }}
-                  >
+                  <div className="entities-panel-dm-group">
                     {dmEntities.map((entity) => {
                       const { player, character, token, isMe } = entity;
                       if (!player) return null;
@@ -342,17 +330,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                       };
 
                       return (
-                        <div
-                          key={entity.id}
-                          style={{
-                            position: "relative",
-                            width: "160px",
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            gap: "6px",
-                          }}
-                        >
+                        <div key={entity.id} className="player-card-shell">
                           <PlayerCard
                             player={displayPlayer}
                             isMe={isMe}
@@ -475,21 +453,12 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                   />
 
                   {/* Gap spacing (1 card width) */}
-                  <div style={{ width: "160px", flexShrink: 0 }} />
+                  <div className="entities-panel-dm-gap" />
                 </>
               )}
 
               {/* Players and NPCs Section */}
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "12px",
-                  justifyContent: "center",
-                  alignItems: "flex-start",
-                  flex: 1,
-                }}
-              >
+              <div className="entities-panel-card-grid">
                 {orderedEntities.map((entity) => {
                   if (entity.kind === "character") {
                     const { player, character, token, isMe, isCurrentTurn } = entity;
@@ -513,19 +482,9 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                     return (
                       <div
                         key={entity.id}
-                        style={{
-                          position: "relative",
-                          width: "160px",
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          gap: "6px",
-                          border: isCurrentTurn ? "2px solid var(--jrpg-gold)" : undefined,
-                          boxShadow: isCurrentTurn ? "0 0 20px rgba(255, 215, 0, 0.6)" : undefined,
-                          borderRadius: isCurrentTurn ? "8px" : undefined,
-                          padding: isCurrentTurn ? "8px" : undefined,
-                          transition: "all 0.3s ease",
-                        }}
+                        className={`player-card-shell${
+                          isCurrentTurn ? " player-card-shell--current-turn" : ""
+                        }`}
                       >
                         <PlayerCard
                           player={displayPlayer}
@@ -634,7 +593,9 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                   return (
                     <div
                       key={`npc-${entity.id}`}
-                      style={{ width: "160px", display: "flex", justifyContent: "center" }}
+                      className={`player-card-shell${
+                        entity.isCurrentTurn ? " player-card-shell--current-turn" : ""
+                      }`}
                     >
                       <NpcCard
                         character={entity.character}

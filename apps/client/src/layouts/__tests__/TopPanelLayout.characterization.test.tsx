@@ -156,6 +156,8 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
     transformMode: false,
     selectMode: false,
     alignmentMode: false,
+    mapStudioMode: false,
+    openMapStudio: vi.fn(),
 
     // UI State
     snapToGrid: true,
@@ -488,7 +490,15 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
     });
 
     it("should pass all valid activeTool values to Header", () => {
-      const toolModes: ToolMode[] = ["pointer", "measure", "draw", "transform", "select", "align"];
+      const toolModes: ToolMode[] = [
+        "pointer",
+        "measure",
+        "draw",
+        "transform",
+        "select",
+        "align",
+        "map-studio",
+      ];
 
       toolModes.forEach((tool) => {
         const props = createDefaultProps();

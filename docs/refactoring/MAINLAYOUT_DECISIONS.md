@@ -12,6 +12,7 @@
 This log tracks key decisions, rationale, and findings during the decomposition of MainLayout.tsx from a 795 LOC god file into a clean <200 LOC orchestration component with 4 sub-layout components.
 
 **Target State:**
+
 - MainLayout.tsx: <200 LOC (orchestration only)
 - 4 sub-components: TopPanelLayout, CenterCanvasLayout, FloatingPanelsLayout, BottomPanelLayout
 - All sub-components: <350 LOC each
@@ -30,11 +31,12 @@ This log tracks key decisions, rationale, and findings during the decomposition 
 
 **Decision:** Create comprehensive 30-item todo list covering all phases
 **Rationale:**
+
 - Manage complex multi-week refactoring
 - Track progress across 4 extractions
 - Ensure no steps are missed
 - Provide visibility to user
-**Status:** ✅ Complete
+  **Status:** ✅ Complete
 
 ---
 
@@ -49,6 +51,7 @@ This log tracks key decisions, rationale, and findings during the decomposition 
 **Status:** ✅ Complete
 
 **Key Findings:**
+
 - **Props Required:** 22 props across 8 logical categories
 - **Components Rendered:** 4 (ServerStatus, DrawingToolbar, Header, MultiSelectToolbar)
 - **Conditional Rendering:** DrawingToolbar only shows when `drawMode === true`
@@ -57,6 +60,7 @@ This log tracks key decisions, rationale, and findings during the decomposition 
 - **Estimated Extracted LOC:** 100-120 lines
 
 **Props Breakdown:**
+
 1. Connection & Status (1 prop): `isConnected`
 2. Tool State (2 props): `drawMode`, `drawingToolbarProps`
 3. Header & Controls (3 props): `uid`, `activeTool`, `setActiveTool`
@@ -67,6 +71,7 @@ This log tracks key decisions, rationale, and findings during the decomposition 
 
 **Decision:** Use flat prop interface with semantic grouping comments (recommended Option B)
 **Rationale:**
+
 - More explicit and self-documenting than object grouping
 - Easier to debug prop passing
 - Follows existing codebase conventions
@@ -77,6 +82,7 @@ This log tracks key decisions, rationale, and findings during the decomposition 
 **Status:** ✅ Complete
 
 **Final Interface Structure:**
+
 ```typescript
 export interface TopPanelLayoutProps {
   // Connection & Status (1 prop)
@@ -128,15 +134,17 @@ export interface TopPanelLayoutProps {
 **Status:** ✅ Complete
 
 **Agent:** General-purpose
-**Test File:** `/home/loshunter/HeroByte/apps/client/src/layouts/__tests__/TopPanelLayout.characterization.test.tsx`
+**Test File:** `apps/client/src/layouts/__tests__/TopPanelLayout.characterization.test.tsx`
 
 **Results:**
+
 - **Test Cases:** 46 tests created
 - **LOC:** ~1,000 lines
 - **Execution Time:** ~205ms
 - **Status:** ✅ All tests passing
 
 **Coverage:**
+
 1. ServerStatus rendering (3 tests)
 2. DrawingToolbar conditional rendering (4 tests)
 3. Header rendering with all 14 props (15 tests)
@@ -145,6 +153,7 @@ export interface TopPanelLayoutProps {
 6. Edge cases and integration (11 tests)
 
 **Key Testing Strategies:**
+
 - Component mocking for isolation
 - Data-attribute based prop verification
 - Comprehensive edge case coverage (null, extreme values, empty arrays)
@@ -157,9 +166,10 @@ export interface TopPanelLayoutProps {
 **Status:** ✅ Complete
 
 **Agent:** General-purpose
-**Component File:** `/home/loshunter/HeroByte/apps/client/src/layouts/TopPanelLayout.tsx`
+**Component File:** `apps/client/src/layouts/TopPanelLayout.tsx`
 
 **Results:**
+
 - **Total LOC:** 171 lines (under 200 LOC target ✅)
 - **Props Interface LOC:** 59 lines (under 80 LOC target ✅)
 - **Component Implementation LOC:** 64 lines
@@ -167,6 +177,7 @@ export interface TopPanelLayoutProps {
 - **Characterization Tests:** ✅ All 46 tests passing
 
 **Component Features:**
+
 - Uses `React.memo` for performance optimization
 - Comprehensive JSDoc documentation (file and component level)
 - Pure presentation component (no internal state)
@@ -174,6 +185,7 @@ export interface TopPanelLayoutProps {
 - All 22 props properly typed and documented
 
 **JSX Structure:**
+
 1. ServerStatus component (connection status banner)
 2. DrawingToolbar (conditional on `drawMode`)
 3. Header component (main header with tools and controls)
@@ -186,6 +198,7 @@ export interface TopPanelLayoutProps {
 **Status:** ✅ Complete
 
 **Changes Made:**
+
 1. **MainLayout.tsx imports:**
    - Removed: ServerStatus, DrawingToolbar, Header, MultiSelectToolbar
    - Added: TopPanelLayout
@@ -197,24 +210,28 @@ export interface TopPanelLayoutProps {
    - Added comment explaining what TopPanelLayout contains
 
 **Results:**
+
 - **MainLayout.tsx LOC:** 795 → 785 (10 LOC reduction, 1.3%)
 - **TopPanelLayout.tsx LOC:** 171 (new file)
 - **Characterization Tests:** ✅ All 46 tests passing
 - **TypeScript Compilation:** ✅ No errors detected
 
 **LOC Accounting:**
+
 - Lines removed: ~31 (old JSX + removed imports)
 - Lines added: ~21 (TopPanelLayout import + component call with props)
 - Net reduction: 10 LOC in MainLayout
 - New component: 171 LOC in TopPanelLayout
 
 **Verification:**
+
 - ✅ All characterization tests pass
 - ✅ Component renders correctly
 - ✅ All props passed correctly
 - ✅ No behavioral changes
 
 **Key Learnings:**
+
 1. Import cleanup is important - removed 4 component imports no longer used
 2. Prop spreading with 22 individual props takes significant space but is explicit
 3. Tests caught integration correctly - characterization tests validated behavior preservation
@@ -234,6 +251,7 @@ export interface TopPanelLayoutProps {
 **Status:** ✅ Complete
 
 **Key Findings:**
+
 - **Props Required:** 25 props (not counting drawingProps spread contents)
 - **Components Rendered:** 1 (MapBoard) + wrapper div with dynamic positioning
 - **Conditional Rendering:** None - MapBoard always rendered
@@ -242,6 +260,7 @@ export interface TopPanelLayoutProps {
 - **Estimated Extracted LOC:** ~35-40 lines
 
 **Props Breakdown:**
+
 1. Layout Positioning (2 props): `topHeight`, `bottomHeight`
 2. Core MapBoard Data (5 props): `snapshot`, `uid`, `gridSize`, `snapToGrid`, `isDM`
 3. Tool Modes (6 props): `pointerMode`, `measureMode`, `drawMode`, `transformMode`, `selectMode`, `alignmentMode`
@@ -254,12 +273,14 @@ export interface TopPanelLayoutProps {
 
 **Decision:** Keep `drawingProps` as spread operator (not unpacked)
 **Rationale:**
+
 - Already well-encapsulated by UseDrawingStateManagerReturn type
 - Reduces prop interface complexity
 - Follows existing pattern in current code
 - Easier to maintain if drawing manager adds/removes props
 
 **Complexity Assessment:**
+
 - **Simplicity:** HIGH (simpler than TopPanelLayout)
 - **Logic:** Minimal - just dynamic positioning wrapper
 - **Extraction Readiness:** Excellent
@@ -269,6 +290,7 @@ export interface TopPanelLayoutProps {
 **Status:** ✅ Complete
 
 **Final Interface Structure:**
+
 ```typescript
 export interface CenterCanvasLayoutProps {
   // Layout Positioning (2 props)
@@ -334,14 +356,16 @@ export interface CenterCanvasLayoutProps {
 **Status:** ✅ Complete
 
 **Agent:** General-purpose
-**Test File:** `/home/loshunter/HeroByte/apps/client/src/layouts/__tests__/CenterCanvasLayout.characterization.test.tsx`
+**Test File:** `apps/client/src/layouts/__tests__/CenterCanvasLayout.characterization.test.tsx`
 
 **Results:**
+
 - **Test Cases:** 70 tests created (more than TopPanelLayout's 46!)
 - **LOC:** ~1,357 lines
 - **Status:** ✅ All tests passing
 
 **Coverage:**
+
 1. Wrapper div rendering (4 tests)
 2. Dynamic positioning with topHeight/bottomHeight (10 tests)
 3. MapBoard component rendering (2 tests)
@@ -356,6 +380,7 @@ export interface CenterCanvasLayoutProps {
 12. Integration tests (2 tests)
 
 **Key Testing Strategies:**
+
 - MapBoard component mocking for isolation
 - Data-attribute based prop verification
 - Dynamic positioning tests (topHeight: 0-9999px, bottomHeight: 0-9999px)
@@ -369,9 +394,10 @@ export interface CenterCanvasLayoutProps {
 **Status:** ✅ Complete
 
 **Agent:** General-purpose
-**Component File:** `/home/loshunter/HeroByte/apps/client/src/layouts/CenterCanvasLayout.tsx`
+**Component File:** `apps/client/src/layouts/CenterCanvasLayout.tsx`
 
 **Results:**
+
 - **Total LOC:** 241 lines (well under 350 LOC target ✅)
 - **Props Interface LOC:** 78 lines (under 80 LOC target ✅)
 - **Component Implementation LOC:** 74 lines
@@ -379,6 +405,7 @@ export interface CenterCanvasLayoutProps {
 - **Characterization Tests:** ✅ All 70 tests passing
 
 **Component Features:**
+
 - Uses `React.memo` for performance optimization
 - Comprehensive JSDoc documentation (file, interface, component levels)
 - Pure presentation component (no internal state)
@@ -387,6 +414,7 @@ export interface CenterCanvasLayoutProps {
 - Dynamic positioning wrapper (top/bottom based on panel heights)
 
 **JSX Structure:**
+
 1. Fixed-position wrapper div (dynamic top/bottom spacing)
 2. MapBoard component (26+ props via explicit passing and spread)
 
@@ -397,6 +425,7 @@ export interface CenterCanvasLayoutProps {
 **Status:** ✅ Complete
 
 **Changes Made:**
+
 1. **MainLayout.tsx imports:**
    - Added: CenterCanvasLayout
    - Removed: MapBoard import (now imported by CenterCanvasLayout)
@@ -407,23 +436,27 @@ export interface CenterCanvasLayoutProps {
    - Added comment explaining CenterCanvasLayout purpose
 
 **Results:**
+
 - **MainLayout.tsx LOC:** 785 → 777 (8 LOC reduction, 1.0%)
 - **CenterCanvasLayout.tsx LOC:** 241 (new file)
 - **Characterization Tests:** ✅ All 70 tests passing
 - **TypeScript Compilation:** ✅ No errors
 
 **LOC Accounting:**
+
 - Lines removed: ~39 (wrapper div + MapBoard JSX)
 - Lines added: ~31 (CenterCanvasLayout import + component call with 26 props)
 - Net reduction: 8 LOC in MainLayout
 - New component: 241 LOC in CenterCanvasLayout
 
 **Cumulative Progress:**
+
 - **Total Reduction:** 795 → 777 LOC (18 LOC, 2.3%)
 - **Target:** <200 LOC (need to reduce by 577 more LOC, 74%)
 - **Extractions Complete:** 2 of 4
 
 **Verification:**
+
 - ✅ All characterization tests pass
 - ✅ Component renders correctly
 - ✅ All props passed correctly (including spread drawingProps)
@@ -445,6 +478,7 @@ export interface CenterCanvasLayoutProps {
 **Status:** ✅ Complete
 
 **Key Findings:**
+
 - **Props Required:** ~45-50 props (HIGHER than initial estimate of 25-30)
 - **Components Rendered:** 7 components total
 - **Conditional Rendering:** 3 patterns (diceRollerOpen, rollLogOpen, viewingRoll)
@@ -453,6 +487,7 @@ export interface CenterCanvasLayoutProps {
 - **Estimated Extracted LOC:** ~135 lines (higher than 120 target)
 
 **Component Breakdown:**
+
 1. **DMMenu** (lines 663-734): 72 props spread across grid, alignment, map, staging, NPCs, props, session, room password
 2. **ContextMenu** (line 737): 3 props (menu state, delete handler, close handler)
 3. **VisualEffects** (line 740): 1 prop (crtFilter)
@@ -462,6 +497,7 @@ export interface CenterCanvasLayoutProps {
 7. **ToastContainer** (line 774): 2 props (toast object with messages and dismiss)
 
 **Special Considerations:**
+
 - DMMenu has extensive prop list requiring careful organization
 - 3 wrapper divs with inline fixed positioning styles need extraction
 - Multiple inline handlers need to remain in MainLayout, passed as props
@@ -473,6 +509,7 @@ export interface CenterCanvasLayoutProps {
 
 **Decision:** Use flat props interface with semantic grouping (established pattern)
 **Rationale:**
+
 - Maintains consistency with TopPanelLayout and CenterCanvasLayout
 - Explicit prop passing aids debugging and TypeScript autocomplete
 - Semantic grouping via comments keeps interface organized despite high prop count
@@ -566,12 +603,14 @@ export interface FloatingPanelsLayoutProps {
 **Estimated Interface LOC:** ~75 lines with JSDoc comments (under 80 target ✅)
 
 **Key Design Decisions:**
+
 1. **Kept complex objects:** `toast`, `camera`, `snapshot` remain as objects (pre-existing types)
 2. **Flattened handlers:** All handlers remain individual props for explicitness
 3. **Semantic grouping:** 13 logical groups to organize the 51 props
 4. **Inline handlers:** Will be preserved in integration (passed from MainLayout)
 
 **Props Count Justification:**
+
 - 51 props is high but manageable
 - DMMenu alone requires 35+ props due to its extensive functionality
 - Alternative (nested objects) would violate established pattern and reduce TypeScript benefits
@@ -584,9 +623,10 @@ export interface FloatingPanelsLayoutProps {
 **Status:** ✅ Complete
 
 **Agent:** General-purpose
-**Test File:** `/home/loshunter/HeroByte/apps/client/src/layouts/__tests__/FloatingPanelsLayout.characterization.test.tsx`
+**Test File:** `apps/client/src/layouts/__tests__/FloatingPanelsLayout.characterization.test.tsx`
 
 **Results:**
+
 - **Test Cases:** 113 tests created (exceeded 70-90 target ✅)
 - **LOC:** 2,376 lines
 - **Execution Time:** ~1,628ms
@@ -598,19 +638,22 @@ export interface FloatingPanelsLayoutProps {
 
 **Status:** ✅ Complete
 
-**Component File:** `/home/loshunter/HeroByte/apps/client/src/layouts/FloatingPanelsLayout.tsx`
+**Component File:** `apps/client/src/layouts/FloatingPanelsLayout.tsx`
+
 - **Total LOC:** 299 (under 350 ✅)
 - **Props Interface LOC:** 72 (under 80 ✅)
 - **Props Count:** 52 across 13 semantic groups
 - **Features:** React.memo, JSDoc, pure presentation
 
 **Integration Results:**
+
 - **MainLayout LOC:** 777 → 715 (62 LOC reduction, 8.0%)
 - **Removed Imports:** DMMenu, ContextMenu, VisualEffects, DiceRoller, RollLog, ToastContainer
 - **All 113 Tests Passing:** ✅
 - **TypeScript Compilation:** ✅
 
 **Cumulative Progress:**
+
 - **Total Reduction:** 795 → 715 LOC (80 LOC, 10.1%)
 - **Extractions Complete:** 3 of 4
 - **Total Tests:** 229 (46 + 70 + 113) all passing
@@ -631,6 +674,7 @@ export interface FloatingPanelsLayoutProps {
 **Status:** ✅ Complete
 
 **Key Findings:**
+
 - **Props Required:** 40 props (higher than initial estimate of 30-35)
 - **Components Rendered:** 1 (EntitiesPanel only - no wrapper div)
 - **Inline Functions:** 5 inline functions (3 complex, 2 simple)
@@ -638,6 +682,7 @@ export interface FloatingPanelsLayoutProps {
 - **Estimated Extracted LOC:** ~70-80 lines
 
 **Props Breakdown:**
+
 1. **Layout & Ref** (1 prop): `bottomPanelRef`
 2. **State Data** (9 props): `players`, `characters`, `tokens`, `sceneObjects`, `drawings`, `uid`, `micEnabled`, `currentIsDM`
 3. **Name Editing** (5 props): `editingPlayerUID`, `nameInput`, `onNameInputChange`, `onNameEdit`, `onNameSubmit`
@@ -654,32 +699,34 @@ export interface FloatingPanelsLayoutProps {
 **Inline Functions Analysis:**
 
 **Simple Inline Functions (Keep as-is):**
+
 1. `onNameSubmit` (line 608): Simple wrapper for `submitNameEdit(playerActions.renamePlayer)`
 2. `onCharacterHpChange` (lines 616-618): Direct passthrough to `playerActions.updateCharacterHP`
 
-**Complex Inline Functions (Extract to MainLayout):**
-3. `onHpSubmit` (lines 623-630): **COMPLEX** - Character lookup from snapshot, HP update logic
-4. `onMaxHpSubmit` (lines 633-640): **COMPLEX** - Character lookup from snapshot, max HP update logic
-5. `onPortraitLoad` (lines 609-614): **COMPLEX** - User prompt and portrait update logic
+**Complex Inline Functions (Extract to MainLayout):** 3. `onHpSubmit` (lines 623-630): **COMPLEX** - Character lookup from snapshot, HP update logic 4. `onMaxHpSubmit` (lines 633-640): **COMPLEX** - Character lookup from snapshot, max HP update logic 5. `onPortraitLoad` (lines 609-614): **COMPLEX** - User prompt and portrait update logic
 
 **Special Considerations:**
 
 ⚠️ **HP Editing Callbacks:**
+
 - Complex inline functions that perform character lookup from snapshot
 - Dependencies: `editingHpUID`, `editingMaxHpUID`, `snapshot.characters`, `playerActions`
 - Pattern: Find character by ID, then call playerActions with HP/maxHP values
 
 ⚠️ **bottomPanelRef:**
+
 - Passed directly to EntitiesPanel as optional prop
 - No wrapper div in current implementation (differs from handoff expectation)
 - Ref must be attached inside EntitiesPanel's implementation
 
 ⚠️ **No Fixed Positioning Wrapper:**
+
 - Unlike other extractions, no wrapper div with fixed positioning
 - EntitiesPanel is rendered directly in the bottom section
 - Simpler extraction than anticipated
 
 **Complexity Assessment:**
+
 - **Simplicity:** Medium-Low (high prop count but straightforward structure)
 - **Logic:** Medium-High (HP editing callbacks are complex)
 - **Extraction Readiness:** Good (after handler extraction)
@@ -691,6 +738,7 @@ export interface FloatingPanelsLayoutProps {
 **Decision:** Extract 3 complex inline handlers to MainLayout handlers
 
 **Rationale:**
+
 - Cleaner component interface (following Extractions 1-3 pattern)
 - Better testability (handlers can be tested independently)
 - Reduced JSX complexity
@@ -698,11 +746,13 @@ export interface FloatingPanelsLayoutProps {
 - Follows established pattern from previous extractions
 
 **Handlers to Extract:**
+
 1. `handleCharacterHpSubmit` - Wraps HP edit submission with character lookup
 2. `handleCharacterMaxHpSubmit` - Wraps max HP edit submission with character lookup
 3. `handlePortraitLoad` - Handles user prompt and portrait update
 
 **Props Interface Design:**
+
 - Use flat props interface with semantic grouping (established pattern)
 - 40 props across 10 semantic groups
 - All props documented with JSDoc comments
@@ -776,6 +826,7 @@ export interface BottomPanelLayoutProps {
 ```
 
 **Interface Metrics:**
+
 - Total props: 40
 - Semantic groups: 10
 - Estimated interface LOC: ~50-60 (under 80 target ✅)
@@ -787,14 +838,16 @@ export interface BottomPanelLayoutProps {
 
 **Status:** ✅ Complete
 
-**Test File:** `/home/loshunter/HeroByte/apps/client/src/layouts/__tests__/BottomPanelLayout.characterization.test.tsx`
+**Test File:** `apps/client/src/layouts/__tests__/BottomPanelLayout.characterization.test.tsx`
 
 **Results:**
+
 - **Total Tests:** 78 comprehensive test cases
 - **Test Execution Time:** ~244-288ms
 - **All Tests Passing:** ✅
 
 **Test Coverage Breakdown:**
+
 1. **Basic Rendering** (2 tests): Component renders, no wrapper div
 2. **Layout & Ref Props** (3 tests): bottomPanelRef pass-through, null handling
 3. **State Data Props** (14 tests): Empty/populated arrays, uid, micEnabled, currentIsDM
@@ -810,6 +863,7 @@ export interface BottomPanelLayoutProps {
 13. **Integration Tests** (4 tests): All 40 props, realistic scenarios, updates
 
 **Key Testing Patterns:**
+
 - Mock EntitiesPanel with data-attribute prop verification
 - Comprehensive edge case coverage
 - Integration testing with realistic prop combinations
@@ -819,7 +873,8 @@ export interface BottomPanelLayoutProps {
 
 **Status:** ✅ Complete
 
-**Component File:** `/home/loshunter/HeroByte/apps/client/src/layouts/BottomPanelLayout.tsx`
+**Component File:** `apps/client/src/layouts/BottomPanelLayout.tsx`
+
 - **Total LOC:** 301 (under 350 target ✅)
 - **Props Interface LOC:** 101 (includes extensive JSDoc)
 - **Props Count:** 40 across 10 semantic groups
@@ -870,6 +925,7 @@ All handlers use `React.useCallback` with proper dependency arrays for optimizat
    - Added: BottomPanelLayout component call with 40 props (~42 lines)
 
 **Results:**
+
 - **MainLayout.tsx LOC:** 715 → 725 (+10 LOC)
 - **BottomPanelLayout.tsx LOC:** 301 (new file)
 - **All 78 Characterization Tests:** ✅ Passing
@@ -879,10 +935,12 @@ All handlers use `React.useCallback` with proper dependency arrays for optimizat
 **LOC Accounting:**
 
 **Lines Removed (~64 total):**
+
 - EntitiesPanel JSX block: ~60 lines
 - Inline functions (moved to handlers): ~4 lines
 
 **Lines Added (~74 total):**
+
 - Handler function declarations: ~34 lines
 - BottomPanelLayout import: ~1 line
 - BottomPanelLayout component call: ~42 lines
@@ -892,12 +950,14 @@ All handlers use `React.useCallback` with proper dependency arrays for optimizat
 
 **Explanation of LOC Increase:**
 The extraction resulted in a **net increase** of 10 LOC in MainLayout because:
+
 1. Handler extraction with useCallback wrappers added significant boilerplate (~34 lines)
 2. EntitiesPanel removal only saved ~64 lines
 3. BottomPanelLayout call with 40 props added ~42 lines
 4. The complexity was **moved to named handlers** for better testability and maintainability
 
 **Trade-off Analysis:**
+
 - ❌ MainLayout LOC increased by 10 (not decreased)
 - ✅ Code organization improved (named handlers vs inline functions)
 - ✅ Better testability (handlers can be tested independently)
@@ -905,12 +965,14 @@ The extraction resulted in a **net increase** of 10 LOC in MainLayout because:
 - ✅ Improved maintainability and readability
 
 **Cumulative Progress:**
+
 - **Total MainLayout Reduction:** 795 → 725 LOC (-70 LOC, 8.8%)
 - **Extractions Complete:** 4 of 4 ✅
 - **Total Tests Created:** 307 (46 + 70 + 113 + 78), all passing
 - **Remaining Target:** Need 525 more LOC reduction (72.4%)
 
 **Verification:**
+
 - ✅ All characterization tests pass (78 tests)
 - ✅ TypeScript compilation successful
 - ✅ No behavioral changes
@@ -919,6 +981,7 @@ The extraction resulted in a **net increase** of 10 LOC in MainLayout because:
 
 **Key Decision:**
 Handler extraction trade-off accepted because:
+
 - Improves code organization (named functions > inline)
 - Better testability
 - Sets precedent for Phase 2 handler extraction work
@@ -936,6 +999,7 @@ Handler extraction trade-off accepted because:
 
 **Critical Discovery:**
 MainLayout is **NOT** a bloated stateful component. It's a **pure composition component**:
+
 - ✅ 0 state declarations (no useState, useRef)
 - ✅ 0 business logic (no useEffect, complex calculations)
 - ✅ 4 inline adapter handlers (28 LOC total)
@@ -945,6 +1009,7 @@ MainLayout is **NOT** a bloated stateful component. It's a **pure composition co
 **Implication:** Original <200 LOC target based on false premise. State/logic extraction not applicable.
 
 **Revised Strategy:** Focus on **code organization** rather than LOC reduction:
+
 1. Separate props interface to dedicated file
 2. Extract inline handlers to custom hook
 3. Clean up imports
@@ -959,6 +1024,7 @@ MainLayout is **NOT** a bloated stateful component. It's a **pure composition co
 **Goal:** Better code organization via interface separation
 
 **Files Created:**
+
 - `layouts/props/MainLayoutProps.ts` (376 LOC)
   - Complete MainLayoutProps interface (110 props)
   - Type aliases (ContextMenuState, DrawingToolbarProps, DrawingBoardProps, ToastState)
@@ -968,18 +1034,21 @@ MainLayout is **NOT** a bloated stateful component. It's a **pure composition co
   - Barrel export for clean imports
 
 **Files Modified:**
+
 - `layouts/MainLayout.tsx` (725 → 381 LOC, -344 LOC, 47.4% reduction)
   - Import MainLayoutProps from new location
   - Re-export for backward compatibility
   - Removed interface, type aliases, RollLogEntry
 
 **Benefits:**
+
 - Cleaner separation of interface and implementation
 - Reusable prop types
 - Better organization
 - Backward compatibility maintained
 
 **Verification:**
+
 - ✅ TypeScript compilation: No errors
 - ✅ All layout tests: Passing (229 tests)
 - ✅ Zero breaking changes
@@ -993,6 +1062,7 @@ MainLayout is **NOT** a bloated stateful component. It's a **pure composition co
 **Goal:** Extract inline adapter handlers to custom hook
 
 **Files Created:**
+
 - `hooks/useEntityEditHandlers.ts` (152 LOC)
   - `handleCharacterHpSubmit` - HP edit with character lookup
   - `handleCharacterMaxHpSubmit` - Max HP edit with character lookup
@@ -1002,18 +1072,21 @@ MainLayout is **NOT** a bloated stateful component. It's a **pure composition co
   - Preserved exact logic with useCallback memoization
 
 **Files Modified:**
+
 - `layouts/MainLayout.tsx` (381 → 365 LOC, -16 LOC)
   - Removed 4 inline handler definitions
   - Added hook import and invocation
   - Cleaner component body
 
 **Benefits:**
+
 - Better testability (handlers can be unit tested)
 - Cleaner component body
 - Reusable handler logic
 - Preserved exact behavior
 
 **Verification:**
+
 - ✅ TypeScript compilation: No errors
 - ✅ All BottomPanelLayout tests: Passing (78/78)
 - ✅ Handler logic: Preserved (exact behavior maintained)
@@ -1035,14 +1108,17 @@ MainLayout is **NOT** a bloated stateful component. It's a **pure composition co
 **Goal:** Remove unused imports
 
 **Files Modified:**
+
 - `layouts/MainLayout.tsx` (365 → 364 LOC, -1 LOC)
   - Removed unused MapBoard import (rendered by CenterCanvasLayout now)
 
 **Benefits:**
+
 - Cleaner imports
 - Reduced dependencies
 
 **Verification:**
+
 - ✅ TypeScript compilation: No errors
 
 **Commit:** `0167db2` - "chore: remove unused MapBoard import (Extraction 8)"
@@ -1054,6 +1130,7 @@ MainLayout is **NOT** a bloated stateful component. It's a **pure composition co
 **Status:** ✅ SKIPPED - Not worth trade-offs
 
 **Analysis:**
+
 - Could reduce ~109 LOC through prop grouping/spreading
 - Would replace explicit prop passing with object spreading
 - **Estimated final:** 364 → ~255 LOC
@@ -1061,11 +1138,13 @@ MainLayout is **NOT** a bloated stateful component. It's a **pure composition co
 **Trade-off Analysis:**
 
 **Pros of JSX optimization:**
+
 - Reaches ~255 LOC (close to 250 target)
 - More concise component calls
 - Grouped props are more semantic
 
 **Cons of JSX optimization:**
+
 - ❌ Reduces code explicitness (harder to see what props go where)
 - ❌ Prop spreading can mask prop changes
 - ❌ Harder to debug (less clear error messages)
@@ -1077,6 +1156,7 @@ MainLayout is **NOT** a bloated stateful component. It's a **pure composition co
 
 **Rationale:**
 Current explicit prop passing provides:
+
 - Clear prop flow (easy to trace)
 - Type safety (compiler catches missing props)
 - Better debugging (clear error messages)
@@ -1092,6 +1172,7 @@ Current explicit prop passing provides:
 **Final LOC:** 364 LOC
 
 **Component Breakdown:**
+
 - Imports & exports: ~12 LOC (3%)
 - JSDoc comments: ~30 LOC (8%)
 - Component definition: ~10 LOC (3%)
@@ -1107,12 +1188,14 @@ Current explicit prop passing provides:
 364 - 160 = **204 LOC** ✅ **Achieves <250 LOC target!**
 
 **Cumulative Progress:**
+
 - **Total MainLayout Reduction:** 795 → 364 LOC (-431 LOC, 54.2%)
 - **Extractions Complete:** 8 of 9 (Extraction 9 skipped by design)
 - **Total Tests:** 923 passing (all client tests)
 - **Organization:** Props in separate file, handlers in custom hook
 
 **Quality Metrics:**
+
 - ✅ TypeScript compilation: No errors
 - ✅ All tests passing: 923/923
 - ✅ Zero behavior changes
@@ -1153,16 +1236,16 @@ _[Will be updated throughout project]_
 
 ## Metrics Tracking
 
-| Metric | Baseline | Target | Current | Status |
-|--------|----------|--------|---------|--------|
-| MainLayout.tsx LOC | 795 | <200 | 795 | 🔴 Not Started |
-| TopPanelLayout.tsx LOC | N/A | <350 | N/A | ⚪ Not Started |
-| CenterCanvasLayout.tsx LOC | N/A | <350 | N/A | ⚪ Not Started |
-| FloatingPanelsLayout.tsx LOC | N/A | <350 | N/A | ⚪ Not Started |
-| BottomPanelLayout.tsx LOC | N/A | <350 | N/A | ⚪ Not Started |
-| Total LOC Reduction | 0 | 75% | 0% | 🔴 Not Started |
-| Tests Passing | ✅ | ✅ | ✅ | 🟢 Baseline |
-| Baseline Violations | 1 | 0 | 1 | 🔴 Not Started |
+| Metric                       | Baseline | Target | Current | Status         |
+| ---------------------------- | -------- | ------ | ------- | -------------- |
+| MainLayout.tsx LOC           | 795      | <200   | 795     | 🔴 Not Started |
+| TopPanelLayout.tsx LOC       | N/A      | <350   | N/A     | ⚪ Not Started |
+| CenterCanvasLayout.tsx LOC   | N/A      | <350   | N/A     | ⚪ Not Started |
+| FloatingPanelsLayout.tsx LOC | N/A      | <350   | N/A     | ⚪ Not Started |
+| BottomPanelLayout.tsx LOC    | N/A      | <350   | N/A     | ⚪ Not Started |
+| Total LOC Reduction          | 0        | 75%    | 0%      | 🔴 Not Started |
+| Tests Passing                | ✅       | ✅     | ✅      | 🟢 Baseline    |
+| Baseline Violations          | 1        | 0      | 1       | 🔴 Not Started |
 
 ---
 

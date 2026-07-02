@@ -249,6 +249,8 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
     transformMode: false,
     selectMode: false,
     alignmentMode: false,
+    mapStudioMode: false,
+    openMapStudio: vi.fn(),
 
     // UI State
     snapToGrid: true,

@@ -1,14 +1,11 @@
 import { useEffect, useState } from "react";
 import { JRPGButton, JRPGPanel } from "../../../../components/ui/JRPGPanel";
 import { createMapDocumentSvgDataUrl, type MapStudioController } from "../../../map-studio";
-import { MapGridEditor } from "./MapGridEditor";
 import { MapStudioExportControls } from "./MapStudioExportControls";
-import { MapShapeEditor } from "./MapShapeEditor";
-import { MapStudioCanvas } from "./MapStudioCanvas";
-import { MapStructureEditor } from "./MapStructureEditor";
 
 export interface MapStudioControlProps {
   controller: MapStudioController;
+  onOpenStudio?: () => void;
   onPublishToLiveMap?: (publish: {
     backgroundUrl: string;
     gridSize: number;
@@ -17,7 +14,11 @@ export interface MapStudioControlProps {
   }) => void;
 }
 
-export function MapStudioControl({ controller, onPublishToLiveMap }: MapStudioControlProps) {
+export function MapStudioControl({
+  controller,
+  onOpenStudio,
+  onPublishToLiveMap,
+}: MapStudioControlProps) {
   const {
     documents,
     activeDocument,
@@ -30,14 +31,6 @@ export function MapStudioControl({ controller, onPublishToLiveMap }: MapStudioCo
     createDocument,
     openDocument,
     deleteDocument,
-    updateLayer,
-    moveLayer,
-    updateGrid,
-    addShape,
-    addWall,
-    addDoor,
-    removeElement,
-    updateElement,
     undo,
     redo,
   } = controller;
@@ -54,15 +47,24 @@ export function MapStudioControl({ controller, onPublishToLiveMap }: MapStudioCo
   useEffect(() => {
     if (activeDocument) {
       setSelectedId(activeDocument.id);
-    } else if (!selectedId && documents[0]) {
+      return;
+    }
+    if (!selectedId && documents[0]) {
       setSelectedId(documents[0].id);
     }
   }, [activeDocument, documents, selectedId]);
 
   const handleCreate = () => {
-    if (!name.trim()) return;
+    if (!name.trim() || loading || saving) return;
     const id = createDocument(name.trim(), width, height);
     setSelectedId(id);
+    onOpenStudio?.();
+  };
+
+  const handleOpen = () => {
+    if (!selectedId || loading || saving) return;
+    openDocument(selectedId);
+    onOpenStudio?.();
   };
 
   const handleDelete = () => {
@@ -88,11 +90,6 @@ export function MapStudioControl({ controller, onPublishToLiveMap }: MapStudioCo
   return (
     <JRPGPanel variant="simple" title="HeroByte Map Studio">
       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        <p className="jrpg-text-small" style={{ margin: 0, opacity: 0.85 }}>
-          Versioned battlemap documents stay separate until you publish them to the live token
-          scene.
-        </p>
-
         <label className="jrpg-text-small" htmlFor="map-studio-name">
           New map name
         </label>
@@ -106,7 +103,11 @@ export function MapStudioControl({ controller, onPublishToLiveMap }: MapStudioCo
           <DimensionInput label="Width" value={width} onChange={setWidth} />
           <DimensionInput label="Height" value={height} onChange={setHeight} />
         </div>
-        <JRPGButton variant="primary" disabled={loading || !name.trim()} onClick={handleCreate}>
+        <JRPGButton
+          variant="primary"
+          disabled={loading || saving || !name.trim()}
+          onClick={handleCreate}
+        >
           {loading ? "WORKING..." : "CREATE EDITABLE MAP"}
         </JRPGButton>
 
@@ -131,9 +132,9 @@ export function MapStudioControl({ controller, onPublishToLiveMap }: MapStudioCo
             <JRPGButton
               style={{ flex: 1, fontSize: "10px" }}
               disabled={!selectedId || loading || saving}
-              onClick={() => openDocument(selectedId)}
+              onClick={handleOpen}
             >
-              OPEN
+              OPEN ON CANVAS
             </JRPGButton>
             <JRPGButton
               variant="danger"
@@ -183,6 +184,16 @@ export function MapStudioControl({ controller, onPublishToLiveMap }: MapStudioCo
               <JRPGButton
                 variant="primary"
                 style={{ flex: 1, fontSize: "10px" }}
+                disabled={saving || !onOpenStudio}
+                onClick={onOpenStudio}
+              >
+                EDIT ON MAIN CANVAS
+              </JRPGButton>
+            </div>
+            <div style={{ display: "flex", gap: "6px", marginBottom: "6px" }}>
+              <JRPGButton
+                variant="primary"
+                style={{ flex: 1, fontSize: "10px" }}
                 disabled={saving || !onPublishToLiveMap}
                 onClick={handlePublish}
               >
@@ -195,88 +206,6 @@ export function MapStudioControl({ controller, onPublishToLiveMap }: MapStudioCo
               </p>
             )}
             <MapStudioExportControls document={activeDocument} disabled={saving} />
-            <MapStudioCanvas
-              document={activeDocument}
-              disabled={saving}
-              onRemoveElement={removeElement}
-              onUpdateElement={updateElement}
-            />
-            <div style={{ marginTop: "8px" }}>
-              <MapGridEditor grid={activeDocument.grid} disabled={saving} onUpdate={updateGrid} />
-            </div>
-            <div style={{ marginTop: "8px" }}>
-              <MapShapeEditor document={activeDocument} disabled={saving} onAddShape={addShape} />
-            </div>
-            <div style={{ marginTop: "8px" }}>
-              <MapStructureEditor
-                document={activeDocument}
-                disabled={saving}
-                onAddWall={addWall}
-                onAddDoor={addDoor}
-              />
-            </div>
-            <div className="jrpg-text-small" style={{ margin: "8px 0 4px" }}>
-              Layers
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
-              {activeDocument.layers.map((layer, index) => (
-                <div
-                  key={layer.id}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "24px 24px 1fr 58px 24px 24px",
-                    gap: "4px",
-                    alignItems: "center",
-                    padding: "4px",
-                    border: "1px solid rgba(255,255,255,0.15)",
-                  }}
-                >
-                  <input
-                    aria-label={`Show ${layer.name}`}
-                    type="checkbox"
-                    checked={layer.visible}
-                    disabled={saving}
-                    onChange={(event) => updateLayer(layer.id, { visible: event.target.checked })}
-                  />
-                  <input
-                    aria-label={`Lock ${layer.name}`}
-                    type="checkbox"
-                    checked={layer.locked}
-                    disabled={saving}
-                    onChange={(event) => updateLayer(layer.id, { locked: event.target.checked })}
-                  />
-                  <span className="jrpg-text-small" title={layer.kind}>
-                    {layer.name}
-                  </span>
-                  <input
-                    aria-label={`${layer.name} opacity`}
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    value={layer.opacity}
-                    disabled={saving}
-                    onChange={(event) =>
-                      updateLayer(layer.id, { opacity: Number(event.target.value) })
-                    }
-                  />
-                  <button
-                    aria-label={`Move ${layer.name} up`}
-                    disabled={saving || index === activeDocument.layers.length - 1}
-                    onClick={() => moveLayer(layer.id, index + 1)}
-                  >
-                    ↑
-                  </button>
-                  <button
-                    aria-label={`Move ${layer.name} down`}
-                    disabled={saving || index === 0}
-                    onClick={() => moveLayer(layer.id, index - 1)}
-                  >
-                    ↓
-                  </button>
-                </div>
-              ))}
-            </div>
           </div>
         )}
       </div>

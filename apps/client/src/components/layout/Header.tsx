@@ -6,8 +6,17 @@
 
 import React from "react";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
+import { JuiceMenuButton } from "../../features/juice/JuiceMenuButton";
 
-export type ToolMode = "pointer" | "measure" | "draw" | "transform" | "select" | "align" | null;
+export type ToolMode =
+  | "pointer"
+  | "measure"
+  | "draw"
+  | "transform"
+  | "select"
+  | "align"
+  | "map-studio"
+  | null;
 
 interface HeaderProps {
   uid: string;
@@ -16,6 +25,7 @@ interface HeaderProps {
   crtFilter: boolean;
   diceRollerOpen: boolean;
   rollLogOpen: boolean;
+  isDM?: boolean;
   onSnapToGridChange: (snap: boolean) => void;
   onToolSelect: (mode: ToolMode) => void;
   onCrtFilterChange: (enabled: boolean) => void;
@@ -35,6 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
   crtFilter,
   diceRollerOpen,
   rollLogOpen,
+  isDM = false,
   onSnapToGridChange,
   onToolSelect,
   onCrtFilterChange,
@@ -48,6 +59,7 @@ export const Header: React.FC<HeaderProps> = ({
   const drawMode = activeTool === "draw";
   const transformMode = activeTool === "transform";
   const selectMode = activeTool === "select";
+  const mapStudioMode = activeTool === "map-studio";
 
   return (
     <div
@@ -170,6 +182,17 @@ export const Header: React.FC<HeaderProps> = ({
                 🖱️ Select
               </JRPGButton>
 
+              {isDM && (
+                <JRPGButton
+                  onClick={() => onToolSelect(mapStudioMode ? null : "map-studio")}
+                  variant={mapStudioMode ? "primary" : "default"}
+                  style={{ fontSize: "8px", padding: "4px 10px" }}
+                  title="Open full-canvas map authoring"
+                >
+                  Map Studio
+                </JRPGButton>
+              )}
+
               {/* CRT Filter */}
               <JRPGButton
                 onClick={() => onCrtFilterChange(!crtFilter)}
@@ -179,6 +202,9 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 📺 CRT
               </JRPGButton>
+
+              {/* Game-feel (motion + sound) settings */}
+              <JuiceMenuButton />
 
               {/* Dice Roller */}
               <JRPGButton

@@ -63,6 +63,11 @@ export interface UseToolModeReturn {
    * True if alignment tool is active
    */
   alignmentMode: boolean;
+
+  /**
+   * True if full-canvas map authoring is active
+   */
+  mapStudioMode: boolean;
 }
 
 /**
@@ -112,6 +117,7 @@ export function useToolMode(): UseToolModeReturn {
   const transformMode = activeTool === "transform";
   const selectMode = activeTool === "select";
   const alignmentMode = activeTool === "align";
+  const mapStudioMode = activeTool === "map-studio";
 
   // Handle Escape key to clear active tool
   useEffect(() => {
@@ -138,5 +144,6 @@ export function useToolMode(): UseToolModeReturn {
     transformMode,
     selectMode,
     alignmentMode,
+    mapStudioMode,
   };
 }

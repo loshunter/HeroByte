@@ -290,6 +290,15 @@ describe("NpcCard", () => {
       expect(playerCard).toBeInTheDocument();
     });
 
+    it("renders a resize-ready top bar", () => {
+      const props = createDefaultProps();
+      const { container } = render(<NpcCard {...props} />);
+
+      const topbar = container.querySelector(".player-card-topbar");
+      expect(topbar).toBeInTheDocument();
+      expect(topbar).toHaveAttribute("data-card-resize-anchor", "top");
+    });
+
     it("displays character name using sanitizeText", () => {
       const props = createDefaultProps({
         character: createMockCharacter({ name: "Orc Warrior" }),

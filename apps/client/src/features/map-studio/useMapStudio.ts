@@ -3,21 +3,12 @@ import type {
   ClientMessage,
   MapDocument,
   MapDocumentSummary,
-  MapElementUpdate,
-  MapGridUpdate,
-  MapLayerUpdate,
   MapStudioCommand,
 } from "@herobyte/shared";
 import { generateUUID } from "../../utils/uuid";
 import { upsertMapDocumentSummary } from "./documentSummaries";
-import { createDoorElement, createShapeElement, createWallElement } from "./elementBuilders";
-import type {
-  MapDoorDraft,
-  MapShapeDraft,
-  MapStudioController,
-  MapStudioServerMessage,
-  MapWallDraft,
-} from "./types";
+import type { MapStudioController, MapStudioServerMessage } from "./types";
+import { useMapStudioActions } from "./useMapStudioActions";
 
 type CommandBuilder = (document: MapDocument, commandId: string) => MapStudioCommand;
 interface QueuedCommand {
@@ -73,6 +64,16 @@ export function useMapStudio(sendMessage: (message: ClientMessage) => void): Map
     [sendMessage],
   );
 
+  const publishDocument = useCallback(
+    (background: string) => {
+      const document = activeDocumentRef.current;
+      if (!document) return false;
+      sendMessage({ t: "map-studio-publish", documentId: document.id, background });
+      return true;
+    },
+    [sendMessage],
+  );
+
   const dispatchNextCommand = useCallback(
     (document: MapDocument | null = activeDocumentRef.current) => {
       if (inFlightCommandId.current) return;
@@ -110,142 +111,20 @@ export function useMapStudio(sendMessage: (message: ClientMessage) => void): Map
     [dispatchNextCommand],
   );
 
-  const updateLayer = useCallback(
-    (layerId: string, update: MapLayerUpdate) => {
-      applyCommand((document, commandId) => ({
-        commandId,
-        documentId: document.id,
-        baseRevision: document.revision,
-        type: "update-layer",
-        layerId,
-        update,
-      }));
-    },
-    [applyCommand],
-  );
-
-  const moveLayer = useCallback(
-    (layerId: string, targetIndex: number) => {
-      applyCommand((document, commandId) => ({
-        commandId,
-        documentId: document.id,
-        baseRevision: document.revision,
-        type: "move-layer",
-        layerId,
-        targetIndex,
-      }));
-    },
-    [applyCommand],
-  );
-
-  const updateGrid = useCallback(
-    (update: MapGridUpdate) => {
-      applyCommand((document, commandId) => ({
-        commandId,
-        documentId: document.id,
-        baseRevision: document.revision,
-        type: "update-grid",
-        update,
-      }));
-    },
-    [applyCommand],
-  );
-
-  const addShape = useCallback(
-    (draft: MapShapeDraft) => {
-      if (!activeDocumentRef.current) return null;
-      const id = generateUUID();
-      const element = createShapeElement(id, draft);
-      applyCommand((document, commandId) => ({
-        commandId,
-        documentId: document.id,
-        baseRevision: document.revision,
-        type: "add-element",
-        element,
-      }));
-      return id;
-    },
-    [applyCommand],
-  );
-
-  const addWall = useCallback(
-    (draft: MapWallDraft) => {
-      if (!activeDocumentRef.current) return null;
-      const id = generateUUID();
-      const element = createWallElement(id, draft);
-      applyCommand((document, commandId) => ({
-        commandId,
-        documentId: document.id,
-        baseRevision: document.revision,
-        type: "add-element",
-        element,
-      }));
-      return id;
-    },
-    [applyCommand],
-  );
-
-  const addDoor = useCallback(
-    (draft: MapDoorDraft) => {
-      if (!activeDocumentRef.current) return null;
-      const id = generateUUID();
-      const element = createDoorElement(id, draft);
-      applyCommand((document, commandId) => ({
-        commandId,
-        documentId: document.id,
-        baseRevision: document.revision,
-        type: "add-element",
-        element,
-      }));
-      return id;
-    },
-    [applyCommand],
-  );
-
-  const removeElement = useCallback(
-    (elementId: string) => {
-      applyCommand((document, commandId) => ({
-        commandId,
-        documentId: document.id,
-        baseRevision: document.revision,
-        type: "remove-element",
-        elementId,
-      }));
-    },
-    [applyCommand],
-  );
-
-  const updateElement = useCallback(
-    (elementId: string, update: MapElementUpdate) => {
-      applyCommand((document, commandId) => ({
-        commandId,
-        documentId: document.id,
-        baseRevision: document.revision,
-        type: "update-element",
-        elementId,
-        update,
-      }));
-    },
-    [applyCommand],
-  );
-
-  const undo = useCallback(() => {
-    applyCommand((document, commandId) => ({
-      commandId,
-      documentId: document.id,
-      baseRevision: document.revision,
-      type: "undo",
-    }));
-  }, [applyCommand]);
-
-  const redo = useCallback(() => {
-    applyCommand((document, commandId) => ({
-      commandId,
-      documentId: document.id,
-      baseRevision: document.revision,
-      type: "redo",
-    }));
-  }, [applyCommand]);
+  const {
+    updateLayer,
+    moveLayer,
+    updateGrid,
+    addTile,
+    addTiles,
+    addShape,
+    addWall,
+    addDoor,
+    removeElement,
+    updateElement,
+    undo,
+    redo,
+  } = useMapStudioActions({ activeDocumentRef, applyCommand });
 
   const handleServerMessage = useCallback(
     (message: MapStudioServerMessage) => {
@@ -323,6 +202,8 @@ export function useMapStudio(sendMessage: (message: ClientMessage) => void): Map
     updateLayer,
     moveLayer,
     updateGrid,
+    addTile,
+    addTiles,
     addShape,
     addWall,
     addDoor,
@@ -330,6 +211,7 @@ export function useMapStudio(sendMessage: (message: ClientMessage) => void): Map
     updateElement,
     undo,
     redo,
+    publishDocument,
     handleServerMessage,
   };
 }

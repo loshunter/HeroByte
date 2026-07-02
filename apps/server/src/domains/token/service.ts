@@ -4,7 +4,7 @@
 // Handles token-related business logic
 
 import { randomUUID } from "crypto";
-import type { Token, TokenSize } from "@herobyte/shared";
+import { findBlockingSegment, type Token, type TokenSize } from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
 
 /**
@@ -59,7 +59,11 @@ export class TokenService {
   }
 
   /**
-   * Move a token (with ownership validation or DM override)
+   * Move a token (with ownership validation or DM override).
+   *
+   * Compiled walls and shut doors are physically real for players: a move
+   * whose straight path crosses a blocking segment is refused. The DM moves
+   * anything anywhere.
    */
   moveToken(
     state: RoomState,
@@ -70,12 +74,24 @@ export class TokenService {
     isDM: boolean = false,
   ): boolean {
     const token = state.tokens.find((t) => t.id === tokenId);
-    if (token && (token.owner === ownerUid || isDM)) {
-      token.x = x;
-      token.y = y;
-      return true;
+    if (!token || (token.owner !== ownerUid && !isDM)) {
+      return false;
     }
-    return false;
+    if (!isDM && state.compiledScene) {
+      const mapTransform = state.sceneObjects.find((object) => object.type === "map")?.transform;
+      const blocked = findBlockingSegment(
+        state.compiledScene,
+        { x: token.x, y: token.y },
+        { x, y },
+        mapTransform,
+      );
+      if (blocked) {
+        return false;
+      }
+    }
+    token.x = x;
+    token.y = y;
+    return true;
   }
 
   /**

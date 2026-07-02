@@ -10,7 +10,8 @@ echo.
 echo Starting HeroByte client from %CD%
 echo Client URL: http://localhost:5174/
 echo.
-call "%~dp0kill-windows-port.bat"
+node "%~dp0scripts\dev-port-preflight.mjs" ensure-free --service client
+if errorlevel 1 exit /b 1
 pnpm --filter herobyte-client dev
 
 endlocal

@@ -19,6 +19,7 @@ interface PropsSpriteProps {
   cam: Camera;
   isSelected: boolean;
   onClick?: (event: KonvaEventObject<MouseEvent | PointerEvent>) => void;
+  onTap?: (event: KonvaEventObject<TouchEvent>) => void;
   onNodeReady?: (node: Konva.Node | null) => void;
   onDragEnd?: (event: KonvaEventObject<DragEvent>) => void;
 }
@@ -41,6 +42,7 @@ const PropSprite = memo(function PropSprite({
   cam,
   isSelected,
   onClick,
+  onTap,
   onNodeReady,
   onDragEnd,
 }: PropsSpriteProps) {
@@ -66,6 +68,7 @@ const PropSprite = memo(function PropSprite({
     stroke: isSelected ? "#447DF7" : "transparent",
     strokeWidth: isSelected ? 4 / cam.scale : 0,
     onClick: onClick,
+    onTap,
     onDragEnd: onDragEnd,
     id: object.id,
     name: object.id,
@@ -121,6 +124,21 @@ export const PropsLayer = memo(function PropsLayer({
     (obj): obj is SceneObject & { type: "prop" } => obj.type === "prop",
   );
 
+  const selectProp = (
+    objectId: string,
+    event: KonvaEventObject<MouseEvent | PointerEvent | TouchEvent>,
+  ) => {
+    if (!onSelectObject) {
+      return;
+    }
+    const native = event?.evt;
+    const append = "shiftKey" in native ? native.shiftKey : false;
+    const toggle = "ctrlKey" in native ? native.ctrlKey || native.metaKey : false;
+    const mode = append ? "append" : toggle ? "toggle" : "replace";
+    event.cancelBubble = true;
+    onSelectObject(objectId, { mode });
+  };
+
   return (
     <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale}>
       {propObjects.map((obj) => {
@@ -133,19 +151,8 @@ export const PropsLayer = memo(function PropsLayer({
             interactive={interactive}
             cam={cam}
             isSelected={isSelected}
-            onClick={(event) => {
-              if (!onSelectObject) {
-                return;
-              }
-              const native = event?.evt;
-              const append = native?.shiftKey ?? false;
-              const toggle = native?.ctrlKey || native?.metaKey || false;
-              const mode = append ? "append" : toggle ? "toggle" : "replace";
-              if (event) {
-                event.cancelBubble = true;
-              }
-              onSelectObject(obj.id, { mode });
-            }}
+            onClick={(event) => selectProp(obj.id, event)}
+            onTap={(event) => selectProp(obj.id, event)}
             onDragEnd={(event) => {
               if (!onTransformProp) return;
               const target = event.target;

@@ -32,6 +32,7 @@ import { DiceMessageHandler } from "./handlers/DiceMessageHandler.js";
 import { RoomMessageHandler } from "./handlers/RoomMessageHandler.js";
 import { TransformMessageHandler } from "./handlers/TransformMessageHandler.js";
 import { MapStudioMessageHandler } from "./handlers/MapStudioMessageHandler.js";
+import { DoorMessageHandler } from "./handlers/DoorMessageHandler.js";
 import { AuthorizationService } from "./services/AuthorizationService.js";
 import { MessageErrorHandler } from "./services/MessageErrorHandler.js";
 import { BroadcastService } from "./services/BroadcastService.js";
@@ -90,6 +91,7 @@ export class MessageRouter {
   private roomMessageHandler: RoomMessageHandler;
   private transformMessageHandler: TransformMessageHandler;
   private mapStudioMessageHandler: MapStudioMessageHandler;
+  private doorMessageHandler: DoorMessageHandler;
   private tokenDispatcher: TokenDispatcher;
   private characterDispatcher: CharacterDispatcher;
   private playerDispatcher: PlayerDispatcher;
@@ -222,7 +224,9 @@ export class MessageRouter {
       mapStudioService,
       (targetUid, message) => this.sendControlMessage(targetUid, message),
       (roomId, message) => this.sendMapStudioMessageToDMs(roomId, message),
+      () => this.roomService.getState(),
     );
+    this.doorMessageHandler = new DoorMessageHandler(() => this.roomService.getState());
   }
 
   /**
@@ -268,6 +272,17 @@ export class MessageRouter {
       );
       if (mapStudioResult) {
         this.handleRouteResult(mapStudioResult, message.t);
+        this.acknowledgeSuccess(message, senderUid);
+        return;
+      }
+
+      const doorResult = this.doorMessageHandler.handle(
+        message,
+        this.getRoomIdForUid(senderUid),
+        context.isDM(),
+      );
+      if (doorResult) {
+        this.handleRouteResult(doorResult, message.t);
         this.acknowledgeSuccess(message, senderUid);
         return;
       }

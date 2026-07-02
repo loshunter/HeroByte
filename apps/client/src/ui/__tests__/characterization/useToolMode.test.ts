@@ -24,6 +24,7 @@ function useToolModeCharacterization() {
   const transformMode = activeTool === "transform";
   const selectMode = activeTool === "select";
   const alignmentMode = activeTool === "align";
+  const mapStudioMode = activeTool === "map-studio";
 
   // Escape key handling
   useEffect(() => {
@@ -50,6 +51,7 @@ function useToolModeCharacterization() {
     transformMode,
     selectMode,
     alignmentMode,
+    mapStudioMode,
   };
 }
 
@@ -78,6 +80,7 @@ describe("useToolMode - Characterization", () => {
       expect(result.current.transformMode).toBe(false);
       expect(result.current.selectMode).toBe(false);
       expect(result.current.alignmentMode).toBe(false);
+      expect(result.current.mapStudioMode).toBe(false);
     });
   });
 
@@ -161,6 +164,17 @@ describe("useToolMode - Characterization", () => {
       expect(result.current.alignmentMode).toBe(true);
       expect(result.current.pointerMode).toBe(false);
     });
+
+    it("should set mapStudioMode to true when map studio is active", () => {
+      const { result } = renderHook(() => useToolModeCharacterization());
+
+      act(() => {
+        result.current.setActiveTool("map-studio");
+      });
+
+      expect(result.current.mapStudioMode).toBe(true);
+      expect(result.current.pointerMode).toBe(false);
+    });
   });
 
   describe("tool deselection", () => {
@@ -198,6 +212,7 @@ describe("useToolMode - Characterization", () => {
       expect(result.current.transformMode).toBe(false);
       expect(result.current.selectMode).toBe(false);
       expect(result.current.alignmentMode).toBe(false);
+      expect(result.current.mapStudioMode).toBe(false);
     });
   });
 
@@ -265,7 +280,15 @@ describe("useToolMode - Characterization", () => {
     });
 
     it("should handle escape key for all tool types", () => {
-      const toolTypes: ToolMode[] = ["pointer", "measure", "draw", "transform", "select", "align"];
+      const toolTypes: ToolMode[] = [
+        "pointer",
+        "measure",
+        "draw",
+        "transform",
+        "select",
+        "align",
+        "map-studio",
+      ];
 
       toolTypes.forEach((toolType) => {
         const { result, unmount } = renderHook(() => useToolModeCharacterization());

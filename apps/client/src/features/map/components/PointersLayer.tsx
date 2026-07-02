@@ -3,10 +3,11 @@
 // ============================================================================
 // Renders temporary pointer indicators from other players
 
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Group, Circle, Text } from "react-konva";
 import type { Pointer, Player, Token } from "@herobyte/shared";
 import type { Camera } from "../types";
+import { useSfx } from "../../juice";
 
 const POINTER_LIFESPAN_MS = 3000;
 const PULSE_DURATION_MS = 550;
@@ -45,8 +46,25 @@ export const PointersLayer = memo(function PointersLayer({
 }: PointersLayerProps) {
   const [visiblePointers, setVisiblePointers] = useState<Pointer[]>([]);
   const [, setAnimationTick] = useState(0);
+  const { play } = useSfx();
+  const seenPointerIds = useRef<Set<string>>(new Set());
 
   const now = Date.now();
+
+  // Blip whenever a fresh ping arrives (the pulse/ring visual already exists).
+  useEffect(() => {
+    for (const pointer of pointers) {
+      if (seenPointerIds.current.has(pointer.id)) continue;
+      seenPointerIds.current.add(pointer.id);
+      if (Date.now() - pointer.timestamp < POINTER_LIFESPAN_MS) {
+        play("ping");
+      }
+    }
+    // Keep the seen-set from growing without bound.
+    if (seenPointerIds.current.size > 200) {
+      seenPointerIds.current = new Set(pointers.map((pointer) => pointer.id));
+    }
+  }, [pointers, play]);
 
   // Apply incoming pointer updates, filtering out any already-expired data
   useEffect(() => {

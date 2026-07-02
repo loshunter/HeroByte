@@ -1,18 +1,33 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ClientMessage, MapDocumentCommand, ServerMessage } from "@herobyte/shared";
+import type {
+  ClientMessage,
+  MapDocumentCommand,
+  MapWallElement,
+  MapDoorElement,
+  ServerMessage,
+} from "@herobyte/shared";
 import { MapStudioService } from "../../../domains/mapStudio/service.js";
+import { createEmptyRoomState, type RoomState } from "../../../domains/room/model.js";
 import { MapStudioMessageHandler } from "../MapStudioMessageHandler.js";
 
 describe("MapStudioMessageHandler", () => {
   const send = vi.fn<(targetUid: string, message: ServerMessage) => void>();
   const broadcast = vi.fn<(roomId: string, message: ServerMessage) => void>();
   let service: MapStudioService;
+  let roomState: RoomState;
   let handler: MapStudioMessageHandler;
 
   beforeEach(() => {
     vi.clearAllMocks();
     service = new MapStudioService();
-    handler = new MapStudioMessageHandler(service, send, broadcast, () => 100);
+    roomState = createEmptyRoomState();
+    handler = new MapStudioMessageHandler(
+      service,
+      send,
+      broadcast,
+      () => roomState,
+      () => 100,
+    );
   });
 
   it("ignores messages outside the Map Studio namespace", () => {
@@ -134,6 +149,117 @@ describe("MapStudioMessageHandler", () => {
       documentId: "map",
     });
     expect(service.list("room")).toEqual([]);
+  });
+
+  describe("map-studio-publish", () => {
+    const wall: MapWallElement = {
+      id: "wall-1",
+      layerId: "walls",
+      type: "wall",
+      locked: false,
+      hidden: false,
+      transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+      data: {
+        points: [
+          { x: 0, y: 0 },
+          { x: 100, y: 0 },
+        ],
+        blocksMovement: true,
+        blocksVision: true,
+      },
+    };
+    const door: MapDoorElement = {
+      id: "door-1",
+      layerId: "walls",
+      type: "door",
+      locked: false,
+      hidden: false,
+      transform: { x: 100, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+      data: { width: 50, state: "closed", blocksMovement: true, blocksVision: true },
+    };
+
+    function createPublishedDocument(): void {
+      service.create("room", { id: "map", name: "Keep", timestamp: 1 });
+      service.apply(
+        "room",
+        {
+          commandId: "seed-1",
+          documentId: "map",
+          baseRevision: 0,
+          type: "add-elements",
+          elements: [wall, door],
+        },
+        2,
+      );
+    }
+
+    it("compiles the document into room state and requests broadcast + save", () => {
+      createPublishedDocument();
+
+      const result = handler.handle(
+        { t: "map-studio-publish", documentId: "map", background: "data:image/svg+xml,live" },
+        "dm",
+        "room",
+        true,
+      );
+
+      expect(result).toEqual({ broadcast: true, save: true });
+      expect(roomState.mapBackground).toBe("data:image/svg+xml,live");
+      expect(roomState.gridSize).toBe(50);
+      expect(roomState.gridSquareSize).toBe(5);
+      expect(roomState.compiledScene).toMatchObject({
+        sourceDocumentId: "map",
+        sourceRevision: 1,
+        compiledAt: 100,
+        walls: [expect.objectContaining({ id: "wall-1#0" })],
+        doors: [expect.objectContaining({ id: "door-1", state: "closed" })],
+      });
+    });
+
+    it("recompiles on republish so the live scene follows the document", () => {
+      createPublishedDocument();
+      handler.handle(
+        { t: "map-studio-publish", documentId: "map", background: "data:image/svg+xml,v1" },
+        "dm",
+        "room",
+        true,
+      );
+      service.apply(
+        "room",
+        {
+          commandId: "seed-2",
+          documentId: "map",
+          baseRevision: 1,
+          type: "remove-element",
+          elementId: "door-1",
+        },
+        3,
+      );
+
+      handler.handle(
+        { t: "map-studio-publish", documentId: "map", background: "data:image/svg+xml,v2" },
+        "dm",
+        "room",
+        true,
+      );
+
+      expect(roomState.mapBackground).toBe("data:image/svg+xml,v2");
+      expect(roomState.compiledScene?.sourceRevision).toBe(2);
+      expect(roomState.compiledScene?.doors).toEqual([]);
+    });
+
+    it("rejects publishing a document that does not exist", () => {
+      expect(() =>
+        handler.handle(
+          { t: "map-studio-publish", documentId: "missing", background: "data:image/svg+xml,x" },
+          "dm",
+          "room",
+          true,
+        ),
+      ).toThrow("Map document not found");
+      expect(roomState.compiledScene).toBeUndefined();
+      expect(roomState.mapBackground).toBeUndefined();
+    });
   });
 
   it.each([

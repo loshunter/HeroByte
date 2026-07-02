@@ -24,6 +24,8 @@ describe("Session Utilities", () => {
   const SESSION_UID_KEY = "herobyte-session-uid";
 
   beforeEach(() => {
+    window.history.replaceState(null, "", "/");
+
     // Create a fresh localStorage mock for each test
     localStorageMock = {};
 
@@ -51,6 +53,31 @@ describe("Session Utilities", () => {
   });
 
   describe("getSessionUID", () => {
+    describe("when a URL session override exists", () => {
+      it("should use the override without persisting it", () => {
+        window.history.replaceState(null, "", "/?sessionUid=preview-session-1");
+        const generateUUIDSpy = vi.spyOn(uuidModule, "generateUUID");
+
+        const result = getSessionUID();
+
+        expect(result).toBe("preview-session-1");
+        expect(generateUUIDSpy).not.toHaveBeenCalled();
+        expect(localStorage.getItem).not.toHaveBeenCalled();
+        expect(localStorage.setItem).not.toHaveBeenCalled();
+      });
+
+      it("should ignore invalid override values", () => {
+        window.history.replaceState(null, "", "/?sessionUid=invalid%20value");
+        const mockUUID = "fallback-uuid";
+        vi.spyOn(uuidModule, "generateUUID").mockReturnValue(mockUUID);
+
+        const result = getSessionUID();
+
+        expect(result).toBe(mockUUID);
+        expect(localStorage.setItem).toHaveBeenCalledWith(SESSION_UID_KEY, mockUUID);
+      });
+    });
+
     describe("when no existing UID exists", () => {
       it("should create a new session UID", () => {
         const mockUUID = "test-uuid-12345";

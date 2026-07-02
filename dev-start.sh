@@ -29,9 +29,9 @@ echo "║         HeroByte Development Server Startup              ║"
 echo "╚═══════════════════════════════════════════════════════════╝"
 echo ""
 
-# Step 1: Clean up existing processes
+# Step 1: Safely clean up existing HeroByte processes
 echo "1️⃣  Cleaning up existing processes..."
-./kill-ports.sh
+node scripts/dev-port-preflight.mjs free
 
 # Step 2: Build the server
 echo ""
@@ -75,7 +75,7 @@ sleep 2
 if ! kill -0 $CLIENT_PID 2>/dev/null; then
     echo "❌ Client failed to start!"
     echo "Cleaning up server..."
-    kill -9 $SERVER_PID 2>/dev/null
+    kill $SERVER_PID 2>/dev/null || true
     exit 1
 fi
 
@@ -93,7 +93,7 @@ echo "╚═══════════════════════�
 echo ""
 echo "📝 To stop servers:"
 echo "   ./kill-ports.sh"
-echo "   OR: kill -9 $SERVER_PID $CLIENT_PID"
+echo "   OR: press Ctrl+C in this terminal"
 echo ""
 echo "⌨️  Press Ctrl+C to stop both servers..."
 echo ""

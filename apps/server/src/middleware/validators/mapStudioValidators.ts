@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { MessageRecord, ValidationResult } from "./commonValidators.js";
+import { PAYLOAD_LIMITS } from "./constants.js";
 
 const id = z.string().trim().min(1).max(128);
 const name = z.string().trim().min(1).max(200);
@@ -204,6 +205,13 @@ const command = z.discriminatedUnion("type", [
   z
     .object({
       ...commandBase,
+      type: z.literal("add-elements"),
+      elements: z.array(element).min(1).max(5000),
+    })
+    .strict(),
+  z
+    .object({
+      ...commandBase,
       type: z.literal("update-element"),
       elementId: id,
       update: z
@@ -239,6 +247,18 @@ export function validateMapStudioDocumentIdMessage(message: MessageRecord): Vali
 
 export function validateMapStudioCommandMessage(message: MessageRecord): ValidationResult {
   return validate(z.object({ t: z.literal("map-studio-command"), command }), message);
+}
+
+export function validateMapStudioPublishMessage(message: MessageRecord): ValidationResult {
+  return validate(
+    z.object({
+      t: z.literal("map-studio-publish"),
+      documentId: id,
+      // Same ceiling as the live map-background payload (10MB).
+      background: z.string().min(1).max(PAYLOAD_LIMITS.MAP_SIZE),
+    }),
+    message,
+  );
 }
 
 function validate(schema: z.ZodTypeAny, message: MessageRecord): ValidationResult {

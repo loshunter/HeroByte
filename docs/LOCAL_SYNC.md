@@ -6,10 +6,10 @@ This guide helps you pull the latest automated testing updates (token movement, 
 
 - **Git** 2.40+
 - **Node.js** 20.19 or newer
-- **pnpm** 8.x or 9.x (`corepack enable` will install pnpm automatically on Node 20.10+)
+- **pnpm** 10.x via Corepack (`corepack enable pnpm` uses the version pinned in `package.json`)
 - **Playwright browsers** (Chromium) — installed automatically by the sync script, or run `pnpm exec playwright install --with-deps chromium`
 
-> ℹ️  If you do not have pnpm yet, install Node 20 and run `corepack enable pnpm` before continuing.
+> ℹ️ If you do not have pnpm yet, install Node 20 and run `corepack enable pnpm` before continuing.
 
 ## 2. Fetch the Latest Branch
 
@@ -52,9 +52,11 @@ Traces, screenshots, and logs appear in `playwright-report/` on failure. If the 
 You can automate the steps above with the helper script added in this change set:
 
 ```bash
-scripts/sync-dev.sh            # defaults to origin -> dev (falls back to work)
-RUN_E2E_TESTS=1 scripts/sync-dev.sh  # also runs pnpm test:e2e after syncing
+scripts/sync-dev.sh                 # bash/WSL/Git Bash: defaults to origin -> dev
+RUN_E2E_TESTS=1 scripts/sync-dev.sh # also runs pnpm test:e2e after syncing
 ```
+
+On native Windows PowerShell, run the numbered commands above directly instead of `scripts/sync-dev.sh`.
 
 The script will:
 
@@ -66,12 +68,12 @@ The script will:
 
 ## 6. Troubleshooting
 
-| Symptom | Fix |
-| --- | --- |
-| `fatal: not a git repository` | Run the commands from the root of your clone (where `.git/` lives). |
-| `error: pathspec 'origin/dev' did not match any` | Use the fallback `origin/work` branch or confirm the remote push finished. |
-| `pnpm: command not found` | Install Node 20+ and run `corepack enable pnpm`. |
-| Playwright install fails on Linux | Install system dependencies (`sudo npx playwright install-deps chromium`) or use WSL/WSA. |
-| E2E tests fail with connection refused | Start the dev server manually (`pnpm --filter herobyte-client dev` and `pnpm --filter vtt-server start`) or let the Playwright webServer config boot them for you. |
+| Symptom                                          | Fix                                                                                                                                                                |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `fatal: not a git repository`                    | Run the commands from the root of your clone (where `.git/` lives).                                                                                                |
+| `error: pathspec 'origin/dev' did not match any` | Use the fallback `origin/work` branch or confirm the remote push finished.                                                                                         |
+| `pnpm: command not found`                        | Install Node 20+ and run `corepack enable pnpm`.                                                                                                                   |
+| Playwright install fails on Linux                | Install system dependencies with `sudo npx playwright install-deps chromium`.                                                                                      |
+| E2E tests fail with connection refused           | Start the dev server manually (`pnpm --filter herobyte-client dev` and `pnpm --filter vtt-server start`) or let the Playwright webServer config boot them for you. |
 
 With these steps you can mirror the container's Playwright-enabled workflow on your local development environment.

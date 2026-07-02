@@ -12,6 +12,7 @@ import { HPBar } from "./HPBar";
 import { CardControls } from "./CardControls";
 import { PlayerSettingsMenu } from "./PlayerSettingsMenu";
 import { loadPlayerState, savePlayerState } from "../../../utils/playerPersistence";
+import { useHpFeedback, FloatingDamageNumber } from "../../juice";
 
 export interface PlayerCardProps {
   player: Player;
@@ -138,6 +139,7 @@ export const PlayerCard = memo<PlayerCardProps>(
     const [tokenImageInput, setTokenImageInput] = useState(tokenImageUrl ?? "");
     const [portraitImageInput, setPortraitImageInput] = useState(player.portrait ?? "");
     const [settingsOpen, setSettingsOpen] = useState(false);
+    const { feedback, flashClass } = useHpFeedback(player.hp);
 
     useEffect(() => {
       setTokenImageInput(tokenImageUrl ?? "");
@@ -202,13 +204,13 @@ export const PlayerCard = memo<PlayerCardProps>(
           justifyContent: "space-between" as const,
           color: "#ffe8b3",
           fontSize: "0.8rem",
-          gap: "6px",
+          gap: "var(--player-card-gap, 6px)",
           position: "relative" as const,
           background: "rgba(60, 48, 10, 0.9)",
           border: "2px solid var(--jrpg-gold)",
           boxShadow: "0 0 16px rgba(255, 215, 0, 0.6)",
           borderRadius: "8px",
-          padding: "8px",
+          padding: "var(--player-card-padding, 8px)",
         }
       : {
           display: "flex",
@@ -217,52 +219,56 @@ export const PlayerCard = memo<PlayerCardProps>(
           justifyContent: "space-between" as const,
           color: "#dbe1ff",
           fontSize: "0.8rem",
-          gap: "6px",
+          gap: "var(--player-card-gap, 6px)",
           position: "relative" as const,
         };
 
     return (
-      <div className="player-card" style={cardStyle}>
-        {isCurrentTurn && (
-          <div
-            className="jrpg-text-small"
-            style={{
-              color: "#FFE8A3",
-              fontWeight: 700,
-              letterSpacing: "0.05em",
-              textTransform: "uppercase",
-            }}
-          >
-            {isMe ? "🎯 YOUR TURN" : "⚔️ CURRENT TURN"}
-          </div>
+      <div
+        className={`player-card${isDMPlayer ? " player-card--dm" : ""}${flashClass ? ` ${flashClass}` : ""}`}
+        style={cardStyle}
+      >
+        {feedback && (
+          <FloatingDamageNumber
+            amount={feedback.amount}
+            kind={feedback.kind}
+            animationKey={feedback.animationKey}
+          />
         )}
         <div
-          style={{
-            width: "100%",
-            textAlign: "center",
-            borderBottom: "1px solid #444",
-            marginBottom: "4px",
-            fontSize: "0.7rem",
-            display: "flex",
-            flexDirection: "column",
-            gap: "4px",
-          }}
+          className="player-card-topbar"
+          data-card-resize-anchor="top"
+          style={{ borderBottomColor: "#444" }}
         >
-          <NameEditor
-            isEditing={editing}
-            isMe={isMe || viewerIsDM}
-            playerName={player.name}
-            playerUid={player.uid}
-            nameInput={nameInput}
-            tokenColor={tokenColor}
-            onNameInputChange={onNameInputChange}
-            onNameEdit={onNameEdit}
-            onNameSubmit={onNameSubmit}
-          />
+          {isCurrentTurn && (
+            <div
+              className="jrpg-text-small"
+              style={{
+                color: "#FFE8A3",
+                fontWeight: 700,
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
+              }}
+            >
+              {isMe ? "🎯 YOUR TURN" : "⚔️ CURRENT TURN"}
+            </div>
+          )}
+          <div className="player-card-title">
+            <NameEditor
+              isEditing={editing}
+              isMe={isMe || viewerIsDM}
+              playerName={player.name}
+              playerUid={player.uid}
+              nameInput={nameInput}
+              tokenColor={tokenColor}
+              onNameInputChange={onNameInputChange}
+              onNameEdit={onNameEdit}
+              onNameSubmit={onNameSubmit}
+            />
+          </div>
           <span
-            className="jrpg-text-small"
+            className="jrpg-text-small player-card-role"
             style={{
-              alignSelf: "center",
               color: player.isDM ? "var(--jrpg-gold)" : "var(--jrpg-white)",
               letterSpacing: "1px",
             }}
@@ -375,6 +381,8 @@ export const PlayerCard = memo<PlayerCardProps>(
     prevProps.micEnabled === nextProps.micEnabled &&
     prevProps.editingPlayerUID === nextProps.editingPlayerUID &&
     prevProps.nameInput === nextProps.nameInput &&
+    prevProps.editingHpUID === nextProps.editingHpUID &&
+    prevProps.hpInput === nextProps.hpInput &&
     prevProps.editingMaxHpUID === nextProps.editingMaxHpUID &&
     prevProps.maxHpInput === nextProps.maxHpInput &&
     prevProps.editingTempHpUID === nextProps.editingTempHpUID &&

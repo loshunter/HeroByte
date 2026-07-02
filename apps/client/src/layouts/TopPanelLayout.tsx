@@ -142,6 +142,7 @@ export const TopPanelLayout = React.memo<TopPanelLayoutProps>(
           crtFilter={crtFilter}
           diceRollerOpen={diceRollerOpen}
           rollLogOpen={rollLogOpen}
+          isDM={isDM}
           onSnapToGridChange={setSnapToGrid}
           onToolSelect={setActiveTool}
           onCrtFilterChange={setCrtFilter}

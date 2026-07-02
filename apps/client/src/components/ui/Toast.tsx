@@ -5,6 +5,7 @@
 
 import React, { useEffect, useState } from "react";
 import { sanitizeText } from "../../utils/sanitize";
+import { useSfx } from "../../features/juice";
 
 export type ToastType = "success" | "error" | "info" | "warning";
 
@@ -22,6 +23,13 @@ interface ToastProps {
 
 const Toast: React.FC<ToastProps> = ({ message, onDismiss }) => {
   const [isExiting, setIsExiting] = useState(false);
+  const { play } = useSfx();
+
+  // Chirp when a toast appears (downward tone for problems, upward otherwise).
+  useEffect(() => {
+    // Fire once per toast instance.
+    play(message.type === "error" || message.type === "warning" ? "uiClose" : "uiOpen");
+  }, []);
 
   useEffect(() => {
     if (message.duration === 0) return;

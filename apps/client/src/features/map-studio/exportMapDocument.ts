@@ -1,5 +1,6 @@
 import type { MapDocument, MapElement, MapLayer } from "@herobyte/shared";
 import { getGridGeometry } from "./gridGeometry";
+import { getMapStudioTileAsset } from "./starterTiles";
 
 export type MapExportFormat = "json" | "svg" | "png" | "webp";
 
@@ -13,7 +14,7 @@ export function renderMapDocumentSvg(document: MapDocument): string {
   const elements = document.elements
     .filter((element) => visible(element, layers.get(element.layerId)))
     .sort((a, b) => (layers.get(a.layerId)?.zIndex ?? 0) - (layers.get(b.layerId)?.zIndex ?? 0))
-    .map((element) => renderElement(element, layers.get(element.layerId)!))
+    .map((element) => renderElement(element, layers.get(element.layerId)!, document.grid.size))
     .join("");
   const pattern = document.grid.visible
     ? `<defs><pattern id="grid" width="${grid.width}" height="${grid.height}" patternUnits="userSpaceOnUse" x="${document.grid.offsetX}" y="${document.grid.offsetY}"><path d="${grid.path}" fill="none" stroke="#ffffff" stroke-opacity="0.16" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#grid)"/>`
@@ -99,7 +100,7 @@ function imageMime(format: Extract<MapExportFormat, "png" | "webp">): "image/png
   return format === "webp" ? "image/webp" : "image/png";
 }
 
-function renderElement(element: MapElement, layer: MapLayer): string {
+function renderElement(element: MapElement, layer: MapLayer, gridSize: number): string {
   const transform = element.transform;
   const attributes = `transform="translate(${transform.x} ${transform.y}) rotate(${transform.rotation}) scale(${transform.scaleX} ${transform.scaleY})" opacity="${layer.opacity}"`;
   if (element.type === "shape") {
@@ -131,9 +132,11 @@ function renderElement(element: MapElement, layer: MapLayer): string {
   if (element.type === "text") {
     return `<text ${attributes} fill="${xml(element.data.color)}" font-size="${element.data.fontSize}">${xml(element.data.text)}</text>`;
   }
-  const width = element.type === "stamp" ? element.data.width : element.data.columns * 50;
-  const height = element.type === "stamp" ? element.data.height : element.data.rows * 50;
-  return `<rect ${attributes} width="${width}" height="${height}" fill="none" stroke="#ffcc66" stroke-dasharray="8 4" data-asset-id="${xml(element.data.assetId)}"/>`;
+  const width = element.type === "stamp" ? element.data.width : element.data.columns * gridSize;
+  const height = element.type === "stamp" ? element.data.height : element.data.rows * gridSize;
+  const asset = getMapStudioTileAsset(element.data.assetId);
+  const fill = element.data.tint ?? asset.fill;
+  return `<g ${attributes} data-asset-id="${xml(element.data.assetId)}"><rect width="${width}" height="${height}" fill="${xml(fill)}" stroke="${xml(asset.stroke)}" stroke-width="2"/><path d="M 0 ${height / 2} H ${width} M ${width / 2} 0 V ${height}" stroke="${xml(asset.accent ?? asset.stroke)}" stroke-opacity="0.55" stroke-width="1"/></g>`;
 }
 
 function paint(element: Extract<MapElement, { type: "shape" }>): string {

@@ -86,8 +86,7 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
         top: 0,
         right: 0,
         bottom: 0,
-        width: "85vw",
-        maxWidth: "360px",
+        width: "min(92vw, 380px)",
         backgroundColor: "#0c1228",
         boxShadow: "-4px 0 12px rgba(0,0,0,0.5)",
         zIndex: 1900,
@@ -96,6 +95,8 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
         borderLeft: "1px solid var(--hero-gold)",
         transform: "translateX(0)",
         transition: "transform 0.3s ease",
+        paddingTop: "env(safe-area-inset-top)",
+        paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
       {/* Header */}

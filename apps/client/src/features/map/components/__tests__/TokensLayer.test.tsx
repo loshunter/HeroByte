@@ -1038,6 +1038,42 @@ describe("TokensLayer", () => {
       expect(onTransformToken).toHaveBeenCalledWith("token:2", { x: 2, y: 1 });
     });
 
+    it("does not move locked tokens included in a multi-token drag selection", () => {
+      const onTransformToken = vi.fn();
+      const token1 = createTokenObject("token:1", "test-user", {
+        transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+      });
+      const token2 = createTokenObject("token:2", "test-user", {
+        locked: true,
+        transform: { x: 1, y: 1, scaleX: 1, scaleY: 1, rotation: 0 },
+      });
+      const props = createDefaultProps({
+        sceneObjects: [token1, token2],
+        selectedObjectIds: ["token:1", "token:2"],
+        onTransformToken,
+        snapToGrid: true,
+        gridSize: 50,
+        uid: "test-user",
+      });
+
+      const { container } = render(<TokensLayer {...props} />);
+
+      const rects = container.querySelectorAll('[data-testid="konva-rect"]');
+      const rectProps = getProps(rects[0]);
+
+      invokeHandler(rectProps.onDragStart, {
+        evt: { shiftKey: false, ctrlKey: false, metaKey: false },
+      });
+      invokeHandler(rectProps.onDragEnd, {
+        target: {
+          position: () => ({ x: 75, y: 25 }),
+        },
+      });
+
+      expect(onTransformToken).toHaveBeenCalledWith("token:1", { x: 1, y: 0 });
+      expect(onTransformToken).not.toHaveBeenCalledWith("token:2", expect.anything());
+    });
+
     it("selects token on drag start if not already selected", () => {
       const onSelectObject = vi.fn();
       const myToken = createTokenObject("token:1", "test-user");

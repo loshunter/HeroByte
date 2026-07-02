@@ -4,6 +4,7 @@
 
 export { GridLayer } from "./GridLayer";
 export { MapImageLayer } from "./MapImageLayer";
+export { DoorsLayer } from "./DoorsLayer";
 export { TokensLayer } from "./TokensLayer";
 export { PointersLayer } from "./PointersLayer";
 export { DrawingsLayer } from "./DrawingsLayer";

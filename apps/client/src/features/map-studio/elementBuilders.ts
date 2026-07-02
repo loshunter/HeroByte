@@ -1,5 +1,27 @@
-import type { MapDoorElement, MapShapeElement, MapWallElement } from "@herobyte/shared";
-import type { MapDoorDraft, MapShapeDraft, MapWallDraft } from "./types";
+import type {
+  MapDoorElement,
+  MapShapeElement,
+  MapTileElement,
+  MapWallElement,
+} from "@herobyte/shared";
+import type { MapDoorDraft, MapShapeDraft, MapTileDraft, MapWallDraft } from "./types";
+
+export function createTileElement(id: string, draft: MapTileDraft): MapTileElement {
+  return {
+    id,
+    layerId: draft.layerId,
+    type: "tile",
+    locked: false,
+    hidden: false,
+    transform: { x: draft.x, y: draft.y, scaleX: 1, scaleY: 1, rotation: 0 },
+    data: {
+      assetId: draft.assetId,
+      columns: draft.columns,
+      rows: draft.rows,
+      ...(draft.tint ? { tint: draft.tint } : {}),
+    },
+  };
+}
 
 export function createShapeElement(id: string, draft: MapShapeDraft): MapShapeElement {
   return {

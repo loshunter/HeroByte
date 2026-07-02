@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Stage, Layer } from "react-konva";
 import type Konva from "konva";
-import type { DragPreviewUpdate } from "@herobyte/shared";
+import type { CompiledDoorState, DragPreviewUpdate } from "@herobyte/shared";
 import { ENABLE_DRAG_PREVIEWS } from "../config.js";
 import { usePointerTool } from "../hooks/usePointerTool.js";
 import { useDrawingTool } from "../hooks/useDrawingTool.js";
@@ -34,6 +34,7 @@ import { useStageEventRouter } from "../hooks/useStageEventRouter.js";
 import {
   GridLayer,
   MapImageLayer,
+  DoorsLayer,
   TokensLayer,
   PointersLayer,
   DrawingsLayer,
@@ -141,6 +142,18 @@ export default function MapBoard({
     }
     return result;
   }, [snapshot?.characters, snapshot?.players]);
+
+  // Current HP per token, so the tokens layer can mirror the card's damage/heal
+  // feedback. Tokens link to entities via character.tokenId, and character HP is
+  // authoritative for token-linked entities (see update-character-hp).
+  const hpByTokenId = useMemo(() => {
+    const result: Record<string, number> = {};
+    for (const character of snapshot?.characters ?? []) {
+      if (!character.tokenId) continue;
+      result[`token:${character.tokenId}`] = character.hp;
+    }
+    return result;
+  }, [snapshot?.characters]);
 
   const { registerNode, getSelectedNode, getAllNodes } = useKonvaNodeRefs(
     selectedObjectId,
@@ -374,6 +387,22 @@ export default function MapBoard({
     [onRecolorToken],
   );
 
+  // Door interactions route straight to the server; the snapshot broadcast
+  // updates every client's door sprites.
+  const handleToggleDoor = useCallback(
+    (doorId: string) => {
+      sendMessage({ t: "toggle-door", doorId });
+    },
+    [sendMessage],
+  );
+
+  const handleSetDoorState = useCallback(
+    (doorId: string, state: CompiledDoorState) => {
+      sendMessage({ t: "set-door-state", doorId, state });
+    },
+    [sendMessage],
+  );
+
   // Callback to receive node reference from MapImageLayer
   const handleMapNodeReady = useCallback(
     (node: Konva.Node | null) => {
@@ -488,6 +517,16 @@ export default function MapBoard({
               opacity={grid.opacity}
             />
           )}
+          {snapshot?.compiledScene && snapshot.compiledScene.doors.length > 0 && (
+            <DoorsLayer
+              cam={cam}
+              doors={snapshot.compiledScene.doors}
+              mapTransform={mapObject?.transform}
+              isDM={isDM}
+              onToggleDoor={handleToggleDoor}
+              onSetDoorState={handleSetDoorState}
+            />
+          )}
         </Layer>
 
         {/* Game Layer: Drawings and tokens (interactive) */}
@@ -551,6 +590,7 @@ export default function MapBoard({
             interactionsEnabled={tokenInteractionsEnabled}
             onDragPreview={dragPreviewEnabled ? handleDragPreview : undefined}
             statusEffectsByTokenId={statusEffectsByTokenId}
+            hpByTokenId={hpByTokenId}
             isDM={isDM}
           />
         </Layer>

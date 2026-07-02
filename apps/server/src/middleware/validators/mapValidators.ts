@@ -59,6 +59,37 @@ export function validateGridSquareSizeMessage(message: MessageRecord): Validatio
   return { valid: true };
 }
 
+const DOOR_STATES = new Set(["open", "closed", "locked", "secret"]);
+
+/**
+ * Validate toggle-door message
+ * Required: doorId (non-empty string, max 256 chars)
+ */
+export function validateToggleDoorMessage(message: MessageRecord): ValidationResult {
+  if (!isDoorId(message.doorId)) {
+    return { valid: false, error: "toggle-door: missing or invalid doorId" };
+  }
+  return { valid: true };
+}
+
+/**
+ * Validate set-door-state message
+ * Required: doorId (non-empty string), state (open|closed|locked|secret)
+ */
+export function validateSetDoorStateMessage(message: MessageRecord): ValidationResult {
+  if (!isDoorId(message.doorId)) {
+    return { valid: false, error: "set-door-state: missing or invalid doorId" };
+  }
+  if (typeof message.state !== "string" || !DOOR_STATES.has(message.state)) {
+    return { valid: false, error: "set-door-state: state must be open, closed, locked, or secret" };
+  }
+  return { valid: true };
+}
+
+function isDoorId(doorId: unknown): doorId is string {
+  return typeof doorId === "string" && doorId.trim().length > 0 && doorId.length <= 256;
+}
+
 /**
  * Validate point message (pointer/cursor position)
  * Required: x (finite number), y (finite number)

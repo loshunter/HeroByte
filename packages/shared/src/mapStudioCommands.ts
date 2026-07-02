@@ -1,5 +1,6 @@
 import {
   addMapElement,
+  addMapElements,
   addMapLayer,
   moveMapLayer,
   removeMapElement,
@@ -32,6 +33,7 @@ export type MapDocumentCommand =
   | (MapCommandBase & { type: "move-layer"; layerId: string; targetIndex: number })
   | (MapCommandBase & { type: "remove-layer"; layerId: string })
   | (MapCommandBase & { type: "add-element"; element: MapElement })
+  | (MapCommandBase & { type: "add-elements"; elements: MapElement[] })
   | (MapCommandBase & {
       type: "update-element";
       elementId: string;
@@ -100,6 +102,9 @@ export function applyMapDocumentCommand(
       break;
     case "add-element":
       next = addMapElement(document, command.element, timestamp);
+      break;
+    case "add-elements":
+      next = addMapElements(document, command.elements, timestamp);
       break;
     case "update-element":
       next = updateMapElement(document, command.elementId, command.update, timestamp);

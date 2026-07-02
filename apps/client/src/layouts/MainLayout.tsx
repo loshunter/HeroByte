@@ -65,6 +65,8 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     transformMode,
     selectMode,
     alignmentMode,
+    mapStudioMode,
+    openMapStudio,
 
     // UI state
     snapToGrid,
@@ -264,6 +266,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         transformMode={transformMode}
         selectMode={selectMode}
         alignmentMode={alignmentMode}
+        mapStudioMode={mapStudioMode}
         selectedObjectId={selectedObjectId}
         selectedObjectIds={selectedObjectIds}
         onSelectObject={handleObjectSelection}
@@ -278,6 +281,9 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onTransformObject={transformSceneObject}
         drawingProps={drawingProps}
         sendMessage={sendMessage}
+        mapStudio={mapStudio}
+        onExitMapStudio={() => setActiveTool(null)}
+        onMapStudioPublishStatus={toast.success}
       />
 
       {/* Bottom Panel - Entities HUD with player/character/NPC management */}
@@ -392,6 +398,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         toast={toast}
         onSetInitiative={setInitiative}
         mapStudio={mapStudio}
+        onOpenMapStudio={openMapStudio}
       />
     </div>
   );

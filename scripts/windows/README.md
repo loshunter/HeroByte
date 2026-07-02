@@ -1,8 +1,26 @@
-# Windows Launch Scripts
+# Legacy WSL Launch Scripts
 
-These batch files make it easy to run HeroByte on Windows using WSL (Windows Subsystem for Linux).
+These batch files are for an older Windows + WSL setup where HeroByte is cloned inside the Linux home directory. They are kept for legacy use only.
+
+For the current native Windows setup from `D:\HeroByte`, use the root launchers instead:
+
+```batch
+start-server-dev.bat
+start-client-dev.bat
+```
+
+Or run everything from PowerShell:
+
+```powershell
+pnpm install
+pnpm dev
+```
+
+WSL is not required to run HeroByte.
 
 ## Prerequisites
+
+Only use these legacy scripts if all of these are true:
 
 - Windows 10/11 with WSL2 installed
 - Ubuntu (or another Linux distro) set up in WSL
@@ -20,7 +38,7 @@ These batch files make it easy to run HeroByte on Windows using WSL (Windows Sub
    pnpm install
    ```
 
-2. Copy these `.bat` files to a convenient location on Windows (e.g., `D:\HeroByte` or your Desktop)
+2. Copy these legacy `.bat` files to a convenient location on Windows if you want WSL-backed launch shortcuts.
 
 ## Usage
 
@@ -40,7 +58,7 @@ Double-click **`start-client.bat`**
 
 This will:
 
-- Stop any previous HeroByte client process using port 5174 (if needed)
+- Stop a previous HeroByte client process using port 5174 when it is safe to do so
 - Launch the HeroByte web client
 - Client runs on http://localhost:5174
 - Opens automatically in your default browser
@@ -51,17 +69,18 @@ Double-click **`stop-client.bat`**
 
 This will:
 
-- Force-stop the process using port 5174
+- Stop a stale HeroByte client process using port 5174 when it is safe to do so
 - Useful if a previous client window did not close properly
 
 ## Troubleshooting
 
 ### "Could not stop process" error
 
-If `start-client.bat` can't kill the existing process:
+If `start-client.bat` cannot release the existing process:
 
-- Run `stop-client.bat` as Administrator (right-click → Run as administrator)
-- Or manually close the previous client window
+- Check the printed PID and command line
+- Manually close the owning process if it is not a HeroByte dev process
+- Do not switch the client to another port
 
 ### "bash: cd: ~/HeroByte: No such file or directory"
 
@@ -71,38 +90,33 @@ If `start-client.bat` can't kill the existing process:
 
 ### "pnpm: command not found"
 
-- Install pnpm in WSL: `npm install -g pnpm`
-- Or install Node.js/npm first if needed
+- Install Node.js in WSL, then run `corepack enable pnpm`
+- Or install pnpm manually if your Node distribution does not include Corepack
 
 ### Port already in use
 
-- Run `stop-client.bat` to free port 5174
-- Check if another Vite/dev server is running
+- Run `stop-client.bat` to safely release a stale HeroByte client on port 5174
+- If the script reports an unknown owner, close that process manually
 
 ## Customization
 
 If you cloned HeroByte to a different location, edit the `.bat` files and change:
 
 ```batch
-cd ~/HeroByte/apps/server
+cd ~/HeroByte
 ```
 
 to your actual path.
 
-## Alternative: Native Windows
+## Native Windows
 
-If you prefer running natively on Windows without WSL:
+The preferred Windows setup does not use these legacy scripts:
 
 1. Install Node.js on Windows
 2. Open PowerShell or Command Prompt
 3. Navigate to the HeroByte folder
 4. Run:
-   ```
-   cd apps/server
-   pnpm dev
-   ```
-   And in another terminal:
-   ```
-   cd apps/client
+   ```powershell
+   pnpm install
    pnpm dev
    ```

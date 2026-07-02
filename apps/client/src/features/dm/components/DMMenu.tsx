@@ -8,8 +8,9 @@ import NPCsTab from "./tab-views/NPCsTab";
 import PropsTab from "./tab-views/PropsTab";
 import PlayersTab from "./tab-views/PlayersTab";
 import SessionTab from "./tab-views/SessionTab";
-import { useDMMenuState, type DMMenuTab } from "../hooks/useDMMenuState";
+import { useDMMenuState } from "../hooks/useDMMenuState";
 import type { MapStudioController } from "../../map-studio";
+import { DMMenuTabs } from "./DMMenuTabs";
 
 interface DMMenuProps {
   isDM: boolean;
@@ -91,6 +92,7 @@ interface DMMenuProps {
   };
   onSetInitiative?: (characterId: string, initiative: number, modifier: number) => void;
   mapStudio?: MapStudioController;
+  onOpenMapStudio?: () => void;
 }
 
 export function DMMenu({
@@ -168,6 +170,7 @@ export function DMMenu({
   toast,
   onSetInitiative,
   mapStudio,
+  onOpenMapStudio,
 }: DMMenuProps) {
   const { open, setOpen, toggleOpen, activeTab, setActiveTab, sessionName, setSessionName, npcs } =
     useDMMenuState({
@@ -179,14 +182,10 @@ export function DMMenu({
     return null;
   }
 
-  const TabButton = ({ tab, label }: { tab: DMMenuTab; label: string }) => (
-    <JRPGButton
-      onClick={() => setActiveTab(tab)}
-      variant={activeTab === tab ? "primary" : "default"}
-    >
-      {label}
-    </JRPGButton>
-  );
+  const handleOpenMapStudio = () => {
+    setOpen(false);
+    onOpenMapStudio?.();
+  };
 
   return (
     <>
@@ -236,13 +235,7 @@ export function DMMenu({
               </JRPGButton>
             </div>
 
-            <div style={{ display: "flex", gap: "8px", marginBottom: "12px", flexWrap: "wrap" }}>
-              <TabButton tab="map" label="Map Setup" />
-              <TabButton tab="npcs" label="NPCs & Monsters" />
-              <TabButton tab="props" label="Props & Objects" />
-              <TabButton tab="players" label="Players" />
-              <TabButton tab="session" label="Session" />
-            </div>
+            <DMMenuTabs activeTab={activeTab} onTabChange={setActiveTab} />
             {activeTab === "map" && (
               <MapTab
                 mapBackground={mapBackground}
@@ -274,6 +267,7 @@ export function DMMenu({
                 onSetPlayerStagingZone={onSetPlayerStagingZone}
                 onClearDrawings={onClearDrawings}
                 mapStudio={mapStudio}
+                onOpenMapStudio={handleOpenMapStudio}
               />
             )}
             {activeTab === "npcs" && (

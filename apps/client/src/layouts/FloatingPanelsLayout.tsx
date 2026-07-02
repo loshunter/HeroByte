@@ -116,6 +116,7 @@ export interface FloatingPanelsLayoutProps {
   // Initiative Management (1)
   onSetInitiative?: (characterId: string, initiative: number, modifier: number) => void;
   mapStudio?: MapStudioController;
+  onOpenMapStudio: () => void;
 }
 
 /**
@@ -170,6 +171,7 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
     selectPlayerTokens,
     onSetInitiative,
     mapStudio,
+    onOpenMapStudio,
   }) => {
     return (
       <>
@@ -243,6 +245,7 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
               onSelectPlayerTokens={selectPlayerTokens}
               onSetInitiative={onSetInitiative}
               mapStudio={mapStudio}
+              onOpenMapStudio={onOpenMapStudio}
             />
           </Suspense>
         )}

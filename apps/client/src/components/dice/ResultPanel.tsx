@@ -6,6 +6,7 @@ import React from "react";
 import type { RollResult } from "./types";
 import { DIE_SYMBOLS } from "./types";
 import { DraggableWindow } from "./DraggableWindow";
+import { detectRollFlavor } from "../../features/juice";
 
 interface ResultPanelProps {
   result: RollResult | null;
@@ -14,6 +15,10 @@ interface ResultPanelProps {
 
 export const ResultPanel: React.FC<ResultPanelProps> = ({ result, onClose }) => {
   if (!result) return null;
+
+  const flavor = detectRollFlavor(result);
+  const totalFlourish =
+    flavor === "crit" ? " juice-crit" : flavor === "fumble" ? " juice-fumble" : "";
 
   return (
     <DraggableWindow
@@ -117,9 +122,29 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({ result, onClose }) => 
             }}
           />
 
+          {/* Crit / fumble banner */}
+          {flavor === "crit" && (
+            <div
+              className="juice-roll-banner juice-roll-banner--crit"
+              data-testid="roll-banner-crit"
+            >
+              ★ CRITICAL! ★
+            </div>
+          )}
+          {flavor === "fumble" && (
+            <div
+              className="juice-roll-banner juice-roll-banner--fumble"
+              data-testid="roll-banner-fumble"
+            >
+              ✖ FUMBLE! ✖
+            </div>
+          )}
+
           {/* Total */}
           <div
+            className={`juice-total${totalFlourish}`}
             style={{
+              position: "relative",
               padding: "16px",
               background:
                 "linear-gradient(135deg, rgba(68,125,247,0.2) 0%, rgba(255,195,77,0.2) 100%)",

@@ -9,6 +9,76 @@ describe("Room Model - toSnapshot", () => {
   const tokenService = new TokenService();
   const sceneGraphBuilder = new SceneGraphBuilder();
 
+  describe("compiled scene filtering", () => {
+    function stateWithCompiledScene() {
+      const state = createEmptyRoomState();
+      state.compiledScene = {
+        schemaVersion: 1,
+        sourceDocumentId: "map",
+        sourceRevision: 3,
+        compiledAt: 100,
+        walls: [
+          {
+            id: "wall-1#0",
+            x1: 0,
+            y1: 0,
+            x2: 100,
+            y2: 0,
+            blocksMovement: true,
+            blocksVision: true,
+          },
+        ],
+        doors: [
+          {
+            id: "door-open",
+            x1: 100,
+            y1: 0,
+            x2: 150,
+            y2: 0,
+            state: "closed",
+            blocksMovement: true,
+            blocksVision: true,
+          },
+          {
+            id: "door-secret",
+            x1: 200,
+            y1: 0,
+            x2: 250,
+            y2: 0,
+            state: "secret",
+            blocksMovement: true,
+            blocksVision: true,
+          },
+        ],
+        lights: [],
+      };
+      return state;
+    }
+
+    it("omits the compiled scene when none has been published", () => {
+      expect(toSnapshot(createEmptyRoomState(), false).compiledScene).toBeUndefined();
+    });
+
+    it("sends the full compiled scene to the DM, secret doors included", () => {
+      const snapshot = toSnapshot(stateWithCompiledScene(), true);
+
+      expect(snapshot.compiledScene?.doors.map((door) => door.id)).toEqual([
+        "door-open",
+        "door-secret",
+      ]);
+    });
+
+    it("strips secret doors from player snapshots without touching server state", () => {
+      const state = stateWithCompiledScene();
+
+      const snapshot = toSnapshot(state, false);
+
+      expect(snapshot.compiledScene?.doors.map((door) => door.id)).toEqual(["door-open"]);
+      expect(snapshot.compiledScene?.walls).toHaveLength(1);
+      expect(state.compiledScene?.doors).toHaveLength(2);
+    });
+  });
+
   describe("NPC visibility filtering", () => {
     it("filters hidden NPCs and their tokens for non-DM players", () => {
       const state = createEmptyRoomState();

@@ -26,6 +26,7 @@ import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import type { CameraCommand } from "../ui/MapBoard";
 import type { UseDrawingStateManagerReturn } from "../hooks/useDrawingStateManager";
 import { MapLoading } from "../components/ui/MapLoading";
+import { MapStudioWorkspace, type MapStudioController } from "../features/map-studio";
 
 // Lazy load MapBoard to reduce initial bundle size
 const MapBoard = React.lazy(() => import("../ui/MapBoard"));
@@ -79,6 +80,8 @@ export interface CenterCanvasLayoutProps {
   selectMode: boolean;
   /** Whether alignment mode is active (alignment assistance) */
   alignmentMode: boolean;
+  /** Whether full-canvas map authoring is active */
+  mapStudioMode: boolean;
 
   // Selection State (4 props)
   /** Currently selected single object ID (or null if none) */
@@ -124,6 +127,12 @@ export interface CenterCanvasLayoutProps {
   // WebSocket Communication (1 prop)
   /** Handler for sending WebSocket messages to server */
   sendMessage: (message: ClientMessage) => void;
+  /** Versioned Map Studio state and actions */
+  mapStudio?: MapStudioController;
+  /** Handler to leave Map Studio mode */
+  onExitMapStudio: () => void;
+  /** Optional publish status notifier */
+  onMapStudioPublishStatus?: (message: string) => void;
 }
 
 /**
@@ -183,6 +192,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
     transformMode,
     selectMode,
     alignmentMode,
+    mapStudioMode,
     selectedObjectId,
     selectedObjectIds,
     onSelectObject,
@@ -197,7 +207,31 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
     onTransformObject,
     drawingProps,
     sendMessage,
+    mapStudio,
+    onExitMapStudio,
+    onMapStudioPublishStatus,
   }) => {
+    if (mapStudioMode && isDM && mapStudio) {
+      return (
+        <div
+          style={{
+            position: "fixed",
+            top: `${topHeight}px`,
+            bottom: `${bottomHeight}px`,
+            left: 0,
+            right: 0,
+            overflow: "hidden",
+          }}
+        >
+          <MapStudioWorkspace
+            controller={mapStudio}
+            onExit={onExitMapStudio}
+            onPublishStatus={onMapStudioPublishStatus}
+          />
+        </div>
+      );
+    }
+
     return (
       <div
         style={{

@@ -1,14 +1,49 @@
 import type { MapElement, MapLayer } from "@herobyte/shared";
+import { getMapStudioTileAsset } from "../starterTiles";
 
 export function MapStudioElementPreview({
   element,
   layer,
+  gridSize = 50,
 }: {
   element: MapElement;
   layer: MapLayer;
+  gridSize?: number;
 }) {
   const { x, y, scaleX, scaleY, rotation } = element.transform;
   const transform = `translate(${x} ${y}) rotate(${rotation}) scale(${scaleX} ${scaleY})`;
+  if (element.type === "tile" || element.type === "stamp") {
+    const asset = getMapStudioTileAsset(element.data.assetId);
+    const width = element.type === "tile" ? element.data.columns * gridSize : element.data.width;
+    const height = element.type === "tile" ? element.data.rows * gridSize : element.data.height;
+    const tint = element.data.tint;
+    return (
+      <g transform={transform} opacity={layer.opacity}>
+        <rect
+          width={width}
+          height={height}
+          fill={tint ?? asset.fill}
+          stroke={asset.stroke}
+          strokeWidth={Math.max(2, gridSize * 0.04)}
+        />
+        {asset.accent && (
+          <>
+            <path
+              d={`M 0 ${height / 2} H ${width} M ${width / 2} 0 V ${height}`}
+              stroke={asset.accent}
+              strokeWidth={Math.max(1, gridSize * 0.025)}
+              opacity={0.65}
+            />
+            <path
+              d={`M ${Math.max(4, gridSize * 0.16)} ${Math.max(4, gridSize * 0.16)} L ${Math.max(8, width - gridSize * 0.16)} ${Math.max(4, gridSize * 0.16)}`}
+              stroke="rgba(255,255,255,0.22)"
+              strokeWidth={Math.max(1, gridSize * 0.02)}
+            />
+          </>
+        )}
+      </g>
+    );
+  }
   if (element.type === "shape") {
     const [start, end] = element.data.points;
     if (!start || !end) return null;
@@ -89,11 +124,13 @@ export function MapStudioElementPreview({
 export function MapStudioSelectionOverlay({
   element,
   layer,
+  gridSize = 50,
 }: {
   element: MapElement;
   layer: MapLayer;
+  gridSize?: number;
 }) {
-  const bounds = elementBounds(element);
+  const bounds = elementBounds(element, gridSize);
   if (!bounds) return null;
   const { x, y, scaleX, scaleY, rotation } = element.transform;
   const transform = `translate(${x} ${y}) rotate(${rotation}) scale(${scaleX} ${scaleY})`;
@@ -111,7 +148,15 @@ export function MapStudioSelectionOverlay({
   );
 }
 
-function elementBounds(element: MapElement) {
+function elementBounds(element: MapElement, gridSize: number) {
+  if (element.type === "tile") {
+    return {
+      x: 0,
+      y: 0,
+      width: element.data.columns * gridSize,
+      height: element.data.rows * gridSize,
+    };
+  }
   if (element.type === "shape") {
     const [start, end] = element.data.points;
     if (!start || !end) return null;
@@ -158,14 +203,6 @@ function elementBounds(element: MapElement) {
   }
   if (element.type === "stamp") {
     return { x: 0, y: 0, width: element.data.width, height: element.data.height };
-  }
-  if (element.type === "tile") {
-    return {
-      x: 0,
-      y: 0,
-      width: element.data.columns * 50,
-      height: element.data.rows * 50,
-    };
   }
   return null;
 }

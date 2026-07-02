@@ -71,6 +71,9 @@ import {
   validateMapStudioCreateMessage,
   validateMapStudioDocumentIdMessage,
   validateMapStudioCommandMessage,
+  validateMapStudioPublishMessage,
+  validateToggleDoorMessage,
+  validateSetDoorStateMessage,
 } from "./validators/index.js";
 
 // Prop validators
@@ -187,6 +190,9 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   "map-studio-get": validateMapStudioDocumentIdMessage,
   "map-studio-command": validateMapStudioCommandMessage,
   "map-studio-delete": validateMapStudioDocumentIdMessage,
+  "map-studio-publish": validateMapStudioPublishMessage,
+  "toggle-door": validateToggleDoorMessage,
+  "set-door-state": validateSetDoorStateMessage,
 
   // ==========================================================================
   // PROP MESSAGES

@@ -5,13 +5,22 @@
 - **`main`** - Stable production branch, deployed to live servers
 - **`dev`** - Development branch for new features and refactoring
 
-Use `scripts/sync-dev.sh` (documented in [docs/LOCAL_SYNC.md](docs/LOCAL_SYNC.md)) to fast-forward your local branch to the latest remote commits and install the required Playwright dependencies in one step.
+Use the commands in [docs/LOCAL_SYNC.md](docs/LOCAL_SYNC.md) to fast-forward your local branch to the latest remote commits and install the required Playwright dependencies.
 
 ## Local Development
 
-### Running the Dev Branch
+### Running Locally
 
-Use these batch files to run the development version:
+From the repository root:
+
+```bash
+pnpm install
+pnpm dev
+```
+
+This starts both development servers from the current checkout.
+
+On Windows, you can also use the root batch files if you prefer separate windows:
 
 ```batch
 # Terminal 1: Start the server
@@ -26,18 +35,9 @@ These scripts will:
 1. Start the development servers from the current checkout
 2. Client runs on http://localhost:5174
 3. Server runs on http://localhost:8787
+4. Release stale HeroByte-owned dev processes before startup, without switching ports
 
-### Running the Main Branch
-
-Use the original batch files to run the stable version:
-
-```batch
-# Terminal 1: Start the server
-start-server.bat
-
-# Terminal 2: Start the client
-start-client.bat
-```
+WSL is optional. The older WSL-specific launchers live under `scripts/windows/` for legacy setups only.
 
 ## Development Workflow
 
@@ -51,7 +51,7 @@ start-client.bat
    ```
 
 2. **Test locally**
-   - Run `start-server-dev.bat` and `start-client-dev.bat`
+   - Run `pnpm dev` or the root `start-*-dev.bat` launchers
    - Test all functionality
 
 3. **Push to GitHub dev branch**

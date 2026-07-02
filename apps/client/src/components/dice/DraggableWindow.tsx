@@ -18,6 +18,8 @@ interface DraggableWindowProps {
   storageKey?: string; // Optional key for localStorage persistence
 }
 
+const POSITION_KEY_PREFIX = "herobyte-window-position-";
+
 export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   title,
   children,
@@ -34,8 +36,11 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   // Load position from localStorage if storageKey is provided
   const getInitialPosition = () => {
     if (storageKey) {
+      const storage = getWindowStorage();
+      if (!storage) return { x: initialX, y: initialY };
+
       try {
-        const saved = localStorage.getItem(`herobyte-window-position-${storageKey}`);
+        const saved = storage.getItem(`${POSITION_KEY_PREFIX}${storageKey}`);
         if (saved) {
           const parsed = JSON.parse(saved);
           // Validate the saved position
@@ -96,8 +101,11 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
 
       // Save position to localStorage when dragging ends
       if (storageKey && !isMobile) {
+        const storage = getWindowStorage();
+        if (!storage) return;
+
         try {
-          localStorage.setItem(`herobyte-window-position-${storageKey}`, JSON.stringify(position));
+          storage.setItem(`${POSITION_KEY_PREFIX}${storageKey}`, JSON.stringify(position));
         } catch (error) {
           console.warn("Failed to save window position to localStorage:", error);
         }
@@ -134,11 +142,11 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
 
           // Save adjusted position
           if (storageKey) {
+            const storage = getWindowStorage();
+            if (!storage) return;
+
             try {
-              localStorage.setItem(
-                `herobyte-window-position-${storageKey}`,
-                JSON.stringify(newPosition),
-              );
+              storage.setItem(`${POSITION_KEY_PREFIX}${storageKey}`, JSON.stringify(newPosition));
             } catch (error) {
               console.warn("Failed to save adjusted window position:", error);
             }
@@ -248,3 +256,19 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
     </div>
   );
 };
+
+function getWindowStorage(): Storage | null {
+  try {
+    const storage = window.localStorage;
+    if (
+      !storage ||
+      typeof storage.getItem !== "function" ||
+      typeof storage.setItem !== "function"
+    ) {
+      return null;
+    }
+    return storage;
+  } catch {
+    return null;
+  }
+}

@@ -3,6 +3,7 @@
 ## Problem Description
 
 When testing with two browser windows:
+
 - **DM window (with cached session)**: Can see map, tokens, and staging zone
 - **Fresh client (incognito window)**: Can see tokens and staging zone, BUT NOT the map
 
@@ -34,7 +35,7 @@ The actual problem is **client-side image loading failure**:
 
 ## Evidence
 
-Looking at `/home/loshunter/HeroByte/apps/server/herobyte-state.json`:
+Looking at `apps/server/herobyte-state.json`:
 
 ```json
 {
@@ -52,6 +53,7 @@ Looking at `/home/loshunter/HeroByte/apps/server/herobyte-state.json`:
 ```
 
 Both fields are correctly persisted and broadcast to all clients via:
+
 - `apps/server/src/domains/room/model.ts:114-131` (toSnapshot function)
 - `apps/server/src/ws/connectionHandler.ts:295` (broadcast after authentication)
 

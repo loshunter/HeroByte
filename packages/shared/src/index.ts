@@ -6,6 +6,7 @@
 
 import type { CreateMapDocumentInput, MapDocument, MapDocumentSummary } from "./mapStudioTypes.js";
 import type { MapStudioCommand } from "./mapStudioCommands.js";
+import type { CompiledDoorState, CompiledScene } from "./sceneCompiler.js";
 
 // Export domain models
 export { TokenModel, PlayerModel, CharacterModel } from "./models.js";
@@ -24,6 +25,11 @@ export {
 // Export the versioned map-authoring model separately from live room state.
 export * from "./mapStudio.js";
 export * from "./mapStudioCommands.js";
+
+// Export the publish-time compiler that turns a map document into the
+// play-surface geometry (walls, doors, lights) a live room enforces.
+export * from "./sceneCompiler.js";
+export * from "./sceneGeometry.js";
 
 // ----------------------------------------------------------------------------
 // GAME ENTITY TYPES
@@ -319,6 +325,7 @@ export interface RoomSnapshot {
   playerStagingZone?: PlayerStagingZone; // DM-defined spawn area for player tokens
   combatActive?: boolean; // Whether initiative tracking/combat mode is active
   currentTurnCharacterId?: string; // Character ID of whose turn it currently is
+  compiledScene?: CompiledScene; // Play-surface geometry compiled at Map Studio publish (secret doors stripped for players)
   assets?: SnapshotAsset[];
   assetRefs?: SnapshotAssetRefs;
 }
@@ -504,6 +511,11 @@ type ClientMessagePayload =
   | { t: "map-studio-get"; documentId: string }
   | { t: "map-studio-command"; command: MapStudioCommand }
   | { t: "map-studio-delete"; documentId: string }
+  | { t: "map-studio-publish"; documentId: string; background: string } // Compile document into the live scene (server-authoritative geometry)
+
+  // Live scene interactions (compiled doors are clickable at the table)
+  | { t: "toggle-door"; doorId: string } // Flip a door open/closed; locked and secret doors refuse non-DM toggles
+  | { t: "set-door-state"; doorId: string; state: CompiledDoorState } // DM-only: set any door state (lock, unlock, reveal)
 
   // Dice rolls
   | { t: "dice-roll"; roll: DiceRoll } // Broadcast a dice roll

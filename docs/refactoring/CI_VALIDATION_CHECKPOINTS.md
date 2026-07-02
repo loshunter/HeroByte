@@ -24,17 +24,20 @@ This document defines the Continuous Integration (CI) validation checkpoints tha
 **Status**: Not currently configured
 
 **Recommended Setup** (Optional):
+
 - Install `husky` for Git hook management
 - Run `pnpm format:check` before commit
 - Run `pnpm lint` on staged files
 - Consider `lint-staged` for incremental validation
 
 **When to Use**:
+
 - For teams wanting early validation feedback
 - To catch formatting issues before pushing
 - When you want to enforce local quality gates
 
 **Implementation Example**:
+
 ```bash
 # .husky/pre-commit (if implemented)
 #!/bin/sh
@@ -49,12 +52,14 @@ pnpm lint
 **Automated on**: Every push to PR branches targeting `dev`
 
 **Checks Triggered**:
+
 - Full CI pipeline runs automatically
 - All jobs must pass before merge allowed
 - Structural reports generated as artifacts
 - Coverage uploaded to Codecov
 
 **Engineer Responsibilities**:
+
 1. Review CI status before requesting review
 2. Address failures promptly
 3. Check structural report artifacts for violations
@@ -63,6 +68,7 @@ pnpm lint
 ### 3. Automated CI Pipeline Checks
 
 **Trigger Events**:
+
 - Pull requests to `dev` branch
 - Direct pushes to `dev` or `main` branches
 
@@ -73,12 +79,14 @@ pnpm lint
 ### 4. Pre-Merge Validation
 
 **GitHub Branch Protection** (Recommended Settings):
+
 - Require status checks to pass before merging
 - Require `build-and-test` job success on both Node versions
 - Require up-to-date branches
 - No force pushes to `dev` or `main`
 
 **Human Validation**:
+
 - Code review from at least one team member
 - Review structural report artifacts for new violations
 - Verify test coverage hasn't decreased
@@ -87,11 +95,13 @@ pnpm lint
 ### 5. Post-Merge Monitoring
 
 **Immediate**:
+
 - CI runs on `dev` branch post-merge
 - Verify green build status
 - Check Codecov for coverage trends
 
 **Ongoing**:
+
 - Monitor CI build times (should not increase significantly)
 - Track structural violations in baseline file
 - Review test pass rates over time
@@ -108,21 +118,25 @@ pnpm lint
 **Purpose**: Block new files exceeding 350 lines of code (LOC)
 
 **How It Works**:
+
 ```bash
 node scripts/structure-report.mjs --threshold 350 --fail-on-new
 ```
 
 **Baseline Protection**:
+
 - Existing violations are tracked in `scripts/structure-baseline.json`
 - Only **new** files exceeding threshold cause CI failure
 - Allows incremental improvement without blocking all work
 
 **What Triggers Failure**:
+
 - Creating a new file with 350+ LOC
 - Expanding an existing compliant file to 350+ LOC
 - Renaming a file and exceeding threshold
 
 **Example Failure Output**:
+
 ```
 ❌ STRUCTURAL GUARDRAIL VIOLATION
 Found 2 new file(s) exceeding 350 LOC threshold:
@@ -138,10 +152,12 @@ or update the baseline if this is intentional: pnpm baseline:update
 ```
 
 **Resolution**:
+
 1. **Preferred**: Refactor the file to be under 350 LOC
 2. **If Intentional**: Update baseline with `pnpm baseline:update` (requires justification in PR)
 
 **CI Implementation**:
+
 ```yaml
 - name: Enforce structural guardrails
   run: pnpm lint:structure:enforce
@@ -152,11 +168,13 @@ or update the baseline if this is intentional: pnpm baseline:update
 **Command**: `pnpm test:coverage`
 
 **Coverage Targets**:
+
 - All tests must pass (0 failures)
 - No test regressions from refactoring
 - Coverage reports uploaded to Codecov
 
 **What Gets Tested**:
+
 ```bash
 # Shared package tests
 pnpm --filter @herobyte/shared test:coverage
@@ -169,16 +187,19 @@ pnpm --filter herobyte-client test:coverage
 ```
 
 **Coverage Artifacts**:
+
 - `packages/shared/coverage/coverage-final.json`
 - `apps/server/coverage/coverage-final.json`
 - Uploaded to Codecov (Node 20.x only)
 
 **Failure Scenarios**:
+
 - Any test fails
 - Test suite doesn't complete
 - Coverage generation fails
 
 **CI Implementation**:
+
 ```yaml
 - name: Run tests with coverage
   run: pnpm test:coverage
@@ -196,6 +217,7 @@ pnpm --filter herobyte-client test:coverage
 ```
 
 **Best Practices**:
+
 - When refactoring, ensure moved tests still pass
 - Update test imports when moving files
 - Add tests for new abstractions
@@ -208,6 +230,7 @@ pnpm --filter herobyte-client test:coverage
 **Purpose**: Ensure all TypeScript compiles without errors
 
 **Build Targets**:
+
 ```bash
 # Server build
 pnpm build:server  # Uses apps/server/tsconfig.json
@@ -217,24 +240,28 @@ pnpm build:client  # Uses apps/client/tsconfig.json
 ```
 
 **Configuration**:
+
 - Base: `tsconfig.base.json`
 - Client: `apps/client/tsconfig.json`
 - Server: `apps/server/tsconfig.json`
 - Shared: `packages/shared/tsconfig.json`
 
 **Common Refactoring Type Errors**:
+
 - Broken imports after moving files
 - Missing type definitions for extracted modules
 - Incompatible interface changes
 - Generic type parameter mismatches
 
 **Example Failure**:
+
 ```
 apps/client/src/ui/App.tsx:15:23 - error TS2307:
 Cannot find module './hooks/useLayoutMeasurement' or its corresponding type declarations.
 ```
 
 **Resolution Checklist**:
+
 - [ ] Update import paths after moving files
 - [ ] Export types from new module files
 - [ ] Update barrel exports (index.ts files)
@@ -242,6 +269,7 @@ Cannot find module './hooks/useLayoutMeasurement' or its corresponding type decl
 - [ ] Verify shared package references
 
 **CI Implementation**:
+
 ```yaml
 - name: Build packages
   run: pnpm build
@@ -254,6 +282,7 @@ Cannot find module './hooks/useLayoutMeasurement' or its corresponding type decl
 **Command**: `pnpm lint`
 
 **Scope**:
+
 ```bash
 pnpm lint:client  # apps/client
 pnpm lint:server  # apps/server
@@ -263,15 +292,17 @@ pnpm lint:shared  # packages/shared
 **Configuration**: `eslint.config.js`
 
 **Key Rules for Refactoring**:
+
 - `@typescript-eslint/no-unused-vars`: Catches orphaned code after extraction
 - `@typescript-eslint/no-explicit-any`: Enforces type safety (warn level)
 - `react-hooks/rules-of-hooks`: Validates custom hook patterns
 - `react-hooks/exhaustive-deps`: Catches missing dependencies
 
 **Common Lint Errors During Refactoring**:
+
 ```javascript
 // Unused import after extraction
-import { oldFunction } from './deprecated'; // ❌ 'oldFunction' is defined but never used
+import { oldFunction } from "./deprecated"; // ❌ 'oldFunction' is defined but never used
 
 // Missing dependency in extracted hook
 useEffect(() => {
@@ -287,6 +318,7 @@ const MyComponent = () => {
 ```
 
 **Resolution**:
+
 - Remove unused imports after refactoring
 - Update useEffect dependencies when extracting hooks
 - Follow Rules of Hooks when creating custom hooks
@@ -297,6 +329,7 @@ const MyComponent = () => {
 **Command**: `pnpm format:check`
 
 **Configuration**: `.prettierrc`
+
 ```json
 {
   "printWidth": 100,
@@ -310,6 +343,7 @@ const MyComponent = () => {
 **Auto-Fix**: `pnpm format`
 
 **CI Implementation**:
+
 ```yaml
 - name: Run lint checks
   run: pnpm lint
@@ -320,15 +354,18 @@ const MyComponent = () => {
 ### 5. Build Verification
 
 **Commands**:
+
 - `pnpm build:server` - Server build
 - `pnpm build:client` - Client build
 - `pnpm build` - Both (sequential)
 
 **Build Tools**:
+
 - **Server**: TypeScript compiler (`tsc`)
 - **Client**: Vite bundler
 
 **What Gets Verified**:
+
 - All TypeScript compiles successfully
 - No module resolution errors
 - Build artifacts are generated
@@ -336,16 +373,19 @@ const MyComponent = () => {
 - Proper tree-shaking (client)
 
 **Build Artifacts** (not committed):
+
 - `apps/server/dist/` - Server compiled JS
 - `apps/client/dist/` - Client production bundle
 
 **Failure Scenarios**:
+
 - TypeScript compilation errors
 - Missing dependencies
 - Import path errors
 - Vite build failures
 
 **CI Implementation**:
+
 ```yaml
 - name: Build packages
   run: pnpm build
@@ -360,12 +400,14 @@ const MyComponent = () => {
 **Test Location**: `apps/e2e/`
 
 **How to Run**:
+
 ```bash
 pnpm test:e2e        # Headless mode
 pnpm test:e2e:ui     # Interactive mode
 ```
 
 **Smoke Test Scope** (Recommended for Refactoring):
+
 - [ ] User can create a room
 - [ ] User can join a room
 - [ ] DM can add a token to the map
@@ -374,11 +416,13 @@ pnpm test:e2e:ui     # Interactive mode
 - [ ] WebSocket connection establishes
 
 **When to Add to CI**:
+
 - When refactoring high-risk areas (WebSocket, core features)
 - Before major releases
 - When you need end-to-end confidence
 
 **Future CI Integration** (Example):
+
 ```yaml
 - name: Run E2E smoke tests
   run: pnpm test:e2e
@@ -387,6 +431,7 @@ pnpm test:e2e:ui     # Interactive mode
 ```
 
 **Benefits**:
+
 - Catches integration issues not visible in unit tests
 - Validates WebSocket refactoring end-to-end
 - Provides confidence for UI component extraction
@@ -411,6 +456,7 @@ on:
 ```
 
 **When CI Runs**:
+
 - On every push to `dev` or `main` branches
 - On every pull request targeting `dev`
 - Manual workflow dispatch (if needed)
@@ -424,12 +470,14 @@ on:
 **Runs On**: `ubuntu-latest`
 
 **Strategy**: Matrix testing
+
 ```yaml
 matrix:
   node-version: [18.x, 20.x]
 ```
 
 **Why Matrix?**
+
 - Ensures compatibility with Node 18 LTS and Node 20 LTS
 - Catches version-specific issues
 - Aligns with production deployment targets
@@ -437,26 +485,31 @@ matrix:
 ### Step-by-Step Breakdown
 
 #### 1. Checkout Repository
+
 ```yaml
 - name: Checkout repository
   uses: actions/checkout@v4
 ```
+
 - Clones the repository
 - Uses latest stable checkout action
 - Includes full git history
 
 #### 2. Setup pnpm
+
 ```yaml
 - name: Setup pnpm
   uses: pnpm/action-setup@v3
   with:
     version: 10.17.1
 ```
+
 - Installs pnpm package manager
 - Pinned to version 10.17.1 (matches `package.json` packageManager)
 - Ensures consistent dependency resolution
 
 #### 3. Setup Node.js
+
 ```yaml
 - name: Setup Node.js ${{ matrix.node-version }}
   uses: actions/setup-node@v4
@@ -464,34 +517,41 @@ matrix:
     node-version: ${{ matrix.node-version }}
     cache: pnpm
 ```
+
 - Installs Node.js (18.x and 20.x)
 - Enables pnpm cache for faster builds
 - Cache key based on `pnpm-lock.yaml`
 
 #### 4. Install Dependencies
+
 ```yaml
 - name: Install dependencies
   run: pnpm install --frozen-lockfile
 ```
+
 - Installs all dependencies
 - `--frozen-lockfile`: Fails if lockfile is out of sync
 - Ensures reproducible builds
 
 #### 5. Run Lint Checks
+
 ```yaml
 - name: Run lint checks
   run: pnpm lint
 ```
+
 - Runs ESLint across all packages
 - Includes TypeScript type checking
 - Enforces code style via Prettier integration
 - **Refactor Impact**: Catches unused imports, broken hooks, type errors
 
 #### 6. Enforce Structural Guardrails
+
 ```yaml
 - name: Enforce structural guardrails
   run: pnpm lint:structure:enforce
 ```
+
 - **CRITICAL FOR REFACTORING**
 - Runs `structure-report.mjs --threshold 350 --fail-on-new`
 - Blocks new files exceeding 350 LOC
@@ -499,11 +559,13 @@ matrix:
 - **Exit Code**: 1 if new violations detected, 0 otherwise
 
 #### 7. Generate Structural Report
+
 ```yaml
 - name: Generate structural report
   if: always()
   run: pnpm lint:structure | tee structure-report.txt
 ```
+
 - **Runs even if previous step fails** (`if: always()`)
 - Generates human-readable structure report
 - Displays top 50 largest files
@@ -511,10 +573,12 @@ matrix:
 - Output saved to `structure-report.txt`
 
 #### 8. Generate Structural Report Artifact (JSON)
+
 ```yaml
 - name: Generate structural report artifact
   run: node scripts/structure-report.mjs --limit 200 --threshold 350 --json > structure-report.json
 ```
+
 - Generates machine-readable JSON report
 - Includes top 200 files
 - Used for tracking trends over time
@@ -539,6 +603,7 @@ matrix:
   ```
 
 #### 9. Upload Structural Report
+
 ```yaml
 - name: Upload structural report
   uses: actions/upload-artifact@v4
@@ -549,26 +614,31 @@ matrix:
       structure-report.json
     if-no-files-found: ignore
 ```
+
 - Uploads both text and JSON reports as artifacts
 - Available for 90 days (GitHub default)
 - Named per Node version: `structure-report-18.x`, `structure-report-20.x`
 - **How to Access**: GitHub Actions run summary > Artifacts section
 
 #### 10. Build Packages
+
 ```yaml
 - name: Build packages
   run: pnpm build
 ```
+
 - Builds server: `pnpm build:server`
 - Builds client: `pnpm build:client`
 - **Refactor Impact**: Catches TypeScript errors, module resolution issues
 - Verifies production bundle generation
 
 #### 11. Run Tests with Coverage
+
 ```yaml
 - name: Run tests with coverage
   run: pnpm test:coverage
 ```
+
 - Runs all unit tests:
   - `pnpm test:shared:coverage`
   - `pnpm test:server:coverage`
@@ -577,6 +647,7 @@ matrix:
 - **Refactor Impact**: Validates behavior preservation, catches regressions
 
 #### 12. Upload Coverage to Codecov
+
 ```yaml
 - name: Upload coverage to Codecov
   uses: codecov/codecov-action@v4
@@ -589,6 +660,7 @@ matrix:
     flags: unit
     fail_ci_if_error: false
 ```
+
 - Uploads coverage only from Node 20.x run (avoids duplicates)
 - Sends to Codecov for tracking
 - `fail_ci_if_error: false`: Upload failure doesn't block CI
@@ -617,6 +689,7 @@ matrix:
 ### Workflow Duration
 
 **Typical Times** (varies by changes):
+
 - Checkout & Setup: ~30s
 - Install Dependencies: ~1-2min (with cache)
 - Lint: ~30-60s
@@ -658,11 +731,13 @@ CI Failed
 #### 1. Access the Failed Workflow
 
 **Via GitHub UI**:
+
 1. Navigate to PR or commit on GitHub
 2. Click "Details" next to failed check
 3. Expand failed step in workflow log
 
 **Via GitHub CLI**:
+
 ```bash
 gh run list --limit 5
 gh run view <run-id>
@@ -672,6 +747,7 @@ gh run view <run-id> --log-failed
 #### 2. Identify the Failed Step
 
 Look for red X in workflow logs:
+
 - `Run lint checks` - Linting/formatting error
 - `Enforce structural guardrails` - LOC violation
 - `Build packages` - TypeScript/build error
@@ -708,6 +784,7 @@ pnpm test:shared
 ```
 
 **Benefits**:
+
 - Faster iteration
 - Better debugging tools
 - No CI queue wait
@@ -730,6 +807,7 @@ git diff dev...HEAD apps/client/src/ui/App.tsx
 #### Fix Immediately (Same PR)
 
 **Scenarios**:
+
 - Trivial fix (missing import, typo)
 - Test update for intentional behavior change
 - Formatting issue (run `pnpm format`)
@@ -738,6 +816,7 @@ git diff dev...HEAD apps/client/src/ui/App.tsx
 **Time Limit**: Fix within 1-2 commits
 
 **Example**:
+
 ```bash
 # Quick fix for broken import
 git add apps/client/src/ui/App.tsx
@@ -748,6 +827,7 @@ git push
 #### Fix in Follow-Up Commit (Same Branch)
 
 **Scenarios**:
+
 - Structural violation requires small refactoring
 - Multiple test failures need investigation
 - Build error requires dependency update
@@ -756,6 +836,7 @@ git push
 **Time Limit**: Fix within 24 hours
 
 **Checklist**:
+
 - [ ] Add comment in PR explaining the fix
 - [ ] Keep fix commits separate from refactoring commits
 - [ ] Run full CI locally before pushing
@@ -764,6 +845,7 @@ git push
 #### Revert Immediately
 
 **Scenarios**:
+
 - Blocker for other team members
 - Fix is unclear or will take >24 hours
 - Multiple unrelated failures
@@ -772,6 +854,7 @@ git push
 - Breaking production deployment
 
 **How to Revert**:
+
 ```bash
 # Revert the problematic commit
 git revert <commit-sha>
@@ -783,6 +866,7 @@ git push --force
 ```
 
 **After Reverting**:
+
 1. Fix in separate branch
 2. Re-run full CI locally
 3. Open fresh PR
@@ -797,6 +881,7 @@ git push --force
 **Impact**: Blocks all downstream PRs
 
 **Response**:
+
 1. **Immediate**: Revert the breaking commit
    ```bash
    git revert <bad-commit-sha>
@@ -812,12 +897,14 @@ git push --force
 **Symptom**: Tests pass locally but fail in CI (or vice versa)
 
 **Common Causes**:
+
 - Race conditions in async code
 - Hardcoded timing (setTimeout)
 - Environment-specific behavior
 - Test interdependence
 
 **Response**:
+
 1. **Immediate**: Re-run CI to confirm flakiness
 2. **Short-term**: Use `retries: 1` in Playwright config (already set)
 3. **Long-term**: Fix the flaky test
@@ -831,11 +918,13 @@ git push --force
 **Symptom**: Errors unrelated to code (GitHub Actions down, npm registry timeout, etc.)
 
 **Examples**:
+
 - `Error: connect ETIMEDOUT`
 - `Unable to locate executable file: pnpm`
 - `The hosted runner lost communication`
 
 **Response**:
+
 1. Check [GitHub Status](https://www.githubstatus.com/)
 2. Re-run failed jobs (GitHub UI: "Re-run failed jobs")
 3. If persistent, use workflow dispatch with cache disabled:
@@ -849,6 +938,7 @@ git push --force
 **Symptom**: Critical bugfix blocked by 350 LOC violation
 
 **Response** (RARE - requires justification):
+
 1. Fix the bug in a minimal way
 2. If still over 350 LOC, update baseline:
    ```bash
@@ -874,21 +964,25 @@ git push --force
 **Source**: CI workflow results
 
 **Metrics**:
+
 - Total tests run
 - Pass rate (%)
 - Failure rate (%)
 - Flaky test occurrences
 
 **Tools**:
+
 - GitHub Actions insights
 - Codecov trends
 - Manual tracking in spreadsheet/dashboard
 
 **Target**:
+
 - 100% pass rate on `dev` branch
 - < 1% flaky test rate
 
 **How to Track**:
+
 ```bash
 # List recent workflow runs
 gh run list --workflow=ci.yml --limit 20 --json conclusion,createdAt,headBranch
@@ -899,6 +993,7 @@ gh run list --workflow=ci.yml --status failure --limit 100
 
 **Dashboard Idea** (Advanced):
 Create a script to parse CI results and generate trends:
+
 ```bash
 gh api /repos/:owner/:repo/actions/workflows/ci.yml/runs --paginate | jq '.workflow_runs[] | {date: .created_at, status: .conclusion}'
 ```
@@ -908,27 +1003,32 @@ gh api /repos/:owner/:repo/actions/workflows/ci.yml/runs --paginate | jq '.workf
 **Why Monitor**: Slow CI discourages frequent commits
 
 **Baseline** (current):
+
 - ~5-10 minutes per run
 - ~1-2 minutes for install (cached)
 - ~1-2 minutes for build
 - ~2-5 minutes for tests
 
 **Targets**:
+
 - Keep install time < 2min (cache hit rate > 90%)
 - Keep build time < 3min
 - Keep test time < 5min
 - Total time < 12min
 
 **When to Investigate**:
+
 - Build time increases > 50% from baseline
 - Cache hit rate drops below 80%
 - Test time increases without new tests
 
 **How to Track**:
+
 - GitHub Actions timing logs (per step)
 - `gh run view <run-id>` shows step durations
 
 **Optimization Ideas**:
+
 - Parallelize test suites
 - Use Vitest sharding
 - Optimize TypeScript compilation
@@ -939,22 +1039,26 @@ gh api /repos/:owner/:repo/actions/workflows/ci.yml/runs --paginate | jq '.workf
 **Source**: Codecov dashboard
 
 **Metrics**:
+
 - Overall coverage %
 - Per-package coverage (shared, server, client)
 - Coverage change per PR
 - Uncovered lines in refactored files
 
 **Targets**:
+
 - Maintain or improve overall coverage
 - No PR reduces coverage by > 2%
 - New refactored modules have > 80% coverage
 
 **Codecov Insights**:
+
 - Visit: `https://codecov.io/gh/<org>/<repo>`
 - Review: Coverage sunburst, file browser, trends
 - Alert: Configure Codecov to comment on PRs with coverage changes
 
 **Local Coverage Check**:
+
 ```bash
 pnpm test:coverage
 
@@ -968,6 +1072,7 @@ open apps/server/coverage/index.html
 **Source**: Structural report artifacts
 
 **Metrics**:
+
 - Total files over 350 LOC
 - Total LOC in flagged files
 - Category breakdown (client:ui, server:websocket, etc.)
@@ -976,10 +1081,12 @@ open apps/server/coverage/index.html
 **Tracking Method**:
 
 **Option 1: Manual Tracking**
+
 - Download `structure-report.json` from CI artifacts weekly
 - Track flagged file count in spreadsheet
 
 **Option 2: Automated Tracking** (Recommended)
+
 - Store historical reports in `docs/refactoring/metrics/`
 - Create comparison script:
   ```bash
@@ -990,13 +1097,14 @@ open apps/server/coverage/index.html
   ```
 
 **Sample Tracking Table**:
-| Date       | Flagged Files | Total LOC (Flagged) | Largest File          | Progress |
+| Date | Flagged Files | Total LOC (Flagged) | Largest File | Progress |
 |------------|---------------|---------------------|-----------------------|----------|
-| 2025-01-15 | 27            | 18,543              | App.tsx (1,247)       | Baseline |
-| 2025-02-01 | 24            | 16,892              | App.tsx (987)         | -11.1%   |
-| 2025-02-15 | 20            | 14,331              | MapBoard.tsx (856)    | -22.7%   |
+| 2025-01-15 | 27 | 18,543 | App.tsx (1,247) | Baseline |
+| 2025-02-01 | 24 | 16,892 | App.tsx (987) | -11.1% |
+| 2025-02-15 | 20 | 14,331 | MapBoard.tsx (856) | -22.7% |
 
 **Success Indicators**:
+
 - Decreasing flagged file count
 - Decreasing average LOC per flagged file
 - Categories with 0 violations (e.g., client:hooks)
@@ -1008,6 +1116,7 @@ open apps/server/coverage/index.html
 **Schedule**: Every Monday, 15-minute review
 
 **Checklist**:
+
 - [ ] Review last 7 days of CI runs
 - [ ] Check for new flaky tests
 - [ ] Compare build times to baseline
@@ -1022,6 +1131,7 @@ open apps/server/coverage/index.html
 **Schedule**: First of each month, 30-minute deep dive
 
 **Checklist**:
+
 - [ ] Generate month-over-month metrics report
 - [ ] Identify CI bottlenecks
 - [ ] Review test suite performance
@@ -1034,12 +1144,14 @@ open apps/server/coverage/index.html
 #### Alert Triggers
 
 **Set up alerts for**:
+
 - CI failure rate > 10% (investigate infrastructure)
 - Build time > 15min (investigate slowdown)
 - Coverage drop > 5% (investigate missing tests)
 - 3+ flaky test occurrences in a week (fix tests)
 
 **Tools**:
+
 - GitHub Actions email notifications
 - Slack/Discord webhooks for CI failures
 - Codecov status checks
@@ -1053,6 +1165,7 @@ open apps/server/coverage/index.html
 **Why**: Catch issues early, reduce CI queue time, faster iteration
 
 **Pre-Push Checklist**:
+
 ```bash
 # 1. Install dependencies (if changed)
 pnpm install
@@ -1077,6 +1190,7 @@ pnpm test:coverage
 ```
 
 **Pro Tip**: Create a pre-push alias
+
 ```bash
 # Add to ~/.bashrc or ~/.zshrc
 alias ci-check="pnpm lint && pnpm lint:structure:enforce && pnpm build && pnpm test"
@@ -1086,6 +1200,7 @@ ci-check && git push
 ```
 
 **Or use a script**: `scripts/ci-check.sh`
+
 ```bash
 #!/bin/bash
 set -e
@@ -1104,17 +1219,20 @@ echo "✅ All checks passed! Safe to push."
 **Exceptions**: NONE (even for "trivial" failures)
 
 **Why**:
+
 - Breaks downstream PRs
 - Erodes team confidence in CI
 - Creates technical debt
 - Violates refactoring safety guarantees
 
 **Enforcement**:
+
 - Enable GitHub branch protection: "Require status checks to pass"
 - Make this a team norm (code review checklist)
 - Escalate violations to tech lead
 
 **What to Do Instead**:
+
 1. Fix the failure
 2. Re-run CI to confirm
 3. Then merge
@@ -1124,6 +1242,7 @@ echo "✅ All checks passed! Safe to push."
 **Policy**: If your PR breaks CI, fix it or revert within 24 hours
 
 **Why 24 Hours**:
+
 - Keeps `dev` branch healthy
 - Prevents blocking other team members
 - Maintains refactoring momentum
@@ -1132,13 +1251,14 @@ echo "✅ All checks passed! Safe to push."
 **Response Timeline**:
 
 | Time       | Action                          |
-|------------|---------------------------------|
+| ---------- | ------------------------------- |
 | 0-2 hours  | Investigate and attempt fix     |
 | 2-8 hours  | Communicate status to team      |
 | 8-24 hours | Fix completed or revert planned |
 | 24+ hours  | Escalate to tech lead           |
 
 **Communication Template**:
+
 ```
 PR #123 failed CI in step: "Run tests with coverage"
 Status: Investigating test failure in WebSocket connection tests
@@ -1149,22 +1269,26 @@ Blocker: No (isolated to this PR)
 ### 4. Monitor CI Health
 
 **Individual Responsibility**:
+
 - Check CI status after every push
 - Review artifact reports for your PRs
 - Don't ignore warnings (they become errors)
 
 **Team Responsibility**:
+
 - Designate rotating "CI health monitor" role
 - Weekly CI health review in standup
 - Celebrate structural improvements
 
 **Green Indicators**:
+
 - 95%+ pass rate on `dev`
 - Consistent build times
 - No backlog of broken PRs
 - Decreasing structural violations
 
 **Red Flags**:
+
 - Frequent flaky tests
 - Increasing build times
 - Multiple PRs failing same check
@@ -1173,12 +1297,14 @@ Blocker: No (isolated to this PR)
 ### 5. Understand What Each Check Does
 
 **Before Refactoring a Module**:
+
 1. Review this document
 2. Understand which CI checks will validate your changes
 3. Run those checks locally first
 4. Review structural report to see current state
 
 **For Each CI Failure**:
+
 1. Read the error message completely
 2. Understand which check failed and why
 3. Look up the check in this document
@@ -1187,12 +1313,14 @@ Blocker: No (isolated to this PR)
 ### 6. Use Structural Reports as a Guide
 
 **How to Use**:
+
 1. Download `structure-report.json` from CI artifacts
 2. Find your target file in the report
 3. Read the hint and roadmap reference
 4. Follow the suggested refactoring approach
 
 **Example**:
+
 ```json
 {
   "path": "apps/client/src/ui/App.tsx",
@@ -1203,6 +1331,7 @@ Blocker: No (isolated to this PR)
 ```
 
 **Action**:
+
 - Open `docs/refactoring/REFACTOR_ROADMAP.md`
 - Navigate to "App.tsx Phases 1-7"
 - Follow phase 1 extraction guidance
@@ -1214,11 +1343,13 @@ Blocker: No (isolated to this PR)
 **Best Practice**: Small, focused PRs that pass CI quickly
 
 **Recommended PR Scope**:
+
 - Single file refactoring (e.g., extract 3 hooks from App.tsx)
 - Single feature extraction (e.g., DMMenu collapsible section)
 - Single pattern application (e.g., convert all service functions to classes)
 
 **Benefits**:
+
 - Faster CI runs
 - Easier code review
 - Simpler rollback if needed
@@ -1226,6 +1357,7 @@ Blocker: No (isolated to this PR)
 - Less merge conflict risk
 
 **Example Good PR Sequence**:
+
 1. PR #1: Extract useLayoutMeasurement from App.tsx
 2. PR #2: Extract useToolMode from App.tsx
 3. PR #3: Extract CameraControls component from App.tsx
@@ -1233,22 +1365,27 @@ Blocker: No (isolated to this PR)
 ### 8. Document Baseline Updates
 
 **When Updating Baseline**:
+
 ```bash
 pnpm baseline:update
 ```
 
 **Required in PR Description**:
+
 - Why is this file exceeding 350 LOC?
 - Is this temporary (new feature) or permanent (legacy code)?
 - What is the plan to refactor it later?
 - Link to follow-up issue or roadmap phase
 
 **Example PR Description**:
+
 ```markdown
 ## Summary
+
 Adds new feature: AI-powered NPC generator
 
 ## Structural Baseline Update
+
 - Added `apps/client/src/features/ai/NPCGenerator.tsx` (412 LOC) to baseline
 - **Reason**: New feature implementation, will refactor in Phase 16
 - **Plan**: Extract AI service logic to separate module, split UI into smaller components
@@ -1260,10 +1397,12 @@ Adds new feature: AI-powered NPC generator
 **Philosophy**: Warnings eventually become errors
 
 **Examples**:
+
 - `@typescript-eslint/no-explicit-any`: Currently "warn", should be "error"
 - Structural report flagged files: Address proactively
 
 **Action Items**:
+
 - Don't introduce new `any` types
 - Don't add to flagged files (refactor instead)
 - Create issues to fix existing warnings
@@ -1271,12 +1410,14 @@ Adds new feature: AI-powered NPC generator
 ### 10. Celebrate CI Improvements
 
 **Track Wins**:
+
 - File count reduced from 27 to 24 violations
 - Build time improved from 8min to 6min
 - Coverage increased from 75% to 82%
 - 0 CI failures this week
 
 **Recognition**:
+
 - Shout out in team chat
 - Add to weekly metrics report
 - Include in sprint retrospectives
@@ -1329,15 +1470,15 @@ gh run download <run-id>        # Download artifacts
 
 ### CI Failure Quick Diagnosis
 
-| Error Message                          | Check Failed          | Fix                          |
-|----------------------------------------|-----------------------|------------------------------|
-| `❌ STRUCTURAL GUARDRAIL VIOLATION`    | Structural guardrail  | Refactor or update baseline  |
-| `error TS2307: Cannot find module`     | Build                 | Fix import path              |
-| `FAIL apps/client/src/...test.tsx`     | Tests                 | Fix test or code             |
-| `'variable' is defined but never used` | Lint                  | Remove unused code           |
-| `error TS2345: Argument of type...`    | Build (type error)    | Fix type mismatch            |
-| `Expected linebreaks to be 'LF'`       | Lint (formatting)     | Run `pnpm format`            |
-| `React Hook useEffect has missing...`  | Lint (React hooks)    | Add dependency or disable    |
+| Error Message                          | Check Failed         | Fix                         |
+| -------------------------------------- | -------------------- | --------------------------- |
+| `❌ STRUCTURAL GUARDRAIL VIOLATION`    | Structural guardrail | Refactor or update baseline |
+| `error TS2307: Cannot find module`     | Build                | Fix import path             |
+| `FAIL apps/client/src/...test.tsx`     | Tests                | Fix test or code            |
+| `'variable' is defined but never used` | Lint                 | Remove unused code          |
+| `error TS2345: Argument of type...`    | Build (type error)   | Fix type mismatch           |
+| `Expected linebreaks to be 'LF'`       | Lint (formatting)    | Run `pnpm format`           |
+| `React Hook useEffect has missing...`  | Lint (React hooks)   | Add dependency or disable   |
 
 ### Resource Links
 
@@ -1346,8 +1487,8 @@ gh run download <run-id>        # Download artifacts
 - **ESLint Config**: `eslint.config.js`
 - **Prettier Config**: `.prettierrc`
 - **Playwright Config**: `playwright.config.ts`
-- **Refactor Roadmap**: `/home/loshunter/HeroByte/docs/refactoring/REFACTOR_ROADMAP.md`
-- **Refactor Playbook**: `/home/loshunter/HeroByte/docs/refactoring/REFACTOR_PLAYBOOK.md`
+- **Refactor Roadmap**: `docs/refactoring/REFACTOR_ROADMAP.md`
+- **Refactor Playbook**: `docs/refactoring/REFACTOR_PLAYBOOK.md`
 - **Codecov**: `https://codecov.io/gh/<org>/<repo>`
 - **GitHub Actions**: `https://github.com/<org>/<repo>/actions`
 
@@ -1358,37 +1499,37 @@ gh run download <run-id>        # Download artifacts
 ### A. Workflow File Location
 
 ```
-/home/loshunter/HeroByte/.github/workflows/ci.yml
+.github/workflows/ci.yml
 ```
 
 ### B. Structural Baseline Location
 
 ```
-/home/loshunter/HeroByte/scripts/structure-baseline.json
+scripts/structure-baseline.json
 ```
 
 ### C. Coverage Output Locations
 
 ```
-/home/loshunter/HeroByte/packages/shared/coverage/
-/home/loshunter/HeroByte/apps/server/coverage/
-/home/loshunter/HeroByte/apps/client/coverage/ (future)
+packages/shared/coverage/
+apps/server/coverage/
+apps/client/coverage/ (future)
 ```
 
 ### D. Build Output Locations (not committed)
 
 ```
-/home/loshunter/HeroByte/apps/server/dist/
-/home/loshunter/HeroByte/apps/client/dist/
+apps/server/dist/
+apps/client/dist/
 ```
 
 ---
 
 ## Version History
 
-| Date       | Version | Changes                          |
-|------------|---------|----------------------------------|
-| 2025-11-15 | 1.0     | Initial comprehensive document   |
+| Date       | Version | Changes                        |
+| ---------- | ------- | ------------------------------ |
+| 2025-11-15 | 1.0     | Initial comprehensive document |
 
 ---
 

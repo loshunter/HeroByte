@@ -1,4 +1,5 @@
 test-secret.json
 # Runtime state — never commit (regenerated on every server run)
 herobyte-state*.json
+herobyte-maps*.json
 herobyte-room-secret.json

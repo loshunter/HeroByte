@@ -1,17 +1,13 @@
 #!/bin/bash
 # Clean start script for HeroByte development servers
 
-echo "=== Cleaning up all existing processes ==="
-pkill -9 -f "vite" 2>/dev/null
-pkill -9 -f "pnpm.*dev" 2>/dev/null
-pkill -9 -f "node.*dist/index.js" 2>/dev/null
-
-echo "Waiting for processes to die..."
-sleep 2
-
-echo "=== Rebuilding Backend Server ==="
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_ROOT"
+
+echo "=== Safely releasing HeroByte dev ports ==="
+node scripts/dev-port-preflight.mjs free
+
+echo "=== Rebuilding Backend Server ==="
 pnpm --filter vtt-server build
 
 echo "=== Starting Backend Server (port 8787) ==="
@@ -34,4 +30,4 @@ echo "Frontend: http://localhost:5174"
 echo "Password: Fun1"
 echo ""
 echo "To stop: pkill -P $SERVER_PID && pkill -P $CLIENT_PID"
-echo "Or just run: pkill -9 -f vite && pkill -9 -f 'node.*dist'"
+echo "Or run: pnpm dev:free"

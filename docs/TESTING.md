@@ -51,15 +51,26 @@ pnpm exec playwright install --with-deps chromium
 pnpm test:e2e
 ```
 
+`pnpm test:e2e` uses isolated local ports by default: `5175` for the built frontend preview and `8788` for the E2E backend. This means the normal development stack can stay open on `5174` and `8787`.
+
 Environment variables:
 
 | Variable                    | Default                 | Description                                                                            |
 | --------------------------- | ----------------------- | -------------------------------------------------------------------------------------- |
-| `E2E_BASE_URL`              | `http://127.0.0.1:5174` | Page URL under test. The reset endpoint still uses `E2E_WS_HOST` and `E2E_WS_PORT`.    |
-| `E2E_ROOM_PASSWORD`         | `Fun1`                  | Default password for the public demo room                                              |
+| `E2E_PORT`                  | `5175`                  | Frontend preview port used by Playwright.                                              |
+| `E2E_WS_PORT`               | `8788`                  | Backend/API/WebSocket port used by Playwright.                                         |
+| `E2E_BASE_URL`              | `http://127.0.0.1:5175` | Page URL under test. The reset endpoint still uses `E2E_WS_HOST` and `E2E_WS_PORT`.    |
+| `E2E_ROOM_PASSWORD`         | `Fun1`                  | Default password for the public demo room.                                             |
 | `E2E_REUSE_EXISTING_SERVER` | unset                   | Set to `true` only when both the frontend and backend are already running in E2E mode. |
 
-Playwright automatically boots both the client and server via the `webServer` configuration. Logs, traces, screenshots, and videos are captured on failure and written to `playwright-report/`.
+Playwright automatically boots both the client and server via the `webServer` configuration. The root `pnpm test:e2e` script preflights the isolated E2E ports before Playwright starts. Logs, traces, screenshots, and videos are captured on failure and written to `playwright-report/`.
+
+To inspect or clear only the E2E ports:
+
+```bash
+pnpm e2e:doctor
+pnpm e2e:free
+```
 
 ---
 

@@ -68,6 +68,17 @@ vi.mock("../../components/dice/ResultPanel", () => ({
   ),
 }));
 
+vi.mock("../../features/map-studio", () => ({
+  MapStudioWorkspace: ({ onExit }: { onExit: () => void }) => (
+    <div data-testid="map-studio-workspace">
+      Map Studio
+      <button type="button" onClick={onExit}>
+        Exit Studio
+      </button>
+    </div>
+  ),
+}));
+
 describe("MobileLayout", () => {
   const createDefaultProps = (): MainLayoutProps => ({
     isConnected: true,
@@ -85,6 +96,8 @@ describe("MobileLayout", () => {
     transformMode: false,
     selectMode: false,
     alignmentMode: false,
+    mapStudioMode: false,
+    openMapStudio: vi.fn(),
     snapToGrid: true,
     setSnapToGrid: vi.fn(),
     crtFilter: false,
@@ -204,45 +217,84 @@ describe("MobileLayout", () => {
     expect(screen.queryByTestId("turn-controls")).not.toBeInTheDocument();
   });
 
-  it("toggles the mobile controls menu", () => {
+  it("opens and closes the mobile tool sheet", () => {
     render(<MobileLayout {...createDefaultProps()} />);
 
-    // Initially controls are hidden
-    expect(screen.queryByText("🎲 Dice")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ping")).not.toBeInTheDocument();
 
-    // Click toggle button
-    const toggleBtn = screen.getByText("☰");
-    fireEvent.click(toggleBtn);
+    fireEvent.click(screen.getByRole("button", { name: /tools/i }));
 
-    // Now controls should be visible
-    expect(screen.getByText("🎲 Dice")).toBeInTheDocument();
-    expect(screen.getByText("📜 Log")).toBeInTheDocument();
+    expect(screen.getByText("Ping")).toBeInTheDocument();
+    expect(screen.getByText("Measure")).toBeInTheDocument();
 
-    // Click toggle button again
-    fireEvent.click(screen.getByText("✕"));
+    fireEvent.click(screen.getByRole("button", { name: /close tools/i }));
 
-    // Controls should be hidden again
-    expect(screen.queryByText("🎲 Dice")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ping")).not.toBeInTheDocument();
   });
 
-  it("toggles the dice roller via the menu", () => {
+  it("toggles the dice roller via the dock", () => {
     const props = createDefaultProps();
     render(<MobileLayout {...props} />);
 
-    fireEvent.click(screen.getByText("☰"));
-    fireEvent.click(screen.getByText("🎲 Dice"));
+    fireEvent.click(screen.getByRole("button", { name: /dice/i }));
 
     expect(props.toggleDiceRoller).toHaveBeenCalledWith(true);
   });
 
-  it("toggles the roll log via the menu", () => {
+  it("toggles the roll log via the dock", () => {
     const props = createDefaultProps();
     render(<MobileLayout {...props} />);
 
-    fireEvent.click(screen.getByText("☰"));
-    fireEvent.click(screen.getByText("📜 Log"));
+    fireEvent.click(screen.getByRole("button", { name: /log/i }));
 
     expect(props.toggleRollLog).toHaveBeenCalledWith(true);
+  });
+
+  it("selects mobile map tools from the tool sheet", () => {
+    const props = createDefaultProps();
+    props.activeTool = null;
+    props.pointerMode = false;
+    render(<MobileLayout {...props} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /tools/i }));
+    fireEvent.click(screen.getByRole("button", { name: /ping/i }));
+
+    expect(props.setActiveTool).toHaveBeenCalledWith("pointer");
+  });
+
+  it("renders selected object actions in transform mode", () => {
+    const props = createDefaultProps();
+    props.activeTool = "transform";
+    props.transformMode = true;
+    props.isDM = true;
+    props.selectedObjectIds = ["token:1"];
+
+    render(<MobileLayout {...props} />);
+
+    expect(screen.getByText("1 selected")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /^lock$/i }));
+    expect(props.lockSelected).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /clear/i }));
+    expect(props.handleObjectSelection).toHaveBeenCalledWith(null);
+    expect(props.handleObjectSelectionBatch).toHaveBeenCalledWith([]);
+  });
+
+  it("renders Map Studio workspace for a DM in mobile map-studio mode", () => {
+    const props = createDefaultProps();
+    props.activeTool = "map-studio";
+    props.mapStudioMode = true;
+    props.isDM = true;
+    props.mapStudio = {} as NonNullable<MainLayoutProps["mapStudio"]>;
+
+    render(<MobileLayout {...props} />);
+
+    expect(screen.getByTestId("map-studio-workspace")).toBeInTheDocument();
+    expect(screen.queryByTestId("map-board")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /exit studio/i }));
+
+    expect(props.setActiveTool).toHaveBeenCalledWith(null);
   });
 
   it("renders DiceRoller when diceRollerOpen is true", () => {

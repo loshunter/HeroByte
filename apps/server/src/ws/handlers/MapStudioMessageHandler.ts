@@ -1,21 +1,26 @@
 import {
   MapDocumentRevisionConflictError,
+  compileScene,
+  toLiveGridSize,
   type ClientMessage,
   type MapDocument,
   type MapDocumentSummary,
   type ServerMessage,
 } from "@herobyte/shared";
 import type { MapStudioService } from "../../domains/mapStudio/service.js";
+import type { RoomState } from "../../domains/room/model.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 
 type SendMessage = (targetUid: string, message: ServerMessage) => void;
 type BroadcastToDMs = (roomId: string, message: ServerMessage) => void;
+type GetRoomState = (roomId: string) => RoomState;
 
 export class MapStudioMessageHandler {
   constructor(
     private readonly service: MapStudioService,
     private readonly sendMessage: SendMessage,
     private readonly broadcastToDMs: BroadcastToDMs,
+    private readonly getRoomState: GetRoomState,
     private readonly now: () => number = Date.now,
   ) {}
 
@@ -70,6 +75,17 @@ export class MapStudioMessageHandler {
           documentId: message.documentId,
         });
         break;
+      case "map-studio-publish": {
+        // Publish compiles, never flattens: the background is cosmetic while
+        // the compiled walls/doors/lights become server-enforced live state.
+        const document = this.service.get(roomId, message.documentId);
+        const state = this.getRoomState(roomId);
+        state.mapBackground = message.background;
+        state.gridSize = toLiveGridSize(document.grid.size);
+        state.gridSquareSize = document.grid.squareSize;
+        state.compiledScene = compileScene(document, this.now());
+        return { broadcast: true, save: true };
+      }
     }
 
     return { broadcast: false, save: false };

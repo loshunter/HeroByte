@@ -4,6 +4,9 @@
 // Reusable SNES-style panel/frame wrapper for consistent UI theming
 
 import React from "react";
+// Import from the file (not the feature barrel) to avoid a cycle: the barrel
+// re-exports components that themselves import JRPGPanel.
+import { useSfx } from "../../features/juice/useSfx";
 
 export type JRPGPanelVariant = "default" | "bevel" | "simple";
 
@@ -54,14 +57,22 @@ export function JRPGButton({
   className = "",
   style = {},
   type = "button",
+  onClick,
   ...buttonProps
 }: JRPGButtonProps) {
+  const { play } = useSfx();
+
   const variantClass = {
     default: "jrpg-button",
     primary: "jrpg-button jrpg-button-primary",
     danger: "jrpg-button jrpg-button-danger",
     success: "jrpg-button jrpg-button-success",
   }[variant];
+
+  const handleClick: React.MouseEventHandler<HTMLButtonElement> = (event) => {
+    play("buttonBlip");
+    onClick?.(event);
+  };
 
   return (
     <button
@@ -73,6 +84,7 @@ export function JRPGButton({
         ...style,
       }}
       type={type}
+      onClick={handleClick}
       {...buttonProps}
     >
       {children}

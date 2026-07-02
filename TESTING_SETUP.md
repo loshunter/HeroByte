@@ -4,8 +4,8 @@ This guide is for setting up the testing infrastructure for HeroByte. Follow the
 
 ## Prerequisites
 
-- Node.js 18+
-- pnpm 8+
+- Node.js 20+
+- pnpm 10 via Corepack (`corepack enable pnpm`)
 - Familiarity with the monorepo structure (see `package.json` workspaces)
 
 ## Project Context

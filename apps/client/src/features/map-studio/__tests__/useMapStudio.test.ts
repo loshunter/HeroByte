@@ -66,6 +66,38 @@ describe("useMapStudio", () => {
     expect(result.current.activeDocument?.id).toBe("map");
   });
 
+  it("publishes the active document with its rendered background", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    const document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
+    act(() => result.current.handleServerMessage({ t: "map-studio-document", document }));
+
+    let published = false;
+    act(() => {
+      published = result.current.publishDocument("data:image/svg+xml,render");
+    });
+
+    expect(published).toBe(true);
+    expect(sendMessage).toHaveBeenLastCalledWith({
+      t: "map-studio-publish",
+      documentId: "map",
+      background: "data:image/svg+xml,render",
+    });
+  });
+
+  it("refuses to publish when no document is active", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+
+    let published = true;
+    act(() => {
+      published = result.current.publishDocument("data:image/svg+xml,render");
+    });
+
+    expect(published).toBe(false);
+    expect(sendMessage).not.toHaveBeenCalledWith(
+      expect.objectContaining({ t: "map-studio-publish" }),
+    );
+  });
+
   it("does not replace the active document when another DM edits a different map", () => {
     const { result } = renderHook(() => useMapStudio(sendMessage));
     const active = createMapDocument({ id: "active", name: "Active", timestamp: 1 });
@@ -159,6 +191,95 @@ describe("useMapStudio", () => {
             ],
           },
         },
+      },
+    });
+  });
+
+  it("creates tile elements through the command queue", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    const document = createMapDocument({ id: "map", name: "Map", timestamp: 1 });
+    act(() => result.current.handleServerMessage({ t: "map-studio-document", document }));
+
+    let tileId: string | null = null;
+    act(() => {
+      tileId = result.current.addTile({
+        layerId: "terrain",
+        assetId: "terrain:stone-floor",
+        x: 100,
+        y: 150,
+        columns: 1,
+        rows: 1,
+      });
+    });
+
+    expect(tileId).toBeTruthy();
+    expect(sendMessage.mock.calls.at(-1)?.[0]).toMatchObject({
+      t: "map-studio-command",
+      command: {
+        type: "add-element",
+        element: {
+          id: tileId,
+          type: "tile",
+          layerId: "terrain",
+          transform: { x: 100, y: 150 },
+          data: {
+            assetId: "terrain:stone-floor",
+            columns: 1,
+            rows: 1,
+          },
+        },
+      },
+    });
+  });
+
+  it("creates multiple tile elements through one revision-aware command", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    const document = createMapDocument({ id: "map", name: "Map", timestamp: 1 });
+    act(() => result.current.handleServerMessage({ t: "map-studio-document", document }));
+
+    let tileIds: string[] = [];
+    act(() => {
+      tileIds = result.current.addTiles([
+        {
+          layerId: "terrain",
+          assetId: "terrain:stone-floor",
+          x: 0,
+          y: 0,
+          columns: 1,
+          rows: 1,
+        },
+        {
+          layerId: "walls",
+          assetId: "structures:stone-wall",
+          x: 50,
+          y: 0,
+          columns: 1,
+          rows: 1,
+        },
+      ]);
+    });
+
+    expect(tileIds).toHaveLength(2);
+    expect(sendMessage.mock.calls.at(-1)?.[0]).toMatchObject({
+      t: "map-studio-command",
+      command: {
+        type: "add-elements",
+        elements: [
+          {
+            id: tileIds[0],
+            type: "tile",
+            layerId: "terrain",
+            transform: { x: 0, y: 0 },
+            data: { assetId: "terrain:stone-floor", columns: 1, rows: 1 },
+          },
+          {
+            id: tileIds[1],
+            type: "tile",
+            layerId: "walls",
+            transform: { x: 50, y: 0 },
+            data: { assetId: "structures:stone-wall", columns: 1, rows: 1 },
+          },
+        ],
       },
     });
   });

@@ -18,8 +18,17 @@ describe("Map Studio message validation", () => {
         grid: { type: "square", size: 50, squareSize: 5, snap: true },
       },
     },
+    { t: "map-studio-publish", documentId: "map", background: "data:image/svg+xml,render" },
   ])("accepts control message $t", (message) => {
     expect(validateMessage(message)).toEqual({ valid: true });
+  });
+
+  it.each([
+    { t: "map-studio-publish", documentId: "", background: "data:image/svg+xml,render" },
+    { t: "map-studio-publish", documentId: "map", background: "" },
+    { t: "map-studio-publish", documentId: "map" },
+  ])("rejects malformed publish payload %#", (message) => {
+    expect(validateMessage(message).valid).toBe(false);
   });
 
   it.each([
@@ -52,6 +61,29 @@ describe("Map Studio message validation", () => {
         transform,
         data: { assetId: "barrel", width: 50, height: 50 },
       },
+    },
+    {
+      type: "add-elements",
+      elements: [
+        {
+          id: "floor-a",
+          layerId: "terrain",
+          type: "tile",
+          locked: false,
+          hidden: false,
+          transform,
+          data: { assetId: "terrain:stone-floor", columns: 1, rows: 1 },
+        },
+        {
+          id: "floor-b",
+          layerId: "terrain",
+          type: "tile",
+          locked: false,
+          hidden: false,
+          transform: { ...transform, x: 50 },
+          data: { assetId: "terrain:stone-floor", columns: 1, rows: 1 },
+        },
+      ],
     },
     { type: "update-element", elementId: "barrel", update: { transform } },
     { type: "remove-element", elementId: "barrel" },

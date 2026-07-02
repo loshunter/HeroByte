@@ -25,6 +25,16 @@ export interface MapShapeDraft {
   stroke: string;
 }
 
+export interface MapTileDraft {
+  layerId: string;
+  assetId: string;
+  x: number;
+  y: number;
+  columns: number;
+  rows: number;
+  tint?: string;
+}
+
 export interface MapWallDraft {
   layerId: string;
   x1: number;
@@ -61,6 +71,8 @@ export interface MapStudioController {
   updateLayer: (layerId: string, update: MapLayerUpdate) => void;
   moveLayer: (layerId: string, targetIndex: number) => void;
   updateGrid: (update: MapGridUpdate) => void;
+  addTile: (draft: MapTileDraft) => string | null;
+  addTiles: (drafts: MapTileDraft[]) => string[];
   addShape: (draft: MapShapeDraft) => string | null;
   addWall: (draft: MapWallDraft) => string | null;
   addDoor: (draft: MapDoorDraft) => string | null;
@@ -68,5 +80,7 @@ export interface MapStudioController {
   updateElement: (elementId: string, update: MapElementUpdate) => void;
   undo: () => void;
   redo: () => void;
+  /** Publish the active document: the server compiles walls/doors/lights into the live scene. */
+  publishDocument: (background: string) => boolean;
   handleServerMessage: (message: MapStudioServerMessage) => void;
 }

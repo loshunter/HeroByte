@@ -14,28 +14,26 @@ test.describe("Mobile Layout", () => {
     await page.getByPlaceholder("Room password").fill(ROOM_PASSWORD);
     await page.getByRole("button", { name: /Enter Room/i }).click();
 
-    // Wait for the map board to be visible (it's lazy loaded)
-    // In mobile layout, we don't have the "Snap" button that joinDefaultRoom waits for.
-    // We should wait for the mobile menu toggle.
-    const menuToggle = page.locator('button:has-text("☰")');
-    await expect(menuToggle).toBeVisible({ timeout: 15_000 });
+    const toolsButton = page.getByRole("button", { name: /Tools/i });
+    await expect(toolsButton).toBeVisible({ timeout: 15_000 });
 
     // Check that the map board is present
     const mapBoard = page.locator('[data-testid="map-board"]');
     await expect(mapBoard).toBeVisible();
 
-    // Open the menu
-    await menuToggle.click();
+    // Check for mobile-specific dock buttons
+    await expect(page.getByRole("button", { name: /Party/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Dice/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Log/i })).toBeVisible();
 
-    // Check for mobile-specific buttons
-    const diceButton = page.locator('button:has-text("🎲 Dice")');
-    const logButton = page.locator('button:has-text("📜 Log")');
-    await expect(diceButton).toBeVisible();
-    await expect(logButton).toBeVisible();
+    // Open the tool sheet
+    await toolsButton.click();
 
-    // Close the menu
-    await page.locator('button:has-text("✕")').click();
-    await expect(diceButton).not.toBeVisible();
+    await expect(page.getByRole("button", { name: /Ping/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Measure/i })).toBeVisible();
+
+    await page.getByRole("button", { name: /Close tools/i }).click();
+    await expect(page.getByRole("button", { name: /Ping/i })).not.toBeVisible();
   });
 
   test("should toggle dice roller in mobile layout", async ({ page }) => {
@@ -45,15 +43,9 @@ test.describe("Mobile Layout", () => {
     await page.getByPlaceholder("Room password").fill(ROOM_PASSWORD);
     await page.getByRole("button", { name: /Enter Room/i }).click();
 
-    // Wait for UI
-    const menuToggle = page.locator('button:has-text("☰")');
-    await expect(menuToggle).toBeVisible({ timeout: 15_000 });
-
-    // Open menu
-    await menuToggle.click();
-
-    // Open dice roller
-    await page.locator('button:has-text("🎲 Dice")').click();
+    const diceButton = page.getByRole("button", { name: /Dice/i });
+    await expect(diceButton).toBeVisible({ timeout: 15_000 });
+    await diceButton.click();
 
     // Check if Dice Roller component is visible
     // The actual component has title "⚂ DICE ROLLER" and a roll button

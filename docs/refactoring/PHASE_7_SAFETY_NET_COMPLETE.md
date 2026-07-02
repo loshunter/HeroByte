@@ -13,15 +13,15 @@ Successfully established a **6-component safety net** for the Phase 15 SOLID ref
 
 ### Completion Metrics
 
-| Component | Status | Deliverable | Impact |
-|-----------|--------|-------------|--------|
-| **Test Catalogue** | ✅ Complete | Comprehensive test analysis | 2,346 tests documented, gaps identified |
-| **Test Augmentation** | ✅ Complete | +25 critical tests added | CharacterService, PlayerService, DiceService, HeartbeatHandler |
-| **Test Validation** | ✅ Complete | Full suite passing | 2,168 tests pass, 0 failures |
-| **Branching Strategy** | ✅ Verified | Existing documentation | Comprehensive workflow documented |
-| **CI Validation** | ✅ Complete | New comprehensive guide | Checkpoints, metrics, failure handling |
-| **Code Review Checklist** | ✅ Complete | New comprehensive guide | Domain invariants, SOLID principles |
-| **Migration Runbooks** | ✅ Complete | New comprehensive guide | Deployment, rollback, monitoring |
+| Component                 | Status      | Deliverable                 | Impact                                                         |
+| ------------------------- | ----------- | --------------------------- | -------------------------------------------------------------- |
+| **Test Catalogue**        | ✅ Complete | Comprehensive test analysis | 2,346 tests documented, gaps identified                        |
+| **Test Augmentation**     | ✅ Complete | +25 critical tests added    | CharacterService, PlayerService, DiceService, HeartbeatHandler |
+| **Test Validation**       | ✅ Complete | Full suite passing          | 2,168 tests pass, 0 failures                                   |
+| **Branching Strategy**    | ✅ Verified | Existing documentation      | Comprehensive workflow documented                              |
+| **CI Validation**         | ✅ Complete | New comprehensive guide     | Checkpoints, metrics, failure handling                         |
+| **Code Review Checklist** | ✅ Complete | New comprehensive guide     | Domain invariants, SOLID principles                            |
+| **Migration Runbooks**    | ✅ Complete | New comprehensive guide     | Deployment, rollback, monitoring                               |
 
 **Total Effort:** ~8 hours across 1 day (Nov 15, 2025)
 **Documentation Created:** 4 new comprehensive documents (11,000+ lines total)
@@ -35,6 +35,7 @@ Successfully established a **6-component safety net** for the Phase 15 SOLID ref
 ### Deliverable
 
 **Comprehensive Test Coverage Analysis**
+
 - **File:** Documented in `TEST_AUGMENTATION_PLAN.md`
 - **Scope:** All 87 test files analyzed across client, server, and E2E
 - **Total Tests:** 2,346 (Client: 1,605 | Server: 677 | E2E: 64)
@@ -42,6 +43,7 @@ Successfully established a **6-component safety net** for the Phase 15 SOLID ref
 ### Key Findings
 
 **Well-Covered Domains:**
+
 - DM Menu Features: 513 tests (EXCELLENT)
 - Hooks (General): 363 tests (EXCELLENT)
 - Services/WebSocket: 184 tests (GOOD)
@@ -50,6 +52,7 @@ Successfully established a **6-component safety net** for the Phase 15 SOLID ref
 - Map Features: 125 tests (GOOD)
 
 **Critical Gaps Identified:**
+
 - CharacterService: Only 4 tests → Need 15 (missing: edge cases, race conditions)
 - PlayerService: Only 3 tests → Need 12 (missing: status effects, DM transitions)
 - DiceService: Only 2 tests → Need 8 (missing: formula parsing, validation)
@@ -84,16 +87,17 @@ Total: 2,346 tests
 
 **+25 Critical Server-Side Tests**
 
-| Service | Before | After | Added | Coverage Improvement |
-|---------|--------|-------|-------|---------------------|
-| CharacterService | 4 | 20 | +16 | 400% increase |
-| PlayerService | 3 | 11 | +8 | 267% increase |
-| DiceService | 2 | 8 | +6 | 300% increase |
-| HeartbeatHandler | 4 | 10 | +6 | 150% increase |
+| Service          | Before | After | Added | Coverage Improvement |
+| ---------------- | ------ | ----- | ----- | -------------------- |
+| CharacterService | 4      | 20    | +16   | 400% increase        |
+| PlayerService    | 3      | 11    | +8    | 267% increase        |
+| DiceService      | 2      | 8     | +6    | 300% increase        |
+| HeartbeatHandler | 4      | 10    | +6    | 150% increase        |
 
 ### Tests Added
 
 **CharacterService (+16 tests):**
+
 - Character deletion cascade effects
 - Death scenario handling (HP = 0)
 - Character claiming edge cases
@@ -107,6 +111,7 @@ Total: 2,346 tests
 - Unclaimed character queries (all claimed, none claimed, mixed)
 
 **PlayerService (+8 tests):**
+
 - Status effects lifecycle (apply, replace, clear)
 - DM role transitions and permissions
 - Portrait edge cases (empty, malformed URLs, base64)
@@ -117,6 +122,7 @@ Total: 2,346 tests
 - Player voice status management
 
 **DiceService (+6 tests):**
+
 - Complex dice formula with multiple dice types
 - Roll total calculation verification
 - Roll history retrieval ordering
@@ -125,6 +131,7 @@ Total: 2,346 tests
 - Concurrent roll handling
 
 **HeartbeatHandler (+6 tests):**
+
 - Heartbeat timestamp monotonicity
 - Heartbeat with concurrent players
 - Heartbeat after player state changes
@@ -165,17 +172,20 @@ Status:      ✅ ALL PASS
 ### Breakdown by Package
 
 **Shared Package:** 3 test files, 31 tests ✅
+
 - CharacterModel: 12 tests
 - PlayerModel: 15 tests
 - TokenModel: 14 tests
 
 **Server Package:** 36 test files, 677+ tests ✅
+
 - Domain Services: 228 tests
 - WebSocket Infrastructure: 184 tests
 - Message Handlers: 137 tests
 - Middleware/Config: 132 tests
 
 **Client Package:** 48 test files, 1,460 tests ✅
+
 - Component Tests: 1,167 tests
 - Integration Tests: 285 tests
 - Service Tests: 128 tests
@@ -194,6 +204,7 @@ Status:      ✅ ALL PASS
 ### Deliverable
 
 **Verified Existing Documentation**
+
 - **File:** `docs/refactoring/BRANCHING_STRATEGY.md`
 - **Status:** Comprehensive, current, and well-maintained
 - **Coverage:** Complete workflow from branch creation to merge
@@ -204,6 +215,7 @@ Status:      ✅ ALL PASS
 **Scopes:** app, dm-menu, map-board, server, shared, infrastructure
 
 **Workflow:**
+
 1. Create feature branch from latest dev
 2. Follow playbook (characterization tests → extraction → integration)
 3. Push and create PR
@@ -211,11 +223,13 @@ Status:      ✅ ALL PASS
 5. Merge and cleanup
 
 **Parallel Work Strategy:**
+
 - Same file, different modules: Coordinate to avoid line overlap
 - Different files: Work freely in parallel
 - Dependent modules: Wait or work sequentially
 
 **Emergency Procedures:**
+
 - Reverting merged extractions
 - Hotfix during refactoring
 - Handling failing tests
@@ -234,6 +248,7 @@ Status:      ✅ ALL PASS
 ### Deliverable
 
 **New Comprehensive CI Validation Guide**
+
 - **File:** `docs/refactoring/CI_VALIDATION_CHECKPOINTS.md`
 - **Size:** 1,847 lines
 - **Coverage:** Complete CI workflow documentation
@@ -241,6 +256,7 @@ Status:      ✅ ALL PASS
 ### Key Content
 
 **Validation Stages:**
+
 1. Pre-commit hooks (recommended)
 2. PR creation checks
 3. Automated CI pipeline
@@ -248,6 +264,7 @@ Status:      ✅ ALL PASS
 5. Post-merge monitoring
 
 **Specific Checks:**
+
 - Structural guardrails (350 LOC limit)
 - Test coverage (all tests must pass)
 - Type safety (TypeScript compilation)
@@ -256,6 +273,7 @@ Status:      ✅ ALL PASS
 - E2E smoke tests
 
 **GitHub Actions Workflow:**
+
 - Matrix testing (Node 18.x and 20.x)
 - Parallel test execution
 - Coverage upload to Codecov
@@ -263,12 +281,14 @@ Status:      ✅ ALL PASS
 - Build artifact creation
 
 **Failure Handling:**
+
 - Decision tree (fix vs revert)
 - Investigation procedures
 - Emergency procedures
 - Timeout handling
 
 **Metrics and Monitoring:**
+
 - Test pass rate over time
 - Build times
 - Coverage trends
@@ -288,6 +308,7 @@ Status:      ✅ ALL PASS
 ### Deliverable
 
 **New Comprehensive Code Review Guide**
+
 - **File:** `docs/refactoring/CODE_REVIEW_CHECKLIST.md`
 - **Size:** 2,074 lines
 - **Coverage:** Domain invariants, SOLID principles, approval criteria
@@ -295,6 +316,7 @@ Status:      ✅ ALL PASS
 ### Key Content
 
 **Quick Reference Checklist:**
+
 - SOLID principles verification (5 checks)
 - Test coverage requirements (4 checks)
 - No behavioral changes (3 checks)
@@ -302,6 +324,7 @@ Status:      ✅ ALL PASS
 - Domain invariants preserved (6 domain checks)
 
 **Domain Invariants:**
+
 1. **Character/Player Domain:** Ownership rules, HP validation, state consistency
 2. **Map/Token Domain:** Coordinate systems, layer ordering, grid snapping
 3. **Drawing Domain:** Line ownership, undo/redo state, tool algorithms
@@ -310,6 +333,7 @@ Status:      ✅ ALL PASS
 6. **Session/Persistence Domain:** Save/load completeness, file format stability
 
 **SOLID Principles Verification:**
+
 - **SRP:** Single responsibility per module
 - **OCP:** Open for extension, closed for modification
 - **LSP:** Drop-in replacement without breaking
@@ -317,6 +341,7 @@ Status:      ✅ ALL PASS
 - **DIP:** Depends on abstractions, not concrete types
 
 **Refactoring-Specific:**
+
 - Characterization tests exist
 - LOC reduction documented
 - No new structural violations
@@ -325,6 +350,7 @@ Status:      ✅ ALL PASS
 - Error handling preserved
 
 **Red Flags (Block PR):**
+
 - Failing tests
 - Behavior changes without discussion
 - Missing characterization tests
@@ -346,6 +372,7 @@ Status:      ✅ ALL PASS
 ### Deliverable
 
 **New Comprehensive Operations Guide**
+
 - **File:** `docs/refactoring/MIGRATION_NOTES_AND_RUNBOOKS.md`
 - **Size:** 1,045 lines
 - **Coverage:** Deployment, rollback, monitoring, incidents
@@ -353,11 +380,13 @@ Status:      ✅ ALL PASS
 ### Key Content
 
 **Deployment Strategy:**
+
 - Phase 1: Staging validation (1 day)
 - Phase 2: Canary deployment 5% (4-8 hours)
 - Phase 3: Progressive rollout 25% → 50% → 75% → 100% (24-48 hours)
 
 **Rollback Procedures:**
+
 - Quick decision matrix (when to rollback)
 - Option 1: Traffic shift (2 minutes)
 - Option 2: Git revert (15 minutes)
@@ -365,6 +394,7 @@ Status:      ✅ ALL PASS
 - Verification checklist
 
 **Monitoring and Observability:**
+
 - Application metrics (WebSocket health, message processing, errors)
 - Client metrics (connection time, UI performance, errors)
 - Dashboard setup (4 key panels)
@@ -372,6 +402,7 @@ Status:      ✅ ALL PASS
 - Log aggregation patterns
 
 **Incident Response:**
+
 - Triage workflow (2 minutes)
 - Communication templates
 - Mitigation procedures (5-30 minutes)
@@ -379,11 +410,13 @@ Status:      ✅ ALL PASS
 - Specific scenarios (WebSocket failures, state corruption, performance)
 
 **Feature Flags (Future):**
+
 - Proposed implementation
 - Usage patterns
 - Benefits (gradual rollout, quick rollback, A/B testing)
 
 **Communication Plan:**
+
 - Before deployment (engineering team, users)
 - During deployment (status updates every 30 min)
 - After deployment (success/failure announcements)
@@ -401,14 +434,14 @@ Status:      ✅ ALL PASS
 
 ### Files Created/Updated
 
-| File | Type | Lines | Purpose |
-|------|------|-------|---------|
-| `TEST_AUGMENTATION_PLAN.md` | New | 424 | Test coverage gaps and augmentation roadmap |
-| `CI_VALIDATION_CHECKPOINTS.md` | New | 1,847 | CI workflow, checks, metrics, failures |
-| `CODE_REVIEW_CHECKLIST.md` | New | 2,074 | Review criteria, domain invariants, SOLID |
-| `MIGRATION_NOTES_AND_RUNBOOKS.md` | New | 1,045 | Deployment, rollback, monitoring, incidents |
-| `PHASE_7_SAFETY_NET_COMPLETE.md` | New | This file | Summary of all safety net work |
-| `BRANCHING_STRATEGY.md` | Verified | 591 | Existing comprehensive branching guide |
+| File                              | Type     | Lines     | Purpose                                     |
+| --------------------------------- | -------- | --------- | ------------------------------------------- |
+| `TEST_AUGMENTATION_PLAN.md`       | New      | 424       | Test coverage gaps and augmentation roadmap |
+| `CI_VALIDATION_CHECKPOINTS.md`    | New      | 1,847     | CI workflow, checks, metrics, failures      |
+| `CODE_REVIEW_CHECKLIST.md`        | New      | 2,074     | Review criteria, domain invariants, SOLID   |
+| `MIGRATION_NOTES_AND_RUNBOOKS.md` | New      | 1,045     | Deployment, rollback, monitoring, incidents |
+| `PHASE_7_SAFETY_NET_COMPLETE.md`  | New      | This file | Summary of all safety net work              |
+| `BRANCHING_STRATEGY.md`           | Verified | 591       | Existing comprehensive branching guide      |
 
 **Total New Documentation:** ~5,800 lines of comprehensive safety guidance
 **Total Coverage:** 6 safety net components fully documented
@@ -469,33 +502,33 @@ Status:      ✅ ALL PASS
 
 ### Test Coverage
 
-| Metric | Before | After | Change |
-|--------|--------|-------|--------|
-| Total Tests | 2,143 | 2,168 | +25 (+1.2%) |
-| Server Tests | 677 | 702+ | +25 (+3.7%) |
-| CharacterService Tests | 4 | 20 | +16 (+400%) |
-| PlayerService Tests | 3 | 11 | +8 (+267%) |
-| DiceService Tests | 2 | 8 | +6 (+300%) |
-| HeartbeatHandler Tests | 4 | 10 | +6 (+150%) |
+| Metric                 | Before | After | Change      |
+| ---------------------- | ------ | ----- | ----------- |
+| Total Tests            | 2,143  | 2,168 | +25 (+1.2%) |
+| Server Tests           | 677    | 702+  | +25 (+3.7%) |
+| CharacterService Tests | 4      | 20    | +16 (+400%) |
+| PlayerService Tests    | 3      | 11    | +8 (+267%)  |
+| DiceService Tests      | 2      | 8     | +6 (+300%)  |
+| HeartbeatHandler Tests | 4      | 10    | +6 (+150%)  |
 
 ### Documentation
 
-| Metric | Value |
-|--------|-------|
-| New Documents | 4 comprehensive guides |
-| Total Lines | 5,800+ lines |
-| Topics Covered | 50+ topics |
-| Code Examples | 100+ examples |
-| Checklists | 15+ actionable checklists |
+| Metric         | Value                     |
+| -------------- | ------------------------- |
+| New Documents  | 4 comprehensive guides    |
+| Total Lines    | 5,800+ lines              |
+| Topics Covered | 50+ topics                |
+| Code Examples  | 100+ examples             |
+| Checklists     | 15+ actionable checklists |
 
 ### Time Investment
 
-| Activity | Time | Efficiency |
-|----------|------|------------|
-| Test Catalogue | 2 hours | Automated analysis |
-| Test Augmentation | 3 hours | Parallel agent execution |
-| Documentation | 3 hours | Parallel agent execution |
-| **Total** | **8 hours** | **High efficiency** |
+| Activity          | Time        | Efficiency               |
+| ----------------- | ----------- | ------------------------ |
+| Test Catalogue    | 2 hours     | Automated analysis       |
+| Test Augmentation | 3 hours     | Parallel agent execution |
+| Documentation     | 3 hours     | Parallel agent execution |
+| **Total**         | **8 hours** | **High efficiency**      |
 
 ---
 
@@ -585,7 +618,7 @@ Status:      ✅ ALL PASS
 1. **Parallel Agent Execution**
    - Using 2 agents in parallel doubled efficiency
    - Completed in 8 hours instead of 16 hours
-   - No WSL crashes with limit of 2 agents
+   - No low-memory local crashes with limit of 2 agents
 
 2. **Characterization Test Pattern**
    - Existing characterization tests made augmentation safe
@@ -708,6 +741,7 @@ Phase 7 (Cross-cutting Safety and Testing Practices) is **COMPLETE** and **SUCCE
 **Total Impact:** Comprehensive safety net enabling confident continued refactoring
 
 **Key Achievement:** All refactored code (websocket, room service, god files) is now protected by:
+
 - Comprehensive test coverage
 - Automated CI validation
 - Clear code review criteria
@@ -715,6 +749,7 @@ Phase 7 (Cross-cutting Safety and Testing Practices) is **COMPLETE** and **SUCCE
 - Ready incident response playbooks
 
 The team can now proceed with confidence to future refactoring phases (8-20), knowing that:
+
 - Regressions will be caught early (tests + CI)
 - Quality will be maintained (code review checklist)
 - Deployments will be safe (migration runbooks)
@@ -729,6 +764,7 @@ The team can now proceed with confidence to future refactoring phases (8-20), kn
 **Maintained By:** Engineering Team
 
 **Related Documents:**
+
 - [TEST_AUGMENTATION_PLAN.md](./TEST_AUGMENTATION_PLAN.md)
 - [CI_VALIDATION_CHECKPOINTS.md](./CI_VALIDATION_CHECKPOINTS.md)
 - [CODE_REVIEW_CHECKLIST.md](./CODE_REVIEW_CHECKLIST.md)

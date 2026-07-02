@@ -44,6 +44,7 @@ export const NameEditor: React.FC<NameEditorProps> = ({
         autoFocus
         style={{
           width: "100%",
+          boxSizing: "border-box",
           fontSize: "0.7rem",
           background: "#111",
           color: "var(--hero-blue)",
@@ -63,6 +64,11 @@ export const NameEditor: React.FC<NameEditorProps> = ({
         }
       }}
       style={{
+        display: "block",
+        maxWidth: "100%",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
         cursor: isMe ? "pointer" : "default",
         color: tokenColor || "var(--hero-gold-light)",
         fontWeight: "bold",

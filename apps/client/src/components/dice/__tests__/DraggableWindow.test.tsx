@@ -329,6 +329,29 @@ describe("DraggableWindow", () => {
       consoleWarnSpy.mockRestore();
     });
 
+    it("should fall back when the localStorage API is unavailable", () => {
+      const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      Object.defineProperty(window, "localStorage", {
+        value: {},
+        writable: true,
+        configurable: true,
+      });
+
+      const { container } = render(
+        <DraggableWindow title="Test Window" storageKey="testKey" initialX={150} initialY={200}>
+          <div>Content</div>
+        </DraggableWindow>,
+      );
+
+      const windowElement = container.querySelector("div[style*='position: fixed']") as HTMLElement;
+
+      expect(windowElement.style.left).toBe("150px");
+      expect(windowElement.style.top).toBe("200px");
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+
+      consoleWarnSpy.mockRestore();
+    });
+
     it("should clamp saved position to viewport bounds", () => {
       // Save position that would be off-screen
       mockLocalStorage["herobyte-window-position-testKey"] = JSON.stringify({

@@ -3,15 +3,17 @@
 // ============================================================================
 // Renders tokens from the unified scene graph with drag support.
 
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Group, Rect, Image as KonvaImage, Circle, Text } from "react-konva";
-import type Konva from "konva";
+import Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import type { DragPreviewUpdate, SceneObject } from "@herobyte/shared";
 import useImage from "use-image";
 import type { Camera } from "../types";
 import { LockIndicator } from "./LockIndicator";
 import type { StatusOption } from "../../players/constants/statusOptions";
+import { TokenHpFeedback } from "../../juice/TokenHpFeedback";
+import { motionDisabled, useSfx } from "../../juice";
 
 interface TokenSpriteProps {
   object: SceneObject & { type: "token" };
@@ -26,7 +28,20 @@ interface TokenSpriteProps {
   onHover: (id: string | null) => void;
   onDoubleClick?: () => void;
   onClick?: (event: KonvaEventObject<MouseEvent>) => void;
+  onTap?: (event: KonvaEventObject<TouchEvent>) => void;
   onNodeReady?: (node: Konva.Node | null) => void;
+  /** Play a scale "pop" when the token first appears. */
+  popIn?: boolean;
+  /** Glide to new positions (used for remote moves; off during local drag). */
+  glide?: boolean;
+  /** Pulse a selection glow. */
+  selected?: boolean;
+}
+
+// Guards against non-Konva refs (e.g. mocked nodes in tests / no-canvas envs)
+// so animation calls never throw where the DSP/canvas isn't available.
+function isKonvaNode(node: Konva.Node | null): node is Konva.Node {
+  return !!node && typeof node.getLayer === "function" && typeof node.to === "function";
 }
 
 // Size multiplier per token size category (module scope: stable identity,
@@ -53,7 +68,11 @@ const TokenSprite = memo(function TokenSprite({
   onHover,
   onDoubleClick,
   onClick,
+  onTap,
   onNodeReady,
+  popIn = false,
+  glide = false,
+  selected = false,
 }: TokenSpriteProps) {
   const { data, transform, id } = object;
   const [image, status] = useImage(data.imageUrl ?? "");
@@ -64,12 +83,79 @@ const TokenSprite = memo(function TokenSprite({
   const size = gridSize * 0.75 * sizeMultiplier;
   const halfSize = size / 2;
 
+  const shapeRef = useRef<Konva.Node | null>(null);
   const nodeRef = useCallback(
     (node: Konva.Node | null) => {
+      shapeRef.current = node;
       onNodeReady?.(node);
     },
     [onNodeReady],
   );
+
+  const posX = transform.x * gridSize + gridSize / 2;
+  const posY = transform.y * gridSize + gridSize / 2;
+
+  // Glide to new positions when moved remotely (never while locally dragging).
+  const prevPos = useRef({ x: posX, y: posY });
+  useLayoutEffect(() => {
+    const node = shapeRef.current;
+    const prev = prevPos.current;
+    prevPos.current = { x: posX, y: posY };
+    if (!isKonvaNode(node) || !glide || motionDisabled()) return;
+    if (prev.x === posX && prev.y === posY) return;
+    node.position({ x: prev.x, y: prev.y });
+    const tween = new Konva.Tween({
+      node,
+      duration: 0.16,
+      x: posX,
+      y: posY,
+      easing: Konva.Easings.EaseOut,
+    });
+    tween.play();
+    return () => tween.destroy();
+  }, [posX, posY, glide]);
+
+  // Scale "pop" when a token first appears on the board.
+  useEffect(() => {
+    const node = shapeRef.current;
+    if (!isKonvaNode(node) || !popIn || motionDisabled()) return;
+    const targetX = transform.scaleX;
+    const targetY = transform.scaleY;
+    node.scale({ x: targetX * 0.3, y: targetY * 0.3 });
+    const tween = new Konva.Tween({
+      node,
+      duration: 0.3,
+      scaleX: targetX,
+      scaleY: targetY,
+      easing: Konva.Easings.BackEaseOut,
+    });
+    tween.play();
+    return () => {
+      tween.destroy();
+      node.scale({ x: targetX, y: targetY });
+    };
+  }, [popIn]);
+
+  // Pulsing glow while selected.
+  useEffect(() => {
+    const node = shapeRef.current;
+    if (!isKonvaNode(node) || !selected || motionDisabled()) return;
+    const layer = node.getLayer();
+    if (!layer) return;
+    const shape = node as Konva.Shape;
+    const anim = new Konva.Animation((frame) => {
+      const seconds = (frame?.time ?? 0) / 1000;
+      shape.shadowColor("#447DF7");
+      shape.shadowBlur(9 + 6 * Math.sin(seconds * Math.PI * 2 * 1.1));
+      shape.shadowOpacity(0.9);
+    }, layer);
+    anim.start();
+    return () => {
+      anim.stop();
+      shape.shadowBlur(0);
+      shape.shadowOpacity(0);
+    };
+  }, [selected]);
 
   const baseProps = {
     x: transform.x * gridSize + gridSize / 2,
@@ -93,11 +179,12 @@ const TokenSprite = memo(function TokenSprite({
     listening: interactive,
     onDblClick: onDoubleClick,
     onClick,
+    onTap,
     id,
     name: id,
     attrs: { "data-token-id": id },
   } as const;
-  const shapeProps = onNodeReady ? { ...baseProps, ref: nodeRef } : baseProps;
+  const shapeProps = { ...baseProps, ref: nodeRef };
 
   if (data.imageUrl && status === "loaded" && image) {
     return <KonvaImage image={image} {...shapeProps} />;
@@ -260,6 +347,8 @@ interface TokensLayerProps {
   interactionsEnabled?: boolean;
   /** Map of token scene ID (e.g., "token:abc123") to status effect metadata */
   statusEffectsByTokenId?: Record<string, StatusOption[] | string>;
+  /** Map of token scene ID to the current HP of the entity it represents. */
+  hpByTokenId?: Record<string, number>;
   onDragPreview?: (updates: DragPreviewUpdate[]) => void;
   isDM: boolean;
 }
@@ -281,16 +370,49 @@ export const TokensLayer = memo(function TokensLayer({
   interactionsEnabled = true,
   statusEffectsByTokenId = {},
   onDragPreview,
+  hpByTokenId = {},
   isDM,
 }: TokensLayerProps) {
   const localOverrides = useRef<Record<string, { x: number; y: number }>>({});
   const multiDragStartRef = useRef<Record<string, { x: number; y: number }>>({});
   const [, forceRerender] = useState(0);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const { play } = useSfx();
 
   const tokens = sceneObjects.filter((object): object is SceneObject & { type: "token" } => {
     return object.type === "token";
   });
+
+  // Detect newly-placed tokens to pop them in and blip. A ref baseline avoids
+  // firing for every token already present on initial load.
+  const knownTokenIds = useRef<Set<string> | null>(null);
+  const [poppingIds, setPoppingIds] = useState<Set<string>>(new Set());
+  const tokenIdsKey = tokens.map((token) => token.id).join("|");
+  useEffect(() => {
+    const ids = tokenIdsKey ? tokenIdsKey.split("|") : [];
+    if (knownTokenIds.current === null) {
+      knownTokenIds.current = new Set(ids);
+      return;
+    }
+    const added = ids.filter((id) => !knownTokenIds.current!.has(id));
+    knownTokenIds.current = new Set(ids);
+    if (added.length === 0) return;
+
+    play("tokenPlace");
+    setPoppingIds((prev) => {
+      const next = new Set(prev);
+      added.forEach((id) => next.add(id));
+      return next;
+    });
+    const timer = setTimeout(() => {
+      setPoppingIds((prev) => {
+        const next = new Set(prev);
+        added.forEach((id) => next.delete(id));
+        return next;
+      });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [tokenIdsKey, play]);
 
   const myTokens = tokens.filter((object) => object.owner === uid);
   const otherTokens = tokens.filter((object) => object.owner !== uid);
@@ -493,14 +615,14 @@ export const TokensLayer = memo(function TokensLayer({
 
     const starts: Record<string, { x: number; y: number }> = {};
     for (const object of tokens) {
-      if (idsForDrag.includes(object.id)) {
+      if (idsForDrag.includes(object.id) && !object.locked) {
         starts[object.id] = { x: object.transform.x, y: object.transform.y };
       }
     }
 
     if (!starts[sceneId]) {
       const target = tokens.find((candidate) => candidate.id === sceneId);
-      if (target) {
+      if (target && !target.locked) {
         starts[sceneId] = { x: target.transform.x, y: target.transform.y };
       }
     }
@@ -551,6 +673,37 @@ export const TokensLayer = memo(function TokensLayer({
     };
   };
 
+  const renderHpFeedback = (object: SceneObject & { type: "token" }) => {
+    const hp = hpByTokenId[object.id];
+    if (hp === undefined) return null;
+    const sizeMultiplier = SIZE_MULTIPLIERS[object.data.size ?? "medium"] ?? 1.0;
+    const tokenSize = gridSize * 0.75 * sizeMultiplier;
+    const { x, y } = mapOverrides(object).transform;
+    return (
+      <TokenHpFeedback
+        hp={hp}
+        x={x * gridSize + gridSize / 2}
+        y={y * gridSize + gridSize / 2}
+        size={tokenSize}
+      />
+    );
+  };
+
+  const selectToken = useCallback(
+    (objectId: string, event: KonvaEventObject<MouseEvent | TouchEvent>) => {
+      if (!onSelectObject) {
+        return;
+      }
+      const native = event?.evt;
+      const append = "shiftKey" in native ? native.shiftKey : false;
+      const toggle = "ctrlKey" in native ? native.ctrlKey || native.metaKey : false;
+      const mode = append ? "append" : toggle ? "toggle" : "replace";
+      event.cancelBubble = true;
+      onSelectObject(objectId, { mode });
+    },
+    [onSelectObject],
+  );
+
   return (
     <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale}>
       {otherTokens.map((object) => {
@@ -571,22 +724,14 @@ export const TokensLayer = memo(function TokensLayer({
               onDragMove={(event) => handleDragMove(object.id, event)}
               onDragEnd={(event) => handleDrag(object.id, event)}
               onHover={onHover}
-              onClick={(event) => {
-                if (!onSelectObject) {
-                  return;
-                }
-                const native = event?.evt;
-                const append = native?.shiftKey ?? false;
-                const toggle = native?.ctrlKey || native?.metaKey || false;
-                const mode = append ? "append" : toggle ? "toggle" : "replace";
-                if (event) {
-                  event.cancelBubble = true;
-                }
-                onSelectObject(object.id, { mode });
-              }}
+              onClick={(event) => selectToken(object.id, event)}
+              onTap={(event) => selectToken(object.id, event)}
               onNodeReady={
                 onTokenNodeReady ? (node) => onTokenNodeReady(object.id, node) : undefined
               }
+              popIn={poppingIds.has(object.id)}
+              glide={draggingId === null}
+              selected={isSelected}
             />
             {object.locked && (
               <LockIndicator
@@ -596,6 +741,7 @@ export const TokensLayer = memo(function TokensLayer({
               />
             )}
             {renderStatusBadges(object)}
+            {renderHpFeedback(object)}
             {isFirstSelected && (
               <MultiSelectBadge
                 x={object.transform.x * gridSize + gridSize * 0.85}
@@ -625,22 +771,14 @@ export const TokensLayer = memo(function TokensLayer({
               onDragEnd={(event) => handleDrag(object.id, event)}
               onHover={onHover}
               onDoubleClick={() => onRecolorToken(object.id, object.owner)}
-              onClick={(event) => {
-                if (!onSelectObject) {
-                  return;
-                }
-                const native = event?.evt;
-                const append = native?.shiftKey ?? false;
-                const toggle = native?.ctrlKey || native?.metaKey || false;
-                const mode = append ? "append" : toggle ? "toggle" : "replace";
-                if (event) {
-                  event.cancelBubble = true;
-                }
-                onSelectObject(object.id, { mode });
-              }}
+              onClick={(event) => selectToken(object.id, event)}
+              onTap={(event) => selectToken(object.id, event)}
               onNodeReady={
                 onTokenNodeReady ? (node) => onTokenNodeReady(object.id, node) : undefined
               }
+              popIn={poppingIds.has(object.id)}
+              glide={draggingId === null}
+              selected={isSelected}
             />
             {object.locked && (
               <LockIndicator
@@ -650,6 +788,7 @@ export const TokensLayer = memo(function TokensLayer({
               />
             )}
             {renderStatusBadges(object)}
+            {renderHpFeedback(object)}
             {isFirstSelected && (
               <MultiSelectBadge
                 x={object.transform.x * gridSize + gridSize * 0.85}

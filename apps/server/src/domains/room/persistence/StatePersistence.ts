@@ -109,6 +109,7 @@ export class StatePersistence {
           playerStagingZone: this.stagingManager.sanitize(data.playerStagingZone),
           combatActive: data.combatActive ?? false,
           currentTurnCharacterId: data.currentTurnCharacterId ?? undefined,
+          compiledScene: data.compiledScene ?? undefined,
         };
 
         this.setState(loadedState);
@@ -168,6 +169,7 @@ export class StatePersistence {
       diceRolls: state.diceRolls,
       sceneObjects: state.sceneObjects,
       playerStagingZone: state.playerStagingZone,
+      compiledScene: state.compiledScene,
       stateVersion: state.stateVersion,
     };
 

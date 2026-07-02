@@ -11,6 +11,7 @@ import { ResultPanel } from "./ResultPanel";
 import { DraggableWindow } from "./DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
 import { generateUUID } from "../../utils/uuid";
+import { useSfx, detectRollFlavor } from "../../features/juice";
 
 interface DiceRollerProps {
   onRoll?: (result: RollResult) => void;
@@ -21,6 +22,7 @@ export const DiceRoller: React.FC<DiceRollerProps> = ({ onRoll, onClose }) => {
   const [build, setBuild] = useState<Build>([]);
   const [result, setResult] = useState<RollResult | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
+  const { play } = useSfx();
 
   const addDie = (die: DieType) => {
     console.log("[DiceRoller] addDie called with:", die);
@@ -56,6 +58,9 @@ export const DiceRoller: React.FC<DiceRollerProps> = ({ onRoll, onClose }) => {
     setIsAnimating(true);
     console.log("[DiceRoller] Set isAnimating to true");
 
+    // Dice tumble while the animation plays.
+    play("diceRattle");
+
     // Roll after animation delay
     setTimeout(() => {
       console.log("[DiceRoller] Timeout callback executing");
@@ -63,6 +68,12 @@ export const DiceRoller: React.FC<DiceRollerProps> = ({ onRoll, onClose }) => {
       setResult(rollResult);
       setIsAnimating(false);
       console.log("[DiceRoller] Set isAnimating to false");
+
+      // Dice settle, then celebrate a nat-20 / lament a nat-1.
+      play("diceLand");
+      const flavor = detectRollFlavor(rollResult);
+      if (flavor === "crit") play("critSting");
+      else if (flavor === "fumble") play("failThud");
 
       // Notify parent component
       if (onRoll) {
