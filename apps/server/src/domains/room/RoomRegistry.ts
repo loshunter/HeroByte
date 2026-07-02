@@ -8,6 +8,8 @@ import type { BroadcastMetricsLogger } from "./metrics/BroadcastMetricsLogger.js
 export interface RoomRegistryOptions {
   store?: RoomStore;
   metricsLoggerFactory?: () => BroadcastMetricsLogger;
+  /** Room whose state file stays the legacy ./herobyte-state.json path. */
+  defaultRoomId?: string;
 }
 
 /**
@@ -19,11 +21,13 @@ export class RoomRegistry {
   private readonly services = new Map<string, RoomService>();
   private readonly store: RoomStore;
   private readonly metricsLoggerFactory?: () => BroadcastMetricsLogger;
+  private readonly defaultRoomId?: string;
   private redisClient: Redis | null = null;
   private hydration: Promise<void> = Promise.resolve();
 
   constructor(options: RoomRegistryOptions = {}) {
     this.metricsLoggerFactory = options.metricsLoggerFactory;
+    this.defaultRoomId = options.defaultRoomId;
     this.store = options.store ?? this.initializeStore();
   }
 
@@ -47,10 +51,26 @@ export class RoomRegistry {
         store: this.store,
         roomId,
         metricsLogger: this.metricsLoggerFactory?.(),
+        stateFile: this.stateFileFor(roomId),
       });
       this.services.set(roomId, service);
+      // In multi-room mode (defaultRoomId configured) every room restores its
+      // own disk state on first request; the default room keeps the legacy
+      // ./herobyte-state.json (or ROOM_STATE_FILE). Legacy single-room
+      // callers load state explicitly, as before.
+      if (this.defaultRoomId) {
+        service.loadState();
+      }
     }
     return service;
+  }
+
+  private stateFileFor(roomId: string): string | undefined {
+    if (!this.defaultRoomId || roomId === this.defaultRoomId) {
+      return undefined; // legacy path / env override
+    }
+    const safe = roomId.replace(/[^a-zA-Z0-9_-]/g, "_");
+    return `./herobyte-state.${safe}.json`;
   }
 
   delete(roomId: string): void {

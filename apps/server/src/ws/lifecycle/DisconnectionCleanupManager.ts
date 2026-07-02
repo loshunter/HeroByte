@@ -11,11 +11,16 @@ import type { SelectionService } from "../../domains/selection/service.js";
 
 /**
  * Configuration for DisconnectionCleanupManager
+ *
+ * Room-aware: the player's room is resolved from their session BEFORE the
+ * session is deleted, and both the state mutation and the farewell broadcast
+ * stay inside that room.
  */
 export interface DisconnectionCleanupConfig {
-  roomService: RoomService;
+  getRoomIdForUid: (uid: string) => string;
+  getRoomServiceForRoom: (roomId: string) => RoomService;
+  getAuthenticatedClientsForRoom: (roomId: string) => Set<WebSocket>;
   selectionService: SelectionService;
-  getAuthenticatedClients: () => Set<WebSocket>;
 }
 
 /**
@@ -121,7 +126,10 @@ export class DisconnectionCleanupManager {
    * @param options - Cleanup options
    */
   cleanupPlayer(uid: string, options: CleanupOptions = {}): void {
-    const state = this.config.roomService.getState();
+    // Resolve the player's room before the session record disappears.
+    const roomId = this.config.getRoomIdForUid(uid);
+    const roomService = this.config.getRoomServiceForRoom(roomId);
+    const state = roomService.getState();
 
     // Race condition check: only clean up if this socket is still current
     // This prevents cleanup when an old connection closes during reconnection
@@ -168,8 +176,8 @@ export class DisconnectionCleanupManager {
     // Deselect any objects the player had selected
     this.config.selectionService.deselect(state, uid);
 
-    // Broadcast updated state to all authenticated clients
-    this.config.roomService.broadcast(this.config.getAuthenticatedClients(), undefined, {
+    // Broadcast updated state to the room's remaining clients
+    roomService.broadcast(this.config.getAuthenticatedClientsForRoom(roomId), undefined, {
       reason: "disconnection-cleanup",
     });
   }

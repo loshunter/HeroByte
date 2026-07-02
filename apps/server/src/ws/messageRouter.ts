@@ -171,7 +171,10 @@ export class MessageRouter {
       this.authorizationService,
     );
     this.heartbeatHandler = new HeartbeatHandler();
-    this.rtcSignalHandler = new RTCSignalHandler(uidToWs);
+    this.rtcSignalHandler = new RTCSignalHandler(
+      uidToWs,
+      (fromUid, targetUid) => this.getRoomIdForUid(fromUid) === this.getRoomIdForUid(targetUid),
+    );
     this.pointerHandler = new PointerHandler(mapService);
     this.tokenMessageHandler = new TokenMessageHandler(
       tokenService,

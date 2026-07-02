@@ -93,6 +93,17 @@ const setupContainer = () => {
   const authenticatedUids = new Set<string>();
   const authenticatedSessions = new Map<string, { roomId: string; authedAt: number }>();
 
+  const getAuthenticatedClients = () => {
+    const clients = new Set<WebSocket>();
+    for (const uid of authenticatedUids) {
+      const ws = uidToWs.get(uid);
+      if (ws && ws.readyState === 1) {
+        clients.add(ws);
+      }
+    }
+    return clients;
+  };
+
   const container: Partial<Container> = {
     roomService,
     playerService,
@@ -107,16 +118,18 @@ const setupContainer = () => {
     uidToWs,
     authenticatedUids,
     authenticatedSessions,
-    getAuthenticatedClients: () => {
-      const clients = new Set<WebSocket>();
-      for (const uid of authenticatedUids) {
-        const ws = uidToWs.get(uid);
-        if (ws && ws.readyState === 1) {
-          clients.add(ws);
-        }
-      }
-      return clients;
-    },
+    getAuthenticatedClients,
+    // Room-aware surface: this harness is single-room, so every resolver
+    // points at the one RoomService/router above.
+    roomIdForUid: (uid: string) => authenticatedSessions.get(uid)?.roomId ?? "default",
+    getRoomServiceForRoom: () => roomService,
+    getRouterForRoom: () => messageRouter,
+    routerForUid: () => messageRouter,
+    getAuthenticatedClientsForRoom: () => getAuthenticatedClients(),
+    roomRegistry: {
+      listRooms: () => ["default"],
+      get: () => roomService,
+    } as unknown as Container["roomRegistry"],
   };
 
   return container as Container;

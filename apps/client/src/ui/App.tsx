@@ -46,6 +46,16 @@ import { useDoorSfx, useJuiceRuntime, useTurnChime } from "../features/juice";
 // MAIN APP COMPONENT
 // ----------------------------------------------------------------------------
 
+/**
+ * The room this browser tab joins, taken from the ?room= query parameter.
+ * Undefined joins the server's default room. Sanitization mirrors the
+ * server's rule so a bad link fails fast at auth.
+ */
+function getRequestedRoomId(): string | undefined {
+  const room = new URLSearchParams(window.location.search).get("room")?.trim();
+  return room && /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(room) ? room : undefined;
+}
+
 export const App: React.FC = () => {
   // -------------------------------------------------------------------------
   // STATE
@@ -72,11 +82,16 @@ export const App: React.FC = () => {
     uid,
   });
 
+  const authenticateIntoRoom = React.useCallback(
+    (secret: string) => authenticate(secret, getRequestedRoomId()),
+    [authenticate],
+  );
+
   return (
     <AuthenticationGate
       url={WS_URL}
       uid={uid}
-      onAuthenticate={authenticate}
+      onAuthenticate={authenticateIntoRoom}
       onConnect={connect}
       isConnected={isConnected}
       connectionState={connectionState}

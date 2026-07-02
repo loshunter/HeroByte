@@ -60,15 +60,17 @@ export class HeartbeatTimeoutManager {
    * - Broadcasts updated state to remaining clients
    */
   private checkForTimedOutPlayers(): void {
-    const state = this.container.roomService.getState();
     const now = Date.now();
     const timedOutPlayers: string[] = [];
 
-    // Find players who haven't sent heartbeat in timeout window
-    for (const player of state.players) {
-      const lastHeartbeat = player.lastHeartbeat || 0;
-      if (now - lastHeartbeat > this.HEARTBEAT_TIMEOUT) {
-        timedOutPlayers.push(player.uid);
+    // Find players in ANY room who haven't sent heartbeat in timeout window
+    for (const roomId of this.container.roomRegistry.listRooms()) {
+      const state = this.container.roomRegistry.get(roomId).getState();
+      for (const player of state.players) {
+        const lastHeartbeat = player.lastHeartbeat || 0;
+        if (now - lastHeartbeat > this.HEARTBEAT_TIMEOUT) {
+          timedOutPlayers.push(player.uid);
+        }
       }
     }
 

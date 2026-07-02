@@ -18,14 +18,21 @@ import type { SignalData } from "simple-peer";
  */
 export class RTCSignalHandler {
   private uidToWs: Map<string, WebSocket>;
+  private canSignal?: (fromUid: string, targetUid: string) => boolean;
 
   /**
    * Create a new RTCSignalHandler
    *
    * @param uidToWs - Map of player UIDs to WebSocket connections
+   * @param canSignal - Optional guard; signals are dropped when it returns
+   *   false (e.g. peers in different rooms must never exchange signals)
    */
-  constructor(uidToWs: Map<string, WebSocket>) {
+  constructor(
+    uidToWs: Map<string, WebSocket>,
+    canSignal?: (fromUid: string, targetUid: string) => boolean,
+  ) {
     this.uidToWs = uidToWs;
+    this.canSignal = canSignal;
   }
 
   /**
@@ -49,6 +56,9 @@ export class RTCSignalHandler {
    * ```
    */
   forwardSignal(targetUid: string, fromUid: string, signal: SignalData): void {
+    if (this.canSignal && !this.canSignal(fromUid, targetUid)) {
+      return; // cross-room signaling is never forwarded
+    }
     const targetWs = this.uidToWs.get(targetUid);
 
     // Only send if target exists and connection is open (readyState === 1)

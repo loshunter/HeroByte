@@ -19,7 +19,6 @@ export class AuthenticationHandler {
   private uidToWs: Map<string, WebSocket>;
   private authenticatedUids: Set<string>;
   private authenticatedSessions: Map<string, { roomId: string; authedAt: number }>;
-  private getAuthenticatedClients: () => Set<WebSocket>;
   private readonly defaultRoomId: string;
 
   constructor(
@@ -27,13 +26,11 @@ export class AuthenticationHandler {
     uidToWs: Map<string, WebSocket>,
     authenticatedUids: Set<string>,
     authenticatedSessions: Map<string, { roomId: string; authedAt: number }>,
-    getAuthenticatedClients: () => Set<WebSocket>,
   ) {
     this.container = container;
     this.uidToWs = uidToWs;
     this.authenticatedUids = authenticatedUids;
     this.authenticatedSessions = authenticatedSessions;
-    this.getAuthenticatedClients = getAuthenticatedClients;
     this.defaultRoomId = getDefaultRoomId();
   }
 
@@ -50,12 +47,14 @@ export class AuthenticationHandler {
       return;
     }
 
-    const state = this.container.roomService.getState();
-    let player = this.container.playerService.findPlayer(state, uid);
     const now = Date.now();
 
-    // Handle re-authentication (client already authenticated)
+    // Handle re-authentication (client already authenticated). The session
+    // keeps its original room — switching rooms requires a fresh connection.
     if (this.authenticatedUids.has(uid)) {
+      const sessionRoomId = this.container.roomIdForUid(uid);
+      const state = this.container.getRoomServiceForRoom(sessionRoomId).getState();
+      const player = this.container.playerService.findPlayer(state, uid);
       if (player) {
         this.touchPlayerHeartbeat(player, now);
       }
@@ -65,10 +64,10 @@ export class AuthenticationHandler {
       return;
     }
 
-    // Validate room ID
+    // Validate room ID: URL-safe names only; rooms are created on first join.
     const requestedRoomId = roomId?.trim() || this.defaultRoomId;
-    if (requestedRoomId !== this.defaultRoomId) {
-      this.rejectAuthentication(ws, "Unknown room");
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(requestedRoomId)) {
+      this.rejectAuthentication(ws, "Invalid room id");
       return;
     }
 
@@ -79,6 +78,10 @@ export class AuthenticationHandler {
       this.rejectAuthentication(ws, "Invalid room password");
       return;
     }
+
+    const roomService = this.container.getRoomServiceForRoom(requestedRoomId);
+    const state = roomService.getState();
+    let player = this.container.playerService.findPlayer(state, uid);
 
     // Create or reconnect player entities
     if (!player) {
@@ -102,7 +105,7 @@ export class AuthenticationHandler {
       // Create token for the character (ONLY if not a DM)
       // DM players should never have tokens on the map
       if (!player.isDM) {
-        const spawn = this.container.roomService.getPlayerSpawnPosition();
+        const spawn = roomService.getPlayerSpawnPosition();
         const token = this.container.tokenService.createToken(state, uid, spawn.x, spawn.y);
         this.container.characterService.linkToken(state, character.id, token.id);
       }
@@ -112,7 +115,7 @@ export class AuthenticationHandler {
       if (!player.isDM) {
         const existingToken = this.container.tokenService.findTokenByOwner(state, uid);
         if (!existingToken) {
-          const spawn = this.container.roomService.getPlayerSpawnPosition();
+          const spawn = roomService.getPlayerSpawnPosition();
           const token = this.container.tokenService.createToken(state, uid, spawn.x, spawn.y);
           this.container.characterService.linkToken(state, existingCharacter.id, token.id);
         }
@@ -128,12 +131,16 @@ export class AuthenticationHandler {
     state.users.push(uid);
 
     this.sendAuthOk(ws);
-    console.log(`Client authenticated: ${uid}`);
+    console.log(`Client authenticated: ${uid} (room ${requestedRoomId})`);
 
-    // Broadcast updated room state to authenticated clients
-    this.container.roomService.broadcast(this.getAuthenticatedClients(), this.uidToWs, {
-      reason: "auth-success",
-    });
+    // Broadcast updated room state to the room's authenticated clients
+    roomService.broadcast(
+      this.container.getAuthenticatedClientsForRoom(requestedRoomId),
+      this.uidToWs,
+      {
+        reason: "auth-success",
+      },
+    );
   }
 
   /**
@@ -148,7 +155,9 @@ export class AuthenticationHandler {
       return;
     }
 
-    const state = this.container.roomService.getState();
+    const roomId = this.container.roomIdForUid(uid);
+    const roomService = this.container.getRoomServiceForRoom(roomId);
+    const state = roomService.getState();
     const player = this.container.playerService.findPlayer(state, uid);
 
     if (!player) {
@@ -180,8 +189,8 @@ export class AuthenticationHandler {
     ws.send(JSON.stringify({ t: "dm-status", isDM: true }));
     console.log(`DM elevation granted to ${uid}`);
 
-    // Broadcast updated state
-    this.container.roomService.broadcast(this.getAuthenticatedClients(), this.uidToWs, {
+    // Broadcast updated state to the player's room
+    roomService.broadcast(this.container.getAuthenticatedClientsForRoom(roomId), this.uidToWs, {
       reason: "dm-elevated",
     });
   }
@@ -197,7 +206,9 @@ export class AuthenticationHandler {
       return;
     }
 
-    const state = this.container.roomService.getState();
+    const roomId = this.container.roomIdForUid(uid);
+    const roomService = this.container.getRoomServiceForRoom(roomId);
+    const state = roomService.getState();
     const player = this.container.playerService.findPlayer(state, uid);
 
     if (!player) {
@@ -215,8 +226,8 @@ export class AuthenticationHandler {
     ws.send(JSON.stringify({ t: "dm-status", isDM: false }));
     console.log(`DM status revoked for ${uid}`);
 
-    // Broadcast updated state
-    this.container.roomService.broadcast(this.getAuthenticatedClients(), this.uidToWs, {
+    // Broadcast updated state to the player's room
+    roomService.broadcast(this.container.getAuthenticatedClientsForRoom(roomId), this.uidToWs, {
       reason: "dm-revoked",
     });
   }
@@ -233,7 +244,9 @@ export class AuthenticationHandler {
       return;
     }
 
-    const state = this.container.roomService.getState();
+    const roomId = this.container.roomIdForUid(uid);
+    const roomService = this.container.getRoomServiceForRoom(roomId);
+    const state = roomService.getState();
     const player = this.container.playerService.findPlayer(state, uid);
 
     if (!player) {
@@ -265,7 +278,7 @@ export class AuthenticationHandler {
         player.isDM = true;
         ws.send(JSON.stringify({ t: "dm-status", isDM: true }));
         console.log(`DM status granted to ${uid} (first-time DM password setup)`);
-        this.container.roomService.broadcast(this.getAuthenticatedClients(), this.uidToWs, {
+        roomService.broadcast(this.container.getAuthenticatedClientsForRoom(roomId), this.uidToWs, {
           reason: "dm-bootstrapped",
         });
       }

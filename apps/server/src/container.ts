@@ -48,6 +48,12 @@ export class Container {
   public readonly authenticatedUids: Set<string>;
   public readonly authenticatedSessions: Map<string, { roomId: string; authedAt: number }>;
 
+  private readonly wss: WebSocketServer;
+  private readonly defaultRoomId: string;
+  // One MessageRouter per room: each router binds its room's RoomService,
+  // broadcast debounce, and vision cache, so isolation is structural.
+  private readonly routers = new Map<string, MessageRouter>();
+
   constructor(
     wss: WebSocketServer,
     authService: AuthService,
@@ -58,8 +64,9 @@ export class Container {
     // A pre-hydrated RoomRegistry can be injected (bootstrap awaits
     // registry.whenReady() before constructing the container so Redis-backed
     // rooms are not initialized from empty state).
-    this.roomRegistry = roomRegistry ?? new RoomRegistry();
-    this.roomService = this.roomRegistry.get("default-room");
+    this.wss = wss;
+    this.defaultRoomId = getDefaultRoomId();
+    this.roomRegistry = roomRegistry ?? new RoomRegistry({ defaultRoomId: this.defaultRoomId });
     this.playerService = new PlayerService();
     this.tokenService = new TokenService();
     this.mapService = new MapService();
@@ -78,26 +85,56 @@ export class Container {
     this.authenticatedUids = new Set<string>();
     this.authenticatedSessions = new Map<string, { roomId: string; authedAt: number }>();
 
-    // Initialize message router (depends on services)
-    this.messageRouter = new MessageRouter(
-      this.roomService,
-      this.playerService,
-      this.tokenService,
-      this.mapService,
-      this.diceService,
-      this.characterService,
-      this.propService,
-      this.selectionService,
-      this.authService,
-      wss,
-      this.uidToWs,
-      () => this.getAuthenticatedClients(),
-      this.mapStudioService,
-      (uid) => this.authenticatedSessions.get(uid)?.roomId ?? getDefaultRoomId(),
-    );
-
-    // Load persisted state
+    // The default room's runtime doubles as the legacy single-room surface.
+    this.roomService = this.getRoomServiceForRoom(this.defaultRoomId);
     this.roomService.loadState();
+    this.messageRouter = this.getRouterForRoom(this.defaultRoomId);
+  }
+
+  /**
+   * The room a uid is authenticated into (default room until then).
+   */
+  roomIdForUid(uid: string): string {
+    return this.authenticatedSessions.get(uid)?.roomId ?? this.defaultRoomId;
+  }
+
+  /**
+   * RoomService for a room, creating (and disk-loading) it on first use.
+   */
+  getRoomServiceForRoom(roomId: string): RoomService {
+    return this.roomRegistry.get(roomId);
+  }
+
+  /**
+   * The per-room MessageRouter, created lazily alongside its RoomService.
+   */
+  getRouterForRoom(roomId: string): MessageRouter {
+    let router = this.routers.get(roomId);
+    if (!router) {
+      router = new MessageRouter(
+        this.getRoomServiceForRoom(roomId),
+        this.playerService,
+        this.tokenService,
+        this.mapService,
+        this.diceService,
+        this.characterService,
+        this.propService,
+        this.selectionService,
+        this.authService,
+        this.wss,
+        this.uidToWs,
+        () => this.getAuthenticatedClientsForRoom(roomId),
+        this.mapStudioService,
+        (uid) => this.roomIdForUid(uid),
+      );
+      this.routers.set(roomId, router);
+    }
+    return router;
+  }
+
+  /** Route a message through the sender's room. */
+  routerForUid(uid: string): MessageRouter {
+    return this.getRouterForRoom(this.roomIdForUid(uid));
   }
 
   /**
@@ -108,6 +145,7 @@ export class Container {
     this.uidToWs.clear();
     this.authenticatedUids.clear();
     this.authenticatedSessions.clear();
+    this.routers.clear();
 
     // Future: Add any cleanup logic for services
     void this.roomRegistry.destroy();
@@ -121,8 +159,10 @@ export class Container {
     this.uidToWs.clear();
     this.authenticatedUids.clear();
     this.authenticatedSessions.clear();
-    this.roomService.resetState();
-    this.mapStudioService.resetRoom(getDefaultRoomId());
+    for (const roomId of this.roomRegistry.listRooms()) {
+      this.roomRegistry.get(roomId).resetState();
+      this.mapStudioService.resetRoom(roomId);
+    }
   }
 
   /**
@@ -131,6 +171,22 @@ export class Container {
   getAuthenticatedClients(): Set<WebSocket> {
     const clients = new Set<WebSocket>();
     for (const uid of this.authenticatedUids) {
+      const ws = this.uidToWs.get(uid);
+      if (ws && ws.readyState === 1) {
+        clients.add(ws);
+      }
+    }
+    return clients;
+  }
+
+  /**
+   * Authenticated clients belonging to one room — the only set a room's
+   * broadcasts may ever reach.
+   */
+  getAuthenticatedClientsForRoom(roomId: string): Set<WebSocket> {
+    const clients = new Set<WebSocket>();
+    for (const uid of this.authenticatedUids) {
+      if (this.roomIdForUid(uid) !== roomId) continue;
       const ws = this.uidToWs.get(uid);
       if (ws && ws.readyState === 1) {
         clients.add(ws);

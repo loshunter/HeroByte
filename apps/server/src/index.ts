@@ -15,6 +15,7 @@ import { ConnectionHandler } from "./ws/connectionHandler.js";
 import { isOriginAllowed } from "./config/security.js";
 import { AuthService } from "./domains/auth/service.js";
 import { RoomRegistry } from "./domains/room/RoomRegistry.js";
+import { getDefaultRoomId } from "./config/auth.js";
 
 // ----------------------------------------------------------------------------
 // CONFIGURATION
@@ -129,7 +130,7 @@ async function bootstrap() {
   // Initialize room registry and wait for the backing store to hydrate
   // (no-op for the in-memory store; required for Redis so rooms are not
   // initialized from empty state before the cache is warm).
-  const roomRegistry = new RoomRegistry();
+  const roomRegistry = new RoomRegistry({ defaultRoomId: getDefaultRoomId() });
   await roomRegistry.whenReady();
 
   // Initialize dependency container

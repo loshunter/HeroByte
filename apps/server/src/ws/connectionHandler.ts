@@ -37,13 +37,14 @@ export class ConnectionHandler {
       container.uidToWs,
       container.authenticatedUids,
       container.authenticatedSessions,
-      container.getAuthenticatedClients.bind(container),
     );
     this.cleanupManager = new DisconnectionCleanupManager(
       {
-        roomService: container.roomService,
+        getRoomIdForUid: (uid) => container.roomIdForUid(uid),
+        getRoomServiceForRoom: (roomId) => container.getRoomServiceForRoom(roomId),
+        getAuthenticatedClientsForRoom: (roomId) =>
+          container.getAuthenticatedClientsForRoom(roomId),
         selectionService: container.selectionService,
-        getAuthenticatedClients: container.getAuthenticatedClients.bind(container),
       },
       container.uidToWs,
       container.authenticatedUids,
@@ -118,8 +119,8 @@ export class ConnectionHandler {
       return;
     }
 
-    // Route to appropriate handler
-    this.container.messageRouter.route(message, uid);
+    // Route through the sender's room
+    this.container.routerForUid(uid).route(message, uid);
   }
 
   /**

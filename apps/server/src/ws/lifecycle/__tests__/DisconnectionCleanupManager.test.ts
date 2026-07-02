@@ -88,12 +88,15 @@ describe("DisconnectionCleanupManager - Characterization Tests", () => {
     deselectSpy = vi.spyOn(mockSelectionService, "deselect");
     consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
-    // Create DisconnectionCleanupManager
+    // Create DisconnectionCleanupManager (room-aware resolvers all point at
+    // the single mock room — per-room behavior is covered by the multi-room
+    // contract suite)
     cleanupManager = new DisconnectionCleanupManager(
       {
-        roomService: mockRoomService,
+        getRoomIdForUid: (uid) => authenticatedSessions.get(uid)?.roomId ?? "room1",
+        getRoomServiceForRoom: () => mockRoomService,
+        getAuthenticatedClientsForRoom: () => getAuthenticatedClients(),
         selectionService: mockSelectionService,
-        getAuthenticatedClients,
       },
       uidToWs,
       authenticatedUids,

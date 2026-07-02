@@ -34,7 +34,12 @@ export class RoomService {
   private readonly roomId: string;
 
   constructor(
-    options: { metricsLogger?: BroadcastMetricsLogger; store?: RoomStore; roomId?: string } = {},
+    options: {
+      metricsLogger?: BroadcastMetricsLogger;
+      store?: RoomStore;
+      roomId?: string;
+      stateFile?: string;
+    } = {},
   ) {
     this.store = options.store ?? new InMemoryRoomStore();
     this.roomId = options.roomId ?? "default-room";
@@ -50,8 +55,9 @@ export class RoomService {
     this.metricsLogger = options.metricsLogger ?? new BroadcastMetricsLogger();
     this.stagingManager = new StagingZoneManager(this.state, () => this.rebuildSceneGraph());
 
-    // Support custom state file path via ROOM_STATE_FILE env var for parallel E2E tests
-    const stateFilePath = process.env.ROOM_STATE_FILE;
+    // Explicit per-room path wins (multi-room); ROOM_STATE_FILE env var
+    // supports parallel E2E tests for the default room.
+    const stateFilePath = options.stateFile ?? process.env.ROOM_STATE_FILE;
 
     this.persistence = new StatePersistence(
       () => this.state,
