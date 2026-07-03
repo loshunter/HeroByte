@@ -229,6 +229,39 @@ describe("MapStudioWorkspace", () => {
     expect(mapStudio.removeElement).toHaveBeenCalledWith("top-tile");
   });
 
+  it("fuses adjacent same-terrain tiles on the live canvas", () => {
+    const document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
+    document.elements = [
+      createTileElement("left-tile", {
+        layerId: "terrain",
+        assetId: "terrain:stone-floor",
+        x: 0,
+        y: 0,
+        columns: 1,
+        rows: 1,
+      }),
+      createTileElement("right-tile", {
+        layerId: "terrain",
+        assetId: "terrain:stone-floor",
+        x: 50,
+        y: 0,
+        columns: 1,
+        rows: 1,
+      }),
+    ];
+    render(
+      <MapStudioWorkspace controller={controller({ activeDocument: document })} onExit={vi.fn()} />,
+    );
+
+    const leftGroup = screen.getByRole("button", { name: "Select tile 1" });
+    const rect = leftGroup.querySelector("rect");
+    expect(rect?.getAttribute("stroke")).toBeNull();
+    const boundary = leftGroup.querySelector("path");
+    expect(boundary).not.toBeNull();
+    expect(boundary!.getAttribute("d")).toContain("M 0 0 H 50"); // top border kept
+    expect(boundary!.getAttribute("d")).not.toContain("M 50 0 V 50"); // shared edge fused
+  });
+
   it("publishes the active map document through the controller", () => {
     const document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
     const publishDocument = vi.fn(() => true);

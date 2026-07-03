@@ -1,6 +1,7 @@
 import type { MapDocument, MapElement, MapLayer } from "@herobyte/shared";
-import type { PointerEvent, RefObject, WheelEvent } from "react";
+import { useMemo, type PointerEvent, type RefObject, type WheelEvent } from "react";
 import type { MapStudioTileAsset } from "../starterTiles";
+import { buildTileOccupancy } from "../tileAutotiling";
 import { MapStudioElementPreview, MapStudioSelectionOverlay } from "./MapStudioElementPreview";
 import type { MapViewBox, RoomDrag, StudioTool } from "./MapStudioWorkspace.types";
 import { canvasShellStyle, errorStyle, statusStyle } from "./mapStudioWorkspaceStyles";
@@ -51,6 +52,7 @@ export function MapStudioCanvas({
   onWheel,
   onSelectElement,
 }: MapStudioCanvasProps) {
+  const occupancy = useMemo(() => buildTileOccupancy(activeDocument), [activeDocument]);
   return (
     <main style={canvasShellStyle}>
       {error && (
@@ -134,6 +136,7 @@ export function MapStudioCanvas({
                 element={element}
                 layer={layer}
                 gridSize={activeDocument.grid.size}
+                occupancy={occupancy}
               />
               {selected && (
                 <MapStudioSelectionOverlay
