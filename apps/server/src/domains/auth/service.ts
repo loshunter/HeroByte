@@ -316,7 +316,10 @@ export class AuthService {
         hash: record.hash,
         salt: record.salt,
         updatedAt: record.updatedAt,
-        source: "user",
+        // Persist the real source — collapsing to "user" here corrupted the
+        // landing page's password-hint state for env-sourced secrets whenever
+        // an unrelated (e.g. per-room) update rewrote the file.
+        source: record.source,
       };
 
       // Include DM password fields if they exist

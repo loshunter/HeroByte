@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterEach } from "vitest";
+import { describe, it, expect, beforeAll, afterEach, vi } from "vitest";
 import { existsSync, mkdirSync, rmSync } from "fs";
 import path from "path";
 import { AuthService } from "../service.js";
@@ -12,6 +12,7 @@ describe("AuthService", () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     if (existsSync(SECRET_PATH)) {
       rmSync(SECRET_PATH);
     }
@@ -34,6 +35,21 @@ describe("AuthService", () => {
     const reloaded = new AuthService({ storagePath: SECRET_PATH });
     expect(reloaded.verify("NewSecret!123")).toBe(true);
     expect(reloaded.getSummary().source).toBe("user");
+  });
+
+  it("preserves the env secret source when a per-room update persists the file", () => {
+    vi.stubEnv("HEROBYTE_ROOM_SECRET", "EnvSecret!123");
+    const service = new AuthService({ storagePath: SECRET_PATH });
+    expect(service.getSummary().source).toBe("env");
+
+    // Setting a per-room secret persists every record, including the
+    // untouched default — its source must survive the round trip.
+    service.update("RoomOnly!456", "room-x1");
+
+    const reloaded = new AuthService({ storagePath: SECRET_PATH });
+    expect(reloaded.getSummary().source).toBe("env");
+    expect(reloaded.verify("EnvSecret!123")).toBe(true);
+    expect(reloaded.verify("RoomOnly!456", "room-x1")).toBe(true);
   });
 
   describe("DM Password Management", () => {
