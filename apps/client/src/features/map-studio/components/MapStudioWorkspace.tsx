@@ -4,6 +4,7 @@ import { MAP_STUDIO_TILE_ASSETS, getMapStudioTileAsset } from "../starterTiles";
 import type { MapStudioController } from "../types";
 import { MapStudioCanvas } from "./MapStudioCanvas";
 import { MapStudioEmptyState } from "./MapStudioEmptyState";
+import { MapStudioLayersPanel } from "./MapStudioLayersPanel";
 import { MapStudioPalette } from "./MapStudioPalette";
 import { StudioTopBar, ToolButton } from "./MapStudioWorkspaceControls";
 import type { StudioTool, TileCategory } from "./MapStudioWorkspace.types";
@@ -39,6 +40,8 @@ export function MapStudioWorkspace({
     addStamps,
     removeElement,
     updateElement,
+    updateLayer,
+    moveLayer,
     undo,
     redo,
     publishDocument,
@@ -299,7 +302,14 @@ export function MapStudioWorkspace({
           removeElement(selectedElement.id);
           setSelectedElementId(null);
         }}
-      />
+      >
+        <MapStudioLayersPanel
+          layers={activeDocument.layers}
+          saving={saving}
+          onUpdateLayer={updateLayer}
+          onMoveLayer={moveLayer}
+        />
+      </MapStudioPalette>
 
       <MapStudioCanvas
         activeDocument={activeDocument}

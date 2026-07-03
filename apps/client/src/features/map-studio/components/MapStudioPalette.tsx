@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { MapElement, MapLayer } from "@herobyte/shared";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
 import {
@@ -9,6 +10,8 @@ import type { TileCategory } from "./MapStudioWorkspace.types";
 import { paletteStyle } from "./mapStudioWorkspaceStyles";
 
 interface MapStudioPaletteProps {
+  /** Extra panels stacked under the palette in the same right rail. */
+  children?: ReactNode;
   category: TileCategory;
   selectedAssetId: string;
   roomFillAssetId: string;
@@ -27,6 +30,7 @@ interface MapStudioPaletteProps {
 }
 
 export function MapStudioPalette({
+  children,
   category,
   selectedAssetId,
   roomFillAssetId,
@@ -160,6 +164,7 @@ export function MapStudioPalette({
           <span className="jrpg-text-small">None</span>
         )}
       </div>
+      {children}
     </aside>
   );
 }
