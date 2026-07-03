@@ -1,102 +1,13 @@
-import type { Character, PlayerStagingZone, Prop, Player, SceneObject } from "@herobyte/shared";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
-import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignment";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
-import type { Camera } from "../../../hooks/useCamera";
 import MapTab from "./tab-views/MapTab";
 import NPCsTab from "./tab-views/NPCsTab";
 import PropsTab from "./tab-views/PropsTab";
 import PlayersTab from "./tab-views/PlayersTab";
 import SessionTab from "./tab-views/SessionTab";
 import { useDMMenuState } from "../hooks/useDMMenuState";
-import type { MapStudioController } from "../../map-studio";
 import { DMMenuTabs } from "./DMMenuTabs";
-
-interface DMMenuProps {
-  isDM: boolean;
-  onToggleDM: (next: boolean) => void;
-  gridSize: number;
-  gridSquareSize?: number;
-  gridLocked: boolean;
-  onGridLockToggle: () => void;
-  onGridSizeChange: (size: number) => void;
-  onGridSquareSizeChange?: (size: number) => void;
-  fogEnabled?: boolean;
-  hasCompiledScene?: boolean;
-  onFogEnabledChange?: (enabled: boolean) => void;
-  onClearDrawings: () => void;
-  onSetMapBackground: (url: string) => void;
-  mapBackground?: string;
-  onMapBackgroundSuccess?: (message: string) => void;
-  onMapBackgroundError?: (message: string) => void;
-  playerStagingZone?: PlayerStagingZone;
-  onSetPlayerStagingZone?: (zone: PlayerStagingZone | undefined) => void;
-  stagingZoneLocked?: boolean;
-  onStagingZoneLockToggle?: () => void;
-  camera: Camera;
-  playerCount: number;
-  characters: Character[];
-  onRequestSaveSession?: (sessionName: string) => void;
-  onRequestLoadSession?: (file: File) => void;
-  onCreateNPC: () => void;
-  onUpdateNPC: (id: string, updates: Partial<Character>) => void;
-  onDeleteNPC: (id: string) => void;
-  onPlaceNPCToken: (id: string) => void;
-  isCreatingNpc?: boolean;
-  npcCreationError?: string | null;
-  isUpdatingNpc?: boolean;
-  npcUpdateError?: string | null;
-  updatingNpcId?: string | null;
-  isPlacingToken?: boolean;
-  tokenPlacementError?: string | null;
-  placingTokenForNpcId?: string | null;
-  props: Prop[];
-  players: Player[];
-  onCreateProp: () => void;
-  onUpdateProp: (id: string, updates: Pick<Prop, "label" | "imageUrl" | "owner" | "size">) => void;
-  onDeleteProp: (id: string) => void;
-  isCreatingProp?: boolean;
-  propCreationError?: string | null;
-  isDeletingProp?: boolean;
-  deletingPropId?: string | null;
-  propDeletionError?: string | null;
-  isUpdatingProp?: boolean;
-  propUpdateError?: string | null;
-  updatingPropId?: string | null;
-  mapLocked?: boolean;
-  onMapLockToggle?: () => void;
-  mapTransform?: { x: number; y: number; scaleX: number; scaleY: number; rotation: number };
-  onMapTransformChange?: (
-    transform: Partial<{ x: number; y: number; scaleX: number; scaleY: number; rotation: number }>,
-  ) => void;
-  alignmentModeActive: boolean;
-  alignmentPoints: AlignmentPoint[];
-  alignmentSuggestion: AlignmentSuggestion | null;
-  alignmentError?: string | null;
-  onAlignmentStart: () => void;
-  onAlignmentReset: () => void;
-  onAlignmentCancel: () => void;
-  onAlignmentApply: () => void;
-  onSetRoomPassword?: (secret: string) => void;
-  roomPasswordStatus?: { type: "success" | "error"; message: string } | null;
-  roomPasswordPending?: boolean;
-  onDismissRoomPasswordStatus?: () => void;
-  sceneObjects: SceneObject[];
-  onSelectPlayerTokens: (playerUid: string) => void;
-  combatActive?: boolean;
-  onStartCombat?: () => void;
-  onEndCombat?: () => void;
-  onClearAllInitiative?: () => void;
-  onNextTurn?: () => void;
-  onPreviousTurn?: () => void;
-  toast?: {
-    success: (message: string) => void;
-    error: (message: string) => void;
-  };
-  onSetInitiative?: (characterId: string, initiative: number, modifier: number) => void;
-  mapStudio?: MapStudioController;
-  onOpenMapStudio?: () => void;
-}
+import type { DMMenuProps } from "./DMMenu.types";
 
 export function DMMenu({
   isDM,
