@@ -327,6 +327,44 @@ describe("MapStudioWorkspace", () => {
     expect(container.querySelector('rect[stroke="#ffd97f"]')).toBeNull();
   });
 
+  it("edits the selected element through the right-rail inspector", () => {
+    const document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
+    document.elements = [
+      {
+        id: "crate-stamp",
+        type: "stamp",
+        layerId: "objects",
+        locked: false,
+        hidden: false,
+        transform: { x: 40, y: 40, scaleX: 1, scaleY: 1, rotation: 0 },
+        data: { assetId: "objects:crate", width: 50, height: 50 },
+      },
+    ];
+    const mapStudio = controller({ activeDocument: document });
+    render(<MapStudioWorkspace controller={mapStudio} onExit={vi.fn()} />);
+
+    // No selection: the inspector stays out of the rail.
+    expect(screen.queryByRole("button", { name: "APPLY ELEMENT" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Select" }));
+    firePointer(screen.getByRole("button", { name: "Select stamp 1" }), "pointerdown", {
+      pointerId: 1,
+      clientX: 50,
+      clientY: 50,
+    });
+
+    fireEvent.change(screen.getByLabelText("Element rotation"), { target: { value: "45" } });
+    fireEvent.change(screen.getByLabelText("Element scale X"), { target: { value: "2" } });
+    fireEvent.click(screen.getByRole("button", { name: "APPLY ELEMENT" }));
+
+    expect(mapStudio.updateElement).toHaveBeenCalledWith("crate-stamp", {
+      transform: { x: 40, y: 40, scaleX: 2, scaleY: 1, rotation: 45 },
+      layerId: "objects",
+      hidden: false,
+      locked: false,
+    });
+  });
+
   it("binds undo, redo, and delete to canvas hotkeys", () => {
     const document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
     document.elements = [

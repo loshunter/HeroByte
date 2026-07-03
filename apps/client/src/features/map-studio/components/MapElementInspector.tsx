@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { MapElement, MapElementTransform, MapElementUpdate, MapLayer } from "@herobyte/shared";
-import { JRPGButton } from "../../../../components/ui/JRPGPanel";
+import { JRPGButton } from "../../../components/ui/JRPGPanel";
 
 interface MapElementInspectorProps {
   element: MapElement;

@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createMapDocumentSvgDataUrl } from "../exportMapDocument";
 import { MAP_STUDIO_TILE_ASSETS, getMapStudioTileAsset } from "../starterTiles";
 import type { MapStudioController } from "../types";
+import { MapElementInspector } from "./MapElementInspector";
 import { MapStudioCanvas } from "./MapStudioCanvas";
 import { MapStudioEmptyState } from "./MapStudioEmptyState";
 import { MapStudioLayersPanel } from "./MapStudioLayersPanel";
@@ -11,6 +12,7 @@ import type { StudioTool, TileCategory } from "./MapStudioWorkspace.types";
 import { leftRailStyle, workspaceStyle } from "./mapStudioWorkspaceStyles";
 import { isVisible, layerOrder, pickPlacementLayer } from "./mapStudioWorkspaceUtils";
 import { useMapStudioCanvasController } from "./useMapStudioCanvasController";
+import { useStudioHotkeys } from "./useStudioHotkeys";
 
 interface MapStudioWorkspaceProps {
   controller: MapStudioController;
@@ -137,49 +139,18 @@ export function MapStudioWorkspace({
     setPublishMessage,
   });
 
-  const handleCanvasKeyDown = (event: KeyboardEvent<SVGSVGElement>) => {
-    const key = event.key.toLowerCase();
-    const modifier = event.ctrlKey || event.metaKey;
-    if (modifier && key === "z") {
-      event.preventDefault();
-      if (event.shiftKey) {
-        if (canRedo && !saving) redo();
-      } else if (canUndo && !saving) {
-        undo();
-      }
-      return;
-    }
-    if (modifier && key === "y") {
-      event.preventDefault();
-      if (canRedo && !saving) redo();
-      return;
-    }
-    if (key === "delete" || key === "backspace") {
-      if (!selectedElement || selectedElement.locked || saving) return;
-      if (layers.get(selectedElement.layerId)?.locked) return;
-      event.preventDefault();
-      removeElement(selectedElement.id);
-      setSelectedElementId(null);
-      return;
-    }
-    if (key !== "r" || modifier) return; // browser reload stays sacred
-    if (!selectedElement || selectedElement.locked || saving) return;
-    // Only footprint elements rotate; walls/doors carry absolute geometry
-    // that an origin rotation would sling across the document.
-    if (selectedElement.type !== "stamp" && selectedElement.type !== "tile") return;
-    if (layers.get(selectedElement.layerId)?.locked) return;
-    // Vision's Shelf spec: grid-snapped elements turn in quarters, free
-    // stamps in fifteens; Shift reverses.
-    const step = selectedElement.type === "stamp" ? 15 : 90;
-    const delta = event.shiftKey ? -step : step;
-    event.preventDefault();
-    updateElement(selectedElement.id, {
-      transform: {
-        ...selectedElement.transform,
-        rotation: (selectedElement.transform.rotation + delta + 360) % 360,
-      },
-    });
-  };
+  const handleCanvasKeyDown = useStudioHotkeys({
+    selectedElement,
+    layers,
+    saving,
+    canUndo,
+    canRedo,
+    undo,
+    redo,
+    removeElement,
+    updateElement,
+    clearSelection: () => setSelectedElementId(null),
+  });
 
   const handleCreate = () => {
     const name = newMapName.trim();
@@ -303,6 +274,14 @@ export function MapStudioWorkspace({
           setSelectedElementId(null);
         }}
       >
+        {selectedElement && (
+          <MapElementInspector
+            element={selectedElement}
+            layers={activeDocument.layers}
+            disabled={saving || selectedLayer?.locked === true}
+            onUpdate={updateElement}
+          />
+        )}
         <MapStudioLayersPanel
           layers={activeDocument.layers}
           saving={saving}

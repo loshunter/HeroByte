@@ -6,7 +6,7 @@ import type {
   MapElementUpdate,
   MapLayer,
 } from "@herobyte/shared";
-import { MapElementInspector } from "./MapElementInspector";
+import { MapElementInspector } from "../../../map-studio/components/MapElementInspector";
 import {
   MapStudioElementPreview,
   MapStudioSelectionOverlay,
