@@ -1,5 +1,11 @@
 import type { MapDocument, MapElement, MapLayer } from "@herobyte/shared";
-import { useMemo, type PointerEvent, type RefObject, type WheelEvent } from "react";
+import {
+  useMemo,
+  type KeyboardEvent,
+  type PointerEvent,
+  type RefObject,
+  type WheelEvent,
+} from "react";
 import type { MapStudioTileAsset } from "../starterTiles";
 import { buildTileOccupancy } from "../tileAutotiling";
 import { MapStudioElementPreview, MapStudioSelectionOverlay } from "./MapStudioElementPreview";
@@ -12,6 +18,7 @@ interface MapStudioCanvasProps {
   viewBox: MapViewBox;
   tool: StudioTool;
   snappedCursor: { x: number; y: number } | null;
+  stampPreview: { x: number; y: number; width: number; height: number } | null;
   selectedAsset: MapStudioTileAsset;
   previewLayer?: MapLayer;
   roomDrag: RoomDrag | null;
@@ -27,6 +34,7 @@ interface MapStudioCanvasProps {
   onPointerMove: (event: PointerEvent<SVGSVGElement>) => void;
   onPointerEnd: () => void;
   onWheel: (event: WheelEvent<SVGSVGElement>) => void;
+  onKeyDown: (event: KeyboardEvent<SVGSVGElement>) => void;
   onSelectElement: (elementId: string) => void;
 }
 
@@ -35,6 +43,7 @@ export function MapStudioCanvas({
   viewBox,
   tool,
   snappedCursor,
+  stampPreview,
   selectedAsset,
   previewLayer,
   roomDrag,
@@ -50,6 +59,7 @@ export function MapStudioCanvas({
   onPointerMove,
   onPointerEnd,
   onWheel,
+  onKeyDown,
   onSelectElement,
 }: MapStudioCanvasProps) {
   const autotile = useMemo(
@@ -72,6 +82,7 @@ export function MapStudioCanvas({
         ref={svgRef}
         aria-label={`${activeDocument.name} studio canvas`}
         role="img"
+        tabIndex={0}
         viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
         preserveAspectRatio="xMidYMid meet"
         onPointerDown={onPointerDown}
@@ -79,6 +90,7 @@ export function MapStudioCanvas({
         onPointerUp={onPointerEnd}
         onPointerCancel={onPointerEnd}
         onWheel={onWheel}
+        onKeyDown={onKeyDown}
         style={{
           width: "100%",
           height: "100%",
@@ -151,7 +163,24 @@ export function MapStudioCanvas({
             </g>
           );
         })}
-        {tool === "tile" && snappedCursor && previewLayer && (
+        {tool === "tile" && stampPreview && previewLayer && (
+          // Alt held: free-placement ghost, centered on the raw cursor.
+          <g
+            transform={`translate(${stampPreview.x} ${stampPreview.y})`}
+            opacity={0.62}
+            pointerEvents="none"
+          >
+            <rect
+              width={stampPreview.width}
+              height={stampPreview.height}
+              fill={selectedAsset.fill}
+              stroke="#ffd97f"
+              strokeWidth={Math.max(2, activeDocument.grid.size * 0.04)}
+              strokeDasharray="4 4"
+            />
+          </g>
+        )}
+        {tool === "tile" && !stampPreview && snappedCursor && previewLayer && (
           <g
             transform={`translate(${snappedCursor.x} ${snappedCursor.y})`}
             opacity={0.62}

@@ -152,6 +152,9 @@ function renderElement(
   const height = element.type === "stamp" ? element.data.height : element.data.rows * gridSize;
   const asset = getMapStudioTileAsset(element.data.assetId);
   const fill = element.data.tint ?? asset.fill;
+  // Footprint elements rotate around their visual center — must match the
+  // live canvas (MapStudioElementPreview) exactly.
+  const footprintAttributes = `transform="translate(${transform.x} ${transform.y}) rotate(${transform.rotation} ${(width * transform.scaleX) / 2} ${(height * transform.scaleY) / 2}) scale(${transform.scaleX} ${transform.scaleY})" opacity="${layer.opacity}"`;
   if (element.type === "tile" && isAutotileCandidate(element, grid)) {
     // Autotiled terrain: no per-tile outline; borders appear only where a
     // cell faces different terrain, so contiguous paint reads as one surface.
@@ -159,9 +162,9 @@ function renderElement(
     const boundaryMarkup = boundary
       ? `<path d="${boundary}" fill="none" stroke="${xml(asset.stroke)}" stroke-width="2"/>`
       : "";
-    return `<g ${attributes} data-asset-id="${xml(element.data.assetId)}"><rect width="${width}" height="${height}" fill="${xml(fill)}"/>${boundaryMarkup}</g>`;
+    return `<g ${footprintAttributes} data-asset-id="${xml(element.data.assetId)}"><rect width="${width}" height="${height}" fill="${xml(fill)}"/>${boundaryMarkup}</g>`;
   }
-  return `<g ${attributes} data-asset-id="${xml(element.data.assetId)}"><rect width="${width}" height="${height}" fill="${xml(fill)}" stroke="${xml(asset.stroke)}" stroke-width="2"/><path d="M 0 ${height / 2} H ${width} M ${width / 2} 0 V ${height}" stroke="${xml(asset.accent ?? asset.stroke)}" stroke-opacity="0.55" stroke-width="1"/></g>`;
+  return `<g ${footprintAttributes} data-asset-id="${xml(element.data.assetId)}"><rect width="${width}" height="${height}" fill="${xml(fill)}" stroke="${xml(asset.stroke)}" stroke-width="2"/><path d="M 0 ${height / 2} H ${width} M ${width / 2} 0 V ${height}" stroke="${xml(asset.accent ?? asset.stroke)}" stroke-opacity="0.55" stroke-width="1"/></g>`;
 }
 
 function paint(element: Extract<MapElement, { type: "shape" }>): string {

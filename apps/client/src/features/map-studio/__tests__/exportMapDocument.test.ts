@@ -138,6 +138,17 @@ describe("Map Studio export", () => {
       expect(floating).toContain("stroke="); // outlined island, not boundary-fused
     });
 
+    it("rotates tiles and stamps around their center in the export", () => {
+      let document = createMapDocument({ id: "map", name: "Keep", timestamp: 10 });
+      const rotated = tile("spun", 100, 100);
+      rotated.transform.rotation = 90;
+      document = addMapElement(document, rotated, 20);
+
+      const svg = renderMapDocumentSvg(document);
+
+      expect(svg).toContain('transform="translate(100 100) rotate(90 25 25) scale(1 1)"');
+    });
+
     it("outlines an isolated tile on all four sides", () => {
       let document = createMapDocument({ id: "map", name: "Keep", timestamp: 10 });
       document = addMapElement(document, tile("lone", 100, 100), 20);

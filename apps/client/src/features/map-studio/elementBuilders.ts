@@ -1,10 +1,17 @@
 import type {
   MapDoorElement,
   MapShapeElement,
+  MapStampElement,
   MapTileElement,
   MapWallElement,
 } from "@herobyte/shared";
-import type { MapDoorDraft, MapShapeDraft, MapTileDraft, MapWallDraft } from "./types";
+import type {
+  MapDoorDraft,
+  MapShapeDraft,
+  MapStampDraft,
+  MapTileDraft,
+  MapWallDraft,
+} from "./types";
 
 export function createTileElement(id: string, draft: MapTileDraft): MapTileElement {
   return {
@@ -18,6 +25,23 @@ export function createTileElement(id: string, draft: MapTileDraft): MapTileEleme
       assetId: draft.assetId,
       columns: draft.columns,
       rows: draft.rows,
+      ...(draft.tint ? { tint: draft.tint } : {}),
+    },
+  };
+}
+
+export function createStampElement(id: string, draft: MapStampDraft): MapStampElement {
+  return {
+    id,
+    layerId: draft.layerId,
+    type: "stamp",
+    locked: false,
+    hidden: false,
+    transform: { x: draft.x, y: draft.y, scaleX: 1, scaleY: 1, rotation: 0 },
+    data: {
+      assetId: draft.assetId,
+      width: draft.width,
+      height: draft.height,
       ...(draft.tint ? { tint: draft.tint } : {}),
     },
   };

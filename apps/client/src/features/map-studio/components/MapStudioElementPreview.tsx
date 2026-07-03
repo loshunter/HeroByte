@@ -29,12 +29,14 @@ export const MapStudioElementPreview = memo(function MapStudioElementPreview({
     const width = element.type === "tile" ? element.data.columns * gridSize : element.data.width;
     const height = element.type === "tile" ? element.data.rows * gridSize : element.data.height;
     const tint = element.data.tint;
+    // Footprint elements spin around their visual center, not the corner.
+    const footprintTransform = `translate(${x} ${y}) rotate(${rotation} ${(width * scaleX) / 2} ${(height * scaleY) / 2}) scale(${scaleX} ${scaleY})`;
     if (element.type === "tile" && autotile && isAutotileCandidate(element, autotile.grid)) {
       // Autotiled terrain: no per-tile outline; borders appear only where a
       // cell faces different terrain, so contiguous paint reads as one surface.
       const boundary = tileBoundaryPath(element, autotile.grid, autotile.occupancy);
       return (
-        <g transform={transform} opacity={layer.opacity}>
+        <g transform={footprintTransform} opacity={layer.opacity}>
           <rect width={width} height={height} fill={tint ?? asset.fill} />
           {boundary && (
             <path
@@ -48,7 +50,7 @@ export const MapStudioElementPreview = memo(function MapStudioElementPreview({
       );
     }
     return (
-      <g transform={transform} opacity={layer.opacity}>
+      <g transform={footprintTransform} opacity={layer.opacity}>
         <rect
           width={width}
           height={height}
@@ -163,7 +165,10 @@ export function MapStudioSelectionOverlay({
   const bounds = elementBounds(element, gridSize);
   if (!bounds) return null;
   const { x, y, scaleX, scaleY, rotation } = element.transform;
-  const transform = `translate(${x} ${y}) rotate(${rotation}) scale(${scaleX} ${scaleY})`;
+  const footprint = element.type === "tile" || element.type === "stamp";
+  const transform = footprint
+    ? `translate(${x} ${y}) rotate(${rotation} ${(bounds.width * scaleX) / 2} ${(bounds.height * scaleY) / 2}) scale(${scaleX} ${scaleY})`
+    : `translate(${x} ${y}) rotate(${rotation}) scale(${scaleX} ${scaleY})`;
   return (
     <rect
       {...bounds}

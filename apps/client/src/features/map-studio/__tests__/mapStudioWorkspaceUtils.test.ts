@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { paintPlacementBounds } from "../components/mapStudioWorkspaceUtils";
+import type { MapElement, MapLayer } from "@herobyte/shared";
+import { createMapDocument } from "@herobyte/shared";
+import {
+  buildStampDraft,
+  paintPlacementBounds,
+  topmostTileAtPoint,
+} from "../components/mapStudioWorkspaceUtils";
+import { getMapStudioTileAsset } from "../starterTiles";
 
 describe("paintPlacementBounds", () => {
   it("keeps the raw fit range when snapping is off", () => {
@@ -24,5 +31,47 @@ describe("paintPlacementBounds", () => {
 
   it("falls back to the raw range when no lattice position fits", () => {
     expect(paintPlacementBounds(40, 1, 50, 0, true)).toEqual({ min: 0, max: -10 });
+  });
+});
+
+describe("buildStampDraft", () => {
+  it("centers the stamp on the cursor, rounded to whole pixels and clamped", () => {
+    const document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
+    const asset = getMapStudioTileAsset("objects:crate");
+
+    expect(buildStampDraft(document, asset, { x: 73.4, y: 61.6 })).toEqual({
+      layerId: "objects",
+      assetId: "objects:crate",
+      x: 48,
+      y: 37,
+      width: 50,
+      height: 50,
+    });
+    expect(buildStampDraft(document, asset, { x: 2047, y: -10 })).toEqual(
+      expect.objectContaining({ x: 1998, y: 0 }),
+    );
+  });
+});
+
+describe("topmostTileAtPoint", () => {
+  it("hit-tests rotated stamps in their rotated footprint, not the old bounding box", () => {
+    // A 100x20 plank rotated 90deg around its center (50,10) stands vertical:
+    // it covers x in [40,60], y in [-40,60].
+    const document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
+    const plank: MapElement = {
+      id: "plank",
+      type: "stamp",
+      layerId: "objects",
+      locked: false,
+      hidden: false,
+      transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 90 },
+      data: { assetId: "objects:crate", width: 100, height: 20 },
+    };
+    document.elements = [plank];
+    const layers = new Map<string, MapLayer>(document.layers.map((layer) => [layer.id, layer]));
+
+    expect(topmostTileAtPoint(document, layers, { x: 50, y: 50 })?.id).toBe("plank");
+    // Inside the unrotated 100x20 box but outside the rotated plank.
+    expect(topmostTileAtPoint(document, layers, { x: 90, y: 18 })).toBeNull();
   });
 });

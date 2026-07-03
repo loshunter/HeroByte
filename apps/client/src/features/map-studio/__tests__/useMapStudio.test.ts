@@ -254,6 +254,43 @@ describe("useMapStudio", () => {
     });
   });
 
+  it("creates free-placed stamp elements through the command queue", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    const document = createMapDocument({ id: "map", name: "Map", timestamp: 1 });
+    act(() => result.current.handleServerMessage({ t: "map-studio-document", document }));
+
+    let stampId: string | null = null;
+    act(() => {
+      stampId = result.current.addStamp({
+        layerId: "objects",
+        assetId: "objects:crate",
+        x: 48,
+        y: 36,
+        width: 50,
+        height: 50,
+      });
+    });
+
+    expect(stampId).toBeTruthy();
+    expect(sendMessage.mock.calls.at(-1)?.[0]).toMatchObject({
+      t: "map-studio-command",
+      command: {
+        type: "add-element",
+        element: {
+          id: stampId,
+          type: "stamp",
+          layerId: "objects",
+          transform: { x: 48, y: 36, rotation: 0, scaleX: 1, scaleY: 1 },
+          data: {
+            assetId: "objects:crate",
+            width: 50,
+            height: 50,
+          },
+        },
+      },
+    });
+  });
+
   it("creates multiple tile elements through one revision-aware command", () => {
     const { result } = renderHook(() => useMapStudio(sendMessage));
     const document = createMapDocument({ id: "map", name: "Map", timestamp: 1 });

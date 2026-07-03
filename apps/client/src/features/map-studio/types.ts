@@ -35,6 +35,17 @@ export interface MapTileDraft {
   tint?: string;
 }
 
+/** Off-grid Shelf placement: pixel-precise position and footprint. */
+export interface MapStampDraft {
+  layerId: string;
+  assetId: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  tint?: string;
+}
+
 export interface MapWallDraft {
   layerId: string;
   x1: number;
@@ -73,6 +84,7 @@ export interface MapStudioController {
   updateGrid: (update: MapGridUpdate) => void;
   addTile: (draft: MapTileDraft) => string | null;
   addTiles: (drafts: MapTileDraft[]) => string[];
+  addStamp: (draft: MapStampDraft) => string | null;
   addShape: (draft: MapShapeDraft) => string | null;
   addWall: (draft: MapWallDraft) => string | null;
   addDoor: (draft: MapDoorDraft) => string | null;

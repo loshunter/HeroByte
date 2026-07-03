@@ -10,10 +10,17 @@ import { generateUUID } from "../../utils/uuid";
 import {
   createDoorElement,
   createShapeElement,
+  createStampElement,
   createTileElement,
   createWallElement,
 } from "./elementBuilders";
-import type { MapDoorDraft, MapShapeDraft, MapTileDraft, MapWallDraft } from "./types";
+import type {
+  MapDoorDraft,
+  MapShapeDraft,
+  MapStampDraft,
+  MapTileDraft,
+  MapWallDraft,
+} from "./types";
 
 type CommandBuilder = (document: MapDocument, commandId: string) => MapStudioCommand;
 
@@ -117,6 +124,23 @@ export function useMapStudioActions({
     [activeDocumentRef, applyCommand],
   );
 
+  const addStamp = useCallback(
+    (draft: MapStampDraft) => {
+      if (!activeDocumentRef.current) return null;
+      const id = generateUUID();
+      const element = createStampElement(id, draft);
+      applyCommand((document, commandId) => ({
+        commandId,
+        documentId: document.id,
+        baseRevision: document.revision,
+        type: "add-element",
+        element,
+      }));
+      return id;
+    },
+    [activeDocumentRef, applyCommand],
+  );
+
   const addWall = useCallback(
     (draft: MapWallDraft) => {
       if (!activeDocumentRef.current) return null;
@@ -202,6 +226,7 @@ export function useMapStudioActions({
     updateGrid,
     addTile,
     addTiles,
+    addStamp,
     addShape,
     addWall,
     addDoor,

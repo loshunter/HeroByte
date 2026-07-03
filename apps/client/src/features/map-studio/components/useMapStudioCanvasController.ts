@@ -10,7 +10,7 @@ import {
 import type { MapDocument, MapLayer } from "@herobyte/shared";
 import { snapPointToGrid } from "../snapToGrid";
 import type { MapStudioTileAsset } from "../starterTiles";
-import type { MapTileDraft } from "../types";
+import type { MapStampDraft, MapTileDraft } from "../types";
 import {
   MAX_ROOM_TILES,
   type MapViewBox,
@@ -19,6 +19,7 @@ import {
 } from "./MapStudioWorkspace.types";
 import {
   buildRoomTileDrafts,
+  buildStampDraft,
   clamp,
   clampViewBox,
   eventToMapPoint,
@@ -39,6 +40,7 @@ interface UseMapStudioCanvasControllerProps {
   tool: StudioTool;
   addTile: (tile: MapTileDraft) => void;
   addTiles: (tiles: MapTileDraft[]) => void;
+  addStamp: (stamp: MapStampDraft) => void;
   removeElement: (elementId: string) => void;
   setSelectedElementId: (elementId: string | null) => void;
   setPublishMessage: (message: string) => void;
@@ -54,6 +56,7 @@ export function useMapStudioCanvasController({
   tool,
   addTile,
   addTiles,
+  addStamp,
   removeElement,
   setSelectedElementId,
   setPublishMessage,
@@ -64,6 +67,7 @@ export function useMapStudioCanvasController({
     null,
   );
   const [cursorPoint, setCursorPoint] = useState<{ x: number; y: number } | null>(null);
+  const [freePlacement, setFreePlacement] = useState(false);
   const [painting, setPainting] = useState(false);
   const [roomDrag, setRoomDrag] = useState<RoomDrag | null>(null);
   const [viewBox, setViewBox] = useState<MapViewBox>({ x: 0, y: 0, width: 2048, height: 2048 });
@@ -75,11 +79,45 @@ export function useMapStudioCanvasController({
     panState.current = null;
   }, [activeDocument?.id, activeDocument?.width, activeDocument?.height]);
 
+  // The Alt ghost must track the real modifier state, not just the last
+  // pointer event — pressing or releasing Alt with a still mouse updates the
+  // preview immediately, and Alt+Tab away never leaves it stuck on.
+  useEffect(() => {
+    const handleAltKey = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Alt") setFreePlacement(event.type === "keydown");
+    };
+    const handleBlur = () => setFreePlacement(false);
+    window.addEventListener("keydown", handleAltKey);
+    window.addEventListener("keyup", handleAltKey);
+    window.addEventListener("blur", handleBlur);
+    return () => {
+      window.removeEventListener("keydown", handleAltKey);
+      window.removeEventListener("keyup", handleAltKey);
+      window.removeEventListener("blur", handleBlur);
+    };
+  }, []);
+
   const snappedCursor = useMemo(
     () =>
       activeDocument && cursorPoint ? snapPointToGrid(cursorPoint, activeDocument.grid) : null,
     [activeDocument, cursorPoint],
   );
+
+  // Alt-held ghost: the selected asset's footprint centered on the raw cursor,
+  // previewing exactly where an Alt-click would drop the free stamp.
+  const stampPreview = useMemo(() => {
+    if (!activeDocument || !cursorPoint || !freePlacement || painting || tool !== "tile") {
+      return null;
+    }
+    const width = selectedAsset.columns * activeDocument.grid.size;
+    const height = selectedAsset.rows * activeDocument.grid.size;
+    return {
+      x: clamp(cursorPoint.x - width / 2, 0, activeDocument.width - width),
+      y: clamp(cursorPoint.y - height / 2, 0, activeDocument.height - height),
+      width,
+      height,
+    };
+  }, [activeDocument, cursorPoint, freePlacement, tool, selectedAsset]);
 
   const handleResetView = () => {
     if (!activeDocument) return;
@@ -192,16 +230,32 @@ export function useMapStudioCanvasController({
     [activeDocument, addTiles, layers, roomFillAsset, roomWallAsset, saving, setPublishMessage],
   );
 
+  const stampAtPoint = useCallback(
+    (point: { x: number; y: number }) => {
+      if (!activeDocument || !selectedAsset || saving) return;
+      const draft = buildStampDraft(activeDocument, selectedAsset, point);
+      if (draft) addStamp(draft);
+    },
+    [activeDocument, selectedAsset, saving, addStamp],
+  );
+
   const handleCanvasPointerDown = (event: PointerEvent<SVGSVGElement>) => {
     if (!activeDocument || saving) return;
     if (tool === "pan" || event.button === 1 || event.shiftKey) {
       startPan(event);
       return;
     }
+    // Right/back/forward buttons never paint, stamp, or erase.
+    if (event.button !== 0) return;
     const point = eventToMapPoint(event, viewBox, svgRef.current);
     setCursorPoint(point);
+    setFreePlacement(event.altKey);
     paintedCells.current = new Set();
     if (tool === "tile") {
+      if (event.altKey) {
+        stampAtPoint(point);
+        return;
+      }
       event.currentTarget.setPointerCapture?.(event.pointerId);
       setPainting(true);
       paintAtPoint(point);
@@ -249,6 +303,7 @@ export function useMapStudioCanvasController({
     }
     const point = eventToMapPoint(event, viewBox, svgRef.current);
     setCursorPoint(point);
+    setFreePlacement(event.altKey);
     if (!painting || saving) return;
     if (tool === "tile") paintAtPoint(point);
     if (tool === "erase") eraseAtPoint(point);
@@ -272,6 +327,7 @@ export function useMapStudioCanvasController({
     viewBox,
     roomDrag,
     snappedCursor,
+    stampPreview,
     handleZoom,
     handleResetView,
     handleWheel,

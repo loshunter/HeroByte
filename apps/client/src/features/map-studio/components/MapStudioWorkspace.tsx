@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { createMapDocumentSvgDataUrl } from "../exportMapDocument";
 import { MAP_STUDIO_TILE_ASSETS, getMapStudioTileAsset } from "../starterTiles";
 import type { MapStudioController } from "../types";
@@ -35,7 +35,9 @@ export function MapStudioWorkspace({
     openDocument,
     addTile,
     addTiles,
+    addStamp,
     removeElement,
+    updateElement,
     undo,
     redo,
     publishDocument,
@@ -107,6 +109,7 @@ export function MapStudioWorkspace({
     viewBox,
     roomDrag,
     snappedCursor,
+    stampPreview,
     handleZoom,
     handleResetView,
     handleWheel,
@@ -123,10 +126,32 @@ export function MapStudioWorkspace({
     tool,
     addTile,
     addTiles,
+    addStamp,
     removeElement,
     setSelectedElementId,
     setPublishMessage,
   });
+
+  const handleCanvasKeyDown = (event: KeyboardEvent<SVGSVGElement>) => {
+    if (event.key !== "r" && event.key !== "R") return;
+    if (event.ctrlKey || event.metaKey) return; // browser reload stays sacred
+    if (!selectedElement || selectedElement.locked || saving) return;
+    // Only footprint elements rotate; walls/doors carry absolute geometry
+    // that an origin rotation would sling across the document.
+    if (selectedElement.type !== "stamp" && selectedElement.type !== "tile") return;
+    if (layers.get(selectedElement.layerId)?.locked) return;
+    // Vision's Shelf spec: grid-snapped elements turn in quarters, free
+    // stamps in fifteens; Shift reverses.
+    const step = selectedElement.type === "stamp" ? 15 : 90;
+    const delta = event.shiftKey ? -step : step;
+    event.preventDefault();
+    updateElement(selectedElement.id, {
+      transform: {
+        ...selectedElement.transform,
+        rotation: (selectedElement.transform.rotation + delta + 360) % 360,
+      },
+    });
+  };
 
   const handleCreate = () => {
     const name = newMapName.trim();
@@ -251,6 +276,7 @@ export function MapStudioWorkspace({
         viewBox={viewBox}
         tool={tool}
         snappedCursor={snappedCursor}
+        stampPreview={stampPreview}
         selectedAsset={selectedAsset}
         previewLayer={previewLayer}
         roomDrag={roomDrag}
@@ -266,6 +292,7 @@ export function MapStudioWorkspace({
         onPointerMove={handleCanvasPointerMove}
         onPointerEnd={handleCanvasPointerEnd}
         onWheel={handleWheel}
+        onKeyDown={handleCanvasKeyDown}
         onSelectElement={setSelectedElementId}
       />
     </div>

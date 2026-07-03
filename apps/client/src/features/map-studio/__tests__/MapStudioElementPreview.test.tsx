@@ -105,6 +105,24 @@ describe("MapStudioElementPreview autotiling", () => {
     expect(rect!.getAttribute("stroke")).toBe(getMapStudioTileAsset("terrain:stone-floor").stroke);
   });
 
+  it("rotates footprint elements around their visual center", () => {
+    const stamp: MapElement = {
+      id: "crate",
+      type: "stamp",
+      layerId: "objects",
+      locked: false,
+      hidden: false,
+      transform: { x: 40, y: 40, scaleX: 1, scaleY: 1, rotation: 15 },
+      data: { assetId: "objects:crate", width: 50, height: 50 },
+    };
+
+    const { container } = renderPreview(stamp);
+
+    expect(container.querySelector("g")?.getAttribute("transform")).toBe(
+      "translate(40 40) rotate(15 25 25) scale(1 1)",
+    );
+  });
+
   it("keeps the outlined look for off-lattice tiles instead of re-binning them", () => {
     const floating = tile("floating", 74, 0);
     const occupancy = new Map([["0,0", "terrain:stone-floor"]]);

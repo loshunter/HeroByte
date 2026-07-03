@@ -1,7 +1,7 @@
 import type { PointerEvent, WheelEvent } from "react";
 import type { MapDocument, MapElement, MapLayer } from "@herobyte/shared";
 import type { MapStudioTileAsset } from "../starterTiles";
-import type { MapTileDraft } from "../types";
+import type { MapStampDraft, MapTileDraft } from "../types";
 import type { MapViewBox, RoomDrag } from "./MapStudioWorkspace.types";
 
 const MIN_ZOOM = 0.2;
@@ -188,6 +188,29 @@ export function clamp(value: number, minimum: number, maximum: number): number {
 }
 
 /**
+ * Off-grid Shelf placement: the stamp lands centered on the cursor at whole-
+ * pixel precision, clamped inside the document. Null when no layer accepts it.
+ */
+export function buildStampDraft(
+  document: MapDocument,
+  asset: MapStudioTileAsset,
+  point: { x: number; y: number },
+): MapStampDraft | null {
+  const width = asset.columns * document.grid.size;
+  const height = asset.rows * document.grid.size;
+  const layer = pickPlacementLayer(document, asset);
+  if (!layer) return null;
+  return {
+    layerId: layer.id,
+    assetId: asset.id,
+    x: Math.round(clamp(point.x - width / 2, 0, document.width - width)),
+    y: Math.round(clamp(point.y - height / 2, 0, document.height - height)),
+    width,
+    height,
+  };
+}
+
+/**
  * Inclusive placement range for a painted tile along one axis. With snapping
  * on, both ends land on the grid lattice so edge paints stay autotileable —
  * clamping to `extent - cells*size` minted off-lattice tiles whenever the
@@ -230,12 +253,21 @@ function containsPoint(
   point: { x: number; y: number },
 ): boolean {
   if (element.type !== "tile" && element.type !== "stamp") return false;
-  const width = element.type === "tile" ? element.data.columns * gridSize : element.data.width;
-  const height = element.type === "tile" ? element.data.rows * gridSize : element.data.height;
-  return (
-    point.x >= element.transform.x &&
-    point.x <= element.transform.x + width &&
-    point.y >= element.transform.y &&
-    point.y <= element.transform.y + height
-  );
+  const { x, y, scaleX, scaleY, rotation } = element.transform;
+  const width =
+    (element.type === "tile" ? element.data.columns * gridSize : element.data.width) * scaleX;
+  const height =
+    (element.type === "tile" ? element.data.rows * gridSize : element.data.height) * scaleY;
+  // Footprints rotate around their visual center (matching the renderers);
+  // un-rotate the query point into the element's frame before the bounds test.
+  const pivotX = x + width / 2;
+  const pivotY = y + height / 2;
+  const radians = (-rotation * Math.PI) / 180;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  const dx = point.x - pivotX;
+  const dy = point.y - pivotY;
+  const localX = pivotX + dx * cos - dy * sin;
+  const localY = pivotY + dx * sin + dy * cos;
+  return localX >= x && localX <= x + width && localY >= y && localY <= y + height;
 }
