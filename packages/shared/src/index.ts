@@ -39,6 +39,10 @@ export * from "./autotile.js";
 // recipes, and Cartridge Codes.
 export * from "./rng.js";
 
+// Terrain storage: RLE-compressed 16x16 chunks — the Terrain Brush's wire
+// format (golden-tested; changes are schema migrations).
+export * from "./terrain.js";
+
 // ----------------------------------------------------------------------------
 // GAME ENTITY TYPES
 // ----------------------------------------------------------------------------
