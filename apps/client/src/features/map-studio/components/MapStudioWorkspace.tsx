@@ -36,6 +36,7 @@ export function MapStudioWorkspace({
     addTile,
     addTiles,
     addStamp,
+    addStamps,
     removeElement,
     updateElement,
     undo,
@@ -127,6 +128,7 @@ export function MapStudioWorkspace({
     addTile,
     addTiles,
     addStamp,
+    addStamps,
     removeElement,
     setSelectedElementId,
     setPublishMessage,
@@ -237,6 +239,11 @@ export function MapStudioWorkspace({
         <ToolButton active={tool === "select"} label="Select" onClick={() => setTool("select")} />
         <ToolButton active={tool === "tile"} label="Tile" onClick={() => setTool("tile")} />
         <ToolButton active={tool === "room"} label="Room" onClick={() => setTool("room")} />
+        <ToolButton
+          active={tool === "scatter"}
+          label="Scatter"
+          onClick={() => setTool("scatter")}
+        />
         <ToolButton active={tool === "erase"} label="Erase" onClick={() => setTool("erase")} />
       </div>
 

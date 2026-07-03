@@ -234,11 +234,14 @@ describe("Room Model - toSnapshot", () => {
         { id: "npc-fogged-token", owner: "__npc__", x: 6, y: 3, color: "black" },
         { id: "npc-seen-token", owner: "__npc__", x: 1, y: 1, color: "black" },
       );
-      const character = (
-        id: string,
-        type: "pc" | "npc",
-        tokenId: string | null,
-      ) => ({ id, type, name: id, hp: 8, maxHp: 8, tokenId });
+      const character = (id: string, type: "pc" | "npc", tokenId: string | null) => ({
+        id,
+        type,
+        name: id,
+        hp: 8,
+        maxHp: 8,
+        tokenId,
+      });
       state.characters = [
         // A party member whose token is behind the wall: rosters never fog.
         character("pc-far", "pc", "hidden-enemy"),
@@ -251,11 +254,7 @@ describe("Room Model - toSnapshot", () => {
 
       const snapshot = toSnapshot(state, false, "player-1");
 
-      expect(snapshot.characters.map((c) => c.id)).toEqual([
-        "pc-far",
-        "npc-seen",
-        "npc-tokenless",
-      ]);
+      expect(snapshot.characters.map((c) => c.id)).toEqual(["pc-far", "npc-seen", "npc-tokenless"]);
       // The DM roster is untouched.
       expect(toSnapshot(state, true, "dm-uid").characters).toHaveLength(4);
     });

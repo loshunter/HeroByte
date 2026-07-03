@@ -29,6 +29,8 @@ import {
   topmostTileAtPoint,
   zoomViewBox,
 } from "./mapStudioWorkspaceUtils";
+import { buildScatterDrafts } from "../scatterBrush";
+import { useAltKeyTracking } from "./useAltKeyTracking";
 
 interface UseMapStudioCanvasControllerProps {
   activeDocument?: MapDocument | null;
@@ -41,6 +43,7 @@ interface UseMapStudioCanvasControllerProps {
   addTile: (tile: MapTileDraft) => void;
   addTiles: (tiles: MapTileDraft[]) => void;
   addStamp: (stamp: MapStampDraft) => void;
+  addStamps: (stamps: MapStampDraft[]) => void;
   removeElement: (elementId: string) => void;
   setSelectedElementId: (elementId: string | null) => void;
   setPublishMessage: (message: string) => void;
@@ -57,6 +60,7 @@ export function useMapStudioCanvasController({
   addTile,
   addTiles,
   addStamp,
+  addStamps,
   removeElement,
   setSelectedElementId,
   setPublishMessage,
@@ -67,7 +71,7 @@ export function useMapStudioCanvasController({
     null,
   );
   const [cursorPoint, setCursorPoint] = useState<{ x: number; y: number } | null>(null);
-  const [freePlacement, setFreePlacement] = useState(false);
+  const [freePlacement, setFreePlacement] = useAltKeyTracking();
   const [painting, setPainting] = useState(false);
   const [roomDrag, setRoomDrag] = useState<RoomDrag | null>(null);
   const [viewBox, setViewBox] = useState<MapViewBox>({ x: 0, y: 0, width: 2048, height: 2048 });
@@ -78,24 +82,6 @@ export function useMapStudioCanvasController({
     setRoomDrag(null);
     panState.current = null;
   }, [activeDocument?.id, activeDocument?.width, activeDocument?.height]);
-
-  // The Alt ghost must track the real modifier state, not just the last
-  // pointer event — pressing or releasing Alt with a still mouse updates the
-  // preview immediately, and Alt+Tab away never leaves it stuck on.
-  useEffect(() => {
-    const handleAltKey = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Alt") setFreePlacement(event.type === "keydown");
-    };
-    const handleBlur = () => setFreePlacement(false);
-    window.addEventListener("keydown", handleAltKey);
-    window.addEventListener("keyup", handleAltKey);
-    window.addEventListener("blur", handleBlur);
-    return () => {
-      window.removeEventListener("keydown", handleAltKey);
-      window.removeEventListener("keyup", handleAltKey);
-      window.removeEventListener("blur", handleBlur);
-    };
-  }, []);
 
   const snappedCursor = useMemo(
     () =>
@@ -239,6 +225,17 @@ export function useMapStudioCanvasController({
     [activeDocument, selectedAsset, saving, addStamp],
   );
 
+  const scatterAtPoint = useCallback(
+    (point: { x: number; y: number }) => {
+      if (!activeDocument || !selectedAsset || saving) return;
+      // Fresh seed per click; the scatter itself is deterministic per seed.
+      const seed = Math.floor(Math.random() * 0xffffffff);
+      const drafts = buildScatterDrafts(activeDocument, selectedAsset, point, seed);
+      if (drafts.length > 0) addStamps(drafts);
+    },
+    [activeDocument, selectedAsset, saving, addStamps],
+  );
+
   const handleCanvasPointerDown = (event: PointerEvent<SVGSVGElement>) => {
     if (!activeDocument || saving) return;
     if (tool === "pan" || event.button === 1 || event.shiftKey) {
@@ -259,6 +256,10 @@ export function useMapStudioCanvasController({
       event.currentTarget.setPointerCapture?.(event.pointerId);
       setPainting(true);
       paintAtPoint(point);
+      return;
+    }
+    if (tool === "scatter") {
+      scatterAtPoint(point);
       return;
     }
     if (tool === "erase") {

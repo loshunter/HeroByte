@@ -35,6 +35,10 @@ export * from "./visibility.js";
 // The Terrain Brush's pure autotiling core (47-blob + quarter-tile math).
 export * from "./autotile.js";
 
+// Seeded RNG: the determinism contract under the scatter brush, generation
+// recipes, and Cartridge Codes.
+export * from "./rng.js";
+
 // ----------------------------------------------------------------------------
 // GAME ENTITY TYPES
 // ----------------------------------------------------------------------------

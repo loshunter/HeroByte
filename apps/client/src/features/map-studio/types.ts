@@ -43,6 +43,8 @@ export interface MapStampDraft {
   y: number;
   width: number;
   height: number;
+  /** Degrees, around the stamp's visual center. Defaults to 0. */
+  rotation?: number;
   tint?: string;
 }
 
@@ -85,6 +87,7 @@ export interface MapStudioController {
   addTile: (draft: MapTileDraft) => string | null;
   addTiles: (drafts: MapTileDraft[]) => string[];
   addStamp: (draft: MapStampDraft) => string | null;
+  addStamps: (drafts: MapStampDraft[]) => string[];
   addShape: (draft: MapShapeDraft) => string | null;
   addWall: (draft: MapWallDraft) => string | null;
   addDoor: (draft: MapDoorDraft) => string | null;

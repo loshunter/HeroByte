@@ -291,6 +291,54 @@ describe("useMapStudio", () => {
     });
   });
 
+  it("creates a whole scatter of stamps as one undoable command", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    const document = createMapDocument({ id: "map", name: "Map", timestamp: 1 });
+    act(() => result.current.handleServerMessage({ t: "map-studio-document", document }));
+
+    let ids: string[] = [];
+    act(() => {
+      ids = result.current.addStamps([
+        {
+          layerId: "objects",
+          assetId: "objects:crate",
+          x: 10,
+          y: 10,
+          width: 50,
+          height: 50,
+          rotation: 45,
+        },
+        {
+          layerId: "objects",
+          assetId: "objects:crate",
+          x: 90,
+          y: 30,
+          width: 50,
+          height: 50,
+          rotation: 300,
+        },
+      ]);
+    });
+
+    expect(ids).toHaveLength(2);
+    expect(sendMessage.mock.calls.at(-1)?.[0]).toMatchObject({
+      t: "map-studio-command",
+      command: {
+        type: "add-elements",
+        elements: [
+          expect.objectContaining({
+            type: "stamp",
+            transform: expect.objectContaining({ rotation: 45 }),
+          }),
+          expect.objectContaining({
+            type: "stamp",
+            transform: expect.objectContaining({ rotation: 300 }),
+          }),
+        ],
+      },
+    });
+  });
+
   it("creates multiple tile elements through one revision-aware command", () => {
     const { result } = renderHook(() => useMapStudio(sendMessage));
     const document = createMapDocument({ id: "map", name: "Map", timestamp: 1 });

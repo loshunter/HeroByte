@@ -37,7 +37,7 @@ export function createStampElement(id: string, draft: MapStampDraft): MapStampEl
     type: "stamp",
     locked: false,
     hidden: false,
-    transform: { x: draft.x, y: draft.y, scaleX: 1, scaleY: 1, rotation: 0 },
+    transform: { x: draft.x, y: draft.y, scaleX: 1, scaleY: 1, rotation: draft.rotation ?? 0 },
     data: {
       assetId: draft.assetId,
       width: draft.width,

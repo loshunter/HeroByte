@@ -141,6 +141,22 @@ export function useMapStudioActions({
     [activeDocumentRef, applyCommand],
   );
 
+  const addStamps = useCallback(
+    (drafts: MapStampDraft[]) => {
+      if (!activeDocumentRef.current || drafts.length === 0) return [];
+      const elements = drafts.map((draft) => createStampElement(generateUUID(), draft));
+      applyCommand((document, commandId) => ({
+        commandId,
+        documentId: document.id,
+        baseRevision: document.revision,
+        type: "add-elements",
+        elements,
+      }));
+      return elements.map((element) => element.id);
+    },
+    [activeDocumentRef, applyCommand],
+  );
+
   const addWall = useCallback(
     (draft: MapWallDraft) => {
       if (!activeDocumentRef.current) return null;
@@ -227,6 +243,7 @@ export function useMapStudioActions({
     addTile,
     addTiles,
     addStamp,
+    addStamps,
     addShape,
     addWall,
     addDoor,

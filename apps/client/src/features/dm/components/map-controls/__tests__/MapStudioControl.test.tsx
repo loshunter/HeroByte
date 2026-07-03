@@ -22,6 +22,8 @@ function controller(overrides: Partial<MapStudioController> = {}): MapStudioCont
     updateGrid: vi.fn(),
     addTile: vi.fn(() => "tile-id"),
     addTiles: vi.fn(() => ["tile-id"]),
+    addStamp: vi.fn(() => "stamp-id"),
+    addStamps: vi.fn(() => ["stamp-id"]),
     addShape: vi.fn(() => "shape-id"),
     addWall: vi.fn(() => "wall-id"),
     addDoor: vi.fn(() => "door-id"),

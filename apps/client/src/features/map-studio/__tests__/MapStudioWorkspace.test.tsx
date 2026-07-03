@@ -24,6 +24,7 @@ function controller(overrides: Partial<MapStudioController> = {}): MapStudioCont
     addTile: vi.fn(() => "tile-id"),
     addTiles: vi.fn(() => ["tile-id"]),
     addStamp: vi.fn(() => "stamp-id"),
+    addStamps: vi.fn(() => ["stamp-id"]),
     addShape: vi.fn(() => "shape-id"),
     addWall: vi.fn(() => "wall-id"),
     addDoor: vi.fn(() => "door-id"),
@@ -263,6 +264,39 @@ describe("MapStudioWorkspace", () => {
     });
     expect(mapStudio.addTile).not.toHaveBeenCalled();
     expect(mapStudio.addStamp).not.toHaveBeenCalled();
+  });
+
+  it("scatters a seeded batch of stamps in one click", () => {
+    const document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
+    const mapStudio = controller({ activeDocument: document });
+    render(<MapStudioWorkspace controller={mapStudio} onExit={vi.fn()} />);
+
+    const canvas = screen.getByRole("img", { name: "Keep studio canvas" });
+    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 200,
+      bottom: 200,
+      width: 200,
+      height: 200,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Scatter" }));
+    firePointer(canvas, "pointerdown", { pointerId: 1, clientX: 100, clientY: 100 });
+    firePointer(canvas, "pointerup", { pointerId: 1, clientX: 100, clientY: 100 });
+
+    expect(mapStudio.addStamps).toHaveBeenCalledTimes(1);
+    const drafts = vi.mocked(mapStudio.addStamps).mock.calls[0]?.[0] ?? [];
+    expect(drafts).toHaveLength(7);
+    for (const draft of drafts) {
+      expect(draft).toMatchObject({ assetId: "terrain:stone-floor", width: 50, height: 50 });
+      expect(draft.rotation).toBeGreaterThanOrEqual(0);
+      expect(draft.rotation).toBeLessThan(360);
+    }
+    expect(mapStudio.addTile).not.toHaveBeenCalled();
   });
 
   it("shows the free-placement ghost as soon as Alt goes down, without mouse movement", () => {
