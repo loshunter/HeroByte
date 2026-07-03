@@ -327,6 +327,77 @@ describe("MapStudioWorkspace", () => {
     expect(container.querySelector('rect[stroke="#ffd97f"]')).toBeNull();
   });
 
+  it("binds undo, redo, and delete to canvas hotkeys", () => {
+    const document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
+    document.elements = [
+      {
+        id: "crate-stamp",
+        type: "stamp",
+        layerId: "objects",
+        locked: false,
+        hidden: false,
+        transform: { x: 40, y: 40, scaleX: 1, scaleY: 1, rotation: 0 },
+        data: { assetId: "objects:crate", width: 50, height: 50 },
+      },
+    ];
+    const mapStudio = controller({ activeDocument: document, canUndo: true, canRedo: true });
+    render(<MapStudioWorkspace controller={mapStudio} onExit={vi.fn()} />);
+    const canvas = screen.getByRole("img", { name: "Keep studio canvas" });
+
+    fireEvent.keyDown(canvas, { key: "z", ctrlKey: true });
+    expect(mapStudio.undo).toHaveBeenCalledTimes(1);
+
+    fireEvent.keyDown(canvas, { key: "z", ctrlKey: true, shiftKey: true });
+    fireEvent.keyDown(canvas, { key: "y", ctrlKey: true });
+    expect(mapStudio.redo).toHaveBeenCalledTimes(2);
+
+    // Delete does nothing without a selection…
+    fireEvent.keyDown(canvas, { key: "Delete" });
+    expect(mapStudio.removeElement).not.toHaveBeenCalled();
+
+    // …and removes the selected element once one is picked.
+    fireEvent.click(screen.getByRole("button", { name: "Select" }));
+    firePointer(screen.getByRole("button", { name: "Select stamp 1" }), "pointerdown", {
+      pointerId: 1,
+      clientX: 50,
+      clientY: 50,
+    });
+    fireEvent.keyDown(canvas, { key: "Delete" });
+    expect(mapStudio.removeElement).toHaveBeenCalledWith("crate-stamp");
+  });
+
+  it("refuses hotkey undo/redo when history is empty and delete on locked elements", () => {
+    const document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
+    document.elements = [
+      {
+        id: "locked-stamp",
+        type: "stamp",
+        layerId: "objects",
+        locked: true,
+        hidden: false,
+        transform: { x: 40, y: 40, scaleX: 1, scaleY: 1, rotation: 0 },
+        data: { assetId: "objects:crate", width: 50, height: 50 },
+      },
+    ];
+    const mapStudio = controller({ activeDocument: document, canUndo: false, canRedo: false });
+    render(<MapStudioWorkspace controller={mapStudio} onExit={vi.fn()} />);
+    const canvas = screen.getByRole("img", { name: "Keep studio canvas" });
+
+    fireEvent.keyDown(canvas, { key: "z", ctrlKey: true });
+    fireEvent.keyDown(canvas, { key: "y", ctrlKey: true });
+    expect(mapStudio.undo).not.toHaveBeenCalled();
+    expect(mapStudio.redo).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Select" }));
+    firePointer(screen.getByRole("button", { name: "Select stamp 1" }), "pointerdown", {
+      pointerId: 1,
+      clientX: 50,
+      clientY: 50,
+    });
+    fireEvent.keyDown(canvas, { key: "Delete" });
+    expect(mapStudio.removeElement).not.toHaveBeenCalled();
+  });
+
   it("rotates a selected tile in 90-degree steps with R", () => {
     const document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
     document.elements = [

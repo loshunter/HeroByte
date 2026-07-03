@@ -135,8 +135,31 @@ export function MapStudioWorkspace({
   });
 
   const handleCanvasKeyDown = (event: KeyboardEvent<SVGSVGElement>) => {
-    if (event.key !== "r" && event.key !== "R") return;
-    if (event.ctrlKey || event.metaKey) return; // browser reload stays sacred
+    const key = event.key.toLowerCase();
+    const modifier = event.ctrlKey || event.metaKey;
+    if (modifier && key === "z") {
+      event.preventDefault();
+      if (event.shiftKey) {
+        if (canRedo && !saving) redo();
+      } else if (canUndo && !saving) {
+        undo();
+      }
+      return;
+    }
+    if (modifier && key === "y") {
+      event.preventDefault();
+      if (canRedo && !saving) redo();
+      return;
+    }
+    if (key === "delete" || key === "backspace") {
+      if (!selectedElement || selectedElement.locked || saving) return;
+      if (layers.get(selectedElement.layerId)?.locked) return;
+      event.preventDefault();
+      removeElement(selectedElement.id);
+      setSelectedElementId(null);
+      return;
+    }
+    if (key !== "r" || modifier) return; // browser reload stays sacred
     if (!selectedElement || selectedElement.locked || saving) return;
     // Only footprint elements rotate; walls/doors carry absolute geometry
     // that an origin rotation would sling across the document.
