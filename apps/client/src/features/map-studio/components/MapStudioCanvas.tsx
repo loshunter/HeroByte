@@ -52,7 +52,10 @@ export function MapStudioCanvas({
   onWheel,
   onSelectElement,
 }: MapStudioCanvasProps) {
-  const occupancy = useMemo(() => buildTileOccupancy(activeDocument), [activeDocument]);
+  const autotile = useMemo(
+    () => ({ occupancy: buildTileOccupancy(activeDocument), grid: activeDocument.grid }),
+    [activeDocument],
+  );
   return (
     <main style={canvasShellStyle}>
       {error && (
@@ -136,7 +139,7 @@ export function MapStudioCanvas({
                 element={element}
                 layer={layer}
                 gridSize={activeDocument.grid.size}
-                occupancy={occupancy}
+                autotile={autotile}
               />
               {selected && (
                 <MapStudioSelectionOverlay

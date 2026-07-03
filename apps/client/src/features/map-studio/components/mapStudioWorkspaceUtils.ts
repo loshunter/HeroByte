@@ -187,6 +187,26 @@ export function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(Math.max(value, minimum), Math.max(minimum, maximum));
 }
 
+/**
+ * Inclusive placement range for a painted tile along one axis. With snapping
+ * on, both ends land on the grid lattice so edge paints stay autotileable —
+ * clamping to `extent - cells*size` minted off-lattice tiles whenever the
+ * document extent wasn't a grid multiple.
+ */
+export function paintPlacementBounds(
+  extent: number,
+  cells: number,
+  size: number,
+  offset: number,
+  snap: boolean,
+): { min: number; max: number } {
+  const rawMax = extent - cells * size;
+  if (!snap) return { min: 0, max: rawMax };
+  const min = offset - Math.floor(offset / size) * size;
+  const max = offset + Math.floor((rawMax - offset) / size) * size;
+  return max >= min ? { min, max } : { min: 0, max: rawMax };
+}
+
 export function toLiveGridSize(documentGridSize: number): number {
   return Math.min(500, Math.max(10, Math.round(documentGridSize)));
 }

@@ -5,6 +5,7 @@ import {
   buildTileOccupancy,
   isAutotileCandidate,
   tileBoundaryPath,
+  type AutotileGrid,
   type TileOccupancy,
 } from "./tileAutotiling";
 
@@ -22,7 +23,7 @@ export function renderMapDocumentSvg(document: MapDocument): string {
     .filter((element) => visible(element, layers.get(element.layerId)))
     .sort((a, b) => (layers.get(a.layerId)?.zIndex ?? 0) - (layers.get(b.layerId)?.zIndex ?? 0))
     .map((element) =>
-      renderElement(element, layers.get(element.layerId)!, document.grid.size, occupancy),
+      renderElement(element, layers.get(element.layerId)!, document.grid, occupancy),
     )
     .join("");
   const pattern = document.grid.visible
@@ -112,9 +113,10 @@ function imageMime(format: Extract<MapExportFormat, "png" | "webp">): "image/png
 function renderElement(
   element: MapElement,
   layer: MapLayer,
-  gridSize: number,
+  grid: AutotileGrid,
   occupancy: TileOccupancy,
 ): string {
+  const gridSize = grid.size;
   const transform = element.transform;
   const attributes = `transform="translate(${transform.x} ${transform.y}) rotate(${transform.rotation}) scale(${transform.scaleX} ${transform.scaleY})" opacity="${layer.opacity}"`;
   if (element.type === "shape") {
@@ -150,10 +152,10 @@ function renderElement(
   const height = element.type === "stamp" ? element.data.height : element.data.rows * gridSize;
   const asset = getMapStudioTileAsset(element.data.assetId);
   const fill = element.data.tint ?? asset.fill;
-  if (element.type === "tile" && isAutotileCandidate(element)) {
+  if (element.type === "tile" && isAutotileCandidate(element, grid)) {
     // Autotiled terrain: no per-tile outline; borders appear only where a
     // cell faces different terrain, so contiguous paint reads as one surface.
-    const boundary = tileBoundaryPath(element, gridSize, occupancy);
+    const boundary = tileBoundaryPath(element, grid, occupancy);
     const boundaryMarkup = boundary
       ? `<path d="${boundary}" fill="none" stroke="${xml(asset.stroke)}" stroke-width="2"/>`
       : "";

@@ -22,6 +22,7 @@ import {
   clamp,
   clampViewBox,
   eventToMapPoint,
+  paintPlacementBounds,
   pickPlacementLayer,
   screenDeltaToMapDelta,
   topmostTileAtPoint,
@@ -113,17 +114,24 @@ export function useMapStudioCanvasController({
   const paintAtPoint = useCallback(
     (point: { x: number; y: number }) => {
       if (!activeDocument || !selectedAsset || saving) return;
-      const snapped = snapPointToGrid(point, activeDocument.grid);
-      const x = clamp(
-        snapped.x,
-        0,
-        activeDocument.width - selectedAsset.columns * activeDocument.grid.size,
+      const { grid } = activeDocument;
+      const snapped = snapPointToGrid(point, grid);
+      const xBounds = paintPlacementBounds(
+        activeDocument.width,
+        selectedAsset.columns,
+        grid.size,
+        grid.offsetX,
+        grid.snap,
       );
-      const y = clamp(
-        snapped.y,
-        0,
-        activeDocument.height - selectedAsset.rows * activeDocument.grid.size,
+      const yBounds = paintPlacementBounds(
+        activeDocument.height,
+        selectedAsset.rows,
+        grid.size,
+        grid.offsetY,
+        grid.snap,
       );
+      const x = clamp(snapped.x, xBounds.min, xBounds.max);
+      const y = clamp(snapped.y, yBounds.min, yBounds.max);
       const cellKey = `${selectedAsset.id}:${x}:${y}`;
       if (paintedCells.current.has(cellKey)) return;
       paintedCells.current.add(cellKey);

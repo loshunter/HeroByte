@@ -33,6 +33,8 @@ function tile(
   };
 }
 
+const GRID = { size: 50, offsetX: 0, offsetY: 0 };
+
 function renderPreview(element: MapElement, occupancy?: Map<string, string>) {
   return render(
     <svg>
@@ -40,7 +42,7 @@ function renderPreview(element: MapElement, occupancy?: Map<string, string>) {
         element={element}
         layer={layer}
         gridSize={50}
-        occupancy={occupancy}
+        autotile={occupancy ? { occupancy, grid: GRID } : undefined}
       />
     </svg>,
   );
@@ -98,6 +100,16 @@ describe("MapStudioElementPreview autotiling", () => {
     const occupancy = new Map([["0,0", "terrain:stone-floor"]]);
 
     const { container } = renderPreview(rotated, occupancy);
+
+    const rect = container.querySelector("rect");
+    expect(rect!.getAttribute("stroke")).toBe(getMapStudioTileAsset("terrain:stone-floor").stroke);
+  });
+
+  it("keeps the outlined look for off-lattice tiles instead of re-binning them", () => {
+    const floating = tile("floating", 74, 0);
+    const occupancy = new Map([["0,0", "terrain:stone-floor"]]);
+
+    const { container } = renderPreview(floating, occupancy);
 
     const rect = container.querySelector("rect");
     expect(rect!.getAttribute("stroke")).toBe(getMapStudioTileAsset("terrain:stone-floor").stroke);

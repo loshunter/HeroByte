@@ -123,6 +123,21 @@ describe("Map Studio export", () => {
       expect(tileA).toContain("M 50 0 V 50"); // right edge shows against water
     });
 
+    it("renders off-lattice tiles outlined instead of fusing across a gap", () => {
+      // Snap-off repro: x=74 rounds to cell 1, but the tile really sits 24px
+      // away from the tile at x=0 — neither edge may be suppressed.
+      let document = createMapDocument({ id: "map", name: "Keep", timestamp: 10 });
+      document = addMapElement(document, tile("anchored", 0, 0), 20);
+      document = addMapElement(document, tile("floating", 74, 0), 21);
+
+      const svg = renderMapDocumentSvg(document);
+
+      const anchored = svg.match(/<g transform="translate\(0 0\)[^>]*>.*?<\/g>/)?.[0] ?? "";
+      expect(anchored).toContain("M 50 0 V 50"); // right border kept — no false fuse
+      const floating = svg.match(/<g transform="translate\(74 0\)[^>]*>.*?<\/g>/)?.[0] ?? "";
+      expect(floating).toContain("stroke="); // outlined island, not boundary-fused
+    });
+
     it("outlines an isolated tile on all four sides", () => {
       let document = createMapDocument({ id: "map", name: "Keep", timestamp: 10 });
       document = addMapElement(document, tile("lone", 100, 100), 20);

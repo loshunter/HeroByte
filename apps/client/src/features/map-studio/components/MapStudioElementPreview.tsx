@@ -1,20 +1,26 @@
 import { memo } from "react";
 import type { MapElement, MapLayer } from "@herobyte/shared";
 import { getMapStudioTileAsset } from "../starterTiles";
-import { isAutotileCandidate, tileBoundaryPath, type TileOccupancy } from "../tileAutotiling";
+import {
+  isAutotileCandidate,
+  tileBoundaryPath,
+  type AutotileGrid,
+  type TileOccupancy,
+} from "../tileAutotiling";
 
 // Memoized: the studio canvas re-renders on every pointermove (cursor ghost
-// state), and element/layer/occupancy references only change on real edits.
+// state), and element/layer/autotile references only change on real edits.
 export const MapStudioElementPreview = memo(function MapStudioElementPreview({
   element,
   layer,
   gridSize = 50,
-  occupancy,
+  autotile,
 }: {
   element: MapElement;
   layer: MapLayer;
   gridSize?: number;
-  occupancy?: TileOccupancy;
+  /** Occupancy and its grid travel together so binning can't disagree. */
+  autotile?: { occupancy: TileOccupancy; grid: AutotileGrid };
 }) {
   const { x, y, scaleX, scaleY, rotation } = element.transform;
   const transform = `translate(${x} ${y}) rotate(${rotation}) scale(${scaleX} ${scaleY})`;
@@ -23,10 +29,10 @@ export const MapStudioElementPreview = memo(function MapStudioElementPreview({
     const width = element.type === "tile" ? element.data.columns * gridSize : element.data.width;
     const height = element.type === "tile" ? element.data.rows * gridSize : element.data.height;
     const tint = element.data.tint;
-    if (element.type === "tile" && occupancy && isAutotileCandidate(element)) {
+    if (element.type === "tile" && autotile && isAutotileCandidate(element, autotile.grid)) {
       // Autotiled terrain: no per-tile outline; borders appear only where a
       // cell faces different terrain, so contiguous paint reads as one surface.
-      const boundary = tileBoundaryPath(element, gridSize, occupancy);
+      const boundary = tileBoundaryPath(element, autotile.grid, autotile.occupancy);
       return (
         <g transform={transform} opacity={layer.opacity}>
           <rect width={width} height={height} fill={tint ?? asset.fill} />
