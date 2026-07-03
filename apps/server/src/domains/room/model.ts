@@ -170,6 +170,17 @@ export function toSnapshot(
     : npcFilteredTokens;
   const visionTokenIds = vision ? new Set(visibleTokens.map((token) => token.id)) : null;
 
+  // NPC character records must agree with the fog: a record whose token the
+  // recipient cannot see is a spoiler (name, HP), so it never enters the
+  // payload. Party members and tokenless NPCs always ride along — rosters
+  // don't fog, and off-map NPCs stay governed by visibleToPlayers.
+  const fogFilteredCharacters = visionTokenIds
+    ? visibleCharacters.filter(
+        (character) =>
+          character.type !== "npc" || !character.tokenId || visionTokenIds.has(character.tokenId),
+      )
+    : visibleCharacters;
+
   // Pointers are world-pixel positions; fog hides pings inside unseen areas,
   // but a pinger always sees their own echo and DM pings are narration —
   // visible to the whole table.
@@ -261,7 +272,7 @@ export function toSnapshot(
     stateVersion: state.stateVersion,
     tokens: visibleTokens,
     players: state.players,
-    characters: visibleCharacters,
+    characters: fogFilteredCharacters,
     props: visibleProps,
     pointers: visiblePointers,
     gridSize: state.gridSize,
