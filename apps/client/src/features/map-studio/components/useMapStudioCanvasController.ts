@@ -66,8 +66,10 @@ export function useMapStudioCanvasController({
     activeDocument,
     paintTerrain,
   });
-  // Terrain-kind assets paint cells; everything else stays an element.
-  const terrainAsset = selectedAsset.layerKind === "terrain";
+  // Terrain-kind assets paint cells on square grids; hex/iso grids keep
+  // element placement (hex-snapped) — hex autotile masks are post-launch.
+  const terrainAsset =
+    selectedAsset.layerKind === "terrain" && activeDocument?.grid.type === "square";
 
   useEffect(() => {
     setRoomDrag(null);

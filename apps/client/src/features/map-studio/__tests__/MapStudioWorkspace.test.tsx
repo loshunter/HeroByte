@@ -98,6 +98,39 @@ describe("MapStudioWorkspace", () => {
     expect(mapStudio.addTile).not.toHaveBeenCalled();
   });
 
+  it("places hex-snapped tile elements instead of terrain on hex grids", () => {
+    const document = createMapDocument({ id: "map", name: "Keep", width: 400, height: 400 });
+    document.grid.type = "hex-row";
+    const mapStudio = controller({ activeDocument: document });
+    render(<MapStudioWorkspace controller={mapStudio} onExit={vi.fn()} />);
+
+    const canvas = screen.getByRole("img", { name: "Keep studio canvas" });
+    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 400,
+      bottom: 400,
+      width: 400,
+      height: 400,
+      toJSON: () => ({}),
+    });
+
+    firePointer(canvas, "pointerdown", { pointerId: 1, clientX: 55, clientY: 40 });
+    firePointer(canvas, "pointerup", { pointerId: 1, clientX: 55, clientY: 40 });
+
+    expect(mapStudio.paintTerrain).not.toHaveBeenCalled();
+    // Snapped to the first flat-top hex center (50, sqrt(3)*25).
+    expect(mapStudio.addTile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assetId: "terrain:stone-floor",
+        x: 50,
+        y: expect.closeTo(Math.sqrt(3) * 25, 5) as number,
+      }),
+    );
+  });
+
   it("accumulates a drag into one deduped terrain stroke", () => {
     const document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
     const mapStudio = controller({ activeDocument: document });
