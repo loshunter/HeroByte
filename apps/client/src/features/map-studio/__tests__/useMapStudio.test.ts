@@ -291,6 +291,30 @@ describe("useMapStudio", () => {
     });
   });
 
+  it("paints terrain strokes through the command queue", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    const document = createMapDocument({ id: "map", name: "Map", timestamp: 1 });
+    act(() => result.current.handleServerMessage({ t: "map-studio-document", document }));
+
+    act(() => {
+      result.current.paintTerrain([
+        { x: 0, y: 0, assetId: "terrain:stone-floor" },
+        { x: 1, y: 0, assetId: null },
+      ]);
+    });
+
+    expect(sendMessage.mock.calls.at(-1)?.[0]).toMatchObject({
+      t: "map-studio-command",
+      command: {
+        type: "paint-terrain",
+        cells: [
+          { x: 0, y: 0, assetId: "terrain:stone-floor" },
+          { x: 1, y: 0, assetId: null },
+        ],
+      },
+    });
+  });
+
   it("creates a whole scatter of stamps as one undoable command", () => {
     const { result } = renderHook(() => useMapStudio(sendMessage));
     const document = createMapDocument({ id: "map", name: "Map", timestamp: 1 });

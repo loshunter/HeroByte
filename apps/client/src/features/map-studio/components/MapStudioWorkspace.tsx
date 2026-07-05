@@ -40,6 +40,7 @@ export function MapStudioWorkspace({
     addTiles,
     addStamp,
     addStamps,
+    paintTerrain,
     removeElement,
     updateElement,
     updateLayer,
@@ -116,6 +117,7 @@ export function MapStudioWorkspace({
     roomDrag,
     snappedCursor,
     stampPreview,
+    strokeCells,
     handleZoom,
     handleResetView,
     handleWheel,
@@ -134,6 +136,7 @@ export function MapStudioWorkspace({
     addTiles,
     addStamp,
     addStamps,
+    paintTerrain,
     removeElement,
     setSelectedElementId,
     setPublishMessage,
@@ -296,6 +299,7 @@ export function MapStudioWorkspace({
         tool={tool}
         snappedCursor={snappedCursor}
         stampPreview={stampPreview}
+        strokeCells={strokeCells}
         selectedAsset={selectedAsset}
         previewLayer={previewLayer}
         roomDrag={roomDrag}

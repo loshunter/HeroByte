@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { addMapElement, createMapDocument } from "@herobyte/shared";
+import { addMapElement, createMapDocument, paintTerrain } from "@herobyte/shared";
 import {
   createMapDocumentSvgDataUrl,
   rasterizeMapDocument,
@@ -159,6 +159,88 @@ describe("Map Studio export", () => {
       expect(lone).toContain("M 0 50 H 50");
       expect(lone).toContain("M 0 0 V 50");
       expect(lone).toContain("M 50 0 V 50");
+    });
+  });
+
+  describe("painted terrain export", () => {
+    it("renders terrain beneath elements with per-family fill and fused boundaries", () => {
+      let document = createMapDocument({ id: "map", name: "Keep", timestamp: 10 });
+      document = paintTerrain(
+        document,
+        [
+          { x: 0, y: 0, assetId: "terrain:stone-floor" },
+          { x: 1, y: 0, assetId: "terrain:stone-floor" },
+          { x: 2, y: 0, assetId: "terrain:water" },
+        ],
+        20,
+      );
+      document = addMapElement(
+        document,
+        {
+          id: "crate",
+          type: "stamp",
+          layerId: "objects",
+          locked: false,
+          hidden: false,
+          transform: { x: 10, y: 10, scaleX: 1, scaleY: 1, rotation: 0 },
+          data: { assetId: "objects:crate", width: 50, height: 50 },
+        },
+        30,
+      );
+
+      const svg = renderMapDocumentSvg(document);
+
+      const stone = svg.match(/<g[^>]*data-terrain="terrain:stone-floor".*?<\/g>/)?.[0] ?? "";
+      expect(stone).toContain("M 0 0 h 50 v 50 h -50 Z");
+      expect(stone).not.toContain("M 50 0 V 50"); // fused stone seam
+      expect(stone).toContain("M 100 0 V 50"); // border against water
+      // Terrain markup precedes element markup: ground renders underneath.
+      expect(svg.indexOf("data-terrain")).toBeLessThan(svg.indexOf("data-asset-id"));
+    });
+
+    it("keeps terrain intact beneath elements on hidden layers", () => {
+      let document = createMapDocument({ id: "map", name: "Keep", timestamp: 10 });
+      document = paintTerrain(
+        document,
+        [
+          { x: 0, y: 0, assetId: "terrain:grass" },
+          { x: 1, y: 0, assetId: "terrain:grass" },
+        ],
+        20,
+      );
+      document = addMapElement(
+        document,
+        {
+          id: "wall",
+          type: "tile",
+          layerId: "walls",
+          locked: false,
+          hidden: false,
+          transform: { x: 50, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+          data: { assetId: "structures:stone-wall", columns: 1, rows: 1 },
+        },
+        30,
+      );
+      document.layers = document.layers.map((layer) =>
+        layer.id === "walls" ? { ...layer, visible: false } : layer,
+      );
+
+      const svg = renderMapDocumentSvg(document);
+      const grass = svg.match(/<g[^>]*data-terrain="terrain:grass".*?<\/g>/)?.[0] ?? "";
+
+      // The invisible wall must not punch a hole at cell (1,0).
+      expect(grass).toContain("M 50 0 h 50 v 50 h -50 Z");
+      expect(svg).not.toContain("structures:stone-wall");
+    });
+
+    it("omits terrain when the terrain-kind layer is hidden", () => {
+      let document = createMapDocument({ id: "map", name: "Keep", timestamp: 10 });
+      document = paintTerrain(document, [{ x: 0, y: 0, assetId: "terrain:water" }], 20);
+      document.layers = document.layers.map((layer) =>
+        layer.kind === "terrain" ? { ...layer, visible: false } : layer,
+      );
+
+      expect(renderMapDocumentSvg(document)).not.toContain("data-terrain");
     });
   });
 

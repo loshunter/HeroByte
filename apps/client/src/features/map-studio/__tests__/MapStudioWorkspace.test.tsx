@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { createMapDocument } from "@herobyte/shared";
+import { createMapDocument, paintTerrain as paintTerrainDocument } from "@herobyte/shared";
 import type { MapStudioController } from "../types";
 import { MapStudioWorkspace } from "../components/MapStudioWorkspace";
 import { createTileElement } from "../elementBuilders";
@@ -25,6 +25,7 @@ function controller(overrides: Partial<MapStudioController> = {}): MapStudioCont
     addTiles: vi.fn(() => ["tile-id"]),
     addStamp: vi.fn(() => "stamp-id"),
     addStamps: vi.fn(() => ["stamp-id"]),
+    paintTerrain: vi.fn(),
     addShape: vi.fn(() => "shape-id"),
     addWall: vi.fn(() => "wall-id"),
     addDoor: vi.fn(() => "door-id"),
@@ -67,7 +68,7 @@ describe("MapStudioWorkspace", () => {
     expect(refresh).toHaveBeenCalledTimes(1);
   });
 
-  it("places the selected tile on the full canvas snapped to the document grid", () => {
+  it("paints the terrain cell under the cursor as one stroke command", () => {
     const document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
     const mapStudio = controller({ activeDocument: document });
     render(<MapStudioWorkspace controller={mapStudio} onExit={vi.fn()} />);
@@ -86,16 +87,129 @@ describe("MapStudioWorkspace", () => {
     });
 
     firePointer(canvas, "pointerdown", { pointerId: 1, clientX: 74, clientY: 126 });
+    // Nothing commits mid-stroke.
+    expect(mapStudio.paintTerrain).not.toHaveBeenCalled();
     firePointer(canvas, "pointerup", { pointerId: 1, clientX: 74, clientY: 126 });
 
-    expect(mapStudio.addTile).toHaveBeenCalledWith({
-      layerId: "terrain",
-      assetId: "terrain:stone-floor",
-      x: 50,
-      y: 150,
-      columns: 1,
-      rows: 1,
+    // floor(74/50)=1, floor(126/50)=2: the cell containing the cursor.
+    expect(mapStudio.paintTerrain).toHaveBeenCalledWith([
+      { x: 1, y: 2, assetId: "terrain:stone-floor" },
+    ]);
+    expect(mapStudio.addTile).not.toHaveBeenCalled();
+  });
+
+  it("accumulates a drag into one deduped terrain stroke", () => {
+    const document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
+    const mapStudio = controller({ activeDocument: document });
+    render(<MapStudioWorkspace controller={mapStudio} onExit={vi.fn()} />);
+
+    const canvas = screen.getByRole("img", { name: "Keep studio canvas" });
+    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 200,
+      bottom: 200,
+      width: 200,
+      height: 200,
+      toJSON: () => ({}),
     });
+
+    firePointer(canvas, "pointerdown", { pointerId: 1, clientX: 10, clientY: 10 });
+    firePointer(canvas, "pointermove", { pointerId: 1, clientX: 30, clientY: 10 }); // same cell
+    firePointer(canvas, "pointermove", { pointerId: 1, clientX: 60, clientY: 10 });
+    firePointer(canvas, "pointermove", { pointerId: 1, clientX: 60, clientY: 60 });
+    firePointer(canvas, "pointerup", { pointerId: 1, clientX: 60, clientY: 60 });
+
+    expect(mapStudio.paintTerrain).toHaveBeenCalledTimes(1);
+    expect(mapStudio.paintTerrain).toHaveBeenCalledWith([
+      { x: 0, y: 0, assetId: "terrain:stone-floor" },
+      { x: 1, y: 0, assetId: "terrain:stone-floor" },
+      { x: 1, y: 1, assetId: "terrain:stone-floor" },
+    ]);
+  });
+
+  it("erases painted terrain cells when no element sits on top", () => {
+    let document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
+    document = paintTerrainDocument(document, [{ x: 1, y: 1, assetId: "terrain:stone-floor" }]);
+    const mapStudio = controller({ activeDocument: document });
+    render(<MapStudioWorkspace controller={mapStudio} onExit={vi.fn()} />);
+
+    const canvas = screen.getByRole("img", { name: "Keep studio canvas" });
+    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 200,
+      bottom: 200,
+      width: 200,
+      height: 200,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Erase" }));
+    firePointer(canvas, "pointerdown", { pointerId: 1, clientX: 60, clientY: 60 });
+    firePointer(canvas, "pointerup", { pointerId: 1, clientX: 60, clientY: 60 });
+
+    expect(mapStudio.paintTerrain).toHaveBeenCalledWith([{ x: 1, y: 1, assetId: null }]);
+    expect(mapStudio.removeElement).not.toHaveBeenCalled();
+  });
+
+  it("keeps terrain strokes accumulating while a save is in flight", () => {
+    let document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
+    document = paintTerrainDocument(document, [{ x: 2, y: 2, assetId: "terrain:stone-floor" }]);
+    // saving: true simulates the window between a dispatched command and its
+    // ack — local stroke accumulation must not freeze.
+    const mapStudio = controller({ activeDocument: document, saving: true });
+    render(<MapStudioWorkspace controller={mapStudio} onExit={vi.fn()} />);
+
+    const canvas = screen.getByRole("img", { name: "Keep studio canvas" });
+    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 200,
+      bottom: 200,
+      width: 200,
+      height: 200,
+      toJSON: () => ({}),
+    });
+
+    firePointer(canvas, "pointerdown", { pointerId: 1, clientX: 10, clientY: 10 });
+    firePointer(canvas, "pointermove", { pointerId: 1, clientX: 60, clientY: 10 });
+    firePointer(canvas, "pointerup", { pointerId: 1, clientX: 60, clientY: 10 });
+    expect(mapStudio.paintTerrain).toHaveBeenCalledWith([
+      { x: 0, y: 0, assetId: "terrain:stone-floor" },
+      { x: 1, y: 0, assetId: "terrain:stone-floor" },
+    ]);
+
+    // Erase accumulation over painted terrain also survives the in-flight
+    // window, while element removal stays gated.
+    fireEvent.click(screen.getByRole("button", { name: "Erase" }));
+    firePointer(canvas, "pointerdown", { pointerId: 1, clientX: 110, clientY: 110 });
+    firePointer(canvas, "pointerup", { pointerId: 1, clientX: 110, clientY: 110 });
+    expect(mapStudio.paintTerrain).toHaveBeenLastCalledWith([{ x: 2, y: 2, assetId: null }]);
+  });
+
+  it("renders painted terrain beneath elements with fused boundaries", () => {
+    let document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
+    document = paintTerrainDocument(document, [
+      { x: 0, y: 0, assetId: "terrain:stone-floor" },
+      { x: 1, y: 0, assetId: "terrain:stone-floor" },
+    ]);
+    const { container } = render(
+      <MapStudioWorkspace controller={controller({ activeDocument: document })} onExit={vi.fn()} />,
+    );
+
+    const terrainGroup = container.querySelector('g[data-terrain="terrain:stone-floor"]');
+    expect(terrainGroup).not.toBeNull();
+    const fill = terrainGroup!.querySelector("path");
+    expect(fill!.getAttribute("d")).toContain("M 0 0 h 50 v 50 h -50 Z");
+    const boundary = terrainGroup!.querySelectorAll("path")[1];
+    expect(boundary!.getAttribute("d")).not.toContain("M 50 0 V 50"); // fused seam
   });
 
   it("Alt-click with the tile tool places a free stamp centered on the cursor", () => {

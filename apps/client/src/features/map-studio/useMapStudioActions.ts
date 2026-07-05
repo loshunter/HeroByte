@@ -5,6 +5,7 @@ import type {
   MapGridUpdate,
   MapLayerUpdate,
   MapStudioCommand,
+  TerrainPaintCell,
 } from "@herobyte/shared";
 import { generateUUID } from "../../utils/uuid";
 import {
@@ -157,6 +158,20 @@ export function useMapStudioActions({
     [activeDocumentRef, applyCommand],
   );
 
+  const paintTerrain = useCallback(
+    (cells: TerrainPaintCell[]) => {
+      if (!activeDocumentRef.current || cells.length === 0) return;
+      applyCommand((document, commandId) => ({
+        commandId,
+        documentId: document.id,
+        baseRevision: document.revision,
+        type: "paint-terrain",
+        cells,
+      }));
+    },
+    [activeDocumentRef, applyCommand],
+  );
+
   const addWall = useCallback(
     (draft: MapWallDraft) => {
       if (!activeDocumentRef.current) return null;
@@ -244,6 +259,7 @@ export function useMapStudioActions({
     addTiles,
     addStamp,
     addStamps,
+    paintTerrain,
     addShape,
     addWall,
     addDoor,

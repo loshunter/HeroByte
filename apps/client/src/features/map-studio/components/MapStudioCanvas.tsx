@@ -1,4 +1,4 @@
-import type { MapDocument, MapElement, MapLayer } from "@herobyte/shared";
+import type { MapDocument, MapElement, MapLayer, TerrainPaintCell } from "@herobyte/shared";
 import {
   useMemo,
   type KeyboardEvent,
@@ -6,7 +6,8 @@ import {
   type RefObject,
   type WheelEvent,
 } from "react";
-import type { MapStudioTileAsset } from "../starterTiles";
+import { getMapStudioTileAsset, type MapStudioTileAsset } from "../starterTiles";
+import { buildTerrainRenderLayers } from "../terrainRender";
 import { buildTileOccupancy } from "../tileAutotiling";
 import { MapStudioElementPreview, MapStudioSelectionOverlay } from "./MapStudioElementPreview";
 import type { MapViewBox, RoomDrag, StudioTool } from "./MapStudioWorkspace.types";
@@ -19,6 +20,7 @@ interface MapStudioCanvasProps {
   tool: StudioTool;
   snappedCursor: { x: number; y: number } | null;
   stampPreview: { x: number; y: number; width: number; height: number } | null;
+  strokeCells: TerrainPaintCell[];
   selectedAsset: MapStudioTileAsset;
   previewLayer?: MapLayer;
   roomDrag: RoomDrag | null;
@@ -44,6 +46,7 @@ export function MapStudioCanvas({
   tool,
   snappedCursor,
   stampPreview,
+  strokeCells,
   selectedAsset,
   previewLayer,
   roomDrag,
@@ -66,6 +69,17 @@ export function MapStudioCanvas({
     () => ({ occupancy: buildTileOccupancy(activeDocument), grid: activeDocument.grid }),
     [activeDocument],
   );
+  // Painted terrain: one fill + boundary path per family, honoring the
+  // terrain-kind layer's visibility and opacity.
+  const terrainKindLayer = activeDocument.layers.find((layer) => layer.kind === "terrain");
+  const terrainLayers = useMemo(() => {
+    if (!activeDocument.terrain) return [];
+    return buildTerrainRenderLayers(
+      activeDocument.terrain,
+      activeDocument.grid,
+      autotile.occupancy,
+    );
+  }, [activeDocument, autotile]);
   return (
     <main style={canvasShellStyle}>
       {error && (
@@ -130,6 +144,42 @@ export function MapStudioCanvas({
             fill={`url(#studio-grid-${activeDocument.id})`}
             pointerEvents="none"
           />
+        )}
+        {terrainKindLayer?.visible !== false &&
+          terrainLayers.map((layer) => {
+            const asset = getMapStudioTileAsset(layer.assetId);
+            return (
+              <g
+                key={layer.assetId}
+                data-terrain={layer.assetId}
+                opacity={terrainKindLayer?.opacity ?? 1}
+                pointerEvents="none"
+              >
+                <path d={layer.fillPath} fill={asset.fill} />
+                {layer.boundaryPath && (
+                  <path
+                    d={layer.boundaryPath}
+                    fill="none"
+                    stroke={asset.stroke}
+                    strokeWidth={Math.max(2, activeDocument.grid.size * 0.04)}
+                  />
+                )}
+              </g>
+            );
+          })}
+        {strokeCells.length > 0 && (
+          <g opacity={0.55} pointerEvents="none">
+            {strokeCells.map((cell) => (
+              <rect
+                key={`${cell.x},${cell.y}`}
+                x={activeDocument.grid.offsetX + cell.x * activeDocument.grid.size}
+                y={activeDocument.grid.offsetY + cell.y * activeDocument.grid.size}
+                width={activeDocument.grid.size}
+                height={activeDocument.grid.size}
+                fill={cell.assetId ? getMapStudioTileAsset(cell.assetId).fill : "#10121a"}
+              />
+            ))}
+          </g>
         )}
         {visibleElements.map((element, index) => {
           const layer = layers.get(element.layerId);

@@ -1,6 +1,7 @@
 import type { MapDocument, MapElement, MapLayer } from "@herobyte/shared";
 import { getGridGeometry } from "./gridGeometry";
 import { getMapStudioTileAsset } from "./starterTiles";
+import { buildTerrainRenderLayers } from "./terrainRender";
 import {
   buildTileOccupancy,
   isAutotileCandidate,
@@ -29,7 +30,24 @@ export function renderMapDocumentSvg(document: MapDocument): string {
   const pattern = document.grid.visible
     ? `<defs><pattern id="grid" width="${grid.width}" height="${grid.height}" patternUnits="userSpaceOnUse" x="${document.grid.offsetX}" y="${document.grid.offsetY}"><path d="${grid.path}" fill="none" stroke="#ffffff" stroke-opacity="0.16" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#grid)"/>`
     : "";
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${document.width}" height="${document.height}" viewBox="0 0 ${document.width} ${document.height}"><title>${xml(document.name)}</title><rect width="100%" height="100%" fill="#24212b"/>${pattern}${elements}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${document.width}" height="${document.height}" viewBox="0 0 ${document.width} ${document.height}"><title>${xml(document.name)}</title><rect width="100%" height="100%" fill="#24212b"/>${pattern}${renderTerrain(document, occupancy)}${elements}</svg>`;
+}
+
+/** Painted terrain renders beneath every element, matching the live canvas. */
+function renderTerrain(document: MapDocument, occupancy: TileOccupancy): string {
+  if (!document.terrain) return "";
+  const terrainLayer = document.layers.find((layer) => layer.kind === "terrain");
+  if (terrainLayer && (!terrainLayer.visible || terrainLayer.opacity <= 0)) return "";
+  const opacity = terrainLayer?.opacity ?? 1;
+  return buildTerrainRenderLayers(document.terrain, document.grid, occupancy)
+    .map((layer) => {
+      const asset = getMapStudioTileAsset(layer.assetId);
+      const boundary = layer.boundaryPath
+        ? `<path d="${layer.boundaryPath}" fill="none" stroke="${xml(asset.stroke)}" stroke-width="2"/>`
+        : "";
+      return `<g opacity="${opacity}" data-terrain="${xml(layer.assetId)}"><path d="${layer.fillPath}" fill="${xml(asset.fill)}"/>${boundary}</g>`;
+    })
+    .join("");
 }
 
 export function createMapDocumentSvgDataUrl(document: MapDocument): string {

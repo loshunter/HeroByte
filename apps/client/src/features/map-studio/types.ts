@@ -5,6 +5,7 @@ import type {
   MapGridUpdate,
   MapLayerUpdate,
   ServerMessage,
+  TerrainPaintCell,
 } from "@herobyte/shared";
 
 export type MapStudioServerMessage = Extract<
@@ -88,6 +89,8 @@ export interface MapStudioController {
   addTiles: (drafts: MapTileDraft[]) => string[];
   addStamp: (draft: MapStampDraft) => string | null;
   addStamps: (drafts: MapStampDraft[]) => string[];
+  /** One brush stroke: a batch of cell paints/erases as one undo step. */
+  paintTerrain: (cells: TerrainPaintCell[]) => void;
   addShape: (draft: MapShapeDraft) => string | null;
   addWall: (draft: MapWallDraft) => string | null;
   addDoor: (draft: MapDoorDraft) => string | null;

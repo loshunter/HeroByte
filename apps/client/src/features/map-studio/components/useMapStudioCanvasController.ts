@@ -1,36 +1,23 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type PointerEvent,
-  type WheelEvent,
-} from "react";
-import type { MapDocument, MapLayer } from "@herobyte/shared";
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
+import type { MapDocument, MapLayer, TerrainPaintCell } from "@herobyte/shared";
+import { getTerrainCell } from "@herobyte/shared";
 import { snapPointToGrid } from "../snapToGrid";
 import type { MapStudioTileAsset } from "../starterTiles";
 import type { MapStampDraft, MapTileDraft } from "../types";
-import {
-  MAX_ROOM_TILES,
-  type MapViewBox,
-  type RoomDrag,
-  type StudioTool,
-} from "./MapStudioWorkspace.types";
+import { MAX_ROOM_TILES, type RoomDrag, type StudioTool } from "./MapStudioWorkspace.types";
 import {
   buildRoomTileDrafts,
   buildStampDraft,
   clamp,
-  clampViewBox,
   eventToMapPoint,
   paintPlacementBounds,
   pickPlacementLayer,
-  screenDeltaToMapDelta,
   topmostTileAtPoint,
-  zoomViewBox,
 } from "./mapStudioWorkspaceUtils";
 import { buildScatterDrafts } from "../scatterBrush";
 import { useAltKeyTracking } from "./useAltKeyTracking";
+import { useStudioCamera } from "./useStudioCamera";
+import { useTerrainBrush } from "./useTerrainBrush";
 
 interface UseMapStudioCanvasControllerProps {
   activeDocument?: MapDocument | null;
@@ -44,6 +31,7 @@ interface UseMapStudioCanvasControllerProps {
   addTiles: (tiles: MapTileDraft[]) => void;
   addStamp: (stamp: MapStampDraft) => void;
   addStamps: (stamps: MapStampDraft[]) => void;
+  paintTerrain: (cells: TerrainPaintCell[]) => void;
   removeElement: (elementId: string) => void;
   setSelectedElementId: (elementId: string | null) => void;
   setPublishMessage: (message: string) => void;
@@ -61,26 +49,28 @@ export function useMapStudioCanvasController({
   addTiles,
   addStamp,
   addStamps,
+  paintTerrain,
   removeElement,
   setSelectedElementId,
   setPublishMessage,
 }: UseMapStudioCanvasControllerProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const paintedCells = useRef(new Set<string>());
-  const panState = useRef<{ pointerId: number; lastClientX: number; lastClientY: number } | null>(
-    null,
-  );
   const [cursorPoint, setCursorPoint] = useState<{ x: number; y: number } | null>(null);
   const [freePlacement, setFreePlacement] = useAltKeyTracking();
   const [painting, setPainting] = useState(false);
   const [roomDrag, setRoomDrag] = useState<RoomDrag | null>(null);
-  const [viewBox, setViewBox] = useState<MapViewBox>({ x: 0, y: 0, width: 2048, height: 2048 });
+  const { viewBox, handleResetView, handleZoom, handleWheel, startPan, handlePanMove, endPan } =
+    useStudioCamera(activeDocument, svgRef);
+  const { addStrokePoint, flushStroke, strokeCells } = useTerrainBrush({
+    activeDocument,
+    paintTerrain,
+  });
+  // Terrain-kind assets paint cells; everything else stays an element.
+  const terrainAsset = selectedAsset.layerKind === "terrain";
 
   useEffect(() => {
-    if (!activeDocument) return;
-    setViewBox({ x: 0, y: 0, width: activeDocument.width, height: activeDocument.height });
     setRoomDrag(null);
-    panState.current = null;
   }, [activeDocument?.id, activeDocument?.width, activeDocument?.height]);
 
   const snappedCursor = useMemo(
@@ -104,36 +94,6 @@ export function useMapStudioCanvasController({
       height,
     };
   }, [activeDocument, cursorPoint, freePlacement, tool, selectedAsset]);
-
-  const handleResetView = () => {
-    if (!activeDocument) return;
-    setViewBox({ x: 0, y: 0, width: activeDocument.width, height: activeDocument.height });
-  };
-
-  const handleZoom = useCallback(
-    (factor: number, anchor?: { x: number; y: number }) => {
-      if (!activeDocument) return;
-      setViewBox((current) => zoomViewBox(current, activeDocument, factor, anchor));
-    },
-    [activeDocument],
-  );
-
-  const handleWheel = (event: WheelEvent<SVGSVGElement>) => {
-    if (!activeDocument) return;
-    event.preventDefault();
-    const anchor = eventToMapPoint(event, viewBox, svgRef.current);
-    handleZoom(event.deltaY < 0 ? 0.82 : 1.18, anchor);
-  };
-
-  const startPan = (event: PointerEvent<SVGSVGElement>) => {
-    if (!activeDocument) return;
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-    panState.current = {
-      pointerId: event.pointerId,
-      lastClientX: event.clientX,
-      lastClientY: event.clientY,
-    };
-  };
 
   const paintAtPoint = useCallback(
     (point: { x: number; y: number }) => {
@@ -186,15 +146,30 @@ export function useMapStudioCanvasController({
 
   const eraseAtPoint = useCallback(
     (point: { x: number; y: number }) => {
-      if (!activeDocument || saving) return;
+      if (!activeDocument) return;
       const element = topmostTileAtPoint(activeDocument, layers, point);
-      if (!element) return;
-      const cellKey = `erase:${element.id}`;
-      if (paintedCells.current.has(cellKey)) return;
-      paintedCells.current.add(cellKey);
-      removeElement(element.id);
+      if (element) {
+        // Element removal dispatches a command immediately — gate on saving.
+        if (saving) return;
+        const cellKey = `erase:${element.id}`;
+        if (paintedCells.current.has(cellKey)) return;
+        paintedCells.current.add(cellKey);
+        removeElement(element.id);
+        return;
+      }
+      // Nothing stacked here: erase painted terrain under the cursor. Cells
+      // accumulate LOCALLY and commit once on release, so this path must
+      // never gate on saving — a mid-drag element removal would otherwise
+      // freeze the stroke for a full round trip (found by adversarial
+      // review); the command queue sequences the flush safely.
+      if (!activeDocument.terrain) return;
+      const { size, offsetX, offsetY } = activeDocument.grid;
+      const cellX = Math.floor((point.x - offsetX) / size);
+      const cellY = Math.floor((point.y - offsetY) / size);
+      if (getTerrainCell(activeDocument.terrain, cellX, cellY) === null) return;
+      addStrokePoint(point, null);
     },
-    [activeDocument, layers, removeElement, saving],
+    [activeDocument, layers, removeElement, saving, addStrokePoint],
   );
 
   const commitRoomDrag = useCallback(
@@ -237,7 +212,10 @@ export function useMapStudioCanvasController({
   );
 
   const handleCanvasPointerDown = (event: PointerEvent<SVGSVGElement>) => {
-    if (!activeDocument || saving) return;
+    // No blanket saving gate: local-only paths (pan, terrain strokes, erase
+    // accumulation) stay live while a command is in flight; every command-
+    // dispatching path (paint, stamp, scatter, element removal) gates itself.
+    if (!activeDocument) return;
     if (tool === "pan" || event.button === 1 || event.shiftKey) {
       startPan(event);
       return;
@@ -255,7 +233,11 @@ export function useMapStudioCanvasController({
       }
       event.currentTarget.setPointerCapture?.(event.pointerId);
       setPainting(true);
-      paintAtPoint(point);
+      if (terrainAsset) {
+        addStrokePoint(point, selectedAsset.id);
+      } else {
+        paintAtPoint(point);
+      }
       return;
     }
     if (tool === "scatter") {
@@ -269,6 +251,7 @@ export function useMapStudioCanvasController({
       return;
     }
     if (tool === "room") {
+      if (saving) return;
       event.currentTarget.setPointerCapture?.(event.pointerId);
       const snapped = snapPointToGrid(point, activeDocument.grid);
       setPainting(true);
@@ -282,33 +265,22 @@ export function useMapStudioCanvasController({
 
   const handleCanvasPointerMove = (event: PointerEvent<SVGSVGElement>) => {
     if (!activeDocument) return;
-    if (panState.current?.pointerId === event.pointerId) {
-      const delta = screenDeltaToMapDelta(
-        event.clientX - panState.current.lastClientX,
-        event.clientY - panState.current.lastClientY,
-        viewBox,
-        svgRef.current,
-      );
-      panState.current = {
-        pointerId: event.pointerId,
-        lastClientX: event.clientX,
-        lastClientY: event.clientY,
-      };
-      setViewBox((current) =>
-        clampViewBox(
-          { ...current, x: current.x - delta.x, y: current.y - delta.y },
-          activeDocument,
-        ),
-      );
-      return;
-    }
+    if (handlePanMove(event)) return;
     const point = eventToMapPoint(event, viewBox, svgRef.current);
     setCursorPoint(point);
     setFreePlacement(event.altKey);
-    if (!painting || saving) return;
-    if (tool === "tile") paintAtPoint(point);
-    if (tool === "erase") eraseAtPoint(point);
-    if (tool === "room") {
+    if (!painting) return;
+    if (tool === "tile") {
+      if (terrainAsset) {
+        // Local accumulation — never gated on saving, or a mid-stroke
+        // command ack would freeze the brush for a round trip.
+        addStrokePoint(point, selectedAsset.id);
+      } else {
+        paintAtPoint(point); // self-gates on saving
+      }
+    }
+    if (tool === "erase") eraseAtPoint(point); // gates element removal only
+    if (tool === "room" && !saving) {
       setRoomDrag((current) =>
         current ? { ...current, end: snapPointToGrid(point, activeDocument.grid) } : current,
       );
@@ -317,9 +289,10 @@ export function useMapStudioCanvasController({
 
   const handleCanvasPointerEnd = () => {
     if (roomDrag && tool === "room") commitRoomDrag(roomDrag);
+    flushStroke();
     setPainting(false);
     paintedCells.current = new Set();
-    panState.current = null;
+    endPan();
     setRoomDrag(null);
   };
 
@@ -328,6 +301,7 @@ export function useMapStudioCanvasController({
     viewBox,
     roomDrag,
     snappedCursor,
+    strokeCells,
     stampPreview,
     handleZoom,
     handleResetView,

@@ -80,6 +80,66 @@ describe("buildTileOccupancy", () => {
     expect(occupancy.get("0,0")).toBe("terrain:water");
   });
 
+  it("seeds occupancy from painted terrain so elements and terrain fuse", () => {
+    const document = documentWith(tile("t", 100, 0));
+    document.terrain = {
+      schemaVersion: 1,
+      palette: ["terrain:stone-floor"],
+      chunks: { "0,0": [2, 1, 254, 0] }, // cells (0,0) and (1,0)
+    };
+
+    const occupancy = buildTileOccupancy(document);
+
+    expect(occupancy.get("0,0")).toBe("terrain:stone-floor");
+    expect(occupancy.get("1,0")).toBe("terrain:stone-floor");
+    expect(occupancy.get("2,0")).toBe("terrain:stone-floor"); // the tile element
+    expect(occupancy.size).toBe(3);
+  });
+
+  it("excludes elements on hidden or zero-opacity layers so they cannot punch holes", () => {
+    const document = documentWith(tile("wall", 0, 0, { assetId: "structures:stone-wall" }));
+    document.elements[0]!.layerId = "walls";
+    document.layers = document.layers.map((layer) =>
+      layer.id === "walls" ? { ...layer, visible: false } : layer,
+    );
+    document.terrain = {
+      schemaVersion: 1,
+      palette: ["terrain:grass"],
+      chunks: { "0,0": [1, 1, 255, 0] },
+    };
+
+    const occupancy = buildTileOccupancy(document);
+
+    // The invisible wall claims nothing; the terrain cell shows through.
+    expect(occupancy.get("0,0")).toBe("terrain:grass");
+    expect(occupancy.size).toBe(1);
+  });
+
+  it("stops seeding terrain when the terrain-kind layer is hidden", () => {
+    const document = documentWith();
+    document.terrain = {
+      schemaVersion: 1,
+      palette: ["terrain:grass"],
+      chunks: { "0,0": [1, 1, 255, 0] },
+    };
+    document.layers = document.layers.map((layer) =>
+      layer.kind === "terrain" ? { ...layer, visible: false } : layer,
+    );
+
+    expect(buildTileOccupancy(document).size).toBe(0);
+  });
+
+  it("lets tile elements override terrain in occupancy", () => {
+    const document = documentWith(tile("t", 0, 0, { assetId: "terrain:water" }));
+    document.terrain = {
+      schemaVersion: 1,
+      palette: ["terrain:stone-floor"],
+      chunks: { "0,0": [1, 1, 255, 0] },
+    };
+
+    expect(buildTileOccupancy(document).get("0,0")).toBe("terrain:water");
+  });
+
   it("bins against the grid offsets when the document lattice is shifted", () => {
     const document = documentWith(tile("a", 25, 35), tile("b", 75, 35));
     document.grid.offsetX = 25;

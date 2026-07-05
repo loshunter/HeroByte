@@ -1,4 +1,5 @@
 import type { MapDocument, MapElement, MapGridSettings } from "@herobyte/shared";
+import { forEachTerrainCell } from "@herobyte/shared";
 
 // ---------------------------------------------------------------------------
 // Terrain boundary autotiling: same-terrain tiles fuse into one surface,
@@ -31,8 +32,28 @@ function cellIndex(value: number, offset: number, size: number): number | null {
 export function buildTileOccupancy(document: MapDocument): TileOccupancy {
   const occupancy: TileOccupancy = new Map();
   const grid = document.grid;
+  // Occupancy must reflect what actually renders: an element on a hidden or
+  // zero-opacity layer draws nothing, so letting it claim cells would punch
+  // invisible holes in terrain and suppress visible borders (found by
+  // adversarial review). Same rule for hidden painted terrain.
+  const layers = new Map(document.layers.map((layer) => [layer.id, layer]));
+  const layerRenders = (layerId: string) => {
+    const layer = layers.get(layerId);
+    return Boolean(layer && layer.visible && layer.opacity > 0);
+  };
+  // Painted terrain seeds the occupancy first; tile elements draw on top of
+  // terrain, so they override cell-by-cell. Terrain cells and element bins
+  // share the same offset-lattice index space.
+  const terrainKindLayer = document.layers.find((layer) => layer.kind === "terrain");
+  const terrainRenders =
+    !terrainKindLayer || (terrainKindLayer.visible && terrainKindLayer.opacity > 0);
+  if (document.terrain && terrainRenders) {
+    forEachTerrainCell(document.terrain, (cellX, cellY, assetId) => {
+      occupancy.set(`${cellX},${cellY}`, assetId);
+    });
+  }
   for (const element of document.elements) {
-    if (!isAutotileCandidate(element, grid)) continue;
+    if (!isAutotileCandidate(element, grid) || !layerRenders(element.layerId)) continue;
     const baseX = cellIndex(element.transform.x, grid.offsetX, grid.size)!;
     const baseY = cellIndex(element.transform.y, grid.offsetY, grid.size)!;
     for (let column = 0; column < element.data.columns; column += 1) {
