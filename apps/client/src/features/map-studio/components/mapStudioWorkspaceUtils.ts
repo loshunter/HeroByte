@@ -1,5 +1,6 @@
 import type { PointerEvent, WheelEvent } from "react";
 import type { MapDocument, MapElement, MapLayer } from "@herobyte/shared";
+import { getTerrainCell } from "@herobyte/shared";
 import type { MapStudioTileAsset } from "../starterTiles";
 import type { MapStampDraft, MapTileDraft } from "../types";
 import type { MapViewBox, RoomDrag } from "./MapStudioWorkspace.types";
@@ -154,6 +155,29 @@ export function pickPlacementLayer(
     document.layers.find((layer) => layer.kind === asset.layerKind && !layer.locked) ??
     document.layers.find((layer) => !layer.locked)
   );
+}
+
+/**
+ * The asset id under the cursor for the eyedropper: the topmost tile/stamp
+ * element if one is stacked here, else the painted terrain cell. Null over
+ * empty canvas.
+ */
+export function sampleAssetAtPoint(
+  document: MapDocument,
+  layers: Map<string, MapLayer>,
+  point: { x: number; y: number },
+): string | null {
+  const element = topmostTileAtPoint(document, layers, point);
+  if (element && (element.type === "tile" || element.type === "stamp")) {
+    return element.data.assetId;
+  }
+  if (document.terrain) {
+    const { size, offsetX, offsetY } = document.grid;
+    const cellX = Math.floor((point.x - offsetX) / size);
+    const cellY = Math.floor((point.y - offsetY) / size);
+    return getTerrainCell(document.terrain, cellX, cellY);
+  }
+  return null;
 }
 
 export function topmostTileAtPoint(

@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { MapElement, MapLayer } from "@herobyte/shared";
 import { createMapDocument } from "@herobyte/shared";
+import { paintTerrain as paintTerrainDoc } from "@herobyte/shared";
 import {
   buildStampDraft,
   paintPlacementBounds,
+  sampleAssetAtPoint,
   topmostTileAtPoint,
 } from "../components/mapStudioWorkspaceUtils";
 import { getMapStudioTileAsset } from "../starterTiles";
@@ -50,6 +52,41 @@ describe("buildStampDraft", () => {
     expect(buildStampDraft(document, asset, { x: 2047, y: -10 })).toEqual(
       expect.objectContaining({ x: 1998, y: 0 }),
     );
+  });
+});
+
+describe("sampleAssetAtPoint", () => {
+  it("prefers the topmost tile element under the cursor", () => {
+    const document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
+    document.elements = [
+      {
+        id: "crate",
+        type: "tile",
+        layerId: "objects",
+        locked: false,
+        hidden: false,
+        transform: { x: 50, y: 50, scaleX: 1, scaleY: 1, rotation: 0 },
+        data: { assetId: "objects:crate", columns: 1, rows: 1 },
+      },
+    ];
+    const layers = new Map<string, MapLayer>(document.layers.map((layer) => [layer.id, layer]));
+
+    expect(sampleAssetAtPoint(document, layers, { x: 60, y: 60 })).toBe("objects:crate");
+  });
+
+  it("falls back to the painted terrain cell when no element is stacked", () => {
+    let document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
+    document = paintTerrainDoc(document, [{ x: 1, y: 1, assetId: "terrain:water" }]);
+    const layers = new Map<string, MapLayer>(document.layers.map((layer) => [layer.id, layer]));
+
+    expect(sampleAssetAtPoint(document, layers, { x: 60, y: 60 })).toBe("terrain:water");
+  });
+
+  it("returns null over empty canvas", () => {
+    const document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
+    const layers = new Map<string, MapLayer>(document.layers.map((layer) => [layer.id, layer]));
+
+    expect(sampleAssetAtPoint(document, layers, { x: 60, y: 60 })).toBeNull();
   });
 });
 

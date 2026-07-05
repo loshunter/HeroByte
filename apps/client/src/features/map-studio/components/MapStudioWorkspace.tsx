@@ -140,6 +140,14 @@ export function MapStudioWorkspace({
     removeElement,
     setSelectedElementId,
     setPublishMessage,
+    onSampleAsset: (assetId) => {
+      const asset = getMapStudioTileAsset(assetId);
+      setSelectedAssetId(assetId);
+      setCategory(asset.category);
+      if (asset.layerKind === "terrain") setRoomFillAssetId(assetId);
+      if (asset.layerKind === "walls") setRoomWallAssetId(assetId);
+      setTool("tile");
+    },
   });
 
   const handleCanvasKeyDown = useStudioHotkeys({

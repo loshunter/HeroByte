@@ -190,6 +190,37 @@ describe("MapStudioWorkspace", () => {
     expect(mapStudio.removeElement).not.toHaveBeenCalled();
   });
 
+  it("eyedrops the terrain under the cursor with Ctrl+click and selects it", () => {
+    let document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
+    document = paintTerrainDocument(document, [{ x: 1, y: 1, assetId: "terrain:water" }]);
+    const mapStudio = controller({ activeDocument: document });
+    render(<MapStudioWorkspace controller={mapStudio} onExit={vi.fn()} />);
+
+    const canvas = screen.getByRole("img", { name: "Keep studio canvas" });
+    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 200,
+      bottom: 200,
+      width: 200,
+      height: 200,
+      toJSON: () => ({}),
+    });
+
+    // Stone floor is selected by default; Ctrl+click over the water cell samples it.
+    firePointer(canvas, "pointerdown", { pointerId: 1, clientX: 60, clientY: 60, ctrlKey: true });
+    firePointer(canvas, "pointerup", { pointerId: 1, clientX: 60, clientY: 60, ctrlKey: true });
+
+    // Sampling never paints…
+    expect(mapStudio.paintTerrain).not.toHaveBeenCalled();
+    // …and the sampled asset becomes the active brush: painting elsewhere now lays water.
+    firePointer(canvas, "pointerdown", { pointerId: 1, clientX: 110, clientY: 10 });
+    firePointer(canvas, "pointerup", { pointerId: 1, clientX: 110, clientY: 10 });
+    expect(mapStudio.paintTerrain).toHaveBeenCalledWith([{ x: 2, y: 0, assetId: "terrain:water" }]);
+  });
+
   it("keeps terrain strokes accumulating while a save is in flight", () => {
     let document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
     document = paintTerrainDocument(document, [{ x: 2, y: 2, assetId: "terrain:stone-floor" }]);
@@ -815,7 +846,14 @@ describe("MapStudioWorkspace", () => {
 function firePointer(
   target: Element,
   type: "pointerdown" | "pointermove" | "pointerup",
-  init: { pointerId: number; clientX: number; clientY: number; altKey?: boolean; button?: number },
+  init: {
+    pointerId: number;
+    clientX: number;
+    clientY: number;
+    altKey?: boolean;
+    ctrlKey?: boolean;
+    button?: number;
+  },
 ) {
   const event = new MouseEvent(type, {
     bubbles: true,
@@ -823,6 +861,7 @@ function firePointer(
     clientX: init.clientX,
     clientY: init.clientY,
     altKey: init.altKey ?? false,
+    ctrlKey: init.ctrlKey ?? false,
     button: init.button ?? 0,
   });
   Object.defineProperty(event, "pointerId", { value: init.pointerId });

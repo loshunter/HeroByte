@@ -12,6 +12,7 @@ import {
   eventToMapPoint,
   paintPlacementBounds,
   pickPlacementLayer,
+  sampleAssetAtPoint,
   topmostTileAtPoint,
 } from "./mapStudioWorkspaceUtils";
 import { buildScatterDrafts } from "../scatterBrush";
@@ -35,6 +36,7 @@ interface UseMapStudioCanvasControllerProps {
   removeElement: (elementId: string) => void;
   setSelectedElementId: (elementId: string | null) => void;
   setPublishMessage: (message: string) => void;
+  onSampleAsset: (assetId: string) => void;
 }
 
 export function useMapStudioCanvasController({
@@ -53,6 +55,7 @@ export function useMapStudioCanvasController({
   removeElement,
   setSelectedElementId,
   setPublishMessage,
+  onSampleAsset,
 }: UseMapStudioCanvasControllerProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const paintedCells = useRef(new Set<string>());
@@ -229,6 +232,12 @@ export function useMapStudioCanvasController({
     setFreePlacement(event.altKey);
     paintedCells.current = new Set();
     if (tool === "tile") {
+      // Ctrl/Cmd+click samples the asset under the cursor (eyedropper).
+      if (event.ctrlKey || event.metaKey) {
+        const sampled = sampleAssetAtPoint(activeDocument, layers, point);
+        if (sampled) onSampleAsset(sampled);
+        return;
+      }
       if (event.altKey) {
         stampAtPoint(point);
         return;
