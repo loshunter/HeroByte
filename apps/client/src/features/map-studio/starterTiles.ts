@@ -16,6 +16,12 @@ export interface MapStudioTileAsset {
   accent?: string;
   /** Image-backed assets (uploads) render this instead of the color swatch. */
   imageUrl?: string;
+  /**
+   * Per-frame fills for the shared 300ms animation clock (SNES palette
+   * cycling). Frame 0 MUST equal `fill` so the static/export render is
+   * unchanged; the live canvas cycles through the rest.
+   */
+  animFills?: string[];
 }
 
 export const MAP_STUDIO_TILE_ASSETS: MapStudioTileAsset[] = [
@@ -51,6 +57,8 @@ export const MAP_STUDIO_TILE_ASSETS: MapStudioTileAsset[] = [
     fill: "#24516b",
     stroke: "#48a7bd",
     accent: "#72d3df",
+    // Gentle 4-frame shimmer; frame 0 is the base fill so export is unchanged.
+    animFills: ["#24516b", "#295a76", "#2a5f7c", "#245572"],
   },
   {
     id: "structures:stone-wall",
@@ -119,6 +127,13 @@ export function getMapStudioTileAsset(assetId: string): MapStudioTileAsset {
     };
   }
   return FALLBACK_TILE_ASSET;
+}
+
+/** The fill for a given animation frame; the static `fill` when not animated. */
+export function terrainFillForFrame(asset: MapStudioTileAsset, frame: number): string {
+  const frames = asset.animFills;
+  if (!frames || frames.length === 0) return asset.fill;
+  return frames[((frame % frames.length) + frames.length) % frames.length]!;
 }
 
 export function mapStudioTileCategoryLabel(category: MapStudioTileAsset["category"]): string {

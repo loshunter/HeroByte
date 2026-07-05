@@ -10,6 +10,7 @@ import { getMapStudioTileAsset, type MapStudioTileAsset } from "../starterTiles"
 import { buildTerrainRenderLayers } from "../terrainRender";
 import { buildTileOccupancy } from "../tileAutotiling";
 import { MapStudioElementPreview, MapStudioSelectionOverlay } from "./MapStudioElementPreview";
+import { MapStudioTerrainLayers } from "./MapStudioTerrainLayers";
 import type { MapViewBox, RoomDrag, StudioTool } from "./MapStudioWorkspace.types";
 import { canvasShellStyle, errorStyle, statusStyle } from "./mapStudioWorkspaceStyles";
 import { roomBoundsFromDrag } from "./mapStudioWorkspaceUtils";
@@ -80,6 +81,11 @@ export function MapStudioCanvas({
       autotile.occupancy,
     );
   }, [activeDocument, autotile]);
+  // Only pay for the animation clock when a painted family actually animates.
+  const hasAnimatedTerrain = useMemo(
+    () => terrainLayers.some((layer) => Boolean(getMapStudioTileAsset(layer.assetId).animFills)),
+    [terrainLayers],
+  );
   return (
     <main style={canvasShellStyle}>
       {error && (
@@ -145,28 +151,14 @@ export function MapStudioCanvas({
             pointerEvents="none"
           />
         )}
-        {terrainKindLayer?.visible !== false &&
-          terrainLayers.map((layer) => {
-            const asset = getMapStudioTileAsset(layer.assetId);
-            return (
-              <g
-                key={layer.assetId}
-                data-terrain={layer.assetId}
-                opacity={terrainKindLayer?.opacity ?? 1}
-                pointerEvents="none"
-              >
-                <path d={layer.fillPath} fill={asset.fill} />
-                {layer.boundaryPath && (
-                  <path
-                    d={layer.boundaryPath}
-                    fill="none"
-                    stroke={asset.stroke}
-                    strokeWidth={Math.max(2, activeDocument.grid.size * 0.04)}
-                  />
-                )}
-              </g>
-            );
-          })}
+        {terrainKindLayer?.visible !== false && (
+          <MapStudioTerrainLayers
+            terrainLayers={terrainLayers}
+            gridSize={activeDocument.grid.size}
+            opacity={terrainKindLayer?.opacity ?? 1}
+            animated={hasAnimatedTerrain}
+          />
+        )}
         {strokeCells.length > 0 && (
           <g opacity={0.55} pointerEvents="none">
             {strokeCells.map((cell) => (
