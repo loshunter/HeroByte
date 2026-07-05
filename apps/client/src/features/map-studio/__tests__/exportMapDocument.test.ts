@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { addMapElement, createMapDocument, paintTerrain } from "@herobyte/shared";
+import { addMapElement, createMapDocument, paintTerrain, type MapDocument } from "@herobyte/shared";
 import {
+  MAX_PUBLISH_BACKGROUND_BYTES,
+  backgroundExceedsPublishLimit,
   createMapDocumentSvgDataUrl,
+  createMapDocumentSvgDataUrlWithAssets,
   rasterizeMapDocument,
   renderMapDocumentSvg,
   serializeMapDocument,
@@ -241,6 +244,112 @@ describe("Map Studio export", () => {
       );
 
       expect(renderMapDocumentSvg(document)).not.toContain("data-terrain");
+    });
+  });
+
+  describe("uploaded image assets", () => {
+    const HASH = "d".repeat(64);
+    const UPLOAD_URL = `http://localhost:8787/assets/${HASH}`;
+
+    function documentWithUploadStamp(): MapDocument {
+      const document = createMapDocument({ id: "map", name: "Keep", timestamp: 10 });
+      return addMapElement(
+        document,
+        {
+          id: "torch",
+          type: "stamp",
+          layerId: "objects",
+          locked: false,
+          hidden: false,
+          transform: { x: 100, y: 80, scaleX: 1, scaleY: 1, rotation: 0 },
+          data: { assetId: `upload:${HASH}`, width: 100, height: 50 },
+        },
+        20,
+      );
+    }
+
+    it("renders uploaded stamps as image references in portable SVG", () => {
+      const svg = renderMapDocumentSvg(documentWithUploadStamp());
+      expect(svg).toContain(`<image href="${UPLOAD_URL}" width="100" height="50"`);
+    });
+
+    it("inlines uploaded images as data URIs for the publish background", async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(new Uint8Array([1, 2, 3]), {
+          status: 200,
+          headers: { "content-type": "image/png" },
+        }),
+      );
+      vi.stubGlobal("fetch", fetchMock);
+
+      const dataUrl = await createMapDocumentSvgDataUrlWithAssets(documentWithUploadStamp());
+
+      expect(fetchMock).toHaveBeenCalledWith(UPLOAD_URL);
+      const svg = decodeURIComponent(dataUrl.split(",").slice(1).join(","));
+      expect(svg).toContain('href="data:image/png;base64,AQID"');
+      expect(svg).not.toContain(`href="${UPLOAD_URL}"`);
+    });
+
+    it("clamps a surprising asset content-type to a safe image type", async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(new Uint8Array([1, 2, 3]), {
+          status: 200,
+          headers: { "content-type": "text/html" },
+        }),
+      );
+      vi.stubGlobal("fetch", fetchMock);
+
+      const dataUrl = await createMapDocumentSvgDataUrlWithAssets(documentWithUploadStamp());
+
+      const svg = decodeURIComponent(dataUrl.split(",").slice(1).join(","));
+      expect(svg).toContain('href="data:image/png;base64,AQID"');
+      expect(svg).not.toContain("text/html");
+    });
+
+    it("flags a publish whose inlined images exceed the 1MB message cap", async () => {
+      const big = new Uint8Array(900 * 1024); // ~1.2MB once base64-encoded
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValue(
+          new Response(big, { status: 200, headers: { "content-type": "image/png" } }),
+        );
+      vi.stubGlobal("fetch", fetchMock);
+
+      const dataUrl = await createMapDocumentSvgDataUrlWithAssets(documentWithUploadStamp());
+      expect(backgroundExceedsPublishLimit(dataUrl)).toBe(true);
+    });
+
+    it("falls back to the remote reference when an asset fetch fails", async () => {
+      const fetchMock = vi.fn().mockResolvedValue(new Response("gone", { status: 404 }));
+      vi.stubGlobal("fetch", fetchMock);
+
+      const dataUrl = await createMapDocumentSvgDataUrlWithAssets(documentWithUploadStamp());
+
+      const svg = decodeURIComponent(dataUrl.split(",").slice(1).join(","));
+      expect(svg).toContain(`href="${UPLOAD_URL}"`);
+    });
+
+    it("does not fetch anything for documents without uploads", async () => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+      const document = createMapDocument({ id: "map", name: "Keep", timestamp: 10 });
+
+      await createMapDocumentSvgDataUrlWithAssets(document);
+
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("backgroundExceedsPublishLimit", () => {
+    it("passes a small background and rejects one over the cap", () => {
+      expect(backgroundExceedsPublishLimit("data:image/svg+xml,tiny")).toBe(false);
+      expect(backgroundExceedsPublishLimit("x".repeat(MAX_PUBLISH_BACKGROUND_BYTES + 1))).toBe(
+        true,
+      );
+    });
+
+    it("stays safely under the server's 1MB inbound message cap", () => {
+      expect(MAX_PUBLISH_BACKGROUND_BYTES).toBeLessThan(1024 * 1024);
     });
   });
 

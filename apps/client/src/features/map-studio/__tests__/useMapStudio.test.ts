@@ -10,6 +10,45 @@ describe("useMapStudio", () => {
     vi.clearAllMocks();
   });
 
+  it("threads room credentials into asset uploads", async () => {
+    const body = {
+      hash: "a".repeat(64),
+      url: `/assets/${"a".repeat(64)}`,
+      mime: "image/png",
+      size: 4,
+      deduplicated: false,
+    };
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(body), {
+        status: 201,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const { result } = renderHook(() =>
+        useMapStudio(sendMessage, () => ({ secret: "hush", roomId: "room-1" })),
+      );
+      const file = new File([new Uint8Array(4)], "torch.png", { type: "image/png" });
+      await expect(result.current.uploadAsset(file)).resolves.toEqual(body);
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(init.headers).toMatchObject({
+        "x-herobyte-secret": "hush",
+        "x-herobyte-room": "room-1",
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("rejects uploads before authentication with no-credentials", async () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    const file = new File([new Uint8Array(4)], "torch.png", { type: "image/png" });
+    await expect(result.current.uploadAsset(file)).rejects.toMatchObject({
+      code: "no-credentials",
+    });
+  });
+
   it("requests the room's map document list", () => {
     const { result } = renderHook(() => useMapStudio(sendMessage));
     act(() => result.current.refresh());

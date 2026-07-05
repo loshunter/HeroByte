@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createMapDocumentSvgDataUrl } from "../exportMapDocument";
 import { MAP_STUDIO_TILE_ASSETS, getMapStudioTileAsset } from "../starterTiles";
 import type { MapStudioController } from "../types";
+import { MyStuffUploader } from "../uploads/MyStuffUploader";
+import { useMyStuffAssets } from "../uploads/useMyStuffAssets";
+import { useStudioPaletteAssets } from "./useStudioPaletteAssets";
+import { useStudioPublish } from "./useStudioPublish";
 import { MapElementInspector } from "./MapElementInspector";
 import { MapStudioCanvas } from "./MapStudioCanvas";
 import { MapStudioEmptyState } from "./MapStudioEmptyState";
@@ -48,6 +51,7 @@ export function MapStudioWorkspace({
     undo,
     redo,
     publishDocument,
+    uploadAsset,
     importDocument,
   } = controller;
   const requestedInitialDocuments = useRef(false);
@@ -59,7 +63,11 @@ export function MapStudioWorkspace({
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [selectedDocumentId, setSelectedDocumentId] = useState("");
   const [newMapName, setNewMapName] = useState("New Battlemap");
-  const [publishMessage, setPublishMessage] = useState("");
+  const { publishMessage, setPublishMessage, handlePublish } = useStudioPublish({
+    activeDocument,
+    publishDocument,
+    onPublishStatus,
+  });
 
   useEffect(() => {
     if (!requestedInitialDocuments.current && !documents.length && !loading) {
@@ -78,23 +86,13 @@ export function MapStudioWorkspace({
     }
   }, [activeDocument, documents, selectedDocumentId]);
 
-  const selectedAsset = useMemo(() => getMapStudioTileAsset(selectedAssetId), [selectedAssetId]);
+  const myStuff = useMyStuffAssets(uploadAsset);
+  const { myStuffAssets, visibleAssets, selectedAsset, floorAssets, wallAssets } =
+    useStudioPaletteAssets({ category, selectedAssetId, myStuff: myStuff.assets });
   const roomFillAsset = useMemo(() => getMapStudioTileAsset(roomFillAssetId), [roomFillAssetId]);
   const roomWallAsset = useMemo(
     () => (roomWallAssetId ? getMapStudioTileAsset(roomWallAssetId) : null),
     [roomWallAssetId],
-  );
-  const visibleAssets = useMemo(
-    () => MAP_STUDIO_TILE_ASSETS.filter((asset) => asset.category === category),
-    [category],
-  );
-  const floorAssets = useMemo(
-    () => MAP_STUDIO_TILE_ASSETS.filter((asset) => asset.layerKind === "terrain"),
-    [],
-  );
-  const wallAssets = useMemo(
-    () => MAP_STUDIO_TILE_ASSETS.filter((asset) => asset.layerKind === "walls"),
-    [],
   );
   const layers = useMemo(
     () => new Map(activeDocument?.layers.map((layer) => [layer.id, layer]) ?? []),
@@ -174,16 +172,6 @@ export function MapStudioWorkspace({
     openDocument(selectedDocumentId);
   };
 
-  const handlePublish = () => {
-    if (!activeDocument) return;
-    // The server compiles the document's walls/doors/lights into the live
-    // scene; the rendered SVG travels along as the cosmetic background.
-    if (!publishDocument(createMapDocumentSvgDataUrl(activeDocument))) return;
-    const message = `Published "${activeDocument.name}" to the live map.`;
-    setPublishMessage(message);
-    onPublishStatus?.(message);
-  };
-
   const handleImportFile = (fileText: string) => {
     try {
       const parsed: unknown = JSON.parse(fileText);
@@ -261,6 +249,14 @@ export function MapStudioWorkspace({
         roomFillAssetId={roomFillAssetId}
         roomWallAssetId={roomWallAssetId}
         visibleAssets={visibleAssets}
+        myStuffAssets={myStuffAssets}
+        uploadSection={
+          <MyStuffUploader
+            busy={myStuff.busy}
+            error={myStuff.error}
+            onFiles={myStuff.uploadFiles}
+          />
+        }
         floorAssets={floorAssets}
         wallAssets={wallAssets}
         selectedElement={selectedElement}
@@ -269,7 +265,9 @@ export function MapStudioWorkspace({
         onCategorySelect={(nextCategory, fallbackAssetId) => {
           setCategory(nextCategory);
           setSelectedAssetId(fallbackAssetId);
-          setTool("tile");
+          // An empty My Stuff shelf has nothing to arm; drop to Select so
+          // canvas clicks don't paint an asset the palette isn't showing.
+          setTool(nextCategory === "my-stuff" && myStuffAssets.length === 0 ? "select" : "tile");
         }}
         onAssetSelect={(asset) => {
           setSelectedAssetId(asset.id);

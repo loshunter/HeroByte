@@ -1,13 +1,21 @@
+import { uploadHashFromAssetId, uploadedAssetUrl } from "./uploads/assetUpload";
+
+/** Neutral chrome shown behind/around image-backed (uploaded) assets. */
+export const MY_STUFF_FILL = "#2b2f3d";
+export const MY_STUFF_STROKE = "#8a7445";
+
 export interface MapStudioTileAsset {
   id: string;
   name: string;
-  category: "terrain" | "structures" | "objects";
+  category: "terrain" | "structures" | "objects" | "my-stuff";
   layerKind: "terrain" | "objects" | "walls";
   columns: number;
   rows: number;
   fill: string;
   stroke: string;
   accent?: string;
+  /** Image-backed assets (uploads) render this instead of the color swatch. */
+  imageUrl?: string;
 }
 
 export const MAP_STUDIO_TILE_ASSETS: MapStudioTileAsset[] = [
@@ -92,7 +100,25 @@ const FALLBACK_TILE_ASSET: MapStudioTileAsset = {
 };
 
 export function getMapStudioTileAsset(assetId: string): MapStudioTileAsset {
-  return MAP_STUDIO_TILE_ASSETS.find((asset) => asset.id === assetId) ?? FALLBACK_TILE_ASSET;
+  const bundled = MAP_STUDIO_TILE_ASSETS.find((asset) => asset.id === assetId);
+  if (bundled) return bundled;
+  // Uploads are content-addressed, so any client can synthesize a renderable
+  // asset from the id alone — no local "My Stuff" inventory required.
+  const uploadHash = uploadHashFromAssetId(assetId);
+  if (uploadHash) {
+    return {
+      id: assetId,
+      name: "Uploaded image",
+      category: "my-stuff",
+      layerKind: "objects",
+      columns: 1,
+      rows: 1,
+      fill: MY_STUFF_FILL,
+      stroke: MY_STUFF_STROKE,
+      imageUrl: uploadedAssetUrl(uploadHash),
+    };
+  }
+  return FALLBACK_TILE_ASSET;
 }
 
 export function mapStudioTileCategoryLabel(category: MapStudioTileAsset["category"]): string {
@@ -103,5 +129,7 @@ export function mapStudioTileCategoryLabel(category: MapStudioTileAsset["categor
       return "Structures";
     case "objects":
       return "Objects";
+    case "my-stuff":
+      return "My Stuff";
   }
 }

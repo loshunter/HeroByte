@@ -31,6 +31,22 @@ export const MapStudioElementPreview = memo(function MapStudioElementPreview({
     const tint = element.data.tint;
     // Footprint elements spin around their visual center, not the corner.
     const footprintTransform = `translate(${x} ${y}) rotate(${rotation} ${(width * scaleX) / 2} ${(height * scaleY) / 2}) scale(${scaleX} ${scaleY})`;
+    // Image-backed (uploaded) assets render the picture itself — checked
+    // before autotiling so an on-grid upload never fuses like terrain.
+    if (asset.imageUrl) {
+      return (
+        <g transform={footprintTransform} opacity={layer.opacity}>
+          <image
+            href={asset.imageUrl}
+            width={width}
+            height={height}
+            preserveAspectRatio="none"
+            style={{ imageRendering: "pixelated" }}
+          />
+          {tint && <rect width={width} height={height} fill={tint} opacity={0.35} />}
+        </g>
+      );
+    }
     if (element.type === "tile" && autotile && isAutotileCandidate(element, autotile.grid)) {
       // Autotiled terrain: no per-tile outline; borders appear only where a
       // cell faces different terrain, so contiguous paint reads as one surface.

@@ -8,6 +8,7 @@ import type {
 import { generateUUID } from "../../utils/uuid";
 import { upsertMapDocumentSummary } from "./documentSummaries";
 import type { MapStudioController, MapStudioServerMessage } from "./types";
+import { uploadAssetFile, type AssetUploadCredentials } from "./uploads/assetUpload";
 import { useMapStudioActions } from "./useMapStudioActions";
 
 type CommandBuilder = (document: MapDocument, commandId: string) => MapStudioCommand;
@@ -16,7 +17,10 @@ interface QueuedCommand {
   build: CommandBuilder;
 }
 
-export function useMapStudio(sendMessage: (message: ClientMessage) => void): MapStudioController {
+export function useMapStudio(
+  sendMessage: (message: ClientMessage) => void,
+  getAuthCredentials?: () => AssetUploadCredentials | null,
+): MapStudioController {
   const [documents, setDocuments] = useState<MapDocumentSummary[]>([]);
   const [activeDocument, setActiveDocument] = useState<MapDocument | null>(null);
   const [loading, setLoading] = useState(false);
@@ -65,13 +69,19 @@ export function useMapStudio(sendMessage: (message: ClientMessage) => void): Map
   );
 
   const publishDocument = useCallback(
-    (background: string) => {
+    (background: string, documentId?: string) => {
       const document = activeDocumentRef.current;
       if (!document) return false;
+      if (documentId && document.id !== documentId) return false;
       sendMessage({ t: "map-studio-publish", documentId: document.id, background });
       return true;
     },
     [sendMessage],
+  );
+
+  const uploadAsset = useCallback(
+    (file: File) => uploadAssetFile(file, getAuthCredentials?.() ?? null),
+    [getAuthCredentials],
   );
 
   const importDocument = useCallback(
@@ -230,6 +240,7 @@ export function useMapStudio(sendMessage: (message: ClientMessage) => void): Map
     undo,
     redo,
     publishDocument,
+    uploadAsset,
     importDocument,
     handleServerMessage,
   };

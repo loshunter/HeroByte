@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createMapDocument } from "@herobyte/shared";
 import type { MapStudioController } from "../../../../map-studio";
@@ -24,6 +24,7 @@ function controller(overrides: Partial<MapStudioController> = {}): MapStudioCont
     addTiles: vi.fn(() => ["tile-id"]),
     addStamp: vi.fn(() => "stamp-id"),
     addStamps: vi.fn(() => ["stamp-id"]),
+    paintTerrain: vi.fn(),
     addShape: vi.fn(() => "shape-id"),
     addWall: vi.fn(() => "wall-id"),
     addDoor: vi.fn(() => "door-id"),
@@ -32,6 +33,7 @@ function controller(overrides: Partial<MapStudioController> = {}): MapStudioCont
     undo: vi.fn(),
     redo: vi.fn(),
     publishDocument: vi.fn(() => true),
+    uploadAsset: vi.fn(),
     importDocument: vi.fn(() => "imported-id"),
     handleServerMessage: vi.fn(),
     ...overrides,
@@ -105,7 +107,7 @@ describe("MapStudioControl", () => {
     expect(onOpenStudio).toHaveBeenCalledOnce();
   });
 
-  it("publishes the active document as a live map background with synced grid size", () => {
+  it("publishes the active document as a live map background with synced grid size", async () => {
     const document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
     document.grid.size = 64;
     const onPublishToLiveMap = vi.fn();
@@ -119,18 +121,20 @@ describe("MapStudioControl", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "PUBLISH TO LIVE MAP" }));
 
-    expect(onPublishToLiveMap).toHaveBeenCalledWith(
-      expect.objectContaining({
-        backgroundUrl: expect.stringMatching(/^data:image\/svg\+xml;charset=utf-8,/),
-        documentId: "map",
-        documentName: "Keep",
-        gridSize: 64,
-      }),
+    await waitFor(() =>
+      expect(onPublishToLiveMap).toHaveBeenCalledWith(
+        expect.objectContaining({
+          backgroundUrl: expect.stringMatching(/^data:image\/svg\+xml;charset=utf-8,/),
+          documentId: "map",
+          documentName: "Keep",
+          gridSize: 64,
+        }),
+      ),
     );
     expect(screen.getByRole("status")).toHaveTextContent('Published "Keep" to the live map.');
   });
 
-  it("clamps published live grid size to the server-supported range", () => {
+  it("clamps published live grid size to the server-supported range", async () => {
     const document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
     document.grid.size = 900;
     const onPublishToLiveMap = vi.fn();
@@ -144,7 +148,9 @@ describe("MapStudioControl", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "PUBLISH TO LIVE MAP" }));
 
-    expect(onPublishToLiveMap).toHaveBeenCalledWith(expect.objectContaining({ gridSize: 500 }));
+    await waitFor(() =>
+      expect(onPublishToLiveMap).toHaveBeenCalledWith(expect.objectContaining({ gridSize: 500 })),
+    );
   });
 
   it("does not render the old miniature editable map canvas", () => {

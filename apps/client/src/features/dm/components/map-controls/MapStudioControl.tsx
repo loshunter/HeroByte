@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { JRPGButton, JRPGPanel } from "../../../../components/ui/JRPGPanel";
-import { createMapDocumentSvgDataUrl, type MapStudioController } from "../../../map-studio";
+import {
+  backgroundExceedsPublishLimit,
+  createMapDocumentSvgDataUrlWithAssets,
+  type MapStudioController,
+} from "../../../map-studio";
 import { MapStudioExportControls } from "./MapStudioExportControls";
 
 export interface MapStudioControlProps {
@@ -77,14 +81,26 @@ export function MapStudioControl({
   };
 
   const handlePublish = () => {
-    if (!activeDocument || !onPublishToLiveMap) return;
-    onPublishToLiveMap({
-      backgroundUrl: createMapDocumentSvgDataUrl(activeDocument),
-      gridSize: toLiveGridSize(activeDocument.grid.size),
-      documentId: activeDocument.id,
-      documentName: activeDocument.name,
-    });
-    setPublishStatus(`Published "${activeDocument.name}" to the live map.`);
+    const documentToPublish = activeDocument;
+    if (!documentToPublish || !onPublishToLiveMap) return;
+    // Uploaded images inline asynchronously; the payload captures the
+    // document so a mid-render switch can't mismatch id and background.
+    void (async () => {
+      const backgroundUrl = await createMapDocumentSvgDataUrlWithAssets(documentToPublish);
+      if (backgroundExceedsPublishLimit(backgroundUrl)) {
+        setPublishStatus(
+          "Publish failed: this map's images are too large to send. Remove or shrink uploaded images and try again.",
+        );
+        return;
+      }
+      onPublishToLiveMap({
+        backgroundUrl,
+        gridSize: toLiveGridSize(documentToPublish.grid.size),
+        documentId: documentToPublish.id,
+        documentName: documentToPublish.name,
+      });
+      setPublishStatus(`Published "${documentToPublish.name}" to the live map.`);
+    })();
   };
 
   return (

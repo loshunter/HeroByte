@@ -2,6 +2,7 @@ import type { MapDocument, MapElement, MapLayer } from "@herobyte/shared";
 import { getGridGeometry } from "./gridGeometry";
 import { getMapStudioTileAsset } from "./starterTiles";
 import { buildTerrainRenderLayers } from "./terrainRender";
+import { clampImageMime, uploadHashFromAssetId, uploadedAssetUrl } from "./uploads/assetUpload";
 import {
   buildTileOccupancy,
   isAutotileCandidate,
@@ -16,7 +17,10 @@ export function serializeMapDocument(document: MapDocument): string {
   return JSON.stringify(document, null, 2);
 }
 
-export function renderMapDocumentSvg(document: MapDocument): string {
+export function renderMapDocumentSvg(
+  document: MapDocument,
+  uploadDataUrls?: ReadonlyMap<string, string>,
+): string {
   const grid = getGridGeometry(document.grid.type, document.grid.size);
   const layers = new Map(document.layers.map((layer) => [layer.id, layer]));
   const occupancy = buildTileOccupancy(document);
@@ -24,7 +28,13 @@ export function renderMapDocumentSvg(document: MapDocument): string {
     .filter((element) => visible(element, layers.get(element.layerId)))
     .sort((a, b) => (layers.get(a.layerId)?.zIndex ?? 0) - (layers.get(b.layerId)?.zIndex ?? 0))
     .map((element) =>
-      renderElement(element, layers.get(element.layerId)!, document.grid, occupancy),
+      renderElement(
+        element,
+        layers.get(element.layerId)!,
+        document.grid,
+        occupancy,
+        uploadDataUrls,
+      ),
     )
     .join("");
   const pattern = document.grid.visible
@@ -54,6 +64,66 @@ export function createMapDocumentSvgDataUrl(document: MapDocument): string {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(renderMapDocumentSvg(document))}`;
 }
 
+/**
+ * The server drops any inbound WebSocket message over 1MB before it reaches a
+ * handler (connectionHandler maxMessageSize), silently — so a publish whose
+ * background (with inlined uploaded images) exceeds this is lost while the UI
+ * would otherwise report success. Callers must check before publishing. The
+ * margin leaves room for the message envelope around the background string.
+ */
+export const MAX_PUBLISH_BACKGROUND_BYTES = 1024 * 1024 - 16 * 1024;
+
+export function backgroundExceedsPublishLimit(background: string): boolean {
+  return new TextEncoder().encode(background).length > MAX_PUBLISH_BACKGROUND_BYTES;
+}
+
+/**
+ * Publish/raster variant: uploaded images are fetched and inlined as data
+ * URIs first, because SVG loaded through <img>/drawImage (how the live map
+ * consumes the background) refuses to fetch external references. Assets that
+ * fail to fetch fall back to their remote URL rather than blocking publish.
+ */
+export async function createMapDocumentSvgDataUrlWithAssets(
+  document: MapDocument,
+): Promise<string> {
+  const uploadDataUrls = await collectUploadDataUrls(document);
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+    renderMapDocumentSvg(document, uploadDataUrls),
+  )}`;
+}
+
+async function collectUploadDataUrls(document: MapDocument): Promise<Map<string, string>> {
+  const hashes = new Set<string>();
+  for (const element of document.elements) {
+    if (element.type !== "tile" && element.type !== "stamp") continue;
+    const hash = uploadHashFromAssetId(element.data.assetId);
+    if (hash) hashes.add(hash);
+  }
+  const entries = await Promise.all(
+    [...hashes].map(async (hash) => {
+      try {
+        const response = await fetch(uploadedAssetUrl(hash));
+        if (!response.ok) return null;
+        return [hash, await responseToDataUrl(response)] as const;
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return new Map(entries.filter((entry): entry is readonly [string, string] => entry !== null));
+}
+
+async function responseToDataUrl(response: Response): Promise<string> {
+  const mime = clampImageMime(response.headers.get("content-type"));
+  const view = new Uint8Array(await response.arrayBuffer());
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < view.length; offset += chunkSize) {
+    binary += String.fromCharCode(...view.subarray(offset, offset + chunkSize));
+  }
+  return `data:${mime};base64,${btoa(binary)}`;
+}
+
 export function downloadMapDocument(document: MapDocument, format: MapExportFormat): void {
   if (format === "png" || format === "webp") {
     void downloadRasterMapDocument(document, format);
@@ -78,7 +148,9 @@ export async function rasterizeMapDocument(
   mimeType: "image/png" | "image/webp" = "image/png",
 ): Promise<Blob> {
   const svgUrl = URL.createObjectURL(
-    new Blob([renderMapDocumentSvg(document)], { type: "image/svg+xml;charset=utf-8" }),
+    new Blob([renderMapDocumentSvg(document, await collectUploadDataUrls(document))], {
+      type: "image/svg+xml;charset=utf-8",
+    }),
   );
   try {
     const image = await loadImage(svgUrl);
@@ -133,6 +205,7 @@ function renderElement(
   layer: MapLayer,
   grid: AutotileGrid,
   occupancy: TileOccupancy,
+  uploadDataUrls?: ReadonlyMap<string, string>,
 ): string {
   const gridSize = grid.size;
   const transform = element.transform;
@@ -173,6 +246,16 @@ function renderElement(
   // Footprint elements rotate around their visual center — must match the
   // live canvas (MapStudioElementPreview) exactly.
   const footprintAttributes = `transform="translate(${transform.x} ${transform.y}) rotate(${transform.rotation} ${(width * transform.scaleX) / 2} ${(height * transform.scaleY) / 2}) scale(${transform.scaleX} ${transform.scaleY})" opacity="${layer.opacity}"`;
+  // Image-backed (uploaded) assets render the picture itself — checked before
+  // autotiling so an on-grid upload never fuses like terrain.
+  if (asset.imageUrl) {
+    const hash = uploadHashFromAssetId(element.data.assetId);
+    const href = (hash && uploadDataUrls?.get(hash)) || asset.imageUrl;
+    const tintOverlay = element.data.tint
+      ? `<rect width="${width}" height="${height}" fill="${xml(element.data.tint)}" fill-opacity="0.35"/>`
+      : "";
+    return `<g ${footprintAttributes} data-asset-id="${xml(element.data.assetId)}"><image href="${xml(href)}" width="${width}" height="${height}" preserveAspectRatio="none"/>${tintOverlay}</g>`;
+  }
   if (element.type === "tile" && isAutotileCandidate(element, grid)) {
     // Autotiled terrain: no per-tile outline; borders appear only where a
     // cell faces different terrain, so contiguous paint reads as one surface.

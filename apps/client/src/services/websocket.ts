@@ -384,6 +384,16 @@ export class WebSocketService {
     this.authManager.authenticate(this.connectionManager.getWebSocket(), secret, roomId);
   }
 
+  /**
+   * Expose the credentials retained for reconnect reauthentication so HTTP
+   * calls (asset uploads) can authenticate with the same room secret. Null
+   * until authenticate() is called, and after the server rejects the secret.
+   */
+  getAuthCredentials(): { secret: string; roomId?: string } | null {
+    if (!this.lastAuthSecret) return null;
+    return { secret: this.lastAuthSecret, roomId: this.lastAuthRoomId };
+  }
+
   // =========================================================================
   // PRIVATE ORCHESTRATION METHODS
   // =========================================================================

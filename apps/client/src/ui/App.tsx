@@ -74,6 +74,7 @@ export const App: React.FC = () => {
     authError,
     isConnected,
     authenticate,
+    getAuthCredentials,
     connect,
     registerRtcHandler,
     registerServerEventHandler,
@@ -102,6 +103,7 @@ export const App: React.FC = () => {
         uid={uid}
         snapshot={snapshot}
         sendMessage={sendMessage}
+        getAuthCredentials={getAuthCredentials}
         registerRtcHandler={registerRtcHandler}
         registerServerEventHandler={registerServerEventHandler}
         isConnected={isConnected}
@@ -115,6 +117,7 @@ interface AuthenticatedAppProps {
   uid: string;
   snapshot: RoomSnapshot | null;
   sendMessage: (message: ClientMessage) => void;
+  getAuthCredentials: () => { secret: string; roomId?: string } | null;
   registerRtcHandler: (handler: (from: string, signal: unknown) => void) => void;
   registerServerEventHandler: (handler: (message: ServerMessage) => void) => void;
   isConnected: boolean;
@@ -125,6 +128,7 @@ function AuthenticatedApp({
   uid,
   snapshot,
   sendMessage,
+  getAuthCredentials,
   registerRtcHandler,
   registerServerEventHandler,
   isConnected,
@@ -279,7 +283,7 @@ function AuthenticatedApp({
   } = useDiceRolling({ snapshot, sendMessage, uid });
 
   // Server event handlers (room password, DM elevation)
-  const mapStudio = useMapStudio(sendMessage);
+  const mapStudio = useMapStudio(sendMessage, getAuthCredentials);
   const {
     roomPasswordStatus,
     roomPasswordPending,

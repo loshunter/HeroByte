@@ -25,6 +25,8 @@ interface UseWebSocketReturn {
   disconnect: () => void;
   registerRtcHandler: (handler: (from: string, signal: unknown) => void) => void;
   authenticate: (secret: string, roomId?: string) => void;
+  /** Room credentials retained for reconnects; null until authenticated. */
+  getAuthCredentials: () => { secret: string; roomId?: string } | null;
   registerServerEventHandler: (handler: (message: ServerMessage) => void) => void;
 }
 
@@ -143,6 +145,11 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     serviceRef.current?.authenticate(secret, roomId);
   }, []);
 
+  const getAuthCredentials = useCallback(
+    () => serviceRef.current?.getAuthCredentials() ?? null,
+    [],
+  );
+
   const isConnected = connectionState === ConnectionState.CONNECTED;
 
   return {
@@ -156,6 +163,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     disconnect,
     registerRtcHandler,
     authenticate,
+    getAuthCredentials,
     registerServerEventHandler,
   };
 }

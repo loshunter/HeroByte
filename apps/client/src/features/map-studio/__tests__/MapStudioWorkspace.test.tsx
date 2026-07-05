@@ -1,6 +1,10 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
-import { createMapDocument, paintTerrain as paintTerrainDocument } from "@herobyte/shared";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  addMapElement,
+  createMapDocument,
+  paintTerrain as paintTerrainDocument,
+} from "@herobyte/shared";
 import type { MapStudioController } from "../types";
 import { MapStudioWorkspace } from "../components/MapStudioWorkspace";
 import { createTileElement } from "../elementBuilders";
@@ -34,6 +38,7 @@ function controller(overrides: Partial<MapStudioController> = {}): MapStudioCont
     undo: vi.fn(),
     redo: vi.fn(),
     publishDocument: vi.fn(() => true),
+    uploadAsset: vi.fn(),
     importDocument: vi.fn(() => "imported-id"),
     handleServerMessage: vi.fn(),
     ...overrides,
@@ -41,6 +46,10 @@ function controller(overrides: Partial<MapStudioController> = {}): MapStudioCont
 }
 
 describe("MapStudioWorkspace", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("requests saved maps once when the document list is empty", () => {
     const refresh = vi.fn();
     const { rerender } = render(
@@ -809,7 +818,7 @@ describe("MapStudioWorkspace", () => {
     expect(boundary!.getAttribute("d")).not.toContain("M 50 0 V 50"); // shared edge fused
   });
 
-  it("publishes the active map document through the controller", () => {
+  it("publishes the active map document through the controller", async () => {
     const document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
     const publishDocument = vi.fn(() => true);
     render(
@@ -821,13 +830,116 @@ describe("MapStudioWorkspace", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Publish" }));
 
-    expect(publishDocument).toHaveBeenCalledWith(
-      expect.stringMatching(/^data:image\/svg\+xml;charset=utf-8,/),
+    await waitFor(() =>
+      expect(publishDocument).toHaveBeenCalledWith(
+        expect.stringMatching(/^data:image\/svg\+xml;charset=utf-8,/),
+        "map",
+      ),
     );
     expect(screen.getByRole("status")).toHaveTextContent('Published "Keep" to the live map.');
   });
 
-  it("shows no publish confirmation when the controller rejects the publish", () => {
+  it("shows the uploader and the stored shelf under the My Stuff tab", () => {
+    const hash = "e".repeat(64);
+    const backing = new Map<string, string>([
+      [
+        "herobyte-my-stuff",
+        JSON.stringify([{ hash, name: "Pixel Torch", mime: "image/png", size: 64, addedAt: 5 }]),
+      ],
+    ]);
+    Object.defineProperty(globalThis, "localStorage", {
+      value: {
+        getItem: (key: string) => backing.get(key) ?? null,
+        setItem: (key: string, value: string) => void backing.set(key, value),
+        removeItem: (key: string) => void backing.delete(key),
+        clear: () => backing.clear(),
+      },
+      writable: true,
+      configurable: true,
+    });
+
+    const document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
+    render(
+      <MapStudioWorkspace controller={controller({ activeDocument: document })} onExit={vi.fn()} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "My Stuff" }));
+
+    expect(screen.getByLabelText("Upload images to My Stuff")).toBeInTheDocument();
+    const assetButton = screen.getByRole("button", { name: "Choose Pixel Torch" });
+    const thumbnail = assetButton.querySelector("img");
+    expect(thumbnail?.getAttribute("src")).toBe(`http://localhost:8787/assets/${hash}`);
+
+    fireEvent.click(assetButton);
+    // Selection highlight confirms the uploaded asset armed for placement.
+    expect(assetButton).toHaveStyle({ border: "2px solid #7fd6ff" });
+  });
+
+  it("refuses to publish when inlined uploads would blow the 1MB message cap", async () => {
+    // A ~900KB image inlines to ~1.2MB of base64 — past the publish guard.
+    const big = new Uint8Array(900 * 1024);
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(big, { status: 200, headers: { "content-type": "image/png" } }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const hash = "f".repeat(64);
+    let document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
+    document = addMapElement(
+      document,
+      {
+        id: "torch",
+        type: "stamp",
+        layerId: "objects",
+        locked: false,
+        hidden: false,
+        transform: { x: 40, y: 40, scaleX: 1, scaleY: 1, rotation: 0 },
+        data: { assetId: `upload:${hash}`, width: 100, height: 100 },
+      },
+      20,
+    );
+    const publishDocument = vi.fn(() => true);
+    render(
+      <MapStudioWorkspace
+        controller={controller({ activeDocument: document, publishDocument })}
+        onExit={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Publish" }));
+
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(/too large to send/i));
+    expect(publishDocument).not.toHaveBeenCalled();
+  });
+
+  it("drops to the Select tool when opening an empty My Stuff shelf", () => {
+    const backing = new Map<string, string>();
+    Object.defineProperty(globalThis, "localStorage", {
+      value: {
+        getItem: (key: string) => backing.get(key) ?? null,
+        setItem: (key: string, value: string) => void backing.set(key, value),
+        removeItem: (key: string) => void backing.delete(key),
+        clear: () => backing.clear(),
+      },
+      writable: true,
+      configurable: true,
+    });
+    const document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
+    render(
+      <MapStudioWorkspace controller={controller({ activeDocument: document })} onExit={vi.fn()} />,
+    );
+
+    // Tile is the default armed tool (primary variant).
+    expect(screen.getByRole("button", { name: "Tile" })).toHaveClass("jrpg-button-primary");
+    fireEvent.click(screen.getByRole("button", { name: "My Stuff" }));
+    // Nothing to paint, so the canvas must not stay armed on a hidden asset.
+    expect(screen.getByRole("button", { name: "Select" })).toHaveClass("jrpg-button-primary");
+    expect(screen.getByRole("button", { name: "Tile" })).not.toHaveClass("jrpg-button-primary");
+  });
+
+  it("shows no publish confirmation when the controller rejects the publish", async () => {
     const document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
     const publishDocument = vi.fn(() => false);
     render(
@@ -839,6 +951,9 @@ describe("MapStudioWorkspace", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Publish" }));
 
+    // The background renders asynchronously; wait for the rejected publish
+    // call before asserting that no confirmation appeared.
+    await waitFor(() => expect(publishDocument).toHaveBeenCalled());
     expect(screen.queryByRole("status")).toBeNull();
   });
 });

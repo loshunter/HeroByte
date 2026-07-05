@@ -12,11 +12,14 @@ import { paletteStyle } from "./mapStudioWorkspaceStyles";
 interface MapStudioPaletteProps {
   /** Extra panels stacked under the palette in the same right rail. */
   children?: ReactNode;
+  /** Upload controls, shown only while the My Stuff category is active. */
+  uploadSection?: ReactNode;
   category: TileCategory;
   selectedAssetId: string;
   roomFillAssetId: string;
   roomWallAssetId: string;
   visibleAssets: MapStudioTileAsset[];
+  myStuffAssets: MapStudioTileAsset[];
   floorAssets: MapStudioTileAsset[];
   wallAssets: MapStudioTileAsset[];
   selectedElement?: MapElement;
@@ -31,11 +34,13 @@ interface MapStudioPaletteProps {
 
 export function MapStudioPalette({
   children,
+  uploadSection,
   category,
   selectedAssetId,
   roomFillAssetId,
   roomWallAssetId,
   visibleAssets,
+  myStuffAssets,
   floorAssets,
   wallAssets,
   selectedElement,
@@ -53,7 +58,7 @@ export function MapStudioPalette({
         Tile Palette
       </div>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
-        {(["terrain", "structures", "objects"] as TileCategory[]).map((item) => (
+        {(["terrain", "structures", "objects", "my-stuff"] as TileCategory[]).map((item) => (
           <JRPGButton
             key={item}
             variant={category === item ? "primary" : "default"}
@@ -61,7 +66,9 @@ export function MapStudioPalette({
             onClick={() =>
               onCategorySelect(
                 item,
-                MAP_STUDIO_TILE_ASSETS.find((asset) => asset.category === item)?.id ??
+                (item === "my-stuff"
+                  ? myStuffAssets[0]?.id
+                  : MAP_STUDIO_TILE_ASSETS.find((asset) => asset.category === item)?.id) ??
                   selectedAssetId,
               )
             }
@@ -70,6 +77,12 @@ export function MapStudioPalette({
           </JRPGButton>
         ))}
       </div>
+      {category === "my-stuff" && uploadSection}
+      {category === "my-stuff" && !visibleAssets.length && (
+        <div className="jrpg-text-small" style={{ opacity: 0.75, marginBottom: 8 }}>
+          Uploads land here, ready to place.
+        </div>
+      )}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         {visibleAssets.map((asset) => (
           <button
@@ -88,17 +101,33 @@ export function MapStudioPalette({
               textTransform: "none",
             }}
           >
-            <span
-              aria-hidden="true"
-              style={{
-                width: Math.min(58, 28 * asset.columns),
-                height: Math.min(58, 28 * asset.rows),
-                background: asset.fill,
-                border: `2px solid ${asset.stroke}`,
-                display: "block",
-                boxShadow: `inset 0 0 0 3px ${asset.accent ?? "rgba(0,0,0,0.25)"}`,
-              }}
-            />
+            {asset.imageUrl ? (
+              <img
+                aria-hidden="true"
+                src={asset.imageUrl}
+                alt=""
+                style={{
+                  width: 58,
+                  height: 58,
+                  objectFit: "contain",
+                  border: `2px solid ${asset.stroke}`,
+                  background: asset.fill,
+                  imageRendering: "pixelated",
+                }}
+              />
+            ) : (
+              <span
+                aria-hidden="true"
+                style={{
+                  width: Math.min(58, 28 * asset.columns),
+                  height: Math.min(58, 28 * asset.rows),
+                  background: asset.fill,
+                  border: `2px solid ${asset.stroke}`,
+                  display: "block",
+                  boxShadow: `inset 0 0 0 3px ${asset.accent ?? "rgba(0,0,0,0.25)"}`,
+                }}
+              />
+            )}
             <span style={{ fontSize: 8, lineHeight: 1.2 }}>{asset.name}</span>
           </button>
         ))}

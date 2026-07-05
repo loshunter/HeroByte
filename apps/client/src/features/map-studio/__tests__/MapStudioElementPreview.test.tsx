@@ -48,6 +48,52 @@ function renderPreview(element: MapElement, occupancy?: Map<string, string>) {
   );
 }
 
+describe("MapStudioElementPreview uploaded images", () => {
+  const HASH = "d".repeat(64);
+
+  function uploadStamp(tint?: string): Extract<MapElement, { type: "stamp" }> {
+    return {
+      id: "stamp-1",
+      type: "stamp",
+      layerId: "terrain",
+      locked: false,
+      hidden: false,
+      transform: { x: 10, y: 20, scaleX: 1, scaleY: 1, rotation: 0 },
+      data: { assetId: `upload:${HASH}`, width: 100, height: 50, ...(tint ? { tint } : {}) },
+    };
+  }
+
+  it("renders uploaded stamps as images sized to the stamp footprint", () => {
+    const { container } = renderPreview(uploadStamp());
+    const image = container.querySelector("image");
+    expect(image).not.toBeNull();
+    expect(image!.getAttribute("href")).toBe(`http://localhost:8787/assets/${HASH}`);
+    expect(image!.getAttribute("width")).toBe("100");
+    expect(image!.getAttribute("height")).toBe("50");
+    expect(container.querySelector("rect")).toBeNull();
+  });
+
+  it("overlays the tint on uploaded stamps", () => {
+    const { container } = renderPreview(uploadStamp("#ff0000"));
+    const overlay = container.querySelector("rect");
+    expect(overlay).not.toBeNull();
+    expect(overlay!.getAttribute("fill")).toBe("#ff0000");
+  });
+
+  it("renders on-grid uploaded tiles as images, never fused terrain", () => {
+    const element: TileElement = {
+      ...tile("uploaded", 0, 0, { assetId: `upload:${HASH}` }),
+    };
+    const occupancy = new Map([
+      ["0,0", `upload:${HASH}`],
+      ["1,0", `upload:${HASH}`],
+    ]);
+    const { container } = renderPreview(element, occupancy);
+    expect(container.querySelector("image")).not.toBeNull();
+    expect(container.querySelector("path")).toBeNull();
+  });
+});
+
 describe("MapStudioElementPreview autotiling", () => {
   it("renders fused terrain with boundary-only borders when occupancy is provided", () => {
     const left = tile("left", 0, 0);

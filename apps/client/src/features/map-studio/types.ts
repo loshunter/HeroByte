@@ -7,6 +7,7 @@ import type {
   ServerMessage,
   TerrainPaintCell,
 } from "@herobyte/shared";
+import type { UploadedAssetInfo } from "./uploads/assetUpload";
 
 export type MapStudioServerMessage = Extract<
   ServerMessage,
@@ -98,8 +99,14 @@ export interface MapStudioController {
   updateElement: (elementId: string, update: MapElementUpdate) => void;
   undo: () => void;
   redo: () => void;
-  /** Publish the active document: the server compiles walls/doors/lights into the live scene. */
-  publishDocument: (background: string) => boolean;
+  /**
+   * Publish the active document: the server compiles walls/doors/lights into
+   * the live scene. Passing documentId makes the publish a no-op if a
+   * different document became active meanwhile (async background rendering).
+   */
+  publishDocument: (background: string, documentId?: string) => boolean;
+  /** Upload an image to the content-addressed asset service (rejects with AssetUploadError). */
+  uploadAsset: (file: File) => Promise<UploadedAssetInfo>;
   /** Restore a serialized JSON backup as a new document (fresh id, server-sanitized). */
   importDocument: (document: MapDocument) => string;
   handleServerMessage: (message: MapStudioServerMessage) => void;
