@@ -66,6 +66,89 @@ describe("Map Studio message validation", () => {
   });
 
   it.each([
+    { cells: [] }, // empty stroke
+    { cells: [{ x: 0.5, y: 0, assetId: "a" }] }, // fractional cell
+    { cells: [{ x: 99999999, y: 0, assetId: "a" }] }, // out of range
+    { cells: [{ x: 0, y: 0, assetId: "" }] }, // blank asset id
+    { cells: [{ x: 0, y: 0 }] }, // missing assetId (null must be explicit)
+    {
+      cells: Array.from({ length: 16385 }, (_, index) => ({
+        x: index % 128,
+        y: Math.floor(index / 128),
+        assetId: "a",
+      })),
+    }, // oversized stroke
+  ])("rejects malformed paint-terrain payload %#", (payload) => {
+    expect(
+      validateMessage({
+        t: "map-studio-command",
+        command: {
+          commandId: "command",
+          documentId: "map",
+          baseRevision: 0,
+          type: "paint-terrain",
+          ...payload,
+        },
+      }).valid,
+    ).toBe(false);
+  });
+
+  it("accepts imported documents carrying a terrain map and rejects malformed ones", () => {
+    const base = {
+      schemaVersion: 1,
+      id: "map",
+      name: "Keep",
+      width: 2048,
+      height: 2048,
+      grid: {
+        type: "square",
+        size: 50,
+        squareSize: 5,
+        offsetX: 0,
+        offsetY: 0,
+        visible: true,
+        snap: true,
+      },
+      layers: [
+        {
+          id: "terrain",
+          name: "Terrain",
+          kind: "terrain",
+          visible: true,
+          locked: false,
+          opacity: 1,
+          zIndex: 10,
+        },
+      ],
+      elements: [],
+      revision: 0,
+      createdAt: 1,
+      updatedAt: 1,
+    };
+    const terrain = {
+      schemaVersion: 1,
+      palette: ["terrain:stone-floor"],
+      chunks: { "0,0": [4, 1, 252, 0] },
+    };
+
+    expect(validateMessage({ t: "map-studio-import", document: { ...base, terrain } }).valid).toBe(
+      true,
+    );
+    expect(
+      validateMessage({
+        t: "map-studio-import",
+        document: { ...base, terrain: { ...terrain, chunks: { "evil key": [4, 1, 252, 0] } } },
+      }).valid,
+    ).toBe(false);
+    expect(
+      validateMessage({
+        t: "map-studio-import",
+        document: { ...base, terrain: { ...terrain, palette: [""] } },
+      }).valid,
+    ).toBe(false);
+  });
+
+  it.each([
     { t: "map-studio-publish", documentId: "", background: "data:image/svg+xml,render" },
     { t: "map-studio-publish", documentId: "map", background: "" },
     { t: "map-studio-publish", documentId: "map" },
@@ -129,6 +212,13 @@ describe("Map Studio message validation", () => {
     },
     { type: "update-element", elementId: "barrel", update: { transform } },
     { type: "remove-element", elementId: "barrel" },
+    {
+      type: "paint-terrain",
+      cells: [
+        { x: 0, y: 0, assetId: "terrain:stone-floor" },
+        { x: -3, y: 12, assetId: null },
+      ],
+    },
   ])("accepts $type commands", (payload) => {
     expect(
       validateMessage({

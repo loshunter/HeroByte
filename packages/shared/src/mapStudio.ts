@@ -18,6 +18,14 @@ import {
 } from "./mapStudioTypes.js";
 import { sanitizeMapGrid } from "./mapStudioGrid.js";
 import {
+  MAX_TERRAIN_CELL_MAGNITUDE,
+  MAX_TERRAIN_PALETTE,
+  createTerrainMap,
+  sanitizeTerrainMap,
+  setTerrainCells,
+  type TerrainCellWrite,
+} from "./terrain.js";
+import {
   requireEditableLayer,
   requireElementIndex,
   requireFiniteNumber,
@@ -103,7 +111,8 @@ export function importMapDocument(input: MapDocument, timestamp: number = Date.n
     return sanitized;
   });
 
-  return { ...base, layers, elements };
+  const terrain = input.terrain ? sanitizeTerrainMap(input.terrain) : undefined;
+  return terrain ? { ...base, layers, elements, terrain } : { ...base, layers, elements };
 }
 
 export function updateMapGrid(
@@ -263,6 +272,62 @@ export function getVisibleMapElements(document: MapDocument): MapElement[] {
   return document.elements.filter(
     (element) => !element.hidden && visibleLayerIds.has(element.layerId),
   );
+}
+
+/** One brushed cell: paint with an asset id, erase with null. */
+export interface TerrainPaintCell {
+  x: number;
+  y: number;
+  assetId: string | null;
+}
+
+const MAX_TERRAIN_PAINT_CELLS = 16384;
+
+/**
+ * Apply one brush stroke to the document terrain: a batch of cells as one
+ * revision — one undo step, per the Terrain Brush contract. The terrain
+ * field disappears again when the last painted cell is erased.
+ */
+export function paintTerrain(
+  document: MapDocument,
+  cells: TerrainPaintCell[],
+  timestamp: number = Date.now(),
+): MapDocument {
+  if (!Array.isArray(cells) || cells.length === 0) {
+    throw new Error("Terrain stroke needs at least one cell");
+  }
+  if (cells.length > MAX_TERRAIN_PAINT_CELLS) {
+    throw new Error(`Terrain stroke may paint at most ${MAX_TERRAIN_PAINT_CELLS} cells`);
+  }
+  const writes: TerrainCellWrite[] = cells.map((cell) => {
+    if (!Number.isInteger(cell.x) || !Number.isInteger(cell.y)) {
+      throw new Error("Terrain cells must have integer coordinates");
+    }
+    if (
+      Math.abs(cell.x) > MAX_TERRAIN_CELL_MAGNITUDE ||
+      Math.abs(cell.y) > MAX_TERRAIN_CELL_MAGNITUDE
+    ) {
+      throw new Error("Terrain cell coordinates are out of range");
+    }
+    const assetId = cell.assetId === null ? null : requireText(cell.assetId, "Terrain asset id");
+    return { x: cell.x, y: cell.y, assetId };
+  });
+  // One batch application: each touched chunk decodes once, the chunks
+  // record copies once. A per-cell loop here was a confirmed ~80s
+  // event-loop stall under a hostile-but-valid 16k-cell stroke.
+  const terrain = setTerrainCells(document.terrain ?? createTerrainMap(), writes);
+  if (terrain.palette.length > MAX_TERRAIN_PALETTE) {
+    // sanitizeTerrainMap caps imports at this size; painting past it would
+    // create a document that cannot round-trip through its own backup.
+    throw new Error(`Terrain palette may hold at most ${MAX_TERRAIN_PALETTE} assets`);
+  }
+  const next = commit(document, {}, timestamp);
+  if (Object.keys(terrain.chunks).length === 0) {
+    delete next.terrain;
+    return next;
+  }
+  next.terrain = terrain;
+  return next;
 }
 
 function commit(

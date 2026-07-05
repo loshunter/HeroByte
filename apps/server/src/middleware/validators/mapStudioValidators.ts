@@ -225,6 +225,24 @@ const command = z.discriminatedUnion("type", [
     })
     .strict(),
   z.object({ ...commandBase, type: z.literal("remove-element"), elementId: id }).strict(),
+  z
+    .object({
+      ...commandBase,
+      type: z.literal("paint-terrain"),
+      cells: z
+        .array(
+          z
+            .object({
+              x: z.number().int().min(-65536).max(65536),
+              y: z.number().int().min(-65536).max(65536),
+              assetId: id.nullable(),
+            })
+            .strict(),
+        )
+        .min(1)
+        .max(16384),
+    })
+    .strict(),
 ]);
 
 export function validateMapStudioControlMessage(): ValidationResult {
@@ -249,6 +267,22 @@ export function validateMapStudioCommandMessage(message: MessageRecord): Validat
   return validate(z.object({ t: z.literal("map-studio-command"), command }), message);
 }
 
+// Shape-level bounds only; deep coverage rules (runs summing to one chunk,
+// values inside the palette) are enforced by the shared sanitizeTerrainMap.
+const terrainMap = z
+  .object({
+    schemaVersion: z.literal(1),
+    palette: z.array(id).max(512),
+    chunks: z.record(
+      z.string().regex(/^-?\d+,-?\d+$/),
+      z.array(z.number().int().min(0).max(512)).min(2).max(512),
+    ),
+  })
+  .strict()
+  .refine((value) => Object.keys(value.chunks).length <= 16384, {
+    message: "Terrain map has too many chunks",
+  });
+
 const importDocument = z
   .object({
     schemaVersion: z.literal(1),
@@ -259,6 +293,7 @@ const importDocument = z
     grid: grid.required(),
     layers: z.array(layer).min(1).max(200),
     elements: z.array(element).max(20000),
+    terrain: terrainMap.optional(),
     revision: z.number().int().nonnegative(),
     createdAt: finite.nonnegative(),
     updatedAt: finite.nonnegative(),

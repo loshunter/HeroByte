@@ -1,3 +1,5 @@
+import type { TerrainMap } from "./terrain.js";
+
 export const MAP_DOCUMENT_SCHEMA_VERSION = 1;
 
 export type MapGridType = "square" | "hex-row" | "hex-column" | "isometric";
@@ -111,6 +113,8 @@ export interface MapDocument {
   grid: MapGridSettings;
   layers: MapLayer[];
   elements: MapElement[];
+  /** Painted terrain (RLE chunks); absent until the first brush stroke. */
+  terrain?: TerrainMap;
   revision: number;
   createdAt: number;
   updatedAt: number;

@@ -7,6 +7,7 @@ import {
   forEachTerrainCell,
   getTerrainCell,
   setTerrainCell,
+  setTerrainCells,
 } from "../terrain.js";
 
 describe("terrain chunk codec", () => {
@@ -93,6 +94,41 @@ describe("terrain map", () => {
     expect(seen).toContainEqual([1, 2, "terrain:stone-floor"]);
     expect(seen).toContainEqual([31, 2, "terrain:water"]);
     expect(seen).toContainEqual([-5, 40, "terrain:grass"]);
+  });
+
+  it("applies a hostile one-cell-per-chunk batch in linear time", () => {
+    // The adversarial-review repro: 16384 cells, each in its own chunk, was
+    // ~80s with per-cell chunk copies. Batched it must stay well under 2s.
+    const writes = [];
+    for (let index = 0; index < 16384; index += 1) {
+      writes.push({
+        x: (index % 128) * 16,
+        y: Math.floor(index / 128) * 16,
+        assetId: "terrain:stone-floor",
+      });
+    }
+
+    const start = performance.now();
+    const map = setTerrainCells(createTerrainMap(), writes);
+    const elapsed = performance.now() - start;
+
+    expect(Object.keys(map.chunks)).toHaveLength(16384);
+    expect(elapsed).toBeLessThan(2000);
+  });
+
+  it("matches the single-cell setter exactly", () => {
+    let sequential = createTerrainMap();
+    sequential = setTerrainCell(sequential, 0, 0, "a");
+    sequential = setTerrainCell(sequential, 1, 0, "b");
+    sequential = setTerrainCell(sequential, 0, 0, null);
+
+    const batched = setTerrainCells(createTerrainMap(), [
+      { x: 0, y: 0, assetId: "a" },
+      { x: 1, y: 0, assetId: "b" },
+      { x: 0, y: 0, assetId: null },
+    ]);
+
+    expect(batched).toEqual(sequential);
   });
 
   it("golden: a painted plaza serializes to the pinned wire format", () => {

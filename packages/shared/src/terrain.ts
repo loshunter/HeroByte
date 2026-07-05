@@ -69,6 +69,12 @@ export function decodeTerrainChunk(runs: readonly number[]): number[] {
   return cells;
 }
 
+export interface TerrainCellWrite {
+  x: number;
+  y: number;
+  assetId: string | null;
+}
+
 export function getTerrainCell(map: TerrainMap, cellX: number, cellY: number): string | null {
   const runs = map.chunks[chunkKey(cellX, cellY)];
   if (!runs) return null;
@@ -83,34 +89,73 @@ export function setTerrainCell(
   cellY: number,
   assetId: string | null,
 ): TerrainMap {
-  const key = chunkKey(cellX, cellY);
-  const cells = map.chunks[key]
-    ? decodeTerrainChunk(map.chunks[key]!)
-    : new Array<number>(CHUNK_CELLS).fill(0);
+  return setTerrainCells(map, [{ x: cellX, y: cellY, assetId }]);
+}
 
+/**
+ * Immutably apply a batch of cell writes. Each touched chunk is decoded and
+ * re-encoded exactly once and the chunks record is copied exactly once, so a
+ * whole brush stroke costs O(cells + touchedChunks) — a naive per-cell loop
+ * was O(cells x chunks) and a single hostile 16k-cell stroke measured ~80s
+ * of synchronous event-loop stall (found by adversarial review).
+ */
+export function setTerrainCells(map: TerrainMap, writes: readonly TerrainCellWrite[]): TerrainMap {
+  if (writes.length === 0) return map;
+  const paletteIndex = new Map(map.palette.map((entry, index) => [entry, index + 1]));
   let palette = map.palette;
-  let value = 0;
-  if (assetId !== null) {
-    const existing = palette.indexOf(assetId);
-    if (existing >= 0) {
-      value = existing + 1;
-    } else {
-      palette = [...palette, assetId];
-      value = palette.length;
-    }
-  }
+  const touched = new Map<string, number[]>();
 
-  const index = cellIndex(cellX, cellY);
-  if (cells[index] === value && palette === map.palette) return map;
-  cells[index] = value;
+  for (const write of writes) {
+    const key = chunkKey(write.x, write.y);
+    let cells = touched.get(key);
+    if (!cells) {
+      cells = map.chunks[key]
+        ? decodeTerrainChunk(map.chunks[key]!)
+        : new Array<number>(CHUNK_CELLS).fill(0);
+      touched.set(key, cells);
+    }
+    let value = 0;
+    if (write.assetId !== null) {
+      const existing = paletteIndex.get(write.assetId);
+      if (existing !== undefined) {
+        value = existing;
+      } else {
+        if (palette === map.palette) palette = [...palette];
+        palette.push(write.assetId);
+        value = palette.length;
+        paletteIndex.set(write.assetId, value);
+      }
+    }
+    cells[cellIndex(write.x, write.y)] = value;
+  }
 
   const chunks = { ...map.chunks };
-  if (cells.every((cell) => cell === 0)) {
-    delete chunks[key];
-  } else {
-    chunks[key] = encodeTerrainChunk(cells);
+  let changed = palette !== map.palette;
+  for (const [key, cells] of touched) {
+    const previous = map.chunks[key];
+    if (cells.every((cell) => cell === 0)) {
+      if (previous) {
+        delete chunks[key];
+        changed = true;
+      }
+      continue;
+    }
+    const runs = encodeTerrainChunk(cells);
+    if (!previous || !runsEqual(previous, runs)) {
+      chunks[key] = runs;
+      changed = true;
+    }
   }
+  if (!changed) return map;
   return { schemaVersion: 1, palette, chunks };
+}
+
+function runsEqual(a: readonly number[], b: readonly number[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let index = 0; index < a.length; index += 1) {
+    if (a[index] !== b[index]) return false;
+  }
+  return true;
 }
 
 /** Visit every painted (non-empty) cell. */
@@ -133,6 +178,63 @@ export function forEachTerrainCell(
       );
     }
   }
+}
+
+export const MAX_TERRAIN_PALETTE = 512;
+/** Paintable cell range; chunk keys outside floor(±range/16) are corrupt. */
+export const MAX_TERRAIN_CELL_MAGNITUDE = 65536;
+const MAX_TERRAIN_CHUNKS = 16384;
+const MAX_CHUNK_COORD = MAX_TERRAIN_CELL_MAGNITUDE / TERRAIN_CHUNK_SIZE;
+
+/**
+ * Validate an untrusted terrain map (imports, cartridges) and return a
+ * defensive copy. Throws on anything that could corrupt the document:
+ * unknown versions, blank palette entries, malformed chunk keys, runs that
+ * don't cover a chunk, or values pointing outside the palette.
+ */
+export function sanitizeTerrainMap(input: TerrainMap): TerrainMap {
+  if (input.schemaVersion !== 1) {
+    throw new Error(`Unsupported terrain schema version: ${String(input.schemaVersion)}`);
+  }
+  if (!Array.isArray(input.palette) || input.palette.length > MAX_TERRAIN_PALETTE) {
+    throw new Error("Terrain palette is missing or too large");
+  }
+  const palette = input.palette.map((entry) => {
+    if (typeof entry !== "string" || entry.trim().length === 0 || entry.length > 128) {
+      throw new Error("Terrain palette entries must be non-empty asset ids");
+    }
+    return entry;
+  });
+
+  const entries = Object.entries(input.chunks ?? {});
+  if (entries.length > MAX_TERRAIN_CHUNKS) {
+    throw new Error("Terrain map has too many chunks");
+  }
+  const chunks: Record<string, number[]> = {};
+  for (const [key, runs] of entries) {
+    // Only canonical keys the codec itself would write: "00,0" or "-0,0"
+    // would create ghost chunks that render but can never be read or erased
+    // (found by adversarial review — reproduced as permanent ghost terrain).
+    const [rawX, rawY] = key.split(",");
+    const chunkX = Number(rawX);
+    const chunkY = Number(rawY);
+    if (!Number.isInteger(chunkX) || !Number.isInteger(chunkY) || `${chunkX},${chunkY}` !== key) {
+      throw new Error(`Malformed terrain chunk key: ${key}`);
+    }
+    if (Math.abs(chunkX) > MAX_CHUNK_COORD || Math.abs(chunkY) > MAX_CHUNK_COORD) {
+      throw new Error(`Terrain chunk key out of range: ${key}`);
+    }
+    const cells = decodeTerrainChunk(runs);
+    for (const value of cells) {
+      if (value > palette.length) {
+        throw new Error("Terrain run value points outside the palette");
+      }
+    }
+    if (cells.some((value) => value !== 0)) {
+      chunks[key] = encodeTerrainChunk(cells);
+    }
+  }
+  return { schemaVersion: 1, palette, chunks };
 }
 
 function chunkKey(cellX: number, cellY: number): string {

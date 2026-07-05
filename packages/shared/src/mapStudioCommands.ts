@@ -3,11 +3,13 @@ import {
   addMapElements,
   addMapLayer,
   moveMapLayer,
+  paintTerrain,
   removeMapElement,
   removeMapLayer,
   updateMapElement,
   updateMapGrid,
   updateMapLayer,
+  type TerrainPaintCell,
 } from "./mapStudio.js";
 import type {
   MapDocument,
@@ -39,7 +41,8 @@ export type MapDocumentCommand =
       elementId: string;
       update: MapElementUpdate;
     })
-  | (MapCommandBase & { type: "remove-element"; elementId: string });
+  | (MapCommandBase & { type: "remove-element"; elementId: string })
+  | (MapCommandBase & { type: "paint-terrain"; cells: TerrainPaintCell[] });
 
 export type MapStudioCommand = MapDocumentCommand | MapHistoryCommand;
 
@@ -111,6 +114,9 @@ export function applyMapDocumentCommand(
       break;
     case "remove-element":
       next = removeMapElement(document, command.elementId, timestamp);
+      break;
+    case "paint-terrain":
+      next = paintTerrain(document, command.cells, timestamp);
       break;
   }
 
