@@ -6,13 +6,18 @@
 import { Hono } from "hono";
 import { getRoomSecret, isDemoMode } from "../config/auth.js";
 import type { AuthService } from "../domains/auth/service.js";
+import { AssetRejectedError, type AssetService } from "../domains/assets/service.js";
 import { isOriginAllowed } from "../config/security.js";
 
 /**
  * Create and configure HTTP routes
  * Separates route definitions from server bootstrap
  */
-export function createRoutes(authService: AuthService, resetE2EState?: () => void): Hono {
+export function createRoutes(
+  authService: AuthService,
+  resetE2EState?: () => void,
+  assetService?: AssetService,
+): Hono {
   const app = new Hono();
   const ALLOWED_METHODS = "GET,POST,OPTIONS";
   const DEFAULT_ALLOWED_HEADERS = "Content-Type, Authorization";
@@ -158,6 +163,63 @@ export function createRoutes(authService: AuthService, resetE2EState?: () => voi
     return c.html(html);
   });
 
+  if (assetService) {
+    // Upload: room-credential gated, content-length capped up front, then
+    // sniffed/capped/quota-checked in depth by the service.
+    app.post("/assets", async (c) => {
+      const roomId = c.req.header("x-herobyte-room") || undefined;
+      const secret = c.req.header("x-herobyte-secret") ?? "";
+      if (!secret || !authService.verify(secret, roomId)) {
+        return jsonError("Invalid room credentials", 401);
+      }
+      const declaredLength = Number(c.req.header("content-length"));
+      if (!Number.isFinite(declaredLength) || declaredLength <= 0) {
+        return jsonError("Content-Length required", 411);
+      }
+      if (declaredLength > MAX_UPLOAD_BYTES) {
+        return jsonError("Upload exceeds the asset size limit", 413);
+      }
+      try {
+        const bytes = Buffer.from(await c.req.arrayBuffer());
+        const { asset, deduplicated } = await assetService.store(bytes);
+        return new Response(
+          JSON.stringify({
+            hash: asset.hash,
+            url: `/assets/${asset.hash}`,
+            mime: asset.mime,
+            size: asset.size,
+            deduplicated,
+          }),
+          {
+            status: deduplicated ? 200 : 201,
+            headers: { "content-type": "application/json" },
+          },
+        );
+      } catch (error) {
+        if (error instanceof AssetRejectedError) {
+          return jsonError(error.message, error.statusCode);
+        }
+        console.error("[Assets] Upload failed:", error);
+        return jsonError("Upload failed", 500);
+      }
+    });
+
+    // Content-addressed serving: immutable by construction, so cache forever.
+    app.get("/assets/:hash", async (c) => {
+      const found = await assetService.read(c.req.param("hash"));
+      if (!found) return c.text("not found", 404);
+      return new Response(new Uint8Array(found.bytes), {
+        status: 200,
+        headers: {
+          "content-type": found.mime,
+          "content-length": String(found.bytes.length),
+          "cache-control": "public, max-age=31536000, immutable",
+          "x-content-type-options": "nosniff",
+        },
+      });
+    });
+  }
+
   // Health check endpoint (JSON)
   app.get("/health", (c) => c.json({ status: "ok" }));
 
@@ -172,4 +234,13 @@ export function createRoutes(authService: AuthService, resetE2EState?: () => voi
   }
 
   return app;
+}
+
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+
+function jsonError(message: string, status: number): Response {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
 }

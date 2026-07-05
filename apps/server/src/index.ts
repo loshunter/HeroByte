@@ -14,6 +14,7 @@ import { Container } from "./container.js";
 import { ConnectionHandler } from "./ws/connectionHandler.js";
 import { isOriginAllowed } from "./config/security.js";
 import { AuthService } from "./domains/auth/service.js";
+import { AssetService } from "./domains/assets/service.js";
 import { RoomRegistry } from "./domains/room/RoomRegistry.js";
 import { getDefaultRoomId } from "./config/auth.js";
 
@@ -34,14 +35,19 @@ const HOST = "0.0.0.0";
  */
 async function bootstrap() {
   const authService = new AuthService();
+  const assetService = new AssetService();
   let resetE2EState: (() => void) | undefined;
   // Create HTTP routes
-  const app = createRoutes(authService, () => {
-    if (!resetE2EState) {
-      throw new Error("E2E reset requested before server initialization");
-    }
-    resetE2EState();
-  });
+  const app = createRoutes(
+    authService,
+    () => {
+      if (!resetE2EState) {
+        throw new Error("E2E reset requested before server initialization");
+      }
+      resetE2EState();
+    },
+    assetService,
+  );
 
   const buildFetchRequest = (req: IncomingMessage): Request => {
     const protocolHeader = req.headers["x-forwarded-proto"];
