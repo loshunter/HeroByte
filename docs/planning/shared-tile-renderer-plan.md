@@ -24,10 +24,13 @@ water/torchlight, budgeted inside the **175KB gzip entry guard**. SVG stays the
   "migration" there means drawing terrain tiles live instead of a static raster,
   so water/torchlight animate at the table.
 - **Bundle**: 175KB gzip entry guard (`apps/client/scripts/check-bundle-size.mjs`,
-  `MAX_ENTRY_GZIP_KB=175`), current entry ~101KB gzip, ~74KB headroom. `konva`
-  is a **lazy** `vendor-konva` chunk; `MapBoard` and Map Studio are lazy. The
-  renderer core must live in a **lazy chunk (with MapBoard/Map Studio), never
-  the entry bundle.**
+  `MAX_ENTRY_GZIP_KB=175`), current entry ~86KB gzip. `konva` is a **lazy**
+  `vendor-konva` chunk and `MapBoard` is lazy — but **Map Studio is NOT lazy**
+  (correction to the original recon: `App.tsx` imports `useMapStudio` and the
+  layouts import `MapStudioWorkspace` statically, so the whole feature —
+  renderer core included — sits in the entry chunk today). A follow-up chip
+  exists to code-split it like MapBoard. The atlas image/manifest are static
+  `public/` assets and never enter the JS bundle.
 - **Motion**: no animation clock exists yet. Motion gating exists:
   `features/juice/juiceSettings.ts` — `motionDisabled()`, `getJuiceSettings().motion`
   ("full"|"subtle"|"off"), `subscribeJuiceSettings`, `<html data-motion>`.
@@ -54,18 +57,45 @@ water/torchlight, budgeted inside the **175KB gzip entry guard**. SVG stays the
   gets a subtle 4-frame shimmer (alternate close-blue fills on the water family,
   frame 0 == base fill); export and the pure `buildTerrainRenderLayers` stay
   phase-agnostic and unchanged. Proves the clock in a real render path.
-- **R2 — Pure canvas tile-render core.** `features/render/tileRenderCore.ts`:
-  framework-agnostic `drawTerrain(ctx, layers, camera, frame)` and
-  `drawGrid(ctx, grid, camera)` that reproduce the SVG flat-color model on a 2D
-  context, pixel-checked against the SVG output. Unit-tested with a mock
-  `CanvasRenderingContext2D` recording draw calls. No UI wiring yet.
-- **R3 — Editor adopts the canvas core.** MapStudioCanvas renders terrain (and grid)
-  through `tileRenderCore` on a `<canvas>` underlay synced to the camera viewBox;
-  SVG retained for element handles/selection/tool ghosts and export. Water animates
-  via R1 clock. Verify export parity untouched.
-- **R4 — Atlas UVs.** Build a tileset atlas (pack `assets/images/tiles/` into one
-  sheet + a UV manifest, license metadata per roadmap). Core draws atlas sub-rects
-  instead of flat fills; 47-blob quarter-tile composition. Editor + export adopt.
+- **R2 — Pure canvas tile-render core (DONE, 5778013).** `features/render/tileRenderCore.ts`:
+  framework-agnostic `drawTerrain`/`drawGrid` reproducing the SVG flat-color
+  model on a 2D context; `terrainRender` refactored to emit structured
+  cells/edges with the SVG paths as a byte-parity adapter (golden snapshots
+  pin exact strings, including float-absorption degenerates — edge orientation
+  is explicit, never inferred from coordinates). Grid tile-border segments
+  draw at half width to match SVG pattern clipping; edge culls keep a
+  stroke-half-width margin.
+- **R3 — Editor adopts the canvas core (DONE, 6fa499f7).** MapStudioCanvas renders
+  background + grid + terrain through `tileRenderCore` on a `<canvas>` underlay
+  (`MapStudioCanvasUnderlay`) synced to the camera with the SVG's letterbox math;
+  SVG retained above for element handles/selection/tool ghosts and export. Water
+  animates via the R1 clock. Review-hardened: culling covers the full visible
+  world rect (not just the viewBox), terrain draws unclipped like the old SVG,
+  layer opacity composites per family via offscreen blit (SVG group-opacity
+  semantics), DPR changes redraw via a matchMedia resolution listener.
+  Also fixed: transparent uploads no longer punch terrain holes (73dc254 —
+  image-backed tiles claim no autotile occupancy).
+- **R4a — Atlas + UV manifest, flat-fill families become textures (THIS SLICE).**
+  `scripts/build-tile-atlas.ps1` bakes `assets/images/tiles/` (25 sources,
+  1024²) into `apps/client/public/tiles/tileset-v1.png` (5×5 @128px, ~1.1MB)
+  plus `tileset-v1.json` (UV variants per family, average colors, license
+  metadata — provenance currently UNSPECIFIED, confirm before public release).
+  Interim Windows-only bake (the pnpm store blocks adding `sharp` without a
+  full relink); outputs are committed so CI never bakes. `features/render/tileAtlas.ts`
+  lazy-loads the sheet once per session; `drawTerrain` gains an atlas option
+  drawing per-cell sub-rects with a deterministic spatial-hash variant per
+  cell; families without atlas art (water, uploads) keep flat fills, water
+  keeps its shimmer; boundary strokes still draw on top. New starter terrains:
+  grass, dirt, path.
+- **R4b — Export/publish adopts the atlas (DEFERRED, needs design).** The SVG
+  export would have to reference or inline the atlas; inlining ~1.1MB into the
+  publish background blows `MAX_PUBLISH_BACKGROUND_BYTES` (1MB cap). Likely
+  answer: the publish/raster path draws terrain straight to canvas via the
+  core instead of round-tripping through SVG `<image>`.
+- **R4c — 47-blob quarter-tile composition (BLOCKED on art).** Requires
+  edge/corner quarter-tile art per family; the current packs are full-tile
+  variants only. Art track deliverable; also curate the `path` variants (two
+  are grass-transition tiles, one has a baked-in frame border).
 - **R5 — Live table adopts the core.** MapBoard draws terrain tiles live (animated
   water/torchlight) through the same core inside the Konva stage (or a sibling
   canvas), replacing the static raster background for Forge-native maps; uploaded/

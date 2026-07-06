@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useAnimationFrameIndex } from "../../render/useAnimationClock";
-import { drawGrid, drawTerrain, type StructuredTerrainLayer } from "../../render/tileRenderCore";
+import { drawGrid } from "../../render/gridRenderCore";
+import { useTileAtlas } from "../../render/tileAtlas";
+import { drawTerrain, type StructuredTerrainLayer } from "../../render/tileRenderCore";
 import { terrainStyleForFrame } from "../starterTiles";
 import type { MapViewBox } from "./MapStudioWorkspace.types";
 import { renderedSvgViewport } from "./mapStudioWorkspaceUtils";
@@ -50,6 +52,7 @@ export function MapStudioCanvasUnderlay({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const offscreenRef = useRef<HTMLCanvasElement | null>(null);
   const frame = useAnimationFrameIndex(TERRAIN_ANIM_FRAMES, animated);
+  const atlas = useTileAtlas();
   const [resizeTick, setResizeTick] = useState(0);
 
   useEffect(() => {
@@ -137,8 +140,9 @@ export function MapStudioCanvasUnderlay({
     // edges past the document rect and painted out-of-document cells.
     if (terrainOpacity > 0 && terrainLayers.length > 0) {
       const boundaryWidth = Math.max(2, grid.size * 0.04);
+      const drawOptions = { boundaryWidth, atlas: atlas ?? undefined };
       if (terrainOpacity >= 1) {
-        drawTerrain(ctx, terrainLayers, terrainStyleForFrame, frame, view, { boundaryWidth });
+        drawTerrain(ctx, terrainLayers, terrainStyleForFrame, frame, view, drawOptions);
       } else {
         // SVG applied the layer opacity per family <g>: flatten the family
         // opaquely, then fade the flattened result once. Per-primitive
@@ -154,9 +158,7 @@ export function MapStudioCanvasUnderlay({
             offscreenCtx.setTransform(1, 0, 0, 1, 0, 0);
             offscreenCtx.clearRect(0, 0, width, height);
             offscreenCtx.setTransform(scale, 0, 0, scale, translateX, translateY);
-            drawTerrain(offscreenCtx, [layer], terrainStyleForFrame, frame, view, {
-              boundaryWidth,
-            });
+            drawTerrain(offscreenCtx, [layer], terrainStyleForFrame, frame, view, drawOptions);
             ctx.save();
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.globalAlpha = terrainOpacity;
@@ -174,6 +176,7 @@ export function MapStudioCanvasUnderlay({
     terrainOpacity,
     viewBox,
     frame,
+    atlas,
     resizeTick,
   ]);
 

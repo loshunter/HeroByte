@@ -3,8 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { __resetJuiceSettingsForTests, setMotionLevel } from "../../juice/juiceSettings";
 import { ANIMATION_STEP_MS, __resetAnimationClockForTests } from "../../render/animationClock";
 import { createRecordingContext, type RecordedCall } from "../../render/__tests__/recordingContext";
+import type { TileAtlas } from "../../render/tileAtlas";
 import type { StructuredTerrainLayer } from "../../render/tileRenderCore";
 import { MapStudioCanvasUnderlay } from "../components/MapStudioCanvasUnderlay";
+
+const atlasHolder = vi.hoisted(() => ({ atlas: null as unknown }));
+vi.mock("../../render/tileAtlas", () => ({
+  useTileAtlas: () => atlasHolder.atlas,
+}));
 
 const GRID = { size: 50, offsetX: 0, offsetY: 0, visible: true };
 const VIEW = { x: 0, y: 0, width: 200, height: 200 };
@@ -13,14 +19,16 @@ function stoneLayers(): StructuredTerrainLayer[] {
   return [
     {
       assetId: "terrain:stone-floor",
-      cells: [{ x: 0, y: 0, size: 50 }],
+      cells: [{ x: 0, y: 0, size: 50, cellX: 0, cellY: 0 }],
       edges: [{ orientation: "h", x1: 0, y1: 0, x2: 50, y2: 0 }],
     },
   ];
 }
 
 function waterLayers(): StructuredTerrainLayer[] {
-  return [{ assetId: "terrain:water", cells: [{ x: 0, y: 0, size: 50 }], edges: [] }];
+  return [
+    { assetId: "terrain:water", cells: [{ x: 0, y: 0, size: 50, cellX: 0, cellY: 0 }], edges: [] },
+  ];
 }
 
 function canvasRect(width: number, height: number): DOMRect {
@@ -78,6 +86,7 @@ describe("MapStudioCanvasUnderlay", () => {
     __resetAnimationClockForTests();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    atlasHolder.atlas = null;
   });
 
   it("draws backdrop, document, grid, then terrain under the camera transform", () => {
@@ -182,13 +191,27 @@ describe("MapStudioCanvasUnderlay", () => {
       terrainLayers: [
         {
           assetId: "terrain:stone-floor",
-          cells: [{ x: 50, y: 50, size: 50 }],
+          cells: [{ x: 50, y: 50, size: 50, cellX: 1, cellY: 1 }],
           edges: [],
         },
       ],
     });
 
     expect(calls).toContainEqual(["fillRect", 50, 50, 50, 50]);
+  });
+
+  it("textures terrain from the tile atlas once it loads", () => {
+    const atlasImage = {} as CanvasImageSource;
+    atlasHolder.atlas = {
+      image: atlasImage,
+      tileForCell: () => ({ x: 128, y: 384, size: 128 }),
+    } satisfies TileAtlas;
+
+    renderUnderlay();
+
+    expect(calls).toContainEqual(["drawImage", atlasImage, 128, 384, 128, 128, 0, 0, 50, 50]);
+    // The boundary stroke still draws on top of the texture.
+    expect(calls).toContainEqual(["moveTo", 0, 0]);
   });
 
   it("redraws when the device pixel ratio changes without a resize", () => {

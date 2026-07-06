@@ -4,10 +4,9 @@ import { getGridGeometry } from "../../map-studio/gridGeometry";
 import { buildStructuredTerrainLayers } from "../../map-studio/terrainRender";
 import { buildTileOccupancy } from "../../map-studio/tileAutotiling";
 import { terrainStyleForFrame } from "../../map-studio/starterTiles";
+import { drawGrid, parseGridPatternPath } from "../gridRenderCore";
 import {
-  drawGrid,
   drawTerrain,
-  parseGridPatternPath,
   type StructuredTerrainLayer,
   type TileRenderContext2D,
 } from "../tileRenderCore";
@@ -141,7 +140,7 @@ describe("drawTerrain", () => {
   it("skips boundary strokes for a layer without edges", () => {
     const layer: StructuredTerrainLayer = {
       assetId: "terrain:stone-floor",
-      cells: [{ x: 0, y: 0, size: 50 }],
+      cells: [{ x: 0, y: 0, size: 50, cellX: 0, cellY: 0 }],
       edges: [],
     };
     const { context, calls } = createRecordingContext();
@@ -152,6 +151,31 @@ describe("drawTerrain", () => {
       ["set:fillStyle", "#4d5361"],
       ["fillRect", 0, 0, 50, 50],
     ]);
+  });
+
+  it("draws atlas sub-rects for covered families, flat fills for the rest", () => {
+    const layers = structuredLayers([
+      { x: 0, y: 0, assetId: "terrain:stone-floor" },
+      { x: 1, y: 0, assetId: "terrain:water" },
+    ]);
+    const { context, calls } = createRecordingContext();
+    const atlasImage = { width: 640 } as unknown as CanvasImageSource;
+    const atlas = {
+      image: atlasImage,
+      // Stone maps to the atlas; water (animated) has no atlas art.
+      tileForCell: (assetId: string, cellX: number, cellY: number) =>
+        assetId === "terrain:stone-floor" ? { x: 128 * cellX, y: 384 + cellY, size: 128 } : null,
+    };
+
+    drawTerrain(context, layers, terrainStyleForFrame, 0, undefined, { atlas });
+
+    // Stone cell (0,0) textures from its variant rect, scaled to the cell.
+    expect(calls).toContainEqual(["drawImage", atlasImage, 0, 384, 128, 128, 0, 0, 50, 50]);
+    // Water still flat-fills (and can animate via the frame parameter).
+    expect(calls).toContainEqual(["set:fillStyle", "#24516b"]);
+    expect(calls).toContainEqual(["fillRect", 50, 0, 50, 50]);
+    // Boundary strokes still draw for both families.
+    expect(calls).toContainEqual(["moveTo", 100, 0]);
   });
 
   it("honors a custom boundary width, including its cull margin", () => {

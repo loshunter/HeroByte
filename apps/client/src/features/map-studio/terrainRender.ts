@@ -41,7 +41,7 @@ export function buildStructuredTerrainLayers(
     const bottom = top + size;
     const familyCells = cells.get(assetId) ?? [];
     if (familyCells.length === 0) cells.set(assetId, familyCells);
-    familyCells.push({ x: left, y: top, size });
+    familyCells.push({ x: left, y: top, size, cellX, cellY });
 
     const differs = (x: number, y: number) => occupancy.get(`${x},${y}`) !== assetId;
     const familyEdges = edges.get(assetId) ?? [];

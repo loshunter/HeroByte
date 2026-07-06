@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "image": "tileset-v1.png",
+  "tileSize": 128,
+  "columns": 5,
+  "license": {
+    "source": "assets/images/tiles (repo history: commit 4c9e5cb4)",
+    "license": "UNSPECIFIED - confirm provenance and license before public release"
+  },
+  "families": {
+    "terrain:dirt": {
+      "variants": [
+        {
+          "col": 0,
+          "row": 0
+        },
+        {
+          "col": 1,
+          "row": 0
+        },
+        {
+          "col": 2,
+          "row": 0
+        },
+        {
+          "col": 3,
+          "row": 0
+        },
+        {
+          "col": 4,
+          "row": 0
+        }
+      ],
+      "averageColor": "#4a2f1b"
+    },
+    "terrain:grass": {
+      "variants": [
+        {
+          "col": 0,
+          "row": 1
+        },
+        {
+          "col": 1,
+          "row": 1
+        },
+        {
+          "col": 2,
+          "row": 1
+        },
+        {
+          "col": 3,
+          "row": 1
+        },
+        {
+          "col": 4,
+          "row": 1
+        }
+      ],
+      "averageColor": "#386820"
+    },
+    "terrain:path": {
+      "variants": [
+        {
+          "col": 0,
+          "row": 2
+        },
+        {
+          "col": 1,
+          "row": 2
+        },
+        {
+          "col": 2,
+          "row": 2
+        },
+        {
+          "col": 3,
+          "row": 2
+        },
+        {
+          "col": 4,
+          "row": 2
+        }
+      ],
+      "averageColor": "#5f6831"
+    },
+    "terrain:stone-floor": {
+      "variants": [
+        {
+          "col": 0,
+          "row": 3
+        },
+        {
+          "col": 1,
+          "row": 3
+        },
+        {
+          "col": 2,
+          "row": 3
+        },
+        {
+          "col": 3,
+          "row": 3
+        },
+        {
+          "col": 4,
+          "row": 3
+        }
+      ],
+      "averageColor": "#464d4a"
+    },
+    "terrain:wood-floor": {
+      "variants": [
+        {
+          "col": 0,
+          "row": 4
+        },
+        {
+          "col": 1,
+          "row": 4
+        },
+        {
+          "col": 2,
+          "row": 4
+        },
+        {
+          "col": 3,
+          "row": 4
+        },
+        {
+          "col": 4,
+          "row": 4
+        }
+      ],
+      "averageColor": "#854d24"
+    }
+  }
+}

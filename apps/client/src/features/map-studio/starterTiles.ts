@@ -60,6 +60,42 @@ export const MAP_STUDIO_TILE_ASSETS: MapStudioTileAsset[] = [
     // Gentle 4-frame shimmer; frame 0 is the base fill so export is unchanged.
     animFills: ["#24516b", "#295a76", "#2a5f7c", "#245572"],
   },
+  // Tileset v1 families (atlas-textured on canvas; the fills below are the
+  // atlas averages, used for the Shelf swatch, the SVG export, and as the
+  // flat fallback until the atlas image loads).
+  {
+    id: "terrain:grass",
+    name: "Grass",
+    category: "terrain",
+    layerKind: "terrain",
+    columns: 1,
+    rows: 1,
+    fill: "#386820",
+    stroke: "#5c9a3c",
+    accent: "#24471a",
+  },
+  {
+    id: "terrain:dirt",
+    name: "Dirt",
+    category: "terrain",
+    layerKind: "terrain",
+    columns: 1,
+    rows: 1,
+    fill: "#4a2f1b",
+    stroke: "#7a5232",
+    accent: "#33200f",
+  },
+  {
+    id: "terrain:path",
+    name: "Path",
+    category: "terrain",
+    layerKind: "terrain",
+    columns: 1,
+    rows: 1,
+    fill: "#5f6831",
+    stroke: "#8f9853",
+    accent: "#3f451f",
+  },
   {
     id: "structures:stone-wall",
     name: "Stone Wall",
