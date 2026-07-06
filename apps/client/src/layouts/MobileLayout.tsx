@@ -15,11 +15,18 @@ import { TurnNavigationControls } from "../features/initiative/components/TurnNa
 import { MobileEntitiesList } from "../components/layout/MobileEntitiesList";
 import { MobileFloatingControls } from "../components/layout/MobileFloatingControls";
 import { useEntityEditHandlers } from "../hooks/useEntityEditHandlers";
-import { MapStudioWorkspace } from "../features/map-studio";
 import { MobileDrawingControls } from "./MobileDrawingControls";
 
 // Lazy load MapBoard to reduce initial bundle size
 const MapBoard = React.lazy(() => import("../ui/MapBoard"));
+
+// Lazy load the Map Studio editor so its component graph stays out of the entry
+// chunk — only the DM who opens the Forge loads it.
+const MapStudioWorkspace = React.lazy(() =>
+  import("../features/map-studio/components/MapStudioWorkspace").then((m) => ({
+    default: m.MapStudioWorkspace,
+  })),
+);
 
 /**
  * MobileLayout Component
@@ -137,11 +144,13 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
   if (mapStudioMode && isDM && mapStudio) {
     return (
       <div className="mobile-layout-root">
-        <MapStudioWorkspace
-          controller={mapStudio}
-          onExit={() => setActiveTool(null)}
-          onPublishStatus={toast.success}
-        />
+        <Suspense fallback={<MapLoading />}>
+          <MapStudioWorkspace
+            controller={mapStudio}
+            onExit={() => setActiveTool(null)}
+            onPublishStatus={toast.success}
+          />
+        </Suspense>
       </div>
     );
   }

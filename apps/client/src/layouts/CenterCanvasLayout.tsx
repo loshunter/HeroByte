@@ -26,10 +26,18 @@ import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import type { CameraCommand } from "../ui/MapBoard";
 import type { UseDrawingStateManagerReturn } from "../hooks/useDrawingStateManager";
 import { MapLoading } from "../components/ui/MapLoading";
-import { MapStudioWorkspace, type MapStudioController } from "../features/map-studio";
+import type { MapStudioController } from "../features/map-studio";
 
 // Lazy load MapBoard to reduce initial bundle size
 const MapBoard = React.lazy(() => import("../ui/MapBoard"));
+
+// Lazy load the Map Studio editor so its component graph (editor UI + renderer
+// core) stays out of the entry chunk — only the DM who opens the Forge loads it.
+const MapStudioWorkspace = React.lazy(() =>
+  import("../features/map-studio/components/MapStudioWorkspace").then((m) => ({
+    default: m.MapStudioWorkspace,
+  })),
+);
 
 // Type alias for drawing board props
 type DrawingBoardProps = UseDrawingStateManagerReturn["drawingProps"];
@@ -223,11 +231,13 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
             overflow: "hidden",
           }}
         >
-          <MapStudioWorkspace
-            controller={mapStudio}
-            onExit={onExitMapStudio}
-            onPublishStatus={onMapStudioPublishStatus}
-          />
+          <Suspense fallback={<MapLoading />}>
+            <MapStudioWorkspace
+              controller={mapStudio}
+              onExit={onExitMapStudio}
+              onPublishStatus={onMapStudioPublishStatus}
+            />
+          </Suspense>
         </div>
       );
     }

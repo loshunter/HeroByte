@@ -193,9 +193,8 @@ green — the reviews on R2/R3 found seven real bugs that green suites missed.
   baseline to excuse a new violation.
 - **Stale shared dist:** rebuild `@herobyte/shared` after ANY shared edit.
 - **175KB gzip entry guard.** Renderer code must not grow the entry chunk.
-  Known pre-existing condition: Map Studio is statically imported (entry
-  ~87KB) — Slice L fixes this. Atlas image/manifest are `public/` statics and
-  never count.
+  Slice L (DONE) moved the Map Studio editor into a lazy chunk — entry is now
+  ~69KB (was ~87KB). Atlas image/manifest are `public/` statics and never count.
 - **1MB WS inbound cap.** The server SILENTLY drops any inbound WebSocket
   message over 1MB (`connectionHandler` maxMessageSize). Publish payload must
   stay under `MAX_PUBLISH_BACKGROUND_BYTES` (1MB − 16KB margin) — extend the
@@ -532,7 +531,30 @@ water animating at the table) is DONE; #4–6 carry over.
 
 ---
 
-## 2. Slice L — Lazy-load Map Studio (chip task_7f6ecfca)
+## 2. Slice L — Lazy-load Map Studio (chip task_7f6ecfca) — DONE ✅
+
+Shipped (commit on `dev`; self-review). **Entry chunk 87.14 KB → 69.17 KB
+gzipped** (~18 KB drop): the Map Studio editor graph now lives in a lazy
+`MapStudioWorkspace-*.js` chunk. **Actual shipped shape:**
+- `features/map-studio/index.ts` (barrel) no longer re-exports
+  `MapStudioWorkspace` — a static re-export dragged the editor into the entry
+  because `App.tsx` imports the barrel for `useMapStudio`. The barrel keeps
+  `useMapStudio`, types, and the `exportMapDocument` utils (already in entry via
+  `useMapStudio`, so free).
+- `CenterCanvasLayout.tsx` + `MobileLayout.tsx`:
+  `const MapStudioWorkspace = React.lazy(() => import(".../components/
+  MapStudioWorkspace").then((m) => ({ default: m.MapStudioWorkspace })))`
+  (named export → default), each render site wrapped in
+  `<Suspense fallback={<MapLoading />}>` (copies the MapBoard lazy pattern).
+- `MobileLayout.test.tsx`: mock moved from the barrel to the direct import path;
+  the map-studio-mode test is now async (`await findByTestId` — the lazy chunk
+  resolves after the Suspense fallback). It was the one test that broke on the
+  new Suspense boundary; `MapStudioWorkspace.test.tsx` imports by path and was
+  unaffected. No `CenterCanvasLayout.test.tsx` exists.
+- Verified: the editor's cyan-grid marker `127,214,255` is now ONLY in
+  `MapStudioWorkspace-*.js`, gone from the entry chunk.
+
+Below is the original decided design (historical):
 
 **Goal:** the Map Studio feature (editor components + renderer core it pulls)
 moves out of the entry chunk into a lazy chunk, like MapBoard already is.

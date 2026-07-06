@@ -1,5 +1,8 @@
 export { useMapStudio } from "./useMapStudio";
-export { MapStudioWorkspace } from "./components/MapStudioWorkspace";
+// NOTE: MapStudioWorkspace (the editor component + its renderer graph) is NOT
+// re-exported here on purpose — entry code imports this barrel for `useMapStudio`
+// and a static re-export would drag the whole editor into the entry chunk.
+// Load it lazily by path: React.lazy(() => import(".../components/MapStudioWorkspace")).
 export type {
   MapDoorDraft,
   MapShapeDraft,
