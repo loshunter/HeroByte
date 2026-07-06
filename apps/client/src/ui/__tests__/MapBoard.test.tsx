@@ -59,6 +59,7 @@ vi.mock("react-konva", () => ({
 vi.mock("../../features/map/components", () => ({
   GridLayer: () => <div data-testid="grid-layer" />,
   MapImageLayer: () => <div data-testid="map-image-layer" />,
+  TerrainLayer: () => <div data-testid="terrain-layer" />,
   TokensLayer: () => <div data-testid="tokens-layer" />,
   PointersLayer: () => <div data-testid="pointers-layer" />,
   DrawingsLayer: () => <div data-testid="drawings-layer" />,
@@ -245,6 +246,51 @@ describe("MapBoard", () => {
       const { container } = render(<MapBoard {...props} />);
 
       expect(container).toBeTruthy();
+    });
+  });
+
+  describe("Published Terrain", () => {
+    const snapshotWith = (mapTerrain?: RoomSnapshot["mapTerrain"]): RoomSnapshot => ({
+      users: [],
+      gridSize: 50,
+      gridSquareSize: 5,
+      mapBackground: "",
+      players: [],
+      characters: [],
+      tokens: [],
+      drawings: [],
+      diceRolls: [],
+      pointers: [],
+      sceneObjects: [],
+      props: [],
+      mapTerrain,
+    });
+
+    const terrain: RoomSnapshot["mapTerrain"] = {
+      terrain: { schemaVersion: 1, palette: ["terrain:water"], chunks: { "0,0": [1, 1, 255, 0] } },
+      grid: { size: 50, offsetX: 0, offsetY: 0 },
+      opacity: 1,
+    };
+
+    it("renders a TerrainLayer under the map image when the snapshot carries terrain", () => {
+      const props = getDefaultProps({ snapshot: snapshotWith(terrain) });
+      const { container } = render(<MapBoard {...props} />);
+
+      const terrainLayer = container.querySelector('[data-testid="terrain-layer"]');
+      const imageLayer = container.querySelector('[data-testid="map-image-layer"]');
+      expect(terrainLayer).not.toBeNull();
+      expect(imageLayer).not.toBeNull();
+      // Terrain must draw BEFORE (under) the elements-only background image.
+      expect(
+        terrainLayer!.compareDocumentPosition(imageLayer!) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    it("renders no TerrainLayer for a legacy snapshot without terrain (back-compat)", () => {
+      const props = getDefaultProps({ snapshot: snapshotWith(undefined) });
+      const { container } = render(<MapBoard {...props} />);
+
+      expect(container.querySelector('[data-testid="terrain-layer"]')).toBeNull();
     });
   });
 

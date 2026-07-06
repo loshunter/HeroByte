@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { MapDocument, MapElement } from "@herobyte/shared";
 import { createMapDocument } from "@herobyte/shared";
-import { buildTileOccupancy, isAutotileCandidate, tileBoundaryPath } from "../tileAutotiling";
+import {
+  buildTerrainOnlyOccupancy,
+  buildTileOccupancy,
+  isAutotileCandidate,
+  tileBoundaryPath,
+} from "../tileAutotiling";
 
 type TileElement = Extract<MapElement, { type: "tile" }>;
 
@@ -158,6 +163,40 @@ describe("buildTileOccupancy", () => {
     expect(occupancy.get("0,0")).toBe("terrain:stone-floor");
     expect(occupancy.get("1,0")).toBe("terrain:stone-floor");
     expect(occupancy.size).toBe(2);
+  });
+});
+
+describe("buildTerrainOnlyOccupancy", () => {
+  it("matches buildTileOccupancy on an elements-free document (the table's world)", () => {
+    // At the live table there are no autotile tile ELEMENTS — only published
+    // painted terrain — so terrain cells seed their own occupancy. This must
+    // reproduce buildTileOccupancy exactly, or terrain fuses differently at
+    // the table than it did in the editor/export.
+    const document = documentWith();
+    document.terrain = {
+      schemaVersion: 1,
+      palette: ["terrain:grass", "terrain:water"],
+      // (0,0)=grass, (1,0)=grass, (2,0)=water, rest empty.
+      chunks: { "0,0": [2, 1, 1, 2, 253, 0] },
+    };
+
+    expect(buildTerrainOnlyOccupancy(document.terrain)).toEqual(buildTileOccupancy(document));
+  });
+
+  it("seeds every painted cell to its family and nothing else", () => {
+    const occupancy = buildTerrainOnlyOccupancy({
+      schemaVersion: 1,
+      palette: ["terrain:grass", "terrain:water"],
+      chunks: { "0,0": [1, 1, 1, 2, 254, 0] },
+    });
+
+    expect(occupancy.get("0,0")).toBe("terrain:grass");
+    expect(occupancy.get("1,0")).toBe("terrain:water");
+    expect(occupancy.size).toBe(2);
+  });
+
+  it("returns an empty occupancy for empty terrain", () => {
+    expect(buildTerrainOnlyOccupancy({ schemaVersion: 1, palette: [], chunks: {} }).size).toBe(0);
   });
 });
 

@@ -713,11 +713,47 @@ validation of client-supplied RLE.
 
 ---
 
-## 4. Slice R5b — Live table draws terrain through the core
+## 4. Slice R5b — Live table draws terrain through the core — DONE ✅
 
-**Goal:** MapBoard renders `snapshot.mapTerrain` live through
-`tileRenderCore` + the tile atlas — water shimmers at the table on the shared
-clock; uploaded/legacy backgrounds keep the raster path untouched.
+Shipped (commit on `dev`; focused rendering review run — 2 confirmed findings
+fixed, see below; browser-smoked: painted water + atlas grass render at the
+table under the elements-only transparent background). **Actual shipped shape
+(use these, not the sketch):**
+
+- `features/map/components/TerrainLayer.tsx` (new, ~130 LOC): renders
+  `snapshot.mapTerrain` under `MapImageLayer` inside MapBoard's background
+  `<Layer>`, gated on `snapshot?.mapTerrain`. Two nested `<Group>` apply cam +
+  `mapObject.transform` (mirrors `MapImageLayer`). Renders **one `<Shape>` per
+  terrain family** (not one shared Shape) — dummy `fill`/`stroke` attrs trip
+  Konva's buffer canvas so a terrain-layer `opacity < 1` composites per family
+  (flatten-then-fade), matching the editor underlay + SVG export. Geometry memo
+  keyed on `JSON.stringify(mapTerrain)` (RLE is compact) and the Shape elements
+  memoized, so unrelated snapshot broadcasts (which churn `mapTerrain` identity
+  ~60x/sec) do not rebuild geometry or force a background-layer repaint.
+- `features/map/components/terrainSceneFunc.ts` (new): pure
+  `drawTableTerrain(ctx, layers, atlas, frame, boundaryWidth?)` → `drawTerrain`.
+- `features/map-studio/tileAutotiling.ts`: `buildTerrainOnlyOccupancy(terrain)`
+  (seeds occupancy from painted cells only — the table has no autotile ELEMENTS).
+- `features/map-studio/components/useStudioPublish.ts`: the studio Publish
+  button now renders `{ omitTerrain, omitGrid, transparentBackground }` and
+  calls `publishDocument(bg, id, "elements-only")`.
+
+**Review-fixed (both confirmed 2/2):** (1) opacity `< 1` was tinting boundary
+strokes via per-primitive globalAlpha → per-family Shapes + Konva buffer canvas;
+(2) geometry rebuilt + full repaint on every unrelated snapshot → value-keyed
+memo + memoized Shape elements.
+
+**Follow-up (NOT done — flagged, out of R5b scope):** there is a SECOND publish
+entry point, the DM-menu button (`MapStudioControl.handlePublish` →
+`onPublishToLiveMap` → `MapTab.tsx` → `publishDocument(backgroundUrl)`), which
+still publishes a **full-render** background (legacy, back-compat, no live
+terrain). Flip it to elements-only for parity so live terrain also appears when
+a DM publishes from the DM menu. Low-risk (existing tests use `objectContaining`
++ a data-URL regex, so they stay green); threads a `backgroundMode` through the
+`onPublishToLiveMap` payload.
+
+Below is the original decided design (historical; the shipped shape above wins
+where they differ):
 
 **Preconditions:** R5a merged (it is — §3 DONE).
 

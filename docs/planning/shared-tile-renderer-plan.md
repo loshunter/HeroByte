@@ -100,6 +100,15 @@ water/torchlight, budgeted inside the **175KB gzip entry guard**. SVG stays the
   water/torchlight) through the same core inside the Konva stage (or a sibling
   canvas), replacing the static raster background for Forge-native maps; uploaded/
   imework backgrounds keep the raster path. Player-safe render path honored.
+  - **R5a — Publish carries terrain (protocol) (DONE, 01cc3764).** Publish sends
+    `mapTerrain` (RLE + grid + opacity) as data, not baked pixels; server-derived
+    from its stored document, persisted, back-compat.
+  - **R5b — Live table draws terrain via the core (DONE).** `TerrainLayer` renders
+    `snapshot.mapTerrain` under the elements-only background through
+    `tileRenderCore` + the atlas; water shimmers on the shared clock; uploaded/
+    legacy raster backgrounds untouched. Studio Publish flips to elements-only.
+    (Follow-up: the DM-menu publish button still sends a full-render background —
+    flip it for parity; see playbook §4.)
 
 ## Deferred / dependencies
 

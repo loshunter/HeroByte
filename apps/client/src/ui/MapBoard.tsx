@@ -38,6 +38,7 @@ import { useStageEventRouter } from "../hooks/useStageEventRouter.js";
 import {
   GridLayer,
   MapImageLayer,
+  TerrainLayer,
   DoorsLayer,
   FogLayer,
   TokensLayer,
@@ -505,6 +506,15 @@ export default function MapBoard({
       >
         {/* Background Layer: Map image and grid (non-interactive) */}
         <Layer>
+          {/* Published painted terrain draws UNDER the elements-only background
+              so uploaded/legacy full backgrounds (no mapTerrain) are untouched. */}
+          {snapshot?.mapTerrain && (
+            <TerrainLayer
+              cam={cam}
+              mapTerrain={snapshot.mapTerrain}
+              mapTransform={mapObject?.transform}
+            />
+          )}
           <MapImageLayer
             cam={cam}
             src={mapObject?.data.imageUrl ?? snapshot?.mapBackground ?? null}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { MapDocument } from "@herobyte/shared";
+import type { MapDocument, MapPublishBackgroundMode } from "@herobyte/shared";
 import {
   backgroundExceedsPublishLimit,
   createMapDocumentSvgDataUrlWithAssets,
@@ -10,7 +10,11 @@ const TOO_LARGE_MESSAGE =
 
 interface StudioPublishOptions {
   activeDocument: MapDocument | null;
-  publishDocument: (background: string, documentId?: string) => boolean;
+  publishDocument: (
+    background: string,
+    documentId?: string,
+    backgroundMode?: MapPublishBackgroundMode,
+  ) => boolean;
   onPublishStatus?: (message: string) => void;
 }
 
@@ -40,12 +44,20 @@ export function useStudioPublish({
     const documentToPublish = activeDocument;
     if (!documentToPublish) return;
     void (async () => {
-      const background = await createMapDocumentSvgDataUrlWithAssets(documentToPublish);
+      // Elements-only: terrain, grid, and the opaque backdrop are stripped from
+      // the SVG. Terrain rides the wire as data (R5a) and draws live at the
+      // table (R5b); the table supplies its own grid; a transparent background
+      // lets that live terrain show through beneath the elements.
+      const background = await createMapDocumentSvgDataUrlWithAssets(documentToPublish, {
+        omitTerrain: true,
+        omitGrid: true,
+        transparentBackground: true,
+      });
       if (backgroundExceedsPublishLimit(background)) {
         announce(TOO_LARGE_MESSAGE);
         return;
       }
-      if (!publishDocument(background, documentToPublish.id)) return;
+      if (!publishDocument(background, documentToPublish.id, "elements-only")) return;
       announce(`Published "${documentToPublish.name}" to the live map.`);
     })();
   };

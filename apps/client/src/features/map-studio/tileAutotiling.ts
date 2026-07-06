@@ -1,4 +1,4 @@
-import type { MapDocument, MapElement, MapGridSettings } from "@herobyte/shared";
+import type { MapDocument, MapElement, MapGridSettings, TerrainMap } from "@herobyte/shared";
 import { forEachTerrainCell } from "@herobyte/shared";
 import { getMapStudioTileAsset } from "./starterTiles";
 
@@ -67,6 +67,23 @@ export function buildTileOccupancy(document: MapDocument): TileOccupancy {
       }
     }
   }
+  return occupancy;
+}
+
+/**
+ * Occupancy seeded purely from painted terrain — no tile ELEMENTS. The live
+ * table publishes terrain as data (R5) with no autotile elements, so terrain
+ * cells fuse against themselves. Equivalent to buildTileOccupancy on an
+ * elements-free document, but takes only the terrain map (the table never has
+ * the full MapDocument). Callers pass already-visible terrain: the server only
+ * publishes mapTerrain when the terrain layer renders, so no visibility gate
+ * is applied here.
+ */
+export function buildTerrainOnlyOccupancy(terrain: TerrainMap): TileOccupancy {
+  const occupancy: TileOccupancy = new Map();
+  forEachTerrainCell(terrain, (cellX, cellY, assetId) => {
+    occupancy.set(`${cellX},${cellY}`, assetId);
+  });
   return occupancy;
 }
 

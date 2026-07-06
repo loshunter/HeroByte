@@ -861,9 +861,35 @@ describe("MapStudioWorkspace", () => {
       expect(publishDocument).toHaveBeenCalledWith(
         expect.stringMatching(/^data:image\/svg\+xml;charset=utf-8,/),
         "map",
+        "elements-only",
       ),
     );
     expect(screen.getByRole("status")).toHaveTextContent('Published "Keep" to the live map.');
+  });
+
+  it("publishes an elements-only background so terrain rides the wire as data (R5b)", async () => {
+    // Terrain is stripped from the SVG (omitTerrain) — it publishes as
+    // snapshot.mapTerrain and draws live at the table, not baked into pixels.
+    let document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
+    document = paintTerrainDocument(document, [{ x: 1, y: 1, assetId: "terrain:water" }]);
+    const publishDocument = vi.fn(() => true);
+    render(
+      <MapStudioWorkspace
+        controller={controller({ activeDocument: document, publishDocument })}
+        onExit={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Publish" }));
+
+    await waitFor(() => expect(publishDocument).toHaveBeenCalled());
+    const [publishedBackground, , backgroundMode] = publishDocument.mock.calls[0] as unknown as [
+      string,
+      string | undefined,
+      string | undefined,
+    ];
+    expect(backgroundMode).toBe("elements-only");
+    expect(publishedBackground).not.toContain("data-terrain");
   });
 
   it("shows the uploader and the stored shelf under the My Stuff tab", () => {
