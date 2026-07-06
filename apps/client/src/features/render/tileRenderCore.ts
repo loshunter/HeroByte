@@ -80,16 +80,24 @@ const TERRAIN_BOUNDARY_WIDTH = 2;
 const GRID_LINE_COLOR = "#ffffff";
 const GRID_LINE_ALPHA = 0.16;
 const GRID_LINE_WIDTH = 1;
-/**
- * Strokes are centered on the segment, so half the width paints on each
- * side — an edge just outside the view can still reach into it.
- */
-const EDGE_CULL_MARGIN = TERRAIN_BOUNDARY_WIDTH / 2;
+
+/** Overrides for surfaces whose SVG styles differ from the export model. */
+export interface TerrainDrawOptions {
+  /** Boundary stroke width (editor uses max(2, gridSize * 0.04)). */
+  boundaryWidth?: number;
+}
+
+export interface GridDrawStyle {
+  color?: string;
+  alpha?: number;
+  lineWidth?: number;
+}
 
 /**
  * Draw structured terrain layers as flat fills plus fused boundary strokes,
  * mirroring the SVG render cell-for-cell. `view` (world-pixel rect) culls
- * cells/edges that cannot be visible; touching the view edge still draws.
+ * cells/edges that cannot be visible; the cull keeps a margin of half the
+ * boundary width, because centered strokes paint past the segment geometry.
  */
 export function drawTerrain(
   ctx: TileRenderContext2D,
@@ -97,10 +105,13 @@ export function drawTerrain(
   resolveStyle: TerrainStyleResolver,
   frame: number,
   view?: RenderViewRect,
+  options?: TerrainDrawOptions,
 ): void {
+  const boundaryWidth = options?.boundaryWidth ?? TERRAIN_BOUNDARY_WIDTH;
+  const margin = boundaryWidth / 2;
   for (const layer of layers) {
     const cells = view ? layer.cells.filter((cell) => cellInView(cell, view)) : layer.cells;
-    const edges = view ? layer.edges.filter((edge) => edgeInView(edge, view)) : layer.edges;
+    const edges = view ? layer.edges.filter((edge) => edgeInView(edge, view, margin)) : layer.edges;
     if (cells.length === 0 && edges.length === 0) continue;
     const style = resolveStyle(layer.assetId, frame);
     ctx.fillStyle = style.fill;
@@ -109,7 +120,7 @@ export function drawTerrain(
     }
     if (edges.length === 0) continue;
     ctx.strokeStyle = style.stroke;
-    ctx.lineWidth = TERRAIN_BOUNDARY_WIDTH;
+    ctx.lineWidth = boundaryWidth;
     ctx.beginPath();
     for (const edge of edges) {
       ctx.moveTo(edge.x1, edge.y1);
@@ -128,12 +139,12 @@ function cellInView(cell: TerrainCellRect, view: RenderViewRect): boolean {
   );
 }
 
-function edgeInView(edge: TerrainBoundaryEdge, view: RenderViewRect): boolean {
+function edgeInView(edge: TerrainBoundaryEdge, view: RenderViewRect, margin: number): boolean {
   return (
-    edge.x1 <= view.x + view.width + EDGE_CULL_MARGIN &&
-    edge.x2 >= view.x - EDGE_CULL_MARGIN &&
-    edge.y1 <= view.y + view.height + EDGE_CULL_MARGIN &&
-    edge.y2 >= view.y - EDGE_CULL_MARGIN
+    edge.x1 <= view.x + view.width + margin &&
+    edge.x2 >= view.x - margin &&
+    edge.y1 <= view.y + view.height + margin &&
+    edge.y2 >= view.y - margin
   );
 }
 
@@ -226,6 +237,7 @@ export function drawGrid(
   ctx: TileRenderContext2D,
   pattern: GridPattern,
   view: RenderViewRect,
+  style?: GridDrawStyle,
 ): void {
   if (pattern.width <= 0 || pattern.height <= 0) return;
   const segments = patternSegments(
@@ -234,24 +246,25 @@ export function drawGrid(
     pattern.height,
   );
   if (segments.length === 0) return;
+  const lineWidth = style?.lineWidth ?? GRID_LINE_WIDTH;
   const firstCol = Math.floor((view.x - pattern.offsetX) / pattern.width);
   const lastCol = Math.floor((view.x + view.width - pattern.offsetX) / pattern.width) + 1;
   const firstRow = Math.floor((view.y - pattern.offsetY) / pattern.height);
   const lastRow = Math.floor((view.y + view.height - pattern.offsetY) / pattern.height) + 1;
   const tile = { firstCol, lastCol, firstRow, lastRow, pattern };
   ctx.save();
-  ctx.strokeStyle = GRID_LINE_COLOR;
-  ctx.globalAlpha = GRID_LINE_ALPHA;
+  ctx.strokeStyle = style?.color ?? GRID_LINE_COLOR;
+  ctx.globalAlpha = style?.alpha ?? GRID_LINE_ALPHA;
   strokeGridPass(
     ctx,
     segments.filter((segment) => !segment.border),
-    GRID_LINE_WIDTH,
+    lineWidth,
     tile,
   );
   strokeGridPass(
     ctx,
     segments.filter((segment) => segment.border),
-    GRID_LINE_WIDTH / 2,
+    lineWidth / 2,
     tile,
   );
   ctx.restore();

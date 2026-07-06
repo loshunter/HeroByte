@@ -7,10 +7,10 @@ import {
   type WheelEvent,
 } from "react";
 import { getMapStudioTileAsset, type MapStudioTileAsset } from "../starterTiles";
-import { buildTerrainRenderLayers } from "../terrainRender";
+import { buildStructuredTerrainLayers } from "../terrainRender";
 import { buildTileOccupancy } from "../tileAutotiling";
+import { MapStudioCanvasUnderlay } from "./MapStudioCanvasUnderlay";
 import { MapStudioElementPreview, MapStudioSelectionOverlay } from "./MapStudioElementPreview";
-import { MapStudioTerrainLayers } from "./MapStudioTerrainLayers";
 import type { MapViewBox, RoomDrag, StudioTool } from "./MapStudioWorkspace.types";
 import { canvasShellStyle, errorStyle, statusStyle } from "./mapStudioWorkspaceStyles";
 import { roomBoundsFromDrag } from "./mapStudioWorkspaceUtils";
@@ -70,12 +70,12 @@ export function MapStudioCanvas({
     () => ({ occupancy: buildTileOccupancy(activeDocument), grid: activeDocument.grid }),
     [activeDocument],
   );
-  // Painted terrain: one fill + boundary path per family, honoring the
-  // terrain-kind layer's visibility and opacity.
+  // Painted terrain: structured cells/edges per family for the canvas
+  // underlay, honoring the terrain-kind layer's visibility and opacity.
   const terrainKindLayer = activeDocument.layers.find((layer) => layer.kind === "terrain");
   const terrainLayers = useMemo(() => {
     if (!activeDocument.terrain) return [];
-    return buildTerrainRenderLayers(
+    return buildStructuredTerrainLayers(
       activeDocument.terrain,
       activeDocument.grid,
       autotile.occupancy,
@@ -98,155 +98,139 @@ export function MapStudioCanvas({
           {publishMessage}
         </div>
       )}
-      <svg
-        ref={svgRef}
-        aria-label={`${activeDocument.name} studio canvas`}
-        role="img"
-        tabIndex={0}
-        viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
-        preserveAspectRatio="xMidYMid meet"
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerEnd}
-        onPointerCancel={onPointerEnd}
-        onWheel={onWheel}
-        onKeyDown={onKeyDown}
+      <div
         style={{
+          position: "relative",
           width: "100%",
           height: "100%",
           background: "#151822",
           border: "1px solid #8a7445",
-          touchAction: "none",
-          cursor: tool === "pan" ? "grab" : tool === "select" ? "default" : "crosshair",
         }}
       >
-        <defs>
-          <pattern
-            id={`studio-grid-${activeDocument.id}`}
-            width={activeDocument.grid.size}
-            height={activeDocument.grid.size}
-            patternUnits="userSpaceOnUse"
-            x={activeDocument.grid.offsetX}
-            y={activeDocument.grid.offsetY}
-          >
-            <path
-              d={`M ${activeDocument.grid.size} 0 L 0 0 0 ${activeDocument.grid.size}`}
-              fill="none"
-              stroke="rgba(127,214,255,0.22)"
-              strokeWidth={Math.max(1, activeDocument.grid.size / 48)}
-            />
-          </pattern>
-        </defs>
-        <rect
-          width={activeDocument.width}
-          height={activeDocument.height}
-          fill="#24212b"
-          pointerEvents="none"
+        {/* Background, grid, and painted terrain draw on the canvas beneath
+            the SVG (shared tile-render core); the SVG keeps element handles,
+            tool ghosts, and selection. */}
+        <MapStudioCanvasUnderlay
+          documentWidth={activeDocument.width}
+          documentHeight={activeDocument.height}
+          grid={activeDocument.grid}
+          terrainLayers={terrainLayers}
+          terrainOpacity={
+            terrainKindLayer?.visible === false ? 0 : (terrainKindLayer?.opacity ?? 1)
+          }
+          animated={hasAnimatedTerrain}
+          viewBox={viewBox}
         />
-        {activeDocument.grid.visible && (
-          <rect
-            width={activeDocument.width}
-            height={activeDocument.height}
-            fill={`url(#studio-grid-${activeDocument.id})`}
-            pointerEvents="none"
-          />
-        )}
-        {terrainKindLayer?.visible !== false && (
-          <MapStudioTerrainLayers
-            terrainLayers={terrainLayers}
-            gridSize={activeDocument.grid.size}
-            opacity={terrainKindLayer?.opacity ?? 1}
-            animated={hasAnimatedTerrain}
-          />
-        )}
-        {strokeCells.length > 0 && (
-          <g opacity={0.55} pointerEvents="none">
-            {strokeCells.map((cell) => (
-              <rect
-                key={`${cell.x},${cell.y}`}
-                x={activeDocument.grid.offsetX + cell.x * activeDocument.grid.size}
-                y={activeDocument.grid.offsetY + cell.y * activeDocument.grid.size}
-                width={activeDocument.grid.size}
-                height={activeDocument.grid.size}
-                fill={cell.assetId ? getMapStudioTileAsset(cell.assetId).fill : "#10121a"}
-              />
-            ))}
-          </g>
-        )}
-        {visibleElements.map((element, index) => {
-          const layer = layers.get(element.layerId);
-          if (!layer) return null;
-          const selected = selectedElementId === element.id;
-          return (
-            <g
-              key={element.id}
-              aria-label={`Select ${element.type} ${index + 1}`}
-              role="button"
-              tabIndex={-1}
-              onPointerDown={(event) => {
-                if (tool !== "select") return;
-                event.stopPropagation();
-                onSelectElement(element.id);
-              }}
-            >
-              <MapStudioElementPreview
-                element={element}
-                layer={layer}
-                gridSize={activeDocument.grid.size}
-                autotile={autotile}
-              />
-              {selected && (
-                <MapStudioSelectionOverlay
+        <svg
+          ref={svgRef}
+          aria-label={`${activeDocument.name} studio canvas`}
+          role="img"
+          tabIndex={0}
+          viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
+          preserveAspectRatio="xMidYMid meet"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerEnd}
+          onPointerCancel={onPointerEnd}
+          onWheel={onWheel}
+          onKeyDown={onKeyDown}
+          style={{
+            position: "relative",
+            width: "100%",
+            height: "100%",
+            touchAction: "none",
+            cursor: tool === "pan" ? "grab" : tool === "select" ? "default" : "crosshair",
+          }}
+        >
+          {strokeCells.length > 0 && (
+            <g opacity={0.55} pointerEvents="none">
+              {strokeCells.map((cell) => (
+                <rect
+                  key={`${cell.x},${cell.y}`}
+                  x={activeDocument.grid.offsetX + cell.x * activeDocument.grid.size}
+                  y={activeDocument.grid.offsetY + cell.y * activeDocument.grid.size}
+                  width={activeDocument.grid.size}
+                  height={activeDocument.grid.size}
+                  fill={cell.assetId ? getMapStudioTileAsset(cell.assetId).fill : "#10121a"}
+                />
+              ))}
+            </g>
+          )}
+          {visibleElements.map((element, index) => {
+            const layer = layers.get(element.layerId);
+            if (!layer) return null;
+            const selected = selectedElementId === element.id;
+            return (
+              <g
+                key={element.id}
+                aria-label={`Select ${element.type} ${index + 1}`}
+                role="button"
+                tabIndex={-1}
+                onPointerDown={(event) => {
+                  if (tool !== "select") return;
+                  event.stopPropagation();
+                  onSelectElement(element.id);
+                }}
+              >
+                <MapStudioElementPreview
                   element={element}
                   layer={layer}
                   gridSize={activeDocument.grid.size}
+                  autotile={autotile}
                 />
-              )}
+                {selected && (
+                  <MapStudioSelectionOverlay
+                    element={element}
+                    layer={layer}
+                    gridSize={activeDocument.grid.size}
+                  />
+                )}
+              </g>
+            );
+          })}
+          {tool === "tile" && stampPreview && previewLayer && (
+            // Alt held: free-placement ghost, centered on the raw cursor.
+            <g
+              transform={`translate(${stampPreview.x} ${stampPreview.y})`}
+              opacity={0.62}
+              pointerEvents="none"
+            >
+              <rect
+                width={stampPreview.width}
+                height={stampPreview.height}
+                fill={selectedAsset.fill}
+                stroke="#ffd97f"
+                strokeWidth={Math.max(2, activeDocument.grid.size * 0.04)}
+                strokeDasharray="4 4"
+              />
             </g>
-          );
-        })}
-        {tool === "tile" && stampPreview && previewLayer && (
-          // Alt held: free-placement ghost, centered on the raw cursor.
-          <g
-            transform={`translate(${stampPreview.x} ${stampPreview.y})`}
-            opacity={0.62}
-            pointerEvents="none"
-          >
-            <rect
-              width={stampPreview.width}
-              height={stampPreview.height}
-              fill={selectedAsset.fill}
-              stroke="#ffd97f"
-              strokeWidth={Math.max(2, activeDocument.grid.size * 0.04)}
-              strokeDasharray="4 4"
+          )}
+          {tool === "tile" && !stampPreview && snappedCursor && previewLayer && (
+            <g
+              transform={`translate(${snappedCursor.x} ${snappedCursor.y})`}
+              opacity={0.62}
+              pointerEvents="none"
+            >
+              <rect
+                width={selectedAsset.columns * activeDocument.grid.size}
+                height={selectedAsset.rows * activeDocument.grid.size}
+                fill={selectedAsset.fill}
+                stroke="#7fd6ff"
+                strokeWidth={Math.max(2, activeDocument.grid.size * 0.04)}
+                strokeDasharray="10 6"
+              />
+            </g>
+          )}
+          {tool === "room" && roomDrag && (
+            <RoomDragPreview
+              drag={roomDrag}
+              gridSize={activeDocument.grid.size}
+              fillAsset={roomFillAsset}
+              wallAsset={roomWallAsset}
             />
-          </g>
-        )}
-        {tool === "tile" && !stampPreview && snappedCursor && previewLayer && (
-          <g
-            transform={`translate(${snappedCursor.x} ${snappedCursor.y})`}
-            opacity={0.62}
-            pointerEvents="none"
-          >
-            <rect
-              width={selectedAsset.columns * activeDocument.grid.size}
-              height={selectedAsset.rows * activeDocument.grid.size}
-              fill={selectedAsset.fill}
-              stroke="#7fd6ff"
-              strokeWidth={Math.max(2, activeDocument.grid.size * 0.04)}
-              strokeDasharray="10 6"
-            />
-          </g>
-        )}
-        {tool === "room" && roomDrag && (
-          <RoomDragPreview
-            drag={roomDrag}
-            gridSize={activeDocument.grid.size}
-            fillAsset={roomFillAsset}
-            wallAsset={roomWallAsset}
-          />
-        )}
-      </svg>
+          )}
+        </svg>
+      </div>
     </main>
   );
 }

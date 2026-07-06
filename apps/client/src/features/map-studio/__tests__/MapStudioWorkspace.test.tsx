@@ -6,6 +6,7 @@ import {
   paintTerrain as paintTerrainDocument,
 } from "@herobyte/shared";
 import type { MapStudioController } from "../types";
+import { createRecordingContext, hasCallPair } from "../../render/__tests__/recordingContext";
 import { MapStudioWorkspace } from "../components/MapStudioWorkspace";
 import { createTileElement } from "../elementBuilders";
 
@@ -48,6 +49,7 @@ function controller(overrides: Partial<MapStudioController> = {}): MapStudioCont
 describe("MapStudioWorkspace", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   it("requests saved maps once when the document list is empty", () => {
@@ -267,22 +269,47 @@ describe("MapStudioWorkspace", () => {
     expect(mapStudio.paintTerrain).toHaveBeenLastCalledWith([{ x: 2, y: 2, assetId: null }]);
   });
 
-  it("renders painted terrain beneath elements with fused boundaries", () => {
+  it("renders painted terrain on the canvas underlay beneath the SVG, with fused boundaries", () => {
     let document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
     document = paintTerrainDocument(document, [
       { x: 0, y: 0, assetId: "terrain:stone-floor" },
       { x: 1, y: 0, assetId: "terrain:stone-floor" },
     ]);
+    // Hide the grid: its lattice line at x=50 shares coordinates with the
+    // fused seam this test asserts is never stroked.
+    document = { ...document, grid: { ...document.grid, visible: false } };
+    const recording = createRecordingContext();
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+      recording.context as unknown as CanvasRenderingContext2D,
+    );
+    vi.spyOn(HTMLCanvasElement.prototype, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 200,
+      bottom: 200,
+      width: 200,
+      height: 200,
+      toJSON: () => ({}),
+    } as DOMRect);
+
     const { container } = render(
       <MapStudioWorkspace controller={controller({ activeDocument: document })} onExit={vi.fn()} />,
     );
 
-    const terrainGroup = container.querySelector('g[data-terrain="terrain:stone-floor"]');
-    expect(terrainGroup).not.toBeNull();
-    const fill = terrainGroup!.querySelector("path");
-    expect(fill!.getAttribute("d")).toContain("M 0 0 h 50 v 50 h -50 Z");
-    const boundary = terrainGroup!.querySelectorAll("path")[1];
-    expect(boundary!.getAttribute("d")).not.toContain("M 50 0 V 50"); // fused seam
+    // The canvas precedes the SVG in document order — terrain paints beneath.
+    const underlay = container.querySelector("canvas")!;
+    expect(underlay).not.toBeNull();
+    const svg = screen.getByRole("img", { name: "Keep studio canvas" });
+    expect(underlay.compareDocumentPosition(svg) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    // Both stone cells fill, but the fused interior seam is never stroked.
+    expect(recording.calls).toContainEqual(["fillRect", 0, 0, 50, 50]);
+    expect(recording.calls).toContainEqual(["fillRect", 50, 0, 50, 50]);
+    expect(hasCallPair(recording.calls, ["moveTo", 50, 0], ["lineTo", 50, 50])).toBe(false);
+    // The border against empty canvas is: the left edge of the first cell.
+    expect(hasCallPair(recording.calls, ["moveTo", 0, 0], ["lineTo", 0, 50])).toBe(true);
   });
 
   it("Alt-click with the tile tool places a free stamp centered on the cursor", () => {

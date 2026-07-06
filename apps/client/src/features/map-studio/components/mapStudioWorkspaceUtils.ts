@@ -258,7 +258,12 @@ export function toLiveGridSize(documentGridSize: number): number {
   return Math.min(500, Math.max(10, Math.round(documentGridSize)));
 }
 
-function renderedSvgViewport(rect: DOMRect, viewBox: MapViewBox) {
+/**
+ * Where the viewBox actually lands inside the element's box under
+ * preserveAspectRatio="xMidYMid meet" — shared by pointer math and the
+ * canvas underlay so both map world coordinates to identical screen pixels.
+ */
+export function renderedSvgViewport(rect: DOMRect, viewBox: MapViewBox) {
   const viewAspect = viewBox.width / viewBox.height;
   const rectAspect = rect.width / rect.height;
   if (rectAspect > viewAspect) {

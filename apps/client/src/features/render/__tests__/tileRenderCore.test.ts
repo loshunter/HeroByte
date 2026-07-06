@@ -11,34 +11,10 @@ import {
   type StructuredTerrainLayer,
   type TileRenderContext2D,
 } from "../tileRenderCore";
+import { createRecordingContext as createRawRecordingContext } from "./recordingContext";
 
-type RecordedCall = [op: string, ...args: unknown[]];
-
-/** Mock 2D context: records every method call and property set, in order. */
 function createRecordingContext() {
-  const calls: RecordedCall[] = [];
-  const context: Record<string, unknown> = {};
-  for (const method of [
-    "fillRect",
-    "beginPath",
-    "moveTo",
-    "lineTo",
-    "closePath",
-    "stroke",
-    "save",
-    "restore",
-  ]) {
-    context[method] = (...args: unknown[]) => {
-      calls.push([method, ...args]);
-    };
-  }
-  for (const property of ["fillStyle", "strokeStyle", "lineWidth", "globalAlpha"]) {
-    Object.defineProperty(context, property, {
-      set: (value: unknown) => {
-        calls.push([`set:${property}`, value]);
-      },
-    });
-  }
+  const { context, calls } = createRawRecordingContext();
   return { context: context as unknown as TileRenderContext2D, calls };
 }
 
@@ -176,6 +152,29 @@ describe("drawTerrain", () => {
       ["set:fillStyle", "#4d5361"],
       ["fillRect", 0, 0, 50, 50],
     ]);
+  });
+
+  it("honors a custom boundary width, including its cull margin", () => {
+    const layer: StructuredTerrainLayer = {
+      assetId: "terrain:stone-floor",
+      cells: [],
+      edges: [{ orientation: "v", x1: 100, y1: 0, x2: 100, y2: 50 }],
+    };
+    const { context, calls } = createRecordingContext();
+
+    // Width 8 strokes reach 4px past the segment: an edge 3px outside the
+    // view survives the cull and draws at the requested width.
+    drawTerrain(
+      context,
+      [layer],
+      terrainStyleForFrame,
+      0,
+      { x: 103, y: 0, width: 50, height: 50 },
+      { boundaryWidth: 8 },
+    );
+
+    expect(calls).toContainEqual(["set:lineWidth", 8]);
+    expect(calls).toContainEqual(["moveTo", 100, 0]);
   });
 
   it("keeps edges whose 2px stroke still reaches into the view", () => {
@@ -340,6 +339,25 @@ describe("drawGrid", () => {
       ["stroke"],
       ["restore"],
     ]);
+  });
+
+  it("applies a custom style (the editor's cyan grid), halving border segments", () => {
+    const { context, calls } = createRecordingContext();
+
+    drawGrid(
+      context,
+      SQUARE,
+      { x: 0, y: 0, width: 1, height: 1 },
+      {
+        color: "rgba(127,214,255,0.22)",
+        alpha: 1,
+        lineWidth: 2,
+      },
+    );
+
+    expect(calls).toContainEqual(["set:strokeStyle", "rgba(127,214,255,0.22)"]);
+    expect(calls).toContainEqual(["set:globalAlpha", 1]);
+    expect(calls).toContainEqual(["set:lineWidth", 1]); // 2 halved on border segments
   });
 
   it("draws nothing for a degenerate pattern", () => {
