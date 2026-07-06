@@ -68,7 +68,8 @@ pnpm --filter herobyte-client typecheck
 
 # 3. Lint: eslint --fix your changed files, then the ROOT lint
 #    (root covers shared AND server AND client — client-only lint once let
-#     server prettier errors reach a commit):
+#     server prettier errors reach a commit — AND the frozen-test gate,
+#     which fails if any *.frozen.test.* contract file was edited):
 pnpm --filter herobyte-client exec eslint --fix <changed files>
 pnpm lint
 
@@ -89,6 +90,19 @@ node apps/client/scripts/check-bundle-size.mjs
 Known transients: the batched client runner can fail under contention if a
 review Workflow is running (NEVER run `pnpm test` while a Workflow is live);
 e2e occasionally flakes on server startup — retry once before investigating.
+
+**Mandatory pre-commit checklist** (after all gates, before `git commit`):
+1. `git branch --show-current` → must print `dev`.
+2. `git status --short` → ONLY your slice's files. The tree contains
+   pre-existing untracked/modified files that are NOT yours
+   (`assets/images/Inspiration/`, `assets/images/logo/*`, `.gitignore`,
+   `.agents/AGENTS.md`) — never stage them. Therefore: **never `git add -A`
+   or `git add .`** — always stage an explicit file list.
+3. Read `git diff --cached` line by line. You are looking for: snapshot
+   blocks you didn't intend to change, debug leftovers, accidental deletions.
+   If anything surprises you, stop and explain it before committing.
+4. Every gate in §0.3 ran green IN THIS SESSION (not remembered from an
+   earlier state of the code).
 
 ### 0.4 Adversarial review — when and how
 
@@ -151,16 +165,28 @@ return { confirmed: judged.filter((f) => f.upheld === 2),
 While the workflow runs (10–15 min): do read-only prep for the next step
 (recon, drafting tests). Never run test suites or builds.
 
+**If your harness has no Workflow tool** (e.g. Codex, or a restricted
+session): do NOT self-certify a REQUIRED review. Instead: (1) finish the
+implementation and all §0.3 gates; (2) write the lens hunt-lists for your
+slice into the Attempt log as an explicit "review pending" entry; (3) leave
+the work UNCOMMITTED (or on a branch, never on `dev`) and end the session,
+telling the owner review is outstanding. A protocol/security slice merged
+without adversarial review is a playbook violation even if every test is
+green — the reviews on R2/R3 found seven real bugs that green suites missed.
+
 ### 0.5 Hard invariants and traps (violating any of these is a stop-ship)
 
 - **Export byte-parity.** `renderMapDocumentSvg` output must stay
   byte-identical for every possible MapDocument across renderer refactors.
-  Pinned by golden inline snapshots in
-  `apps/client/src/features/map-studio/__tests__/terrainRender.test.ts` and by
-  `exportMapDocument.test.ts` — those tests must stay green UNMODIFIED (adding
-  new tests is fine; editing existing assertions is not). Note the lesson from
-  R2: edge orientation is an explicit `"h" | "v"` field — never re-derive
-  geometry facts from float coordinates.
+  Pinned by golden snapshots in
+  `__tests__/terrainRenderParity.frozen.test.ts` — that file is
+  **hash-locked**: `scripts/check-frozen-tests.mjs` runs inside `pnpm lint`
+  and fails the build if it is edited, renamed, or deleted. If those tests go
+  red, the bug is in your code — fix the code. (`exportMapDocument.test.ts`
+  is add-only: new tests fine, editing existing assertions is not — that one
+  is enforced by the diff-read step in §0.3, so actually read the diff.)
+  Lesson from R2: edge orientation is an explicit `"h" | "v"` field — never
+  re-derive geometry facts from float coordinates.
 - **350-LOC file guard** (`pnpm lint:structure:enforce`, separate from lint).
   If a file approaches the cap, split by responsibility (precedent:
   `gridRenderCore.ts` split out of `tileRenderCore.ts`). Never update the
@@ -229,7 +255,238 @@ While the workflow runs (10–15 min): do read-only prep for the next step
   session's model has project memory, update the frontier note in
   `herobyte-north-star-vision.md` with commit hashes.
 
-### 0.7 Escape hatches
+### 0.7 Anticipated failure modes — prevention and recovery
+
+These are the specific ways executor sessions go wrong. Each has a
+prevention rule, a detection signal, and a recovery procedure. When you
+notice a detection signal, STOP and run the recovery — do not push through.
+
+**F1. Editing tests to force green.**
+- Prevent: the parity pins are hash-locked (fails `pnpm lint`). For all other
+  tests the rule is: a test you didn't write in this slice that goes red is
+  evidence about YOUR code. Never weaken an assertion, never delete a test,
+  never run `vitest -u` / `--update` (banned outright — it rewrites every
+  snapshot in reach).
+- Detect: your diff touches a `__tests__` file you weren't instructed to
+  touch, or a snapshot block changed that you didn't deliberately author.
+- Recover: `git checkout -- <test file>`, re-run the failing test, and debug
+  the product code. If you genuinely believe the old expectation is wrong,
+  that is an owner decision — Attempt log + stop.
+
+**F2. Improvising past a STOP condition.**
+- Prevent: the "Expected findings" in each slice's recon are load-bearing;
+  the designs assume them.
+- Detect: you are writing code that isn't described in your slice's Steps, or
+  you're adding a workaround for something the plan says shouldn't happen.
+- Recover: `git stash`, write what you found in the Attempt log (§9), end
+  the session. An unimplemented slice costs a day; an improvised protocol
+  costs a migration.
+
+**F3. Touching dependencies.**
+- Prevent: NEVER run `pnpm add`, `pnpm install`, `pnpm update`, or delete
+  `node_modules`. The store-version mismatch (§0.5) makes all of these
+  destructive. Every slice in this playbook is designed to need zero new
+  packages.
+- Detect: the exact error `ERR_PNPM_UNEXPECTED_STORE` means you already
+  crossed the line.
+- Recover: if you only ran `pnpm add` and it errored, nothing changed — carry
+  on. If you ran `pnpm install` and it started relinking: stop everything,
+  do NOT try to fix it, write exactly what you ran in the Attempt log, end
+  the session. Restoring node_modules is an owner action (nothing in git is
+  harmed; the working tree code is safe).
+
+**F4. Staging the wrong files.**
+- Prevent: explicit `git add <file list>` only (§0.3 checklist). Known
+  bystanders that must never be committed: `assets/images/Inspiration/`,
+  `assets/images/logo/*.png`, `.gitignore`, `.agents/AGENTS.md`.
+- Detect: `git status --short` shows staged files outside your slice.
+- Recover: before commit: `git reset <file>`. After commit (not yet pushed):
+  `git reset --soft HEAD~1`, restage correctly, recommit with the same
+  message. Never `git reset --hard` (it destroys working-tree changes).
+
+**F5. Committing on the wrong branch.**
+- Prevent: `git branch --show-current` in the pre-commit checklist.
+- Recover: if you committed to `main` by mistake: do not push, do not try
+  branch surgery — Attempt log with the commit hash, end the session.
+
+**F6. Running suites during a live review Workflow.**
+- Detect: batched client tests fail with contention/worker errors while your
+  Workflow is running.
+- Recover: it's transient. Wait for the Workflow to complete, re-run — it
+  goes green. Do not start "fixing" those failures.
+
+**F7. Context exhaustion.**
+- Prevent: one slice per session; recon via §0.8 pointers instead of
+  searching; Read big files only at the listed offsets; never re-read files
+  you already have; summaries not transcripts in the Attempt log.
+- Detect: you have burned most of your window and implementation hasn't
+  started — or you feel pressure to "skip the ritual just this once."
+- Recover: the ritual is never the thing to cut. Write the Attempt log entry,
+  end the session; the next session picks up from a clean tree + your notes.
+
+**F8. Hallucinated APIs.**
+- Prevent: only call functions/types you have SEEN in a file during this
+  session (§0.8 tells you where everything is). If you "remember" an API but
+  can't cite the file, look it up first.
+- Detect: typecheck errors about missing exports/properties.
+- Recover: believe the compiler. Read the actual source file, don't guess a
+  second spelling.
+
+**F9. E2E flake vs. real failure.**
+- Rule: same test failing twice in a row = real. Failing once then passing =
+  flake, note it and move on. If e2e fails with port errors, a leftover dev
+  server is running: `pnpm dev:free` (frees 5174/8787) and
+  `pnpm e2e:free` (5175/8788), then re-run.
+
+**F10. Fixing symptoms at the wrong layer.**
+- Rule: terrain geometry has ONE source of truth
+  (`buildStructuredTerrainLayers`); grid geometry has ONE
+  (`getGridGeometry`'s path strings). If two render surfaces disagree, the
+  bug is in exactly one consumer or in the shared source — never patch both
+  sides to converge, and never fork the math into a second implementation.
+
+**F11. Auto-written snapshots hiding drift.**
+- `vitest run` AUTO-POPULATES empty `toMatchInlineSnapshot()` calls by
+  editing your test file. That's the pinning technique (§0.2) — but it means
+  a test file can change without you typing in it. The diff-read in the
+  pre-commit checklist is the catch: any snapshot content in the diff must be
+  content you deliberately pinned.
+
+**F12. Leaving processes running.**
+- Dev servers, vite watchers, or preview browsers left running cause port
+  conflicts and flaky suites later. Before running `pnpm test:e2e`, and at
+  session end, kill what you started (`pnpm dev:free`). Also note: the app
+  renders a MOBILE layout below ~1280px width — a "missing DM MENU button"
+  during manual smoke means your window is too narrow, not a bug.
+
+### 0.8 Context index — where everything lives (read this, don't search)
+
+Line numbers verified 2026-07-06; if a file has drifted, the grep pattern
+finds the symbol in one call. Strategy column says how to load it without
+wasting context.
+
+**Renderer core — small files, read whole when your slice touches them:**
+
+| File | LOC | What's in it |
+|---|---|---|
+| `apps/client/src/features/render/tileRenderCore.ts` | ~210 | `drawTerrain`, `TerrainCellRect` (has `cellX/cellY`), `TerrainBoundaryEdge` (explicit `orientation`), `StructuredTerrainLayer`, `TerrainStyleResolver`, `RenderViewRect`, `TileRenderContext2D`, `TerrainAtlasSource`, `TerrainDrawOptions` |
+| `apps/client/src/features/render/gridRenderCore.ts` | ~175 | `drawGrid`, `GridPattern`, `GridDrawStyle`, `parseGridPatternPath` |
+| `apps/client/src/features/render/tileAtlas.ts` | ~120 | `TileAtlas`, `createTileAtlas`, `variantIndexForCell`, `loadTileAtlas` (singleton), `useTileAtlas`, `__resetTileAtlasForTests` |
+| `apps/client/src/features/render/animationClock.ts` | 86 | `ANIMATION_STEP_MS` (300), `subscribeAnimationClock`, `animationClockStep`, `__resetAnimationClockForTests` |
+| `apps/client/src/features/render/useAnimationClock.ts` | ~40 | `useAnimationFrameIndex(frameCount, enabled)` |
+| `apps/client/src/features/render/__tests__/recordingContext.ts` | ~60 | `createRecordingContext` (mock 2D ctx), `hasCallPair` |
+
+**Map Studio:**
+
+| File | LOC | Strategy / anchors |
+|---|---|---|
+| `features/map-studio/terrainRender.ts` | ~100 | read whole. `buildStructuredTerrainLayers` (single source of terrain geometry), `buildTerrainRenderLayers` (byte-parity SVG adapter) |
+| `features/map-studio/tileAutotiling.ts` | ~125 | read whole. `buildTileOccupancy` (image-tile exclusion inside the element loop), `isAutotileCandidate`, `tileBoundaryPath` |
+| `features/map-studio/starterTiles.ts` | ~190 | read whole. `MAP_STUDIO_TILE_ASSETS`, `getMapStudioTileAsset`, `terrainFillForFrame`, `terrainStyleForFrame` |
+| `features/map-studio/gridGeometry.ts` | 35 | read whole. `getGridGeometry` — the ONLY source of grid path strings |
+| `features/map-studio/exportMapDocument.ts` | ~300 | read whole for R4b/R5a. `renderMapDocumentSvg`:20, `renderTerrain`:47, `MAX_PUBLISH_BACKGROUND_BYTES`:74, `backgroundExceedsPublishLimit`:76, `createMapDocumentSvgDataUrlWithAssets`:86, `rasterizeMapDocument`:146, `renderElement`:203 |
+| `features/map-studio/components/MapStudioCanvasUnderlay.tsx` | ~200 | read whole — it is the REFERENCE implementation for every new canvas surface (camera transform, offscreen opacity composite, DPR listener, atlas usage) |
+| `features/map-studio/components/MapStudioCanvas.tsx` | ~300 | read whole only for editor-JSX work; underlay wiring is near the top of the JSX |
+| `features/map-studio/components/useStudioCamera.ts` | 94 | read whole |
+| `features/map-studio/components/mapStudioWorkspaceUtils.ts` | ~305 | grep `renderedSvgViewport` (letterbox math, exported), `eventToMapPoint`:11 |
+| `features/map-studio/index.ts` | small | the barrel — Slice L's target |
+| `features/map-studio/uploads/assetUpload.ts` | small | `uploadHashFromAssetId`, `uploadedAssetUrl`, `clampImageMime` |
+
+**Shared package (`packages/shared/src`) — index.ts is 602 LOC, NEVER read whole:**
+- `index.ts:329` `mapBackground?: string` on the snapshot; `:340`
+  `compiledScene?: CompiledScene`; `:520–536` the client→server message
+  union — publish is `:528` `{ t: "map-studio-publish"; documentId; background }`.
+  Grep `"RoomSnapshot"` for the snapshot interface head.
+- `terrain.ts` — `TerrainMap`, `forEachTerrainCell`, `getTerrainCell`,
+  `paintTerrain`, RLE codec (read whole, it's the R5a payload type).
+- `sceneGeometry.ts` — `gridCellToWorldPoint`. `sceneCompiler.ts` —
+  `CompiledScene`, `CompiledDoorState`. `mapStudioGrid.ts` — `sanitizeMapGrid`.
+- After ANY shared edit: `pnpm --filter "@herobyte/shared" build`.
+
+**Server (`apps/server/src`) — targeted reads:**
+- `domains/map/service.ts` (390 LOC) — publish/compile handling; `:78` sets
+  `state.mapBackground`. Read whole for R5a.
+- `ws/dispatchers/MapDispatcher.ts` — message routing; grep
+  `"map-studio-publish"` across `apps/server/src` to walk the publish chain.
+- `middleware/validators/mapValidators.ts:19` + neighbors — message
+  validation; publish cases in
+  `middleware/__tests__/mapStudioValidation.test.ts:21,152–155`.
+- 1MB inbound cap: grep `maxMessageSize` in `apps/server/src/ws`.
+- `http/routes.ts` + `domains/assets/` — Slice S surface.
+- Contract-test pattern: `ws/__tests__/multiRoom.contract.test.ts`.
+
+**Live table (R5b):**
+- `ui/MapBoard.tsx` (660 LOC — NEVER read whole). Background `<Layer>` at
+  `:506–535`: `MapImageLayer` (src = `mapObject?.data.imageUrl ??
+  snapshot?.mapBackground`), `GridLayer` (the table's OWN grid — leave it),
+  `DoorsLayer`. `useGridConfig` around `:271`. Read `:460–540` for the stage
+  + background region; grep for anything else.
+- `features/map/components/` — `MapImageLayer.tsx`, `GridLayer.tsx`,
+  `DoorsLayer.tsx`, `FogLayer.tsx` (read MapImageLayer + GridLayer whole to
+  copy the `cam`/transform conventions). Avoid `TokensLayer.tsx` (806) and
+  `DrawingsLayer.tsx` (564).
+- Konva mock pattern: `ui/__tests__/MapBoard.test.tsx`.
+
+**Client plumbing:**
+- `ui/App.tsx` (801 LOC — NEVER read whole): `:42` imports `useMapStudio`;
+  grep `matchMedia` for the mobile-layout query.
+- `layouts/CenterCanvasLayout.tsx`: `:29` static `MapStudioWorkspace` import
+  (Slice L removes), `:32` the `React.lazy` MapBoard pattern to copy.
+  `layouts/MobileLayout.tsx`: `:18/:22` same pair.
+  `layouts/FloatingPanelsLayout.tsx:26` — lazy `DMMenuContainer` precedent.
+- Client publish send site: grep `"map-studio-publish"` in `apps/client/src`.
+
+**E2E, scripts, assets:**
+- `apps/e2e/helpers.ts:3–4`: passwords `Fun1` / `FunDM`;
+  `joinDefaultRoomAsDM`:22, `elevateToDM`:27.
+  `apps/e2e/map-studio.smoke.spec.ts` — the studio flow to extend.
+- `scripts/`: `check-bundle-size.mjs` (175KB guard),
+  `structure-report.mjs` (350-LOC guard), `check-frozen-tests.mjs` (+
+  `frozen-tests.lock.json`), `build-tile-atlas.ps1` (atlas bake, Windows),
+  `run-vitest-batched.mjs` (what `pnpm test` runs for the client),
+  `run-e2e.mjs`, `dev-port-preflight.mjs` (powers `pnpm dev:free`).
+- `apps/client/public/tiles/tileset-v1.{png,json}` — the baked atlas +
+  manifest (license: UNSPECIFIED — owner question).
+- Docs: `VISION.md` (Pillar 2 ≈ line 40, M3 exit ≈ 138, client budgets ≈
+  162), `docs/planning/shared-tile-renderer-plan.md` (slice statuses).
+
+**Command quick reference:**
+```powershell
+pnpm --filter herobyte-client exec vitest run <paths>   # client tests, targeted
+pnpm --filter vtt-server test -- <path>                 # one server test file
+pnpm test / pnpm test:e2e / pnpm test:e2e:smoke         # suites
+pnpm lint / pnpm lint:structure:enforce / pnpm lint:frozen
+pnpm --filter herobyte-client build; node apps/client/scripts/check-bundle-size.mjs
+pnpm dev            # both dev servers (client 5174, server 8787)
+pnpm dev:free       # free stuck dev ports        pnpm e2e:free  # e2e ports
+pwsh scripts/build-tile-atlas.ps1                       # rebake atlas (art changes only)
+```
+
+### 0.9 Per-slice kickoff prompts (owner: paste one per session)
+
+Start every executor session with exactly one of these. They scope the
+session and pre-empt the failure modes in §0.7.
+
+> You are executing **Slice <L | R5a | R5b | R4b | S | R4c-prep>** of
+> `docs/planning/renderer-endgame-playbook.md` in `D:\HeroByte`. First read
+> §0 of that file in full, then your slice's section, then begin with its
+> recon commands. Binding rules: one slice this session; stop conditions are
+> real — when recon contradicts an expected finding, stash and stop; use the
+> §0.8 context index instead of searching; never edit frozen or existing
+> tests to make them pass; never run `pnpm add/install`; stage explicit file
+> lists only; commit to `dev` only with every §0.3 gate green in this
+> session. If you cannot finish cleanly, leave the tree stashed and write the
+> Attempt log entry (§9) instead of committing.
+
+For R5a and S append:
+> This slice REQUIRES the adversarial review in §0.4. Run it (or the
+> no-Workflow fallback if your harness lacks the tool), fix confirmed
+> findings, re-run the gates — then STOP WITHOUT COMMITTING. Post the full
+> `git diff` summary, the review verdicts, and the gate results, and leave
+> the tree for the owner to read and commit. Protocol/security slices do not
+> land on `dev` without owner eyes.
+
+### 0.10 Escape hatches
 
 - A gate won't go green and you can't see why within ~30 min → stop, revert to
   clean tree (`git stash`), write what you tried + the failing output into
@@ -261,6 +518,17 @@ L first — it's the calibration slice (teaches the ritual end-to-end with low
 stakes) and buys entry-budget headroom before R5b adds table code.
 If the day ends after #3, the pillar's headline (one renderer, both surfaces,
 water animating at the table) is DONE; #4–6 carry over.
+
+**Owner routing note (risk allocation by executor capability):**
+- Safe to hand to any executor: **L, R4b, R5b, R4c-prep** — client rendering,
+  visible-and-revertible failure modes, strong unit/e2e nets.
+- **R5a and S** are protocol/security: their failure modes are silent and
+  persistent, AND the adversarial-review safety net runs on the same model
+  that wrote the code (weaker executor ⇒ weaker reviewers). Prefer the
+  strongest available model for these two; if a lesser model executes them,
+  the OWNER must personally read the full diff before it lands on `dev` — the
+  kickoff prompt for these slices tells the executor to stop before
+  committing and leave the diff for review.
 
 ---
 
@@ -657,6 +925,6 @@ Commit: `feat: 47-blob autotile math — the sockets are wired, awaiting art`.
 - [ ] Update project memory frontier (if the session has memory) with commit
       hashes; keep `MEMORY.md` index lines intact.
 
-## Attempt log
+## 9. Attempt log
 
 (append entries here: date, slice, what was tried, outcome, blocking output)

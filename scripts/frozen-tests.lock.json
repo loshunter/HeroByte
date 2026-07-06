@@ -1,0 +1,6 @@
+{
+  "comment": "Hash lock for frozen test files. Verified by scripts/check-frozen-tests.mjs (runs inside `pnpm lint`). Owner-only updates via --update.",
+  "files": {
+    "apps/client/src/features/map-studio/__tests__/terrainRenderParity.frozen.test.ts": "31a067e3e365b593553345e86251cd5d43424e4d8f2f91451aed2a79f2597122"
+  }
+}
