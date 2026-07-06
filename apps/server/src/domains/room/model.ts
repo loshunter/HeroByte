@@ -5,6 +5,7 @@
 
 import type {
   CompiledScene,
+  MapTerrainSnapshot,
   RoomSnapshot,
   Token,
   Player,
@@ -49,6 +50,7 @@ export interface RoomState {
   combatActive: boolean; // Whether combat/initiative tracking is active
   currentTurnCharacterId?: string; // ID of character whose turn it currently is
   compiledScene?: CompiledScene; // Geometry compiled from the last published Map Studio document
+  mapTerrain?: MapTerrainSnapshot; // Painted terrain published as data (elements-only backgrounds)
   fogEnabled: boolean; // Whether fog of war hides the map beyond player sightlines
 }
 
@@ -77,6 +79,7 @@ export function createEmptyRoomState(): RoomState {
     combatActive: false,
     currentTurnCharacterId: undefined,
     compiledScene: undefined,
+    mapTerrain: undefined,
     fogEnabled: false,
   };
 }
@@ -311,6 +314,12 @@ export function toSnapshot(
           ],
           doors: state.compiledScene.doors.filter((door) => door.state !== "secret"),
         };
+  }
+
+  // Published terrain is visible map art — the same data for every role
+  // (unlike compiledScene, which strips secret doors for players).
+  if (state.mapTerrain) {
+    snapshot.mapTerrain = state.mapTerrain;
   }
 
   if (assets.length > 0) {

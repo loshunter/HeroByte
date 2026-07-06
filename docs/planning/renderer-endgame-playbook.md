@@ -599,15 +599,31 @@ path.
 
 ---
 
-## 3. Slice R5a — Publish carries terrain (protocol) [REVIEW REQUIRED]
+## 3. Slice R5a — Publish carries terrain (protocol) — DONE ✅
 
-**Goal:** a Forge-published scene reaches the table as
-(a) an elements-only background SVG (transparent, no baked terrain/bg/grid) and
-(b) a `mapTerrain` snapshot field carrying the painted terrain + lattice info,
-with full back-compat for existing snapshots.
-**Why:** the table can't animate water baked into a raster; and once terrain
-rides as data, the 1MB publish cap stops fighting us (RLE terrain is tiny;
-elements-only SVG is smaller than today's).
+Shipped (commit on `dev`; adversarial review clean, one contested opacity
+finding fixed). The design below is preserved as the record of what landed;
+R5b (§4) consumes it. **Actual shipped shape (use these, not the sketch):**
+
+- Shared (`packages/shared/src/index.ts`): `MapPublishBackgroundMode =
+  "full" | "elements-only"`; `MapTerrainSnapshot = { terrain: TerrainMap;
+  grid: { size, offsetX, offsetY }; opacity: number }` (opacity REQUIRED —
+  the terrain layer's baked opacity, applied at the table as globalAlpha);
+  `RoomSnapshot.mapTerrain?`; publish message gains `backgroundMode?`.
+- Server: `deriveMapTerrain` in `apps/server/src/ws/handlers/
+  MapStudioMessageHandler.ts` — server-derived from its stored document
+  ONLY (never client-trusted), `structuredClone`d point-in-time, undefined
+  unless `elements-only` + non-empty + visible terrain layer. Passed through
+  `toSnapshot` (both roles — terrain is visible art), persisted in
+  `StatePersistence` (save list + load map) and `SnapshotLoader`.
+- Client: `renderMapDocumentSvg(doc, uploads?, { omitTerrain, omitGrid,
+  transparentBackground })` + same options on
+  `createMapDocumentSvgDataUrlWithAssets`; `publishDocument(bg, docId?,
+  backgroundMode?)`. **The real publish flow (`useStudioPublish.ts`) still
+  sends full-render backgrounds — R5b flips it to elements-only.**
+
+Below is the original decided design (historical; the shipped shape above
+wins where they differ):
 
 **Preconditions:** none besides frontier. Slice L merged is nice-to-have.
 
@@ -703,7 +719,16 @@ validation of client-supplied RLE.
 `tileRenderCore` + the tile atlas — water shimmers at the table on the shared
 clock; uploaded/legacy backgrounds keep the raster path untouched.
 
-**Preconditions:** R5a merged.
+**Preconditions:** R5a merged (it is — §3 DONE).
+
+**FIRST also flip the publish path to elements-only (R5a shipped the
+capability but left the switch off):** in `features/map-studio/components/
+useStudioPublish.ts`, call `createMapDocumentSvgDataUrlWithAssets(doc, {
+omitTerrain: true, omitGrid: true, transparentBackground: true })` and
+`publishDocument(background, doc.id, "elements-only")`. Add a
+`useStudioPublish` test asserting the mode + that the background lacks
+`data-terrain`. Without this flip, `snapshot.mapTerrain` is never populated
+and R5b renders nothing — so this is step 0 of R5b, same commit.
 
 **Recon (expected findings — verify):**
 - `ui/MapBoard.tsx:506-535`: background `<Layer>` = `MapImageLayer`
@@ -756,6 +781,10 @@ clock; uploaded/legacy backgrounds keep the raster path untouched.
      comment this).
    - Clock redraw: `useEffect` subscribing via the frame value — when `frame`
      changes, call `shapeRef.current?.getLayer()?.batchDraw()`.
+   - **Apply `mapTerrain.opacity`** (R5a carries it, REQUIRED field) as the
+     Konva `Shape`'s `opacity` prop (or `ctx.globalAlpha` in the sceneFunc) —
+     it is the terrain layer's baked opacity; skipping it makes translucent
+     terrain render fully opaque, diverging from the editor/export.
 2. MapBoard change (minimal): render `<TerrainLayer …/>` BEFORE
    `MapImageLayer` inside the background Layer, only when
    `snapshot?.mapTerrain` exists. The elements-only background then draws

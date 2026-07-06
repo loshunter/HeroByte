@@ -13,6 +13,18 @@ import {
 
 export type MapExportFormat = "json" | "svg" | "png" | "webp";
 
+/**
+ * Publish-path variations (R5): an "elements-only" background omits the
+ * baked background/grid/terrain so the live table can draw them itself
+ * (terrain rides the snapshot as data and animates). The default (no
+ * options) render is a BYTE-PARITY contract — pinned by frozen tests.
+ */
+export interface RenderMapDocumentSvgOptions {
+  omitTerrain?: boolean;
+  omitGrid?: boolean;
+  transparentBackground?: boolean;
+}
+
 export function serializeMapDocument(document: MapDocument): string {
   return JSON.stringify(document, null, 2);
 }
@@ -20,6 +32,7 @@ export function serializeMapDocument(document: MapDocument): string {
 export function renderMapDocumentSvg(
   document: MapDocument,
   uploadDataUrls?: ReadonlyMap<string, string>,
+  options?: RenderMapDocumentSvgOptions,
 ): string {
   const grid = getGridGeometry(document.grid.type, document.grid.size);
   const layers = new Map(document.layers.map((layer) => [layer.id, layer]));
@@ -37,10 +50,15 @@ export function renderMapDocumentSvg(
       ),
     )
     .join("");
-  const pattern = document.grid.visible
-    ? `<defs><pattern id="grid" width="${grid.width}" height="${grid.height}" patternUnits="userSpaceOnUse" x="${document.grid.offsetX}" y="${document.grid.offsetY}"><path d="${grid.path}" fill="none" stroke="#ffffff" stroke-opacity="0.16" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#grid)"/>`
-    : "";
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${document.width}" height="${document.height}" viewBox="0 0 ${document.width} ${document.height}"><title>${xml(document.name)}</title><rect width="100%" height="100%" fill="#24212b"/>${pattern}${renderTerrain(document, occupancy)}${elements}</svg>`;
+  const pattern =
+    document.grid.visible && !options?.omitGrid
+      ? `<defs><pattern id="grid" width="${grid.width}" height="${grid.height}" patternUnits="userSpaceOnUse" x="${document.grid.offsetX}" y="${document.grid.offsetY}"><path d="${grid.path}" fill="none" stroke="#ffffff" stroke-opacity="0.16" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#grid)"/>`
+      : "";
+  const background = options?.transparentBackground
+    ? ""
+    : `<rect width="100%" height="100%" fill="#24212b"/>`;
+  const terrain = options?.omitTerrain ? "" : renderTerrain(document, occupancy);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${document.width}" height="${document.height}" viewBox="0 0 ${document.width} ${document.height}"><title>${xml(document.name)}</title>${background}${pattern}${terrain}${elements}</svg>`;
 }
 
 /** Painted terrain renders beneath every element, matching the live canvas. */
@@ -85,10 +103,11 @@ export function backgroundExceedsPublishLimit(background: string): boolean {
  */
 export async function createMapDocumentSvgDataUrlWithAssets(
   document: MapDocument,
+  options?: RenderMapDocumentSvgOptions,
 ): Promise<string> {
   const uploadDataUrls = await collectUploadDataUrls(document);
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
-    renderMapDocumentSvg(document, uploadDataUrls),
+    renderMapDocumentSvg(document, uploadDataUrls, options),
   )}`;
 }
 

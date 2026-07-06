@@ -283,6 +283,61 @@ describe("Map Studio export", () => {
     });
   });
 
+  describe("elements-only publish render (R5)", () => {
+    function documentWithTerrainAndCrate() {
+      let document = createMapDocument({ id: "map", name: "Keep", timestamp: 10 });
+      document = paintTerrain(document, [{ x: 0, y: 0, assetId: "terrain:water" }], 20);
+      return addMapElement(
+        document,
+        {
+          id: "crate",
+          type: "stamp",
+          layerId: "objects",
+          locked: false,
+          hidden: false,
+          transform: { x: 10, y: 10, scaleX: 1, scaleY: 1, rotation: 0 },
+          data: { assetId: "objects:crate", width: 50, height: 50 },
+        },
+        30,
+      );
+    }
+
+    it("omits background, grid, and terrain while keeping elements", () => {
+      const svg = renderMapDocumentSvg(documentWithTerrainAndCrate(), undefined, {
+        omitTerrain: true,
+        omitGrid: true,
+        transparentBackground: true,
+      });
+
+      expect(svg).not.toContain('fill="#24212b"');
+      expect(svg).not.toContain("url(#grid)");
+      expect(svg).not.toContain("data-terrain");
+      expect(svg).toContain('data-asset-id="objects:crate"');
+    });
+
+    it("changes nothing when no options are passed (byte parity)", () => {
+      const document = documentWithTerrainAndCrate();
+      expect(renderMapDocumentSvg(document)).toBe(renderMapDocumentSvg(document, undefined, {}));
+    });
+
+    it("forwards render options through the publish data-URL path", async () => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+
+      const dataUrl = await createMapDocumentSvgDataUrlWithAssets(documentWithTerrainAndCrate(), {
+        omitTerrain: true,
+        omitGrid: true,
+        transparentBackground: true,
+      });
+
+      const svg = decodeURIComponent(dataUrl.split(",").slice(1).join(","));
+      expect(svg).not.toContain("data-terrain");
+      expect(svg).not.toContain('fill="#24212b"');
+      expect(svg).toContain('data-asset-id="objects:crate"');
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+  });
+
   describe("uploaded image assets", () => {
     const HASH = "d".repeat(64);
     const UPLOAD_URL = `http://localhost:8787/assets/${HASH}`;

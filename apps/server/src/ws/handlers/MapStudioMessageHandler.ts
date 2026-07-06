@@ -5,6 +5,8 @@ import {
   type ClientMessage,
   type MapDocument,
   type MapDocumentSummary,
+  type MapPublishBackgroundMode,
+  type MapTerrainSnapshot,
   type ServerMessage,
 } from "@herobyte/shared";
 import type { MapStudioService } from "../../domains/mapStudio/service.js";
@@ -86,6 +88,7 @@ export class MapStudioMessageHandler {
         const document = this.service.get(roomId, message.documentId);
         const state = this.getRoomState(roomId);
         state.mapBackground = message.background;
+        state.mapTerrain = deriveMapTerrain(document, message.backgroundMode);
         state.gridSize = toLiveGridSize(document.grid.size);
         state.gridSquareSize = document.grid.squareSize;
         state.compiledScene = compileScene(document, this.now());
@@ -124,6 +127,39 @@ export class MapStudioMessageHandler {
       actualRevision: conflict ? error.actualRevision : undefined,
     });
   }
+}
+
+/**
+ * Terrain rides the snapshot as data only when the client shipped an
+ * elements-only background — attaching it under a legacy full-render
+ * background would draw the terrain twice at the table. Always derived from
+ * the SERVER's stored document (never from a client payload), point-in-time
+ * cloned so later document edits can't mutate the published scene through a
+ * shared reference. Mirrors the export's visibility rule: a hidden
+ * terrain-kind layer publishes no terrain. The grid rides along because the
+ * background SVG and the terrain share the DOCUMENT's lattice, independent
+ * of the table's live grid setting.
+ */
+function deriveMapTerrain(
+  document: MapDocument,
+  backgroundMode: MapPublishBackgroundMode | undefined,
+): MapTerrainSnapshot | undefined {
+  if (backgroundMode !== "elements-only") return undefined;
+  const terrain = document.terrain;
+  if (!terrain || Object.keys(terrain.chunks).length === 0) return undefined;
+  const terrainLayer = document.layers.find((layer) => layer.kind === "terrain");
+  if (terrainLayer && (!terrainLayer.visible || terrainLayer.opacity <= 0)) return undefined;
+  return {
+    terrain: structuredClone(terrain),
+    grid: {
+      size: document.grid.size,
+      offsetX: document.grid.offsetX,
+      offsetY: document.grid.offsetY,
+    },
+    // Matches renderTerrain's baked opacity so full and elements-only
+    // publishes render identically.
+    opacity: terrainLayer?.opacity ?? 1,
+  };
 }
 
 function isMapStudioMessage(

@@ -3,6 +3,7 @@ import type {
   ClientMessage,
   MapDocument,
   MapDocumentSummary,
+  MapPublishBackgroundMode,
   MapStudioCommand,
 } from "@herobyte/shared";
 import { generateUUID } from "../../utils/uuid";
@@ -69,11 +70,17 @@ export function useMapStudio(
   );
 
   const publishDocument = useCallback(
-    (background: string, documentId?: string) => {
+    (background: string, documentId?: string, backgroundMode?: MapPublishBackgroundMode) => {
       const document = activeDocumentRef.current;
       if (!document) return false;
       if (documentId && document.id !== documentId) return false;
-      sendMessage({ t: "map-studio-publish", documentId: document.id, background });
+      sendMessage({
+        t: "map-studio-publish",
+        documentId: document.id,
+        background,
+        // Omitted (not undefined) for legacy-shaped messages on the wire.
+        ...(backgroundMode ? { backgroundMode } : {}),
+      });
       return true;
     },
     [sendMessage],

@@ -291,6 +291,115 @@ describe("MapStudioMessageHandler", () => {
       expect(roomState.compiledScene).toBeUndefined();
       expect(roomState.mapBackground).toBeUndefined();
     });
+
+    function paintWater(baseRevision: number): void {
+      service.apply(
+        "room",
+        {
+          commandId: `paint-${baseRevision}`,
+          documentId: "map",
+          baseRevision,
+          type: "paint-terrain",
+          cells: [
+            { x: 0, y: 0, assetId: "terrain:water" },
+            { x: 1, y: 0, assetId: "terrain:water" },
+          ],
+        },
+        3,
+      );
+    }
+
+    function publish(backgroundMode?: "full" | "elements-only"): void {
+      handler.handle(
+        {
+          t: "map-studio-publish",
+          documentId: "map",
+          background: "data:image/svg+xml,live",
+          backgroundMode,
+        },
+        "dm",
+        "room",
+        true,
+      );
+    }
+
+    it("attaches point-in-time terrain when the background is elements-only", () => {
+      createPublishedDocument();
+      paintWater(1);
+
+      publish("elements-only");
+
+      const documentTerrain = service.get("room", "map").terrain;
+      expect(roomState.mapTerrain?.grid).toEqual({ size: 50, offsetX: 0, offsetY: 0 });
+      expect(roomState.mapTerrain?.terrain).toEqual(documentTerrain);
+      expect(roomState.mapTerrain?.opacity).toBe(1);
+      // Point-in-time copy: later document edits must not mutate the
+      // published scene through a shared reference.
+      expect(roomState.mapTerrain?.terrain).not.toBe(documentTerrain);
+    });
+
+    it("carries the terrain layer's fractional opacity so the table matches the baked render", () => {
+      createPublishedDocument();
+      paintWater(1);
+      service.apply(
+        "room",
+        {
+          commandId: "dim-terrain",
+          documentId: "map",
+          baseRevision: 2,
+          type: "update-layer",
+          layerId: "terrain",
+          update: { opacity: 0.4 },
+        },
+        4,
+      );
+
+      publish("elements-only");
+
+      expect(roomState.mapTerrain?.opacity).toBe(0.4);
+    });
+
+    it("clears previously published terrain when a legacy full background arrives", () => {
+      createPublishedDocument();
+      paintWater(1);
+      publish("elements-only");
+      expect(roomState.mapTerrain).toBeDefined();
+
+      publish(undefined);
+
+      // A full background has terrain baked in — attaching data terrain too
+      // would draw it twice at the table.
+      expect(roomState.mapTerrain).toBeUndefined();
+    });
+
+    it("publishes no terrain when the terrain-kind layer is hidden", () => {
+      createPublishedDocument();
+      paintWater(1);
+      service.apply(
+        "room",
+        {
+          commandId: "hide-terrain",
+          documentId: "map",
+          baseRevision: 2,
+          type: "update-layer",
+          layerId: "terrain",
+          update: { visible: false },
+        },
+        4,
+      );
+
+      publish("elements-only");
+
+      expect(roomState.mapTerrain).toBeUndefined();
+    });
+
+    it("publishes no terrain for a document with none painted", () => {
+      createPublishedDocument();
+
+      publish("elements-only");
+
+      expect(roomState.mapTerrain).toBeUndefined();
+    });
   });
 
   it.each([

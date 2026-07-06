@@ -314,6 +314,9 @@ export function validateMapStudioPublishMessage(message: MessageRecord): Validat
       documentId: id,
       // Same ceiling as the live map-background payload (10MB).
       background: z.string().min(1).max(PAYLOAD_LIMITS.MAP_SIZE),
+      // Absent == "full" (legacy clients). "elements-only" makes the server
+      // attach the document's terrain to the snapshot as data (R5).
+      backgroundMode: z.enum(["full", "elements-only"]).optional(),
     }),
     message,
   );

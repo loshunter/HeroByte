@@ -110,6 +110,7 @@ export class StatePersistence {
           combatActive: data.combatActive ?? false,
           currentTurnCharacterId: data.currentTurnCharacterId ?? undefined,
           compiledScene: data.compiledScene ?? undefined,
+          mapTerrain: data.mapTerrain ?? undefined,
           fogEnabled: data.fogEnabled ?? false,
         };
 
@@ -171,6 +172,7 @@ export class StatePersistence {
       sceneObjects: state.sceneObjects,
       playerStagingZone: state.playerStagingZone,
       compiledScene: state.compiledScene,
+      mapTerrain: state.mapTerrain,
       fogEnabled: state.fogEnabled,
       stateVersion: state.stateVersion,
     };

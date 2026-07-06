@@ -123,6 +123,23 @@ describe("useMapStudio", () => {
     });
   });
 
+  it("publishes with an explicit background mode when the caller supplies one", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    const document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
+    act(() => result.current.handleServerMessage({ t: "map-studio-document", document }));
+
+    act(() => {
+      result.current.publishDocument("data:image/svg+xml,render", "map", "elements-only");
+    });
+
+    expect(sendMessage).toHaveBeenLastCalledWith({
+      t: "map-studio-publish",
+      documentId: "map",
+      background: "data:image/svg+xml,render",
+      backgroundMode: "elements-only",
+    });
+  });
+
   it("refuses to publish when no document is active", () => {
     const { result } = renderHook(() => useMapStudio(sendMessage));
 

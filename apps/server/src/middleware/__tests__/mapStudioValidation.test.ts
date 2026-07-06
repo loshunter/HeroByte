@@ -20,6 +20,18 @@ describe("Map Studio message validation", () => {
     },
     { t: "map-studio-publish", documentId: "map", background: "data:image/svg+xml,render" },
     {
+      t: "map-studio-publish",
+      documentId: "map",
+      background: "data:image/svg+xml,render",
+      backgroundMode: "elements-only",
+    },
+    {
+      t: "map-studio-publish",
+      documentId: "map",
+      background: "data:image/svg+xml,render",
+      backgroundMode: "full",
+    },
+    {
       t: "map-studio-import",
       document: {
         schemaVersion: 1,
@@ -152,6 +164,12 @@ describe("Map Studio message validation", () => {
     { t: "map-studio-publish", documentId: "", background: "data:image/svg+xml,render" },
     { t: "map-studio-publish", documentId: "map", background: "" },
     { t: "map-studio-publish", documentId: "map" },
+    {
+      t: "map-studio-publish",
+      documentId: "map",
+      background: "data:image/svg+xml,render",
+      backgroundMode: "compressed",
+    },
   ])("rejects malformed publish payload %#", (message) => {
     expect(validateMessage(message).valid).toBe(false);
   });

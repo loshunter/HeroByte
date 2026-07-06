@@ -4,6 +4,7 @@ import type {
   MapElementUpdate,
   MapGridUpdate,
   MapLayerUpdate,
+  MapPublishBackgroundMode,
   ServerMessage,
   TerrainPaintCell,
 } from "@herobyte/shared";
@@ -103,8 +104,15 @@ export interface MapStudioController {
    * Publish the active document: the server compiles walls/doors/lights into
    * the live scene. Passing documentId makes the publish a no-op if a
    * different document became active meanwhile (async background rendering).
+   * backgroundMode "elements-only" tells the server to attach the document's
+   * terrain to the snapshot as data (R5); absent means a full-render
+   * background (legacy behavior).
    */
-  publishDocument: (background: string, documentId?: string) => boolean;
+  publishDocument: (
+    background: string,
+    documentId?: string,
+    backgroundMode?: MapPublishBackgroundMode,
+  ) => boolean;
   /** Upload an image to the content-addressed asset service (rejects with AssetUploadError). */
   uploadAsset: (file: File) => Promise<UploadedAssetInfo>;
   /** Restore a serialized JSON backup as a new document (fresh id, server-sanitized). */

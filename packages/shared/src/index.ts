@@ -7,6 +7,7 @@
 import type { CreateMapDocumentInput, MapDocument, MapDocumentSummary } from "./mapStudioTypes.js";
 import type { MapStudioCommand } from "./mapStudioCommands.js";
 import type { CompiledDoorState, CompiledScene } from "./sceneCompiler.js";
+import type { TerrainMap } from "./terrain.js";
 
 // Export domain models
 export { TokenModel, PlayerModel, CharacterModel } from "./models.js";
@@ -319,6 +320,31 @@ export interface SnapshotAsset<TPayload = unknown> {
 
 export type SnapshotAssetRefs = Partial<Record<SnapshotAssetType, string>>;
 
+/**
+ * How the client rendered the published background SVG. "full" (and absent,
+ * for legacy clients) means terrain/grid/background are baked into the SVG;
+ * "elements-only" means the SVG is transparent and carries only elements, so
+ * the server attaches `mapTerrain` for the table to draw live (R5).
+ */
+export type MapPublishBackgroundMode = "full" | "elements-only";
+
+/**
+ * Painted terrain published to the live table: the document's RLE terrain
+ * plus the lattice it indexes (document pixel space — the same space the
+ * background SVG renders in, independent of the table's live grid setting).
+ * Visible map art only; never a channel for hidden information.
+ */
+export interface MapTerrainSnapshot {
+  terrain: TerrainMap;
+  grid: { size: number; offsetX: number; offsetY: number };
+  /**
+   * The terrain-kind layer's opacity (0..1). Baked into the full-render SVG
+   * today; carried here so an elements-only table render matches it exactly
+   * (the live surface applies it as globalAlpha). Defaults to 1.
+   */
+  opacity: number;
+}
+
 export interface RoomSnapshot {
   users: string[]; // Legacy array of UIDs (deprecated, use players)
   tokens: Token[]; // All tokens on the map
@@ -338,6 +364,7 @@ export interface RoomSnapshot {
   combatActive?: boolean; // Whether initiative tracking/combat mode is active
   currentTurnCharacterId?: string; // Character ID of whose turn it currently is
   compiledScene?: CompiledScene; // Play-surface geometry compiled at Map Studio publish (secret doors stripped for players)
+  mapTerrain?: MapTerrainSnapshot; // Painted terrain published as data (only when the background is elements-only)
   fogEnabled?: boolean; // Whether fog of war hides the map beyond player token sightlines
   assets?: SnapshotAsset[];
   assetRefs?: SnapshotAssetRefs;
@@ -525,7 +552,12 @@ type ClientMessagePayload =
   | { t: "map-studio-command"; command: MapStudioCommand }
   | { t: "map-studio-delete"; documentId: string }
   | { t: "map-studio-import"; document: MapDocument } // Restore a serialized JSON backup as a new document
-  | { t: "map-studio-publish"; documentId: string; background: string } // Compile document into the live scene (server-authoritative geometry)
+  | {
+      t: "map-studio-publish";
+      documentId: string;
+      background: string;
+      backgroundMode?: MapPublishBackgroundMode; // absent == "full" (legacy clients)
+    } // Compile document into the live scene (server-authoritative geometry)
 
   // Live scene interactions (compiled doors are clickable at the table)
   | { t: "toggle-door"; doorId: string } // Flip a door open/closed; locked and secret doors refuse non-DM toggles

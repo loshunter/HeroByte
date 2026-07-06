@@ -70,6 +70,28 @@ describe("StatePersistence - Characterization Tests", () => {
     }
   });
 
+  describe("published terrain (mapTerrain)", () => {
+    it("persists published terrain across save/load", async () => {
+      const state = roomService.getState();
+      state.mapTerrain = {
+        terrain: {
+          schemaVersion: 1,
+          palette: ["terrain:water"],
+          chunks: { "0,0": [1, 1, 255, 0] },
+        },
+        grid: { size: 50, offsetX: 0, offsetY: 0 },
+        opacity: 0.5,
+      };
+      roomService.saveState();
+      await roomService.awaitPendingWrites();
+
+      const restored = new RoomService();
+      restored.loadState();
+
+      expect(restored.getState().mapTerrain).toEqual(state.mapTerrain);
+    });
+  });
+
   describe("loadState()", () => {
     it("should do nothing when state file does not exist", () => {
       // Ensure file doesn't exist

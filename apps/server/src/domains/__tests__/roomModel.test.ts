@@ -61,6 +61,25 @@ describe("Room Model - toSnapshot", () => {
       expect(toSnapshot(createEmptyRoomState(), false).compiledScene).toBeUndefined();
     });
 
+    it("passes published terrain through to DM and player snapshots alike", () => {
+      // Terrain is visible map art (no hidden info), so unlike compiledScene
+      // it needs no per-role stripping — but it must actually ride along.
+      const state = createEmptyRoomState();
+      state.mapTerrain = {
+        terrain: {
+          schemaVersion: 1,
+          palette: ["terrain:water"],
+          chunks: { "0,0": [1, 1, 255, 0] },
+        },
+        grid: { size: 50, offsetX: 0, offsetY: 0 },
+        opacity: 1,
+      };
+
+      expect(toSnapshot(state, true).mapTerrain).toEqual(state.mapTerrain);
+      expect(toSnapshot(state, false).mapTerrain).toEqual(state.mapTerrain);
+      expect(toSnapshot(createEmptyRoomState(), false).mapTerrain).toBeUndefined();
+    });
+
     it("sends the full compiled scene to the DM, secret doors included", () => {
       const snapshot = toSnapshot(stateWithCompiledScene(), true);
 
