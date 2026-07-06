@@ -245,6 +245,42 @@ describe("Map Studio export", () => {
 
       expect(renderMapDocumentSvg(document)).not.toContain("data-terrain");
     });
+
+    it("keeps terrain beneath uploaded image tiles (transparent uploads show ground, not void)", () => {
+      let document = createMapDocument({ id: "map", name: "Keep", timestamp: 10 });
+      document = paintTerrain(
+        document,
+        [
+          { x: 0, y: 0, assetId: "terrain:grass" },
+          { x: 1, y: 0, assetId: "terrain:grass" },
+        ],
+        20,
+      );
+      document = addMapElement(
+        document,
+        {
+          id: "decal",
+          type: "tile",
+          layerId: "objects",
+          locked: false,
+          hidden: false,
+          transform: { x: 50, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+          data: { assetId: `upload:${"e".repeat(64)}`, columns: 1, rows: 1 },
+        },
+        30,
+      );
+
+      const svg = renderMapDocumentSvg(document);
+      const grass = svg.match(/<g[^>]*data-terrain="terrain:grass".*?<\/g>/)?.[0] ?? "";
+
+      // The upload claims no autotile cell: terrain fills beneath it and the
+      // two grass cells stay fused (no seam under the image's edge).
+      expect(grass).toContain("M 50 0 h 50 v 50 h -50 Z");
+      expect(grass).not.toContain("M 50 0 V 50");
+      // The image itself still renders above the terrain.
+      expect(svg).toContain("<image");
+      expect(svg.indexOf("data-terrain")).toBeLessThan(svg.indexOf("<image"));
+    });
   });
 
   describe("uploaded image assets", () => {

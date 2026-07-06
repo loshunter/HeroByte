@@ -59,6 +59,14 @@ describe("buildTileOccupancy", () => {
     expect(occupancy.size).toBe(6);
   });
 
+  it("excludes image-backed (uploaded) tiles — transparent pixels must show terrain", () => {
+    const occupancy = buildTileOccupancy(
+      documentWith(tile("decal", 0, 0, { assetId: `upload:${"d".repeat(64)}` })),
+    );
+
+    expect(occupancy.size).toBe(0);
+  });
+
   it("skips hidden, rotated, scaled, and off-lattice tiles", () => {
     const occupancy = buildTileOccupancy(
       documentWith(

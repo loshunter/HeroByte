@@ -1,5 +1,6 @@
 import type { MapDocument, MapElement, MapGridSettings } from "@herobyte/shared";
 import { forEachTerrainCell } from "@herobyte/shared";
+import { getMapStudioTileAsset } from "./starterTiles";
 
 // ---------------------------------------------------------------------------
 // Terrain boundary autotiling: same-terrain tiles fuse into one surface,
@@ -54,6 +55,10 @@ export function buildTileOccupancy(document: MapDocument): TileOccupancy {
   }
   for (const element of document.elements) {
     if (!isAutotileCandidate(element, grid) || !layerRenders(element.layerId)) continue;
+    // Image-backed (uploaded) tiles render the picture, not an autotile
+    // fill — transparent pixels must show the terrain beneath, so they
+    // claim no cells and never punch holes or suppress fused boundaries.
+    if (getMapStudioTileAsset(element.data.assetId).imageUrl) continue;
     const baseX = cellIndex(element.transform.x, grid.offsetX, grid.size)!;
     const baseY = cellIndex(element.transform.y, grid.offsetY, grid.size)!;
     for (let column = 0; column < element.data.columns; column += 1) {
