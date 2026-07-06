@@ -68,3 +68,95 @@ describe("buildTerrainRenderLayers", () => {
     ).toEqual([]);
   });
 });
+
+// Golden pins for the export byte-parity invariant: renderMapDocumentSvg must
+// stay byte-identical across renderer refactors, so the exact path strings —
+// separators, emit order, sign formatting — are snapshot here verbatim.
+describe("SVG path strings (export byte-parity pins)", () => {
+  it("emits the exact fill and boundary strings for a mixed-terrain map", () => {
+    const document = painted([
+      { x: 2, y: 0, assetId: "terrain:water" },
+      { x: 0, y: 0, assetId: "terrain:stone-floor" },
+      { x: 1, y: 0, assetId: "terrain:stone-floor" },
+      { x: 1, y: 1, assetId: "terrain:stone-floor" },
+    ]);
+
+    const layers = buildTerrainRenderLayers(document.terrain!, GRID, buildTileOccupancy(document));
+
+    expect(layers).toMatchInlineSnapshot(`
+      [
+        {
+          "assetId": "terrain:stone-floor",
+          "boundaryPath": "M 0 0 H 50 M 0 50 H 50 M 0 0 V 50 M 50 0 H 100 M 100 0 V 50 M 50 100 H 100 M 50 50 V 100 M 100 50 V 100",
+          "fillPath": "M 0 0 h 50 v 50 h -50 Z M 50 0 h 50 v 50 h -50 Z M 50 50 h 50 v 50 h -50 Z",
+        },
+        {
+          "assetId": "terrain:water",
+          "boundaryPath": "M 100 0 H 150 M 100 50 H 150 M 100 0 V 50 M 150 0 V 50",
+          "fillPath": "M 100 0 h 50 v 50 h -50 Z",
+        },
+      ]
+    `);
+  });
+
+  it("emits the exact strings on a fractional offset lattice", () => {
+    const document = painted([
+      { x: 0, y: 0, assetId: "terrain:water" },
+      { x: 1, y: 0, assetId: "terrain:water" },
+    ]);
+
+    const layers = buildTerrainRenderLayers(
+      document.terrain!,
+      { size: 50, offsetX: 12.5, offsetY: 7.25 },
+      buildTileOccupancy(document),
+    );
+
+    expect(layers).toMatchInlineSnapshot(`
+      [
+        {
+          "assetId": "terrain:water",
+          "boundaryPath": "M 12.5 7.25 H 62.5 M 12.5 57.25 H 62.5 M 12.5 7.25 V 57.25 M 62.5 7.25 H 112.5 M 62.5 57.25 H 112.5 M 112.5 7.25 V 57.25",
+          "fillPath": "M 12.5 7.25 h 50 v 50 h -50 Z M 62.5 7.25 h 50 v 50 h -50 Z",
+        },
+      ]
+    `);
+  });
+
+  it("keeps vertical edges 'V' when float absorption collapses the cell height", () => {
+    // offsetY 1e18 passes sanitizeMapGrid, and 1e18 + 50 === 1e18 (ulp 128):
+    // the edge collapses to a point, but orientation must not flip to 'H' —
+    // the pre-refactor code chose the command letter structurally.
+    const document = painted([{ x: 0, y: 0, assetId: "terrain:water" }]);
+
+    const layers = buildTerrainRenderLayers(
+      document.terrain!,
+      { size: 50, offsetX: 0, offsetY: 1e18 },
+      buildTileOccupancy(document),
+    );
+
+    expect(layers[0]!.fillPath).toBe("M 0 1000000000000000000 h 50 v 50 h -50 Z");
+    expect(layers[0]!.boundaryPath).toBe(
+      "M 0 1000000000000000000 H 50 M 0 1000000000000000000 H 50 " +
+        "M 0 1000000000000000000 V 1000000000000000000 M 50 1000000000000000000 V 1000000000000000000",
+    );
+  });
+
+  it("emits the exact strings for negative-coordinate cells", () => {
+    const document = painted([
+      { x: -1, y: -1, assetId: "terrain:grass" },
+      { x: 0, y: -1, assetId: "terrain:grass" },
+    ]);
+
+    const layers = buildTerrainRenderLayers(document.terrain!, GRID, buildTileOccupancy(document));
+
+    expect(layers).toMatchInlineSnapshot(`
+      [
+        {
+          "assetId": "terrain:grass",
+          "boundaryPath": "M -50 -50 H 0 M -50 0 H 0 M -50 -50 V 0 M 0 -50 H 50 M 0 0 H 50 M 50 -50 V 0",
+          "fillPath": "M -50 -50 h 50 v 50 h -50 Z M 0 -50 h 50 v 50 h -50 Z",
+        },
+      ]
+    `);
+  });
+});

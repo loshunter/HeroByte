@@ -1,5 +1,10 @@
 import type { TerrainMap } from "@herobyte/shared";
 import { forEachTerrainCell } from "@herobyte/shared";
+import type {
+  StructuredTerrainLayer,
+  TerrainBoundaryEdge,
+  TerrainCellRect,
+} from "../render/tileRenderCore";
 import type { AutotileGrid, TileOccupancy } from "./tileAutotiling";
 
 export interface TerrainRenderLayer {
@@ -11,44 +16,82 @@ export interface TerrainRenderLayer {
 }
 
 /**
- * Collapse painted terrain into one fill path and one boundary path per
- * terrain family — thousands of cells become a handful of SVG nodes, shared
- * by the live canvas and the export so both render identically. Boundary
- * checks run against the combined occupancy (terrain + tile elements), so
- * paint fuses with legacy same-family tiles and vice versa.
+ * Collapse painted terrain into per-family cell rectangles and boundary
+ * edges, in pixels — the single source of terrain geometry, consumed by the
+ * canvas renderer directly and by the SVG adapter below so every surface
+ * renders identically. Boundary checks run against the combined occupancy
+ * (terrain + tile elements), so paint fuses with legacy same-family tiles
+ * and vice versa.
  */
-export function buildTerrainRenderLayers(
+export function buildStructuredTerrainLayers(
   terrain: TerrainMap,
   grid: AutotileGrid,
   occupancy: TileOccupancy,
-): TerrainRenderLayer[] {
+): StructuredTerrainLayer[] {
   const size = grid.size;
-  const fills = new Map<string, string[]>();
-  const boundaries = new Map<string, string[]>();
+  const cells = new Map<string, TerrainCellRect[]>();
+  const edges = new Map<string, TerrainBoundaryEdge[]>();
 
   forEachTerrainCell(terrain, (cellX, cellY, assetId) => {
     // A tile element stacked on this cell owns it — skip double-painting.
     if (occupancy.get(`${cellX},${cellY}`) !== assetId) return;
     const left = grid.offsetX + cellX * size;
     const top = grid.offsetY + cellY * size;
-    const fill = fills.get(assetId) ?? [];
-    if (fill.length === 0) fills.set(assetId, fill);
-    fill.push(`M ${left} ${top} h ${size} v ${size} h ${-size} Z`);
+    const right = left + size;
+    const bottom = top + size;
+    const familyCells = cells.get(assetId) ?? [];
+    if (familyCells.length === 0) cells.set(assetId, familyCells);
+    familyCells.push({ x: left, y: top, size });
 
     const differs = (x: number, y: number) => occupancy.get(`${x},${y}`) !== assetId;
-    const boundary = boundaries.get(assetId) ?? [];
-    if (boundary.length === 0) boundaries.set(assetId, boundary);
-    if (differs(cellX, cellY - 1)) boundary.push(`M ${left} ${top} H ${left + size}`);
-    if (differs(cellX, cellY + 1)) boundary.push(`M ${left} ${top + size} H ${left + size}`);
-    if (differs(cellX - 1, cellY)) boundary.push(`M ${left} ${top} V ${top + size}`);
-    if (differs(cellX + 1, cellY)) boundary.push(`M ${left + size} ${top} V ${top + size}`);
+    const familyEdges = edges.get(assetId) ?? [];
+    if (familyEdges.length === 0) edges.set(assetId, familyEdges);
+    // Emit order (top, bottom, left, right) and each edge's explicit
+    // orientation are part of the export contract — orientation must not be
+    // re-derived from coordinates (float absorption can collapse an edge).
+    if (differs(cellX, cellY - 1))
+      familyEdges.push({ orientation: "h", x1: left, y1: top, x2: right, y2: top });
+    if (differs(cellX, cellY + 1))
+      familyEdges.push({ orientation: "h", x1: left, y1: bottom, x2: right, y2: bottom });
+    if (differs(cellX - 1, cellY))
+      familyEdges.push({ orientation: "v", x1: left, y1: top, x2: left, y2: bottom });
+    if (differs(cellX + 1, cellY))
+      familyEdges.push({ orientation: "v", x1: right, y1: top, x2: right, y2: bottom });
   });
 
-  return [...fills.keys()]
+  return [...cells.keys()]
     .sort((a, b) => a.localeCompare(b))
     .map((assetId) => ({
       assetId,
-      fillPath: fills.get(assetId)!.join(" "),
-      boundaryPath: (boundaries.get(assetId) ?? []).join(" "),
+      cells: cells.get(assetId)!,
+      edges: edges.get(assetId) ?? [],
     }));
+}
+
+/**
+ * SVG adapter over the structured geometry. The emitted strings are part of
+ * the export byte-parity contract (`renderMapDocumentSvg` must stay
+ * byte-identical release over release): exact separators, emit order, and
+ * number formatting are pinned by tests — do not restyle.
+ */
+export function buildTerrainRenderLayers(
+  terrain: TerrainMap,
+  grid: AutotileGrid,
+  occupancy: TileOccupancy,
+): TerrainRenderLayer[] {
+  return buildStructuredTerrainLayers(terrain, grid, occupancy).map((layer) => ({
+    assetId: layer.assetId,
+    fillPath: layer.cells.map(cellFillPath).join(" "),
+    boundaryPath: layer.edges.map(boundaryEdgePath).join(" "),
+  }));
+}
+
+function cellFillPath(cell: TerrainCellRect): string {
+  return `M ${cell.x} ${cell.y} h ${cell.size} v ${cell.size} h ${-cell.size} Z`;
+}
+
+function boundaryEdgePath(edge: TerrainBoundaryEdge): string {
+  return edge.orientation === "h"
+    ? `M ${edge.x1} ${edge.y1} H ${edge.x2}`
+    : `M ${edge.x1} ${edge.y1} V ${edge.y2}`;
 }

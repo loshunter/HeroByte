@@ -136,6 +136,18 @@ export function terrainFillForFrame(asset: MapStudioTileAsset, frame: number): s
   return frames[((frame % frames.length) + frames.length) % frames.length]!;
 }
 
+/**
+ * Style resolver for the canvas tile renderer (tileRenderCore): the family's
+ * frame-cycled fill plus its boundary stroke. Frame 0 matches the SVG export.
+ */
+export function terrainStyleForFrame(
+  assetId: string,
+  frame: number,
+): { fill: string; stroke: string } {
+  const asset = getMapStudioTileAsset(assetId);
+  return { fill: terrainFillForFrame(asset, frame), stroke: asset.stroke };
+}
+
 export function mapStudioTileCategoryLabel(category: MapStudioTileAsset["category"]): string {
   switch (category) {
     case "terrain":
