@@ -14,6 +14,7 @@
 // zoom. Only the grass family is decorated today; other families no-op.
 
 import type { TerrainCellRect, TileRenderContext2D } from "./tileRenderCore";
+import type { KeyClusterPalette } from "./terrainPalette";
 
 const GRASS_ASSET_ID = "terrain:grass";
 
@@ -105,6 +106,120 @@ function paintGrassDetail(ctx: TileRenderContext2D, cell: TerrainCellRect): void
       ctx.fillRect(fx, fy + p, p, p);
       ctx.fillStyle = FLOWER_CENTER;
       ctx.fillRect(fx, fy, p, p);
+    }
+  }
+}
+
+// --- dirt / path "key cluster" detail (Slynyrd "Top Down Tiles" pg-49) ---
+
+/** Key-cluster motifs — offsets in motif-pixels: L, 3-bar, 2x2, nub, diagonal,
+ * 2-wide, J. Each is mirrored per placement so a handful of shapes reads as
+ * endless variety. Indices 0-3 (the small ones) double as crevice cracks. */
+const KEY_CLUSTER_MOTIFS: readonly (readonly (readonly [number, number])[])[] = [
+  [
+    [0, 0],
+    [0, 1],
+    [1, 1],
+  ],
+  [
+    [0, 0],
+    [1, 0],
+    [2, 0],
+  ],
+  [
+    [0, 0],
+    [1, 0],
+    [0, 1],
+    [1, 1],
+  ],
+  [[0, 0]],
+  [
+    [0, 0],
+    [1, 1],
+  ],
+  [
+    [0, 0],
+    [1, 0],
+  ],
+  [
+    [0, 0],
+    [1, 0],
+    [2, 0],
+    [2, 1],
+  ],
+];
+// Dry-dirt coverage: dense key clusters, but the low-frequency `lo` noise term
+// still opens airy patches, so one config yields both dry and sparse ground.
+const KC_GRID_PER_TILE = 4; // pebble grid points across a cell
+const KC_MOTIF_PX = 0.055; // motif-pixel as a fraction of cell size
+const KC_COV_BASE = 0.44;
+const KC_COV_LO_SCALE = 5; // low-freq (patch) coverage wavelength, in grid units
+const KC_COV_HI_SCALE = 2.2; // mid-freq coverage detail
+const KC_CREV_BASE = 0.16; // baseline crevice-crack density
+
+const clamp = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v);
+
+/** Pick one of the first `n` motifs by hash. Guards the boundary where hash2
+ * returns exactly 1 (it divides by 2^32 - 1), which would otherwise index
+ * out of bounds. */
+const pickMotif = (h: number, n: number): readonly (readonly [number, number])[] =>
+  KEY_CLUSTER_MOTIFS[Math.min(n - 1, Math.floor(h * n))]!;
+
+/**
+ * Paint dirt/path "key cluster" pebbles over one cell's base fill: a world-space
+ * jittered grid of small motifs in three tan shades, each with a 1px crevice
+ * shadow for raised form, plus sparse crevice cracks. A coherent coverage-noise
+ * field opens dry/dense vs airy/sparse patches. Deterministic on the WORLD
+ * lattice (not per-cell), so patches cross cell boundaries seamlessly. The
+ * palette is data (see terrainPalette). Kept inset so pebbles never poke past a
+ * rounded silhouette edge, mirroring the grass detail.
+ */
+export function paintKeyClusterDetail(
+  ctx: TileRenderContext2D,
+  cell: TerrainCellRect,
+  palette: KeyClusterPalette,
+): void {
+  const { x, y, size } = cell;
+  const inset = size * 0.1;
+  const mp = Math.max(1, Math.round(size * KC_MOTIF_PX));
+  const grid = size / KC_GRID_PER_TILE;
+  const jitter = grid * 0.62; // > 0.5 breaks the visible grid alignment
+  const k0x = Math.ceil((x + inset) / grid);
+  const k1x = Math.floor((x + size - inset) / grid);
+  const k0y = Math.ceil((y + inset) / grid);
+  const k1y = Math.floor((y + size - inset) / grid);
+  const place = (bx: number, by: number, dx: number, dy: number, mx: number, my: number): void => {
+    const px = clamp(bx + dx * mp * mx, x + inset, x + size - inset - mp);
+    const py = clamp(by + dy * mp * my, y + inset, y + size - inset - mp);
+    ctx.fillRect(px, py, mp, mp);
+  };
+  for (let ky = k0y; ky <= k1y; ky += 1) {
+    for (let kx = k0x; kx <= k1x; kx += 1) {
+      const lo = valueNoise(kx / KC_COV_LO_SCALE, ky / KC_COV_LO_SCALE, 1);
+      const hi = valueNoise(kx / KC_COV_HI_SCALE, ky / KC_COV_HI_SCALE, 7);
+      const stagger = (ky & 1) === 1 ? grid * 0.5 : 0; // brick-offset odd rows
+      const bx = kx * grid + stagger + (hash2(kx, ky, 11) - 0.5) * jitter;
+      const by = ky * grid + (hash2(kx, ky, 12) - 0.5) * jitter;
+      // (1) sparse crevice cracks, favouring the damper (darker) patches.
+      if (hash2(kx, ky, 41) < KC_CREV_BASE + 0.34 * (1 - lo)) {
+        const crack = pickMotif(hash2(kx, ky, 42), 4);
+        const cmx = hash2(kx, ky, 43) > 0.5 ? -1 : 1;
+        const cmy = hash2(kx, ky, 44) > 0.5 ? -1 : 1;
+        ctx.fillStyle = palette.crev;
+        for (const [dx, dy] of crack) place(bx, by, dx, dy, cmx, cmy);
+      }
+      // (2) pebble cluster: dense in dry (lighter) patches, sparse in damp ones.
+      if (hash2(kx, ky, 5) > KC_COV_BASE + 0.4 * lo + 0.14 * hi) continue;
+      const motif = pickMotif(hash2(kx, ky, 21), KEY_CLUSTER_MOTIFS.length);
+      const mx = hash2(kx, ky, 22) > 0.5 ? -1 : 1;
+      const my = hash2(kx, ky, 23) > 0.5 ? -1 : 1;
+      const shade = hash2(kx, ky, 31);
+      const color = shade < 0.34 ? palette.dark : shade < 0.74 ? palette.mid : palette.light;
+      // shadow (offset half a motif-px down-right) under the pebble, then the pebble.
+      ctx.fillStyle = palette.crev;
+      for (const [dx, dy] of motif) place(bx + mp * 0.5, by + mp * 0.5, dx, dy, mx, my);
+      ctx.fillStyle = color;
+      for (const [dx, dy] of motif) place(bx, by, dx, dy, mx, my);
     }
   }
 }
