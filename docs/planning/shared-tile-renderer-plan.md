@@ -75,7 +75,7 @@ water/torchlight, budgeted inside the **175KB gzip entry guard**. SVG stays the
   semantics), DPR changes redraw via a matchMedia resolution listener.
   Also fixed: transparent uploads no longer punch terrain holes (73dc254 —
   image-backed tiles claim no autotile occupancy).
-- **R4a — Atlas + UV manifest, flat-fill families become textures (THIS SLICE).**
+- **R4a — Atlas + UV manifest, flat-fill families become textures (DONE, 0e944a8).**
   `scripts/build-tile-atlas.ps1` bakes `assets/images/tiles/` (25 sources,
   1024²) into `apps/client/public/tiles/tileset-v1.png` (5×5 @128px, ~1.1MB)
   plus `tileset-v1.json` (UV variants per family, average colors, license
@@ -87,7 +87,7 @@ water/torchlight, budgeted inside the **175KB gzip entry guard**. SVG stays the
   cell; families without atlas art (water, uploads) keep flat fills, water
   keeps its shimmer; boundary strokes still draw on top. New starter terrains:
   grass, dirt, path.
-- **R4b — Export/publish adopts the atlas (DEFERRED, needs design).** The SVG
+- **R4b — Export/publish adopts the atlas (NEXT — design decided, playbook §5).** The SVG
   export would have to reference or inline the atlas; inlining ~1.1MB into the
   publish background blows `MAX_PUBLISH_BACKGROUND_BYTES` (1MB cap). Likely
   answer: the publish/raster path draws terrain straight to canvas via the
