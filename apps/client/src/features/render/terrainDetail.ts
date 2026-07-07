@@ -15,6 +15,7 @@
 
 import type { TerrainCellRect, TileRenderContext2D } from "./tileRenderCore";
 import type { KeyClusterPalette } from "./terrainPalette";
+import { hash2, valueNoise } from "./valueNoise";
 
 const GRASS_ASSET_ID = "terrain:grass";
 
@@ -25,31 +26,6 @@ const PETAL = "#ebebd0";
 const PETAL_PINK = "#d68aa8";
 const FLOWER_CENTER = "#e6c84f";
 const FLOWER_STEM = "#4f8236";
-
-// --- deterministic hash + value noise (0..1) ---
-function hash2(x: number, y: number, seed: number): number {
-  let h =
-    (Math.imul(x | 0, 374761393) ^
-      Math.imul(y | 0, 668265263) ^
-      Math.imul(seed | 0, 2246822519)) >>>
-    0;
-  h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0;
-  return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
-}
-const smoothstep = (t: number) => t * t * (3 - 2 * t);
-function valueNoise(x: number, y: number, seed: number): number {
-  const xi = Math.floor(x);
-  const yi = Math.floor(y);
-  const xf = x - xi;
-  const yf = y - yi;
-  const a = hash2(xi, yi, seed);
-  const b = hash2(xi + 1, yi, seed);
-  const c = hash2(xi, yi + 1, seed);
-  const d = hash2(xi + 1, yi + 1, seed);
-  const u = smoothstep(xf);
-  const v = smoothstep(yf);
-  return (a * (1 - u) + b * u) * (1 - v) + (c * (1 - u) + d * u) * v;
-}
 
 /** Tall-grass density field (two octaves + a small per-cell dither so blob
  * edges stipple instead of stepping on cell boundaries). */

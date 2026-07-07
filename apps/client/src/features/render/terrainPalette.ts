@@ -34,3 +34,28 @@ export const PATH_DETAIL: KeyClusterPalette = {
   mid: "#8f8a66",
   light: "#a6a07a",
 };
+
+/**
+ * One terrain family in the procedural render: its silhouette colours (`base`
+ * fill + `rim` shading lip), its `priority` (higher draws OVER lower — grass
+ * over dirt over path, so the higher family rounds its bumpy rim onto the
+ * lower), and its interior `keyCluster` pebble palette when it has one.
+ */
+export interface TerrainFamilyPalette {
+  base: string;
+  rim: string;
+  priority: number;
+  keyCluster?: KeyClusterPalette;
+}
+
+/**
+ * The default "village" mood — warm and saturated. A map's mood (cool
+ * cave/swamp, purple-grass fantasy) is the same shape with different values,
+ * so re-skinning terrain is a data swap, never a code change. Keyed by the
+ * terrain assetId. See temp/_dirt_path_proto for the validated mood set.
+ */
+export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
+  "terrain:grass": { base: "#7cb04a", rim: "#4a764e", priority: 3 },
+  "terrain:dirt": { base: "#60482e", rim: "#4a3420", priority: 2, keyCluster: DIRT_DETAIL },
+  "terrain:path": { base: "#565338", rim: "#3f3d28", priority: 1, keyCluster: PATH_DETAIL },
+};
