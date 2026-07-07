@@ -10,9 +10,11 @@ this file. The companion map of *what and why* is
 
 **State of the world:** R1 `b507aeec`, R2 `57780130`, R3 `6fa499f7`,
 upload-hole fix `73dc254d`, R4a `0e944a8b` — all on `dev`, all gates green.
-Remaining: R4c-prep (optional, art-blocked). Since R4a, also DONE on `dev`:
-Slice L `aefe0571`, R5a `01cc3764`, R5b `7e20b3f8`, DM-menu parity `57bada34`,
-R4b `0d0dd4c5`, Slice S `b8191d3e`.
+Remaining: R4c ART ONLY — the quarter-tile math + render sockets landed as
+R4c-prep `11ed9c67`; the art (per-family corner/edge quarter tiles) is still
+blocked. Since R4a, also DONE on `dev`: Slice L `aefe0571`, R5a `01cc3764`,
+R5b `7e20b3f8`, DM-menu parity `57bada34`, R4b `0d0dd4c5`, Slice S `b8191d3e`,
+R4c-prep `11ed9c67`.
 
 ---
 
@@ -511,7 +513,7 @@ ritual + review):
 | 3 | **R5b** | Live table draws terrain via the core | 3 h | focused (rendering) | medium |
 | 4 | **R4b** | Raster export composites via the core | 2 h | focused (export surface) | medium |
 | 5 | **S** | /assets rate limit + body cap | 2 h | **REQUIRED (security)** | medium |
-| 6 | **R4c-prep** | 47-blob math behind a flag | optional | self-review | low |
+| 6 | **R4c-prep** ✅ | 47-blob math + sockets (`11ed9c67`) | optional | self-review + adversarial | low |
 
 Dependencies: R5b needs R5a. R4b is independent of R5 (do it 4th regardless).
 L first — it's the calibration slice (teaches the ritual end-to-end with low
@@ -1008,7 +1010,43 @@ correctness, does the abort actually free the stream?). Commit:
 
 ---
 
-## 7. Slice R4c-prep — 47-blob quarter-tile math (OPTIONAL, art-blocked)
+## 7. Slice R4c-prep — 47-blob quarter-tile math (OPTIONAL, art-blocked) — DONE `11ed9c67`
+
+**Shipped 2026-07-06 (`11ed9c67`, on `dev`; self-review + adversarial-verify
+workflow — blob-math + inertness lenses, 0 findings).** The four steps below
+landed as designed, red-first. **Provably inert** on all four surfaces
+(editor underlay, live table, raster export, SVG export): no shipped manifest
+sets `blob47`, so `quarterRectsForCell` returns null everywhere and every
+family keeps the whole-tile/flat path — the frozen export goldens stay
+byte-identical and the entry bundle is unchanged at 69.17 KB (the render core
+tree-shakes into lazy chunks). **Actual shipped shape:**
+
+- `features/render/blobAutotile.ts` (new, pure): `quarterTileVariant(mask,
+  corner)->0..4` + `NEIGHBOR_BITS` (N=1,NE=2,E=4,SE=8,S=16,SW=32,W=64,NW=128).
+  Exhaustive test: all 256 masks × 4 corners reduce to exactly the 47 canonical
+  blob classes, cross-checked against an independent canonicalization.
+- `features/render/tileAtlas.ts`: optional `families[id].blob47:{col,row}`
+  (region origin in tile units) + `quarterRectsForCell(assetId,cellX,cellY,
+  neighborMask)` slicing four 64px sub-rects (tl,tr,bl,br) — **variant across
+  X, corner down Y** (tl=row0..br=row3); the exact sheet layout the bake/art
+  must match is documented in-code. `tileForCell` untouched.
+- `features/render/tileRenderCore.ts`: `neighborMask?` on `TerrainCellRect`;
+  optional `quarterRectsForCell?` on `TerrainAtlasSource`; `drawTerrain` draws
+  4 sub-images (via `drawQuarterTile`, each source rect → its dest quarter at
+  `size/2`) when quarter rects are returned, else the existing whole-tile path.
+- `features/map-studio/terrainRender.ts`: `buildStructuredTerrainLayers` — the
+  single source of terrain geometry — computes the 8-neighbor same-family mask
+  (invert `differs`) and carries `neighborMask` on every cell, so it reaches
+  editor, table, and export from one place.
+
+**To land the art (Part 2):** add a `blob47` region to a family in the bake
+(`scripts/build-tile-atlas.ps1`) + manifest and draw the 20 quarters per the
+`quarterRectsForCell` sheet-layout comment. Note: `drawTerrain` still strokes
+the fused boundary over `blob47` families (unchanged atlas behavior) — the art
+pass decides whether true-blob families should suppress that stroke.
+
+Below is the original decided design (historical; the shipped shape above
+wins where they differ):
 
 Only if time remains. The ART does not exist (no corner/edge quarter tiles;
 also `path` variants need curation — two are transition tiles, one has a

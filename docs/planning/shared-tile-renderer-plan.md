@@ -1,7 +1,8 @@
 # Shared Tile Renderer — Migration Plan (M3, VISION Pillar 2 "An honest renderer")
 
 Status: functionally complete (2026-07-06) — R1–R5b and R4b all shipped on `dev`;
-only R4c (47-blob quarter-tiles) remains, BLOCKED on art. The adjacent /assets
+R4c's quarter-tile math + render sockets landed (R4c-prep `11ed9c67`, provably
+inert), so only the 47-blob ART remains, BLOCKED on art. The adjacent /assets
 hardening chip (Slice S) also landed (`b8191d3e`). Grounded in a 3-agent recon of
 the editor render stack, the live-table render stack, and the bundle/timing
 infrastructure (2026-07-05).
@@ -106,6 +107,13 @@ water/torchlight, budgeted inside the **175KB gzip entry guard**. SVG stays the
   edge/corner quarter-tile art per family; the current packs are full-tile
   variants only. Art track deliverable; also curate the `path` variants (two
   are grass-transition tiles, one has a baked-in frame border).
+  - **R4c-prep — quarter-tile math + render sockets (DONE, `11ed9c67`).** Pure
+    `blobAutotile.quarterTileVariant` (the 47 canonical classes, exhaustively
+    tested), an optional per-family `blob47` atlas region + `quarterRectsForCell`
+    slicer, a `drawTerrain` quarter-tile branch, and an 8-neighbor `neighborMask`
+    carried by `buildStructuredTerrainLayers` to every surface. Provably inert
+    (no manifest ships `blob47`): frozen goldens byte-identical, entry bundle
+    unchanged at 69.17 KB. Art now drops in by adding a `blob47` region + tiles.
 - **R5 — Live table adopts the core.** MapBoard draws terrain tiles live (animated
   water/torchlight) through the same core inside the Konva stage (or a sibling
   canvas), replacing the static raster background for Forge-native maps; uploaded/
