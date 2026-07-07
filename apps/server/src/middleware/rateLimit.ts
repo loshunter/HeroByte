@@ -30,8 +30,11 @@ export class RateLimiter {
   constructor(config: RateLimitConfig = { maxMessages: 100, windowMs: 1000 }) {
     this.config = config;
 
-    // Clean up expired entries every minute
-    setInterval(() => this.cleanup(), 60000);
+    // Clean up expired entries every minute. Unref the timer so the sweep
+    // never keeps the process (or a test runner) alive on its own — the server
+    // is held open by its HTTP/WS listeners, not this housekeeping tick.
+    const sweep = setInterval(() => this.cleanup(), 60000);
+    sweep.unref?.();
   }
 
   /**

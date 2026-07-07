@@ -8,6 +8,13 @@ import { getRoomSecret, isDemoMode } from "../config/auth.js";
 import type { AuthService } from "../domains/auth/service.js";
 import { AssetRejectedError, type AssetService } from "../domains/assets/service.js";
 import { isOriginAllowed } from "../config/security.js";
+import type { RateLimiter } from "../middleware/rateLimit.js";
+import {
+  createUploadRateLimiter,
+  readCappedBody,
+  uploadBucketKey,
+  UPLOAD_RATE_WINDOW_MS,
+} from "./uploadGuards.js";
 
 /**
  * Create and configure HTTP routes
@@ -17,6 +24,7 @@ export function createRoutes(
   authService: AuthService,
   resetE2EState?: () => void,
   assetService?: AssetService,
+  uploadRateLimiter?: RateLimiter,
 ): Hono {
   const app = new Hono();
   const ALLOWED_METHODS = "GET,POST,OPTIONS";
@@ -164,14 +172,36 @@ export function createRoutes(
   });
 
   if (assetService) {
-    // Upload: room-credential gated, content-length capped up front, then
-    // sniffed/capped/quota-checked in depth by the service.
+    // One limiter for the process lifetime (createRoutes is called once at
+    // bootstrap); injectable so tests can supply a fresh, tightly-tuned one.
+    const uploadLimiter = uploadRateLimiter ?? createUploadRateLimiter();
+
+    // Upload: room-credential gated, rate limited per credential, size-capped
+    // while streaming, then sniffed/capped/quota-checked in depth by the
+    // service.
     app.post("/assets", async (c) => {
       const roomId = c.req.header("x-herobyte-room") || undefined;
       const secret = c.req.header("x-herobyte-secret") ?? "";
       if (!secret || !authService.verify(secret, roomId)) {
         return jsonError("Invalid room credentials", 401);
       }
+
+      // Meter frequency per credential BEFORE touching the body, so a
+      // throttled client can never make us read (or buffer) an upload.
+      const bucket = uploadBucketKey(secret);
+      if (!uploadLimiter.check(bucket)) {
+        const status = uploadLimiter.getStatus(bucket);
+        const retryAfterSec = status
+          ? Math.max(1, Math.ceil((status.resetTime - Date.now()) / 1000))
+          : Math.ceil(UPLOAD_RATE_WINDOW_MS / 1000);
+        return jsonError("Too many uploads — slow down", 429, {
+          "retry-after": String(retryAfterSec),
+        });
+      }
+
+      // Require an honest Content-Length: reject a missing/invalid header up
+      // front (411), then fast-reject an oversized one before reading a byte
+      // (413).
       const declaredLength = Number(c.req.header("content-length"));
       if (!Number.isFinite(declaredLength) || declaredLength <= 0) {
         return jsonError("Content-Length required", 411);
@@ -179,8 +209,15 @@ export function createRoutes(
       if (declaredLength > MAX_UPLOAD_BYTES) {
         return jsonError("Upload exceeds the asset size limit", 413);
       }
+
       try {
-        const bytes = Buffer.from(await c.req.arrayBuffer());
+        // Never trust that header as the sole cap: stream the body and abort
+        // the moment it overruns, so a lying Content-Length that understates
+        // the real body cannot smuggle an oversized upload past us.
+        const bytes = await readCappedBody(c.req.raw.body, MAX_UPLOAD_BYTES);
+        if (!bytes) {
+          return jsonError("Upload exceeds the asset size limit", 413);
+        }
         const { asset, deduplicated } = await assetService.store(bytes);
         return new Response(
           JSON.stringify({
@@ -238,9 +275,13 @@ export function createRoutes(
 
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 
-function jsonError(message: string, status: number): Response {
+function jsonError(
+  message: string,
+  status: number,
+  extraHeaders?: Record<string, string>,
+): Response {
   return new Response(JSON.stringify({ error: message }), {
     status,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...extraHeaders },
   });
 }
