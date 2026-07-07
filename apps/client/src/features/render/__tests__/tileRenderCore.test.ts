@@ -8,6 +8,7 @@ import { drawGrid, parseGridPatternPath } from "../gridRenderCore";
 import {
   drawTerrain,
   type StructuredTerrainLayer,
+  type TerrainAtlasSource,
   type TileRenderContext2D,
 } from "../tileRenderCore";
 import { createRecordingContext as createRawRecordingContext } from "./recordingContext";
@@ -176,6 +177,68 @@ describe("drawTerrain", () => {
     expect(calls).toContainEqual(["fillRect", 50, 0, 50, 50]);
     // Boundary strokes still draw for both families.
     expect(calls).toContainEqual(["moveTo", 100, 0]);
+  });
+
+  it("draws four quarter sub-images when the atlas provides quarter rects", () => {
+    const layer: StructuredTerrainLayer = {
+      assetId: "terrain:grass",
+      cells: [{ x: 0, y: 0, size: 50, cellX: 2, cellY: 3, neighborMask: 42 }],
+      edges: [],
+    };
+    const { context, calls } = createRecordingContext();
+    const atlasImage = { width: 640 } as unknown as CanvasImageSource;
+    const receivedMasks: number[] = [];
+    const atlas: TerrainAtlasSource = {
+      image: atlasImage,
+      // Whole-tile art also exists — the quarter path must take precedence.
+      tileForCell: () => ({ x: 0, y: 0, size: 128 }),
+      quarterRectsForCell: (assetId, _cellX, _cellY, neighborMask) => {
+        receivedMasks.push(neighborMask);
+        return assetId === "terrain:grass"
+          ? [
+              { x: 0, y: 0, size: 64 }, // tl
+              { x: 64, y: 0, size: 64 }, // tr
+              { x: 0, y: 64, size: 64 }, // bl
+              { x: 64, y: 64, size: 64 }, // br
+            ]
+          : null;
+      },
+    };
+
+    drawTerrain(context, [layer], terrainStyleForFrame, 0, undefined, { atlas });
+
+    const draws = calls.filter(([op]) => op === "drawImage");
+    // Each quarter blits its 64px source rect to its dest quarter (25×25).
+    expect(draws).toEqual([
+      ["drawImage", atlasImage, 0, 0, 64, 64, 0, 0, 25, 25], // tl
+      ["drawImage", atlasImage, 64, 0, 64, 64, 25, 0, 25, 25], // tr
+      ["drawImage", atlasImage, 0, 64, 64, 64, 0, 25, 25, 25], // bl
+      ["drawImage", atlasImage, 64, 64, 64, 64, 25, 25, 25, 25], // br
+    ]);
+    // The whole-tile rect is never drawn — quarters win.
+    expect(draws).not.toContainEqual(["drawImage", atlasImage, 0, 0, 128, 128, 0, 0, 50, 50]);
+    // The cell's neighborMask is threaded through to the atlas.
+    expect(receivedMasks).toEqual([42]);
+  });
+
+  it("falls back to the whole-tile rect when the atlas returns no quarter rects", () => {
+    const layer: StructuredTerrainLayer = {
+      assetId: "terrain:water",
+      cells: [{ x: 0, y: 0, size: 50, cellX: 0, cellY: 0 }],
+      edges: [],
+    };
+    const { context, calls } = createRecordingContext();
+    const atlasImage = { width: 640 } as unknown as CanvasImageSource;
+    const atlas: TerrainAtlasSource = {
+      image: atlasImage,
+      tileForCell: () => ({ x: 5, y: 6, size: 128 }),
+      quarterRectsForCell: () => null,
+    };
+
+    drawTerrain(context, [layer], terrainStyleForFrame, 0, undefined, { atlas });
+
+    const draws = calls.filter(([op]) => op === "drawImage");
+    expect(draws).toEqual([["drawImage", atlasImage, 5, 6, 128, 128, 0, 0, 50, 50]]);
   });
 
   it("honors a custom boundary width, including its cull margin", () => {

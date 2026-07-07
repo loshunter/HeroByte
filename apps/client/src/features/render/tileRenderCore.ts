@@ -18,6 +18,13 @@ export interface TerrainCellRect {
   size: number;
   cellX: number;
   cellY: number;
+  /**
+   * 8-neighbor same-family bitmask (blobAutotile bit order), set by
+   * buildStructuredTerrainLayers. Consumed ONLY by the quarter-tile (blob47)
+   * atlas path; the flat-fill, boundary-edge, and SVG-adapter paths ignore it,
+   * so it never affects export byte-parity. Optional/additive.
+   */
+  neighborMask?: number;
 }
 
 /**
@@ -87,6 +94,21 @@ export interface TileRenderContext2D {
 /** Matches the SVG export model: boundary stroke-width 2. */
 const TERRAIN_BOUNDARY_WIDTH = 2;
 
+/** A source rect in the atlas image (matches tileAtlas's TileAtlasRect). */
+export interface TerrainAtlasRect {
+  x: number;
+  y: number;
+  size: number;
+}
+
+/** Four quarter-tile source rects in fixed order: tl, tr, bl, br. */
+export type TerrainAtlasQuarterRects = [
+  TerrainAtlasRect,
+  TerrainAtlasRect,
+  TerrainAtlasRect,
+  TerrainAtlasRect,
+];
+
 /**
  * An atlas the core can source textured cells from (structurally matches
  * tileAtlas's TileAtlas — kept as a local shape so the core stays
@@ -95,11 +117,20 @@ const TERRAIN_BOUNDARY_WIDTH = 2;
  */
 export interface TerrainAtlasSource {
   image: CanvasImageSource;
-  tileForCell(
+  tileForCell(assetId: string, cellX: number, cellY: number): TerrainAtlasRect | null;
+  /**
+   * Four quarter-tile source rects (tl, tr, bl, br) for a cell's neighbor
+   * mask, or null when the family has no quarter-tile (blob47) art. Optional:
+   * atlases without it — and every atlas today — fall through to the
+   * whole-tile `tileForCell` path, so the quarter path is inert until art
+   * ships a blob47 region.
+   */
+  quarterRectsForCell?(
     assetId: string,
     cellX: number,
     cellY: number,
-  ): { x: number; y: number; size: number } | null;
+    neighborMask: number,
+  ): TerrainAtlasQuarterRects | null;
 }
 
 /** Overrides for surfaces whose SVG styles differ from the export model. */
@@ -135,6 +166,20 @@ export function drawTerrain(
     const flatCells: TerrainCellRect[] = [];
     if (atlas) {
       for (const cell of cells) {
+        // True 47-blob path: when the family ships quarter-tile art, four
+        // sub-images resolve the cell's corners. No family does today, so
+        // quarterRectsForCell is absent/returns null and we fall through to
+        // the whole-tile path — the feature is inert until art lands.
+        const quarters = atlas.quarterRectsForCell?.(
+          layer.assetId,
+          cell.cellX,
+          cell.cellY,
+          cell.neighborMask ?? 0,
+        );
+        if (quarters) {
+          drawQuarterTile(ctx, atlas.image, cell, quarters);
+          continue;
+        }
         const tile = atlas.tileForCell(layer.assetId, cell.cellX, cell.cellY);
         if (tile) {
           ctx.drawImage(
@@ -170,6 +215,31 @@ export function drawTerrain(
       ctx.lineTo(edge.x2, edge.y2);
     }
     ctx.stroke();
+  }
+}
+
+/**
+ * Blit the four quarter-tile source rects (tl, tr, bl, br) to their dest
+ * quarters of the cell, each half the cell size — the draw half of true
+ * 47-blob autotiling.
+ */
+function drawQuarterTile(
+  ctx: TileRenderContext2D,
+  image: CanvasImageSource,
+  cell: TerrainCellRect,
+  quarters: TerrainAtlasQuarterRects,
+): void {
+  const half = cell.size / 2;
+  const dests: readonly [number, number][] = [
+    [cell.x, cell.y], // tl
+    [cell.x + half, cell.y], // tr
+    [cell.x, cell.y + half], // bl
+    [cell.x + half, cell.y + half], // br
+  ];
+  for (let i = 0; i < 4; i += 1) {
+    const src = quarters[i]!;
+    const [dx, dy] = dests[i]!;
+    ctx.drawImage(image, src.x, src.y, src.size, src.size, dx, dy, half, half);
   }
 }
 

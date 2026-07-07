@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { createMapDocument, paintTerrain } from "@herobyte/shared";
+import { NEIGHBOR_BITS } from "../../render/blobAutotile";
 import { buildTileOccupancy } from "../tileAutotiling";
-import { buildTerrainRenderLayers } from "../terrainRender";
+import { buildStructuredTerrainLayers, buildTerrainRenderLayers } from "../terrainRender";
 
 const GRID = { size: 50, offsetX: 0, offsetY: 0 };
 
@@ -66,6 +67,60 @@ describe("buildTerrainRenderLayers", () => {
     expect(
       buildTerrainRenderLayers({ schemaVersion: 1, palette: [], chunks: {} }, GRID, new Map()),
     ).toEqual([]);
+  });
+});
+
+describe("buildStructuredTerrainLayers — neighborMask", () => {
+  const block3x3 = () =>
+    painted([0, 1, 2].flatMap((x) => [0, 1, 2].map((y) => ({ x, y, assetId: "terrain:grass" }))));
+
+  const cellAt = (
+    layers: ReturnType<typeof buildStructuredTerrainLayers>,
+    assetId: string,
+    cellX: number,
+    cellY: number,
+  ) => {
+    const layer = layers.find((l) => l.assetId === assetId)!;
+    return layer.cells.find((c) => c.cellX === cellX && c.cellY === cellY)!;
+  };
+
+  it("sets the full 8-neighbor mask on a cell surrounded by its own family", () => {
+    const document = block3x3();
+    const layers = buildStructuredTerrainLayers(
+      document.terrain!,
+      GRID,
+      buildTileOccupancy(document),
+    );
+    // Centre cell (1,1) has all 8 neighbours same-family.
+    expect(cellAt(layers, "terrain:grass", 1, 1).neighborMask).toBe(255);
+  });
+
+  it("sets only the present neighbours on a corner cell", () => {
+    const document = block3x3();
+    const layers = buildStructuredTerrainLayers(
+      document.terrain!,
+      GRID,
+      buildTileOccupancy(document),
+    );
+    // (0,0) corner of the block: only E, S, SE are same-family.
+    expect(cellAt(layers, "terrain:grass", 0, 0).neighborMask).toBe(
+      NEIGHBOR_BITS.E | NEIGHBOR_BITS.S | NEIGHBOR_BITS.SE,
+    );
+  });
+
+  it("excludes a different-family neighbour from the mask", () => {
+    // Grass at (0,0) and (1,0); water at (0,1). Only E is same-family for (0,0).
+    const document = painted([
+      { x: 0, y: 0, assetId: "terrain:grass" },
+      { x: 1, y: 0, assetId: "terrain:grass" },
+      { x: 0, y: 1, assetId: "terrain:water" },
+    ]);
+    const layers = buildStructuredTerrainLayers(
+      document.terrain!,
+      GRID,
+      buildTileOccupancy(document),
+    );
+    expect(cellAt(layers, "terrain:grass", 0, 0).neighborMask).toBe(NEIGHBOR_BITS.E);
   });
 });
 

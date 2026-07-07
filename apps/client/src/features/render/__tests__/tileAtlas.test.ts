@@ -26,6 +26,23 @@ const MANIFEST: TileAtlasManifest = {
   },
 };
 
+// A manifest whose grass family also carries a quarter-tile (blob47) region.
+// Region origin is in TILE units; the region is a 5-wide (variant 0..4) ×
+// 4-tall (corner tl,tr,bl,br) grid of 64px quarters (tileSize 128 → q 64).
+const BLOB_MANIFEST: TileAtlasManifest = {
+  version: 1,
+  image: "tileset-v1.png",
+  tileSize: 128,
+  columns: 5,
+  families: {
+    "terrain:grass": {
+      variants: [{ col: 0, row: 0 }],
+      blob47: { col: 2, row: 1 }, // pixel origin (256, 128)
+    },
+    "terrain:stone-floor": { variants: [{ col: 0, row: 3 }] }, // no blob47
+  },
+};
+
 describe("variantIndexForCell", () => {
   it("is deterministic and in range, including negative cells", () => {
     for (const [x, y] of [
@@ -74,6 +91,67 @@ describe("createTileAtlas", () => {
 
   it("always picks the only variant of a single-variant family", () => {
     expect(atlas.tileForCell("terrain:mono", 123, -456)).toEqual({ x: 256, y: 0, size: 128 });
+  });
+
+  it("returns no quarter rects for families without a blob47 region", () => {
+    expect(atlas.quarterRectsForCell("terrain:stone-floor", 0, 0, 255)).toBeNull();
+    expect(atlas.quarterRectsForCell("terrain:water", 0, 0, 0)).toBeNull();
+  });
+});
+
+describe("createTileAtlas — quarterRectsForCell (blob47)", () => {
+  const image = {} as CanvasImageSource;
+  const atlas = createTileAtlas(BLOB_MANIFEST, image);
+  // Region origin at tile (2,1) → pixel (256, 128); quarter size 64.
+  const ORIGIN_X = 256;
+  const ORIGIN_Y = 128;
+  const Q = 64;
+  // Quarters are laid out variant-across (x), corner-down (y): tl=row0, tr=row1,
+  // bl=row2, br=row3. Rect x = originX + variant*Q; y = originY + cornerRow*Q.
+  const rect = (variant: number, cornerRow: number) => ({
+    x: ORIGIN_X + variant * Q,
+    y: ORIGIN_Y + cornerRow * Q,
+    size: Q,
+  });
+
+  it("returns null for families that are not in the manifest", () => {
+    expect(atlas.quarterRectsForCell("terrain:lava", 0, 0, 255)).toBeNull();
+  });
+
+  it("slices four outer-corner quarters for a fully isolated cell (mask 0)", () => {
+    // Every corner is variant 0 (outer corner).
+    expect(atlas.quarterRectsForCell("terrain:grass", 0, 0, 0)).toEqual([
+      rect(0, 0), // tl
+      rect(0, 1), // tr
+      rect(0, 2), // bl
+      rect(0, 3), // br
+    ]);
+  });
+
+  it("slices four fill quarters for a fully surrounded cell (mask 255)", () => {
+    expect(atlas.quarterRectsForCell("terrain:grass", 3, 7, 255)).toEqual([
+      rect(4, 0), // tl fill
+      rect(4, 1), // tr fill
+      rect(4, 2), // bl fill
+      rect(4, 3), // br fill
+    ]);
+  });
+
+  it("slices per-corner variants for a mixed mask (N only → [2,2,0,0])", () => {
+    // North neighbor present: both north corners see a vertical edge (variant 2),
+    // both south corners are outer corners (variant 0).
+    expect(atlas.quarterRectsForCell("terrain:grass", 0, 0, 1)).toEqual([
+      rect(2, 0), // tl vertical edge
+      rect(2, 1), // tr vertical edge
+      rect(0, 2), // bl outer
+      rect(0, 3), // br outer
+    ]);
+  });
+
+  it("is position-independent — the same mask slices the same rects at any cell", () => {
+    expect(atlas.quarterRectsForCell("terrain:grass", 5, -3, 1)).toEqual(
+      atlas.quarterRectsForCell("terrain:grass", 0, 0, 1),
+    );
   });
 });
 

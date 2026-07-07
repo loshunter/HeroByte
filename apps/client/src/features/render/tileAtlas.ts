@@ -4,6 +4,7 @@
 // (editor underlay today, the live table in R5). Families absent from the
 // manifest (water, uploads) keep their flat fills.
 import { useEffect, useState } from "react";
+import { quarterTileVariant, type QuarterCorner } from "./blobAutotile";
 
 export interface TileAtlasVariant {
   col: number;
@@ -15,7 +16,23 @@ export interface TileAtlasManifest {
   image: string;
   tileSize: number;
   columns: number;
-  families: Record<string, { variants: TileAtlasVariant[]; averageColor?: string }>;
+  families: Record<
+    string,
+    {
+      variants: TileAtlasVariant[];
+      averageColor?: string;
+      /**
+       * Optional quarter-tile (blob47) sheet region for true 47-blob
+       * autotiling. `col`/`row` are the region's ORIGIN in tile units; the
+       * region itself is a 5-wide × 4-tall grid of half-tile (64px at
+       * tileSize 128) quarters — see `quarterRectsForCell` for the exact
+       * layout the baked art must follow. Absent ⇒ the family renders as
+       * whole tiles via `variants` (or flat fill). No shipped manifest sets
+       * this yet, so the quarter path stays inert until art lands.
+       */
+      blob47?: TileAtlasVariant;
+    }
+  >;
 }
 
 export interface TileAtlasRect {
@@ -24,9 +41,26 @@ export interface TileAtlasRect {
   size: number;
 }
 
+/** Four quarter-tile source rects in fixed order: top-left, top-right,
+ * bottom-left, bottom-right. */
+export type TileAtlasQuarterRects = [TileAtlasRect, TileAtlasRect, TileAtlasRect, TileAtlasRect];
+
 export interface TileAtlas {
   image: CanvasImageSource;
   tileForCell(assetId: string, cellX: number, cellY: number): TileAtlasRect | null;
+  /**
+   * Four quarter-tile source rects (tl, tr, bl, br) for a cell, or null when
+   * the family has no `blob47` region. The rects are sliced from the family's
+   * quarter-tile sheet by `quarterTileVariant`; the caller blits each to its
+   * dest quarter (each half the cell size). See `createTileAtlas` for the
+   * sheet layout.
+   */
+  quarterRectsForCell(
+    assetId: string,
+    cellX: number,
+    cellY: number,
+    neighborMask: number,
+  ): TileAtlasQuarterRects | null;
 }
 
 /**
@@ -52,6 +86,36 @@ export function createTileAtlas(manifest: TileAtlasManifest, image: CanvasImageS
         y: variant.row * manifest.tileSize,
         size: manifest.tileSize,
       };
+    },
+    // Sheet layout (the bake and the hand-drawn art MUST match this exactly).
+    // The family's blob47 region begins at pixel (col*tileSize, row*tileSize)
+    // and is a grid of half-tile quarters (q = tileSize/2), with the quarter
+    // VARIANT across X and the CORNER down Y:
+    //
+    //             col 0      col 1      col 2     col 3      col 4
+    //             variant 0  variant 1  variant 2 variant 3  variant 4
+    //             (outer)    (horiz)    (vert)    (inner)    (fill)
+    //   row 0 tl  [ q x q ]  [ q x q ]  ...
+    //   row 1 tr  ...
+    //   row 2 bl  ...
+    //   row 3 br  ...
+    //
+    // i.e. quarter (corner, variant) sits at region-local (variant*q, row*q),
+    // rows tl=0 tr=1 bl=2 br=3. The region spans 5q wide x 4q tall (2.5 x 2
+    // tiles). Returns null (-> the whole-tile path) for a family with no
+    // blob47 region.
+    quarterRectsForCell(assetId, _cellX, _cellY, neighborMask) {
+      const family = manifest.families[assetId];
+      if (!family?.blob47) return null;
+      const quarter = manifest.tileSize / 2;
+      const originX = family.blob47.col * manifest.tileSize;
+      const originY = family.blob47.row * manifest.tileSize;
+      const slice = (corner: QuarterCorner, cornerRow: number): TileAtlasRect => ({
+        x: originX + quarterTileVariant(neighborMask, corner) * quarter,
+        y: originY + cornerRow * quarter,
+        size: quarter,
+      });
+      return [slice("tl", 0), slice("tr", 1), slice("bl", 2), slice("br", 3)];
     },
   };
 }

@@ -1,5 +1,6 @@
 import type { TerrainMap } from "@herobyte/shared";
 import { forEachTerrainCell } from "@herobyte/shared";
+import { NEIGHBOR_BITS } from "../render/blobAutotile";
 import type {
   StructuredTerrainLayer,
   TerrainBoundaryEdge,
@@ -39,11 +40,27 @@ export function buildStructuredTerrainLayers(
     const top = grid.offsetY + cellY * size;
     const right = left + size;
     const bottom = top + size;
+    const sameFamily = (x: number, y: number) => occupancy.get(`${x},${y}`) === assetId;
+
+    // 8-neighbor same-family mask (blobAutotile bit order) for quarter-tile
+    // (blob47) selection. Additive metadata only: it never touches the fill
+    // rects, boundary edges, or the SVG byte-parity adapter below, so the
+    // frozen export goldens are unaffected (and prove it).
+    let neighborMask = 0;
+    if (sameFamily(cellX, cellY - 1)) neighborMask |= NEIGHBOR_BITS.N;
+    if (sameFamily(cellX + 1, cellY - 1)) neighborMask |= NEIGHBOR_BITS.NE;
+    if (sameFamily(cellX + 1, cellY)) neighborMask |= NEIGHBOR_BITS.E;
+    if (sameFamily(cellX + 1, cellY + 1)) neighborMask |= NEIGHBOR_BITS.SE;
+    if (sameFamily(cellX, cellY + 1)) neighborMask |= NEIGHBOR_BITS.S;
+    if (sameFamily(cellX - 1, cellY + 1)) neighborMask |= NEIGHBOR_BITS.SW;
+    if (sameFamily(cellX - 1, cellY)) neighborMask |= NEIGHBOR_BITS.W;
+    if (sameFamily(cellX - 1, cellY - 1)) neighborMask |= NEIGHBOR_BITS.NW;
+
     const familyCells = cells.get(assetId) ?? [];
     if (familyCells.length === 0) cells.set(assetId, familyCells);
-    familyCells.push({ x: left, y: top, size, cellX, cellY });
+    familyCells.push({ x: left, y: top, size, cellX, cellY, neighborMask });
 
-    const differs = (x: number, y: number) => occupancy.get(`${x},${y}`) !== assetId;
+    const differs = (x: number, y: number) => !sameFamily(x, y);
     const familyEdges = edges.get(assetId) ?? [];
     if (familyEdges.length === 0) edges.set(assetId, familyEdges);
     // Emit order (top, bottom, left, right) and each edge's explicit

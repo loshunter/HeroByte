@@ -205,6 +205,8 @@ describe("MapStudioCanvasUnderlay", () => {
     atlasHolder.atlas = {
       image: atlasImage,
       tileForCell: () => ({ x: 128, y: 384, size: 128 }),
+      // No blob47 art → whole-tile path (the quarter path stays inert).
+      quarterRectsForCell: () => null,
     } satisfies TileAtlas;
 
     renderUnderlay();
