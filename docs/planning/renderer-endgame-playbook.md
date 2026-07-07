@@ -10,8 +10,9 @@ this file. The companion map of *what and why* is
 
 **State of the world:** R1 `b507aeec`, R2 `57780130`, R3 `6fa499f7`,
 upload-hole fix `73dc254d`, R4a `0e944a8b` — all on `dev`, all gates green.
-Remaining: Slice L (lazy-split), R5a (protocol), R5b (table rendering),
-R4b (raster export), Slice S (/assets hardening), R4c-prep (optional).
+Remaining: R4c-prep (optional, art-blocked). Since R4a, also DONE on `dev`:
+Slice L `aefe0571`, R5a `01cc3764`, R5b `7e20b3f8`, DM-menu parity `57bada34`,
+R4b `0d0dd4c5`, Slice S `b8191d3e`.
 
 ---
 
@@ -955,7 +956,26 @@ test env without fetch falls back silently.
 
 ---
 
-## 6. Slice S — /assets rate limit + body cap (chip task_f3d374a0) [REVIEW REQUIRED]
+## 6. Slice S — /assets rate limit + body cap (chip task_f3d374a0) [REVIEW REQUIRED] — DONE `b8191d3e`
+
+**Shipped 2026-07-06 (`b8191d3e`, on `dev`; adversarial security review 0
+confirmed / 0 contested).** POST /assets now (a) rate-limits per room credential
+— the existing `RateLimiter` reused (now `.unref()`'d so its sweep can't pin the
+process/test-runner) and keyed by `sha256(secret)` in the new
+`http/uploadGuards.ts`, NOT by the `x-herobyte-room` header: the default password
+authenticates any uncustomized room, so a room-id key would be trivially
+rotatable. 30/min → 429 with `Retry-After`. And (b) caps the body via
+`readCappedBody`, which streams the request and cancels the stream the instant the
+running total exceeds the existing 5MB `MAX_UPLOAD_BYTES`, never trusting
+`Content-Length` as the sole cap. **Design call (owner-confirmed): keep-and-defend
+— `Content-Length` stays REQUIRED (411) and fast-rejected over-cap (413); the
+streaming cap is defense-in-depth against a header that lies by understating the
+body** (the alternative — relax the 411 and allow chunked uploads — was
+considered and rejected). Limiter is injected into `createRoutes` (4th param) so
+tests pass tuned instances. Tests: `http/__tests__/uploadGuards.test.ts` (unit:
+cap boundary, stream-cancel, bucket key) + extended `assetRoutes.test.ts`
+(contract: 411/413/429 + Retry-After + per-credential buckets). The original plan
+below is retained for provenance.
 
 **Goal:** POST /assets gets (a) a per-client rate limit and (b) a streaming
 body cap that aborts oversized uploads mid-flight instead of buffering them.

@@ -1,7 +1,10 @@
 # Shared Tile Renderer — Migration Plan (M3, VISION Pillar 2 "An honest renderer")
 
-Status: in progress. Grounded in a 3-agent recon of the editor render stack, the
-live-table render stack, and the bundle/timing infrastructure (2026-07-05).
+Status: functionally complete (2026-07-06) — R1–R5b and R4b all shipped on `dev`;
+only R4c (47-blob quarter-tiles) remains, BLOCKED on art. The adjacent /assets
+hardening chip (Slice S) also landed (`b8191d3e`). Grounded in a 3-agent recon of
+the editor render stack, the live-table render stack, and the bundle/timing
+infrastructure (2026-07-05).
 
 ## The goal (from VISION.md pillar 2)
 
