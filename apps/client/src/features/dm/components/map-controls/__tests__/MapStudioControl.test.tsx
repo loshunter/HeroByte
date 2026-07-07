@@ -128,6 +128,9 @@ describe("MapStudioControl", () => {
           documentId: "map",
           documentName: "Keep",
           gridSize: 64,
+          // DM-menu publish is now elements-only (parity with the studio button):
+          // terrain rides the wire as data, not baked into the background.
+          backgroundMode: "elements-only",
         }),
       ),
     );

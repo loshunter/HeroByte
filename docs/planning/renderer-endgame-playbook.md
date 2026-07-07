@@ -765,14 +765,14 @@ strokes via per-primitive globalAlpha → per-family Shapes + Konva buffer canva
 (2) geometry rebuilt + full repaint on every unrelated snapshot → value-keyed
 memo + memoized Shape elements.
 
-**Follow-up (NOT done — flagged, out of R5b scope):** there is a SECOND publish
+**Follow-up — DONE ✅ (task_1adf30a1, commit on `dev`):** the SECOND publish
 entry point, the DM-menu button (`MapStudioControl.handlePublish` →
-`onPublishToLiveMap` → `MapTab.tsx` → `publishDocument(backgroundUrl)`), which
-still publishes a **full-render** background (legacy, back-compat, no live
-terrain). Flip it to elements-only for parity so live terrain also appears when
-a DM publishes from the DM menu. Low-risk (existing tests use `objectContaining`
-+ a data-URL regex, so they stay green); threads a `backgroundMode` through the
-`onPublishToLiveMap` payload.
+`onPublishToLiveMap` → `MapTab.tsx`), now also publishes elements-only. Both
+publish buttons carry live terrain. `MapStudioControl` renders with
+`{ omitTerrain, omitGrid, transparentBackground }` and threads
+`backgroundMode: "elements-only"` (+ `documentId`, enabling the mid-render-switch
+guard) through the `onPublishToLiveMap` payload; `MapTab` passes them to
+`publishDocument(bg, id, mode)`. Existing `objectContaining` tests stayed green.
 
 Below is the original decided design (historical; the shipped shape above wins
 where they differ):

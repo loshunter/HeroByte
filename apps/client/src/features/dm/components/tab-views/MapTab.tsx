@@ -144,10 +144,12 @@ export default function MapTab({
         <MapStudioControl
           controller={mapStudio}
           onOpenStudio={onOpenMapStudio}
-          onPublishToLiveMap={({ backgroundUrl, documentName }) => {
+          onPublishToLiveMap={({ backgroundUrl, documentId, documentName, backgroundMode }) => {
             // Server-authoritative publish: compiles walls/doors/lights and
-            // syncs background + grid in one atomic message.
-            if (mapStudio.publishDocument(backgroundUrl)) {
+            // syncs background + grid in one atomic message. Passing the id +
+            // elements-only mode makes the server attach painted terrain as data
+            // (R5) so live terrain also appears when publishing from the DM menu.
+            if (mapStudio.publishDocument(backgroundUrl, documentId, backgroundMode)) {
               onMapBackgroundSuccess?.(`Published "${documentName}" to the live map.`);
             }
           }}

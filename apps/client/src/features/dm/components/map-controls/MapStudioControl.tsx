@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { MapPublishBackgroundMode } from "@herobyte/shared";
 import { JRPGButton, JRPGPanel } from "../../../../components/ui/JRPGPanel";
 import {
   backgroundExceedsPublishLimit,
@@ -15,6 +16,7 @@ export interface MapStudioControlProps {
     gridSize: number;
     documentId: string;
     documentName: string;
+    backgroundMode: MapPublishBackgroundMode;
   }) => void;
 }
 
@@ -86,7 +88,14 @@ export function MapStudioControl({
     // Uploaded images inline asynchronously; the payload captures the
     // document so a mid-render switch can't mismatch id and background.
     void (async () => {
-      const backgroundUrl = await createMapDocumentSvgDataUrlWithAssets(documentToPublish);
+      // Elements-only, matching the in-studio Publish button: terrain rides the
+      // wire as data (R5) and draws live at the table; the table supplies its
+      // own grid; a transparent background lets that live terrain show through.
+      const backgroundUrl = await createMapDocumentSvgDataUrlWithAssets(documentToPublish, {
+        omitTerrain: true,
+        omitGrid: true,
+        transparentBackground: true,
+      });
       if (backgroundExceedsPublishLimit(backgroundUrl)) {
         setPublishStatus(
           "Publish failed: this map's images are too large to send. Remove or shrink uploaded images and try again.",
@@ -98,6 +107,7 @@ export function MapStudioControl({
         gridSize: toLiveGridSize(documentToPublish.grid.size),
         documentId: documentToPublish.id,
         documentName: documentToPublish.name,
+        backgroundMode: "elements-only",
       });
       setPublishStatus(`Published "${documentToPublish.name}" to the live map.`);
     })();
