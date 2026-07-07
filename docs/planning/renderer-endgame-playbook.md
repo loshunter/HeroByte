@@ -883,7 +883,36 @@ and R5b renders nothing — so this is step 0 of R5b, same commit.
 
 ---
 
-## 5. Slice R4b — Raster export composites through the core
+## 5. Slice R4b — Raster export composites through the core — DONE ✅
+
+Shipped (commit on `dev`; focused export-surface review run — 0 confirmed, 1
+contested minor accepted). **Actual shipped shape (use these, not the sketch):**
+
+- New `features/map-studio/rasterUnderlay.ts` (~120 LOC): `paintRasterUnderlay(
+  ctx, document, terrainLayers, atlas)` fills `#24212b`, draws the grid via
+  `gridRenderCore.drawGrid` at the export defaults (`#ffffff` @ 0.16), and draws
+  painted terrain via `tileRenderCore.drawTerrain` at frame 0 with the atlas
+  (null ⇒ flat family fills). Terrain-kind layer opacity is honored the SVG way
+  — opacity ≥ 1 draws directly; 0 < opacity < 1 uses a per-family offscreen
+  flatten-then-fade (mirrors the editor underlay); ≤ 0 draws nothing.
+- `exportMapDocument.ts` `rasterizeMapDocument` now **gates on terrain
+  presence**: when `buildStructuredTerrainLayers(document.terrain, grid,
+  buildTileOccupancy(document))` is non-empty it composites (bg + grid + atlas
+  terrain on the canvas, then an elements-only SVG — `{omitTerrain, omitGrid,
+  transparentBackground}` — blitted on top); terrain-free maps keep the **exact
+  single-pass full-SVG raster** they always produced (so the pre-existing
+  rasterize test stays green untouched, and the atlas is never fetched). Entry
+  stays lazy-clean: the render core tree-shakes out of the entry chunk into the
+  lazy DM-export chunk (entry gzip unchanged at 69.17 KB).
+- SVG download stays flat-color and byte-stable BY DESIGN (frozen goldens
+  untouched). Contested review finding (accepted, documented in `rasterUnderlay`):
+  hex-grid internal *horizontal* lines render at ~half weight in the raster vs
+  the SVG (the shared core strokes stacked flat tile edges as two overlapping
+  half-width segments). Sub-pixel, hex-only; square terrain maps unaffected; the
+  SVG download remains the full-fidelity grid.
+
+Below is the original decided design (historical; the shipped shape above wins
+where they differ):
 
 **Goal:** PNG/WebP download (and the export preview) show atlas-textured
 terrain. SVG download stays flat-color BY DESIGN (portable, byte-stable,

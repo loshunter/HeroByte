@@ -87,11 +87,18 @@ water/torchlight, budgeted inside the **175KB gzip entry guard**. SVG stays the
   cell; families without atlas art (water, uploads) keep flat fills, water
   keeps its shimmer; boundary strokes still draw on top. New starter terrains:
   grass, dirt, path.
-- **R4b — Export/publish adopts the atlas (NEXT — design decided, playbook §5).** The SVG
-  export would have to reference or inline the atlas; inlining ~1.1MB into the
-  publish background blows `MAX_PUBLISH_BACKGROUND_BYTES` (1MB cap). Likely
-  answer: the publish/raster path draws terrain straight to canvas via the
-  core instead of round-tripping through SVG `<image>`.
+- **R4b — Raster export adopts the atlas (DONE).** PNG/WebP export now composites
+  through the core: new `rasterUnderlay.ts` draws background + grid + atlas-textured
+  terrain (frame 0, opacity via per-family offscreen fade) onto the canvas, then
+  blits an elements-only SVG on top. Gated on painted terrain — terrain-free maps
+  keep the exact single-pass full-SVG raster, and the render core tree-shakes into
+  the lazy DM-export chunk (entry gzip unchanged). Publish already carries terrain
+  as data (R5a/R5b), so this covered the download path only. **SVG download stays
+  flat-color and byte-stable BY DESIGN** — the atlas is never inlined into a
+  portable SVG (that would blow `MAX_PUBLISH_BACKGROUND_BYTES`); the SVG remains
+  the full-fidelity, portable export. Focused review: 0 confirmed, 1 contested
+  minor accepted (hex-grid horizontals render slightly thin in the raster vs SVG;
+  square terrain maps unaffected).
 - **R4c — 47-blob quarter-tile composition (BLOCKED on art).** Requires
   edge/corner quarter-tile art per family; the current packs are full-tile
   variants only. Art track deliverable; also curate the `path` variants (two

@@ -1,7 +1,9 @@
 import type { MapDocument, MapElement, MapLayer } from "@herobyte/shared";
+import { loadTileAtlas } from "../render/tileAtlas";
 import { getGridGeometry } from "./gridGeometry";
+import { paintRasterUnderlay } from "./rasterUnderlay";
 import { getMapStudioTileAsset } from "./starterTiles";
-import { buildTerrainRenderLayers } from "./terrainRender";
+import { buildStructuredTerrainLayers, buildTerrainRenderLayers } from "./terrainRender";
 import { clampImageMime, uploadHashFromAssetId, uploadedAssetUrl } from "./uploads/assetUpload";
 import {
   buildTileOccupancy,
@@ -166,11 +168,21 @@ export async function rasterizeMapDocument(
   document: MapDocument,
   mimeType: "image/png" | "image/webp" = "image/png",
 ): Promise<Blob> {
-  const svgUrl = URL.createObjectURL(
-    new Blob([renderMapDocumentSvg(document, await collectUploadDataUrls(document))], {
-      type: "image/svg+xml;charset=utf-8",
-    }),
+  const uploadDataUrls = await collectUploadDataUrls(document);
+  // Atlas textures can't ride inside a portable SVG, so painted terrain is
+  // composited onto the canvas beneath an elements-only SVG. Terrain-free maps
+  // keep the exact single-pass SVG raster they always produced.
+  const terrainLayers = document.terrain
+    ? buildStructuredTerrainLayers(document.terrain, document.grid, buildTileOccupancy(document))
+    : [];
+  const composite = terrainLayers.length > 0;
+  const svg = renderMapDocumentSvg(
+    document,
+    uploadDataUrls,
+    composite ? { omitTerrain: true, omitGrid: true, transparentBackground: true } : undefined,
   );
+  const atlas = composite ? await loadTileAtlas() : null;
+  const svgUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
   try {
     const image = await loadImage(svgUrl);
     const canvas = window.document.createElement("canvas");
@@ -178,6 +190,7 @@ export async function rasterizeMapDocument(
     canvas.height = document.height;
     const context = canvas.getContext("2d");
     if (!context) throw new Error("Unable to create map export canvas context");
+    if (composite) paintRasterUnderlay(context, document, terrainLayers, atlas);
     context.drawImage(image, 0, 0);
     return await canvasToBlob(canvas, mimeType);
   } finally {

@@ -9,6 +9,8 @@ import {
   renderMapDocumentSvg,
   serializeMapDocument,
 } from "../exportMapDocument";
+import { createRecordingContext } from "../../render/__tests__/recordingContext";
+import { __resetTileAtlasForTests } from "../../render/tileAtlas";
 
 describe("Map Studio export", () => {
   afterEach(() => {
@@ -496,5 +498,158 @@ describe("Map Studio export", () => {
     expect(drawImage).toHaveBeenCalledTimes(2);
     expect(createObjectURL).toHaveBeenCalledTimes(2);
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:map-svg");
+  });
+});
+
+describe("Map Studio raster composite (R4b)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    __resetTileAtlasForTests();
+  });
+
+  // Stub the browser surface rasterizeMapDocument touches and record every
+  // 2D-context call. The prototype getContext spy backs the export canvas AND
+  // the offscreen fade canvas, so both draw into one ordered call log.
+  function stubRasterEnv() {
+    const recording = createRecordingContext();
+    vi.stubGlobal("URL", {
+      ...URL,
+      createObjectURL: vi.fn(() => "blob:map-svg"),
+      revokeObjectURL: vi.fn(),
+    });
+    vi.stubGlobal(
+      "Image",
+      class {
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+
+        set src(_value: string) {
+          this.onload?.();
+        }
+      },
+    );
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+      recording.context as unknown as CanvasRenderingContext2D,
+    );
+    vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation(function (
+      this: HTMLCanvasElement,
+      callback: BlobCallback,
+      type?: string,
+    ) {
+      callback(new Blob(["raster"], { type: type ?? "image/png" }));
+    });
+    return recording.calls;
+  }
+
+  function grassMap(): MapDocument {
+    const document = createMapDocument({
+      id: "map",
+      name: "Keep",
+      width: 200,
+      height: 200,
+      timestamp: 10,
+    });
+    return paintTerrain(document, [{ x: 0, y: 0, assetId: "terrain:grass" }], 20);
+  }
+
+  it("textures painted terrain from the atlas beneath the elements-only SVG", async () => {
+    __resetTileAtlasForTests();
+    const manifest = {
+      version: 1,
+      image: "tileset-v1.png",
+      tileSize: 128,
+      columns: 4,
+      families: { "terrain:grass": { variants: [{ col: 1, row: 3 }] } },
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(manifest), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      ),
+    );
+    const calls = stubRasterEnv();
+
+    await rasterizeMapDocument(grassMap(), "image/png");
+
+    // Grass cell (0,0) at size 50 samples atlas tile col1/row3 (128px each):
+    // sx=128, sy=384 drawn into the document cell.
+    const atlasDraw = calls.findIndex((c) => c[0] === "drawImage" && c[2] === 128 && c[3] === 384);
+    // Elements-only SVG blits last, on top: drawImage(image, 0, 0).
+    const svgBlit = calls.findIndex(
+      (c) => c[0] === "drawImage" && c.length === 4 && c[2] === 0 && c[3] === 0,
+    );
+    expect(atlasDraw).toBeGreaterThanOrEqual(0);
+    expect(svgBlit).toBeGreaterThan(atlasDraw);
+  });
+
+  it("keeps the single-pass flat SVG raster for terrain-free maps", async () => {
+    __resetTileAtlasForTests();
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const calls = stubRasterEnv();
+    const document = createMapDocument({
+      id: "map",
+      name: "Keep",
+      width: 200,
+      height: 200,
+      timestamp: 10,
+    });
+
+    await rasterizeMapDocument(document, "image/png");
+
+    // Behaves as before: the full SVG (background+grid+terrain baked in) is the
+    // only draw — no canvas compositing, and the atlas is never fetched.
+    const draws = calls.filter((c) => c[0] === "drawImage");
+    expect(draws).toEqual([["drawImage", expect.anything(), 0, 0]]);
+    expect(calls.some((c) => c[0] === "fillRect")).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("falls back to flat fills when the atlas fails to load", async () => {
+    __resetTileAtlasForTests();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("nope", { status: 404 })));
+    const calls = stubRasterEnv();
+
+    await rasterizeMapDocument(grassMap(), "image/png");
+
+    // Atlas load resolves null on 404 → grass paints as a flat fill rect, and
+    // the export still succeeds (never throws on a missing atlas).
+    expect(calls).toContainEqual(["set:fillStyle", "#386820"]);
+    expect(calls).toContainEqual(["fillRect", 0, 0, 50, 50]);
+    const textureDraws = calls.filter((c) => c[0] === "drawImage" && c.length > 4);
+    expect(textureDraws).toEqual([]);
+  });
+
+  it("composites translucent terrain via an offscreen flatten-then-fade", async () => {
+    __resetTileAtlasForTests();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("nope", { status: 404 })));
+    const calls = stubRasterEnv();
+    const base = grassMap();
+    const document: MapDocument = {
+      ...base,
+      layers: base.layers.map((layer) =>
+        layer.kind === "terrain" ? { ...layer, opacity: 0.5 } : layer,
+      ),
+    };
+
+    await rasterizeMapDocument(document, "image/png");
+
+    // SVG faded each family <g> as a unit: flatten the family opaquely
+    // (clear → fill), then blit once at the layer alpha — never per-primitive
+    // alpha, which would tint boundary strokes with the fill beneath them.
+    const clear = calls.findIndex((c) => c[0] === "clearRect");
+    const fill = calls.findIndex(
+      (c) => c[0] === "fillRect" && c[1] === 0 && c[2] === 0 && c[3] === 50 && c[4] === 50,
+    );
+    const alpha = calls.findIndex((c) => c[0] === "set:globalAlpha" && c[1] === 0.5);
+    const blit = calls.findIndex((c, index) => index > alpha && c[0] === "drawImage");
+    expect(clear).toBeGreaterThanOrEqual(0);
+    expect(fill).toBeGreaterThan(clear);
+    expect(alpha).toBeGreaterThan(fill);
+    expect(blit).toBeGreaterThan(alpha);
   });
 });
