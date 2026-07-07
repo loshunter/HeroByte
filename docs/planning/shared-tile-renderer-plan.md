@@ -1,11 +1,12 @@
 # Shared Tile Renderer — Migration Plan (M3, VISION Pillar 2 "An honest renderer")
 
-Status: functionally complete (2026-07-06) — R1–R5b and R4b all shipped on `dev`;
-R4c's quarter-tile math + render sockets landed (R4c-prep `11ed9c67`, provably
-inert), so only the 47-blob ART remains, BLOCKED on art. The adjacent /assets
-hardening chip (Slice S) also landed (`b8191d3e`). Grounded in a 3-agent recon of
-the editor render stack, the live-table render stack, and the bundle/timing
-infrastructure (2026-07-05).
+Status: COMPLETE (2026-07-07) — R1–R5b, R4b, and R4c all shipped on `dev`. R4c's
+quarter-tile math + sockets landed (R4c-prep `11ed9c67`), then real GRASS landed
+(`a79a84e7`): a procedural blob47 silhouette + a coherent-noise interior detail
+pass (blades, tall-grass blobs, flowers). The adjacent /assets hardening chip
+(Slice S) also landed (`b8191d3e`). Grounded in a 3-agent recon of the editor
+render stack, the live-table render stack, and the bundle/timing infrastructure
+(2026-07-05).
 
 ## The goal (from VISION.md pillar 2)
 
@@ -103,10 +104,17 @@ water/torchlight, budgeted inside the **175KB gzip entry guard**. SVG stays the
   the full-fidelity, portable export. Focused review: 0 confirmed, 1 contested
   minor accepted (hex-grid horizontals render slightly thin in the raster vs SVG;
   square terrain maps unaffected).
-- **R4c — 47-blob quarter-tile composition (BLOCKED on art).** Requires
-  edge/corner quarter-tile art per family; the current packs are full-tile
-  variants only. Art track deliverable; also curate the `path` variants (two
-  are grass-transition tiles, one has a baked-in frame border).
+- **R4c — 47-blob quarter-tile composition (GRASS DONE, `a79a84e7`).** Grass now
+  renders as two clean layers: the blob47 atlas draws SHAPE (procedural rounded
+  silhouette + rim, `scripts/gen-tile-blob47.mjs`) and `render/terrainDetail`
+  paints interior DECORATION from coherent value noise — sparse blades, organic
+  tall-grass blobs, and flower clusters, deterministic per cell and identical
+  across editor/table/export. Needed three render fixes: stroke-suppression for
+  blob47 families, smoothing-off (crisp), and device-pixel snapping (kills atlas
+  bleed at fractional zoom/DPR). All procedural — no AI art, no new deps.
+  **Follow-ups (future):** extend the noise detail to dirt/stone/wood/path
+  (palette swaps in `terrainDetail`); curate the `path` whole-tile variants (two
+  are grass-transition tiles, one has a baked frame border).
   - **R4c-prep — quarter-tile math + render sockets (DONE, `11ed9c67`).** Pure
     `blobAutotile.quarterTileVariant` (the 47 canonical classes, exhaustively
     tested), an optional per-family `blob47` atlas region + `quarterRectsForCell`

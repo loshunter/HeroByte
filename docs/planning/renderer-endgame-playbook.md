@@ -10,11 +10,12 @@ this file. The companion map of *what and why* is
 
 **State of the world:** R1 `b507aeec`, R2 `57780130`, R3 `6fa499f7`,
 upload-hole fix `73dc254d`, R4a `0e944a8b` — all on `dev`, all gates green.
-Remaining: R4c ART ONLY — the quarter-tile math + render sockets landed as
-R4c-prep `11ed9c67`; the art (per-family corner/edge quarter tiles) is still
-blocked. Since R4a, also DONE on `dev`: Slice L `aefe0571`, R5a `01cc3764`,
+The migration is COMPLETE: R4c grass ART landed (`a79a84e7`) — procedural
+blob47 silhouette + a coherent-noise interior detail pass (blades, tall-grass
+blobs, flowers). Follow-up (future): extend the noise detail to the other four
+families. Since R4a, also DONE on `dev`: Slice L `aefe0571`, R5a `01cc3764`,
 R5b `7e20b3f8`, DM-menu parity `57bada34`, R4b `0d0dd4c5`, Slice S `b8191d3e`,
-R4c-prep `11ed9c67`.
+R4c-prep `11ed9c67`, R4c grass `a79a84e7`.
 
 ---
 
