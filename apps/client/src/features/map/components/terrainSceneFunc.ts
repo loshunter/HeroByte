@@ -12,6 +12,7 @@ import {
   type TerrainAtlasSource,
   type TileRenderContext2D,
 } from "../../render/tileRenderCore";
+import { paintTerrainDetail } from "../../render/terrainDetail";
 import { terrainStyleForFrame } from "../../map-studio/starterTiles";
 
 /**
@@ -30,5 +31,6 @@ export function drawTableTerrain(
   drawTerrain(ctx, layers, terrainStyleForFrame, frame, undefined, {
     atlas: atlas ?? undefined,
     boundaryWidth,
+    detail: paintTerrainDetail,
   });
 }

@@ -71,6 +71,10 @@ export interface TileRenderContext2D {
   strokeStyle: string | CanvasGradient | CanvasPattern;
   lineWidth: number;
   globalAlpha: number;
+  imageSmoothingEnabled: boolean;
+  /** Current transform, used to snap quarter-tile blits to integer device
+   * pixels (real 2D contexts provide it; optional so mocks can omit it). */
+  getTransform?(): { a: number; b: number; c: number; d: number; e: number; f: number };
   fillRect(x: number, y: number, width: number, height: number): void;
   beginPath(): void;
   moveTo(x: number, y: number): void;
@@ -133,12 +137,23 @@ export interface TerrainAtlasSource {
   ): TerrainAtlasQuarterRects | null;
 }
 
+/** Paints procedural decoration (grass blades, flowers, …) over one cell's
+ * base fill — see features/render/terrainDetail. */
+export type TerrainDetailPainter = (
+  ctx: TileRenderContext2D,
+  cell: TerrainCellRect,
+  assetId: string,
+) => void;
+
 /** Overrides for surfaces whose SVG styles differ from the export model. */
 export interface TerrainDrawOptions {
   /** Boundary stroke width (editor uses max(2, gridSize * 0.04)). */
   boundaryWidth?: number;
   /** When present, cells covered by the atlas draw textures, not fills. */
   atlas?: TerrainAtlasSource;
+  /** When present, painted over each cell's base fill after the atlas pass —
+   * the procedural interior decoration (noise-driven blades/flowers). */
+  detail?: TerrainDetailPainter;
 }
 
 /**
@@ -164,12 +179,18 @@ export function drawTerrain(
     if (cells.length === 0 && edges.length === 0) continue;
     const style = resolveStyle(layer.assetId, frame);
     const flatCells: TerrainCellRect[] = [];
+    // A family renders via quarter-tile (blob47) art iff the atlas hands back
+    // quarter rects for it. Those pixel-art quarters sit edge-to-edge in the
+    // atlas, so they must draw with smoothing OFF — bilinear sampling otherwise
+    // bleeds a neighbouring quarter's rim across the seam, painting a faint
+    // half-cell grid over the field. Whole-tile (photographic) families keep
+    // smoothing on. Probing with mask 0 is family-level (cell-independent).
+    const usesQuarterTiles = atlas?.quarterRectsForCell?.(layer.assetId, 0, 0, 0) != null;
     if (atlas) {
+      ctx.imageSmoothingEnabled = !usesQuarterTiles;
       for (const cell of cells) {
         // True 47-blob path: when the family ships quarter-tile art, four
-        // sub-images resolve the cell's corners. No family does today, so
-        // quarterRectsForCell is absent/returns null and we fall through to
-        // the whole-tile path — the feature is inert until art lands.
+        // sub-images resolve the cell's corners; otherwise the whole-tile path.
         const quarters = atlas.quarterRectsForCell?.(
           layer.assetId,
           cell.cellX,
@@ -206,7 +227,15 @@ export function drawTerrain(
         ctx.fillRect(cell.x, cell.y, cell.size, cell.size);
       }
     }
-    if (edges.length === 0) continue;
+    // Procedural interior decoration (noise-driven blades/flowers) painted over
+    // the base fill/atlas — coherent detail that isn't baked into the tiles.
+    if (options?.detail) {
+      for (const cell of cells) options.detail(ctx, cell, layer.assetId);
+    }
+    // Families rendered with quarter-tile (blob47) art carry their own baked
+    // organic rim, so the straight fused boundary stroke is skipped for them —
+    // otherwise a hard square outline would trace over the rounded art.
+    if (edges.length === 0 || usesQuarterTiles) continue;
     ctx.strokeStyle = style.stroke;
     ctx.lineWidth = boundaryWidth;
     ctx.beginPath();
@@ -216,6 +245,9 @@ export function drawTerrain(
     }
     ctx.stroke();
   }
+  // Restore the default so a smoothing-off quarter layer doesn't leak into the
+  // caller's later draws (e.g. an offscreen opacity composite).
+  if (atlas) ctx.imageSmoothingEnabled = true;
 }
 
 /**
@@ -236,10 +268,26 @@ function drawQuarterTile(
     [cell.x, cell.y + half], // bl
     [cell.x + half, cell.y + half], // br
   ];
+  // Snap each quarter to integer DEVICE pixels. Packed atlas quarters have no
+  // gutter, so at fractional zoom a quarter's edge otherwise samples ~1px into
+  // the adjacent atlas quarter (a different rim/variant), painting a faint
+  // half-cell grid of bleed lines over the field. Choosing world coords that
+  // land on integer device pixels (via the ctx's axis-aligned transform) makes
+  // the sampling exact and adjacent quarters abut seamlessly.
+  const m = ctx.getTransform?.();
+  const snap = !!m && m.b === 0 && m.c === 0 && m.a !== 0 && m.d !== 0;
   for (let i = 0; i < 4; i += 1) {
     const src = quarters[i]!;
-    const [dx, dy] = dests[i]!;
-    ctx.drawImage(image, src.x, src.y, src.size, src.size, dx, dy, half, half);
+    const [wx, wy] = dests[i]!;
+    if (snap && m) {
+      const x0 = (Math.round(m.a * wx + m.e) - m.e) / m.a;
+      const y0 = (Math.round(m.d * wy + m.f) - m.f) / m.d;
+      const x1 = (Math.round(m.a * (wx + half) + m.e) - m.e) / m.a;
+      const y1 = (Math.round(m.d * (wy + half) + m.f) - m.f) / m.d;
+      ctx.drawImage(image, src.x, src.y, src.size, src.size, x0, y0, x1 - x0, y1 - y0);
+    } else {
+      ctx.drawImage(image, src.x, src.y, src.size, src.size, wx, wy, half, half);
+    }
   }
 }
 

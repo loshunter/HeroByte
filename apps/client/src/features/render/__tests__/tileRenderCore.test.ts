@@ -217,8 +217,9 @@ describe("drawTerrain", () => {
     ]);
     // The whole-tile rect is never drawn — quarters win.
     expect(draws).not.toContainEqual(["drawImage", atlasImage, 0, 0, 128, 128, 0, 0, 50, 50]);
-    // The cell's neighborMask is threaded through to the atlas.
-    expect(receivedMasks).toEqual([42]);
+    // The cell's neighborMask is threaded through to the atlas (drawTerrain
+    // also probes the family with mask 0 to detect blob47 art, hence toContain).
+    expect(receivedMasks).toContain(42);
   });
 
   it("falls back to the whole-tile rect when the atlas returns no quarter rects", () => {
@@ -239,6 +240,149 @@ describe("drawTerrain", () => {
 
     const draws = calls.filter(([op]) => op === "drawImage");
     expect(draws).toEqual([["drawImage", atlasImage, 5, 6, 128, 128, 0, 0, 50, 50]]);
+  });
+
+  it("snaps blob47 quarters to integer device pixels (kills atlas-bleed seams at fractional zoom)", () => {
+    const transform = { a: 0.4, b: 0, c: 0, d: 0.4, e: 5.3, f: 5.7 };
+    const { context, calls } = createRawRecordingContext(transform);
+    const ctx = context as unknown as TileRenderContext2D;
+    const layer: StructuredTerrainLayer = {
+      assetId: "terrain:grass",
+      cells: [{ x: 90, y: 45, size: 50, cellX: 1, cellY: 1, neighborMask: 0 }],
+      edges: [],
+    };
+    const atlas: TerrainAtlasSource = {
+      image: {} as unknown as CanvasImageSource,
+      tileForCell: () => null,
+      quarterRectsForCell: () => [
+        { x: 0, y: 0, size: 64 },
+        { x: 64, y: 0, size: 64 },
+        { x: 0, y: 64, size: 64 },
+        { x: 64, y: 64, size: 64 },
+      ],
+    };
+
+    drawTerrain(ctx, [layer], terrainStyleForFrame, 0, undefined, { atlas });
+
+    const draws = calls.filter(([op]) => op === "drawImage");
+    expect(draws).toHaveLength(4);
+    // Every quarter's destination rect edges land on integer DEVICE pixels
+    // (device = a*world + e), so the source sub-rects sample cleanly.
+    for (const [, , , , , , dx, dy, dw, dh] of draws as [string, ...number[]][]) {
+      for (const [v, s, t] of [
+        [dx, transform.a, transform.e],
+        [dy, transform.d, transform.f],
+        [dx + dw, transform.a, transform.e],
+        [dy + dh, transform.d, transform.f],
+      ]) {
+        const device = s * v + t;
+        expect(Math.abs(device - Math.round(device))).toBeLessThan(1e-6);
+      }
+    }
+  });
+
+  it("draws blob47 quarters with image smoothing off (crisp — no atlas bleed seams)", () => {
+    const grass: StructuredTerrainLayer = {
+      assetId: "terrain:grass",
+      cells: [{ x: 0, y: 0, size: 50, cellX: 0, cellY: 0, neighborMask: 0 }],
+      edges: [],
+    };
+    const { context, calls } = createRecordingContext();
+    const atlas: TerrainAtlasSource = {
+      image: { width: 640 } as unknown as CanvasImageSource,
+      tileForCell: () => null,
+      quarterRectsForCell: () => [
+        { x: 0, y: 0, size: 64 },
+        { x: 64, y: 0, size: 64 },
+        { x: 0, y: 64, size: 64 },
+        { x: 64, y: 64, size: 64 },
+      ],
+    };
+
+    drawTerrain(context, [grass], terrainStyleForFrame, 0, undefined, { atlas });
+
+    expect(calls).toContainEqual(["set:imageSmoothingEnabled", false]);
+  });
+
+  it("keeps image smoothing on for whole-tile atlas families", () => {
+    const stone: StructuredTerrainLayer = {
+      assetId: "terrain:stone-floor",
+      cells: [{ x: 0, y: 0, size: 50, cellX: 0, cellY: 0 }],
+      edges: [],
+    };
+    const { context, calls } = createRecordingContext();
+    const atlas: TerrainAtlasSource = {
+      image: {} as unknown as CanvasImageSource,
+      tileForCell: () => ({ x: 0, y: 0, size: 128 }),
+      quarterRectsForCell: () => null,
+    };
+
+    drawTerrain(context, [stone], terrainStyleForFrame, 0, undefined, { atlas });
+
+    expect(calls).toContainEqual(["set:imageSmoothingEnabled", true]);
+    expect(calls).not.toContainEqual(["set:imageSmoothingEnabled", false]);
+  });
+
+  it("suppresses the fused boundary stroke for families with quarter-tile art", () => {
+    const grass: StructuredTerrainLayer = {
+      assetId: "terrain:grass",
+      cells: [{ x: 0, y: 0, size: 50, cellX: 0, cellY: 0, neighborMask: 0 }],
+      edges: [{ orientation: "h", x1: 0, y1: 0, x2: 50, y2: 0 }],
+    };
+    const { context, calls } = createRecordingContext();
+    const atlasImage = { width: 640 } as unknown as CanvasImageSource;
+    const atlas: TerrainAtlasSource = {
+      image: atlasImage,
+      tileForCell: () => null,
+      quarterRectsForCell: () => [
+        { x: 0, y: 0, size: 64 },
+        { x: 64, y: 0, size: 64 },
+        { x: 0, y: 64, size: 64 },
+        { x: 64, y: 64, size: 64 },
+      ],
+    };
+
+    drawTerrain(context, [grass], terrainStyleForFrame, 0, undefined, { atlas });
+
+    // The quarter art carries its own baked rim, so the straight fused stroke
+    // is skipped entirely for this family.
+    expect(calls.some(([op]) => op === "drawImage")).toBe(true);
+    expect(calls.some(([op]) => op === "stroke")).toBe(false);
+    expect(calls.some(([op]) => op === "set:strokeStyle")).toBe(false);
+  });
+
+  it("still strokes boundaries for atlas families without quarter-tile art", () => {
+    const water: StructuredTerrainLayer = {
+      assetId: "terrain:water",
+      cells: [{ x: 0, y: 0, size: 50, cellX: 0, cellY: 0 }],
+      edges: [{ orientation: "h", x1: 0, y1: 0, x2: 50, y2: 0 }],
+    };
+    const { context, calls } = createRecordingContext();
+    const atlas: TerrainAtlasSource = {
+      image: {} as unknown as CanvasImageSource,
+      tileForCell: () => null,
+      quarterRectsForCell: () => null,
+    };
+
+    drawTerrain(context, [water], terrainStyleForFrame, 0, undefined, { atlas });
+
+    expect(calls.some(([op]) => op === "stroke")).toBe(true);
+  });
+
+  it("invokes the detail painter once per visible cell with its family id", () => {
+    const layers = structuredLayers([
+      { x: 0, y: 0, assetId: "terrain:grass" },
+      { x: 1, y: 0, assetId: "terrain:grass" },
+    ]);
+    const { context } = createRecordingContext();
+    const seen: Array<[number, number, string]> = [];
+    drawTerrain(context, layers, terrainStyleForFrame, 0, undefined, {
+      detail: (_ctx, cell, assetId) => seen.push([cell.cellX, cell.cellY, assetId]),
+    });
+    expect(seen).toEqual([
+      [0, 0, "terrain:grass"],
+      [1, 0, "terrain:grass"],
+    ]);
   });
 
   it("honors a custom boundary width, including its cull margin", () => {

@@ -43,6 +43,21 @@ const BLOB_MANIFEST: TileAtlasManifest = {
   },
 };
 
+// A blob47 region with 6 INTERIOR detail variants (columns 4..9): a
+// fully-surrounded cell hashes to one of them.
+const HASH_MANIFEST: TileAtlasManifest = {
+  version: 1,
+  image: "tileset-v1.png",
+  tileSize: 128,
+  columns: 5,
+  families: {
+    "terrain:grass": {
+      variants: [{ col: 0, row: 1 }],
+      blob47: { col: 0, row: 5, interiorVariants: 6 }, // pixel origin (0, 640)
+    },
+  },
+};
+
 describe("variantIndexForCell", () => {
   it("is deterministic and in range, including negative cells", () => {
     for (const [x, y] of [
@@ -148,10 +163,58 @@ describe("createTileAtlas — quarterRectsForCell (blob47)", () => {
     ]);
   });
 
-  it("is position-independent — the same mask slices the same rects at any cell", () => {
+  it("keeps boundary quarters position-independent (only interior variants hash)", () => {
+    // Mask 1 (N only) yields all boundary quarters — no interior — so the same
+    // rects slice at any cell. Interior hashing is covered separately below.
     expect(atlas.quarterRectsForCell("terrain:grass", 5, -3, 1)).toEqual(
       atlas.quarterRectsForCell("terrain:grass", 0, 0, 1),
     );
+  });
+});
+
+describe("createTileAtlas — quarterRectsForCell interior hashing (blob47)", () => {
+  const atlas = createTileAtlas(HASH_MANIFEST, {} as CanvasImageSource);
+  const Q = 64;
+  const OY = 640; // row 5 * 128
+  const K = 6;
+
+  it("hashes each fully-surrounded cell to one of the interior variant columns", () => {
+    for (const [cx, cy] of [
+      [0, 0],
+      [3, 7],
+      [-2, 5],
+      [10, 10],
+    ]) {
+      const col = 4 + variantIndexForCell(cx!, cy!, K);
+      expect(atlas.quarterRectsForCell("terrain:grass", cx!, cy!, 255)).toEqual([
+        { x: col * Q, y: OY + 0 * Q, size: Q },
+        { x: col * Q, y: OY + 1 * Q, size: Q },
+        { x: col * Q, y: OY + 2 * Q, size: Q },
+        { x: col * Q, y: OY + 3 * Q, size: Q },
+      ]);
+    }
+  });
+
+  it("scatters interior variants across a region (not one repeating column)", () => {
+    const cols = new Set<number>();
+    for (let x = 0; x < 8; x += 1) {
+      for (let y = 0; y < 8; y += 1) {
+        cols.add(atlas.quarterRectsForCell("terrain:grass", x, y, 255)![0]!.x);
+      }
+    }
+    expect(cols.size).toBeGreaterThan(1);
+  });
+
+  it("hashes only interior corners; boundary corners keep their edge columns", () => {
+    // mask 127 = all neighbours except NW: tl is an inner corner (v3, col 3),
+    // the other three corners are interior (v4 -> hashed). Cell (0,0) hashes to 0.
+    const interiorCol = 4 + variantIndexForCell(0, 0, K); // -> 4
+    expect(atlas.quarterRectsForCell("terrain:grass", 0, 0, 127)).toEqual([
+      { x: 3 * Q, y: OY + 0 * Q, size: Q }, // tl inner corner (edge column 3)
+      { x: interiorCol * Q, y: OY + 1 * Q, size: Q }, // tr interior
+      { x: interiorCol * Q, y: OY + 2 * Q, size: Q }, // bl interior
+      { x: interiorCol * Q, y: OY + 3 * Q, size: Q }, // br interior
+    ]);
   });
 });
 

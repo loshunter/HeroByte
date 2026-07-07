@@ -41,8 +41,9 @@ describe("drawTableTerrain", () => {
     drawTableTerrain(context, [GRASS], ATLAS, 0);
 
     expect(calls.some(([op]) => op === "drawImage")).toBe(true);
-    // The atlas cell must NOT also flat-fill — that would paint under the tile.
-    expect(calls.some(([op]) => op === "fillRect")).toBe(false);
+    // The atlas cell must NOT flat-fill the base (a full-cell fillRect) — that
+    // would paint under the tile. (Small procedural detail fillRects are fine.)
+    expect(calls).not.toContainEqual(["fillRect", 0, 0, 50, 50]);
   });
 
   it("flat-fills families the atlas does not cover (water)", () => {

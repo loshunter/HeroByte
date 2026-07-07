@@ -4,9 +4,19 @@
  */
 export type RecordedCall = [op: string, ...args: unknown[]];
 
-export function createRecordingContext() {
+export function createRecordingContext(transform?: {
+  a: number;
+  b: number;
+  c: number;
+  d: number;
+  e: number;
+  f: number;
+}) {
   const calls: RecordedCall[] = [];
   const context: Record<string, unknown> = {};
+  // Only expose getTransform when a transform is supplied, so tests that don't
+  // care keep the simpler (unsnapped) drawImage path.
+  if (transform) context.getTransform = () => transform;
   for (const method of [
     "fillRect",
     "beginPath",
@@ -25,7 +35,13 @@ export function createRecordingContext() {
       calls.push([method, ...args]);
     };
   }
-  for (const property of ["fillStyle", "strokeStyle", "lineWidth", "globalAlpha"]) {
+  for (const property of [
+    "fillStyle",
+    "strokeStyle",
+    "lineWidth",
+    "globalAlpha",
+    "imageSmoothingEnabled",
+  ]) {
     Object.defineProperty(context, property, {
       set: (value: unknown) => {
         calls.push([`set:${property}`, value]);

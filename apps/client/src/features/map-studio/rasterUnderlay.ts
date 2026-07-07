@@ -7,6 +7,7 @@
 // raster path sources atlas textures, which cannot ride inside a portable SVG.
 import type { MapDocument } from "@herobyte/shared";
 import { drawGrid } from "../render/gridRenderCore";
+import { paintTerrainDetail } from "../render/terrainDetail";
 import {
   drawTerrain,
   type StructuredTerrainLayer,
@@ -66,7 +67,7 @@ export function paintRasterUnderlay(
 
   const opacity = terrainLayerOpacity(document);
   if (opacity <= 0 || terrainLayers.length === 0) return;
-  const options: TerrainDrawOptions | undefined = atlas ? { atlas } : undefined;
+  const options: TerrainDrawOptions = { atlas: atlas ?? undefined, detail: paintTerrainDetail };
   if (opacity >= 1) {
     drawTerrain(ctx, terrainLayers, terrainStyleForFrame, EXPORT_FRAME, view, options);
     return;

@@ -3,6 +3,7 @@ import { useAnimationFrameIndex } from "../../render/useAnimationClock";
 import { drawGrid } from "../../render/gridRenderCore";
 import { useTileAtlas } from "../../render/tileAtlas";
 import { drawTerrain, type StructuredTerrainLayer } from "../../render/tileRenderCore";
+import { paintTerrainDetail } from "../../render/terrainDetail";
 import { terrainStyleForFrame } from "../starterTiles";
 import type { MapViewBox } from "./MapStudioWorkspace.types";
 import { renderedSvgViewport } from "./mapStudioWorkspaceUtils";
@@ -140,7 +141,7 @@ export function MapStudioCanvasUnderlay({
     // edges past the document rect and painted out-of-document cells.
     if (terrainOpacity > 0 && terrainLayers.length > 0) {
       const boundaryWidth = Math.max(2, grid.size * 0.04);
-      const drawOptions = { boundaryWidth, atlas: atlas ?? undefined };
+      const drawOptions = { boundaryWidth, atlas: atlas ?? undefined, detail: paintTerrainDetail };
       if (terrainOpacity >= 1) {
         drawTerrain(ctx, terrainLayers, terrainStyleForFrame, frame, view, drawOptions);
       } else {

@@ -23,14 +23,16 @@ export interface TileAtlasManifest {
       averageColor?: string;
       /**
        * Optional quarter-tile (blob47) sheet region for true 47-blob
-       * autotiling. `col`/`row` are the region's ORIGIN in tile units; the
-       * region itself is a 5-wide × 4-tall grid of half-tile (64px at
-       * tileSize 128) quarters — see `quarterRectsForCell` for the exact
-       * layout the baked art must follow. Absent ⇒ the family renders as
-       * whole tiles via `variants` (or flat fill). No shipped manifest sets
-       * this yet, so the quarter path stays inert until art lands.
+       * autotiling. `col`/`row` are the region's ORIGIN in tile units. The
+       * region is a `(4 + interiorVariants)`-wide × 4-tall grid of half-tile
+       * quarters (64px at tileSize 128): columns 0..3 are the boundary
+       * quarters (outer corner, horiz edge, vert edge, inner corner) and
+       * columns 4..(4+interiorVariants-1) are INTERIOR detail variants, one
+       * of which each fully-surrounded cell picks by spatial hash — see
+       * `quarterRectsForCell`. `interiorVariants` defaults to 1 (single
+       * interior column). Absent `blob47` ⇒ the family renders as whole tiles.
        */
-      blob47?: TileAtlasVariant;
+      blob47?: { col: number; row: number; interiorVariants?: number };
     }
   >;
 }
@@ -87,34 +89,39 @@ export function createTileAtlas(manifest: TileAtlasManifest, image: CanvasImageS
         size: manifest.tileSize,
       };
     },
-    // Sheet layout (the bake and the hand-drawn art MUST match this exactly).
-    // The family's blob47 region begins at pixel (col*tileSize, row*tileSize)
-    // and is a grid of half-tile quarters (q = tileSize/2), with the quarter
-    // VARIANT across X and the CORNER down Y:
+    // Sheet layout (the bake and the art MUST match this exactly). The family's
+    // blob47 region begins at pixel (col*tileSize, row*tileSize) and is a grid
+    // of half-tile quarters (q = tileSize/2), with the quarter COLUMN across X
+    // and the CORNER down Y:
     //
-    //             col 0      col 1      col 2     col 3      col 4
-    //             variant 0  variant 1  variant 2 variant 3  variant 4
-    //             (outer)    (horiz)    (vert)    (inner)    (fill)
-    //   row 0 tl  [ q x q ]  [ q x q ]  ...
+    //          col 0     col 1    col 2    col 3    col 4..(4+N-1)
+    //          variant0  variant1 variant2 variant3 INTERIOR variants 0..N-1
+    //          (outer)   (horiz)  (vert)   (inner)  (fully-surrounded fill)
+    //   row 0 tl  [ q x q ] ...
     //   row 1 tr  ...
     //   row 2 bl  ...
     //   row 3 br  ...
     //
-    // i.e. quarter (corner, variant) sits at region-local (variant*q, row*q),
-    // rows tl=0 tr=1 bl=2 br=3. The region spans 5q wide x 4q tall (2.5 x 2
-    // tiles). Returns null (-> the whole-tile path) for a family with no
-    // blob47 region.
-    quarterRectsForCell(assetId, _cellX, _cellY, neighborMask) {
+    // A boundary quarter (variant 0..3) sits at column = variant. A fully-
+    // surrounded quarter (variant 4) instead reads one of the N interior
+    // detail columns, chosen by a per-cell spatial hash (variantIndexForCell)
+    // so open fields get scattered detail (tufts/flowers) rather than one
+    // repeating tile. All four quarters of a cell share the same hash, so the
+    // interior stays a coherent tile. interiorVariants defaults to 1.
+    quarterRectsForCell(assetId, cellX, cellY, neighborMask) {
       const family = manifest.families[assetId];
       if (!family?.blob47) return null;
       const quarter = manifest.tileSize / 2;
       const originX = family.blob47.col * manifest.tileSize;
       const originY = family.blob47.row * manifest.tileSize;
-      const slice = (corner: QuarterCorner, cornerRow: number): TileAtlasRect => ({
-        x: originX + quarterTileVariant(neighborMask, corner) * quarter,
-        y: originY + cornerRow * quarter,
-        size: quarter,
-      });
+      const interiorCount = family.blob47.interiorVariants ?? 1;
+      const interiorCol =
+        4 + (interiorCount > 1 ? variantIndexForCell(cellX, cellY, interiorCount) : 0);
+      const slice = (corner: QuarterCorner, cornerRow: number): TileAtlasRect => {
+        const variant = quarterTileVariant(neighborMask, corner);
+        const col = variant < 4 ? variant : interiorCol;
+        return { x: originX + col * quarter, y: originY + cornerRow * quarter, size: quarter };
+      };
       return [slice("tl", 0), slice("tr", 1), slice("bl", 2), slice("br", 3)];
     },
   };
