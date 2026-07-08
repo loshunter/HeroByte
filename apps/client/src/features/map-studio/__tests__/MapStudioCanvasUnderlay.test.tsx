@@ -12,6 +12,22 @@ vi.mock("../../render/tileAtlas", () => ({
   useTileAtlas: () => atlasHolder.atlas,
 }));
 
+// The procedural field bake needs a real 2D canvas; unit tests mock it and
+// assert the underlay blits whatever it returns. Non-field-family tests leave
+// `result` null, so the bake is a no-op there (matching real behaviour).
+const bakeHolder = vi.hoisted(() => ({
+  result: null as null | {
+    canvas: unknown;
+    originX: number;
+    originY: number;
+    width: number;
+    height: number;
+  },
+}));
+vi.mock("../../render/proceduralTerrainSurface", () => ({
+  bakeProceduralTerrain: () => bakeHolder.result,
+}));
+
 const GRID = { size: 50, offsetX: 0, offsetY: 0, visible: true };
 const VIEW = { x: 0, y: 0, width: 200, height: 200 };
 
@@ -28,6 +44,13 @@ function stoneLayers(): StructuredTerrainLayer[] {
 function waterLayers(): StructuredTerrainLayer[] {
   return [
     { assetId: "terrain:water", cells: [{ x: 0, y: 0, size: 50, cellX: 0, cellY: 0 }], edges: [] },
+  ];
+}
+
+function grassAndWaterLayers(): StructuredTerrainLayer[] {
+  return [
+    { assetId: "terrain:grass", cells: [{ x: 0, y: 0, size: 50, cellX: 0, cellY: 0 }], edges: [] },
+    { assetId: "terrain:water", cells: [{ x: 50, y: 0, size: 50, cellX: 1, cellY: 0 }], edges: [] },
   ];
 }
 
@@ -87,6 +110,7 @@ describe("MapStudioCanvasUnderlay", () => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     atlasHolder.atlas = null;
+    bakeHolder.result = null;
   });
 
   it("draws backdrop, document, grid, then terrain under the camera transform", () => {
@@ -236,6 +260,20 @@ describe("MapStudioCanvasUnderlay", () => {
     });
 
     expect(calls.length).toBeGreaterThan(drawsBefore);
+  });
+
+  it("blits the procedural field bake and keeps other families on the core", () => {
+    const bakedCanvas = {} as HTMLCanvasElement;
+    bakeHolder.result = { canvas: bakedCanvas, originX: 0, originY: 0, width: 100, height: 100 };
+
+    renderUnderlay({ terrainLayers: grassAndWaterLayers(), animated: true });
+
+    // The baked field canvas is blitted under the camera transform.
+    expect(calls.some((call) => call[0] === "drawImage" && call[1] === bakedCanvas)).toBe(true);
+    // Water (a non-field family) still renders through the shared core.
+    expect(calls).toContainEqual(["set:fillStyle", "#24516b"]);
+    // Grass is NOT flat-filled by the core — it lives in the procedural field.
+    expect(calls).not.toContainEqual(["set:fillStyle", "#386820"]);
   });
 
   it("draws nothing into a zero-sized canvas", () => {

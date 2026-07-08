@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { renderTerrainField, type TerrainFieldFamily } from "../proceduralTerrain";
+import {
+  createTerrainField,
+  renderTerrainField,
+  TERRAIN_RIM,
+  type TerrainFieldConfig,
+  type TerrainFieldFamily,
+} from "../proceduralTerrain";
 
 const GRASS = "terrain:grass";
 const DIRT = "terrain:dirt";
@@ -107,5 +113,59 @@ describe("renderTerrainField", () => {
     const xs = new Set<number>();
     for (let cy = 0; cy < 6; cy += 1) xs.add(crossover(center(cy)));
     expect(xs.size).toBeGreaterThan(1);
+  });
+});
+
+describe("createTerrainField", () => {
+  const configFor = (
+    rows: (string | null)[][],
+    families = FAMILIES,
+    offsetX = 0,
+    offsetY = 0,
+  ): TerrainFieldConfig => ({
+    familyAt: (cx: number, cy: number): string | null =>
+      cy >= 0 && cy < rows.length && cx >= 0 && cx < rows[0]!.length ? rows[cy]![cx]! : null,
+    families,
+    cellSize: CELL,
+    originX: 0,
+    originY: 0,
+    offsetX,
+    offsetY,
+  });
+
+  it("colorAt reproduces renderTerrainField pixel-for-pixel (one field impl)", () => {
+    // grass ⟵→ dirt seam exercises base, rim, underfill and cast shadow.
+    const rows = Array.from({ length: 6 }, () =>
+      [GRASS, GRASS, GRASS, GRASS, DIRT, DIRT, DIRT, DIRT].slice(),
+    );
+    const field = createTerrainField(configFor(rows));
+    const r = render(rows);
+    for (let y = 0; y < r.h; y += 3) {
+      for (let x = 0; x < r.w; x += 3) {
+        const c = field.colorAt(x + 0.5, y + 0.5);
+        const p = px(r, x, y);
+        if (c === null) expect(p[3]).toBe(0);
+        else expect([c[0], c[1], c[2], 255]).toEqual(p);
+      }
+    }
+  });
+
+  it("sampleField is well inside a family's interior and negative outside it", () => {
+    const field = createTerrainField(configFor(fill(6, 6, GRASS)));
+    // deep interior: base 1 ⇒ field ≈ 0.5, comfortably past the rim band.
+    expect(field.sampleField(GRASS, center(3), center(3))).toBeGreaterThanOrEqual(TERRAIN_RIM);
+    // far outside the painted area ⇒ negative (this family absent).
+    expect(field.sampleField(GRASS, 40 * CELL, 40 * CELL)).toBeLessThan(0);
+    // an unknown family id samples as absent, never throws.
+    expect(field.sampleField("terrain:nope", center(3), center(3))).toBeLessThan(0);
+  });
+
+  it("honours the grid offset when mapping world coords to cells", () => {
+    // Cells 0..3 painted, lattice shifted right by 100 world px.
+    const field = createTerrainField(configFor(fill(4, 4, GRASS), FAMILIES, 100, 0));
+    // Centre of cell 1 in the offset lattice is painted grass.
+    expect(field.colorAt(100 + 1.5 * CELL, 1.5 * CELL)).not.toBeNull();
+    // World x=5 falls left of the offset origin ⇒ off the painted lattice.
+    expect(field.colorAt(5, 1.5 * CELL)).toBeNull();
   });
 });

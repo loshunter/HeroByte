@@ -4,6 +4,11 @@ import { drawGrid } from "../../render/gridRenderCore";
 import { useTileAtlas } from "../../render/tileAtlas";
 import { drawTerrain, type StructuredTerrainLayer } from "../../render/tileRenderCore";
 import { paintTerrainDetail } from "../../render/terrainDetail";
+import {
+  bakeProceduralTerrain,
+  type BakedProceduralTerrain,
+} from "../../render/proceduralTerrainSurface";
+import { VILLAGE_TERRAIN } from "../../render/terrainPalette";
 import { terrainStyleForFrame } from "../starterTiles";
 import type { MapViewBox } from "./MapStudioWorkspace.types";
 import { renderedSvgViewport } from "./mapStudioWorkspaceUtils";
@@ -52,6 +57,13 @@ export function MapStudioCanvasUnderlay({
 }: MapStudioCanvasUnderlayProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const offscreenRef = useRef<HTMLCanvasElement | null>(null);
+  // Cached procedural-field bake, re-run only when the terrain content (the
+  // memoized layers) or the grid changes — not on every animation frame.
+  const fieldBakeRef = useRef<{
+    source: StructuredTerrainLayer[];
+    gridSig: string;
+    baked: BakedProceduralTerrain | null;
+  } | null>(null);
   const frame = useAnimationFrameIndex(TERRAIN_ANIM_FRAMES, animated);
   const atlas = useTileAtlas();
   const [resizeTick, setResizeTick] = useState(0);
@@ -142,30 +154,78 @@ export function MapStudioCanvasUnderlay({
     if (terrainOpacity > 0 && terrainLayers.length > 0) {
       const boundaryWidth = Math.max(2, grid.size * 0.04);
       const drawOptions = { boundaryWidth, atlas: atlas ?? undefined, detail: paintTerrainDetail };
+
+      // Grass/dirt/path render as a procedural bumpy field, baked to an
+      // offscreen once per terrain edit and cached; the remaining families
+      // (water/stone/wood) keep the flat/atlas core path. Re-bake only when the
+      // memoized terrain layers or the grid change — never per animation frame.
+      // The palette is the constant VILLAGE_TERRAIN today; once moods become
+      // data (Slice 5) its identity must join gridSig in the cache key.
+      const gridSig = `${grid.size}|${grid.offsetX}|${grid.offsetY}`;
+      let bakeCache = fieldBakeRef.current;
+      if (!bakeCache || bakeCache.source !== terrainLayers || bakeCache.gridSig !== gridSig) {
+        bakeCache = {
+          source: terrainLayers,
+          gridSig,
+          baked: bakeProceduralTerrain({ terrainLayers, grid, palette: VILLAGE_TERRAIN }),
+        };
+        fieldBakeRef.current = bakeCache;
+      }
+      const fieldBaked = bakeCache.baked;
+      // When the field baked, only the OTHER families draw through the core.
+      // When it did not (no field families, or too large to bake — the cap in
+      // proceduralTerrainSurface), fall back to the flat/atlas core render for
+      // ALL layers so terrain never silently vanishes.
+      const coreLayers = fieldBaked
+        ? terrainLayers.filter((layer) => !VILLAGE_TERRAIN[layer.assetId])
+        : terrainLayers;
+
+      // Blit the baked field under the camera transform, then draw the other
+      // families over it — preserving the pre-field z-order, where water/stone/
+      // wood already sorted above grass/dirt/path.
+      const paintTerrain = (target: CanvasRenderingContext2D): void => {
+        if (fieldBaked) {
+          const previousSmoothing = target.imageSmoothingEnabled;
+          target.imageSmoothingEnabled = false; // crisp pixels; no bilinear seam bleed
+          target.drawImage(
+            fieldBaked.canvas,
+            0,
+            0,
+            fieldBaked.width,
+            fieldBaked.height,
+            fieldBaked.originX,
+            fieldBaked.originY,
+            fieldBaked.width,
+            fieldBaked.height,
+          );
+          target.imageSmoothingEnabled = previousSmoothing;
+        }
+        if (coreLayers.length > 0) {
+          drawTerrain(target, coreLayers, terrainStyleForFrame, frame, view, drawOptions);
+        }
+      };
+
       if (terrainOpacity >= 1) {
-        drawTerrain(ctx, terrainLayers, terrainStyleForFrame, frame, view, drawOptions);
+        paintTerrain(ctx);
       } else {
-        // SVG applied the layer opacity per family <g>: flatten the family
-        // opaquely, then fade the flattened result once. Per-primitive
-        // globalAlpha would tint boundary strokes with the fill beneath
-        // them, so replicate the group semantics via an offscreen blit.
+        // Flatten the whole terrain group opaquely, then fade it once — SVG
+        // group-opacity semantics. Per-primitive globalAlpha would tint the
+        // boundary strokes with the fill beneath them.
         const offscreen =
           offscreenRef.current ?? (offscreenRef.current = window.document.createElement("canvas"));
         if (offscreen.width !== width) offscreen.width = width;
         if (offscreen.height !== height) offscreen.height = height;
         const offscreenCtx = offscreen.getContext("2d");
         if (offscreenCtx) {
-          for (const layer of terrainLayers) {
-            offscreenCtx.setTransform(1, 0, 0, 1, 0, 0);
-            offscreenCtx.clearRect(0, 0, width, height);
-            offscreenCtx.setTransform(scale, 0, 0, scale, translateX, translateY);
-            drawTerrain(offscreenCtx, [layer], terrainStyleForFrame, frame, view, drawOptions);
-            ctx.save();
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.globalAlpha = terrainOpacity;
-            ctx.drawImage(offscreen, 0, 0);
-            ctx.restore();
-          }
+          offscreenCtx.setTransform(1, 0, 0, 1, 0, 0);
+          offscreenCtx.clearRect(0, 0, width, height);
+          offscreenCtx.setTransform(scale, 0, 0, scale, translateX, translateY);
+          paintTerrain(offscreenCtx);
+          ctx.save();
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.globalAlpha = terrainOpacity;
+          ctx.drawImage(offscreen, 0, 0);
+          ctx.restore();
         }
       }
     }
