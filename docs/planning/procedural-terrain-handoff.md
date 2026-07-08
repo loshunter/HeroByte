@@ -26,7 +26,7 @@ available — each takes its own syntax). Owner: loshunter.
    VALIDATED algorithm and the visual target. The `.png`s next to it are the
    owner-approved look. Treat `transition_v2_proto.mjs` as the spec: the app
    renderer must reproduce it. (`temp/` is the owner's scratch — NEVER stage it.)
-5. `git log --oneline -6`; confirm `3171e106`, `30a114d8`, and `200871d4` (Slice 2b) are on `dev`.
+5. `git log --oneline -6`; confirm `200871d4` (Slice 2b) and `e1691696` (Slice 3) are on `dev`.
 
 Do NOT read the whole render tree. Everything you need is indexed in §3 below and
 in playbook §0.8.
@@ -219,13 +219,19 @@ buffer. Reuse `renderTerrainField`'s buffer tests as the field's proof. Add a
 path in the studio; confirm bumpy organic seams, grass lip, cast shadow, pebbles
 to the seam, and bumpy grass-vs-empty edges. Owner drives the final look call.
 
-### Slice 3 — raster export bakes procedurally  ← NEXT
-`rasterUnderlay.ts` / `rasterizeMapDocument` composite terrain via
-`bakeProceduralTerrain` (the S2b module — reuse it, don't fork). Downloads get the look; this is ALSO the
+### Slice 3 — raster export bakes procedurally  ← DONE ✅ (`e1691696`)
+**Shipped.** `paintRasterUnderlay` (rasterUnderlay.ts) composites grass/dirt/path
+via `bakeProceduralTerrain` (the S2b module, reused — not forked); water/stone/wood
+keep the core `drawTerrain` path; group flatten-then-fade opacity; flat-core
+fallback for ALL layers when the bake declines. Blits the baked canvas at its
+world origin under the export's identity transform (whole doc 1:1, no camera,
+one-shot — no cache). SVG export path UNTOUCHED → byte-parity holds. The 3
+superseded R4b raster tests in `exportMapDocument.test.ts` were rewritten with
+the owner's OK (that file is add-only). Focused review: 0 confirmed findings. Downloads get the look; this is ALSO the
 publish-bake foundation. Focused export-surface review. Frozen SVG goldens stay
 untouched (SVG download remains flat by design).
 
-### Slice 4 — publish → first-class image map  [protocol; REQUIRED full review]
+### Slice 4 — publish → first-class image map  ← NEXT  [protocol; REQUIRED full review]
 The workflow unification the owner wants. Publish rasterizes the map to a bitmap
 that flows to the table as an image map (scale/move/grid-match/lock/relock —
 today those exist only for imported images). Touches `packages/shared` publish
