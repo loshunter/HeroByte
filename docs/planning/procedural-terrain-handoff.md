@@ -26,7 +26,7 @@ available — each takes its own syntax). Owner: loshunter.
    VALIDATED algorithm and the visual target. The `.png`s next to it are the
    owner-approved look. Treat `transition_v2_proto.mjs` as the spec: the app
    renderer must reproduce it. (`temp/` is the owner's scratch — NEVER stage it.)
-5. `git log --oneline -6`; confirm `3171e106` and `30a114d8` are on `dev`.
+5. `git log --oneline -6`; confirm `3171e106`, `30a114d8`, and `200871d4` (Slice 2b) are on `dev`.
 
 Do NOT read the whole render tree. Everything you need is indexed in §3 below and
 in playbook §0.8.
@@ -54,8 +54,10 @@ in playbook §0.8.
 
 ## 2. What's DONE — the API surface you can build on (don't re-read these files)
 
-Both slices are **INERT** (exported, unit-tested, wired to nothing → they
-tree-shake out; entry bundle unchanged at **69.17 KB**).
+Slices 1 + 2a were INERT. **Slice 2b (`200871d4`) now WIRES them into the Map
+Studio editor underlay** — the procedural field is live and owner-approved (see
+§4). Entry stays **69.17 KB** (the field rides the already-lazy Map Studio chunk).
+`proceduralTerrainSurface.ts` (the S2b orchestrator, below) is what S3/S4 reuse.
 
 **Slice 1 `3171e106`** — dirt/path interior detail:
 - `features/render/terrainPalette.ts`
@@ -139,9 +141,34 @@ context helper: `__tests__/recordingContext.ts` (records `set:fillStyle`).
 
 ## 4. THE PLAN — remaining slices (one verified slice per commit)
 
-### Slice 2b — editor underlay renders procedurally  ← NEXT, VISIBLE, OWNER EYEBALLS
-The first slice with a visible result. Deliver the bumpy transitions in the Map
-Studio editor.
+### Slice 2b — editor underlay renders procedurally  ← DONE ✅ (`200871d4`)
+**Shipped & owner-approved** (first visible slice; bumpy transitions live in the
+Map Studio editor). Actual shipped shape (use these, not the sketch below):
+- `features/render/proceduralTerrain.ts`: `createTerrainField(config) →
+  { colorAt(wx,wy), sampleField(assetId,wx,wy) }` + `TERRAIN_RIM` + optional grid
+  `offsetX/offsetY`. `renderTerrainField` now calls `colorAt` → ONE field impl (F10).
+- `features/render/proceduralTerrainSurface.ts` (new, 297 LOC): `buildProceduralFieldConfig`
+  (filters palette-known families, bbox +1-cell margin, familyAt), `makeClipCtx`
+  (wraps a ctx so only fillRects whose CENTRE passes a predicate reach it — reuses
+  the existing detail painters, no forked math), `paintProceduralDetail` (own detail
+  clipped to `sampleField(fam)≥RIM`; dominant lower-neighbour's detail in the
+  `sampleField(fam)<0 && sampleField(lower)≥0` band — v2 proto pass-2), and
+  `bakeProceduralTerrain` (renderTerrainField → ImageData → offscreen → detail pass;
+  returns `{canvas, originX, originY, width, height}`; **logged size CAP** 8192px/side
+  / 32M px → returns null past it).
+- `MapStudioCanvasUnderlay.tsx`: a `fieldBakeRef` cache keyed on (terrainLayers
+  identity, gridSig) blits the baked canvas `imageSmoothingEnabled=false` under the
+  camera transform; `coreLayers` = non-field families still via `drawTerrain` (field
+  UNDER, unchanged z-order); when the bake is null (no field families OR over the cap)
+  the core renders ALL layers (flat fallback — terrain never vanishes); opacity<1 is a
+  single group flatten-then-fade.
+- Focused adversarial review: 1 confirmed (unbounded bake alloc → the cap) fixed;
+  1 contested (underfill tie-break → `>=` last-wins to match the proto) fixed; 2
+  refuted (re-bake-per-edit = accepted v1; paletteId-in-cache-key = S5, comment left).
+- Known v1 limit: re-bakes the whole bbox on any `activeDocument` edit (S4's
+  at-publish bake is the real perf answer). SVG export untouched (byte-parity holds).
+
+The design sketch below is the historical record; the shipped shape above wins.
 
 **Design:**
 1. New module `features/render/proceduralTerrainSurface.ts` (keep <350 LOC; split
@@ -192,9 +219,9 @@ buffer. Reuse `renderTerrainField`'s buffer tests as the field's proof. Add a
 path in the studio; confirm bumpy organic seams, grass lip, cast shadow, pebbles
 to the seam, and bumpy grass-vs-empty edges. Owner drives the final look call.
 
-### Slice 3 — raster export bakes procedurally
+### Slice 3 — raster export bakes procedurally  ← NEXT
 `rasterUnderlay.ts` / `rasterizeMapDocument` composite terrain via
-`renderProceduralTerrain` (same module). Downloads get the look; this is ALSO the
+`bakeProceduralTerrain` (the S2b module — reuse it, don't fork). Downloads get the look; this is ALSO the
 publish-bake foundation. Focused export-surface review. Frozen SVG goldens stay
 untouched (SVG download remains flat by design).
 
