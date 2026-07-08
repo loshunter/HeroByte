@@ -66,6 +66,7 @@ export function MapStudioWorkspace({
   const { publishMessage, setPublishMessage, handlePublish } = useStudioPublish({
     activeDocument,
     publishDocument,
+    uploadAsset,
     onPublishStatus,
   });
 

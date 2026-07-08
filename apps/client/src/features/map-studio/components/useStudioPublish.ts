@@ -1,12 +1,7 @@
 import { useState } from "react";
 import type { MapDocument, MapPublishBackgroundMode } from "@herobyte/shared";
-import {
-  backgroundExceedsPublishLimit,
-  createMapDocumentSvgDataUrlWithAssets,
-} from "../exportMapDocument";
-
-const TOO_LARGE_MESSAGE =
-  "Publish failed: this map's images are too large to send. Remove or shrink uploaded images and try again.";
+import type { UploadedAssetInfo } from "../uploads/assetUpload";
+import { describePublishFailure, rasterizeAndUploadMapBackground } from "../publishRaster";
 
 interface StudioPublishOptions {
   activeDocument: MapDocument | null;
@@ -15,18 +10,21 @@ interface StudioPublishOptions {
     documentId?: string,
     backgroundMode?: MapPublishBackgroundMode,
   ) => boolean;
+  uploadAsset: (file: File) => Promise<UploadedAssetInfo>;
   onPublishStatus?: (message: string) => void;
 }
 
 /**
- * Publishing the active document to the live scene. Uploaded images inline
- * asynchronously (SVG-as-image can't fetch external refs), so the flow is
- * async and guarded against (a) the active document switching mid-render and
- * (b) an oversized background the server would silently drop past its 1MB cap.
+ * Publishing the active document to the live scene. The map is baked to a full
+ * opaque raster PNG (terrain composited) and uploaded by reference to the
+ * content-addressed /assets store; only its short URL rides the publish message
+ * ("full" mode), so the 1MB inbound cap can't drop it. The flow is async and
+ * guarded against the active document switching mid-bake.
  */
 export function useStudioPublish({
   activeDocument,
   publishDocument,
+  uploadAsset,
   onPublishStatus,
 }: StudioPublishOptions): {
   publishMessage: string;
@@ -44,20 +42,14 @@ export function useStudioPublish({
     const documentToPublish = activeDocument;
     if (!documentToPublish) return;
     void (async () => {
-      // Elements-only: terrain, grid, and the opaque backdrop are stripped from
-      // the SVG. Terrain rides the wire as data (R5a) and draws live at the
-      // table (R5b); the table supplies its own grid; a transparent background
-      // lets that live terrain show through beneath the elements.
-      const background = await createMapDocumentSvgDataUrlWithAssets(documentToPublish, {
-        omitTerrain: true,
-        omitGrid: true,
-        transparentBackground: true,
-      });
-      if (backgroundExceedsPublishLimit(background)) {
-        announce(TOO_LARGE_MESSAGE);
+      let backgroundUrl: string;
+      try {
+        backgroundUrl = await rasterizeAndUploadMapBackground(documentToPublish, uploadAsset);
+      } catch (error) {
+        announce(describePublishFailure(error));
         return;
       }
-      if (!publishDocument(background, documentToPublish.id, "elements-only")) return;
+      if (!publishDocument(backgroundUrl, documentToPublish.id, "full")) return;
       announce(`Published "${documentToPublish.name}" to the live map.`);
     })();
   };

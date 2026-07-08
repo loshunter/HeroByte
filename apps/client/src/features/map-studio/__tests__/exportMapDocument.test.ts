@@ -629,6 +629,42 @@ describe("Map Studio raster composite (R4b)", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("bakes no grid when omitGrid is set — the live table draws its own grid", async () => {
+    __resetTileAtlasForTests();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("nope", { status: 404 })));
+    bakeHolder.result = {
+      canvas: {} as HTMLCanvasElement,
+      originX: 0,
+      originY: 0,
+      width: 200,
+      height: 200,
+    };
+    const calls = stubRasterEnv();
+
+    await rasterizeMapDocument(grassMap(), "image/png", { omitGrid: true });
+
+    // drawGrid is the only thing that strokes the lattice colour; with omitGrid
+    // the underlay never reaches it, so the published raster carries no grid.
+    expect(calls).not.toContainEqual(["set:strokeStyle", "#ffffff"]);
+  });
+
+  it("still bakes the grid for the download path (no omitGrid)", async () => {
+    __resetTileAtlasForTests();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("nope", { status: 404 })));
+    bakeHolder.result = {
+      canvas: {} as HTMLCanvasElement,
+      originX: 0,
+      originY: 0,
+      width: 200,
+      height: 200,
+    };
+    const calls = stubRasterEnv();
+
+    await rasterizeMapDocument(grassMap(), "image/png");
+
+    expect(calls).toContainEqual(["set:strokeStyle", "#ffffff"]);
+  });
+
   it("falls back to the flat core render when the field declines to bake", async () => {
     __resetTileAtlasForTests();
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("nope", { status: 404 })));

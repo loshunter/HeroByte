@@ -2,7 +2,17 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createMapDocument } from "@herobyte/shared";
 import type { MapStudioController } from "../../../../map-studio";
+import { rasterizeAndUploadMapBackground } from "../../../../map-studio";
 import { MapStudioControl } from "../MapStudioControl";
+
+// rasterizeAndUploadMapBackground drives a real <canvas> + HTTP upload — stub it
+// so the publish flow is exercised without a browser canvas or a live server.
+vi.mock("../../../../map-studio", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../../map-studio")>()),
+  rasterizeAndUploadMapBackground: vi.fn(),
+}));
+
+const PUBLISHED_URL = `http://localhost:8787/assets/${"c".repeat(64)}`;
 
 function controller(overrides: Partial<MapStudioController> = {}): MapStudioController {
   return {
@@ -41,7 +51,10 @@ function controller(overrides: Partial<MapStudioController> = {}): MapStudioCont
 }
 
 describe("MapStudioControl", () => {
-  beforeEach(() => vi.restoreAllMocks());
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.mocked(rasterizeAndUploadMapBackground).mockResolvedValue(PUBLISHED_URL);
+  });
 
   it("loads documents, creates a map, and opens the full-canvas studio", () => {
     const mapStudio = controller();
@@ -107,33 +120,31 @@ describe("MapStudioControl", () => {
     expect(onOpenStudio).toHaveBeenCalledOnce();
   });
 
-  it("publishes the active document as a live map background with synced grid size", async () => {
+  it("publishes the active document as an uploaded raster background in full mode", async () => {
     const document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
     document.grid.size = 64;
+    const mapStudio = controller({ activeDocument: document });
     const onPublishToLiveMap = vi.fn();
 
-    render(
-      <MapStudioControl
-        controller={controller({ activeDocument: document })}
-        onPublishToLiveMap={onPublishToLiveMap}
-      />,
-    );
+    render(<MapStudioControl controller={mapStudio} onPublishToLiveMap={onPublishToLiveMap} />);
 
     fireEvent.click(screen.getByRole("button", { name: "PUBLISH TO LIVE MAP" }));
 
     await waitFor(() =>
       expect(onPublishToLiveMap).toHaveBeenCalledWith(
         expect.objectContaining({
-          backgroundUrl: expect.stringMatching(/^data:image\/svg\+xml;charset=utf-8,/),
+          // The baked PNG is uploaded and referenced by its /assets URL — the
+          // full raster supersedes the elements-only + live-terrain publish.
+          backgroundUrl: PUBLISHED_URL,
           documentId: "map",
           documentName: "Keep",
           gridSize: 64,
-          // DM-menu publish is now elements-only (parity with the studio button):
-          // terrain rides the wire as data, not baked into the background.
-          backgroundMode: "elements-only",
+          backgroundMode: "full",
         }),
       ),
     );
+    // The raster is baked + uploaded through the controller's authenticated uploader.
+    expect(rasterizeAndUploadMapBackground).toHaveBeenCalledWith(document, mapStudio.uploadAsset);
     expect(screen.getByRole("status")).toHaveTextContent('Published "Keep" to the live map.');
   });
 

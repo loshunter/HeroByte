@@ -23,3 +23,4 @@ export {
   serializeMapDocument,
   type MapExportFormat,
 } from "./exportMapDocument";
+export { rasterizeAndUploadMapBackground, describePublishFailure } from "./publishRaster";

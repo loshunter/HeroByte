@@ -37,7 +37,9 @@ test.describe("Map Studio smoke", () => {
     );
     await page.waitForFunction(() => {
       const snapshot = window.__HERO_BYTE_E2E__?.snapshot;
-      return snapshot?.mapBackground?.startsWith("data:image/svg+xml") && snapshot.gridSize === 50;
+      // Slice 4: publish bakes a raster PNG and uploads it by reference, so the
+      // live background is now the content-addressed /assets URL, not a data-url.
+      return snapshot?.mapBackground?.includes("/assets/") && snapshot.gridSize === 50;
     });
   });
 });

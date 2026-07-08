@@ -17,17 +17,54 @@
  * - First mic toggle: ~30 KB gzipped (SimplePeer for voice chat)
  * - ~50% reduction in time-to-interactive for unauthenticated users
  */
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { visualizer } from "rollup-plugin-visualizer";
 
 const bundleStatsFile = process.env.HEROBYTE_BUNDLE_STATS_FILE ?? "./dist/stats.html";
 
-export default defineConfig({
+/**
+ * The map-publish flow uploads the baked raster to the game server's HTTP
+ * /assets endpoint and the table then loads it back as an <img>. Both are
+ * cross-origin (the client and server never share an origin — pages.dev vs
+ * onrender in prod, :5174 vs :8787 in dev), so the CSP must name the server's
+ * HTTP(S) origin in connect-src (upload/fetch) AND img-src (display). We inject
+ * it at build/serve time from the WS target so production stays tight (no dev
+ * hosts) while dev/e2e resolve to their local servers.
+ */
+function serverOriginCsp(command: "build" | "serve"): Plugin {
+  return {
+    name: "herobyte-server-origin-csp",
+    transformIndexHtml(html) {
+      const origins = new Set<string>(["https://herobyte-server.onrender.com"]);
+      const wsUrl = process.env.VITE_WS_URL;
+      if (wsUrl) {
+        try {
+          const parsed = new URL(wsUrl);
+          const protocol = parsed.protocol === "wss:" ? "https:" : "http:";
+          origins.add(`${protocol}//${parsed.host}`);
+        } catch {
+          // An unparseable override just leaves the defaults in place.
+        }
+      }
+      // Dev serves over http on the page's own host (smart-hostname detection
+      // targets :8787). Keep this dev-only so the production CSP never names a
+      // localhost origin.
+      if (command === "serve") {
+        origins.add("http://localhost:8787");
+        origins.add("http://127.0.0.1:8787");
+      }
+      return html.replace(/__HB_SERVER_ORIGINS__/g, [...origins].join(" "));
+    },
+  };
+}
+
+export default defineConfig(({ command }) => ({
   plugins: [
     react(),
     tsconfigPaths(),
+    serverOriginCsp(command),
     visualizer({
       filename: bundleStatsFile,
       open: false,
@@ -72,4 +109,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

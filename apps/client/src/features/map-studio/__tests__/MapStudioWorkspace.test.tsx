@@ -1,14 +1,21 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  addMapElement,
-  createMapDocument,
-  paintTerrain as paintTerrainDocument,
-} from "@herobyte/shared";
+import { createMapDocument, paintTerrain as paintTerrainDocument } from "@herobyte/shared";
 import type { MapStudioController } from "../types";
 import { createRecordingContext, hasCallPair } from "../../render/__tests__/recordingContext";
 import { MapStudioWorkspace } from "../components/MapStudioWorkspace";
+import { AssetUploadError } from "../uploads/assetUpload";
+import { rasterizeAndUploadMapBackground } from "../publishRaster";
 import { createTileElement } from "../elementBuilders";
+
+// rasterizeAndUploadMapBackground drives a real <canvas> + HTTP upload; stub it
+// so the publish flow is exercised without a browser canvas or a live server.
+vi.mock("../publishRaster", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../publishRaster")>()),
+  rasterizeAndUploadMapBackground: vi.fn(),
+}));
+
+const PUBLISHED_URL = `http://localhost:8787/assets/${"a".repeat(64)}`;
 
 function controller(overrides: Partial<MapStudioController> = {}): MapStudioController {
   return {
@@ -846,6 +853,7 @@ describe("MapStudioWorkspace", () => {
   });
 
   it("publishes the active map document through the controller", async () => {
+    vi.mocked(rasterizeAndUploadMapBackground).mockResolvedValue(PUBLISHED_URL);
     const document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
     const publishDocument = vi.fn(() => true);
     render(
@@ -857,28 +865,20 @@ describe("MapStudioWorkspace", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Publish" }));
 
-    await waitFor(() =>
-      expect(publishDocument).toHaveBeenCalledWith(
-        expect.stringMatching(/^data:image\/svg\+xml;charset=utf-8,/),
-        "map",
-        "elements-only",
-      ),
-    );
+    await waitFor(() => expect(publishDocument).toHaveBeenCalledWith(PUBLISHED_URL, "map", "full"));
     expect(screen.getByRole("status")).toHaveTextContent('Published "Keep" to the live map.');
   });
 
-  it("publishes an elements-only background so terrain rides the wire as data (R5b)", async () => {
-    // Terrain is stripped from the SVG (omitTerrain) — it publishes as
-    // snapshot.mapTerrain and draws live at the table, not baked into pixels.
+  it("publishes a baked raster by reference in full mode (supersedes R5b live terrain)", async () => {
+    // Slice 4: the whole map (terrain composited) is baked to a PNG and uploaded;
+    // only the /assets URL rides the wire, in "full" mode, so the table renders it
+    // as the map image instead of streaming + drawing live terrain.
+    vi.mocked(rasterizeAndUploadMapBackground).mockResolvedValue(PUBLISHED_URL);
     let document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
     document = paintTerrainDocument(document, [{ x: 1, y: 1, assetId: "terrain:water" }]);
     const publishDocument = vi.fn(() => true);
-    render(
-      <MapStudioWorkspace
-        controller={controller({ activeDocument: document, publishDocument })}
-        onExit={vi.fn()}
-      />,
-    );
+    const mapStudio = controller({ activeDocument: document, publishDocument });
+    render(<MapStudioWorkspace controller={mapStudio} onExit={vi.fn()} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Publish" }));
 
@@ -888,8 +888,11 @@ describe("MapStudioWorkspace", () => {
       string | undefined,
       string | undefined,
     ];
-    expect(backgroundMode).toBe("elements-only");
-    expect(publishedBackground).not.toContain("data-terrain");
+    expect(backgroundMode).toBe("full");
+    expect(publishedBackground).toBe(PUBLISHED_URL);
+    expect(publishedBackground).not.toMatch(/^data:/);
+    // Baked from the document, uploaded through the controller's authenticated uploader.
+    expect(rasterizeAndUploadMapBackground).toHaveBeenCalledWith(document, mapStudio.uploadAsset);
   });
 
   it("shows the uploader and the stored shelf under the My Stuff tab", () => {
@@ -928,31 +931,13 @@ describe("MapStudioWorkspace", () => {
     expect(assetButton).toHaveStyle({ border: "2px solid #7fd6ff" });
   });
 
-  it("refuses to publish when inlined uploads would blow the 1MB message cap", async () => {
-    // A ~900KB image inlines to ~1.2MB of base64 — past the publish guard.
-    const big = new Uint8Array(900 * 1024);
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(
-        new Response(big, { status: 200, headers: { "content-type": "image/png" } }),
-      );
-    vi.stubGlobal("fetch", fetchMock);
-
-    const hash = "f".repeat(64);
-    let document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
-    document = addMapElement(
-      document,
-      {
-        id: "torch",
-        type: "stamp",
-        layerId: "objects",
-        locked: false,
-        hidden: false,
-        transform: { x: 40, y: 40, scaleX: 1, scaleY: 1, rotation: 0 },
-        data: { assetId: `upload:${hash}`, width: 100, height: 100 },
-      },
-      20,
+  it("refuses to publish and reports why when the baked raster is too large to upload", async () => {
+    // Upload-by-reference replaces the old inline 1MB cap with the /assets 5MB
+    // ceiling; an oversize bake surfaces as an AssetUploadError, not a silent drop.
+    vi.mocked(rasterizeAndUploadMapBackground).mockRejectedValue(
+      new AssetUploadError("too-large", "That image is over the 5MB upload limit."),
     );
+    const document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
     const publishDocument = vi.fn(() => true);
     render(
       <MapStudioWorkspace
@@ -963,7 +948,9 @@ describe("MapStudioWorkspace", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Publish" }));
 
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(/too large to send/i));
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent(/over the 5MB upload limit/i),
+    );
     expect(publishDocument).not.toHaveBeenCalled();
   });
 
@@ -993,6 +980,7 @@ describe("MapStudioWorkspace", () => {
   });
 
   it("shows no publish confirmation when the controller rejects the publish", async () => {
+    vi.mocked(rasterizeAndUploadMapBackground).mockResolvedValue(PUBLISHED_URL);
     const document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
     const publishDocument = vi.fn(() => false);
     render(

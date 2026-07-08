@@ -38,6 +38,7 @@ export function paintRasterUnderlay(
   document: MapDocument,
   terrainLayers: readonly StructuredTerrainLayer[],
   atlas: TerrainAtlasSource | null,
+  { omitGrid = false }: { omitGrid?: boolean } = {},
 ): void {
   const { width, height, grid } = document;
   const view = { x: 0, y: 0, width, height };
@@ -45,7 +46,9 @@ export function paintRasterUnderlay(
   ctx.fillStyle = DOCUMENT_FILL;
   ctx.fillRect(0, 0, width, height);
 
-  if (grid.visible) {
+  // Publishing to the live table bakes no grid — the table overlays its own
+  // grid, so a baked one would double-draw and drift when the map is moved.
+  if (grid.visible && !omitGrid) {
     // The full grid geometry (square/hex/iso) matches the SVG export's
     // <pattern>. One sub-pixel gap remains: a hex tile's flat top and bottom
     // edges stack onto the same world line, so the shared core strokes it as

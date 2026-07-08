@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import type { MapPublishBackgroundMode } from "@herobyte/shared";
 import { JRPGButton, JRPGPanel } from "../../../../components/ui/JRPGPanel";
 import {
-  backgroundExceedsPublishLimit,
-  createMapDocumentSvgDataUrlWithAssets,
+  describePublishFailure,
+  rasterizeAndUploadMapBackground,
   type MapStudioController,
 } from "../../../map-studio";
 import { MapStudioExportControls } from "./MapStudioExportControls";
@@ -39,6 +39,7 @@ export function MapStudioControl({
     deleteDocument,
     undo,
     redo,
+    uploadAsset,
   } = controller;
   const [name, setName] = useState("New Battlemap");
   const [width, setWidth] = useState(2048);
@@ -85,21 +86,17 @@ export function MapStudioControl({
   const handlePublish = () => {
     const documentToPublish = activeDocument;
     if (!documentToPublish || !onPublishToLiveMap) return;
-    // Uploaded images inline asynchronously; the payload captures the
-    // document so a mid-render switch can't mismatch id and background.
+    // Bake + upload run async; the payload captures the document so a mid-bake
+    // switch can't mismatch id and background.
     void (async () => {
-      // Elements-only, matching the in-studio Publish button: terrain rides the
-      // wire as data (R5) and draws live at the table; the table supplies its
-      // own grid; a transparent background lets that live terrain show through.
-      const backgroundUrl = await createMapDocumentSvgDataUrlWithAssets(documentToPublish, {
-        omitTerrain: true,
-        omitGrid: true,
-        transparentBackground: true,
-      });
-      if (backgroundExceedsPublishLimit(backgroundUrl)) {
-        setPublishStatus(
-          "Publish failed: this map's images are too large to send. Remove or shrink uploaded images and try again.",
-        );
+      // Full raster, matching the in-studio Publish button: the map is baked to
+      // an opaque PNG (terrain composited) and uploaded by reference, so only a
+      // short /assets URL rides the wire and the table renders it as the map.
+      let backgroundUrl: string;
+      try {
+        backgroundUrl = await rasterizeAndUploadMapBackground(documentToPublish, uploadAsset);
+      } catch (error) {
+        setPublishStatus(describePublishFailure(error));
         return;
       }
       onPublishToLiveMap({
@@ -107,7 +104,7 @@ export function MapStudioControl({
         gridSize: toLiveGridSize(documentToPublish.grid.size),
         documentId: documentToPublish.id,
         documentName: documentToPublish.name,
-        backgroundMode: "elements-only",
+        backgroundMode: "full",
       });
       setPublishStatus(`Published "${documentToPublish.name}" to the live map.`);
     })();

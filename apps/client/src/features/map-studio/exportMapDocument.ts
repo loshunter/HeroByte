@@ -167,7 +167,9 @@ export async function downloadRasterMapDocument(
 export async function rasterizeMapDocument(
   document: MapDocument,
   mimeType: "image/png" | "image/webp" = "image/png",
+  options?: { omitGrid?: boolean },
 ): Promise<Blob> {
+  const omitGrid = options?.omitGrid ?? false;
   const uploadDataUrls = await collectUploadDataUrls(document);
   // Atlas textures can't ride inside a portable SVG, so painted terrain is
   // composited onto the canvas beneath an elements-only SVG. Terrain-free maps
@@ -179,7 +181,11 @@ export async function rasterizeMapDocument(
   const svg = renderMapDocumentSvg(
     document,
     uploadDataUrls,
-    composite ? { omitTerrain: true, omitGrid: true, transparentBackground: true } : undefined,
+    composite
+      ? { omitTerrain: true, omitGrid: true, transparentBackground: true }
+      : omitGrid
+        ? { omitGrid: true }
+        : undefined,
   );
   const atlas = composite ? await loadTileAtlas() : null;
   const svgUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
@@ -190,7 +196,7 @@ export async function rasterizeMapDocument(
     canvas.height = document.height;
     const context = canvas.getContext("2d");
     if (!context) throw new Error("Unable to create map export canvas context");
-    if (composite) paintRasterUnderlay(context, document, terrainLayers, atlas);
+    if (composite) paintRasterUnderlay(context, document, terrainLayers, atlas, { omitGrid });
     context.drawImage(image, 0, 0);
     return await canvasToBlob(canvas, mimeType);
   } finally {
