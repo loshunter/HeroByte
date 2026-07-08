@@ -26,7 +26,8 @@ available — each takes its own syntax). Owner: loshunter.
    VALIDATED algorithm and the visual target. The `.png`s next to it are the
    owner-approved look. Treat `transition_v2_proto.mjs` as the spec: the app
    renderer must reproduce it. (`temp/` is the owner's scratch — NEVER stage it.)
-5. `git log --oneline -6`; confirm `200871d4` (Slice 2b) and `e1691696` (Slice 3) are on `dev`.
+5. `git log --oneline -6`; confirm `200871d4` (Slice 2b), `e1691696` (Slice 3), and
+   `2db24af8` (Slice 4 — publish→image-map, client-only + CSP fix) are on `dev`.
 
 Do NOT read the whole render tree. Everything you need is indexed in §3 below and
 in playbook §0.8.

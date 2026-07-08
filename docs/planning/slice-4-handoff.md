@@ -1,5 +1,29 @@
 # Slice 4 Handoff — publish → first-class image map [PROTOCOL/SECURITY]
 
+> **✅ DONE `2db24af8` (owner-approved, full adversarial review clean).** Shipped
+> shape differs from the plan below — read this delta first:
+> - **Client-only.** No `packages/shared` or `apps/server` change was needed: the
+>   wire already stored a URL-form `mapBackground` and attaches no `mapTerrain` in
+>   `backgroundMode:"full"`. The whole slice is the publish producer swap (new
+>   `publishRaster.ts`; both send sites) → bake full opaque PNG → upload to
+>   `/assets` by reference → publish the URL in `"full"` mode. Owner confirmed the
+>   §3 fork: **upload-by-reference** (inline data-url would hit the 1MB WS cap on
+>   large procedural maps).
+> - **The §2/§3 "same-origin /assets, no taint" premise was WRONG.** Client and
+>   game server are cross-origin in EVERY env (pages.dev vs onrender; :5174 vs
+>   :8787), so upload-by-reference was CSP-blocked (`connect-src` for the upload,
+>   `img-src` for display). Fixed with a **build-time CSP injection** (vite
+>   `transformIndexHtml` plugin in `vite.config.ts` → `__HB_SERVER_ORIGINS__` in
+>   `index.html`; `public/_headers` img-src += onrender) that keeps prod tight.
+>   Canvas taint accepted (nothing reads table-stage pixels).
+> - **Adversarial review caught one real bug (contested 1/2, verified):** the
+>   published raster baked the grid, double-drawing with the table's live grid →
+>   added an `omitGrid` option to `rasterizeMapDocument`/`paintRasterUnderlay`
+>   (publish omits; downloads keep). Refuted: secret-door leak (pre-existing),
+>   prod-CSP dev-origin leak (empirically false), asset-GC self-DoS (dedup).
+> - **Flagged follow-ups (not fixed):** `/assets` never GC'd on re-publish;
+>   secret-door door-elements bake as static lines (pre-existing since R5a).
+
 Written 2026-07-07 by the session that shipped Slices 2b + 3 (procedural terrain
 in the editor and in raster export). You are executing **Slice 4** of the
 procedural-terrain rework in `D:\HeroByte` (branch `dev`, Windows/PowerShell; a
