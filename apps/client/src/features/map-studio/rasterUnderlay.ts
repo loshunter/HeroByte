@@ -14,6 +14,8 @@ import {
   type TerrainAtlasSource,
   type TerrainDrawOptions,
 } from "../render/tileRenderCore";
+import { bakeProceduralTerrain } from "../render/proceduralTerrainSurface";
+import { VILLAGE_TERRAIN } from "../render/terrainPalette";
 import { getGridGeometry } from "./gridGeometry";
 import { terrainStyleForFrame } from "./starterTiles";
 
@@ -67,12 +69,44 @@ export function paintRasterUnderlay(
 
   const opacity = terrainLayerOpacity(document);
   if (opacity <= 0 || terrainLayers.length === 0) return;
+
+  // Grass/dirt/path bake as the procedural bumpy field (same look the editor
+  // shows); water/stone/wood keep the flat/atlas core path. When the field can't
+  // bake — no field families, or over the size cap — the core renders every
+  // layer, so terrain never vanishes from a download.
+  const baked = bakeProceduralTerrain({ terrainLayers, grid, palette: VILLAGE_TERRAIN });
+  const coreLayers = baked
+    ? terrainLayers.filter((layer) => !VILLAGE_TERRAIN[layer.assetId])
+    : terrainLayers;
   const options: TerrainDrawOptions = { atlas: atlas ?? undefined, detail: paintTerrainDetail };
+
+  const paint = (target: CanvasRenderingContext2D): void => {
+    if (baked) {
+      const previousSmoothing = target.imageSmoothingEnabled;
+      target.imageSmoothingEnabled = false; // crisp pixels; no bilinear seam bleed
+      target.drawImage(
+        baked.canvas,
+        0,
+        0,
+        baked.width,
+        baked.height,
+        baked.originX,
+        baked.originY,
+        baked.width,
+        baked.height,
+      );
+      target.imageSmoothingEnabled = previousSmoothing;
+    }
+    if (coreLayers.length > 0) {
+      drawTerrain(target, coreLayers, terrainStyleForFrame, EXPORT_FRAME, view, options);
+    }
+  };
+
   if (opacity >= 1) {
-    drawTerrain(ctx, terrainLayers, terrainStyleForFrame, EXPORT_FRAME, view, options);
+    paint(ctx);
     return;
   }
-  paintFadedTerrain(ctx, document, terrainLayers, atlas, opacity, view, options);
+  paintFadedTerrain(ctx, document, paint, opacity);
 }
 
 /** The terrain-kind layer's opacity, or 0 when hidden — mirrors renderTerrain. */
@@ -83,19 +117,17 @@ function terrainLayerOpacity(document: MapDocument): number {
 }
 
 /**
- * Flatten each terrain family opaquely on an offscreen canvas, then blit it
- * once at the layer alpha — matching the SVG's per-`<g>` group opacity.
- * Per-primitive globalAlpha would tint boundary strokes with the fill beneath
- * them (the editor underlay carries the same reasoning).
+ * Flatten the whole terrain group opaquely on an offscreen canvas, then blit it
+ * once at the layer alpha — matching the SVG's per-`<g>` group opacity without
+ * per-primitive globalAlpha, which would tint boundary strokes with the fill
+ * beneath them (the editor underlay carries the same reasoning). `paint` draws
+ * the field blit plus the core families opaquely into whatever context it's given.
  */
 function paintFadedTerrain(
   ctx: CanvasRenderingContext2D,
   document: MapDocument,
-  terrainLayers: readonly StructuredTerrainLayer[],
-  atlas: TerrainAtlasSource | null,
+  paint: (target: CanvasRenderingContext2D) => void,
   opacity: number,
-  view: { x: number; y: number; width: number; height: number },
-  options: TerrainDrawOptions | undefined,
 ): void {
   const offscreen = window.document.createElement("canvas");
   offscreen.width = document.width;
@@ -106,16 +138,13 @@ function paintFadedTerrain(
     // terrain entirely (strokes may tint, but the export still shows terrain).
     ctx.save();
     ctx.globalAlpha = opacity;
-    drawTerrain(ctx, terrainLayers, terrainStyleForFrame, EXPORT_FRAME, view, options);
+    paint(ctx);
     ctx.restore();
     return;
   }
-  for (const layer of terrainLayers) {
-    offscreenCtx.clearRect(0, 0, document.width, document.height);
-    drawTerrain(offscreenCtx, [layer], terrainStyleForFrame, EXPORT_FRAME, view, options);
-    ctx.save();
-    ctx.globalAlpha = opacity;
-    ctx.drawImage(offscreen, 0, 0);
-    ctx.restore();
-  }
+  paint(offscreenCtx);
+  ctx.save();
+  ctx.globalAlpha = opacity;
+  ctx.drawImage(offscreen, 0, 0);
+  ctx.restore();
 }

@@ -12,6 +12,22 @@ import {
 import { createRecordingContext } from "../../render/__tests__/recordingContext";
 import { __resetTileAtlasForTests } from "../../render/tileAtlas";
 
+// The procedural field bake needs a real 2D canvas (putImageData); the raster
+// tests mock it and assert the underlay blits whatever it returns. `result` is
+// set per test — null means "the field declined to bake" (fall back to core).
+const bakeHolder = vi.hoisted(() => ({
+  result: null as null | {
+    canvas: unknown;
+    originX: number;
+    originY: number;
+    width: number;
+    height: number;
+  },
+}));
+vi.mock("../../render/proceduralTerrainSurface", () => ({
+  bakeProceduralTerrain: () => bakeHolder.result,
+}));
+
 describe("Map Studio export", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -506,6 +522,7 @@ describe("Map Studio raster composite (R4b)", () => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     __resetTileAtlasForTests();
+    bakeHolder.result = null;
   });
 
   // Stub the browser surface rasterizeMapDocument touches and record every
@@ -553,37 +570,40 @@ describe("Map Studio raster composite (R4b)", () => {
     return paintTerrain(document, [{ x: 0, y: 0, assetId: "terrain:grass" }], 20);
   }
 
-  it("textures painted terrain from the atlas beneath the elements-only SVG", async () => {
+  it("composites the procedural field bake beneath the elements-only SVG", async () => {
     __resetTileAtlasForTests();
-    const manifest = {
-      version: 1,
-      image: "tileset-v1.png",
-      tileSize: 128,
-      columns: 4,
-      families: { "terrain:grass": { variants: [{ col: 1, row: 3 }] } },
+    // Grass/dirt/path now bake procedurally rather than texturing from the atlas
+    // (Slice 3). The bake is mocked; assert the underlay blits its canvas, then
+    // the elements-only SVG blits last, on top.
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("nope", { status: 404 })));
+    // Non-zero world origin (the bake's 1-cell bleed margin can go negative) so
+    // the blit's DEST coords are pinned, not just the source-canvas identity.
+    const baked = {
+      canvas: {} as HTMLCanvasElement,
+      originX: -50,
+      originY: -50,
+      width: 300,
+      height: 300,
     };
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(JSON.stringify(manifest), {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        }),
-      ),
-    );
+    bakeHolder.result = baked;
     const calls = stubRasterEnv();
 
     await rasterizeMapDocument(grassMap(), "image/png");
 
-    // Grass cell (0,0) at size 50 samples atlas tile col1/row3 (128px each):
-    // sx=128, sy=384 drawn into the document cell.
-    const atlasDraw = calls.findIndex((c) => c[0] === "drawImage" && c[2] === 128 && c[3] === 384);
+    // The baked field blits at its world origin: the full source canvas maps to
+    // dest (originX, originY, width, height) on the identity-transform export canvas.
+    const fieldBlit = calls.find((c) => c[0] === "drawImage" && c[1] === baked.canvas);
+    expect(fieldBlit).toEqual(["drawImage", baked.canvas, 0, 0, 300, 300, -50, -50, 300, 300]);
+    // Grass rides the field, not a flat core fill, when the bake succeeds (field
+    // families are excluded from the core drawTerrain).
+    expect(calls).not.toContainEqual(["set:fillStyle", "#386820"]);
     // Elements-only SVG blits last, on top: drawImage(image, 0, 0).
+    const fieldBlitIndex = calls.findIndex((c) => c[0] === "drawImage" && c[1] === baked.canvas);
     const svgBlit = calls.findIndex(
       (c) => c[0] === "drawImage" && c.length === 4 && c[2] === 0 && c[3] === 0,
     );
-    expect(atlasDraw).toBeGreaterThanOrEqual(0);
-    expect(svgBlit).toBeGreaterThan(atlasDraw);
+    expect(fieldBlitIndex).toBeGreaterThanOrEqual(0);
+    expect(svgBlit).toBeGreaterThan(fieldBlitIndex);
   });
 
   it("keeps the single-pass flat SVG raster for terrain-free maps", async () => {
@@ -609,24 +629,33 @@ describe("Map Studio raster composite (R4b)", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("falls back to flat fills when the atlas fails to load", async () => {
+  it("falls back to the flat core render when the field declines to bake", async () => {
     __resetTileAtlasForTests();
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("nope", { status: 404 })));
+    bakeHolder.result = null; // e.g. no field families, or over the bake size cap
     const calls = stubRasterEnv();
 
     await rasterizeMapDocument(grassMap(), "image/png");
 
-    // Atlas load resolves null on 404 → grass paints as a flat fill rect, and
-    // the export still succeeds (never throws on a missing atlas).
+    // Bake declined → every family (grass included) renders through the core; the
+    // atlas is null on 404, so grass paints its flat fill and the export succeeds.
     expect(calls).toContainEqual(["set:fillStyle", "#386820"]);
     expect(calls).toContainEqual(["fillRect", 0, 0, 50, 50]);
     const textureDraws = calls.filter((c) => c[0] === "drawImage" && c.length > 4);
     expect(textureDraws).toEqual([]);
   });
 
-  it("composites translucent terrain via an offscreen flatten-then-fade", async () => {
+  it("composites translucent terrain via an offscreen group flatten-then-fade", async () => {
     __resetTileAtlasForTests();
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("nope", { status: 404 })));
+    const baked = {
+      canvas: {} as HTMLCanvasElement,
+      originX: 0,
+      originY: 0,
+      width: 200,
+      height: 200,
+    };
+    bakeHolder.result = baked;
     const calls = stubRasterEnv();
     const base = grassMap();
     const document: MapDocument = {
@@ -638,18 +667,17 @@ describe("Map Studio raster composite (R4b)", () => {
 
     await rasterizeMapDocument(document, "image/png");
 
-    // SVG faded each family <g> as a unit: flatten the family opaquely
-    // (clear → fill), then blit once at the layer alpha — never per-primitive
-    // alpha, which would tint boundary strokes with the fill beneath them.
-    const clear = calls.findIndex((c) => c[0] === "clearRect");
-    const fill = calls.findIndex(
-      (c) => c[0] === "fillRect" && c[1] === 0 && c[2] === 0 && c[3] === 50 && c[4] === 50,
-    );
+    // The whole terrain group flattens opaquely onto the offscreen (the field
+    // blits at full alpha), THEN blits once at the layer alpha — never
+    // per-primitive alpha, which would tint boundary strokes.
+    const fieldBlit = calls.findIndex((c) => c[0] === "drawImage" && c[1] === baked.canvas);
     const alpha = calls.findIndex((c) => c[0] === "set:globalAlpha" && c[1] === 0.5);
-    const blit = calls.findIndex((c, index) => index > alpha && c[0] === "drawImage");
-    expect(clear).toBeGreaterThanOrEqual(0);
-    expect(fill).toBeGreaterThan(clear);
-    expect(alpha).toBeGreaterThan(fill);
-    expect(blit).toBeGreaterThan(alpha);
+    const fadeBlit = calls.findIndex(
+      (c, index) =>
+        index > alpha && c[0] === "drawImage" && c.length === 4 && c[2] === 0 && c[3] === 0,
+    );
+    expect(fieldBlit).toBeGreaterThanOrEqual(0);
+    expect(alpha).toBeGreaterThan(fieldBlit); // flatten opaquely, then fade
+    expect(fadeBlit).toBeGreaterThan(alpha);
   });
 });
