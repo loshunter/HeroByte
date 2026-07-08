@@ -232,6 +232,9 @@ publish-bake foundation. Focused export-surface review. Frozen SVG goldens stay
 untouched (SVG download remains flat by design).
 
 ### Slice 4 — publish → first-class image map  ← NEXT  [protocol; REQUIRED full review]
+**→ Full plan + verified `file:line` context index + the paste-ready full-review
+workflow live in `docs/planning/slice-4-handoff.md` — read THAT, not this sketch.**
+
 The workflow unification the owner wants. Publish rasterizes the map to a bitmap
 that flows to the table as an image map (scale/move/grid-match/lock/relock —
 today those exist only for imported images). Touches `packages/shared` publish
