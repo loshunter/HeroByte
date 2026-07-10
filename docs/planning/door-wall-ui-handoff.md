@@ -195,7 +195,22 @@ Mirror the Room tool's **two-point drag** (`useMapStudioCanvasController.ts:264`
   `addWall`/`addDoor`, placement is visible immediately. RED-first: test the
   controller's pointer→draft mapping (the geometry math is the risky part).
 
-### Slice 3 — Door-state inspector control [PROTOCOL — shared+server; REQUIRED review]
+### Slice 3 — Door-state inspector control — DONE ✅ (`e475a9be`)
+Shipped on `dev` (PROTOCOL/SECURITY): full verify ritual green in-session + the
+REQUIRED §5 adversarial review (3 lenses × 2 skeptics) returned **zero findings**;
+owner signed off before commit. **Landed shape:** the owner-chosen fork (B) — a
+dedicated `update-door` command, NOT a widened `update-element`. Shared: `MapDoorState`
+type; `update-door` variant in `MapDocumentCommand` + applier case; `updateMapDoor()`
+in the NEW `mapStudioElements.ts` (element mutations moved out of `mapStudio.ts` — 375→265
+LOC — with `commit()` exported) — deep-merges door data (blocks flags preserved), requires
+an unlocked door on an editable layer, rejects non-doors. Server: `update-door` zod variant
+(`.strict()`, state enum, width ≤ 1000). Client: `updateDoor` action + controller method +
+a door section (state `<select>` + width + APPLY DOOR) in `MapElementInspector`, wired into
+BOTH inspector mounts (studio workspace + DM-menu `map-controls/MapStudioCanvas`). Rotation
+stays on the transform inspector. Door ids stay stable so runtime toggles map after
+re-publish. `update-element`/`MapElementUpdate` untouched.
+
+Original design (historical):
 The inspector must let the DM set a placed door's **state** (open/closed/locked/
 secret) and **width**. Both live in `element.data`, and **there is no update path
 for `data`** today (this is the hard blocker):
