@@ -169,3 +169,48 @@ describe("createTerrainField", () => {
     expect(field.colorAt(5, 1.5 * CELL)).toBeNull();
   });
 });
+
+// A floor is architectural: its boundary must stay STRAIGHT, unlike the organic
+// grass/dirt/path field. A per-family `edgeAmp` scales the boundary displacement
+// (default 1 = today's bumpy edges; 0 = crisp). Floor sits above grass in
+// priority so it draws over natural terrain with its own crisp edge.
+describe("per-family edge amplitude (crisp floors)", () => {
+  const FLOOR = "terrain:stone-floor";
+  const FLOOR_BASE = "#4d5361";
+  const floorFamily = (edgeAmp?: number): TerrainFieldFamily => ({
+    assetId: FLOOR,
+    priority: 4,
+    base: FLOOR_BASE,
+    rim: "#3d424e",
+    ...(edgeAmp === undefined ? {} : { edgeAmp }),
+  });
+  // Left half floor, right half grass; measure where the floor base ends per
+  // interior row (rows 1..4 avoid top/bottom corner rounding).
+  const floorGrassRows = (): (string | null)[][] =>
+    Array.from({ length: 6 }, () =>
+      [FLOOR, FLOOR, FLOOR, FLOOR, GRASS, GRASS, GRASS, GRASS].slice(),
+    );
+  const crossovers = (r: { pixels: Uint8ClampedArray; w: number }): Set<number> => {
+    const crossover = (yy: number): number => {
+      let x = 3 * CELL;
+      while (x < 6 * CELL && isRgb(px(r, x, yy), FLOOR_BASE)) x += 1;
+      return x;
+    };
+    const xs = new Set<number>();
+    for (let cy = 1; cy < 5; cy += 1) xs.add(crossover(center(cy)));
+    return xs;
+  };
+
+  it("edgeAmp 0 gives a straight, grid-aligned seam on every row", () => {
+    const r = render(floorGrassRows(), [...FAMILIES, floorFamily(0)]);
+    // No boundary displacement: the floor→grass crossover x is identical row to row.
+    expect(crossovers(r).size).toBe(1);
+  });
+
+  it("the same family without edgeAmp keeps the bumpy default seam", () => {
+    const r = render(floorGrassRows(), [...FAMILIES, floorFamily(undefined)]);
+    // Default (undefined ⇒ amplitude 1) still displaces the boundary, so the
+    // crossover x varies row to row — proving edgeAmp, not priority, is the hook.
+    expect(crossovers(r).size).toBeGreaterThan(1);
+  });
+});

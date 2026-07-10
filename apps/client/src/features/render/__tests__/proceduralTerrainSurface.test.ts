@@ -32,8 +32,27 @@ const asCtx = (context: unknown) => context as unknown as TileRenderContext2D;
 
 describe("buildProceduralFieldConfig", () => {
   it("returns null when no field families are painted", () => {
+    // Water stays a non-field family (animated, drawn on the core); floors now
+    // ride the field, so water is the canonical non-field stand-in here.
+    const water = layer("terrain:water", [{ cellX: 0, cellY: 0 }]);
+    expect(buildProceduralFieldConfig([water], GRID, VILLAGE_TERRAIN)).toBeNull();
+  });
+
+  it("treats wood/stone floors as crisp field families (procedural repaint)", () => {
     const stone = layer("terrain:stone-floor", [{ cellX: 0, cellY: 0 }]);
-    expect(buildProceduralFieldConfig([stone], GRID, VILLAGE_TERRAIN)).toBeNull();
+    const wood = layer("terrain:wood-floor", [{ cellX: 1, cellY: 0 }]);
+    const built = buildProceduralFieldConfig([stone, wood], GRID, VILLAGE_TERRAIN);
+    expect(built).not.toBeNull();
+    const { config } = built!;
+    expect(config.familyAt(0, 0)).toBe("terrain:stone-floor");
+    expect(config.familyAt(1, 0)).toBe("terrain:wood-floor");
+    expect(config.families.map((f) => f.assetId).sort()).toEqual([
+      "terrain:stone-floor",
+      "terrain:wood-floor",
+    ]);
+    // Floors carry a near-zero edge amplitude so their boundaries stay crisp
+    // (architectural), unlike the organic grass/dirt/path field.
+    for (const fam of config.families) expect(fam.edgeAmp).toBe(0);
   });
 
   it("frames the painted cells with a one-cell bleed margin and a familyAt lookup", () => {
@@ -65,19 +84,19 @@ describe("buildProceduralFieldConfig", () => {
 
   it("ignores non-field families while keeping field ones", () => {
     const grass = layer("terrain:grass", [{ cellX: 0, cellY: 0 }]);
-    const stone = layer("terrain:stone-floor", [{ cellX: 1, cellY: 0 }]);
-    const built = buildProceduralFieldConfig([grass, stone], GRID, VILLAGE_TERRAIN)!;
+    const water = layer("terrain:water", [{ cellX: 1, cellY: 0 }]);
+    const built = buildProceduralFieldConfig([grass, water], GRID, VILLAGE_TERRAIN)!;
     expect(built.config.familyAt(0, 0)).toBe("terrain:grass");
-    expect(built.config.familyAt(1, 0)).toBeNull(); // stone excluded from the field
+    expect(built.config.familyAt(1, 0)).toBeNull(); // water excluded from the field
     expect(built.config.families.map((f) => f.assetId)).toEqual(["terrain:grass"]);
   });
 });
 
 describe("bakeProceduralTerrain", () => {
   it("returns null without baking when there are no field families", () => {
-    const stone = layer("terrain:stone-floor", [{ cellX: 0, cellY: 0 }]);
+    const water = layer("terrain:water", [{ cellX: 0, cellY: 0 }]);
     expect(
-      bakeProceduralTerrain({ terrainLayers: [stone], grid: GRID, palette: VILLAGE_TERRAIN }),
+      bakeProceduralTerrain({ terrainLayers: [water], grid: GRID, palette: VILLAGE_TERRAIN }),
     ).toBeNull();
   });
 

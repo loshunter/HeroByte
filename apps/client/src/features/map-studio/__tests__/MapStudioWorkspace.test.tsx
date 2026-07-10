@@ -279,9 +279,12 @@ describe("MapStudioWorkspace", () => {
 
   it("renders painted terrain on the canvas underlay beneath the SVG, with fused boundaries", () => {
     let document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
+    // Water is a flat-core terrain family: floors now bake as the procedural
+    // field (crisp edges, no core boundary stroke), so water is the stand-in
+    // that still exercises the underlay's flat fill + fused-boundary core path.
     document = paintTerrainDocument(document, [
-      { x: 0, y: 0, assetId: "terrain:stone-floor" },
-      { x: 1, y: 0, assetId: "terrain:stone-floor" },
+      { x: 0, y: 0, assetId: "terrain:water" },
+      { x: 1, y: 0, assetId: "terrain:water" },
     ]);
     // Hide the grid: its lattice line at x=50 shares coordinates with the
     // fused seam this test asserts is never stroked.

@@ -119,7 +119,32 @@ JSON/SVG download stays flat (frozen).
 
 Order matters: establish the render path first, then the art, then the data.
 
-### Slice 1 — Procedural render path + crisp floor edges
+### Slice 1 — Procedural render path + crisp floor edges — DONE ✅
+Shipped on `dev` (self-review + focused byte-parity check; browser-verified in the
+Studio: stone + wood floors bake as crisp-edged procedural regions inside an
+organic grass field, then Publish blits them to the table raster). **Actual shape:**
+- `proceduralTerrain.ts`: `TerrainFieldFamily.edgeAmp?` (+ internal `FieldFamily`);
+  `createTerrainField` defaults `edgeAmp ?? 1`; `fieldOf` scales the boundary bump
+  by `* f.edgeAmp`. Default (undefined ⇒ 1) reproduces grass/dirt/path byte-for-byte.
+- `terrainPalette.ts`: `TerrainFamilyPalette.edgeAmp?`; `terrain:stone-floor`
+  (base `#4d5361`, priority 4) and `terrain:wood-floor` (base `#725236`, priority 5)
+  added to `VILLAGE_TERRAIN`, both `edgeAmp: 0` (crisp) + a first-cut `keyCluster`
+  speckle (`STONE_FLOOR_DETAIL` / `WOOD_FLOOR_DETAIL` — Slice 2 replaces with
+  dedicated plank/flagstone painters). Base colours match the frozen starterTiles
+  fills so the field bake and the flat fallback agree.
+- `proceduralTerrainSurface.ts`: `buildProceduralFieldConfig` threads
+  `edgeAmp: fam.edgeAmp`; stale header comment updated (only water is non-field now).
+- **No double-draw**: adding floors to the palette auto-flips them from the flat
+  core to the field bake in BOTH surfaces (the `coreLayers` filter is
+  `!VILLAGE_TERRAIN[assetId]`). New export test pins it; frozen SVG golden stays
+  byte-identical (`starterTiles` fills + `buildTerrainRenderLayers`/`renderTerrain`
+  untouched). RED-first tests: crisp-edge amplitude (proceduralTerrain.test),
+  floors-are-crisp-field-families (proceduralTerrainSurface.test), double-draw guard
+  (exportMapDocument.test). Three surface fixtures + one workspace fixture that used
+  a floor as a non-field stand-in were swapped to `terrain:water` (still non-field),
+  preserving intent.
+
+Original brief (historical):
 Make the **two existing** floors (`terrain:wood-floor`, `terrain:stone-floor`)
 render procedurally with crisp edges:
 - `terrainPalette.ts`: add both to `VILLAGE_TERRAIN` with `base`/`rim` (tuned to

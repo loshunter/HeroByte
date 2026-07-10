@@ -22,12 +22,18 @@ import { smoothstep, valueNoise } from "./valueNoise";
 /** One terrain family in the field render. */
 export interface TerrainFieldFamily {
   assetId: string;
-  /** Higher draws OVER lower — grass(3) > dirt(2) > path(1). */
+  /** Higher draws OVER lower — grass(3) > dirt(2) > path(1), floors above. */
   priority: number;
   /** Silhouette base fill (hex). */
   base: string;
   /** Boundary shading-lip colour (hex). */
   rim: string;
+  /**
+   * Per-family boundary displacement scale. Undefined ⇒ 1: the organic bumpy
+   * edge of natural terrain (grass/dirt/path). Architectural floors set 0 so
+   * their boundary stays straight and grid-aligned (crisp), not wavy.
+   */
+  edgeAmp?: number;
 }
 
 export interface TerrainFieldConfig {
@@ -77,6 +83,7 @@ interface FieldFamily {
   base: FieldRgb;
   rim: FieldRgb;
   seed: number;
+  edgeAmp: number;
 }
 
 /**
@@ -99,6 +106,7 @@ export function createTerrainField(config: TerrainFieldConfig): TerrainField {
       base: parseHex(f.base),
       rim: parseHex(f.rim),
       seed: f.priority * 97 + 3,
+      edgeAmp: f.edgeAmp ?? 1,
     }));
   const byId = new Map(fams.map((f) => [f.assetId, f]));
   const priorityOf = new Map(config.families.map((f) => [f.assetId, f.priority]));
@@ -130,7 +138,10 @@ export function createTerrainField(config: TerrainFieldConfig): TerrainField {
   const fieldOf = (f: FieldFamily, wx: number, wy: number): number => {
     const base = bilinearIndicator(f.priority, wx, wy);
     const prox = 1 - Math.abs(2 * base - 1);
-    return base - 0.5 + disp(wx, wy, f.seed) * prox;
+    // edgeAmp scales the per-family boundary bump: 1 = organic (natural
+    // terrain), 0 = crisp grid-aligned edge (floors). The bilinear indicator's
+    // 0.5 contour already traces the cell boundary, so amp 0 gives a straight edge.
+    return base - 0.5 + disp(wx, wy, f.seed) * prox * f.edgeAmp;
   };
   const colorAt = (wx: number, wy: number): FieldRgb | null => {
     let color: FieldRgb | null = null;

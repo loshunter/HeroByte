@@ -643,6 +643,24 @@ describe("Map Studio raster composite (R4b)", () => {
     return paintTerrain(document, [{ x: 0, y: 0, assetId: "terrain:grass" }], 20);
   }
 
+  function floorMap(): MapDocument {
+    const document = createMapDocument({
+      id: "map",
+      name: "Keep",
+      width: 200,
+      height: 200,
+      timestamp: 10,
+    });
+    return paintTerrain(
+      document,
+      [
+        { x: 0, y: 0, assetId: "terrain:stone-floor" },
+        { x: 1, y: 0, assetId: "terrain:wood-floor" },
+      ],
+      20,
+    );
+  }
+
   it("composites the procedural field bake beneath the elements-only SVG", async () => {
     __resetTileAtlasForTests();
     // Grass/dirt/path now bake procedurally rather than texturing from the atlas
@@ -677,6 +695,29 @@ describe("Map Studio raster composite (R4b)", () => {
     );
     expect(fieldBlitIndex).toBeGreaterThanOrEqual(0);
     expect(svgBlit).toBeGreaterThan(fieldBlitIndex);
+  });
+
+  it("excludes wood/stone floors from the flat core once they ride the field (no double-draw)", async () => {
+    __resetTileAtlasForTests();
+    // Floors are a procedural field family now. With the bake succeeding they must
+    // ride the baked canvas, NOT be flat-filled again by the core — a double-draw.
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("nope", { status: 404 })));
+    const baked = {
+      canvas: {} as HTMLCanvasElement,
+      originX: 0,
+      originY: 0,
+      width: 200,
+      height: 200,
+    };
+    bakeHolder.result = baked;
+    const calls = stubRasterEnv();
+
+    await rasterizeMapDocument(floorMap(), "image/png");
+
+    // The field bake blits, and neither floor's flat fill is painted by the core.
+    expect(calls.some((c) => c[0] === "drawImage" && c[1] === baked.canvas)).toBe(true);
+    expect(calls).not.toContainEqual(["set:fillStyle", "#4d5361"]); // stone-floor flat fill
+    expect(calls).not.toContainEqual(["set:fillStyle", "#725236"]); // wood-floor flat fill
   });
 
   it("keeps the single-pass flat SVG raster for terrain-free maps", async () => {

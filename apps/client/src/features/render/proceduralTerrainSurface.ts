@@ -5,11 +5,12 @@
 // stay on the right side of every organic seam — the v2 prototype's two-pass
 // recipe (temp/_dirt_path_proto/transition_v2_proto.mjs).
 //
-// Field families are those the palette knows (village grass/dirt/path). Water,
-// stone, and wood floors are NOT baked here — the field leaves them transparent
-// and the caller draws them on their own layers, so their z-order and water's
-// animation are untouched. The bake is heavy per pixel, so callers cache the
-// returned canvas and re-bake only when the terrain content changes.
+// Field families are those the palette knows: the natural grass/dirt/path
+// terrain plus the architectural wood/stone floors (crisp edges via a per-family
+// edgeAmp). Water is NOT baked here — the field leaves it transparent and the
+// caller draws it on its own layer, so its z-order and animation are untouched.
+// The bake is heavy per pixel, so callers cache the returned canvas and re-bake
+// only when the terrain content changes.
 
 import {
   createTerrainField,
@@ -83,7 +84,13 @@ export function buildProceduralFieldConfig(
   for (const layer of terrainLayers) {
     const fam = palette[layer.assetId];
     if (!fam) continue; // non-field family — rendered elsewhere
-    families.push({ assetId: layer.assetId, priority: fam.priority, base: fam.base, rim: fam.rim });
+    families.push({
+      assetId: layer.assetId,
+      priority: fam.priority,
+      base: fam.base,
+      rim: fam.rim,
+      edgeAmp: fam.edgeAmp,
+    });
     for (const cell of layer.cells) {
       familyByCell.set(`${cell.cellX},${cell.cellY}`, layer.assetId);
       if (cell.cellX < minCX) minCX = cell.cellX;

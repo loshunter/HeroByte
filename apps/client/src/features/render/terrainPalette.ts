@@ -36,6 +36,27 @@ export const PATH_DETAIL: KeyClusterPalette = {
 };
 
 /**
+ * First-cut FLOOR detail (Slice 1): a low-contrast material speckle so wood /
+ * stone floors bake with procedural interior texture rather than a flat fill.
+ * Kept subtle and material-toned; the dedicated plank-grain and flagstone-seam
+ * painters replace these in Slice 2.
+ */
+export const STONE_FLOOR_DETAIL: KeyClusterPalette = {
+  crev: "#3a3f4a",
+  dark: "#474d5a",
+  mid: "#535a69",
+  light: "#5f6675",
+};
+
+/** First-cut wood-floor speckle — warm grain tones (see STONE_FLOOR_DETAIL). */
+export const WOOD_FLOOR_DETAIL: KeyClusterPalette = {
+  crev: "#4c3722",
+  dark: "#6a4b31",
+  mid: "#7a583a",
+  light: "#886443",
+};
+
+/**
  * One terrain family in the procedural render: its silhouette colours (`base`
  * fill + `rim` shading lip), its `priority` (higher draws OVER lower — grass
  * over dirt over path, so the higher family rounds its bumpy rim onto the
@@ -46,6 +67,12 @@ export interface TerrainFamilyPalette {
   rim: string;
   priority: number;
   keyCluster?: KeyClusterPalette;
+  /**
+   * Boundary displacement scale for the procedural field (proceduralTerrain
+   * `fieldOf`). Omitted ⇒ 1 = organic bumpy edge (natural terrain). Floors set
+   * 0 so their architectural edges stay crisp and grid-aligned.
+   */
+  edgeAmp?: number;
 }
 
 /**
@@ -58,4 +85,23 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
   "terrain:grass": { base: "#7cb04a", rim: "#4a764e", priority: 3 },
   "terrain:dirt": { base: "#60482e", rim: "#4a3420", priority: 2, keyCluster: DIRT_DETAIL },
   "terrain:path": { base: "#565338", rim: "#3f3d28", priority: 1, keyCluster: PATH_DETAIL },
+  // Architectural floors: crisp (edgeAmp 0) grid-aligned edges, and a priority
+  // ABOVE the natural families so a floor region reads as laid OVER grass/dirt/
+  // path. Base colours match the starterTiles fills (#4d5361 / #725236, kept
+  // frozen) so the field bake and the flat fallback agree. Detail is a first-cut
+  // speckle — Slice 2 ships the plank-grain and flagstone-seam painters.
+  "terrain:stone-floor": {
+    base: "#4d5361",
+    rim: "#3d424e",
+    priority: 4,
+    edgeAmp: 0,
+    keyCluster: STONE_FLOOR_DETAIL,
+  },
+  "terrain:wood-floor": {
+    base: "#725236",
+    rim: "#553b27",
+    priority: 5,
+    edgeAmp: 0,
+    keyCluster: WOOD_FLOOR_DETAIL,
+  },
 };
