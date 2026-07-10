@@ -21,7 +21,9 @@ export type SfxName =
   | "uiOpen"
   | "uiClose"
   | "doorCreak"
-  | "doorClunk";
+  | "doorSlam"
+  | "doorClunk"
+  | "doorAlien";
 
 export interface SfxSpec {
   /** URL of the WAV sample, relative to the site root. */
@@ -88,12 +90,28 @@ export const SFX_MANIFEST: Record<SfxName, SfxSpec> = {
     rateJitter: 0.07,
     reverbSend: 0.4,
   },
+  doorSlam: {
+    url: `${base}/door-slam.wav`,
+    gain: 0.7,
+    rate: 1,
+    rateJitter: 0.04,
+    reverbSend: 0.25,
+  },
   doorClunk: {
     url: `${base}/door-clunk.wav`,
     gain: 0.6,
     rate: 1,
     rateJitter: 0.05,
     reverbSend: 0.3,
+  },
+  // The original synth "door" — a futuristic/alien groan. Kept as a labelled,
+  // swappable option (nothing plays it by default now that open=creak).
+  doorAlien: {
+    url: `${base}/door-alien.wav`,
+    gain: 0.55,
+    rate: 1,
+    rateJitter: 0.07,
+    reverbSend: 0.4,
   },
 };
 

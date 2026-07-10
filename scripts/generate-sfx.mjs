@@ -205,11 +205,12 @@ function ping() {
   return normalize(lowpass(out, 0.6), 0.7);
 }
 
-function doorCreak() {
+// The original "door" voice: a slow detuned groan sliding upward. It reads as
+// futuristic/alien rather than wooden, so it is preserved here (labelled
+// "alien") while the new doorCreak below is the default hinge sound.
+function doorAlien() {
   const n = seconds(0.45);
   const out = new Float32Array(n);
-  // Slow detuned groan sliding upward — hinges complaining — with a soft
-  // wooden knock as the door settles.
   for (let i = 0; i < n; i++) {
     const p = i / n;
     const f = 180 + 120 * p;
@@ -222,6 +223,44 @@ function doorCreak() {
     out[i] += sine(120, i - knockStart) * decay(i - knockStart, n - knockStart, 10) * 0.5;
   }
   return normalize(lowpass(out, 0.35), 0.75);
+}
+
+function doorCreak() {
+  const n = seconds(0.5);
+  const out = new Float32Array(n);
+  // A wooden hinge is stick-slip FRICTION, not a tone: raspy filtered noise
+  // gated by an irregular low tremolo, over a dull wood-body resonance that
+  // rises slightly as the door swings. Keeping the base broadband (noise, not
+  // detuned sines) is what makes it read as "wood" instead of "sci-fi".
+  for (let i = 0; i < n; i++) {
+    const p = i / n;
+    const rasp = 6 + 5 * p; // stick-slip stutter, 6→11 Hz
+    const stutter = 0.35 + 0.65 * Math.abs(sine(rasp, i));
+    const friction = noise() * stutter;
+    const body = sine(150 + 70 * p, i) * 0.3; // muffled wooden groan
+    out[i] = (friction * 0.62 + body) * ad(i, n, 0.06) * decay(i, n, 1.3);
+  }
+  // Heavy lowpass tames the hiss into a muffled wooden creak.
+  return normalize(lowpass(out, 0.26), 0.7);
+}
+
+function doorSlam() {
+  const n = seconds(0.3);
+  const out = new Float32Array(n);
+  // Wood slamming into its frame: a sharp broadband impact transient over a
+  // low body thud, with a short frame rattle in the tail.
+  for (let i = 0; i < n; i++) {
+    const p = i / n;
+    const impact = noise() * decay(i, n, 24) * 0.9; // sharp initial crack
+    const body = sine(95 - 35 * p, i) * decay(i, n, 6) * 0.9; // low mass thud
+    out[i] = impact + body;
+  }
+  const rattleStart = seconds(0.05);
+  const rlen = seconds(0.07);
+  for (let i = 0; i < rlen && rattleStart + i < n; i++) {
+    out[rattleStart + i] += noise() * decay(i, rlen, 9) * 0.22;
+  }
+  return normalize(lowpass(out, 0.42), 0.85);
 }
 
 function doorClunk() {
@@ -302,14 +341,27 @@ const VOICES = {
   "ui-open": () => sweep(true),
   "ui-close": () => sweep(false),
   "door-creak": doorCreak,
+  "door-slam": doorSlam,
   "door-clunk": doorClunk,
+  "door-alien": doorAlien,
 };
 
+// Optional voice filter: `node scripts/generate-sfx.mjs door-creak door-slam`
+// writes only the named files. `noise()` uses Math.random(), so a full run
+// re-rolls every noisy sample; pass names to regenerate just what changed.
+const only = new Set(process.argv.slice(2));
+const selected = Object.entries(VOICES).filter(([name]) => only.size === 0 || only.has(name));
+const unknown = [...only].filter((name) => !(name in VOICES));
+if (unknown.length) {
+  console.error(`Unknown SFX voice(s): ${unknown.join(", ")}`);
+  process.exit(1);
+}
+
 mkdirSync(OUT_DIR, { recursive: true });
-for (const [name, make] of Object.entries(VOICES)) {
+for (const [name, make] of selected) {
   const wav = encodeWav(make());
   const file = join(OUT_DIR, `${name}.wav`);
   writeFileSync(file, wav);
   console.log(`  wrote ${name}.wav (${(wav.length / 1024).toFixed(1)} KB)`);
 }
-console.log(`Done. ${Object.keys(VOICES).length} SFX written to ${OUT_DIR}`);
+console.log(`Done. ${selected.length} SFX written to ${OUT_DIR}`);

@@ -20,7 +20,7 @@ describe("useDoorSfx", () => {
     expect(sfxEngine.play).not.toHaveBeenCalled();
   });
 
-  it("creaks when a door opens and when it closes", () => {
+  it("creaks when a door opens and slams when it closes", () => {
     const { rerender } = renderHook(({ doors }) => useDoorSfx(doors), {
       initialProps: { doors: [door("a", "closed")] },
     });
@@ -30,7 +30,8 @@ describe("useDoorSfx", () => {
 
     vi.mocked(sfxEngine.play).mockClear();
     rerender({ doors: [door("a", "closed")] });
-    expect(sfxEngine.play).toHaveBeenCalledWith("doorCreak");
+    expect(sfxEngine.play).toHaveBeenCalledWith("doorSlam");
+    expect(sfxEngine.play).not.toHaveBeenCalledWith("doorCreak");
   });
 
   it("clunks when a door locks or unlocks", () => {

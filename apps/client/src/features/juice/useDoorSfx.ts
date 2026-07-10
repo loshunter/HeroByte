@@ -3,9 +3,9 @@
 // ============================================================================
 // Plays door foley whenever a compiled door changes state in the snapshot —
 // which means every client at the table hears the same door at the same
-// moment, whoever clicked it. Open/close creaks; lock/unlock clunks. The
-// first observation is a silent baseline so joining a session (or receiving
-// a fresh publish) makes no noise.
+// moment, whoever clicked it. Opening creaks on the hinge; closing slams shut;
+// lock/unlock clunks the latch. The first observation is a silent baseline so
+// joining a session (or receiving a fresh publish) makes no noise.
 
 import { useEffect, useRef } from "react";
 import type { CompiledDoor } from "@herobyte/shared";
@@ -26,10 +26,12 @@ export function useDoorSfx(doors: readonly CompiledDoor[] | undefined): void {
       // New doors (fresh publish or a revealed secret) enter silently.
       if (before === undefined || before === state) continue;
 
-      if (state === "open" || (before === "open" && state === "closed")) {
-        sfxEngine.play("doorCreak");
+      if (state === "open") {
+        sfxEngine.play("doorCreak"); // swinging open — hinges creak
+      } else if (state === "closed" && before === "open") {
+        sfxEngine.play("doorSlam"); // swinging shut — slam
       } else if (state === "locked" || before === "locked") {
-        sfxEngine.play("doorClunk");
+        sfxEngine.play("doorClunk"); // latch/unlatch — metallic clunk
       }
     }
   }, [doors]);
