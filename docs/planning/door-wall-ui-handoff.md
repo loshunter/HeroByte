@@ -110,14 +110,26 @@ This is a **multi-slice feature.** Do ONE slice per session; commit each green.
 Order matters: the raster fix is the safety foundation, tools are the core ask,
 the inspector is the protocol-touching finale.
 
-### Slice 0 (prerequisite, may already be committed): the secret-door fix
-An uncommitted change in `exportMapDocument.ts` already excludes *secret* doors
-from the raster (`visible()`, the `playerVisibleDoor` line). It is the SEED of
-Slice 1. **Check `git status`.** If it's still uncommitted, either commit it
-standalone first (it's a correct, tested safety fix) or fold it into Slice 1 —
-Slice 1 generalizes it to *all* doors, so it subsumes it either way.
+### Slice 0 (prerequisite) — the secret-door fix — DONE ✅ (`4737b33c`)
+The seed change in `exportMapDocument.ts` `visible()` that excludes *secret*
+doors from the raster was committed standalone as `4737b33c` (it was uncommitted
+when this handoff was written). Slice 1 below generalizes it to *all* doors.
 
-### Slice 1 — Doors render live only (raster exclusion) [foundation, client-only]
+### Slice 1 — Doors render live only (raster exclusion) — DONE ✅ (`96557d42`)
+Shipped on `dev`, client-only, careful self-review (no adversarial workflow —
+pure client behavior change with strong unit coverage, playbook §0.4). What
+landed: `visible()`'s `playerVisibleDoor` (secret-only) became `bakesToRaster =
+element.type !== "door"` — DoorsLayer is now the sole door renderer, killing the
+double-draw and subsuming the secret-door leak. The `door` branch of
+`renderElement` is dead for the raster but left in place (the authoritative gate
+is `visible()`; editing it would perturb byte-parity for other elements). Walls
+still bake. RED-first: the secret-door export test was flipped to assert an
+ordinary door no longer bakes (+ the door-only `#c99b55` stroke absent), and a
+new test guards that a wall still bakes its `<polyline>`. Gates green in-session:
+targeted (33) → typecheck → `pnpm lint` (frozen intact) → structure (exit 0,
+file 343 LOC) → full `pnpm test` (31 batches) → bundle (entry 69.18 KB, unchanged).
+
+Original design (historical):
 Generalize the door exclusion in `exportMapDocument.ts` `visible()` (§4) from
 "exclude secret doors" to **"exclude ALL doors"** — one line. Keep walls baking.
 - **RED-first:** flip the existing `exportMapDocument.test.ts` secret-door test
