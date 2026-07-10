@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import type { MapElement, MapElementTransform, MapElementUpdate, MapLayer } from "@herobyte/shared";
+import type {
+  MapDoorState,
+  MapElement,
+  MapElementTransform,
+  MapElementUpdate,
+  MapLayer,
+} from "@herobyte/shared";
 import { JRPGButton } from "../../../components/ui/JRPGPanel";
 
 interface MapElementInspectorProps {
@@ -7,6 +13,7 @@ interface MapElementInspectorProps {
   layers: MapLayer[];
   disabled: boolean;
   onUpdate: (elementId: string, update: MapElementUpdate) => void;
+  onUpdateDoor: (elementId: string, update: { state: MapDoorState; width: number }) => void;
 }
 
 export function MapElementInspector({
@@ -14,17 +21,30 @@ export function MapElementInspector({
   layers,
   disabled,
   onUpdate,
+  onUpdateDoor,
 }: MapElementInspectorProps) {
   const [transform, setTransform] = useState(element.transform);
   const [layerId, setLayerId] = useState(element.layerId);
   const [hidden, setHidden] = useState(element.hidden);
   const [locked, setLocked] = useState(element.locked);
+  // Door authoring (state + width) — a dedicated path, separate from the
+  // transform APPLY. Rotation/position stay on the transform inspector above.
+  const [doorState, setDoorState] = useState<MapDoorState>(
+    element.type === "door" ? element.data.state : "closed",
+  );
+  const [doorWidth, setDoorWidth] = useState<number>(
+    element.type === "door" ? element.data.width : 50,
+  );
 
   useEffect(() => {
     setTransform(element.transform);
     setLayerId(element.layerId);
     setHidden(element.hidden);
     setLocked(element.locked);
+    if (element.type === "door") {
+      setDoorState(element.data.state);
+      setDoorWidth(element.data.width);
+    }
   }, [element]);
 
   const number = (key: keyof MapElementTransform, raw: string) => {
@@ -111,6 +131,48 @@ export function MapElementInspector({
       >
         APPLY ELEMENT
       </JRPGButton>
+      {element.type === "door" && (
+        <div style={{ marginTop: "8px", borderTop: "1px solid #8a7445", paddingTop: "8px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+            <label className="jrpg-text-small">
+              Door state
+              <select
+                aria-label="Door state"
+                value={doorState}
+                onChange={(event) => setDoorState(event.target.value as MapDoorState)}
+              >
+                <option value="closed">Closed</option>
+                <option value="open">Open</option>
+                <option value="locked">Locked</option>
+                <option value="secret">Secret (DM only)</option>
+              </select>
+            </label>
+            <label className="jrpg-text-small">
+              Door width
+              <input
+                aria-label="Door width"
+                type="number"
+                min={1}
+                max={1000}
+                step={1}
+                value={doorWidth}
+                onChange={(event) => {
+                  const value = Number(event.target.value);
+                  if (Number.isFinite(value)) setDoorWidth(value);
+                }}
+                style={{ width: "100%" }}
+              />
+            </label>
+          </div>
+          <JRPGButton
+            style={{ width: "100%", marginTop: "8px", fontSize: "10px" }}
+            disabled={doorWidth <= 0 || doorWidth > 1000}
+            onClick={() => onUpdateDoor(element.id, { state: doorState, width: doorWidth })}
+          >
+            APPLY DOOR
+          </JRPGButton>
+        </div>
+      )}
     </fieldset>
   );
 }

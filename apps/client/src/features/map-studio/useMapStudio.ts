@@ -154,6 +154,7 @@ export function useMapStudio(
     addDoor,
     removeElement,
     updateElement,
+    updateDoor,
     undo,
     redo,
   } = useMapStudioActions({ activeDocumentRef, applyCommand });
@@ -244,6 +245,7 @@ export function useMapStudio(
     addDoor,
     removeElement,
     updateElement,
+    updateDoor,
     undo,
     redo,
     publishDocument,

@@ -48,6 +48,7 @@ export function MapStudioWorkspace({
     paintTerrain,
     removeElement,
     updateElement,
+    updateDoor,
     updateLayer,
     moveLayer,
     undo,
@@ -297,6 +298,7 @@ export function MapStudioWorkspace({
             layers={activeDocument.layers}
             disabled={saving || selectedLayer?.locked === true}
             onUpdate={updateElement}
+            onUpdateDoor={updateDoor}
           />
         )}
         <MapStudioLayersPanel

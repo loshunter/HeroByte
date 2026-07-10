@@ -25,6 +25,7 @@ export {
 
 // Export the versioned map-authoring model separately from live room state.
 export * from "./mapStudio.js";
+export * from "./mapStudioElements.js";
 export * from "./mapStudioCommands.js";
 
 // Export the publish-time compiler that turns a map document into the

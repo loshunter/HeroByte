@@ -556,6 +556,27 @@ describe("useMapStudio", () => {
     );
   });
 
+  it("authors a placed door's state and width through a dedicated update-door command", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    const document = createMapDocument({ id: "map", name: "Map", timestamp: 1 });
+    act(() => result.current.handleServerMessage({ t: "map-studio-document", document }));
+
+    act(() => result.current.updateDoor("front-door", { state: "secret", width: 80 }));
+
+    expect(sendMessage).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        t: "map-studio-command",
+        command: expect.objectContaining({
+          type: "update-door",
+          baseRevision: 0,
+          elementId: "front-door",
+          state: "secret",
+          width: 80,
+        }),
+      }),
+    );
+  });
+
   it("recovers from a revision conflict by reloading before the next queued edit", () => {
     const { result } = renderHook(() => useMapStudio(sendMessage));
     const document = createMapDocument({ id: "map", name: "Map", timestamp: 1 });

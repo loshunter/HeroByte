@@ -224,6 +224,18 @@ const command = z.discriminatedUnion("type", [
         .strict(),
     })
     .strict(),
+  // Dedicated door-state authoring command: mirrors the doorElement.data
+  // constraints (state enum, width <= 1000) so this narrow path is gated
+  // exactly like add-element's door, without loosening update-element.
+  z
+    .object({
+      ...commandBase,
+      type: z.literal("update-door"),
+      elementId: id,
+      state: z.enum(["open", "closed", "locked", "secret"]),
+      width: positive.max(1000),
+    })
+    .strict(),
   z.object({ ...commandBase, type: z.literal("remove-element"), elementId: id }).strict(),
   z
     .object({

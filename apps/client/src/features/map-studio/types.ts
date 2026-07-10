@@ -1,6 +1,7 @@
 import type {
   MapDocument,
   MapDocumentSummary,
+  MapDoorState,
   MapElementUpdate,
   MapGridUpdate,
   MapLayerUpdate,
@@ -98,6 +99,8 @@ export interface MapStudioController {
   addDoor: (draft: MapDoorDraft) => string | null;
   removeElement: (elementId: string) => void;
   updateElement: (elementId: string, update: MapElementUpdate) => void;
+  /** Author a placed door's initial state + width (dedicated data path). */
+  updateDoor: (elementId: string, update: { state: MapDoorState; width: number }) => void;
   undo: () => void;
   redo: () => void;
   /**

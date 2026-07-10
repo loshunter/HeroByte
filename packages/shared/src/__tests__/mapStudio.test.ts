@@ -1,16 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
+  addMapElement,
+  getVisibleMapElements,
+  removeMapElement,
+  updateMapElement,
+} from "../mapStudioElements.js";
+import {
   DEFAULT_MAP_LAYERS,
   MAP_DOCUMENT_SCHEMA_VERSION,
-  addMapElement,
   addMapLayer,
   createMapDocument,
-  getVisibleMapElements,
   importMapDocument,
   moveMapLayer,
-  removeMapElement,
   removeMapLayer,
-  updateMapElement,
   updateMapGrid,
   updateMapLayer,
   type CreateMapDocumentInput,

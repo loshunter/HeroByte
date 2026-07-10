@@ -41,6 +41,7 @@ function controller(overrides: Partial<MapStudioController> = {}): MapStudioCont
     addShape: vi.fn(() => "shape-id"),
     addWall: vi.fn(() => "wall-id"),
     addDoor: vi.fn(() => "door-id"),
+    updateDoor: vi.fn(),
     removeElement: vi.fn(),
     updateElement: vi.fn(),
     undo: vi.fn(),
@@ -584,6 +585,68 @@ describe("MapStudioWorkspace", () => {
       hidden: false,
       locked: false,
     });
+  });
+
+  it("authors a placed door's state and width via the inspector's door section", () => {
+    const document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
+    document.elements = [
+      {
+        id: "front-door",
+        type: "door",
+        layerId: "walls",
+        locked: false,
+        hidden: false,
+        transform: { x: 100, y: 100, scaleX: 1, scaleY: 1, rotation: 0 },
+        data: { width: 50, state: "closed", blocksMovement: true, blocksVision: true },
+      },
+    ];
+    const mapStudio = controller({ activeDocument: document });
+    render(<MapStudioWorkspace controller={mapStudio} onExit={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Select" }));
+    firePointer(screen.getByRole("button", { name: "Select door 1" }), "pointerdown", {
+      pointerId: 1,
+      clientX: 100,
+      clientY: 100,
+    });
+
+    // The door section is a dedicated authoring control (separate from the
+    // transform APPLY ELEMENT); rotation stays on the transform inspector.
+    fireEvent.change(screen.getByLabelText("Door state"), { target: { value: "secret" } });
+    fireEvent.change(screen.getByLabelText("Door width"), { target: { value: "80" } });
+    fireEvent.click(screen.getByRole("button", { name: "APPLY DOOR" }));
+
+    expect(mapStudio.updateDoor).toHaveBeenCalledWith("front-door", { state: "secret", width: 80 });
+    // Authoring door state does NOT ride the generic update-element path.
+    expect(mapStudio.updateElement).not.toHaveBeenCalled();
+  });
+
+  it("shows no door section for a non-door element", () => {
+    const document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
+    document.elements = [
+      {
+        id: "crate-stamp",
+        type: "stamp",
+        layerId: "objects",
+        locked: false,
+        hidden: false,
+        transform: { x: 40, y: 40, scaleX: 1, scaleY: 1, rotation: 0 },
+        data: { assetId: "objects:crate", width: 50, height: 50 },
+      },
+    ];
+    render(
+      <MapStudioWorkspace controller={controller({ activeDocument: document })} onExit={vi.fn()} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Select" }));
+    firePointer(screen.getByRole("button", { name: "Select stamp 1" }), "pointerdown", {
+      pointerId: 1,
+      clientX: 50,
+      clientY: 50,
+    });
+
+    expect(screen.queryByLabelText("Door state")).toBeNull();
+    expect(screen.queryByRole("button", { name: "APPLY DOOR" })).toBeNull();
   });
 
   it("binds undo, redo, and delete to canvas hotkeys", () => {

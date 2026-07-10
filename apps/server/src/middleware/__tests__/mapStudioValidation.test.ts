@@ -229,6 +229,8 @@ describe("Map Studio message validation", () => {
       ],
     },
     { type: "update-element", elementId: "barrel", update: { transform } },
+    { type: "update-door", elementId: "front-door", state: "secret", width: 50 },
+    { type: "update-door", elementId: "front-door", state: "closed", width: 1000 },
     { type: "remove-element", elementId: "barrel" },
     {
       type: "paint-terrain",
@@ -293,6 +295,52 @@ describe("Map Studio message validation", () => {
         },
       },
       "points",
+    ],
+    [
+      {
+        t: "map-studio-command",
+        command: {
+          commandId: "command",
+          documentId: "map",
+          baseRevision: 0,
+          type: "update-door",
+          elementId: "front-door",
+          state: "ajar", // not a valid door state
+          width: 50,
+        },
+      },
+      "state",
+    ],
+    [
+      {
+        t: "map-studio-command",
+        command: {
+          commandId: "command",
+          documentId: "map",
+          baseRevision: 0,
+          type: "update-door",
+          elementId: "front-door",
+          state: "closed",
+          width: 2000, // over the 1000 server cap
+        },
+      },
+      "width",
+    ],
+    [
+      {
+        t: "map-studio-command",
+        command: {
+          commandId: "command",
+          documentId: "map",
+          baseRevision: 0,
+          type: "update-door",
+          elementId: "front-door",
+          state: "closed",
+          width: 50,
+          rotation: 90, // unknown key — .strict() must reject
+        },
+      },
+      "rotation",
     ],
     [
       {

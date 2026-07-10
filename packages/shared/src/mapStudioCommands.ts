@@ -1,18 +1,22 @@
 import {
-  addMapElement,
-  addMapElements,
   addMapLayer,
   moveMapLayer,
   paintTerrain,
-  removeMapElement,
   removeMapLayer,
-  updateMapElement,
   updateMapGrid,
   updateMapLayer,
   type TerrainPaintCell,
 } from "./mapStudio.js";
+import {
+  addMapElement,
+  addMapElements,
+  removeMapElement,
+  updateMapDoor,
+  updateMapElement,
+} from "./mapStudioElements.js";
 import type {
   MapDocument,
+  MapDoorState,
   MapElement,
   MapElementUpdate,
   MapGridUpdate,
@@ -40,6 +44,12 @@ export type MapDocumentCommand =
       type: "update-element";
       elementId: string;
       update: MapElementUpdate;
+    })
+  | (MapCommandBase & {
+      type: "update-door";
+      elementId: string;
+      state: MapDoorState;
+      width: number;
     })
   | (MapCommandBase & { type: "remove-element"; elementId: string })
   | (MapCommandBase & { type: "paint-terrain"; cells: TerrainPaintCell[] });
@@ -111,6 +121,14 @@ export function applyMapDocumentCommand(
       break;
     case "update-element":
       next = updateMapElement(document, command.elementId, command.update, timestamp);
+      break;
+    case "update-door":
+      next = updateMapDoor(
+        document,
+        command.elementId,
+        { state: command.state, width: command.width },
+        timestamp,
+      );
       break;
     case "remove-element":
       next = removeMapElement(document, command.elementId, timestamp);

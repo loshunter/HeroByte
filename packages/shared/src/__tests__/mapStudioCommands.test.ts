@@ -5,6 +5,7 @@ import {
   createMapDocument,
   type MapDocument,
   type MapDocumentCommand,
+  type MapDoorElement,
   type MapStampElement,
   type MapTileElement,
 } from "../index.js";
@@ -49,6 +50,31 @@ function tile(id: string, x: number, y: number): MapTileElement {
     transform: { x, y, scaleX: 1, scaleY: 1, rotation: 0 },
     data: { assetId: "terrain:stone-floor", columns: 1, rows: 1 },
   };
+}
+
+function door(
+  state: "open" | "closed" | "locked" | "secret" = "closed",
+  locked = false,
+): MapDoorElement {
+  return {
+    id: "front-door",
+    layerId: "walls",
+    type: "door",
+    locked,
+    hidden: false,
+    transform: { x: 100, y: 100, scaleX: 1, scaleY: 1, rotation: 0 },
+    data: { width: 50, state, blocksMovement: true, blocksVision: true },
+  };
+}
+
+function withElement(element: MapDoorElement | MapStampElement): MapDocument {
+  return applyMapDocumentCommand(document(), {
+    commandId: "seed",
+    documentId: "map-1",
+    baseRevision: 0,
+    type: "add-element",
+    element,
+  }).document;
 }
 
 describe("applyMapDocumentCommand", () => {
@@ -230,5 +256,67 @@ describe("applyMapDocumentCommand", () => {
 
     expect(result.revision).toBe(1);
     expect(result.document.elements.map((element) => element.id)).toEqual(["floor-a", "floor-b"]);
+  });
+
+  describe("update-door (authored door state)", () => {
+    function authorDoor(
+      doc: MapDocument,
+      patch: { elementId?: string; state: MapDoorElement["data"]["state"]; width: number },
+    ) {
+      return applyMapDocumentCommand(
+        doc,
+        {
+          commandId: "author",
+          documentId: "map-1",
+          baseRevision: doc.revision,
+          type: "update-door",
+          elementId: patch.elementId ?? "front-door",
+          state: patch.state,
+          width: patch.width,
+        },
+        20,
+      );
+    }
+
+    it("sets a door's authored state and width, deep-merging (blocks flags preserved)", () => {
+      const doc = withElement(door("closed"));
+      const result = authorDoor(doc, { state: "locked", width: 80 });
+
+      const el = result.document.elements.find((element) => element.id === "front-door");
+      expect(el).toMatchObject({
+        type: "door",
+        // width + state replaced; blocksMovement/blocksVision NOT wiped by a
+        // shallow data overwrite.
+        data: { state: "locked", width: 80, blocksMovement: true, blocksVision: true },
+      });
+      expect(result.revision).toBe(2);
+    });
+
+    it("can author the secret state (DM-only channel; role-stripped for players at publish)", () => {
+      const doc = withElement(door("closed"));
+      const el = authorDoor(doc, { state: "secret", width: 50 }).document.elements.find(
+        (element) => element.id === "front-door",
+      );
+      expect(el).toMatchObject({ type: "door", data: { state: "secret" } });
+    });
+
+    it("refuses to author a non-door element as a door", () => {
+      const doc = withElement(stamp());
+      expect(() => authorDoor(doc, { elementId: "barrel", state: "closed", width: 50 })).toThrow(
+        /not a door/i,
+      );
+    });
+
+    it("refuses to author a locked door", () => {
+      const doc = withElement(door("closed", true));
+      expect(() => authorDoor(doc, { state: "secret", width: 50 })).toThrow(/locked/i);
+    });
+
+    it("rejects an unknown door id", () => {
+      const doc = withElement(door("closed"));
+      expect(() => authorDoor(doc, { elementId: "ghost", state: "closed", width: 50 })).toThrow(
+        /Unknown map element/i,
+      );
+    });
   });
 });

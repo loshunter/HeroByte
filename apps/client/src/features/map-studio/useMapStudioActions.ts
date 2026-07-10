@@ -1,6 +1,7 @@
 import { useCallback, type MutableRefObject } from "react";
 import type {
   MapDocument,
+  MapDoorState,
   MapElementUpdate,
   MapGridUpdate,
   MapLayerUpdate,
@@ -233,6 +234,21 @@ export function useMapStudioActions({
     [applyCommand],
   );
 
+  const updateDoor = useCallback(
+    (elementId: string, update: { state: MapDoorState; width: number }) => {
+      applyCommand((document, commandId) => ({
+        commandId,
+        documentId: document.id,
+        baseRevision: document.revision,
+        type: "update-door",
+        elementId,
+        state: update.state,
+        width: update.width,
+      }));
+    },
+    [applyCommand],
+  );
+
   const undo = useCallback(() => {
     applyCommand((document, commandId) => ({
       commandId,
@@ -265,6 +281,7 @@ export function useMapStudioActions({
     addDoor,
     removeElement,
     updateElement,
+    updateDoor,
     undo,
     redo,
   };

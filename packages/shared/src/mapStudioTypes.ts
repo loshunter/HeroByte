@@ -75,11 +75,13 @@ export interface MapWallElement extends MapElementBase {
   };
 }
 
+export type MapDoorState = "open" | "closed" | "locked" | "secret";
+
 export interface MapDoorElement extends MapElementBase {
   type: "door";
   data: {
     width: number;
-    state: "open" | "closed" | "locked" | "secret";
+    state: MapDoorState;
     blocksMovement: boolean;
     blocksVision: boolean;
   };

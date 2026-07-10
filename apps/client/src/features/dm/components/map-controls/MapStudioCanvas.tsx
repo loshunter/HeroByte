@@ -1,6 +1,7 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import type {
   MapDocument,
+  MapDoorState,
   MapElement,
   MapElementTransform,
   MapElementUpdate,
@@ -19,6 +20,7 @@ interface MapStudioCanvasProps {
   disabled: boolean;
   onRemoveElement: (elementId: string) => void;
   onUpdateElement: (elementId: string, update: MapElementUpdate) => void;
+  onUpdateDoor: (elementId: string, update: { state: MapDoorState; width: number }) => void;
 }
 
 export function MapStudioCanvas({
@@ -26,6 +28,7 @@ export function MapStudioCanvas({
   disabled,
   onRemoveElement,
   onUpdateElement,
+  onUpdateDoor,
 }: MapStudioCanvasProps) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -208,6 +211,7 @@ export function MapStudioCanvas({
           layers={document.layers}
           disabled={disabled || layers.get(selectedElement.layerId)?.locked === true}
           onUpdate={onUpdateElement}
+          onUpdateDoor={onUpdateDoor}
         />
       )}
     </div>

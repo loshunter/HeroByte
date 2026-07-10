@@ -10,8 +10,6 @@ import {
   MAP_DOCUMENT_SCHEMA_VERSION,
   type CreateMapDocumentInput,
   type MapDocument,
-  type MapElement,
-  type MapElementUpdate,
   type MapGridUpdate,
   type MapLayer,
   type MapLayerUpdate,
@@ -26,8 +24,6 @@ import {
   type TerrainCellWrite,
 } from "./terrain.js";
 import {
-  requireEditableLayer,
-  requireElementIndex,
   requireFiniteNumber,
   requireLayerIndex,
   requirePositiveNumber,
@@ -193,87 +189,6 @@ export function removeMapLayer(
   );
 }
 
-export function addMapElement(
-  document: MapDocument,
-  element: MapElement,
-  timestamp: number = Date.now(),
-): MapDocument {
-  if (document.elements.some((candidate) => candidate.id === element.id)) {
-    throw new Error(`Map element already exists: ${element.id}`);
-  }
-  requireEditableLayer(document, element.layerId);
-  const sanitized = sanitizeElement(element);
-  return commit(document, { elements: [...document.elements, sanitized] }, timestamp);
-}
-
-export function addMapElements(
-  document: MapDocument,
-  elements: MapElement[],
-  timestamp: number = Date.now(),
-): MapDocument {
-  if (!elements.length) {
-    throw new Error("At least one map element is required");
-  }
-
-  const existingIds = new Set(document.elements.map((element) => element.id));
-  const batchIds = new Set<string>();
-  const sanitized = elements.map((element) => {
-    if (existingIds.has(element.id) || batchIds.has(element.id)) {
-      throw new Error(`Map element already exists: ${element.id}`);
-    }
-    batchIds.add(element.id);
-    requireEditableLayer(document, element.layerId);
-    return sanitizeElement(element);
-  });
-
-  return commit(document, { elements: [...document.elements, ...sanitized] }, timestamp);
-}
-
-export function updateMapElement(
-  document: MapDocument,
-  elementId: string,
-  update: MapElementUpdate,
-  timestamp: number = Date.now(),
-): MapDocument {
-  const index = requireElementIndex(document, elementId);
-  const current = document.elements[index]!;
-  requireEditableLayer(document, current.layerId);
-  if (current.locked && update.locked !== false) {
-    throw new Error(`Map element is locked: ${elementId}`);
-  }
-  const nextLayerId = update.layerId ?? current.layerId;
-  if (nextLayerId !== current.layerId) requireEditableLayer(document, nextLayerId);
-  const next = sanitizeElement({ ...current, ...update, id: current.id } as MapElement);
-  const elements = [...document.elements];
-  elements[index] = next;
-  return commit(document, { elements }, timestamp);
-}
-
-export function removeMapElement(
-  document: MapDocument,
-  elementId: string,
-  timestamp: number = Date.now(),
-): MapDocument {
-  const index = requireElementIndex(document, elementId);
-  const current = document.elements[index]!;
-  requireEditableLayer(document, current.layerId);
-  if (current.locked) throw new Error(`Map element is locked: ${elementId}`);
-  return commit(
-    document,
-    { elements: document.elements.filter((element) => element.id !== elementId) },
-    timestamp,
-  );
-}
-
-export function getVisibleMapElements(document: MapDocument): MapElement[] {
-  const visibleLayerIds = new Set(
-    document.layers.filter((layer) => layer.visible && layer.opacity > 0).map((layer) => layer.id),
-  );
-  return document.elements.filter(
-    (element) => !element.hidden && visibleLayerIds.has(element.layerId),
-  );
-}
-
 /** One brushed cell: paint with an asset id, erase with null. */
 export interface TerrainPaintCell {
   x: number;
@@ -330,7 +245,12 @@ export function paintTerrain(
   return next;
 }
 
-function commit(
+/**
+ * Bump revision + updatedAt for any document mutation. Exported for the element
+ * mutations split into mapStudioElements.ts; not part of the public surface's
+ * intended use.
+ */
+export function commit(
   document: MapDocument,
   update: Partial<Pick<MapDocument, "grid" | "layers" | "elements">>,
   timestamp: number,
