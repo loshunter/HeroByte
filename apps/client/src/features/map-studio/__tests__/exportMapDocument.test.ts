@@ -105,7 +105,7 @@ describe("Map Studio export", () => {
     expect(renderMapDocumentSvg(document)).not.toContain("Do not export");
   });
 
-  it("omits secret doors so a hidden passage never bakes into the player-visible map", () => {
+  it("omits every door from the raster — doors render live via DoorsLayer, never baked", () => {
     let document = createMapDocument({ id: "map", name: "Keep", timestamp: 10 });
     document = addMapElement(
       document,
@@ -135,11 +135,47 @@ describe("Map Studio export", () => {
     );
 
     const svg = renderMapDocumentSvg(document);
-    // Ordinary doors bake in — players are meant to see them.
-    expect(svg).toContain("translate(100 100)");
-    // A secret door must NOT: its compiledScene counterpart is role-stripped for
-    // players, but mapBackground is broadcast to everyone unfiltered.
+    // Doors are LIVE-ONLY: the table's DoorsLayer draws them from compiledScene,
+    // so none may bake into the raster. One rule kills the double-draw (a baked
+    // line under the live door) AND the secret-door leak — an ordinary closed
+    // door baked before this slice; now it must not.
+    expect(svg).not.toContain("translate(100 100)");
+    // Secret doors were already excluded (the seed fix); still excluded.
     expect(svg).not.toContain("translate(300 300)");
+    // No door line paint of any kind (the door stroke colour is door-only).
+    expect(svg).not.toContain('stroke="#c99b55"');
+  });
+
+  it("bakes walls into the raster — a wall has no live layer, its polyline is the only render", () => {
+    let document = createMapDocument({ id: "map", name: "Keep", timestamp: 10 });
+    document = addMapElement(
+      document,
+      {
+        id: "north-wall",
+        type: "wall",
+        layerId: "walls",
+        locked: false,
+        hidden: false,
+        transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+        data: {
+          points: [
+            { x: 0, y: 0 },
+            { x: 200, y: 0 },
+          ],
+          blocksMovement: true,
+          blocksVision: true,
+        },
+      },
+      20,
+    );
+
+    const svg = renderMapDocumentSvg(document);
+    // Walls are invisible at the table (there is no WallsLayer) — the baked
+    // polyline is the ONLY way a wall is ever seen. Guards against an over-broad
+    // door exclusion that also drops walls (they share the "walls" layer).
+    expect(svg).toContain("<polyline");
+    expect(svg).toContain('stroke="#e9d8a6"');
+    expect(svg).toContain('points="0,0 200,0"');
   });
 
   describe("terrain boundary autotiling", () => {

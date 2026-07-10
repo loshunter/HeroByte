@@ -312,16 +312,15 @@ function paint(element: Extract<MapElement, { type: "shape" }>): string {
 
 function visible(element: MapElement, layer?: MapLayer): boolean {
   const playerVisibleText = element.type !== "text" || element.data.visibleToPlayers;
-  // A secret door is DM-only: its line must not bake into the player-visible
-  // export/publish raster. The interactive door in compiledScene is separately
-  // role-stripped for players, but mapBackground is broadcast unfiltered.
-  const playerVisibleDoor = element.type !== "door" || element.data.state !== "secret";
+  // Doors are LIVE-ONLY: the table's DoorsLayer draws every door from
+  // compiledScene, so no door may bake into the raster. Excluding all doors
+  // (not just secret ones) removes the double-draw — a baked line sitting under
+  // the live interactive door — and subsumes the secret-door leak, since the
+  // published raster is broadcast to every role unfiltered. Walls still bake:
+  // they have no live layer, so their <polyline> is the only way they are seen.
+  const bakesToRaster = element.type !== "door";
   return Boolean(
-    layer?.visible &&
-      layer.opacity > 0 &&
-      !element.hidden &&
-      playerVisibleText &&
-      playerVisibleDoor,
+    layer?.visible && layer.opacity > 0 && !element.hidden && playerVisibleText && bakesToRaster,
   );
 }
 
