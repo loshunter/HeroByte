@@ -105,6 +105,43 @@ describe("Map Studio export", () => {
     expect(renderMapDocumentSvg(document)).not.toContain("Do not export");
   });
 
+  it("omits secret doors so a hidden passage never bakes into the player-visible map", () => {
+    let document = createMapDocument({ id: "map", name: "Keep", timestamp: 10 });
+    document = addMapElement(
+      document,
+      {
+        id: "front-door",
+        type: "door",
+        layerId: "walls",
+        locked: false,
+        hidden: false,
+        transform: { x: 100, y: 100, scaleX: 1, scaleY: 1, rotation: 0 },
+        data: { width: 50, state: "closed", blocksMovement: true, blocksVision: true },
+      },
+      20,
+    );
+    document = addMapElement(
+      document,
+      {
+        id: "hidden-passage",
+        type: "door",
+        layerId: "walls",
+        locked: false,
+        hidden: false,
+        transform: { x: 300, y: 300, scaleX: 1, scaleY: 1, rotation: 0 },
+        data: { width: 50, state: "secret", blocksMovement: true, blocksVision: true },
+      },
+      21,
+    );
+
+    const svg = renderMapDocumentSvg(document);
+    // Ordinary doors bake in — players are meant to see them.
+    expect(svg).toContain("translate(100 100)");
+    // A secret door must NOT: its compiledScene counterpart is role-stripped for
+    // players, but mapBackground is broadcast to everyone unfiltered.
+    expect(svg).not.toContain("translate(300 300)");
+  });
+
   describe("terrain boundary autotiling", () => {
     function tile(id: string, x: number, y: number, assetId = "terrain:stone-floor") {
       return {

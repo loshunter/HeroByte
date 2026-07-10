@@ -312,7 +312,17 @@ function paint(element: Extract<MapElement, { type: "shape" }>): string {
 
 function visible(element: MapElement, layer?: MapLayer): boolean {
   const playerVisibleText = element.type !== "text" || element.data.visibleToPlayers;
-  return Boolean(layer?.visible && layer.opacity > 0 && !element.hidden && playerVisibleText);
+  // A secret door is DM-only: its line must not bake into the player-visible
+  // export/publish raster. The interactive door in compiledScene is separately
+  // role-stripped for players, but mapBackground is broadcast unfiltered.
+  const playerVisibleDoor = element.type !== "door" || element.data.state !== "secret";
+  return Boolean(
+    layer?.visible &&
+      layer.opacity > 0 &&
+      !element.hidden &&
+      playerVisibleText &&
+      playerVisibleDoor,
+  );
 }
 
 function xml(value: string): string {
