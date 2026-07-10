@@ -144,7 +144,26 @@ Generalize the door exclusion in `exportMapDocument.ts` `visible()` (§4) from
   render is byte-identical; a *baked-door* golden, if any, would change, so read
   the diff) → structure → full `pnpm test` → bundle. Careful self-review.
 
-### Slice 2 — Wall + Door placement tools [client-only, the core ask]
+### Slice 2 — Wall + Door placement tools — DONE ✅ (`d596f4c5`)
+Shipped on `dev`, client-only, careful self-review (no adversarial workflow —
+additive client interaction with strong unit+integration coverage, playbook
+§0.4). **Landed shape:** Wall + Door tool-rail buttons wire the orphaned
+`addWall`/`addDoor`. Both use the Room tool's two-point drag. New pure module
+`components/wallDoorDrafts.ts` holds `wallDraftFromDrag` (segment endpoints),
+`doorDraftFromDrag` (transform at drag start, `width`=length, `rotation`=drag
+angle°, `state:"closed"`), `findWallsLayer` (resolve by KIND), and
+`commitSegmentDrag` (routes to addWall/addDoor) — kept out of the controller so
+it stays under the 350-LOC cap (now 340) and the geometry is React-free
+testable. Controller gates the commit on `saving` (addWall/addDoor don't
+self-gate — the command-queue drop trap). `SegmentDragPreview` in
+`MapStudioCanvas` draws a dashed overlay line + endpoint dots (wall `#e9d8a6`,
+door `#c99b55`), never mutating element props. Placed walls/doors already
+render+select in the editor; doors only appear live at the table (Slice 1
+excludes them from the raster). Gates green in-session: targeted (40) →
+typecheck → lint (frozen intact) → structure → full `pnpm test` (31 batches) →
+e2e smoke (8) → bundle (69.18 KB, unchanged).
+
+Original design (historical):
 Mirror the Room tool's **two-point drag** (`useMapStudioCanvasController.ts:264`)
 — it is the canonical pattern. Steps (all file:line in §4):
 1. Add `"wall"` and `"door"` to the `StudioTool` union; add two `<ToolButton>`s
