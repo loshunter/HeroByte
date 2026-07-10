@@ -158,12 +158,13 @@ Mirror the Room tool's **two-point drag** (`useMapStudioCanvasController.ts:264`
    Gate on `saving` like the room path (a real trap — see §6). Draw a live
    preview line as a canvas overlay (like the roomDrag preview), NOT by mutating
    element props each frame (the preview is memoized).
-4. **Door tool (recommended: two-point drag):** reuse the wall loop, convert on
-   commit — `x,y=start`, `width=distance(start,end)`, `rotation=atan2(dy,dx)` in
-   degrees, `state:"closed"` (NOT `"open"` — an open door blocks nothing, see §6),
-   `blocks*:true`. A door is exactly one segment; this yields a correctly angled
-   door on a wall for free. (The one-click alternative is simpler but leaves
-   orientation to the inspector — surface this fork to the owner, §7.)
+4. **Door tool — TWO-POINT DRAG (owner-confirmed 2026-07-09).** Reuse the wall
+   loop, convert on commit — `x,y=start`, `width=distance(start,end)`,
+   `rotation=atan2(dy,dx)` in degrees, `state:"closed"` (NOT `"open"` — an open
+   door blocks nothing, see §6), `blocks*:true`. A door is exactly one segment;
+   this yields a correctly angled door on a wall for free. (The one-click
+   alternative was considered and rejected — it leaves orientation to the
+   inspector.)
 5. Resolve the placement layer by **kind** (`layers` → `kind === "walls"`), NOT
    via `selectedAsset`/`pickPlacementLayer` (that path is asset-driven; walls/
    doors aren't assets). The `walls` layer (`mapStudioTypes.ts:147`) is
@@ -185,11 +186,13 @@ for `data`** today (this is the hard blocker):
 - The reducer `updateMapElement` (`mapStudio.ts:246`) shallow-spreads — adding
   `data` would REPLACE `element.data` wholesale, not merge.
 
-**Decide the fork (surface to the owner, §7):** (A) widen `update-element` to
-carry a typed `data` partial (deep-merge in the reducer) — general-purpose but
-touches every element type's merge semantics; or (B) a **dedicated door-state
-authoring command** (new wire message + validator + reducer + test) — narrower,
-avoids loosening `update-element`, but more surface. Then add a
+**Fork — DECIDED (owner-confirmed 2026-07-09): option (B), a dedicated
+door-state authoring command.** New wire message + validator + reducer + test,
+scoped to door state/width only; keeps `update-element`'s `.strict()` validator
+locked (narrow blast radius for a security-sensitive slice). Rejected (A) —
+widening `update-element` with a typed `data` partial (deep-merge) — because it
+loosens the strict validator across every element type's merge semantics. Then
+add a
 `element.type === "door"` section to `MapElementInspector` (a state `<select>`
 reusing the `doorStroke` enum order + a width input, min>0 **max 1000** to match
 the server validator). **Door rotation is already editable via the transform
