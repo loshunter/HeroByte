@@ -776,6 +776,103 @@ describe("MapStudioWorkspace", () => {
     expect(drafts.every((draft) => draft.assetId === "terrain:stone-floor")).toBe(true);
   });
 
+  it("places a wall as a two-point drag on the walls layer", () => {
+    const document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
+    const mapStudio = controller({ activeDocument: document });
+    render(<MapStudioWorkspace controller={mapStudio} onExit={vi.fn()} />);
+
+    const canvas = screen.getByRole("img", { name: "Keep studio canvas" });
+    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 200,
+      bottom: 200,
+      width: 200,
+      height: 200,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Wall" }));
+    firePointer(canvas, "pointerdown", { pointerId: 1, clientX: 10, clientY: 10 }); // snaps (0,0)
+    firePointer(canvas, "pointermove", { pointerId: 1, clientX: 160, clientY: 10 }); // snaps (150,0)
+    firePointer(canvas, "pointerup", { pointerId: 1, clientX: 160, clientY: 10 });
+
+    expect(mapStudio.addWall).toHaveBeenCalledWith({
+      layerId: "walls",
+      x1: 0,
+      y1: 0,
+      x2: 150,
+      y2: 0,
+      blocksMovement: true,
+      blocksVision: true,
+    });
+    expect(mapStudio.addDoor).not.toHaveBeenCalled();
+  });
+
+  it("places a door as a two-point drag, angled along the drag and closed by default", () => {
+    const document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
+    const mapStudio = controller({ activeDocument: document });
+    render(<MapStudioWorkspace controller={mapStudio} onExit={vi.fn()} />);
+
+    const canvas = screen.getByRole("img", { name: "Keep studio canvas" });
+    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 200,
+      bottom: 200,
+      width: 200,
+      height: 200,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Door" }));
+    firePointer(canvas, "pointerdown", { pointerId: 1, clientX: 10, clientY: 10 }); // snaps (0,0)
+    firePointer(canvas, "pointermove", { pointerId: 1, clientX: 110, clientY: 10 }); // snaps (100,0)
+    firePointer(canvas, "pointerup", { pointerId: 1, clientX: 110, clientY: 10 });
+
+    expect(mapStudio.addDoor).toHaveBeenCalledWith({
+      layerId: "walls",
+      x: 0,
+      y: 0,
+      width: 100,
+      rotation: 0,
+      state: "closed",
+      blocksMovement: true,
+      blocksVision: true,
+    });
+    expect(mapStudio.addWall).not.toHaveBeenCalled();
+  });
+
+  it("does not place a wall while a save is in flight (command-queue drop guard)", () => {
+    const document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
+    const mapStudio = controller({ activeDocument: document, saving: true });
+    render(<MapStudioWorkspace controller={mapStudio} onExit={vi.fn()} />);
+
+    const canvas = screen.getByRole("img", { name: "Keep studio canvas" });
+    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 200,
+      bottom: 200,
+      width: 200,
+      height: 200,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Wall" }));
+    firePointer(canvas, "pointerdown", { pointerId: 1, clientX: 10, clientY: 10 });
+    firePointer(canvas, "pointermove", { pointerId: 1, clientX: 160, clientY: 10 });
+    firePointer(canvas, "pointerup", { pointerId: 1, clientX: 160, clientY: 10 });
+
+    expect(mapStudio.addWall).not.toHaveBeenCalled();
+  });
+
   it("erases the topmost overlapping tile on the same layer", () => {
     const document = createMapDocument({ id: "map", name: "Keep", width: 200, height: 200 });
     document.elements = [

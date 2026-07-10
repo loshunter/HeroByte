@@ -3,8 +3,9 @@ import type { MapDocument, MapLayer, TerrainPaintCell } from "@herobyte/shared";
 import { getTerrainCell } from "@herobyte/shared";
 import { snapPointToGrid } from "../snapToGrid";
 import type { MapStudioTileAsset } from "../starterTiles";
-import type { MapStampDraft, MapTileDraft } from "../types";
+import type { MapDoorDraft, MapStampDraft, MapTileDraft, MapWallDraft } from "../types";
 import { MAX_ROOM_TILES, type RoomDrag, type StudioTool } from "./MapStudioWorkspace.types";
+import { commitSegmentDrag } from "./wallDoorDrafts";
 import {
   buildRoomTileDrafts,
   buildStampDraft,
@@ -32,6 +33,8 @@ interface UseMapStudioCanvasControllerProps {
   addTiles: (tiles: MapTileDraft[]) => void;
   addStamp: (stamp: MapStampDraft) => void;
   addStamps: (stamps: MapStampDraft[]) => void;
+  addWall: (draft: MapWallDraft) => string | null;
+  addDoor: (draft: MapDoorDraft) => string | null;
   paintTerrain: (cells: TerrainPaintCell[]) => void;
   removeElement: (elementId: string) => void;
   setSelectedElementId: (elementId: string | null) => void;
@@ -51,6 +54,8 @@ export function useMapStudioCanvasController({
   addTiles,
   addStamp,
   addStamps,
+  addWall,
+  addDoor,
   paintTerrain,
   removeElement,
   setSelectedElementId,
@@ -63,6 +68,8 @@ export function useMapStudioCanvasController({
   const [freePlacement, setFreePlacement] = useAltKeyTracking();
   const [painting, setPainting] = useState(false);
   const [roomDrag, setRoomDrag] = useState<RoomDrag | null>(null);
+  // Wall/door two-point drag (both live on the walls layer; commit differs).
+  const [segmentDrag, setSegmentDrag] = useState<RoomDrag | null>(null);
   const { viewBox, handleResetView, handleZoom, handleWheel, startPan, handlePanMove, endPan } =
     useStudioCamera(activeDocument, svgRef);
   const { addStrokePoint, flushStroke, strokeCells } = useTerrainBrush({
@@ -76,6 +83,7 @@ export function useMapStudioCanvasController({
 
   useEffect(() => {
     setRoomDrag(null);
+    setSegmentDrag(null);
   }, [activeDocument?.id, activeDocument?.width, activeDocument?.height]);
 
   const snappedCursor = useMemo(
@@ -261,12 +269,14 @@ export function useMapStudioCanvasController({
       eraseAtPoint(point);
       return;
     }
-    if (tool === "room") {
+    // Room, wall, and door share one two-point drag lifecycle; only the drag
+    // state (and its commit at pointer-up) differ.
+    if (tool === "room" || tool === "wall" || tool === "door") {
       if (saving) return;
       event.currentTarget.setPointerCapture?.(event.pointerId);
       const snapped = snapPointToGrid(point, activeDocument.grid);
       setPainting(true);
-      setRoomDrag({ start: snapped, end: snapped });
+      (tool === "room" ? setRoomDrag : setSegmentDrag)({ start: snapped, end: snapped });
       return;
     }
     if (event.target === event.currentTarget) {
@@ -291,8 +301,9 @@ export function useMapStudioCanvasController({
       }
     }
     if (tool === "erase") eraseAtPoint(point); // gates element removal only
-    if (tool === "room" && !saving) {
-      setRoomDrag((current) =>
+    if ((tool === "room" || tool === "wall" || tool === "door") && !saving) {
+      const setDrag = tool === "room" ? setRoomDrag : setSegmentDrag;
+      setDrag((current) =>
         current ? { ...current, end: snapPointToGrid(point, activeDocument.grid) } : current,
       );
     }
@@ -300,17 +311,22 @@ export function useMapStudioCanvasController({
 
   const handleCanvasPointerEnd = () => {
     if (roomDrag && tool === "room") commitRoomDrag(roomDrag);
+    // Wall/door commit self-guards on the walls layer + zero-length; gate on
+    // saving here (addWall/addDoor don't self-gate — a known command-queue drop).
+    if (segmentDrag && !saving) commitSegmentDrag(tool, layers, segmentDrag, addWall, addDoor);
     flushStroke();
     setPainting(false);
     paintedCells.current = new Set();
     endPan();
     setRoomDrag(null);
+    setSegmentDrag(null);
   };
 
   return {
     svgRef,
     viewBox,
     roomDrag,
+    segmentDrag,
     snappedCursor,
     strokeCells,
     stampPreview,

@@ -43,6 +43,8 @@ export function MapStudioWorkspace({
     addTiles,
     addStamp,
     addStamps,
+    addWall,
+    addDoor,
     paintTerrain,
     removeElement,
     updateElement,
@@ -114,6 +116,7 @@ export function MapStudioWorkspace({
     svgRef,
     viewBox,
     roomDrag,
+    segmentDrag,
     snappedCursor,
     stampPreview,
     strokeCells,
@@ -135,6 +138,8 @@ export function MapStudioWorkspace({
     addTiles,
     addStamp,
     addStamps,
+    addWall,
+    addDoor,
     paintTerrain,
     removeElement,
     setSelectedElementId,
@@ -236,6 +241,8 @@ export function MapStudioWorkspace({
         <ToolButton active={tool === "select"} label="Select" onClick={() => setTool("select")} />
         <ToolButton active={tool === "tile"} label="Tile" onClick={() => setTool("tile")} />
         <ToolButton active={tool === "room"} label="Room" onClick={() => setTool("room")} />
+        <ToolButton active={tool === "wall"} label="Wall" onClick={() => setTool("wall")} />
+        <ToolButton active={tool === "door"} label="Door" onClick={() => setTool("door")} />
         <ToolButton
           active={tool === "scatter"}
           label="Scatter"
@@ -310,6 +317,7 @@ export function MapStudioWorkspace({
         selectedAsset={selectedAsset}
         previewLayer={previewLayer}
         roomDrag={roomDrag}
+        segmentDrag={segmentDrag}
         roomFillAsset={roomFillAsset}
         roomWallAsset={roomWallAsset}
         visibleElements={visibleElements}

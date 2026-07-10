@@ -25,6 +25,7 @@ interface MapStudioCanvasProps {
   selectedAsset: MapStudioTileAsset;
   previewLayer?: MapLayer;
   roomDrag: RoomDrag | null;
+  segmentDrag: RoomDrag | null;
   roomFillAsset: MapStudioTileAsset;
   roomWallAsset: MapStudioTileAsset | null;
   visibleElements: MapElement[];
@@ -51,6 +52,7 @@ export function MapStudioCanvas({
   selectedAsset,
   previewLayer,
   roomDrag,
+  segmentDrag,
   roomFillAsset,
   roomWallAsset,
   visibleElements,
@@ -229,6 +231,13 @@ export function MapStudioCanvas({
               wallAsset={roomWallAsset}
             />
           )}
+          {(tool === "wall" || tool === "door") && segmentDrag && (
+            <SegmentDragPreview
+              drag={segmentDrag}
+              tool={tool}
+              gridSize={activeDocument.grid.size}
+            />
+          )}
         </svg>
       </div>
     </main>
@@ -259,6 +268,39 @@ function RoomDragPreview({
         strokeWidth={wallAsset ? gridSize : Math.max(2, gridSize * 0.05)}
         strokeDasharray={wallAsset ? undefined : "10 6"}
       />
+    </g>
+  );
+}
+
+// Live preview for the Wall/Door two-point drag: the segment being dragged,
+// colored to match its baked/live render (wall #e9d8a6, door #c99b55) with
+// endpoint dots. Drawn as an overlay, never by mutating element props.
+function SegmentDragPreview({
+  drag,
+  tool,
+  gridSize,
+}: {
+  drag: RoomDrag;
+  tool: StudioTool;
+  gridSize: number;
+}) {
+  const color = tool === "door" ? "#c99b55" : "#e9d8a6";
+  const strokeWidth = tool === "door" ? Math.max(4, gridSize * 0.16) : Math.max(3, gridSize * 0.1);
+  const dotRadius = Math.max(3, gridSize * 0.06);
+  return (
+    <g pointerEvents="none" opacity={0.75}>
+      <line
+        x1={drag.start.x}
+        y1={drag.start.y}
+        x2={drag.end.x}
+        y2={drag.end.y}
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeDasharray="10 6"
+      />
+      <circle cx={drag.start.x} cy={drag.start.y} r={dotRadius} fill={color} />
+      <circle cx={drag.end.x} cy={drag.end.y} r={dotRadius} fill={color} />
     </g>
   );
 }
