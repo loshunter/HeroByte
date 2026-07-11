@@ -104,6 +104,14 @@ export class MessageAuthenticator {
       return true;
     }
 
+    // Minting a private table happens BEFORE auth (you can't be in a room that
+    // doesn't exist yet), so create-room is allowed pre-authentication.
+    if (message.t === "create-room") {
+      this.config.authHandler.createRoom(uid, message);
+      this.config.onAuthMessage?.(uid, message);
+      return true;
+    }
+
     // Check if client is authenticated
     if (!this.isAuthenticated(uid)) {
       console.warn(`Unauthenticated message from ${uid}, dropping.`);

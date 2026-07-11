@@ -84,7 +84,9 @@ type ControlMessage =
   | Extract<ServerMessage, { t: "map-studio-documents" }>
   | Extract<ServerMessage, { t: "map-studio-document" }>
   | Extract<ServerMessage, { t: "map-studio-deleted" }>
-  | Extract<ServerMessage, { t: "map-studio-error" }>;
+  | Extract<ServerMessage, { t: "map-studio-error" }>
+  | Extract<ServerMessage, { t: "room-created" }>
+  | Extract<ServerMessage, { t: "room-create-failed" }>;
 
 // Re-export for backward compatibility
 export { AuthState, type AuthEvent, ConnectionState };

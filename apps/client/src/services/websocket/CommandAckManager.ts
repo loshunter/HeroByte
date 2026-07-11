@@ -4,6 +4,7 @@ type AckEligibleType = ClientMessage["t"];
 
 const NON_TRACKED_TYPES: AckEligibleType[] = [
   "authenticate",
+  "create-room",
   "heartbeat",
   "rtc-signal",
   "request-room-resync",

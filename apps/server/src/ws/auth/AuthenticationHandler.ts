@@ -6,6 +6,7 @@
 
 import type { WebSocket } from "ws";
 import { WS_CLOSE_AUTH_REJECTED, type Player } from "@herobyte/shared";
+import { handleCreateRoom, type CreateRoomRequest } from "./roomCreation.js";
 import type { Container } from "../../container.js";
 import { getDefaultRoomId } from "../../config/auth.js";
 
@@ -287,6 +288,11 @@ export class AuthenticationHandler {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       ws.send(JSON.stringify({ t: "dm-password-update-failed", reason: errorMessage }));
     }
+  }
+
+  createRoom(uid: string, request: CreateRoomRequest): void {
+    const ws = this.uidToWs.get(uid);
+    handleCreateRoom(this.container.authService, ws, this.defaultRoomId, request);
   }
 
   /**

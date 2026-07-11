@@ -3,63 +3,18 @@
 // ============================================================================
 // Manages the shared room password with hashing, persistence, and verification.
 
-import { existsSync, readFileSync, writeFileSync } from "fs";
-import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
-import { getRoomSecret, getDMPassword, getDefaultRoomId } from "../../config/auth.js";
+import { getRoomSecret, getDefaultRoomId } from "../../config/auth.js";
+import {
+  ROOM_ID_PATTERN,
+  compareSecret,
+  hashSecret,
+  type RoomSecretRecord,
+  type SecretSource,
+  type StoredSecret,
+} from "./authCrypto.js";
+import { loadSecretRecords, persistSecretRecords } from "./secretPersistence.js";
 
 const SECRET_FILE = "./herobyte-room-secret.json";
-
-type SecretSource = "env" | "fallback" | "user";
-
-interface StoredSecret {
-  salt: string;
-  hash: string;
-  updatedAt: number;
-  source: SecretSource;
-  dmSalt?: string;
-  dmHash?: string;
-  dmUpdatedAt?: number;
-  dmSource?: SecretSource;
-}
-
-/**
- * A room's overrides. Either half may be absent: a room can customize just
- * its password, just its DM password, or both. Anything unset falls back to
- * the default room's record.
- */
-interface RoomSecretRecord {
-  salt?: string;
-  hash?: string;
-  updatedAt?: number;
-  source?: SecretSource;
-  dmSalt?: string;
-  dmHash?: string;
-  dmUpdatedAt?: number;
-  dmSource?: SecretSource;
-}
-
-const ROOM_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/;
-
-function hashSecret(secret: string, saltHex?: string): { hash: string; salt: string } {
-  const salt = saltHex ? Buffer.from(saltHex, "hex") : randomBytes(16);
-  const derived = scryptSync(secret, salt, 64);
-  return {
-    hash: derived.toString("hex"),
-    salt: salt.toString("hex"),
-  };
-}
-
-function compareSecret(secret: string, record: StoredSecret): boolean {
-  const { hash } = hashSecret(secret, record.salt);
-  const incoming = Buffer.from(hash, "hex");
-  const expected = Buffer.from(record.hash, "hex");
-
-  if (incoming.length !== expected.length) {
-    return false;
-  }
-
-  return timingSafeEqual(incoming, expected);
-}
 
 export interface RoomPasswordSummary {
   source: SecretSource;
@@ -86,8 +41,9 @@ export class AuthService {
 
   constructor(options?: { storagePath?: string }) {
     this.storagePath = options?.storagePath ?? SECRET_FILE;
-    this.rooms = {};
-    this.secret = this.loadSecret();
+    const loaded = loadSecretRecords(this.storagePath);
+    this.secret = loaded.secret;
+    this.rooms = loaded.rooms;
   }
 
   /**
@@ -98,11 +54,75 @@ export class AuthService {
     if (!secret || typeof secret !== "string") {
       return false;
     }
-    const room = this.roomRecord(roomId);
-    if (room?.hash && room.salt) {
-      return compareSecret(secret, room as StoredSecret);
+    const roomKey = this.roomKey(roomId);
+    if (roomKey) {
+      // Custom rooms are private: they open ONLY with the password set at
+      // creation. The default/server password never opens a custom room, and a
+      // never-created custom id is not joinable at all (no default fallback) —
+      // so "know the link" alone can't get anyone in.
+      const room = this.rooms[roomKey];
+      if (room?.hash && room.salt) {
+        return compareSecret(secret, room as StoredSecret);
+      }
+      return false;
     }
+    // The default room (no roomId) uses the server-wide password.
     return compareSecret(secret, this.secret);
+  }
+
+  /**
+   * Whether a custom room has been created (has its own room password). Used to
+   * distinguish "join an existing table" from "mint a new one" and to reject
+   * a create for a code that's already taken.
+   */
+  isRoomInitialized(roomId?: string): boolean {
+    const roomKey = this.roomKey(roomId);
+    if (!roomKey) {
+      return true; // the default room always exists
+    }
+    const room = this.rooms[roomKey];
+    return Boolean(room?.hash && room.salt);
+  }
+
+  /**
+   * Mint a private room: set its own room password (required) and DM password
+   * (optional). Throws if the code is already taken or a password is invalid.
+   * The creator then authenticates with the room password like any player, and
+   * elevates with the DM password.
+   */
+  createRoom(roomId: string, roomPassword: string, dmPassword?: string): void {
+    const roomKey = this.roomKey(roomId);
+    if (!roomKey) {
+      throw new Error("Custom tables need a valid table code.");
+    }
+    if (this.isRoomInitialized(roomId)) {
+      throw new Error("That table code is already taken. Try another.");
+    }
+    const trimmedRoom = roomPassword.trim();
+    if (trimmedRoom.length < 6 || trimmedRoom.length > 128) {
+      throw new Error("Room password must be between 6 and 128 characters.");
+    }
+    const trimmedDm = dmPassword?.trim();
+    if (trimmedDm && (trimmedDm.length < 8 || trimmedDm.length > 128)) {
+      throw new Error("DM password must be between 8 and 128 characters.");
+    }
+
+    const now = Date.now();
+    const room: RoomSecretRecord = this.rooms[roomKey] ?? {};
+    const roomHash = hashSecret(trimmedRoom);
+    room.hash = roomHash.hash;
+    room.salt = roomHash.salt;
+    room.updatedAt = now;
+    room.source = "user";
+    if (trimmedDm) {
+      const dmHash = hashSecret(trimmedDm);
+      room.dmHash = dmHash.hash;
+      room.dmSalt = dmHash.salt;
+      room.dmUpdatedAt = now;
+      room.dmSource = "user";
+    }
+    this.rooms[roomKey] = room;
+    persistSecretRecords(this.storagePath, this.secret, this.rooms);
   }
 
   /**
@@ -135,7 +155,7 @@ export class AuthService {
     } else {
       this.secret = { hash, salt, updatedAt, source };
     }
-    this.persistAll();
+    persistSecretRecords(this.storagePath, this.secret, this.rooms);
     return { source, updatedAt };
   }
 
@@ -205,7 +225,7 @@ export class AuthService {
       this.secret.dmSource = "user";
     }
 
-    this.persistAll();
+    persistSecretRecords(this.storagePath, this.secret, this.rooms);
 
     return { source: "user", updatedAt };
   }
@@ -233,110 +253,5 @@ export class AuthService {
   private roomRecord(roomId?: string): RoomSecretRecord | undefined {
     const key = this.roomKey(roomId);
     return key ? this.rooms[key] : undefined;
-  }
-
-  private loadSecret(): StoredSecret {
-    const persisted = this.loadPersistedSecret();
-    if (persisted) {
-      return persisted;
-    }
-
-    // Load room secret
-    const envSecret = process.env.HEROBYTE_ROOM_SECRET?.trim();
-    const roomSecret = envSecret || getRoomSecret();
-    const { hash, salt } = hashSecret(roomSecret);
-
-    // Load DM password (fallback for development)
-    const dmPassword = getDMPassword();
-    const dmHashData = hashSecret(dmPassword);
-
-    return {
-      hash,
-      salt,
-      updatedAt: Date.now(),
-      source: envSecret ? "env" : "fallback",
-      dmHash: dmHashData.hash,
-      dmSalt: dmHashData.salt,
-      dmUpdatedAt: Date.now(),
-      dmSource: "fallback",
-    };
-  }
-
-  private loadPersistedSecret(): StoredSecret | null {
-    if (!existsSync(this.storagePath)) {
-      return null;
-    }
-
-    try {
-      const raw = readFileSync(this.storagePath, "utf-8");
-      const parsed = JSON.parse(raw) as Partial<StoredSecret> & {
-        rooms?: Record<string, RoomSecretRecord>;
-      };
-      if (
-        typeof parsed.hash === "string" &&
-        typeof parsed.salt === "string" &&
-        typeof parsed.updatedAt === "number"
-      ) {
-        // Per-room overrides ride alongside the legacy default-room record,
-        // so pre-multi-room files load unchanged.
-        if (parsed.rooms && typeof parsed.rooms === "object") {
-          for (const [roomId, record] of Object.entries(parsed.rooms)) {
-            if (ROOM_ID_PATTERN.test(roomId) && record && typeof record === "object") {
-              this.rooms[roomId] = record;
-            }
-          }
-        }
-        return {
-          hash: parsed.hash,
-          salt: parsed.salt,
-          updatedAt: parsed.updatedAt,
-          // Preserve the persisted source when it's a known value; default to
-          // "user" otherwise. (A previous version of this line collapsed every
-          // value to "user", which made the landing page report the wrong
-          // password-hint state for env-sourced secrets.)
-          source: parsed.source === "env" || parsed.source === "fallback" ? parsed.source : "user",
-          dmHash: parsed.dmHash,
-          dmSalt: parsed.dmSalt,
-          dmUpdatedAt: parsed.dmUpdatedAt,
-          dmSource: parsed.dmSource === "user" ? "user" : parsed.dmSource,
-        };
-      }
-      console.warn("[Auth] Secret file was invalid; ignoring persisted password.");
-      return null;
-    } catch (error) {
-      console.error("[Auth] Failed to read room secret file:", error);
-      return null;
-    }
-  }
-
-  private persistAll(): void {
-    try {
-      const record = this.secret;
-      const persistData: Partial<StoredSecret> & { rooms?: Record<string, RoomSecretRecord> } = {
-        hash: record.hash,
-        salt: record.salt,
-        updatedAt: record.updatedAt,
-        // Persist the real source — collapsing to "user" here corrupted the
-        // landing page's password-hint state for env-sourced secrets whenever
-        // an unrelated (e.g. per-room) update rewrote the file.
-        source: record.source,
-      };
-
-      // Include DM password fields if they exist
-      if (record.dmHash && record.dmSalt) {
-        persistData.dmHash = record.dmHash;
-        persistData.dmSalt = record.dmSalt;
-        persistData.dmUpdatedAt = record.dmUpdatedAt;
-        persistData.dmSource = record.dmSource || "user";
-      }
-
-      if (Object.keys(this.rooms).length > 0) {
-        persistData.rooms = this.rooms;
-      }
-
-      writeFileSync(this.storagePath, JSON.stringify(persistData, null, 2));
-    } catch (error) {
-      console.error("[Auth] Failed to persist room password:", error);
-    }
   }
 }

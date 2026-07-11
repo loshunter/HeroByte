@@ -119,6 +119,29 @@ export function validateAuthenticateMessage(message: MessageRecord): ValidationR
   return { valid: true };
 }
 
+export function validateCreateRoomMessage(message: MessageRecord): ValidationResult {
+  if (typeof message.roomId !== "string" || message.roomId.length === 0) {
+    return { valid: false, error: "create-room: missing or invalid roomId" };
+  }
+  if (message.roomId.length > STRING_LIMITS.SECRET_MAX) {
+    return { valid: false, error: "create-room: roomId too long" };
+  }
+  if (typeof message.roomPassword !== "string" || message.roomPassword.length === 0) {
+    return { valid: false, error: "create-room: missing or invalid roomPassword" };
+  }
+  if (message.roomPassword.length > STRING_LIMITS.SECRET_MAX) {
+    return { valid: false, error: "create-room: roomPassword too long" };
+  }
+  if (
+    "dmPassword" in message &&
+    message.dmPassword !== undefined &&
+    (typeof message.dmPassword !== "string" || message.dmPassword.length > STRING_LIMITS.SECRET_MAX)
+  ) {
+    return { valid: false, error: "create-room: dmPassword must be a short string" };
+  }
+  return { valid: true };
+}
+
 /**
  * Validate elevate-to-dm message
  * Required: dmPassword (non-empty string, max 256 chars)

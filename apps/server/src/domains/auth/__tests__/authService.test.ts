@@ -169,4 +169,57 @@ describe("AuthService", () => {
       });
     });
   });
+
+  describe("Private rooms (created with their own password)", () => {
+    it("the default password NEVER opens a custom room", () => {
+      const service = new AuthService({ storagePath: SECRET_PATH });
+      // Default room still uses the server password.
+      expect(service.verify("Fun1")).toBe(true);
+      // A never-created custom room is NOT joinable — not even with the default.
+      expect(service.verify("Fun1", "table-secret")).toBe(false);
+      expect(service.verify("anything", "table-secret")).toBe(false);
+    });
+
+    it("createRoom sets a room-only password; only it opens the room", () => {
+      const service = new AuthService({ storagePath: SECRET_PATH });
+      service.createRoom("table-abc", "hunter2secret");
+
+      expect(service.verify("hunter2secret", "table-abc")).toBe(true);
+      expect(service.verify("Fun1", "table-abc")).toBe(false); // default locked out
+      expect(service.verify("hunter2secret")).toBe(false); // doesn't open the default room
+
+      // Persists across restart.
+      const reloaded = new AuthService({ storagePath: SECRET_PATH });
+      expect(reloaded.verify("hunter2secret", "table-abc")).toBe(true);
+      expect(reloaded.verify("Fun1", "table-abc")).toBe(false);
+      expect(reloaded.isRoomInitialized("table-abc")).toBe(true);
+    });
+
+    it("createRoom sets a separate DM password when provided", () => {
+      const service = new AuthService({ storagePath: SECRET_PATH });
+      service.createRoom("table-dm", "playerpass1", "dmMasterKey9");
+
+      expect(service.verify("playerpass1", "table-dm")).toBe(true);
+      expect(service.verifyDMPassword("dmMasterKey9", "table-dm")).toBe(true);
+      expect(service.verifyDMPassword("playerpass1", "table-dm")).toBe(false);
+    });
+
+    it("rejects creating a room whose code is already taken", () => {
+      const service = new AuthService({ storagePath: SECRET_PATH });
+      service.createRoom("table-dup", "firstpass1");
+      expect(() => service.createRoom("table-dup", "secondpass2")).toThrow(/already taken/i);
+      // The original password still works — the second create had no effect.
+      expect(service.verify("firstpass1", "table-dup")).toBe(true);
+      expect(service.verify("secondpass2", "table-dup")).toBe(false);
+    });
+
+    it("rejects a too-short room or DM password", () => {
+      const service = new AuthService({ storagePath: SECRET_PATH });
+      expect(() => service.createRoom("table-x", "short")).toThrow(/6 and 128/);
+      expect(() => service.createRoom("table-y", "goodpass1", "weak")).toThrow(/8 and 128/);
+      // Nothing was created.
+      expect(service.isRoomInitialized("table-x")).toBe(false);
+      expect(service.isRoomInitialized("table-y")).toBe(false);
+    });
+  });
 });

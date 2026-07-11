@@ -226,23 +226,26 @@ describe("authentication creates and scopes rooms", () => {
 });
 
 describe("per-room secrets", () => {
-  it("scopes password checks to the requested room with default fallback", async () => {
+  it("keeps custom rooms private: the default password never opens them", async () => {
     const { AuthService } = await import("../../domains/auth/service.js");
     const auth = new AuthService({ storagePath: "./test-room-secret.json" });
 
-    // Fresh rooms fall back to the default room secret.
     const defaultSecret = "Fun1";
-    expect(auth.verify(defaultSecret, "room-a")).toBe(true);
-    expect(auth.verify(defaultSecret, "room-b")).toBe(true);
+    // The default room uses the server password...
+    expect(auth.verify(defaultSecret)).toBe(true);
+    // ...but a never-created custom room is NOT joinable — the default password
+    // (or any password) is refused until the room is minted with its own.
+    expect(auth.verify(defaultSecret, "room-a")).toBe(false);
+    expect(auth.verify("guess", "room-a")).toBe(false);
 
-    // Room A sets its own password: it stops accepting the default,
-    // room B and the default room are untouched.
-    auth.update("room-a-secret", "room-a");
+    // Create room A with its own password: only that opens it; the default and
+    // room B are untouched, and room A's password doesn't open anything else.
+    auth.createRoom("room-a", "room-a-secret");
     expect(auth.verify("room-a-secret", "room-a")).toBe(true);
     expect(auth.verify(defaultSecret, "room-a")).toBe(false);
-    expect(auth.verify("room-a-secret", "room-b")).toBe(false);
-    expect(auth.verify(defaultSecret, "room-b")).toBe(true);
-    expect(auth.verify("room-a-secret")).toBe(false);
+    expect(auth.verify("room-a-secret", "room-b")).toBe(false); // room B still uncreated
+    expect(auth.verify(defaultSecret, "room-b")).toBe(false);
+    expect(auth.verify("room-a-secret")).toBe(false); // not the default room's password
     expect(auth.verify(defaultSecret)).toBe(true);
   });
 

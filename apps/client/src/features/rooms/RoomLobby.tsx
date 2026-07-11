@@ -14,11 +14,18 @@ import {
   listRememberedRooms,
   navigateToRoom,
   roomUrl,
+  stashRoomSecret,
 } from "./roomDirectory";
+import type { CreateRoomInput } from "./useCreateRoom";
 
 export interface RoomLobbyProps {
   /** Overridable for tests; defaults to a full page navigation. */
   onNavigate?: (roomId: string | undefined) => void;
+  /**
+   * Mint a private table. When provided, "New Table" opens a password form and
+   * the created room auto-authenticates the creator on the next page load.
+   */
+  onCreateRoom?: (input: CreateRoomInput) => Promise<void>;
 }
 
 const sectionStyle: React.CSSProperties = {
@@ -58,17 +65,60 @@ const labelStyle: React.CSSProperties = {
   margin: "0 0 8px",
 };
 
-export function RoomLobby({ onNavigate = navigateToRoom }: RoomLobbyProps): JSX.Element {
+export function RoomLobby({
+  onNavigate = navigateToRoom,
+  onCreateRoom,
+}: RoomLobbyProps): JSX.Element {
   const activeRoomId = useMemo(() => currentRoomId(), []);
   const [remembered, setRemembered] = useState(() => listRememberedRooms());
   const [joinCode, setJoinCode] = useState("");
   const [joinError, setJoinError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newRoomPassword, setNewRoomPassword] = useState("");
+  const [newDmPassword, setNewDmPassword] = useState("");
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [createBusy, setCreateBusy] = useState(false);
 
   const otherRooms = remembered.filter((room) => room.roomId !== activeRoomId);
 
   const handleNewTable = () => {
-    onNavigate(generateRoomId());
+    // Without a create handler (e.g. in tests) fall back to a plain new-room
+    // navigation; otherwise open the private-table password form.
+    if (!onCreateRoom) {
+      onNavigate(generateRoomId());
+      return;
+    }
+    setCreateError(null);
+    setCreating((open) => !open);
+  };
+
+  const handleCreateSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!onCreateRoom || createBusy) return;
+    const roomPassword = newRoomPassword.trim();
+    const dmPassword = newDmPassword.trim();
+    if (roomPassword.length < 6) {
+      setCreateError("Room password needs at least 6 characters.");
+      return;
+    }
+    if (dmPassword && dmPassword.length < 8) {
+      setCreateError("DM password needs at least 8 characters.");
+      return;
+    }
+    const roomId = generateRoomId();
+    setCreateBusy(true);
+    setCreateError(null);
+    try {
+      await onCreateRoom({ roomId, roomPassword, dmPassword: dmPassword || undefined });
+      // Pre-seed the password so the new room authenticates the creator without
+      // a second prompt, then navigate into it.
+      stashRoomSecret(roomPassword);
+      onNavigate(roomId);
+    } catch (error) {
+      setCreateError(error instanceof Error ? error.message : "Couldn't create the table.");
+      setCreateBusy(false);
+    }
   };
 
   const handleJoinByCode = (event: React.FormEvent<HTMLFormElement>) => {
@@ -146,6 +196,57 @@ export function RoomLobby({ onNavigate = navigateToRoom }: RoomLobbyProps): JSX.
         <button type="button" style={chipButtonStyle} onClick={handleNewTable}>
           ▦ New Table
         </button>
+        {creating && onCreateRoom && (
+          <form
+            onSubmit={handleCreateSubmit}
+            style={{ display: "flex", flexDirection: "column", gap: "6px", width: "100%" }}
+          >
+            <input
+              type="password"
+              aria-label="New room password"
+              value={newRoomPassword}
+              onChange={(event) => setNewRoomPassword(event.target.value)}
+              placeholder="Room password (6+ chars)"
+              spellCheck={false}
+              style={{
+                background: "rgba(9, 14, 30, 0.9)",
+                border: "1px solid rgba(255, 215, 94, 0.4)",
+                borderRadius: "6px",
+                color: "#e7ecff",
+                padding: "6px 8px",
+                fontSize: "0.85rem",
+              }}
+            />
+            <input
+              type="password"
+              aria-label="New DM password"
+              value={newDmPassword}
+              onChange={(event) => setNewDmPassword(event.target.value)}
+              placeholder="DM password (optional, 8+ chars)"
+              spellCheck={false}
+              style={{
+                background: "rgba(9, 14, 30, 0.9)",
+                border: "1px solid rgba(255, 215, 94, 0.4)",
+                borderRadius: "6px",
+                color: "#e7ecff",
+                padding: "6px 8px",
+                fontSize: "0.85rem",
+              }}
+            />
+            <button
+              type="submit"
+              style={{ ...chipButtonStyle, opacity: createBusy ? 0.6 : 1 }}
+              disabled={createBusy || !newRoomPassword.trim()}
+            >
+              {createBusy ? "Creating…" : "Create private table"}
+            </button>
+            {createError && (
+              <p style={{ color: "#ff9d9d", fontSize: "0.8rem", margin: "2px 0 0" }}>
+                {createError}
+              </p>
+            )}
+          </form>
+        )}
         <form onSubmit={handleJoinByCode} style={{ display: "inline-flex", gap: "6px" }}>
           <input
             aria-label="Table code"

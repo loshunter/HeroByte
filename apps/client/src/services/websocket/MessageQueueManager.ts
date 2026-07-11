@@ -140,9 +140,11 @@ export class MessageQueueManager {
    * @param canSendFn - Function that returns true if can send immediately (e.g., authenticated)
    */
   send(message: ClientMessage, ws: WebSocket | null, canSendFn: () => boolean): void {
-    // Authenticate messages always send immediately
-    if (message.t === "authenticate") {
-      console.log("[WebSocket] Sending authenticate message immediately");
+    // Pre-auth messages always send immediately: you authenticate, or mint a
+    // private table, BEFORE the session is authenticated — queueing them until
+    // auth (which can't happen yet) would hang the create/join flow.
+    if (message.t === "authenticate" || message.t === "create-room") {
+      console.log(`[WebSocket] Sending ${message.t} message immediately`);
       this.sendRaw(message, ws);
       return;
     }

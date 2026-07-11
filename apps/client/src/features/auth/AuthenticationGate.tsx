@@ -15,13 +15,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { AuthState, ConnectionState } from "../../services/websocket";
 import { AuthGate } from "./AuthGate";
 import { RoomLobby } from "../rooms/RoomLobby";
-import { currentRoomId, rememberRoom } from "../rooms/roomDirectory";
+import { currentRoomId, rememberRoom, ROOM_SECRET_STORAGE_KEY } from "../rooms/roomDirectory";
+import type { CreateRoomInput } from "../rooms/useCreateRoom";
 
 // ============================================================================
 // CONSTANTS
 // ============================================================================
-
-const ROOM_SECRET_STORAGE_KEY = "herobyte-room-secret";
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -90,9 +89,10 @@ export interface AuthenticationGateProps {
    */
   authError: string | null;
 
-  /**
-   * Content to render after successful authentication
-   */
+  /** Mint a private table from the room lobby (resolves on success). */
+  onCreateRoom?: (input: CreateRoomInput) => Promise<void>;
+
+  /** Content to render after successful authentication */
   children: React.ReactNode;
 }
 
@@ -135,6 +135,7 @@ export function AuthenticationGate({
   connectionState,
   authState,
   authError,
+  onCreateRoom,
   children,
 }: AuthenticationGateProps): JSX.Element {
   // -------------------------------------------------------------------------
@@ -308,7 +309,7 @@ export function AuthenticationGate({
         onPasswordChange={handlePasswordChange}
         onSubmit={handlePasswordSubmit}
         onRetry={onConnect}
-        roomSlot={<RoomLobby />}
+        roomSlot={<RoomLobby onCreateRoom={onCreateRoom} />}
       />
     );
   }

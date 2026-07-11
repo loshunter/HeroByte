@@ -27,6 +27,7 @@ import { useToast } from "../hooks/useToast";
 import { useStatusEffects } from "../hooks/useStatusEffects";
 import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 import { AuthenticationGate } from "../features/auth";
+import { useCreateRoom } from "../features/rooms/useCreateRoom";
 import { useMapActions } from "../hooks/useMapActions";
 import { useMapAlignment } from "../features/map";
 import { usePlayerActions } from "../hooks/usePlayerActions";
@@ -88,6 +89,8 @@ export const App: React.FC = () => {
     [authenticate],
   );
 
+  const createRoom = useCreateRoom(sendMessage, registerServerEventHandler);
+
   return (
     <AuthenticationGate
       url={WS_URL}
@@ -98,6 +101,7 @@ export const App: React.FC = () => {
       connectionState={connectionState}
       authState={authState}
       authError={authError}
+      onCreateRoom={createRoom}
     >
       <AuthenticatedApp
         uid={uid}

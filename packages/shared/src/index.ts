@@ -590,6 +590,12 @@ type ClientMessagePayload =
 
   // Authentication
   | { t: "authenticate"; secret: string; roomId?: string } // Authenticate with room secret
+  | {
+      t: "create-room";
+      roomId: string;
+      roomPassword: string;
+      dmPassword?: string;
+    } // Mint a private table with its own password(s); pre-auth, like authenticate
   | { t: "elevate-to-dm"; dmPassword: string } // Request DM elevation with DM password
   | { t: "revoke-dm" } // Revoke own DM status
   | { t: "set-dm-password"; dmPassword: string } // DM sets/updates the DM password
@@ -635,4 +641,6 @@ export type ServerMessage =
   | { t: "dm-password-updated"; updatedAt: number } // DM password set/updated successfully
   | { t: "dm-password-update-failed"; reason?: string } // DM password update failed
   | { t: "room-password-updated"; updatedAt: number; source: "env" | "fallback" | "user" }
-  | { t: "room-password-update-failed"; reason?: string };
+  | { t: "room-password-update-failed"; reason?: string }
+  | { t: "room-created"; roomId: string } // A private table was minted; client may now join it
+  | { t: "room-create-failed"; reason?: string };

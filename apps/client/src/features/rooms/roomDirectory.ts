@@ -9,6 +9,22 @@
 const STORAGE_KEY = "herobyte-room-directory";
 const MAX_REMEMBERED = 12;
 
+/**
+ * sessionStorage key for the room password the auth gate auto-submits on load.
+ * Shared so the "create table" flow can pre-seed it before navigating, letting
+ * the freshly-minted room authenticate the creator without a second prompt.
+ */
+export const ROOM_SECRET_STORAGE_KEY = "herobyte-room-secret";
+
+/** Pre-seed the room password the next page load will auto-authenticate with. */
+export function stashRoomSecret(secret: string): void {
+  try {
+    sessionStorage.setItem(ROOM_SECRET_STORAGE_KEY, secret);
+  } catch {
+    // Private-mode storage failures just mean the creator re-enters the password.
+  }
+}
+
 /** Mirrors the server's room-id rule so bad ids fail before a connection. */
 export const ROOM_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/;
 

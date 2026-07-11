@@ -51,7 +51,9 @@ type ControlMessage =
   | Extract<ServerMessage, { t: "map-studio-documents" }>
   | Extract<ServerMessage, { t: "map-studio-document" }>
   | Extract<ServerMessage, { t: "map-studio-deleted" }>
-  | Extract<ServerMessage, { t: "map-studio-error" }>;
+  | Extract<ServerMessage, { t: "map-studio-error" }>
+  | Extract<ServerMessage, { t: "room-created" }>
+  | Extract<ServerMessage, { t: "room-create-failed" }>;
 
 type HeartbeatAckMessage = Extract<ServerMessage, { t: "heartbeat-ack" }>;
 
@@ -312,7 +314,9 @@ export class MessageRouter {
       candidate.t === "map-studio-documents" ||
       candidate.t === "map-studio-document" ||
       candidate.t === "map-studio-deleted" ||
-      candidate.t === "map-studio-error"
+      candidate.t === "map-studio-error" ||
+      candidate.t === "room-created" ||
+      candidate.t === "room-create-failed"
     );
   }
 
