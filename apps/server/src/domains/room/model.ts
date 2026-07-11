@@ -51,6 +51,7 @@ export interface RoomState {
   currentTurnCharacterId?: string; // ID of character whose turn it currently is
   compiledScene?: CompiledScene; // Geometry compiled from the last published Map Studio document
   mapTerrain?: MapTerrainSnapshot; // Painted terrain published as data (elements-only backgrounds)
+  liveMapDocumentId?: string; // Map document whose edits auto-compile into the live scene (DM-authored)
   fogEnabled: boolean; // Whether fog of war hides the map beyond player sightlines
 }
 
@@ -80,6 +81,7 @@ export function createEmptyRoomState(): RoomState {
     currentTurnCharacterId: undefined,
     compiledScene: undefined,
     mapTerrain: undefined,
+    liveMapDocumentId: undefined,
     fogEnabled: false,
   };
 }
@@ -323,6 +325,13 @@ export function toSnapshot(
   // (unlike compiledScene, which strips secret doors for players).
   if (state.mapTerrain) {
     snapshot.mapTerrain = state.mapTerrain;
+  }
+
+  // The live-bound document id is DM-only chrome: it tells the map toolbar
+  // which document its edits compile into. Players have no use for it, so it
+  // never enters their payload.
+  if (isDM && state.liveMapDocumentId) {
+    snapshot.liveMapDocumentId = state.liveMapDocumentId;
   }
 
   if (assets.length > 0) {

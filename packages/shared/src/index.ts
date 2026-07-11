@@ -35,6 +35,8 @@ export * from "./mapStudioCommands.js";
 // Export the publish-time compiler that turns a map document into the
 // play-surface geometry (walls, doors, lights) a live room enforces.
 export * from "./sceneCompiler.js";
+// Live-authoring recompile helpers (door runtime-state preservation).
+export * from "./scenePublish.js";
 export * from "./sceneGeometry.js";
 export * from "./visibility.js";
 
@@ -370,6 +372,7 @@ export interface RoomSnapshot {
   currentTurnCharacterId?: string; // Character ID of whose turn it currently is
   compiledScene?: CompiledScene; // Play-surface geometry compiled at Map Studio publish (secret doors stripped for players)
   mapTerrain?: MapTerrainSnapshot; // Painted terrain published as data (only when the background is elements-only)
+  liveMapDocumentId?: string; // DM-only: the map document auto-compiled into the live scene on every command (absent for players)
   fogEnabled?: boolean; // Whether fog of war hides the map beyond player token sightlines
   assets?: SnapshotAsset[];
   assetRefs?: SnapshotAssetRefs;
@@ -563,6 +566,7 @@ type ClientMessagePayload =
       background: string;
       backgroundMode?: MapPublishBackgroundMode; // absent == "full" (legacy clients)
     } // Compile document into the live scene (server-authoritative geometry)
+  | { t: "map-studio-set-live"; documentId: string | null } // Bind (null clears) the room's live-authored map document; edits to it auto-compile onto the table
 
   // Live scene interactions (compiled doors are clickable at the table)
   | { t: "toggle-door"; doorId: string } // Flip a door open/closed; locked and secret doors refuse non-DM toggles

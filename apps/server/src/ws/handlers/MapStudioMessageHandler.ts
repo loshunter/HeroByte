@@ -1,6 +1,8 @@
 import {
   MapDocumentRevisionConflictError,
+  authoredDoorIdsOf,
   compileScene,
+  preserveDoorRuntimeStates,
   toLiveGridSize,
   type ClientMessage,
   type MapDocument,
@@ -65,11 +67,24 @@ export class MapStudioMessageHandler {
         try {
           const result = this.service.apply(roomId, message.command, this.now());
           this.broadcastDocument(roomId, result.document, result.commandId);
+          // When the edited document is the room's live-bound one, recompile it
+          // straight onto the table and broadcast the room snapshot — the same
+          // full broadcast the publish case gets, no publish message required.
+          if (this.getRoomState(roomId).liveMapDocumentId === message.command.documentId) {
+            this.recompileLiveScene(
+              roomId,
+              result.document,
+              authoredDoorIdsOf(message.command, result.document),
+            );
+            return { broadcast: true, save: true };
+          }
         } catch (error) {
           this.sendCommandError(senderUid, message.command, error);
         }
         break;
       }
+      case "map-studio-set-live":
+        return this.setLiveDocument(senderUid, roomId, message.documentId);
       case "map-studio-delete":
         this.service.delete(roomId, message.documentId);
         this.broadcastToDMs(roomId, {
@@ -97,6 +112,58 @@ export class MapStudioMessageHandler {
     }
 
     return { broadcast: false, save: false };
+  }
+
+  private setLiveDocument(
+    senderUid: string,
+    roomId: string,
+    documentId: string | null,
+  ): RouteHandlerResult {
+    const state = this.getRoomState(roomId);
+    if (documentId === null) {
+      // Unbind: the table keeps its last compiled scene, but future edits stop
+      // auto-compiling. Clearing a raster background is a separate DM action.
+      state.liveMapDocumentId = undefined;
+      return { broadcast: true, save: true };
+    }
+    let document: MapDocument;
+    try {
+      document = this.service.get(roomId, documentId);
+    } catch (error) {
+      this.sendMessage(senderUid, {
+        t: "map-studio-error",
+        commandId: `set-live:${documentId}`,
+        documentId,
+        code: "command-rejected",
+        reason: error instanceof Error ? error.message : "Map document not found",
+      });
+      return { broadcast: false, save: false };
+    }
+    state.liveMapDocumentId = documentId;
+    // A fresh bind authors no doors, so every compiled door keeps whatever
+    // runtime state the prior scene held (none, for a fresh document).
+    this.recompileLiveScene(roomId, document, new Set());
+    return { broadcast: true, save: true };
+  }
+
+  /**
+   * Recompile the live-bound document onto the room's play surface: rebuild the
+   * compiled scene (carrying door runtime states across the edit), re-derive
+   * the elements-only terrain, and sync the live grid to the document's
+   * lattice. Deliberately never touches mapBackground — a bound room keeps any
+   * raster it already published (see the plan's binding decision).
+   */
+  private recompileLiveScene(
+    roomId: string,
+    document: MapDocument,
+    authoredDoorIds: ReadonlySet<string>,
+  ): void {
+    const state = this.getRoomState(roomId);
+    const compiled = compileScene(document, this.now());
+    state.compiledScene = preserveDoorRuntimeStates(state.compiledScene, compiled, authoredDoorIds);
+    state.mapTerrain = deriveMapTerrain(document, "elements-only");
+    state.gridSize = toLiveGridSize(document.grid.size);
+    state.gridSquareSize = document.grid.squareSize;
   }
 
   private broadcastDocument(
