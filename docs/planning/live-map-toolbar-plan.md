@@ -1,7 +1,7 @@
 # Live Map Toolbar — Execution Plan
 
-**Status:** READY FOR EXECUTION · Authored 2026-07-11 by the senior dev after full-pipeline recon
-**Mission:** Move map authoring from the separate Map Studio editor onto the live table. A DM picks the Map tool, drags a rectangle, and a room exists — procedural floor, blocking walls, live fog — on every player's screen, instantly. Doors drop onto walls. Terrain paints like the brush tools. The world gets built as the story happens.
+**Status:** READY FOR EXECUTION · Authored 2026-07-11 by the senior dev after full-pipeline recon · Rev 2 (owner decision: the Studio RETIRES — see Phase 2)
+**Mission:** Replace the separate Map Studio editor with map authoring on the live table. A DM picks the Map tool, drags a rectangle, and a room exists — procedural floor, blocking walls, live fog — on every player's screen, instantly. Drag a hallway, hit POPULATE, and it fills with set dressing algorithmically. Doors drop onto walls. Terrain paints like the brush tools. When the arc completes, the Studio *scene* is deleted; its engine (documents, commands, compile, undo) lives on as the invisible backend of the map tool palette. The world gets built as the story happens.
 **Vision alignment:** This is the bridge between M3 (The Forge) and M4 (The Living World) in VISION.md. Pillar 3's invariant — *every repeated DM action takes ≤2 inputs* — is exactly "drag a rectangle, get a room." The founding rule holds: **tools emit MapDocument elements, never rasters**; the compiled scene remains the only live geometry. Mid-session generation (M4) will ride the same live-bound-document rails this plan lays.
 
 ---
@@ -30,15 +30,18 @@ This plan follows the small-verifiable-slices method: each slice is the smallest
 - **Room tool:** drag a rectangle on the canvas → on release, the rectangle gets a floor (chosen terrain family: wood, stone, grass, dirt, path) and a wall perimeter. Fog, vision, and movement blocking update for every player within a broadcast tick. One Ctrl+Z removes the whole room.
 - **Wall tool:** two-point drag places a straight wall. **Door tool:** two-point drag places a door (renders as the existing door sprite; players can click it; it creaks — that all already works). **Terrain brush:** paints terrain cells live. **Eraser:** removes terrain cells.
 - **Undo/Redo** buttons + Ctrl+Z/Ctrl+Y operate on the map document (server-side history, shared between DMs).
+- Phase 2 completes the picture: **an asset picker** places tiles and stamps (Alt free-place, R rotate, seeded scatter), the **hallway tool** drags corridors with open ends, **POPULATE** fills a room or hallway with deterministic set dressing in one click (one undo), and compact **layers/inspector popovers** cover the remaining Studio chrome. Players see all of it live — tiles, stamps, shapes, public text — with GM notes and hidden elements stripped server-side.
 - Players never see the toolbar, wall lines, or the document — they see floors appear, doors materialize, and fog reshape. Secret doors stay disguised (that contract already exists and is tested).
-- Map Studio still exists untouched; it edits the same documents. The toolbar is the in-session surface; the Studio remains the prep surface.
+- Map Studio keeps working until parity is reached (S13), then the Studio scene is deleted. Its engine remains the backend forever.
 
-### 1.2 Non-goals for this arc (do NOT build these)
+### 1.2 Scope boundaries
 
-- No wall-vertex editing / moving placed walls (needs a new `update-element` data path — deferred).
-- No tiles/stamps/shapes/text placement from the live toolbar (Studio covers those; they only render at the table via raster publish, which live mode doesn't use).
+**Phase 1 (S1–S8)** builds the live rails: mode, palette, walls, doors, rooms, terrain, undo. **Phase 2 (S9–S13)** reaches Studio parity — live element rendering for players, tile/stamp placement, the hallway + populate tools, layers/inspector, exports — and then **deletes the Studio scene**. The Studio stays fully functional until S13; parity first, removal last.
+
+**Never in this arc (deferred, recorded in §7):**
+- No wall-vertex editing / moving placed walls (needs a new `update-element` data path).
 - No terrain gameplay semantics (difficult terrain etc. — VISION says later; walls do the blocking).
-- No mobile map-edit UI (the mode is desktop-only in v1; mobile hides the button — explicit decision).
+- No mobile map-edit UI (desktop-only; mobile keeps viewing everything, authoring nothing — explicit decision).
 - No hex/iso terrain painting (square grids only, same constraint the Studio brush has today).
 - No auto-merge of overlapping walls when rooms adjoin (overlapping segments both block — harmless, accepted).
 
@@ -296,7 +299,90 @@ Plus **grid cells** for tokens/props only: `token.x/y` are cells on the LIVE lat
 4. Sweep: `pnpm lint:structure:enforce` clean, `pnpm --filter herobyte-client build:check` (entry budget), full `pnpm test`, full `pnpm test:e2e`.
 
 **Done when:** everything green end to end.
-**🔎 SENIOR REVIEW GATE:** request the final adversarial review of the whole arc (units lens, info-leak lens, race lens — the reviewer will know).
+**🔎 SENIOR REVIEW GATE:** request adversarial review of Phase 1 before starting Phase 2.
+
+---
+
+## 5B. Phase 2 — Studio parity, then retirement (S9–S13)
+
+Owner decision (2026-07-11): the Map Studio *scene* is removed once the palette reaches parity. The engine — documents, commands, validation, history, compile — is untouched forever; only the separate editor UI dies. Sequencing rule: **parity before removal**; every slice here keeps the Studio working until S13 deletes it.
+
+---
+
+### S9 🔴 — Player-visible live elements (the parity keystone)
+
+**Goal:** with no raster and no Studio, players must SEE tiles, stamps, shapes, and player-visible text live — today those render at the table only via the baked raster (recon-verified). Extend the live snapshot with a sanitized, player-safe element list and render it at the table. This is a protocol change with secrecy implications — the most senior-review-worthy slice in Phase 2.
+
+**Context capsule:**
+- What exists: RoomSnapshot already carries `mapTerrain` (data path) and `compiledScene`; `assets`/`assetRefs` (`packages/shared/src/index.ts` 311-322, `model.ts:271`) are ONLY a dedup channel for background/drawing payloads — do not extend them. Uploaded images resolve as same-origin `/assets/<hash>` URLs (the client helper `uploadedAssetUrl` lives in `features/map-studio/uploads/`); starter tile assets are bundled client data with fills/strokes (`features/map-studio/starterTiles.ts` 27-132). Props already render uploaded images at the table via `use-image` (`PropsLayer.tsx:50`) — same mechanism.
+- Element shapes to render: `packages/shared/src/mapStudioTypes.ts` 47-98 — `MapTileElement {assetId, columns, rows}` (sized in CELLS of the document grid — the snapshot field must carry the grid like `MapTerrainSnapshot` does), `MapStampElement {assetId, width, height}` (document px), `MapShapeElement` (points/stroke/fill/opacity), `MapTextElement {text, color, fontSize, visibleToPlayers}`.
+- Privacy rules (these ARE the security contract): exclude `element.hidden`; exclude elements on layers with `visible: false` (render semantics — the OPPOSITE of compile's rule, which ignores layer visibility for blocking; both are correct, do not unify — see `sceneCompiler.ts:1-8`); exclude entire layers of kind `"notes"`; exclude text with `visibleToPlayers: false`; walls/doors/lights excluded (walls are DM-overlay + blocking only, doors ride `compiledScene`, lights don't render at the table yet). Carry per-layer `opacity` and render in layer `zIndex` order.
+- Where it plugs in: S1's `recompileLiveScene` + the `map-studio-set-live` case; the SVG renderer being replicated (for reference, not reuse) is `renderMapDocumentSvg` in `exportMapDocument.ts:34-64`; Studio's SVG element rendering for visual parity reference: `MapStudioElementPreview.tsx`.
+- Table layer order: `MapBoard.tsx` 508-545 — new layer mounts between TerrainLayer and GridLayer.
+- Budget: `SnapshotCompressionGuard.test.ts` (extend), 750KB guard; element lists are references + numbers — small.
+
+**Changes:**
+1. NEW shared type `MapElementsSnapshot` in `packages/shared/src/index.ts`: `{ grid: { size: number; offsetX: number; offsetY: number }; layers: Array<{ opacity: number; elements: RenderableMapElement[] }> }` where `RenderableMapElement` is a narrowed union of tile/stamp/shape/text with only render-relevant fields (id, transform, data). Add `mapElements?: MapElementsSnapshot` to RoomSnapshot.
+2. `packages/shared/src/scenePublish.ts` (from S1): add `deriveMapElements(document: MapDocument): MapElementsSnapshot | undefined` implementing the privacy rules above (pure; return undefined when nothing is visible). **Rebuild shared.**
+3. Server: `recompileLiveScene` also sets `state.mapElements` (new RoomState field, persisted like `mapTerrain`); attach in `toSnapshot` for ALL recipients (it is player-safe by construction).
+4. NEW `apps/client/src/features/map/components/MapElementsLayer.tsx` (≤348; split a `mapElementRenderers.ts` helper if needed): Konva render inside the standard nested `cam` + `mapTransform ?? identity` groups — tiles as fills/strokes resolved from starter-tile data (grid-cell sized: `columns * grid.size`), stamps via `use-image` on `uploadedAssetUrl(assetId)` with bundled-asset fallback, shapes as Line/Rect/Ellipse per `data.shape`, text as Konva.Text. `listening={false}` throughout — elements are scenery, not interactive.
+5. Mount in MapBoard between TerrainLayer and GridLayer, gated on `snapshot.mapElements`.
+
+**Tests:** shared unit tests for every privacy rule (hidden / invisible layer / notes layer / private text NEVER emitted — one test per rule, adversarial style); server contract test: DM adds a stamp via command → player snapshot gains it; DM adds GM-note text → player payload contains NO trace (grep the raw frame string, `visionChannels.contract.test.ts` style); client div-mock render tests per element kind; SnapshotCompressionGuard extension (500 mixed elements).
+**Verify:** shared build + all package tests + typecheck + lint + structure + full test.
+**Done when:** manual: DM stamps a crate from the Studio (still alive!) onto the live-bound doc → it appears on the player's table without any publish.
+**Traps:** the layer-visibility rule is OPPOSITE compile's — a wall on a hidden layer still blocks but a tile on a hidden layer must not render; text privacy is a hard contract — test it like the secret-door disguise; don't make elements listening/interactive (token clicks must pass through).
+**🔎 SENIOR REVIEW GATE:** protocol + secrecy review before S10.
+
+---
+
+### S10 🟡 — Placement tools: tiles, stamps, scatter, asset picker
+
+**Goal:** place set dressing from the palette: pick an asset (starter tiles + uploads), click to place tiles (grid-snapped) or stamps (Alt = free-place, R = rotate), scatter-brush for organic spreads. All existing commands; no server work.
+
+**Context capsule:** the pure helpers to reuse verbatim (recon-verified portable): `mapStudioWorkspaceUtils.ts` `buildRoomTileDrafts` 80-135 / `pickPlacementLayer` 150-158 / `topmostTileAtPoint` 183-200; `scatterBrush.ts` `buildScatterDrafts` 20-53 (seeded, one `add-elements` = one undo — pass a seed derived from the drop point, never `Math.random()`); `elementBuilders.ts` 16-70 (tile/stamp constructors); Studio's placement state machine for reference: `useMapStudioCanvasController.ts` 227-323 (paintAtPoint/stampAtPoint/scatterAtPoint self-gate on `saving`); asset catalog: `starterTiles.ts` MAP_STUDIO_TILE_ASSETS 27-132 (categories); uploads: `controller.uploadAsset` + the upload flow in `features/map-studio/uploads/`; My Stuff/Shelf UI reference: the Studio's asset rail in `MapStudioWorkspace.tsx` 116-169.
+**Changes:** NEW `features/map-edit/MapEditAssetPicker.tsx` (≤348 — a compact popover in the palette: category tabs, asset grid, upload drop target reusing `uploadAsset`); extend `useMapEditTool` with `"place"` sub-tool (click = tile lattice placement or stamp at snapped point; Alt = free-place at pointer; R rotates the pending placement — 15° stamps / 90° tiles, matching `useStudioHotkeys.ts:62-64` semantics) and `"scatter"` sub-tool (click → `buildScatterDrafts` → `controller.addStamps`); ghost preview in MapEditPreviewLayer (semi-transparent element at cursor).
+**Tests:** placement produces exact drafts (grid-snap + Alt-free cases + rotation); scatter emits ONE `add-elements`; self-gates on `saving`; picker renders categories (div-mock).
+**Done when:** manual: stamp crates into the S4 room live; players see them (S9); one Ctrl+Z removes a whole scatter.
+
+---
+
+### S11 🟡 — Hallway tool + POPULATE (the "on the fly" headline)
+
+**Goal:** the owner's signature move: drag a hallway, populate it algorithmically, keep playing.
+
+**Context capsule:** S4's `place-room` command and `roomBuilder.ts`; `roomBoundsFromDrag` (`mapStudioWorkspaceUtils.ts:137-148`); `buildScatterDrafts` (S10); `place-room` accepts arbitrary `cells` + `elements` — hallways and populate are CLIENT-side geometry feeding the SAME command (no new server work).
+**Changes:**
+1. `"hallway"` sub-tool in `useMapEditTool` + NEW `features/map-edit/hallwayBuilder.ts` (~120, pure): drag along an axis → floor cells (default width 2 cells, adjustable 1–4 in the palette) + TWO wall polylines (the long sides only — open ends so hallways junction with rooms; walls stop at the drag ends). Snap the axis to horizontal/vertical (dominant drag direction); L-shaped hallways = two drags (v1 keeps it dumb).
+2. **POPULATE** action in the palette: applies to the last-placed room/hallway (track its bounds + element ids in palette state) or to a fresh drag-rect; builds a deterministic population — seeded scatter of stamps from a chosen category (e.g. *Dungeon Dressing*), density low/med/high, seeded from the bounds origin so identical inputs produce identical results — emitted as ONE `add-elements`. NEW `features/map-edit/populateRoom.ts` (~100, pure): takes bounds + density + category assets + seed → drafts, keeping a clear margin along walls (inset 0.5 cell) and never covering door cells (pass the room's door segments in, skip cells within 1 cell of them).
+3. Palette: hallway width control, populate density + category, POPULATE button.
+**Tests:** hallwayBuilder pure tests (horizontal/vertical/1-wide/snapped-axis; wall polylines open-ended, exact points); populateRoom determinism (same seed → identical drafts), margin + door-avoidance rules; one-undo per action.
+**Done when:** manual: room → hallway off its side → POPULATE → crates and barrels appear along the hallway, live on the player screen; three Ctrl+Z's unwind populate, hallway, room in order.
+**Traps:** determinism (no Math.random — thread the seed); populate emits `add-elements`, NOT `place-room` (no terrain change → door-state preservation irrelevant); hallway walls must NOT close the ends.
+
+---
+
+### S12 🟡 — Layers, inspector, eyedropper parity
+
+**Goal:** the remaining Studio chrome, compacted into the palette: layer visibility/lock/opacity, a selected-element inspector (move/rotate via numeric inputs, door state/width, delete), Ctrl/Cmd-click eyedropper.
+
+**Context capsule:** `MapStudioLayersPanel.tsx` 17-90 (drives `update-layer`/`move-layer` — port the logic, shrink the UI); `MapElementInspector.tsx` 19-53 + 127-175 (transform APPLY + the door form → `updateElement`/`updateDoor`); selection: Studio is click-only selection — the live palette gets a `"select"` sub-tool: click hit-tests elements via `topmostTileAtPoint` (tiles) + simple bounds checks for stamps/shapes (NEW pure helper, ~80 LOC — document px, rotation-aware for stamps using the same math as `topmostTileAtPoint` 279-302); eyedropper: `sampleAssetAtPoint` (`mapStudioWorkspaceUtils.ts` 165-181, pure — reuse verbatim) re-arms the place tool with the sampled asset.
+**Changes:** NEW `MapEditLayersPopover.tsx` + `MapEditInspectorPopover.tsx` (each ≤200, JRPG-panel styled, opened from palette buttons); `"select"` sub-tool + selection highlight rect in MapEditPreviewLayer; Ctrl/Cmd-click in place/terrain sub-tools samples via `sampleAssetAtPoint`.
+**Tests:** layer toggles emit exact commands; inspector door form emits `update-door`; eyedropper returns the Studio-identical sample for a fixture document; selection hit-tests (rotated stamp case).
+**Done when:** manual parity walk: everything you could do in the Studio's right rail, you can do from the palette (except deliberately-deferred vertex editing).
+
+---
+
+### S13 🔴 — Exports move, the Studio dies
+
+**Goal:** relocate the last Studio-only features (PNG/WebP/JSON export, JSON import), then delete the Studio scene. The engine, validators, shared model, and all engine tests stay untouched.
+
+**Context capsule:** export functions are ALREADY UI-independent: `exportMapDocument.ts` (rasterize/download/SVG — stays, it also powers raster publish) and `controller.importDocument`; the DM menu's `MapStudioControl.tsx` (doc management + publish) is the natural new home for EXPORT/IMPORT buttons; deletion inventory — REMOVE: `"map-studio"` from ToolMode + Header button (185-194) + MobileFloatingControls entry (110-119) + the CenterCanvasLayout/MobileLayout workspace branches (222-243 / 144-156) + `MapStudioWorkspace.tsx` + `useMapStudioCanvasController.ts` + `MapStudioCanvas.tsx` + `MapStudioCanvasUnderlay.tsx` + `useStudioCamera.ts` + `useStudioHotkeys.ts` + `useStudioPublish.ts` + `MapStudioElementPreview.tsx` + `MapStudioLayersPanel.tsx` + `MapElementInspector.tsx` + `MapStudioWorkspace.types.ts` + their tests; KEEP (used by the palette/table/export/publish): `useMapStudio.ts`, `useMapStudioActions.ts`, `types.ts`, `elementBuilders.ts`, `wallDoorDrafts.ts`, `snapToGrid.ts`, `mapStudioWorkspaceUtils.ts` (pure helpers only — if workspace-specific functions remain unused after deletion, prune them), `useTerrainBrush.ts`, `scatterBrush.ts`, `terrainRender.ts`, `starterTiles.ts`, `tileAutotiling.ts`, `exportMapDocument.ts`, `publishRaster.ts`, `rasterUnderlay.ts`, uploads/, **the FROZEN parity test and everything it imports**.
+**Changes:** EXPORT PNG/WEBP/JSON + IMPORT buttons in `MapStudioControl.tsx` (wired to the existing export helpers + `controller.importDocument`); delete per inventory; fix `docs/planning/map-studio-roadmap.md` and any docs referencing the workspace; replace `apps/e2e/map-studio.smoke.spec.ts` coverage with palette-driven equivalents (extend S8's spec — the Studio spec dies with the Studio); `pnpm --filter herobyte-client build:check` should show the entry bundle SHRINK (the lazy studio chunk disappears entirely).
+**Verify:** the FULL ritual + e2e; grep the repo for `MapStudioWorkspace|map-studio"` ToolMode remnants — zero hits outside git history.
+**Done when:** the app has no Studio scene; every S1–S12 feature works; all suites green; bundle no bigger.
+**Traps:** do NOT delete anything the frozen test imports (`terrainRender.ts` chain); do NOT remove the `map-studio-*` wire protocol, validators, or server service — Studio-less clients still speak it; check `MobileLayout.tsx` — it has its own workspace branch and lazy import.
+**🔎 SENIOR REVIEW GATE (final):** full-arc adversarial review — units lens, info-leak lens, race lens, deletion-completeness lens.
 
 ---
 
@@ -321,7 +407,7 @@ Plus **grid cells** for tokens/props only: `token.x/y` are cells on the LIVE lat
 
 ## 7. Deferred follow-ups (recorded, not licensed)
 
-Raster-hybrid live mode (bind a document that has tiles/stamps: one-time bake as background + live data on top), wall vertex/move editing (new command for element `data` updates), door placement snapped onto existing walls with auto wall-splitting, brush stroke interpolation, brush sizes, mobile map-edit, terrain gameplay semantics, wall merge on room adjacency, generation recipes emitting into the live-bound document (M4 — the whole point of these rails).
+Wall vertex/move editing (new command for element `data` updates), door placement snapped onto existing walls with auto wall-splitting, L-shaped/polyline hallways in one drag, richer populate recipes (per-room-type grammars — the road to M4 generation), brush stroke interpolation, brush sizes, mobile map-edit, terrain gameplay semantics, wall merge on room adjacency, raster-import maps coexisting with live authoring (bind-over-raster keeps working but stays cosmetic-double-terrain — see S1's recorded decision), generation recipes emitting into the live-bound document (M4 — the whole point of these rails).
 
 ---
 
