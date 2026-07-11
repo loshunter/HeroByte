@@ -283,7 +283,7 @@ function AuthenticatedApp({
   } = useDiceRolling({ snapshot, sendMessage, uid });
 
   // Server event handlers (room password, DM elevation)
-  const mapStudio = useMapStudio(sendMessage, getAuthCredentials);
+  const mapStudio = useMapStudio(sendMessage, getAuthCredentials, isConnected);
   const {
     roomPasswordStatus,
     roomPasswordPending,

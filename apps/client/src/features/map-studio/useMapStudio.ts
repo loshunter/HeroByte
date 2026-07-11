@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   ClientMessage,
   MapDocument,
@@ -21,6 +21,7 @@ interface QueuedCommand {
 export function useMapStudio(
   sendMessage: (message: ClientMessage) => void,
   getAuthCredentials?: () => AssetUploadCredentials | null,
+  isConnected?: boolean,
 ): MapStudioController {
   const [documents, setDocuments] = useState<MapDocumentSummary[]>([]);
   const [activeDocument, setActiveDocument] = useState<MapDocument | null>(null);
@@ -32,6 +33,10 @@ export function useMapStudio(
   const activeDocumentRef = useRef<MapDocument | null>(null);
   const commandQueue = useRef<QueuedCommand[]>([]);
   const inFlightCommandId = useRef<string | null>(null);
+  // The exact message last dispatched, kept for reconnect re-sends. The server
+  // dedupes by commandId, so re-sending the identical message is safe whether
+  // the original was applied (ack lost) or never arrived.
+  const inFlightMessage = useRef<ClientMessage | null>(null);
   activeDocumentRef.current = activeDocument;
 
   const refresh = useCallback(() => {
@@ -121,13 +126,32 @@ export function useMapStudio(
       inFlightCommandId.current = commandId;
       setSaving(true);
       setError(null);
-      sendMessage({
+      const message: ClientMessage = {
         t: "map-studio-command",
         command: queued.build(document, commandId),
-      });
+      };
+      inFlightMessage.current = message;
+      sendMessage(message);
     },
     [sendMessage],
   );
+
+  // Reconnect recovery: a socket drop can eat the reply to the in-flight
+  // command, which would otherwise wedge the queue forever (nothing else
+  // clears inFlightCommandId). On the false->true transition, re-send the
+  // identical message — the server's commandId dedupe cache makes that safe —
+  // or kick the queue if nothing was in flight.
+  const wasConnected = useRef(isConnected);
+  useEffect(() => {
+    const cameBackUp = isConnected === true && wasConnected.current === false;
+    wasConnected.current = isConnected;
+    if (!cameBackUp) return;
+    if (inFlightMessage.current) {
+      sendMessage(inFlightMessage.current);
+    } else if (commandQueue.current.length > 0) {
+      dispatchNextCommand();
+    }
+  }, [isConnected, sendMessage, dispatchNextCommand]);
 
   const applyCommand = useCallback(
     (build: CommandBuilder) => {
@@ -173,6 +197,7 @@ export function useMapStudio(
         if (activeDocumentRef.current?.id === message.documentId) activeDocumentRef.current = null;
         commandQueue.current = [];
         inFlightCommandId.current = null;
+        inFlightMessage.current = null;
         setSaving(false);
         setHistory({ canUndo: false, canRedo: false });
         return;
@@ -182,6 +207,7 @@ export function useMapStudio(
         if (message.commandId !== inFlightCommandId.current) return;
         commandQueue.current.shift();
         inFlightCommandId.current = null;
+        inFlightMessage.current = null;
         setError(message.reason);
         if (message.code === "revision-conflict") {
           requestedDocumentId.current = message.documentId;
@@ -210,6 +236,7 @@ export function useMapStudio(
       if (message.appliedCommandId === inFlightCommandId.current) {
         commandQueue.current.shift();
         inFlightCommandId.current = null;
+        inFlightMessage.current = null;
       }
       if (!inFlightCommandId.current && commandQueue.current.length) {
         dispatchNextCommand(document);

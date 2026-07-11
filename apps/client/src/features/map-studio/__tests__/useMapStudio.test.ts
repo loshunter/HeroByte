@@ -706,4 +706,62 @@ describe("useMapStudio", () => {
     expect(result.current.activeDocument).toBeNull();
     expect(result.current.documents).toEqual([]);
   });
+
+  it("re-sends the in-flight command after a reconnect instead of wedging the queue", () => {
+    // Regression: a socket drop used to eat the in-flight reply and nothing
+    // else ever cleared inFlightCommandId — every later edit queued silently
+    // behind it until a page refresh.
+    const { result, rerender } = renderHook(
+      ({ connected }: { connected: boolean }) => useMapStudio(sendMessage, undefined, connected),
+      { initialProps: { connected: true } },
+    );
+    const document = createMapDocument({ id: "map", name: "Map", timestamp: 1 });
+    document.revision = 7;
+    act(() => result.current.handleServerMessage({ t: "map-studio-document", document }));
+
+    act(() => result.current.updateLayer("terrain", { opacity: 0.5 }));
+    const sent = sendMessage.mock.calls.at(-1)?.[0];
+    expect(sent).toMatchObject({ t: "map-studio-command" });
+    expect(sendMessage).toHaveBeenCalledTimes(1);
+
+    // The socket drops before the reply arrives, then comes back.
+    rerender({ connected: false });
+    rerender({ connected: true });
+
+    // The identical message (same commandId) goes out again — the server
+    // dedupes by commandId, so this is safe whether or not the original
+    // was applied before the drop.
+    expect(sendMessage).toHaveBeenCalledTimes(2);
+    expect(sendMessage.mock.calls.at(-1)?.[0]).toEqual(sent);
+
+    // The re-sent command's ack releases the queue as normal.
+    const commandId = sent?.t === "map-studio-command" ? sent.command.commandId : "";
+    const revised = { ...document, revision: 8, updatedAt: 2 };
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-document",
+        document: revised,
+        appliedCommandId: commandId,
+      }),
+    );
+    expect(result.current.saving).toBe(false);
+
+    // And the editor is not wedged: the next edit dispatches immediately.
+    act(() => result.current.updateLayer("terrain", { visible: false }));
+    expect(sendMessage).toHaveBeenCalledTimes(3);
+  });
+
+  it("stays quiet on reconnect when nothing was in flight", () => {
+    const { result, rerender } = renderHook(
+      ({ connected }: { connected: boolean }) => useMapStudio(sendMessage, undefined, connected),
+      { initialProps: { connected: true } },
+    );
+    const document = createMapDocument({ id: "map", name: "Map", timestamp: 1 });
+    act(() => result.current.handleServerMessage({ t: "map-studio-document", document }));
+
+    rerender({ connected: false });
+    rerender({ connected: true });
+
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
 });
