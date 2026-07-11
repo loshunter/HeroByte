@@ -386,6 +386,132 @@ Owner decision (2026-07-11): the Map Studio *scene* is removed once the palette 
 
 ---
 
+## 5C. Phase 3 — Visual polish & mobile friendliness (V1–V6)
+
+Independent of the map-toolbar arc: a visual/UX pass the senior dev ran by driving the live app in desktop (1280×800) and mobile (375×812) viewports, as player and DM. Findings below are **observed, not guessed** — each slice says what was measured. These slices can run in parallel with S1–S13; they touch different files. Order within Phase 3 is by value (V1 first). "Mobile" here means the `MobileLayout` path (`isMobile` at App.tsx:300-333); desktop is `MainLayout`.
+
+**Cross-cutting standard for this phase (apply in every slice):**
+- **Touch target floor: 44×44 CSS px** (Apple HIG / Material). Measured violations are listed per slice.
+- **Type floor: 12px body, 11px meta, never below 11px.** Measured 8px labels exist today.
+- **Prefer CSS over JS.** Most of this is `theme/herobyte.css` and inline-style edits, not logic — low-risk for junior models, but every change must be checked in BOTH viewports (resize the Browser pane to mobile 375×812 and desktop 1280×800).
+
+---
+
+### V1 🟢 — Touch targets on the entry surfaces (auth gate + room lobby)
+
+**Goal:** every control on the first screen every user sees (the auth gate + room lobby, including the new private-table form) meets the 44px touch floor on mobile.
+
+**Measured today (mobile 375×812, at the gate):** password input 287×**42**, "Enter Room" 261×**40**, "Copy invite link" 236×**28**, room chips ~158×**32**, "Forget" ✕ 29×**32**, "▦ New Table" 171×**32**, "Table code" input 158×**29**, "Join" 72×**29**. All under the 44px height floor.
+
+**Context capsule:**
+- `apps/client/src/features/auth/AuthenticationGate.styles.ts` — the gate's shared styles: input padding `12px`/fontSize `1rem` (:50-51, :62-64), button styles. Bumping vertical padding to hit 44px lives here.
+- `apps/client/src/features/auth/AuthGate.tsx` — the gate markup (inputs/buttons already use those styles); the create-form and reclaim button added this session live here too.
+- `apps/client/src/features/rooms/RoomLobby.tsx` 45-66 — `chipButtonStyle` (padding `6px 10px`), `smallButtonStyle` (padding `6px 8px`), `labelStyle`. These produce the 32px chips. The create-form inputs (198-240) use inline `padding: 6px 8px` — bump them.
+- There is NO mobile media query for the lobby/gate today (the gate is inline-styled). Simplest fix: raise the padding/min-height in these style objects (they render on desktop too — 44px targets are fine on desktop, just slightly larger).
+
+**Changes (CSS/style only, no logic):** give inputs and buttons in these files `minHeight: 44` (or padding that yields ≥44px) and ≥44px min width for icon-only buttons (the ✕ forget button especially — currently 29px wide). Keep the desktop look coherent (44px is acceptable there). Consider a `min-height: 44px` utility in `theme/herobyte.css` reused by both.
+
+**Tests:** extend `RoomLobby.test.tsx` / `AuthenticationGate.test.tsx` only if you add logic (you shouldn't). Visual verification is the gate: drive the Browser pane at 375×812, run the measuring snippet in the plan's PR notes (`getBoundingClientRect().height >= 44` for every button/input on the gate).
+**Done when:** at 375px width, every gate + lobby control measures ≥44px in the smaller dimension (icon buttons ≥44×44); desktop still looks right.
+**Traps:** the gate is a full-screen fl-column form — don't let taller inputs overflow 100vh on short mobile screens; the card should scroll if needed (`overflow-y: auto` on the card).
+
+---
+
+### V2 🔴 — Crisp canvas on retina & mobile (devicePixelRatio)
+
+**Goal:** the map, tokens, terrain, and text render sharp on high-DPI screens (every modern phone is 2–3× DPR; most laptops are 2×). Today they are upscaled and blurry.
+
+**Measured today:** `grep devicePixelRatio` across `apps/client/src/ui/MapBoard.tsx`, `apps/client/src/features/render/**`, and `useElementSize.ts` returns **zero hits**. The Konva `<Stage>` (MapBoard.tsx:492-505) is created at CSS-pixel `width={w} height={h}` with no `pixelRatio`, so its backing store is 1× and the browser upscales it.
+
+**Context capsule:**
+- `apps/client/src/ui/MapBoard.tsx` 492-505 — the `<Stage>`. Konva accepts a `pixelRatio` prop (or `Konva.pixelRatio` global / `layer.getCanvas().setPixelRatio`). Set it to `window.devicePixelRatio` (clamped, e.g. `Math.min(window.devicePixelRatio || 1, 3)` to cap memory on 3× phones).
+- `apps/client/src/features/render/tileRenderCore.ts` — the standalone 2D-context terrain renderer already does device-pixel snapping in places (recon noted "device-pixel snap"); confirm the terrain bake path and any offscreen canvases also honor DPR, or terrain will be crisp while tokens are soft (or vice-versa). The procedural bake (`proceduralTerrainSurface.ts`) has hard pixel caps (8192/32M) — multiplying by DPR could blow them; clamp bake dimensions AFTER applying DPR.
+- The FROZEN test `terrainRenderParity.frozen.test.ts` pins terrain SVG **path strings**, not pixel ratios — DPR changes to the Konva raster path should not touch it, but run `pnpm lint` (frozen gate) after to be sure.
+
+**Changes:** set Stage `pixelRatio` from a clamped `devicePixelRatio`; audit offscreen/bake canvases for the same; re-clamp bake size caps against DPR. Recompute on DPR change (moving a window between monitors) — a `matchMedia('(resolution)')` listener or the existing resize path.
+**Tests:** `recordingContext.ts`-based render tests assert draw-call order, not DPR — add a focused test that the Stage receives the clamped pixelRatio; assert bake dimensions stay under caps at DPR=3.
+**Done when:** at mobile 375×812 and desktop 2× DPR, token circles/labels and terrain edges are sharp (visual diff — screenshot before/after); memory stays bounded on a simulated 3× device (bake never exceeds its caps).
+**Traps:** DON'T just scale the canvas CSS — that's the blur. The backing store must be DPR×CSS px with a DPR-scaled context transform (Konva's `pixelRatio` does this). Watch memory: a 3× DPR full-screen stage is 9× the pixels — cap at 3 and verify large painted maps don't OOM mobile Safari.
+
+---
+
+### V3 🟢 — Canvas sizing robustness (no wrong-size flash, survives resize)
+
+**Goal:** the map fills its container immediately and correctly, and re-fits on orientation change / window resize, without a hardcoded default flashing first.
+
+**Measured today:** `useElementSize.ts:22` seeds `{ w: 800, h: 600 }` — a magic default that renders before the `ResizeObserver` (:25-32) fires. There is **no `window.resize` fallback** and no orientation-change handling. (In the headless test browser ResizeObserver didn't fire at all, exposing the 800×600 default — a real device fires RO, but the default still flashes on first paint and the lack of a fallback is fragile.)
+
+**Context capsule:**
+- `apps/client/src/hooks/useElementSize.ts` (whole file, 40 LOC) — the only sizing source, consumed at MapBoard.tsx:111.
+- Mobile container chain (measured): `.mobile-map-surface` (position:absolute, 375×812) → `.map-canvas-wrapper` → the observed div. Desktop uses the MainLayout center region. The observed element must be `position: relative/absolute` with a definite size for RO to report correctly.
+
+**Changes:** in `useElementSize`, (1) initialize from the ref's actual `getBoundingClientRect()` on mount (via `useLayoutEffect`) instead of 800×600 so first paint is correct; (2) add a `window.addEventListener('resize'/'orientationchange')` fallback that re-reads the rect; (3) debounce with rAF to avoid thrash. Keep the hook generic (it may have other consumers — grep first).
+**Tests:** unit-test the hook with a mocked ResizeObserver + a dispatched `resize` event; assert it reports the element rect, not 800×600, after mount.
+**Done when:** rotating a phone (or resizing the Browser pane) re-fits the map with no letterbox/overflow; no 800×600 flash on load.
+**Traps:** `useLayoutEffect` reading layout on mount can be 0×0 if the parent hasn't laid out — guard and fall back to RO's first callback; don't remove the ResizeObserver (it catches container changes that `window.resize` misses, e.g. a panel opening).
+
+---
+
+### V4 🟡 — Mobile panels are sheets, not draggable windows; one sheet at a time
+
+**Goal:** DM and info panels on mobile behave like native bottom sheets (swipe/tap to dismiss, full-width, safe-area aware), and opening one closes the others — no floating draggable windows or stacked panels on a phone.
+
+**Measured today:** the DM menu is a `DraggableWindow` (DMMenu.tsx:2) — a drag-by-titlebar floating window — rendered on mobile too. Dragging a window by a tiny titlebar is hostile on touch. Separately, at 375px I observed the **Map tools sheet and the Party panel open at the same time** (both present in the a11y tree) — there's no single-sheet arbitration, so panels stack and fight for the bottom of a tiny screen.
+
+**Context capsule:**
+- `apps/client/src/features/dm/components/DMMenu.tsx` (DraggableWindow at :2, tabs at :9) and `DMMenu.types.ts` — the DM surface. On mobile it should render as a bottom sheet, not DraggableWindow.
+- `apps/client/src/layouts/MobileLayout.tsx` — mobile mounts (DM menu ~229, tool sheet, party/selection sheets ~205-266). This is where a single "active mobile sheet" state belongs.
+- `apps/client/src/components/layout/MobileFloatingControls.tsx` — the dock (measured good: 63×68) + `.mobile-tool-sheet` (good: 44px targets). This is the sheet PATTERN to reuse for Party/DM/Dice/Log/View so they're consistent.
+- `apps/client/src/theme/herobyte.css` 1153-1341 — `.mobile-action-dock`, `.mobile-tool-sheet` and its media queries. The sheet visual language already exists; extend it.
+- `apps/client/src/components/dice/DraggableWindow.tsx` — keep for DESKTOP; the mobile path should branch to a sheet.
+
+**Changes:** (1) introduce a single `activeMobileSheet: 'party'|'tools'|'dice'|'log'|'view'|'dm'|null` in MobileLayout (or the existing tool-mode state), so opening one closes the rest; the dock buttons toggle it. (2) On mobile, render DMMenu content inside the `.mobile-tool-sheet` shell (or a shared `MobileSheet` component extracted from it) instead of DraggableWindow. (3) Desktop unchanged (DraggableWindow stays). No new WS/logic — pure presentation + one piece of view state.
+**Tests:** a MobileLayout test asserting only one sheet renders at a time; a DM-mobile test asserting DMMenu uses the sheet shell (not DraggableWindow) when `isMobile`.
+**Done when:** on a phone, tapping any dock item opens exactly one full-width bottom sheet; the DM menu is a sheet, dismissible by the ✕ / backdrop tap; desktop still uses draggable windows.
+**Traps:** DMMenu is lazy-loaded to keep it out of the player bundle (features/dm/lazy-entry) — keep it lazy; don't statically import it into MobileLayout. The 350-LOC guard: extract a shared `MobileSheet` rather than fattening MobileLayout (342-ish already).
+
+---
+
+### V5 🟢 — Readability floors (type scale, contrast, truncation)
+
+**Goal:** no text below the readable floor; long names/labels truncate instead of breaking layout.
+
+**Measured today:** the mobile tool sheet reports a **minFont of 8px** (icon captions); the auth gate bottoms out at 12px. 8px is unreadable on a phone.
+
+**Context capsule:**
+- `apps/client/src/theme/herobyte.css` — the `.mobile-tool-sheet__button` label styles (~1260) and any `font-size` under the mobile media queries (549, 567). Raise sub-11px sizes to ≥11px (meta) / ≥12px (labels).
+- `apps/client/src/features/auth/AuthenticationGate.styles.ts` — gate font sizes (0.85rem hints etc.).
+- Party panel (`features/players/components`) — long character names ("Adventurer", custom names) need `text-overflow: ellipsis; overflow: hidden; white-space: nowrap` on their containers so a long name doesn't push the HP/EDIT controls off-screen.
+
+**Changes:** bump any `font-size` under ~11px to the floor; add ellipsis truncation to name/label cells in the party/status panels; verify contrast of the muted greys (e.g. `#9fb0dd` label on dark) meets ~4.5:1 for body text (the pixel/gold accent colors are decorative and exempt).
+**Tests:** none required (CSS); verify visually in both viewports.
+**Done when:** no rendered text measures under 11px; long names ellipsize; muted text passes contrast.
+**Traps:** the CRT/pixel aesthetic uses small pixel fonts deliberately in places (banners, dice) — don't blanket-bump those decorative displays; target functional labels/inputs only. Keep the `data-motion`/theme system intact.
+
+---
+
+### V6 🟢 — Safe-area insets, landscape, and reduced-motion honoring on mobile
+
+**Goal:** the app respects notches/home indicators, works in landscape, and honors reduced-motion — the platform-fit details that make a web app feel native on a phone.
+
+**Measured today:** the mobile dock sits at `y714` in a 812-tall viewport (bottom ~86px) with no `env(safe-area-inset-bottom)` padding — on a notched iPhone the home indicator overlaps it. No landscape-specific layout was observed. (Reduced-motion is already wired via `data-motion` from the earlier juice work — this slice just verifies it covers the mobile sheets/transitions too.)
+
+**Context capsule:**
+- `apps/client/src/theme/herobyte.css` — `.mobile-action-dock` (1153) and sheet positioning. Add `padding-bottom: env(safe-area-inset-bottom)` (and top for the notch where fixed headers sit); requires `<meta name="viewport" ... viewport-fit=cover>` in `apps/client/index.html` (check/add it).
+- `apps/client/index.html` — the viewport meta tag.
+- Landscape: the mobile dock + a full-height sheet in landscape (375×812 → 812×375) leaves almost no map. Add a `@media (orientation: landscape) and (max-height: 500px)` rule to slim the dock / make sheets side-drawers.
+- `data-motion` gating (theme/herobyte.css `[data-motion="off"]`, and the `subtle` tier added this session) — ensure sheet slide-in animations are gated so reduced-motion users get instant show/hide.
+
+**Changes:** add `viewport-fit=cover` + safe-area padding; add a landscape media query that keeps the map usable; gate sheet transitions behind `data-motion`. All CSS/markup.
+**Done when:** on a notched device the dock clears the home indicator; landscape keeps a usable map; reduced-motion users get no sheet slide animation.
+**Traps:** `env(safe-area-inset-*)` is 0 in non-notched browsers — safe to add unconditionally. Don't hardcode iPhone dimensions; use the env() vars and orientation media queries.
+
+---
+
+**Phase 3 verification checklist (every slice):** drive the Browser pane at BOTH 375×812 (mobile) and 1280×800 (desktop); run `pnpm lint` (prettier + frozen), `pnpm lint:structure:enforce`, and the client test suite; screenshot before/after for the visual slices (V2/V4/V5) and attach to the PR. No slice here changes the wire protocol or server, so no shared rebuild or server tests are needed unless you touch shared (you shouldn't).
+
+---
+
 ## 6. Failure drills (when X happens, do Y — do not improvise)
 
 | Symptom | Cause | Fix |
