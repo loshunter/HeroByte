@@ -13,7 +13,7 @@ import type { Camera } from "../types";
 import { LockIndicator } from "./LockIndicator";
 import type { StatusOption } from "../../players/constants/statusOptions";
 import { TokenHpFeedback } from "../../juice/TokenHpFeedback";
-import { motionDisabled, useSfx } from "../../juice";
+import { decorativeMotionDisabled, motionDisabled, useSfx } from "../../juice";
 
 interface TokenSpriteProps {
   object: SceneObject & { type: "token" };
@@ -115,10 +115,12 @@ const TokenSprite = memo(function TokenSprite({
     return () => tween.destroy();
   }, [posX, posY, glide]);
 
-  // Scale "pop" when a token first appears on the board.
+  // Scale "pop" when a token first appears on the board. Decorative: plays on
+  // "full" motion only — glide above stays on for "subtle" because a token
+  // teleporting reads as a different move.
   useEffect(() => {
     const node = shapeRef.current;
-    if (!isKonvaNode(node) || !popIn || motionDisabled()) return;
+    if (!isKonvaNode(node) || !popIn || decorativeMotionDisabled()) return;
     const targetX = transform.scaleX;
     const targetY = transform.scaleY;
     node.scale({ x: targetX * 0.3, y: targetY * 0.3 });
@@ -136,10 +138,10 @@ const TokenSprite = memo(function TokenSprite({
     };
   }, [popIn]);
 
-  // Pulsing glow while selected.
+  // Pulsing glow while selected. Decorative: "full" motion only.
   useEffect(() => {
     const node = shapeRef.current;
-    if (!isKonvaNode(node) || !selected || motionDisabled()) return;
+    if (!isKonvaNode(node) || !selected || decorativeMotionDisabled()) return;
     const layer = node.getLayer();
     if (!layer) return;
     const shape = node as Konva.Shape;

@@ -6,6 +6,7 @@ import {
   toggleMuted,
   setVolume,
   motionDisabled,
+  decorativeMotionDisabled,
   subscribeJuiceSettings,
   applyMotionAttribute,
   __resetJuiceSettingsForTests,
@@ -49,6 +50,20 @@ describe("juiceSettings", () => {
   it("ignores invalid motion levels", () => {
     setMotionLevel("sideways" as never);
     expect(getJuiceSettings().motion).toBe("full");
+  });
+
+  it("suppresses decorative motion on subtle but keeps informational motion", () => {
+    // Regression: "subtle" was once offered in the UI but nothing anywhere
+    // branched on it — it behaved identically to "full".
+    expect(decorativeMotionDisabled()).toBe(false);
+
+    setMotionLevel("subtle");
+    expect(decorativeMotionDisabled()).toBe(true);
+    expect(motionDisabled()).toBe(false); // glide/floating numbers stay on
+
+    setMotionLevel("off");
+    expect(decorativeMotionDisabled()).toBe(true);
+    expect(motionDisabled()).toBe(true);
   });
 
   it("toggles and sets mute", () => {

@@ -12,6 +12,7 @@ export {
   toggleMuted,
   setVolume,
   motionDisabled,
+  decorativeMotionDisabled,
   applyMotionAttribute,
 } from "./juiceSettings";
 export { useJuiceSettings, useReducedMotion, useMotionLevel } from "./useJuiceSettings";

@@ -126,6 +126,16 @@ export function motionDisabled(): boolean {
   return state.motion === "off";
 }
 
+/**
+ * True when decorative flourishes (pop-in, selection pulse, shakes) should be
+ * suppressed. "subtle" keeps informational motion — tokens still glide to
+ * their new cell, combat numbers still appear — but drops the purely
+ * cosmetic layer; "off" drops everything.
+ */
+export function decorativeMotionDisabled(): boolean {
+  return state.motion !== "full";
+}
+
 /** Test-only: reset in-memory state from storage/defaults. */
 export function __resetJuiceSettingsForTests(next?: Partial<JuiceSettings>): void {
   state = { ...defaultSettings(), ...next };

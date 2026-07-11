@@ -1506,6 +1506,33 @@ h4 {
     2px 2px 0 #000;
 }
 
+/* Subtle motion: keep the information, drop the aggression. Floating combat
+   numbers fade in place instead of flying, flash overlays keep their
+   opacity-only fade, and every transform-based shake/burst/shudder is
+   neutralized. */
+[data-motion="subtle"] .juice-floating-number {
+  animation: juice-float-subtle 650ms ease-out forwards;
+}
+
+@keyframes juice-float-subtle {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+[data-motion="subtle"] .juice-flash-damage,
+[data-motion="subtle"] .juice-crit,
+[data-motion="subtle"] .juice-fumble,
+[data-motion="subtle"] .juice-roll-banner--crit {
+  animation: none !important;
+}
+
 /* Motion opt-out: neutralize every juice animation above. */
 [data-motion="off"] .juice-floating-number,
 [data-motion="off"] .juice-flash-damage,
