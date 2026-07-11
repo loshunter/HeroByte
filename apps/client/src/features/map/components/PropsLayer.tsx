@@ -156,8 +156,14 @@ export const PropsLayer = memo(function PropsLayer({
             onDragEnd={(event) => {
               if (!onTransformProp) return;
               const target = event.target;
-              const newX = (target.x() + target.width() / 2) / gridSize;
-              const newY = (target.y() + target.height() / 2) / gridSize;
+              // Props render at cell-center (x*gridSize + gridSize/2), so the
+              // inverse must subtract the half-cell — same convention as
+              // TokensLayer's snapToGridPosition. Dividing the raw center by
+              // gridSize instead drifts the prop +0.5 cell on every drag.
+              const centerX = target.x() + target.width() / 2;
+              const centerY = target.y() + target.height() / 2;
+              const newX = (centerX - gridSize / 2) / gridSize;
+              const newY = (centerY - gridSize / 2) / gridSize;
               onTransformProp(obj.id, { x: newX, y: newY });
             }}
             onNodeReady={onPropNodeReady ? (node) => onPropNodeReady(obj.id, node) : undefined}
