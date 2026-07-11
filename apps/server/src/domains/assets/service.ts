@@ -11,6 +11,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { resolveServerPath } from "../../config/serverPaths.js";
 import { sniffImageMime } from "./mimeSniff.js";
 
 const HASH_PATTERN = /^[a-f0-9]{64}$/;
@@ -54,7 +55,11 @@ export class AssetService {
   private mutationQueue: Promise<unknown> = Promise.resolve();
 
   constructor(options: AssetServiceOptions = {}) {
-    this.directory = options.directory ?? process.env.HEROBYTE_ASSET_DIR ?? "./herobyte-assets";
+    // The default is anchored to the package root so uploads land in the same
+    // store no matter which directory the server was launched from; explicit
+    // option/env paths are the caller's choice and pass through untouched.
+    this.directory =
+      options.directory ?? process.env.HEROBYTE_ASSET_DIR ?? resolveServerPath("herobyte-assets");
     this.maxAssetBytes = options.maxAssetBytes ?? 5 * 1024 * 1024;
     this.maxTotalBytes = options.maxTotalBytes ?? 200 * 1024 * 1024;
   }

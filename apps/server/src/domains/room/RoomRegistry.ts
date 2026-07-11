@@ -1,4 +1,5 @@
 import { Redis } from "ioredis";
+import { resolveServerPath } from "../../config/serverPaths.js";
 import { RoomService } from "./service.js";
 import type { RoomStore } from "./store/RoomStore.js";
 import { InMemoryRoomStore } from "./store/RoomStore.js";
@@ -70,7 +71,9 @@ export class RoomRegistry {
       return undefined; // legacy path / env override
     }
     const safe = roomId.replace(/[^a-zA-Z0-9_-]/g, "_");
-    return `./herobyte-state.${safe}.json`;
+    // Anchored like the default store: per-room files must not fork when the
+    // server is launched from a different CWD.
+    return resolveServerPath(`herobyte-state.${safe}.json`);
   }
 
   delete(roomId: string): void {

@@ -13,14 +13,16 @@
 import { readFileSync, existsSync } from "fs";
 import { writeFile } from "fs/promises";
 import type { Player, Character, SceneObject } from "@herobyte/shared";
+import { resolveServerPath } from "../../../config/serverPaths.js";
 import type { RoomState } from "../model.js";
 import { createSelectionMap } from "../model.js";
 import type { StagingZoneManager } from "../staging/StagingZoneManager.js";
 
 /**
- * Default file path for state persistence
+ * Default file path for state persistence, anchored to the package root so
+ * the store does not fork when the server is launched from a different CWD.
  */
-const DEFAULT_STATE_FILE = "./herobyte-state.json";
+const DEFAULT_STATE_FILE = resolveServerPath("herobyte-state.json");
 
 /**
  * Manages room state persistence to/from disk.
