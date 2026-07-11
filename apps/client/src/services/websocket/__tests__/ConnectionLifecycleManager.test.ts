@@ -357,6 +357,47 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       expect(manager.getState()).toBe(ConnectionState.RECONNECTING);
     });
 
+    // Regression: a "replaced by new connection" close (code 4002) means another
+    // tab/window/device took over this uid. Reconnecting would supersede that
+    // newer connection and the two contexts 4002 each other forever — the bug
+    // that locked users out of custom rooms. 4002 must be terminal.
+    it("should NOT reconnect on WS_CLOSE_REPLACED (4002) — goes terminal REPLACED", () => {
+      manager.connect();
+
+      mockWebSocketInstance.onclose({ code: 4002, reason: "Replaced by new connection" });
+
+      expect(manager.getState()).toBe(ConnectionState.REPLACED);
+      // No reconnect timer should fire, ever.
+      vi.advanceTimersByTime(60000);
+      expect(manager.getState()).toBe(ConnectionState.REPLACED);
+      // Exactly one socket was ever created (the original) — no reconnect attempt.
+      expect(MockWebSocketClass).toHaveBeenCalledTimes(1);
+    });
+
+    it("should still reconnect on a transient drop (1006) — not terminal", () => {
+      manager.connect();
+
+      mockWebSocketInstance.onclose({ code: 1006, reason: "" });
+
+      expect(manager.getState()).toBe(ConnectionState.RECONNECTING);
+    });
+
+    it("should not revive a REPLACED session when the tab becomes visible", () => {
+      const visibilitySpy = vi.spyOn(document, "visibilityState", "get");
+      manager.connect();
+      mockWebSocketInstance.onclose({ code: 4002, reason: "Replaced by new connection" });
+      expect(manager.getState()).toBe(ConnectionState.REPLACED);
+
+      const socketsBefore = MockWebSocketClass.mock.calls.length;
+      visibilitySpy.mockReturnValue("visible");
+      document.dispatchEvent(new Event("visibilitychange"));
+
+      // No new socket, still terminal.
+      expect(MockWebSocketClass).toHaveBeenCalledTimes(socketsBefore);
+      expect(manager.getState()).toBe(ConnectionState.REPLACED);
+      visibilitySpy.mockRestore();
+    });
+
     it("should use exponential backoff with 1.5x multiplier", () => {
       const reconnectInterval = 2000;
       manager = new ConnectionLifecycleManager({

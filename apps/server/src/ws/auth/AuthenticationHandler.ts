@@ -5,7 +5,7 @@
 // Single responsibility: Authentication flow management
 
 import type { WebSocket } from "ws";
-import type { Player } from "@herobyte/shared";
+import { WS_CLOSE_AUTH_REJECTED, type Player } from "@herobyte/shared";
 import type { Container } from "../../container.js";
 import { getDefaultRoomId } from "../../config/auth.js";
 
@@ -299,7 +299,7 @@ export class AuthenticationHandler {
     ws.send(JSON.stringify({ t: "auth-failed", reason }));
     setTimeout(() => {
       if (ws.readyState === 1) {
-        ws.close(4001, reason);
+        ws.close(WS_CLOSE_AUTH_REJECTED, reason);
       }
     }, 100);
   }

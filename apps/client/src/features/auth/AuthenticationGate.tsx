@@ -275,6 +275,8 @@ export function AuthenticationGate({
         return "Reconnecting";
       case ConnectionState.FAILED:
         return "Failed";
+      case ConnectionState.REPLACED:
+        return "Opened in another tab";
       case ConnectionState.DISCONNECTED:
       default:
         return "Disconnected";

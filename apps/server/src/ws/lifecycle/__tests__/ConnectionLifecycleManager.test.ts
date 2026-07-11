@@ -149,12 +149,12 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       // Execute: simulate connection replacement (lines 90-98)
       const existingConnection = uidToWs.get(uid);
       if (existingConnection && existingConnection !== newWs) {
-        existingConnection.close(4001, "Replaced by new connection");
+        existingConnection.close(4002, "Replaced by new connection");
       }
 
       // Assert: old connection closed with specific code/reason
       expect(existingWs.close).toHaveBeenCalledOnce();
-      expect(existingWs.close).toHaveBeenCalledWith(4001, "Replaced by new connection");
+      expect(existingWs.close).toHaveBeenCalledWith(4002, "Replaced by new connection");
     });
 
     it("does not close connection if it's the same WebSocket instance", () => {
@@ -167,7 +167,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       // Execute: check if same connection
       const existingConnection = uidToWs.get(uid);
       if (existingConnection && existingConnection !== ws) {
-        existingConnection.close(4001, "Replaced by new connection");
+        existingConnection.close(4002, "Replaced by new connection");
       }
 
       // Assert: close NOT called (same instance)
@@ -191,7 +191,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
         console.log(
           `[WebSocket] Replacing connection for ${uid} (was authenticated: ${wasAuthenticated})`,
         );
-        existingConnection.close(4001, "Replaced by new connection");
+        existingConnection.close(4002, "Replaced by new connection");
       }
 
       // Assert: console.log called with auth status
@@ -213,7 +213,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
         console.log(
           `[WebSocket] Replacing connection for ${uid} (was authenticated: ${wasAuthenticated})`,
         );
-        existingConnection.close(4001, "Replaced by new connection");
+        existingConnection.close(4002, "Replaced by new connection");
       }
 
       // Assert: nothing logged or closed
@@ -562,7 +562,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       const wasAuthenticated = authenticatedUids.has(uid);
 
       if (existingWs && existingWs !== ws) {
-        existingWs.close(4001, "Replaced by new connection");
+        existingWs.close(4002, "Replaced by new connection");
       }
 
       // 3. Clear auth if not authenticated
@@ -615,7 +615,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
         console.log(
           `[WebSocket] Replacing connection for ${extractedUid} (was authenticated: ${wasAuthenticated})`,
         );
-        existingConnection.close(4001, "Replaced by new connection");
+        existingConnection.close(4002, "Replaced by new connection");
       }
 
       if (!wasAuthenticated) {
@@ -627,7 +627,7 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
 
       // Assert: seamless reconnection completed
       expect(extractedUid).toBe(uid);
-      expect(existingWs.close).toHaveBeenCalledWith(4001, "Replaced by new connection");
+      expect(existingWs.close).toHaveBeenCalledWith(4002, "Replaced by new connection");
       expect(authenticatedUids.has(uid)).toBe(true); // Auth preserved
       expect(authenticatedSessions.has(uid)).toBe(true); // Session preserved
       expect(uidToWs.get(uid)).toBe(newWs); // New connection registered
@@ -677,14 +677,14 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       // Second connection replaces first
       const existing1 = uidToWs.get(uid);
       if (existing1 && existing1 !== ws2) {
-        existing1.close(4001, "Replaced by new connection");
+        existing1.close(4002, "Replaced by new connection");
       }
       uidToWs.set(uid, ws2);
 
       // Third connection replaces second (ws1's close event may fire now)
       const existing2 = uidToWs.get(uid);
       if (existing2 && existing2 !== ws3) {
-        existing2.close(4001, "Replaced by new connection");
+        existing2.close(4002, "Replaced by new connection");
       }
       uidToWs.set(uid, ws3);
 
@@ -694,8 +694,8 @@ describe("ConnectionLifecycleManager - Characterization Tests", () => {
       // Assert: ws1 is NOT current (ws3 is current)
       expect(isWs1Current).toBe(false);
       expect(uidToWs.get(uid)).toBe(ws3);
-      expect(ws1.close).toHaveBeenCalledWith(4001, "Replaced by new connection");
-      expect(ws2.close).toHaveBeenCalledWith(4001, "Replaced by new connection");
+      expect(ws1.close).toHaveBeenCalledWith(4002, "Replaced by new connection");
+      expect(ws2.close).toHaveBeenCalledWith(4002, "Replaced by new connection");
     });
   });
 

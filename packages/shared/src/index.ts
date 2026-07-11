@@ -9,6 +9,10 @@ import type { MapStudioCommand } from "./mapStudioCommands.js";
 import type { CompiledDoorState, CompiledScene } from "./sceneCompiler.js";
 import type { TerrainMap } from "./terrain.js";
 
+// WebSocket close codes — value re-export from a sub-module (see wsCloseCodes.ts
+// for why it must not be a direct `export const` here).
+export { WS_CLOSE_AUTH_REJECTED, WS_CLOSE_REPLACED } from "./wsCloseCodes.js";
+
 // Export domain models
 export { TokenModel, PlayerModel, CharacterModel } from "./models.js";
 

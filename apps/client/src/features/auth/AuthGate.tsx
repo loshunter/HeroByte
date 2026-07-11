@@ -60,6 +60,7 @@ export function AuthGate({
   const isConnecting =
     connectionState === ConnectionState.CONNECTING ||
     connectionState === ConnectionState.RECONNECTING;
+  const isReplaced = connectionState === ConnectionState.REPLACED;
   const isHandshakeActive = isConnecting || authState === AuthState.PENDING;
   const submitLabel =
     authState === AuthState.PENDING
@@ -128,6 +129,12 @@ export function AuthGate({
             </span>
           </strong>
         </p>
+        {isReplaced ? (
+          <p style={authGateHintStyle}>
+            This table is open in another tab or window. Only one connection per device stays live —
+            reclaim it here, and the other one will pause.
+          </p>
+        ) : null}
         {!isConnected ? (
           <button
             type="button"
@@ -139,7 +146,7 @@ export function AuthGate({
             onClick={onRetry}
             disabled={isConnecting}
           >
-            Retry Connection
+            {isReplaced ? "Reclaim This Tab" : "Retry Connection"}
           </button>
         ) : null}
         {roomSlot}

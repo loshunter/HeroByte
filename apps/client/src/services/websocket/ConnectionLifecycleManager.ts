@@ -41,6 +41,8 @@
  * - cleanup() method (lines 300-323)
  */
 
+import { WS_CLOSE_REPLACED } from "@herobyte/shared";
+
 /**
  * Connection states for WebSocket lifecycle
  */
@@ -50,6 +52,13 @@ export enum ConnectionState {
   DISCONNECTED = "disconnected",
   RECONNECTING = "reconnecting",
   FAILED = "failed",
+  /**
+   * This session was superseded by a newer connection for the same uid
+   * (another tab/window/device took over). Terminal: we do NOT reconnect,
+   * because reconnecting would supersede the newer connection and the two
+   * contexts would thrash forever. The user must reload to reclaim the table.
+   */
+  REPLACED = "replaced",
 }
 
 /**
@@ -294,6 +303,16 @@ export class ConnectionLifecycleManager {
       console.log("[WebSocket] Disconnected", event.code, event.reason);
       this.clearConnectTimer();
       this.config.onClose(event);
+
+      // A "replaced by new connection" close means another tab/window/device
+      // took over this uid. Reconnecting would supersede that newer connection
+      // and the two contexts would 4002 each other forever. Stop here.
+      if (event.code === WS_CLOSE_REPLACED) {
+        this.cleanup();
+        this.setState(ConnectionState.REPLACED);
+        return;
+      }
+
       this.handleDisconnect();
     };
 
@@ -428,6 +447,11 @@ export class ConnectionLifecycleManager {
    * - User switches back to tab, automatically reconnect
    */
   private handleVisibilityChange(): void {
+    // Never revive a superseded session: another connection owns this uid, and
+    // reconnecting on focus would restart the replace-war.
+    if (this.state === ConnectionState.REPLACED) {
+      return;
+    }
     if (document.visibilityState === "visible" && !this.isConnected()) {
       console.log("[WebSocket] Tab visible - attempting reconnect");
       this.connect();

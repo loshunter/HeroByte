@@ -8,6 +8,7 @@
 
 import type { WebSocket } from "ws";
 import type { IncomingMessage } from "http";
+import { WS_CLOSE_REPLACED } from "@herobyte/shared";
 import type { RoomService } from "../../domains/room/service.js";
 
 /**
@@ -138,7 +139,7 @@ export class ConnectionLifecycleManager {
       console.log(
         `[WebSocket] Replacing connection for ${uid} (was authenticated: ${wasAuthenticated})`,
       );
-      existingWs.close(4001, "Replaced by new connection");
+      existingWs.close(WS_CLOSE_REPLACED, "Replaced by new connection");
       this.config.onConnectionReplaced?.(uid, wasAuthenticated);
 
       // Stop keepalive for replaced connection
