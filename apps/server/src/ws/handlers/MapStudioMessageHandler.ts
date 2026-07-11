@@ -1,6 +1,6 @@
 import {
   MapDocumentRevisionConflictError,
-  authoredDoorIdsOf,
+  authoredDoorStatesOf,
   compileScene,
   preserveDoorRuntimeStates,
   toLiveGridSize,
@@ -65,17 +65,19 @@ export class MapStudioMessageHandler {
         break;
       case "map-studio-command": {
         try {
+          const isLive = this.getRoomState(roomId).liveMapDocumentId === message.command.documentId;
+          // Snapshot the document's authored door states BEFORE the edit so the
+          // recompile can tell a re-authored door from a runtime-toggled one.
+          const previous = isLive
+            ? this.service.get(roomId, message.command.documentId)
+            : undefined;
           const result = this.service.apply(roomId, message.command, this.now());
           this.broadcastDocument(roomId, result.document, result.commandId);
           // When the edited document is the room's live-bound one, recompile it
           // straight onto the table and broadcast the room snapshot — the same
           // full broadcast the publish case gets, no publish message required.
-          if (this.getRoomState(roomId).liveMapDocumentId === message.command.documentId) {
-            this.recompileLiveScene(
-              roomId,
-              result.document,
-              authoredDoorIdsOf(message.command, result.document),
-            );
+          if (isLive) {
+            this.recompileLiveScene(roomId, previous, result.document);
             return { broadcast: true, save: true };
           }
         } catch (error) {
@@ -85,13 +87,23 @@ export class MapStudioMessageHandler {
       }
       case "map-studio-set-live":
         return this.setLiveDocument(senderUid, roomId, message.documentId);
-      case "map-studio-delete":
+      case "map-studio-delete": {
         this.service.delete(roomId, message.documentId);
         this.broadcastToDMs(roomId, {
           t: "map-studio-deleted",
           documentId: message.documentId,
         });
+        // Deleting the live-bound document must not leave a dangling binding: a
+        // later document that reuses the same id (import round-trips ids) would
+        // otherwise auto-broadcast to players on the DM's first edit, with no
+        // explicit bind.
+        const state = this.getRoomState(roomId);
+        if (state.liveMapDocumentId === message.documentId) {
+          state.liveMapDocumentId = undefined;
+          return { broadcast: true, save: true };
+        }
         break;
+      }
       case "map-studio-import": {
         const document = this.service.import(roomId, message.document, this.now());
         this.broadcastDocument(roomId, document);
@@ -140,27 +152,31 @@ export class MapStudioMessageHandler {
       return { broadcast: false, save: false };
     }
     state.liveMapDocumentId = documentId;
-    // A fresh bind authors no doors, so every compiled door keeps whatever
-    // runtime state the prior scene held (none, for a fresh document).
-    this.recompileLiveScene(roomId, document, new Set());
+    // Binding is an explicit (re)start of the live scene: compile fresh from
+    // authored state (no previous document, so no runtime carry-over).
+    this.recompileLiveScene(roomId, undefined, document);
     return { broadcast: true, save: true };
   }
 
   /**
    * Recompile the live-bound document onto the room's play surface: rebuild the
-   * compiled scene (carrying door runtime states across the edit), re-derive
-   * the elements-only terrain, and sync the live grid to the document's
-   * lattice. Deliberately never touches mapBackground — a bound room keeps any
-   * raster it already published (see the plan's binding decision).
+   * compiled scene (carrying door runtime states across the edit when the
+   * document is unchanged for that door), re-derive the elements-only terrain,
+   * and sync the live grid to the document's lattice. Deliberately never
+   * touches mapBackground — a bound room keeps any raster it already published
+   * (see the plan's binding decision). `previous` is the pre-edit document, or
+   * undefined on a fresh bind (compile straight from authored state).
    */
   private recompileLiveScene(
     roomId: string,
+    previous: MapDocument | undefined,
     document: MapDocument,
-    authoredDoorIds: ReadonlySet<string>,
   ): void {
     const state = this.getRoomState(roomId);
     const compiled = compileScene(document, this.now());
-    state.compiledScene = preserveDoorRuntimeStates(state.compiledScene, compiled, authoredDoorIds);
+    state.compiledScene = previous
+      ? preserveDoorRuntimeStates(state.compiledScene, compiled, authoredDoorStatesOf(previous))
+      : compiled;
     state.mapTerrain = deriveMapTerrain(document, "elements-only");
     state.gridSize = toLiveGridSize(document.grid.size);
     state.gridSquareSize = document.grid.squareSize;

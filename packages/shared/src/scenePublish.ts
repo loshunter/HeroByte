@@ -7,76 +7,72 @@
 // handler when a player clicks it) and never on the authored document.
 //
 // preserveDoorRuntimeStates carries each surviving door's runtime state across
-// a recompile by element id — EXCEPT the doors the triggering command just
-// authored (a newly-added door, or one whose state update-door just changed),
-// whose freshly-compiled state must win.
+// a recompile, keyed on element id — but ONLY while that door's AUTHORED state
+// is unchanged by the edit. If the triggering edit re-authored the door's state
+// (a DM update-door, or an undo/redo that reverted an earlier state change), the
+// freshly compiled authored state must win. Comparing authored-before against
+// authored-after is what distinguishes "the DM changed this door" from "a player
+// toggled it at runtime and an unrelated edit must not undo that". It is also
+// leak-safe: undoing a door back to "secret" restores the disguise, because the
+// authored state changed and the stale non-secret runtime state is discarded.
 
-import type { CompiledScene } from "./sceneCompiler.js";
+import type { CompiledDoorState, CompiledScene } from "./sceneCompiler.js";
 import type { MapDocument } from "./mapStudioTypes.js";
-import type { MapStudioCommand } from "./mapStudioCommands.js";
 
 /**
- * Rebuild `next` (a freshly compiled scene) so each door keeps the runtime
- * state it had in `previous`, matched by element id. Doors whose id is in
- * `authoredDoorIds` keep `next`'s authored state instead — that command just
- * set it. Doors absent from `previous` (newly added) keep `next` as-is.
+ * Rebuild `next` (a freshly compiled scene, whose door states are the authored
+ * states) so each door keeps the runtime state it held in `previous` — but only
+ * when this door's authored state is unchanged. `previousAuthoredDoorStates`
+ * maps door element id -> the authored state in the document BEFORE the edit;
+ * when it differs from `next`'s (post-edit authored) state, the edit re-authored
+ * the door and the new authored state wins. New doors and doors absent from
+ * `previous` keep `next` as-is.
  */
 export function preserveDoorRuntimeStates(
   previous: CompiledScene | undefined,
   next: CompiledScene,
-  authoredDoorIds: ReadonlySet<string>,
+  previousAuthoredDoorStates: ReadonlyMap<string, CompiledDoorState>,
 ): CompiledScene {
-  if (!previous || previous.doors.length === 0) {
+  // Cross-document guard: door element ids are only unique WITHIN a document
+  // (import/duplicate round-trips them). Only carry runtime states when the
+  // previous scene was compiled from the SAME document — a scene left behind by
+  // a stray publish of another document must never graft its door states (which
+  // could resurrect a secret door as a visible one) onto this one.
+  if (
+    !previous ||
+    previous.doors.length === 0 ||
+    previous.sourceDocumentId !== next.sourceDocumentId
+  ) {
     return next;
   }
-  const previousById = new Map(previous.doors.map((door) => [door.id, door]));
+  const previousRuntimeById = new Map(previous.doors.map((door) => [door.id, door.state]));
   return {
     ...next,
     doors: next.doors.map((door) => {
-      if (authoredDoorIds.has(door.id)) {
-        return door;
+      const priorRuntime = previousRuntimeById.get(door.id);
+      const priorAuthored = previousAuthoredDoorStates.get(door.id);
+      // door.state is the freshly compiled AUTHORED state. Preserve the runtime
+      // deviation only if the authored state did not change across the edit.
+      if (priorRuntime !== undefined && priorAuthored === door.state) {
+        return { ...door, state: priorRuntime };
       }
-      const prior = previousById.get(door.id);
-      return prior ? { ...door, state: prior.state } : door;
+      return door;
     }),
   };
 }
 
 /**
- * The set of door element ids whose AUTHORED state the given command just
- * established — so preserveDoorRuntimeStates does not overwrite them with a
- * stale runtime state. `update-door` authors one door; `add-element` /
- * `add-elements` author every door among their new elements; every other
- * command (including undo/redo, which restore whole document snapshots) authors
- * no doors and returns an empty set.
- *
- * `document` is the post-apply document; the update-door case confirms the
- * referenced element is genuinely a door before marking it authored.
+ * The authored state of every door element in a document, keyed by element id.
+ * Captured from the pre-edit document so preserveDoorRuntimeStates can tell
+ * whether an edit re-authored a door's state. Hidden doors are included (they
+ * are simply never looked up, since a hidden door is not compiled into a scene).
  */
-export function authoredDoorIdsOf(command: MapStudioCommand, document: MapDocument): Set<string> {
-  const ids = new Set<string>();
-  switch (command.type) {
-    case "add-element":
-      if (command.element.type === "door") {
-        ids.add(command.element.id);
-      }
-      break;
-    case "add-elements":
-      for (const element of command.elements) {
-        if (element.type === "door") {
-          ids.add(element.id);
-        }
-      }
-      break;
-    case "update-door": {
-      const element = document.elements.find((candidate) => candidate.id === command.elementId);
-      if (element?.type === "door") {
-        ids.add(command.elementId);
-      }
-      break;
+export function authoredDoorStatesOf(document: MapDocument): Map<string, CompiledDoorState> {
+  const states = new Map<string, CompiledDoorState>();
+  for (const element of document.elements) {
+    if (element.type === "door") {
+      states.set(element.id, element.data.state);
     }
-    default:
-      break;
   }
-  return ids;
+  return states;
 }

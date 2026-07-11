@@ -1,18 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
-  authoredDoorIdsOf,
+  authoredDoorStatesOf,
   preserveDoorRuntimeStates,
   type CompiledDoor,
+  type CompiledDoorState,
   type CompiledScene,
   type MapDoorElement,
+  type MapDoorState,
   type MapDocument,
-  type MapStudioCommand,
   type MapWallElement,
 } from "../index.js";
 
 function compiledDoor(
   id: string,
-  state: CompiledDoor["state"],
+  state: CompiledDoorState,
   overrides: Partial<CompiledDoor> = {},
 ): CompiledDoor {
   return {
@@ -28,10 +29,10 @@ function compiledDoor(
   };
 }
 
-function scene(doors: CompiledDoor[]): CompiledScene {
+function scene(doors: CompiledDoor[], sourceDocumentId = "map-1"): CompiledScene {
   return {
     schemaVersion: 1,
-    sourceDocumentId: "map-1",
+    sourceDocumentId,
     sourceRevision: 3,
     compiledAt: 100,
     width: 2048,
@@ -40,6 +41,11 @@ function scene(doors: CompiledDoor[]): CompiledScene {
     doors,
     lights: [],
   };
+}
+
+/** Authored door states keyed by id — the shape authoredDoorStatesOf returns. */
+function authored(entries: Record<string, CompiledDoorState>): Map<string, CompiledDoorState> {
+  return new Map(Object.entries(entries));
 }
 
 function documentWithElements(elements: MapDocument["elements"]): MapDocument {
@@ -66,7 +72,7 @@ function documentWithElements(elements: MapDocument["elements"]): MapDocument {
   };
 }
 
-function doorElement(id: string): MapDoorElement {
+function doorElement(id: string, state: MapDoorState = "closed"): MapDoorElement {
   return {
     id,
     layerId: "walls",
@@ -74,7 +80,7 @@ function doorElement(id: string): MapDoorElement {
     locked: false,
     hidden: false,
     transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
-    data: { width: 40, state: "closed", blocksMovement: true, blocksVision: true },
+    data: { width: 40, state, blocksMovement: true, blocksVision: true },
   };
 }
 
@@ -97,44 +103,71 @@ function wallElement(id: string): MapWallElement {
   };
 }
 
-const base = { commandId: "c1", documentId: "map-1", baseRevision: 3 };
-
 describe("preserveDoorRuntimeStates", () => {
-  it("carries a door's prior runtime state across a recompile, matched by id", () => {
+  it("carries a door's runtime state when its authored state is unchanged", () => {
+    // The recompile rebuilds door-a at authored "closed"; a player opened it, so
+    // the unrelated edit (authored state unchanged) must keep it "open".
     const previous = scene([compiledDoor("door-a", "open")]);
-    // A recompile from the document rebuilds every door at its AUTHORED state
-    // ("closed"); the runtime "open" must survive because a player opened it.
     const next = scene([compiledDoor("door-a", "closed")]);
 
-    const result = preserveDoorRuntimeStates(previous, next, new Set());
+    const result = preserveDoorRuntimeStates(previous, next, authored({ "door-a": "closed" }));
 
     expect(result.doors.map((d) => [d.id, d.state])).toEqual([["door-a", "open"]]);
   });
 
-  it("lets an authored door take the freshly compiled state (the command set it)", () => {
+  it("lets the freshly authored state win when the edit re-authored the door", () => {
+    // DM changed the authored state closed -> locked; the runtime "open" is
+    // discarded because the DM's re-authoring is intentional.
     const previous = scene([compiledDoor("door-a", "open")]);
     const next = scene([compiledDoor("door-a", "locked")]);
 
-    // door-a is in authoredDoorIds — the DM just changed its authored state.
-    const result = preserveDoorRuntimeStates(previous, next, new Set(["door-a"]));
+    const result = preserveDoorRuntimeStates(previous, next, authored({ "door-a": "closed" }));
 
     expect(result.doors[0]!.state).toBe("locked");
   });
 
-  it("drops doors removed from the document (only next's doors survive)", () => {
-    const previous = scene([compiledDoor("door-a", "open"), compiledDoor("door-b", "closed")]);
-    const next = scene([compiledDoor("door-a", "closed")]);
+  it("restores a door to secret on undo, discarding the stale runtime state (leak-safe)", () => {
+    // Regression (info-leak): a door authored back to "secret" (e.g. by undo)
+    // must NOT keep the stale non-secret runtime state, or the disguise breaks.
+    const previous = scene([compiledDoor("door-a", "open")]);
+    const next = scene([compiledDoor("door-a", "secret")]);
 
-    const result = preserveDoorRuntimeStates(previous, next, new Set());
+    // authored-before was "closed"; authored-after is "secret" -> changed.
+    const result = preserveDoorRuntimeStates(previous, next, authored({ "door-a": "closed" }));
 
-    expect(result.doors.map((d) => d.id)).toEqual(["door-a"]);
+    expect(result.doors[0]!.state).toBe("secret");
   });
 
-  it("keeps a newly added door at its authored state (no prior to inherit)", () => {
+  it("keeps an opened door open across a width-only door edit", () => {
+    // Regression: resizing a door (state unchanged) must not slam it shut.
+    const previous = scene([compiledDoor("door-a", "open")]);
+    const next = scene([compiledDoor("door-a", "closed")]);
+
+    const result = preserveDoorRuntimeStates(previous, next, authored({ "door-a": "closed" }));
+
+    expect(result.doors[0]!.state).toBe("open");
+  });
+
+  it("keeps a duplicate/no-op edit from slamming an opened door shut", () => {
+    // Regression (dedup replay): the pre-edit document equals the post-edit one,
+    // so the authored state matches and the runtime "open" survives.
+    const previous = scene([compiledDoor("door-a", "open")]);
+    const next = scene([compiledDoor("door-a", "closed")]);
+
+    const result = preserveDoorRuntimeStates(previous, next, authored({ "door-a": "closed" }));
+
+    expect(result.doors[0]!.state).toBe("open");
+  });
+
+  it("keeps a newly added door at its authored state (no prior runtime)", () => {
     const previous = scene([compiledDoor("door-a", "open")]);
     const next = scene([compiledDoor("door-a", "closed"), compiledDoor("door-b", "secret")]);
 
-    const result = preserveDoorRuntimeStates(previous, next, new Set(["door-b"]));
+    const result = preserveDoorRuntimeStates(
+      previous,
+      next,
+      authored({ "door-a": "closed" }), // door-b is new: absent from authored-before
+    );
 
     expect(result.doors.map((d) => [d.id, d.state])).toEqual([
       ["door-a", "open"],
@@ -142,100 +175,80 @@ describe("preserveDoorRuntimeStates", () => {
     ]);
   });
 
-  it("preserves every runtime state across an undo (authors nothing)", () => {
-    const previous = scene([compiledDoor("door-a", "open"), compiledDoor("door-b", "locked")]);
-    const next = scene([compiledDoor("door-a", "closed"), compiledDoor("door-b", "closed")]);
+  it("drops doors removed from the document (only next's doors survive)", () => {
+    const previous = scene([compiledDoor("door-a", "open"), compiledDoor("door-b", "closed")]);
+    const next = scene([compiledDoor("door-a", "closed")]);
 
-    // Undo carries no authored door ids, so both runtime states survive.
-    const result = preserveDoorRuntimeStates(previous, next, new Set());
+    const result = preserveDoorRuntimeStates(previous, next, authored({ "door-a": "closed" }));
 
-    expect(result.doors.map((d) => [d.id, d.state])).toEqual([
-      ["door-a", "open"],
-      ["door-b", "locked"],
-    ]);
+    expect(result.doors.map((d) => d.id)).toEqual(["door-a"]);
   });
 
   it("returns next unchanged when there is no previous scene", () => {
     const next = scene([compiledDoor("door-a", "closed")]);
-    expect(preserveDoorRuntimeStates(undefined, next, new Set())).toBe(next);
+    expect(preserveDoorRuntimeStates(undefined, next, authored({ "door-a": "closed" }))).toBe(next);
+  });
+
+  it("does not carry runtime states from a scene compiled from a different document", () => {
+    // Regression (cross-document leak): a stray publish left `previous` holding
+    // ANOTHER document's scene whose colliding door id is "open"; that must not
+    // resurrect this document's secret door as visible.
+    const previousFromOtherDoc = scene([compiledDoor("door-a", "open")], "other-doc");
+    const next = scene([compiledDoor("door-a", "secret")], "map-1");
+
+    const result = preserveDoorRuntimeStates(
+      previousFromOtherDoc,
+      next,
+      authored({ "door-a": "secret" }),
+    );
+
+    expect(result.doors[0]!.state).toBe("secret");
   });
 
   it("does not mutate the previous scene's doors", () => {
     const previous = scene([compiledDoor("door-a", "open")]);
     const next = scene([compiledDoor("door-a", "closed")]);
 
-    preserveDoorRuntimeStates(previous, next, new Set());
+    preserveDoorRuntimeStates(previous, next, authored({ "door-a": "closed" }));
 
     expect(previous.doors[0]!.state).toBe("open");
   });
 });
 
-describe("authoredDoorIdsOf", () => {
-  it("marks a door added via add-element", () => {
-    const document = documentWithElements([doorElement("door-a")]);
-    const command: MapStudioCommand = {
-      ...base,
-      type: "add-element",
-      element: doorElement("door-a"),
-    };
-    expect([...authoredDoorIdsOf(command, document)]).toEqual(["door-a"]);
+describe("authoredDoorStatesOf", () => {
+  it("maps each door element id to its authored state", () => {
+    const document = documentWithElements([
+      doorElement("door-a", "secret"),
+      doorElement("door-b", "locked"),
+    ]);
+    expect([...authoredDoorStatesOf(document)]).toEqual([
+      ["door-a", "secret"],
+      ["door-b", "locked"],
+    ]);
   });
 
-  it("ignores a non-door added via add-element", () => {
-    const document = documentWithElements([wallElement("wall-a")]);
-    const command: MapStudioCommand = {
-      ...base,
-      type: "add-element",
-      element: wallElement("wall-a"),
-    };
-    expect(authoredDoorIdsOf(command, document).size).toBe(0);
-  });
-
-  it("marks only the door-type elements in an add-elements batch", () => {
+  it("ignores non-door elements", () => {
     const document = documentWithElements([wallElement("wall-a"), doorElement("door-a")]);
-    const command: MapStudioCommand = {
-      ...base,
-      type: "add-elements",
-      elements: [wallElement("wall-a"), doorElement("door-a")],
-    };
-    expect([...authoredDoorIdsOf(command, document)]).toEqual(["door-a"]);
+    expect([...authoredDoorStatesOf(document)]).toEqual([["door-a", "closed"]]);
   });
 
-  it("marks the target of update-door when the document element is a door", () => {
-    const document = documentWithElements([doorElement("door-a")]);
-    const command: MapStudioCommand = {
-      ...base,
-      type: "update-door",
-      elementId: "door-a",
-      state: "locked",
-      width: 40,
-    };
-    expect([...authoredDoorIdsOf(command, document)]).toEqual(["door-a"]);
+  it("returns an empty map for a document with no doors", () => {
+    expect(authoredDoorStatesOf(documentWithElements([wallElement("wall-a")])).size).toBe(0);
   });
 
-  it("does not mark an update-door id that is not a door in the document", () => {
-    const document = documentWithElements([wallElement("wall-a")]);
-    const command: MapStudioCommand = {
-      ...base,
-      type: "update-door",
-      elementId: "wall-a",
-      state: "locked",
-      width: 40,
-    };
-    expect(authoredDoorIdsOf(command, document).size).toBe(0);
-  });
+  it("round-trips with preserveDoorRuntimeStates: undo to secret re-disguises", () => {
+    // The pre-edit document authored door-a "closed"; the post-undo document
+    // authored it "secret". A player had toggled it open at runtime.
+    const preEdit = documentWithElements([doorElement("door-a", "closed")]);
+    const previousScene = scene([compiledDoor("door-a", "open")]);
+    const postUndo = scene([compiledDoor("door-a", "secret")]);
 
-  it("authors no doors for undo, redo, or terrain commands", () => {
-    const document = documentWithElements([doorElement("door-a")]);
-    const undo: MapStudioCommand = { ...base, type: "undo" };
-    const redo: MapStudioCommand = { ...base, type: "redo" };
-    const paint: MapStudioCommand = {
-      ...base,
-      type: "paint-terrain",
-      cells: [{ x: 0, y: 0, assetId: "terrain:grass" }],
-    };
-    expect(authoredDoorIdsOf(undo, document).size).toBe(0);
-    expect(authoredDoorIdsOf(redo, document).size).toBe(0);
-    expect(authoredDoorIdsOf(paint, document).size).toBe(0);
+    const result = preserveDoorRuntimeStates(
+      previousScene,
+      postUndo,
+      authoredDoorStatesOf(preEdit),
+    );
+
+    expect(result.doors[0]!.state).toBe("secret");
   });
 });
