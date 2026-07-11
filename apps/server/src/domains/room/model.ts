@@ -293,7 +293,10 @@ export function toSnapshot(
     // Secret doors must be indistinguishable from wall to players: they leave
     // the doors list entirely and reappear as anonymous wall segments, so
     // client-side vision still cannot see through them and nothing in the
-    // payload hints that a door exists.
+    // payload hints that a door exists. That includes the id: compiled wall
+    // segments are always `${elementId}#${index}`, so the disguise must carry
+    // the same suffix — a bare door id would fingerprint every secret door to
+    // anyone reading the websocket payload.
     snapshot.compiledScene = isDM
       ? state.compiledScene
       : {
@@ -303,7 +306,7 @@ export function toSnapshot(
             ...state.compiledScene.doors
               .filter((door) => door.state === "secret")
               .map((door) => ({
-                id: door.id,
+                id: `${door.id}#0`,
                 x1: door.x1,
                 y1: door.y1,
                 x2: door.x2,

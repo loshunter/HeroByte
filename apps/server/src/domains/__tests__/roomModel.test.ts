@@ -98,7 +98,7 @@ describe("Room Model - toSnapshot", () => {
       // The secret door still occludes vision and movement — as a wall.
       expect(snapshot.compiledScene?.walls).toHaveLength(2);
       expect(snapshot.compiledScene?.walls[1]).toEqual({
-        id: "door-secret",
+        id: "door-secret#0",
         x1: 200,
         y1: 0,
         x2: 250,
@@ -107,6 +107,17 @@ describe("Room Model - toSnapshot", () => {
         blocksVision: true,
       });
       expect(state.compiledScene?.doors).toHaveLength(2);
+    });
+
+    it("gives disguised secret doors the same id shape as real wall segments", () => {
+      // Regression: the disguise once kept the bare door id while every
+      // compiled wall segment carries a `#index` suffix — so filtering the
+      // player payload for suffix-less wall ids revealed every secret door.
+      const snapshot = toSnapshot(stateWithCompiledScene(), false);
+
+      for (const wall of snapshot.compiledScene?.walls ?? []) {
+        expect(wall.id).toMatch(/#\d+$/);
+      }
     });
   });
 
