@@ -67,6 +67,7 @@ describe("useMapEditTool", () => {
         mapEditMode: true,
         activeSubTool: "wall",
         controller,
+        liveDocumentId: "live",
         toWorld: identityToWorld,
         mapTransform: undefined,
       }),
@@ -98,6 +99,7 @@ describe("useMapEditTool", () => {
         mapEditMode: true,
         activeSubTool: "wall",
         controller,
+        liveDocumentId: "live",
         toWorld: identityToWorld,
         // World is offset +10/+20 from document space, so world (110,120)→doc (100,100).
         mapTransform: { x: 10, y: 20, scaleX: 1, scaleY: 1, rotation: 0 },
@@ -120,6 +122,7 @@ describe("useMapEditTool", () => {
         mapEditMode: false,
         activeSubTool: "wall",
         controller,
+        liveDocumentId: "live",
         toWorld: identityToWorld,
         mapTransform: undefined,
       }),
@@ -139,6 +142,7 @@ describe("useMapEditTool", () => {
         mapEditMode: true,
         activeSubTool: "wall",
         controller,
+        liveDocumentId: "live",
         toWorld: identityToWorld,
         mapTransform: undefined,
       }),
@@ -151,6 +155,29 @@ describe("useMapEditTool", () => {
     expect(controller.addWall).not.toHaveBeenCalled();
   });
 
+  it("does not author into a non-live active document (e.g. a Studio doc)", () => {
+    // activeDocument is "live", but the room's live binding points elsewhere —
+    // a stray Studio doc must never receive a live-tool wall.
+    const controller = makeController();
+    const { result } = renderHook(() =>
+      useMapEditTool({
+        mapEditMode: true,
+        activeSubTool: "wall",
+        controller,
+        liveDocumentId: "some-other-doc",
+        toWorld: identityToWorld,
+        mapTransform: undefined,
+      }),
+    );
+
+    act(() => result.current.onMouseDown(makeStage({ x: 100, y: 100 }).ref));
+    act(() => result.current.onMouseMove(makeStage({ x: 200, y: 100 }).ref));
+    act(() => result.current.onMouseUp());
+
+    expect(controller.addWall).not.toHaveBeenCalled();
+    expect(result.current.previewDrag).toBeNull();
+  });
+
   it("does not start a drag without an active document", () => {
     const controller = makeController({ activeDocument: null });
     const { result } = renderHook(() =>
@@ -158,6 +185,7 @@ describe("useMapEditTool", () => {
         mapEditMode: true,
         activeSubTool: "wall",
         controller,
+        liveDocumentId: "live",
         toWorld: identityToWorld,
         mapTransform: undefined,
       }),
@@ -177,6 +205,7 @@ describe("useMapEditTool", () => {
         mapEditMode: true,
         activeSubTool: "wall",
         controller,
+        liveDocumentId: "live",
         toWorld: identityToWorld,
         mapTransform: undefined,
       }),

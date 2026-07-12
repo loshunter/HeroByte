@@ -63,6 +63,29 @@ describe("useMapEditState", () => {
     expect(methods.updateGrid).toHaveBeenCalledWith({ size: 64 });
   });
 
+  it("ignores a second START LIVE MAP while a bind is in flight (no duplicate doc)", () => {
+    const methods = makeMethods();
+    const { result } = renderHook(() =>
+      useMapEditState({
+        controller: makeController(methods, null),
+        sendMessage: vi.fn(),
+        mapEditMode: true,
+        setActiveTool: vi.fn(),
+        liveMapDocumentId: undefined,
+        roomGridSize: 50,
+        hasRasterBackground: false,
+      }),
+    );
+
+    act(() => result.current.toolbarProps.onStartLiveMap());
+    expect(methods.createDocument).toHaveBeenCalledTimes(1);
+    expect(result.current.toolbarProps.busy).toBe(true);
+
+    // Second click during the in-flight bind must NOT create a second document.
+    act(() => result.current.toolbarProps.onStartLiveMap());
+    expect(methods.createDocument).toHaveBeenCalledTimes(1);
+  });
+
   it("auto-opens the existing bound document on entering map-edit (no create)", () => {
     const methods = makeMethods();
     renderHook(() =>

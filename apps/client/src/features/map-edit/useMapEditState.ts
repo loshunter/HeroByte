@@ -46,6 +46,11 @@ export function useMapEditState({
   // binding it live (createDocument returns synchronously, but the controller
   // no-ops every action until the server's map-studio-document reply lands).
   const [pendingLiveId, setPendingLiveId] = useState<string | null>(null);
+  // True from the moment START LIVE MAP is clicked until the room snapshot
+  // confirms the binding (isLive). Without it, the button briefly re-enables
+  // between "set-live sent" and "snapshot confirms", so a double-click would
+  // create a second orphan "Live Map" document.
+  const [awaitingLiveBind, setAwaitingLiveBind] = useState(false);
 
   // Stable controller methods (useCallback-memoized inside useMapStudio); the
   // controller OBJECT is recreated each render, so depend on these, not it.
@@ -56,13 +61,20 @@ export function useMapEditState({
   const isLive = Boolean(liveMapDocumentId) && activeId === liveMapDocumentId;
 
   const startLiveMap = useCallback(() => {
+    if (awaitingLiveBind) return; // a create/bind is already in flight
     if (activeId && activeId === liveMapDocumentId) return; // already live
+    setAwaitingLiveBind(true);
     if (liveMapDocumentId) {
       openDocument(liveMapDocumentId);
       return;
     }
     setPendingLiveId(createDocument("Live Map", LIVE_MAP_SIZE, LIVE_MAP_SIZE));
-  }, [activeId, liveMapDocumentId, openDocument, createDocument]);
+  }, [awaitingLiveBind, activeId, liveMapDocumentId, openDocument, createDocument]);
+
+  // Release the latch once the binding is confirmed live by the room snapshot.
+  useEffect(() => {
+    if (isLive) setAwaitingLiveBind(false);
+  }, [isLive]);
 
   // Create → bind: once the freshly created document activates, bind it live and
   // sync its grid to the room. set-live FIRST so the grid command rides the S1
@@ -87,7 +99,7 @@ export function useMapEditState({
 
   const toolbarProps: MapEditToolbarProps = {
     isLive,
-    busy: pendingLiveId !== null || loading,
+    busy: awaitingLiveBind || pendingLiveId !== null || loading,
     activeSubTool,
     onSelectSubTool: setActiveSubTool,
     canUndo: controller.canUndo,

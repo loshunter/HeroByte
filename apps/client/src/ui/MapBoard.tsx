@@ -275,6 +275,7 @@ export default function MapBoard({
     mapEditMode,
     activeSubTool: mapEditActiveSubTool,
     controller: mapEditController,
+    liveDocumentId: snapshot?.liveMapDocumentId,
     toWorld,
     mapTransform: mapObject?.transform,
   });
@@ -605,7 +606,7 @@ export default function MapBoard({
             cam={cam}
             sceneObjects={sceneObjects}
             gridSize={grid.size}
-            interactive={!measureMode}
+            interactive={!measureMode && !mapEditMode}
             selectedObjectId={selectedObjectId}
             selectedObjectIds={selectedObjectIds}
             onSelectObject={onSelectObject}

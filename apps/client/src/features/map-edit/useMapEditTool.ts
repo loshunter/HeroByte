@@ -28,6 +28,12 @@ interface UseMapEditToolOptions {
   mapEditMode: boolean;
   activeSubTool: MapEditSubTool;
   controller: MapStudioController | undefined;
+  /**
+   * The room's live-bound document id (snapshot.liveMapDocumentId). Authoring
+   * only fires when the controller's ACTIVE document IS this one — otherwise a
+   * stray Map Studio document left active would silently receive the wall.
+   */
+  liveDocumentId: string | undefined;
   toWorld: (sx: number, sy: number) => { x: number; y: number };
   mapTransform: SceneObjectTransform | undefined;
 }
@@ -48,6 +54,7 @@ export function useMapEditTool({
   mapEditMode,
   activeSubTool,
   controller,
+  liveDocumentId,
   toWorld,
   mapTransform,
 }: UseMapEditToolOptions): UseMapEditToolReturn {
@@ -104,13 +111,15 @@ export function useMapEditTool({
     (stageRef: RefObject<Konva.Stage | null>) => {
       if (!active) return;
       const document = controller?.activeDocument;
-      if (!document) return; // controller actions no-op until a document is active
+      // Author ONLY into the live-bound document. A Studio document left active
+      // in the shared controller must never receive a live-tool wall.
+      if (!document || document.id !== liveDocumentId) return;
       const point = toSnappedDocPoint(stageRef, document.grid);
       if (!point) return;
       dragRef.current = { start: point, end: point };
       setPreviewDrag({ start: point, end: point });
     },
-    [active, controller, toSnappedDocPoint],
+    [active, controller, liveDocumentId, toSnappedDocPoint],
   );
 
   const onMouseMove = useCallback(
@@ -134,15 +143,16 @@ export function useMapEditTool({
     }
     const document = controller?.activeDocument;
     // addWall/addDoor do not self-gate on `saving`; skip the commit while a
-    // command is in flight (the Studio's rule) so drags don't pile up.
-    if (document && controller && !controller.saving) {
+    // command is in flight (the Studio's rule) so drags don't pile up. Re-check
+    // the live binding: the active document must still be the live-bound one.
+    if (document && document.id === liveDocumentId && controller && !controller.saving) {
       const layers = new Map(document.layers.map((layer) => [layer.id, layer]));
       // The gate guarantees a segment tool; map to the StudioTool commitSegmentDrag speaks.
       const segmentTool: StudioTool = activeSubTool === "door" ? "door" : "wall";
       commitSegmentDrag(segmentTool, layers, drag, controller.addWall, controller.addDoor);
     }
     clearDrag();
-  }, [active, controller, activeSubTool, clearDrag]);
+  }, [active, controller, liveDocumentId, activeSubTool, clearDrag]);
 
   // Escape cancels an in-progress drag WITHOUT clearing the tool: capture-phase
   // + stopImmediatePropagation preempts the global Escape-clears-tool listener.
