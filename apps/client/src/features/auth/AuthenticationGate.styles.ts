@@ -25,6 +25,10 @@ export const authGateCardStyle: React.CSSProperties = {
   boxShadow: "0 12px 40px rgba(15, 23, 42, 0.5)",
   color: "#f8fafc",
   maxWidth: "400px",
+  // Scroll the card (not the page) on short screens so taller 44px targets
+  // never push the form past the viewport (container padding is 24px each side).
+  maxHeight: "calc(100vh - 48px)",
+  overflowY: "auto",
   padding: "32px",
   width: "100%",
 };
@@ -41,13 +45,17 @@ export const authGateHintStyle: React.CSSProperties = {
   marginTop: "16px",
 };
 
+// Touch-target floor (Apple HIG / Material): every interactive control is ≥44px
+// tall. box-sizing: border-box makes minHeight the TOTAL height (padding included).
 export const authInputStyle: React.CSSProperties = {
   backgroundColor: "rgba(15, 23, 42, 0.9)",
   border: "1px solid rgba(148, 163, 184, 0.5)",
   borderRadius: "8px",
+  boxSizing: "border-box",
   color: "#e2e8f0",
   fontFamily: "inherit",
   fontSize: "1rem",
+  minHeight: "44px",
   padding: "12px",
   width: "100%",
 };
@@ -56,11 +64,13 @@ export const authPrimaryButtonStyle: React.CSSProperties = {
   background: "linear-gradient(135deg, #38bdf8, #6366f1)",
   border: "none",
   borderRadius: "8px",
+  boxSizing: "border-box",
   color: "#0f172a",
   cursor: "pointer",
   fontFamily: "inherit",
   fontSize: "1rem",
   fontWeight: 600,
+  minHeight: "44px",
   padding: "12px",
   transition: "filter 0.2s ease",
 };
@@ -69,11 +79,13 @@ export const authSecondaryButtonStyle: React.CSSProperties = {
   background: "transparent",
   border: "1px solid rgba(148, 163, 184, 0.4)",
   borderRadius: "8px",
+  boxSizing: "border-box",
   color: "#cbd5f5",
   cursor: "pointer",
   fontFamily: "inherit",
   fontSize: "0.9rem",
   marginTop: "12px",
+  minHeight: "44px",
   padding: "10px 12px",
   transition: "border-color 0.2s ease, color 0.2s ease",
   width: "100%",

@@ -42,19 +42,31 @@ const rowStyle: React.CSSProperties = {
   flexWrap: "wrap",
 };
 
+// Touch-target floor: every control is ≥44px in its smaller dimension.
 const chipButtonStyle: React.CSSProperties = {
   background: "rgba(20, 30, 58, 0.9)",
   color: "#e7ecff",
   border: "1px solid rgba(255, 215, 94, 0.4)",
   borderRadius: "6px",
-  padding: "6px 10px",
+  boxSizing: "border-box",
+  padding: "6px 12px",
+  minHeight: "44px",
   fontSize: "0.85rem",
   cursor: "pointer",
 };
 
+// Compact / icon-only buttons (✕ forget, ↻) stay ≥44×44 so they're tappable.
 const smallButtonStyle: React.CSSProperties = {
   ...chipButtonStyle,
   padding: "6px 8px",
+  minWidth: "44px",
+};
+
+// Inputs share the 44px floor.
+const lobbyInputStyle: React.CSSProperties = {
+  boxSizing: "border-box",
+  minHeight: "44px",
+  padding: "10px 12px",
 };
 
 const labelStyle: React.CSSProperties = {
@@ -213,8 +225,8 @@ export function RoomLobby({
                 border: "1px solid rgba(255, 215, 94, 0.4)",
                 borderRadius: "6px",
                 color: "#e7ecff",
-                padding: "6px 8px",
                 fontSize: "0.85rem",
+                ...lobbyInputStyle,
               }}
             />
             <input
@@ -229,8 +241,8 @@ export function RoomLobby({
                 border: "1px solid rgba(255, 215, 94, 0.4)",
                 borderRadius: "6px",
                 color: "#e7ecff",
-                padding: "6px 8px",
                 fontSize: "0.85rem",
+                ...lobbyInputStyle,
               }}
             />
             <button
@@ -259,9 +271,9 @@ export function RoomLobby({
               border: "1px solid rgba(255, 215, 94, 0.4)",
               borderRadius: "6px",
               color: "#e7ecff",
-              padding: "6px 8px",
               fontSize: "0.85rem",
               width: "140px",
+              ...lobbyInputStyle,
             }}
           />
           <button type="submit" style={smallButtonStyle} disabled={!joinCode.trim()}>
