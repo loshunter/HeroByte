@@ -9,13 +9,8 @@ import { DraggableWindow } from "../../components/dice/DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../../components/ui/JRPGPanel";
 import { getMapStudioTileAsset } from "../map-studio/starterTiles";
 import { MapEditAssetPicker } from "./MapEditAssetPicker";
-import type {
-  MapEditFloorFamily,
-  MapEditSubTool,
-  MapEditToolbarProps,
-  PopulateCategory,
-  PopulateDensity,
-} from "./mapEditTypes";
+import { MapEditToolPanels } from "./MapEditToolPanels";
+import type { MapEditFloorFamily, MapEditSubTool, MapEditToolbarProps } from "./mapEditTypes";
 
 const SUB_TOOLS: { id: MapEditSubTool; label: string }[] = [
   { id: "room", label: "🏠 Room" },
@@ -26,6 +21,7 @@ const SUB_TOOLS: { id: MapEditSubTool; label: string }[] = [
   { id: "erase", label: "🧹 Erase" },
   { id: "place", label: "📦 Place" },
   { id: "scatter", label: "🎲 Scatter" },
+  { id: "select", label: "👆 Select" },
 ];
 
 const FLOOR_FAMILIES: { id: MapEditFloorFamily; label: string }[] = [
@@ -37,12 +33,6 @@ const FLOOR_FAMILIES: { id: MapEditFloorFamily; label: string }[] = [
 ];
 
 const HALLWAY_WIDTHS = [1, 2, 3, 4];
-const DENSITIES: PopulateDensity[] = ["low", "medium", "high"];
-const POPULATE_CATEGORIES: { id: PopulateCategory; label: string }[] = [
-  { id: "objects", label: "Objects" },
-  { id: "structures", label: "Structs" },
-  { id: "terrain", label: "Terrain" },
-];
 
 const labelStyle = {
   display: "block",
@@ -50,37 +40,32 @@ const labelStyle = {
   color: "var(--jrpg-gold)",
 } as const;
 
-export function MapEditToolbar({
-  isLive,
-  busy,
-  activeSubTool,
-  onSelectSubTool,
-  floorFamily,
-  onSelectFloorFamily,
-  canUndo,
-  canRedo,
-  onUndo,
-  onRedo,
-  onStartLiveMap,
-  onClose,
-  hasRasterBackground,
-  error,
-  wallsOverlayPinned,
-  onToggleWallsOverlay,
-  selectedAssetId,
-  onSelectAsset,
-  uploadAsset,
-  assetPickerOpen,
-  onToggleAssetPicker,
-  hallwayWidth,
-  onSelectHallwayWidth,
-  populateDensity,
-  onSelectPopulateDensity,
-  populateCategory,
-  onSelectPopulateCategory,
-  onPopulate,
-  canPopulate,
-}: MapEditToolbarProps) {
+export function MapEditToolbar(props: MapEditToolbarProps) {
+  const {
+    isLive,
+    busy,
+    activeSubTool,
+    onSelectSubTool,
+    floorFamily,
+    onSelectFloorFamily,
+    canUndo,
+    canRedo,
+    onUndo,
+    onRedo,
+    onStartLiveMap,
+    onClose,
+    hasRasterBackground,
+    error,
+    wallsOverlayPinned,
+    onToggleWallsOverlay,
+    selectedAssetId,
+    onSelectAsset,
+    uploadAsset,
+    assetPickerOpen,
+    onToggleAssetPicker,
+    hallwayWidth,
+    onSelectHallwayWidth,
+  } = props;
   const placing = activeSubTool === "place" || activeSubTool === "scatter";
   const paintsFloor =
     activeSubTool === "room" || activeSubTool === "terrain" || activeSubTool === "hallway";
@@ -223,51 +208,7 @@ export function MapEditToolbar({
                 </div>
               )}
 
-              <div>
-                <label className="jrpg-text-small" style={labelStyle}>
-                  Populate ({populateCategory}):
-                </label>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4px" }}>
-                  {POPULATE_CATEGORIES.map((c) => (
-                    <JRPGButton
-                      key={c.id}
-                      onClick={() => onSelectPopulateCategory(c.id)}
-                      variant={populateCategory === c.id ? "primary" : "default"}
-                      style={{ fontSize: "8px", padding: "6px 2px" }}
-                    >
-                      {c.label}
-                    </JRPGButton>
-                  ))}
-                </div>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr 1fr",
-                    gap: "4px",
-                    marginTop: "4px",
-                  }}
-                >
-                  {DENSITIES.map((d) => (
-                    <JRPGButton
-                      key={d}
-                      onClick={() => onSelectPopulateDensity(d)}
-                      variant={populateDensity === d ? "primary" : "default"}
-                      style={{ fontSize: "8px", padding: "6px 2px" }}
-                    >
-                      {d}
-                    </JRPGButton>
-                  ))}
-                </div>
-                <JRPGButton
-                  onClick={onPopulate}
-                  variant="success"
-                  disabled={!canPopulate}
-                  title="Fill the last room or hallway you placed with set dressing"
-                  style={{ fontSize: "8px", padding: "7px", width: "100%", marginTop: "4px" }}
-                >
-                  ✨ POPULATE
-                </JRPGButton>
-              </div>
+              <MapEditToolPanels {...props} />
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
                 <JRPGButton

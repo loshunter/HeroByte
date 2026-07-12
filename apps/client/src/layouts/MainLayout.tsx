@@ -72,9 +72,12 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     mapEditFloorFamily,
     mapEditSelectedAssetId,
     mapEditHallwayWidth,
+    mapEditSelectedElementId,
     mapEditWallsOverlayPinned,
     onMapEditRoomRejected,
     onMapEditRegionPlaced,
+    onMapEditSelectElement,
+    onMapEditSampleAsset,
     mapEditToolbarProps,
 
     // UI state
@@ -283,9 +286,12 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         mapEditFloorFamily={mapEditFloorFamily}
         mapEditSelectedAssetId={mapEditSelectedAssetId}
         mapEditHallwayWidth={mapEditHallwayWidth}
+        mapEditSelectedElementId={mapEditSelectedElementId}
         mapEditWallsOverlayPinned={mapEditWallsOverlayPinned}
         onMapEditRoomRejected={onMapEditRoomRejected}
         onMapEditRegionPlaced={onMapEditRegionPlaced}
+        onMapEditSelectElement={onMapEditSelectElement}
+        onMapEditSampleAsset={onMapEditSampleAsset}
         selectedObjectId={selectedObjectId}
         selectedObjectIds={selectedObjectIds}
         onSelectObject={handleObjectSelection}

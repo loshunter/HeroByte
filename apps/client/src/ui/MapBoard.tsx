@@ -92,10 +92,13 @@ export default function MapBoard({
   mapEditFloorFamily = "grass",
   mapEditSelectedAssetId = "objects:crate",
   mapEditHallwayWidth = 2,
+  mapEditSelectedElementId = null,
   mapEditController,
   mapEditWallsOverlayPinned = false,
   onMapEditRoomRejected,
   onMapEditRegionPlaced,
+  onMapEditSelectElement,
+  onMapEditSampleAsset,
   isDM,
   alignmentMode,
   alignmentPoints = [],
@@ -278,6 +281,7 @@ export default function MapBoard({
     previewDrag: mapEditPreviewDrag,
     strokeCells: mapEditStrokeCells,
     placementGhost: mapEditPlacementGhost,
+    selectionRect: mapEditSelectionRect,
     onMouseDown: handleMapEditMouseDown,
     onMouseMove: handleMapEditMouseMove,
     onMouseUp: handleMapEditMouseUp,
@@ -289,8 +293,11 @@ export default function MapBoard({
     floorFamily: mapEditFloorFamily,
     selectedAssetId: mapEditSelectedAssetId,
     hallwayWidth: mapEditHallwayWidth,
+    selectedElementId: mapEditSelectedElementId,
     onRoomRejected: onMapEditRoomRejected,
     onRegionPlaced: onMapEditRegionPlaced,
+    onSelectElement: onMapEditSelectElement,
+    onSampleAsset: onMapEditSampleAsset,
     toWorld,
     mapTransform: mapObject?.transform,
   });
@@ -719,6 +726,7 @@ export default function MapBoard({
             gridOffsetY={mapEditController?.activeDocument?.grid.offsetY ?? 0}
             strokeCells={mapEditStrokeCells}
             placementGhost={mapEditPlacementGhost}
+            selectionRect={mapEditSelectionRect}
           />
         </Layer>
 

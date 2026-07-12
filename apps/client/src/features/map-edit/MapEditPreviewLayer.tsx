@@ -14,6 +14,7 @@ import type { Camera } from "../map/types";
 import type { RoomDrag } from "../map-studio/components/MapStudioWorkspace.types";
 import type { PlacementGhost } from "./useMapEditPlacement";
 import { hallwayBoundsFromDrag } from "./hallwayBuilder";
+import type { SelectionRect } from "./elementHitTest";
 import type { MapEditSubTool } from "./mapEditTypes";
 
 interface MapEditPreviewLayerProps {
@@ -28,6 +29,8 @@ interface MapEditPreviewLayerProps {
   strokeCells?: TerrainPaintCell[];
   /** Translucent footprint preview for the place/scatter tools. */
   placementGhost?: PlacementGhost | null;
+  /** Highlight footprint around the selected element (select sub-tool). */
+  selectionRect?: SelectionRect | null;
   gridOffsetX?: number;
   gridOffsetY?: number;
 }
@@ -44,10 +47,11 @@ export function MapEditPreviewLayer({
   hallwayWidth = 2,
   strokeCells = [],
   placementGhost = null,
+  selectionRect = null,
   gridOffsetX = 0,
   gridOffsetY = 0,
 }: MapEditPreviewLayerProps) {
-  if (!previewDrag && strokeCells.length === 0 && !placementGhost) return null;
+  if (!previewDrag && strokeCells.length === 0 && !placementGhost && !selectionRect) return null;
 
   const { x = 0, y = 0, scaleX = 1, scaleY = 1, rotation = 0 } = mapTransform ?? {};
   const strokeWidth = 3 / cam.scale;
@@ -57,6 +61,24 @@ export function MapEditPreviewLayer({
     <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale} listening={false}>
       <Group x={x} y={y} scaleX={scaleX} scaleY={scaleY} rotation={rotation} listening={false}>
         {placementGhost && renderGhost(placementGhost, cam.scale)}
+        {selectionRect && (
+          <Group
+            x={selectionRect.x}
+            y={selectionRect.y}
+            rotation={selectionRect.rotation}
+            listening={false}
+          >
+            <Rect
+              width={selectionRect.width}
+              height={selectionRect.height}
+              stroke="#57d6ff"
+              strokeWidth={2 / cam.scale}
+              dash={[6 / cam.scale, 4 / cam.scale]}
+              listening={false}
+              name="map-edit-preview:selection"
+            />
+          </Group>
+        )}
         {previewDrag &&
           (activeSubTool === "room" ? (
             renderRoom(previewDrag.start, previewDrag.end, gridSize, strokeWidth, dash, cam.scale)

@@ -124,12 +124,18 @@ export interface MainLayoutProps {
   mapEditSelectedAssetId: string;
   /** Corridor width in cells for the hallway tool */
   mapEditHallwayWidth: number;
+  /** Selected element id (select tool) → highlight */
+  mapEditSelectedElementId: string | null;
   /** Keep the DM walls overlay visible outside map-edit mode */
   mapEditWallsOverlayPinned: boolean;
   /** Called when a room drag is refused (too large / no walls layer) */
   onMapEditRoomRejected: (message: string) => void;
   /** Called when a room/hallway lands — records the POPULATE target */
   onMapEditRegionPlaced: (bounds: RoomBounds) => void;
+  /** Called when the select tool picks an element (or clears) */
+  onMapEditSelectElement: (elementId: string | null) => void;
+  /** Called when the eyedropper samples an asset */
+  onMapEditSampleAsset: (assetId: string) => void;
   /** Props for the lazy-loaded map-edit palette */
   mapEditToolbarProps: MapEditToolbarProps;
 

@@ -6,13 +6,14 @@
 // revision-conflict). Mirrors useDrawingStateManager's shape: takes the
 // controller + sendMessage + mode + setActiveTool, returns palette props.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ClientMessage } from "@herobyte/shared";
 import type { ToolMode } from "../../components/layout/Header";
 import type { MapStudioController } from "../map-studio/types";
 import { useMapEditHotkeys } from "./useMapEditHotkeys";
 import { usePopulate } from "./usePopulate";
 import type { RoomBounds } from "./roomBuilder";
+import { floorFamilyFromAssetId } from "./mapEditFamilies";
 import type { MapEditFloorFamily, MapEditSubTool, MapEditToolbarProps } from "./mapEditTypes";
 
 interface UseMapEditStateOptions {
@@ -40,6 +41,11 @@ interface UseMapEditStateReturn {
   hallwayWidth: number;
   /** Record a room/hallway's bounds as the POPULATE target (fed to the tool). */
   onRegionPlaced: (bounds: RoomBounds) => void;
+  /** Currently-selected element id (select sub-tool) + its setter (fed to the tool). */
+  selectedElementId: string | null;
+  onSelectElement: (elementId: string | null) => void;
+  /** Re-arm the place tool with an eyedropper-sampled asset (fed to the tool). */
+  onSampleAsset: (assetId: string) => void;
   /** Keep the DM walls overlay visible even outside map-edit mode. */
   wallsOverlayPinned: boolean;
   toolbarProps: MapEditToolbarProps;
@@ -64,6 +70,9 @@ export function useMapEditState({
   const [selectedAssetId, setSelectedAssetId] = useState<string>(DEFAULT_ASSET_ID);
   const [assetPickerOpen, setAssetPickerOpen] = useState(false);
   const [hallwayWidth, setHallwayWidth] = useState(2);
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [layersOpen, setLayersOpen] = useState(false);
+  const [inspectorOpen, setInspectorOpen] = useState(false);
   const populate = usePopulate(controller, notifyError);
   // The id of a document we just created and are waiting to activate before
   // binding it live (createDocument returns synchronously, but the controller
@@ -146,6 +155,25 @@ export function useMapEditState({
   const onClose = useCallback(() => setActiveTool(null), [setActiveTool]);
   const onToggleWallsOverlay = useCallback(() => setWallsOverlayPinned((pinned) => !pinned), []);
   const onToggleAssetPicker = useCallback(() => setAssetPickerOpen((open) => !open), []);
+  const onToggleLayers = useCallback(() => setLayersOpen((open) => !open), []);
+  const onToggleInspector = useCallback(() => setInspectorOpen((open) => !open), []);
+
+  // Eyedropper re-arm: sampling a terrain family also updates the floor picker;
+  // the place tool takes over so the next click drops the sampled asset.
+  const onSampleAsset = useCallback((assetId: string) => {
+    setSelectedAssetId(assetId);
+    const family = floorFamilyFromAssetId(assetId);
+    if (family) setFloorFamily(family);
+    setActiveSubTool("place");
+  }, []);
+
+  // The selected element, resolved live from the active document so edits (and
+  // deletions) reflect immediately; clears when the element is gone.
+  const selectedElement = useMemo(
+    () =>
+      (activeDocument?.elements ?? []).find((element) => element.id === selectedElementId) ?? null,
+    [activeDocument, selectedElementId],
+  );
 
   const toolbarProps: MapEditToolbarProps = {
     isLive,
@@ -177,6 +205,18 @@ export function useMapEditState({
     onSelectPopulateCategory: populate.setCategory,
     onPopulate: populate.onPopulate,
     canPopulate: populate.canPopulate,
+    saving: controller.saving,
+    layers: activeDocument?.layers ?? [],
+    selectedElement,
+    onUpdateLayer: controller.updateLayer,
+    onMoveLayer: controller.moveLayer,
+    onUpdateElement: controller.updateElement,
+    onUpdateDoor: controller.updateDoor,
+    onRemoveElement: controller.removeElement,
+    layersOpen,
+    onToggleLayers,
+    inspectorOpen,
+    onToggleInspector,
   };
 
   return {
@@ -185,6 +225,9 @@ export function useMapEditState({
     selectedAssetId,
     hallwayWidth,
     onRegionPlaced: populate.onRegionPlaced,
+    selectedElementId,
+    onSelectElement: setSelectedElementId,
+    onSampleAsset,
     wallsOverlayPinned,
     toolbarProps,
   };

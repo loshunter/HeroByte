@@ -130,6 +130,23 @@ describe("MapEditPreviewLayer", () => {
     expect(ghostGroup).toBeDefined();
   });
 
+  it("draws a dashed highlight around the selected element", () => {
+    render(
+      <MapEditPreviewLayer
+        cam={cam}
+        previewDrag={null}
+        activeSubTool="select"
+        gridSize={50}
+        selectionRect={{ x: 100, y: 100, width: 50, height: 50, rotation: 90 }}
+      />,
+    );
+
+    expect(rectProps).toHaveLength(1);
+    expect(rectProps[0]).toMatchObject({ width: 50, height: 50, stroke: "#57d6ff" });
+    const selGroup = groupProps.find((g) => g.x === 100 && g.y === 100 && g.rotation === 90);
+    expect(selGroup).toBeDefined();
+  });
+
   it("renders nothing without a preview drag", () => {
     const { container } = render(
       <MapEditPreviewLayer cam={cam} previewDrag={null} activeSubTool="wall" gridSize={50} />,

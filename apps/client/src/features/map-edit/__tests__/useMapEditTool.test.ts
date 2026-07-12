@@ -531,6 +531,85 @@ describe("useMapEditTool", () => {
     expect(result.current.placementGhost).toBeNull();
   });
 
+  it("select-tool click reports the element under the cursor and places nothing", () => {
+    const base = makeObjectsDocument();
+    const controller = makeController({
+      activeDocument: {
+        ...base,
+        elements: [
+          {
+            id: "tile1",
+            layerId: "objects",
+            type: "tile",
+            locked: false,
+            hidden: false,
+            transform: { x: 100, y: 100, scaleX: 1, scaleY: 1, rotation: 0 },
+            data: { assetId: "objects:crate", columns: 1, rows: 1 },
+          },
+        ],
+      },
+    });
+    const onSelectElement = vi.fn();
+    const { result } = renderHook(() =>
+      useMapEditTool({
+        mapEditMode: true,
+        activeSubTool: "select",
+        controller,
+        liveDocumentId: "live",
+        floorFamily: "grass",
+        onSelectElement,
+        toWorld: identityToWorld,
+        mapTransform: undefined,
+      }),
+    );
+
+    act(() => result.current.onMouseDown(makeStage({ x: 120, y: 120 }).ref));
+
+    expect(onSelectElement).toHaveBeenCalledWith("tile1");
+    expect(controller.addTile).not.toHaveBeenCalled();
+  });
+
+  it("Ctrl+click with the place tool eyedrops instead of placing", () => {
+    const base = makeObjectsDocument();
+    const controller = makeController({
+      activeDocument: {
+        ...base,
+        elements: [
+          {
+            id: "tile1",
+            layerId: "objects",
+            type: "tile",
+            locked: false,
+            hidden: false,
+            transform: { x: 100, y: 100, scaleX: 1, scaleY: 1, rotation: 0 },
+            data: { assetId: "objects:table", columns: 2, rows: 1 },
+          },
+        ],
+      },
+    });
+    const onSampleAsset = vi.fn();
+    const { result } = renderHook(() =>
+      useMapEditTool({
+        mapEditMode: true,
+        activeSubTool: "place",
+        controller,
+        liveDocumentId: "live",
+        floorFamily: "grass",
+        selectedAssetId: "objects:crate",
+        onSampleAsset,
+        toWorld: identityToWorld,
+        mapTransform: undefined,
+      }),
+    );
+
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Control" })));
+    act(() => result.current.onMouseDown(makeStage({ x: 120, y: 120 }).ref));
+    act(() => window.dispatchEvent(new KeyboardEvent("keyup", { key: "Control" })));
+
+    expect(onSampleAsset).toHaveBeenCalledWith("objects:table");
+    expect(controller.addTile).not.toHaveBeenCalled();
+  });
+
   it("cancels an in-progress drag on Escape without committing", () => {
     const controller = makeController();
     const { result } = renderHook(() =>

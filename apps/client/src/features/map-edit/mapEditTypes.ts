@@ -5,6 +5,14 @@
 // S2 wires only "wall"; the rest are typed now so later slices slot in without
 // widening the union.
 
+import type {
+  MapDoorState,
+  MapElement,
+  MapElementUpdate,
+  MapLayer,
+  MapLayerUpdate,
+} from "@herobyte/shared";
+
 export type MapEditSubTool =
   | "room"
   | "hallway"
@@ -13,7 +21,8 @@ export type MapEditSubTool =
   | "terrain"
   | "erase"
   | "place"
-  | "scatter";
+  | "scatter"
+  | "select";
 
 /** Procedural floor families a room/terrain paints with (VILLAGE_TERRAIN). */
 export type MapEditFloorFamily = "grass" | "dirt" | "path" | "stone-floor" | "wood-floor";
@@ -63,4 +72,17 @@ export interface MapEditToolbarProps {
   onSelectPopulateCategory: (category: PopulateCategory) => void;
   onPopulate: () => void; // fills the last-placed room/hallway with set dressing
   canPopulate: boolean; // a region has been placed and the controller is idle
+  // --- Layers + inspector (select sub-tool) ---
+  saving: boolean;
+  layers: MapLayer[];
+  selectedElement: MapElement | null;
+  onUpdateLayer: (layerId: string, update: MapLayerUpdate) => void;
+  onMoveLayer: (layerId: string, targetIndex: number) => void;
+  onUpdateElement: (elementId: string, update: MapElementUpdate) => void;
+  onUpdateDoor: (elementId: string, update: { state: MapDoorState; width: number }) => void;
+  onRemoveElement: (elementId: string) => void;
+  layersOpen: boolean;
+  onToggleLayers: () => void;
+  inspectorOpen: boolean;
+  onToggleInspector: () => void;
 }

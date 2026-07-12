@@ -39,10 +39,13 @@ export interface MapBoardProps {
   mapEditFloorFamily?: MapEditFloorFamily; // Floor terrain family the room tool paints
   mapEditSelectedAssetId?: string; // Asset the place/scatter tools drop
   mapEditHallwayWidth?: number; // Corridor width in cells for the hallway tool
+  mapEditSelectedElementId?: string | null; // Selected element (select tool) → highlight
   mapEditController?: MapStudioController; // Shared Map Studio controller the tools drive
   mapEditWallsOverlayPinned?: boolean; // Keep the DM walls overlay visible outside map-edit
   onMapEditRoomRejected?: (message: string) => void; // Room drag refused (too large / no layer)
   onMapEditRegionPlaced?: (bounds: RoomBounds) => void; // Room/hallway placed → POPULATE target
+  onMapEditSelectElement?: (elementId: string | null) => void; // Select tool picked an element
+  onMapEditSampleAsset?: (assetId: string) => void; // Eyedropper sampled an asset
   isDM: boolean; // Whether the current user can manage all objects
   alignmentMode: boolean; // Alignment tool active
   alignmentPoints?: AlignmentPoint[]; // Captured alignment points

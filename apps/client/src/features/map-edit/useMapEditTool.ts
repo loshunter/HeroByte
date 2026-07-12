@@ -9,26 +9,19 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type Konva from "konva";
-import {
-  inverseTransformScenePoint,
-  type MapGridSettings,
-  type SceneObjectTransform,
-} from "@herobyte/shared";
-import type { TerrainPaintCell } from "@herobyte/shared";
-import { snapPointToGrid } from "../map-studio/snapToGrid";
+import type { MapGridSettings, SceneObjectTransform, TerrainPaintCell } from "@herobyte/shared";
 import { useTerrainBrush } from "../map-studio/components/useTerrainBrush";
 import type { RoomDrag } from "../map-studio/components/MapStudioWorkspace.types";
 import type { MapStudioController } from "../map-studio/types";
 import type { RoomBounds } from "./roomBuilder";
 import { commitDragTool } from "./commitDragTool";
 import { useMapEditPlacement, type PlacementGhost } from "./useMapEditPlacement";
+import { useMapEditSelection } from "./useMapEditSelection";
+import { usePointerToDoc } from "./usePointerToDoc";
+import type { SelectionRect } from "./elementHitTest";
 import type { MapEditFloorFamily, MapEditSubTool } from "./mapEditTypes";
 
 const NO_OP_PAINT = (_cells: TerrainPaintCell[]) => {};
-
-// Live-authored maps have no raster "map" object, so document space ≡ world
-// space; the hop through the helper keeps tools correct if a raster is present.
-const IDENTITY_TRANSFORM: SceneObjectTransform = { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 };
 
 interface UseMapEditToolOptions {
   mapEditMode: boolean;
@@ -50,6 +43,11 @@ interface UseMapEditToolOptions {
   onRoomRejected?: (message: string) => void;
   /** A room/hallway landed — its bounds become the POPULATE target. */
   onRegionPlaced?: (bounds: RoomBounds) => void;
+  /** Currently-selected element (select sub-tool) — drives the highlight. */
+  selectedElementId?: string | null;
+  onSelectElement?: (elementId: string | null) => void;
+  /** Re-arm the place tool with an eyedropper-sampled asset id. */
+  onSampleAsset?: (assetId: string) => void;
   toWorld: (sx: number, sy: number) => { x: number; y: number };
   mapTransform: SceneObjectTransform | undefined;
 }
@@ -60,6 +58,8 @@ interface UseMapEditToolReturn {
   strokeCells: TerrainPaintCell[];
   /** Translucent placement ghost (place/scatter sub-tools). */
   placementGhost: PlacementGhost | null;
+  /** Highlight footprint around the selected element (select sub-tool). */
+  selectionRect: SelectionRect | null;
   onMouseDown: (stageRef: RefObject<Konva.Stage | null>) => void;
   onMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
   onMouseUp: () => void;
@@ -102,6 +102,9 @@ export function useMapEditTool({
   hallwayWidth = 2,
   onRoomRejected,
   onRegionPlaced,
+  selectedElementId = null,
+  onSelectElement,
+  onSampleAsset,
   toWorld,
   mapTransform,
 }: UseMapEditToolOptions): UseMapEditToolReturn {
@@ -118,7 +121,8 @@ export function useMapEditTool({
   const isDrag = isDragTool(activeSubTool);
   const isBrush = isBrushTool(activeSubTool);
   const isClick = isClickTool(activeSubTool);
-  const active = mapEditMode && (isDrag || isBrush || isClick);
+  const isSelect = activeSubTool === "select";
+  const active = mapEditMode && (isDrag || isBrush || isClick || isSelect);
 
   // The live-bound active document (null when the controller is on a Studio
   // doc) — place/scatter only author here, and the ghost only shows here.
@@ -136,6 +140,13 @@ export function useMapEditTool({
     addTile: controller?.addTile ?? (() => null),
     addStamp: controller?.addStamp ?? (() => null),
     addStamps: controller?.addStamps ?? (() => []),
+  });
+  const selection = useMapEditSelection({
+    active: mapEditMode,
+    document: liveDocument,
+    selectedElementId,
+    onSelectElement: onSelectElement ?? (() => {}),
+    onSampleAsset: onSampleAsset ?? (() => {}),
   });
   // Terrain family "terrain:grass" for the paint brush; null erases.
   const brushAssetId = activeSubTool === "terrain" ? `terrain:${floorFamily}` : null;
@@ -174,28 +185,7 @@ export function useMapEditTool({
     });
   }, []);
 
-  // screen → world → document space (unsnapped).
-  const toDocPoint = useCallback(
-    (stageRef: RefObject<Konva.Stage | null>): { x: number; y: number } | null => {
-      const pointer = stageRef.current?.getPointerPosition();
-      if (!pointer) return null;
-      const world = toWorld(pointer.x, pointer.y);
-      return inverseTransformScenePoint(mapTransform ?? IDENTITY_TRANSFORM, world);
-    },
-    [toWorld, mapTransform],
-  );
-
-  // Document space, grid-snapped — for the two-point drag tools.
-  const toSnappedDocPoint = useCallback(
-    (
-      stageRef: RefObject<Konva.Stage | null>,
-      grid: MapGridSettings,
-    ): { x: number; y: number } | null => {
-      const doc = toDocPoint(stageRef);
-      return doc ? snapPointToGrid(doc, grid) : null;
-    },
-    [toDocPoint],
-  );
+  const { toDocPoint, toSnappedDocPoint } = usePointerToDoc(toWorld, mapTransform);
 
   const onMouseDown = useCallback(
     (stageRef: RefObject<Konva.Stage | null>) => {
@@ -203,18 +193,19 @@ export function useMapEditTool({
       const document = controller?.activeDocument;
       // Author ONLY into the live-bound document — never a stray Studio doc.
       if (!document || document.id !== liveDocumentId) return;
-      if (isClick) {
-        // Click tools drop on pointer-down; the placement hook gates on saving.
+      // Point tools (select / place / scatter / brush) share the unsnapped point.
+      if (isSelect || isClick || isBrush) {
         const point = toDocPoint(stageRef);
         if (!point) return;
-        if (activeSubTool === "scatter") placement.scatter(point);
-        else placement.place(point);
-        return;
-      }
-      if (isBrush) {
-        const point = toDocPoint(stageRef);
-        if (!point) return;
-        brushingRef.current = true;
+        // Select + Ctrl-eyedropper consume the click before any placement/paint.
+        if (selection.handleClick(point, activeSubTool)) return;
+        if (isSelect) return;
+        if (isClick) {
+          if (activeSubTool === "scatter") placement.scatter(point);
+          else placement.place(point);
+          return;
+        }
+        brushingRef.current = true; // terrain/erase brush
         addStrokePoint(point, brushAssetId);
         return;
       }
@@ -228,10 +219,12 @@ export function useMapEditTool({
       controller,
       liveDocumentId,
       activeSubTool,
+      isSelect,
       isClick,
       isBrush,
       brushAssetId,
       placement,
+      selection,
       toDocPoint,
       addStrokePoint,
       toSnappedDocPoint,
@@ -340,6 +333,7 @@ export function useMapEditTool({
     previewDrag,
     strokeCells,
     placementGhost: placement.ghost,
+    selectionRect: selection.selectionRect,
     onMouseDown,
     onMouseMove,
     onMouseUp,

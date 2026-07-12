@@ -102,12 +102,18 @@ export interface CenterCanvasLayoutProps {
   mapEditSelectedAssetId: string;
   /** Corridor width in cells for the hallway tool */
   mapEditHallwayWidth: number;
+  /** Selected element id (select tool) → highlight */
+  mapEditSelectedElementId: string | null;
   /** Keep the DM walls overlay visible outside map-edit mode */
   mapEditWallsOverlayPinned: boolean;
   /** Called when a room drag is refused (too large / no walls layer) */
   onMapEditRoomRejected: (message: string) => void;
   /** Called when a room/hallway lands — records the POPULATE target */
   onMapEditRegionPlaced: (bounds: RoomBounds) => void;
+  /** Called when the select tool picks an element (or clears) */
+  onMapEditSelectElement: (elementId: string | null) => void;
+  /** Called when the eyedropper samples an asset */
+  onMapEditSampleAsset: (assetId: string) => void;
 
   // Selection State (4 props)
   /** Currently selected single object ID (or null if none) */
@@ -224,9 +230,12 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
     mapEditFloorFamily,
     mapEditSelectedAssetId,
     mapEditHallwayWidth,
+    mapEditSelectedElementId,
     mapEditWallsOverlayPinned,
     onMapEditRoomRejected,
     onMapEditRegionPlaced,
+    onMapEditSelectElement,
+    onMapEditSampleAsset,
     selectedObjectId,
     selectedObjectIds,
     onSelectObject,
@@ -296,10 +305,13 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
             mapEditFloorFamily={mapEditFloorFamily}
             mapEditSelectedAssetId={mapEditSelectedAssetId}
             mapEditHallwayWidth={mapEditHallwayWidth}
+            mapEditSelectedElementId={mapEditSelectedElementId}
             mapEditController={mapStudio}
             mapEditWallsOverlayPinned={mapEditWallsOverlayPinned}
             onMapEditRoomRejected={onMapEditRoomRejected}
             onMapEditRegionPlaced={onMapEditRegionPlaced}
+            onMapEditSelectElement={onMapEditSelectElement}
+            onMapEditSampleAsset={onMapEditSampleAsset}
             isDM={isDM}
             alignmentMode={alignmentMode}
             alignmentPoints={alignmentPoints}
