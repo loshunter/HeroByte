@@ -36,6 +36,7 @@ export interface MapBoardProps {
   mapEditMode?: boolean; // Live on-table map authoring active (DM-only)
   mapEditActiveSubTool?: MapEditSubTool; // Selected map-edit sub-tool (wall, …)
   mapEditFloorFamily?: MapEditFloorFamily; // Floor terrain family the room tool paints
+  mapEditSelectedAssetId?: string; // Asset the place/scatter tools drop
   mapEditController?: MapStudioController; // Shared Map Studio controller the tools drive
   mapEditWallsOverlayPinned?: boolean; // Keep the DM walls overlay visible outside map-edit
   onMapEditRoomRejected?: (message: string) => void; // Room drag refused (too large / no layer)

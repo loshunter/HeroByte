@@ -119,6 +119,8 @@ export interface MainLayoutProps {
   mapEditActiveSubTool: MapEditSubTool;
   /** Floor terrain family the room tool paints */
   mapEditFloorFamily: MapEditFloorFamily;
+  /** Asset the place/scatter tools drop */
+  mapEditSelectedAssetId: string;
   /** Keep the DM walls overlay visible outside map-edit mode */
   mapEditWallsOverlayPinned: boolean;
   /** Called when a room drag is refused (too large / no walls layer) */

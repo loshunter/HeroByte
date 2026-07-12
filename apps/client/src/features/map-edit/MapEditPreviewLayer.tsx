@@ -12,6 +12,7 @@ import { Group, Line, Circle, Rect, Text } from "react-konva";
 import type { SceneObjectTransform, TerrainPaintCell } from "@herobyte/shared";
 import type { Camera } from "../map/types";
 import type { RoomDrag } from "../map-studio/components/MapStudioWorkspace.types";
+import type { PlacementGhost } from "./useMapEditPlacement";
 import type { MapEditSubTool } from "./mapEditTypes";
 
 interface MapEditPreviewLayerProps {
@@ -22,6 +23,8 @@ interface MapEditPreviewLayerProps {
   gridSize: number;
   /** In-progress terrain/erase brush cells (translucent cell rects). */
   strokeCells?: TerrainPaintCell[];
+  /** Translucent footprint preview for the place/scatter tools. */
+  placementGhost?: PlacementGhost | null;
   gridOffsetX?: number;
   gridOffsetY?: number;
 }
@@ -36,10 +39,11 @@ export function MapEditPreviewLayer({
   activeSubTool,
   gridSize,
   strokeCells = [],
+  placementGhost = null,
   gridOffsetX = 0,
   gridOffsetY = 0,
 }: MapEditPreviewLayerProps) {
-  if (!previewDrag && strokeCells.length === 0) return null;
+  if (!previewDrag && strokeCells.length === 0 && !placementGhost) return null;
 
   const { x = 0, y = 0, scaleX = 1, scaleY = 1, rotation = 0 } = mapTransform ?? {};
   const strokeWidth = 3 / cam.scale;
@@ -48,6 +52,7 @@ export function MapEditPreviewLayer({
   return (
     <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale} listening={false}>
       <Group x={x} y={y} scaleX={scaleX} scaleY={scaleY} rotation={rotation} listening={false}>
+        {placementGhost && renderGhost(placementGhost, cam.scale)}
         {previewDrag &&
           (activeSubTool === "room"
             ? renderRoom(previewDrag.start, previewDrag.end, gridSize, strokeWidth, dash, cam.scale)
@@ -72,6 +77,28 @@ export function MapEditPreviewLayer({
           />
         ))}
       </Group>
+    </Group>
+  );
+}
+
+/**
+ * The place/scatter ghost: a translucent footprint at the cursor. Nested the
+ * same way MapElementsLayer renders a stamp — a Group at (x,y) rotated in place
+ * — so the preview rotates exactly like the element it becomes.
+ */
+function renderGhost(ghost: PlacementGhost, scale: number) {
+  return (
+    <Group x={ghost.x} y={ghost.y} rotation={ghost.rotation} listening={false}>
+      <Rect
+        width={ghost.width}
+        height={ghost.height}
+        fill={ghost.fill}
+        stroke={ghost.stroke}
+        strokeWidth={2 / scale}
+        opacity={0.5}
+        listening={false}
+        name="map-edit-preview:ghost"
+      />
     </Group>
   );
 }

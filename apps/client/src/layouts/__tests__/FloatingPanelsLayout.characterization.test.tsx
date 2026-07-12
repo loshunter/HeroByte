@@ -254,6 +254,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
     mapEditMode: false,
     mapEditActiveSubTool: "wall" as const,
     mapEditFloorFamily: "grass" as const,
+    mapEditSelectedAssetId: "objects:crate",
     mapEditWallsOverlayPinned: false,
     onMapEditRoomRejected: vi.fn(),
     mapEditToolbarProps: {
@@ -273,6 +274,11 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       error: null,
       wallsOverlayPinned: false,
       onToggleWallsOverlay: vi.fn(),
+      selectedAssetId: "objects:crate",
+      onSelectAsset: vi.fn(),
+      uploadAsset: vi.fn(),
+      assetPickerOpen: false,
+      onToggleAssetPicker: vi.fn(),
     },
 
     // UI State

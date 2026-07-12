@@ -7,6 +7,8 @@
 
 import { DraggableWindow } from "../../components/dice/DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../../components/ui/JRPGPanel";
+import { getMapStudioTileAsset } from "../map-studio/starterTiles";
+import { MapEditAssetPicker } from "./MapEditAssetPicker";
 import type { MapEditFloorFamily, MapEditSubTool, MapEditToolbarProps } from "./mapEditTypes";
 
 const SUB_TOOLS: { id: MapEditSubTool; label: string }[] = [
@@ -15,6 +17,8 @@ const SUB_TOOLS: { id: MapEditSubTool; label: string }[] = [
   { id: "door", label: "🚪 Door" },
   { id: "terrain", label: "🖌️ Paint" },
   { id: "erase", label: "🧹 Erase" },
+  { id: "place", label: "📦 Place" },
+  { id: "scatter", label: "🎲 Scatter" },
 ];
 
 const FLOOR_FAMILIES: { id: MapEditFloorFamily; label: string }[] = [
@@ -48,7 +52,14 @@ export function MapEditToolbar({
   error,
   wallsOverlayPinned,
   onToggleWallsOverlay,
+  selectedAssetId,
+  onSelectAsset,
+  uploadAsset,
+  assetPickerOpen,
+  onToggleAssetPicker,
 }: MapEditToolbarProps) {
+  const placing = activeSubTool === "place" || activeSubTool === "scatter";
+  const selectedAssetName = getMapStudioTileAsset(selectedAssetId).name;
   return (
     <DraggableWindow
       title="🏗️ MAP TOOLS"
@@ -129,6 +140,39 @@ export function MapEditToolbar({
                       </JRPGButton>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {placing && (
+                <div>
+                  <label className="jrpg-text-small" style={labelStyle}>
+                    Asset:
+                  </label>
+                  <JRPGButton
+                    onClick={onToggleAssetPicker}
+                    variant={assetPickerOpen ? "primary" : "default"}
+                    style={{ fontSize: "8px", padding: "6px 4px", width: "100%" }}
+                  >
+                    {assetPickerOpen ? "▾ " : "▸ "}
+                    {selectedAssetName}
+                  </JRPGButton>
+                  {assetPickerOpen && (
+                    <div style={{ marginTop: "4px" }}>
+                      <MapEditAssetPicker
+                        selectedAssetId={selectedAssetId}
+                        onSelectAsset={onSelectAsset}
+                        uploadAsset={uploadAsset}
+                      />
+                    </div>
+                  )}
+                  <p
+                    className="jrpg-text-small"
+                    style={{ margin: "4px 0 0", color: "var(--jrpg-white)", opacity: 0.7 }}
+                  >
+                    {activeSubTool === "place"
+                      ? "Click to place · Alt = free stamp · R rotates"
+                      : "Click to scatter a seeded cluster"}
+                  </p>
                 </div>
               )}
 

@@ -86,6 +86,32 @@ describe("MapEditPreviewLayer", () => {
     expect(lineProps).toHaveLength(0);
   });
 
+  it("draws a translucent rotated ghost footprint for the place tool", () => {
+    render(
+      <MapEditPreviewLayer
+        cam={cam}
+        previewDrag={null}
+        activeSubTool="place"
+        gridSize={50}
+        placementGhost={{
+          x: 175,
+          y: 175,
+          width: 50,
+          height: 50,
+          rotation: 15,
+          fill: "#8c5a2e",
+          stroke: "#d19a5f",
+        }}
+      />,
+    );
+
+    expect(rectProps).toHaveLength(1);
+    expect(rectProps[0]).toMatchObject({ width: 50, height: 50, fill: "#8c5a2e", opacity: 0.5 });
+    // The ghost's own group carries its position + rotation (matches the element).
+    const ghostGroup = groupProps.find((g) => g.x === 175 && g.y === 175 && g.rotation === 15);
+    expect(ghostGroup).toBeDefined();
+  });
+
   it("renders nothing without a preview drag", () => {
     const { container } = render(
       <MapEditPreviewLayer cam={cam} previewDrag={null} activeSubTool="wall" gridSize={50} />,

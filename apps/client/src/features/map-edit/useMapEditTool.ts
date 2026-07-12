@@ -6,7 +6,7 @@
 // to preview state via requestAnimationFrame, and a commit on mouse-up. S2
 // wires the wall sub-tool (a two-point grid-snapped drag → controller.addWall).
 
-import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type Konva from "konva";
 import {
   inverseTransformScenePoint,
@@ -21,6 +21,7 @@ import { useTerrainBrush } from "../map-studio/components/useTerrainBrush";
 import type { RoomDrag, StudioTool } from "../map-studio/components/MapStudioWorkspace.types";
 import type { MapStudioController } from "../map-studio/types";
 import { buildRoomCommand } from "./roomBuilder";
+import { useMapEditPlacement, type PlacementGhost } from "./useMapEditPlacement";
 import type { MapEditFloorFamily, MapEditSubTool } from "./mapEditTypes";
 
 const NO_OP_PAINT = (_cells: TerrainPaintCell[]) => {};
@@ -42,6 +43,8 @@ interface UseMapEditToolOptions {
   liveDocumentId: string | undefined;
   /** Floor terrain family the room sub-tool paints. */
   floorFamily: MapEditFloorFamily;
+  /** Asset the place/scatter sub-tools drop (defaults to a crate). */
+  selectedAssetId?: string;
   /** Surfaced when a room drag is refused (too large / no walls layer). */
   onRoomRejected?: (message: string) => void;
   toWorld: (sx: number, sy: number) => { x: number; y: number };
@@ -52,6 +55,8 @@ interface UseMapEditToolReturn {
   previewDrag: RoomDrag | null;
   /** In-progress terrain/erase brush cells (for the live preview). */
   strokeCells: TerrainPaintCell[];
+  /** Translucent placement ghost (place/scatter sub-tools). */
+  placementGhost: PlacementGhost | null;
   onMouseDown: (stageRef: RefObject<Konva.Stage | null>) => void;
   onMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
   onMouseUp: () => void;
@@ -65,6 +70,11 @@ function isDragTool(subTool: MapEditSubTool): boolean {
 /** Terrain + erase are pointer-STREAM brushes (paint cells while the pointer is down). */
 function isBrushTool(subTool: MapEditSubTool): boolean {
   return subTool === "terrain" || subTool === "erase";
+}
+
+/** Place + scatter are click tools: one pointer-down drops (no drag, no stream). */
+function isClickTool(subTool: MapEditSubTool): boolean {
+  return subTool === "place" || subTool === "scatter";
 }
 
 /**
@@ -83,6 +93,7 @@ export function useMapEditTool({
   controller,
   liveDocumentId,
   floorFamily,
+  selectedAssetId = "objects:crate",
   onRoomRejected,
   toWorld,
   mapTransform,
@@ -99,7 +110,27 @@ export function useMapEditTool({
 
   const isDrag = isDragTool(activeSubTool);
   const isBrush = isBrushTool(activeSubTool);
-  const active = mapEditMode && (isDrag || isBrush);
+  const isClick = isClickTool(activeSubTool);
+  const active = mapEditMode && (isDrag || isBrush || isClick);
+
+  // The live-bound active document (null when the shared controller is on a
+  // Studio doc) — the placement ghost only shows over the doc that will receive
+  // the drop, and place/scatter only author there.
+  const activeDoc = controller?.activeDocument ?? null;
+  const liveDocument = useMemo(
+    () => (activeDoc && activeDoc.id === liveDocumentId ? activeDoc : null),
+    [activeDoc, liveDocumentId],
+  );
+  const placement = useMapEditPlacement({
+    active: mapEditMode && isClick,
+    subTool: activeSubTool,
+    document: liveDocument,
+    selectedAssetId,
+    saving: Boolean(controller?.saving),
+    addTile: controller?.addTile ?? (() => null),
+    addStamp: controller?.addStamp ?? (() => null),
+    addStamps: controller?.addStamps ?? (() => []),
+  });
   // Terrain family "terrain:grass" for the paint brush; null erases.
   const brushAssetId = activeSubTool === "terrain" ? `terrain:${floorFamily}` : null;
 
@@ -168,6 +199,15 @@ export function useMapEditTool({
       // Author ONLY into the live-bound document. A Studio document left active
       // in the shared controller must never receive a live-tool edit.
       if (!document || document.id !== liveDocumentId) return;
+      if (isClick) {
+        // Click tools drop on pointer-down (no drag); the placement hook gates
+        // on `saving` internally.
+        const point = toDocPoint(stageRef);
+        if (!point) return;
+        if (activeSubTool === "scatter") placement.scatter(point);
+        else placement.place(point);
+        return;
+      }
       if (isBrush) {
         const point = toDocPoint(stageRef);
         if (!point) return;
@@ -185,8 +225,10 @@ export function useMapEditTool({
       controller,
       liveDocumentId,
       activeSubTool,
+      isClick,
       isBrush,
       brushAssetId,
+      placement,
       toDocPoint,
       addStrokePoint,
       toSnappedDocPoint,
@@ -198,6 +240,12 @@ export function useMapEditTool({
       if (!active) return;
       const document = controller?.activeDocument;
       if (!document) return;
+      if (isClick) {
+        // Track the cursor so the placement ghost follows it (the ghost itself
+        // only paints over the live-bound doc — see useMapEditPlacement).
+        placement.updateCursor(toDocPoint(stageRef));
+        return;
+      }
       if (isBrush) {
         if (!brushingRef.current) return;
         const point = toDocPoint(stageRef);
@@ -214,8 +262,10 @@ export function useMapEditTool({
       active,
       controller,
       activeSubTool,
+      isClick,
       isBrush,
       brushAssetId,
+      placement,
       toDocPoint,
       addStrokePoint,
       toSnappedDocPoint,
@@ -283,5 +333,12 @@ export function useMapEditTool({
     return () => window.removeEventListener("keydown", onKeyDown, { capture: true });
   }, [active, clearDrag]);
 
-  return { previewDrag, strokeCells, onMouseDown, onMouseMove, onMouseUp };
+  return {
+    previewDrag,
+    strokeCells,
+    placementGhost: placement.ghost,
+    onMouseDown,
+    onMouseMove,
+    onMouseUp,
+  };
 }

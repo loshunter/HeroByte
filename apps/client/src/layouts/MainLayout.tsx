@@ -70,6 +70,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     mapEditMode,
     mapEditActiveSubTool,
     mapEditFloorFamily,
+    mapEditSelectedAssetId,
     mapEditWallsOverlayPinned,
     onMapEditRoomRejected,
     mapEditToolbarProps,
@@ -278,6 +279,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         mapEditMode={mapEditMode}
         mapEditActiveSubTool={mapEditActiveSubTool}
         mapEditFloorFamily={mapEditFloorFamily}
+        mapEditSelectedAssetId={mapEditSelectedAssetId}
         mapEditWallsOverlayPinned={mapEditWallsOverlayPinned}
         onMapEditRoomRejected={onMapEditRoomRejected}
         selectedObjectId={selectedObjectId}

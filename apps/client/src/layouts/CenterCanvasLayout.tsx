@@ -97,6 +97,8 @@ export interface CenterCanvasLayoutProps {
   mapEditActiveSubTool: MapEditSubTool;
   /** Floor terrain family the room tool paints */
   mapEditFloorFamily: MapEditFloorFamily;
+  /** Asset the place/scatter tools drop */
+  mapEditSelectedAssetId: string;
   /** Keep the DM walls overlay visible outside map-edit mode */
   mapEditWallsOverlayPinned: boolean;
   /** Called when a room drag is refused (too large / no walls layer) */
@@ -215,6 +217,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
     mapEditMode,
     mapEditActiveSubTool,
     mapEditFloorFamily,
+    mapEditSelectedAssetId,
     mapEditWallsOverlayPinned,
     onMapEditRoomRejected,
     selectedObjectId,
@@ -284,6 +287,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
             mapEditMode={mapEditMode}
             mapEditActiveSubTool={mapEditActiveSubTool}
             mapEditFloorFamily={mapEditFloorFamily}
+            mapEditSelectedAssetId={mapEditSelectedAssetId}
             mapEditController={mapStudio}
             mapEditWallsOverlayPinned={mapEditWallsOverlayPinned}
             onMapEditRoomRejected={onMapEditRoomRejected}

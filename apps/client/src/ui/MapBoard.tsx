@@ -90,6 +90,7 @@ export default function MapBoard({
   mapEditMode = false,
   mapEditActiveSubTool = "wall",
   mapEditFloorFamily = "grass",
+  mapEditSelectedAssetId = "objects:crate",
   mapEditController,
   mapEditWallsOverlayPinned = false,
   onMapEditRoomRejected,
@@ -274,6 +275,7 @@ export default function MapBoard({
   const {
     previewDrag: mapEditPreviewDrag,
     strokeCells: mapEditStrokeCells,
+    placementGhost: mapEditPlacementGhost,
     onMouseDown: handleMapEditMouseDown,
     onMouseMove: handleMapEditMouseMove,
     onMouseUp: handleMapEditMouseUp,
@@ -283,6 +285,7 @@ export default function MapBoard({
     controller: mapEditController,
     liveDocumentId: snapshot?.liveMapDocumentId,
     floorFamily: mapEditFloorFamily,
+    selectedAssetId: mapEditSelectedAssetId,
     onRoomRejected: onMapEditRoomRejected,
     toWorld,
     mapTransform: mapObject?.transform,
@@ -710,6 +713,7 @@ export default function MapBoard({
             gridOffsetX={mapEditController?.activeDocument?.grid.offsetX ?? 0}
             gridOffsetY={mapEditController?.activeDocument?.grid.offsetY ?? 0}
             strokeCells={mapEditStrokeCells}
+            placementGhost={mapEditPlacementGhost}
           />
         </Layer>
 

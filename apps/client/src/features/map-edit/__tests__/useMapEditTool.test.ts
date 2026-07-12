@@ -39,12 +39,36 @@ function makeDocument(): MapDocument {
   };
 }
 
+// makeDocument plus an unlocked "objects" layer so the place/scatter tools have
+// a matching-kind placement target.
+function makeObjectsDocument(): MapDocument {
+  const base = makeDocument();
+  return {
+    ...base,
+    layers: [
+      {
+        id: "objects",
+        name: "Objects",
+        kind: "objects",
+        visible: true,
+        locked: false,
+        opacity: 1,
+        zIndex: 20,
+      },
+      ...base.layers,
+    ],
+  };
+}
+
 function makeController(overrides: Partial<MapStudioController> = {}): MapStudioController {
   return {
     activeDocument: makeDocument(),
     saving: false,
     addWall: vi.fn(() => "wall-1"),
     addDoor: vi.fn(() => "door-1"),
+    addTile: vi.fn(() => "tile-1"),
+    addStamp: vi.fn(() => "stamp-1"),
+    addStamps: vi.fn(() => ["stamp-1"]),
     placeRoom: vi.fn(),
     paintTerrain: vi.fn(),
     ...overrides,
@@ -350,6 +374,132 @@ describe("useMapEditTool", () => {
 
     expect(controller.addWall).not.toHaveBeenCalled();
     expect(result.current.previewDrag).toBeNull();
+  });
+
+  it("places a grid-snapped tile on a click with the place tool", () => {
+    const controller = makeController({ activeDocument: makeObjectsDocument() });
+    const { result } = renderHook(() =>
+      useMapEditTool({
+        mapEditMode: true,
+        activeSubTool: "place",
+        controller,
+        liveDocumentId: "live",
+        floorFamily: "grass",
+        selectedAssetId: "objects:crate",
+        toWorld: identityToWorld,
+        mapTransform: undefined,
+      }),
+    );
+
+    // Click near (110,90) snaps to the 50-grid cell origin (100,100).
+    act(() => result.current.onMouseDown(makeStage({ x: 110, y: 90 }).ref));
+
+    expect(controller.addTile).toHaveBeenCalledTimes(1);
+    expect(controller.addTile).toHaveBeenCalledWith({
+      layerId: "objects",
+      assetId: "objects:crate",
+      x: 100,
+      y: 100,
+      columns: 1,
+      rows: 1,
+    });
+    expect(controller.addStamp).not.toHaveBeenCalled();
+  });
+
+  it("Alt+click free-places a rotated stamp (R steps 15°)", () => {
+    const controller = makeController({ activeDocument: makeObjectsDocument() });
+    const { result } = renderHook(() =>
+      useMapEditTool({
+        mapEditMode: true,
+        activeSubTool: "place",
+        controller,
+        liveDocumentId: "live",
+        floorFamily: "grass",
+        selectedAssetId: "objects:crate",
+        toWorld: identityToWorld,
+        mapTransform: undefined,
+      }),
+    );
+
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "r" })));
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Alt" })));
+    act(() => result.current.onMouseDown(makeStage({ x: 200, y: 200 }).ref));
+    act(() => window.dispatchEvent(new KeyboardEvent("keyup", { key: "Alt" })));
+
+    expect(controller.addTile).not.toHaveBeenCalled();
+    expect(controller.addStamp).toHaveBeenCalledWith({
+      layerId: "objects",
+      assetId: "objects:crate",
+      x: 175, // 200 - 50/2
+      y: 175,
+      width: 50,
+      height: 50,
+      rotation: 15,
+    });
+  });
+
+  it("scatters a seeded cluster as ONE add-elements command", () => {
+    const controller = makeController({ activeDocument: makeObjectsDocument() });
+    const { result } = renderHook(() =>
+      useMapEditTool({
+        mapEditMode: true,
+        activeSubTool: "scatter",
+        controller,
+        liveDocumentId: "live",
+        floorFamily: "grass",
+        selectedAssetId: "objects:crate",
+        toWorld: identityToWorld,
+        mapTransform: undefined,
+      }),
+    );
+
+    act(() => result.current.onMouseDown(makeStage({ x: 300, y: 300 }).ref));
+
+    expect(controller.addStamps).toHaveBeenCalledTimes(1);
+    const drafts = (controller.addStamps as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(drafts.length).toBeGreaterThan(0);
+    expect(controller.addTile).not.toHaveBeenCalled();
+  });
+
+  it("skips a placement while the controller is saving", () => {
+    const controller = makeController({ activeDocument: makeObjectsDocument(), saving: true });
+    const { result } = renderHook(() =>
+      useMapEditTool({
+        mapEditMode: true,
+        activeSubTool: "place",
+        controller,
+        liveDocumentId: "live",
+        floorFamily: "grass",
+        selectedAssetId: "objects:crate",
+        toWorld: identityToWorld,
+        mapTransform: undefined,
+      }),
+    );
+
+    act(() => result.current.onMouseDown(makeStage({ x: 100, y: 100 }).ref));
+
+    expect(controller.addTile).not.toHaveBeenCalled();
+  });
+
+  it("does not place into a non-live active document", () => {
+    const controller = makeController({ activeDocument: makeObjectsDocument() });
+    const { result } = renderHook(() =>
+      useMapEditTool({
+        mapEditMode: true,
+        activeSubTool: "place",
+        controller,
+        liveDocumentId: "some-other-doc",
+        floorFamily: "grass",
+        selectedAssetId: "objects:crate",
+        toWorld: identityToWorld,
+        mapTransform: undefined,
+      }),
+    );
+
+    act(() => result.current.onMouseDown(makeStage({ x: 100, y: 100 }).ref));
+
+    expect(controller.addTile).not.toHaveBeenCalled();
+    expect(result.current.placementGhost).toBeNull();
   });
 
   it("cancels an in-progress drag on Escape without committing", () => {

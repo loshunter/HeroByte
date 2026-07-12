@@ -32,12 +32,16 @@ interface UseMapEditStateReturn {
   activeSubTool: MapEditSubTool;
   /** Floor terrain family the room sub-tool paints. */
   floorFamily: MapEditFloorFamily;
+  /** Asset the place/scatter sub-tools drop (fed to the tool + preview). */
+  selectedAssetId: string;
   /** Keep the DM walls overlay visible even outside map-edit mode. */
   wallsOverlayPinned: boolean;
   toolbarProps: MapEditToolbarProps;
 }
 
 const LIVE_MAP_SIZE = 8192;
+/** A crate is the friendliest first set-dressing default. */
+const DEFAULT_ASSET_ID = "objects:crate";
 
 export function useMapEditState({
   controller,
@@ -51,6 +55,8 @@ export function useMapEditState({
 }: UseMapEditStateOptions): UseMapEditStateReturn {
   const [activeSubTool, setActiveSubTool] = useState<MapEditSubTool>("wall");
   const [floorFamily, setFloorFamily] = useState<MapEditFloorFamily>("grass");
+  const [selectedAssetId, setSelectedAssetId] = useState<string>(DEFAULT_ASSET_ID);
+  const [assetPickerOpen, setAssetPickerOpen] = useState(false);
   // The id of a document we just created and are waiting to activate before
   // binding it live (createDocument returns synchronously, but the controller
   // no-ops every action until the server's map-studio-document reply lands).
@@ -131,6 +137,7 @@ export function useMapEditState({
 
   const onClose = useCallback(() => setActiveTool(null), [setActiveTool]);
   const onToggleWallsOverlay = useCallback(() => setWallsOverlayPinned((pinned) => !pinned), []);
+  const onToggleAssetPicker = useCallback(() => setAssetPickerOpen((open) => !open), []);
 
   const toolbarProps: MapEditToolbarProps = {
     isLive,
@@ -149,7 +156,12 @@ export function useMapEditState({
     error: controller.error,
     wallsOverlayPinned,
     onToggleWallsOverlay,
+    selectedAssetId,
+    onSelectAsset: setSelectedAssetId,
+    uploadAsset: controller.uploadAsset,
+    assetPickerOpen,
+    onToggleAssetPicker,
   };
 
-  return { activeSubTool, floorFamily, wallsOverlayPinned, toolbarProps };
+  return { activeSubTool, floorFamily, selectedAssetId, wallsOverlayPinned, toolbarProps };
 }

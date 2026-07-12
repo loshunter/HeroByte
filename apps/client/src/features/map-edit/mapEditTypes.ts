@@ -5,7 +5,7 @@
 // S2 wires only "wall"; the rest are typed now so later slices slot in without
 // widening the union.
 
-export type MapEditSubTool = "room" | "wall" | "door" | "terrain" | "erase";
+export type MapEditSubTool = "room" | "wall" | "door" | "terrain" | "erase" | "place" | "scatter";
 
 /** Procedural floor families a room/terrain paints with (VILLAGE_TERRAIN). */
 export type MapEditFloorFamily = "grass" | "dirt" | "path" | "stone-floor" | "wood-floor";
@@ -32,4 +32,12 @@ export interface MapEditToolbarProps {
   error: string | null;
   wallsOverlayPinned: boolean; // keep the DM walls overlay visible outside map-edit
   onToggleWallsOverlay: () => void;
+  // --- Placement (place / scatter sub-tools) ---
+  selectedAssetId: string; // the asset the place/scatter tools drop
+  onSelectAsset: (assetId: string) => void;
+  uploadAsset: (
+    file: File,
+  ) => Promise<import("../map-studio/uploads/assetUpload").UploadedAssetInfo>;
+  assetPickerOpen: boolean;
+  onToggleAssetPicker: () => void;
 }
