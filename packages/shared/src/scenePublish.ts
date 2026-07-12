@@ -17,7 +17,12 @@
 // authored state changed and the stale non-secret runtime state is discarded.
 
 import type { CompiledDoorState, CompiledScene } from "./sceneCompiler.js";
-import type { MapDocument } from "./mapStudioTypes.js";
+import type {
+  MapDocument,
+  MapElement,
+  MapElementsSnapshot,
+  RenderableMapElement,
+} from "./mapStudioTypes.js";
 
 /**
  * Rebuild `next` (a freshly compiled scene, whose door states are the authored
@@ -75,4 +80,81 @@ export function authoredDoorStatesOf(document: MapDocument): Map<string, Compile
     }
   }
   return states;
+}
+
+/**
+ * Derive the player-safe scenery (tiles/stamps/shapes/visible text) from a
+ * live-bound document, ready to attach to EVERY recipient's snapshot. This is a
+ * hard privacy contract — nothing a player must not see may survive it — and it
+ * is the OPPOSITE of the compiler's visibility rule (which ignores layer
+ * visibility for blocking geometry): here an invisible layer renders NOTHING.
+ *
+ * Excluded, each with an adversarial test:
+ * - `element.hidden`
+ * - every element on a layer with `visible === false`
+ * - every element on a layer of kind `"notes"` (GM-only)
+ * - `text` with `data.visibleToPlayers === false`
+ * - `wall` / `door` / `light` kinds (walls are DM-overlay + blocking; doors ride
+ *   compiledScene; lights don't render at the table yet)
+ *
+ * Emits only non-empty layers, in `zIndex` order, each carrying its `opacity`;
+ * deep-cloned so a later document edit can't mutate a broadcast payload through
+ * a shared reference. Returns undefined when nothing is visible.
+ */
+export function deriveMapElements(document: MapDocument): MapElementsSnapshot | undefined {
+  const layersById = new Map(document.layers.map((layer) => [layer.id, layer]));
+  const byLayer = new Map<string, RenderableMapElement[]>();
+  for (const element of document.elements) {
+    if (element.hidden) continue;
+    const layer = layersById.get(element.layerId);
+    if (!layer || !layer.visible || layer.kind === "notes") continue;
+    const renderable = toRenderable(element);
+    if (!renderable) continue; // wall/door/light, or player-private text
+    const bucket = byLayer.get(layer.id);
+    if (bucket) bucket.push(renderable);
+    else byLayer.set(layer.id, [renderable]);
+  }
+
+  const layers = document.layers
+    .filter((layer) => byLayer.has(layer.id))
+    .sort((a, b) => a.zIndex - b.zIndex)
+    .map((layer) => ({ opacity: layer.opacity, elements: byLayer.get(layer.id)! }));
+  if (layers.length === 0) return undefined;
+
+  return structuredClone({
+    grid: {
+      size: document.grid.size,
+      offsetX: document.grid.offsetX,
+      offsetY: document.grid.offsetY,
+    },
+    layers,
+  });
+}
+
+/** Narrow one authored element to its player-safe render form, or null when the
+ * kind never renders at the table (wall/door/light) or the text is GM-private.
+ * The `data` reference is shared here; deriveMapElements deep-clones the result. */
+function toRenderable(element: MapElement): RenderableMapElement | null {
+  switch (element.type) {
+    case "tile":
+      return { id: element.id, type: "tile", transform: element.transform, data: element.data };
+    case "stamp":
+      return { id: element.id, type: "stamp", transform: element.transform, data: element.data };
+    case "shape":
+      return { id: element.id, type: "shape", transform: element.transform, data: element.data };
+    case "text":
+      if (!element.data.visibleToPlayers) return null;
+      return {
+        id: element.id,
+        type: "text",
+        transform: element.transform,
+        data: {
+          text: element.data.text,
+          color: element.data.color,
+          fontSize: element.data.fontSize,
+        },
+      };
+    default:
+      return null; // wall / door / light — never scenery at the table
+  }
 }

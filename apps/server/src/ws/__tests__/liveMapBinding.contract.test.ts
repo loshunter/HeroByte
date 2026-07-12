@@ -18,6 +18,9 @@ import type {
   ClientMessage,
   MapDoorElement,
   MapDoorState,
+  MapElement,
+  MapTextElement,
+  MapTileElement,
   MapWallElement,
   RoomSnapshot,
   ServerMessage,
@@ -113,6 +116,41 @@ function doorElement(id: string, state: MapDoorState = "closed"): MapDoorElement
   };
 }
 
+// A tile on the visible default "objects" layer (player-safe scenery).
+function tileElement(id: string): MapTileElement {
+  return {
+    id,
+    layerId: "objects",
+    type: "tile",
+    locked: false,
+    hidden: false,
+    transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+    data: { assetId: "tile:crate", columns: 2, rows: 2 },
+  };
+}
+
+function textElement(
+  id: string,
+  text: string,
+  visibleToPlayers: boolean,
+  layerId = "objects",
+): MapTextElement {
+  return {
+    id,
+    layerId,
+    type: "text",
+    locked: false,
+    hidden: false,
+    transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+    data: { text, color: "#ffffff", fontSize: 24, visibleToPlayers },
+  };
+}
+
+/** The raw string payloads sent to a socket — for grepping the wire for leaks. */
+function rawFramesOf(socket: FakeSocket): string[] {
+  return socket.send.mock.calls.map(([payload]) => payload as string);
+}
+
 describe("live-bound document contracts", () => {
   let router: MessageRouter;
   let roomService: RoomService;
@@ -169,7 +207,7 @@ describe("live-bound document contracts", () => {
   function addElement(
     documentId: string,
     baseRevision: number,
-    element: MapWallElement | MapDoorElement,
+    element: MapElement,
     commandId: string,
   ): void {
     route(
@@ -308,5 +346,44 @@ describe("live-bound document contracts", () => {
     // No live binding → no recompile, no room broadcast; the table never learns.
     expect(snapshotsOf(playerWs)).toHaveLength(0);
     expect(roomService.getState().compiledScene).toBeUndefined();
+  });
+
+  it("attaches live-authored scenery to the player snapshot with no publish", async () => {
+    createDoc("live");
+    route({ t: "map-studio-set-live", documentId: "live" }, DM);
+    playerWs.send.mockClear();
+
+    addElement("live", 0, tileElement("crate-1"), "cmd-tile");
+    await flush();
+
+    const elements = latestSnapshot(playerWs)?.mapElements;
+    expect(elements).toBeDefined();
+    const ids = elements!.layers.flatMap((layer) => layer.elements.map((e) => e.id));
+    expect(ids).toContain("crate-1");
+  });
+
+  it("never leaks GM-only text to a player's frame or snapshot", async () => {
+    createDoc("live");
+    route({ t: "map-studio-set-live", documentId: "live" }, DM);
+    playerWs.send.mockClear();
+
+    // Three texts in one document: a player-private one (objects layer), a
+    // GM note (notes layer, even though flagged visible), and a public one.
+    addElement("live", 0, textElement("t-private", "VAULT-CODE-4271", false), "c1");
+    addElement("live", 1, textElement("t-note", "AMBUSH-AT-DAWN", true, "notes"), "c2");
+    addElement("live", 2, textElement("t-shown", "Welcome to the Keep", true), "c3");
+    await flush();
+
+    // The player's raw wire frames carry NO trace of the secret strings...
+    const raw = rawFramesOf(playerWs).join("\n");
+    expect(raw).not.toContain("VAULT-CODE-4271");
+    expect(raw).not.toContain("AMBUSH-AT-DAWN");
+    // ...but the public text did arrive.
+    expect(raw).toContain("Welcome to the Keep");
+
+    const ids = latestSnapshot(playerWs)?.mapElements?.layers.flatMap((layer) =>
+      layer.elements.map((e) => e.id),
+    );
+    expect(ids).toEqual(["t-shown"]);
   });
 });

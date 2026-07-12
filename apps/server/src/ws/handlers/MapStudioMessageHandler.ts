@@ -2,6 +2,7 @@ import {
   MapDocumentRevisionConflictError,
   authoredDoorStatesOf,
   compileScene,
+  deriveMapElements,
   preserveDoorRuntimeStates,
   toLiveGridSize,
   type ClientMessage,
@@ -116,6 +117,10 @@ export class MapStudioMessageHandler {
         const state = this.getRoomState(roomId);
         state.mapBackground = message.background;
         state.mapTerrain = deriveMapTerrain(document, message.backgroundMode);
+        // A publish bakes elements into the background (raster or SVG), so the
+        // data-element channel must be cleared — otherwise a room that was live-
+        // bound would keep rendering its stale mapElements OVER the new raster.
+        state.mapElements = undefined;
         state.gridSize = toLiveGridSize(document.grid.size);
         state.gridSquareSize = document.grid.squareSize;
         state.compiledScene = compileScene(document, this.now());
@@ -178,6 +183,9 @@ export class MapStudioMessageHandler {
       ? preserveDoorRuntimeStates(state.compiledScene, compiled, authoredDoorStatesOf(previous))
       : compiled;
     state.mapTerrain = deriveMapTerrain(document, "elements-only");
+    // Player-safe scenery (tiles/stamps/shapes/visible text) as data — privacy
+    // rules applied in deriveMapElements, so it ships to every recipient.
+    state.mapElements = deriveMapElements(document);
     state.gridSize = toLiveGridSize(document.grid.size);
     state.gridSquareSize = document.grid.squareSize;
   }

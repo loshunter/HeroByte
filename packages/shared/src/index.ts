@@ -4,7 +4,12 @@
 // These types are shared between the client and server to ensure type safety
 // across the WebSocket communication layer and data structures.
 
-import type { CreateMapDocumentInput, MapDocument, MapDocumentSummary } from "./mapStudioTypes.js";
+import type {
+  CreateMapDocumentInput,
+  MapDocument,
+  MapDocumentSummary,
+  MapElementsSnapshot,
+} from "./mapStudioTypes.js";
 import type { MapStudioCommand } from "./mapStudioCommands.js";
 import type { CompiledDoorState, CompiledScene } from "./sceneCompiler.js";
 import type { TerrainMap } from "./terrain.js";
@@ -372,6 +377,7 @@ export interface RoomSnapshot {
   currentTurnCharacterId?: string; // Character ID of whose turn it currently is
   compiledScene?: CompiledScene; // Play-surface geometry compiled at Map Studio publish (secret doors stripped for players)
   mapTerrain?: MapTerrainSnapshot; // Painted terrain published as data (only when the background is elements-only)
+  mapElements?: MapElementsSnapshot; // Player-safe live-authored scenery (tiles/stamps/shapes/visible text); privacy-filtered, sent to ALL recipients
   liveMapDocumentId?: string; // DM-only: the map document auto-compiled into the live scene on every command (absent for players)
   fogEnabled?: boolean; // Whether fog of war hides the map beyond player token sightlines
   assets?: SnapshotAsset[];

@@ -5,6 +5,7 @@
 export { GridLayer } from "./GridLayer";
 export { MapImageLayer } from "./MapImageLayer";
 export { TerrainLayer } from "./TerrainLayer";
+export { MapElementsLayer } from "./MapElementsLayer";
 export { DoorsLayer } from "./DoorsLayer";
 export { FogLayer } from "./FogLayer";
 export { TokensLayer } from "./TokensLayer";

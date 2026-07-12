@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { brotliCompressSync, gzipSync } from "node:zlib";
-import { createTerrainMap, setTerrainCells, type CompiledScene } from "@herobyte/shared";
+import {
+  createTerrainMap,
+  setTerrainCells,
+  type CompiledScene,
+  type MapElementsSnapshot,
+  type RenderableMapElement,
+} from "@herobyte/shared";
 import { RoomService, SNAPSHOT_SIZE_LIMIT_BYTES } from "../service.js";
 
 describe("Snapshot compression guard", () => {
@@ -76,6 +82,63 @@ describe("Snapshot compression guard", () => {
       compiledScene,
       mapTerrain: { terrain, grid: { size: 50, offsetX: 0, offsetY: 0 }, opacity: 1 },
     });
+
+    const payload = Buffer.from(JSON.stringify(service.createSnapshot()), "utf8");
+
+    expect(gzipSync(payload).length).toBeLessThan(SNAPSHOT_SIZE_LIMIT_BYTES);
+    expect(brotliCompressSync(payload).length).toBeLessThan(SNAPSHOT_SIZE_LIMIT_BYTES);
+  });
+
+  it("keeps 500 mixed live-authored elements (tiles/stamps/shapes/text) under the guard", () => {
+    const elements: RenderableMapElement[] = Array.from({ length: 500 }, (_, i) => {
+      const transform = { x: i * 3, y: i * 2, scaleX: 1, scaleY: 1, rotation: 0 };
+      switch (i % 4) {
+        case 0:
+          return {
+            id: `t-${i}`,
+            type: "tile",
+            transform,
+            data: { assetId: "tile:crate", columns: 1, rows: 1 },
+          };
+        case 1:
+          return {
+            id: `s-${i}`,
+            type: "stamp",
+            transform,
+            data: { assetId: `upload:${i}`, width: 64, height: 64 },
+          };
+        case 2:
+          return {
+            id: `sh-${i}`,
+            type: "shape",
+            transform,
+            data: {
+              shape: "rectangle",
+              points: [
+                { x: 0, y: 0 },
+                { x: 30, y: 30 },
+              ],
+              stroke: "#ffffff",
+              strokeWidth: 2,
+              opacity: 1,
+            },
+          };
+        default:
+          return {
+            id: `x-${i}`,
+            type: "text",
+            transform,
+            data: { text: `Label ${i}`, color: "#ffffff", fontSize: 16 },
+          };
+      }
+    });
+    const mapElements: MapElementsSnapshot = {
+      grid: { size: 50, offsetX: 0, offsetY: 0 },
+      layers: [{ opacity: 1, elements }],
+    };
+
+    const service = new RoomService();
+    service.setState({ liveMapDocumentId: "live-doc", mapElements });
 
     const payload = Buffer.from(JSON.stringify(service.createSnapshot()), "utf8");
 

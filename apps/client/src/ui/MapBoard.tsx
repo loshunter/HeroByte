@@ -39,6 +39,7 @@ import {
   GridLayer,
   MapImageLayer,
   TerrainLayer,
+  MapElementsLayer,
   DoorsLayer,
   FogLayer,
   TokensLayer,
@@ -554,6 +555,15 @@ export default function MapBoard({
             onNodeReady={handleMapNodeReady}
             onClick={transformMode ? handleMapClick : undefined}
           />
+          {/* Live-authored scenery (privacy-filtered server-side) draws ABOVE
+              terrain + any raster background, UNDER the grid. Inert to input. */}
+          {snapshot?.mapElements && (
+            <MapElementsLayer
+              cam={cam}
+              mapElements={snapshot.mapElements}
+              mapTransform={mapObject?.transform}
+            />
+          )}
           {grid.show && (
             <GridLayer
               cam={cam}

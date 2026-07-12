@@ -106,6 +106,35 @@ export type MapElement =
   | MapLightElement
   | MapTextElement;
 
+/**
+ * A map element narrowed to what ANY player may safely see rendered at the live
+ * table: the scenery kinds (tile / stamp / shape / text) carrying only render
+ * fields. The DM-only kinds (wall / door / light), the privacy flags (`hidden`,
+ * text `visibleToPlayers`), and layer bookkeeping (`layerId`, `locked`) are gone
+ * BY CONSTRUCTION — a value of this type has nothing left to strip. Produced
+ * only by `deriveMapElements`, which applies the render-privacy rules.
+ */
+export type RenderableMapElement =
+  | { id: string; type: "tile"; transform: MapElementTransform; data: MapTileElement["data"] }
+  | { id: string; type: "stamp"; transform: MapElementTransform; data: MapStampElement["data"] }
+  | { id: string; type: "shape"; transform: MapElementTransform; data: MapShapeElement["data"] }
+  | {
+      id: string;
+      type: "text";
+      transform: MapElementTransform;
+      data: { text: string; color: string; fontSize: number };
+    };
+
+/**
+ * The player-safe element layers derived from a live-bound document — in
+ * `zIndex` order, each carrying its layer `opacity`. Shares the document's grid
+ * lattice because tiles are sized in grid cells (like MapTerrainSnapshot).
+ */
+export interface MapElementsSnapshot {
+  grid: { size: number; offsetX: number; offsetY: number };
+  layers: Array<{ opacity: number; elements: RenderableMapElement[] }>;
+}
+
 export interface MapDocument {
   schemaVersion: typeof MAP_DOCUMENT_SCHEMA_VERSION;
   id: string;
