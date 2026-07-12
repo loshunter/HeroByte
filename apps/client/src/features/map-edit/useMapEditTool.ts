@@ -45,9 +45,9 @@ interface UseMapEditToolReturn {
   onMouseUp: () => void;
 }
 
-/** S2 handles the wall sub-tool; S3 adds "door" through the same drag machine. */
+/** Wall + door are both two-point segment drags through the same drag machine. */
 function isSegmentTool(subTool: MapEditSubTool): boolean {
-  return subTool === "wall";
+  return subTool === "wall" || subTool === "door";
 }
 
 export function useMapEditTool({

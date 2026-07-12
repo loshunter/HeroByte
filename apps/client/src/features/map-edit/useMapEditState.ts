@@ -27,6 +27,8 @@ interface UseMapEditStateOptions {
 
 interface UseMapEditStateReturn {
   activeSubTool: MapEditSubTool;
+  /** Keep the DM walls overlay visible even outside map-edit mode. */
+  wallsOverlayPinned: boolean;
   toolbarProps: MapEditToolbarProps;
 }
 
@@ -51,6 +53,9 @@ export function useMapEditState({
   // between "set-live sent" and "snapshot confirms", so a double-click would
   // create a second orphan "Live Map" document.
   const [awaitingLiveBind, setAwaitingLiveBind] = useState(false);
+  // Pin the DM-only walls overlay so it stays visible after leaving map-edit
+  // mode (in map-edit it always shows; the pin persists it beyond that).
+  const [wallsOverlayPinned, setWallsOverlayPinned] = useState(false);
 
   // Stable controller methods (useCallback-memoized inside useMapStudio); the
   // controller OBJECT is recreated each render, so depend on these, not it.
@@ -96,6 +101,7 @@ export function useMapEditState({
   }, [mapEditMode, liveMapDocumentId, pendingLiveId, loading, activeId, openDocument]);
 
   const onClose = useCallback(() => setActiveTool(null), [setActiveTool]);
+  const onToggleWallsOverlay = useCallback(() => setWallsOverlayPinned((pinned) => !pinned), []);
 
   const toolbarProps: MapEditToolbarProps = {
     isLive,
@@ -110,7 +116,9 @@ export function useMapEditState({
     onClose,
     hasRasterBackground,
     error: controller.error,
+    wallsOverlayPinned,
+    onToggleWallsOverlay,
   };
 
-  return { activeSubTool, toolbarProps };
+  return { activeSubTool, wallsOverlayPinned, toolbarProps };
 }

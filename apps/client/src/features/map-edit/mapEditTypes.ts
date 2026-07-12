@@ -28,4 +28,6 @@ export interface MapEditToolbarProps {
   onClose: () => void;
   hasRasterBackground: boolean; // hint: live terrain may double-draw over a raster
   error: string | null;
+  wallsOverlayPinned: boolean; // keep the DM walls overlay visible outside map-edit
+  onToggleWallsOverlay: () => void;
 }

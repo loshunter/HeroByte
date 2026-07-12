@@ -697,6 +697,7 @@ function AuthenticatedApp({
     mapStudioMode,
     mapEditMode,
     mapEditActiveSubTool: mapEdit.activeSubTool,
+    mapEditWallsOverlayPinned: mapEdit.wallsOverlayPinned,
     mapEditToolbarProps: mapEdit.toolbarProps,
     // UI state
     snapToGrid,

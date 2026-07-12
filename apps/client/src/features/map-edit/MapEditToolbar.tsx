@@ -9,7 +9,10 @@ import { DraggableWindow } from "../../components/dice/DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../../components/ui/JRPGPanel";
 import type { MapEditSubTool, MapEditToolbarProps } from "./mapEditTypes";
 
-const SUB_TOOLS: { id: MapEditSubTool; label: string }[] = [{ id: "wall", label: "🧱 Wall" }];
+const SUB_TOOLS: { id: MapEditSubTool; label: string }[] = [
+  { id: "wall", label: "🧱 Wall" },
+  { id: "door", label: "🚪 Door" },
+];
 
 const labelStyle = {
   display: "block",
@@ -30,6 +33,8 @@ export function MapEditToolbar({
   onClose,
   hasRasterBackground,
   error,
+  wallsOverlayPinned,
+  onToggleWallsOverlay,
 }: MapEditToolbarProps) {
   return (
     <DraggableWindow
@@ -112,6 +117,15 @@ export function MapEditToolbar({
                   ↷ Redo
                 </JRPGButton>
               </div>
+
+              <JRPGButton
+                onClick={onToggleWallsOverlay}
+                variant={wallsOverlayPinned ? "primary" : "default"}
+                title="Keep the walls overlay visible after leaving map-edit (always shown while editing)"
+                style={{ fontSize: "8px", padding: "6px" }}
+              >
+                {wallsOverlayPinned ? "📐 Walls: pinned" : "📐 Pin walls overlay"}
+              </JRPGButton>
 
               {hasRasterBackground && (
                 <p

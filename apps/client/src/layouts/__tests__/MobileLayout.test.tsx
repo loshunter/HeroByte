@@ -102,6 +102,7 @@ describe("MobileLayout", () => {
     openMapStudio: vi.fn(),
     mapEditMode: false,
     mapEditActiveSubTool: "wall" as const,
+    mapEditWallsOverlayPinned: false,
     mapEditToolbarProps: {
       isLive: false,
       busy: false,
@@ -115,6 +116,8 @@ describe("MobileLayout", () => {
       onClose: vi.fn(),
       hasRasterBackground: false,
       error: null,
+      wallsOverlayPinned: false,
+      onToggleWallsOverlay: vi.fn(),
     },
     snapToGrid: true,
     setSnapToGrid: vi.fn(),

@@ -95,6 +95,8 @@ export interface CenterCanvasLayoutProps {
   mapEditMode: boolean;
   /** Selected map-edit sub-tool (wall, …) */
   mapEditActiveSubTool: MapEditSubTool;
+  /** Keep the DM walls overlay visible outside map-edit mode */
+  mapEditWallsOverlayPinned: boolean;
 
   // Selection State (4 props)
   /** Currently selected single object ID (or null if none) */
@@ -208,6 +210,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
     mapStudioMode,
     mapEditMode,
     mapEditActiveSubTool,
+    mapEditWallsOverlayPinned,
     selectedObjectId,
     selectedObjectIds,
     onSelectObject,
@@ -275,6 +278,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
             mapEditMode={mapEditMode}
             mapEditActiveSubTool={mapEditActiveSubTool}
             mapEditController={mapStudio}
+            mapEditWallsOverlayPinned={mapEditWallsOverlayPinned}
             isDM={isDM}
             alignmentMode={alignmentMode}
             alignmentPoints={alignmentPoints}

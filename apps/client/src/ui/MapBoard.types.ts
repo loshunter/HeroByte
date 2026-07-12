@@ -36,6 +36,7 @@ export interface MapBoardProps {
   mapEditMode?: boolean; // Live on-table map authoring active (DM-only)
   mapEditActiveSubTool?: MapEditSubTool; // Selected map-edit sub-tool (wall, …)
   mapEditController?: MapStudioController; // Shared Map Studio controller the tools drive
+  mapEditWallsOverlayPinned?: boolean; // Keep the DM walls overlay visible outside map-edit
   isDM: boolean; // Whether the current user can manage all objects
   alignmentMode: boolean; // Alignment tool active
   alignmentPoints?: AlignmentPoint[]; // Captured alignment points

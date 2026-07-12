@@ -253,6 +253,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
     openMapStudio: vi.fn(),
     mapEditMode: false,
     mapEditActiveSubTool: "wall" as const,
+    mapEditWallsOverlayPinned: false,
     mapEditToolbarProps: {
       isLive: false,
       busy: false,
@@ -266,6 +267,8 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       onClose: vi.fn(),
       hasRasterBackground: false,
       error: null,
+      wallsOverlayPinned: false,
+      onToggleWallsOverlay: vi.fn(),
     },
 
     // UI State

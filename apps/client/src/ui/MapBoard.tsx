@@ -55,6 +55,7 @@ import {
 import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 import { useMapEditTool } from "../features/map-edit/useMapEditTool";
 import { MapEditPreviewLayer } from "../features/map-edit/MapEditPreviewLayer";
+import { WallsOverlayLayer } from "../features/map-edit/WallsOverlayLayer";
 import type { CameraCommand, MapBoardProps, SelectionRequestOptions } from "./MapBoard.types";
 import { STATUS_OPTIONS, type StatusOption } from "../features/players/constants/statusOptions";
 
@@ -88,6 +89,7 @@ export default function MapBoard({
   mapEditMode = false,
   mapEditActiveSubTool = "wall",
   mapEditController,
+  mapEditWallsOverlayPinned = false,
   isDM,
   alignmentMode,
   alignmentPoints = [],
@@ -565,6 +567,14 @@ export default function MapBoard({
               isDM={isDM}
               onToggleDoor={handleToggleDoor}
               onSetDoorState={handleSetDoorState}
+            />
+          )}
+          {/* DM-only walls overlay: shown while authoring, or pinned to persist. */}
+          {isDM && (mapEditMode || mapEditWallsOverlayPinned) && snapshot?.compiledScene && (
+            <WallsOverlayLayer
+              cam={cam}
+              mapTransform={mapObject?.transform}
+              walls={snapshot.compiledScene.walls}
             />
           )}
         </Layer>

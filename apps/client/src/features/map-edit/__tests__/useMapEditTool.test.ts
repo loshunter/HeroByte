@@ -92,6 +92,39 @@ describe("useMapEditTool", () => {
     });
   });
 
+  it("places a door with width + rotation from a diagonal drag", () => {
+    const controller = makeController();
+    const { result } = renderHook(() =>
+      useMapEditTool({
+        mapEditMode: true,
+        activeSubTool: "door",
+        controller,
+        liveDocumentId: "live",
+        toWorld: identityToWorld,
+        mapTransform: undefined,
+      }),
+    );
+
+    // (100,100) snaps to (100,100); (140,130) snaps to (150,150) on the 50-grid.
+    act(() => result.current.onMouseDown(makeStage({ x: 100, y: 100 }).ref));
+    act(() => result.current.onMouseMove(makeStage({ x: 140, y: 130 }).ref));
+    act(() => result.current.onMouseUp());
+
+    expect(controller.addWall).not.toHaveBeenCalled();
+    expect(controller.addDoor).toHaveBeenCalledTimes(1);
+    const draft = (controller.addDoor as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(draft).toMatchObject({
+      layerId: "walls",
+      x: 100,
+      y: 100,
+      rotation: 45, // atan2(50,50) = 45°
+      state: "closed", // authored closed on purpose
+      blocksMovement: true,
+      blocksVision: true,
+    });
+    expect(draft.width).toBeCloseTo(Math.hypot(50, 50), 5);
+  });
+
   it("applies the inverse map transform before snapping (non-identity)", () => {
     const controller = makeController();
     const { result } = renderHook(() =>

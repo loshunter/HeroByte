@@ -113,6 +113,8 @@ export interface MainLayoutProps {
   mapEditMode: boolean;
   /** Selected map-edit sub-tool (wall, …) */
   mapEditActiveSubTool: MapEditSubTool;
+  /** Keep the DM walls overlay visible outside map-edit mode */
+  mapEditWallsOverlayPinned: boolean;
   /** Props for the lazy-loaded map-edit palette */
   mapEditToolbarProps: MapEditToolbarProps;
 
