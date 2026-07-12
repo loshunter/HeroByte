@@ -24,6 +24,7 @@ import { usePointerTool } from "../hooks/usePointerTool.js";
 import { useDrawingTool } from "../hooks/useDrawingTool.js";
 import { useDrawingSelection } from "../hooks/useDrawingSelection.js";
 import { useElementSize } from "../hooks/useElementSize.js";
+import { useDevicePixelRatio } from "../hooks/useDevicePixelRatio";
 import { useGridConfig } from "../hooks/useGridConfig.js";
 import { useCursorStyle } from "../hooks/useCursorStyle.js";
 import { useSceneObjectsData } from "../hooks/useSceneObjectsData.js";
@@ -126,6 +127,10 @@ export default function MapBoard({
 
   const { ref, w, h } = useElementSize<HTMLDivElement>();
   const stageRef = useRef<Konva.Stage | null>(null);
+  // Render the stage's backing store at native device resolution (crisp on
+  // retina/mobile) — the terrain bake stays document-px, so Konva blits it into
+  // this DPR-scaled context without inflating the bake's own memory caps.
+  const pixelRatio = useDevicePixelRatio();
 
   const { sceneObjects, mapObject, drawingObjects, stagingZoneObject, stagingZoneDimensions } =
     useSceneObjectsData(snapshot, gridSize);
@@ -540,6 +545,7 @@ export default function MapBoard({
         ref={stageRef}
         width={w}
         height={h}
+        pixelRatio={pixelRatio}
         onWheel={(e) => handleWheel(e, stageRef)}
         onClick={onStageClick}
         onTap={onTap}
