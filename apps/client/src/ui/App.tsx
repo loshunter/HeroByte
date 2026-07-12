@@ -41,6 +41,7 @@ import { MainLayout } from "../layouts/MainLayout";
 import { MobileLayout } from "../layouts/MobileLayout";
 import { DMElevationModal } from "../features/dm/components/DMElevationModal";
 import { useMapStudio } from "../features/map-studio";
+import { useMapEditState } from "../features/map-edit/useMapEditState";
 import { useDoorSfx, useJuiceRuntime, useTurnChime } from "../features/juice";
 
 // ----------------------------------------------------------------------------
@@ -155,6 +156,7 @@ function AuthenticatedApp({
     selectMode,
     alignmentMode,
     mapStudioMode,
+    mapEditMode,
   } = useToolMode();
 
   const openMapStudio = useCallback(() => {
@@ -288,6 +290,17 @@ function AuthenticatedApp({
 
   // Server event handlers (room password, DM elevation)
   const mapStudio = useMapStudio(sendMessage, getAuthCredentials, isConnected);
+  // Live on-table map authoring: drives the ONE controller above (never a second
+  // useMapStudio — two queues would revision-conflict).
+  const mapEdit = useMapEditState({
+    controller: mapStudio,
+    sendMessage,
+    mapEditMode,
+    setActiveTool,
+    liveMapDocumentId: snapshot?.liveMapDocumentId,
+    roomGridSize: snapshot?.gridSize ?? 50,
+    hasRasterBackground: Boolean(snapshot?.mapBackground),
+  });
   const {
     roomPasswordStatus,
     roomPasswordPending,
@@ -682,6 +695,9 @@ function AuthenticatedApp({
     selectMode,
     alignmentMode,
     mapStudioMode,
+    mapEditMode,
+    mapEditActiveSubTool: mapEdit.activeSubTool,
+    mapEditToolbarProps: mapEdit.toolbarProps,
     // UI state
     snapToGrid,
     setSnapToGrid,

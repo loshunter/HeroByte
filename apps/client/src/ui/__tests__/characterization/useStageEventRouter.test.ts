@@ -34,6 +34,9 @@ describe("useStageEventRouter", () => {
   const mockHandleMarqueePointerMove = vi.fn();
   const mockHandleCameraMouseUp = vi.fn();
   const mockHandleDrawMouseUp = vi.fn();
+  const mockHandleMapEditMouseDown = vi.fn();
+  const mockHandleMapEditMouseMove = vi.fn();
+  const mockHandleMapEditMouseUp = vi.fn();
   const mockHandleMarqueePointerUp = vi.fn();
   const mockHandleTouchStart = vi.fn();
   const mockHandleTouchMove = vi.fn();
@@ -48,17 +51,21 @@ describe("useStageEventRouter", () => {
     pointerMode: false,
     measureMode: false,
     drawMode: false,
+    mapEditMode: false,
     handleAlignmentClick: mockHandleAlignmentClick,
     handlePointerClick: mockHandlePointerClick,
     handleCameraMouseDown: mockHandleCameraMouseDown,
     handleDrawMouseDown: mockHandleDrawMouseDown,
+    handleMapEditMouseDown: mockHandleMapEditMouseDown,
     handleMarqueePointerDown: mockHandleMarqueePointerDown,
     handleCameraMouseMove: mockHandleCameraMouseMove,
     handlePointerMouseMove: mockHandlePointerMouseMove,
     handleDrawMouseMove: mockHandleDrawMouseMove,
+    handleMapEditMouseMove: mockHandleMapEditMouseMove,
     handleMarqueePointerMove: mockHandleMarqueePointerMove,
     handleCameraMouseUp: mockHandleCameraMouseUp,
     handleDrawMouseUp: mockHandleDrawMouseUp,
+    handleMapEditMouseUp: mockHandleMapEditMouseUp,
     handleMarqueePointerUp: mockHandleMarqueePointerUp,
     handleTouchStart: mockHandleTouchStart,
     handleTouchMove: mockHandleTouchMove,
@@ -335,6 +342,39 @@ describe("useStageEventRouter", () => {
       result.current.onMouseDown(mockEvent);
 
       expect(mockHandleCameraMouseDown).toHaveBeenCalledWith(mockEvent, mockStageRef, false);
+    });
+  });
+
+  describe("map-edit mode routing", () => {
+    it("disables panning and drives the map-edit down/move/up handlers", () => {
+      const { result } = renderHook(() =>
+        useStageEventRouter({ ...defaultProps, mapEditMode: true }),
+      );
+
+      const mockEvent = {} as KonvaEventObject<PointerEvent>;
+      result.current.onMouseDown(mockEvent);
+      result.current.onMouseMove();
+      result.current.onMouseUp();
+
+      expect(mockHandleCameraMouseDown).toHaveBeenCalledWith(mockEvent, mockStageRef, false);
+      expect(mockHandleMapEditMouseDown).toHaveBeenCalledWith(mockStageRef);
+      expect(mockHandleMapEditMouseMove).toHaveBeenCalledWith(mockStageRef);
+      expect(mockHandleMapEditMouseUp).toHaveBeenCalled();
+    });
+
+    it("does not clear selection on a stage click while map-edit is active", () => {
+      const { result } = renderHook(() =>
+        useStageEventRouter({ ...defaultProps, mapEditMode: true }),
+      );
+
+      const stage = {};
+      const mockEvent = {
+        target: { getStage: () => stage },
+      } as unknown as KonvaEventObject<MouseEvent>;
+      result.current.onStageClick(mockEvent);
+
+      expect(mockOnSelectObject).not.toHaveBeenCalled();
+      expect(mockDeselectIfEmpty).not.toHaveBeenCalled();
     });
   });
 

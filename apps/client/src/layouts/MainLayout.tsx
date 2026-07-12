@@ -67,6 +67,9 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     alignmentMode,
     mapStudioMode,
     openMapStudio,
+    mapEditMode,
+    mapEditActiveSubTool,
+    mapEditToolbarProps,
 
     // UI state
     snapToGrid,
@@ -231,6 +234,8 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         isConnected={isConnected}
         drawMode={drawMode}
         drawingToolbarProps={drawingToolbarProps}
+        mapEditMode={mapEditMode}
+        mapEditToolbarProps={mapEditToolbarProps}
         uid={uid}
         activeTool={activeTool}
         setActiveTool={setActiveTool}
@@ -267,6 +272,8 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         selectMode={selectMode}
         alignmentMode={alignmentMode}
         mapStudioMode={mapStudioMode}
+        mapEditMode={mapEditMode}
+        mapEditActiveSubTool={mapEditActiveSubTool}
         selectedObjectId={selectedObjectId}
         selectedObjectIds={selectedObjectIds}
         onSelectObject={handleObjectSelection}

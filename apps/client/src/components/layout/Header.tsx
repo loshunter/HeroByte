@@ -16,6 +16,7 @@ export type ToolMode =
   | "select"
   | "align"
   | "map-studio"
+  | "map-edit"
   | null;
 
 interface HeaderProps {
@@ -60,6 +61,7 @@ export const Header: React.FC<HeaderProps> = ({
   const transformMode = activeTool === "transform";
   const selectMode = activeTool === "select";
   const mapStudioMode = activeTool === "map-studio";
+  const mapEditMode = activeTool === "map-edit";
 
   return (
     <div
@@ -181,6 +183,17 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 🖱️ Select
               </JRPGButton>
+
+              {isDM && (
+                <JRPGButton
+                  onClick={() => onToolSelect(mapEditMode ? null : "map-edit")}
+                  variant={mapEditMode ? "primary" : "default"}
+                  style={{ fontSize: "8px", padding: "4px 10px" }}
+                  title="Author the live map on the table"
+                >
+                  🏗️ Map
+                </JRPGButton>
+              )}
 
               {isDM && (
                 <JRPGButton

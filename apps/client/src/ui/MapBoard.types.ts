@@ -1,6 +1,8 @@
 import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import type { Camera } from "../hooks/useCamera";
+import type { MapStudioController } from "../features/map-studio/types";
+import type { MapEditSubTool } from "../features/map-edit/mapEditTypes";
 
 /**
  * Camera command for programmatic camera control.
@@ -31,6 +33,9 @@ export interface MapBoardProps {
   drawMode: boolean; // Draw tool active
   transformMode: boolean; // Transform tool active (gizmo mode)
   selectMode: boolean; // Selection tool active
+  mapEditMode?: boolean; // Live on-table map authoring active (DM-only)
+  mapEditActiveSubTool?: MapEditSubTool; // Selected map-edit sub-tool (wall, …)
+  mapEditController?: MapStudioController; // Shared Map Studio controller the tools drive
   isDM: boolean; // Whether the current user can manage all objects
   alignmentMode: boolean; // Alignment tool active
   alignmentPoints?: AlignmentPoint[]; // Captured alignment points

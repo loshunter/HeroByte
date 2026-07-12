@@ -53,6 +53,8 @@ import {
   MarqueeOverlay,
 } from "../features/map/components";
 import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
+import { useMapEditTool } from "../features/map-edit/useMapEditTool";
+import { MapEditPreviewLayer } from "../features/map-edit/MapEditPreviewLayer";
 import type { CameraCommand, MapBoardProps, SelectionRequestOptions } from "./MapBoard.types";
 import { STATUS_OPTIONS, type StatusOption } from "../features/players/constants/statusOptions";
 
@@ -83,6 +85,9 @@ export default function MapBoard({
   drawMode,
   transformMode,
   selectMode,
+  mapEditMode = false,
+  mapEditActiveSubTool = "wall",
+  mapEditController,
   isDM,
   alignmentMode,
   alignmentPoints = [],
@@ -260,6 +265,20 @@ export default function MapBoard({
     drawingObjects,
   });
 
+  // Live map-edit tool (wall drag → controller.addWall). Self-gates on mode.
+  const {
+    previewDrag: mapEditPreviewDrag,
+    onMouseDown: handleMapEditMouseDown,
+    onMouseMove: handleMapEditMouseMove,
+    onMouseUp: handleMapEditMouseUp,
+  } = useMapEditTool({
+    mapEditMode,
+    activeSubTool: mapEditActiveSubTool,
+    controller: mapEditController,
+    toWorld,
+    mapTransform: mapObject?.transform,
+  });
+
   // Token interaction
   const [hoveredTokenId, setHoveredTokenId] = useState<string | null>(null);
   useEffect(() => {
@@ -337,17 +356,21 @@ export default function MapBoard({
     pointerMode,
     measureMode,
     drawMode,
+    mapEditMode,
     handleAlignmentClick,
     handlePointerClick,
     handleCameraMouseDown,
     handleDrawMouseDown,
+    handleMapEditMouseDown,
     handleMarqueePointerDown,
     handleCameraMouseMove,
     handlePointerMouseMove,
     handleDrawMouseMove,
+    handleMapEditMouseMove,
     handleMarqueePointerMove,
     handleCameraMouseUp,
     handleDrawMouseUp,
+    handleMapEditMouseUp,
     handleMarqueePointerUp,
     handleTouchStart: handleCameraTouchStart,
     handleTouchMove: handleCameraTouchMove,
@@ -368,9 +391,10 @@ export default function MapBoard({
     measureMode,
     drawMode,
     selectMode,
+    mapEditMode,
   });
 
-  const tokenInteractionsEnabled = !drawMode;
+  const tokenInteractionsEnabled = !drawMode && !mapEditMode;
   const dragPreviewEnabled = ENABLE_DRAG_PREVIEWS;
 
   const handleDragPreview = useCallback(
@@ -648,6 +672,12 @@ export default function MapBoard({
             alignmentPreviewLine={alignmentPreviewLine}
             alignmentSuggestionLine={alignmentSuggestionLine}
             cam={cam}
+          />
+          <MapEditPreviewLayer
+            cam={cam}
+            mapTransform={mapObject?.transform}
+            previewDrag={mapEditPreviewDrag}
+            activeSubTool={mapEditActiveSubTool}
           />
         </Layer>
 

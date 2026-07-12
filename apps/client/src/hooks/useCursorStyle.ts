@@ -6,6 +6,7 @@ export type CursorStyleOptions = {
   measureMode: boolean;
   drawMode: boolean;
   selectMode: boolean;
+  mapEditMode?: boolean;
 };
 
 /**
@@ -22,14 +23,15 @@ export type CursorStyleOptions = {
  * ```
  */
 export function useCursorStyle(options: CursorStyleOptions): string {
-  const { isPanning, pointerMode, measureMode, drawMode, selectMode } = options;
+  const { isPanning, pointerMode, measureMode, drawMode, selectMode, mapEditMode } = options;
 
   return useMemo(() => {
     if (isPanning) return "grabbing";
     if (pointerMode) return "none";
     if (measureMode) return "crosshair";
     if (drawMode) return "crosshair";
+    if (mapEditMode) return "crosshair";
     if (selectMode) return "default";
     return "grab";
-  }, [isPanning, pointerMode, measureMode, drawMode, selectMode]);
+  }, [isPanning, pointerMode, measureMode, drawMode, selectMode, mapEditMode]);
 }

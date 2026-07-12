@@ -22,6 +22,7 @@ import type {
   PlayerStagingZone,
 } from "@herobyte/shared";
 import type { MapStudioController } from "../../features/map-studio";
+import type { MapEditSubTool, MapEditToolbarProps } from "../../features/map-edit/mapEditTypes";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../types/alignment";
 import type { RollResult } from "../../components/dice/types";
 import type { UseDrawingStateManagerReturn } from "../../hooks/useDrawingStateManager";
@@ -108,6 +109,12 @@ export interface MainLayoutProps {
   mapStudioMode: boolean;
   /** Handler to enter full-canvas Map Studio mode */
   openMapStudio: () => void;
+  /** Whether live on-table map-edit mode is active */
+  mapEditMode: boolean;
+  /** Selected map-edit sub-tool (wall, …) */
+  mapEditActiveSubTool: MapEditSubTool;
+  /** Props for the lazy-loaded map-edit palette */
+  mapEditToolbarProps: MapEditToolbarProps;
 
   // -------------------------------------------------------------------------
   // UI State

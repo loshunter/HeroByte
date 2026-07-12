@@ -165,6 +165,22 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
     alignmentMode: false,
     mapStudioMode: false,
     openMapStudio: vi.fn(),
+    mapEditMode: false,
+    mapEditActiveSubTool: "wall" as const,
+    mapEditToolbarProps: {
+      isLive: false,
+      busy: false,
+      activeSubTool: "wall" as const,
+      onSelectSubTool: vi.fn(),
+      canUndo: false,
+      canRedo: false,
+      onUndo: vi.fn(),
+      onRedo: vi.fn(),
+      onStartLiveMap: vi.fn(),
+      onClose: vi.fn(),
+      hasRasterBackground: false,
+      error: null,
+    },
 
     // UI State
     snapToGrid: true,

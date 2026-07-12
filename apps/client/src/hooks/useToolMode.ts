@@ -68,6 +68,11 @@ export interface UseToolModeReturn {
    * True if full-canvas map authoring is active
    */
   mapStudioMode: boolean;
+
+  /**
+   * True if live map-edit mode (on-table authoring) is active
+   */
+  mapEditMode: boolean;
 }
 
 /**
@@ -118,6 +123,7 @@ export function useToolMode(): UseToolModeReturn {
   const selectMode = activeTool === "select";
   const alignmentMode = activeTool === "align";
   const mapStudioMode = activeTool === "map-studio";
+  const mapEditMode = activeTool === "map-edit";
 
   // Handle Escape key to clear active tool
   useEffect(() => {
@@ -145,5 +151,6 @@ export function useToolMode(): UseToolModeReturn {
     selectMode,
     alignmentMode,
     mapStudioMode,
+    mapEditMode,
   };
 }

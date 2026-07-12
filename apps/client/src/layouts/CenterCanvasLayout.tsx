@@ -27,6 +27,7 @@ import type { CameraCommand } from "../ui/MapBoard";
 import type { UseDrawingStateManagerReturn } from "../hooks/useDrawingStateManager";
 import { MapLoading } from "../components/ui/MapLoading";
 import type { MapStudioController } from "../features/map-studio";
+import type { MapEditSubTool } from "../features/map-edit/mapEditTypes";
 
 // Lazy load MapBoard to reduce initial bundle size
 const MapBoard = React.lazy(() => import("../ui/MapBoard"));
@@ -90,6 +91,10 @@ export interface CenterCanvasLayoutProps {
   alignmentMode: boolean;
   /** Whether full-canvas map authoring is active */
   mapStudioMode: boolean;
+  /** Whether live on-table map-edit mode is active */
+  mapEditMode: boolean;
+  /** Selected map-edit sub-tool (wall, …) */
+  mapEditActiveSubTool: MapEditSubTool;
 
   // Selection State (4 props)
   /** Currently selected single object ID (or null if none) */
@@ -201,6 +206,8 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
     selectMode,
     alignmentMode,
     mapStudioMode,
+    mapEditMode,
+    mapEditActiveSubTool,
     selectedObjectId,
     selectedObjectIds,
     onSelectObject,
@@ -265,6 +272,9 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
             drawMode={drawMode}
             transformMode={transformMode}
             selectMode={selectMode}
+            mapEditMode={mapEditMode}
+            mapEditActiveSubTool={mapEditActiveSubTool}
+            mapEditController={mapStudio}
             isDM={isDM}
             alignmentMode={alignmentMode}
             alignmentPoints={alignmentPoints}

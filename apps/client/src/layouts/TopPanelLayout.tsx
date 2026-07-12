@@ -16,9 +16,10 @@
  * internal state, following separation of concerns principles.
  */
 
-import React from "react";
+import React, { Suspense } from "react";
 import type { ToolMode } from "../components/layout/Header";
 import type { UseDrawingStateManagerReturn } from "../hooks/useDrawingStateManager";
+import type { MapEditToolbarProps } from "../features/map-edit/mapEditTypes";
 import { ServerStatus } from "../components/layout/ServerStatus";
 import { DrawingToolbar } from "../features/drawing/components";
 import { Header } from "../components/layout/Header";
@@ -26,6 +27,12 @@ import { MultiSelectToolbar } from "../components/layout/MultiSelectToolbar";
 
 // Type alias for drawing toolbar props
 type DrawingToolbarProps = UseDrawingStateManagerReturn["toolbarProps"];
+
+// Lazy-load the map-edit palette so it stays out of the entry chunk (Golden
+// Rule #7 — only the DM who opens map-edit mode loads it).
+const MapEditToolbar = React.lazy(() =>
+  import("../features/map-edit/MapEditToolbar").then((m) => ({ default: m.MapEditToolbar })),
+);
 
 /**
  * Props for the TopPanelLayout component
@@ -49,6 +56,10 @@ export interface TopPanelLayoutProps {
   drawMode: boolean;
   /** Props to pass to the DrawingToolbar component */
   drawingToolbarProps: DrawingToolbarProps;
+  /** Whether live map-edit mode is active */
+  mapEditMode: boolean;
+  /** Props to pass to the (lazy) MapEditToolbar palette */
+  mapEditToolbarProps: MapEditToolbarProps;
 
   // ===== Header & Controls (3 props) =====
   /** Unique identifier for the current user */
@@ -108,6 +119,8 @@ export const TopPanelLayout = React.memo<TopPanelLayoutProps>(
     isConnected,
     drawMode,
     drawingToolbarProps,
+    mapEditMode,
+    mapEditToolbarProps,
     uid,
     activeTool,
     setActiveTool,
@@ -133,6 +146,13 @@ export const TopPanelLayout = React.memo<TopPanelLayoutProps>(
 
         {/* Drawing Toolbar - Fixed on left side when draw mode is active */}
         {drawMode && <DrawingToolbar {...drawingToolbarProps} />}
+
+        {/* Map-edit palette - DM-only, lazy-loaded when map-edit mode is active */}
+        {mapEditMode && isDM && (
+          <Suspense fallback={null}>
+            <MapEditToolbar {...mapEditToolbarProps} />
+          </Suspense>
+        )}
 
         {/* Header - Fixed at top */}
         <Header

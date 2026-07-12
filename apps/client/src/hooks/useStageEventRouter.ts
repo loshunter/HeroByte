@@ -33,6 +33,7 @@ export interface UseStageEventRouterProps {
   pointerMode: boolean;
   measureMode: boolean;
   drawMode: boolean;
+  mapEditMode: boolean;
 
   // Click handlers
   handleAlignmentClick: (event: KonvaEventObject<MouseEvent | PointerEvent>) => void;
@@ -45,17 +46,20 @@ export interface UseStageEventRouterProps {
     shouldPan: boolean,
   ) => void;
   handleDrawMouseDown: (stageRef: RefObject<Konva.Stage | null>) => void;
+  handleMapEditMouseDown: (stageRef: RefObject<Konva.Stage | null>) => void;
   handleMarqueePointerDown: (event: KonvaEventObject<PointerEvent>) => void;
 
   // Mouse move handlers
   handleCameraMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
   handlePointerMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
   handleDrawMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
+  handleMapEditMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
   handleMarqueePointerMove: () => void;
 
   // Mouse up handlers
   handleCameraMouseUp: () => void;
   handleDrawMouseUp: () => void;
+  handleMapEditMouseUp: () => void;
   handleMarqueePointerUp: () => void;
 
   // Touch handlers
@@ -147,17 +151,21 @@ export function useStageEventRouter({
   pointerMode,
   measureMode,
   drawMode,
+  mapEditMode,
   handleAlignmentClick,
   handlePointerClick,
   handleCameraMouseDown,
   handleDrawMouseDown,
+  handleMapEditMouseDown,
   handleMarqueePointerDown,
   handleCameraMouseMove,
   handlePointerMouseMove,
   handleDrawMouseMove,
+  handleMapEditMouseMove,
   handleMarqueePointerMove,
   handleCameraMouseUp,
   handleDrawMouseUp,
+  handleMapEditMouseUp,
   handleMarqueePointerUp,
   handleTouchStart,
   handleTouchMove,
@@ -170,6 +178,10 @@ export function useStageEventRouter({
 }: UseStageEventRouterProps): UseStageEventRouterReturn {
   // Use the useDoubleTap hook for unified double-tap detection
   const detectDoubleTap = useDoubleTap({ onDoubleTap: handleDoubleTap });
+
+  // Camera pans (mouse or touch) only when no placement tool owns the pointer.
+  const shouldPan =
+    !alignmentMode && !pointerMode && !measureMode && !drawMode && !selectMode && !mapEditMode;
 
   /** Unified stage click handler (routes based on tool priority) */
   const onStageClick = useCallback(
@@ -187,6 +199,9 @@ export function useStageEventRouter({
       if (selectMode) {
         return;
       }
+
+      // Map-edit places via mouse down/up; a click must not clear selection.
+      if (mapEditMode) return;
 
       // Priority 3: No tools active - clear selection
       if (!pointerMode && !measureMode && !drawMode) {
@@ -210,6 +225,7 @@ export function useStageEventRouter({
       pointerMode,
       measureMode,
       drawMode,
+      mapEditMode,
       handleAlignmentClick,
       handlePointerClick,
       onSelectObject,
@@ -235,22 +251,17 @@ export function useStageEventRouter({
   /** Unified mouse down handler (delegates to camera/draw/marquee) */
   const onMouseDown = useCallback(
     (event: KonvaEventObject<PointerEvent>) => {
-      // Calculate shouldPan: only pan when no tools are active
-      const shouldPan = !alignmentMode && !pointerMode && !measureMode && !drawMode && !selectMode;
-
-      // Delegate to all handlers
+      // Delegate to all handlers (each self-gates on its own mode)
       handleCameraMouseDown(event, stageRef, shouldPan);
       handleDrawMouseDown(stageRef);
+      handleMapEditMouseDown(stageRef);
       handleMarqueePointerDown(event);
     },
     [
-      alignmentMode,
-      pointerMode,
-      measureMode,
-      drawMode,
-      selectMode,
+      shouldPan,
       handleCameraMouseDown,
       handleDrawMouseDown,
+      handleMapEditMouseDown,
       handleMarqueePointerDown,
       stageRef,
     ],
@@ -261,11 +272,13 @@ export function useStageEventRouter({
     handleCameraMouseMove(stageRef);
     handlePointerMouseMove(stageRef);
     handleDrawMouseMove(stageRef);
+    handleMapEditMouseMove(stageRef);
     handleMarqueePointerMove();
   }, [
     handleCameraMouseMove,
     handlePointerMouseMove,
     handleDrawMouseMove,
+    handleMapEditMouseMove,
     handleMarqueePointerMove,
     stageRef,
   ]);
@@ -274,21 +287,27 @@ export function useStageEventRouter({
   const onMouseUp = useCallback(() => {
     handleCameraMouseUp();
     handleDrawMouseUp();
+    handleMapEditMouseUp();
 
     if (isMarqueeActive) {
       handleMarqueePointerUp();
     }
-  }, [handleCameraMouseUp, handleDrawMouseUp, handleMarqueePointerUp, isMarqueeActive]);
+  }, [
+    handleCameraMouseUp,
+    handleDrawMouseUp,
+    handleMapEditMouseUp,
+    handleMarqueePointerUp,
+    isMarqueeActive,
+  ]);
 
   /**
    * Unified touch start handler
    */
   const onTouchStart = useCallback(
     (event: KonvaEventObject<TouchEvent>) => {
-      const shouldPan = !alignmentMode && !pointerMode && !measureMode && !drawMode && !selectMode;
       handleTouchStart(event, stageRef, shouldPan);
     },
-    [alignmentMode, pointerMode, measureMode, drawMode, selectMode, handleTouchStart, stageRef],
+    [shouldPan, handleTouchStart, stageRef],
   );
 
   /**
