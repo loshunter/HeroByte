@@ -130,6 +130,36 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     sendMessage({ t: "previous-turn" });
   }, [sendMessage]);
 
+  // Single-sheet arbitration: opening any of Party / Tools / Dice / Log closes
+  // the others (they used to stack). The tool sheet is owned here to coordinate.
+  const [showTools, setShowTools] = useState(false);
+  const closeAllSheets = useCallback(() => {
+    setShowEntities(false);
+    setShowTools(false);
+    if (diceRollerOpen) toggleDiceRoller(false);
+    if (rollLogOpen) toggleRollLog(false);
+  }, [diceRollerOpen, rollLogOpen, toggleDiceRoller, toggleRollLog]);
+  const toggleParty = useCallback(() => {
+    const willOpen = !showEntities;
+    closeAllSheets();
+    setShowEntities(willOpen);
+  }, [showEntities, closeAllSheets]);
+  const toggleTools = useCallback(() => {
+    const willOpen = !showTools;
+    closeAllSheets();
+    setShowTools(willOpen);
+  }, [showTools, closeAllSheets]);
+  const toggleDice = useCallback(() => {
+    const willOpen = !diceRollerOpen;
+    closeAllSheets();
+    toggleDiceRoller(willOpen);
+  }, [diceRollerOpen, closeAllSheets, toggleDiceRoller]);
+  const toggleLog = useCallback(() => {
+    const willOpen = !rollLogOpen;
+    closeAllSheets();
+    toggleRollLog(willOpen);
+  }, [rollLogOpen, closeAllSheets, toggleRollLog]);
+
   return (
     <div className="mobile-layout-root">
       {/* Full screen map */}
@@ -178,9 +208,9 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
 
       {/* Mobile Floating Controls */}
       <MobileFloatingControls
-        onShowEntities={() => setShowEntities(true)}
-        onToggleDiceRoller={() => toggleDiceRoller(!diceRollerOpen)}
-        onToggleRollLog={() => toggleRollLog(!rollLogOpen)}
+        onShowEntities={toggleParty}
+        onToggleDiceRoller={toggleDice}
+        onToggleRollLog={toggleLog}
         onToolSelect={setActiveTool}
         onSnapToGridChange={setSnapToGrid}
         onResetCamera={handleResetCamera}
@@ -188,6 +218,8 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
         snapToGrid={snapToGrid}
         diceRollerOpen={diceRollerOpen}
         rollLogOpen={rollLogOpen}
+        toolsOpen={showTools}
+        onToggleTools={toggleTools}
       />
 
       {selectedObjectCount > 0 && (transformMode || selectMode) && (

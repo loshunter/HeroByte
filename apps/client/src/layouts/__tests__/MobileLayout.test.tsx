@@ -291,6 +291,38 @@ describe("MobileLayout", () => {
     expect(props.toggleRollLog).toHaveBeenCalledWith(true);
   });
 
+  it("shows only one mobile sheet at a time (opening one closes the others)", () => {
+    render(<MobileLayout {...createDefaultProps()} />);
+    const dock = (name: RegExp) => screen.getByRole("button", { name });
+
+    // Open the Party panel.
+    fireEvent.click(dock(/party/i));
+    expect(screen.getByText(/Party Members/i)).toBeInTheDocument();
+    expect(document.querySelector(".mobile-tool-sheet")).toBeNull();
+
+    // Opening Tools closes the Party panel.
+    fireEvent.click(dock(/tools/i));
+    expect(document.querySelector(".mobile-tool-sheet")).not.toBeNull();
+    expect(screen.queryByText(/Party Members/i)).not.toBeInTheDocument();
+
+    // Opening Party again closes the tool sheet.
+    fireEvent.click(dock(/party/i));
+    expect(screen.getByText(/Party Members/i)).toBeInTheDocument();
+    expect(document.querySelector(".mobile-tool-sheet")).toBeNull();
+  });
+
+  it("closes the open Party panel when a prop-controlled sheet (dice) opens", () => {
+    const props = createDefaultProps();
+    render(<MobileLayout {...props} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /party/i }));
+    expect(screen.getByText(/Party Members/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /dice/i }));
+    expect(props.toggleDiceRoller).toHaveBeenCalledWith(true);
+    expect(screen.queryByText(/Party Members/i)).not.toBeInTheDocument();
+  });
+
   it("selects mobile map tools from the tool sheet", () => {
     const props = createDefaultProps();
     props.activeTool = null;

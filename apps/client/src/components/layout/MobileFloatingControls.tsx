@@ -3,7 +3,7 @@
 // ============================================================================
 // Bottom action dock and tool sheet for mobile layout.
 
-import React, { useState } from "react";
+import React from "react";
 import type { ToolMode } from "./Header";
 
 interface MobileFloatingControlsProps {
@@ -17,6 +17,9 @@ interface MobileFloatingControlsProps {
   snapToGrid: boolean;
   diceRollerOpen: boolean;
   rollLogOpen: boolean;
+  /** Tool sheet open state is owned by MobileLayout for single-sheet arbitration. */
+  toolsOpen: boolean;
+  onToggleTools: () => void;
 }
 
 export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
@@ -30,12 +33,13 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
   snapToGrid,
   diceRollerOpen,
   rollLogOpen,
+  toolsOpen,
+  onToggleTools,
 }) => {
-  const [showTools, setShowTools] = useState(false);
-
+  // The sheet only renders when toolsOpen, so toggling from here always closes it.
   const selectTool = (tool: ToolMode) => {
     onToolSelect(tool);
-    setShowTools(false);
+    onToggleTools();
   };
 
   const toolButtonClass = (tool: ToolMode) =>
@@ -43,14 +47,14 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
 
   return (
     <>
-      {showTools && (
+      {toolsOpen && (
         <div className="mobile-tool-sheet" role="dialog" aria-label="Map tools">
           <div className="mobile-tool-sheet__header">
             <strong>Tools</strong>
             <button
               type="button"
               className="mobile-tool-sheet__close"
-              onClick={() => setShowTools(false)}
+              onClick={onToggleTools}
               aria-label="Close tools"
             >
               ✕
@@ -129,10 +133,10 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
         <button
           type="button"
           className={`mobile-dock-button${
-            showTools || activeTool ? " mobile-dock-button--active" : ""
+            toolsOpen || activeTool ? " mobile-dock-button--active" : ""
           }`}
-          onClick={() => setShowTools((open) => !open)}
-          aria-expanded={showTools}
+          onClick={onToggleTools}
+          aria-expanded={toolsOpen}
         >
           <span className="mobile-dock-button__icon" aria-hidden="true">
             ⚒
