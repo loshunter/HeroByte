@@ -130,8 +130,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     sendMessage({ t: "previous-turn" });
   }, [sendMessage]);
 
-  // Single-sheet arbitration: opening any of Party / Tools / Dice / Log closes
-  // the others (they used to stack). The tool sheet is owned here to coordinate.
+  // Single-sheet arbitration: opening any of Party/Tools/Dice/Log closes the rest.
   const [showTools, setShowTools] = useState(false);
   const closeAllSheets = useCallback(() => {
     setShowEntities(false);
@@ -278,6 +277,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
 
       {/* Mobile Entities List Overlay */}
       <div
+        className="mobile-entities-drawer"
         style={{
           position: "fixed",
           top: 0,

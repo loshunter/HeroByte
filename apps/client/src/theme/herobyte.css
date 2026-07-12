@@ -1345,6 +1345,38 @@ h4 {
   }
 }
 
+/* Reduced motion: the entities drawer's slide is an inline transition, so the
+   override needs !important to win. Instant show/hide for [data-motion="off"]. */
+[data-motion="off"] .mobile-entities-drawer {
+  transition: none !important;
+}
+
+/* Landscape phones (short viewport): a full dock + full-height sheet would bury
+   the map. Slim the dock and cap the sheets so the canvas stays usable. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .mobile-action-dock {
+    gap: 4px;
+    padding: 4px;
+  }
+
+  .mobile-dock-button {
+    min-height: 40px;
+    gap: 1px;
+  }
+
+  .mobile-tool-sheet,
+  .mobile-selection-sheet,
+  .mobile-drawing-sheet,
+  .mobile-roll-log-panel {
+    max-height: 82vh;
+    overflow-y: auto;
+  }
+
+  .mobile-entities-drawer {
+    width: min(360px, 72vw);
+  }
+}
+
 /* ----------------------------------------------------------------------------
    JUICE — combat feedback & flourishes (Tier 1)
    All gated so [data-motion="off"] users get none of the motion.
