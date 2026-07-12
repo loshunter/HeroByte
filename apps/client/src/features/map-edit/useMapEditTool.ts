@@ -13,13 +13,17 @@ import {
   type MapGridSettings,
   type SceneObjectTransform,
 } from "@herobyte/shared";
+import type { TerrainPaintCell } from "@herobyte/shared";
 import { snapPointToGrid } from "../map-studio/snapToGrid";
 import { commitSegmentDrag } from "../map-studio/components/wallDoorDrafts";
 import { roomBoundsFromDrag } from "../map-studio/components/mapStudioWorkspaceUtils";
+import { useTerrainBrush } from "../map-studio/components/useTerrainBrush";
 import type { RoomDrag, StudioTool } from "../map-studio/components/MapStudioWorkspace.types";
 import type { MapStudioController } from "../map-studio/types";
 import { buildRoomCommand } from "./roomBuilder";
 import type { MapEditFloorFamily, MapEditSubTool } from "./mapEditTypes";
+
+const NO_OP_PAINT = (_cells: TerrainPaintCell[]) => {};
 
 // Live-authored maps have no raster "map" scene object, so document space ≡
 // world space. Writing the hop through the helper keeps tools correct even when
@@ -46,6 +50,8 @@ interface UseMapEditToolOptions {
 
 interface UseMapEditToolReturn {
   previewDrag: RoomDrag | null;
+  /** In-progress terrain/erase brush cells (for the live preview). */
+  strokeCells: TerrainPaintCell[];
   onMouseDown: (stageRef: RefObject<Konva.Stage | null>) => void;
   onMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
   onMouseUp: () => void;
@@ -54,6 +60,11 @@ interface UseMapEditToolReturn {
 /** Wall, door, and room all drive the same two-point drag machine. */
 function isDragTool(subTool: MapEditSubTool): boolean {
   return subTool === "wall" || subTool === "door" || subTool === "room";
+}
+
+/** Terrain + erase are pointer-STREAM brushes (paint cells while the pointer is down). */
+function isBrushTool(subTool: MapEditSubTool): boolean {
+  return subTool === "terrain" || subTool === "erase";
 }
 
 /**
@@ -78,9 +89,19 @@ export function useMapEditTool({
 }: UseMapEditToolOptions): UseMapEditToolReturn {
   const [previewDrag, setPreviewDrag] = useState<RoomDrag | null>(null);
   const dragRef = useRef<RoomDrag | null>(null);
+  const brushingRef = useRef(false);
   const frameRef = useRef<number | null>(null);
 
-  const active = mapEditMode && isDragTool(activeSubTool);
+  const { addStrokePoint, flushStroke, strokeCells } = useTerrainBrush({
+    activeDocument: controller?.activeDocument,
+    paintTerrain: controller?.paintTerrain ?? NO_OP_PAINT,
+  });
+
+  const isDrag = isDragTool(activeSubTool);
+  const isBrush = isBrushTool(activeSubTool);
+  const active = mapEditMode && (isDrag || isBrush);
+  // Terrain family "terrain:grass" for the paint brush; null erases.
+  const brushAssetId = activeSubTool === "terrain" ? `terrain:${floorFamily}` : null;
 
   const cancelFrame = useCallback(() => {
     if (frameRef.current !== null) {
@@ -95,10 +116,16 @@ export function useMapEditTool({
     setPreviewDrag(null);
   }, [cancelFrame]);
 
-  // Leaving map-edit (or switching off a segment tool) abandons any drag.
+  // Leaving map-edit abandons any drag and commits any in-progress brush stroke.
   useEffect(() => {
-    if (!active) clearDrag();
-  }, [active, clearDrag]);
+    if (!active) {
+      clearDrag();
+      if (brushingRef.current) {
+        brushingRef.current = false;
+        flushStroke();
+      }
+    }
+  }, [active, clearDrag, flushStroke]);
 
   useEffect(() => () => cancelFrame(), [cancelFrame]);
 
@@ -110,19 +137,28 @@ export function useMapEditTool({
     });
   }, []);
 
-  // screen → world → document → grid-snapped, in document space.
+  // screen → world → document space (unsnapped). The brush does its own cell
+  // quantization from the raw point.
+  const toDocPoint = useCallback(
+    (stageRef: RefObject<Konva.Stage | null>): { x: number; y: number } | null => {
+      const pointer = stageRef.current?.getPointerPosition();
+      if (!pointer) return null;
+      const world = toWorld(pointer.x, pointer.y);
+      return inverseTransformScenePoint(mapTransform ?? IDENTITY_TRANSFORM, world);
+    },
+    [toWorld, mapTransform],
+  );
+
+  // Document space, grid-snapped — for the two-point drag tools.
   const toSnappedDocPoint = useCallback(
     (
       stageRef: RefObject<Konva.Stage | null>,
       grid: MapGridSettings,
     ): { x: number; y: number } | null => {
-      const pointer = stageRef.current?.getPointerPosition();
-      if (!pointer) return null;
-      const world = toWorld(pointer.x, pointer.y);
-      const doc = inverseTransformScenePoint(mapTransform ?? IDENTITY_TRANSFORM, world);
-      return snapPointToGrid(doc, grid);
+      const doc = toDocPoint(stageRef);
+      return doc ? snapPointToGrid(doc, grid) : null;
     },
-    [toWorld, mapTransform],
+    [toDocPoint],
   );
 
   const onMouseDown = useCallback(
@@ -130,30 +166,73 @@ export function useMapEditTool({
       if (!active) return;
       const document = controller?.activeDocument;
       // Author ONLY into the live-bound document. A Studio document left active
-      // in the shared controller must never receive a live-tool wall.
+      // in the shared controller must never receive a live-tool edit.
       if (!document || document.id !== liveDocumentId) return;
+      if (isBrush) {
+        const point = toDocPoint(stageRef);
+        if (!point) return;
+        brushingRef.current = true;
+        addStrokePoint(point, brushAssetId);
+        return;
+      }
       const point = toSnappedDocPoint(stageRef, effectiveGrid(document.grid, activeSubTool));
       if (!point) return;
       dragRef.current = { start: point, end: point };
       setPreviewDrag({ start: point, end: point });
     },
-    [active, controller, liveDocumentId, activeSubTool, toSnappedDocPoint],
+    [
+      active,
+      controller,
+      liveDocumentId,
+      activeSubTool,
+      isBrush,
+      brushAssetId,
+      toDocPoint,
+      addStrokePoint,
+      toSnappedDocPoint,
+    ],
   );
 
   const onMouseMove = useCallback(
     (stageRef: RefObject<Konva.Stage | null>) => {
-      if (!active || !dragRef.current) return;
+      if (!active) return;
       const document = controller?.activeDocument;
       if (!document) return;
+      if (isBrush) {
+        if (!brushingRef.current) return;
+        const point = toDocPoint(stageRef);
+        if (point) addStrokePoint(point, brushAssetId);
+        return;
+      }
+      if (!dragRef.current) return;
       const point = toSnappedDocPoint(stageRef, effectiveGrid(document.grid, activeSubTool));
       if (!point) return;
       dragRef.current = { start: dragRef.current.start, end: point };
       flushPreview();
     },
-    [active, controller, activeSubTool, toSnappedDocPoint, flushPreview],
+    [
+      active,
+      controller,
+      activeSubTool,
+      isBrush,
+      brushAssetId,
+      toDocPoint,
+      addStrokePoint,
+      toSnappedDocPoint,
+      flushPreview,
+    ],
   );
 
   const onMouseUp = useCallback(() => {
+    if (isBrush) {
+      if (brushingRef.current) {
+        brushingRef.current = false;
+        // Terrain strokes must NOT gate on `saving` (a mid-stroke ack would
+        // freeze the brush); the one-in-flight command queue serializes commits.
+        flushStroke();
+      }
+      return;
+    }
     const drag = dragRef.current;
     if (!active || !drag) {
       clearDrag();
@@ -177,7 +256,17 @@ export function useMapEditTool({
       }
     }
     clearDrag();
-  }, [active, controller, liveDocumentId, activeSubTool, floorFamily, onRoomRejected, clearDrag]);
+  }, [
+    isBrush,
+    flushStroke,
+    active,
+    controller,
+    liveDocumentId,
+    activeSubTool,
+    floorFamily,
+    onRoomRejected,
+    clearDrag,
+  ]);
 
   // Escape cancels an in-progress drag WITHOUT clearing the tool: capture-phase
   // + stopImmediatePropagation preempts the global Escape-clears-tool listener.
@@ -194,5 +283,5 @@ export function useMapEditTool({
     return () => window.removeEventListener("keydown", onKeyDown, { capture: true });
   }, [active, clearDrag]);
 
-  return { previewDrag, onMouseDown, onMouseMove, onMouseUp };
+  return { previewDrag, strokeCells, onMouseDown, onMouseMove, onMouseUp };
 }

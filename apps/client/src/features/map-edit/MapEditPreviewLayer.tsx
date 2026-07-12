@@ -9,7 +9,7 @@
 // tool draws a dashed rectangle + a "cols × rows" cell-count label.
 
 import { Group, Line, Circle, Rect, Text } from "react-konva";
-import type { SceneObjectTransform } from "@herobyte/shared";
+import type { SceneObjectTransform, TerrainPaintCell } from "@herobyte/shared";
 import type { Camera } from "../map/types";
 import type { RoomDrag } from "../map-studio/components/MapStudioWorkspace.types";
 import type { MapEditSubTool } from "./mapEditTypes";
@@ -20,9 +20,14 @@ interface MapEditPreviewLayerProps {
   previewDrag: RoomDrag | null;
   activeSubTool: MapEditSubTool;
   gridSize: number;
+  /** In-progress terrain/erase brush cells (translucent cell rects). */
+  strokeCells?: TerrainPaintCell[];
+  gridOffsetX?: number;
+  gridOffsetY?: number;
 }
 
 const PREVIEW_COLOR = "#f0e2c3"; // hero gold — reads over any floor
+const ERASE_COLOR = "#10121a"; // dark — erase preview (Studio's look)
 
 export function MapEditPreviewLayer({
   cam,
@@ -30,20 +35,42 @@ export function MapEditPreviewLayer({
   previewDrag,
   activeSubTool,
   gridSize,
+  strokeCells = [],
+  gridOffsetX = 0,
+  gridOffsetY = 0,
 }: MapEditPreviewLayerProps) {
-  if (!previewDrag) return null;
+  if (!previewDrag && strokeCells.length === 0) return null;
 
   const { x = 0, y = 0, scaleX = 1, scaleY = 1, rotation = 0 } = mapTransform ?? {};
-  const { start, end } = previewDrag;
   const strokeWidth = 3 / cam.scale;
   const dash = [8 / cam.scale, 6 / cam.scale];
 
   return (
     <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale} listening={false}>
       <Group x={x} y={y} scaleX={scaleX} scaleY={scaleY} rotation={rotation} listening={false}>
-        {activeSubTool === "room"
-          ? renderRoom(start, end, gridSize, strokeWidth, dash, cam.scale)
-          : renderSegment(start, end, strokeWidth, dash, cam.scale, activeSubTool)}
+        {previewDrag &&
+          (activeSubTool === "room"
+            ? renderRoom(previewDrag.start, previewDrag.end, gridSize, strokeWidth, dash, cam.scale)
+            : renderSegment(
+                previewDrag.start,
+                previewDrag.end,
+                strokeWidth,
+                dash,
+                cam.scale,
+                activeSubTool,
+              ))}
+        {strokeCells.map((cell) => (
+          <Rect
+            key={`${cell.x},${cell.y}`}
+            x={cell.x * gridSize + gridOffsetX}
+            y={cell.y * gridSize + gridOffsetY}
+            width={gridSize}
+            height={gridSize}
+            fill={cell.assetId === null ? ERASE_COLOR : PREVIEW_COLOR}
+            opacity={0.55}
+            listening={false}
+          />
+        ))}
       </Group>
     </Group>
   );

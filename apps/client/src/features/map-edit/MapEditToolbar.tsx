@@ -13,6 +13,8 @@ const SUB_TOOLS: { id: MapEditSubTool; label: string }[] = [
   { id: "room", label: "🏠 Room" },
   { id: "wall", label: "🧱 Wall" },
   { id: "door", label: "🚪 Door" },
+  { id: "terrain", label: "🖌️ Paint" },
+  { id: "erase", label: "🧹 Erase" },
 ];
 
 const FLOOR_FAMILIES: { id: MapEditFloorFamily; label: string }[] = [
@@ -110,7 +112,7 @@ export function MapEditToolbar({
                 </div>
               </div>
 
-              {activeSubTool === "room" && (
+              {(activeSubTool === "room" || activeSubTool === "terrain") && (
                 <div>
                   <label className="jrpg-text-small" style={labelStyle}>
                     Floor:

@@ -269,9 +269,10 @@ export default function MapBoard({
     drawingObjects,
   });
 
-  // Live map-edit tool (wall drag → controller.addWall). Self-gates on mode.
+  // Live map-edit tool (wall/door/room drag + terrain brush). Self-gates on mode.
   const {
     previewDrag: mapEditPreviewDrag,
+    strokeCells: mapEditStrokeCells,
     onMouseDown: handleMapEditMouseDown,
     onMouseMove: handleMapEditMouseMove,
     onMouseUp: handleMapEditMouseUp,
@@ -693,9 +694,12 @@ export default function MapBoard({
             mapTransform={mapObject?.transform}
             previewDrag={mapEditPreviewDrag}
             activeSubTool={mapEditActiveSubTool}
-            // The room preview must use the SAME grid the placement snaps to (the
-            // live document's), not the clamped table grid, or they diverge.
+            // The room/brush preview must use the SAME grid the placement uses
+            // (the live document's), not the clamped table grid, or they diverge.
             gridSize={mapEditController?.activeDocument?.grid.size ?? grid.size}
+            gridOffsetX={mapEditController?.activeDocument?.grid.offsetX ?? 0}
+            gridOffsetY={mapEditController?.activeDocument?.grid.offsetY ?? 0}
+            strokeCells={mapEditStrokeCells}
           />
         </Layer>
 

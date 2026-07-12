@@ -46,6 +46,7 @@ function makeController(overrides: Partial<MapStudioController> = {}): MapStudio
     addWall: vi.fn(() => "wall-1"),
     addDoor: vi.fn(() => "door-1"),
     placeRoom: vi.fn(),
+    paintTerrain: vi.fn(),
     ...overrides,
   } as unknown as MapStudioController;
 }
@@ -256,6 +257,54 @@ describe("useMapEditTool", () => {
     // Perimeter is on cell edges (multiples of 50), not the raw pointer bounds.
     expect(elements[0].data.points[0]).toEqual({ x: 100, y: 100 });
     expect(elements[0].data.points[2]).toEqual({ x: 250, y: 200 });
+  });
+
+  it("paints a terrain stroke as ONE deduped paint-terrain command", () => {
+    const controller = makeController();
+    const { result } = renderHook(() =>
+      useMapEditTool({
+        mapEditMode: true,
+        activeSubTool: "terrain",
+        controller,
+        liveDocumentId: "live",
+        floorFamily: "dirt",
+        toWorld: identityToWorld,
+        mapTransform: undefined,
+      }),
+    );
+
+    // Brush is a pointer stream: down + moves accumulate cells (deduped), up flushes.
+    act(() => result.current.onMouseDown(makeStage({ x: 100, y: 100 }).ref)); // cell (2,2)
+    act(() => result.current.onMouseMove(makeStage({ x: 110, y: 110 }).ref)); // still (2,2) — dedup
+    act(() => result.current.onMouseMove(makeStage({ x: 160, y: 160 }).ref)); // cell (3,3)
+    expect(controller.paintTerrain).not.toHaveBeenCalled(); // not until release
+    act(() => result.current.onMouseUp());
+
+    expect(controller.paintTerrain).toHaveBeenCalledTimes(1);
+    expect(controller.paintTerrain).toHaveBeenCalledWith([
+      { x: 2, y: 2, assetId: "terrain:dirt" },
+      { x: 3, y: 3, assetId: "terrain:dirt" },
+    ]);
+  });
+
+  it("erases with assetId null", () => {
+    const controller = makeController();
+    const { result } = renderHook(() =>
+      useMapEditTool({
+        mapEditMode: true,
+        activeSubTool: "erase",
+        controller,
+        liveDocumentId: "live",
+        floorFamily: "grass",
+        toWorld: identityToWorld,
+        mapTransform: undefined,
+      }),
+    );
+
+    act(() => result.current.onMouseDown(makeStage({ x: 100, y: 100 }).ref));
+    act(() => result.current.onMouseUp());
+
+    expect(controller.paintTerrain).toHaveBeenCalledWith([{ x: 2, y: 2, assetId: null }]);
   });
 
   it("does not author into a non-live active document (e.g. a Studio doc)", () => {

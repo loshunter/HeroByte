@@ -46,6 +46,27 @@ describe("MapEditPreviewLayer", () => {
     textProps.length = 0;
   });
 
+  it("draws translucent cell rects for the terrain/erase brush stroke", () => {
+    render(
+      <MapEditPreviewLayer
+        cam={cam}
+        previewDrag={null}
+        activeSubTool="terrain"
+        gridSize={50}
+        strokeCells={[
+          { x: 2, y: 2, assetId: "terrain:grass" },
+          { x: 3, y: 3, assetId: null },
+        ]}
+      />,
+    );
+
+    expect(rectProps).toHaveLength(2);
+    // Cell (2,2) → doc px (100,100); paint uses the gold, erase uses the dark.
+    expect(rectProps[0]).toMatchObject({ x: 100, y: 100, width: 50, height: 50, fill: "#f0e2c3" });
+    expect(rectProps[1]).toMatchObject({ x: 150, y: 150, fill: "#10121a" });
+    expect(rectProps.every((r) => r.opacity === 0.55)).toBe(true);
+  });
+
   it("draws a dashed rect + a cols×rows label for the room tool", () => {
     render(
       <MapEditPreviewLayer
