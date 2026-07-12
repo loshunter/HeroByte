@@ -283,6 +283,35 @@ describe("useMapEditTool", () => {
     expect(elements[0].data.points[2]).toEqual({ x: 250, y: 200 });
   });
 
+  it("places a hallway (floor band + two long walls) and reports its bounds", () => {
+    const controller = makeController();
+    const onRegionPlaced = vi.fn();
+    const { result } = renderHook(() =>
+      useMapEditTool({
+        mapEditMode: true,
+        activeSubTool: "hallway",
+        controller,
+        liveDocumentId: "live",
+        floorFamily: "path",
+        hallwayWidth: 2,
+        onRegionPlaced,
+        toWorld: identityToWorld,
+        mapTransform: undefined,
+      }),
+    );
+
+    // Horizontal drag (100,100)→(300,100): 5 cells long × 2 wide.
+    act(() => result.current.onMouseDown(makeStage({ x: 100, y: 100 }).ref));
+    act(() => result.current.onMouseMove(makeStage({ x: 300, y: 100 }).ref));
+    act(() => result.current.onMouseUp());
+
+    expect(controller.placeRoom).toHaveBeenCalledTimes(1);
+    const [cells, elements] = (controller.placeRoom as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(cells).toHaveLength(10);
+    expect(elements).toHaveLength(2); // two long-side walls, open ends
+    expect(onRegionPlaced).toHaveBeenCalledWith({ x: 100, y: 100, width: 250, height: 100 });
+  });
+
   it("paints a terrain stroke as ONE deduped paint-terrain command", () => {
     const controller = makeController();
     const { result } = renderHook(() =>

@@ -5,10 +5,24 @@
 // S2 wires only "wall"; the rest are typed now so later slices slot in without
 // widening the union.
 
-export type MapEditSubTool = "room" | "wall" | "door" | "terrain" | "erase" | "place" | "scatter";
+export type MapEditSubTool =
+  | "room"
+  | "hallway"
+  | "wall"
+  | "door"
+  | "terrain"
+  | "erase"
+  | "place"
+  | "scatter";
 
 /** Procedural floor families a room/terrain paints with (VILLAGE_TERRAIN). */
 export type MapEditFloorFamily = "grass" | "dirt" | "path" | "stone-floor" | "wood-floor";
+
+/** POPULATE set-dressing density (per-cell placement probability tiers). */
+export type PopulateDensity = "low" | "medium" | "high";
+
+/** Asset category POPULATE scatters from (bundled categories only). */
+export type PopulateCategory = "objects" | "structures" | "terrain";
 
 /**
  * Props for the lazy-loaded MapEditToolbar palette. Defined here (a pure types
@@ -40,4 +54,13 @@ export interface MapEditToolbarProps {
   ) => Promise<import("../map-studio/uploads/assetUpload").UploadedAssetInfo>;
   assetPickerOpen: boolean;
   onToggleAssetPicker: () => void;
+  // --- Hallway + POPULATE ---
+  hallwayWidth: number; // corridor width in cells (1–4)
+  onSelectHallwayWidth: (width: number) => void;
+  populateDensity: PopulateDensity;
+  onSelectPopulateDensity: (density: PopulateDensity) => void;
+  populateCategory: PopulateCategory;
+  onSelectPopulateCategory: (category: PopulateCategory) => void;
+  onPopulate: () => void; // fills the last-placed room/hallway with set dressing
+  canPopulate: boolean; // a region has been placed and the controller is idle
 }

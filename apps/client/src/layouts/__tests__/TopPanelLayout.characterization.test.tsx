@@ -162,8 +162,10 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
     mapEditActiveSubTool: "wall" as const,
     mapEditFloorFamily: "grass" as const,
     mapEditSelectedAssetId: "objects:crate",
+    mapEditHallwayWidth: 2,
     mapEditWallsOverlayPinned: false,
     onMapEditRoomRejected: vi.fn(),
+    onMapEditRegionPlaced: vi.fn(),
     mapEditToolbarProps: {
       isLive: false,
       busy: false,
@@ -186,6 +188,14 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
       uploadAsset: vi.fn(),
       assetPickerOpen: false,
       onToggleAssetPicker: vi.fn(),
+      hallwayWidth: 2,
+      onSelectHallwayWidth: vi.fn(),
+      populateDensity: "medium" as const,
+      onSelectPopulateDensity: vi.fn(),
+      populateCategory: "objects" as const,
+      onSelectPopulateCategory: vi.fn(),
+      onPopulate: vi.fn(),
+      canPopulate: false,
     },
 
     // UI State

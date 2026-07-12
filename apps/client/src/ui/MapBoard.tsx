@@ -91,9 +91,11 @@ export default function MapBoard({
   mapEditActiveSubTool = "wall",
   mapEditFloorFamily = "grass",
   mapEditSelectedAssetId = "objects:crate",
+  mapEditHallwayWidth = 2,
   mapEditController,
   mapEditWallsOverlayPinned = false,
   onMapEditRoomRejected,
+  onMapEditRegionPlaced,
   isDM,
   alignmentMode,
   alignmentPoints = [],
@@ -286,7 +288,9 @@ export default function MapBoard({
     liveDocumentId: snapshot?.liveMapDocumentId,
     floorFamily: mapEditFloorFamily,
     selectedAssetId: mapEditSelectedAssetId,
+    hallwayWidth: mapEditHallwayWidth,
     onRoomRejected: onMapEditRoomRejected,
+    onRegionPlaced: onMapEditRegionPlaced,
     toWorld,
     mapTransform: mapObject?.transform,
   });
@@ -707,6 +711,7 @@ export default function MapBoard({
             mapTransform={mapObject?.transform}
             previewDrag={mapEditPreviewDrag}
             activeSubTool={mapEditActiveSubTool}
+            hallwayWidth={mapEditHallwayWidth}
             // The room/brush preview must use the SAME grid the placement uses
             // (the live document's), not the clamped table grid, or they diverge.
             gridSize={mapEditController?.activeDocument?.grid.size ?? grid.size}

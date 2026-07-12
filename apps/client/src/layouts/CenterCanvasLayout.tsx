@@ -28,6 +28,7 @@ import type { UseDrawingStateManagerReturn } from "../hooks/useDrawingStateManag
 import { MapLoading } from "../components/ui/MapLoading";
 import type { MapStudioController } from "../features/map-studio";
 import type { MapEditFloorFamily, MapEditSubTool } from "../features/map-edit/mapEditTypes";
+import type { RoomBounds } from "../features/map-edit/roomBuilder";
 
 // Lazy load MapBoard to reduce initial bundle size
 const MapBoard = React.lazy(() => import("../ui/MapBoard"));
@@ -99,10 +100,14 @@ export interface CenterCanvasLayoutProps {
   mapEditFloorFamily: MapEditFloorFamily;
   /** Asset the place/scatter tools drop */
   mapEditSelectedAssetId: string;
+  /** Corridor width in cells for the hallway tool */
+  mapEditHallwayWidth: number;
   /** Keep the DM walls overlay visible outside map-edit mode */
   mapEditWallsOverlayPinned: boolean;
   /** Called when a room drag is refused (too large / no walls layer) */
   onMapEditRoomRejected: (message: string) => void;
+  /** Called when a room/hallway lands — records the POPULATE target */
+  onMapEditRegionPlaced: (bounds: RoomBounds) => void;
 
   // Selection State (4 props)
   /** Currently selected single object ID (or null if none) */
@@ -218,8 +223,10 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
     mapEditActiveSubTool,
     mapEditFloorFamily,
     mapEditSelectedAssetId,
+    mapEditHallwayWidth,
     mapEditWallsOverlayPinned,
     onMapEditRoomRejected,
+    onMapEditRegionPlaced,
     selectedObjectId,
     selectedObjectIds,
     onSelectObject,
@@ -288,9 +295,11 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
             mapEditActiveSubTool={mapEditActiveSubTool}
             mapEditFloorFamily={mapEditFloorFamily}
             mapEditSelectedAssetId={mapEditSelectedAssetId}
+            mapEditHallwayWidth={mapEditHallwayWidth}
             mapEditController={mapStudio}
             mapEditWallsOverlayPinned={mapEditWallsOverlayPinned}
             onMapEditRoomRejected={onMapEditRoomRejected}
+            onMapEditRegionPlaced={onMapEditRegionPlaced}
             isDM={isDM}
             alignmentMode={alignmentMode}
             alignmentPoints={alignmentPoints}

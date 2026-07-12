@@ -3,6 +3,7 @@ import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import type { Camera } from "../hooks/useCamera";
 import type { MapStudioController } from "../features/map-studio/types";
 import type { MapEditFloorFamily, MapEditSubTool } from "../features/map-edit/mapEditTypes";
+import type { RoomBounds } from "../features/map-edit/roomBuilder";
 
 /**
  * Camera command for programmatic camera control.
@@ -37,9 +38,11 @@ export interface MapBoardProps {
   mapEditActiveSubTool?: MapEditSubTool; // Selected map-edit sub-tool (wall, …)
   mapEditFloorFamily?: MapEditFloorFamily; // Floor terrain family the room tool paints
   mapEditSelectedAssetId?: string; // Asset the place/scatter tools drop
+  mapEditHallwayWidth?: number; // Corridor width in cells for the hallway tool
   mapEditController?: MapStudioController; // Shared Map Studio controller the tools drive
   mapEditWallsOverlayPinned?: boolean; // Keep the DM walls overlay visible outside map-edit
   onMapEditRoomRejected?: (message: string) => void; // Room drag refused (too large / no layer)
+  onMapEditRegionPlaced?: (bounds: RoomBounds) => void; // Room/hallway placed → POPULATE target
   isDM: boolean; // Whether the current user can manage all objects
   alignmentMode: boolean; // Alignment tool active
   alignmentPoints?: AlignmentPoint[]; // Captured alignment points

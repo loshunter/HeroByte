@@ -11,6 +11,8 @@ import type { ClientMessage } from "@herobyte/shared";
 import type { ToolMode } from "../../components/layout/Header";
 import type { MapStudioController } from "../map-studio/types";
 import { useMapEditHotkeys } from "./useMapEditHotkeys";
+import { usePopulate } from "./usePopulate";
+import type { RoomBounds } from "./roomBuilder";
 import type { MapEditFloorFamily, MapEditSubTool, MapEditToolbarProps } from "./mapEditTypes";
 
 interface UseMapEditStateOptions {
@@ -34,6 +36,10 @@ interface UseMapEditStateReturn {
   floorFamily: MapEditFloorFamily;
   /** Asset the place/scatter sub-tools drop (fed to the tool + preview). */
   selectedAssetId: string;
+  /** Corridor width in cells for the hallway sub-tool (fed to the tool + preview). */
+  hallwayWidth: number;
+  /** Record a room/hallway's bounds as the POPULATE target (fed to the tool). */
+  onRegionPlaced: (bounds: RoomBounds) => void;
   /** Keep the DM walls overlay visible even outside map-edit mode. */
   wallsOverlayPinned: boolean;
   toolbarProps: MapEditToolbarProps;
@@ -57,6 +63,8 @@ export function useMapEditState({
   const [floorFamily, setFloorFamily] = useState<MapEditFloorFamily>("grass");
   const [selectedAssetId, setSelectedAssetId] = useState<string>(DEFAULT_ASSET_ID);
   const [assetPickerOpen, setAssetPickerOpen] = useState(false);
+  const [hallwayWidth, setHallwayWidth] = useState(2);
+  const populate = usePopulate(controller, notifyError);
   // The id of a document we just created and are waiting to activate before
   // binding it live (createDocument returns synchronously, but the controller
   // no-ops every action until the server's map-studio-document reply lands).
@@ -161,7 +169,23 @@ export function useMapEditState({
     uploadAsset: controller.uploadAsset,
     assetPickerOpen,
     onToggleAssetPicker,
+    hallwayWidth,
+    onSelectHallwayWidth: setHallwayWidth,
+    populateDensity: populate.density,
+    onSelectPopulateDensity: populate.setDensity,
+    populateCategory: populate.category,
+    onSelectPopulateCategory: populate.setCategory,
+    onPopulate: populate.onPopulate,
+    canPopulate: populate.canPopulate,
   };
 
-  return { activeSubTool, floorFamily, selectedAssetId, wallsOverlayPinned, toolbarProps };
+  return {
+    activeSubTool,
+    floorFamily,
+    selectedAssetId,
+    hallwayWidth,
+    onRegionPlaced: populate.onRegionPlaced,
+    wallsOverlayPinned,
+    toolbarProps,
+  };
 }

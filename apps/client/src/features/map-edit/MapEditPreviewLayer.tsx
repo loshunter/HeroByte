@@ -13,6 +13,7 @@ import type { SceneObjectTransform, TerrainPaintCell } from "@herobyte/shared";
 import type { Camera } from "../map/types";
 import type { RoomDrag } from "../map-studio/components/MapStudioWorkspace.types";
 import type { PlacementGhost } from "./useMapEditPlacement";
+import { hallwayBoundsFromDrag } from "./hallwayBuilder";
 import type { MapEditSubTool } from "./mapEditTypes";
 
 interface MapEditPreviewLayerProps {
@@ -21,6 +22,8 @@ interface MapEditPreviewLayerProps {
   previewDrag: RoomDrag | null;
   activeSubTool: MapEditSubTool;
   gridSize: number;
+  /** Corridor width in cells for the hallway preview. */
+  hallwayWidth?: number;
   /** In-progress terrain/erase brush cells (translucent cell rects). */
   strokeCells?: TerrainPaintCell[];
   /** Translucent footprint preview for the place/scatter tools. */
@@ -38,6 +41,7 @@ export function MapEditPreviewLayer({
   previewDrag,
   activeSubTool,
   gridSize,
+  hallwayWidth = 2,
   strokeCells = [],
   placementGhost = null,
   gridOffsetX = 0,
@@ -54,16 +58,33 @@ export function MapEditPreviewLayer({
       <Group x={x} y={y} scaleX={scaleX} scaleY={scaleY} rotation={rotation} listening={false}>
         {placementGhost && renderGhost(placementGhost, cam.scale)}
         {previewDrag &&
-          (activeSubTool === "room"
-            ? renderRoom(previewDrag.start, previewDrag.end, gridSize, strokeWidth, dash, cam.scale)
-            : renderSegment(
-                previewDrag.start,
-                previewDrag.end,
-                strokeWidth,
-                dash,
-                cam.scale,
-                activeSubTool,
-              ))}
+          (activeSubTool === "room" ? (
+            renderRoom(previewDrag.start, previewDrag.end, gridSize, strokeWidth, dash, cam.scale)
+          ) : activeSubTool === "hallway" ? (
+            <Rect
+              {...hallwayBoundsFromDrag(previewDrag, hallwayWidth, {
+                size: gridSize,
+                offsetX: gridOffsetX,
+                offsetY: gridOffsetY,
+              })}
+              stroke={PREVIEW_COLOR}
+              strokeWidth={strokeWidth}
+              dash={dash}
+              fill={PREVIEW_COLOR}
+              opacity={0.15}
+              listening={false}
+              name="map-edit-preview:hallway"
+            />
+          ) : (
+            renderSegment(
+              previewDrag.start,
+              previewDrag.end,
+              strokeWidth,
+              dash,
+              cam.scale,
+              activeSubTool,
+            )
+          ))}
         {strokeCells.map((cell) => (
           <Rect
             key={`${cell.x},${cell.y}`}

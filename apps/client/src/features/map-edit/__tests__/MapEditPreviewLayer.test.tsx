@@ -86,6 +86,24 @@ describe("MapEditPreviewLayer", () => {
     expect(lineProps).toHaveLength(0);
   });
 
+  it("draws the corridor band for the hallway tool", () => {
+    render(
+      <MapEditPreviewLayer
+        cam={cam}
+        previewDrag={{ start: { x: 100, y: 100 }, end: { x: 300, y: 100 } }}
+        activeSubTool="hallway"
+        gridSize={50}
+        hallwayWidth={2}
+      />,
+    );
+
+    // Horizontal 5×2 corridor → band rect x100 y100 w250 h100 (matches placement).
+    expect(rectProps).toHaveLength(1);
+    expect(rectProps[0]).toMatchObject({ x: 100, y: 100, width: 250, height: 100 });
+    // A hallway is a band, not a segment line.
+    expect(lineProps).toHaveLength(0);
+  });
+
   it("draws a translucent rotated ghost footprint for the place tool", () => {
     render(
       <MapEditPreviewLayer

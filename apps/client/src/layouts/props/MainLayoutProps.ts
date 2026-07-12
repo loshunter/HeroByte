@@ -27,6 +27,7 @@ import type {
   MapEditSubTool,
   MapEditToolbarProps,
 } from "../../features/map-edit/mapEditTypes";
+import type { RoomBounds } from "../../features/map-edit/roomBuilder";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../types/alignment";
 import type { RollResult } from "../../components/dice/types";
 import type { UseDrawingStateManagerReturn } from "../../hooks/useDrawingStateManager";
@@ -121,10 +122,14 @@ export interface MainLayoutProps {
   mapEditFloorFamily: MapEditFloorFamily;
   /** Asset the place/scatter tools drop */
   mapEditSelectedAssetId: string;
+  /** Corridor width in cells for the hallway tool */
+  mapEditHallwayWidth: number;
   /** Keep the DM walls overlay visible outside map-edit mode */
   mapEditWallsOverlayPinned: boolean;
   /** Called when a room drag is refused (too large / no walls layer) */
   onMapEditRoomRejected: (message: string) => void;
+  /** Called when a room/hallway lands — records the POPULATE target */
+  onMapEditRegionPlaced: (bounds: RoomBounds) => void;
   /** Props for the lazy-loaded map-edit palette */
   mapEditToolbarProps: MapEditToolbarProps;
 

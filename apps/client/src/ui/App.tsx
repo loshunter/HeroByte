@@ -701,8 +701,10 @@ function AuthenticatedApp({
     mapEditActiveSubTool: mapEdit.activeSubTool,
     mapEditFloorFamily: mapEdit.floorFamily,
     mapEditSelectedAssetId: mapEdit.selectedAssetId,
+    mapEditHallwayWidth: mapEdit.hallwayWidth,
     mapEditWallsOverlayPinned: mapEdit.wallsOverlayPinned,
     onMapEditRoomRejected: toast.error,
+    onMapEditRegionPlaced: mapEdit.onRegionPlaced,
     mapEditToolbarProps: mapEdit.toolbarProps,
     // UI state
     snapToGrid,
