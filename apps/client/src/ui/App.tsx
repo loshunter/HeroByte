@@ -300,6 +300,7 @@ function AuthenticatedApp({
     liveMapDocumentId: snapshot?.liveMapDocumentId,
     roomGridSize: snapshot?.gridSize ?? 50,
     hasRasterBackground: Boolean(snapshot?.mapBackground),
+    notifyError: toast.error,
   });
   const {
     roomPasswordStatus,
@@ -577,6 +578,7 @@ function AuthenticatedApp({
     drawingManager,
     undoSelection,
     canUndoSelection: canUndo,
+    mapEditMode,
   });
 
   // -------------------------------------------------------------------------

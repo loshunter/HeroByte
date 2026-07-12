@@ -96,6 +96,13 @@ export interface UseKeyboardShortcutsOptions {
    * Optional: Whether there is a player token selection to undo (DM only)
    */
   canUndoSelection?: boolean;
+
+  /**
+   * Optional: Whether live map-edit mode is active. When true, Ctrl+Z/Ctrl+Y
+   * belong to the map document (handled by useMapEditHotkeys), so the DM
+   * selection-undo branch below is skipped — exactly one handler acts.
+   */
+  mapEditMode?: boolean;
 }
 
 /**
@@ -148,6 +155,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
     drawingManager,
     undoSelection,
     canUndoSelection,
+    mapEditMode,
   } = options;
 
   useEffect(() => {
@@ -266,8 +274,10 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
           return;
         }
 
-        // Priority 2: Undo player token selection (DM only) if available
-        if (isDM && canUndoSelection && undoSelection) {
+        // Priority 2: Undo player token selection (DM only) if available.
+        // Skipped in live map-edit mode — there Ctrl+Z undoes the map document
+        // (useMapEditHotkeys), and this branch would otherwise double-fire.
+        if (isDM && canUndoSelection && undoSelection && !mapEditMode) {
           e.preventDefault();
           console.log("[KeyDown] Ctrl+Z: Undoing player token selection");
           undoSelection();
@@ -297,5 +307,6 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
     drawingManager,
     undoSelection,
     canUndoSelection,
+    mapEditMode,
   ]);
 }

@@ -19,13 +19,14 @@ function makeController(
   methods: ReturnType<typeof makeMethods>,
   activeDocument: MapDocument | null,
   loading = false,
+  error: string | null = null,
 ): MapStudioController {
   return {
     activeDocument,
     loading,
     canUndo: false,
     canRedo: false,
-    error: null,
+    error,
     ...methods,
   } as unknown as MapStudioController;
 }
@@ -158,5 +159,49 @@ describe("useMapEditState", () => {
 
     act(() => result.current.toolbarProps.onClose());
     expect(setActiveTool).toHaveBeenCalledWith(null);
+  });
+
+  it("toasts a server error once when it appears during map-edit", () => {
+    const methods = makeMethods();
+    const notifyError = vi.fn();
+    const base = {
+      sendMessage: vi.fn(),
+      mapEditMode: true,
+      setActiveTool: vi.fn(),
+      liveMapDocumentId: "live-id",
+      roomGridSize: 50,
+      hasRasterBackground: false,
+      notifyError,
+    };
+    const { rerender } = renderHook((props) => useMapEditState(props), {
+      initialProps: { ...base, controller: makeController(methods, doc("live-id")) },
+    });
+    expect(notifyError).not.toHaveBeenCalled();
+
+    // Server rejects a command → controller.error becomes non-null.
+    rerender({ ...base, controller: makeController(methods, doc("live-id"), false, "boom") });
+    expect(notifyError).toHaveBeenCalledExactlyOnceWith("boom");
+
+    // Same error persists across an unrelated rerender → no duplicate toast.
+    rerender({ ...base, controller: makeController(methods, doc("live-id"), false, "boom") });
+    expect(notifyError).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not toast a server error when not in map-edit mode", () => {
+    const methods = makeMethods();
+    const notifyError = vi.fn();
+    renderHook(() =>
+      useMapEditState({
+        controller: makeController(methods, doc("live-id"), false, "boom"),
+        sendMessage: vi.fn(),
+        mapEditMode: false,
+        setActiveTool: vi.fn(),
+        liveMapDocumentId: "live-id",
+        roomGridSize: 50,
+        hasRasterBackground: false,
+        notifyError,
+      }),
+    );
+    expect(notifyError).not.toHaveBeenCalled();
   });
 });

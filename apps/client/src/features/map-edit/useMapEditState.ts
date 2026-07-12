@@ -6,10 +6,11 @@
 // revision-conflict). Mirrors useDrawingStateManager's shape: takes the
 // controller + sendMessage + mode + setActiveTool, returns palette props.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClientMessage } from "@herobyte/shared";
 import type { ToolMode } from "../../components/layout/Header";
 import type { MapStudioController } from "../map-studio/types";
+import { useMapEditHotkeys } from "./useMapEditHotkeys";
 import type { MapEditFloorFamily, MapEditSubTool, MapEditToolbarProps } from "./mapEditTypes";
 
 interface UseMapEditStateOptions {
@@ -23,6 +24,8 @@ interface UseMapEditStateOptions {
   roomGridSize: number;
   /** True when the room still carries a raster background (double-draw hint). */
   hasRasterBackground: boolean;
+  /** Surface a server-side map-studio error to the DM (e.g. a toast). */
+  notifyError?: (message: string) => void;
 }
 
 interface UseMapEditStateReturn {
@@ -44,6 +47,7 @@ export function useMapEditState({
   liveMapDocumentId,
   roomGridSize,
   hasRasterBackground,
+  notifyError,
 }: UseMapEditStateOptions): UseMapEditStateReturn {
   const [activeSubTool, setActiveSubTool] = useState<MapEditSubTool>("wall");
   const [floorFamily, setFloorFamily] = useState<MapEditFloorFamily>("grass");
@@ -67,6 +71,28 @@ export function useMapEditState({
   const activeId = activeDocument?.id;
 
   const isLive = Boolean(liveMapDocumentId) && activeId === liveMapDocumentId;
+
+  // Ctrl/Cmd+Z / +Y route to the active (live) map document while map-edit is
+  // on; the useKeyboardShortcuts selection-undo branch is guarded off in the
+  // same mode so exactly one handler acts.
+  useMapEditHotkeys({
+    mapEditMode,
+    canUndo: controller.canUndo,
+    canRedo: controller.canRedo,
+    undo,
+    redo,
+  });
+
+  // Surface a server-side map-studio error (revision conflict, rejected command)
+  // as a toast while editing — the palette also shows it inline, but the DM's
+  // focus is usually on the canvas. Fires once per error: the controller resets
+  // error to null before each command, so a recurring failure re-toasts.
+  const lastError = useRef<string | null>(null);
+  useEffect(() => {
+    const err = controller.error;
+    if (err && err !== lastError.current && mapEditMode) notifyError?.(err);
+    lastError.current = err;
+  }, [controller.error, mapEditMode, notifyError]);
 
   const startLiveMap = useCallback(() => {
     if (awaitingLiveBind) return; // a create/bind is already in flight
