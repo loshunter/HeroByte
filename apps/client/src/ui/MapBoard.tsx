@@ -693,7 +693,9 @@ export default function MapBoard({
             mapTransform={mapObject?.transform}
             previewDrag={mapEditPreviewDrag}
             activeSubTool={mapEditActiveSubTool}
-            gridSize={grid.size}
+            // The room preview must use the SAME grid the placement snaps to (the
+            // live document's), not the clamped table grid, or they diverge.
+            gridSize={mapEditController?.activeDocument?.grid.size ?? grid.size}
           />
         </Layer>
 

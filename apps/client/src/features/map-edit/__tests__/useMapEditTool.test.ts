@@ -227,6 +227,37 @@ describe("useMapEditTool", () => {
     expect(controller.addWall).not.toHaveBeenCalled();
   });
 
+  it("force-snaps a room even when the document grid snap is off", () => {
+    // Rooms are cell-quantized; the perimeter must land on cell edges regardless
+    // of the doc's snap setting, or floor spills outside the walls.
+    const base = makeDocument();
+    const controller = makeController({
+      activeDocument: { ...base, grid: { ...base.grid, snap: false } },
+    });
+    const { result } = renderHook(() =>
+      useMapEditTool({
+        mapEditMode: true,
+        activeSubTool: "room",
+        controller,
+        liveDocumentId: "live",
+        floorFamily: "grass",
+        toWorld: identityToWorld,
+        mapTransform: undefined,
+      }),
+    );
+
+    // Non-cell-aligned pointers (110,90)→(190,130) snap to (100,100)→(200,150).
+    act(() => result.current.onMouseDown(makeStage({ x: 110, y: 90 }).ref));
+    act(() => result.current.onMouseMove(makeStage({ x: 190, y: 130 }).ref));
+    act(() => result.current.onMouseUp());
+
+    const [cells, elements] = (controller.placeRoom as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(cells[0]).toEqual({ x: 2, y: 2, assetId: "terrain:grass" });
+    // Perimeter is on cell edges (multiples of 50), not the raw pointer bounds.
+    expect(elements[0].data.points[0]).toEqual({ x: 100, y: 100 });
+    expect(elements[0].data.points[2]).toEqual({ x: 250, y: 200 });
+  });
+
   it("does not author into a non-live active document (e.g. a Studio doc)", () => {
     // activeDocument is "live", but the room's live binding points elsewhere —
     // a stray Studio doc must never receive a live-tool wall.

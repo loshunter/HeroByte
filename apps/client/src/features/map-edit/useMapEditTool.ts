@@ -56,6 +56,16 @@ function isDragTool(subTool: MapEditSubTool): boolean {
   return subTool === "wall" || subTool === "door" || subTool === "room";
 }
 
+/**
+ * The room tool ALWAYS snaps to the grid: its floor is cell-quantized, so its
+ * wall perimeter must land on the same cell edges (otherwise, with the doc's
+ * snap turned off, floor would spill outside the walls). Walls/doors respect
+ * the document's own snap setting.
+ */
+function effectiveGrid(grid: MapGridSettings, subTool: MapEditSubTool): MapGridSettings {
+  return subTool === "room" ? { ...grid, snap: true } : grid;
+}
+
 export function useMapEditTool({
   mapEditMode,
   activeSubTool,
@@ -122,12 +132,12 @@ export function useMapEditTool({
       // Author ONLY into the live-bound document. A Studio document left active
       // in the shared controller must never receive a live-tool wall.
       if (!document || document.id !== liveDocumentId) return;
-      const point = toSnappedDocPoint(stageRef, document.grid);
+      const point = toSnappedDocPoint(stageRef, effectiveGrid(document.grid, activeSubTool));
       if (!point) return;
       dragRef.current = { start: point, end: point };
       setPreviewDrag({ start: point, end: point });
     },
-    [active, controller, liveDocumentId, toSnappedDocPoint],
+    [active, controller, liveDocumentId, activeSubTool, toSnappedDocPoint],
   );
 
   const onMouseMove = useCallback(
@@ -135,12 +145,12 @@ export function useMapEditTool({
       if (!active || !dragRef.current) return;
       const document = controller?.activeDocument;
       if (!document) return;
-      const point = toSnappedDocPoint(stageRef, document.grid);
+      const point = toSnappedDocPoint(stageRef, effectiveGrid(document.grid, activeSubTool));
       if (!point) return;
       dragRef.current = { start: dragRef.current.start, end: point };
       flushPreview();
     },
-    [active, controller, toSnappedDocPoint, flushPreview],
+    [active, controller, activeSubTool, toSnappedDocPoint, flushPreview],
   );
 
   const onMouseUp = useCallback(() => {
