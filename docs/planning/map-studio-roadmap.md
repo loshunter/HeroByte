@@ -26,6 +26,17 @@ The comparison target is the battlemap-authoring category represented by tools i
 
 This is an editor foundation and a usable geometry workflow. It is not yet a DungeonDraft- or DungeonFog-class authoring product.
 
+## Live map toolbar (shipped — Phase 1, S1–S8)
+
+Authoring has moved **onto the live table**. A room's live-bound map document auto-compiles onto the play surface as it is edited, so walls, doors, rooms, painted terrain, and editor-grade procedural terrain appear for every connected player instantly — no separate publish step. The DM-only floating palette carries room/wall/door/terrain-brush/eraser tools plus Ctrl+Z/Ctrl+Y undo/redo routed to the live document, and door-runtime-state is preserved across live recompiles. See [live-map-toolbar-plan.md](./live-map-toolbar-plan.md) for the slice-by-slice record and the senior-review gates.
+
+Owner decision (2026-07-11): once the palette reaches full Studio parity (Phase 2, S9–S13 — player-visible live elements, tile/stamp placement, hallway + populate, layers/inspector, exports), the separate Map Studio **scene UI is retired**. The document/command/validation/history/compile **engine is kept forever**; only the standalone editor surface dies.
+
+Deferred (not blockers for the table loop):
+
+- **Raster-hybrid backgrounds** — an uploaded raster image coexisting under live-authored terrain. Today a raster background and live terrain can double-draw; the palette warns the DM to clear the raster for a clean live map.
+- **On-canvas vertex/point editing** — dragging individual wall/door endpoints or reshaping existing geometry after creation. Current editing is create + undo/redo + erase; richer point handles remain a Phase 3-class refinement.
+
 ## Competitive gaps and delivery order
 
 ### Phase 1 — Table-ready map loop (next)
