@@ -1182,7 +1182,8 @@ h4 {
   background: linear-gradient(180deg, #2f2f73 0%, #1c1d4d 100%);
   color: var(--hero-text-light);
   font-family: var(--font-pixel);
-  font-size: 0.56rem;
+  /* Readability floor: functional dock/tool labels stay ≥11px (was 0.56rem ≈ 9px). */
+  font-size: 0.7rem;
   line-height: 1.25;
   text-transform: uppercase;
   box-shadow: 0 3px 0 var(--hero-navy-dark);
@@ -1335,7 +1336,8 @@ h4 {
   .mobile-dock-button,
   .mobile-tool-sheet__button,
   .mobile-chip {
-    font-size: 0.5rem;
+    /* Keep the ≥11px floor even on the narrowest phones (was 0.5rem = 8px). */
+    font-size: 0.7rem;
   }
 
   .mobile-tool-sheet__grid {

@@ -146,7 +146,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
             <JRPGButton
               onClick={() => setSettingsOpen(true)}
               variant="primary"
-              style={{ padding: "4px 8px", fontSize: "10px" }}
+              style={{ padding: "4px 8px", fontSize: "11px" }}
             >
               ⚙️ EDIT
             </JRPGButton>
