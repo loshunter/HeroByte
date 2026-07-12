@@ -12,7 +12,12 @@ import { MAP_STUDIO_TILE_ASSETS } from "../map-studio/starterTiles";
 import { pickPlacementLayer } from "../map-studio/components/mapStudioWorkspaceUtils";
 import type { MapStudioController } from "../map-studio/types";
 import type { RoomBounds } from "./roomBuilder";
-import { buildPopulateDrafts, doorSegmentsWithin, populateSeedFromBounds } from "./populateRoom";
+import {
+  buildPopulateDrafts,
+  doorSegmentsWithin,
+  populateSeedFromBounds,
+  regionHasFloor,
+} from "./populateRoom";
 import type { PopulateCategory, PopulateDensity } from "./mapEditTypes";
 
 export interface UsePopulateReturn {
@@ -39,6 +44,14 @@ export function usePopulate(
   const onPopulate = useCallback(() => {
     const document = controller.activeDocument;
     if (!document || !lastPlacedBounds || controller.saving) return;
+    // The recorded region can go stale (e.g. the DM undoes the room after
+    // placing it). If its floor is gone, don't scatter props into empty space —
+    // drop the target and tell the DM to place a fresh room/hallway.
+    if (!regionHasFloor(document, lastPlacedBounds)) {
+      setLastPlacedBounds(null);
+      notifyError?.("That area is empty now — draw a room or hallway, then Populate it.");
+      return;
+    }
     const assets = MAP_STUDIO_TILE_ASSETS.filter((asset) => asset.category === category);
     const layer = assets[0] ? pickPlacementLayer(document, assets[0]) : undefined;
     if (!layer || assets.length === 0) return;

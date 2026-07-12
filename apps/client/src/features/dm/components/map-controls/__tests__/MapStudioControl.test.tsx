@@ -58,10 +58,9 @@ describe("MapStudioControl", () => {
     vi.mocked(rasterizeAndUploadMapBackground).mockResolvedValue(PUBLISHED_URL);
   });
 
-  it("loads documents, creates a map, and opens the full-canvas studio", () => {
+  it("loads documents and creates a map document", () => {
     const mapStudio = controller();
-    const onOpenStudio = vi.fn();
-    render(<MapStudioControl controller={mapStudio} onOpenStudio={onOpenStudio} />);
+    render(<MapStudioControl controller={mapStudio} />);
     expect(mapStudio.refresh).toHaveBeenCalledOnce();
 
     fireEvent.change(screen.getByLabelText("New map name"), { target: { value: "Dungeon" } });
@@ -70,12 +69,10 @@ describe("MapStudioControl", () => {
     fireEvent.click(screen.getByRole("button", { name: "CREATE EDITABLE MAP" }));
 
     expect(mapStudio.createDocument).toHaveBeenCalledWith("Dungeon", 4096, 1024);
-    expect(onOpenStudio).toHaveBeenCalledOnce();
   });
 
-  it("opens a selected document on the main canvas and can delete it", () => {
+  it("opens a selected document as active and can delete it", () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    const onOpenStudio = vi.fn();
     const mapStudio = controller({
       documents: [
         {
@@ -89,23 +86,21 @@ describe("MapStudioControl", () => {
         },
       ],
     });
-    render(<MapStudioControl controller={mapStudio} onOpenStudio={onOpenStudio} />);
+    render(<MapStudioControl controller={mapStudio} />);
 
     fireEvent.change(screen.getByLabelText("Saved maps"), { target: { value: "map" } });
     fireEvent.click(screen.getByRole("button", { name: "OPEN ON CANVAS" }));
     expect(mapStudio.openDocument).toHaveBeenCalledWith("map");
-    expect(onOpenStudio).toHaveBeenCalledOnce();
 
     fireEvent.click(screen.getByRole("button", { name: "DELETE" }));
     expect(window.confirm).toHaveBeenCalledWith('Delete map "Keep"? This cannot be undone.');
     expect(mapStudio.deleteDocument).toHaveBeenCalledWith("map");
   });
 
-  it("shows active map status, exports, undo/redo, and a main-canvas edit button", () => {
+  it("shows active map status, exports, and undo/redo", () => {
     const document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
-    const onOpenStudio = vi.fn();
     const mapStudio = controller({ activeDocument: document, canUndo: true, canRedo: true });
-    render(<MapStudioControl controller={mapStudio} onOpenStudio={onOpenStudio} />);
+    render(<MapStudioControl controller={mapStudio} />);
 
     expect(screen.getByText(/Keep/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "EXPORT SVG" })).toBeEnabled();
@@ -115,11 +110,9 @@ describe("MapStudioControl", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "↶ UNDO" }));
     fireEvent.click(screen.getByRole("button", { name: "↷ REDO" }));
-    fireEvent.click(screen.getByRole("button", { name: "EDIT ON MAIN CANVAS" }));
 
     expect(mapStudio.undo).toHaveBeenCalledOnce();
     expect(mapStudio.redo).toHaveBeenCalledOnce();
-    expect(onOpenStudio).toHaveBeenCalledOnce();
   });
 
   it("publishes the active document as an uploaded raster background in full mode", async () => {
@@ -187,7 +180,6 @@ describe("MapStudioControl", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("Conflict");
     expect(screen.getByRole("button", { name: "CREATE EDITABLE MAP" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "EDIT ON MAIN CANVAS" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "PUBLISH TO LIVE MAP" })).toBeDisabled();
   });
 });

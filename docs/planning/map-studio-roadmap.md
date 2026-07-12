@@ -32,6 +32,10 @@ Authoring has moved **onto the live table**. A room's live-bound map document au
 
 Owner decision (2026-07-11): once the palette reaches full Studio parity (Phase 2, S9–S13 — player-visible live elements, tile/stamp placement, hallway + populate, layers/inspector, exports), the separate Map Studio **scene UI is retired**. The document/command/validation/history/compile **engine is kept forever**; only the standalone editor surface dies.
 
+## Studio scene retired (Phase 2 complete, S9–S13)
+
+The palette reached parity and the full-screen Map Studio editor scene was **deleted** (S13). Live on-table authoring is now the only editing surface: place tiles/stamps and scatter set dressing (S10), drag hallways and POPULATE rooms algorithmically (S11), and manage layers / inspect-and-edit elements / eyedrop assets from the palette (S12). Players see every tile, stamp, shape, and public text live via the sanitized `mapElements` snapshot (S9), with GM notes and hidden elements stripped server-side. The DM menu's **Map** tab keeps document management, raster PUBLISH, PNG/WEBP/SVG **export**, and JSON backup **import/export** — the engine's prep-time surface. The `map-studio-*` wire protocol, validators, server service, and the compile/undo engine are untouched.
+
 Deferred (not blockers for the table loop):
 
 - **Raster-hybrid backgrounds** — an uploaded raster image coexisting under live-authored terrain. Today a raster background and live terrain can double-draw; the palette warns the DM to clear the raster for a clean live map.

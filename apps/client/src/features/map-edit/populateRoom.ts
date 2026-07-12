@@ -5,7 +5,7 @@
 // margin off the walls and never land within a cell of a door.
 
 import type { MapDocument, MapGridSettings } from "@herobyte/shared";
-import { createSeededRng } from "@herobyte/shared";
+import { createSeededRng, getTerrainCell } from "@herobyte/shared";
 import type { MapStudioTileAsset } from "../map-studio/starterTiles";
 import type { MapStampDraft } from "../map-studio/types";
 import type { RoomBounds } from "./roomBuilder";
@@ -21,6 +21,27 @@ interface Segment {
   y1: number;
   x2: number;
   y2: number;
+}
+
+/**
+ * True when the region still has painted floor terrain — the POPULATE target's
+ * proof-of-life. A room/hallway paints floor when placed, so if the DM undoes it
+ * the terrain vanishes and this returns false; callers then refuse to scatter
+ * set dressing into now-empty space (the recorded bounds went stale).
+ */
+export function regionHasFloor(document: MapDocument, bounds: RoomBounds): boolean {
+  if (!document.terrain) return false;
+  const { size, offsetX, offsetY } = document.grid;
+  const firstCX = Math.round((bounds.x - offsetX) / size);
+  const firstCY = Math.round((bounds.y - offsetY) / size);
+  const cols = Math.max(0, Math.round(bounds.width / size));
+  const rows = Math.max(0, Math.round(bounds.height / size));
+  for (let dy = 0; dy < rows; dy += 1) {
+    for (let dx = 0; dx < cols; dx += 1) {
+      if (getTerrainCell(document.terrain, firstCX + dx, firstCY + dy) !== null) return true;
+    }
+  }
+  return false;
 }
 
 /** A deterministic seed from the region origin — identical regions repopulate identically. */
@@ -101,7 +122,13 @@ export function buildPopulateDrafts(
       if (x < region.left || y < region.top || x + w > region.right || y + h > region.bottom) {
         continue;
       }
-      if (doorSegments.some((seg) => pointSegmentDistance(centerX, centerY, seg) < size)) continue;
+      // Keep a cell of clearance from any door — measured from the stamp's
+      // footprint (its bounding-circle radius), not its center, so a multi-cell
+      // stamp (e.g. a 2×1 table) can't straddle a doorway.
+      const clearance = Math.hypot(w / 2, h / 2) + size / 2;
+      if (doorSegments.some((seg) => pointSegmentDistance(centerX, centerY, seg) < clearance)) {
+        continue;
+      }
 
       drafts.push({
         layerId,

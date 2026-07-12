@@ -65,8 +65,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     transformMode,
     selectMode,
     alignmentMode,
-    mapStudioMode,
-    openMapStudio,
     mapEditMode,
     mapEditActiveSubTool,
     mapEditFloorFamily,
@@ -280,7 +278,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         transformMode={transformMode}
         selectMode={selectMode}
         alignmentMode={alignmentMode}
-        mapStudioMode={mapStudioMode}
         mapEditMode={mapEditMode}
         mapEditActiveSubTool={mapEditActiveSubTool}
         mapEditFloorFamily={mapEditFloorFamily}
@@ -307,8 +304,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         drawingProps={drawingProps}
         sendMessage={sendMessage}
         mapStudio={mapStudio}
-        onExitMapStudio={() => setActiveTool(null)}
-        onMapStudioPublishStatus={toast.success}
       />
 
       {/* Bottom Panel - Entities HUD with player/character/NPC management */}
@@ -423,7 +418,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         toast={toast}
         onSetInitiative={setInitiative}
         mapStudio={mapStudio}
-        onOpenMapStudio={openMapStudio}
       />
     </div>
   );

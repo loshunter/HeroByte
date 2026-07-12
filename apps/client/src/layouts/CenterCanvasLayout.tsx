@@ -33,14 +33,6 @@ import type { RoomBounds } from "../features/map-edit/roomBuilder";
 // Lazy load MapBoard to reduce initial bundle size
 const MapBoard = React.lazy(() => import("../ui/MapBoard"));
 
-// Lazy load the Map Studio editor so its component graph (editor UI + renderer
-// core) stays out of the entry chunk — only the DM who opens the Forge loads it.
-const MapStudioWorkspace = React.lazy(() =>
-  import("../features/map-studio/components/MapStudioWorkspace").then((m) => ({
-    default: m.MapStudioWorkspace,
-  })),
-);
-
 // Type alias for drawing board props
 type DrawingBoardProps = UseDrawingStateManagerReturn["drawingProps"];
 
@@ -90,8 +82,6 @@ export interface CenterCanvasLayoutProps {
   selectMode: boolean;
   /** Whether alignment mode is active (alignment assistance) */
   alignmentMode: boolean;
-  /** Whether full-canvas map authoring is active */
-  mapStudioMode: boolean;
   /** Whether live on-table map-edit mode is active */
   mapEditMode: boolean;
   /** Selected map-edit sub-tool (wall, …) */
@@ -159,12 +149,8 @@ export interface CenterCanvasLayoutProps {
   // WebSocket Communication (1 prop)
   /** Handler for sending WebSocket messages to server */
   sendMessage: (message: ClientMessage) => void;
-  /** Versioned Map Studio state and actions */
+  /** Versioned Map Studio controller (drives the live table + map-edit path) */
   mapStudio?: MapStudioController;
-  /** Handler to leave Map Studio mode */
-  onExitMapStudio: () => void;
-  /** Optional publish status notifier */
-  onMapStudioPublishStatus?: (message: string) => void;
 }
 
 /**
@@ -224,7 +210,6 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
     transformMode,
     selectMode,
     alignmentMode,
-    mapStudioMode,
     mapEditMode,
     mapEditActiveSubTool,
     mapEditFloorFamily,
@@ -251,32 +236,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
     drawingProps,
     sendMessage,
     mapStudio,
-    onExitMapStudio,
-    onMapStudioPublishStatus,
   }) => {
-    if (mapStudioMode && isDM && mapStudio) {
-      return (
-        <div
-          style={{
-            position: "fixed",
-            top: `${topHeight}px`,
-            bottom: `${bottomHeight}px`,
-            left: 0,
-            right: 0,
-            overflow: "hidden",
-          }}
-        >
-          <Suspense fallback={<MapLoading />}>
-            <MapStudioWorkspace
-              controller={mapStudio}
-              onExit={onExitMapStudio}
-              onPublishStatus={onMapStudioPublishStatus}
-            />
-          </Suspense>
-        </div>
-      );
-    }
-
     return (
       <div
         style={{

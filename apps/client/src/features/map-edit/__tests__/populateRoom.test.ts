@@ -1,7 +1,13 @@
 import { describe, it, expect } from "vitest";
 import type { MapDocument, MapGridSettings } from "@herobyte/shared";
+import { createMapDocument, paintTerrain } from "@herobyte/shared";
 import { getMapStudioTileAsset } from "../../map-studio/starterTiles";
-import { buildPopulateDrafts, doorSegmentsWithin, populateSeedFromBounds } from "../populateRoom";
+import {
+  buildPopulateDrafts,
+  doorSegmentsWithin,
+  populateSeedFromBounds,
+  regionHasFloor,
+} from "../populateRoom";
 import type { RoomBounds } from "../roomBuilder";
 
 const grid: MapGridSettings = {
@@ -54,6 +60,19 @@ describe("buildPopulateDrafts", () => {
     }
   });
 
+  it("clears a MULTI-CELL stamp's whole footprint from doors (not just its center)", () => {
+    const table = getMapStudioTileAsset("objects:table"); // 2×1
+    const door = [{ x1: 200, y1: 200, x2: 250, y2: 200 }];
+    const drafts = buildPopulateDrafts(bounds, grid, [table], "high", 11, "objects", door);
+    const clearance = Math.hypot((2 * grid.size) / 2, grid.size / 2) + grid.size / 2;
+    for (const d of drafts) {
+      const cx = d.x + d.width / 2;
+      const cy = d.y + d.height / 2;
+      // The bounding-circle clearance guarantees the footprint can't straddle the door.
+      expect(pointSeg(cx, cy, door[0]!)).toBeGreaterThanOrEqual(clearance);
+    }
+  });
+
   it("returns nothing when no assets are supplied", () => {
     expect(buildPopulateDrafts(bounds, grid, [], "high", 1, "objects", [])).toEqual([]);
   });
@@ -75,6 +94,20 @@ describe("populateSeedFromBounds", () => {
 
   it("differs for regions at different origins", () => {
     expect(populateSeedFromBounds(bounds)).not.toBe(populateSeedFromBounds({ ...bounds, x: 400 }));
+  });
+});
+
+describe("regionHasFloor", () => {
+  it("is true when the region has painted terrain and false when it is empty", () => {
+    let doc = createMapDocument({ id: "m", name: "M", timestamp: 1 });
+    doc = paintTerrain(doc, [{ x: 2, y: 2, assetId: "terrain:grass" }], 2);
+    expect(regionHasFloor(doc, bounds)).toBe(true); // bounds covers cells 0–9
+    expect(regionHasFloor(doc, { x: 5000, y: 5000, width: 100, height: 100 })).toBe(false);
+  });
+
+  it("is false for a document with no terrain at all (room undone)", () => {
+    const empty = createMapDocument({ id: "e", name: "E", timestamp: 1 });
+    expect(regionHasFloor(empty, bounds)).toBe(false);
   });
 });
 

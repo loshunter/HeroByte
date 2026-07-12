@@ -85,7 +85,6 @@ interface DMMenuContainerProps {
   onSelectPlayerTokens: (playerUid: string) => void;
   onSetInitiative?: (characterId: string, initiative: number, modifier: number) => void;
   mapStudio?: MapStudioController;
-  onOpenMapStudio: () => void;
 }
 
 /**
@@ -141,7 +140,6 @@ export function DMMenuContainer({
   onSelectPlayerTokens,
   onSetInitiative,
   mapStudio,
-  onOpenMapStudio,
 }: DMMenuContainerProps) {
   // Instantiate DM context with all DM-specific hooks
   const dmContext = useDMContext({
@@ -239,7 +237,6 @@ export function DMMenuContainer({
       toast={toast}
       onSetInitiative={onSetInitiative}
       mapStudio={mapStudio}
-      onOpenMapStudio={onOpenMapStudio}
     />
   );
 }

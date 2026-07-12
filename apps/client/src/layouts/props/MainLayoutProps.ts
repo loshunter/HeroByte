@@ -110,10 +110,6 @@ export interface MainLayoutProps {
   selectMode: boolean;
   /** Whether alignment mode is active */
   alignmentMode: boolean;
-  /** Whether full-canvas Map Studio mode is active */
-  mapStudioMode: boolean;
-  /** Handler to enter full-canvas Map Studio mode */
-  openMapStudio: () => void;
   /** Whether live on-table map-edit mode is active */
   mapEditMode: boolean;
   /** Selected map-edit sub-tool (wall, …) */

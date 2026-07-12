@@ -17,7 +17,6 @@ interface MobileFloatingControlsProps {
   snapToGrid: boolean;
   diceRollerOpen: boolean;
   rollLogOpen: boolean;
-  isDM: boolean;
 }
 
 export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
@@ -31,7 +30,6 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
   snapToGrid,
   diceRollerOpen,
   rollLogOpen,
-  isDM,
 }) => {
   const [showTools, setShowTools] = useState(false);
 
@@ -107,16 +105,6 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
               <span aria-hidden="true">□</span>
               Select
             </button>
-            {isDM && (
-              <button
-                type="button"
-                className={toolButtonClass("map-studio")}
-                onClick={() => selectTool(activeTool === "map-studio" ? null : "map-studio")}
-              >
-                <span aria-hidden="true">▦</span>
-                Map
-              </button>
-            )}
             <button
               type="button"
               className={`mobile-tool-sheet__button${

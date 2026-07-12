@@ -87,7 +87,6 @@ export function DMMenu({
   toast,
   onSetInitiative,
   mapStudio,
-  onOpenMapStudio,
 }: DMMenuProps) {
   const { open, setOpen, toggleOpen, activeTab, setActiveTab, sessionName, setSessionName, npcs } =
     useDMMenuState({
@@ -98,11 +97,6 @@ export function DMMenu({
   if (!isDM) {
     return null;
   }
-
-  const handleOpenMapStudio = () => {
-    setOpen(false);
-    onOpenMapStudio?.();
-  };
 
   return (
     <>
@@ -187,7 +181,6 @@ export function DMMenu({
                 onSetPlayerStagingZone={onSetPlayerStagingZone}
                 onClearDrawings={onClearDrawings}
                 mapStudio={mapStudio}
-                onOpenMapStudio={handleOpenMapStudio}
               />
             )}
             {activeTab === "npcs" && (

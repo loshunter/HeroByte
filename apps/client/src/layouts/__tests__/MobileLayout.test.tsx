@@ -68,19 +68,6 @@ vi.mock("../../components/dice/ResultPanel", () => ({
   ),
 }));
 
-// MapStudioWorkspace now loads lazily by path (Slice L), so mock the module the
-// dynamic import resolves — not the barrel, which no longer re-exports it.
-vi.mock("../../features/map-studio/components/MapStudioWorkspace", () => ({
-  MapStudioWorkspace: ({ onExit }: { onExit: () => void }) => (
-    <div data-testid="map-studio-workspace">
-      Map Studio
-      <button type="button" onClick={onExit}>
-        Exit Studio
-      </button>
-    </div>
-  ),
-}));
-
 describe("MobileLayout", () => {
   const createDefaultProps = (): MainLayoutProps => ({
     isConnected: true,
@@ -98,8 +85,6 @@ describe("MobileLayout", () => {
     transformMode: false,
     selectMode: false,
     alignmentMode: false,
-    mapStudioMode: false,
-    openMapStudio: vi.fn(),
     mapEditMode: false,
     mapEditActiveSubTool: "wall" as const,
     mapEditFloorFamily: "grass" as const,
@@ -334,24 +319,6 @@ describe("MobileLayout", () => {
     fireEvent.click(screen.getByRole("button", { name: /clear/i }));
     expect(props.handleObjectSelection).toHaveBeenCalledWith(null);
     expect(props.handleObjectSelectionBatch).toHaveBeenCalledWith([]);
-  });
-
-  it("renders Map Studio workspace for a DM in mobile map-studio mode", async () => {
-    const props = createDefaultProps();
-    props.activeTool = "map-studio";
-    props.mapStudioMode = true;
-    props.isDM = true;
-    props.mapStudio = {} as NonNullable<MainLayoutProps["mapStudio"]>;
-
-    render(<MobileLayout {...props} />);
-
-    // The editor is lazy-loaded (Slice L) — it resolves after the Suspense fallback.
-    expect(await screen.findByTestId("map-studio-workspace")).toBeInTheDocument();
-    expect(screen.queryByTestId("map-board")).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /exit studio/i }));
-
-    expect(props.setActiveTool).toHaveBeenCalledWith(null);
   });
 
   it("renders DiceRoller when diceRollerOpen is true", () => {

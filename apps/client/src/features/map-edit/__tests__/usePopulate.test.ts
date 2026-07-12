@@ -1,11 +1,14 @@
 import { describe, it, expect, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { MapDocument } from "@herobyte/shared";
+import { paintTerrain } from "@herobyte/shared";
 import { usePopulate } from "../usePopulate";
 import type { MapStudioController } from "../../map-studio/types";
 
-function makeDocument(): MapDocument {
-  return {
+// A live doc with an objects layer. `withFloor` paints terrain over the test
+// regions so the POPULATE floor guard passes; omit it to simulate an undone room.
+function makeDocument(withFloor = true): MapDocument {
+  const base: MapDocument = {
     schemaVersion: 1,
     id: "live",
     name: "Live Map",
@@ -36,6 +39,12 @@ function makeDocument(): MapDocument {
     createdAt: 1,
     updatedAt: 1,
   };
+  if (!withFloor) return base;
+  const cells: { x: number; y: number; assetId: string }[] = [];
+  for (let y = 0; y < 12; y += 1) {
+    for (let x = 0; x < 12; x += 1) cells.push({ x, y, assetId: "terrain:grass" });
+  }
+  return paintTerrain(base, cells, 2);
 }
 
 function makeController(overrides: Partial<MapStudioController> = {}): MapStudioController {
@@ -67,6 +76,19 @@ describe("usePopulate", () => {
     expect(drafts.length).toBeGreaterThan(0);
     // Objects-category stamps land on the objects layer.
     expect(drafts.every((d: { layerId: string }) => d.layerId === "objects")).toBe(true);
+  });
+
+  it("refuses to populate a stale region whose floor is gone (room undone)", () => {
+    // The region was recorded, but the active document now has NO terrain there
+    // (e.g. the DM undid the place-room). Populate must no-op and clear the target.
+    const controller = makeController({ activeDocument: makeDocument(false) });
+    const { result } = renderHook(() => usePopulate(controller));
+
+    act(() => result.current.onRegionPlaced({ x: 0, y: 0, width: 500, height: 500 }));
+    act(() => result.current.onPopulate());
+
+    expect(controller.addStamps).not.toHaveBeenCalled();
+    expect(result.current.canPopulate).toBe(false); // target dropped
   });
 
   it("does not populate while the controller is saving", () => {

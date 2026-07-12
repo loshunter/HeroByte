@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import type { MapPublishBackgroundMode } from "@herobyte/shared";
+import { useEffect, useRef, useState } from "react";
+import type { MapDocument, MapPublishBackgroundMode } from "@herobyte/shared";
 import { JRPGButton, JRPGPanel } from "../../../../components/ui/JRPGPanel";
 import {
   describePublishFailure,
@@ -10,7 +10,6 @@ import { MapStudioExportControls } from "./MapStudioExportControls";
 
 export interface MapStudioControlProps {
   controller: MapStudioController;
-  onOpenStudio?: () => void;
   onPublishToLiveMap?: (publish: {
     backgroundUrl: string;
     gridSize: number;
@@ -20,11 +19,7 @@ export interface MapStudioControlProps {
   }) => void;
 }
 
-export function MapStudioControl({
-  controller,
-  onOpenStudio,
-  onPublishToLiveMap,
-}: MapStudioControlProps) {
+export function MapStudioControl({ controller, onPublishToLiveMap }: MapStudioControlProps) {
   const {
     documents,
     activeDocument,
@@ -40,12 +35,32 @@ export function MapStudioControl({
     undo,
     redo,
     uploadAsset,
+    importDocument,
   } = controller;
   const [name, setName] = useState("New Battlemap");
   const [width, setWidth] = useState(2048);
   const [height, setHeight] = useState(2048);
   const [selectedId, setSelectedId] = useState("");
   const [publishStatus, setPublishStatus] = useState("");
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportFile = (fileText: string) => {
+    try {
+      const parsed: unknown = JSON.parse(fileText);
+      if (
+        typeof parsed !== "object" ||
+        parsed === null ||
+        (parsed as { schemaVersion?: unknown }).schemaVersion !== 1
+      ) {
+        throw new Error("Not a HeroByte map backup");
+      }
+      const id = importDocument(parsed as MapDocument);
+      setSelectedId(id);
+      setPublishStatus("Importing map backup…");
+    } catch {
+      setPublishStatus("Import failed: that file is not a HeroByte map JSON backup.");
+    }
+  };
 
   useEffect(() => {
     refresh();
@@ -65,13 +80,11 @@ export function MapStudioControl({
     if (!name.trim() || loading || saving) return;
     const id = createDocument(name.trim(), width, height);
     setSelectedId(id);
-    onOpenStudio?.();
   };
 
   const handleOpen = () => {
     if (!selectedId || loading || saving) return;
     openDocument(selectedId);
-    onOpenStudio?.();
   };
 
   const handleDelete = () => {
@@ -171,6 +184,25 @@ export function MapStudioControl({
               ↻
             </JRPGButton>
           </div>
+          <JRPGButton
+            style={{ width: "100%", marginTop: "6px", fontSize: "10px" }}
+            disabled={loading || saving}
+            onClick={() => importInputRef.current?.click()}
+          >
+            IMPORT JSON BACKUP
+          </JRPGButton>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json,.json"
+            style={{ display: "none" }}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (!file) return;
+              void file.text().then(handleImportFile);
+            }}
+          />
         </div>
 
         {activeDocument && (
@@ -201,16 +233,6 @@ export function MapStudioControl({
                 onClick={redo}
               >
                 ↷ REDO
-              </JRPGButton>
-            </div>
-            <div style={{ display: "flex", gap: "6px", marginBottom: "6px" }}>
-              <JRPGButton
-                variant="primary"
-                style={{ flex: 1, fontSize: "10px" }}
-                disabled={saving || !onOpenStudio}
-                onClick={onOpenStudio}
-              >
-                EDIT ON MAIN CANVAS
               </JRPGButton>
             </div>
             <div style={{ display: "flex", gap: "6px", marginBottom: "6px" }}>

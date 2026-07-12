@@ -15,7 +15,6 @@ export type ToolMode =
   | "transform"
   | "select"
   | "align"
-  | "map-studio"
   | "map-edit"
   | null;
 
@@ -60,7 +59,6 @@ export const Header: React.FC<HeaderProps> = ({
   const drawMode = activeTool === "draw";
   const transformMode = activeTool === "transform";
   const selectMode = activeTool === "select";
-  const mapStudioMode = activeTool === "map-studio";
   const mapEditMode = activeTool === "map-edit";
 
   return (
@@ -192,17 +190,6 @@ export const Header: React.FC<HeaderProps> = ({
                   title="Author the live map on the table"
                 >
                   🏗️ Map
-                </JRPGButton>
-              )}
-
-              {isDM && (
-                <JRPGButton
-                  onClick={() => onToolSelect(mapStudioMode ? null : "map-studio")}
-                  variant={mapStudioMode ? "primary" : "default"}
-                  style={{ fontSize: "8px", padding: "4px 10px" }}
-                  title="Open full-canvas map authoring"
-                >
-                  Map Studio
                 </JRPGButton>
               )}
 

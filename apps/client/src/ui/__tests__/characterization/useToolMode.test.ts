@@ -24,7 +24,7 @@ function useToolModeCharacterization() {
   const transformMode = activeTool === "transform";
   const selectMode = activeTool === "select";
   const alignmentMode = activeTool === "align";
-  const mapStudioMode = activeTool === "map-studio";
+  const mapEditMode = activeTool === "map-edit";
 
   // Escape key handling
   useEffect(() => {
@@ -51,7 +51,7 @@ function useToolModeCharacterization() {
     transformMode,
     selectMode,
     alignmentMode,
-    mapStudioMode,
+    mapEditMode,
   };
 }
 
@@ -80,7 +80,7 @@ describe("useToolMode - Characterization", () => {
       expect(result.current.transformMode).toBe(false);
       expect(result.current.selectMode).toBe(false);
       expect(result.current.alignmentMode).toBe(false);
-      expect(result.current.mapStudioMode).toBe(false);
+      expect(result.current.mapEditMode).toBe(false);
     });
   });
 
@@ -165,14 +165,14 @@ describe("useToolMode - Characterization", () => {
       expect(result.current.pointerMode).toBe(false);
     });
 
-    it("should set mapStudioMode to true when map studio is active", () => {
+    it("should set mapEditMode to true when map studio is active", () => {
       const { result } = renderHook(() => useToolModeCharacterization());
 
       act(() => {
-        result.current.setActiveTool("map-studio");
+        result.current.setActiveTool("map-edit");
       });
 
-      expect(result.current.mapStudioMode).toBe(true);
+      expect(result.current.mapEditMode).toBe(true);
       expect(result.current.pointerMode).toBe(false);
     });
   });
@@ -212,7 +212,7 @@ describe("useToolMode - Characterization", () => {
       expect(result.current.transformMode).toBe(false);
       expect(result.current.selectMode).toBe(false);
       expect(result.current.alignmentMode).toBe(false);
-      expect(result.current.mapStudioMode).toBe(false);
+      expect(result.current.mapEditMode).toBe(false);
     });
   });
 
@@ -287,7 +287,7 @@ describe("useToolMode - Characterization", () => {
         "transform",
         "select",
         "align",
-        "map-studio",
+        "map-edit",
       ];
 
       toolTypes.forEach((toolType) => {

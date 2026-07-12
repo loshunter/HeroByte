@@ -86,5 +86,4 @@ export interface DMMenuProps {
   };
   onSetInitiative?: (characterId: string, initiative: number, modifier: number) => void;
   mapStudio?: MapStudioController;
-  onOpenMapStudio?: () => void;
 }

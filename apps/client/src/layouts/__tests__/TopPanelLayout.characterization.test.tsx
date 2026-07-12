@@ -156,8 +156,6 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
     transformMode: false,
     selectMode: false,
     alignmentMode: false,
-    mapStudioMode: false,
-    openMapStudio: vi.fn(),
     mapEditMode: false,
     mapEditActiveSubTool: "wall" as const,
     mapEditFloorFamily: "grass" as const,
@@ -551,7 +549,7 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
         "transform",
         "select",
         "align",
-        "map-studio",
+        "map-edit",
       ];
 
       toolModes.forEach((tool) => {

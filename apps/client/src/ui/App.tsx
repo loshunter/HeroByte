@@ -155,13 +155,8 @@ function AuthenticatedApp({
     transformMode,
     selectMode,
     alignmentMode,
-    mapStudioMode,
     mapEditMode,
   } = useToolMode();
-
-  const openMapStudio = useCallback(() => {
-    setActiveTool("map-studio");
-  }, [setActiveTool]);
 
   // Custom hooks for state management
   const { micEnabled, toggleMic } = useVoiceChatManager({
@@ -696,7 +691,6 @@ function AuthenticatedApp({
     transformMode,
     selectMode,
     alignmentMode,
-    mapStudioMode,
     mapEditMode,
     mapEditActiveSubTool: mapEdit.activeSubTool,
     mapEditFloorFamily: mapEdit.floorFamily,
@@ -817,7 +811,6 @@ function AuthenticatedApp({
     // WebSocket communication
     sendMessage,
     mapStudio,
-    openMapStudio,
   };
 
   return (
