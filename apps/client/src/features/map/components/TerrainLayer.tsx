@@ -20,6 +20,12 @@ import { buildStructuredTerrainLayers } from "../../map-studio/terrainRender";
 import { buildTerrainOnlyOccupancy } from "../../map-studio/tileAutotiling";
 import { getMapStudioTileAsset } from "../../map-studio/starterTiles";
 import { drawTableTerrain } from "./terrainSceneFunc";
+import {
+  blitFieldBake,
+  coreTerrainLayers,
+  createFieldBakeCache,
+  getFieldBake,
+} from "./terrainBake";
 import type { Camera } from "../types";
 
 /** Longest animated terrain cycle; the clock frame wraps within this. */
@@ -60,10 +66,36 @@ export function TerrainLayer({ cam, mapTerrain, mapTransform }: TerrainLayerProp
     [terrainKey],
   );
 
+  // Field families (grass/dirt/path + the procedural wood/stone floors) render
+  // as one bumpy procedural canvas baked ONCE per terrain/grid change — matching
+  // the Map Studio editor and exports. The bake is heavy per pixel, so it is
+  // cached on the layers identity + grid signature via a ref that survives
+  // re-renders. Keyed on grid PRIMITIVES (not the per-snapshot grid object) so
+  // an unrelated broadcast never triggers the memo. `baked` is null when there
+  // is no field terrain or the field is too large — then every family falls back
+  // to the flat/atlas core path so terrain never vanishes.
+  const bakeCache = useRef(createFieldBakeCache());
+  const { size: gridSize, offsetX: gridOffsetX, offsetY: gridOffsetY } = mapTerrain.grid;
+  const baked = useMemo(
+    // Rebuild the grid from PRIMITIVES (not the per-snapshot grid object, whose
+    // identity churns each broadcast) so the memo runs only on a real change.
+    () =>
+      getFieldBake(bakeCache.current, layers, {
+        size: gridSize,
+        offsetX: gridOffsetX,
+        offsetY: gridOffsetY,
+      }),
+    [layers, gridSize, gridOffsetX, gridOffsetY],
+  );
+  // The families that still draw through the flat/atlas core: non-field families
+  // (water) over the baked field, or ALL families when the bake fell back.
+  const coreLayers = useMemo(() => coreTerrainLayers(layers, baked), [layers, baked]);
+
   // Only water (animFills) animates; a still map skips the clock entirely.
   const animated = useMemo(
-    () => layers.some((layer) => (getMapStudioTileAsset(layer.assetId).animFills?.length ?? 0) > 0),
-    [layers],
+    () =>
+      coreLayers.some((layer) => (getMapStudioTileAsset(layer.assetId).animFills?.length ?? 0) > 0),
+    [coreLayers],
   );
   const frame = useAnimationFrameIndex(TERRAIN_ANIM_FRAMES, animated);
 
@@ -91,28 +123,44 @@ export function TerrainLayer({ cam, mapTerrain, mapTransform }: TerrainLayerProp
   // draws through the raw 2D context); they exist only to satisfy Konva's
   // hasFill/hasStroke gate for that buffer canvas. Memoized so byte-identical
   // terrain across snapshot churn yields stable elements (React bails; no repaint).
-  const shapes = useMemo(
-    () =>
-      layers.map((layer) => (
-        <Shape
-          key={layer.assetId}
-          listening={false}
-          opacity={opacity}
-          fill="#000000"
-          stroke="#000000"
-          sceneFunc={(context) => {
-            // Konva.Context wraps the native 2D context; `_context` is the
-            // documented escape hatch to the raw CanvasRenderingContext2D the
-            // shared core draws through. Konva has already applied the camera +
-            // map transform (and, when buffering, targets the buffer context).
-            const ctx = (context as unknown as { _context: CanvasRenderingContext2D })
-              ._context as unknown as TileRenderContext2D;
-            drawTableTerrain(ctx, [layer], atlas, frame, boundaryWidth);
-          }}
-        />
-      )),
-    [layers, atlas, frame, boundaryWidth, opacity],
-  );
+  const shapes = useMemo(() => {
+    const coreShapes = coreLayers.map((layer) => (
+      <Shape
+        key={layer.assetId}
+        listening={false}
+        opacity={opacity}
+        fill="#000000"
+        stroke="#000000"
+        sceneFunc={(context) => {
+          // Konva.Context wraps the native 2D context; `_context` is the
+          // documented escape hatch to the raw CanvasRenderingContext2D the
+          // shared core draws through. Konva has already applied the camera +
+          // map transform (and, when buffering, targets the buffer context).
+          const ctx = (context as unknown as { _context: CanvasRenderingContext2D })
+            ._context as unknown as TileRenderContext2D;
+          drawTableTerrain(ctx, [layer], atlas, frame, boundaryWidth);
+        }}
+      />
+    ));
+    if (!baked) return coreShapes;
+    // Blit the baked field UNDER the core families (matching the editor
+    // underlay's field-first z-order). Its own buffered Shape so the terrain
+    // opacity fades the flattened field once, not per primitive.
+    return [
+      <Shape
+        key="__field-bake"
+        listening={false}
+        opacity={opacity}
+        fill="#000000"
+        stroke="#000000"
+        sceneFunc={(context) => {
+          const ctx = (context as unknown as { _context: CanvasRenderingContext2D })._context;
+          blitFieldBake(ctx, baked);
+        }}
+      />,
+      ...coreShapes,
+    ];
+  }, [coreLayers, baked, atlas, frame, boundaryWidth, opacity]);
 
   const { x = 0, y = 0, scaleX = 1, scaleY = 1, rotation = 0 } = mapTransform ?? {};
 
