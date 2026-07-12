@@ -7,11 +7,14 @@ import type { MessageRecord, ValidationResult } from "./commonValidators.js";
 const id = z.string().trim().min(1).max(128);
 
 // Bind (documentId string) or clear (documentId null) the live-bound document.
-// `.strict()` rejects stray fields; the id bound matches every other document
-// reference (1..128 chars).
-const setLiveSchema = z
-  .object({ t: z.literal("map-studio-set-live"), documentId: id.nullable() })
-  .strict();
+// NOT `.strict()`: the client's command-ack layer stamps a `commandId` onto
+// every outgoing message, so a strict top-level object would reject every real
+// set-live (the other map-studio validators omit top-level strict for the same
+// reason). documentId is still validated as a 1..128-char id or null.
+const setLiveSchema = z.object({
+  t: z.literal("map-studio-set-live"),
+  documentId: id.nullable(),
+});
 
 export function validateMapStudioSetLiveMessage(message: MessageRecord): ValidationResult {
   const result = setLiveSchema.safeParse(message);

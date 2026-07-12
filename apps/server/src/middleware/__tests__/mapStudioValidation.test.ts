@@ -70,6 +70,25 @@ describe("Map Studio message validation", () => {
   });
 
   it.each([
+    { t: "map-studio-set-live", documentId: "live" },
+    { t: "map-studio-set-live", documentId: null },
+    // Regression: the client's command-ack layer stamps a commandId onto every
+    // outgoing message — the validator must accept it, not reject it as strict.
+    { t: "map-studio-set-live", documentId: "live", commandId: "cmd-123" },
+    { t: "map-studio-set-live", documentId: null, commandId: "cmd-123" },
+  ])("accepts set-live message %#", (message) => {
+    expect(validateMessage(message)).toEqual({ valid: true });
+  });
+
+  it.each([
+    { t: "map-studio-set-live" }, // missing documentId (must be explicit string or null)
+    { t: "map-studio-set-live", documentId: "" }, // blank id
+    { t: "map-studio-set-live", documentId: 42 }, // wrong type
+  ])("rejects malformed set-live payload %#", (message) => {
+    expect(validateMessage(message).valid).toBe(false);
+  });
+
+  it.each([
     { t: "map-studio-import" },
     { t: "map-studio-import", document: { schemaVersion: 2 } },
     { t: "map-studio-import", document: { schemaVersion: 1, id: "x" } },
