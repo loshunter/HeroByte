@@ -2,7 +2,7 @@ import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import type { Camera } from "../hooks/useCamera";
 import type { MapStudioController } from "../features/map-studio/types";
-import type { MapEditSubTool } from "../features/map-edit/mapEditTypes";
+import type { MapEditFloorFamily, MapEditSubTool } from "../features/map-edit/mapEditTypes";
 
 /**
  * Camera command for programmatic camera control.
@@ -35,8 +35,10 @@ export interface MapBoardProps {
   selectMode: boolean; // Selection tool active
   mapEditMode?: boolean; // Live on-table map authoring active (DM-only)
   mapEditActiveSubTool?: MapEditSubTool; // Selected map-edit sub-tool (wall, …)
+  mapEditFloorFamily?: MapEditFloorFamily; // Floor terrain family the room tool paints
   mapEditController?: MapStudioController; // Shared Map Studio controller the tools drive
   mapEditWallsOverlayPinned?: boolean; // Keep the DM walls overlay visible outside map-edit
+  onMapEditRoomRejected?: (message: string) => void; // Room drag refused (too large / no layer)
   isDM: boolean; // Whether the current user can manage all objects
   alignmentMode: boolean; // Alignment tool active
   alignmentPoints?: AlignmentPoint[]; // Captured alignment points

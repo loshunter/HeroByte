@@ -124,6 +124,60 @@ describe("Map Studio message validation", () => {
     ).toBe(false);
   });
 
+  const roomWall = {
+    id: "room-wall",
+    layerId: "walls",
+    type: "wall" as const,
+    locked: false,
+    hidden: false,
+    transform,
+    data: {
+      points: [
+        { x: 0, y: 0 },
+        { x: 100, y: 0 },
+        { x: 100, y: 50 },
+        { x: 0, y: 50 },
+        { x: 0, y: 0 },
+      ],
+      blocksMovement: true,
+      blocksVision: true,
+    },
+  };
+
+  function placeRoomCommand(overrides: Record<string, unknown> = {}) {
+    return {
+      t: "map-studio-command",
+      command: {
+        commandId: "c1",
+        documentId: "map",
+        baseRevision: 0,
+        type: "place-room",
+        cells: [{ x: 0, y: 0, assetId: "terrain:wood-floor" }],
+        elements: [roomWall],
+        ...overrides,
+      },
+    };
+  }
+
+  it("accepts a well-formed place-room command", () => {
+    expect(validateMessage(placeRoomCommand()).valid).toBe(true);
+  });
+
+  it.each([
+    { cells: [] }, // empty floor
+    { elements: [] }, // no perimeter
+    { extra: 1 }, // strict: stray field
+    {
+      cells: Array.from({ length: 16385 }, (_, i) => ({
+        x: i % 128,
+        y: Math.floor(i / 128),
+        assetId: "terrain:grass",
+      })),
+    }, // oversized floor
+  ])("rejects malformed place-room payload %#", (overrides) => {
+    expect(validateMessage(placeRoomCommand(overrides)).valid).toBe(false);
+  });
+
   it("accepts imported documents carrying a terrain map and rejects malformed ones", () => {
     const base = {
       schemaVersion: 1,

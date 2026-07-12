@@ -69,7 +69,9 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     openMapStudio,
     mapEditMode,
     mapEditActiveSubTool,
+    mapEditFloorFamily,
     mapEditWallsOverlayPinned,
+    onMapEditRoomRejected,
     mapEditToolbarProps,
 
     // UI state
@@ -275,7 +277,9 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         mapStudioMode={mapStudioMode}
         mapEditMode={mapEditMode}
         mapEditActiveSubTool={mapEditActiveSubTool}
+        mapEditFloorFamily={mapEditFloorFamily}
         mapEditWallsOverlayPinned={mapEditWallsOverlayPinned}
+        onMapEditRoomRejected={onMapEditRoomRejected}
         selectedObjectId={selectedObjectId}
         selectedObjectIds={selectedObjectIds}
         onSelectObject={handleObjectSelection}

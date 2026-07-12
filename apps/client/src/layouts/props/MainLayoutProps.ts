@@ -22,7 +22,11 @@ import type {
   PlayerStagingZone,
 } from "@herobyte/shared";
 import type { MapStudioController } from "../../features/map-studio";
-import type { MapEditSubTool, MapEditToolbarProps } from "../../features/map-edit/mapEditTypes";
+import type {
+  MapEditFloorFamily,
+  MapEditSubTool,
+  MapEditToolbarProps,
+} from "../../features/map-edit/mapEditTypes";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../types/alignment";
 import type { RollResult } from "../../components/dice/types";
 import type { UseDrawingStateManagerReturn } from "../../hooks/useDrawingStateManager";
@@ -113,8 +117,12 @@ export interface MainLayoutProps {
   mapEditMode: boolean;
   /** Selected map-edit sub-tool (wall, …) */
   mapEditActiveSubTool: MapEditSubTool;
+  /** Floor terrain family the room tool paints */
+  mapEditFloorFamily: MapEditFloorFamily;
   /** Keep the DM walls overlay visible outside map-edit mode */
   mapEditWallsOverlayPinned: boolean;
+  /** Called when a room drag is refused (too large / no walls layer) */
+  onMapEditRoomRejected: (message: string) => void;
   /** Props for the lazy-loaded map-edit palette */
   mapEditToolbarProps: MapEditToolbarProps;
 

@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { ClientMessage } from "@herobyte/shared";
 import type { ToolMode } from "../../components/layout/Header";
 import type { MapStudioController } from "../map-studio/types";
-import type { MapEditSubTool, MapEditToolbarProps } from "./mapEditTypes";
+import type { MapEditFloorFamily, MapEditSubTool, MapEditToolbarProps } from "./mapEditTypes";
 
 interface UseMapEditStateOptions {
   controller: MapStudioController;
@@ -27,6 +27,8 @@ interface UseMapEditStateOptions {
 
 interface UseMapEditStateReturn {
   activeSubTool: MapEditSubTool;
+  /** Floor terrain family the room sub-tool paints. */
+  floorFamily: MapEditFloorFamily;
   /** Keep the DM walls overlay visible even outside map-edit mode. */
   wallsOverlayPinned: boolean;
   toolbarProps: MapEditToolbarProps;
@@ -44,6 +46,7 @@ export function useMapEditState({
   hasRasterBackground,
 }: UseMapEditStateOptions): UseMapEditStateReturn {
   const [activeSubTool, setActiveSubTool] = useState<MapEditSubTool>("wall");
+  const [floorFamily, setFloorFamily] = useState<MapEditFloorFamily>("grass");
   // The id of a document we just created and are waiting to activate before
   // binding it live (createDocument returns synchronously, but the controller
   // no-ops every action until the server's map-studio-document reply lands).
@@ -108,6 +111,8 @@ export function useMapEditState({
     busy: awaitingLiveBind || pendingLiveId !== null || loading,
     activeSubTool,
     onSelectSubTool: setActiveSubTool,
+    floorFamily,
+    onSelectFloorFamily: setFloorFamily,
     canUndo: controller.canUndo,
     canRedo: controller.canRedo,
     onUndo: undo,
@@ -120,5 +125,5 @@ export function useMapEditState({
     onToggleWallsOverlay,
   };
 
-  return { activeSubTool, wallsOverlayPinned, toolbarProps };
+  return { activeSubTool, floorFamily, wallsOverlayPinned, toolbarProps };
 }

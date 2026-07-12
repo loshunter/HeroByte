@@ -2,7 +2,7 @@
 // mapStudio.ts to stay within the file-size budget. They share the internal
 // `commit` revision-bump helper and the shared element sanitizers.
 
-import { commit } from "./mapStudio.js";
+import { commit, paintTerrainCells, withTerrain, type TerrainPaintCell } from "./mapStudio.js";
 import {
   requireEditableLayer,
   requireElementIndex,
@@ -23,11 +23,16 @@ export function addMapElement(
   return commit(document, { elements: [...document.elements, sanitized] }, timestamp);
 }
 
-export function addMapElements(
+/**
+ * Validate a batch of new elements and return the document's FULL next elements
+ * array WITHOUT committing — the non-committing core so `place-room` can add
+ * walls and paint floor under a single commit. Throws on a duplicate id or a
+ * locked/missing layer (so nothing is applied when any element is invalid).
+ */
+export function addMapElementsBatchCore(
   document: MapDocument,
   elements: MapElement[],
-  timestamp: number = Date.now(),
-): MapDocument {
+): MapElement[] {
   if (!elements.length) {
     throw new Error("At least one map element is required");
   }
@@ -43,7 +48,31 @@ export function addMapElements(
     return sanitizeElement(element);
   });
 
-  return commit(document, { elements: [...document.elements, ...sanitized] }, timestamp);
+  return [...document.elements, ...sanitized];
+}
+
+export function addMapElements(
+  document: MapDocument,
+  elements: MapElement[],
+  timestamp: number = Date.now(),
+): MapDocument {
+  return commit(document, { elements: addMapElementsBatchCore(document, elements) }, timestamp);
+}
+
+/**
+ * Place a room: paint floor terrain AND add wall/element geometry as ONE
+ * revision bump = ONE undo step. Both cores validate before this commits, so a
+ * locked layer or bad cell leaves the document untouched (all-or-nothing).
+ */
+export function placeRoom(
+  document: MapDocument,
+  cells: TerrainPaintCell[],
+  elements: MapElement[],
+  timestamp: number = Date.now(),
+): MapDocument {
+  const terrain = paintTerrainCells(document, cells);
+  const nextElements = addMapElementsBatchCore(document, elements);
+  return withTerrain(commit(document, { elements: nextElements }, timestamp), terrain);
 }
 
 export function updateMapElement(

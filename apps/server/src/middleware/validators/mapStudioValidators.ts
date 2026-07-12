@@ -171,6 +171,21 @@ const element = z.discriminatedUnion("type", [
   textElement,
 ]);
 
+// Shared by paint-terrain and place-room (identical cell shape + 16384 cap).
+const terrainCells = z
+  .array(
+    z
+      .object({
+        x: z.number().int().min(-65536).max(65536),
+        y: z.number().int().min(-65536).max(65536),
+        assetId: id.nullable(),
+      })
+      .strict(),
+  )
+  .min(1)
+  .max(16384);
+const elementsBatch = z.array(element).min(1).max(5000); // shared: add-elements + place-room
+
 const commandBase = { commandId: id, documentId: id, baseRevision: z.number().int().nonnegative() };
 const command = z.discriminatedUnion("type", [
   z.object({ ...commandBase, type: z.literal("undo") }).strict(),
@@ -202,13 +217,7 @@ const command = z.discriminatedUnion("type", [
     .strict(),
   z.object({ ...commandBase, type: z.literal("remove-layer"), layerId: id }).strict(),
   z.object({ ...commandBase, type: z.literal("add-element"), element }).strict(),
-  z
-    .object({
-      ...commandBase,
-      type: z.literal("add-elements"),
-      elements: z.array(element).min(1).max(5000),
-    })
-    .strict(),
+  z.object({ ...commandBase, type: z.literal("add-elements"), elements: elementsBatch }).strict(),
   z
     .object({
       ...commandBase,
@@ -237,22 +246,13 @@ const command = z.discriminatedUnion("type", [
     })
     .strict(),
   z.object({ ...commandBase, type: z.literal("remove-element"), elementId: id }).strict(),
+  z.object({ ...commandBase, type: z.literal("paint-terrain"), cells: terrainCells }).strict(),
   z
     .object({
       ...commandBase,
-      type: z.literal("paint-terrain"),
-      cells: z
-        .array(
-          z
-            .object({
-              x: z.number().int().min(-65536).max(65536),
-              y: z.number().int().min(-65536).max(65536),
-              assetId: id.nullable(),
-            })
-            .strict(),
-        )
-        .min(1)
-        .max(16384),
+      type: z.literal("place-room"),
+      cells: terrainCells,
+      elements: elementsBatch,
     })
     .strict(),
 ]);

@@ -15,9 +15,11 @@ import {
 } from "@herobyte/shared";
 import { snapPointToGrid } from "../map-studio/snapToGrid";
 import { commitSegmentDrag } from "../map-studio/components/wallDoorDrafts";
+import { roomBoundsFromDrag } from "../map-studio/components/mapStudioWorkspaceUtils";
 import type { RoomDrag, StudioTool } from "../map-studio/components/MapStudioWorkspace.types";
 import type { MapStudioController } from "../map-studio/types";
-import type { MapEditSubTool } from "./mapEditTypes";
+import { buildRoomCommand } from "./roomBuilder";
+import type { MapEditFloorFamily, MapEditSubTool } from "./mapEditTypes";
 
 // Live-authored maps have no raster "map" scene object, so document space ≡
 // world space. Writing the hop through the helper keeps tools correct even when
@@ -34,6 +36,10 @@ interface UseMapEditToolOptions {
    * stray Map Studio document left active would silently receive the wall.
    */
   liveDocumentId: string | undefined;
+  /** Floor terrain family the room sub-tool paints. */
+  floorFamily: MapEditFloorFamily;
+  /** Surfaced when a room drag is refused (too large / no walls layer). */
+  onRoomRejected?: (message: string) => void;
   toWorld: (sx: number, sy: number) => { x: number; y: number };
   mapTransform: SceneObjectTransform | undefined;
 }
@@ -45,9 +51,9 @@ interface UseMapEditToolReturn {
   onMouseUp: () => void;
 }
 
-/** Wall + door are both two-point segment drags through the same drag machine. */
-function isSegmentTool(subTool: MapEditSubTool): boolean {
-  return subTool === "wall" || subTool === "door";
+/** Wall, door, and room all drive the same two-point drag machine. */
+function isDragTool(subTool: MapEditSubTool): boolean {
+  return subTool === "wall" || subTool === "door" || subTool === "room";
 }
 
 export function useMapEditTool({
@@ -55,6 +61,8 @@ export function useMapEditTool({
   activeSubTool,
   controller,
   liveDocumentId,
+  floorFamily,
+  onRoomRejected,
   toWorld,
   mapTransform,
 }: UseMapEditToolOptions): UseMapEditToolReturn {
@@ -62,7 +70,7 @@ export function useMapEditTool({
   const dragRef = useRef<RoomDrag | null>(null);
   const frameRef = useRef<number | null>(null);
 
-  const active = mapEditMode && isSegmentTool(activeSubTool);
+  const active = mapEditMode && isDragTool(activeSubTool);
 
   const cancelFrame = useCallback(() => {
     if (frameRef.current !== null) {
@@ -142,17 +150,24 @@ export function useMapEditTool({
       return;
     }
     const document = controller?.activeDocument;
-    // addWall/addDoor do not self-gate on `saving`; skip the commit while a
-    // command is in flight (the Studio's rule) so drags don't pile up. Re-check
-    // the live binding: the active document must still be the live-bound one.
+    // Tools do not self-gate on `saving`; skip the commit while a command is in
+    // flight (the Studio's rule) so drags don't pile up. Re-check the live
+    // binding: the active document must still be the live-bound one.
     if (document && document.id === liveDocumentId && controller && !controller.saving) {
       const layers = new Map(document.layers.map((layer) => [layer.id, layer]));
-      // The gate guarantees a segment tool; map to the StudioTool commitSegmentDrag speaks.
-      const segmentTool: StudioTool = activeSubTool === "door" ? "door" : "wall";
-      commitSegmentDrag(segmentTool, layers, drag, controller.addWall, controller.addDoor);
+      if (activeSubTool === "room") {
+        const bounds = roomBoundsFromDrag(drag, document.grid.size);
+        const { command, error } = buildRoomCommand(bounds, floorFamily, document.grid, layers);
+        if (command) controller.placeRoom(command.cells, command.elements);
+        else if (error) onRoomRejected?.(error);
+      } else {
+        // wall/door: one segment drag → add-element.
+        const segmentTool: StudioTool = activeSubTool === "door" ? "door" : "wall";
+        commitSegmentDrag(segmentTool, layers, drag, controller.addWall, controller.addDoor);
+      }
     }
     clearDrag();
-  }, [active, controller, liveDocumentId, activeSubTool, clearDrag]);
+  }, [active, controller, liveDocumentId, activeSubTool, floorFamily, onRoomRejected, clearDrag]);
 
   // Escape cancels an in-progress drag WITHOUT clearing the tool: capture-phase
   // + stopImmediatePropagation preempts the global Escape-clears-tool listener.

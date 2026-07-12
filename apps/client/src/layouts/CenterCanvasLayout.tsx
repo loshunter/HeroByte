@@ -27,7 +27,7 @@ import type { CameraCommand } from "../ui/MapBoard";
 import type { UseDrawingStateManagerReturn } from "../hooks/useDrawingStateManager";
 import { MapLoading } from "../components/ui/MapLoading";
 import type { MapStudioController } from "../features/map-studio";
-import type { MapEditSubTool } from "../features/map-edit/mapEditTypes";
+import type { MapEditFloorFamily, MapEditSubTool } from "../features/map-edit/mapEditTypes";
 
 // Lazy load MapBoard to reduce initial bundle size
 const MapBoard = React.lazy(() => import("../ui/MapBoard"));
@@ -95,8 +95,12 @@ export interface CenterCanvasLayoutProps {
   mapEditMode: boolean;
   /** Selected map-edit sub-tool (wall, …) */
   mapEditActiveSubTool: MapEditSubTool;
+  /** Floor terrain family the room tool paints */
+  mapEditFloorFamily: MapEditFloorFamily;
   /** Keep the DM walls overlay visible outside map-edit mode */
   mapEditWallsOverlayPinned: boolean;
+  /** Called when a room drag is refused (too large / no walls layer) */
+  onMapEditRoomRejected: (message: string) => void;
 
   // Selection State (4 props)
   /** Currently selected single object ID (or null if none) */
@@ -210,7 +214,9 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
     mapStudioMode,
     mapEditMode,
     mapEditActiveSubTool,
+    mapEditFloorFamily,
     mapEditWallsOverlayPinned,
+    onMapEditRoomRejected,
     selectedObjectId,
     selectedObjectIds,
     onSelectObject,
@@ -277,8 +283,10 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
             selectMode={selectMode}
             mapEditMode={mapEditMode}
             mapEditActiveSubTool={mapEditActiveSubTool}
+            mapEditFloorFamily={mapEditFloorFamily}
             mapEditController={mapStudio}
             mapEditWallsOverlayPinned={mapEditWallsOverlayPinned}
+            onMapEditRoomRejected={onMapEditRoomRejected}
             isDM={isDM}
             alignmentMode={alignmentMode}
             alignmentPoints={alignmentPoints}

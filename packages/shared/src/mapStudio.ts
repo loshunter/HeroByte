@@ -22,6 +22,7 @@ import {
   sanitizeTerrainMap,
   setTerrainCells,
   type TerrainCellWrite,
+  type TerrainMap,
 } from "./terrain.js";
 import {
   requireFiniteNumber,
@@ -203,11 +204,13 @@ const MAX_TERRAIN_PAINT_CELLS = 16384;
  * revision — one undo step, per the Terrain Brush contract. The terrain
  * field disappears again when the last painted cell is erased.
  */
-export function paintTerrain(
-  document: MapDocument,
-  cells: TerrainPaintCell[],
-  timestamp: number = Date.now(),
-): MapDocument {
+/**
+ * Validate + apply a batch of cell paints/erases to the document's terrain,
+ * returning the new terrain map WITHOUT committing. The non-committing core so
+ * `place-room` can paint floor AND add wall elements under a single commit (one
+ * undo step). `paintTerrain` wraps it with a commit.
+ */
+export function paintTerrainCells(document: MapDocument, cells: TerrainPaintCell[]): TerrainMap {
   if (!Array.isArray(cells) || cells.length === 0) {
     throw new Error("Terrain stroke needs at least one cell");
   }
@@ -236,13 +239,26 @@ export function paintTerrain(
     // create a document that cannot round-trip through its own backup.
     throw new Error(`Terrain palette may hold at most ${MAX_TERRAIN_PALETTE} assets`);
   }
-  const next = commit(document, {}, timestamp);
+  return terrain;
+}
+
+/** Attach (or clear when empty) a computed terrain map onto a committed doc. */
+export function withTerrain(next: MapDocument, terrain: TerrainMap): MapDocument {
   if (Object.keys(terrain.chunks).length === 0) {
     delete next.terrain;
     return next;
   }
   next.terrain = terrain;
   return next;
+}
+
+export function paintTerrain(
+  document: MapDocument,
+  cells: TerrainPaintCell[],
+  timestamp: number = Date.now(),
+): MapDocument {
+  const terrain = paintTerrainCells(document, cells);
+  return withTerrain(commit(document, {}, timestamp), terrain);
 }
 
 /**

@@ -20,6 +20,8 @@ export interface MapEditToolbarProps {
   busy: boolean; // a create/open/command round-trip is in flight
   activeSubTool: MapEditSubTool;
   onSelectSubTool: (tool: MapEditSubTool) => void;
+  floorFamily: MapEditFloorFamily; // room/terrain floor family
+  onSelectFloorFamily: (family: MapEditFloorFamily) => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;

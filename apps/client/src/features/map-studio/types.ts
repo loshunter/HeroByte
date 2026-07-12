@@ -2,6 +2,7 @@ import type {
   MapDocument,
   MapDocumentSummary,
   MapDoorState,
+  MapElement,
   MapElementUpdate,
   MapGridUpdate,
   MapLayerUpdate,
@@ -94,6 +95,8 @@ export interface MapStudioController {
   addStamps: (drafts: MapStampDraft[]) => string[];
   /** One brush stroke: a batch of cell paints/erases as one undo step. */
   paintTerrain: (cells: TerrainPaintCell[]) => void;
+  /** Place a room: floor terrain + wall/element geometry as ONE undo step. */
+  placeRoom: (cells: TerrainPaintCell[], elements: MapElement[]) => void;
   addShape: (draft: MapShapeDraft) => string | null;
   addWall: (draft: MapWallDraft) => string | null;
   addDoor: (draft: MapDoorDraft) => string | null;

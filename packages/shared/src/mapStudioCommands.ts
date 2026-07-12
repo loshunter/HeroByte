@@ -10,6 +10,7 @@ import {
 import {
   addMapElement,
   addMapElements,
+  placeRoom,
   removeMapElement,
   updateMapDoor,
   updateMapElement,
@@ -52,7 +53,8 @@ export type MapDocumentCommand =
       width: number;
     })
   | (MapCommandBase & { type: "remove-element"; elementId: string })
-  | (MapCommandBase & { type: "paint-terrain"; cells: TerrainPaintCell[] });
+  | (MapCommandBase & { type: "paint-terrain"; cells: TerrainPaintCell[] })
+  | (MapCommandBase & { type: "place-room"; cells: TerrainPaintCell[]; elements: MapElement[] });
 
 export type MapStudioCommand = MapDocumentCommand | MapHistoryCommand;
 
@@ -135,6 +137,9 @@ export function applyMapDocumentCommand(
       break;
     case "paint-terrain":
       next = paintTerrain(document, command.cells, timestamp);
+      break;
+    case "place-room":
+      next = placeRoom(document, command.cells, command.elements, timestamp);
       break;
   }
 

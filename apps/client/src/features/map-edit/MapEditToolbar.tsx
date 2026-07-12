@@ -7,11 +7,20 @@
 
 import { DraggableWindow } from "../../components/dice/DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../../components/ui/JRPGPanel";
-import type { MapEditSubTool, MapEditToolbarProps } from "./mapEditTypes";
+import type { MapEditFloorFamily, MapEditSubTool, MapEditToolbarProps } from "./mapEditTypes";
 
 const SUB_TOOLS: { id: MapEditSubTool; label: string }[] = [
+  { id: "room", label: "🏠 Room" },
   { id: "wall", label: "🧱 Wall" },
   { id: "door", label: "🚪 Door" },
+];
+
+const FLOOR_FAMILIES: { id: MapEditFloorFamily; label: string }[] = [
+  { id: "grass", label: "Grass" },
+  { id: "dirt", label: "Dirt" },
+  { id: "path", label: "Path" },
+  { id: "stone-floor", label: "Stone" },
+  { id: "wood-floor", label: "Wood" },
 ];
 
 const labelStyle = {
@@ -25,6 +34,8 @@ export function MapEditToolbar({
   busy,
   activeSubTool,
   onSelectSubTool,
+  floorFamily,
+  onSelectFloorFamily,
   canUndo,
   canRedo,
   onUndo,
@@ -85,7 +96,7 @@ export function MapEditToolbar({
                 <label className="jrpg-text-small" style={labelStyle}>
                   Tool:
                 </label>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4px" }}>
                   {SUB_TOOLS.map((tool) => (
                     <JRPGButton
                       key={tool.id}
@@ -98,6 +109,26 @@ export function MapEditToolbar({
                   ))}
                 </div>
               </div>
+
+              {activeSubTool === "room" && (
+                <div>
+                  <label className="jrpg-text-small" style={labelStyle}>
+                    Floor:
+                  </label>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4px" }}>
+                    {FLOOR_FAMILIES.map((f) => (
+                      <JRPGButton
+                        key={f.id}
+                        onClick={() => onSelectFloorFamily(f.id)}
+                        variant={floorFamily === f.id ? "primary" : "default"}
+                        style={{ fontSize: "8px", padding: "6px 2px" }}
+                      >
+                        {f.label}
+                      </JRPGButton>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
                 <JRPGButton

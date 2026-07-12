@@ -45,6 +45,7 @@ function makeController(overrides: Partial<MapStudioController> = {}): MapStudio
     saving: false,
     addWall: vi.fn(() => "wall-1"),
     addDoor: vi.fn(() => "door-1"),
+    placeRoom: vi.fn(),
     ...overrides,
   } as unknown as MapStudioController;
 }
@@ -68,6 +69,7 @@ describe("useMapEditTool", () => {
         activeSubTool: "wall",
         controller,
         liveDocumentId: "live",
+        floorFamily: "grass",
         toWorld: identityToWorld,
         mapTransform: undefined,
       }),
@@ -100,6 +102,7 @@ describe("useMapEditTool", () => {
         activeSubTool: "door",
         controller,
         liveDocumentId: "live",
+        floorFamily: "grass",
         toWorld: identityToWorld,
         mapTransform: undefined,
       }),
@@ -133,6 +136,7 @@ describe("useMapEditTool", () => {
         activeSubTool: "wall",
         controller,
         liveDocumentId: "live",
+        floorFamily: "grass",
         toWorld: identityToWorld,
         // World is offset +10/+20 from document space, so world (110,120)→doc (100,100).
         mapTransform: { x: 10, y: 20, scaleX: 1, scaleY: 1, rotation: 0 },
@@ -156,6 +160,7 @@ describe("useMapEditTool", () => {
         activeSubTool: "wall",
         controller,
         liveDocumentId: "live",
+        floorFamily: "grass",
         toWorld: identityToWorld,
         mapTransform: undefined,
       }),
@@ -176,6 +181,7 @@ describe("useMapEditTool", () => {
         activeSubTool: "wall",
         controller,
         liveDocumentId: "live",
+        floorFamily: "grass",
         toWorld: identityToWorld,
         mapTransform: undefined,
       }),
@@ -185,6 +191,39 @@ describe("useMapEditTool", () => {
     act(() => result.current.onMouseMove(makeStage({ x: 200, y: 100 }).ref));
     act(() => result.current.onMouseUp());
 
+    expect(controller.addWall).not.toHaveBeenCalled();
+  });
+
+  it("places a room (floor cells + perimeter) via a rect drag", () => {
+    const controller = makeController();
+    const { result } = renderHook(() =>
+      useMapEditTool({
+        mapEditMode: true,
+        activeSubTool: "room",
+        controller,
+        liveDocumentId: "live",
+        floorFamily: "wood-floor",
+        toWorld: identityToWorld,
+        mapTransform: undefined,
+      }),
+    );
+
+    // Drag (100,100)→(200,150): bounds x100 y100 w150 h100 → 3×2 cells.
+    act(() => result.current.onMouseDown(makeStage({ x: 100, y: 100 }).ref));
+    act(() => result.current.onMouseMove(makeStage({ x: 200, y: 150 }).ref));
+    act(() => result.current.onMouseUp());
+
+    expect(controller.placeRoom).toHaveBeenCalledTimes(1);
+    const [cells, elements] = (controller.placeRoom as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(cells).toHaveLength(6);
+    expect(cells[0]).toEqual({ x: 2, y: 2, assetId: "terrain:wood-floor" });
+    expect(elements[0].data.points).toEqual([
+      { x: 100, y: 100 },
+      { x: 250, y: 100 },
+      { x: 250, y: 200 },
+      { x: 100, y: 200 },
+      { x: 100, y: 100 },
+    ]);
     expect(controller.addWall).not.toHaveBeenCalled();
   });
 
@@ -198,6 +237,7 @@ describe("useMapEditTool", () => {
         activeSubTool: "wall",
         controller,
         liveDocumentId: "some-other-doc",
+        floorFamily: "grass",
         toWorld: identityToWorld,
         mapTransform: undefined,
       }),
@@ -219,6 +259,7 @@ describe("useMapEditTool", () => {
         activeSubTool: "wall",
         controller,
         liveDocumentId: "live",
+        floorFamily: "grass",
         toWorld: identityToWorld,
         mapTransform: undefined,
       }),
@@ -239,6 +280,7 @@ describe("useMapEditTool", () => {
         activeSubTool: "wall",
         controller,
         liveDocumentId: "live",
+        floorFamily: "grass",
         toWorld: identityToWorld,
         mapTransform: undefined,
       }),

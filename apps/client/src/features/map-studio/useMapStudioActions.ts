@@ -2,6 +2,7 @@ import { useCallback, type MutableRefObject } from "react";
 import type {
   MapDocument,
   MapDoorState,
+  MapElement,
   MapElementUpdate,
   MapGridUpdate,
   MapLayerUpdate,
@@ -173,6 +174,22 @@ export function useMapStudioActions({
     [activeDocumentRef, applyCommand],
   );
 
+  const placeRoom = useCallback(
+    (cells: TerrainPaintCell[], elements: MapElement[]) => {
+      if (!activeDocumentRef.current || cells.length === 0 || elements.length === 0) return;
+      // Floor terrain + wall perimeter as ONE command = ONE undo step.
+      applyCommand((document, commandId) => ({
+        commandId,
+        documentId: document.id,
+        baseRevision: document.revision,
+        type: "place-room",
+        cells,
+        elements,
+      }));
+    },
+    [activeDocumentRef, applyCommand],
+  );
+
   const addWall = useCallback(
     (draft: MapWallDraft) => {
       if (!activeDocumentRef.current) return null;
@@ -276,6 +293,7 @@ export function useMapStudioActions({
     addStamp,
     addStamps,
     paintTerrain,
+    placeRoom,
     addShape,
     addWall,
     addDoor,

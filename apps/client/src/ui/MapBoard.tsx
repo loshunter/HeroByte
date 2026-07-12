@@ -88,8 +88,10 @@ export default function MapBoard({
   selectMode,
   mapEditMode = false,
   mapEditActiveSubTool = "wall",
+  mapEditFloorFamily = "grass",
   mapEditController,
   mapEditWallsOverlayPinned = false,
+  onMapEditRoomRejected,
   isDM,
   alignmentMode,
   alignmentPoints = [],
@@ -278,6 +280,8 @@ export default function MapBoard({
     activeSubTool: mapEditActiveSubTool,
     controller: mapEditController,
     liveDocumentId: snapshot?.liveMapDocumentId,
+    floorFamily: mapEditFloorFamily,
+    onRoomRejected: onMapEditRoomRejected,
     toWorld,
     mapTransform: mapObject?.transform,
   });
@@ -689,6 +693,7 @@ export default function MapBoard({
             mapTransform={mapObject?.transform}
             previewDrag={mapEditPreviewDrag}
             activeSubTool={mapEditActiveSubTool}
+            gridSize={grid.size}
           />
         </Layer>
 
