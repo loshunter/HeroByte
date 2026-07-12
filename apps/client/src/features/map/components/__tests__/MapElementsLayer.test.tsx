@@ -109,6 +109,31 @@ describe("MapElementsLayer", () => {
     expect(rects).toHaveLength(0);
   });
 
+  it("washes an image-backed element with its tint (Studio parity)", () => {
+    render(
+      <MapElementsLayer
+        cam={cam}
+        mapElements={snapshot([
+          {
+            opacity: 1,
+            elements: [
+              {
+                id: "s2",
+                type: "stamp",
+                transform: T,
+                data: { assetId: "upload:crate", width: 64, height: 48, tint: "#ff0000" },
+              },
+            ],
+          },
+        ])}
+      />,
+    );
+    // The image plus a 35%-opacity tint wash of the same size.
+    expect(images).toHaveLength(1);
+    expect(rects).toHaveLength(1);
+    expect(rects[0]).toMatchObject({ width: 64, height: 48, fill: "#ff0000", opacity: 0.35 });
+  });
+
   it("renders a rectangle shape at its bounds and an ellipse by center/radius", () => {
     render(
       <MapElementsLayer

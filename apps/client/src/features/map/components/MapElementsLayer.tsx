@@ -87,7 +87,16 @@ function renderDrawable(
     const height = element.type === "tile" ? element.data.rows * gridSize : element.data.height;
     // Image-backed (uploaded) assets draw the picture; bundled tiles flat-fill.
     if (asset.imageUrl && image) {
-      return <KonvaImage image={image} width={width} height={height} listening={false} />;
+      const tint = element.data.tint;
+      return (
+        <>
+          <KonvaImage image={image} width={width} height={height} listening={false} />
+          {/* Match the Studio: a tint is a 35%-opacity wash over the image. */}
+          {tint && (
+            <Rect width={width} height={height} fill={tint} opacity={0.35} listening={false} />
+          )}
+        </>
+      );
     }
     return (
       <Rect
