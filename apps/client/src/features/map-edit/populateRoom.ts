@@ -1,8 +1,9 @@
 // Pure algorithmic set-dressing for POPULATE: a room/hallway's bounds → a
 // deterministic seeded scatter of stamps from a chosen category, emitted as ONE
 // add-elements command (one undo). Determinism is a hard rule (no Math.random):
-// identical inputs always produce identical drafts. Stamps keep a half-cell
-// margin off the walls and never land within a cell of a door.
+// identical inputs always produce identical drafts. Stamps stay inside the room
+// walls (flush is fine — natural dressing — they just never cross a wall) and
+// never land within a cell of a door.
 
 import type { MapDocument, MapGridSettings } from "@herobyte/shared";
 import { createSeededRng, getTerrainCell } from "@herobyte/shared";
@@ -89,17 +90,12 @@ export function buildPopulateDrafts(
 ): MapStampDraft[] {
   if (assets.length === 0) return [];
   const { size, offsetX, offsetY } = grid;
-  const inset = size * 0.5;
-  const region = {
-    left: bounds.x + inset,
-    top: bounds.y + inset,
-    right: bounds.x + bounds.width - inset,
-    bottom: bounds.y + bounds.height - inset,
-  };
   const firstCX = Math.round((bounds.x - offsetX) / size);
   const firstCY = Math.round((bounds.y - offsetY) / size);
   const cols = Math.max(0, Math.round(bounds.width / size));
   const rows = Math.max(0, Math.round(bounds.height / size));
+  const right = bounds.x + bounds.width;
+  const bottom = bounds.y + bounds.height;
   const rng = createSeededRng(seed);
   const fill = DENSITY_FILL[density];
 
@@ -115,11 +111,26 @@ export function buildPopulateDrafts(
       const asset = assets[Math.floor(assetRoll * assets.length)]!;
       const w = asset.columns * size;
       const h = asset.rows * size;
+      const rotation = Math.floor(rotRoll * 4) * 90;
       const centerX = (firstCX + dx) * size + size / 2 + offsetX;
       const centerY = (firstCY + dy) * size + size / 2 + offsetY;
       const x = centerX - w / 2;
       const y = centerY - h / 2;
-      if (x < region.left || y < region.top || x + w > region.right || y + h > region.bottom) {
+      // Keep the footprint inside the room walls. Stamps are centered on the
+      // cell and rotate about that center (matching the renderer), so a 90/270
+      // turn swaps the footprint's width/height — check the rotated AABB. Edge
+      // cells are allowed (flush-to-wall dressing); the footprint just must not
+      // cross a wall. The old half-cell inset skipped EVERY edge cell, so a
+      // width-1/2 region — e.g. the default-width hallway — produced nothing.
+      const rotated = rotation % 180 !== 0;
+      const halfW = (rotated ? h : w) / 2;
+      const halfH = (rotated ? w : h) / 2;
+      if (
+        centerX - halfW < bounds.x ||
+        centerY - halfH < bounds.y ||
+        centerX + halfW > right ||
+        centerY + halfH > bottom
+      ) {
         continue;
       }
       // Keep a cell of clearance from any door — measured from the stamp's
@@ -137,7 +148,7 @@ export function buildPopulateDrafts(
         y: Math.round(y),
         width: w,
         height: h,
-        rotation: Math.floor(rotRoll * 4) * 90,
+        rotation,
       });
     }
   }

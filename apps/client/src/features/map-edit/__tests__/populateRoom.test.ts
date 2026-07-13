@@ -22,7 +22,6 @@ const grid: MapGridSettings = {
 
 const bounds: RoomBounds = { x: 0, y: 0, width: 500, height: 500 }; // 10×10 cells
 const crate = getMapStudioTileAsset("objects:crate"); // 1×1
-const inset = grid.size * 0.5;
 
 describe("buildPopulateDrafts", () => {
   it("is deterministic — identical inputs produce identical drafts", () => {
@@ -38,13 +37,51 @@ describe("buildPopulateDrafts", () => {
     expect(a).not.toEqual(b);
   });
 
-  it("keeps a half-cell margin off the walls (no stamp breaches the inset region)", () => {
+  it("keeps every stamp's footprint inside the room walls (flush is allowed, spill is not)", () => {
     const drafts = buildPopulateDrafts(bounds, grid, [crate], "high", 7, "objects", []);
     for (const d of drafts) {
-      expect(d.x).toBeGreaterThanOrEqual(bounds.x + inset);
-      expect(d.y).toBeGreaterThanOrEqual(bounds.y + inset);
-      expect(d.x + d.width).toBeLessThanOrEqual(bounds.x + bounds.width - inset);
-      expect(d.y + d.height).toBeLessThanOrEqual(bounds.y + bounds.height - inset);
+      expect(d.x).toBeGreaterThanOrEqual(bounds.x);
+      expect(d.y).toBeGreaterThanOrEqual(bounds.y);
+      expect(d.x + d.width).toBeLessThanOrEqual(bounds.x + bounds.width);
+      expect(d.y + d.height).toBeLessThanOrEqual(bounds.y + bounds.height);
+    }
+  });
+
+  it("populates a 2-cell-wide region — the default hallway width — instead of nothing", () => {
+    // A width-2 corridor: the old half-cell inset rejected every cell, so no
+    // density setting could ever place a stamp. Now edge cells are eligible.
+    const hallway: RoomBounds = { x: 0, y: 0, width: 250, height: 100 }; // 5×2 cells
+    for (const density of ["low", "medium", "high"] as const) {
+      const drafts = buildPopulateDrafts(hallway, grid, [crate], density, 123, "objects", []);
+      for (const d of drafts) {
+        expect(d.x).toBeGreaterThanOrEqual(hallway.x);
+        expect(d.y).toBeGreaterThanOrEqual(hallway.y);
+        expect(d.x + d.width).toBeLessThanOrEqual(hallway.x + hallway.width);
+        expect(d.y + d.height).toBeLessThanOrEqual(hallway.y + hallway.height);
+      }
+    }
+    // At high density a 10-cell corridor reliably lands at least one stamp.
+    expect(
+      buildPopulateDrafts(hallway, grid, [crate], "high", 123, "objects", []).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("keeps a ROTATED multi-cell stamp's footprint inside the walls (rotation-aware bounds)", () => {
+    const table = getMapStudioTileAsset("objects:table"); // 2×1
+    const drafts = buildPopulateDrafts(bounds, grid, [table], "high", 31, "objects", []);
+    const rotatedCount = drafts.filter((d) => (d.rotation ?? 0) % 180 !== 0).length;
+    expect(rotatedCount).toBeGreaterThan(0); // the seed exercises rotated placements
+    for (const d of drafts) {
+      const rotated = (d.rotation ?? 0) % 180 !== 0;
+      const fw = rotated ? d.height : d.width;
+      const fh = rotated ? d.width : d.height;
+      const cx = d.x + d.width / 2;
+      const cy = d.y + d.height / 2;
+      // The rotated footprint (swapped w/h about the center) stays within bounds.
+      expect(cx - fw / 2).toBeGreaterThanOrEqual(bounds.x);
+      expect(cy - fh / 2).toBeGreaterThanOrEqual(bounds.y);
+      expect(cx + fw / 2).toBeLessThanOrEqual(bounds.x + bounds.width);
+      expect(cy + fh / 2).toBeLessThanOrEqual(bounds.y + bounds.height);
     }
   });
 
