@@ -224,6 +224,23 @@ describe("useMapStudio", () => {
     }
   });
 
+  it("clears a stale watchdog error when the user retries a request after a timeout", () => {
+    vi.useFakeTimers();
+    try {
+      const { result } = renderHook(() => useMapStudio(sendMessage));
+      act(() => result.current.openDocument("doc-a"));
+      act(() => vi.advanceTimersByTime(12_000));
+      expect(result.current.error).toMatch(/didn't respond/i);
+
+      // Retrying (a new open) clears the stale timeout error at the start, so it
+      // doesn't linger under the freshly-loaded map when the reply lands.
+      act(() => result.current.openDocument("doc-a"));
+      expect(result.current.error).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("cancels the loading watchdog when the reply lands in time", () => {
     vi.useFakeTimers();
     try {

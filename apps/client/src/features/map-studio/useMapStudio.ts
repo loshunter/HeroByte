@@ -51,7 +51,11 @@ export function useMapStudio(
   const watchdogFired = useRef(false);
   activeDocumentRef.current = activeDocument;
 
+  // Every user-initiated request clears any stale error first — so retrying
+  // after a watchdog timeout ("server didn't respond") doesn't leave that
+  // message lingering under the freshly-loaded result.
   const refresh = useCallback(() => {
+    setError(null);
     setLoading(true);
     sendMessage({ t: "map-studio-list" });
   }, [sendMessage]);
@@ -60,6 +64,7 @@ export function useMapStudio(
     (name: string, width?: number, height?: number) => {
       const id = generateUUID();
       requestedDocumentId.current = id;
+      setError(null);
       setLoading(true);
       sendMessage({
         t: "map-studio-create",
@@ -73,6 +78,7 @@ export function useMapStudio(
   const openDocument = useCallback(
     (documentId: string) => {
       requestedDocumentId.current = documentId;
+      setError(null);
       setLoading(true);
       sendMessage({ t: "map-studio-get", documentId });
     },
