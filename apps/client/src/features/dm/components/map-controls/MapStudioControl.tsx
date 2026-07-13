@@ -4,6 +4,7 @@ import { JRPGButton, JRPGPanel } from "../../../../components/ui/JRPGPanel";
 import {
   describePublishFailure,
   rasterizeAndUploadMapBackground,
+  MAX_PUBLISH_BACKGROUND_BYTES,
   type MapStudioController,
 } from "../../../map-studio";
 import { MapStudioExportControls } from "./MapStudioExportControls";
@@ -43,23 +44,41 @@ export function MapStudioControl({ controller, onPublishToLiveMap }: MapStudioCo
   const [selectedId, setSelectedId] = useState("");
   const [publishStatus, setPublishStatus] = useState("");
   const importInputRef = useRef<HTMLInputElement>(null);
+  // The id of the last document sent for import, so we can turn the in-progress
+  // "Importing…" status into a completion once that document activates.
+  const importingIdRef = useRef<string | null>(null);
 
   const handleImportFile = (fileText: string) => {
+    let parsed: unknown;
     try {
-      const parsed: unknown = JSON.parse(fileText);
-      if (
-        typeof parsed !== "object" ||
-        parsed === null ||
-        (parsed as { schemaVersion?: unknown }).schemaVersion !== 1
-      ) {
-        throw new Error("Not a HeroByte map backup");
-      }
-      const id = importDocument(parsed as MapDocument);
-      setSelectedId(id);
-      setPublishStatus("Importing map backup…");
+      parsed = JSON.parse(fileText);
     } catch {
-      setPublishStatus("Import failed: that file is not a HeroByte map JSON backup.");
+      setPublishStatus("Import failed: that file is not valid JSON.");
+      return;
     }
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      (parsed as { schemaVersion?: unknown }).schemaVersion !== 1
+    ) {
+      setPublishStatus("Import failed: that file is not a HeroByte map JSON backup.");
+      return;
+    }
+    // Guard the 1MB inbound WebSocket cap: the whole document ships over that
+    // capped channel, and an oversized import would be dropped by the server
+    // BEFORE any handler runs — silently — leaving the panel wedged in a
+    // loading state. Measure the compact encoding the socket actually sends.
+    const wireBytes = new TextEncoder().encode(JSON.stringify(parsed)).length;
+    if (wireBytes > MAX_PUBLISH_BACKGROUND_BYTES) {
+      setPublishStatus(
+        "Import failed: that backup is too large to send (over ~1MB). Split the map or publish a raster instead.",
+      );
+      return;
+    }
+    const id = importDocument(parsed as MapDocument);
+    importingIdRef.current = id;
+    setSelectedId(id);
+    setPublishStatus("Importing map backup…");
   };
 
   useEffect(() => {
@@ -75,6 +94,15 @@ export function MapStudioControl({ controller, onPublishToLiveMap }: MapStudioCo
       setSelectedId(documents[0].id);
     }
   }, [activeDocument, documents, selectedId]);
+
+  // Resolve the "Importing…" status once the imported document activates, so the
+  // panel doesn't read "Importing map backup…" forever under a finished import.
+  useEffect(() => {
+    if (importingIdRef.current && activeDocument?.id === importingIdRef.current) {
+      importingIdRef.current = null;
+      setPublishStatus(`Imported "${activeDocument.name}".`);
+    }
+  }, [activeDocument]);
 
   const handleCreate = () => {
     if (!name.trim() || loading || saving) return;
@@ -200,10 +228,20 @@ export function MapStudioControl({ controller, onPublishToLiveMap }: MapStudioCo
               const file = event.target.files?.[0];
               event.target.value = "";
               if (!file) return;
-              void file.text().then(handleImportFile);
+              file.text().then(handleImportFile, () => {
+                setPublishStatus("Import failed: couldn't read that file.");
+              });
             }}
           />
         </div>
+
+        {/* Status lives outside the active-document block: import runs with no
+            active document (restore-from-backup), so its errors must show. */}
+        {publishStatus && (
+          <p role="status" className="jrpg-text-small" style={{ margin: 0 }}>
+            {publishStatus}
+          </p>
+        )}
 
         {activeDocument && (
           <div aria-live="polite">
@@ -245,11 +283,6 @@ export function MapStudioControl({ controller, onPublishToLiveMap }: MapStudioCo
                 PUBLISH TO LIVE MAP
               </JRPGButton>
             </div>
-            {publishStatus && (
-              <p role="status" className="jrpg-text-small" style={{ margin: "0 0 6px" }}>
-                {publishStatus}
-              </p>
-            )}
             <MapStudioExportControls document={activeDocument} disabled={saving} />
           </div>
         )}

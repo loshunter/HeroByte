@@ -170,6 +170,68 @@ describe("MapStudioControl", () => {
     expect(screen.queryByRole("button", { name: "ADD TO MAP" })).not.toBeInTheDocument();
   });
 
+  const fileInput = (container: HTMLElement) =>
+    container.querySelector('input[type="file"]') as HTMLInputElement;
+
+  const importFile = (container: HTMLElement, text: string) => {
+    const file = new File([text], "backup.json", { type: "application/json" });
+    // jsdom's File.text() isn't guaranteed; shadow it with the known content.
+    Object.defineProperty(file, "text", { value: () => Promise.resolve(text) });
+    fireEvent.change(fileInput(container), { target: { files: [file] } });
+  };
+
+  it("imports a valid JSON backup and shows an in-progress status", async () => {
+    const mapStudio = controller();
+    const { container } = render(<MapStudioControl controller={mapStudio} />);
+
+    const backup = { schemaVersion: 1, id: "orig", name: "Restored", elements: [] };
+    importFile(container, JSON.stringify(backup));
+
+    await waitFor(() =>
+      expect(mapStudio.importDocument).toHaveBeenCalledWith(expect.objectContaining(backup)),
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Importing map backup…");
+  });
+
+  it("resolves the status to a completion once the imported document activates", async () => {
+    const mapStudio = controller({ importDocument: vi.fn(() => "imported-id") });
+    const { container, rerender } = render(<MapStudioControl controller={mapStudio} />);
+
+    importFile(container, JSON.stringify({ schemaVersion: 1, id: "orig", name: "Restored" }));
+    await waitFor(() => expect(mapStudio.importDocument).toHaveBeenCalled());
+
+    const activeDocument = createMapDocument({ id: "imported-id", name: "Restored", timestamp: 1 });
+    rerender(<MapStudioControl controller={controller({ ...mapStudio, activeDocument })} />);
+
+    expect(screen.getByRole("status")).toHaveTextContent('Imported "Restored".');
+  });
+
+  it("rejects a file that isn't a HeroByte backup, without calling importDocument", async () => {
+    const mapStudio = controller();
+    const { container } = render(<MapStudioControl controller={mapStudio} />);
+
+    importFile(container, JSON.stringify({ schemaVersion: 2, id: "x" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent(/not a HeroByte map JSON backup/i),
+    );
+    expect(mapStudio.importDocument).not.toHaveBeenCalled();
+    // The error shows even with no active document (the restore-from-backup case).
+    expect(screen.queryByText(/Restored/)).not.toBeInTheDocument();
+  });
+
+  it("rejects an oversized backup before sending it into the 1MB WebSocket cap", async () => {
+    const mapStudio = controller();
+    const { container } = render(<MapStudioControl controller={mapStudio} />);
+
+    // Valid schemaVersion but well over ~1MB once serialized.
+    const huge = { schemaVersion: 1, id: "x", filler: "A".repeat(1_100_000) };
+    importFile(container, JSON.stringify(huge));
+
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(/too large to send/i));
+    expect(mapStudio.importDocument).not.toHaveBeenCalled();
+  });
+
   it("surfaces command errors and disables actions while a save is pending", () => {
     const document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
     render(

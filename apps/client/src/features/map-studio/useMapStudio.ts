@@ -18,6 +18,14 @@ interface QueuedCommand {
   build: CommandBuilder;
 }
 
+/**
+ * How long a list/get/create/import request may leave the panel in `loading`
+ * before we give up. These requests clear `loading` only when their reply lands,
+ * so a dropped socket — or an oversized/invalid import the server silently drops
+ * at its 1MB cap before any handler runs — would otherwise spin forever.
+ */
+const LOADING_TIMEOUT_MS = 12_000;
+
 export function useMapStudio(
   sendMessage: (message: ClientMessage) => void,
   getAuthCredentials?: () => AssetUploadCredentials | null,
@@ -101,12 +109,27 @@ export function useMapStudio(
       // A fresh id lets the same backup restore repeatedly without colliding.
       const id = generateUUID();
       requestedDocumentId.current = id;
+      setError(null);
       setLoading(true);
       sendMessage({ t: "map-studio-import", document: { ...document, id } });
       return id;
     },
     [sendMessage],
   );
+
+  // Loading watchdog: if a request's reply never arrives (socket drop, or an
+  // oversized/invalid import dropped at the server's 1MB cap before any handler
+  // runs), release the panel and surface an error instead of spinning forever.
+  // The cleanup cancels the timer the moment a reply flips `loading` back off.
+  useEffect(() => {
+    if (!loading) return;
+    const timer = setTimeout(() => {
+      requestedDocumentId.current = null;
+      setLoading(false);
+      setError("The map server didn't respond. Please try again.");
+    }, LOADING_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   const dispatchNextCommand = useCallback(
     (document: MapDocument | null = activeDocumentRef.current) => {

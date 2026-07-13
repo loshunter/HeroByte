@@ -176,6 +176,51 @@ describe("useMapStudio", () => {
     expect(result.current.loading).toBe(false);
   });
 
+  it("releases a wedged loading state and surfaces an error if no reply arrives", () => {
+    vi.useFakeTimers();
+    try {
+      const { result } = renderHook(() => useMapStudio(sendMessage));
+      act(() => {
+        result.current.importDocument(createMapDocument({ id: "big", name: "Big", timestamp: 1 }));
+      });
+      expect(result.current.loading).toBe(true);
+
+      // The server silently dropped the import (e.g. over the 1MB cap); the
+      // watchdog releases the panel rather than spinning forever.
+      act(() => vi.advanceTimersByTime(12_000));
+      expect(result.current.loading).toBe(false);
+      expect(result.current.error).toMatch(/didn't respond/i);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("cancels the loading watchdog when the reply lands in time", () => {
+    vi.useFakeTimers();
+    try {
+      const { result } = renderHook(() => useMapStudio(sendMessage));
+      let importedId = "";
+      act(() => {
+        importedId = result.current.importDocument(
+          createMapDocument({ id: "ok", name: "OK", timestamp: 1 }),
+        );
+      });
+      act(() =>
+        result.current.handleServerMessage({
+          t: "map-studio-document",
+          document: createMapDocument({ id: importedId, name: "OK", timestamp: 1 }),
+        }),
+      );
+      expect(result.current.loading).toBe(false);
+
+      // Advancing past the window must not re-fire the timeout error.
+      act(() => vi.advanceTimersByTime(20_000));
+      expect(result.current.error).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("does not replace the active document when another DM edits a different map", () => {
     const { result } = renderHook(() => useMapStudio(sendMessage));
     const active = createMapDocument({ id: "active", name: "Active", timestamp: 1 });
