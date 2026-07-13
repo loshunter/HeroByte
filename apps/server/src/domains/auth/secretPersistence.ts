@@ -91,7 +91,12 @@ function loadPersistedSecret(storagePath: string): LoadedSecrets | null {
         dmHash: parsed.dmHash,
         dmSalt: parsed.dmSalt,
         dmUpdatedAt: parsed.dmUpdatedAt,
-        dmSource: parsed.dmSource === "user" ? "user" : parsed.dmSource,
+        // Validate to a known source (mirrors `source` above); drop any other
+        // value rather than the old no-op that passed garbage straight through.
+        dmSource:
+          parsed.dmSource === "env" || parsed.dmSource === "fallback" || parsed.dmSource === "user"
+            ? parsed.dmSource
+            : undefined,
       },
     };
   } catch (error) {

@@ -13,7 +13,12 @@
 // followed through to this compiled .js. So constants the server imports must
 // live in a sub-module and be re-exported from index.
 
-/** Auth rejected (bad room password / invalid room). Terminal — no reconnect. */
+/**
+ * Auth rejected (bad room password / invalid room). NOT terminal: the client
+ * reconnects so the user can retry — the auth gate clears the rejected secret on
+ * failure, so the reopened socket sits idle awaiting a fresh password rather than
+ * re-sending the bad one (no loop). Contrast WS_CLOSE_REPLACED, which IS terminal.
+ */
 export const WS_CLOSE_AUTH_REJECTED = 4001;
 
 /**
