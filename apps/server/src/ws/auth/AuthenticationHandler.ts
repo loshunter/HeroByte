@@ -7,6 +7,7 @@
 import type { WebSocket } from "ws";
 import { WS_CLOSE_AUTH_REJECTED, type Player } from "@herobyte/shared";
 import { handleCreateRoom, type CreateRoomRequest } from "./roomCreation.js";
+import { DMElevationThrottle } from "./dmElevationThrottle.js";
 import type { Container } from "../../container.js";
 import { getDefaultRoomId } from "../../config/auth.js";
 
@@ -21,6 +22,7 @@ export class AuthenticationHandler {
   private authenticatedUids: Set<string>;
   private authenticatedSessions: Map<string, { roomId: string; authedAt: number }>;
   private readonly defaultRoomId: string;
+  private readonly dmThrottle = new DMElevationThrottle();
 
   constructor(
     container: Container,
@@ -167,6 +169,19 @@ export class AuthenticationHandler {
       return;
     }
 
+    // Back off after a burst of wrong guesses so a room member can't brute-force
+    // a weak DM password in a tight loop on one connection.
+    const now = Date.now();
+    if (this.dmThrottle.isLocked(uid, now)) {
+      ws.send(
+        JSON.stringify({
+          t: "dm-elevation-failed",
+          reason: "Too many attempts. Wait a few seconds and try again.",
+        }),
+      );
+      return;
+    }
+
     // Check if DM password is even set (the room's own, or the default)
     if (!this.container.authService.hasDMPassword(roomId)) {
       ws.send(
@@ -181,12 +196,14 @@ export class AuthenticationHandler {
     // Verify DM password
     const normalizedPassword = dmPassword.trim();
     if (!this.container.authService.verifyDMPassword(normalizedPassword, roomId)) {
+      this.dmThrottle.recordFailure(uid, now);
       console.warn(`DM elevation failed for uid ${uid}: Invalid password`);
       ws.send(JSON.stringify({ t: "dm-elevation-failed", reason: "Invalid DM password" }));
       return;
     }
 
     // Grant DM powers
+    this.dmThrottle.clear(uid);
     player.isDM = true;
     ws.send(JSON.stringify({ t: "dm-status", isDM: true }));
     console.log(`DM elevation granted to ${uid}`);
@@ -295,12 +312,7 @@ export class AuthenticationHandler {
     handleCreateRoom(this.container.authService, ws, this.defaultRoomId, request);
   }
 
-  /**
-   * Reject authentication attempt and close connection
-   *
-   * @param ws - WebSocket connection to reject
-   * @param reason - Human-readable rejection reason
-   */
+  /** Reject an authentication attempt and close the connection. */
   private rejectAuthentication(ws: WebSocket, reason: string): void {
     ws.send(JSON.stringify({ t: "auth-failed", reason }));
     setTimeout(() => {
@@ -310,23 +322,12 @@ export class AuthenticationHandler {
     }, 100);
   }
 
-  /**
-   * Update player's last heartbeat timestamp
-   *
-   * @param player - Player entity to update
-   * @param timestamp - Current timestamp
-   */
+  /** Update a player's last-heartbeat timestamp. */
   private touchPlayerHeartbeat(player: Player, timestamp: number): void {
     player.lastHeartbeat = timestamp;
   }
 
-  /**
-   * Refresh or create authenticated session record
-   *
-   * @param uid - Unique identifier for the client
-   * @param authedAt - Timestamp of authentication
-   * @param roomId - Optional room identifier (preserves existing if not provided)
-   */
+  /** Refresh or create the authenticated-session record (preserving room if unset). */
   private refreshAuthenticatedSession(uid: string, authedAt: number, roomId?: string): void {
     const existingSession = this.authenticatedSessions.get(uid);
     const effectiveRoomId = roomId ?? existingSession?.roomId ?? this.defaultRoomId;
@@ -337,11 +338,7 @@ export class AuthenticationHandler {
     });
   }
 
-  /**
-   * Send authentication success message to client
-   *
-   * @param ws - WebSocket connection to send to
-   */
+  /** Send the authentication-success message to a client. */
   private sendAuthOk(ws: WebSocket): void {
     ws.send(JSON.stringify({ t: "auth-ok" }));
   }

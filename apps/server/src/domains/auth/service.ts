@@ -38,12 +38,18 @@ export class AuthService {
   private secret: StoredSecret;
   private rooms: Record<string, RoomSecretRecord>;
   private storagePath: string;
+  // A throwaway hash/salt used to spend constant scrypt work when a custom room
+  // doesn't exist, so verify() timing can't distinguish "no such room" from
+  // "wrong password" (both reply "Invalid room password").
+  private readonly timingGuard: StoredSecret;
 
   constructor(options?: { storagePath?: string }) {
     this.storagePath = options?.storagePath ?? SECRET_FILE;
     const loaded = loadSecretRecords(this.storagePath);
     this.secret = loaded.secret;
     this.rooms = loaded.rooms;
+    const guard = hashSecret("herobyte-timing-guard");
+    this.timingGuard = { hash: guard.hash, salt: guard.salt, updatedAt: 0, source: "fallback" };
   }
 
   /**
@@ -64,6 +70,9 @@ export class AuthService {
       if (room?.hash && room.salt) {
         return compareSecret(secret, room as StoredSecret);
       }
+      // Non-existent custom room: spend the same scrypt work as a real compare
+      // so latency doesn't reveal whether the code exists (timing oracle).
+      compareSecret(secret, this.timingGuard);
       return false;
     }
     // The default room (no roomId) uses the server-wide password.
