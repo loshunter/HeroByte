@@ -209,6 +209,71 @@ describe("MapElementsLayer", () => {
     });
   });
 
+  it("center-pivots a rotated stamp so its render matches the hit-test and export", () => {
+    render(
+      <MapElementsLayer
+        cam={cam}
+        mapElements={snapshot([
+          {
+            opacity: 1,
+            elements: [
+              {
+                id: "s3",
+                type: "stamp",
+                transform: { x: 10, y: 20, scaleX: 1, scaleY: 1, rotation: 90 },
+                data: { assetId: "upload:crate", width: 64, height: 48 },
+              },
+            ],
+          },
+        ])}
+      />,
+    );
+    // The element group sits at the footprint's visual center (10 + 32, 20 + 24)
+    // with a half-size offset — Konva then rotates about that center, keeping the
+    // unrotated top-left at (10, 20). A corner-pivot (x:10, y:20, no offset) would
+    // swing the stamp a full footprint away from where it's clicked/exported.
+    const stampGroup = groups.find(
+      (g) => g.x === 42 && g.y === 44 && g.offsetX === 32 && g.offsetY === 24 && g.rotation === 90,
+    );
+    expect(stampGroup).toBeDefined();
+  });
+
+  it("keeps a shape rotating about its transform origin (no center offset)", () => {
+    render(
+      <MapElementsLayer
+        cam={cam}
+        mapElements={snapshot([
+          {
+            opacity: 1,
+            elements: [
+              {
+                id: "r2",
+                type: "shape",
+                transform: { x: 5, y: 7, scaleX: 1, scaleY: 1, rotation: 45 },
+                data: {
+                  shape: "rectangle",
+                  points: [
+                    { x: 0, y: 0 },
+                    { x: 30, y: 30 },
+                  ],
+                  stroke: "#f00",
+                  strokeWidth: 2,
+                  opacity: 1,
+                },
+              },
+            ],
+          },
+        ])}
+      />,
+    );
+    // Shapes match the plain-rotate exporter: group at the transform origin, no
+    // offsetX/offsetY.
+    const shapeGroup = groups.find(
+      (g) => g.x === 5 && g.y === 7 && g.rotation === 45 && g.offsetX === undefined,
+    );
+    expect(shapeGroup).toBeDefined();
+  });
+
   it("wraps each authored layer in a group carrying its opacity, in server order", () => {
     render(
       <MapElementsLayer

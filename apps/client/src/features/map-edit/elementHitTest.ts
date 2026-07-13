@@ -16,6 +16,14 @@ export interface SelectionRect {
   width: number;
   height: number;
   rotation: number;
+  /**
+   * Local offset (from the box's top-left) of the point the element rotates
+   * about, so the highlight pivots exactly like the element it outlines:
+   * tile/stamp rotate about their visual center, shapes about the transform
+   * origin. Matches the renderers and the exporter.
+   */
+  pivotX: number;
+  pivotY: number;
 }
 
 /** The top-most visible tile/stamp/shape under a document-space point, or null. */
@@ -45,26 +53,22 @@ export function selectElementAtPoint(
 export function elementSelectionRect(element: MapElement, gridSize: number): SelectionRect | null {
   const { x, y, scaleX, scaleY, rotation } = element.transform;
   if (element.type === "tile") {
-    return {
-      x,
-      y,
-      width: element.data.columns * gridSize * scaleX,
-      height: element.data.rows * gridSize * scaleY,
-      rotation,
-    };
+    const width = element.data.columns * gridSize * scaleX;
+    const height = element.data.rows * gridSize * scaleY;
+    // Footprint elements rotate about their visual center.
+    return { x, y, width, height, rotation, pivotX: width / 2, pivotY: height / 2 };
   }
   if (element.type === "stamp") {
-    return {
-      x,
-      y,
-      width: element.data.width * scaleX,
-      height: element.data.height * scaleY,
-      rotation,
-    };
+    const width = element.data.width * scaleX;
+    const height = element.data.height * scaleY;
+    return { x, y, width, height, rotation, pivotX: width / 2, pivotY: height / 2 };
   }
   if (element.type === "shape") {
     const b = shapeBounds(element);
-    return b ? { ...b, rotation } : null;
+    if (!b) return null;
+    // Shapes rotate about the transform origin (x, y), which sits at the box's
+    // top-left minus the shape's local offset (left*scaleX, top*scaleY).
+    return { ...b, rotation, pivotX: x - b.x, pivotY: y - b.y };
   }
   return null;
 }

@@ -63,8 +63,10 @@ export function MapEditPreviewLayer({
         {placementGhost && renderGhost(placementGhost, cam.scale)}
         {selectionRect && (
           <Group
-            x={selectionRect.x}
-            y={selectionRect.y}
+            x={selectionRect.x + selectionRect.pivotX}
+            y={selectionRect.y + selectionRect.pivotY}
+            offsetX={selectionRect.pivotX}
+            offsetY={selectionRect.pivotY}
             rotation={selectionRect.rotation}
             listening={false}
           >
@@ -125,13 +127,21 @@ export function MapEditPreviewLayer({
 }
 
 /**
- * The place/scatter ghost: a translucent footprint at the cursor. Nested the
- * same way MapElementsLayer renders a stamp — a Group at (x,y) rotated in place
- * — so the preview rotates exactly like the element it becomes.
+ * The place/scatter ghost: a translucent footprint at the cursor. A ghost is
+ * always a tile/stamp footprint, so it rotates about its VISUAL CENTER — matching
+ * MapElementsLayer's corrected footprint render (center-pivot via position +
+ * offset) so the preview lands exactly where the committed element will.
  */
 function renderGhost(ghost: PlacementGhost, scale: number) {
   return (
-    <Group x={ghost.x} y={ghost.y} rotation={ghost.rotation} listening={false}>
+    <Group
+      x={ghost.x + ghost.width / 2}
+      y={ghost.y + ghost.height / 2}
+      offsetX={ghost.width / 2}
+      offsetY={ghost.height / 2}
+      rotation={ghost.rotation}
+      listening={false}
+    >
       <Rect
         width={ghost.width}
         height={ghost.height}

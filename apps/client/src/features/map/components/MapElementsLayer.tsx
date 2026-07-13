@@ -54,6 +54,15 @@ export function MapElementsLayer({ cam, mapElements, mapTransform }: MapElements
  * the drawable placed in local coords — the same nesting the Studio SVG uses.
  * useImage is called unconditionally (empty url for the vector kinds) so hook
  * order is stable regardless of element type.
+ *
+ * Footprint elements (tile/stamp) rotate about their VISUAL CENTER — matching
+ * the exporter (exportMapDocument's footprintAttributes) and the select
+ * hit-test (containsPoint). Konva rotates about a node's position point, so we
+ * place the group at the footprint's center and offset the drawable back by
+ * half, keeping its top-left at (x, y) when unrotated. Shapes/text rotate about
+ * the transform origin (their exporter uses a plain rotate), so they keep the
+ * origin nesting. Getting this wrong sends a rotated stamp a full cell off its
+ * target and makes it un-clickable (hit-test and render disagree).
  */
 function MapElementNode({
   element,
@@ -69,6 +78,26 @@ function MapElementNode({
   const [image] = useImage(assetUrl ?? "");
 
   const { x, y, scaleX, scaleY, rotation } = element.transform;
+
+  if (element.type === "tile" || element.type === "stamp") {
+    const w = element.type === "tile" ? element.data.columns * gridSize : element.data.width;
+    const h = element.type === "tile" ? element.data.rows * gridSize : element.data.height;
+    return (
+      <Group
+        x={x + (w * scaleX) / 2}
+        y={y + (h * scaleY) / 2}
+        offsetX={w / 2}
+        offsetY={h / 2}
+        scaleX={scaleX}
+        scaleY={scaleY}
+        rotation={rotation}
+        listening={false}
+      >
+        {renderDrawable(element, gridSize, image)}
+      </Group>
+    );
+  }
+
   return (
     <Group x={x} y={y} scaleX={scaleX} scaleY={scaleY} rotation={rotation} listening={false}>
       {renderDrawable(element, gridSize, image)}

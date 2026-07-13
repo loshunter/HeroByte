@@ -125,6 +125,8 @@ describe("useMapEditSelection", () => {
       width: 50,
       height: 50,
       rotation: 0,
+      pivotX: 25,
+      pivotY: 25,
     });
   });
 });

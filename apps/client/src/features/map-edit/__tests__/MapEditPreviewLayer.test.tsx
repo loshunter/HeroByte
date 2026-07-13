@@ -125,25 +125,41 @@ describe("MapEditPreviewLayer", () => {
 
     expect(rectProps).toHaveLength(1);
     expect(rectProps[0]).toMatchObject({ width: 50, height: 50, fill: "#8c5a2e", opacity: 0.5 });
-    // The ghost's own group carries its position + rotation (matches the element).
-    const ghostGroup = groupProps.find((g) => g.x === 175 && g.y === 175 && g.rotation === 15);
+    // The ghost rotates about its VISUAL CENTER (matching the committed element):
+    // group positioned at the footprint center (175 + 25) with a half-size offset.
+    const ghostGroup = groupProps.find(
+      (g) =>
+        g.x === 200 && g.y === 200 && g.offsetX === 25 && g.offsetY === 25 && g.rotation === 15,
+    );
     expect(ghostGroup).toBeDefined();
   });
 
-  it("draws a dashed highlight around the selected element", () => {
+  it("draws a dashed highlight around the selected element, pivoting where it does", () => {
     render(
       <MapEditPreviewLayer
         cam={cam}
         previewDrag={null}
         activeSubTool="select"
         gridSize={50}
-        selectionRect={{ x: 100, y: 100, width: 50, height: 50, rotation: 90 }}
+        selectionRect={{
+          x: 100,
+          y: 100,
+          width: 50,
+          height: 50,
+          rotation: 90,
+          pivotX: 25,
+          pivotY: 25,
+        }}
       />,
     );
 
     expect(rectProps).toHaveLength(1);
     expect(rectProps[0]).toMatchObject({ width: 50, height: 50, stroke: "#57d6ff" });
-    const selGroup = groupProps.find((g) => g.x === 100 && g.y === 100 && g.rotation === 90);
+    // Highlight rotates about the same point the element does (here, the center).
+    const selGroup = groupProps.find(
+      (g) =>
+        g.x === 125 && g.y === 125 && g.offsetX === 25 && g.offsetY === 25 && g.rotation === 90,
+    );
     expect(selGroup).toBeDefined();
   });
 

@@ -99,33 +99,63 @@ describe("selectElementAtPoint", () => {
 });
 
 describe("elementSelectionRect", () => {
-  it("sizes a tile by its grid footprint", () => {
+  it("sizes a tile by its grid footprint and pivots about its center", () => {
     expect(elementSelectionRect(tile, 50)).toEqual({
       x: 100,
       y: 100,
       width: 50,
       height: 50,
       rotation: 0,
+      pivotX: 25,
+      pivotY: 25,
     });
   });
 
-  it("carries a stamp's footprint and rotation", () => {
+  it("carries a stamp's footprint and rotation, pivoting about its center", () => {
     expect(elementSelectionRect(stamp, 50)).toEqual({
       x: 300,
       y: 300,
       width: 100,
       height: 50,
       rotation: 90,
+      pivotX: 50,
+      pivotY: 25,
     });
   });
 
-  it("bounds a shape from its points", () => {
+  it("bounds a shape from its points and pivots about the transform origin", () => {
     expect(elementSelectionRect(shape, 50)).toEqual({
       x: 500,
       y: 500,
       width: 50,
       height: 50,
       rotation: 0,
+      pivotX: 0,
+      pivotY: 0,
+    });
+  });
+
+  it("pivots a shape offset from its origin about that origin, not the box corner", () => {
+    // Points start at (20,10), so the bounds box sits 20/10 px past the origin;
+    // the pivot offset is negative, placing the rotation center back at (500,500).
+    const offsetShape: MapElement = {
+      ...shape,
+      data: {
+        ...shape.data,
+        points: [
+          { x: 20, y: 10 },
+          { x: 60, y: 40 },
+        ],
+      },
+    };
+    expect(elementSelectionRect(offsetShape, 50)).toEqual({
+      x: 520,
+      y: 510,
+      width: 40,
+      height: 30,
+      rotation: 0,
+      pivotX: -20,
+      pivotY: -10,
     });
   });
 
