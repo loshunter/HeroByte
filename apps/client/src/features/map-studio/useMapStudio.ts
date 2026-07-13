@@ -45,6 +45,10 @@ export function useMapStudio(
   // dedupes by commandId, so re-sending the identical message is safe whether
   // the original was applied (ack lost) or never arrived.
   const inFlightMessage = useRef<ClientMessage | null>(null);
+  // True only while the CURRENT error is a stale loading-timeout the watchdog
+  // raised — so a late reply clears that, but never a command/revision-conflict
+  // error the user still needs to see.
+  const watchdogFired = useRef(false);
   activeDocumentRef.current = activeDocument;
 
   const refresh = useCallback(() => {
@@ -123,8 +127,10 @@ export function useMapStudio(
   // The cleanup cancels the timer the moment a reply flips `loading` back off.
   useEffect(() => {
     if (!loading) return;
+    watchdogFired.current = false; // a fresh request supersedes any prior timeout
     const timer = setTimeout(() => {
       requestedDocumentId.current = null;
+      watchdogFired.current = true;
       setLoading(false);
       setError("The map server didn't respond. Please try again.");
     }, LOADING_TIMEOUT_MS);
@@ -232,6 +238,9 @@ export function useMapStudio(
         commandQueue.current.shift();
         inFlightCommandId.current = null;
         inFlightMessage.current = null;
+        // A real server response arrived, so any prior timeout is moot — don't
+        // let a stale watchdog flag later clear THIS command/conflict error.
+        watchdogFired.current = false;
         setError(message.reason);
         if (message.code === "revision-conflict") {
           requestedDocumentId.current = message.documentId;
@@ -251,9 +260,13 @@ export function useMapStudio(
       if (shouldActivate) {
         activeDocumentRef.current = document;
         setActiveDocument(document);
-        // A valid document arrived — clear any stale watchdog error from an
-        // earlier slow reply that timed out but then landed.
-        setError(null);
+        // Clear ONLY a stale watchdog timeout error (a slow reply that timed out
+        // then landed) — never a command/revision-conflict error the user must
+        // still see. The conflict re-fetch path leaves watchdogFired false.
+        if (watchdogFired.current) {
+          watchdogFired.current = false;
+          setError(null);
+        }
         if (message.history) setHistory(message.history);
       }
       if (requestedDocumentId.current === document.id) {

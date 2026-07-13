@@ -105,11 +105,14 @@ export function MapStudioControl({ controller, onPublishToLiveMap }: MapStudioCo
   }, [activeDocument]);
 
   // If an import fails, the watchdog surfaces controller.error while the import
-  // is still pending — drop the now-misleading "Importing…" status so it doesn't
-  // sit beside the error. The latch stays set so a very late but successful reply
-  // still resolves via the effect above.
+  // is still pending — drop the now-misleading "Importing…" status (the visible
+  // error carries the failure) and stop tracking the import so a later publish
+  // status can't be blanked by an unrelated error.
   useEffect(() => {
-    if (error && importingIdRef.current) setPublishStatus("");
+    if (error && importingIdRef.current) {
+      importingIdRef.current = null;
+      setPublishStatus("");
+    }
   }, [error]);
 
   const handleCreate = () => {

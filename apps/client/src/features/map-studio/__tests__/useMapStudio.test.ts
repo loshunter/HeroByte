@@ -250,6 +250,40 @@ describe("useMapStudio", () => {
     }
   });
 
+  it("keeps a revision-conflict error visible after the auto re-fetch (not wiped by activation)", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    const document = createMapDocument({ id: "map", name: "Map", timestamp: 1 });
+    document.revision = 3;
+    act(() => result.current.handleServerMessage({ t: "map-studio-document", document }));
+
+    act(() => result.current.updateLayer("terrain", { opacity: 0.5 }));
+    const sent = sendMessage.mock.calls.at(-1)?.[0];
+    const commandId = sent?.t === "map-studio-command" ? sent.command.commandId : "";
+
+    // The edit loses a revision race → error set + the hook auto re-fetches.
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-error",
+        commandId,
+        documentId: "map",
+        code: "revision-conflict",
+        reason: "That map changed — your edit was dropped.",
+      }),
+    );
+    expect(result.current.error).toMatch(/your edit was dropped/i);
+
+    // The re-fetched document activates; the conflict error must NOT be cleared
+    // (only a stale watchdog timeout is). Otherwise the DM never learns their
+    // edit was dropped.
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-document",
+        document: createMapDocument({ id: "map", name: "Map", timestamp: 2 }),
+      }),
+    );
+    expect(result.current.error).toMatch(/your edit was dropped/i);
+  });
+
   it("does not replace the active document when another DM edits a different map", () => {
     const { result } = renderHook(() => useMapStudio(sendMessage));
     const active = createMapDocument({ id: "active", name: "Active", timestamp: 1 });
