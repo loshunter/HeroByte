@@ -232,6 +232,29 @@ describe("MapStudioControl", () => {
     expect(mapStudio.importDocument).not.toHaveBeenCalled();
   });
 
+  it("surfaces the watchdog failure and clears the stuck 'Importing…' status on a fresh session", async () => {
+    const mapStudio = controller();
+    const { container, rerender } = render(<MapStudioControl controller={mapStudio} />);
+
+    importFile(container, JSON.stringify({ schemaVersion: 1, id: "orig", name: "Restored" }));
+    await waitFor(() => expect(mapStudio.importDocument).toHaveBeenCalled());
+    expect(screen.getByRole("status")).toHaveTextContent("Importing map backup…");
+
+    // The useMapStudio watchdog fires (server silently dropped the import): error
+    // is set with STILL no active document. The error must be visible and the
+    // now-misleading "Importing…" status cleared — no invisible wedge.
+    rerender(
+      <MapStudioControl
+        controller={controller({
+          ...mapStudio,
+          error: "The map server didn't respond. Please try again.",
+        })}
+      />,
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent(/didn't respond/i);
+    expect(screen.queryByText("Importing map backup…")).not.toBeInTheDocument();
+  });
+
   it("surfaces command errors and disables actions while a save is pending", () => {
     const document = createMapDocument({ id: "map", name: "Keep", timestamp: 1 });
     render(

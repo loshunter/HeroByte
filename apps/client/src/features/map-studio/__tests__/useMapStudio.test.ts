@@ -195,6 +195,35 @@ describe("useMapStudio", () => {
     }
   });
 
+  it("clears a stale watchdog error when a slow-but-valid reply eventually lands", () => {
+    vi.useFakeTimers();
+    try {
+      const { result } = renderHook(() => useMapStudio(sendMessage));
+      let id = "";
+      act(() => {
+        id = result.current.importDocument(
+          createMapDocument({ id: "slow", name: "Slow", timestamp: 1 }),
+        );
+      });
+      // The watchdog fires before the (slow) reply arrives.
+      act(() => vi.advanceTimersByTime(12_000));
+      expect(result.current.error).toMatch(/didn't respond/i);
+
+      // The real reply finally lands and activates the document — the stale error
+      // must clear, not linger under a loaded map.
+      act(() =>
+        result.current.handleServerMessage({
+          t: "map-studio-document",
+          document: createMapDocument({ id, name: "Slow", timestamp: 1 }),
+        }),
+      );
+      expect(result.current.activeDocument?.id).toBe(id);
+      expect(result.current.error).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("cancels the loading watchdog when the reply lands in time", () => {
     vi.useFakeTimers();
     try {

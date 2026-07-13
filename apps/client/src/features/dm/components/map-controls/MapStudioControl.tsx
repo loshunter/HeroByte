@@ -104,6 +104,14 @@ export function MapStudioControl({ controller, onPublishToLiveMap }: MapStudioCo
     }
   }, [activeDocument]);
 
+  // If an import fails, the watchdog surfaces controller.error while the import
+  // is still pending — drop the now-misleading "Importing…" status so it doesn't
+  // sit beside the error. The latch stays set so a very late but successful reply
+  // still resolves via the effect above.
+  useEffect(() => {
+    if (error && importingIdRef.current) setPublishStatus("");
+  }, [error]);
+
   const handleCreate = () => {
     if (!name.trim() || loading || saving) return;
     const id = createDocument(name.trim(), width, height);
@@ -235,11 +243,17 @@ export function MapStudioControl({ controller, onPublishToLiveMap }: MapStudioCo
           />
         </div>
 
-        {/* Status lives outside the active-document block: import runs with no
-            active document (restore-from-backup), so its errors must show. */}
+        {/* Status + error live outside the active-document block: import (and its
+            watchdog failure) runs with no active document (restore-from-backup),
+            so its feedback must show even then. */}
         {publishStatus && (
           <p role="status" className="jrpg-text-small" style={{ margin: 0 }}>
             {publishStatus}
+          </p>
+        )}
+        {error && (
+          <p role="alert" className="jrpg-text-small" style={{ color: "#ff9b8f", margin: 0 }}>
+            {error}
           </p>
         )}
 
@@ -252,11 +266,6 @@ export function MapStudioControl({ controller, onPublishToLiveMap }: MapStudioCo
               {" elements"}
               {saving && " · saving…"}
             </div>
-            {error && (
-              <p role="alert" className="jrpg-text-small" style={{ color: "#ff9b8f" }}>
-                {error}
-              </p>
-            )}
             <div style={{ display: "flex", gap: "6px", marginBottom: "6px" }}>
               <JRPGButton
                 style={{ flex: 1, fontSize: "10px" }}

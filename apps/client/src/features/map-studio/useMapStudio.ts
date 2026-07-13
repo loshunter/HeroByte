@@ -251,6 +251,9 @@ export function useMapStudio(
       if (shouldActivate) {
         activeDocumentRef.current = document;
         setActiveDocument(document);
+        // A valid document arrived — clear any stale watchdog error from an
+        // earlier slow reply that timed out but then landed.
+        setError(null);
         if (message.history) setHistory(message.history);
       }
       if (requestedDocumentId.current === document.id) {
