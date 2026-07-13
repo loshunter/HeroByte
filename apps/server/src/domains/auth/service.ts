@@ -3,7 +3,7 @@
 // ============================================================================
 // Manages the shared room password with hashing, persistence, and verification.
 
-import { getRoomSecret, getDefaultRoomId } from "../../config/auth.js";
+import { getRoomSecret, getDefaultRoomId, getMaxCustomRooms } from "../../config/auth.js";
 import {
   ROOM_ID_PATTERN,
   compareSecret,
@@ -97,6 +97,13 @@ export class AuthService {
     }
     if (this.isRoomInitialized(roomId)) {
       throw new Error("That table code is already taken. Try another.");
+    }
+    // Bound the persisted secret store: create-room is reachable pre-auth, so
+    // this ceiling is what stops an anonymous flood of unique roomIds from
+    // growing memory/disk without bound (and forcing a scrypt per attempt). The
+    // check precedes hashing so a full server rejects cheaply.
+    if (Object.keys(this.rooms).length >= getMaxCustomRooms()) {
+      throw new Error("This server is at its table limit right now. Please try again later.");
     }
     const trimmedRoom = roomPassword.trim();
     if (trimmedRoom.length < 6 || trimmedRoom.length > 128) {

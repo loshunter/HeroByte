@@ -6,6 +6,7 @@
 const DEFAULT_ROOM_ID = "default";
 const DEV_FALLBACK_SECRET = "Fun1";
 const DEV_FALLBACK_DM_PASSWORD = "FunDM";
+const DEFAULT_MAX_CUSTOM_ROOMS = 500;
 
 let warnedAboutFallback = false;
 let warnedAboutDMFallback = false;
@@ -55,6 +56,19 @@ export function getDMPassword(): string {
  */
 export function getDefaultRoomId(): string {
   return process.env.HEROBYTE_DEFAULT_ROOM_ID?.trim() || DEFAULT_ROOM_ID;
+}
+
+/**
+ * The maximum number of custom (private) rooms the server will mint. create-room
+ * runs BEFORE authentication (you can't be in a room that doesn't exist yet), so
+ * without a ceiling an anonymous client could stream unique roomIds and grow the
+ * in-memory + on-disk secret store without bound, each create also running
+ * blocking scrypt. This bounds that persisted state; override with
+ * HEROBYTE_MAX_CUSTOM_ROOMS for larger deployments.
+ */
+export function getMaxCustomRooms(): number {
+  const parsed = Number(process.env.HEROBYTE_MAX_CUSTOM_ROOMS?.trim());
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : DEFAULT_MAX_CUSTOM_ROOMS;
 }
 
 /**

@@ -231,6 +231,19 @@ describe("AuthService", () => {
       expect(service.verify("secondpass2", "table-dup")).toBe(false);
     });
 
+    it("caps the number of custom rooms to bound the pre-auth create flood", () => {
+      vi.stubEnv("HEROBYTE_MAX_CUSTOM_ROOMS", "2");
+      const service = new AuthService({ storagePath: SECRET_PATH });
+
+      service.createRoom("table-1", "goodpass1");
+      service.createRoom("table-2", "goodpass2");
+      // At the cap: a new code is refused cheaply (before hashing), but existing
+      // rooms still work and re-creating a taken code still reports "already taken".
+      expect(() => service.createRoom("table-3", "goodpass3")).toThrow(/table limit/i);
+      expect(service.verify("goodpass1", "table-1")).toBe(true);
+      expect(() => service.createRoom("table-1", "otherpass1")).toThrow(/already taken/i);
+    });
+
     it("rejects a too-short room or DM password", () => {
       const service = new AuthService({ storagePath: SECRET_PATH });
       expect(() => service.createRoom("table-x", "short")).toThrow(/6 and 128/);
