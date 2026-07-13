@@ -231,6 +231,21 @@ describe("Map Studio message validation", () => {
         document: { ...base, terrain: { ...terrain, palette: [""] } },
       }).valid,
     ).toBe(false);
+
+    // Palette entries are trimmed THEN length-checked, so a 128-char entry with a
+    // trailing space and a whitespace-padded label both pass (trim-then-max).
+    expect(
+      validateMessage({
+        t: "map-studio-import",
+        document: { ...base, terrain: { ...terrain, palette: ["x".repeat(128) + " "] } },
+      }).valid,
+    ).toBe(true);
+    expect(
+      validateMessage({
+        t: "map-studio-import",
+        document: { ...base, terrain: { ...terrain, palette: [" stone "] } },
+      }).valid,
+    ).toBe(true);
   });
 
   it.each([
