@@ -179,9 +179,14 @@ export class AuthService {
       return false;
     }
 
-    const room = this.roomRecord(roomId);
-    const dmHash = room?.dmHash ?? this.secret.dmHash;
-    const dmSalt = room?.dmSalt ?? this.secret.dmSalt;
+    // Custom rooms are private (mirroring verify()): the server-wide default DM
+    // password must NEVER elevate inside one. Only the room's OWN DM credential
+    // works — a room minted without one simply has no DM password until its
+    // creator bootstraps it via set-dm-password. The default room (no roomKey)
+    // keeps the server-wide DM password.
+    const roomKey = this.roomKey(roomId);
+    const dmHash = roomKey ? this.rooms[roomKey]?.dmHash : this.secret.dmHash;
+    const dmSalt = roomKey ? this.rooms[roomKey]?.dmSalt : this.secret.dmSalt;
     if (!dmHash || !dmSalt) {
       return false;
     }
@@ -235,9 +240,14 @@ export class AuthService {
    * default one it falls back to.
    */
   hasDMPassword(roomId?: string): boolean {
-    const room = this.roomRecord(roomId);
-    if (room?.dmHash && room.dmSalt) {
-      return true;
+    // Custom rooms only report a DM password when they set their OWN — no
+    // fallback to the server default (see verifyDMPassword). This is what lets a
+    // creator who skipped the optional DM password bootstrap one later via
+    // set-dm-password (that path is gated on hasDMPassword being false).
+    const roomKey = this.roomKey(roomId);
+    if (roomKey) {
+      const room = this.rooms[roomKey];
+      return !!(room?.dmHash && room.dmSalt);
     }
     return !!(this.secret.dmHash && this.secret.dmSalt);
   }
@@ -248,10 +258,5 @@ export class AuthService {
       return undefined;
     }
     return roomId;
-  }
-
-  private roomRecord(roomId?: string): RoomSecretRecord | undefined {
-    const key = this.roomKey(roomId);
-    return key ? this.rooms[key] : undefined;
   }
 }

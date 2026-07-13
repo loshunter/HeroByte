@@ -204,6 +204,24 @@ describe("AuthService", () => {
       expect(service.verifyDMPassword("playerpass1", "table-dm")).toBe(false);
     });
 
+    it("a room created without a DM password does NOT accept the server default, and its creator can bootstrap one", () => {
+      const service = new AuthService({ storagePath: SECRET_PATH });
+      // Minted with only a room password (the lobby's DM field is optional).
+      service.createRoom("table-open", "playerpass1");
+
+      // The server-wide default DM password must not elevate here, and the room
+      // reports no DM password — so an invited player can't seize DM, and the
+      // set-dm-password bootstrap (gated on hasDMPassword === false) stays open.
+      expect(service.hasDMPassword("table-open")).toBe(false);
+      expect(service.verifyDMPassword("FunDM", "table-open")).toBe(false);
+
+      // The creator bootstraps the room's first DM password; only it works after.
+      service.updateDMPassword("theRealDMpass", "table-open");
+      expect(service.hasDMPassword("table-open")).toBe(true);
+      expect(service.verifyDMPassword("theRealDMpass", "table-open")).toBe(true);
+      expect(service.verifyDMPassword("FunDM", "table-open")).toBe(false);
+    });
+
     it("rejects creating a room whose code is already taken", () => {
       const service = new AuthService({ storagePath: SECRET_PATH });
       service.createRoom("table-dup", "firstpass1");

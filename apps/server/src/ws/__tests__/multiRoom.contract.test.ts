@@ -249,20 +249,27 @@ describe("per-room secrets", () => {
     expect(auth.verify(defaultSecret)).toBe(true);
   });
 
-  it("scopes DM passwords per room with default fallback", async () => {
+  it("scopes DM passwords per room — custom rooms never fall back to the server DM password", async () => {
     const { AuthService } = await import("../../domains/auth/service.js");
     const auth = new AuthService({ storagePath: "./test-room-secret.json" });
 
-    // Dev fallback DM password elevates in any room until overridden.
-    expect(auth.verifyDMPassword("FunDM", "room-a")).toBe(true);
+    // The default room keeps the server-wide DM password...
+    expect(auth.verifyDMPassword("FunDM")).toBe(true);
+    expect(auth.hasDMPassword()).toBe(true);
+    // ...but the server DM password must NEVER elevate inside a custom room, and
+    // a custom room with no DM credential of its own reports none (mirrors the
+    // room-password privacy contract). Prevents an invited player from seizing
+    // DM with the shared default password.
+    expect(auth.verifyDMPassword("FunDM", "room-a")).toBe(false);
+    expect(auth.hasDMPassword("room-a")).toBe(false);
 
     auth.updateDMPassword("room-a-dm-pass", "room-a");
     expect(auth.verifyDMPassword("room-a-dm-pass", "room-a")).toBe(true);
     expect(auth.verifyDMPassword("FunDM", "room-a")).toBe(false);
-    // Other rooms keep the fallback.
-    expect(auth.verifyDMPassword("FunDM", "room-b")).toBe(true);
+    // A different custom room stays independent — no fallback, no cross-room key.
+    expect(auth.verifyDMPassword("FunDM", "room-b")).toBe(false);
     expect(auth.verifyDMPassword("room-a-dm-pass", "room-b")).toBe(false);
-    expect(auth.hasDMPassword("room-b")).toBe(true);
+    expect(auth.hasDMPassword("room-b")).toBe(false);
   });
 });
 
