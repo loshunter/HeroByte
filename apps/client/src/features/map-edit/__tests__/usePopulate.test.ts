@@ -78,6 +78,21 @@ describe("usePopulate", () => {
     expect(drafts.every((d: { layerId: string }) => d.layerId === "objects")).toBe(true);
   });
 
+  it("fills a region only once — a second click cannot stack duplicate stamps", () => {
+    const controller = makeController();
+    const { result } = renderHook(() => usePopulate(controller));
+
+    act(() => result.current.onRegionPlaced({ x: 0, y: 0, width: 500, height: 500 }));
+    act(() => result.current.onPopulate());
+    expect(controller.addStamps).toHaveBeenCalledTimes(1);
+
+    // The target is consumed; a hopeful second press is a no-op, not a silent
+    // byte-identical duplicate scatter.
+    expect(result.current.canPopulate).toBe(false);
+    act(() => result.current.onPopulate());
+    expect(controller.addStamps).toHaveBeenCalledTimes(1);
+  });
+
   it("refuses to populate a stale region whose floor is gone (room undone)", () => {
     // The region was recorded, but the active document now has NO terrain there
     // (e.g. the DM undid the place-room). Populate must no-op and clear the target.

@@ -65,8 +65,14 @@ export function usePopulate(
       layer.id,
       doors,
     );
-    if (drafts.length > 0) controller.addStamps(drafts);
-    else notifyError?.("Nothing to populate — try a denser setting or a larger area.");
+    if (drafts.length > 0) {
+      controller.addStamps(drafts);
+      // One fill per placed region: drop the target so a second click can't
+      // silently stack a byte-identical scatter on top of the first (the seed is
+      // fixed by the region origin). The DM draws a fresh room/hallway to
+      // populate again.
+      setLastPlacedBounds(null);
+    } else notifyError?.("Nothing to populate — try a denser setting or a larger area.");
   }, [controller, lastPlacedBounds, category, density, notifyError]);
 
   const canPopulate = Boolean(lastPlacedBounds) && !controller.saving;
