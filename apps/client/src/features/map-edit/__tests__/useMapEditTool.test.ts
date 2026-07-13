@@ -1,8 +1,34 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import type { MapDocument } from "@herobyte/shared";
-import { useMapEditTool } from "../useMapEditTool";
+import type { MapDocument, MapGridSettings } from "@herobyte/shared";
+import { useMapEditTool, effectiveGrid } from "../useMapEditTool";
 import type { MapStudioController } from "../../map-studio/types";
+
+describe("effectiveGrid", () => {
+  const hexGrid: MapGridSettings = {
+    type: "hex-row",
+    size: 50,
+    squareSize: 5,
+    offsetX: 0,
+    offsetY: 0,
+    visible: true,
+    snap: false,
+  };
+
+  it("forces a square, snapping grid for the room and hallway tools", () => {
+    // These tools quantize floor onto the square terrain lattice; a hex-typed
+    // document (from import/update-grid) must not snap the drag to hex centers.
+    for (const subTool of ["room", "hallway"] as const) {
+      expect(effectiveGrid(hexGrid, subTool)).toMatchObject({ type: "square", snap: true });
+    }
+  });
+
+  it("leaves the document's grid type and snap untouched for other tools", () => {
+    for (const subTool of ["wall", "door", "place", "terrain"] as const) {
+      expect(effectiveGrid(hexGrid, subTool)).toBe(hexGrid);
+    }
+  });
+});
 
 // A document with a walls-kind layer and an 8192px canvas at grid size 50.
 function makeDocument(): MapDocument {

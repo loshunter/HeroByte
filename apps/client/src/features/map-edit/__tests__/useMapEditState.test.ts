@@ -105,6 +105,26 @@ describe("useMapEditState", () => {
     expect(methods.createDocument).not.toHaveBeenCalled();
   });
 
+  it("does not revert a different document the DM explicitly opened for export/backup", () => {
+    const methods = makeMethods();
+    renderHook(() =>
+      useMapEditState({
+        controller: makeController(methods, doc("other-id")),
+        sendMessage: vi.fn(),
+        mapEditMode: true,
+        setActiveTool: vi.fn(),
+        liveMapDocumentId: "live-id",
+        roomGridSize: 50,
+        hasRasterBackground: false,
+      }),
+    );
+
+    // The old guard (bail only when the ACTIVE doc IS the live one) re-opened the
+    // live doc whenever a different one was active, silently reverting an explicit
+    // OPEN and mis-targeting BACKUP JSON at the live map.
+    expect(methods.openDocument).not.toHaveBeenCalled();
+  });
+
   it("reports isLive and no-ops startLiveMap when the bound doc is already active", () => {
     const methods = makeMethods();
     const { result } = renderHook(() =>

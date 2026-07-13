@@ -83,13 +83,18 @@ function isClickTool(subTool: MapEditSubTool): boolean {
 }
 
 /**
- * The room tool ALWAYS snaps to the grid: its floor is cell-quantized, so its
- * wall perimeter must land on the same cell edges (otherwise, with the doc's
- * snap turned off, floor would spill outside the walls). Walls/doors respect
- * the document's own snap setting.
+ * The room/hallway tools ALWAYS snap to a SQUARE grid: their floor is quantized
+ * onto the square terrain lattice, so their wall perimeter must land on the same
+ * cell edges (otherwise, with the doc's snap off, floor would spill outside the
+ * walls). Forcing `type: "square"` too keeps a hex-typed document (which import
+ * or update-grid can produce) from snapping the drag to hex centers, which are
+ * not multiples of the cell size and would offset the floor from the walls.
+ * Walls/doors respect the document's own snap + grid type.
  */
-function effectiveGrid(grid: MapGridSettings, subTool: MapEditSubTool): MapGridSettings {
-  return subTool === "room" || subTool === "hallway" ? { ...grid, snap: true } : grid;
+export function effectiveGrid(grid: MapGridSettings, subTool: MapEditSubTool): MapGridSettings {
+  return subTool === "room" || subTool === "hallway"
+    ? { ...grid, snap: true, type: "square" }
+    : grid;
 }
 
 export function useMapEditTool({

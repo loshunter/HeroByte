@@ -143,12 +143,15 @@ export function useMapEditState({
     setPendingLiveId(null);
   }, [pendingLiveId, activeId, sendMessage, updateGrid, roomGridSize]);
 
-  // Rebind after a reload: entering map-edit with a live binding but no active
-  // document (fresh controller) auto-opens it. The loading guard prevents the
-  // effect from re-firing while the fetch is in flight.
+  // Rebind after a reload: entering map-edit with a live binding but NO active
+  // document (fresh controller) auto-opens it. Bail whenever ANY document is
+  // already active — including one the DM deliberately opened to export or back
+  // up — so this effect never force-reverts an explicit open (the palette shows
+  // START LIVE MAP when a non-live doc is active). The loading guard prevents
+  // re-firing while the fetch is in flight.
   useEffect(() => {
     if (!mapEditMode || !liveMapDocumentId || pendingLiveId || loading) return;
-    if (activeId === liveMapDocumentId) return;
+    if (activeId) return;
     openDocument(liveMapDocumentId);
   }, [mapEditMode, liveMapDocumentId, pendingLiveId, loading, activeId, openDocument]);
 

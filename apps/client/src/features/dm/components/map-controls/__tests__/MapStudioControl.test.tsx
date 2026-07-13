@@ -89,7 +89,7 @@ describe("MapStudioControl", () => {
     render(<MapStudioControl controller={mapStudio} />);
 
     fireEvent.change(screen.getByLabelText("Saved maps"), { target: { value: "map" } });
-    fireEvent.click(screen.getByRole("button", { name: "OPEN ON CANVAS" }));
+    fireEvent.click(screen.getByRole("button", { name: "OPEN" }));
     expect(mapStudio.openDocument).toHaveBeenCalledWith("map");
 
     fireEvent.click(screen.getByRole("button", { name: "DELETE" }));

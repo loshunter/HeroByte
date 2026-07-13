@@ -198,7 +198,7 @@ export function MapStudioControl({ controller, onPublishToLiveMap }: MapStudioCo
               disabled={!selectedId || loading || saving}
               onClick={handleOpen}
             >
-              OPEN ON CANVAS
+              OPEN
             </JRPGButton>
             <JRPGButton
               variant="danger"
