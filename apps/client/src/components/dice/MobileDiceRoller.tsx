@@ -8,7 +8,7 @@ import type { Build, DieType, RollResult } from "./types";
 import { rollBuild } from "./diceLogic";
 import { DiceBar } from "./DiceBar";
 import { BuildStrip } from "./BuildStrip";
-import { ResultPanel } from "./ResultPanel";
+import { MobileResultOverlay } from "./MobileResultOverlay";
 import { JRPGButton } from "../ui/JRPGPanel";
 import { generateUUID } from "../../utils/uuid";
 
@@ -159,23 +159,10 @@ export const MobileDiceRoller: React.FC<MobileDiceRollerProps> = ({ onRoll, onCl
             ⚂ ROLL!
           </JRPGButton>
         </div>
-
-        {/* Result Overlay */}
-        {result && (
-          <div
-            style={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              zIndex: 10,
-              width: "100%",
-            }}
-          >
-            <ResultPanel result={result} onClose={() => setResult(null)} />
-          </div>
-        )}
       </div>
+
+      {/* Result Overlay - full-screen centered card so the total is always visible */}
+      <MobileResultOverlay result={result} onClose={() => setResult(null)} />
     </div>
   );
 };

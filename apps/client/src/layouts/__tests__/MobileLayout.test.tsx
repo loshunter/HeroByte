@@ -57,15 +57,16 @@ vi.mock("../../components/dice/RollLog", () => ({
   ),
 }));
 
-vi.mock("../../components/dice/ResultPanel", () => ({
-  ResultPanel: ({ onClose }: { onClose: () => void }) => (
-    <div data-testid="result-panel">
-      ResultPanel
-      <button onClick={onClose} data-testid="close-result-btn">
-        Close
-      </button>
-    </div>
-  ),
+vi.mock("../../components/dice/MobileResultOverlay", () => ({
+  MobileResultOverlay: ({ result, onClose }: { result: unknown; onClose: () => void }) =>
+    result ? (
+      <div data-testid="mobile-result-overlay">
+        MobileResultOverlay
+        <button onClick={onClose} data-testid="close-result-btn">
+          Close
+        </button>
+      </div>
+    ) : null,
 }));
 
 describe("MobileLayout", () => {
@@ -369,12 +370,29 @@ describe("MobileLayout", () => {
     expect(screen.getByTestId("roll-log")).toBeInTheDocument();
   });
 
-  it("renders ResultPanel when viewingRoll is present", () => {
+  it("renders MobileResultOverlay when viewingRoll is present", () => {
     const props = createDefaultProps();
     props.viewingRoll = { total: 20, playerName: "Test Player" } as MainLayoutProps["viewingRoll"];
     render(<MobileLayout {...props} />);
 
-    expect(screen.getByTestId("result-panel")).toBeInTheDocument();
+    expect(screen.getByTestId("mobile-result-overlay")).toBeInTheDocument();
+  });
+
+  it("does not render MobileResultOverlay when viewingRoll is null", () => {
+    const props = createDefaultProps();
+    render(<MobileLayout {...props} />);
+
+    expect(screen.queryByTestId("mobile-result-overlay")).not.toBeInTheDocument();
+  });
+
+  it("closes the viewed roll via handleViewRoll(null)", () => {
+    const props = createDefaultProps();
+    props.viewingRoll = { total: 20, playerName: "Test Player" } as MainLayoutProps["viewingRoll"];
+    render(<MobileLayout {...props} />);
+
+    fireEvent.click(screen.getByTestId("close-result-btn"));
+
+    expect(props.handleViewRoll).toHaveBeenCalledWith(null);
   });
 
   it("sends next-turn and previous-turn messages", () => {

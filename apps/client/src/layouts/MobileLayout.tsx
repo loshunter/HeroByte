@@ -10,7 +10,7 @@ import type { MainLayoutProps } from "./props/MainLayoutProps";
 import { MapLoading } from "../components/ui/MapLoading";
 import { MobileDiceRoller } from "../components/dice/MobileDiceRoller";
 import { RollLog } from "../components/dice/RollLog";
-import { ResultPanel } from "../components/dice/ResultPanel";
+import { MobileResultOverlay } from "../components/dice/MobileResultOverlay";
 import { TurnNavigationControls } from "../features/initiative/components/TurnNavigationControls";
 import { MobileEntitiesList } from "../components/layout/MobileEntitiesList";
 import { MobileFloatingControls } from "../components/layout/MobileFloatingControls";
@@ -327,22 +327,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
       )}
 
       {/* Viewing Roll Result */}
-      {viewingRoll && (
-        <div
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            pointerEvents: "auto",
-            zIndex: 2100, // Topmost
-            width: "90%",
-            maxWidth: "400px",
-          }}
-        >
-          <ResultPanel result={viewingRoll} onClose={() => handleViewRoll(null)} />
-        </div>
-      )}
+      <MobileResultOverlay result={viewingRoll} onClose={() => handleViewRoll(null)} />
     </div>
   );
 });
