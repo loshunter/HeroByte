@@ -448,202 +448,6 @@
   ],
   "elements": [
     {
-      "id": "golden:e0",
-      "layerId": "walls",
-      "type": "wall",
-      "locked": false,
-      "hidden": false,
-      "transform": {
-        "x": 0,
-        "y": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "rotation": 0
-      },
-      "data": {
-        "points": [
-          {
-            "x": 250,
-            "y": 250
-          },
-          {
-            "x": 400,
-            "y": 250
-          }
-        ],
-        "blocksMovement": true,
-        "blocksVision": true
-      }
-    },
-    {
-      "id": "golden:e1",
-      "layerId": "walls",
-      "type": "wall",
-      "locked": false,
-      "hidden": false,
-      "transform": {
-        "x": 0,
-        "y": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "rotation": 0
-      },
-      "data": {
-        "points": [
-          {
-            "x": 250,
-            "y": 250
-          },
-          {
-            "x": 250,
-            "y": 650
-          }
-        ],
-        "blocksMovement": true,
-        "blocksVision": true
-      }
-    },
-    {
-      "id": "golden:e2",
-      "layerId": "walls",
-      "type": "wall",
-      "locked": false,
-      "hidden": false,
-      "transform": {
-        "x": 0,
-        "y": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "rotation": 0
-      },
-      "data": {
-        "points": [
-          {
-            "x": 400,
-            "y": 250
-          },
-          {
-            "x": 400,
-            "y": 400
-          }
-        ],
-        "blocksMovement": true,
-        "blocksVision": true
-      }
-    },
-    {
-      "id": "golden:e3",
-      "layerId": "walls",
-      "type": "wall",
-      "locked": false,
-      "hidden": false,
-      "transform": {
-        "x": 0,
-        "y": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "rotation": 0
-      },
-      "data": {
-        "points": [
-          {
-            "x": 450,
-            "y": 250
-          },
-          {
-            "x": 850,
-            "y": 250
-          }
-        ],
-        "blocksMovement": true,
-        "blocksVision": true
-      }
-    },
-    {
-      "id": "golden:e4",
-      "layerId": "walls",
-      "type": "wall",
-      "locked": false,
-      "hidden": false,
-      "transform": {
-        "x": 0,
-        "y": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "rotation": 0
-      },
-      "data": {
-        "points": [
-          {
-            "x": 450,
-            "y": 250
-          },
-          {
-            "x": 450,
-            "y": 400
-          }
-        ],
-        "blocksMovement": true,
-        "blocksVision": true
-      }
-    },
-    {
-      "id": "golden:e5",
-      "layerId": "walls",
-      "type": "wall",
-      "locked": false,
-      "hidden": false,
-      "transform": {
-        "x": 0,
-        "y": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "rotation": 0
-      },
-      "data": {
-        "points": [
-          {
-            "x": 850,
-            "y": 250
-          },
-          {
-            "x": 850,
-            "y": 650
-          }
-        ],
-        "blocksMovement": true,
-        "blocksVision": true
-      }
-    },
-    {
-      "id": "golden:e6",
-      "layerId": "walls",
-      "type": "wall",
-      "locked": false,
-      "hidden": false,
-      "transform": {
-        "x": 0,
-        "y": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "rotation": 0
-      },
-      "data": {
-        "points": [
-          {
-            "x": 400,
-            "y": 400
-          },
-          {
-            "x": 450,
-            "y": 400
-          }
-        ],
-        "blocksMovement": true,
-        "blocksVision": true
-      }
-    },
-    {
       "id": "golden:e7",
       "layerId": "walls",
       "type": "wall",
@@ -659,12 +463,12 @@
       "data": {
         "points": [
           {
-            "x": 400,
-            "y": 450
+            "x": 250,
+            "y": 250
           },
           {
-            "x": 450,
-            "y": 450
+            "x": 400,
+            "y": 250
           }
         ],
         "blocksMovement": true,
@@ -687,11 +491,123 @@
       "data": {
         "points": [
           {
+            "x": 250,
+            "y": 250
+          },
+          {
+            "x": 250,
+            "y": 650
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e10",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
             "x": 400,
-            "y": 450
+            "y": 250
           },
           {
             "x": 400,
+            "y": 400
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e2",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 450,
+            "y": 250
+          },
+          {
+            "x": 850,
+            "y": 250
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e15",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 450,
+            "y": 250
+          },
+          {
+            "x": 450,
+            "y": 400
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e4",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 850,
+            "y": 250
+          },
+          {
+            "x": 850,
             "y": 650
           }
         ],
@@ -715,6 +631,90 @@
       "data": {
         "points": [
           {
+            "x": 400,
+            "y": 400
+          },
+          {
+            "x": 450,
+            "y": 400
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e0",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 400,
+            "y": 450
+          },
+          {
+            "x": 450,
+            "y": 450
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e13",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 400,
+            "y": 450
+          },
+          {
+            "x": 400,
+            "y": 650
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e17",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
             "x": 450,
             "y": 450
           },
@@ -728,7 +728,7 @@
       }
     },
     {
-      "id": "golden:e10",
+      "id": "golden:e14",
       "layerId": "walls",
       "type": "wall",
       "locked": false,
@@ -784,7 +784,7 @@
       }
     },
     {
-      "id": "golden:e12",
+      "id": "golden:e6",
       "layerId": "walls",
       "type": "door",
       "locked": false,
@@ -804,7 +804,7 @@
       }
     },
     {
-      "id": "golden:e13",
+      "id": "golden:e1",
       "layerId": "walls",
       "type": "door",
       "locked": false,
@@ -824,7 +824,7 @@
       }
     },
     {
-      "id": "golden:e14",
+      "id": "golden:e12",
       "layerId": "lighting",
       "type": "light",
       "locked": false,
@@ -844,7 +844,7 @@
       }
     },
     {
-      "id": "golden:e15",
+      "id": "golden:e16",
       "layerId": "notes",
       "type": "text",
       "locked": false,
@@ -864,7 +864,7 @@
       }
     },
     {
-      "id": "golden:e16",
+      "id": "golden:e3",
       "layerId": "lighting",
       "type": "light",
       "locked": false,
@@ -884,7 +884,7 @@
       }
     },
     {
-      "id": "golden:e17",
+      "id": "golden:e5",
       "layerId": "notes",
       "type": "text",
       "locked": false,

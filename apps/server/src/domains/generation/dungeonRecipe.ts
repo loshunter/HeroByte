@@ -6,7 +6,7 @@
 // makes Cartridge Codes possible, so nothing here may touch Math.random,
 // Date.now, or crypto ids (plan §4.1).
 
-import { createSeededRng } from "@herobyte/shared";
+import { createSeededRng, type MapElement, type SeededRng } from "@herobyte/shared";
 import { generateLayout } from "./dungeonLayout.js";
 import { emitGeometry } from "./dungeonGeometry.js";
 import { emitStocking } from "./dungeonStocking.js";
@@ -20,6 +20,7 @@ import type { CellBounds, DungeonParams, RecipeContext, RecipeOutput } from "./t
  */
 const GEOMETRY_STREAM = 0x1f123bb5;
 const STOCKING_STREAM = 0x6a09e667;
+const ID_STREAM = 0x85ebca6b;
 
 export function dungeonRecipe(
   seed: number,
@@ -27,9 +28,6 @@ export function dungeonRecipe(
   params: DungeonParams,
   ctx: RecipeContext,
 ): RecipeOutput {
-  // ONE id counter across every stage: element ids must be unique document-wide,
-  // and their kind-free shape is what stops a player fingerprinting a disguised
-  // secret door in their wire frames (plan §2.2).
   const nextId = makeIdFactory(ctx.idPrefix);
   const layout = generateLayout(createSeededRng(seed), bounds.cols, bounds.rows, params.density);
   const geometry = emitGeometry(
@@ -48,5 +46,38 @@ export function dungeonRecipe(
     nextId,
   );
 
-  return { cells: geometry.cells, elements: [...geometry.elements, ...stocking] };
+  return {
+    cells: geometry.cells,
+    elements: shuffleIds(
+      [...geometry.elements, ...stocking],
+      ctx.idPrefix,
+      createSeededRng(seed ^ ID_STREAM),
+    ),
+  };
+}
+
+/**
+ * Re-mint every element id from a SEEDED PERMUTATION of 0..n-1.
+ *
+ * Plan §2.2 made the id shape kind-free so a player could not fingerprint a
+ * disguised secret door — but the emission ORDER is kind-grouped (walls, then
+ * doors, then stocking), so a sequential counter made the ORDINAL the kind tag:
+ * every wall's number fell below every door's, and a disguised secret door
+ * arrived in the player's wall list carrying a door-range number. A gate
+ * reproduced it at 27/32 recall with zero false positives.
+ *
+ * Permuting breaks the ordinal's correlation with kind outright. It also makes
+ * the id GAPS meaningless — a player sees an arbitrary subset of the numbers
+ * either way, so a missing ordinal no longer implies anything was hidden.
+ *
+ * Deterministic: seeded Fisher-Yates on its own frozen stream, so it cannot
+ * shift the other stages.
+ */
+function shuffleIds(elements: MapElement[], idPrefix: string, rng: SeededRng): MapElement[] {
+  const order = elements.map((_, index) => index);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [order[i], order[j]] = [order[j]!, order[i]!];
+  }
+  return elements.map((element, index) => ({ ...element, id: `${idPrefix}:e${order[index]}` }));
 }

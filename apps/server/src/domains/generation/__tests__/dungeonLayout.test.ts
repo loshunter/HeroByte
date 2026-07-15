@@ -312,4 +312,23 @@ describe("generateLayout — caps and minimums", () => {
 
     expect(high).toBeGreaterThan(low);
   });
+
+  it("keeps all three densities distinct at every legal region size", () => {
+    // Regression: with ONE shared MAX_ROOMS=40, low and medium both saturated
+    // it above ~5530 cells and — both using width-1 corridors — emitted
+    // BIT-IDENTICAL dungeons. The DM changed the density and nothing happened.
+    // 128x128 is the 16384-cell cap; 80x70 is just past the old collision point.
+    for (const [cols, rows] of [
+      [40, 30],
+      [80, 70],
+      [128, 128],
+    ] as const) {
+      const plans = DENSITIES.map((density) => floorSignature(layoutFor(11, cols, rows, density)));
+
+      expect({ size: `${cols}x${rows}`, distinct: new Set(plans).size }).toEqual({
+        size: `${cols}x${rows}`,
+        distinct: DENSITIES.length,
+      });
+    }
+  });
 });

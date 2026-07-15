@@ -154,14 +154,26 @@ describe("emitStocking — braziers", () => {
 });
 
 describe("dungeonRecipe — stocked output", () => {
-  it("mints ids from ONE counter across walls, doors, and stocking", () => {
+  it("mints ids from ONE permuted counter across walls, doors, and stocking", () => {
     const output = dungeonRecipe(3, BOUNDS, PARAMS, context());
     const ids = output.elements.map((e) => e.id);
 
-    // A gap or repeat here means two stages minted ids independently — which
-    // would collide document-wide and abort the whole place-room command.
-    expect(ids).toEqual(ids.map((_, index) => `test:e${index}`));
+    // Every ordinal 0..n-1 used exactly once: a gap or repeat would mean two
+    // stages minted ids independently, colliding document-wide and aborting the
+    // whole place-room command.
+    expect([...ids].sort()).toEqual(ids.map((_, index) => `test:e${index}`).sort());
     expect(new Set(ids).size).toBe(ids.length);
+
+    // ...but NOT in emission order. Sequential ids made the ordinal a kind tag
+    // (walls first, then doors), which let a player read every disguised secret
+    // door straight off their own payload.
+    const doorOrdinals = output.elements
+      .filter((e) => e.type === "door")
+      .map((e) => Number(e.id.replace("test:e", "")));
+    const wallOrdinals = output.elements
+      .filter((e) => e.type === "wall")
+      .map((e) => Number(e.id.replace("test:e", "")));
+    expect(Math.max(...wallOrdinals)).toBeGreaterThan(Math.min(...doorOrdinals));
   });
 
   it("keeps the stocking stream independent of geometry", () => {

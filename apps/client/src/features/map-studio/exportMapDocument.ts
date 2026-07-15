@@ -269,7 +269,10 @@ function renderElement(
     return `<polyline ${attributes} points="${points}" fill="none" stroke="#e9d8a6" stroke-width="6"/>`;
   }
   if (element.type === "door") {
-    return `<line ${attributes} x1="0" y1="0" x2="${element.data.width}" y2="0" stroke="#c99b55" stroke-width="8"/>`;
+    // A secret door bakes in the WALL's colour and weight: see visible() below.
+    const secret = element.data.state === "secret";
+    const stroke = secret ? "#e9d8a6" : "#c99b55";
+    return `<line ${attributes} x1="0" y1="0" x2="${element.data.width}" y2="0" stroke="${stroke}" stroke-width="${secret ? 6 : 8}"/>`;
   }
   if (element.type === "light") {
     return `<circle ${attributes} r="${element.data.radius}" fill="${xml(element.data.color)}" fill-opacity="${element.data.intensity * 0.5}"/>`;
@@ -312,13 +315,12 @@ function paint(element: Extract<MapElement, { type: "shape" }>): string {
 
 function visible(element: MapElement, layer?: MapLayer): boolean {
   const playerVisibleText = element.type !== "text" || element.data.visibleToPlayers;
-  // Doors are LIVE-ONLY: the table's DoorsLayer draws every door from
-  // compiledScene, so no door may bake into the raster. Excluding all doors
-  // (not just secret ones) removes the double-draw — a baked line sitting under
-  // the live interactive door — and subsumes the secret-door leak, since the
-  // published raster is broadcast to every role unfiltered. Walls still bake:
-  // they have no live layer, so their <polyline> is the only way they are seen.
-  const bakesToRaster = element.type !== "door";
+  // Ordinary doors are LIVE-ONLY: DoorsLayer draws them from compiledScene, so
+  // baking one would leave a dead line under the live door. SECRET doors are the
+  // exception — a player's doors list never contains them, so nothing covers the
+  // one-cell gap their seam leaves in the wall art, and a bare hole reads as
+  // "secret door here" with no socket inspection at all. They bake as WALL.
+  const bakesToRaster = element.type !== "door" || element.data.state === "secret";
   return Boolean(
     layer?.visible && layer.opacity > 0 && !element.hidden && playerVisibleText && bakesToRaster,
   );

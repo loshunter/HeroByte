@@ -105,7 +105,7 @@ describe("Map Studio export", () => {
     expect(renderMapDocumentSvg(document)).not.toContain("Do not export");
   });
 
-  it("omits every door from the raster — doors render live via DoorsLayer, never baked", () => {
+  it("omits ordinary doors from the raster but bakes secret ones AS WALL", () => {
     let document = createMapDocument({ id: "map", name: "Keep", timestamp: 10 });
     document = addMapElement(
       document,
@@ -135,15 +135,20 @@ describe("Map Studio export", () => {
     );
 
     const svg = renderMapDocumentSvg(document);
-    // Doors are LIVE-ONLY: the table's DoorsLayer draws them from compiledScene,
-    // so none may bake into the raster. One rule kills the double-draw (a baked
-    // line under the live door) AND the secret-door leak — an ordinary closed
-    // door baked before this slice; now it must not.
+    // An ordinary door is LIVE-ONLY: DoorsLayer draws it from compiledScene, so
+    // baking one would leave a dead line under the live interactive door.
     expect(svg).not.toContain("translate(100 100)");
-    // Secret doors were already excluded (the seed fix); still excluded.
-    expect(svg).not.toContain("translate(300 300)");
-    // No door line paint of any kind (the door stroke colour is door-only).
     expect(svg).not.toContain('stroke="#c99b55"');
+
+    // A SECRET door is the exception. Walls leave a one-cell gap where a door
+    // sits, and DoorsLayer only covers doors the recipient received — never the
+    // secret ones. Baking nothing left a bare hole in the art that read as
+    // "secret door here" with no socket inspection at all, so it bakes as WALL:
+    // same stroke, same weight, indistinguishable from the run it completes.
+    expect(svg).toContain("translate(300 300)");
+    const secretLine = svg.slice(svg.indexOf("translate(300 300)"));
+    expect(secretLine).toContain('stroke="#e9d8a6"'); // the wall colour
+    expect(secretLine).toContain('stroke-width="6"'); // the wall weight
   });
 
   it("bakes walls into the raster — a wall has no live layer, its polyline is the only render", () => {

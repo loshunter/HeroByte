@@ -49,8 +49,19 @@ const ROOM_DIVISOR: Record<DungeonParams["density"], number> = {
   medium: 90,
   high: 60,
 };
+/**
+ * Per-density ceilings, not one shared cap. With a single MAX_ROOMS=40, "low"
+ * and "medium" both saturated it above ~5530 cells and — both using width-1
+ * corridors — emitted BIT-IDENTICAL dungeons across roughly a third of the
+ * legal region range: the density control silently did nothing. Distinct
+ * ceilings keep the three densities apart at every size.
+ */
+const MAX_ROOMS: Record<DungeonParams["density"], number> = {
+  low: 24,
+  medium: 40,
+  high: 60,
+};
 const MIN_ROOMS = 2;
-const MAX_ROOMS = 40;
 const ATTEMPTS_PER_ROOM = 12;
 const MIN_ROOM_SIDE = 3;
 /** Rolled side is MIN_ROOM_SIDE + floor(roll * ROOM_SIDE_SPREAD) → 3..9. */
@@ -84,7 +95,11 @@ function placeRooms(
   rows: number,
   density: DungeonParams["density"],
 ): CellRect[] {
-  const target = clamp(Math.round((cols * rows) / ROOM_DIVISOR[density]), MIN_ROOMS, MAX_ROOMS);
+  const target = clamp(
+    Math.round((cols * rows) / ROOM_DIVISOR[density]),
+    MIN_ROOMS,
+    MAX_ROOMS[density],
+  );
   const attempts = target * ATTEMPTS_PER_ROOM;
   const rooms: CellRect[] = [];
 

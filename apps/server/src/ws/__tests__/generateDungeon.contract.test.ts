@@ -358,8 +358,12 @@ describe("map-studio-generate contracts", () => {
     const last = frames[frames.length - 1];
     const ids = last?.document?.elements.map((e) => e.id) ?? [];
 
+    // A seeded PERMUTATION of e0..e(n-1): every ordinal used exactly once, but
+    // NOT in emission order — sequential numbering made the ordinal a kind tag
+    // (walls first, doors second), which handed players a secret-door oracle.
     expect(ids.length).toBeGreaterThan(0);
-    expect(ids).toEqual(ids.map((_, index) => `gen-ids:e${index}`));
+    expect([...ids].sort()).toEqual(ids.map((_, index) => `gen-ids:e${index}`).sort());
+    expect(ids).not.toEqual(ids.map((_, index) => `gen-ids:e${index}`));
   });
 
   it("never leaks a generated GM spawn marker to a player, on any channel", async () => {
@@ -426,13 +430,26 @@ describe("map-studio-generate contracts", () => {
     expect(dmScene?.doors.length).toBeGreaterThan(0);
     expect(playerScene?.doors).toEqual([]);
 
-    // Each secret door reappears in the player's walls under a #0 id, sharing
-    // the exact id shape of a real compiled wall segment.
-    for (const door of dmScene!.doors) {
-      expect(playerScene?.walls.map((wall) => wall.id)).toContain(`${door.id}#0`);
-    }
+    // Every wall the player receives carries a real compiled-segment id shape...
     for (const wall of playerScene?.walls ?? []) {
       expect(wall.id).toMatch(/^gen-secret:e\d+#\d+$/);
+    }
+    // ...and every secret door's seam still blocks, without the door's own id
+    // ever reaching the wire: the disguise fuses it into the wall it splits, so
+    // there is no 1-cell segment to spot and no id to filter on.
+    for (const door of dmScene!.doors) {
+      const covered = playerScene?.walls.some((wall) =>
+        door.y1 === door.y2
+          ? wall.y1 === door.y1 &&
+            wall.y2 === door.y1 &&
+            Math.min(wall.x1, wall.x2) <= Math.min(door.x1, door.x2) &&
+            Math.max(wall.x1, wall.x2) >= Math.max(door.x1, door.x2)
+          : wall.x1 === door.x1 &&
+            wall.x2 === door.x1 &&
+            Math.min(wall.y1, wall.y2) <= Math.min(door.y1, door.y2) &&
+            Math.max(wall.y1, wall.y2) >= Math.max(door.y1, door.y2),
+      );
+      expect({ door: door.id, covered }).toEqual({ door: door.id, covered: true });
     }
   });
 });

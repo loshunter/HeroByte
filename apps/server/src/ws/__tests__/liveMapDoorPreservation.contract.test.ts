@@ -231,7 +231,15 @@ describe("live-bound door-preservation regressions", () => {
     expect(dx?.state).toBe("secret");
     const playerScene = latestSnapshot(playerWs)?.compiledScene;
     expect(playerScene?.doors).toEqual([]);
-    expect(playerScene?.walls.map((w) => w.id)).toContain("dX#0");
+    // The disguise now FUSES the door into the wall it interrupts, so not even
+    // its id reaches the wire. What must hold is that the seam it covered still
+    // blocks: the player sees one wall spanning the door's (10..50) run.
+    expect(
+      playerScene?.walls.some(
+        (w) => w.y1 === 0 && w.y2 === 0 && Math.min(w.x1, w.x2) <= 10 && Math.max(w.x1, w.x2) >= 50,
+      ),
+    ).toBe(true);
+    expect(JSON.stringify(playerScene)).not.toContain("dX");
   });
 
   it("clears the binding when the live-bound document is deleted, so no re-bind resurrects it", async () => {
