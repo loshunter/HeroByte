@@ -52,7 +52,17 @@ describe("Room Model - toSnapshot", () => {
             blocksVision: true,
           },
         ],
-        lights: [],
+        lights: [
+          {
+            id: "brazier-1",
+            x: 220,
+            y: 40,
+            radius: 150,
+            color: "#ffb347",
+            intensity: 0.8,
+            castsShadows: true,
+          },
+        ],
       };
       return state;
     }
@@ -107,6 +117,18 @@ describe("Room Model - toSnapshot", () => {
         blocksVision: true,
       });
       expect(state.compiledScene?.doors).toHaveLength(2);
+    });
+
+    it("keeps compiled lights DM-only without touching server state", () => {
+      // Nothing renders lights at the table yet, so a player gains nothing from
+      // their coordinates except a map of the rooms fog is hiding — and every
+      // generated dungeon lights its rooms. When lighting ships, lights must
+      // come back VISION-FILTERED, not restored wholesale.
+      const state = stateWithCompiledScene();
+
+      expect(toSnapshot(state, true).compiledScene?.lights).toHaveLength(1);
+      expect(toSnapshot(state, false).compiledScene?.lights).toEqual([]);
+      expect(state.compiledScene?.lights).toHaveLength(1);
     });
 
     it("gives disguised secret doors the same id shape as real wall segments", () => {

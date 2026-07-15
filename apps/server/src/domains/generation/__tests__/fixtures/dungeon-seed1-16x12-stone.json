@@ -822,6 +822,86 @@
         "blocksMovement": true,
         "blocksVision": true
       }
+    },
+    {
+      "id": "golden:e14",
+      "layerId": "lighting",
+      "type": "light",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 825,
+        "y": 625,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "radius": 150,
+        "color": "#ffb347",
+        "intensity": 0.8,
+        "castsShadows": true
+      }
+    },
+    {
+      "id": "golden:e15",
+      "layerId": "notes",
+      "type": "text",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 475,
+        "y": 275,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "text": "SPAWN: 3 giant rats",
+        "color": "#ffd479",
+        "fontSize": 14,
+        "visibleToPlayers": false
+      }
+    },
+    {
+      "id": "golden:e16",
+      "layerId": "lighting",
+      "type": "light",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 375,
+        "y": 625,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "radius": 150,
+        "color": "#ffb347",
+        "intensity": 0.8,
+        "castsShadows": true
+      }
+    },
+    {
+      "id": "golden:e17",
+      "layerId": "notes",
+      "type": "text",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 275,
+        "y": 275,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "text": "SPAWN: goblin scouts (2)",
+        "color": "#ffd479",
+        "fontSize": 14,
+        "visibleToPlayers": false
+      }
     }
   ]
 }

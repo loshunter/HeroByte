@@ -42,8 +42,9 @@ export function emitGeometry(
   params: DungeonParams,
   ctx: RecipeContext,
   rng: SeededRng,
+  /** Shared with the other stages so ONE counter spans the whole document. */
+  nextId: () => string = makeIdFactory(ctx.idPrefix),
 ): RecipeOutput {
-  const nextId = makeIdFactory(ctx.idPrefix);
   return {
     cells: emitFloor(layout, bounds, params),
     elements: [

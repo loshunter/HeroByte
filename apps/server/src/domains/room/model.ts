@@ -22,6 +22,7 @@ import type {
 } from "@herobyte/shared";
 import { gridCellToWorldPoint } from "@herobyte/shared";
 import { buildSnapshotAssets } from "./assets/SnapshotAssetBuilder.js";
+import { compiledSceneFor } from "./compiledSceneView.js";
 import { createVisionContext, isWorldPointVisible } from "./scene/visionFilter.js";
 import type { DrawingOperation } from "../map/types.js";
 
@@ -294,34 +295,10 @@ export function toSnapshot(
     fogEnabled: state.fogEnabled,
   };
 
+  // Secret doors and lights are DM-only; compiledSceneView owns that rule and
+  // is the only place allowed to.
   if (state.compiledScene) {
-    // Secret doors must be indistinguishable from wall to players: they leave
-    // the doors list entirely and reappear as anonymous wall segments, so
-    // client-side vision still cannot see through them and nothing in the
-    // payload hints that a door exists. That includes the id: compiled wall
-    // segments are always `${elementId}#${index}`, so the disguise must carry
-    // the same suffix — a bare door id would fingerprint every secret door to
-    // anyone reading the websocket payload.
-    snapshot.compiledScene = isDM
-      ? state.compiledScene
-      : {
-          ...state.compiledScene,
-          walls: [
-            ...state.compiledScene.walls,
-            ...state.compiledScene.doors
-              .filter((door) => door.state === "secret")
-              .map((door) => ({
-                id: `${door.id}#0`,
-                x1: door.x1,
-                y1: door.y1,
-                x2: door.x2,
-                y2: door.y2,
-                blocksMovement: door.blocksMovement,
-                blocksVision: door.blocksVision,
-              })),
-          ],
-          doors: state.compiledScene.doors.filter((door) => door.state !== "secret"),
-        };
+    snapshot.compiledScene = compiledSceneFor(state.compiledScene, isDM);
   }
 
   // Terrain + live scenery are player-safe map art: the same data for every
@@ -329,9 +306,8 @@ export function toSnapshot(
   if (state.mapTerrain) snapshot.mapTerrain = state.mapTerrain;
   if (state.mapElements) snapshot.mapElements = state.mapElements;
 
-  // The live-bound document id is DM-only chrome: it tells the map toolbar
-  // which document its edits compile into. Players have no use for it, so it
-  // never enters their payload.
+  // DM-only chrome: it tells the map toolbar which document its edits compile
+  // into. Players have no use for it, so it never enters their payload.
   if (isDM && state.liveMapDocumentId) {
     snapshot.liveMapDocumentId = state.liveMapDocumentId;
   }

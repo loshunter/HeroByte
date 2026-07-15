@@ -59,6 +59,11 @@ function messagesOf(socket: FakeSocket, type: string): (ServerMessage & { t?: st
     .filter((message) => message.t === type);
 }
 
+/** Every raw string a socket received — for grepping the wire itself. */
+function rawFramesOf(socket: FakeSocket): string {
+  return socket.send.mock.calls.map(([payload]) => payload as string).join("\n");
+}
+
 function player(uid: string, isDM: boolean) {
   return {
     uid,
@@ -355,6 +360,49 @@ describe("map-studio-generate contracts", () => {
 
     expect(ids.length).toBeGreaterThan(0);
     expect(ids).toEqual(ids.map((_, index) => `gen-ids:e${index}`));
+  });
+
+  it("never leaks a generated GM spawn marker to a player, on any channel", async () => {
+    createLiveDoc();
+    playerWs.send.mockClear();
+
+    route(generateMessage({ commandId: "gen-notes" }), DM);
+    await flush();
+
+    // The DM has the keys (they ride the document channel, DM-only)...
+    const dmFrames = rawFramesOf(dmWs);
+    expect(dmFrames).toMatch(/SPAWN|LOOT|EMPTY|TRAP/);
+
+    // ...and the player's wire carries no trace of them — not the text, not the
+    // marker elements, not the notes layer. Grep the raw frames, not a parsed
+    // view: a leak through ANY field is still a leak.
+    const playerFrames = rawFramesOf(playerWs);
+    expect(playerFrames).not.toMatch(/SPAWN|LOOT|EMPTY|TRAP/);
+    expect(playerFrames).not.toContain('"notes"');
+
+    // The snapshot's scenery channel exists but holds nothing from the notes
+    // layer (deriveMapElements strips notes-kind layers for every recipient).
+    const elements = latestSnapshot(playerWs)?.mapElements;
+    const texts = elements?.layers.flatMap((layer) =>
+      layer.elements.filter((element) => element.type === "text"),
+    );
+    expect(texts ?? []).toEqual([]);
+  });
+
+  it("keeps generated braziers out of the player's scenery channel", async () => {
+    createLiveDoc();
+    playerWs.send.mockClear();
+
+    route(generateMessage({ commandId: "gen-lights" }), DM);
+    await flush();
+
+    // The DM's document HAS braziers...
+    expect(rawFramesOf(dmWs)).toContain('"type":"light"');
+    // ...and no player frame carries one. (RenderableMapElement cannot even
+    // express a light — the type makes this unrepresentable — so this guards
+    // the OTHER channels: the raw wire, and compiledScene.lights.)
+    expect(rawFramesOf(playerWs)).not.toContain('"type":"light"');
+    expect(latestSnapshot(playerWs)?.compiledScene?.lights).toEqual([]);
   });
 
   it("disguises every generated secret door as an anonymous wall for players", async () => {

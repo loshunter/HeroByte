@@ -58,6 +58,7 @@ import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 import { useMapEditTool } from "../features/map-edit/useMapEditTool";
 import { MapEditPreviewLayer } from "../features/map-edit/MapEditPreviewLayer";
 import { WallsOverlayLayer } from "../features/map-edit/WallsOverlayLayer";
+import { NotesOverlayLayer } from "../features/map-edit/NotesOverlayLayer";
 import type { CameraCommand, MapBoardProps, SelectionRequestOptions } from "./MapBoard.types";
 import { STATUS_OPTIONS, type StatusOption } from "../features/players/constants/statusOptions";
 
@@ -610,6 +611,15 @@ export default function MapBoard({
               cam={cam}
               mapTransform={mapObject?.transform}
               walls={snapshot.compiledScene.walls}
+            />
+          )}
+          {/* DM-only GM notes (generated spawn/loot keys). Read from the live
+              document — notes are stripped from every snapshot by design. */}
+          {isDM && mapEditMode && (
+            <NotesOverlayLayer
+              cam={cam}
+              mapTransform={mapObject?.transform}
+              document={mapEditController?.activeDocument ?? null}
             />
           )}
         </Layer>
