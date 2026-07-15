@@ -74,6 +74,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     mapEditWallsOverlayPinned,
     onMapEditRoomRejected,
     onMapEditRegionPlaced,
+    onMapEditRegionDragged,
     onMapEditSelectElement,
     onMapEditSampleAsset,
     mapEditToolbarProps,
@@ -287,6 +288,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         mapEditWallsOverlayPinned={mapEditWallsOverlayPinned}
         onMapEditRoomRejected={onMapEditRoomRejected}
         onMapEditRegionPlaced={onMapEditRegionPlaced}
+        onMapEditRegionDragged={onMapEditRegionDragged}
         onMapEditSelectElement={onMapEditSelectElement}
         onMapEditSampleAsset={onMapEditSampleAsset}
         selectedObjectId={selectedObjectId}

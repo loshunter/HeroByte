@@ -9,12 +9,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type Konva from "konva";
-import type { MapGridSettings, SceneObjectTransform, TerrainPaintCell } from "@herobyte/shared";
+import type { SceneObjectTransform, TerrainPaintCell } from "@herobyte/shared";
 import { useTerrainBrush } from "../map-studio/components/useTerrainBrush";
 import type { RoomDrag } from "../map-studio/components/MapStudioWorkspace.types";
 import type { MapStudioController } from "../map-studio/types";
 import type { RoomBounds } from "./roomBuilder";
 import { commitDragTool } from "./commitDragTool";
+import { effectiveGrid, isBrushTool, isClickTool, isDragTool } from "./mapEditToolKinds";
 import { useMapEditPlacement, type PlacementGhost } from "./useMapEditPlacement";
 import { useMapEditSelection } from "./useMapEditSelection";
 import { usePointerToDoc } from "./usePointerToDoc";
@@ -43,6 +44,8 @@ interface UseMapEditToolOptions {
   onRoomRejected?: (message: string) => void;
   /** A room/hallway landed — its bounds become the POPULATE target. */
   onRegionPlaced?: (bounds: RoomBounds) => void;
+  /** A generate region was swept — the recipe's target (nothing placed yet). */
+  onRegionDragged?: (bounds: RoomBounds) => void;
   /** Currently-selected element (select sub-tool) — drives the highlight. */
   selectedElementId?: string | null;
   onSelectElement?: (elementId: string | null) => void;
@@ -65,37 +68,8 @@ interface UseMapEditToolReturn {
   onMouseUp: () => void;
 }
 
-const DRAG_TOOLS: MapEditSubTool[] = ["wall", "door", "room", "hallway"];
-
-/** Wall, door, room, and hallway all drive the same two-point drag machine. */
-function isDragTool(subTool: MapEditSubTool): boolean {
-  return DRAG_TOOLS.includes(subTool);
-}
-
-/** Terrain + erase are pointer-STREAM brushes (paint cells while the pointer is down). */
-function isBrushTool(subTool: MapEditSubTool): boolean {
-  return subTool === "terrain" || subTool === "erase";
-}
-
-/** Place + scatter are click tools: one pointer-down drops (no drag, no stream). */
-function isClickTool(subTool: MapEditSubTool): boolean {
-  return subTool === "place" || subTool === "scatter";
-}
-
-/**
- * The room/hallway tools ALWAYS snap to a SQUARE grid: their floor is quantized
- * onto the square terrain lattice, so their wall perimeter must land on the same
- * cell edges (otherwise, with the doc's snap off, floor would spill outside the
- * walls). Forcing `type: "square"` too keeps a hex-typed document (which import
- * or update-grid can produce) from snapping the drag to hex centers, which are
- * not multiples of the cell size and would offset the floor from the walls.
- * Walls/doors respect the document's own snap + grid type.
- */
-export function effectiveGrid(grid: MapGridSettings, subTool: MapEditSubTool): MapGridSettings {
-  return subTool === "room" || subTool === "hallway"
-    ? { ...grid, snap: true, type: "square" }
-    : grid;
-}
+// Re-exported so existing importers (and tests) keep their entry point.
+export { effectiveGrid } from "./mapEditToolKinds";
 
 export function useMapEditTool({
   mapEditMode,
@@ -107,6 +81,7 @@ export function useMapEditTool({
   hallwayWidth = 2,
   onRoomRejected,
   onRegionPlaced,
+  onRegionDragged,
   selectedElementId = null,
   onSelectElement,
   onSampleAsset,
@@ -291,7 +266,7 @@ export function useMapEditTool({
     const document = controller?.activeDocument;
     // Tools do not self-gate on `saving`; skip the commit while a command is in
     // flight (the Studio's rule) so drags don't pile up. Re-check the live
-    // binding: the active document must still be the live-bound one.
+    // binding too: the active document must still be the live-bound one.
     if (document && document.id === liveDocumentId && controller && !controller.saving) {
       commitDragTool({
         subTool: activeSubTool,
@@ -302,6 +277,7 @@ export function useMapEditTool({
         hallwayWidth,
         onRoomRejected,
         onRegionPlaced,
+        onRegionDragged,
       });
     }
     clearDrag();
@@ -316,6 +292,7 @@ export function useMapEditTool({
     hallwayWidth,
     onRoomRejected,
     onRegionPlaced,
+    onRegionDragged,
     clearDrag,
   ]);
 

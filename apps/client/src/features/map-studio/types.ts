@@ -1,4 +1,5 @@
 import type {
+  ClientMessage,
   MapDocument,
   MapDocumentSummary,
   MapDoorState,
@@ -74,6 +75,12 @@ export interface MapDoorDraft {
   blocksVision: boolean;
 }
 
+/** A generate request, minus the documentId and commandId the queue supplies. */
+export type GenerateInput = Omit<
+  Extract<ClientMessage, { t: "map-studio-generate" }>,
+  "t" | "documentId" | "commandId"
+>;
+
 export interface MapStudioController {
   documents: MapDocumentSummary[];
   activeDocument: MapDocument | null;
@@ -104,6 +111,12 @@ export interface MapStudioController {
   updateElement: (elementId: string, update: MapElementUpdate) => void;
   /** Author a placed door's initial state + width (dedicated data path). */
   updateDoor: (elementId: string, update: { state: MapDoorState; width: number }) => void;
+  /**
+   * Run a server-side recipe over a region of the active document. The whole
+   * result lands as ONE undo step; `saving` is the pending state and `error`
+   * carries a rejection, exactly like every other action.
+   */
+  generate: (input: GenerateInput) => void;
   undo: () => void;
   redo: () => void;
   /**

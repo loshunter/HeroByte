@@ -313,6 +313,87 @@ describe("useMapStudio", () => {
     expect(result.current.documents.map((document) => document.id)).toEqual(["other", "active"]);
   });
 
+  describe("generate", () => {
+    const input = {
+      recipe: "dungeon" as const,
+      seed: 42,
+      bounds: { x: 2, y: 2, cols: 24, rows: 18 },
+      params: { theme: "stone" as const, density: "medium" as const, secretDoorChance: 0.15 },
+    };
+
+    function activeDocument() {
+      const { result } = renderHook(() => useMapStudio(sendMessage));
+      const document = createMapDocument({ id: "map", name: "Map", timestamp: 1 });
+      document.revision = 3;
+      act(() => result.current.handleServerMessage({ t: "map-studio-document", document }));
+      return result;
+    }
+
+    it("sends the generate message through the queue, with the queue's commandId", () => {
+      // Generate is NOT a map-studio-command — the server builds the command
+      // from the recipe's output — but it MUST ride the same queue: that is
+      // what mints a commandId the controller recognises when the ack or the
+      // rejection comes back.
+      const result = activeDocument();
+
+      act(() => result.current.generate(input));
+
+      const sent = sendMessage.mock.calls.at(-1)?.[0];
+      expect(sent).toMatchObject({ t: "map-studio-generate", documentId: "map", ...input });
+      expect(sent && "commandId" in sent && sent.commandId).toBeTruthy();
+      expect(result.current.saving).toBe(true);
+    });
+
+    it("drains the queue when the server acks the generate", () => {
+      const result = activeDocument();
+      act(() => result.current.generate(input));
+      const sent = sendMessage.mock.calls.at(-1)?.[0];
+      const commandId = sent && "commandId" in sent ? (sent.commandId as string) : "";
+
+      act(() =>
+        result.current.handleServerMessage({
+          t: "map-studio-document",
+          document: { ...createMapDocument({ id: "map", name: "Map", timestamp: 1 }), revision: 4 },
+          appliedCommandId: commandId,
+        }),
+      );
+
+      expect(result.current.saving).toBe(false);
+    });
+
+    it("surfaces a rejected generate as an error instead of wedging", () => {
+      // THE REGRESSION: sending generate outside the queue left it with no
+      // error channel at all — handleServerMessage drops any map-studio-error
+      // whose commandId it did not mint, so a failed generate showed nothing
+      // and the button stayed pending forever.
+      const result = activeDocument();
+      act(() => result.current.generate(input));
+      const sent = sendMessage.mock.calls.at(-1)?.[0];
+      const commandId = sent && "commandId" in sent ? (sent.commandId as string) : "";
+
+      act(() =>
+        result.current.handleServerMessage({
+          t: "map-studio-error",
+          commandId,
+          documentId: "map",
+          code: "command-rejected",
+          reason: 'Generate needs an unlocked "walls" layer',
+        }),
+      );
+
+      expect(result.current.error).toBe('Generate needs an unlocked "walls" layer');
+      expect(result.current.saving).toBe(false);
+    });
+
+    it("does nothing without an active document", () => {
+      const { result } = renderHook(() => useMapStudio(sendMessage));
+
+      act(() => result.current.generate(input));
+
+      expect(sendMessage).not.toHaveBeenCalled();
+    });
+  });
+
   it("sequences rapid revision-aware edits using each server revision", () => {
     const { result } = renderHook(() => useMapStudio(sendMessage));
     const document = createMapDocument({ id: "map", name: "Map", timestamp: 1 });

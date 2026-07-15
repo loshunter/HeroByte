@@ -42,6 +42,7 @@ function controller(overrides: Partial<MapStudioController> = {}): MapStudioCont
     updateDoor: vi.fn(),
     removeElement: vi.fn(),
     updateElement: vi.fn(),
+    generate: vi.fn(),
     undo: vi.fn(),
     redo: vi.fn(),
     publishDocument: vi.fn(() => true),

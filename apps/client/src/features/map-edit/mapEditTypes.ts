@@ -22,7 +22,8 @@ export type MapEditSubTool =
   | "erase"
   | "place"
   | "scatter"
-  | "select";
+  | "select"
+  | "generate";
 
 /** Procedural floor families a room/terrain paints with (VILLAGE_TERRAIN). */
 export type MapEditFloorFamily = "grass" | "dirt" | "path" | "stone-floor" | "wood-floor";
@@ -32,6 +33,15 @@ export type PopulateDensity = "low" | "medium" | "high";
 
 /** Asset category POPULATE scatters from (bundled categories only). */
 export type PopulateCategory = "objects" | "structures" | "terrain";
+
+/** The dungeon recipe's dial settings, owned by the palette. */
+export interface GenerateParams {
+  theme: "stone" | "wood";
+  density: PopulateDensity;
+  /** 0..1 — how often a generated door is authored secret. */
+  secretDoorChance: number;
+  seed: number;
+}
 
 /**
  * Props for the lazy-loaded MapEditToolbar palette. Defined here (a pure types
@@ -72,6 +82,13 @@ export interface MapEditToolbarProps {
   onSelectPopulateCategory: (category: PopulateCategory) => void;
   onPopulate: () => void; // fills the last-placed room/hallway with set dressing
   canPopulate: boolean; // a region has been placed and the controller is idle
+  // --- Generate (dungeon recipe) ---
+  generateParams: GenerateParams;
+  onGenerateParamsChange: (params: GenerateParams) => void;
+  onRerollSeed: () => void;
+  onGenerate: () => void; // runs the recipe over the dragged region
+  canGenerate: boolean; // a region is dragged, bound live, and the queue is idle
+  generateRegion: { cols: number; rows: number } | null; // the dragged size, for the panel
   // --- Layers + inspector (select sub-tool) ---
   saving: boolean;
   layers: MapLayer[];

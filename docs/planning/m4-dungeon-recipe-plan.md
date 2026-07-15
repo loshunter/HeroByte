@@ -289,6 +289,8 @@ Caps the recipe must respect **by construction** (validated in G1's context reso
 
 ---
 
+> **G5 SHIPPED.** The 🏰 Gen sub-tool, `GeneratePanel`, `useGenerate`, and the queue extension are on `dev`. How it actually went: the controller queue took a `MessageBuilder` (`applyMessage`) rather than the plan's "every builder returns a ClientMessage" rewrite — `applyCommand` now wraps itself, so all 18 existing actions were untouched. `useMapEditTool` was 322 (not 346); the pure tool-kind predicates moved to `mapEditToolKinds.ts` when it crossed the cap anyway, which is the extraction the plan predicted. The four-fixture prop trap fired exactly as documented (`onMapEditRegionDragged` + the generate prop cluster). What G6 inherits: `controller.generate(input)`, `useGenerate` (px→cell conversion + the local 8×8/16384 guards), and a drag that AIMS rather than commits (`commitDragTool`'s generate branch reports bounds and returns).
+
 ### G6 🟢 — E2E, budget, docs, sweep
 
 **Goal:** lock the arc in.

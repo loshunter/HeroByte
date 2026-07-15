@@ -82,7 +82,9 @@ export function MapEditPreviewLayer({
           </Group>
         )}
         {previewDrag &&
-          (activeSubTool === "room" ? (
+          (activeSubTool === "room" || activeSubTool === "generate" ? (
+            // Generate aims at the same cell-quantized rectangle a room does —
+            // it just fills it with a dungeon instead of one floor.
             renderRoom(previewDrag.start, previewDrag.end, gridSize, strokeWidth, dash, cam.scale)
           ) : activeSubTool === "hallway" ? (
             <Rect

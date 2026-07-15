@@ -700,6 +700,7 @@ function AuthenticatedApp({
     mapEditWallsOverlayPinned: mapEdit.wallsOverlayPinned,
     onMapEditRoomRejected: toast.error,
     onMapEditRegionPlaced: mapEdit.onRegionPlaced,
+    onMapEditRegionDragged: mapEdit.onRegionDragged,
     onMapEditSelectElement: mapEdit.onSelectElement,
     onMapEditSampleAsset: mapEdit.onSampleAsset,
     mapEditToolbarProps: mapEdit.toolbarProps,

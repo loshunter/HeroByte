@@ -13,9 +13,17 @@ import { uploadAssetFile, type AssetUploadCredentials } from "./uploads/assetUpl
 import { useMapStudioActions } from "./useMapStudioActions";
 
 type CommandBuilder = (document: MapDocument, commandId: string) => MapStudioCommand;
+/**
+ * Builds the whole wire message. Most actions send a `map-studio-command` and go
+ * through `applyCommand`, which wraps their command for them; a few (generate)
+ * are their own message type but MUST still ride this queue — it is the only
+ * thing that owns commandId minting, error surfacing, revision-conflict
+ * refetch, and dedupe-safe reconnect re-sends.
+ */
+type MessageBuilder = (document: MapDocument, commandId: string) => ClientMessage;
 interface QueuedCommand {
   documentId: string;
-  build: CommandBuilder;
+  toMessage: MessageBuilder;
 }
 
 /**
@@ -161,10 +169,7 @@ export function useMapStudio(
       inFlightCommandId.current = commandId;
       setSaving(true);
       setError(null);
-      const message: ClientMessage = {
-        t: "map-studio-command",
-        command: queued.build(document, commandId),
-      };
+      const message = queued.toMessage(document, commandId);
       inFlightMessage.current = message;
       sendMessage(message);
     },
@@ -188,15 +193,26 @@ export function useMapStudio(
     }
   }, [isConnected, sendMessage, dispatchNextCommand]);
 
-  const applyCommand = useCallback(
-    (build: CommandBuilder) => {
+  /** Queue any map-studio message that the server acks by commandId. */
+  const applyMessage = useCallback(
+    (toMessage: MessageBuilder) => {
       const document = activeDocumentRef.current;
       if (!document) return;
-      commandQueue.current.push({ documentId: document.id, build });
+      commandQueue.current.push({ documentId: document.id, toMessage });
       setSaving(true);
       dispatchNextCommand(document);
     },
     [dispatchNextCommand],
+  );
+
+  const applyCommand = useCallback(
+    (build: CommandBuilder) => {
+      applyMessage((document, commandId) => ({
+        t: "map-studio-command",
+        command: build(document, commandId),
+      }));
+    },
+    [applyMessage],
   );
 
   const {
@@ -215,9 +231,10 @@ export function useMapStudio(
     removeElement,
     updateElement,
     updateDoor,
+    generate,
     undo,
     redo,
-  } = useMapStudioActions({ activeDocumentRef, applyCommand });
+  } = useMapStudioActions({ activeDocumentRef, applyCommand, applyMessage });
 
   const handleServerMessage = useCallback(
     (message: MapStudioServerMessage) => {
@@ -320,6 +337,7 @@ export function useMapStudio(
     removeElement,
     updateElement,
     updateDoor,
+    generate,
     undo,
     redo,
     publishDocument,

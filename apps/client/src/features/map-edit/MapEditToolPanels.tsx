@@ -6,6 +6,7 @@
 // Split out of MapEditToolbar to keep both files under the structure cap.
 
 import { JRPGButton } from "../../components/ui/JRPGPanel";
+import { GeneratePanel } from "./GeneratePanel";
 import { MapEditLayersPopover } from "./MapEditLayersPopover";
 import { MapEditInspectorPopover } from "./MapEditInspectorPopover";
 import type { MapEditToolbarProps, PopulateCategory, PopulateDensity } from "./mapEditTypes";
@@ -21,6 +22,14 @@ const labelStyle = { display: "block", marginBottom: "4px", color: "var(--jrpg-g
 const cell = { fontSize: "8px", padding: "6px 2px" } as const;
 
 export function MapEditToolPanels({
+  activeSubTool,
+  generateParams,
+  onGenerateParamsChange,
+  onRerollSeed,
+  onGenerate,
+  canGenerate,
+  generateRegion,
+  busy,
   populateCategory,
   onSelectPopulateCategory,
   populateDensity,
@@ -40,6 +49,22 @@ export function MapEditToolPanels({
   inspectorOpen,
   onToggleInspector,
 }: MapEditToolbarProps) {
+  // The Generate dials replace the Populate block while its tool is armed —
+  // both fill a region, and showing both at once is noise.
+  if (activeSubTool === "generate") {
+    return (
+      <GeneratePanel
+        params={generateParams}
+        onChange={onGenerateParamsChange}
+        onRerollSeed={onRerollSeed}
+        onGenerate={onGenerate}
+        canGenerate={canGenerate}
+        busy={busy}
+        region={generateRegion}
+      />
+    );
+  }
+
   return (
     <>
       <div>

@@ -1,5 +1,6 @@
 import { useCallback, type MutableRefObject } from "react";
 import type {
+  ClientMessage,
   MapDocument,
   MapDoorState,
   MapElement,
@@ -18,6 +19,7 @@ import {
   createWallElement,
 } from "./elementBuilders";
 import type {
+  GenerateInput,
   MapDoorDraft,
   MapShapeDraft,
   MapStampDraft,
@@ -26,15 +28,18 @@ import type {
 } from "./types";
 
 type CommandBuilder = (document: MapDocument, commandId: string) => MapStudioCommand;
+type MessageBuilder = (document: MapDocument, commandId: string) => ClientMessage;
 
 interface UseMapStudioActionsOptions {
   activeDocumentRef: MutableRefObject<MapDocument | null>;
   applyCommand: (build: CommandBuilder) => void;
+  applyMessage: (toMessage: MessageBuilder) => void;
 }
 
 export function useMapStudioActions({
   activeDocumentRef,
   applyCommand,
+  applyMessage,
 }: UseMapStudioActionsOptions) {
   const updateLayer = useCallback(
     (layerId: string, update: MapLayerUpdate) => {
@@ -266,6 +271,29 @@ export function useMapStudioActions({
     [applyCommand],
   );
 
+  /**
+   * Run a server-side recipe over a region. Its own message type, not a
+   * map-studio-command — the server builds the command from the recipe's output
+   * so a whole dungeon costs one undo and never crosses the wire. It rides the
+   * queue anyway: that is what mints the commandId the server echoes back, and
+   * the ONLY thing that surfaces a rejection (the controller drops any
+   * map-studio-error whose commandId it did not mint).
+   */
+  const generate = useCallback(
+    (input: GenerateInput) => {
+      applyMessage((document, commandId) => ({
+        t: "map-studio-generate",
+        documentId: document.id,
+        commandId,
+        recipe: input.recipe,
+        seed: input.seed,
+        bounds: input.bounds,
+        params: input.params,
+      }));
+    },
+    [applyMessage],
+  );
+
   const undo = useCallback(() => {
     applyCommand((document, commandId) => ({
       commandId,
@@ -300,6 +328,7 @@ export function useMapStudioActions({
     removeElement,
     updateElement,
     updateDoor,
+    generate,
     undo,
     redo,
   };

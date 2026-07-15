@@ -22,6 +22,8 @@ interface CommitDragOptions {
   onRoomRejected?: (message: string) => void;
   /** A room/hallway landed — its bounds become the POPULATE target. */
   onRegionPlaced?: (bounds: RoomBounds) => void;
+  /** A generate region was swept — the recipe's target, nothing placed yet. */
+  onRegionDragged?: (bounds: RoomBounds) => void;
 }
 
 export function commitDragTool({
@@ -33,8 +35,16 @@ export function commitDragTool({
   hallwayWidth,
   onRoomRejected,
   onRegionPlaced,
+  onRegionDragged,
 }: CommitDragOptions): void {
   const layers = new Map(document.layers.map((layer) => [layer.id, layer]));
+
+  if (subTool === "generate") {
+    // Generate does not COMMIT on drop — the drag only aims the recipe. The DM
+    // sets the dials and fires it from the panel, so a stray drag costs nothing.
+    onRegionDragged?.(roomBoundsFromDrag(drag, document.grid.size));
+    return;
+  }
 
   if (subTool === "room") {
     const bounds = roomBoundsFromDrag(drag, document.grid.size);

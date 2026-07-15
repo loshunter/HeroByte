@@ -12,6 +12,7 @@ import type { ToolMode } from "../../components/layout/Header";
 import type { MapStudioController } from "../map-studio/types";
 import { useMapEditHotkeys } from "./useMapEditHotkeys";
 import { usePopulate } from "./usePopulate";
+import { useGenerate } from "./useGenerate";
 import type { RoomBounds } from "./roomBuilder";
 import { floorFamilyFromAssetId } from "./mapEditFamilies";
 import type { MapEditFloorFamily, MapEditSubTool, MapEditToolbarProps } from "./mapEditTypes";
@@ -41,6 +42,8 @@ interface UseMapEditStateReturn {
   hallwayWidth: number;
   /** Record a room/hallway's bounds as the POPULATE target (fed to the tool). */
   onRegionPlaced: (bounds: RoomBounds) => void;
+  /** Record a generate drag's bounds as the recipe's target (fed to the tool). */
+  onRegionDragged: (bounds: RoomBounds) => void;
   /** Currently-selected element id (select sub-tool) + its setter (fed to the tool). */
   selectedElementId: string | null;
   onSelectElement: (elementId: string | null) => void;
@@ -94,6 +97,8 @@ export function useMapEditState({
   const activeId = activeDocument?.id;
 
   const isLive = Boolean(liveMapDocumentId) && activeId === liveMapDocumentId;
+
+  const generate = useGenerate(controller, isLive, notifyError);
 
   // Ctrl/Cmd+Z / +Y route to the active (live) map document while map-edit is
   // on; the useKeyboardShortcuts selection-undo branch is guarded off in the
@@ -208,6 +213,12 @@ export function useMapEditState({
     onSelectPopulateCategory: populate.setCategory,
     onPopulate: populate.onPopulate,
     canPopulate: populate.canPopulate,
+    generateParams: generate.params,
+    onGenerateParamsChange: generate.setParams,
+    onRerollSeed: generate.rerollSeed,
+    onGenerate: generate.onGenerate,
+    canGenerate: generate.canGenerate,
+    generateRegion: generate.region,
     saving: controller.saving,
     layers: activeDocument?.layers ?? [],
     selectedElement,
@@ -228,6 +239,7 @@ export function useMapEditState({
     selectedAssetId,
     hallwayWidth,
     onRegionPlaced: populate.onRegionPlaced,
+    onRegionDragged: generate.onRegionDragged,
     selectedElementId,
     onSelectElement: setSelectedElementId,
     onSampleAsset,

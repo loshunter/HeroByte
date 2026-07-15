@@ -22,6 +22,7 @@ const SUB_TOOLS: { id: MapEditSubTool; label: string }[] = [
   { id: "place", label: "📦 Place" },
   { id: "scatter", label: "🎲 Scatter" },
   { id: "select", label: "👆 Select" },
+  { id: "generate", label: "🏰 Gen" },
 ];
 
 const FLOOR_FAMILIES: { id: MapEditFloorFamily; label: string }[] = [

@@ -100,6 +100,7 @@ export interface CenterCanvasLayoutProps {
   onMapEditRoomRejected: (message: string) => void;
   /** Called when a room/hallway lands — records the POPULATE target */
   onMapEditRegionPlaced: (bounds: RoomBounds) => void;
+  onMapEditRegionDragged: (bounds: RoomBounds) => void;
   /** Called when the select tool picks an element (or clears) */
   onMapEditSelectElement: (elementId: string | null) => void;
   /** Called when the eyedropper samples an asset */
@@ -219,6 +220,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
     mapEditWallsOverlayPinned,
     onMapEditRoomRejected,
     onMapEditRegionPlaced,
+    onMapEditRegionDragged,
     onMapEditSelectElement,
     onMapEditSampleAsset,
     selectedObjectId,
@@ -270,6 +272,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
             mapEditWallsOverlayPinned={mapEditWallsOverlayPinned}
             onMapEditRoomRejected={onMapEditRoomRejected}
             onMapEditRegionPlaced={onMapEditRegionPlaced}
+            onMapEditRegionDragged={onMapEditRegionDragged}
             onMapEditSelectElement={onMapEditSelectElement}
             onMapEditSampleAsset={onMapEditSampleAsset}
             isDM={isDM}
