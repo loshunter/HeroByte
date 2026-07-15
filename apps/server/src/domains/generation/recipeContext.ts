@@ -9,11 +9,15 @@
 import type { MapDocument, MapLayer, MapLayerKind } from "@herobyte/shared";
 import {
   MAX_CELL_MAGNITUDE,
+  MAX_ID_PREFIX_LENGTH,
   MAX_RECIPE_CELLS,
+  MAX_RECIPE_ELEMENTS,
   MIN_RECIPE_COLS,
   MIN_RECIPE_ROWS,
   type CellBounds,
+  type DungeonParams,
   type RecipeContext,
+  type RecipeOutput,
 } from "./types.js";
 
 /**
@@ -25,6 +29,8 @@ export function resolveRecipeContext(
   bounds: CellBounds,
   idPrefix: string,
 ): RecipeContext {
+  validateIdPrefix(idPrefix);
+  validateGrid(document);
   validateBounds(document, bounds);
   return {
     grid: document.grid,
@@ -36,6 +42,75 @@ export function resolveRecipeContext(
     },
     idPrefix,
   };
+}
+
+/**
+ * Validate the recipe inputs the RecipeContext doesn't carry. The WS edge zod
+ * already covers these for client messages; this is the gate for any
+ * server-side caller that bypasses it (a future Atlas auto-generation), and it
+ * stops a NaN seed from silently poisoning the RNG stream.
+ */
+export function assertGenerateRequest(seed: number, params: DungeonParams): void {
+  if (!Number.isInteger(seed)) {
+    throw new Error("Generate seed must be an integer");
+  }
+  if (
+    !Number.isFinite(params.secretDoorChance) ||
+    params.secretDoorChance < 0 ||
+    params.secretDoorChance > 1
+  ) {
+    throw new Error("Generate secretDoorChance must be between 0 and 1");
+  }
+}
+
+/**
+ * The one-command budget: a recipe that would exceed a cap FAILS loudly rather
+ * than silently chunking into several commands (which would cost the DM more
+ * than one undo). The cell cap is enforced upstream by the bounds check; this
+ * catches the element side, which no shared code caps.
+ */
+export function assertRecipeBudget(output: RecipeOutput): void {
+  if (output.elements.length > MAX_RECIPE_ELEMENTS) {
+    throw new Error(
+      `Generated map exceeds the ${MAX_RECIPE_ELEMENTS}-element budget for one command — generate a smaller region`,
+    );
+  }
+  if (output.cells.length > MAX_RECIPE_CELLS) {
+    throw new Error(
+      `Generated map exceeds the ${MAX_RECIPE_CELLS}-cell budget for one command — generate a smaller region`,
+    );
+  }
+}
+
+/**
+ * Element ids are `${idPrefix}:e<n>`, and the element-id contract caps ids at
+ * 128 chars — a document whose generated ids overflow that would export but
+ * never re-import. Cap the prefix with headroom for the suffix.
+ */
+function validateIdPrefix(idPrefix: string): void {
+  if (!idPrefix.trim()) {
+    throw new Error("Generate needs a command id to derive element ids from");
+  }
+  if (idPrefix.length > MAX_ID_PREFIX_LENGTH) {
+    throw new Error(`Generate command id must be at most ${MAX_ID_PREFIX_LENGTH} characters`);
+  }
+}
+
+/**
+ * Recipes lay geometry out on a SQUARE cell lattice (`cell * size + offset`).
+ * Hex and isometric documents would silently receive rooms that don't line up
+ * with the visible grid, so refuse rather than generate garbage. (Square-only
+ * matches the live room/hallway tools, which force a square lattice too.)
+ */
+function validateGrid(document: MapDocument): void {
+  if (document.grid.type !== "square") {
+    throw new Error(
+      `Generate supports square grids only — this map uses a ${document.grid.type} grid`,
+    );
+  }
+  if (!Number.isFinite(document.grid.size) || document.grid.size <= 0) {
+    throw new Error("Generate needs a positive grid size");
+  }
 }
 
 /** First unlocked layer of the kind — recipes never target locked layers. */

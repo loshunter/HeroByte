@@ -169,6 +169,8 @@ Caps the recipe must respect **by construction** (validated in G1's context reso
 
 ---
 
+> **G1 SHIPPED** (`9d6189af` + gate fixes). The rails, the resolver, the placeholder recipe, and 39 tests are on `dev`; the senior gate ran and its findings are fixed. What G2/G3 inherit: `resolveRecipeContext` (layer-by-kind + bounds + square-grid + id-prefix guards), `assertGenerateRequest` (seed/params), `assertRecipeBudget` (the element cap — wire your output through it), `makeIdFactory`, and a handler that already acks replays from the dedupe cache before validating. Replace ONLY `dungeonRecipe`'s body.
+
 ### G2 🔴 — The layout brain (rooms + corridors, pure, property-tested)
 
 **Goal:** `dungeonLayout.ts` — the algorithmic heart. Pure cell-space layout: non-overlapping rooms, connecting corridors, door sites. No elements, no px, no I/O. This slice is graded on its property tests.
@@ -295,6 +297,8 @@ Caps the recipe must respect **by construction** (validated in G1's context reso
 |---|---|---|
 | `map-studio-generate` never reaches the handler, no error | validator not registered in `middleware/validation.ts` | add the registry entry (compile error says the same) |
 | Generate fails silently; button wedged in pending | generate sent via raw `sendMessage` instead of the controller queue | §2.3 last bullet — the queue is the only legal transport; the controller drops foreign-commandId errors by design |
+| A reconnect re-send of a generate is REJECTED though the dungeon is on the map | validation ran before the dedupe cache was consulted | ack replays from `service.cachedResult` FIRST, before `get`/resolver/recipe (G1 fix, gate-confirmed) |
+| Generated rooms don't line up with the visible grid | the document is hex/isometric; recipes are square-lattice only | the resolver refuses non-square grids — don't "fix" by fudging the math |
 | Players can pick out secret doors from wall ids | kind-marked element ids (`:d2`) survive into the `#0` disguise | §2.2 — one uniform `e<n>` counter for ALL elements |
 | `command-rejected` on every generate | zod mismatch, or the resolver threw (missing/locked layer kind) | diff payload vs `generationValidators.ts`; check the target doc's layers |
 | `revision-conflict` errors under concurrent DM edits | a DM edit landed between `get().revision` and `apply` | expected — surface the error; the DM retries (dedupe makes retry safe) |

@@ -73,6 +73,29 @@ export class MapStudioService {
     return this.store.list(roomId).sort((a, b) => b.updatedAt - a.updatedAt);
   }
 
+  /**
+   * The result of an already-applied commandId, or undefined if it is new.
+   *
+   * Exposed so callers that do expensive or *validating* work before `apply`
+   * (the generation handler resolves layers and runs a recipe) can ack a replay
+   * from the cache FIRST. Re-validating a replayed command against the current
+   * document would reject a command that already landed — the document may have
+   * legitimately changed since (a layer locked, the grid moved).
+   */
+  cachedResult(
+    roomId: string,
+    documentId: string,
+    commandId: string,
+  ): AppliedMapDocumentCommand | undefined {
+    requireRoomId(roomId);
+    const cached = this.commandResults.get(`${roomId}:${documentId}:${commandId.trim()}`);
+    if (!cached) return undefined;
+    const latest = this.store.get(roomId, documentId);
+    return latest
+      ? { ...cloneAppliedCommand(cached), revision: latest.revision, document: latest }
+      : cloneAppliedCommand(cached);
+  }
+
   apply(
     roomId: string,
     command: MapStudioCommand,
@@ -80,12 +103,9 @@ export class MapStudioService {
   ): AppliedMapDocumentCommand {
     requireRoomId(roomId);
     const cacheKey = `${roomId}:${command.documentId}:${command.commandId.trim()}`;
-    const cached = this.commandResults.get(cacheKey);
-    if (cached) {
-      const latest = this.store.get(roomId, command.documentId);
-      return latest
-        ? { ...cloneAppliedCommand(cached), revision: latest.revision, document: latest }
-        : cloneAppliedCommand(cached);
+    const replay = this.cachedResult(roomId, command.documentId, command.commandId);
+    if (replay) {
+      return replay;
     }
 
     const document = this.get(roomId, command.documentId);

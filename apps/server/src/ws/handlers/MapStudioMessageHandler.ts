@@ -14,7 +14,11 @@ import {
 } from "@herobyte/shared";
 import type { MapStudioService } from "../../domains/mapStudio/service.js";
 import { dungeonRecipe } from "../../domains/generation/dungeonRecipe.js";
-import { resolveRecipeContext } from "../../domains/generation/recipeContext.js";
+import {
+  assertGenerateRequest,
+  assertRecipeBudget,
+  resolveRecipeContext,
+} from "../../domains/generation/recipeContext.js";
 import type { RoomState } from "../../domains/room/model.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 
@@ -97,9 +101,20 @@ export class MapStudioMessageHandler {
         // message's commandId doubles as the element idPrefix — retries hit
         // the dedupe cache, so generated ids can never collide with themselves.
         try {
+          // A replay (the client queue re-sends the in-flight message after a
+          // reconnect) must ack from the dedupe cache BEFORE any validation:
+          // re-running the resolver would reject a generate that already landed
+          // if the document changed since (a layer locked, the grid moved).
+          const replay = this.service.cachedResult(roomId, message.documentId, message.commandId);
+          if (replay) {
+            this.broadcastDocument(roomId, replay.document, replay.commandId);
+            break;
+          }
           const document = this.service.get(roomId, message.documentId);
           const ctx = resolveRecipeContext(document, message.bounds, message.commandId);
+          assertGenerateRequest(message.seed, message.params);
           const output = dungeonRecipe(message.seed, message.bounds, message.params, ctx);
+          assertRecipeBudget(output);
           const isLive = this.getRoomState(roomId).liveMapDocumentId === message.documentId;
           const result = this.service.apply(
             roomId,

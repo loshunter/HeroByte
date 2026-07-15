@@ -62,6 +62,15 @@ describe("validateMapStudioGenerateMessage", () => {
     expect(result.valid).toBe(false);
   });
 
+  it("caps commandId at 120 so generated element ids stay under the 128-char cap", () => {
+    expect(validateMapStudioGenerateMessage(message({ commandId: "x".repeat(120) })).valid).toBe(
+      true,
+    );
+    expect(validateMapStudioGenerateMessage(message({ commandId: "x".repeat(121) })).valid).toBe(
+      false,
+    );
+  });
+
   it("rejects an unknown density", () => {
     const result = validateMapStudioGenerateMessage(
       message({ params: { theme: "stone", density: "extreme", secretDoorChance: 0.1 } }),

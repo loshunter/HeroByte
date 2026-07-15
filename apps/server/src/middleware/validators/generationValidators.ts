@@ -6,6 +6,10 @@ import { z } from "zod";
 import type { MessageRecord, ValidationResult } from "./commonValidators.js";
 
 const id = z.string().trim().min(1).max(128);
+// The commandId becomes every generated element's id prefix (`${id}:e<n>`), and
+// the element-id contract caps ids at 128 chars — a longer prefix would mint a
+// document that exports but never re-imports. 120 leaves room for `:e4999`.
+const commandId = z.string().trim().min(1).max(120);
 
 // Bounds are document-grid CELLS. Per-field caps can't express the area limit,
 // so the 16384-cell product rides a refinement. The 8×8 floor matches the
@@ -36,7 +40,7 @@ const params = z
 const generateSchema = z.object({
   t: z.literal("map-studio-generate"),
   documentId: id,
-  commandId: id,
+  commandId,
   recipe: z.literal("dungeon"),
   seed: z.number().int(),
   bounds,

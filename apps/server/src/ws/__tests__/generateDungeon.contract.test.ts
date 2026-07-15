@@ -214,6 +214,65 @@ describe("map-studio-generate contracts", () => {
     expect(documentRevision()).toBe(1);
   });
 
+  it("acks a replayed generate from the cache even after the document changed underneath", () => {
+    createLiveDoc();
+    route(generateMessage(), DM);
+
+    // The DM locks the walls layer AFTER the generate landed. A reconnect
+    // re-send of the same commandId must still ack (the dungeon is already on
+    // the map) — re-validating it would reject a command that succeeded.
+    route(
+      {
+        t: "map-studio-command",
+        command: {
+          type: "update-layer",
+          commandId: "lock-walls",
+          documentId: "live",
+          baseRevision: 1,
+          layerId: "walls",
+          update: { locked: true },
+        },
+      },
+      DM,
+    );
+    dmWs.send.mockClear();
+
+    route(generateMessage(), DM);
+
+    expect(messagesOf(dmWs, "map-studio-error")).toHaveLength(0);
+    const acks = messagesOf(dmWs, "map-studio-document") as unknown as Array<{
+      appliedCommandId?: string;
+    }>;
+    expect(acks.some((frame) => frame.appliedCommandId === "gen-1")).toBe(true);
+  });
+
+  it("refuses to generate on a non-square grid instead of misaligning the room", () => {
+    route({ t: "map-studio-create", document: { id: "hex", name: "hex" } }, DM);
+    route(
+      {
+        t: "map-studio-command",
+        command: {
+          type: "update-grid",
+          commandId: "to-hex",
+          documentId: "hex",
+          baseRevision: 0,
+          update: { type: "hex-row" },
+        },
+      },
+      DM,
+    );
+
+    route(generateMessage({ documentId: "hex", commandId: "gen-hex" }), DM);
+
+    const errors = messagesOf(dmWs, "map-studio-error") as unknown as Array<{
+      commandId: string;
+      reason: string;
+    }>;
+    expect(
+      errors.some((e) => e.commandId === "gen-hex" && /square grids only/.test(e.reason)),
+    ).toBe(true);
+  });
+
   it("rejects a non-DM generate without touching the document", async () => {
     createLiveDoc();
     playerWs.send.mockClear();

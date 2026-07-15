@@ -53,8 +53,17 @@ export interface RecipeOutput {
 
 /** Mirror of shared MAX_TERRAIN_PAINT_CELLS — one place-room's floor budget. */
 export const MAX_RECIPE_CELLS = 16384;
-/** The add-elements/place-room zod cap; server-side applies respect it anyway. */
+/**
+ * The add-elements/place-room zod cap. Server-initiated applies bypass that
+ * zod, and no shared code caps element COUNT, so `assertRecipeBudget` enforces
+ * it for generated output.
+ */
 export const MAX_RECIPE_ELEMENTS = 5000;
+/**
+ * Element ids are `${idPrefix}:e<n>` and the element-id contract caps ids at
+ * 128 chars; 120 leaves headroom for the longest suffix (`:e4999`).
+ */
+export const MAX_ID_PREFIX_LENGTH = 120;
 /** Recipe-internal budget for walls + doors + lights + notes. */
 export const MAX_GEOMETRY_ELEMENTS = 1000;
 /** Recipe-internal budget for scatter stamps (MAX_POPULATE_STAMPS precedent). */
