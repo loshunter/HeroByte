@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { brotliCompressSync, gzipSync } from "node:zlib";
 import {
+  compileScene,
   createTerrainMap,
   setTerrainCells,
   type CompiledScene,
@@ -8,6 +9,7 @@ import {
   type RenderableMapElement,
 } from "@herobyte/shared";
 import { RoomService, SNAPSHOT_SIZE_LIMIT_BYTES } from "../service.js";
+import { dungeonRecipe } from "../../generation/dungeonRecipe.js";
 
 describe("Snapshot compression guard", () => {
   it("keeps gzip and brotli payloads below configured guard", () => {
@@ -74,6 +76,100 @@ describe("Snapshot compression guard", () => {
         y: Math.floor(i / 64),
         assetId: i % 2 === 0 ? "terrain:grass" : "terrain:dirt",
       })),
+    );
+
+    const service = new RoomService();
+    service.setState({
+      liveMapDocumentId: "live-doc",
+      compiledScene,
+      mapTerrain: { terrain, grid: { size: 50, offsetX: 0, offsetY: 0 }, opacity: 1 },
+    });
+
+    const payload = Buffer.from(JSON.stringify(service.createSnapshot()), "utf8");
+
+    expect(gzipSync(payload).length).toBeLessThan(SNAPSHOT_SIZE_LIMIT_BYTES);
+    expect(brotliCompressSync(payload).length).toBeLessThan(SNAPSHOT_SIZE_LIMIT_BYTES);
+  });
+
+  it("keeps a MAXED generated dungeon (128x128 cells, high density) under the guard", () => {
+    // The biggest thing one generate can produce: the 16384-cell region cap at
+    // the densest setting. Built by the REAL recipe, not a synthetic stand-in,
+    // so this tracks the generator rather than a guess about it.
+    const bounds = { x: 0, y: 0, cols: 128, rows: 128 };
+    const grid = {
+      type: "square" as const,
+      size: 50,
+      squareSize: 5,
+      offsetX: 0,
+      offsetY: 0,
+      visible: true,
+      snap: true,
+    };
+    const output = dungeonRecipe(
+      1,
+      bounds,
+      { theme: "stone", density: "high", secretDoorChance: 0.15 },
+      {
+        grid,
+        layerIds: { walls: "walls", lighting: "lighting", notes: "notes", objects: "objects" },
+        idPrefix: "budget",
+      },
+    );
+
+    let terrain = createTerrainMap();
+    terrain = setTerrainCells(terrain, output.cells);
+    const compiledScene = compileScene(
+      {
+        schemaVersion: 1,
+        id: "live-doc",
+        name: "doc",
+        width: 8192,
+        height: 8192,
+        grid,
+        layers: [
+          {
+            id: "walls",
+            name: "w",
+            kind: "walls",
+            visible: true,
+            locked: false,
+            opacity: 1,
+            zIndex: 0,
+          },
+          {
+            id: "lighting",
+            name: "l",
+            kind: "lighting",
+            visible: true,
+            locked: false,
+            opacity: 1,
+            zIndex: 1,
+          },
+          {
+            id: "notes",
+            name: "n",
+            kind: "notes",
+            visible: true,
+            locked: false,
+            opacity: 1,
+            zIndex: 2,
+          },
+          {
+            id: "objects",
+            name: "o",
+            kind: "objects",
+            visible: true,
+            locked: false,
+            opacity: 1,
+            zIndex: 3,
+          },
+        ],
+        elements: output.elements,
+        revision: 1,
+        createdAt: 0,
+        updatedAt: 0,
+      },
+      1,
     );
 
     const service = new RoomService();

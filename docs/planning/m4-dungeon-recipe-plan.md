@@ -1,6 +1,16 @@
 # M4 Phase 1 — The Dungeon Recipe — Execution Plan
 
-**Status:** READY FOR EXECUTION · Authored 2026-07-14 by the senior dev after 4-reader recon (anchors verified against dev tip `7c21198e`) · Rev 2 — adversarially reviewed; Rev 1's raw-sendMessage client design was refuted and replaced by the controller-queue design (§2.3, G5), plus 10 spec fixes (uniform id space, RNG stream split, door-position semantics, identity-transform wording, door-site grouping, min bounds, wall-run ordering, asymmetric-offset tests, DM notes overlay, e2e assertions)
+**Status:** ✅ **SHIPPED** (G1–G6 + G4.5, 2026-07-15) · Authored 2026-07-14 after 4-reader recon · Rev 2 — adversarially reviewed before execution; Rev 1's raw-sendMessage client design was refuted and replaced by the controller-queue design (§2.3, G5), plus 10 spec fixes.
+
+> **What this document is now:** the record of how M4 Phase 1 was built, including the places the plan was WRONG and what replaced it. Read the `[G*-RESOLVED]` / `[G*-SHIPPED]` notes before touching the generator — each one is a bug the arc already paid for.
+>
+> **The two spec errors, found in flight:**
+> - **G2** — a rolled room side of up to 9 cannot fit the 8×8 minimum; sides are CLAMPED, not rejected (§5 G2, which also guarantees ≥1 room for every seed).
+> - **G3** — the wall rule was flat wrong: door sites sit on room↔corridor seams where BOTH cells are floor, so "floor↔non-floor minus door sites" removed nothing and left every wide corridor holed. See `[G3-RESOLVED]`.
+>
+> **The gate findings (G4.5)** — three independent attacks defeated the secret-door disguise for generated maps, each at ~90% recall with ZERO false positives. Ids are now permuted, the player's blocking set is re-merged, and secret doors bake as wall. §2.2 carries the full account; do not regress any of the three.
+>
+> **Deferred to later M4 phases:** §7.
 **Mission:** The first Living World recipe. A DM drags a rectangle with the new GENERATE tool, picks a theme and density, and a dungeon exists on the live table in seconds — rooms, corridors, blocking walls, clickable doors (some secret), brazier lights, and GM-only spawn markers — deterministic by seed, applied as **ONE undoable command**, with fog and vision live by construction. Same seed, same params → bit-identical dungeon, forever (the foundation of Cartridge Codes).
 **Vision alignment:** VISION.md Pillar 1 ("generators emit MapDocument elements, never rasters") and milestone M4. The prior plan's §7 explicitly deferred "generation recipes emitting into the live-bound document (M4 — the whole point of these rails)" — this plan cashes that IOU. Shipping order per VISION: **dungeon first**; building/wilderness/town/world recipes, the Atlas, and SceneStates are later M4 phases (§7).
 
@@ -302,6 +312,8 @@ Caps the recipe must respect **by construction** (validated in G1's context reso
 4. Sweep: full ritual (§8) end-to-end, restate suite counts in the final report (recon counts are stale — re-run, don't copy).
 **Done when:** everything green end to end.
 **🔎 SENIOR REVIEW GATE (final):** determinism lens (goldens, Node-version stability), info-leak lens (markers, secret doors, all preview channels), units lens (non-default grid), race lens (generate racing a DM edit → revision-conflict path), cap lens (all four budgets).
+
+> **G6 SHIPPED.** `apps/e2e/dungeon-generate.smoke.spec.ts` (127 LOC) drives the whole arc through a real socket: DM starts a live map, the 🏰 Gen palette tool and panel are asserted present, generate lands >4 walls + doors + terrain + braziers, a player joining AFTERWARDS receives it, the wire carries no spawn keys / notes layer / lights, a generated door round-trips, and one Undo clears every screen. The generate itself goes through the harness, not a canvas drag: the recipe needs ≥8×8 cells, which the e2e board does not reliably offer — the drag→panel→GENERATE path is unit-tested and was manually verified live in G5. `SnapshotCompressionGuard` gained a MAXED (128×128, high-density) case built by the REAL recipe, so the budget tracks the generator rather than a guess about it.
 
 ---
 

@@ -36,6 +36,12 @@ Owner decision (2026-07-11): once the palette reaches full Studio parity (Phase 
 
 The palette reached parity and the full-screen Map Studio editor scene was **deleted** (S13). Live on-table authoring is now the only editing surface: place tiles/stamps and scatter set dressing (S10), drag hallways and POPULATE rooms algorithmically (S11), and manage layers / inspect-and-edit elements / eyedrop assets from the palette (S12). Players see every tile, stamp, shape, and public text live via the sanitized `mapElements` snapshot (S9), with GM notes and hidden elements stripped server-side. The DM menu's **Map** tab keeps document management, raster PUBLISH, PNG/WEBP/SVG **export**, and JSON backup **import/export** — the engine's prep-time surface. The `map-studio-*` wire protocol, validators, server service, and the compile/undo engine are untouched.
 
+## Dungeon generation (shipped — M4 Phase 1, G1–G6)
+
+The roadmap's "AI generation before the deterministic editor is reliable" non-goal below still stands, and this is not that: the dungeon recipe is a **pure, seeded, server-side function**, not a model. A DM arms 🏰 Gen, drags a region, sets theme / density / secret-door odds / seed, and a stocked dungeon — rooms, corridors, blocking walls, working doors (some secret), brazier lights, and GM-only spawn keys — compiles onto every player's table as **ONE undoable command**. Same seed, same dials → the same dungeon forever, which is what makes Cartridge Codes possible later.
+
+It rides the rails the live-map arc laid: generators emit MapDocument elements (never rasters), so a generated dungeon is editable with every existing tool the moment it lands, and fog/vision/movement-blocking work by construction. See [m4-dungeon-recipe-plan.md](./m4-dungeon-recipe-plan.md) for the slice record, the two spec corrections found in flight, and the gate findings — including three independent attacks that defeated the secret-door disguise for generated maps (fixed in G4.5).
+
 Deferred (not blockers for the table loop):
 
 - **Raster-hybrid backgrounds** — an uploaded raster image coexisting under live-authored terrain. Today a raster background and live terrain can double-draw; the palette warns the DM to clear the raster for a clean live map.
