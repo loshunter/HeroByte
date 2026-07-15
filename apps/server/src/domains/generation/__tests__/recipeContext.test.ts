@@ -39,7 +39,7 @@ function doc(overrides: Partial<MapDocument> = {}): MapDocument {
   };
 }
 
-const BOUNDS = { x: 2, y: 2, cols: 10, rows: 8 };
+const BOUNDS = { x: 2, y: 2, cols: 24, rows: 20 };
 
 describe("resolveRecipeContext", () => {
   it("resolves the four layer ids by kind from the default layers", () => {
@@ -81,9 +81,13 @@ describe("resolveRecipeContext", () => {
     expect(() => resolveRecipeContext(doc(), { ...BOUNDS, x: 1.5 }, "cmd")).toThrow(/integer/);
   });
 
-  it("rejects bounds below the 8×8 floor", () => {
-    expect(() => resolveRecipeContext(doc(), { ...BOUNDS, cols: 7 }, "cmd")).toThrow(/at least/);
-    expect(() => resolveRecipeContext(doc(), { ...BOUNDS, rows: 7 }, "cmd")).toThrow(/at least/);
+  it("rejects bounds below the 20×20 floor (smaller fits a sealed box, not a dungeon)", () => {
+    expect(() => resolveRecipeContext(doc(), { ...BOUNDS, cols: 19 }, "cmd")).toThrow(/at least/);
+    expect(() => resolveRecipeContext(doc(), { ...BOUNDS, rows: 19 }, "cmd")).toThrow(/at least/);
+    // ...and accepts exactly the floor.
+    expect(() =>
+      resolveRecipeContext(doc(), { x: 0, y: 0, cols: 20, rows: 20 }, "cmd"),
+    ).not.toThrow();
   });
 
   it("accepts exactly 16384 cells and rejects 16385+", () => {
@@ -98,13 +102,12 @@ describe("resolveRecipeContext", () => {
   });
 
   it("rejects a region that leaves the document in pixels (grid offset counted)", () => {
-    // 2048px doc, size 50: 40 full cells; x=33,cols=8 → right edge 2050px > 2048.
-    expect(() => resolveRecipeContext(doc(), { x: 33, y: 0, cols: 8, rows: 8 }, "cmd")).toThrow(
+    // 2048px doc, size 50: 40 full cells. x=21,cols=20 → right edge 2050 > 2048.
+    expect(() => resolveRecipeContext(doc(), { x: 21, y: 0, cols: 20, rows: 20 }, "cmd")).toThrow(
       /inside the map document/,
     );
-    // Same region fits once the offset is negative... but negative left edge
-    // must also reject: x=-1 → left = -50px.
-    expect(() => resolveRecipeContext(doc(), { x: -1, y: 0, cols: 8, rows: 8 }, "cmd")).toThrow(
+    // A negative left edge must reject too: x=-1 → left = -50px.
+    expect(() => resolveRecipeContext(doc(), { x: -1, y: 0, cols: 20, rows: 20 }, "cmd")).toThrow(
       /inside the map document/,
     );
   });

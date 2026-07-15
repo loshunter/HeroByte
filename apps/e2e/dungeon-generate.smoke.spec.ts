@@ -13,7 +13,7 @@ import { joinDefaultRoom, joinDefaultRoomAsDM } from "./helpers";
 // is covered by useGenerate/GeneratePanel unit tests; what only an e2e can prove
 // is the whole socket round-trip, which is what this drives.
 
-const REGION = { x: 3, y: 3, cols: 24, rows: 18 };
+const REGION = { x: 3, y: 3, cols: 24, rows: 20 };
 
 async function waitForSnap(page: Page, predicate: () => boolean, timeout = 20_000) {
   await page.waitForFunction(predicate, undefined, { timeout });

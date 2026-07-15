@@ -12,7 +12,7 @@ function message(overrides: Record<string, unknown> = {}): Record<string, unknow
     commandId: "cmd-1",
     recipe: "dungeon",
     seed: 42,
-    bounds: { x: 0, y: 0, cols: 16, rows: 12 },
+    bounds: { x: 0, y: 0, cols: 24, rows: 20 },
     params: { theme: "stone", density: "medium", secretDoorChance: 0.15 },
     ...overrides,
   };
@@ -34,16 +34,26 @@ describe("validateMapStudioGenerateMessage", () => {
 
   it("rejects non-integer bounds", () => {
     const result = validateMapStudioGenerateMessage(
-      message({ bounds: { x: 0.5, y: 0, cols: 16, rows: 12 } }),
+      message({ bounds: { x: 0.5, y: 0, cols: 24, rows: 20 } }),
     );
     expect(result.valid).toBe(false);
   });
 
-  it("rejects bounds below the 8×8 floor", () => {
-    const result = validateMapStudioGenerateMessage(
-      message({ bounds: { x: 0, y: 0, cols: 7, rows: 12 } }),
-    );
-    expect(result.valid).toBe(false);
+  it("rejects bounds below the 20×20 floor, matching the resolver exactly", () => {
+    // Below the floor a region fits one sealed room, not a dungeon. All three
+    // layers (this, the resolver, and the client's local guard) must agree.
+    expect(
+      validateMapStudioGenerateMessage(message({ bounds: { x: 0, y: 0, cols: 19, rows: 20 } }))
+        .valid,
+    ).toBe(false);
+    expect(
+      validateMapStudioGenerateMessage(message({ bounds: { x: 0, y: 0, cols: 20, rows: 19 } }))
+        .valid,
+    ).toBe(false);
+    expect(
+      validateMapStudioGenerateMessage(message({ bounds: { x: 0, y: 0, cols: 20, rows: 20 } }))
+        .valid,
+    ).toBe(true);
   });
 
   it("rejects a cell-area product over 16384 even when each side is legal", () => {

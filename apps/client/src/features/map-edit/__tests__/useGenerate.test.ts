@@ -38,8 +38,8 @@ function controller(overrides: Partial<MapStudioController> = {}): MapStudioCont
   } as unknown as MapStudioController;
 }
 
-/** A 24x18-cell region at cell (2,2), in document pixels (grid 50, offset 0). */
-const DRAG = { x: 100, y: 100, width: 1200, height: 900 };
+/** A 24x20-cell region at cell (2,2), in document pixels (grid 50, offset 0). */
+const DRAG = { x: 100, y: 100, width: 1200, height: 1000 };
 
 describe("useGenerate", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -54,7 +54,7 @@ describe("useGenerate", () => {
     expect(ctrl.generate).toHaveBeenCalledWith(
       expect.objectContaining({
         recipe: "dungeon",
-        bounds: { x: 2, y: 2, cols: 24, rows: 18 },
+        bounds: { x: 2, y: 2, cols: 24, rows: 20 },
       }),
     );
   });
@@ -63,12 +63,12 @@ describe("useGenerate", () => {
     const ctrl = controller({ activeDocument: doc({ size: 64, offsetX: 13, offsetY: 7 }) });
     const { result } = renderHook(() => useGenerate(ctrl, true));
 
-    // Cell (3,5) → px (205,327); 10x9 cells → 640x576 px.
-    act(() => result.current.onRegionDragged({ x: 205, y: 327, width: 640, height: 576 }));
+    // Cell (3,5) → px (205,327); 22x21 cells → 1408x1344 px.
+    act(() => result.current.onRegionDragged({ x: 205, y: 327, width: 1408, height: 1344 }));
     act(() => result.current.onGenerate());
 
     expect(ctrl.generate).toHaveBeenCalledWith(
-      expect.objectContaining({ bounds: { x: 3, y: 5, cols: 10, rows: 9 } }),
+      expect.objectContaining({ bounds: { x: 3, y: 5, cols: 22, rows: 21 } }),
     );
   });
 
@@ -90,7 +90,7 @@ describe("useGenerate", () => {
     expect(ctrl.generate).toHaveBeenCalledWith({
       recipe: "dungeon",
       seed: 4242,
-      bounds: { x: 2, y: 2, cols: 24, rows: 18 },
+      bounds: { x: 2, y: 2, cols: 24, rows: 20 },
       params: { theme: "wood", density: "high", secretDoorChance: 0.35 },
     });
   });
@@ -101,7 +101,7 @@ describe("useGenerate", () => {
 
     act(() => result.current.onRegionDragged(DRAG));
 
-    expect(result.current.region).toEqual({ cols: 24, rows: 18 });
+    expect(result.current.region).toEqual({ cols: 24, rows: 20 });
   });
 
   describe("gates", () => {
@@ -139,13 +139,25 @@ describe("useGenerate", () => {
       const ctrl = controller();
       const { result } = renderHook(() => useGenerate(ctrl, true, notify));
 
-      // 7x7 cells — under the recipe's 8x8 floor.
-      act(() => result.current.onRegionDragged({ x: 0, y: 0, width: 350, height: 350 }));
+      // 19x19 cells — one under the recipe's 20x20 floor, where a region fits a
+      // single sealed room instead of a dungeon. The client must agree with the
+      // server's floor EXACTLY, or GENERATE enables for regions the server then
+      // refuses.
+      act(() => result.current.onRegionDragged({ x: 0, y: 0, width: 950, height: 950 }));
 
       expect(result.current.canGenerate).toBe(false);
       act(() => result.current.onGenerate());
       expect(ctrl.generate).not.toHaveBeenCalled();
-      expect(notify).toHaveBeenCalledWith(expect.stringMatching(/at least 8×8/));
+      expect(notify).toHaveBeenCalledWith(expect.stringMatching(/at least 20×20/));
+    });
+
+    it("accepts exactly the 20x20 floor", () => {
+      const ctrl = controller();
+      const { result } = renderHook(() => useGenerate(ctrl, true));
+
+      act(() => result.current.onRegionDragged({ x: 0, y: 0, width: 1000, height: 1000 }));
+
+      expect(result.current.canGenerate).toBe(true);
     });
 
     it("explains a too-large region (the one-command cell cap)", () => {

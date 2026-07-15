@@ -136,7 +136,12 @@ export class MapStudioMessageHandler {
             return { broadcast: true, save: true };
           }
         } catch (error) {
-          this.sendCommandError(senderUid, message, error);
+          // A replay whose dedupe entry has been evicted (the cache is global and
+          // bounded) re-runs the recipe, deterministically re-mints the same ids,
+          // and trips the duplicate-id guard. Nothing half-applies — the batch
+          // validates before it commits — but "Map element already exists:
+          // <uuid>:e17" is a lie dressed as an error: the dungeon IS on the map.
+          this.sendCommandError(senderUid, message, alreadyApplied(error) ? REPLAY_LANDED : error);
         }
         break;
       }
@@ -303,6 +308,15 @@ function deriveMapTerrain(
     // publishes render identically.
     opacity: terrainLayer?.opacity ?? 1,
   };
+}
+
+/** The duplicate-id abort a re-run generate produces once its dedupe entry ages out. */
+const REPLAY_LANDED = new Error(
+  "That dungeon already generated — it is already on the map. Undo it if you want a different one.",
+);
+
+function alreadyApplied(error: unknown): boolean {
+  return error instanceof Error && /^Map element already exists:/.test(error.message);
 }
 
 function isMapStudioMessage(

@@ -68,9 +68,24 @@ export const MAX_ID_PREFIX_LENGTH = 120;
 export const MAX_GEOMETRY_ELEMENTS = 1000;
 /** Recipe-internal budget for scatter stamps (MAX_POPULATE_STAMPS precedent). */
 export const MAX_STAMP_ELEMENTS = 2000;
-/** Below this, a room plus its 1-cell margins cannot fit. */
-export const MIN_RECIPE_COLS = 8;
-export const MIN_RECIPE_ROWS = 8;
+/**
+ * Below this, you get a BOX, not a dungeon.
+ *
+ * The old floor was 8, reasoned from "a room plus its margins fits". It does —
+ * and nothing else does: rooms inset 1 cell from each edge leave a 6x6 usable
+ * area, while two 3x3 rooms with the required 1-cell gap need 7. So 8x8 placed
+ * exactly one room, carved no corridor, and emitted no door: a sealed box, on
+ * 100% of seeds and every density. (Measured with the real recipe over 100
+ * seeds x 3 densities: doorless at 8x8 100%, 10x10 83%, 12x12 55%, 14x14 ~20%,
+ * 16x16 ~3%, 18x18 ~1%, 20x20 and up 0%.)
+ *
+ * 20 is the first size that reliably yields a real dungeon — rooms joined by
+ * corridors with doors between them. Raising the floor rather than fighting the
+ * clamp is deliberate: the clamp is what guarantees a room exists at all, and
+ * below ~20 there simply is not room for the thing we promise.
+ */
+export const MIN_RECIPE_COLS = 20;
+export const MIN_RECIPE_ROWS = 20;
 /** Mirror of shared MAX_TERRAIN_CELL_MAGNITUDE. */
 export const MAX_CELL_MAGNITUDE = 65536;
 

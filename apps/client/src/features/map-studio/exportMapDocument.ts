@@ -2,6 +2,7 @@ import type { MapDocument, MapElement, MapLayer } from "@herobyte/shared";
 import { loadTileAtlas } from "../render/tileAtlas";
 import { getGridGeometry } from "./gridGeometry";
 import { paintRasterUnderlay } from "./rasterUnderlay";
+import { visibleInRaster } from "./rasterVisibility";
 import { getMapStudioTileAsset } from "./starterTiles";
 import { buildStructuredTerrainLayers, buildTerrainRenderLayers } from "./terrainRender";
 import { clampImageMime, uploadHashFromAssetId, uploadedAssetUrl } from "./uploads/assetUpload";
@@ -40,7 +41,7 @@ export function renderMapDocumentSvg(
   const layers = new Map(document.layers.map((layer) => [layer.id, layer]));
   const occupancy = buildTileOccupancy(document);
   const elements = document.elements
-    .filter((element) => visible(element, layers.get(element.layerId)))
+    .filter((element) => visibleInRaster(element, layers.get(element.layerId)))
     .sort((a, b) => (layers.get(a.layerId)?.zIndex ?? 0) - (layers.get(b.layerId)?.zIndex ?? 0))
     .map((element) =>
       renderElement(
@@ -269,7 +270,7 @@ function renderElement(
     return `<polyline ${attributes} points="${points}" fill="none" stroke="#e9d8a6" stroke-width="6"/>`;
   }
   if (element.type === "door") {
-    // A secret door bakes in the WALL's colour and weight: see visible() below.
+    // A secret door bakes in the WALL's colour and weight — see rasterVisibility.
     const secret = element.data.state === "secret";
     const stroke = secret ? "#e9d8a6" : "#c99b55";
     return `<line ${attributes} x1="0" y1="0" x2="${element.data.width}" y2="0" stroke="${stroke}" stroke-width="${secret ? 6 : 8}"/>`;
@@ -311,19 +312,6 @@ function renderElement(
 
 function paint(element: Extract<MapElement, { type: "shape" }>): string {
   return `fill="${xml(element.data.fill ?? "none")}" stroke="${xml(element.data.stroke)}" stroke-width="${element.data.strokeWidth}" opacity="${element.data.opacity}"`;
-}
-
-function visible(element: MapElement, layer?: MapLayer): boolean {
-  const playerVisibleText = element.type !== "text" || element.data.visibleToPlayers;
-  // Ordinary doors are LIVE-ONLY: DoorsLayer draws them from compiledScene, so
-  // baking one would leave a dead line under the live door. SECRET doors are the
-  // exception — a player's doors list never contains them, so nothing covers the
-  // one-cell gap their seam leaves in the wall art, and a bare hole reads as
-  // "secret door here" with no socket inspection at all. They bake as WALL.
-  const bakesToRaster = element.type !== "door" || element.data.state === "secret";
-  return Boolean(
-    layer?.visible && layer.opacity > 0 && !element.hidden && playerVisibleText && bakesToRaster,
-  );
 }
 
 function xml(value: string): string {

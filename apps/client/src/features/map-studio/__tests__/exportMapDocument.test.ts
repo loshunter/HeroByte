@@ -71,8 +71,12 @@ describe("Map Studio export", () => {
       document,
       {
         id: "label",
+        // A player-visible label belongs on a scenery layer. On the NOTES layer
+        // it would (correctly) never bake: notes-kind is the privacy boundary
+        // and outranks visibleToPlayers, exactly as deriveMapElements treats it
+        // on the live path.
         type: "text",
-        layerId: "notes",
+        layerId: "objects",
         locked: false,
         hidden: false,
         transform: { x: 10, y: 20, scaleX: 1, scaleY: 1, rotation: 0 },
@@ -103,6 +107,58 @@ describe("Map Studio export", () => {
     document.layers.find((layer) => layer.id === "terrain")!.visible = false;
 
     expect(renderMapDocumentSvg(document)).not.toContain("Do not export");
+  });
+
+  it("never bakes ANY element on the GM Notes layer into the player-facing raster", () => {
+    // The notes layer IS the privacy boundary: deriveMapElements drops notes-kind
+    // layers wholesale, but this renderer only ever checked `visibleToPlayers` —
+    // which exists on TEXT alone. So the spawn markers were safe (they carry the
+    // flag) while anything else a DM drew there — the ellipse they circled the
+    // ambush with — baked into the map art every player sees. The text vanishing
+    // correctly is what would have convinced the DM the layer was honoured.
+    const document = createMapDocument({ id: "map", name: "Keep", timestamp: 10 });
+    const notes = document.layers.find((layer) => layer.kind === "notes")!;
+    document.elements.push(
+      {
+        id: "ambush-ring",
+        type: "shape",
+        layerId: notes.id,
+        locked: false,
+        hidden: false,
+        transform: { x: 100, y: 100, scaleX: 1, scaleY: 1, rotation: 0 },
+        data: {
+          shape: "ellipse",
+          points: [
+            { x: 0, y: 0 },
+            { x: 100, y: 100 },
+          ],
+          stroke: "#ff0000",
+          strokeWidth: 3,
+          fill: "#ff0000",
+          opacity: 1,
+        },
+      },
+      {
+        id: "gm-note",
+        type: "text",
+        layerId: notes.id,
+        locked: false,
+        hidden: false,
+        transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+        data: {
+          text: "SPAWN: 2d4 skeletons",
+          color: "#fff",
+          fontSize: 12,
+          visibleToPlayers: false,
+        },
+      },
+    );
+
+    const svg = renderMapDocumentSvg(document);
+
+    expect(svg).not.toContain("SPAWN");
+    expect(svg).not.toContain("#ff0000");
+    expect(svg).not.toContain("<ellipse");
   });
 
   it("omits ordinary doors from the raster but bakes secret ones AS WALL", () => {

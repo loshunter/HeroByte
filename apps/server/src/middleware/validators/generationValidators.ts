@@ -12,14 +12,15 @@ const id = z.string().trim().min(1).max(128);
 const commandId = z.string().trim().min(1).max(120);
 
 // Bounds are document-grid CELLS. Per-field caps can't express the area limit,
-// so the 16384-cell product rides a refinement. The 8×8 floor matches the
-// resolver: anything smaller can't fit a room plus its margins.
+// so the 16384-cell product rides a refinement. The 20×20 floor matches the
+// resolver's MIN_RECIPE_COLS/ROWS: anything smaller fits one sealed room rather
+// than a dungeon (see the measurement in generation/types.ts).
 const bounds = z
   .object({
     x: z.number().int().min(-65536).max(65536),
     y: z.number().int().min(-65536).max(65536),
-    cols: z.number().int().min(8).max(16384),
-    rows: z.number().int().min(8).max(16384),
+    cols: z.number().int().min(20).max(16384),
+    rows: z.number().int().min(20).max(16384),
   })
   .strict()
   .refine((value) => value.cols * value.rows <= 16384, {

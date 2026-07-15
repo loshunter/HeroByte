@@ -18,6 +18,8 @@ import type { DungeonParams } from "../types.js";
 
 const DENSITIES: DungeonParams["density"][] = ["low", "medium", "high"];
 const SEEDS = Array.from({ length: 25 }, (_, i) => i + 1);
+/** The smallest region the recipe accepts — see MIN_RECIPE_COLS. */
+const MIN_SIDE = 20;
 
 function layoutFor(
   seed: number,
@@ -297,12 +299,31 @@ describe("generateLayout — caps and minimums", () => {
     }
   });
 
-  it("yields at least one room at the 8x8 minimum for every seed", () => {
+  it("yields a DUNGEON at the minimum bounds — rooms joined by doored corridors", () => {
+    // Regression, and the reason the minimum is 20 rather than 8. "At least one
+    // room" is the assertion this test used to make, and an 8x8 region satisfied
+    // it with a single sealed box: no second room, no corridor, no door, on 100%
+    // of seeds. The walkability property missed it because a one-room layout has
+    // no seams to cross, so it passed VACUOUSLY. A dungeon needs ROOMS and a way
+    // between them; assert that instead.
     for (const seed of SEEDS) {
-      const layout = layoutFor(seed, 8, 8);
+      for (const density of DENSITIES) {
+        const layout = layoutFor(seed, MIN_SIDE, MIN_SIDE, density);
 
-      expect({ seed, rooms: layout.rooms.length >= 1 }).toEqual({ seed, rooms: true });
-      expect(layout.floor.size).toBeGreaterThan(0);
+        expect({
+          seed,
+          density,
+          rooms: layout.rooms.length,
+          doors: layout.doorSites.length,
+        }).toEqual({
+          seed,
+          density,
+          rooms: expect.any(Number),
+          doors: expect.any(Number),
+        });
+        expect(layout.rooms.length).toBeGreaterThanOrEqual(2);
+        expect(layout.doorSites.length).toBeGreaterThanOrEqual(1);
+      }
     }
   });
 

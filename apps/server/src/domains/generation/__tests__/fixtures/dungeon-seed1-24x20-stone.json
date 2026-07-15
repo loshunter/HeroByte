@@ -1,0 +1,2022 @@
+{
+  "cells": [
+    {
+      "x": 10,
+      "y": 5,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 11,
+      "y": 5,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 12,
+      "y": 5,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 6,
+      "y": 6,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 7,
+      "y": 6,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 8,
+      "y": 6,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 10,
+      "y": 6,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 11,
+      "y": 6,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 12,
+      "y": 6,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 14,
+      "y": 6,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 15,
+      "y": 6,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 16,
+      "y": 6,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 17,
+      "y": 6,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 18,
+      "y": 6,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 19,
+      "y": 6,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 20,
+      "y": 6,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 21,
+      "y": 6,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 6,
+      "y": 7,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 7,
+      "y": 7,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 8,
+      "y": 7,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 9,
+      "y": 7,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 10,
+      "y": 7,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 11,
+      "y": 7,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 12,
+      "y": 7,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 14,
+      "y": 7,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 15,
+      "y": 7,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 16,
+      "y": 7,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 17,
+      "y": 7,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 18,
+      "y": 7,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 19,
+      "y": 7,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 20,
+      "y": 7,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 21,
+      "y": 7,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 6,
+      "y": 8,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 7,
+      "y": 8,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 8,
+      "y": 8,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 10,
+      "y": 8,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 11,
+      "y": 8,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 12,
+      "y": 8,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 14,
+      "y": 8,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 15,
+      "y": 8,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 16,
+      "y": 8,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 17,
+      "y": 8,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 18,
+      "y": 8,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 19,
+      "y": 8,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 20,
+      "y": 8,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 21,
+      "y": 8,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 6,
+      "y": 9,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 7,
+      "y": 9,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 8,
+      "y": 9,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 10,
+      "y": 9,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 11,
+      "y": 9,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 12,
+      "y": 9,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 13,
+      "y": 9,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 14,
+      "y": 9,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 15,
+      "y": 9,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 16,
+      "y": 9,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 17,
+      "y": 9,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 18,
+      "y": 9,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 19,
+      "y": 9,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 20,
+      "y": 9,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 21,
+      "y": 9,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 6,
+      "y": 10,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 7,
+      "y": 10,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 8,
+      "y": 10,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 14,
+      "y": 10,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 15,
+      "y": 10,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 16,
+      "y": 10,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 17,
+      "y": 10,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 18,
+      "y": 10,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 19,
+      "y": 10,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 20,
+      "y": 10,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 21,
+      "y": 10,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 6,
+      "y": 11,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 7,
+      "y": 11,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 8,
+      "y": 11,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 14,
+      "y": 11,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 15,
+      "y": 11,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 16,
+      "y": 11,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 17,
+      "y": 11,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 18,
+      "y": 11,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 19,
+      "y": 11,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 20,
+      "y": 11,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 21,
+      "y": 11,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 6,
+      "y": 12,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 7,
+      "y": 12,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 8,
+      "y": 12,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 14,
+      "y": 12,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 15,
+      "y": 12,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 16,
+      "y": 12,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 17,
+      "y": 12,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 18,
+      "y": 12,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 19,
+      "y": 12,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 20,
+      "y": 12,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 21,
+      "y": 12,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 6,
+      "y": 13,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 7,
+      "y": 13,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 8,
+      "y": 13,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 14,
+      "y": 13,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 15,
+      "y": 13,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 16,
+      "y": 13,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 17,
+      "y": 13,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 18,
+      "y": 13,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 19,
+      "y": 13,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 20,
+      "y": 13,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 21,
+      "y": 13,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 6,
+      "y": 14,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 19,
+      "y": 14,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 6,
+      "y": 15,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 19,
+      "y": 15,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 5,
+      "y": 16,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 6,
+      "y": 16,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 7,
+      "y": 16,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 19,
+      "y": 16,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 5,
+      "y": 17,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 6,
+      "y": 17,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 7,
+      "y": 17,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 19,
+      "y": 17,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 5,
+      "y": 18,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 6,
+      "y": 18,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 7,
+      "y": 18,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 17,
+      "y": 18,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 18,
+      "y": 18,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 19,
+      "y": 18,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 20,
+      "y": 18,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 21,
+      "y": 18,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 22,
+      "y": 18,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 5,
+      "y": 19,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 6,
+      "y": 19,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 7,
+      "y": 19,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 17,
+      "y": 19,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 18,
+      "y": 19,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 19,
+      "y": 19,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 20,
+      "y": 19,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 21,
+      "y": 19,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 22,
+      "y": 19,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 5,
+      "y": 20,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 6,
+      "y": 20,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 7,
+      "y": 20,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 17,
+      "y": 20,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 18,
+      "y": 20,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 19,
+      "y": 20,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 20,
+      "y": 20,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 21,
+      "y": 20,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 22,
+      "y": 20,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 17,
+      "y": 21,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 18,
+      "y": 21,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 19,
+      "y": 21,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 20,
+      "y": 21,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 21,
+      "y": 21,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 22,
+      "y": 21,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 17,
+      "y": 22,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 18,
+      "y": 22,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 19,
+      "y": 22,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 20,
+      "y": 22,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 21,
+      "y": 22,
+      "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 22,
+      "y": 22,
+      "assetId": "terrain:stone-floor"
+    }
+  ],
+  "elements": [
+    {
+      "id": "golden:e1",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 500,
+            "y": 250
+          },
+          {
+            "x": 650,
+            "y": 250
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e0",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 500,
+            "y": 250
+          },
+          {
+            "x": 500,
+            "y": 350
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e4",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 650,
+            "y": 250
+          },
+          {
+            "x": 650,
+            "y": 450
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e19",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 300,
+            "y": 300
+          },
+          {
+            "x": 450,
+            "y": 300
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e44",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 300,
+            "y": 300
+          },
+          {
+            "x": 300,
+            "y": 800
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e26",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 450,
+            "y": 300
+          },
+          {
+            "x": 450,
+            "y": 350
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e13",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 700,
+            "y": 300
+          },
+          {
+            "x": 1100,
+            "y": 300
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e5",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 700,
+            "y": 300
+          },
+          {
+            "x": 700,
+            "y": 450
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e46",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1100,
+            "y": 300
+          },
+          {
+            "x": 1100,
+            "y": 700
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e11",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 450,
+            "y": 350
+          },
+          {
+            "x": 500,
+            "y": 350
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e8",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 450,
+            "y": 400
+          },
+          {
+            "x": 500,
+            "y": 400
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e43",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 450,
+            "y": 400
+          },
+          {
+            "x": 450,
+            "y": 700
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e14",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 500,
+            "y": 400
+          },
+          {
+            "x": 500,
+            "y": 500
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e34",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 650,
+            "y": 450
+          },
+          {
+            "x": 700,
+            "y": 450
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e45",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 500,
+            "y": 500
+          },
+          {
+            "x": 700,
+            "y": 500
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e27",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 700,
+            "y": 500
+          },
+          {
+            "x": 700,
+            "y": 700
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e32",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 350,
+            "y": 700
+          },
+          {
+            "x": 450,
+            "y": 700
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e33",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 350,
+            "y": 700
+          },
+          {
+            "x": 350,
+            "y": 800
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e47",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 700,
+            "y": 700
+          },
+          {
+            "x": 950,
+            "y": 700
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e3",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 950,
+            "y": 700
+          },
+          {
+            "x": 950,
+            "y": 900
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e48",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1000,
+            "y": 700
+          },
+          {
+            "x": 1100,
+            "y": 700
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e37",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1000,
+            "y": 700
+          },
+          {
+            "x": 1000,
+            "y": 900
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e39",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 250,
+            "y": 800
+          },
+          {
+            "x": 300,
+            "y": 800
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e17",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 250,
+            "y": 800
+          },
+          {
+            "x": 250,
+            "y": 1050
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e12",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 350,
+            "y": 800
+          },
+          {
+            "x": 400,
+            "y": 800
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e42",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 400,
+            "y": 800
+          },
+          {
+            "x": 400,
+            "y": 1050
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e35",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 850,
+            "y": 900
+          },
+          {
+            "x": 950,
+            "y": 900
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e36",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 850,
+            "y": 900
+          },
+          {
+            "x": 850,
+            "y": 1150
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e18",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1000,
+            "y": 900
+          },
+          {
+            "x": 1150,
+            "y": 900
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e16",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 1150,
+            "y": 900
+          },
+          {
+            "x": 1150,
+            "y": 1150
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e31",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 250,
+            "y": 1050
+          },
+          {
+            "x": 400,
+            "y": 1050
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e20",
+      "layerId": "walls",
+      "type": "wall",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "points": [
+          {
+            "x": 850,
+            "y": 1150
+          },
+          {
+            "x": 1150,
+            "y": 1150
+          }
+        ],
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e30",
+      "layerId": "walls",
+      "type": "door",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 950,
+        "y": 700,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "width": 50,
+        "state": "closed",
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e25",
+      "layerId": "walls",
+      "type": "door",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 700,
+        "y": 450,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 90
+      },
+      "data": {
+        "width": 50,
+        "state": "secret",
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e41",
+      "layerId": "walls",
+      "type": "door",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 500,
+        "y": 350,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 90
+      },
+      "data": {
+        "width": 50,
+        "state": "secret",
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e22",
+      "layerId": "walls",
+      "type": "door",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 650,
+        "y": 450,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 90
+      },
+      "data": {
+        "width": 50,
+        "state": "closed",
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e29",
+      "layerId": "walls",
+      "type": "door",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 950,
+        "y": 900,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "width": 50,
+        "state": "closed",
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e28",
+      "layerId": "walls",
+      "type": "door",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 300,
+        "y": 700,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "width": 50,
+        "state": "closed",
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e2",
+      "layerId": "walls",
+      "type": "door",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 450,
+        "y": 350,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 90
+      },
+      "data": {
+        "width": 50,
+        "state": "closed",
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e7",
+      "layerId": "walls",
+      "type": "door",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 300,
+        "y": 800,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "width": 50,
+        "state": "closed",
+        "blocksMovement": true,
+        "blocksVision": true
+      }
+    },
+    {
+      "id": "golden:e23",
+      "layerId": "lighting",
+      "type": "light",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 1075,
+        "y": 675,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "radius": 150,
+        "color": "#ffb347",
+        "intensity": 0.8,
+        "castsShadows": true
+      }
+    },
+    {
+      "id": "golden:e24",
+      "layerId": "notes",
+      "type": "text",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 725,
+        "y": 325,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "text": "SPAWN: 3 giant rats",
+        "color": "#ffd479",
+        "fontSize": 14,
+        "visibleToPlayers": false
+      }
+    },
+    {
+      "id": "golden:e40",
+      "layerId": "lighting",
+      "type": "light",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 625,
+        "y": 475,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "radius": 150,
+        "color": "#ffb347",
+        "intensity": 0.8,
+        "castsShadows": true
+      }
+    },
+    {
+      "id": "golden:e21",
+      "layerId": "notes",
+      "type": "text",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 525,
+        "y": 275,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "text": "SPAWN: goblin scouts (2)",
+        "color": "#ffd479",
+        "fontSize": 14,
+        "visibleToPlayers": false
+      }
+    },
+    {
+      "id": "golden:e6",
+      "layerId": "lighting",
+      "type": "light",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 1125,
+        "y": 1125,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "radius": 150,
+        "color": "#ffb347",
+        "intensity": 0.8,
+        "castsShadows": true
+      }
+    },
+    {
+      "id": "golden:e38",
+      "layerId": "notes",
+      "type": "text",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 875,
+        "y": 925,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "text": "LOOT: locked chest — DC 12",
+        "color": "#ffd479",
+        "fontSize": 14,
+        "visibleToPlayers": false
+      }
+    },
+    {
+      "id": "golden:e9",
+      "layerId": "notes",
+      "type": "text",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 325,
+        "y": 325,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "text": "SPAWN: 2d4 skeletons",
+        "color": "#ffd479",
+        "fontSize": 14,
+        "visibleToPlayers": false
+      }
+    },
+    {
+      "id": "golden:e10",
+      "layerId": "lighting",
+      "type": "light",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 375,
+        "y": 825,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "radius": 150,
+        "color": "#ffb347",
+        "intensity": 0.8,
+        "castsShadows": true
+      }
+    },
+    {
+      "id": "golden:e15",
+      "layerId": "notes",
+      "type": "text",
+      "locked": false,
+      "hidden": false,
+      "transform": {
+        "x": 275,
+        "y": 825,
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0
+      },
+      "data": {
+        "text": "EMPTY — dust and echoes",
+        "color": "#ffd479",
+        "fontSize": 14,
+        "visibleToPlayers": false
+      }
+    }
+  ]
+}

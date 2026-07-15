@@ -87,10 +87,9 @@ function generateMessage(
     commandId: "gen-1",
     recipe: "dungeon",
     seed: 42,
-    // Big enough to fit several rooms, so the corridors and doors a real
-    // dungeon needs actually exist (a cramped region yields one room and
-    // nothing to connect).
-    bounds: { x: 2, y: 2, cols: 24, rows: 18 },
+    // At or above the recipe's 20×20 floor — below it a region fits one sealed
+    // room and nothing to connect (see MIN_RECIPE_COLS).
+    bounds: { x: 2, y: 2, cols: 24, rows: 20 },
     params: { theme: "stone", density: "medium", secretDoorChance: 0.15 },
     ...overrides,
   };

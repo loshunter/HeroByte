@@ -13,7 +13,7 @@ import { emitGeometry } from "../dungeonGeometry.js";
 import { cellKey, generateLayout, indexRoomCells } from "../dungeonLayout.js";
 import { dungeonRecipe } from "../dungeonRecipe.js";
 import type { CellBounds, DungeonParams, RecipeContext, RecipeOutput } from "../types.js";
-import golden from "./fixtures/dungeon-seed1-16x12-stone.json" with { type: "json" };
+import golden from "./fixtures/dungeon-seed1-24x20-stone.json" with { type: "json" };
 
 const SEEDS = Array.from({ length: 15 }, (_, i) => i + 1);
 const BOUNDS: CellBounds = { x: 4, y: 4, cols: 24, rows: 18 };
@@ -276,18 +276,23 @@ describe("emitGeometry — doors and layers", () => {
 });
 
 describe("dungeonRecipe — the determinism contract", () => {
-  it("golden: seed 1 in a 16x12 region emits the pinned dungeon, byte for byte", () => {
+  it("golden: seed 1 in a 24x20 region emits the pinned dungeon, byte for byte", () => {
     // THE determinism contract, and the foundation of Cartridge Codes: this
     // exact seed must produce this exact dungeon forever. Regenerating this
     // fixture is a CONTRACT CHANGE requiring owner sign-off — never a refactor.
+    // The region is at the 20x20 floor's scale on purpose: a golden should pin a
+    // dungeon a DM can actually generate (the old 16x12 one no longer is).
     const output = dungeonRecipe(
       1,
-      { x: 4, y: 4, cols: 16, rows: 12 },
+      { x: 4, y: 4, cols: 24, rows: 20 },
       { theme: "stone", density: "medium", secretDoorChance: 0.15 },
       context({ idPrefix: "golden" }),
     );
 
     expect(output).toEqual(golden);
+    // Guard the guard: a golden of a sealed box would pin the bug, not the
+    // contract. This one is a real dungeon.
+    expect(output.elements.filter((e) => e.type === "door").length).toBeGreaterThan(0);
   });
 
   it("is deterministic for a seed and varies across seeds", () => {

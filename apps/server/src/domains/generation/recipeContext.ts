@@ -136,7 +136,7 @@ function validateBounds(document: MapDocument, bounds: CellBounds): void {
   }
   if (cols < MIN_RECIPE_COLS || rows < MIN_RECIPE_ROWS) {
     throw new Error(
-      `Generate region must be at least ${MIN_RECIPE_COLS}×${MIN_RECIPE_ROWS} cells to fit a room`,
+      `Generate region must be at least ${MIN_RECIPE_COLS}×${MIN_RECIPE_ROWS} cells — anything smaller fits one sealed room, not a dungeon`,
     );
   }
   if (cols * rows > MAX_RECIPE_CELLS) {
