@@ -573,6 +573,19 @@ type ClientMessagePayload =
       backgroundMode?: MapPublishBackgroundMode; // absent == "full" (legacy clients)
     } // Compile document into the live scene (server-authoritative geometry)
   | { t: "map-studio-set-live"; documentId: string | null } // Bind (null clears) the room's live-authored map document; edits to it auto-compile onto the table
+  | {
+      t: "map-studio-generate";
+      documentId: string;
+      commandId: string; // client-minted; doubles as the element idPrefix and the dedupe/retry key
+      recipe: "dungeon";
+      seed: number;
+      bounds: { x: number; y: number; cols: number; rows: number }; // document-grid CELLS
+      params: {
+        theme: "stone" | "wood";
+        density: "low" | "medium" | "high";
+        secretDoorChance: number; // 0..1
+      };
+    } // Run a server-side recipe; output applies to the document as ONE place-room command
 
   // Live scene interactions (compiled doors are clickable at the table)
   | { t: "toggle-door"; doorId: string } // Flip a door open/closed; locked and secret doors refuse non-DM toggles

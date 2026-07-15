@@ -13,6 +13,8 @@ import {
   type ServerMessage,
 } from "@herobyte/shared";
 import type { MapStudioService } from "../../domains/mapStudio/service.js";
+import { dungeonRecipe } from "../../domains/generation/dungeonRecipe.js";
+import { resolveRecipeContext } from "../../domains/generation/recipeContext.js";
 import type { RoomState } from "../../domains/room/model.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 
@@ -88,6 +90,41 @@ export class MapStudioMessageHandler {
       }
       case "map-studio-set-live":
         return this.setLiveDocument(senderUid, roomId, message.documentId);
+      case "map-studio-generate": {
+        // A recipe runs server-side and lands as ONE place-room command, so
+        // undo, retry-dedupe, revision conflicts, and (when the target is the
+        // live-bound document) the recompile all ride the existing rails. The
+        // message's commandId doubles as the element idPrefix — retries hit
+        // the dedupe cache, so generated ids can never collide with themselves.
+        try {
+          const document = this.service.get(roomId, message.documentId);
+          const ctx = resolveRecipeContext(document, message.bounds, message.commandId);
+          const output = dungeonRecipe(message.seed, message.bounds, message.params, ctx);
+          const isLive = this.getRoomState(roomId).liveMapDocumentId === message.documentId;
+          const result = this.service.apply(
+            roomId,
+            {
+              type: "place-room",
+              commandId: message.commandId,
+              documentId: message.documentId,
+              baseRevision: document.revision,
+              cells: output.cells,
+              elements: output.elements,
+            },
+            this.now(),
+          );
+          this.broadcastDocument(roomId, result.document, result.commandId);
+          if (isLive) {
+            // `document` is the pre-apply clone — exactly the "previous" the
+            // door-state preservation wants.
+            this.recompileLiveScene(roomId, document, result.document);
+            return { broadcast: true, save: true };
+          }
+        } catch (error) {
+          this.sendCommandError(senderUid, message, error);
+        }
+        break;
+      }
       case "map-studio-delete": {
         this.service.delete(roomId, message.documentId);
         this.broadcastToDMs(roomId, {
@@ -205,7 +242,7 @@ export class MapStudioMessageHandler {
 
   private sendCommandError(
     senderUid: string,
-    command: Extract<ClientMessage, { t: "map-studio-command" }>["command"],
+    command: { commandId: string; documentId: string },
     error: unknown,
   ): void {
     const conflict = error instanceof MapDocumentRevisionConflictError;
