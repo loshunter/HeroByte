@@ -82,7 +82,10 @@ function generateMessage(
     commandId: "gen-1",
     recipe: "dungeon",
     seed: 42,
-    bounds: { x: 2, y: 2, cols: 10, rows: 8 },
+    // Big enough to fit several rooms, so the corridors and doors a real
+    // dungeon needs actually exist (a cramped region yields one room and
+    // nothing to connect).
+    bounds: { x: 2, y: 2, cols: 24, rows: 18 },
     params: { theme: "stone", density: "medium", secretDoorChance: 0.15 },
     ...overrides,
   };
@@ -162,10 +165,12 @@ describe("map-studio-generate contracts", () => {
     await flush();
 
     const snapshot = latestSnapshot(playerWs);
-    // The G1 placeholder recipe floors the region and rings it with one
-    // 5-point perimeter polyline, which compiles to 4 wall segments.
+    // The recipe's floor rides the terrain channel and its walls compile into
+    // server-enforced geometry — both reached the player through the command
+    // path, with no publish message anywhere.
     expect(snapshot?.mapTerrain).toBeDefined();
-    expect(snapshot?.compiledScene?.walls).toHaveLength(4);
+    expect(snapshot?.compiledScene?.walls.length).toBeGreaterThan(4);
+    expect(snapshot?.compiledScene?.doors.length).toBeGreaterThan(0);
   });
 
   it("advances the document revision by exactly one (one command = one undo)", () => {
@@ -346,6 +351,40 @@ describe("map-studio-generate contracts", () => {
       document?: { elements: Array<{ id: string }> };
     }>;
     const last = frames[frames.length - 1];
-    expect(last?.document?.elements.map((e) => e.id)).toEqual(["gen-ids:e0"]);
+    const ids = last?.document?.elements.map((e) => e.id) ?? [];
+
+    expect(ids.length).toBeGreaterThan(0);
+    expect(ids).toEqual(ids.map((_, index) => `gen-ids:e${index}`));
+  });
+
+  it("disguises every generated secret door as an anonymous wall for players", async () => {
+    createLiveDoc();
+    playerWs.send.mockClear();
+
+    // chance 1: every generated door is secret, so the player payload must
+    // contain NO doors at all — only #-suffixed wall segments they cannot tell
+    // apart from real walls.
+    route(
+      generateMessage({
+        commandId: "gen-secret",
+        params: { theme: "stone", density: "medium", secretDoorChance: 1 },
+      }),
+      DM,
+    );
+    await flush();
+
+    const dmScene = latestSnapshot(dmWs)?.compiledScene;
+    const playerScene = latestSnapshot(playerWs)?.compiledScene;
+    expect(dmScene?.doors.length).toBeGreaterThan(0);
+    expect(playerScene?.doors).toEqual([]);
+
+    // Each secret door reappears in the player's walls under a #0 id, sharing
+    // the exact id shape of a real compiled wall segment.
+    for (const door of dmScene!.doors) {
+      expect(playerScene?.walls.map((wall) => wall.id)).toContain(`${door.id}#0`);
+    }
+    for (const wall of playerScene?.walls ?? []) {
+      expect(wall.id).toMatch(/^gen-secret:e\d+#\d+$/);
+    }
   });
 });

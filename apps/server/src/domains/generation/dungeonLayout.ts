@@ -127,7 +127,8 @@ function touchesWithMargin(a: CellRect, b: CellRect): boolean {
   );
 }
 
-function indexRoomCells(rooms: CellRect[]): Map<string, number> {
+/** Map every room cell to its room index. Exported: G3 needs it to find seams. */
+export function indexRoomCells(rooms: CellRect[]): Map<string, number> {
   const byCell = new Map<string, number>();
   rooms.forEach((room, index) => {
     for (let y = room.y; y < room.y + room.h; y++) {
