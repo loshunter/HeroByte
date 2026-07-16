@@ -143,55 +143,57 @@ describe("Room Model - toSnapshot", () => {
     });
   });
 
-  describe("vision filtering (fog of war)", () => {
-    function stateWithFogAndWall() {
-      const state = createEmptyRoomState();
-      state.fogEnabled = true;
-      state.compiledScene = {
-        schemaVersion: 1,
-        sourceDocumentId: "map",
-        sourceRevision: 1,
-        compiledAt: 1,
-        width: 400,
-        height: 400,
-        walls: [
-          {
-            id: "divider",
-            x1: 200,
-            y1: 0,
-            x2: 200,
-            y2: 400,
-            blocksMovement: true,
-            blocksVision: true,
-          },
-        ],
-        doors: [],
-        lights: [],
-      };
-      // Token positions are grid cells (gridSize 50): cell (1,3) = pixel
-      // (75,175) left of the wall; cell (6,3) = (325,175) behind it; cell
-      // (20,20) = (1025,1025), outside the 400px map rect entirely.
-      state.tokens = [
-        { id: "mine", owner: "player-1", x: 1, y: 3, color: "red" },
-        { id: "hidden-enemy", owner: "player-2", x: 6, y: 3, color: "blue" },
-        { id: "off-map", owner: "player-2", x: 20, y: 20, color: "green" },
-      ];
-      state.sceneObjects = state.tokens.map((token) => ({
-        id: `token:${token.id}`,
-        type: "token" as const,
-        owner: token.owner,
-        locked: false,
-        zIndex: 0,
-        transform: { x: token.x, y: token.y, scaleX: 1, scaleY: 1, rotation: 0 },
-        data: { color: token.color },
-      }));
-      state.pointers = [
-        { uid: "player-2", x: 300, y: 200, timestamp: 1, id: "ptr-hidden", name: "P2" },
-        { uid: "player-2", x: 150, y: 200, timestamp: 1, id: "ptr-seen", name: "P2" },
-      ];
-      return state;
-    }
+  // Hoisted: both the vision-filtering block and the current-turn block need a
+  // recipient who can see one token and not another.
+  function stateWithFogAndWall() {
+    const state = createEmptyRoomState();
+    state.fogEnabled = true;
+    state.compiledScene = {
+      schemaVersion: 1,
+      sourceDocumentId: "map",
+      sourceRevision: 1,
+      compiledAt: 1,
+      width: 400,
+      height: 400,
+      walls: [
+        {
+          id: "divider",
+          x1: 200,
+          y1: 0,
+          x2: 200,
+          y2: 400,
+          blocksMovement: true,
+          blocksVision: true,
+        },
+      ],
+      doors: [],
+      lights: [],
+    };
+    // Token positions are grid cells (gridSize 50): cell (1,3) = pixel
+    // (75,175) left of the wall; cell (6,3) = (325,175) behind it; cell
+    // (20,20) = (1025,1025), outside the 400px map rect entirely.
+    state.tokens = [
+      { id: "mine", owner: "player-1", x: 1, y: 3, color: "red" },
+      { id: "hidden-enemy", owner: "player-2", x: 6, y: 3, color: "blue" },
+      { id: "off-map", owner: "player-2", x: 20, y: 20, color: "green" },
+    ];
+    state.sceneObjects = state.tokens.map((token) => ({
+      id: `token:${token.id}`,
+      type: "token" as const,
+      owner: token.owner,
+      locked: false,
+      zIndex: 0,
+      transform: { x: token.x, y: token.y, scaleX: 1, scaleY: 1, rotation: 0 },
+      data: { color: token.color },
+    }));
+    state.pointers = [
+      { uid: "player-2", x: 300, y: 200, timestamp: 1, id: "ptr-hidden", name: "P2" },
+      { uid: "player-2", x: 150, y: 200, timestamp: 1, id: "ptr-seen", name: "P2" },
+    ];
+    return state;
+  }
 
+  describe("vision filtering (fog of war)", () => {
     it("strips tokens, scene objects, and pointers the recipient cannot see", () => {
       const snapshot = toSnapshot(stateWithFogAndWall(), false, "player-1");
 
@@ -326,6 +328,88 @@ describe("Room Model - toSnapshot", () => {
         mode: "multiple",
         objectIds: ["token:mine"],
       });
+    });
+  });
+
+  describe("current-turn filtering", () => {
+    // The invariant: currentTurnCharacterId must name a character in the
+    // RECIPIENT'S OWN roster, or be absent. An id they cannot resolve is proof
+    // a combatant they don't know about is acting right now, plus a stable
+    // handle to track it across rounds — and useTurnChime sounds for it.
+
+    it("clears a hidden NPC's turn for players, keeps it for the DM", () => {
+      const state = createEmptyRoomState();
+      const hiddenNPC = characterService.createCharacter(
+        state,
+        "Invisible Stalker",
+        15,
+        undefined,
+        "npc",
+      );
+      characterService.setNPCVisibility(state, hiddenNPC.id, false);
+      characterService.placeNPCToken(state, tokenService, hiddenNPC.id, "dm-uid");
+      state.combatActive = true;
+      state.currentTurnCharacterId = hiddenNPC.id;
+
+      expect(toSnapshot(state, false).currentTurnCharacterId).toBeUndefined();
+      expect(toSnapshot(state, true).currentTurnCharacterId).toBe(hiddenNPC.id);
+    });
+
+    it("never ships a turn id absent from the recipient's own characters", () => {
+      // Stated as the general property rather than the one case, because this
+      // is the rule the leak broke: toSnapshot stripped the record and the
+      // token, then named it anyway three lines later.
+      const state = createEmptyRoomState();
+      const visible = characterService.createCharacter(state, "Guard", 20, undefined, "npc");
+      const hidden = characterService.createCharacter(state, "Assassin", 15, undefined, "npc");
+      characterService.setNPCVisibility(state, hidden.id, false);
+      characterService.placeNPCToken(state, tokenService, visible.id, "dm-uid");
+      characterService.placeNPCToken(state, tokenService, hidden.id, "dm-uid");
+      state.combatActive = true;
+
+      for (const turn of [visible.id, hidden.id]) {
+        state.currentTurnCharacterId = turn;
+        const snapshot = toSnapshot(state, false);
+        const named = snapshot.currentTurnCharacterId;
+        const resolvable = named === undefined || snapshot.characters.some((c) => c.id === named);
+        expect({ turn, resolvable }).toEqual({ turn, resolvable: true });
+      }
+    });
+
+    it("keeps a visible NPC's turn — the filter must not over-strip", () => {
+      const state = createEmptyRoomState();
+      const guard = characterService.createCharacter(state, "Guard", 20, undefined, "npc");
+      characterService.placeNPCToken(state, tokenService, guard.id, "dm-uid");
+      state.combatActive = true;
+      state.currentTurnCharacterId = guard.id;
+
+      expect(toSnapshot(state, false).currentTurnCharacterId).toBe(guard.id);
+    });
+
+    it("clears the turn of an NPC whose token the recipient cannot see", () => {
+      // The subtler half: a player who saw the goblin earlier already knows its
+      // id, so naming it while it acts behind a wall reports its liveness and
+      // turn position through the fog. Its record is already stripped for them.
+      const state = stateWithFogAndWall();
+      const lurker = characterService.createCharacter(state, "Goblin", 12, undefined, "npc");
+      lurker.tokenId = "hidden-enemy";
+      state.combatActive = true;
+      state.currentTurnCharacterId = lurker.id;
+
+      expect(toSnapshot(state, false, "player-1").currentTurnCharacterId).toBeUndefined();
+      expect(toSnapshot(state, true).currentTurnCharacterId).toBe(lurker.id);
+    });
+
+    it("never strips a party member's own turn", () => {
+      // The over-filtering guard that matters most: PCs ride along regardless
+      // of fog, so a player's turn (and their chime) must always survive.
+      const state = stateWithFogAndWall();
+      const pc = characterService.createCharacter(state, "Hero", 18);
+      state.combatActive = true;
+      state.currentTurnCharacterId = pc.id;
+
+      expect(toSnapshot(state, false, "player-1").currentTurnCharacterId).toBe(pc.id);
+      expect(toSnapshot(state, false, "player-2").currentTurnCharacterId).toBe(pc.id);
     });
   });
 

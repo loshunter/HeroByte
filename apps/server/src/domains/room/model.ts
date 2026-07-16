@@ -190,6 +190,19 @@ export function toSnapshot(
       )
     : visibleCharacters;
 
+  // The active combatant must be someone the recipient can actually resolve.
+  // Both filters above already strip a hidden or fogged NPC's record AND its
+  // token — shipping its id anyway puts back exactly what they removed: proof
+  // that a combatant the recipient cannot see is acting RIGHT NOW, plus a
+  // stable id to correlate across rounds. The client would sound useTurnChime
+  // for it too. Party members and tokenless NPCs always survive
+  // fogFilteredCharacters, so a player's own turn can never strip.
+  const visibleTurnCharacterId = fogFilteredCharacters.some(
+    (character) => character.id === state.currentTurnCharacterId,
+  )
+    ? state.currentTurnCharacterId
+    : undefined;
+
   // Pointers are world-pixel positions; fog hides pings inside unseen areas,
   // but a pinger always sees their own echo and DM pings are narration —
   // visible to the whole table.
@@ -291,7 +304,7 @@ export function toSnapshot(
     selectionState: visibleSelection,
     playerStagingZone: state.playerStagingZone ?? undefined,
     combatActive: state.combatActive,
-    currentTurnCharacterId: state.currentTurnCharacterId,
+    currentTurnCharacterId: visibleTurnCharacterId,
     fogEnabled: state.fogEnabled,
   };
 

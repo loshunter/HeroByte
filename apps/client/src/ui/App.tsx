@@ -139,8 +139,9 @@ function AuthenticatedApp({
   isConnected,
   authState,
 }: AuthenticatedAppProps): JSX.Element {
-  // Chime when the active combatant changes.
-  useTurnChime(snapshot?.currentTurnCharacterId);
+  // Chime when the active combatant changes. Takes the whole snapshot on
+  // purpose: it must tell "no snapshot" from "no active turn" (see the hook).
+  useTurnChime(snapshot);
 
   // Creak and clunk when compiled doors change state, on every screen.
   useDoorSfx(snapshot?.compiledScene?.doors);

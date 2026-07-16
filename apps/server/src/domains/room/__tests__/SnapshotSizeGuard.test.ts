@@ -1,5 +1,21 @@
+// ============================================================================
+// SNAPSHOT SIZE GUARD
+// ============================================================================
+// These measure RAW utf8 bytes, because that is what the runtime guard measures
+// (`Buffer.byteLength(payload, "utf8")` in service.ts) and what actually goes
+// out on the wire.
+//
+// They used to assert gzip/brotli sizes instead — an assumption that the socket
+// compressed, which it does not: `perMessageDeflate` is configured nowhere, and
+// the `ws` default is false. Nothing on this wire is ever compressed. That made
+// the whole file ~5x too permissive on small payloads and ~58x on large ones
+// (a 116k-cell painted map ships 936kb raw while gzipping to 16kb — the old
+// assertion saw 2% of the limit for a snapshot that was 125% of it). A test
+// asserting a number nobody enforces is worse than no test: it reports safety
+// it never checked. If the wire ever does enable compression, change the
+// RUNTIME guard first and let these follow it.
+
 import { describe, it, expect } from "vitest";
-import { brotliCompressSync, gzipSync } from "node:zlib";
 import {
   compileScene,
   createTerrainMap,
@@ -11,8 +27,13 @@ import {
 import { RoomService, SNAPSHOT_SIZE_LIMIT_BYTES } from "../service.js";
 import { dungeonRecipe } from "../../generation/dungeonRecipe.js";
 
-describe("Snapshot compression guard", () => {
-  it("keeps gzip and brotli payloads below configured guard", () => {
+/** Exactly what service.ts weighs before it warns. */
+function wireBytes(snapshot: unknown): number {
+  return Buffer.byteLength(JSON.stringify(snapshot), "utf8");
+}
+
+describe("Snapshot size guard", () => {
+  it("keeps a background + drawings payload below the guard", () => {
     const service = new RoomService();
     service.setState({
       mapBackground: "#".repeat(25_000),
@@ -28,14 +49,7 @@ describe("Snapshot compression guard", () => {
       ],
     });
 
-    const snapshot = service.createSnapshot();
-    const payload = Buffer.from(JSON.stringify(snapshot), "utf8");
-
-    const gzipBytes = gzipSync(payload).length;
-    const brotliBytes = brotliCompressSync(payload).length;
-
-    expect(gzipBytes).toBeLessThan(SNAPSHOT_SIZE_LIMIT_BYTES);
-    expect(brotliBytes).toBeLessThan(SNAPSHOT_SIZE_LIMIT_BYTES);
+    expect(wireBytes(service.createSnapshot())).toBeLessThan(SNAPSHOT_SIZE_LIMIT_BYTES);
   });
 
   it("keeps a live-bound scene (200 walls + 40 doors + 2000 terrain cells) under the guard", () => {
@@ -85,10 +99,7 @@ describe("Snapshot compression guard", () => {
       mapTerrain: { terrain, grid: { size: 50, offsetX: 0, offsetY: 0 }, opacity: 1 },
     });
 
-    const payload = Buffer.from(JSON.stringify(service.createSnapshot()), "utf8");
-
-    expect(gzipSync(payload).length).toBeLessThan(SNAPSHOT_SIZE_LIMIT_BYTES);
-    expect(brotliCompressSync(payload).length).toBeLessThan(SNAPSHOT_SIZE_LIMIT_BYTES);
+    expect(wireBytes(service.createSnapshot())).toBeLessThan(SNAPSHOT_SIZE_LIMIT_BYTES);
   });
 
   it("keeps a MAXED generated dungeon (128x128 cells, high density) under the guard", () => {
@@ -179,10 +190,7 @@ describe("Snapshot compression guard", () => {
       mapTerrain: { terrain, grid: { size: 50, offsetX: 0, offsetY: 0 }, opacity: 1 },
     });
 
-    const payload = Buffer.from(JSON.stringify(service.createSnapshot()), "utf8");
-
-    expect(gzipSync(payload).length).toBeLessThan(SNAPSHOT_SIZE_LIMIT_BYTES);
-    expect(brotliCompressSync(payload).length).toBeLessThan(SNAPSHOT_SIZE_LIMIT_BYTES);
+    expect(wireBytes(service.createSnapshot())).toBeLessThan(SNAPSHOT_SIZE_LIMIT_BYTES);
   });
 
   it("keeps 500 mixed live-authored elements (tiles/stamps/shapes/text) under the guard", () => {
@@ -236,9 +244,48 @@ describe("Snapshot compression guard", () => {
     const service = new RoomService();
     service.setState({ liveMapDocumentId: "live-doc", mapElements });
 
-    const payload = Buffer.from(JSON.stringify(service.createSnapshot()), "utf8");
+    expect(wireBytes(service.createSnapshot())).toBeLessThan(SNAPSHOT_SIZE_LIMIT_BYTES);
+  });
 
-    expect(gzipSync(payload).length).toBeLessThan(SNAPSHOT_SIZE_LIMIT_BYTES);
-    expect(brotliCompressSync(payload).length).toBeLessThan(SNAPSHOT_SIZE_LIMIT_BYTES);
+  it("records where painted terrain actually crosses the guard", () => {
+    // The headroom the gzip assertions were hiding. Terrain dominates a
+    // snapshot's size, and one generate is capped at 16384 cells — but a DM can
+    // run many, and nothing caps the TOTAL below MAX_TERRAIN_CHUNKS' ~4.2M.
+    // ~35k painted cells is comfortable; ~116k ships 936kb and blows the 750KB
+    // guard. That guard only WARNS (service.ts) — it never drops a frame — so
+    // this documents a real ceiling rather than asserting a bound the runtime
+    // would enforce for us. If terrain ever needs to scale past this, the fix
+    // is chunked/delta terrain, not a bigger limit.
+    const paint = (side: number) => {
+      const cells = [];
+      for (let x = 0; x < side; x++) {
+        for (let y = 0; y < side; y++) {
+          if ((x * 7 + y * 13) % 9 < 2) {
+            cells.push({
+              x,
+              y,
+              assetId: (x + y) % 2 ? "terrain:stone-floor" : "terrain:wood-floor",
+            });
+          }
+        }
+      }
+      const service = new RoomService();
+      service.setState({
+        mapTerrain: {
+          terrain: setTerrainCells(createTerrainMap(), cells),
+          grid: { size: 50, offsetX: 0, offsetY: 0 },
+          opacity: 1,
+        },
+      });
+      return { cells: cells.length, bytes: wireBytes(service.createSnapshot()) };
+    };
+
+    const roomy = paint(384);
+    expect(roomy.bytes).toBeLessThan(SNAPSHOT_SIZE_LIMIT_BYTES);
+
+    // The ceiling is real, and the old gzip assertion would have called this
+    // snapshot 2% of the limit.
+    const huge = paint(724);
+    expect(huge.bytes).toBeGreaterThan(SNAPSHOT_SIZE_LIMIT_BYTES);
   });
 });
