@@ -174,6 +174,49 @@ describe("paintProceduralDetail", () => {
     );
   });
 
+  it("routes wood floors to the plank painter (full-width board seams, not pebbles)", () => {
+    // Slice 2: floors get dedicated material painters. The plank painter's
+    // structural signature is a full-cell-width crev seam rect — the key-cluster
+    // pebble painter only ever emits motif-pixel rects (1×1 at this grid size).
+    const wood = layer("terrain:wood-floor", [
+      { cellX: 0, cellY: 0 },
+      { cellX: 1, cellY: 0 },
+    ]);
+    const built = buildProceduralFieldConfig([wood], GRID, VILLAGE_TERRAIN)!;
+    const field = createTerrainField(built.config);
+    const { context, calls } = createRecordingContext();
+    paintProceduralDetail(asCtx(context), [wood], VILLAGE_TERRAIN, field, built.config.familyAt);
+    const crev = VILLAGE_TERRAIN["terrain:wood-floor"]!.floor!.palette.crev;
+    let style = "";
+    let fullWidthSeams = 0;
+    for (const c of calls) {
+      if (c[0] === "set:fillStyle") style = c[1] as string;
+      if (c[0] === "fillRect" && style === crev && (c[3] as number) === GRID.size)
+        fullWidthSeams += 1;
+    }
+    expect(fullWidthSeams).toBeGreaterThan(0);
+  });
+
+  it("routes stone floors to the flagstone painter (slab-scale seams, not pebbles)", () => {
+    const stone = layer("terrain:stone-floor", [
+      { cellX: 0, cellY: 0 },
+      { cellX: 1, cellY: 0 },
+    ]);
+    const built = buildProceduralFieldConfig([stone], GRID, VILLAGE_TERRAIN)!;
+    const field = createTerrainField(built.config);
+    const { context, calls } = createRecordingContext();
+    paintProceduralDetail(asCtx(context), [stone], VILLAGE_TERRAIN, field, built.config.familyAt);
+    const crev = VILLAGE_TERRAIN["terrain:stone-floor"]!.floor!.palette.crev;
+    let style = "";
+    let slabSeams = 0;
+    for (const c of calls) {
+      if (c[0] === "set:fillStyle") style = c[1] as string;
+      if (c[0] === "fillRect" && style === crev && (c[3] as number) >= GRID.size / 2)
+        slabSeams += 1;
+    }
+    expect(slabSeams).toBeGreaterThan(0);
+  });
+
   it("paints the dirt family's key-cluster shades where grass meets dirt", () => {
     const grass = layer("terrain:grass", [{ cellX: 1, cellY: 0 }]);
     const dirt = layer("terrain:dirt", [{ cellX: 0, cellY: 0 }]);

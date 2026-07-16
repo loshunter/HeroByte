@@ -25,9 +25,13 @@ export interface MapStudioTileAsset {
 }
 
 export const MAP_STUDIO_TILE_ASSETS: MapStudioTileAsset[] = [
+  // The two ORIGINAL floors keep their ids and fills (the frozen SVG golden
+  // pins painted terrain:stone-floor); only their display names carry the
+  // variant they always were. The four variant floors below are new ids —
+  // pure data over the same procedural floor painters (see terrainPalette).
   {
     id: "terrain:stone-floor",
-    name: "Stone Floor",
+    name: "Flagstone Floor",
     category: "terrain",
     layerKind: "terrain",
     columns: 1,
@@ -38,7 +42,7 @@ export const MAP_STUDIO_TILE_ASSETS: MapStudioTileAsset[] = [
   },
   {
     id: "terrain:wood-floor",
-    name: "Wood Floor",
+    name: "Oak Floor",
     category: "terrain",
     layerKind: "terrain",
     columns: 1,
@@ -46,6 +50,50 @@ export const MAP_STUDIO_TILE_ASSETS: MapStudioTileAsset[] = [
     fill: "#725236",
     stroke: "#a5774b",
     accent: "#553b27",
+  },
+  {
+    id: "terrain:stone-cobble",
+    name: "Cobblestone Floor",
+    category: "terrain",
+    layerKind: "terrain",
+    columns: 1,
+    rows: 1,
+    fill: "#5e5b50",
+    stroke: "#8a8778",
+    accent: "#46443c",
+  },
+  {
+    id: "terrain:stone-sandstone",
+    name: "Sandstone Floor",
+    category: "terrain",
+    layerKind: "terrain",
+    columns: 1,
+    rows: 1,
+    fill: "#8a7454",
+    stroke: "#b39a72",
+    accent: "#6a583f",
+  },
+  {
+    id: "terrain:wood-walnut",
+    name: "Walnut Floor",
+    category: "terrain",
+    layerKind: "terrain",
+    columns: 1,
+    rows: 1,
+    fill: "#4f3526",
+    stroke: "#7a5a42",
+    accent: "#3a2719",
+  },
+  {
+    id: "terrain:wood-grey",
+    name: "Grey Plank Floor",
+    category: "terrain",
+    layerKind: "terrain",
+    columns: 1,
+    rows: 1,
+    fill: "#6a675e",
+    stroke: "#928f83",
+    accent: "#4f4d45",
   },
   {
     id: "terrain:water",

@@ -36,10 +36,10 @@ export const PATH_DETAIL: KeyClusterPalette = {
 };
 
 /**
- * First-cut FLOOR detail (Slice 1): a low-contrast material speckle so wood /
- * stone floors bake with procedural interior texture rather than a flat fill.
- * Kept subtle and material-toned; the dedicated plank-grain and flagstone-seam
- * painters replace these in Slice 2.
+ * Flagstone floor shades: `crev` draws the slab seams and cracks, the three
+ * tones draw chips/lichen speckle inside each slab. Consumed by the flagstone
+ * painter in terrainFloorDetail (the key-cluster tone roles map 1:1, so floor
+ * variants stay a pure palette swap).
  */
 export const STONE_FLOOR_DETAIL: KeyClusterPalette = {
   crev: "#3a3f4a",
@@ -48,13 +48,62 @@ export const STONE_FLOOR_DETAIL: KeyClusterPalette = {
   light: "#5f6675",
 };
 
-/** First-cut wood-floor speckle — warm grain tones (see STONE_FLOOR_DETAIL). */
+/** Oak plank shades: `crev` = board seams/joints/knot cores, `dark`/`light` =
+ * grain streaks, `mid` = knot halos. See STONE_FLOOR_DETAIL. */
 export const WOOD_FLOOR_DETAIL: KeyClusterPalette = {
   crev: "#4c3722",
   dark: "#6a4b31",
   mid: "#7a583a",
   light: "#886443",
 };
+
+/** Walnut plank shades — deep, rich brown (see WOOD_FLOOR_DETAIL roles). */
+export const WALNUT_FLOOR_DETAIL: KeyClusterPalette = {
+  crev: "#2f1e12",
+  dark: "#452e20",
+  mid: "#573b28",
+  light: "#684a33",
+};
+
+/** Weathered grey plank shades — sun-bleached, low saturation. */
+export const GREY_PLANK_DETAIL: KeyClusterPalette = {
+  crev: "#3f3d36",
+  dark: "#59564d",
+  mid: "#767268",
+  light: "#8a867a",
+};
+
+/** Cobblestone shades — grey-brown, drawn at half slab scale. */
+export const COBBLE_FLOOR_DETAIL: KeyClusterPalette = {
+  crev: "#3b392f",
+  dark: "#524f43",
+  mid: "#6a6757",
+  light: "#7d7a68",
+};
+
+/** Sandstone slab shades — warm desert tans. */
+export const SANDSTONE_FLOOR_DETAIL: KeyClusterPalette = {
+  crev: "#5d4d33",
+  dark: "#7b6749",
+  mid: "#94805c",
+  light: "#a68f68",
+};
+
+/** The floor material painters terrainFloorDetail implements. */
+export type FloorDetailKind = "plank" | "flagstone";
+
+/**
+ * Dedicated floor interior detail (Slice 2): which material painter a floor
+ * family uses and the shades it draws with. `scale` shrinks the feature size —
+ * cobblestone is the flagstone painter at half scale — so every floor variant
+ * is data over the same two painters.
+ */
+export interface FloorDetail {
+  kind: FloorDetailKind;
+  palette: KeyClusterPalette;
+  /** Feature-size multiplier; omitted ⇒ 1 (full-size boards/slabs). */
+  scale?: number;
+}
 
 /**
  * One terrain family in the procedural render: its silhouette colours (`base`
@@ -67,6 +116,9 @@ export interface TerrainFamilyPalette {
   rim: string;
   priority: number;
   keyCluster?: KeyClusterPalette;
+  /** Floor families route to a dedicated material painter instead of the
+   * key-cluster pebbles or grass decoration (checked first). */
+  floor?: FloorDetail;
   /**
    * Boundary displacement scale for the procedural field (proceduralTerrain
    * `fieldOf`). Omitted ⇒ 1 = organic bumpy edge (natural terrain). Floors set
@@ -88,20 +140,53 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
   // Architectural floors: crisp (edgeAmp 0) grid-aligned edges, and a priority
   // ABOVE the natural families so a floor region reads as laid OVER grass/dirt/
   // path. Base colours match the starterTiles fills (#4d5361 / #725236, kept
-  // frozen) so the field bake and the flat fallback agree. Detail is a first-cut
-  // speckle — Slice 2 ships the plank-grain and flagstone-seam painters.
+  // frozen) so the field bake and the flat fallback agree. Interior detail is
+  // the dedicated material painters (terrainFloorDetail): flagstone slab seams
+  // for stone, plank grain for wood.
   "terrain:stone-floor": {
     base: "#4d5361",
     rim: "#3d424e",
     priority: 4,
     edgeAmp: 0,
-    keyCluster: STONE_FLOOR_DETAIL,
+    floor: { kind: "flagstone", palette: STONE_FLOOR_DETAIL },
   },
   "terrain:wood-floor": {
     base: "#725236",
     rim: "#553b27",
     priority: 5,
     edgeAmp: 0,
-    keyCluster: WOOD_FLOOR_DETAIL,
+    floor: { kind: "plank", palette: WOOD_FLOOR_DETAIL },
+  },
+  // Variant floors (Slice 3): pure data over the same two painters. Priorities
+  // stay above the naturals and distinct from each other so any floor-vs-floor
+  // boundary has a deterministic rim winner. Bases match their starterTiles
+  // swatch fills (pinned by floorVariants.test).
+  "terrain:stone-cobble": {
+    base: "#5e5b50",
+    rim: "#46443c",
+    priority: 6,
+    edgeAmp: 0,
+    floor: { kind: "flagstone", palette: COBBLE_FLOOR_DETAIL, scale: 0.5 },
+  },
+  "terrain:stone-sandstone": {
+    base: "#8a7454",
+    rim: "#6a583f",
+    priority: 7,
+    edgeAmp: 0,
+    floor: { kind: "flagstone", palette: SANDSTONE_FLOOR_DETAIL },
+  },
+  "terrain:wood-walnut": {
+    base: "#4f3526",
+    rim: "#3a2719",
+    priority: 8,
+    edgeAmp: 0,
+    floor: { kind: "plank", palette: WALNUT_FLOOR_DETAIL },
+  },
+  "terrain:wood-grey": {
+    base: "#6a675e",
+    rim: "#4f4d45",
+    priority: 9,
+    edgeAmp: 0,
+    floor: { kind: "plank", palette: GREY_PLANK_DETAIL },
   },
 };

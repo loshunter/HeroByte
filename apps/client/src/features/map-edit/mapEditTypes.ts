@@ -26,7 +26,16 @@ export type MapEditSubTool =
   | "generate";
 
 /** Procedural floor families a room/terrain paints with (VILLAGE_TERRAIN). */
-export type MapEditFloorFamily = "grass" | "dirt" | "path" | "stone-floor" | "wood-floor";
+export type MapEditFloorFamily =
+  | "grass"
+  | "dirt"
+  | "path"
+  | "stone-floor"
+  | "wood-floor"
+  | "stone-cobble"
+  | "stone-sandstone"
+  | "wood-walnut"
+  | "wood-grey";
 
 /** POPULATE set-dressing density (per-cell placement probability tiers). */
 export type PopulateDensity = "low" | "medium" | "high";

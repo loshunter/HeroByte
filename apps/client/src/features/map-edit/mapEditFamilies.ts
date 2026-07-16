@@ -3,7 +3,17 @@
 
 import type { MapEditFloorFamily } from "./mapEditTypes";
 
-const FLOOR_FAMILIES: MapEditFloorFamily[] = ["grass", "dirt", "path", "stone-floor", "wood-floor"];
+const FLOOR_FAMILIES: MapEditFloorFamily[] = [
+  "grass",
+  "dirt",
+  "path",
+  "stone-floor",
+  "wood-floor",
+  "stone-cobble",
+  "stone-sandstone",
+  "wood-walnut",
+  "wood-grey",
+];
 
 /** The floor family an asset id names (terrain:<family>), or null. */
 export function floorFamilyFromAssetId(assetId: string): MapEditFloorFamily | null {

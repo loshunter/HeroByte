@@ -21,6 +21,7 @@ import {
   type TerrainFieldFamily,
 } from "./proceduralTerrain";
 import { paintKeyClusterDetail, paintTerrainDetail } from "./terrainDetail";
+import { paintFloorDetail } from "./terrainFloorDetail";
 import type { TerrainFamilyPalette } from "./terrainPalette";
 import type {
   StructuredTerrainLayer,
@@ -67,8 +68,8 @@ const FIELD_MARGIN_CELLS = 1;
 /**
  * Frame the painted FIELD cells (those the palette covers) into a field config
  * and a doc-space buffer size, or null when nothing in this terrain is a field
- * family. Non-field families (water/stone/wood) are skipped — they render on
- * their own layers.
+ * family. Non-field families (water) are skipped — they render on their own
+ * layers.
  */
 export function buildProceduralFieldConfig(
   terrainLayers: readonly StructuredTerrainLayer[],
@@ -179,7 +180,8 @@ function paintFamilyDetail(
   palette: TerrainPalette,
 ): void {
   const fam = palette[assetId];
-  if (fam?.keyCluster) paintKeyClusterDetail(ctx, cell, fam.keyCluster);
+  if (fam?.floor) paintFloorDetail(ctx, cell, fam.floor);
+  else if (fam?.keyCluster) paintKeyClusterDetail(ctx, cell, fam.keyCluster);
   else paintTerrainDetail(ctx, cell, assetId);
 }
 
