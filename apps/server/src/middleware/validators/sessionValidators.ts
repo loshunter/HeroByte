@@ -9,19 +9,28 @@
 
 import { z } from "zod";
 import type { MessageRecord, ValidationResult } from "./commonValidators.js";
+import { importDocument } from "./mapStudioValidators.js";
 
 /**
- * A session file may legitimately carry every map in the room, and a single
- * generated dungeon is already thousands of elements — so the cap is on the
- * DOCUMENT COUNT, not their contents. Import sanitizes each document itself
- * (importMapDocument), and one bad document is skipped rather than fatal, so a
- * loose shape here fails safe. This exists to stop an absurd payload, not to
- * re-typecheck MapDocument at the edge.
+ * A session file may legitimately carry every map in the room.
  */
 const MAX_SESSION_DOCUMENTS = 64;
 
+/**
+ * The SAME schema map-studio-import uses — deliberately, not incidentally.
+ *
+ * This was briefly `z.object({ id }).passthrough()`, on the reasoning that
+ * importMapDocument sanitizes each document anyway so a loose shape "fails
+ * safe". It does not: sanitization is exactly where the cost is paid. A ~30-byte
+ * chunk `{"0,0":[999999999,1]}` reaches decodeTerrainChunk, which pushes `count`
+ * entries BEFORE checking the length — allocating ~1e9 slots to arrive at a
+ * rejection. On a 512MB Render instance that is a heap OOM, which aborts the
+ * process rather than throwing, so restoreMapDocuments' try/catch cannot contain
+ * it, and one process serves every room. The import path already caps runs at
+ * 512; a second door onto the same sanitizer must not have a weaker lock.
+ */
 const mapDocuments = z
-  .array(z.object({ id: z.string().trim().min(1).max(128) }).passthrough())
+  .array(importDocument)
   .max(MAX_SESSION_DOCUMENTS, { message: `exceeds ${MAX_SESSION_DOCUMENTS} map documents` });
 
 const envelopeSchema = z.object({

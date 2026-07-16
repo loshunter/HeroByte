@@ -295,7 +295,7 @@ const terrainMap = z
     message: "Terrain map has too many chunks",
   });
 
-const importDocument = z
+export const importDocument = z
   .object({
     schemaVersion: z.literal(1),
     id,

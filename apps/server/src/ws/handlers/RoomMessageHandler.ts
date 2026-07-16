@@ -23,6 +23,34 @@ import { toSnapshot } from "../../domains/room/model.js";
 import { getRoomSecret } from "../../config/auth.js";
 
 /**
+ * Inline the asset channel back into plain fields for a session FILE.
+ *
+ * toSnapshot diverts `mapBackground` and `drawings` into `assets`/`assetRefs`
+ * (SnapshotAssetBuilder) — an indirection that earns its keep on a repeated
+ * broadcast, where the payload is content-addressed and deduped. A file is
+ * written once and read once, so the indirection buys nothing and costs
+ * everything: the id-keyed asset list is a second thing to keep consistent, and
+ * BOTH loaders were written for the client's hydrated (flat) snapshot.
+ *
+ * Shipping the raw wire shape into a file broke it three ways at once — the
+ * client parser demanded a `drawings` key toSnapshot never emits, it dropped a
+ * `mapBackground` that lived in assetRefs, and the server's own load validator
+ * rejected any room with zero drawings (no key AND no assetRef). Flattening here
+ * fixes all three at the source rather than teaching two parsers a shape they
+ * should never have had to know.
+ *
+ * `drawings` is always an array — that is the invariant both loaders rely on.
+ */
+function flattenForFile(snapshot: RoomSnapshot, state: RoomState): RoomSnapshot {
+  const { assets: _assets, assetRefs: _assetRefs, ...rest } = snapshot;
+  return {
+    ...rest,
+    drawings: state.drawings,
+    ...(state.mapBackground === undefined ? {} : { mapBackground: state.mapBackground }),
+  };
+}
+
+/**
  * Result of handling a room message
  */
 export interface RoomMessageResult {
@@ -141,7 +169,7 @@ export class RoomMessageHandler {
         savedAt: Date.now(),
         // The DM's view on purpose — a session file must round-trip the secrets
         // a player snapshot strips, or reloading one would quietly disarm the map.
-        snapshot: toSnapshot(state, true, senderUid),
+        snapshot: flattenForFile(toSnapshot(state, true, senderUid), state),
         mapDocuments,
         liveMapDocumentId: state.liveMapDocumentId,
       },

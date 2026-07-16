@@ -28,6 +28,8 @@ import { CharacterService } from "../../domains/character/service.js";
 import { PropService } from "../../domains/prop/service.js";
 import { SelectionService } from "../../domains/selection/service.js";
 import { AuthService } from "../../domains/auth/service.js";
+import { validateLoadSessionMessage } from "../../middleware/validators/roomValidators.js";
+import { validateLoadSessionEnvelope } from "../../middleware/validators/sessionValidators.js";
 
 const DM = "dm-player";
 
@@ -171,8 +173,40 @@ describe("session round trip", () => {
         liveMapDocumentId?: string;
       };
     }>;
-    return frames[0]!.file;
+    // Through JSON, always. The first version of this helper handed the live
+    // object straight back to the restore, which is not a round trip: it skipped
+    // the serialize the real path performs and hid a file that no loader on
+    // earth could read.
+    return JSON.parse(JSON.stringify(frames[0]!.file)) as (typeof frames)[0]["file"];
   }
+
+  it("writes a file the loaders can actually read", () => {
+    // THE REGRESSION GUARD, and the bug that made every saved file unloadable:
+    // toSnapshot diverts drawings and mapBackground into assets/assetRefs and
+    // emits NO `drawings` key — while both the client parser and the server's own
+    // load validator require one (`players`, `tokens`, and drawings-as-array-or-
+    // assetRef). A room with zero drawings emitted neither, so the file was
+    // rejected by the server too. The export flattens for exactly this reason.
+    const file = exportSession();
+
+    expect(Array.isArray(file.snapshot.drawings)).toBe(true);
+    // ...and the wire-only indirection does not belong in a file.
+    expect(file.snapshot.assets).toBeUndefined();
+    expect(file.snapshot.assetRefs).toBeUndefined();
+    // The server's real load validator must accept what the real export wrote.
+    expect(validateLoadSessionMessage({ t: "load-session", snapshot: file.snapshot }).valid).toBe(
+      true,
+    );
+  });
+
+  it("keeps a map background in the file as a plain value", () => {
+    // It rides assetRefs on the wire; a file must be self-contained.
+    origin.roomService.setState({ mapBackground: "https://i.imgur.com/abc.png" });
+
+    const file = exportSession();
+
+    expect(file.snapshot.mapBackground).toBe("https://i.imgur.com/abc.png");
+  });
 
   it("exports the authored map document, not just the derived map", () => {
     // The snapshot alone carries compiledScene/mapTerrain/mapElements — output —
@@ -182,6 +216,58 @@ describe("session round trip", () => {
     expect(file.mapDocuments.map((doc) => doc.id)).toEqual(["live"]);
     expect(file.liveMapDocumentId).toBe("live");
     expect(file.mapDocuments[0]?.elements.map((el) => el.id).sort()).toEqual(["tile-1", "wall-1"]);
+  });
+
+  it("rejects a terrain run the import path would reject", () => {
+    // Two doors onto the same sanitizer must have the same lock. This envelope
+    // briefly validated documents as {id} + passthrough, on the theory that
+    // importMapDocument sanitizes anyway — but sanitizing is where the cost is
+    // paid: decodeTerrainChunk pushes `count` entries before checking length, so
+    // a ~30-byte run of 999999999 allocates ~1e9 slots. A heap OOM aborts the
+    // process rather than throwing, so the restore's try/catch cannot contain
+    // it, and one process serves every room.
+    const hostile = {
+      mapDocuments: [
+        {
+          schemaVersion: 1,
+          id: "evil",
+          name: "evil",
+          width: 100,
+          height: 100,
+          grid: {
+            type: "square",
+            size: 50,
+            squareSize: 5,
+            offsetX: 0,
+            offsetY: 0,
+            visible: true,
+            snap: true,
+          },
+          layers: [
+            {
+              id: "l",
+              name: "l",
+              kind: "walls",
+              visible: true,
+              locked: false,
+              opacity: 1,
+              zIndex: 0,
+            },
+          ],
+          elements: [],
+          terrain: {
+            schemaVersion: 1,
+            palette: ["terrain:stone-floor"],
+            chunks: { "0,0": [999999999, 1] },
+          },
+          revision: 1,
+          createdAt: 0,
+          updatedAt: 0,
+        },
+      ],
+    };
+
+    expect(validateLoadSessionEnvelope(hostile).valid).toBe(false);
   });
 
   it("refuses to export for a non-DM", () => {

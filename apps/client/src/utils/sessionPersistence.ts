@@ -96,10 +96,17 @@ function sanitizePlayerStagingZone(value: unknown): PlayerStagingZone | undefine
 function parseSnapshot(parsed: Record<string, unknown>): RoomSnapshot {
   ensureArray(parsed.tokens, "tokens");
   ensureArray(parsed.players, "players");
-  ensureArray(parsed.drawings, "drawings");
   ensureArray(parsed.characters, "characters");
   ensureArray(parsed.props ?? [], "props");
   ensureArray(parsed.diceRolls ?? [], "diceRolls");
+  // NOT required: `drawings`. The server's toSnapshot does not always emit the
+  // key — a room with none emits neither it nor an assetRef — and demanding it
+  // here rejected every file the new export wrote, at restore time, after the
+  // wipe it existed to survive. This parser must never be stricter than the
+  // server's own load validator; the server is the real gate.
+  if (parsed.drawings !== undefined) {
+    ensureArray(parsed.drawings, "drawings");
+  }
 
   if (typeof parsed.gridSize !== "number") {
     throw new Error("gridSize must be a number");
@@ -109,9 +116,12 @@ function parseSnapshot(parsed: Record<string, unknown>): RoomSnapshot {
     ...(parsed as unknown as RoomSnapshot),
     users: Array.isArray(parsed.users) ? (parsed.users as RoomSnapshot["users"]) : [],
     props: (parsed.props ?? []) as RoomSnapshot["props"],
+    drawings: (parsed.drawings ?? []) as RoomSnapshot["drawings"],
     pointers: (Array.isArray(parsed.pointers) ? parsed.pointers : []) as RoomSnapshot["pointers"],
     diceRolls: (parsed.diceRolls ?? []) as RoomSnapshot["diceRolls"],
-    mapBackground: typeof parsed.mapBackground === "string" ? parsed.mapBackground : undefined,
+    // mapBackground is NOT overridden: a file may carry it as a plain string
+    // (flattened) or via assetRefs (a legacy file), and the server resolves
+    // both. Coercing a non-string to undefined here silently dropped the map.
     playerStagingZone: sanitizePlayerStagingZone(parsed.playerStagingZone),
   };
 }

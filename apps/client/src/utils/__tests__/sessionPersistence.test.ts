@@ -138,8 +138,37 @@ describe("loadSession", () => {
     });
   });
 
+  it("loads a file with no drawings key at all", () => {
+    // THE REGRESSION GUARD. The server's toSnapshot emits NO `drawings` key — a
+    // room with none emits neither the key nor an assetRef. Requiring it here
+    // rejected every file the export wrote, and only at restore time, after the
+    // wipe the file existed to survive. This parser must never be stricter than
+    // the server's own load validator.
+    const { drawings: _drawings, ...noDrawings } = snapshot();
+
+    return loadSession(fileOf(noDrawings)).then((loaded) => {
+      expect(loaded.snapshot.drawings).toEqual([]);
+    });
+  });
+
+  it("keeps a map background it cannot classify rather than dropping it", () => {
+    // Coercing a non-plain-string background to undefined silently lost the map.
+    // A file may carry it flattened OR via assetRefs; the server resolves both.
+    return loadSession(
+      fileOf({ ...snapshot(), assetRefs: { "map-background": "map-background:abc" } }),
+    ).then((loaded) => {
+      expect(loaded.snapshot.assetRefs).toEqual({ "map-background": "map-background:abc" });
+    });
+  });
+
   it("still rejects a file that is not a session at all", () => {
     return expect(loadSession(fileOf({ nonsense: true }))).rejects.toThrow();
+  });
+
+  it("still rejects a drawings key that is present but not an array", () => {
+    return expect(loadSession(fileOf({ ...snapshot(), drawings: "nope" }))).rejects.toThrow(
+      /drawings/,
+    );
   });
 
   it("rejects a snapshot missing gridSize", () => {
