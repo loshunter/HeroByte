@@ -163,6 +163,17 @@ export class Container {
       const roomService = this.roomRegistry.get(roomId);
       roomService.saveState();
       await roomService.awaitPendingWrites();
+      // The await above is this sweep's ONLY yield point, and a client can
+      // authenticate into the room DURING it: the join runs synchronously,
+      // mutates this same RoomService, and queues a state write the awaited
+      // promise does not cover (the queue promise was captured at call time).
+      // Re-check both guards before tearing down — a join marks the session
+      // AND touches roomActivity, so either re-check catches it. Without
+      // this, the room unloads under an authenticated client and the orphaned
+      // write races the lazily-recreated service's writes on the SAME state
+      // file (torn JSON → the room reloads empty).
+      if (this.getAuthenticatedClientsForRoom(roomId).size > 0) continue;
+      if ((this.roomActivity.get(roomId) ?? 0) !== lastActivity) continue;
       this.routers.delete(roomId);
       this.roomRegistry.unload(roomId);
       this.roomActivity.delete(roomId);

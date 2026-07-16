@@ -336,4 +336,38 @@ describe("idle-room unload", () => {
     expect(unloaded).toEqual([]);
     expect(container.roomRegistry.listRooms()).toContain("room-fresh");
   });
+
+  it("does NOT unload a room a client joins during the pending-write flush", async () => {
+    // The sweep's guards run BEFORE its only yield point (awaiting the state
+    // flush), and a join is fully synchronous — so a client could authenticate
+    // into the room mid-flush and the sweep would tear the room down under
+    // them, orphaning their join's queued write to race the lazily-recreated
+    // service on the same state file. The re-check after the await must veto.
+    const roomService = container.getRoomServiceForRoom("room-race");
+    container.touchRoomActivity("room-race");
+    vi.advanceTimersByTime(31 * 60 * 1000);
+
+    // Suspend the sweep at the flush await...
+    let releaseFlush!: () => void;
+    vi.spyOn(roomService, "awaitPendingWrites").mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          releaseFlush = resolve;
+        }),
+    );
+    const sweep = container.unloadIdleRooms(30 * 60 * 1000);
+
+    // ...and let a player authenticate mid-flush (exactly what
+    // AuthenticationHandler.authenticate does: record the session, touch
+    // the room's activity), then release the flush.
+    container.uidToWs.set("late", fakeSocket() as unknown as WebSocket);
+    container.authenticatedUids.add("late");
+    container.authenticatedSessions.set("late", { roomId: "room-race", authedAt: Date.now() });
+    container.touchRoomActivity("room-race");
+    releaseFlush();
+
+    const unloaded = await sweep;
+    expect(unloaded).toEqual([]);
+    expect(container.roomRegistry.listRooms()).toContain("room-race");
+  });
 });
