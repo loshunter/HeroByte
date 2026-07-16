@@ -1713,7 +1713,7 @@
       },
       "data": {
         "width": 50,
-        "state": "secret",
+        "state": "closed",
         "blocksMovement": true,
         "blocksVision": true
       }
@@ -1733,7 +1733,7 @@
       },
       "data": {
         "width": 50,
-        "state": "secret",
+        "state": "closed",
         "blocksMovement": true,
         "blocksVision": true
       }

@@ -583,8 +583,10 @@ type ClientMessagePayload =
       params: {
         theme: "stone" | "wood";
         density: "low" | "medium" | "high";
-        secretDoorChance: number; // 0..1
       };
+      // NOTE: no secretDoorChance. Generated dungeons author no secret doors —
+      // the recipe's regularity makes them recoverable from the player's own
+      // payload. See dungeonGeometry.emitDoors.
     } // Run a server-side recipe; output applies to the document as ONE place-room command
 
   // Live scene interactions (compiled doors are clickable at the table)

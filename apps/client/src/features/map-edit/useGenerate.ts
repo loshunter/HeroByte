@@ -54,7 +54,6 @@ export function useGenerate(
   const [params, setParams] = useState<GenerateParams>({
     theme: "stone",
     density: "medium",
-    secretDoorChance: 0.15,
     seed: freshSeed(),
   });
   const [bounds, setBounds] = useState<CellBounds | null>(null);
@@ -87,11 +86,7 @@ export function useGenerate(
       recipe: "dungeon",
       seed: params.seed,
       bounds,
-      params: {
-        theme: params.theme,
-        density: params.density,
-        secretDoorChance: params.secretDoorChance,
-      },
+      params: { theme: params.theme, density: params.density },
     });
   }, [bounds, isLive, controller, params, notifyError]);
 

@@ -108,7 +108,7 @@ describe("Snapshot compression guard", () => {
     const output = dungeonRecipe(
       1,
       bounds,
-      { theme: "stone", density: "high", secretDoorChance: 0.15 },
+      { theme: "stone", density: "high" },
       {
         grid,
         layerIds: { walls: "walls", lighting: "lighting", notes: "notes", objects: "objects" },

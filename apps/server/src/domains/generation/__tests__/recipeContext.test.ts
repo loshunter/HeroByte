@@ -131,7 +131,7 @@ describe("resolveRecipeContext", () => {
 });
 
 describe("assertGenerateRequest", () => {
-  const params = { theme: "stone", density: "medium", secretDoorChance: 0.15 } as const;
+  const params = { theme: "stone", density: "medium" } as const;
 
   it("accepts a well-formed request", () => {
     expect(() => assertGenerateRequest(42, params)).not.toThrow();
@@ -140,13 +140,6 @@ describe("assertGenerateRequest", () => {
   it("rejects a NaN seed before it can poison the RNG stream", () => {
     expect(() => assertGenerateRequest(Number.NaN, params)).toThrow(/seed must be an integer/);
     expect(() => assertGenerateRequest(1.5, params)).toThrow(/seed must be an integer/);
-  });
-
-  it("rejects an out-of-range secretDoorChance", () => {
-    expect(() => assertGenerateRequest(1, { ...params, secretDoorChance: 1.5 })).toThrow(/between/);
-    expect(() => assertGenerateRequest(1, { ...params, secretDoorChance: Number.NaN })).toThrow(
-      /between/,
-    );
   });
 });
 

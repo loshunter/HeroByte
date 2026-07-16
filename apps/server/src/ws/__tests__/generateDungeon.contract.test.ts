@@ -90,7 +90,7 @@ function generateMessage(
     // At or above the recipe's 20×20 floor — below it a region fits one sealed
     // room and nothing to connect (see MIN_RECIPE_COLS).
     bounds: { x: 2, y: 2, cols: 24, rows: 20 },
-    params: { theme: "stone", density: "medium", secretDoorChance: 0.15 },
+    params: { theme: "stone", density: "medium" },
     ...overrides,
   };
 }
@@ -408,47 +408,25 @@ describe("map-studio-generate contracts", () => {
     expect(latestSnapshot(playerWs)?.compiledScene?.lights).toEqual([]);
   });
 
-  it("disguises every generated secret door as an anonymous wall for players", async () => {
+  it("authors no secret doors, and offers no dial asking for them", async () => {
+    // A generated secret door cannot stay secret: mapTerrain ships the whole
+    // floor plan unfiltered, a wall with floor on both sides can only be a seam,
+    // and every honest seam carries a door — so a doorless seam IS the secret,
+    // at 202/202 with no false positives. Rather than ship a dial that lies, the
+    // recipe authors none. (The disguise itself still holds for HAND-placed
+    // secret doors — see domains/room/__tests__/compiledSceneView.test.ts.)
     createLiveDoc();
     playerWs.send.mockClear();
 
-    // chance 1: every generated door is secret, so the player payload must
-    // contain NO doors at all — only #-suffixed wall segments they cannot tell
-    // apart from real walls.
-    route(
-      generateMessage({
-        commandId: "gen-secret",
-        params: { theme: "stone", density: "medium", secretDoorChance: 1 },
-      }),
-      DM,
-    );
+    route(generateMessage({ commandId: "gen-secret" }), DM);
     await flush();
 
     const dmScene = latestSnapshot(dmWs)?.compiledScene;
-    const playerScene = latestSnapshot(playerWs)?.compiledScene;
     expect(dmScene?.doors.length).toBeGreaterThan(0);
-    expect(playerScene?.doors).toEqual([]);
+    expect(dmScene?.doors.filter((door) => door.state === "secret")).toEqual([]);
 
-    // Every wall the player receives carries a real compiled-segment id shape...
-    for (const wall of playerScene?.walls ?? []) {
-      expect(wall.id).toMatch(/^gen-secret:e\d+#\d+$/);
-    }
-    // ...and every secret door's seam still blocks, without the door's own id
-    // ever reaching the wire: the disguise fuses it into the wall it splits, so
-    // there is no 1-cell segment to spot and no id to filter on.
-    for (const door of dmScene!.doors) {
-      const covered = playerScene?.walls.some((wall) =>
-        door.y1 === door.y2
-          ? wall.y1 === door.y1 &&
-            wall.y2 === door.y1 &&
-            Math.min(wall.x1, wall.x2) <= Math.min(door.x1, door.x2) &&
-            Math.max(wall.x1, wall.x2) >= Math.max(door.x1, door.x2)
-          : wall.x1 === door.x1 &&
-            wall.x2 === door.x1 &&
-            Math.min(wall.y1, wall.y2) <= Math.min(door.y1, door.y2) &&
-            Math.max(wall.y1, wall.y2) >= Math.max(door.y1, door.y2),
-      );
-      expect({ door: door.id, covered }).toEqual({ door: door.id, covered: true });
-    }
+    // The DM sees doors, so the player must too: nothing here is being hidden,
+    // and a player payload with zero doors would mean the disguise fired.
+    expect(latestSnapshot(playerWs)?.compiledScene?.doors.length).toBe(dmScene?.doors.length);
   });
 });

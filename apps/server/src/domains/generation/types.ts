@@ -21,8 +21,8 @@ export interface CellBounds {
 export interface DungeonParams {
   theme: "stone" | "wood";
   density: "low" | "medium" | "high";
-  /** Probability 0..1 that a generated door is authored "secret". */
-  secretDoorChance: number;
+  // No secretDoorChance — generated dungeons author no secret doors. See
+  // dungeonGeometry.emitDoors for why, and for what must be true to restore it.
 }
 
 /**

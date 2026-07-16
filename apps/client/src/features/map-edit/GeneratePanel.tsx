@@ -2,8 +2,8 @@
 // GENERATE PANEL (the dungeon recipe's dials)
 // ============================================================================
 // Shown while the Generate sub-tool is active: drag a region on the canvas, set
-// theme / density / secret-door odds / seed, hit GENERATE. The recipe runs on
-// the server and the whole dungeon lands as ONE undo step.
+// theme / density / seed, hit GENERATE. The recipe runs on the server and the
+// whole dungeon lands as ONE undo step.
 //
 // Same seed + same dials = the same dungeon, forever — that contract is why the
 // seed is shown rather than hidden, and why ⟳ is an explicit act.
@@ -27,11 +27,6 @@ const THEMES: { id: GenerateParams["theme"]; label: string }[] = [
   { id: "wood", label: "🪵 Wood" },
 ];
 const DENSITIES: PopulateDensity[] = ["low", "medium", "high"];
-const SECRET_STEPS = [
-  { value: 0, label: "None" },
-  { value: 0.15, label: "Few" },
-  { value: 0.35, label: "Many" },
-];
 
 const labelStyle = { display: "block", marginBottom: "4px", color: "var(--jrpg-gold)" } as const;
 const cell = { fontSize: "8px", padding: "6px 2px" } as const;
@@ -85,22 +80,6 @@ export function GeneratePanel({
       </div>
 
       <label className="jrpg-text-small" style={{ ...labelStyle, marginTop: "6px" }}>
-        Secret doors:
-      </label>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4px" }}>
-        {SECRET_STEPS.map((step) => (
-          <JRPGButton
-            key={step.label}
-            onClick={() => onChange({ ...params, secretDoorChance: step.value })}
-            variant={params.secretDoorChance === step.value ? "primary" : "default"}
-            style={cell}
-          >
-            {step.label}
-          </JRPGButton>
-        ))}
-      </div>
-
-      <label className="jrpg-text-small" style={{ ...labelStyle, marginTop: "6px" }}>
         Seed:
       </label>
       <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "4px" }}>
@@ -133,6 +112,17 @@ export function GeneratePanel({
       >
         {busy ? "⏳ GENERATING…" : "🎲 GENERATE"}
       </JRPGButton>
+
+      {/* Say it out loud rather than let a DM wonder where the option went — or
+          worse, assume a generated door might be hidden when none ever is. */}
+      <p
+        className="jrpg-text-small"
+        data-testid="generate-secret-note"
+        style={{ marginTop: "6px", color: "var(--jrpg-white)", opacity: 0.7, fontSize: "8px" }}
+      >
+        No secret doors yet — generated ones are readable by players. Place them by hand with the
+        Door tool.
+      </p>
     </div>
   );
 }

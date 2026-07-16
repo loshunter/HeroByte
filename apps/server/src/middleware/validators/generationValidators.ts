@@ -27,11 +27,14 @@ const bounds = z
     message: "bounds exceed 16384 cells",
   });
 
+// No secretDoorChance: generated dungeons author no secret doors (see
+// dungeonGeometry.emitDoors). `.strict()` means an old client still sending one
+// is REJECTED rather than silently ignored — better a clear error than a DM
+// believing they asked for something.
 const params = z
   .object({
     theme: z.enum(["stone", "wood"]),
     density: z.enum(["low", "medium", "high"]),
-    secretDoorChance: z.number().min(0).max(1),
   })
   .strict();
 

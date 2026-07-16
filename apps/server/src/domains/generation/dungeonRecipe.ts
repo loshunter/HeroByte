@@ -16,9 +16,10 @@ import type { CellBounds, DungeonParams, RecipeContext, RecipeOutput } from "./t
 /**
  * Stream salts (FROZEN — part of the determinism contract). Each stage draws
  * from its OWN generator so a roll-count change inside one stage can never
- * shift the output of the stages after it.
+ * shift the output of the stages after it. (Geometry has no stream: it draws no
+ * rolls now that no generated door is secret — see dungeonGeometry.emitDoors.
+ * 0x1f123bb5 was its salt; keep it reserved if that ever returns.)
  */
-const GEOMETRY_STREAM = 0x1f123bb5;
 const STOCKING_STREAM = 0x6a09e667;
 const ID_STREAM = 0x85ebca6b;
 
@@ -30,14 +31,7 @@ export function dungeonRecipe(
 ): RecipeOutput {
   const nextId = makeIdFactory(ctx.idPrefix);
   const layout = generateLayout(createSeededRng(seed), bounds.cols, bounds.rows, params.density);
-  const geometry = emitGeometry(
-    layout,
-    bounds,
-    params,
-    ctx,
-    createSeededRng(seed ^ GEOMETRY_STREAM),
-    nextId,
-  );
+  const geometry = emitGeometry(layout, bounds, params, ctx, nextId);
   const stocking = emitStocking(
     layout,
     bounds,

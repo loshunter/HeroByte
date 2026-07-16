@@ -14,7 +14,7 @@ import { makeIdFactory, MAX_RECIPE_ELEMENTS } from "../types.js";
 import type { CellBounds, DungeonParams, RecipeContext } from "../types.js";
 
 const BOUNDS: CellBounds = { x: 4, y: 4, cols: 24, rows: 18 };
-const PARAMS: DungeonParams = { theme: "stone", density: "medium", secretDoorChance: 0.15 };
+const PARAMS: DungeonParams = { theme: "stone", density: "medium" };
 
 function grid(overrides: Partial<MapGridSettings> = {}): MapGridSettings {
   return {
@@ -176,11 +176,13 @@ describe("dungeonRecipe — stocked output", () => {
     expect(Math.max(...wallOrdinals)).toBeGreaterThan(Math.min(...doorOrdinals));
   });
 
-  it("keeps the stocking stream independent of geometry", () => {
-    // Different secret-door chance reshuffles the geometry stream only; the
-    // rooms' keys and braziers must be untouched.
-    const a = dungeonRecipe(5, BOUNDS, { ...PARAMS, secretDoorChance: 0 }, context());
-    const b = dungeonRecipe(5, BOUNDS, { ...PARAMS, secretDoorChance: 1 }, context());
+  it("keeps the stocking stream independent of the id stream", () => {
+    // The id stream shuffles which ordinal each element gets. It must not reach
+    // back and change WHAT was stocked. (This replaced a secret-chance variant:
+    // geometry has no RNG left to isolate — no generated door is secret, see
+    // dungeonGeometry.emitDoors.)
+    const a = dungeonRecipe(5, BOUNDS, PARAMS, context({ idPrefix: "test" }));
+    const b = dungeonRecipe(5, BOUNDS, PARAMS, context({ idPrefix: "other-prefix-entirely" }));
     const stocking = (output: typeof a) =>
       output.elements.filter((e) => e.type === "text" || e.type === "light").map((e) => e.data);
 

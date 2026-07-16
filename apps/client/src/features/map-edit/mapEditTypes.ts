@@ -34,12 +34,14 @@ export type PopulateDensity = "low" | "medium" | "high";
 /** Asset category POPULATE scatters from (bundled categories only). */
 export type PopulateCategory = "objects" | "structures" | "terrain";
 
-/** The dungeon recipe's dial settings, owned by the palette. */
+/**
+ * The dungeon recipe's dial settings, owned by the palette. No secret-door dial:
+ * generated dungeons author none (the recipe is regular enough that players can
+ * read them off their own payload — see the server's dungeonGeometry.emitDoors).
+ */
 export interface GenerateParams {
   theme: "stone" | "wood";
   density: PopulateDensity;
-  /** 0..1 — how often a generated door is authored secret. */
-  secretDoorChance: number;
   seed: number;
 }
 

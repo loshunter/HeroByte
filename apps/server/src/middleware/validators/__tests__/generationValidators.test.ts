@@ -13,7 +13,7 @@ function message(overrides: Record<string, unknown> = {}): Record<string, unknow
     recipe: "dungeon",
     seed: 42,
     bounds: { x: 0, y: 0, cols: 24, rows: 20 },
-    params: { theme: "stone", density: "medium", secretDoorChance: 0.15 },
+    params: { theme: "stone", density: "medium" },
     ...overrides,
   };
 }
@@ -65,11 +65,16 @@ describe("validateMapStudioGenerateMessage", () => {
     expect(!result.valid && result.error).toMatch(/16384/);
   });
 
-  it("rejects an out-of-range secretDoorChance", () => {
+  it("rejects a stale client still asking for secret doors", () => {
+    // Generated dungeons author no secret doors (dungeonGeometry.emitDoors), so
+    // the dial is gone. `.strict()` makes a stale tab that still sends the field
+    // fail LOUDLY rather than have the ask silently dropped — a DM who thinks
+    // they asked for secrets and got none is the whole failure we are avoiding.
     const result = validateMapStudioGenerateMessage(
-      message({ params: { theme: "stone", density: "medium", secretDoorChance: 1.2 } }),
+      message({ params: { theme: "stone", density: "medium", secretDoorChance: 0.5 } }),
     );
     expect(result.valid).toBe(false);
+    expect(!result.valid && result.error).toMatch(/params/);
   });
 
   it("caps commandId at 120 so generated element ids stay under the 128-char cap", () => {
@@ -83,7 +88,7 @@ describe("validateMapStudioGenerateMessage", () => {
 
   it("rejects an unknown density", () => {
     const result = validateMapStudioGenerateMessage(
-      message({ params: { theme: "stone", density: "extreme", secretDoorChance: 0.1 } }),
+      message({ params: { theme: "stone", density: "extreme" } }),
     );
     expect(result.valid).toBe(false);
   });

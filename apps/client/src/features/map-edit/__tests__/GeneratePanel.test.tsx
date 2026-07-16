@@ -6,7 +6,6 @@ import type { GenerateParams } from "../mapEditTypes";
 const params: GenerateParams = {
   theme: "stone",
   density: "medium",
-  secretDoorChance: 0.15,
   seed: 4242,
 };
 
@@ -80,12 +79,15 @@ describe("GeneratePanel", () => {
     expect(props.onChange).toHaveBeenCalledWith({ ...params, density: "high" });
   });
 
-  it("changes the secret-door odds, including off", () => {
-    const props = renderPanel();
+  it("says out loud that generated dungeons have no secret doors", () => {
+    // There is no secret-door dial (a generated secret is readable off the
+    // player's own terrain — see the server's dungeonGeometry.emitDoors). Its
+    // absence must be STATED: a DM who assumes a generated door might be hidden
+    // and builds a session on it is exactly who this note protects.
+    renderPanel();
 
-    fireEvent.click(screen.getByRole("button", { name: "None" }));
-
-    expect(props.onChange).toHaveBeenCalledWith({ ...params, secretDoorChance: 0 });
+    expect(screen.getByTestId("generate-secret-note")).toHaveTextContent(/no secret doors/i);
+    expect(screen.queryByRole("button", { name: "None" })).toBeNull();
   });
 
   it("rerolls the seed", () => {

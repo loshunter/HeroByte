@@ -17,7 +17,7 @@ import golden from "./fixtures/dungeon-seed1-24x20-stone.json" with { type: "jso
 
 const SEEDS = Array.from({ length: 15 }, (_, i) => i + 1);
 const BOUNDS: CellBounds = { x: 4, y: 4, cols: 24, rows: 18 };
-const PARAMS: DungeonParams = { theme: "stone", density: "medium", secretDoorChance: 0.15 };
+const PARAMS: DungeonParams = { theme: "stone", density: "medium" };
 
 function grid(overrides: Partial<MapGridSettings> = {}): MapGridSettings {
   return {
@@ -43,7 +43,7 @@ function context(overrides: Partial<RecipeContext> = {}): RecipeContext {
 
 function outputFor(seed: number, params = PARAMS, ctx = context(), bounds = BOUNDS): RecipeOutput {
   const layout = generateLayout(createSeededRng(seed), bounds.cols, bounds.rows, params.density);
-  return emitGeometry(layout, bounds, params, ctx, createSeededRng(seed ^ 0x1f123bb5));
+  return emitGeometry(layout, bounds, params, ctx);
 }
 
 /**
@@ -105,7 +105,7 @@ describe("emitGeometry — the sealed-dungeon property", () => {
       for (const seed of SEEDS) {
         const params = { ...PARAMS, density };
         const layout = generateLayout(createSeededRng(seed), BOUNDS.cols, BOUNDS.rows, density);
-        const output = emitGeometry(layout, BOUNDS, params, context(), createSeededRng(seed));
+        const output = emitGeometry(layout, BOUNDS, params, context());
         const { walls, doors } = blockersOf(output, context(), BOUNDS);
         const roomOf = indexRoomCells(layout.rooms);
         const problems: string[] = [];
@@ -231,27 +231,25 @@ describe("emitGeometry — units", () => {
 });
 
 describe("emitGeometry — doors and layers", () => {
-  it("authors doors closed or secret, never open", () => {
+  it("authors every door CLOSED — never open, and never secret", () => {
+    // Closed, because an authored-open door compiles to nothing blocking: a hole.
+    // Never secret, because this recipe cannot hide one: a wall with floor on
+    // both sides can only be a room/corridor seam, every honest seam group has
+    // exactly one door, and mapTerrain hands players the floor plan — so a
+    // doorless seam group IS a secret door, at 202/202 with no false positives.
+    // See dungeonGeometry.emitDoors. Restoring them needs fog-aware terrain.
     for (const seed of SEEDS) {
       const output = outputFor(seed);
+      let doors = 0;
       for (const element of output.elements) {
         if (element.type !== "door") continue;
-        // An authored-open door compiles to nothing blocking: a hole.
-        expect(["closed", "secret"]).toContain(element.data.state);
+        doors++;
+        expect({ seed, state: element.data.state }).toEqual({ seed, state: "closed" });
         expect(element.data.blocksMovement).toBe(true);
         expect(element.data.blocksVision).toBe(true);
       }
+      expect(doors).toBeGreaterThan(0);
     }
-  });
-
-  it("makes every door secret at chance 1 and none at chance 0", () => {
-    const all = outputFor(1, { ...PARAMS, secretDoorChance: 1 });
-    const none = outputFor(1, { ...PARAMS, secretDoorChance: 0 });
-    const states = (output: RecipeOutput) =>
-      new Set(output.elements.filter((e) => e.type === "door").map((e) => e.data.state));
-
-    expect(states(all)).toEqual(new Set(["secret"]));
-    expect(states(none)).toEqual(new Set(["closed"]));
   });
 
   it("puts walls and doors on the resolved walls layer", () => {
@@ -285,7 +283,7 @@ describe("dungeonRecipe — the determinism contract", () => {
     const output = dungeonRecipe(
       1,
       { x: 4, y: 4, cols: 24, rows: 20 },
-      { theme: "stone", density: "medium", secretDoorChance: 0.15 },
+      { theme: "stone", density: "medium" },
       context({ idPrefix: "golden" }),
     );
 
@@ -307,16 +305,16 @@ describe("dungeonRecipe — the determinism contract", () => {
     expect(a.elements.length).toBeGreaterThan(0);
   });
 
-  it("keeps the geometry stream independent of the layout stream", () => {
-    // Same layout inputs, different secret chance: only door STATES may differ,
-    // never the floor plan. A shared stream would reshuffle the whole dungeon.
+  it("keeps the theme out of the layout — only the floor's asset changes", () => {
+    // Theme is pure paint. If it leaked into a roll, picking wood would rebuild
+    // the dungeon rather than redecorate it. (This replaced a secret-chance
+    // variant of the same check: geometry has no RNG left to isolate, because no
+    // generated door is secret — see emitDoors.)
     const ctx = context();
-    const a = dungeonRecipe(5, BOUNDS, { ...PARAMS, secretDoorChance: 0 }, ctx);
-    const b = dungeonRecipe(5, BOUNDS, { ...PARAMS, secretDoorChance: 1 }, ctx);
+    const stone = dungeonRecipe(5, BOUNDS, { ...PARAMS, theme: "stone" }, ctx);
+    const wood = dungeonRecipe(5, BOUNDS, { ...PARAMS, theme: "wood" }, ctx);
 
-    expect(a.cells).toEqual(b.cells);
-    expect(a.elements.filter((e) => e.type === "wall")).toEqual(
-      b.elements.filter((e) => e.type === "wall"),
-    );
+    expect(stone.cells.map((c) => `${c.x},${c.y}`)).toEqual(wood.cells.map((c) => `${c.x},${c.y}`));
+    expect(stone.elements).toEqual(wood.elements);
   });
 });

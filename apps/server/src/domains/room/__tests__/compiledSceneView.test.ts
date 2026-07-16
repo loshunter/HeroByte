@@ -2,24 +2,42 @@
 // COMPILED SCENE VIEW — the secret-door disguise, attacked
 // ============================================================================
 // These are the ATTACKS an adversarial gate ran against the disguise, kept as
-// regressions. Each one recovered every generated secret door from the player's
-// own payload with zero false positives. Asserting "the id looks right" is not
+// regressions. Each one recovered every secret door from the player's own
+// payload with zero false positives. Asserting "the id looks right" is not
 // enough — the geometry has to lie convincingly too.
+//
+// The attacks were originally run against GENERATED dungeons. Generated ones no
+// longer author secret doors at all (see dungeonGeometry.emitDoors: the terrain
+// channel hands players the floor plan, which gives away a generated secret
+// regardless of what this file does). So the attacks now run against
+// HAND-AUTHORED scenes, which is where the disguise still has to hold: a DM
+// placing a door with the Door tool decides its state, and nothing about a
+// hand-drawn map tells a player where the seams are.
+//
+// The generated dungeon still appears below — as the source of realistic wall
+// geometry for the fusion checks, not as a carrier of secrets.
 
 import { describe, it, expect } from "vitest";
-import { compileScene, type CompiledScene, type CompiledWallSegment } from "@herobyte/shared";
+import {
+  compileScene,
+  type CompiledScene,
+  type CompiledWallSegment,
+  type MapDocument,
+  type MapElement,
+} from "@herobyte/shared";
 import { compiledSceneFor } from "../compiledSceneView.js";
 import { dungeonRecipe } from "../../generation/dungeonRecipe.js";
 import type { CellBounds, DungeonParams, RecipeContext } from "../../generation/types.js";
 
 const BOUNDS: CellBounds = { x: 4, y: 4, cols: 24, rows: 18 };
-const PARAMS: DungeonParams = { theme: "stone", density: "medium", secretDoorChance: 0.15 };
+const PARAMS: DungeonParams = { theme: "stone", density: "medium" };
+const SIZE = 50;
 
 function ctx(idPrefix = "gen"): RecipeContext {
   return {
     grid: {
       type: "square",
-      size: 50,
+      size: SIZE,
       squareSize: 5,
       offsetX: 0,
       offsetY: 0,
@@ -31,62 +49,99 @@ function ctx(idPrefix = "gen"): RecipeContext {
   };
 }
 
+function documentWith(elements: MapElement[]): MapDocument {
+  const layer = (id: string, kind: "walls" | "lighting" | "notes" | "objects", zIndex: number) => ({
+    id,
+    name: id,
+    kind,
+    visible: true,
+    locked: false,
+    opacity: 1,
+    zIndex,
+  });
+  return {
+    schemaVersion: 1,
+    id: "doc",
+    name: "doc",
+    width: 2048,
+    height: 2048,
+    grid: ctx().grid,
+    layers: [
+      layer("walls", "walls", 0),
+      layer("lighting", "lighting", 1),
+      layer("notes", "notes", 2),
+      layer("objects", "objects", 3),
+    ],
+    elements,
+    revision: 1,
+    createdAt: 0,
+    updatedAt: 0,
+  };
+}
+
 /** Compile a generated dungeon exactly as the live path does. */
 function sceneFor(seed: number, params = PARAMS): CompiledScene {
-  const output = dungeonRecipe(seed, BOUNDS, params, ctx());
-  return compileScene(
-    {
-      schemaVersion: 1,
-      id: "doc",
-      name: "doc",
-      width: 2048,
-      height: 2048,
-      grid: ctx().grid,
-      layers: [
-        {
-          id: "walls",
-          name: "walls",
-          kind: "walls",
-          visible: true,
-          locked: false,
-          opacity: 1,
-          zIndex: 0,
-        },
-        {
-          id: "lighting",
-          name: "l",
-          kind: "lighting",
-          visible: true,
-          locked: false,
-          opacity: 1,
-          zIndex: 1,
-        },
-        {
-          id: "notes",
-          name: "n",
-          kind: "notes",
-          visible: true,
-          locked: false,
-          opacity: 1,
-          zIndex: 2,
-        },
-        {
-          id: "objects",
-          name: "o",
-          kind: "objects",
-          visible: true,
-          locked: false,
-          opacity: 1,
-          zIndex: 3,
-        },
+  return compileScene(documentWith(dungeonRecipe(seed, BOUNDS, params, ctx()).elements), 0);
+}
+
+// ---------------------------------------------------------------------------
+// Hand-authored fixture: the geometry a DM's own room produces
+// ---------------------------------------------------------------------------
+
+/** A wall run along y=0 from x1 to x2, the shape the Wall tool draws. */
+function wallElement(id: string, x1: number, y1: number, x2: number, y2: number): MapElement {
+  return {
+    id,
+    layerId: "walls",
+    type: "wall",
+    locked: false,
+    hidden: false,
+    transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+    data: {
+      points: [
+        { x: x1, y: y1 },
+        { x: x2, y: y2 },
       ],
-      elements: output.elements,
-      revision: 1,
-      createdAt: 0,
-      updatedAt: 0,
+      blocksMovement: true,
+      blocksVision: true,
     },
-    0,
-  );
+  };
+}
+
+/** A one-cell door at (x, y), horizontal unless rotated. */
+function doorElement(
+  id: string,
+  x: number,
+  y: number,
+  state: "closed" | "secret",
+  rotation = 0,
+): MapElement {
+  return {
+    id,
+    layerId: "walls",
+    type: "door",
+    locked: false,
+    hidden: false,
+    transform: { x, y, scaleX: 1, scaleY: 1, rotation },
+    data: { width: SIZE, state, blocksMovement: true, blocksVision: true },
+  };
+}
+
+/**
+ * A hand-drawn 4x4 room with a door in the middle of its top wall. The DM broke
+ * the top wall around the doorway exactly as the Wall tool would, so the door's
+ * seam sits between two collinear touching runs — the junction the segmentation
+ * attack hunts for.
+ */
+function roomWithDoor(state: "closed" | "secret"): MapDocument {
+  return documentWith([
+    wallElement("w1", 0, 0, 50, 0),
+    wallElement("w2", 100, 0, 200, 0),
+    wallElement("w3", 200, 0, 200, 200),
+    wallElement("w4", 200, 200, 0, 200),
+    wallElement("w5", 0, 200, 0, 0),
+    doorElement("d1", 50, 0, state),
+  ]);
 }
 
 /** Ordinal of an element id like `gen:e17` or a segment id like `gen:e17#0`. */
@@ -95,7 +150,7 @@ function ordinalOf(id: string): number {
 }
 
 /** Split a segment into its unit lattice edges, tagged with the owning id. */
-function unitEdges(wall: CompiledWallSegment, size = 50): Array<{ key: string; owner: string }> {
+function unitEdges(wall: CompiledWallSegment, size = SIZE): Array<{ key: string; owner: string }> {
   const edges: Array<{ key: string; owner: string }> = [];
   const horizontal = wall.y1 === wall.y2;
   const from = horizontal ? Math.min(wall.x1, wall.x2) : Math.min(wall.y1, wall.y2);
@@ -109,30 +164,106 @@ function unitEdges(wall: CompiledWallSegment, size = 50): Array<{ key: string; o
 
 const SEEDS = Array.from({ length: 15 }, (_, i) => i + 1);
 
-describe("compiledSceneFor — the id-ordinal attack", () => {
-  it("never lets a wall's ordinal betray a secret door", () => {
-    // THE ATTACK: elements were numbered walls-first, doors-second, so a
-    // disguised door arrived in the wall list carrying a door-range ordinal.
-    // Filtering walls for `ordinal > min(visible door ordinal)` found 27 of 32
-    // secret doors with zero false positives.
-    let flagged = 0;
-    for (const seed of SEEDS) {
-      const scene = sceneFor(seed);
-      const player = compiledSceneFor(scene, false);
-      if (!player.doors.length) continue;
-      const lowestDoorOrdinal = Math.min(...player.doors.map((door) => ordinalOf(door.id)));
-      flagged += player.walls.filter((wall) => ordinalOf(wall.id) > lowestDoorOrdinal).length;
-    }
-    // With permuted ids the ordinal carries no kind, so this filter is noise:
-    // it must not isolate the secret set. (It flags plenty of REAL walls now —
-    // that is the point; the signal is gone.)
-    const secretCount = SEEDS.reduce(
-      (n, seed) => n + sceneFor(seed).doors.filter((d) => d.state === "secret").length,
-      0,
-    );
-    expect(secretCount).toBeGreaterThan(0);
-    expect(flagged).not.toBe(secretCount);
+/** Junctions between two differently-owned collinear touching unit edges. */
+function splicePoints(scene: CompiledScene): number {
+  const owners = new Map<string, string>();
+  for (const wall of scene.walls) {
+    for (const edge of unitEdges(wall)) owners.set(edge.key, edge.owner);
+  }
+  let splices = 0;
+  for (const [key, owner] of owners) {
+    const [orientation, coords] = key.split(":") as ["h" | "v", string];
+    const [a, b] = coords.split(",").map(Number) as [number, number];
+    // The next unit edge along the same line.
+    const nextKey = orientation === "h" ? `h:${a + SIZE},${b}` : `v:${a},${b + SIZE}`;
+    const next = owners.get(nextKey);
+    if (next && next !== owner) splices++;
+  }
+  return splices;
+}
+
+describe("compiledSceneFor — the segmentation attack", () => {
+  // THE ATTACK: a spliced-in 1-cell disguised door leaves an impossible
+  // junction — two differently-owned segments that are collinear AND touching.
+  // Against generated dungeons (maximal runs, so no genuine junction exists) it
+  // recovered 30 of 32 secret doors with zero false positives. It works on
+  // hand-drawn rooms for the same reason: a DM who breaks a wall around a
+  // doorway leaves two runs that only meet again if something fills the gap.
+
+  it("leaves no splice junction where a hand-placed secret door sits", () => {
+    const player = compiledSceneFor(compileScene(roomWithDoor("secret"), 0), false);
+
+    expect(splicePoints(player)).toBe(0);
   });
+
+  it("gives a secret door the same payload as a plain wall on that seam", () => {
+    // The strongest statement of the disguise: what the player receives for a
+    // secret door must be byte-identical to a room whose top wall was simply
+    // drawn unbroken. Not "similar" — the same.
+    const secret = compiledSceneFor(compileScene(roomWithDoor("secret"), 0), false);
+    const plain = compiledSceneFor(
+      compileScene(
+        documentWith([
+          wallElement("w1", 0, 0, 200, 0),
+          wallElement("w3", 200, 0, 200, 200),
+          wallElement("w4", 200, 200, 0, 200),
+          wallElement("w5", 0, 200, 0, 0),
+        ]),
+        0,
+      ),
+      false,
+    );
+    const geometry = (scene: CompiledScene) =>
+      scene.walls
+        .flatMap((wall) => unitEdges(wall).map((edge) => edge.key))
+        .sort()
+        .join("|");
+
+    expect(geometry(secret)).toBe(geometry(plain));
+    expect(secret.doors).toHaveLength(0);
+  });
+
+  it("keeps the disguised door blocking exactly the seam it covered", () => {
+    // Fusing must not move or lose the blocker: the union of unit edges the
+    // player receives must equal the DM's walls plus every secret door's seam.
+    const scene = compileScene(roomWithDoor("secret"), 0);
+    const player = compiledSceneFor(scene, false);
+    const dmBlocking = new Set(
+      [
+        ...scene.walls,
+        ...scene.doors
+          .filter((door) => door.state === "secret")
+          .map((door) => ({ ...door, id: `${door.id}#0` })),
+      ].flatMap((segment) => unitEdges(segment as CompiledWallSegment).map((e) => e.key)),
+    );
+    const playerBlocking = new Set(
+      player.walls.flatMap((wall) => unitEdges(wall).map((edge) => edge.key)),
+    );
+
+    expect([...playerBlocking].sort()).toEqual([...dmBlocking].sort());
+  });
+
+  it("still shows a non-secret door as a door", () => {
+    // The control that makes the tests above mean something: the disguise fires
+    // for secret doors ONLY. A closed door stays a door the player can see and
+    // open, and its seam stays OUT of the wall list — the doorway is a real gap
+    // in the top wall, which is why that wall does not fuse into one run.
+    const player = compiledSceneFor(compileScene(roomWithDoor("closed"), 0), false);
+    const topRun = player.walls.filter((wall) => wall.y1 === 0 && wall.y2 === 0);
+
+    expect(player.doors.map((door) => door.state)).toEqual(["closed"]);
+    expect(topRun).toHaveLength(2);
+    expect(new Set(player.walls.flatMap((w) => unitEdges(w).map((e) => e.key)))).not.toContain(
+      "h:50,0",
+    );
+  });
+});
+
+describe("compiledSceneFor — the id-ordinal attack", () => {
+  // THE ATTACK: elements were numbered walls-first, doors-second, so a disguised
+  // door arrived in the wall list carrying a door-range ordinal. Filtering walls
+  // for `ordinal > min(visible door ordinal)` recovered 27 of 32 secret doors
+  // with zero false positives. dungeonRecipe.shuffleIds killed the correlation.
 
   it("mints ids whose ordinal does not correlate with element kind", () => {
     const scene = sceneFor(1);
@@ -146,81 +277,16 @@ describe("compiledSceneFor — the id-ordinal attack", () => {
   });
 });
 
-describe("compiledSceneFor — the segmentation attack", () => {
-  /**
-   * THE ATTACK: generated walls are MAXIMAL runs, so no two real segments are
-   * ever collinear AND touching. A spliced-in 1-cell disguised door produced
-   * exactly that impossible junction. 30 of 32 secret doors, zero false
-   * positives — and a `secretDoorChance: 0` control flagged nothing, which is
-   * what made the tell conclusive.
-   */
-  function splicePoints(scene: CompiledScene): number {
-    const owners = new Map<string, string>();
-    for (const wall of scene.walls) {
-      for (const edge of unitEdges(wall)) owners.set(edge.key, edge.owner);
-    }
-    let splices = 0;
-    for (const [key, owner] of owners) {
-      const [orientation, coords] = key.split(":") as ["h" | "v", string];
-      const [a, b] = coords.split(",").map(Number) as [number, number];
-      // The next unit edge along the same line.
-      const nextKey = orientation === "h" ? `h:${a + 50},${b}` : `v:${a},${b + 50}`;
-      const next = owners.get(nextKey);
-      if (next && next !== owner) splices++;
-    }
-    return splices;
-  }
-
-  it("leaves no splice junction for an attacker to find", () => {
+describe("compiledSceneFor — fusion on real generated geometry", () => {
+  it("hands players a clean maximal decomposition of a whole dungeon", () => {
+    // Not a secrecy claim (generated dungeons hold no secrets) — a fusion one:
+    // the merge must be sound across every wall shape the recipe emits, since
+    // it runs on the same payload that carries hand-placed secret doors.
     for (const seed of SEEDS) {
       const player = compiledSceneFor(sceneFor(seed), false);
 
-      // A junction between two differently-owned collinear touching edges is
-      // impossible among genuine maximal walls — so ANY junction is a tell.
       expect({ seed, splices: splicePoints(player) }).toEqual({ seed, splices: 0 });
-    }
-  });
-
-  it("produces a payload identical to a plain wall on the same seam", () => {
-    // The strongest statement of the disguise: swap every secret door for a
-    // plain closed door (so the seam is walled for the player either way) and
-    // the player's geometry must be unchanged.
-    for (const seed of SEEDS) {
-      const secret = compiledSceneFor(sceneFor(seed, { ...PARAMS, secretDoorChance: 1 }), false);
-      const geometry = (scene: CompiledScene) =>
-        scene.walls
-          .flatMap((wall) => unitEdges(wall).map((edge) => edge.key))
-          .sort()
-          .join("|");
-
-      // Every seam is walled; the shape must be a clean maximal decomposition.
-      expect({ seed, splices: splicePoints(secret) }).toEqual({ seed, splices: 0 });
-      expect(geometry(secret).length).toBeGreaterThan(0);
-    }
-  });
-
-  it("keeps the disguised door blocking exactly the seam it covered", () => {
-    // Fusing must not move or lose the blocker: the union of unit edges the
-    // player receives must equal the DM's walls plus every secret door's seam.
-    for (const seed of SEEDS) {
-      const scene = sceneFor(seed);
-      const player = compiledSceneFor(scene, false);
-      const dmBlocking = new Set(
-        [
-          ...scene.walls,
-          ...scene.doors
-            .filter((door) => door.state === "secret")
-            .map((door) => ({ ...door, id: `${door.id}#0` })),
-        ].flatMap((segment) => unitEdges(segment as CompiledWallSegment).map((e) => e.key)),
-      );
-      const playerBlocking = new Set(
-        player.walls.flatMap((wall) => unitEdges(wall).map((edge) => edge.key)),
-      );
-
-      expect({ seed, blocking: [...playerBlocking].sort() }).toEqual({
-        seed,
-        blocking: [...dmBlocking].sort(),
-      });
+      expect(player.walls.length).toBeGreaterThan(0);
     }
   });
 });

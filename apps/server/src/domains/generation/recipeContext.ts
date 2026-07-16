@@ -50,16 +50,9 @@ export function resolveRecipeContext(
  * server-side caller that bypasses it (a future Atlas auto-generation), and it
  * stops a NaN seed from silently poisoning the RNG stream.
  */
-export function assertGenerateRequest(seed: number, params: DungeonParams): void {
+export function assertGenerateRequest(seed: number, _params: DungeonParams): void {
   if (!Number.isInteger(seed)) {
     throw new Error("Generate seed must be an integer");
-  }
-  if (
-    !Number.isFinite(params.secretDoorChance) ||
-    params.secretDoorChance < 0 ||
-    params.secretDoorChance > 1
-  ) {
-    throw new Error("Generate secretDoorChance must be between 0 and 1");
   }
 }
 

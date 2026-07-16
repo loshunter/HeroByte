@@ -208,7 +208,6 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
       generateParams: {
         theme: "stone" as const,
         density: "medium" as const,
-        secretDoorChance: 0.15,
         seed: 1,
       },
       onGenerateParamsChange: vi.fn(),

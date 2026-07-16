@@ -318,7 +318,7 @@ describe("useMapStudio", () => {
       recipe: "dungeon" as const,
       seed: 42,
       bounds: { x: 2, y: 2, cols: 24, rows: 18 },
-      params: { theme: "stone" as const, density: "medium" as const, secretDoorChance: 0.15 },
+      params: { theme: "stone" as const, density: "medium" as const },
     };
 
     function activeDocument() {

@@ -26,9 +26,9 @@ async function startLiveMap(page: Page) {
   await waitForSnap(page, () => Boolean(window.__HERO_BYTE_E2E__?.snapshot?.liveMapDocumentId));
 }
 
-async function generate(page: Page, commandId: string, secretDoorChance: number) {
+async function generate(page: Page, commandId: string) {
   await page.evaluate(
-    ([id, chance, region]) => {
+    ([id, region]) => {
       const data = window.__HERO_BYTE_E2E__!;
       data.sendMessage!({
         t: "map-studio-generate",
@@ -37,15 +37,15 @@ async function generate(page: Page, commandId: string, secretDoorChance: number)
         recipe: "dungeon",
         seed: 20260715,
         bounds: region as { x: number; y: number; cols: number; rows: number },
-        params: { theme: "stone", density: "medium", secretDoorChance: chance as number },
+        params: { theme: "stone", density: "medium" },
       });
     },
-    [commandId, secretDoorChance, REGION] as const,
+    [commandId, REGION] as const,
   );
 }
 
 test.describe("Dungeon generate smoke", () => {
-  test("a DM generates a dungeon; a player gets it, works its doors, and sees no secrets", async ({
+  test("a DM generates a dungeon; a player gets it, works its doors, and gets no DM notes", async ({
     browser,
   }) => {
     test.setTimeout(90_000);
@@ -67,7 +67,7 @@ test.describe("Dungeon generate smoke", () => {
       await expect(page.getByTestId("generate-seed")).not.toBeEmpty();
 
       // ---- DM: generate → a whole dungeon compiles onto the table ----
-      await generate(page, "e2e-gen-1", 0.15);
+      await generate(page, "e2e-gen-1");
       await waitForSnap(page, () => {
         const scene = window.__HERO_BYTE_E2E__?.snapshot?.compiledScene;
         return (scene?.walls?.length ?? 0) > 4 && (scene?.doors?.length ?? 0) > 0;

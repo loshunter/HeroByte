@@ -81,17 +81,19 @@ describe("useGenerate", () => {
       result.current.setParams({
         theme: "wood",
         density: "high",
-        secretDoorChance: 0.35,
         seed: 4242,
       }),
     );
     act(() => result.current.onGenerate());
 
+    // The seed rides beside params, not inside them: it identifies the dungeon,
+    // the params describe it. The server's schema is strict, so an extra field
+    // here would be a rejected message rather than an ignored one.
     expect(ctrl.generate).toHaveBeenCalledWith({
       recipe: "dungeon",
       seed: 4242,
       bounds: { x: 2, y: 2, cols: 24, rows: 20 },
-      params: { theme: "wood", density: "high", secretDoorChance: 0.35 },
+      params: { theme: "wood", density: "high" },
     });
   });
 

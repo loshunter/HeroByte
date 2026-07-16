@@ -16,7 +16,7 @@
 // because both of a seam's cells are floor — every wide corridor would open a
 // hole into its room. G2's walkability property is what pins this.
 
-import type { MapDoorElement, MapWallElement, SeededRng, TerrainPaintCell } from "@herobyte/shared";
+import type { MapDoorElement, MapWallElement, TerrainPaintCell } from "@herobyte/shared";
 import { cellKey, indexRoomCells, type DungeonLayout, type LayoutEdge } from "./dungeonLayout.js";
 import { makeIdFactory } from "./types.js";
 import type { CellBounds, DungeonParams, RecipeContext, RecipeOutput } from "./types.js";
@@ -36,12 +36,16 @@ interface WallRun {
   to: number;
 }
 
+/**
+ * Geometry draws NO rolls: the layout decides where everything goes, and every
+ * door is authored closed (see emitDoors). It kept an RNG only while generated
+ * doors could be secret.
+ */
 export function emitGeometry(
   layout: DungeonLayout,
   bounds: CellBounds,
   params: DungeonParams,
   ctx: RecipeContext,
-  rng: SeededRng,
   /** Shared with the other stages so ONE counter spans the whole document. */
   nextId: () => string = makeIdFactory(ctx.idPrefix),
 ): RecipeOutput {
@@ -49,7 +53,7 @@ export function emitGeometry(
     cells: emitFloor(layout, bounds, params),
     elements: [
       ...emitWalls(layout, bounds, ctx, nextId),
-      ...emitDoors(layout, bounds, ctx, params, rng, nextId),
+      ...emitDoors(layout, bounds, ctx, nextId),
     ],
   };
 }
@@ -196,17 +200,36 @@ function runEndpoints(
 // Doors
 // ---------------------------------------------------------------------------
 
+/**
+ * Every generated door is authored CLOSED. None are secret, deliberately.
+ *
+ * A secret door is disguised for players by re-emitting it as anonymous wall
+ * (compiledSceneView). That disguise holds for a HAND-AUTHORED map, and it does
+ * not hold here, because this recipe is too regular to lie:
+ *
+ *   - `mapTerrain` ships the whole floor plan to every player, unfiltered — by
+ *     design, since fog hides it visually rather than by omission.
+ *   - `wallEdgesOf` blocks exactly two families, so a wall with floor on BOTH
+ *     sides can only be a room/corridor seam.
+ *   - `findDoorSites` gives every seam group exactly ONE door.
+ *
+ * So: group the internal blockers, and any group without a visible door has a
+ * secret one. A gate ran that over the player's own payload — 202/202 found,
+ * zero false positives, and a no-secrets control flagging nothing, which is what
+ * made it total. G4.5 fixed how the walls are CHOPPED; it cannot hide WHERE they
+ * are, and the floor plan is what talks.
+ *
+ * A DM who selects "many secret doors" and builds a session on that is worse off
+ * than one told the feature is not ready. Restoring it needs the terrain channel
+ * to stop shipping unexplored floor — VISION's memory fog — not a tweak here.
+ */
 function emitDoors(
   layout: DungeonLayout,
   bounds: CellBounds,
   ctx: RecipeContext,
-  params: DungeonParams,
-  rng: SeededRng,
   nextId: () => string,
 ): MapDoorElement[] {
   return layout.doorSites.map((site) => {
-    // ONE roll per site, drawn unconditionally in door-site order (rule §4.2).
-    const secret = rng() < params.secretDoorChance;
     return {
       id: nextId(),
       layerId: ctx.layerIds.walls,
@@ -225,9 +248,9 @@ function emitDoors(
       },
       data: {
         width: ctx.grid.size,
-        // Authored "closed" (or "secret"): an authored-open door compiles to
-        // nothing blocking — an invisible hole in the wall.
-        state: secret ? ("secret" as const) : ("closed" as const),
+        // Authored "closed": an authored-open door compiles to nothing blocking
+        // — an invisible hole in the wall.
+        state: "closed" as const,
         blocksMovement: true,
         blocksVision: true,
       },

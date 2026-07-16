@@ -16,15 +16,19 @@ import type { CompiledScene, CompiledWallSegment } from "@herobyte/shared";
  * matters because a bare door id would fingerprint every one of them to anyone
  * reading the socket.
  *
- * Hiding the ID is not enough: the SEGMENTATION talks too. A generated dungeon
- * emits MAXIMAL wall runs, so among real walls no two segments are ever both
- * collinear and touching — they would have been merged. Splicing a 1-cell
- * disguised door into the middle of a run produces exactly that "impossible"
- * pattern, and an adversarial gate read every secret door straight off the
- * player payload with zero false positives (and a `secretDoorChance: 0` control
- * flagging nothing, which is what made it conclusive). So the player's blocking
- * set is RE-MERGED here: the disguised door fuses back into its neighbours and
- * the payload becomes byte-for-byte what a plain wall on that seam would emit.
+ * Hiding the ID is not enough: the SEGMENTATION talks too. Splicing a 1-cell
+ * disguised door into a wall run leaves two differently-owned segments that are
+ * collinear AND touching — a junction that clean maximal runs never contain. An
+ * adversarial gate read every secret door straight off the player payload that
+ * way, with zero false positives and a no-secrets control flagging nothing,
+ * which is what made it conclusive. So the player's blocking set is RE-MERGED
+ * here: the disguised door fuses back into its neighbours and the payload
+ * becomes byte-for-byte what a plain wall on that seam would emit.
+ *
+ * This machinery serves HAND-PLACED secret doors. Generated dungeons author none
+ * — not because of anything here, but because `mapTerrain` hands players the
+ * floor plan, which betrays a generated secret whatever the geometry says. See
+ * generation/dungeonGeometry.emitDoors.
  *
  * LIGHTS are DM-only: nothing renders them at the table yet, so their
  * coordinates buy a player nothing but a map of the rooms fog is hiding (and
