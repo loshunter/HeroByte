@@ -4,6 +4,7 @@
 // Manages the shared room password with hashing, persistence, and verification.
 
 import { getRoomSecret, getDefaultRoomId, getMaxCustomRooms } from "../../config/auth.js";
+import { resolveServerPath } from "../../config/serverPaths.js";
 import {
   ROOM_ID_PATTERN,
   compareSecret,
@@ -14,7 +15,7 @@ import {
 } from "./authCrypto.js";
 import { loadSecretRecords, persistSecretRecords } from "./secretPersistence.js";
 
-const SECRET_FILE = "./herobyte-room-secret.json";
+const SECRET_FILE = resolveServerPath("herobyte-room-secret.json");
 
 export interface RoomPasswordSummary {
   source: SecretSource;

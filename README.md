@@ -129,6 +129,8 @@ HEROBYTE_ALLOWED_ORIGINS="https://yourdomain.com,https://staging.yourdomain.com"
 - `HEROBYTE_DM_PASSWORD` – Override development fallback DM password (`FunDM`)
 - `HEROBYTE_ALLOWED_ORIGINS` – Restrict HTTP/WebSocket origins (comma-separated)
 
+The server reads more variables than these (storage paths, room limits, feature flags). The complete reference — including `HEROBYTE_DATA_DIR`, the single lever that points all on-disk stores at a persistent disk — lives in [DEPLOYMENT.md](DEPLOYMENT.md), section 1F.
+
 ### Common Scripts
 
 | Command              | Description                                             |

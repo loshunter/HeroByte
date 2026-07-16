@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { mkdir, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import type { MapDocument } from "@herobyte/shared";
+import { resolveServerPath } from "../../config/serverPaths.js";
 import { cloneMapDocument, type MapDocumentStore } from "./store.js";
 
 const FILE_SCHEMA_VERSION = 1;
@@ -24,7 +25,9 @@ export class FileMapDocumentStore implements MapDocumentStore {
 
   constructor(options: FileMapDocumentStoreOptions = {}) {
     this.filePath =
-      options.filePath ?? process.env.HEROBYTE_MAP_STORE_FILE ?? "./herobyte-maps.json";
+      options.filePath ??
+      process.env.HEROBYTE_MAP_STORE_FILE ??
+      resolveServerPath("herobyte-maps.json");
     this.onError = options.onError ?? ((message, error) => console.error(message, error));
     this.load();
   }
