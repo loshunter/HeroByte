@@ -170,6 +170,9 @@ export function loadSession(file: File): Promise<SessionFile> {
             : [],
           liveMapDocumentId:
             typeof parsed.liveMapDocumentId === "string" ? parsed.liveMapDocumentId : undefined,
+          // Absent in files saved before assets were inlined, and in sessions
+          // that only use external image URLs. Both are normal.
+          assets: Array.isArray(parsed.assets) ? (parsed.assets as SessionFile["assets"]) : [],
         });
       } catch (err) {
         reject(err instanceof Error ? err : new Error("Invalid session file"));

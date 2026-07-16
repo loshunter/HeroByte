@@ -180,6 +180,131 @@ describe("session round trip", () => {
     return JSON.parse(JSON.stringify(frames[0]!.file)) as (typeof frames)[0]["file"];
   }
 
+  // --------------------------------------------------------------------------
+  // THE EXHAUSTIVE CHECK
+  // --------------------------------------------------------------------------
+  // Every other test here names the fields it cares about, which means a field
+  // added later is covered by nobody and nothing says so — exactly how
+  // mapElements went missing. This one enumerates RoomState's OWN key list at
+  // runtime, so a new field fails it by default until someone classifies it.
+
+  /**
+   * Fields deliberately NOT carried by a session file, and why. Anything not in
+   * here and not round-tripped is a bug — see the sweep test below.
+   */
+  const NOT_PERSISTED: Record<string, string> = {
+    users: "live socket list; the restoring server has its own",
+    pointers: "transient per-connection cursors, cleared on load by design",
+    selectionState: "per-connection UI state, keyed by uids that no longer exist",
+    drawingUndoStacks: "per-player undo history; not table state",
+    drawingRedoStacks: "per-player redo history; not table state",
+    stateVersion: "a monotonic counter the restoring server owns (it max()es)",
+    players: "connection metadata; mergeSnapshot merges live players over the file",
+    characters: "merged, not replaced — connected players keep their own",
+    tokens: "merged, not replaced — connected players keep their own",
+  };
+
+  it("carries every RoomState field, or documents why not", () => {
+    // Paint terrain so mapTerrain is actually populated — deriveMapTerrain
+    // returns undefined for an unpainted document, which would make this test
+    // pass while proving nothing about the terrain channel.
+    origin.route({
+      t: "map-studio-command",
+      command: {
+        type: "paint-terrain",
+        commandId: "cmd-paint",
+        documentId: "live",
+        baseRevision: origin.mapStudioService.get("default", "live").revision,
+        cells: [
+          { x: 0, y: 0, assetId: "terrain:stone-floor" },
+          { x: 1, y: 0, assetId: "terrain:stone-floor" },
+        ],
+      },
+    });
+
+    // Populate EVERY remaining field with a distinctive value.
+    origin.roomService.setState({
+      mapBackground: "https://i.imgur.com/roundtrip.png",
+      gridSize: 70,
+      gridSquareSize: 10,
+      combatActive: true,
+      fogEnabled: true,
+      playerStagingZone: { x: 1, y: 2, width: 3, height: 4, rotation: 0 },
+      characters: [
+        { id: "char-1", name: "Hero", type: "pc", hp: 5, maxHp: 5, initiative: 12 } as never,
+      ],
+      currentTurnCharacterId: "char-1",
+      props: [
+        {
+          id: "prop-1",
+          x: 5,
+          y: 6,
+          assetId: "prop:barrel",
+          owner: null,
+          scale: 1,
+          rotation: 0,
+        } as never,
+      ],
+      drawings: [
+        {
+          id: "d-1",
+          type: "freehand",
+          points: [{ x: 0, y: 0 }],
+          color: "#fff",
+          width: 2,
+          opacity: 1,
+        } as never,
+      ],
+      diceRolls: [{ id: "r-1", uid: DM, formula: "1d20", total: 17 } as never],
+    });
+
+    const before = origin.roomService.getState();
+    const file = exportSession();
+    const restored = bootServer();
+    restored.route({
+      t: "load-session",
+      snapshot: file.snapshot as never,
+      mapDocuments: file.mapDocuments,
+      liveMapDocumentId: file.liveMapDocumentId,
+    });
+    const after = restored.roomService.getState();
+
+    // THE SWEEP. Compare ORIGIN to RESTORED — not "restored is defined", which
+    // passes vacuously for any field the fixture forgot to populate. A field
+    // that had a value before and has none after is LOST, and a new RoomState
+    // field lands here automatically until someone classifies it.
+    const lost: string[] = [];
+    for (const key of Object.keys(before)) {
+      if (key in NOT_PERSISTED) continue;
+      const originValue = (before as unknown as Record<string, unknown>)[key];
+      const restoredValue = (after as unknown as Record<string, unknown>)[key];
+      const hadValue = originValue !== undefined && originValue !== null;
+      const keptValue = restoredValue !== undefined && restoredValue !== null;
+      if (hadValue && !keptValue) lost.push(key);
+    }
+    expect({ lost }).toEqual({ lost: [] });
+
+    // Guard the guard: if the fixture stops populating a field, the sweep above
+    // silently stops checking it. Assert we actually exercised the map channels.
+    expect(before.mapTerrain).toBeDefined();
+    expect(before.currentTurnCharacterId).toBe("char-1");
+
+    // ...and spot-check the values themselves, since "defined" is a low bar.
+    expect(after.mapBackground).toBe("https://i.imgur.com/roundtrip.png");
+    expect(after.gridSize).toBe(70);
+    expect(after.gridSquareSize).toBe(10);
+    expect(after.combatActive).toBe(true);
+    expect(after.fogEnabled).toBe(true);
+    expect(after.playerStagingZone).toEqual({ x: 1, y: 2, width: 3, height: 4, rotation: 0 });
+    expect(after.props).toHaveLength(1);
+    expect(after.drawings).toHaveLength(1);
+    expect(after.diceRolls).toHaveLength(1);
+    expect(after.mapElements).toBeDefined();
+    expect(after.compiledScene?.walls.length).toBeGreaterThan(0);
+    expect(after.mapTerrain).toBeDefined();
+    expect(after.liveMapDocumentId).toBe("live");
+  });
+
   it("writes a file the loaders can actually read", () => {
     // THE REGRESSION GUARD, and the bug that made every saved file unloadable:
     // toSnapshot diverts drawings and mapBackground into assets/assetRefs and

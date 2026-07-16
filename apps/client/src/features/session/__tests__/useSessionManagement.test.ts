@@ -18,7 +18,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { SessionFile } from "@herobyte/shared";
 import { useSessionManagement } from "../useSessionManagement";
-import { deliverSessionFile } from "../sessionFileBridge";
+import { deliverSessionFile } from "../sessionBridge";
 import { saveSessionFile, loadSession } from "../../../utils/sessionPersistence";
 
 vi.mock("../../../utils/sessionPersistence", () => ({
@@ -68,15 +68,63 @@ describe("useSessionManagement — save", () => {
     expect(saveSessionFile).not.toHaveBeenCalled();
   });
 
-  it("downloads under the DM's chosen name once the bundle arrives", () => {
+  it("downloads under the DM's chosen name once the bundle arrives", async () => {
+    // Awaited on purpose: the download now waits on the image-byte fetch, so a
+    // synchronous assertion here would race it (and did).
     const { result } = mount();
     const file = sessionFile({ mapDocuments: [{ id: "doc-A" } as never] });
 
     act(() => result.current.handleSaveSession("my-campaign"));
-    act(() => deliverSessionFile(file));
+    await act(async () => {
+      deliverSessionFile(file);
+    });
 
-    expect(saveSessionFile).toHaveBeenCalledWith(file, "my-campaign");
+    // `assets: []` — this fixture references no uploads, which is the common
+    // case (external imgur URLs need no inlining).
+    expect(saveSessionFile).toHaveBeenCalledWith({ ...file, assets: [] }, "my-campaign");
     expect(toast.success).toHaveBeenCalledWith(expect.stringContaining("1 map"), 4000);
+  });
+
+  it("inlines referenced image bytes into the downloaded file", async () => {
+    // THE POINT OF THE ASSET WORK: without the bytes, a restored session names
+    // art the server no longer has and every custom token is a broken image.
+    const hash = "a".repeat(64);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => "image/png" },
+        arrayBuffer: async () => new Uint8Array([7]).buffer,
+      }),
+    );
+    const { result } = mount();
+    const file = sessionFile({
+      snapshot: { gridSize: 50, mapBackground: `http://s/assets/${hash}` } as never,
+    });
+
+    act(() => result.current.handleSaveSession("with-art"));
+    await act(async () => {
+      deliverSessionFile(file);
+    });
+
+    const written = vi.mocked(saveSessionFile).mock.calls[0]![0];
+    expect(written.assets).toEqual([{ hash, mime: "image/png", bytes: btoa("") }]);
+    expect(toast.success).toHaveBeenCalledWith(expect.stringContaining("1 image"), 4000);
+  });
+
+  it("warns when an image cannot be saved rather than losing it quietly", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404 }));
+    const { result } = mount();
+    const file = sessionFile({
+      snapshot: { gridSize: 50, mapBackground: `http://s/assets/${"b".repeat(64)}` } as never,
+    });
+
+    act(() => result.current.handleSaveSession("lossy"));
+    await act(async () => {
+      deliverSessionFile(file);
+    });
+
+    expect(toast.warning).toHaveBeenCalledWith(expect.stringContaining("could not be saved"), 8000);
   });
 
   it("refuses to save before a snapshot exists", () => {

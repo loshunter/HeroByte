@@ -43,6 +43,7 @@ import { DMElevationModal } from "../features/dm/components/DMElevationModal";
 import { useMapStudio } from "../features/map-studio";
 import { useMapEditState } from "../features/map-edit/useMapEditState";
 import { useDoorSfx, useJuiceRuntime, useTurnChime } from "../features/juice";
+import { provideSessionCredentials } from "../features/session/sessionBridge";
 
 // ----------------------------------------------------------------------------
 // MAIN APP COMPONENT
@@ -142,6 +143,12 @@ function AuthenticatedApp({
   // Chime when the active combatant changes. Takes the whole snapshot on
   // purpose: it must tell "no snapshot" from "no active turn" (see the hook).
   useTurnChime(snapshot);
+
+  // Publish the room credentials for the session feature: restoring a session
+  // re-uploads its inlined images, and POST /assets is credential-gated. The
+  // hook that needs them lives inside the DM menu, far from here — see
+  // features/session/sessionBridge.
+  useEffect(() => provideSessionCredentials(getAuthCredentials), [getAuthCredentials]);
 
   // Creak and clunk when compiled doors change state, on every screen.
   useDoorSfx(snapshot?.compiledScene?.doors);

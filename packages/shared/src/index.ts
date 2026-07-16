@@ -425,6 +425,26 @@ export interface SessionFile {
   mapDocuments: MapDocument[];
   /** Which document was bound to the table, if any. */
   liveMapDocumentId?: string;
+  /**
+   * The BYTES behind every `upload:<hash>` / `/assets/<hash>` reference anywhere
+   * in this file. Optional: a file saved before this existed simply has none,
+   * and a session using only external image URLs (imgur and friends) needs none.
+   *
+   * Without these a session file is only restorable on a server that still holds
+   * the same asset store — and on the deployed ephemeral filesystem, that store
+   * is gone after 15 minutes idle. The reference would round-trip perfectly and
+   * resolve to a broken image, which is the worst kind of "saved".
+   */
+  assets?: SessionAsset[];
+}
+
+/** One uploaded image, inlined so a session file is self-contained. */
+export interface SessionAsset {
+  /** sha256 — the asset store is content-addressed, so re-uploading restores the same id. */
+  hash: string;
+  mime: string;
+  /** base64, no data: prefix. */
+  bytes: string;
 }
 
 // ----------------------------------------------------------------------------

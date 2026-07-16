@@ -13,7 +13,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClientMessage, ServerMessage } from "@herobyte/shared";
-import { deliverSessionFile } from "../features/session/sessionFileBridge";
+import { deliverSessionFile } from "../features/session/sessionBridge";
 
 /**
  * Status of a room password update operation
