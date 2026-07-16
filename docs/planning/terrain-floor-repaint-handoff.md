@@ -161,7 +161,16 @@ render procedurally with crisp edges:
   frozen golden is byte-identical** and there is **no double-draw**.
 - Verify on the preview (open the Studio with painted floors; §6 for how).
 
-### Slice 2 — Floor detail painters (the art)
+### Slice 2 — Floor detail painters (the art) — DONE ✅
+Shipped on `dev` (`d279176d`, with Slice 3). **Actual shape:** painters live in a
+NEW `terrainFloorDetail.ts` (the 350-LOC cap ruled out growing `terrainDetail.ts`);
+routing is a new `floor?: FloorDetail` field on `TerrainFamilyPalette`
+(`{ kind: "plank" | "flagstone", palette, scale? }`) checked FIRST in
+`paintFamilyDetail`. Pure fillRect art by contract (the clip ctx forwards nothing
+else) — pinned, along with cross-cell seam continuity, determinism, bounds, and
+palette-only colours, in `terrainFloorDetail.test.ts`.
+
+Original brief (historical):
 - `terrainDetail.ts`: add `paintPlankDetail` (long straight grain lines + knots,
   warm/cool per variant) and `paintFlagstoneDetail` (irregular slab seams +
   crack/moss speckle), mirroring the existing painter signature. Route them from
@@ -172,7 +181,16 @@ render procedurally with crisp edges:
 - Watch the **350-LOC cap** on `terrainDetail.ts`; split by responsibility if it
   approaches (precedent: `gridRenderCore` out of `tileRenderCore`).
 
-### Slice 3 — Variants (data)
+### Slice 3 — Variants (data) — DONE ✅
+Shipped on `dev` (`d279176d`, with Slice 2). Cobblestone = the flagstone painter at
+`scale: 0.5`; the four variants are pure data (`floorVariants.test.ts` pins the
+contract). **Plan correction:** "they auto-appear as terrain brush swatches" was
+written before S13 deleted the Map Studio scene — the live map-edit palette is a
+hardcoded `MapEditFloorFamily` union (mapEditTypes/mapEditFamilies/MapEditToolbar),
+so new floors must be wired there explicitly. All six floors browser-verified from
+a second client (full server round trip).
+
+Original brief (historical):
 - `starterTiles.ts`: add `terrain:wood-walnut`, `terrain:wood-grey`,
   `terrain:stone-cobble`, `terrain:stone-sandstone` (new asset entries; they
   auto-appear as terrain brush swatches). Rename the existing two to their variant
