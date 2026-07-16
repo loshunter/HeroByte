@@ -17,9 +17,12 @@
 
 import { describe, it, expect } from "vitest";
 import {
+  MAX_TERRAIN_WIRE_BYTES,
   compileScene,
   createTerrainMap,
+  sanitizeTerrainMap,
   setTerrainCells,
+  terrainWireBytes,
   type CompiledScene,
   type MapElementsSnapshot,
   type RenderableMapElement,
@@ -247,16 +250,14 @@ describe("Snapshot size guard", () => {
     expect(wireBytes(service.createSnapshot())).toBeLessThan(SNAPSHOT_SIZE_LIMIT_BYTES);
   });
 
-  it("records where painted terrain actually crosses the guard", () => {
-    // The headroom the gzip assertions were hiding. Terrain dominates a
-    // snapshot's size, and one generate is capped at 16384 cells — but a DM can
-    // run many, and nothing caps the TOTAL below MAX_TERRAIN_CHUNKS' ~4.2M.
-    // ~35k painted cells is comfortable; ~116k ships 936kb and blows the 750KB
-    // guard. That guard only WARNS (service.ts) — it never drops a frame — so
-    // this documents a real ceiling rather than asserting a bound the runtime
-    // would enforce for us. If terrain ever needs to scale past this, the fix
-    // is chunked/delta terrain, not a bigger limit.
-    const paint = (side: number) => {
+  it("the terrain wire budget keeps painted terrain under the guard", () => {
+    // Terrain dominates a snapshot's size, and this guard only WARNS — it
+    // never drops a frame. What actually protects the wire is the shared
+    // terrain budget: paint and import both reject a map over
+    // MAX_TERRAIN_WIRE_BYTES (the raw codec stays uncapped, which is how the
+    // rejected fixture below gets built at all). Before that budget existed,
+    // ~116k scattered cells accumulated legally and shipped a 936KB snapshot.
+    const scatter = (side: number) => {
       const cells = [];
       for (let x = 0; x < side; x++) {
         for (let y = 0; y < side; y++) {
@@ -269,23 +270,26 @@ describe("Snapshot size guard", () => {
           }
         }
       }
+      return setTerrainCells(createTerrainMap(), cells);
+    };
+    const snapshotBytes = (terrain: ReturnType<typeof scatter>) => {
       const service = new RoomService();
       service.setState({
-        mapTerrain: {
-          terrain: setTerrainCells(createTerrainMap(), cells),
-          grid: { size: 50, offsetX: 0, offsetY: 0 },
-          opacity: 1,
-        },
+        mapTerrain: { terrain, grid: { size: 50, offsetX: 0, offsetY: 0 }, opacity: 1 },
       });
-      return { cells: cells.length, bytes: wireBytes(service.createSnapshot()) };
+      return wireBytes(service.createSnapshot());
     };
 
-    const roomy = paint(384);
-    expect(roomy.bytes).toBeLessThan(SNAPSHOT_SIZE_LIMIT_BYTES);
+    // The largest scatter the budget accepts fits the guard with headroom for
+    // the rest of the room state.
+    const nearBudget = scatter(512);
+    expect(terrainWireBytes(nearBudget)).toBeLessThanOrEqual(MAX_TERRAIN_WIRE_BYTES);
+    expect(snapshotBytes(nearBudget)).toBeLessThan(SNAPSHOT_SIZE_LIMIT_BYTES);
 
-    // The ceiling is real, and the old gzip assertion would have called this
-    // snapshot 2% of the limit.
-    const huge = paint(724);
-    expect(huge.bytes).toBeGreaterThan(SNAPSHOT_SIZE_LIMIT_BYTES);
+    // The map that used to blow the guard can no longer reach a document:
+    // the boundary (import/paint) rejects it.
+    const overBudget = scatter(724);
+    expect(snapshotBytes(overBudget)).toBeGreaterThan(SNAPSHOT_SIZE_LIMIT_BYTES);
+    expect(() => sanitizeTerrainMap(overBudget)).toThrow(/size budget/);
   });
 });

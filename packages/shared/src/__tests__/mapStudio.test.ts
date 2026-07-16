@@ -547,6 +547,18 @@ describe("Map Studio import", () => {
     expect(() => importMapDocument(document, 500)).toThrow("Map element already exists: stamp-1");
   });
 
+  it("rejects duplicate layer ids", () => {
+    // Without the guard the duplicate silently collapsed in the layer-id set
+    // (last one wins), while BOTH copies survived in the imported layers array.
+    const base = exportedDocument();
+    const weather = base.layers.find((layer) => layer.id === "weather")!;
+    const document = {
+      ...base,
+      layers: [...base.layers, { ...weather, name: "Weather (copy)" }],
+    };
+    expect(() => importMapDocument(document, 500)).toThrow("Map layer already exists: weather");
+  });
+
   it("rejects documents without layers", () => {
     const document = { ...exportedDocument(), layers: [], elements: [] };
     expect(() => importMapDocument(document, 500)).toThrow("at least one layer");

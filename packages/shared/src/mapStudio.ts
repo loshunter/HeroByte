@@ -18,6 +18,7 @@ import { sanitizeMapGrid } from "./mapStudioGrid.js";
 import {
   MAX_TERRAIN_CELL_MAGNITUDE,
   MAX_TERRAIN_PALETTE,
+  assertTerrainBudget,
   createTerrainMap,
   sanitizeTerrainMap,
   setTerrainCells,
@@ -92,8 +93,18 @@ export function importMapDocument(input: MapDocument, timestamp: number = Date.n
     timestamp,
   });
 
-  const layers = input.layers.map((layer) => sanitizeLayer(layer));
-  const layerIds = new Set(layers.map((layer) => layer.id));
+  const layerIds = new Set<string>();
+  const layers = input.layers.map((layer) => {
+    const sanitized = sanitizeLayer(layer);
+    // Reject duplicates rather than let the id set silently collapse them:
+    // every layer lookup is by id, so "last one wins" would quietly rebind
+    // elements and layer edits to whichever duplicate a given code path finds.
+    if (layerIds.has(sanitized.id)) {
+      throw new Error(`Map layer already exists: ${sanitized.id}`);
+    }
+    layerIds.add(sanitized.id);
+    return sanitized;
+  });
 
   const elementIds = new Set<string>();
   const elements = (input.elements ?? []).map((element) => {
@@ -239,6 +250,12 @@ export function paintTerrainCells(document: MapDocument, cells: TerrainPaintCell
     // create a document that cannot round-trip through its own backup.
     throw new Error(`Terrain palette may hold at most ${MAX_TERRAIN_PALETTE} assets`);
   }
+  // Same budgets sanitizeTerrainMap enforces on import (chunk count + wire
+  // bytes), so accumulation across strokes can neither blow the snapshot
+  // guard nor create a document its own backup can't restore. Costs one
+  // JSON.stringify of the terrain per stroke (~1ms at the cap) — a stroke
+  // already decodes and re-encodes every chunk it touches.
+  assertTerrainBudget(terrain, document.terrain);
   return terrain;
 }
 

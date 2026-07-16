@@ -187,6 +187,53 @@ const MAX_TERRAIN_CHUNKS = 16384;
 const MAX_CHUNK_COORD = MAX_TERRAIN_CELL_MAGNITUDE / TERRAIN_CHUNK_SIZE;
 
 /**
+ * Wire-size budget for one terrain map, measured as the serialized JSON bytes
+ * the room snapshot actually ships (uncompressed — nothing on this wire is).
+ * Terrain dominates snapshot size and every recipient gets the whole map, so
+ * without this cap enough scattered strokes blow the server's 750KB snapshot
+ * guard, which only warns (measured: ~116k scattered cells ships 936KB).
+ * 512KB clears every legitimate shape with headroom — a solid 512x512 floor
+ * RLEs to ~16KB, one cell in each of the 16384 allowed chunks is ~325KB, and
+ * ~58k RLE-hostile scattered cells is ~467KB — while stopping accumulation
+ * well before the snapshot guard. If terrain ever needs to scale past this,
+ * the fix is chunked/delta terrain on the wire, not a bigger number here.
+ */
+export const MAX_TERRAIN_WIRE_BYTES = 512 * 1024;
+
+/** Serialized size of the map exactly as a snapshot ships it. */
+export function terrainWireBytes(map: TerrainMap): number {
+  return new TextEncoder().encode(JSON.stringify(map)).length;
+}
+
+/**
+ * Enforce the terrain budgets (chunk count + wire bytes). Pass `previous` on
+ * the paint path: a stroke that SHRINKS an already-over-budget map (legacy
+ * data persisted before the budget existed) must never be rejected — erasing
+ * is the only way back under the budget. Imports pass no `previous` and are
+ * strict, so paint and import accept exactly the same maps and a legal
+ * document always round-trips through its own backup.
+ */
+export function assertTerrainBudget(next: TerrainMap, previous?: TerrainMap): void {
+  const chunkCount = Object.keys(next.chunks).length;
+  if (chunkCount > MAX_TERRAIN_CHUNKS) {
+    const previousChunks = previous ? Object.keys(previous.chunks).length : 0;
+    if (!previous || chunkCount > previousChunks) {
+      throw new Error("Terrain map has too many chunks");
+    }
+  }
+  const bytes = terrainWireBytes(next);
+  if (bytes > MAX_TERRAIN_WIRE_BYTES) {
+    if (previous && bytes <= terrainWireBytes(previous)) {
+      return;
+    }
+    throw new Error(
+      `Painted terrain is over its size budget (${Math.ceil(bytes / 1024)}KB of ` +
+        `${MAX_TERRAIN_WIRE_BYTES / 1024}KB) — erase some painted terrain first`,
+    );
+  }
+}
+
+/**
  * Validate an untrusted terrain map (imports, cartridges) and return a
  * defensive copy. Throws on anything that could corrupt the document:
  * unknown versions, blank palette entries, malformed chunk keys, runs that
@@ -234,7 +281,11 @@ export function sanitizeTerrainMap(input: TerrainMap): TerrainMap {
       chunks[key] = encodeTerrainChunk(cells);
     }
   }
-  return { schemaVersion: 1, palette, chunks };
+  const sanitized: TerrainMap = { schemaVersion: 1, palette, chunks };
+  // Strict (no `previous`): an import either fits the same budget painting
+  // enforces, or it is rejected — never a document paint couldn't have made.
+  assertTerrainBudget(sanitized);
+  return sanitized;
 }
 
 function chunkKey(cellX: number, cellY: number): string {
