@@ -80,7 +80,15 @@ describe("MessageRouter - Characterization Tests", () => {
       });
     });
 
-    it("should NOT route RTC messages missing 'from' field", () => {
+    // These two asserted that a malformed rtc-signal "falls through to the
+    // snapshot handler" — CHARACTERIZATION of what the code did, not what it
+    // should do, and it was the same defect that let `state-sync` blank the
+    // table: anything unrecognised became "the room", so tokens, players and
+    // characters all went undefined. A message tagged `rtc-signal` is not a
+    // snapshot no matter how malformed it is; a snapshot carries no `t` at all.
+    // Updated deliberately — the old expectation was a bug, faithfully recorded.
+
+    it("ignores an RTC message missing 'from' rather than applying it as the room", () => {
       const invalidRtc = {
         t: "rtc-signal",
         signal: { type: "offer" },
@@ -90,11 +98,10 @@ describe("MessageRouter - Characterization Tests", () => {
       router.route(JSON.stringify(invalidRtc));
 
       expect(mockOnRtcSignal).not.toHaveBeenCalled();
-      // Should fall through to snapshot handler
-      expect(mockOnMessage).toHaveBeenCalledOnce();
+      expect(mockOnMessage).not.toHaveBeenCalled();
     });
 
-    it("should NOT route RTC messages missing 'signal' field", () => {
+    it("ignores an RTC message missing 'signal' rather than applying it as the room", () => {
       const invalidRtc = {
         t: "rtc-signal",
         from: "peer-789",
@@ -104,7 +111,7 @@ describe("MessageRouter - Characterization Tests", () => {
       router.route(JSON.stringify(invalidRtc));
 
       expect(mockOnRtcSignal).not.toHaveBeenCalled();
-      expect(mockOnMessage).toHaveBeenCalledOnce();
+      expect(mockOnMessage).not.toHaveBeenCalled();
     });
   });
 

@@ -232,7 +232,32 @@ export class MessageRouter {
         return;
       }
 
-      // All other messages are room snapshots
+      // A room snapshot is a BARE object — the server sends it as
+      // JSON.stringify(snapshot) with no discriminator, while every typed
+      // ServerMessage carries `t`. So a `t` that reached here is a message type
+      // this build predates, and MUST NOT be applied as a snapshot.
+      //
+      // This used to fall straight through to handleSnapshot(parsed as
+      // RoomSnapshot). When the server started sending `state-sync`, a tab still
+      // running older JS applied the contentless message AS the room: every
+      // token, player and character became undefined and the whole table went
+      // blank — no error, no toast. Worse, it did not self-heal, because
+      // applySnapshot recorded the version and the stream looked gapless.
+      //
+      // Ignoring it is safe by construction: an unknown message is one this
+      // client has no code for, so there is nothing it could correctly do with
+      // it. The server re-sends a full snapshot on any real state change.
+      // Guard the deref: JSON.parse("null") is a valid parse, and `null.t`
+      // throws. The earlier type guards all tolerate it, so this one must too.
+      const messageType =
+        typeof parsed === "object" && parsed !== null ? (parsed as { t?: unknown }).t : undefined;
+      if (typeof messageType === "string") {
+        console.warn(
+          `[WebSocket] Ignoring unknown message type "${messageType}" — this tab is probably running an older build. Reload to get the latest.`,
+        );
+        return;
+      }
+
       this.handleSnapshot(parsed as RoomSnapshot);
     } catch (error) {
       // Invalid JSON - log and ignore (does NOT throw)

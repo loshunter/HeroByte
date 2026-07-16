@@ -218,7 +218,9 @@ export function createRoutes(
         if (!bytes) {
           return jsonError("Upload exceeds the asset size limit", 413);
         }
-        const { asset, deduplicated } = await assetService.store(bytes);
+        // roomId was verified against the secret above, so the store can trust
+        // it to scope this room's quota and dedup.
+        const { asset, deduplicated } = await assetService.store(bytes, roomId);
         return new Response(
           JSON.stringify({
             hash: asset.hash,

@@ -22,6 +22,15 @@ export interface StoredAsset {
   extension: string;
   size: number;
   createdAt: number;
+  /**
+   * Rooms that have uploaded these bytes. Content addressing means two rooms
+   * uploading the same image share ONE file — so ownership is a set, not a
+   * field, and the asset lives until no room claims it.
+   *
+   * Optional: an index written before this existed has none, and those assets
+   * are treated as unclaimed (see roomsOf).
+   */
+  rooms?: string[];
 }
 
 export class AssetRejectedError extends Error {
@@ -43,14 +52,30 @@ export interface AssetServiceOptions {
   directory?: string;
   /** Per-asset ceiling. Default 5MB. */
   maxAssetBytes?: number;
-  /** Total storage quota. Default 200MB (the free-tier number). */
+  /** Whole-store quota — the disk is finite. Default 200MB (the free-tier number). */
   maxTotalBytes?: number;
+  /** Per-room quota, so one table cannot spend the whole store. Default 50MB. */
+  maxRoomBytes?: number;
+}
+
+/** Uploads with no room header belong to the default table. */
+const DEFAULT_ROOM = "default";
+
+/**
+ * An asset's claiming rooms. An index written before rooms existed has none —
+ * those assets count against the whole-store quota (they are on the disk) but
+ * against no room's, which is the right way round: charging them to a room that
+ * may not have uploaded them would be a guess.
+ */
+function roomsOf(asset: StoredAsset): string[] {
+  return asset.rooms ?? [];
 }
 
 export class AssetService {
   private readonly directory: string;
   private readonly maxAssetBytes: number;
   private readonly maxTotalBytes: number;
+  private readonly maxRoomBytes: number;
   private indexPromise: Promise<AssetIndex> | null = null;
   private mutationQueue: Promise<unknown> = Promise.resolve();
 
@@ -62,11 +87,32 @@ export class AssetService {
       options.directory ?? process.env.HEROBYTE_ASSET_DIR ?? resolveServerPath("herobyte-assets");
     this.maxAssetBytes = options.maxAssetBytes ?? 5 * 1024 * 1024;
     this.maxTotalBytes = options.maxTotalBytes ?? 200 * 1024 * 1024;
+    this.maxRoomBytes = options.maxRoomBytes ?? 50 * 1024 * 1024;
   }
 
-  /** Sniff, cap, quota-check, and persist one upload. Throws AssetRejectedError. */
+  /**
+   * Sniff, cap, quota-check, and persist one upload. Throws AssetRejectedError.
+   *
+   * `roomId` is the room the upload belongs to — already verified by the route
+   * (authService.verify(secret, roomId)), so it is trustworthy here. It exists
+   * because the store used to have NO room concept at all, which made two things
+   * shared that should not be:
+   *
+   *   QUOTA. One table filling the 200MB store returned 507 to every OTHER
+   *   table. Today that self-heals on the free tier's 15-minute spin-down; on a
+   *   persistent disk it would be permanent, so this gets worse exactly when the
+   *   disk lands.
+   *
+   *   DEDUP. `deduplicated: true` answered "do these exact bytes exist ANYWHERE
+   *   on this server?" — a cross-room existence oracle for anyone who could
+   *   guess a file. It is now scoped to the asking room.
+   *
+   * Reads stay public and unauthenticated on purpose: the URL is a capability,
+   * `<img>` cannot send headers, and the bytes are player-facing by intent.
+   */
   async store(
     bytes: Buffer,
+    roomId: string = DEFAULT_ROOM,
     timestamp: number = Date.now(),
   ): Promise<{ asset: StoredAsset; deduplicated: boolean }> {
     // Stateless checks run outside the lock (no shared state, no yield needed).
@@ -91,14 +137,27 @@ export class AssetService {
     return this.runExclusive(async () => {
       const index = await this.loadIndex();
       const existing = index.assets[hash];
-      if (existing) {
+
+      // Already ours: a true no-op, and the only case that reports dedup.
+      if (existing && roomsOf(existing).includes(roomId)) {
         return { asset: existing, deduplicated: true };
       }
 
-      const total = Object.values(index.assets).reduce((sum, asset) => sum + asset.size, 0);
-      if (total + bytes.length > this.maxTotalBytes) {
-        throw new AssetRejectedError("Asset storage quota exceeded", 507);
+      // The bytes exist but this room has not claimed them. Charge this room's
+      // quota and record the claim — but do NOT report deduplicated, which would
+      // tell the caller these bytes exist in some OTHER room.
+      if (existing) {
+        const claimed = { ...existing, rooms: [...roomsOf(existing), roomId] };
+        this.assertQuota(index, bytes.length, roomId);
+        await this.writeIndex({
+          schemaVersion: 1,
+          assets: { ...index.assets, [hash]: claimed },
+        });
+        index.assets[hash] = claimed;
+        return { asset: claimed, deduplicated: false };
       }
+
+      this.assertQuota(index, bytes.length, roomId);
 
       await mkdir(this.directory, { recursive: true });
       const filePath = path.join(this.directory, `${hash}.${sniffed.extension}`);
@@ -112,6 +171,7 @@ export class AssetService {
         extension: sniffed.extension,
         size: bytes.length,
         createdAt: timestamp,
+        rooms: [roomId],
       };
       // Persist the index BEFORE committing to the in-memory copy, so a failed
       // write leaves both the on-disk index and memory consistent (the orphan
@@ -124,6 +184,31 @@ export class AssetService {
       index.assets[hash] = asset;
       return { asset, deduplicated: false };
     });
+  }
+
+  /**
+   * Refuse an upload that would bust either ceiling.
+   *
+   * TWO quotas, and both are load-bearing. The per-room one is fairness: without
+   * it one table's uploads returned 507 to every other table. The whole-store
+   * one is physics: the disk is finite no matter how the rooms divide it.
+   *
+   * Called INSIDE runExclusive, which is what keeps the read-then-write atomic —
+   * checking outside the lock would reintroduce the quota TOCTOU that an earlier
+   * review already found here once.
+   */
+  private assertQuota(index: AssetIndex, incoming: number, roomId: string): void {
+    const assets = Object.values(index.assets);
+    const total = assets.reduce((sum, asset) => sum + asset.size, 0);
+    if (total + incoming > this.maxTotalBytes) {
+      throw new AssetRejectedError("Asset storage quota exceeded", 507);
+    }
+    const roomTotal = assets
+      .filter((asset) => roomsOf(asset).includes(roomId))
+      .reduce((sum, asset) => sum + asset.size, 0);
+    if (roomTotal + incoming > this.maxRoomBytes) {
+      throw new AssetRejectedError("This room's asset storage is full", 507);
+    }
   }
 
   /**
