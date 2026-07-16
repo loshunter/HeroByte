@@ -213,7 +213,7 @@ export function useDMContext({
 
   // Session Management Hook
   const { handleSaveSession, handleLoadSession } = useSessionManagement({
-    snapshot,
+    hasSnapshot: Boolean(snapshot),
     sendMessage,
     toast,
   });

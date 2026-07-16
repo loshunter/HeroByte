@@ -13,6 +13,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClientMessage, ServerMessage } from "@herobyte/shared";
+import { deliverSessionFile } from "../features/session/sessionFileBridge";
 
 /**
  * Status of a room password update operation
@@ -207,6 +208,10 @@ export function useServerEventHandlers({
       } else if ("t" in message && message.t === "dm-password-update-failed") {
         // DM password update failed
         toastError(`DM password update failed: ${message.reason}`, 5000);
+      } else if ("t" in message && message.t === "session-file") {
+        // Routed rather than handled: the DM's chosen filename lives in
+        // useSessionManagement, down in the DM menu. See sessionFileBridge.
+        deliverSessionFile(message.file);
       } else if (
         "t" in message &&
         (message.t === "map-studio-documents" ||

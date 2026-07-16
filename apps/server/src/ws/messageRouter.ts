@@ -231,6 +231,7 @@ export class MessageRouter {
       authService,
       (targetUid, message) => this.sendControlMessage(targetUid, message),
       (uid) => this.getRoomIdForUid(uid),
+      mapStudioService,
     );
     this.transformMessageHandler = new TransformMessageHandler(roomService);
     this.roomDispatcher = new RoomDispatcher(

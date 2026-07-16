@@ -395,6 +395,39 @@ export interface PlayerStagingZone {
 }
 
 // ----------------------------------------------------------------------------
+// SESSION FILE
+// ----------------------------------------------------------------------------
+
+/**
+ * A complete, restorable session: the room AND the authored maps it references.
+ *
+ * WHY THIS IS AN ENVELOPE AND NOT JUST A SNAPSHOT. A RoomSnapshot carries the
+ * map only as DERIVED output — compiledScene (walls/doors), mapTerrain (floor),
+ * mapElements (scenery) — plus `liveMapDocumentId`, which is a POINTER. The
+ * authored source is the MapDocument, and it lives server-side. Restore a bare
+ * snapshot onto a fresh server and you get a map you can look at but never edit,
+ * bound to a document that no longer exists. The documents make it whole.
+ *
+ * This matters because the deployed server has an ephemeral filesystem (see
+ * DEPLOYMENT.md): room state, maps, and room secrets are all lost on a restart
+ * or an idle spin-down. A session file is the DM's way to carry a table across
+ * that gap, so it has to be genuinely complete or it is not a workaround.
+ *
+ * PRIVACY: this is built from the DM's view and therefore contains secret doors,
+ * hidden NPCs, and GM notes. It is a DM artefact — never hand it to players.
+ */
+export interface SessionFile {
+  /** Bumped only on a breaking shape change; the loader also accepts a bare RoomSnapshot. */
+  schemaVersion: 1;
+  savedAt: number;
+  snapshot: RoomSnapshot;
+  /** Every map document in the room — not just the live one, so drafts survive too. */
+  mapDocuments: MapDocument[];
+  /** Which document was bound to the table, if any. */
+  liveMapDocumentId?: string;
+}
+
+// ----------------------------------------------------------------------------
 // SELECTION MESSAGES
 // ----------------------------------------------------------------------------
 
@@ -601,7 +634,16 @@ type ClientMessagePayload =
   // Room management
   | { t: "clear-all-tokens" } // Remove all tokens/players except self
   | { t: "heartbeat" } // Keep-alive ping from client
-  | { t: "load-session"; snapshot: RoomSnapshot } // Load a saved session state
+  | { t: "session-export" } // DM: ask the server to bundle a complete SessionFile (see the type)
+  | {
+      t: "load-session";
+      snapshot: RoomSnapshot;
+      // The authored maps the snapshot references. Optional so a legacy save
+      // file (a bare snapshot, no documents) still loads — it just restores a
+      // map that cannot be edited afterwards.
+      mapDocuments?: MapDocument[];
+      liveMapDocumentId?: string;
+    } // Load a saved session state
   | { t: "request-room-resync"; lastSeenVersion?: number; reason?: string } // Request fresh snapshot when client detects version gap
   | {
       t: "transform-object";
@@ -652,6 +694,7 @@ export type ServerMessage =
       appliedCommandId?: string;
       history?: { canUndo: boolean; canRedo: boolean };
     }
+  | { t: "session-file"; file: SessionFile } // DM-only: the bundled reply to session-export
   | { t: "map-studio-deleted"; documentId: string }
   | {
       t: "map-studio-error";

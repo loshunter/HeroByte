@@ -59,6 +59,24 @@ export class MapStudioService {
     return cloneMapDocument(document);
   }
 
+  /**
+   * Upsert a document from a session file.
+   *
+   * Unlike `import`, an id that already exists is REPLACED rather than
+   * rejected. A session file is authoritative and loading one already replaces
+   * room state wholesale, so rejecting the documents would strand the room
+   * pointing at maps from a session it no longer holds — a half-restore, which
+   * is worse than either a clean overwrite or a clean failure. Ids are
+   * preserved (importMapDocument keeps input.id), which is what lets the
+   * restored liveMapDocumentId still resolve.
+   */
+  restore(roomId: string, input: MapDocument, timestamp: number = Date.now()): MapDocument {
+    requireRoomId(roomId);
+    const document = importMapDocument(input, timestamp);
+    this.store.set(roomId, document);
+    return cloneMapDocument(document);
+  }
+
   get(roomId: string, documentId: string): MapDocument {
     requireRoomId(roomId);
     const document = this.store.get(roomId, documentId);

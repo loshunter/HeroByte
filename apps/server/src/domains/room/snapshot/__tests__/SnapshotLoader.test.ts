@@ -1028,4 +1028,106 @@ describe("SnapshotLoader - Characterization Tests", () => {
       expect(state.drawings[0]?.id).toBe("drawing-1");
     });
   });
+
+  describe("live map restore (the ephemeral-disk workaround)", () => {
+    // A session file exists to carry a table across a server wipe: the deployed
+    // filesystem is ephemeral, so a restart loses room state AND maps. These
+    // load onto a FRESH RoomService for that reason — the earlier tests all
+    // restore into a room that already has state, which is exactly the case
+    // where dropping a field looks like "preserving" it and hides the bug.
+    const mapElements = {
+      grid: { size: 50, offsetX: 0, offsetY: 0 },
+      layers: [
+        {
+          opacity: 1,
+          elements: [
+            {
+              id: "tile-1",
+              type: "tile" as const,
+              transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+              data: { assetId: "tile:crate", columns: 1, rows: 1 },
+            },
+          ],
+        },
+      ],
+    };
+
+    function sessionSnapshot(overrides: Partial<RoomSnapshot> = {}): RoomSnapshot {
+      return {
+        users: [],
+        tokens: [],
+        players: [],
+        characters: [],
+        props: [],
+        pointers: [],
+        drawings: [],
+        gridSize: 50,
+        diceRolls: [],
+        ...overrides,
+      };
+    }
+
+    it("restores authored scenery onto a fresh server", () => {
+      // THE BUG: mapElements was absent from the merge literal, so Object.assign
+      // never wrote it. In-process that reads as "preserved"; onto a wiped
+      // server it meant the walls and floor came back with every tile, stamp and
+      // label silently missing.
+      roomService.loadSnapshot(sessionSnapshot({ mapElements }));
+
+      expect(roomService.getState().mapElements).toEqual(mapElements);
+    });
+
+    it("restores the live map binding onto a fresh server", () => {
+      roomService.loadSnapshot(sessionSnapshot({ liveMapDocumentId: "doc-A" }));
+
+      expect(roomService.getState().liveMapDocumentId).toBe("doc-A");
+    });
+
+    it("treats the file as authoritative — a session without a map clears one", () => {
+      // Consistency with compiledScene/mapTerrain, which already behaved this
+      // way. A load that replaced the walls but kept the previous room's
+      // scenery would leave a map that never existed.
+      roomService.loadSnapshot(sessionSnapshot({ mapElements, liveMapDocumentId: "doc-A" }));
+      roomService.loadSnapshot(sessionSnapshot());
+
+      const state = roomService.getState();
+      expect(state.mapElements).toBeUndefined();
+      expect(state.liveMapDocumentId).toBeUndefined();
+    });
+
+    it("round-trips the whole map channel set together", () => {
+      // The four fields are one map. Restoring a subset yields a table whose
+      // floor, walls and scenery disagree — worse than restoring none.
+      const compiledScene = {
+        schemaVersion: 1 as const,
+        sourceDocumentId: "doc-A",
+        sourceRevision: 2,
+        compiledAt: 1,
+        width: 500,
+        height: 500,
+        walls: [
+          { id: "w#0", x1: 0, y1: 0, x2: 50, y2: 0, blocksMovement: true, blocksVision: true },
+        ],
+        doors: [],
+        lights: [],
+      };
+      const mapTerrain = {
+        terrain: { schemaVersion: 1 as const, palette: ["terrain:stone-floor"], chunks: {} },
+        grid: { size: 50, offsetX: 0, offsetY: 0 },
+        opacity: 1,
+      };
+
+      roomService.loadSnapshot(
+        sessionSnapshot({ compiledScene, mapTerrain, mapElements, liveMapDocumentId: "doc-A" }),
+      );
+
+      const state = roomService.getState();
+      expect({
+        compiledScene: state.compiledScene,
+        mapTerrain: state.mapTerrain,
+        mapElements: state.mapElements,
+        liveMapDocumentId: state.liveMapDocumentId,
+      }).toEqual({ compiledScene, mapTerrain, mapElements, liveMapDocumentId: "doc-A" });
+    });
+  });
 });

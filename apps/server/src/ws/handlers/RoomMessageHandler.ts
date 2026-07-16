@@ -17,7 +17,9 @@
 import type { RoomState } from "../../domains/room/model.js";
 import type { RoomService } from "../../domains/room/service.js";
 import type { AuthService } from "../../domains/auth/service.js";
-import type { RoomSnapshot, ServerMessage } from "@herobyte/shared";
+import type { MapStudioService } from "../../domains/mapStudio/service.js";
+import type { MapDocument, RoomSnapshot, ServerMessage } from "@herobyte/shared";
+import { toSnapshot } from "../../domains/room/model.js";
 import { getRoomSecret } from "../../config/auth.js";
 
 /**
@@ -43,17 +45,20 @@ export class RoomMessageHandler {
   private authService: AuthService;
   private sendControlMessage: SendControlMessage;
   private getRoomIdForUid?: (uid: string) => string;
+  private mapStudioService?: MapStudioService;
 
   constructor(
     roomService: RoomService,
     authService: AuthService,
     sendControlMessage: SendControlMessage,
     getRoomIdForUid?: (uid: string) => string,
+    mapStudioService?: MapStudioService,
   ) {
     this.roomService = roomService;
     this.authService = authService;
     this.sendControlMessage = sendControlMessage;
     this.getRoomIdForUid = getRoomIdForUid;
+    this.mapStudioService = mapStudioService;
   }
 
   /**
@@ -73,13 +78,103 @@ export class RoomMessageHandler {
     senderUid: string,
     snapshot: RoomSnapshot,
     isDM: boolean,
+    mapDocuments?: MapDocument[],
+    liveMapDocumentId?: string,
   ): RoomMessageResult {
     if (!isDM) {
       console.warn(`Non-DM ${senderUid} attempted to load session`);
       return { broadcast: false, save: false };
     }
-    this.roomService.loadSnapshot(snapshot);
+
+    // Documents FIRST: the snapshot's liveMapDocumentId is only safe to restore
+    // once the document it names is actually present.
+    const roomId = this.getRoomIdForUid?.(senderUid);
+    const restored = this.restoreMapDocuments(roomId, mapDocuments);
+
+    this.roomService.loadSnapshot({
+      ...snapshot,
+      liveMapDocumentId: liveMapDocumentId ?? snapshot.liveMapDocumentId,
+    });
+
+    // A binding to a document we do not have is NOT inert: the DM's client
+    // auto-opens the bound doc, map-studio-get throws MapDocumentNotFoundError,
+    // and (that case having no try/catch) nothing replies — the DM watches a
+    // spinner for 12s and gets "server didn't respond". A legacy save file has
+    // no documents at all, so this is the normal path for one, not an edge case.
+    const bound = state.liveMapDocumentId;
+    if (bound && !this.hasDocument(roomId, bound)) {
+      state.liveMapDocumentId = undefined;
+      console.warn(
+        `load-session: cleared live binding ${bound} — the session file carried no such map document`,
+      );
+    }
+
+    console.log(
+      `Loaded session for room ${roomId ?? "(default)"}: restored ${restored} map document(s)`,
+    );
     return { broadcast: true, save: true };
+  }
+
+  /**
+   * Handle session-export: bundle a COMPLETE, restorable session file.
+   *
+   * The server does the bundling because it is the only side holding both the
+   * room state and the authored MapDocuments — the client's snapshot has the
+   * map only as derived output plus a pointer, and its single-slot server-event
+   * channel makes gathering documents over the wire fragile.
+   *
+   * DM-only, and deliberately so: this is built from the DM's own view, so it
+   * contains secret doors, hidden NPCs and GM notes verbatim.
+   */
+  handleSessionExport(state: RoomState, senderUid: string, isDM: boolean): RoomMessageResult {
+    if (!isDM) {
+      console.warn(`Non-DM ${senderUid} attempted to export a session`);
+      return { broadcast: false, save: false };
+    }
+    const roomId = this.getRoomIdForUid?.(senderUid);
+    const mapDocuments = roomId && this.mapStudioService ? this.mapStudioService.list(roomId) : [];
+
+    this.sendControlMessage(senderUid, {
+      t: "session-file",
+      file: {
+        schemaVersion: 1,
+        savedAt: Date.now(),
+        // The DM's view on purpose — a session file must round-trip the secrets
+        // a player snapshot strips, or reloading one would quietly disarm the map.
+        snapshot: toSnapshot(state, true, senderUid),
+        mapDocuments,
+        liveMapDocumentId: state.liveMapDocumentId,
+      },
+    });
+    return { broadcast: false, save: false };
+  }
+
+  /** Upsert each document, skipping (not failing) any single bad one. */
+  private restoreMapDocuments(roomId: string | undefined, documents?: MapDocument[]): number {
+    if (!roomId || !this.mapStudioService || !documents?.length) return 0;
+    let restored = 0;
+    for (const document of documents) {
+      try {
+        this.mapStudioService.restore(roomId, document);
+        restored++;
+      } catch (error) {
+        // One unreadable document must not abort the whole restore — the rest of
+        // the table is still worth recovering, and the binding check below turns
+        // a missing map into a cleared binding rather than a broken one.
+        console.warn(`load-session: skipped map document ${document?.id}: ${String(error)}`);
+      }
+    }
+    return restored;
+  }
+
+  private hasDocument(roomId: string | undefined, documentId: string): boolean {
+    if (!roomId || !this.mapStudioService) return false;
+    try {
+      this.mapStudioService.get(roomId, documentId);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /**

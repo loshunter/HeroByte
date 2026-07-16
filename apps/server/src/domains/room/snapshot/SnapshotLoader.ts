@@ -130,6 +130,21 @@ export class SnapshotLoader {
       currentTurnCharacterId: snapshot.currentTurnCharacterId ?? undefined,
       compiledScene: snapshot.compiledScene ?? undefined,
       mapTerrain: snapshot.mapTerrain ?? undefined,
+      // These two were ABSENT from this literal, which meant Object.assign in
+      // loadSnapshot left whatever the room already had. In-process that looks
+      // like "preserved" and reads as harmless. Restoring onto a FRESH server —
+      // the whole point of a session file, given the ephemeral filesystem — it
+      // means "preserved nothing": walls and floor came back while every
+      // authored tile, stamp and label stayed missing, with no error.
+      //
+      // The file is authoritative, exactly as it already is for compiledScene
+      // and mapTerrain above; a session that restored some of the map and
+      // silently kept the rest of the room's would be worse than either.
+      mapElements: snapshot.mapElements ?? undefined,
+      // Trusted only because the caller validates it against the documents it
+      // actually restored — a binding to a missing document is not inert, it
+      // makes the DM's editor open onto a 12s timeout. See handleLoadSession.
+      liveMapDocumentId: snapshot.liveMapDocumentId ?? undefined,
       fogEnabled: snapshot.fogEnabled ?? false,
     };
   }

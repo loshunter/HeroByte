@@ -1,21 +1,40 @@
 // ============================================================================
 // SESSION PERSISTENCE UTILITIES
 // ============================================================================
-// Helpers to export and import complete room snapshots for offline storage.
+// Export and import a complete session for offline storage.
+//
+// A session file is a SessionFile envelope: the room snapshot PLUS the authored
+// map documents it references. The snapshot alone carries the map only as
+// derived output (compiledScene/mapTerrain/mapElements) and a pointer, so a
+// snapshot-only restore yields a map you can look at but not edit. See the
+// SessionFile docs in @herobyte/shared.
+//
+// This is the DM's workaround for an ephemeral server filesystem (DEPLOYMENT.md):
+// room state, maps, and secrets are all lost on a restart or idle spin-down, so
+// the file has to be genuinely complete or it does not do its job.
+//
+// THE RULE HERE: SPREAD, NEVER WHITELIST. This loader used to rebuild the
+// snapshot field-by-field from a hand-listed set, which silently dropped every
+// field added after it was written — by the time the live-map arc landed it was
+// discarding compiledScene, mapTerrain, mapElements, liveMapDocumentId, assets,
+// fogEnabled and combatActive, so a "loaded" session came back with no map. A
+// whitelist in a persistence path is a slow leak: it fails the moment someone
+// adds a field and never says so. Validate what must be present, sanitize what
+// must be safe, and pass the rest through untouched.
 
-import type { PlayerStagingZone, RoomSnapshot } from "@herobyte/shared";
+import type { PlayerStagingZone, RoomSnapshot, SessionFile } from "@herobyte/shared";
 
 /**
- * Trigger a download of the provided room snapshot as a JSON file.
+ * Trigger a download of a complete session file.
  */
-export function saveSession(snapshot: RoomSnapshot, sessionName: string): void {
+export function saveSessionFile(file: SessionFile, sessionName: string): void {
   const safeName = (sessionName || "session").trim() || "session";
   const timestamp = new Date()
     .toISOString()
     .replace(/[-:]/g, "")
     .replace(/\.\d{3}Z$/, "Z");
   const fileName = `${safeName}-${timestamp}.json`;
-  const json = JSON.stringify(snapshot, null, 2);
+  const json = JSON.stringify(file, null, 2);
   const blob = new Blob([json], { type: "application/json" });
   const url = URL.createObjectURL(blob);
 
@@ -69,56 +88,79 @@ function sanitizePlayerStagingZone(value: unknown): PlayerStagingZone | undefine
 }
 
 /**
- * Load a room snapshot from a selected JSON file.
+ * Validate and normalize a room snapshot read from disk.
+ *
+ * Spread-first: everything the file carries survives, then the few fields that
+ * need coercing are overridden.
  */
-export function loadSession(file: File): Promise<RoomSnapshot> {
+function parseSnapshot(parsed: Record<string, unknown>): RoomSnapshot {
+  ensureArray(parsed.tokens, "tokens");
+  ensureArray(parsed.players, "players");
+  ensureArray(parsed.drawings, "drawings");
+  ensureArray(parsed.characters, "characters");
+  ensureArray(parsed.props ?? [], "props");
+  ensureArray(parsed.diceRolls ?? [], "diceRolls");
+
+  if (typeof parsed.gridSize !== "number") {
+    throw new Error("gridSize must be a number");
+  }
+
+  return {
+    ...(parsed as unknown as RoomSnapshot),
+    users: Array.isArray(parsed.users) ? (parsed.users as RoomSnapshot["users"]) : [],
+    props: (parsed.props ?? []) as RoomSnapshot["props"],
+    pointers: (Array.isArray(parsed.pointers) ? parsed.pointers : []) as RoomSnapshot["pointers"],
+    diceRolls: (parsed.diceRolls ?? []) as RoomSnapshot["diceRolls"],
+    mapBackground: typeof parsed.mapBackground === "string" ? parsed.mapBackground : undefined,
+    playerStagingZone: sanitizePlayerStagingZone(parsed.playerStagingZone),
+  };
+}
+
+/** A file written before session files carried their map documents. */
+function isLegacyBareSnapshot(parsed: Record<string, unknown>): boolean {
+  return parsed.snapshot === undefined;
+}
+
+/**
+ * Read a session file. Accepts the current envelope and, for files saved before
+ * it existed, a bare RoomSnapshot — those simply restore with no map documents,
+ * which the server handles by clearing the live binding rather than dangling it.
+ */
+export function loadSession(file: File): Promise<SessionFile> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error("Failed to read session file"));
     reader.onload = () => {
       try {
-        const text = reader.result as string;
-        const parsed = JSON.parse(text);
+        const parsed: unknown = JSON.parse(reader.result as string);
         if (!isRecord(parsed)) {
           throw new Error("Invalid session data");
         }
 
-        const tokens = ensureArray(parsed.tokens, "tokens");
-        const players = ensureArray(parsed.players, "players");
-        const drawings = ensureArray(parsed.drawings, "drawings");
-        const characters = ensureArray(parsed.characters, "characters");
-        const props = ensureArray(parsed.props ?? [], "props");
-        const pointers = Array.isArray(parsed.pointers) ? parsed.pointers : [];
-        const diceRolls = ensureArray(parsed.diceRolls ?? [], "diceRolls");
-
-        if (typeof parsed.gridSize !== "number") {
-          throw new Error("gridSize must be a number");
+        if (isLegacyBareSnapshot(parsed)) {
+          resolve({
+            schemaVersion: 1,
+            savedAt: 0,
+            snapshot: parseSnapshot(parsed),
+            mapDocuments: [],
+          });
+          return;
         }
 
-        const sceneObjects = Array.isArray(parsed.sceneObjects)
-          ? (parsed.sceneObjects as RoomSnapshot["sceneObjects"])
-          : undefined;
-        const stagingZone = sanitizePlayerStagingZone(parsed.playerStagingZone);
+        if (!isRecord(parsed.snapshot)) {
+          throw new Error("Invalid session data: snapshot must be an object");
+        }
 
-        const snapshot: RoomSnapshot = {
-          users: Array.isArray(parsed.users) ? parsed.users : [],
-          tokens: tokens as RoomSnapshot["tokens"],
-          players: players as RoomSnapshot["players"],
-          characters: characters as RoomSnapshot["characters"],
-          props: props as RoomSnapshot["props"],
-          mapBackground:
-            typeof parsed.mapBackground === "string" ? parsed.mapBackground : undefined,
-          pointers: pointers as RoomSnapshot["pointers"],
-          drawings: drawings as RoomSnapshot["drawings"],
-          gridSize: parsed.gridSize,
-          diceRolls: diceRolls as RoomSnapshot["diceRolls"],
-          gridSquareSize:
-            typeof parsed.gridSquareSize === "number" ? parsed.gridSquareSize : undefined,
-          sceneObjects,
-          playerStagingZone: stagingZone,
-        };
-
-        resolve(snapshot);
+        resolve({
+          schemaVersion: 1,
+          savedAt: typeof parsed.savedAt === "number" ? parsed.savedAt : 0,
+          snapshot: parseSnapshot(parsed.snapshot),
+          mapDocuments: Array.isArray(parsed.mapDocuments)
+            ? (parsed.mapDocuments as SessionFile["mapDocuments"])
+            : [],
+          liveMapDocumentId:
+            typeof parsed.liveMapDocumentId === "string" ? parsed.liveMapDocumentId : undefined,
+        });
       } catch (err) {
         reject(err instanceof Error ? err : new Error("Invalid session file"));
       }

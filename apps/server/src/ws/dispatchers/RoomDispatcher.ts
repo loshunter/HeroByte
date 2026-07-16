@@ -51,7 +51,17 @@ export class RoomDispatcher {
       }
 
       case "load-session":
-        return this.roomHandler.handleLoadSession(state, senderUid, message.snapshot, isDM);
+        return this.roomHandler.handleLoadSession(
+          state,
+          senderUid,
+          message.snapshot,
+          isDM,
+          message.mapDocuments,
+          message.liveMapDocumentId,
+        );
+
+      case "session-export":
+        return this.roomHandler.handleSessionExport(state, senderUid, isDM);
 
       case "transform-object":
         return this.transformHandler.handleTransformObject(state, senderUid, message.id, {

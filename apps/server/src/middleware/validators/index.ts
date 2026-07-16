@@ -14,4 +14,5 @@ export * from "./mapStudioLiveValidators.js";
 export * from "./generationValidators.js";
 export * from "./propValidators.js";
 export * from "./roomValidators.js";
+export * from "./sessionValidators.js";
 export * from "./selectionValidators.js";

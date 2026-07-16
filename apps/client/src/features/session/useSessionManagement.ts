@@ -1,184 +1,113 @@
 /**
  * useSessionManagement Hook
  *
- * Encapsulates session save/load workflow logic.
- * Handles exporting room state to JSON files and importing saved sessions.
+ * Encapsulates the session save/load workflow: exporting a complete session to
+ * a JSON file, and importing one back.
  *
- * Extracted from: apps/client/src/ui/App.tsx (lines 411-467)
- * Extraction date: 2025-10-20
- *
- * This hook handles:
- * - Session export (save) with validation and error handling
- * - Session import (load) with validation and warnings for incomplete data
- * - Toast notifications for all workflow states
- * - Server communication for loaded session data
+ * SAVE IS A ROUND TRIP, not a local serialize. The client cannot build a
+ * complete session on its own: its snapshot carries the map only as derived
+ * output (compiledScene/mapTerrain/mapElements) plus a `liveMapDocumentId`
+ * pointer, while the authored MapDocuments live server-side. So save ASKS the
+ * server to bundle a SessionFile (`session-export`) and downloads the reply.
+ * That is also why the whole thing is DM-only — the file is built from the DM's
+ * view and contains secret doors, hidden NPCs and GM notes.
  *
  * @module features/session/useSessionManagement
  */
 
-import { useCallback } from "react";
-import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
-import { saveSession, loadSession } from "../../utils/sessionPersistence";
+import { useCallback, useEffect, useRef } from "react";
+import type { ClientMessage, SessionFile } from "@herobyte/shared";
+import { saveSessionFile, loadSession } from "../../utils/sessionPersistence";
+import { awaitSessionFile } from "./sessionFileBridge";
 
 /**
  * Toast notification interface for displaying status messages.
- * Matches the return type of useToast hook.
  */
 export interface ToastManager {
-  /**
-   * Display an info toast notification
-   * @param message - The message to display
-   * @param duration - Optional duration in milliseconds (default: 3000)
-   */
   info: (message: string, duration?: number) => void;
-
-  /**
-   * Display a success toast notification
-   * @param message - The message to display
-   * @param duration - Optional duration in milliseconds (default: 3000)
-   */
   success: (message: string, duration?: number) => void;
-
-  /**
-   * Display a warning toast notification
-   * @param message - The message to display
-   * @param duration - Optional duration in milliseconds (default: 3000)
-   */
   warning: (message: string, duration?: number) => void;
-
-  /**
-   * Display an error toast notification
-   * @param message - The message to display
-   * @param duration - Optional duration in milliseconds (default: 3000)
-   */
   error: (message: string, duration?: number) => void;
 }
 
-/**
- * Dependencies required by the useSessionManagement hook.
- */
 export interface UseSessionManagementOptions {
-  /**
-   * Current room snapshot containing all game state.
-   * Required for saving sessions. If null, save operations will be rejected.
-   */
-  snapshot: RoomSnapshot | null;
-
-  /**
-   * WebSocket message sender for client-server communication.
-   * Used to send load-session messages to the server.
-   */
+  /** Whether a snapshot has arrived yet — save needs a live connection. */
+  hasSnapshot: boolean;
   sendMessage: (msg: ClientMessage) => void;
-
-  /**
-   * Toast notification manager for displaying status messages.
-   */
   toast: ToastManager;
 }
 
-/**
- * Session management action functions returned by the hook.
- */
 export interface UseSessionManagementReturn {
-  /**
-   * Save the current session to a JSON file.
-   *
-   * Downloads the current room snapshot as a timestamped JSON file.
-   * The filename format is: `{name}-{timestamp}.json`
-   *
-   * Workflow:
-   * 1. Validates that snapshot exists
-   * 2. Shows info toast: "Preparing session file..."
-   * 3. Triggers file download with sessionPersistence utility
-   * 4. Shows success toast on completion
-   * 5. Shows error toast if any step fails
-   *
-   * @param name - Base name for the session file (will be sanitized and timestamped)
-   *
-   * @example
-   * ```tsx
-   * handleSaveSession("epic-campaign");
-   * // Downloads: epic-campaign-20251020T143022Z.json
-   * ```
-   */
+  /** Ask the server for a complete session bundle and download it. */
   handleSaveSession: (name: string) => void;
-
-  /**
-   * Load a session from a JSON file.
-   *
-   * Reads and validates a session file, then sends it to the server.
-   * Validates that the loaded snapshot contains expected game data and shows
-   * warnings if scene objects or characters are missing.
-   *
-   * Workflow:
-   * 1. Shows info toast: "Loading session from {filename}..."
-   * 2. Reads and parses the file using sessionPersistence utility
-   * 3. Validates scene objects and characters exist
-   * 4. Sends load-session message to server
-   * 5. Shows success/warning toast based on validation results
-   * 6. Shows error toast if file is corrupted or invalid
-   *
-   * @param file - The session file to load (must be valid JSON)
-   * @returns Promise that resolves when load completes or rejects on error
-   *
-   * @example
-   * ```tsx
-   * // From file input onChange handler
-   * const file = event.target.files[0];
-   * await handleLoadSession(file);
-   * ```
-   */
+  /** Read a session file and send it to the server. */
   handleLoadSession: (file: File) => Promise<void>;
+  /** Feed the server's `session-file` reply back in (wired by the app shell). */
+  onSessionFile: (file: SessionFile) => void;
 }
 
-/**
- * Hook providing session save/load functionality.
- *
- * Manages the complete workflow for persisting and restoring game sessions.
- * Includes comprehensive validation, error handling, and user feedback via
- * toast notifications.
- *
- * @param options - Hook dependencies
- * @returns Session management action functions
- *
- * @example
- * ```tsx
- * const sessionActions = useSessionManagement({
- *   snapshot,
- *   sendMessage,
- *   toast
- * });
- *
- * // Save current session
- * sessionActions.handleSaveSession("my-campaign");
- *
- * // Load a session file
- * const file = event.target.files[0];
- * await sessionActions.handleLoadSession(file);
- * ```
- */
+/** How long to wait for the server's bundle before admitting it isn't coming. */
+const EXPORT_TIMEOUT_MS = 15_000;
+
 export function useSessionManagement({
-  snapshot,
+  hasSnapshot,
   sendMessage,
   toast,
 }: UseSessionManagementOptions): UseSessionManagementReturn {
-  /**
-   * Save the current session to a JSON file.
-   *
-   * Validates that a snapshot exists before attempting to save.
-   * On success, triggers a browser download with a timestamped filename.
-   * All errors are caught, logged, and displayed to the user.
-   */
+  // The name the DM typed, held until the server's bundle arrives. Non-null
+  // means "an export is in flight" — a second click is ignored rather than
+  // racing a second download.
+  const pendingName = useRef<string | null>(null);
+  const timeoutId = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearPending = useCallback(() => {
+    pendingName.current = null;
+    if (timeoutId.current !== null) {
+      clearTimeout(timeoutId.current);
+      timeoutId.current = null;
+    }
+  }, []);
+
+  // A pending export must not outlive the component, or the timeout fires a
+  // toast into an unmounted tree.
+  useEffect(() => clearPending, [clearPending]);
+
   const handleSaveSession = useCallback(
     (name: string) => {
-      if (!snapshot) {
+      if (!hasSnapshot) {
         toast.warning("No session data available to save yet.");
         return;
       }
+      if (pendingName.current !== null) {
+        toast.info("A session export is already in progress...");
+        return;
+      }
+      pendingName.current = name;
+      toast.info("Preparing session file...");
+      // Say so rather than hang: without this the DM watches a toast that never
+      // resolves and has no idea whether to click again.
+      timeoutId.current = setTimeout(() => {
+        clearPending();
+        toast.error("Save failed: the server did not return a session file.", 5000);
+      }, EXPORT_TIMEOUT_MS);
+
+      sendMessage({ t: "session-export" });
+    },
+    [hasSnapshot, sendMessage, toast, clearPending],
+  );
+
+  const onSessionFile = useCallback(
+    (file: SessionFile) => {
+      const name = pendingName.current;
+      if (name === null) return; // nobody asked (or the export already timed out)
+      clearPending();
       try {
-        toast.info("Preparing session file...");
-        saveSession(snapshot, name);
-        toast.success(`Session "${name}" saved successfully!`, 4000);
+        saveSessionFile(file, name);
+        const maps = file.mapDocuments.length;
+        toast.success(
+          `Session "${name}" saved — ${maps} map${maps === 1 ? "" : "s"} included.`,
+          4000,
+        );
       } catch (err) {
         console.error("Failed to save session", err);
         toast.error(
@@ -189,37 +118,34 @@ export function useSessionManagement({
         );
       }
     },
-    [snapshot, toast],
+    [toast, clearPending],
   );
 
-  /**
-   * Load a session from a JSON file.
-   *
-   * Reads and validates the session file, checking for:
-   * - Valid JSON structure
-   * - Presence of scene objects
-   * - Presence of characters
-   *
-   * If validation warnings are found, they're displayed to the user
-   * but the session is still loaded. Critical errors (corrupted file,
-   * invalid JSON) prevent loading and show an error toast.
-   */
   const handleLoadSession = useCallback(
     async (file: File) => {
       try {
         toast.info(`Loading session from ${file.name}...`);
-        const loadedSnapshot = await loadSession(file);
+        const session = await loadSession(file);
 
-        // Validate snapshot has expected data
         const warnings: string[] = [];
-        if (!loadedSnapshot.sceneObjects || loadedSnapshot.sceneObjects.length === 0) {
-          warnings.push("No scene objects found");
+        if (!session.snapshot.sceneObjects || session.snapshot.sceneObjects.length === 0) {
+          warnings.push("no scene objects");
         }
-        if (!loadedSnapshot.characters || loadedSnapshot.characters.length === 0) {
-          warnings.push("No characters found");
+        if (!session.snapshot.characters || session.snapshot.characters.length === 0) {
+          warnings.push("no characters");
+        }
+        // Worth saying out loud: the table will render but the map cannot be
+        // edited, and the live binding gets cleared rather than left dangling.
+        if (session.liveMapDocumentId && session.mapDocuments.length === 0) {
+          warnings.push("no map documents — the map will load read-only");
         }
 
-        sendMessage({ t: "load-session", snapshot: loadedSnapshot });
+        sendMessage({
+          t: "load-session",
+          snapshot: session.snapshot,
+          mapDocuments: session.mapDocuments,
+          liveMapDocumentId: session.liveMapDocumentId,
+        });
 
         if (warnings.length > 0) {
           toast.warning(`Session loaded with warnings: ${warnings.join(", ")}`, 5000);
@@ -239,10 +165,13 @@ export function useSessionManagement({
     [sendMessage, toast],
   );
 
-  return {
-    handleSaveSession,
-    handleLoadSession,
-  };
+  // The reply arrives at App's switchboard, which has no way to reach this hook
+  // directly. Registering here (rather than being handed the file as a prop)
+  // keeps the round trip's two halves in one file, where the pending-name
+  // invariant is visible.
+  useEffect(() => awaitSessionFile(onSessionFile), [onSessionFile]);
+
+  return { handleSaveSession, handleLoadSession, onSessionFile };
 }
 
 export default useSessionManagement;

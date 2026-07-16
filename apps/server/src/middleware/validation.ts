@@ -93,6 +93,8 @@ import {
   validateSetRoomPasswordMessage,
   validateRoomControlMessage,
   validateLoadSessionMessage,
+  validateLoadSessionEnvelope,
+  validateSessionExportMessage,
   validateAuthenticateMessage,
   validateCreateRoomMessage,
   validateElevateToDmMessage,
@@ -226,7 +228,14 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   "set-room-password": validateSetRoomPasswordMessage,
   "clear-all-tokens": validateRoomControlMessage,
   heartbeat: validateRoomControlMessage,
-  "load-session": validateLoadSessionMessage,
+  // Both halves must pass: the snapshot (roomValidators) AND the map-document
+  // envelope (sessionValidators). Kept as two functions because the snapshot
+  // rules predate the envelope and are shared with legacy save files.
+  "load-session": (message) => {
+    const snapshot = validateLoadSessionMessage(message);
+    return snapshot.valid ? validateLoadSessionEnvelope(message) : snapshot;
+  },
+  "session-export": validateSessionExportMessage,
   "request-room-resync": validateRequestRoomResyncMessage,
   authenticate: validateAuthenticateMessage,
   "create-room": validateCreateRoomMessage,
