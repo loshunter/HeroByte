@@ -310,15 +310,21 @@ describe("MessageRouter - Authorization Characterization", () => {
   });
 
   describe("Early Return Pattern - Comprehensive DM-Only Message Types", () => {
+    // `handler` is a LAZY accessor for the exact service spy this message
+    // type must (DM) / must NOT (non-DM) reach — the mocks are rebuilt in
+    // beforeEach, so the accessor resolves at test time. A previous version
+    // of the block test asserted "SOME spy in a list of 8 was never called",
+    // which is true whenever fewer than 8 messages route — i.e. always — so
+    // a warn-then-execute regression would have passed it.
     const dmOnlyMessages: Array<{
       type: string;
       message: ClientMessage;
-      handlerCheck: () => void;
+      handler: () => unknown;
     }> = [
       {
         type: "create-character",
         message: { t: "create-character", name: "Hero", maxHp: 25, portrait: undefined },
-        handlerCheck: () => expect(mockCharacterService.createCharacter).toHaveBeenCalled(),
+        handler: () => mockCharacterService.createCharacter,
       },
       {
         type: "create-npc",
@@ -330,7 +336,7 @@ describe("MessageRouter - Authorization Characterization", () => {
           portrait: undefined,
           tokenImage: undefined,
         },
-        handlerCheck: () => expect(mockCharacterService.createCharacter).toHaveBeenCalled(),
+        handler: () => mockCharacterService.createCharacter,
       },
       {
         type: "update-npc",
@@ -343,17 +349,17 @@ describe("MessageRouter - Authorization Characterization", () => {
           portrait: undefined,
           tokenImage: undefined,
         },
-        handlerCheck: () => expect(mockCharacterService.updateNPC).toHaveBeenCalled(),
+        handler: () => mockCharacterService.updateNPC,
       },
       {
         type: "delete-npc",
         message: { t: "delete-npc", id: "npc-1" },
-        handlerCheck: () => expect(mockCharacterService.deleteCharacter).toHaveBeenCalled(),
+        handler: () => mockCharacterService.deleteCharacter,
       },
       {
         type: "place-npc-token",
         message: { t: "place-npc-token", id: "npc-1" },
-        handlerCheck: () => expect(mockCharacterService.placeNPCToken).toHaveBeenCalled(),
+        handler: () => mockCharacterService.placeNPCToken,
       },
       {
         type: "create-prop",
@@ -365,7 +371,7 @@ describe("MessageRouter - Authorization Characterization", () => {
           size: "medium",
           viewport: { x: 0, y: 0, scale: 1 },
         },
-        handlerCheck: () => expect(mockPropService.createProp).toHaveBeenCalled(),
+        handler: () => mockPropService.createProp,
       },
       {
         type: "update-prop",
@@ -377,50 +383,37 @@ describe("MessageRouter - Authorization Characterization", () => {
           owner: "dm-user",
           size: "large",
         },
-        handlerCheck: () => expect(mockPropService.updateProp).toHaveBeenCalled(),
+        handler: () => mockPropService.updateProp,
       },
       {
         type: "delete-prop",
         message: { t: "delete-prop", id: "prop-1" },
-        handlerCheck: () => expect(mockPropService.deleteProp).toHaveBeenCalled(),
+        handler: () => mockPropService.deleteProp,
       },
       {
         type: "clear-all-tokens",
         message: { t: "clear-all-tokens" },
-        handlerCheck: () => expect(mockTokenService.clearAllTokensExcept).toHaveBeenCalled(),
+        handler: () => mockTokenService.clearAllTokensExcept,
       },
     ];
 
-    dmOnlyMessages.forEach(({ type, message, handlerCheck }) => {
+    dmOnlyMessages.forEach(({ type, message, handler }) => {
       it(`should allow DM to execute ${type}`, () => {
         router.route(message, "dm-user");
         flushBroadcasts();
 
         expect(consoleWarnSpy).not.toHaveBeenCalled();
-        handlerCheck();
+        expect(handler()).toHaveBeenCalled();
       });
 
       it(`should block non-DM from executing ${type}`, () => {
-        const _spy = handlerCheck; // Capture the spy check
-
         router.route(message, "regular-user");
         flushBroadcasts();
 
         expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`Non-DM regular-user`));
-        // Handler should NOT be called - check by expecting it NOT to be called
-        // We can't reuse handlerCheck since it expects to be called, so we verify the opposite
-        const serviceCalls = [
-          vi.mocked(mockCharacterService.createCharacter),
-          vi.mocked(mockCharacterService.updateNPC),
-          vi.mocked(mockCharacterService.deleteCharacter),
-          vi.mocked(mockCharacterService.placeNPCToken),
-          vi.mocked(mockPropService.createProp),
-          vi.mocked(mockPropService.updateProp),
-          vi.mocked(mockPropService.deleteProp),
-          vi.mocked(mockTokenService.clearAllTokensExcept),
-        ];
-        // At least one handler should NOT have been called (the one for this message)
-        expect(serviceCalls.some((call) => call.mock.calls.length === 0)).toBe(true);
+        // THE assertion this test exists for: this message type's own handler
+        // was never reached by the blocked sender.
+        expect(handler()).not.toHaveBeenCalled();
       });
     });
   });
@@ -518,14 +511,22 @@ describe("MessageRouter - Authorization Characterization", () => {
       expect(consoleWarnSpy).toHaveBeenCalledWith("Non-DM regular-user attempted to end combat");
     });
 
-    it("should pass isDM status to clear-all-initiative handler (verified by handler being called)", () => {
+    it("clear-all-initiative: handler-level isDM gate executes for DM, blocks non-DM", () => {
+      // A previous version asserted toHaveBeenCalled() after BOTH routes,
+      // which the DM's earlier call satisfied cumulatively — it never checked
+      // the non-DM path at all. The handler's real contract: DM clears, a
+      // non-DM sender is warned and clearAllInitiative is NOT reached.
       router.route({ t: "clear-all-initiative" }, "dm-user");
       flushBroadcasts();
-      expect(mockCharacterService.clearAllInitiative).toHaveBeenCalled();
+      expect(mockCharacterService.clearAllInitiative).toHaveBeenCalledTimes(1);
 
+      vi.mocked(mockCharacterService.clearAllInitiative).mockClear();
       router.route({ t: "clear-all-initiative" }, "regular-user");
       flushBroadcasts();
-      expect(mockCharacterService.clearAllInitiative).toHaveBeenCalled();
+      expect(mockCharacterService.clearAllInitiative).not.toHaveBeenCalled();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("Non-DM regular-user attempted to clear all initiative"),
+      );
     });
   });
 
