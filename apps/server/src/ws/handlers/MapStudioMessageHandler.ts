@@ -170,6 +170,16 @@ export class MapStudioMessageHandler {
       case "map-studio-publish": {
         // Publish compiles, never flattens: the background is cosmetic while
         // the compiled walls/doors/lights become server-enforced live state.
+        //
+        // KNOWN BOUNDARY: `message.background` is a DM-client-rendered raster
+        // (a PNG asset URL or SVG data URL) stored verbatim — the server has no
+        // rasterizer, so the notes-layer/hidden-element privacy rules for this
+        // ONE field are enforced in the DM's client (rasterVisibility.ts,
+        // pinned by its own test suite), unlike mapTerrain/mapElements/
+        // compiledScene which are derived server-side from the stored document.
+        // This is not player-exploitable — only DMs publish, and a DM can set
+        // arbitrary background art via the sibling background control anyway —
+        // but it means a buggy DM client can leak GM notes into player art.
         const document = this.service.get(roomId, message.documentId);
         const state = this.getRoomState(roomId);
         state.mapBackground = message.background;
