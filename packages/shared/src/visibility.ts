@@ -26,12 +26,22 @@ export function computeVisionPolygon(
   segments: readonly BlockingSegment[],
   bounds: { width: number; height: number },
 ): ScenePoint[] {
+  // The boundary box exists so rays terminate — it is NOT an occluder. The
+  // live table is an infinite canvas, so a viewer can legitimately stand
+  // OUTSIDE the document rect (tokens spawn at its top-left corner cell; one
+  // drag up or left exits it). The box must strictly contain the origin or
+  // the sweep degenerates to a zero-area polygon and fog swallows the
+  // viewer's own token. Origins inside the rect keep the exact original box.
+  const minX = origin.x <= 0 ? origin.x - 1 : 0;
+  const minY = origin.y <= 0 ? origin.y - 1 : 0;
+  const maxX = origin.x >= bounds.width ? origin.x + 1 : bounds.width;
+  const maxY = origin.y >= bounds.height ? origin.y + 1 : bounds.height;
   const all: RawSegment[] = [
     ...segments,
-    { x1: 0, y1: 0, x2: bounds.width, y2: 0 },
-    { x1: bounds.width, y1: 0, x2: bounds.width, y2: bounds.height },
-    { x1: bounds.width, y1: bounds.height, x2: 0, y2: bounds.height },
-    { x1: 0, y1: bounds.height, x2: 0, y2: 0 },
+    { x1: minX, y1: minY, x2: maxX, y2: minY },
+    { x1: maxX, y1: minY, x2: maxX, y2: maxY },
+    { x1: maxX, y1: maxY, x2: minX, y2: maxY },
+    { x1: minX, y1: maxY, x2: minX, y2: minY },
   ];
 
   const angles: number[] = [];

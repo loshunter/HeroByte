@@ -98,6 +98,44 @@ describe("computeVisionPolygon", () => {
       expect(vertex.y).toBeLessThanOrEqual(400.01);
     }
   });
+
+  // The live table is an infinite canvas and tokens spawn at the document
+  // rect's top-left CORNER cell, so a token dragged one cell up or left sits
+  // OUTSIDE the rect. The scene-bounds segments used to double as the
+  // containment box, so an outside origin degenerated to a zero-area polygon
+  // — no fog hole at all, the reported "fog covers everything including my
+  // token". Vision from outside must still reach into the scene.
+  describe("origins outside the scene rect (off-document tokens)", () => {
+    const outsideOrigins: [string, ScenePoint][] = [
+      ["left", { x: -25, y: 200 }],
+      ["above", { x: 200, y: -25 }],
+      ["diagonal top-left", { x: -25, y: -25 }],
+      ["right", { x: 425, y: 200 }],
+      ["below the corner", { x: 425, y: 425 }],
+    ];
+
+    it.each(outsideOrigins)("sees into an unwalled scene from %s", (_label, origin) => {
+      const polygon = computeVisionPolygon(origin, [], BOUNDS);
+      // The whole open rect is reachable by sightline.
+      expect(pointInPolygon({ x: 200, y: 200 }, polygon)).toBe(true);
+      expect(pointInPolygon({ x: 10, y: 10 }, polygon)).toBe(true);
+      expect(pointInPolygon({ x: 390, y: 390 }, polygon)).toBe(true);
+    });
+
+    it("walls still occlude an outside origin's sightlines", () => {
+      const origin = { x: -25, y: 200 };
+      const segments = [wall("w", 200, 0, 200, 400)];
+      // In front of the wall: visible.
+      expect(visible(origin, segments, { x: 100, y: 200 })).toBe(true);
+      // Behind the wall: hidden.
+      expect(visible(origin, segments, { x: 300, y: 200 })).toBe(false);
+    });
+
+    it("an origin exactly on the rect edge is not blinded", () => {
+      const polygon = computeVisionPolygon({ x: 0, y: 200 }, [], BOUNDS);
+      expect(pointInPolygon({ x: 200, y: 200 }, polygon)).toBe(true);
+    });
+  });
 });
 
 describe("getVisionBlockingSegments", () => {
