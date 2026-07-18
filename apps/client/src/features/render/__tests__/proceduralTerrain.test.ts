@@ -174,6 +174,65 @@ describe("createTerrainField", () => {
 // grass/dirt/path field. A per-family `edgeAmp` scales the boundary displacement
 // (default 1 = today's bumpy edges; 0 = crisp). Floor sits above grass in
 // priority so it draws over natural terrain with its own crisp edge.
+// A wall reads TALL through two per-family knobs: a THIN rim (inked outline
+// instead of a wide bevel) and a DARKER cast shadow (strength only — band and
+// probe stay shared, so the shadow deepens without widening). Families without
+// the overrides keep the shipped defaults bit-for-bit.
+describe("per-family rim width and cast shadow (walls read tall)", () => {
+  const WALL = "terrain:wall-stone";
+  const WALL_BASE = "#b3a687";
+  const wallFamily = (overrides: Partial<TerrainFieldFamily>): TerrainFieldFamily => ({
+    assetId: WALL,
+    priority: 20,
+    base: WALL_BASE,
+    rim: "#4e4638",
+    edgeAmp: 0,
+    ...overrides,
+  });
+  // Grass on the left, a wall slab on the right; the wall shadows the grass
+  // on its lower-left (light is top-right).
+  const grassWallRows = (): (string | null)[][] =>
+    Array.from({ length: 6 }, () => [GRASS, GRASS, GRASS, GRASS, WALL, WALL, WALL, WALL].slice());
+  const grassZoneSum = (r: { pixels: Uint8ClampedArray; w: number }): number => {
+    let sum = 0;
+    for (let cy = 1; cy < 5; cy += 1) {
+      for (let x = 2 * CELL; x < 4 * CELL; x += 1) {
+        const p = px(r, x, center(cy));
+        sum += p[0]! + p[1]! + p[2]!;
+      }
+    }
+    return sum;
+  };
+  const rimPixelCount = (r: { pixels: Uint8ClampedArray; w: number }): number => {
+    let count = 0;
+    for (let cy = 1; cy < 5; cy += 1) {
+      for (let x = 4 * CELL; x < 6 * CELL; x += 1) {
+        if (isRgb(px(r, x, center(cy)), "#4e4638")) count += 1;
+      }
+    }
+    return count;
+  };
+
+  it("a shadow-strength override darkens the bordered family more than the default", () => {
+    const plain = render(grassWallRows(), [...FAMILIES, wallFamily({})]);
+    const deep = render(grassWallRows(), [
+      ...FAMILIES,
+      wallFamily({ shadow: { band: 0.34, strength: 0.3 } }),
+    ]);
+    expect(grassZoneSum(deep)).toBeLessThan(grassZoneSum(plain));
+  });
+
+  it("a thin rimWidth narrows the rim band to an outline", () => {
+    const plain = render(grassWallRows(), [...FAMILIES, wallFamily({})]);
+    const thin = render(grassWallRows(), [...FAMILIES, wallFamily({ rimWidth: 0.055 })]);
+    const plainRim = rimPixelCount(plain);
+    const thinRim = rimPixelCount(thin);
+    expect(plainRim).toBeGreaterThan(0);
+    expect(thinRim).toBeGreaterThan(0);
+    expect(thinRim).toBeLessThan(plainRim);
+  });
+});
+
 describe("per-family edge amplitude (crisp floors)", () => {
   const FLOOR = "terrain:stone-floor";
   const FLOOR_BASE = "#4d5361";

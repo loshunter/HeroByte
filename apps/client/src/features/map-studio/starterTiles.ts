@@ -145,8 +145,10 @@ export const MAP_STUDIO_TILE_ASSETS: MapStudioTileAsset[] = [
     accent: "#3f451f",
   },
   {
+    // Legacy flat placeable block — the PAINTED wall families below are the
+    // "walls that look like walls" (procedural top + rim + cast shadow).
     id: "structures:stone-wall",
-    name: "Stone Wall",
+    name: "Stone Block",
     category: "structures",
     layerKind: "walls",
     columns: 1,
@@ -154,6 +156,53 @@ export const MAP_STUDIO_TILE_ASSETS: MapStudioTileAsset[] = [
     fill: "#64606a",
     stroke: "#9e96a5",
     accent: "#3f3b45",
+  },
+  // Painted wall families (Czepeku-style band walls). Fills match their
+  // VILLAGE_TERRAIN bases (pinned by wallVariants.test) so the field bake and
+  // the flat fallback/SVG export agree.
+  {
+    id: "terrain:wall-stone",
+    name: "Stone Wall",
+    category: "terrain",
+    layerKind: "terrain",
+    columns: 1,
+    rows: 1,
+    fill: "#b3a687",
+    stroke: "#cabfa2",
+    accent: "#4e4638",
+  },
+  {
+    id: "terrain:wall-brick",
+    name: "Brick Wall",
+    category: "terrain",
+    layerKind: "terrain",
+    columns: 1,
+    rows: 1,
+    fill: "#9d6b52",
+    stroke: "#bd9070",
+    accent: "#452e22",
+  },
+  {
+    id: "terrain:wall-timber",
+    name: "Timber Wall",
+    category: "terrain",
+    layerKind: "terrain",
+    columns: 1,
+    rows: 1,
+    fill: "#84613e",
+    stroke: "#97744e",
+    accent: "#33241a",
+  },
+  {
+    id: "terrain:wall-dark",
+    name: "Dark Wall",
+    category: "terrain",
+    layerKind: "terrain",
+    columns: 1,
+    rows: 1,
+    fill: "#5d5f6c",
+    stroke: "#868a9a",
+    accent: "#26272e",
   },
   {
     id: "objects:crate",

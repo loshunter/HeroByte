@@ -43,7 +43,9 @@ describe("MapEditAssetPicker", () => {
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Structures" }));
-    expect(screen.getByTitle("Stone Wall")).toBeTruthy();
+    // "Stone Block" is the legacy placeable tile (renamed from "Stone Wall"
+    // when the painted wall families took that name).
+    expect(screen.getByTitle("Stone Block")).toBeTruthy();
     expect(screen.queryByTitle("Crate")).toBeNull();
   });
 

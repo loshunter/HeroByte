@@ -22,6 +22,7 @@ import {
 } from "./proceduralTerrain";
 import { paintKeyClusterDetail, paintTerrainDetail } from "./terrainDetail";
 import { paintFloorDetail } from "./terrainFloorDetail";
+import { paintWallDetail } from "./terrainWallDetail";
 import type { TerrainFamilyPalette } from "./terrainPalette";
 import type {
   StructuredTerrainLayer,
@@ -91,6 +92,8 @@ export function buildProceduralFieldConfig(
       base: fam.base,
       rim: fam.rim,
       edgeAmp: fam.edgeAmp,
+      rimWidth: fam.rimWidth,
+      shadow: fam.shadow,
     });
     for (const cell of layer.cells) {
       familyByCell.set(`${cell.cellX},${cell.cellY}`, layer.assetId);
@@ -180,7 +183,8 @@ function paintFamilyDetail(
   palette: TerrainPalette,
 ): void {
   const fam = palette[assetId];
-  if (fam?.floor) paintFloorDetail(ctx, cell, fam.floor);
+  if (fam?.wall) paintWallDetail(ctx, cell, fam.wall);
+  else if (fam?.floor) paintFloorDetail(ctx, cell, fam.floor);
   else if (fam?.keyCluster) paintKeyClusterDetail(ctx, cell, fam.keyCluster);
   else paintTerrainDetail(ctx, cell, assetId);
 }
@@ -232,11 +236,10 @@ export function paintProceduralDetail(
   for (const layer of fieldLayers) {
     const fam = palette[layer.assetId];
     if (!fam) continue;
+    // Clip own detail past the family's OWN rim width (walls use a thin lip).
+    const rim = fam.rimWidth ?? TERRAIN_RIM;
     for (const cell of layer.cells) {
-      const ownCtx = makeClipCtx(
-        ctx,
-        (wx, wy) => field.sampleField(layer.assetId, wx, wy) >= TERRAIN_RIM,
-      );
+      const ownCtx = makeClipCtx(ctx, (wx, wy) => field.sampleField(layer.assetId, wx, wy) >= rim);
       paintFamilyDetail(ownCtx, cell, layer.assetId, palette);
 
       const under = dominantLowerNeighbour(familyAt, cell.cellX, cell.cellY, fam.priority, palette);

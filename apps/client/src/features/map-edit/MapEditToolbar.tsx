@@ -10,7 +10,13 @@ import { JRPGPanel, JRPGButton } from "../../components/ui/JRPGPanel";
 import { getMapStudioTileAsset } from "../map-studio/starterTiles";
 import { MapEditAssetPicker } from "./MapEditAssetPicker";
 import { MapEditToolPanels } from "./MapEditToolPanels";
-import type { MapEditFloorFamily, MapEditSubTool, MapEditToolbarProps } from "./mapEditTypes";
+import { WALL_FAMILIES } from "./mapEditFamilies";
+import type {
+  MapEditFloorFamily,
+  MapEditSubTool,
+  MapEditToolbarProps,
+  MapEditWallFamily,
+} from "./mapEditTypes";
 
 const SUB_TOOLS: { id: MapEditSubTool; label: string }[] = [
   { id: "room", label: "🏠 Room" },
@@ -37,6 +43,24 @@ const FLOOR_FAMILIES: { id: MapEditFloorFamily; label: string }[] = [
   { id: "wood-grey", label: "Grey Plank" },
 ];
 
+// Derived from the one family list so the swatches, the eyedropper mapping and
+// the ring choices can never drift apart.
+const WALL_LABELS: Record<MapEditWallFamily, string> = {
+  "wall-stone": "Stone",
+  "wall-brick": "Brick",
+  "wall-timber": "Timber",
+  "wall-dark": "Dark",
+};
+const WALL_FAMILY_SWATCHES: { id: MapEditWallFamily; label: string }[] = WALL_FAMILIES.map(
+  (id) => ({ id, label: WALL_LABELS[id] }),
+);
+
+/** The Room tool's wall-ring choices: a material, or no ring at all. */
+const ROOM_WALL_CHOICES: { id: MapEditWallFamily | "none"; label: string }[] = [
+  { id: "none", label: "None" },
+  ...WALL_FAMILY_SWATCHES,
+];
+
 const HALLWAY_WIDTHS = [1, 2, 3, 4];
 
 const labelStyle = {
@@ -53,6 +77,8 @@ export function MapEditToolbar(props: MapEditToolbarProps) {
     onSelectSubTool,
     floorFamily,
     onSelectFloorFamily,
+    roomWallFamily,
+    onSelectRoomWallFamily,
     canUndo,
     canRedo,
     onUndo,
@@ -149,6 +175,51 @@ export function MapEditToolbar(props: MapEditToolbarProps) {
                         key={f.id}
                         onClick={() => onSelectFloorFamily(f.id)}
                         variant={floorFamily === f.id ? "primary" : "default"}
+                        style={{ fontSize: "8px", padding: "6px 2px" }}
+                      >
+                        {f.label}
+                      </JRPGButton>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {paintsFloor && (
+                // Shown for EVERY tool that consumes the paint family (not just
+                // Paint): the swatch state is shared, so a wall family armed by
+                // the brush or the eyedropper must stay visible — and
+                // deliberately re-selectable — when the DM switches to Room or
+                // Hall (a solid wall mass is a legit room fill).
+                <div>
+                  <label className="jrpg-text-small" style={labelStyle}>
+                    Wall:
+                  </label>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4px" }}>
+                    {WALL_FAMILY_SWATCHES.map((f) => (
+                      <JRPGButton
+                        key={f.id}
+                        onClick={() => onSelectFloorFamily(f.id)}
+                        variant={floorFamily === f.id ? "primary" : "default"}
+                        style={{ fontSize: "8px", padding: "6px 2px" }}
+                      >
+                        {f.label}
+                      </JRPGButton>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {activeSubTool === "room" && (
+                <div>
+                  <label className="jrpg-text-small" style={labelStyle}>
+                    Wall ring:
+                  </label>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4px" }}>
+                    {ROOM_WALL_CHOICES.map((f) => (
+                      <JRPGButton
+                        key={f.id}
+                        onClick={() => onSelectRoomWallFamily(f.id)}
+                        variant={roomWallFamily === f.id ? "primary" : "default"}
                         style={{ fontSize: "8px", padding: "6px 2px" }}
                       >
                         {f.label}

@@ -27,7 +27,11 @@ import type { CameraCommand } from "../ui/MapBoard";
 import type { UseDrawingStateManagerReturn } from "../hooks/useDrawingStateManager";
 import { MapLoading } from "../components/ui/MapLoading";
 import type { MapStudioController } from "../features/map-studio";
-import type { MapEditFloorFamily, MapEditSubTool } from "../features/map-edit/mapEditTypes";
+import type {
+  MapEditFloorFamily,
+  MapEditSubTool,
+  MapEditWallFamily,
+} from "../features/map-edit/mapEditTypes";
 import type { RoomBounds } from "../features/map-edit/roomBuilder";
 
 // Lazy load MapBoard to reduce initial bundle size
@@ -88,6 +92,8 @@ export interface CenterCanvasLayoutProps {
   mapEditActiveSubTool: MapEditSubTool;
   /** Floor terrain family the room tool paints */
   mapEditFloorFamily: MapEditFloorFamily;
+  /** The Room tool's painted wall-ring material ("none" skips the ring) */
+  mapEditRoomWallFamily: MapEditWallFamily | "none";
   /** Asset the place/scatter tools drop */
   mapEditSelectedAssetId: string;
   /** Corridor width in cells for the hallway tool */
@@ -214,6 +220,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
     mapEditMode,
     mapEditActiveSubTool,
     mapEditFloorFamily,
+    mapEditRoomWallFamily,
     mapEditSelectedAssetId,
     mapEditHallwayWidth,
     mapEditSelectedElementId,
@@ -265,6 +272,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
             mapEditMode={mapEditMode}
             mapEditActiveSubTool={mapEditActiveSubTool}
             mapEditFloorFamily={mapEditFloorFamily}
+            mapEditRoomWallFamily={mapEditRoomWallFamily}
             mapEditSelectedAssetId={mapEditSelectedAssetId}
             mapEditHallwayWidth={mapEditHallwayWidth}
             mapEditSelectedElementId={mapEditSelectedElementId}

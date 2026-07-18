@@ -20,9 +20,10 @@ export interface TerrainCellRect {
   cellY: number;
   /**
    * 8-neighbor same-family bitmask (blobAutotile bit order), set by
-   * buildStructuredTerrainLayers. Consumed ONLY by the quarter-tile (blob47)
-   * atlas path; the flat-fill, boundary-edge, and SVG-adapter paths ignore it,
-   * so it never affects export byte-parity. Optional/additive.
+   * buildStructuredTerrainLayers. Consumed by the quarter-tile (blob47) atlas
+   * path and the wall painter (terrainWallDetail, run-vs-quoin selection); the
+   * flat-fill, boundary-edge, and SVG-adapter paths ignore it, so it never
+   * affects export byte-parity. Optional/additive.
    */
   neighborMask?: number;
 }

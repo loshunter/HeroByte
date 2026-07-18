@@ -2,7 +2,11 @@ import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import type { Camera } from "../hooks/useCamera";
 import type { MapStudioController } from "../features/map-studio/types";
-import type { MapEditFloorFamily, MapEditSubTool } from "../features/map-edit/mapEditTypes";
+import type {
+  MapEditFloorFamily,
+  MapEditSubTool,
+  MapEditWallFamily,
+} from "../features/map-edit/mapEditTypes";
 import type { RoomBounds } from "../features/map-edit/roomBuilder";
 
 /**
@@ -37,6 +41,7 @@ export interface MapBoardProps {
   mapEditMode?: boolean; // Live on-table map authoring active (DM-only)
   mapEditActiveSubTool?: MapEditSubTool; // Selected map-edit sub-tool (wall, …)
   mapEditFloorFamily?: MapEditFloorFamily; // Floor terrain family the room tool paints
+  mapEditRoomWallFamily?: MapEditWallFamily | "none"; // Room tool's painted wall-ring material
   mapEditSelectedAssetId?: string; // Asset the place/scatter tools drop
   mapEditHallwayWidth?: number; // Corridor width in cells for the hallway tool
   mapEditSelectedElementId?: string | null; // Selected element (select tool) → highlight

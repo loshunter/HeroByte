@@ -278,6 +278,38 @@ describe("useMapEditTool", () => {
     expect(controller.addWall).not.toHaveBeenCalled();
   });
 
+  it("paints the wall ring around the room when roomWallFamily is armed", () => {
+    // Pins the ring WIRING (roomWallFamily → commitDragTool → buildRoomCommand),
+    // not just the pure builder: floor + ring must land in ONE placeRoom call
+    // (one undo step), with the ring material from the armed family.
+    const controller = makeController();
+    const { result } = renderHook(() =>
+      useMapEditTool({
+        mapEditMode: true,
+        activeSubTool: "room",
+        controller,
+        liveDocumentId: "live",
+        floorFamily: "wood-floor",
+        roomWallFamily: "wall-brick",
+        toWorld: identityToWorld,
+        mapTransform: undefined,
+      }),
+    );
+
+    // Same 3×2-cell drag as the ringless room test above.
+    act(() => result.current.onMouseDown(makeStage({ x: 100, y: 100 }).ref));
+    act(() => result.current.onMouseMove(makeStage({ x: 200, y: 150 }).ref));
+    act(() => result.current.onMouseUp());
+
+    expect(controller.placeRoom).toHaveBeenCalledTimes(1);
+    const [cells] = (controller.placeRoom as ReturnType<typeof vi.fn>).mock.calls[0];
+    const floors = cells.filter((c: { assetId: string }) => c.assetId === "terrain:wood-floor");
+    const ring = cells.filter((c: { assetId: string }) => c.assetId === "terrain:wall-brick");
+    expect(floors).toHaveLength(6); // 3×2 interior
+    expect(ring).toHaveLength(14); // surrounding 5×4 band
+    expect(cells).toHaveLength(20);
+  });
+
   it("force-snaps a room even when the document grid snap is off", () => {
     // Rooms are cell-quantized; the perimeter must land on cell edges regardless
     // of the doc's snap setting, or floor spills outside the walls.

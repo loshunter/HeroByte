@@ -34,6 +34,14 @@ export interface TerrainFieldFamily {
    * their boundary stays straight and grid-aligned (crisp), not wavy.
    */
   edgeAmp?: number;
+  /** Shading-lip band width in field units. Undefined ⇒ TERRAIN_RIM. Walls use
+   * a thin lip so their edge reads as an inked outline, not a wide bevel. */
+  rimWidth?: number;
+  /** Cast-shadow override on lower families. Undefined ⇒ the default
+   * grass-over-dirt lip. Only `strength` (max darkening, 0–1) is applied —
+   * walls darken HARDER, not wider, to read tall (the Czepeku height cue).
+   * `band` is a reserved depth knob; band/probe stay at the shared defaults. */
+  shadow?: { band: number; strength: number };
 }
 
 export interface TerrainFieldConfig {
@@ -65,11 +73,16 @@ export interface TerrainField {
   sampleField(assetId: string, wx: number, wy: number): number;
 }
 
-// Tuning — validated in the prototype.
-export const TERRAIN_RIM = 0.16; // shading-lip band width, in field units
+// Tuning — validated in the prototype. Band and probe are shared by every
+// family so the shipped grass/dirt/floor look is untouched; only the shadow
+// STRENGTH is per-family (exported so tests pin overrides against it, not
+// against magic literals).
+export const TERRAIN_RIM = 0.16; // default shading-lip band width, in field units
+export const TERRAIN_SHADOW_STRENGTH = 0.16; // default cast-shadow darkening
 const SHADOW = 0.15; // cast-shadow band width on the lower family
 const AMP = 0.9; // boundary bump amplitude
-const SHADOW_STRENGTH = 0.16;
+const SHADOW_STRENGTH = TERRAIN_SHADOW_STRENGTH;
+const SHADOW_PROBE = 0.14; // up-right presence probe, in cells
 
 const parseHex = (h: string): FieldRgb => [
   parseInt(h.slice(1, 3), 16),
@@ -84,6 +97,10 @@ interface FieldFamily {
   rim: FieldRgb;
   seed: number;
   edgeAmp: number;
+  rimWidth: number;
+  shadowBand: number;
+  shadowStrength: number;
+  shadowProbe: number;
 }
 
 /**
@@ -107,6 +124,13 @@ export function createTerrainField(config: TerrainFieldConfig): TerrainField {
       rim: parseHex(f.rim),
       seed: f.priority * 97 + 3,
       edgeAmp: f.edgeAmp ?? 1,
+      rimWidth: f.rimWidth ?? TERRAIN_RIM,
+      // Band and probe stay at the shared defaults for every family; only the
+      // shadow's `strength` is per-family (tall families darken harder, not
+      // wider — a widened band/probe read as detached wedges at wall corners).
+      shadowBand: SHADOW,
+      shadowStrength: f.shadow?.strength ?? SHADOW_STRENGTH,
+      shadowProbe: SHADOW_PROBE,
     }));
   const byId = new Map(fams.map((f) => [f.assetId, f]));
   const priorityOf = new Map(config.families.map((f) => [f.assetId, f.priority]));
@@ -148,15 +172,15 @@ export function createTerrainField(config: TerrainFieldConfig): TerrainField {
     for (const f of fams) {
       const v = fieldOf(f, wx, wy);
       if (v >= 0) {
-        color = v < TERRAIN_RIM ? f.rim : f.base;
+        color = v < f.rimWidth ? f.rim : f.base;
       } else if (
         color &&
-        v > -SHADOW &&
-        fieldOf(f, wx + cellSize * 0.14, wy - cellSize * 0.14) >= 0
+        v > -f.shadowBand &&
+        fieldOf(f, wx + cellSize * f.shadowProbe, wy - cellSize * f.shadowProbe) >= 0
       ) {
         // Cast shadow: this higher family is present up-right, so darken the
         // lower family already painted here (its shadowed lower-left edge).
-        const k = SHADOW_STRENGTH * (1 + v / SHADOW); // v in (-SHADOW,0) → fades out
+        const k = f.shadowStrength * (1 + v / f.shadowBand); // v in (-band,0) → fades out
         color = [
           Math.round(color[0] * (1 - k)),
           Math.round(color[1] * (1 - k)),

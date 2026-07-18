@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { MapGridSettings, MapLayer } from "@herobyte/shared";
+import { createTerrainMap, setTerrainCells } from "@herobyte/shared";
 import { buildRoomCommand, MAX_ROOM_CELLS } from "../roomBuilder";
 
 const grid: MapGridSettings = {
@@ -83,6 +84,74 @@ describe("buildRoomCommand", () => {
       "stone-floor",
       grid,
       wallsLayers(),
+    );
+    expect(result.command).toBeNull();
+    expect(result.error).toContain(String(MAX_ROOM_CELLS));
+  });
+
+  it("adds a one-cell wall ring around the floor when a wall family is chosen", () => {
+    const result = buildRoomCommand(
+      { x: 50, y: 50, width: 100, height: 50 },
+      "wood-floor",
+      grid,
+      wallsLayers(),
+      { wallFamily: "wall-stone", terrain: null },
+    );
+    expect(result.error).toBeNull();
+    const cells = result.command!.cells;
+    const floors = cells.filter((c) => c.assetId === "terrain:wood-floor");
+    const walls = cells.filter((c) => c.assetId === "terrain:wall-stone");
+    // 2×1 floor at (1,1)-(2,1); ring is the surrounding 4×3 band = 10 cells.
+    expect(floors).toHaveLength(2);
+    expect(walls).toHaveLength(10);
+    // Ring cells surround the floor exactly (no overlap, no gaps).
+    const wallKeys = new Set(walls.map((c) => `${c.x},${c.y}`));
+    expect(wallKeys.size).toBe(10);
+    for (const c of floors) expect(wallKeys.has(`${c.x},${c.y}`)).toBe(false);
+    expect(wallKeys.has("0,0")).toBe(true); // corner
+    expect(wallKeys.has("3,2")).toBe(true); // opposite corner
+    expect(wallKeys.has("1,0")).toBe(true); // top edge over the floor
+    // The blocking perimeter polyline is unchanged by the ring.
+    expect(result.command!.elements[0]!.data.points).toEqual([
+      { x: 50, y: 50 },
+      { x: 150, y: 50 },
+      { x: 150, y: 100 },
+      { x: 50, y: 100 },
+      { x: 50, y: 50 },
+    ]);
+  });
+
+  it("the ring never overwrites a neighbouring room's laid interior floor", () => {
+    // An existing wood-floor room interior sits directly left of the new room.
+    const terrain = setTerrainCells(createTerrainMap(), [
+      { x: 0, y: 1, assetId: "terrain:wood-floor" },
+      // Natural ground and an existing wall band ARE overwritable.
+      { x: 0, y: 0, assetId: "terrain:grass" },
+      { x: 0, y: 2, assetId: "terrain:wall-brick" },
+    ]);
+    const result = buildRoomCommand(
+      { x: 50, y: 50, width: 50, height: 50 },
+      "stone-floor",
+      grid,
+      wallsLayers(),
+      { wallFamily: "wall-stone", terrain },
+    );
+    const walls = result.command!.cells.filter((c) => c.assetId === "terrain:wall-stone");
+    const wallKeys = new Set(walls.map((c) => `${c.x},${c.y}`));
+    expect(wallKeys.has("0,1")).toBe(false); // protected interior floor
+    expect(wallKeys.has("0,0")).toBe(true); // grass is walled over
+    expect(wallKeys.has("0,2")).toBe(true); // wall-over-wall fuses the band
+    expect(walls).toHaveLength(7); // 8-cell ring minus the protected cell
+  });
+
+  it("counts the ring against the cell cap", () => {
+    // A 127×127 floor fits the cap, but its 129×129 with-ring footprint exceeds it.
+    const result = buildRoomCommand(
+      { x: 0, y: 0, width: 50 * 127, height: 50 * 127 },
+      "stone-floor",
+      grid,
+      wallsLayers(),
+      { wallFamily: "wall-dark", terrain: null },
     );
     expect(result.command).toBeNull();
     expect(result.error).toContain(String(MAX_ROOM_CELLS));

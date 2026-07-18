@@ -10,7 +10,7 @@ import type { RoomDrag, StudioTool } from "../map-studio/components/MapStudioWor
 import type { MapStudioController } from "../map-studio/types";
 import { buildRoomCommand, type RoomBounds } from "./roomBuilder";
 import { buildHallwayCommand } from "./hallwayBuilder";
-import type { MapEditFloorFamily, MapEditSubTool } from "./mapEditTypes";
+import type { MapEditFloorFamily, MapEditSubTool, MapEditWallFamily } from "./mapEditTypes";
 
 interface CommitDragOptions {
   subTool: MapEditSubTool;
@@ -18,6 +18,8 @@ interface CommitDragOptions {
   document: MapDocument;
   controller: MapStudioController;
   floorFamily: MapEditFloorFamily;
+  /** The Room tool's painted wall-ring material ("none" skips the ring). */
+  roomWallFamily: MapEditWallFamily | "none";
   hallwayWidth: number;
   onRoomRejected?: (message: string) => void;
   /** A room/hallway landed — its bounds become the POPULATE target. */
@@ -32,6 +34,7 @@ export function commitDragTool({
   document,
   controller,
   floorFamily,
+  roomWallFamily,
   hallwayWidth,
   onRoomRejected,
   onRegionPlaced,
@@ -48,7 +51,10 @@ export function commitDragTool({
 
   if (subTool === "room") {
     const bounds = roomBoundsFromDrag(drag, document.grid.size);
-    const { command, error } = buildRoomCommand(bounds, floorFamily, document.grid, layers);
+    const { command, error } = buildRoomCommand(bounds, floorFamily, document.grid, layers, {
+      wallFamily: roomWallFamily,
+      terrain: document.terrain ?? null,
+    });
     if (command) {
       controller.placeRoom(command.cells, command.elements);
       onRegionPlaced?.(bounds);

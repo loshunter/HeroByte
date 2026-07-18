@@ -20,7 +20,7 @@ import { useMapEditPlacement, type PlacementGhost } from "./useMapEditPlacement"
 import { useMapEditSelection } from "./useMapEditSelection";
 import { usePointerToDoc } from "./usePointerToDoc";
 import type { SelectionRect } from "./elementHitTest";
-import type { MapEditFloorFamily, MapEditSubTool } from "./mapEditTypes";
+import type { MapEditFloorFamily, MapEditSubTool, MapEditWallFamily } from "./mapEditTypes";
 
 const NO_OP_PAINT = (_cells: TerrainPaintCell[]) => {};
 
@@ -36,6 +36,8 @@ interface UseMapEditToolOptions {
   liveDocumentId: string | undefined;
   /** Floor terrain family the room/hallway sub-tools paint. */
   floorFamily: MapEditFloorFamily;
+  /** The Room tool's painted wall-ring material; omitted ⇒ no ring. */
+  roomWallFamily?: MapEditWallFamily | "none";
   /** Asset the place/scatter sub-tools drop (defaults to a crate). */
   selectedAssetId?: string;
   /** Corridor width in cells for the hallway sub-tool (1–4). */
@@ -77,6 +79,7 @@ export function useMapEditTool({
   controller,
   liveDocumentId,
   floorFamily,
+  roomWallFamily = "none",
   selectedAssetId = "objects:crate",
   hallwayWidth = 2,
   onRoomRejected,
@@ -274,6 +277,7 @@ export function useMapEditTool({
         document,
         controller,
         floorFamily,
+        roomWallFamily,
         hallwayWidth,
         onRoomRejected,
         onRegionPlaced,
@@ -289,6 +293,7 @@ export function useMapEditTool({
     liveDocumentId,
     activeSubTool,
     floorFamily,
+    roomWallFamily,
     hallwayWidth,
     onRoomRejected,
     onRegionPlaced,

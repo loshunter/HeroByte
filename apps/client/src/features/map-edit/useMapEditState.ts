@@ -15,7 +15,12 @@ import { usePopulate } from "./usePopulate";
 import { useGenerate } from "./useGenerate";
 import type { RoomBounds } from "./roomBuilder";
 import { floorFamilyFromAssetId } from "./mapEditFamilies";
-import type { MapEditFloorFamily, MapEditSubTool, MapEditToolbarProps } from "./mapEditTypes";
+import type {
+  MapEditFloorFamily,
+  MapEditSubTool,
+  MapEditToolbarProps,
+  MapEditWallFamily,
+} from "./mapEditTypes";
 
 interface UseMapEditStateOptions {
   controller: MapStudioController;
@@ -36,6 +41,8 @@ interface UseMapEditStateReturn {
   activeSubTool: MapEditSubTool;
   /** Floor terrain family the room sub-tool paints. */
   floorFamily: MapEditFloorFamily;
+  /** The Room tool's painted wall-ring material (fed to the tool). */
+  roomWallFamily: MapEditWallFamily | "none";
   /** Asset the place/scatter sub-tools drop (fed to the tool + preview). */
   selectedAssetId: string;
   /** Corridor width in cells for the hallway sub-tool (fed to the tool + preview). */
@@ -70,6 +77,9 @@ export function useMapEditState({
 }: UseMapEditStateOptions): UseMapEditStateReturn {
   const [activeSubTool, setActiveSubTool] = useState<MapEditSubTool>("wall");
   const [floorFamily, setFloorFamily] = useState<MapEditFloorFamily>("grass");
+  // Rooms ship with a stone wall band by default — the Czepeku look out of the
+  // box; "none" restores the bare floor-plus-perimeter behaviour.
+  const [roomWallFamily, setRoomWallFamily] = useState<MapEditWallFamily | "none">("wall-stone");
   const [selectedAssetId, setSelectedAssetId] = useState<string>(DEFAULT_ASSET_ID);
   const [assetPickerOpen, setAssetPickerOpen] = useState(false);
   const [hallwayWidth, setHallwayWidth] = useState(2);
@@ -190,6 +200,8 @@ export function useMapEditState({
     onSelectSubTool: setActiveSubTool,
     floorFamily,
     onSelectFloorFamily: setFloorFamily,
+    roomWallFamily,
+    onSelectRoomWallFamily: setRoomWallFamily,
     canUndo: controller.canUndo,
     canRedo: controller.canRedo,
     onUndo: undo,
@@ -236,6 +248,7 @@ export function useMapEditState({
   return {
     activeSubTool,
     floorFamily,
+    roomWallFamily,
     selectedAssetId,
     hallwayWidth,
     onRegionPlaced: populate.onRegionPlaced,

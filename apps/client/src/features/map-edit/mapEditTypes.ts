@@ -25,7 +25,12 @@ export type MapEditSubTool =
   | "select"
   | "generate";
 
-/** Procedural floor families a room/terrain paints with (VILLAGE_TERRAIN). */
+/** Procedural wall families the Paint tool and the Room wall ring use. */
+export type MapEditWallFamily = "wall-stone" | "wall-brick" | "wall-timber" | "wall-dark";
+
+/** Procedural families the room/terrain tools paint with (VILLAGE_TERRAIN).
+ * Historically floors; the wall families joined when walls became paintable —
+ * a solid painted wall region is legit (rock mass, buttress). */
 export type MapEditFloorFamily =
   | "grass"
   | "dirt"
@@ -35,7 +40,8 @@ export type MapEditFloorFamily =
   | "stone-cobble"
   | "stone-sandstone"
   | "wood-walnut"
-  | "wood-grey";
+  | "wood-grey"
+  | MapEditWallFamily;
 
 /** POPULATE set-dressing density (per-cell placement probability tiers). */
 export type PopulateDensity = "low" | "medium" | "high";
@@ -64,8 +70,10 @@ export interface MapEditToolbarProps {
   busy: boolean; // a create/open/command round-trip is in flight
   activeSubTool: MapEditSubTool;
   onSelectSubTool: (tool: MapEditSubTool) => void;
-  floorFamily: MapEditFloorFamily; // room/terrain floor family
+  floorFamily: MapEditFloorFamily; // room/terrain paint family (floors + walls)
   onSelectFloorFamily: (family: MapEditFloorFamily) => void;
+  roomWallFamily: MapEditWallFamily | "none"; // the Room tool's wall-ring material
+  onSelectRoomWallFamily: (family: MapEditWallFamily | "none") => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;

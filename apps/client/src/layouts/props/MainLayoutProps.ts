@@ -24,6 +24,7 @@ import type {
 import type { MapStudioController } from "../../features/map-studio";
 import type {
   MapEditFloorFamily,
+  MapEditWallFamily,
   MapEditSubTool,
   MapEditToolbarProps,
 } from "../../features/map-edit/mapEditTypes";
@@ -116,6 +117,8 @@ export interface MainLayoutProps {
   mapEditActiveSubTool: MapEditSubTool;
   /** Floor terrain family the room tool paints */
   mapEditFloorFamily: MapEditFloorFamily;
+  /** The Room tool's painted wall-ring material ("none" skips the ring) */
+  mapEditRoomWallFamily: MapEditWallFamily | "none";
   /** Asset the place/scatter tools drop */
   mapEditSelectedAssetId: string;
   /** Corridor width in cells for the hallway tool */

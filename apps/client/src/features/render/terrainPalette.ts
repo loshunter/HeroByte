@@ -89,6 +89,43 @@ export const SANDSTONE_FLOOR_DETAIL: KeyClusterPalette = {
   light: "#a68f68",
 };
 
+/**
+ * Wall-top shades (terrainWallDetail): `crev` draws course ticks, quoin frames
+ * and the shaded S/W edge lips; `dark`/`mid` the chip mottle; `light` the lit
+ * N/E edge lips. Same tone roles as the floors, so wall variants stay a pure
+ * palette swap.
+ */
+export const BONE_WALL_DETAIL: KeyClusterPalette = {
+  crev: "#5f5745",
+  dark: "#9a8d72",
+  mid: "#a89b7e",
+  light: "#cabfa2",
+};
+
+/** Brick wall shades — warm russet courses. */
+export const BRICK_WALL_DETAIL: KeyClusterPalette = {
+  crev: "#5e3c2c",
+  dark: "#8a5c46",
+  mid: "#a97a5e",
+  light: "#bd9070",
+};
+
+/** Timber wall shades — dark oak beams over wattle. */
+export const TIMBER_WALL_DETAIL: KeyClusterPalette = {
+  crev: "#452f1e",
+  dark: "#5e422a",
+  mid: "#7c5a3b",
+  light: "#97744e",
+};
+
+/** Dark dungeon wall shades — cool slate, lighter than the stone floors. */
+export const DARK_WALL_DETAIL: KeyClusterPalette = {
+  crev: "#3a3b45",
+  dark: "#4e505c",
+  mid: "#6a6c7a",
+  light: "#868a9a",
+};
+
 /** The floor material painters terrainFloorDetail implements. */
 export type FloorDetailKind = "plank" | "flagstone";
 
@@ -111,6 +148,13 @@ export interface FloorDetail {
  * over dirt over path, so the higher family rounds its bumpy rim onto the
  * lower), and its interior `keyCluster` pebble palette when it has one.
  */
+/** Wall-top detail: which shades the wall painter (terrainWallDetail) draws
+ * courses, quoins and edge lips with. A `wall` family reads as the TALLEST lit
+ * surface: light top, thin dark rim, and a deep cast shadow onto lower families. */
+export interface WallDetail {
+  palette: KeyClusterPalette;
+}
+
 export interface TerrainFamilyPalette {
   base: string;
   rim: string;
@@ -119,13 +163,27 @@ export interface TerrainFamilyPalette {
   /** Floor families route to a dedicated material painter instead of the
    * key-cluster pebbles or grass decoration (checked first). */
   floor?: FloorDetail;
+  /** Wall families route to the wall-top painter (checked before `floor`). */
+  wall?: WallDetail;
   /**
    * Boundary displacement scale for the procedural field (proceduralTerrain
    * `fieldOf`). Omitted ⇒ 1 = organic bumpy edge (natural terrain). Floors set
    * 0 so their architectural edges stay crisp and grid-aligned.
    */
   edgeAmp?: number;
+  /** Shading-lip width in field units (default TERRAIN_RIM). Walls use a thin
+   * lip so the edge reads as an inked outline, not a wide bevel. */
+  rimWidth?: number;
+  /** Cast-shadow depth onto lower families (see proceduralTerrain). Walls set
+   * a wide/dark band so they read tall; omitted ⇒ the default low lip. */
+  shadow?: { band: number; strength: number };
 }
+
+/** Shared wall field tuning: a thin inked rim (≈3px at the 50px grid) and a
+ * darker-than-default cast shadow — the two knobs that sell wall height.
+ * (Only the shadow's strength is applied; band is a reserved depth knob.) */
+const WALL_RIM = 0.055;
+const WALL_SHADOW = { band: 0.34, strength: 0.3 };
 
 /**
  * The default "village" mood — warm and saturated. A map's mood (cool
@@ -188,5 +246,47 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     priority: 9,
     edgeAmp: 0,
     floor: { kind: "plank", palette: GREY_PLANK_DETAIL },
+  },
+  // Walls (Czepeku study, docs/planning): the wall TOP is the lightest surface
+  // on the map — brighter than every floor — with a thin dark rim (inked
+  // outline) and a deep directional shadow cast onto whatever it borders, so a
+  // one-cell band reads as a tall standing wall, not a stripe of floor.
+  // Priorities sit in their own 20+ block above all floors; bases match the
+  // starterTiles swatch fills (pinned by wallVariants.test).
+  "terrain:wall-stone": {
+    base: "#b3a687",
+    rim: "#4e4638",
+    priority: 20,
+    edgeAmp: 0,
+    rimWidth: WALL_RIM,
+    shadow: WALL_SHADOW,
+    wall: { palette: BONE_WALL_DETAIL },
+  },
+  "terrain:wall-brick": {
+    base: "#9d6b52",
+    rim: "#452e22",
+    priority: 21,
+    edgeAmp: 0,
+    rimWidth: WALL_RIM,
+    shadow: WALL_SHADOW,
+    wall: { palette: BRICK_WALL_DETAIL },
+  },
+  "terrain:wall-timber": {
+    base: "#84613e",
+    rim: "#33241a",
+    priority: 22,
+    edgeAmp: 0,
+    rimWidth: WALL_RIM,
+    shadow: WALL_SHADOW,
+    wall: { palette: TIMBER_WALL_DETAIL },
+  },
+  "terrain:wall-dark": {
+    base: "#5d5f6c",
+    rim: "#26272e",
+    priority: 23,
+    edgeAmp: 0,
+    rimWidth: WALL_RIM,
+    shadow: WALL_SHADOW,
+    wall: { palette: DARK_WALL_DETAIL },
   },
 };

@@ -702,6 +702,7 @@ function AuthenticatedApp({
     mapEditMode,
     mapEditActiveSubTool: mapEdit.activeSubTool,
     mapEditFloorFamily: mapEdit.floorFamily,
+    mapEditRoomWallFamily: mapEdit.roomWallFamily,
     mapEditSelectedAssetId: mapEdit.selectedAssetId,
     mapEditHallwayWidth: mapEdit.hallwayWidth,
     mapEditSelectedElementId: mapEdit.selectedElementId,

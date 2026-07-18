@@ -43,9 +43,10 @@ export function buildStructuredTerrainLayers(
     const sameFamily = (x: number, y: number) => occupancy.get(`${x},${y}`) === assetId;
 
     // 8-neighbor same-family mask (blobAutotile bit order) for quarter-tile
-    // (blob47) selection. Additive metadata only: it never touches the fill
-    // rects, boundary edges, or the SVG byte-parity adapter below, so the
-    // frozen export goldens are unaffected (and prove it).
+    // (blob47) selection and the wall painter's run-vs-quoin choice. Additive
+    // metadata only: it never touches the fill rects, boundary edges, or the
+    // SVG byte-parity adapter below, so the frozen export goldens are
+    // unaffected (and prove it).
     let neighborMask = 0;
     if (sameFamily(cellX, cellY - 1)) neighborMask |= NEIGHBOR_BITS.N;
     if (sameFamily(cellX + 1, cellY - 1)) neighborMask |= NEIGHBOR_BITS.NE;
