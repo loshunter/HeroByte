@@ -20,6 +20,7 @@ import {
   type TerrainFieldConfig,
   type TerrainFieldFamily,
 } from "./proceduralTerrain";
+import { computeShoreDistances } from "./terrainDistanceField";
 import { paintKeyClusterDetail, paintTerrainDetail } from "./terrainDetail";
 import { paintFloorDetail } from "./terrainFloorDetail";
 import { paintRoofDetail, paintStairsDetail } from "./terrainRoofDetail";
@@ -95,6 +96,9 @@ export function buildProceduralFieldConfig(
       edgeAmp: fam.edgeAmp,
       rimWidth: fam.rimWidth,
       shadow: fam.shadow,
+      mottle: fam.mottle,
+      depthBands: fam.depthBands,
+      underfill: fam.underfill,
     });
     for (const cell of layer.cells) {
       familyByCell.set(`${cell.cellX},${cell.cellY}`, layer.assetId);
@@ -105,6 +109,17 @@ export function buildProceduralFieldConfig(
     }
   }
   if (familyByCell.size === 0) return null;
+  // Shore-distance transforms for the depth-banded families (water): one BFS
+  // per family over the occupancy this builder already gathered.
+  const depths = new Map<string, Map<string, number>>();
+  for (const family of families) {
+    if (!family.depthBands || family.depthBands.length === 0) continue;
+    const own = new Set<string>();
+    for (const [cellKey, id] of familyByCell) {
+      if (id === family.assetId) own.add(cellKey);
+    }
+    depths.set(family.assetId, computeShoreDistances(own));
+  }
   const { size, offsetX, offsetY } = grid;
   const margin = FIELD_MARGIN_CELLS;
   const config: TerrainFieldConfig = {
@@ -115,6 +130,7 @@ export function buildProceduralFieldConfig(
     originY: offsetY + (minCY - margin) * size,
     offsetX,
     offsetY,
+    depthOf: (assetId, cx, cy) => depths.get(assetId)?.get(`${cx},${cy}`) ?? 0,
   };
   return {
     config,

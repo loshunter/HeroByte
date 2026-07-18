@@ -32,10 +32,11 @@ const asCtx = (context: unknown) => context as unknown as TileRenderContext2D;
 
 describe("buildProceduralFieldConfig", () => {
   it("returns null when no field families are painted", () => {
-    // Water stays a non-field family (animated, drawn on the core); floors now
-    // ride the field, so water is the canonical non-field stand-in here.
-    const water = layer("terrain:water", [{ cellX: 0, cellY: 0 }]);
-    expect(buildProceduralFieldConfig([water], GRID, VILLAGE_TERRAIN)).toBeNull();
+    // Every bundled terrain family (water included, since the depth-band
+    // repaint) now rides the field; an id the palette doesn't know is the
+    // non-field stand-in — e.g. an uploaded custom tile.
+    const custom = layer("upload:abc123", [{ cellX: 0, cellY: 0 }]);
+    expect(buildProceduralFieldConfig([custom], GRID, VILLAGE_TERRAIN)).toBeNull();
   });
 
   it("treats wood/stone floors as crisp field families (procedural repaint)", () => {
@@ -84,19 +85,33 @@ describe("buildProceduralFieldConfig", () => {
 
   it("ignores non-field families while keeping field ones", () => {
     const grass = layer("terrain:grass", [{ cellX: 0, cellY: 0 }]);
-    const water = layer("terrain:water", [{ cellX: 1, cellY: 0 }]);
-    const built = buildProceduralFieldConfig([grass, water], GRID, VILLAGE_TERRAIN)!;
+    const custom = layer("upload:abc123", [{ cellX: 1, cellY: 0 }]);
+    const built = buildProceduralFieldConfig([grass, custom], GRID, VILLAGE_TERRAIN)!;
     expect(built.config.familyAt(0, 0)).toBe("terrain:grass");
-    expect(built.config.familyAt(1, 0)).toBeNull(); // water excluded from the field
+    expect(built.config.familyAt(1, 0)).toBeNull(); // unknown id excluded from the field
     expect(built.config.families.map((f) => f.assetId)).toEqual(["terrain:grass"]);
+  });
+
+  it("computes shore distances for the depth-banded water family", () => {
+    // A 3x3 water pond: the ring reads 1, the centre 2 — and land reads 0.
+    const cells = [];
+    for (let y = 0; y < 3; y += 1) {
+      for (let x = 0; x < 3; x += 1) cells.push({ cellX: x, cellY: y });
+    }
+    const water = layer("terrain:water", cells);
+    const built = buildProceduralFieldConfig([water], GRID, VILLAGE_TERRAIN)!;
+    expect(built.config.depthOf!("terrain:water", 0, 0)).toBe(1);
+    expect(built.config.depthOf!("terrain:water", 1, 1)).toBe(2);
+    expect(built.config.depthOf!("terrain:water", 9, 9)).toBe(0);
+    expect(built.config.depthOf!("terrain:grass", 1, 1)).toBe(0);
   });
 });
 
 describe("bakeProceduralTerrain", () => {
   it("returns null without baking when there are no field families", () => {
-    const water = layer("terrain:water", [{ cellX: 0, cellY: 0 }]);
+    const custom = layer("upload:abc123", [{ cellX: 0, cellY: 0 }]);
     expect(
-      bakeProceduralTerrain({ terrainLayers: [water], grid: GRID, palette: VILLAGE_TERRAIN }),
+      bakeProceduralTerrain({ terrainLayers: [custom], grid: GRID, palette: VILLAGE_TERRAIN }),
     ).toBeNull();
   });
 

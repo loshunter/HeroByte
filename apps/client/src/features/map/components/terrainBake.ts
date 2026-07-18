@@ -58,6 +58,32 @@ export function coreTerrainLayers(
   return baked ? layers.filter((layer) => !VILLAGE_TERRAIN[layer.assetId]) : layers;
 }
 
+/**
+ * The 4-frame water shimmer over the STATIC baked bathymetry: a low-alpha
+ * animated wash on interior water cells only (all 8 neighbours water, via the
+ * neighbor mask), so the organic baked shoreline never shows square tint
+ * edges. Frame 0 draws nothing — reduced motion and the static export read the
+ * pure bake.
+ */
+export function drawWaterShimmer(
+  ctx: CanvasRenderingContext2D,
+  layers: readonly StructuredTerrainLayer[],
+  frames: readonly string[],
+  frame: number,
+): void {
+  if (frame <= 0 || frames.length === 0) return;
+  const fill = frames[frame % frames.length]!;
+  const previousAlpha = ctx.globalAlpha;
+  ctx.globalAlpha = 0.12;
+  ctx.fillStyle = fill;
+  for (const layer of layers) {
+    for (const cell of layer.cells) {
+      if ((cell.neighborMask ?? 0) === 255) ctx.fillRect(cell.x, cell.y, cell.size, cell.size);
+    }
+  }
+  ctx.globalAlpha = previousAlpha;
+}
+
 /** Blit a baked field onto a table context at its world origin, pixels crisp. */
 export function blitFieldBake(ctx: CanvasRenderingContext2D, baked: BakedProceduralTerrain): void {
   const previousSmoothing = ctx.imageSmoothingEnabled;

@@ -42,6 +42,30 @@ export interface TerrainFieldFamily {
    * walls darken HARDER, not wider, to read tall (the Czepeku height cue).
    * `band` is a reserved depth knob; band/probe stay at the shared defaults. */
   shadow?: { band: number; strength: number };
+  /**
+   * Low-frequency tonal clouds under the per-cell detail (Czepeku catalog #1):
+   * `amp` is the max value offset (~0.03–0.08), `scale` the wavelength in
+   * cells, `cool` shifts dark patches cool and light patches warm (0 ⇒
+   * neutral). Kills the flat "vector fill" look one octave below cell detail.
+   */
+  mottle?: { amp: number; scale: number; cool?: number };
+  /**
+   * Shore-distance colour bands (catalog #2): ordered shallow→deep, each
+   * applied while the cell distance ≤ `maxCells` (the last band extends to
+   * ∞). Band boundaries are noise-jittered so they read organic, and the
+   * family's `rim` becomes the waterline contact line. Needs the config's
+   * `depthOf` sampler.
+   */
+  depthBands?: { maxCells: number; base: string }[];
+  /**
+   * False ⇒ the family's region is EXACTLY its painted cells (not the union
+   * with higher-priority cells), and its edge bumps only EXTEND outward.
+   * Water needs this: with the default union indicator, every floor/wall
+   * region far from any pond would summon a phantom water fringe around its
+   * crisp edge, and with receding bumps the water would open transparent gaps
+   * against docks laid over it. Undefined ⇒ true (the classic underfill).
+   */
+  underfill?: boolean;
 }
 
 export interface TerrainFieldConfig {
@@ -57,6 +81,9 @@ export interface TerrainFieldConfig {
    * so callers with a zero-offset grid can omit it. */
   offsetX?: number;
   offsetY?: number;
+  /** Cell distance to the nearest non-`assetId` cell, for families with
+   * `depthBands` (terrainDistanceField). Cells outside the family read 0. */
+  depthOf?(assetId: string, cellX: number, cellY: number): number;
 }
 
 /** An RGB triple, 0–255 per channel. */
@@ -101,6 +128,13 @@ interface FieldFamily {
   shadowBand: number;
   shadowStrength: number;
   shadowProbe: number;
+  /** Precomputed mottle: max value offset, wavelength in px, cool shift. */
+  mottleAmp: number;
+  mottleScale: number;
+  mottleCool: number;
+  /** Parsed depth bands, sorted shallow→deep; empty ⇒ plain base fill. */
+  bands: { maxCells: number; rgb: FieldRgb }[];
+  underfill: boolean;
 }
 
 /**
@@ -131,6 +165,13 @@ export function createTerrainField(config: TerrainFieldConfig): TerrainField {
       shadowBand: SHADOW,
       shadowStrength: f.shadow?.strength ?? SHADOW_STRENGTH,
       shadowProbe: SHADOW_PROBE,
+      mottleAmp: f.mottle?.amp ?? 0,
+      mottleScale: (f.mottle?.scale ?? 1) * cellSize,
+      mottleCool: f.mottle?.cool ?? 0,
+      bands: [...(f.depthBands ?? [])]
+        .sort((a, b) => a.maxCells - b.maxCells)
+        .map((band) => ({ maxCells: band.maxCells, rgb: parseHex(band.base) })),
+      underfill: f.underfill ?? true,
     }));
   const byId = new Map(fams.map((f) => [f.assetId, f]));
   const priorityOf = new Map(config.families.map((f) => [f.assetId, f.priority]));
@@ -142,17 +183,21 @@ export function createTerrainField(config: TerrainFieldConfig): TerrainField {
   const disp = (wx: number, wy: number, seed: number): number =>
     (valueNoise(wx / ns, wy / ns, seed) - 0.5) * AMP +
     (valueNoise(wx / (ns * 0.5) + 13, wy / (ns * 0.5) + 7, seed + 1) - 0.5) * AMP * 0.45;
-  // Bilinear sample of a family's indicator (a cell counts when its fill
-  // priority ≥ P, so lower families fill UNDER higher ones = underfill). World
+  // Bilinear sample of a family's indicator. Underfill families count a cell
+  // when its fill priority ≥ theirs (lower families fill UNDER higher ones);
+  // an exact family (underfill: false — water) counts ONLY its own cells, or
+  // every distant floor/wall region would summon a phantom fringe of it. World
   // coords map to the cell lattice through the grid offset.
-  const bilinearIndicator = (p: number, wx: number, wy: number): number => {
+  const bilinearIndicator = (f: FieldFamily, wx: number, wy: number): number => {
     const gx = (wx - offsetX) / cellSize - 0.5;
     const gy = (wy - offsetY) / cellSize - 0.5;
     const i0 = Math.floor(gx);
     const j0 = Math.floor(gy);
     const fx = smoothstep(gx - i0);
     const fy = smoothstep(gy - j0);
-    const ind = (ix: number, iy: number): number => (fillPriority(ix, iy) >= p ? 1 : 0);
+    const ind = f.underfill
+      ? (ix: number, iy: number): number => (fillPriority(ix, iy) >= f.priority ? 1 : 0)
+      : (ix: number, iy: number): number => (familyAt(ix, iy) === f.assetId ? 1 : 0);
     const top = ind(i0, j0) * (1 - fx) + ind(i0 + 1, j0) * fx;
     const bot = ind(i0, j0 + 1) * (1 - fx) + ind(i0 + 1, j0 + 1) * fx;
     return top * (1 - fy) + bot * fy;
@@ -160,19 +205,66 @@ export function createTerrainField(config: TerrainFieldConfig): TerrainField {
   // Signed field; ≥ 0 is inside. `prox` peaks at the boundary and is 0 in solid
   // interior, so the bump never punches a hole through solid ground.
   const fieldOf = (f: FieldFamily, wx: number, wy: number): number => {
-    const base = bilinearIndicator(f.priority, wx, wy);
+    const base = bilinearIndicator(f, wx, wy);
     const prox = 1 - Math.abs(2 * base - 1);
     // edgeAmp scales the per-family boundary bump: 1 = organic (natural
     // terrain), 0 = crisp grid-aligned edge (floors). The bilinear indicator's
-    // 0.5 contour already traces the cell boundary, so amp 0 gives a straight edge.
-    return base - 0.5 + disp(wx, wy, f.seed) * prox * f.edgeAmp;
+    // 0.5 contour already traces the cell boundary, so amp 0 gives a straight
+    // edge. An exact family's bump only EXTENDS (never recedes): receding
+    // would open transparent gaps against a crisp higher neighbour (a dock),
+    // while extending is always safely overdrawn by it.
+    const bump = f.underfill ? disp(wx, wy, f.seed) : Math.max(0, disp(wx, wy, f.seed));
+    return base - 0.5 + bump * prox * f.edgeAmp;
+  };
+  // Smoothstep-bilinear shore distance in cells (0 outside the family), so
+  // depth bands curve smoothly between cell centres instead of stair-stepping.
+  const depthOf = config.depthOf;
+  const bilinearDepth = (assetId: string, wx: number, wy: number): number => {
+    if (!depthOf) return 0;
+    const gx = (wx - offsetX) / cellSize - 0.5;
+    const gy = (wy - offsetY) / cellSize - 0.5;
+    const i0 = Math.floor(gx);
+    const j0 = Math.floor(gy);
+    const fx = smoothstep(gx - i0);
+    const fy = smoothstep(gy - j0);
+    const top = depthOf(assetId, i0, j0) * (1 - fx) + depthOf(assetId, i0 + 1, j0) * fx;
+    const bot = depthOf(assetId, i0, j0 + 1) * (1 - fx) + depthOf(assetId, i0 + 1, j0 + 1) * fx;
+    return top * (1 - fy) + bot * fy;
+  };
+  // Depth-band colour: noise-jittered distance picks the band, so band
+  // boundaries wander organically like the reference maps' bathymetry.
+  const bandColorOf = (f: FieldFamily, wx: number, wy: number): FieldRgb => {
+    const d = bilinearDepth(f.assetId, wx, wy) + disp(wx, wy, f.seed + 5);
+    for (const band of f.bands) {
+      if (d <= band.maxCells) return band.rgb;
+    }
+    return f.bands[f.bands.length - 1]!.rgb;
+  };
+  // Low-frequency value mottle: two noise octaves at the family's wavelength,
+  // dark patches shifted cool and light patches warm by `mottleCool`. Returns
+  // a fresh triple — base/rim/band arrays are shared references.
+  const mottled = (f: FieldFamily, rgb: FieldRgb, wx: number, wy: number): FieldRgb => {
+    const s = f.mottleScale;
+    const n =
+      valueNoise(wx / s, wy / s, f.seed + 11) -
+      0.5 +
+      (valueNoise(wx / (s * 0.5) + 31, wy / (s * 0.5) + 17, f.seed + 12) - 0.5) * 0.5;
+    const v = n * 1.33 * f.mottleAmp; // two octaves span ±0.75 → normalise to ±amp
+    const shift = f.mottleCool * 0.35;
+    const clamp255 = (value: number): number => (value < 0 ? 0 : value > 255 ? 255 : value);
+    return [
+      Math.round(clamp255(rgb[0] * (1 + v * (1 + shift)))),
+      Math.round(clamp255(rgb[1] * (1 + v))),
+      Math.round(clamp255(rgb[2] * (1 + v * (1 - shift)))),
+    ];
   };
   const colorAt = (wx: number, wy: number): FieldRgb | null => {
     let color: FieldRgb | null = null;
     for (const f of fams) {
       const v = fieldOf(f, wx, wy);
       if (v >= 0) {
-        color = v < f.rimWidth ? f.rim : f.base;
+        const flat = v < f.rimWidth ? f.rim : f.bands.length > 0 ? bandColorOf(f, wx, wy) : f.base;
+        color = f.mottleAmp > 0 ? mottled(f, flat, wx, wy) : flat;
       } else if (
         color &&
         v > -f.shadowBand &&

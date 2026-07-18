@@ -37,6 +37,7 @@ const FLOOR_FAMILIES: { id: MapEditFloorFamily; label: string }[] = [
   { id: "grass", label: "Grass" },
   { id: "dirt", label: "Dirt" },
   { id: "path", label: "Path" },
+  { id: "water", label: "Water" },
   { id: "stone-floor", label: "Flagstone" },
   { id: "wood-floor", label: "Oak" },
   { id: "stone-cobble", label: "Cobble" },

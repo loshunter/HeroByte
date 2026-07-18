@@ -24,6 +24,7 @@ import {
   blitFieldBake,
   coreTerrainLayers,
   createFieldBakeCache,
+  drawWaterShimmer,
   getFieldBake,
 } from "./terrainBake";
 import type { Camera } from "../types";
@@ -87,15 +88,31 @@ export function TerrainLayer({ cam, mapTerrain, mapTransform }: TerrainLayerProp
       }),
     [layers, gridSize, gridOffsetX, gridOffsetY],
   );
-  // The families that still draw through the flat/atlas core: non-field families
-  // (water) over the baked field, or ALL families when the bake fell back.
+  // The families that still draw through the flat/atlas core over the baked
+  // field, or ALL families when the bake fell back.
   const coreLayers = useMemo(() => coreTerrainLayers(layers, baked), [layers, baked]);
 
-  // Only water (animFills) animates; a still map skips the clock entirely.
+  // Water baked into the field renders static bathymetry; its animFills come
+  // back as a translucent shimmer overlay on interior cells (drawWaterShimmer).
+  const shimmerLayers = useMemo(
+    () =>
+      baked
+        ? layers.filter(
+            (layer) =>
+              !coreLayers.includes(layer) &&
+              (getMapStudioTileAsset(layer.assetId).animFills?.length ?? 0) > 0,
+          )
+        : [],
+    [layers, coreLayers, baked],
+  );
+
+  // Only animFills families animate (water, in the core path or as shimmer);
+  // a still map skips the clock entirely.
   const animated = useMemo(
     () =>
+      shimmerLayers.length > 0 ||
       coreLayers.some((layer) => (getMapStudioTileAsset(layer.assetId).animFills?.length ?? 0) > 0),
-    [coreLayers],
+    [coreLayers, shimmerLayers],
   );
   const frame = useAnimationFrameIndex(TERRAIN_ANIM_FRAMES, animated);
 
@@ -144,8 +161,27 @@ export function TerrainLayer({ cam, mapTerrain, mapTransform }: TerrainLayerProp
     ));
     if (!baked) return coreShapes;
     // Blit the baked field UNDER the core families (matching the editor
-    // underlay's field-first z-order). Its own buffered Shape so the terrain
-    // opacity fades the flattened field once, not per primitive.
+    // underlay's field-first z-order), with the water shimmer wash directly on
+    // top of it. Each its own buffered Shape so the terrain opacity fades the
+    // flattened result once, not per primitive.
+    const shimmerShapes = shimmerLayers.map((layer) => (
+      <Shape
+        key={`__shimmer-${layer.assetId}`}
+        listening={false}
+        opacity={opacity}
+        fill="#000000"
+        stroke="#000000"
+        sceneFunc={(context) => {
+          const ctx = (context as unknown as { _context: CanvasRenderingContext2D })._context;
+          drawWaterShimmer(
+            ctx,
+            [layer],
+            getMapStudioTileAsset(layer.assetId).animFills ?? [],
+            frame,
+          );
+        }}
+      />
+    ));
     return [
       <Shape
         key="__field-bake"
@@ -158,9 +194,10 @@ export function TerrainLayer({ cam, mapTerrain, mapTransform }: TerrainLayerProp
           blitFieldBake(ctx, baked);
         }}
       />,
+      ...shimmerShapes,
       ...coreShapes,
     ];
-  }, [coreLayers, baked, atlas, frame, boundaryWidth, opacity]);
+  }, [coreLayers, shimmerLayers, baked, atlas, frame, boundaryWidth, opacity]);
 
   const { x = 0, y = 0, scaleX = 1, scaleY = 1, rotation = 0 } = mapTransform ?? {};
 

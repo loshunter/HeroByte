@@ -16,6 +16,7 @@ import {
   getFieldBake,
   coreTerrainLayers,
   blitFieldBake,
+  drawWaterShimmer,
 } from "../terrainBake";
 import type { StructuredTerrainLayer } from "../../../render/tileRenderCore";
 
@@ -82,6 +83,49 @@ describe("coreTerrainLayers", () => {
 
   it("keeps ALL families when the bake fell back to null", () => {
     expect(coreTerrainLayers([grass, water], null)).toEqual([grass, water]);
+  });
+});
+
+describe("drawWaterShimmer", () => {
+  const shimmerLayer: StructuredTerrainLayer = {
+    assetId: "terrain:water",
+    cells: [
+      // Interior cell (all 8 neighbours water) — shimmers.
+      { x: 100, y: 100, size: 50, cellX: 2, cellY: 2, neighborMask: 255 },
+      // Shore cell — must NOT shimmer (square tint edges over the organic bake).
+      { x: 150, y: 100, size: 50, cellX: 3, cellY: 2, neighborMask: 127 },
+    ],
+    edges: [],
+  };
+  const frames = ["#24516b", "#295a76", "#2a5f7c", "#245572"];
+
+  function recordingCtx() {
+    const rects: unknown[][] = [];
+    const ctx = {
+      globalAlpha: 1,
+      fillStyle: "",
+      fillRect: (...args: unknown[]) => rects.push([ctx.globalAlpha, ctx.fillStyle, ...args]),
+    };
+    return { ctx: ctx as unknown as CanvasRenderingContext2D, rects, raw: ctx };
+  }
+
+  it("washes only interior water cells with the frame colour at low alpha", () => {
+    const { ctx, rects } = recordingCtx();
+    drawWaterShimmer(ctx, [shimmerLayer], frames, 2);
+    expect(rects).toEqual([[0.12, "#2a5f7c", 100, 100, 50, 50]]);
+  });
+
+  it("draws nothing on frame 0 so reduced motion and stills read the pure bake", () => {
+    const { ctx, rects } = recordingCtx();
+    drawWaterShimmer(ctx, [shimmerLayer], frames, 0);
+    expect(rects).toEqual([]);
+  });
+
+  it("restores the caller's globalAlpha", () => {
+    const { ctx, raw } = recordingCtx();
+    raw.globalAlpha = 0.7;
+    drawWaterShimmer(ctx, [shimmerLayer], frames, 1);
+    expect(raw.globalAlpha).toBe(0.7);
   });
 });
 

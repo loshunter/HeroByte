@@ -233,6 +233,200 @@ describe("per-family rim width and cast shadow (walls read tall)", () => {
   });
 });
 
+// Czepeku catalog #1: low-frequency tonal clouds one octave below the cell
+// detail. Interior pixels of a mottled family vary around the base; families
+// without the knob keep the flat base bit-for-bit (pinned by the solid-grass
+// interior test above, which runs on a mottle-free family).
+describe("per-family value-noise mottle", () => {
+  const MOTTLED = "terrain:mottled";
+  const mottledFamily: TerrainFieldFamily = {
+    assetId: MOTTLED,
+    priority: 4,
+    base: "#808080",
+    rim: "#404040",
+    edgeAmp: 0,
+    mottle: { amp: 0.08, scale: 3 },
+  };
+
+  it("varies interior pixels around the base within the amplitude", () => {
+    const rows = fill(12, 12, MOTTLED);
+    const r = render(rows, [...FAMILIES, mottledFamily]);
+    const seen = new Set<string>();
+    let min = 255;
+    let max = 0;
+    for (let cy = 3; cy < 9; cy += 1) {
+      for (let cx = 3; cx < 9; cx += 1) {
+        const p = px(r, center(cx), center(cy));
+        expect(p[3]).toBe(255);
+        seen.add(p.slice(0, 3).join(","));
+        min = Math.min(min, p[1]!);
+        max = Math.max(max, p[1]!);
+      }
+    }
+    // Clouds exist (several distinct tones) and stay near the base value
+    // (0x80 = 128; ±8% ≈ ±10, with rounding slack).
+    expect(seen.size).toBeGreaterThan(3);
+    expect(min).toBeGreaterThanOrEqual(128 - 12);
+    expect(max).toBeLessThanOrEqual(128 + 12);
+    expect(max - min).toBeGreaterThan(2);
+  });
+
+  it("`cool` shifts dark patches cool and light patches warm", () => {
+    const rows = fill(12, 12, MOTTLED);
+    const r = render(rows, [
+      ...FAMILIES,
+      { ...mottledFamily, mottle: { amp: 0.08, scale: 3, cool: 1 } },
+    ]);
+    for (let cy = 3; cy < 9; cy += 1) {
+      for (let cx = 3; cx < 9; cx += 1) {
+        const [red, green, blue] = px(r, center(cx), center(cy));
+        // Grey base: darkened pixels must lose more red than blue (cool),
+        // lightened pixels gain more red than blue (warm).
+        if (green! < 128) expect(red!).toBeLessThanOrEqual(blue!);
+        if (green! > 128) expect(red!).toBeGreaterThanOrEqual(blue!);
+      }
+    }
+  });
+});
+
+// Czepeku catalog #2: water colour is shore distance, not position. Shallow
+// band at the pool edge, deepest band in the middle, land untouched.
+describe("shore-distance depth bands", () => {
+  const WATER = "terrain:test-water";
+  const waterFamily: TerrainFieldFamily = {
+    assetId: WATER,
+    priority: 3.5,
+    base: "#204060",
+    rim: "#a0e0e0",
+    edgeAmp: 0,
+    rimWidth: 0.05,
+    depthBands: [
+      { maxCells: 2.5, base: "#60a0b0" },
+      { maxCells: 4.5, base: "#204060" },
+    ],
+  };
+  // A 14x14 pool inside a grass shore; cell depths mirror the Chebyshev
+  // distance transform (min distance to the pool edge + 1).
+  const POOL = { x0: 3, y0: 3, w: 14, h: 14 };
+  const rows = (): (string | null)[][] =>
+    Array.from({ length: 20 }, (_, cy) =>
+      Array.from({ length: 20 }, (_, cx) =>
+        cx >= POOL.x0 && cx < POOL.x0 + POOL.w && cy >= POOL.y0 && cy < POOL.y0 + POOL.h
+          ? WATER
+          : GRASS,
+      ),
+    );
+  const depthOf = (assetId: string, cx: number, cy: number): number => {
+    if (assetId !== WATER) return 0;
+    if (cx < POOL.x0 || cx >= POOL.x0 + POOL.w || cy < POOL.y0 || cy >= POOL.y0 + POOL.h) {
+      return 0;
+    }
+    const dx = Math.min(cx - POOL.x0, POOL.x0 + POOL.w - 1 - cx);
+    const dy = Math.min(cy - POOL.y0, POOL.y0 + POOL.h - 1 - cy);
+    return Math.min(dx, dy) + 1;
+  };
+
+  function poolField() {
+    const grid = rows();
+    return createTerrainField({
+      familyAt: (cx, cy) =>
+        cy >= 0 && cy < grid.length && cx >= 0 && cx < grid[0]!.length ? grid[cy]![cx]! : null,
+      families: [...FAMILIES, waterFamily],
+      cellSize: CELL,
+      originX: 0,
+      originY: 0,
+      depthOf,
+    });
+  }
+
+  const lumaOf = (rgb: readonly number[]): number =>
+    0.2126 * rgb[0]! + 0.7152 * rgb[1]! + 0.0722 * rgb[2]!;
+
+  it("shallow shore water is lighter than the deep centre, which reads the deepest band", () => {
+    const field = poolField();
+    // Shore-adjacent water cell centre (d=1; band jitter cannot reach the 2.5
+    // threshold) vs the pool centre (d=7; beyond every band + jitter).
+    const shore = field.colorAt(center(POOL.x0 + 1), center(POOL.y0 + 6))!;
+    const deep = field.colorAt(center(POOL.x0 + 7), center(POOL.y0 + 7))!;
+    expect(lumaOf(shore)).toBeGreaterThan(lumaOf(deep));
+    expect(deep).toEqual([0x20, 0x40, 0x60]); // the last band extends inward
+  });
+
+  it("does not band the bordering land", () => {
+    const field = poolField();
+    const grass = field.colorAt(center(1), center(10))!;
+    expect(grass).toEqual([0x7c, 0xb0, 0x4a]); // grass base, untouched
+  });
+});
+
+// Water containment (found by review probe): an exact-indicator family must
+// never appear where it is not painted. With the default union indicator a
+// distant floor/wall region counts as "water or above", so a map with ANY pond
+// would grow a phantom water fringe around every building's crisp edge.
+describe("exact-indicator water containment (underfill: false)", () => {
+  const WATER = "terrain:test-water";
+  const FLOOR = "terrain:stone-floor";
+  const waterFamily = (underfill: boolean | undefined): TerrainFieldFamily => ({
+    assetId: WATER,
+    priority: 3.5,
+    base: "#204060",
+    rim: "#a0e0e0",
+    edgeAmp: 0.8,
+    ...(underfill === undefined ? {} : { underfill }),
+  });
+  // 20x20 grass; a 4x4 crisp floor block at (10..13)²; a 2x2 pond far away.
+  const familyAt = (cx: number, cy: number): string | null => {
+    if (cx < 0 || cy < 0 || cx >= 20 || cy >= 20) return null;
+    if (cx >= 10 && cx <= 13 && cy >= 10 && cy <= 13) return FLOOR;
+    if (cx >= 2 && cx <= 3 && cy >= 2 && cy <= 3) return WATER;
+    return GRASS;
+  };
+  const fieldWith = (underfill: boolean | undefined) =>
+    createTerrainField({
+      familyAt,
+      families: [
+        ...FAMILIES,
+        { assetId: FLOOR, priority: 4, base: "#4d5361", rim: "#3d424e", edgeAmp: 0 },
+        waterFamily(underfill),
+      ],
+      cellSize: CELL,
+      originX: 0,
+      originY: 0,
+    });
+  const leaksAroundFloor = (field: ReturnType<typeof createTerrainField>): number => {
+    let leaks = 0;
+    // A one-cell-wide band just outside the floor block's left edge, far from
+    // the pond: water must sample negative everywhere here.
+    for (let wy = 10 * CELL; wy < 14 * CELL; wy += 2) {
+      for (let wx = 9 * CELL; wx < 10 * CELL; wx += 2) {
+        if (field.sampleField(WATER, wx + 0.5, wy + 0.5) >= 0) leaks += 1;
+      }
+    }
+    return leaks;
+  };
+
+  it("underfill: false confines water to its painted cells", () => {
+    expect(leaksAroundFloor(fieldWith(false))).toBe(0);
+  });
+
+  it("the union default DOES leak here — proving the flag is the guard", () => {
+    // Documents why water must opt out: if this stops leaking, the union
+    // semantics changed and the flag may be removable.
+    expect(leaksAroundFloor(fieldWith(undefined))).toBeGreaterThan(0);
+  });
+
+  it("extend-only bumps: water never recedes inside its own cells against a crisp neighbour", () => {
+    // Pond cell centres must ALWAYS be water (no receding bumps), so a crisp
+    // dock laid beside water can never expose a transparent seam.
+    const field = fieldWith(false);
+    for (let cy = 2; cy <= 3; cy += 1) {
+      for (let cx = 2; cx <= 3; cx += 1) {
+        expect(field.sampleField(WATER, center(cx), center(cy))).toBeGreaterThanOrEqual(0);
+      }
+    }
+  });
+});
+
 describe("per-family edge amplitude (crisp floors)", () => {
   const FLOOR = "terrain:stone-floor";
   const FLOOR_BASE = "#4d5361";

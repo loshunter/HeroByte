@@ -39,6 +39,7 @@ export type MapEditFloorFamily =
   | "grass"
   | "dirt"
   | "path"
+  | "water"
   | "stone-floor"
   | "wood-floor"
   | "stone-cobble"

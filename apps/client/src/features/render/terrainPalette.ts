@@ -3,23 +3,32 @@
 // draw code means a map's "mood" (warm village, cool cave/swamp, or a
 // user-chosen fantasy palette — purple grass, say) is a config swap, not a
 // code change. See features/render/terrainDetail (the painters that consume
-// these), terrainMaterialPalettes (the wall/roof/stairs shade sets), and
+// these), terrainMaterialPalettes (all the material shade sets), and
 // temp/_dirt_path_proto (the validated prototypes).
 
 import {
   BONE_WALL_DETAIL,
   BRICK_WALL_DETAIL,
+  COBBLE_FLOOR_DETAIL,
   DARK_WALL_DETAIL,
+  DIRT_DETAIL,
+  GREY_PLANK_DETAIL,
+  PATH_DETAIL,
+  SANDSTONE_FLOOR_DETAIL,
   SHINGLE_ROOF_DETAIL,
+  STONE_FLOOR_DETAIL,
   STONE_STAIRS_DETAIL,
   THATCH_ROOF_DETAIL,
   TIMBER_WALL_DETAIL,
+  WALNUT_FLOOR_DETAIL,
+  WOOD_FLOOR_DETAIL,
 } from "./terrainMaterialPalettes";
 
 /**
  * Interior "key cluster" detail shades for a dirt-like family (dirt, path):
  * pebble clusters in three tans over a darker crevice/shadow tone. Slynyrd
- * "Top Down Tiles" pg-49 uses 3–4 low-contrast earthy tones.
+ * "Top Down Tiles" pg-49 uses 3–4 low-contrast earthy tones. The shade sets
+ * themselves live in terrainMaterialPalettes.
  */
 export interface KeyClusterPalette {
   /** Darker-than-base crevice tone — ground cracks and each pebble's shadow. */
@@ -29,76 +38,6 @@ export interface KeyClusterPalette {
   mid: string;
   light: string;
 }
-
-/** Default (warm "village" mood) dirt detail palette. */
-export const DIRT_DETAIL: KeyClusterPalette = {
-  crev: "#4a3420",
-  dark: "#7a6440",
-  mid: "#a49060",
-  light: "#bfa876",
-};
-
-/** Default (warm "village" mood) path detail palette — worn, cooler-olive. */
-export const PATH_DETAIL: KeyClusterPalette = {
-  crev: "#3f3d28",
-  dark: "#6a6748",
-  mid: "#8f8a66",
-  light: "#a6a07a",
-};
-
-/**
- * Flagstone floor shades: `crev` draws the slab seams and cracks, the three
- * tones draw chips/lichen speckle inside each slab. Consumed by the flagstone
- * painter in terrainFloorDetail (the key-cluster tone roles map 1:1, so floor
- * variants stay a pure palette swap).
- */
-export const STONE_FLOOR_DETAIL: KeyClusterPalette = {
-  crev: "#3a3f4a",
-  dark: "#474d5a",
-  mid: "#535a69",
-  light: "#5f6675",
-};
-
-/** Oak plank shades: `crev` = board seams/joints/knot cores, `dark`/`light` =
- * grain streaks, `mid` = knot halos. See STONE_FLOOR_DETAIL. */
-export const WOOD_FLOOR_DETAIL: KeyClusterPalette = {
-  crev: "#4c3722",
-  dark: "#6a4b31",
-  mid: "#7a583a",
-  light: "#886443",
-};
-
-/** Walnut plank shades — deep, rich brown (see WOOD_FLOOR_DETAIL roles). */
-export const WALNUT_FLOOR_DETAIL: KeyClusterPalette = {
-  crev: "#2f1e12",
-  dark: "#452e20",
-  mid: "#573b28",
-  light: "#684a33",
-};
-
-/** Weathered grey plank shades — sun-bleached, low saturation. */
-export const GREY_PLANK_DETAIL: KeyClusterPalette = {
-  crev: "#3f3d36",
-  dark: "#59564d",
-  mid: "#767268",
-  light: "#8a867a",
-};
-
-/** Cobblestone shades — grey-brown, drawn at half slab scale. */
-export const COBBLE_FLOOR_DETAIL: KeyClusterPalette = {
-  crev: "#3b392f",
-  dark: "#524f43",
-  mid: "#6a6757",
-  light: "#7d7a68",
-};
-
-/** Sandstone slab shades — warm desert tans. */
-export const SANDSTONE_FLOOR_DETAIL: KeyClusterPalette = {
-  crev: "#5d4d33",
-  dark: "#7b6749",
-  mid: "#94805c",
-  light: "#a68f68",
-};
 
 /** The floor material painters terrainFloorDetail implements. */
 export type FloorDetailKind = "plank" | "flagstone";
@@ -116,12 +55,6 @@ export interface FloorDetail {
   scale?: number;
 }
 
-/**
- * One terrain family in the procedural render: its silhouette colours (`base`
- * fill + `rim` shading lip), its `priority` (higher draws OVER lower — grass
- * over dirt over path, so the higher family rounds its bumpy rim onto the
- * lower), and its interior `keyCluster` pebble palette when it has one.
- */
 /** Wall-top detail: which shades the wall painter (terrainWallDetail) draws
  * courses, quoins and edge lips with. A `wall` family reads as a TALL lit
  * surface: light top, thin dark rim, and a dark cast shadow onto lower
@@ -130,6 +63,12 @@ export interface WallDetail {
   palette: KeyClusterPalette;
 }
 
+/**
+ * One terrain family in the procedural render: its silhouette colours (`base`
+ * fill + `rim` shading lip), its `priority` (higher draws OVER lower — grass
+ * over dirt over path, so the higher family rounds its bumpy rim onto the
+ * lower), and its interior detail painter routing when it has one.
+ */
 export interface TerrainFamilyPalette {
   base: string;
   rim: string;
@@ -156,6 +95,15 @@ export interface TerrainFamilyPalette {
   /** Cast-shadow depth onto lower families (see proceduralTerrain). Walls set
    * a wide/dark band so they read tall; omitted ⇒ the default low lip. */
   shadow?: { band: number; strength: number };
+  /** Low-frequency tonal clouds under the cell detail (Czepeku catalog #1):
+   * amp = max value offset, scale = wavelength in cells, cool shifts dark
+   * patches cool / light patches warm. */
+  mottle?: { amp: number; scale: number; cool?: number };
+  /** Shore-distance colour bands, shallow→deep (catalog #2) — water only
+   * today. The family's rim doubles as the waterline contact line. */
+  depthBands?: { maxCells: number; base: string }[];
+  /** False ⇒ exact region + extend-only bumps (water). See proceduralTerrain. */
+  underfill?: boolean;
 }
 
 /** Shared wall field tuning: a thin inked rim (≈3px at the 50px grid) and a
@@ -173,9 +121,53 @@ const ROOF_SHADOW = { band: 0.34, strength: 0.38 };
  * terrain assetId. See temp/_dirt_path_proto for the validated mood set.
  */
 export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
-  "terrain:grass": { base: "#7cb04a", rim: "#4a764e", priority: 3 },
-  "terrain:dirt": { base: "#60482e", rim: "#4a3420", priority: 2, keyCluster: DIRT_DETAIL },
-  "terrain:path": { base: "#565338", rim: "#3f3d28", priority: 1, keyCluster: PATH_DETAIL },
+  // Water sits ABOVE the natural ground and BELOW the architectural floors:
+  // its organic edge laps onto grass/dirt with the thin near-white waterline
+  // rim as the contact line, docks and floors deck over it, and its colour is
+  // shore-distance bathymetry (bright turquoise shallows deepening to navy).
+  // Two guards keep it honest (pinned by the water-containment tests):
+  // `underfill: false` — its region is exactly its painted cells with
+  // extend-only bumps, or every distant building would grow a phantom water
+  // fringe and docks would open seam gaps — and it must NOT be the globally
+  // lowest family, or the field would underfill it beneath the whole painted
+  // region and leak slivers at land↔empty edges. The 4-frame shimmer survives
+  // as a translucent animated overlay (terrainBake drawWaterShimmer); the flat
+  // swatch/SVG fill (#24516b) matches the mid band so fallbacks stay in-family.
+  "terrain:water": {
+    base: "#24516b",
+    rim: "#a7e3da",
+    priority: 3.5,
+    edgeAmp: 0.8,
+    rimWidth: 0.05,
+    underfill: false,
+    mottle: { amp: 0.05, scale: 5, cool: 0.4 },
+    depthBands: [
+      { maxCells: 1.2, base: "#4b93a0" },
+      { maxCells: 2.8, base: "#33718a" },
+      { maxCells: 5, base: "#24516b" },
+      { maxCells: 6, base: "#1b3f58" },
+    ],
+  },
+  "terrain:grass": {
+    base: "#7cb04a",
+    rim: "#4a764e",
+    priority: 3,
+    mottle: { amp: 0.06, scale: 4, cool: 0.3 },
+  },
+  "terrain:dirt": {
+    base: "#60482e",
+    rim: "#4a3420",
+    priority: 2,
+    keyCluster: DIRT_DETAIL,
+    mottle: { amp: 0.05, scale: 4, cool: 0.25 },
+  },
+  "terrain:path": {
+    base: "#565338",
+    rim: "#3f3d28",
+    priority: 1,
+    keyCluster: PATH_DETAIL,
+    mottle: { amp: 0.04, scale: 4, cool: 0.25 },
+  },
   // Architectural floors: crisp (edgeAmp 0) grid-aligned edges, and a priority
   // ABOVE the natural families so a floor region reads as laid OVER grass/dirt/
   // path. Base colours match the starterTiles fills (#4d5361 / #725236, kept
@@ -187,6 +179,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     rim: "#3d424e",
     priority: 4,
     edgeAmp: 0,
+    mottle: { amp: 0.05, scale: 3.5, cool: 0.5 },
     floor: { kind: "flagstone", palette: STONE_FLOOR_DETAIL },
   },
   "terrain:wood-floor": {
@@ -194,6 +187,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     rim: "#553b27",
     priority: 5,
     edgeAmp: 0,
+    mottle: { amp: 0.03, scale: 5, cool: 0.1 },
     floor: { kind: "plank", palette: WOOD_FLOOR_DETAIL },
   },
   // Variant floors (Slice 3): pure data over the same two painters. Priorities
@@ -205,6 +199,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     rim: "#46443c",
     priority: 6,
     edgeAmp: 0,
+    mottle: { amp: 0.05, scale: 3.5, cool: 0.5 },
     floor: { kind: "flagstone", palette: COBBLE_FLOOR_DETAIL, scale: 0.5 },
   },
   "terrain:stone-sandstone": {
@@ -212,6 +207,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     rim: "#6a583f",
     priority: 7,
     edgeAmp: 0,
+    mottle: { amp: 0.05, scale: 4, cool: -0.2 },
     floor: { kind: "flagstone", palette: SANDSTONE_FLOOR_DETAIL },
   },
   "terrain:wood-walnut": {
@@ -219,6 +215,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     rim: "#3a2719",
     priority: 8,
     edgeAmp: 0,
+    mottle: { amp: 0.03, scale: 5, cool: 0.1 },
     floor: { kind: "plank", palette: WALNUT_FLOOR_DETAIL },
   },
   "terrain:wood-grey": {
@@ -226,6 +223,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     rim: "#4f4d45",
     priority: 9,
     edgeAmp: 0,
+    mottle: { amp: 0.04, scale: 5, cool: 0.2 },
     floor: { kind: "plank", palette: GREY_PLANK_DETAIL },
   },
   // Walls (Czepeku study, docs/planning): the wall TOP is the lightest surface
@@ -241,6 +239,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     edgeAmp: 0,
     rimWidth: WALL_RIM,
     shadow: WALL_SHADOW,
+    mottle: { amp: 0.03, scale: 3, cool: 0.3 },
     wall: { palette: BONE_WALL_DETAIL },
   },
   "terrain:wall-brick": {
@@ -250,6 +249,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     edgeAmp: 0,
     rimWidth: WALL_RIM,
     shadow: WALL_SHADOW,
+    mottle: { amp: 0.03, scale: 3, cool: 0.3 },
     wall: { palette: BRICK_WALL_DETAIL },
   },
   "terrain:wall-timber": {
@@ -259,6 +259,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     edgeAmp: 0,
     rimWidth: WALL_RIM,
     shadow: WALL_SHADOW,
+    mottle: { amp: 0.03, scale: 3, cool: 0.2 },
     wall: { palette: TIMBER_WALL_DETAIL },
   },
   "terrain:wall-dark": {
@@ -268,6 +269,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     edgeAmp: 0,
     rimWidth: WALL_RIM,
     shadow: WALL_SHADOW,
+    mottle: { amp: 0.03, scale: 3, cool: 0.4 },
     wall: { palette: DARK_WALL_DETAIL },
   },
   // Stairs: floor-height treads (priority between floors and walls, default
@@ -277,6 +279,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     rim: "#3f434d",
     priority: 10,
     edgeAmp: 0,
+    mottle: { amp: 0.03, scale: 3, cool: 0.4 },
     stairs: { palette: STONE_STAIRS_DETAIL },
   },
   // Roofs: the TALLEST level (priority above walls, hardest shadow), and the
@@ -290,6 +293,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     edgeAmp: 0,
     rimWidth: WALL_RIM,
     shadow: ROOF_SHADOW,
+    mottle: { amp: 0.04, scale: 4, cool: 0.3 },
     roof: { palette: SHINGLE_ROOF_DETAIL },
   },
   "terrain:roof-thatch": {
@@ -299,6 +303,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     edgeAmp: 0,
     rimWidth: WALL_RIM,
     shadow: ROOF_SHADOW,
+    mottle: { amp: 0.04, scale: 4, cool: -0.2 },
     roof: { palette: THATCH_ROOF_DETAIL },
   },
 };
