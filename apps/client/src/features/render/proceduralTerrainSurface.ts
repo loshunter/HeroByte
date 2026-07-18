@@ -21,6 +21,7 @@ import {
   type TerrainFieldFamily,
 } from "./proceduralTerrain";
 import { computeShoreDistances } from "./terrainDistanceField";
+import { applyBakeLighting, lightingActive, type BakeLighting } from "./terrainLighting";
 import { paintKeyClusterDetail, paintTerrainDetail } from "./terrainDetail";
 import { paintFloorDetail } from "./terrainFloorDetail";
 import { paintRoofDetail, paintStairsDetail } from "./terrainRoofDetail";
@@ -46,6 +47,8 @@ export interface ProceduralTerrainInput {
   terrainLayers: readonly StructuredTerrainLayer[];
   grid: ProceduralGrid;
   palette: TerrainPalette;
+  /** Ambient veil + light pools applied over the finished bake (terrainLighting). */
+  lighting?: BakeLighting;
 }
 
 /** The field config plus the doc-space buffer dimensions to bake it into. */
@@ -99,6 +102,7 @@ export function buildProceduralFieldConfig(
       mottle: fam.mottle,
       depthBands: fam.depthBands,
       underfill: fam.underfill,
+      contact: fam.contact,
     });
     for (const cell of layer.cells) {
       familyByCell.set(`${cell.cellX},${cell.cellY}`, layer.assetId);
@@ -323,6 +327,14 @@ export function bakeProceduralTerrain(
   const fieldLayers = terrainLayers.filter((layer) => palette[layer.assetId]);
   paintProceduralDetail(ctx, fieldLayers, palette, field, config.familyAt);
   ctx.restore();
+
+  // Lighting post-pass (ambient veil + pools) over the finished art. Daylight
+  // with no lights skips it entirely, so unlit maps bake bit-identically.
+  if (lightingActive(input.lighting)) {
+    const lit = ctx.getImageData(0, 0, width, height);
+    applyBakeLighting(lit.data, width, height, config.originX, config.originY, input.lighting!);
+    ctx.putImageData(lit, 0, 0);
+  }
 
   return { canvas, originX: config.originX, originY: config.originY, width, height };
 }

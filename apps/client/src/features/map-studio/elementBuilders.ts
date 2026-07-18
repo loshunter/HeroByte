@@ -1,5 +1,6 @@
 import type {
   MapDoorElement,
+  MapLightElement,
   MapShapeElement,
   MapStampElement,
   MapTileElement,
@@ -7,6 +8,7 @@ import type {
 } from "@herobyte/shared";
 import type {
   MapDoorDraft,
+  MapLightDraft,
   MapShapeDraft,
   MapStampDraft,
   MapTileDraft,
@@ -84,6 +86,24 @@ export function createWallElement(id: string, draft: MapWallDraft): MapWallEleme
       ],
       blocksMovement: draft.blocksMovement,
       blocksVision: draft.blocksVision,
+    },
+  };
+}
+
+export function createLightElement(id: string, draft: MapLightDraft): MapLightElement {
+  return {
+    id,
+    layerId: draft.layerId,
+    type: "light",
+    locked: false,
+    hidden: false,
+    transform: { x: draft.x, y: draft.y, scaleX: 1, scaleY: 1, rotation: 0 },
+    // castsShadows is authored false until the bake learns wall occlusion.
+    data: {
+      radius: draft.radius,
+      color: draft.color,
+      intensity: draft.intensity,
+      castsShadows: false,
     },
   };
 }

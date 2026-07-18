@@ -18,6 +18,7 @@ export type MapEditSubTool =
   | "hallway"
   | "wall"
   | "door"
+  | "light"
   | "terrain"
   | "erase"
   | "place"

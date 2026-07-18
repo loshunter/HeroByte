@@ -158,6 +158,66 @@ describe("deriveMapElements — privacy contract", () => {
   });
 });
 
+function light(layerId: string, over: Partial<MapElement> = {}): MapElement {
+  return {
+    id: nextId(),
+    layerId,
+    type: "light",
+    locked: false,
+    hidden: false,
+    transform: { x: 125, y: 275, scaleX: 1, scaleY: 1, rotation: 0 },
+    data: { radius: 175, color: "#ffc06a", intensity: 1, castsShadows: false },
+    ...over,
+  } as MapElement;
+}
+
+// Lights render as POOLS through the terrain bake, not as scenery — they ride
+// the separate `lighting` channel under the same hidden/visible privacy rules,
+// alongside `ambient` (the lighting layer's opacity; invisible layer ⇒ day).
+describe("deriveMapElements — lighting channel", () => {
+  it("ships a visible light's pool data, never as scenery", () => {
+    const lighting = layer("lighting", "lighting", { opacity: 0.4 });
+    const result = deriveMapElements(doc([lighting], [light("lighting", { id: "torch" })]));
+    expect(idsOf(result)).toEqual([]); // not in any scenery layer
+    expect(result!.lighting).toEqual({
+      ambient: 0.4,
+      lights: [{ id: "torch", x: 125, y: 275, radius: 175, color: "#ffc06a", intensity: 1 }],
+    });
+    // The internal-only flag never reaches the wire.
+    expect(JSON.stringify(result)).not.toContain("castsShadows");
+  });
+
+  it("a hidden light must not glow (prepared-but-unlit)", () => {
+    const lighting = layer("lighting", "lighting", { opacity: 0.4 });
+    const result = deriveMapElements(
+      doc([lighting], [light("lighting", { id: "secret-brazier", hidden: true })]),
+    );
+    expect(result!.lighting).toEqual({ ambient: 0.4, lights: [] });
+    expect(JSON.stringify(result)).not.toContain("secret-brazier");
+  });
+
+  it("an invisible lighting layer reads as daylight — the kill switch", () => {
+    const lighting = layer("lighting", "lighting", { opacity: 0.2, visible: false });
+    const result = deriveMapElements(doc([lighting], [light("lighting")]));
+    // No veil, no lights, no scenery ⇒ nothing to ship at all.
+    expect(result).toBeUndefined();
+  });
+
+  it("plain daylight with no lights omits the channel entirely", () => {
+    const objects = layer("objects", "objects");
+    const lighting = layer("lighting", "lighting");
+    const result = deriveMapElements(doc([objects, lighting], [tile("objects")]));
+    expect(result!.lighting).toBeUndefined();
+  });
+
+  it("a dimmed lighting layer ships ambient even with zero lights and zero scenery", () => {
+    const lighting = layer("lighting", "lighting", { opacity: 0.6 });
+    const result = deriveMapElements(doc([lighting], []));
+    expect(result!.lighting).toEqual({ ambient: 0.6, lights: [] });
+    expect(result!.layers).toEqual([]);
+  });
+});
+
 describe("deriveMapElements — layering + shape", () => {
   it("emits non-empty layers in zIndex order, carrying opacity", () => {
     const top = layer("top", "objects", { zIndex: 20, opacity: 0.5 });

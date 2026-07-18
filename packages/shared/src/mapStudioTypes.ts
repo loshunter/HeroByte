@@ -130,9 +130,33 @@ export type RenderableMapElement =
  * `zIndex` order, each carrying its layer `opacity`. Shares the document's grid
  * lattice because tiles are sized in grid cells (like MapTerrainSnapshot).
  */
+/** A player-safe light pool: document-px position/radius, colour, intensity.
+ * Derived only from non-hidden lights on visible layers. */
+export interface RenderableLight {
+  id: string;
+  x: number;
+  y: number;
+  radius: number;
+  color: string;
+  intensity: number;
+}
+
+/**
+ * The table's lighting state: `ambient` is the lighting LAYER's opacity
+ * (1 = daylight — no veil; toward 0 = night), and `lights` are the pools that
+ * punch through the veil. An invisible lighting layer reads as daylight (the
+ * kill switch). Consumed by the terrain bake, not the scenery renderer.
+ */
+export interface MapLightingSnapshot {
+  ambient: number;
+  lights: RenderableLight[];
+}
+
 export interface MapElementsSnapshot {
   grid: { size: number; offsetX: number; offsetY: number };
   layers: Array<{ opacity: number; elements: RenderableMapElement[] }>;
+  /** Present when the document departs from plain daylight. */
+  lighting?: MapLightingSnapshot;
 }
 
 export interface MapDocument {

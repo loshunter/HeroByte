@@ -75,6 +75,16 @@ export interface MapDoorDraft {
   blocksVision: boolean;
 }
 
+export interface MapLightDraft {
+  layerId: string;
+  x: number;
+  y: number;
+  /** Pool radius in document px. */
+  radius: number;
+  color: string;
+  intensity: number;
+}
+
 /** A generate request, minus the documentId and commandId the queue supplies. */
 export type GenerateInput = Omit<
   Extract<ClientMessage, { t: "map-studio-generate" }>,
@@ -107,6 +117,7 @@ export interface MapStudioController {
   addShape: (draft: MapShapeDraft) => string | null;
   addWall: (draft: MapWallDraft) => string | null;
   addDoor: (draft: MapDoorDraft) => string | null;
+  addLight: (draft: MapLightDraft) => string | null;
   removeElement: (elementId: string) => void;
   updateElement: (elementId: string, update: MapElementUpdate) => void;
   /** Author a placed door's initial state + width (dedicated data path). */

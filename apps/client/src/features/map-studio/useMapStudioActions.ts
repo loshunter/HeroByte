@@ -16,6 +16,7 @@ import {
   createShapeElement,
   createStampElement,
   createTileElement,
+  createLightElement,
   createWallElement,
 } from "./elementBuilders";
 import type {
@@ -24,6 +25,7 @@ import type {
   MapShapeDraft,
   MapStampDraft,
   MapTileDraft,
+  MapLightDraft,
   MapWallDraft,
 } from "./types";
 
@@ -229,6 +231,23 @@ export function useMapStudioActions({
     [activeDocumentRef, applyCommand],
   );
 
+  const addLight = useCallback(
+    (draft: MapLightDraft) => {
+      if (!activeDocumentRef.current) return null;
+      const id = generateUUID();
+      const element = createLightElement(id, draft);
+      applyCommand((document, commandId) => ({
+        commandId,
+        documentId: document.id,
+        baseRevision: document.revision,
+        type: "add-element",
+        element,
+      }));
+      return id;
+    },
+    [activeDocumentRef, applyCommand],
+  );
+
   const removeElement = useCallback(
     (elementId: string) => {
       applyCommand((document, commandId) => ({
@@ -325,6 +344,7 @@ export function useMapStudioActions({
     addShape,
     addWall,
     addDoor,
+    addLight,
     removeElement,
     updateElement,
     updateDoor,

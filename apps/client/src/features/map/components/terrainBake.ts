@@ -13,35 +13,48 @@ import {
   type BakedProceduralTerrain,
   type ProceduralGrid,
 } from "../../render/proceduralTerrainSurface";
+import type { BakeLighting } from "../../render/terrainLighting";
 import { VILLAGE_TERRAIN } from "../../render/terrainPalette";
 import type { StructuredTerrainLayer } from "../../render/tileRenderCore";
 
 export interface FieldBakeCache {
   source: readonly StructuredTerrainLayer[] | null;
   gridSig: string;
+  lightingSig: string;
   baked: BakedProceduralTerrain | null;
 }
 
 export function createFieldBakeCache(): FieldBakeCache {
-  return { source: null, gridSig: "", baked: null };
+  return { source: null, gridSig: "", lightingSig: "", baked: null };
 }
 
 /**
- * Return the cached field bake, re-baking ONLY when the terrain layers identity
- * or the grid signature changes — never per animation frame. Returns null when
- * there is no field terrain, or the field is too large to bake (the caller must
- * then fall back to the flat/atlas core render so terrain never vanishes).
+ * Return the cached field bake, re-baking ONLY when the terrain layers
+ * identity, the grid signature, or the lighting state changes — never per
+ * animation frame. Returns null when there is no field terrain, or the field
+ * is too large to bake (the caller must then fall back to the flat/atlas core
+ * render so terrain never vanishes).
  */
 export function getFieldBake(
   cache: FieldBakeCache,
   layers: readonly StructuredTerrainLayer[],
   grid: ProceduralGrid,
+  lighting?: BakeLighting,
 ): BakedProceduralTerrain | null {
   const gridSig = `${grid.size}|${grid.offsetX}|${grid.offsetY}`;
-  if (cache.source !== layers || cache.gridSig !== gridSig) {
+  // Lighting is tiny (an ambient + a handful of lights), so a JSON signature
+  // keyed by VALUE keeps snapshot-identity churn from re-running the bake.
+  const lightingSig = lighting ? JSON.stringify(lighting) : "";
+  if (cache.source !== layers || cache.gridSig !== gridSig || cache.lightingSig !== lightingSig) {
     cache.source = layers;
     cache.gridSig = gridSig;
-    cache.baked = bakeProceduralTerrain({ terrainLayers: layers, grid, palette: VILLAGE_TERRAIN });
+    cache.lightingSig = lightingSig;
+    cache.baked = bakeProceduralTerrain({
+      terrainLayers: layers,
+      grid,
+      palette: VILLAGE_TERRAIN,
+      lighting,
+    });
   }
   return cache.baked;
 }

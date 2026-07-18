@@ -15,6 +15,7 @@ import type { RoomDrag } from "../map-studio/components/MapStudioWorkspace.types
 import type { MapStudioController } from "../map-studio/types";
 import type { RoomBounds } from "./roomBuilder";
 import { commitDragTool } from "./commitDragTool";
+import { placeLightAt } from "./lightPlacement";
 import { effectiveGrid, isBrushTool, isClickTool, isDragTool } from "./mapEditToolKinds";
 import { useMapEditPlacement, type PlacementGhost } from "./useMapEditPlacement";
 import { useMapEditSelection } from "./useMapEditSelection";
@@ -184,7 +185,9 @@ export function useMapEditTool({
         if (selection.handleClick(point, activeSubTool)) return;
         if (isSelect) return;
         if (isClick) {
-          if (activeSubTool === "scatter") placement.scatter(point);
+          if (activeSubTool === "light") {
+            if (controller) placeLightAt(controller, document, point);
+          } else if (activeSubTool === "scatter") placement.scatter(point);
           else placement.place(point);
           return;
         }

@@ -92,9 +92,13 @@ export interface TerrainFamilyPalette {
   /** Shading-lip width in field units (default TERRAIN_RIM). Walls use a thin
    * lip so the edge reads as an inked outline, not a wide bevel. */
   rimWidth?: number;
-  /** Cast-shadow depth onto lower families (see proceduralTerrain). Walls set
-   * a wide/dark band so they read tall; omitted ⇒ the default low lip. */
+  /** Cast-shadow depth onto lower families (see proceduralTerrain): strength
+   * deepens the crisp near shadow; band above the default adds the soft long
+   * throw (shadow LENGTH is the height cue — roofs furthest). */
   shadow?: { band: number; strength: number };
+  /** Omnidirectional contact/AO band seating the family on the ground (see
+   * proceduralTerrain) — reach in field units, strength max darkening. */
+  contact?: { reach: number; strength: number };
   /** Low-frequency tonal clouds under the cell detail (Czepeku catalog #1):
    * amp = max value offset, scale = wavelength in cells, cool shifts dark
    * patches cool / light patches warm. */
@@ -106,13 +110,15 @@ export interface TerrainFamilyPalette {
   underfill?: boolean;
 }
 
-/** Shared wall field tuning: a thin inked rim (≈3px at the 50px grid) and a
- * darker-than-default cast shadow — the two knobs that sell wall height.
- * (Only the shadow's strength is applied; band is a reserved depth knob.)
- * Roofs sit a level above walls, so their shadow bites hardest. */
+/** Shared wall field tuning: a thin inked rim (≈3px at the 50px grid), a
+ * darker-than-default cast shadow whose band length scales with height (walls
+ * throw 0.3, roofs 0.5 — catalog #11), and a thin omnidirectional contact/AO
+ * band seating the mass on the ground (catalog #4). */
 const WALL_RIM = 0.055;
-const WALL_SHADOW = { band: 0.34, strength: 0.3 };
-const ROOF_SHADOW = { band: 0.34, strength: 0.38 };
+const WALL_SHADOW = { band: 0.3, strength: 0.3 };
+const ROOF_SHADOW = { band: 0.5, strength: 0.38 };
+const WALL_CONTACT = { reach: 0.1, strength: 0.16 };
+const ROOF_CONTACT = { reach: 0.12, strength: 0.18 };
 
 /**
  * The default "village" mood — warm and saturated. A map's mood (cool
@@ -239,6 +245,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     edgeAmp: 0,
     rimWidth: WALL_RIM,
     shadow: WALL_SHADOW,
+    contact: WALL_CONTACT,
     mottle: { amp: 0.03, scale: 3, cool: 0.3 },
     wall: { palette: BONE_WALL_DETAIL },
   },
@@ -249,6 +256,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     edgeAmp: 0,
     rimWidth: WALL_RIM,
     shadow: WALL_SHADOW,
+    contact: WALL_CONTACT,
     mottle: { amp: 0.03, scale: 3, cool: 0.3 },
     wall: { palette: BRICK_WALL_DETAIL },
   },
@@ -259,6 +267,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     edgeAmp: 0,
     rimWidth: WALL_RIM,
     shadow: WALL_SHADOW,
+    contact: WALL_CONTACT,
     mottle: { amp: 0.03, scale: 3, cool: 0.2 },
     wall: { palette: TIMBER_WALL_DETAIL },
   },
@@ -269,6 +278,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     edgeAmp: 0,
     rimWidth: WALL_RIM,
     shadow: WALL_SHADOW,
+    contact: WALL_CONTACT,
     mottle: { amp: 0.03, scale: 3, cool: 0.4 },
     wall: { palette: DARK_WALL_DETAIL },
   },
@@ -293,6 +303,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     edgeAmp: 0,
     rimWidth: WALL_RIM,
     shadow: ROOF_SHADOW,
+    contact: ROOF_CONTACT,
     mottle: { amp: 0.04, scale: 4, cool: 0.3 },
     roof: { palette: SHINGLE_ROOF_DETAIL },
   },
@@ -303,6 +314,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     edgeAmp: 0,
     rimWidth: WALL_RIM,
     shadow: ROOF_SHADOW,
+    contact: ROOF_CONTACT,
     mottle: { amp: 0.04, scale: 4, cool: -0.2 },
     roof: { palette: THATCH_ROOF_DETAIL },
   },

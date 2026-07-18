@@ -39,6 +39,7 @@ function controller(overrides: Partial<MapStudioController> = {}): MapStudioCont
     addShape: vi.fn(() => "shape-id"),
     addWall: vi.fn(() => "wall-id"),
     addDoor: vi.fn(() => "door-id"),
+    addLight: vi.fn(() => "light-id"),
     updateDoor: vi.fn(),
     removeElement: vi.fn(),
     updateElement: vi.fn(),

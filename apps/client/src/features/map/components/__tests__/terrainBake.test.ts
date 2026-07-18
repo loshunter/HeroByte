@@ -74,6 +74,17 @@ describe("getFieldBake", () => {
     const cache = createFieldBakeCache();
     expect(getFieldBake(cache, [water], grid)).toBeNull();
   });
+
+  it("re-bakes when the lighting VALUE changes, not for a fresh identical object", () => {
+    const cache = createFieldBakeCache();
+    const layers = [grass];
+    const dusk = { ambient: 0.6, lights: [] };
+    getFieldBake(cache, layers, grid, dusk);
+    getFieldBake(cache, layers, grid, { ambient: 0.6, lights: [] }); // same value, new object
+    expect(bakeSpy).toHaveBeenCalledTimes(1);
+    getFieldBake(cache, layers, grid, { ambient: 0.3, lights: [] }); // darker night
+    expect(bakeSpy).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe("coreTerrainLayers", () => {

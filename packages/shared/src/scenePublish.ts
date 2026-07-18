@@ -21,6 +21,7 @@ import type {
   MapDocument,
   MapElement,
   MapElementsSnapshot,
+  MapLightingSnapshot,
   RenderableMapElement,
 } from "./mapStudioTypes.js";
 
@@ -90,36 +91,60 @@ export function authoredDoorStatesOf(document: MapDocument): Map<string, Compile
  * visibility for blocking geometry): here an invisible layer renders NOTHING.
  *
  * Excluded, each with an adversarial test:
- * - `element.hidden`
+ * - `element.hidden` (a hidden light is prepared-but-unlit — it must not glow)
  * - every element on a layer with `visible === false`
  * - every element on a layer of kind `"notes"` (GM-only)
  * - `text` with `data.visibleToPlayers === false`
- * - `wall` / `door` / `light` kinds (walls are DM-overlay + blocking; doors ride
- *   compiledScene; lights don't render at the table yet)
+ * - `wall` / `door` kinds as scenery (walls are DM-overlay + blocking; doors
+ *   ride compiledScene). Lights are not scenery either — they render as light
+ *   POOLS in the terrain bake, so they travel in the separate `lighting`
+ *   channel (position/radius/colour/intensity only, same hidden/visible rules).
  *
- * Emits only non-empty layers, in `zIndex` order, each carrying its `opacity`;
- * deep-cloned so a later document edit can't mutate a broadcast payload through
- * a shared reference. Returns undefined when nothing is visible.
+ * The `lighting` channel also carries `ambient` — the lighting LAYER's opacity
+ * (1 = daylight; toward 0 = night), with an invisible lighting layer reading
+ * as daylight — and is attached only when it departs from plain daylight.
+ *
+ * Emits only non-empty scenery layers, in `zIndex` order, each carrying its
+ * `opacity`; deep-cloned so a later document edit can't mutate a broadcast
+ * payload through a shared reference. Returns undefined when nothing is
+ * visible AND the lighting is plain daylight.
  */
 export function deriveMapElements(document: MapDocument): MapElementsSnapshot | undefined {
   const layersById = new Map(document.layers.map((layer) => [layer.id, layer]));
   const byLayer = new Map<string, RenderableMapElement[]>();
+  const lights: MapLightingSnapshot["lights"] = [];
   for (const element of document.elements) {
     if (element.hidden) continue;
     const layer = layersById.get(element.layerId);
     if (!layer || !layer.visible || layer.kind === "notes") continue;
+    if (element.type === "light") {
+      lights.push({
+        id: element.id,
+        x: element.transform.x,
+        y: element.transform.y,
+        radius: element.data.radius,
+        color: element.data.color,
+        intensity: element.data.intensity,
+      });
+      continue;
+    }
     const renderable = toRenderable(element);
-    if (!renderable) continue; // wall/door/light, or player-private text
+    if (!renderable) continue; // wall/door, or player-private text
     const bucket = byLayer.get(layer.id);
     if (bucket) bucket.push(renderable);
     else byLayer.set(layer.id, [renderable]);
   }
 
+  const lightingLayer = document.layers.find((layer) => layer.kind === "lighting");
+  const ambient = lightingLayer && lightingLayer.visible ? lightingLayer.opacity : 1;
+  const lighting: MapLightingSnapshot | undefined =
+    ambient < 1 || lights.length > 0 ? { ambient, lights } : undefined;
+
   const layers = document.layers
     .filter((layer) => byLayer.has(layer.id))
     .sort((a, b) => a.zIndex - b.zIndex)
     .map((layer) => ({ opacity: layer.opacity, elements: byLayer.get(layer.id)! }));
-  if (layers.length === 0) return undefined;
+  if (layers.length === 0 && !lighting) return undefined;
 
   return structuredClone({
     grid: {
@@ -128,12 +153,14 @@ export function deriveMapElements(document: MapDocument): MapElementsSnapshot | 
       offsetY: document.grid.offsetY,
     },
     layers,
+    ...(lighting ? { lighting } : {}),
   });
 }
 
 /** Narrow one authored element to its player-safe render form, or null when the
- * kind never renders at the table (wall/door/light) or the text is GM-private.
- * The `data` reference is shared here; deriveMapElements deep-clones the result. */
+ * kind never renders as scenery (wall/door; lights ride the lighting channel)
+ * or the text is GM-private. The `data` reference is shared here;
+ * deriveMapElements deep-clones the result. */
 function toRenderable(element: MapElement): RenderableMapElement | null {
   switch (element.type) {
     case "tile":

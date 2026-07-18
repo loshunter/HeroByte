@@ -7,7 +7,7 @@ import type { MapEditSubTool } from "./mapEditTypes";
 
 const DRAG_TOOLS: MapEditSubTool[] = ["wall", "door", "room", "hallway", "generate"];
 const BRUSH_TOOLS: MapEditSubTool[] = ["terrain", "erase"];
-const CLICK_TOOLS: MapEditSubTool[] = ["place", "scatter"];
+const CLICK_TOOLS: MapEditSubTool[] = ["place", "scatter", "light"];
 
 /** Wall, door, room, hallway, and generate all drive the same drag machine. */
 export function isDragTool(subTool: MapEditSubTool): boolean {

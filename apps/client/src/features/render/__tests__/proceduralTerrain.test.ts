@@ -233,6 +233,69 @@ describe("per-family rim width and cast shadow (walls read tall)", () => {
   });
 });
 
+// Czepeku catalog #4 + #11: the omnidirectional contact/AO band seats a mass
+// on the ground on EVERY side (unlike the directional cast shadow), and a
+// shadow band above the default becomes a soft LONG directional throw — the
+// shadow-length height cue. Families without the knobs keep the default
+// one-term shadow arithmetic bit-for-bit (keep = 1 - k).
+describe("contact occlusion and the long soft shadow throw", () => {
+  const TALL = "terrain:test-tall";
+  const tallFamily = (extra: Partial<TerrainFieldFamily>): TerrainFieldFamily => ({
+    assetId: TALL,
+    priority: 20,
+    base: "#b3a687",
+    rim: "#4e4638",
+    edgeAmp: 0,
+    ...extra,
+  });
+  // A tall 2x2 block in the middle of grass.
+  const rowsWithBlock = (): (string | null)[][] =>
+    Array.from({ length: 12 }, (_, cy) =>
+      Array.from({ length: 12 }, (_, cx) =>
+        cx >= 5 && cx <= 6 && cy >= 5 && cy <= 6 ? TALL : GRASS,
+      ),
+    );
+  const sum = (p: number[]): number => p[0]! + p[1]! + p[2]!;
+
+  it("contact darkens the UP-RIGHT side too, where the directional shadow never falls", () => {
+    const rows = rowsWithBlock();
+    const plain = render(rows, [...FAMILIES, tallFamily({})]);
+    const seated = render(rows, [
+      ...FAMILIES,
+      tallFamily({ contact: { reach: 0.3, strength: 0.2 } }),
+    ]);
+    // A pixel just ABOVE the block's top edge midpoint: the lit side, which
+    // the probe-gated directional shadow never darkens — only contact does.
+    const x = 6 * CELL;
+    const y = 5 * CELL - 2;
+    expect(sum(px(seated, x, y))).toBeLessThan(sum(px(plain, x, y)));
+  });
+
+  it("a band above the default throws a soft shadow further down-left than the near band", () => {
+    const rows = rowsWithBlock();
+    const near = render(rows, [...FAMILIES, tallFamily({ shadow: { band: 0.15, strength: 0.3 } })]);
+    const tall = render(rows, [...FAMILIES, tallFamily({ shadow: { band: 0.6, strength: 0.3 } })]);
+    // Sample a strip well beyond the near band's reach (≥0.25 cells down-left
+    // of the block edge): only the long throw darkens there.
+    let nearSum = 0;
+    let tallSum = 0;
+    for (let d = Math.round(CELL * 0.3); d < Math.round(CELL * 0.5); d += 1) {
+      const x = 5 * CELL - d;
+      const y = 6 * CELL + CELL / 2;
+      nearSum += sum(px(near, x, y));
+      tallSum += sum(px(tall, x, y));
+    }
+    expect(tallSum).toBeLessThan(nearSum);
+  });
+
+  it("no contact/long knobs ⇒ the classic one-term shadow, bit for bit", () => {
+    const rows = rowsWithBlock();
+    const a = render(rows, [...FAMILIES, tallFamily({ shadow: { band: 0.15, strength: 0.3 } })]);
+    const b = render(rows, [...FAMILIES, tallFamily({ shadow: { band: 0.15, strength: 0.3 } })]);
+    expect(Array.from(a.pixels)).toEqual(Array.from(b.pixels));
+  });
+});
+
 // Czepeku catalog #1: low-frequency tonal clouds one octave below the cell
 // detail. Interior pixels of a mottled family vary around the base; families
 // without the knob keep the flat base bit-for-bit (pinned by the solid-grass

@@ -570,6 +570,7 @@ export default function MapBoard({
             <TerrainLayer
               cam={cam}
               mapTerrain={snapshot.mapTerrain}
+              lighting={snapshot.mapElements?.lighting}
               mapTransform={mapObject?.transform}
             />
           )}

@@ -38,10 +38,16 @@ export interface TerrainFieldFamily {
    * a thin lip so their edge reads as an inked outline, not a wide bevel. */
   rimWidth?: number;
   /** Cast-shadow override on lower families. Undefined ⇒ the default
-   * grass-over-dirt lip. Only `strength` (max darkening, 0–1) is applied —
-   * walls darken HARDER, not wider, to read tall (the Czepeku height cue).
-   * `band` is a reserved depth knob; band/probe stay at the shared defaults. */
+   * grass-over-dirt lip. `strength` deepens the crisp near shadow; a `band`
+   * ABOVE the shared default adds a soft LONG directional throw out to that
+   * width (catalog #11 — shadow length is the height cue: roofs throw
+   * furthest). The near band/probe stay at the shared defaults. */
   shadow?: { band: number; strength: number };
+  /** Omnidirectional contact occlusion (catalog #4): a thin grime/AO band
+   * hugging the family on EVERY side — the ground-contact cue that seats a
+   * wall or roof on the map, distinct from the directional cast shadow.
+   * `reach` in field units, `strength` the max darkening. */
+  contact?: { reach: number; strength: number };
   /**
    * Low-frequency tonal clouds under the per-cell detail (Czepeku catalog #1):
    * `amp` is the max value offset (~0.03–0.08), `scale` the wavelength in
@@ -135,6 +141,12 @@ interface FieldFamily {
   /** Parsed depth bands, sorted shallow→deep; empty ⇒ plain base fill. */
   bands: { maxCells: number; rgb: FieldRgb }[];
   underfill: boolean;
+  /** Contact occlusion; strength 0 ⇒ none. */
+  contactReach: number;
+  contactStrength: number;
+  /** Soft long directional throw; 0 ⇒ none (band at/below the default). */
+  longShadowBand: number;
+  longShadowStrength: number;
 }
 
 /**
@@ -159,12 +171,17 @@ export function createTerrainField(config: TerrainFieldConfig): TerrainField {
       seed: f.priority * 97 + 3,
       edgeAmp: f.edgeAmp ?? 1,
       rimWidth: f.rimWidth ?? TERRAIN_RIM,
-      // Band and probe stay at the shared defaults for every family; only the
-      // shadow's `strength` is per-family (tall families darken harder, not
-      // wider — a widened band/probe read as detached wedges at wall corners).
+      // The crisp NEAR shadow keeps the shared band/probe for every family;
+      // `strength` is per-family. A `shadow.band` above the default becomes
+      // the soft LONG throw below (its hard-probed version read as detached
+      // wedges at wall corners — the long pass gates softly instead).
       shadowBand: SHADOW,
       shadowStrength: f.shadow?.strength ?? SHADOW_STRENGTH,
       shadowProbe: SHADOW_PROBE,
+      contactReach: f.contact?.reach ?? 0,
+      contactStrength: f.contact?.strength ?? 0,
+      longShadowBand: f.shadow && f.shadow.band > SHADOW ? f.shadow.band : 0,
+      longShadowStrength: (f.shadow?.strength ?? SHADOW_STRENGTH) * 0.5,
       mottleAmp: f.mottle?.amp ?? 0,
       mottleScale: (f.mottle?.scale ?? 1) * cellSize,
       mottleCool: f.mottle?.cool ?? 0,
@@ -265,19 +282,42 @@ export function createTerrainField(config: TerrainFieldConfig): TerrainField {
       if (v >= 0) {
         const flat = v < f.rimWidth ? f.rim : f.bands.length > 0 ? bandColorOf(f, wx, wy) : f.base;
         color = f.mottleAmp > 0 ? mottled(f, flat, wx, wy) : flat;
-      } else if (
-        color &&
-        v > -f.shadowBand &&
-        fieldOf(f, wx + cellSize * f.shadowProbe, wy - cellSize * f.shadowProbe) >= 0
-      ) {
-        // Cast shadow: this higher family is present up-right, so darken the
-        // lower family already painted here (its shadowed lower-left edge).
-        const k = f.shadowStrength * (1 + v / f.shadowBand); // v in (-band,0) → fades out
-        color = [
-          Math.round(color[0] * (1 - k)),
-          Math.round(color[1] * (1 - k)),
-          Math.round(color[2] * (1 - k)),
-        ];
+      } else if (color && v < 0) {
+        // Darkening terms from this higher family onto the colour painted so
+        // far, composed multiplicatively so overlaps never crush to black.
+        let keep = 1;
+        // Contact occlusion: omnidirectional (no probe — the signed field is
+        // already a distance-to-boundary on every side).
+        if (f.contactStrength > 0 && v > -f.contactReach) {
+          keep *= 1 - f.contactStrength * (1 + v / f.contactReach);
+        }
+        // Crisp near cast shadow: present up-right ⇒ shadowed lower-left edge.
+        if (
+          v > -f.shadowBand &&
+          fieldOf(f, wx + cellSize * f.shadowProbe, wy - cellSize * f.shadowProbe) >= 0
+        ) {
+          keep *= 1 - f.shadowStrength * (1 + v / f.shadowBand);
+        }
+        // Soft long throw (tall families): the caster must be present up-right
+        // at a distance MATCHING how far this pixel sits from the edge — which
+        // is what lets the shadow reproduce the caster's outline — and the
+        // presence gate is smoothed so the far edge feathers instead of
+        // cutting into wedges.
+        if (f.longShadowBand > 0 && v > -f.longShadowBand) {
+          const throwOff = cellSize * Math.min(-v * 1.2, f.longShadowBand * 1.2);
+          const presence = fieldOf(f, wx + throwOff, wy - throwOff);
+          const soft = Math.min(1, Math.max(0, presence * 3 + 0.5));
+          if (soft > 0) {
+            keep *= 1 - f.longShadowStrength * (1 + v / f.longShadowBand) * soft;
+          }
+        }
+        if (keep < 1) {
+          color = [
+            Math.round(color[0] * keep),
+            Math.round(color[1] * keep),
+            Math.round(color[2] * keep),
+          ];
+        }
       }
     }
     return color;

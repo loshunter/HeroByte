@@ -25,6 +25,7 @@ const SUB_TOOLS: { id: MapEditSubTool; label: string }[] = [
   { id: "hallway", label: "🚇 Hall" },
   { id: "wall", label: "🧱 Wall" },
   { id: "door", label: "🚪 Door" },
+  { id: "light", label: "💡 Light" },
   { id: "terrain", label: "🖌️ Paint" },
   { id: "erase", label: "🧹 Erase" },
   { id: "place", label: "📦 Place" },
@@ -203,6 +204,16 @@ export function MapEditToolbar(props: MapEditToolbarProps) {
                     onSelect={onSelectFloorFamily}
                   />
                 </>
+              )}
+
+              {activeSubTool === "light" && (
+                <p
+                  className="jrpg-text-small"
+                  style={{ margin: 0, color: "var(--jrpg-white)", opacity: 0.8 }}
+                >
+                  Click to place a torch pool. The Lighting layer&apos;s opacity (🗂 Layers) is the
+                  ambient light: 1 = day, lower = night — pools glow once it drops.
+                </p>
               )}
 
               {(activeSubTool === "room" || activeSubTool === "hallway") && (

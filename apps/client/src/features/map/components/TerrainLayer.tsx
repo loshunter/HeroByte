@@ -12,7 +12,11 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Group, Shape } from "react-konva";
 import type Konva from "konva";
-import type { MapTerrainSnapshot, SceneObjectTransform } from "@herobyte/shared";
+import type {
+  MapLightingSnapshot,
+  MapTerrainSnapshot,
+  SceneObjectTransform,
+} from "@herobyte/shared";
 import { useAnimationFrameIndex } from "../../render/useAnimationClock";
 import { useTileAtlas } from "../../render/tileAtlas";
 import type { TileRenderContext2D } from "../../render/tileRenderCore";
@@ -37,6 +41,9 @@ interface TerrainLayerProps {
   mapTerrain: MapTerrainSnapshot;
   /** The map object's transform — terrain must move/scale WITH the background. */
   mapTransform?: SceneObjectTransform;
+  /** Ambient veil + light pools (snapshot.mapElements.lighting) — baked into
+   * the terrain art; absent ⇒ daylight. */
+  lighting?: MapLightingSnapshot;
 }
 
 /**
@@ -47,7 +54,7 @@ interface TerrainLayerProps {
  * 1. Camera transform (pan/zoom) — the outer Group.
  * 2. Map object transform (position/scale/rotation) — the inner Group.
  */
-export function TerrainLayer({ cam, mapTerrain, mapTransform }: TerrainLayerProps) {
+export function TerrainLayer({ cam, mapTerrain, mapTransform, lighting }: TerrainLayerProps) {
   const atlas = useTileAtlas();
 
   // A full room snapshot is re-parsed from JSON on every broadcast, so
@@ -77,16 +84,26 @@ export function TerrainLayer({ cam, mapTerrain, mapTransform }: TerrainLayerProp
   // to the flat/atlas core path so terrain never vanishes.
   const bakeCache = useRef(createFieldBakeCache());
   const { size: gridSize, offsetX: gridOffsetX, offsetY: gridOffsetY } = mapTerrain.grid;
+  // Key the lighting on its VALUE — the snapshot object identity churns per
+  // broadcast; getFieldBake also signature-checks, so this memo only trims
+  // re-render work.
+  const lightingKey = useMemo(() => (lighting ? JSON.stringify(lighting) : ""), [lighting]);
   const baked = useMemo(
     // Rebuild the grid from PRIMITIVES (not the per-snapshot grid object, whose
     // identity churns each broadcast) so the memo runs only on a real change.
     () =>
-      getFieldBake(bakeCache.current, layers, {
-        size: gridSize,
-        offsetX: gridOffsetX,
-        offsetY: gridOffsetY,
-      }),
-    [layers, gridSize, gridOffsetX, gridOffsetY],
+      getFieldBake(
+        bakeCache.current,
+        layers,
+        {
+          size: gridSize,
+          offsetX: gridOffsetX,
+          offsetY: gridOffsetY,
+        },
+        lighting,
+      ),
+
+    [layers, gridSize, gridOffsetX, gridOffsetY, lightingKey],
   );
   // The families that still draw through the flat/atlas core over the baked
   // field, or ALL families when the bake fell back.
