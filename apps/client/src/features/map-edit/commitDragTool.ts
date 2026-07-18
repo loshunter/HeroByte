@@ -71,6 +71,7 @@ export function commitDragTool({
       hallwayWidth,
       document.grid,
       layers,
+      { wallFamily: roomWallFamily, terrain: document.terrain ?? null },
     );
     if (command && bounds) {
       controller.placeRoom(command.cells, command.elements);

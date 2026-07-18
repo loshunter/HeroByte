@@ -779,6 +779,576 @@
       "x": 22,
       "y": 22,
       "assetId": "terrain:stone-floor"
+    },
+    {
+      "x": 9,
+      "y": 4,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 10,
+      "y": 4,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 11,
+      "y": 4,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 12,
+      "y": 4,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 13,
+      "y": 4,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 5,
+      "y": 5,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 6,
+      "y": 5,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 7,
+      "y": 5,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 8,
+      "y": 5,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 9,
+      "y": 5,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 13,
+      "y": 5,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 14,
+      "y": 5,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 15,
+      "y": 5,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 16,
+      "y": 5,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 17,
+      "y": 5,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 18,
+      "y": 5,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 19,
+      "y": 5,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 20,
+      "y": 5,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 21,
+      "y": 5,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 22,
+      "y": 5,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 5,
+      "y": 6,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 9,
+      "y": 6,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 13,
+      "y": 6,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 22,
+      "y": 6,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 5,
+      "y": 7,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 13,
+      "y": 7,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 22,
+      "y": 7,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 5,
+      "y": 8,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 9,
+      "y": 8,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 13,
+      "y": 8,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 22,
+      "y": 8,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 5,
+      "y": 9,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 9,
+      "y": 9,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 22,
+      "y": 9,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 5,
+      "y": 10,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 9,
+      "y": 10,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 10,
+      "y": 10,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 11,
+      "y": 10,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 12,
+      "y": 10,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 13,
+      "y": 10,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 22,
+      "y": 10,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 5,
+      "y": 11,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 9,
+      "y": 11,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 13,
+      "y": 11,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 22,
+      "y": 11,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 5,
+      "y": 12,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 9,
+      "y": 12,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 13,
+      "y": 12,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 22,
+      "y": 12,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 5,
+      "y": 13,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 9,
+      "y": 13,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 13,
+      "y": 13,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 22,
+      "y": 13,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 5,
+      "y": 14,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 7,
+      "y": 14,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 8,
+      "y": 14,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 9,
+      "y": 14,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 13,
+      "y": 14,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 14,
+      "y": 14,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 15,
+      "y": 14,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 16,
+      "y": 14,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 17,
+      "y": 14,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 18,
+      "y": 14,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 20,
+      "y": 14,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 21,
+      "y": 14,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 22,
+      "y": 14,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 4,
+      "y": 15,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 5,
+      "y": 15,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 7,
+      "y": 15,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 8,
+      "y": 15,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 18,
+      "y": 15,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 20,
+      "y": 15,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 4,
+      "y": 16,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 8,
+      "y": 16,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 18,
+      "y": 16,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 20,
+      "y": 16,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 4,
+      "y": 17,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 8,
+      "y": 17,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 16,
+      "y": 17,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 17,
+      "y": 17,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 18,
+      "y": 17,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 20,
+      "y": 17,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 21,
+      "y": 17,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 22,
+      "y": 17,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 23,
+      "y": 17,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 4,
+      "y": 18,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 8,
+      "y": 18,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 16,
+      "y": 18,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 23,
+      "y": 18,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 4,
+      "y": 19,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 8,
+      "y": 19,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 16,
+      "y": 19,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 23,
+      "y": 19,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 4,
+      "y": 20,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 8,
+      "y": 20,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 16,
+      "y": 20,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 23,
+      "y": 20,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 4,
+      "y": 21,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 5,
+      "y": 21,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 6,
+      "y": 21,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 7,
+      "y": 21,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 8,
+      "y": 21,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 16,
+      "y": 21,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 23,
+      "y": 21,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 16,
+      "y": 22,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 23,
+      "y": 22,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 16,
+      "y": 23,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 17,
+      "y": 23,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 18,
+      "y": 23,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 19,
+      "y": 23,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 20,
+      "y": 23,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 21,
+      "y": 23,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 22,
+      "y": 23,
+      "assetId": "terrain:wall-stone"
+    },
+    {
+      "x": 23,
+      "y": 23,
+      "assetId": "terrain:wall-stone"
     }
   ],
   "elements": [

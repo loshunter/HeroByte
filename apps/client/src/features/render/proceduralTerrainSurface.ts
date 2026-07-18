@@ -22,6 +22,7 @@ import {
 } from "./proceduralTerrain";
 import { paintKeyClusterDetail, paintTerrainDetail } from "./terrainDetail";
 import { paintFloorDetail } from "./terrainFloorDetail";
+import { paintRoofDetail, paintStairsDetail } from "./terrainRoofDetail";
 import { paintWallDetail } from "./terrainWallDetail";
 import type { TerrainFamilyPalette } from "./terrainPalette";
 import type {
@@ -184,6 +185,8 @@ function paintFamilyDetail(
 ): void {
   const fam = palette[assetId];
   if (fam?.wall) paintWallDetail(ctx, cell, fam.wall);
+  else if (fam?.roof) paintRoofDetail(ctx, cell, fam.roof);
+  else if (fam?.stairs) paintStairsDetail(ctx, cell, fam.stairs);
   else if (fam?.floor) paintFloorDetail(ctx, cell, fam.floor);
   else if (fam?.keyCluster) paintKeyClusterDetail(ctx, cell, fam.keyCluster);
   else paintTerrainDetail(ctx, cell, assetId);

@@ -2,7 +2,7 @@
 // floor/wall picker when it samples a terrain tile (e.g. "terrain:grass" →
 // "grass"), plus the family groupings the Room wall ring needs.
 
-import type { MapEditFloorFamily, MapEditWallFamily } from "./mapEditTypes";
+import type { MapEditFloorFamily, MapEditRoofFamily, MapEditWallFamily } from "./mapEditTypes";
 
 /** The wall paint families, in toolbar order. */
 export const WALL_FAMILIES: MapEditWallFamily[] = [
@@ -11,6 +11,9 @@ export const WALL_FAMILIES: MapEditWallFamily[] = [
   "wall-timber",
   "wall-dark",
 ];
+
+/** The roof paint families, in toolbar order. */
+export const ROOF_FAMILIES: MapEditRoofFamily[] = ["roof-shingle", "roof-thatch"];
 
 const FLOOR_FAMILIES: MapEditFloorFamily[] = [
   "grass",
@@ -22,14 +25,18 @@ const FLOOR_FAMILIES: MapEditFloorFamily[] = [
   "stone-sandstone",
   "wood-walnut",
   "wood-grey",
+  "stairs-stone",
   ...WALL_FAMILIES,
+  ...ROOF_FAMILIES,
 ];
 
 /**
- * The architectural interior floors a Room's wall ring must never overwrite —
- * an adjacent room's laid floor. Natural ground (grass/dirt/path) and walls
- * are fair game: walls stand on lawns, and ring-over-ring is how neighbouring
- * rooms share one wall band.
+ * The laid interior surfaces a Room/Hallway wall band must never overwrite —
+ * an adjacent room's floor or a staircase. Natural ground (grass/dirt/path),
+ * walls and roofs are fair game: walls stand on lawns, ring-over-ring is how
+ * neighbouring rooms share one band, and a roof covers whatever it likes.
+ * Pinned to the palette (families with a floor or stairs painter) by
+ * wallVariants.test.
  */
 export const INTERIOR_FLOOR_ASSET_IDS: ReadonlySet<string> = new Set([
   "terrain:stone-floor",
@@ -38,6 +45,7 @@ export const INTERIOR_FLOOR_ASSET_IDS: ReadonlySet<string> = new Set([
   "terrain:stone-sandstone",
   "terrain:wood-walnut",
   "terrain:wood-grey",
+  "terrain:stairs-stone",
 ]);
 
 /** The paint family an asset id names (terrain:<family>), or null. */

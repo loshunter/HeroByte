@@ -1,13 +1,21 @@
 // Pure geometry for the Hallway tool: an axis-dominant drag → a corridor of
 // floor cells plus TWO wall polylines along its long sides (open ends, so a
-// hallway junctions cleanly with the rooms it connects). Emitted through the
+// hallway junctions cleanly with the rooms it connects), plus painted wall
+// RIBBONS along those sides when a wall family is armed. Emitted through the
 // same `place-room` command the Room tool uses (floor + walls as ONE undo).
 // React-free so the corridor math is unit-testable.
 
 import type { MapGridSettings, MapLayer, MapWallElement, TerrainPaintCell } from "@herobyte/shared";
+import { getTerrainCell } from "@herobyte/shared";
 import { generateUUID } from "../../utils/uuid";
 import { findWallsLayer } from "../map-studio/components/wallDoorDrafts";
-import { MAX_ROOM_CELLS, type RoomBounds, type RoomCommand } from "./roomBuilder";
+import { INTERIOR_FLOOR_ASSET_IDS } from "./mapEditFamilies";
+import {
+  MAX_ROOM_CELLS,
+  type RoomBounds,
+  type RoomCommand,
+  type RoomWallRingOptions,
+} from "./roomBuilder";
 import type { MapEditFloorFamily } from "./mapEditTypes";
 
 /** Corridor width is DM-chosen in cells; clamp to a sane 1–4. */
@@ -112,8 +120,11 @@ function wallElement(
 
 /**
  * Build the place-room payload for a hallway. Only the two LONG sides get walls
- * (the ends stay open). Returns command=null + error when there's no walls
- * layer or the corridor exceeds the cell cap.
+ * (the ends stay open), and — when `ring` arms a wall family — a painted
+ * one-cell wall ribbon along each long side, matching the Room tool's band.
+ * Ribbon cells skip a neighbouring room's laid interior floor so a corridor
+ * running along a room never bricks over it. Returns command=null + error when
+ * there's no walls layer or the corridor exceeds the cell cap.
  */
 export function buildHallwayCommand(
   drag: Drag,
@@ -121,6 +132,7 @@ export function buildHallwayCommand(
   widthCells: number,
   grid: MapGridSettings,
   layers: Map<string, MapLayer>,
+  ring: RoomWallRingOptions = { wallFamily: "none", terrain: null },
 ): HallwayBuildResult {
   const wallsLayer = findWallsLayer(layers);
   if (!wallsLayer) {
@@ -128,7 +140,9 @@ export function buildHallwayCommand(
   }
   const { horizontal, aMin, aMax, cLow, width, bounds } = hallwayGeometry(drag, widthCells, grid);
   const lengthCells = aMax - aMin + 1;
-  if (lengthCells * width > MAX_ROOM_CELLS) {
+  const withRibbon = ring.wallFamily !== "none";
+  const cellBudget = lengthCells * (withRibbon ? width + 2 : width);
+  if (cellBudget > MAX_ROOM_CELLS) {
     return {
       command: null,
       bounds: null,
@@ -141,6 +155,20 @@ export function buildHallwayCommand(
   for (let a = aMin; a <= aMax; a += 1) {
     for (let c = cLow; c < cLow + width; c += 1) {
       cells.push(horizontal ? { x: a, y: c, assetId } : { x: c, y: a, assetId });
+    }
+  }
+
+  if (withRibbon) {
+    const wallAssetId = `terrain:${ring.wallFamily}`;
+    const keepsFloor = (cx: number, cy: number): boolean =>
+      ring.terrain !== null &&
+      INTERIOR_FLOOR_ASSET_IDS.has(getTerrainCell(ring.terrain, cx, cy) ?? "");
+    for (let a = aMin; a <= aMax; a += 1) {
+      for (const c of [cLow - 1, cLow + width]) {
+        const cx = horizontal ? a : c;
+        const cy = horizontal ? c : a;
+        if (!keepsFloor(cx, cy)) cells.push({ x: cx, y: cy, assetId: wallAssetId });
+      }
     }
   }
 

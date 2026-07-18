@@ -3,7 +3,18 @@
 // draw code means a map's "mood" (warm village, cool cave/swamp, or a
 // user-chosen fantasy palette — purple grass, say) is a config swap, not a
 // code change. See features/render/terrainDetail (the painters that consume
-// these) and temp/_dirt_path_proto (the validated prototypes).
+// these), terrainMaterialPalettes (the wall/roof/stairs shade sets), and
+// temp/_dirt_path_proto (the validated prototypes).
+
+import {
+  BONE_WALL_DETAIL,
+  BRICK_WALL_DETAIL,
+  DARK_WALL_DETAIL,
+  SHINGLE_ROOF_DETAIL,
+  STONE_STAIRS_DETAIL,
+  THATCH_ROOF_DETAIL,
+  TIMBER_WALL_DETAIL,
+} from "./terrainMaterialPalettes";
 
 /**
  * Interior "key cluster" detail shades for a dirt-like family (dirt, path):
@@ -89,43 +100,6 @@ export const SANDSTONE_FLOOR_DETAIL: KeyClusterPalette = {
   light: "#a68f68",
 };
 
-/**
- * Wall-top shades (terrainWallDetail): `crev` draws course ticks, quoin frames
- * and the shaded S/W edge lips; `dark`/`mid` the chip mottle; `light` the lit
- * N/E edge lips. Same tone roles as the floors, so wall variants stay a pure
- * palette swap.
- */
-export const BONE_WALL_DETAIL: KeyClusterPalette = {
-  crev: "#5f5745",
-  dark: "#9a8d72",
-  mid: "#a89b7e",
-  light: "#cabfa2",
-};
-
-/** Brick wall shades — warm russet courses. */
-export const BRICK_WALL_DETAIL: KeyClusterPalette = {
-  crev: "#5e3c2c",
-  dark: "#8a5c46",
-  mid: "#a97a5e",
-  light: "#bd9070",
-};
-
-/** Timber wall shades — dark oak beams over wattle. */
-export const TIMBER_WALL_DETAIL: KeyClusterPalette = {
-  crev: "#452f1e",
-  dark: "#5e422a",
-  mid: "#7c5a3b",
-  light: "#97744e",
-};
-
-/** Dark dungeon wall shades — cool slate, lighter than the stone floors. */
-export const DARK_WALL_DETAIL: KeyClusterPalette = {
-  crev: "#3a3b45",
-  dark: "#4e505c",
-  mid: "#6a6c7a",
-  light: "#868a9a",
-};
-
 /** The floor material painters terrainFloorDetail implements. */
 export type FloorDetailKind = "plank" | "flagstone";
 
@@ -149,8 +123,9 @@ export interface FloorDetail {
  * lower), and its interior `keyCluster` pebble palette when it has one.
  */
 /** Wall-top detail: which shades the wall painter (terrainWallDetail) draws
- * courses, quoins and edge lips with. A `wall` family reads as the TALLEST lit
- * surface: light top, thin dark rim, and a deep cast shadow onto lower families. */
+ * courses, quoins and edge lips with. A `wall` family reads as a TALL lit
+ * surface: light top, thin dark rim, and a dark cast shadow onto lower
+ * families. Roofs and stairs reuse this shape over their own painters. */
 export interface WallDetail {
   palette: KeyClusterPalette;
 }
@@ -165,6 +140,10 @@ export interface TerrainFamilyPalette {
   floor?: FloorDetail;
   /** Wall families route to the wall-top painter (checked before `floor`). */
   wall?: WallDetail;
+  /** Roof families route to the shingle-row painter (terrainRoofDetail). */
+  roof?: WallDetail;
+  /** Stairs families route to the tread painter (terrainRoofDetail). */
+  stairs?: WallDetail;
   /**
    * Boundary displacement scale for the procedural field (proceduralTerrain
    * `fieldOf`). Omitted ⇒ 1 = organic bumpy edge (natural terrain). Floors set
@@ -181,9 +160,11 @@ export interface TerrainFamilyPalette {
 
 /** Shared wall field tuning: a thin inked rim (≈3px at the 50px grid) and a
  * darker-than-default cast shadow — the two knobs that sell wall height.
- * (Only the shadow's strength is applied; band is a reserved depth knob.) */
+ * (Only the shadow's strength is applied; band is a reserved depth knob.)
+ * Roofs sit a level above walls, so their shadow bites hardest. */
 const WALL_RIM = 0.055;
 const WALL_SHADOW = { band: 0.34, strength: 0.3 };
+const ROOF_SHADOW = { band: 0.34, strength: 0.38 };
 
 /**
  * The default "village" mood — warm and saturated. A map's mood (cool
@@ -288,5 +269,36 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     rimWidth: WALL_RIM,
     shadow: WALL_SHADOW,
     wall: { palette: DARK_WALL_DETAIL },
+  },
+  // Stairs: floor-height treads (priority between floors and walls, default
+  // shadow) — the painter's riser/nosing bars do the reading, not the field.
+  "terrain:stairs-stone": {
+    base: "#6d7280",
+    rim: "#3f434d",
+    priority: 10,
+    edgeAmp: 0,
+    stairs: { palette: STONE_STAIRS_DETAIL },
+  },
+  // Roofs: the TALLEST level (priority above walls, hardest shadow), and the
+  // rim is a LIGHT fascia trim rather than an inked outline — an eave catches
+  // sun, it isn't inked (Czepeku roofed-variant study). One-cell overlaps with
+  // wall bands read as eaves poking past the wall line.
+  "terrain:roof-shingle": {
+    base: "#7d7787",
+    rim: "#b7ad92",
+    priority: 30,
+    edgeAmp: 0,
+    rimWidth: WALL_RIM,
+    shadow: ROOF_SHADOW,
+    roof: { palette: SHINGLE_ROOF_DETAIL },
+  },
+  "terrain:roof-thatch": {
+    base: "#a08954",
+    rim: "#c4b183",
+    priority: 31,
+    edgeAmp: 0,
+    rimWidth: WALL_RIM,
+    shadow: ROOF_SHADOW,
+    roof: { palette: THATCH_ROOF_DETAIL },
   },
 };

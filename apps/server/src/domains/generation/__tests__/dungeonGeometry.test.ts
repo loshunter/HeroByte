@@ -209,23 +209,70 @@ describe("emitGeometry — units", () => {
     }
   });
 
-  it("offsets floor cells into document space by the region origin", () => {
+  it("offsets floor and wall-halo cells into document space by the region origin", () => {
     const output = outputFor(1);
+    const floors = output.cells.filter((cell) => cell.assetId === "terrain:stone-floor");
+    const walls = output.cells.filter((cell) => cell.assetId === "terrain:wall-stone");
 
-    for (const cell of output.cells) {
+    expect(floors.length).toBeGreaterThan(0);
+    expect(walls.length).toBeGreaterThan(0);
+    expect(floors.length + walls.length).toBe(output.cells.length);
+    for (const cell of floors) {
       expect(cell.x).toBeGreaterThanOrEqual(BOUNDS.x);
       expect(cell.x).toBeLessThan(BOUNDS.x + BOUNDS.cols);
       expect(cell.y).toBeGreaterThanOrEqual(BOUNDS.y);
       expect(cell.y).toBeLessThan(BOUNDS.y + BOUNDS.rows);
-      expect(cell.assetId).toBe("terrain:stone-floor");
+    }
+    // The halo may extend one cell past the region where floor touches its rim.
+    for (const cell of walls) {
+      expect(cell.x).toBeGreaterThanOrEqual(BOUNDS.x - 1);
+      expect(cell.x).toBeLessThan(BOUNDS.x + BOUNDS.cols + 1);
+      expect(cell.y).toBeGreaterThanOrEqual(BOUNDS.y - 1);
+      expect(cell.y).toBeLessThan(BOUNDS.y + BOUNDS.rows + 1);
     }
   });
 
-  it("themes the floor", () => {
+  it("the wall halo hugs the floor: every wall cell 8-touches floor, every floor edge is banded", () => {
+    const output = outputFor(1);
+    const floorKeys = new Set(
+      output.cells
+        .filter((c) => c.assetId === "terrain:stone-floor")
+        .map((c) => `${c.x},${c.y}`),
+    );
+    const wallKeys = new Set(
+      output.cells.filter((c) => c.assetId === "terrain:wall-stone").map((c) => `${c.x},${c.y}`),
+    );
+    const touches = (x: number, y: number, keys: Set<string>): boolean => {
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if ((dx !== 0 || dy !== 0) && keys.has(`${x + dx},${y + dy}`)) return true;
+        }
+      }
+      return false;
+    };
+    for (const key of wallKeys) {
+      const [x, y] = key.split(",").map(Number) as [number, number];
+      expect(touches(x, y, floorKeys), `wall ${key} touches no floor`).toBe(true);
+    }
+    // Completeness: every non-floor 8-neighbour of a floor cell is walled.
+    for (const key of floorKeys) {
+      const [x, y] = key.split(",").map(Number) as [number, number];
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const nk = `${x + dx},${y + dy}`;
+          if ((dx !== 0 || dy !== 0) && !floorKeys.has(nk)) {
+            expect(wallKeys.has(nk), `floor ${key} edge ${nk} unbanded`).toBe(true);
+          }
+        }
+      }
+    }
+  });
+
+  it("themes the floor and its wall halo", () => {
     const wood = outputFor(1, { ...PARAMS, theme: "wood" });
 
     expect(new Set(wood.cells.map((cell) => cell.assetId))).toEqual(
-      new Set(["terrain:wood-floor"]),
+      new Set(["terrain:wood-floor", "terrain:wall-timber"]),
     );
   });
 });

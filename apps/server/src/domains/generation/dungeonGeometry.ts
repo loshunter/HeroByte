@@ -26,6 +26,13 @@ const THEME_FLOOR: Record<DungeonParams["theme"], string> = {
   wood: "terrain:wood-floor",
 };
 
+/** Painted wall band around the floor plan — the client's Czepeku wall
+ * families (light top + rim + cast shadow), matched to the floor theme. */
+const THEME_WALL: Record<DungeonParams["theme"], string> = {
+  stone: "terrain:wall-stone",
+  wood: "terrain:wall-timber",
+};
+
 /** A merged, maximal line of wall edges along one lattice line. */
 interface WallRun {
   orientation: "h" | "v";
@@ -62,7 +69,9 @@ export function emitGeometry(
 // Floor
 // ---------------------------------------------------------------------------
 
-/** Scan order (y, then x) so the payload — and the golden — is order-stable. */
+/** Scan order (y, then x) so the payload — and the golden — is order-stable.
+ * Floors first, then the painted wall halo appended in its own scan, so a
+ * fixture regeneration diffs as pure addition. */
 function emitFloor(
   layout: DungeonLayout,
   bounds: CellBounds,
@@ -75,6 +84,39 @@ function emitFloor(
       if (layout.floor.has(cellKey(x, y))) {
         cells.push({ x: bounds.x + x, y: bounds.y + y, assetId });
       }
+    }
+  }
+  return [...cells, ...emitWallHalo(layout, bounds, params)];
+}
+
+/**
+ * One-cell painted wall band hugging the floor plan: every non-floor cell that
+ * 8-touches a floor cell (8-way, so diagonal corners close and the band reads
+ * continuous). Pure art — blocking stays with the wall polylines — and it
+ * cannot leak layout the player payload doesn't already carry: the halo is a
+ * pure function of the floor plan `mapTerrain` already ships. The 1-cell scan
+ * margin covers a floor cell on the region border.
+ */
+function emitWallHalo(
+  layout: DungeonLayout,
+  bounds: CellBounds,
+  params: DungeonParams,
+): TerrainPaintCell[] {
+  const assetId = THEME_WALL[params.theme];
+  const cells: TerrainPaintCell[] = [];
+  for (let y = -1; y <= bounds.rows; y++) {
+    for (let x = -1; x <= bounds.cols; x++) {
+      if (layout.floor.has(cellKey(x, y))) continue;
+      let touchesFloor = false;
+      for (let dy = -1; dy <= 1 && !touchesFloor; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if ((dx !== 0 || dy !== 0) && layout.floor.has(cellKey(x + dx, y + dy))) {
+            touchesFloor = true;
+            break;
+          }
+        }
+      }
+      if (touchesFloor) cells.push({ x: bounds.x + x, y: bounds.y + y, assetId });
     }
   }
   return cells;

@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 import {
   floorFamilyFromAssetId,
   INTERIOR_FLOOR_ASSET_IDS,
+  ROOF_FAMILIES,
   WALL_FAMILIES,
 } from "../../map-edit/mapEditFamilies";
 import { getMapStudioTileAsset, MAP_STUDIO_TILE_ASSETS } from "../../map-studio/starterTiles";
@@ -63,14 +64,17 @@ describe("wall variants (walls that look like walls — variants are data)", () 
     }
   });
 
-  it("walls sit ABOVE every floor with distinct priorities", () => {
-    const floorMax = Math.max(
+  it("walls sit ABOVE every ground-level family with distinct priorities", () => {
+    // Ground level = everything that is not a wall or a roof (naturals,
+    // floors, stairs). Roofs deliberately sit above walls — pinned in the
+    // levels-illusion suite below.
+    const groundMax = Math.max(
       ...Object.entries(VILLAGE_TERRAIN)
-        .filter(([id]) => !ALL_WALLS.includes(id))
+        .filter(([, fam]) => fam.wall === undefined && fam.roof === undefined)
         .map(([, fam]) => fam.priority),
     );
     const priorities = ALL_WALLS.map((id) => VILLAGE_TERRAIN[id]!.priority);
-    for (const priority of priorities) expect(priority).toBeGreaterThan(floorMax);
+    for (const priority of priorities) expect(priority).toBeGreaterThan(groundMax);
     expect(new Set(priorities).size).toBe(priorities.length);
   });
 
@@ -83,15 +87,16 @@ describe("wall variants (walls that look like walls — variants are data)", () 
     }
   });
 
-  it("the ring-protection set is exactly the palette's interior floors", () => {
-    // INTERIOR_FLOOR_ASSET_IDS guards the Room wall ring from overwriting a
-    // neighbouring room's laid floor. It must track the palette: every family
-    // with a floor painter is protected, nothing else is.
-    const paletteFloors = Object.entries(VILLAGE_TERRAIN)
-      .filter(([, fam]) => fam.floor !== undefined)
+  it("the ring-protection set is exactly the palette's interior floors and stairs", () => {
+    // INTERIOR_FLOOR_ASSET_IDS guards the Room/Hallway wall bands from
+    // overwriting a neighbouring room's laid surface. It must track the
+    // palette: every family with a floor or stairs painter is protected,
+    // nothing else is (walls and roofs are fair game — bands fuse, roofs cover).
+    const paletteInteriors = Object.entries(VILLAGE_TERRAIN)
+      .filter(([, fam]) => fam.floor !== undefined || fam.stairs !== undefined)
       .map(([id]) => id)
       .sort();
-    expect([...INTERIOR_FLOOR_ASSET_IDS].sort()).toEqual(paletteFloors);
+    expect([...INTERIOR_FLOOR_ASSET_IDS].sort()).toEqual(paletteInteriors);
   });
 
   it("the shelf lists all four walls as terrain swatches", () => {
@@ -112,5 +117,54 @@ describe("wall variants (walls that look like walls — variants are data)", () 
     expect(legacy.id).toBe("structures:stone-wall");
     expect(legacy.fill).toBe("#64606a");
     expect(legacy.layerKind).toBe("walls");
+  });
+});
+
+describe("roof + stairs families (the levels illusion)", () => {
+  const ALL_ROOFS = ROOF_FAMILIES.map((family) => `terrain:${family}`);
+  const STAIRS = "terrain:stairs-stone";
+
+  it("every roof/stairs id resolves to a paintable terrain asset with a matching palette base", () => {
+    for (const id of [...ALL_ROOFS, STAIRS]) {
+      const asset = getMapStudioTileAsset(id);
+      expect(asset.id, id).toBe(id);
+      expect(asset.category, id).toBe("terrain");
+      expect(VILLAGE_TERRAIN[id]!.base, id).toBe(asset.fill);
+      expect(floorFamilyFromAssetId(id), id).toBe(id.slice("terrain:".length));
+    }
+  });
+
+  it("roofs are the tallest level: above every wall, hardest shadow, crisp edge", () => {
+    const wallMax = Math.max(
+      ...WALL_FAMILIES.map((f) => VILLAGE_TERRAIN[`terrain:${f}`]!.priority),
+    );
+    const wallStrength = VILLAGE_TERRAIN["terrain:wall-stone"]!.shadow!.strength;
+    for (const id of ALL_ROOFS) {
+      const fam = VILLAGE_TERRAIN[id]!;
+      expect(fam.roof, id).toBeDefined();
+      expect(fam.edgeAmp, id).toBe(0);
+      expect(fam.priority, id).toBeGreaterThan(wallMax);
+      expect(fam.shadow!.strength, id).toBeGreaterThan(wallStrength);
+      // The roof rim is a LIGHT fascia (an eave catches sun), unlike the
+      // walls' dark inked outline.
+      expect(luma(fam.rim), id).toBeGreaterThan(luma(fam.base));
+    }
+  });
+
+  it("stairs sit between floors and walls with the tread painter and default shadow", () => {
+    const fam = VILLAGE_TERRAIN[STAIRS]!;
+    const floorMax = Math.max(
+      ...Object.entries(VILLAGE_TERRAIN)
+        .filter(([, f]) => f.floor !== undefined)
+        .map(([, f]) => f.priority),
+    );
+    const wallMin = Math.min(
+      ...WALL_FAMILIES.map((f) => VILLAGE_TERRAIN[`terrain:${f}`]!.priority),
+    );
+    expect(fam.stairs).toBeDefined();
+    expect(fam.edgeAmp).toBe(0);
+    expect(fam.priority).toBeGreaterThan(floorMax);
+    expect(fam.priority).toBeLessThan(wallMin);
+    expect(fam.shadow).toBeUndefined();
   });
 });

@@ -9,10 +9,12 @@ import { DraggableWindow } from "../../components/dice/DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../../components/ui/JRPGPanel";
 import { getMapStudioTileAsset } from "../map-studio/starterTiles";
 import { MapEditAssetPicker } from "./MapEditAssetPicker";
+import { MapEditSwatchGrid } from "./MapEditSwatchGrid";
 import { MapEditToolPanels } from "./MapEditToolPanels";
-import { WALL_FAMILIES } from "./mapEditFamilies";
+import { ROOF_FAMILIES, WALL_FAMILIES } from "./mapEditFamilies";
 import type {
   MapEditFloorFamily,
+  MapEditRoofFamily,
   MapEditSubTool,
   MapEditToolbarProps,
   MapEditWallFamily,
@@ -41,6 +43,7 @@ const FLOOR_FAMILIES: { id: MapEditFloorFamily; label: string }[] = [
   { id: "stone-sandstone", label: "Sandstone" },
   { id: "wood-walnut", label: "Walnut" },
   { id: "wood-grey", label: "Grey Plank" },
+  { id: "stairs-stone", label: "Stairs" },
 ];
 
 // Derived from the one family list so the swatches, the eyedropper mapping and
@@ -53,6 +56,14 @@ const WALL_LABELS: Record<MapEditWallFamily, string> = {
 };
 const WALL_FAMILY_SWATCHES: { id: MapEditWallFamily; label: string }[] = WALL_FAMILIES.map(
   (id) => ({ id, label: WALL_LABELS[id] }),
+);
+
+const ROOF_LABELS: Record<MapEditRoofFamily, string> = {
+  "roof-shingle": "Shingle",
+  "roof-thatch": "Thatch",
+};
+const ROOF_FAMILY_SWATCHES: { id: MapEditRoofFamily; label: string }[] = ROOF_FAMILIES.map(
+  (id) => ({ id, label: ROOF_LABELS[id] }),
 );
 
 /** The Room tool's wall-ring choices: a material, or no ring at all. */
@@ -165,90 +176,51 @@ export function MapEditToolbar(props: MapEditToolbarProps) {
               </div>
 
               {paintsFloor && (
-                <div>
-                  <label className="jrpg-text-small" style={labelStyle}>
-                    Floor:
-                  </label>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4px" }}>
-                    {FLOOR_FAMILIES.map((f) => (
-                      <JRPGButton
-                        key={f.id}
-                        onClick={() => onSelectFloorFamily(f.id)}
-                        variant={floorFamily === f.id ? "primary" : "default"}
-                        style={{ fontSize: "8px", padding: "6px 2px" }}
-                      >
-                        {f.label}
-                      </JRPGButton>
-                    ))}
-                  </div>
-                </div>
+                // The Floor/Wall/Roof groups show for EVERY tool that consumes
+                // the paint family (not just Paint): the swatch state is
+                // shared, so a wall/roof family armed by the brush or the
+                // eyedropper must stay visible — and deliberately
+                // re-selectable — when the DM switches to Room or Hall (a
+                // solid wall/roof mass is a legit room fill).
+                <>
+                  <MapEditSwatchGrid
+                    label="Floor:"
+                    options={FLOOR_FAMILIES}
+                    selected={floorFamily}
+                    onSelect={onSelectFloorFamily}
+                  />
+                  <MapEditSwatchGrid
+                    label="Wall:"
+                    options={WALL_FAMILY_SWATCHES}
+                    selected={floorFamily}
+                    onSelect={onSelectFloorFamily}
+                  />
+                  <MapEditSwatchGrid
+                    label="Roof:"
+                    options={ROOF_FAMILY_SWATCHES}
+                    selected={floorFamily}
+                    onSelect={onSelectFloorFamily}
+                  />
+                </>
               )}
 
-              {paintsFloor && (
-                // Shown for EVERY tool that consumes the paint family (not just
-                // Paint): the swatch state is shared, so a wall family armed by
-                // the brush or the eyedropper must stay visible — and
-                // deliberately re-selectable — when the DM switches to Room or
-                // Hall (a solid wall mass is a legit room fill).
-                <div>
-                  <label className="jrpg-text-small" style={labelStyle}>
-                    Wall:
-                  </label>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4px" }}>
-                    {WALL_FAMILY_SWATCHES.map((f) => (
-                      <JRPGButton
-                        key={f.id}
-                        onClick={() => onSelectFloorFamily(f.id)}
-                        variant={floorFamily === f.id ? "primary" : "default"}
-                        style={{ fontSize: "8px", padding: "6px 2px" }}
-                      >
-                        {f.label}
-                      </JRPGButton>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {activeSubTool === "room" && (
-                <div>
-                  <label className="jrpg-text-small" style={labelStyle}>
-                    Wall ring:
-                  </label>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4px" }}>
-                    {ROOM_WALL_CHOICES.map((f) => (
-                      <JRPGButton
-                        key={f.id}
-                        onClick={() => onSelectRoomWallFamily(f.id)}
-                        variant={roomWallFamily === f.id ? "primary" : "default"}
-                        style={{ fontSize: "8px", padding: "6px 2px" }}
-                      >
-                        {f.label}
-                      </JRPGButton>
-                    ))}
-                  </div>
-                </div>
+              {(activeSubTool === "room" || activeSubTool === "hallway") && (
+                <MapEditSwatchGrid
+                  label={activeSubTool === "room" ? "Wall ring:" : "Side walls:"}
+                  options={ROOM_WALL_CHOICES}
+                  selected={roomWallFamily}
+                  onSelect={onSelectRoomWallFamily}
+                />
               )}
 
               {activeSubTool === "hallway" && (
-                <div>
-                  <label className="jrpg-text-small" style={labelStyle}>
-                    Width (cells):
-                  </label>
-                  <div
-                    style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "4px" }}
-                  >
-                    {HALLWAY_WIDTHS.map((w) => (
-                      <JRPGButton
-                        key={w}
-                        onClick={() => onSelectHallwayWidth(w)}
-                        variant={hallwayWidth === w ? "primary" : "default"}
-                        style={{ fontSize: "8px", padding: "6px 2px" }}
-                      >
-                        {w}
-                      </JRPGButton>
-                    ))}
-                  </div>
-                </div>
+                <MapEditSwatchGrid
+                  label="Width (cells):"
+                  options={HALLWAY_WIDTHS.map((w) => ({ id: w, label: String(w) }))}
+                  selected={hallwayWidth}
+                  onSelect={onSelectHallwayWidth}
+                  columns={4}
+                />
               )}
 
               {placing && (

@@ -28,9 +28,13 @@ export type MapEditSubTool =
 /** Procedural wall families the Paint tool and the Room wall ring use. */
 export type MapEditWallFamily = "wall-stone" | "wall-brick" | "wall-timber" | "wall-dark";
 
+/** Procedural roof families — the tallest painted level (levels illusion). */
+export type MapEditRoofFamily = "roof-shingle" | "roof-thatch";
+
 /** Procedural families the room/terrain tools paint with (VILLAGE_TERRAIN).
- * Historically floors; the wall families joined when walls became paintable —
- * a solid painted wall region is legit (rock mass, buttress). */
+ * Historically floors; walls, roofs and stairs joined when they became
+ * paintable — a solid painted wall/roof region is legit (rock mass, building
+ * seen from above). */
 export type MapEditFloorFamily =
   | "grass"
   | "dirt"
@@ -41,7 +45,9 @@ export type MapEditFloorFamily =
   | "stone-sandstone"
   | "wood-walnut"
   | "wood-grey"
-  | MapEditWallFamily;
+  | "stairs-stone"
+  | MapEditWallFamily
+  | MapEditRoofFamily;
 
 /** POPULATE set-dressing density (per-cell placement probability tiers). */
 export type PopulateDensity = "low" | "medium" | "high";

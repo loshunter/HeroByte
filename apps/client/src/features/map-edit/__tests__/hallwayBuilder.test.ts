@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { MapGridSettings, MapLayer } from "@herobyte/shared";
+import { createTerrainMap, setTerrainCells } from "@herobyte/shared";
 import { buildHallwayCommand, hallwayBoundsFromDrag } from "../hallwayBuilder";
 
 const grid: MapGridSettings = {
@@ -99,6 +100,64 @@ describe("buildHallwayCommand", () => {
       wallLayers(),
     );
     expect(wide.bounds!.height).toBe(200); // clamped to 4 cells
+  });
+
+  it("paints wall ribbons along the long sides when a wall family is armed, ends open", () => {
+    const { command, error } = buildHallwayCommand(
+      { start: { x: 100, y: 100 }, end: { x: 300, y: 100 } },
+      "path",
+      2,
+      grid,
+      wallLayers(),
+      { wallFamily: "wall-stone", terrain: null },
+    );
+    expect(error).toBeNull();
+    const floors = command!.cells.filter((c) => c.assetId === "terrain:path");
+    const ribbon = command!.cells.filter((c) => c.assetId === "terrain:wall-stone");
+    // 5×2 corridor (rows 2,3) + a 5-cell ribbon on rows 1 and 4 — never the ends.
+    expect(floors).toHaveLength(10);
+    expect(ribbon).toHaveLength(10);
+    const keys = new Set(ribbon.map((c) => `${c.x},${c.y}`));
+    for (let x = 2; x <= 6; x += 1) {
+      expect(keys.has(`${x},1`), `${x},1`).toBe(true);
+      expect(keys.has(`${x},4`), `${x},4`).toBe(true);
+    }
+    expect(keys.has("1,2")).toBe(false); // open west end
+    expect(keys.has("7,3")).toBe(false); // open east end
+  });
+
+  it("the ribbon never overwrites a neighbouring room's laid interior floor", () => {
+    // An existing wood-floor interior sits directly above one corridor cell.
+    const terrain = setTerrainCells(createTerrainMap(), [
+      { x: 3, y: 1, assetId: "terrain:wood-floor" },
+    ]);
+    const { command } = buildHallwayCommand(
+      { start: { x: 100, y: 100 }, end: { x: 300, y: 100 } },
+      "path",
+      2,
+      grid,
+      wallLayers(),
+      { wallFamily: "wall-stone", terrain },
+    );
+    const keys = new Set(
+      command!.cells.filter((c) => c.assetId === "terrain:wall-stone").map((c) => `${c.x},${c.y}`),
+    );
+    expect(keys.has("3,1")).toBe(false); // protected interior floor
+    expect(keys.has("2,1")).toBe(true); // its neighbours still get the ribbon
+  });
+
+  it("counts the ribbon against the cell cap", () => {
+    // 4100 cells long × 2 wide = 8200 floor fits; +2 ribbon rows (16400) exceeds.
+    const { command, error } = buildHallwayCommand(
+      { start: { x: 0, y: 100 }, end: { x: 50 * 4099, y: 100 } },
+      "path",
+      2,
+      grid,
+      wallLayers(),
+      { wallFamily: "wall-dark", terrain: null },
+    );
+    expect(command).toBeNull();
+    expect(error).toContain("too large");
   });
 
   it("refuses when there is no walls layer", () => {
