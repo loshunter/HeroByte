@@ -8,7 +8,14 @@ vi.mock("../../../render/proceduralTerrainSurface", () => ({
 }));
 vi.mock("../../../render/terrainPalette", () => ({
   // grass/dirt are field families; water is deliberately absent (a core family).
-  VILLAGE_TERRAIN: { "terrain:grass": {}, "terrain:dirt": {} },
+  // pond/drowned model the water BODY (depth-banded water + sunken sibling)
+  // for the shimmer and body-membership tests.
+  VILLAGE_TERRAIN: {
+    "terrain:grass": {},
+    "terrain:dirt": {},
+    "terrain:pond": { depthBands: [{ maxCells: 2, base: "#204060" }] },
+    "terrain:drowned": { sunken: { of: "terrain:grass" } },
+  },
 }));
 
 import {
@@ -17,6 +24,7 @@ import {
   coreTerrainLayers,
   blitFieldBake,
   drawWaterShimmer,
+  waterBodyLayers,
 } from "../terrainBake";
 import type { StructuredTerrainLayer } from "../../../render/tileRenderCore";
 
@@ -97,17 +105,32 @@ describe("coreTerrainLayers", () => {
   });
 });
 
+describe("waterBodyLayers", () => {
+  it("keeps the depth-banded water and its sunken siblings, nothing else", () => {
+    const pond = layer("terrain:pond");
+    const drowned = layer("terrain:drowned");
+    const upload = layer("upload:abc123");
+    expect(waterBodyLayers([grass, pond, drowned, upload, dirt])).toEqual([pond, drowned]);
+  });
+});
+
 describe("drawWaterShimmer", () => {
-  const shimmerLayer: StructuredTerrainLayer = {
-    assetId: "terrain:water",
-    cells: [
-      // Interior cell (all 8 neighbours water) — shimmers.
-      { x: 100, y: 100, size: 50, cellX: 2, cellY: 2, neighborMask: 255 },
-      // Shore cell — must NOT shimmer (square tint edges over the organic bake).
-      { x: 150, y: 100, size: 50, cellX: 3, cellY: 2, neighborMask: 127 },
-    ],
+  const SIZE = 50;
+  const cellAt = (cellX: number, cellY: number) => ({
+    x: cellX * SIZE,
+    y: cellY * SIZE,
+    size: SIZE,
+    cellX,
+    cellY,
+  });
+  // A 3×3 pond at cells (1..3)²: only the centre (2,2) is interior.
+  const pond = (skip?: string): StructuredTerrainLayer => ({
+    assetId: "terrain:pond",
+    cells: [1, 2, 3].flatMap((cy) =>
+      [1, 2, 3].filter((cx) => `${cx},${cy}` !== skip).map((cx) => cellAt(cx, cy)),
+    ),
     edges: [],
-  };
+  });
   const frames = ["#24516b", "#295a76", "#2a5f7c", "#245572"];
 
   function recordingCtx() {
@@ -120,22 +143,36 @@ describe("drawWaterShimmer", () => {
     return { ctx: ctx as unknown as CanvasRenderingContext2D, rects, raw: ctx };
   }
 
-  it("washes only interior water cells with the frame colour at low alpha", () => {
+  it("washes only interior body cells with the frame colour at low alpha", () => {
     const { ctx, rects } = recordingCtx();
-    drawWaterShimmer(ctx, [shimmerLayer], frames, 2);
+    drawWaterShimmer(ctx, [pond()], frames, 2);
+    expect(rects).toEqual([[0.12, "#2a5f7c", 100, 100, 50, 50]]);
+  });
+
+  it("treats drowned structures as body: the wash crosses them instead of holing", () => {
+    // The pond's centre cell is a drowned slab. The slab is interior (all 8
+    // neighbours are body), so it washes — the old same-assetId mask read it
+    // as shore and left a static hole (confirmed review finding).
+    const { ctx, rects } = recordingCtx();
+    const drowned: StructuredTerrainLayer = {
+      assetId: "terrain:drowned",
+      cells: [cellAt(2, 2)],
+      edges: [],
+    };
+    drawWaterShimmer(ctx, [pond("2,2"), drowned], frames, 2);
     expect(rects).toEqual([[0.12, "#2a5f7c", 100, 100, 50, 50]]);
   });
 
   it("draws nothing on frame 0 so reduced motion and stills read the pure bake", () => {
     const { ctx, rects } = recordingCtx();
-    drawWaterShimmer(ctx, [shimmerLayer], frames, 0);
+    drawWaterShimmer(ctx, [pond()], frames, 0);
     expect(rects).toEqual([]);
   });
 
   it("restores the caller's globalAlpha", () => {
     const { ctx, raw } = recordingCtx();
     raw.globalAlpha = 0.7;
-    drawWaterShimmer(ctx, [shimmerLayer], frames, 1);
+    drawWaterShimmer(ctx, [pond()], frames, 1);
     expect(raw.globalAlpha).toBe(0.7);
   });
 });

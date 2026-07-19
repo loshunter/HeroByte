@@ -30,6 +30,7 @@ import {
   createFieldBakeCache,
   drawWaterShimmer,
   getFieldBake,
+  waterBodyLayers,
 } from "./terrainBake";
 import type { Camera } from "../types";
 
@@ -122,6 +123,9 @@ export function TerrainLayer({ cam, mapTerrain, mapTransform, lighting }: Terrai
         : [],
     [layers, coreLayers, baked],
   );
+  // The whole water BODY (water ∪ sunken structures): the shimmer washes it as
+  // one surface so drowned ruins don't punch static holes in the animation.
+  const bodyLayers = useMemo(() => waterBodyLayers(layers), [layers]);
 
   // Only animFills families animate (water, in the core path or as shimmer);
   // a still map skips the clock entirely.
@@ -192,7 +196,7 @@ export function TerrainLayer({ cam, mapTerrain, mapTransform, lighting }: Terrai
           const ctx = (context as unknown as { _context: CanvasRenderingContext2D })._context;
           drawWaterShimmer(
             ctx,
-            [layer],
+            bodyLayers.includes(layer) ? bodyLayers : [layer],
             getMapStudioTileAsset(layer.assetId).animFills ?? [],
             frame,
           );
@@ -214,7 +218,7 @@ export function TerrainLayer({ cam, mapTerrain, mapTransform, lighting }: Terrai
       ...shimmerShapes,
       ...coreShapes,
     ];
-  }, [coreLayers, shimmerLayers, baked, atlas, frame, boundaryWidth, opacity]);
+  }, [coreLayers, shimmerLayers, bodyLayers, baked, atlas, frame, boundaryWidth, opacity]);
 
   const { x = 0, y = 0, scaleX = 1, scaleY = 1, rotation = 0 } = mapTransform ?? {};
 

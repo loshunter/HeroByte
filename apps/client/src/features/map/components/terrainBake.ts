@@ -72,11 +72,28 @@ export function coreTerrainLayers(
 }
 
 /**
+ * The layers whose family belongs to the water BODY — the depth-banded water
+ * plus its drowned (sunken) structures. The shimmer treats them as ONE
+ * surface: without this, a drowned slab read as shore through the
+ * same-assetId neighbor mask and punched a static hole in the animated water
+ * around every ruin (confirmed review finding, Water II).
+ */
+export function waterBodyLayers(
+  layers: readonly StructuredTerrainLayer[],
+): StructuredTerrainLayer[] {
+  return layers.filter((layer) => {
+    const fam = VILLAGE_TERRAIN[layer.assetId];
+    return fam !== undefined && ((fam.depthBands?.length ?? 0) > 0 || fam.sunken !== undefined);
+  });
+}
+
+/**
  * The 4-frame water shimmer over the STATIC baked bathymetry: a low-alpha
- * animated wash on interior water cells only (all 8 neighbours water, via the
- * neighbor mask), so the organic baked shoreline never shows square tint
- * edges. Frame 0 draws nothing — reduced motion and the static export read the
- * pure bake.
+ * animated wash on interior BODY cells only (all 8 neighbours inside the
+ * water∪sunken occupancy), so the organic baked shoreline never shows square
+ * tint edges while the surface still animates across drowned architecture.
+ * Frame 0 draws nothing — reduced motion and the static export read the pure
+ * bake. Pass the full body (waterBodyLayers), not a single family's cells.
  */
 export function drawWaterShimmer(
   ctx: CanvasRenderingContext2D,
@@ -85,13 +102,25 @@ export function drawWaterShimmer(
   frame: number,
 ): void {
   if (frame <= 0 || frames.length === 0) return;
+  const body = new Set<string>();
+  for (const layer of layers) {
+    for (const cell of layer.cells) body.add(`${cell.cellX},${cell.cellY}`);
+  }
+  const interior = (cellX: number, cellY: number): boolean => {
+    for (let dy = -1; dy <= 1; dy += 1) {
+      for (let dx = -1; dx <= 1; dx += 1) {
+        if ((dx !== 0 || dy !== 0) && !body.has(`${cellX + dx},${cellY + dy}`)) return false;
+      }
+    }
+    return true;
+  };
   const fill = frames[frame % frames.length]!;
   const previousAlpha = ctx.globalAlpha;
   ctx.globalAlpha = 0.12;
   ctx.fillStyle = fill;
   for (const layer of layers) {
     for (const cell of layer.cells) {
-      if ((cell.neighborMask ?? 0) === 255) ctx.fillRect(cell.x, cell.y, cell.size, cell.size);
+      if (interior(cell.cellX, cell.cellY)) ctx.fillRect(cell.x, cell.y, cell.size, cell.size);
     }
   }
   ctx.globalAlpha = previousAlpha;
