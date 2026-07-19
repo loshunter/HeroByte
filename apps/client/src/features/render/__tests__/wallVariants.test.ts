@@ -66,11 +66,17 @@ describe("wall variants (walls that look like walls — variants are data)", () 
 
   it("walls sit ABOVE every ground-level family with distinct priorities", () => {
     // Ground level = everything that is not a wall or a roof (naturals,
-    // floors, stairs). Roofs deliberately sit above walls — pinned in the
-    // levels-illusion suite below.
+    // floors, stairs, drowned siblings, the dais ring). Roofs — square
+    // (shingle-row painter) or round (roof-block polar) — deliberately sit
+    // above walls, pinned in the levels-illusion suite below.
     const groundMax = Math.max(
       ...Object.entries(VILLAGE_TERRAIN)
-        .filter(([, fam]) => fam.wall === undefined && fam.roof === undefined)
+        .filter(
+          ([, fam]) =>
+            fam.wall === undefined &&
+            fam.roof === undefined &&
+            (fam.polar === undefined || fam.priority < 20),
+        )
         .map(([, fam]) => fam.priority),
     );
     const priorities = ALL_WALLS.map((id) => VILLAGE_TERRAIN[id]!.priority);
@@ -87,17 +93,22 @@ describe("wall variants (walls that look like walls — variants are data)", () 
     }
   });
 
-  it("the ring-protection set is exactly the palette's interior floors, stairs and sunken siblings", () => {
+  it("the ring-protection set is exactly the palette's ground-level laid surfaces", () => {
     // INTERIOR_FLOOR_ASSET_IDS guards the Room/Hallway wall bands from
-    // overwriting a laid surface. It must track the palette: every family
-    // with a floor or stairs painter — or a drowned (sunken) sibling of one —
-    // is protected, nothing else is (walls and roofs are fair game — bands
-    // fuse, roofs cover; water is unprotected, but authored architecture
-    // WITHIN it is not).
+    // overwriting a laid surface. It must track the palette: every
+    // GROUND-level family (below the 20+ wall/roof blocks) with a floor,
+    // stairs, sunken or polar routing (floors, staircases, drowned siblings,
+    // the dais ring) is protected, nothing else is. Walls and roofs are fair
+    // game — bands fuse, roofs (round ones included) cover; water is
+    // unprotected, but authored architecture WITHIN it is not.
     const paletteInteriors = Object.entries(VILLAGE_TERRAIN)
       .filter(
         ([, fam]) =>
-          fam.floor !== undefined || fam.stairs !== undefined || fam.sunken !== undefined,
+          fam.priority < 20 &&
+          (fam.floor !== undefined ||
+            fam.stairs !== undefined ||
+            fam.sunken !== undefined ||
+            fam.polar !== undefined),
       )
       .map(([id]) => id)
       .sort();
@@ -146,7 +157,10 @@ describe("roof + stairs families (the levels illusion)", () => {
     const wallStrength = VILLAGE_TERRAIN["terrain:wall-stone"]!.shadow!.strength;
     for (const id of ALL_ROOFS) {
       const fam = VILLAGE_TERRAIN[id]!;
-      expect(fam.roof, id).toBeDefined();
+      // Square roofs read through the shingle-row painter; round ones through
+      // the polar-course field — every roof must have exactly one of the two.
+      expect(fam.roof !== undefined || fam.polar !== undefined, id).toBe(true);
+      expect(fam.roof !== undefined && fam.polar !== undefined, id).toBe(false);
       expect(fam.edgeAmp, id).toBe(0);
       expect(fam.priority, id).toBeGreaterThan(wallMax);
       expect(fam.shadow!.strength, id).toBeGreaterThan(wallStrength);

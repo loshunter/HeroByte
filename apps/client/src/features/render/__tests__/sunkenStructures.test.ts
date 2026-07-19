@@ -241,7 +241,11 @@ describe("the drowned tint shares the water's band jitter (seam continuity)", ()
     const familyAtA = (cx: number, cy: number): string | null =>
       cx >= 0 && cx < 12 && cy >= 0 && cy < 12 ? "terrain:test-w" : null;
     const familyAtB = (cx: number, cy: number): string | null =>
-      cx >= 0 && cx < 12 && cy >= 0 && cy < 12 ? (cx === 5 ? "terrain:test-s" : "terrain:test-w") : null;
+      cx >= 0 && cx < 12 && cy >= 0 && cy < 12
+        ? cx === 5
+          ? "terrain:test-s"
+          : "terrain:test-w"
+        : null;
     const shared = {
       cellSize: CELL,
       originX: 0,

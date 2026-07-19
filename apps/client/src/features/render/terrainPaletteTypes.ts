@@ -104,6 +104,22 @@ export interface TerrainFamilyPalette {
   /** Shore-distance colour bands, shallow→deep (catalog #2) — water only
    * today. The family's rim doubles as the waterline contact line. */
   depthBands?: { maxCells: number; base: string }[];
+  /** Polar-course landmark (terrainPolarField): quantized radial courses
+   * around each painted region's point source — cones, domes, dais rings,
+   * spiral thatch as data. courseWidth/jointPitch in cells; ramp darkens
+   * toward the eave; sunSplit lights the sun-facing side; jagged roughens
+   * course edges; spiral steps one course per turn. Joints/ridges draw in
+   * the family's rim colour (light fascia ribs on roofs, dark stone seams
+   * on a dais). Mutually exclusive with depthBands — a banded family renders
+   * its bathymetry and ignores this knob. */
+  polar?: {
+    courseWidth: number;
+    jointPitch: number;
+    jagged?: number;
+    ramp?: number;
+    sunSplit?: number;
+    spiral?: boolean;
+  };
   /** Foam lace collar over the shallowest water (Water II): near-white web
    * hugging every land contact, dissolving into spray past `reach` cells. */
   foam?: { color: string; reach: number };

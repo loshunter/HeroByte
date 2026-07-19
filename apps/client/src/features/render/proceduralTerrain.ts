@@ -31,6 +31,7 @@ import {
   pickBand,
   sunkenTintStrength,
 } from "./terrainFieldColor";
+import { polarCourseColor, type PolarParams } from "./terrainPolarField";
 import type { FieldRgb, TerrainField, TerrainFieldConfig } from "./proceduralTerrainTypes";
 
 export type {
@@ -87,6 +88,8 @@ interface FieldFamily {
   sunkenBands: { maxCells: number; rgb: FieldRgb }[];
   /** Noise seed of the bands' owner, so band jitter aligns across the seam. */
   sunkenSeed: number;
+  /** Polar-course params (terrainPolarField); undefined ⇒ not a landmark. */
+  polar?: PolarParams;
 }
 
 /**
@@ -136,6 +139,7 @@ export function createTerrainField(config: TerrainFieldConfig): TerrainField {
       causticScale: CAUSTIC_SCALE_CELLS * cellSize,
       sunkenBands: parseBands(f.sunken?.bands),
       sunkenSeed: (f.sunken?.priority ?? f.priority) * 97 + 3,
+      polar: f.polar,
     }));
   const byId = new Map(fams.map((f) => [f.assetId, f]));
   const priorityOf = new Map(config.families.map((f) => [f.assetId, f.priority]));
@@ -183,6 +187,7 @@ export function createTerrainField(config: TerrainFieldConfig): TerrainField {
   // Smoothstep-bilinear shore distance in cells (0 outside the family), so
   // depth bands curve smoothly between cell centres instead of stair-stepping.
   const depthOf = config.depthOf;
+  const polarOf = config.polarOf;
   const bilinearDepth = (assetId: string, wx: number, wy: number): number => {
     if (!depthOf) return 0;
     const gx = (wx - offsetX) / cellSize - 0.5;
@@ -226,6 +231,15 @@ export function createTerrainField(config: TerrainFieldConfig): TerrainField {
       if (f.foamReach > 0 && foamMaskAt(wx, wy, f.seed + 21, f.foamScale, depth, f.foamReach)) {
         flat = f.foamRgb;
       }
+    } else if (f.polar && polarOf) {
+      // Polar landmark: quantized radial courses around the painted region's
+      // point source; off-region pixels (an underfilled neighbour) keep base.
+      const cx = Math.floor((wx - offsetX) / cellSize);
+      const cy = Math.floor((wy - offsetY) / cellSize);
+      const region = polarOf(f.assetId, cx, cy);
+      flat = region
+        ? polarCourseColor(f.base, f.rim, wx, wy, region, f.polar, f.seed, cellSize)
+        : f.base;
     } else {
       flat = f.base;
     }

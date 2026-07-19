@@ -48,6 +48,7 @@ const FLOOR_FAMILIES: { id: MapEditFloorFamily; label: string }[] = [
   { id: "stairs-stone", label: "Stairs" },
   { id: "sunken-flagstone", label: "Sunken Floor" },
   { id: "sunken-stairs", label: "Sunken Stairs" },
+  { id: "dais-stone", label: "Dais" },
 ];
 
 // Derived from the one family list so the swatches, the eyedropper mapping and
@@ -65,6 +66,9 @@ const WALL_FAMILY_SWATCHES: { id: MapEditWallFamily; label: string }[] = WALL_FA
 const ROOF_LABELS: Record<MapEditRoofFamily, string> = {
   "roof-shingle": "Shingle",
   "roof-thatch": "Thatch",
+  "roof-cone": "Cone",
+  "roof-dome": "Dome",
+  "roof-thatch-spiral": "Spiral",
 };
 const ROOF_FAMILY_SWATCHES: { id: MapEditRoofFamily; label: string }[] = ROOF_FAMILIES.map(
   (id) => ({ id, label: ROOF_LABELS[id] }),

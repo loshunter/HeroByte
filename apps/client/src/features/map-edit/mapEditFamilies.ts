@@ -13,7 +13,13 @@ export const WALL_FAMILIES: MapEditWallFamily[] = [
 ];
 
 /** The roof paint families, in toolbar order. */
-export const ROOF_FAMILIES: MapEditRoofFamily[] = ["roof-shingle", "roof-thatch"];
+export const ROOF_FAMILIES: MapEditRoofFamily[] = [
+  "roof-shingle",
+  "roof-thatch",
+  "roof-cone",
+  "roof-dome",
+  "roof-thatch-spiral",
+];
 
 const FLOOR_FAMILIES: MapEditFloorFamily[] = [
   "grass",
@@ -29,6 +35,7 @@ const FLOOR_FAMILIES: MapEditFloorFamily[] = [
   "stairs-stone",
   "sunken-flagstone",
   "sunken-stairs",
+  "dais-stone",
   ...WALL_FAMILIES,
   ...ROOF_FAMILIES,
 ];
@@ -40,8 +47,9 @@ const FLOOR_FAMILIES: MapEditFloorFamily[] = [
  * its dry twin one tile away is skipped). Natural ground (grass/dirt/path),
  * water, walls and roofs are fair game: walls stand on lawns and in lakes,
  * ring-over-ring is how neighbouring rooms share one band, and a roof covers
- * whatever it likes. Pinned to the palette (families with a floor, stairs or
- * sunken painter routing) by wallVariants.test.
+ * whatever it likes. Pinned to the palette (GROUND-level families — priority
+ * below the 20+ wall/roof blocks — with a floor, stairs, sunken or polar
+ * painter routing) by wallVariants.test.
  */
 export const INTERIOR_FLOOR_ASSET_IDS: ReadonlySet<string> = new Set([
   "terrain:stone-floor",
@@ -53,6 +61,7 @@ export const INTERIOR_FLOOR_ASSET_IDS: ReadonlySet<string> = new Set([
   "terrain:stairs-stone",
   "terrain:sunken-flagstone",
   "terrain:sunken-stairs",
+  "terrain:dais-stone",
 ]);
 
 /** The paint family an asset id names (terrain:<family>), or null. */

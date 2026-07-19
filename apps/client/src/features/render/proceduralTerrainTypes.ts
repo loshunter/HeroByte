@@ -73,6 +73,23 @@ export interface TerrainFieldFamily {
    */
   sunken?: { bands: { maxCells: number; base: string }[]; priority?: number };
   /**
+   * Polar-course landmark (polar-course engine): the family renders as
+   * quantized radial courses around each painted region's point source
+   * (terrainPolarField). `courseWidth`/`jointPitch` in cells; `ramp` darkens
+   * toward the eave over the normalized radius; `sunSplit` splits luminance
+   * against the shared top-right light (cones/domes); `jagged` roughens the
+   * course edges (thatch tufts); `spiral` steps one course per turn. Needs
+   * the config's `polarOf` sampler.
+   */
+  polar?: {
+    courseWidth: number;
+    jointPitch: number;
+    jagged?: number;
+    ramp?: number;
+    sunSplit?: number;
+    spiral?: boolean;
+  };
+  /**
    * False ⇒ the family's region is EXACTLY its painted cells (not the union
    * with higher-priority cells), and its edge bumps only EXTEND outward.
    * Water needs this: with the default union indicator, every floor/wall
@@ -99,6 +116,15 @@ export interface TerrainFieldConfig {
   /** Cell distance to the nearest non-`assetId` cell, for families with
    * `depthBands` (terrainDistanceField). Cells outside the family read 0. */
   depthOf?(assetId: string, cellX: number, cellY: number): number;
+  /** The connected painted region's point source (centre + radius, world px)
+   * for a cell of a `polar` family, or null off the family
+   * (terrainPolarField.computePolarRegions). Angle/radial distance are
+   * analytic from the centre — smoother than the cell-sampled depth field. */
+  polarOf?(
+    assetId: string,
+    cellX: number,
+    cellY: number,
+  ): { centerX: number; centerY: number; radius: number } | null;
 }
 
 /** An RGB triple, 0–255 per channel. */

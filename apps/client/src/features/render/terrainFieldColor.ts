@@ -8,6 +8,7 @@
 
 import { valueNoise } from "./valueNoise";
 import type { FieldRgb } from "./proceduralTerrainTypes";
+import type { TerrainFamilyPalette } from "./terrainPaletteTypes";
 
 export const parseHex = (h: string): FieldRgb => [
   parseInt(h.slice(1, 3), 16),
@@ -159,4 +160,26 @@ export function drownHex(hex: string, depth: number, bands: ParsedBands): string
   const t = Math.min(0.85, 0.4 + 0.15 * Math.max(0, depth - 1));
   const [r, g, b] = mixRgb(parseHex(hex), pickBand(bands, depth), t);
   return `rgb(${r}, ${g}, ${b})`;
+}
+
+/** The palette's water body — the depth-banded family the drowned (sunken)
+ * structures tint toward; sunken entries themselves never carry bands. */
+export function waterFamilyOf(
+  palette: Record<string, TerrainFamilyPalette>,
+): TerrainFamilyPalette | undefined {
+  return Object.values(palette).find(
+    (fam) => (fam.depthBands?.length ?? 0) > 0 && fam.sunken === undefined,
+  );
+}
+
+/** Parsed water bathymetry per palette object, for the detail drown tint. */
+const parsedWaterBands = new WeakMap<Record<string, TerrainFamilyPalette>, ParsedBands | null>();
+export function waterBandsFor(palette: Record<string, TerrainFamilyPalette>): ParsedBands | null {
+  let bands = parsedWaterBands.get(palette);
+  if (bands === undefined) {
+    const water = waterFamilyOf(palette);
+    bands = water ? parseBands(water.depthBands) : null;
+    parsedWaterBands.set(palette, bands);
+  }
+  return bands;
 }

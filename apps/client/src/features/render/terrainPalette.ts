@@ -277,4 +277,57 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     mottle: { amp: 0.04, scale: 4, cool: -0.2 },
     roof: { palette: THATCH_ROOF_DETAIL },
   },
+  // Round landmarks (polar-course engine): each painted region renders as
+  // radial courses around its own point source — no cell painter, the field
+  // does all the reading (terrainPolarField). Roof-priority entries keep the
+  // roof grammar (light fascia rim = the ridge ribs, hardest shadow); the
+  // dais is a GROUND-level ring platform (dark stone seams, no shadow).
+  "terrain:roof-cone": {
+    base: "#6f6a7c",
+    rim: "#b7ad92",
+    priority: 32,
+    edgeAmp: 0,
+    rimWidth: WALL_RIM,
+    shadow: ROOF_SHADOW,
+    contact: ROOF_CONTACT,
+    mottle: { amp: 0.03, scale: 3, cool: 0.3 },
+    polar: { courseWidth: 0.34, jointPitch: 0.8, ramp: 0.35, sunSplit: 0.22 },
+  },
+  "terrain:roof-dome": {
+    base: "#31549b",
+    rim: "#8fa8dc",
+    priority: 33,
+    edgeAmp: 0,
+    rimWidth: WALL_RIM,
+    shadow: ROOF_SHADOW,
+    contact: ROOF_CONTACT,
+    mottle: { amp: 0.03, scale: 4, cool: 0.2 },
+    polar: { courseWidth: 0.5, jointPitch: 1.6, ramp: 0.25, sunSplit: 0.38 },
+  },
+  "terrain:roof-thatch-spiral": {
+    base: "#a28b4e",
+    rim: "#c9b67f",
+    priority: 34,
+    edgeAmp: 0,
+    rimWidth: WALL_RIM,
+    shadow: ROOF_SHADOW,
+    contact: ROOF_CONTACT,
+    mottle: { amp: 0.04, scale: 4, cool: -0.2 },
+    polar: {
+      courseWidth: 0.4,
+      jointPitch: 1.2,
+      jagged: 0.5,
+      ramp: 0.3,
+      sunSplit: 0.15,
+      spiral: true,
+    },
+  },
+  "terrain:dais-stone": {
+    base: "#8b8f9c",
+    rim: "#5c6070",
+    priority: 11,
+    edgeAmp: 0,
+    mottle: { amp: 0.04, scale: 3, cool: 0.4 },
+    polar: { courseWidth: 0.45, jointPitch: 0.7, ramp: 0.18 },
+  },
 };

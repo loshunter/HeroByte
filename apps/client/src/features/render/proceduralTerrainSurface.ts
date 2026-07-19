@@ -20,7 +20,8 @@ import {
 } from "./proceduralTerrain";
 import { computeBodyDepths } from "./terrainDistanceField";
 import { makeClipCtx, makeTintCtx } from "./terrainDetailCtx";
-import { drownHex, parseBands, type ParsedBands } from "./terrainFieldColor";
+import { drownHex, waterBandsFor, waterFamilyOf } from "./terrainFieldColor";
+import { computePolarRegions } from "./terrainPolarField";
 import { applyBakeLighting, lightingActive, type BakeLighting } from "./terrainLighting";
 import { paintKeyClusterDetail, paintTerrainDetail } from "./terrainDetail";
 import { paintFloorDetail } from "./terrainFloorDetail";
@@ -77,26 +78,6 @@ const FIELD_MARGIN_CELLS = 1;
 /** Sunken detail stops past this water-body depth (whisper contrast). */
 const SUNKEN_DETAIL_MAX_DEPTH = 3;
 
-/** The palette's water body — the depth-banded family the drowned (sunken)
- * structures tint toward; sunken entries themselves never carry bands. */
-function waterFamilyOf(palette: TerrainPalette): TerrainFamilyPalette | undefined {
-  return Object.values(palette).find(
-    (fam) => (fam.depthBands?.length ?? 0) > 0 && fam.sunken === undefined,
-  );
-}
-
-/** Parsed water bathymetry per palette object, for the detail drown tint. */
-const parsedWaterBands = new WeakMap<TerrainPalette, ParsedBands | null>();
-function waterBandsFor(palette: TerrainPalette): ParsedBands | null {
-  let bands = parsedWaterBands.get(palette);
-  if (bands === undefined) {
-    const water = waterFamilyOf(palette);
-    bands = water ? parseBands(water.depthBands) : null;
-    parsedWaterBands.set(palette, bands);
-  }
-  return bands;
-}
-
 /**
  * Frame the painted FIELD cells (those the palette covers) into a field config
  * and a doc-space buffer size, or null when nothing in this terrain is a field
@@ -130,6 +111,7 @@ export function buildProceduralFieldConfig(
       depthBands: fam.depthBands,
       foam: fam.foam,
       caustics: fam.caustics,
+      polar: fam.polar,
       // A drowned family tints toward the water's bathymetry with the water's
       // own band jitter (seam continuity); base/rim are already pre-drowned.
       sunken: fam.sunken
@@ -147,12 +129,18 @@ export function buildProceduralFieldConfig(
     }
   }
   if (familyByCell.size === 0) return null;
-  // One combined water-body BFS (see computeBodyDepths for why it is shared).
+  // One combined water-body BFS (see computeBodyDepths for why it is shared),
+  // and the point-source regions for the polar landmark families.
   const depths = computeBodyDepths(
     familyByCell,
     families
       .map((f) => f.assetId)
       .filter((id) => (palette[id]!.depthBands?.length ?? 0) > 0 || palette[id]!.sunken),
+  );
+  const polarRegions = computePolarRegions(
+    familyByCell,
+    families.map((f) => f.assetId).filter((id) => palette[id]!.polar),
+    grid,
   );
   const { size, offsetX, offsetY } = grid;
   const margin = FIELD_MARGIN_CELLS;
@@ -165,6 +153,7 @@ export function buildProceduralFieldConfig(
     offsetX,
     offsetY,
     depthOf: (assetId, cx, cy) => depths.get(assetId)?.get(`${cx},${cy}`) ?? 0,
+    polarOf: (assetId, cx, cy) => polarRegions.get(assetId)?.get(`${cx},${cy}`) ?? null,
   };
   return {
     config,

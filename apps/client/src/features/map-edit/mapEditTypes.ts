@@ -29,8 +29,14 @@ export type MapEditSubTool =
 /** Procedural wall families the Paint tool and the Room wall ring use. */
 export type MapEditWallFamily = "wall-stone" | "wall-brick" | "wall-timber" | "wall-dark";
 
-/** Procedural roof families — the tallest painted level (levels illusion). */
-export type MapEditRoofFamily = "roof-shingle" | "roof-thatch";
+/** Procedural roof families — the tallest painted level (levels illusion).
+ * The cone/dome/spiral entries are polar-course landmarks (round render). */
+export type MapEditRoofFamily =
+  | "roof-shingle"
+  | "roof-thatch"
+  | "roof-cone"
+  | "roof-dome"
+  | "roof-thatch-spiral";
 
 /** Procedural families the room/terrain tools paint with (VILLAGE_TERRAIN).
  * Historically floors; walls, roofs and stairs joined when they became
@@ -50,6 +56,7 @@ export type MapEditFloorFamily =
   | "stairs-stone"
   | "sunken-flagstone"
   | "sunken-stairs"
+  | "dais-stone"
   | MapEditWallFamily
   | MapEditRoofFamily;
 
