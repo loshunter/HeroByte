@@ -27,17 +27,21 @@ const FLOOR_FAMILIES: MapEditFloorFamily[] = [
   "wood-walnut",
   "wood-grey",
   "stairs-stone",
+  "sunken-flagstone",
+  "sunken-stairs",
   ...WALL_FAMILIES,
   ...ROOF_FAMILIES,
 ];
 
 /**
  * The laid interior surfaces a Room/Hallway wall band must never overwrite —
- * an adjacent room's floor or a staircase. Natural ground (grass/dirt/path),
- * walls and roofs are fair game: walls stand on lawns, ring-over-ring is how
- * neighbouring rooms share one band, and a roof covers whatever it likes.
- * Pinned to the palette (families with a floor or stairs painter) by
- * wallVariants.test.
+ * an adjacent room's floor, a staircase, or the DROWNED sibling of either
+ * (authored sunken architecture would otherwise be silently stamped out while
+ * its dry twin one tile away is skipped). Natural ground (grass/dirt/path),
+ * water, walls and roofs are fair game: walls stand on lawns and in lakes,
+ * ring-over-ring is how neighbouring rooms share one band, and a roof covers
+ * whatever it likes. Pinned to the palette (families with a floor, stairs or
+ * sunken painter routing) by wallVariants.test.
  */
 export const INTERIOR_FLOOR_ASSET_IDS: ReadonlySet<string> = new Set([
   "terrain:stone-floor",
@@ -47,6 +51,8 @@ export const INTERIOR_FLOOR_ASSET_IDS: ReadonlySet<string> = new Set([
   "terrain:wood-walnut",
   "terrain:wood-grey",
   "terrain:stairs-stone",
+  "terrain:sunken-flagstone",
+  "terrain:sunken-stairs",
 ]);
 
 /** The paint family an asset id names (terrain:<family>), or null. */

@@ -20,6 +20,30 @@ const NEIGHBOURS: ReadonlyArray<readonly [number, number]> = [
 ];
 
 /**
+ * ONE shore-distance transform for a whole water BODY — the depth-banded
+ * water family plus every drowned (sunken) family — registered under EACH
+ * member id. Drowned architecture is part of the body, so the bathymetry
+ * flows continuously across it instead of reading it as shore, and a sunken
+ * family's own depth (its drowning strength) is its distance from true land
+ * in that same body. With no sunken cells painted this is exactly the
+ * water's own BFS, bit for bit (pinned by sunkenStructures.test).
+ */
+export function computeBodyDepths(
+  familyByCell: ReadonlyMap<string, string>,
+  bodyIds: readonly string[],
+): Map<string, Map<string, number>> {
+  const depths = new Map<string, Map<string, number>>();
+  if (bodyIds.length === 0) return depths;
+  const body = new Set<string>();
+  for (const [cellKey, id] of familyByCell) {
+    if (bodyIds.includes(id)) body.add(cellKey);
+  }
+  const combined = computeShoreDistances(body);
+  for (const id of bodyIds) depths.set(id, combined);
+  return depths;
+}
+
+/**
  * Distance (in cells, Chebyshev) from each of `cells` to the nearest cell
  * outside the set. Cells not in the returned map are outside the family —
  * callers read them as 0 (shore).

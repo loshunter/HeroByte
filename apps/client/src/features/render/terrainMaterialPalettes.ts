@@ -11,7 +11,7 @@
 //   stairs (terrainRoofDetail): crev = tread riser shadows, light = nosing
 //          highlights, dark/mid = wear mottle.
 
-import type { KeyClusterPalette } from "./terrainPalette";
+import type { KeyClusterPalette } from "./terrainPaletteTypes";
 
 /** Default (warm "village" mood) dirt detail palette. */
 export const DIRT_DETAIL: KeyClusterPalette = {

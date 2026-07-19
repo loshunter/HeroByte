@@ -48,6 +48,8 @@ export type MapEditFloorFamily =
   | "wood-walnut"
   | "wood-grey"
   | "stairs-stone"
+  | "sunken-flagstone"
+  | "sunken-stairs"
   | MapEditWallFamily
   | MapEditRoofFamily;
 

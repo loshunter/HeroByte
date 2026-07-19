@@ -87,13 +87,18 @@ describe("wall variants (walls that look like walls — variants are data)", () 
     }
   });
 
-  it("the ring-protection set is exactly the palette's interior floors and stairs", () => {
+  it("the ring-protection set is exactly the palette's interior floors, stairs and sunken siblings", () => {
     // INTERIOR_FLOOR_ASSET_IDS guards the Room/Hallway wall bands from
-    // overwriting a neighbouring room's laid surface. It must track the
-    // palette: every family with a floor or stairs painter is protected,
-    // nothing else is (walls and roofs are fair game — bands fuse, roofs cover).
+    // overwriting a laid surface. It must track the palette: every family
+    // with a floor or stairs painter — or a drowned (sunken) sibling of one —
+    // is protected, nothing else is (walls and roofs are fair game — bands
+    // fuse, roofs cover; water is unprotected, but authored architecture
+    // WITHIN it is not).
     const paletteInteriors = Object.entries(VILLAGE_TERRAIN)
-      .filter(([, fam]) => fam.floor !== undefined || fam.stairs !== undefined)
+      .filter(
+        ([, fam]) =>
+          fam.floor !== undefined || fam.stairs !== undefined || fam.sunken !== undefined,
+      )
       .map(([id]) => id)
       .sort();
     expect([...INTERIOR_FLOOR_ASSET_IDS].sort()).toEqual(paletteInteriors);

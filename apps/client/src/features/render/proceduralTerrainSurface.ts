@@ -5,12 +5,10 @@
 // stay on the right side of every organic seam — the v2 prototype's two-pass
 // recipe (temp/_dirt_path_proto/transition_v2_proto.mjs).
 //
-// Field families are those the palette knows: the natural grass/dirt/path
-// terrain plus the architectural wood/stone floors (crisp edges via a per-family
-// edgeAmp). Water is NOT baked here — the field leaves it transparent and the
-// caller draws it on its own layer, so its z-order and animation are untouched.
-// The bake is heavy per pixel, so callers cache the returned canvas and re-bake
-// only when the terrain content changes.
+// Field families are those the palette knows — naturals, floors, walls, roofs,
+// water bathymetry and drowned (sunken) structures; only unknown ids (uploads)
+// fall through to their own layers. The bake is heavy per pixel, so callers
+// cache the returned canvas and re-bake only when the terrain content changes.
 
 import {
   createTerrainField,
@@ -20,11 +18,14 @@ import {
   type TerrainFieldConfig,
   type TerrainFieldFamily,
 } from "./proceduralTerrain";
-import { computeShoreDistances } from "./terrainDistanceField";
+import { computeBodyDepths } from "./terrainDistanceField";
+import { makeClipCtx, makeTintCtx } from "./terrainDetailCtx";
+import { drownHex, parseBands, type ParsedBands } from "./terrainFieldColor";
 import { applyBakeLighting, lightingActive, type BakeLighting } from "./terrainLighting";
 import { paintKeyClusterDetail, paintTerrainDetail } from "./terrainDetail";
 import { paintFloorDetail } from "./terrainFloorDetail";
 import { paintRoofDetail, paintStairsDetail } from "./terrainRoofDetail";
+import { ALGAE_MAX_DEPTH, paintAlgaeTicks, paintWaterDetail } from "./terrainWaterDetail";
 import { paintWallDetail } from "./terrainWallDetail";
 import type { TerrainFamilyPalette } from "./terrainPalette";
 import type {
@@ -32,6 +33,8 @@ import type {
   TerrainCellRect,
   TileRenderContext2D,
 } from "./tileRenderCore";
+
+export { makeClipCtx } from "./terrainDetailCtx";
 
 /** Per-family palette keyed by terrain assetId (e.g. VILLAGE_TERRAIN). */
 export type TerrainPalette = Record<string, TerrainFamilyPalette>;
@@ -71,10 +74,33 @@ export interface BakedProceduralTerrain {
  * cast shadows have room to bleed without being clipped. */
 const FIELD_MARGIN_CELLS = 1;
 
+/** Sunken detail stops past this water-body depth (whisper contrast). */
+const SUNKEN_DETAIL_MAX_DEPTH = 3;
+
+/** The palette's water body — the depth-banded family the drowned (sunken)
+ * structures tint toward; sunken entries themselves never carry bands. */
+function waterFamilyOf(palette: TerrainPalette): TerrainFamilyPalette | undefined {
+  return Object.values(palette).find(
+    (fam) => (fam.depthBands?.length ?? 0) > 0 && fam.sunken === undefined,
+  );
+}
+
+/** Parsed water bathymetry per palette object, for the detail drown tint. */
+const parsedWaterBands = new WeakMap<TerrainPalette, ParsedBands | null>();
+function waterBandsFor(palette: TerrainPalette): ParsedBands | null {
+  let bands = parsedWaterBands.get(palette);
+  if (bands === undefined) {
+    const water = waterFamilyOf(palette);
+    bands = water ? parseBands(water.depthBands) : null;
+    parsedWaterBands.set(palette, bands);
+  }
+  return bands;
+}
+
 /**
  * Frame the painted FIELD cells (those the palette covers) into a field config
  * and a doc-space buffer size, or null when nothing in this terrain is a field
- * family. Non-field families (water) are skipped — they render on their own
+ * family. Non-field families (uploads) are skipped — they render on their own
  * layers.
  */
 export function buildProceduralFieldConfig(
@@ -84,6 +110,7 @@ export function buildProceduralFieldConfig(
 ): BuiltProceduralField | null {
   const familyByCell = new Map<string, string>();
   const families: TerrainFieldFamily[] = [];
+  const waterFam = waterFamilyOf(palette);
   let minCX = Infinity;
   let minCY = Infinity;
   let maxCX = -Infinity;
@@ -101,6 +128,13 @@ export function buildProceduralFieldConfig(
       shadow: fam.shadow,
       mottle: fam.mottle,
       depthBands: fam.depthBands,
+      foam: fam.foam,
+      caustics: fam.caustics,
+      // A drowned family tints toward the water's bathymetry with the water's
+      // own band jitter (seam continuity); base/rim are already pre-drowned.
+      sunken: fam.sunken
+        ? { bands: waterFam?.depthBands ?? [], priority: waterFam?.priority }
+        : undefined,
       underfill: fam.underfill,
       contact: fam.contact,
     });
@@ -113,17 +147,13 @@ export function buildProceduralFieldConfig(
     }
   }
   if (familyByCell.size === 0) return null;
-  // Shore-distance transforms for the depth-banded families (water): one BFS
-  // per family over the occupancy this builder already gathered.
-  const depths = new Map<string, Map<string, number>>();
-  for (const family of families) {
-    if (!family.depthBands || family.depthBands.length === 0) continue;
-    const own = new Set<string>();
-    for (const [cellKey, id] of familyByCell) {
-      if (id === family.assetId) own.add(cellKey);
-    }
-    depths.set(family.assetId, computeShoreDistances(own));
-  }
+  // One combined water-body BFS (see computeBodyDepths for why it is shared).
+  const depths = computeBodyDepths(
+    familyByCell,
+    families
+      .map((f) => f.assetId)
+      .filter((id) => (palette[id]!.depthBands?.length ?? 0) > 0 || palette[id]!.sunken),
+  );
   const { size, offsetX, offsetY } = grid;
   const margin = FIELD_MARGIN_CELLS;
   const config: TerrainFieldConfig = {
@@ -143,58 +173,23 @@ export function buildProceduralFieldConfig(
   };
 }
 
-/**
- * Wrap a context so only fillRects whose CENTRE passes `keep` reach it — the
- * clip that keeps interior detail on the right side of a bumpy seam. The detail
- * painters (paintTerrainDetail / paintKeyClusterDetail) touch only `fillStyle`
- * and `fillRect`, so this reuses them verbatim instead of forking their math.
- */
-export function makeClipCtx(
-  real: TileRenderContext2D,
-  keep: (worldX: number, worldY: number) => boolean,
-): TileRenderContext2D {
-  return {
-    get fillStyle() {
-      return real.fillStyle;
-    },
-    set fillStyle(value) {
-      real.fillStyle = value;
-    },
-    get strokeStyle() {
-      return real.strokeStyle;
-    },
-    set strokeStyle(value) {
-      real.strokeStyle = value;
-    },
-    get lineWidth() {
-      return real.lineWidth;
-    },
-    set lineWidth(value) {
-      real.lineWidth = value;
-    },
-    get globalAlpha() {
-      return real.globalAlpha;
-    },
-    set globalAlpha(value) {
-      real.globalAlpha = value;
-    },
-    get imageSmoothingEnabled() {
-      return real.imageSmoothingEnabled;
-    },
-    set imageSmoothingEnabled(value) {
-      real.imageSmoothingEnabled = value;
-    },
-    fillRect(x, y, w, h) {
-      if (keep(x + w / 2, y + h / 2)) real.fillRect(x, y, w, h);
-    },
-    beginPath() {},
-    moveTo() {},
-    lineTo() {},
-    stroke() {},
-    save() {},
-    restore() {},
-    drawImage() {},
-  };
+/** A drowned family's detail: its dry sibling's painters through the drown
+ * tint (skipped entirely past the deep band), plus the shallow algae ticks.
+ * A sunken entry must reference a NON-sunken sibling — chains don't render. */
+function paintSunkenDetail(
+  ctx: TileRenderContext2D,
+  cell: TerrainCellRect,
+  sunken: NonNullable<TerrainFamilyPalette["sunken"]>,
+  palette: TerrainPalette,
+  depth: number,
+): void {
+  const sibling = palette[sunken.of];
+  if (sibling && sibling.sunken === undefined && depth <= SUNKEN_DETAIL_MAX_DEPTH) {
+    const bands = waterBandsFor(palette);
+    const tinted = bands ? makeTintCtx(ctx, (hex) => drownHex(hex, depth, bands)) : ctx;
+    paintFamilyDetail(tinted, cell, sunken.of, palette, 0);
+  }
+  if (sunken.algae && depth <= ALGAE_MAX_DEPTH) paintAlgaeTicks(ctx, cell, sunken.algae);
 }
 
 function paintFamilyDetail(
@@ -202,12 +197,15 @@ function paintFamilyDetail(
   cell: TerrainCellRect,
   assetId: string,
   palette: TerrainPalette,
+  depth = 0,
 ): void {
   const fam = palette[assetId];
-  if (fam?.wall) paintWallDetail(ctx, cell, fam.wall);
+  if (fam?.sunken) paintSunkenDetail(ctx, cell, fam.sunken, palette, depth);
+  else if (fam?.wall) paintWallDetail(ctx, cell, fam.wall);
   else if (fam?.roof) paintRoofDetail(ctx, cell, fam.roof);
   else if (fam?.stairs) paintStairsDetail(ctx, cell, fam.stairs);
   else if (fam?.floor) paintFloorDetail(ctx, cell, fam.floor);
+  else if (fam?.water) paintWaterDetail(ctx, cell, fam.water, depth);
   else if (fam?.keyCluster) paintKeyClusterDetail(ctx, cell, fam.keyCluster);
   else paintTerrainDetail(ctx, cell, assetId);
 }
@@ -248,6 +246,8 @@ function dominantLowerNeighbour(
  * to where the family sits on top (field ≥ RIM), then the dominant lower
  * neighbour's detail in the exposed transition band (this family receded,
  * field < 0, but the lower family present, field ≥ 0) so pebbles reach the seam.
+ * `depthOf` (the config's) feeds the water-body painters; omitting it renders
+ * every family at depth 0 — shore behaviour.
  */
 export function paintProceduralDetail(
   ctx: TileRenderContext2D,
@@ -255,6 +255,7 @@ export function paintProceduralDetail(
   palette: TerrainPalette,
   field: TerrainField,
   familyAt: (cx: number, cy: number) => string | null,
+  depthOf?: (assetId: string, cellX: number, cellY: number) => number,
 ): void {
   for (const layer of fieldLayers) {
     const fam = palette[layer.assetId];
@@ -263,7 +264,8 @@ export function paintProceduralDetail(
     const rim = fam.rimWidth ?? TERRAIN_RIM;
     for (const cell of layer.cells) {
       const ownCtx = makeClipCtx(ctx, (wx, wy) => field.sampleField(layer.assetId, wx, wy) >= rim);
-      paintFamilyDetail(ownCtx, cell, layer.assetId, palette);
+      const depth = depthOf?.(layer.assetId, cell.cellX, cell.cellY) ?? 0;
+      paintFamilyDetail(ownCtx, cell, layer.assetId, palette, depth);
 
       const under = dominantLowerNeighbour(familyAt, cell.cellX, cell.cellY, fam.priority, palette);
       if (under) {
@@ -272,7 +274,13 @@ export function paintProceduralDetail(
           (wx, wy) =>
             field.sampleField(layer.assetId, wx, wy) < 0 && field.sampleField(under, wx, wy) >= 0,
         );
-        paintFamilyDetail(underCtx, cell, under, palette);
+        paintFamilyDetail(
+          underCtx,
+          cell,
+          under,
+          palette,
+          depthOf?.(under, cell.cellX, cell.cellY) ?? 0,
+        );
       }
     }
   }
@@ -325,7 +333,7 @@ export function bakeProceduralTerrain(
   ctx.translate(-config.originX, -config.originY);
   const field = createTerrainField(config);
   const fieldLayers = terrainLayers.filter((layer) => palette[layer.assetId]);
-  paintProceduralDetail(ctx, fieldLayers, palette, field, config.familyAt);
+  paintProceduralDetail(ctx, fieldLayers, palette, field, config.familyAt, config.depthOf);
   ctx.restore();
 
   // Lighting post-pass (ambient veil + pools) over the finished art. Daylight

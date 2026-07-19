@@ -12,99 +12,33 @@
 // buffer pixel per world pixel), which the surfaces blit — baked once per edit,
 // then displayed like an image map. Interior DECORATION (grass blades, dirt
 // pebbles) is a separate fillRect pass layered on top by the caller; this
-// module paints only the base/rim/shadow field. Palette is data (terrainPalette).
-// The per-pixel colour AND the signed field the caller clips detail against are
+// module paints only the base/rim/shadow field. Palette is data (terrainPalette,
+// types in proceduralTerrainTypes, colour terms in terrainFieldColor). The
+// per-pixel colour AND the signed field the caller clips detail against are
 // both served by one sampler (createTerrainField), so there is a single field
 // implementation. Validated in temp/_dirt_path_proto/transition_v2_proto.mjs.
 
 import { smoothstep, valueNoise } from "./valueNoise";
+import {
+  causticWeightAt,
+  CAUSTIC_SCALE_CELLS,
+  foamMaskAt,
+  FOAM_SCALE_CELLS,
+  mixRgb,
+  mottledRgb,
+  parseBands,
+  parseHex,
+  pickBand,
+  sunkenTintStrength,
+} from "./terrainFieldColor";
+import type { FieldRgb, TerrainField, TerrainFieldConfig } from "./proceduralTerrainTypes";
 
-/** One terrain family in the field render. */
-export interface TerrainFieldFamily {
-  assetId: string;
-  /** Higher draws OVER lower — grass(3) > dirt(2) > path(1), floors above. */
-  priority: number;
-  /** Silhouette base fill (hex). */
-  base: string;
-  /** Boundary shading-lip colour (hex). */
-  rim: string;
-  /**
-   * Per-family boundary displacement scale. Undefined ⇒ 1: the organic bumpy
-   * edge of natural terrain (grass/dirt/path). Architectural floors set 0 so
-   * their boundary stays straight and grid-aligned (crisp), not wavy.
-   */
-  edgeAmp?: number;
-  /** Shading-lip band width in field units. Undefined ⇒ TERRAIN_RIM. Walls use
-   * a thin lip so their edge reads as an inked outline, not a wide bevel. */
-  rimWidth?: number;
-  /** Cast-shadow override on lower families. Undefined ⇒ the default
-   * grass-over-dirt lip. `strength` deepens the crisp near shadow; a `band`
-   * ABOVE the shared default adds a soft LONG directional throw out to that
-   * width (catalog #11 — shadow length is the height cue: roofs throw
-   * furthest). The near band/probe stay at the shared defaults. */
-  shadow?: { band: number; strength: number };
-  /** Omnidirectional contact occlusion (catalog #4): a thin grime/AO band
-   * hugging the family on EVERY side — the ground-contact cue that seats a
-   * wall or roof on the map, distinct from the directional cast shadow.
-   * `reach` in field units, `strength` the max darkening. */
-  contact?: { reach: number; strength: number };
-  /**
-   * Low-frequency tonal clouds under the per-cell detail (Czepeku catalog #1):
-   * `amp` is the max value offset (~0.03–0.08), `scale` the wavelength in
-   * cells, `cool` shifts dark patches cool and light patches warm (0 ⇒
-   * neutral). Kills the flat "vector fill" look one octave below cell detail.
-   */
-  mottle?: { amp: number; scale: number; cool?: number };
-  /**
-   * Shore-distance colour bands (catalog #2): ordered shallow→deep, each
-   * applied while the cell distance ≤ `maxCells` (the last band extends to
-   * ∞). Band boundaries are noise-jittered so they read organic, and the
-   * family's `rim` becomes the waterline contact line. Needs the config's
-   * `depthOf` sampler.
-   */
-  depthBands?: { maxCells: number; base: string }[];
-  /**
-   * False ⇒ the family's region is EXACTLY its painted cells (not the union
-   * with higher-priority cells), and its edge bumps only EXTEND outward.
-   * Water needs this: with the default union indicator, every floor/wall
-   * region far from any pond would summon a phantom water fringe around its
-   * crisp edge, and with receding bumps the water would open transparent gaps
-   * against docks laid over it. Undefined ⇒ true (the classic underfill).
-   */
-  underfill?: boolean;
-}
-
-export interface TerrainFieldConfig {
-  /** The family painted at a cell, or null for empty. */
-  familyAt(cellX: number, cellY: number): string | null;
-  families: readonly TerrainFieldFamily[];
-  /** World px per cell. */
-  cellSize: number;
-  /** World coordinate of buffer pixel (0, 0). */
-  originX: number;
-  originY: number;
-  /** World coordinate of the cell lattice origin (grid offset). Defaults to 0
-   * so callers with a zero-offset grid can omit it. */
-  offsetX?: number;
-  offsetY?: number;
-  /** Cell distance to the nearest non-`assetId` cell, for families with
-   * `depthBands` (terrainDistanceField). Cells outside the family read 0. */
-  depthOf?(assetId: string, cellX: number, cellY: number): number;
-}
-
-/** An RGB triple, 0–255 per channel. */
-export type FieldRgb = [number, number, number];
-
-/** The one field sampler: the composited pixel colour, and the signed field a
- * caller clips interior detail against (>= 0 is inside that family). */
-export interface TerrainField {
-  /** Pass-1 composited colour (base / rim / cast shadow) at a world point, or
-   * null when no family paints there. */
-  colorAt(wx: number, wy: number): FieldRgb | null;
-  /** Signed field for one family at a world point; >= 0 is inside it,
-   * >= TERRAIN_RIM is past its shading lip. Unknown ids sample as absent. */
-  sampleField(assetId: string, wx: number, wy: number): number;
-}
+export type {
+  FieldRgb,
+  TerrainField,
+  TerrainFieldConfig,
+  TerrainFieldFamily,
+} from "./proceduralTerrainTypes";
 
 // Tuning — validated in the prototype. Band and probe are shared by every
 // family so the shipped grass/dirt/floor look is untouched; only the shadow
@@ -116,12 +50,6 @@ const SHADOW = 0.15; // cast-shadow band width on the lower family
 const AMP = 0.9; // boundary bump amplitude
 const SHADOW_STRENGTH = TERRAIN_SHADOW_STRENGTH;
 const SHADOW_PROBE = 0.14; // up-right presence probe, in cells
-
-const parseHex = (h: string): FieldRgb => [
-  parseInt(h.slice(1, 3), 16),
-  parseInt(h.slice(3, 5), 16),
-  parseInt(h.slice(5, 7), 16),
-];
 
 interface FieldFamily {
   assetId: string;
@@ -147,6 +75,18 @@ interface FieldFamily {
   /** Soft long directional throw; 0 ⇒ none (band at/below the default). */
   longShadowBand: number;
   longShadowStrength: number;
+  /** Water II surface terms; reach/strength 0 ⇒ off (bit-parity default). */
+  foamRgb: FieldRgb;
+  foamReach: number;
+  foamScale: number;
+  causticRgb: FieldRgb;
+  causticStrength: number;
+  causticReach: number;
+  causticScale: number;
+  /** Water bathymetry a drowned family tints toward; empty ⇒ not sunken. */
+  sunkenBands: { maxCells: number; rgb: FieldRgb }[];
+  /** Noise seed of the bands' owner, so band jitter aligns across the seam. */
+  sunkenSeed: number;
 }
 
 /**
@@ -185,10 +125,17 @@ export function createTerrainField(config: TerrainFieldConfig): TerrainField {
       mottleAmp: f.mottle?.amp ?? 0,
       mottleScale: (f.mottle?.scale ?? 1) * cellSize,
       mottleCool: f.mottle?.cool ?? 0,
-      bands: [...(f.depthBands ?? [])]
-        .sort((a, b) => a.maxCells - b.maxCells)
-        .map((band) => ({ maxCells: band.maxCells, rgb: parseHex(band.base) })),
+      bands: parseBands(f.depthBands),
       underfill: f.underfill ?? true,
+      foamRgb: parseHex(f.foam?.color ?? "#ffffff"),
+      foamReach: f.foam?.reach ?? 0,
+      foamScale: FOAM_SCALE_CELLS * cellSize,
+      causticRgb: parseHex(f.caustics?.color ?? "#ffffff"),
+      causticStrength: f.caustics?.strength ?? 0,
+      causticReach: f.caustics?.reach ?? 0,
+      causticScale: CAUSTIC_SCALE_CELLS * cellSize,
+      sunkenBands: parseBands(f.sunken?.bands),
+      sunkenSeed: (f.sunken?.priority ?? f.priority) * 97 + 3,
     }));
   const byId = new Map(fams.map((f) => [f.assetId, f]));
   const priorityOf = new Map(config.families.map((f) => [f.assetId, f.priority]));
@@ -248,40 +195,59 @@ export function createTerrainField(config: TerrainFieldConfig): TerrainField {
     const bot = depthOf(assetId, i0, j0 + 1) * (1 - fx) + depthOf(assetId, i0 + 1, j0 + 1) * fx;
     return top * (1 - fy) + bot * fy;
   };
-  // Depth-band colour: noise-jittered distance picks the band, so band
-  // boundaries wander organically like the reference maps' bathymetry.
-  const bandColorOf = (f: FieldFamily, wx: number, wy: number): FieldRgb => {
-    const d = bilinearDepth(f.assetId, wx, wy) + disp(wx, wy, f.seed + 5);
-    for (const band of f.bands) {
-      if (d <= band.maxCells) return band.rgb;
+  // Interior colour for a family the pixel is inside (v ≥ 0): rim lip, then
+  // depth-banded water with its surface terms (noise-jittered band pick, the
+  // caustic web fading off-shore, the foam collar overriding both), else the
+  // plain base. Mottle rides on top; a drowned family then pulls the result
+  // toward the water bathymetry with its depth (terrainFieldColor).
+  //
+  // A banded family's rim is the WATERLINE — a shore contact line — so it only
+  // paints where the body depth is shallow. Without the gate, the exact-region
+  // seam against a mid-lake drowned (sunken) structure would ring it with
+  // broken near-white dashes (caught by a review probe). True shores always
+  // sit well under the gate (shore cells are BFS depth 1), so maps without
+  // drowned cells render bit-identically; non-banded families keep the
+  // unconditional rim.
+  const RIM_MAX_DEPTH = 1.5;
+  const interiorColor = (f: FieldFamily, v: number, wx: number, wy: number): FieldRgb => {
+    let flat: FieldRgb;
+    if (
+      v < f.rimWidth &&
+      (f.bands.length === 0 || bilinearDepth(f.assetId, wx, wy) < RIM_MAX_DEPTH)
+    ) {
+      flat = f.rim;
+    } else if (f.bands.length > 0) {
+      const depth = bilinearDepth(f.assetId, wx, wy);
+      flat = pickBand(f.bands, depth + disp(wx, wy, f.seed + 5));
+      if (f.causticStrength > 0) {
+        const w = causticWeightAt(wx, wy, f.seed + 25, f.causticScale, depth, f.causticReach);
+        if (w > 0) flat = mixRgb(flat, f.causticRgb, w * f.causticStrength);
+      }
+      if (f.foamReach > 0 && foamMaskAt(wx, wy, f.seed + 21, f.foamScale, depth, f.foamReach)) {
+        flat = f.foamRgb;
+      }
+    } else {
+      flat = f.base;
     }
-    return f.bands[f.bands.length - 1]!.rgb;
-  };
-  // Low-frequency value mottle: two noise octaves at the family's wavelength,
-  // dark patches shifted cool and light patches warm by `mottleCool`. Returns
-  // a fresh triple — base/rim/band arrays are shared references.
-  const mottled = (f: FieldFamily, rgb: FieldRgb, wx: number, wy: number): FieldRgb => {
-    const s = f.mottleScale;
-    const n =
-      valueNoise(wx / s, wy / s, f.seed + 11) -
-      0.5 +
-      (valueNoise(wx / (s * 0.5) + 31, wy / (s * 0.5) + 17, f.seed + 12) - 0.5) * 0.5;
-    const v = n * 1.33 * f.mottleAmp; // two octaves span ±0.75 → normalise to ±amp
-    const shift = f.mottleCool * 0.35;
-    const clamp255 = (value: number): number => (value < 0 ? 0 : value > 255 ? 255 : value);
-    return [
-      Math.round(clamp255(rgb[0] * (1 + v * (1 + shift)))),
-      Math.round(clamp255(rgb[1] * (1 + v))),
-      Math.round(clamp255(rgb[2] * (1 + v * (1 - shift)))),
-    ];
+    let color =
+      f.mottleAmp > 0
+        ? mottledRgb(flat, wx, wy, f.seed, f.mottleScale, f.mottleAmp, f.mottleCool)
+        : flat;
+    if (f.sunkenBands.length > 0) {
+      const depth = bilinearDepth(f.assetId, wx, wy);
+      const a = sunkenTintStrength(depth);
+      if (a > 0) {
+        color = mixRgb(color, pickBand(f.sunkenBands, depth + disp(wx, wy, f.sunkenSeed + 5)), a);
+      }
+    }
+    return color;
   };
   const colorAt = (wx: number, wy: number): FieldRgb | null => {
     let color: FieldRgb | null = null;
     for (const f of fams) {
       const v = fieldOf(f, wx, wy);
       if (v >= 0) {
-        const flat = v < f.rimWidth ? f.rim : f.bands.length > 0 ? bandColorOf(f, wx, wy) : f.base;
-        color = f.mottleAmp > 0 ? mottled(f, flat, wx, wy) : flat;
+        color = interiorColor(f, v, wx, wy);
       } else if (color && v < 0) {
         // Darkening terms from this higher family onto the colour painted so
         // far, composed multiplicatively so overlaps never crush to black.
