@@ -81,6 +81,7 @@ export const App: React.FC = () => {
     connect,
     registerRtcHandler,
     registerServerEventHandler,
+    registerCommandDropHandler,
   } = useWebSocket({
     url: WS_URL,
     uid,
@@ -112,6 +113,7 @@ export const App: React.FC = () => {
         getAuthCredentials={getAuthCredentials}
         registerRtcHandler={registerRtcHandler}
         registerServerEventHandler={registerServerEventHandler}
+        registerCommandDropHandler={registerCommandDropHandler}
         isConnected={isConnected}
         authState={authState}
       />
@@ -126,6 +128,7 @@ interface AuthenticatedAppProps {
   getAuthCredentials: () => { secret: string; roomId?: string } | null;
   registerRtcHandler: (handler: (from: string, signal: unknown) => void) => void;
   registerServerEventHandler: (handler: (message: ServerMessage) => void) => void;
+  registerCommandDropHandler: (handler: (messageType: string, reason: string) => void) => void;
   isConnected: boolean;
   authState: AuthState;
 }
@@ -137,6 +140,7 @@ function AuthenticatedApp({
   getAuthCredentials,
   registerRtcHandler,
   registerServerEventHandler,
+  registerCommandDropHandler,
   isConnected,
   authState,
 }: AuthenticatedAppProps): JSX.Element {
@@ -211,6 +215,19 @@ function AuthenticatedApp({
 
   // Toast notifications
   const toast = useToast();
+
+  // A reliable command was dropped for good (retries exhausted or the offline
+  // queue overflowed): the change never reached the server. Without this it
+  // only ever showed in the console, so the user kept playing on a silently
+  // stale table.
+  useEffect(() => {
+    registerCommandDropHandler((messageType, reason) => {
+      toast.error(
+        `A change (${messageType}) could not reach the server (${reason}). ` +
+          `The table may be out of date — reload if things look stale.`,
+      );
+    });
+  }, [registerCommandDropHandler, toast]);
 
   // Map controls
   const [snapToGrid, setSnapToGrid] = useState(true);

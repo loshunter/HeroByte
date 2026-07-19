@@ -148,6 +148,7 @@ const baseWebSocketState = {
   connect: vi.fn(),
   registerRtcHandler: vi.fn(),
   registerServerEventHandler: vi.fn(),
+  registerCommandDropHandler: vi.fn(),
 };
 
 const buildSnapshot = () => ({

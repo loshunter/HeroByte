@@ -97,6 +97,9 @@ export interface MapStudioController {
   loading: boolean;
   saving: boolean;
   error: string | null;
+  /** A document id the server reported gone on open ("not-found") — glue code
+   * stops auto-retrying it and offers a fresh start (dangling live binding). */
+  missingDocumentId: string | null;
   canUndo: boolean;
   canRedo: boolean;
   refresh: () => void;

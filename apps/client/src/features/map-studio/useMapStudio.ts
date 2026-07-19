@@ -3,14 +3,14 @@ import type {
   ClientMessage,
   MapDocument,
   MapDocumentSummary,
-  MapPublishBackgroundMode,
   MapStudioCommand,
 } from "@herobyte/shared";
 import { generateUUID } from "../../utils/uuid";
 import { upsertMapDocumentSummary } from "./documentSummaries";
 import type { MapStudioController, MapStudioServerMessage } from "./types";
-import { uploadAssetFile, type AssetUploadCredentials } from "./uploads/assetUpload";
+import type { AssetUploadCredentials } from "./uploads/assetUpload";
 import { useMapStudioActions } from "./useMapStudioActions";
+import { useMapStudioRequests } from "./useMapStudioRequests";
 
 type CommandBuilder = (document: MapDocument, commandId: string) => MapStudioCommand;
 /**
@@ -26,14 +26,6 @@ interface QueuedCommand {
   toMessage: MessageBuilder;
 }
 
-/**
- * How long a list/get/create/import request may leave the panel in `loading`
- * before we give up. These requests clear `loading` only when their reply lands,
- * so a dropped socket — or an oversized/invalid import the server silently drops
- * at its 1MB cap before any handler runs — would otherwise spin forever.
- */
-const LOADING_TIMEOUT_MS = 12_000;
-
 export function useMapStudio(
   sendMessage: (message: ClientMessage) => void,
   getAuthCredentials?: () => AssetUploadCredentials | null,
@@ -44,6 +36,10 @@ export function useMapStudio(
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // A document id the server reported as gone ("not-found" on open) — e.g.
+  // the maps store reset under a room that kept its live binding. Glue code
+  // uses it to stop re-fetching the dangling id and offer a fresh start.
+  const [missingDocumentId, setMissingDocumentId] = useState<string | null>(null);
   const [history, setHistory] = useState({ canUndo: false, canRedo: false });
   const requestedDocumentId = useRef<string | null>(null);
   const activeDocumentRef = useRef<MapDocument | null>(null);
@@ -59,97 +55,26 @@ export function useMapStudio(
   const watchdogFired = useRef(false);
   activeDocumentRef.current = activeDocument;
 
-  // Every user-initiated request clears any stale error first — so retrying
-  // after a watchdog timeout ("server didn't respond") doesn't leave that
-  // message lingering under the freshly-loaded result.
-  const refresh = useCallback(() => {
-    setError(null);
-    setLoading(true);
-    sendMessage({ t: "map-studio-list" });
-  }, [sendMessage]);
-
-  const createDocument = useCallback(
-    (name: string, width?: number, height?: number) => {
-      const id = generateUUID();
-      requestedDocumentId.current = id;
-      setError(null);
-      setLoading(true);
-      sendMessage({
-        t: "map-studio-create",
-        document: { id, name, width, height },
-      });
-      return id;
-    },
-    [sendMessage],
-  );
-
-  const openDocument = useCallback(
-    (documentId: string) => {
-      requestedDocumentId.current = documentId;
-      setError(null);
-      setLoading(true);
-      sendMessage({ t: "map-studio-get", documentId });
-    },
-    [sendMessage],
-  );
-
-  const deleteDocument = useCallback(
-    (documentId: string) => {
-      sendMessage({ t: "map-studio-delete", documentId });
-    },
-    [sendMessage],
-  );
-
-  const publishDocument = useCallback(
-    (background: string, documentId?: string, backgroundMode?: MapPublishBackgroundMode) => {
-      const document = activeDocumentRef.current;
-      if (!document) return false;
-      if (documentId && document.id !== documentId) return false;
-      sendMessage({
-        t: "map-studio-publish",
-        documentId: document.id,
-        background,
-        // Omitted (not undefined) for legacy-shaped messages on the wire.
-        ...(backgroundMode ? { backgroundMode } : {}),
-      });
-      return true;
-    },
-    [sendMessage],
-  );
-
-  const uploadAsset = useCallback(
-    (file: File) => uploadAssetFile(file, getAuthCredentials?.() ?? null),
-    [getAuthCredentials],
-  );
-
-  const importDocument = useCallback(
-    (document: MapDocument) => {
-      // A fresh id lets the same backup restore repeatedly without colliding.
-      const id = generateUUID();
-      requestedDocumentId.current = id;
-      setError(null);
-      setLoading(true);
-      sendMessage({ t: "map-studio-import", document: { ...document, id } });
-      return id;
-    },
-    [sendMessage],
-  );
-
-  // Loading watchdog: if a request's reply never arrives (socket drop, or an
-  // oversized/invalid import dropped at the server's 1MB cap before any handler
-  // runs), release the panel and surface an error instead of spinning forever.
-  // The cleanup cancels the timer the moment a reply flips `loading` back off.
-  useEffect(() => {
-    if (!loading) return;
-    watchdogFired.current = false; // a fresh request supersedes any prior timeout
-    const timer = setTimeout(() => {
-      requestedDocumentId.current = null;
-      watchdogFired.current = true;
-      setLoading(false);
-      setError("The map server didn't respond. Please try again.");
-    }, LOADING_TIMEOUT_MS);
-    return () => clearTimeout(timer);
-  }, [loading]);
+  // The list/get/create/delete/publish/import requests and their loading
+  // watchdog (split module, 350-LOC cap). Replies land in handleServerMessage.
+  const {
+    refresh,
+    createDocument,
+    openDocument,
+    deleteDocument,
+    publishDocument,
+    uploadAsset,
+    importDocument,
+  } = useMapStudioRequests({
+    sendMessage,
+    getAuthCredentials,
+    loading,
+    setLoading,
+    setError,
+    requestedDocumentId,
+    activeDocumentRef,
+    watchdogFired,
+  });
 
   const dispatchNextCommand = useCallback(
     (document: MapDocument | null = activeDocumentRef.current) => {
@@ -258,6 +183,18 @@ export function useMapStudio(
       }
 
       if (message.t === "map-studio-error") {
+        // A "not-found" for the document we are OPENING is a reply to the
+        // get, not to a queued command: release the load and remember the
+        // dangling id so the open isn't auto-retried forever (the
+        // stuck-STARTING loop after a server-side maps-store reset).
+        if (message.code === "not-found" && requestedDocumentId.current === message.documentId) {
+          requestedDocumentId.current = null;
+          watchdogFired.current = false;
+          setMissingDocumentId(message.documentId);
+          setLoading(false);
+          setError(message.reason);
+          return;
+        }
         if (message.commandId !== inFlightCommandId.current) return;
         commandQueue.current.shift();
         inFlightCommandId.current = null;
@@ -276,6 +213,8 @@ export function useMapStudio(
       }
 
       const { document } = message;
+      // A document that arrives is by definition not missing any more.
+      setMissingDocumentId((current) => (current === document.id ? null : current));
       setDocuments((current) => upsertMapDocumentSummary(current, document));
       const shouldActivate =
         requestedDocumentId.current === document.id ||
@@ -317,6 +256,7 @@ export function useMapStudio(
     loading,
     saving,
     error,
+    missingDocumentId,
     canUndo: history.canUndo,
     canRedo: history.canRedo,
     refresh,

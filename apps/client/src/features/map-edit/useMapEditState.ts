@@ -102,9 +102,22 @@ export function useMapEditState({
 
   // Stable controller methods (useCallback-memoized inside useMapStudio); the
   // controller OBJECT is recreated each render, so depend on these, not it.
-  const { activeDocument, loading, createDocument, openDocument, updateGrid, undo, redo } =
-    controller;
+  const {
+    activeDocument,
+    loading,
+    missingDocumentId,
+    createDocument,
+    openDocument,
+    updateGrid,
+    undo,
+    redo,
+  } = controller;
   const activeId = activeDocument?.id;
+  // The room's binding points at a document the server no longer has (the
+  // maps store reset under the room — e.g. an ephemeral-disk restart). The
+  // binding is DANGLING: never auto-open it again, and let START LIVE MAP
+  // create a fresh document whose set-live repairs the room's binding.
+  const bindingDangling = Boolean(liveMapDocumentId) && missingDocumentId === liveMapDocumentId;
 
   const isLive = Boolean(liveMapDocumentId) && activeId === liveMapDocumentId;
 
@@ -136,12 +149,19 @@ export function useMapEditState({
     if (awaitingLiveBind) return; // a create/bind is already in flight
     if (activeId && activeId === liveMapDocumentId) return; // already live
     setAwaitingLiveBind(true);
-    if (liveMapDocumentId) {
+    if (liveMapDocumentId && !bindingDangling) {
       openDocument(liveMapDocumentId);
       return;
     }
     setPendingLiveId(createDocument("Live Map", LIVE_MAP_SIZE, LIVE_MAP_SIZE));
-  }, [awaitingLiveBind, activeId, liveMapDocumentId, openDocument, createDocument]);
+  }, [
+    awaitingLiveBind,
+    activeId,
+    liveMapDocumentId,
+    bindingDangling,
+    openDocument,
+    createDocument,
+  ]);
 
   // Release the latch once the binding is confirmed live by the room snapshot.
   useEffect(() => {
@@ -163,12 +183,23 @@ export function useMapEditState({
   // already active — including one the DM deliberately opened to export or back
   // up — so this effect never force-reverts an explicit open (the palette shows
   // START LIVE MAP when a non-live doc is active). The loading guard prevents
-  // re-firing while the fetch is in flight.
+  // re-firing while the fetch is in flight, and a DANGLING binding (the server
+  // reported the document gone) is never re-opened — without that guard this
+  // effect looped open → not-found → open forever, pinning the palette on
+  // STARTING… after a server-side maps-store reset.
   useEffect(() => {
     if (!mapEditMode || !liveMapDocumentId || pendingLiveId || loading) return;
-    if (activeId) return;
+    if (activeId || bindingDangling) return;
     openDocument(liveMapDocumentId);
-  }, [mapEditMode, liveMapDocumentId, pendingLiveId, loading, activeId, openDocument]);
+  }, [
+    mapEditMode,
+    liveMapDocumentId,
+    bindingDangling,
+    pendingLiveId,
+    loading,
+    activeId,
+    openDocument,
+  ]);
 
   const onClose = useCallback(() => setActiveTool(null), [setActiveTool]);
   const onToggleWallsOverlay = useCallback(() => setWallsOverlayPinned((pinned) => !pinned), []);

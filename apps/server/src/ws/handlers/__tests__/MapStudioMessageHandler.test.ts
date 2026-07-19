@@ -93,6 +93,25 @@ describe("MapStudioMessageHandler", () => {
     );
   });
 
+  it("replies with a typed not-found error for a get of a missing document (dangling binding)", () => {
+    // A maps-store reset under a room that kept its live binding: throwing
+    // here only nacks the wire envelope, which the client retries and then
+    // drops silently — the stuck-STARTING bug. A typed reply lets the client
+    // drop the dangling binding and offer a fresh start.
+    const result = handler.handle({ t: "map-studio-get", documentId: "gone" }, "dm", "room", true);
+
+    expect(result).toEqual({ broadcast: false, save: false });
+    expect(send).toHaveBeenCalledWith(
+      "dm",
+      expect.objectContaining({
+        t: "map-studio-error",
+        code: "not-found",
+        documentId: "gone",
+        reason: expect.stringContaining("not found"),
+      }),
+    );
+  });
+
   it("applies an editing command and broadcasts its command id", () => {
     service.create("room", { id: "map", name: "Keep", timestamp: 1 });
     const command: MapDocumentCommand = {

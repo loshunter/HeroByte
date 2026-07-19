@@ -7,12 +7,17 @@ import {
   toLiveGridSize,
   type ClientMessage,
   type MapDocument,
-  type MapDocumentSummary,
-  type MapPublishBackgroundMode,
-  type MapTerrainSnapshot,
   type ServerMessage,
 } from "@herobyte/shared";
+import { MapDocumentNotFoundError } from "../../domains/mapStudio/service.js";
 import type { MapStudioService } from "../../domains/mapStudio/service.js";
+import {
+  alreadyApplied,
+  deriveMapTerrain,
+  isMapStudioMessage,
+  REPLAY_LANDED,
+  toSummary,
+} from "./mapStudioHandlerUtils.js";
 import { dungeonRecipe } from "../../domains/generation/dungeonRecipe.js";
 import {
   assertGenerateRequest,
@@ -64,11 +69,28 @@ export class MapStudioMessageHandler {
         break;
       }
       case "map-studio-get":
-        this.sendMessage(senderUid, {
-          t: "map-studio-document",
-          document: this.service.get(roomId, message.documentId),
-          history: this.service.historyStatus(roomId, message.documentId),
-        });
+        // A missing document is an expected state, not a protocol fault: the
+        // maps store can reset (ephemeral disk) while the room snapshot keeps
+        // its live binding. Reply with a typed error so the client can drop
+        // the dangling binding and offer a fresh start — throwing here would
+        // only nack the wire envelope, which the client retries and then
+        // drops silently (the stuck-STARTING bug).
+        try {
+          this.sendMessage(senderUid, {
+            t: "map-studio-document",
+            document: this.service.get(roomId, message.documentId),
+            history: this.service.historyStatus(roomId, message.documentId),
+          });
+        } catch (error) {
+          if (!(error instanceof MapDocumentNotFoundError)) throw error;
+          this.sendMessage(senderUid, {
+            t: "map-studio-error",
+            commandId: `get:${message.documentId}`,
+            documentId: message.documentId,
+            code: "not-found",
+            reason: error.message,
+          });
+        }
         break;
       case "map-studio-command": {
         try {
@@ -285,57 +307,4 @@ export class MapStudioMessageHandler {
       actualRevision: conflict ? error.actualRevision : undefined,
     });
   }
-}
-
-/**
- * Terrain rides the snapshot as data only when the client shipped an
- * elements-only background — attaching it under a legacy full-render
- * background would draw the terrain twice at the table. Always derived from
- * the SERVER's stored document (never from a client payload), point-in-time
- * cloned so later document edits can't mutate the published scene through a
- * shared reference. Mirrors the export's visibility rule: a hidden
- * terrain-kind layer publishes no terrain. The grid rides along because the
- * background SVG and the terrain share the DOCUMENT's lattice, independent
- * of the table's live grid setting.
- */
-function deriveMapTerrain(
-  document: MapDocument,
-  backgroundMode: MapPublishBackgroundMode | undefined,
-): MapTerrainSnapshot | undefined {
-  if (backgroundMode !== "elements-only") return undefined;
-  const terrain = document.terrain;
-  if (!terrain || Object.keys(terrain.chunks).length === 0) return undefined;
-  const terrainLayer = document.layers.find((layer) => layer.kind === "terrain");
-  if (terrainLayer && (!terrainLayer.visible || terrainLayer.opacity <= 0)) return undefined;
-  return {
-    terrain: structuredClone(terrain),
-    grid: {
-      size: document.grid.size,
-      offsetX: document.grid.offsetX,
-      offsetY: document.grid.offsetY,
-    },
-    // Matches renderTerrain's baked opacity so full and elements-only
-    // publishes render identically.
-    opacity: terrainLayer?.opacity ?? 1,
-  };
-}
-
-/** The duplicate-id abort a re-run generate produces once its dedupe entry ages out. */
-const REPLAY_LANDED = new Error(
-  "That dungeon already generated — it is already on the map. Undo it if you want a different one.",
-);
-
-function alreadyApplied(error: unknown): boolean {
-  return error instanceof Error && /^Map element already exists:/.test(error.message);
-}
-
-function isMapStudioMessage(
-  message: ClientMessage,
-): message is Extract<ClientMessage, { t: `map-studio-${string}` }> {
-  return message.t.startsWith("map-studio-");
-}
-
-function toSummary(document: MapDocument): MapDocumentSummary {
-  const { id, name, width, height, revision, createdAt, updatedAt } = document;
-  return { id, name, width, height, revision, createdAt, updatedAt };
 }

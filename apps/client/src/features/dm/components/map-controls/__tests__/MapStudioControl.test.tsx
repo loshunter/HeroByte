@@ -21,6 +21,7 @@ function controller(overrides: Partial<MapStudioController> = {}): MapStudioCont
     loading: false,
     saving: false,
     error: null,
+    missingDocumentId: null,
     canUndo: false,
     canRedo: false,
     refresh: vi.fn(),

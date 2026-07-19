@@ -1,4 +1,4 @@
-import { useCallback, type MutableRefObject } from "react";
+import { useCallback, useMemo, type MutableRefObject } from "react";
 import type {
   ClientMessage,
   MapDocument,
@@ -32,262 +32,128 @@ import type {
 type CommandBuilder = (document: MapDocument, commandId: string) => MapStudioCommand;
 type MessageBuilder = (document: MapDocument, commandId: string) => ClientMessage;
 
+/** Omit that distributes over a discriminated union (plain Omit collapses it). */
+type DistributiveOmit<T, K extends keyof never> = T extends unknown ? Omit<T, K> : never;
+/** A command minus the envelope the queue stamps on every one of them. */
+type CommandBody = DistributiveOmit<MapStudioCommand, "commandId" | "documentId" | "baseRevision">;
+
 interface UseMapStudioActionsOptions {
   activeDocumentRef: MutableRefObject<MapDocument | null>;
   applyCommand: (build: CommandBuilder) => void;
   applyMessage: (toMessage: MessageBuilder) => void;
 }
 
+/**
+ * The command-emitting actions of the controller: every one is `submit` with a
+ * typed command body — the queue (useMapStudio) stamps the commandId /
+ * documentId / baseRevision envelope. The add-element helpers also mint ids
+ * and preserve the null / empty-array returns callers rely on.
+ */
 export function useMapStudioActions({
   activeDocumentRef,
   applyCommand,
   applyMessage,
 }: UseMapStudioActionsOptions) {
-  const updateLayer = useCallback(
-    (layerId: string, update: MapLayerUpdate) => {
-      applyCommand((document, commandId) => ({
-        commandId,
-        documentId: document.id,
-        baseRevision: document.revision,
-        type: "update-layer",
-        layerId,
-        update,
-      }));
+  const submit = useCallback(
+    (body: CommandBody) => {
+      applyCommand(
+        (document, commandId) =>
+          ({
+            commandId,
+            documentId: document.id,
+            baseRevision: document.revision,
+            ...body,
+            // Recombining a distributive omit with exactly the omitted fields
+            // is sound, but TypeScript cannot prove it across the union.
+          }) as MapStudioCommand,
+      );
     },
     [applyCommand],
+  );
+
+  /** Mint one element via `create` and submit it as one add-element command. */
+  const elementAdder = useCallback(
+    <Draft>(create: (id: string, draft: Draft) => MapElement) =>
+      (draft: Draft): string | null => {
+        if (!activeDocumentRef.current) return null;
+        const element = create(generateUUID(), draft);
+        submit({ type: "add-element", element });
+        return element.id;
+      },
+    [activeDocumentRef, submit],
+  );
+
+  /** Batch twin of elementAdder: one command, one undo step, ids returned. */
+  const elementsAdder = useCallback(
+    <Draft>(create: (id: string, draft: Draft) => MapElement) =>
+      (drafts: Draft[]): string[] => {
+        if (!activeDocumentRef.current || drafts.length === 0) return [];
+        const elements = drafts.map((draft) => create(generateUUID(), draft));
+        submit({ type: "add-elements", elements });
+        return elements.map((element) => element.id);
+      },
+    [activeDocumentRef, submit],
+  );
+
+  const addShape = useMemo(() => elementAdder<MapShapeDraft>(createShapeElement), [elementAdder]);
+  const addTile = useMemo(() => elementAdder<MapTileDraft>(createTileElement), [elementAdder]);
+  const addStamp = useMemo(() => elementAdder<MapStampDraft>(createStampElement), [elementAdder]);
+  const addWall = useMemo(() => elementAdder<MapWallDraft>(createWallElement), [elementAdder]);
+  const addDoor = useMemo(() => elementAdder<MapDoorDraft>(createDoorElement), [elementAdder]);
+  const addLight = useMemo(() => elementAdder<MapLightDraft>(createLightElement), [elementAdder]);
+  const addTiles = useMemo(() => elementsAdder<MapTileDraft>(createTileElement), [elementsAdder]);
+  const addStamps = useMemo(
+    () => elementsAdder<MapStampDraft>(createStampElement),
+    [elementsAdder],
+  );
+
+  const updateLayer = useCallback(
+    (layerId: string, update: MapLayerUpdate) => submit({ type: "update-layer", layerId, update }),
+    [submit],
   );
 
   const moveLayer = useCallback(
-    (layerId: string, targetIndex: number) => {
-      applyCommand((document, commandId) => ({
-        commandId,
-        documentId: document.id,
-        baseRevision: document.revision,
-        type: "move-layer",
-        layerId,
-        targetIndex,
-      }));
-    },
-    [applyCommand],
+    (layerId: string, targetIndex: number) => submit({ type: "move-layer", layerId, targetIndex }),
+    [submit],
   );
 
   const updateGrid = useCallback(
-    (update: MapGridUpdate) => {
-      applyCommand((document, commandId) => ({
-        commandId,
-        documentId: document.id,
-        baseRevision: document.revision,
-        type: "update-grid",
-        update,
-      }));
-    },
-    [applyCommand],
-  );
-
-  const addShape = useCallback(
-    (draft: MapShapeDraft) => {
-      if (!activeDocumentRef.current) return null;
-      const id = generateUUID();
-      const element = createShapeElement(id, draft);
-      applyCommand((document, commandId) => ({
-        commandId,
-        documentId: document.id,
-        baseRevision: document.revision,
-        type: "add-element",
-        element,
-      }));
-      return id;
-    },
-    [activeDocumentRef, applyCommand],
-  );
-
-  const addTile = useCallback(
-    (draft: MapTileDraft) => {
-      if (!activeDocumentRef.current) return null;
-      const id = generateUUID();
-      const element = createTileElement(id, draft);
-      applyCommand((document, commandId) => ({
-        commandId,
-        documentId: document.id,
-        baseRevision: document.revision,
-        type: "add-element",
-        element,
-      }));
-      return id;
-    },
-    [activeDocumentRef, applyCommand],
-  );
-
-  const addTiles = useCallback(
-    (drafts: MapTileDraft[]) => {
-      if (!activeDocumentRef.current || drafts.length === 0) return [];
-      const elements = drafts.map((draft) => createTileElement(generateUUID(), draft));
-      applyCommand((document, commandId) => ({
-        commandId,
-        documentId: document.id,
-        baseRevision: document.revision,
-        type: "add-elements",
-        elements,
-      }));
-      return elements.map((element) => element.id);
-    },
-    [activeDocumentRef, applyCommand],
-  );
-
-  const addStamp = useCallback(
-    (draft: MapStampDraft) => {
-      if (!activeDocumentRef.current) return null;
-      const id = generateUUID();
-      const element = createStampElement(id, draft);
-      applyCommand((document, commandId) => ({
-        commandId,
-        documentId: document.id,
-        baseRevision: document.revision,
-        type: "add-element",
-        element,
-      }));
-      return id;
-    },
-    [activeDocumentRef, applyCommand],
-  );
-
-  const addStamps = useCallback(
-    (drafts: MapStampDraft[]) => {
-      if (!activeDocumentRef.current || drafts.length === 0) return [];
-      const elements = drafts.map((draft) => createStampElement(generateUUID(), draft));
-      applyCommand((document, commandId) => ({
-        commandId,
-        documentId: document.id,
-        baseRevision: document.revision,
-        type: "add-elements",
-        elements,
-      }));
-      return elements.map((element) => element.id);
-    },
-    [activeDocumentRef, applyCommand],
+    (update: MapGridUpdate) => submit({ type: "update-grid", update }),
+    [submit],
   );
 
   const paintTerrain = useCallback(
     (cells: TerrainPaintCell[]) => {
       if (!activeDocumentRef.current || cells.length === 0) return;
-      applyCommand((document, commandId) => ({
-        commandId,
-        documentId: document.id,
-        baseRevision: document.revision,
-        type: "paint-terrain",
-        cells,
-      }));
+      submit({ type: "paint-terrain", cells });
     },
-    [activeDocumentRef, applyCommand],
+    [activeDocumentRef, submit],
   );
 
   const placeRoom = useCallback(
     (cells: TerrainPaintCell[], elements: MapElement[]) => {
       if (!activeDocumentRef.current || cells.length === 0 || elements.length === 0) return;
       // Floor terrain + wall perimeter as ONE command = ONE undo step.
-      applyCommand((document, commandId) => ({
-        commandId,
-        documentId: document.id,
-        baseRevision: document.revision,
-        type: "place-room",
-        cells,
-        elements,
-      }));
+      submit({ type: "place-room", cells, elements });
     },
-    [activeDocumentRef, applyCommand],
-  );
-
-  const addWall = useCallback(
-    (draft: MapWallDraft) => {
-      if (!activeDocumentRef.current) return null;
-      const id = generateUUID();
-      const element = createWallElement(id, draft);
-      applyCommand((document, commandId) => ({
-        commandId,
-        documentId: document.id,
-        baseRevision: document.revision,
-        type: "add-element",
-        element,
-      }));
-      return id;
-    },
-    [activeDocumentRef, applyCommand],
-  );
-
-  const addDoor = useCallback(
-    (draft: MapDoorDraft) => {
-      if (!activeDocumentRef.current) return null;
-      const id = generateUUID();
-      const element = createDoorElement(id, draft);
-      applyCommand((document, commandId) => ({
-        commandId,
-        documentId: document.id,
-        baseRevision: document.revision,
-        type: "add-element",
-        element,
-      }));
-      return id;
-    },
-    [activeDocumentRef, applyCommand],
-  );
-
-  const addLight = useCallback(
-    (draft: MapLightDraft) => {
-      if (!activeDocumentRef.current) return null;
-      const id = generateUUID();
-      const element = createLightElement(id, draft);
-      applyCommand((document, commandId) => ({
-        commandId,
-        documentId: document.id,
-        baseRevision: document.revision,
-        type: "add-element",
-        element,
-      }));
-      return id;
-    },
-    [activeDocumentRef, applyCommand],
+    [activeDocumentRef, submit],
   );
 
   const removeElement = useCallback(
-    (elementId: string) => {
-      applyCommand((document, commandId) => ({
-        commandId,
-        documentId: document.id,
-        baseRevision: document.revision,
-        type: "remove-element",
-        elementId,
-      }));
-    },
-    [applyCommand],
+    (elementId: string) => submit({ type: "remove-element", elementId }),
+    [submit],
   );
 
   const updateElement = useCallback(
-    (elementId: string, update: MapElementUpdate) => {
-      applyCommand((document, commandId) => ({
-        commandId,
-        documentId: document.id,
-        baseRevision: document.revision,
-        type: "update-element",
-        elementId,
-        update,
-      }));
-    },
-    [applyCommand],
+    (elementId: string, update: MapElementUpdate) =>
+      submit({ type: "update-element", elementId, update }),
+    [submit],
   );
 
   const updateDoor = useCallback(
-    (elementId: string, update: { state: MapDoorState; width: number }) => {
-      applyCommand((document, commandId) => ({
-        commandId,
-        documentId: document.id,
-        baseRevision: document.revision,
-        type: "update-door",
-        elementId,
-        state: update.state,
-        width: update.width,
-      }));
-    },
-    [applyCommand],
+    (elementId: string, update: { state: MapDoorState; width: number }) =>
+      submit({ type: "update-door", elementId, state: update.state, width: update.width }),
+    [submit],
   );
 
   /**
@@ -313,23 +179,8 @@ export function useMapStudioActions({
     [applyMessage],
   );
 
-  const undo = useCallback(() => {
-    applyCommand((document, commandId) => ({
-      commandId,
-      documentId: document.id,
-      baseRevision: document.revision,
-      type: "undo",
-    }));
-  }, [applyCommand]);
-
-  const redo = useCallback(() => {
-    applyCommand((document, commandId) => ({
-      commandId,
-      documentId: document.id,
-      baseRevision: document.revision,
-      type: "redo",
-    }));
-  }, [applyCommand]);
+  const undo = useCallback(() => submit({ type: "undo" }), [submit]);
+  const redo = useCallback(() => submit({ type: "redo" }), [submit]);
 
   return {
     updateLayer,

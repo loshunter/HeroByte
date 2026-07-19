@@ -28,6 +28,9 @@ interface UseWebSocketReturn {
   /** Room credentials retained for reconnects; null until authenticated. */
   getAuthCredentials: () => { secret: string; roomId?: string } | null;
   registerServerEventHandler: (handler: (message: ServerMessage) => void) => void;
+  /** Fires when a reliable command was dropped for good (retries exhausted /
+   * offline-queue overflow) — the user's change never reached the server. */
+  registerCommandDropHandler: (handler: (messageType: string, reason: string) => void) => void;
 }
 
 /**
@@ -55,6 +58,9 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
   // Use ref to store the current RTC signal handler
   const rtcHandlerRef = useRef<((from: string, signal: unknown) => void) | undefined>(onRtcSignal);
   const controlHandlerRef = useRef<((message: ServerMessage) => void) | undefined>();
+  const commandDropHandlerRef = useRef<
+    ((messageType: string, reason: string) => void) | undefined
+  >();
 
   // Use ref to avoid recreating service on re-renders
   const serviceRef = useRef<WebSocketService | null>(null);
@@ -107,6 +113,9 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
       onControlMessage: (message) => {
         controlHandlerRef.current?.(message);
       },
+      onCommandDropped: (messageType, reason) => {
+        commandDropHandlerRef.current?.(messageType, reason);
+      },
     });
 
     serviceRef.current = service;
@@ -141,6 +150,13 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     controlHandlerRef.current = handler;
   }, []);
 
+  const registerCommandDropHandler = useCallback(
+    (handler: (messageType: string, reason: string) => void) => {
+      commandDropHandlerRef.current = handler;
+    },
+    [],
+  );
+
   const authenticate = useCallback((secret: string, roomId?: string) => {
     serviceRef.current?.authenticate(secret, roomId);
   }, []);
@@ -165,5 +181,6 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
     authenticate,
     getAuthCredentials,
     registerServerEventHandler,
+    registerCommandDropHandler,
   };
 }

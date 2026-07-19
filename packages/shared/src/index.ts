@@ -720,7 +720,11 @@ export type ServerMessage =
       t: "map-studio-error";
       commandId: string;
       documentId: string;
-      code: "revision-conflict" | "command-rejected";
+      // "not-found": a get/open targeted a document the server no longer has
+      // (e.g. an ephemeral maps store reset under a room that kept its live
+      // binding) — the client clears the load and offers a fresh start
+      // instead of re-fetching the dangling id forever.
+      code: "revision-conflict" | "command-rejected" | "not-found";
       reason: string;
       actualRevision?: number;
     }

@@ -99,6 +99,11 @@ interface WebSocketServiceConfig {
   onStateChange?: ConnectionStateHandler;
   onAuthEvent?: (event: AuthEvent) => void;
   onControlMessage?: (message: ControlMessage) => void;
+  /** A RELIABLE command (one carrying a commandId) was dropped for good —
+   * retries exhausted or the offline queue overflowed. The user's change did
+   * NOT reach the server; surface it (toast) instead of losing it to the
+   * console. Fire-and-forget traffic (previews, heartbeats) never fires this. */
+  onCommandDropped?: (messageType: string, reason: string) => void;
   reconnectInterval?: number; // ms between reconnect attempts
   maxReconnectAttempts?: number; // 0 = infinite
   heartbeatInterval?: number; // ms between heartbeats
@@ -192,6 +197,7 @@ export class WebSocketService {
       onStateChange: () => {},
       onAuthEvent: () => {},
       onControlMessage: () => {},
+      onCommandDropped: () => {},
       ...config,
     };
 
@@ -235,12 +241,14 @@ export class WebSocketService {
           `[WebSocket] Queue overflow detected (length=${queueSize}) dropping message type=${message.t}`,
         );
         this.commandAckManager.handleDrop(message, "queue-overflow");
+        if (message.commandId) this.config.onCommandDropped(message.t, "queue-overflow");
       },
       onRetryDispatch: (message) => {
         this.dispatchMessage(message);
       },
       onRetryExhausted: (message) => {
         this.commandAckManager.handleDrop(message, "retry-exhausted");
+        if (message.commandId) this.config.onCommandDropped(message.t, "retry-exhausted");
       },
     });
 

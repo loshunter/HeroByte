@@ -20,6 +20,7 @@ function makeController(
   activeDocument: MapDocument | null,
   loading = false,
   error: string | null = null,
+  missingDocumentId: string | null = null,
 ): MapStudioController {
   return {
     activeDocument,
@@ -27,6 +28,7 @@ function makeController(
     canUndo: false,
     canRedo: false,
     error,
+    missingDocumentId,
     ...methods,
   } as unknown as MapStudioController;
 }
@@ -103,6 +105,54 @@ describe("useMapEditState", () => {
 
     expect(methods.openDocument).toHaveBeenCalledWith("existing-id");
     expect(methods.createDocument).not.toHaveBeenCalled();
+  });
+
+  it("never auto-reopens a DANGLING binding (the stuck-STARTING loop regression)", () => {
+    // The server reported the bound document gone (missingDocumentId): the
+    // rebind effect must not fire again, or it loops open → not-found → open
+    // forever, pinning the palette on STARTING… after a maps-store reset.
+    const methods = makeMethods();
+    renderHook(() =>
+      useMapEditState({
+        controller: makeController(methods, null, false, null, "existing-id"),
+        sendMessage: vi.fn(),
+        mapEditMode: true,
+        setActiveTool: vi.fn(),
+        liveMapDocumentId: "existing-id",
+        roomGridSize: 50,
+        hasRasterBackground: false,
+      }),
+    );
+
+    expect(methods.openDocument).not.toHaveBeenCalled();
+    expect(methods.createDocument).not.toHaveBeenCalled();
+  });
+
+  it("START LIVE MAP on a dangling binding creates a FRESH document whose bind repairs the room", () => {
+    const methods = makeMethods();
+    const sendMessage = vi.fn();
+    const base = {
+      sendMessage,
+      mapEditMode: true,
+      setActiveTool: vi.fn(),
+      liveMapDocumentId: "gone-id" as string | undefined,
+      roomGridSize: 50,
+      hasRasterBackground: false,
+    };
+    const { result, rerender } = renderHook((props) => useMapEditState(props), {
+      initialProps: { ...base, controller: makeController(methods, null, false, null, "gone-id") },
+    });
+
+    act(() => result.current.toolbarProps.onStartLiveMap());
+    expect(methods.openDocument).not.toHaveBeenCalled(); // never re-fetch the dangling id
+    expect(methods.createDocument).toHaveBeenCalledWith("Live Map", 8192, 8192);
+
+    // The create reply activates the fresh document → set-live rebinds the room.
+    rerender({
+      ...base,
+      controller: makeController(methods, doc("new-id"), false, null, "gone-id"),
+    });
+    expect(sendMessage).toHaveBeenCalledWith({ t: "map-studio-set-live", documentId: "new-id" });
   });
 
   it("does not revert a different document the DM explicitly opened for export/backup", () => {

@@ -301,6 +301,53 @@ describe("useMapStudio", () => {
     expect(result.current.error).toMatch(/your edit was dropped/i);
   });
 
+  it("releases an open when the server reports the document gone (not-found)", () => {
+    // A maps-store reset under a room that kept its live binding: the get for
+    // the bound id must clear the load and mark the id missing — glue code
+    // keys its don't-retry / fresh-start recovery off missingDocumentId.
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    act(() => result.current.openDocument("gone"));
+    expect(result.current.loading).toBe(true);
+
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-error",
+        commandId: "get:gone",
+        documentId: "gone",
+        code: "not-found",
+        reason: "Map document not found: gone",
+      }),
+    );
+    expect(result.current.loading).toBe(false);
+    expect(result.current.missingDocumentId).toBe("gone");
+    expect(result.current.error).toMatch(/not found/i);
+
+    // The id resurfacing (e.g. re-created server-side) clears the marker.
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-document",
+        document: createMapDocument({ id: "gone", name: "Back", timestamp: 3 }),
+      }),
+    );
+    expect(result.current.missingDocumentId).toBeNull();
+  });
+
+  it("ignores a not-found for a document that is not the one being opened", () => {
+    const { result } = renderHook(() => useMapStudio(sendMessage));
+    act(() => result.current.openDocument("wanted"));
+    act(() =>
+      result.current.handleServerMessage({
+        t: "map-studio-error",
+        commandId: "get:other",
+        documentId: "other",
+        code: "not-found",
+        reason: "Map document not found: other",
+      }),
+    );
+    expect(result.current.loading).toBe(true); // still waiting on "wanted"
+    expect(result.current.missingDocumentId).toBeNull();
+  });
+
   it("does not replace the active document when another DM edits a different map", () => {
     const { result } = renderHook(() => useMapStudio(sendMessage));
     const active = createMapDocument({ id: "active", name: "Active", timestamp: 1 });
