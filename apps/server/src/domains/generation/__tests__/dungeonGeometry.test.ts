@@ -235,9 +235,7 @@ describe("emitGeometry — units", () => {
   it("the wall halo hugs the floor: every wall cell 8-touches floor, every floor edge is banded", () => {
     const output = outputFor(1);
     const floorKeys = new Set(
-      output.cells
-        .filter((c) => c.assetId === "terrain:stone-floor")
-        .map((c) => `${c.x},${c.y}`),
+      output.cells.filter((c) => c.assetId === "terrain:stone-floor").map((c) => `${c.x},${c.y}`),
     );
     const wallKeys = new Set(
       output.cells.filter((c) => c.assetId === "terrain:wall-stone").map((c) => `${c.x},${c.y}`),
