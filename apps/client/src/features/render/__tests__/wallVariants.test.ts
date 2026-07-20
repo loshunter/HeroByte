@@ -155,6 +155,7 @@ describe("roof + stairs families (the levels illusion)", () => {
       ...WALL_FAMILIES.map((f) => VILLAGE_TERRAIN[`terrain:${f}`]!.priority),
     );
     const wallStrength = VILLAGE_TERRAIN["terrain:wall-stone"]!.shadow!.strength;
+    const wallBand = VILLAGE_TERRAIN["terrain:wall-stone"]!.shadow!.band;
     for (const id of ALL_ROOFS) {
       const fam = VILLAGE_TERRAIN[id]!;
       // Square roofs read through the shingle-row painter; round ones through
@@ -164,6 +165,9 @@ describe("roof + stairs families (the levels illusion)", () => {
       expect(fam.edgeAmp, id).toBe(0);
       expect(fam.priority, id).toBeGreaterThan(wallMax);
       expect(fam.shadow!.strength, id).toBeGreaterThan(wallStrength);
+      // Shadow LENGTH is the height cue (catalog #11): every roof throws a
+      // longer shadow than the walls beneath it (Light & Colour II retune).
+      expect(fam.shadow!.band, id).toBeGreaterThan(wallBand);
       // The roof rim is a LIGHT fascia (an eave catches sun), unlike the
       // walls' dark inked outline.
       expect(luma(fam.rim), id).toBeGreaterThan(luma(fam.base));

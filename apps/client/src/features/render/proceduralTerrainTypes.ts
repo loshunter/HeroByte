@@ -113,6 +113,15 @@ export interface TerrainFieldConfig {
    * so callers with a zero-offset grid can omit it. */
   offsetX?: number;
   offsetY?: number;
+  /**
+   * Map-level shadow COLOUR (hex) for every darkening term — contact AO, near
+   * cast shadow, long throw (catalog rank 2). Shadowed pixels mix toward this
+   * tint as the darkening deepens, so shadows hue-shift cool instead of
+   * grey-multiplying. Undefined ⇒ the shipped grey multiply, byte-identical
+   * (the parity invariant, pinned in shadowTint.test). Map-level by design:
+   * one light source ⇒ one shadow hue for the whole map.
+   */
+  shadowTint?: string;
   /** Cell distance to the nearest non-`assetId` cell, for families with
    * `depthBands` (terrainDistanceField). Cells outside the family read 0. */
   depthOf?(assetId: string, cellX: number, cellY: number): number;

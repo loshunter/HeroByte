@@ -23,6 +23,32 @@ export const mixRgb = (a: FieldRgb, b: FieldRgb, t: number): FieldRgb => [
   Math.round(a[2] + (b[2] - a[2]) * t),
 ];
 
+/**
+ * Apply a composed darkening factor `keep` (0..1, from the field's contact /
+ * near-shadow / long-throw terms) to a colour. Without a tint this is the
+ * shipped grey multiply, VERBATIM — knob-less configs must render
+ * byte-identically (Light & Colour II parity rule, pinned in shadowTint.test).
+ * With a tint (catalog rank 2 — cool-hue element shadows) each channel falls
+ * toward the shadow COLOUR as `keep` drops instead of toward black, so
+ * shadowed ground keeps its saturation (rose cobble → plum, never grey) —
+ * but a channel already AT or BELOW the tint is left alone: a pure lerp
+ * would BRIGHTEN deep-water navy and ink rims toward the plum (adversarial
+ * review finding), so the shadow floor is min(tint, pixel) per channel.
+ * A black tint reproduces the multiply (c − t·max(0, c) = c·keep, the same
+ * float expression — pinned scene-wide in shadowTint.test).
+ */
+export const shadowedRgb = (rgb: FieldRgb, keep: number, tint: FieldRgb | null): FieldRgb => {
+  if (!tint) {
+    return [Math.round(rgb[0] * keep), Math.round(rgb[1] * keep), Math.round(rgb[2] * keep)];
+  }
+  const t = 1 - keep;
+  return [
+    Math.round(rgb[0] - t * Math.max(0, rgb[0] - tint[0])),
+    Math.round(rgb[1] - t * Math.max(0, rgb[1] - tint[1])),
+    Math.round(rgb[2] - t * Math.max(0, rgb[2] - tint[2])),
+  ];
+};
+
 /** Depth bands with parsed colours, sorted shallow→deep. */
 export type ParsedBands = { maxCells: number; rgb: FieldRgb }[];
 

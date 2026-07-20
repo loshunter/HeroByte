@@ -10,11 +10,14 @@ import {
   serializeMapDocument,
 } from "../exportMapDocument";
 import { createRecordingContext } from "../../render/__tests__/recordingContext";
+import { VILLAGE_SHADOW_TINT } from "../../render/terrainPalette";
 import { __resetTileAtlasForTests } from "../../render/tileAtlas";
 
 // The procedural field bake needs a real 2D canvas (putImageData); the raster
 // tests mock it and assert the underlay blits whatever it returns. `result` is
 // set per test — null means "the field declined to bake" (fall back to core).
+// `lastInput` records the bake call so tests can pin what the export passes
+// (e.g. the shadow tint riding alongside the palette).
 const bakeHolder = vi.hoisted(() => ({
   result: null as null | {
     canvas: unknown;
@@ -23,9 +26,13 @@ const bakeHolder = vi.hoisted(() => ({
     width: number;
     height: number;
   },
+  lastInput: null as unknown,
 }));
 vi.mock("../../render/proceduralTerrainSurface", () => ({
-  bakeProceduralTerrain: () => bakeHolder.result,
+  bakeProceduralTerrain: (input: unknown) => {
+    bakeHolder.lastInput = input;
+    return bakeHolder.result;
+  },
 }));
 
 describe("Map Studio export", () => {
@@ -657,6 +664,7 @@ describe("Map Studio raster composite (R4b)", () => {
     vi.unstubAllGlobals();
     __resetTileAtlasForTests();
     bakeHolder.result = null;
+    bakeHolder.lastInput = null;
   });
 
   // Stub the browser surface rasterizeMapDocument touches and record every
@@ -756,6 +764,27 @@ describe("Map Studio raster composite (R4b)", () => {
     );
     expect(fieldBlitIndex).toBeGreaterThanOrEqual(0);
     expect(svgBlit).toBeGreaterThan(fieldBlitIndex);
+  });
+
+  it("passes the village shadow tint to the export bake (live table and downloads agree)", async () => {
+    __resetTileAtlasForTests();
+    // The cool-hue shadow tint (Light & Colour II) must ride the EXPORT bake
+    // exactly as it rides the live one (terrainBake.test pins that side) — a
+    // one-sided pin would let the paths silently diverge (adversarial-review
+    // finding, proven live by a mutation that the rest of the suite missed).
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("nope", { status: 404 })));
+    bakeHolder.result = {
+      canvas: {} as HTMLCanvasElement,
+      originX: 0,
+      originY: 0,
+      width: 200,
+      height: 200,
+    };
+    stubRasterEnv();
+
+    await rasterizeMapDocument(grassMap(), "image/png");
+
+    expect(bakeHolder.lastInput).toMatchObject({ shadowTint: VILLAGE_SHADOW_TINT });
   });
 
   it("excludes wood/stone floors from the flat core once they ride the field (no double-draw)", async () => {

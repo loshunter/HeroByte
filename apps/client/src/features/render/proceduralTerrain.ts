@@ -29,6 +29,7 @@ import {
   parseBands,
   parseHex,
   pickBand,
+  shadowedRgb,
   sunkenTintStrength,
 } from "./terrainFieldColor";
 import { polarCourseColor, type PolarParams } from "./terrainPolarField";
@@ -102,6 +103,7 @@ export function createTerrainField(config: TerrainFieldConfig): TerrainField {
   const { familyAt, cellSize } = config;
   const offsetX = config.offsetX ?? 0;
   const offsetY = config.offsetY ?? 0;
+  const shadowTint = config.shadowTint ? parseHex(config.shadowTint) : null;
   // Low → high priority; precompute rgb + a distinct noise seed per family so
   // adjacent boundaries don't share the exact same bumps.
   const fams: FieldFamily[] = [...config.families]
@@ -291,13 +293,7 @@ export function createTerrainField(config: TerrainFieldConfig): TerrainField {
             keep *= 1 - f.longShadowStrength * (1 + v / f.longShadowBand) * soft;
           }
         }
-        if (keep < 1) {
-          color = [
-            Math.round(color[0] * keep),
-            Math.round(color[1] * keep),
-            Math.round(color[2] * keep),
-          ];
-        }
+        if (keep < 1) color = shadowedRgb(color, keep, shadowTint);
       }
     }
     return color;

@@ -41,9 +41,24 @@ export type {
  * band seating the mass on the ground (catalog #4). */
 const WALL_RIM = 0.055;
 const WALL_SHADOW = { band: 0.3, strength: 0.3 };
-const ROOF_SHADOW = { band: 0.5, strength: 0.38 };
+const ROOF_SHADOW = { band: 0.42, strength: 0.38 };
 const WALL_CONTACT = { reach: 0.1, strength: 0.16 };
 const ROOF_CONTACT = { reach: 0.12, strength: 0.18 };
+
+/** Shadow LENGTH is the height cue (catalog #11): walls < square roofs <
+ * spiral < cone < dome as band data. CEILING: a crisp family's field saturates
+ * at −0.5, so 0.5 is the longest expressible throw — a band above it adds no
+ * reach, only a wasted always-true probe per pixel (review finding). Ladder
+ * lives in [0.3, 0.5]; ordering + ceiling pinned in wallVariants/polarCourse. */
+const SPIRAL_SHADOW = { band: 0.45, strength: 0.38 };
+const CONE_SHADOW = { band: 0.48, strength: 0.38 };
+const DOME_SHADOW = { band: 0.5, strength: 0.38 };
+
+/** The village mood's map-level shadow COLOUR (catalog rank 2): darkening
+ * terms fall toward this dusky plum instead of grey-multiplying, so shadows
+ * hue-shift cool and stay saturated. Both production bakes (terrainBake live,
+ * rasterUnderlay export) pass it with VILLAGE_TERRAIN; per-map dial later. */
+export const VILLAGE_SHADOW_TINT = "#3a2f45";
 
 /**
  * The default "village" mood — warm and saturated. A map's mood (cool
@@ -288,7 +303,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     priority: 32,
     edgeAmp: 0,
     rimWidth: WALL_RIM,
-    shadow: ROOF_SHADOW,
+    shadow: CONE_SHADOW,
     contact: ROOF_CONTACT,
     mottle: { amp: 0.03, scale: 3, cool: 0.3 },
     polar: { courseWidth: 0.34, jointPitch: 0.8, ramp: 0.35, sunSplit: 0.22 },
@@ -299,7 +314,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     priority: 33,
     edgeAmp: 0,
     rimWidth: WALL_RIM,
-    shadow: ROOF_SHADOW,
+    shadow: DOME_SHADOW,
     contact: ROOF_CONTACT,
     mottle: { amp: 0.03, scale: 4, cool: 0.2 },
     polar: { courseWidth: 0.5, jointPitch: 1.6, ramp: 0.25, sunSplit: 0.38 },
@@ -310,7 +325,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     priority: 34,
     edgeAmp: 0,
     rimWidth: WALL_RIM,
-    shadow: ROOF_SHADOW,
+    shadow: SPIRAL_SHADOW,
     contact: ROOF_CONTACT,
     mottle: { amp: 0.04, scale: 4, cool: -0.2 },
     polar: {

@@ -16,6 +16,7 @@ vi.mock("../../../render/terrainPalette", () => ({
     "terrain:pond": { depthBands: [{ maxCells: 2, base: "#204060" }] },
     "terrain:drowned": { sunken: { of: "terrain:grass" } },
   },
+  VILLAGE_SHADOW_TINT: "#3a2f45",
 }));
 
 import {
@@ -50,6 +51,9 @@ describe("getFieldBake", () => {
     expect(first).toBe(BAKED);
     expect(second).toBe(BAKED);
     expect(bakeSpy).toHaveBeenCalledTimes(1);
+    // The live bake carries the village shadow tint (cool-hue shadows) — the
+    // export path (rasterUnderlay) passes the same constant, so they agree.
+    expect(bakeSpy.mock.calls[0]![0]).toMatchObject({ shadowTint: "#3a2f45" });
   });
 
   it("re-bakes when the layers identity changes (a terrain edit)", () => {

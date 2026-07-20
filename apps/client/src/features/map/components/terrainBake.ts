@@ -14,7 +14,7 @@ import {
   type ProceduralGrid,
 } from "../../render/proceduralTerrainSurface";
 import type { BakeLighting } from "../../render/terrainLighting";
-import { VILLAGE_TERRAIN } from "../../render/terrainPalette";
+import { VILLAGE_SHADOW_TINT, VILLAGE_TERRAIN } from "../../render/terrainPalette";
 import type { StructuredTerrainLayer } from "../../render/tileRenderCore";
 
 export interface FieldBakeCache {
@@ -49,10 +49,13 @@ export function getFieldBake(
     cache.source = layers;
     cache.gridSig = gridSig;
     cache.lightingSig = lightingSig;
+    // The shadow tint is a module constant riding the VILLAGE mood — no cache
+    // key term needed until it becomes a per-map dial.
     cache.baked = bakeProceduralTerrain({
       terrainLayers: layers,
       grid,
       palette: VILLAGE_TERRAIN,
+      shadowTint: VILLAGE_SHADOW_TINT,
       lighting,
     });
   }

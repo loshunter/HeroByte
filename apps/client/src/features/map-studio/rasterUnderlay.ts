@@ -15,7 +15,7 @@ import {
   type TerrainDrawOptions,
 } from "../render/tileRenderCore";
 import { bakeProceduralTerrain } from "../render/proceduralTerrainSurface";
-import { VILLAGE_TERRAIN } from "../render/terrainPalette";
+import { VILLAGE_SHADOW_TINT, VILLAGE_TERRAIN } from "../render/terrainPalette";
 import { getGridGeometry } from "./gridGeometry";
 import { terrainStyleForFrame } from "./starterTiles";
 
@@ -77,7 +77,12 @@ export function paintRasterUnderlay(
   // shows); water/stone/wood keep the flat/atlas core path. When the field can't
   // bake — no field families, or over the size cap — the core renders every
   // layer, so terrain never vanishes from a download.
-  const baked = bakeProceduralTerrain({ terrainLayers, grid, palette: VILLAGE_TERRAIN });
+  const baked = bakeProceduralTerrain({
+    terrainLayers,
+    grid,
+    palette: VILLAGE_TERRAIN,
+    shadowTint: VILLAGE_SHADOW_TINT,
+  });
   const coreLayers = baked
     ? terrainLayers.filter((layer) => !VILLAGE_TERRAIN[layer.assetId])
     : terrainLayers;

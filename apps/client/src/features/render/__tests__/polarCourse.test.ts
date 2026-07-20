@@ -191,4 +191,28 @@ describe("polar variants are data (P3 wiring contract)", () => {
     const priorities = ALL_IDS.map((id) => VILLAGE_TERRAIN[id]!.priority);
     expect(new Set(priorities).size).toBe(priorities.length);
   });
+
+  it("shadow length climbs the height ladder: walls < square roofs < spiral < cone < dome", () => {
+    // Catalog #11 retune (Light & Colour II): the taxonomy's height classes as
+    // band data, wall 0.3 the reference. The low spiral-thatch roundhouse sits
+    // just above the square house roofs; tower cones above that; the
+    // monumental dome throws furthest the engine can express.
+    const band = (id: string): number => VILLAGE_TERRAIN[id]!.shadow!.band;
+    const wall = band("terrain:wall-stone");
+    const squareRoofs = ["terrain:roof-shingle", "terrain:roof-thatch"].map(band);
+    for (const roofBand of squareRoofs) expect(roofBand).toBeGreaterThan(wall);
+    expect(band("terrain:roof-thatch-spiral")).toBeGreaterThan(Math.max(...squareRoofs));
+    expect(band("terrain:roof-cone")).toBeGreaterThan(band("terrain:roof-thatch-spiral"));
+    expect(band("terrain:roof-dome")).toBeGreaterThan(band("terrain:roof-cone"));
+  });
+
+  it("no shadow band exceeds the 0.5 field-saturation ceiling (adversarial-review pin)", () => {
+    // A crisp family's signed field saturates at −0.5 half a cell outside it,
+    // so a band above 0.5 buys NO extra reach — it only makes the long-throw
+    // gate `v > −band` always-true, adding a wasted presence probe on every
+    // painted pixel of the map for that family. Keep every band expressible.
+    for (const [id, fam] of Object.entries(VILLAGE_TERRAIN)) {
+      if (fam.shadow) expect(fam.shadow.band, id).toBeLessThanOrEqual(0.5);
+    }
+  });
 });

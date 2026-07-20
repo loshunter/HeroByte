@@ -51,6 +51,9 @@ export interface ProceduralTerrainInput {
   terrainLayers: readonly StructuredTerrainLayer[];
   grid: ProceduralGrid;
   palette: TerrainPalette;
+  /** Map-level shadow colour for every darkening term (catalog rank 2);
+   * undefined ⇒ the grey multiply, byte-identical (shadowTint.test). */
+  shadowTint?: string;
   /** Ambient veil + light pools applied over the finished bake (terrainLighting). */
   lighting?: BakeLighting;
 }
@@ -88,6 +91,7 @@ export function buildProceduralFieldConfig(
   terrainLayers: readonly StructuredTerrainLayer[],
   grid: ProceduralGrid,
   palette: TerrainPalette,
+  shadowTint?: string,
 ): BuiltProceduralField | null {
   const familyByCell = new Map<string, string>();
   const families: TerrainFieldFamily[] = [];
@@ -147,6 +151,7 @@ export function buildProceduralFieldConfig(
   const config: TerrainFieldConfig = {
     familyAt: (cx, cy) => familyByCell.get(`${cx},${cy}`) ?? null,
     families,
+    shadowTint,
     cellSize: size,
     originX: offsetX + (minCX - margin) * size,
     originY: offsetY + (minCY - margin) * size,
@@ -294,7 +299,7 @@ export function bakeProceduralTerrain(
   input: ProceduralTerrainInput,
 ): BakedProceduralTerrain | null {
   const { terrainLayers, grid, palette } = input;
-  const built = buildProceduralFieldConfig(terrainLayers, grid, palette);
+  const built = buildProceduralFieldConfig(terrainLayers, grid, palette, input.shadowTint);
   if (!built) return null;
   const { config, width, height } = built;
 
