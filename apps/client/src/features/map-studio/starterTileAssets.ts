@@ -20,6 +20,9 @@ export interface MapStudioTileAsset {
    * unchanged; the live canvas cycles through the rest.
    */
   animFills?: string[];
+  /** A placed prop of this asset GLOWS: it contributes a bake light at its
+   * centre (emissiveLights). `radius` in CELLS; colour/intensity as a light. */
+  emissive?: { color: string; radius: number; intensity: number };
 }
 
 export const MAP_STUDIO_TILE_ASSETS: MapStudioTileAsset[] = [
@@ -329,5 +332,17 @@ export const MAP_STUDIO_TILE_ASSETS: MapStudioTileAsset[] = [
     fill: "#6b3f28",
     stroke: "#c38753",
     accent: "#2e1b12",
+  },
+  {
+    id: "objects:lamp",
+    name: "Street Lamp",
+    category: "objects",
+    layerKind: "objects",
+    columns: 1,
+    rows: 1,
+    fill: "#e8b84a",
+    stroke: "#8a6b2f",
+    accent: "#5c4720",
+    emissive: { color: "#ffcf70", radius: 3, intensity: 1 },
   },
 ];

@@ -1,10 +1,13 @@
 // Ambient darkness veil + light pools over the baked terrain (Czepeku catalog
-// #3). Seven of the sixteen study maps build night and dungeon mood the same
-// way: a global cool dark veil punched through by warm elliptical pools whose
-// colours re-saturate while the ground texture stays visible through the tint.
+// #3, pools upgraded to catalog rank 1's 3-stop profile + sparkle motes).
+// Seven of the sixteen study maps build night and dungeon mood the same way:
+// a global cool dark veil punched through by warm pools whose colours
+// re-saturate while the ground texture stays visible through the tint.
 // This is a pure post-pass over the bake's RGBA pixels — the field, painters
-// and exports know nothing about lighting, and daylight (ambient 1, no lights)
-// is a no-op so lit-less maps render bit-identically.
+// and exports know nothing about lighting, and daylight (ambient 1) is a
+// no-op so lit-less maps render bit-identically.
+
+import { hash2 } from "./valueNoise";
 
 /** One light pool in world/document px (from MapLightingSnapshot). */
 export interface BakeLight {
@@ -24,15 +27,73 @@ export interface BakeLighting {
 /** The veil never reaches full black — token play must stay readable. */
 const MAX_VEIL = 0.78;
 /** How strongly a pool re-tints the ground toward the light colour at night. */
-const TINT = 0.3;
+const TINT = 0.45;
 /** The veil picks up a cool night cast: red is dimmed hardest, blue least. */
 const VEIL_COOL = 0.12;
+
+/** 3-stop pool profile (catalog rank 1 — the corpus' dominant light shape):
+ * a HOT CORE at full strength to 30 % of the radius, a halo falling smoothly
+ * to the knee at the radius, then a broad low WASH fading to nothing at
+ * 2.75× the radius — lamplight that spills across the street instead of a
+ * hard-edged disc. Strength is later scaled by the light's intensity. */
+const CORE_END = 0.3;
+const HALO_KNEE = 0.35;
+const WASH_REACH = 2.75;
+function poolProfile(d: number): number {
+  if (d <= CORE_END) return 1;
+  if (d <= 1) {
+    const u = (d - CORE_END) / (1 - CORE_END);
+    return 1 - (1 - HALO_KNEE) * u * u * (3 - 2 * u);
+  }
+  const u = (d - 1) / (WASH_REACH - 1);
+  const fall = 1 - u;
+  return HALO_KNEE * fall * fall;
+}
 
 const parseHex = (h: string): [number, number, number] => [
   parseInt(h.slice(1, 3), 16),
   parseInt(h.slice(3, 5), 16),
   parseInt(h.slice(5, 7), 16),
 ];
+
+/** Sparkle motes (catalog rank 1): 4–8 single-pixel glints per pool, placed
+ * by hash2 in polar coords around the light (seeded from its rounded world
+ * position, so motes are stable across bakes), pulled toward the light colour
+ * lifted near white. Strength rides the veil — daylight draws nothing, so the
+ * ambient-1 no-op stays bit-identical. */
+const MOTE_SPREAD = 0.85; // motes live inside the halo, never the wash
+const MOTE_LIFT = 90; // how far above the light colour a glint reaches
+function paintSparkleMotes(
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number,
+  originX: number,
+  originY: number,
+  veil: number,
+  lights: readonly { x: number; y: number; radius: number; rgb: [number, number, number] }[],
+): void {
+  if (veil <= 0) return;
+  for (const light of lights) {
+    if (light.radius <= 0) continue;
+    const seed = Math.floor(hash2(Math.round(light.x), Math.round(light.y), 909) * 0x7fffffff);
+    const count = 4 + Math.floor(hash2(0, 1, seed) * 4.9999); // 4–8 per pool
+    for (let m = 0; m < count; m += 1) {
+      const ang = hash2(m, 2, seed) * Math.PI * 2;
+      const rad = Math.sqrt(hash2(m, 3, seed)) * light.radius * MOTE_SPREAD;
+      const mx = Math.round(light.x + Math.cos(ang) * rad - originX - 0.5);
+      const my = Math.round(light.y + Math.sin(ang) * rad - originY - 0.5);
+      if (mx < 0 || my < 0 || mx >= width || my >= height) continue;
+      const o = (my * width + mx) * 4;
+      if (pixels[o + 3] === 0) continue; // never glint over transparency
+      const a = 0.85 * veil;
+      pixels[o] = pixels[o]! + (Math.min(255, light.rgb[0] + MOTE_LIFT) - pixels[o]!) * a;
+      pixels[o + 1] =
+        pixels[o + 1]! + (Math.min(255, light.rgb[1] + MOTE_LIFT) - pixels[o + 1]!) * a;
+      pixels[o + 2] =
+        pixels[o + 2]! + (Math.min(255, light.rgb[2] + MOTE_LIFT) - pixels[o + 2]!) * a;
+    }
+  }
+}
 
 /** True when this lighting state would change any pixel. */
 export function lightingActive(lighting: BakeLighting | undefined): boolean {
@@ -41,10 +102,13 @@ export function lightingActive(lighting: BakeLighting | undefined): boolean {
 
 /**
  * Darken the baked pixels by the ambient veil, carving warm pools around the
- * lights: a pool locally cancels the veil (smooth radial falloff) and, at
- * night, re-tints the ground toward its colour — light that visibly TOUCHES
- * the ground instead of floating as a sticker. Transparent pixels stay
- * untouched. `originX/originY` place pixel (0,0) in world coordinates.
+ * lights: a pool locally cancels the veil through the 3-stop profile (hot
+ * core → falling halo → broad wash to 2.75× the radius) and, at night,
+ * re-tints the ground toward its colour — light that visibly TOUCHES the
+ * ground instead of floating as a sticker. The tint is veil-scaled, so
+ * daylight (ambient 1) stays a numeric no-op even with lights placed.
+ * Transparent pixels stay untouched. `originX/originY` place pixel (0,0) in
+ * world coordinates.
  */
 export function applyBakeLighting(
   pixels: Uint8ClampedArray,
@@ -59,7 +123,7 @@ export function applyBakeLighting(
   const lights = lighting.lights.map((light) => ({
     x: light.x,
     y: light.y,
-    r2: light.radius * light.radius,
+    reach2: light.radius * WASH_REACH * (light.radius * WASH_REACH),
     radius: light.radius,
     intensity: light.intensity,
     rgb: parseHex(light.color),
@@ -80,9 +144,8 @@ export function applyBakeLighting(
         const dx = wx - light.x;
         const dy = wy - light.y;
         const d2 = dx * dx + dy * dy;
-        if (d2 >= light.r2) continue;
-        const t = 1 - d2 / light.r2;
-        const s = light.intensity * t * t;
+        if (d2 >= light.reach2 || light.radius <= 0) continue;
+        const s = light.intensity * poolProfile(Math.sqrt(d2) / light.radius);
         if (s > pool) {
           pool = s;
           tintRgb = light.rgb;
@@ -109,4 +172,5 @@ export function applyBakeLighting(
       pixels[o + 2] = b;
     }
   }
+  paintSparkleMotes(pixels, width, height, originX, originY, veil, lights);
 }

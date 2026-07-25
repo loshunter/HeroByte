@@ -70,6 +70,7 @@ vi.mock("../../features/map/components", () => ({
   AlignmentOverlay: () => <div data-testid="alignment-overlay" />,
   AlignmentInstructionOverlay: () => <div data-testid="alignment-instruction-overlay" />,
   MarqueeOverlay: () => <div data-testid="marquee-overlay" />,
+  withEmissiveLights: (mapElements?: { lighting?: unknown }) => mapElements?.lighting,
 }));
 
 // Mock all the hooks

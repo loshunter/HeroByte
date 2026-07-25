@@ -53,6 +53,7 @@ import {
   AlignmentOverlay,
   AlignmentInstructionOverlay,
   MarqueeOverlay,
+  withEmissiveLights,
 } from "../features/map/components";
 import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 import { useMapEditTool } from "../features/map-edit/useMapEditTool";
@@ -570,7 +571,7 @@ export default function MapBoard({
             <TerrainLayer
               cam={cam}
               mapTerrain={snapshot.mapTerrain}
-              lighting={snapshot.mapElements?.lighting}
+              lighting={withEmissiveLights(snapshot.mapElements)}
               mapTransform={mapObject?.transform}
             />
           )}
