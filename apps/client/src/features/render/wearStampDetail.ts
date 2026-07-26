@@ -14,6 +14,7 @@
 // — props keep their warmth under the grade (catalog rank 3's accent rule).
 
 import { hash2 } from "./valueNoise";
+import { paintFloorDecal } from "./floorDecalDetail";
 
 /** The context slice the wear painter draws through (see module note). */
 export interface WearStampContext2D {
@@ -22,7 +23,11 @@ export interface WearStampContext2D {
   fillRect(x: number, y: number, width: number, height: number): void;
 }
 
-export type WearStampKind = "ring" | "scorch" | "stain";
+/** All decal art kinds. "Wear" in the surrounding names is historical — the
+ * floor-decal kinds (catalog rank 7, floorDecalDetail) joined the same
+ * machinery; kinds are bundled asset data, never wire data, so the union
+ * grows freely with zero schema impact. */
+export type WearStampKind = "ring" | "scorch" | "stain" | "medallion" | "tracery";
 
 /** Per-asset decal declaration (starterTileAssets `decal`). `color` is the
  * stain hue a prop declares; ring/scorch art is fixed. */
@@ -112,7 +117,10 @@ export function paintWearStamp(
 ): void {
   if (spec.kind === "ring") paintRing(ctx, w, h, seed);
   else if (spec.kind === "scorch") paintScorch(ctx, w, h, seed);
-  else paintStain(ctx, w, h, seed, tint ?? spec.color ?? WEAR_STAMP_ART.stainFallback);
+  else if (spec.kind === "stain")
+    paintStain(ctx, w, h, seed, tint ?? spec.color ?? WEAR_STAMP_ART.stainFallback);
+  // Every other kind is a floor decal (rank 7) — routed, never fallen into.
+  else paintFloorDecal(ctx, w, h, seed, spec, tint);
 }
 
 /** Sparring ring: a dab circle with worn gaps, faint interior scuffs, and 2–3

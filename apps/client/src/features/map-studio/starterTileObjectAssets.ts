@@ -107,4 +107,31 @@ export const OBJECT_TILE_ASSETS: MapStudioTileAsset[] = [
     accent: "#cfc094",
     decal: { kind: "stain", color: "#e8dcb0" },
   },
+  // Floor inlays (catalog rank 7): oversized set-piece floor graphics. Their
+  // "inlays" category is deliberately NOT a PopulateCategory — a ceremonial
+  // medallion must never ride a random scatter pool.
+  {
+    id: "inlay:sun-medallion",
+    name: "Sun Medallion",
+    category: "inlays",
+    layerKind: "objects",
+    columns: 6,
+    rows: 6,
+    fill: "#d4a93e",
+    stroke: "#e0b147",
+    accent: "#c1922e",
+    decal: { kind: "medallion" },
+  },
+  {
+    id: "inlay:tracery-panel",
+    name: "Tracery Panel",
+    category: "inlays",
+    layerKind: "objects",
+    columns: 6,
+    rows: 6,
+    fill: "#e8dcc0",
+    stroke: "#cbbd9c",
+    accent: "#b3a685",
+    decal: { kind: "tracery" },
+  },
 ];

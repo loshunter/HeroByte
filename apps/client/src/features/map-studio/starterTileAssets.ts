@@ -11,7 +11,7 @@ import { STRUCTURE_TILE_ASSETS } from "./starterTileStructureAssets";
 export interface MapStudioTileAsset {
   id: string;
   name: string;
-  category: "terrain" | "structures" | "objects" | "decals" | "my-stuff";
+  category: "terrain" | "structures" | "objects" | "decals" | "inlays" | "my-stuff";
   layerKind: "terrain" | "objects" | "walls";
   columns: number;
   rows: number;

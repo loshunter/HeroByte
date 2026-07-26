@@ -74,6 +74,8 @@ export function mapStudioTileCategoryLabel(category: MapStudioTileAsset["categor
       return "Objects";
     case "decals":
       return "Decals";
+    case "inlays":
+      return "Inlays";
     case "my-stuff":
       return "My Stuff";
   }
