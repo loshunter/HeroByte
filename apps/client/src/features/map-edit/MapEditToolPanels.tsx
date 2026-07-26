@@ -16,6 +16,7 @@ const CATEGORIES: { id: PopulateCategory; label: string }[] = [
   { id: "objects", label: "Objects" },
   { id: "structures", label: "Structs" },
   { id: "terrain", label: "Terrain" },
+  { id: "decals", label: "Wear" },
 ];
 
 const labelStyle = { display: "block", marginBottom: "4px", color: "var(--jrpg-gold)" } as const;
@@ -71,7 +72,7 @@ export function MapEditToolPanels({
         <label className="jrpg-text-small" style={labelStyle}>
           Populate ({populateCategory}):
         </label>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
           {CATEGORIES.map((c) => (
             <JRPGButton
               key={c.id}

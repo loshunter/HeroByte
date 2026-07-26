@@ -1,5 +1,7 @@
 import type { MapDocument, MapElement, MapLayer } from "@herobyte/shared";
 import { loadTileAtlas } from "../render/tileAtlas";
+import { wearStampSeed } from "../render/wearStampDetail";
+import { wearStampSvgMarkup } from "../render/wearStampSvg";
 import { getGridGeometry } from "./gridGeometry";
 import { paintRasterUnderlay } from "./rasterUnderlay";
 import { visibleInRaster } from "./rasterVisibility";
@@ -297,6 +299,11 @@ function renderElement(
       ? `<rect width="${width}" height="${height}" fill="${xml(element.data.tint)}" fill-opacity="0.35"/>`
       : "";
     return `<g ${footprintAttributes} data-asset-id="${xml(element.data.assetId)}"><image href="${xml(href)}" width="${width}" height="${height}" preserveAspectRatio="none"/>${tintOverlay}</g>`;
+  }
+  // Wear decals export the SAME deterministic painter art the live layer
+  // draws (a rect-recording shim), never the flat-rect fallback.
+  if (asset.decal) {
+    return `<g ${footprintAttributes} data-asset-id="${xml(element.data.assetId)}">${wearStampSvgMarkup(asset.decal, width, height, wearStampSeed(element.id), element.data.tint)}</g>`;
   }
   if (element.type === "tile" && isAutotileCandidate(element, grid)) {
     // Autotiled terrain: no per-tile outline; borders appear only where a

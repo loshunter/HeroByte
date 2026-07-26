@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render } from "@testing-library/react";
 import type { ReactNode } from "react";
 import type { MapElementsSnapshot, RenderableMapElement } from "@herobyte/shared";
+import { createRecordingContext } from "../../../render/__tests__/recordingContext";
 import { MapElementsLayer } from "../MapElementsLayer";
 
 type Props = Record<string, unknown> & { children?: ReactNode };
@@ -11,6 +12,7 @@ const rects: Props[] = [];
 const ellipses: Props[] = [];
 const texts: Props[] = [];
 const images: Props[] = [];
+const shapes: Props[] = [];
 
 vi.mock("react-konva", () => ({
   Group: ({ children, ...props }: Props) => {
@@ -20,6 +22,10 @@ vi.mock("react-konva", () => ({
   Rect: (props: Props) => {
     rects.push(props);
     return <div data-testid="k-rect" />;
+  },
+  Shape: (props: Props) => {
+    shapes.push(props);
+    return <div data-testid="k-shape" />;
   },
   Ellipse: (props: Props) => {
     ellipses.push(props);
@@ -41,7 +47,9 @@ vi.mock("../../../map-studio/starterTiles", () => ({
   getMapStudioTileAsset: (assetId: string) =>
     assetId.startsWith("upload:")
       ? { fill: "#111111", stroke: "#222222", imageUrl: `http://img/${assetId}` }
-      : { fill: "#7cb04a", stroke: "#4a764e" },
+      : assetId.startsWith("decal:")
+        ? { fill: "#c9925f", stroke: "#8e5f36", decal: { kind: "ring" } }
+        : { fill: "#7cb04a", stroke: "#4a764e" },
 }));
 
 const cam = { x: 0, y: 0, scale: 1 };
@@ -59,6 +67,7 @@ beforeEach(() => {
   ellipses.length = 0;
   texts.length = 0;
   images.length = 0;
+  shapes.length = 0;
 });
 
 describe("MapElementsLayer", () => {
@@ -83,6 +92,35 @@ describe("MapElementsLayer", () => {
     );
     expect(rects).toHaveLength(1);
     expect(rects[0]).toMatchObject({ width: 100, height: 150, fill: "#7cb04a", listening: false });
+  });
+
+  it("renders a wear-decal stamp as a painter Shape, never the flat rect", () => {
+    render(
+      <MapElementsLayer
+        cam={cam}
+        mapElements={snapshot([
+          {
+            opacity: 1,
+            elements: [
+              {
+                id: "d1",
+                type: "stamp",
+                transform: T,
+                data: { assetId: "decal:wear-ring", width: 150, height: 150 },
+              },
+            ],
+          },
+        ])}
+      />,
+    );
+    expect(shapes).toHaveLength(1);
+    expect(shapes[0]).toMatchObject({ listening: false });
+    expect(rects).toHaveLength(0);
+    // Driving the sceneFunc with a recording context proves it draws the
+    // deterministic wear art through the shared painter subset.
+    const { context, calls } = createRecordingContext();
+    (shapes[0]!.sceneFunc as (ctx: unknown) => void)(context);
+    expect(calls.filter(([op]) => op === "fillRect").length).toBeGreaterThan(20);
   });
 
   it("renders an upload-backed stamp as a Konva image at its pixel size", () => {

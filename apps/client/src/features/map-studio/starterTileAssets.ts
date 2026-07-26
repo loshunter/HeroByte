@@ -1,11 +1,16 @@
 // The bundled tile-asset DATA — split from starterTiles (the lookup/style API)
 // for the 350-LOC cap as the painted families grow. starterTiles re-exports
-// everything here, so callers keep importing from "./starterTiles".
+// everything here, so callers keep importing from "./starterTiles". The
+// object/decal entries live in starterTileObjectAssets (same cap), spread in
+// at the bottom.
+
+import type { WearDecalSpec } from "../render/wearStampDetail";
+import { OBJECT_TILE_ASSETS } from "./starterTileObjectAssets";
 
 export interface MapStudioTileAsset {
   id: string;
   name: string;
-  category: "terrain" | "structures" | "objects" | "my-stuff";
+  category: "terrain" | "structures" | "objects" | "decals" | "my-stuff";
   layerKind: "terrain" | "objects" | "walls";
   columns: number;
   rows: number;
@@ -23,6 +28,9 @@ export interface MapStudioTileAsset {
   /** A placed prop of this asset GLOWS: it contributes a bake light at its
    * centre (emissiveLights). `radius` in CELLS; colour/intensity as a light. */
   emissive?: { color: string; radius: number; intensity: number };
+  /** Procedural wear-decal art (catalog rank 8): placed elements render the
+   * deterministic wearStampDetail painter instead of the flat colour rect. */
+  decal?: WearDecalSpec;
 }
 
 export const MAP_STUDIO_TILE_ASSETS: MapStudioTileAsset[] = [
@@ -311,38 +319,5 @@ export const MAP_STUDIO_TILE_ASSETS: MapStudioTileAsset[] = [
     stroke: "#b0b4c1",
     accent: "#5c6070",
   },
-  {
-    id: "objects:crate",
-    name: "Crate",
-    category: "objects",
-    layerKind: "objects",
-    columns: 1,
-    rows: 1,
-    fill: "#8c5a2e",
-    stroke: "#d19a5f",
-    accent: "#4b2f1b",
-  },
-  {
-    id: "objects:table",
-    name: "Table",
-    category: "objects",
-    layerKind: "objects",
-    columns: 2,
-    rows: 1,
-    fill: "#6b3f28",
-    stroke: "#c38753",
-    accent: "#2e1b12",
-  },
-  {
-    id: "objects:lamp",
-    name: "Street Lamp",
-    category: "objects",
-    layerKind: "objects",
-    columns: 1,
-    rows: 1,
-    fill: "#e8b84a",
-    stroke: "#8a6b2f",
-    accent: "#5c4720",
-    emissive: { color: "#ffcf70", radius: 3, intensity: 1 },
-  },
+  ...OBJECT_TILE_ASSETS,
 ];

@@ -64,7 +64,7 @@ export type MapEditFloorFamily =
 export type PopulateDensity = "low" | "medium" | "high";
 
 /** Asset category POPULATE scatters from (bundled categories only). */
-export type PopulateCategory = "objects" | "structures" | "terrain";
+export type PopulateCategory = "objects" | "structures" | "terrain" | "decals";
 
 /**
  * The dungeon recipe's dial settings, owned by the palette. No secret-door dial:

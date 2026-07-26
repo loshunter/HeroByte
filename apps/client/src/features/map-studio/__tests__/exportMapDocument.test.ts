@@ -49,6 +49,28 @@ describe("Map Studio export", () => {
     expect(exported).toContain('\n  "schemaVersion"');
   });
 
+  it("renders wear-decal stamps as painter rect art, not the flat swatch", () => {
+    let document = createMapDocument({ id: "map", name: "Arena", timestamp: 10 });
+    document = addMapElement(document, {
+      id: "ring-1",
+      type: "stamp",
+      layerId: "objects",
+      locked: false,
+      hidden: false,
+      transform: { x: 100, y: 100, scaleX: 1, scaleY: 1, rotation: 0 },
+      data: { assetId: "decal:wear-ring", width: 150, height: 150 },
+    });
+    const svg = renderMapDocumentSvg(document);
+    const group = svg.split('data-asset-id="decal:wear-ring"')[1];
+    expect(group, "decal group must render").toBeDefined();
+    const art = group!.split("</g>")[0]!;
+    // Dozens of dabs from the deterministic painter, no crosshair fallback.
+    expect(art.split("<rect ").length - 1).toBeGreaterThan(20);
+    expect(art).not.toContain("<path");
+    // Determinism across renders: the same document exports the same bytes.
+    expect(renderMapDocumentSvg(document)).toBe(svg);
+  });
+
   it("renders visible geometry and escapes authored text in portable SVG", () => {
     let document = createMapDocument({ id: "map", name: "Keep & <Crypt>", timestamp: 10 });
     document = addMapElement(

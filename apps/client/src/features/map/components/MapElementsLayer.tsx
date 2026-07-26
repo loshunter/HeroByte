@@ -12,7 +12,7 @@
 // nested camera + map-object transform groups as the terrain, so it moves and
 // scales with the map.
 
-import { Group, Rect, Ellipse, Text, Image as KonvaImage } from "react-konva";
+import { Group, Rect, Ellipse, Shape, Text, Image as KonvaImage } from "react-konva";
 import useImage from "use-image";
 import type {
   MapElementsSnapshot,
@@ -20,6 +20,11 @@ import type {
   SceneObjectTransform,
 } from "@herobyte/shared";
 import { getMapStudioTileAsset } from "../../map-studio/starterTiles";
+import {
+  paintWearStamp,
+  wearStampSeed,
+  type WearStampContext2D,
+} from "../../render/wearStampDetail";
 import type { Camera } from "../types";
 
 interface MapElementsLayerProps {
@@ -114,6 +119,21 @@ function renderDrawable(
     const asset = getMapStudioTileAsset(element.data.assetId);
     const width = element.type === "tile" ? element.data.columns * gridSize : element.data.width;
     const height = element.type === "tile" ? element.data.rows * gridSize : element.data.height;
+    // Wear decals draw the deterministic painter art (seeded per element, so
+    // every client renders the identical marks); a tint recolours a stain.
+    if (asset.decal) {
+      const decal = asset.decal;
+      const tint = element.data.tint;
+      const seed = wearStampSeed(element.id);
+      return (
+        <Shape
+          listening={false}
+          sceneFunc={(ctx) =>
+            paintWearStamp(ctx as unknown as WearStampContext2D, width, height, seed, decal, tint)
+          }
+        />
+      );
+    }
     // Image-backed (uploaded) assets draw the picture; bundled tiles flat-fill.
     if (asset.imageUrl && image) {
       const tint = element.data.tint;

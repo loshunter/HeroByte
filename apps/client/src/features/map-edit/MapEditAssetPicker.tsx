@@ -19,7 +19,7 @@ import type { UploadedAssetInfo } from "../map-studio/uploads/assetUpload";
 
 type Category = MapStudioTileAsset["category"];
 
-const CATEGORIES: Category[] = ["objects", "structures", "terrain", "my-stuff"];
+const CATEGORIES: Category[] = ["objects", "structures", "terrain", "decals", "my-stuff"];
 
 interface MapEditAssetPickerProps {
   selectedAssetId: string;
