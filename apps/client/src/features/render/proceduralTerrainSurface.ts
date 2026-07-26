@@ -23,6 +23,7 @@ import { makeClipCtx, makeTintCtx } from "./terrainDetailCtx";
 import { drownHex, waterBandsFor, waterFamilyOf } from "./terrainFieldColor";
 import { computePolarRegions } from "./terrainPolarField";
 import { applyBakeLighting, lightingActive, type BakeLighting } from "./terrainLighting";
+import { paintCanopyDetail } from "./terrainCanopyDetail";
 import { paintKeyClusterDetail, paintTerrainDetail } from "./terrainDetail";
 import { paintFloorDetail } from "./terrainFloorDetail";
 import { paintRoofDetail, paintStairsDetail } from "./terrainRoofDetail";
@@ -123,6 +124,9 @@ export function buildProceduralFieldConfig(
         : undefined,
       underfill: fam.underfill,
       contact: fam.contact,
+      canopy: fam.canopy
+        ? { shade: fam.canopy.shade, core: fam.canopy.core, sub: fam.canopy.sub }
+        : undefined,
     });
     for (const cell of layer.cells) {
       familyByCell.set(`${cell.cellX},${cell.cellY}`, layer.assetId);
@@ -134,16 +138,19 @@ export function buildProceduralFieldConfig(
   }
   if (familyByCell.size === 0) return null;
   // One combined water-body BFS (see computeBodyDepths for why it is shared),
-  // and the point-source regions for the polar landmark families.
+  // the polar point-source regions, and the canopy crowns' OWN combined body
+  // (variants fuse into one crown mass) — merged into the same depthOf map
+  // but NEVER into the water∪sunken body (computeBodyDepths unions its ids).
+  const ids = families.map((f) => f.assetId);
   const depths = computeBodyDepths(
     familyByCell,
-    families
-      .map((f) => f.assetId)
-      .filter((id) => (palette[id]!.depthBands?.length ?? 0) > 0 || palette[id]!.sunken),
+    ids.filter((id) => (palette[id]!.depthBands?.length ?? 0) > 0 || palette[id]!.sunken),
   );
+  const crownIds = ids.filter((id) => palette[id]!.canopy);
+  for (const [id, map] of computeBodyDepths(familyByCell, crownIds)) depths.set(id, map);
   const polarRegions = computePolarRegions(
     familyByCell,
-    families.map((f) => f.assetId).filter((id) => palette[id]!.polar),
+    ids.filter((id) => palette[id]!.polar),
     grid,
   );
   const { size, offsetX, offsetY } = grid;
@@ -200,6 +207,7 @@ function paintFamilyDetail(
   else if (fam?.stairs) paintStairsDetail(ctx, cell, fam.stairs);
   else if (fam?.floor) paintFloorDetail(ctx, cell, fam.floor);
   else if (fam?.water) paintWaterDetail(ctx, cell, fam.water, depth);
+  else if (fam?.canopy) paintCanopyDetail(ctx, cell, fam.canopy, depth);
   else if (fam?.keyCluster) paintKeyClusterDetail(ctx, cell, fam.keyCluster);
   else paintTerrainDetail(ctx, cell, assetId, fam?.grass);
 }

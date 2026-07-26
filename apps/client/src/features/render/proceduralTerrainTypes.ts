@@ -90,6 +90,17 @@ export interface TerrainFieldFamily {
     spiral?: boolean;
   };
   /**
+   * Foliage canopy treatment (catalog rank 9). The interior renders as two
+   * flat tones — `base` on the side of the crown nearer its up-right (sun)
+   * edge, `shade` on the far side — split by a noise-jittered boundary that
+   * follows each blob's own silhouette (asymmetric depth probes), then
+   * darkens toward `core` with crown depth. `sub` adds a fine extra
+   * displacement octave to the boundary bump (two-scale scalloped lobes),
+   * in field units. Needs the config's `depthOf` registered for this family
+   * (its own crown-mass BFS, NOT the water body's).
+   */
+  canopy?: { shade: string; core: string; sub?: number };
+  /**
    * False ⇒ the family's region is EXACTLY its painted cells (not the union
    * with higher-priority cells), and its edge bumps only EXTEND outward.
    * Water needs this: with the default union indicator, every floor/wall

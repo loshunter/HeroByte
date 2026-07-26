@@ -88,6 +88,22 @@ function gradeFamily(fam: TerrainFamilyPalette, t: number): TerrainFamilyPalette
     ...(fam.roof ? { roof: { palette: gradeCluster(fam.roof.palette, t) } } : {}),
     ...(fam.stairs ? { stairs: { palette: gradeCluster(fam.stairs.palette, t) } } : {}),
     ...(fam.water ? { water: { dash: gradeHex(fam.water.dash, t) } } : {}),
+    // Canopy: the two-tone split, the core darkening AND the leaf ticks all
+    // ride the ladder (the grass-decoration lesson); `sub` is structural.
+    ...(fam.canopy
+      ? {
+          canopy: {
+            ...fam.canopy,
+            shade: gradeHex(fam.canopy.shade, t),
+            core: gradeHex(fam.canopy.core, t),
+            detail: {
+              tickLight: gradeHex(fam.canopy.detail.tickLight, t),
+              tickDark: gradeHex(fam.canopy.detail.tickDark, t),
+              highlight: gradeHex(fam.canopy.detail.highlight, t),
+            },
+          },
+        }
+      : {}),
     ...(fam.sunken?.algae
       ? { sunken: { ...fam.sunken, algae: gradeHex(fam.sunken.algae, t) } }
       : {}),

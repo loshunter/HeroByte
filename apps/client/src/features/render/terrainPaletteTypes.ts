@@ -64,6 +64,15 @@ export interface WaterDetail {
   dash: string;
 }
 
+/** Canopy decoration shades (terrainCanopyDetail): sparse leaf ticks standing
+ * in for thousands of leaves, plus the edge-biased highlight clusters. */
+export interface CanopyDetail {
+  tickLight: string;
+  tickDark: string;
+  /** Sun-caught leaf clusters, biased toward the crown's silhouette. */
+  highlight: string;
+}
+
 /**
  * One terrain family in the procedural render: its silhouette colours (`base`
  * fill + `rim` shading lip), its `priority` (higher draws OVER lower — grass
@@ -89,6 +98,17 @@ export interface TerrainFamilyPalette {
   stairs?: WallDetail;
   /** Depth-banded water routes to the dash-flock painter (terrainWaterDetail). */
   water?: WaterDetail;
+  /**
+   * Foliage canopy (catalog rank 9): the family renders as a crown mass —
+   * interior split into a lit `base` side and a `shade` side by a noisy
+   * diagonal boundary against the shared top-right sun, darkening toward
+   * `core` with crown (edge-distance) depth, plus an extra fine sub-lobe
+   * displacement octave (`sub`, field units) so the silhouette carries
+   * two-scale scallops. `detail` feeds the leaf-tick painter
+   * (terrainCanopyDetail). Canopy families get their own combined body BFS —
+   * every canopy variant fuses into one crown mass, separate from water.
+   */
+  canopy?: { shade: string; core: string; sub?: number; detail: CanopyDetail };
   /**
    * Drowned sibling family (Water II): render `of`'s painter output (base +
    * detail), pulled toward the water bathymetry with this family's own

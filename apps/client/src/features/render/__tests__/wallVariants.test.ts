@@ -65,16 +65,18 @@ describe("wall variants (walls that look like walls — variants are data)", () 
   });
 
   it("walls sit ABOVE every ground-level family with distinct priorities", () => {
-    // Ground level = everything that is not a wall or a roof (naturals,
-    // floors, stairs, drowned siblings, the dais ring). Roofs — square
-    // (shingle-row painter) or round (roof-block polar) — deliberately sit
-    // above walls, pinned in the levels-illusion suite below.
+    // Ground level = everything that is not a wall, a roof, or a canopy
+    // (naturals, floors, stairs, drowned siblings, the dais ring). Roofs —
+    // square (shingle-row painter) or round (roof-block polar) — deliberately
+    // sit above walls (pinned in the levels-illusion suite below), and the
+    // canopy crowns sit above the roofs (pinned in canopyPainter.test).
     const groundMax = Math.max(
       ...Object.entries(VILLAGE_TERRAIN)
         .filter(
           ([, fam]) =>
             fam.wall === undefined &&
             fam.roof === undefined &&
+            fam.canopy === undefined &&
             (fam.polar === undefined || fam.priority < 20),
         )
         .map(([, fam]) => fam.priority),

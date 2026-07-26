@@ -57,6 +57,8 @@ export type MapEditFloorFamily =
   | "sunken-flagstone"
   | "sunken-stairs"
   | "dais-stone"
+  | "canopy"
+  | "canopy-blossom"
   | MapEditWallFamily
   | MapEditRoofFamily;
 

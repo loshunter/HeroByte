@@ -201,6 +201,19 @@ describe("gradeTerrainPalette", () => {
     expect(ratio(night)).toBeLessThanOrEqual(ratio(day));
   });
 
+  it("grades the CANOPY two-tone and leaf ticks (rank 9 rides the ladder)", () => {
+    const day = VILLAGE_TERRAIN["terrain:canopy"]!;
+    expect(day.canopy, "canopy must be palette data").toBeDefined();
+    const night = gradeTerrainPalette(VILLAGE_TERRAIN, 1)["terrain:canopy"]!;
+    expect(night.canopy!.shade).not.toBe(day.canopy!.shade);
+    expect(night.canopy!.core).not.toBe(day.canopy!.core);
+    for (const key of ["tickLight", "tickDark", "highlight"] as const) {
+      expect(night.canopy!.detail[key], key).not.toBe(day.canopy!.detail[key]);
+      expect(luma(night.canopy!.detail[key]), key).toBeLessThan(luma(day.canopy!.detail[key]));
+    }
+    expect(night.canopy!.sub).toBe(day.canopy!.sub); // structural knob survives
+  });
+
   it("keeps the family set identical (membership drives the field, not colour)", () => {
     expect(Object.keys(gradeTerrainPalette(VILLAGE_TERRAIN, 1)).sort()).toEqual(
       Object.keys(VILLAGE_TERRAIN).sort(),

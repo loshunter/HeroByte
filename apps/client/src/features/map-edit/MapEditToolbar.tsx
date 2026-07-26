@@ -49,6 +49,8 @@ const FLOOR_FAMILIES: { id: MapEditFloorFamily; label: string }[] = [
   { id: "sunken-flagstone", label: "Sunken Floor" },
   { id: "sunken-stairs", label: "Sunken Stairs" },
   { id: "dais-stone", label: "Dais" },
+  { id: "canopy", label: "Canopy" },
+  { id: "canopy-blossom", label: "Blossom" },
 ];
 
 // Derived from the one family list so the swatches, the eyedropper mapping and

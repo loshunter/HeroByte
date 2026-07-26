@@ -21,18 +21,16 @@
 import { smoothstep, valueNoise } from "./valueNoise";
 import {
   causticWeightAt,
-  CAUSTIC_SCALE_CELLS,
   foamMaskAt,
-  FOAM_SCALE_CELLS,
   mixRgb,
   mottledRgb,
-  parseBands,
   parseHex,
   pickBand,
   shadowedRgb,
   sunkenTintStrength,
 } from "./terrainFieldColor";
-import { polarCourseColor, type PolarParams } from "./terrainPolarField";
+import { polarCourseColor } from "./terrainPolarField";
+import { buildFieldFamilies, type FieldFamily } from "./proceduralTerrainFamilies";
 import type { FieldRgb, TerrainField, TerrainFieldConfig } from "./proceduralTerrainTypes";
 
 export type {
@@ -41,57 +39,12 @@ export type {
   TerrainFieldConfig,
   TerrainFieldFamily,
 } from "./proceduralTerrainTypes";
+// The shared tuning constants moved to the family-precompute module
+// (proceduralTerrainFamilies, 350-LOC cap); re-exported so callers and tests
+// keep their import path.
+export { TERRAIN_RIM, TERRAIN_SHADOW_STRENGTH } from "./proceduralTerrainFamilies";
 
-// Tuning — validated in the prototype. Band and probe are shared by every
-// family so the shipped grass/dirt/floor look is untouched; only the shadow
-// STRENGTH is per-family (exported so tests pin overrides against it, not
-// against magic literals).
-export const TERRAIN_RIM = 0.16; // default shading-lip band width, in field units
-export const TERRAIN_SHADOW_STRENGTH = 0.16; // default cast-shadow darkening
-const SHADOW = 0.15; // cast-shadow band width on the lower family
 const AMP = 0.9; // boundary bump amplitude
-const SHADOW_STRENGTH = TERRAIN_SHADOW_STRENGTH;
-const SHADOW_PROBE = 0.14; // up-right presence probe, in cells
-
-interface FieldFamily {
-  assetId: string;
-  priority: number;
-  base: FieldRgb;
-  rim: FieldRgb;
-  seed: number;
-  edgeAmp: number;
-  rimWidth: number;
-  shadowBand: number;
-  shadowStrength: number;
-  shadowProbe: number;
-  /** Precomputed mottle: max value offset, wavelength in px, cool shift. */
-  mottleAmp: number;
-  mottleScale: number;
-  mottleCool: number;
-  /** Parsed depth bands, sorted shallow→deep; empty ⇒ plain base fill. */
-  bands: { maxCells: number; rgb: FieldRgb }[];
-  underfill: boolean;
-  /** Contact occlusion; strength 0 ⇒ none. */
-  contactReach: number;
-  contactStrength: number;
-  /** Soft long directional throw; 0 ⇒ none (band at/below the default). */
-  longShadowBand: number;
-  longShadowStrength: number;
-  /** Water II surface terms; reach/strength 0 ⇒ off (bit-parity default). */
-  foamRgb: FieldRgb;
-  foamReach: number;
-  foamScale: number;
-  causticRgb: FieldRgb;
-  causticStrength: number;
-  causticReach: number;
-  causticScale: number;
-  /** Water bathymetry a drowned family tints toward; empty ⇒ not sunken. */
-  sunkenBands: { maxCells: number; rgb: FieldRgb }[];
-  /** Noise seed of the bands' owner, so band jitter aligns across the seam. */
-  sunkenSeed: number;
-  /** Polar-course params (terrainPolarField); undefined ⇒ not a landmark. */
-  polar?: PolarParams;
-}
 
 /**
  * Build the shared field sampler for a terrain config. `colorAt` and
@@ -104,45 +57,7 @@ export function createTerrainField(config: TerrainFieldConfig): TerrainField {
   const offsetX = config.offsetX ?? 0;
   const offsetY = config.offsetY ?? 0;
   const shadowTint = config.shadowTint ? parseHex(config.shadowTint) : null;
-  // Low → high priority; precompute rgb + a distinct noise seed per family so
-  // adjacent boundaries don't share the exact same bumps.
-  const fams: FieldFamily[] = [...config.families]
-    .sort((a, b) => a.priority - b.priority)
-    .map((f) => ({
-      assetId: f.assetId,
-      priority: f.priority,
-      base: parseHex(f.base),
-      rim: parseHex(f.rim),
-      seed: f.priority * 97 + 3,
-      edgeAmp: f.edgeAmp ?? 1,
-      rimWidth: f.rimWidth ?? TERRAIN_RIM,
-      // The crisp NEAR shadow keeps the shared band/probe for every family;
-      // `strength` is per-family. A `shadow.band` above the default becomes
-      // the soft LONG throw below (its hard-probed version read as detached
-      // wedges at wall corners — the long pass gates softly instead).
-      shadowBand: SHADOW,
-      shadowStrength: f.shadow?.strength ?? SHADOW_STRENGTH,
-      shadowProbe: SHADOW_PROBE,
-      contactReach: f.contact?.reach ?? 0,
-      contactStrength: f.contact?.strength ?? 0,
-      longShadowBand: f.shadow && f.shadow.band > SHADOW ? f.shadow.band : 0,
-      longShadowStrength: (f.shadow?.strength ?? SHADOW_STRENGTH) * 0.5,
-      mottleAmp: f.mottle?.amp ?? 0,
-      mottleScale: (f.mottle?.scale ?? 1) * cellSize,
-      mottleCool: f.mottle?.cool ?? 0,
-      bands: parseBands(f.depthBands),
-      underfill: f.underfill ?? true,
-      foamRgb: parseHex(f.foam?.color ?? "#ffffff"),
-      foamReach: f.foam?.reach ?? 0,
-      foamScale: FOAM_SCALE_CELLS * cellSize,
-      causticRgb: parseHex(f.caustics?.color ?? "#ffffff"),
-      causticStrength: f.caustics?.strength ?? 0,
-      causticReach: f.caustics?.reach ?? 0,
-      causticScale: CAUSTIC_SCALE_CELLS * cellSize,
-      sunkenBands: parseBands(f.sunken?.bands),
-      sunkenSeed: (f.sunken?.priority ?? f.priority) * 97 + 3,
-      polar: f.polar,
-    }));
+  const fams = buildFieldFamilies(config.families, cellSize);
   const byId = new Map(fams.map((f) => [f.assetId, f]));
   const priorityOf = new Map(config.families.map((f) => [f.assetId, f.priority]));
   const fillPriority = (cx: number, cy: number): number => {
@@ -183,7 +98,15 @@ export function createTerrainField(config: TerrainFieldConfig): TerrainField {
     // edge. An exact family's bump only EXTENDS (never recedes): receding
     // would open transparent gaps against a crisp higher neighbour (a dock),
     // while extending is always safely overdrawn by it.
-    const bump = f.underfill ? disp(wx, wy, f.seed) : Math.max(0, disp(wx, wy, f.seed));
+    let bump = f.underfill ? disp(wx, wy, f.seed) : Math.max(0, disp(wx, wy, f.seed));
+    // Canopy sub-lobe octave: a fine extra displacement (≈quarter-cell
+    // wavelength) so the crown edge carries small scallops riding the big
+    // lobes — the corpus' two-scale leaf silhouette. Gated on the knob, so
+    // every other family's field is bit-identical.
+    if (f.canopy) {
+      const sub = valueNoise(wx / (ns * 0.22) + 31, wy / (ns * 0.22) + 11, f.seed + 2) - 0.5;
+      bump += sub * f.canopy.sub;
+    }
     return base - 0.5 + bump * prox * f.edgeAmp;
   };
   // Smoothstep-bilinear shore distance in cells (0 outside the family), so
@@ -242,6 +165,21 @@ export function createTerrainField(config: TerrainFieldConfig): TerrainField {
       flat = region
         ? polarCourseColor(f.base, f.rim, wx, wy, region, f.polar, f.seed, cellSize)
         : f.base;
+    } else if (f.canopy) {
+      // Canopy two-tone (catalog rank 9): the side of the crown nearer its
+      // up-right edge faces the sun and stays `base`; the far side drops to
+      // `shade`. Asymmetric depth probes make the split follow each blob's
+      // own silhouette, and noise jitters the boundary so it reads as leaf
+      // mass, not a ruled line. Deeper into the crown, both tones sink
+      // toward `core` — the under-canopy darkness.
+      const probe = cellSize * 0.9;
+      const upRight = bilinearDepth(f.assetId, wx + probe, wy - probe);
+      const downLeft = bilinearDepth(f.assetId, wx - probe, wy + probe);
+      const jitter =
+        (valueNoise(wx / (ns * 2.2) + 47, wy / (ns * 2.2) + 5, f.seed + 3) - 0.5) * 1.6;
+      flat = upRight + jitter <= downLeft ? f.base : f.canopy.shade;
+      const coreT = Math.min(1, bilinearDepth(f.assetId, wx, wy) / 4) * 0.55;
+      if (coreT > 0) flat = mixRgb(flat, f.canopy.core, coreT);
     } else {
       flat = f.base;
     }

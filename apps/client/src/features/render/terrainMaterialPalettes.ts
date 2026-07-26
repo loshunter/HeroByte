@@ -11,7 +11,7 @@
 //   stairs (terrainRoofDetail): crev = tread riser shadows, light = nosing
 //          highlights, dark/mid = wear mottle.
 
-import type { GrassDetail, KeyClusterPalette } from "./terrainPaletteTypes";
+import type { CanopyDetail, GrassDetail, KeyClusterPalette } from "./terrainPaletteTypes";
 
 /** Grass decoration shades (blades + flower clusters). These were module
  * constants inside terrainDetail until the night grade needed them: every
@@ -147,4 +147,19 @@ export const STONE_STAIRS_DETAIL: KeyClusterPalette = {
   dark: "#5d626f",
   mid: "#7a8090",
   light: "#8f95a5",
+};
+
+/** Leaf-canopy decoration (catalog rank 9): green tick texture + sun-caught
+ * edge highlights over the two-tone crown. */
+export const LEAF_CANOPY_DETAIL: CanopyDetail = {
+  tickLight: "#8fc253",
+  tickDark: "#27491f",
+  highlight: "#b4d977",
+};
+
+/** Blossom-canopy decoration — pink petals over the violet shade half. */
+export const BLOSSOM_CANOPY_DETAIL: CanopyDetail = {
+  tickLight: "#f8c4d9",
+  tickDark: "#7d4a74",
+  highlight: "#fde3ee",
 };
