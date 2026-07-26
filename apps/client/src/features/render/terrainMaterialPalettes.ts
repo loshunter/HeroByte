@@ -11,7 +11,22 @@
 //   stairs (terrainRoofDetail): crev = tread riser shadows, light = nosing
 //          highlights, dark/mid = wear mottle.
 
-import type { KeyClusterPalette } from "./terrainPaletteTypes";
+import type { GrassDetail, KeyClusterPalette } from "./terrainPaletteTypes";
+
+/** Grass decoration shades (blades + flower clusters). These were module
+ * constants inside terrainDetail until the night grade needed them: every
+ * OTHER painter already reads its colours from the family record, so grass was
+ * the one family whose decoration a palette swap (or the grade) could not
+ * reach — night ground went cool while the blades stayed day-warm. Now grass
+ * is data like everything else. */
+export const GRASS_DETAIL: GrassDetail = {
+  bladeLight: "#9cc85a", // sparse blades in open grass
+  bladeDense: "#4a8a6a", // cooler, taller blades inside tall-grass blobs
+  petal: "#ebebd0",
+  petalPink: "#d68aa8",
+  flowerCenter: "#e6c84f",
+  flowerStem: "#4f8236",
+};
 
 /** Default (warm "village" mood) dirt detail palette. */
 export const DIRT_DETAIL: KeyClusterPalette = {

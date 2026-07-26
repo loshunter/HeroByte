@@ -14,18 +14,11 @@
 // zoom. Only the grass family is decorated today; other families no-op.
 
 import type { TerrainCellRect, TileRenderContext2D } from "./tileRenderCore";
-import type { KeyClusterPalette } from "./terrainPalette";
+import type { GrassDetail, KeyClusterPalette } from "./terrainPalette";
+import { GRASS_DETAIL } from "./terrainMaterialPalettes";
 import { hash2, valueNoise } from "./valueNoise";
 
 const GRASS_ASSET_ID = "terrain:grass";
-
-// Blade + flower palette.
-const BLADE_LIGHT = "#9cc85a"; // sparse blades in open grass
-const BLADE_DENSE = "#4a8a6a"; // cooler, taller blades inside tall-grass blobs
-const PETAL = "#ebebd0";
-const PETAL_PINK = "#d68aa8";
-const FLOWER_CENTER = "#e6c84f";
-const FLOWER_STEM = "#4f8236";
 
 /** Tall-grass density field (two octaves + a small per-cell dither so blob
  * edges stipple instead of stepping on cell boundaries). */
@@ -37,16 +30,23 @@ function grassDensity(cellX: number, cellY: number): number {
   );
 }
 
-/** Paint decoration for one terrain cell (no-op for families without any). */
+/** Paint decoration for one terrain cell (no-op for families without any).
+ * `palette` carries the blade/flower shades; omitting it uses the shipped
+ * village set, so the flat/atlas core path renders exactly as before. */
 export function paintTerrainDetail(
   ctx: TileRenderContext2D,
   cell: TerrainCellRect,
   assetId: string,
+  palette: GrassDetail = GRASS_DETAIL,
 ): void {
-  if (assetId === GRASS_ASSET_ID) paintGrassDetail(ctx, cell);
+  if (assetId === GRASS_ASSET_ID) paintGrassDetail(ctx, cell, palette);
 }
 
-function paintGrassDetail(ctx: TileRenderContext2D, cell: TerrainCellRect): void {
+function paintGrassDetail(
+  ctx: TileRenderContext2D,
+  cell: TerrainCellRect,
+  palette: GrassDetail,
+): void {
   const { x, y, size, cellX, cellY } = cell;
   // Keep detail in the cell's central region so blades never poke past a
   // rounded silhouette corner into empty space.
@@ -58,7 +58,7 @@ function paintGrassDetail(ctx: TileRenderContext2D, cell: TerrainCellRect): void
   const bladeCount = tier === 2 ? 13 : tier === 1 ? 7 : 3;
   const bladeW = Math.max(1, size * 0.035);
   const bladeH = size * (tier === 2 ? 0.15 : 0.09);
-  ctx.fillStyle = tier === 2 ? BLADE_DENSE : BLADE_LIGHT;
+  ctx.fillStyle = tier === 2 ? palette.bladeDense : palette.bladeLight;
   for (let i = 0; i < bladeCount; i += 1) {
     const bx = x + inset + hash2(cellX * 31 + i, cellY * 17 + i, 11) * span;
     const by = y + inset + hash2(cellX * 13 + i, cellY * 29 + i, 12) * span;
@@ -73,14 +73,14 @@ function paintGrassDetail(ctx: TileRenderContext2D, cell: TerrainCellRect): void
     for (let i = 0; i < count; i += 1) {
       const fx = x + inset + hash2(cellX + i, cellY * 7 + i, 21) * span;
       const fy = y + inset + hash2(cellX * 7 + i, cellY + i, 22) * span;
-      ctx.fillStyle = FLOWER_STEM;
+      ctx.fillStyle = palette.flowerStem;
       ctx.fillRect(fx, fy, p, p * 2);
-      ctx.fillStyle = hash2(cellX + i, cellY + i, 23) > 0.6 ? PETAL_PINK : PETAL;
+      ctx.fillStyle = hash2(cellX + i, cellY + i, 23) > 0.6 ? palette.petalPink : palette.petal;
       ctx.fillRect(fx - p, fy, p, p);
       ctx.fillRect(fx + p, fy, p, p);
       ctx.fillRect(fx, fy - p, p, p);
       ctx.fillRect(fx, fy + p, p, p);
-      ctx.fillStyle = FLOWER_CENTER;
+      ctx.fillStyle = palette.flowerCenter;
       ctx.fillRect(fx, fy, p, p);
     }
   }

@@ -201,7 +201,7 @@ function paintFamilyDetail(
   else if (fam?.floor) paintFloorDetail(ctx, cell, fam.floor);
   else if (fam?.water) paintWaterDetail(ctx, cell, fam.water, depth);
   else if (fam?.keyCluster) paintKeyClusterDetail(ctx, cell, fam.keyCluster);
-  else paintTerrainDetail(ctx, cell, assetId);
+  else paintTerrainDetail(ctx, cell, assetId, fam?.grass);
 }
 
 /** The most common lower-priority von-Neumann neighbour of a cell, or null. */

@@ -10,11 +10,23 @@ vi.mock("../../../render/terrainPalette", () => ({
   // grass/dirt are field families; water is deliberately absent (a core family).
   // pond/drowned model the water BODY (depth-banded water + sunken sibling)
   // for the shimmer and body-membership tests.
+  // base/rim are REQUIRED on TerrainFamilyPalette — the stub carries them so
+  // it stays type-faithful for consumers that read colour (the night grade).
   VILLAGE_TERRAIN: {
-    "terrain:grass": {},
-    "terrain:dirt": {},
-    "terrain:pond": { depthBands: [{ maxCells: 2, base: "#204060" }] },
-    "terrain:drowned": { sunken: { of: "terrain:grass" } },
+    "terrain:grass": { base: "#7cb04a", rim: "#4a764e", priority: 3 },
+    "terrain:dirt": { base: "#60482e", rim: "#4a3420", priority: 2 },
+    "terrain:pond": {
+      base: "#204060",
+      rim: "#a0e0e0",
+      priority: 3.5,
+      depthBands: [{ maxCells: 2, base: "#204060" }],
+    },
+    "terrain:drowned": {
+      base: "#3d5265",
+      rim: "#33485a",
+      priority: 3.6,
+      sunken: { of: "terrain:grass" },
+    },
   },
   VILLAGE_SHADOW_TINT: "#3a2f45",
 }));
@@ -27,6 +39,7 @@ import {
   drawWaterShimmer,
   waterBodyLayers,
 } from "../terrainBake";
+import { VILLAGE_TERRAIN } from "../../../render/terrainPalette";
 import type { StructuredTerrainLayer } from "../../../render/tileRenderCore";
 
 const layer = (assetId: string): StructuredTerrainLayer => ({ assetId, cells: [], edges: [] });
@@ -85,6 +98,40 @@ describe("getFieldBake", () => {
     bakeSpy.mockReturnValue(null);
     const cache = createFieldBakeCache();
     expect(getFieldBake(cache, [water], grid)).toBeNull();
+  });
+
+  it("bakes DAYLIGHT with the ungraded palette object itself (night-grade parity)", () => {
+    const cache = createFieldBakeCache();
+    getFieldBake(cache, [grass], grid);
+    // No lighting ⇒ ambient 1 ⇒ grade strength 0 ⇒ the very same palette
+    // record, so an unlit map is byte-identical and costs nothing extra.
+    const { palette } = bakeSpy.mock.calls[0]![0] as { palette: unknown };
+    expect(palette).toBe(VILLAGE_TERRAIN);
+  });
+
+  it("bakes NIGHT through a graded palette derived from the ambient", () => {
+    const cache = createFieldBakeCache();
+    getFieldBake(cache, [grass], grid, { ambient: 0.2, lights: [] });
+    const { palette } = bakeSpy.mock.calls[0]![0] as { palette: unknown };
+    expect(palette).not.toBe(VILLAGE_TERRAIN);
+    // Same ambient ⇒ the memo hands back one graded record (no churn).
+    const second = createFieldBakeCache();
+    getFieldBake(second, [grass], grid, { ambient: 0.2, lights: [] });
+    expect((bakeSpy.mock.calls[1]![0] as { palette: unknown }).palette).toBe(palette);
+  });
+
+  it("re-bakes when the AMBIENT changes — the grade rides the lighting key", () => {
+    // The grade takes no cache term of its own: it is a pure function of the
+    // ambient, which the lighting signature already covers. Pinned so nobody
+    // "optimises" ambient out of the key and freezes the grade.
+    const cache = createFieldBakeCache();
+    const layers = [grass];
+    getFieldBake(cache, layers, grid, { ambient: 0.8, lights: [] });
+    getFieldBake(cache, layers, grid, { ambient: 0.2, lights: [] });
+    expect(bakeSpy).toHaveBeenCalledTimes(2);
+    const first = (bakeSpy.mock.calls[0]![0] as { palette: unknown }).palette;
+    const second = (bakeSpy.mock.calls[1]![0] as { palette: unknown }).palette;
+    expect(second).not.toBe(first);
   });
 
   it("re-bakes when the lighting VALUE changes, not for a fresh identical object", () => {

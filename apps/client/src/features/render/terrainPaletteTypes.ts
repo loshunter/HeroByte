@@ -18,6 +18,20 @@ export interface KeyClusterPalette {
   light: string;
 }
 
+/** Grass decoration shades (terrainDetail's blade + flower painter). Palette
+ * data like every other painter's colours, so a mood swap — or the night
+ * grade — reaches the blades and not just the ground beneath them. */
+export interface GrassDetail {
+  /** Sparse blades in open grass. */
+  bladeLight: string;
+  /** Cooler, taller blades inside tall-grass blobs. */
+  bladeDense: string;
+  petal: string;
+  petalPink: string;
+  flowerCenter: string;
+  flowerStem: string;
+}
+
 /** The floor material painters terrainFloorDetail implements. */
 export type FloorDetailKind = "plank" | "flagstone";
 
@@ -61,6 +75,9 @@ export interface TerrainFamilyPalette {
   rim: string;
   priority: number;
   keyCluster?: KeyClusterPalette;
+  /** Grass families route to the blade/flower painter (terrainDetail); omitted
+   * ⇒ that painter's shipped defaults. */
+  grass?: GrassDetail;
   /** Floor families route to a dedicated material painter instead of the
    * key-cluster pebbles or grass decoration (checked first). */
   floor?: FloorDetail;

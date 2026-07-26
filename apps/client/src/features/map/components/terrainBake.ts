@@ -14,6 +14,7 @@ import {
   type ProceduralGrid,
 } from "../../render/proceduralTerrainSurface";
 import type { BakeLighting } from "../../render/terrainLighting";
+import { gradeTerrainPalette, nightGradeStrength } from "../../render/terrainNightGrade";
 import { VILLAGE_SHADOW_TINT, VILLAGE_TERRAIN } from "../../render/terrainPalette";
 import type { StructuredTerrainLayer } from "../../render/tileRenderCore";
 
@@ -50,11 +51,14 @@ export function getFieldBake(
     cache.gridSig = gridSig;
     cache.lightingSig = lightingSig;
     // The shadow tint is a module constant riding the VILLAGE mood — no cache
-    // key term needed until it becomes a per-map dial.
+    // key term needed until it becomes a per-map dial. The NIGHT GRADE is
+    // derived from the ambient, which the lighting signature already covers,
+    // so it needs no key term either: same ambient ⇒ same graded palette
+    // (memoized), and daylight returns VILLAGE_TERRAIN itself.
     cache.baked = bakeProceduralTerrain({
       terrainLayers: layers,
       grid,
-      palette: VILLAGE_TERRAIN,
+      palette: gradeTerrainPalette(VILLAGE_TERRAIN, nightGradeStrength(lighting?.ambient ?? 1)),
       shadowTint: VILLAGE_SHADOW_TINT,
       lighting,
     });

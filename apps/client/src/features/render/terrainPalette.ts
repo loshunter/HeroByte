@@ -13,6 +13,7 @@ import {
   COBBLE_FLOOR_DETAIL,
   DARK_WALL_DETAIL,
   DIRT_DETAIL,
+  GRASS_DETAIL,
   GREY_PLANK_DETAIL,
   PATH_DETAIL,
   SANDSTONE_FLOOR_DETAIL,
@@ -29,6 +30,7 @@ import type { TerrainFamilyPalette } from "./terrainPaletteTypes";
 export type {
   FloorDetail,
   FloorDetailKind,
+  GrassDetail,
   KeyClusterPalette,
   TerrainFamilyPalette,
   WallDetail,
@@ -36,9 +38,8 @@ export type {
 } from "./terrainPaletteTypes";
 
 /** Shared wall field tuning: a thin inked rim (≈3px at the 50px grid), a
- * darker-than-default cast shadow whose band length scales with height (walls
- * throw 0.3, roofs 0.5 — catalog #11), and a thin omnidirectional contact/AO
- * band seating the mass on the ground (catalog #4). */
+ * darker-than-default cast shadow whose band length scales with height
+ * (catalog #11), and a thin omnidirectional contact/AO band (catalog #4). */
 const WALL_RIM = 0.055;
 const WALL_SHADOW = { band: 0.3, strength: 0.3 };
 const ROOF_SHADOW = { band: 0.42, strength: 0.38 };
@@ -54,18 +55,16 @@ const SPIRAL_SHADOW = { band: 0.45, strength: 0.38 };
 const CONE_SHADOW = { band: 0.48, strength: 0.38 };
 const DOME_SHADOW = { band: 0.5, strength: 0.38 };
 
-/** The village mood's map-level shadow COLOUR (catalog rank 2): darkening
- * terms fall toward this dusky plum instead of grey-multiplying, so shadows
- * hue-shift cool and stay saturated. Both production bakes (terrainBake live,
+/** The village mood's map-level shadow COLOUR (catalog rank 2): darkening terms
+ * fall toward this dusky plum instead of grey-multiplying, so shadows hue-shift
+ * cool and stay saturated. Both production bakes (terrainBake live,
  * rasterUnderlay export) pass it with VILLAGE_TERRAIN; per-map dial later. */
 export const VILLAGE_SHADOW_TINT = "#3a2f45";
 
-/**
- * The default "village" mood — warm and saturated. A map's mood (cool
- * cave/swamp, purple-grass fantasy) is the same shape with different values,
- * so re-skinning terrain is a data swap, never a code change. Keyed by the
- * terrain assetId. See temp/_dirt_path_proto for the validated mood set.
- */
+/** The default "village" mood — warm and saturated. A mood (cool cave/swamp,
+ * purple-grass fantasy) is the same shape with different values, so re-skinning
+ * terrain is a data swap, never a code change. Keyed by the terrain assetId.
+ * See temp/_dirt_path_proto for the validated mood set. */
 export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
   // Water sits ABOVE the natural ground and BELOW the architectural floors:
   // its organic edge laps onto grass/dirt with the thin near-white waterline
@@ -133,6 +132,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     rim: "#4a764e",
     priority: 3,
     mottle: { amp: 0.06, scale: 4, cool: 0.3 },
+    grass: GRASS_DETAIL,
   },
   "terrain:dirt": {
     base: "#60482e",
