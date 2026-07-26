@@ -10,29 +10,35 @@ for our own generators. Companion to czepeku-study-catalog.md (whose ship-next
 three — mottle, water depth field, contact bands — plus lighting, long shadows
 all shipped)._ 
 
-## Ranked techniques (not yet shipped)
+## Ranked techniques
 
-### 1. Baked light pools from emissive props — `new-system`
+_Status 2026-07-26: ranks 1–6 are SHIPPED — 4+5 in Water II (dd9b663e, shimmer
+follow-up 4e35fd31), 6 as the polar-course engine (b20fed07), and 1/2/3 as the
+Light & Colour II arc (01d17bc5, cc2048f3, ad0d0af8). Per-rank annotations
+below. Next unshipped by rank: 7 (floor decals & inlays), 8 (wear stamps),
+9 (foliage canopy), then 10–12._
+
+### 1. Baked light pools from emissive props — `new-system` — SHIPPED cc2048f3 (2026-07-24, Light & Colour II P2)
 The single biggest cluster across all 26 maps (CandleWorkshop, PrintingPress, EelersInn, ProcessionalAvenue, PilgrimSteps, BismuthLabyrinth, SacredBallcourt...): every placed light renders a 3-stop radial gradient — hot core #f8f2c8 (~0.3 tile), inner halo #e8dc8c at ~50% (0.6-0.8t), broad wash to 2.5-3t — that RE-TINTS the underlying family palette (sage stone #565c54 becomes olive-gold #7a8074) instead of adding white; 4-8 sparkle motes float in each halo; the glow ignores object outlines, warming floors, vats and props alike. Light placement becomes level design: play areas stay readable inside pools while darkness between them carries mood.
 **Route:** First real render for the schema's empty lighting layer: per-light colour/radius/strength composited soft-light/screen at bake over the terrain image-map, plus a hue-shift of family palette entries within radius; emissive flag on scenery props (lamp orbs, braziers, torches, chandeliers) draws core + screen-blend halo; sparkle dots deterministic from the world lattice. Zero runtime cost since it bakes.
 
-### 2. Cool-hue element shadow pass with height-scaled length — `new-system`
+### 2. Cool-hue element shadow pass with height-scaled length — `new-system` — SHIPPED 01d17bc5 (2026-07-20, Light & Colour II P1)
 Merged from CastleBattlements' plum shadow mask, BismuthLabyrinth's maze shadows, and ShimmeringPort's blue city: cast shadows are hue-shifted cool (lit pink cobble #C49387 to plum #695A5E; white marble to blue-lilac #8AACD2), never grey-multiplied, so shadowed areas stay luminous with material detail visible. One global sun direction per map; shadow LENGTH encodes height — parapets ~0.25t, one-storey walls ~1t, domes 2-4t; rope bridges cast plank-striped offset shadows onto water below. This is the number-one depth cue on every day map.
 **Route:** Extend the per-family directional cast shadow into an element-shadow pass: walls/roofs/platforms/trees project soft-edged polygons along the sun vector, offset scaled by level delta, blended as darken + cool hue shift (e.g. #3A2F45 at 40-50%). Add a map-level shadow COLOUR knob and a per-family length multiplier so height classes ship as data.
 
-### 3. Night grade palette transform — `field-feature`
+### 3. Night grade palette transform — `field-feature` — SHIPPED ad0d0af8 (2026-07-25, Light & Colour II P3)
 Night maps (ProcessionalAvenue, CathedralOfTheEight, PilgrimSteps, ExecutionSquare) compress every family into one cool desaturated ladder (Cathedral #232b38-#b8c0cc steel blues; Avenue #23262e-#8e9296 slates) and hold warm accents under 5% of pixels (lamp gold #e8dc8c, autumn leaf #b8562a, wine banner #7a2d3e). The monochrome base unifies the map; scarcity turns each warm accent into a landmark — free composition.
 **Route:** A per-map 'night grade' applied to family palettes at bake: hue toward blue, saturation down, value compressed, leaving prop accent palettes untouched. Pure data over the families-as-data architecture; pairs with rank 1 so lamp pools punch through the grade.
 
-### 4. Shore-grammar water suite — `painter-variant`
+### 4. Shore-grammar water suite — `painter-variant` — SHIPPED dd9b663e (2026-07-19, Water II; body-aware shimmer 4e35fd31)
 Four sibling devices all keyed to shore distance: (a) foam lace collar — cellular white #D9EBF3 web with rounded holes punched to mid-blue hugging edges for 0.5-2t, dissolving outward into 2-6px spray speckles (ShimmeringPort); (b) sunlit shallow band — innermost band gains SATURATION not just value (mint #94F9E8 against #1C7D61, ElvenHarbour); (c) caustic ridge web fading to nothing past ~3t of shore; (d) deep-water dash flocks — 5-15 parallel darker dashes sharing one diagonal per 6x6t (DruidIslands) — plus obstacle foam halos and mid-channel S-curve foam ribbons.
 **Route:** All ride the shipped BFS shore-distance field: band 0 becomes a thresholded-noise foam mask, band 1 a decaying speckle scatter, innermost depth band re-palettes to high-sat mint, caustic web = ridge-thresholded value noise modulated by distance, dash flocks stamp where distance > 3. Mostly palette + painter-variant work over existing machinery.
 
-### 5. Sunken-structure ghost layer — `field-feature`
+### 5. Sunken-structure ghost layer — `field-feature` — SHIPPED dd9b663e (2026-07-19, Water II)
 PilgrimSteps, EmpyrealBridge and ShimmeringPort all paint architecture CONTINUING beneath the waterline: geometry intact, underwater cells dropped ~40% value toward the water hue with contrast halved, olive algae #6a7a34 collecting on treads within 1t of shore, and deep ruins fading to whisper contrast (#143E96 vs sea #18469A, outlines ~15% alpha). Water that reveals drowned architecture is enormously more evocative than opaque water, and it is a pure compositing rule.
 **Route:** A 'sunken' flag on any terrain family: render its normal painter output first, tint toward the water hue and alpha-cap (~0.15 for deep, ~0.5 for shallow keyed to the BFS depth field), then composite depth bands and foam over it. A compositing-order feature in the existing bake-at-publish pipeline — no new art.
 
-### 6. Polar-course engine — `new-painter`
+### 6. Polar-course engine — `new-painter` — SHIPPED b20fed07 (2026-07-19)
 One parametric grammar explains a dozen observed structures: concentric courses around a focal point with radial joints. Spiral thatch (0.4-0.6t straw bands #C6AB63/#8D7D4A, jagged tuft edges), round tower cone shingles with a sun-sector luminance split (#8D403A lit vs #4E2626), cobalt domes with offset highlight crescents, dais/orchestra ring courses with radial keystone ticks (#e8ddc4/#c9b088 alternating) and riser lines, rose-window floor inlays, fan-laid quarter-circle stairs, woven parasols. Circular landmarks are the strongest silhouettes on every map studied.
 **Route:** Generalise the water BFS to a point/arc-source distance field on a region centroid: band index = quantized distance selects a palette row; params = course width, tangent joint pitch, edge jaggedness, value ramp, gap probability, angle-vs-sun luminance. Thatch, dome, dais, fan stair, ring mosaic then become pure palette entries — a stairTreads sibling with massive leverage.
 
