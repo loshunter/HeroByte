@@ -12,14 +12,18 @@ all shipped)._
 
 ## Ranked techniques
 
-_Status 2026-07-26 (evening): ranks 1–9 are SHIPPED — 4+5 in Water II
-(dd9b663e, shimmer follow-up 4e35fd31), 6 as the polar-course engine
-(b20fed07), 1/2/3 as the Light & Colour II arc (01d17bc5, cc2048f3,
-ad0d0af8), 8+9 as the Wear & Canopy arc (1f88921c, 4e78a9c2), and 7's
-placeable kinds as the Floor Decals arc (1fead0d1, 32853711). Per-rank
-annotations below. Next unshipped by rank: 10 (scatter bias), 11
-(repeat-along-line — which also inherits rank 7's deferred path ribbons and
-filigree causeways), 12 (paired-family interleave + micro-grunge)._
+_Status 2026-07-26 (night): **ALL TWELVE RANKED TECHNIQUES ARE SHIPPED.**
+4+5 in Water II (dd9b663e, shimmer follow-up 4e35fd31), 6 as the
+polar-course engine (b20fed07), 1/2/3 as the Light & Colour II arc
+(01d17bc5, cc2048f3, ad0d0af8), 8+9 as the Wear & Canopy arc (1f88921c,
+4e78a9c2), 7's placeable kinds as the Floor Decals arc (1fead0d1,
+32853711), and 10/11/12 as the Catalog Closer arc (8eb47582, 98bf9487,
+f4b16f25). Per-rank annotations below. What remains of this document is
+the UNRANKED roadmap: the terrain family roster, the structure treatments,
+the prop kits (fillRect anatomies), and the mood palettes — plus the
+recorded deferrals: a spline arc (persistent paths, sag arcs, rank 7's
+ribbons/filigree), populate anchors (cone/emitter bias), prop kits
+(under-prop stains, host-surface clutter), and fog-aware terrain (M4)._
 
 ### 1. Baked light pools from emissive props — `new-system` — SHIPPED cc2048f3 (2026-07-24, Light & Colour II P2)
 The single biggest cluster across all 26 maps (CandleWorkshop, PrintingPress, EelersInn, ProcessionalAvenue, PilgrimSteps, BismuthLabyrinth, SacredBallcourt...): every placed light renders a 3-stop radial gradient — hot core #f8f2c8 (~0.3 tile), inner halo #e8dc8c at ~50% (0.6-0.8t), broad wash to 2.5-3t — that RE-TINTS the underlying family palette (sage stone #565c54 becomes olive-gold #7a8074) instead of adding white; 4-8 sparkle motes float in each halo; the glow ignores object outlines, warming floors, vats and props alike. Light placement becomes level design: play areas stay readable inside pools while darkness between them carries mood.
@@ -57,15 +61,15 @@ Human (or explosive) activity written into the floor with zero objects: 3t sparr
 Trees, bushes and organic canopies are everywhere in the corpus and absent from HeroByte. The recipe is consistent: one blob split diagonally into two flat tones by a noisy boundary (blossom #FA93BE sun / #945993 shade; forest #557A1D/#1E4D1D; maroon #4E1D19 with scarlet #E1372A dapple), two-scale scalloped edges (0.3t lobes carrying 0.08t sub-lobes) over a thin ink contour, interior darkening toward the crown centre, edge-biased highlight clusters, and sparse 2-4px tick texture standing in for thousands of leaves.
 **Route:** A 'canopy' family riding the shipped roofs/levels illusion: edgeAmp maxed with a second sub-lobe octave, BFS edge-distance darkening (field already exists), directional noise threshold splitting interior into two palette tones, deterministic tick scatter via the grass-blade machinery. Works for scenery tree props, bush blobs, and canopy roof regions alike; pairs with the cool shadow pass for grounding.
 
-### 10. Scatter bias modes — `field-feature`
+### 10. Scatter bias modes — `field-feature` — SHIPPED 8eb47582 (2026-07-26; wall/open weights as per-asset data — cone/emitter/host-surface defer to populate anchors + prop kits)
 Czepeku debris obeys physics and narrative: autumn leaves streak along wall bases and stair corners, almost never mid-plaza; arrows scatter in a widening cone downrange of targets, densest just short of and beyond the butts; loose paper clusters at desks and doorways, thinning with distance and piling into corners; blossom petals fall off with distance from the source tree across ALL surfaces; gulls and cats sit only on structure edges. Directional/adjacency density is cheap narrative that also softens hard joins.
 **Route:** Extend the existing scatter/POPULATE density tiers with bias functions: 8-neighbour wall-adjacency weight (corner cells x2), directional cone from an anchor prop along a heading, radial falloff from a designated emitter cell, family-boundary affinity, and host-prop surface constraint (tabletop clutter). Placement rules become data alongside the props.
 
-### 11. Repeat-along-line stamps — `field-feature`
+### 11. Repeat-along-line stamps — `field-feature` — SHIPPED 98bf9487 (2026-07-26; the row GESTURE emitting plain stamps — persistent splines/sag arcs/ribbons defer to a spline arc)
 A small stamp repeated along a polyline with jitter and skips is the corpus's cheapest richness device: printed sheets pegged every 0.8t on drying ropes (+-10 deg jitter), fish every 0.3t on twin rack rails, paired candles riding a belt circuit every 0.15t, shield rows on ship gunwales, duckboard planks with 0.2-0.5t gaps and some missing, dock pile heads every 2t, chain sag arcs between balustrade studs. Reads as industry, path, or ornament depending on the stamp.
 **Route:** New scenery element type: path spline + item stamp + interval + rotation jitter + skip probability, with optional post/wheel props at vertices and sag-arc rendering between fixed points. Fish racks, drying lines, dock piles, shield rows and chain balustrades all become data stamps on one system.
 
-### 12. Paired-family interleave with echo islands, plus micro-grunge — `field-feature`
+### 12. Paired-family interleave with echo islands, plus micro-grunge — `field-feature` — SHIPPED f4b16f25 (2026-07-26; grass↔dirt hysteresis islands + stone/dirt speckle — crack-web pass defers to the family-roster work)
 Open-country boundaries (grass #B8AF47 vs sand #D6BE7A on VikingMarket, ElvenArcherySchool, GnomeMinefield) interpenetrate with ~0.3t organic amplitude AND spawn 1-2t satellite islands of each family 1-2t beyond the main boundary, echoing its shape — the echo islands are what make terrain read hand-painted rather than thresholded. The sibling close-zoom polish seen on nearly all stone: sparse 1-2px speckles 5-10% darker (10-30 per tile, clustered toward slab edges) plus rare branching 1px crack polylines.
 **Route:** Interleave: threshold one shared low-frequency noise field twice (hysteresis band) per family pair so each spawns satellites inside the other automatically. Grunge: add a fine-scale speckle octave to the value-noise mottle (per-family amp, optional 8-mask edge bias) and extract flagstone's crack logic into a standalone crack-web pass with an optional moss re-stroke along cracks.
 
