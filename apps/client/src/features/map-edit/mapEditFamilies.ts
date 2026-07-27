@@ -35,6 +35,7 @@ const FLOOR_FAMILIES: MapEditFloorFamily[] = [
   "stairs-stone",
   "sunken-flagstone",
   "sunken-stairs",
+  "cliff",
   "dais-stone",
   "canopy",
   "canopy-blossom",

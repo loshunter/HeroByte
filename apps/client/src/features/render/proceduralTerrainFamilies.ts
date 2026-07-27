@@ -63,6 +63,9 @@ export interface FieldFamily {
   /** Micro-grunge speckle; chance 0 ⇒ off (bit-parity default). */
   speckleAmp: number;
   speckleChance: number;
+  /** Stacked-ledge crag courses, outer→core; empty ⇒ not a crag. */
+  ledgeRgbs: FieldRgb[];
+  ledgeContourRgb: FieldRgb;
 }
 
 /** Low → high priority; precompute rgb + a distinct noise seed per family so
@@ -117,5 +120,7 @@ export function buildFieldFamilies(
       interleave: f.interleave,
       speckleAmp: f.speckle?.amp ?? 0,
       speckleChance: f.speckle?.chance ?? 0,
+      ledgeRgbs: (f.ledges?.colors ?? []).map(parseHex),
+      ledgeContourRgb: parseHex(f.ledges?.contour ?? "#000000"),
     }));
 }

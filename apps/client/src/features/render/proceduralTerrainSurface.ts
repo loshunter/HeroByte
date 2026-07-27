@@ -129,6 +129,7 @@ export function buildProceduralFieldConfig(
         : undefined,
       interleave: fam.interleave,
       speckle: fam.speckle,
+      ledges: fam.ledges,
     });
     for (const cell of layer.cells) {
       familyByCell.set(`${cell.cellX},${cell.cellY}`, layer.assetId);

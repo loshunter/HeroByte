@@ -186,6 +186,20 @@ export const MAP_STUDIO_TILE_ASSETS: MapStudioTileAsset[] = [
     stroke: "#8f9853",
     accent: "#3f451f",
   },
+  // Sea-crag cliff (taxonomy family roster): coastal rock band rendered as
+  // stacked rim-within-rim ledges. Fill matches the VILLAGE_TERRAIN base so
+  // bake and flat fallback agree.
+  {
+    id: "terrain:cliff",
+    name: "Sea-Crag Cliff",
+    category: "terrain",
+    layerKind: "terrain",
+    columns: 1,
+    rows: 1,
+    fill: "#565e62",
+    stroke: "#7b858b",
+    accent: "#26282a",
+  },
   // Foliage canopies (taxonomy catalog rank 9): the level ABOVE the roofs —
   // trees and bushes as paintable terrain. Fills match their VILLAGE_TERRAIN
   // sun-side bases (pinned by canopyPainter.test) so bake and fallback agree.

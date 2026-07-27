@@ -112,6 +112,28 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     mottle: { amp: 0.03, scale: 3, cool: 0.4 },
     sunken: { of: "terrain:stairs-stone", algae: "#6a7a34" },
   },
+  // Sea-crag cliff (taxonomy family roster — DruidIslands/TempleOfTheOracle
+  // grammar): the coastal rock band between grass cap and water, rendered as
+  // stacked rim-within-rim ledges with ink contours. Priority ABOVE water so
+  // the crag's toes bump over the foam line and its long throw lands on the
+  // sea, BELOW the floors/stairs so a cut path or stair run breaks the ring.
+  // Grass (lower) underfills it, and the detail pass paints the grass-cap
+  // blade fringe into the crag's receded top seam for free.
+  "terrain:cliff": {
+    base: "#565e62",
+    rim: "#26282a",
+    priority: 3.8,
+    edgeAmp: 1.05,
+    rimWidth: 0.05,
+    shadow: { band: 0.34, strength: 0.28 },
+    contact: { reach: 0.1, strength: 0.14 },
+    mottle: { amp: 0.04, scale: 3, cool: 0.35 },
+    speckle: { amp: 0.1, chance: 0.05 },
+    ledges: {
+      colors: ["#2b4152", "#3c4a54", "#4c565c", "#565e62"],
+      contour: "#26282a",
+    },
+  },
   // Grass↔dirt is the interleaved open-country pair (catalog rank 12): the
   // seam interpenetrates and each family spawns echo islands inside the
   // other — what makes the boundary read hand-painted, not thresholded.

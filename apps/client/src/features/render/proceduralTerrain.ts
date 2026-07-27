@@ -200,6 +200,16 @@ export function createTerrainField(config: TerrainFieldConfig): TerrainField {
       if (f.foamReach > 0 && foamMaskAt(wx, wy, f.seed + 21, f.foamScale, depth, f.foamReach)) {
         flat = f.foamRgb;
       }
+    } else if (f.ledgeRgbs.length > 0) {
+      // Stacked-ledge crag (sea-crag cliff): the interior field quantizes into
+      // rim-within-rim courses — the waterline ledge darkest, stepping lighter
+      // toward the saturated core plateau — with a noise-wobbled ink contour
+      // at each course break, so height reads as contoured ledges. The break
+      // wobble rides a half-cell noise, one octave under the silhouette bumps.
+      const jit = (valueNoise(wx / (ns * 0.5) + 61, wy / (ns * 0.5) + 23, f.seed + 9) - 0.5) * 0.9;
+      const pos = (Math.max(0, Math.min(v, 0.5)) / 0.5) * f.ledgeRgbs.length + jit;
+      const idx = Math.max(0, Math.min(f.ledgeRgbs.length - 1, Math.floor(pos)));
+      flat = idx > 0 && pos - idx < 0.16 ? f.ledgeContourRgb : f.ledgeRgbs[idx]!;
     } else if (f.polar && polarOf) {
       // Polar landmark: quantized radial courses around the painted region's
       // point source; off-region pixels (an underfilled neighbour) keep base.

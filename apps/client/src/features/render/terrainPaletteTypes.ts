@@ -171,6 +171,10 @@ export interface TerrainFamilyPalette {
   /** Micro-grunge speckle (catalog rank 12): sparse 1px darker flecks over
    * the mottle — `chance` per bake pixel, `amp` the mix toward black. */
   speckle?: { amp: number; chance: number };
+  /** Stacked-ledge crag (sea-crag cliff): interior quantized into
+   * rim-within-rim courses, `colors` outer→core (waterline darkest), ink
+   * `contour` at every course break. See proceduralTerrain. */
+  ledges?: { colors: string[]; contour: string };
   /** False ⇒ exact region + extend-only bumps (water). See proceduralTerrain. */
   underfill?: boolean;
 }
