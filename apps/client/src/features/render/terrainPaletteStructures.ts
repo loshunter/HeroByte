@@ -112,8 +112,8 @@ export const STRUCTURE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     roof: { palette: SHINGLE_ROOF_DETAIL },
   },
   "terrain:roof-thatch": {
-    base: "#a08954",
-    rim: "#c4b183",
+    base: "#a88c4e",
+    rim: "#c9b67f",
     priority: 31,
     edgeAmp: 0,
     rimWidth: WALL_RIM,

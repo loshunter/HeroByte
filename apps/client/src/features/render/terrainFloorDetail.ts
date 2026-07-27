@@ -25,6 +25,7 @@ export function paintFloorDetail(
   const scale = floor.scale ?? 1;
   if (floor.kind === "plank") paintPlankDetail(ctx, cell, floor.palette, scale);
   else if (floor.kind === "bridge") paintBridgeDetail(ctx, cell, floor.palette);
+  else if (floor.kind === "furrow") paintFurrowDetail(ctx, cell, floor.palette);
   else paintFlagstoneDetail(ctx, cell, floor.palette, scale);
 }
 
@@ -162,6 +163,57 @@ function paintBridgeDetail(
       const ey = n ? y + size - post : y;
       ctx.fillRect(x, ey, post, post);
       ctx.fillRect(x + size - post, ey, post, post);
+    }
+  }
+}
+
+// Furrow ridges per cell (≈0.33t pitch) and the sparse crop ticks riding
+// each ridge top (island benchmark arc — the tilled-plot read).
+const FURROW_ROWS = 3;
+const FURROW_CROP_CHANCE = 0.55;
+
+/**
+ * Tilled furrows: trench/ridge rows running ALONG the plot with a lit ridge
+ * line and sparse crop ticks on top. Rows default horizontal and only turn
+ * vertical on a clearly vertical 1-wide strip, so a square plot ploughs one
+ * way edge to edge. Row indices are world-lattice, so furrows continue
+ * seamlessly across cells.
+ */
+function paintFurrowDetail(
+  ctx: TileRenderContext2D,
+  cell: TerrainCellRect,
+  pal: KeyClusterPalette,
+): void {
+  const { x, y, size, cellX, cellY } = cell;
+  const mask = cell.neighborMask ?? 0;
+  const n = (mask & NEIGHBOR_BITS.N) !== 0;
+  const e = (mask & NEIGHBOR_BITS.E) !== 0;
+  const s = (mask & NEIGHBOR_BITS.S) !== 0;
+  const w = (mask & NEIGHBOR_BITS.W) !== 0;
+  const verticalRows = (n || s) && !(e || w);
+
+  const rowH = size / FURROW_ROWS;
+  const trench = Math.max(1, size * 0.05);
+  const ridgeLine = Math.max(1, size * 0.03);
+  const crop = Math.max(1, size * 0.05);
+  for (let i = 0; i < FURROW_ROWS; i += 1) {
+    const row = (verticalRows ? cellX : cellY) * FURROW_ROWS + i;
+    const other = verticalRows ? cellY : cellX;
+    const at = i * rowH;
+    // Trench shadow along the row top, lit ridge line mid-row.
+    ctx.fillStyle = pal.crev;
+    if (verticalRows) ctx.fillRect(x + at, y, trench, size);
+    else ctx.fillRect(x, y + at, size, trench);
+    ctx.fillStyle = hash2(row, other, 181) < 0.5 ? pal.mid : pal.dark;
+    if (verticalRows) ctx.fillRect(x + at + rowH * 0.45, y, ridgeLine, size);
+    else ctx.fillRect(x, y + at + rowH * 0.45, size, ridgeLine);
+    // Crop ticks marching along the ridge top.
+    ctx.fillStyle = pal.light;
+    for (let k = 0; k < 3; k += 1) {
+      if (hash2(row * 3 + k, other, 182) >= FURROW_CROP_CHANCE) continue;
+      const along = (k + 0.2 + hash2(row, other * 7 + k, 183) * 0.5) * (size / 3);
+      if (verticalRows) ctx.fillRect(x + at + rowH * 0.4, y + along, crop, crop);
+      else ctx.fillRect(x + along, y + at + rowH * 0.4, crop, crop);
     }
   }
 }

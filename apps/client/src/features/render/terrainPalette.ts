@@ -12,10 +12,12 @@ import {
   BRIDGE_PLANK_DETAIL,
   COBBLE_FLOOR_DETAIL,
   DIRT_DETAIL,
+  FURROW_DETAIL,
   GRASS_DETAIL,
   GREY_PLANK_DETAIL,
   LEAF_CANOPY_DETAIL,
   PATH_DETAIL,
+  SAND_DETAIL,
   SANDSTONE_FLOOR_DETAIL,
   STONE_FLOOR_DETAIL,
   WALNUT_FLOOR_DETAIL,
@@ -146,6 +148,22 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     grass: GRASS_DETAIL,
     interleave: { with: "terrain:dirt" },
   },
+  // Warm coastal sand (island benchmark arc) — the SECOND interleave pair.
+  // The contract puts the declaration on the pair's HIGHER member and grass
+  // already declares dirt, so sand sits at 3.2: above grass (sand↔grass
+  // interpenetrates with echo islands — the reference's dominant ground
+  // read), below water (the waterline lip still laps onto the beach). The
+  // subtle sand-over-grass lip is illegible at map zoom; the seam is what
+  // matters.
+  "terrain:sand": {
+    base: "#cdb285",
+    rim: "#a58a5e",
+    priority: 3.2,
+    mottle: { amp: 0.05, scale: 4, cool: -0.15 },
+    speckle: { amp: 0.08, chance: 0.04 },
+    keyCluster: SAND_DETAIL,
+    interleave: { with: "terrain:grass" },
+  },
   "terrain:dirt": {
     base: "#60482e",
     rim: "#4a3420",
@@ -222,6 +240,19 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     edgeAmp: 0,
     mottle: { amp: 0.04, scale: 5, cool: 0.2 },
     floor: { kind: "plank", palette: GREY_PLANK_DETAIL },
+  },
+  // Tilled farm plot (island benchmark arc): furrow trench/ridge rows with
+  // crop ticks. A laid surface, so it lives in the floors block (the sunken
+  // families must sit strictly between water and EVERY dry floor — pinned by
+  // sunkenStructures.test); nearly-straight hand-cut edges over any ground.
+  "terrain:farm-furrow": {
+    base: "#52402a",
+    rim: "#3c2e1e",
+    priority: 4.5,
+    edgeAmp: 0.25,
+    rimWidth: 0.06,
+    mottle: { amp: 0.04, scale: 4, cool: 0.2 },
+    floor: { kind: "furrow", palette: FURROW_DETAIL },
   },
   // Log-rib bridge deck (structure treatments — dock and bridge ribbons):
   // boards perpendicular to the run over a dark water-shadow base that shows

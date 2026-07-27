@@ -77,6 +77,25 @@ export const GREY_PLANK_DETAIL: KeyClusterPalette = {
   light: "#8a867a",
 };
 
+/** Warm coastal sand — pale shell-fleck pebbles over the sand base (island
+ * benchmark arc; the taxonomy arena-sand row, cooled toward beach tan). */
+export const SAND_DETAIL: KeyClusterPalette = {
+  crev: "#a08556",
+  dark: "#b3976a",
+  mid: "#c2a878",
+  light: "#e0cda0",
+};
+
+/** Tilled farm furrows — `crev` is the trench shadow between ridges, dark/mid
+ * the ridge shade/lit soil, `light` the CROP green ticked along ridge tops
+ * (island benchmark arc; the reference's tilled-plot read). */
+export const FURROW_DETAIL: KeyClusterPalette = {
+  crev: "#33261a",
+  dark: "#5e492e",
+  mid: "#6d5636",
+  light: "#7fa03c",
+};
+
 /** Bridge-deck timber over open water: `crev` is the water-sliver shadow that
  * shows between and through missing boards (the family base tone), the three
  * timber shades the per-plank value jitter. */
@@ -143,12 +162,14 @@ export const SHINGLE_ROOF_DETAIL: KeyClusterPalette = {
   light: "#9d97ab",
 };
 
-/** Thatch roof — warm straw rows. */
+/** Thatch roof — golden straw rows (warmed in the island benchmark arc so
+ * building-scale thatch reads as straw, not pale brickwork; shares the
+ * spiral thatch's straw-gold hue family). */
 export const THATCH_ROOF_DETAIL: KeyClusterPalette = {
-  crev: "#6e5c36",
-  dark: "#8b7648",
-  mid: "#ab935c",
-  light: "#bfa76d",
+  crev: "#6b592f",
+  dark: "#8a7440",
+  mid: "#ac9350",
+  light: "#c6ab63",
 };
 
 /** Stone stairs — lighter than the flagstone floor so treads read raised. */

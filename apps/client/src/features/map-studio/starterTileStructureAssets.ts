@@ -98,9 +98,9 @@ export const STRUCTURE_TILE_ASSETS: MapStudioTileAsset[] = [
     layerKind: "terrain",
     columns: 1,
     rows: 1,
-    fill: "#a08954",
-    stroke: "#c4b183",
-    accent: "#6e5c36",
+    fill: "#a88c4e",
+    stroke: "#c9b67f",
+    accent: "#6b592f",
   },
   // Round landmarks (polar-course engine): fills match their VILLAGE_TERRAIN
   // bases (pinned by polarCourse.test) so bake and flat fallback agree.

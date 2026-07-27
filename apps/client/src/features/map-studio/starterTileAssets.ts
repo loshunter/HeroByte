@@ -186,6 +186,33 @@ export const MAP_STUDIO_TILE_ASSETS: MapStudioTileAsset[] = [
     stroke: "#8f9853",
     accent: "#3f451f",
   },
+  // Warm coastal sand (island benchmark arc): the second interleave pair —
+  // sand↔grass interpenetrates with echo islands. Fill matches the
+  // VILLAGE_TERRAIN base so bake and flat fallback agree.
+  {
+    id: "terrain:sand",
+    name: "Sand",
+    category: "terrain",
+    layerKind: "terrain",
+    columns: 1,
+    rows: 1,
+    fill: "#cdb285",
+    stroke: "#e0cda0",
+    accent: "#a58a5e",
+  },
+  // Tilled farm plot (island benchmark arc): furrow ridge rows + crop ticks.
+  // Fill matches the VILLAGE_TERRAIN base so bake and flat fallback agree.
+  {
+    id: "terrain:farm-furrow",
+    name: "Farm Furrows",
+    category: "terrain",
+    layerKind: "terrain",
+    columns: 1,
+    rows: 1,
+    fill: "#52402a",
+    stroke: "#7fa03c",
+    accent: "#33261a",
+  },
   // Log-rib bridge deck (structure treatments): plank courses over open
   // water. Fill matches the VILLAGE_TERRAIN base (the dark water-shadow the
   // boards sit over) so bake and flat fallback agree.
