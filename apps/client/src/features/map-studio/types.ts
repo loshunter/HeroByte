@@ -64,6 +64,14 @@ export interface MapWallDraft {
   blocksVision: boolean;
 }
 
+/** Persistent authored curve (spline arc): anchors in document px. */
+export interface MapSplineDraft {
+  layerId: string;
+  points: { x: number; y: number }[];
+  kind: "ribbon" | "filigree" | "rope" | "chain";
+  tint?: string;
+}
+
 export interface MapDoorDraft {
   layerId: string;
   x: number;
@@ -121,6 +129,7 @@ export interface MapStudioController {
   addWall: (draft: MapWallDraft) => string | null;
   addDoor: (draft: MapDoorDraft) => string | null;
   addLight: (draft: MapLightDraft) => string | null;
+  addSpline: (draft: MapSplineDraft) => string | null;
   removeElement: (elementId: string) => void;
   updateElement: (elementId: string, update: MapElementUpdate) => void;
   /** Author a placed door's initial state + width (dedicated data path). */

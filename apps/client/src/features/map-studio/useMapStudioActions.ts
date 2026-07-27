@@ -17,6 +17,7 @@ import {
   createStampElement,
   createTileElement,
   createLightElement,
+  createSplineElement,
   createWallElement,
 } from "./elementBuilders";
 import type {
@@ -26,6 +27,7 @@ import type {
   MapStampDraft,
   MapTileDraft,
   MapLightDraft,
+  MapSplineDraft,
   MapWallDraft,
 } from "./types";
 
@@ -101,6 +103,10 @@ export function useMapStudioActions({
   const addWall = useMemo(() => elementAdder<MapWallDraft>(createWallElement), [elementAdder]);
   const addDoor = useMemo(() => elementAdder<MapDoorDraft>(createDoorElement), [elementAdder]);
   const addLight = useMemo(() => elementAdder<MapLightDraft>(createLightElement), [elementAdder]);
+  const addSpline = useMemo(
+    () => elementAdder<MapSplineDraft>(createSplineElement),
+    [elementAdder],
+  );
   const addTiles = useMemo(() => elementsAdder<MapTileDraft>(createTileElement), [elementsAdder]);
   const addStamps = useMemo(
     () => elementsAdder<MapStampDraft>(createStampElement),
@@ -196,6 +202,7 @@ export function useMapStudioActions({
     addWall,
     addDoor,
     addLight,
+    addSpline,
     removeElement,
     updateElement,
     updateDoor,
