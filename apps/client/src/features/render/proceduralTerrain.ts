@@ -18,7 +18,7 @@
 // both served by one sampler (createTerrainField), so there is a single field
 // implementation. Validated in temp/_dirt_path_proto/transition_v2_proto.mjs.
 
-import { smoothstep, valueNoise } from "./valueNoise";
+import { hash2, smoothstep, valueNoise } from "./valueNoise";
 import {
   causticWeightAt,
   foamMaskAt,
@@ -45,6 +45,17 @@ export type {
 export { TERRAIN_RIM, TERRAIN_SHADOW_STRENGTH } from "./proceduralTerrainFamilies";
 
 const AMP = 0.9; // boundary bump amplitude
+
+// Paired-family interleave tuning (catalog rank 12): the shared-noise
+// wavelength and seam reach in cells, the hysteresis half-band, and the
+// override amplitude. The amplitude must clear the ±0.5 field saturation
+// AFTER the reach falloff halves it — at amp 8, a noise excursion of ~0.15
+// past the band flips ownership one cell into the partner, ~0.25 reaches
+// almost two; smaller excursions only warp the seam (the interpenetration).
+const IL_SCALE = 2.2;
+const IL_REACH = 2.4;
+const IL_BAND = 0.05;
+const IL_AMP = 8;
 
 /**
  * Build the shared field sampler for a terrain config. `colorAt` and
@@ -107,8 +118,41 @@ export function createTerrainField(config: TerrainFieldConfig): TerrainField {
       const sub = valueNoise(wx / (ns * 0.22) + 31, wy / (ns * 0.22) + 11, f.seed + 2) - 0.5;
       bump += sub * f.canopy.sub;
     }
-    return base - 0.5 + bump * prox * f.edgeAmp;
+    let v = base - 0.5 + bump * prox * f.edgeAmp;
+    // Paired-family interleave (catalog rank 12): near the seam with the
+    // partner, shared low-frequency noise past the hysteresis band overrides
+    // ownership — EXTEND this family inside the partner (echo islands) or
+    // CARVE it so the underfilling partner shows through. The near-family
+    // probes keep islands off the partner's OTHER seams (a grass echo must
+    // not spawn beside a dirt↔path boundary with no grass in sight).
+    if (f.interleave) {
+      const cx = Math.floor((wx - offsetX) / cellSize);
+      const cy = Math.floor((wy - offsetY) / cellSize);
+      const n = valueNoise(wx / (ns * IL_SCALE) + 3, wy / (ns * IL_SCALE) + 89, f.seed + 17);
+      const dOther = bilinearDepth(f.interleave.with, wx, wy);
+      if (dOther > 0 && dOther < IL_REACH && n > 0.5 + IL_BAND && nearFamily(f.assetId, cx, cy)) {
+        v += (n - 0.5 - IL_BAND) * IL_AMP * (1 - dOther / IL_REACH);
+      } else if (n < 0.5 - IL_BAND && nearFamily(f.interleave.with, cx, cy)) {
+        const dSelf = bilinearDepth(f.assetId, wx, wy);
+        if (dSelf > 0 && dSelf < IL_REACH) {
+          v -= (0.5 - IL_BAND - n) * IL_AMP * (1 - dSelf / IL_REACH);
+        }
+      }
+    }
+    return v;
   };
+  // True when `id` is painted at the cell or within two cells on an axis —
+  // the coarse "is the pair's seam actually near here" gate for interleave.
+  const nearFamily = (id: string, cx: number, cy: number): boolean =>
+    familyAt(cx, cy) === id ||
+    familyAt(cx + 1, cy) === id ||
+    familyAt(cx - 1, cy) === id ||
+    familyAt(cx, cy + 1) === id ||
+    familyAt(cx, cy - 1) === id ||
+    familyAt(cx + 2, cy) === id ||
+    familyAt(cx - 2, cy) === id ||
+    familyAt(cx, cy + 2) === id ||
+    familyAt(cx, cy - 2) === id;
   // Smoothstep-bilinear shore distance in cells (0 outside the family), so
   // depth bands curve smoothly between cell centres instead of stair-stepping.
   const depthOf = config.depthOf;
@@ -187,6 +231,14 @@ export function createTerrainField(config: TerrainFieldConfig): TerrainField {
       f.mottleAmp > 0
         ? mottledRgb(flat, wx, wy, f.seed, f.mottleScale, f.mottleAmp, f.mottleCool)
         : flat;
+    // Micro-grunge speckle (catalog rank 12): sparse 1px darker flecks at
+    // bake resolution, one octave finer than the mottle's clouds.
+    if (
+      f.speckleChance > 0 &&
+      hash2(Math.floor(wx), Math.floor(wy), f.seed + 23) < f.speckleChance
+    ) {
+      color = mixRgb(color, [0, 0, 0], f.speckleAmp);
+    }
     if (f.sunkenBands.length > 0) {
       const depth = bilinearDepth(f.assetId, wx, wy);
       const a = sunkenTintStrength(depth);

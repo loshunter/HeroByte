@@ -112,12 +112,16 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     mottle: { amp: 0.03, scale: 3, cool: 0.4 },
     sunken: { of: "terrain:stairs-stone", algae: "#6a7a34" },
   },
+  // Grass↔dirt is the interleaved open-country pair (catalog rank 12): the
+  // seam interpenetrates and each family spawns echo islands inside the
+  // other — what makes the boundary read hand-painted, not thresholded.
   "terrain:grass": {
     base: "#7cb04a",
     rim: "#4a764e",
     priority: 3,
     mottle: { amp: 0.06, scale: 4, cool: 0.3 },
     grass: GRASS_DETAIL,
+    interleave: { with: "terrain:dirt" },
   },
   "terrain:dirt": {
     base: "#60482e",
@@ -125,6 +129,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     priority: 2,
     keyCluster: DIRT_DETAIL,
     mottle: { amp: 0.05, scale: 4, cool: 0.25 },
+    speckle: { amp: 0.1, chance: 0.05 },
   },
   "terrain:path": {
     base: "#565338",
@@ -132,6 +137,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     priority: 1,
     keyCluster: PATH_DETAIL,
     mottle: { amp: 0.04, scale: 4, cool: 0.25 },
+    speckle: { amp: 0.1, chance: 0.05 },
   },
   // Architectural floors: crisp (edgeAmp 0) grid-aligned edges, and a priority
   // ABOVE the natural families so a floor region reads as laid OVER grass/dirt/
@@ -145,6 +151,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     priority: 4,
     edgeAmp: 0,
     mottle: { amp: 0.05, scale: 3.5, cool: 0.5 },
+    speckle: { amp: 0.08, chance: 0.04 },
     floor: { kind: "flagstone", palette: STONE_FLOOR_DETAIL },
   },
   "terrain:wood-floor": {
@@ -165,6 +172,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     priority: 6,
     edgeAmp: 0,
     mottle: { amp: 0.05, scale: 3.5, cool: 0.5 },
+    speckle: { amp: 0.08, chance: 0.04 },
     floor: { kind: "flagstone", palette: COBBLE_FLOOR_DETAIL, scale: 0.5 },
   },
   "terrain:stone-sandstone": {
@@ -173,6 +181,7 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     priority: 7,
     edgeAmp: 0,
     mottle: { amp: 0.05, scale: 4, cool: -0.2 },
+    speckle: { amp: 0.08, chance: 0.04 },
     floor: { kind: "flagstone", palette: SANDSTONE_FLOOR_DETAIL },
   },
   "terrain:wood-walnut": {

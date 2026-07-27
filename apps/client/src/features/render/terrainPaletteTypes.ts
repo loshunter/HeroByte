@@ -163,6 +163,14 @@ export interface TerrainFamilyPalette {
   /** Caustic refraction web over the shallows (Water II), fading to nothing
    * past `reach` cells of shore distance. */
   caustics?: { color: string; reach: number; strength: number };
+  /** Paired-family interleave (catalog rank 12): echo islands across the
+   * seam with the named LOWER-priority partner — a shared hysteresis noise
+   * extends this family into the partner and carves it so the partner shows
+   * through. Both members get their own-body BFS (terrainDistanceField). */
+  interleave?: { with: string };
+  /** Micro-grunge speckle (catalog rank 12): sparse 1px darker flecks over
+   * the mottle — `chance` per bake pixel, `amp` the mix toward black. */
+  speckle?: { amp: number; chance: number };
   /** False ⇒ exact region + extend-only bumps (water). See proceduralTerrain. */
   underfill?: boolean;
 }

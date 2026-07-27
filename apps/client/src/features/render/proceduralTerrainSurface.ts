@@ -18,7 +18,7 @@ import {
   type TerrainFieldConfig,
   type TerrainFieldFamily,
 } from "./proceduralTerrain";
-import { computeBodyDepths } from "./terrainDistanceField";
+import { computeFieldDepths } from "./terrainDistanceField";
 import { makeClipCtx, makeTintCtx } from "./terrainDetailCtx";
 import { drownHex, waterBandsFor, waterFamilyOf } from "./terrainFieldColor";
 import { computePolarRegions } from "./terrainPolarField";
@@ -127,6 +127,8 @@ export function buildProceduralFieldConfig(
       canopy: fam.canopy
         ? { shade: fam.canopy.shade, core: fam.canopy.core, sub: fam.canopy.sub }
         : undefined,
+      interleave: fam.interleave,
+      speckle: fam.speckle,
     });
     for (const cell of layer.cells) {
       familyByCell.set(`${cell.cellX},${cell.cellY}`, layer.assetId);
@@ -137,17 +139,11 @@ export function buildProceduralFieldConfig(
     }
   }
   if (familyByCell.size === 0) return null;
-  // One combined water-body BFS (see computeBodyDepths for why it is shared),
-  // the polar point-source regions, and the canopy crowns' OWN combined body
-  // (variants fuse into one crown mass) — merged into the same depthOf map
-  // but NEVER into the water∪sunken body (computeBodyDepths unions its ids).
+  // Every depth registration (water∪sunken body, canopy crowns, interleave
+  // members) — see terrainDistanceField.computeFieldDepths — plus the polar
+  // point-source regions.
   const ids = families.map((f) => f.assetId);
-  const depths = computeBodyDepths(
-    familyByCell,
-    ids.filter((id) => (palette[id]!.depthBands?.length ?? 0) > 0 || palette[id]!.sunken),
-  );
-  const crownIds = ids.filter((id) => palette[id]!.canopy);
-  for (const [id, map] of computeBodyDepths(familyByCell, crownIds)) depths.set(id, map);
+  const depths = computeFieldDepths(familyByCell, ids, palette);
   const polarRegions = computePolarRegions(
     familyByCell,
     ids.filter((id) => palette[id]!.polar),

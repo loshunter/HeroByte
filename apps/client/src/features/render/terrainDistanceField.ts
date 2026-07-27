@@ -5,8 +5,43 @@
 // reads shallow all around its edge. Pure and allocation-light; the surface
 // computes it once per bake alongside the cell occupancy it already builds.
 
+import type { TerrainFamilyPalette } from "./terrainPaletteTypes";
+
 /** `"x,y"` cell key, matching the field config's familyByCell keys. */
 const key = (x: number, y: number): string => `${x},${y}`;
+
+/**
+ * Every depth registration the field config needs, in one place (extracted
+ * from proceduralTerrainSurface at its 350 cap): the combined water∪sunken
+ * body, the combined canopy crown mass, and — new for the interleave
+ * (catalog rank 12) — each pair MEMBER as its OWN body, so a family's
+ * self-distance gates how far echo islands reach. One depthOf slot per
+ * assetId: a family cannot be water-banded AND a canopy AND an interleave
+ * member at once (the last registration would win; keep the roles disjoint).
+ */
+export function computeFieldDepths(
+  familyByCell: ReadonlyMap<string, string>,
+  ids: readonly string[],
+  palette: Record<string, TerrainFamilyPalette>,
+): Map<string, Map<string, number>> {
+  const depths = computeBodyDepths(
+    familyByCell,
+    ids.filter((id) => (palette[id]!.depthBands?.length ?? 0) > 0 || palette[id]!.sunken),
+  );
+  const crownIds = ids.filter((id) => palette[id]!.canopy);
+  for (const [id, map] of computeBodyDepths(familyByCell, crownIds)) depths.set(id, map);
+  const pairIds = new Set<string>();
+  for (const id of ids) {
+    const interleave = palette[id]!.interleave;
+    if (!interleave) continue;
+    pairIds.add(id);
+    if (palette[interleave.with]) pairIds.add(interleave.with);
+  }
+  for (const id of pairIds) {
+    for (const [k, map] of computeBodyDepths(familyByCell, [id])) depths.set(k, map);
+  }
+  return depths;
+}
 
 const NEIGHBOURS: ReadonlyArray<readonly [number, number]> = [
   [0, -1],

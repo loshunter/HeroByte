@@ -58,6 +58,11 @@ export interface FieldFamily {
   polar?: PolarParams;
   /** Canopy two-tone terms (catalog rank 9); undefined ⇒ not a canopy. */
   canopy?: { shade: FieldRgb; core: FieldRgb; sub: number };
+  /** Interleave partner (catalog rank 12); undefined ⇒ no echo islands. */
+  interleave?: { with: string };
+  /** Micro-grunge speckle; chance 0 ⇒ off (bit-parity default). */
+  speckleAmp: number;
+  speckleChance: number;
 }
 
 /** Low → high priority; precompute rgb + a distinct noise seed per family so
@@ -109,5 +114,8 @@ export function buildFieldFamilies(
             sub: f.canopy.sub ?? 0.35,
           }
         : undefined,
+      interleave: f.interleave,
+      speckleAmp: f.speckle?.amp ?? 0,
+      speckleChance: f.speckle?.chance ?? 0,
     }));
 }

@@ -101,6 +101,22 @@ export interface TerrainFieldFamily {
    */
   canopy?: { shade: string; core: string; sub?: number };
   /**
+   * Paired-family interleave (catalog rank 12): near the seam with `with`
+   * (the LOWER-priority partner, which underfills this family), one shared
+   * low-frequency noise thresholded with a hysteresis band overrides
+   * ownership — noise above the band EXTENDS this family's field inside the
+   * partner (echo islands), noise below CARVES it so the partner shows
+   * through. Strength fades with the member's own edge distance, so islands
+   * sit 1–2 cells beyond the seam and cores stay solid. Needs the config's
+   * `depthOf` registered for BOTH members as their OWN bodies.
+   */
+  interleave?: { with: string };
+  /**
+   * Micro-grunge speckle (catalog rank 12): sparse 1px darker flecks over
+   * the mottle — `chance` per bake pixel, `amp` the mix toward black.
+   */
+  speckle?: { amp: number; chance: number };
+  /**
    * False ⇒ the family's region is EXACTLY its painted cells (not the union
    * with higher-priority cells), and its edge bumps only EXTEND outward.
    * Water needs this: with the default union indicator, every floor/wall
