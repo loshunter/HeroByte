@@ -30,6 +30,7 @@ const SUB_TOOLS: { id: MapEditSubTool; label: string }[] = [
   { id: "erase", label: "🧹 Erase" },
   { id: "place", label: "📦 Place" },
   { id: "scatter", label: "🎲 Scatter" },
+  { id: "row", label: "📏 Row" },
   { id: "select", label: "👆 Select" },
   { id: "generate", label: "🏰 Gen" },
 ];
@@ -118,7 +119,8 @@ export function MapEditToolbar(props: MapEditToolbarProps) {
     hallwayWidth,
     onSelectHallwayWidth,
   } = props;
-  const placing = activeSubTool === "place" || activeSubTool === "scatter";
+  const placing =
+    activeSubTool === "place" || activeSubTool === "scatter" || activeSubTool === "row";
   const paintsFloor =
     activeSubTool === "room" || activeSubTool === "terrain" || activeSubTool === "hallway";
   const selectedAssetName = getMapStudioTileAsset(selectedAssetId).name;
@@ -271,7 +273,9 @@ export function MapEditToolbar(props: MapEditToolbarProps) {
                   >
                     {activeSubTool === "place"
                       ? "Click to place · Alt = free stamp · R rotates"
-                      : "Click to scatter a seeded cluster"}
+                      : activeSubTool === "row"
+                        ? "Drag a line — stamps repeat with seeded jitter and skips"
+                        : "Click to scatter a seeded cluster"}
                   </p>
                 </div>
               )}

@@ -23,6 +23,7 @@ export type MapEditSubTool =
   | "erase"
   | "place"
   | "scatter"
+  | "row"
   | "select"
   | "generate";
 

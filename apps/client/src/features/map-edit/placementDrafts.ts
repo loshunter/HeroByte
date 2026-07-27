@@ -8,6 +8,7 @@
 // scatter seed is derived from the drop point so a placement is reproducible.
 
 import type { MapDocument } from "@herobyte/shared";
+import { createSeededRng } from "@herobyte/shared";
 import type { MapStudioTileAsset } from "../map-studio/starterTiles";
 import type { MapStampDraft, MapTileDraft } from "../map-studio/types";
 import { snapPointToGrid } from "../map-studio/snapToGrid";
@@ -110,4 +111,76 @@ export function scatterSeedFromPoint(point: { x: number; y: number }): number {
   const x = Math.round(point.x) | 0;
   const y = Math.round(point.y) | 0;
   return (Math.imul(x, 73856093) ^ Math.imul(y, 19349663)) >>> 0;
+}
+
+/** Deterministic row seed from both drag endpoints — identical drags rebuild
+ * identical rows. */
+export function rowSeedFromDrag(
+  start: { x: number; y: number },
+  end: { x: number; y: number },
+): number {
+  return (
+    (Math.imul(Math.round(start.x), 2654435761) ^
+      Math.imul(Math.round(start.y), 40503) ^
+      Math.imul(Math.round(end.x), 924391) ^
+      Math.imul(Math.round(end.y), 69621)) >>>
+    0
+  );
+}
+
+const ROW_SKIP_CHANCE = 0.08; // a few missing slots read as lived-in, not broken
+const ROW_ANGLE_JITTER = 14; // total degrees of per-stamp rotation wobble
+const MAX_ROW_STAMPS = 200; // far under the add-elements cap, still a whole quay
+
+/**
+ * Stamps repeated along a dragged segment (catalog rank 11) — fish racks,
+ * drying lines, shield rows, dock piles as ONE add-elements command (one
+ * undo). Interval = the footprint's long side × the asset's `rowSpacing`
+ * (default butt-to-butt; a street lamp ships 3 — the lamp-post idiom). Each
+ * slot draws a fixed 4-roll sequence (skip / along / perpendicular / rotation)
+ * so a skipped slot never shifts the stamps after it. Stamps centre ON the
+ * line and rotate to its angle ± jitter — the centre-pivot renderer contract.
+ */
+export function buildRowDrafts(
+  document: MapDocument,
+  asset: MapStudioTileAsset,
+  start: { x: number; y: number },
+  end: { x: number; y: number },
+  layerId: string,
+): MapStampDraft[] {
+  const { size } = document.grid;
+  const w = asset.columns * size;
+  const h = asset.rows * size;
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const length = Math.hypot(dx, dy);
+  if (length < size * 0.5) return []; // a degenerate drag is a misclick, not a row
+  const interval = Math.max(w, h) * (asset.rowSpacing ?? 1);
+  const count = Math.min(MAX_ROW_STAMPS, Math.floor(length / interval) + 1);
+  const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+  const ux = dx / length;
+  const uy = dy / length;
+  const rng = createSeededRng(rowSeedFromDrag(start, end));
+  const drafts: MapStampDraft[] = [];
+  for (let i = 0; i < count; i += 1) {
+    const skipRoll = rng();
+    const alongRoll = rng();
+    const perpRoll = rng();
+    const rotRoll = rng();
+    if (skipRoll < ROW_SKIP_CHANCE && count > 2) continue;
+    const t = i * interval + (alongRoll - 0.5) * interval * 0.12;
+    const off = (perpRoll - 0.5) * size * 0.12;
+    const cx = start.x + ux * t - uy * off;
+    const cy = start.y + uy * t + ux * off;
+    drafts.push({
+      layerId,
+      assetId: asset.id,
+      x: Math.round(cx - w / 2),
+      y: Math.round(cy - h / 2),
+      width: w,
+      height: h,
+      rotation: Math.round((angle + (rotRoll - 0.5) * ROW_ANGLE_JITTER) * 10) / 10,
+    });
+  }
+  return drafts;
 }
