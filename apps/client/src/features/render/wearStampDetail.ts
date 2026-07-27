@@ -27,7 +27,14 @@ export interface WearStampContext2D {
  * floor-decal kinds (catalog rank 7, floorDecalDetail) joined the same
  * machinery; kinds are bundled asset data, never wire data, so the union
  * grows freely with zero schema impact. */
-export type WearStampKind = "ring" | "scorch" | "stain" | "medallion" | "tracery";
+export type WearStampKind =
+  | "ring"
+  | "scorch"
+  | "stain"
+  | "medallion"
+  | "tracery"
+  | "rug"
+  | "ceremony";
 
 /** Per-asset decal declaration (starterTileAssets `decal`). `color` is the
  * stain hue a prop declares; ring/scorch art is fixed. */

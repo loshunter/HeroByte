@@ -16,7 +16,12 @@ import {
   mapStudioTileCategoryLabel,
 } from "../../map-studio/starterTiles";
 
-const P1_KINDS: WearDecalSpec[] = [{ kind: "medallion" }, { kind: "tracery" }];
+const KINDS: WearDecalSpec[] = [
+  { kind: "medallion" },
+  { kind: "tracery" },
+  { kind: "rug", color: "#b25665" },
+  { kind: "ceremony", color: "#6e2318" },
+];
 
 function paint(spec: WearDecalSpec, seed: number, w = 300, h = 300, tint?: string): RecordedCall[] {
   const { context, calls } = createRecordingContext();
@@ -34,7 +39,7 @@ const fills = (calls: RecordedCall[]): string[] =>
 
 describe("floor-decal painters (shared contract)", () => {
   it("is deterministic per seed, varies across seeds, and dispatches via paintWearStamp", () => {
-    for (const spec of P1_KINDS) {
+    for (const spec of KINDS) {
       expect(paint(spec, 7)).toEqual(paint(spec, 7));
       expect(JSON.stringify(paint(spec, 7))).not.toBe(JSON.stringify(paint(spec, 8)));
       // The wear dispatch and a direct paintFloorDecal call are one stream.
@@ -45,7 +50,7 @@ describe("floor-decal painters (shared contract)", () => {
   });
 
   it("emits ONLY fillStyle / globalAlpha / fillRect, restores alpha, stays in bounds", () => {
-    for (const spec of P1_KINDS) {
+    for (const spec of KINDS) {
       for (const [w, h] of [
         [300, 300],
         [150, 200],
@@ -129,16 +134,82 @@ describe("tracery panel", () => {
   });
 });
 
+describe("tone-on-tone rug", () => {
+  const parse = (hex: string): number[] => [
+    parseInt(hex.slice(1, 3), 16),
+    parseInt(hex.slice(3, 5), 16),
+    parseInt(hex.slice(5, 7), 16),
+  ];
+  const luma = (hex: string): number => {
+    const [r, g, b] = parse(hex);
+    return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+  };
+
+  it("derives EVERY shade from the one declared hue (tint recolours coherently)", () => {
+    for (const hue of ["#b25665", "#5b919d"]) {
+      const used = fills(paint({ kind: "rug", color: "#b25665" }, 3, 100, 150, hue));
+      expect(used.length).toBeGreaterThan(10);
+      const base = parse(hue);
+      for (const fill of used) {
+        const c = parse(fill);
+        // Value shifts only: each channel within the ±30 border/light range.
+        expect(
+          base.every((v, i) => Math.abs(v! - c[i]!) <= 31),
+          `${fill} vs ${hue}`,
+        ).toBe(true);
+      }
+      // Tone-on-tone still has real structure: border darker, sigil lighter.
+      const lumas = used.map(luma);
+      expect(Math.min(...lumas)).toBeLessThan(luma(hue) - 12);
+      expect(Math.max(...lumas)).toBeGreaterThan(luma(hue) + 12);
+    }
+  });
+
+  it("weaves ragged ends: fringe rects overhang the field rows on both short ends", () => {
+    const rects = fillRects(paint({ kind: "rug", color: "#b25665" }, 9, 100, 200));
+    const h = 200;
+    expect(rects.some(([, y]) => y < h * 0.035)).toBe(true); // top fringe
+    expect(rects.some(([, y, , rh]) => y + rh > h - h * 0.035 + 0.5)).toBe(true); // bottom fringe
+  });
+});
+
+describe("ceremonial stain", () => {
+  it("fades radially through translucent rings in the declared hue, then restores", () => {
+    const calls = paint({ kind: "ceremony", color: "#6e2318" }, 13);
+    expect(new Set(fills(calls))).toEqual(new Set(["#6e2318"]));
+    const alphas = calls.filter(([op]) => op === "set:globalAlpha").map(([, v]) => v as number);
+    const ramp = alphas.slice(0, -1);
+    expect(new Set(ramp).size).toBeGreaterThan(4); // a real gradient, not one wash
+    for (const a of ramp) expect(a).toBeLessThan(0.3);
+    for (let i = 1; i < ramp.length; i += 1) expect(ramp[i]!).toBeLessThan(ramp[i - 1]!);
+    expect(alphas[alphas.length - 1]).toBe(1);
+    // Tint overrides the declared hue.
+    const tinted = fills(paint({ kind: "ceremony", color: "#6e2318" }, 13, 300, 300, "#2e2354"));
+    expect(new Set(tinted)).toEqual(new Set(["#2e2354"]));
+  });
+});
+
 describe("inlay assets + category contract", () => {
   const inlays = MAP_STUDIO_TILE_ASSETS.filter((a) => a.id.startsWith("inlay:"));
 
-  it("ships medallion and tracery as oversized 'inlays' set-pieces", () => {
-    expect(inlays.map((a) => a.decal?.kind).sort()).toEqual(["medallion", "tracery"]);
+  it("ships the full inlay kit as oversized 'inlays' set-pieces", () => {
+    expect(inlays.map((a) => a.decal?.kind).sort()).toEqual([
+      "ceremony",
+      "medallion",
+      "rug",
+      "rug",
+      "tracery",
+    ]);
     for (const asset of inlays) {
       expect(asset.category, asset.id).toBe("inlays");
       expect(asset.layerKind, asset.id).toBe("objects");
-      expect(asset.columns, asset.id).toBeGreaterThanOrEqual(2); // oversized by design
       expect(getMapStudioTileAsset(asset.id).id, asset.id).toBe(asset.id);
+      // Hue-carrying kinds declare their colour; fixed-art kinds don't.
+      if (asset.decal!.kind === "rug" || asset.decal!.kind === "ceremony") {
+        expect(asset.decal!.color, asset.id).toMatch(/^#[0-9a-f]{6}$/);
+      } else {
+        expect(asset.decal!.color, asset.id).toBeUndefined();
+      }
     }
     expect(mapStudioTileCategoryLabel("inlays")).toBe("Inlays");
   });
