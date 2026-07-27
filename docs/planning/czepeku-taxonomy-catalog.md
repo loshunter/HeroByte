@@ -12,11 +12,14 @@ all shipped)._
 
 ## Ranked techniques
 
-_Status 2026-07-26: ranks 1–6 are SHIPPED — 4+5 in Water II (dd9b663e, shimmer
-follow-up 4e35fd31), 6 as the polar-course engine (b20fed07), and 1/2/3 as the
-Light & Colour II arc (01d17bc5, cc2048f3, ad0d0af8). Per-rank annotations
-below. Next unshipped by rank: 7 (floor decals & inlays), 8 (wear stamps),
-9 (foliage canopy), then 10–12._
+_Status 2026-07-26 (evening): ranks 1–9 are SHIPPED — 4+5 in Water II
+(dd9b663e, shimmer follow-up 4e35fd31), 6 as the polar-course engine
+(b20fed07), 1/2/3 as the Light & Colour II arc (01d17bc5, cc2048f3,
+ad0d0af8), 8+9 as the Wear & Canopy arc (1f88921c, 4e78a9c2), and 7's
+placeable kinds as the Floor Decals arc (1fead0d1, 32853711). Per-rank
+annotations below. Next unshipped by rank: 10 (scatter bias), 11
+(repeat-along-line — which also inherits rank 7's deferred path ribbons and
+filigree causeways), 12 (paired-family interleave + micro-grunge)._
 
 ### 1. Baked light pools from emissive props — `new-system` — SHIPPED cc2048f3 (2026-07-24, Light & Colour II P2)
 The single biggest cluster across all 26 maps (CandleWorkshop, PrintingPress, EelersInn, ProcessionalAvenue, PilgrimSteps, BismuthLabyrinth, SacredBallcourt...): every placed light renders a 3-stop radial gradient — hot core #f8f2c8 (~0.3 tile), inner halo #e8dc8c at ~50% (0.6-0.8t), broad wash to 2.5-3t — that RE-TINTS the underlying family palette (sage stone #565c54 becomes olive-gold #7a8074) instead of adding white; 4-8 sparkle motes float in each halo; the glow ignores object outlines, warming floors, vats and props alike. Light placement becomes level design: play areas stay readable inside pools while darkness between them carries mood.
@@ -42,15 +45,15 @@ PilgrimSteps, EmpyrealBridge and ShimmeringPort all paint architecture CONTINUIN
 One parametric grammar explains a dozen observed structures: concentric courses around a focal point with radial joints. Spiral thatch (0.4-0.6t straw bands #C6AB63/#8D7D4A, jagged tuft edges), round tower cone shingles with a sun-sector luminance split (#8D403A lit vs #4E2626), cobalt domes with offset highlight crescents, dais/orchestra ring courses with radial keystone ticks (#e8ddc4/#c9b088 alternating) and riser lines, rose-window floor inlays, fan-laid quarter-circle stairs, woven parasols. Circular landmarks are the strongest silhouettes on every map studied.
 **Route:** Generalise the water BFS to a point/arc-source distance field on a region centroid: band index = quantized distance selects a palette row; params = course width, tangent joint pitch, edge jaggedness, value ramp, gap probability, angle-vs-sun luminance. Thatch, dome, dais, fan stair, ring mosaic then become pure palette entries — a stairTreads sibling with massive leverage.
 
-### 7. Floor decal and inlay system — `new-system`
+### 7. Floor decal and inlay system — `new-system` — SHIPPED 1fead0d1 + 32853711 (2026-07-26; medallion/tracery/rugs/ceremony as decal kinds — path ribbons + filigree defer to rank 11's spline system)
 Oversized low-contrast floor graphics unify rooms and aim the eye: 6x6t ogee tracery at ~30% opacity (PrintingPress), 10t tessera sun emblems in three golds #E0B147/#D4A93E/#C1922E with grout strokes and top-left bevels (SacredBallcourt), 0.8-1t pale inlay ribbons sweeping plaza-scale arcs paved with perpendicular cross-tick stones (ProcessionalAvenue), tone-on-tone rugs with border scrolls and ~15%-lighter centre sigils, gold filigree causeway inlays, and radial ceremonial stains (#6e2318 multiply fading over 6-8t at story focal points).
 **Route:** New placeable floor-decal scenery class rendered between terrain and props at bake: preset vector motifs (tracery, medallion, maze disc, meander), an emblem-mask mode that tessellates colour regions into jittered tesserae with grout + bevel, authored path ribbons with cross-tick fills, ragged-edge rugs, and radial/polygon stain gradients. One system covers all six observations.
 
-### 8. groundDecal wear stamps — `new-painter`
+### 8. groundDecal wear stamps — `new-painter` — SHIPPED 1f88921c (2026-07-26, Wear & Canopy P1; auto under-prop stains defer to the prop-kit arc)
 Human (or explosive) activity written into the floor with zero objects: 3t sparring rings of scuffed #C9925F overlapping dabs with red splatter flecks breaking the circumference (TrainingGrounds), 3-5t scorch craters — umber core #5B4C3E, near-black radial streak spokes 1-2t past the rim, pale displaced-earth lumps #91785C, cool interior wash (GnomeMinefield) — and process-stain halos under workstations: pink dye #ad315d at 30%, grey ink smudges, cream wax-drip trails. Irregular hand-worn edges stop the geometry reading as vector art.
 **Route:** New deterministic stamp painter: noise-jittered rings of fillRect dabs + dot splatter, streak rects at hashed angles + rim blob clusters, and 2-4 irregular stain blobs in a prop-declared colour (the existing value-noise machinery generates blob shapes). Exposed as placeable stamps, a POPULATE option, and an automatic under-prop stain pass — damages/inhabits any base family.
 
-### 9. Foliage canopy painter — `new-painter`
+### 9. Foliage canopy painter — `new-painter` — SHIPPED 4e78a9c2 (2026-07-26, Wear & Canopy P2)
 Trees, bushes and organic canopies are everywhere in the corpus and absent from HeroByte. The recipe is consistent: one blob split diagonally into two flat tones by a noisy boundary (blossom #FA93BE sun / #945993 shade; forest #557A1D/#1E4D1D; maroon #4E1D19 with scarlet #E1372A dapple), two-scale scalloped edges (0.3t lobes carrying 0.08t sub-lobes) over a thin ink contour, interior darkening toward the crown centre, edge-biased highlight clusters, and sparse 2-4px tick texture standing in for thousands of leaves.
 **Route:** A 'canopy' family riding the shipped roofs/levels illusion: edgeAmp maxed with a second sub-lobe octave, BFS edge-distance darkening (field already exists), directional noise threshold splitting interior into two palette tones, deterministic tick scatter via the grass-blade machinery. Works for scenery tree props, bush blobs, and canopy roof regions alike; pairs with the cool shadow pass for grounding.
 
