@@ -113,6 +113,49 @@ export const OBJECT_TILE_ASSETS: MapStudioTileAsset[] = [
     accent: "#cfc094",
     decal: { kind: "stain", color: "#e8dcb0" },
   },
+  // Prop stamps (island benchmark arc — first prop-kit pieces): procedural
+  // art via the same decal routing. The boat stays out of scatter pools
+  // (place it deliberately); gulls scatter open water, menhirs row into
+  // stone circles and processional lines.
+  {
+    id: "objects:boat",
+    name: "Rowboat",
+    category: "objects",
+    layerKind: "objects",
+    columns: 1,
+    rows: 2,
+    fill: "#b08a55",
+    stroke: "#5f4630",
+    accent: "#6d5138",
+    decal: { kind: "boat" },
+  },
+  {
+    id: "objects:gull",
+    name: "Gull",
+    category: "objects",
+    layerKind: "objects",
+    columns: 1,
+    rows: 1,
+    fill: "#f2f6f6",
+    stroke: "#8f9ba0",
+    accent: "#c9d2d4",
+    decal: { kind: "gull" },
+    scatterBias: "open",
+  },
+  {
+    id: "objects:menhir",
+    name: "Standing Stone",
+    category: "objects",
+    layerKind: "objects",
+    columns: 1,
+    rows: 1,
+    fill: "#949b9e",
+    stroke: "#5c6469",
+    accent: "#383e44",
+    decal: { kind: "menhir" },
+    scatterBias: "open",
+    rowSpacing: 1.5,
+  },
   // Floor inlays (catalog rank 7): oversized set-piece floor graphics. Their
   // "inlays" category is deliberately NOT a PopulateCategory — a ceremonial
   // medallion must never ride a random scatter pool.

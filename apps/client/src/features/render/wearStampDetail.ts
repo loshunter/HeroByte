@@ -15,6 +15,7 @@
 
 import { hash2 } from "./valueNoise";
 import { paintFloorDecal } from "./floorDecalDetail";
+import { paintPropStamp } from "./propStampDetail";
 
 /** The context slice the wear painter draws through (see module note). */
 export interface WearStampContext2D {
@@ -34,7 +35,10 @@ export type WearStampKind =
   | "medallion"
   | "tracery"
   | "rug"
-  | "ceremony";
+  | "ceremony"
+  | "boat"
+  | "gull"
+  | "menhir";
 
 /** Per-asset decal declaration (starterTileAssets `decal`). `color` is the
  * stain hue a prop declares; ring/scorch art is fixed. */
@@ -126,6 +130,8 @@ export function paintWearStamp(
   else if (spec.kind === "scorch") paintScorch(ctx, w, h, seed);
   else if (spec.kind === "stain")
     paintStain(ctx, w, h, seed, tint ?? spec.color ?? WEAR_STAMP_ART.stainFallback);
+  else if (spec.kind === "boat" || spec.kind === "gull" || spec.kind === "menhir")
+    paintPropStamp(ctx, w, h, seed, spec.kind);
   // Every other kind is a floor decal (rank 7) — routed, never fallen into.
   else paintFloorDecal(ctx, w, h, seed, spec, tint);
 }
