@@ -25,7 +25,8 @@ export function buildBenchmarkDocument(): MapDocument {
   const terrain = setTerrainCells(createTerrainMap(), writes);
 
   const elements: MapElement[] = bench.stamps.map((stamp, i) => {
-    const sizePx = stamp.cells * BENCH_CELL_PX;
+    const wPx = stamp.cellsW * BENCH_CELL_PX;
+    const hPx = stamp.cellsH * BENCH_CELL_PX;
     return {
       id: `bench-stamp-${i + 1}`,
       layerId: "objects",
@@ -33,13 +34,13 @@ export function buildBenchmarkDocument(): MapDocument {
       locked: false,
       hidden: false,
       transform: {
-        x: stamp.centerX * BENCH_CELL_PX - sizePx / 2,
-        y: stamp.centerY * BENCH_CELL_PX - sizePx / 2,
+        x: stamp.centerX * BENCH_CELL_PX - wPx / 2,
+        y: stamp.centerY * BENCH_CELL_PX - hPx / 2,
         scaleX: 1,
         scaleY: 1,
         rotation: 0,
       },
-      data: { assetId: stamp.assetId, width: sizePx, height: sizePx },
+      data: { assetId: stamp.assetId, width: wPx, height: hPx },
     } as MapElement;
   });
 

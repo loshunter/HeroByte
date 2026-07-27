@@ -12,8 +12,9 @@ export interface BenchStampIntent {
   /** stamp CENTRE in cell coords */
   centerX: number;
   centerY: number;
-  /** footprint in cells (square) */
-  cells: number;
+  /** footprint in cells */
+  cellsW: number;
+  cellsH: number;
 }
 
 export interface BenchMap {
@@ -185,16 +186,25 @@ export function buildBenchmarkMap(): BenchMap {
   thickLine(paths, 33, 45, 27, 47, 0.9, 29, 0.8);
   thickLine(paths, 16, 49, 8, 48, 0.9, 30, 0.9);
   thickLine(paths, 8, 48, 6, 51, 0.8, 31, 0.8);
-  for (const k of paths) if (cells.get(k) === "terrain:grass") cells.set(k, "terrain:dirt");
+  // Paths and clearings are warm SAND (the reference's dominant ground read);
+  // sand↔grass interleave gives the hand-painted seam for free.
+  for (const k of paths) if (cells.get(k) === "terrain:grass") cells.set(k, "terrain:sand");
+  // Tilled ground stays dirt (pairs with grass): peninsula patch + firepit yard.
+  const tilled = new Set<string>();
+  blob(tilled, 12, 22, 2.0, 161, 4, 0.3);
+  blob(tilled, 30, 44, 1.5, 162, 4, 0.3);
+  for (const k of tilled)
+    if (cells.get(k) === "terrain:grass" || cells.get(k) === "terrain:sand")
+      cells.set(k, "terrain:dirt");
 
-  // 5. farm plots (SE island): tilled soil rows alternating with crop rows
-  // (grass blades stand in for crops; the interleave roughens the furrows)
+  // 5. farm plots (SE island): the furrow family draws its own sub-cell
+  // ridge rows and crop ticks — plots are plain rects of one family now.
   for (const [px, py, pw, ph] of [[35, 41, 4, 3], [35, 45, 4, 3]] as const) {
     for (let y = py; y < py + ph; y++)
       for (let x = px; x < px + pw; x++) {
         const k = key(x, y);
         if (!seIsland.has(k) || cells.get(k) === "terrain:cliff") continue;
-        cells.set(k, y % 2 === 0 ? "terrain:dirt" : "terrain:grass");
+        cells.set(k, "terrain:farm-furrow");
       }
   }
 
@@ -215,8 +225,8 @@ export function buildBenchmarkMap(): BenchMap {
     if (cells.get(k) === "terrain:grass" || cells.get(k) === "terrain:dirt")
       cells.set(k, "terrain:dais-stone");
 
-  // 7. stone features
-  postRing(cells, 8.5, 20.5, 2.2, 8, 61, "terrain:wall-stone"); // stone circle
+  // 7. stone features (the stone circle itself is menhir STAMPS now — see
+  // the stamps list below)
   // broken compound wall over the N side of the roundhouse plateau
   arcWall(cells, 20.5, 9.5, 7.2, 150, 395, "terrain:wall-stone");
   for (const [x, y] of [[25, 30], [26, 30], [26, 31]] as const) cells.set(key(x, y), "terrain:wall-stone");
@@ -263,11 +273,35 @@ export function buildBenchmarkMap(): BenchMap {
   for (const k of garden) if (main.has(k)) cells.set(k, "terrain:canopy-blossom");
 
   const stamps: BenchStampIntent[] = [
-    { assetId: "inlay:sun-medallion", centerX: 33, centerY: 46.5, cells: 6 },
-    { assetId: "inlay:ceremony-stain", centerX: 20.5, centerY: 21, cells: 6 },
-    { assetId: "decal:wear-ring", centerX: 20.5, centerY: 17.5, cells: 3 },
-    { assetId: "decal:scorch", centerX: 31, centerY: 44, cells: 3 },
+    { assetId: "inlay:sun-medallion", centerX: 33, centerY: 46.5, cellsW: 6, cellsH: 6 },
+    { assetId: "inlay:ceremony-stain", centerX: 20.5, centerY: 21, cellsW: 6, cellsH: 6 },
+    { assetId: "decal:wear-ring", centerX: 20.5, centerY: 17.5, cellsW: 3, cellsH: 3 },
+    { assetId: "decal:scorch", centerX: 31, centerY: 44, cellsW: 3, cellsH: 3 },
+    // rowboats riding the channels
+    { assetId: "objects:boat", centerX: 5.5, centerY: 21.5, cellsW: 1, cellsH: 2 },
+    { assetId: "objects:boat", centerX: 20, centerY: 33.5, cellsW: 1, cellsH: 2 },
   ];
+  // the stone circle: a ring of menhir stamps on the peninsula neck
+  for (let i = 0; i < 7; i += 1) {
+    const th = (i / 7) * Math.PI * 2;
+    const jr = 2.1 * (1 + (hash2(i, 1, 63) - 0.5) * 0.15);
+    stamps.push({
+      assetId: "objects:menhir",
+      centerX: 8.5 + Math.cos(th) * jr,
+      centerY: 20.5 + Math.sin(th) * jr,
+      cellsW: 0.8,
+      cellsH: 1.1,
+    });
+  }
+  // lone menhirs on the SW landmass
+  stamps.push({ assetId: "objects:menhir", centerX: 10.5, centerY: 44.5, cellsW: 0.8, cellsH: 1.2 });
+  stamps.push({ assetId: "objects:menhir", centerX: 15.2, centerY: 50.2, cellsW: 0.7, cellsH: 1 });
+  // gull flecks over open water
+  for (const [gx, gy] of [
+    [8, 10], [14, 5], [35, 12], [40, 25], [6, 36], [24, 38], [16, 44], [38, 36], [28, 20],
+  ] as const) {
+    stamps.push({ assetId: "objects:gull", centerX: gx, centerY: gy, cellsW: 0.5, cellsH: 0.5 });
+  }
 
   return { width: BENCH_W, height: BENCH_H, cells, stamps };
 }

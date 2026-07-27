@@ -33,21 +33,33 @@ own procedural art; nothing is copied._
    perpendicular to the neighbour-mask run over a dark water-shadow base
    (sliver gaps + missing boards), mask-driven stringers, end posts.
 
-## Honest delta — what still separates us from the reference, ranked
+## Honest delta — status after the delta-list pass (2026-07-27, same day)
 
-1. **Sand.** No warm-sand family; paths/clearings are dirt-brown. The
-   reference's sand↔grass interleave is its dominant ground read. Route:
-   a sand family + a second interleave pair (grass↔sand), or palette work.
-2. **Farm furrows.** 1-cell dirt/grass stripes mush through the interleave.
-   Needs a furrow micro-painter (sub-cell ridge rows) or row-stamp crops.
-3. **Thatch at building scale.** The square-thatch longhouse reads as pale
-   brickwork; wants straw-run rows + warmer palette at this zoom.
-4. **Boats, gulls, standing stones.** Prop-kit gap (only crate/table/lamp
-   exist). Boat hull grammar + megalith stamps are catalog entries already.
-5. **Bridge dressing.** Rope sag arcs, X-lashings, plank-striped water
+Items 1–4 SHIPPED working the list top-down (1bd2134 ground pass, prop
+stamps commit following):
+
+1. ~~**Sand.**~~ `terrain:sand` + the second interleave pair (grass↔sand) —
+   the dominant ground read landed; paths/clearings glow warm tan with
+   hand-painted seams.
+2. ~~**Farm furrows.**~~ `terrain:farm-furrow` (`furrow` floor kind):
+   sub-cell trench/ridge rows + crop ticks, run-aware via neighbour mask.
+3. ~~**Thatch at building scale.**~~ Square thatch warmed into the spiral's
+   straw-gold hue family (data-only).
+4. ~~**Boats, gulls, standing stones.**~~ First prop-kit pieces as decal-
+   machinery kinds (`boat`/`gull`/`menhir` — zero wire impact): rowboat
+   hull with wake, gull chevrons, lit/shade menhirs. The benchmark's stone
+   circle is real megaliths now.
+
+Still open, ranked:
+
+1. **Bridge dressing.** Rope sag arcs, X-lashings, plank-striped water
    shadow — deferred to the spline arc with the rest of rank 11's ribbons.
-6. **Water dash flocks** barely appear — channels here rarely exceed the
+2. **Prop-kit depth.** The dinghy/gull/menhir trio proves the route; the
+   catalog's larger hull tiers, carts, racks and crop rows remain.
+3. **Water dash flocks** barely appear — channels here rarely exceed the
    depth-3 gate. Not a bug; wider oceans would show them.
+4. **Main-thread bake cost** — a 6.7 MPx live-bind freezes the tab ~1 min;
+   a worker/chunked bake is a wanted slice.
 
 ## Traps found (and paid for)
 
