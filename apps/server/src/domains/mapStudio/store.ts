@@ -55,7 +55,7 @@ export function cloneMapDocument(document: MapDocument): MapDocument {
 
 function cloneMapElement(element: MapDocument["elements"][number]): typeof element {
   const data =
-    element.type === "shape" || element.type === "wall"
+    element.type === "shape" || element.type === "wall" || element.type === "spline"
       ? { ...element.data, points: element.data.points.map((point) => ({ ...point })) }
       : { ...element.data };
   return {

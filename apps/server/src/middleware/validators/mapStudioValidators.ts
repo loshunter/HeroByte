@@ -1,16 +1,17 @@
 import { z } from "zod";
 import type { MessageRecord, ValidationResult } from "./commonValidators.js";
 import { PAYLOAD_LIMITS } from "./constants.js";
-
-const id = z.string().trim().min(1).max(128);
-const name = z.string().trim().min(1).max(200);
-const finite = z.number().finite();
-const positive = finite.positive();
-const unitInterval = finite.min(0).max(1);
-const point = z.object({ x: finite, y: finite }).strict();
-const transform = z
-  .object({ x: finite, y: finite, scaleX: positive, scaleY: positive, rotation: finite })
-  .strict();
+// The element schemas + shared primitives moved to mapStudioElementValidators
+// (this file sits at the 350-LOC structural ceiling).
+import {
+  element,
+  finite,
+  id,
+  name,
+  positive,
+  transform,
+  unitInterval,
+} from "./mapStudioElementValidators.js";
 
 const grid = z
   .object({
@@ -46,130 +47,6 @@ const layer = z
     zIndex: finite,
   })
   .strict();
-
-const elementBase = {
-  id,
-  layerId: id,
-  locked: z.boolean(),
-  hidden: z.boolean(),
-  transform,
-};
-
-const tileElement = z
-  .object({
-    ...elementBase,
-    type: z.literal("tile"),
-    data: z
-      .object({
-        assetId: id,
-        columns: z.number().int().positive().max(1000),
-        rows: z.number().int().positive().max(1000),
-        tint: z.string().max(64).optional(),
-      })
-      .strict(),
-  })
-  .strict();
-
-const stampElement = z
-  .object({
-    ...elementBase,
-    type: z.literal("stamp"),
-    data: z
-      .object({
-        assetId: id,
-        width: positive.max(32768),
-        height: positive.max(32768),
-        tint: z.string().max(64).optional(),
-      })
-      .strict(),
-  })
-  .strict();
-
-const shapeElement = z
-  .object({
-    ...elementBase,
-    type: z.literal("shape"),
-    data: z
-      .object({
-        shape: z.enum(["rectangle", "ellipse", "polygon"]),
-        points: z.array(point).min(2).max(5000),
-        stroke: z.string().max(64),
-        strokeWidth: positive.max(1000),
-        fill: z.string().max(64).optional(),
-        opacity: unitInterval,
-      })
-      .strict(),
-  })
-  .strict();
-
-const wallElement = z
-  .object({
-    ...elementBase,
-    type: z.literal("wall"),
-    data: z
-      .object({
-        points: z.array(point).min(2).max(5000),
-        blocksMovement: z.boolean(),
-        blocksVision: z.boolean(),
-      })
-      .strict(),
-  })
-  .strict();
-
-const doorElement = z
-  .object({
-    ...elementBase,
-    type: z.literal("door"),
-    data: z
-      .object({
-        width: positive.max(1000),
-        state: z.enum(["open", "closed", "locked", "secret"]),
-        blocksMovement: z.boolean(),
-        blocksVision: z.boolean(),
-      })
-      .strict(),
-  })
-  .strict();
-
-const lightElement = z
-  .object({
-    ...elementBase,
-    type: z.literal("light"),
-    data: z
-      .object({
-        radius: positive.max(100000),
-        color: z.string().max(64),
-        intensity: unitInterval,
-        castsShadows: z.boolean(),
-      })
-      .strict(),
-  })
-  .strict();
-
-const textElement = z
-  .object({
-    ...elementBase,
-    type: z.literal("text"),
-    data: z
-      .object({
-        text: z.string().trim().min(1).max(2000),
-        color: z.string().max(64),
-        fontSize: positive.max(500),
-        visibleToPlayers: z.boolean(),
-      })
-      .strict(),
-  })
-  .strict();
-
-const element = z.discriminatedUnion("type", [
-  tileElement,
-  stampElement,
-  shapeElement,
-  wallElement,
-  doorElement,
-  lightElement,
-  textElement,
-]);
 
 // Shared by paint-terrain and place-room (identical cell shape + 16384 cap).
 const terrainCells = z

@@ -63,6 +63,15 @@ export function sanitizeElement(element: MapElement): MapElement {
       requireText(element.data.text, "Map text");
       requirePositiveNumber(element.data.fontSize, "Map text font size");
       return { ...element, id, layerId, transform, data: { ...element.data } };
+    case "spline":
+      requirePointCount(element.data.points, 2, "Spline");
+      return {
+        ...element,
+        id,
+        layerId,
+        transform,
+        data: { ...element.data, points: clonePoints(element.data.points) },
+      };
   }
 }
 
