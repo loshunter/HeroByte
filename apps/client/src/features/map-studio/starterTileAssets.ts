@@ -186,6 +186,20 @@ export const MAP_STUDIO_TILE_ASSETS: MapStudioTileAsset[] = [
     stroke: "#8f9853",
     accent: "#3f451f",
   },
+  // Log-rib bridge deck (structure treatments): plank courses over open
+  // water. Fill matches the VILLAGE_TERRAIN base (the dark water-shadow the
+  // boards sit over) so bake and flat fallback agree.
+  {
+    id: "terrain:bridge-plank",
+    name: "Bridge Planks",
+    category: "terrain",
+    layerKind: "terrain",
+    columns: 1,
+    rows: 1,
+    fill: "#20303c",
+    stroke: "#6e6354",
+    accent: "#867a68",
+  },
   // Sea-crag cliff (taxonomy family roster): coastal rock band rendered as
   // stacked rim-within-rim ledges. Fill matches the VILLAGE_TERRAIN base so
   // bake and flat fallback agree.

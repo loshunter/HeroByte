@@ -54,6 +54,7 @@ export type MapEditFloorFamily =
   | "stone-sandstone"
   | "wood-walnut"
   | "wood-grey"
+  | "bridge-plank"
   | "stairs-stone"
   | "sunken-flagstone"
   | "sunken-stairs"

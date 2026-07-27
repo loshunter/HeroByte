@@ -9,6 +9,7 @@
 
 import {
   BLOSSOM_CANOPY_DETAIL,
+  BRIDGE_PLANK_DETAIL,
   COBBLE_FLOOR_DETAIL,
   DIRT_DETAIL,
   GRASS_DETAIL,
@@ -221,6 +222,22 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     edgeAmp: 0,
     mottle: { amp: 0.04, scale: 5, cool: 0.2 },
     floor: { kind: "plank", palette: GREY_PLANK_DETAIL },
+  },
+  // Log-rib bridge deck (structure treatments — dock and bridge ribbons):
+  // boards perpendicular to the run over a dark water-shadow base that shows
+  // through the sliver gaps and missing boards, mask-driven edge stringers,
+  // post terminals at run ends. Priority above the plain wood floors and
+  // below the stairs so a stair ramp joins the deck cleanly; the tall shadow
+  // band throws the deck's height cue onto the water below it.
+  "terrain:bridge-plank": {
+    base: "#20303c",
+    rim: "#33291d",
+    priority: 9.2,
+    edgeAmp: 0,
+    rimWidth: 0.05,
+    shadow: { band: 0.3, strength: 0.26 },
+    mottle: { amp: 0.03, scale: 4, cool: 0.2 },
+    floor: { kind: "bridge", palette: BRIDGE_PLANK_DETAIL },
   },
   // The architectural block — walls, stairs, roofs, dais (priorities 10–34) —
   // lives in terrainPaletteStructures (350-LOC cap), same data verbatim.

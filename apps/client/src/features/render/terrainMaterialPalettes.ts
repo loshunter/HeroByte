@@ -77,6 +77,16 @@ export const GREY_PLANK_DETAIL: KeyClusterPalette = {
   light: "#8a867a",
 };
 
+/** Bridge-deck timber over open water: `crev` is the water-sliver shadow that
+ * shows between and through missing boards (the family base tone), the three
+ * timber shades the per-plank value jitter. */
+export const BRIDGE_PLANK_DETAIL: KeyClusterPalette = {
+  crev: "#20303c",
+  dark: "#584f41",
+  mid: "#6e6354",
+  light: "#867a68",
+};
+
 /** Cobblestone shades — grey-brown, drawn at half slab scale. */
 export const COBBLE_FLOOR_DETAIL: KeyClusterPalette = {
   crev: "#3b392f",

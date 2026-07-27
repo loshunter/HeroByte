@@ -33,7 +33,7 @@ export interface GrassDetail {
 }
 
 /** The floor material painters terrainFloorDetail implements. */
-export type FloorDetailKind = "plank" | "flagstone";
+export type FloorDetailKind = "plank" | "flagstone" | "bridge";
 
 /**
  * Dedicated floor interior detail (Slice 2): which material painter a floor

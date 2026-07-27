@@ -46,6 +46,7 @@ const FLOOR_FAMILIES: { id: MapEditFloorFamily; label: string }[] = [
   { id: "stone-sandstone", label: "Sandstone" },
   { id: "wood-walnut", label: "Walnut" },
   { id: "wood-grey", label: "Grey Plank" },
+  { id: "bridge-plank", label: "Bridge" },
   { id: "stairs-stone", label: "Stairs" },
   { id: "sunken-flagstone", label: "Sunken Floor" },
   { id: "sunken-stairs", label: "Sunken Stairs" },

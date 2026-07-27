@@ -9,6 +9,7 @@
 // boundaries on every surface and redraw, while each cell paints strictly
 // inside its own bounds (the detail pass composes neighbours' output).
 
+import { NEIGHBOR_BITS } from "./blobAutotile";
 import type { TerrainCellRect, TileRenderContext2D } from "./tileRenderCore";
 import type { FloorDetail, KeyClusterPalette } from "./terrainPalette";
 import { hash2 } from "./valueNoise";
@@ -23,6 +24,7 @@ export function paintFloorDetail(
 ): void {
   const scale = floor.scale ?? 1;
   if (floor.kind === "plank") paintPlankDetail(ctx, cell, floor.palette, scale);
+  else if (floor.kind === "bridge") paintBridgeDetail(ctx, cell, floor.palette);
   else paintFlagstoneDetail(ctx, cell, floor.palette, scale);
 }
 
@@ -90,6 +92,76 @@ function paintPlankDetail(
       ctx.fillRect(kx, ky, 2 * kp, 2 * kp);
       ctx.fillStyle = pal.crev;
       ctx.fillRect(kx + kp / 2, ky + kp / 2, kp, kp);
+    }
+  }
+}
+
+// Deck boards per cell along the run; the sliver gap between boards lets the
+// family's dark water-shadow base show through, and a sparse skip leaves a
+// missing board entirely (structure treatments — dock and bridge ribbons).
+const BRIDGE_PLANKS = 5;
+const BRIDGE_SKIP_CHANCE = 0.06;
+
+/**
+ * Bridge deck: boards PERPENDICULAR to the run with water slivers between,
+ * edge stringers wherever the deck meets open air (mask-driven, so a 2-wide
+ * deck only rails its outer edges), and post blocks on the corners of a run
+ * end. Run direction comes from the same-family neighbour mask exactly like
+ * the stairs painter; an ambiguous cell defaults to a north-south run.
+ */
+function paintBridgeDetail(
+  ctx: TileRenderContext2D,
+  cell: TerrainCellRect,
+  pal: KeyClusterPalette,
+): void {
+  const { x, y, size, cellX, cellY } = cell;
+  const mask = cell.neighborMask ?? 0;
+  const n = (mask & NEIGHBOR_BITS.N) !== 0;
+  const e = (mask & NEIGHBOR_BITS.E) !== 0;
+  const s = (mask & NEIGHBOR_BITS.S) !== 0;
+  const w = (mask & NEIGHBOR_BITS.W) !== 0;
+  const horizontalRun = (e || w) && !(n || s);
+
+  const gap = Math.max(1, size * 0.045);
+  const step = size / BRIDGE_PLANKS;
+  for (let i = 0; i < BRIDGE_PLANKS; i += 1) {
+    const plank = (horizontalRun ? cellX : cellY) * BRIDGE_PLANKS + i;
+    const other = horizontalRun ? cellY : cellX;
+    if (hash2(plank, other, 171) < BRIDGE_SKIP_CHANCE) continue; // missing board
+    const shade = hash2(plank, other, 172);
+    ctx.fillStyle = shade < 0.3 ? pal.dark : shade < 0.75 ? pal.mid : pal.light;
+    // Slight per-board mis-set along the run keeps the deck hand-laid.
+    const at = clamp(i * step + gap / 2 + (hash2(plank, other, 173) - 0.5) * gap, 0, size - step + gap);
+    const span = step - gap;
+    if (horizontalRun) ctx.fillRect(x + at, y, span, size);
+    else ctx.fillRect(x, y + at, size, span);
+  }
+
+  // Stringers along every deck edge that faces open air.
+  const rail = Math.max(1, size * 0.06);
+  ctx.fillStyle = pal.dark;
+  if (horizontalRun) {
+    if (!n) ctx.fillRect(x, y, size, rail);
+    if (!s) ctx.fillRect(x, y + size - rail, size, rail);
+  } else {
+    if (!w) ctx.fillRect(x, y, rail, size);
+    if (!e) ctx.fillRect(x + size - rail, y, rail, size);
+  }
+
+  // Post blocks on the corners of a run end (dock-pile terminals), placed on
+  // the open end — the side with no same-family neighbour.
+  const degree = (n ? 1 : 0) + (e ? 1 : 0) + (s ? 1 : 0) + (w ? 1 : 0);
+  if (degree <= 1) {
+    const post = Math.max(2, size * 0.14);
+    ctx.fillStyle = pal.crev;
+    if (horizontalRun) {
+      const ex = w ? x + size - post : x;
+      ctx.fillRect(ex, y, post, post);
+      ctx.fillRect(ex, y + size - post, post, post);
+    } else {
+      const ey = n ? y + size - post : y;
+      ctx.fillRect(x, ey, post, post);
+      ctx.fillRect(x + size - post, ey, post, post);
     }
   }
 }
