@@ -23,6 +23,7 @@ export const OBJECT_TILE_ASSETS: MapStudioTileAsset[] = [
     fill: "#8c5a2e",
     stroke: "#d19a5f",
     accent: "#4b2f1b",
+    scatterBias: "wall",
   },
   {
     id: "objects:table",
@@ -34,6 +35,7 @@ export const OBJECT_TILE_ASSETS: MapStudioTileAsset[] = [
     fill: "#6b3f28",
     stroke: "#c38753",
     accent: "#2e1b12",
+    scatterBias: "open",
   },
   {
     id: "objects:lamp",
@@ -46,6 +48,8 @@ export const OBJECT_TILE_ASSETS: MapStudioTileAsset[] = [
     stroke: "#8a6b2f",
     accent: "#5c4720",
     emissive: { color: "#ffcf70", radius: 3, intensity: 1 },
+    scatterBias: "wall",
+    rowSpacing: 3,
   },
   {
     id: "decal:wear-ring",
@@ -58,6 +62,7 @@ export const OBJECT_TILE_ASSETS: MapStudioTileAsset[] = [
     stroke: "#8e5f36",
     accent: "#a8713f",
     decal: { kind: "ring" },
+    scatterBias: "open",
   },
   {
     id: "decal:scorch",
@@ -70,6 +75,7 @@ export const OBJECT_TILE_ASSETS: MapStudioTileAsset[] = [
     stroke: "#2b241e",
     accent: "#91785c",
     decal: { kind: "scorch" },
+    scatterBias: "open",
   },
   {
     id: "decal:stain-dye",

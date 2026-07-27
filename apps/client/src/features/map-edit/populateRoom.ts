@@ -14,6 +14,27 @@ import type { PopulateDensity } from "./mapEditTypes";
 
 /** Per-cell placement probability by density. */
 const DENSITY_FILL: Record<PopulateDensity, number> = { low: 0.1, medium: 0.22, high: 0.4 };
+
+/**
+ * Per-cell placement weight for an asset's scatter bias (catalog rank 10) —
+ * debris obeys physics: "wall" piles along the region border (rooms are
+ * wall-ringed, so border ≈ wall base) and doubles in corners, "open" avoids
+ * the walls. Undefined is 1 everywhere, which keeps the legacy draft stream
+ * byte-identical (pinned by the suite above this feature).
+ */
+function scatterWeight(
+  bias: MapStudioTileAsset["scatterBias"],
+  dx: number,
+  dy: number,
+  cols: number,
+  rows: number,
+): number {
+  if (!bias) return 1;
+  const edges =
+    (dx === 0 ? 1 : 0) + (dx === cols - 1 ? 1 : 0) + (dy === 0 ? 1 : 0) + (dy === rows - 1 ? 1 : 0);
+  if (bias === "wall") return edges >= 2 ? 2 : edges === 1 ? 1.5 : 0.35;
+  return edges >= 2 ? 0.25 : edges === 1 ? 0.4 : 1.25;
+}
 /** Respect the add-elements cap (5000) with headroom; stop scattering past this. */
 export const MAX_POPULATE_STAMPS = 2000;
 
@@ -105,10 +126,12 @@ export function buildPopulateDrafts(
       const placeRoll = rng();
       const assetRoll = rng();
       const rotRoll = rng();
-      if (placeRoll >= fill) continue;
-      if (drafts.length >= MAX_POPULATE_STAMPS) return drafts;
-
+      // The 3-roll sequence above is sacred (stream stability); the bias only
+      // scales the threshold the first roll is compared against, so unbiased
+      // assets draft byte-identically.
       const asset = assets[Math.floor(assetRoll * assets.length)]!;
+      if (placeRoll >= fill * scatterWeight(asset.scatterBias, dx, dy, cols, rows)) continue;
+      if (drafts.length >= MAX_POPULATE_STAMPS) return drafts;
       const w = asset.columns * size;
       const h = asset.rows * size;
       const rotation = Math.floor(rotRoll * 4) * 90;

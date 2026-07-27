@@ -121,6 +121,77 @@ describe("buildPopulateDrafts", () => {
   });
 });
 
+describe("scatter bias (catalog rank 10)", () => {
+  // 10×10 region, 1×1 crate: draft x/y ARE the cell origin, so classifying
+  // a draft's cell is exact. Border cells are dx/dy 0 or 9.
+  const cellOf = (d: { x: number; y: number }) => ({ dx: d.x / grid.size, dy: d.y / grid.size });
+  const onBorder = ({ dx, dy }: { dx: number; dy: number }) =>
+    dx === 0 || dx === 9 || dy === 0 || dy === 9;
+  const isCorner = ({ dx, dy }: { dx: number; dy: number }) =>
+    (dx === 0 || dx === 9) && (dy === 0 || dy === 9);
+
+  it("an unbiased asset keeps the exact legacy stream (bias weight 1 everywhere)", () => {
+    const uniform = { ...crate, scatterBias: undefined };
+    // Pinned indirectly by every legacy test above; pinned directly here:
+    // stripping the bias field yields SOME placements on the border and some
+    // in the interior at plain density (no systematic drift either way).
+    const drafts = buildPopulateDrafts(bounds, grid, [uniform], "high", 4242, "objects", []);
+    const cells = drafts.map(cellOf);
+    expect(cells.some(onBorder)).toBe(true);
+    expect(cells.some((c) => !onBorder(c))).toBe(true);
+  });
+
+  it("wall-bias piles along the border versus the same seed unbiased", () => {
+    const uniform = { ...crate, scatterBias: undefined };
+    const share = (assets: (typeof crate)[]) => {
+      const drafts = buildPopulateDrafts(bounds, grid, assets, "medium", 77, "objects", []);
+      const cells = drafts.map(cellOf);
+      return cells.filter(onBorder).length / Math.max(1, cells.length);
+    };
+    // The shipped crate IS wall-biased (catalog physics: crates hug walls).
+    expect(crate.scatterBias).toBe("wall");
+    expect(share([crate])).toBeGreaterThan(share([uniform]) + 0.15);
+  });
+
+  it("corners collect more often than plain border cells (the ×2 rule)", () => {
+    // Occupancy per candidate cell across many seeds: 4 corner cells vs 32
+    // plain border cells — the corner rate must exceed the border rate.
+    let cornerHits = 0;
+    let borderHits = 0;
+    for (let seed = 0; seed < 60; seed += 1) {
+      const cells = buildPopulateDrafts(bounds, grid, [crate], "medium", seed, "objects", []).map(
+        cellOf,
+      );
+      cornerHits += cells.filter(isCorner).length;
+      borderHits += cells.filter((c) => onBorder(c) && !isCorner(c)).length;
+    }
+    expect(cornerHits / 4).toBeGreaterThan(borderHits / 32);
+  });
+
+  it("open-bias assets land overwhelmingly in the interior", () => {
+    const openCrate = { ...crate, scatterBias: "open" as const };
+    let border = 0;
+    let interior = 0;
+    for (let seed = 0; seed < 40; seed += 1) {
+      const cells = buildPopulateDrafts(bounds, grid, [openCrate], "high", seed, "objects", []).map(
+        cellOf,
+      );
+      border += cells.filter(onBorder).length;
+      interior += cells.filter((c) => !onBorder(c)).length;
+    }
+    expect(interior / Math.max(1, border + interior)).toBeGreaterThan(0.7);
+  });
+
+  it("the shipped bias data matches the catalog physics", () => {
+    expect(getMapStudioTileAsset("objects:crate").scatterBias).toBe("wall");
+    expect(getMapStudioTileAsset("objects:lamp").scatterBias).toBe("wall");
+    expect(getMapStudioTileAsset("objects:table").scatterBias).toBe("open");
+    expect(getMapStudioTileAsset("decal:wear-ring").scatterBias).toBe("open");
+    expect(getMapStudioTileAsset("decal:scorch").scatterBias).toBe("open");
+    expect(getMapStudioTileAsset("decal:stain-dye").scatterBias).toBeUndefined();
+  });
+});
+
 describe("populateSeedFromBounds", () => {
   it("is stable per origin and a non-negative integer", () => {
     const seed = populateSeedFromBounds(bounds);

@@ -32,6 +32,13 @@ export interface MapStudioTileAsset {
   /** Procedural wear-decal art (catalog rank 8): placed elements render the
    * deterministic wearStampDetail painter instead of the flat colour rect. */
   decal?: WearDecalSpec;
+  /** POPULATE placement physics (catalog rank 10): "wall" piles along the
+   * region border (corners double), "open" avoids it, undefined = uniform —
+   * and keeps the legacy scatter stream byte-identical. */
+  scatterBias?: "wall" | "open";
+  /** Row-tool interval multiplier over the footprint's long side (catalog
+   * rank 11) — lamp posts every 3 cells; undefined = 1 (butt-to-butt). */
+  rowSpacing?: number;
 }
 
 export const MAP_STUDIO_TILE_ASSETS: MapStudioTileAsset[] = [
