@@ -44,6 +44,61 @@ export function buildBenchmarkDocument(): MapDocument {
     } as MapElement;
   });
 
+  // Spline arc set dressing: gold filigree sweeping the causeway, a stone
+  // ribbon on the dais approach, a rope line at the SE island landing.
+  const px = BENCH_CELL_PX;
+  const splines: MapElement[] = [
+    {
+      id: "bench-spline-filigree",
+      layerId: "objects",
+      type: "spline",
+      locked: false,
+      hidden: false,
+      transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+      data: {
+        kind: "filigree",
+        points: [
+          { x: 18.2 * px, y: 50 * px },
+          { x: 22.5 * px, y: 49.7 * px },
+          { x: 26.8 * px, y: 50 * px },
+        ],
+      },
+    } as MapElement,
+    {
+      id: "bench-spline-ribbon",
+      layerId: "objects",
+      type: "spline",
+      locked: false,
+      hidden: false,
+      transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+      data: {
+        kind: "ribbon",
+        points: [
+          { x: 21.2 * px, y: 16 * px },
+          { x: 21.8 * px, y: 20 * px },
+          { x: 22.5 * px, y: 23 * px },
+        ],
+      },
+    } as MapElement,
+    {
+      id: "bench-spline-rope",
+      layerId: "objects",
+      type: "spline",
+      locked: false,
+      hidden: false,
+      transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+      data: {
+        kind: "rope",
+        points: [
+          { x: 30 * px, y: 40.6 * px },
+          { x: 31.5 * px, y: 41.3 * px },
+          { x: 33 * px, y: 41 * px },
+        ],
+      },
+    } as MapElement,
+  ];
+  elements.push(...splines);
+
   return {
     schemaVersion: 1,
     id: "benchmark-island-study",

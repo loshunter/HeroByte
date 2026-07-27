@@ -17,6 +17,7 @@ import {
 import { createTerrainField, renderTerrainField } from "../proceduralTerrain";
 import { VILLAGE_TERRAIN, VILLAGE_SHADOW_TINT } from "../terrainPalette";
 import { paintWearStamp, wearStampSeed, type WearStampContext2D } from "../wearStampDetail";
+import { paintSpline } from "../splineDetail";
 import type { TileRenderContext2D } from "../tileRenderCore";
 import { buildStructuredTerrainLayers } from "../../map-studio/terrainRender";
 import { buildTileOccupancy } from "../../map-studio/tileAutotiling";
@@ -180,6 +181,19 @@ describe.skipIf(!RUN_BENCH)("benchmark render (temporary)", () => {
     const fieldLayers = layers.filter((layer) => VILLAGE_TERRAIN[layer.assetId]);
     paintProceduralDetail(ctx, fieldLayers, VILLAGE_TERRAIN, field, config.familyAt, config.depthOf);
     const t2 = performance.now();
+
+    // spline elements (persistent curves) over the terrain
+    for (const el of doc.elements) {
+      if (el.type !== "spline") continue;
+      paintSpline(
+        offsetCtx(ctx, el.transform.x, el.transform.y),
+        el.data.points,
+        el.data.kind,
+        wearStampSeed(el.id),
+        doc.grid.size,
+        el.data.tint,
+      );
+    }
 
     // decal stamps (rank 7/8 art) over the terrain, as the bake layers them
     for (const el of doc.elements) {
