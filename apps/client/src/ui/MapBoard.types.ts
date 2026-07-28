@@ -44,6 +44,7 @@ export interface MapBoardProps {
   mapEditRoomWallFamily?: MapEditWallFamily | "none"; // Room tool's painted wall-ring material
   mapEditSelectedAssetId?: string; // Asset the place/scatter tools drop
   mapEditHallwayWidth?: number; // Corridor width in cells for the hallway tool
+  mapEditSplineKind?: import("../features/map-edit/mapEditTypes").MapEditSplineKind; // Spline tool curve kind
   mapEditSelectedElementId?: string | null; // Selected element (select tool) → highlight
   mapEditController?: MapStudioController; // Shared Map Studio controller the tools drive
   mapEditWallsOverlayPinned?: boolean; // Keep the DM walls overlay visible outside map-edit

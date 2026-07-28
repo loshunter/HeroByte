@@ -5,7 +5,7 @@
 import type { MapGridSettings } from "@herobyte/shared";
 import type { MapEditSubTool } from "./mapEditTypes";
 
-const DRAG_TOOLS: MapEditSubTool[] = ["wall", "door", "room", "hallway", "generate", "row"];
+const DRAG_TOOLS: MapEditSubTool[] = ["wall", "door", "room", "hallway", "generate", "row", "spline"];
 const BRUSH_TOOLS: MapEditSubTool[] = ["terrain", "erase"];
 const CLICK_TOOLS: MapEditSubTool[] = ["place", "scatter", "light"];
 

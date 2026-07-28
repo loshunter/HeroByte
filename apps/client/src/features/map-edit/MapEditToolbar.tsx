@@ -33,6 +33,7 @@ const SUB_TOOLS: { id: MapEditSubTool; label: string }[] = [
   { id: "row", label: "📏 Row" },
   { id: "select", label: "👆 Select" },
   { id: "generate", label: "🏰 Gen" },
+  { id: "spline", label: "〰️ Spline" },
 ];
 
 const FLOOR_FAMILIES: { id: MapEditFloorFamily; label: string }[] = [

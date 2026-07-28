@@ -123,6 +123,8 @@ export interface MainLayoutProps {
   mapEditSelectedAssetId: string;
   /** Corridor width in cells for the hallway tool */
   mapEditHallwayWidth: number;
+  /** Curve kind the spline tool authors (optional: defaults to rope). */
+  mapEditSplineKind?: import("../../features/map-edit/mapEditTypes").MapEditSplineKind;
   /** Selected element id (select tool) → highlight */
   mapEditSelectedElementId: string | null;
   /** Keep the DM walls overlay visible outside map-edit mode */

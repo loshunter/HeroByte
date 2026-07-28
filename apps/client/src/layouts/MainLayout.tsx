@@ -71,6 +71,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     mapEditRoomWallFamily,
     mapEditSelectedAssetId,
     mapEditHallwayWidth,
+    mapEditSplineKind,
     mapEditSelectedElementId,
     mapEditWallsOverlayPinned,
     onMapEditRoomRejected,
@@ -286,6 +287,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         mapEditRoomWallFamily={mapEditRoomWallFamily}
         mapEditSelectedAssetId={mapEditSelectedAssetId}
         mapEditHallwayWidth={mapEditHallwayWidth}
+        mapEditSplineKind={mapEditSplineKind}
         mapEditSelectedElementId={mapEditSelectedElementId}
         mapEditWallsOverlayPinned={mapEditWallsOverlayPinned}
         onMapEditRoomRejected={onMapEditRoomRejected}

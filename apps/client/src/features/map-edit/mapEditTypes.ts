@@ -25,7 +25,11 @@ export type MapEditSubTool =
   | "scatter"
   | "row"
   | "select"
-  | "generate";
+  | "generate"
+  | "spline";
+
+/** Persistent curve kinds the spline sub-tool authors (splineDetail art). */
+export type MapEditSplineKind = "ribbon" | "filigree" | "rope" | "chain";
 
 /** Procedural wall families the Paint tool and the Room wall ring use. */
 export type MapEditWallFamily = "wall-stone" | "wall-brick" | "wall-timber" | "wall-dark";
@@ -119,6 +123,8 @@ export interface MapEditToolbarProps {
   // --- Hallway + POPULATE ---
   hallwayWidth: number; // corridor width in cells (1–4)
   onSelectHallwayWidth: (width: number) => void;
+  splineKind: MapEditSplineKind; // the spline sub-tool's curve kind
+  onSelectSplineKind: (kind: MapEditSplineKind) => void;
   populateDensity: PopulateDensity;
   onSelectPopulateDensity: (density: PopulateDensity) => void;
   populateCategory: PopulateCategory;

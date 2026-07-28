@@ -722,6 +722,7 @@ function AuthenticatedApp({
     mapEditRoomWallFamily: mapEdit.roomWallFamily,
     mapEditSelectedAssetId: mapEdit.selectedAssetId,
     mapEditHallwayWidth: mapEdit.hallwayWidth,
+    mapEditSplineKind: mapEdit.splineKind,
     mapEditSelectedElementId: mapEdit.selectedElementId,
     mapEditWallsOverlayPinned: mapEdit.wallsOverlayPinned,
     onMapEditRoomRejected: toast.error,

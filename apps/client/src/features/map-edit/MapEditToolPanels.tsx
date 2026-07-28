@@ -9,7 +9,12 @@ import { JRPGButton } from "../../components/ui/JRPGPanel";
 import { GeneratePanel } from "./GeneratePanel";
 import { MapEditLayersPopover } from "./MapEditLayersPopover";
 import { MapEditInspectorPopover } from "./MapEditInspectorPopover";
-import type { MapEditToolbarProps, PopulateCategory, PopulateDensity } from "./mapEditTypes";
+import type {
+  MapEditSplineKind,
+  MapEditToolbarProps,
+  PopulateCategory,
+  PopulateDensity,
+} from "./mapEditTypes";
 
 const DENSITIES: PopulateDensity[] = ["low", "medium", "high"];
 const CATEGORIES: { id: PopulateCategory; label: string }[] = [
@@ -22,8 +27,17 @@ const CATEGORIES: { id: PopulateCategory; label: string }[] = [
 const labelStyle = { display: "block", marginBottom: "4px", color: "var(--jrpg-gold)" } as const;
 const cell = { fontSize: "8px", padding: "6px 2px" } as const;
 
+const SPLINE_KINDS: { id: MapEditSplineKind; label: string }[] = [
+  { id: "rope", label: "Rope" },
+  { id: "chain", label: "Chain" },
+  { id: "ribbon", label: "Ribbon" },
+  { id: "filigree", label: "Filigree" },
+];
+
 export function MapEditToolPanels({
   activeSubTool,
+  splineKind,
+  onSelectSplineKind,
   generateParams,
   onGenerateParamsChange,
   onRerollSeed,
@@ -50,6 +64,30 @@ export function MapEditToolPanels({
   inspectorOpen,
   onToggleInspector,
 }: MapEditToolbarProps) {
+  // The spline kind swatches replace the Populate block while that tool is
+  // armed (same reasoning as Generate below: one region tool's dials at a time).
+  if (activeSubTool === "spline") {
+    return (
+      <div>
+        <label className="jrpg-text-small" style={labelStyle}>
+          Spline ({splineKind}):
+        </label>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
+          {SPLINE_KINDS.map((kind) => (
+            <JRPGButton
+              key={kind.id}
+              variant={splineKind === kind.id ? "primary" : "default"}
+              onClick={() => onSelectSplineKind(kind.id)}
+              style={cell}
+            >
+              {kind.label}
+            </JRPGButton>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   // The Generate dials replace the Populate block while its tool is armed —
   // both fill a region, and showing both at once is noise.
   if (activeSubTool === "generate") {
