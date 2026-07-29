@@ -79,4 +79,25 @@ describe("useMapEditHotkeys", () => {
     press({ key: "z", ctrlKey: true });
     expect(undo).not.toHaveBeenCalled();
   });
+
+  it("ignores Ctrl+Z typed into a text field (native text undo, not map undo)", () => {
+    setup();
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    try {
+      act(() => {
+        input.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: "z",
+            ctrlKey: true,
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
+      });
+      expect(undo).not.toHaveBeenCalled();
+    } finally {
+      input.remove();
+    }
+  });
 });
