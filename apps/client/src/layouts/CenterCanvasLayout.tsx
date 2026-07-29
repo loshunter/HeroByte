@@ -26,6 +26,7 @@ import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import type { CameraCommand } from "../ui/MapBoard";
 import type { UseDrawingStateManagerReturn } from "../hooks/useDrawingStateManager";
 import { MapLoading } from "../components/ui/MapLoading";
+import { TerrainBakeChip } from "../features/map/components/TerrainBakeChip";
 import type { MapStudioController } from "../features/map-studio";
 import type {
   MapEditFloorFamily,
@@ -308,6 +309,8 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
             onSelectObjects={onSelectObjects}
           />
         </Suspense>
+        {/* Worker-bake progress (P3): reads its module store — no props. */}
+        <TerrainBakeChip />
       </div>
     );
   },

@@ -24,14 +24,8 @@ import { buildStructuredTerrainLayers } from "../../map-studio/terrainRender";
 import { buildTerrainOnlyOccupancy } from "../../map-studio/tileAutotiling";
 import { getMapStudioTileAsset } from "../../map-studio/starterTiles";
 import { drawTableTerrain } from "./terrainSceneFunc";
-import {
-  blitFieldBake,
-  coreTerrainLayers,
-  createFieldBakeCache,
-  drawWaterShimmer,
-  getFieldBake,
-  waterBodyLayers,
-} from "./terrainBake";
+import { blitFieldBake, coreTerrainLayers, drawWaterShimmer, waterBodyLayers } from "./terrainBake";
+import { useFieldBake } from "./useFieldBake";
 import type { Camera } from "../types";
 
 /** Longest animated terrain cycle; the clock frame wraps within this. */
@@ -76,35 +70,21 @@ export function TerrainLayer({ cam, mapTerrain, mapTransform, lighting }: Terrai
   );
 
   // Field families (grass/dirt/path + the procedural wood/stone floors) render
-  // as one bumpy procedural canvas baked ONCE per terrain/grid change — matching
-  // the Map Studio editor and exports. The bake is heavy per pixel, so it is
-  // cached on the layers identity + grid signature via a ref that survives
-  // re-renders. Keyed on grid PRIMITIVES (not the per-snapshot grid object) so
-  // an unrelated broadcast never triggers the memo. `baked` is null when there
-  // is no field terrain or the field is too large — then every family falls back
-  // to the flat/atlas core path so terrain never vanishes.
-  const bakeCache = useRef(createFieldBakeCache());
+  // as one bumpy procedural canvas baked per terrain/grid change — matching
+  // the Map Studio editor and exports. Since P3 the bake runs in a WORKER:
+  // `baked` lands instantly as flat family colour and the painterly bands
+  // stream into the same canvas (bakeRevision bumps per band so Konva
+  // repaints). Keyed on grid PRIMITIVES (not the per-snapshot grid object) so
+  // an unrelated broadcast never re-requests. `baked` is null when there is no
+  // field terrain or the field is too large — then every family falls back to
+  // the flat/atlas core path so terrain never vanishes.
   const { size: gridSize, offsetX: gridOffsetX, offsetY: gridOffsetY } = mapTerrain.grid;
-  // Key the lighting on its VALUE — the snapshot object identity churns per
-  // broadcast; getFieldBake also signature-checks, so this memo only trims
-  // re-render work.
-  const lightingKey = useMemo(() => (lighting ? JSON.stringify(lighting) : ""), [lighting]);
-  const baked = useMemo(
-    // Rebuild the grid from PRIMITIVES (not the per-snapshot grid object, whose
-    // identity churns each broadcast) so the memo runs only on a real change.
-    () =>
-      getFieldBake(
-        bakeCache.current,
-        layers,
-        {
-          size: gridSize,
-          offsetX: gridOffsetX,
-          offsetY: gridOffsetY,
-        },
-        lighting,
-      ),
-
-    [layers, gridSize, gridOffsetX, gridOffsetY, lightingKey],
+  const { baked, revision: bakeRevision } = useFieldBake(
+    layers,
+    gridSize,
+    gridOffsetX,
+    gridOffsetY,
+    lighting,
   );
   // The families that still draw through the flat/atlas core over the baked
   // field, or ALL families when the bake fell back.
@@ -150,7 +130,7 @@ export function TerrainLayer({ cam, mapTerrain, mapTransform, lighting }: Terrai
   // the shared background layer.
   useEffect(() => {
     groupRef.current?.getLayer()?.batchDraw();
-  }, [frame, atlas]);
+  }, [frame, atlas, bakeRevision]);
 
   // One Shape PER FAMILY. When the terrain layer's opacity is < 1, Konva
   // composites each family through its buffer canvas — flatten the family's
@@ -218,7 +198,19 @@ export function TerrainLayer({ cam, mapTerrain, mapTransform, lighting }: Terrai
       ...shimmerShapes,
       ...coreShapes,
     ];
-  }, [coreLayers, shimmerLayers, bodyLayers, baked, atlas, frame, boundaryWidth, opacity]);
+    // bakeRevision: the baked CANVAS identity is stable while bands stream —
+    // the revision is what says its pixels changed.
+  }, [
+    coreLayers,
+    shimmerLayers,
+    bodyLayers,
+    baked,
+    bakeRevision,
+    atlas,
+    frame,
+    boundaryWidth,
+    opacity,
+  ]);
 
   const { x = 0, y = 0, scaleX = 1, scaleY = 1, rotation = 0 } = mapTransform ?? {};
 
