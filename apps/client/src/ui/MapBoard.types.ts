@@ -45,6 +45,9 @@ export interface MapBoardProps {
   mapEditSelectedAssetId?: string; // Asset the place/scatter tools drop
   mapEditHallwayWidth?: number; // Corridor width in cells for the hallway tool
   mapEditSplineKind?: import("../features/map-edit/mapEditTypes").MapEditSplineKind; // Spline tool curve kind
+  mapEditPopulateGhosts?:
+    | import("../features/map-edit/useMapEditPlacement").PlacementGhost[]
+    | null; // POPULATE's true draft footprints (P2 ghosts)
   mapEditSelectedElementId?: string | null; // Selected element (select tool) → highlight
   mapEditController?: MapStudioController; // Shared Map Studio controller the tools drive
   mapEditWallsOverlayPinned?: boolean; // Keep the DM walls overlay visible outside map-edit

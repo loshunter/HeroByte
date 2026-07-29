@@ -52,6 +52,8 @@ interface UseMapEditStateReturn {
   splineKind: MapEditSplineKind;
   /** Record a room/hallway's bounds as the POPULATE target (fed to the tool). */
   onRegionPlaced: (bounds: RoomBounds) => void;
+  /** POPULATE's true draft footprints while a region is armed (P2 ghosts). */
+  populateGhosts: import("./useMapEditPlacement").PlacementGhost[] | null;
   /** Record a generate drag's bounds as the recipe's target (fed to the tool). */
   onRegionDragged: (bounds: RoomBounds) => void;
   /** Currently-selected element id (select sub-tool) + its setter (fed to the tool). */
@@ -291,6 +293,7 @@ export function useMapEditState({
     hallwayWidth,
     splineKind,
     onRegionPlaced: populate.onRegionPlaced,
+    populateGhosts: populate.previewGhosts,
     onRegionDragged: generate.onRegionDragged,
     selectedElementId,
     onSelectElement: setSelectedElementId,

@@ -99,6 +99,9 @@ export interface CenterCanvasLayoutProps {
   /** Corridor width in cells for the hallway tool */
   mapEditHallwayWidth: number;
   mapEditSplineKind?: import("../features/map-edit/mapEditTypes").MapEditSplineKind;
+  mapEditPopulateGhosts?:
+    | import("../features/map-edit/useMapEditPlacement").PlacementGhost[]
+    | null;
   /** Selected element id (select tool) → highlight */
   mapEditSelectedElementId: string | null;
   /** Keep the DM walls overlay visible outside map-edit mode */
@@ -225,6 +228,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
     mapEditSelectedAssetId,
     mapEditHallwayWidth,
     mapEditSplineKind,
+    mapEditPopulateGhosts,
     mapEditSelectedElementId,
     mapEditWallsOverlayPinned,
     onMapEditRoomRejected,
@@ -278,6 +282,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
             mapEditSelectedAssetId={mapEditSelectedAssetId}
             mapEditHallwayWidth={mapEditHallwayWidth}
             mapEditSplineKind={mapEditSplineKind}
+            mapEditPopulateGhosts={mapEditPopulateGhosts}
             mapEditSelectedElementId={mapEditSelectedElementId}
             mapEditController={mapStudio}
             mapEditWallsOverlayPinned={mapEditWallsOverlayPinned}

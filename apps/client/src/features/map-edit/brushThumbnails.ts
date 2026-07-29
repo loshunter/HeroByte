@@ -15,12 +15,18 @@ export const BRUSH_PREVIEW_SIZE = 120;
 const PATCH_CELLS = 3;
 /** Bake once at preview scale; the 44px tile is a downscale of the same art. */
 const CELL = BRUSH_PREVIEW_SIZE / PATCH_CELLS;
+/** One baked cell inside the chip canvas, in px — ghost fill patterns scale
+ * gridSize / BRUSH_CHIP_CELL so one chip cell covers one document cell. */
+export const BRUSH_CHIP_CELL = CELL;
 
 export interface BrushThumbnail {
   /** 44×44 data URL for the deck tile. */
   thumb: string;
   /** 120×120 data URL for the hover card. */
   preview: string;
+  /** The same 120×120 interior crop as a live CANVAS — the ghost-preview
+   * fill pattern (P2 ghost-before-commit) reads it directly. */
+  chip: HTMLCanvasElement;
 }
 
 /**
@@ -48,30 +54,21 @@ export function thumbnailPatchLayers(assetId: string): StructuredTerrainLayer[] 
   return [{ assetId, cells, edges: [] }];
 }
 
-/** Crop the patch interior (world 0..PREVIEW) out of the margin-padded bake. */
-function cropToDataUrl(
+/** Draw a square region of `source` into a fresh canvas of `outSize`. */
+function drawToCanvas(
   source: HTMLCanvasElement,
   sourceX: number,
   sourceY: number,
+  sourceSize: number,
   outSize: number,
-): string | null {
+): HTMLCanvasElement | null {
   const canvas = document.createElement("canvas");
   canvas.width = outSize;
   canvas.height = outSize;
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
-  ctx.drawImage(
-    source,
-    sourceX,
-    sourceY,
-    BRUSH_PREVIEW_SIZE,
-    BRUSH_PREVIEW_SIZE,
-    0,
-    0,
-    outSize,
-    outSize,
-  );
-  return canvas.toDataURL();
+  ctx.drawImage(source, sourceX, sourceY, sourceSize, sourceSize, 0, 0, outSize, outSize);
+  return canvas;
 }
 
 function bakeFamily(assetId: string): BrushThumbnail | null {
@@ -82,9 +79,18 @@ function bakeFamily(assetId: string): BrushThumbnail | null {
     shadowTint: VILLAGE_SHADOW_TINT,
   });
   if (!baked) return null;
-  const preview = cropToDataUrl(baked.canvas, -baked.originX, -baked.originY, BRUSH_PREVIEW_SIZE);
-  const thumb = cropToDataUrl(baked.canvas, -baked.originX, -baked.originY, BRUSH_THUMB_SIZE);
-  return preview && thumb ? { thumb, preview } : null;
+  // One interior crop (the chip); the tile and hover images derive from it.
+  const chip = drawToCanvas(
+    baked.canvas,
+    -baked.originX,
+    -baked.originY,
+    BRUSH_PREVIEW_SIZE,
+    BRUSH_PREVIEW_SIZE,
+  );
+  if (!chip) return null;
+  const thumbCanvas = drawToCanvas(chip, 0, 0, BRUSH_PREVIEW_SIZE, BRUSH_THUMB_SIZE);
+  if (!thumbCanvas) return null;
+  return { thumb: thumbCanvas.toDataURL(), preview: chip.toDataURL(), chip };
 }
 
 // --- Cache + idle bake queue ------------------------------------------------
@@ -129,6 +135,11 @@ function pump(): void {
 export function peekBrushThumbnail(assetId: string): BrushThumbnail | null {
   const entry = cache.get(assetId);
   return entry === undefined || entry === "pending" || entry === "failed" ? null : entry;
+}
+
+/** The baked chip canvas for ghost fill patterns, if it exists (render-safe). */
+export function peekBrushChip(assetId: string): HTMLCanvasElement | null {
+  return peekBrushThumbnail(assetId)?.chip ?? null;
 }
 
 /** Queue any un-baked families; results land via the subscription. */

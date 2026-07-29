@@ -97,6 +97,7 @@ export default function MapBoard({
   mapEditSelectedAssetId = "objects:crate",
   mapEditHallwayWidth = 2,
   mapEditSplineKind = "rope",
+  mapEditPopulateGhosts = null,
   mapEditSelectedElementId = null,
   mapEditController,
   mapEditWallsOverlayPinned = false,
@@ -291,6 +292,7 @@ export default function MapBoard({
     previewDrag: mapEditPreviewDrag,
     strokeCells: mapEditStrokeCells,
     placementGhost: mapEditPlacementGhost,
+    draftGhosts: mapEditDraftGhosts,
     selectionRect: mapEditSelectionRect,
     onMouseDown: handleMapEditMouseDown,
     onMouseMove: handleMapEditMouseMove,
@@ -750,7 +752,11 @@ export default function MapBoard({
             gridOffsetY={mapEditController?.activeDocument?.grid.offsetY ?? 0}
             strokeCells={mapEditStrokeCells}
             placementGhost={mapEditPlacementGhost}
+            // Scatter cluster + armed POPULATE preview — both true-result drafts.
+            draftGhosts={[...mapEditDraftGhosts, ...(mapEditPopulateGhosts ?? [])]}
             selectionRect={mapEditSelectionRect}
+            splineKind={mapEditSplineKind}
+            floorFamily={mapEditFloorFamily}
           />
         </Layer>
 

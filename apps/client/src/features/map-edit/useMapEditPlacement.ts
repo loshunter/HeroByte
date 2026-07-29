@@ -50,6 +50,9 @@ interface UseMapEditPlacementOptions {
 
 interface UseMapEditPlacementReturn {
   ghost: PlacementGhost | null;
+  /** The scatter tool's TRUE cluster at the cursor: the exact drafts a click
+   * here would commit (the seed derives from the point), one ghost each. */
+  draftGhosts: PlacementGhost[];
   /** Track the cursor (document px) so the ghost follows it; null hides it. */
   updateCursor: (point: { x: number; y: number } | null) => void;
   /** Drop at a document-space point (tile, or Alt-held free stamp). */
@@ -124,20 +127,38 @@ export function useMapEditPlacement({
 
   const ghost = useMemo<PlacementGhost | null>(() => {
     if (!active || !document || !cursor) return null;
+    // Scatter previews its whole cluster (draftGhosts below), not a footprint.
+    if (subTool === "scatter") return null;
     const paint = { fill: asset.fill, stroke: asset.stroke };
-    // Scatter and Alt-place both preview a free stamp centered on the cursor.
-    if (subTool === "scatter" || altHeld) {
+    if (altHeld) {
       const width = asset.columns * document.grid.size;
       const height = asset.rows * document.grid.size;
       const x = clampFootprint(cursor.x - width / 2, document.width - width);
       const y = clampFootprint(cursor.y - height / 2, document.height - height);
-      return { x, y, width, height, rotation: subTool === "scatter" ? 0 : rotation, ...paint };
+      return { x, y, width, height, rotation, ...paint };
     }
     const foot = tileFootprint(document, asset, cursor);
     return { ...foot, rotation: 0, ...paint };
   }, [active, document, cursor, asset, subTool, altHeld, rotation]);
 
-  return { ghost, updateCursor, place, scatter };
+  // Ghost-before-commit (P2): the scatter cluster IS the commit — same
+  // builder, same point-derived seed — so every footprint lands exactly
+  // where a click at this cursor would put it.
+  const draftGhosts = useMemo<PlacementGhost[]>(() => {
+    if (!active || !document || !cursor || subTool !== "scatter") return [];
+    const drafts = buildScatterDrafts(document, asset, cursor, scatterSeedFromPoint(cursor));
+    return drafts.map((draft) => ({
+      x: draft.x,
+      y: draft.y,
+      width: draft.width,
+      height: draft.height,
+      rotation: draft.rotation ?? 0,
+      fill: asset.fill,
+      stroke: asset.stroke,
+    }));
+  }, [active, document, cursor, asset, subTool]);
+
+  return { ghost, draftGhosts, updateCursor, place, scatter };
 }
 
 function clampFootprint(value: number, max: number): number {

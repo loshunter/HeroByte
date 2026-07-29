@@ -5,17 +5,38 @@
 // non-listening overlay Layer. Nests the same camera + map-transform groups as
 // the compiled-scene layers so the preview sits in document space; stroke, dot,
 // and text sizes divide by cam.scale so they stay constant on screen at any
-// zoom. Segment tools (wall/door) draw a dashed line + endpoint dots; the room
-// tool draws a dashed rectangle + a "cols × rows" cell-count label.
+// zoom. Ghost-before-commit (P2): every gesture previews the TRUE result —
+// spline drags paint the real sagged rope/ribbon art (the same splineDetail
+// painter the committed element uses), paint strokes and the room/hallway fill
+// tint with the armed family's real baked chip (brushThumbnails), and
+// scatter/populate draft footprints land exactly where the commit will.
+// Segment tools (wall/door) keep the dashed line + endpoint dots. The render
+// primitives live in MapEditPreviewParts (structure cap).
 
-import { Group, Line, Circle, Rect, Text } from "react-konva";
+import { useEffect, useSyncExternalStore } from "react";
+import { Group, Rect } from "react-konva";
 import type { SceneObjectTransform, TerrainPaintCell } from "@herobyte/shared";
 import type { Camera } from "../map/types";
 import type { RoomDrag } from "../map-studio/components/MapStudioWorkspace.types";
 import type { PlacementGhost } from "./useMapEditPlacement";
 import { hallwayBoundsFromDrag } from "./hallwayBuilder";
 import type { SelectionRect } from "./elementHitTest";
-import type { MapEditSubTool } from "./mapEditTypes";
+import type { MapEditSplineKind, MapEditSubTool } from "./mapEditTypes";
+import {
+  getBrushThumbnailVersion,
+  requestBrushThumbnails,
+  subscribeBrushThumbnails,
+} from "./brushThumbnails";
+import {
+  PREVIEW_COLOR,
+  familyGhostFill,
+  goldFill,
+  renderGhost,
+  renderRoom,
+  renderSegment,
+  renderSplineArt,
+  renderStrokeCell,
+} from "./MapEditPreviewParts";
 
 interface MapEditPreviewLayerProps {
   cam: Camera;
@@ -25,18 +46,21 @@ interface MapEditPreviewLayerProps {
   gridSize: number;
   /** Corridor width in cells for the hallway preview. */
   hallwayWidth?: number;
-  /** In-progress terrain/erase brush cells (translucent cell rects). */
+  /** In-progress terrain/erase brush cells (real family-chip tint). */
   strokeCells?: TerrainPaintCell[];
   /** Translucent footprint preview for the place/scatter tools. */
   placementGhost?: PlacementGhost | null;
+  /** True-result draft footprints (scatter cluster, populate preview). */
+  draftGhosts?: PlacementGhost[];
   /** Highlight footprint around the selected element (select sub-tool). */
   selectionRect?: SelectionRect | null;
+  /** Armed spline curve kind — the drag paints the REAL splineDetail art. */
+  splineKind?: MapEditSplineKind;
+  /** Armed paint family — the room/hallway fill uses its real baked chip. */
+  floorFamily?: string;
   gridOffsetX?: number;
   gridOffsetY?: number;
 }
-
-const PREVIEW_COLOR = "#f0e2c3"; // hero gold — reads over any floor
-const ERASE_COLOR = "#10121a"; // dark — erase preview (Studio's look)
 
 export function MapEditPreviewLayer({
   cam,
@@ -47,11 +71,36 @@ export function MapEditPreviewLayer({
   hallwayWidth = 2,
   strokeCells = [],
   placementGhost = null,
+  draftGhosts = [],
   selectionRect = null,
+  splineKind = "rope",
+  floorFamily,
   gridOffsetX = 0,
   gridOffsetY = 0,
 }: MapEditPreviewLayerProps) {
-  if (!previewDrag && strokeCells.length === 0 && !placementGhost && !selectionRect) return null;
+  // Re-render when a chip bake lands so ghosts upgrade from flat fill to art.
+  useSyncExternalStore(subscribeBrushThumbnails, getBrushThumbnailVersion, () => 0);
+  const familyAssetId = floorFamily ? `terrain:${floorFamily}` : null;
+  const wantedKey = [
+    ...new Set(
+      [familyAssetId, ...strokeCells.map((cell) => cell.assetId)].filter(
+        (id): id is string => id !== null,
+      ),
+    ),
+  ].join(",");
+  useEffect(() => {
+    if (wantedKey) requestBrushThumbnails(wantedKey.split(","));
+  }, [wantedKey]);
+
+  if (
+    !previewDrag &&
+    strokeCells.length === 0 &&
+    !placementGhost &&
+    draftGhosts.length === 0 &&
+    !selectionRect
+  ) {
+    return null;
+  }
 
   const { x = 0, y = 0, scaleX = 1, scaleY = 1, rotation = 0 } = mapTransform ?? {};
   const strokeWidth = 3 / cam.scale;
@@ -61,6 +110,11 @@ export function MapEditPreviewLayer({
     <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale} listening={false}>
       <Group x={x} y={y} scaleX={scaleX} scaleY={scaleY} rotation={rotation} listening={false}>
         {placementGhost && renderGhost(placementGhost, cam.scale)}
+        {draftGhosts.map((ghost, index) => (
+          <Group key={index} listening={false}>
+            {renderGhost(ghost, cam.scale)}
+          </Group>
+        ))}
         {selectionRect && (
           <Group
             x={selectionRect.x + selectionRect.pivotX}
@@ -84,8 +138,17 @@ export function MapEditPreviewLayer({
         {previewDrag &&
           (activeSubTool === "room" || activeSubTool === "generate" ? (
             // Generate aims at the same cell-quantized rectangle a room does —
-            // it just fills it with a dungeon instead of one floor.
-            renderRoom(previewDrag.start, previewDrag.end, gridSize, strokeWidth, dash, cam.scale)
+            // it just fills it with a dungeon instead of one floor, so only
+            // the room fill tints with the armed family's chip.
+            renderRoom(
+              previewDrag.start,
+              previewDrag.end,
+              gridSize,
+              strokeWidth,
+              dash,
+              cam.scale,
+              activeSubTool === "room" ? familyGhostFill(familyAssetId, gridSize) : goldFill(),
+            )
           ) : activeSubTool === "hallway" ? (
             <Rect
               {...hallwayBoundsFromDrag(previewDrag, hallwayWidth, {
@@ -96,11 +159,12 @@ export function MapEditPreviewLayer({
               stroke={PREVIEW_COLOR}
               strokeWidth={strokeWidth}
               dash={dash}
-              fill={PREVIEW_COLOR}
-              opacity={0.15}
+              {...familyGhostFill(familyAssetId, gridSize)}
               listening={false}
               name="map-edit-preview:hallway"
             />
+          ) : activeSubTool === "spline" ? (
+            renderSplineArt(previewDrag.start, previewDrag.end, splineKind, gridSize)
           ) : (
             renderSegment(
               previewDrag.start,
@@ -111,119 +175,8 @@ export function MapEditPreviewLayer({
               activeSubTool,
             )
           ))}
-        {strokeCells.map((cell) => (
-          <Rect
-            key={`${cell.x},${cell.y}`}
-            x={cell.x * gridSize + gridOffsetX}
-            y={cell.y * gridSize + gridOffsetY}
-            width={gridSize}
-            height={gridSize}
-            fill={cell.assetId === null ? ERASE_COLOR : PREVIEW_COLOR}
-            opacity={0.55}
-            listening={false}
-          />
-        ))}
+        {strokeCells.map((cell) => renderStrokeCell(cell, gridSize, gridOffsetX, gridOffsetY))}
       </Group>
     </Group>
-  );
-}
-
-/**
- * The place/scatter ghost: a translucent footprint at the cursor. A ghost is
- * always a tile/stamp footprint, so it rotates about its VISUAL CENTER — matching
- * MapElementsLayer's corrected footprint render (center-pivot via position +
- * offset) so the preview lands exactly where the committed element will.
- */
-function renderGhost(ghost: PlacementGhost, scale: number) {
-  return (
-    <Group
-      x={ghost.x + ghost.width / 2}
-      y={ghost.y + ghost.height / 2}
-      offsetX={ghost.width / 2}
-      offsetY={ghost.height / 2}
-      rotation={ghost.rotation}
-      listening={false}
-    >
-      <Rect
-        width={ghost.width}
-        height={ghost.height}
-        fill={ghost.fill}
-        stroke={ghost.stroke}
-        strokeWidth={2 / scale}
-        opacity={0.5}
-        listening={false}
-        name="map-edit-preview:ghost"
-      />
-    </Group>
-  );
-}
-
-function renderSegment(
-  start: { x: number; y: number },
-  end: { x: number; y: number },
-  strokeWidth: number,
-  dash: number[],
-  scale: number,
-  activeSubTool: MapEditSubTool,
-) {
-  const dotRadius = 4 / scale;
-  return (
-    <>
-      <Line
-        points={[start.x, start.y, end.x, end.y]}
-        stroke={PREVIEW_COLOR}
-        strokeWidth={strokeWidth}
-        dash={dash}
-        lineCap="round"
-        listening={false}
-        name={`map-edit-preview:${activeSubTool}`}
-      />
-      <Circle x={start.x} y={start.y} radius={dotRadius} fill={PREVIEW_COLOR} listening={false} />
-      <Circle x={end.x} y={end.y} radius={dotRadius} fill={PREVIEW_COLOR} listening={false} />
-    </>
-  );
-}
-
-function renderRoom(
-  start: { x: number; y: number },
-  end: { x: number; y: number },
-  gridSize: number,
-  strokeWidth: number,
-  dash: number[],
-  scale: number,
-) {
-  // Inclusive of both endpoint cells — mirrors roomBoundsFromDrag.
-  const left = Math.min(start.x, end.x);
-  const top = Math.min(start.y, end.y);
-  const width = Math.abs(end.x - start.x) + gridSize;
-  const height = Math.abs(end.y - start.y) + gridSize;
-  const cols = Math.max(1, Math.round(width / gridSize));
-  const rows = Math.max(1, Math.round(height / gridSize));
-  const fontSize = 14 / scale;
-
-  return (
-    <>
-      <Rect
-        x={left}
-        y={top}
-        width={width}
-        height={height}
-        stroke={PREVIEW_COLOR}
-        strokeWidth={strokeWidth}
-        dash={dash}
-        fill={PREVIEW_COLOR}
-        opacity={0.15}
-        listening={false}
-        name="map-edit-preview:room"
-      />
-      <Text
-        x={left + 4 / scale}
-        y={top + 4 / scale}
-        text={`${cols} × ${rows}`}
-        fontSize={fontSize}
-        fill={PREVIEW_COLOR}
-        listening={false}
-      />
-    </>
   );
 }

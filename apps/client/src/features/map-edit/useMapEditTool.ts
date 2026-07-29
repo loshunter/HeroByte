@@ -71,6 +71,8 @@ interface UseMapEditToolReturn {
   strokeCells: TerrainPaintCell[];
   /** Translucent placement ghost (place/scatter sub-tools). */
   placementGhost: PlacementGhost | null;
+  /** True-result scatter-cluster footprints under the cursor (P2 ghosts). */
+  draftGhosts: PlacementGhost[];
   /** Highlight footprint around the selected element (select sub-tool). */
   selectionRect: SelectionRect | null;
   onMouseDown: (stageRef: RefObject<Konva.Stage | null>) => void;
@@ -335,6 +337,7 @@ export function useMapEditTool({
     previewDrag,
     strokeCells,
     placementGhost: placement.ghost,
+    draftGhosts: placement.draftGhosts,
     selectionRect: selection.selectionRect,
     onMouseDown,
     onMouseMove,

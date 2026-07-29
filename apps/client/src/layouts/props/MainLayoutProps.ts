@@ -125,6 +125,11 @@ export interface MainLayoutProps {
   mapEditHallwayWidth: number;
   /** Curve kind the spline tool authors (optional: defaults to rope). */
   mapEditSplineKind?: import("../../features/map-edit/mapEditTypes").MapEditSplineKind;
+  /** POPULATE's true draft footprints while a region is armed (P2 ghosts;
+   * optional so the layout fixtures stay untouched). */
+  mapEditPopulateGhosts?:
+    | import("../../features/map-edit/useMapEditPlacement").PlacementGhost[]
+    | null;
   /** Selected element id (select tool) → highlight */
   mapEditSelectedElementId: string | null;
   /** Keep the DM walls overlay visible outside map-edit mode */

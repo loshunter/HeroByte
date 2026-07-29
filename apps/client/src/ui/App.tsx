@@ -723,6 +723,7 @@ function AuthenticatedApp({
     mapEditSelectedAssetId: mapEdit.selectedAssetId,
     mapEditHallwayWidth: mapEdit.hallwayWidth,
     mapEditSplineKind: mapEdit.splineKind,
+    mapEditPopulateGhosts: mapEdit.populateGhosts,
     mapEditSelectedElementId: mapEdit.selectedElementId,
     mapEditWallsOverlayPinned: mapEdit.wallsOverlayPinned,
     onMapEditRoomRejected: toast.error,
