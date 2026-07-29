@@ -47,6 +47,13 @@ export type MapEditRoofFamily = string;
 /** Any paintable family the room/terrain tools use (floors, walls, roofs). */
 export type MapEditFloorFamily = string;
 
+/** The quick wheel's dispatch pair (P5) — the same setters the palette uses,
+ * bundled so MapBoard can host the wheel with ONE optional prop. */
+export interface MapEditWheelActions {
+  selectSubTool: (tool: MapEditSubTool) => void;
+  selectFloorFamily: (family: MapEditFloorFamily) => void;
+}
+
 /** POPULATE set-dressing density (per-cell placement probability tiers). */
 export type PopulateDensity = "low" | "medium" | "high";
 

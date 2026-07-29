@@ -130,6 +130,8 @@ export interface MainLayoutProps {
   mapEditPopulateGhosts?:
     | import("../../features/map-edit/useMapEditPlacement").PlacementGhost[]
     | null;
+  /** Quick-wheel dispatch pair (P5; optional — fixtures untouched). */
+  mapEditWheelActions?: import("../../features/map-edit/mapEditTypes").MapEditWheelActions;
   /** Selected element id (select tool) → highlight */
   mapEditSelectedElementId: string | null;
   /** Keep the DM walls overlay visible outside map-edit mode */

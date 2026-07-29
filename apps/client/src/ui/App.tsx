@@ -728,6 +728,7 @@ function AuthenticatedApp({
     mapEditHallwayWidth: mapEdit.hallwayWidth,
     mapEditSplineKind: mapEdit.splineKind,
     mapEditPopulateGhosts: mapEdit.populateGhosts,
+    mapEditWheelActions: mapEdit.wheelActions,
     mapEditSelectedElementId: mapEdit.selectedElementId,
     mapEditWallsOverlayPinned: mapEdit.wallsOverlayPinned,
     onMapEditRoomRejected: toast.error,

@@ -58,6 +58,7 @@ import {
 import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 import { useMapEditTool } from "../features/map-edit/useMapEditTool";
 import { MapEditPreviewLayer } from "../features/map-edit/MapEditPreviewLayer";
+import { MapEditQuickWheel } from "../features/map-edit/MapEditQuickWheel";
 import { dmViewActive, fogViewerTokens, visibleDoors } from "../features/map/playerLens";
 import { WallsOverlayLayer } from "../features/map-edit/WallsOverlayLayer";
 import { NotesOverlayLayer } from "../features/map-edit/NotesOverlayLayer";
@@ -99,6 +100,7 @@ export default function MapBoard({
   mapEditHallwayWidth = 2,
   mapEditSplineKind = "rope",
   mapEditPopulateGhosts = null,
+  mapEditWheelActions,
   playerLens = false,
   mapEditSelectedElementId = null,
   mapEditController,
@@ -438,6 +440,13 @@ export default function MapBoard({
   // Player lens (P4): a VIEW toggle only — DM chrome and DM-only data render
   // off dmView, while permissions/actions keep using isDM.
   const dmView = dmViewActive(isDM, playerLens);
+
+  // Quick wheel (P5): right-click on the canvas in map-edit mode opens the
+  // radial tool/brush menu at the cursor; leaving the mode drops it.
+  const [wheelAt, setWheelAt] = useState<{ x: number; y: number } | null>(null);
+  useEffect(() => {
+    if (!mapEditMode) setWheelAt(null);
+  }, [mapEditMode]);
   const dragPreviewEnabled = ENABLE_DRAG_PREVIEWS;
 
   const handleDragPreview = useCallback(
@@ -549,11 +558,29 @@ export default function MapBoard({
         color: "#dbe1ff",
         position: "relative",
       }}
+      onContextMenu={(event) => {
+        // Quick wheel (P5): map-edit only — token context menus and the
+        // browser menu keep every other mode.
+        if (!mapEditMode || !mapEditWheelActions) return;
+        event.preventDefault();
+        setWheelAt({ x: event.clientX, y: event.clientY });
+      }}
     >
       <AlignmentInstructionOverlay
         alignmentMode={alignmentMode}
         alignmentInstruction={alignmentInstruction}
       />
+      {wheelAt && mapEditWheelActions && (
+        <MapEditQuickWheel
+          x={wheelAt.x}
+          y={wheelAt.y}
+          activeSubTool={mapEditActiveSubTool}
+          floorFamily={mapEditFloorFamily}
+          onSelectSubTool={mapEditWheelActions.selectSubTool}
+          onSelectFloorFamily={mapEditWheelActions.selectFloorFamily}
+          onClose={() => setWheelAt(null)}
+        />
+      )}
 
       {/* Stage is the viewport; world content is translated/scaled by cam in child Groups */}
       <Stage

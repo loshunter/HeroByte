@@ -5,6 +5,15 @@ _2026-07-28. Owner-approved pitch: the renderer became painterly (30+ families,
 flat colour swatches. Five pillars, each its own slice with its own commit.
 Nothing here needs new rendering tech — every pillar reuses shipped machinery._
 
+**STATUS 2026-07-30: ALL FIVE PILLARS SHIPPED to dev.** P1 painter's deck
+(`cbf13e4` + `194ad80` typing-surface guards), P2 ghost-before-commit
+(`8fd8181`), P3 worker bake (`d663786` — worst stall 1.98s vs the ~60s
+freeze), P4 player lens (`d82555c`), P5 quick wheel (see its commit).
+Recorded deferrals: the deck's "props" group (place/scatter assets keep
+MapEditAssetPicker until pickers unify), the wheel's long-press touch
+variant, and per-player lens impersonation (the lens shows the party's
+union vision).
+
 ## The five pillars (build in this order)
 
 ### P1 — The painter's deck (biggest daily-use win; do first)

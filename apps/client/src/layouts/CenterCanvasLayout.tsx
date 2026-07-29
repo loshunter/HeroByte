@@ -103,6 +103,7 @@ export interface CenterCanvasLayoutProps {
   mapEditPopulateGhosts?:
     | import("../features/map-edit/useMapEditPlacement").PlacementGhost[]
     | null;
+  mapEditWheelActions?: import("../features/map-edit/mapEditTypes").MapEditWheelActions;
   /** Player lens (P4): render the DM's view as players receive it. */
   playerLens?: boolean;
   /** Selected element id (select tool) → highlight */
@@ -232,6 +233,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
     mapEditHallwayWidth,
     mapEditSplineKind,
     mapEditPopulateGhosts,
+    mapEditWheelActions,
     playerLens,
     mapEditSelectedElementId,
     mapEditWallsOverlayPinned,
@@ -287,6 +289,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
             mapEditHallwayWidth={mapEditHallwayWidth}
             mapEditSplineKind={mapEditSplineKind}
             mapEditPopulateGhosts={mapEditPopulateGhosts}
+            mapEditWheelActions={mapEditWheelActions}
             mapEditSelectedElementId={mapEditSelectedElementId}
             mapEditController={mapStudio}
             mapEditWallsOverlayPinned={mapEditWallsOverlayPinned}

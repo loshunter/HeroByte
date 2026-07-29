@@ -54,6 +54,8 @@ interface UseMapEditStateReturn {
   onRegionPlaced: (bounds: RoomBounds) => void;
   /** POPULATE's true draft footprints while a region is armed (P2 ghosts). */
   populateGhosts: import("./useMapEditPlacement").PlacementGhost[] | null;
+  /** Quick-wheel dispatch pair (P5) — stable identity. */
+  wheelActions: import("./mapEditTypes").MapEditWheelActions;
   /** Record a generate drag's bounds as the recipe's target (fed to the tool). */
   onRegionDragged: (bounds: RoomBounds) => void;
   /** Currently-selected element id (select sub-tool) + its setter (fed to the tool). */
@@ -223,6 +225,13 @@ export function useMapEditState({
     setActiveSubTool("place");
   }, []);
 
+  // Quick-wheel dispatch pair (P5): useState setters are identity-stable, so
+  // one memo keeps the pair stable for MapBoard.
+  const wheelActions = useMemo(
+    () => ({ selectSubTool: setActiveSubTool, selectFloorFamily: setFloorFamily }),
+    [],
+  );
+
   // The selected element, resolved live from the active document so edits (and
   // deletions) reflect immediately; clears when the element is gone.
   const selectedElement = useMemo(
@@ -294,6 +303,7 @@ export function useMapEditState({
     splineKind,
     onRegionPlaced: populate.onRegionPlaced,
     populateGhosts: populate.previewGhosts,
+    wheelActions,
     onRegionDragged: generate.onRegionDragged,
     selectedElementId,
     onSelectElement: setSelectedElementId,
