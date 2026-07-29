@@ -132,7 +132,11 @@ function paintBridgeDetail(
     const shade = hash2(plank, other, 172);
     ctx.fillStyle = shade < 0.3 ? pal.dark : shade < 0.75 ? pal.mid : pal.light;
     // Slight per-board mis-set along the run keeps the deck hand-laid.
-    const at = clamp(i * step + gap / 2 + (hash2(plank, other, 173) - 0.5) * gap, 0, size - step + gap);
+    const at = clamp(
+      i * step + gap / 2 + (hash2(plank, other, 173) - 0.5) * gap,
+      0,
+      size - step + gap,
+    );
     const span = step - gap;
     if (horizontalRun) ctx.fillRect(x + at, y, span, size);
     else ctx.fillRect(x, y + at, size, span);

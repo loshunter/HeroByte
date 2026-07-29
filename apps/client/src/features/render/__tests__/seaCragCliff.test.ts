@@ -65,7 +65,9 @@ function scanBand(
 }
 
 describe("sea-crag cliff (stacked ledges)", () => {
-  const field = createTerrainField(buildProceduralFieldConfig(layers, GRID, VILLAGE_TERRAIN)!.config);
+  const field = createTerrainField(
+    buildProceduralFieldConfig(layers, GRID, VILLAGE_TERRAIN)!.config,
+  );
 
   it("quantizes the crag interior into courses: ink contours, dark outer ledge, pale core", () => {
     // The full band strip (cliff columns 4–5 ⇒ 200–300px) carries all three.

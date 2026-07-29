@@ -10,10 +10,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { buildBenchmarkDocument } from "./zz_benchmarkMapDoc";
-import {
-  buildProceduralFieldConfig,
-  paintProceduralDetail,
-} from "../proceduralTerrainSurface";
+import { buildProceduralFieldConfig, paintProceduralDetail } from "../proceduralTerrainSurface";
 import { createTerrainField, renderTerrainField } from "../proceduralTerrain";
 import { VILLAGE_TERRAIN, VILLAGE_SHADOW_TINT } from "../terrainPalette";
 import { paintWearStamp, wearStampSeed, type WearStampContext2D } from "../wearStampDetail";
@@ -166,7 +163,12 @@ describe.skipIf(!RUN_BENCH)("benchmark render (temporary)", () => {
     const doc = buildBenchmarkDocument();
     const occupancy = buildTileOccupancy(doc);
     const layers = buildStructuredTerrainLayers(doc.terrain!, doc.grid, occupancy);
-    const built = buildProceduralFieldConfig(layers, doc.grid, VILLAGE_TERRAIN, VILLAGE_SHADOW_TINT);
+    const built = buildProceduralFieldConfig(
+      layers,
+      doc.grid,
+      VILLAGE_TERRAIN,
+      VILLAGE_SHADOW_TINT,
+    );
     if (!built) throw new Error("no field terrain in benchmark document");
     const { config, width, height } = built;
     if (width * height > 32_000_000) throw new Error(`bake too large: ${width}x${height}`);
@@ -179,7 +181,14 @@ describe.skipIf(!RUN_BENCH)("benchmark render (temporary)", () => {
     const ctx = makeSoftwareCtx(buffer, width, height, config.originX, config.originY);
     const field = createTerrainField(config);
     const fieldLayers = layers.filter((layer) => VILLAGE_TERRAIN[layer.assetId]);
-    paintProceduralDetail(ctx, fieldLayers, VILLAGE_TERRAIN, field, config.familyAt, config.depthOf);
+    paintProceduralDetail(
+      ctx,
+      fieldLayers,
+      VILLAGE_TERRAIN,
+      field,
+      config.familyAt,
+      config.depthOf,
+    );
     const t2 = performance.now();
 
     // spline elements (persistent curves) over the terrain

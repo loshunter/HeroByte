@@ -37,6 +37,7 @@ const key = (x: number, y: number) => `${x},${y}`;
 const inBounds = (x: number, y: number) => x >= 0 && y >= 0 && x < BENCH_W && y < BENCH_H;
 
 /** Organic blob: radial-noise disc (silhouette frequency = lobes). */
+// prettier-ignore
 function blob(set: Set<string>, cx: number, cy: number, baseR: number, seed: number, lobes = 5, amp = 0.22): void {
   const p1 = hash2(1, seed, 7) * Math.PI * 2;
   const p2 = hash2(2, seed, 7) * Math.PI * 2;
@@ -46,7 +47,8 @@ function blob(set: Set<string>, cx: number, cy: number, baseR: number, seed: num
       const dx = x + 0.5 - cx;
       const dy = y + 0.5 - cy;
       const th = Math.atan2(dy, dx);
-      const r = baseR * (1 + amp * Math.sin(lobes * th + p1) + amp * 0.6 * Math.sin((lobes + 3) * th + p2));
+      const r =
+        baseR * (1 + amp * Math.sin(lobes * th + p1) + amp * 0.6 * Math.sin((lobes + 3) * th + p2));
       if (Math.hypot(dx, dy) < r) set.add(key(x, y));
     }
   }
@@ -60,11 +62,8 @@ function disc(set: Set<string>, cx: number, cy: number, r: number): void {
 }
 
 /** Cells within halfW of the segment, with sideways wobble noise. */
-function thickLine(
-  set: Set<string>,
-  x0: number, y0: number, x1: number, y1: number,
-  halfW: number, seed: number, wobble: number,
-): void {
+// prettier-ignore
+function thickLine(set: Set<string>, x0: number, y0: number, x1: number, y1: number, halfW: number, seed: number, wobble: number): void {
   const len = Math.hypot(x1 - x0, y1 - y0) || 1;
   const steps = Math.ceil(len * 3);
   for (let i = 0; i <= steps; i++) {
@@ -80,31 +79,10 @@ function thickLine(
   }
 }
 
-/** Ring of separated single cells (standing stones / field-wall posts).
- * Posts land only on plain grass — never in water, on cliffs, or on paths. */
-function postRing(
-  cells: Map<string, string>,
-  cx: number, cy: number, r: number, count: number, seed: number,
-  family: string, skipArcs: ReadonlyArray<readonly [number, number]> = [],
-): void {
-  for (let i = 0; i < count; i++) {
-    const th = (i / count) * Math.PI * 2;
-    const deg = ((th * 180) / Math.PI + 360) % 360;
-    if (skipArcs.some(([a, b]) => (a <= b ? deg >= a && deg <= b : deg >= a || deg <= b))) continue;
-    const jr = r * (1 + (hash2(i, 0, seed) - 0.5) * 0.12);
-    const x = Math.round(cx + Math.cos(th) * jr - 0.5);
-    const y = Math.round(cy + Math.sin(th) * jr - 0.5);
-    if (inBounds(x, y) && cells.get(key(x, y)) === "terrain:grass") cells.set(key(x, y), family);
-  }
-}
-
 /** Connected low-wall arc (degrees, 0=E, 90=S); writes only over grass so
  * path mouths and buildings break it into natural gaps. */
-function arcWall(
-  cells: Map<string, string>,
-  cx: number, cy: number, r: number,
-  degStart: number, degEnd: number, family: string,
-): void {
+// prettier-ignore
+function arcWall(cells: Map<string, string>, cx: number, cy: number, r: number, degStart: number, degEnd: number, family: string): void {
   const steps = Math.ceil((degEnd - degStart) / 3);
   for (let i = 0; i <= steps; i++) {
     const th = ((degStart + ((degEnd - degStart) * i) / steps) * Math.PI) / 180;
@@ -118,6 +96,7 @@ function fillFamily(cells: Map<string, string>, set: Set<string>, family: string
   for (const k of set) cells.set(k, family);
 }
 
+// prettier-ignore
 function stampRect(cells: Map<string, string>, family: string, x0: number, y0: number, w: number, h: number): void {
   for (let y = y0; y < y0 + h; y++)
     for (let x = x0; x < x0 + w; x++) if (inBounds(x, y)) cells.set(key(x, y), family);
@@ -127,7 +106,8 @@ export function buildBenchmarkMap(): BenchMap {
   const cells = new Map<string, string>();
 
   // 1. ocean everywhere
-  for (let y = 0; y < BENCH_H; y++) for (let x = 0; x < BENCH_W; x++) cells.set(key(x, y), "terrain:water");
+  for (let y = 0; y < BENCH_H; y++)
+    for (let x = 0; x < BENCH_W; x++) cells.set(key(x, y), "terrain:water");
 
   // 2. landmasses
   const main = new Set<string>();
@@ -199,7 +179,10 @@ export function buildBenchmarkMap(): BenchMap {
 
   // 5. farm plots (SE island): the furrow family draws its own sub-cell
   // ridge rows and crop ticks — plots are plain rects of one family now.
-  for (const [px, py, pw, ph] of [[35, 41, 4, 3], [35, 45, 4, 3]] as const) {
+  for (const [px, py, pw, ph] of [
+    [35, 41, 4, 3],
+    [35, 45, 4, 3],
+  ] as const) {
     for (let y = py; y < py + ph; y++)
       for (let x = px; x < px + pw; x++) {
         const k = key(x, y);
@@ -229,14 +212,35 @@ export function buildBenchmarkMap(): BenchMap {
   // the stamps list below)
   // broken compound wall over the N side of the roundhouse plateau
   arcWall(cells, 20.5, 9.5, 7.2, 150, 395, "terrain:wall-stone");
-  for (const [x, y] of [[25, 30], [26, 30], [26, 31]] as const) cells.set(key(x, y), "terrain:wall-stone");
-  for (const [x, y] of [[29, 42], [30, 42], [31, 42], [29, 43], [29, 44]] as const)
+  for (const [x, y] of [
+    [25, 30],
+    [26, 30],
+    [26, 31],
+  ] as const)
     cells.set(key(x, y), "terrain:wall-stone");
-  for (const [x, y] of [[11, 46], [12, 46], [13, 46], [11, 47]] as const)
+  for (const [x, y] of [
+    [29, 42],
+    [30, 42],
+    [31, 42],
+    [29, 43],
+    [29, 44],
+  ] as const)
+    cells.set(key(x, y), "terrain:wall-stone");
+  for (const [x, y] of [
+    [11, 46],
+    [12, 46],
+    [13, 46],
+    [11, 47],
+  ] as const)
     cells.set(key(x, y), "terrain:wall-stone");
   cells.set(key(15, 50), "terrain:wall-stone");
   // drowned architecture just offshore of the SE ruin
-  for (const [x, y] of [[27, 38], [28, 38], [28, 37], [26, 39]] as const)
+  for (const [x, y] of [
+    [27, 38],
+    [28, 38],
+    [28, 37],
+    [26, 39],
+  ] as const)
     if (cells.get(key(x, y)) === "terrain:water") cells.set(key(x, y), "terrain:sunken-flagstone");
 
   // 8. crossings — slender plank ribbons (the log-rib bridge deck family)
@@ -248,8 +252,14 @@ export function buildBenchmarkMap(): BenchMap {
 
   // 9. rock islets (foam halos come free from the water BFS)
   for (const [cx, cy, r] of [
-    [4, 12, 1.2], [39, 8, 1.4], [41, 16, 1.8], [20, 36, 1.0],
-    [10, 37, 1.3], [39, 33, 1.0], [22, 47, 0.9], [3, 33, 1.1],
+    [4, 12, 1.2],
+    [39, 8, 1.4],
+    [41, 16, 1.8],
+    [20, 36, 1.0],
+    [10, 37, 1.3],
+    [39, 33, 1.0],
+    [22, 47, 0.9],
+    [3, 33, 1.1],
   ] as const) {
     const s = new Set<string>();
     disc(s, cx, cy, r);
@@ -294,11 +304,25 @@ export function buildBenchmarkMap(): BenchMap {
     });
   }
   // lone menhirs on the SW landmass
-  stamps.push({ assetId: "objects:menhir", centerX: 10.5, centerY: 44.5, cellsW: 0.8, cellsH: 1.2 });
+  stamps.push({
+    assetId: "objects:menhir",
+    centerX: 10.5,
+    centerY: 44.5,
+    cellsW: 0.8,
+    cellsH: 1.2,
+  });
   stamps.push({ assetId: "objects:menhir", centerX: 15.2, centerY: 50.2, cellsW: 0.7, cellsH: 1 });
   // gull flecks over open water
   for (const [gx, gy] of [
-    [8, 10], [14, 5], [35, 12], [40, 25], [6, 36], [24, 38], [16, 44], [38, 36], [28, 20],
+    [8, 10],
+    [14, 5],
+    [35, 12],
+    [40, 25],
+    [6, 36],
+    [24, 38],
+    [16, 44],
+    [38, 36],
+    [28, 20],
   ] as const) {
     stamps.push({ assetId: "objects:gull", centerX: gx, centerY: gy, cellsW: 0.5, cellsH: 0.5 });
   }

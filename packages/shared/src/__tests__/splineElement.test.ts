@@ -5,12 +5,12 @@
 // (set dressing never blocks movement or vision).
 
 import { describe, expect, it } from "vitest";
-import { compileScene } from "../sceneCompiler";
-import { deriveMapElements } from "../scenePublish";
-import { sanitizeElement } from "../mapStudioValidation";
-import { createMapDocument } from "../mapStudio";
-import { addMapElement } from "../mapStudioElements";
-import type { MapSplineElement } from "../mapStudioTypes";
+import { compileScene } from "../sceneCompiler.js";
+import { deriveMapElements } from "../scenePublish.js";
+import { sanitizeElement } from "../mapStudioValidation.js";
+import { createMapDocument } from "../mapStudio.js";
+import { addMapElement } from "../mapStudioElements.js";
+import type { MapSplineElement } from "../mapStudioTypes.js";
 
 const spline = (over?: Partial<MapSplineElement["data"]>): MapSplineElement => ({
   id: "spline-1",
@@ -49,7 +49,8 @@ describe("spline element wire contract", () => {
     let document = createMapDocument({ id: "doc", name: "Doc" });
     document = addMapElement(document, spline());
     const snapshot = deriveMapElements(document);
-    const rendered = snapshot.layers.flatMap((layer) => layer.elements);
+    expect(snapshot).toBeDefined();
+    const rendered = snapshot!.layers.flatMap((layer) => layer.elements);
     expect(rendered).toHaveLength(1);
     expect(rendered[0]).toMatchObject({
       type: "spline",

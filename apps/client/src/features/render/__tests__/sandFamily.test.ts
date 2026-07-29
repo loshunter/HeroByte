@@ -45,7 +45,9 @@ describe("sand↔grass interleave (the second pair)", () => {
     block("terrain:grass", 8, 0, 15, 19),
     block("terrain:dirt", 16, 0, 23, 19),
   ];
-  const field = createTerrainField(buildProceduralFieldConfig(layers, GRID, VILLAGE_TERRAIN)!.config);
+  const field = createTerrainField(
+    buildProceduralFieldConfig(layers, GRID, VILLAGE_TERRAIN)!.config,
+  );
 
   const scan = (
     x0: number,

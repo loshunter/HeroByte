@@ -27,13 +27,7 @@ export const PROP_STAMP_ART = {
   menhirShadow: "#2c3138",
 } as const;
 
-const rect = (
-  ctx: WearStampContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-): void => {
+const rect = (ctx: WearStampContext2D, x: number, y: number, w: number, h: number): void => {
   if (w > 0 && h > 0) ctx.fillRect(x, y, w, h);
 };
 
@@ -61,8 +55,7 @@ function paintBoat(ctx: WearStampContext2D, w: number, h: number, seed: number):
   const slices = 16;
   const sliceH = (h - 2 * pad) / slices;
   const halfAt = (t: number): number => {
-    const taper =
-      t < 0.55 ? 0.08 + 0.92 * (t / 0.55) : 1 - 0.28 * ((t - 0.55) / 0.45);
+    const taper = t < 0.55 ? 0.08 + 0.92 * (t / 0.55) : 1 - 0.28 * ((t - 0.55) / 0.45);
     const jitter = 1 + (hash2(Math.round(t * slices), 1, seed) - 0.5) * 0.08;
     return maxHalf * taper * jitter;
   };
