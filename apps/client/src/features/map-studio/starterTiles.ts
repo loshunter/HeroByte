@@ -5,7 +5,7 @@ import { uploadHashFromAssetId, uploadedAssetUrl } from "./uploads/assetUpload";
 import { MAP_STUDIO_TILE_ASSETS, type MapStudioTileAsset } from "./starterTileAssets";
 
 export { MAP_STUDIO_TILE_ASSETS } from "./starterTileAssets";
-export type { MapStudioTileAsset } from "./starterTileAssets";
+export type { MapStudioTileAsset, TileMaterial } from "./starterTileAssets";
 
 /** Neutral chrome shown behind/around image-backed (uploaded) assets. */
 export const MY_STUFF_FILL = "#2b2f3d";
