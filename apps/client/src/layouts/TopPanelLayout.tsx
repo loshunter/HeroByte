@@ -82,6 +82,11 @@ export interface TopPanelLayoutProps {
   diceRollerOpen: boolean;
   /** Whether the roll log panel is open */
   rollLogOpen: boolean;
+  /** Player lens (P4): the DM's view rendered as players receive it
+   * (optional so the layout fixtures stay untouched). */
+  playerLens?: boolean;
+  /** Handler to toggle the player lens. */
+  onTogglePlayerLens?: (enabled: boolean) => void;
 
   // ===== UI Handlers (3 props) =====
   /** Handler to toggle the dice roller panel */
@@ -130,6 +135,8 @@ export const TopPanelLayout = React.memo<TopPanelLayoutProps>(
     setCrtFilter,
     diceRollerOpen,
     rollLogOpen,
+    playerLens,
+    onTogglePlayerLens,
     toggleDiceRoller,
     toggleRollLog,
     handleResetCamera,
@@ -163,6 +170,8 @@ export const TopPanelLayout = React.memo<TopPanelLayoutProps>(
           diceRollerOpen={diceRollerOpen}
           rollLogOpen={rollLogOpen}
           isDM={isDM}
+          playerLens={playerLens}
+          onPlayerLensChange={onTogglePlayerLens}
           onSnapToGridChange={setSnapToGrid}
           onToolSelect={setActiveTool}
           onCrtFilterChange={setCrtFilter}

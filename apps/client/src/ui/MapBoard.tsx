@@ -58,6 +58,7 @@ import {
 import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 import { useMapEditTool } from "../features/map-edit/useMapEditTool";
 import { MapEditPreviewLayer } from "../features/map-edit/MapEditPreviewLayer";
+import { dmViewActive, fogViewerTokens, visibleDoors } from "../features/map/playerLens";
 import { WallsOverlayLayer } from "../features/map-edit/WallsOverlayLayer";
 import { NotesOverlayLayer } from "../features/map-edit/NotesOverlayLayer";
 import type { CameraCommand, MapBoardProps, SelectionRequestOptions } from "./MapBoard.types";
@@ -98,6 +99,7 @@ export default function MapBoard({
   mapEditHallwayWidth = 2,
   mapEditSplineKind = "rope",
   mapEditPopulateGhosts = null,
+  playerLens = false,
   mapEditSelectedElementId = null,
   mapEditController,
   mapEditWallsOverlayPinned = false,
@@ -433,6 +435,9 @@ export default function MapBoard({
   });
 
   const tokenInteractionsEnabled = !drawMode && !mapEditMode;
+  // Player lens (P4): a VIEW toggle only — DM chrome and DM-only data render
+  // off dmView, while permissions/actions keep using isDM.
+  const dmView = dmViewActive(isDM, playerLens);
   const dragPreviewEnabled = ENABLE_DRAG_PREVIEWS;
 
   const handleDragPreview = useCallback(
@@ -608,15 +613,17 @@ export default function MapBoard({
           {snapshot?.compiledScene && snapshot.compiledScene.doors.length > 0 && (
             <DoorsLayer
               cam={cam}
-              doors={snapshot.compiledScene.doors}
+              // Player lens (P4): mirror the server's per-recipient strip —
+              // a player snapshot never contains a secret door.
+              doors={visibleDoors(snapshot.compiledScene.doors, dmView)}
               mapTransform={mapObject?.transform}
-              isDM={isDM}
+              isDM={dmView}
               onToggleDoor={handleToggleDoor}
               onSetDoorState={handleSetDoorState}
             />
           )}
           {/* DM-only walls overlay: shown while authoring, or pinned to persist. */}
-          {isDM && (mapEditMode || mapEditWallsOverlayPinned) && snapshot?.compiledScene && (
+          {dmView && (mapEditMode || mapEditWallsOverlayPinned) && snapshot?.compiledScene && (
             <WallsOverlayLayer
               cam={cam}
               mapTransform={mapObject?.transform}
@@ -625,7 +632,7 @@ export default function MapBoard({
           )}
           {/* DM-only GM notes (generated spawn/loot keys). Read from the live
               document — notes are stripped from every snapshot by design. */}
-          {isDM && mapEditMode && (
+          {dmView && mapEditMode && (
             <NotesOverlayLayer
               cam={cam}
               mapTransform={mapObject?.transform}
@@ -702,15 +709,16 @@ export default function MapBoard({
 
         {/* Fog of war: players see only what their own tokens can see.
             Token positions are grid cells; vision origins are their world-
-            pixel centers, matching the renderer. */}
-        {!isDM && snapshot?.fogEnabled && snapshot.compiledScene && (
+            pixel centers, matching the renderer. The player lens (P4) turns
+            fog ON for the DM with the party's union vision (fogViewerTokens). */}
+        {!dmView && snapshot?.fogEnabled && snapshot.compiledScene && (
           <FogLayer
             cam={cam}
             compiledScene={snapshot.compiledScene}
             mapTransform={mapObject?.transform}
-            viewers={(snapshot.tokens ?? [])
-              .filter((token) => token.owner === uid)
-              .map((token) => gridCellToWorldPoint(grid.size, { x: token.x, y: token.y }))}
+            viewers={fogViewerTokens(snapshot.tokens ?? [], uid, isDM && playerLens).map((token) =>
+              gridCellToWorldPoint(grid.size, { x: token.x, y: token.y }),
+            )}
           />
         )}
 

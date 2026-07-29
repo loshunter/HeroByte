@@ -63,6 +63,40 @@ describe("Header", () => {
     props = createDefaultProps();
   });
 
+  describe("Player lens toggle (P4)", () => {
+    it("shows the toggle only for a DM with a handler wired", () => {
+      const onPlayerLensChange = vi.fn();
+      const { rerender } = render(
+        <Header {...props} isDM={true} onPlayerLensChange={onPlayerLensChange} />,
+      );
+      expect(screen.getByText(/Player View/)).toBeTruthy();
+      rerender(<Header {...props} isDM={false} onPlayerLensChange={onPlayerLensChange} />);
+      expect(screen.queryByText(/Player View/)).toBeNull();
+      rerender(<Header {...props} isDM={true} />);
+      expect(screen.queryByText(/Player View/)).toBeNull();
+    });
+
+    it("toggles the lens and reflects its active state", () => {
+      const onPlayerLensChange = vi.fn();
+      const { rerender } = render(
+        <Header
+          {...props}
+          isDM={true}
+          playerLens={false}
+          onPlayerLensChange={onPlayerLensChange}
+        />,
+      );
+      const button = screen.getByText(/Player View/);
+      expect(button.getAttribute("data-variant")).toBe("default");
+      fireEvent.click(button);
+      expect(onPlayerLensChange).toHaveBeenCalledWith(true);
+      rerender(
+        <Header {...props} isDM={true} playerLens={true} onPlayerLensChange={onPlayerLensChange} />,
+      );
+      expect(screen.getByText(/Player View/).getAttribute("data-variant")).toBe("primary");
+    });
+  });
+
   describe("Container Structure and Styling", () => {
     it("should render with correct container positioning and layout", () => {
       const { container } = render(<Header {...props} />);

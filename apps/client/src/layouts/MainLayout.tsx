@@ -87,6 +87,8 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     setSnapToGrid,
     crtFilter,
     setCrtFilter,
+    playerLens,
+    onTogglePlayerLens,
     diceRollerOpen,
     rollLogOpen,
     toggleDiceRoller,
@@ -256,6 +258,8 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         setCrtFilter={setCrtFilter}
         diceRollerOpen={diceRollerOpen}
         rollLogOpen={rollLogOpen}
+        playerLens={playerLens}
+        onTogglePlayerLens={onTogglePlayerLens}
         toggleDiceRoller={toggleDiceRoller}
         toggleRollLog={toggleRollLog}
         handleResetCamera={handleResetCamera}
@@ -276,6 +280,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         gridSize={gridSize}
         snapToGrid={snapToGrid}
         isDM={isDM}
+        playerLens={playerLens}
         pointerMode={pointerMode}
         measureMode={measureMode}
         drawMode={drawMode}

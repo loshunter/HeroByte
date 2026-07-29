@@ -48,6 +48,7 @@ export interface MapBoardProps {
   mapEditPopulateGhosts?:
     | import("../features/map-edit/useMapEditPlacement").PlacementGhost[]
     | null; // POPULATE's true draft footprints (P2 ghosts)
+  playerLens?: boolean; // P4: render the DM's view exactly as players receive it
   mapEditSelectedElementId?: string | null; // Selected element (select tool) → highlight
   mapEditController?: MapStudioController; // Shared Map Studio controller the tools drive
   mapEditWallsOverlayPinned?: boolean; // Keep the DM walls overlay visible outside map-edit

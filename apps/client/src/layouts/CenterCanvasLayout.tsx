@@ -103,6 +103,8 @@ export interface CenterCanvasLayoutProps {
   mapEditPopulateGhosts?:
     | import("../features/map-edit/useMapEditPlacement").PlacementGhost[]
     | null;
+  /** Player lens (P4): render the DM's view as players receive it. */
+  playerLens?: boolean;
   /** Selected element id (select tool) → highlight */
   mapEditSelectedElementId: string | null;
   /** Keep the DM walls overlay visible outside map-edit mode */
@@ -230,6 +232,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
     mapEditHallwayWidth,
     mapEditSplineKind,
     mapEditPopulateGhosts,
+    playerLens,
     mapEditSelectedElementId,
     mapEditWallsOverlayPinned,
     onMapEditRoomRejected,
@@ -293,6 +296,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
             onMapEditSelectElement={onMapEditSelectElement}
             onMapEditSampleAsset={onMapEditSampleAsset}
             isDM={isDM}
+            playerLens={playerLens}
             alignmentMode={alignmentMode}
             alignmentPoints={alignmentPoints}
             alignmentSuggestion={alignmentSuggestion}

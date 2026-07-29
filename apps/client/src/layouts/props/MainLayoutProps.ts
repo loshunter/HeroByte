@@ -157,6 +157,11 @@ export interface MainLayoutProps {
   crtFilter: boolean;
   /** Handler to update CRT filter state */
   setCrtFilter: (value: boolean) => void;
+  /** Player lens (P4): render the DM's view exactly as players receive it
+   * (optional so the layout fixtures stay untouched). */
+  playerLens?: boolean;
+  /** Handler to toggle the player lens. */
+  onTogglePlayerLens?: (enabled: boolean) => void;
   /** Whether dice roller panel is open */
   diceRollerOpen: boolean;
   /** Whether roll log panel is open */
