@@ -162,7 +162,11 @@ export function useMapEditState({
       openDocument(liveMapDocumentId);
       return;
     }
-    setPendingLiveId(createDocument("Live Map", LIVE_MAP_SIZE, LIVE_MAP_SIZE));
+    // Date-stamped so repeated backup imports or binding-clearing session loads
+    // do not produce a shelf of documents all reading "Live Map", which nothing
+    // in the UI can then tell apart (there is no rename on the wire).
+    const stamp = new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    setPendingLiveId(createDocument(`Live Map ${stamp}`, LIVE_MAP_SIZE, LIVE_MAP_SIZE));
   }, [
     awaitingLiveBind,
     activeId,

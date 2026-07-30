@@ -158,14 +158,18 @@ export function PlayerSettingsMenu({
 
   const settingsMenu = createPortal(
     <DraggableWindow
-      title="🎮 Player Settings"
+      // Named and positioned PER SUBJECT. Every settings window used to be
+      // titled "🎮 Player Settings" and share one saved position, so a DM
+      // opening Alice's and then Bob's got two identical windows stacked
+      // pixel-for-pixel with nothing on screen naming who each belonged to.
+      title={nameInput ? `🎮 ${nameInput}` : "🎮 Player Settings"}
       onClose={onClose}
       initialX={300}
       initialY={100}
       width={280}
       minWidth={280}
       maxWidth={350}
-      storageKey="player-settings-menu"
+      storageKey={characterId ? `player-settings-menu:${characterId}` : "player-settings-menu"}
       zIndex={2500}
     >
       <JRPGPanel

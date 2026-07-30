@@ -55,7 +55,12 @@ describe("useMapEditState", () => {
     });
 
     act(() => result.current.toolbarProps.onStartLiveMap());
-    expect(methods.createDocument).toHaveBeenCalledWith("Live Map", 8192, 8192);
+    // Date-stamped so duplicate live documents stay distinguishable.
+    expect(methods.createDocument).toHaveBeenCalledWith(
+      expect.stringMatching(/^Live Map /),
+      8192,
+      8192,
+    );
     expect(sendMessage).not.toHaveBeenCalled(); // not bound until the doc activates
 
     // The server's create reply activates the document.
@@ -145,7 +150,12 @@ describe("useMapEditState", () => {
 
     act(() => result.current.toolbarProps.onStartLiveMap());
     expect(methods.openDocument).not.toHaveBeenCalled(); // never re-fetch the dangling id
-    expect(methods.createDocument).toHaveBeenCalledWith("Live Map", 8192, 8192);
+    // Date-stamped so duplicate live documents stay distinguishable.
+    expect(methods.createDocument).toHaveBeenCalledWith(
+      expect.stringMatching(/^Live Map /),
+      8192,
+      8192,
+    );
 
     // The create reply activates the fresh document → set-live rebinds the room.
     rerender({

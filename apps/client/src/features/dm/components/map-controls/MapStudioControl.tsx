@@ -199,7 +199,15 @@ export function MapStudioControl({ controller, onPublishToLiveMap }: MapStudioCo
             <option value="">{documents.length ? "Choose a map" : "No maps yet"}</option>
             {documents.map((document) => (
               <option key={document.id} value={document.id}>
-                {document.name} · r{document.revision}
+                {/*
+                  `revision` is an edit counter, not a copy index, so two
+                  documents both auto-named "Live Map" were indistinguishable
+                  here — and there is no rename anywhere on the wire, only
+                  delete, whose confirm quotes the same ambiguous name. The
+                  last-edited stamp is the one thing that actually tells them
+                  apart, and the summary already carries it.
+                */}
+                {document.name} · r{document.revision} · {formatUpdatedAt(document.updatedAt)}
               </option>
             ))}
           </select>
@@ -301,6 +309,27 @@ export function MapStudioControl({ controller, onPublishToLiveMap }: MapStudioCo
       </div>
     </JRPGPanel>
   );
+}
+
+/**
+ * Short last-edited stamp for the document picker. Today/yesterday get a time
+ * so same-session duplicates — the case that actually happens — separate by
+ * minutes rather than by an identical date.
+ */
+function formatUpdatedAt(updatedAt: number): string {
+  const when = new Date(updatedAt);
+  if (Number.isNaN(when.getTime())) return "unknown";
+
+  const now = new Date();
+  const sameDay = when.toDateString() === now.toDateString();
+  const time = when.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  if (sameDay) return time;
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (when.toDateString() === yesterday.toDateString()) return `yesterday ${time}`;
+
+  return when.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 function toLiveGridSize(documentGridSize: number): number {
