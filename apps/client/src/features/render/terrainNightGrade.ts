@@ -114,6 +114,20 @@ function gradeFamily(fam: TerrainFamilyPalette, t: number): TerrainFamilyPalette
     ...(fam.caustics
       ? { caustics: { ...fam.caustics, color: gradeHex(fam.caustics.color, t) } }
       : {}),
+    // Ledge courses ride the ladder too (night cave study — they were the last
+    // ungraded colour set, so a cliff or cavern wall kept DAY rock while its
+    // own base/rim went cool: the grass-decoration bug, second edition).
+    ...(fam.ledges
+      ? {
+          ledges: {
+            colors: fam.ledges.colors.map((c) => gradeHex(c, t)),
+            contour: gradeHex(fam.ledges.contour, t),
+          },
+        }
+      : {}),
+    // `glow` is deliberately NOT graded: an emissive spill is the family's own
+    // light, not light it receives, so moonlight must not cool it. Lava stays
+    // orange at midnight. (`mottle`/`speckle`/`sub`/`polar` are structural.)
   };
 }
 

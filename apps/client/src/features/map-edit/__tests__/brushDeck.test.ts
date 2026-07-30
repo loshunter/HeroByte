@@ -114,7 +114,7 @@ describe("brush deck view model", () => {
     );
     expect(byMaterial).toEqual({
       ground: ["path", "cave-floor", "ash-drift", "dirt", "grass", "sand", "farm-furrow"],
-      water: ["water", "sunken-flagstone", "sunken-stairs"],
+      water: ["abyss-water", "biolume", "water", "sunken-flagstone", "sunken-stairs"],
       molten: ["lava", "lava-crust"],
       stone: [
         "cliff",

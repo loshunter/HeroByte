@@ -46,9 +46,9 @@ function tinted(hex: string, tint: string | undefined, t: number): string {
 }
 
 /** Route one prop stamp kind to its painter. `tint` recolours the MENHIR (the
- * bundled granite becomes basalt, sandstone, whatever the map needs — the lava
- * cavern study wanted volcanic boulders); the boat and gull ignore it, their
- * art being specific objects rather than a lump of stone. */
+ * bundled granite becomes basalt or sandstone — lava cavern study) and the BOAT
+ * HULL (a painted fleet of reds, greens and blues — night cave study); the gull
+ * ignores it, since a recoloured seabird is a different bird. */
 export function paintPropStamp(
   ctx: WearStampContext2D,
   w: number,
@@ -57,7 +57,7 @@ export function paintPropStamp(
   kind: "boat" | "gull" | "menhir",
   tint?: string,
 ): void {
-  if (kind === "boat") paintBoat(ctx, w, h, seed);
+  if (kind === "boat") paintBoat(ctx, w, h, seed, tint);
   else if (kind === "gull") paintGull(ctx, w, h, seed);
   else paintMenhir(ctx, w, h, seed, tint);
 }
@@ -65,13 +65,25 @@ export function paintPropStamp(
 /** Rowboat, bow up: pointed-oval hull sliced into rows — gunwale timber ring
  * around a plank deck — two thwart benches, and two faint wake slivers off
  * the starboard side (the boat-hull grammar's dinghy tier). */
-function paintBoat(ctx: WearStampContext2D, w: number, h: number, seed: number): void {
+function paintBoat(
+  ctx: WearStampContext2D,
+  w: number,
+  h: number,
+  seed: number,
+  tint?: string,
+): void {
   const cx = w / 2;
   const pad = h * 0.06;
   const maxHalf = w * 0.34;
   const gw = Math.max(1.5, w * 0.09);
   const slices = 16;
   const sliceH = (h - 2 * pad) / slices;
+  // A tinted boat is a PAINTED boat: the gunwale takes the hull colour hard,
+  // the deck planks only a little (bare timber inside a painted hull), and the
+  // thwarts and wake are left alone.
+  const gunwale = tinted(PROP_STAMP_ART.boatGunwale, tint, 0.85);
+  const deck = tinted(PROP_STAMP_ART.boatDeck, tint, 0.22);
+  const deckLight = tinted(PROP_STAMP_ART.boatDeckLight, tint, 0.22);
   const halfAt = (t: number): number => {
     const taper = t < 0.55 ? 0.08 + 0.92 * (t / 0.55) : 1 - 0.28 * ((t - 0.55) / 0.45);
     const jitter = 1 + (hash2(Math.round(t * slices), 1, seed) - 0.5) * 0.08;
@@ -81,12 +93,11 @@ function paintBoat(ctx: WearStampContext2D, w: number, h: number, seed: number):
     const t = (i + 0.5) / slices;
     const y = pad + i * sliceH;
     const half = halfAt(t);
-    ctx.fillStyle = PROP_STAMP_ART.boatGunwale;
+    ctx.fillStyle = gunwale;
     rect(ctx, cx - half, y, half * 2, sliceH + 0.5);
     const inner = half - gw;
     if (inner > 0) {
-      ctx.fillStyle =
-        hash2(i, 2, seed) < 0.35 ? PROP_STAMP_ART.boatDeckLight : PROP_STAMP_ART.boatDeck;
+      ctx.fillStyle = hash2(i, 2, seed) < 0.35 ? deckLight : deck;
       rect(ctx, cx - inner, y, inner * 2, sliceH + 0.5);
     }
   }

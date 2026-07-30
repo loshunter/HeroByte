@@ -16,6 +16,17 @@ export interface BakeLight {
   radius: number;
   color: string;
   intensity: number;
+  /**
+   * Overdrive (night cave study): how far this pool may lift pixels ABOVE their
+   * unlit value, as a fraction of the light's own colour added at the core.
+   *
+   * Without it a pool can only CANCEL the ambient veil — the lit ground tops out
+   * at exactly its unlit colour, so a lantern on dark sand reads as "less dark"
+   * rather than as a light source, and a night map can never show the bright
+   * warm pools the corpus builds its mood from. Omitted/0 ⇒ the shipped
+   * veil-cancel-only behaviour, bit for bit.
+   */
+  gain?: number;
 }
 
 export interface BakeLighting {
@@ -126,6 +137,7 @@ export function applyBakeLighting(
     reach2: light.radius * WASH_REACH * (light.radius * WASH_REACH),
     radius: light.radius,
     intensity: light.intensity,
+    gain: light.gain ?? 0,
     rgb: parseHex(light.color),
   }));
 
@@ -140,6 +152,7 @@ export function applyBakeLighting(
       // plateau instead of blowing out) and its light's colour for the tint.
       let pool = 0;
       let tintRgb: [number, number, number] | null = null;
+      let lift = 0;
       for (const light of lights) {
         const dx = wx - light.x;
         const dy = wy - light.y;
@@ -149,6 +162,7 @@ export function applyBakeLighting(
         if (s > pool) {
           pool = s;
           tintRgb = light.rgb;
+          lift = s * light.gain;
         }
       }
       if (pool > 1) pool = 1;
@@ -167,9 +181,19 @@ export function applyBakeLighting(
         g += (tintRgb[1] - g) * t;
         b += (tintRgb[2] - b) * t;
       }
-      pixels[o] = r;
-      pixels[o + 1] = g;
-      pixels[o + 2] = b;
+      // Overdrive: ADD the light's own colour so the pool can climb above the
+      // unlit ground — what makes a lantern read as a source rather than a
+      // hole in the veil. Unlike the veil/tint terms this is NOT veil-scaled:
+      // a lamp is as bright at dusk as at midnight, the dark around it is what
+      // changes. Zero gain leaves the shipped behaviour untouched.
+      if (tintRgb && lift > 0) {
+        r += tintRgb[0] * lift;
+        g += tintRgb[1] * lift;
+        b += tintRgb[2] * lift;
+      }
+      pixels[o] = r > 255 ? 255 : r;
+      pixels[o + 1] = g > 255 ? 255 : g;
+      pixels[o + 2] = b > 255 ? 255 : b;
     }
   }
   paintSparkleMotes(pixels, width, height, originX, originY, veil, lights);

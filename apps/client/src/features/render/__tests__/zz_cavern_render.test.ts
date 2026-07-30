@@ -14,11 +14,7 @@ describe.skipIf(!RUN_BENCH)("lava cavern benchmark render (temporary)", () => {
     // Smoke pools low: a thin veil at the lake, thickening toward the floor —
     // the reference's lower half is heavily hazed.
     const { width, height, fieldMs, detailMs } = renderDocumentToPng(doc, "benchmark-lava-cavern", {
-      color: "#b9a99e",
-      strength: 0.5,
-      scale: 9,
-      rampTop: 0.25,
-      rampBottom: 1.15,
+      haze: { color: "#b9a99e", strength: 0.5, scale: 9, rampTop: 0.25, rampBottom: 1.15 },
     });
     console.log(
       `bake ${width}x${height} field ${fieldMs.toFixed(0)}ms detail ${detailMs.toFixed(0)}ms ` +

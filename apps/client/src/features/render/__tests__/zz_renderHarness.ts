@@ -16,6 +16,8 @@ import { VILLAGE_SHADOW_TINT, VILLAGE_TERRAIN } from "../terrainPalette";
 import { paintWearStamp, wearStampSeed, type WearStampContext2D } from "../wearStampDetail";
 import { paintSpline } from "../splineDetail";
 import { applyAshHaze, hazeActive, type AshHaze } from "../terrainAshHaze";
+import { applyBakeLighting, lightingActive, type BakeLighting } from "../terrainLighting";
+import { gradeTerrainPalette, nightGradeStrength } from "../terrainNightGrade";
 import type { TileRenderContext2D } from "../tileRenderCore";
 import { buildStructuredTerrainLayers } from "../../map-studio/terrainRender";
 import { buildTileOccupancy } from "../../map-studio/tileAutotiling";
@@ -167,10 +169,21 @@ function offsetCtx(real: TileRenderContext2D, dx: number, dy: number): WearStamp
  * and write it to temp/benchmark/<name>.png plus the importable document JSON.
  * Returns the timings so the caller can log a one-line report.
  */
-export function renderDocumentToPng(doc: MapDocument, name: string, haze?: AshHaze) {
+export interface RenderOptions {
+  haze?: AshHaze;
+  /** Ambient veil + light pools. Also drives the NIGHT GRADE, exactly as the
+   * live bake does (terrainBake.getFieldBake), so a lit study renders the same
+   * graded palette the table would. */
+  lighting?: BakeLighting;
+}
+
+export function renderDocumentToPng(doc: MapDocument, name: string, options: RenderOptions = {}) {
+  const { haze, lighting } = options;
   const occupancy = buildTileOccupancy(doc);
   const layers = buildStructuredTerrainLayers(doc.terrain!, doc.grid, occupancy);
-  const built = buildProceduralFieldConfig(layers, doc.grid, VILLAGE_TERRAIN, VILLAGE_SHADOW_TINT);
+  // Same palette the live bake would paint with at this ambient.
+  const palette = gradeTerrainPalette(VILLAGE_TERRAIN, nightGradeStrength(lighting?.ambient ?? 1));
+  const built = buildProceduralFieldConfig(layers, doc.grid, palette, VILLAGE_SHADOW_TINT);
   if (!built) throw new Error(`no field terrain in ${name}`);
   const { config, width, height } = built;
   if (width * height > 32_000_000) throw new Error(`bake too large: ${width}x${height}`);
@@ -182,8 +195,8 @@ export function renderDocumentToPng(doc: MapDocument, name: string, haze?: AshHa
 
   const ctx = makeSoftwareCtx(buffer, width, height, config.originX, config.originY);
   const field = createTerrainField(config);
-  const fieldLayers = layers.filter((layer) => VILLAGE_TERRAIN[layer.assetId]);
-  paintProceduralDetail(ctx, fieldLayers, VILLAGE_TERRAIN, field, config.familyAt, config.depthOf);
+  const fieldLayers = layers.filter((layer) => palette[layer.assetId]);
+  paintProceduralDetail(ctx, fieldLayers, palette, field, config.familyAt, config.depthOf);
   const t2 = performance.now();
 
   for (const el of doc.elements) {
@@ -212,7 +225,12 @@ export function renderDocumentToPng(doc: MapDocument, name: string, haze?: AshHa
     );
   }
 
-  // Atmosphere last — in front of terrain, detail, splines and decals alike.
+  // Post-passes in the bake's order: light belongs to the scene, atmosphere
+  // sits in front of it. Props/decals are painted BEFORE the lighting on
+  // purpose — a lantern must light the crates beside it, not glow behind them.
+  if (lighting && lightingActive(lighting)) {
+    applyBakeLighting(buffer, width, height, config.originX, config.originY, lighting);
+  }
   if (hazeActive(haze)) {
     applyAshHaze(buffer, width, height, config.originX, config.originY, doc.grid.size, haze);
   }

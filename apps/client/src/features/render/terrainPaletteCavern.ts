@@ -22,6 +22,9 @@ import type { TerrainFamilyPalette } from "./terrainPaletteTypes";
 
 /** Lava's own shore-distance body — never fused with the water body. */
 const MOLTEN_BODY = "lava";
+/** The flooded-cave abyss: its own body so a black tarn beside the main lagoon
+ * keeps its own bathymetry instead of reading as that lagoon's deep centre. */
+const ABYSS_BODY = "abyss";
 
 /** The cavern block of the village mood (see VILLAGE_TERRAIN). */
 export const CAVERN_TERRAIN: Record<string, TerrainFamilyPalette> = {
@@ -161,6 +164,51 @@ export const CAVERN_TERRAIN: Record<string, TerrainFamilyPalette> = {
     // the silhouette lobes separate into crystals.
     canopy: { shade: "#b07d1d", core: "#5e3d0c", sub: 0.7, detail: CRYSTAL_GOLD_DETAIL },
     glow: { color: "#ffd45e", reach: 0.22, strength: 0.14 },
+  },
+  // ABYSS WATER (night cave study) — the near-black tarn of a flooded cave's
+  // side chambers. The SECOND water body the `body` key made possible: without
+  // it this would fuse into the main lagoon's BFS and lose the shore between
+  // them. Bands barely lighten at the rim (cave water has no sunlit shallows)
+  // and the caustic web is off entirely — there is no sun down here to refract.
+  "terrain:abyss-water": {
+    base: "#0d1a2b",
+    rim: "#4a6b84",
+    priority: 3.3,
+    body: ABYSS_BODY,
+    edgeAmp: 0.85,
+    rimWidth: 0.05,
+    underfill: false,
+    mottle: { amp: 0.07, scale: 5, cool: 0.55 },
+    depthBands: [
+      { maxCells: 1.3, base: "#1d3350" },
+      { maxCells: 3, base: "#132540" },
+      { maxCells: 5, base: "#0d1a2b" },
+      { maxCells: 7, base: "#07101c" },
+    ],
+    foam: { color: "#7f9db2", reach: 0.5 },
+    water: { dash: "#050b14" },
+  },
+  // BIOLUMINESCENCE (night cave study) — a shoal of glowing algae in the black
+  // water. Rides the abyss body, and the `glow` primitive earns its keep a
+  // second time: the cave wall around the shoal is lit COLD green, the exact
+  // inverse of lava's warm spill, with no lighting pass involved.
+  "terrain:biolume": {
+    base: "#123f3a",
+    rim: "#8ef0c8",
+    priority: 3.35,
+    body: ABYSS_BODY,
+    edgeAmp: 0.95,
+    rimWidth: 0.06,
+    underfill: false,
+    mottle: { amp: 0.08, scale: 3, cool: 0.3 },
+    depthBands: [
+      { maxCells: 1.2, base: "#2f7d63" },
+      { maxCells: 2.6, base: "#1c5a4d" },
+      { maxCells: 4.5, base: "#123f3a" },
+    ],
+    foam: { color: "#a9f7d8", reach: 0.6 },
+    caustics: { color: "#7ff0bd", reach: 2.6, strength: 0.34 },
+    glow: { color: "#5fe0aa", reach: 0.34, strength: 0.34 },
   },
   // VERDIGRIS CRYSTAL — the teal mineral variant (the reference's green mass).
   // Same painter, cooler data.
