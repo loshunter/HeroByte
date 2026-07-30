@@ -3,6 +3,7 @@
 // ============================================================================
 
 import React, { useState, useRef, useEffect } from "react";
+import { registerOpenPanel } from "../effects/panelPresence";
 
 interface DraggableWindowProps {
   title: string;
@@ -84,6 +85,11 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
       setIsDragging(true);
     }
   };
+
+  // Announce this panel for as long as it is mounted, so the CRT filter can
+  // soften over it and restore over the map. Every floating panel in the app
+  // is a DraggableWindow, which makes this the one place it has to be done.
+  useEffect(() => registerOpenPanel(), []);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {

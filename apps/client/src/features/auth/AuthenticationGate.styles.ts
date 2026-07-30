@@ -33,15 +33,21 @@ export const authGateCardStyle: React.CSSProperties = {
   width: "100%",
 };
 
+// Prose face: an auth error is the one string a blocked user MUST be able to
+// read, and the connection hint is read under stress too.
 export const authGateErrorStyle: React.CSSProperties = {
   color: "#f87171",
+  fontFamily: "var(--font-body)",
   fontSize: "0.95rem",
+  lineHeight: 1.5,
   margin: "0",
 };
 
 export const authGateHintStyle: React.CSSProperties = {
   color: "#cbd5f5",
+  fontFamily: "var(--font-body)",
   fontSize: "0.85rem",
+  lineHeight: 1.5,
   marginTop: "16px",
 };
 

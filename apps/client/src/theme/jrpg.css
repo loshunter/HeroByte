@@ -72,6 +72,25 @@
   letter-spacing: 0.5px;
 }
 
+/*
+ * PROSE. Anything the user has to actually read a sentence of: help text,
+ * error messages, hints, descriptions, confirmations. Deliberately NOT the
+ * pixel face — it turns off the pixel-rendering hints too, since antialiasing
+ * is what makes a proportional face legible at this size.
+ */
+.jrpg-text-body {
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.5;
+  letter-spacing: normal;
+  text-transform: none;
+  text-rendering: optimizeLegibility;
+  image-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: auto;
+  font-smooth: always;
+}
+
 /* ---------------------------------------------------------------------------
  * CHUNKY PIXEL BORDERS (SNES 3-Layer Style)
  * --------------------------------------------------------------------------- */
