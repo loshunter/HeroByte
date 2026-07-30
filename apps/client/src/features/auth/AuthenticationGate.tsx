@@ -15,7 +15,13 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { AuthState, ConnectionState } from "../../services/websocket";
 import { AuthGate } from "./AuthGate";
 import { RoomLobby } from "../rooms/RoomLobby";
-import { currentRoomId, rememberRoom, ROOM_SECRET_STORAGE_KEY } from "../rooms/roomDirectory";
+import {
+  currentRoomId,
+  rememberRoom,
+  readRoomSecret,
+  stashRoomSecret,
+  clearRoomSecret,
+} from "../rooms/roomDirectory";
 import type { CreateRoomInput } from "../rooms/useCreateRoom";
 
 // ============================================================================
@@ -32,12 +38,10 @@ import type { CreateRoomInput } from "../rooms/useCreateRoom";
  */
 function getInitialRoomSecret(): string {
   if (typeof window === "undefined") return "";
-  try {
-    return sessionStorage.getItem(ROOM_SECRET_STORAGE_KEY) ?? "";
-  } catch (error) {
-    console.warn("[Auth] Unable to access sessionStorage:", error);
-    return "";
-  }
+  // Scoped to THIS table: a password stashed for another one must never be
+  // auto-submitted here (that produced an "Invalid room password" the user
+  // never caused, just by switching tables).
+  return readRoomSecret();
 }
 
 // ============================================================================
@@ -186,11 +190,7 @@ export function AuthenticationGate({
   useEffect(() => {
     if (authState === AuthState.AUTHENTICATED && authSecret) {
       activeAuthAttemptRef.current = null;
-      try {
-        sessionStorage.setItem(ROOM_SECRET_STORAGE_KEY, authSecret);
-      } catch (error) {
-        console.warn("[Auth] Unable to persist room secret:", error);
-      }
+      stashRoomSecret(authSecret);
     }
   }, [authState, authSecret]);
 
@@ -200,13 +200,12 @@ export function AuthenticationGate({
   useEffect(() => {
     if (authState === AuthState.FAILED && authSecret) {
       activeAuthAttemptRef.current = null;
-      try {
-        sessionStorage.removeItem(ROOM_SECRET_STORAGE_KEY);
-      } catch (error) {
-        console.warn("[Auth] Unable to clear stored secret:", error);
-      }
+      clearRoomSecret();
       setAuthSecret("");
-      setPasswordInput("");
+      // The password field is deliberately NOT blanked here. Wiping it on
+      // failure — while the status label cycled Reconnecting → Connecting —
+      // made a mistyped password look like a flaky network. Leaving the text
+      // in place lets the user see and correct what they typed.
     }
   }, [authState, authSecret]);
 

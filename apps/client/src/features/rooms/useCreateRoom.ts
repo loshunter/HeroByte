@@ -17,6 +17,9 @@ export interface CreateRoomInput {
 
 type Pending = { resolve: () => void; reject: (error: Error) => void };
 
+/** How long to wait for `room-created` before admitting it isn't coming. */
+const CREATE_ROOM_TIMEOUT_MS = 10_000;
+
 export function useCreateRoom(
   sendMessage: (message: ClientMessage) => void,
   registerServerEventHandler: (handler: (message: ServerMessage) => void) => void,
@@ -43,7 +46,25 @@ export function useCreateRoom(
           reject(new Error("A table is already being created."));
           return;
         }
-        pending.current = { resolve, reject };
+        // A create-room sent on a closed socket is silently QUEUED, and that
+        // queue only flushes on `auth-ok` — which pre-auth room creation can
+        // never reach. Without this timeout the promise never settles and the
+        // button sits on "Creating..." forever, recoverable only by reloading.
+        const timer = setTimeout(() => {
+          if (!pending.current) return;
+          pending.current = null;
+          reject(new Error("The server didn't respond. Check your connection and try again."));
+        }, CREATE_ROOM_TIMEOUT_MS);
+
+        const settle = (fn: () => void) => {
+          clearTimeout(timer);
+          fn();
+        };
+
+        pending.current = {
+          resolve: () => settle(resolve),
+          reject: (error: Error) => settle(() => reject(error)),
+        };
         sendMessage({
           t: "create-room",
           roomId,

@@ -71,8 +71,14 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
       switch (event.type) {
         case "reset":
           setAuthState(AuthState.UNAUTHENTICATED);
-          setAuthError(null);
           setSnapshot(null);
+          // authError is deliberately PRESERVED here. The server sends
+          // `auth-failed` and then closes the socket ~100 ms later; that close
+          // raises `reset`, which used to null the reason out from under the
+          // render — so a wrong password flashed an error for a tenth of a
+          // second and then showed nothing at all. The reason now survives
+          // until the next attempt clears it ("pending" / "success" below),
+          // which is the only point at which it stops being true.
           break;
         case "pending":
           setAuthState(AuthState.PENDING);

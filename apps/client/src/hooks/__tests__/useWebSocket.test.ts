@@ -205,6 +205,36 @@ describe("useWebSocket", () => {
         message.includes('"t":"authenticate"'),
       );
       expect(retriedAuthMessages).toHaveLength(0);
+
+      // THE REASON MUST SURVIVE THE CLOSE. The server sends `auth-failed` and
+      // then closes ~100 ms later; that close raises `reset`, which used to
+      // null authError out from under the render. The user got a ~100 ms flash
+      // and then an unexplained form — a mistyped password was indistinguishable
+      // from a flaky network.
+      expect(result.current.authError).toBe("Invalid credentials");
+    });
+
+    it("clears the auth error only when a new attempt starts", async () => {
+      const { result } = renderHook(() =>
+        useWebSocket({ url: "ws://localhost:3001", uid: "test-user", autoConnect: true }),
+      );
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(20);
+      });
+      await act(async () => {
+        result.current.authenticate("wrong-secret");
+      });
+      await act(async () => {
+        wsInstances[0].simulateMessage({ t: "auth-failed", reason: "Invalid credentials" });
+      });
+      expect(result.current.authError).toBe("Invalid credentials");
+
+      // Retrying is the moment the old reason stops being true.
+      await act(async () => {
+        result.current.authenticate("second-try");
+      });
+      expect(result.current.authError).toBeNull();
     });
   });
 

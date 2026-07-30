@@ -86,7 +86,11 @@ export function AuthGate({
             style={authInputStyle}
             autoFocus
             spellCheck={false}
-            disabled={isHandshakeActive}
+            // NOT disabled while the handshake is in flight. Typing a password
+            // is harmless — only submitting needs gating (see the button below).
+            // Locking the field meant that any time the server was restarting
+            // or the network hiccuped, the user could not even type, which
+            // reads as a dead app rather than a slow one.
           />
           {authError ? <p style={authGateErrorStyle}>{authError}</p> : null}
           <button
@@ -138,13 +142,13 @@ export function AuthGate({
         {!isConnected ? (
           <button
             type="button"
-            style={{
-              ...authSecondaryButtonStyle,
-              opacity: isConnecting ? 0.6 : 1,
-              cursor: isConnecting ? "not-allowed" : "pointer",
-            }}
+            style={authSecondaryButtonStyle}
             onClick={onRetry}
-            disabled={isConnecting}
+            // Deliberately always enabled. Reconnection retries forever
+            // (maxReconnectAttempts: 0), so `isConnecting` can stay true
+            // indefinitely — disabling on it left the user with a dead Retry
+            // button and no way out but a page reload. Retrying during a
+            // backoff wait is exactly what someone wants to do.
           >
             {isReplaced ? "Reclaim This Tab" : "Retry Connection"}
           </button>

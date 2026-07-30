@@ -10,18 +10,54 @@ const STORAGE_KEY = "herobyte-room-directory";
 const MAX_REMEMBERED = 12;
 
 /**
- * sessionStorage key for the room password the auth gate auto-submits on load.
- * Shared so the "create table" flow can pre-seed it before navigating, letting
- * the freshly-minted room authenticate the creator without a second prompt.
+ * sessionStorage key PREFIX for the room password the auth gate auto-submits on
+ * load. Shared so the "create table" flow can pre-seed it before navigating,
+ * letting the freshly-minted room authenticate the creator without a prompt.
+ *
+ * SCOPED PER TABLE, and that scoping is the whole point. It used to be one flat
+ * key holding "the" password. Switching tables is a same-tab navigation, so the
+ * gate would auto-submit the PREVIOUS table's password against the new room and
+ * land the user on a red "Invalid room password" they never caused — having
+ * typed nothing at all.
  */
 export const ROOM_SECRET_STORAGE_KEY = "herobyte-room-secret";
 
-/** Pre-seed the room password the next page load will auto-authenticate with. */
-export function stashRoomSecret(secret: string): void {
+/** The per-table storage key. `undefined` roomId means the default table. */
+function roomSecretKey(roomId: string | undefined): string {
+  return roomId ? `${ROOM_SECRET_STORAGE_KEY}:${roomId}` : ROOM_SECRET_STORAGE_KEY;
+}
+
+/**
+ * Pre-seed the room password that `roomId`'s next page load auto-authenticates
+ * with. `roomId` is explicit because the create-table flow stashes BEFORE
+ * navigating, when the URL still names the old table.
+ */
+export function stashRoomSecret(
+  secret: string,
+  roomId: string | undefined = currentRoomId(),
+): void {
   try {
-    sessionStorage.setItem(ROOM_SECRET_STORAGE_KEY, secret);
+    sessionStorage.setItem(roomSecretKey(roomId), secret);
   } catch {
     // Private-mode storage failures just mean the creator re-enters the password.
+  }
+}
+
+/** The stashed password for a table, or "" if there is none. */
+export function readRoomSecret(roomId: string | undefined = currentRoomId()): string {
+  try {
+    return sessionStorage.getItem(roomSecretKey(roomId)) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/** Forget a table's stashed password (used when its auth is rejected). */
+export function clearRoomSecret(roomId: string | undefined = currentRoomId()): void {
+  try {
+    sessionStorage.removeItem(roomSecretKey(roomId));
+  } catch {
+    // Nothing to do — a password we cannot clear is one we could not read either.
   }
 }
 
