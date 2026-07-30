@@ -9,6 +9,14 @@ const NON_TRACKED_TYPES: AckEligibleType[] = [
   "rtc-signal",
   "request-room-resync",
   "drag-preview",
+  // The DM-auth plane is intercepted by MessageAuthenticator BEFORE the
+  // server's message router — the only place ack/nack is emitted — and
+  // answers with its own protocol (dm-status / dm-elevation-failed /
+  // dm-password-updated). Tracking them here would retry them into the
+  // brute-force throttle and then log "exceeded max retries" on success.
+  "elevate-to-dm",
+  "revoke-dm",
+  "set-dm-password",
 ];
 
 interface PendingCommand {

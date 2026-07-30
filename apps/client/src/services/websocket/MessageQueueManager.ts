@@ -105,6 +105,12 @@ export class MessageQueueManager {
     "rtc-signal",
     "request-room-resync",
     "drag-preview",
+    // DM-auth plane: never acked by the router (see CommandAckManager's
+    // NON_TRACKED_TYPES — these normally carry no commandId at all); a retry
+    // would replay a password attempt into the brute-force throttle.
+    "elevate-to-dm",
+    "revoke-dm",
+    "set-dm-password",
   ]);
   private pendingRetries = new Map<
     string,

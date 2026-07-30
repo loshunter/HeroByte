@@ -207,11 +207,13 @@ describe("micro-grunge speckle", () => {
     expect(brightened).toBe(0); // speckle only ever darkens
   });
 
+  // Two full 400px parity bakes — legitimately ~4s, and the default 5s
+  // budget flakes under batched-run parallelism (island benchmark arc).
   it("chance 0 (or no knob) is bit-identical — the parity default", () => {
     expect(bake(base(), 8 * SIZE, 8 * SIZE)).toEqual(
       bake(base({ amp: 0.1, chance: 0 }), 8 * SIZE, 8 * SIZE),
     );
-  });
+  }, 20_000);
 });
 
 describe("structural knobs survive the night grade", () => {

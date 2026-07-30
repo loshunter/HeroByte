@@ -25,6 +25,7 @@ import {
   wearStampSeed,
   type WearStampContext2D,
 } from "../../render/wearStampDetail";
+import { paintSpline } from "../../render/splineDetail";
 import type { Camera } from "../types";
 
 interface MapElementsLayerProps {
@@ -155,6 +156,21 @@ function renderDrawable(
         stroke={asset.stroke}
         strokeWidth={1}
         listening={false}
+      />
+    );
+  }
+
+  if (element.type === "spline") {
+    // Deterministic painter art like the wear decals: one implementation
+    // (splineDetail) drives every client and the SVG export identically.
+    const { points, kind, tint } = element.data;
+    const seed = wearStampSeed(element.id);
+    return (
+      <Shape
+        listening={false}
+        sceneFunc={(ctx) =>
+          paintSpline(ctx as unknown as WearStampContext2D, points, kind, seed, gridSize, tint)
+        }
       />
     );
   }

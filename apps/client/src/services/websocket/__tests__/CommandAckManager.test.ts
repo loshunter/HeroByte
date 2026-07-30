@@ -40,6 +40,22 @@ describe("CommandAckManager", () => {
     expect(decorated.commandId).toBeUndefined();
   });
 
+  it("does not track the DM-auth plane (never acked by the router)", () => {
+    // MessageAuthenticator intercepts these BEFORE the server's message
+    // router — the only ack emitter — and they answer with their own
+    // protocol (dm-status / dm-elevation-failed / dm-password-updated).
+    // Tracking them used to retry a GRANTED elevation three times and then
+    // log "exceeded max retries".
+    const dmAuthMessages: ClientMessage[] = [
+      { t: "elevate-to-dm", dmPassword: "pw" },
+      { t: "revoke-dm" },
+      { t: "set-dm-password", dmPassword: "pw" },
+    ];
+    for (const message of dmAuthMessages) {
+      expect(manager.attachCommandId(message).commandId, message.t).toBeUndefined();
+    }
+  });
+
   it("logs nack reasons and clears pending entries", () => {
     const decorated = manager.attachCommandId(baseMessage);
     manager.handleNack(decorated.commandId!, "invalid");

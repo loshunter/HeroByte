@@ -21,7 +21,12 @@ import { useMapEditPlacement, type PlacementGhost } from "./useMapEditPlacement"
 import { useMapEditSelection } from "./useMapEditSelection";
 import { usePointerToDoc } from "./usePointerToDoc";
 import type { SelectionRect } from "./elementHitTest";
-import type { MapEditFloorFamily, MapEditSubTool, MapEditWallFamily } from "./mapEditTypes";
+import type {
+  MapEditFloorFamily,
+  MapEditSplineKind,
+  MapEditSubTool,
+  MapEditWallFamily,
+} from "./mapEditTypes";
 
 const NO_OP_PAINT = (_cells: TerrainPaintCell[]) => {};
 
@@ -43,6 +48,8 @@ interface UseMapEditToolOptions {
   selectedAssetId?: string;
   /** Corridor width in cells for the hallway sub-tool (1–4). */
   hallwayWidth?: number;
+  /** Curve kind the spline sub-tool authors (defaults to rope). */
+  splineKind?: MapEditSplineKind;
   /** Surfaced when a room/hallway drag is refused (too large / no walls layer). */
   onRoomRejected?: (message: string) => void;
   /** A room/hallway landed — its bounds become the POPULATE target. */
@@ -64,6 +71,8 @@ interface UseMapEditToolReturn {
   strokeCells: TerrainPaintCell[];
   /** Translucent placement ghost (place/scatter sub-tools). */
   placementGhost: PlacementGhost | null;
+  /** True-result scatter-cluster footprints under the cursor (P2 ghosts). */
+  draftGhosts: PlacementGhost[];
   /** Highlight footprint around the selected element (select sub-tool). */
   selectionRect: SelectionRect | null;
   onMouseDown: (stageRef: RefObject<Konva.Stage | null>) => void;
@@ -83,6 +92,7 @@ export function useMapEditTool({
   roomWallFamily = "none",
   selectedAssetId = "objects:crate",
   hallwayWidth = 2,
+  splineKind = "rope",
   onRoomRejected,
   onRegionPlaced,
   onRegionDragged,
@@ -283,6 +293,7 @@ export function useMapEditTool({
         roomWallFamily,
         hallwayWidth,
         selectedAssetId,
+        splineKind,
         onRoomRejected,
         onRegionPlaced,
         onRegionDragged,
@@ -300,6 +311,7 @@ export function useMapEditTool({
     roomWallFamily,
     hallwayWidth,
     selectedAssetId,
+    splineKind,
     onRoomRejected,
     onRegionPlaced,
     onRegionDragged,
@@ -325,6 +337,7 @@ export function useMapEditTool({
     previewDrag,
     strokeCells,
     placementGhost: placement.ghost,
+    draftGhosts: placement.draftGhosts,
     selectionRect: selection.selectionRect,
     onMouseDown,
     onMouseMove,

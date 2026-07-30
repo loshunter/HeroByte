@@ -123,6 +123,15 @@ export interface MainLayoutProps {
   mapEditSelectedAssetId: string;
   /** Corridor width in cells for the hallway tool */
   mapEditHallwayWidth: number;
+  /** Curve kind the spline tool authors (optional: defaults to rope). */
+  mapEditSplineKind?: import("../../features/map-edit/mapEditTypes").MapEditSplineKind;
+  /** POPULATE's true draft footprints while a region is armed (P2 ghosts;
+   * optional so the layout fixtures stay untouched). */
+  mapEditPopulateGhosts?:
+    | import("../../features/map-edit/useMapEditPlacement").PlacementGhost[]
+    | null;
+  /** Quick-wheel dispatch pair (P5; optional — fixtures untouched). */
+  mapEditWheelActions?: import("../../features/map-edit/mapEditTypes").MapEditWheelActions;
   /** Selected element id (select tool) → highlight */
   mapEditSelectedElementId: string | null;
   /** Keep the DM walls overlay visible outside map-edit mode */
@@ -150,6 +159,11 @@ export interface MainLayoutProps {
   crtFilter: boolean;
   /** Handler to update CRT filter state */
   setCrtFilter: (value: boolean) => void;
+  /** Player lens (P4): render the DM's view exactly as players receive it
+   * (optional so the layout fixtures stay untouched). */
+  playerLens?: boolean;
+  /** Handler to toggle the player lens. */
+  onTogglePlayerLens?: (enabled: boolean) => void;
   /** Whether dice roller panel is open */
   diceRollerOpen: boolean;
   /** Whether roll log panel is open */

@@ -11,6 +11,7 @@ const circleProps: MockProps[] = [];
 const groupProps: MockProps[] = [];
 const rectProps: MockProps[] = [];
 const textProps: MockProps[] = [];
+const shapeProps: MockProps[] = [];
 
 vi.mock("react-konva", () => ({
   Group: ({ children, ...props }: MockProps) => {
@@ -33,6 +34,21 @@ vi.mock("react-konva", () => ({
     textProps.push(props);
     return <div data-testid="konva-text" />;
   },
+  Shape: (props: MockProps) => {
+    shapeProps.push(props);
+    return <div data-testid="konva-shape" />;
+  },
+}));
+
+// Chips bake asynchronously through a canvas jsdom lacks — mock the cache so
+// tests drive both the flat-fallback and the baked-chip render paths.
+const peekBrushChip = vi.fn<(assetId: string) => HTMLCanvasElement | null>(() => null);
+vi.mock("../brushThumbnails", () => ({
+  BRUSH_CHIP_CELL: 40,
+  peekBrushChip: (assetId: string) => peekBrushChip(assetId),
+  requestBrushThumbnails: vi.fn(),
+  getBrushThumbnailVersion: () => 0,
+  subscribeBrushThumbnails: () => () => {},
 }));
 
 const cam: Camera = { x: 12, y: 34, scale: 2 };
@@ -44,9 +60,12 @@ describe("MapEditPreviewLayer", () => {
     groupProps.length = 0;
     rectProps.length = 0;
     textProps.length = 0;
+    shapeProps.length = 0;
+    peekBrushChip.mockReset();
+    peekBrushChip.mockReturnValue(null);
   });
 
-  it("draws translucent cell rects for the terrain/erase brush stroke", () => {
+  it("tints brush cells with the family's real base colour while the chip bakes", () => {
     render(
       <MapEditPreviewLayer
         cam={cam}
@@ -61,10 +80,72 @@ describe("MapEditPreviewLayer", () => {
     );
 
     expect(rectProps).toHaveLength(2);
-    // Cell (2,2) → doc px (100,100); paint uses the gold, erase uses the dark.
-    expect(rectProps[0]).toMatchObject({ x: 100, y: 100, width: 50, height: 50, fill: "#f0e2c3" });
+    // Cell (2,2) → doc px (100,100); paint tints with GRASS's base (the true
+    // colour, not hero gold); erase keeps the dark Studio look.
+    expect(rectProps[0]).toMatchObject({ x: 100, y: 100, width: 50, height: 50, fill: "#386820" });
     expect(rectProps[1]).toMatchObject({ x: 150, y: 150, fill: "#10121a" });
     expect(rectProps.every((r) => r.opacity === 0.55)).toBe(true);
+  });
+
+  it("upgrades brush cells to the baked family chip when it lands", () => {
+    const chip = document.createElement("canvas");
+    peekBrushChip.mockReturnValue(chip);
+    render(
+      <MapEditPreviewLayer
+        cam={cam}
+        previewDrag={null}
+        activeSubTool="terrain"
+        gridSize={50}
+        strokeCells={[{ x: 2, y: 2, assetId: "terrain:grass" }]}
+      />,
+    );
+
+    expect(rectProps).toHaveLength(1);
+    // One chip cell (40px of bake) scales to one document cell (50px).
+    expect(rectProps[0]).toMatchObject({
+      fillPatternImage: chip,
+      fillPatternScaleX: 1.25,
+      fillPatternScaleY: 1.25,
+      fillPatternOffsetX: 40,
+      fillPatternOffsetY: 40,
+      opacity: 0.75,
+    });
+  });
+
+  it("paints the REAL spline art for a spline drag (no dashed segment)", () => {
+    render(
+      <MapEditPreviewLayer
+        cam={cam}
+        previewDrag={{ start: { x: 100, y: 100 }, end: { x: 300, y: 120 } }}
+        activeSubTool="spline"
+        splineKind="rope"
+        gridSize={50}
+      />,
+    );
+
+    expect(shapeProps).toHaveLength(1);
+    expect(shapeProps[0]).toMatchObject({ name: "map-edit-preview:spline-art", opacity: 0.9 });
+    expect(typeof shapeProps[0]!.sceneFunc).toBe("function");
+    // The true art replaces the dashed placeholder entirely.
+    expect(lineProps).toHaveLength(0);
+    expect(circleProps).toHaveLength(0);
+  });
+
+  it("the spline sceneFunc drives the deterministic painter (fillRect calls land)", () => {
+    render(
+      <MapEditPreviewLayer
+        cam={cam}
+        previewDrag={{ start: { x: 0, y: 0 }, end: { x: 200, y: 0 } }}
+        activeSubTool="spline"
+        splineKind="rope"
+        gridSize={50}
+      />,
+    );
+    const fillRect = vi.fn();
+    const ctx = { fillStyle: "", globalAlpha: 1, fillRect };
+    (shapeProps[0]!.sceneFunc as (ctx: unknown) => void)(ctx);
+    // A 4-cell rope span paints line dabs, lashings and end posts.
+    expect(fillRect.mock.calls.length).toBeGreaterThan(20);
   });
 
   it("draws a dashed rect + a cols×rows label for the room tool", () => {
@@ -84,6 +165,33 @@ describe("MapEditPreviewLayer", () => {
     expect(textProps[0]!.text).toBe("3 × 2");
     // The room tool draws no segment line.
     expect(lineProps).toHaveLength(0);
+  });
+
+  it("fills the room ghost with the armed family's colour (chip fallback)", () => {
+    render(
+      <MapEditPreviewLayer
+        cam={cam}
+        previewDrag={{ start: { x: 100, y: 100 }, end: { x: 200, y: 150 } }}
+        activeSubTool="room"
+        floorFamily="water"
+        gridSize={50}
+      />,
+    );
+    // Water's base fill, not hero gold — the drag previews the TRUE floor.
+    expect(rectProps[0]).toMatchObject({ fill: "#24516b", opacity: 0.3 });
+  });
+
+  it("keeps the generate ghost gold — it fills with a dungeon, not the family", () => {
+    render(
+      <MapEditPreviewLayer
+        cam={cam}
+        previewDrag={{ start: { x: 100, y: 100 }, end: { x: 200, y: 150 } }}
+        activeSubTool="generate"
+        floorFamily="water"
+        gridSize={50}
+      />,
+    );
+    expect(rectProps[0]).toMatchObject({ fill: "#f0e2c3", opacity: 0.15 });
   });
 
   it("draws the corridor band for the hallway tool", () => {
@@ -132,6 +240,30 @@ describe("MapEditPreviewLayer", () => {
         g.x === 200 && g.y === 200 && g.offsetX === 25 && g.offsetY === 25 && g.rotation === 15,
     );
     expect(ghostGroup).toBeDefined();
+  });
+
+  it("renders every draft footprint (scatter cluster / populate preview)", () => {
+    const drafts = [0, 1, 2].map((i) => ({
+      x: i * 60,
+      y: 10,
+      width: 50,
+      height: 50,
+      rotation: i * 45,
+      fill: "#8c5a2e",
+      stroke: "#d19a5f",
+    }));
+    render(
+      <MapEditPreviewLayer
+        cam={cam}
+        previewDrag={null}
+        activeSubTool="scatter"
+        gridSize={50}
+        draftGhosts={drafts}
+      />,
+    );
+
+    expect(rectProps).toHaveLength(3);
+    expect(rectProps.every((r) => r.opacity === 0.5 && r.fill === "#8c5a2e")).toBe(true);
   });
 
   it("draws a dashed highlight around the selected element, pivoting where it does", () => {

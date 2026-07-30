@@ -26,6 +26,9 @@ interface HeaderProps {
   diceRollerOpen: boolean;
   rollLogOpen: boolean;
   isDM?: boolean;
+  /** Player lens (P4): the DM's view rendered as players receive it. */
+  playerLens?: boolean;
+  onPlayerLensChange?: (enabled: boolean) => void;
   onSnapToGridChange: (snap: boolean) => void;
   onToolSelect: (mode: ToolMode) => void;
   onCrtFilterChange: (enabled: boolean) => void;
@@ -46,6 +49,8 @@ export const Header: React.FC<HeaderProps> = ({
   diceRollerOpen,
   rollLogOpen,
   isDM = false,
+  playerLens = false,
+  onPlayerLensChange,
   onSnapToGridChange,
   onToolSelect,
   onCrtFilterChange,
@@ -190,6 +195,20 @@ export const Header: React.FC<HeaderProps> = ({
                   title="Author the live map on the table"
                 >
                   🏗️ Map
+                </JRPGButton>
+              )}
+
+              {/* Player lens (P4): render the DM's own table exactly as
+                  players receive it — fog on, secret doors hidden, DM
+                  overlays off. A VIEW toggle only; DM powers stay live. */}
+              {isDM && onPlayerLensChange && (
+                <JRPGButton
+                  onClick={() => onPlayerLensChange(!playerLens)}
+                  variant={playerLens ? "primary" : "default"}
+                  style={{ fontSize: "8px", padding: "4px 10px" }}
+                  title="See the table exactly as players do (fog, secret doors, no DM overlays)"
+                >
+                  👁 Player View
                 </JRPGButton>
               )}
 

@@ -33,6 +33,8 @@ export const STRUCTURE_TILE_ASSETS: MapStudioTileAsset[] = [
     fill: "#b3a687",
     stroke: "#cabfa2",
     accent: "#4e4638",
+    material: "stone",
+    brushNote: "Tall stone band — lit top, inked rim, cast shadow",
   },
   {
     id: "terrain:wall-brick",
@@ -44,6 +46,8 @@ export const STRUCTURE_TILE_ASSETS: MapStudioTileAsset[] = [
     fill: "#9d6b52",
     stroke: "#bd9070",
     accent: "#452e22",
+    material: "stone",
+    brushNote: "Brick coursing — run bricks along a band, quoins at corners",
   },
   {
     id: "terrain:wall-timber",
@@ -55,6 +59,8 @@ export const STRUCTURE_TILE_ASSETS: MapStudioTileAsset[] = [
     fill: "#84613e",
     stroke: "#97744e",
     accent: "#33241a",
+    material: "wood",
+    brushNote: "Timber band wall — beam runs with pegged joints",
   },
   {
     id: "terrain:wall-dark",
@@ -66,6 +72,8 @@ export const STRUCTURE_TILE_ASSETS: MapStudioTileAsset[] = [
     fill: "#5d5f6c",
     stroke: "#868a9a",
     accent: "#26272e",
+    material: "stone",
+    brushNote: "Cold dark masonry — dungeon and crypt band wall",
   },
   // Levels illusion: stairs (floor-height treads) and roofs (the tallest
   // painted plane — light fascia stroke, hard cast shadow).
@@ -79,6 +87,8 @@ export const STRUCTURE_TILE_ASSETS: MapStudioTileAsset[] = [
     fill: "#6d7280",
     stroke: "#8f95a5",
     accent: "#3f434d",
+    material: "stone",
+    brushNote: "Step treads — the run infers direction from the strip you paint",
   },
   {
     id: "terrain:roof-shingle",
@@ -90,6 +100,8 @@ export const STRUCTURE_TILE_ASSETS: MapStudioTileAsset[] = [
     fill: "#7d7787",
     stroke: "#b7ad92",
     accent: "#565064",
+    material: "roof",
+    brushNote: "Ridge-lit shingle courses — the tallest square level",
   },
   {
     id: "terrain:roof-thatch",
@@ -98,9 +110,11 @@ export const STRUCTURE_TILE_ASSETS: MapStudioTileAsset[] = [
     layerKind: "terrain",
     columns: 1,
     rows: 1,
-    fill: "#a08954",
-    stroke: "#c4b183",
-    accent: "#6e5c36",
+    fill: "#a88c4e",
+    stroke: "#c9b67f",
+    accent: "#6b592f",
+    material: "roof",
+    brushNote: "Straw-gold thatch — combed courses over any footprint",
   },
   // Round landmarks (polar-course engine): fills match their VILLAGE_TERRAIN
   // bases (pinned by polarCourse.test) so bake and flat fallback agree.
@@ -114,6 +128,8 @@ export const STRUCTURE_TILE_ASSETS: MapStudioTileAsset[] = [
     fill: "#6f6a7c",
     stroke: "#b7ad92",
     accent: "#565064",
+    material: "roof",
+    brushNote: "Round tower cap — paint a blob, get a cone",
   },
   {
     id: "terrain:roof-dome",
@@ -125,6 +141,8 @@ export const STRUCTURE_TILE_ASSETS: MapStudioTileAsset[] = [
     fill: "#31549b",
     stroke: "#8fa8dc",
     accent: "#22376b",
+    material: "roof",
+    brushNote: "Blue dome — the longest shadow throw on the map",
   },
   {
     id: "terrain:roof-thatch-spiral",
@@ -136,6 +154,8 @@ export const STRUCTURE_TILE_ASSETS: MapStudioTileAsset[] = [
     fill: "#a28b4e",
     stroke: "#c9b67f",
     accent: "#6f5d34",
+    material: "roof",
+    brushNote: "Spiral thatch cap — courses wind to the peak",
   },
   {
     id: "terrain:dais-stone",
@@ -147,5 +167,7 @@ export const STRUCTURE_TILE_ASSETS: MapStudioTileAsset[] = [
     fill: "#8b8f9c",
     stroke: "#b0b4c1",
     accent: "#5c6070",
+    material: "stone",
+    brushNote: "Round platform — concentric courses from the region centre",
   },
 ];

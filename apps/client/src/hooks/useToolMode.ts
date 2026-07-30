@@ -12,6 +12,7 @@
 
 import { useState, useEffect } from "react";
 import type { ToolMode } from "../components/layout/Header";
+import { isEditableTarget } from "../utils/isEditableTarget";
 
 /**
  * Return value from useToolMode hook
@@ -126,7 +127,10 @@ export function useToolMode(): UseToolModeReturn {
     }
 
     const handleToolEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      // Escape inside a typing surface (chat box, brush-deck search,
+      // inspector field) belongs to that field — it must not tear down the
+      // whole tool the user is in the middle of using.
+      if (event.key === "Escape" && !isEditableTarget(event.target)) {
         setActiveTool(null);
       }
     };

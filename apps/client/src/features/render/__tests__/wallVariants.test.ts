@@ -97,24 +97,29 @@ describe("wall variants (walls that look like walls — variants are data)", () 
 
   it("the ring-protection set is exactly the palette's ground-level laid surfaces", () => {
     // INTERIOR_FLOOR_ASSET_IDS guards the Room/Hallway wall bands from
-    // overwriting a laid surface. It must track the palette: every
-    // GROUND-level family (below the 20+ wall/roof blocks) with a floor,
-    // stairs, sunken or polar routing (floors, staircases, drowned siblings,
-    // the dais ring) is protected, nothing else is. Walls and roofs are fair
-    // game — bands fuse, roofs (round ones included) cover; water is
-    // unprotected, but authored architecture WITHIN it is not.
-    const paletteInteriors = Object.entries(VILLAGE_TERRAIN)
-      .filter(
-        ([, fam]) =>
-          fam.priority < 20 &&
-          (fam.floor !== undefined ||
-            fam.stairs !== undefined ||
-            fam.sunken !== undefined ||
-            fam.polar !== undefined),
-      )
-      .map(([id]) => id)
-      .sort();
-    expect([...INTERIOR_FLOOR_ASSET_IDS].sort()).toEqual(paletteInteriors);
+    // overwriting a laid surface: floors, staircases, drowned siblings, the
+    // dais ring — nothing else. Walls and roofs are fair game — bands fuse,
+    // roofs (round ones included) cover; water is unprotected, but authored
+    // architecture WITHIN it is not. The set is DERIVED from the palette now
+    // (mapEditFamilies), so this pin must stay LITERAL — deriving the
+    // expectation here too would compare the formula to itself and could
+    // never fail (brushDeck.test carries the same literal pin map-edit-side).
+    expect([...INTERIOR_FLOOR_ASSET_IDS].sort()).toEqual(
+      [
+        "terrain:stone-floor",
+        "terrain:wood-floor",
+        "terrain:stone-cobble",
+        "terrain:stone-sandstone",
+        "terrain:wood-walnut",
+        "terrain:wood-grey",
+        "terrain:bridge-plank",
+        "terrain:farm-furrow",
+        "terrain:stairs-stone",
+        "terrain:sunken-flagstone",
+        "terrain:sunken-stairs",
+        "terrain:dais-stone",
+      ].sort(),
+    );
   });
 
   it("the shelf lists all four walls as terrain swatches", () => {

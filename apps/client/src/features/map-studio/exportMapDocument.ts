@@ -1,6 +1,7 @@
 import type { MapDocument, MapElement, MapLayer } from "@herobyte/shared";
 import { loadTileAtlas } from "../render/tileAtlas";
 import { wearStampSeed } from "../render/wearStampDetail";
+import { splineSvgMarkup } from "../render/splineSvg";
 import { wearStampSvgMarkup } from "../render/wearStampSvg";
 import { getGridGeometry } from "./gridGeometry";
 import { paintRasterUnderlay } from "./rasterUnderlay";
@@ -282,6 +283,10 @@ function renderElement(
   }
   if (element.type === "text") {
     return `<text ${attributes} fill="${xml(element.data.color)}" font-size="${element.data.fontSize}">${xml(element.data.text)}</text>`;
+  }
+  if (element.type === "spline") {
+    // Same deterministic painter art as the live layer (splineSvg recorder).
+    return `<g ${attributes} data-asset-id="spline:${element.data.kind}">${splineSvgMarkup(element.data.points, element.data.kind, wearStampSeed(element.id), gridSize, element.data.tint)}</g>`;
   }
   const width = element.type === "stamp" ? element.data.width : element.data.columns * gridSize;
   const height = element.type === "stamp" ? element.data.height : element.data.rows * gridSize;

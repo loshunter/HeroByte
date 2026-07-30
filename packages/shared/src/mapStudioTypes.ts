@@ -97,6 +97,21 @@ export interface MapTextElement extends MapElementBase {
   data: { text: string; color: string; fontSize: number; visibleToPlayers: boolean };
 }
 
+/** Persistent authored curve (spline arc): ribbons/filigree interpolate a
+ * smooth curve through the anchors, rope/chain hang each segment as a sagged
+ * span. Points are local px (transformed like a wall's); `kind` routes the
+ * bundled painter art, so the union grows without wire impact; `tint` is the
+ * optional per-placement hue override, like a stamp's. Pure set dressing —
+ * never blocks movement or vision (sceneCompiler ignores it by design). */
+export interface MapSplineElement extends MapElementBase {
+  type: "spline";
+  data: {
+    points: { x: number; y: number }[];
+    kind: "ribbon" | "filigree" | "rope" | "chain";
+    tint?: string;
+  };
+}
+
 export type MapElement =
   | MapTileElement
   | MapStampElement
@@ -104,7 +119,8 @@ export type MapElement =
   | MapWallElement
   | MapDoorElement
   | MapLightElement
-  | MapTextElement;
+  | MapTextElement
+  | MapSplineElement;
 
 /**
  * A map element narrowed to what ANY player may safely see rendered at the live
@@ -118,6 +134,7 @@ export type RenderableMapElement =
   | { id: string; type: "tile"; transform: MapElementTransform; data: MapTileElement["data"] }
   | { id: string; type: "stamp"; transform: MapElementTransform; data: MapStampElement["data"] }
   | { id: string; type: "shape"; transform: MapElementTransform; data: MapShapeElement["data"] }
+  | { id: string; type: "spline"; transform: MapElementTransform; data: MapSplineElement["data"] }
   | {
       id: string;
       type: "text";

@@ -129,6 +129,7 @@ export function buildProceduralFieldConfig(
         : undefined,
       interleave: fam.interleave,
       speckle: fam.speckle,
+      ledges: fam.ledges,
     });
     for (const cell of layer.cells) {
       familyByCell.set(`${cell.cellX},${cell.cellY}`, layer.assetId);
@@ -288,9 +289,10 @@ export function paintProceduralDetail(
  * to document scale, and the buffer + canvas are each width*height*4 bytes.
  * Past this, skip the procedural bake (the caller falls back to the flat/atlas
  * core render) rather than throw a RangeError or exceed the browser's max canvas
- * area — which renders blank. Chunked / at-publish bakes (Slice 4) lift this. */
-const MAX_BAKE_DIM = 8192; // browser max canvas dimension is ~8k on many GPUs
-const MAX_BAKE_PIXELS = 32_000_000; // ~128 MB buffer + ~128 MB canvas per bake
+ * area — which renders blank. Exported so the chunked worker bake (P3) applies
+ * the SAME ceiling — chunking spreads the cost over time, not over this cap. */
+export const MAX_BAKE_DIM = 8192; // browser max canvas dimension is ~8k on many GPUs
+export const MAX_BAKE_PIXELS = 32_000_000; // ~128 MB buffer + ~128 MB canvas per bake
 
 /**
  * Bake the painted field families into an offscreen canvas (base/rim/shadow

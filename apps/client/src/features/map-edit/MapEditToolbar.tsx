@@ -9,16 +9,11 @@ import { DraggableWindow } from "../../components/dice/DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../../components/ui/JRPGPanel";
 import { getMapStudioTileAsset } from "../map-studio/starterTiles";
 import { MapEditAssetPicker } from "./MapEditAssetPicker";
+import { MapEditBrushDeck } from "./MapEditBrushDeck";
 import { MapEditSwatchGrid } from "./MapEditSwatchGrid";
 import { MapEditToolPanels } from "./MapEditToolPanels";
-import { ROOF_FAMILIES, WALL_FAMILIES } from "./mapEditFamilies";
-import type {
-  MapEditFloorFamily,
-  MapEditRoofFamily,
-  MapEditSubTool,
-  MapEditToolbarProps,
-  MapEditWallFamily,
-} from "./mapEditTypes";
+import { WALL_FAMILIES } from "./mapEditFamilies";
+import type { MapEditSubTool, MapEditToolbarProps, MapEditWallFamily } from "./mapEditTypes";
 
 const SUB_TOOLS: { id: MapEditSubTool; label: string }[] = [
   { id: "room", label: "🏠 Room" },
@@ -33,54 +28,17 @@ const SUB_TOOLS: { id: MapEditSubTool; label: string }[] = [
   { id: "row", label: "📏 Row" },
   { id: "select", label: "👆 Select" },
   { id: "generate", label: "🏰 Gen" },
+  { id: "spline", label: "〰️ Spline" },
 ];
 
-const FLOOR_FAMILIES: { id: MapEditFloorFamily; label: string }[] = [
-  { id: "grass", label: "Grass" },
-  { id: "dirt", label: "Dirt" },
-  { id: "path", label: "Path" },
-  { id: "water", label: "Water" },
-  { id: "stone-floor", label: "Flagstone" },
-  { id: "wood-floor", label: "Oak" },
-  { id: "stone-cobble", label: "Cobble" },
-  { id: "stone-sandstone", label: "Sandstone" },
-  { id: "wood-walnut", label: "Walnut" },
-  { id: "wood-grey", label: "Grey Plank" },
-  { id: "stairs-stone", label: "Stairs" },
-  { id: "sunken-flagstone", label: "Sunken Floor" },
-  { id: "sunken-stairs", label: "Sunken Stairs" },
-  { id: "dais-stone", label: "Dais" },
-  { id: "canopy", label: "Canopy" },
-  { id: "canopy-blossom", label: "Blossom" },
-];
-
-// Derived from the one family list so the swatches, the eyedropper mapping and
-// the ring choices can never drift apart.
-const WALL_LABELS: Record<MapEditWallFamily, string> = {
-  "wall-stone": "Stone",
-  "wall-brick": "Brick",
-  "wall-timber": "Timber",
-  "wall-dark": "Dark",
-};
-const WALL_FAMILY_SWATCHES: { id: MapEditWallFamily; label: string }[] = WALL_FAMILIES.map(
-  (id) => ({ id, label: WALL_LABELS[id] }),
-);
-
-const ROOF_LABELS: Record<MapEditRoofFamily, string> = {
-  "roof-shingle": "Shingle",
-  "roof-thatch": "Thatch",
-  "roof-cone": "Cone",
-  "roof-dome": "Dome",
-  "roof-thatch-spiral": "Spiral",
-};
-const ROOF_FAMILY_SWATCHES: { id: MapEditRoofFamily; label: string }[] = ROOF_FAMILIES.map(
-  (id) => ({ id, label: ROOF_LABELS[id] }),
-);
-
-/** The Room tool's wall-ring choices: a material, or no ring at all. */
+/** The Room tool's wall-ring choices: a material, or no ring at all. Derived
+ * from the palette's wall families; "Stone Wall" swatches as "Stone". */
 const ROOM_WALL_CHOICES: { id: MapEditWallFamily | "none"; label: string }[] = [
   { id: "none", label: "None" },
-  ...WALL_FAMILY_SWATCHES,
+  ...WALL_FAMILIES.map((family) => ({
+    id: family,
+    label: getMapStudioTileAsset(`terrain:${family}`).name.replace(/ Wall$/, ""),
+  })),
 ];
 
 const HALLWAY_WIDTHS = [1, 2, 3, 4];
@@ -188,32 +146,13 @@ export function MapEditToolbar(props: MapEditToolbarProps) {
               </div>
 
               {paintsFloor && (
-                // The Floor/Wall/Roof groups show for EVERY tool that consumes
-                // the paint family (not just Paint): the swatch state is
-                // shared, so a wall/roof family armed by the brush or the
-                // eyedropper must stay visible — and deliberately
-                // re-selectable — when the DM switches to Room or Hall (a
-                // solid wall/roof mass is a legit room fill).
-                <>
-                  <MapEditSwatchGrid
-                    label="Floor:"
-                    options={FLOOR_FAMILIES}
-                    selected={floorFamily}
-                    onSelect={onSelectFloorFamily}
-                  />
-                  <MapEditSwatchGrid
-                    label="Wall:"
-                    options={WALL_FAMILY_SWATCHES}
-                    selected={floorFamily}
-                    onSelect={onSelectFloorFamily}
-                  />
-                  <MapEditSwatchGrid
-                    label="Roof:"
-                    options={ROOF_FAMILY_SWATCHES}
-                    selected={floorFamily}
-                    onSelect={onSelectFloorFamily}
-                  />
-                </>
+                // The brush deck shows for EVERY tool that consumes the paint
+                // family (not just Paint): the swatch state is shared, so a
+                // wall/roof family armed by the brush or the eyedropper must
+                // stay visible — and deliberately re-selectable — when the DM
+                // switches to Room or Hall (a solid wall/roof mass is a legit
+                // room fill).
+                <MapEditBrushDeck selected={floorFamily} onSelect={onSelectFloorFamily} />
               )}
 
               {activeSubTool === "light" && (

@@ -169,6 +169,9 @@ function toRenderable(element: MapElement): RenderableMapElement | null {
       return { id: element.id, type: "stamp", transform: element.transform, data: element.data };
     case "shape":
       return { id: element.id, type: "shape", transform: element.transform, data: element.data };
+    case "spline":
+      // Set dressing, always player-visible (must agree with rasterVisibility).
+      return { id: element.id, type: "spline", transform: element.transform, data: element.data };
     case "text":
       if (!element.data.visibleToPlayers) return null;
       return {

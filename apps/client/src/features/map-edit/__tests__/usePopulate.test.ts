@@ -129,4 +129,35 @@ describe("usePopulate", () => {
 
     expect(first.mock.calls[0]![0]).toEqual(second.mock.calls[0]![0]);
   });
+
+  it("ghosts the EXACT drafts the button will commit, and clears with the region", () => {
+    const controller = makeController();
+    const { result } = renderHook(() => usePopulate(controller));
+    expect(result.current.previewGhosts).toBeNull();
+
+    act(() => result.current.onRegionPlaced({ x: 0, y: 0, width: 500, height: 500 }));
+    const ghosts = result.current.previewGhosts;
+    expect(ghosts).not.toBeNull();
+    expect(ghosts!.length).toBeGreaterThan(0);
+
+    act(() => result.current.onPopulate());
+    const committed = (controller.addStamps as ReturnType<typeof vi.fn>).mock.calls[0]![0] as {
+      x: number;
+      y: number;
+      rotation: number;
+    }[];
+    // Same builder, same bounds-derived seed: the ghost IS the commit.
+    expect(committed.map((d) => ({ x: d.x, y: d.y, rotation: d.rotation }))).toEqual(
+      ghosts!.map((g) => ({ x: g.x, y: g.y, rotation: g.rotation })),
+    );
+    // Region consumed — the ghosts vanish with the armed target.
+    expect(result.current.previewGhosts).toBeNull();
+  });
+
+  it("shows no ghosts over a stale (undone) region", () => {
+    const controller = makeController({ activeDocument: makeDocument(false) });
+    const { result } = renderHook(() => usePopulate(controller));
+    act(() => result.current.onRegionPlaced({ x: 0, y: 0, width: 500, height: 500 }));
+    expect(result.current.previewGhosts).toBeNull();
+  });
 });

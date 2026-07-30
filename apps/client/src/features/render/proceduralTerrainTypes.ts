@@ -117,6 +117,15 @@ export interface TerrainFieldFamily {
    */
   speckle?: { amp: number; chance: number };
   /**
+   * Stacked-ledge crag (sea-crag cliff, taxonomy family roster): the interior
+   * field quantizes into rim-within-rim courses — `colors` ordered outer edge
+   * → core, so the waterline ledge is darkest and the cap plateau lightest —
+   * with a noise-wobbled ink `contour` line at every course break. Height
+   * reads as contoured ledges, not a gradient. The family's own `rim` stays
+   * the outer silhouette ink.
+   */
+  ledges?: { colors: string[]; contour: string };
+  /**
    * False ⇒ the family's region is EXACTLY its painted cells (not the union
    * with higher-priority cells), and its edge bumps only EXTEND outward.
    * Water needs this: with the default union indicator, every floor/wall

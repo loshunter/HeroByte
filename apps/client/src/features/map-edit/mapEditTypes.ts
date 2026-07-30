@@ -25,43 +25,34 @@ export type MapEditSubTool =
   | "scatter"
   | "row"
   | "select"
-  | "generate";
+  | "generate"
+  | "spline";
 
-/** Procedural wall families the Paint tool and the Room wall ring use. */
-export type MapEditWallFamily = "wall-stone" | "wall-brick" | "wall-timber" | "wall-dark";
+/** Persistent curve kinds the spline sub-tool authors (splineDetail art). */
+export type MapEditSplineKind = "ribbon" | "filigree" | "rope" | "chain";
 
-/** Procedural roof families — the tallest painted level (levels illusion).
- * The cone/dome/spiral entries are polar-course landmarks (round render). */
-export type MapEditRoofFamily =
-  | "roof-shingle"
-  | "roof-thatch"
-  | "roof-cone"
-  | "roof-dome"
-  | "roof-thatch-spiral";
+/**
+ * Paint families are DERIVED DATA since the painter's deck: a family is
+ * paintable iff it has both a bundled asset (starterTiles) and a palette
+ * entry (VILLAGE_TERRAIN) — see mapEditFamilies. These aliases replace the
+ * old hand-kept unions, so adding a family is a data edit, never a type edit;
+ * runtime membership checks live in floorFamilyFromAssetId / WALL_FAMILIES /
+ * ROOF_FAMILIES.
+ */
+export type MapEditWallFamily = string;
 
-/** Procedural families the room/terrain tools paint with (VILLAGE_TERRAIN).
- * Historically floors; walls, roofs and stairs joined when they became
- * paintable — a solid painted wall/roof region is legit (rock mass, building
- * seen from above). */
-export type MapEditFloorFamily =
-  | "grass"
-  | "dirt"
-  | "path"
-  | "water"
-  | "stone-floor"
-  | "wood-floor"
-  | "stone-cobble"
-  | "stone-sandstone"
-  | "wood-walnut"
-  | "wood-grey"
-  | "stairs-stone"
-  | "sunken-flagstone"
-  | "sunken-stairs"
-  | "dais-stone"
-  | "canopy"
-  | "canopy-blossom"
-  | MapEditWallFamily
-  | MapEditRoofFamily;
+/** A roof-material paint family (the tallest painted level). */
+export type MapEditRoofFamily = string;
+
+/** Any paintable family the room/terrain tools use (floors, walls, roofs). */
+export type MapEditFloorFamily = string;
+
+/** The quick wheel's dispatch pair (P5) — the same setters the palette uses,
+ * bundled so MapBoard can host the wheel with ONE optional prop. */
+export interface MapEditWheelActions {
+  selectSubTool: (tool: MapEditSubTool) => void;
+  selectFloorFamily: (family: MapEditFloorFamily) => void;
+}
 
 /** POPULATE set-dressing density (per-cell placement probability tiers). */
 export type PopulateDensity = "low" | "medium" | "high";
@@ -115,6 +106,8 @@ export interface MapEditToolbarProps {
   // --- Hallway + POPULATE ---
   hallwayWidth: number; // corridor width in cells (1–4)
   onSelectHallwayWidth: (width: number) => void;
+  splineKind: MapEditSplineKind; // the spline sub-tool's curve kind
+  onSelectSplineKind: (kind: MapEditSplineKind) => void;
   populateDensity: PopulateDensity;
   onSelectPopulateDensity: (density: PopulateDensity) => void;
   populateCategory: PopulateCategory;

@@ -10,6 +10,7 @@
 // rather than sending a no-op command to the server.
 
 import { useEffect } from "react";
+import { isEditableTarget } from "../../utils/isEditableTarget";
 
 interface UseMapEditHotkeysOptions {
   mapEditMode: boolean;
@@ -29,6 +30,9 @@ export function useMapEditHotkeys({
   useEffect(() => {
     if (!mapEditMode) return;
     const onKeyDown = (event: KeyboardEvent) => {
+      // Typing surfaces own their keystrokes: Ctrl+Z in a search box or an
+      // inspector field is native text undo, never a live-map undo.
+      if (isEditableTarget(event.target)) return;
       if (!(event.ctrlKey || event.metaKey)) return;
       const key = event.key.toLowerCase();
       // Redo: Ctrl/Cmd+Y or Ctrl/Cmd+Shift+Z (checked first — Shift+Z is redo,

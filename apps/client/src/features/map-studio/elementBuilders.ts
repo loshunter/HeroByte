@@ -2,6 +2,7 @@ import type {
   MapDoorElement,
   MapLightElement,
   MapShapeElement,
+  MapSplineElement,
   MapStampElement,
   MapTileElement,
   MapWallElement,
@@ -10,6 +11,7 @@ import type {
   MapDoorDraft,
   MapLightDraft,
   MapShapeDraft,
+  MapSplineDraft,
   MapStampDraft,
   MapTileDraft,
   MapWallDraft,
@@ -86,6 +88,22 @@ export function createWallElement(id: string, draft: MapWallDraft): MapWallEleme
       ],
       blocksMovement: draft.blocksMovement,
       blocksVision: draft.blocksVision,
+    },
+  };
+}
+
+export function createSplineElement(id: string, draft: MapSplineDraft): MapSplineElement {
+  return {
+    id,
+    layerId: draft.layerId,
+    type: "spline",
+    locked: false,
+    hidden: false,
+    transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+    data: {
+      points: draft.points.map((point) => ({ ...point })),
+      kind: draft.kind,
+      ...(draft.tint ? { tint: draft.tint } : {}),
     },
   };
 }

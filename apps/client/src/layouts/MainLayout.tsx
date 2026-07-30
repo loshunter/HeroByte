@@ -71,6 +71,9 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     mapEditRoomWallFamily,
     mapEditSelectedAssetId,
     mapEditHallwayWidth,
+    mapEditSplineKind,
+    mapEditPopulateGhosts,
+    mapEditWheelActions,
     mapEditSelectedElementId,
     mapEditWallsOverlayPinned,
     onMapEditRoomRejected,
@@ -85,6 +88,8 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     setSnapToGrid,
     crtFilter,
     setCrtFilter,
+    playerLens,
+    onTogglePlayerLens,
     diceRollerOpen,
     rollLogOpen,
     toggleDiceRoller,
@@ -254,6 +259,8 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         setCrtFilter={setCrtFilter}
         diceRollerOpen={diceRollerOpen}
         rollLogOpen={rollLogOpen}
+        playerLens={playerLens}
+        onTogglePlayerLens={onTogglePlayerLens}
         toggleDiceRoller={toggleDiceRoller}
         toggleRollLog={toggleRollLog}
         handleResetCamera={handleResetCamera}
@@ -274,6 +281,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         gridSize={gridSize}
         snapToGrid={snapToGrid}
         isDM={isDM}
+        playerLens={playerLens}
         pointerMode={pointerMode}
         measureMode={measureMode}
         drawMode={drawMode}
@@ -286,6 +294,9 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         mapEditRoomWallFamily={mapEditRoomWallFamily}
         mapEditSelectedAssetId={mapEditSelectedAssetId}
         mapEditHallwayWidth={mapEditHallwayWidth}
+        mapEditSplineKind={mapEditSplineKind}
+        mapEditPopulateGhosts={mapEditPopulateGhosts}
+        mapEditWheelActions={mapEditWheelActions}
         mapEditSelectedElementId={mapEditSelectedElementId}
         mapEditWallsOverlayPinned={mapEditWallsOverlayPinned}
         onMapEditRoomRejected={onMapEditRoomRejected}

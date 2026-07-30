@@ -17,6 +17,7 @@
 
 import { useEffect } from "react";
 import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
+import { isEditableTarget } from "../utils/isEditableTarget";
 
 /**
  * Drawing manager interface for undo/redo operations
@@ -160,6 +161,10 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Typing surfaces own their keystrokes (chat box, brush/asset search,
+      // inspector fields): Backspace there edits text — it must not delete
+      // the selected tokens — and Ctrl+Z is native text undo.
+      if (isEditableTarget(e.target)) return;
       // Delete or Backspace to delete selected object(s)
       if ((e.key === "Delete" || e.key === "Backspace") && selectedObjectIds.length > 0) {
         console.log("[KeyDown] Delete/Backspace pressed:", {

@@ -291,6 +291,10 @@ function AuthenticatedApp({
   // CRT filter toggle
   const [crtFilter, setCrtFilter] = useState(false);
 
+  // Player lens (P4): render the DM's own table exactly as players receive
+  // it. Pure view state — DM permissions stay live while it is on.
+  const [playerLens, setPlayerLens] = useState(false);
+
   // Camera commands
   const { cameraCommand, handleFocusToken, handleResetCamera, handleCameraCommandHandled } =
     useCameraCommands({ snapshot, uid });
@@ -722,6 +726,9 @@ function AuthenticatedApp({
     mapEditRoomWallFamily: mapEdit.roomWallFamily,
     mapEditSelectedAssetId: mapEdit.selectedAssetId,
     mapEditHallwayWidth: mapEdit.hallwayWidth,
+    mapEditSplineKind: mapEdit.splineKind,
+    mapEditPopulateGhosts: mapEdit.populateGhosts,
+    mapEditWheelActions: mapEdit.wheelActions,
     mapEditSelectedElementId: mapEdit.selectedElementId,
     mapEditWallsOverlayPinned: mapEdit.wallsOverlayPinned,
     onMapEditRoomRejected: toast.error,
@@ -735,6 +742,8 @@ function AuthenticatedApp({
     setSnapToGrid,
     crtFilter,
     setCrtFilter,
+    playerLens,
+    onTogglePlayerLens: setPlayerLens,
     diceRollerOpen,
     rollLogOpen,
     toggleDiceRoller,

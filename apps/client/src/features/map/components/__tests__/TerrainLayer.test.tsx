@@ -23,18 +23,18 @@ vi.mock("react-konva", () => ({
 // Keep the atlas null (avoid the async fetch); families flat-fill either way.
 vi.mock("../../../render/tileAtlas", () => ({ useTileAtlas: () => null }));
 
-// Stub ONLY the field bake (it touches a real 2D canvas, absent under jsdom).
-// Default: null → the flat/atlas fallback path (one Shape per family). Tests
-// that exercise the baked path set a return value. The real getFieldBake is
-// unit-tested in terrainBake.test.ts; coreTerrainLayers/blitFieldBake stay real.
-const getFieldBakeMock = vi.hoisted(() => vi.fn(() => null as unknown));
-vi.mock("../terrainBake", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../terrainBake")>()),
-  getFieldBake: getFieldBakeMock,
-}));
+// Stub ONLY the field bake hook (the real one touches a Worker + a 2D canvas,
+// absent under jsdom). Default: baked null → the flat/atlas fallback path (one
+// Shape per family). Tests that exercise the baked path set a return value.
+// The real machinery is unit-tested in terrainBakeAsync.test.ts /
+// terrainBakeChunks.test.ts; coreTerrainLayers/blitFieldBake stay real.
+const useFieldBakeMock = vi.hoisted(() =>
+  vi.fn(() => ({ baked: null as unknown, progress: 1, pending: false, revision: 0 })),
+);
+vi.mock("../useFieldBake", () => ({ useFieldBake: useFieldBakeMock }));
 
 beforeEach(() => {
-  getFieldBakeMock.mockReturnValue(null);
+  useFieldBakeMock.mockReturnValue({ baked: null, progress: 1, pending: false, revision: 0 });
 });
 
 const cam = { x: 0, y: 0, scale: 1 };
@@ -96,12 +96,17 @@ describe("TerrainLayer", () => {
       grid: { size: 50, offsetX: 0, offsetY: 0 },
       opacity: 0.5,
     };
-    getFieldBakeMock.mockReturnValue({
-      canvas: document.createElement("canvas"),
-      originX: 0,
-      originY: 0,
-      width: 4,
-      height: 4,
+    useFieldBakeMock.mockReturnValue({
+      baked: {
+        canvas: document.createElement("canvas"),
+        originX: 0,
+        originY: 0,
+        width: 4,
+        height: 4,
+      },
+      progress: 1,
+      pending: false,
+      revision: 1,
     });
     const { getAllByTestId } = render(<TerrainLayer cam={cam} mapTerrain={terrain} />);
     // 3 painted families → 1 field blit (grass+dirt) + 1 core Shape (water) = 2.

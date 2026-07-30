@@ -9,12 +9,15 @@
 
 import {
   BLOSSOM_CANOPY_DETAIL,
+  BRIDGE_PLANK_DETAIL,
   COBBLE_FLOOR_DETAIL,
   DIRT_DETAIL,
+  FURROW_DETAIL,
   GRASS_DETAIL,
   GREY_PLANK_DETAIL,
   LEAF_CANOPY_DETAIL,
   PATH_DETAIL,
+  SAND_DETAIL,
   SANDSTONE_FLOOR_DETAIL,
   STONE_FLOOR_DETAIL,
   WALNUT_FLOOR_DETAIL,
@@ -112,6 +115,28 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     mottle: { amp: 0.03, scale: 3, cool: 0.4 },
     sunken: { of: "terrain:stairs-stone", algae: "#6a7a34" },
   },
+  // Sea-crag cliff (taxonomy family roster — DruidIslands/TempleOfTheOracle
+  // grammar): the coastal rock band between grass cap and water, rendered as
+  // stacked rim-within-rim ledges with ink contours. Priority ABOVE water so
+  // the crag's toes bump over the foam line and its long throw lands on the
+  // sea, BELOW the floors/stairs so a cut path or stair run breaks the ring.
+  // Grass (lower) underfills it, and the detail pass paints the grass-cap
+  // blade fringe into the crag's receded top seam for free.
+  "terrain:cliff": {
+    base: "#565e62",
+    rim: "#26282a",
+    priority: 3.8,
+    edgeAmp: 1.05,
+    rimWidth: 0.05,
+    shadow: { band: 0.34, strength: 0.28 },
+    contact: { reach: 0.1, strength: 0.14 },
+    mottle: { amp: 0.04, scale: 3, cool: 0.35 },
+    speckle: { amp: 0.1, chance: 0.05 },
+    ledges: {
+      colors: ["#2b4152", "#3c4a54", "#4c565c", "#565e62"],
+      contour: "#26282a",
+    },
+  },
   // Grass↔dirt is the interleaved open-country pair (catalog rank 12): the
   // seam interpenetrates and each family spawns echo islands inside the
   // other — what makes the boundary read hand-painted, not thresholded.
@@ -122,6 +147,22 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     mottle: { amp: 0.06, scale: 4, cool: 0.3 },
     grass: GRASS_DETAIL,
     interleave: { with: "terrain:dirt" },
+  },
+  // Warm coastal sand (island benchmark arc) — the SECOND interleave pair.
+  // The contract puts the declaration on the pair's HIGHER member and grass
+  // already declares dirt, so sand sits at 3.2: above grass (sand↔grass
+  // interpenetrates with echo islands — the reference's dominant ground
+  // read), below water (the waterline lip still laps onto the beach). The
+  // subtle sand-over-grass lip is illegible at map zoom; the seam is what
+  // matters.
+  "terrain:sand": {
+    base: "#cdb285",
+    rim: "#a58a5e",
+    priority: 3.2,
+    mottle: { amp: 0.05, scale: 4, cool: -0.15 },
+    speckle: { amp: 0.08, chance: 0.04 },
+    keyCluster: SAND_DETAIL,
+    interleave: { with: "terrain:grass" },
   },
   "terrain:dirt": {
     base: "#60482e",
@@ -199,6 +240,35 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     edgeAmp: 0,
     mottle: { amp: 0.04, scale: 5, cool: 0.2 },
     floor: { kind: "plank", palette: GREY_PLANK_DETAIL },
+  },
+  // Tilled farm plot (island benchmark arc): furrow trench/ridge rows with
+  // crop ticks. A laid surface, so it lives in the floors block (the sunken
+  // families must sit strictly between water and EVERY dry floor — pinned by
+  // sunkenStructures.test); nearly-straight hand-cut edges over any ground.
+  "terrain:farm-furrow": {
+    base: "#52402a",
+    rim: "#3c2e1e",
+    priority: 4.5,
+    edgeAmp: 0.25,
+    rimWidth: 0.06,
+    mottle: { amp: 0.04, scale: 4, cool: 0.2 },
+    floor: { kind: "furrow", palette: FURROW_DETAIL },
+  },
+  // Log-rib bridge deck (structure treatments — dock and bridge ribbons):
+  // boards perpendicular to the run over a dark water-shadow base that shows
+  // through the sliver gaps and missing boards, mask-driven edge stringers,
+  // post terminals at run ends. Priority above the plain wood floors and
+  // below the stairs so a stair ramp joins the deck cleanly; the tall shadow
+  // band throws the deck's height cue onto the water below it.
+  "terrain:bridge-plank": {
+    base: "#20303c",
+    rim: "#33291d",
+    priority: 9.2,
+    edgeAmp: 0,
+    rimWidth: 0.05,
+    shadow: { band: 0.3, strength: 0.26 },
+    mottle: { amp: 0.03, scale: 4, cool: 0.2 },
+    floor: { kind: "bridge", palette: BRIDGE_PLANK_DETAIL },
   },
   // The architectural block — walls, stairs, roofs, dais (priorities 10–34) —
   // lives in terrainPaletteStructures (350-LOC cap), same data verbatim.

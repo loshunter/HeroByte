@@ -58,6 +58,8 @@ import {
 import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 import { useMapEditTool } from "../features/map-edit/useMapEditTool";
 import { MapEditPreviewLayer } from "../features/map-edit/MapEditPreviewLayer";
+import { MapEditQuickWheel } from "../features/map-edit/MapEditQuickWheel";
+import { dmViewActive, fogViewerTokens, visibleDoors } from "../features/map/playerLens";
 import { WallsOverlayLayer } from "../features/map-edit/WallsOverlayLayer";
 import { NotesOverlayLayer } from "../features/map-edit/NotesOverlayLayer";
 import type { CameraCommand, MapBoardProps, SelectionRequestOptions } from "./MapBoard.types";
@@ -96,6 +98,10 @@ export default function MapBoard({
   mapEditRoomWallFamily = "none",
   mapEditSelectedAssetId = "objects:crate",
   mapEditHallwayWidth = 2,
+  mapEditSplineKind = "rope",
+  mapEditPopulateGhosts = null,
+  mapEditWheelActions,
+  playerLens = false,
   mapEditSelectedElementId = null,
   mapEditController,
   mapEditWallsOverlayPinned = false,
@@ -290,6 +296,7 @@ export default function MapBoard({
     previewDrag: mapEditPreviewDrag,
     strokeCells: mapEditStrokeCells,
     placementGhost: mapEditPlacementGhost,
+    draftGhosts: mapEditDraftGhosts,
     selectionRect: mapEditSelectionRect,
     onMouseDown: handleMapEditMouseDown,
     onMouseMove: handleMapEditMouseMove,
@@ -303,6 +310,7 @@ export default function MapBoard({
     roomWallFamily: mapEditRoomWallFamily,
     selectedAssetId: mapEditSelectedAssetId,
     hallwayWidth: mapEditHallwayWidth,
+    splineKind: mapEditSplineKind,
     selectedElementId: mapEditSelectedElementId,
     onRoomRejected: onMapEditRoomRejected,
     onRegionPlaced: onMapEditRegionPlaced,
@@ -429,6 +437,16 @@ export default function MapBoard({
   });
 
   const tokenInteractionsEnabled = !drawMode && !mapEditMode;
+  // Player lens (P4): a VIEW toggle only — DM chrome and DM-only data render
+  // off dmView, while permissions/actions keep using isDM.
+  const dmView = dmViewActive(isDM, playerLens);
+
+  // Quick wheel (P5): right-click on the canvas in map-edit mode opens the
+  // radial tool/brush menu at the cursor; leaving the mode drops it.
+  const [wheelAt, setWheelAt] = useState<{ x: number; y: number } | null>(null);
+  useEffect(() => {
+    if (!mapEditMode) setWheelAt(null);
+  }, [mapEditMode]);
   const dragPreviewEnabled = ENABLE_DRAG_PREVIEWS;
 
   const handleDragPreview = useCallback(
@@ -540,11 +558,29 @@ export default function MapBoard({
         color: "#dbe1ff",
         position: "relative",
       }}
+      onContextMenu={(event) => {
+        // Quick wheel (P5): map-edit only — token context menus and the
+        // browser menu keep every other mode.
+        if (!mapEditMode || !mapEditWheelActions) return;
+        event.preventDefault();
+        setWheelAt({ x: event.clientX, y: event.clientY });
+      }}
     >
       <AlignmentInstructionOverlay
         alignmentMode={alignmentMode}
         alignmentInstruction={alignmentInstruction}
       />
+      {wheelAt && mapEditWheelActions && (
+        <MapEditQuickWheel
+          x={wheelAt.x}
+          y={wheelAt.y}
+          activeSubTool={mapEditActiveSubTool}
+          floorFamily={mapEditFloorFamily}
+          onSelectSubTool={mapEditWheelActions.selectSubTool}
+          onSelectFloorFamily={mapEditWheelActions.selectFloorFamily}
+          onClose={() => setWheelAt(null)}
+        />
+      )}
 
       {/* Stage is the viewport; world content is translated/scaled by cam in child Groups */}
       <Stage
@@ -604,15 +640,17 @@ export default function MapBoard({
           {snapshot?.compiledScene && snapshot.compiledScene.doors.length > 0 && (
             <DoorsLayer
               cam={cam}
-              doors={snapshot.compiledScene.doors}
+              // Player lens (P4): mirror the server's per-recipient strip —
+              // a player snapshot never contains a secret door.
+              doors={visibleDoors(snapshot.compiledScene.doors, dmView)}
               mapTransform={mapObject?.transform}
-              isDM={isDM}
+              isDM={dmView}
               onToggleDoor={handleToggleDoor}
               onSetDoorState={handleSetDoorState}
             />
           )}
           {/* DM-only walls overlay: shown while authoring, or pinned to persist. */}
-          {isDM && (mapEditMode || mapEditWallsOverlayPinned) && snapshot?.compiledScene && (
+          {dmView && (mapEditMode || mapEditWallsOverlayPinned) && snapshot?.compiledScene && (
             <WallsOverlayLayer
               cam={cam}
               mapTransform={mapObject?.transform}
@@ -621,7 +659,7 @@ export default function MapBoard({
           )}
           {/* DM-only GM notes (generated spawn/loot keys). Read from the live
               document — notes are stripped from every snapshot by design. */}
-          {isDM && mapEditMode && (
+          {dmView && mapEditMode && (
             <NotesOverlayLayer
               cam={cam}
               mapTransform={mapObject?.transform}
@@ -698,15 +736,16 @@ export default function MapBoard({
 
         {/* Fog of war: players see only what their own tokens can see.
             Token positions are grid cells; vision origins are their world-
-            pixel centers, matching the renderer. */}
-        {!isDM && snapshot?.fogEnabled && snapshot.compiledScene && (
+            pixel centers, matching the renderer. The player lens (P4) turns
+            fog ON for the DM with the party's union vision (fogViewerTokens). */}
+        {!dmView && snapshot?.fogEnabled && snapshot.compiledScene && (
           <FogLayer
             cam={cam}
             compiledScene={snapshot.compiledScene}
             mapTransform={mapObject?.transform}
-            viewers={(snapshot.tokens ?? [])
-              .filter((token) => token.owner === uid)
-              .map((token) => gridCellToWorldPoint(grid.size, { x: token.x, y: token.y }))}
+            viewers={fogViewerTokens(snapshot.tokens ?? [], uid, isDM && playerLens).map((token) =>
+              gridCellToWorldPoint(grid.size, { x: token.x, y: token.y }),
+            )}
           />
         )}
 
@@ -748,7 +787,11 @@ export default function MapBoard({
             gridOffsetY={mapEditController?.activeDocument?.grid.offsetY ?? 0}
             strokeCells={mapEditStrokeCells}
             placementGhost={mapEditPlacementGhost}
+            // Scatter cluster + armed POPULATE preview — both true-result drafts.
+            draftGhosts={[...mapEditDraftGhosts, ...(mapEditPopulateGhosts ?? [])]}
             selectionRect={mapEditSelectionRect}
+            splineKind={mapEditSplineKind}
+            floorFamily={mapEditFloorFamily}
           />
         </Layer>
 

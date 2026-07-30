@@ -15,7 +15,12 @@ import type { MapStudioController } from "../map-studio/types";
 import { buildRoomCommand, type RoomBounds } from "./roomBuilder";
 import { buildHallwayCommand } from "./hallwayBuilder";
 import { buildRowDrafts } from "./placementDrafts";
-import type { MapEditFloorFamily, MapEditSubTool, MapEditWallFamily } from "./mapEditTypes";
+import type {
+  MapEditFloorFamily,
+  MapEditSplineKind,
+  MapEditSubTool,
+  MapEditWallFamily,
+} from "./mapEditTypes";
 
 interface CommitDragOptions {
   subTool: MapEditSubTool;
@@ -28,6 +33,8 @@ interface CommitDragOptions {
   hallwayWidth: number;
   /** Asset the row sub-tool repeats along its dragged segment. */
   selectedAssetId: string;
+  /** Curve kind the spline sub-tool authors. */
+  splineKind: MapEditSplineKind;
   onRoomRejected?: (message: string) => void;
   /** A room/hallway landed — its bounds become the POPULATE target. */
   onRegionPlaced?: (bounds: RoomBounds) => void;
@@ -44,6 +51,7 @@ export function commitDragTool({
   roomWallFamily,
   hallwayWidth,
   selectedAssetId,
+  splineKind,
   onRoomRejected,
   onRegionPlaced,
   onRegionDragged,
@@ -58,6 +66,24 @@ export function commitDragTool({
     if (layer) {
       const drafts = buildRowDrafts(document, asset, drag.start, drag.end, layer.id);
       if (drafts.length > 0) controller.addStamps(drafts);
+    }
+    return;
+  }
+
+  if (subTool === "spline") {
+    // A two-anchor span: rope/chain sag immediately, ribbon/filigree run
+    // straight (multi-anchor curves are the recorded follow-up). Splines are
+    // set dressing, so they live on the objects layer like stamps.
+    const layer = document.layers.find((l) => l.kind === "objects") ?? document.layers[0];
+    if (layer && (drag.start.x !== drag.end.x || drag.start.y !== drag.end.y)) {
+      controller.addSpline({
+        layerId: layer.id,
+        points: [
+          { x: drag.start.x, y: drag.start.y },
+          { x: drag.end.x, y: drag.end.y },
+        ],
+        kind: splineKind,
+      });
     }
     return;
   }

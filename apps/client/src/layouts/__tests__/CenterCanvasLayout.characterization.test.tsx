@@ -202,6 +202,8 @@ describe("CenterCanvasLayout Section - Characterization Tests", () => {
       onToggleAssetPicker: vi.fn(),
       hallwayWidth: 2,
       onSelectHallwayWidth: vi.fn(),
+      splineKind: "rope" as const,
+      onSelectSplineKind: vi.fn(),
       populateDensity: "medium" as const,
       onSelectPopulateDensity: vi.fn(),
       populateCategory: "objects" as const,

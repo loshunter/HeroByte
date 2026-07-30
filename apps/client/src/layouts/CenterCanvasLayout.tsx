@@ -26,6 +26,7 @@ import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import type { CameraCommand } from "../ui/MapBoard";
 import type { UseDrawingStateManagerReturn } from "../hooks/useDrawingStateManager";
 import { MapLoading } from "../components/ui/MapLoading";
+import { TerrainBakeChip } from "../features/map/components/TerrainBakeChip";
 import type { MapStudioController } from "../features/map-studio";
 import type {
   MapEditFloorFamily,
@@ -98,6 +99,13 @@ export interface CenterCanvasLayoutProps {
   mapEditSelectedAssetId: string;
   /** Corridor width in cells for the hallway tool */
   mapEditHallwayWidth: number;
+  mapEditSplineKind?: import("../features/map-edit/mapEditTypes").MapEditSplineKind;
+  mapEditPopulateGhosts?:
+    | import("../features/map-edit/useMapEditPlacement").PlacementGhost[]
+    | null;
+  mapEditWheelActions?: import("../features/map-edit/mapEditTypes").MapEditWheelActions;
+  /** Player lens (P4): render the DM's view as players receive it. */
+  playerLens?: boolean;
   /** Selected element id (select tool) → highlight */
   mapEditSelectedElementId: string | null;
   /** Keep the DM walls overlay visible outside map-edit mode */
@@ -223,6 +231,10 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
     mapEditRoomWallFamily,
     mapEditSelectedAssetId,
     mapEditHallwayWidth,
+    mapEditSplineKind,
+    mapEditPopulateGhosts,
+    mapEditWheelActions,
+    playerLens,
     mapEditSelectedElementId,
     mapEditWallsOverlayPinned,
     onMapEditRoomRejected,
@@ -275,6 +287,9 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
             mapEditRoomWallFamily={mapEditRoomWallFamily}
             mapEditSelectedAssetId={mapEditSelectedAssetId}
             mapEditHallwayWidth={mapEditHallwayWidth}
+            mapEditSplineKind={mapEditSplineKind}
+            mapEditPopulateGhosts={mapEditPopulateGhosts}
+            mapEditWheelActions={mapEditWheelActions}
             mapEditSelectedElementId={mapEditSelectedElementId}
             mapEditController={mapStudio}
             mapEditWallsOverlayPinned={mapEditWallsOverlayPinned}
@@ -284,6 +299,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
             onMapEditSelectElement={onMapEditSelectElement}
             onMapEditSampleAsset={onMapEditSampleAsset}
             isDM={isDM}
+            playerLens={playerLens}
             alignmentMode={alignmentMode}
             alignmentPoints={alignmentPoints}
             alignmentSuggestion={alignmentSuggestion}
@@ -300,6 +316,8 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
             onSelectObjects={onSelectObjects}
           />
         </Suspense>
+        {/* Worker-bake progress (P3): reads its module store — no props. */}
+        <TerrainBakeChip />
       </div>
     );
   },

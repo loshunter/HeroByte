@@ -17,6 +17,7 @@ import type { RoomBounds } from "./roomBuilder";
 import { floorFamilyFromAssetId } from "./mapEditFamilies";
 import type {
   MapEditFloorFamily,
+  MapEditSplineKind,
   MapEditSubTool,
   MapEditToolbarProps,
   MapEditWallFamily,
@@ -47,8 +48,14 @@ interface UseMapEditStateReturn {
   selectedAssetId: string;
   /** Corridor width in cells for the hallway sub-tool (fed to the tool + preview). */
   hallwayWidth: number;
+  /** Curve kind the spline sub-tool authors (fed to the tool). */
+  splineKind: MapEditSplineKind;
   /** Record a room/hallway's bounds as the POPULATE target (fed to the tool). */
   onRegionPlaced: (bounds: RoomBounds) => void;
+  /** POPULATE's true draft footprints while a region is armed (P2 ghosts). */
+  populateGhosts: import("./useMapEditPlacement").PlacementGhost[] | null;
+  /** Quick-wheel dispatch pair (P5) — stable identity. */
+  wheelActions: import("./mapEditTypes").MapEditWheelActions;
   /** Record a generate drag's bounds as the recipe's target (fed to the tool). */
   onRegionDragged: (bounds: RoomBounds) => void;
   /** Currently-selected element id (select sub-tool) + its setter (fed to the tool). */
@@ -83,6 +90,8 @@ export function useMapEditState({
   const [selectedAssetId, setSelectedAssetId] = useState<string>(DEFAULT_ASSET_ID);
   const [assetPickerOpen, setAssetPickerOpen] = useState(false);
   const [hallwayWidth, setHallwayWidth] = useState(2);
+  // Rope is the friendliest first spline: a two-anchor drag sags immediately.
+  const [splineKind, setSplineKind] = useState<MapEditSplineKind>("rope");
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [layersOpen, setLayersOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
@@ -216,6 +225,13 @@ export function useMapEditState({
     setActiveSubTool("place");
   }, []);
 
+  // Quick-wheel dispatch pair (P5): useState setters are identity-stable, so
+  // one memo keeps the pair stable for MapBoard.
+  const wheelActions = useMemo(
+    () => ({ selectSubTool: setActiveSubTool, selectFloorFamily: setFloorFamily }),
+    [],
+  );
+
   // The selected element, resolved live from the active document so edits (and
   // deletions) reflect immediately; clears when the element is gone.
   const selectedElement = useMemo(
@@ -250,6 +266,8 @@ export function useMapEditState({
     onToggleAssetPicker,
     hallwayWidth,
     onSelectHallwayWidth: setHallwayWidth,
+    splineKind,
+    onSelectSplineKind: setSplineKind,
     populateDensity: populate.density,
     onSelectPopulateDensity: populate.setDensity,
     populateCategory: populate.category,
@@ -282,7 +300,10 @@ export function useMapEditState({
     roomWallFamily,
     selectedAssetId,
     hallwayWidth,
+    splineKind,
     onRegionPlaced: populate.onRegionPlaced,
+    populateGhosts: populate.previewGhosts,
+    wheelActions,
     onRegionDragged: generate.onRegionDragged,
     selectedElementId,
     onSelectElement: setSelectedElementId,
