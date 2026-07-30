@@ -39,7 +39,7 @@ import type { CreateRoomInput } from "../rooms/useCreateRoom";
 function getInitialRoomSecret(): string {
   if (typeof window === "undefined") return "";
   // Scoped to THIS table: a password stashed for another one must never be
-  // auto-submitted here (that produced an "Invalid room password" the user
+  // auto-submitted here (that produced an "Invalid table password" the user
   // never caused, just by switching tables).
   return readRoomSecret();
 }

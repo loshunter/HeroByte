@@ -120,7 +120,7 @@ export function SessionPersistenceControl({
             onClick={handleSaveSession}
             variant="success"
             disabled={saveDisabled}
-            title={saveDisabled ? "Save is unavailable until the room state is ready." : undefined}
+            title={saveDisabled ? "Save is unavailable until the table state is ready." : undefined}
             style={{ fontSize: "10px", flex: 1 }}
           >
             Save Game State

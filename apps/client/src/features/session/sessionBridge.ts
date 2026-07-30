@@ -64,7 +64,7 @@ export function provideSessionCredentials(
 /**
  * The room credentials, or null if the shell has not published them (or the DM
  * is not authenticated). Null is handled: uploadAssetFile turns it into a
- * plain-English "join the room before uploading assets" rather than a crash.
+ * plain-English "join the table before uploading assets" rather than a crash.
  */
 export function sessionCredentials(): AssetUploadCredentials | null {
   return credentialsProvider?.() ?? null;

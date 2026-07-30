@@ -10,9 +10,9 @@ test.describe("Mobile Layout", () => {
     // Go to home page with mobile flag
     await page.goto("/?mobile=true");
 
-    // Enter room password
-    await page.getByPlaceholder("Room password").fill(ROOM_PASSWORD);
-    await page.getByRole("button", { name: /Enter Room/i }).click();
+    // enter table password
+    await page.getByPlaceholder("Table password").fill(ROOM_PASSWORD);
+    await page.getByRole("button", { name: /Enter Table/i }).click();
 
     const toolsButton = page.getByRole("button", { name: /Tools/i });
     await expect(toolsButton).toBeVisible({ timeout: 15_000 });
@@ -40,8 +40,8 @@ test.describe("Mobile Layout", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/?mobile=true");
 
-    await page.getByPlaceholder("Room password").fill(ROOM_PASSWORD);
-    await page.getByRole("button", { name: /Enter Room/i }).click();
+    await page.getByPlaceholder("Table password").fill(ROOM_PASSWORD);
+    await page.getByRole("button", { name: /Enter Table/i }).click();
 
     const diceButton = page.getByRole("button", { name: /Dice/i });
     await expect(diceButton).toBeVisible({ timeout: 15_000 });

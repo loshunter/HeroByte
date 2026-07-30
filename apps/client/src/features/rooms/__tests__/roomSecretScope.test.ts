@@ -4,7 +4,7 @@
  * It used to live under one flat sessionStorage key. Because switching tables
  * is a same-tab navigation, the auth gate would then auto-submit the PREVIOUS
  * table's password against the new room — so clicking a chip under "Your
- * tables" or "Back to Main Hall" landed you on a red "Invalid room password"
+ * tables" or "Back to Main Hall" landed you on a red "Invalid table password"
  * you never caused, having typed nothing.
  */
 

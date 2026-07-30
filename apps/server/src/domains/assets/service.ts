@@ -207,7 +207,7 @@ export class AssetService {
       .filter((asset) => roomsOf(asset).includes(roomId))
       .reduce((sum, asset) => sum + asset.size, 0);
     if (roomTotal + incoming > this.maxRoomBytes) {
-      throw new AssetRejectedError("This room's asset storage is full", 507);
+      throw new AssetRejectedError("This table's asset storage is full", 507);
     }
   }
 

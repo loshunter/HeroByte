@@ -112,7 +112,7 @@ export function RoomLobby({
     const roomPassword = newRoomPassword.trim();
     const dmPassword = newDmPassword.trim();
     if (roomPassword.length < 6) {
-      setCreateError("Room password needs at least 6 characters.");
+      setCreateError("Table password needs at least 6 characters.");
       return;
     }
     if (dmPassword && dmPassword.length < 8) {
@@ -248,10 +248,10 @@ export function RoomLobby({
           >
             <input
               type="password"
-              aria-label="New room password"
+              aria-label="New table password"
               value={newRoomPassword}
               onChange={(event) => setNewRoomPassword(event.target.value)}
-              placeholder="Room password (6+ chars)"
+              placeholder="Table password (6+ chars)"
               spellCheck={false}
               style={{
                 background: "rgba(9, 14, 30, 0.9)",

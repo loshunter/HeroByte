@@ -39,8 +39,8 @@ test.describe("HeroByte Comprehensive MVP Tests", () => {
     await page.waitForSelector("text=/Connection status:.*Connected/i", { timeout: 15000 });
 
     // Try wrong password - should fail authentication
-    const passwordInput = page.getByPlaceholder("Room password");
-    const enterRoomButton = page.getByRole("button", { name: /Enter Room/i });
+    const passwordInput = page.getByPlaceholder("Table password");
+    const enterRoomButton = page.getByRole("button", { name: /Enter Table/i });
 
     await passwordInput.fill("wrongpassword");
     await expect(enterRoomButton).toBeEnabled();

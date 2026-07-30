@@ -17,7 +17,7 @@ const MAX_REMEMBERED = 12;
  * SCOPED PER TABLE, and that scoping is the whole point. It used to be one flat
  * key holding "the" password. Switching tables is a same-tab navigation, so the
  * gate would auto-submit the PREVIOUS table's password against the new room and
- * land the user on a red "Invalid room password" they never caused — having
+ * land the user on a red "Invalid table password" they never caused — having
  * typed nothing at all.
  */
 export const ROOM_SECRET_STORAGE_KEY = "herobyte-room-secret";

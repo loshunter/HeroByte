@@ -82,7 +82,7 @@ describe("RoomLobby", () => {
     fireEvent.click(screen.getByRole("button", { name: /New Table/i }));
     expect(onNavigate).not.toHaveBeenCalled();
 
-    fireEvent.change(screen.getByLabelText("New room password"), {
+    fireEvent.change(screen.getByLabelText("New table password"), {
       target: { value: "dragons6" },
     });
     fireEvent.change(screen.getByLabelText("New DM password"), {
@@ -104,7 +104,7 @@ describe("RoomLobby", () => {
     render(<RoomLobby onNavigate={onNavigate} onCreateRoom={onCreateRoom} />);
 
     fireEvent.click(screen.getByRole("button", { name: /New Table/i }));
-    fireEvent.change(screen.getByLabelText("New room password"), { target: { value: "short" } });
+    fireEvent.change(screen.getByLabelText("New table password"), { target: { value: "short" } });
     fireEvent.click(screen.getByRole("button", { name: /Create private table/i }));
 
     expect(onCreateRoom).not.toHaveBeenCalled();
