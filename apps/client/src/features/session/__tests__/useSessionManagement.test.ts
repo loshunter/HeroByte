@@ -181,6 +181,13 @@ describe("useSessionManagement — save", () => {
 });
 
 describe("useSessionManagement — load", () => {
+  // Loading replaces the live table for everyone and persists, so it now
+  // confirms first. These tests are about what gets SENT, so they take the
+  // happy path; the guard itself is covered by its own test below.
+  beforeEach(() => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+  });
+
   it("sends the map documents, not just the snapshot", async () => {
     const file = sessionFile({
       snapshot: { gridSize: 50, sceneObjects: [{}], characters: [{}] } as never,
@@ -219,6 +226,26 @@ describe("useSessionManagement — load", () => {
     });
 
     expect(toast.warning).toHaveBeenCalledWith(expect.stringContaining("read-only"), 5000);
+  });
+
+  it("sends nothing when the DM dismisses the replace-the-table confirm", async () => {
+    // The whole point of the guard: picking the wrong file must be recoverable
+    // by saying no, not by discovering the table is gone for everyone.
+    vi.mocked(window.confirm).mockReturnValue(false);
+    vi.mocked(loadSession).mockResolvedValue(
+      sessionFile({
+        snapshot: { gridSize: 50, sceneObjects: [{}], characters: [{}] } as never,
+        mapDocuments: [{ id: "doc-A" } as never],
+        liveMapDocumentId: "doc-A",
+      }),
+    );
+    const { result } = mount();
+
+    await act(async () => {
+      await result.current.handleLoadSession(new File([], "s.json"));
+    });
+
+    expect(sendMessage).not.toHaveBeenCalledWith(expect.objectContaining({ t: "load-session" }));
   });
 
   it("surfaces a corrupt file as an error, not a silent no-op", async () => {

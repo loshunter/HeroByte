@@ -258,7 +258,12 @@ export function PropEditor({
       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
         <JRPGButton
           variant="danger"
-          onClick={onDelete}
+          onClick={() => {
+            // Single-click delete with no undo — see NPCEditor for the same fix.
+            if (window.confirm(`Delete "${prop.label}"? This cannot be undone.`)) {
+              onDelete();
+            }
+          }}
           disabled={isDeleting || isUpdating}
           style={{ fontSize: "10px", flex: 1 }}
         >
