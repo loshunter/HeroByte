@@ -295,6 +295,10 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             characters={snapshot?.characters || []}
             uid={uid}
             isDM={isDM}
+            // The mobile settings sheet is the ONLY DM-elevation control on a
+            // phone, and it used to be wired to a no-op — so a mobile user
+            // could never become DM at all.
+            onToggleDMMode={props.handleToggleDM}
             onClose={() => setShowEntities(false)}
             editingHpUID={editingHpUID}
             hpInput={hpInput}

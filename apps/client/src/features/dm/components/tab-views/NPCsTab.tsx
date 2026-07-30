@@ -125,7 +125,8 @@ export default function NPCsTab({
               disabled={isRolling || !toast}
               style={{ fontSize: "10px", padding: "6px 12px" }}
             >
-              {isRolling ? "Rolling..." : "⚔️ Roll all Initiative"}
+              {/* "Missing", not "all": it skips any NPC that already has a value. */}
+              {isRolling ? "Rolling..." : "⚔️ Roll Missing Initiative"}
             </JRPGButton>
           )}
           <JRPGButton

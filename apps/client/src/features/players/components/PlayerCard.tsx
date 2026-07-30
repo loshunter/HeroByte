@@ -339,6 +339,9 @@ export const PlayerCard = memo<PlayerCardProps>(
           selectedEffects={statusEffects ?? []}
           onStatusEffectsChange={handleStatusEffectsChange}
           isDM={isDM}
+          viewerIsDM={viewerIsDM}
+          // Only on your own card: the toggle grants/revokes the VIEWER's DM.
+          canToggleDM={isMe}
           onToggleDMMode={onToggleDMMode}
           tokenLocked={tokenLocked}
           onToggleTokenLock={onToggleTokenLock}
