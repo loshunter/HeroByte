@@ -38,12 +38,13 @@ _(CSS Property Warning resolved in commit 1e8fd0f - converted 168 properties acr
 
 2. **~~Large Bundle Size (628KB minified)~~** ✅ **RESOLVED**
    - **Previous**: Single-chunk bundle at 628KB (190KB gzipped)
-   - **Current**: 53 KB entry bundle (gzipped) with lazy-loaded chunks
+   - **Current**: ~86 KB entry bundle (gzipped) with lazy-loaded chunks — measured 2026-07-30; it was 53 KB when this item was resolved, and has grown with the map-edit and procedural-terrain work since
    - **Implementation**:
-     - DM tooling: 11.85 KB lazy chunk (only loads when isDM = true)
-     - Map rendering: 15.38 KB lazy chunk
+     - DM/voice tooling: ~19 KB lazy chunk (only loads when isDM = true)
+     - Map rendering: ~32 KB lazy chunk
+     - Map-edit toolbar: ~7 KB lazy chunk
      - Role-based code splitting
-   - **Impact**: 49.5% reduction in entry bundle, regular players save 11.85 KB
+   - **Impact**: the entry chunk stays roughly half the 175 KB CI budget despite the feature growth
    - **Status**: ✅ Complete (Phase 15, January 2025)
    - **CI Guard**: 175 KB gzipped limit enforced via `scripts/check-bundle-size.mjs`
 
@@ -148,21 +149,21 @@ _(CSS Property Warning resolved in commit 1e8fd0f - converted 168 properties acr
 
 ## 📊 Metrics
 
-**Code Quality (as of Jan 2025):**
+**Code Quality (measured 2026-07-30):**
 
-- ✅ **Tests**: 2,173 passing (client: 766, server: ~1,407, E2E: 10)
-- ✅ **Coverage**: 80%+ (shared: 99.57%, server: 80.99%, client: comprehensive)
-- ✅ **Lint Warnings**: 0
+- ✅ **Tests**: 6,753 passing (client: 4,788, server: 1,697, shared: 268) plus 60 Playwright E2E tests across 25 specs
+- ✅ **Coverage**: tracked on [Codecov](https://app.codecov.io/gh/loshunter/HeroByte/tree/dev) — run `pnpm test:coverage` for current numbers
+- ✅ **Lint Warnings**: 0 (`pnpm lint` runs ESLint at `--max-warnings=0`)
 - ✅ **TypeScript Errors**: 0
-- ✅ **Bundle Size**: 53 KB entry (target: <175 KB, 69.4% under budget)
+- ✅ **Bundle Size**: ~86 KB entry (target: <175 KB)
+- ⚠️ **Structure**: 24 of 518 files over the 350 LOC guardrail — App.tsx (861) and MapBoard.tsx (814) have grown back past it since the Phase 15 refactor
 
-**Performance Baseline (Production Build):**
+**Performance Baseline (Production Build, 2026-07-30):**
 
-- **Entry Bundle**: 53.52 KB gzipped (185.41 kB raw)
-- **DM Tooling**: 11.85 KB lazy chunk (53.33 kB raw)
-- **Map Rendering**: 15.38 KB lazy chunk (47.21 kB raw)
-- **Total (non-DM)**: ~237 KB gzipped
-- **Total (DM)**: ~248 KB gzipped
+- **Entry Bundle**: 85.95 KB gzipped (291.63 kB raw)
+- **DM/voice tooling**: 18.76 KB lazy chunk (73.96 kB raw)
+- **Map Rendering**: 32.40 KB lazy chunk (96.76 kB raw)
+- **Map-edit toolbar**: 7.36 KB lazy chunk (22.99 kB raw)
 
 **Technical Debt Ratio**: Very Low (1 resolved item, ~6 remaining items, mostly nice-to-haves)
 

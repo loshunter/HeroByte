@@ -43,11 +43,15 @@ bit-identically:
    toward a colour. This is what makes molten rock *light the stone beside it*.
    The catalog designed this as rank 4's "emissive twin" and never shipped it
    (`czepeku-study-catalog.md`); it is now shipped.
-   **Why not the lighting pass:** its pool tint scales by `(1 - ambient)`, so at
-   daylight ambient it is a numeric no-op — a lava cavern would have to run
-   ambient < 1 to glow at all, which simultaneously arms the night grade and
+   **Why not the lighting pass:** its pool TINT scales by `(1 - ambient)`, so at
+   daylight ambient the tint is a numeric no-op — a lava cavern would have to
+   run ambient < 1 to glow at all, which simultaneously arms the night grade and
    drains the lava's heat to khaki. Baking the spill into the field sidesteps
-   both.
+   both. **Superseded in part (`fc8dcff`, night cave study):** `BakeLight.gain`
+   ADDS the light's own colour and is deliberately NOT veil-scaled, so a placed
+   light does brighten at full ambient now. The reasoning above still holds for
+   FAMILY emission — `glow` is a palette knob, not a light element — but "the
+   lighting pass is a daylight no-op" is no longer true of the pass as a whole.
 2. **`body` — liquid body grouping.** Every depth-banded family previously fused
    into ONE shore-distance BFS, so a lava lake touching a water pool would lose
    the shore between them and drowned architecture could tint toward magma.
@@ -98,7 +102,10 @@ smoke veil; the dark hall and timber cellars; tinted boulders.
 3. **Glow cannot bloom.** The spill is sub-cell by construction (same saturation
    ceiling), so we get a hot rim, not the reference's wide halo. Wants a
    distance-driven bloom — the honest fix is making the lighting pass work at
-   full ambient so a self-lit family can emit without the night grade draining it.
+   full ambient so a self-lit family can emit without the night grade draining
+   it. Half of that ingredient shipped in `fc8dcff`: `BakeLight.gain` lets a
+   PLACED light add colour at any ambient. What is still missing is a FAMILY
+   emitting its own pool.
 4. **No vignette.** The reference frames the map with a dark red edge; a cheap
    post-pass beside the haze.
 5. **Crystals have no facet geometry** — the canopy painter yields a lobed blob;

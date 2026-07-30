@@ -451,8 +451,8 @@ export function useSomething(options: UseSomethingOptions): UseSomethingReturn {
 
 **Testing:**
 ```typescript
-// Use @testing-library/react-hooks
-import { renderHook } from '@testing-library/react-hooks';
+// renderHook ships with RTL — there is no separate react-hooks package here
+import { renderHook } from '@testing-library/react';
 import { useSomething } from './useSomething';
 
 describe('useSomething', () => {
@@ -702,7 +702,7 @@ export function SomethingLayout({ ...props }: SomethingLayoutProps): JSX.Element
 
 ## Template Usage Example
 
-See [EXAMPLE_EXTRACTION.md](./EXAMPLE_EXTRACTION.md) for a completed playbook example.
+See [ROOM_SERVICE_REFACTOR_COMPLETE.md](./ROOM_SERVICE_REFACTOR_COMPLETE.md) for a completed extraction write-up.
 
 ---
 
@@ -710,5 +710,5 @@ See [EXAMPLE_EXTRACTION.md](./EXAMPLE_EXTRACTION.md) for a completed playbook ex
 **Version:** 1.0.0
 **Related Documents:**
 - [REFACTOR_ROADMAP.md](./REFACTOR_ROADMAP.md)
-- [TODO.md Phase 15](/TODO.md#phase-15-solid-refactor-initiative-future)
-- [CONTRIBUTING.md](/CONTRIBUTING.md#structural-guardrails)
+- [TODO.md](../../TODO.md) — note: TODO.md's "Phase 15" now refers to the Palette & Color System, not this refactor initiative
+- [CONTRIBUTING.md](../../CONTRIBUTING.md#structural-guardrails)

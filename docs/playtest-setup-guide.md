@@ -64,22 +64,22 @@ pnpm dev:client  # Terminal 2
 
 ### Step 2: Upload Map
 
-1. Open DM Menu
-2. Click "Upload Map"
-3. Select your battle map image
-4. Adjust map position/scale if needed
+1. Open DM Menu → "Map Setup" tab
+2. In the "Map Background" panel, paste an image URL
+3. Click "Apply Background"
+4. Adjust map position/scale in the "Map Transform" panel if needed
 5. Lock the map to prevent accidental moves
 
 ### Step 3: Set Up Player Staging Zone
 
-1. Open DM Menu
-2. Click "Set Staging Zone"
-3. Click and drag on map to create spawn area for players
+1. Open DM Menu → "Map Setup" tab
+2. Scroll to the "Player Staging Zone" panel (unlock it with the 🔓 ZONE UNLOCKED toggle if it is locked)
+3. Set Center X/Y, Width, and Height in grid tiles to define the spawn area
 4. Players will spawn randomly within this zone when they join
 
 ### Step 4: Prepare NPCs (Optional)
 
-1. Open DM Menu → "Create NPC"
+1. Open DM Menu → "NPCs & Monsters" tab → "+ Add NPC"
 2. Set NPC name, portrait, HP
 3. Place tokens on map
 4. Lock important NPCs to prevent accidental moves
@@ -94,8 +94,8 @@ pnpm dev:client  # Terminal 2
 
 ### Step 6: Save Initial State
 
-1. Open DM Menu
-2. Click "Save Session"
+1. Open DM Menu → "Session" tab
+2. In the "Session Save/Load" panel, click "Save Game State"
 3. Save file as `session-start.json`
 4. This is your backup if anything goes wrong
 
@@ -163,7 +163,7 @@ Need help? Ask the DM!
 
 **Token Management:**
 
-- Create NPC: DM Menu → "Create NPC"
+- Create NPC: DM Menu → "NPCs & Monsters" tab → "+ Add NPC"
 - Move any token: Click and drag
 - Resize token: Select → Transform handles
 - Delete token: Select → Delete key
@@ -180,15 +180,16 @@ Need help? Ask the DM!
 
 **Session Management:**
 
-- Save: Export current state
-- Load: Import saved session
-- Reset: Clear all except map
+- Save: DM Menu → "Session" tab → "Save Game State"
+- Load: DM Menu → "Session" tab → "Load Game State"
+- Room passwords: DM Menu → "Session" tab → "Room Security"
+- Clear drawings: DM Menu → "Map Setup" tab → "Clear All Drawings"
 
 **Map Controls:**
 
-- Pan: Middle mouse or right-click drag
+- Pan: Middle-mouse drag, hold Space and drag, or drag empty space
 - Zoom: Mouse wheel
-- Center: Double-click empty space
+- Right-click: Opens the map-edit quick wheel while in map-edit mode; opens the token context menu on a token
 - Lock Map: Prevent accidental moves
 
 ### Player Controls Quick Reference
@@ -196,7 +197,7 @@ Need help? Ask the DM!
 **Movement:**
 
 - Drag your token to move
-- W/A/S/D keys (if implemented)
+- (No W/A/S/D panning — not implemented; use Space-drag or middle-mouse drag)
 
 **Stats:**
 
@@ -223,7 +224,7 @@ Need help? Ask the DM!
 
 **Solutions:**
 
-1. Verify server is running: `lsof -i :8787 -i :5174`
+1. Verify server is running: `pnpm dev:doctor` (cross-platform; shows what owns the HeroByte dev ports)
 2. Check firewall allows ports 8787 and 5174
 3. Try localhost instead of IP (or vice versa)
 4. Restart servers
@@ -336,7 +337,7 @@ If you encounter bugs:
 ### Option 2: LAN (Local Network)
 
 - Players on same WiFi as DM
-- Find DM's IP: `ip addr` or `ifconfig`
+- Find DM's IP: `ipconfig` (Windows) or `ip addr` / `ifconfig` (macOS/Linux)
 - URL: http://192.168.X.X:5174
 - Add the matching origin to `HEROBYTE_ALLOWED_ORIGINS`, for example `http://192.168.X.X:5174`
 - Best for in-person games

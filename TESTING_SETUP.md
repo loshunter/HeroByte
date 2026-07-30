@@ -1,5 +1,14 @@
 # Testing Infrastructure Setup Guide
 
+> **HISTORICAL — DO NOT FOLLOW AS CURRENT SETUP.** This document is the original
+> plan for bootstrapping HeroByte's test infrastructure. All of it has since
+> shipped: Vitest is configured in all three workspaces, `.github/workflows/ci.yml`
+> exists and is considerably broader than the sample below, and Playwright covers
+> 60 tests across 25 spec files. For current guidance see
+> [docs/TESTING.md](docs/TESTING.md) and the Testing section of
+> [README.md](README.md). The commands, YAML, and checklists below describe a
+> state the repo has moved past.
+
 This guide is for setting up the testing infrastructure for HeroByte. Follow these phases in order for a systematic implementation.
 
 ## Prerequisites
@@ -428,7 +437,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run server tests
-        run: pnpm --filter herobyte-server test:coverage
+        run: pnpm --filter vtt-server test:coverage
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -455,7 +464,7 @@ jobs:
         run: pnpm --filter herobyte-client build
 
       - name: Build server
-        run: pnpm --filter herobyte-server build
+        run: pnpm --filter vtt-server build
 ```
 
 ### Step 3.2: Add Status Badges
@@ -572,7 +581,7 @@ pnpm -r test
 
 # Run tests for specific package
 pnpm --filter shared test
-pnpm --filter herobyte-server test
+pnpm --filter vtt-server test
 
 # Run with coverage
 pnpm -r test:coverage

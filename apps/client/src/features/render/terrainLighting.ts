@@ -116,10 +116,11 @@ export function lightingActive(lighting: BakeLighting | undefined): boolean {
  * lights: a pool locally cancels the veil through the 3-stop profile (hot
  * core → falling halo → broad wash to 2.75× the radius) and, at night,
  * re-tints the ground toward its colour — light that visibly TOUCHES the
- * ground instead of floating as a sticker. The tint is veil-scaled, so
- * daylight (ambient 1) stays a numeric no-op even with lights placed.
- * Transparent pixels stay untouched. `originX/originY` place pixel (0,0) in
- * world coordinates.
+ * ground instead of floating as a sticker. The TINT is veil-scaled, so at
+ * daylight (ambient 1) it is a numeric no-op — but `gain` is NOT, so a light
+ * carrying gain still lifts its pool at full ambient. With no gain anywhere,
+ * daylight remains a no-op pass. Transparent pixels stay untouched.
+ * `originX/originY` place pixel (0,0) in world coordinates.
  */
 export function applyBakeLighting(
   pixels: Uint8ClampedArray,

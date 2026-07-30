@@ -1326,7 +1326,7 @@ Every extracted module needs its own test file.
 ```typescript
 // hooks/__tests__/useTokenActions.test.ts
 import { describe, it, expect, vi } from 'vitest';
-import { renderHook, act } from '@testing-library/react-hooks';
+import { renderHook, act } from '@testing-library/react';
 import { useTokenActions } from '../useTokenActions';
 
 describe('useTokenActions', () => {

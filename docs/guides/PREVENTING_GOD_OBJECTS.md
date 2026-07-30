@@ -43,8 +43,8 @@ pnpm lint:structure:enforce # Fail CI on new violations
 ```
 LOC     Size      Category            Path  Flag  Hint
 ------------------------------------------------------
-922     30.8KB    server:websocket    apps/server/src/ws/messageRouter.ts  ⚠️  Modularize handlers per message type
-181     5.6KB     server:domains      apps/server/src/domains/room/service.ts  ✓  Well-sized!
+861     26.4KB    client:ui           apps/client/src/ui/App.tsx  ⚠️  See docs/refactoring/REFACTOR_ROADMAP.md - 27 clusters identified
+708     27.3KB    server:websocket    apps/server/src/ws/messageRouter.ts  ⚠️  Modularize handlers per message type & connection lifecycle
 ```
 
 ### 2. CI Integration (GitHub Actions)
@@ -53,7 +53,7 @@ The structural guardrail runs on every PR:
 
 **File:** `.github/workflows/ci.yml`
 ```yaml
-- name: Structural Guardrails
+- name: Enforce structural guardrails
   run: pnpm lint:structure:enforce
 ```
 
@@ -228,7 +228,7 @@ The structural guardrail runs on every PR:
 1. Run full test suite
 2. Manual smoke testing
 3. Check TypeScript compilation
-4. Update baseline: `pnpm lint:structure:enforce --update-baseline`
+4. Update baseline: `pnpm baseline:update`
 
 ---
 
@@ -288,7 +288,7 @@ pnpm lint:structure
 pnpm lint:structure:enforce
 
 # Update baseline after refactoring
-pnpm lint:structure:enforce --update-baseline
+pnpm baseline:update
 
 # Generate refactoring hints
 pnpm lint:structure | grep "⚠️"
@@ -380,14 +380,17 @@ pnpm lint:structure:enforce --threshold 500
 
 ### Q: How do I handle generated files (e.g., Prisma, GraphQL)?
 
-**A:** Add to exclusion list in `scripts/structure-report.mjs`:
+**A:** Generated output normally lives in its own directory, and the scanner skips whole directories rather than matching path patterns. Add the directory to the `ignoreDirectories` set in `scripts/structure-report.mjs`, and mirror it in `scripts/update-baseline.mjs` so the baseline agrees:
 
 ```javascript
-const excludePatterns = [
-  /generated\//,
-  /\.generated\.ts$/,
-  /__generated__\//,
-];
+const ignoreDirectories = new Set([
+  "node_modules",
+  "coverage",
+  "dist",
+  ".next",
+  ".turbo",
+  // add your generated-output directory here, e.g. "__generated__"
+]);
 ```
 
 ---

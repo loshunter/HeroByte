@@ -8,7 +8,7 @@ Nothing here needs new rendering tech — every pillar reuses shipped machinery.
 **STATUS 2026-07-30: ALL FIVE PILLARS SHIPPED to dev.** P1 painter's deck
 (`cbf13e4` + `194ad80` typing-surface guards), P2 ghost-before-commit
 (`8fd8181`), P3 worker bake (`d663786` — worst stall 1.98s vs the ~60s
-freeze), P4 player lens (`d82555c`), P5 quick wheel (see its commit).
+freeze), P4 player lens (`d82555c`), P5 quick wheel (`06223ca`).
 Recorded deferrals: the deck's "props" group (place/scatter assets keep
 MapEditAssetPicker until pickers unify), the wheel's long-press touch
 variant, and per-player lens impersonation (the lens shows the party's

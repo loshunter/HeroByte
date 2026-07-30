@@ -54,16 +54,16 @@ This directory contains comprehensive documentation for refactoring the HeroByte
 |----------|---------|----------|
 | [REFACTOR_ROADMAP.md](./REFACTOR_ROADMAP.md) | Master plan for refactoring all god files | All engineers |
 | [REFACTOR_PLAYBOOK.md](./REFACTOR_PLAYBOOK.md) | Step-by-step extraction process | Engineers doing extractions |
-| [EXAMPLE_EXTRACTION.md](./EXAMPLE_EXTRACTION.md) | Completed playbook example | Engineers (reference) |
+| [ROOM_SERVICE_REFACTOR_COMPLETE.md](./ROOM_SERVICE_REFACTOR_COMPLETE.md) | Completed extraction write-up | Engineers (reference) |
 | This README | Overview and quick start | Everyone |
 
 ### Supporting Documents
 
 | Document | Purpose |
 |----------|---------|
-| [../../TODO.md Phase 15](../../TODO.md#phase-15-solid-refactor-initiative-future) | High-level initiative description |
+| [../../TODO.md](../../TODO.md) | Project TODO (note: its "Phase 15" is now the Palette & Color System, not this initiative) |
 | [../../CONTRIBUTING.md](../../CONTRIBUTING.md#structural-guardrails) | Contributor guidelines including CI guardrails |
-| [../scripts/structure-baseline.json](../../scripts/structure-baseline.json) | Baseline of current violations |
+| [../../scripts/structure-baseline.json](../../scripts/structure-baseline.json) | Recorded violation baseline used by `--fail-on-new` (regenerate with `pnpm baseline:update`) |
 
 ---
 
@@ -71,7 +71,7 @@ This directory contains comprehensive documentation for refactoring the HeroByte
 
 ### The Problem
 
-Three "god files" contain 4,479 lines of code (77% over target):
+Three "god files" contained 4,479 lines of code when this initiative began in October 2025 (77% over target):
 
 1. **App.tsx** - 1,850 LOC (5.3x over 350 LOC limit)
    - 27 responsibility clusters
@@ -178,6 +178,11 @@ Three "god files" contain 4,479 lines of code (77% over target):
 
 **🎉 Phase 15 Initiative: COMPLETE! 🎉**
 
+> **Snapshot, not live data.** Everything in this section is the 2025-11-10
+> measurement. App.tsx and MapBoard.tsx have since grown back past the 350 LOC
+> limit with new feature work — 861 and 814 LOC as of 2026-07-30, with 24 files
+> flagged repo-wide. Run `pnpm lint:structure` for the current picture.
+
 **Phase Status:**
 - ✅ Analysis complete (79 clusters identified)
 - ✅ Roadmap created
@@ -206,7 +211,7 @@ Three "god files" contain 4,479 lines of code (77% over target):
 - ✅ CI guardrails enforced
 - ✅ Production ready
 
-See [PHASE_7_COMPLETE.md](./PHASE_7_COMPLETE.md) for final phase details.
+See the MapBoard.tsx Phase 7 section of [REFACTOR_ROADMAP.md](./REFACTOR_ROADMAP.md) for final phase details. (The standalone PHASE_7_COMPLETE.md handoff was deleted in commit `e3bdad1d`.)
 
 ### Checking Progress
 
@@ -392,12 +397,12 @@ After merge:
 
 **Questions about roadmap:**
 - Review [REFACTOR_ROADMAP.md](./REFACTOR_ROADMAP.md)
-- Check [TODO.md Phase 15](../../TODO.md#phase-15-solid-refactor-initiative-future)
+- Check [TODO.md](../../TODO.md) (its "Phase 15" now means the Palette & Color System)
 - Ask in team chat
 
 **Questions about process:**
 - Review [REFACTOR_PLAYBOOK.md](./REFACTOR_PLAYBOOK.md)
-- Check [EXAMPLE_EXTRACTION.md](./EXAMPLE_EXTRACTION.md)
+- Check [ROOM_SERVICE_REFACTOR_COMPLETE.md](./ROOM_SERVICE_REFACTOR_COMPLETE.md)
 - Ask experienced team member
 
 **Technical issues:**

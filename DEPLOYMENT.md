@@ -4,8 +4,26 @@
 
 This guide covers deploying HeroByte to production using:
 
-- **Render** (free web service) for the WebSocket server
+- **Render** for the WebSocket server
 - **Cloudflare Pages** (free CDN) for the client
+
+> ### How the live HeroByte runs today
+>
+> The production deployment is on a **paid Render plan with a persistent disk**. That means, for
+> the live service:
+>
+> - **No idle spin-down and no cold start** — the server stays warm.
+> - **On-disk state survives restarts and redeploys**: room state, uploaded assets, Map Studio
+>   documents and hashed room/DM passwords all live on the mounted disk (see §1F).
+> - **Private rooms are durable.** The old caveat — custom tables losing their password on every
+>   restart — was a consequence of the free tier's ephemeral filesystem and no longer applies.
+>
+> Sections below that discuss the **free tier** are kept for anyone deploying their **own** copy
+> cheaply. They do not describe this deployment.
+>
+> Still true regardless of plan: **pushing `main` auto-deploys** (Render watches `main` from its
+> own dashboard, so a push is not gated by CI — prefer a PR from `dev`), and **players must
+> reload after a deploy**, because a stale tab mishandles the post-restart sync.
 
 ## Prerequisites
 
@@ -34,7 +52,7 @@ This guide covers deploying HeroByte to production using:
 | **Branch**         | `main`                                         |
 | **Build Command**  | `pnpm install --frozen-lockfile && pnpm build` |
 | **Start Command**  | `pnpm start`                                   |
-| **Instance Type**  | `Free`                                         |
+| **Instance Type**  | Paid instance + persistent disk (what HeroByte runs — see §1E/§1F). `Free` works for a personal copy. |
 
 ### C. Environment Variables
 
@@ -51,12 +69,19 @@ NODE_ENV=production
 3. Your server will be available at: `https://herobyte-server.onrender.com` (or your chosen name)
 4. **Important**: Your WebSocket URL will be `wss://herobyte-server.onrender.com/` (note the `wss://` protocol and trailing `/`)
 
-### E. Notes on Render Free Tier
+### E. Notes on Render plans
+
+**This deployment runs a paid plan with a persistent disk** — it stays warm and keeps its data
+across restarts. The heartbeat below applies on any plan.
+
+- WebSocket timeout: the server includes a 25-second ping/pong heartbeat to prevent disconnection.
+
+**If you deploy your own copy on the free tier instead**, expect:
 
 - **750 instance hours/month** per workspace (enough for one 24/7 service)
 - Services spin down after 15 minutes of inactivity
-- Cold starts take ~30 seconds when service wakes up
-- WebSocket timeout: The server includes a 25-second ping/pong heartbeat to prevent disconnection
+- Cold starts take ~30 seconds when the service wakes up
+- An **ephemeral filesystem** — see §1F for what that costs you and how a disk fixes it
 
 ### F. Server Environment Variables (complete reference)
 
@@ -71,7 +96,7 @@ Every variable the server reads. All are optional; the defaults run a working de
 | `HEROBYTE_DEFAULT_ROOM_ID`  | `default`                                           | Room id of the default table.                                                                                                                              |
 | `HEROBYTE_MAX_CUSTOM_ROOMS` | `500`                                               | Cap on private rooms (bounds the pre-auth `create-room` flood).                                                                                            |
 | `HEROBYTE_DEMO_MODE`        | off                                                 | `true` renders the fallback room password in plaintext on the HTTP landing page. Demo servers only.                                                        |
-| `HEROBYTE_DATA_DIR`         | the `apps/server` package root                      | **The persistent-disk lever.** Re-anchors every on-disk store default below onto one directory. Absolute paths recommended (e.g. a Render disk mount).     |
+| `HEROBYTE_DATA_DIR`         | the `apps/server` package root                      | **The persistent-disk lever.** Re-anchors every on-disk store default below onto one directory. Set in production to the Render disk's mount path; always use an absolute path.     |
 | `HEROBYTE_ASSET_DIR`        | `<data dir>/herobyte-assets/`                       | Uploaded-image store directory (content-addressed, 200MB quota).                                                                                           |
 | `HEROBYTE_MAP_STORE_FILE`   | `<data dir>/herobyte-maps.json`                     | Map Studio document store.                                                                                                                                 |
 | `ROOM_STATE_FILE`           | `<data dir>/herobyte-state.json`                    | The DEFAULT room's state file (exists for parallel E2E runs). Custom rooms always write `herobyte-state.<roomId>.json` in the data dir.                    |
@@ -91,7 +116,9 @@ Every variable the server reads. All are optional; the defaults run a working de
 | `herobyte-maps.json`             | Map Studio documents                             | `HEROBYTE_MAP_STORE_FILE` |
 | `herobyte-room-secret.json`      | Hashed room + DM passwords                       | — (follows the data dir) |
 
-**Mounting a persistent disk (Render paid tier):** add a disk (e.g. mounted at `/var/data`), set `HEROBYTE_DATA_DIR=/var/data`, redeploy. All four stores land on the mount; nothing else to configure. Without the disk, the free tier's ephemeral filesystem wipes all four on every spin-down.
+**Mounting a persistent disk (Render paid plan):** add a disk (e.g. mounted at `/var/data`), set `HEROBYTE_DATA_DIR=/var/data`, redeploy. All four stores land on the mount; nothing else to configure. Do NOT mount at `apps/server` — it would shadow the app.
+
+**The live HeroByte deployment does this**, so all four stores above are durable in production. Without a disk (e.g. a free-tier copy), the ephemeral filesystem wipes all four on every spin-down or redeploy — which also means custom rooms lose their saved passwords and have to be re-minted.
 
 ---
 
@@ -189,19 +216,25 @@ Then update `VITE_WS_URL` in Cloudflare Pages to use your custom Render domain.
 - Verify build output directory is `dist`
 - Check build logs in Cloudflare dashboard
 
-### Cold Start Delays (Render Free Tier)
+### Cold Start Delays (free-tier copies only)
 
-- Free tier services spin down after 15 minutes of inactivity
-- First request after spin-down takes ~30 seconds
-- Consider upgrading to paid tier ($7/month) for 24/7 availability
+**Not applicable to this deployment** — it runs a paid plan and stays warm. If you are running
+your own free-tier copy:
+
+- Free-tier services spin down after 15 minutes of inactivity
+- The first request after spin-down takes ~30 seconds
+- A paid plan removes the spin-down entirely
 
 ### Session State Persistence
 
-- The server persists state to JSON files (see section 1F), but the free tier's filesystem is ephemeral — everything is wiped on spin-down/redeploy
-- For durable state:
-  - Render persistent disk (paid tier): mount it and set `HEROBYTE_DATA_DIR` to the mount path — see section 1F
+- The server persists state to JSON files and an asset directory (see section 1F).
+- **This deployment mounts a persistent disk**, so that state survives restarts and redeploys.
+- A copy **without** a disk runs on an ephemeral filesystem — everything in §1F is wiped on every
+  spin-down or redeploy. To make such a copy durable:
+  - Render persistent disk: mount it and set `HEROBYTE_DATA_DIR` to the mount path — see §1F
   - Or Redis for room state: `ROOM_STORE=redis` + `REDIS_URL`
-- As a stopgap, DMs can Save/Load a complete session file from the client (includes maps and uploaded images)
+- Independently of the disk, DMs can Save/Load a complete session file from the client (it includes
+  maps and uploaded images) — useful for backups and for moving a game between servers.
 
 ---
 
@@ -255,17 +288,20 @@ Then update `VITE_WS_URL` in Cloudflare Pages to use your custom Render domain.
 
 ## 8. Cost Breakdown
 
-| Service              | Free Tier | Limits                                      |
-| -------------------- | --------- | ------------------------------------------- |
-| **Render**           | Yes       | 750 hours/month, spin down after 15min idle |
-| **Cloudflare Pages** | Yes       | Unlimited requests, 500 builds/month        |
+**This deployment** runs a **paid Render plan with a persistent disk** (for 24/7 uptime and durable
+state) plus **Cloudflare Pages on its free tier**. Check the Render dashboard for the current
+instance and disk pricing — it varies by instance size and disk capacity, so it is deliberately not
+quoted here.
 
-**Total monthly cost: $0** (within free tier limits)
+**If you deploy your own copy**, the cheapest viable setup is:
 
-**Upgrade options:**
+| Service              | Free option | Limits of the free option                   |
+| -------------------- | ----------- | ------------------------------------------- |
+| **Render**           | Yes         | 750 hours/month, spin down after 15min idle, ephemeral disk |
+| **Cloudflare Pages** | Yes         | Unlimited requests, 500 builds/month        |
 
-- Render paid: $7/month (24/7 uptime, no spin down)
-- Cloudflare Pages Pro: $20/month (advanced analytics, faster builds)
+That runs at no cost, with the spin-down and data-loss caveats described in §1E, §1F and §4. Paying
+for a Render instance plus a disk is what removes both.
 
 ---
 
@@ -277,6 +313,7 @@ Then update `VITE_WS_URL` in Cloudflare Pages to use your custom Render domain.
   - [ ] Build: `pnpm install --frozen-lockfile && pnpm build`
   - [ ] Start: `pnpm start`
   - [ ] Add env: `NODE_ENV=production`
+  - [ ] For durable state: attach a persistent disk (paid plan) and add env `HEROBYTE_DATA_DIR=<the disk's mount path>` — see §1F. Skip this and every store is ephemeral.
 - [ ] Note Render URL (e.g., `https://herobyte-server.onrender.com`)
 - [ ] Create Cloudflare Pages Project
   - [ ] Set root directory: `apps/client`
