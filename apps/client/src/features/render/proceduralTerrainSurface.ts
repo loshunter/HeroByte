@@ -19,27 +19,21 @@ import {
   type TerrainFieldFamily,
 } from "./proceduralTerrain";
 import { computeFieldDepths } from "./terrainDistanceField";
-import { makeClipCtx, makeTintCtx } from "./terrainDetailCtx";
-import { drownHex, waterBandsFor, waterFamilyOf } from "./terrainFieldColor";
+import { makeClipCtx } from "./terrainDetailCtx";
+import { waterFamilyOf } from "./terrainFieldColor";
 import { computePolarRegions } from "./terrainPolarField";
-import { applyBakeLighting, lightingActive, type BakeLighting } from "./terrainLighting";
-import { paintCanopyDetail } from "./terrainCanopyDetail";
-import { paintKeyClusterDetail, paintTerrainDetail } from "./terrainDetail";
-import { paintFloorDetail } from "./terrainFloorDetail";
-import { paintRoofDetail, paintStairsDetail } from "./terrainRoofDetail";
-import { ALGAE_MAX_DEPTH, paintAlgaeTicks, paintWaterDetail } from "./terrainWaterDetail";
-import { paintWallDetail } from "./terrainWallDetail";
-import type { TerrainFamilyPalette } from "./terrainPalette";
-import type {
-  StructuredTerrainLayer,
-  TerrainCellRect,
-  TileRenderContext2D,
-} from "./tileRenderCore";
+import type { BakeLighting } from "./terrainLighting";
+import type { AshHaze } from "./terrainAshHaze";
+import { applyBakePostPasses, postPassActive } from "./terrainBakePostPass";
+import {
+  dominantLowerNeighbour,
+  paintFamilyDetail,
+  type TerrainPalette,
+} from "./terrainDetailRouter";
+import type { StructuredTerrainLayer, TileRenderContext2D } from "./tileRenderCore";
 
 export { makeClipCtx } from "./terrainDetailCtx";
-
-/** Per-family palette keyed by terrain assetId (e.g. VILLAGE_TERRAIN). */
-export type TerrainPalette = Record<string, TerrainFamilyPalette>;
+export type { TerrainPalette } from "./terrainDetailRouter";
 
 /** The grid slice the surface needs: cell size and lattice origin. */
 export interface ProceduralGrid {
@@ -57,6 +51,9 @@ export interface ProceduralTerrainInput {
   shadowTint?: string;
   /** Ambient veil + light pools applied over the finished bake (terrainLighting). */
   lighting?: BakeLighting;
+  /** Drifting ash/smoke veil over the finished art (terrainAshHaze); undefined
+   * ⇒ no pass at all, byte-identical (lava cavern study). */
+  haze?: AshHaze;
 }
 
 /** The field config plus the doc-space buffer dimensions to bake it into. */
@@ -78,9 +75,6 @@ export interface BakedProceduralTerrain {
 /** Extra cells around the painted bbox so outward bumps (grass-vs-empty) and
  * cast shadows have room to bleed without being clipped. */
 const FIELD_MARGIN_CELLS = 1;
-
-/** Sunken detail stops past this water-body depth (whisper contrast). */
-const SUNKEN_DETAIL_MAX_DEPTH = 3;
 
 /**
  * Frame the painted FIELD cells (those the palette covers) into a field config
@@ -124,6 +118,7 @@ export function buildProceduralFieldConfig(
         : undefined,
       underfill: fam.underfill,
       contact: fam.contact,
+      glow: fam.glow,
       canopy: fam.canopy
         ? { shade: fam.canopy.shade, core: fam.canopy.core, sub: fam.canopy.sub }
         : undefined,
@@ -169,74 +164,6 @@ export function buildProceduralFieldConfig(
     width: (maxCX - minCX + 1 + 2 * margin) * size,
     height: (maxCY - minCY + 1 + 2 * margin) * size,
   };
-}
-
-/** A drowned family's detail: its dry sibling's painters through the drown
- * tint (skipped entirely past the deep band), plus the shallow algae ticks.
- * A sunken entry must reference a NON-sunken sibling — chains don't render. */
-function paintSunkenDetail(
-  ctx: TileRenderContext2D,
-  cell: TerrainCellRect,
-  sunken: NonNullable<TerrainFamilyPalette["sunken"]>,
-  palette: TerrainPalette,
-  depth: number,
-): void {
-  const sibling = palette[sunken.of];
-  if (sibling && sibling.sunken === undefined && depth <= SUNKEN_DETAIL_MAX_DEPTH) {
-    const bands = waterBandsFor(palette);
-    const tinted = bands ? makeTintCtx(ctx, (hex) => drownHex(hex, depth, bands)) : ctx;
-    paintFamilyDetail(tinted, cell, sunken.of, palette, 0);
-  }
-  if (sunken.algae && depth <= ALGAE_MAX_DEPTH) paintAlgaeTicks(ctx, cell, sunken.algae);
-}
-
-function paintFamilyDetail(
-  ctx: TileRenderContext2D,
-  cell: TerrainCellRect,
-  assetId: string,
-  palette: TerrainPalette,
-  depth = 0,
-): void {
-  const fam = palette[assetId];
-  if (fam?.sunken) paintSunkenDetail(ctx, cell, fam.sunken, palette, depth);
-  else if (fam?.wall) paintWallDetail(ctx, cell, fam.wall);
-  else if (fam?.roof) paintRoofDetail(ctx, cell, fam.roof);
-  else if (fam?.stairs) paintStairsDetail(ctx, cell, fam.stairs);
-  else if (fam?.floor) paintFloorDetail(ctx, cell, fam.floor);
-  else if (fam?.water) paintWaterDetail(ctx, cell, fam.water, depth);
-  else if (fam?.canopy) paintCanopyDetail(ctx, cell, fam.canopy, depth);
-  else if (fam?.keyCluster) paintKeyClusterDetail(ctx, cell, fam.keyCluster);
-  else paintTerrainDetail(ctx, cell, assetId, fam?.grass);
-}
-
-/** The most common lower-priority von-Neumann neighbour of a cell, or null. */
-function dominantLowerNeighbour(
-  familyAt: (cx: number, cy: number) => string | null,
-  cellX: number,
-  cellY: number,
-  priority: number,
-  palette: TerrainPalette,
-): string | null {
-  const lower = [
-    familyAt(cellX, cellY - 1),
-    familyAt(cellX + 1, cellY),
-    familyAt(cellX, cellY + 1),
-    familyAt(cellX - 1, cellY),
-  ].filter((id): id is string => id !== null && (palette[id]?.priority ?? 0) < priority);
-  if (lower.length === 0) return null;
-  let best = lower[0]!;
-  let bestCount = 0;
-  // `>=` breaks ties toward the LAST neighbour in [N, E, S, W] order, matching
-  // the validated prototype (an ascending stable sort + `.pop()`), so the same
-  // seam gets decorated as the reference render.
-  for (const id of lower) {
-    const count = lower.filter((z) => z === id).length;
-    if (count >= bestCount) {
-      bestCount = count;
-      best = id;
-    }
-  }
-  return best;
 }
 
 /**
@@ -336,12 +263,22 @@ export function bakeProceduralTerrain(
   paintProceduralDetail(ctx, fieldLayers, palette, field, config.familyAt, config.depthOf);
   ctx.restore();
 
-  // Lighting post-pass (ambient veil + pools) over the finished art. Daylight
-  // with no lights skips it entirely, so unlit maps bake bit-identically.
-  if (lightingActive(input.lighting)) {
-    const lit = ctx.getImageData(0, 0, width, height);
-    applyBakeLighting(lit.data, width, height, config.originX, config.originY, input.lighting!);
-    ctx.putImageData(lit, 0, 0);
+  // Post-passes over the finished art: light, then atmosphere
+  // (terrainBakePostPass). Skipped entirely when no knob is set, so unlit,
+  // haze-free maps bake bit-identically.
+  const passes = { lighting: input.lighting, haze: input.haze };
+  if (postPassActive(passes)) {
+    const finished = ctx.getImageData(0, 0, width, height);
+    applyBakePostPasses(
+      finished.data,
+      width,
+      height,
+      config.originX,
+      config.originY,
+      grid.size,
+      passes,
+    );
+    ctx.putImageData(finished, 0, 0);
   }
 
   return { canvas, originX: config.originX, originY: config.originY, width, height };

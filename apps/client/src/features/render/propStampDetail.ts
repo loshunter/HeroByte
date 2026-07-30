@@ -31,17 +31,35 @@ const rect = (ctx: WearStampContext2D, x: number, y: number, w: number, h: numbe
   if (w > 0 && h > 0) ctx.fillRect(x, y, w, h);
 };
 
-/** Route one prop stamp kind to its painter. */
+/**
+ * Blend a shipped art shade toward an element `tint`, keeping the shade's own
+ * value relationship so the form still reads (a tinted menhir is a different
+ * ROCK, not a flat silhouette). Undefined tint returns the shade untouched, so
+ * every existing prop renders bit-identically. Emits `rgb()` — the shared
+ * fillStyle contract accepts it alongside hex.
+ */
+function tinted(hex: string, tint: string | undefined, t: number): string {
+  if (!tint) return hex;
+  const ch = (h: string, i: number) => parseInt(h.slice(1 + i * 2, 3 + i * 2), 16);
+  const mix = (i: number) => Math.round(ch(hex, i) + (ch(tint, i) - ch(hex, i)) * t);
+  return `rgb(${mix(0)}, ${mix(1)}, ${mix(2)})`;
+}
+
+/** Route one prop stamp kind to its painter. `tint` recolours the MENHIR (the
+ * bundled granite becomes basalt, sandstone, whatever the map needs — the lava
+ * cavern study wanted volcanic boulders); the boat and gull ignore it, their
+ * art being specific objects rather than a lump of stone. */
 export function paintPropStamp(
   ctx: WearStampContext2D,
   w: number,
   h: number,
   seed: number,
   kind: "boat" | "gull" | "menhir",
+  tint?: string,
 ): void {
   if (kind === "boat") paintBoat(ctx, w, h, seed);
   else if (kind === "gull") paintGull(ctx, w, h, seed);
-  else paintMenhir(ctx, w, h, seed);
+  else paintMenhir(ctx, w, h, seed, tint);
 }
 
 /** Rowboat, bow up: pointed-oval hull sliced into rows — gunwale timber ring
@@ -109,12 +127,23 @@ function paintGull(ctx: WearStampContext2D, w: number, h: number, seed: number):
 /** Standing stone: an ink-underlay boulder in stacked jittered slices, split
  * lit (sun side, up-right) / shade, seated by a soft ground-shadow blob and
  * aged by sparse moss flecks. */
-function paintMenhir(ctx: WearStampContext2D, w: number, h: number, seed: number): void {
+function paintMenhir(
+  ctx: WearStampContext2D,
+  w: number,
+  h: number,
+  seed: number,
+  tint?: string,
+): void {
   const cx = w / 2;
   const pad = h * 0.08;
   const maxHalf = w * 0.3;
   const slices = 9;
   const sliceH = (h - 2 * pad) / slices;
+  // Tinted granite: the lit face takes most of the hue, the shade and ink less
+  // (they stay the form's darks), and the moss is left alone — lichen is lichen.
+  const lit = tinted(PROP_STAMP_ART.menhirLit, tint, 0.8);
+  const shade = tinted(PROP_STAMP_ART.menhirShade, tint, 0.62);
+  const ink = tinted(PROP_STAMP_ART.menhirInk, tint, 0.45);
   // Ground shadow first, so the stone overdraws its upper edge.
   ctx.globalAlpha = 0.3;
   ctx.fillStyle = PROP_STAMP_ART.menhirShadow;
@@ -127,12 +156,12 @@ function paintMenhir(ctx: WearStampContext2D, w: number, h: number, seed: number
     const half = maxHalf * profile * (1 + (hash2(i, 5, seed) - 0.5) * 0.3);
     const lean = (hash2(i, 6, seed) - 0.5) * w * 0.06;
     // Ink underlay slightly wider than the lit/shade fill = the contour.
-    ctx.fillStyle = PROP_STAMP_ART.menhirInk;
+    ctx.fillStyle = ink;
     rect(ctx, cx + lean - half - 1, y, half * 2 + 2, sliceH + 1);
     const split = 0.35 + (hash2(i, 7, seed) - 0.5) * 0.2;
-    ctx.fillStyle = PROP_STAMP_ART.menhirShade;
+    ctx.fillStyle = shade;
     rect(ctx, cx + lean - half, y + 1, half * 2 * split, sliceH - 1);
-    ctx.fillStyle = PROP_STAMP_ART.menhirLit;
+    ctx.fillStyle = lit;
     rect(ctx, cx + lean - half + half * 2 * split, y + 1, half * 2 * (1 - split), sliceH - 1);
   }
   // Moss flecks near the base.

@@ -115,8 +115,9 @@ function dab(
 
 /**
  * Paint one wear stamp into local coords (0,0)–(w,h). `tint` (the element's
- * inspector tint) recolours a STAIN; ring/scorch ignore it — their art is a
- * material, not a hue.
+ * inspector tint) recolours a STAIN, a floor decal, and the MENHIR boulder
+ * (lava cavern study — granite becomes basalt); ring/scorch/boat/gull ignore
+ * it, their art being a specific material or object rather than a hue.
  */
 export function paintWearStamp(
   ctx: WearStampContext2D,
@@ -131,7 +132,7 @@ export function paintWearStamp(
   else if (spec.kind === "stain")
     paintStain(ctx, w, h, seed, tint ?? spec.color ?? WEAR_STAMP_ART.stainFallback);
   else if (spec.kind === "boat" || spec.kind === "gull" || spec.kind === "menhir")
-    paintPropStamp(ctx, w, h, seed, spec.kind);
+    paintPropStamp(ctx, w, h, seed, spec.kind, tint);
   // Every other kind is a floor decal (rank 7) — routed, never fallen into.
   else paintFloorDecal(ctx, w, h, seed, spec, tint);
 }

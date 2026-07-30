@@ -1,0 +1,109 @@
+// Bundled VOLCANIC-CAVERN tile assets (lava cavern benchmark study) — split
+// from starterTileAssets for the 350-LOC cap, same pattern as
+// starterTileStructureAssets. starterTileAssets spreads this array into
+// MAP_STUDIO_TILE_ASSETS, so callers keep importing from "./starterTiles".
+//
+// Every `fill` MUST equal its VILLAGE_TERRAIN `base` (terrainPaletteCavern) so
+// the field bake, the flat fallback and the SVG export agree — pinned by
+// cavernFamilies.test. `material` + `brushNote` are REQUIRED on any asset with
+// a palette entry (the painter's-deck contract, pinned by brushDeck.test).
+
+import type { MapStudioTileAsset } from "./starterTileAssets";
+
+export const CAVERN_TILE_ASSETS: MapStudioTileAsset[] = [
+  {
+    id: "terrain:lava",
+    name: "Lava",
+    category: "terrain",
+    layerKind: "terrain",
+    columns: 1,
+    rows: 1,
+    fill: "#e8541a",
+    stroke: "#ffeaa8",
+    accent: "#4a1606",
+    // Frame 0 is the base fill, so the export/static render is unchanged and
+    // only the live table pulses (drawWaterShimmer picks this up because lava
+    // is a depth-banded body).
+    animFills: ["#e8541a", "#f2601f", "#ff6f24", "#ef5b1c"],
+    material: "molten",
+    brushNote: "Molten rock — incandescent lip, crust rafts, lights the stone around it",
+  },
+  {
+    id: "terrain:lava-crust",
+    name: "Cooled Crust",
+    category: "terrain",
+    layerKind: "terrain",
+    columns: 1,
+    rows: 1,
+    fill: "#33241f",
+    stroke: "#ff9440",
+    accent: "#2a1c18",
+    material: "molten",
+    brushNote: "Black obsidian skin with heat still glowing in the cracks",
+  },
+  {
+    id: "terrain:cave-floor",
+    name: "Cavern Floor",
+    category: "terrain",
+    layerKind: "terrain",
+    columns: 1,
+    rows: 1,
+    fill: "#514751",
+    stroke: "#685d69",
+    accent: "#302a33",
+    material: "ground",
+    brushNote: "Cold basalt underfoot — the ground every cavern map stands on",
+  },
+  {
+    id: "terrain:ash-drift",
+    name: "Ash Drift",
+    category: "terrain",
+    layerKind: "terrain",
+    columns: 1,
+    rows: 1,
+    fill: "#6b6069",
+    stroke: "#8b8088",
+    accent: "#4a4249",
+    material: "ground",
+    brushNote: "Pale volcanic dust — interpenetrates the cavern floor it drifts over",
+  },
+  {
+    id: "terrain:cave-wall",
+    name: "Cavern Wall",
+    category: "terrain",
+    layerKind: "terrain",
+    columns: 1,
+    rows: 1,
+    fill: "#4b4048",
+    stroke: "#211c22",
+    accent: "#1a161b",
+    material: "stone",
+    brushNote: "Living rock in stacked ledges — paint the cave's enclosing mass",
+  },
+  {
+    id: "terrain:crystal-gold",
+    name: "Gold Crystal",
+    category: "terrain",
+    layerKind: "terrain",
+    columns: 1,
+    rows: 1,
+    fill: "#f2c53d",
+    stroke: "#6b4a12",
+    accent: "#8a5f16",
+    material: "crystal",
+    brushNote: "Sulfur-gold cluster — faceted blob that catches the lava light",
+  },
+  {
+    id: "terrain:crystal-verdigris",
+    name: "Verdigris Crystal",
+    category: "terrain",
+    layerKind: "terrain",
+    columns: 1,
+    rows: 1,
+    fill: "#3f8f7a",
+    stroke: "#16403a",
+    accent: "#1d4a41",
+    material: "crystal",
+    brushNote: "Teal mineral cluster — the cold counterpoint to gold",
+  },
+];

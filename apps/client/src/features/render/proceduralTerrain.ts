@@ -294,6 +294,14 @@ export function createTerrainField(config: TerrainFieldConfig): TerrainField {
           }
         }
         if (keep < 1) color = shadowedRgb(color, keep, shadowTint);
+        // Emissive spill (lava cavern study): the inverse of contact — the ring
+        // around a molten family is BRIGHTENED toward its glow colour, hardest
+        // at the silhouette, gone at `reach`. Applied after the darkening terms
+        // so the light reads over any AO cast by the same family, and gated on
+        // strength so every non-glowing family's neighbours stay bit-identical.
+        if (f.glowStrength > 0 && v > -f.glowReach) {
+          color = mixRgb(color, f.glowRgb, f.glowStrength * (1 + v / f.glowReach));
+        }
       }
     }
     return color;

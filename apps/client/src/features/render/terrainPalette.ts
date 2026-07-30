@@ -23,6 +23,7 @@ import {
   WALNUT_FLOOR_DETAIL,
   WOOD_FLOOR_DETAIL,
 } from "./terrainMaterialPalettes";
+import { CAVERN_TERRAIN } from "./terrainPaletteCavern";
 import { STRUCTURE_TERRAIN } from "./terrainPaletteStructures";
 import type { TerrainFamilyPalette } from "./terrainPaletteTypes";
 
@@ -303,4 +304,8 @@ export const VILLAGE_TERRAIN: Record<string, TerrainFamilyPalette> = {
     mottle: { amp: 0.05, scale: 3, cool: 0.2 },
     canopy: { shade: "#96588f", core: "#6e4070", sub: 0.5, detail: BLOSSOM_CANOPY_DETAIL },
   },
+  // The volcanic-cavern block — molten lava, cooled crust, cavern floor/ash,
+  // cave walls and mineral clusters — lives in terrainPaletteCavern (350-LOC
+  // cap), same data verbatim. See the lava-cavern benchmark study.
+  ...CAVERN_TERRAIN,
 };
