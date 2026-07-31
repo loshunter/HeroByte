@@ -41,6 +41,9 @@ describe("RoomMessageHandler - Characterization Tests", () => {
 
   const playerUid = "player-123";
   const dmUid = "dm-456";
+  const PRIVATE_ROOM_ID = "table-privatetest";
+  /** Which room the router believes the sender is in. */
+  let routedRoomId: string | undefined;
   let mockPlayerWs: WebSocket;
   let mockDmWs: WebSocket;
 
@@ -104,6 +107,11 @@ describe("RoomMessageHandler - Characterization Tests", () => {
       ],
     });
 
+    // Changing a table password is a PRIVATE-table operation now — the test
+    // table refuses it — so these tests route as a private table by default and
+    // the refusal tests point this back at "default" explicitly.
+    routedRoomId = PRIVATE_ROOM_ID;
+
     // Create MessageRouter instance
     messageRouter = new MessageRouter(
       roomService,
@@ -118,6 +126,8 @@ describe("RoomMessageHandler - Characterization Tests", () => {
       mockWss,
       mockUidToWs,
       mockGetAuthorizedClients,
+      undefined,
+      () => routedRoomId,
     );
   });
 
@@ -301,54 +311,38 @@ describe("RoomMessageHandler - Characterization Tests", () => {
     // than asserting synchronously.
     const flushBroadcast = () => new Promise((resolve) => setTimeout(resolve, 40));
 
-    it("claims the default table: public flag off, and clients are told", async () => {
-      // "Public" tracks the password, not the room id. Claiming the table with
-      // any non-published password must flip the flag AND reach every client.
-      // Routed through the real dispatcher on purpose: it used to discard this
-      // handler's result and hard-code broadcast:false, so the label stayed
-      // stale until some unrelated action happened to broadcast.
+    it("REFUSES to change the test table's password, even for a DM", async () => {
+      // The load-bearing rule. Every server publishes this table's credentials,
+      // so a changeable password means one visitor to a public demo can padlock
+      // it and the host loses their own test bed with no way back in. An
+      // earlier design allowed exactly that. The refusal names the operation
+      // that IS right rather than only saying no.
+      routedRoomId = "default";
       roomService.setState({ isPublicTable: true });
       const broadcastSpy = vi.spyOn(roomService, "broadcast");
 
       messageRouter.route(
-        { t: "set-room-password", secret: "a-real-private-password" } as ClientMessage,
+        { t: "set-room-password", secret: "trying-to-take-the-demo" } as ClientMessage,
         dmUid,
       );
 
-      expect(roomService.getState().isPublicTable).toBe(false);
-      await flushBroadcast();
-      expect(broadcastSpy).toHaveBeenCalled();
-    });
-
-    it("releases the default table back to public when reset to the default", async () => {
-      roomService.setState({ isPublicTable: false });
-      const broadcastSpy = vi.spyOn(roomService, "broadcast");
-
-      messageRouter.route({ t: "set-room-password" } as ClientMessage, dmUid);
-
+      const sent = JSON.parse((mockDmWs.send as Mock).mock.calls[0][0]);
+      expect(sent.t).toBe("room-password-update-failed");
+      expect(sent.reason).toMatch(/fixed so it stays open/i);
+      expect(sent.reason).toMatch(/private table/i);
+      // Still public, so still labelled and still swept.
       expect(roomService.getState().isPublicTable).toBe(true);
       await flushBroadcast();
-      expect(broadcastSpy).toHaveBeenCalled();
+      expect(broadcastSpy).not.toHaveBeenCalled();
     });
 
-    it("does not broadcast when the public flag did not change", async () => {
-      // Already claimed; setting yet another private password changes nothing
-      // clients can see, so it must not trigger a table-wide snapshot.
-      roomService.setState({ isPublicTable: false });
-      messageRouter.route(
-        { t: "set-room-password", secret: "first-private-password" } as ClientMessage,
-        dmUid,
-      );
-      const broadcastSpy = vi.spyOn(roomService, "broadcast");
+    it("refuses a reset on the test table too — its password never moves", () => {
+      routedRoomId = "default";
+      messageRouter.route({ t: "set-room-password" } as ClientMessage, dmUid);
 
-      messageRouter.route(
-        { t: "set-room-password", secret: "second-private-password" } as ClientMessage,
-        dmUid,
-      );
-
-      expect(roomService.getState().isPublicTable).toBe(false);
-      await flushBroadcast();
-      expect(broadcastSpy).not.toHaveBeenCalled();
+      const sent = JSON.parse((mockDmWs.send as Mock).mock.calls[0][0]);
+      expect(sent.t).toBe("room-password-update-failed");
+      expect(sent.reason).toMatch(/fixed so it stays open/i);
     });
 
     it("should treat an explicitly undefined secret as a reset to the default", () => {

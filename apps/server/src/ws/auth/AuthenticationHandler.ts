@@ -273,6 +273,20 @@ export class AuthenticationHandler {
       return;
     }
 
+    // The test table's DM password is fixed for the same reason its entry
+    // password is: it is the published one, and a visitor who changed it would
+    // lock the host out of DM on their own demo permanently.
+    if (roomId === this.defaultRoomId) {
+      ws.send(
+        JSON.stringify({
+          t: "dm-password-update-failed",
+          reason:
+            "The test table's DM password is fixed so it stays open for everyone. Save it as a private table to get one of your own.",
+        }),
+      );
+      return;
+    }
+
     // Only current DM can set/update DM password
     // OR if no DM password exists yet, anyone can set it (bootstrap case)
     const hasDMPassword = this.container.authService.hasDMPassword(roomId);
