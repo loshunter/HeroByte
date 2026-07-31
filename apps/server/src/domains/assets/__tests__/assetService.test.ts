@@ -151,7 +151,7 @@ describe("AssetService", () => {
 
       await service.store(pngBytes("room-a-fills-its-own"), "room-a", 1); // ~28 bytes
       await expect(service.store(pngBytes("room-a-goes-over-now"), "room-a", 2)).rejects.toThrow(
-        /room's asset storage is full/i,
+        /table's asset storage is full/i,
       );
 
       // room-b is untouched by room-a's spending.
@@ -218,7 +218,7 @@ describe("AssetService", () => {
 
       // room-b's quota is now spent, even though the bytes were already on disk.
       await expect(service.store(pngBytes("room-b-second-file"), "room-b", 3)).rejects.toThrow(
-        /room's asset storage is full/i,
+        /table's asset storage is full/i,
       );
     });
   });

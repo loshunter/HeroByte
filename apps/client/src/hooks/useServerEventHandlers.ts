@@ -183,13 +183,13 @@ export function useServerEventHandlers({
         setRoomPasswordPending(false);
         setRoomPasswordStatus({
           type: "success",
-          message: "Room password updated successfully.",
+          message: "Table password updated successfully.",
         });
       } else if ("t" in message && message.t === "room-password-update-failed") {
         setRoomPasswordPending(false);
         setRoomPasswordStatus({
           type: "error",
-          message: message.reason ?? "Unable to update room password.",
+          message: message.reason ?? "Unable to update table password.",
         });
       } else if ("t" in message && message.t === "dm-status") {
         const previousStatus = lastDmStatusRef.current;

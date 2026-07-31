@@ -8,7 +8,7 @@
  * no regressions occur during refactoring.
  */
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import type { Character } from "@herobyte/shared";
 
@@ -86,6 +86,17 @@ function NPCsTab({ npcs, onCreateNPC, onUpdateNPC, onPlaceNPCToken, onDeleteNPC 
 // ============================================================================
 
 describe("NPCsTab - Characterization Tests", () => {
+  // This renders the REAL NPCEditor, whose Delete is now guarded. These tests
+  // are about which NPC id the callback carries, so they take the happy path;
+  // the guard itself is covered in NPCEditor.test.tsx.
+  beforeEach(() => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   const createMockNPC = (overrides?: Partial<Character>): Character => ({
     id: "npc-1",
     type: "npc",

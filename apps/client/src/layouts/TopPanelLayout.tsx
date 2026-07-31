@@ -24,6 +24,7 @@ import { ServerStatus } from "../components/layout/ServerStatus";
 import { DrawingToolbar } from "../features/drawing/components";
 import { Header } from "../components/layout/Header";
 import { MultiSelectToolbar } from "../components/layout/MultiSelectToolbar";
+import { Spinner } from "../components/ui/Spinner";
 
 // Type alias for drawing toolbar props
 type DrawingToolbarProps = UseDrawingStateManagerReturn["toolbarProps"];
@@ -156,7 +157,26 @@ export const TopPanelLayout = React.memo<TopPanelLayoutProps>(
 
         {/* Map-edit palette - DM-only, lazy-loaded when map-edit mode is active */}
         {mapEditMode && isDM && (
-          <Suspense fallback={null}>
+          // Same reasoning as the DM menu: entering map-edit mode with a blank
+          // toolbar strip reads as the mode not having engaged.
+          <Suspense
+            fallback={
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "8px 12px",
+                  color: "var(--jrpg-gold)",
+                  fontFamily: "var(--font-body)",
+                  fontSize: "12px",
+                }}
+              >
+                <Spinner size={12} />
+                Loading map tools…
+              </div>
+            }
+          >
             <MapEditToolbar {...mapEditToolbarProps} />
           </Suspense>
         )}

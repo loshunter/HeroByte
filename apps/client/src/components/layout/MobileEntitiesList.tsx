@@ -12,7 +12,10 @@ interface MobileEntitiesListProps {
   players: Player[];
   characters: Character[];
   uid: string;
+  /** The VIEWER's DM state — mobile passes the same flag to every row. */
   isDM: boolean;
+  /** Grant/revoke the viewer's own DM status. */
+  onToggleDMMode: (next: boolean) => void;
   onClose: () => void;
 
   // Edit props passed through to row
@@ -37,6 +40,7 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   characters,
   uid,
   isDM,
+  onToggleDMMode,
   onClose,
   editingHpUID,
   hpInput,
@@ -133,6 +137,7 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
             player={entity}
             isMe={entity.uid === uid}
             isDM={isDM}
+            onToggleDMMode={onToggleDMMode}
             editingHpUID={editingHpUID}
             hpInput={hpInput}
             onHpInputChange={onHpInputChange}

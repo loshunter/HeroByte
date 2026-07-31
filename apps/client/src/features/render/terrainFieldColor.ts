@@ -189,12 +189,17 @@ export function drownHex(hex: string, depth: number, bands: ParsedBands): string
 }
 
 /** The palette's water body — the depth-banded family the drowned (sunken)
- * structures tint toward; sunken entries themselves never carry bands. */
+ * structures tint toward; sunken entries themselves never carry bands.
+ * Restricted to the "water" body so a molten family's hot bands can never
+ * become what drowned architecture tints toward (lava cavern study). */
 export function waterFamilyOf(
   palette: Record<string, TerrainFamilyPalette>,
 ): TerrainFamilyPalette | undefined {
   return Object.values(palette).find(
-    (fam) => (fam.depthBands?.length ?? 0) > 0 && fam.sunken === undefined,
+    (fam) =>
+      (fam.depthBands?.length ?? 0) > 0 &&
+      fam.sunken === undefined &&
+      (fam.body ?? "water") === "water",
   );
 }
 

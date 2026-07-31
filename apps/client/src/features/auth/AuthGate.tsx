@@ -67,26 +67,30 @@ export function AuthGate({
       ? "Authenticating..."
       : isConnecting
         ? "Connecting..."
-        : "Enter Room";
+        : "Enter Table";
   const primaryDisabled = !canSubmit || isHandshakeActive;
 
   return (
     <div style={authGateContainerStyle}>
       <div style={authGateCardStyle}>
-        <h1 style={{ margin: "0 0 16px" }}>Join Your Room</h1>
+        <h1 style={{ margin: "0 0 16px" }}>Join Your Table</h1>
         <p style={{ margin: "0 0 24px", color: "#cbd5f5", fontSize: "0.95rem" }}>
-          Enter the room password provided by your host to sync with your party.
+          Enter the table password provided by your host to sync with your party.
         </p>
         <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <input
             type="password"
             value={password}
             onChange={onPasswordChange}
-            placeholder="Room password"
+            placeholder="Table password"
             style={authInputStyle}
             autoFocus
             spellCheck={false}
-            disabled={isHandshakeActive}
+            // NOT disabled while the handshake is in flight. Typing a password
+            // is harmless — only submitting needs gating (see the button below).
+            // Locking the field meant that any time the server was restarting
+            // or the network hiccuped, the user could not even type, which
+            // reads as a dead app rather than a slow one.
           />
           {authError ? <p style={authGateErrorStyle}>{authError}</p> : null}
           <button
@@ -138,13 +142,13 @@ export function AuthGate({
         {!isConnected ? (
           <button
             type="button"
-            style={{
-              ...authSecondaryButtonStyle,
-              opacity: isConnecting ? 0.6 : 1,
-              cursor: isConnecting ? "not-allowed" : "pointer",
-            }}
+            style={authSecondaryButtonStyle}
             onClick={onRetry}
-            disabled={isConnecting}
+            // Deliberately always enabled. Reconnection retries forever
+            // (maxReconnectAttempts: 0), so `isConnecting` can stay true
+            // indefinitely — disabling on it left the user with a dead Retry
+            // button and no way out but a page reload. Retrying during a
+            // backoff wait is exactly what someone wants to do.
           >
             {isReplaced ? "Reclaim This Tab" : "Retry Connection"}
           </button>

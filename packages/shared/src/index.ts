@@ -408,10 +408,10 @@ export interface PlayerStagingZone {
  * snapshot onto a fresh server and you get a map you can look at but never edit,
  * bound to a document that no longer exists. The documents make it whole.
  *
- * This matters because the deployed server has an ephemeral filesystem (see
- * DEPLOYMENT.md): room state, maps, and room secrets are all lost on a restart
- * or an idle spin-down. A session file is the DM's way to carry a table across
- * that gap, so it has to be genuinely complete or it is not a workaround.
+ * This matters because a session file has to survive being restored onto a
+ * DIFFERENT server than the one that wrote it — a fresh deploy, a local dev box,
+ * another DM's machine. A session file is the DM's way to carry a table across
+ * that gap, so it has to be genuinely complete or it is not portable.
  *
  * PRIVACY: this is built from the DM's view and therefore contains secret doors,
  * hidden NPCs, and GM notes. It is a DM artefact — never hand it to players.
@@ -431,9 +431,9 @@ export interface SessionFile {
    * and a session using only external image URLs (imgur and friends) needs none.
    *
    * Without these a session file is only restorable on a server that still holds
-   * the same asset store — and on the deployed ephemeral filesystem, that store
-   * is gone after 15 minutes idle. The reference would round-trip perfectly and
-   * resolve to a broken image, which is the worst kind of "saved".
+   * the same asset store — restore it anywhere else and the reference would
+   * round-trip perfectly and resolve to a broken image, which is the worst kind
+   * of "saved".
    */
   assets?: SessionAsset[];
 }

@@ -24,10 +24,24 @@ export function computeFieldDepths(
   ids: readonly string[],
   palette: Record<string, TerrainFamilyPalette>,
 ): Map<string, Map<string, number>> {
-  const depths = computeBodyDepths(
-    familyByCell,
-    ids.filter((id) => (palette[id]!.depthBands?.length ?? 0) > 0 || palette[id]!.sunken),
+  // Liquid bodies group by the palette's `body` key (default "water"), so a
+  // lava lake and a water pool each get their OWN shore-distance BFS instead
+  // of fusing into one "liquid" whose bathymetry flows across both (lava
+  // cavern study). One body ⇒ the shipped single-BFS behaviour, bit for bit.
+  const depths = new Map<string, Map<string, number>>();
+  const liquidIds = ids.filter(
+    (id) => (palette[id]!.depthBands?.length ?? 0) > 0 || palette[id]!.sunken,
   );
+  const byBody = new Map<string, string[]>();
+  for (const id of liquidIds) {
+    const body = palette[id]!.body ?? "water";
+    const group = byBody.get(body) ?? [];
+    if (group.length === 0) byBody.set(body, group);
+    group.push(id);
+  }
+  for (const group of byBody.values()) {
+    for (const [id, map] of computeBodyDepths(familyByCell, group)) depths.set(id, map);
+  }
   const crownIds = ids.filter((id) => palette[id]!.canopy);
   for (const [id, map] of computeBodyDepths(familyByCell, crownIds)) depths.set(id, map);
   const pairIds = new Set<string>();

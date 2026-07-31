@@ -78,10 +78,10 @@ export function uploadedAssetUrl(hash: string, wsUrl: string = WS_URL): string {
 }
 
 const STATUS_ERRORS: Record<number, { code: AssetUploadErrorCode; message: string }> = {
-  401: { code: "unauthorized", message: "The room credentials were rejected." },
+  401: { code: "unauthorized", message: "The table credentials were rejected." },
   413: { code: "too-large", message: "That image is over the 5MB upload limit." },
   415: { code: "unsupported-type", message: "Only PNG, JPEG, GIF, and WebP images can upload." },
-  507: { code: "quota-exceeded", message: "The room's asset storage is full." },
+  507: { code: "quota-exceeded", message: "The table's asset storage is full." },
 };
 
 export async function uploadAssetFile(
@@ -90,7 +90,7 @@ export async function uploadAssetFile(
   wsUrl: string = WS_URL,
 ): Promise<UploadedAssetInfo> {
   if (!credentials?.secret) {
-    throw new AssetUploadError("no-credentials", "Join the room before uploading assets.");
+    throw new AssetUploadError("no-credentials", "Join the table before uploading assets.");
   }
   // The server rejects a zero-length body with a raw 411; catch it here so the
   // DM sees a real explanation instead of "Content-Length required".

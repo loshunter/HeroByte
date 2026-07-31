@@ -8,6 +8,7 @@ import {
   type MapStudioController,
 } from "../../../map-studio";
 import { MapStudioExportControls } from "./MapStudioExportControls";
+import { formatUpdatedAt } from "./formatUpdatedAt";
 
 export interface MapStudioControlProps {
   controller: MapStudioController;
@@ -199,7 +200,15 @@ export function MapStudioControl({ controller, onPublishToLiveMap }: MapStudioCo
             <option value="">{documents.length ? "Choose a map" : "No maps yet"}</option>
             {documents.map((document) => (
               <option key={document.id} value={document.id}>
-                {document.name} · r{document.revision}
+                {/*
+                  `revision` is an edit counter, not a copy index, so two
+                  documents both auto-named "Live Map" were indistinguishable
+                  here — and there is no rename anywhere on the wire, only
+                  delete, whose confirm quotes the same ambiguous name. The
+                  last-edited stamp is the one thing that actually tells them
+                  apart, and the summary already carries it.
+                */}
+                {document.name} · r{document.revision} · {formatUpdatedAt(document.updatedAt)}
               </option>
             ))}
           </select>

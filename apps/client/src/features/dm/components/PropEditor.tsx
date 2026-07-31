@@ -93,10 +93,12 @@ export function PropEditor({
         <div
           style={{
             padding: "8px",
-            background: "rgba(255, 0, 0, 0.1)",
-            border: "1px solid rgba(255, 0, 0, 0.3)",
+            background: "rgba(232, 154, 156, 0.12)",
+            border: "1px solid var(--jrpg-red)",
             borderRadius: "4px",
-            color: "#ff4444",
+            color: "var(--jrpg-red)",
+            fontFamily: "var(--font-body)",
+            lineHeight: 1.45,
             fontSize: "12px",
           }}
         >
@@ -245,6 +247,8 @@ export function PropEditor({
           variant="simple"
           style={{
             color: "var(--jrpg-red)",
+            fontFamily: "var(--font-body)",
+            lineHeight: 1.45,
             fontSize: "11px",
             padding: "6px 8px",
             border: "1px solid var(--jrpg-red)",
@@ -258,7 +262,12 @@ export function PropEditor({
       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
         <JRPGButton
           variant="danger"
-          onClick={onDelete}
+          onClick={() => {
+            // Single-click delete with no undo — see NPCEditor for the same fix.
+            if (window.confirm(`Delete "${prop.label}"? This cannot be undone.`)) {
+              onDelete();
+            }
+          }}
           disabled={isDeleting || isUpdating}
           style={{ fontSize: "10px", flex: 1 }}
         >

@@ -365,7 +365,10 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onNpcDelete={undefined}
         onNpcPlaceToken={undefined}
         onNpcToggleVisibility={isDM ? toggleNpcVisibility : undefined}
-        onPlayerTokenDelete={undefined}
+        // Was hardcoded undefined, which (together with an impossible isDM gate
+        // in PlayerSettingsMenu) meant a DM had no way to remove a player's
+        // token and the confirm string written for it was unreachable code.
+        onPlayerTokenDelete={isDM ? deleteToken : undefined}
         isDeletingNpc={undefined}
         npcDeletionError={undefined}
         onToggleTokenLock={toggleSceneObjectLock}

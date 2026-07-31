@@ -16,7 +16,8 @@ describe("StatusBanner", () => {
       expect(banner).toBeInTheDocument();
 
       const styles = window.getComputedStyle(banner);
-      expect(styles.color).toBe("rgb(255, 68, 68)"); // #ff4444
+      // Error red now comes from the palette (--jrpg-red) rather than a raw hex.
+      expect(styles.color).toBe("var(--jrpg-red)");
       expect(styles.fontSize).toBe("12px");
     });
 
@@ -26,8 +27,10 @@ describe("StatusBanner", () => {
       const banner = container.firstChild as HTMLElement;
       const styles = window.getComputedStyle(banner);
 
-      expect(styles.background).toContain("rgba(255, 0, 0, 0.1)");
-      expect(styles.border).toContain("rgba(255, 0, 0, 0.3)");
+      expect(styles.background).toContain("rgba(232, 154, 156, 0.12)");
+      // Asserted on the inline style: jsdom cannot resolve a `border`
+      // shorthand whose value contains a var(), so getComputedStyle returns "".
+      expect(banner.getAttribute("style")).toContain("var(--jrpg-red)");
       expect(styles.borderRadius).toBe("4px");
       expect(styles.padding).toBe("8px");
     });

@@ -4,7 +4,34 @@ Welcome! This repository is a shared workspace co-authored by the User, ChatGPT'
 
 ---
 
-## 1. Git Workflow & Branching Strategy
+## 1. Agent Operating Protocol
+For substantial HeroByte work, act like a persistent senior engineer with a ledger, risk model, and verification contract:
+
+- **Load only the necessary context:** Start from the current plan doc, durable project notes, recent commits, and the files touched by the active slice. Treat verified commits as done, and do not re-explore broad architecture unless the slice is unfamiliar or high-risk.
+- **Keep a frontier ledger:** State what is already shipped, what slice is next, which commits are trusted, and what must remain untouched.
+- **Slice aggressively:** Prefer the smallest end-to-end change that can be tested, verified, and committed independently.
+- **Pin dangerous invariants before editing:** Add characterization, golden, contract, or focused unit tests before refactors that could affect export bytes, protocol shape, security boundaries, bundle size, accessibility, motion settings, units, or shared rendering behavior.
+- **Use parallel recon deliberately:** For unfamiliar architecture, run focused exploration across independent lenses before coding. For known slices, avoid broad rediscovery.
+- **Review adversarially where risk warrants it:** For security, protocol, persistence, rendering parity, or cross-client behavior, look for failure modes first. Treat incomplete review output as unverified signal, not as proof the finding is false.
+- **Verify before claiming done:** Run the package-level checks relevant to the slice, then the required project ritual from this file. Report any skipped check explicitly.
+- **Write durable handoffs:** End substantial work with what changed, what passed, what remains, open risks, and the exact next slice so the next agent can continue without starting cold.
+
+Default sequence for risky or architectural slices:
+
+1. Load the handoff/plan, memory notes, recent commits, and only the touched files.
+2. State the active slice and the invariants that can silently break.
+3. Add tests that pin current behavior before refactoring.
+4. Run those tests once to prove the baseline is captured.
+5. Add failing tests for the new slice, then implement the smallest core that satisfies them.
+6. Run focused tests around the blast radius, then typecheck, lint, structure guard, and broader suites as appropriate.
+7. Run adversarial review when the change touches security, protocol, persistence, rendering parity, or cross-client behavior.
+8. Triage review findings against the code; turn confirmed risks into fixes and regression tests before committing.
+
+Do not declare a slice complete just because the happy-path tests pass. The target loop is: frontier -> invariant -> failing test -> implementation -> focused verification -> broad verification -> adversarial review when warranted -> fix or handoff.
+
+---
+
+## 2. Git Workflow & Branching Strategy
 To maintain order in our shared commits, we follow the established branching and commit structure:
 
 ### Branch Naming
@@ -23,7 +50,7 @@ To maintain order in our shared commits, we follow the established branching and
 
 ---
 
-## 2. CI Monitoring & Auto-Fixing Skill
+## 3. CI Monitoring & Auto-Fixing Skill
 We have a custom skill available to monitor and automatically resolve CI issues. 
 
 - **Skill Location:** `.agents/skills/source-command-ci-check/SKILL.md`
@@ -38,19 +65,19 @@ We have a custom skill available to monitor and automatically resolve CI issues.
 
 ---
 
-## 3. SOLID Refactoring Guardrails (Phase 15)
+## 4. SOLID Refactoring Guardrails (350 LOC limit)
 The project enforces strict structural boundaries to prevent the return of "god files":
 
 - **File Size Limit:** **New files MUST NOT exceed 350 lines of code (LOC).**
   - This is enforced in CI via `pnpm lint:structure:enforce`.
   - Validate your file sizes locally using `pnpm lint:structure` before committing.
 - **Playbook Compliance:**
-  - Refer to [REFACTOR_ROADMAP.md](file:///d:/HeroByte/docs/refactoring/REFACTOR_ROADMAP.md) and [REFACTOR_PLAYBOOK.md](file:///d:/HeroByte/docs/refactoring/REFACTOR_PLAYBOOK.md).
+  - Refer to [REFACTOR_ROADMAP.md](../docs/refactoring/REFACTOR_ROADMAP.md) and [REFACTOR_PLAYBOOK.md](../docs/refactoring/REFACTOR_PLAYBOOK.md). Note: the roadmap's LOC figures are a 2025-11-10 snapshot, not current — run `pnpm lint:structure` for live numbers.
   - **Characterization Tests:** Always write characterization tests in `__tests__/characterization/` *before* extracting code from parent files to ensure functionality is fully locked down.
 
 ---
 
-## 4. Local Development & Port Management
+## 5. Local Development & Port Management
 HeroByte enforces strict, single-port policies.
 
 | Port | Service | Command |
@@ -67,10 +94,12 @@ HeroByte enforces strict, single-port policies.
 
 ---
 
-## 5. Testing & Verification Suites
+## 6. Testing & Verification Suites
 Always run local tests to verify changes before raising PRs:
 
 - **Frontend Unit/Component Tests:** `pnpm test:client`
 - **Backend Unit/Service Tests:** `pnpm test:server`
 - **E2E Smoke/Integration Tests:** `pnpm test:e2e` (uses Playwright, runs sequentially for stability)
-- **TypeScript Typecheck:** `pnpm typecheck` or `pnpm lint`
+- **Shared Package Tests:** `pnpm test:shared`
+- **TypeScript Typecheck:** `pnpm typecheck` (`pnpm lint` runs ESLint plus the frozen-test check — it does **not** invoke the compiler, so it is not a substitute)
+- **Structure Guardrail:** `pnpm lint:structure` to report, `pnpm lint:structure:enforce` to fail on new 350 LOC violations

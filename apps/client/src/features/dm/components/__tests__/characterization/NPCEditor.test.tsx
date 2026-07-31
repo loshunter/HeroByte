@@ -475,14 +475,30 @@ describe("NPCEditor - Characterization Tests", () => {
       expect(handlers.onPlace).toHaveBeenCalledTimes(1);
     });
 
-    it("should call onDelete when Delete button is clicked", () => {
+    // Delete is now guarded — it used to fire on a single click, the only
+    // unguarded delete in the app, and it also removes the NPC's placed token.
+    it("should call onDelete when Delete button is clicked and confirmed", () => {
+      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
       const handlers = createMockHandlers();
       render(<NPCEditor npc={mockNPC} {...handlers} />);
 
       const deleteButton = screen.getByRole("button", { name: /delete/i });
       fireEvent.click(deleteButton);
 
+      expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining(mockNPC.name));
       expect(handlers.onDelete).toHaveBeenCalledTimes(1);
+      confirmSpy.mockRestore();
+    });
+
+    it("should NOT call onDelete when the confirm is dismissed", () => {
+      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+      const handlers = createMockHandlers();
+      render(<NPCEditor npc={mockNPC} {...handlers} />);
+
+      fireEvent.click(screen.getByRole("button", { name: /delete/i }));
+
+      expect(handlers.onDelete).not.toHaveBeenCalled();
+      confirmSpy.mockRestore();
     });
   });
 

@@ -78,7 +78,7 @@ export class AuthenticationHandler {
     const normalizedSecret = secret.trim();
     if (!this.container.authService.verify(normalizedSecret, requestedRoomId)) {
       console.warn(`Authentication failed for uid ${uid}`);
-      this.rejectAuthentication(ws, "Invalid room password");
+      this.rejectAuthentication(ws, "Invalid table password");
       return;
     }
 

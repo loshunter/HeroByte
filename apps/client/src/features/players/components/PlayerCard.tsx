@@ -139,6 +139,22 @@ export const PlayerCard = memo<PlayerCardProps>(
     const [tokenImageInput, setTokenImageInput] = useState(tokenImageUrl ?? "");
     const [portraitImageInput, setPortraitImageInput] = useState(player.portrait ?? "");
     const [settingsOpen, setSettingsOpen] = useState(false);
+
+    /*
+     * The settings window's "Character Name" field gets its OWN buffer, seeded
+     * from the real name when the window opens.
+     *
+     * It used to render the panel-level `nameInput`, which is one shared
+     * buffer initialised to "" and driven by the INLINE editor's
+     * editingCharacterId gate. In the settings window there is no such gate, so
+     * the field was always blank — you never saw the name you were about to
+     * overwrite, submitting visibly wiped it so it looked rejected, and typing
+     * here simultaneously appeared in every other open card.
+     */
+    const [settingsNameInput, setSettingsNameInput] = useState(player.name);
+    useEffect(() => {
+      if (settingsOpen) setSettingsNameInput(player.name);
+    }, [settingsOpen, player.name]);
     const { feedback, flashClass } = useHpFeedback(player.hp);
 
     useEffect(() => {
@@ -339,6 +355,9 @@ export const PlayerCard = memo<PlayerCardProps>(
           selectedEffects={statusEffects ?? []}
           onStatusEffectsChange={handleStatusEffectsChange}
           isDM={isDM}
+          viewerIsDM={viewerIsDM}
+          // Only on your own card: the toggle grants/revokes the VIEWER's DM.
+          canToggleDM={isMe}
           onToggleDMMode={onToggleDMMode}
           tokenLocked={tokenLocked}
           onToggleTokenLock={onToggleTokenLock}
@@ -350,10 +369,16 @@ export const PlayerCard = memo<PlayerCardProps>(
           onDeleteCharacter={onDeleteCharacter}
           initiative={initiative}
           onClearInitiative={onClearInitiative}
-          // New props for name and portrait editing
-          nameInput={nameInput}
-          onNameInputChange={onNameInputChange}
-          onNameSubmit={onNameSubmit}
+          // Per-window name buffer — see settingsNameInput above.
+          nameInput={settingsNameInput}
+          onNameInputChange={setSettingsNameInput}
+          onNameSubmit={() => {
+            const next = settingsNameInput.trim();
+            if (next && next !== player.name) {
+              onNameInputChange(next);
+              onNameSubmit();
+            }
+          }}
           portraitImageInput={portraitImageInput}
           onPortraitInputChange={setPortraitImageInput}
           onPortraitApply={handlePortraitApply}

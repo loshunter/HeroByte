@@ -96,7 +96,7 @@ export function RoomPasswordControl({
   };
 
   return (
-    <JRPGPanel variant="simple" title="Room Security">
+    <JRPGPanel variant="simple" title="Table Security">
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
         <p className="jrpg-text-small" style={{ margin: 0, color: "var(--jrpg-white)" }}>
           Update the shared room password. Current players remain connected; new entrants must use

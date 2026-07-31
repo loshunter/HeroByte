@@ -158,6 +158,26 @@ export function useSessionManagement({
           warnings.push("no map documents — the map will load read-only");
         }
 
+        // Last exit before anything is written. Loading replaces the live table
+        // for EVERY connected player — tokens, characters, props, drawings, maps
+        // and the live binding — and it persists, so there is nothing to undo to.
+        // The far smaller "Clear All Drawings" two tabs away already confirms.
+        // Placed after the parse so the prompt can describe what is in the file,
+        // and before restoreSessionAssets, which is the first server write.
+        const counts = [
+          `${session.snapshot.characters?.length ?? 0} character(s)`,
+          `${session.mapDocuments.length} map document(s)`,
+        ].join(", ");
+        const proceed = window.confirm(
+          `Load "${file.name}" (${counts})?\n\n` +
+            `This REPLACES the current table for everyone connected — tokens, ` +
+            `characters, props, drawings and maps. It cannot be undone.`,
+        );
+        if (!proceed) {
+          toast.info("Session load cancelled.");
+          return;
+        }
+
         // Assets FIRST, and awaited: the snapshot that names them broadcasts as
         // soon as load-session lands, and the asset responses carry an immutable
         // year-long cache header — so a client that asks too early could cache a

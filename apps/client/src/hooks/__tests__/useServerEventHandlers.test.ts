@@ -146,7 +146,7 @@ describe("useServerEventHandlers - Characterization Tests", () => {
 
       expect(result.current.roomPasswordStatus).toEqual({
         type: "success",
-        message: "Room password updated successfully.",
+        message: "Table password updated successfully.",
       });
     });
 
@@ -240,7 +240,7 @@ describe("useServerEventHandlers - Characterization Tests", () => {
 
       expect(result.current.roomPasswordStatus).toEqual({
         type: "error",
-        message: "Unable to update room password.",
+        message: "Unable to update table password.",
       });
     });
 

@@ -31,12 +31,14 @@ describe("buildWheelSlots", () => {
 
   it("fills empty pins/recents from the deck shelves in browse order", () => {
     const brushes = buildWheelSlots([], []).slice(4);
-    // Ground shelf, priority order: path, dirt, grass, sand.
+    // Ground shelf in priority order. The wheel DERIVES from the deck, so
+    // adding families legitimately changes these defaults — the cavern study's
+    // cave-floor (1.4) and ash-drift (1.6) now sort between path and dirt.
     expect(brushes.map((slot) => (slot.kind === "brush" ? slot.entry.family : ""))).toEqual([
       "path",
+      "cave-floor",
+      "ash-drift",
       "dirt",
-      "grass",
-      "sand",
     ]);
   });
 
@@ -60,9 +62,9 @@ describe("buildWheelSlots", () => {
     const brushes = buildWheelSlots(["no-such-family"], []).slice(4);
     expect(brushes.map((slot) => (slot.kind === "brush" ? slot.entry.family : ""))).toEqual([
       "path",
+      "cave-floor",
+      "ash-drift",
       "dirt",
-      "grass",
-      "sand",
     ]);
   });
 });

@@ -115,10 +115,10 @@ describe("Toast Component", () => {
       const toast = container.querySelector('[title="Click to dismiss"]') as HTMLElement;
 
       expect(toast).toHaveStyle({
-        background: "var(--jrpg-success-bg, #1a3d2e)",
-        color: "var(--jrpg-success-text, #5affad)",
+        background: "var(--jrpg-success-bg)",
+        color: "var(--jrpg-success-text)",
       });
-      expect(toast.style.borderColor).toBe("var(--jrpg-success-border, #5affad)");
+      expect(toast.style.borderColor).toBe("var(--jrpg-success-border)");
     });
 
     it("should apply error styles", () => {
@@ -132,10 +132,10 @@ describe("Toast Component", () => {
       const toast = container.querySelector('[title="Click to dismiss"]') as HTMLElement;
 
       expect(toast).toHaveStyle({
-        background: "var(--jrpg-error-bg, #3d1a1a)",
-        color: "var(--jrpg-error-text, #ff5a5a)",
+        background: "var(--jrpg-error-bg)",
+        color: "var(--jrpg-error-text)",
       });
-      expect(toast.style.borderColor).toBe("var(--jrpg-error-border, #ff5a5a)");
+      expect(toast.style.borderColor).toBe("var(--jrpg-error-border)");
     });
 
     it("should apply warning styles", () => {
@@ -149,10 +149,10 @@ describe("Toast Component", () => {
       const toast = container.querySelector('[title="Click to dismiss"]') as HTMLElement;
 
       expect(toast).toHaveStyle({
-        background: "var(--jrpg-warning-bg, #3d2e1a)",
-        color: "var(--jrpg-warning-text, #ffc107)",
+        background: "var(--jrpg-warning-bg)",
+        color: "var(--jrpg-warning-text)",
       });
-      expect(toast.style.borderColor).toBe("var(--jrpg-warning-border, #ffc107)");
+      expect(toast.style.borderColor).toBe("var(--jrpg-warning-border)");
     });
 
     it("should apply info styles", () => {
@@ -166,10 +166,10 @@ describe("Toast Component", () => {
       const toast = container.querySelector('[title="Click to dismiss"]') as HTMLElement;
 
       expect(toast).toHaveStyle({
-        background: "var(--jrpg-info-bg, #1a2a3d)",
-        color: "var(--jrpg-info-text, #5a9fff)",
+        background: "var(--jrpg-info-bg)",
+        color: "var(--jrpg-info-text)",
       });
-      expect(toast.style.borderColor).toBe("var(--jrpg-info-border, #5a9fff)");
+      expect(toast.style.borderColor).toBe("var(--jrpg-info-border)");
     });
 
     it("should apply base styles to all toast types", () => {

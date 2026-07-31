@@ -41,7 +41,7 @@ export class AuthService {
   private storagePath: string;
   // A throwaway hash/salt used to spend constant scrypt work when a custom room
   // doesn't exist, so verify() timing can't distinguish "no such room" from
-  // "wrong password" (both reply "Invalid room password").
+  // "wrong password" (both reply "Invalid table password").
   private readonly timingGuard: StoredSecret;
 
   constructor(options?: { storagePath?: string }) {
@@ -117,7 +117,7 @@ export class AuthService {
     }
     const trimmedRoom = roomPassword.trim();
     if (trimmedRoom.length < 6 || trimmedRoom.length > 128) {
-      throw new Error("Room password must be between 6 and 128 characters.");
+      throw new Error("Table password must be between 6 and 128 characters.");
     }
     const trimmedDm = dmPassword?.trim();
     if (trimmedDm && (trimmedDm.length < 8 || trimmedDm.length > 128)) {

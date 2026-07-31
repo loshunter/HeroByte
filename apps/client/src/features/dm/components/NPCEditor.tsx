@@ -353,7 +353,14 @@ export function NPCEditor({
         </JRPGButton>
         <JRPGButton
           variant="danger"
-          onClick={onDelete}
+          onClick={() => {
+            // Deleting an NPC also force-removes its placed token server-side,
+            // and Ctrl+Z does not cover either. Every sibling delete in the app
+            // confirms first; this one used to fire on a single click.
+            if (window.confirm(`Delete "${npc.name}"? This also removes its token from the map.`)) {
+              onDelete();
+            }
+          }}
           disabled={isUpdating || isPlacingToken}
           style={{ fontSize: "10px", flex: 1 }}
         >

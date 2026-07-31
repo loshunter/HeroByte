@@ -230,8 +230,8 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(screen.getByText(/Join Your Room/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Room password/i)).toBeInTheDocument();
+    expect(screen.getByText(/Join Your Table/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Table password/i)).toBeInTheDocument();
   });
 
   it("renders the authenticated layout once authentication succeeds", async () => {

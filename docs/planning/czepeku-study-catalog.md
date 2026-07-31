@@ -1,5 +1,22 @@
 # Czepeku Study Catalog — procedural art techniques, ranked
 
+> **Status 2026-07-30 — this is a HISTORICAL design document, not a live plan.**
+> The "ship-next three" all shipped in July 2026 (mottle + water depth
+> `b793677`; ambient veil, contact AO and long shadows `ed06977`; the Light &
+> Colour II arc `cc2048f3` + `ad0d0af8`), and rank 4's unbuilt "emissive twin"
+> finally shipped as the `glow` field primitive in the lava cavern study
+> (`c347992`), with its mirror — brightening a light's own pool via
+> `BakeLight.gain` — in the night cave study (`fc8dcff`).
+>
+> Of the fifteen ranked entries below, **1, 2, 3, 4, 5, 8, 9, 11, 12 and 14 have
+> shipped; 10 and 15 are partial; 6, 7 and 13 are still open.** Read a "Route:"
+> as the reasoning that was followed, not as outstanding work — several shipped
+> by a different mechanism than the one proposed here (rank 9's cliffs became
+> the `ledges` field knob, not wall-painter variants; rank 14's rugs became a
+> decal kind, not terrain families). **The live ranked roadmap is
+> [`czepeku-taxonomy-catalog.md`](czepeku-taxonomy-catalog.md)**, whose twelve
+> techniques are all shipped.
+
 _2026-07-18. Sixteen Czepeku fantasy map previews studied (four themed passes +
 synthesis) after the wall/roof/stairs repaint arc shipped. Each entry: what the
 reference does, why it works, and the concrete HeroByte implementation route.

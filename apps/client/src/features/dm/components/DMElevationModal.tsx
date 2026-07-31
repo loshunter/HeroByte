@@ -75,7 +75,13 @@ export function DMElevationModal({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        zIndex: 1000,
+        // Above the DM menu (1002) and the player settings window (2500).
+        // At 1000 this modal painted BELOW the DM menu it is launched from:
+        // on a wide desktop the menu floated undimmed over the scrim, and in
+        // the 701–767px band the menu goes fullscreen-opaque at 1102, hiding
+        // the dialog entirely — with no Escape handler and no reachable scrim,
+        // an unclosable dialog.
+        zIndex: 3000,
       }}
       onClick={handleCancel}
     >

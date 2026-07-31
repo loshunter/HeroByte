@@ -38,6 +38,59 @@
   --jrpg-border-inner: #1C1734;    /* Indigo inner fill */
   --jrpg-border-highlight: #00E0D1; /* Cyan highlight */
   --jrpg-border-shadow: #000000;   /* Black shadow */
+
+  /* -------------------------------------------------------------------------
+   * SEMANTIC ALIASES
+   * -------------------------------------------------------------------------
+   * These names were referenced throughout the app but never defined here, so
+   * every `var()` using them was invalid at computed-value time. That does NOT
+   * fall back to the rule underneath — it computes to `unset` — which is why
+   * error banners had no colour and the character-name field had no border or
+   * background at all.
+   *
+   * They alias the palette above rather than introducing new colours, so the
+   * "muted pastels, not neon" rule this file opens with still holds.
+   */
+  --jrpg-bg: var(--jrpg-indigo);       /* Default surface behind menus/inputs */
+  --jrpg-bg-dark: var(--jrpg-navy);    /* Recessed / disabled surface */
+  --jrpg-text: var(--jrpg-white);      /* Default body text on those surfaces */
+  --jrpg-border: var(--jrpg-border-gold); /* The visible frame edge */
+  --jrpg-red: var(--jrpg-hp-low);      /* Errors, refusals, negative modifiers */
+  --jrpg-green: var(--jrpg-hp-full);   /* Success, positive modifiers */
+
+  /* Toast surfaces. Previously these existed ONLY as inline fallbacks in
+   * Toast.tsx, so 100% of toasts rendered in neon that appears in no palette. */
+  --jrpg-success-bg: #16301F;
+  --jrpg-success-border: var(--jrpg-hp-full);
+  --jrpg-success-text: var(--jrpg-hp-full);
+  --jrpg-error-bg: #331A1C;
+  --jrpg-error-border: var(--jrpg-hp-low);
+  --jrpg-error-text: var(--jrpg-hp-low);
+  --jrpg-warning-bg: #33261A;
+  --jrpg-warning-border: var(--jrpg-hp-medium);
+  --jrpg-warning-text: var(--jrpg-hp-medium);
+  --jrpg-info-bg: #1A2333;
+  --jrpg-info-border: var(--jrpg-dice-blue);
+  --jrpg-info-text: var(--jrpg-dice-blue);
+
+  /* A second undefined set, found by sweeping every var() against every
+   * definition rather than trusting a list. Three of these are referenced by
+   * THIS FILE and were silently unset: the HP label and menu-item text colour,
+   * the portrait-frame fill, and the active toggle/menu background. */
+  --jrpg-ivory: var(--hero-text-light);   /* Warm off-white for pixel labels */
+  --jrpg-text-dim: var(--hero-text-dim);  /* Secondary / helper text */
+  --jrpg-sapphire: var(--jrpg-indigo);    /* Portrait-frame fill */
+  --jrpg-dark-bg: var(--jrpg-navy);       /* Full-bleed dark surface */
+  --jrpg-panel-dark: var(--jrpg-navy);    /* Floating chip / picker surface */
+  --jrpg-font: var(--font-pixel);
+  --jrpg-danger: var(--jrpg-red);
+  --jrpg-warning: var(--jrpg-hp-medium);
+
+  /* The one genuinely NEW value here. `--jrpg-sky` backs the ACTIVE state of
+   * toggles and menu items, which carry gold text — so it has to be dark enough
+   * for gold to read while still separating from the indigo of the inactive
+   * row. Sits deliberately between --jrpg-indigo and --jrpg-mp-full. */
+  --jrpg-sky: #2B3F6B;
 }
 
 /* ---------------------------------------------------------------------------
@@ -70,6 +123,44 @@
 .jrpg-text-small {
   font-size: 8px;
   letter-spacing: 0.5px;
+}
+
+/*
+ * Applied in three places and defined in none, so it did nothing at all — the
+ * text simply inherited whatever surrounded it.
+ *
+ * Every site that uses it is HELP PROSE ("Click Apply Zone to create/update the
+ * staging zone. Use the Transform tool to move and resize it..."), which is
+ * exactly what the body face exists for. So this resolves as prose rather than
+ * as an even-smaller pixel size — the name is a size, but the intent was always
+ * "the small explanatory text".
+ */
+.jrpg-text-tiny {
+  font-family: var(--font-body);
+  font-size: 11px;
+  line-height: 1.45;
+  letter-spacing: normal;
+  text-transform: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * PROSE. Anything the user has to actually read a sentence of: help text,
+ * error messages, hints, descriptions, confirmations. Deliberately NOT the
+ * pixel face — it turns off the pixel-rendering hints too, since antialiasing
+ * is what makes a proportional face legible at this size.
+ */
+.jrpg-text-body {
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.5;
+  letter-spacing: normal;
+  text-transform: none;
+  text-rendering: optimizeLegibility;
+  image-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: auto;
+  font-smooth: always;
 }
 
 /* ---------------------------------------------------------------------------

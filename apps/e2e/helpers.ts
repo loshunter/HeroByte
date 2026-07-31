@@ -11,10 +11,10 @@ export async function joinDefaultRoom(page: Page) {
     return;
   }
 
-  const passwordInput = page.getByPlaceholder("Room password");
+  const passwordInput = page.getByPlaceholder("Table password");
   await expect(passwordInput).toBeEnabled({ timeout: 15_000 });
   await passwordInput.fill(ROOM_PASSWORD);
-  await page.getByRole("button", { name: /Enter Room/i }).click();
+  await page.getByRole("button", { name: /Enter Table/i }).click();
 
   await expect(snapButton).toBeVisible({ timeout: 15_000 });
 }

@@ -176,7 +176,7 @@ This guardrail ensures the codebase remains maintainable and prevents technical 
 
 ## Testing Expectations
 
-HeroByte uses a **3-tier optimization strategy** to maintain 100% coverage while keeping test execution fast and efficient, especially on resource-constrained environments.
+HeroByte uses a **3-tier optimization strategy** to preserve coverage while keeping test execution fast and efficient, especially on resource-constrained environments.
 
 ### Quick Commands
 

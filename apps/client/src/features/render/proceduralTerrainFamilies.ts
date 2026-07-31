@@ -39,6 +39,10 @@ export interface FieldFamily {
   /** Contact occlusion; strength 0 ⇒ none. */
   contactReach: number;
   contactStrength: number;
+  /** Emissive spill onto lower families; strength 0 ⇒ off (bit-parity default). */
+  glowRgb: FieldRgb;
+  glowReach: number;
+  glowStrength: number;
   /** Soft long directional throw; 0 ⇒ none (band at/below the default). */
   longShadowBand: number;
   longShadowStrength: number;
@@ -93,6 +97,9 @@ export function buildFieldFamilies(
       shadowProbe: SHADOW_PROBE,
       contactReach: f.contact?.reach ?? 0,
       contactStrength: f.contact?.strength ?? 0,
+      glowRgb: parseHex(f.glow?.color ?? "#ffffff"),
+      glowReach: f.glow?.reach ?? 0,
+      glowStrength: f.glow?.strength ?? 0,
       longShadowBand: f.shadow && f.shadow.band > SHADOW ? f.shadow.band : 0,
       longShadowStrength: (f.shadow?.strength ?? SHADOW_STRENGTH) * 0.5,
       mottleAmp: f.mottle?.amp ?? 0,

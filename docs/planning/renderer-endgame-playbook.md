@@ -8,12 +8,27 @@ self-contained: every invariant, command, and working method you need is in
 this file. The companion map of *what and why* is
 `docs/planning/shared-tile-renderer-plan.md` (statuses current as of R4a).
 
-**State of the world:** R1 `b507aeec`, R2 `57780130`, R3 `6fa499f7`,
+**State of the world — AS OF 2026-07-06.** This playbook is now a HISTORICAL
+record of the shared-tile-renderer migration: §0's ritual, invariants and
+failure modes still apply, but the frontier below and the slice sections are
+finished history.
+
+> **The "extend the noise detail to the other four families" follow-up is long
+> since overtaken.** Atlas-era noise detail gave way to the procedural terrain
+> system (`features/render/proceduralTerrain*.ts`, `terrainDetailRouter.ts`),
+> which today paints all 38 palette families with a field pass plus per-family
+> detail painters. The renderer frontier since: Water II, the polar-course
+> engine, Light & Colour II, the whole ranked catalog
+> (`czepeku-taxonomy-catalog.md`), three benchmark studies (`25f5d4c`,
+> `c347992`, `fc8dcff`) and the UX overhaul P1–P5 (`cbf13e4` … `06223ca`),
+> including the worker bake that took terrain off the main thread (`d663786`).
+> The Map Studio scene these slices edit was retired in `0feae27b`.
+
+R1 `b507aeec`, R2 `57780130`, R3 `6fa499f7`,
 upload-hole fix `73dc254d`, R4a `0e944a8b` — all on `dev`, all gates green.
 The migration is COMPLETE: R4c grass ART landed (`a79a84e7`) — procedural
 blob47 silhouette + a coherent-noise interior detail pass (blades, tall-grass
-blobs, flowers). Follow-up (future): extend the noise detail to the other four
-families. Since R4a, also DONE on `dev`: Slice L `aefe0571`, R5a `01cc3764`,
+blobs, flowers). Since R4a, also DONE on `dev`: Slice L `aefe0571`, R5a `01cc3764`,
 R5b `7e20b3f8`, DM-menu parity `57bada34`, R4b `0d0dd4c5`, Slice S `b8191d3e`,
 R4c-prep `11ed9c67`, R4c grass `a79a84e7`.
 
@@ -86,7 +101,7 @@ pnpm test
 # 6. E2E (56 tests, ~3.3 min):
 pnpm test:e2e
 
-# 7. Bundle guard (entry must stay lazy-clean; ~87 KB of 175 KB used today):
+# 7. Bundle guard (entry must stay lazy-clean; ~86 KB of 175 KB used today):
 pnpm --filter herobyte-client build
 node apps/client/scripts/check-bundle-size.mjs
 ```
@@ -197,8 +212,10 @@ green — the reviews on R2/R3 found seven real bugs that green suites missed.
   baseline to excuse a new violation.
 - **Stale shared dist:** rebuild `@herobyte/shared` after ANY shared edit.
 - **175KB gzip entry guard.** Renderer code must not grow the entry chunk.
-  Slice L (DONE) moved the Map Studio editor into a lazy chunk — entry is now
-  ~69KB (was ~87KB). Atlas image/manifest are `public/` statics and never count.
+  Slice L (DONE) moved the Map Studio editor into a lazy chunk (~87 KB → 69 KB
+  at the time); the entry measures ~86 KB gzipped today, after the whole
+  procedural-terrain and map-edit frontier. Atlas image/manifest are `public/`
+  statics and never count.
 - **1MB WS inbound cap.** The server SILENTLY drops any inbound WebSocket
   message over 1MB (`connectionHandler` maxMessageSize). Publish payload must
   stay under `MAX_PUBLISH_BACKGROUND_BYTES` (1MB − 16KB margin) — extend the
@@ -388,9 +405,7 @@ wasting context.
 | `features/map-studio/starterTiles.ts` | ~190 | read whole. `MAP_STUDIO_TILE_ASSETS`, `getMapStudioTileAsset`, `terrainFillForFrame`, `terrainStyleForFrame` |
 | `features/map-studio/gridGeometry.ts` | 35 | read whole. `getGridGeometry` — the ONLY source of grid path strings |
 | `features/map-studio/exportMapDocument.ts` | ~300 | read whole for R4b/R5a. `renderMapDocumentSvg`:20, `renderTerrain`:47, `MAX_PUBLISH_BACKGROUND_BYTES`:74, `backgroundExceedsPublishLimit`:76, `createMapDocumentSvgDataUrlWithAssets`:86, `rasterizeMapDocument`:146, `renderElement`:203 |
-| `features/map-studio/components/MapStudioCanvasUnderlay.tsx` | ~200 | read whole — it is the REFERENCE implementation for every new canvas surface (camera transform, offscreen opacity composite, DPR listener, atlas usage) |
-| `features/map-studio/components/MapStudioCanvas.tsx` | ~300 | read whole only for editor-JSX work; underlay wiring is near the top of the JSX |
-| `features/map-studio/components/useStudioCamera.ts` | 94 | read whole |
+| ~~`components/MapStudioCanvasUnderlay.tsx` / `MapStudioCanvas.tsx` / `useStudioCamera.ts`~~ | — | **DELETED** with the Map Studio scene (`0feae27b`, S13 — live authoring is the only editor). The reference canvas surface is now `features/map/components/TerrainLayer.tsx` plus `terrainBakeAsync.ts` / `terrainBakeChunks.ts` / `useFieldBake.ts` (worker bake, `d663786`); authoring UI lives under `features/map-edit/`. |
 | `features/map-studio/components/mapStudioWorkspaceUtils.ts` | ~305 | grep `renderedSvgViewport` (letterbox math, exported), `eventToMapPoint`:11 |
 | `features/map-studio/index.ts` | small | the barrel — Slice L's target |
 | `features/map-studio/uploads/assetUpload.ts` | small | `uploadHashFromAssetId`, `uploadedAssetUrl`, `clampImageMime` |
@@ -433,9 +448,10 @@ wasting context.
 **Client plumbing:**
 - `ui/App.tsx` (801 LOC — NEVER read whole): `:42` imports `useMapStudio`;
   grep `matchMedia` for the mobile-layout query.
-- `layouts/CenterCanvasLayout.tsx`: `:29` static `MapStudioWorkspace` import
-  (Slice L removes), `:32` the `React.lazy` MapBoard pattern to copy.
-  `layouts/MobileLayout.tsx`: `:18/:22` same pair.
+- `layouts/CenterCanvasLayout.tsx`: the `React.lazy` MapBoard pattern to copy
+  (`:39` today). No layout imports `MapStudioWorkspace` any more — the studio
+  scene was retired in `0feae27b` (S13); `MapStudioController` survives only as
+  a type import (`:30`).
   `layouts/FloatingPanelsLayout.tsx:26` — lazy `DMMenuContainer` precedent.
 - Client publish send site: grep `"map-studio-publish"` in `apps/client/src`.
 

@@ -38,6 +38,16 @@ export interface UseDrawingStateManagerOptions {
    * Used to exit draw mode when toolbar is closed
    */
   setActiveTool: (tool: ToolMode) => void;
+
+  /**
+   * Whether this client may clear all drawings — i.e. whether it is the DM.
+   *
+   * `clear-drawings` is DM-only server-side (DrawingMessageHandler rejects
+   * non-DMs), so without this the Clear All button was a control that did
+   * nothing visible while still destroying the clicking player's own local
+   * undo history. Defaults to false: no capability unless proven.
+   */
+  canClearDrawings?: boolean;
 }
 
 /**
@@ -146,6 +156,7 @@ export function useDrawingStateManager({
   sendMessage,
   drawMode: _drawMode,
   setActiveTool,
+  canClearDrawings = false,
 }: UseDrawingStateManagerOptions): UseDrawingStateManagerReturn {
   // Core drawing state from existing hook
   const {
@@ -192,10 +203,26 @@ export function useDrawingStateManager({
    * Clears local history and sends network message
    * Called by toolbar "Clear All" button or DM menu
    */
+  /**
+   * Clear every drawing on the map.
+   *
+   * The guard lives HERE, not at the call sites, so both entry points inherit
+   * it — the drawing toolbar's "Clear All" used to fire instantly while the
+   * DM menu's "Clear All Drawings" confirmed, for the identical operation.
+   *
+   * It is also unrecoverable by construction: the server drops `drawings`,
+   * `drawingUndoStacks` and `drawingRedoStacks` together, so there is nothing
+   * left to undo from. Hence a confirm rather than a trust-the-undo-stack.
+   */
   const handleClearDrawings = useCallback(() => {
+    // A non-DM's clear is rejected server-side; don't destroy their local
+    // history for a call that will not apply.
+    if (!canClearDrawings) return;
+    if (!window.confirm("Clear all drawings from the map? This cannot be undone.")) return;
+
     clearHistory();
     sendMessage({ t: "clear-drawings" });
-  }, [clearHistory, sendMessage]);
+  }, [canClearDrawings, clearHistory, sendMessage]);
 
   /**
    * Callback to close the toolbar

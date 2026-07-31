@@ -113,10 +113,12 @@ describe("brush deck view model", () => {
       ]),
     );
     expect(byMaterial).toEqual({
-      ground: ["path", "dirt", "grass", "sand", "farm-furrow"],
-      water: ["water", "sunken-flagstone", "sunken-stairs"],
+      ground: ["path", "cave-floor", "ash-drift", "dirt", "grass", "sand", "farm-furrow"],
+      water: ["abyss-water", "biolume", "water", "sunken-flagstone", "sunken-stairs"],
+      molten: ["lava", "lava-crust"],
       stone: [
         "cliff",
+        "cave-wall",
         "stone-floor",
         "stone-cobble",
         "stone-sandstone",
@@ -129,6 +131,7 @@ describe("brush deck view model", () => {
       wood: ["wood-floor", "wood-walnut", "wood-grey", "bridge-plank", "wall-timber"],
       roof: ["roof-shingle", "roof-thatch", "roof-cone", "roof-dome", "roof-thatch-spiral"],
       canopy: ["canopy", "canopy-blossom"],
+      crystal: ["crystal-gold", "crystal-verdigris"],
     });
   });
 

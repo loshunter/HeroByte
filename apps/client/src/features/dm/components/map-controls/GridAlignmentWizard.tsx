@@ -77,7 +77,7 @@ export function GridAlignmentWizard({
     <CollapsibleSection isCollapsed={gridLocked ?? false}>
       <JRPGPanel variant="simple" title="Grid Alignment Wizard">
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          <span className="jrpg-text-small" style={{ lineHeight: 1.4 }}>
+          <span className="jrpg-text-body">
             {alignmentModeActive
               ? "Alignment mode active — zoom in and click two opposite corners of a single map square."
               : "Capture two opposite corners of a map square to auto-match the map to the table grid."}

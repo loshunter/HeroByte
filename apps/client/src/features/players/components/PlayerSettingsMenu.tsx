@@ -16,16 +16,39 @@ import { CharacterCreationModal } from "./CharacterCreationModal";
 interface PlayerSettingsMenuProps {
   isOpen: boolean;
   onClose: () => void;
-  tokenImageInput: string;
+  /*
+   * These are OPTIONAL, and the sections that use them render only when they
+   * are supplied. The mobile sheet used to satisfy them with `""` and `() => {}`
+   * to meet a required-prop signature, which shipped a text field that could not
+   * be typed into, a "Save to File" that did nothing, and a "Load from File"
+   * that opened a real OS file picker and discarded the chosen file. Omitting
+   * a capability is honest; faking it is not.
+   */
+  tokenImageInput?: string;
   tokenImageUrl?: string;
-  onTokenImageInputChange: (value: string) => void;
-  onTokenImageClear: () => void;
-  onTokenImageApply: (value: string) => void;
-  onSavePlayerState: () => void;
-  onLoadPlayerState: (file: File) => Promise<void>;
+  onTokenImageInputChange?: (value: string) => void;
+  onTokenImageClear?: () => void;
+  onTokenImageApply?: (value: string) => void;
+  onSavePlayerState?: () => void;
+  onLoadPlayerState?: (file: File) => Promise<void>;
   selectedEffects: string[];
   onStatusEffectsChange: (effects: string[]) => void;
+  /** Whether the player/character this card BELONGS TO is a DM. */
   isDM: boolean;
+  /**
+   * Whether the person LOOKING at this card is a DM, and may they toggle it.
+   *
+   * These are separate on purpose. `onToggleDMMode` is viewer-scoped — it grants
+   * or revokes the VIEWER's own DM status — but the panel used to label itself
+   * from `isDM`, the card owner's flag. On another player's card that meant the
+   * button read their state and acted on yours: it silently no-opped for a
+   * non-DM viewer, and for a second DM it offered to "revoke your DM status"
+   * while appearing to demote someone else. The panel is now rendered only on
+   * the viewer's own card, and reads `viewerIsDM`.
+   */
+  viewerIsDM?: boolean;
+  /** Show the DM Mode panel at all — true only on the viewer's own card. */
+  canToggleDM?: boolean;
   onToggleDMMode: (next: boolean) => void;
   onDeleteToken?: () => void;
   tokenLocked?: boolean;
@@ -60,6 +83,8 @@ export function PlayerSettingsMenu({
   selectedEffects,
   onStatusEffectsChange,
   isDM,
+  viewerIsDM = false,
+  canToggleDM = false,
   onToggleDMMode,
   onDeleteToken,
   tokenLocked,
@@ -87,7 +112,8 @@ export function PlayerSettingsMenu({
   const [localEffects, setLocalEffects] = useState<string[]>(selectedEffects);
 
   const handleApplyTokenImage = async () => {
-    const normalizedUrl = await normalizeUrl(tokenImageInput.trim());
+    if (!onTokenImageApply) return;
+    const normalizedUrl = await normalizeUrl((tokenImageInput ?? "").trim());
     onTokenImageApply(normalizedUrl);
   };
 
@@ -132,14 +158,18 @@ export function PlayerSettingsMenu({
 
   const settingsMenu = createPortal(
     <DraggableWindow
-      title="🎮 Player Settings"
+      // Named and positioned PER SUBJECT. Every settings window used to be
+      // titled "🎮 Player Settings" and share one saved position, so a DM
+      // opening Alice's and then Bob's got two identical windows stacked
+      // pixel-for-pixel with nothing on screen naming who each belonged to.
+      title={nameInput ? `🎮 ${nameInput}` : "🎮 Player Settings"}
       onClose={onClose}
       initialX={300}
       initialY={100}
       width={280}
       minWidth={280}
       maxWidth={350}
-      storageKey="player-settings-menu"
+      storageKey={characterId ? `player-settings-menu:${characterId}` : "player-settings-menu"}
       zIndex={2500}
     >
       <JRPGPanel
@@ -219,8 +249,13 @@ export function PlayerSettingsMenu({
           </JRPGPanel>
         )}
 
-        {/* DM players don't have tokens, so hide token controls when isDM is true */}
-        {!isDM && (
+        {/*
+          DM players don't have tokens, so hide token controls when isDM is true.
+          Also hidden when no handler is supplied: the mobile sheet used to pass
+          a value pinned to "" with a no-op onChange, producing a text field that
+          physically could not be typed into.
+        */}
+        {!isDM && onTokenImageInputChange && onTokenImageApply && (
           <JRPGPanel
             variant="simple"
             style={{
@@ -281,55 +316,59 @@ export function PlayerSettingsMenu({
           </JRPGPanel>
         )}
 
-        <JRPGPanel
-          variant="simple"
-          style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
-        >
-          <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-            Player State
-          </span>
-          <JRPGButton onClick={onSavePlayerState} variant="primary" style={{ fontSize: "10px" }}>
-            Save to File
-          </JRPGButton>
-          <JRPGButton onClick={() => fileInputRef.current?.click()} style={{ fontSize: "10px" }}>
-            Load from File
-          </JRPGButton>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/json"
-            style={{ display: "none" }}
-            onChange={async (event) => {
-              const file = event.target.files?.[0];
-              if (!file) return;
-              try {
-                await onLoadPlayerState(file);
-              } catch (error) {
-                const message =
-                  error instanceof Error ? error.message : "Unknown error loading player state";
-                window.alert(message);
-              } finally {
-                event.target.value = "";
-              }
-            }}
-          />
-        </JRPGPanel>
-
-        <JRPGPanel
-          variant="simple"
-          style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
-        >
-          <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-            Dungeon Master Mode
-          </span>
-          <JRPGButton
-            onClick={() => onToggleDMMode(!isDM)}
-            variant={isDM ? "success" : "default"}
-            style={{ fontSize: "10px" }}
+        {onSavePlayerState && onLoadPlayerState && (
+          <JRPGPanel
+            variant="simple"
+            style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
           >
-            {isDM ? "DM Mode: ON" : "DM Mode: OFF"}
-          </JRPGButton>
-        </JRPGPanel>
+            <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
+              Player State
+            </span>
+            <JRPGButton onClick={onSavePlayerState} variant="primary" style={{ fontSize: "10px" }}>
+              Save to File
+            </JRPGButton>
+            <JRPGButton onClick={() => fileInputRef.current?.click()} style={{ fontSize: "10px" }}>
+              Load from File
+            </JRPGButton>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json"
+              style={{ display: "none" }}
+              onChange={async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                try {
+                  await onLoadPlayerState(file);
+                } catch (error) {
+                  const message =
+                    error instanceof Error ? error.message : "Unknown error loading player state";
+                  window.alert(message);
+                } finally {
+                  event.target.value = "";
+                }
+              }}
+            />
+          </JRPGPanel>
+        )}
+
+        {canToggleDM && (
+          <JRPGPanel
+            variant="simple"
+            style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
+          >
+            <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
+              Dungeon Master Mode
+            </span>
+            <JRPGButton
+              onClick={() => onToggleDMMode(!viewerIsDM)}
+              variant={viewerIsDM ? "success" : "default"}
+              style={{ fontSize: "10px" }}
+            >
+              {viewerIsDM ? "DM Mode: ON" : "DM Mode: OFF"}
+            </JRPGButton>
+          </JRPGPanel>
+        )}
 
         {onClearInitiative && (
           <JRPGPanel
@@ -539,7 +578,12 @@ export function PlayerSettingsMenu({
           </JRPGPanel>
         )}
 
-        {isDM && onDeleteToken && (
+        {/*
+          Gated on viewerIsDM, not isDM. `isDM` is the CARD OWNER's flag while
+          `onDeleteToken` is only ever supplied to a DM VIEWER — an impossible
+          combination, so this button could never render at all.
+        */}
+        {viewerIsDM && onDeleteToken && (
           <JRPGPanel variant="simple" style={{ padding: "12px" }}>
             <JRPGButton
               onClick={() => {

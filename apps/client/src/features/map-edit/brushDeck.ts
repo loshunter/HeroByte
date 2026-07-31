@@ -10,19 +10,23 @@ import { PAINT_FAMILIES, type PaintFamilyEntry } from "./mapEditFamilies";
 export const BRUSH_GROUP_ORDER: readonly TileMaterial[] = [
   "ground",
   "water",
+  "molten",
   "stone",
   "wood",
   "roof",
   "canopy",
+  "crystal",
 ];
 
 export const BRUSH_GROUP_LABELS: Record<TileMaterial, string> = {
   ground: "Ground",
   water: "Water",
+  molten: "Molten",
   stone: "Stone",
   wood: "Wood",
   roof: "Roofs",
   canopy: "Canopy",
+  crystal: "Crystal",
 };
 
 export interface BrushDeckGroup {

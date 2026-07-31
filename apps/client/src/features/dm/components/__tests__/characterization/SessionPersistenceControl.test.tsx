@@ -233,7 +233,7 @@ describe("SessionPersistenceControl - Characterization Tests", () => {
       const saveButton = screen.getByRole("button", { name: /save game state/i });
       expect(saveButton).toHaveAttribute(
         "title",
-        "Save is unavailable until the room state is ready.",
+        "Save is unavailable until the table state is ready.",
       );
     });
 

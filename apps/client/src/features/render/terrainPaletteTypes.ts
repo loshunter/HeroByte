@@ -134,6 +134,19 @@ export interface TerrainFamilyPalette {
   /** Omnidirectional contact/AO band seating the family on the ground (see
    * proceduralTerrain) — reach in field units, strength max darkening. */
   contact?: { reach: number; strength: number };
+  /** Emissive spill onto lower families (lava cavern study): the INVERSE of
+   * `contact` — brighten the ring around this family toward `color` instead of
+   * darkening it, so molten rock lights the stone beside it. Omitted ⇒ no
+   * spill (bit-identical neighbours). */
+  glow?: { color: string; reach: number; strength: number };
+  /**
+   * Which shore-distance BODY this family belongs to (lava cavern study).
+   * Depth-banded families and their drowned siblings share ONE BFS per body,
+   * so a lava lake and a water pool must not fuse into a single "liquid" —
+   * their bathymetries are independent. Omitted ⇒ "water", which keeps every
+   * shipped family in the original single body, bit for bit.
+   */
+  body?: string;
   /** Low-frequency tonal clouds under the cell detail (Czepeku catalog #1):
    * amp = max value offset, scale = wavelength in cells, cool shifts dark
    * patches cool / light patches warm. */

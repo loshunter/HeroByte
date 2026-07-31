@@ -220,31 +220,76 @@ describe("useDrawingStateManager - Characterization", () => {
   });
 
   describe("clear drawings", () => {
-    it("should clear all drawing history and send network message", () => {
-      const { result } = renderHook(() =>
+    // Clearing is now guarded and DM-only. It used to fire instantly for
+    // anyone, which destroyed a non-DM's local undo history for an operation
+    // the server rejects outright.
+    const renderClearable = (canClearDrawings = true) =>
+      renderHook(() =>
         useDrawingStateManager({
           sendMessage: sendMessageMock,
           drawMode: true,
           setActiveTool: setActiveToolMock,
+          canClearDrawings,
         }),
       );
 
-      // Add some drawings
+    const drawTwo = (result: {
+      current: { drawingProps: { onDrawingComplete: (id: string) => void } };
+    }) =>
       act(() => {
         result.current.drawingProps.onDrawingComplete("drawing-1");
         result.current.drawingProps.onDrawingComplete("drawing-2");
       });
 
+    it("should clear all drawing history and send network message", () => {
+      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+      const { result } = renderClearable();
+
+      drawTwo(result);
       expect(result.current.canUndo).toBe(true);
 
-      // Clear all
       act(() => {
         result.current.handleClearDrawings();
       });
 
+      expect(confirmSpy).toHaveBeenCalled();
       expect(sendMessageMock).toHaveBeenCalledWith({ t: "clear-drawings" });
       expect(result.current.canUndo).toBe(false);
       expect(result.current.canRedo).toBe(false);
+      confirmSpy.mockRestore();
+    });
+
+    it("keeps the drawings and the history when the confirm is dismissed", () => {
+      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+      const { result } = renderClearable();
+
+      drawTwo(result);
+
+      act(() => {
+        result.current.handleClearDrawings();
+      });
+
+      expect(sendMessageMock).not.toHaveBeenCalledWith({ t: "clear-drawings" });
+      expect(result.current.canUndo).toBe(true);
+      confirmSpy.mockRestore();
+    });
+
+    it("does nothing at all for a non-DM — no prompt, no lost history", () => {
+      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+      const { result } = renderClearable(false);
+
+      drawTwo(result);
+
+      act(() => {
+        result.current.handleClearDrawings();
+      });
+
+      // The server rejects a non-DM clear, so the client must not have thrown
+      // away that player's own undo stack on the way.
+      expect(confirmSpy).not.toHaveBeenCalled();
+      expect(sendMessageMock).not.toHaveBeenCalledWith({ t: "clear-drawings" });
+      expect(result.current.canUndo).toBe(true);
+      confirmSpy.mockRestore();
     });
   });
 

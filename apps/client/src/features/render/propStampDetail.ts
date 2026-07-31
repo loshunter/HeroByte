@@ -31,29 +31,59 @@ const rect = (ctx: WearStampContext2D, x: number, y: number, w: number, h: numbe
   if (w > 0 && h > 0) ctx.fillRect(x, y, w, h);
 };
 
-/** Route one prop stamp kind to its painter. */
+/**
+ * Blend a shipped art shade toward an element `tint`, keeping the shade's own
+ * value relationship so the form still reads (a tinted menhir is a different
+ * ROCK, not a flat silhouette). Undefined tint returns the shade untouched, so
+ * every existing prop renders bit-identically. Emits `rgb()` — the shared
+ * fillStyle contract accepts it alongside hex.
+ */
+function tinted(hex: string, tint: string | undefined, t: number): string {
+  if (!tint) return hex;
+  const ch = (h: string, i: number) => parseInt(h.slice(1 + i * 2, 3 + i * 2), 16);
+  const mix = (i: number) => Math.round(ch(hex, i) + (ch(tint, i) - ch(hex, i)) * t);
+  return `rgb(${mix(0)}, ${mix(1)}, ${mix(2)})`;
+}
+
+/** Route one prop stamp kind to its painter. `tint` recolours the MENHIR (the
+ * bundled granite becomes basalt or sandstone — lava cavern study) and the BOAT
+ * HULL (a painted fleet of reds, greens and blues — night cave study); the gull
+ * ignores it, since a recoloured seabird is a different bird. */
 export function paintPropStamp(
   ctx: WearStampContext2D,
   w: number,
   h: number,
   seed: number,
   kind: "boat" | "gull" | "menhir",
+  tint?: string,
 ): void {
-  if (kind === "boat") paintBoat(ctx, w, h, seed);
+  if (kind === "boat") paintBoat(ctx, w, h, seed, tint);
   else if (kind === "gull") paintGull(ctx, w, h, seed);
-  else paintMenhir(ctx, w, h, seed);
+  else paintMenhir(ctx, w, h, seed, tint);
 }
 
 /** Rowboat, bow up: pointed-oval hull sliced into rows — gunwale timber ring
  * around a plank deck — two thwart benches, and two faint wake slivers off
  * the starboard side (the boat-hull grammar's dinghy tier). */
-function paintBoat(ctx: WearStampContext2D, w: number, h: number, seed: number): void {
+function paintBoat(
+  ctx: WearStampContext2D,
+  w: number,
+  h: number,
+  seed: number,
+  tint?: string,
+): void {
   const cx = w / 2;
   const pad = h * 0.06;
   const maxHalf = w * 0.34;
   const gw = Math.max(1.5, w * 0.09);
   const slices = 16;
   const sliceH = (h - 2 * pad) / slices;
+  // A tinted boat is a PAINTED boat: the gunwale takes the hull colour hard,
+  // the deck planks only a little (bare timber inside a painted hull), and the
+  // thwarts and wake are left alone.
+  const gunwale = tinted(PROP_STAMP_ART.boatGunwale, tint, 0.85);
+  const deck = tinted(PROP_STAMP_ART.boatDeck, tint, 0.22);
+  const deckLight = tinted(PROP_STAMP_ART.boatDeckLight, tint, 0.22);
   const halfAt = (t: number): number => {
     const taper = t < 0.55 ? 0.08 + 0.92 * (t / 0.55) : 1 - 0.28 * ((t - 0.55) / 0.45);
     const jitter = 1 + (hash2(Math.round(t * slices), 1, seed) - 0.5) * 0.08;
@@ -63,12 +93,11 @@ function paintBoat(ctx: WearStampContext2D, w: number, h: number, seed: number):
     const t = (i + 0.5) / slices;
     const y = pad + i * sliceH;
     const half = halfAt(t);
-    ctx.fillStyle = PROP_STAMP_ART.boatGunwale;
+    ctx.fillStyle = gunwale;
     rect(ctx, cx - half, y, half * 2, sliceH + 0.5);
     const inner = half - gw;
     if (inner > 0) {
-      ctx.fillStyle =
-        hash2(i, 2, seed) < 0.35 ? PROP_STAMP_ART.boatDeckLight : PROP_STAMP_ART.boatDeck;
+      ctx.fillStyle = hash2(i, 2, seed) < 0.35 ? deckLight : deck;
       rect(ctx, cx - inner, y, inner * 2, sliceH + 0.5);
     }
   }
@@ -109,12 +138,23 @@ function paintGull(ctx: WearStampContext2D, w: number, h: number, seed: number):
 /** Standing stone: an ink-underlay boulder in stacked jittered slices, split
  * lit (sun side, up-right) / shade, seated by a soft ground-shadow blob and
  * aged by sparse moss flecks. */
-function paintMenhir(ctx: WearStampContext2D, w: number, h: number, seed: number): void {
+function paintMenhir(
+  ctx: WearStampContext2D,
+  w: number,
+  h: number,
+  seed: number,
+  tint?: string,
+): void {
   const cx = w / 2;
   const pad = h * 0.08;
   const maxHalf = w * 0.3;
   const slices = 9;
   const sliceH = (h - 2 * pad) / slices;
+  // Tinted granite: the lit face takes most of the hue, the shade and ink less
+  // (they stay the form's darks), and the moss is left alone — lichen is lichen.
+  const lit = tinted(PROP_STAMP_ART.menhirLit, tint, 0.8);
+  const shade = tinted(PROP_STAMP_ART.menhirShade, tint, 0.62);
+  const ink = tinted(PROP_STAMP_ART.menhirInk, tint, 0.45);
   // Ground shadow first, so the stone overdraws its upper edge.
   ctx.globalAlpha = 0.3;
   ctx.fillStyle = PROP_STAMP_ART.menhirShadow;
@@ -127,12 +167,12 @@ function paintMenhir(ctx: WearStampContext2D, w: number, h: number, seed: number
     const half = maxHalf * profile * (1 + (hash2(i, 5, seed) - 0.5) * 0.3);
     const lean = (hash2(i, 6, seed) - 0.5) * w * 0.06;
     // Ink underlay slightly wider than the lit/shade fill = the contour.
-    ctx.fillStyle = PROP_STAMP_ART.menhirInk;
+    ctx.fillStyle = ink;
     rect(ctx, cx + lean - half - 1, y, half * 2 + 2, sliceH + 1);
     const split = 0.35 + (hash2(i, 7, seed) - 0.5) * 0.2;
-    ctx.fillStyle = PROP_STAMP_ART.menhirShade;
+    ctx.fillStyle = shade;
     rect(ctx, cx + lean - half, y + 1, half * 2 * split, sliceH - 1);
-    ctx.fillStyle = PROP_STAMP_ART.menhirLit;
+    ctx.fillStyle = lit;
     rect(ctx, cx + lean - half + half * 2 * split, y + 1, half * 2 * (1 - split), sliceH - 1);
   }
   // Moss flecks near the base.

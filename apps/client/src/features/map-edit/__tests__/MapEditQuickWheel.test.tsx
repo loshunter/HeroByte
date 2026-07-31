@@ -75,7 +75,9 @@ describe("MapEditQuickWheel", () => {
 
   it("a brush pick keeps a floor-consuming tool (Room stays Room)", () => {
     const props = renderWheel({ activeSubTool: "room" });
-    fireEvent.click(screen.getByTitle("Grass"));
+    // Path is priority 1 — always the first ground brush, so this pin survives
+    // new families joining the shelf.
+    fireEvent.click(screen.getByTitle("Path"));
     expect(props.onSelectSubTool).toHaveBeenCalledWith("room");
   });
 

@@ -5,6 +5,7 @@
 // at the bottom.
 
 import type { WearDecalSpec } from "../render/wearStampDetail";
+import { CAVERN_TILE_ASSETS } from "./starterTileCavernAssets";
 import { OBJECT_TILE_ASSETS } from "./starterTileObjectAssets";
 import { STRUCTURE_TILE_ASSETS } from "./starterTileStructureAssets";
 
@@ -12,7 +13,15 @@ import { STRUCTURE_TILE_ASSETS } from "./starterTileStructureAssets";
  * with a VILLAGE_TERRAIN entry) so the live palette derives its grouping from
  * the asset data — a new family declares its shelf HERE, never in a toolbar
  * list (mapEditFamilies falls back to palette routing when absent). */
-export type TileMaterial = "ground" | "water" | "stone" | "wood" | "roof" | "canopy";
+export type TileMaterial =
+  | "ground"
+  | "water"
+  | "molten"
+  | "stone"
+  | "wood"
+  | "roof"
+  | "canopy"
+  | "crystal";
 
 export interface MapStudioTileAsset {
   id: string;
@@ -313,5 +322,6 @@ export const MAP_STUDIO_TILE_ASSETS: MapStudioTileAsset[] = [
     brushNote: "Blossom crowns — pink canopy over everything below",
   },
   ...STRUCTURE_TILE_ASSETS,
+  ...CAVERN_TILE_ASSETS,
   ...OBJECT_TILE_ASSETS,
 ];

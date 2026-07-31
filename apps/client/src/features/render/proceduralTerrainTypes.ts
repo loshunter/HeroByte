@@ -33,6 +33,16 @@ export interface TerrainFieldFamily {
    * `reach` in field units, `strength` the max darkening. */
   contact?: { reach: number; strength: number };
   /**
+   * Emissive spill onto LOWER families (lava cavern study) — the exact inverse
+   * of `contact`: instead of darkening the ring around this family, BRIGHTEN
+   * it toward `color`, strongest at the silhouette and fading to nothing at
+   * `reach` field units. That is what makes molten rock read as a light
+   * source: the stone beside it is lit by it. Applied after the darkening
+   * terms, so a glow is never crushed by the AO it would otherwise fight.
+   * Omitted ⇒ no spill, and the family's neighbours render bit-identically.
+   */
+  glow?: { color: string; reach: number; strength: number };
+  /**
    * Low-frequency tonal clouds under the per-cell detail (Czepeku catalog #1):
    * `amp` is the max value offset (~0.03–0.08), `scale` the wavelength in
    * cells, `cool` shifts dark patches cool and light patches warm (0 ⇒

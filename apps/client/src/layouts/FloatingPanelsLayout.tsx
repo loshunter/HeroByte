@@ -19,6 +19,7 @@ import { VisualEffects } from "../components/effects/VisualEffects";
 import { DiceRoller } from "../components/dice/DiceRoller";
 import { RollLog } from "../components/dice/RollLog";
 import { ToastContainer } from "../components/ui/Toast";
+import { Spinner } from "../components/ui/Spinner";
 import type { ToastMessage } from "../components/ui/Toast";
 import type { MapStudioController } from "../features/map-studio";
 
@@ -174,7 +175,34 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
     return (
       <>
         {isDM && (
-          <Suspense fallback={null}>
+          // Not `null`: elevating to DM fires a success toast and then, while
+          // the chunk downloads, nothing visible happens at all — which reads
+          // as the elevation having failed.
+          <Suspense
+            fallback={
+              <div
+                style={{
+                  position: "fixed",
+                  right: "16px",
+                  bottom: "16px",
+                  zIndex: 1002,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "10px 14px",
+                  background: "var(--jrpg-bg)",
+                  border: "2px solid var(--jrpg-border)",
+                  borderRadius: "4px",
+                  color: "var(--jrpg-text)",
+                  fontFamily: "var(--font-body)",
+                  fontSize: "13px",
+                }}
+              >
+                <Spinner size={14} />
+                Loading DM tools…
+              </div>
+            }
+          >
             <DMMenuContainer
               isDM={isDM}
               onToggleDM={onToggleDM}

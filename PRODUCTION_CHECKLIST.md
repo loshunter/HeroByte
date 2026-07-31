@@ -15,6 +15,7 @@ Use this checklist before deploying to production to catch issues early.
 **Render:**
 
 - [ ] `PORT` is auto-assigned by Render (no action needed)
+- [ ] `HEROBYTE_DATA_DIR` still points at the persistent disk's mount path — this is what keeps room state, uploaded assets, Map Studio documents and hashed room/DM passwords across restarts and redeploys (DEPLOYMENT.md §1F). If it is blank or dropped, every store silently falls back to the `apps/server` package root with no error.
 
 ### 2. Local Testing
 
@@ -99,13 +100,14 @@ git push origin main
 - [ ] View roll history
 - [ ] Upload portrait
 - [ ] Refresh page - portrait persists
+- [ ] Survives the deploy: content created BEFORE this deploy (a token, a portrait, a custom room's password) is still there after it — this is what proves `HEROBYTE_DATA_DIR` still resolves to the persistent disk. A refresh alone passes even on an ephemeral filesystem, because that state lives in server memory.
 - [ ] Voice chat with 2+ clients
 - [ ] Measure tool
 - [ ] Pointer tool
 
 ### 5. Performance Checks
 
-- [ ] No Konva warnings in console (should be 3 layers, not 6)
+- [ ] No Konva warnings in console — 3 layers at rest (background / game / overlay); fog, marquee and transform-gizmo layers are expected extras when those modes are active
 - [ ] Page loads quickly (<3 seconds)
 - [ ] WebSocket connection is stable (no disconnects)
 - [ ] Portrait images load properly
@@ -163,7 +165,7 @@ git push origin main
 **Check:**
 
 - [ ] Server has `saveState()` called after portrait update
-- [ ] Server state file is persisted (check Render persistent disk if configured)
+- [ ] Server state file is persisted — production writes it to the Render persistent disk via `HEROBYTE_DATA_DIR` (see DEPLOYMENT.md §1F); confirm that variable still points at the disk mount
 
 ### Issue: Cloudflare Pages build fails
 

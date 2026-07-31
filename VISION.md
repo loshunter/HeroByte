@@ -142,7 +142,11 @@ Phases, not dates. Each ends at an exit criterion, not a demo. The art track (ti
 
 **M5 — The Table Feels Alive.** DM Deck, Pockets, Battle Strip, Boss Wipe and Victory Screen, Reveal Ritual, whispers/private rolls/handouts, Bestiary damage loop, juice-event channel and JuiceDirector, Mood music, Status Screen and macros, Save Screen recap. *Exit: an outside DM runs a full session with every repeated action at ≤2 inputs (design-review audit); juice is fully governable and reduced-motion complete.*
 
-**M6 — Identity, Cartridge, and the Gate.** Accounts, invite links and Claim Window, co-DM schema migration, `.htcart` export/import with auto-versioning and a rehearsed restore, billing, hosting graduation off free tier, the Hardening Checklist executed, load test at 50 rooms x 6 players, onboarding docs and the long-owed demo GIF. *Exit: PRODUCTION_CHECKLIST green end to end. This is 1.0.*
+**M6 — Identity, Cartridge, and the Gate.** Accounts, invite links and Claim Window, co-DM schema migration, `.htcart` export/import with auto-versioning and a rehearsed restore, billing, the Hardening Checklist executed, load test at 50 rooms x 6 players, onboarding docs and the long-owed demo GIF. *Exit: PRODUCTION_CHECKLIST green end to end. This is 1.0.*
+> **Hosting graduation shipped early (2026-07-30).** The server moved to a paid Render plan with a
+> persistent disk, ahead of M6. Two consequences worth remembering: there is no idle spin-down (so
+> no cold start), and the four on-disk stores survive restarts — which retires the shipped caveat
+> that private rooms lost their passwords on every restart. See [DEPLOYMENT.md](./DEPLOYMENT.md).
 
 **Beyond 1.0.** The Tavern (moderation-gated), Catch-Up Replay (after the delta migration), the creator marketplace, self-host license, Attract Mode, travel mode, region reroll with constraint solving, co-building, SFU voice.
 

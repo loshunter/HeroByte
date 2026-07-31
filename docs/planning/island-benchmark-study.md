@@ -52,26 +52,43 @@ stamps commit following):
 
 Still open, ranked:
 
-1. **Bridge dressing.** Rope sag arcs, X-lashings, plank-striped water
-   shadow — deferred to the spline arc with the rest of rank 11's ribbons.
+1. **Bridge dressing.** Rope sag arcs SHIPPED with the spline arc
+   (`dafd72a` elements, `91dfe72` drag-a-span sub-tool): rope and chain hang
+   with per-segment parabolic sag and post dots, so a deck can be dressed on
+   the live table today. Still open: X-lashings at the ends and the
+   plank-striped water shadow under the deck.
 2. **Prop-kit depth.** The dinghy/gull/menhir trio proves the route; the
    catalog's larger hull tiers, carts, racks and crop rows remain.
 3. **Water dash flocks** barely appear — channels here rarely exceed the
    depth-3 gate. Not a bug; wider oceans would show them.
-4. **Main-thread bake cost** — a 6.7 MPx live-bind freezes the tab ~1 min;
-   a worker/chunked bake is a wanted slice.
+4. ~~**Main-thread bake cost.**~~ SHIPPED as UX overhaul P3 (`d663786`,
+   2026-07-29): `renderTerrainField` runs in a Web Worker and streams bands
+   over an instant flat-colour prefill, with a progress chip; the synchronous
+   path is kept as the fallback when Worker/OffscreenCanvas are absent.
+   Measured against THIS 6.7 MPx document: worst main-thread stall 1.98 s,
+   versus the ~60 s solid freeze.
 
 ## Traps found (and paid for)
 
-- `INTERIOR_FLOOR_ASSET_IDS` (mapEditFamilies) is pinned against the palette
-  by wallVariants.test: ANY new floor-kind family must join the Room/Hallway
-  ring-protection set or the suite fails.
-- The floor swatch union is still three hand-written lists + the type union
-  (mapEditTypes / mapEditFamilies / MapEditToolbar) — cliff + bridge are wired
-  into all of them.
-- The client bakes on the main thread: a 6.7 MPx live-bind freezes the tab for
-  ~a minute. Known cost, but the benchmark makes it visceral — a worker/chunked
-  bake is worth a future slice.
+- `INTERIOR_FLOOR_ASSET_IDS` (mapEditFamilies) is no longer hand-kept: since
+  the painter's deck (`cbf13e4`) it DERIVES from the palette — every
+  ground-level family (priority < 20) carrying a floor, stairs, sunken or
+  polar painter joins the Room/Hallway ring-protection set automatically. What
+  a new family still forces you to update are the LITERAL pins in
+  `wallVariants.test` and `brushDeck.test` (and, since the quick wheel,
+  `mapEditWheel.test`).
+- ~~The floor swatch union is three hand-written lists + a type union.~~ That
+  trap is DEAD as of the painter's deck (`cbf13e4`): paint families are
+  DERIVED from `MAP_STUDIO_TILE_ASSETS` ∩ `VILLAGE_TERRAIN` in
+  `mapEditFamilies.ts`, `MapEditFloorFamily` is now a plain `string` alias, and
+  the deck reads the derivation — a new family is a palette entry plus an asset
+  entry (with `material` + `brushNote`) and nothing else.
+- ~~The client bakes on the main thread.~~ FIXED by the worker bake
+  (`d663786`): the field streams from a Web Worker band by band (banding is
+  byte-identical to the whole render, pinned by test) and the table paints a
+  flat-colour prefill immediately. This document is the one it was measured
+  against — worst stall 1.98 s, was ~60 s. No Worker/OffscreenCanvas ⇒ the
+  exact pre-P3 synchronous path.
 - Dev-drive recipe for live verification without the UI file picker: serve the
   JSON from `public/`, then `window.__HERO_BYTE_E2E__.sendMessage` →
   `elevate-to-dm` (dmPassword), `map-studio-import` (document), and

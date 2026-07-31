@@ -33,6 +33,9 @@
   --hero-text-light: #f0e2c3;
   --hero-text-dim: #a89878;
   --hero-text-accent: #dbe1ff;
+  /* Referenced by MobilePlayerRow but never defined, so that label had no
+     colour at all and fell back to whatever it inherited. */
+  --hero-white: #ffffff;
 
   /* Semantic Colors */
   --hero-enemy: #ff0000;
@@ -55,6 +58,15 @@
   /* Typography */
   --font-pixel: "Press Start 2P", monospace;
   --font-enchanted: "MedievalSharp", serif;
+  /*
+   * Body face for PROSE ONLY — paragraphs, help text, error messages, hints.
+   * Headings, labels, buttons and stat readouts stay on --font-pixel; the
+   * retro identity lives in the chrome, not in the sentences. 10px Press Start
+   * 2P is close to unreadable in a long string, which is the single biggest
+   * legibility problem the UI had.
+   */
+  --font-body:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
   /* Animation Timing */
   --anim-fast: 150ms;
@@ -349,7 +361,14 @@ input[type="range"]:disabled {
 /* ----------------------------------------------------------------------------
    TEXT INPUTS
    ---------------------------------------------------------------------------- */
+/*
+ * `number` and `password` were missing, so those fields fell through to the
+ * browser default — an NPC's HP inputs rendered in 13px Arial directly beside a
+ * 10px pixel-font Name field in the same form row.
+ */
 input[type="text"],
+input[type="number"],
+input[type="password"],
 input[type="color"],
 textarea,
 select {
@@ -364,10 +383,24 @@ select {
 }
 
 input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="password"]:focus,
 textarea:focus,
 select:focus {
   border-color: var(--hero-blue);
   box-shadow: 0 0 8px var(--hero-blue-glow);
+}
+
+/*
+ * Fields whose CONTENT you have to read back character by character take the
+ * body face, while keeping the shared border/background above. A password you
+ * cannot proof-read and an HP value you cannot read at a glance are exactly the
+ * cases where 10px pixel type costs more than it earns.
+ */
+input[type="number"],
+input[type="password"] {
+  font-family: var(--font-body);
+  font-size: 13px;
 }
 
 input[type="color"] {
@@ -825,6 +858,47 @@ h4 {
     flicker 0.15s infinite,
     phosphor-glow 3s ease-in-out infinite;
   filter: blur(40px);
+}
+
+/* ---------------------------------------------------------------------------
+ * CRT SOFTENING WHILE A PANEL IS OPEN
+ * ---------------------------------------------------------------------------
+ * The filter is a full-screen fixed overlay, so it lands on panel text as
+ * readily as on the map. Over the map it is the whole point; over a settings
+ * form it is scanlines and a 40px phosphor blur on top of small type and error
+ * messages. `data-panels-open` is published by panelPresence.ts whenever any
+ * DraggableWindow is mounted.
+ *
+ * Softened, never removed: the scanlines stay visible so the identity holds,
+ * but the animated bloom — by far the worst offender for legibility — stops
+ * and the aberration goes. Transitioned so it reads as the UI responding to
+ * you rather than the effect glitching off.
+ */
+.crt-filter,
+.crt-vignette {
+  transition:
+    opacity var(--anim-normal) ease,
+    filter var(--anim-normal) ease;
+}
+
+:root[data-panels-open] .crt-filter {
+  opacity: 0.35;
+  /* Drop the brightness/contrast push: it was washing out panel text. */
+  filter: none;
+}
+
+:root[data-panels-open] .crt-filter::after {
+  /* The animated 40px phosphor bloom — the single biggest legibility cost. */
+  opacity: 0;
+  animation: none;
+}
+
+:root[data-panels-open] .crt-filter::before {
+  opacity: 0;
+}
+
+:root[data-panels-open] .crt-vignette {
+  opacity: 0.5;
 }
 
 .crt-vignette {

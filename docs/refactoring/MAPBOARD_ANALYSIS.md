@@ -267,7 +267,7 @@ Lines 497-757: JSX/Render
 
 This file has been successfully transformed from a 1,034 LOC god file into a clean, maintainable 528 LOC orchestration component. All complex logic has been extracted into focused, reusable, well-tested modules.
 
-**See [PHASE_7_COMPLETE.md](./PHASE_7_COMPLETE.md) for full completion details.**
+**See the MapBoard.tsx Phase 7 section of [REFACTOR_ROADMAP.md](./REFACTOR_ROADMAP.md) for full completion details.** (The standalone PHASE_7_COMPLETE.md handoff was deleted in commit `e3bdad1d`; the unrelated PHASE_7_SAFETY_NET_COMPLETE.md is a different Phase 7 — the websocket-refactor safety net.)
 
 ---
 

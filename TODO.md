@@ -372,23 +372,23 @@ _Shared planning brief with Phase 19: `docs/planning/phase19-20-briefing.md`._
 
 ## High Priority (Post-MVP)
 
-- [ ] Initiative tracker
-  - [ ] Add/remove combatants
-  - [ ] Track turn order
-  - [ ] HP tracking
-  - [ ] Status effects
+- [x] Initiative tracker
+  - [x] Add/remove combatants
+  - [x] Track turn order
+  - [x] HP tracking
+  - [x] Status effects
 
 - [ ] Token improvements
-  - [ ] Right-click context menu for tokens
-  - [ ] Token rotation
+  - [x] Right-click context menu for tokens
+  - [x] Token rotation
   - [ ] Token name labels
 
 ## Medium Priority
 
 - [ ] Map layers
-  - [ ] Fog of war / vision layer
-  - [ ] DM-only layer for hidden objects
-  - [ ] Multiple map layers (background, objects, tokens)
+  - [x] Fog of war / vision layer
+  - [ ] DM-only layer for hidden objects (per-element DM visibility ships today; a dedicated layer does not)
+  - [x] Multiple map layers (background, objects, tokens)
 
 - [ ] UI/UX improvements
   - [ ] Keyboard shortcuts
@@ -403,7 +403,7 @@ _Shared planning brief with Phase 19: `docs/planning/phase19-20-briefing.md`._
 
 - [ ] Audio features
   - [ ] Background music player
-  - [ ] Sound effects
+  - [x] Sound effects
   - [ ] Ambient soundscapes
 
 - [ ] Character sheets
@@ -431,10 +431,10 @@ _Shared planning brief with Phase 19: `docs/planning/phase19-20-briefing.md`._
   - [ ] Authentication system
   - [ ] Session encryption
 
-- [ ] Testing (see CRITICAL section above)
-  - [ ] Unit tests for shared logic
-  - [ ] Integration tests for WebSocket communication
-  - [ ] E2E tests for critical workflows
+- [x] Testing (see CRITICAL section above)
+  - [x] Unit tests for shared logic — 268 tests in `packages/shared/src/__tests__/`
+  - [x] Integration tests for WebSocket communication — 1,697 server tests including `apps/server/src/ws/**/__tests__/`
+  - [x] E2E tests for critical workflows — 60 Playwright tests across 25 specs in `apps/e2e/`
 
 - [ ] Documentation (see CRITICAL section above)
   - [ ] API documentation

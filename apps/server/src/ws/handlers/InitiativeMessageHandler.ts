@@ -170,7 +170,11 @@ export class InitiativeMessageHandler {
 
     state.combatActive = false;
     state.currentTurnCharacterId = undefined;
-    this.characterService.clearAllInitiative(state);
+    // Deliberately does NOT clear initiative. Ending combat used to wipe every
+    // rolled value, which the label, the panel copy, and the existence of a
+    // separate "Clear All Initiative" button directly beneath it all imply it
+    // does not — so pausing a fight cost the table a full re-roll. Discarding
+    // the rolls is its own explicit action (`clear-all-initiative`).
     console.log(`Combat ended by ${senderUid}`);
 
     return { broadcast: true, save: true };

@@ -60,7 +60,12 @@ const Toast: React.FC<ToastProps> = ({ message, onDismiss }) => {
       display: "flex",
       alignItems: "center",
       gap: "8px",
+      // Toasts are the most-read prose in the app and they appear at the moment
+      // something has just gone right or wrong, so they get the body face. Left
+      // to inherit, they took the global pixel font from `body`.
+      fontFamily: "var(--font-body)",
       fontSize: "0.875rem",
+      lineHeight: 1.45,
       fontWeight: 600,
       boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
       animation: isExiting ? "toast-exit 0.3s ease-out forwards" : "toast-enter 0.3s ease-out",
@@ -71,31 +76,31 @@ const Toast: React.FC<ToastProps> = ({ message, onDismiss }) => {
       case "success":
         return {
           ...baseStyles,
-          background: "var(--jrpg-success-bg, #1a3d2e)",
-          borderColor: "var(--jrpg-success-border, #5affad)",
-          color: "var(--jrpg-success-text, #5affad)",
+          background: "var(--jrpg-success-bg)",
+          borderColor: "var(--jrpg-success-border)",
+          color: "var(--jrpg-success-text)",
         };
       case "error":
         return {
           ...baseStyles,
-          background: "var(--jrpg-error-bg, #3d1a1a)",
-          borderColor: "var(--jrpg-error-border, #ff5a5a)",
-          color: "var(--jrpg-error-text, #ff5a5a)",
+          background: "var(--jrpg-error-bg)",
+          borderColor: "var(--jrpg-error-border)",
+          color: "var(--jrpg-error-text)",
         };
       case "warning":
         return {
           ...baseStyles,
-          background: "var(--jrpg-warning-bg, #3d2e1a)",
-          borderColor: "var(--jrpg-warning-border, #ffc107)",
-          color: "var(--jrpg-warning-text, #ffc107)",
+          background: "var(--jrpg-warning-bg)",
+          borderColor: "var(--jrpg-warning-border)",
+          color: "var(--jrpg-warning-text)",
         };
       case "info":
       default:
         return {
           ...baseStyles,
-          background: "var(--jrpg-info-bg, #1a2a3d)",
-          borderColor: "var(--jrpg-info-border, #5a9fff)",
-          color: "var(--jrpg-info-text, #5a9fff)",
+          background: "var(--jrpg-info-bg)",
+          borderColor: "var(--jrpg-info-border)",
+          color: "var(--jrpg-info-text)",
         };
     }
   };

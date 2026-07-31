@@ -69,9 +69,9 @@ describe("AuthenticationGate - Characterization", () => {
       );
 
       // Should show auth form
-      expect(screen.getByText("Join Your Room")).toBeInTheDocument();
-      expect(screen.getByPlaceholderText("Room password")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /enter room/i })).toBeInTheDocument();
+      expect(screen.getByText("Join Your Table")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("Table password")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /enter table/i })).toBeInTheDocument();
 
       // Should NOT show protected content
       expect(screen.queryByText("Protected Content")).not.toBeInTheDocument();
@@ -190,7 +190,7 @@ describe("AuthenticationGate - Characterization", () => {
       expect(screen.getByText("Protected Content")).toBeInTheDocument();
 
       // Should NOT show auth form
-      expect(screen.queryByText("Join Your Room")).not.toBeInTheDocument();
+      expect(screen.queryByText("Join Your Table")).not.toBeInTheDocument();
     });
 
     it("should show re-authentication banner when disconnected after authentication", () => {
@@ -257,8 +257,8 @@ describe("AuthenticationGate - Characterization", () => {
         </AuthenticationGate>,
       );
 
-      const passwordInput = screen.getByPlaceholderText("Room password");
-      const submitButton = screen.getByRole("button", { name: /enter room/i });
+      const passwordInput = screen.getByPlaceholderText("Table password");
+      const submitButton = screen.getByRole("button", { name: /enter table/i });
 
       fireEvent.change(passwordInput, { target: { value: "test-password" } });
       fireEvent.click(submitButton);
@@ -287,8 +287,8 @@ describe("AuthenticationGate - Characterization", () => {
         </AuthenticationGate>,
       );
 
-      const passwordInput = screen.getByPlaceholderText("Room password");
-      const submitButton = screen.getByRole("button", { name: /enter room/i });
+      const passwordInput = screen.getByPlaceholderText("Table password");
+      const submitButton = screen.getByRole("button", { name: /enter table/i });
 
       fireEvent.change(passwordInput, { target: { value: "test-password" } });
       fireEvent.click(submitButton);
@@ -316,7 +316,7 @@ describe("AuthenticationGate - Characterization", () => {
         </AuthenticationGate>,
       );
 
-      const submitButton = screen.getByRole("button", { name: /enter room/i });
+      const submitButton = screen.getByRole("button", { name: /enter table/i });
 
       fireEvent.click(submitButton);
 
@@ -343,8 +343,8 @@ describe("AuthenticationGate - Characterization", () => {
         </AuthenticationGate>,
       );
 
-      const passwordInput = screen.getByPlaceholderText("Room password");
-      const submitButton = screen.getByRole("button", { name: /enter room/i });
+      const passwordInput = screen.getByPlaceholderText("Table password");
+      const submitButton = screen.getByRole("button", { name: /enter table/i });
 
       fireEvent.change(passwordInput, { target: { value: "  test-password  " } });
       fireEvent.click(submitButton);
@@ -398,7 +398,7 @@ describe("AuthenticationGate - Characterization", () => {
         </AuthenticationGate>,
       );
 
-      const passwordInput = screen.getByPlaceholderText("Room password") as HTMLInputElement;
+      const passwordInput = screen.getByPlaceholderText("Table password") as HTMLInputElement;
       expect(passwordInput.value).toBe("stored-password");
     });
 
@@ -421,8 +421,8 @@ describe("AuthenticationGate - Characterization", () => {
         </AuthenticationGate>,
       );
 
-      const passwordInput = screen.getByPlaceholderText("Room password");
-      const submitButton = screen.getByRole("button", { name: /enter room/i });
+      const passwordInput = screen.getByPlaceholderText("Table password");
+      const submitButton = screen.getByRole("button", { name: /enter table/i });
 
       fireEvent.change(passwordInput, { target: { value: "test-password" } });
       fireEvent.click(submitButton);
@@ -634,7 +634,7 @@ describe("AuthenticationGate - Characterization", () => {
       );
 
       // Should show auth form again
-      expect(screen.getByText("Join Your Room")).toBeInTheDocument();
+      expect(screen.getByText("Join Your Table")).toBeInTheDocument();
       expect(screen.queryByText("Protected Content")).not.toBeInTheDocument();
     });
   });

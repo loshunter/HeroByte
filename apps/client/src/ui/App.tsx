@@ -178,11 +178,21 @@ function AuthenticatedApp({
     registerRtcHandler,
   });
 
+  // DM role detection (client override allows immediate DM menu closing during
+  // revocation). Declared here rather than further down because the drawing
+  // manager needs it: clearing all drawings is a DM-only server operation, and
+  // a non-DM must not lose their local undo history to a call the server will
+  // reject.
+  const { isDM: serverIsDM } = useDMRole({ snapshot, uid, send: sendMessage });
+  const [dmRevocationPending, setDmRevocationPending] = useState(false);
+  const isDM = serverIsDM && !dmRevocationPending;
+
   // Drawing state manager
   const drawingManager = useDrawingStateManager({
     sendMessage,
     drawMode,
     setActiveTool,
+    canClearDrawings: isDM,
   });
 
   // Heartbeat to prevent timeout (only when authenticated to avoid server drops)
@@ -468,11 +478,6 @@ function AuthenticatedApp({
   // DM-specific hooks have been moved to useDMContext
   // and are now instantiated only when isDM is true via DMMenuContainer
   // This reduces bundle size for non-DM players by ~12-18 KB
-
-  // DM role detection (client override allows immediate DM menu closing during revocation)
-  const { isDM: serverIsDM } = useDMRole({ snapshot, uid, send: sendMessage });
-  const [dmRevocationPending, setDmRevocationPending] = useState(false);
-  const isDM = serverIsDM && !dmRevocationPending;
 
   useEffect(() => {
     if (!serverIsDM) {

@@ -10,7 +10,7 @@
 
 This roadmap provides a systematic plan to refactor the three largest files in the HeroByte codebase:
 
-| File | Current LOC | Target LOC | Reduction | Complexity Clusters | Est. Effort | Status |
+| File | LOC at Phase 15 close (2025-11-10) | Target LOC | Reduction | Complexity Clusters | Est. Effort | Status |
 |------|-------------|------------|-----------|---------------------|-------------|--------|
 | **App.tsx** | 1,850 → 519 | 300 | 72% | 27 clusters | 8-10 weeks | ✅ COMPLETE (All 7 Phases) |
 | **DMMenu.tsx** | 1,588 → 265 | 350 | 83% | 20 clusters | 6-8 weeks | ✅ COMPLETE (All 6 Phases) |
@@ -18,6 +18,13 @@ This roadmap provides a systematic plan to refactor the three largest files in t
 | **Total** | **4,472** → **1,312** | **1,050** | **71%** | **79 clusters** | **20-26 weeks** | **3,160 LOC reduced** |
 
 **🎉🎉🎉 ALL 3 GOD FILES COMPLETE - PHASE 15 INITIATIVE FINISHED! 🎉🎉🎉**
+
+> **Historical document — do not cite it for current file sizes.** Every LOC
+> figure below is the measurement taken when the phase closed on 2025-11-10. The
+> files have since grown with new feature work: as of 2026-07-30
+> `pnpm lint:structure` reports **App.tsx at 861 LOC** and **MapBoard.tsx at 814
+> LOC** (both flagged over the 350 LOC limit again), DMMenu.tsx at 256 LOC, and
+> 24 flagged files repo-wide. Run `pnpm lint:structure` for live numbers.
 
 **App.tsx Refactoring Summary:**
 - **Total Reduction:** 1,331 LOC (72% reduction: 1,850 → 519)
@@ -113,7 +120,7 @@ This roadmap provides a systematic plan to refactor the three largest files in t
 
 ## File 1: App.tsx (1,850 LOC → 519 LOC) ✅ COMPLETE
 
-### Current Status
+### Status at Phase 15 close (2025-10-20) — App.tsx is 861 LOC today
 - **Starting LOC:** 1,850
 - **Final LOC:** 519
 - **Total Reduction:** 1,331 LOC (72% reduction)
@@ -248,7 +255,7 @@ This roadmap provides a systematic plan to refactor the three largest files in t
 
 ### App.tsx Final State ✅ ACHIEVED
 
-After all extractions, App.tsx is now **519 LOC** (exceeded original 300 LOC target expectations):
+At the close of Phase 15 (2025-10-20), App.tsx was **519 LOC** (exceeded original 300 LOC target expectations). It has since grown back to 861 LOC; the breakdown below describes the 2025-10-20 state:
 - Authentication routing (~100 LOC)
 - Hook composition and orchestration (~300 LOC)
 - State providers (~70 LOC)
@@ -265,7 +272,7 @@ After all extractions, App.tsx is now **519 LOC** (exceeded original 300 LOC tar
 
 ## File 2: DMMenu.tsx (1,588 LOC → 265 LOC) ✅ COMPLETE
 
-### Current Status
+### Status at Phase 15 close (2025-10-22) — DMMenu.tsx is 256 LOC today
 - **Starting LOC:** 1,588
 - **Final LOC:** 265
 - **Total Reduction:** 1,323 LOC (83% reduction)
@@ -360,7 +367,7 @@ After all extractions, App.tsx is now **519 LOC** (exceeded original 300 LOC tar
 
 ### DMMenu.tsx Final State ✅ ACHIEVED
 
-After all extractions, DMMenu.tsx is now **265 LOC** (FAR EXCEEDED 350 LOC target):
+At the close of Phase 15 (2025-10-22), DMMenu.tsx was **265 LOC** (FAR EXCEEDED the 350 LOC target). It measures 256 LOC today and remains comfortably under the limit:
 - Component state (~30 LOC)
 - Tab navigation (~35 LOC)
 - Window container (~50 LOC)
@@ -377,7 +384,7 @@ After all extractions, DMMenu.tsx is now **265 LOC** (FAR EXCEEDED 350 LOC targe
 
 ## File 3: MapBoard.tsx (1,034 LOC → 528 LOC) ✅ COMPLETE
 
-### Current Status
+### Status at Phase 15 close (2025-11-10) — MapBoard.tsx is 814 LOC today
 - **Starting LOC:** 1,034
 - **Final LOC:** 528
 - **Total Reduction:** 506 LOC (49% reduction)
@@ -526,7 +533,7 @@ After all extractions, DMMenu.tsx is now **265 LOC** (FAR EXCEEDED 350 LOC targe
 
 ### MapBoard.tsx Final State ✅ ACHIEVED
 
-After all 7 phases, MapBoard.tsx is now **528 LOC** (exceeded 400 LOC target!):
+At the close of Phase 15 (2025-11-10), MapBoard.tsx was **528 LOC** (exceeded the 400 LOC target). It has since grown to 814 LOC; the breakdown below describes the 2025-11-10 state:
 - **Imports & Types:** ~50 LOC
 - **Hook Composition:** ~175 LOC (15 custom hooks)
 - **Callbacks:** ~40 LOC (node registration, map click, token recolor)
@@ -659,7 +666,7 @@ apps/client/src/
 
 **Quality Metrics (All Files):**
 - [x] ✅ Test coverage maintained (>80% per module)
-- [x] ✅ Zero new violations of 350 LOC limit
+- [x] ✅ Zero new violations of the 350 LOC limit _during the refactor_ (24 files are flagged today — run `pnpm lint:structure`)
 - [x] ✅ All CI checks passing after each extraction
 - [x] ✅ All characterization tests written and passing
 - [x] ✅ No behavioral regressions detected
@@ -801,7 +808,7 @@ apps/client/src/
 
 **Maintained By:** Engineering Team
 **Related Documents:**
-- [TODO.md Phase 15](/TODO.md#phase-15-solid-refactor-initiative-future)
+- [TODO.md](../../TODO.md) — note: TODO.md's "Phase 15" now refers to the Palette & Color System, not this refactor initiative
 - [REFACTOR_PLAYBOOK.md](./REFACTOR_PLAYBOOK.md)
 - [NEXT_STEPS.md](./NEXT_STEPS.md) - Phase 1 lessons learned and Phase 2 guidance
-- [CONTRIBUTING.md](/CONTRIBUTING.md#structural-guardrails)
+- [CONTRIBUTING.md](../../CONTRIBUTING.md#structural-guardrails)

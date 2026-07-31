@@ -9,7 +9,7 @@
 
 **A retro-inspired virtual tabletop for epic adventures online**
 
-> **🚧 BETA STATUS (v0.9.0-beta.1)**: HeroByte is feature-complete for live playtesting but not production-hardened. Core features are stable with 80%+ test coverage, but authentication and some polish items are still in development. Perfect for private game nights—expect occasional rough edges!
+> **🚧 BETA STATUS (v0.9.0-beta.1)**: HeroByte is feature-complete for live playtesting but not production-hardened. Core features are stable and covered by 6,753 automated tests, but authentication and some polish items are still in development. Perfect for private game nights—expect occasional rough edges!
 
 </div>
 
@@ -141,7 +141,7 @@ The server reads more variables than these (storage paths, room limits, feature 
 | `pnpm dev:doctor`    | Inspect the normal dev ports without stopping anything  |
 | `pnpm dev:free`      | Safely release stale HeroByte dev processes             |
 | `pnpm build`         | Build both server and client bundles                    |
-| `pnpm test`          | Run full test suite (352 tests)                         |
+| `pnpm test`          | Run full test suite (6,753 tests)                       |
 | `pnpm test:e2e`      | Run Playwright E2E tests on isolated `5175` and `8788`  |
 | `pnpm e2e:doctor`    | Inspect the E2E ports without stopping anything         |
 | `pnpm test:shared`   | Execute unit tests for shared domain models             |
@@ -170,7 +170,7 @@ The server reads more variables than these (storage paths, room limits, feature 
 - **Rate Limiting** – 100 messages/second per client with token bucket algorithm
 - **Session Management** – Heartbeat system prevents client timeouts
 - **Error Resilience** – Error boundary component with graceful error handling and recovery options
-- **Performance Optimized** – 53 KB entry bundle (gzipped), lazy-loaded DM tools save 11.85 KB for regular players
+- **Performance Optimized** – ~86 KB entry bundle (gzipped) against a CI-enforced 175 KB budget; DM tooling, the Konva map canvas, the map-edit toolbar, and the terrain baker all load as lazy chunks
 
 ### 🗺️ Interactive Map Canvas
 
@@ -204,20 +204,46 @@ The server reads more variables than these (storage paths, room limits, feature 
 - **Animated Portraits** – Custom portraits that light up when you talk
 - **Character System** – Server-side PC/NPC management with ownership tracking
 
+### 🏰 Live Map Building
+
+- **In-Table Map Editor** – Paint terrain, place props, and build rooms/hallways without leaving the live table
+- **Procedural Terrain** – Painted floor, wall, water, canopy, and decal families baked in a background worker
+- **Quick Wheel & Brush Deck** – Right-click radial tool picker and a one-glance brush palette
+- **Dungeon Generator** – Server-side room/corridor generation you can drop straight onto the table
+- **Layers** – Visibility, lock, opacity, and reorder for every authored layer
+
+### 🔦 Lighting, Fog & Visibility
+
+- **Fog of War** – DM-controlled fog with wall/door vision blocking
+- **Light Pools & Night Grade** – Emissive light sources, contact shadows, and a night colour grade
+- **Player Lens** – One toggle shows the DM exactly what players can see
+
+### 🎛️ DM Tools
+
+- **Initiative & Turn Order** – Roll, sort, advance turns, and clear initiative for players and NPCs
+- **NPCs, Props & Staging Zones** – Create NPCs, place props, and define where players spawn
+- **Session Save/Load** – Export and re-import the full game state as JSON
+- **Private Rooms** – Multiple rooms with per-room passwords and a separate DM password
+
+### 📱 Presentation & Feel
+
+- **Mobile Layout** – Touch-first panels, dice roller, and pan/zoom for phones and tablets
+- **SNES-Style SFX** – Sample-based sound effects, floating damage numbers, and dice juice
+
 ---
 
 ## 🧪 Testing
 
-HeroByte maintains **100% automated testing** with comprehensive coverage across all layers:
+HeroByte runs **6,753 automated unit/integration tests plus 60 Playwright end-to-end tests** across all layers:
 
 ### Test Suite Status: ✅ **All Tests Passing**
 
-| Package       | Test Files | Coverage        | Status     |
-| ------------- | ---------- | --------------- | ---------- |
-| **Shared**    | 3 files    | 99.57%          | ✅ Passing |
-| **Server**    | ~50 files  | 80.99%          | ✅ Passing |
-| **Client**    | 110 files  | Comprehensive   | ✅ Passing |
-| **E2E Suite** | 10 tests   | Full user flows | ✅ Passing |
+| Package       | Test Files    | Tests | Status     |
+| ------------- | ------------- | ----- | ---------- |
+| **Shared**    | 19 files      | 268   | ✅ Passing |
+| **Server**    | 90 files      | 1,697 | ✅ Passing |
+| **Client**    | 222 files     | 4,788 | ✅ Passing |
+| **E2E Suite** | 25 spec files | 60    | ✅ Passing |
 
 ### Major Testing Achievements
 
@@ -230,35 +256,41 @@ HeroByte maintains **100% automated testing** with comprehensive coverage across
 
 ### What's Tested
 
-**E2E Coverage** (10 comprehensive tests, ~46 seconds):
+**E2E Coverage** (60 tests across 25 spec files; CI runs a 4-spec smoke subset on every push/PR and the full suite nightly):
 
 - Authentication flow and WebSocket connection
 - Drawing tools with persistence through page reload
 - Partial erase and drawing segmentation
 - Multi-select with marquee selection
+- Undo/redo across drawing and token actions
 - Dice rolling and result display
 - Session save/load with DM export
 - **Two-browser synchronization** – Real-time WebSocket sync validation
+- Four-session grid synchronization
 - Voice chat UI and controls
 - Reconnection handling and state restoration
 - Player state persistence (HP, tokens)
+- Character creation and NPC visibility
+- Initiative rolls and turn navigation
+- Live map toolbar, staging zones, and dungeon generation
+- Transform tool, map navigation, and mobile layout
 
-**Unit & Integration** (342 tests):
+**Unit & Integration** (6,753 tests across 331 files):
 
-- Domain model validation (99.57% coverage)
-- Server-side services and middleware (80.99% coverage)
-- Client hooks and components (76 tests)
+- Domain model validation — shared package (268 tests, 19 files)
+- Server-side services, middleware, and WebSocket handlers (1,697 tests, 90 files)
+- Client hooks, components, and the terrain render pipeline (4,788 tests, 222 files)
 
 ### Running Tests
 
 ```bash
-# Run all tests (352 total, ~3 minutes)
+# Run all tests (6,753 total across shared, server, and client)
 pnpm test
 
 # Run tests in parallel across workspaces (bash/WSL/Git Bash only, requires ~4GB+ RAM)
 pnpm test:parallel
 
-# Run E2E tests only (10 tests, ~46 seconds)
+# Run E2E tests only (60 tests across 25 spec files)
 pnpm test:e2e
 
 # Run with coverage reports
@@ -274,7 +306,7 @@ Playwright runs on isolated local ports (`5175` frontend, `8788` backend), so E2
 
 ### Testing Architecture
 
-HeroByte implements a **3-tier test optimization strategy** that maintains 100% coverage while reducing runtime by 70-80% through intelligent batching, suite optimizations, and parallel execution.
+HeroByte implements a **3-tier test optimization strategy** that preserves coverage while cutting runtime through intelligent batching, suite optimizations, and parallel execution.
 
 #### Tier 1: CI Matrix Batching
 
@@ -354,7 +386,7 @@ it("should auto-dismiss after 3000ms", () => {
 });
 ```
 
-**Results:** Reduced test count from ~150 to ~40 in optimized suites while maintaining 100% coverage.
+**Results:** Reduced test count from ~150 to ~40 in the optimized suites without losing coverage of the behaviour under test.
 
 #### Tier 3: Parallel Opt-In
 
@@ -478,15 +510,16 @@ HeroByte is a monorepo built with **domain-driven design** and strict separation
 
 HeroByte uses **role-based code splitting** to optimize bundle size:
 
-- **Entry Bundle**: 53 KB (gzipped) – Core game features load immediately for all users
-- **DM Tooling**: 11.85 KB lazy chunk – Only loads when user elevates to Dungeon Master
-- **Map Rendering**: 15.38 KB lazy chunk – Konva-based canvas split separately
-- **Total Savings**: Regular players load 49.5% less code compared to pre-split architecture
+- **Entry Bundle**: ~86 KB (gzipped) – Core game features load immediately for all users
+- **DM/voice tooling**: ~18 KB lazy chunk – Only loads when a user elevates to Dungeon Master
+- **Map Rendering**: ~32 KB lazy chunk – Konva-based canvas split separately
+- **Map-edit toolbar**: ~7 KB lazy chunk – Live authoring UI loads only in map-edit mode
+- **Vendor splits**: Konva, React, and WebRTC ship as separate cacheable chunks
 
 **Performance Monitoring**:
 
-- **Bundle Guard**: CI enforces 175 KB gzipped limit on entry bundle (121.48 KB remaining, 69.4% under budget)
-- **Lighthouse CI**: Tracks Web Vitals (LCP <3s, TBT <250ms, CLS <0.1) on every PR
+- **Bundle Guard**: `apps/client/scripts/check-bundle-size.mjs` fails CI if the entry bundle exceeds 175 KB gzipped (currently ~86 KB, roughly half the budget)
+- **Lighthouse CI**: Tracks Web Vitals (LCP <3s, TBT <250ms, CLS <0.1) on PRs touching `apps/client`, `packages/shared`, or the Lighthouse config, plus a weekly baseline run
 - **Reports**: Available in GitHub artifacts and PR comments (7-day retention)
 - **Philosophy**: Non-blocking warnings encourage optimization without blocking features
 
@@ -545,19 +578,23 @@ HeroByte/
 ├── apps/
 │   ├── client/          # React frontend
 │   │   └── src/
-│   │       ├── features/          # Feature modules (map, dice, drawing)
+│   │       ├── components/        # Shared UI primitives and layout chrome
+│   │       ├── features/          # Feature modules (map, map-edit, render, dice, drawing, dm, initiative, juice, rooms)
 │   │       ├── hooks/             # Custom React hooks
+│   │       ├── layouts/           # Desktop and mobile layout shells
 │   │       ├── services/          # WebSocket, voice chat services
 │   │       ├── theme/             # Styling and themes
-│   │       └── ui/                # UI components
-│   └── server/          # WebSocket server
-│       └── src/
-│           ├── domains/           # Domain services (Room, Player, Token, Map, Dice, Character)
-│           ├── middleware/        # Validation, rate limiting
-│           ├── http/              # HTTP routes (health checks)
-│           ├── ws/                # WebSocket connection handler
-│           ├── container.ts       # Dependency injection container
-│           └── index.ts           # Bootstrap layer
+│   │       ├── utils/             # Shared helpers
+│   │       └── ui/                # App shell and MapBoard canvas
+│   ├── server/          # WebSocket server
+│   │   └── src/
+│   │       ├── domains/           # Domain services (Room, Player, Token, Map, Dice, Character, Generation, Assets)
+│   │       ├── middleware/        # Validation orchestrator + per-domain validators, rate limiting
+│   │       ├── http/              # HTTP routes (health checks)
+│   │       ├── ws/                # Connection handler, router, dispatchers, handlers, lifecycle
+│   │       ├── container.ts       # Dependency injection container
+│   │       └── index.ts           # Bootstrap layer
+│   └── e2e/             # Playwright end-to-end specs
 ├── packages/
 │   ├── shared/          # Shared types between client/server
 │   └── adapters-net/    # Network adapter

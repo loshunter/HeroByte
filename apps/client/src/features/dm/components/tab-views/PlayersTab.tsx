@@ -109,10 +109,16 @@ export default function PlayersTab({
             </div>
 
             {/* Clear Initiative */}
+            {/*
+              Not gated on combatActive: the server handler has no such
+              precondition, and clearing BEFORE combat is the only way to
+              re-roll a pre-combat initiative — "Roll all Initiative" skips
+              anyone who already has a value. Disabling it here meant the DM
+              had to start combat purely in order to clear it.
+            */}
             <JRPGButton
               onClick={onClearAllInitiative}
               variant="default"
-              disabled={!combatActive}
               style={{ width: "100%", fontSize: "10px", padding: "6px 8px" }}
             >
               🗑️ Clear All Initiative

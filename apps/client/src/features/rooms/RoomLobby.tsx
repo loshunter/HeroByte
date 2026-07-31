@@ -86,6 +86,7 @@ export function RoomLobby({
   const [joinCode, setJoinCode] = useState("");
   const [joinError, setJoinError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copyFallback, setCopyFallback] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [newRoomPassword, setNewRoomPassword] = useState("");
   const [newDmPassword, setNewDmPassword] = useState("");
@@ -111,7 +112,7 @@ export function RoomLobby({
     const roomPassword = newRoomPassword.trim();
     const dmPassword = newDmPassword.trim();
     if (roomPassword.length < 6) {
-      setCreateError("Room password needs at least 6 characters.");
+      setCreateError("Table password needs at least 6 characters.");
       return;
     }
     if (dmPassword && dmPassword.length < 8) {
@@ -124,11 +125,16 @@ export function RoomLobby({
     try {
       await onCreateRoom({ roomId, roomPassword, dmPassword: dmPassword || undefined });
       // Pre-seed the password so the new room authenticates the creator without
-      // a second prompt, then navigate into it.
-      stashRoomSecret(roomPassword);
+      // a second prompt, then navigate into it. Scoped to the room we just
+      // minted, not to whatever table the URL currently names.
+      stashRoomSecret(roomPassword, roomId);
       onNavigate(roomId);
     } catch (error) {
       setCreateError(error instanceof Error ? error.message : "Couldn't create the table.");
+    } finally {
+      // `finally`, not just the catch: on the success path we navigate away, but
+      // if navigation is stubbed or blocked the button must not stay stuck on
+      // "Creating..." with no way back except a reload.
       setCreateBusy(false);
     }
   };
@@ -137,7 +143,12 @@ export function RoomLobby({
     event.preventDefault();
     const code = joinCode.trim();
     if (!ROOM_ID_PATTERN.test(code)) {
-      setJoinError("Table codes are letters, numbers, - and _ only.");
+      // State the rule ROOM_ID_PATTERN actually enforces. The old message
+      // omitted the leading-character and length rules, so pasting a code
+      // starting with "-" told you it contained characters it did not contain.
+      setJoinError(
+        "Table codes start with a letter or number, then letters, numbers, - or _ (max 64).",
+      );
       return;
     }
     setJoinError(null);
@@ -145,6 +156,13 @@ export function RoomLobby({
   };
 
   const handleForget = (roomId: string) => {
+    // The server exposes no room listing by design, so this list is the ONLY
+    // in-app record that a private table exists. Forgetting it leaves the code
+    // recoverable from browser history and nowhere else — and the ✕ sits a few
+    // pixels from the join chip.
+    if (!window.confirm(`Forget "${roomId}"? You'll need the table code to get back in.`)) {
+      return;
+    }
     forgetRoom(roomId);
     setRemembered(listRememberedRooms());
   };
@@ -153,9 +171,15 @@ export function RoomLobby({
     try {
       await navigator.clipboard.writeText(roomUrl(activeRoomId));
       setCopied(true);
+      setCopyFallback(null);
       setTimeout(() => setCopied(false), 2000);
     } catch {
+      // `navigator.clipboard` is undefined on non-secure origins — which is
+      // exactly the "share my LAN IP with my players" case, http://192.168.x.x.
+      // Swallowing this left the label unchanged and the user pasting whatever
+      // was on their clipboard before. Show the URL so it can be copied by hand.
       setCopied(false);
+      setCopyFallback(roomUrl(activeRoomId));
     }
   };
 
@@ -175,6 +199,15 @@ export function RoomLobby({
           </button>
         )}
       </div>
+      {copyFallback && (
+        <input
+          readOnly
+          value={copyFallback}
+          onFocus={(event) => event.currentTarget.select()}
+          aria-label="Invite link — copy this manually"
+          style={{ ...lobbyInputStyle, marginTop: "6px" }}
+        />
+      )}
 
       {otherRooms.length > 0 && (
         <>
@@ -215,10 +248,10 @@ export function RoomLobby({
           >
             <input
               type="password"
-              aria-label="New room password"
+              aria-label="New table password"
               value={newRoomPassword}
               onChange={(event) => setNewRoomPassword(event.target.value)}
-              placeholder="Room password (6+ chars)"
+              placeholder="Table password (6+ chars)"
               spellCheck={false}
               style={{
                 background: "rgba(9, 14, 30, 0.9)",

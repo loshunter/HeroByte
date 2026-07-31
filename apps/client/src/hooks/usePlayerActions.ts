@@ -351,26 +351,61 @@ export function usePlayerActions({
    */
   const applyPlayerState = useCallback(
     (state: PlayerState, tokenId?: string, characterId?: string) => {
-      // Always update basic player info
-      sendMessage({ t: "rename", name: state.name });
-
-      // Apply HP normalization before sending
       const normalized = normalizeHPValues(state.hp, state.maxHp);
-      sendMessage({
-        t: "set-hp",
-        hp: normalized.hp,
-        maxHp: normalized.maxHp,
-        tempHp: state.tempHp,
-      });
 
-      // Update portrait if present (including null to clear)
-      if (state.portrait !== undefined) {
-        sendMessage({ t: "portrait", data: state.portrait ?? "" });
-      }
+      // Name / HP / portrait / status effects.
+      //
+      // WHO THIS WRITES TO IS THE WHOLE POINT. The player-scoped messages
+      // (`rename`, `set-hp`, `portrait`, `set-status-effects`) carry no uid, so
+      // the server applies them to the SENDER (PlayerDispatcher -> senderUid).
+      // Sending those while restoring somebody else's card silently overwrote
+      // the DM's own name, HP and portrait and left the target untouched.
+      // When we know which character the card is for, use the character-scoped
+      // messages instead: they carry `characterId` and the server authorises
+      // owner-or-DM (CharacterMessageHandler.handleUpdateCharacterName).
+      if (characterId) {
+        sendMessage({ t: "update-character-name", characterId, name: state.name });
+        sendMessage({
+          t: "update-character-hp",
+          characterId,
+          hp: normalized.hp,
+          maxHp: normalized.maxHp,
+          tempHp: state.tempHp,
+        });
 
-      // Update status effects if present
-      if (state.statusEffects !== undefined) {
-        sendMessage({ t: "set-status-effects", effects: state.statusEffects });
+        if (state.portrait !== undefined) {
+          sendMessage({
+            t: "set-character-portrait",
+            characterId,
+            portrait: state.portrait ?? undefined,
+          });
+        }
+
+        if (state.statusEffects !== undefined) {
+          sendMessage({
+            t: "set-character-status-effects",
+            characterId,
+            effects: state.statusEffects,
+          });
+        }
+      } else {
+        // No character on this card: the only safe target is the sender's own
+        // player record, which is exactly what these messages do.
+        sendMessage({ t: "rename", name: state.name });
+        sendMessage({
+          t: "set-hp",
+          hp: normalized.hp,
+          maxHp: normalized.maxHp,
+          tempHp: state.tempHp,
+        });
+
+        if (state.portrait !== undefined) {
+          sendMessage({ t: "portrait", data: state.portrait ?? "" });
+        }
+
+        if (state.statusEffects !== undefined) {
+          sendMessage({ t: "set-status-effects", effects: state.statusEffects });
+        }
       }
 
       // Apply token-specific state if tokenId provided

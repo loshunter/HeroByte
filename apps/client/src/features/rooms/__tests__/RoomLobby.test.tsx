@@ -38,6 +38,9 @@ describe("RoomLobby", () => {
   });
 
   it("forgets a table without navigating", () => {
+    // Forgetting is now guarded: this list is the only in-app record that a
+    // private table exists, and the ✕ sits pixels from the join chip.
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     rememberRoom("dragons-den");
     const onNavigate = vi.fn();
     render(<RoomLobby onNavigate={onNavigate} />);
@@ -46,6 +49,18 @@ describe("RoomLobby", () => {
 
     expect(onNavigate).not.toHaveBeenCalled();
     expect(screen.queryByRole("button", { name: "dragons-den" })).toBeNull();
+    confirmSpy.mockRestore();
+  });
+
+  it("keeps the table when the forget confirm is dismissed", () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    rememberRoom("dragons-den");
+    render(<RoomLobby onNavigate={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Forget dragons-den" }));
+
+    expect(screen.queryByRole("button", { name: "dragons-den" })).not.toBeNull();
+    confirmSpy.mockRestore();
   });
 
   it("mints a fresh table id for NEW TABLE (no create handler → plain navigate)", () => {
@@ -67,7 +82,7 @@ describe("RoomLobby", () => {
     fireEvent.click(screen.getByRole("button", { name: /New Table/i }));
     expect(onNavigate).not.toHaveBeenCalled();
 
-    fireEvent.change(screen.getByLabelText("New room password"), {
+    fireEvent.change(screen.getByLabelText("New table password"), {
       target: { value: "dragons6" },
     });
     fireEvent.change(screen.getByLabelText("New DM password"), {
@@ -89,7 +104,7 @@ describe("RoomLobby", () => {
     render(<RoomLobby onNavigate={onNavigate} onCreateRoom={onCreateRoom} />);
 
     fireEvent.click(screen.getByRole("button", { name: /New Table/i }));
-    fireEvent.change(screen.getByLabelText("New room password"), { target: { value: "short" } });
+    fireEvent.change(screen.getByLabelText("New table password"), { target: { value: "short" } });
     fireEvent.click(screen.getByRole("button", { name: /Create private table/i }));
 
     expect(onCreateRoom).not.toHaveBeenCalled();

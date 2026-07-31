@@ -37,6 +37,9 @@ export interface PaintFamilyEntry {
  * declares "wood"): it only has to keep an unauthored family browsable.
  */
 function inferMaterial(fam: TerrainFamilyPalette): TileMaterial {
+  // A molten family declares its own body, so it never lands on the water
+  // shelf despite riding the water machinery (lava cavern study).
+  if (fam.body !== undefined && fam.body !== "water") return "molten";
   if (fam.water || fam.sunken) return "water";
   if (fam.canopy) return "canopy";
   // Round roofs are polar landmarks in the 20+ architectural block; the dais

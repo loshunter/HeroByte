@@ -11,14 +11,12 @@ export interface DrawingControlsProps {
 }
 
 export function DrawingControls({ onClearDrawings }: DrawingControlsProps) {
-  const handleClearDrawings = () => {
-    if (window.confirm("Clear all drawings from the map?")) {
-      onClearDrawings();
-    }
-  };
-
+  // No confirm here on purpose: `onClearDrawings` is the drawing manager's
+  // `handleClearDrawings`, which now owns the guard so that BOTH entry points
+  // (this button and the drawing toolbar's "Clear All") behave identically.
+  // Confirming here too would prompt the DM twice.
   return (
-    <JRPGButton onClick={handleClearDrawings} variant="danger" style={{ fontSize: "10px" }}>
+    <JRPGButton onClick={onClearDrawings} variant="danger" style={{ fontSize: "10px" }}>
       Clear All Drawings
     </JRPGButton>
   );

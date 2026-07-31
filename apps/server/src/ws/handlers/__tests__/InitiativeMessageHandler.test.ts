@@ -338,7 +338,16 @@ describe("InitiativeMessageHandler", () => {
       expect(result.save).toBe(true);
       expect(state.combatActive).toBe(false);
       expect(state.currentTurnCharacterId).toBeUndefined();
-      expect(mockCharacterService.clearAllInitiative).toHaveBeenCalledWith(state);
+    });
+
+    it("should NOT discard the rolled initiative when combat ends", () => {
+      // Pausing a fight must not cost the table a re-roll. Throwing the rolls
+      // away is what the separate "Clear All Initiative" control is for.
+      handler.handleEndCombat(state, "dmPlayer", true);
+
+      expect(mockCharacterService.clearAllInitiative).not.toHaveBeenCalled();
+      expect(state.characters[0].initiative).toBe(15);
+      expect(state.characters[1].initiative).toBe(18);
     });
 
     it("should reject non-DM ending combat", () => {

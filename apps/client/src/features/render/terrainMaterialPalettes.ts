@@ -172,6 +172,36 @@ export const THATCH_ROOF_DETAIL: KeyClusterPalette = {
   light: "#c6ab63",
 };
 
+/** Cavern floor rubble (lava cavern study) — cold desaturated basalt chips over
+ * a near-black crevice, so the only saturated thing on a volcanic map is the
+ * lava itself. */
+export const CAVE_FLOOR_DETAIL: KeyClusterPalette = {
+  crev: "#302a33",
+  dark: "#453d47",
+  mid: "#564c58",
+  light: "#685d69",
+};
+
+/** Ash drift grit (lava cavern study) — the pale dust that pools in the lee of
+ * the rock; one value step lighter than the cavern floor it interleaves with. */
+export const ASH_FLOOR_DETAIL: KeyClusterPalette = {
+  crev: "#4a4249",
+  dark: "#5f555e",
+  mid: "#756a73",
+  light: "#8b8088",
+};
+
+/** Gold-crystal facets (lava cavern study) — the canopy leaf-tick painter
+ * repurposed: `highlight` becomes the edge-biased specular catch on the
+ * cluster's silhouette, the ticks the interior facet breaks. */
+export const CRYSTAL_GOLD_DETAIL: CanopyDetail = {
+  // Pass 1's near-white ticks read as scattered snow over the cluster; pulled
+  // down into the mineral's own value range so they read as facet breaks.
+  tickLight: "#e8c463",
+  tickDark: "#8a6416",
+  highlight: "#ffe89b",
+};
+
 /** Stone stairs — lighter than the flagstone floor so treads read raised. */
 export const STONE_STAIRS_DETAIL: KeyClusterPalette = {
   crev: "#454a56",

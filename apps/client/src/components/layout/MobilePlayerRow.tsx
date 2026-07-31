@@ -13,7 +13,10 @@ import { PlayerSettingsMenu } from "../../features/players/components/PlayerSett
 interface MobilePlayerRowProps {
   player: Player & { characterId: string };
   isMe: boolean;
+  /** The VIEWER's DM state (mobile passes one flag to every row). */
   isDM: boolean;
+  /** Grant/revoke the viewer's own DM status. */
+  onToggleDMMode: (next: boolean) => void;
   // HP Editing
   editingHpUID: string | null;
   hpInput: string;
@@ -38,6 +41,7 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     player,
     isMe,
     isDM,
+    onToggleDMMode,
     editingHpUID,
     hpInput,
     onHpInputChange,
@@ -274,16 +278,18 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
           onPortraitApply={(url) => {
             onCharacterPortraitUpdate(player.characterId, url);
           }}
-          tokenImageInput="" // Add placeholders for required props if necessary
-          onTokenImageInputChange={() => {}}
-          onTokenImageApply={() => {}}
-          onTokenImageClear={() => {}}
-          onSavePlayerState={() => {}}
-          onLoadPlayerState={async () => {}}
+          // Token-image and save/load are deliberately OMITTED rather than
+          // stubbed: they are not wired on mobile, and a control that silently
+          // does nothing is worse than one that isn't there. PlayerSettingsMenu
+          // hides those sections when the handlers are absent.
           selectedEffects={activeEffects}
           onStatusEffectsChange={onStatusEffectsChange ?? (() => {})}
           isDM={isDM}
-          onToggleDMMode={() => {}}
+          // The viewer's own row is the only place DM Mode belongs, and this is
+          // the only DM-elevation control that exists on a phone.
+          viewerIsDM={isDM}
+          canToggleDM={isMe}
+          onToggleDMMode={onToggleDMMode}
         />
       </div>
     );

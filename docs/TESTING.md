@@ -8,8 +8,8 @@ This guide covers manual and automated testing approaches for HeroByte, includin
 
 ### 1. Unit Tests (Vitest)
 
-- **Location**: `packages/shared/__tests__/`, `apps/server/src/**/__tests__/`
-- **Coverage**: 80.99% overall, 99.57% on shared package
+- **Location**: `packages/shared/src/__tests__/`, `apps/server/src/**/__tests__/`, `apps/client/src/**/__tests__/`
+- **Scale**: 6,753 tests across 331 files (shared 268, server 1,697, client 4,788)
 - **Run**: `pnpm test` or `pnpm test:coverage`
 
 ### 2. Integration Tests (Vitest + WebSocket)
@@ -23,10 +23,9 @@ This guide covers manual and automated testing approaches for HeroByte, includin
 - **Status**: Implemented
 - **Location**: `apps/e2e/`
 - **Runner**: `@playwright/test` with [`playwright.config.ts`](../playwright.config.ts)
-- **Scenarios**:
-  - `smoke.spec.ts` — Join the default room (`Fun1`) via the lobby
-  - `dice.spec.ts` — Roll a d20 from the dice roller and confirm the result appears in the roll log
-  - `token-movement.spec.ts` — Drag your token to a new grid square and confirm the snapshot updates
+- **Scale**: 60 tests across 25 spec files (run `pnpm exec playwright test --list` for the current inventory)
+- **Smoke subset (every push/PR)**: `smoke.spec.ts`, `character-creation.smoke.spec.ts`, `session-load.smoke.spec.ts`, `partial-erase.smoke.spec.ts`
+- **Full suite**: nightly at 02:30 UTC on `dev` plus `workflow_dispatch`; adds dice, token movement, drawing tools, undo/redo, multi-select, multi-client sync, four-session grid sync, staging zones, NPC visibility, initiative and turn navigation, transform tool, live map toolbar, dungeon generation, map navigation, mobile layout, player state, and UI state
 - **Run**: `pnpm test:e2e`
 
 ---
@@ -150,7 +149,7 @@ The chrome-devtools MCP server provides 26+ tools across 6 categories:
 
 **Steps**:
 
-1. Start server: `pnpm --filter vtt-server start`
+1. Start server: `pnpm dev:server`
 2. Start client: `pnpm --filter herobyte-client dev`
 3. Open browser to `http://localhost:5174`
 4. Join as DM
@@ -406,7 +405,7 @@ Open http://localhost:5174 and:
 
 ```bash
 # Terminal 1: Start server
-pnpm --filter vtt-server start
+pnpm dev:server
 
 # Terminal 2: Start client
 pnpm --filter herobyte-client dev
@@ -540,15 +539,19 @@ pnpm test:shared
 
 ```yaml
 # .github/workflows/ci.yml already includes:
-- Linting (eslint + prettier)
-- Unit tests (vitest)
-- Build validation
-- Coverage reporting
+- Linting (eslint + prettier) and the frozen-test check
+- Structural guardrails (lint:structure:enforce, 350-LOC threshold)
+- Build + typecheck (typecheck also covers test files)
+- Client bundle-size guard (175 KB gzipped entry budget)
+- Unit tests (vitest) on Node 18.x and 20.x for shared/server/client
+- Playwright smoke subset (4 specs) on every push and PR
+- Full Playwright suite nightly (02:30 UTC) and on workflow_dispatch
+- Coverage upload to Codecov
 ```
 
 ### Future Enhancements
 
-- [ ] Expand Playwright scenarios (token movement, dice roller, drawing tools)
+- [x] Expand Playwright scenarios (token movement, dice roller, drawing tools) — all three shipped; the suite is now 60 tests across 25 specs
 - [ ] Add visual regression testing (Percy, Chromatic)
 - [x] Add performance monitoring (Lighthouse CI workflow + budgets)
 - [ ] Add chrome-devtools MCP to CI pipeline
@@ -561,7 +564,7 @@ pnpm test:shared
 - [Chrome DevTools MCP GitHub](https://github.com/ChromeDevTools/chrome-devtools-mcp)
 - [Vitest Documentation](https://vitest.dev)
 - [Playwright Documentation](https://playwright.dev)
-- [HeroByte Architecture](./ARCHITECTURE.md) (if exists)
+- [Preventing God Objects](./guides/PREVENTING_GOD_OBJECTS.md) and the [refactoring docs](./refactoring/README.md)
 - [2025-10-18 Default Password Smoke Test](./manual-test-reports/2025-10-18-default-password.md)
 
 ---
