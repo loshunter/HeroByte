@@ -17,7 +17,7 @@ interface RoomPasswordControlProps {
    * Callback invoked when the DM submits a new room password.
    * @param secret - The validated password string (trimmed, min 6 chars, confirmed).
    */
-  onSetRoomPassword?: (secret: string) => void;
+  onSetRoomPassword?: (secret?: string) => void;
 
   /**
    * Status feedback from the server after attempting to set the password.

@@ -373,7 +373,7 @@ export interface MainLayoutProps {
   /** Whether room password operation is pending */
   roomPasswordPending: boolean;
   /** Handler to set room password */
-  handleSetRoomPassword: (password: string) => void;
+  handleSetRoomPassword: (password?: string) => void;
   /** Handler to dismiss room password status */
   dismissRoomPasswordStatus: () => void;
 

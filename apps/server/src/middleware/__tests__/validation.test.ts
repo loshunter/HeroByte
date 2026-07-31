@@ -936,6 +936,12 @@ describe("validateMessage", () => {
       });
     });
 
+    it("validates set-room-password without a secret (reset to server default)", () => {
+      expect(validateMessage({ t: "set-room-password" })).toEqual({
+        valid: true,
+      });
+    });
+
     it("rejects set-room-password with empty secret", () => {
       expect(validateMessage({ t: "set-room-password", secret: "" })).toMatchObject({
         valid: false,

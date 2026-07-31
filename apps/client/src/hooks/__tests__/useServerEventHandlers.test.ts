@@ -702,6 +702,30 @@ describe("useServerEventHandlers - Characterization Tests", () => {
       });
     });
 
+    it("should send a secret-less message when called with no argument (reset)", () => {
+      const registerServerEventHandler = vi.fn();
+      const sendMessage = vi.fn();
+      const toast = {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
+        dismiss: vi.fn(),
+        messages: [],
+      };
+
+      const { result } = renderHook(() =>
+        useServerEventHandlers({ registerServerEventHandler, toast, sendMessage }),
+      );
+
+      act(() => {
+        result.current.handleSetRoomPassword();
+      });
+
+      expect(sendMessage).toHaveBeenCalledTimes(1);
+      expect(sendMessage).toHaveBeenCalledWith({ t: "set-room-password" });
+    });
+
     it("should call startRoomPasswordUpdate before sending message", () => {
       const registerServerEventHandler = vi.fn();
       const sendMessage = vi.fn();

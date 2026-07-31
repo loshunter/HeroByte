@@ -100,9 +100,10 @@ export interface UseServerEventHandlersReturn {
    * Sets the room password
    * Initiates a password update and sends the message to the server
    *
-   * @param nextSecret - The new room password
+   * @param nextSecret - The new room password; omit to reset to the server's
+   * configured default
    */
-  handleSetRoomPassword: (nextSecret: string) => void;
+  handleSetRoomPassword: (nextSecret?: string) => void;
 }
 
 /**
@@ -161,9 +162,14 @@ export function useServerEventHandlers({
    * Initiates a password update and sends the message to the server
    */
   const handleSetRoomPassword = useCallback(
-    (nextSecret: string) => {
+    (nextSecret?: string) => {
       startRoomPasswordUpdate();
-      sendMessage({ t: "set-room-password", secret: nextSecret });
+      // Omitting the secret asks the server to reset to its configured default.
+      sendMessage(
+        nextSecret === undefined
+          ? { t: "set-room-password" }
+          : { t: "set-room-password", secret: nextSecret },
+      );
     },
     [sendMessage, startRoomPasswordUpdate],
   );

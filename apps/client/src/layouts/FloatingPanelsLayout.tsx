@@ -86,7 +86,7 @@ export interface FloatingPanelsLayoutProps {
   // Note: sendMessage is now passed to DMMenuContainer which handles all DM hooks internally
   sendMessage: (message: ClientMessage) => void;
   // Room Password (4)
-  onSetRoomPassword: (password: string) => void;
+  onSetRoomPassword: (password?: string) => void;
   roomPasswordStatus: PasswordStatus | null;
   roomPasswordPending: boolean;
   onDismissRoomPasswordStatus: () => void;

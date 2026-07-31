@@ -17,9 +17,14 @@ export function validateSetPlayerStagingZoneMessage(message: MessageRecord): Val
 
 /**
  * Validate set-room-password message
- * Required: secret (non-empty string, max 256 chars)
+ * Optional: secret (non-empty string, max 256 chars). An omitted secret is a
+ * reset request — the server falls back to its own configured default, so the
+ * client never has to know (or hard-code) that value.
  */
 export function validateSetRoomPasswordMessage(message: MessageRecord): ValidationResult {
+  if (message.secret === undefined) {
+    return { valid: true };
+  }
   if (typeof message.secret !== "string") {
     return { valid: false, error: "set-room-password: secret must be a string" };
   }

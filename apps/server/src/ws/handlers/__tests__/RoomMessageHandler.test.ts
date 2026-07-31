@@ -218,6 +218,38 @@ describe("RoomMessageHandler - Characterization Tests", () => {
       consoleSpy.mockRestore();
     });
 
+    it("should reset to the server's configured default when secret is omitted", () => {
+      const consoleSpy = vi.spyOn(console, "log");
+      // A secret-less message is a reset request: the server substitutes its
+      // own configured default, so the client never hard-codes the value.
+      const resetMessage: ClientMessage = {
+        t: "set-room-password",
+      };
+
+      messageRouter.route(resetMessage, dmUid);
+
+      expect(mockDmWs.send).toHaveBeenCalledTimes(1);
+      const sentMessage = JSON.parse((mockDmWs.send as Mock).mock.calls[0][0]);
+      expect(sentMessage.t).toBe("room-password-updated");
+      expect(sentMessage.source).toBe("fallback");
+      expect(sentMessage.updatedAt).toBeTypeOf("number");
+
+      consoleSpy.mockRestore();
+    });
+
+    it("should refuse a secret-less reset from a non-DM", () => {
+      const resetMessage: ClientMessage = {
+        t: "set-room-password",
+      };
+
+      messageRouter.route(resetMessage, playerUid);
+
+      expect(mockPlayerWs.send).toHaveBeenCalledTimes(1);
+      const sentMessage = JSON.parse((mockPlayerWs.send as Mock).mock.calls[0][0]);
+      expect(sentMessage.t).toBe("room-password-update-failed");
+      expect(sentMessage.reason).toBe("Only Dungeon Masters can update the room password.");
+    });
+
     it("should trim whitespace from password before validation", () => {
       const consoleSpy = vi.spyOn(console, "log");
       const passwordMessage: ClientMessage = {
@@ -265,19 +297,22 @@ describe("RoomMessageHandler - Characterization Tests", () => {
       expect(sentMessage.reason).toBe("Password must be between 6 and 128 characters.");
     });
 
-    it("should handle undefined secret as empty string after trim", () => {
+    it("should treat an explicitly undefined secret as a reset to the default", () => {
+      // Same wire shape as an omitted secret — both mean "reset". Previously
+      // undefined coerced to "" and failed length validation, which made the
+      // client hard-code the default password (broken on servers with a
+      // custom HEROBYTE_ROOM_SECRET).
       const passwordMessage: ClientMessage = {
         t: "set-room-password",
-        secret: undefined as unknown as string,
+        secret: undefined,
       };
 
       messageRouter.route(passwordMessage, dmUid);
 
-      // undefined -> trim() -> "" should fail validation
       expect(mockDmWs.send).toHaveBeenCalledTimes(1);
       const sentMessage = JSON.parse((mockDmWs.send as Mock).mock.calls[0][0]);
-      expect(sentMessage.t).toBe("room-password-update-failed");
-      expect(sentMessage.reason).toBe("Password must be between 6 and 128 characters.");
+      expect(sentMessage.t).toBe("room-password-updated");
+      expect(sentMessage.source).toBe("fallback");
     });
 
     it("should send failure message when AuthService.update() throws error", () => {

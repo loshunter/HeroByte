@@ -232,8 +232,11 @@ export class RoomMessageHandler {
       return { broadcast: false, save: false };
     }
 
-    const nextSecret = secret?.trim() ?? "";
+    // An omitted secret is a reset request: fall back to the server's own
+    // configured default. (The client used to send a hard-coded "Fun1", which
+    // failed the length check on any server with a custom HEROBYTE_ROOM_SECRET.)
     const defaultSecret = getRoomSecret();
+    const nextSecret = secret?.trim() ?? defaultSecret;
     const isDefaultPassword = nextSecret === defaultSecret;
 
     // Allow default password to bypass length validation

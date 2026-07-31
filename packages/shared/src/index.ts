@@ -673,7 +673,7 @@ type ClientMessagePayload =
       rotation?: number;
       locked?: boolean;
     }
-  | { t: "set-room-password"; secret: string }
+  | { t: "set-room-password"; secret?: string } // omitted secret = reset to the server's configured default
 
   // Authentication
   | { t: "authenticate"; secret: string; roomId?: string } // Authenticate with room secret
