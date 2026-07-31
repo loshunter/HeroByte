@@ -131,20 +131,20 @@ The server reads more variables than these (storage paths, table limits, feature
 
 ### Common Scripts
 
-| Command                | Description                                             |
-| ---------------------- | ------------------------------------------------------- |
-| `pnpm dev`             | Run client and server concurrently on `5174` and `8787` |
-| `pnpm dev:server`      | Start server in watch mode                              |
-| `pnpm dev:client`      | Start client in watch mode                              |
-| `pnpm dev:doctor`      | Inspect the normal dev ports without stopping anything  |
-| `pnpm dev:free`        | Safely release stale HeroByte dev processes             |
-| `pnpm build`           | Build both server and client bundles                    |
-| `pnpm test`            | Run full test suite (6,753 tests)                       |
-| `pnpm test:e2e`        | Run Playwright E2E tests on isolated `5175` and `8788`  |
-| `pnpm e2e:doctor`      | Inspect the E2E ports without stopping anything         |
-| `pnpm test:shared`     | Execute unit tests for shared domain models             |
-| `pnpm test:coverage`   | Generate coverage reports for all packages              |
-| `pnpm docs:screenshots`| Re-record every user-guide screenshot from a live app   |
+| Command                 | Description                                             |
+| ----------------------- | ------------------------------------------------------- |
+| `pnpm dev`              | Run client and server concurrently on `5174` and `8787` |
+| `pnpm dev:server`       | Start server in watch mode                              |
+| `pnpm dev:client`       | Start client in watch mode                              |
+| `pnpm dev:doctor`       | Inspect the normal dev ports without stopping anything  |
+| `pnpm dev:free`         | Safely release stale HeroByte dev processes             |
+| `pnpm build`            | Build both server and client bundles                    |
+| `pnpm test`             | Run full test suite (6,753 tests)                       |
+| `pnpm test:e2e`         | Run Playwright E2E tests on isolated `5175` and `8788`  |
+| `pnpm e2e:doctor`       | Inspect the E2E ports without stopping anything         |
+| `pnpm test:shared`      | Execute unit tests for shared domain models             |
+| `pnpm test:coverage`    | Generate coverage reports for all packages              |
+| `pnpm docs:screenshots` | Re-record every user-guide screenshot from a live app   |
 
 ### Troubleshooting
 
@@ -164,14 +164,16 @@ The server reads more variables than these (storage paths, table limits, feature
 
 **The [User Guide](docs/user-guide/README.md) is the front door** — a full walkthrough of everything a player or DM can do, with screenshots captured from the real app:
 
-| Guide | What it covers |
-| --- | --- |
-| **[Getting Started](docs/user-guide/getting-started.md)** | Joining a table, private tables & invite links, becoming the DM |
-| **[Player Guide](docs/user-guide/player-guide.md)** | The table UI, your character card, tokens, dice, drawing, voice chat, fog & doors, mobile play |
-| **[DM Guide](docs/user-guide/dm-guide.md)** | The DM Menu: map setup, NPCs & props, combat, session save/load, table security, the player lens |
+| Guide                                                       | What it covers                                                                                           |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| **[Getting Started](docs/user-guide/getting-started.md)**   | Joining a table, private tables & invite links, becoming the DM                                          |
+| **[Player Guide](docs/user-guide/player-guide.md)**         | The table UI, your character card, tokens, dice, drawing, voice chat, fog & doors, mobile play           |
+| **[DM Guide](docs/user-guide/dm-guide.md)**                 | The DM Menu: map setup, NPCs & props, combat, session save/load, table security, the player lens         |
 | **[Map Editor Guide](docs/user-guide/map-editor-guide.md)** | Live map authoring: rooms, halls, doors, terrain painting, lighting, set dressing, the dungeon generator |
 
 Screenshots are regenerated in one command (`pnpm docs:screenshots`) by a Playwright harness that drives real player and DM sessions — so the docs can't quietly drift from the app.
+
+**[Browse all documentation →](docs/README.md)**
 
 **For operators and contributors:**
 

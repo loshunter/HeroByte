@@ -5,26 +5,32 @@ This folder contains all visual assets for the HeroByte project.
 ## Folder Structure
 
 ### `images/logo/`
-Logo files in various formats and sizes:
-- `herobyte-logo.png` - Main logo (transparent background)
-- `herobyte-logo.svg` - Vector logo (scalable)
-- `herobyte-icon.png` - App icon/favicon (512x512 recommended)
-- `herobyte-banner.png` - Wide banner for GitHub/social media
+Source logo art:
+- `herobyte.png` - Main logo
+- `herobyte-square.png` - Square logo (app icon source)
+- `herobyte-Pixel.png` - Pixel-art logo variant
+- `LogoSm.webp` - Small logo (used by the repo README)
+- `HBicon.png` / `HBicon-full.png` - HB monogram icon
+- `favicon_io/` - Generated favicon set (ico, PNG sizes, webmanifest)
+
+**Shipped copies live elsewhere.** The client serves its assets from
+`apps/client/public/` (`logo-wide.webp`, `favicon.ico`, `icon-192.png`,
+`icon-512.png`, …). This folder holds the source art; update both when the
+branding changes.
+
+### `images/tiles/`
+Reference tile art with provenance notes ([PROVENANCE.md](images/tiles/PROVENANCE.md)).
+Terrain in HeroByte is generated procedurally — these are study/reference
+images, not runtime assets.
 
 ### `images/ui/`
-User interface elements and graphics:
-- Retro pixel art UI components
-- Button sprites
-- Icon sets
-- Background textures
-- Frame decorations
+Placeholder for UI element source art (pixel-art components, button sprites,
+icon sets, frame decorations). Currently empty.
 
 ### `images/screenshots/`
-Screenshots and promotional images:
-- Gameplay screenshots
-- Feature demonstrations
-- Tutorial images
-- Marketing materials
+Placeholder for promotional images. **App screenshots for the docs are not
+kept here** — they are generated into `docs/user-guide/img/` by
+`pnpm docs:screenshots`; see the [User Guide](../docs/user-guide/README.md).
 
 ## Guidelines
 
@@ -46,20 +52,19 @@ Screenshots and promotional images:
 ## Usage in Code
 
 ### In React Components
+Reference the copy served from `apps/client/public/`, not this folder:
 ```tsx
-import logo from '../../assets/images/logo/herobyte-logo.png';
-
-<img src={logo} alt="HeroByte Logo" />
+<img src="/logo-wide.webp" alt="HeroByte" />
 ```
 
 ### In README/Markdown
 ```markdown
-![HeroByte Logo](assets/images/logo/herobyte-logo.png)
+![HeroByte Logo](assets/images/logo/LogoSm.webp)
 ```
 
 ### In HTML
 ```html
-<link rel="icon" href="/assets/images/logo/herobyte-icon.png" />
+<link rel="icon" href="/favicon.ico" />
 ```
 
 ## Contributing Assets
