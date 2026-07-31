@@ -336,6 +336,12 @@ function AuthenticatedApp({
     hasRasterBackground: Boolean(snapshot?.mapBackground),
     notifyError: toast.error,
   });
+  // Bridge: useDMManagement mounts further down but must hear elevation
+  // failures routed by useServerEventHandlers (single event subscriber).
+  const dmElevationFailedRef = useRef<((reason: string) => void) | null>(null);
+  const routeDMElevationFailed = useCallback((reason: string) => {
+    dmElevationFailedRef.current?.(reason);
+  }, []);
   const {
     roomPasswordStatus,
     roomPasswordPending,
@@ -345,6 +351,7 @@ function AuthenticatedApp({
     registerServerEventHandler,
     toast,
     sendMessage,
+    onDMElevationFailed: routeDMElevationFailed,
     onMapStudioMessage: mapStudio.handleServerMessage,
   });
 
@@ -561,12 +568,18 @@ function AuthenticatedApp({
   }, [snapshot, cachedDmSnapshot, isDM, dmSnapshotPending]);
 
   // DM management (elevation and revocation) with modal state
-  const { handleToggleDM, modalState, modalActions } = useDMManagement({
+  const { handleToggleDM, modalState, modalActions, onElevationFailed } = useDMManagement({
     snapshot,
     uid,
     sendMessage,
     toast,
   });
+  useEffect(() => {
+    dmElevationFailedRef.current = onElevationFailed;
+    return () => {
+      dmElevationFailedRef.current = null;
+    };
+  }, [onElevationFailed]);
   const modalActionsWithSync = useMemo(() => {
     return {
       ...modalActions,
