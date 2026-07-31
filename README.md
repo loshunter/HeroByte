@@ -36,6 +36,8 @@ pnpm dev
 
 Then open http://localhost:5174, enter the development table password `Fun1`, and you're at the table. To unlock DM tools, use the DM password `FunDM` — the [Getting Started guide](docs/user-guide/getting-started.md) walks through it.
 
+> The default **Main Hall** is a public scratch space — its password is this documented default, and the server wipes it once it has sat empty for a few hours. Create a private table for a real game.
+
 <details>
 <summary>📦 Full Installation & Setup Guide</summary>
 

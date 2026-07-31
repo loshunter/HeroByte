@@ -17,8 +17,10 @@ import { MessageRouter } from "./ws/messageRouter.js";
 import { RateLimiter } from "./middleware/rateLimit.js";
 import { AuthService } from "./domains/auth/service.js";
 import { RoomRegistry } from "./domains/room/RoomRegistry.js";
+import { isRoomStatePristine } from "./domains/room/roomStatePristine.js";
 import { MapStudioService } from "./domains/mapStudio/service.js";
 import { FileMapDocumentStore } from "./domains/mapStudio/fileStore.js";
+import type { AssetService } from "./domains/assets/service.js";
 import { getDefaultRoomId } from "./config/auth.js";
 
 /**
@@ -56,11 +58,15 @@ export class Container {
   // Last time each room saw a routed message or a join, for idle unload.
   private readonly roomActivity = new Map<string, number>();
 
+  /** Optional: without it, clearing the default table skips its uploads. */
+  private readonly assetService?: AssetService;
+
   constructor(
     wss: WebSocketServer,
     authService: AuthService,
     roomRegistry?: RoomRegistry,
     mapStudioService?: MapStudioService,
+    assetService?: AssetService,
   ) {
     // Initialize services (no dependencies between them).
     // A pre-hydrated RoomRegistry can be injected (bootstrap awaits
@@ -78,6 +84,7 @@ export class Container {
     this.selectionService = new SelectionService();
     this.authService = authService;
     this.mapStudioService = mapStudioService ?? new MapStudioService(new FileMapDocumentStore());
+    this.assetService = assetService;
 
     // Initialize middleware
     this.rateLimiter = new RateLimiter({ maxMessages: 100, windowMs: 1000 });
@@ -91,6 +98,11 @@ export class Container {
     this.roomService = this.getRoomServiceForRoom(this.defaultRoomId);
     this.roomService.loadState();
     this.messageRouter = this.getRouterForRoom(this.defaultRoomId);
+    // Start the default table's idle clock at boot. Without this its activity
+    // reads as 0 (the epoch), so the first sweep after a restart would judge a
+    // table nobody has joined yet as long-idle and wipe state that had just
+    // been loaded from disk.
+    this.touchRoomActivity(this.defaultRoomId);
   }
 
   /**
@@ -183,6 +195,60 @@ export class Container {
       console.log(`[Container] Unloaded ${unloaded.length} idle room(s): ${unloaded.join(", ")}`);
     }
     return unloaded;
+  }
+
+  /**
+   * Wipe the default table (Main Hall) once it has sat empty.
+   *
+   * It is a PUBLIC scratch space — anyone holding the shared password is in it
+   * — and it is deliberately never unloaded, because it backs the legacy
+   * single-room surface. That combination means whatever anyone leaves behind
+   * (tokens, maps, and above all uploaded images) accumulated forever against
+   * its 50MB asset quota; on the free tier the spin-down hid that, but on a
+   * persistent disk it is permanent, and a full quota returns 507 to every
+   * upload in that table from then on. Clearing it when nobody is there keeps
+   * the shared space usable without ever interrupting a session.
+   *
+   * Private tables are untouched: they unload (preserving durable state) via
+   * unloadIdleRooms instead.
+   */
+  async clearIdleDefaultRoom(idleMs: number): Promise<boolean> {
+    // A zero/negative window means "never clear" (an operator opting out via
+    // HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS=0). Enforced here as well as at the
+    // call site, because read literally a 0 window makes every sweep overdue —
+    // the failure mode is destroying the table continuously.
+    if (idleMs <= 0) return false;
+
+    const roomId = this.defaultRoomId;
+    if (this.getAuthenticatedClientsForRoom(roomId).size > 0) return false;
+    const lastActivity = this.roomActivity.get(roomId) ?? 0;
+    if (Date.now() - lastActivity < idleMs) return false;
+
+    const roomService = this.roomRegistry.get(roomId);
+    if (isRoomStatePristine(roomService.getState())) return false;
+
+    // No await between the guards above and this reset, so a client cannot
+    // slip in and have the table wiped out from under them mid-session.
+    roomService.resetState();
+    this.mapStudioService.resetRoom(roomId);
+    this.roomActivity.set(roomId, Date.now());
+
+    let freedBytes = 0;
+    if (this.assetService) {
+      try {
+        freedBytes = await this.assetService.releaseRoom(roomId);
+      } catch (error) {
+        // The table itself is already clear; a failed upload sweep costs disk,
+        // not correctness, and the next sweep retries it.
+        console.error("[Container] Failed to release default-table assets", error);
+      }
+    }
+
+    console.log(
+      `[Container] Cleared idle default table "${roomId}"` +
+        (freedBytes > 0 ? ` (freed ${Math.round(freedBytes / 1024)}KB of uploads)` : ""),
+    );
+    return true;
   }
 
   /**

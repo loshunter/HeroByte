@@ -140,7 +140,7 @@ async function bootstrap() {
   await roomRegistry.whenReady();
 
   // Initialize dependency container
-  const container = new Container(wss, authService, roomRegistry);
+  const container = new Container(wss, authService, roomRegistry, undefined, assetService);
   resetE2EState = () => container.resetForE2E();
 
   // Attach WebSocket connection handler

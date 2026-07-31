@@ -10,6 +10,8 @@
 
 import React from "react";
 import { AuthState, ConnectionState } from "../../services/websocket";
+import { currentRoomId } from "../rooms/roomDirectory";
+import { PublicTableNotice } from "../rooms/PublicTableNotice";
 import {
   authGateContainerStyle,
   authGateCardStyle,
@@ -114,6 +116,9 @@ export function AuthGate({
         >
           Enter the table password provided by your host to sync with your party.
         </p>
+        {/* No ?room= means this tab targets the server's default table, which
+            is public and self-clearing — say so before anyone settles in. */}
+        {currentRoomId() === undefined ? <PublicTableNotice variant="gate" /> : null}
         <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <input
             type="password"
