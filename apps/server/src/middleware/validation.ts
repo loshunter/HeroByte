@@ -15,6 +15,7 @@ import type { ValidationResult, MessageRecord } from "./validators/index.js";
 import { isRecord } from "./validators/index.js";
 
 // Token validators
+import { validateForkTableMessage } from "./validators/forkValidators.js";
 import {
   validateMoveMessage,
   validateRecolorMessage,
@@ -239,6 +240,7 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   "request-room-resync": validateRequestRoomResyncMessage,
   authenticate: validateAuthenticateMessage,
   "create-room": validateCreateRoomMessage,
+  "fork-table": validateForkTableMessage,
   "elevate-to-dm": validateElevateToDmMessage,
   "set-dm-password": validateSetDmPasswordMessage,
   "revoke-dm": validateRoomControlMessage,

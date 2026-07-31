@@ -389,6 +389,8 @@ export interface RoomSnapshot {
    * public, so an older server simply never shows the label.
    */
   isPublicTable?: boolean;
+  /** Display name of a private table, so every member sees it, not just its creator. */
+  tableName?: string;
   assets?: SnapshotAsset[];
   assetRefs?: SnapshotAssetRefs;
 }
@@ -691,7 +693,21 @@ type ClientMessagePayload =
       roomId: string;
       roomPassword: string;
       dmPassword?: string;
+      name?: string;
     } // Mint a private table with its own password(s); pre-auth, like authenticate
+  /**
+   * Copy THIS table into a brand-new private one and go there — the "keep what
+   * I built" move on the test table, whose own password can never change and
+   * which is wiped hourly. DM-only and post-auth (unlike create-room), because
+   * it copies the table's whole contents.
+   */
+  | {
+      t: "fork-table";
+      roomId: string;
+      name: string;
+      roomPassword: string;
+      dmPassword?: string;
+    }
   | { t: "elevate-to-dm"; dmPassword: string } // Request DM elevation with DM password
   | { t: "revoke-dm" } // Revoke own DM status
   | { t: "set-dm-password"; dmPassword: string } // DM sets/updates the DM password
@@ -744,4 +760,6 @@ export type ServerMessage =
   | { t: "room-password-updated"; updatedAt: number; source: "env" | "fallback" | "user" }
   | { t: "room-password-update-failed"; reason?: string }
   | { t: "room-created"; roomId: string } // A private table was minted; client may now join it
-  | { t: "room-create-failed"; reason?: string };
+  | { t: "room-create-failed"; reason?: string }
+  | { t: "table-forked"; roomId: string; name: string } // A copy of this table now lives at roomId
+  | { t: "table-fork-failed"; reason?: string };

@@ -28,6 +28,7 @@ import { useStatusEffects } from "../hooks/useStatusEffects";
 import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 import { AuthenticationGate } from "../features/auth";
 import { useCreateRoom } from "../features/rooms/useCreateRoom";
+import { useForkTable } from "../features/rooms/useForkTable";
 import { useMapActions } from "../hooks/useMapActions";
 import { useMapAlignment } from "../features/map";
 import { usePlayerActions } from "../hooks/usePlayerActions";
@@ -342,6 +343,14 @@ function AuthenticatedApp({
   const routeDMElevationFailed = useCallback((reason: string) => {
     dmElevationFailedRef.current?.(reason);
   }, []);
+  // Same bridge for fork-table replies (see useServerEventHandlers).
+  const forkReplyRef = useRef<((message: ServerMessage) => void) | null>(null);
+  const routeTableForkMessage = useCallback((message: ServerMessage) => {
+    forkReplyRef.current?.(message);
+  }, []);
+  const forkTable = useForkTable(sendMessage, (handler) => {
+    forkReplyRef.current = handler;
+  });
   const {
     roomPasswordStatus,
     roomPasswordPending,
@@ -352,6 +361,7 @@ function AuthenticatedApp({
     toast,
     sendMessage,
     onDMElevationFailed: routeDMElevationFailed,
+    onTableForkMessage: routeTableForkMessage,
     onMapStudioMessage: mapStudio.handleServerMessage,
   });
 
@@ -854,6 +864,8 @@ function AuthenticatedApp({
     roomPasswordPending,
     handleSetRoomPassword,
     dismissRoomPasswordStatus,
+    // Only offered on the public test table, whose password is fixed.
+    onSaveAsPrivateTable: snapshot?.isPublicTable ? forkTable : undefined,
     // DM management (hooks now handled in DMMenuContainer)
     handleToggleDM,
     // Map actions

@@ -232,6 +232,21 @@ export class RoomMessageHandler {
       return { broadcast: false, save: false };
     }
 
+    // The test table's password is FIXED. It is the one table whose credentials
+    // every server publishes, so letting anyone change it means a single visitor
+    // can padlock the public demo and the host loses their own test bed with no
+    // way back in. Keeping a real game here was never the right shape anyway —
+    // the table is wiped hourly — so this points at the operation that is.
+    const senderRoomId = this.getRoomIdForUid?.(senderUid);
+    if ((senderRoomId ?? getDefaultRoomId()) === getDefaultRoomId()) {
+      this.sendControlMessage(senderUid, {
+        t: "room-password-update-failed",
+        reason:
+          "The test table's password is fixed so it stays open for everyone. Save it as a private table instead — you keep everything on it.",
+      });
+      return { broadcast: false, save: false };
+    }
+
     // An omitted secret is a reset request: fall back to the server's own
     // configured default. (The client used to send a hard-coded "Fun1", which
     // failed the length check on any server with a custom HEROBYTE_ROOM_SECRET.)
@@ -248,11 +263,8 @@ export class RoomMessageHandler {
       return { broadcast: false, save: false };
     }
 
-    const senderRoomId = this.getRoomIdForUid?.(senderUid);
-
     try {
-      // Scope the change to the sender's room; the default room updates the
-      // server-wide password exactly as before.
+      // Only ever a custom room by this point — the default table returned above.
       const summary = this.authService.update(nextSecret, senderRoomId);
       this.sendControlMessage(senderUid, {
         t: "room-password-updated",
@@ -269,33 +281,6 @@ export class RoomMessageHandler {
       return { broadcast: false, save: false };
     }
 
-    // The password is committed from here on, so this runs OUTSIDE the try
-    // above: refreshing the derived flag is a separate concern, and a failure
-    // in it must never be reported as a password failure that did not happen.
-    return this.refreshPublicTableFlag(senderRoomId);
-  }
-
-  /**
-   * Claiming the default table (any password but the published one) makes it
-   * private: no more auto-clear, no more "public" label. Resetting to the
-   * default hands it back. Broadcasts so every client relabels immediately
-   * rather than at whatever unrelated action happens to broadcast next.
-   *
-   * Scoped to the default room because getSummary() reports on that room
-   * specifically — a private table's own password says nothing about it.
-   */
-  private refreshPublicTableFlag(senderRoomId: string | undefined): RoomMessageResult {
-    const defaultRoomId = getDefaultRoomId();
-    if ((senderRoomId ?? defaultRoomId) !== defaultRoomId) {
-      return { broadcast: false, save: false };
-    }
-
-    const isPublic = this.authService.getSummary?.().source === "fallback";
-    if (this.roomService.getState().isPublicTable === isPublic) {
-      return { broadcast: false, save: false };
-    }
-
-    this.roomService.setState({ isPublicTable: isPublic });
-    return { broadcast: true, save: true };
+    return { broadcast: false, save: false };
   }
 }

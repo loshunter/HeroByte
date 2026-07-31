@@ -2,10 +2,14 @@
 
 ## Default Credentials (Development)
 
-| Password Type      | Default Value | How to Change                                 |
-| ------------------ | ------------- | --------------------------------------------- |
-| **Table Password** | `Fun1`        | DM Menu → Session → Table Security            |
-| **DM Password**    | `FunDM`       | Player Settings → DM Mode toggle (first time) |
+| Password Type      | Default Value | Notes                                                                           |
+| ------------------ | ------------- | ------------------------------------------------------------------------------- |
+| **Table Password** | `Fun1`        | Fixed on the Main Hall. Private tables set their own (Session → Table Security) |
+| **DM Password**    | `FunDM`       | Fixed on the Main Hall. Private tables set their own at creation                |
+
+> The Main Hall is the **public test table**: both passwords are fixed so it always stays open, and
+> it is wiped after an hour empty. To keep work from it, use DM Menu → Session →
+> **Save as a Private Table**.
 
 ## Quick Actions
 
@@ -20,7 +24,9 @@
 > become DM as soon as it's saved. See the
 > [Getting Started guide](docs/user-guide/getting-started.md#becoming-the-dm).
 
-### Set Private Table Password
+### Set a Private Table's Password
+
+(The Main Hall's password is fixed — this applies to private tables.)
 
 1. Become DM (see above)
 2. Open **DM Menu** (bottom-right corner)
@@ -101,7 +107,7 @@ HEROBYTE_DEFAULT_ROOM_ID="default"
 ### After Your Game
 
 1. 💾 Save final state
-2. 🔄 Reset the table password (DM Menu → Session → Table Security → "Reset to Default") (optional)
+2. 🔄 On a private table, reset its password (DM Menu → Session → Table Security → "Reset to Default") (optional)
 3. 🧹 Clear drawings/tokens (optional)
 4. 👋 Disconnect
 

@@ -67,9 +67,22 @@ Habits that save campaigns:
 - On free-tier hosting the server's disk can reset when it idles — a session file in your downloads folder is your real persistence.
 - The save is a **DM artifact**: it contains secret doors, hidden NPCs, and GM notes in plain text. Don't hand it to players.
 
-### Table Security
+### Table Security (private tables)
 
 **UPDATE PASSWORD** changes this table's password live: everyone already connected stays, new joiners need the new password. **RESET TO DEFAULT** puts the development default back. Change the password when a table code leaks, or after a public one-shot.
+
+### Save as a Private Table (the test table)
+
+On the **Main Hall** this panel appears instead, because that table's passwords are fixed — both the table password and the DM password are the published defaults and cannot be changed, so the test table always stays open for everyone and is wiped once it has sat empty for an hour.
+
+So if something you built there is worth keeping, copy it out: give it a **name**, a **table password** (6+ characters) and optionally a **DM password** (8+), then **SAVE & GO THERE**.
+
+That mints a brand-new private table and copies the whole thing across — room state, the live map and all its documents, and the uploaded images — then drops you into it. Specifics worth knowing:
+
+- **The Main Hall is untouched.** It carries on exactly as it was, and still clears on schedule.
+- **The copy is yours**: its own passwords, its own code, and never auto-cleared.
+- It's the DM's view that gets copied, so **secret doors and hidden NPCs come with it** rather than being quietly dropped.
+- Images are shared by content, so the copy claims them too — clearing the Main Hall later can't delete pictures your new table is using.
 
 ## DM-only toolbar powers
 

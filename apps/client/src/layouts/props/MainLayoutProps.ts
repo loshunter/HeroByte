@@ -374,6 +374,12 @@ export interface MainLayoutProps {
   roomPasswordPending: boolean;
   /** Handler to set room password */
   handleSetRoomPassword: (password?: string) => void;
+  /** Test table only: copy this table into a new private one. */
+  onSaveAsPrivateTable?: (input: {
+    name: string;
+    roomPassword: string;
+    dmPassword?: string;
+  }) => Promise<void>;
   /** Handler to dismiss room password status */
   dismissRoomPasswordStatus: () => void;
 

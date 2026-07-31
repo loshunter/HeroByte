@@ -23,29 +23,35 @@ A few useful details:
 - **One tab per table.** If you open the same table in a second tab, the older tab pauses with an "open in another tab" notice (only one live connection per device). Use **RECLAIM THIS TAB** to switch back.
 - On a locally hosted server, the development table password is `Fun1` unless the host changed it.
 
-## The Main Hall is a shared table (until you claim it)
+## The Main Hall is the public test table
 
-Every server starts with one table, the **Main Hall**. Out of the box it's a scratch space:
+Every server starts with one table, the **Main Hall**. It is permanently a scratch space:
 
-- **Its password is public** — it's the server's documented default, so anyone who has read the setup instructions can walk in.
-- **It clears itself.** Once it has sat empty for an hour, the server wipes it: tokens, maps, drawings, and uploaded images all go. That keeps a shared space usable instead of letting it silt up (and keeps its upload quota from filling).
-- You'll see this on the join screen, and a **⚠ PUBLIC TABLE** marker sits under the connection banner while you're in it.
+- **Its passwords are public and fixed.** Both the table password and the DM password are the ones printed in the setup docs, and **neither can be changed** — not by you, not by anyone. That's deliberate: if they could be changed, one visitor could padlock a public demo and its host would lose their own test bed with no way back in.
+- **It clears itself.** Once it has sat empty for an hour, the server wipes it: tokens, maps, drawings, and uploaded images all go. That keeps the shared space usable instead of letting it silt up (and keeps its upload quota from filling).
+- You'll see this on the join screen, and a **⚠ PUBLIC TEST TABLE** marker sits under the connection banner while you're in it.
 
-**Neither of those is permanent.** "Public" isn't about *which* table it is — it's about the password. Give the Main Hall a password of its own (**DM Menu → Session → Table Security**) and it's claimed: the marker disappears, and the server never auto-clears it again. Reset it to the default and it goes back to being shared.
+Build there freely — that's what it's for. Just don't leave anything there you want to keep.
 
-So there are two good options for a real game:
+### Keeping what you built there
 
-- **Running your own server** (localhost, your LAN, your own host)? Just set a password on the Main Hall and use it. That's your table now.
-- **On a server other people can reach?** [Create a private table](#creating-a-private-table) — you get a fresh table with its own code and password, leaving the Main Hall free for everyone else.
+If a scratch session turns into something worth saving, copy it to a table of your own: **DM Menu → Session → Save as a Private Table**. Give it a name and a password (and optionally a DM password) and press **Save & Go There**.
 
-## Tables, invites, and the lobby
+That mints a brand-new private table carrying **everything across** — the map, tokens, NPCs, drawings, uploaded images — and drops you into it. The Main Hall is untouched and carries on clearing as usual. Your new table is private, has its own passwords, and is **never auto-cleared**.
 
-The bottom half of the join screen is the **table lobby**:
+For a game you're planning in advance, [create a private table](#creating-a-private-table) from the join screen instead.
 
-- **Table** shows where you're headed — `Main Hall (default table)` unless an invite pointed you elsewhere.
+## Switching tables, invites, and codes
+
+There's one login. If you belong to more than one table, a **Table** picker appears directly above the password field — choose the table, type its password, press **ENTER TABLE**. (With only the Main Hall to go to, the picker stays hidden; one option isn't a choice.) Tables you've named show up by name rather than by code.
+
+Below the password field:
+
 - **Copy invite link** copies a URL like `https://your-host/?room=table-k3f9x2` that lands friends directly on the join screen for that table. The link carries **no password** — share that separately.
-- **Your tables** lists tables you've visited (up to 12) so you can hop back with one click. The ✕ forgets a table; you'll need its code to return.
-- **Join by code**: paste a table code (like `table-k3f9x2`) into the **table code** field and press **JOIN**.
+- **Forget this table** drops a private table from this browser's list. You'll need its code to get back in.
+- **Join by code**: paste a table code (like `table-k3f9x2`) and press **JOIN**.
+
+Your browser remembers up to 12 tables. The server deliberately publishes no list of tables, so that list — plus the codes themselves — is how private tables stay findable.
 
 ## Creating a private table
 
@@ -54,9 +60,10 @@ Any player can start a fresh, private table — no DM powers needed. This is whe
 ![The New Table form with its two password fields](img/login-new-table.jpg)
 
 1. Press **▦ NEW TABLE**.
-2. Choose a **table password** (6+ characters) — this is what your players will type to get in.
-3. Optionally choose a **DM password** (8+ characters) — whoever knows it can become that table's DM. (Skipped it? No problem — the first person who tries to enter DM Mode on the new table is offered to set it right there.)
-4. Press **CREATE PRIVATE TABLE**.
+2. Give it a **name** (e.g. "Sunday Game") so it's recognisable in your table list later.
+3. Choose a **table password** (6+ characters) — this is what your players will type to get in.
+4. Optionally choose a **DM password** (8+ characters) — whoever knows it can become that table's DM. (Skipped it? No problem — the first person who tries to enter DM Mode on the new table is offered to set it right there.)
+5. Press **CREATE PRIVATE TABLE**.
 
 HeroByte mints a random table code (like `table-k3f9x2`), drops you straight in, and you can share the invite link + password with your party.
 

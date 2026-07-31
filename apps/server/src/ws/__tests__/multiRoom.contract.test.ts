@@ -491,43 +491,24 @@ describe("idle default-table clear", () => {
     expect(releaseRoom).not.toHaveBeenCalled();
   });
 
-  it("stops clearing once the table is CLAIMED with a non-published password", async () => {
-    // "Public" is not a property of the room id — it is true only while the
-    // password is still the one printed in the setup docs. A self-hoster who
-    // sets their own password is running a real table there, and wiping it
-    // would be destroying their campaign.
+  it("keeps clearing no matter what the password says", async () => {
+    // The test table is public because it IS the default table, not because of
+    // what its password happens to be — and its password cannot be changed at
+    // all (see RoomMessageHandler). An earlier design let a non-default
+    // password exempt it from clearing, which meant one visitor to a public
+    // demo could padlock the host's own test bed and keep it forever.
     const roomService = dirtyDefaultTable();
     vi.advanceTimersByTime(CLEAR_MS + 1000);
     getSummary.mockReturnValue({ source: "user", updatedAt: Date.now() });
 
     const cleared = await container.clearIdleDefaultRoom(CLEAR_MS);
 
-    expect(cleared).toBe(false);
-    expect(roomService.getState().tokens).toHaveLength(1);
-    expect(releaseRoom).not.toHaveBeenCalled();
+    expect(cleared).toBe(true);
+    expect(roomService.getState().tokens).toEqual([]);
   });
 
-  it("stops clearing when the operator set HEROBYTE_ROOM_SECRET", async () => {
-    // Same rule via the other route: an env-configured password is not the
-    // published one either, so that table is not an open scratch space.
-    const roomService = dirtyDefaultTable();
-    vi.advanceTimersByTime(CLEAR_MS + 1000);
-    getSummary.mockReturnValue({ source: "env", updatedAt: Date.now() });
-
-    expect(await container.clearIdleDefaultRoom(CLEAR_MS)).toBe(false);
-    expect(roomService.getState().tokens).toHaveLength(1);
-  });
-
-  it("publishes the public flag on the snapshot only while unclaimed", () => {
-    expect(container.isDefaultTablePublic()).toBe(true);
-    container.refreshPublicTableFlag();
+  it("flags the default table as public at boot", () => {
     expect(container.getRoomServiceForRoom("default").getState().isPublicTable).toBe(true);
-
-    getSummary.mockReturnValue({ source: "user", updatedAt: Date.now() });
-    container.refreshPublicTableFlag();
-
-    expect(container.isDefaultTablePublic()).toBe(false);
-    expect(container.getRoomServiceForRoom("default").getState().isPublicTable).toBe(false);
   });
 
   it("leaves private tables to the unload sweep", async () => {

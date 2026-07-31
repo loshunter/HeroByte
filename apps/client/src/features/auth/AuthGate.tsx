@@ -36,8 +36,15 @@ export interface AuthGateProps {
   onPasswordChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onRetry: () => void;
-  /** Optional table shelf (room lobby) rendered at the bottom of the card. */
-  roomSlot?: React.ReactNode;
+  /**
+   * Which table you're joining — rendered ABOVE the password field, because it
+   * is part of the same question. The screen used to have two separate logins:
+   * a password box for "this" table at the top, and a whole second shelf at the
+   * bottom for every other table.
+   */
+  tableSlot?: React.ReactNode;
+  /** Secondary table actions (create / join by code / invite) below the form. */
+  actionsSlot?: React.ReactNode;
 }
 
 /**
@@ -57,7 +64,8 @@ export function AuthGate({
   onPasswordChange,
   onSubmit,
   onRetry,
-  roomSlot,
+  tableSlot,
+  actionsSlot,
 }: AuthGateProps): JSX.Element {
   const isConnecting =
     connectionState === ConnectionState.CONNECTING ||
@@ -116,6 +124,7 @@ export function AuthGate({
         >
           Enter the table password provided by your host to sync with your party.
         </p>
+        {tableSlot}
         {/* No ?room= means this tab targets the server's default table, which
             is public and self-clearing — say so before anyone settles in. */}
         {currentRoomId() === undefined ? <PublicTableNotice variant="gate" /> : null}
@@ -195,7 +204,7 @@ export function AuthGate({
             {isReplaced ? "Reclaim This Tab" : "Retry Connection"}
           </button>
         ) : null}
-        {roomSlot}
+        {actionsSlot}
       </div>
     </div>
   );

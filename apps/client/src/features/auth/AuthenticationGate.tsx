@@ -15,6 +15,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { AuthState, ConnectionState } from "../../services/websocket";
 import { AuthGate } from "./AuthGate";
 import { RoomLobby } from "../rooms/RoomLobby";
+import { TablePicker } from "../rooms/TablePicker";
 import {
   currentRoomId,
   rememberRoom,
@@ -308,7 +309,8 @@ export function AuthenticationGate({
         onPasswordChange={handlePasswordChange}
         onSubmit={handlePasswordSubmit}
         onRetry={onConnect}
-        roomSlot={<RoomLobby onCreateRoom={onCreateRoom} />}
+        tableSlot={<TablePicker />}
+        actionsSlot={<RoomLobby onCreateRoom={onCreateRoom} />}
       />
     );
   }

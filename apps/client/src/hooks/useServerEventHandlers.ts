@@ -62,6 +62,13 @@ export interface UseServerEventHandlersOptions {
    */
   onDMElevationFailed?: (reason: string) => void;
 
+  /**
+   * Replies to fork-table. Routed here rather than via
+   * registerServerEventHandler because that is single-subscriber and this hook
+   * owns it once the user is authenticated — which is exactly when a fork runs.
+   */
+  onTableForkMessage?: (message: ServerMessage) => void;
+
   onMapStudioMessage?: (
     message: Extract<
       ServerMessage,
@@ -142,6 +149,7 @@ export function useServerEventHandlers({
   toast,
   sendMessage,
   onDMElevationFailed,
+  onTableForkMessage,
   onMapStudioMessage,
 }: UseServerEventHandlersOptions): UseServerEventHandlersReturn {
   // State for room password operations
@@ -226,6 +234,11 @@ export function useServerEventHandlers({
       } else if ("t" in message && message.t === "dm-password-update-failed") {
         // DM password update failed
         toastError(`DM password update failed: ${message.reason}`, 5000);
+      } else if (
+        "t" in message &&
+        (message.t === "table-forked" || message.t === "table-fork-failed")
+      ) {
+        onTableForkMessage?.(message);
       } else if ("t" in message && message.t === "session-file") {
         // Routed rather than handled: the DM's chosen filename lives in
         // useSessionManagement, down in the DM menu. See sessionFileBridge.
@@ -245,6 +258,7 @@ export function useServerEventHandlers({
     toastSuccess,
     toastError,
     onDMElevationFailed,
+    onTableForkMessage,
     onMapStudioMessage,
   ]);
 

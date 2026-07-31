@@ -1021,20 +1021,21 @@ describe("MessageRouter", () => {
       expect(mockRoomService.saveState).toHaveBeenCalled();
     });
 
-    it("allows DM to update room password", () => {
+    it("refuses to change the TEST table's password, even for a DM", () => {
+      // This router is bound to the default room, whose password is fixed so a
+      // visitor cannot padlock a public demo. Changing a password is a
+      // private-table operation; the refusal points at the fork instead.
       mockState.players[0].isDM = true;
       const ws = { readyState: 1, send: vi.fn() } as unknown as WebSocket;
       mockUidToWs.set("player-1", ws);
-      const summary = { source: "user" as const, updatedAt: 12345 };
-      (mockAuthService.update as unknown as Mock).mockReturnValue(summary);
 
       const msg: ClientMessage = { t: "set-room-password", secret: "Secret123" };
       routeAndFlush(msg, "player-1");
 
-      expect(mockAuthService.update).toHaveBeenCalledWith("Secret123", "default");
-      expect(ws.send).toHaveBeenCalledWith(
-        JSON.stringify({ t: "room-password-updated", updatedAt: 12345, source: "user" }),
-      );
+      expect(mockAuthService.update).not.toHaveBeenCalled();
+      const sent = JSON.parse((ws.send as unknown as Mock).mock.calls[0][0] as string);
+      expect(sent.t).toBe("room-password-update-failed");
+      expect(sent.reason).toMatch(/fixed so it stays open/i);
     });
 
     it("rejects room password updates from non-DM", () => {

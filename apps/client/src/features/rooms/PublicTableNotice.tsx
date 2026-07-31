@@ -26,14 +26,14 @@ interface PublicTableNoticeProps {
   variant: "gate" | "chip";
 }
 
-const CLAIM_PATH = "DM Menu → Session → Table Security";
+const KEEP_PATH = "DM Menu → Session → Save as a private table";
 
 export const PublicTableNotice: React.FC<PublicTableNoticeProps> = ({ variant }) => {
   if (variant === "chip") {
     return (
       <div
         data-testid="public-table-chip"
-        title={`Anyone with the published password can join this table, and it is wiped once it sits empty. Set your own password (${CLAIM_PATH}) to claim it — then it stops being public and is never auto-cleared.`}
+        title={`Anyone with the published password can join this table, and it is wiped once it has sat empty for an hour. To keep what you build here, copy it to a private table of your own: ${KEEP_PATH}.`}
         style={{
           position: "fixed",
           top: "26px",
@@ -52,7 +52,7 @@ export const PublicTableNotice: React.FC<PublicTableNoticeProps> = ({ variant })
           pointerEvents: "auto",
         }}
       >
-        ⚠ PUBLIC TABLE — CLEARS WHEN EMPTY · SET A PASSWORD TO KEEP IT
+        ⚠ PUBLIC TEST TABLE — CLEARS WHEN EMPTY · SAVE IT TO KEEP IT
       </div>
     );
   }
@@ -78,7 +78,7 @@ export const PublicTableNotice: React.FC<PublicTableNoticeProps> = ({ variant })
           lineHeight: 1.6,
         }}
       >
-        ⚠ SHARED DEFAULT TABLE
+        ⚠ PUBLIC TEST TABLE
       </p>
       <p
         style={{
@@ -89,10 +89,10 @@ export const PublicTableNotice: React.FC<PublicTableNoticeProps> = ({ variant })
           lineHeight: 1.5,
         }}
       >
-        The Main Hall opens with the password published in the setup docs. While it still uses that
-        password it is a public scratch space, and the server wipes it once it has sat empty for an
-        hour. Give it your own password ({CLAIM_PATH}) and it becomes yours: no longer public, and
-        never auto-cleared.
+        The Main Hall is everyone&apos;s scratch space. Its password is published in the setup docs
+        and cannot be changed — so it always stays open — and the server wipes it once it has sat
+        empty for an hour. Build here freely; to keep any of it, save the table as a private table
+        of your own ({KEEP_PATH}), or start one below.
       </p>
     </div>
   );

@@ -13,6 +13,8 @@ export interface CreateRoomInput {
   roomId: string;
   roomPassword: string;
   dmPassword?: string;
+  /** Display name, so the table is recognisable as more than a code. */
+  name?: string;
 }
 
 type Pending = { resolve: () => void; reject: (error: Error) => void };
@@ -40,7 +42,7 @@ export function useCreateRoom(
   }, [registerServerEventHandler]);
 
   return useCallback(
-    ({ roomId, roomPassword, dmPassword }: CreateRoomInput) =>
+    ({ roomId, roomPassword, dmPassword, name }: CreateRoomInput) =>
       new Promise<void>((resolve, reject) => {
         if (pending.current) {
           reject(new Error("A table is already being created."));
@@ -70,6 +72,7 @@ export function useCreateRoom(
           roomId,
           roomPassword,
           ...(dmPassword ? { dmPassword } : {}),
+          ...(name ? { name } : {}),
         });
       }),
     [sendMessage],

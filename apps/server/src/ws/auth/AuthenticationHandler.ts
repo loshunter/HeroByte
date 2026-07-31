@@ -7,6 +7,8 @@
 import type { WebSocket } from "ws";
 import { WS_CLOSE_AUTH_REJECTED, type Player } from "@herobyte/shared";
 import { handleCreateRoom, type CreateRoomRequest } from "./roomCreation.js";
+import { forkTableForUid, type ForkTableRequest } from "./tableFork.js";
+import { setDMPasswordForUid } from "./dmPasswordUpdate.js";
 import { DMElevationThrottle } from "./dmElevationThrottle.js";
 import type { Container } from "../../container.js";
 import { getDefaultRoomId } from "../../config/auth.js";
@@ -252,64 +254,33 @@ export class AuthenticationHandler {
   }
 
   /**
-   * Set or update the DM password (DM-only action, or anyone if no DM password exists)
-   *
-   * @param uid - Unique identifier for the client
-   * @param dmPassword - New DM password to set
+   * Set or update the DM password (DM-only, or anyone when none exists yet).
+   * Refused outright on the test table, whose DM password is fixed.
    */
   setDMPassword(uid: string, dmPassword: string): void {
-    const ws = this.uidToWs.get(uid);
-    if (!ws) {
-      return;
-    }
-
-    const roomId = this.container.roomIdForUid(uid);
-    const roomService = this.container.getRoomServiceForRoom(roomId);
-    const state = roomService.getState();
-    const player = this.container.playerService.findPlayer(state, uid);
-
-    if (!player) {
-      ws.send(JSON.stringify({ t: "dm-password-update-failed", reason: "Player not found" }));
-      return;
-    }
-
-    // Only current DM can set/update DM password
-    // OR if no DM password exists yet, anyone can set it (bootstrap case)
-    const hasDMPassword = this.container.authService.hasDMPassword(roomId);
-    if (hasDMPassword && !player.isDM) {
-      ws.send(
-        JSON.stringify({
-          t: "dm-password-update-failed",
-          reason: "Only DM can update DM password",
-        }),
-      );
-      return;
-    }
-
-    // Update DM password
-    try {
-      const summary = this.container.authService.updateDMPassword(dmPassword, roomId);
-      ws.send(JSON.stringify({ t: "dm-password-updated", updatedAt: summary.updatedAt }));
-      console.log(`DM password updated by ${uid}`);
-
-      // If this is first-time setup and player doesn't have DM status yet, grant it
-      if (!hasDMPassword && !player.isDM) {
-        player.isDM = true;
-        ws.send(JSON.stringify({ t: "dm-status", isDM: true }));
-        console.log(`DM status granted to ${uid} (first-time DM password setup)`);
-        roomService.broadcast(this.container.getAuthenticatedClientsForRoom(roomId), this.uidToWs, {
-          reason: "dm-bootstrapped",
-        });
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      ws.send(JSON.stringify({ t: "dm-password-update-failed", reason: errorMessage }));
-    }
+    setDMPasswordForUid(this.container, this.uidToWs.get(uid), uid, dmPassword, this.defaultRoomId);
   }
 
   createRoom(uid: string, request: CreateRoomRequest): void {
     const ws = this.uidToWs.get(uid);
-    handleCreateRoom(this.container.authService, ws, this.defaultRoomId, request);
+    handleCreateRoom(
+      this.container.authService,
+      ws,
+      this.defaultRoomId,
+      request,
+      (roomId, name) => {
+        this.container.getRoomServiceForRoom(roomId).setState({ tableName: name });
+      },
+    );
+  }
+
+  /**
+   * Copy the sender's table into a new private one (DM-only, post-auth). This
+   * is how work done on the test table is kept: that table's password is fixed
+   * and it is wiped hourly, so a durable copy is the only way to hold on to it.
+   */
+  forkTable(uid: string, request: ForkTableRequest): void {
+    forkTableForUid(this.container, this.uidToWs.get(uid), uid, request);
   }
 
   /** Reject an authentication attempt and close the connection. */

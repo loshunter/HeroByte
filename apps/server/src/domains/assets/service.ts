@@ -13,6 +13,7 @@ import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { resolveServerPath } from "../../config/serverPaths.js";
 import { sniffImageMime } from "./mimeSniff.js";
+import { planClaimCopy, planRoomRelease } from "./assetRoomClaims.js";
 
 const HASH_PATTERN = /^[a-f0-9]{64}$/;
 
@@ -253,6 +254,26 @@ export class AssetService {
   }
 
   /**
+   * Add `toRoomId` as a co-claimant of everything `fromRoomId` holds — what a
+   * table fork needs. Without it the copy references images it does not own,
+   * and the next sweep of the source table releases the last claim and deletes
+   * the bytes out from under it.
+   *
+   * Returns the number of assets the target now additionally claims.
+   */
+  async copyClaims(fromRoomId: string, toRoomId: string): Promise<number> {
+    if (fromRoomId === toRoomId) return 0;
+    return this.runExclusive(async () => {
+      const index = await this.loadIndex();
+      const plan = planClaimCopy(index.assets, fromRoomId, toRoomId);
+      if (plan.claimed === 0) return 0;
+      await this.writeIndex({ schemaVersion: 1, assets: plan.assets });
+      index.assets = plan.assets;
+      return plan.claimed;
+    });
+  }
+
+  /**
    * Drop a room's claim on its uploads, deleting the bytes only once NO room
    * claims them. Content addressing means two tables can share one file, so
    * this un-claims rather than deleting outright — otherwise clearing the
@@ -264,43 +285,23 @@ export class AssetService {
   async releaseRoom(roomId: string): Promise<number> {
     return this.runExclusive(async () => {
       const index = await this.loadIndex();
-      const nextAssets: Record<string, StoredAsset> = {};
-      const orphaned: StoredAsset[] = [];
-      let freed = 0;
-      let changed = false;
-
-      for (const [hash, asset] of Object.entries(index.assets)) {
-        const rooms = roomsOf(asset);
-        if (!rooms.includes(roomId)) {
-          nextAssets[hash] = asset;
-          continue;
-        }
-        changed = true;
-        const remaining = rooms.filter((room) => room !== roomId);
-        if (remaining.length > 0) {
-          nextAssets[hash] = { ...asset, rooms: remaining };
-        } else {
-          orphaned.push(asset);
-          freed += asset.size;
-        }
-      }
-
-      if (!changed) return 0;
+      const plan = planRoomRelease(index.assets, roomId);
+      if (!plan.changed) return 0;
 
       // Index first, then unlink — the same ordering store() uses and for the
       // same reason: an index that no longer names a file is harmless (the
       // orphan re-attaches on the next identical upload), whereas a file
       // deleted while still indexed 404s forever.
-      await this.writeIndex({ schemaVersion: 1, assets: nextAssets });
-      index.assets = nextAssets;
+      await this.writeIndex({ schemaVersion: 1, assets: plan.assets });
+      index.assets = plan.assets;
 
-      for (const asset of orphaned) {
+      for (const asset of plan.orphaned) {
         await unlink(path.join(this.directory, `${asset.hash}.${asset.extension}`)).catch(() => {
           // Already gone, or the disk refused: the index no longer references
           // it, so this is a stray file at worst — never a broken reference.
         });
       }
-      return freed;
+      return plan.freed;
     });
   }
 

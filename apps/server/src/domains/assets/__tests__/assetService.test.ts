@@ -223,6 +223,42 @@ describe("AssetService", () => {
     });
   });
 
+  describe("copyClaims (table fork)", () => {
+    it("survives the source table being cleared afterwards", () => {
+      // The whole point. A forked table references the same content-addressed
+      // bytes; without a claim of its own, the next hourly sweep of the test
+      // table drops the last claim and deletes the images the copy is using.
+      return (async () => {
+        const service = new AssetService({ directory: TMP_DIR });
+        const bytes = pngBytes("uploaded-on-the-test-table");
+        const { asset } = await service.store(bytes, "default", 1);
+
+        await service.copyClaims("default", "table-keeper");
+        const freed = await service.releaseRoom("default"); // the hourly wipe
+
+        expect(freed).toBe(0); // nothing left the disk
+        expect(await service.read(asset.hash)).not.toBeNull();
+        expect(await service.roomBytes("table-keeper")).toBe(bytes.length);
+        expect(await service.roomBytes("default")).toBe(0);
+      })();
+    });
+
+    it("ignores assets the source room does not claim", async () => {
+      const service = new AssetService({ directory: TMP_DIR });
+      await service.store(pngBytes("belongs-to-another-table"), "room-other", 1);
+
+      expect(await service.copyClaims("default", "table-keeper")).toBe(0);
+      expect(await service.roomBytes("table-keeper")).toBe(0);
+    });
+
+    it("is a no-op when copying a room onto itself", async () => {
+      const service = new AssetService({ directory: TMP_DIR });
+      await service.store(pngBytes("some-image"), "default", 1);
+
+      expect(await service.copyClaims("default", "default")).toBe(0);
+    });
+  });
+
   describe("releaseRoom", () => {
     // Clearing the public table has to give its quota back, without disturbing
     // any other table that happens to hold the same bytes.

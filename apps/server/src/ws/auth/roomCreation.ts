@@ -22,6 +22,7 @@ export interface CreateRoomRequest {
   roomId: string;
   roomPassword: string;
   dmPassword?: string;
+  name?: string;
 }
 
 export function handleCreateRoom(
@@ -29,6 +30,8 @@ export function handleCreateRoom(
   ws: WebSocket | undefined,
   defaultRoomId: string,
   request: CreateRoomRequest,
+  /** Records the display name on the new room's state, when one was given. */
+  setTableName?: (roomId: string, name: string) => void,
 ): void {
   if (!ws) {
     return;
@@ -48,6 +51,8 @@ export function handleCreateRoom(
 
   try {
     authService.createRoom(trimmedId, roomPassword, dmPassword);
+    const name = request.name?.trim();
+    if (name) setTableName?.(trimmedId, name.slice(0, 60));
     ws.send(JSON.stringify({ t: "room-created", roomId: trimmedId }));
     console.log(`Private room created: ${trimmedId}`);
   } catch (error) {
