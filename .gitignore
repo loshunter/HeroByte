@@ -71,3 +71,6 @@ Thumbs.db
 
 # Vitest writes these transient config timestamps next to the config file
 vitest.config.ts.timestamp-*
+
+# Opt-in perf benchmark kept locally (PERF_BENCH=1); its own header says never commit
+apps/client/src/features/render/__tests__/zz_perfbench.test.ts
