@@ -13,9 +13,9 @@ describe("getDefaultRoomClearMs", () => {
     else process.env.HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS = original;
   });
 
-  it("defaults to 6 hours", () => {
+  it("defaults to 1 hour", () => {
     delete process.env.HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS;
-    expect(getDefaultRoomClearMs()).toBe(6 * 60 * 60 * 1000);
+    expect(getDefaultRoomClearMs()).toBe(60 * 60 * 1000);
   });
 
   it("honours a custom window", () => {
@@ -38,7 +38,7 @@ describe("getDefaultRoomClearMs", () => {
   it("falls back to the default for junk or negative values", () => {
     for (const value of ["", "   ", "abc", "-3"]) {
       process.env.HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS = value;
-      expect(getDefaultRoomClearMs()).toBe(6 * 60 * 60 * 1000);
+      expect(getDefaultRoomClearMs()).toBe(60 * 60 * 1000);
     }
   });
 });

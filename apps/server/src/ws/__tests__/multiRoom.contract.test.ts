@@ -44,6 +44,8 @@ function frameTypes(socket: FakeSocket): (string | undefined)[] {
 const authServiceStub = {
   verify: () => true,
   hasDMPassword: () => false,
+  // "fallback" = still the published default password, i.e. genuinely public.
+  getSummary: () => ({ source: "fallback", updatedAt: 0 }),
 } as unknown as AuthService;
 
 describe("multi-room isolation contracts", () => {
@@ -379,9 +381,10 @@ describe("idle-room unload", () => {
 // uploads, against a 50MB per-room quota) accumulated forever. It is emptied
 // in place once nobody is in it — and must never be emptied under a session.
 describe("idle default-table clear", () => {
-  const CLEAR_MS = 6 * 60 * 60 * 1000;
+  const CLEAR_MS = 60 * 60 * 1000;
   let container: Container;
   let releaseRoom: ReturnType<typeof vi.fn>;
+  let getSummary: ReturnType<typeof vi.fn>;
 
   function dirtyDefaultTable() {
     const roomService = container.getRoomServiceForRoom("default");
@@ -393,9 +396,10 @@ describe("idle default-table clear", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     releaseRoom = vi.fn().mockResolvedValue(2048);
+    getSummary = vi.fn().mockReturnValue({ source: "fallback", updatedAt: 0 });
     container = new Container(
       {} as unknown as WebSocketServer,
-      authServiceStub,
+      { ...authServiceStub, getSummary } as unknown as AuthService,
       new RoomRegistry({ defaultRoomId: "default" }),
       undefined,
       { releaseRoom } as unknown as ConstructorParameters<typeof Container>[4],
@@ -485,6 +489,45 @@ describe("idle default-table clear", () => {
     expect(cleared).toBe(false);
     expect(roomService.getState().tokens).toHaveLength(1);
     expect(releaseRoom).not.toHaveBeenCalled();
+  });
+
+  it("stops clearing once the table is CLAIMED with a non-published password", async () => {
+    // "Public" is not a property of the room id — it is true only while the
+    // password is still the one printed in the setup docs. A self-hoster who
+    // sets their own password is running a real table there, and wiping it
+    // would be destroying their campaign.
+    const roomService = dirtyDefaultTable();
+    vi.advanceTimersByTime(CLEAR_MS + 1000);
+    getSummary.mockReturnValue({ source: "user", updatedAt: Date.now() });
+
+    const cleared = await container.clearIdleDefaultRoom(CLEAR_MS);
+
+    expect(cleared).toBe(false);
+    expect(roomService.getState().tokens).toHaveLength(1);
+    expect(releaseRoom).not.toHaveBeenCalled();
+  });
+
+  it("stops clearing when the operator set HEROBYTE_ROOM_SECRET", async () => {
+    // Same rule via the other route: an env-configured password is not the
+    // published one either, so that table is not an open scratch space.
+    const roomService = dirtyDefaultTable();
+    vi.advanceTimersByTime(CLEAR_MS + 1000);
+    getSummary.mockReturnValue({ source: "env", updatedAt: Date.now() });
+
+    expect(await container.clearIdleDefaultRoom(CLEAR_MS)).toBe(false);
+    expect(roomService.getState().tokens).toHaveLength(1);
+  });
+
+  it("publishes the public flag on the snapshot only while unclaimed", () => {
+    expect(container.isDefaultTablePublic()).toBe(true);
+    container.refreshPublicTableFlag();
+    expect(container.getRoomServiceForRoom("default").getState().isPublicTable).toBe(true);
+
+    getSummary.mockReturnValue({ source: "user", updatedAt: Date.now() });
+    container.refreshPublicTableFlag();
+
+    expect(container.isDefaultTablePublic()).toBe(false);
+    expect(container.getRoomServiceForRoom("default").getState().isPublicTable).toBe(false);
   });
 
   it("leaves private tables to the unload sweep", async () => {

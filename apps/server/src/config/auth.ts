@@ -7,7 +7,7 @@ const DEFAULT_ROOM_ID = "default";
 const DEV_FALLBACK_SECRET = "Fun1";
 const DEV_FALLBACK_DM_PASSWORD = "FunDM";
 const DEFAULT_MAX_CUSTOM_ROOMS = 500;
-const DEFAULT_ROOM_CLEAR_HOURS = 6;
+const DEFAULT_ROOM_CLEAR_HOURS = 1;
 
 let warnedAboutFallback = false;
 let warnedAboutDMFallback = false;

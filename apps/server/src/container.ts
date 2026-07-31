@@ -103,6 +103,28 @@ export class Container {
     // table nobody has joined yet as long-idle and wipe state that had just
     // been loaded from disk.
     this.touchRoomActivity(this.defaultRoomId);
+    this.refreshPublicTableFlag();
+  }
+
+  /**
+   * Whether the default table still opens with the password published in the
+   * setup docs. That — not the room id — is what makes it "public": claim it
+   * with any other password and it behaves like any private table.
+   */
+  isDefaultTablePublic(): boolean {
+    return this.authService.getSummary().source === "fallback";
+  }
+
+  /**
+   * Push the derived public flag onto the default table's state so it rides
+   * along on every snapshot. Called at boot and after any password change;
+   * never read back from a loaded state file, which could be stale.
+   */
+  refreshPublicTableFlag(): void {
+    const isPublic = this.isDefaultTablePublic();
+    const roomService = this.roomRegistry.get(this.defaultRoomId);
+    if (roomService.getState().isPublicTable === isPublic) return;
+    roomService.setState({ isPublicTable: isPublic });
   }
 
   /**
@@ -210,7 +232,8 @@ export class Container {
    * the shared space usable without ever interrupting a session.
    *
    * Private tables are untouched: they unload (preserving durable state) via
-   * unloadIdleRooms instead.
+   * unloadIdleRooms instead — and so is a default table someone has CLAIMED by
+   * setting its password, which is no longer public and so no longer disposable.
    */
   async clearIdleDefaultRoom(idleMs: number): Promise<boolean> {
     // A zero/negative window means "never clear" (an operator opting out via
@@ -218,6 +241,12 @@ export class Container {
     // call site, because read literally a 0 window makes every sweep overdue —
     // the failure mode is destroying the table continuously.
     if (idleMs <= 0) return false;
+
+    // The whole justification for wiping this table is that anyone can walk in.
+    // Once its password is no longer the published one — a DM claimed it via
+    // Table Security, or the operator set HEROBYTE_ROOM_SECRET — that stops
+    // being true, and wiping it would be destroying someone's campaign.
+    if (!this.isDefaultTablePublic()) return false;
 
     const roomId = this.defaultRoomId;
     if (this.getAuthenticatedClientsForRoom(roomId).size > 0) return false;

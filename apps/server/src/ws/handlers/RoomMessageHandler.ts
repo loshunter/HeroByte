@@ -20,7 +20,7 @@ import type { AuthService } from "../../domains/auth/service.js";
 import type { MapStudioService } from "../../domains/mapStudio/service.js";
 import type { MapDocument, RoomSnapshot, ServerMessage } from "@herobyte/shared";
 import { toSnapshot } from "../../domains/room/model.js";
-import { getRoomSecret } from "../../config/auth.js";
+import { getDefaultRoomId, getRoomSecret } from "../../config/auth.js";
 
 /**
  * Inline the asset channel back into plain fields for a session FILE.
@@ -248,10 +248,12 @@ export class RoomMessageHandler {
       return { broadcast: false, save: false };
     }
 
+    const senderRoomId = this.getRoomIdForUid?.(senderUid);
+
     try {
       // Scope the change to the sender's room; the default room updates the
       // server-wide password exactly as before.
-      const summary = this.authService.update(nextSecret, this.getRoomIdForUid?.(senderUid));
+      const summary = this.authService.update(nextSecret, senderRoomId);
       this.sendControlMessage(senderUid, {
         t: "room-password-updated",
         updatedAt: summary.updatedAt,
@@ -264,8 +266,36 @@ export class RoomMessageHandler {
         t: "room-password-update-failed",
         reason: "Unable to update password. Check server logs.",
       });
+      return { broadcast: false, save: false };
     }
 
-    return { broadcast: false, save: false };
+    // The password is committed from here on, so this runs OUTSIDE the try
+    // above: refreshing the derived flag is a separate concern, and a failure
+    // in it must never be reported as a password failure that did not happen.
+    return this.refreshPublicTableFlag(senderRoomId);
+  }
+
+  /**
+   * Claiming the default table (any password but the published one) makes it
+   * private: no more auto-clear, no more "public" label. Resetting to the
+   * default hands it back. Broadcasts so every client relabels immediately
+   * rather than at whatever unrelated action happens to broadcast next.
+   *
+   * Scoped to the default room because getSummary() reports on that room
+   * specifically — a private table's own password says nothing about it.
+   */
+  private refreshPublicTableFlag(senderRoomId: string | undefined): RoomMessageResult {
+    const defaultRoomId = getDefaultRoomId();
+    if ((senderRoomId ?? defaultRoomId) !== defaultRoomId) {
+      return { broadcast: false, save: false };
+    }
+
+    const isPublic = this.authService.getSummary?.().source === "fallback";
+    if (this.roomService.getState().isPublicTable === isPublic) {
+      return { broadcast: false, save: false };
+    }
+
+    this.roomService.setState({ isPublicTable: isPublic });
+    return { broadcast: true, save: true };
   }
 }
