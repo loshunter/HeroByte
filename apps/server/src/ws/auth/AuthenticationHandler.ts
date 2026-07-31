@@ -7,6 +7,7 @@
 import type { WebSocket } from "ws";
 import { WS_CLOSE_AUTH_REJECTED, type Player } from "@herobyte/shared";
 import { handleCreateRoom, type CreateRoomRequest } from "./roomCreation.js";
+import { handleForkTable, type ForkTableRequest } from "./tableFork.js";
 import { DMElevationThrottle } from "./dmElevationThrottle.js";
 import type { Container } from "../../container.js";
 import { getDefaultRoomId } from "../../config/auth.js";
@@ -324,6 +325,30 @@ export class AuthenticationHandler {
   createRoom(uid: string, request: CreateRoomRequest): void {
     const ws = this.uidToWs.get(uid);
     handleCreateRoom(this.container.authService, ws, this.defaultRoomId, request);
+  }
+
+  /**
+   * Copy the sender's table into a new private one (DM-only, post-auth). This
+   * is how work done on the test table is kept: that table's password is fixed
+   * and it is wiped hourly, so a durable copy is the only way to hold on to it.
+   */
+  forkTable(uid: string, request: ForkTableRequest): void {
+    const ws = this.uidToWs.get(uid);
+    if (!ws) return;
+
+    const roomId = this.container.roomIdForUid(uid);
+    const roomService = this.container.getRoomServiceForRoom(roomId);
+    const player = this.container.playerService.findPlayer(roomService.getState(), uid);
+
+    handleForkTable(ws, request, {
+      authService: this.container.authService,
+      mapStudioService: this.container.mapStudioService,
+      assetService: this.container.assetServiceForFork,
+      sourceRoomId: roomId,
+      sourceRoomService: roomService,
+      getRoomServiceForRoom: (target) => this.container.getRoomServiceForRoom(target),
+      isDM: player?.isDM ?? false,
+    });
   }
 
   /** Reject an authentication attempt and close the connection. */

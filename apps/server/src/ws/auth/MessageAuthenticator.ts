@@ -132,6 +132,14 @@ export class MessageAuthenticator {
       return true;
     }
 
+    // Post-auth, unlike create-room: forking copies the table the sender is
+    // already in, so it needs them to actually be in it.
+    if (message.t === "fork-table") {
+      this.config.authHandler.forkTable(uid, message);
+      this.config.onAuthMessage?.(uid, message);
+      return true;
+    }
+
     if (message.t === "set-dm-password") {
       this.config.authHandler.setDMPassword(uid, message.dmPassword);
       this.config.onAuthMessage?.(uid, message);

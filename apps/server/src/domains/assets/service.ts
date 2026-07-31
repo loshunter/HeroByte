@@ -253,6 +253,38 @@ export class AssetService {
   }
 
   /**
+   * Add `toRoomId` as a co-claimant of everything `fromRoomId` holds — what a
+   * table fork needs. Without it the copy references images it does not own,
+   * and the next sweep of the source table releases the last claim and deletes
+   * the bytes out from under it.
+   *
+   * Returns the number of assets the target now additionally claims.
+   */
+  async copyClaims(fromRoomId: string, toRoomId: string): Promise<number> {
+    if (fromRoomId === toRoomId) return 0;
+    return this.runExclusive(async () => {
+      const index = await this.loadIndex();
+      const nextAssets: Record<string, StoredAsset> = {};
+      let claimed = 0;
+
+      for (const [hash, asset] of Object.entries(index.assets)) {
+        const rooms = roomsOf(asset);
+        if (rooms.includes(fromRoomId) && !rooms.includes(toRoomId)) {
+          nextAssets[hash] = { ...asset, rooms: [...rooms, toRoomId] };
+          claimed += 1;
+        } else {
+          nextAssets[hash] = asset;
+        }
+      }
+
+      if (claimed === 0) return 0;
+      await this.writeIndex({ schemaVersion: 1, assets: nextAssets });
+      index.assets = nextAssets;
+      return claimed;
+    });
+  }
+
+  /**
    * Drop a room's claim on its uploads, deleting the bytes only once NO room
    * claims them. Content addressing means two tables can share one file, so
    * this un-claims rather than deleting outright — otherwise clearing the

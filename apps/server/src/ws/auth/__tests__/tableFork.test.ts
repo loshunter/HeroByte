@@ -1,0 +1,252 @@
+import { describe, expect, it, vi } from "vitest";
+import { handleForkTable, type ForkTableDeps } from "../tableFork.js";
+import { RoomService } from "../../../domains/room/service.js";
+import { MapStudioService } from "../../../domains/mapStudio/service.js";
+import { InMemoryMapDocumentStore } from "../../../domains/mapStudio/store.js";
+
+/**
+ * Forking is the answer to "the test table's password is fixed and it gets
+ * wiped" — so what it must guarantee is that the copy is COMPLETE and durable,
+ * and that the source is left alone.
+ */
+function setup(overrides: Partial<ForkTableDeps> = {}) {
+  const sent: Array<Record<string, unknown>> = [];
+  const ws = {
+    send: vi.fn((payload: string) => sent.push(JSON.parse(payload))),
+  } as unknown as Parameters<typeof handleForkTable>[0];
+
+  const source = new RoomService();
+  source.getState().tokens.push({ id: "tok-1", owner: "p1", x: 2, y: 3, color: "red" });
+  source.getState().characters.push({
+    id: "npc-1",
+    name: "Hidden Ambusher",
+    type: "npc",
+    visibleToPlayers: false,
+    hp: 8,
+    maxHp: 8,
+  } as never);
+  source.setState({});
+
+  const rooms = new Map<string, RoomService>();
+  const mapStudioService = new MapStudioService(new InMemoryMapDocumentStore());
+
+  const deps: ForkTableDeps = {
+    authService: { createRoom: vi.fn() } as unknown as ForkTableDeps["authService"],
+    mapStudioService,
+    sourceRoomId: "default",
+    sourceRoomService: source,
+    getRoomServiceForRoom: (id: string) => {
+      let room = rooms.get(id);
+      if (!room) {
+        room = new RoomService();
+        rooms.set(id, room);
+      }
+      return room;
+    },
+    isDM: true,
+    ...overrides,
+  };
+
+  return { ws, sent, source, rooms, mapStudioService, deps };
+}
+
+describe("handleForkTable", () => {
+  it("copies the table's contents into the new private table", () => {
+    const { ws, sent, rooms, deps } = setup();
+
+    handleForkTable(
+      ws,
+      {
+        roomId: "table-keeper",
+        name: "Sunday Game",
+        roomPassword: "a-good-password",
+      },
+      deps,
+    );
+
+    expect(sent[0]).toMatchObject({
+      t: "table-forked",
+      roomId: "table-keeper",
+      name: "Sunday Game",
+    });
+    const copy = rooms.get("table-keeper")!;
+    expect(copy.getState().tokens).toHaveLength(1);
+    expect(copy.getState().tableName).toBe("Sunday Game");
+    // A private table is never labelled public and never swept.
+    expect(copy.getState().isPublicTable).toBe(false);
+  });
+
+  it("carries hidden NPCs across — the copy is the DM's view, not a player's", () => {
+    const { ws, rooms, deps } = setup();
+
+    handleForkTable(
+      ws,
+      {
+        roomId: "table-keeper",
+        name: "Sunday Game",
+        roomPassword: "a-good-password",
+      },
+      deps,
+    );
+
+    const copied = rooms.get("table-keeper")!.getState().characters;
+    expect(copied.some((c) => c.name === "Hidden Ambusher")).toBe(true);
+  });
+
+  it("copies the map documents — the live map is the thing worth keeping", () => {
+    const { ws, mapStudioService, deps } = setup();
+    mapStudioService.create("default", {
+      id: "doc-live-1",
+      name: "Live Map",
+      width: 1000,
+      height: 1000,
+    });
+
+    handleForkTable(
+      ws,
+      {
+        roomId: "table-keeper",
+        name: "Sunday Game",
+        roomPassword: "a-good-password",
+      },
+      deps,
+    );
+
+    expect(mapStudioService.list("table-keeper")).toHaveLength(1);
+    expect(mapStudioService.list("table-keeper")[0].name).toBe("Live Map");
+    // ...and the source keeps its own copy.
+    expect(mapStudioService.list("default")).toHaveLength(1);
+  });
+
+  it("co-claims the uploads so clearing the source cannot delete them", async () => {
+    // Without this the copy references images it does not own, and the next
+    // hourly sweep of the test table drops the last claim and deletes them.
+    const copyClaims = vi.fn().mockResolvedValue(3);
+    const { ws, deps } = setup({
+      assetService: { copyClaims } as unknown as ForkTableDeps["assetService"],
+    });
+
+    handleForkTable(
+      ws,
+      {
+        roomId: "table-keeper",
+        name: "Sunday Game",
+        roomPassword: "a-good-password",
+      },
+      deps,
+    );
+
+    expect(copyClaims).toHaveBeenCalledWith("default", "table-keeper");
+  });
+
+  it("leaves the source table untouched", () => {
+    const { ws, source, deps } = setup();
+
+    handleForkTable(
+      ws,
+      {
+        roomId: "table-keeper",
+        name: "Sunday Game",
+        roomPassword: "a-good-password",
+      },
+      deps,
+    );
+
+    expect(source.getState().tokens).toHaveLength(1);
+    expect(source.getState().tableName).toBeUndefined();
+  });
+
+  describe("refusals", () => {
+    it("refuses a non-DM", () => {
+      const { ws, sent, deps } = setup({ isDM: false });
+
+      handleForkTable(
+        ws,
+        {
+          roomId: "table-keeper",
+          name: "Sunday Game",
+          roomPassword: "a-good-password",
+        },
+        deps,
+      );
+
+      expect(sent[0]).toMatchObject({ t: "table-fork-failed" });
+      expect(sent[0].reason).toMatch(/only the dm/i);
+    });
+
+    it("refuses a blank name — the table has to be findable again", () => {
+      const { ws, sent, deps } = setup();
+
+      handleForkTable(
+        ws,
+        {
+          roomId: "table-keeper",
+          name: "   ",
+          roomPassword: "a-good-password",
+        },
+        deps,
+      );
+
+      expect(sent[0].reason).toMatch(/name/i);
+    });
+
+    it("refuses forking a table onto itself", () => {
+      const { ws, sent, deps } = setup();
+
+      handleForkTable(
+        ws,
+        {
+          roomId: "default",
+          name: "Sunday Game",
+          roomPassword: "a-good-password",
+        },
+        deps,
+      );
+
+      expect(sent[0]).toMatchObject({ t: "table-fork-failed" });
+    });
+
+    it("reports the auth service's own rejection (bad password, table limit)", () => {
+      const { ws, sent, deps } = setup({
+        authService: {
+          createRoom: vi.fn(() => {
+            throw new Error("Table password must be at least 6 characters.");
+          }),
+        } as unknown as ForkTableDeps["authService"],
+      });
+
+      handleForkTable(
+        ws,
+        { roomId: "table-keeper", name: "Sunday Game", roomPassword: "no" },
+        deps,
+      );
+
+      expect(sent[0]).toMatchObject({
+        t: "table-fork-failed",
+        reason: "Table password must be at least 6 characters.",
+      });
+    });
+
+    it("copies nothing when the table could not be minted", () => {
+      const { ws, rooms, deps } = setup({
+        authService: {
+          createRoom: vi.fn(() => {
+            throw new Error("That table code is already taken. Try another.");
+          }),
+        } as unknown as ForkTableDeps["authService"],
+      });
+
+      handleForkTable(
+        ws,
+        {
+          roomId: "table-keeper",
+          name: "Sunday Game",
+          roomPassword: "a-good-password",
+        },
+        deps,
+      );
+
+      expect(rooms.has("table-keeper")).toBe(false);
+    });
+  });
+});

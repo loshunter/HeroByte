@@ -63,6 +63,8 @@ export interface RoomState {
    * never trusted from a loaded state file.
    */
   isPublicTable?: boolean;
+  /** Display name a private table was created or forked with. */
+  tableName?: string;
 }
 
 /**
@@ -317,6 +319,7 @@ export function toSnapshot(
 
   // Only ever sent when true — absent reads as "not a public table".
   if (state.isPublicTable) snapshot.isPublicTable = true;
+  if (state.tableName) snapshot.tableName = state.tableName;
 
   // Secret doors and lights are DM-only; compiledSceneView owns that rule and
   // is the only place allowed to.

@@ -147,6 +147,21 @@ export function validateCreateRoomMessage(message: MessageRecord): ValidationRes
   return { valid: true };
 }
 
+/** Same shape as create-room, plus the display name the copy is filed under. */
+export function validateForkTableMessage(message: MessageRecord): ValidationResult {
+  const asCreate = validateCreateRoomMessage(message);
+  if (!asCreate.valid) {
+    return { valid: false, error: asCreate.error?.replace("create-room:", "fork-table:") };
+  }
+  if (typeof message.name !== "string" || message.name.trim().length === 0) {
+    return { valid: false, error: "fork-table: missing or invalid name" };
+  }
+  if (message.name.length > STRING_LIMITS.SECRET_MAX) {
+    return { valid: false, error: "fork-table: name too long" };
+  }
+  return { valid: true };
+}
+
 /**
  * Validate elevate-to-dm message
  * Required: dmPassword (non-empty string, max 256 chars)

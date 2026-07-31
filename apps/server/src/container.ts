@@ -61,6 +61,11 @@ export class Container {
   /** Optional: without it, clearing the default table skips its uploads. */
   private readonly assetService?: AssetService;
 
+  /** Same instance, for the fork path (which must co-claim the uploads). */
+  get assetServiceForFork(): AssetService | undefined {
+    return this.assetService;
+  }
+
   constructor(
     wss: WebSocketServer,
     authService: AuthService,
