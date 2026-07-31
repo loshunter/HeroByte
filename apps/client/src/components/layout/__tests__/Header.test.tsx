@@ -178,7 +178,9 @@ describe("Header", () => {
       const logo = screen.getByAltText("HeroByte");
 
       expect(logo).toBeInTheDocument();
-      expect(logo).toHaveAttribute("src", "/logo.webp");
+      // The WIDE mark: at 32px tall the square version would leave the
+      // lettering only ~16px high, since both now letterbox the same wordmark.
+      expect(logo).toHaveAttribute("src", "/logo-wide.webp");
       expect(logo).toHaveAttribute("alt", "HeroByte");
       expect(logo).toHaveClass("jrpg-pixelated");
       expect(logo).toHaveStyle({ height: "32px" });

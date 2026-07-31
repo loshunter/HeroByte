@@ -98,11 +98,15 @@ export const Header: React.FC<HeaderProps> = ({
               minWidth: "180px",
             }}
           >
+            {/* The WIDE mark here, not the square one. Both now contain the
+                same wordmark, but the square letterboxes it — at 32px tall that
+                would leave the lettering about 16px high. The 3:1 version fills
+                the same height with legible type in ~96px of width. */}
             <img
-              src="/logo.webp"
+              src="/logo-wide.webp"
               alt="HeroByte"
               className="jrpg-pixelated"
-              style={{ height: "32px" }}
+              style={{ height: "32px", mixBlendMode: "screen" }}
             />
             <div style={{ textAlign: "left" }}>
               <p className="jrpg-text-small" style={{ margin: 0, color: "var(--jrpg-white)" }}>
