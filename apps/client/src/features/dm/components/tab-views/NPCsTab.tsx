@@ -145,6 +145,8 @@ export default function NPCsTab({
           variant="simple"
           style={{
             color: "var(--jrpg-red)",
+            fontFamily: "var(--font-body)",
+            lineHeight: 1.45,
             fontSize: "11px",
             padding: "6px 8px",
             border: "1px solid var(--jrpg-red)",

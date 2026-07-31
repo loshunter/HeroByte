@@ -32,18 +32,24 @@ export function StatusBanner({ variant, message, visible = true }: StatusBannerP
 }
 
 function getVariantStyles(variant: StatusBannerVariant): React.CSSProperties {
+  // Both variants carry a sentence explaining a failure or a wait, so both take
+  // the body face rather than inheriting the global pixel font from `body`.
+  // The error red now comes from the palette instead of a raw #ff4444.
+  const prose: React.CSSProperties = { fontFamily: "var(--font-body)", lineHeight: 1.45 };
   switch (variant) {
     case "error":
       return {
+        ...prose,
         padding: "8px",
-        background: "rgba(255, 0, 0, 0.1)",
-        border: "1px solid rgba(255, 0, 0, 0.3)",
+        background: "rgba(232, 154, 156, 0.12)",
+        border: "1px solid var(--jrpg-red)",
         borderRadius: "4px",
-        color: "#ff4444",
+        color: "var(--jrpg-red)",
         fontSize: "12px",
       };
     case "loading":
       return {
+        ...prose,
         padding: "6px",
         background: "rgba(218, 165, 32, 0.1)",
         border: "1px solid var(--jrpg-border-gold)",

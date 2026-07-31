@@ -243,7 +243,7 @@ describe("InitiativeModal - Initial Rendering", () => {
     const props = createDefaultProps();
     const { container } = render(<InitiativeModal {...props} />);
 
-    const errorBoxes = container.querySelectorAll('[style*="rgba(255, 0, 0, 0.1)"]');
+    const errorBoxes = container.querySelectorAll('[style*="rgba(232, 154, 156, 0.12)"]');
     expect(errorBoxes).toHaveLength(0);
   });
 });
@@ -1579,7 +1579,7 @@ describe("InitiativeModal - Error Display", () => {
     const props = createDefaultProps({ error: "Failed to set initiative" });
     const { container } = render(<InitiativeModal {...props} />);
 
-    const errorBox = container.querySelector('[style*="rgba(255, 0, 0, 0.1)"]');
+    const errorBox = container.querySelector('[style*="rgba(232, 154, 156, 0.12)"]');
     expect(errorBox).toBeInTheDocument();
   });
 
@@ -1596,7 +1596,7 @@ describe("InitiativeModal - Error Display", () => {
     const props = createDefaultProps({ error: null });
     const { container } = render(<InitiativeModal {...props} />);
 
-    const errorBoxes = container.querySelectorAll('[style*="rgba(255, 0, 0, 0.1)"]');
+    const errorBoxes = container.querySelectorAll('[style*="rgba(232, 154, 156, 0.12)"]');
     expect(errorBoxes).toHaveLength(0);
   });
 
@@ -1604,7 +1604,7 @@ describe("InitiativeModal - Error Display", () => {
     const props = createDefaultProps({ error: undefined });
     const { container } = render(<InitiativeModal {...props} />);
 
-    const errorBoxes = container.querySelectorAll('[style*="rgba(255, 0, 0, 0.1)"]');
+    const errorBoxes = container.querySelectorAll('[style*="rgba(232, 154, 156, 0.12)"]');
     expect(errorBoxes).toHaveLength(0);
   });
 
@@ -1612,7 +1612,7 @@ describe("InitiativeModal - Error Display", () => {
     const props = createDefaultProps({ error: "Test error" });
     const { container } = render(<InitiativeModal {...props} />);
 
-    const errorBox = container.querySelector('[style*="rgba(255, 0, 0, 0.1)"]');
+    const errorBox = container.querySelector('[style*="rgba(232, 154, 156, 0.12)"]');
     expect(errorBox).toHaveAttribute(
       "style",
       expect.stringContaining("border: 2px solid var(--jrpg-red)"),
@@ -1635,7 +1635,7 @@ describe("InitiativeModal - Error Display", () => {
     const props = createDefaultProps({ error: "Centered error" });
     const { container } = render(<InitiativeModal {...props} />);
 
-    const errorBox = container.querySelector('[style*="rgba(255, 0, 0, 0.1)"]');
+    const errorBox = container.querySelector('[style*="rgba(232, 154, 156, 0.12)"]');
     expect(errorBox).toHaveAttribute("style", expect.stringContaining("text-align: center"));
   });
 
@@ -2072,7 +2072,7 @@ describe("InitiativeModal - Props Validation", () => {
     // Not passing error explicitly
     const { container } = render(<InitiativeModal {...props} />);
 
-    const errorBoxes = container.querySelectorAll('[style*="rgba(255, 0, 0, 0.1)"]');
+    const errorBoxes = container.querySelectorAll('[style*="rgba(232, 154, 156, 0.12)"]');
     expect(errorBoxes).toHaveLength(0);
   });
 

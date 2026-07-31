@@ -60,7 +60,12 @@ const Toast: React.FC<ToastProps> = ({ message, onDismiss }) => {
       display: "flex",
       alignItems: "center",
       gap: "8px",
+      // Toasts are the most-read prose in the app and they appear at the moment
+      // something has just gone right or wrong, so they get the body face. Left
+      // to inherit, they took the global pixel font from `body`.
+      fontFamily: "var(--font-body)",
       fontSize: "0.875rem",
+      lineHeight: 1.45,
       fontWeight: 600,
       boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
       animation: isExiting ? "toast-exit 0.3s ease-out forwards" : "toast-enter 0.3s ease-out",

@@ -239,10 +239,12 @@ export function InitiativeModal({
               <div
                 style={{
                   padding: "12px",
-                  background: "rgba(255, 0, 0, 0.1)",
+                  background: "rgba(232, 154, 156, 0.12)",
                   border: "2px solid var(--jrpg-red)",
                   borderRadius: "4px",
                   color: "var(--jrpg-red)",
+                  fontFamily: "var(--font-body)",
+                  lineHeight: 1.45,
                   textAlign: "center",
                 }}
               >

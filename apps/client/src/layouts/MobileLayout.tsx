@@ -13,6 +13,8 @@ import { RollLog } from "../components/dice/RollLog";
 import { MobileResultOverlay } from "../components/dice/MobileResultOverlay";
 import { TurnNavigationControls } from "../features/initiative/components/TurnNavigationControls";
 import { MobileEntitiesList } from "../components/layout/MobileEntitiesList";
+import { ToastContainer } from "../components/ui/Toast";
+import { ServerStatus } from "../components/layout/ServerStatus";
 import { MobileFloatingControls } from "../components/layout/MobileFloatingControls";
 import { useEntityEditHandlers } from "../hooks/useEntityEditHandlers";
 import { MobileDrawingControls } from "./MobileDrawingControls";
@@ -332,6 +334,12 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
 
       {/* Viewing Roll Result */}
       <MobileResultOverlay result={viewingRoll} onClose={() => handleViewRoll(null)} />
+
+      {/* Mobile rendered neither of these, so a phone user got no non-blocking
+          feedback ever — no save confirmation, no dropped-command warning, no
+          sign the server had gone. Both props were already being passed in. */}
+      <ServerStatus isConnected={props.isConnected} />
+      <ToastContainer messages={props.toast.messages} onDismiss={props.toast.dismiss} />
     </div>
   );
 });

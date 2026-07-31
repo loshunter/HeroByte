@@ -25,7 +25,7 @@ export function FogControl({ fogEnabled, hasCompiledScene, onFogEnabledChange }:
         >
           {fogEnabled ? "🌫 FOG ENABLED" : "☀ FOG DISABLED"}
         </JRPGButton>
-        <span style={{ fontSize: "10px", opacity: 0.8, lineHeight: 1.3, display: "block" }}>
+        <span className="jrpg-text-body" style={{ opacity: 0.85, display: "block" }}>
           {hasCompiledScene
             ? "Players see only what their tokens can see. Walls and closed doors block sight."
             : "Publish a Map Studio map first — fog uses its compiled walls and doors."}
