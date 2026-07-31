@@ -1,5 +1,5 @@
 const CACHE_NAME = "herobyte-cache-v2";
-const urlsToCache = ["/", "/index.html", "/logo.webp", "/logo-wide.webp", "/manifest.json"];
+const urlsToCache = ["/", "/index.html", "/favicon-32x32.png", "/logo-wide.webp", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache)));
