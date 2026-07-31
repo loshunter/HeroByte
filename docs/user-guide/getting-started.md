@@ -23,7 +23,17 @@ A few useful details:
 - **One tab per table.** If you open the same table in a second tab, the older tab pauses with an "open in another tab" notice (only one live connection per device). Use **RECLAIM THIS TAB** to switch back.
 - On a locally hosted server, the development table password is `Fun1` unless the host changed it.
 
-## Tables, invites, and the Main Hall
+## The Main Hall is a public test table
+
+Every server starts with one shared table, the **Main Hall**. It is a scratch space, not a home:
+
+- **Its password is public** — it's the server's documented default, so anyone who has read the setup instructions can walk in.
+- **It clears itself.** Once the table has sat empty for a few hours, the server wipes it: tokens, maps, drawings, and uploaded images all go. That's deliberate — it keeps a shared space usable instead of letting it silt up (and keeps its upload quota from filling).
+- You'll see this called out on the join screen, and a small **⚠ PUBLIC TEST TABLE** marker sits under the connection banner while you're in it.
+
+Use it to try things out. **For a real game, [create a private table](#creating-a-private-table)** — private tables have their own passwords and are never auto-cleared.
+
+## Tables, invites, and the lobby
 
 The bottom half of the join screen is the **table lobby**:
 
@@ -34,7 +44,7 @@ The bottom half of the join screen is the **table lobby**:
 
 ## Creating a private table
 
-Any player can start a fresh, private table — no DM powers needed:
+Any player can start a fresh, private table — no DM powers needed. This is where real games live: a private table has its own password, its own DM password, and is **never auto-cleared**.
 
 ![The New Table form with its two password fields](img/login-new-table.jpg)
 

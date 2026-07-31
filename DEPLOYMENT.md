@@ -96,6 +96,7 @@ Every variable the server reads. All are optional; the defaults run a working de
 | `HEROBYTE_DEFAULT_ROOM_ID`  | `default`                                           | Room id of the default table.                                                                                                                              |
 | `HEROBYTE_MAX_CUSTOM_ROOMS` | `500`                                               | Cap on private rooms (bounds the pre-auth `create-room` flood).                                                                                            |
 | `HEROBYTE_DEMO_MODE`        | off                                                 | `true` renders the fallback room password in plaintext on the HTTP landing page. Demo servers only.                                                        |
+| `HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS` | `6`                                         | How long the default table may sit empty before the server wipes it (see §4). **Set `0` to disable** if your default table is a real table.                |
 | `HEROBYTE_DATA_DIR`         | the `apps/server` package root                      | **The persistent-disk lever.** Re-anchors every on-disk store default below onto one directory. Set in production to the Render disk's mount path; always use an absolute path.     |
 | `HEROBYTE_ASSET_DIR`        | `<data dir>/herobyte-assets/`                       | Uploaded-image store directory (content-addressed, 200MB quota).                                                                                           |
 | `HEROBYTE_MAP_STORE_FILE`   | `<data dir>/herobyte-maps.json`                     | Map Studio document store.                                                                                                                                 |
@@ -235,6 +236,34 @@ your own free-tier copy:
   - Or Redis for room state: `ROOM_STORE=redis` + `REDIS_URL`
 - Independently of the disk, DMs can Save/Load a complete session file from the client (it includes
   maps and uploaded images) — useful for backups and for moving a game between servers.
+
+### The default table clears itself
+
+The default table (**Main Hall**) is the one the documented fallback password opens, so on any
+public deployment it is effectively an open scratch space. It is also the one room that is never
+unloaded — it backs the legacy single-room surface. Left alone, that combination means everything
+anyone drops there accumulates forever against its **50 MB per-room asset quota**, and once that
+fills, every upload in that table returns HTTP 507 permanently. (On an ephemeral filesystem the
+spin-down used to hide this; a persistent disk makes it stick.)
+
+So the server empties it in place once it has sat **empty of authenticated clients for 6 hours** —
+room state, map documents, and its claim on uploaded images. Specifics worth knowing:
+
+- **Private tables are never auto-cleared.** They unload after 30 minutes idle, which is lossless:
+  durable state is flushed first and restored on the next join.
+- A session is never interrupted: the sweep skips the table whenever anyone is connected to it.
+- Uploads are content-addressed, so clearing **un-claims** rather than deletes — bytes another table
+  also uploaded stay on disk and keep serving.
+- The idle clock starts at boot, so a restart cannot wipe a table nobody has rejoined yet.
+
+**Running a private server where the default table IS your table?** Then this would be data loss,
+not housekeeping — turn it off:
+
+```
+HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS=0
+```
+
+Any other positive number sets the window in hours (fractions allowed, e.g. `0.5`).
 
 ---
 
