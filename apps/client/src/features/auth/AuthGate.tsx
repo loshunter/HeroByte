@@ -73,8 +73,45 @@ export function AuthGate({
   return (
     <div style={authGateContainerStyle}>
       <div style={authGateCardStyle}>
-        <h1 style={{ margin: "0 0 16px" }}>Join Your Table</h1>
-        <p style={{ margin: "0 0 24px", color: "#cbd5f5", fontSize: "0.95rem" }}>
+        {/*
+          The wordmark, not the compact mark. This is the one surface with the
+          width for it and the first thing anyone sees.
+
+          `mixBlendMode: screen` rather than a keyed alpha: the source has an
+          opaque near-black background (#000006, no alpha channel), which would
+          otherwise sit on the card as a visible black box. Under `screen`,
+          black composites to nothing while the gold and cyan stay bright — no
+          keying artifacts around the dissolving pixel detail, which a hard
+          threshold would have chewed up.
+        */}
+        <img
+          src="/logo-wide.webp"
+          alt="HeroByte"
+          width={800}
+          height={267}
+          style={{
+            display: "block",
+            width: "100%",
+            maxWidth: "320px",
+            height: "auto",
+            margin: "0 auto 12px",
+            mixBlendMode: "screen",
+          }}
+        />
+        {/* The wordmark carries the brand, so the heading is free to be the
+            instruction. Kept as an h1 for document structure. */}
+        <h1 style={{ margin: "0 0 8px", fontSize: "0.95rem" }}>Join Your Table</h1>
+        {/* Prose face — this sentence is the first thing a new player reads,
+            and it was still inheriting the 12px pixel font from `body`. */}
+        <p
+          style={{
+            margin: "0 0 24px",
+            color: "#cbd5f5",
+            fontFamily: "var(--font-body)",
+            fontSize: "0.95rem",
+            lineHeight: 1.5,
+          }}
+        >
           Enter the table password provided by your host to sync with your party.
         </p>
         <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
