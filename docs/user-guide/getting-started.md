@@ -23,15 +23,20 @@ A few useful details:
 - **One tab per table.** If you open the same table in a second tab, the older tab pauses with an "open in another tab" notice (only one live connection per device). Use **RECLAIM THIS TAB** to switch back.
 - On a locally hosted server, the development table password is `Fun1` unless the host changed it.
 
-## The Main Hall is a public test table
+## The Main Hall is a shared table (until you claim it)
 
-Every server starts with one shared table, the **Main Hall**. It is a scratch space, not a home:
+Every server starts with one table, the **Main Hall**. Out of the box it's a scratch space:
 
 - **Its password is public** — it's the server's documented default, so anyone who has read the setup instructions can walk in.
-- **It clears itself.** Once the table has sat empty for a few hours, the server wipes it: tokens, maps, drawings, and uploaded images all go. That's deliberate — it keeps a shared space usable instead of letting it silt up (and keeps its upload quota from filling).
-- You'll see this called out on the join screen, and a small **⚠ PUBLIC TEST TABLE** marker sits under the connection banner while you're in it.
+- **It clears itself.** Once it has sat empty for an hour, the server wipes it: tokens, maps, drawings, and uploaded images all go. That keeps a shared space usable instead of letting it silt up (and keeps its upload quota from filling).
+- You'll see this on the join screen, and a **⚠ PUBLIC TABLE** marker sits under the connection banner while you're in it.
 
-Use it to try things out. **For a real game, [create a private table](#creating-a-private-table)** — private tables have their own passwords and are never auto-cleared.
+**Neither of those is permanent.** "Public" isn't about *which* table it is — it's about the password. Give the Main Hall a password of its own (**DM Menu → Session → Table Security**) and it's claimed: the marker disappears, and the server never auto-clears it again. Reset it to the default and it goes back to being shared.
+
+So there are two good options for a real game:
+
+- **Running your own server** (localhost, your LAN, your own host)? Just set a password on the Main Hall and use it. That's your table now.
+- **On a server other people can reach?** [Create a private table](#creating-a-private-table) — you get a fresh table with its own code and password, leaving the Main Hall free for everyone else.
 
 ## Tables, invites, and the lobby
 

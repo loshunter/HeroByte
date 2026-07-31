@@ -21,8 +21,6 @@ import type { ToolMode } from "../components/layout/Header";
 import type { UseDrawingStateManagerReturn } from "../hooks/useDrawingStateManager";
 import type { MapEditToolbarProps } from "../features/map-edit/mapEditTypes";
 import { ServerStatus } from "../components/layout/ServerStatus";
-import { PublicTableNotice } from "../features/rooms/PublicTableNotice";
-import { currentRoomId } from "../features/rooms/roomDirectory";
 import { DrawingToolbar } from "../features/drawing/components";
 import { Header } from "../components/layout/Header";
 import { MultiSelectToolbar } from "../components/layout/MultiSelectToolbar";
@@ -153,9 +151,6 @@ export const TopPanelLayout = React.memo<TopPanelLayoutProps>(
     return (
       <>
         <ServerStatus isConnected={isConnected} />
-        {/* Anyone who bookmarked the table URL never sees the join screen's
-            notice, so the public/self-clearing fact is marked at the table too. */}
-        {currentRoomId() === undefined ? <PublicTableNotice variant="chip" /> : null}
 
         {/* Drawing Toolbar - Fixed on left side when draw mode is active */}
         {drawMode && <DrawingToolbar {...drawingToolbarProps} />}
