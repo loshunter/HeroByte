@@ -1,0 +1,95 @@
+# DM Guide
+
+Everything the Dungeon Master runs from — [elevate to DM](getting-started.md#becoming-the-dm) first, then open the **🛠️ DM MENU** (bottom-right). This guide covers the DM Menu's five tabs plus the DM-only toolbar powers. Building the map itself has [its own guide](map-editor-guide.md).
+
+## Map Setup
+
+![The Map Setup tab: background, editable maps, transform, grid, fog, alignment, staging zone](img/dm-menu-map-setup.jpg)
+
+Top to bottom:
+
+- **Map Background** — paste an image URL and **APPLY BACKGROUND** to use any battlemap image as the table. Good hosts: Discord CDN, Imgur, Cloudinary (the image must allow cross-origin loading). If you're authoring terrain with the [live map editor](map-editor-guide.md) instead, skip the background — a raster background underneath live terrain gets messy, and the editor will warn you.
+- **HeroByte Map Studio** — the editable-map store behind the live editor: create a named blank map, reopen a **saved map**, **IMPORT JSON BACKUP**, or delete. (Day-to-day you'll rarely touch this — **▶ START LIVE MAP** in the editor creates and binds one for you.)
+- **Map Transform** — scale, rotate, and offset the background image; **Map is locked** prevents anyone dragging the map by accident. Unlock only while adjusting.
+- **Grid Controls** — grid cell size in pixels (10–500) and **Square Size** in feet (what the measure tool reports per square). **🔒 GRID LOCKED** freezes both.
+- **Fog of War** — the master switch. Fog needs a built map with walls and doors (it computes line-of-sight from them), so publish something with the live editor first; until then the button explains itself. Once on, players see only what their tokens see — you keep X-ray vision unless you flip on the [player lens](#the-player-lens).
+- **Grid Alignment Wizard** — matching the table grid to a background image: **START ALIGNMENT**, click two opposite corners of one map square on the image, **APPLY ALIGNMENT**. The map scales and shifts so its grid meshes with the table's.
+- **Player Staging Zone** — where new players spawn. Set center/size/rotation in tiles and **APPLY ZONE**; joining players appear at random spots inside it. Use the Transform tool to nudge the zone on the canvas; **ZONE UNLOCKED** toggles accidental-edit protection, **CLEAR ZONE** removes it.
+- **Clear All Drawings** — wipes every player's ink from the map (confirmation required; cannot be undone).
+
+## NPCs & Monsters
+
+![The NPCs tab with a goblin ready to place](img/dm-menu-npcs.jpg)
+
+**+ ADD NPC** creates a monster with a full stat row:
+
+- **Name, HP / Max HP / Temp HP, Init Mod, Portrait URL, Token Image URL** — same character plumbing as players.
+- **PLACE ON MAP** drops its token at the center of your view; from there it drags like any token.
+- **⚔️ ROLL MISSING INITIATIVE** rolls a d20 + modifier for every NPC that doesn't have initiative yet — one click to get the whole opposing side into the turn order.
+- NPC cards appear in the Entities panel labeled **Enemy**. The **👁️ eye button** on an NPC's card toggles whether players can see it at all — prep an ambush hidden, reveal it on the pounce. (Hidden NPCs stay visible to you.)
+- **DELETE** removes the NPC and its token.
+
+NPCs are yours alone to edit: players can't rename, damage, or move them.
+
+## Props & Objects
+
+![The Props tab: label, image, ownership, size](img/dm-menu-props.jpg)
+
+**+ ADD PROP** creates a map object (a chest, a boulder, a cart…):
+
+- **Label** and **Image URL** — any image becomes a draggable map piece.
+- **Ownership** — **DM Only** (players see it but can't touch), **Everyone**, or a specific player (hand the wizard their familiar).
+- **Size** — the same six token sizes.
+
+For *built-in* scenery art (crates, tables, boats, standing stones…) you'll usually place assets with the [map editor's Place tool](map-editor-guide.md#-place-scatter-and-row--set-dressing) instead; Props shine for custom images and player-ownable objects.
+
+## Players
+
+![The Players tab: combat controls and per-player token selection](img/dm-menu-players.jpg)
+
+- **Combat Controls** — **⚔️ START COMBAT** / **🏁 END COMBAT** and **🗑️ CLEAR ALL INITIATIVE**. (Combat also auto-starts the moment the first initiative is saved.) While combat runs, everyone sees the turn banner and ordered cards; see [the player guide](player-guide.md#initiative-and-combat).
+- **Player Token Shortcuts** — **SELECT ALL** grabs every token a player owns; useful for moving a whole party or checking what someone's left scattered around.
+
+## Session
+
+![The Session tab: save/load and table security](img/dm-menu-session.jpg)
+
+### Saving and loading sessions
+
+**SAVE GAME STATE** downloads the entire table as one JSON file — tokens, characters (PCs *and* NPCs), props, drawings, dice history, grid, fog state, the full live map with every terrain cell and door, and any uploaded images (inlined, up to 64 MB). The **Session Name** field just names the file.
+
+**LOAD GAME STATE** restores a save. Read the confirmation carefully: loading **replaces the table for everyone connected**. Players currently at the table keep their live connection and their own characters; everything else becomes the file's contents.
+
+Habits that save campaigns:
+
+- Save before ending every session, and name files by date (`heist-2026-07-31.json`).
+- Save before risky experiments (mass-deleting, big map surgery).
+- On free-tier hosting the server's disk can reset when it idles — a session file in your downloads folder is your real persistence.
+- The save is a **DM artifact**: it contains secret doors, hidden NPCs, and GM notes in plain text. Don't hand it to players.
+
+### Table Security
+
+**UPDATE PASSWORD** changes this table's password live: everyone already connected stays, new joiners need the new password. **RESET TO DEFAULT** puts the development default back. Change the password when a table code leaks, or after a public one-shot.
+
+## DM-only toolbar powers
+
+### The player lens
+
+**👁 PLAYER VIEW** shows you *exactly* what players see — fog computed from the party's vision, secret doors hidden, DM overlays gone — while you keep every DM power. One click on, one click off.
+
+![The player lens: the DM sees the table through the party's eyes](img/dm-player-lens.jpg)
+
+Use it constantly while prepping: it's the difference between "I think that corridor is hidden" and "it is".
+
+### The live map editor
+
+**🏗️ MAP** opens the live authoring palette — rooms, walls, doors, terrain painting, lighting, and the dungeon generator, all appearing for players in real time. It has [its own guide](map-editor-guide.md).
+
+### Everything else you now own
+
+- **Move and transform anyone's tokens**, and lock/unlock objects (select several and use the Lock/Unlock bar).
+- **Delete a player's token** from their card settings (⚙️ on their card → **🗑️ DELETE TOKEN**).
+- **Edit any player's name, portrait, HP, and status effects** from their card.
+- **Clear all drawings** (Map Setup tab) — the players' erasers only touch their own ink.
+- **Doors**: click toggles open/closed like anyone, but **Alt-click** cycles the lock — and Alt-clicking a **secret** door reveals it to the table. Secret doors show for you as a dashed seam.
+- **🔓 EXIT DM MODE** (top of the DM Menu) steps you back down to player.

@@ -68,7 +68,7 @@ export interface DMMenuProps {
   onAlignmentReset: () => void;
   onAlignmentCancel: () => void;
   onAlignmentApply: () => void;
-  onSetRoomPassword?: (secret: string) => void;
+  onSetRoomPassword?: (secret?: string) => void;
   roomPasswordStatus?: { type: "success" | "error"; message: string } | null;
   roomPasswordPending?: boolean;
   onDismissRoomPasswordStatus?: () => void;

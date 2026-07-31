@@ -35,7 +35,7 @@ interface SessionTabProps {
 
   // RoomPasswordControl props
   /** Optional callback to set or clear the room password */
-  onSetRoomPassword?: (secret: string) => void;
+  onSetRoomPassword?: (secret?: string) => void;
   /** Status message for room password operations */
   roomPasswordStatus?: { type: "success" | "error"; message: string } | null;
   /** Whether a room password operation is in progress */

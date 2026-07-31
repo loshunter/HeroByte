@@ -38,6 +38,7 @@
     "test:e2e": "node scripts/run-e2e.mjs",
     "test:e2e:ui": "node scripts/run-e2e.mjs --ui",
     "test:e2e:smoke": "node scripts/run-e2e.mjs --grep \"smoke\"",
+    "docs:screenshots": "node scripts/run-e2e.mjs --config playwright.docs.config.ts",
     "lint:structure": "node scripts/structure-report.mjs --limit 50 --threshold 350",
     "lint:structure:enforce": "node scripts/structure-report.mjs --threshold 350 --fail-on-new",
     "baseline:update": "node scripts/update-baseline.mjs",

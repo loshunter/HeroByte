@@ -92,11 +92,18 @@ export interface UseDMManagementReturn {
   handleToggleDM: (requestDM: boolean) => void;
 
   /**
+   * Route a server-side `dm-elevation-failed` into the modal. When the table
+   * has no DM password yet, the modal flips to bootstrap mode (set a password
+   * and claim the DM seat); any other reason shows inline in the modal.
+   */
+  onElevationFailed: (reason: string) => void;
+
+  /**
    * Modal state management
    */
   modalState: {
     isOpen: boolean;
-    mode: "elevate" | "revoke";
+    mode: "elevate" | "revoke" | "bootstrap";
     isLoading: boolean;
     error: string | null;
     currentIsDM: boolean;
@@ -107,6 +114,7 @@ export interface UseDMManagementReturn {
    */
   modalActions: {
     onElevate: (password: string) => void;
+    onBootstrap: (password: string) => void;
     onRevoke: () => void;
     onClose: () => void;
   };
@@ -148,14 +156,15 @@ export function useDMManagement({
   toast,
 }: UseDMManagementOptions): UseDMManagementReturn {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<"elevate" | "revoke">("elevate");
+  const [modalMode, setModalMode] = useState<"elevate" | "revoke" | "bootstrap">("elevate");
 
   // Use the new useDMElevation hook for state-aware DM management
-  const { isLoading, currentIsDM, elevate, revoke, error } = useDMElevation({
-    snapshot,
-    uid,
-    send: sendMessage,
-  });
+  const { isLoading, currentIsDM, elevate, bootstrap, notifyElevationFailed, revoke, error } =
+    useDMElevation({
+      snapshot,
+      uid,
+      send: sendMessage,
+    });
 
   /**
    * Open modal to toggle DM status
@@ -185,6 +194,35 @@ export function useDMManagement({
   );
 
   /**
+   * Handle first-time DM password setup (called from modal in bootstrap mode).
+   * The server stores the password and auto-promotes the sender to DM.
+   */
+  const handleBootstrap = useCallback(
+    (password: string) => {
+      bootstrap(password);
+    },
+    [bootstrap],
+  );
+
+  /**
+   * Server said elevation failed. The "no DM password yet" case is not a dead
+   * end — it flips the modal into bootstrap mode so the user can mint the
+   * password on the spot. Every other reason surfaces inline in the modal.
+   */
+  const handleElevationFailed = useCallback(
+    (reason: string) => {
+      if (reason.includes("No DM password configured")) {
+        setModalMode("bootstrap");
+        setIsModalOpen(true);
+        notifyElevationFailed(null);
+      } else {
+        notifyElevationFailed(reason);
+      }
+    },
+    [notifyElevationFailed],
+  );
+
+  /**
    * Handle DM revocation (called from modal)
    */
   const handleRevoke = useCallback(() => {
@@ -200,11 +238,15 @@ export function useDMManagement({
   const handleCloseModal = useCallback(() => {
     if (!isLoading) {
       setIsModalOpen(false);
+      // A dismissed bootstrap offer shouldn't stick: reopening the toggle
+      // starts back at the normal elevate prompt.
+      setModalMode((mode) => (mode === "bootstrap" ? "elevate" : mode));
     }
   }, [isLoading]);
 
   return {
     handleToggleDM,
+    onElevationFailed: handleElevationFailed,
     modalState: {
       isOpen: isModalOpen,
       mode: modalMode,
@@ -214,6 +256,7 @@ export function useDMManagement({
     },
     modalActions: {
       onElevate: handleElevate,
+      onBootstrap: handleBootstrap,
       onRevoke: handleRevoke,
       onClose: handleCloseModal,
     },

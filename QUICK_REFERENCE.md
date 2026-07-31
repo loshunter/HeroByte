@@ -2,26 +2,30 @@
 
 ## Default Credentials (Development)
 
-| Password Type     | Default Value | How to Change                                 |
-| ----------------- | ------------- | --------------------------------------------- |
-| **Room Password** | `Fun1`        | DM Menu → Session → Room Security             |
-| **DM Password**   | `FunDM`       | Player Settings → Make myself DM (first time) |
+| Password Type      | Default Value | How to Change                                 |
+| ------------------ | ------------- | --------------------------------------------- |
+| **Table Password** | `Fun1`        | DM Menu → Session → Table Security            |
+| **DM Password**    | `FunDM`       | Player Settings → DM Mode toggle (first time) |
 
 ## Quick Actions
 
 ### Become DM
 
-1. Click **gear icon** on your player card
-2. Click **"Make myself DM"**
+1. Click the **⚙️ gear icon** on your player card
+2. Under "Dungeon Master Mode", click **"DM Mode: OFF"**
 3. Enter DM password: `FunDM`
 4. ✅ You're now the Dungeon Master!
 
-### Set Private Room Password
+> On a table created without a DM password, this prompt offers to set one — you
+> become DM as soon as it's saved. See the
+> [Getting Started guide](docs/user-guide/getting-started.md#becoming-the-dm).
+
+### Set Private Table Password
 
 1. Become DM (see above)
 2. Open **DM Menu** (bottom-right corner)
 3. Go to **Session** tab
-4. Under "Room Security", enter new password
+4. Under "Table Security", enter new password
 5. Confirm password
 6. Click **"Update Password"**
 7. Share new password with your players
@@ -51,14 +55,14 @@ pnpm dev
 
 ## Common Shortcuts
 
-| Action          | Shortcut                       |
-| --------------- | ------------------------------ |
-| Undo Drawing    | `Ctrl+Z` / `Cmd+Z`             |
-| Redo Drawing    | `Ctrl+Shift+Z` / `Cmd+Shift+Z` |
-| Delete Selected | `Delete` / `Backspace`         |
-| Cancel Tool     | `Esc`                          |
-| Pan Map         | Hold `Space` + Drag            |
-| Zoom            | Mouse Wheel                    |
+| Action          | Shortcut                               |
+| --------------- | -------------------------------------- |
+| Undo Drawing    | `Ctrl+Z` / `Cmd+Z`                     |
+| Redo Drawing    | `Ctrl+Shift+Z` / `Cmd+Shift+Z`         |
+| Delete Selected | `Delete` / `Backspace`                 |
+| Cancel Tool     | `Esc`                                  |
+| Pan Map         | Drag empty space, or middle-mouse drag |
+| Zoom            | Mouse Wheel                            |
 
 ## Environment Variables
 
@@ -74,7 +78,7 @@ HEROBYTE_DM_PASSWORD="FunDM"
 # CORS whitelist (comma-separated)
 HEROBYTE_ALLOWED_ORIGINS="http://localhost:5174,https://yourdomain.com"
 
-# Default room ID (future multi-room support)
+# Room ID of the default table (Main Hall)
 HEROBYTE_DEFAULT_ROOM_ID="default"
 ```
 
@@ -83,7 +87,7 @@ HEROBYTE_DEFAULT_ROOM_ID="default"
 ### Before Your Game
 
 1. ✅ Become DM (`FunDM`)
-2. ✅ Set private room password
+2. ✅ Set private table password
 3. ✅ Share password with players
 4. ✅ Load map background (DM Menu → Map Setup)
 
@@ -97,15 +101,15 @@ HEROBYTE_DEFAULT_ROOM_ID="default"
 ### After Your Game
 
 1. 💾 Save final state
-2. 🔄 Reset room password to `Fun1` (optional)
+2. 🔄 Reset the table password (DM Menu → Session → Table Security → "Reset to Default") (optional)
 3. 🧹 Clear drawings/tokens (optional)
 4. 👋 Disconnect
 
 ## Troubleshooting
 
-### Can't Join Room
+### Can't Join a Table
 
-- Verify room password (case-sensitive)
+- Verify the table password (case-sensitive)
 - Try `Fun1` if using default
 - Clear browser cache
 - Check server is running (`http://localhost:8787`)
@@ -151,18 +155,20 @@ For LAN play, add the matching origin to `HEROBYTE_ALLOWED_ORIGINS`, for example
 
 ## Documentation
 
-| Topic          | File                                                             |
-| -------------- | ---------------------------------------------------------------- |
-| Demo Workflow  | [docs/DEMO_SERVER_WORKFLOW.md](docs/DEMO_SERVER_WORKFLOW.md)     |
-| Playtest Setup | [docs/playtest-setup-guide.md](docs/playtest-setup-guide.md)     |
-| Auth System    | [ROOM_AUTH_FLOW.md](ROOM_AUTH_FLOW.md)                           |
-| Development    | [DEVELOPMENT.md](DEVELOPMENT.md)                                 |
-| Testing        | [TESTING_SETUP.md](TESTING_SETUP.md)                             |
-| Deployment     | [CLOUDFLARE_PAGES_DEPLOYMENT.md](CLOUDFLARE_PAGES_DEPLOYMENT.md) |
+| Topic               | File                                                         |
+| ------------------- | ------------------------------------------------------------ |
+| **All docs**        | [docs/README.md](docs/README.md)                             |
+| **Playing & DMing** | [docs/user-guide/](docs/user-guide/README.md)                |
+| Demo Workflow       | [docs/DEMO_SERVER_WORKFLOW.md](docs/DEMO_SERVER_WORKFLOW.md) |
+| Playtest Setup      | [docs/playtest-setup-guide.md](docs/playtest-setup-guide.md) |
+| Auth System         | [ROOM_AUTH_FLOW.md](ROOM_AUTH_FLOW.md)                       |
+| Development         | [DEVELOPMENT.md](DEVELOPMENT.md)                             |
+| Testing             | [docs/TESTING.md](docs/TESTING.md)                           |
+| Deployment          | [DEPLOYMENT.md](DEPLOYMENT.md)                               |
 
 ## Need Help?
 
-- 📚 Full guides in `/docs` folder
+- 📚 Full documentation index: [docs/README.md](docs/README.md)
 - 🐛 Report issues on GitHub
 - 💬 Check server console for errors
 - 🔍 Search `README.md` for detailed info

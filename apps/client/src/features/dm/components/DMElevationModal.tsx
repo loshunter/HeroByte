@@ -3,11 +3,12 @@ import { JRPGButton } from "../../../components/ui/JRPGPanel";
 
 interface DMElevationModalProps {
   isOpen: boolean;
-  mode: "elevate" | "revoke";
+  mode: "elevate" | "revoke" | "bootstrap";
   isLoading: boolean;
   error: string | null;
   currentIsDM: boolean;
   onElevate: (password: string) => void;
+  onBootstrap: (password: string) => void;
   onRevoke: () => void;
   onClose: () => void;
 }
@@ -25,18 +26,23 @@ export function DMElevationModal({
   error,
   currentIsDM,
   onElevate,
+  onBootstrap,
   onRevoke,
   onClose,
 }: DMElevationModalProps) {
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [localError, setLocalError] = useState<string | null>(null);
 
   // Close modal on successful state change
   useEffect(() => {
     if (!isLoading && !error) {
-      // Successful elevation: mode is "elevate" and currentIsDM becomes true
-      if (mode === "elevate" && currentIsDM) {
+      // Successful elevation/bootstrap: currentIsDM becomes true
+      if ((mode === "elevate" || mode === "bootstrap") && currentIsDM) {
         onClose();
         setPassword("");
+        setConfirmPassword("");
+        setLocalError(null);
       }
       // Successful revocation: mode is "revoke" and currentIsDM becomes false
       if (mode === "revoke" && !currentIsDM) {
@@ -51,6 +57,18 @@ export function DMElevationModal({
     e.preventDefault();
     if (mode === "elevate") {
       onElevate(password);
+    } else if (mode === "bootstrap") {
+      // Mirror the server's 8–128 rule so the round trip can't fail on length.
+      if (password.trim().length < 8) {
+        setLocalError("DM password needs at least 8 characters.");
+        return;
+      }
+      if (password !== confirmPassword) {
+        setLocalError("Passwords do not match.");
+        return;
+      }
+      setLocalError(null);
+      onBootstrap(password);
     } else {
       onRevoke();
     }
@@ -59,8 +77,20 @@ export function DMElevationModal({
   const handleCancel = () => {
     if (!isLoading) {
       setPassword("");
+      setConfirmPassword("");
+      setLocalError(null);
       onClose();
     }
+  };
+
+  const passwordInputStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "8px",
+    backgroundColor: "#1a1a1a",
+    border: "1px solid #4a4a4a",
+    borderRadius: "4px",
+    color: "#fff",
+    fontSize: "14px",
   };
 
   return (
@@ -97,7 +127,11 @@ export function DMElevationModal({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 style={{ marginTop: 0, marginBottom: "16px", color: "#fff" }}>
-          {mode === "elevate" ? "Elevate to DM" : "Revoke DM Status"}
+          {mode === "elevate"
+            ? "Elevate to DM"
+            : mode === "bootstrap"
+              ? "Set the DM Password"
+              : "Revoke DM Status"}
         </h2>
 
         <form onSubmit={handleSubmit}>
@@ -120,15 +154,43 @@ export function DMElevationModal({
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
                 autoFocus
-                style={{
-                  width: "100%",
-                  padding: "8px",
-                  backgroundColor: "#1a1a1a",
-                  border: "1px solid #4a4a4a",
-                  borderRadius: "4px",
-                  color: "#fff",
-                  fontSize: "14px",
-                }}
+                style={passwordInputStyle}
+              />
+            </div>
+          ) : mode === "bootstrap" ? (
+            <div style={{ marginBottom: "16px" }}>
+              <p style={{ marginTop: 0, color: "#ccc" }}>
+                This table doesn&apos;t have a DM password yet. Set one now — you&apos;ll become the
+                DM immediately, and anyone with this password can claim the DM seat later.
+              </p>
+              <label
+                htmlFor="dm-new-password"
+                style={{ display: "block", marginBottom: "8px", color: "#ccc" }}
+              >
+                New DM Password (8+ characters):
+              </label>
+              <input
+                id="dm-new-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+                autoFocus
+                style={{ ...passwordInputStyle, marginBottom: "12px" }}
+              />
+              <label
+                htmlFor="dm-confirm-password"
+                style={{ display: "block", marginBottom: "8px", color: "#ccc" }}
+              >
+                Confirm DM Password:
+              </label>
+              <input
+                id="dm-confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={isLoading}
+                style={passwordInputStyle}
               />
             </div>
           ) : (
@@ -141,7 +203,7 @@ export function DMElevationModal({
             </div>
           )}
 
-          {error && (
+          {(localError ?? error) && (
             <div
               style={{
                 marginBottom: "16px",
@@ -153,7 +215,7 @@ export function DMElevationModal({
                 fontSize: "14px",
               }}
             >
-              {error}
+              {localError ?? error}
             </div>
           )}
 
@@ -163,16 +225,20 @@ export function DMElevationModal({
             </JRPGButton>
             <JRPGButton
               type="submit"
-              disabled={isLoading || (mode === "elevate" && !password.trim())}
-              variant={mode === "elevate" ? "success" : "danger"}
+              disabled={isLoading || (mode !== "revoke" && !password.trim())}
+              variant={mode === "revoke" ? "danger" : "success"}
             >
               {isLoading
                 ? mode === "elevate"
                   ? "Elevating..."
-                  : "Revoking..."
+                  : mode === "bootstrap"
+                    ? "Setting..."
+                    : "Revoking..."
                 : mode === "elevate"
                   ? "Elevate to DM"
-                  : "Revoke DM Status"}
+                  : mode === "bootstrap"
+                    ? "Set Password & Become DM"
+                    : "Revoke DM Status"}
             </JRPGButton>
           </div>
         </form>

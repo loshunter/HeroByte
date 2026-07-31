@@ -56,6 +56,12 @@ export interface UseServerEventHandlersOptions {
    */
   sendMessage: (msg: ClientMessage) => void;
 
+  /**
+   * When provided, `dm-elevation-failed` reasons are routed here (for the
+   * elevation modal to display or redirect) instead of raising an error toast.
+   */
+  onDMElevationFailed?: (reason: string) => void;
+
   onMapStudioMessage?: (
     message: Extract<
       ServerMessage,
@@ -100,9 +106,10 @@ export interface UseServerEventHandlersReturn {
    * Sets the room password
    * Initiates a password update and sends the message to the server
    *
-   * @param nextSecret - The new room password
+   * @param nextSecret - The new room password; omit to reset to the server's
+   * configured default
    */
-  handleSetRoomPassword: (nextSecret: string) => void;
+  handleSetRoomPassword: (nextSecret?: string) => void;
 }
 
 /**
@@ -134,6 +141,7 @@ export function useServerEventHandlers({
   registerServerEventHandler,
   toast,
   sendMessage,
+  onDMElevationFailed,
   onMapStudioMessage,
 }: UseServerEventHandlersOptions): UseServerEventHandlersReturn {
   // State for room password operations
@@ -161,9 +169,14 @@ export function useServerEventHandlers({
    * Initiates a password update and sends the message to the server
    */
   const handleSetRoomPassword = useCallback(
-    (nextSecret: string) => {
+    (nextSecret?: string) => {
       startRoomPasswordUpdate();
-      sendMessage({ t: "set-room-password", secret: nextSecret });
+      // Omitting the secret asks the server to reset to its configured default.
+      sendMessage(
+        nextSecret === undefined
+          ? { t: "set-room-password" }
+          : { t: "set-room-password", secret: nextSecret },
+      );
     },
     [sendMessage, startRoomPasswordUpdate],
   );
@@ -200,8 +213,13 @@ export function useServerEventHandlers({
           toastSuccess("DM elevation successful! You are now the Dungeon Master.", 4000);
         }
       } else if ("t" in message && message.t === "dm-elevation-failed") {
-        // DM elevation failed
-        toastError(`DM elevation failed: ${message.reason}`, 5000);
+        // DM elevation failed — the modal shows the reason (and offers
+        // first-time password setup) when it is wired in; otherwise toast.
+        if (onDMElevationFailed) {
+          onDMElevationFailed(message.reason ?? "Unknown reason");
+        } else {
+          toastError(`DM elevation failed: ${message.reason}`, 5000);
+        }
       } else if ("t" in message && message.t === "dm-password-updated") {
         // DM password updated successfully
         toastSuccess("DM password updated successfully!", 3000);
@@ -222,7 +240,13 @@ export function useServerEventHandlers({
         onMapStudioMessage?.(message);
       }
     });
-  }, [registerServerEventHandler, toastSuccess, toastError, onMapStudioMessage]);
+  }, [
+    registerServerEventHandler,
+    toastSuccess,
+    toastError,
+    onDMElevationFailed,
+    onMapStudioMessage,
+  ]);
 
   return {
     roomPasswordStatus,

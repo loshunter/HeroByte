@@ -187,9 +187,9 @@ Need help? Ask the DM!
 
 **Map Controls:**
 
-- Pan: Middle-mouse drag, hold Space and drag, or drag empty space
+- Pan: Middle-mouse drag, or drag empty space with no tool active
 - Zoom: Mouse wheel
-- Right-click: Opens the map-edit quick wheel while in map-edit mode; opens the token context menu on a token
+- Right-click: Opens the map-edit quick wheel while in map-edit mode
 - Lock Map: Prevent accidental moves
 
 ### Player Controls Quick Reference
@@ -197,7 +197,7 @@ Need help? Ask the DM!
 **Movement:**
 
 - Drag your token to move
-- (No W/A/S/D panning — not implemented; use Space-drag or middle-mouse drag)
+- (No W/A/S/D panning — not implemented; drag empty space or middle-mouse drag)
 
 **Stats:**
 

@@ -65,7 +65,7 @@ interface DMMenuContainerProps {
   onAlignmentApply: () => void;
 
   // Room Password
-  onSetRoomPassword?: (secret: string) => void;
+  onSetRoomPassword?: (secret?: string) => void;
   roomPasswordStatus?: { type: "success" | "error"; message: string } | null;
   roomPasswordPending?: boolean;
   onDismissRoomPasswordStatus?: () => void;

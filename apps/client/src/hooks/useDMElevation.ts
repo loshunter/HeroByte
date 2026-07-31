@@ -98,6 +98,51 @@ export function useDMElevation({
   );
 
   /**
+   * Bootstrap a table that has no DM password yet: set-dm-password on such a
+   * table stores the password AND auto-promotes the sender to DM server-side.
+   * Success is observed the same way as elevate — isDM flips in the snapshot.
+   */
+  const bootstrap = useCallback(
+    (dmPassword: string) => {
+      const trimmed = dmPassword.trim();
+      if (trimmed.length < 8) {
+        setError("DM password needs at least 8 characters.");
+        return;
+      }
+      if (trimmed.length > 128) {
+        setError("DM password must be 128 characters or fewer.");
+        return;
+      }
+
+      setIsElevating(true);
+      setError(null);
+      send({ t: "set-dm-password", dmPassword: trimmed });
+
+      setTimeout(() => {
+        setIsElevating((prev) => {
+          if (prev) {
+            setError("The server did not confirm the DM password. Please try again.");
+            return false;
+          }
+          return prev;
+        });
+      }, 5000);
+    },
+    [send],
+  );
+
+  /**
+   * Surface a server-side elevation failure in the modal (instead of the
+   * request silently spinning into the timeout). A null reason clears the
+   * pending state without showing an error — used when the failure is being
+   * redirected into another flow (e.g. bootstrap mode).
+   */
+  const notifyElevationFailed = useCallback((reason: string | null) => {
+    setIsElevating(false);
+    setError(reason);
+  }, []);
+
+  /**
    * Revoke DM status for current player
    */
   const revoke = useCallback(() => {
@@ -124,6 +169,8 @@ export function useDMElevation({
     isRevoking,
     currentIsDM,
     elevate,
+    bootstrap,
+    notifyElevationFailed,
     revoke,
     error,
   };

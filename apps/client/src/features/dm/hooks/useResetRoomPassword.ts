@@ -1,44 +1,39 @@
 // ============================================================================
 // USE RESET ROOM PASSWORD HOOK
 // ============================================================================
-// Provides functionality to reset the room password back to the default
-// development fallback value. This bypasses client-side validation since
-// the default password ("Fun1") is shorter than the typical 6-char minimum.
+// Provides functionality to reset the table password back to the server's
+// configured default. The client sends a secret-less set-room-password and the
+// server substitutes its own default — the client never needs to know (or
+// hard-code) that value, so this works on servers with a custom
+// HEROBYTE_ROOM_SECRET too.
 
 /**
- * Default room password that matches the server's DEV_FALLBACK_SECRET.
- * This must be kept in sync with apps/server/src/config/auth.ts
- */
-const DEFAULT_ROOM_PASSWORD = "Fun1";
-
-/**
- * Hook that provides a function to reset the room password to the default value.
+ * Hook that provides a function to reset the table password to the server's
+ * default value.
  *
  * @param onSetRoomPassword - Callback to invoke when resetting the password
- * @returns Object containing the reset function and default password value
+ * @returns Object containing the reset function
  *
  * @example
  * ```tsx
- * const { resetToDefault, defaultPassword } = useResetRoomPassword(onSetRoomPassword);
+ * const { resetToDefault } = useResetRoomPassword(onSetRoomPassword);
  *
  * <button onClick={resetToDefault}>
  *   Reset to Default
  * </button>
  * ```
  */
-export function useResetRoomPassword(onSetRoomPassword?: (secret: string) => void) {
+export function useResetRoomPassword(onSetRoomPassword?: (secret?: string) => void) {
   /**
-   * Resets the room password to the default development value.
-   * This bypasses client-side validation since the default password
-   * is shorter than the typical minimum length requirement.
+   * Resets the table password to the server's configured default by omitting
+   * the secret — the server resolves the actual value.
    */
   const resetToDefault = () => {
     if (!onSetRoomPassword) return;
-    onSetRoomPassword(DEFAULT_ROOM_PASSWORD);
+    onSetRoomPassword();
   };
 
   return {
     resetToDefault,
-    defaultPassword: DEFAULT_ROOM_PASSWORD,
   };
 }

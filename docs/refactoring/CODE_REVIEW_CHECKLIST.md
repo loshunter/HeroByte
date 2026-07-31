@@ -2037,7 +2037,7 @@ START: Review Phase 15 Refactoring PR
 ### 13.1 Related Documentation
 - [REFACTOR_ROADMAP.md](./REFACTOR_ROADMAP.md) - Phase 15 extraction plan
 - [REFACTOR_PLAYBOOK.md](./REFACTOR_PLAYBOOK.md) - Step-by-step extraction guide
-- [PREVENTING_GOD_OBJECTS.md](/docs/guides/PREVENTING_GOD_OBJECTS.md) - Prevention strategies
+- [PREVENTING_GOD_OBJECTS.md](../guides/PREVENTING_GOD_OBJECTS.md) - Prevention strategies
 - [TEST_AUGMENTATION_PLAN.md](./TEST_AUGMENTATION_PLAN.md) - Testing priorities
 
 ### 13.2 CI Commands
