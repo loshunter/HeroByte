@@ -97,6 +97,40 @@ describe("AuthService", () => {
       expect(reloaded.hasDMPassword()).toBe(true);
     });
 
+    it("keeps the DM password when the ROOM password is changed afterwards", () => {
+      // Order matters, and the existing coverage set the room password FIRST,
+      // so it never exercised this: updating the default room's password used
+      // to REPLACE its whole record, silently dropping dmHash/dmSalt. That is
+      // a privilege escalation, not just data loss — hasDMPassword() then
+      // reports false, and set-dm-password's bootstrap path auto-promotes
+      // whoever calls it, so rotating the table password opened the DM seat to
+      // any player at the table.
+      const service = new AuthService({ storagePath: SECRET_PATH });
+      service.updateDMPassword("DMPasswordFirst");
+
+      service.update("RoomPasswordSecond");
+
+      expect(service.hasDMPassword()).toBe(true);
+      expect(service.verifyDMPassword("DMPasswordFirst")).toBe(true);
+      expect(service.verify("RoomPasswordSecond")).toBe(true);
+
+      // ...and it survives a restart, since the wipe was persisted too.
+      const reloaded = new AuthService({ storagePath: SECRET_PATH });
+      expect(reloaded.hasDMPassword()).toBe(true);
+      expect(reloaded.verifyDMPassword("DMPasswordFirst")).toBe(true);
+    });
+
+    it("keeps the DM password when the room password is reset to the default", () => {
+      const service = new AuthService({ storagePath: SECRET_PATH });
+      service.updateDMPassword("DMPasswordFirst");
+
+      service.update("Fun1"); // the reset-to-default path
+
+      expect(service.getSummary().source).toBe("fallback");
+      expect(service.hasDMPassword()).toBe(true);
+      expect(service.verifyDMPassword("DMPasswordFirst")).toBe(true);
+    });
+
     it("updates existing DM password", () => {
       const service = new AuthService({ storagePath: SECRET_PATH });
 

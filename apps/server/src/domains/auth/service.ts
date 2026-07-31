@@ -170,7 +170,14 @@ export class AuthService {
       record.source = source;
       this.rooms[roomKey] = record;
     } else {
-      this.secret = { hash, salt, updatedAt, source };
+      // Spread the existing record rather than replacing it: the DM fields
+      // (dmHash/dmSalt/dmUpdatedAt/dmSource) live here too, and a wholesale
+      // replace silently destroyed them. That is worse than it sounds —
+      // hasDMPassword() then reports false, and set-dm-password's bootstrap
+      // path AUTO-PROMOTES whoever calls it, so a DM rotating the table
+      // password handed the DM seat to any player who asked for it.
+      // The custom-room branch above always mutated in place; this matches it.
+      this.secret = { ...this.secret, hash, salt, updatedAt, source };
     }
     persistSecretRecords(this.storagePath, this.secret, this.rooms);
     return { source, updatedAt };
