@@ -246,15 +246,15 @@ anyone drops there accumulates forever against its **50 MB per-room asset quota*
 fills, every upload in that table returns HTTP 507 permanently. (On an ephemeral filesystem the
 spin-down used to hide this; a persistent disk makes it stick.)
 
-**"Public" is not a property of the room id — it is true only while the table still opens with the
-published default password.** Set any other password (a DM via Table Security, or
-`HEROBYTE_ROOM_SECRET`) and the table is claimed: the auto-clear stops and the app drops the
-"public" label. Resetting to the default hands it back. So a self-hoster running their campaign in
-the default table just needs to give it a password — no config required.
+**The default table's passwords are immutable.** The server refuses `set-room-password` and
+`set-dm-password` for it, so the published `HEROBYTE_ROOM_SECRET` / `HEROBYTE_DM_PASSWORD` always
+work there. That is deliberate: they are the credentials every deployment publishes, so a mutable
+password means one visitor can padlock a public demo and its host loses their own test bed with no
+way back in — permanently, since the change persists to disk.
 
-While it is unclaimed, the server empties it in place once it has sat **empty of authenticated
-clients for 1 hour** — room state, map documents, and its claim on uploaded images. Specifics worth
-knowing:
+It follows that the table can never quietly become someone's real table, so it is **always** swept.
+The server empties it in place once it has sat **empty of authenticated clients for 1 hour** — room
+state, map documents, and its claim on uploaded images. Specifics worth knowing:
 
 - **Private tables are never auto-cleared.** They unload after 30 minutes idle, which is lossless:
   durable state is flushed first and restored on the next join.
@@ -262,10 +262,12 @@ knowing:
 - Uploads are content-addressed, so clearing **un-claims** rather than deletes — bytes another table
   also uploaded stay on disk and keep serving.
 - The idle clock starts at boot, so a restart cannot wipe a table nobody has rejoined yet.
+- Users keep work via **DM Menu → Session → Save as a Private Table** (`fork-table`), which copies
+  the whole table into a fresh private one — including a co-claim on its uploads, so a later sweep
+  of the source cannot delete images the copy still uses.
 
-**Running a private server where the default table IS your table?** Give it a password — that alone
-stops the clearing, because the table is no longer public. To keep the published password *and*
-disable clearing anyway:
+**Running a private server where the default table IS your table?** It will still be swept, because
+its passwords cannot be changed. Either run your game on a private table, or disable the sweep:
 
 ```
 HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS=0

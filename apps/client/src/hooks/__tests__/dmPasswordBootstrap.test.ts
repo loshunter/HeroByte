@@ -25,9 +25,10 @@ function makeToast() {
   };
 }
 
-function makeSnapshot(isDM: boolean): RoomSnapshot {
+function makeSnapshot(isDM: boolean, isPublicTable = false): RoomSnapshot {
   return {
     players: [{ uid: "uid-1", isDM }],
+    isPublicTable,
   } as unknown as RoomSnapshot;
 }
 
@@ -58,6 +59,26 @@ describe("useDMManagement — DM password bootstrap", () => {
     expect(result.current.modalState.isOpen).toBe(true);
     expect(result.current.modalState.isLoading).toBe(false);
     expect(result.current.modalState.error).toBeNull();
+  });
+
+  it("does NOT offer bootstrap on the public test table — the server refuses it there", () => {
+    // Its DM password is fixed so it stays open for everyone, so offering the
+    // set-a-password form would walk the user into a guaranteed refusal.
+    const { result } = renderHook(() =>
+      useDMManagement({
+        snapshot: makeSnapshot(false, true),
+        uid: "uid-1",
+        sendMessage: vi.fn(),
+        toast: makeToast(),
+      }),
+    );
+
+    act(() => {
+      result.current.onElevationFailed(NO_DM_PASSWORD_REASON);
+    });
+
+    expect(result.current.modalState.mode).not.toBe("bootstrap");
+    expect(result.current.modalState.error).toBe(NO_DM_PASSWORD_REASON);
   });
 
   it("surfaces any other elevation failure inline instead of flipping modes", () => {

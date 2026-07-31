@@ -208,10 +208,14 @@ export function useDMManagement({
    * Server said elevation failed. The "no DM password yet" case is not a dead
    * end — it flips the modal into bootstrap mode so the user can mint the
    * password on the spot. Every other reason surfaces inline in the modal.
+   *
+   * EXCEPT on the public test table, whose DM password is fixed so it stays
+   * open for everyone: the server refuses set-dm-password there, so offering
+   * the bootstrap form would be a dead end. Show the reason instead.
    */
   const handleElevationFailed = useCallback(
     (reason: string) => {
-      if (reason.includes("No DM password configured")) {
+      if (reason.includes("No DM password configured") && !snapshot?.isPublicTable) {
         setModalMode("bootstrap");
         setIsModalOpen(true);
         notifyElevationFailed(null);
@@ -219,7 +223,7 @@ export function useDMManagement({
         notifyElevationFailed(reason);
       }
     },
-    [notifyElevationFailed],
+    [notifyElevationFailed, snapshot?.isPublicTable],
   );
 
   /**

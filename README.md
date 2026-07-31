@@ -36,7 +36,7 @@ pnpm dev
 
 Then open http://localhost:5174, enter the development table password `Fun1`, and you're at the table. To unlock DM tools, use the DM password `FunDM` — the [Getting Started guide](docs/user-guide/getting-started.md) walks through it.
 
-> The default **Main Hall** is a public scratch space while it still uses this documented password: the server wipes it once it has sat empty for an hour. Give it a password of its own (DM Menu → Session → Table Security) and it's yours — no longer public, never auto-cleared — or create a private table.
+> The default **Main Hall** is the public test table: both its passwords are these documented ones and **cannot be changed**, and the server wipes it once it has sat empty for an hour. Build there freely — to keep any of it, use DM Menu → Session → **Save as a Private Table**, or create a private table from the join screen.
 
 <details>
 <summary>📦 Full Installation & Setup Guide</summary>
@@ -81,7 +81,7 @@ The bash script is optional. It is useful in Unix-like shells, but WSL is not re
 
 - **Frontend:** http://localhost:5174
 - **Backend:** http://localhost:8787
-- **Default Table Password:** `Fun1` (change via DM Menu → Session → Table Security)
+- **Default Table Password:** `Fun1` (fixed on the Main Hall; private tables set their own)
 - **Default DM Password:** `FunDM` (use to elevate to Dungeon Master role)
 - **Playtest Guide:** [docs/playtest-setup-guide.md](docs/playtest-setup-guide.md)
 
