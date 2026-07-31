@@ -88,6 +88,12 @@ describe("MessageRouter", () => {
     // Mock services
     mockRoomService = {
       getState: vi.fn(() => mockState),
+      // Real RoomService.setState merges into state; without it here, handlers
+      // that touch state (e.g. the default table's public flag on a password
+      // change) threw into MessageRouter's catch and went silently untested.
+      setState: vi.fn((next: Partial<typeof mockState>) => {
+        Object.assign(mockState, next);
+      }),
       broadcast: vi.fn(),
       saveState: vi.fn(),
       loadSnapshot: vi.fn(),

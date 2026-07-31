@@ -1,17 +1,24 @@
 // ============================================================================
 // PUBLIC TABLE NOTICE
 // ============================================================================
-// The default table (Main Hall) is a shared scratch space: its password is the
-// server's documented default, so anyone who has read the README is already in
-// it. The server wipes it once it has sat empty (see Container.clearIdleDefaultRoom),
-// which keeps its asset quota from filling — but that is invisible from the
-// table itself, so people were free to mistake a public, self-clearing space
-// for somewhere to keep a campaign.
+// The default table (Main Hall) opens with the password published in the setup
+// docs, so out of the box anyone who has read the README is already in it. The
+// server wipes it once it has sat empty (Container.clearIdleDefaultRoom), which
+// keeps its asset quota from filling — but none of that is visible from the
+// table, so it looked like a fine place to keep a campaign.
+//
+// "Public" is NOT a property of the room id: it is true only while the password
+// is still the published one. Setting any other password claims the table — the
+// server stops clearing it and stops flagging it — so the copy's job is to name
+// that escape hatch, not just to warn.
 //
 // Two presentations of the same fact:
-//   "gate"  — on the join screen, before anyone commits to entering.
-//   "chip"  — a compact marker at the table, for anyone who bookmarked the URL
-//             and never saw the gate.
+//   "gate"  — on the join screen, BEFORE authentication, so there is no snapshot
+//             to consult. Its copy states the rule conditionally ("while it
+//             still uses that password"), which is true whether or not the
+//             table has already been claimed.
+//   "chip"  — at the table, driven by the live snapshot flag, so it disappears
+//             the moment someone claims the table.
 
 import React from "react";
 
@@ -19,14 +26,14 @@ interface PublicTableNoticeProps {
   variant: "gate" | "chip";
 }
 
-export const PUBLIC_TABLE_HEADLINE = "Public test table";
+const CLAIM_PATH = "DM Menu → Session → Table Security";
 
 export const PublicTableNotice: React.FC<PublicTableNoticeProps> = ({ variant }) => {
   if (variant === "chip") {
     return (
       <div
         data-testid="public-table-chip"
-        title="Main Hall is a shared public space. It clears itself once empty — create a private table for a real game."
+        title={`Anyone with the published password can join this table, and it is wiped once it sits empty. Set your own password (${CLAIM_PATH}) to claim it — then it stops being public and is never auto-cleared.`}
         style={{
           position: "fixed",
           top: "26px",
@@ -45,7 +52,7 @@ export const PublicTableNotice: React.FC<PublicTableNoticeProps> = ({ variant })
           pointerEvents: "auto",
         }}
       >
-        ⚠ PUBLIC TEST TABLE — CLEARS WHEN EMPTY
+        ⚠ PUBLIC TABLE — CLEARS WHEN EMPTY · SET A PASSWORD TO KEEP IT
       </div>
     );
   }
@@ -71,7 +78,7 @@ export const PublicTableNotice: React.FC<PublicTableNoticeProps> = ({ variant })
           lineHeight: 1.6,
         }}
       >
-        ⚠ {PUBLIC_TABLE_HEADLINE.toUpperCase()}
+        ⚠ SHARED DEFAULT TABLE
       </p>
       <p
         style={{
@@ -82,9 +89,10 @@ export const PublicTableNotice: React.FC<PublicTableNoticeProps> = ({ variant })
           lineHeight: 1.5,
         }}
       >
-        The Main Hall is a shared space for trying things out — its password is public, so anyone
-        can wander in, and everything left here is deleted once the table sits empty. Running a real
-        game? Create a private table below.
+        The Main Hall opens with the password published in the setup docs. While it still uses that
+        password it is a public scratch space, and the server wipes it once it has sat empty for an
+        hour. Give it your own password ({CLAIM_PATH}) and it becomes yours: no longer public, and
+        never auto-cleared.
       </p>
     </div>
   );

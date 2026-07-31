@@ -380,6 +380,15 @@ export interface RoomSnapshot {
   mapElements?: MapElementsSnapshot; // Player-safe live-authored scenery (tiles/stamps/shapes/visible text); privacy-filtered, sent to ALL recipients
   liveMapDocumentId?: string; // DM-only: the map document auto-compiled into the live scene on every command (absent for players)
   fogEnabled?: boolean; // Whether fog of war hides the map beyond player token sightlines
+  /**
+   * True only for the default table WHILE it still opens with the password
+   * published in the setup docs — i.e. it is genuinely reachable by anyone, and
+   * the server clears it when it empties. Setting any other password (a DM via
+   * Table Security, or HEROBYTE_ROOM_SECRET) claims the table: this goes false,
+   * the auto-clear stops, and the UI drops the "public" label. Absent means not
+   * public, so an older server simply never shows the label.
+   */
+  isPublicTable?: boolean;
   assets?: SnapshotAsset[];
   assetRefs?: SnapshotAssetRefs;
 }

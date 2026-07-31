@@ -68,3 +68,6 @@ Thumbs.db
 *.afdesign
 *.afphoto
 *:Zone.Identifier
+
+# Vitest writes these transient config timestamps next to the config file
+vitest.config.ts.timestamp-*

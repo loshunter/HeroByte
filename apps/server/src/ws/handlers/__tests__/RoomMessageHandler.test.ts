@@ -297,6 +297,60 @@ describe("RoomMessageHandler - Characterization Tests", () => {
       expect(sentMessage.reason).toBe("Password must be between 6 and 128 characters.");
     });
 
+    // The router's broadcast is debounced by a frame, so these await it rather
+    // than asserting synchronously.
+    const flushBroadcast = () => new Promise((resolve) => setTimeout(resolve, 40));
+
+    it("claims the default table: public flag off, and clients are told", async () => {
+      // "Public" tracks the password, not the room id. Claiming the table with
+      // any non-published password must flip the flag AND reach every client.
+      // Routed through the real dispatcher on purpose: it used to discard this
+      // handler's result and hard-code broadcast:false, so the label stayed
+      // stale until some unrelated action happened to broadcast.
+      roomService.setState({ isPublicTable: true });
+      const broadcastSpy = vi.spyOn(roomService, "broadcast");
+
+      messageRouter.route(
+        { t: "set-room-password", secret: "a-real-private-password" } as ClientMessage,
+        dmUid,
+      );
+
+      expect(roomService.getState().isPublicTable).toBe(false);
+      await flushBroadcast();
+      expect(broadcastSpy).toHaveBeenCalled();
+    });
+
+    it("releases the default table back to public when reset to the default", async () => {
+      roomService.setState({ isPublicTable: false });
+      const broadcastSpy = vi.spyOn(roomService, "broadcast");
+
+      messageRouter.route({ t: "set-room-password" } as ClientMessage, dmUid);
+
+      expect(roomService.getState().isPublicTable).toBe(true);
+      await flushBroadcast();
+      expect(broadcastSpy).toHaveBeenCalled();
+    });
+
+    it("does not broadcast when the public flag did not change", async () => {
+      // Already claimed; setting yet another private password changes nothing
+      // clients can see, so it must not trigger a table-wide snapshot.
+      roomService.setState({ isPublicTable: false });
+      messageRouter.route(
+        { t: "set-room-password", secret: "first-private-password" } as ClientMessage,
+        dmUid,
+      );
+      const broadcastSpy = vi.spyOn(roomService, "broadcast");
+
+      messageRouter.route(
+        { t: "set-room-password", secret: "second-private-password" } as ClientMessage,
+        dmUid,
+      );
+
+      expect(roomService.getState().isPublicTable).toBe(false);
+      await flushBroadcast();
+      expect(broadcastSpy).not.toHaveBeenCalled();
+    });
+
     it("should treat an explicitly undefined secret as a reset to the default", () => {
       // Same wire shape as an omitted secret — both mean "reset". Previously
       // undefined coerced to "" and failed length validation, which made the

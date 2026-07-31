@@ -32,8 +32,10 @@ export class RoomDispatcher {
 
     switch (message.t) {
       case "set-room-password":
-        this.roomHandler.handleSetRoomPassword(state, senderUid, message.secret);
-        return { broadcast: false, save: false }; // Handled internally
+        // The handler answers the DM directly, but claiming or releasing the
+        // default table also flips its public flag for EVERY client — so its
+        // result has to be honoured rather than assumed to be a no-op.
+        return this.roomHandler.handleSetRoomPassword(state, senderUid, message.secret);
 
       case "heartbeat": {
         const result = this.heartbeatHandler.handleHeartbeat(state, senderUid);

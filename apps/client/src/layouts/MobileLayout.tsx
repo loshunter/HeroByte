@@ -16,7 +16,6 @@ import { MobileEntitiesList } from "../components/layout/MobileEntitiesList";
 import { ToastContainer } from "../components/ui/Toast";
 import { ServerStatus } from "../components/layout/ServerStatus";
 import { PublicTableNotice } from "../features/rooms/PublicTableNotice";
-import { currentRoomId } from "../features/rooms/roomDirectory";
 import { MobileFloatingControls } from "../components/layout/MobileFloatingControls";
 import { useEntityEditHandlers } from "../hooks/useEntityEditHandlers";
 import { MobileDrawingControls } from "./MobileDrawingControls";
@@ -341,7 +340,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
           feedback ever — no save confirmation, no dropped-command warning, no
           sign the server had gone. Both props were already being passed in. */}
       <ServerStatus isConnected={props.isConnected} />
-      {currentRoomId() === undefined ? <PublicTableNotice variant="chip" /> : null}
+      {props.snapshot?.isPublicTable ? <PublicTableNotice variant="chip" /> : null}
       <ToastContainer messages={props.toast.messages} onDismiss={props.toast.dismiss} />
     </div>
   );

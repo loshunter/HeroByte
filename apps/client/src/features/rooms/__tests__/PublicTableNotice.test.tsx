@@ -20,25 +20,34 @@ describe("PublicTableNotice", () => {
   });
 
   describe("gate variant", () => {
-    it("names the space and says what happens to what you leave there", () => {
+    it("states the rule conditionally, so it is true even once the table is claimed", () => {
+      // The join screen renders BEFORE authentication, so there is no snapshot
+      // to consult. Asserting "this table IS public" would be a guess; stating
+      // "while it still uses that password" holds either way.
       render(<PublicTableNotice variant="gate" />);
 
       expect(screen.getByTestId("public-table-notice")).toBeInTheDocument();
-      expect(screen.getByText(/PUBLIC TEST TABLE/i)).toBeInTheDocument();
-      expect(screen.getByText(/deleted once the table sits empty/i)).toBeInTheDocument();
-      // Points at the alternative rather than only warning.
-      expect(screen.getByText(/create a private table/i)).toBeInTheDocument();
+      expect(screen.getByText(/while it still uses that password/i)).toBeInTheDocument();
+      expect(screen.getByText(/wipes it once it has sat empty for an hour/i)).toBeInTheDocument();
+    });
+
+    it("names the way out, not just the warning", () => {
+      render(<PublicTableNotice variant="gate" />);
+
+      expect(screen.getByText(/Table Security/i)).toBeInTheDocument();
+      expect(screen.getByText(/no longer public, and never auto-cleared/i)).toBeInTheDocument();
     });
   });
 
   describe("chip variant", () => {
-    it("marks the table compactly, with the detail on hover", () => {
+    it("marks the table compactly and points at the claim path", () => {
       render(<PublicTableNotice variant="chip" />);
 
       const chip = screen.getByTestId("public-table-chip");
       expect(chip).toBeInTheDocument();
-      expect(chip.textContent).toMatch(/PUBLIC TEST TABLE/i);
-      expect(chip.getAttribute("title")).toMatch(/private table/i);
+      expect(chip.textContent).toMatch(/PUBLIC TABLE/i);
+      expect(chip.textContent).toMatch(/SET A PASSWORD TO KEEP IT/i);
+      expect(chip.getAttribute("title")).toMatch(/Table Security/i);
     });
   });
 

@@ -30,6 +30,7 @@ import { BottomPanelLayout } from "./BottomPanelLayout";
 import { useEntityEditHandlers } from "../hooks/useEntityEditHandlers";
 import { useInitiativeSetting } from "../hooks/useInitiativeSetting";
 import { useNpcVisibility } from "../hooks/useNpcVisibility";
+import { PublicTableNotice } from "../features/rooms/PublicTableNotice";
 
 // Re-export for backward compatibility
 export type { MainLayoutProps, RollLogEntry };
@@ -243,6 +244,12 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
 
   return (
     <div onClick={() => setContextMenu(null)} style={{ height: "100vh", overflow: "hidden" }}>
+      {/* Marks the shared default table for anyone who bookmarked its URL and
+          never saw the join screen. Driven by the live snapshot flag, not the
+          room id: setting a password claims the table and this goes away.
+          Rendered here rather than in TopPanelLayout because the snapshot is
+          already in scope — no new prop to thread through the layout fixtures. */}
+      {snapshot?.isPublicTable ? <PublicTableNotice variant="chip" /> : null}
       {/* Top Panel - Server status, drawing toolbar, header, and multi-select toolbar */}
       <TopPanelLayout
         isConnected={isConnected}
