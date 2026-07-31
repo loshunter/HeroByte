@@ -33,6 +33,9 @@
   --hero-text-light: #f0e2c3;
   --hero-text-dim: #a89878;
   --hero-text-accent: #dbe1ff;
+  /* Referenced by MobilePlayerRow but never defined, so that label had no
+     colour at all and fell back to whatever it inherited. */
+  --hero-white: #ffffff;
 
   /* Semantic Colors */
   --hero-enemy: #ff0000;
@@ -358,7 +361,14 @@ input[type="range"]:disabled {
 /* ----------------------------------------------------------------------------
    TEXT INPUTS
    ---------------------------------------------------------------------------- */
+/*
+ * `number` and `password` were missing, so those fields fell through to the
+ * browser default — an NPC's HP inputs rendered in 13px Arial directly beside a
+ * 10px pixel-font Name field in the same form row.
+ */
 input[type="text"],
+input[type="number"],
+input[type="password"],
 input[type="color"],
 textarea,
 select {
@@ -373,10 +383,24 @@ select {
 }
 
 input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="password"]:focus,
 textarea:focus,
 select:focus {
   border-color: var(--hero-blue);
   box-shadow: 0 0 8px var(--hero-blue-glow);
+}
+
+/*
+ * Fields whose CONTENT you have to read back character by character take the
+ * body face, while keeping the shared border/background above. A password you
+ * cannot proof-read and an HP value you cannot read at a glance are exactly the
+ * cases where 10px pixel type costs more than it earns.
+ */
+input[type="number"],
+input[type="password"] {
+  font-family: var(--font-body);
+  font-size: 13px;
 }
 
 input[type="color"] {
