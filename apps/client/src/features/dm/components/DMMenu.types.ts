@@ -72,6 +72,12 @@ export interface DMMenuProps {
   roomPasswordStatus?: { type: "success" | "error"; message: string } | null;
   roomPasswordPending?: boolean;
   onDismissRoomPasswordStatus?: () => void;
+  /** Test table only: copy this table into a new private one. */
+  onSaveAsPrivateTable?: (input: {
+    name: string;
+    roomPassword: string;
+    dmPassword?: string;
+  }) => Promise<void>;
   sceneObjects: SceneObject[];
   onSelectPlayerTokens: (playerUid: string) => void;
   combatActive?: boolean;

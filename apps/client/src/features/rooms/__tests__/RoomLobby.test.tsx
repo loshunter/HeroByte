@@ -22,25 +22,12 @@ describe("RoomLobby", () => {
     store = {};
   });
 
-  it("shows the default table when no room is in the URL", () => {
-    render(<RoomLobby onNavigate={vi.fn()} />);
-    expect(screen.getByText(/Main Hall/)).toBeInTheDocument();
-  });
-
-  it("lists remembered tables and navigates on click", () => {
-    rememberRoom("dragons-den");
-    const onNavigate = vi.fn();
-    render(<RoomLobby onNavigate={onNavigate} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "dragons-den" }));
-
-    expect(onNavigate).toHaveBeenCalledWith("dragons-den");
-  });
-
-  it("forgets a table without navigating", () => {
-    // Forgetting is now guarded: this list is the only in-app record that a
-    // private table exists, and the ✕ sits pixels from the join chip.
+  // Which table you're joining, and the list of remembered ones, moved to
+  // TablePicker (it sits above the single password field now). What's left here
+  // are the actions around that choice.
+  it("forgets the table you're currently on, without navigating", () => {
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    window.history.replaceState({}, "", "/?room=dragons-den");
     rememberRoom("dragons-den");
     const onNavigate = vi.fn();
     render(<RoomLobby onNavigate={onNavigate} />);
@@ -48,19 +35,13 @@ describe("RoomLobby", () => {
     fireEvent.click(screen.getByRole("button", { name: "Forget dragons-den" }));
 
     expect(onNavigate).not.toHaveBeenCalled();
-    expect(screen.queryByRole("button", { name: "dragons-den" })).toBeNull();
     confirmSpy.mockRestore();
+    window.history.replaceState({}, "", "/");
   });
 
-  it("keeps the table when the forget confirm is dismissed", () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
-    rememberRoom("dragons-den");
+  it("offers no forget action on the test table — there is nothing to forget", () => {
     render(<RoomLobby onNavigate={vi.fn()} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Forget dragons-den" }));
-
-    expect(screen.queryByRole("button", { name: "dragons-den" })).not.toBeNull();
-    confirmSpy.mockRestore();
+    expect(screen.queryByRole("button", { name: /^Forget/ })).toBeNull();
   });
 
   it("mints a fresh table id for NEW TABLE (no create handler → plain navigate)", () => {

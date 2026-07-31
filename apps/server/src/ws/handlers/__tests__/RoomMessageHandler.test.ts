@@ -43,7 +43,7 @@ describe("RoomMessageHandler - Characterization Tests", () => {
   const dmUid = "dm-456";
   const PRIVATE_ROOM_ID = "table-privatetest";
   /** Which room the router believes the sender is in. */
-  let routedRoomId: string | undefined;
+  let routedRoomId: string;
   let mockPlayerWs: WebSocket;
   let mockDmWs: WebSocket;
 

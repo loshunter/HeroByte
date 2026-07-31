@@ -67,6 +67,8 @@ export const ROOM_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/;
 export interface RememberedRoom {
   roomId: string;
   lastJoined: number;
+  /** Display name, once we've learned it. Codes alone are unrecognisable. */
+  name?: string;
 }
 
 /** The room this tab targets, or undefined for the server's default table. */
@@ -90,6 +92,10 @@ export function listRememberedRooms(): RememberedRoom[] {
           ROOM_ID_PATTERN.test((entry as RememberedRoom).roomId) &&
           typeof (entry as RememberedRoom).lastJoined === "number",
       )
+      .map((entry) => ({
+        ...entry,
+        name: typeof entry.name === "string" && entry.name.trim() ? entry.name.trim() : undefined,
+      }))
       .sort((a, b) => b.lastJoined - a.lastJoined)
       .slice(0, MAX_REMEMBERED);
   } catch {
@@ -97,11 +103,14 @@ export function listRememberedRooms(): RememberedRoom[] {
   }
 }
 
-export function rememberRoom(roomId: string): void {
+export function rememberRoom(roomId: string, name?: string): void {
   if (!ROOM_ID_PATTERN.test(roomId)) return;
   try {
+    const previous = listRememberedRooms().find((room) => room.roomId === roomId);
     const rooms = listRememberedRooms().filter((room) => room.roomId !== roomId);
-    rooms.unshift({ roomId, lastJoined: Date.now() });
+    // Keep a name we already knew when this call doesn't carry one — joining by
+    // code shouldn't downgrade a table back to an unrecognisable string.
+    rooms.unshift({ roomId, lastJoined: Date.now(), name: name?.trim() || previous?.name });
     localStorage.setItem(STORAGE_KEY, JSON.stringify(rooms.slice(0, MAX_REMEMBERED)));
   } catch {
     // Private-mode storage failures just mean no shelf memory.

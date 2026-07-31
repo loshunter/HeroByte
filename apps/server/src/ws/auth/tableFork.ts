@@ -12,6 +12,7 @@
 // Lives outside AuthenticationHandler so that file stays under the size guard.
 
 import type { WebSocket } from "ws";
+import type { Container } from "../../container.js";
 import type { AssetService } from "../../domains/assets/service.js";
 import type { AuthService } from "../../domains/auth/service.js";
 import type { MapStudioService } from "../../domains/mapStudio/service.js";
@@ -41,6 +42,32 @@ export interface ForkTableDeps {
 
 function fail(ws: WebSocket, reason: string): void {
   ws.send(JSON.stringify({ t: "table-fork-failed", reason }));
+}
+
+/**
+ * Assemble the fork's dependencies from the container for one sender. Kept
+ * here rather than in AuthenticationHandler so that file stays under the
+ * structural size guard.
+ */
+export function forkTableForUid(
+  container: Container,
+  ws: WebSocket | undefined,
+  uid: string,
+  request: ForkTableRequest,
+): void {
+  const roomId = container.roomIdForUid(uid);
+  const roomService = container.getRoomServiceForRoom(roomId);
+  const player = container.playerService.findPlayer(roomService.getState(), uid);
+
+  handleForkTable(ws, request, {
+    authService: container.authService,
+    mapStudioService: container.mapStudioService,
+    assetService: container.assetServiceForFork,
+    sourceRoomId: roomId,
+    sourceRoomService: roomService,
+    getRoomServiceForRoom: (target) => container.getRoomServiceForRoom(target),
+    isDM: player?.isDM ?? false,
+  });
 }
 
 /**

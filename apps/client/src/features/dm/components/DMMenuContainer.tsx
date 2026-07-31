@@ -69,6 +69,12 @@ interface DMMenuContainerProps {
   roomPasswordStatus?: { type: "success" | "error"; message: string } | null;
   roomPasswordPending?: boolean;
   onDismissRoomPasswordStatus?: () => void;
+  /** Test table only: copy this table into a new private one. */
+  onSaveAsPrivateTable?: (input: {
+    name: string;
+    roomPassword: string;
+    dmPassword?: string;
+  }) => Promise<void>;
 
   // Raw dependencies for useDMContext
   snapshot: RoomSnapshot | null;
@@ -133,6 +139,7 @@ export function DMMenuContainer({
   roomPasswordStatus,
   roomPasswordPending,
   onDismissRoomPasswordStatus,
+  onSaveAsPrivateTable,
   snapshot,
   sendMessage,
   camera,
@@ -226,6 +233,7 @@ export function DMMenuContainer({
       roomPasswordStatus={roomPasswordStatus}
       roomPasswordPending={roomPasswordPending}
       onDismissRoomPasswordStatus={onDismissRoomPasswordStatus}
+      onSaveAsPrivateTable={onSaveAsPrivateTable}
       sceneObjects={sceneObjects}
       onSelectPlayerTokens={onSelectPlayerTokens}
       combatActive={combatActive}

@@ -13,6 +13,7 @@ import {
   generateRoomId,
   listRememberedRooms,
   navigateToRoom,
+  rememberRoom,
   roomUrl,
   stashRoomSecret,
 } from "./roomDirectory";
@@ -82,18 +83,17 @@ export function RoomLobby({
   onCreateRoom,
 }: RoomLobbyProps): JSX.Element {
   const activeRoomId = useMemo(() => currentRoomId(), []);
-  const [remembered, setRemembered] = useState(() => listRememberedRooms());
+  const [, setRemembered] = useState(() => listRememberedRooms());
   const [joinCode, setJoinCode] = useState("");
   const [joinError, setJoinError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [copyFallback, setCopyFallback] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [newTableName, setNewTableName] = useState("");
   const [newRoomPassword, setNewRoomPassword] = useState("");
   const [newDmPassword, setNewDmPassword] = useState("");
   const [createError, setCreateError] = useState<string | null>(null);
   const [createBusy, setCreateBusy] = useState(false);
-
-  const otherRooms = remembered.filter((room) => room.roomId !== activeRoomId);
 
   const handleNewTable = () => {
     // Without a create handler (e.g. in tests) fall back to a plain new-room
@@ -120,14 +120,18 @@ export function RoomLobby({
       return;
     }
     const roomId = generateRoomId();
+    const name = newTableName.trim();
     setCreateBusy(true);
     setCreateError(null);
     try {
-      await onCreateRoom({ roomId, roomPassword, dmPassword: dmPassword || undefined });
+      await onCreateRoom({ roomId, roomPassword, dmPassword: dmPassword || undefined, name });
       // Pre-seed the password so the new room authenticates the creator without
       // a second prompt, then navigate into it. Scoped to the room we just
       // minted, not to whatever table the URL currently names.
       stashRoomSecret(roomPassword, roomId);
+      // Remember the name now: the picker has to label this table on the very
+      // next load, before any snapshot has arrived to tell us what it's called.
+      rememberRoom(roomId, name);
       onNavigate(roomId);
     } catch (error) {
       setCreateError(error instanceof Error ? error.message : "Couldn't create the table.");
@@ -185,17 +189,20 @@ export function RoomLobby({
 
   return (
     <div style={sectionStyle} data-testid="room-lobby">
-      <p style={labelStyle}>Table</p>
+      {/* Which table you're joining is the picker's job now, directly above the
+          password field. What's left here are the actions AROUND that choice. */}
       <div style={rowStyle}>
-        <span style={{ fontSize: "0.9rem", color: "#e7ecff" }}>
-          {activeRoomId ?? "Main Hall (default table)"}
-        </span>
         <button type="button" style={smallButtonStyle} onClick={() => void handleCopyInvite()}>
           {copied ? "✓ Copied" : "Copy invite link"}
         </button>
         {activeRoomId && (
-          <button type="button" style={smallButtonStyle} onClick={() => onNavigate(undefined)}>
-            Back to Main Hall
+          <button
+            type="button"
+            aria-label={`Forget ${activeRoomId}`}
+            style={smallButtonStyle}
+            onClick={() => handleForget(activeRoomId)}
+          >
+            Forget this table
           </button>
         )}
       </div>
@@ -209,33 +216,6 @@ export function RoomLobby({
         />
       )}
 
-      {otherRooms.length > 0 && (
-        <>
-          <p style={{ ...labelStyle, marginTop: "16px" }}>Your tables</p>
-          <div style={rowStyle}>
-            {otherRooms.map((room) => (
-              <span key={room.roomId} style={{ display: "inline-flex", gap: "4px" }}>
-                <button
-                  type="button"
-                  style={chipButtonStyle}
-                  onClick={() => onNavigate(room.roomId)}
-                >
-                  {room.roomId}
-                </button>
-                <button
-                  type="button"
-                  aria-label={`Forget ${room.roomId}`}
-                  style={smallButtonStyle}
-                  onClick={() => handleForget(room.roomId)}
-                >
-                  ✕
-                </button>
-              </span>
-            ))}
-          </div>
-        </>
-      )}
-
       <p style={{ ...labelStyle, marginTop: "16px" }}>Start or join</p>
       <div style={rowStyle}>
         <button type="button" style={chipButtonStyle} onClick={handleNewTable}>
@@ -246,6 +226,21 @@ export function RoomLobby({
             onSubmit={handleCreateSubmit}
             style={{ display: "flex", flexDirection: "column", gap: "6px", width: "100%" }}
           >
+            <input
+              aria-label="New table name"
+              value={newTableName}
+              onChange={(event) => setNewTableName(event.target.value)}
+              placeholder="Table name (e.g. Sunday Game)"
+              maxLength={60}
+              style={{
+                background: "rgba(9, 14, 30, 0.9)",
+                border: "1px solid rgba(255, 215, 94, 0.4)",
+                borderRadius: "6px",
+                color: "#e7ecff",
+                fontSize: "0.85rem",
+                ...lobbyInputStyle,
+              }}
+            />
             <input
               type="password"
               aria-label="New table password"

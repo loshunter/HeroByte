@@ -87,6 +87,11 @@ export interface FloatingPanelsLayoutProps {
   sendMessage: (message: ClientMessage) => void;
   // Room Password (4)
   onSetRoomPassword: (password?: string) => void;
+  onSaveAsPrivateTable?: (input: {
+    name: string;
+    roomPassword: string;
+    dmPassword?: string;
+  }) => Promise<void>;
   roomPasswordStatus: PasswordStatus | null;
   roomPasswordPending: boolean;
   onDismissRoomPasswordStatus: () => void;
@@ -154,6 +159,7 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
     onAlignmentApply,
     sendMessage,
     onSetRoomPassword,
+    onSaveAsPrivateTable,
     roomPasswordStatus,
     roomPasswordPending,
     onDismissRoomPasswordStatus,
@@ -265,6 +271,7 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
               onAlignmentCancel={onAlignmentCancel}
               onAlignmentApply={onAlignmentApply}
               onSetRoomPassword={onSetRoomPassword}
+              onSaveAsPrivateTable={onSaveAsPrivateTable}
               roomPasswordStatus={roomPasswordStatus}
               roomPasswordPending={roomPasswordPending}
               onDismissRoomPasswordStatus={onDismissRoomPasswordStatus}

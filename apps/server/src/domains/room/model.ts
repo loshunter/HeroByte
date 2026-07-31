@@ -56,12 +56,7 @@ export interface RoomState {
   mapElements?: MapElementsSnapshot; // Player-safe live-authored scenery (privacy-filtered at derive)
   liveMapDocumentId?: string; // Map document whose edits auto-compile into the live scene (DM-authored)
   fogEnabled: boolean; // Whether fog of war hides the map beyond player sightlines
-  /**
-   * Whether this table still opens with the published default password (see
-   * RoomSnapshot.isPublicTable). Derived from the auth layer rather than
-   * authored, so it is refreshed at boot and whenever the password changes —
-   * never trusted from a loaded state file.
-   */
+  /** The public test table (see RoomSnapshot.isPublicTable). Set at boot. */
   isPublicTable?: boolean;
   /** Display name a private table was created or forked with. */
   tableName?: string;

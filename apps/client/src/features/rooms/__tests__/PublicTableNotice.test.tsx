@@ -20,34 +20,30 @@ describe("PublicTableNotice", () => {
   });
 
   describe("gate variant", () => {
-    it("states the rule conditionally, so it is true even once the table is claimed", () => {
-      // The join screen renders BEFORE authentication, so there is no snapshot
-      // to consult. Asserting "this table IS public" would be a guess; stating
-      // "while it still uses that password" holds either way.
+    it("says the password is fixed — that is what keeps the table open", () => {
       render(<PublicTableNotice variant="gate" />);
 
       expect(screen.getByTestId("public-table-notice")).toBeInTheDocument();
-      expect(screen.getByText(/while it still uses that password/i)).toBeInTheDocument();
-      expect(screen.getByText(/wipes it once it has sat empty for an hour/i)).toBeInTheDocument();
+      expect(screen.getByText(/cannot be changed/i)).toBeInTheDocument();
+      expect(screen.getByText(/sat empty\s+for an hour/i)).toBeInTheDocument();
     });
 
-    it("names the way out, not just the warning", () => {
+    it("names the way to keep your work, not just the warning", () => {
       render(<PublicTableNotice variant="gate" />);
 
-      expect(screen.getByText(/Table Security/i)).toBeInTheDocument();
-      expect(screen.getByText(/no longer public, and never auto-cleared/i)).toBeInTheDocument();
+      expect(screen.getByText(/save the table as a private table/i)).toBeInTheDocument();
     });
   });
 
   describe("chip variant", () => {
-    it("marks the table compactly and points at the claim path", () => {
+    it("marks the table compactly and points at the way to keep it", () => {
       render(<PublicTableNotice variant="chip" />);
 
       const chip = screen.getByTestId("public-table-chip");
       expect(chip).toBeInTheDocument();
-      expect(chip.textContent).toMatch(/PUBLIC TABLE/i);
-      expect(chip.textContent).toMatch(/SET A PASSWORD TO KEEP IT/i);
-      expect(chip.getAttribute("title")).toMatch(/Table Security/i);
+      expect(chip.textContent).toMatch(/PUBLIC TEST TABLE/i);
+      expect(chip.textContent).toMatch(/SAVE IT TO KEEP IT/i);
+      expect(chip.getAttribute("title")).toMatch(/private table/i);
     });
   });
 

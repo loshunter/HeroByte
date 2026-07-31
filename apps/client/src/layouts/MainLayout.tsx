@@ -184,6 +184,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     roomPasswordStatus,
     roomPasswordPending,
     handleSetRoomPassword,
+    onSaveAsPrivateTable,
     dismissRoomPasswordStatus,
 
     // DM management (hooks now in DMMenuContainer)
@@ -427,6 +428,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onAlignmentApply={handleAlignmentApply}
         sendMessage={sendMessage}
         onSetRoomPassword={handleSetRoomPassword}
+        onSaveAsPrivateTable={onSaveAsPrivateTable}
         roomPasswordStatus={roomPasswordStatus}
         roomPasswordPending={roomPasswordPending}
         onDismissRoomPasswordStatus={dismissRoomPasswordStatus}

@@ -12,6 +12,7 @@
 
 import { SessionPersistenceControl } from "../session-controls/SessionPersistenceControl";
 import { RoomPasswordControl } from "../session-controls/RoomPasswordControl";
+import { SaveAsPrivateTableControl } from "../session-controls/SaveAsPrivateTableControl";
 import { JRPGPanel } from "../../../../components/ui/JRPGPanel";
 
 /**
@@ -42,6 +43,15 @@ interface SessionTabProps {
   roomPasswordPending?: boolean;
   /** Optional callback to dismiss the room password status message */
   onDismissRoomPasswordStatus?: () => void;
+  /**
+   * Present only on the public test table, where the password is fixed: copies
+   * this table into a new private one and goes there.
+   */
+  onSaveAsPrivateTable?: (input: {
+    name: string;
+    roomPassword: string;
+    dmPassword?: string;
+  }) => Promise<void>;
 
   // Players panel props
   /** Current number of players online */
@@ -74,6 +84,7 @@ export default function SessionTab({
   roomPasswordStatus,
   roomPasswordPending,
   onDismissRoomPasswordStatus,
+  onSaveAsPrivateTable,
   playerCount,
 }: SessionTabProps) {
   return (
@@ -87,12 +98,19 @@ export default function SessionTab({
         loadDisabled={loadDisabled}
       />
 
-      <RoomPasswordControl
-        onSetRoomPassword={onSetRoomPassword}
-        roomPasswordStatus={roomPasswordStatus}
-        roomPasswordPending={roomPasswordPending}
-        onDismissRoomPasswordStatus={onDismissRoomPasswordStatus}
-      />
+      {/* The test table has no password to manage — it is fixed so the table
+          stays open for everyone — so it offers the operation that IS available
+          there instead: take a durable copy before the hourly wipe. */}
+      {onSaveAsPrivateTable ? (
+        <SaveAsPrivateTableControl onSave={onSaveAsPrivateTable} />
+      ) : (
+        <RoomPasswordControl
+          onSetRoomPassword={onSetRoomPassword}
+          roomPasswordStatus={roomPasswordStatus}
+          roomPasswordPending={roomPasswordPending}
+          onDismissRoomPasswordStatus={onDismissRoomPasswordStatus}
+        />
+      )}
 
       <JRPGPanel variant="simple" title="Players">
         <div className="jrpg-text-small" style={{ color: "var(--jrpg-white)" }}>

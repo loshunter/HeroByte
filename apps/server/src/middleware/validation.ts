@@ -15,6 +15,7 @@ import type { ValidationResult, MessageRecord } from "./validators/index.js";
 import { isRecord } from "./validators/index.js";
 
 // Token validators
+import { validateForkTableMessage } from "./validators/forkValidators.js";
 import {
   validateMoveMessage,
   validateRecolorMessage,
@@ -97,7 +98,6 @@ import {
   validateSessionExportMessage,
   validateAuthenticateMessage,
   validateCreateRoomMessage,
-  validateForkTableMessage,
   validateElevateToDmMessage,
   validateSetDmPasswordMessage,
   validateTransformObjectMessage,

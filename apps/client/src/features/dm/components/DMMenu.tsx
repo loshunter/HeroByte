@@ -76,6 +76,7 @@ export function DMMenu({
   roomPasswordStatus = null,
   roomPasswordPending = false,
   onDismissRoomPasswordStatus,
+  onSaveAsPrivateTable,
   sceneObjects,
   onSelectPlayerTokens,
   combatActive,
@@ -244,6 +245,7 @@ export function DMMenu({
                 roomPasswordStatus={roomPasswordStatus}
                 roomPasswordPending={roomPasswordPending}
                 onDismissRoomPasswordStatus={onDismissRoomPasswordStatus}
+                onSaveAsPrivateTable={onSaveAsPrivateTable}
                 playerCount={playerCount}
               />
             )}
