@@ -7,6 +7,7 @@ const DEFAULT_ROOM_ID = "default";
 const DEV_FALLBACK_SECRET = "Fun1";
 const DEV_FALLBACK_DM_PASSWORD = "FunDM";
 const DEFAULT_MAX_CUSTOM_ROOMS = 500;
+const DEFAULT_ROOM_CLEAR_HOURS = 6;
 
 let warnedAboutFallback = false;
 let warnedAboutDMFallback = false;
@@ -69,6 +70,25 @@ export function getDefaultRoomId(): string {
 export function getMaxCustomRooms(): number {
   const parsed = Number(process.env.HEROBYTE_MAX_CUSTOM_ROOMS?.trim());
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : DEFAULT_MAX_CUSTOM_ROOMS;
+}
+
+/**
+ * How long the default table may sit empty before the server wipes it, in ms.
+ *
+ * The default table is public on any deployment that keeps the documented
+ * fallback password, so it is cleared to stop it silting up (and filling its
+ * asset quota). But a self-hoster whose server is private may legitimately run
+ * their whole campaign in it — for them the wipe would be data loss, so
+ * `HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS=0` turns it off entirely.
+ */
+export function getDefaultRoomClearMs(): number {
+  const raw = process.env.HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS?.trim();
+  const parsed = Number(raw);
+  const hours =
+    raw !== undefined && raw !== "" && Number.isFinite(parsed) && parsed >= 0
+      ? parsed
+      : DEFAULT_ROOM_CLEAR_HOURS;
+  return hours * 60 * 60 * 1000;
 }
 
 /**

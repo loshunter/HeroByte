@@ -371,3 +371,134 @@ describe("idle-room unload", () => {
     expect(container.roomRegistry.listRooms()).toContain("room-race");
   });
 });
+
+// ============================================================================
+// DEFAULT-TABLE CLEAR
+// ============================================================================
+// The default table is public and never unloads, so its contents (and its
+// uploads, against a 50MB per-room quota) accumulated forever. It is emptied
+// in place once nobody is in it — and must never be emptied under a session.
+describe("idle default-table clear", () => {
+  const CLEAR_MS = 6 * 60 * 60 * 1000;
+  let container: Container;
+  let releaseRoom: ReturnType<typeof vi.fn>;
+
+  function dirtyDefaultTable() {
+    const roomService = container.getRoomServiceForRoom("default");
+    roomService.getState().tokens.push({ id: "leftover", owner: "p1", x: 3, y: 4, color: "blue" });
+    roomService.setState({});
+    return roomService;
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    releaseRoom = vi.fn().mockResolvedValue(2048);
+    container = new Container(
+      {} as unknown as WebSocketServer,
+      authServiceStub,
+      new RoomRegistry({ defaultRoomId: "default" }),
+      undefined,
+      { releaseRoom } as unknown as ConstructorParameters<typeof Container>[4],
+    );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("clears the default table once it has sat empty past the threshold", async () => {
+    const roomService = dirtyDefaultTable();
+    vi.advanceTimersByTime(CLEAR_MS + 1000);
+
+    const cleared = await container.clearIdleDefaultRoom(CLEAR_MS);
+
+    expect(cleared).toBe(true);
+    expect(roomService.getState().tokens).toEqual([]);
+    // Cleared in place — the default table backs the legacy single-room
+    // surface, so it must still be loaded afterwards.
+    expect(container.roomRegistry.listRooms()).toContain("default");
+  });
+
+  it("releases the table's uploads so the per-room quota does not accumulate", async () => {
+    dirtyDefaultTable();
+    vi.advanceTimersByTime(CLEAR_MS + 1000);
+
+    await container.clearIdleDefaultRoom(CLEAR_MS);
+
+    expect(releaseRoom).toHaveBeenCalledWith("default");
+  });
+
+  it("never clears while an authenticated client is at the table", async () => {
+    const roomService = dirtyDefaultTable();
+    container.uidToWs.set("player", fakeSocket() as unknown as WebSocket);
+    container.authenticatedUids.add("player");
+    container.authenticatedSessions.set("player", { roomId: "default", authedAt: Date.now() });
+    vi.advanceTimersByTime(CLEAR_MS + 1000);
+
+    const cleared = await container.clearIdleDefaultRoom(CLEAR_MS);
+
+    expect(cleared).toBe(false);
+    expect(roomService.getState().tokens).toHaveLength(1);
+    expect(releaseRoom).not.toHaveBeenCalled();
+  });
+
+  it("does not clear before the threshold", async () => {
+    const roomService = dirtyDefaultTable();
+    vi.advanceTimersByTime(CLEAR_MS - 60_000);
+
+    const cleared = await container.clearIdleDefaultRoom(CLEAR_MS);
+
+    expect(cleared).toBe(false);
+    expect(roomService.getState().tokens).toHaveLength(1);
+  });
+
+  it("does not wipe a table restored from disk that nobody has joined since boot", async () => {
+    // The idle clock is seeded at construction. Without that, a freshly booted
+    // server reads the default table's activity as the epoch, judges it
+    // long-idle on the very first sweep, and destroys state it had just loaded.
+    const roomService = dirtyDefaultTable();
+
+    const cleared = await container.clearIdleDefaultRoom(CLEAR_MS);
+
+    expect(cleared).toBe(false);
+    expect(roomService.getState().tokens).toHaveLength(1);
+  });
+
+  it("skips an already-empty table instead of rewriting it every sweep", async () => {
+    vi.advanceTimersByTime(CLEAR_MS + 1000);
+
+    const cleared = await container.clearIdleDefaultRoom(CLEAR_MS);
+
+    expect(cleared).toBe(false);
+    expect(releaseRoom).not.toHaveBeenCalled();
+  });
+
+  it("never clears when the window is 0 — that is opt-out, not 'always overdue'", async () => {
+    // HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS=0 is how a self-hoster whose default
+    // table IS their campaign turns this off. Read literally, a 0 window makes
+    // every sweep overdue, so the opt-out would destroy the table instead.
+    const roomService = dirtyDefaultTable();
+    vi.advanceTimersByTime(CLEAR_MS + 1000);
+
+    const cleared = await container.clearIdleDefaultRoom(0);
+
+    expect(cleared).toBe(false);
+    expect(roomService.getState().tokens).toHaveLength(1);
+    expect(releaseRoom).not.toHaveBeenCalled();
+  });
+
+  it("leaves private tables to the unload sweep", async () => {
+    const privateRoom = container.getRoomServiceForRoom("table-abc123");
+    privateRoom.getState().tokens.push({ id: "keep", owner: "p2", x: 0, y: 0, color: "red" });
+    privateRoom.setState({});
+    container.touchRoomActivity("table-abc123");
+    dirtyDefaultTable();
+    vi.advanceTimersByTime(CLEAR_MS + 1000);
+
+    await container.clearIdleDefaultRoom(CLEAR_MS);
+
+    expect(privateRoom.getState().tokens).toHaveLength(1);
+    expect(releaseRoom).toHaveBeenCalledTimes(1);
+    expect(releaseRoom).not.toHaveBeenCalledWith("table-abc123");
+  });
+});

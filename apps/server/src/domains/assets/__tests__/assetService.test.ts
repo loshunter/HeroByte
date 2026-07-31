@@ -223,6 +223,71 @@ describe("AssetService", () => {
     });
   });
 
+  describe("releaseRoom", () => {
+    // Clearing the public table has to give its quota back, without disturbing
+    // any other table that happens to hold the same bytes.
+
+    it("deletes bytes no other room claims and frees the room's quota", async () => {
+      const service = new AssetService({ directory: TMP_DIR });
+      const bytes = pngBytes("only-the-public-table-has-this");
+      const { asset } = await service.store(bytes, "default", 1);
+      const file = path.join(TMP_DIR, `${asset.hash}.png`);
+      expect(existsSync(file)).toBe(true);
+
+      const freed = await service.releaseRoom("default");
+
+      expect(freed).toBe(bytes.length);
+      expect(existsSync(file)).toBe(false);
+      expect(await service.totalBytes()).toBe(0);
+      expect(await service.roomBytes("default")).toBe(0);
+    });
+
+    it("keeps bytes another room still claims, un-claiming only the cleared one", async () => {
+      // Content addressing means two tables can share ONE file. Clearing the
+      // public table must not pull an image out from under a private game.
+      const service = new AssetService({ directory: TMP_DIR });
+      const shared = pngBytes("uploaded-by-both-tables");
+      const { asset } = await service.store(shared, "default", 1);
+      await service.store(shared, "table-private", 2);
+      const file = path.join(TMP_DIR, `${asset.hash}.png`);
+
+      const freed = await service.releaseRoom("default");
+
+      expect(freed).toBe(0); // nothing left the disk
+      expect(existsSync(file)).toBe(true);
+      expect(await service.roomBytes("default")).toBe(0); // quota given back
+      expect(await service.roomBytes("table-private")).toBe(shared.length);
+      expect(await service.read(asset.hash)).not.toBeNull(); // still serves
+    });
+
+    it("is a no-op for a room with no uploads", async () => {
+      const service = new AssetService({ directory: TMP_DIR });
+      await service.store(pngBytes("belongs-to-someone-else"), "room-a", 1);
+
+      expect(await service.releaseRoom("default")).toBe(0);
+      expect(await service.roomBytes("room-a")).toBeGreaterThan(0);
+    });
+
+    it("lets the room upload again afterwards, quota restored", async () => {
+      // The point of the whole exercise: a table whose quota was full can be
+      // used again after it is cleared.
+      const service = new AssetService({
+        directory: TMP_DIR,
+        maxRoomBytes: 40,
+        maxTotalBytes: 10_000,
+      });
+      await service.store(pngBytes("fills-the-small-quota"), "default", 1);
+      await expect(service.store(pngBytes("over-the-quota-line"), "default", 2)).rejects.toThrow(
+        /table's asset storage is full/i,
+      );
+
+      await service.releaseRoom("default");
+
+      const after = await service.store(pngBytes("works-after-clearing"), "default", 3);
+      expect(after.deduplicated).toBe(false);
+    });
+  });
+
   it("refuses malformed or unknown hashes on read — no path traversal", async () => {
     const service = new AssetService({ directory: TMP_DIR });
     await service.store(pngBytes("real"), ROOM, 1);
