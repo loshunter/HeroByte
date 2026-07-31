@@ -29,10 +29,10 @@ HEROBYTE_DM_PASSWORD="your-secure-dm-password"
    - Click "Make myself DM"
    - Enter DM password: `FunDM` (or your custom password)
 
-2. **Set a Private Room Password** (Optional but recommended)
+2. **Set a Private Table Password** (Optional but recommended)
    - Open DM Menu (bottom-right corner)
    - Go to **Session** tab
-   - Under "Room Security", enter a private password (e.g., `MyPrivateGame123`)
+   - Under "Table Security", enter a private password (e.g., `MyPrivateGame123`)
    - Confirm the password
    - Click "Update Password"
 
@@ -56,22 +56,18 @@ HEROBYTE_DM_PASSWORD="your-secure-dm-password"
    - Download saves as a JSON file
    - Store it somewhere safe (Google Drive, Dropbox, etc.)
 
-2. **Reset to Demo Defaults** _(Feature coming soon!)_
-   - DM Menu → Session → "Reset to Demo Mode"
-   - This will:
-     - Reset room password to `Fun1`
-     - Reset DM password to `FunDM`
-     - Clear all drawings, tokens, and NPCs (optional)
-     - Restore default spawn positions
-   - Leaves the server in a clean state for the next demo user
+2. **Reset the Table Password**
+   - DM Menu → Session → Table Security → "Reset to Default"
+   - This resets the table password to the server's configured default (the
+     dev fallback `Fun1` unless `HEROBYTE_ROOM_SECRET` overrides it)
+   - The DM password and table contents are not affected
 
-### Manual Cleanup (Current Method)
+### Manual Cleanup
 
-Until the "Reset to Demo Mode" button is implemented, you can manually clean up:
+For a fuller cleanup:
 
-1. **Reset Room Password**
-   - DM Menu → Session → Room Security
-   - Set password back to: `Fun1`
+1. **Reset Table Password**
+   - DM Menu → Session → Table Security → "Reset to Default"
 
 2. **Clear Session State** (optional)
    - DM Menu → Map Setup → "Clear All Drawings"

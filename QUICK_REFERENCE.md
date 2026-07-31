@@ -2,10 +2,10 @@
 
 ## Default Credentials (Development)
 
-| Password Type     | Default Value | How to Change                                 |
-| ----------------- | ------------- | --------------------------------------------- |
-| **Room Password** | `Fun1`        | DM Menu → Session → Room Security             |
-| **DM Password**   | `FunDM`       | Player Settings → Make myself DM (first time) |
+| Password Type      | Default Value | How to Change                                  |
+| ------------------ | ------------- | ---------------------------------------------- |
+| **Table Password** | `Fun1`        | DM Menu → Session → Table Security             |
+| **DM Password**    | `FunDM`       | Player Settings → DM Mode toggle (first time)  |
 
 ## Quick Actions
 
@@ -21,7 +21,7 @@
 1. Become DM (see above)
 2. Open **DM Menu** (bottom-right corner)
 3. Go to **Session** tab
-4. Under "Room Security", enter new password
+4. Under "Table Security", enter new password
 5. Confirm password
 6. Click **"Update Password"**
 7. Share new password with your players
@@ -57,7 +57,7 @@ pnpm dev
 | Redo Drawing    | `Ctrl+Shift+Z` / `Cmd+Shift+Z` |
 | Delete Selected | `Delete` / `Backspace`         |
 | Cancel Tool     | `Esc`                          |
-| Pan Map         | Hold `Space` + Drag            |
+| Pan Map         | Drag empty space, or middle-mouse drag |
 | Zoom            | Mouse Wheel                    |
 
 ## Environment Variables

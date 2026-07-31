@@ -13,17 +13,13 @@
 
 </div>
 
-HeroByte is a retro-inspired virtual tabletop that brings 16-bit RPG nostalgia to modern online play—roll dice, move tokens, and tell stories together in your browser.
+HeroByte is a retro-inspired virtual tabletop that brings 16-bit RPG nostalgia to modern online play—roll dice, move tokens, and tell stories together in your browser, while the DM builds the battlemap live in front of the party.
 
-<!--
-TODO: Add screenshot or GIF here after running a session with art assets
-Example format:
 <div align="center">
-  <img src="assets/demo.gif" alt="HeroByte Demo" width="800"/>
+  <img src="docs/user-guide/img/hero-table.jpg" alt="A HeroByte table mid-session: authored dungeon, torchlight, tokens, and the CRT filter" width="800"/>
 </div>
--->
 
-**📚 Quick Navigation:** [Quick Start](#-quick-start) • [Features](#-features) • [Testing](#-testing) • [How to Play](#-how-to-play) • [Architecture](#%EF%B8%8F-architecture) • [Roadmap](TODO.md) • [Contributing](#-contributing)
+**📚 Quick Navigation:** [Quick Start](#-quick-start) • [User Guide](#-documentation) • [Features](#-features) • [Testing](#-testing) • [Architecture](#%EF%B8%8F-architecture) • [Roadmap](TODO.md) • [Contributing](#-contributing)
 
 ---
 
@@ -37,6 +33,8 @@ pnpm dev
 ```
 
 **Prerequisites:** Node.js 20+ • pnpm 10 via Corepack (`corepack enable pnpm`)
+
+Then open http://localhost:5174, enter the development table password `Fun1`, and you're at the table. To unlock DM tools, use the DM password `FunDM` — the [Getting Started guide](docs/user-guide/getting-started.md) walks through it.
 
 <details>
 <summary>📦 Full Installation & Setup Guide</summary>
@@ -81,7 +79,7 @@ The bash script is optional. It is useful in Unix-like shells, but WSL is not re
 
 - **Frontend:** http://localhost:5174
 - **Backend:** http://localhost:8787
-- **Default Room Password:** `Fun1` (change via DM Menu → Session → Room Security)
+- **Default Table Password:** `Fun1` (change via DM Menu → Session → Table Security)
 - **Default DM Password:** `FunDM` (use to elevate to Dungeon Master role)
 - **Playtest Guide:** [docs/playtest-setup-guide.md](docs/playtest-setup-guide.md)
 
@@ -125,27 +123,28 @@ HEROBYTE_DM_PASSWORD="your-secure-dm-password"
 HEROBYTE_ALLOWED_ORIGINS="https://yourdomain.com,https://staging.yourdomain.com"
 ```
 
-- `HEROBYTE_ROOM_SECRET` – Override development fallback room password (`Fun1`)
+- `HEROBYTE_ROOM_SECRET` – Override development fallback table password (`Fun1`)
 - `HEROBYTE_DM_PASSWORD` – Override development fallback DM password (`FunDM`)
 - `HEROBYTE_ALLOWED_ORIGINS` – Restrict HTTP/WebSocket origins (comma-separated)
 
-The server reads more variables than these (storage paths, room limits, feature flags). The complete reference — including `HEROBYTE_DATA_DIR`, the single lever that points all on-disk stores at a persistent disk — lives in [DEPLOYMENT.md](DEPLOYMENT.md), section 1F.
+The server reads more variables than these (storage paths, table limits, feature flags). The complete reference — including `HEROBYTE_DATA_DIR`, the single lever that points all on-disk stores at a persistent disk — lives in [DEPLOYMENT.md](DEPLOYMENT.md), section 1F.
 
 ### Common Scripts
 
-| Command              | Description                                             |
-| -------------------- | ------------------------------------------------------- |
-| `pnpm dev`           | Run client and server concurrently on `5174` and `8787` |
-| `pnpm dev:server`    | Start server in watch mode                              |
-| `pnpm dev:client`    | Start client in watch mode                              |
-| `pnpm dev:doctor`    | Inspect the normal dev ports without stopping anything  |
-| `pnpm dev:free`      | Safely release stale HeroByte dev processes             |
-| `pnpm build`         | Build both server and client bundles                    |
-| `pnpm test`          | Run full test suite (6,753 tests)                       |
-| `pnpm test:e2e`      | Run Playwright E2E tests on isolated `5175` and `8788`  |
-| `pnpm e2e:doctor`    | Inspect the E2E ports without stopping anything         |
-| `pnpm test:shared`   | Execute unit tests for shared domain models             |
-| `pnpm test:coverage` | Generate coverage reports for all packages              |
+| Command                | Description                                             |
+| ---------------------- | ------------------------------------------------------- |
+| `pnpm dev`             | Run client and server concurrently on `5174` and `8787` |
+| `pnpm dev:server`      | Start server in watch mode                              |
+| `pnpm dev:client`      | Start client in watch mode                              |
+| `pnpm dev:doctor`      | Inspect the normal dev ports without stopping anything  |
+| `pnpm dev:free`        | Safely release stale HeroByte dev processes             |
+| `pnpm build`           | Build both server and client bundles                    |
+| `pnpm test`            | Run full test suite (6,753 tests)                       |
+| `pnpm test:e2e`        | Run Playwright E2E tests on isolated `5175` and `8788`  |
+| `pnpm e2e:doctor`      | Inspect the E2E ports without stopping anything         |
+| `pnpm test:shared`     | Execute unit tests for shared domain models             |
+| `pnpm test:coverage`   | Generate coverage reports for all packages              |
+| `pnpm docs:screenshots`| Re-record every user-guide screenshot from a live app   |
 
 ### Troubleshooting
 
@@ -161,82 +160,88 @@ The server reads more variables than these (storage paths, room limits, feature 
 
 ---
 
+## 📖 Documentation
+
+**The [User Guide](docs/user-guide/README.md) is the front door** — a full walkthrough of everything a player or DM can do, with screenshots captured from the real app:
+
+| Guide | What it covers |
+| --- | --- |
+| **[Getting Started](docs/user-guide/getting-started.md)** | Joining a table, private tables & invite links, becoming the DM |
+| **[Player Guide](docs/user-guide/player-guide.md)** | The table UI, your character card, tokens, dice, drawing, voice chat, fog & doors, mobile play |
+| **[DM Guide](docs/user-guide/dm-guide.md)** | The DM Menu: map setup, NPCs & props, combat, session save/load, table security, the player lens |
+| **[Map Editor Guide](docs/user-guide/map-editor-guide.md)** | Live map authoring: rooms, halls, doors, terrain painting, lighting, set dressing, the dungeon generator |
+
+Screenshots are regenerated in one command (`pnpm docs:screenshots`) by a Playwright harness that drives real player and DM sessions — so the docs can't quietly drift from the app.
+
+**For operators and contributors:**
+
+- [DEPLOYMENT.md](DEPLOYMENT.md) – Production hosting (Render + Cloudflare Pages) and the full environment-variable reference
+- [QUICK_REFERENCE.md](QUICK_REFERENCE.md) – Password/session cheat sheet for hosts
+- [DEVELOPMENT.md](DEVELOPMENT.md) – Branching, naming, and feature cadence
+- [docs/TESTING.md](docs/TESTING.md) – Testing guide • [docs/testing-architecture.md](docs/testing-architecture.md) – How the suite stays fast
+- [TODO.md](TODO.md) / [DONE.md](DONE.md) – Roadmap and shipped milestones
+
+---
+
 ## ✨ Features
 
 ### 🧠 Real-Time Multiplayer
 
 - **WebSocket Synchronization** – All player actions sync in real-time with server-side validation
+- **Private Tables** – Spin up password-protected tables with shareable invite links and per-table DM passwords
 - **Persistent State** – Sessions auto-save to disk and restore on server restart
-- **Rate Limiting** – 100 messages/second per client with token bucket algorithm
-- **Session Management** – Heartbeat system prevents client timeouts
-- **Error Resilience** – Error boundary component with graceful error handling and recovery options
+- **Error Resilience** – Automatic reconnection with seamless re-authentication, rate limiting, and heartbeat supervision
 - **Performance Optimized** – ~86 KB entry bundle (gzipped) against a CI-enforced 175 KB budget; DM tooling, the Konva map canvas, the map-edit toolbar, and the terrain baker all load as lazy chunks
 
 ### 🗺️ Interactive Map Canvas
 
 - **Infinite Canvas** – Pan, zoom, and smooth interactions with performance optimization
-- **Universal Transform System** – Photoshop-style gizmo for maps, tokens, and drawings
-  - Click any object to select and show 8 resize handles (4 corners, 4 edges)
-  - Drag rotation handle with 45° snap increments
-  - Lock/unlock objects to prevent accidental changes
-- **Token Management** – Drag-and-drop tokens with 6 size variants (tiny to gargantuan)
-- **Grid System** – Adjustable grid (10-500px) with snap-to-grid and lock functionality
+- **Universal Transform System** – Photoshop-style gizmo for maps, tokens, and drawings with 45° rotation snapping and lock/unlock
+- **Token Management** – Drag-and-drop tokens with 6 size variants, custom art, status-effect medallions, and live drag previews
+- **Grid System** – Adjustable grid (10-500px) with snap-to-grid, feet-per-square, and a two-click alignment wizard for background images
+
+### 🏰 Live Map Building
+
+- **In-Table Map Editor** – Rooms, hallways, walls, doors (locked & secret), and lights authored on the live table — players watch it appear
+- **Procedural Terrain** – 34 paintable terrain families (grass, water, lava, stone, canopy, crystal…) baked in a background worker
+- **Quick Wheel & Brush Deck** – Right-click radial tool picker; searchable, pinnable brush palette
+- **Set Dressing** – Place/scatter/row tools, one-click room population, custom image uploads
+- **Dungeon Generator** – Seeded server-side generation: rooms, corridors, doors, and dressing in one undo step
+
+### 🔦 Lighting, Fog & Visibility
+
+- **Fog of War** – Per-player line-of-sight from walls and doors; players see exactly what their tokens see
+- **Light Pools & Night Grade** – Torch pools, emissive props, and an ambient slider that grades the whole map from day to night
+- **Player Lens** – One toggle shows the DM exactly what players can see
 
 ### 🎲 Dice & Combat
 
-- **Visual Dice Roller** – Interactive dice interface with animated roll results
-- **Multi-die Support** – Roll d4, d6, d8, d10, d12, d20, d100 with modifiers
-- **Roll History** – Shared log with timestamps, player names, and expandable formulas
-- **HP Tracking** – Real-time hit point management with visual indicators
+- **Visual Dice Roller** – d4–d100 with modifiers, animated rolls, crit/fumble banners, and a shared roll log
+- **Initiative & Turn Order** – Roll or type initiative, auto-starting combat, turn banners, and NPC batch rolls
+- **HP Tracking** – Click-to-edit or drag-to-scrub HP with temp HP and floating damage numbers
 
 ### 🎨 Drawing & Visual Tools
 
-- **Advanced Drawing** – Freehand pen, line, rectangle, circle, and eraser
-- **Full Customization** – Adjustable color, width, opacity, and fill options
-- **Undo/Redo** – Drawing history with keyboard shortcuts (Ctrl+Z)
-- **Measure Tool** – Distance measurement between two points
-- **Pointer Mode** – Temporary visual indicators for communication
+- **Advanced Drawing** – Freehand, line, rect, circle with color/width/opacity/fill; partial erase on freehand strokes
+- **Measure & Pointer** – Grid-aware distance readouts (squares + feet) and broadcast pings
 - **CRT Filter** – Optional retro scanline effect with bloom and chromatic aberration
 
 ### 🎧 Voice & Characters
 
-- **WebRTC Voice Chat** – Peer-to-peer voice communication
-- **Animated Portraits** – Custom portraits that light up when you talk
-- **Character System** – Server-side PC/NPC management with ownership tracking
-
-### 🏰 Live Map Building
-
-- **In-Table Map Editor** – Paint terrain, place props, and build rooms/hallways without leaving the live table
-- **Procedural Terrain** – Painted floor, wall, water, canopy, and decal families baked in a background worker
-- **Quick Wheel & Brush Deck** – Right-click radial tool picker and a one-glance brush palette
-- **Dungeon Generator** – Server-side room/corridor generation you can drop straight onto the table
-- **Layers** – Visibility, lock, opacity, and reorder for every authored layer
-
-### 🔦 Lighting, Fog & Visibility
-
-- **Fog of War** – DM-controlled fog with wall/door vision blocking
-- **Light Pools & Night Grade** – Emissive light sources, contact shadows, and a night colour grade
-- **Player Lens** – One toggle shows the DM exactly what players can see
-
-### 🎛️ DM Tools
-
-- **Initiative & Turn Order** – Roll, sort, advance turns, and clear initiative for players and NPCs
-- **NPCs, Props & Staging Zones** – Create NPCs, place props, and define where players spawn
-- **Session Save/Load** – Export and re-import the full game state as JSON
-- **Private Rooms** – Multiple rooms with per-room passwords and a separate DM password
+- **WebRTC Voice Chat** – Peer-to-peer voice with speaking-glow portraits
+- **Character System** – Portraits, token art, multi-character support, per-player state export/import
+- **NPCs & Props** – DM-managed monsters with visibility toggles; ownable map objects
 
 ### 📱 Presentation & Feel
 
-- **Mobile Layout** – Touch-first panels, dice roller, and pan/zoom for phones and tablets
-- **SNES-Style SFX** – Sample-based sound effects, floating damage numbers, and dice juice
+- **Mobile Layout** – Touch-first dock, party drawer, dice roller, and pinch-zoom for phones and tablets
+- **SNES-Style SFX** – Sample-based sound effects, dice rattle, door creaks, and a game-feel panel (motion/sound controls)
 
 ---
 
 ## 🧪 Testing
 
-HeroByte runs **6,753 automated unit/integration tests plus 60 Playwright end-to-end tests** across all layers:
-
-### Test Suite Status: ✅ **All Tests Passing**
+**6,753 unit/integration tests plus 60 Playwright E2E tests, all passing.** CI runs a 4-spec smoke subset on every push and the full E2E suite nightly.
 
 | Package       | Test Files    | Tests | Status     |
 | ------------- | ------------- | ----- | ---------- |
@@ -245,250 +250,13 @@ HeroByte runs **6,753 automated unit/integration tests plus 60 Playwright end-to
 | **Client**    | 222 files     | 4,788 | ✅ Passing |
 | **E2E Suite** | 25 spec files | 60    | ✅ Passing |
 
-### Major Testing Achievements
-
-- **Comprehensive Component Coverage** (November 2025) – Added 28,000+ LOC of test coverage across UI components, hooks, and features
-- **Complete E2E Automation** (October 2025) – All critical user flows automated, eliminating 30-60 min manual testing workflows
-- **CI Optimization** – Memory-optimized test execution with 8GB heap allocation and batched test runs
-- **Enhanced Test Infrastructure** – Custom coverage scripts and improved vitest configuration for better reporting
-- **10-20x Efficiency Gain** – Full test suite runs in ~3 minutes vs manual testing
-- **Zero Regressions** – Systematic fire-and-forget pattern fixes with no breaking changes
-
-### What's Tested
-
-**E2E Coverage** (60 tests across 25 spec files; CI runs a 4-spec smoke subset on every push/PR and the full suite nightly):
-
-- Authentication flow and WebSocket connection
-- Drawing tools with persistence through page reload
-- Partial erase and drawing segmentation
-- Multi-select with marquee selection
-- Undo/redo across drawing and token actions
-- Dice rolling and result display
-- Session save/load with DM export
-- **Two-browser synchronization** – Real-time WebSocket sync validation
-- Four-session grid synchronization
-- Voice chat UI and controls
-- Reconnection handling and state restoration
-- Player state persistence (HP, tokens)
-- Character creation and NPC visibility
-- Initiative rolls and turn navigation
-- Live map toolbar, staging zones, and dungeon generation
-- Transform tool, map navigation, and mobile layout
-
-**Unit & Integration** (6,753 tests across 331 files):
-
-- Domain model validation — shared package (268 tests, 19 files)
-- Server-side services, middleware, and WebSocket handlers (1,697 tests, 90 files)
-- Client hooks, components, and the terrain render pipeline (4,788 tests, 222 files)
-
-### Running Tests
-
 ```bash
-# Run all tests (6,753 total across shared, server, and client)
-pnpm test
-
-# Run tests in parallel across workspaces (bash/WSL/Git Bash only, requires ~4GB+ RAM)
-pnpm test:parallel
-
-# Run E2E tests only (60 tests across 25 spec files)
-pnpm test:e2e
-
-# Run with coverage reports
-pnpm test:coverage
-
-# Run specific package tests
-pnpm test:shared    # Domain models
-pnpm test:server    # Server logic
-pnpm test:client    # Client features
+pnpm test          # full unit/integration suite
+pnpm test:e2e      # Playwright E2E on isolated ports (5175/8788)
+pnpm test:coverage # coverage reports
 ```
 
-Playwright runs on isolated local ports (`5175` frontend, `8788` backend), so E2E tests can run while the normal dev server is still open on `5174` and `8787`.
-
-### Testing Architecture
-
-HeroByte implements a **3-tier test optimization strategy** that preserves coverage while cutting runtime through intelligent batching, suite optimizations, and parallel execution.
-
-#### Tier 1: CI Matrix Batching
-
-Parallel test execution with intelligent workload distribution:
-
-- **CPU-aware chunking** via `run-vitest-coverage.mjs`
-- **Heavy file separation** for characterization tests
-- **Dynamic batch sizing** controlled by environment variables:
-  - `CLIENT_COVERAGE_CHUNK_SIZE` - Tests per batch (default: CPU-aware)
-  - `CLIENT_COVERAGE_CONCURRENCY` - Parallel batch limit
-  - `VITEST_SILENT` - Suppress console noise in CI
-- **Coverage merging** via Istanbul for unified reports
-
-Used in CI to distribute tests across matrix jobs efficiently.
-
-#### Tier 2: Suite-Level Optimizations
-
-Test suite patterns that reduce execution time while maintaining coverage:
-
-**Pattern: Data-Driven Tests with describe.each**
-
-```typescript
-describe.each([
-  { modifier: 3, display: "+3", color: "var(--jrpg-green)" },
-  { modifier: -2, display: "-2", color: "var(--jrpg-red)" },
-  { modifier: 0, display: "+0", color: "var(--jrpg-green)" },
-])("Modifier display - $modifier", ({ modifier, display, color }) => {
-  it(`should display ${display} with correct color`, () => {
-    const character = createMockCharacter({ initiativeModifier: modifier });
-    renderModal({ character });
-
-    const modifierDisplay = screen.getByText(display);
-    expect(modifierDisplay).toHaveStyle({ color });
-  });
-});
-```
-
-**Pattern: Factory Builders**
-
-```typescript
-// Reusable factory pattern for test data
-function createMockCharacter(overrides = {}) {
-  return {
-    id: "char-1",
-    name: "Test Character",
-    maxHp: 10,
-    currentHp: 10,
-    initiativeModifier: 2,
-    ...overrides,
-  };
-}
-
-// Shared render helper reduces boilerplate
-function renderModal(overrides = {}) {
-  const props = createDefaultProps(overrides);
-  const result = render(<InitiativeModal {...props} />);
-  return { ...result, props };
-}
-```
-
-**Pattern: Fake Timers for Time-Dependent Tests**
-
-```typescript
-beforeEach(() => {
-  vi.useFakeTimers();
-});
-
-afterEach(() => {
-  vi.runOnlyPendingTimers();
-  vi.useRealTimers();
-});
-
-it("should auto-dismiss after 3000ms", () => {
-  renderToast();
-  vi.advanceTimersByTime(3000);
-  expect(onDismiss).toHaveBeenCalled();
-});
-```
-
-**Results:** Reduced test count from ~150 to ~40 in the optimized suites without losing coverage of the behaviour under test.
-
-#### Tier 3: Parallel Opt-In
-
-Fork-based parallelism for local development:
-
-- **Config:** `pool: "forks"` in `vitest.config.ts`
-- **Isolation:** Each test file runs in separate process
-- **Safety:** Works when the host has adequate RAM available
-
-Enable via `pnpm test:parallel` from a bash-compatible shell (requires ~4GB+ RAM). On native Windows PowerShell or Command Prompt, use `pnpm test`.
-
-### Test Utilities
-
-**SnapshotBuilder** (`/apps/client/src/test-utils/SnapshotBuilder.ts`)
-
-Fluent API for building test room snapshots:
-
-```typescript
-const snapshot = new SnapshotBuilder()
-  .withGridSize(60)
-  .withCharacter({ id: "char-1", name: "Gandalf" })
-  .withToken({ id: "token-1", characterId: "char-1", x: 10, y: 10 })
-  .build();
-```
-
-### Local Testing Notes
-
-- **Default mode** (`pnpm test`): Cross-platform and safe for normal local development
-- **Parallel mode** (`pnpm test:parallel`): Requires a bash-compatible shell and enough RAM
-- **CI mode**: Automatically adjusts concurrency based on available CPU cores
-- **Console output**: Silenced in CI via `VITEST_SILENT=true`
-
-If you do use WSL for development, allocate enough memory before running parallel tests:
-
-```ini
-[wsl2]
-memory=8GB
-processors=4
-```
-
-<details>
-<summary>📖 Testing Documentation</summary>
-
-- [docs/TEST_QUALITY_GUIDELINES.md](docs/TEST_QUALITY_GUIDELINES.md) - Test quality standards and optimization patterns
-- [docs/e2e-testing-success.md](docs/e2e-testing-success.md) - Complete E2E automation success story
-- [docs/automated-testing-strategy.md](docs/automated-testing-strategy.md) - Testing architecture guide
-- [docs/TESTING.md](docs/TESTING.md) - Comprehensive testing guide with Chrome DevTools MCP
-- [TESTING_SETUP.md](TESTING_SETUP.md) - Legacy setup guide (historical reference)
-
-</details>
-
----
-
-## 📖 How to Play
-
-1. **Join a Session** – Each player opens the app in a browser
-2. **Set Up the Map** – Load a background image and adjust/lock the grid
-3. **Manage Characters** – Update HP, set portraits, link tokens to characters
-4. **Move Tokens** – Drag and drop your character around the map
-5. **Use Drawing Tools**:
-   - **Pointer Mode** 👆 – Place temporary visual indicators
-   - **Measure** 📏 – Click two points for distance
-   - **Draw Mode** ✏️ – Freehand, shapes, eraser with customization
-   - **Select Mode** 🖱️ – Move and delete existing drawings
-6. **Roll Dice** – Open dice roller, select dice types, add modifiers, and roll
-7. **Voice Chat** – Toggle mic button for live talk with animated portraits
-8. **Retro Mode** – Enable CRT filter for that classic arcade feel
-
----
-
-## 🎮 Controls
-
-### Map Navigation
-
-- **Mouse Wheel** – Zoom in/out
-- **Click + Drag** – Pan map canvas
-- **Snap to Grid** – Toggle for precision token placement
-- **Grid Lock** – Prevent accidental grid adjustments
-
-### Tokens & Objects
-
-| Action              | Control                         |
-| ------------------- | ------------------------------- |
-| **Move Token**      | Drag token                      |
-| **Select Token**    | Click to show transform gizmo   |
-| **Scale**           | Drag corner handles             |
-| **Rotate**          | Drag rotation handle (45° snap) |
-| **Deselect**        | Press ESC                       |
-| **Lock/Unlock**     | Token settings menu             |
-| **Randomize Color** | Double-click token              |
-| **Context Menu**    | Right-click token               |
-
-### Drawing Tools
-
-- **Ctrl+Z / Cmd+Z** – Undo last drawing
-- **Drawing Toolbar** – Adjust color, width, opacity, fill
-- **Select Mode** – Click drawings to move or delete
-
-### Keyboard Shortcuts
-
-- **ESC** – Deselect active object
-- **Ctrl+Z** – Undo last drawing action
+E2E coverage spans auth, drawing persistence, partial erase, multi-select, undo/redo, dice, session save/load, two-browser and four-session sync, reconnection, initiative, the live map toolbar, dungeon generation, and mobile layout. The full inventory and Playwright setup live in [docs/TESTING.md](docs/TESTING.md); the batching/parallelization strategy that keeps it fast lives in [docs/testing-architecture.md](docs/testing-architecture.md).
 
 ---
 
@@ -594,7 +362,7 @@ HeroByte/
 │   │       ├── ws/                # Connection handler, router, dispatchers, handlers, lifecycle
 │   │       ├── container.ts       # Dependency injection container
 │   │       └── index.ts           # Bootstrap layer
-│   └── e2e/             # Playwright end-to-end specs
+│   └── e2e/             # Playwright end-to-end specs + docs screenshot harness
 ├── packages/
 │   ├── shared/          # Shared types between client/server
 │   └── adapters-net/    # Network adapter
@@ -616,7 +384,7 @@ We welcome pull requests—especially around the CRITICAL items in [TODO.md](TOD
 3. **Make focused commits** with clear messages; favor small, reviewable changes
 4. **Add/update tests** covering new behavior (`pnpm test` or `pnpm test:<package>`)
 5. **Run linting** (`pnpm lint`) to ensure codebase stays warning-free
-6. **Update docs** (README/DEVELOPMENT/TESTING) when workflows change
+6. **Update docs** (README/user guide/TESTING) when workflows change — and `pnpm docs:screenshots` if the UI changed
 7. **Open PR** against `dev` using template, link relevant TODO items/issues
 
 Before requesting review, double-check CI status locally. Mention uncertainties in PR description.
@@ -628,28 +396,7 @@ Before requesting review, double-check CI status locally. Mention uncertainties 
 - **Test Coverage** – Maintain 80%+ coverage on new code
 - **TypeScript Strict** – No `any` types without justification
 
-### Development Resources
-
-- [DEVELOPMENT.md](DEVELOPMENT.md) – Branching, naming, and feature cadence
-- [docs/TEST_QUALITY_GUIDELINES.md](docs/TEST_QUALITY_GUIDELINES.md) – Test quality standards and patterns
-- [PRODUCTION_CHECKLIST.md](PRODUCTION_CHECKLIST.md) – Pre-release validation
-- [TODO.md](TODO.md) – Phased roadmap and contributor priorities
-
 **Bug reports** → [GitHub Issues](https://github.com/loshunter/HeroByte/issues)
-
----
-
-## 📚 Additional Documentation
-
-- **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** – Common tasks and shortcuts
-- **[docs/DEMO_SERVER_WORKFLOW.md](docs/DEMO_SERVER_WORKFLOW.md)** – Managing passwords and sessions for casual games
-- **[DEVELOPMENT.md](DEVELOPMENT.md)** – Day-to-day workflow tips
-- **[docs/LOCAL_SYNC.md](docs/LOCAL_SYNC.md)** – Pull latest Playwright changes into `dev` branch
-- **[docs/planning/map-studio-roadmap.md](docs/planning/map-studio-roadmap.md)** – Competitive battlemap editor roadmap
-- **[TODO.md](TODO.md)** – Phased roadmap and contributor priorities
-- **[DONE.md](DONE.md)** – Archive of completed phases and milestones
-- **[DEPLOYMENT.md](DEPLOYMENT.md)** – Deployment instructions
-- **[CLOUDFLARE_PAGES_DEPLOYMENT.md](CLOUDFLARE_PAGES_DEPLOYMENT.md)** – Cloudflare Pages deployment checklist
 
 ---
 
