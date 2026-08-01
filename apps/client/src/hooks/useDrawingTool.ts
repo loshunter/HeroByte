@@ -190,11 +190,24 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
       return;
     }
 
+    /*
+     * A tap is not a shape. onMouseDown seeds line/rect/circle with
+     * [world, world], so a press-and-release that never moved already
+     * satisfies `length >= 2` and would commit a zero-size drawing. Harmless
+     * to click past on a desktop; on a phone it is reachable by every stray
+     * tap, and double-tap-to-ping fires two of them.
+     */
+    const isDegenerate =
+      finalDrawing.length === 2 &&
+      finalDrawing[0].x === finalDrawing[1].x &&
+      finalDrawing[0].y === finalDrawing[1].y;
+
     // Only send drawing if we have meaningful content
     const shouldSend =
-      (drawTool === "freehand" && finalDrawing.length > 1) ||
-      ((drawTool === "line" || drawTool === "rect" || drawTool === "circle") &&
-        finalDrawing.length >= 2);
+      !isDegenerate &&
+      ((drawTool === "freehand" && finalDrawing.length > 1) ||
+        ((drawTool === "line" || drawTool === "rect" || drawTool === "circle") &&
+          finalDrawing.length >= 2));
 
     if (shouldSend) {
       const drawingId = generateUUID();

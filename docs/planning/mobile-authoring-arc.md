@@ -7,11 +7,13 @@ authoring) not started; see §4.
 
 **What the drawing branch settled that the audit could only flag as unknown:**
 
-- **Compatibility mouse events do NOT fire on a touch drag** under Chromium touch emulation —
-  measured, zero `mousedown`/`mouseup`. So wiring the touch path does not double-fire against the
-  mouse path. (A bare _tap_ is still unmeasured; harmless for drawing, since a 1-point stroke is
-  discarded by the send gate.) Blocker 1's "unverified and load-bearing" note is resolved for the
-  drag case.
+- **Compatibility mouse events: a drag produces none, a tap produces them.** Both measured under
+  Chromium touch emulation. A drag is safe by mechanism (movement past the tap slop cancels the tap
+  gesture, so zero `mousedown`/`mouseup`). A **tap is not**: with the degenerate-shape guard removed,
+  two taps produced **four** drawings — one per path per tap. The fix is the send gate
+  (`useDrawingTool` now rejects a zero-size shape), which closes both paths at once instead of
+  de-duplicating events. Blocker 1's "unverified and load-bearing" note is now resolved for **both**
+  cases, and the answer differs between them — which is exactly why it needed measuring.
 - **`touch-action: none` on an ancestor DOES kill descendant scrollers** — confirmed in the
   browser: `.mobile-chip`'s own `touch-action: manipulation` was inert. The declaration now lives
   on `.mobile-map-surface`. This unblocks M3's scroll plan and closes B4's severity question.

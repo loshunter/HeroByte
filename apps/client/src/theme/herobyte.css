@@ -1210,9 +1210,13 @@ h4 {
    * rules were unreachable by finger while working fine with a mouse in
    * desktop device-emulation.
    *
-   * The canvas is the only thing that actually needs browser gestures
-   * suppressed, and it covers the whole root anyway (inset: 0).
+   * The canvas needs gestures fully suppressed and declares `none` itself.
+   * The root keeps `pan-x pan-y`, NOT `auto`: that still blocks browser
+   * pinch-zoom and double-tap-zoom over the dock and sheets — which plain
+   * `auto` would have re-enabled — while leaving descendant scrollers
+   * pannable. Intersecting with the canvas's `none` still yields `none`.
    */
+  touch-action: pan-x pan-y;
   overscroll-behavior: none;
   --mobile-safe-bottom: max(12px, env(safe-area-inset-bottom));
   --mobile-safe-left: max(12px, env(safe-area-inset-left));
@@ -1463,7 +1467,20 @@ h4 {
   background: transparent;
 }
 
-.mobile-drawing-sheet__control input[type="range"]::-webkit-slider-runnable-track,
+/*
+ * Vendor track pseudo-elements MUST be separate rules. Grouping them in one
+ * selector list drops the entire rule in BOTH engines — an unrecognised
+ * pseudo-element invalidates the whole list, so Chrome discards it over
+ * ::-moz-range-track and Firefox over ::-webkit-slider-runnable-track.
+ * Verified in the browser: grouped, the rule was absent from the CSSOM
+ * entirely and the slider rendered with no track at all.
+ */
+.mobile-drawing-sheet__control input[type="range"]::-webkit-slider-runnable-track {
+  height: 8px;
+  border: 2px solid var(--hero-gold-light);
+  background: linear-gradient(180deg, var(--hero-navy-dark) 0%, var(--hero-navy) 100%);
+}
+
 .mobile-drawing-sheet__control input[type="range"]::-moz-range-track {
   height: 8px;
   border: 2px solid var(--hero-gold-light);

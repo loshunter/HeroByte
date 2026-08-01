@@ -108,6 +108,20 @@ describe("useTouchGestureRouter", () => {
       expect(onToolCancel).toHaveBeenCalledTimes(1);
     });
 
+    it("cancels when the extra finger lands off-canvas and only touchmove sees it", () => {
+      const { result } = setup(true);
+
+      act(() => result.current.onTouchStart(touchEvent(1)));
+      act(() => result.current.onTouchMove(touchEvent(1)));
+      // A finger on the toolbar/dock never reaches the stage's touchstart, but
+      // `touches` is document-wide so the stage's touchmove reports 2.
+      act(() => result.current.onTouchMove(touchEvent(2)));
+      act(() => result.current.onTouchEnd());
+
+      expect(onToolCancel).toHaveBeenCalledTimes(1);
+      expect(onToolCommit).not.toHaveBeenCalled();
+    });
+
     it("stops feeding the tool once the gesture belongs to the camera", () => {
       const { result } = setup(true);
 

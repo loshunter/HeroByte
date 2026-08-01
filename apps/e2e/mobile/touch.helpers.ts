@@ -79,6 +79,12 @@ export async function touchDrag(
   await send(cdp, "touchEnd", []);
 }
 
+/** One finger down and straight back up, with no movement between. */
+export async function touchTap(cdp: CDPSession, at: Pt): Promise<void> {
+  await send(cdp, "touchStart", [at]);
+  await send(cdp, "touchEnd", []);
+}
+
 /**
  * Two fingers moving from `start` to `end` positions simultaneously.
  *

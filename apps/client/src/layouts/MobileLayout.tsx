@@ -257,7 +257,8 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
         </div>
       )}
 
-      {drawMode && (
+      {/* Yields to the tool sheet — same anchor and z-index, 238px of overlap. */}
+      {drawMode && !showTools && (
         <MobileDrawingControls
           drawTool={drawingToolbarProps.drawTool}
           drawColor={drawingToolbarProps.drawColor}

@@ -18,7 +18,7 @@ import {
   readDrawings,
   selectMobileTool,
 } from "./mobile.helpers";
-import { openTouch, touchDrag, touchDragThenSecondFinger } from "./touch.helpers";
+import { openTouch, touchDrag, touchDragThenSecondFinger, touchTap } from "./touch.helpers";
 
 test.describe("mobile touch — camera", () => {
   test("one finger pans the map when no tool owns the pointer", async ({ page }) => {
@@ -100,6 +100,33 @@ test.describe("mobile touch — drawing", () => {
     const after = await readDrawings(page);
     expect(after.count).toBe(before.count);
   });
+});
+
+test.describe("mobile touch — taps are not drawings", () => {
+  /**
+   * onMouseDown seeds line/rect/circle with [world, world], so a tap that
+   * never moved already clears the ">= 2 points" send gate. On a desktop that
+   * needs a deliberate click; on a phone every stray tap reaches it, and
+   * double-tap-to-ping fires two.
+   */
+  for (const tool of ["line", "rect", "circle"] as const) {
+    test(`a tap with the ${tool} tool commits nothing`, async ({ page }) => {
+      await joinMobileTable(page);
+      await selectMobileTool(page, /^Draw$/i);
+      await page.getByRole("button", { name: new RegExp(`^${tool}$`, "i") }).click();
+
+      const before = await readDrawings(page);
+      const box = await boardBox(page);
+      const cdp = await openTouch(page);
+
+      // Two taps, as double-tap-to-ping would produce.
+      await touchTap(cdp, { x: box.x + box.width * 0.5, y: box.y + box.height * 0.2 });
+      await touchTap(cdp, { x: box.x + box.width * 0.5, y: box.y + box.height * 0.2 });
+      await page.waitForTimeout(400);
+
+      expect((await readDrawings(page)).count).toBe(before.count);
+    });
+  }
 });
 
 test.describe("mobile touch — drawing toolbar reach", () => {
@@ -185,5 +212,45 @@ test.describe("mobile touch — event model", () => {
 
     expect(counts.mousedown, `compat mouse events observed: ${JSON.stringify(counts)}`).toBe(0);
     expect(counts.mouseup).toBe(0);
+  });
+
+  /**
+   * A tap is the case that CAN synthesise compat mouse events — a drag cannot,
+   * because movement past the slop threshold cancels the tap gesture. So the
+   * drag measurement above does not generalise, and this records the tap
+   * result separately rather than assuming it.
+   *
+   * Either answer is safe for drawing: without compat events the touch path
+   * commits nothing (degenerate strokes are rejected), and with them the mouse
+   * path commits nothing for the same reason. The number is recorded so a
+   * future change to that gate knows which mechanism it is dealing with.
+   */
+  test("records whether a bare tap synthesises compatibility mouse events", async ({ page }) => {
+    await joinMobileTable(page);
+
+    await page.evaluate(() => {
+      const counts = { mousedown: 0, mouseup: 0, click: 0 };
+      (window as unknown as { __TAP__: typeof counts }).__TAP__ = counts;
+      for (const type of Object.keys(counts) as (keyof typeof counts)[]) {
+        window.addEventListener(type, () => {
+          counts[type] += 1;
+        });
+      }
+    });
+
+    const box = await boardBox(page);
+    const cdp = await openTouch(page);
+    await touchTap(cdp, { x: box.x + box.width * 0.5, y: box.y + box.height * 0.3 });
+    await page.waitForTimeout(400);
+
+    const counts = await page.evaluate(
+      () => (window as unknown as { __TAP__: Record<string, number> }).__TAP__,
+    );
+
+    // Whatever the count, a tap must never produce a drawing — asserted in the
+    // "taps are not drawings" block above. Here we only pin that a single tap
+    // does not fan out into repeated synthetic presses.
+    expect(counts.mousedown).toBeLessThanOrEqual(1);
+    expect(counts.mouseup).toBeLessThanOrEqual(1);
   });
 });

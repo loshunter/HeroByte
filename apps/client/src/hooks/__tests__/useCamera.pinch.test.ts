@@ -124,6 +124,32 @@ describe("useCamera — pinch anchor", () => {
     expect(under.y).toBeCloseTo(grabbed.y, 10);
   });
 
+  /**
+   * Every other case here starts from the identity camera, where the
+   * translate-and-divide in `pointTo` is indistinguishable from a no-op. This
+   * one starts panned and zoomed so the coordinate transform is actually
+   * exercised.
+   */
+  it("holds the anchor from an already panned and zoomed camera", () => {
+    const { result } = renderHook(() => useCamera());
+
+    act(() => result.current.setCam({ x: -220, y: 96, scale: 2.5 }));
+
+    const startA = { x: 320, y: 260 };
+    const startB = { x: 420, y: 360 };
+    const grabbed = toWorld(result.current.cam, midpoint(startA, startB));
+
+    act(() => result.current.onTouchStart(touches(startA, startB), stageRef, false));
+    const endA = { x: 300, y: 300 };
+    const endB = { x: 500, y: 500 };
+    act(() => result.current.onTouchMove(touches(endA, endB), stageRef));
+
+    const under = toWorld(result.current.cam, midpoint(endA, endB));
+    expect(result.current.cam.scale).toBeCloseTo(5, 10);
+    expect(under.x).toBeCloseTo(grabbed.x, 10);
+    expect(under.y).toBeCloseTo(grabbed.y, 10);
+  });
+
   it("does not jump on the first move of a gesture that has not changed yet", () => {
     const { result } = renderHook(() => useCamera());
     const before = { ...result.current.cam };

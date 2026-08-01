@@ -104,7 +104,6 @@ export interface UseStageEventRouterReturn {
   onTouchStart: (event: KonvaEventObject<TouchEvent>) => void;
   onTouchMove: (event: KonvaEventObject<TouchEvent>) => void;
   onTouchEnd: () => void;
-  onTouchCancel: () => void;
 }
 
 /**
@@ -314,7 +313,9 @@ export function useStageEventRouter({
    * `button` field a TouchEvent has not got), so they stay mouse-only rather
    * than half-working.
    */
-  const { onTouchStart, onTouchMove, onTouchEnd, onTouchCancel } = useTouchGestureRouter({
+  // touchcancel is bound to the DOM inside the gesture hook — Konva does not
+  // deliver a node event for it, so there is nothing for the Stage to bind.
+  const { onTouchStart, onTouchMove, onTouchEnd } = useTouchGestureRouter({
     toolArmed: drawMode,
     shouldPan,
     stageRef,
@@ -336,6 +337,5 @@ export function useStageEventRouter({
     onTouchStart,
     onTouchMove,
     onTouchEnd,
-    onTouchCancel,
   };
 }

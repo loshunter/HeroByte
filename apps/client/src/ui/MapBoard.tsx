@@ -392,7 +392,6 @@ export default function MapBoard({
     onTouchStart,
     onTouchMove,
     onTouchEnd,
-    onTouchCancel,
     onTap,
   } = useStageEventRouter({
     alignmentMode,
@@ -600,7 +599,6 @@ export default function MapBoard({
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        onTouchCancel={onTouchCancel}
         style={{ cursor }}
       >
         {/* Background Layer: Map image and grid (non-interactive) */}

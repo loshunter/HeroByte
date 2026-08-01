@@ -25,17 +25,27 @@
  * touchcancel (the OS taking the gesture away — an incoming call, the app
  * backgrounding) discards too, for the same reason.
  *
- * NOTE ON EVENT DUPLICATION: browsers can synthesise compatibility mouse
- * events from touch, which would double-fire against the mouse path that
- * already routes to these same tool handlers. Measured under Chromium touch
- * emulation in apps/e2e/mobile/mobile-draw.spec.ts: a one-finger drag produces
- * zero mousedown and zero mouseup. If that ever changes, this is the seam
- * where it would show up as doubled strokes.
+ * NOTE ON EVENT DUPLICATION: browsers synthesise compatibility mouse events
+ * from touch, and the mouse path already routes to these same tool handlers,
+ * so the two can double-fire. Both halves are measured under Chromium touch
+ * emulation in apps/e2e/mobile/mobile-draw.spec.ts:
+ *
+ *   DRAG - zero mousedown, zero mouseup. Movement past the tap slop cancels
+ *          the tap gesture, so no compat events are generated. Strokes drawn
+ *          by dragging commit exactly once.
+ *   TAP  - compat events DO fire. Measured directly: with the degenerate-shape
+ *          guard removed, two taps produced FOUR drawings, one per path per
+ *          tap. The guard in useDrawingTool.onMouseUp rejects a zero-size
+ *          shape, which closes both paths at once rather than trying to
+ *          de-duplicate the events.
+ *
+ * So a drag is safe by mechanism and a tap is safe by the send gate. If that
+ * gate is ever loosened, this is the seam where doubling reappears.
  *
  * @module hooks/useTouchGestureRouter
  */
 
-import { useCallback, useRef, type RefObject } from "react";
+import { useCallback, useEffect, useRef, type RefObject } from "react";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 
@@ -111,13 +121,25 @@ export function useTouchGestureRouter({
 
   const onTouchMove = useCallback(
     (event: KonvaEventObject<TouchEvent>) => {
-      if (toolGestureActive.current && event.evt.touches.length === 1) {
-        onToolMove(stageRef);
+      if (toolGestureActive.current) {
+        if (event.evt.touches.length === 1) {
+          onToolMove(stageRef);
+        } else {
+          /*
+           * `touches` is document-wide, so a finger landing anywhere — the
+           * toolbar, the dock, the bezel — makes this 2 without ever reaching
+           * the stage's touchstart. Cancel rather than fall through: skipping
+           * the move alone would freeze the stroke and then COMMIT the
+           * truncated version on lift, which is worse than discarding it.
+           */
+          toolGestureActive.current = false;
+          onToolCancel();
+        }
       }
 
       onCameraMove(event, stageRef);
     },
-    [stageRef, onCameraMove, onToolMove],
+    [stageRef, onCameraMove, onToolMove, onToolCancel],
   );
 
   const onTouchEnd = useCallback(() => {
@@ -137,6 +159,29 @@ export function useTouchGestureRouter({
 
     onCameraEnd();
   }, [onCameraEnd, onToolCancel]);
+
+  /*
+   * touchcancel has to come off the DOM, not off the Konva Stage.
+   *
+   * react-konva would turn an `onTouchCancel` prop into a node event named
+   * "touchcancel", and Konva never fires one: Stage.js maps the DOM event to
+   * _pointercancel, which fires the hardcoded `pointerup` constant on an
+   * intersected shape and returns (konva 10.0.2, Stage.js:598-606). On an
+   * empty canvas no shape is hit and nothing runs at all. Verified by reading
+   * the installed package — the EVENTS_MAP touchcancel entry is unreachable.
+   *
+   * Without this the OS taking a gesture away (a call, the notification shade,
+   * backgrounding) leaves the half-drawn stroke painted until the next touch.
+   */
+  useEffect(() => {
+    // Optional-called: test doubles for the Stage do not implement container().
+    const container = stageRef.current?.container?.();
+    if (!container?.addEventListener) return;
+
+    const handle = () => onTouchCancel();
+    container.addEventListener("touchcancel", handle);
+    return () => container.removeEventListener("touchcancel", handle);
+  }, [stageRef, onTouchCancel]);
 
   return { onTouchStart, onTouchMove, onTouchEnd, onTouchCancel };
 }
