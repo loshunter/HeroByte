@@ -21,20 +21,23 @@ describe("useTouchGestureRouter", () => {
   const onToolCancel = vi.fn();
   const stageRef = { current: null } as React.RefObject<Konva.Stage | null>;
 
+  const tool = {
+    start: onToolStart,
+    move: onToolMove,
+    commit: onToolCommit,
+    cancel: onToolCancel,
+  };
+
   const setup = (toolArmed: boolean) =>
     renderHook(() =>
       useTouchGestureRouter({
-        toolArmed,
+        tool: toolArmed ? tool : null,
         // Mirrors production: shouldPan is the negation of "a tool owns the pointer".
         shouldPan: !toolArmed,
         stageRef,
         onCameraStart,
         onCameraMove,
         onCameraEnd,
-        onToolStart,
-        onToolMove,
-        onToolCommit,
-        onToolCancel,
       }),
     );
 
@@ -50,7 +53,9 @@ describe("useTouchGestureRouter", () => {
       act(() => result.current.onTouchMove(touchEvent(1)));
       act(() => result.current.onTouchEnd());
 
-      expect(onToolStart).toHaveBeenCalledWith(stageRef);
+      // start gets the event too — the marquee needs it to check the press
+      // landed on the stage rather than on a shape.
+      expect(onToolStart).toHaveBeenCalledWith(expect.anything(), stageRef);
       expect(onToolMove).toHaveBeenCalledWith(stageRef);
       expect(onToolCommit).toHaveBeenCalledTimes(1);
       expect(onToolCancel).not.toHaveBeenCalled();
@@ -159,6 +164,47 @@ describe("useTouchGestureRouter", () => {
       expect(onToolCancel).toHaveBeenCalledTimes(1);
       expect(onToolCommit).not.toHaveBeenCalled();
       expect(onCameraEnd).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("handler freshness", () => {
+    /**
+     * The tool object is rebuilt mid-gesture in production: useDrawingTool
+     * hands back a new onMouseMove the instant `isDrawing` flips true, which
+     * happens on the very touchstart that begins the stroke. Pinning the tool
+     * at touchstart therefore calls the closure captured BEFORE the stroke
+     * began, where every move returns early — it silently killed drawing while
+     * leaving every other assertion green.
+     */
+    it("uses the latest tool object, not the one captured at touchstart", () => {
+      const staleMove = vi.fn();
+      const freshMove = vi.fn();
+      const staleCommit = vi.fn();
+      const freshCommit = vi.fn();
+
+      const { result, rerender } = renderHook(
+        ({ move, commit }: { move: () => void; commit: () => void }) =>
+          useTouchGestureRouter({
+            tool: { start: onToolStart, move, commit, cancel: onToolCancel },
+            shouldPan: false,
+            stageRef,
+            onCameraStart,
+            onCameraMove,
+            onCameraEnd,
+          }),
+        { initialProps: { move: staleMove, commit: staleCommit } },
+      );
+
+      act(() => result.current.onTouchStart(touchEvent(1)));
+      // The tool identity changes, exactly as it does when isDrawing flips.
+      rerender({ move: freshMove, commit: freshCommit });
+      act(() => result.current.onTouchMove(touchEvent(1)));
+      act(() => result.current.onTouchEnd());
+
+      expect(freshMove).toHaveBeenCalledTimes(1);
+      expect(freshCommit).toHaveBeenCalledTimes(1);
+      expect(staleMove).not.toHaveBeenCalled();
+      expect(staleCommit).not.toHaveBeenCalled();
     });
   });
 

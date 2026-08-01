@@ -210,6 +210,7 @@ export default function MapBoard({
     handlePointerDown: handleMarqueePointerDown,
     handlePointerMove: handleMarqueePointerMove,
     handlePointerUp: handleMarqueePointerUp,
+    cancelMarquee: handleMarqueeCancel,
   } = useMarqueeSelection({
     stageRef,
     selectMode,
@@ -416,6 +417,7 @@ export default function MapBoard({
     handleMapEditMouseUp,
     handleMarqueePointerUp,
     handleDrawCancel,
+    handleMarqueeCancel,
     handleTouchStart: handleCameraTouchStart,
     handleTouchMove: handleCameraTouchMove,
     handleTouchEnd: handleCameraTouchEnd,

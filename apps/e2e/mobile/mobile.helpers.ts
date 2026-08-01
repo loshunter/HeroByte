@@ -6,6 +6,7 @@
  * tool sheet and is not rendered until the sheet is open.
  */
 import { expect, type Page } from "@playwright/test";
+import type { Pt } from "./touch.helpers";
 
 const ROOM_PASSWORD = process.env.E2E_ROOM_PASSWORD ?? "Fun1";
 
@@ -56,6 +57,54 @@ export async function readCam(page: Page) {
     const cam = window.__HERO_BYTE_E2E__?.cam;
     return cam ? { x: cam.x, y: cam.y, scale: cam.scale } : null;
   });
+}
+
+/**
+ * Absolute viewport position of the first token, so a marquee can be aimed at
+ * something that is actually there rather than at a guessed region.
+ *
+ * token.x/y are cells on the live lattice with origin at world 0,0, so
+ * world = cell * gridSize, and screen = world * cam.scale + cam offset.
+ */
+export async function firstTokenScreenPos(page: Page): Promise<Pt | null> {
+  const box = await boardBox(page);
+  const local = await page.evaluate(() => {
+    const data = window.__HERO_BYTE_E2E__;
+    const token = data?.snapshot?.tokens?.[0];
+    const cam = data?.cam;
+    const gridSize = data?.gridSize;
+    if (!token || !cam || !gridSize) return null;
+    return {
+      x: token.x * gridSize * cam.scale + cam.x,
+      y: token.y * gridSize * cam.scale + cam.y,
+    };
+  });
+
+  return local ? { x: box.x + local.x, y: box.y + local.y } : null;
+}
+
+/**
+ * A marquee drag box that contains the first token AND stays inside the canvas.
+ *
+ * The default table puts the player's token at cell (0,0) with the camera at
+ * the origin, i.e. the very top-left corner — so a naive "token ± 70" box
+ * starts at -70 and never lands on the canvas at all.
+ */
+export async function marqueeBoxAroundFirstToken(
+  page: Page,
+  pad = 90,
+): Promise<{ from: Pt; to: Pt } | null> {
+  const token = await firstTokenScreenPos(page);
+  if (!token) return null;
+  const box = await boardBox(page);
+
+  const clampX = (v: number) => Math.min(Math.max(v, box.x + 4), box.x + box.width - 4);
+  const clampY = (v: number) => Math.min(Math.max(v, box.y + 4), box.y + box.height - 4);
+
+  return {
+    from: { x: clampX(token.x - pad), y: clampY(token.y - pad) },
+    to: { x: clampX(token.x + pad), y: clampY(token.y + pad) },
+  };
 }
 
 export async function readDrawings(page: Page) {

@@ -11,7 +11,8 @@
  *
  * The contract:
  *
- *   1 finger  -> the armed tool (today: drawing), or the camera if no tool is
+ *   1 finger  -> the armed tool (drawing or marquee-select, whichever owns the
+ *                pointer — see useArmedTouchTool), or the camera if none is
  *                armed. `shouldPan` already encodes that second half — it is
  *                false whenever a tool owns the pointer — so the two never
  *                both claim a single finger.
@@ -48,10 +49,11 @@
 import { useCallback, useEffect, useRef, type RefObject } from "react";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
+import type { ArmedTouchTool } from "./useArmedTouchTool";
 
 export interface UseTouchGestureRouterProps {
-  /** True when a one-finger tool owns the pointer. Today: draw mode. */
-  toolArmed: boolean;
+  /** The tool that owns a one-finger gesture, or null for camera-only. */
+  tool: ArmedTouchTool | null;
   /** False when any tool owns the pointer — the camera's own gate. */
   shouldPan: boolean;
   stageRef: RefObject<Konva.Stage | null>;
@@ -67,12 +69,6 @@ export interface UseTouchGestureRouterProps {
     stageRef: RefObject<Konva.Stage | null>,
   ) => void;
   onCameraEnd: () => void;
-
-  // Armed tool
-  onToolStart: (stageRef: RefObject<Konva.Stage | null>) => void;
-  onToolMove: (stageRef: RefObject<Konva.Stage | null>) => void;
-  onToolCommit: () => void;
-  onToolCancel: () => void;
 }
 
 export interface UseTouchGestureRouterReturn {
@@ -83,21 +79,34 @@ export interface UseTouchGestureRouterReturn {
 }
 
 export function useTouchGestureRouter({
-  toolArmed,
+  tool,
   shouldPan,
   stageRef,
   onCameraStart,
   onCameraMove,
   onCameraEnd,
-  onToolStart,
-  onToolMove,
-  onToolCommit,
-  onToolCancel,
 }: UseTouchGestureRouterProps): UseTouchGestureRouterReturn {
   // Whether a one-finger tool gesture is in flight. A ref, not state: it is
   // read and written inside the same event tick that Konva dispatches, and a
   // re-render between touchstart and touchmove would drop the stroke.
   const toolGestureActive = useRef(false);
+
+  /*
+   * The latest tool, refreshed every render.
+   *
+   * It must NOT be pinned at touchstart. The tool object wraps handlers whose
+   * identity changes mid-gesture — useDrawingTool rebuilds onMouseMove when
+   * `isDrawing` flips true, which happens on the very first touchstart — so a
+   * pinned object keeps calling the closure captured before the stroke began,
+   * where `isDrawing` is still false and every move returns early. Measured:
+   * pinning silently killed drawing while leaving every other assertion green.
+   *
+   * Assigning during render is the standard latest-ref pattern: idempotent, no
+   * subscription, and it has to be readable by an event that may fire before
+   * any effect would have run.
+   */
+  const toolRef = useRef<ArmedTouchTool | null>(tool);
+  toolRef.current = tool;
 
   const onTouchStart = useCallback(
     (event: KonvaEventObject<TouchEvent>) => {
@@ -107,23 +116,23 @@ export function useTouchGestureRouter({
         // Promotion to a camera gesture. Discard whatever the tool had.
         if (toolGestureActive.current) {
           toolGestureActive.current = false;
-          onToolCancel();
+          toolRef.current?.cancel();
         }
-      } else if (toolArmed) {
+      } else if (tool) {
         toolGestureActive.current = true;
-        onToolStart(stageRef);
+        tool.start(event, stageRef);
       }
 
       onCameraStart(event, stageRef, shouldPan);
     },
-    [toolArmed, shouldPan, stageRef, onCameraStart, onToolStart, onToolCancel],
+    [tool, shouldPan, stageRef, onCameraStart],
   );
 
   const onTouchMove = useCallback(
     (event: KonvaEventObject<TouchEvent>) => {
       if (toolGestureActive.current) {
         if (event.evt.touches.length === 1) {
-          onToolMove(stageRef);
+          toolRef.current?.move(stageRef);
         } else {
           /*
            * `touches` is document-wide, so a finger landing anywhere — the
@@ -133,32 +142,32 @@ export function useTouchGestureRouter({
            * truncated version on lift, which is worse than discarding it.
            */
           toolGestureActive.current = false;
-          onToolCancel();
+          toolRef.current?.cancel();
         }
       }
 
       onCameraMove(event, stageRef);
     },
-    [stageRef, onCameraMove, onToolMove, onToolCancel],
+    [stageRef, onCameraMove],
   );
 
   const onTouchEnd = useCallback(() => {
     if (toolGestureActive.current) {
       toolGestureActive.current = false;
-      onToolCommit();
+      toolRef.current?.commit();
     }
 
     onCameraEnd();
-  }, [onCameraEnd, onToolCommit]);
+  }, [onCameraEnd]);
 
   const onTouchCancel = useCallback(() => {
     if (toolGestureActive.current) {
       toolGestureActive.current = false;
-      onToolCancel();
+      toolRef.current?.cancel();
     }
 
     onCameraEnd();
-  }, [onCameraEnd, onToolCancel]);
+  }, [onCameraEnd]);
 
   /*
    * touchcancel has to come off the DOM, not off the Konva Stage.

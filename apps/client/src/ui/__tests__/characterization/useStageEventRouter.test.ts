@@ -42,6 +42,7 @@ describe("useStageEventRouter", () => {
   const mockHandleTouchMove = vi.fn();
   const mockHandleTouchEnd = vi.fn();
   const mockHandleDrawCancel = vi.fn();
+  const mockHandleMarqueeCancel = vi.fn();
   const mockOnSelectObject = vi.fn();
   const mockDeselectIfEmpty = vi.fn();
   const mockStageRef = { current: null };
@@ -72,6 +73,7 @@ describe("useStageEventRouter", () => {
     handleTouchMove: mockHandleTouchMove,
     handleTouchEnd: mockHandleTouchEnd,
     handleDrawCancel: mockHandleDrawCancel,
+    handleMarqueeCancel: mockHandleMarqueeCancel,
     isMarqueeActive: false,
     onSelectObject: mockOnSelectObject,
     deselectIfEmpty: mockDeselectIfEmpty,

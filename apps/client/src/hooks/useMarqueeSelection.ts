@@ -86,12 +86,18 @@ export function useMarqueeSelection({
 
   const handlePointerDown = useCallback(
     (event: KonvaEventObject<PointerEvent>) => {
+      // A TouchEvent has no `button` at all, so the original `!== 0` rejected
+      // every finger outright. Only an explicit non-primary button is refused;
+      // an absent one means touch.
+      const button = event.evt?.button;
+      const nonPrimaryButton = button !== undefined && button !== 0;
+
       if (
         !selectMode ||
         pointerMode ||
         measureMode ||
         drawMode ||
-        event.evt?.button !== 0 ||
+        nonPrimaryButton ||
         !stageRef.current ||
         event.target !== stageRef.current
       ) {
