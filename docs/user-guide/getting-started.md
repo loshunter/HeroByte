@@ -47,11 +47,13 @@ There's one login. If you belong to more than one table, a **Table** picker appe
 
 Below the password field:
 
-- **Copy invite link** copies a URL like `https://your-host/?room=table-k3f9x2` that lands friends directly on the join screen for that table. The link carries **no password** — share that separately.
-- **Forget this table** drops a private table from this browser's list. You'll need its code to get back in.
+- **▦ NEW TABLE** creates a private table (see below).
 - **Join by code**: paste a table code (like `table-k3f9x2`) and press **JOIN**.
+- **Forget this table** drops a private table from this browser's list. You'll need its code to get back in.
 
 Your browser remembers up to 12 tables. The server deliberately publishes no list of tables, so that list — plus the codes themselves — is how private tables stay findable.
+
+**Inviting people happens inside the table**, not here: open **DM Menu → Session → Invite Players** for the table's code and a shareable link. (Before you've joined anything there's no table to invite anyone to.) The link carries **no password** — send that separately.
 
 ## Creating a private table
 

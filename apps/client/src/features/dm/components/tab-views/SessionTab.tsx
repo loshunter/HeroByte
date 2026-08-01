@@ -13,6 +13,7 @@
 import { SessionPersistenceControl } from "../session-controls/SessionPersistenceControl";
 import { RoomPasswordControl } from "../session-controls/RoomPasswordControl";
 import { SaveAsPrivateTableControl } from "../session-controls/SaveAsPrivateTableControl";
+import { TableInviteControl } from "../session-controls/TableInviteControl";
 import { JRPGPanel } from "../../../../components/ui/JRPGPanel";
 
 /**
@@ -97,6 +98,10 @@ export default function SessionTab({
         saveDisabled={saveDisabled}
         loadDisabled={loadDisabled}
       />
+
+      {/* Sharing a table belongs inside it — this is where you land after
+          creating or forking one. */}
+      <TableInviteControl />
 
       {/* The test table has no password to manage — it is fixed so the table
           stays open for everyone — so it offers the operation that IS available
