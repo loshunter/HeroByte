@@ -65,8 +65,7 @@
    * 2P is close to unreadable in a long string, which is the single biggest
    * legibility problem the UI had.
    */
-  --font-body:
-    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
   /* Animation Timing */
   --anim-fast: 150ms;
@@ -1201,7 +1200,20 @@ h4 {
   min-height: 100svh;
   overflow: hidden;
   background: var(--hero-bg-dark);
-  touch-action: none;
+  /*
+   * touch-action moved to .mobile-map-surface below.
+   *
+   * It is resolved as the INTERSECTION of the hit element and its ancestors,
+   * and `none` is absorbing — so declaring it here silently disabled every
+   * descendant scroller. That is why .mobile-chip's own `touch-action:
+   * manipulation` (:1264) never did anything, and why the sheets' overflow
+   * rules were unreachable by finger while working fine with a mouse in
+   * desktop device-emulation.
+   *
+   * The canvas is the only thing that actually needs browser gestures
+   * suppressed, and it covers the whole root anyway (inset: 0).
+   */
+  overscroll-behavior: none;
   --mobile-safe-bottom: max(12px, env(safe-area-inset-bottom));
   --mobile-safe-left: max(12px, env(safe-area-inset-left));
   --mobile-safe-right: max(12px, env(safe-area-inset-right));
@@ -1212,6 +1224,9 @@ h4 {
 .mobile-map-surface {
   position: absolute;
   inset: 0;
+  /* Drawing and panning own the finger here; the browser must not also scroll
+     or pinch-zoom the page out from under the gesture. */
+  touch-action: none;
 }
 
 .mobile-combat-strip {
@@ -1359,37 +1374,105 @@ h4 {
 
 .mobile-chip {
   flex: 0 0 auto;
-  min-height: 38px;
+  /* Was 38px, which silently undid the 44px touch floor set at :1252 for every
+     mobile chip (measured: 38px tall on a 375px viewport). The floor is a
+     project standard from V1/V5, not a suggestion. */
+  min-height: 44px;
   padding-inline: 10px;
 }
 
+/*
+ * A three-column grid, not a flex row.
+ *
+ * Measured at 375x812 before this change: 873px of content inside a 345px box,
+ * with 6 of the 10 controls off the right edge — the eraser, the size slider,
+ * the colour swatch, and all three of Undo / Redo / Done. Being able to draw
+ * but not finish or undo is half a feature.
+ *
+ * Horizontal scrolling is not the escape it looks like: this sheet is a child
+ * of .mobile-layout-root, and touch-action is resolved as the intersection down
+ * the ancestor chain, so a `none` above it means no descendant scroller can be
+ * panned by finger. (That declaration now lives on .mobile-map-surface, which
+ * is the element that actually needs it — see :1204.)
+ *
+ * The hard constraint is arithmetic and font-independent: 8 tap targets at the
+ * 44px floor plus their gaps need ~394px, and there are 329px of content box.
+ * No single-row layout fits. So the sheet wraps into rows:
+ *
+ *   free   line    rect
+ *   circle eraser  colour
+ *   size ......... (full width)
+ *   undo   redo    done
+ */
 .mobile-drawing-sheet {
-  bottom: calc(var(--mobile-safe-bottom) + var(--mobile-dock-height) + 88px);
-  display: flex;
+  /* +22px, matching the tool sheet, rather than the +88px this used to carry.
+     The 88 left a dead gap above the dock that cost 66px of map, and the sheet
+     it would have been clearing — the selection sheet — cannot co-render here:
+     activeTool is a single value, so draw excludes transform and select. */
+  bottom: calc(var(--mobile-safe-bottom) + var(--mobile-dock-height) + 22px);
+  display: grid;
+  /* auto-fit rather than a fixed 3: portrait (329px of content) resolves to 3
+     columns and 4 rows, landscape (766px) to 7 columns and 3 rows. Landscape is
+     the tighter case vertically — 375px tall minus the dock leaves ~195px — and
+     it is also where the extra width to spend is, so the column count has to
+     follow the width instead of being pinned. */
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
   align-items: center;
   gap: 8px;
-  overflow-x: auto;
   padding: 8px;
 }
 
+/* Dissolve the wrapper so the five tool buttons become grid items themselves. */
 .mobile-drawing-sheet__tools {
-  display: flex;
-  flex: 0 0 auto;
-  gap: 6px;
+  display: contents;
+}
+
+.mobile-drawing-sheet .mobile-chip {
+  width: 100%;
 }
 
 .mobile-drawing-sheet__control {
   display: grid;
-  flex: 0 0 150px;
+  grid-column: 1 / -1;
   gap: 4px;
   color: var(--hero-text-light);
-  font-size: 0.58rem;
+  /* Was 0.58rem = 9.28px, under the 11px readability floor. */
+  font-size: 0.7rem;
 }
 
-.mobile-drawing-sheet__color {
-  flex: 0 0 48px;
-  width: 48px;
+/* Attribute selector included deliberately: the bare class loses to
+   `input[type="color"]` (:406), which pins height to 32px. */
+.mobile-drawing-sheet__color[type="color"] {
+  width: 100%;
   height: 44px;
+}
+
+/*
+ * Brush size needs a finger-sized grab band without a finger-sized-looking
+ * track. Elsewhere in the app the input element IS the track — it carries the
+ * background and border — so making it 44px tall would draw a 44px bar.
+ *
+ * Here the visual moves to the track pseudo-element and the input becomes a
+ * transparent 44px band around it. Scoped to this sheet so every other slider
+ * in the app keeps its existing look.
+ */
+.mobile-drawing-sheet__control input[type="range"] {
+  height: 44px;
+  padding-block: 0;
+  border: 0;
+  background: transparent;
+}
+
+.mobile-drawing-sheet__control input[type="range"]::-webkit-slider-runnable-track,
+.mobile-drawing-sheet__control input[type="range"]::-moz-range-track {
+  height: 8px;
+  border: 2px solid var(--hero-gold-light);
+  background: linear-gradient(180deg, var(--hero-navy-dark) 0%, var(--hero-navy) 100%);
+}
+
+/* Re-centre the 20px thumb on the now-12px track (8px + 2px borders). */
+.mobile-drawing-sheet__control input[type="range"]::-webkit-slider-thumb {
+  margin-top: -6px;
 }
 
 .mobile-roll-log-panel {

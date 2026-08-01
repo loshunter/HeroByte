@@ -77,8 +77,10 @@ test.describe("mobile touch — drawing", () => {
     const camBefore = await readCam(page);
     const box = await boardBox(page);
     const cdp = await openTouch(page);
+    // Upper third: the drawing sheet occupies the lower half of the canvas
+    // once it is open, and a gesture there would land on the sheet, not the map.
     const cx = box.x + box.width * 0.5;
-    const cy = box.y + box.height * 0.5;
+    const cy = box.y + box.height * 0.25;
 
     // Start drawing with one finger, then reach for a second and spread.
     await touchDragThenSecondFinger(
@@ -98,6 +100,53 @@ test.describe("mobile touch — drawing", () => {
     const after = await readDrawings(page);
     expect(after.count).toBe(before.count);
   });
+});
+
+test.describe("mobile touch — drawing toolbar reach", () => {
+  /**
+   * Measured before the grid rewrite at 375x812: 873px of content in a 345px
+   * box, with the eraser, size, colour, Undo, Redo and Done all off the right
+   * edge — and unreachable by finger, because touch-action:none on an ancestor
+   * disables descendant scrollers.
+   */
+  for (const viewport of [
+    { width: 375, height: 812, label: "portrait" },
+    { width: 812, height: 375, label: "landscape" },
+  ]) {
+    test(`every control is on screen and >=44px (${viewport.label})`, async ({ page }) => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await joinMobileTable(page);
+      await selectMobileTool(page, /^Draw$/i);
+      await expect(page.getByRole("toolbar", { name: /Drawing tools/i })).toBeVisible();
+
+      const report = await page.evaluate(() => {
+        const sheet = document.querySelector(".mobile-drawing-sheet");
+        if (!sheet) return null;
+        const controls = [...sheet.querySelectorAll("button,input")].map((el) => {
+          const r = el.getBoundingClientRect();
+          return {
+            label: (el.textContent || (el as HTMLInputElement).type || "").trim().slice(0, 8),
+            height: Math.round(r.height),
+            onScreen:
+              r.top >= 0 &&
+              r.bottom <= window.innerHeight &&
+              r.left >= 0 &&
+              r.right <= window.innerWidth,
+          };
+        });
+        return {
+          count: controls.length,
+          offScreen: controls.filter((c) => !c.onScreen).map((c) => c.label),
+          under44: controls.filter((c) => c.height < 44).map((c) => `${c.label}:${c.height}`),
+        };
+      });
+
+      expect(report).not.toBeNull();
+      expect(report!.count).toBe(10);
+      expect(report!.offScreen).toEqual([]);
+      expect(report!.under44).toEqual([]);
+    });
+  }
 });
 
 /**

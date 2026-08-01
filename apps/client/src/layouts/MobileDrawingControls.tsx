@@ -41,6 +41,15 @@ export function MobileDrawingControls({
           </button>
         ))}
       </div>
+      {/* Colour before size: it fills the grid cell left over by the five tool
+          chips, so the full-width size slider starts on a clean row. */}
+      <input
+        aria-label="Drawing color"
+        className="mobile-drawing-sheet__color"
+        type="color"
+        value={drawColor}
+        onChange={(event) => onColorChange(event.target.value)}
+      />
       <label className="mobile-drawing-sheet__control">
         <span>Size {drawWidth}px</span>
         <input
@@ -51,13 +60,6 @@ export function MobileDrawingControls({
           onChange={(event) => onWidthChange(Number(event.target.value))}
         />
       </label>
-      <input
-        aria-label="Drawing color"
-        className="mobile-drawing-sheet__color"
-        type="color"
-        value={drawColor}
-        onChange={(event) => onColorChange(event.target.value)}
-      />
       {onUndo && (
         <button type="button" className="mobile-chip" onClick={onUndo} disabled={!canUndo}>
           Undo
