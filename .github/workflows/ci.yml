@@ -36,7 +36,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-     - name: Run lint checks
+      - name: Run lint checks
         run: pnpm lint
 
       # ESLint enforces prettier via the prettier/prettier rule, but each
