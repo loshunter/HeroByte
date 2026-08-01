@@ -1,8 +1,8 @@
 # Mobile map authoring — audit & arc plan
 
-**Status:** audit complete (2026-07-31). **M1–M2 shipped plus B4/B6/B8-partial on
-`feat/mobile-drawing-touch`** (2026-08-01) — mobile drawing works with a finger. M4–M8 (map
-authoring) not started; see §4.
+**Status:** audit complete (2026-07-31). **M1–M2 shipped plus B1/B4/B6/B8-partial, and marquee
+select** (2026-08-01) — drawing and rectangular select both work with a finger, **verified on a
+real iPhone** (see the device-pass note at the end). M4–M8 (map authoring) not started; see §4.
 **Branch audited:** `dev`. Read-only; nothing in the original audit was run in a browser.
 
 **What the drawing branch settled that the audit could only flag as unknown:**
@@ -542,14 +542,22 @@ without: publish-to-live (`MapStudioControl.tsx:298-306`), grid size (`MapTab.ts
 
 ---
 
-## Could not verify (needs a real device)
+## Device pass — PASSED on a real iPhone (2026-08-01)
 
-- Whether UA **compatibility mouse events** fire after an unprevented empty-canvas tap. This drives
-  the degenerate-drawing and duplicate-ping scenarios and determines whether M2's wiring
-  double-fires.
-- Whether `touch-action: none` on `.mobile-layout-root` (`herobyte.css:1204`) suppresses panning
-  inside the descendant `overflow-x/y:auto` scrollers (`:1349, :1371, :1400, :1446`). B4's severity
-  and M3's scroll plan both hang on it.
+Both items below were flagged as unverifiable without hardware. Both are now closed by an
+owner-run session on an actual iPhone over Safari, not by emulation:
 
-All CSS pixel figures are arithmetic on values read from source, not browser measurements; the
-Press Start 2P 1em-advance assumption underlies the B4 and B8 width estimates.
+- **Compatibility mouse events.** Settled during implementation and confirmed on device: a _drag_
+  produces none, a _tap_ does. The fix is the degenerate-shape send gate, which closes the touch
+  path and the mouse path together rather than de-duplicating events.
+- **`touch-action` on `.mobile-layout-root`.** Confirmed absorbing down the ancestor chain; the
+  declaration now lives on `.mobile-map-surface` and the sheets behave.
+
+**What the owner exercised, corroborated by the server log:** a multi-stroke freehand drawing (12
+`draw` messages), a marquee drag that selected 13 objects in one `select-multiple` (the token plus
+every stroke), and moving the whole selection (`transform-object` stream). No errors, no rejected
+origins. Reported as "everything worked and felt perfect… exactly as I would expect".
+
+All CSS pixel figures in this document are arithmetic on values read from source, not browser
+measurements; the Press Start 2P 1em-advance assumption underlies the B4 and B8 width estimates.
+The layout numbers were separately confirmed by in-browser measurement during implementation.
