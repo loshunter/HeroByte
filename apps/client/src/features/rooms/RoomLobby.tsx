@@ -14,7 +14,6 @@ import {
   listRememberedRooms,
   navigateToRoom,
   rememberRoom,
-  roomUrl,
   stashRoomSecret,
 } from "./roomDirectory";
 import type { CreateRoomInput } from "./useCreateRoom";
@@ -86,8 +85,6 @@ export function RoomLobby({
   const [, setRemembered] = useState(() => listRememberedRooms());
   const [joinCode, setJoinCode] = useState("");
   const [joinError, setJoinError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [copyFallback, setCopyFallback] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [newTableName, setNewTableName] = useState("");
   const [newRoomPassword, setNewRoomPassword] = useState("");
@@ -171,30 +168,14 @@ export function RoomLobby({
     setRemembered(listRememberedRooms());
   };
 
-  const handleCopyInvite = async () => {
-    try {
-      await navigator.clipboard.writeText(roomUrl(activeRoomId));
-      setCopied(true);
-      setCopyFallback(null);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // `navigator.clipboard` is undefined on non-secure origins — which is
-      // exactly the "share my LAN IP with my players" case, http://192.168.x.x.
-      // Swallowing this left the label unchanged and the user pasting whatever
-      // was on their clipboard before. Show the URL so it can be copied by hand.
-      setCopied(false);
-      setCopyFallback(roomUrl(activeRoomId));
-    }
-  };
-
   return (
     <div style={sectionStyle} data-testid="room-lobby">
       {/* Which table you're joining is the picker's job now, directly above the
-          password field. What's left here are the actions AROUND that choice. */}
+          password field. What's left here are the actions AROUND that choice.
+          Inviting is NOT one of them: before you have joined anything there is
+          no ?room= yet, so the link could only be the bare site URL — an invite
+          to nothing. It lives in DM Menu → Session now (TableInviteControl). */}
       <div style={rowStyle}>
-        <button type="button" style={smallButtonStyle} onClick={() => void handleCopyInvite()}>
-          {copied ? "✓ Copied" : "Copy invite link"}
-        </button>
         {activeRoomId && (
           <button
             type="button"
@@ -206,15 +187,6 @@ export function RoomLobby({
           </button>
         )}
       </div>
-      {copyFallback && (
-        <input
-          readOnly
-          value={copyFallback}
-          onFocus={(event) => event.currentTarget.select()}
-          aria-label="Invite link — copy this manually"
-          style={{ ...lobbyInputStyle, marginTop: "6px" }}
-        />
-      )}
 
       <p style={{ ...labelStyle, marginTop: "16px" }}>Start or join</p>
       <div style={rowStyle}>

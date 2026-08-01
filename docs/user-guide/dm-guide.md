@@ -67,6 +67,12 @@ Habits that save campaigns:
 - On free-tier hosting the server's disk can reset when it idles — a session file in your downloads folder is your real persistence.
 - The save is a **DM artifact**: it contains secret doors, hidden NPCs, and GM notes in plain text. Don't hand it to players.
 
+### Invite Players
+
+Your table's code and a shareable link, with a one-click copy. Send the link to your party; **it deliberately carries no password**, so send that by a different channel. On a non-secure origin (a plain `http://192.168.x.x` LAN address, where browsers disable clipboard access) the link is shown in a selectable box to copy by hand.
+
+This lives here rather than on the join screen because that's the only place it can be right: before you've joined a table there's nothing to invite anyone to.
+
 ### Table Security (private tables)
 
 **UPDATE PASSWORD** changes this table's password live: everyone already connected stays, new joiners need the new password. **RESET TO DEFAULT** puts the development default back. Change the password when a table code leaks, or after a public one-shot.
