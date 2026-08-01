@@ -67,6 +67,26 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+      // The mobile project owns apps/e2e/mobile. Without this the desktop
+      // project would also pick those specs up (testDir above covers the whole
+      // tree) and run touch gestures in a hasTouch:false context.
+      // Deliberately NOT a filename filter: apps/e2e/mobile-layout.spec.ts is
+      // mouse-driven and must keep running here.
+      testIgnore: /[\\/]mobile[\\/]/,
+    },
+    {
+      // Touch is a different event path, not a narrower viewport, so it needs
+      // its own context: hasTouch drives Emulation.setTouchEmulationEnabled,
+      // which is what makes Input.dispatchTouchEvent reach the page at all.
+      // Chromium-backed device on purpose — the iPhone descriptors are webkit
+      // and only chromium is installed locally and in CI.
+      name: "mobile-chromium",
+      // Scoped by testDir, NOT testMatch: playwright.docs.config.ts spreads
+      // this config and sets its own top-level testMatch, which a project-level
+      // testMatch would override — pulling these specs into the docs run at a
+      // 180s timeout.
+      testDir: "./apps/e2e/mobile",
+      use: { ...devices["Pixel 7"] },
     },
   ],
 });
