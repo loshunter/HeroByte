@@ -129,9 +129,7 @@ test.describe("Dungeon generate smoke", () => {
       for (const client of [page, player]) {
         await waitForSnap(client, () => {
           const snapshot = window.__HERO_BYTE_E2E__?.snapshot;
-          return (
-            (snapshot?.compiledScene?.walls?.length ?? 0) === 0 && !snapshot?.mapTerrain
-          );
+          return (snapshot?.compiledScene?.walls?.length ?? 0) === 0 && !snapshot?.mapTerrain;
         });
       }
     } finally {

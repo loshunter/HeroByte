@@ -25,13 +25,7 @@ import path from "node:path";
 import process from "node:process";
 
 const includeExtensions = new Set([".ts", ".tsx", ".js", ".jsx"]);
-const ignoreDirectories = new Set([
-  "node_modules",
-  "coverage",
-  "dist",
-  ".next",
-  ".turbo",
-]);
+const ignoreDirectories = new Set(["node_modules", "coverage", "dist", ".next", ".turbo"]);
 
 const args = process.argv.slice(2);
 let limit = 20;
@@ -53,9 +47,7 @@ for (let i = 0; i < args.length; i += 1) {
   } else if (arg === "--threshold") {
     threshold = Number.parseInt(args[i + 1] ?? "", 10);
     if (Number.isNaN(threshold) || threshold <= 0) {
-      console.error(
-        "Invalid value for --threshold. Expected a positive integer.",
-      );
+      console.error("Invalid value for --threshold. Expected a positive integer.");
       process.exit(1);
     }
     i += 1;
@@ -155,49 +147,62 @@ async function measureFile(filePath) {
   if (flagged) {
     // Specific hints for known god files
     if (relPath === "apps/client/src/ui/App.tsx") {
-      hint = "See docs/refactoring/REFACTOR_ROADMAP.md - 27 clusters identified, start with Phase 1 (quick wins: useLayoutMeasurement, useToolMode, etc.)";
+      hint =
+        "See docs/refactoring/REFACTOR_ROADMAP.md - 27 clusters identified, start with Phase 1 (quick wins: useLayoutMeasurement, useToolMode, etc.)";
       roadmapRef = "App.tsx Phases 1-7";
     } else if (relPath === "apps/client/src/features/dm/components/DMMenu.tsx") {
-      hint = "See docs/refactoring/REFACTOR_ROADMAP.md - 20 clusters identified, start with Phase 1 (CollapsibleSection, NPCEditor, PropEditor)";
+      hint =
+        "See docs/refactoring/REFACTOR_ROADMAP.md - 20 clusters identified, start with Phase 1 (CollapsibleSection, NPCEditor, PropEditor)";
       roadmapRef = "DMMenu.tsx Phases 1-6";
     } else if (relPath === "apps/client/src/ui/MapBoard.tsx") {
-      hint = "See docs/refactoring/REFACTOR_ROADMAP.md - 32 clusters identified, start with Phase 1 (pure utilities: MapBoardTypes, coordinateTransforms)";
+      hint =
+        "See docs/refactoring/REFACTOR_ROADMAP.md - 32 clusters identified, start with Phase 1 (pure utilities: MapBoardTypes, coordinateTransforms)";
       roadmapRef = "MapBoard.tsx Phases 1-7";
     } else {
       // Category-based generic hints
       switch (category) {
         case "client:ui":
-          hint = "Consider extracting providers/layout + feature shells. See REFACTOR_PLAYBOOK.md for guidance.";
+          hint =
+            "Consider extracting providers/layout + feature shells. See REFACTOR_PLAYBOOK.md for guidance.";
           break;
         case "client:dm":
-          hint = "Split DM menu into feature panels & shared hooks. See REFACTOR_PLAYBOOK.md Pattern 2.";
+          hint =
+            "Split DM menu into feature panels & shared hooks. See REFACTOR_PLAYBOOK.md Pattern 2.";
           break;
         case "client:map":
-          hint = "Separate camera, selection, and tool orchestration. Extract hooks first, then components.";
+          hint =
+            "Separate camera, selection, and tool orchestration. Extract hooks first, then components.";
           break;
         case "client:hooks":
-          hint = "Divide hook responsibilities per tool/state segment. Each hook should have ONE purpose (SRP).";
+          hint =
+            "Divide hook responsibilities per tool/state segment. Each hook should have ONE purpose (SRP).";
           break;
         case "client:features":
-          hint = "Extract UI components from business logic. Separate state management into custom hooks.";
+          hint =
+            "Extract UI components from business logic. Separate state management into custom hooks.";
           break;
         case "client:components":
-          hint = "Break into smaller, focused components. Extract reusable primitives to /components/ui/.";
+          hint =
+            "Break into smaller, focused components. Extract reusable primitives to /components/ui/.";
           break;
         case "client:drawing":
-          hint = "Separate tool state from rendering logic. Extract tool-specific hooks and components.";
+          hint =
+            "Separate tool state from rendering logic. Extract tool-specific hooks and components.";
           break;
         case "server:websocket":
-          hint = "Modularize handlers per message type & connection lifecycle. Extract auth, heartbeat, and message routing.";
+          hint =
+            "Modularize handlers per message type & connection lifecycle. Extract auth, heartbeat, and message routing.";
           break;
         case "server:domains":
           hint = "Split domain orchestration vs persistence vs validation. Follow DDD boundaries.";
           break;
         case "server:middleware":
-          hint = "Break validators into schema-specific modules (transformValidation.ts, drawingValidation.ts, etc.).";
+          hint =
+            "Break validators into schema-specific modules (transformValidation.ts, drawingValidation.ts, etc.).";
           break;
         case "shared":
-          hint = "Partition shared models into domain-specific slices (scene.ts, player.ts, token.ts, drawing.ts).";
+          hint =
+            "Partition shared models into domain-specific slices (scene.ts, player.ts, token.ts, drawing.ts).";
           break;
         default:
           hint = "Evaluate SRP boundaries and extract focused modules. See REFACTOR_PLAYBOOK.md.";
@@ -266,9 +271,7 @@ async function main() {
         }
       }
 
-      console.error(
-        "\nTo fix this, either refactor the file(s) to be under the threshold,",
-      );
+      console.error("\nTo fix this, either refactor the file(s) to be under the threshold,");
       console.error(
         "or update the baseline if this is intentional: pnpm lint:structure --json > scripts/structure-baseline.json\n",
       );
@@ -278,14 +281,9 @@ async function main() {
     }
   }
 
-  const header = [
-    pad("LOC", 6),
-    pad("Size", 8),
-    pad("Category", 18),
-    "Path",
-    "Flag",
-    "Hint",
-  ].join("  ");
+  const header = [pad("LOC", 6), pad("Size", 8), pad("Category", 18), "Path", "Flag", "Hint"].join(
+    "  ",
+  );
   console.log(header);
   console.log("-".repeat(header.length));
   for (const file of files) {
@@ -316,9 +314,7 @@ async function loadBaseline(baselinePath) {
       const content = await readFile(defaultPath, "utf8");
       return JSON.parse(content);
     } catch (error) {
-      console.warn(
-        `⚠️  No baseline file found at ${defaultPath}. Treating all violations as new.`,
-      );
+      console.warn(`⚠️  No baseline file found at ${defaultPath}. Treating all violations as new.`);
       return { files: [] };
     }
   }

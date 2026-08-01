@@ -19,13 +19,7 @@ import path from "node:path";
 import process from "node:process";
 
 const includeExtensions = new Set([".ts", ".tsx", ".js", ".jsx"]);
-const ignoreDirectories = new Set([
-  "node_modules",
-  "coverage",
-  "dist",
-  ".next",
-  ".turbo",
-]);
+const ignoreDirectories = new Set(["node_modules", "coverage", "dist", ".next", ".turbo"]);
 
 const threshold = 350;
 const includeTests = true; // Include ALL files in baseline to properly track new violations
@@ -163,7 +157,7 @@ async function main() {
   console.log(`✅ Baseline updated: ${baselinePath}`);
   console.log(`\n📈 Statistics:`);
   console.log(`   Total files scanned: ${fileInfos.length}`);
-  console.log(`   Files flagged (>${threshold} LOC): ${fileInfos.filter(f => f.flagged).length}`);
+  console.log(`   Files flagged (>${threshold} LOC): ${fileInfos.filter((f) => f.flagged).length}`);
   console.log(`   Largest file: ${fileInfos[0].path} (${fileInfos[0].loc} LOC)`);
   console.log(`\n⚠️  Remember: Only update baseline after successful refactoring!`);
   console.log(`   Do not update to bypass structural checks.\n`);

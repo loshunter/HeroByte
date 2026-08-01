@@ -43,15 +43,15 @@ This guide covers deploying HeroByte to production using:
 
 ### B. Configure Service
 
-| Setting            | Value                                          |
-| ------------------ | ---------------------------------------------- |
-| **Name**           | `herobyte-server` (or your choice)             |
-| **Root Directory** | `apps/server`                                  |
-| **Environment**    | `Node`                                         |
-| **Region**         | `US East (Ohio)` (lowest average US latency)   |
-| **Branch**         | `main`                                         |
-| **Build Command**  | `pnpm install --frozen-lockfile && pnpm build` |
-| **Start Command**  | `pnpm start`                                   |
+| Setting            | Value                                                                                                 |
+| ------------------ | ----------------------------------------------------------------------------------------------------- |
+| **Name**           | `herobyte-server` (or your choice)                                                                    |
+| **Root Directory** | `apps/server`                                                                                         |
+| **Environment**    | `Node`                                                                                                |
+| **Region**         | `US East (Ohio)` (lowest average US latency)                                                          |
+| **Branch**         | `main`                                                                                                |
+| **Build Command**  | `pnpm install --frozen-lockfile && pnpm build`                                                        |
+| **Start Command**  | `pnpm start`                                                                                          |
 | **Instance Type**  | Paid instance + persistent disk (what HeroByte runs — see §1E/§1F). `Free` works for a personal copy. |
 
 ### C. Environment Variables
@@ -87,35 +87,35 @@ across restarts. The heartbeat below applies on any plan.
 
 Every variable the server reads. All are optional; the defaults run a working dev server.
 
-| Variable                    | Default                                             | Purpose                                                                                                                                                    |
-| --------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PORT`                      | `8787`                                              | HTTP + WebSocket listen port. Render sets this automatically.                                                                                              |
-| `HEROBYTE_ROOM_SECRET`      | `Fun1` (dev fallback, warns)                        | Default room's entry password (6–128 chars). Seeds the secret file on first boot; after that, DM-set passwords in the file win.                            |
-| `HEROBYTE_DM_PASSWORD`      | `FunDM` (dev fallback, warns)                       | Default room's DM elevation password (8–128 chars).                                                                                                        |
-| `HEROBYTE_ALLOWED_ORIGINS`  | localhost dev ports + `https://herobyte.pages.dev`  | Comma-separated origin allowlist for HTTP/WebSocket. `*` disables the check (not recommended).                                                             |
-| `HEROBYTE_DEFAULT_ROOM_ID`  | `default`                                           | Room id of the default table.                                                                                                                              |
-| `HEROBYTE_MAX_CUSTOM_ROOMS` | `500`                                               | Cap on private rooms (bounds the pre-auth `create-room` flood).                                                                                            |
-| `HEROBYTE_DEMO_MODE`        | off                                                 | `true` renders the fallback room password in plaintext on the HTTP landing page. Demo servers only.                                                        |
-| `HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS` | `1`                                         | How long the default table may sit empty before the server wipes it, while it still uses the published password (see §4). **Set `0` to disable.**          |
-| `HEROBYTE_DATA_DIR`         | the `apps/server` package root                      | **The persistent-disk lever.** Re-anchors every on-disk store default below onto one directory. Set in production to the Render disk's mount path; always use an absolute path.     |
-| `HEROBYTE_ASSET_DIR`        | `<data dir>/herobyte-assets/`                       | Uploaded-image store directory (content-addressed, 200MB quota).                                                                                           |
-| `HEROBYTE_MAP_STORE_FILE`   | `<data dir>/herobyte-maps.json`                     | Map Studio document store.                                                                                                                                 |
-| `ROOM_STATE_FILE`           | `<data dir>/herobyte-state.json`                    | The DEFAULT room's state file (exists for parallel E2E runs). Custom rooms always write `herobyte-state.<roomId>.json` in the data dir.                    |
-| `ROOM_STORE`                | in-memory                                           | `redis` backs room state with Redis instead of process memory + JSON files.                                                                                |
-| `REDIS_URL`                 | `redis://127.0.0.1:6379`                            | Redis connection string when `ROOM_STORE=redis`.                                                                                                           |
-| `FEATURE_FLAG_DELTAS`       | enabled                                             | `false` disables the delta sync channel (full snapshots only).                                                                                             |
-| `FEATURE_FLAG_ACKS`         | enabled                                             | `false` disables command acknowledgements.                                                                                                                 |
-| `FEATURE_FLAG_DRAG_PREVIEWS`| enabled                                             | `false` disables live drag previews.                                                                                                                       |
-| `HEROBYTE_E2E`              | off                                                 | `true` enables the test-only state-reset endpoint. Never set in production.                                                                                |
+| Variable                            | Default                                            | Purpose                                                                                                                                                                         |
+| ----------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`                              | `8787`                                             | HTTP + WebSocket listen port. Render sets this automatically.                                                                                                                   |
+| `HEROBYTE_ROOM_SECRET`              | `Fun1` (dev fallback, warns)                       | Default room's entry password (6–128 chars). Seeds the secret file on first boot; after that, DM-set passwords in the file win.                                                 |
+| `HEROBYTE_DM_PASSWORD`              | `FunDM` (dev fallback, warns)                      | Default room's DM elevation password (8–128 chars).                                                                                                                             |
+| `HEROBYTE_ALLOWED_ORIGINS`          | localhost dev ports + `https://herobyte.pages.dev` | Comma-separated origin allowlist for HTTP/WebSocket. `*` disables the check (not recommended).                                                                                  |
+| `HEROBYTE_DEFAULT_ROOM_ID`          | `default`                                          | Room id of the default table.                                                                                                                                                   |
+| `HEROBYTE_MAX_CUSTOM_ROOMS`         | `500`                                              | Cap on private rooms (bounds the pre-auth `create-room` flood).                                                                                                                 |
+| `HEROBYTE_DEMO_MODE`                | off                                                | `true` renders the fallback room password in plaintext on the HTTP landing page. Demo servers only.                                                                             |
+| `HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS` | `1`                                                | How long the default table may sit empty before the server wipes it, while it still uses the published password (see §4). **Set `0` to disable.**                               |
+| `HEROBYTE_DATA_DIR`                 | the `apps/server` package root                     | **The persistent-disk lever.** Re-anchors every on-disk store default below onto one directory. Set in production to the Render disk's mount path; always use an absolute path. |
+| `HEROBYTE_ASSET_DIR`                | `<data dir>/herobyte-assets/`                      | Uploaded-image store directory (content-addressed, 200MB quota).                                                                                                                |
+| `HEROBYTE_MAP_STORE_FILE`           | `<data dir>/herobyte-maps.json`                    | Map Studio document store.                                                                                                                                                      |
+| `ROOM_STATE_FILE`                   | `<data dir>/herobyte-state.json`                   | The DEFAULT room's state file (exists for parallel E2E runs). Custom rooms always write `herobyte-state.<roomId>.json` in the data dir.                                         |
+| `ROOM_STORE`                        | in-memory                                          | `redis` backs room state with Redis instead of process memory + JSON files.                                                                                                     |
+| `REDIS_URL`                         | `redis://127.0.0.1:6379`                           | Redis connection string when `ROOM_STORE=redis`.                                                                                                                                |
+| `FEATURE_FLAG_DELTAS`               | enabled                                            | `false` disables the delta sync channel (full snapshots only).                                                                                                                  |
+| `FEATURE_FLAG_ACKS`                 | enabled                                            | `false` disables command acknowledgements.                                                                                                                                      |
+| `FEATURE_FLAG_DRAG_PREVIEWS`        | enabled                                            | `false` disables live drag previews.                                                                                                                                            |
+| `HEROBYTE_E2E`                      | off                                                | `true` enables the test-only state-reset endpoint. Never set in production.                                                                                                     |
 
 **On-disk stores.** The server persists four things, all JSON/files in the data dir (`HEROBYTE_DATA_DIR`, else the `apps/server` package root — deliberately NOT the process CWD, so the stores don't fork if the launch directory changes):
 
-| Store                            | What's in it                                     | Path override           |
-| -------------------------------- | ------------------------------------------------ | ----------------------- |
+| Store                                                  | What's in it                                  | Path override                         |
+| ------------------------------------------------------ | --------------------------------------------- | ------------------------------------- |
 | `herobyte-state.json` / `herobyte-state.<roomId>.json` | Room state (tokens, drawings, scene) per room | `ROOM_STATE_FILE` (default room only) |
-| `herobyte-assets/`               | Uploaded images, content-addressed by hash       | `HEROBYTE_ASSET_DIR`    |
-| `herobyte-maps.json`             | Map Studio documents                             | `HEROBYTE_MAP_STORE_FILE` |
-| `herobyte-room-secret.json`      | Hashed room + DM passwords                       | — (follows the data dir) |
+| `herobyte-assets/`                                     | Uploaded images, content-addressed by hash    | `HEROBYTE_ASSET_DIR`                  |
+| `herobyte-maps.json`                                   | Map Studio documents                          | `HEROBYTE_MAP_STORE_FILE`             |
+| `herobyte-room-secret.json`                            | Hashed room + DM passwords                    | — (follows the data dir)              |
 
 **Mounting a persistent disk (Render paid plan):** add a disk (e.g. mounted at `/var/data`), set `HEROBYTE_DATA_DIR=/var/data`, redeploy. All four stores land on the mount; nothing else to configure. Do NOT mount at `apps/server` — it would shadow the app.
 
@@ -334,10 +334,10 @@ quoted here.
 
 **If you deploy your own copy**, the cheapest viable setup is:
 
-| Service              | Free option | Limits of the free option                   |
-| -------------------- | ----------- | ------------------------------------------- |
+| Service              | Free option | Limits of the free option                                   |
+| -------------------- | ----------- | ----------------------------------------------------------- |
 | **Render**           | Yes         | 750 hours/month, spin down after 15min idle, ephemeral disk |
-| **Cloudflare Pages** | Yes         | Unlimited requests, 500 builds/month        |
+| **Cloudflare Pages** | Yes         | Unlimited requests, 500 builds/month                        |
 
 That runs at no cost, with the spin-down and data-loss caveats described in §1E, §1F and §4. Paying
 for a Render instance plus a disk is what removes both.

@@ -7,3 +7,16 @@ test-secret.json
 apps/server/herobyte-state*.json
 playwright-report/
 test-results/
+
+# Prettier CORRUPTS this file — not a style preference.
+#
+# It mis-parses the underscore in identifiers like SECURITY_REQUIREMENTS and
+# NEXT_STEPS as an emphasis delimiter, pairs it with a later *emphasis* span on
+# the same line, and rewrites both: SECURITY_REQUIREMENTS becomes
+# SECURITY*REQUIREMENTS, and "accounts are for *keeping*" becomes
+# "accounts are for \_keeping*". That is a content change, and it survives a
+# second pass rather than converging.
+#
+# Reproduce: prettier --write VISION.md twice, then diff against HEAD with
+# emphasis markers stripped. Revisit if prettier's markdown parser is fixed.
+VISION.md
