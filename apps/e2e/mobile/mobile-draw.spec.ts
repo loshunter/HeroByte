@@ -18,7 +18,7 @@ import {
   readDrawings,
   selectMobileTool,
 } from "./mobile.helpers";
-import { openTouch, touchDrag } from "./touch.helpers";
+import { openTouch, touchDrag, touchDragThenSecondFinger } from "./touch.helpers";
 
 test.describe("mobile touch — camera", () => {
   test("one finger pans the map when no tool owns the pointer", async ({ page }) => {
@@ -43,11 +43,6 @@ test.describe("mobile touch — camera", () => {
 });
 
 test.describe("mobile touch — drawing", () => {
-  test.fail(
-    true,
-    "BUG: useStageEventRouter's touch path forwards only to the camera hook, so the drawing tool never receives a finger",
-  );
-
   test("one finger draws a freehand stroke", async ({ page }) => {
     await joinMobileTable(page);
     await selectMobileTool(page, /^Draw$/i);
@@ -71,6 +66,37 @@ test.describe("mobile touch — drawing", () => {
     expect(after.lastType).toBe("freehand");
     expect(after.lastOwner).toBe(after.uid);
     expect(after.lastPointCount).toBeGreaterThan(2);
+  });
+
+  test("a second finger zooms instead of committing the stroke", async ({ page }) => {
+    await joinMobileTable(page);
+    await selectMobileTool(page, /^Draw$/i);
+    await expect(page.getByRole("toolbar", { name: /Drawing tools/i })).toBeVisible();
+
+    const before = await readDrawings(page);
+    const camBefore = await readCam(page);
+    const box = await boardBox(page);
+    const cdp = await openTouch(page);
+    const cx = box.x + box.width * 0.5;
+    const cy = box.y + box.height * 0.5;
+
+    // Start drawing with one finger, then reach for a second and spread.
+    await touchDragThenSecondFinger(
+      cdp,
+      { x: cx - 40, y: cy },
+      { x: cx - 10, y: cy + 20 },
+      { x: cx + 60, y: cy + 20 },
+      [
+        { x: cx - 70, y: cy + 20 },
+        { x: cx + 120, y: cy + 20 },
+      ],
+    );
+
+    await expect.poll(async () => (await readCam(page))?.scale).not.toBe(camBefore?.scale);
+
+    // The stroke is discarded, not committed — no stray mark from zooming.
+    const after = await readDrawings(page);
+    expect(after.count).toBe(before.count);
   });
 });
 

@@ -29,6 +29,8 @@ interface UseDrawingToolReturn {
   onMouseDown: (stageRef: RefObject<Konva.Stage | null>) => void;
   onMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
   onMouseUp: () => void;
+  /** Abandon the in-progress stroke without sending it. */
+  cancel: () => void;
 }
 
 /**
@@ -230,11 +232,30 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
     drawingObjects,
   ]);
 
+  /**
+   * Drop the in-progress stroke on the floor.
+   *
+   * onMouseUp is a commit — it always tries to send. Touch needs the other
+   * half: a second finger landing mid-stroke means the user wants to pinch,
+   * and turning that into a drawing would leave a mark every time they zoom.
+   */
+  const cancel = useCallback(() => {
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    drawingPointsRef.current = [];
+    setCurrentDrawing([]);
+    setIsDrawing(false);
+  }, []);
+
   return {
     currentDrawing,
     isDrawing,
     onMouseDown,
     onMouseMove,
     onMouseUp,
+    cancel,
   };
 }

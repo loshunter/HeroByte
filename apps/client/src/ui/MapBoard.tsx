@@ -278,6 +278,7 @@ export default function MapBoard({
     onMouseDown: handleDrawMouseDown,
     onMouseMove: handleDrawMouseMove,
     onMouseUp: handleDrawMouseUp,
+    cancel: handleDrawCancel,
   } = useDrawingTool({
     drawMode,
     drawTool,
@@ -391,6 +392,7 @@ export default function MapBoard({
     onTouchStart,
     onTouchMove,
     onTouchEnd,
+    onTouchCancel,
     onTap,
   } = useStageEventRouter({
     alignmentMode,
@@ -414,6 +416,7 @@ export default function MapBoard({
     handleDrawMouseUp,
     handleMapEditMouseUp,
     handleMarqueePointerUp,
+    handleDrawCancel,
     handleTouchStart: handleCameraTouchStart,
     handleTouchMove: handleCameraTouchMove,
     handleTouchEnd: handleCameraTouchEnd,
@@ -597,6 +600,7 @@ export default function MapBoard({
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
+        onTouchCancel={onTouchCancel}
         style={{ cursor }}
       >
         {/* Background Layer: Map image and grid (non-interactive) */}

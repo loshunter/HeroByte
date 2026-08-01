@@ -22,6 +22,7 @@ import { useCallback, type RefObject } from "react";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { useDoubleTap } from "./useDoubleTap";
+import { useTouchGestureRouter } from "./useTouchGestureRouter";
 
 /**
  * Props for useStageEventRouter hook
@@ -62,6 +63,9 @@ export interface UseStageEventRouterProps {
   handleMapEditMouseUp: () => void;
   handleMarqueePointerUp: () => void;
 
+  /** Discard an in-progress stroke (a second finger, or an OS interrupt). */
+  handleDrawCancel: () => void;
+
   // Touch handlers
   handleTouchStart: (
     e: KonvaEventObject<TouchEvent>,
@@ -100,6 +104,7 @@ export interface UseStageEventRouterReturn {
   onTouchStart: (event: KonvaEventObject<TouchEvent>) => void;
   onTouchMove: (event: KonvaEventObject<TouchEvent>) => void;
   onTouchEnd: () => void;
+  onTouchCancel: () => void;
 }
 
 /**
@@ -170,6 +175,7 @@ export function useStageEventRouter({
   handleTouchStart,
   handleTouchMove,
   handleTouchEnd,
+  handleDrawCancel,
   handleDoubleTap,
   isMarqueeActive,
   onSelectObject,
@@ -301,31 +307,25 @@ export function useStageEventRouter({
   ]);
 
   /**
-   * Unified touch start handler
+   * Touch is delegated wholesale to useTouchGestureRouter, which arbitrates by
+   * finger count. Unlike the mouse path above it does NOT fan out to every
+   * tool: only the drawing tool is wired for touch today. Map-edit and marquee
+   * still need their own interaction design (hover ghosts, modifier keys, a
+   * `button` field a TouchEvent has not got), so they stay mouse-only rather
+   * than half-working.
    */
-  const onTouchStart = useCallback(
-    (event: KonvaEventObject<TouchEvent>) => {
-      handleTouchStart(event, stageRef, shouldPan);
-    },
-    [shouldPan, handleTouchStart, stageRef],
-  );
-
-  /**
-   * Unified touch move handler
-   */
-  const onTouchMove = useCallback(
-    (event: KonvaEventObject<TouchEvent>) => {
-      handleTouchMove(event, stageRef);
-    },
-    [handleTouchMove, stageRef],
-  );
-
-  /**
-   * Unified touch end handler
-   */
-  const onTouchEnd = useCallback(() => {
-    handleTouchEnd();
-  }, [handleTouchEnd]);
+  const { onTouchStart, onTouchMove, onTouchEnd, onTouchCancel } = useTouchGestureRouter({
+    toolArmed: drawMode,
+    shouldPan,
+    stageRef,
+    onCameraStart: handleTouchStart,
+    onCameraMove: handleTouchMove,
+    onCameraEnd: handleTouchEnd,
+    onToolStart: handleDrawMouseDown,
+    onToolMove: handleDrawMouseMove,
+    onToolCommit: handleDrawMouseUp,
+    onToolCancel: handleDrawCancel,
+  });
 
   return {
     onStageClick,
@@ -336,5 +336,6 @@ export function useStageEventRouter({
     onTouchStart,
     onTouchMove,
     onTouchEnd,
+    onTouchCancel,
   };
 }
