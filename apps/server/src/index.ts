@@ -178,6 +178,13 @@ async function bootstrap() {
   );
   resetE2EState = () => container.resetForE2E();
 
+  // Server-level errors (handshake failures and the like) need a listener for
+  // the same reason per-socket errors do: an unhandled "error" on an
+  // EventEmitter throws, and here that would kill the process.
+  wss.on("error", (error) => {
+    console.error("[WebSocket] Server error:", error);
+  });
+
   // Attach WebSocket connection handler
   const connectionHandler = new ConnectionHandler(container, wss);
   connectionHandler.attach();

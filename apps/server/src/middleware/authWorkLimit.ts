@@ -17,6 +17,20 @@
 const AUTH_WORK_CAPACITY = 20; // burst: a full table + reconnects + typos
 const AUTH_WORK_REFILL_PER_SECOND = 0.5; // sustained: 30 attempts/min per IP
 
+/**
+ * Ceiling on tracked buckets. The key is attacker-influenced (any stranger
+ * can mint one pre-auth) and buckets are otherwise reclaimed only by the
+ * hourly sweep, so without a cap the Map grows with distinct source
+ * addresses — trivial for anyone holding a routed IPv6 prefix.
+ *
+ * At the cap we EVICT, never refuse. Refusing unknown keys would hand an
+ * address-rotating attacker a way to lock every new player out of every
+ * table, which is a worse outcome than the memory it saves. Eviction is
+ * safe here because a bucket at full capacity carries no information: an
+ * evicted key is recreated full, exactly as if it had refilled.
+ */
+const MAX_TRACKED_BUCKETS = 10_000;
+
 interface Bucket {
   tokens: number;
   lastRefill: number;
@@ -38,9 +52,18 @@ export class TokenBucketLimiter {
     sweep.unref?.();
   }
 
+  /** Tracked bucket count — for the memory-bound test and diagnostics. */
+  size(): number {
+    return this.buckets.size;
+  }
+
   /** Spend one token for `key`. False = out of tokens, refuse the work. */
   take(key: string, now: number = Date.now()): boolean {
-    const bucket = this.buckets.get(key) ?? { tokens: this.capacity, lastRefill: now };
+    const existing = this.buckets.get(key);
+    if (!existing && this.buckets.size >= MAX_TRACKED_BUCKETS) {
+      this.evictForNewKey(now);
+    }
+    const bucket = existing ?? { tokens: this.capacity, lastRefill: now };
     const elapsedSeconds = Math.max(0, (now - bucket.lastRefill) / 1000);
     bucket.tokens = Math.min(this.capacity, bucket.tokens + elapsedSeconds * this.refillPerSecond);
     bucket.lastRefill = now;
@@ -66,6 +89,30 @@ export class TokenBucketLimiter {
     const bucket = this.buckets.get(key);
     if (!bucket) return;
     bucket.tokens = Math.min(this.capacity, bucket.tokens + 1);
+  }
+
+  /**
+   * Make room for a new key. Sweep first — under an address-rotation flood
+   * most buckets are already back at capacity (charged once, refilled within
+   * seconds) and carry no information. If that frees nothing, drop the
+   * fullest bucket: it is the one whose loss changes the least, and never a
+   * bucket actively being throttled.
+   */
+  private evictForNewKey(now: number): void {
+    this.sweep(now);
+    if (this.buckets.size < MAX_TRACKED_BUCKETS) return;
+
+    let fullestKey: string | undefined;
+    let fullestTokens = -Infinity;
+    for (const [key, bucket] of this.buckets) {
+      const elapsedSeconds = Math.max(0, (now - bucket.lastRefill) / 1000);
+      const tokens = Math.min(this.capacity, bucket.tokens + elapsedSeconds * this.refillPerSecond);
+      if (tokens > fullestTokens) {
+        fullestTokens = tokens;
+        fullestKey = key;
+      }
+    }
+    if (fullestKey !== undefined) this.buckets.delete(fullestKey);
   }
 
   private sweep(now: number = Date.now()): void {
@@ -124,8 +171,36 @@ export function clientIpFor(
   return remoteAddress ? normalizeIp(remoteAddress) : "unknown";
 }
 
-/** Collapse IPv4-mapped IPv6 ("::ffff:1.2.3.4") onto the IPv4 form. */
+/**
+ * The bucket key for an address.
+ *
+ * IPv4-mapped IPv6 ("::ffff:1.2.3.4") collapses onto the IPv4 form so one
+ * client cannot hold two buckets by connecting over each stack.
+ *
+ * Real IPv6 is keyed on its /64, not the full /128. A single ordinary
+ * subscriber is routed a whole /64, so per-address keying would let one
+ * host mint an unlimited supply of full budgets just by binding a new
+ * source address per connection — the control would do nothing at all
+ * against v6. The /64 is the smallest unit that is actually allocated,
+ * which makes it the honest analogue of "one IPv4 address".
+ */
 function normalizeIp(address: string): string {
   const mapped = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i.exec(address);
-  return mapped ? mapped[1] : address;
+  if (mapped) return mapped[1];
+  if (!address.includes(":")) return address; // IPv4, or something opaque
+
+  // Strip a zone id ("fe80::1%eth0") and any bracket/port wrapper, then
+  // truncate to the first four hextets. "::" expands to zeros, so an
+  // abbreviated address whose /64 is all-zero keys as "::" — correct, and
+  // the same bucket a fully-written 0:0:0:0:… would land in.
+  const bare = address.replace(/^\[|\]$/g, "").split("%")[0];
+  const [head, tail = ""] = bare.split("::");
+  const headParts = head ? head.split(":") : [];
+  const tailParts = tail ? tail.split(":") : [];
+  const zeros = bare.includes("::") ? Math.max(0, 8 - headParts.length - tailParts.length) : 0;
+  const hextets = [...headParts, ...Array(zeros).fill("0"), ...tailParts];
+  return hextets
+    .slice(0, 4)
+    .map((h) => (h === "" ? "0" : h.toLowerCase().replace(/^0+(?=.)/, "")))
+    .join(":");
 }

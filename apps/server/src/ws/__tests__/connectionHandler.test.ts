@@ -46,17 +46,29 @@ class FakeWebSocket {
   }
 }
 
+/**
+ * `req` carries socket/headers because ConnectionHandler reads the remote
+ * address off them for the per-IP auth budget. Without those fields every
+ * fake socket resolved to the shared "unknown" bucket, so the socket→IP
+ * recording line could be deleted outright and every test still passed.
+ */
+type FakeConnectionRequest = {
+  url: string;
+  socket?: { remoteAddress?: string };
+  headers?: Record<string, string | string[] | undefined>;
+};
+
 class FakeWebSocketServer {
   public clients = new Set<FakeWebSocket>();
   private handlers: Partial<
-    Record<"connection", (ws: FakeWebSocket, req: { url: string }) => void>
+    Record<"connection", (ws: FakeWebSocket, req: FakeConnectionRequest) => void>
   > = {};
 
-  on(event: "connection", handler: (ws: FakeWebSocket, req: { url: string }) => void) {
+  on(event: "connection", handler: (ws: FakeWebSocket, req: FakeConnectionRequest) => void) {
     this.handlers[event] = handler;
   }
 
-  emitConnection(ws: FakeWebSocket, req: { url: string }) {
+  emitConnection(ws: FakeWebSocket, req: FakeConnectionRequest) {
     this.clients.add(ws);
     this.handlers["connection"]?.(ws, req);
   }
@@ -373,34 +385,30 @@ describe("ConnectionHandler", () => {
     expect(broadcastSpy).not.toHaveBeenCalled();
   });
 
+  /** Authenticate from a specific source address and settle the async work. */
+  const attemptFrom = async (uid: string, ip: string, secret: string) => {
+    const socket = new FakeWebSocket();
+    wss.emitConnection(socket, { url: `/?uid=${uid}`, socket: { remoteAddress: ip } });
+    socket.emit("message", Buffer.from(JSON.stringify({ t: "authenticate", secret })));
+    await flushAuth();
+    return socket;
+  };
+
   it("throttles a bad-password loop per IP, before any password check runs", async () => {
     // D7: rate limiting used to key on the client-supplied uid, so one host
     // could rotate uids and stream scrypt-priced guesses forever. The budget
-    // is now per connection IP (these fake sockets all share the "unknown"
-    // bucket) and is spent BEFORE verify().
+    // is now per connection IP and is spent BEFORE verify().
     const verifySpy = vi.mocked(container.authService.verify);
     verifySpy.mockClear();
 
     // 5 wrong guesses spend the whole capacity — rotating uids doesn't help.
     for (let attempt = 0; attempt < 5; attempt += 1) {
-      const socket = new FakeWebSocket();
-      wss.emitConnection(socket, { url: `/?uid=rotating-${attempt}` });
-      socket.emit(
-        "message",
-        Buffer.from(JSON.stringify({ t: "authenticate", secret: "wrong-password" })),
-      );
-      await flushAuth();
+      await attemptFrom(`rotating-${attempt}`, "203.0.113.9", "wrong-password");
     }
     expect(verifySpy).toHaveBeenCalledTimes(5);
 
     // The sixth guess is refused up front: no scrypt, a throttle reply.
-    const throttledSocket = new FakeWebSocket();
-    wss.emitConnection(throttledSocket, { url: "/?uid=rotating-final" });
-    throttledSocket.emit(
-      "message",
-      Buffer.from(JSON.stringify({ t: "authenticate", secret: "wrong-password" })),
-    );
-    await flushAuth();
+    const throttledSocket = await attemptFrom("rotating-final", "203.0.113.9", "wrong-password");
 
     expect(verifySpy).toHaveBeenCalledTimes(5);
     const frames = throttledSocket.send.mock.calls.map(
@@ -408,6 +416,57 @@ describe("ConnectionHandler", () => {
     );
     expect(frames[0]).toMatchObject({ t: "auth-failed" });
     expect(frames[0].reason).toMatch(/too many attempts/i);
+  });
+
+  it("one flooding network cannot lock another network out", async () => {
+    // Pins the socket→IP wiring itself (ConnectionHandler recording
+    // clientIpFor off req.socket/headers). Without it every socket lands in
+    // the shared "unknown" bucket and the flooder takes the whole table
+    // down with them — the exact S1 failure mode.
+    const verifySpy = vi.mocked(container.authService.verify);
+
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      await attemptFrom(`flooder-${attempt}`, "203.0.113.9", "wrong-password");
+    }
+    verifySpy.mockClear();
+
+    // A bystander on a different network still gets their password checked...
+    const bystander = await attemptFrom("bystander", "198.51.100.4", "Fun1");
+    expect(verifySpy).toHaveBeenCalledTimes(1);
+    expect(
+      bystander.send.mock.calls.map(([p]) => JSON.parse(p as string) as { t?: string }),
+    ).toContainEqual({ t: "auth-ok" });
+
+    // ...and the flooder is still cut off.
+    const stillFlooding = await attemptFrom("flooder-again", "203.0.113.9", "wrong-password");
+    const frames = stillFlooding.send.mock.calls.map(
+      ([p]) => JSON.parse(p as string) as { reason?: string },
+    );
+    expect(frames[0]?.reason).toMatch(/too many attempts/i);
+  });
+
+  it("a repeated in-flight attempt refunds its token instead of draining the network", async () => {
+    // takeAuthWork runs before the pendingAuthWork gate, so a double-submit
+    // used to spend a token, send nothing, and silently erode the budget —
+    // enough ordinary double-clicks and a correct password gets refused.
+    const verifySpy = vi.mocked(container.authService.verify);
+    verifySpy.mockClear();
+
+    const socket = new FakeWebSocket();
+    wss.emitConnection(socket, { url: "/?uid=doubler", socket: { remoteAddress: "192.0.2.50" } });
+    const authFrame = Buffer.from(JSON.stringify({ t: "authenticate", secret: "Fun1" }));
+    // Two attempts in the SAME tick: the second finds the first in flight.
+    socket.emit("message", authFrame);
+    socket.emit("message", authFrame);
+    await flushAuth();
+
+    // Capacity is 5. Six more wrong guesses from this IP must still reach
+    // verify (5 of them) rather than being short-changed by the leak.
+    verifySpy.mockClear();
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await attemptFrom(`after-${attempt}`, "192.0.2.50", "wrong-password");
+    }
+    expect(verifySpy).toHaveBeenCalledTimes(5);
   });
 
   it("never sweeps players restored from disk who have not connected", () => {

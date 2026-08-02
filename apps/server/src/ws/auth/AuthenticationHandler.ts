@@ -125,8 +125,11 @@ export class AuthenticationHandler {
     }
 
     // One in-flight check per uid: a second attempt while the first hashes
-    // is a client bug or a flood, not a flow to support.
+    // is a client bug or a flood, not a flow to support. Refund first — this
+    // path spends no scrypt, and leaking the token here is what lets an
+    // ordinary double-submit drain a whole network's budget.
     if (this.pendingAuthWork.has(uid)) {
+      this.refundAuthWork(ws);
       return;
     }
     this.pendingAuthWork.add(uid);
@@ -142,7 +145,10 @@ export class AuthenticationHandler {
 
     // The world may have moved while the hash computed: bail if this socket
     // was replaced or closed, or if a competing attempt already finished.
+    // A correct password that lands here still earns its refund — the work
+    // was legitimate, we just have nobody to tell.
     if (this.uidToWs.get(uid) !== ws || this.authenticatedUids.has(uid)) {
+      if (verified) this.refundAuthWork(ws);
       return;
     }
 

@@ -110,6 +110,19 @@ export class ConnectionHandler {
     // Message handling
     ws.on("message", (buf) => this.handleMessage(Buffer.from(buf as ArrayBuffer), uid));
 
+    // A ws socket with NO "error" listener is a remote kill switch: `ws`
+    // emits "error" on a protocol violation, and EventEmitter THROWS when
+    // "error" has no listener, so the throw escapes as an uncaught exception
+    // and takes the whole process — every table on the instance — down.
+    // Reachable by any client: exceed maxPayload (raised off the DECLARED
+    // frame length, before a payload byte is read, so the application-level
+    // size check never runs), or send a malformed frame. ws has already
+    // closed the socket with 1009 by this point; the close handler does the
+    // cleanup, so this only has to stop the throw.
+    ws.on("error", (error) => {
+      console.warn(`[WebSocket] Connection error for ${uid}: ${error.message}`);
+    });
+
     // Disconnection handling
     ws.on("close", () => this.handleDisconnection(uid, ws));
   }
