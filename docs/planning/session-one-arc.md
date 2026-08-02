@@ -208,12 +208,27 @@ room-credential gated, not DM-gated, so a plain player already qualifies.
 
 **Done when.** Nobody is told to go use Imgur.
 
+**Now also in this slice** — folded in 2026-08-02, see §7.3. Self-hosting becomes the default, so
+the two things that made that unsafe move from "note it" to "fix it":
+
+- **Reclaim orphaned assets on re-publish.** Replacing an image leaves the old bytes claimed by
+  the room forever. Room-clear already reclaims correctly (`releaseRoom` → `planRoomRelease`
+  un-claims and deletes on the last claim); what is missing is the same treatment when a
+  reference is _replaced_ rather than the room cleared. Four new upload surfaces make this leak
+  four times faster, which is why it can no longer be deferred.
+- **Raise the whole-store quota.** `domains/assets/service.ts` defaults `maxTotalBytes` to 200MB
+  and says so in the comment: "the free-tier number". It is a fossil of the same ephemeral-disk
+  era that produced the Imgur decision. Production runs a 1GB disk holding 196KB. Re-derive both
+  it and `maxRoomBytes` (50MB) from the real disk, and make them env-overridable so the ceiling
+  tracks the disk instead of a plan HeroByte no longer runs on.
+
 **Traps.** **Progress reporting is not free** — `assetUpload.ts` uses `fetch` with an ArrayBuffer
 body and `fetch` exposes no upload-progress event; either drop progress or switch to
 `XMLHttpRequest`. `PlayerSettingsMenu.tsx` is 629 LOC and its image fields are _controlled_ props
-owned by the parent, so this is not a drop-in. `/assets` is never GC'd on re-publish
-(`slice-4-handoff.md`); four new upload surfaces grow that leak faster — note it, do not fix it
-here.
+owned by the parent, so this is not a drop-in. Keep the URL field **permanently**, not as a
+transition: it is the escape valve when a room hits its quota and how a DM reuses art already
+online. A direct `i.imgur.com/…` link never touches the Imgur API (`imageUrlHelpers.ts:24`), so
+accepting Imgur URLs costs nothing — it is only the album/gallery API path that carries risk.
 
 ### S4 🟡 — Tokens have names and health (2–3 days)
 
@@ -304,6 +319,33 @@ palette.
    `live-map-toolbar-plan.md:44`'s "desktop-only — explicit decision" is struck through and
    annotated as overturned. The owner's framing: _"as featured as possible within the
    limitations."_ See §7a.
+
+3. **Self-hosted images become the default; Imgur stays supported, never required.** (Decided
+   2026-08-02, after S0+S1.) The original choice was made on the free tier, where the filesystem
+   was ephemeral and an external host was the only way an image survived to the next session.
+   The persistent disk now does that job better — and Imgur is no longer good at the one thing it
+   was chosen for, having purged anonymously-uploaded images (announced April 2023, effective
+   that May); "go upload it to Imgur" without an account _is_ an anonymous upload.
+
+   Verified before deciding: **zero** Imgur URLs, `/assets` URLs or data-URIs in any of the four
+   production state files or the fifteen local ones, so there is no content to migrate — this
+   changes the default going forward, not the past. What exists is integration code
+   (`imageUrlHelpers.ts`, `useImageUrlNormalization.ts`, the CSP allowlist in `_headers` and
+   `index.html`, the README guidance), not a corpus.
+
+   **Keep:** accepting any image URL, including direct `i.imgur.com` links, and the CSP entries
+   that let them render. Costs nothing, and it is the escape valve above a quota.
+   **Stop:** telling people to go use Imgur (README §troubleshooting, the user guides).
+   **Do not build on:** the Imgur **API**. `imageUrlHelpers.ts:51` calls `api.imgur.com` with a
+   hardcoded client ID shipped in client-side code — one shared key for every user of the app,
+   subject to Imgur's per-client rate limits and revocable at any time, whose failure mode is a
+   silent fall back to guessing `.jpg`. That path only serves album/gallery convenience links;
+   direct links bypass it entirely.
+
+   What Imgur still genuinely buys — free bandwidth, no moderation exposure — is real but is not
+   the binding constraint at friends-scale, and `/assets` already serves
+   `immutable, max-age=31536000` with content-addressed dedup, so a shared token costs one copy
+   on disk and one fetch per client for its lifetime.
 
 ### 7a. What "as featured as possible within the limitations" means for this arc
 
