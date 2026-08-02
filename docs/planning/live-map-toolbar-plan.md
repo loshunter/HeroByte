@@ -1,8 +1,8 @@
 # Live Map Toolbar — Execution Plan
 
 **Status:** READY FOR EXECUTION · Authored 2026-07-11 by the senior dev after full-pipeline recon · Rev 2 (owner decision: the Studio RETIRES — see Phase 2)
-**Mission:** Replace the separate Map Studio editor with map authoring on the live table. A DM picks the Map tool, drags a rectangle, and a room exists — procedural floor, blocking walls, live fog — on every player's screen, instantly. Drag a hallway, hit POPULATE, and it fills with set dressing algorithmically. Doors drop onto walls. Terrain paints like the brush tools. When the arc completes, the Studio *scene* is deleted; its engine (documents, commands, compile, undo) lives on as the invisible backend of the map tool palette. The world gets built as the story happens.
-**Vision alignment:** This is the bridge between M3 (The Forge) and M4 (The Living World) in VISION.md. Pillar 3's invariant — *every repeated DM action takes ≤2 inputs* — is exactly "drag a rectangle, get a room." The founding rule holds: **tools emit MapDocument elements, never rasters**; the compiled scene remains the only live geometry. Mid-session generation (M4) will ride the same live-bound-document rails this plan lays.
+**Mission:** Replace the separate Map Studio editor with map authoring on the live table. A DM picks the Map tool, drags a rectangle, and a room exists — procedural floor, blocking walls, live fog — on every player's screen, instantly. Drag a hallway, hit POPULATE, and it fills with set dressing algorithmically. Doors drop onto walls. Terrain paints like the brush tools. When the arc completes, the Studio _scene_ is deleted; its engine (documents, commands, compile, undo) lives on as the invisible backend of the map tool palette. The world gets built as the story happens.
+**Vision alignment:** This is the bridge between M3 (The Forge) and M4 (The Living World) in VISION.md. Pillar 3's invariant — _every repeated DM action takes ≤2 inputs_ — is exactly "drag a rectangle, get a room." The founding rule holds: **tools emit MapDocument elements, never rasters**; the compiled scene remains the only live geometry. Mid-session generation (M4) will ride the same live-bound-document rails this plan lays.
 
 ---
 
@@ -10,7 +10,7 @@
 
 This plan follows the small-verifiable-slices method: each slice is the smallest end-to-end change that can be built, tested, and committed independently. Rules for the executing model:
 
-1. **Do the slices in order.** Later slices assume earlier ones landed. Do not start a slice until the previous one's *Done when* checklist is fully green.
+1. **Do the slices in order.** Later slices assume earlier ones landed. Do not start a slice until the previous one's _Done when_ checklist is fully green.
 2. **Read only the Context Capsule files.** Every slice lists exactly which files to read (with line anchors) and quotes the contracts you must match. If you find yourself grepping the repo to figure out how something works, STOP — the answer is either in the capsule, in §2–§4 of this doc, or you've drifted off-plan. Re-read, don't wander.
 3. **Line anchors are from 2026-07-11.** Earlier slices shift later files' line numbers slightly. Anchors get you to the right neighborhood; match on the quoted code, not the number.
 4. **Never exceed 348 lines in a NEW file** (§4.1). Split proactively.
@@ -39,9 +39,17 @@ This plan follows the small-verifiable-slices method: each slice is the smallest
 **Phase 1 (S1–S8)** builds the live rails: mode, palette, walls, doors, rooms, terrain, undo. **Phase 2 (S9–S13)** reaches Studio parity — live element rendering for players, tile/stamp placement, the hallway + populate tools, layers/inspector, exports — and then **deletes the Studio scene**. The Studio stays fully functional until S13; parity first, removal last.
 
 **Never in this arc (deferred, recorded in §7):**
+
 - No wall-vertex editing / moving placed walls (needs a new `update-element` data path).
 - No terrain gameplay semantics (difficult terrain etc. — VISION says later; walls do the blocking).
-- No mobile map-edit UI (desktop-only; mobile keeps viewing everything, authoring nothing — explicit decision).
+- ~~No mobile map-edit UI (desktop-only; mobile keeps viewing everything, authoring nothing —
+  explicit decision).~~ **OVERTURNED 2026-08-01 by the owner.** This line contradicted
+  `VISION.md:46` ("Terrain painting works with touch on tablets **[LAUNCH]**") and VISION wins:
+  touch map painting is IN launch scope, and mobile should be "as featured as possible within the
+  limitations". It remained correct as a description of _this_ arc — no mobile authoring was built
+  here — but it is no longer the project's position. The work is planned in
+  [mobile-authoring-arc.md](./mobile-authoring-arc.md); the touch event layer it needed now exists
+  and is iPhone-verified.
 - No hex/iso terrain painting (square grids only, same constraint the Studio brush has today).
 - No auto-merge of overlapping walls when rooms adjoin (overlapping segments both block — harmless, accepted).
 
@@ -90,16 +98,16 @@ No raster is ever produced in live mode. Publish-with-raster (the Studio button)
 
 - **New bespoke wall/door messages outside Map Studio** (like `draw`): would fork map state into two systems, lose undo/revisions/validation, and orphan the Studio. Rejected.
 - **Auto-raster republish per edit:** client-side bake is an SVG render + canvas decode + PNG encode + upload per edit — janks the DM's browser on big maps (recon-measured pipeline in `exportMapDocument.ts:167-205`). Rejected.
-- **Editing the compiled scene directly** (like `set-door-state` does): loses the document as source of truth, breaks undo and Studio interop. Rejected. (`toggle-door`/`set-door-state` stay as the *runtime* channel; documents stay the *authoring* channel.)
+- **Editing the compiled scene directly** (like `set-door-state` does): loses the document as source of truth, breaks undo and Studio interop. Rejected. (`toggle-door`/`set-door-state` stay as the _runtime_ channel; documents stay the _authoring_ channel.)
 
 ---
 
 ## 3. The three coordinate spaces (memorize this)
 
-| Space | Used by | Convert |
-|---|---|---|
-| **Screen px** | Konva Stage pointer events | → world: `toWorld(sx, sy)` = `{(sx-cam.x)/cam.scale, (sy-cam.y)/cam.scale}` — [useCamera.ts:65-68](../../apps/client/src/hooks/useCamera.ts) |
-| **World px** | camera plane; drawings; token render (`cell*gridSize + gridSize/2`) | → document: `inverseTransformScenePoint(mapTransform ?? IDENTITY, point)` — [sceneGeometry.ts:112-124](../../packages/shared/src/sceneGeometry.ts); identity when no raster map object exists (always true for toolbar-created live maps) |
+| Space           | Used by                                                                                                         | Convert                                                                                                                                                                                                                                                                                                                 |
+| --------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Screen px**   | Konva Stage pointer events                                                                                      | → world: `toWorld(sx, sy)` = `{(sx-cam.x)/cam.scale, (sy-cam.y)/cam.scale}` — [useCamera.ts:65-68](../../apps/client/src/hooks/useCamera.ts)                                                                                                                                                                            |
+| **World px**    | camera plane; drawings; token render (`cell*gridSize + gridSize/2`)                                             | → document: `inverseTransformScenePoint(mapTransform ?? IDENTITY, point)` — [sceneGeometry.ts:112-124](../../packages/shared/src/sceneGeometry.ts); identity when no raster map object exists (always true for toolbar-created live maps)                                                                               |
 | **Document px** | MapDocument element transforms, wall points, door width, compiledScene geometry, mapTerrain lattice, fog bounds | → terrain cell: `floor((p - grid.offsetX) / grid.size)` — the exact math in [useTerrainBrush.ts:21-39](../../apps/client/src/features/map-studio/components/useTerrainBrush.ts); → snapped px: `snapPointToGrid(point, document.grid)` — [snapToGrid.ts:10-22](../../apps/client/src/features/map-studio/snapToGrid.ts) |
 
 Plus **grid cells** for tokens/props only: `token.x/y` are cells on the LIVE lattice (`state.gridSize`, origin world 0,0). Tools in this plan never touch token coords; you only care that `state.gridSize` is set from `toLiveGridSize(document.grid.size)` at compile time, so keep the live document's `grid.size` equal to the room's `gridSize` at creation (S2 does this) and the lattices coincide.
@@ -137,6 +145,7 @@ Plus **grid cells** for tokens/props only: `token.x/y` are cells on the LIVE lat
 **Deliverable:** new message `map-studio-set-live`, new `RoomState.liveMapDocumentId`, recompile-on-command, `preserveDoorRuntimeStates`, snapshot exposure of the binding to DMs, persistence, contract tests.
 
 **Context capsule (read these, nothing else):**
+
 - **Broadcast path (verified by the senior dev — do not re-derive):** the handler's return value flows `messageRouter.ts:290-300` (`mapStudioResult` → `handleRouteResult`) → `handleRouteResult` at `messageRouter.ts:369-391` → `routeResultHandler.handleResult` → debounced (16ms) per-recipient room snapshot broadcast + save. This is the exact path the publish case already uses, so returning `{ broadcast: true, save: true }` from the command case gives you a full room broadcast for free.
 - `apps/server/src/ws/handlers/MapStudioMessageHandler.ts` (174 LOC) — whole file. The `map-studio-command` case is at 64-72; the publish case at 85-96 is your recompile template:
   ```ts
@@ -158,6 +167,7 @@ Plus **grid cells** for tokens/props only: `token.x/y` are cells on the LIVE lat
 - Test conventions: `apps/server/src/ws/__tests__/visionChannels.contract.test.ts` (fake sockets `{readyState:1, send:vi.fn()}`, real Container, frame inspection) and `apps/server/src/domains/__tests__/roomModel.test.ts` (the secret-door disguise tests — extend, don't weaken).
 
 **Changes:**
+
 1. `packages/shared/src/index.ts`: add `| { t: "map-studio-set-live"; documentId: string | null }` to ClientMessage (next to map-studio-publish, ~561); add `liveMapDocumentId?: string` to RoomSnapshot.
 2. NEW `packages/shared/src/scenePublish.ts` (~60 LOC): `export function preserveDoorRuntimeStates(previous: CompiledScene | undefined, next: CompiledScene, authoredDoorIds: ReadonlySet<string>): CompiledScene` — for each door in `next`: if `previous` had a door with the same id AND the id is not in `authoredDoorIds`, keep the previous door's `state`. Also `export function authoredDoorIdsOf(command: MapStudioCommand, document: MapDocument): Set<string>` — `update-door` → `{elementId}`; `add-element`/`add-elements`/(later `place-room`) → ids of door-type elements in the command; everything else (incl. undo/redo) → empty set. Export both from `packages/shared/src/index.ts`. **Rebuild shared after.**
 3. `apps/server/src/ws/handlers/MapStudioMessageHandler.ts`: extract a private `recompileLiveScene(roomId, document, authoredDoorIds)` doing the five-line publish block minus `mapBackground`, using `preserveDoorRuntimeStates` and `deriveMapTerrain(document, "elements-only")`. Call it (a) in the `map-studio-command` case after a successful apply when `state.liveMapDocumentId === command.documentId` → return `{ broadcast: true, save: true }`; (b) in the new `map-studio-set-live` case: null → clear the field, `{broadcast: true, save: true}`; string → verify the document exists (`this.service.get` throws if not — catch and send a `map-studio-error`-style reply consistent with 115-129), set the field, recompile with empty authoredDoorIds. If this file threatens 350 lines, move `deriveMapTerrain` + `recompileLiveScene` into a new `apps/server/src/ws/handlers/mapStudioLiveScene.ts`.
@@ -166,6 +176,7 @@ Plus **grid cells** for tokens/props only: `token.x/y` are cells on the LIVE lat
 6. `StatePersistence.ts`: persist/restore the field.
 
 **Tests (new file `apps/server/src/ws/__tests__/liveMapBinding.contract.test.ts`, plus unit tests in `packages/shared/src/__tests__/scenePublish.test.ts`):**
+
 - shared unit: door state preserved by id; authored door takes the new state; removed doors drop; added doors keep authored state; undo preserves runtime states.
 - contract: DM binds doc → players receive compiledScene + mapTerrain in the next snapshot; DM sends `add-element` wall command → player snapshot's walls grow WITHOUT any publish message; a door opened via `toggle-door` stays open after an unrelated wall `add-element`; a `"secret"` door added live is disguised in the player payload with a `#0`-suffixed id (reuse the assertion style of roomModel.test.ts:92-121); non-DM sending `map-studio-set-live` is rejected; unbound rooms behave exactly as before (regression).
 - Extend `SnapshotCompressionGuard.test.ts` with a live scene (200 walls + 40 doors + 2000 terrain cells) staying under the 750KB gzip budget.
@@ -185,6 +196,7 @@ Plus **grid cells** for tokens/props only: `token.x/y` are cells on the LIVE lat
 **Goal:** the thinnest full vertical: DM clicks 🏗️ Map → palette opens → START LIVE MAP (creates/binds a document) → drags a wall → wall exists in the live scene; a player's fog changes. After this slice the architecture is proven; everything later is more tools on the same rails.
 
 **Context capsule:**
+
 - The pattern you are cloning, end to end: `apps/client/src/hooks/useDrawingTool.ts` (240 LOC, whole file — THE template: self-gating handlers, `toWorld`, ref-accumulated preview with rAF flush, send on mouseup), `apps/client/src/hooks/useDrawingStateManager.ts` (276 LOC — the glue-hook shape: takes `sendMessage`+mode+`setActiveTool`, returns `toolbarProps`+board props), `apps/client/src/features/drawing/components/DrawingToolbar.tsx` (279 LOC — DraggableWindow palette template).
 - Mode plumbing: `components/layout/Header.tsx` 11-19 (ToolMode union — add `"map-edit"`) and 185-194 (the DM-gated button pattern); `hooks/useToolMode.ts` 110-149 (derived booleans — add `mapEditMode`; note the global Escape listener at 123-136); `layouts/TopPanelLayout.tsx` 135 (palette mount point); `layouts/props/MainLayoutProps.ts` 91-110 (tool state block); `layouts/CenterCanvasLayout.tsx` 245-287 (MapBoard prop forwarding); `ui/MapBoard.types.ts` 23-59 (MapBoardProps); `ui/MapBoard.tsx` 244-261 (tool-hook mount point), 325-360 (useStageEventRouter wiring), 365-373 (cursor + tokenInteractionsEnabled), 628-652 (overlay Layer for previews).
 - Arbitration: `hooks/useStageEventRouter.ts` 175-218 (onStageClick priority chain — map-edit must be handled ABOVE the "no tools active → clear selection" branch at 192-201), 239 + 288 (`shouldPan` negations — add `!mapEditMode`).
@@ -195,6 +207,7 @@ Plus **grid cells** for tokens/props only: `token.x/y` are cells on the LIVE lat
 - Konva-mock test pattern: `features/map/components/__tests__/DoorsLayer.test.tsx` 14-33.
 
 **Changes (all new files ≤348 LOC):**
+
 1. `Header.tsx`: add `"map-edit"` to ToolMode; add DM-gated `🏗️ Map` button (toggle semantics).
 2. `useToolMode.ts`: derive `mapEditMode`.
 3. NEW `apps/client/src/features/map-edit/useMapEditState.ts` (~150): palette state — `activeSubTool: "room" | "wall" | "door" | "terrain" | "erase"` (this slice: wall only, but type the union now), selected floor family, wall/door defaults (`blocksMovement: true, blocksVision: true`, door `state: "closed"`); the **bind flow** — SEQUENCING MATTERS because every controller action no-ops until the server's `map-studio-document` reply activates the document: `startLiveMap()` — if `snapshot.liveMapDocumentId` exists → `controller.openDocument(it)` and done; else `pendingLiveId = controller.createDocument("Live Map", 8192, 8192)` and STOP — then an effect watches for `controller.activeDocument?.id === pendingLiveId` and only THEN sends `sendMessage({t:"map-studio-set-live", documentId: pendingLiveId})` followed by `controller.updateGrid({ size: currentRoomGridSize })` (set-live first so the grid command rides the S1 live-recompile hook and the table lattice self-corrects — §3). Also an effect: when `snapshot.liveMapDocumentId` is set and `controller.activeDocument?.id !== it`, `openDocument(it)` (rebind after reload).
@@ -205,6 +218,7 @@ Plus **grid cells** for tokens/props only: `token.x/y` are cells on the LIVE lat
 8. `useCursorStyle` (hooks/useCursorStyle.ts): crosshair in map-edit mode.
 
 **Tests:**
+
 - `features/map-edit/__tests__/useMapEditState.test.ts`: bind flow (creates doc + updates grid + sends set-live; reuses existing binding from snapshot; rebind-on-reload effect).
 - `features/map-edit/__tests__/useMapEditTool.test.ts`: inactive-mode no-op; snapped two-point drag calls `controller.addWall` with document-space draft (assert exact numbers incl. a non-identity mapTransform case); saving-gate skips commit; Escape cancels.
 - `features/map-edit/__tests__/MapEditPreviewLayer.test.tsx`: konva div-mock; preview geometry + `/cam.scale` widths.
@@ -238,6 +252,7 @@ Plus **grid cells** for tokens/props only: `token.x/y` are cells on the LIVE lat
 **Goal:** drag a rectangle → floor + wall perimeter, ONE undo step. This needs the one new command type, because floor is terrain (`paint-terrain`) and walls are elements (`add-elements`) and no cross-type batch exists (recon-verified).
 
 **Context capsule:**
+
 - New-command recipe (three mandatory sites, from recon): (1) union + dispatcher: `packages/shared/src/mapStudioCommands.ts` 35-55 (add `| (MapCommandBase & { type: "place-room"; cells: TerrainPaintCell[]; elements: MapElement[] })`) and the switch at 100-139; (2) mutation: `packages/shared/src/mapStudio.ts` — study `paintTerrain` (206-246) and `commit` (253-265); the element-add path lives in `mapStudioElements.ts` (`addMapElementsBatch`, see 13-121 incl. `requireEditableLayer`); (3) zod: `mapStudioValidators.ts` 174-258 — clone the `paint-terrain` cells schema (240-257) + the element schema used by `add-elements`, `.strict()`, caps cells ≤16384 / elements ≤5000.
 - **The one-commit subtlety:** `paintTerrain` and `addMapElementsBatch` each call `commit` (revision+1 each). The new mutation must apply BOTH then commit ONCE (one revision bump = one undo step). Refactor pattern: extract the non-committing core of each (e.g. `paintTerrainCells(document, cells)` returning the new terrain, and the batch-add element logic), have the existing functions call core+commit, and the new `placeRoom(document, cells, elements, timestamp)` call both cores + one commit. All-or-nothing: validate everything before mutating anything.
 - Geometry: `mapStudioWorkspaceUtils.ts` 137-148 `roomBoundsFromDrag` (inclusive cell bounds from a drag); wall perimeter = ONE `MapWallElement` whose `data.points` is the closed rect polyline `[TL, TR, BR, BL, TL]` (5 points, zeroed transform — `elementBuilders.ts:72-89` pattern) → compiles to 4 segments `${id}#0..3`; floor cells = every cell in bounds with the selected family's assetId (`"terrain:wood-floor"` etc. — ids in `features/map-studio/starterTiles.ts` 27-132).
@@ -293,6 +308,7 @@ Plus **grid cells** for tokens/props only: `token.x/y` are cells on the LIVE lat
 **Goal:** lock the whole arc in.
 
 **Changes:**
+
 1. NEW `apps/e2e/live-map-toolbar.smoke.spec.ts` (≤348 lines — spec files COUNT against the structure guard): DM joins (helpers.ts patterns, `elevateToDM`), activates map-edit, starts live map, drags a room rect on the Stage (Playwright mouse on canvas coordinates), asserts via `window.__HERO_BYTE_E2E__` snapshot polling: compiledScene.walls length grows, mapTerrain present; second (player) page: fog behavior + door click round-trip after placing a door. Keep it serial-safe (workers:1).
 2. Adding the spec to the PR smoke list (`.github/workflows/ci.yml:157`) is an OWNER decision — propose it in the handoff, don't edit CI unilaterally.
 3. Update `docs/planning/map-studio-roadmap.md` with a short "live map toolbar shipped" note + this doc's link; note the raster-hybrid and vertex-editing deferrals.
@@ -305,7 +321,7 @@ Plus **grid cells** for tokens/props only: `token.x/y` are cells on the LIVE lat
 
 ## 5B. Phase 2 — Studio parity, then retirement (S9–S13)
 
-Owner decision (2026-07-11): the Map Studio *scene* is removed once the palette reaches parity. The engine — documents, commands, validation, history, compile — is untouched forever; only the separate editor UI dies. Sequencing rule: **parity before removal**; every slice here keeps the Studio working until S13 deletes it.
+Owner decision (2026-07-11): the Map Studio _scene_ is removed once the palette reaches parity. The engine — documents, commands, validation, history, compile — is untouched forever; only the separate editor UI dies. Sequencing rule: **parity before removal**; every slice here keeps the Studio working until S13 deletes it.
 
 ---
 
@@ -314,6 +330,7 @@ Owner decision (2026-07-11): the Map Studio *scene* is removed once the palette 
 **Goal:** with no raster and no Studio, players must SEE tiles, stamps, shapes, and player-visible text live — today those render at the table only via the baked raster (recon-verified). Extend the live snapshot with a sanitized, player-safe element list and render it at the table. This is a protocol change with secrecy implications — the most senior-review-worthy slice in Phase 2.
 
 **Context capsule:**
+
 - What exists: RoomSnapshot already carries `mapTerrain` (data path) and `compiledScene`; `assets`/`assetRefs` (`packages/shared/src/index.ts` 311-322, `model.ts:271`) are ONLY a dedup channel for background/drawing payloads — do not extend them. Uploaded images resolve as same-origin `/assets/<hash>` URLs (the client helper `uploadedAssetUrl` lives in `features/map-studio/uploads/`); starter tile assets are bundled client data with fills/strokes (`features/map-studio/starterTiles.ts` 27-132). Props already render uploaded images at the table via `use-image` (`PropsLayer.tsx:50`) — same mechanism.
 - Element shapes to render: `packages/shared/src/mapStudioTypes.ts` 47-98 — `MapTileElement {assetId, columns, rows}` (sized in CELLS of the document grid — the snapshot field must carry the grid like `MapTerrainSnapshot` does), `MapStampElement {assetId, width, height}` (document px), `MapShapeElement` (points/stroke/fill/opacity), `MapTextElement {text, color, fontSize, visibleToPlayers}`.
 - Privacy rules (these ARE the security contract): exclude `element.hidden`; exclude elements on layers with `visible: false` (render semantics — the OPPOSITE of compile's rule, which ignores layer visibility for blocking; both are correct, do not unify — see `sceneCompiler.ts:1-8`); exclude entire layers of kind `"notes"`; exclude text with `visibleToPlayers: false`; walls/doors/lights excluded (walls are DM-overlay + blocking only, doors ride `compiledScene`, lights don't render at the table yet). Carry per-layer `opacity` and render in layer `zIndex` order.
@@ -322,6 +339,7 @@ Owner decision (2026-07-11): the Map Studio *scene* is removed once the palette 
 - Budget: `SnapshotCompressionGuard.test.ts` (extend), 750KB guard; element lists are references + numbers — small.
 
 **Changes:**
+
 1. NEW shared type `MapElementsSnapshot` in `packages/shared/src/index.ts`: `{ grid: { size: number; offsetX: number; offsetY: number }; layers: Array<{ opacity: number; elements: RenderableMapElement[] }> }` where `RenderableMapElement` is a narrowed union of tile/stamp/shape/text with only render-relevant fields (id, transform, data). Add `mapElements?: MapElementsSnapshot` to RoomSnapshot.
 2. `packages/shared/src/scenePublish.ts` (from S1): add `deriveMapElements(document: MapDocument): MapElementsSnapshot | undefined` implementing the privacy rules above (pure; return undefined when nothing is visible). **Rebuild shared.**
 3. Server: `recompileLiveScene` also sets `state.mapElements` (new RoomState field, persisted like `mapTerrain`); attach in `toSnapshot` for ALL recipients (it is player-safe by construction).
@@ -353,12 +371,13 @@ Owner decision (2026-07-11): the Map Studio *scene* is removed once the palette 
 
 **Context capsule:** S4's `place-room` command and `roomBuilder.ts`; `roomBoundsFromDrag` (`mapStudioWorkspaceUtils.ts:137-148`); `buildScatterDrafts` (S10); `place-room` accepts arbitrary `cells` + `elements` — hallways and populate are CLIENT-side geometry feeding the SAME command (no new server work).
 **Changes:**
+
 1. `"hallway"` sub-tool in `useMapEditTool` + NEW `features/map-edit/hallwayBuilder.ts` (~120, pure): drag along an axis → floor cells (default width 2 cells, adjustable 1–4 in the palette) + TWO wall polylines (the long sides only — open ends so hallways junction with rooms; walls stop at the drag ends). Snap the axis to horizontal/vertical (dominant drag direction); L-shaped hallways = two drags (v1 keeps it dumb).
-2. **POPULATE** action in the palette: applies to the last-placed room/hallway (track its bounds + element ids in palette state) or to a fresh drag-rect; builds a deterministic population — seeded scatter of stamps from a chosen category (e.g. *Dungeon Dressing*), density low/med/high, seeded from the bounds origin so identical inputs produce identical results — emitted as ONE `add-elements`. NEW `features/map-edit/populateRoom.ts` (~100, pure): takes bounds + density + category assets + seed → drafts, keeping a clear margin along walls (inset 0.5 cell) and never covering door cells (pass the room's door segments in, skip cells within 1 cell of them).
+2. **POPULATE** action in the palette: applies to the last-placed room/hallway (track its bounds + element ids in palette state) or to a fresh drag-rect; builds a deterministic population — seeded scatter of stamps from a chosen category (e.g. _Dungeon Dressing_), density low/med/high, seeded from the bounds origin so identical inputs produce identical results — emitted as ONE `add-elements`. NEW `features/map-edit/populateRoom.ts` (~100, pure): takes bounds + density + category assets + seed → drafts, keeping a clear margin along walls (inset 0.5 cell) and never covering door cells (pass the room's door segments in, skip cells within 1 cell of them).
 3. Palette: hallway width control, populate density + category, POPULATE button.
-**Tests:** hallwayBuilder pure tests (horizontal/vertical/1-wide/snapped-axis; wall polylines open-ended, exact points); populateRoom determinism (same seed → identical drafts), margin + door-avoidance rules; one-undo per action.
-**Done when:** manual: room → hallway off its side → POPULATE → crates and barrels appear along the hallway, live on the player screen; three Ctrl+Z's unwind populate, hallway, room in order.
-**Traps:** determinism (no Math.random — thread the seed); populate emits `add-elements`, NOT `place-room` (no terrain change → door-state preservation irrelevant); hallway walls must NOT close the ends.
+   **Tests:** hallwayBuilder pure tests (horizontal/vertical/1-wide/snapped-axis; wall polylines open-ended, exact points); populateRoom determinism (same seed → identical drafts), margin + door-avoidance rules; one-undo per action.
+   **Done when:** manual: room → hallway off its side → POPULATE → crates and barrels appear along the hallway, live on the player screen; three Ctrl+Z's unwind populate, hallway, room in order.
+   **Traps:** determinism (no Math.random — thread the seed); populate emits `add-elements`, NOT `place-room` (no terrain change → door-state preservation irrelevant); hallway walls must NOT close the ends.
 
 ---
 
@@ -391,6 +410,7 @@ Owner decision (2026-07-11): the Map Studio *scene* is removed once the palette 
 Independent of the map-toolbar arc: a visual/UX pass the senior dev ran by driving the live app in desktop (1280×800) and mobile (375×812) viewports, as player and DM. Findings below are **observed, not guessed** — each slice says what was measured. These slices can run in parallel with S1–S13; they touch different files. Order within Phase 3 is by value (V1 first). "Mobile" here means the `MobileLayout` path (`isMobile` at App.tsx:300-333); desktop is `MainLayout`.
 
 **Cross-cutting standard for this phase (apply in every slice):**
+
 - **Touch target floor: 44×44 CSS px** (Apple HIG / Material). Measured violations are listed per slice.
 - **Type floor: 12px body, 11px meta, never below 11px.** Measured 8px labels exist today.
 - **Prefer CSS over JS.** Most of this is `theme/herobyte.css` and inline-style edits, not logic — low-risk for junior models, but every change must be checked in BOTH viewports (resize the Browser pane to mobile 375×812 and desktop 1280×800).
@@ -404,6 +424,7 @@ Independent of the map-toolbar arc: a visual/UX pass the senior dev ran by drivi
 **Measured today (mobile 375×812, at the gate):** password input 287×**42**, "Enter Room" 261×**40**, "Copy invite link" 236×**28**, room chips ~158×**32**, "Forget" ✕ 29×**32**, "▦ New Table" 171×**32**, "Table code" input 158×**29**, "Join" 72×**29**. All under the 44px height floor.
 
 **Context capsule:**
+
 - `apps/client/src/features/auth/AuthenticationGate.styles.ts` — the gate's shared styles: input padding `12px`/fontSize `1rem` (:50-51, :62-64), button styles. Bumping vertical padding to hit 44px lives here.
 - `apps/client/src/features/auth/AuthGate.tsx` — the gate markup (inputs/buttons already use those styles); the create-form and reclaim button added this session live here too.
 - `apps/client/src/features/rooms/RoomLobby.tsx` 45-66 — `chipButtonStyle` (padding `6px 10px`), `smallButtonStyle` (padding `6px 8px`), `labelStyle`. These produce the 32px chips. The create-form inputs (198-240) use inline `padding: 6px 8px` — bump them.
@@ -424,6 +445,7 @@ Independent of the map-toolbar arc: a visual/UX pass the senior dev ran by drivi
 **Measured today:** `grep devicePixelRatio` across `apps/client/src/ui/MapBoard.tsx`, `apps/client/src/features/render/**`, and `useElementSize.ts` returns **zero hits**. The Konva `<Stage>` (MapBoard.tsx:492-505) is created at CSS-pixel `width={w} height={h}` with no `pixelRatio`, so its backing store is 1× and the browser upscales it.
 
 **Context capsule:**
+
 - `apps/client/src/ui/MapBoard.tsx` 492-505 — the `<Stage>`. Konva accepts a `pixelRatio` prop (or `Konva.pixelRatio` global / `layer.getCanvas().setPixelRatio`). Set it to `window.devicePixelRatio` (clamped, e.g. `Math.min(window.devicePixelRatio || 1, 3)` to cap memory on 3× phones).
 - `apps/client/src/features/render/tileRenderCore.ts` — the standalone 2D-context terrain renderer already does device-pixel snapping in places (recon noted "device-pixel snap"); confirm the terrain bake path and any offscreen canvases also honor DPR, or terrain will be crisp while tokens are soft (or vice-versa). The procedural bake (`proceduralTerrainSurface.ts`) has hard pixel caps (8192/32M) — multiplying by DPR could blow them; clamp bake dimensions AFTER applying DPR.
 - The FROZEN test `terrainRenderParity.frozen.test.ts` pins terrain SVG **path strings**, not pixel ratios — DPR changes to the Konva raster path should not touch it, but run `pnpm lint` (frozen gate) after to be sure.
@@ -442,6 +464,7 @@ Independent of the map-toolbar arc: a visual/UX pass the senior dev ran by drivi
 **Measured today:** `useElementSize.ts:22` seeds `{ w: 800, h: 600 }` — a magic default that renders before the `ResizeObserver` (:25-32) fires. There is **no `window.resize` fallback** and no orientation-change handling. (In the headless test browser ResizeObserver didn't fire at all, exposing the 800×600 default — a real device fires RO, but the default still flashes on first paint and the lack of a fallback is fragile.)
 
 **Context capsule:**
+
 - `apps/client/src/hooks/useElementSize.ts` (whole file, 40 LOC) — the only sizing source, consumed at MapBoard.tsx:111.
 - Mobile container chain (measured): `.mobile-map-surface` (position:absolute, 375×812) → `.map-canvas-wrapper` → the observed div. Desktop uses the MainLayout center region. The observed element must be `position: relative/absolute` with a definite size for RO to report correctly.
 
@@ -459,6 +482,7 @@ Independent of the map-toolbar arc: a visual/UX pass the senior dev ran by drivi
 **Measured today:** the DM menu is a `DraggableWindow` (DMMenu.tsx:2) — a drag-by-titlebar floating window — rendered on mobile too. Dragging a window by a tiny titlebar is hostile on touch. Separately, at 375px I observed the **Map tools sheet and the Party panel open at the same time** (both present in the a11y tree) — there's no single-sheet arbitration, so panels stack and fight for the bottom of a tiny screen.
 
 **Context capsule:**
+
 - `apps/client/src/features/dm/components/DMMenu.tsx` (DraggableWindow at :2, tabs at :9) and `DMMenu.types.ts` — the DM surface. On mobile it should render as a bottom sheet, not DraggableWindow.
 - `apps/client/src/layouts/MobileLayout.tsx` — mobile mounts (DM menu ~229, tool sheet, party/selection sheets ~205-266). This is where a single "active mobile sheet" state belongs.
 - `apps/client/src/components/layout/MobileFloatingControls.tsx` — the dock (measured good: 63×68) + `.mobile-tool-sheet` (good: 44px targets). This is the sheet PATTERN to reuse for Party/DM/Dice/Log/View so they're consistent.
@@ -479,6 +503,7 @@ Independent of the map-toolbar arc: a visual/UX pass the senior dev ran by drivi
 **Measured today:** the mobile tool sheet reports a **minFont of 8px** (icon captions); the auth gate bottoms out at 12px. 8px is unreadable on a phone.
 
 **Context capsule:**
+
 - `apps/client/src/theme/herobyte.css` — the `.mobile-tool-sheet__button` label styles (~1260) and any `font-size` under the mobile media queries (549, 567). Raise sub-11px sizes to ≥11px (meta) / ≥12px (labels).
 - `apps/client/src/features/auth/AuthenticationGate.styles.ts` — gate font sizes (0.85rem hints etc.).
 - Party panel (`features/players/components`) — long character names ("Adventurer", custom names) need `text-overflow: ellipsis; overflow: hidden; white-space: nowrap` on their containers so a long name doesn't push the HP/EDIT controls off-screen.
@@ -497,6 +522,7 @@ Independent of the map-toolbar arc: a visual/UX pass the senior dev ran by drivi
 **Measured today:** the mobile dock sits at `y714` in a 812-tall viewport (bottom ~86px) with no `env(safe-area-inset-bottom)` padding — on a notched iPhone the home indicator overlaps it. No landscape-specific layout was observed. (Reduced-motion is already wired via `data-motion` from the earlier juice work — this slice just verifies it covers the mobile sheets/transitions too.)
 
 **Context capsule:**
+
 - `apps/client/src/theme/herobyte.css` — `.mobile-action-dock` (1153) and sheet positioning. Add `padding-bottom: env(safe-area-inset-bottom)` (and top for the notch where fixed headers sit); requires `<meta name="viewport" ... viewport-fit=cover>` in `apps/client/index.html` (check/add it).
 - `apps/client/index.html` — the viewport meta tag.
 - Landscape: the mobile dock + a full-height sheet in landscape (375×812 → 812×375) leaves almost no map. Add a `@media (orientation: landscape) and (max-height: 500px)` rule to slim the dock / make sheets side-drawers.
@@ -514,20 +540,20 @@ Independent of the map-toolbar arc: a visual/UX pass the senior dev ran by drivi
 
 ## 6. Failure drills (when X happens, do Y — do not improvise)
 
-| Symptom | Cause | Fix |
-|---|---|---|
-| New WS message never reaches the handler, no error anywhere | not registered in `middleware/validation.ts` registry | add validator entry (§4.3) |
-| `map-studio-error` code `command-rejected` | zod `.strict()` rejected an extra/malformed field | diff your payload against the validator schema field-by-field |
-| Command seems applied but table doesn't change | doc isn't the live-bound one, or S1 hook not returning `{broadcast:true}` | check `state.liveMapDocumentId` vs `command.documentId` |
-| Repeated `revision-conflict` errors | something bypassed the single controller queue (second `useMapStudio`?) or two DMs racing (normal — auto-recovers via refetch) | ensure ONE controller instance; racing DMs are fine if it recovers |
-| Wall lands offset from cursor | a missing/extra hop in §3 (usually the `mapTransform` inverse or `gridSize/2` style half-cell logic) | log the point at each hop; compare against §3 table |
-| Camera pans while dragging a tool | mode missing from a `shouldPan` negation (there are TWO: mouse 239 + touch 288) | add it to both |
-| Doors all slam shut after an edit | `preserveDoorRuntimeStates` not applied on that path | every recompile call site must route through S1's helper |
-| Terrain invisible at the table | `deriveMapTerrain` returned undefined (terrain layer hidden/zero-opacity/empty) — correct behavior | check the document's terrain layer visibility |
-| Typecheck errors that make no sense after touching packages/shared | stale dist | `pnpm --filter @herobyte/shared build` |
-| `pnpm lint` fails on a file you never touched (frozen) | you changed terrain render output | fix the product code; NEVER edit the frozen test |
-| CI bundle-size gate fails | something editor-weight got statically imported into the entry graph | find it with `pnpm --filter herobyte-client build:check`; lazy-import it |
-| Client test batch runner fails randomly under parallel runs | test contention (known) | re-run serially; don't run `pnpm test` while other agents run tests |
+| Symptom                                                            | Cause                                                                                                                          | Fix                                                                      |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| New WS message never reaches the handler, no error anywhere        | not registered in `middleware/validation.ts` registry                                                                          | add validator entry (§4.3)                                               |
+| `map-studio-error` code `command-rejected`                         | zod `.strict()` rejected an extra/malformed field                                                                              | diff your payload against the validator schema field-by-field            |
+| Command seems applied but table doesn't change                     | doc isn't the live-bound one, or S1 hook not returning `{broadcast:true}`                                                      | check `state.liveMapDocumentId` vs `command.documentId`                  |
+| Repeated `revision-conflict` errors                                | something bypassed the single controller queue (second `useMapStudio`?) or two DMs racing (normal — auto-recovers via refetch) | ensure ONE controller instance; racing DMs are fine if it recovers       |
+| Wall lands offset from cursor                                      | a missing/extra hop in §3 (usually the `mapTransform` inverse or `gridSize/2` style half-cell logic)                           | log the point at each hop; compare against §3 table                      |
+| Camera pans while dragging a tool                                  | mode missing from a `shouldPan` negation (there are TWO: mouse 239 + touch 288)                                                | add it to both                                                           |
+| Doors all slam shut after an edit                                  | `preserveDoorRuntimeStates` not applied on that path                                                                           | every recompile call site must route through S1's helper                 |
+| Terrain invisible at the table                                     | `deriveMapTerrain` returned undefined (terrain layer hidden/zero-opacity/empty) — correct behavior                             | check the document's terrain layer visibility                            |
+| Typecheck errors that make no sense after touching packages/shared | stale dist                                                                                                                     | `pnpm --filter @herobyte/shared build`                                   |
+| `pnpm lint` fails on a file you never touched (frozen)             | you changed terrain render output                                                                                              | fix the product code; NEVER edit the frozen test                         |
+| CI bundle-size gate fails                                          | something editor-weight got statically imported into the entry graph                                                           | find it with `pnpm --filter herobyte-client build:check`; lazy-import it |
+| Client test batch runner fails randomly under parallel runs        | test contention (known)                                                                                                        | re-run serially; don't run `pnpm test` while other agents run tests      |
 
 ---
 
@@ -552,4 +578,4 @@ pnpm test                                # full suite
 pnpm test:e2e                            # serial; ports 5175/8788; passwords Fun1 / FunDM
 ```
 
-**Glossary:** *live-bound document* — the MapDocument named by `RoomState.liveMapDocumentId`, auto-compiled on every command. *Compiled scene* — server-enforced walls/doors/lights in document px produced by `compileScene`. *Elements-only publish* — terrain-as-data path (no raster) that live mode reuses. *Document px / world px / cells* — §3. *Field families* — VILLAGE_TERRAIN procedural terrains (grass, dirt, path, stone-floor, wood-floor). *One-in-flight queue* — useMapStudio's serial command dispatcher; the only legal way to send map-studio commands.
+**Glossary:** _live-bound document_ — the MapDocument named by `RoomState.liveMapDocumentId`, auto-compiled on every command. _Compiled scene_ — server-enforced walls/doors/lights in document px produced by `compileScene`. _Elements-only publish_ — terrain-as-data path (no raster) that live mode reuses. _Document px / world px / cells_ — §3. _Field families_ — VILLAGE_TERRAIN procedural terrains (grass, dirt, path, stone-floor, wood-floor). _One-in-flight queue_ — useMapStudio's serial command dispatcher; the only legal way to send map-studio commands.

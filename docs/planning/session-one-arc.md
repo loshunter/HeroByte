@@ -292,14 +292,40 @@ Mobile map authoring (`mobile-authoring-arc.md` M4–M8). A mobile DM menu. Redi
 Postgres. Signed session tokens. The 50×6 load test. Any new terrain family, prop kit or mood
 palette.
 
-## 7. Open decisions — ask the owner, do not assume
+## 7. Decisions — ANSWERED by the owner 2026-08-01
 
-1. **Does "launch" mean strangers, or friends-and-their-friends?** If open public beta, S1 is not
-   enough and an identity/hardening arc comes first. If invite-shaped (the Main Hall stays a demo;
-   real play happens in forked private tables), this arc is correct as ordered.
-2. **Does `VISION.md:46` ("terrain painting works with touch on tablets `[LAUNCH]`") still stand,
-   or does `live-map-toolbar-plan.md:44` ("desktop-only — explicit decision")?** They contradict
-   each other and neither was amended. Whichever wins, **amend the loser.**
+1. **Launch is a friends-scale soft launch.** Invite-shaped: the Main Hall stays a public demo,
+   real play happens in forked private tables. The threat model is "people I invited", which the
+   existing scrypt + per-room-secret design holds against. So S1 is sufficient for launch, and
+   signed session tokens, report/ban tooling and per-IP hardening beyond S1 stay in a later
+   identity arc rather than jumping the queue.
+
+2. **Touch map painting is IN launch scope.** `VISION.md:46` wins;
+   `live-map-toolbar-plan.md:44`'s "desktop-only — explicit decision" is struck through and
+   annotated as overturned. The owner's framing: _"as featured as possible within the
+   limitations."_ See §7a.
+
+### 7a. What "as featured as possible within the limitations" means for this arc
+
+Mobile is no longer a viewing client, so **every slice here ships its mobile surface in the same
+slice — not as a follow-up.** Retrofitting a mobile path later is how the drawing toolbar ended up
+with six of ten controls off-screen. Concretely:
+
+- S2 chat renders as a second tab in the existing roll-log panel, so the mobile dock gets it free.
+- S3 upload must accept a phone's camera roll, not just a desktop file picker.
+- S4 nameplates must stay legible at 375px, not just on a 1440px canvas.
+- S6 templates and S7 vision are canvas-side and work on touch already via the gesture router —
+  but any new _control_ they add needs a mobile home.
+
+The mobile authoring arc itself (`mobile-authoring-arc.md` M3–M8) is now a launch commitment and
+runs **after** this arc, for one reason: it improves _authoring_ on a table that still cannot chat,
+upload a face, or read a token's name. Fix the game, then finish the port. The touch event layer it
+depends on is already built and iPhone-verified.
+
+Interpretation to confirm if it matters: "within the limitations" reads as _support both form
+factors, degrade gracefully_ — the full palette on a tablet, and on a phone the paint/room/wall
+subset that actually fits, with the genuinely hostile surfaces (brush-deck search, the six-field
+inspector, Generate's region aim) left tablet-and-up. That is a design stance, not a quote.
 
 ## 8. Method that works in this repo
 

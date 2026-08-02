@@ -512,19 +512,29 @@ without: publish-to-live (`MapStudioControl.tsx:298-306`), grid size (`MapTab.ts
 
 ---
 
-## 5. Open questions for the owner
+## 5. Questions for the owner
 
-1. **Tablet-only, or phones too?** `App.tsx:384` routes every coarse-pointer device up to 1024px
-   into `MobileLayout`, and there is zero tablet CSS (narrowest adaptation is 420px). Tablet-only
-   means a third layout tier that can reuse much of the desktop palette at width — a much smaller
-   job. Phone-inclusive means the full Blocker-3 redesign (673–740px of palette + inspector against
-   a 710px portrait ceiling, 273px in landscape). Materially different arcs.
+**Q1 and Q2 were ANSWERED 2026-08-01. Q3 and Q4 remain open.**
 
-2. **`VISION.md:46` vs `live-map-toolbar-plan.md:44` — which governs, and is the target parity or a
-   subset?** VISION commits `[LAUNCH]` to "terrain painting works with touch on tablets"; the arc
-   plan fences mobile authoring out entirely. If the answer is "paint + rooms only" (M4 + M6),
-   that is roughly a third of the work of full parity — and one of the two docs needs amending
-   either way.
+1. ~~**Tablet-only, or phones too?**~~ **ANSWERED: both, degrading gracefully.** The owner's
+   framing is "as featured as possible within the limitations". That means the full palette on a
+   tablet, and on a phone the subset that genuinely fits — the drag-shaped tools (paint, room,
+   wall, hall) plus whatever the sheet shell can hold at 375px. The surfaces the audit found
+   genuinely hostile on a phone (the brush deck's hover-preview and typed search, the Inspector's
+   six numeric fields, Generate's ≥20×20-cell region aim) are tablet-and-up rather than
+   force-fitted. Do NOT gate authoring behind a width check — gate individual tools.
+
+2. ~~**`VISION.md:46` vs `live-map-toolbar-plan.md:44`?**~~ **ANSWERED: VISION wins.** Touch map
+   painting is in launch scope. `live-map-toolbar-plan.md:44` is struck through and annotated as
+   overturned. The target is a useful subset, not desktop parity: **paint + rooms + walls first**
+   (roughly M4 + M6), with the rest earning its way in.
+
+**Sequencing decided with it:** this arc runs AFTER the Session One arc
+([session-one-arc.md](./session-one-arc.md)) — mobile authoring improves _authoring_ on a table
+that still cannot chat, upload a face, or read a token's name. Session One raises the floor for
+every device; this finishes the port. The touch event layer this arc needed is already built and
+iPhone-verified (drawing + marquee select), so M1–M2 are done and M3 is partly done: the wrapping
+grid pattern the sheet shell needs now exists in `.mobile-drawing-sheet`.
 
 3. **Does a mobile DM get the DM Menu, or only map authoring?** Today a mobile DM has _no_ DM
    surface: no background, grid, fog, alignment, staging zone, NPC/prop CRUD, combat start/end,
