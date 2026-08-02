@@ -76,6 +76,7 @@ describe("MessageRouter - Error Handling Characterization", () => {
       gridSize: 50,
       gridSquareSize: 5,
       diceRolls: [],
+      chatLog: [],
       drawingUndoStacks: {},
       drawingRedoStacks: {},
       sceneObjects: [],

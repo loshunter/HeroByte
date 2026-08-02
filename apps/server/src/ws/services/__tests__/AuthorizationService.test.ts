@@ -44,6 +44,7 @@ describe("AuthorizationService", () => {
       gridSize: 50,
       gridSquareSize: 5,
       diceRolls: [],
+      chatLog: [],
       drawingUndoStacks: {},
       drawingRedoStacks: {},
       sceneObjects: [],

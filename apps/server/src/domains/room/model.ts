@@ -13,6 +13,7 @@ import type {
   Pointer,
   Drawing,
   DiceRoll,
+  ChatMessage,
   Character,
   Prop,
   SceneObject,
@@ -43,6 +44,7 @@ export interface RoomState {
   gridSize: number; // Synchronized grid size
   gridSquareSize: number; // How many feet per grid square (default: 5ft)
   diceRolls: DiceRoll[]; // Dice roll history
+  chatLog: ChatMessage[]; // Table chat, unfiltered (whispers stripped per recipient)
   drawingUndoStacks: Record<string, DrawingOperation[]>; // Per-player undo history
   drawingRedoStacks: Record<string, DrawingOperation[]>; // Per-player redo history
   sceneObjects: SceneObject[]; // Unified scene graph
@@ -78,6 +80,7 @@ export function createEmptyRoomState(): RoomState {
     gridSize: 50,
     gridSquareSize: 5, // Default: 5 feet per square (D&D standard)
     diceRolls: [],
+    chatLog: [],
     drawingUndoStacks: {},
     drawingRedoStacks: {},
     sceneObjects: [],
@@ -128,6 +131,7 @@ export function toSnapshot(
     gridSize: state.gridSize,
     gridSquareSize: state.gridSquareSize,
     diceRolls: state.diceRolls,
+    chatLog: view.chatLog,
     sceneObjects: view.sceneObjects,
     selectionState: view.selectionState,
     playerStagingZone: state.playerStagingZone ?? undefined,

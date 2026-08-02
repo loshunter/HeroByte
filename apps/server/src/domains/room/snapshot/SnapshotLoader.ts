@@ -121,6 +121,13 @@ export class SnapshotLoader {
       gridSize: snapshot.gridSize ?? 50,
       gridSquareSize: snapshot.gridSquareSize ?? currentGridSquareSize,
       diceRolls: snapshot.diceRolls ?? [],
+      // A snapshot's chatLog is already recipient-filtered. This path restores
+      // a session file and seeds a table fork, and BOTH are built from
+      // createSnapshot() — which passes no recipient uid, so visibleChatFor
+      // fails closed and strips every whisper. That is the intended outcome:
+      // a fork is a new table, and someone's private aside should not follow
+      // the furniture into it.
+      chatLog: snapshot.chatLog ?? [],
       drawingUndoStacks: {},
       drawingRedoStacks: {},
       sceneObjects: snapshot.sceneObjects ?? currentState.sceneObjects,

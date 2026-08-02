@@ -16,6 +16,7 @@ import { isRecord } from "./validators/index.js";
 
 // Token validators
 import { validateForkTableMessage } from "./validators/forkValidators.js";
+import { validateChatMessage, validateClearChatLogMessage } from "./validators/chatValidators.js";
 import {
   validateMoveMessage,
   validateRecolorMessage,
@@ -251,6 +252,12 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   // ==========================================================================
   "dice-roll": validateDiceRollMessage,
   "clear-roll-history": validateRoomControlMessage,
+
+  // ==========================================================================
+  // CHAT MESSAGES
+  // ==========================================================================
+  chat: validateChatMessage,
+  "clear-chat-log": validateClearChatLogMessage,
   "rtc-signal": validateRtcSignalMessage,
 };
 

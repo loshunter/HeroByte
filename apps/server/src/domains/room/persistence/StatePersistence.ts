@@ -104,6 +104,7 @@ export class StatePersistence {
           gridSize: data.gridSize || 50,
           gridSquareSize: data.gridSquareSize || 5,
           diceRolls: data.diceRolls || [],
+          chatLog: data.chatLog || [],
           drawingUndoStacks: {},
           drawingRedoStacks: {},
           sceneObjects,
@@ -197,6 +198,11 @@ export class StatePersistence {
       gridSize: state.gridSize,
       gridSquareSize: state.gridSquareSize,
       diceRolls: state.diceRolls,
+      // Chat survives a restart for the same reason initiative does: a crash
+      // mid-session must not silently erase what the table said. Whispers are
+      // included — this file is server-local, and the per-recipient filter
+      // runs on the way OUT, so nothing here reaches the wrong client.
+      chatLog: state.chatLog,
       sceneObjects: state.sceneObjects,
       playerStagingZone: state.playerStagingZone,
       compiledScene: state.compiledScene,

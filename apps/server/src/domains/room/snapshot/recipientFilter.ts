@@ -15,6 +15,7 @@
 
 import type {
   Character,
+  ChatMessage,
   Pointer,
   Prop,
   SceneObject,
@@ -36,6 +37,32 @@ export interface RecipientView {
   selectionState: SelectionState;
   /** Active combatant, but only when this recipient can actually resolve them. */
   currentTurnCharacterId: string | undefined;
+  /** Chat with other people's whispers removed. */
+  chatLog: ChatMessage[];
+}
+
+/**
+ * Whispers this recipient is a party to, plus every public message.
+ *
+ * FAILS CLOSED. `recipientUid` is legitimately undefined on real paths —
+ * `toSnapshot` defaults `isDM` to true, `createSnapshot()` passes no uid at
+ * all, and that unfiltered snapshot is what seeds a table fork and a session
+ * export. So "no identified recipient" must mean "no whispers", never "all
+ * whispers". The fog code deliberately does the opposite (an undefined uid
+ * disables filtering); copying that default here would leak every private
+ * message into forks, exports, and any future caller that forgets an
+ * argument.
+ *
+ * Note this ignores `isDM` on purpose. A DM is a player at the table, not an
+ * auditor of everyone's private conversations; granting blanket read would
+ * be a surveillance decision, and it is not this slice's to make.
+ */
+export function visibleChatFor(chatLog: ChatMessage[], recipientUid?: string): ChatMessage[] {
+  return chatLog.filter((message) => {
+    if (!message.to) return true; // public
+    if (!recipientUid) return false; // fail closed
+    return message.to === recipientUid || message.authorUid === recipientUid;
+  });
 }
 
 /**
@@ -201,5 +228,6 @@ export function buildRecipientView(
     sceneObjects: visibleSceneObjects,
     selectionState: visibleSelection,
     currentTurnCharacterId: visibleTurnCharacterId,
+    chatLog: visibleChatFor(state.chatLog, recipientUid),
   };
 }
