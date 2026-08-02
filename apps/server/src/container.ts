@@ -15,6 +15,7 @@ import { PropService } from "./domains/prop/service.js";
 import { SelectionService } from "./domains/selection/service.js";
 import { MessageRouter } from "./ws/messageRouter.js";
 import { RateLimiter } from "./middleware/rateLimit.js";
+import { createAuthWorkLimiter, type TokenBucketLimiter } from "./middleware/authWorkLimit.js";
 import { AuthService } from "./domains/auth/service.js";
 import { RoomRegistry } from "./domains/room/RoomRegistry.js";
 import { isRoomStatePristine } from "./domains/room/roomStatePristine.js";
@@ -43,6 +44,8 @@ export class Container {
 
   // Middleware
   public readonly rateLimiter: RateLimiter;
+  /** Per-IP budget for scrypt-priced auth work, shared by WS and HTTP (D7). */
+  public readonly authWorkLimiter: TokenBucketLimiter;
 
   // Infrastructure
   public readonly messageRouter: MessageRouter;
@@ -72,6 +75,7 @@ export class Container {
     roomRegistry?: RoomRegistry,
     mapStudioService?: MapStudioService,
     assetService?: AssetService,
+    authWorkLimiter?: TokenBucketLimiter,
   ) {
     // Initialize services (no dependencies between them).
     // A pre-hydrated RoomRegistry can be injected (bootstrap awaits
@@ -91,8 +95,10 @@ export class Container {
     this.mapStudioService = mapStudioService ?? new MapStudioService(new FileMapDocumentStore());
     this.assetService = assetService;
 
-    // Initialize middleware
+    // Initialize middleware. The auth-work limiter can be injected so the
+    // HTTP routes (built before this container) share the same budget.
     this.rateLimiter = new RateLimiter({ maxMessages: 100, windowMs: 1000 });
+    this.authWorkLimiter = authWorkLimiter ?? createAuthWorkLimiter();
 
     // Initialize WebSocket connection tracking
     this.uidToWs = new Map<string, WebSocket>();

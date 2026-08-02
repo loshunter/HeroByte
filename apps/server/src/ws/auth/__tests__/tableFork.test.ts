@@ -51,10 +51,10 @@ function setup(overrides: Partial<ForkTableDeps> = {}) {
 }
 
 describe("handleForkTable", () => {
-  it("copies the table's contents into the new private table", () => {
+  it("copies the table's contents into the new private table", async () => {
     const { ws, sent, rooms, deps } = setup();
 
-    handleForkTable(
+    await handleForkTable(
       ws,
       {
         roomId: "table-keeper",
@@ -76,10 +76,10 @@ describe("handleForkTable", () => {
     expect(copy.getState().isPublicTable).toBe(false);
   });
 
-  it("carries hidden NPCs across — the copy is the DM's view, not a player's", () => {
+  it("carries hidden NPCs across — the copy is the DM's view, not a player's", async () => {
     const { ws, rooms, deps } = setup();
 
-    handleForkTable(
+    await handleForkTable(
       ws,
       {
         roomId: "table-keeper",
@@ -93,7 +93,7 @@ describe("handleForkTable", () => {
     expect(copied.some((c) => c.name === "Hidden Ambusher")).toBe(true);
   });
 
-  it("copies the map documents — the live map is the thing worth keeping", () => {
+  it("copies the map documents — the live map is the thing worth keeping", async () => {
     const { ws, mapStudioService, deps } = setup();
     mapStudioService.create("default", {
       id: "doc-live-1",
@@ -102,7 +102,7 @@ describe("handleForkTable", () => {
       height: 1000,
     });
 
-    handleForkTable(
+    await handleForkTable(
       ws,
       {
         roomId: "table-keeper",
@@ -126,7 +126,7 @@ describe("handleForkTable", () => {
       assetService: { copyClaims } as unknown as ForkTableDeps["assetService"],
     });
 
-    handleForkTable(
+    await handleForkTable(
       ws,
       {
         roomId: "table-keeper",
@@ -139,10 +139,10 @@ describe("handleForkTable", () => {
     expect(copyClaims).toHaveBeenCalledWith("default", "table-keeper");
   });
 
-  it("leaves the source table untouched", () => {
+  it("leaves the source table untouched", async () => {
     const { ws, source, deps } = setup();
 
-    handleForkTable(
+    await handleForkTable(
       ws,
       {
         roomId: "table-keeper",
@@ -157,10 +157,10 @@ describe("handleForkTable", () => {
   });
 
   describe("refusals", () => {
-    it("refuses a non-DM", () => {
+    it("refuses a non-DM", async () => {
       const { ws, sent, deps } = setup({ isDM: false });
 
-      handleForkTable(
+      await handleForkTable(
         ws,
         {
           roomId: "table-keeper",
@@ -174,10 +174,10 @@ describe("handleForkTable", () => {
       expect(sent[0].reason).toMatch(/only the dm/i);
     });
 
-    it("refuses a blank name — the table has to be findable again", () => {
+    it("refuses a blank name — the table has to be findable again", async () => {
       const { ws, sent, deps } = setup();
 
-      handleForkTable(
+      await handleForkTable(
         ws,
         {
           roomId: "table-keeper",
@@ -190,10 +190,10 @@ describe("handleForkTable", () => {
       expect(sent[0].reason).toMatch(/name/i);
     });
 
-    it("refuses forking a table onto itself", () => {
+    it("refuses forking a table onto itself", async () => {
       const { ws, sent, deps } = setup();
 
-      handleForkTable(
+      await handleForkTable(
         ws,
         {
           roomId: "default",
@@ -206,7 +206,7 @@ describe("handleForkTable", () => {
       expect(sent[0]).toMatchObject({ t: "table-fork-failed" });
     });
 
-    it("reports the auth service's own rejection (bad password, table limit)", () => {
+    it("reports the auth service's own rejection (bad password, table limit)", async () => {
       const { ws, sent, deps } = setup({
         authService: {
           createRoom: vi.fn(() => {
@@ -215,7 +215,7 @@ describe("handleForkTable", () => {
         } as unknown as ForkTableDeps["authService"],
       });
 
-      handleForkTable(
+      await handleForkTable(
         ws,
         { roomId: "table-keeper", name: "Sunday Game", roomPassword: "no" },
         deps,
@@ -227,7 +227,7 @@ describe("handleForkTable", () => {
       });
     });
 
-    it("copies nothing when the table could not be minted", () => {
+    it("copies nothing when the table could not be minted", async () => {
       const { ws, rooms, deps } = setup({
         authService: {
           createRoom: vi.fn(() => {
@@ -236,7 +236,7 @@ describe("handleForkTable", () => {
         } as unknown as ForkTableDeps["authService"],
       });
 
-      handleForkTable(
+      await handleForkTable(
         ws,
         {
           roomId: "table-keeper",

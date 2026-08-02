@@ -7,8 +7,9 @@ import { getRoomSecret, getDefaultRoomId, getMaxCustomRooms } from "../../config
 import { resolveServerPath } from "../../config/serverPaths.js";
 import {
   ROOM_ID_PATTERN,
-  compareSecret,
+  compareSecretAsync,
   hashSecret,
+  hashSecretAsync,
   type RoomSecretRecord,
   type SecretSource,
   type StoredSecret,
@@ -56,8 +57,13 @@ export class AuthService {
   /**
    * Verify whether the provided secret matches the room's password (or the
    * default password when the room has not set its own).
+   *
+   * Async: the scrypt derivation runs on the libuv threadpool. This runs
+   * PRE-auth on every join attempt, so a synchronous version handed any
+   * stranger a ~30ms event-loop stall per guess — enough to freeze every
+   * room's broadcasts under a password loop.
    */
-  verify(secret: string, roomId?: string): boolean {
+  async verify(secret: string, roomId?: string): Promise<boolean> {
     if (!secret || typeof secret !== "string") {
       return false;
     }
@@ -69,15 +75,15 @@ export class AuthService {
       // so "know the link" alone can't get anyone in.
       const room = this.rooms[roomKey];
       if (room?.hash && room.salt) {
-        return compareSecret(secret, room as StoredSecret);
+        return compareSecretAsync(secret, room as StoredSecret);
       }
       // Non-existent custom room: spend the same scrypt work as a real compare
       // so latency doesn't reveal whether the code exists (timing oracle).
-      compareSecret(secret, this.timingGuard);
+      await compareSecretAsync(secret, this.timingGuard);
       return false;
     }
     // The default room (no roomId) uses the server-wide password.
-    return compareSecret(secret, this.secret);
+    return compareSecretAsync(secret, this.secret);
   }
 
   /**
@@ -100,7 +106,7 @@ export class AuthService {
    * The creator then authenticates with the room password like any player, and
    * elevates with the DM password.
    */
-  createRoom(roomId: string, roomPassword: string, dmPassword?: string): void {
+  async createRoom(roomId: string, roomPassword: string, dmPassword?: string): Promise<void> {
     const roomKey = this.roomKey(roomId);
     if (!roomKey) {
       throw new Error("Custom tables need a valid table code.");
@@ -124,15 +130,26 @@ export class AuthService {
       throw new Error("DM password must be between 8 and 128 characters.");
     }
 
+    const roomHash = await hashSecretAsync(trimmedRoom);
+    const dmHash = trimmedDm ? await hashSecretAsync(trimmedDm) : undefined;
+
+    // Re-check both taken-ness and the ceiling AFTER the awaits: two creates
+    // for the same code can now interleave at the hash, and without this the
+    // second would silently overwrite the first creator's password.
+    if (this.isRoomInitialized(roomId)) {
+      throw new Error("That table code is already taken. Try another.");
+    }
+    if (Object.keys(this.rooms).length >= getMaxCustomRooms()) {
+      throw new Error("This server is at its table limit right now. Please try again later.");
+    }
+
     const now = Date.now();
     const room: RoomSecretRecord = this.rooms[roomKey] ?? {};
-    const roomHash = hashSecret(trimmedRoom);
     room.hash = roomHash.hash;
     room.salt = roomHash.salt;
     room.updatedAt = now;
     room.source = "user";
-    if (trimmedDm) {
-      const dmHash = hashSecret(trimmedDm);
+    if (dmHash) {
       room.dmHash = dmHash.hash;
       room.dmSalt = dmHash.salt;
       room.dmUpdatedAt = now;
@@ -145,6 +162,11 @@ export class AuthService {
   /**
    * Update the room password (DM initiated).
    * Persists the hashed secret to disk for future restarts.
+   *
+   * Deliberately still synchronous: this is a rare, post-auth, DM-authorized
+   * action reached through the synchronous message-handler dispatch. A one-off
+   * ~30ms block on a password rotation is harmless; the flood-reachable paths
+   * (verify, verifyDMPassword, createRoom) are the async ones.
    */
   update(secret: string, roomId?: string): RoomPasswordSummary {
     const trimmed = secret.trim();
@@ -197,8 +219,9 @@ export class AuthService {
   /**
    * Verify whether the provided DM password matches the room's DM password
    * (or the default DM password when the room has not set its own).
+   * Async for the same event-loop reason as verify().
    */
-  verifyDMPassword(dmPassword: string, roomId?: string): boolean {
+  async verifyDMPassword(dmPassword: string, roomId?: string): Promise<boolean> {
     if (!dmPassword || typeof dmPassword !== "string") {
       return false;
     }
@@ -223,12 +246,13 @@ export class AuthService {
     } as StoredSecret;
 
     // Trim whitespace to match update behavior
-    return compareSecret(dmPassword.trim(), dmRecord);
+    return compareSecretAsync(dmPassword.trim(), dmRecord);
   }
 
   /**
    * Update the DM password.
    * Persists the hashed secret to disk for future restarts.
+   * Synchronous on purpose — same reasoning as update().
    */
   updateDMPassword(dmPassword: string, roomId?: string): RoomPasswordSummary {
     const trimmed = dmPassword.trim();
