@@ -12,6 +12,9 @@ const server = spawn(process.execPath, [serverEntry], {
   env: {
     ...process.env,
     NODE_ENV: "production",
+    // Production mode now refuses to boot without a data dir unless a
+    // diskless run is declared explicitly (D3) — this smoke check is one.
+    HEROBYTE_ALLOW_EPHEMERAL_DATA: "true",
     PORT: String(port),
     HEROBYTE_ROOM_SECRET: "ci-room-secret",
     HEROBYTE_DM_PASSWORD: "ci-dm-password",

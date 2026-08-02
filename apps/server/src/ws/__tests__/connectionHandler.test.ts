@@ -5,6 +5,7 @@ vi.mock("fs", () => ({
   writeFileSync: vi.fn(),
   readFileSync: vi.fn(),
   existsSync: vi.fn().mockReturnValue(false),
+  renameSync: vi.fn(),
 }));
 
 import type { Container } from "../../container.js";
@@ -303,5 +304,70 @@ describe("ConnectionHandler", () => {
     expect(container.uidToWs.has("user-4")).toBe(false);
     expect(deselectSpy).toHaveBeenCalledWith(state, "user-4");
     expect(broadcastSpy).toHaveBeenCalled();
+  });
+
+  it("keeps the player entity and tokens when a connected player times out", () => {
+    // D6: a 5-minute lid close used to delete the player's tokens (and, for a
+    // DM, every NPC token their uid owned). A timeout is now exactly a
+    // disconnection: roster and auth are cleared, game state survives.
+    const socket = new FakeWebSocket();
+    wss.emitConnection(socket, { url: "/?uid=user-5" });
+    socket.emit(
+      "message",
+      Buffer.from(JSON.stringify({ t: "authenticate", secret: "Fun1" } satisfies ClientMessage)),
+    );
+
+    const state = container.roomService.getState();
+    const player = state.players.find((p) => p.uid === "user-5");
+    expect(player).toBeDefined();
+    if (!player) throw new Error("Expected player after authentication");
+    player.lastHeartbeat = Date.now() - 6 * 60 * 1000;
+
+    broadcastSpy.mockClear();
+    vi.advanceTimersByTime(30_000);
+
+    // Disconnected: socket closed, roster and connection map cleared...
+    expect(socket.close).toHaveBeenCalled();
+    expect(state.users).not.toContain("user-5");
+    expect(container.uidToWs.has("user-5")).toBe(false);
+    expect(broadcastSpy).toHaveBeenCalled();
+
+    // ...but the player entity and their tokens are still there to reconnect to.
+    expect(state.players.some((p) => p.uid === "user-5")).toBe(true);
+    expect(state.tokens.some((t) => t.owner === "user-5")).toBe(true);
+
+    // Swept exactly once — a later sweep must not re-clean (and re-broadcast)
+    // the same already-disconnected player every 30 seconds forever.
+    broadcastSpy.mockClear();
+    vi.advanceTimersByTime(30_000);
+    expect(broadcastSpy).not.toHaveBeenCalled();
+  });
+
+  it("never sweeps players restored from disk who have not connected", () => {
+    // On boot every player loaded from disk carries a stale lastHeartbeat, so
+    // the old sweep wiped every restored token 30 seconds after a restart.
+    const state = container.roomService.getState();
+    state.players.push({
+      uid: "offline-player",
+      name: "Restored From Disk",
+      isDM: false,
+      statusEffects: [],
+      lastHeartbeat: Date.now() - 60 * 60 * 1000,
+    });
+    state.tokens.push({
+      id: "offline-token",
+      owner: "offline-player",
+      x: 3,
+      y: 4,
+      color: "#00ff00",
+      size: "medium",
+    });
+
+    broadcastSpy.mockClear();
+    vi.advanceTimersByTime(30_000);
+
+    expect(state.players.some((p) => p.uid === "offline-player")).toBe(true);
+    expect(state.tokens.some((t) => t.owner === "offline-player")).toBe(true);
+    expect(broadcastSpy).not.toHaveBeenCalled();
   });
 });

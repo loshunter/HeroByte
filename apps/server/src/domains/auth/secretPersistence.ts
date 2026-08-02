@@ -5,7 +5,7 @@
 // change) to keep the service under the file-size guard. The service owns the
 // in-memory state; these functions are the disk boundary.
 
-import { existsSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, readFileSync, renameSync, writeFileSync } from "fs";
 import { getRoomSecret, getDMPassword } from "../../config/auth.js";
 import {
   ROOM_ID_PATTERN,
@@ -130,7 +130,13 @@ export function persistSecretRecords(
       persistData.rooms = rooms;
     }
 
-    writeFileSync(storagePath, JSON.stringify(persistData, null, 2));
+    // tmp+rename so a crash mid-write can never truncate the secret file — a
+    // torn write here would lock every room (including custom rooms' only
+    // passwords) out on the next boot. Sync like the rest of this module;
+    // password changes are rare and not on a hot path.
+    const tmpPath = `${storagePath}.tmp`;
+    writeFileSync(tmpPath, JSON.stringify(persistData, null, 2));
+    renameSync(tmpPath, storagePath);
   } catch (error) {
     console.error("[Auth] Failed to persist room password:", error);
   }

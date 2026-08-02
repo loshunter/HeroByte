@@ -18,9 +18,11 @@ import { existsSync, unlinkSync, readFileSync, writeFileSync } from "fs";
 vi.mock("fs/promises", async () => {
   const actual = await vi.importActual<typeof import("fs/promises")>("fs/promises");
   const writeFileMock = vi.fn(actual.writeFile);
+  const renameMock = vi.fn(actual.rename);
   return {
     ...actual,
     writeFile: writeFileMock,
+    rename: renameMock,
   };
 });
 
@@ -56,9 +58,15 @@ describe("StatePersistence - Characterization Tests", () => {
     // Wait for any pending async file writes to complete
     await roomService.awaitPendingWrites();
 
-    // Clean up test state file
-    if (existsSync(TEST_STATE_FILE)) {
-      unlinkSync(TEST_STATE_FILE);
+    // Clean up test state file (and atomic-write/quarantine leftovers)
+    for (const leftover of [
+      TEST_STATE_FILE,
+      `${PROD_STATE_FILE}.tmp`,
+      `${PROD_STATE_FILE}.corrupt`,
+    ]) {
+      if (existsSync(leftover)) {
+        unlinkSync(leftover);
+      }
     }
 
     // Restore production state file if it existed
@@ -426,6 +434,24 @@ describe("StatePersistence - Characterization Tests", () => {
       consoleSpy.mockRestore();
     });
 
+    it("quarantines an unreadable state file so the next save cannot destroy it", () => {
+      // Before this behavior existed the loss was PERMANENT: the parse failure
+      // left the room empty and the next broadcast saved empty state over the
+      // only copy of the data.
+      const corruptBytes = '{"tokens": [{"id": "half-written';
+      writeFileSync(PROD_STATE_FILE, corruptBytes, "utf-8");
+
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      roomService.loadState();
+      consoleSpy.mockRestore();
+
+      // The unreadable bytes are preserved for manual recovery...
+      expect(readFileSync(`${PROD_STATE_FILE}.corrupt`, "utf-8")).toBe(corruptBytes);
+      // ...and the original path is clear, so subsequent saves start clean
+      // instead of overwriting the evidence.
+      expect(existsSync(PROD_STATE_FILE)).toBe(false);
+    });
+
     it("should rebuild scene graph after loading state", () => {
       const stateWithStagingZone = {
         tokens: [],
@@ -629,6 +655,65 @@ describe("StatePersistence - Characterization Tests", () => {
 
       writeFileSpy.mockImplementation(actualFs.writeFile);
       consoleSpy.mockRestore();
+    });
+
+    it("persists combat state across a RESTART, not just the session export path", async () => {
+      // D5: save used to omit combatActive/currentTurnCharacterId as
+      // "session-specific" while the explicit session export/import kept them —
+      // so a passing export round-trip was never evidence for restart safety.
+      const state = roomService.getState();
+      state.combatActive = true;
+      state.currentTurnCharacterId = "char-goblin-3";
+
+      roomService.saveState();
+      await roomService.awaitPendingWrites();
+
+      const restarted = new RoomService();
+      restarted.loadState();
+
+      expect(restarted.getState().combatActive).toBe(true);
+      expect(restarted.getState().currentTurnCharacterId).toBe("char-goblin-3");
+    });
+
+    it("stages the write in a .tmp file and renames it onto the state file", async () => {
+      roomService.saveState();
+      await roomService.awaitPendingWrites();
+
+      const writeFileSpy = fsPromises.writeFile as ReturnType<typeof vi.fn>;
+      const renameSpy = fsPromises.rename as ReturnType<typeof vi.fn>;
+
+      const lastWrite = writeFileSpy.mock.calls.at(-1);
+      expect(String(lastWrite?.[0])).toMatch(/herobyte-state\.json\.tmp$/);
+
+      const lastRename = renameSpy.mock.calls.at(-1);
+      expect(String(lastRename?.[0])).toMatch(/herobyte-state\.json\.tmp$/);
+      expect(String(lastRename?.[1])).toMatch(/herobyte-state\.json$/);
+    });
+
+    it("a crash between write and rename leaves the previous good file intact", async () => {
+      // Commit a known-good state.
+      roomService.setState({ gridSize: 61 });
+      roomService.saveState();
+      await roomService.awaitPendingWrites();
+
+      // Simulate dying mid-save: the tmp write lands but the rename never runs.
+      const renameSpy = fsPromises.rename as ReturnType<typeof vi.fn>;
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      renameSpy.mockRejectedValueOnce(new Error("simulated crash before rename"));
+
+      roomService.setState({ gridSize: 99 });
+      roomService.saveState();
+      await roomService.awaitPendingWrites();
+      consoleSpy.mockRestore();
+
+      // The state file still holds the last COMPLETED save — parseable, not torn.
+      const saved = JSON.parse(readFileSync(PROD_STATE_FILE, "utf-8"));
+      expect(saved.gridSize).toBe(61);
+
+      // And the room loads cleanly from it on the next boot.
+      const restarted = new RoomService();
+      restarted.loadState();
+      expect(restarted.getState().gridSize).toBe(61);
     });
 
     it("should serialize rapid save requests to avoid overlapping file writes", async () => {

@@ -12,6 +12,7 @@ vi.mock("fs", () => ({
   writeFileSync: vi.fn(),
   readFileSync: vi.fn(),
   existsSync: vi.fn().mockReturnValue(false),
+  renameSync: vi.fn(),
 }));
 vi.mock("fs/promises", () => ({
   writeFile: vi.fn().mockResolvedValue(undefined),

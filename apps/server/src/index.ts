@@ -13,6 +13,8 @@ import { createRoutes } from "./http/routes.js";
 import { Container } from "./container.js";
 import { ConnectionHandler } from "./ws/connectionHandler.js";
 import { isOriginAllowed } from "./config/security.js";
+import { assertDataDirUsable } from "./config/serverPaths.js";
+import { flushStoresForShutdown } from "./shutdownFlush.js";
 import { AuthService } from "./domains/auth/service.js";
 import { AssetService } from "./domains/assets/service.js";
 import { RoomRegistry } from "./domains/room/RoomRegistry.js";
@@ -34,6 +36,10 @@ const HOST = "0.0.0.0";
  * Creates all infrastructure and wires dependencies
  */
 async function bootstrap() {
+  // Before any store touches disk: AuthService reads the secret file in its
+  // constructor, so a misconfigured data dir must be caught here or never.
+  assertDataDirUsable();
+
   const authService = new AuthService();
   const assetService = new AssetService();
   let resetE2EState: (() => void) | undefined;
@@ -153,14 +159,43 @@ async function bootstrap() {
     console.log(`Architecture: Domain-driven with dependency injection`);
   });
 
-  // Graceful shutdown
+  // Graceful shutdown. Render sends SIGTERM (then SIGKILL ~30s later). The old
+  // handler exited only from server.close()'s callback — which never fires
+  // while a single WebSocket stays open, so a busy table meant no exit, no
+  // final flush, and SIGKILL took whatever the last debounced save missed.
+  // Now: flush every room's state to disk first, then exit behind a hard
+  // deadline that does not depend on any socket closing.
+  let shuttingDown = false;
   process.on("SIGTERM", () => {
+    if (shuttingDown) return;
+    shuttingDown = true;
     console.log("SIGTERM received, shutting down gracefully...");
-    server.close(() => {
-      console.log("Server closed");
-      container.destroy();
+
+    // Hard deadline: exit even if a flush hangs (e.g. a dead disk). Not
+    // unref'd — this timer firing IS the shutdown path of last resort.
+    const hardExit = setTimeout(() => {
+      console.error("[Shutdown] Flush deadline exceeded; exiting without full flush.");
+      process.exit(1);
+    }, 8000);
+
+    void (async () => {
+      try {
+        await flushStoresForShutdown(container.roomRegistry, container.mapStudioService);
+        console.log("[Shutdown] State flushed to disk.");
+      } catch (error) {
+        console.error("[Shutdown] State flush failed:", error);
+      }
+      // Best effort only — nothing below may block the exit.
+      try {
+        for (const client of wss.clients) client.terminate();
+        server.close(() => {});
+        container.destroy();
+      } catch (error) {
+        console.error("[Shutdown] Cleanup failed:", error);
+      }
+      clearTimeout(hardExit);
       process.exit(0);
-    });
+    })();
   });
 }
 

@@ -10,8 +10,8 @@
  * @module domains/room/persistence/StatePersistence
  */
 
-import { readFileSync, existsSync } from "fs";
-import { writeFile } from "fs/promises";
+import { readFileSync, existsSync, renameSync } from "fs";
+import { writeFile, rename } from "fs/promises";
 import type { Player, Character, SceneObject } from "@herobyte/shared";
 import { resolveServerPath } from "../../../config/serverPaths.js";
 import type { RoomState } from "../model.js";
@@ -126,7 +126,31 @@ export class StatePersistence {
         console.log("Loaded state from disk");
       } catch (err) {
         console.error("Failed to load state:", err);
+        this.quarantineUnreadableStateFile();
       }
+    }
+  }
+
+  /**
+   * Move an unreadable state file aside instead of leaving it in place.
+   *
+   * Without this, a corrupt file was a PERMANENT loss: the parse failure left
+   * the room empty, and the very next broadcast saved that empty room over
+   * the only copy of the data. Renaming to `<file>.corrupt` preserves the
+   * evidence for manual recovery while letting the room start clean. A fixed
+   * suffix (rename-over-existing is atomic on Windows too) keeps at most one
+   * quarantined copy — the point is preservation, not archival.
+   */
+  private quarantineUnreadableStateFile(): void {
+    const quarantinePath = `${this.stateFile}.corrupt`;
+    try {
+      renameSync(this.stateFile, quarantinePath);
+      console.error(
+        `[StatePersistence] Unreadable state file preserved at ${quarantinePath}; ` +
+          `starting from empty state.`,
+      );
+    } catch (renameErr) {
+      console.error("[StatePersistence] Failed to quarantine unreadable state file:", renameErr);
     }
   }
 
@@ -142,13 +166,13 @@ export class StatePersistence {
    * - gridSize, gridSquareSize
    * - diceRolls, sceneObjects
    * - playerStagingZone
+   * - combatActive, currentTurnCharacterId (initiative survives a restart)
    *
    * NOT persisted (ephemeral/runtime state):
    * - users (reconnect with new connection)
    * - pointers (expire after 3 seconds)
    * - drawingUndoStacks, drawingRedoStacks (runtime-only)
    * - selectionState (UI state, not game state)
-   * - combatActive, currentTurnCharacterId (session-specific)
    *
    * Error handling:
    * - Logs errors to console
@@ -181,6 +205,10 @@ export class StatePersistence {
       liveMapDocumentId: state.liveMapDocumentId,
       fogEnabled: state.fogEnabled,
       stateVersion: state.stateVersion,
+      // Combat state survives a restart on purpose (VISION.md calls this a
+      // launch gate): a mid-fight crash or redeploy must not lose initiative.
+      combatActive: state.combatActive,
+      currentTurnCharacterId: state.currentTurnCharacterId,
     };
 
     // Serialize NOW (synchronously) so the queued write captures a consistent
@@ -198,11 +226,19 @@ export class StatePersistence {
     }
 
     // Queue writes to avoid overlapping file operations that can corrupt JSON.
+    // Each write is tmp+rename (the asset store's pattern): a crash mid-write
+    // truncates only the tmp file, never the state file itself, so the last
+    // completed save always survives. The queue serializes writes per file,
+    // so the fixed tmp path cannot collide with itself.
+    const tmpPath = `${this.stateFile}.tmp`;
     this.writeQueue = this.writeQueue
       .catch(() => {
         // Swallow errors from previous writes so the queue can continue.
       })
-      .then(() => writeFile(this.stateFile, serialized))
+      .then(async () => {
+        await writeFile(tmpPath, serialized);
+        await rename(tmpPath, this.stateFile);
+      })
       .catch((err) => {
         console.error("Failed to save state:", err);
       });
