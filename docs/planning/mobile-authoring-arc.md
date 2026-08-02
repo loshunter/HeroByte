@@ -57,10 +57,12 @@ not synthesize mouse events from touch, so even with the flags wired,
 
 Mobile can **view** everything and pan/pinch. It can author **nothing**.
 
-**Two docs disagree about whether that is correct.** `docs/planning/live-map-toolbar-plan.md:44`
-fences it out — "No mobile map-edit UI (desktop-only; mobile keeps viewing everything, authoring
-nothing — explicit decision)". `VISION.md:46` commits to the opposite at launch scope — "Terrain
-painting works with touch on tablets **[LAUNCH]**". Neither was amended. See §5 Q2.
+**That is no longer the intended end state.** Two docs used to disagree:
+`docs/planning/live-map-toolbar-plan.md:44` fenced mobile authoring out entirely, while
+`VISION.md:46` commits at launch scope to "Terrain painting works with touch on tablets
+**[LAUNCH]**". **Settled 2026-08-01 — VISION wins**, and the live-map-toolbar line is struck
+through and annotated. Touch map painting is a launch commitment; see §5 Q1/Q2 for the scope and
+sequencing that came with the decision.
 
 ---
 
