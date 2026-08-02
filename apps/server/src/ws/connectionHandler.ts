@@ -15,6 +15,7 @@ import { DisconnectionCleanupManager } from "./lifecycle/DisconnectionCleanupMan
 import { ConnectionLifecycleManager } from "./lifecycle/ConnectionLifecycleManager.js";
 import { MessagePipelineManager } from "./message/MessagePipelineManager.js";
 import { MessageAuthenticator } from "./auth/MessageAuthenticator.js";
+import { clientIpFor } from "../middleware/authWorkLimit.js";
 
 /**
  * WebSocket connection handler
@@ -30,6 +31,9 @@ export class ConnectionHandler {
   private idleRoomManager: IdleRoomUnloadManager;
   private pipelineManager: MessagePipelineManager;
   private authenticator: MessageAuthenticator;
+  // Socket → remote IP, recorded at connection time for the per-IP auth
+  // budget. The uid in the query string is client-supplied; this is not.
+  private readonly ipOfWs = new WeakMap<WebSocket, string>();
 
   constructor(container: Container, wss: WebSocketServer) {
     this.container = container;
@@ -39,6 +43,8 @@ export class ConnectionHandler {
       container.uidToWs,
       container.authenticatedUids,
       container.authenticatedSessions,
+      container.authWorkLimiter,
+      this.ipOfWs,
     );
     this.cleanupManager = new DisconnectionCleanupManager(
       {
@@ -94,6 +100,10 @@ export class ConnectionHandler {
    * Handle new WebSocket connection
    */
   private handleConnection(ws: WebSocket, req: IncomingMessage): void {
+    // Record the connection's real remote IP (x-forwarded-for's last entry
+    // behind a trusted proxy, else the socket peer) for the auth budget.
+    this.ipOfWs.set(ws, clientIpFor(req.socket?.remoteAddress, req.headers?.["x-forwarded-for"]));
+
     // Delegate connection lifecycle to ConnectionLifecycleManager
     const { uid } = this.lifecycleManager.handleConnection(ws, req);
 

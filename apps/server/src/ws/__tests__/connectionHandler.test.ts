@@ -20,6 +20,7 @@ import { PropService } from "../../domains/prop/service.js";
 import { SelectionService } from "../../domains/selection/service.js";
 import { MessageRouter } from "../messageRouter.js";
 import { RateLimiter } from "../../middleware/rateLimit.js";
+import { TokenBucketLimiter } from "../../middleware/authWorkLimit.js";
 import type { ClientMessage } from "@herobyte/shared";
 import type { WebSocket, WebSocketServer } from "ws";
 import { AuthService } from "../../domains/auth/service.js";
@@ -71,6 +72,11 @@ const setupContainer = () => {
   const propService = new PropService();
   const selectionService = new SelectionService();
   const authService = new AuthService({ storagePath: "./test-room-secret.json" });
+  // authenticate() awaits an async scrypt (S1); the real threadpool hash can
+  // never complete while this suite holds fake timers, so pin verify to a
+  // deterministic async double. Password-correctness itself is covered by
+  // authService.test.ts with real crypto.
+  vi.spyOn(authService, "verify").mockImplementation(async (secret: string) => secret === "Fun1");
   const fakeNodeServer = { clients: new Set<WebSocket>() } as unknown as WebSocketServer;
   const messageRouter = new MessageRouter(
     roomService,
@@ -89,6 +95,11 @@ const setupContainer = () => {
 
   const rateLimiter = new RateLimiter({ maxMessages: 100, windowMs: 1000 });
   vi.spyOn(rateLimiter, "check").mockReturnValue(true);
+
+  // Tight per-IP auth budget so the throttle test can exhaust it in a few
+  // messages. Successful auths refund their token, so the ordinary tests
+  // (which authenticate with the right password) never feel it.
+  const authWorkLimiter = new TokenBucketLimiter({ capacity: 5, refillPerSecond: 0.001 });
 
   const uidToWs = new Map<string, WebSocket>();
   const authenticatedUids = new Set<string>();
@@ -116,6 +127,7 @@ const setupContainer = () => {
     authService,
     messageRouter,
     rateLimiter,
+    authWorkLimiter,
     uidToWs,
     authenticatedUids,
     authenticatedSessions,
@@ -144,6 +156,17 @@ describe("ConnectionHandler", () => {
   let deselectSpy: MockInstance;
   let broadcastSpy: MockInstance;
 
+  /**
+   * Drain the microtask queue so a fire-and-forget authenticate() (async
+   * since S1) runs to completion before assertions. Timer-free, so it works
+   * under the fake timers this suite runs with.
+   */
+  const flushAuth = async () => {
+    for (let i = 0; i < 10; i += 1) {
+      await Promise.resolve();
+    }
+  };
+
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2024-01-01T00:00:00.000Z"));
@@ -160,13 +183,14 @@ describe("ConnectionHandler", () => {
     vi.clearAllMocks();
   });
 
-  it("registers new connections and spawns player/token state", () => {
+  it("registers new connections and spawns player/token state", async () => {
     const socket = new FakeWebSocket();
     wss.emitConnection(socket, { url: "/?uid=user-1" });
 
     // Authenticate the connection
     const authMessage: ClientMessage = { t: "authenticate", secret: "Fun1" };
     socket.emit("message", Buffer.from(JSON.stringify(authMessage)));
+    await flushAuth();
 
     const state = container.roomService.getState();
     expect(state.users).toContain("user-1");
@@ -179,13 +203,14 @@ describe("ConnectionHandler", () => {
     expect(socket.ping).toHaveBeenCalled();
   });
 
-  it("updates heartbeat and respects rate limits", () => {
+  it("updates heartbeat and respects rate limits", async () => {
     const socket = new FakeWebSocket();
     wss.emitConnection(socket, { url: "/?uid=user-2" });
 
     // Authenticate the connection
     const authMessage: ClientMessage = { t: "authenticate", secret: "Fun1" };
     socket.emit("message", Buffer.from(JSON.stringify(authMessage)));
+    await flushAuth();
 
     const state = container.roomService.getState();
     const player = state.players[0]!;
@@ -209,12 +234,13 @@ describe("ConnectionHandler", () => {
     expect(checkSpy).toHaveBeenCalled();
   });
 
-  it("refreshes lastHeartbeat immediately on re-authentication", () => {
+  it("refreshes lastHeartbeat immediately on re-authentication", async () => {
     const socket = new FakeWebSocket();
     wss.emitConnection(socket, { url: "/?uid=user-reconnect" });
 
     const authMessage: ClientMessage = { t: "authenticate", secret: "Fun1" };
     socket.emit("message", Buffer.from(JSON.stringify(authMessage)));
+    await flushAuth();
 
     const state = container.roomService.getState();
     const player = state.players.find((p) => p.uid === "user-reconnect");
@@ -234,12 +260,13 @@ describe("ConnectionHandler", () => {
     expect(socket.send).toHaveBeenCalledWith(JSON.stringify({ t: "auth-ok" }));
   });
 
-  it("retains existing session room and updates authedAt on re-authentication", () => {
+  it("retains existing session room and updates authedAt on re-authentication", async () => {
     const socket = new FakeWebSocket();
     wss.emitConnection(socket, { url: "/?uid=session-user" });
 
     const authMessage: ClientMessage = { t: "authenticate", secret: "Fun1" };
     socket.emit("message", Buffer.from(JSON.stringify(authMessage)));
+    await flushAuth();
 
     const existingSession = container.authenticatedSessions.get("session-user");
     expect(existingSession).toBeDefined();
@@ -262,13 +289,14 @@ describe("ConnectionHandler", () => {
     expect(socket.send).toHaveBeenCalledWith(JSON.stringify({ t: "auth-ok" }));
   });
 
-  it("cleans up on disconnect", () => {
+  it("cleans up on disconnect", async () => {
     const socket = new FakeWebSocket();
     wss.emitConnection(socket, { url: "/?uid=user-3" });
 
     // Authenticate the connection
     const authMessage: ClientMessage = { t: "authenticate", secret: "Fun1" };
     socket.emit("message", Buffer.from(JSON.stringify(authMessage)));
+    await flushAuth();
 
     socket.emit("close");
 
@@ -279,12 +307,13 @@ describe("ConnectionHandler", () => {
     expect(deselectSpy).toHaveBeenCalledWith(state, "user-3");
   });
 
-  it("deselects timed-out players during heartbeat cleanup", () => {
+  it("deselects timed-out players during heartbeat cleanup", async () => {
     const socket = new FakeWebSocket();
     wss.emitConnection(socket, { url: "/?uid=user-4" });
 
     const authMessage: ClientMessage = { t: "authenticate", secret: "Fun1" };
     socket.emit("message", Buffer.from(JSON.stringify(authMessage)));
+    await flushAuth();
 
     const state = container.roomService.getState();
     state.selectionState.set("user-4", { mode: "single", objectId: "token:user-4" });
@@ -306,7 +335,7 @@ describe("ConnectionHandler", () => {
     expect(broadcastSpy).toHaveBeenCalled();
   });
 
-  it("keeps the player entity and tokens when a connected player times out", () => {
+  it("keeps the player entity and tokens when a connected player times out", async () => {
     // D6: a 5-minute lid close used to delete the player's tokens (and, for a
     // DM, every NPC token their uid owned). A timeout is now exactly a
     // disconnection: roster and auth are cleared, game state survives.
@@ -316,6 +345,7 @@ describe("ConnectionHandler", () => {
       "message",
       Buffer.from(JSON.stringify({ t: "authenticate", secret: "Fun1" } satisfies ClientMessage)),
     );
+    await flushAuth();
 
     const state = container.roomService.getState();
     const player = state.players.find((p) => p.uid === "user-5");
@@ -341,6 +371,43 @@ describe("ConnectionHandler", () => {
     broadcastSpy.mockClear();
     vi.advanceTimersByTime(30_000);
     expect(broadcastSpy).not.toHaveBeenCalled();
+  });
+
+  it("throttles a bad-password loop per IP, before any password check runs", async () => {
+    // D7: rate limiting used to key on the client-supplied uid, so one host
+    // could rotate uids and stream scrypt-priced guesses forever. The budget
+    // is now per connection IP (these fake sockets all share the "unknown"
+    // bucket) and is spent BEFORE verify().
+    const verifySpy = vi.mocked(container.authService.verify);
+    verifySpy.mockClear();
+
+    // 5 wrong guesses spend the whole capacity — rotating uids doesn't help.
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const socket = new FakeWebSocket();
+      wss.emitConnection(socket, { url: `/?uid=rotating-${attempt}` });
+      socket.emit(
+        "message",
+        Buffer.from(JSON.stringify({ t: "authenticate", secret: "wrong-password" })),
+      );
+      await flushAuth();
+    }
+    expect(verifySpy).toHaveBeenCalledTimes(5);
+
+    // The sixth guess is refused up front: no scrypt, a throttle reply.
+    const throttledSocket = new FakeWebSocket();
+    wss.emitConnection(throttledSocket, { url: "/?uid=rotating-final" });
+    throttledSocket.emit(
+      "message",
+      Buffer.from(JSON.stringify({ t: "authenticate", secret: "wrong-password" })),
+    );
+    await flushAuth();
+
+    expect(verifySpy).toHaveBeenCalledTimes(5);
+    const frames = throttledSocket.send.mock.calls.map(
+      ([p]) => JSON.parse(p as string) as { t?: string; reason?: string },
+    );
+    expect(frames[0]).toMatchObject({ t: "auth-failed" });
+    expect(frames[0].reason).toMatch(/too many attempts/i);
   });
 
   it("never sweeps players restored from disk who have not connected", () => {

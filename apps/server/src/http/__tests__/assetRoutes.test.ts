@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthService } from "../../domains/auth/service.js";
 import { AssetService } from "../../domains/assets/service.js";
 import { RateLimiter } from "../../middleware/rateLimit.js";
+import { TokenBucketLimiter } from "../../middleware/authWorkLimit.js";
 import { createRoutes } from "../routes.js";
 
 const TMP_ROOT = path.join(process.cwd(), ".tmp", "asset-routes-test");
@@ -42,10 +43,14 @@ describe("asset HTTP routes", () => {
 
   // A generous default limiter keeps the non-throttling tests untouched; the
   // rate-limit tests inject their own tightly-tuned instance.
-  function makeApp(uploadLimiter?: RateLimiter, authService?: AuthService) {
+  function makeApp(
+    uploadLimiter?: RateLimiter,
+    authService?: AuthService,
+    authWorkLimiter?: TokenBucketLimiter,
+  ) {
     const auth = authService ?? new AuthService({ storagePath: SECRET_PATH });
     const assetService = new AssetService({ directory: ASSET_DIR });
-    return createRoutes(auth, undefined, assetService, uploadLimiter);
+    return createRoutes(auth, undefined, assetService, uploadLimiter, authWorkLimiter);
   }
 
   it("rejects uploads without valid room credentials", async () => {
@@ -178,5 +183,65 @@ describe("asset HTTP routes", () => {
       404,
     );
     expect((await app.request(new Request("http://test/assets/not-a-hash"))).status).toBe(404);
+  });
+
+  describe("per-IP auth budget (D7)", () => {
+    function uploadFromIp(secret: string, ip: string, payload: string) {
+      const body = pngBytes(payload);
+      return new Request("http://test/assets", {
+        method: "POST",
+        headers: {
+          "content-type": "application/octet-stream",
+          "content-length": String(body.length),
+          "x-herobyte-secret": secret,
+          // In production this header is stamped by the bootstrap layer from
+          // the socket; app.request bypasses that layer, so tests set it.
+          "x-herobyte-client-ip": ip,
+        },
+        body: new Uint8Array(body),
+      });
+    }
+
+    it("cuts off a bad-password loop from one IP BEFORE the scrypt runs", async () => {
+      const auth = new AuthService({ storagePath: SECRET_PATH });
+      const verifySpy = vi.spyOn(auth, "verify");
+      const limiter = new TokenBucketLimiter({ capacity: 2, refillPerSecond: 0.001 });
+      const app = makeApp(undefined, auth, limiter);
+
+      expect((await app.request(uploadFromIp("wrong-password", "203.0.113.9", "a"))).status).toBe(
+        401,
+      );
+      expect((await app.request(uploadFromIp("wrong-password", "203.0.113.9", "b"))).status).toBe(
+        401,
+      );
+      expect(verifySpy).toHaveBeenCalledTimes(2);
+
+      // Budget spent: the third guess is refused up front — no hashing work.
+      const throttled = await app.request(uploadFromIp("wrong-password", "203.0.113.9", "c"));
+      expect(throttled.status).toBe(429);
+      expect(verifySpy).toHaveBeenCalledTimes(2);
+    });
+
+    it("one network's exhausted budget leaves another IP untouched", async () => {
+      const limiter = new TokenBucketLimiter({ capacity: 1, refillPerSecond: 0.001 });
+      const app = makeApp(undefined, undefined, limiter);
+
+      expect((await app.request(uploadFromIp("wrong", "203.0.113.9", "a"))).status).toBe(401);
+      expect((await app.request(uploadFromIp("wrong", "203.0.113.9", "b"))).status).toBe(429);
+
+      // The bystander IP still gets through to the credential check.
+      expect((await app.request(uploadFromIp("wrong", "198.51.100.4", "c"))).status).toBe(401);
+    });
+
+    it("valid credentials are refunded, so real upload bursts never hit the budget", async () => {
+      const limiter = new TokenBucketLimiter({ capacity: 2, refillPerSecond: 0.001 });
+      const app = makeApp(undefined, undefined, limiter);
+
+      // Far more successful uploads than the bucket's capacity.
+      for (let i = 0; i < 5; i += 1) {
+        const res = await app.request(uploadFromIp("Fun1", "203.0.113.9", `img-${i}`));
+        expect(res.status).toBe(201);
+      }
+    });
   });
 });

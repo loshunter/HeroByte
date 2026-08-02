@@ -107,7 +107,12 @@ export class MessageAuthenticator {
     // Minting a private table happens BEFORE auth (you can't be in a room that
     // doesn't exist yet), so create-room is allowed pre-authentication.
     if (message.t === "create-room") {
-      this.config.authHandler.createRoom(uid, message);
+      // Async (password hashing off the event loop); replies go over the
+      // socket, so the dispatch itself stays fire-and-forget. Promise.resolve
+      // wrapping keeps sync test doubles (returning void) safe to supervise.
+      void Promise.resolve(this.config.authHandler.createRoom(uid, message)).catch((error) =>
+        console.error(`[Auth] create-room failed for ${uid}:`, error),
+      );
       this.config.onAuthMessage?.(uid, message);
       return true;
     }
@@ -121,7 +126,9 @@ export class MessageAuthenticator {
 
     // Route DM-related messages to AuthenticationHandler
     if (message.t === "elevate-to-dm") {
-      this.config.authHandler.elevateToDM(uid, message.dmPassword);
+      void Promise.resolve(this.config.authHandler.elevateToDM(uid, message.dmPassword)).catch(
+        (error) => console.error(`[Auth] elevate-to-dm failed for ${uid}:`, error),
+      );
       this.config.onAuthMessage?.(uid, message);
       return true;
     }
@@ -135,7 +142,9 @@ export class MessageAuthenticator {
     // Post-auth, unlike create-room: forking copies the table the sender is
     // already in, so it needs them to actually be in it.
     if (message.t === "fork-table") {
-      this.config.authHandler.forkTable(uid, message);
+      void Promise.resolve(this.config.authHandler.forkTable(uid, message)).catch((error) =>
+        console.error(`[Auth] fork-table failed for ${uid}:`, error),
+      );
       this.config.onAuthMessage?.(uid, message);
       return true;
     }
@@ -168,7 +177,11 @@ export class MessageAuthenticator {
    */
   private routeAuthMessage(message: ClientMessage, uid: string): void {
     if (message.t === "authenticate") {
-      this.config.authHandler.authenticate(uid, message.secret, message.roomId);
+      // Async (scrypt off the event loop). The handler replies auth-ok /
+      // auth-failed over the socket itself, so nothing here needs the result.
+      void Promise.resolve(
+        this.config.authHandler.authenticate(uid, message.secret, message.roomId),
+      ).catch((error) => console.error(`[Auth] authenticate failed for ${uid}:`, error));
       this.config.onAuthMessage?.(uid, message);
     }
   }

@@ -10,8 +10,10 @@ import { handleCreateRoom, type CreateRoomRequest } from "./roomCreation.js";
 import { forkTableForUid, type ForkTableRequest } from "./tableFork.js";
 import { setDMPasswordForUid } from "./dmPasswordUpdate.js";
 import { DMElevationThrottle } from "./dmElevationThrottle.js";
+import { elevateUidToDM, revokeUidDM } from "./dmElevation.js";
 import type { Container } from "../../container.js";
 import { getDefaultRoomId } from "../../config/auth.js";
+import { createAuthWorkLimiter, type TokenBucketLimiter } from "../../middleware/authWorkLimit.js";
 
 /**
  * Authentication handler for WebSocket connections
@@ -25,28 +27,63 @@ export class AuthenticationHandler {
   private authenticatedSessions: Map<string, { roomId: string; authedAt: number }>;
   private readonly defaultRoomId: string;
   private readonly dmThrottle = new DMElevationThrottle();
+  // Uids with a password check in flight. verify() now yields to the
+  // threadpool, so a client could stack concurrent attempts on one
+  // connection and interleave the post-await state mutations; one at a
+  // time per uid keeps the flow as serial as it was when it was sync.
+  private readonly pendingAuthWork = new Set<string>();
+
+  // Per-IP budget for scrypt-priced work, shared with the HTTP routes (D7).
+  private readonly authWorkLimiter: TokenBucketLimiter;
+  // Socket → remote IP, filled by ConnectionHandler at connection time. A
+  // WeakMap so a closed socket's entry needs no lifecycle bookkeeping.
+  private readonly ipOfWs: WeakMap<WebSocket, string>;
 
   constructor(
     container: Container,
     uidToWs: Map<string, WebSocket>,
     authenticatedUids: Set<string>,
     authenticatedSessions: Map<string, { roomId: string; authedAt: number }>,
+    authWorkLimiter?: TokenBucketLimiter,
+    ipOfWs?: WeakMap<WebSocket, string>,
   ) {
     this.container = container;
     this.uidToWs = uidToWs;
     this.authenticatedUids = authenticatedUids;
     this.authenticatedSessions = authenticatedSessions;
     this.defaultRoomId = getDefaultRoomId();
+    this.authWorkLimiter = authWorkLimiter ?? createAuthWorkLimiter();
+    this.ipOfWs = ipOfWs ?? new WeakMap();
+  }
+
+  /**
+   * Spend one unit of this connection's per-IP auth budget. Checked BEFORE
+   * any scrypt runs — the uid is client-supplied and free to rotate, the IP
+   * is not. Sockets with no recorded IP share the "unknown" bucket:
+   * throttling them together beats exempting them.
+   */
+  private takeAuthWork(ws: WebSocket): boolean {
+    return this.authWorkLimiter.take(this.ipOfWs.get(ws) ?? "unknown");
+  }
+
+  /** Success refund — only failed guesses stay charged against the IP. */
+  private refundAuthWork(ws: WebSocket): void {
+    this.authWorkLimiter.refund(this.ipOfWs.get(ws) ?? "unknown");
   }
 
   /**
    * Authenticate a client connection using the shared room secret
    *
+   * Async because the password check is: the scrypt compare runs off the
+   * event loop. Everything BEFORE the await is unchanged; everything after
+   * re-checks that this socket is still the uid's current connection, since
+   * the connection can be replaced while the hash is computing.
+   *
    * @param uid - Unique identifier for the client
    * @param secret - Room password provided by the client
    * @param roomId - Optional room identifier (defaults to default room)
    */
-  authenticate(uid: string, secret: string, roomId?: string): void {
+  async authenticate(uid: string, secret: string, roomId?: string): Promise<void> {
     const ws = this.uidToWs.get(uid);
     if (!ws) {
       return;
@@ -76,13 +113,48 @@ export class AuthenticationHandler {
       return;
     }
 
+    // Per-IP budget, spent BEFORE any scrypt. The re-auth path above is
+    // exempt on purpose: it does no hashing, and heartbeat re-auths from an
+    // established session must never burn the network's budget.
+    if (!this.takeAuthWork(ws)) {
+      this.rejectAuthentication(
+        ws,
+        "Too many attempts from your network. Wait a minute and try again.",
+      );
+      return;
+    }
+
+    // One in-flight check per uid: a second attempt while the first hashes
+    // is a client bug or a flood, not a flow to support.
+    if (this.pendingAuthWork.has(uid)) {
+      return;
+    }
+    this.pendingAuthWork.add(uid);
+
     // Verify room password (per-room secret, falling back to the default)
-    const normalizedSecret = secret.trim();
-    if (!this.container.authService.verify(normalizedSecret, requestedRoomId)) {
+    let verified: boolean;
+    try {
+      const normalizedSecret = secret.trim();
+      verified = await this.container.authService.verify(normalizedSecret, requestedRoomId);
+    } finally {
+      this.pendingAuthWork.delete(uid);
+    }
+
+    // The world may have moved while the hash computed: bail if this socket
+    // was replaced or closed, or if a competing attempt already finished.
+    if (this.uidToWs.get(uid) !== ws || this.authenticatedUids.has(uid)) {
+      return;
+    }
+
+    if (!verified) {
       console.warn(`Authentication failed for uid ${uid}`);
       this.rejectAuthentication(ws, "Invalid table password");
       return;
     }
+
+    // A correct password refunds its token: a full party joining together
+    // must never exhaust their own network's budget.
+    this.refundAuthWork(ws);
 
     const roomService = this.container.getRoomServiceForRoom(requestedRoomId);
     const state = roomService.getState();
@@ -150,107 +222,27 @@ export class AuthenticationHandler {
   }
 
   /**
-   * Elevate a client to DM (Dungeon Master) role
-   *
-   * @param uid - Unique identifier for the client
-   * @param dmPassword - DM password provided by the client
+   * Elevate a client to DM. Implementation lives in dmElevation.ts (extracted
+   * for the file-size guard); async because the DM-password compare is.
    */
-  elevateToDM(uid: string, dmPassword: string): void {
-    const ws = this.uidToWs.get(uid);
-    if (!ws) {
-      return;
-    }
-
-    const roomId = this.container.roomIdForUid(uid);
-    const roomService = this.container.getRoomServiceForRoom(roomId);
-    const state = roomService.getState();
-    const player = this.container.playerService.findPlayer(state, uid);
-
-    if (!player) {
-      ws.send(JSON.stringify({ t: "dm-elevation-failed", reason: "Player not found" }));
-      return;
-    }
-
-    // Back off after a burst of wrong guesses so a room member can't brute-force
-    // a weak DM password in a tight loop on one connection.
-    const now = Date.now();
-    if (this.dmThrottle.isLocked(uid, now)) {
-      ws.send(
-        JSON.stringify({
-          t: "dm-elevation-failed",
-          reason: "Too many attempts. Wait a few seconds and try again.",
-        }),
-      );
-      return;
-    }
-
-    // Check if DM password is even set (the room's own, or the default)
-    if (!this.container.authService.hasDMPassword(roomId)) {
-      ws.send(
-        JSON.stringify({
-          t: "dm-elevation-failed",
-          reason: "No DM password configured. Use set-dm-password to create one.",
-        }),
-      );
-      return;
-    }
-
-    // Verify DM password
-    const normalizedPassword = dmPassword.trim();
-    if (!this.container.authService.verifyDMPassword(normalizedPassword, roomId)) {
-      this.dmThrottle.recordFailure(uid, now);
-      console.warn(`DM elevation failed for uid ${uid}: Invalid password`);
-      ws.send(JSON.stringify({ t: "dm-elevation-failed", reason: "Invalid DM password" }));
-      return;
-    }
-
-    // Grant DM powers
-    this.dmThrottle.clear(uid);
-    player.isDM = true;
-    ws.send(JSON.stringify({ t: "dm-status", isDM: true }));
-    console.log(`DM elevation granted to ${uid}`);
-
-    // Broadcast updated state to the player's room
-    roomService.broadcast(this.container.getAuthenticatedClientsForRoom(roomId), this.uidToWs, {
-      reason: "dm-elevated",
-    });
+  async elevateToDM(uid: string, dmPassword: string): Promise<void> {
+    await elevateUidToDM(this.dmElevationDeps(), uid, dmPassword);
   }
 
-  /**
-   * Revoke DM (Dungeon Master) status from a client
-   *
-   * @param uid - Unique identifier for the client
-   */
+  /** Revoke DM status from a client (see dmElevation.ts). */
   revokeDM(uid: string): void {
-    const ws = this.uidToWs.get(uid);
-    if (!ws) {
-      return;
-    }
+    revokeUidDM(this.dmElevationDeps(), uid);
+  }
 
-    const roomId = this.container.roomIdForUid(uid);
-    const roomService = this.container.getRoomServiceForRoom(roomId);
-    const state = roomService.getState();
-    const player = this.container.playerService.findPlayer(state, uid);
-
-    if (!player) {
-      console.warn(`DM revocation failed: player ${uid} not found`);
-      return;
-    }
-
-    if (!player.isDM) {
-      console.warn(`DM revocation ignored: player ${uid} is not DM`);
-      return;
-    }
-
-    // Revoke DM status
-    player.isDM = false;
-    ws.send(JSON.stringify({ t: "dm-status", isDM: false }));
-    console.log(`DM status revoked for ${uid}`);
-
-    // Broadcast updated state to the player's room
-    roomService.broadcast(this.container.getAuthenticatedClientsForRoom(roomId), this.uidToWs, {
-      reason: "dm-revoked",
-    });
+  private dmElevationDeps() {
+    return {
+      container: this.container,
+      uidToWs: this.uidToWs,
+      dmThrottle: this.dmThrottle,
+      pendingAuthWork: this.pendingAuthWork,
+      takeAuthWork: (ws: WebSocket) => this.takeAuthWork(ws),
+      refundAuthWork: (ws: WebSocket) => this.refundAuthWork(ws),
+    };
   }
 
   /**
@@ -261,9 +253,20 @@ export class AuthenticationHandler {
     setDMPasswordForUid(this.container, this.uidToWs.get(uid), uid, dmPassword, this.defaultRoomId);
   }
 
-  createRoom(uid: string, request: CreateRoomRequest): void {
+  async createRoom(uid: string, request: CreateRoomRequest): Promise<void> {
     const ws = this.uidToWs.get(uid);
-    handleCreateRoom(
+    // create-room is reachable PRE-auth and hashes up to two passwords, so it
+    // spends the same per-IP budget as a password guess.
+    if (ws && !this.takeAuthWork(ws)) {
+      ws.send(
+        JSON.stringify({
+          t: "room-create-failed",
+          reason: "Too many attempts from your network. Wait a minute and try again.",
+        }),
+      );
+      return;
+    }
+    await handleCreateRoom(
       this.container.authService,
       ws,
       this.defaultRoomId,
@@ -279,8 +282,19 @@ export class AuthenticationHandler {
    * is how work done on the test table is kept: that table's password is fixed
    * and it is wiped hourly, so a durable copy is the only way to hold on to it.
    */
-  forkTable(uid: string, request: ForkTableRequest): void {
-    forkTableForUid(this.container, this.uidToWs.get(uid), uid, request);
+  async forkTable(uid: string, request: ForkTableRequest): Promise<void> {
+    const ws = this.uidToWs.get(uid);
+    // Forking mints a room (hashing) — same budget as create-room.
+    if (ws && !this.takeAuthWork(ws)) {
+      ws.send(
+        JSON.stringify({
+          t: "table-fork-failed",
+          reason: "Too many attempts from your network. Wait a minute and try again.",
+        }),
+      );
+      return;
+    }
+    await forkTableForUid(this.container, ws, uid, request);
   }
 
   /** Reject an authentication attempt and close the connection. */

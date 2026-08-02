@@ -9,6 +9,7 @@ import type { AuthService } from "../domains/auth/service.js";
 import { AssetRejectedError, type AssetService } from "../domains/assets/service.js";
 import { isOriginAllowed } from "../config/security.js";
 import type { RateLimiter } from "../middleware/rateLimit.js";
+import { createAuthWorkLimiter, type TokenBucketLimiter } from "../middleware/authWorkLimit.js";
 import {
   createUploadRateLimiter,
   readCappedBody,
@@ -19,12 +20,17 @@ import {
 /**
  * Create and configure HTTP routes
  * Separates route definitions from server bootstrap
+ *
+ * `authWorkLimiter` should be the SAME instance the WS auth handler drains —
+ * both surfaces run scrypt against the same credentials, so a split budget
+ * would just let a password loop run twice as fast.
  */
 export function createRoutes(
   authService: AuthService,
   resetE2EState?: () => void,
   assetService?: AssetService,
   uploadRateLimiter?: RateLimiter,
+  authWorkLimiter?: TokenBucketLimiter,
 ): Hono {
   const app = new Hono();
   const ALLOWED_METHODS = "GET,POST,OPTIONS";
@@ -175,6 +181,7 @@ export function createRoutes(
     // One limiter for the process lifetime (createRoutes is called once at
     // bootstrap); injectable so tests can supply a fresh, tightly-tuned one.
     const uploadLimiter = uploadRateLimiter ?? createUploadRateLimiter();
+    const authLimiter = authWorkLimiter ?? createAuthWorkLimiter();
 
     // Upload: room-credential gated, rate limited per credential, size-capped
     // while streaming, then sniffed/capped/quota-checked in depth by the
@@ -182,9 +189,21 @@ export function createRoutes(
     app.post("/assets", async (c) => {
       const roomId = c.req.header("x-herobyte-room") || undefined;
       const secret = c.req.header("x-herobyte-secret") ?? "";
-      if (!secret || !authService.verify(secret, roomId)) {
+
+      // Per-IP budget BEFORE the scrypt verify (D7). The header is set by the
+      // bootstrap layer from the socket/proxy, never by the client — the copy
+      // in index.ts overwrites any client-supplied value.
+      const clientIp = c.req.header("x-herobyte-client-ip") ?? "unknown";
+      if (!authLimiter.take(clientIp)) {
+        return jsonError("Too many attempts — slow down", 429, { "retry-after": "60" });
+      }
+
+      if (!secret || !(await authService.verify(secret, roomId))) {
         return jsonError("Invalid room credentials", 401);
       }
+      // Valid credentials get their token back: only failed guesses stay
+      // charged, so real users' upload bursts never hit the auth budget.
+      authLimiter.refund(clientIp);
 
       // Meter frequency per credential BEFORE touching the body, so a
       // throttled client can never make us read (or buffer) an upload.
