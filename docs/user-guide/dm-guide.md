@@ -8,7 +8,7 @@ Everything the Dungeon Master runs from — [elevate to DM](getting-started.md#b
 
 Top to bottom:
 
-- **Map Background** — paste an image URL and **APPLY BACKGROUND** to use any battlemap image as the table. Good hosts: Discord CDN, Imgur, Cloudinary (the image must allow cross-origin loading). If you're authoring terrain with the [live map editor](map-editor-guide.md) instead, skip the background — a raster background underneath live terrain gets messy, and the editor will warn you.
+- **Map Background** — **⬆ UPLOAD IMAGE** to use any battlemap image from your own device as the table; it's stored on your table's server and stays with the game. Or paste an image URL and **APPLY BACKGROUND** for art already online (the image's host must allow cross-origin loading). If you're authoring terrain with the [live map editor](map-editor-guide.md) instead, skip the background — a raster background underneath live terrain gets messy, and the editor will warn you.
 - **HeroByte Map Studio** — the editable-map store behind the live editor: create a named blank map, reopen a **saved map**, **IMPORT JSON BACKUP**, or delete. (Day-to-day you'll rarely touch this — **▶ START LIVE MAP** in the editor creates and binds one for you.)
 - **Map Transform** — scale, rotate, and offset the background image; **Map is locked** prevents anyone dragging the map by accident. Unlock only while adjusting.
 - **Grid Controls** — grid cell size in pixels (10–500) and **Square Size** in feet (what the measure tool reports per square). **🔒 GRID LOCKED** freezes both.
@@ -23,7 +23,7 @@ Top to bottom:
 
 **+ ADD NPC** creates a monster with a full stat row:
 
-- **Name, HP / Max HP / Temp HP, Init Mod, Portrait URL, Token Image URL** — same character plumbing as players.
+- **Name, HP / Max HP / Temp HP, Init Mod, Portrait, Token Image** — same character plumbing as players. Both image fields take an **⬆ UPLOAD IMAGE** from your device or a pasted URL.
 - **PLACE ON MAP** drops its token at the center of your view; from there it drags like any token.
 - **⚔️ ROLL MISSING INITIATIVE** rolls a d20 + modifier for every NPC that doesn't have initiative yet — one click to get the whole opposing side into the turn order.
 - NPC cards appear in the Entities panel labeled **Enemy**. The **👁️ eye button** on an NPC's card toggles whether players can see it at all — prep an ambush hidden, reveal it on the pounce. (Hidden NPCs stay visible to you.)
@@ -37,11 +37,11 @@ NPCs are yours alone to edit: players can't rename, damage, or move them.
 
 **+ ADD PROP** creates a map object (a chest, a boulder, a cart…):
 
-- **Label** and **Image URL** — any image becomes a draggable map piece.
+- **Label** and **Image** — any image becomes a draggable map piece: **⬆ UPLOAD IMAGE** from your device, or paste a URL.
 - **Ownership** — **DM Only** (players see it but can't touch), **Everyone**, or a specific player (hand the wizard their familiar).
 - **Size** — the same six token sizes.
 
-For *built-in* scenery art (crates, tables, boats, standing stones…) you'll usually place assets with the [map editor's Place tool](map-editor-guide.md#-place-scatter-and-row--set-dressing) instead; Props shine for custom images and player-ownable objects.
+For _built-in_ scenery art (crates, tables, boats, standing stones…) you'll usually place assets with the [map editor's Place tool](map-editor-guide.md#-place-scatter-and-row--set-dressing) instead; Props shine for custom images and player-ownable objects.
 
 ## Players
 
@@ -56,7 +56,7 @@ For *built-in* scenery art (crates, tables, boats, standing stones…) you'll us
 
 ### Saving and loading sessions
 
-**SAVE GAME STATE** downloads the entire table as one JSON file — tokens, characters (PCs *and* NPCs), props, drawings, dice history, grid, fog state, the full live map with every terrain cell and door, and any uploaded images (inlined, up to 64 MB). The **Session Name** field just names the file.
+**SAVE GAME STATE** downloads the entire table as one JSON file — tokens, characters (PCs _and_ NPCs), props, drawings, dice history, grid, fog state, the full live map with every terrain cell and door, and any uploaded images (inlined, up to 64 MB). The **Session Name** field just names the file.
 
 **LOAD GAME STATE** restores a save. Read the confirmation carefully: loading **replaces the table for everyone connected**. Players currently at the table keep their live connection and their own characters; everything else becomes the file's contents.
 
@@ -94,7 +94,7 @@ That mints a brand-new private table and copies the whole thing across — room 
 
 ### The player lens
 
-**👁 PLAYER VIEW** shows you *exactly* what players see — fog computed from the party's vision, secret doors hidden, DM overlays gone — while you keep every DM power. One click on, one click off.
+**👁 PLAYER VIEW** shows you _exactly_ what players see — fog computed from the party's vision, secret doors hidden, DM overlays gone — while you keep every DM power. One click on, one click off.
 
 ![The player lens: the DM sees the table through the party's eyes](img/dm-player-lens.jpg)
 

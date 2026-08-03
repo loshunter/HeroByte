@@ -156,7 +156,7 @@ The server reads more variables than these (storage paths, table limits, feature
 - **Voice chat fails in Chrome** – WebRTC requires secure origins; use `https://` (Cloudflare tunnel, `mkcert`, or hosted demo)
 - **Tests fail with missing state file** – Delete `apps/server/herobyte-state.json` and re-run `pnpm test`
 - **"Room secret not set" warning** – Set `HEROBYTE_ROOM_SECRET` in `.env`
-- **Map images don't load (CORS errors)** – Use CORS-friendly hosting like Discord CDN, Imgur, or Cloudinary
+- **Map images don't load (CORS errors)** – Use the **⬆ Upload image** button instead of pasting a URL; uploads are stored on your own table's server and always load. A pasted URL only works if its host allows cross-origin loading
 
 </details>
 

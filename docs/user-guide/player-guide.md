@@ -13,20 +13,20 @@ You've [joined a table](getting-started.md) — here's everything you can do at 
 
 ### Moving around the map
 
-| Action | How |
-| --- | --- |
-| Pan | Drag empty map space (with no tool active), or **middle-mouse drag** (works even with a tool active) |
-| Zoom | Mouse wheel — zooms toward your cursor (0.1× to 8×) |
-| Reset the camera | **🧭 RECENTER** |
-| Jump to your token | The ⚔️ button on your player card (**Focus camera on token**) |
-| Touch | One finger pans, two fingers pinch-zoom |
+| Action             | How                                                                                                  |
+| ------------------ | ---------------------------------------------------------------------------------------------------- |
+| Pan                | Drag empty map space (with no tool active), or **middle-mouse drag** (works even with a tool active) |
+| Zoom               | Mouse wheel — zooms toward your cursor (0.1× to 8×)                                                  |
+| Reset the camera   | **🧭 RECENTER**                                                                                      |
+| Jump to your token | The ⚔️ button on your player card (**Focus camera on token**)                                        |
+| Touch              | One finger pans, two fingers pinch-zoom                                                              |
 
 ## Your character card
 
 Your card in the Entities panel is your character sheet in miniature:
 
 - **Name** — click it to edit inline.
-- **Portrait** — click the **+ ADD PORTRAIT** square and paste an image URL. Imgur share links are converted to direct images automatically. When you talk on voice, your portrait glows and swells.
+- **Portrait** — open **⚙️** settings and **⬆ UPLOAD IMAGE** a portrait straight from your device — on a phone, that's your camera roll. (Clicking the **+ ADD PORTRAIT** square also takes a pasted image URL, and any image URL still works.) When you talk on voice, your portrait glows and swells.
 - **HP** — click either number in `HP: 100 / 100` to type a new value (Enter or click away to save), or **drag along the HP bar** to scrub it. The bar shifts color as you drop: green, amber, red.
 - **Temp HP** — a separate pool absorbed before regular HP; click to edit.
 - **⚔️ / INIT** — status effects and initiative (covered below).
@@ -39,7 +39,7 @@ Your card in the Entities panel is your character sheet in miniature:
 
 Everything about your character in one draggable window:
 
-- **Character Name**, **Portrait Image URL**, and a **Token Image URL** — give your map token custom art, or **CLEAR** it to go back to a colored ring.
+- **Character Name**, **Portrait**, and a **Token Image** — give your portrait and map token custom art: **⬆ UPLOAD IMAGE** from your device (camera roll on a phone), or paste an image URL. **CLEAR** the token image to go back to a colored ring.
 - **Player State → SAVE TO FILE / LOAD FROM FILE** — download your character (name, HP, portrait, token, position, status effects, your drawings) as a JSON file and restore it later — handy insurance between sessions, or for moving your character to another table.
 - **Dungeon Master Mode** — see [Becoming the DM](getting-started.md#becoming-the-dm).
 - **Initiative Status** — your current initiative, with a **🧹 CLEAR INITIATIVE** reset.
@@ -147,8 +147,8 @@ When the DM runs a built map (walls, doors, fog of war):
 
 On a small or touch screen, HeroByte switches to a full-screen map with a five-button dock — no setup required:
 
-| | |
-| --- | --- |
+|                                                                              |                                                 |
+| ---------------------------------------------------------------------------- | ----------------------------------------------- |
 | ![Mobile layout: full-screen map with the bottom dock](img/mobile-table.jpg) | ![The mobile tools sheet](img/mobile-tools.jpg) |
 
 - **◉ PARTY** — the party drawer: portraits, HP (tap or drag to edit), status effects, and — on your own row — **⚙️ EDIT** for name, portrait, and DM mode.
