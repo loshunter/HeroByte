@@ -148,6 +148,7 @@ export function PropEditor({
           commitUpdate({ imageUrl: url });
         }}
         disabled={isUpdating}
+        compact
       />
       {imageUrl && (
         <img

@@ -259,6 +259,7 @@ export function NPCEditor({
           commitUpdate({ portrait: url });
         }}
         disabled={isUpdating}
+        compact
       />
       {portrait && (
         <img
@@ -285,6 +286,7 @@ export function NPCEditor({
           commitUpdate({ tokenImage: url });
         }}
         disabled={isUpdating}
+        compact
       />
       {tokenImage && (
         <img

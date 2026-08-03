@@ -161,6 +161,28 @@ describe("ImageField", () => {
     expect(onClear).toHaveBeenCalled();
   });
 
+  it("compact: one row, no Apply, upload still runs the full pipeline", async () => {
+    const { fileInput, onCommit, uploadFile } = renderField({ compact: true });
+
+    // No Apply/Clear row in the dense layout…
+    expect(screen.queryByRole("button", { name: "Apply" })).not.toBeInTheDocument();
+    // …but the square upload button is there and works.
+    const uploadButton = screen.getByRole("button", { name: /upload image/i });
+    const click = vi.spyOn(fileInput, "click");
+    fireEvent.click(uploadButton);
+    expect(click).toHaveBeenCalled();
+
+    fireEvent.change(fileInput, { target: { files: [pngFile()] } });
+    await waitFor(() => expect(onCommit).toHaveBeenCalledWith(uploadedAssetUrl(HASH)));
+    expect(uploadFile).toHaveBeenCalled();
+  });
+
+  it("compact: blur and Enter still commit the URL text", async () => {
+    const { onCommit } = renderField({ compact: true, value: "https://x.example/e.png" });
+    fireEvent.blur(screen.getByLabelText("Portrait URL"));
+    await waitFor(() => expect(onCommit).toHaveBeenCalledWith("https://x.example/e.png"));
+  });
+
   it("keeps the camera-roll path honest: no-credentials surfaces its message", async () => {
     // Regression guard for the real wiring: default getCredentials comes from
     // the session bridge; a logged-out state must show the pre-written message,

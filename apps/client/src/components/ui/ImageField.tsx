@@ -44,6 +44,14 @@ export interface ImageFieldProps {
   /** Disable Apply while the input is empty — for surfaces where an empty
    * commit is meaningless (map background) rather than "clear". */
   applyRequiresValue?: boolean;
+  /**
+   * Dense one-row layout for crowded editors: the upload control becomes a
+   * square button beside the URL input and the Apply/Clear row is dropped
+   * (blur/Enter still commit — the semantics those editors always had).
+   * The default spacious layout keeps the 44px full-width upload button for
+   * finger-first surfaces.
+   */
+  compact?: boolean;
   /** Test seams; production uses the real pipeline + session credentials. */
   uploadFile?: typeof uploadAssetFile;
   getCredentials?: () => AssetUploadCredentials | null;
@@ -68,6 +76,7 @@ export function ImageField({
   onClear,
   applyLabel = "Apply",
   applyRequiresValue = false,
+  compact = false,
   uploadFile = uploadAssetFile,
   getCredentials = sessionCredentials,
 }: ImageFieldProps): JSX.Element {
@@ -106,18 +115,48 @@ export function ImageField({
 
   const errorText = uploadError ?? normalizationError;
 
+  const uploadButton = compact ? (
+    <JRPGButton
+      onClick={() => fileRef.current?.click()}
+      disabled={busy}
+      aria-label="Upload image"
+      title="Upload image"
+      style={{ fontSize: "12px", padding: "4px 8px", flexShrink: 0 }}
+    >
+      {uploading ? "…" : "⬆"}
+    </JRPGButton>
+  ) : (
+    <JRPGButton
+      onClick={() => fileRef.current?.click()}
+      disabled={busy}
+      style={{ fontSize: "10px", padding: "8px", minHeight: "44px" }}
+    >
+      {uploading ? "Uploading…" : "⬆ Upload image"}
+    </JRPGButton>
+  );
+
+  const urlInput = (
+    <input
+      id={inputId}
+      className="jrpg-input"
+      type="text"
+      value={value}
+      placeholder={placeholder ?? "Paste an image URL"}
+      disabled={busy}
+      style={inputStyle}
+      onChange={(event) => onChange(event.target.value)}
+      onBlur={commitOnBlur ? () => void commitUrlText() : undefined}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") void commitUrlText();
+      }}
+    />
+  );
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: compact ? "4px" : "6px" }}>
       <label className="jrpg-text-small" htmlFor={inputId} style={{ color: "var(--jrpg-gold)" }}>
         {label}
       </label>
-      <JRPGButton
-        onClick={() => fileRef.current?.click()}
-        disabled={busy}
-        style={{ fontSize: "10px", padding: "8px", minHeight: "44px" }}
-      >
-        {uploading ? "Uploading…" : "⬆ Upload image"}
-      </JRPGButton>
       <input
         ref={fileRef}
         type="file"
@@ -130,39 +169,36 @@ export function ImageField({
           event.target.value = "";
         }}
       />
-      <input
-        id={inputId}
-        className="jrpg-input"
-        type="text"
-        value={value}
-        placeholder={placeholder ?? "Paste an image URL"}
-        disabled={busy}
-        style={inputStyle}
-        onChange={(event) => onChange(event.target.value)}
-        onBlur={commitOnBlur ? () => void commitUrlText() : undefined}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") void commitUrlText();
-        }}
-      />
-      <div style={{ display: "flex", gap: "6px" }}>
-        <JRPGButton
-          onClick={() => void commitUrlText()}
-          disabled={busy || (applyRequiresValue && !value.trim())}
-          variant="primary"
-          style={{ flex: 1, fontSize: "10px", padding: "6px 8px" }}
-        >
-          {isNormalizing ? "Converting…" : applyLabel}
-        </JRPGButton>
-        {onClear && (
-          <JRPGButton
-            onClick={onClear}
-            disabled={busy}
-            style={{ flex: 1, fontSize: "10px", padding: "6px 8px" }}
-          >
-            Clear
-          </JRPGButton>
-        )}
-      </div>
+      {compact ? (
+        <div style={{ display: "flex", gap: "4px", alignItems: "stretch" }}>
+          {urlInput}
+          {uploadButton}
+        </div>
+      ) : (
+        <>
+          {uploadButton}
+          {urlInput}
+          <div style={{ display: "flex", gap: "6px" }}>
+            <JRPGButton
+              onClick={() => void commitUrlText()}
+              disabled={busy || (applyRequiresValue && !value.trim())}
+              variant="primary"
+              style={{ flex: 1, fontSize: "10px", padding: "6px 8px" }}
+            >
+              {isNormalizing ? "Converting…" : applyLabel}
+            </JRPGButton>
+            {onClear && (
+              <JRPGButton
+                onClick={onClear}
+                disabled={busy}
+                style={{ flex: 1, fontSize: "10px", padding: "6px 8px" }}
+              >
+                Clear
+              </JRPGButton>
+            )}
+          </div>
+        </>
+      )}
       {errorText && (
         <p
           className="jrpg-text-small"
