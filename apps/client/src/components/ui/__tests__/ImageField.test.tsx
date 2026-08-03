@@ -11,13 +11,15 @@ import {
   uploadedAssetUrl,
 } from "../../../features/map-studio/uploads/assetUpload";
 
+const normalization = {
+  normalizeUrl: (url: string) => Promise.resolve(url),
+  isNormalizing: false,
+  normalizationError: null as string | null,
+  clearError: vi.fn(),
+};
+
 vi.mock("../../../hooks/useImageUrlNormalization", () => ({
-  useImageUrlNormalization: () => ({
-    normalizeUrl: (url: string) => Promise.resolve(url),
-    isNormalizing: false,
-    normalizationError: null,
-    clearError: vi.fn(),
-  }),
+  useImageUrlNormalization: () => normalization,
 }));
 
 const HASH = "f".repeat(64);
@@ -181,6 +183,54 @@ describe("ImageField", () => {
     const { onCommit } = renderField({ compact: true, value: "https://x.example/e.png" });
     fireEvent.blur(screen.getByLabelText("Portrait URL"));
     await waitFor(() => expect(onCommit).toHaveBeenCalledWith("https://x.example/e.png"));
+  });
+
+  it("surfaces the normalization error the old surfaces silently dropped", () => {
+    normalization.normalizationError = "Failed to process URL. Using original URL instead.";
+    try {
+      renderField();
+      expect(screen.getByRole("alert")).toHaveTextContent(/failed to process url/i);
+    } finally {
+      normalization.normalizationError = null;
+    }
+  });
+
+  it("an upload finishing after a re-render commits through the LATEST callbacks", async () => {
+    // The NPC editor's onCommit closes over every sibling field (it sends the
+    // full record). Committing through the closure captured at file-pick time
+    // replayed stale siblings and reverted edits made during a slow upload.
+    let release!: (v: unknown) => void;
+    const uploadFile = vi.fn().mockReturnValue(new Promise((resolve) => (release = resolve)));
+    const staleCommit = vi.fn();
+    const { fileInput, rerender, onChange } = renderField({
+      uploadFile,
+      onCommit: staleCommit,
+    });
+
+    fireEvent.change(fileInput, { target: { files: [pngFile()] } });
+
+    // The parent re-renders mid-upload (a sibling field changed).
+    const latestCommit = vi.fn();
+    rerender(
+      <ImageField
+        label="Portrait URL"
+        value=""
+        onChange={onChange}
+        onCommit={latestCommit}
+        uploadFile={uploadFile}
+        getCredentials={vi.fn().mockReturnValue({ secret: "s" })}
+      />,
+    );
+
+    release({
+      hash: HASH,
+      url: `/assets/${HASH}`,
+      mime: "image/png",
+      size: 16,
+      deduplicated: false,
+    });
+    await waitFor(() => expect(latestCommit).toHaveBeenCalledWith(uploadedAssetUrl(HASH)));
+    expect(staleCommit).not.toHaveBeenCalled();
   });
 
   it("keeps the camera-roll path honest: no-credentials surfaces its message", async () => {

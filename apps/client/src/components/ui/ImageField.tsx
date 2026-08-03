@@ -9,7 +9,7 @@
 // listing them explicitly (not image/*) is also what makes iOS transcode HEIC
 // camera-roll photos to JPEG instead of handing us a file the server rejects.
 
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { JRPGButton } from "./JRPGPanel";
 import {
   AssetUploadError,
@@ -86,13 +86,23 @@ export function ImageField({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const { normalizeUrl, isNormalizing, normalizationError } = useImageUrlNormalization();
 
+  // Commit through the LATEST render's callbacks, never the ones captured
+  // when the async work started. An NPC editor's onCommit closes over every
+  // sibling field (it sends the full record); replaying the closure from
+  // file-pick time silently reverted edits made during a slow upload
+  // (adversarial review finding).
+  const commitRef = useRef({ onChange, onCommit });
+  useEffect(() => {
+    commitRef.current = { onChange, onCommit };
+  });
+
   const busy = disabled || uploading || isNormalizing;
 
   const commitUrlText = async () => {
     setUploadError(null);
     const normalized = await normalizeUrl(value.trim());
-    onChange(normalized);
-    onCommit(normalized);
+    commitRef.current.onChange(normalized);
+    commitRef.current.onCommit(normalized);
   };
 
   const handleFile = async (file: File | undefined) => {
@@ -102,8 +112,8 @@ export function ImageField({
     try {
       const info = await uploadFile(file, getCredentials());
       const url = uploadedAssetUrl(info.hash);
-      onChange(url);
-      onCommit(url);
+      commitRef.current.onChange(url);
+      commitRef.current.onCommit(url);
     } catch (error) {
       setUploadError(
         error instanceof AssetUploadError ? error.message : "Upload failed — try again.",
