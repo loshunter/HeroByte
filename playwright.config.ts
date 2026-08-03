@@ -1,6 +1,10 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig, devices } from "@playwright/test";
 
 sanitizeColorEnv(process.env);
+
+const CONFIG_DIR = path.dirname(fileURLToPath(import.meta.url));
 
 const PORT = Number(process.env.E2E_PORT ?? 5175);
 const HOST = process.env.E2E_HOST ?? "127.0.0.1";
@@ -12,7 +16,13 @@ const E2E_MAP_STORE_FILE = process.env.E2E_MAP_STORE_FILE ?? "herobyte-maps.e2e.
 // The asset store default is the SAME directory the owner's dev server uses
 // (and it is git-tracked). Without this, an upload e2e writes real files and
 // claims into the live store — the same trap the .e2e state files exist for.
-const E2E_ASSET_DIR = process.env.E2E_ASSET_DIR ?? "herobyte-assets-e2e";
+// Resolved to an absolute path: the server passes HEROBYTE_ASSET_DIR through
+// untouched, so a relative value would silently depend on the child's cwd.
+const E2E_ASSET_DIR = path.resolve(
+  CONFIG_DIR,
+  "apps/server",
+  process.env.E2E_ASSET_DIR ?? "herobyte-assets-e2e",
+);
 const REUSE_EXISTING_SERVERS = process.env.E2E_REUSE_EXISTING_SERVER === "true";
 
 export default defineConfig({
