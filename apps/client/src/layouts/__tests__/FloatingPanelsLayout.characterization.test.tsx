@@ -449,6 +449,8 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
 
     // Dice
     rollHistory: [],
+    chatMessages: [],
+    handleSendChat: vi.fn(),
     viewingRoll: null,
     handleRoll: vi.fn(),
     handleClearLog: vi.fn(),

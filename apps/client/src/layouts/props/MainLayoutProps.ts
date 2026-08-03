@@ -16,6 +16,7 @@ import type { Camera } from "../../hooks/useCamera";
 import type {
   RoomSnapshot,
   ClientMessage,
+  ChatMessage,
   SceneObjectTransform,
   TokenSize,
   PlayerState,
@@ -356,6 +357,10 @@ export interface MainLayoutProps {
   // -------------------------------------------------------------------------
   /** Roll history entries */
   rollHistory: RollLogEntry[];
+  /** Chat visible to this player (server already stripped others' whispers) */
+  chatMessages: ChatMessage[];
+  /** Handler to send a chat message; omit `to` for the whole table */
+  handleSendChat: (text: string, to?: string) => void;
   /** Currently viewing roll */
   viewingRoll: RollLogEntry | null;
   /** Handler for dice roll */

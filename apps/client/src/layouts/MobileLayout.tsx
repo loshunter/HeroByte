@@ -78,6 +78,8 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
 
     // Dice
     rollHistory,
+    chatMessages,
+    handleSendChat,
     viewingRoll,
     handleRoll,
     handleClearLog,
@@ -313,6 +315,10 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             onClearLog={handleClearLog}
             onClose={() => toggleRollLog(false)}
             onViewRoll={handleViewRoll}
+            chatMessages={chatMessages}
+            players={snapshot?.players ?? []}
+            currentUid={uid}
+            onSendChat={handleSendChat}
           />
         </div>
       )}
