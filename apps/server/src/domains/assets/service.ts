@@ -14,6 +14,8 @@ import path from "node:path";
 import { resolveServerPath } from "../../config/serverPaths.js";
 import { sniffImageMime } from "./mimeSniff.js";
 import { planClaimCopy, planRoomRelease } from "./assetRoomClaims.js";
+import { resolveQuotaLimits, type AssetQuotaLimits } from "./quota.js";
+import { loadAssetIndex, writeAssetIndex, type AssetIndex } from "./assetIndexStore.js";
 
 const HASH_PATTERN = /^[a-f0-9]{64}$/;
 
@@ -44,18 +46,14 @@ export class AssetRejectedError extends Error {
   }
 }
 
-interface AssetIndex {
-  schemaVersion: 1;
-  assets: Record<string, StoredAsset>;
-}
-
 export interface AssetServiceOptions {
   directory?: string;
-  /** Per-asset ceiling. Default 5MB. */
+  /** Per-asset ceiling. Default 5MB (mirrored client-side; change both or neither). */
   maxAssetBytes?: number;
-  /** Whole-store quota — the disk is finite. Default 200MB (the free-tier number). */
+  /** Whole-store quota. Default: derived from the real disk — see quota.ts. */
   maxTotalBytes?: number;
-  /** Per-room quota, so one table cannot spend the whole store. Default 50MB. */
+  /** Per-room quota, so one table cannot spend the whole store. Default: a
+   * quarter of the resolved total, floored at 50MB. */
   maxRoomBytes?: number;
 }
 
@@ -75,9 +73,9 @@ function roomsOf(asset: StoredAsset): string[] {
 export class AssetService {
   private readonly directory: string;
   private readonly maxAssetBytes: number;
-  private readonly maxTotalBytes: number;
-  private readonly maxRoomBytes: number;
+  private readonly quotaOptions: { maxTotalBytes?: number; maxRoomBytes?: number };
   private indexPromise: Promise<AssetIndex> | null = null;
+  private limitsPromise: Promise<AssetQuotaLimits> | null = null;
   private mutationQueue: Promise<unknown> = Promise.resolve();
 
   constructor(options: AssetServiceOptions = {}) {
@@ -87,8 +85,22 @@ export class AssetService {
     this.directory =
       options.directory ?? process.env.HEROBYTE_ASSET_DIR ?? resolveServerPath("herobyte-assets");
     this.maxAssetBytes = options.maxAssetBytes ?? 5 * 1024 * 1024;
-    this.maxTotalBytes = options.maxTotalBytes ?? 200 * 1024 * 1024;
-    this.maxRoomBytes = options.maxRoomBytes ?? 50 * 1024 * 1024;
+    this.quotaOptions = {
+      maxTotalBytes: options.maxTotalBytes,
+      maxRoomBytes: options.maxRoomBytes,
+    };
+  }
+
+  /** Resolved once, lazily — the disk is measured on the first quota check. */
+  private limits(index: AssetIndex): Promise<AssetQuotaLimits> {
+    if (!this.limitsPromise) {
+      this.limitsPromise = resolveQuotaLimits({
+        directory: this.directory,
+        storeBytes: Object.values(index.assets).reduce((sum, asset) => sum + asset.size, 0),
+        options: this.quotaOptions,
+      });
+    }
+    return this.limitsPromise;
   }
 
   /**
@@ -99,10 +111,9 @@ export class AssetService {
    * because the store used to have NO room concept at all, which made two things
    * shared that should not be:
    *
-   *   QUOTA. One table filling the 200MB store returned 507 to every OTHER
-   *   table. Today that self-heals on the free tier's 15-minute spin-down; on a
-   *   persistent disk it would be permanent, so this gets worse exactly when the
-   *   disk lands.
+   *   QUOTA. One table filling the whole store returned 507 to every OTHER
+   *   table. On the old free tier that self-healed on the 15-minute spin-down;
+   *   on the persistent disk it would be permanent.
    *
    *   DEDUP. `deduplicated: true` answered "do these exact bytes exist ANYWHERE
    *   on this server?" — a cross-room existence oracle for anyone who could
@@ -149,7 +160,7 @@ export class AssetService {
       // tell the caller these bytes exist in some OTHER room.
       if (existing) {
         const claimed = { ...existing, rooms: [...roomsOf(existing), roomId] };
-        this.assertQuota(index, bytes.length, roomId);
+        this.assertQuota(index, bytes.length, roomId, await this.limits(index));
         await this.writeIndex({
           schemaVersion: 1,
           assets: { ...index.assets, [hash]: claimed },
@@ -158,7 +169,7 @@ export class AssetService {
         return { asset: claimed, deduplicated: false };
       }
 
-      this.assertQuota(index, bytes.length, roomId);
+      this.assertQuota(index, bytes.length, roomId, await this.limits(index));
 
       await mkdir(this.directory, { recursive: true });
       const filePath = path.join(this.directory, `${hash}.${sniffed.extension}`);
@@ -198,16 +209,21 @@ export class AssetService {
    * checking outside the lock would reintroduce the quota TOCTOU that an earlier
    * review already found here once.
    */
-  private assertQuota(index: AssetIndex, incoming: number, roomId: string): void {
+  private assertQuota(
+    index: AssetIndex,
+    incoming: number,
+    roomId: string,
+    limits: AssetQuotaLimits,
+  ): void {
     const assets = Object.values(index.assets);
     const total = assets.reduce((sum, asset) => sum + asset.size, 0);
-    if (total + incoming > this.maxTotalBytes) {
+    if (total + incoming > limits.maxTotalBytes) {
       throw new AssetRejectedError("Asset storage quota exceeded", 507);
     }
     const roomTotal = assets
       .filter((asset) => roomsOf(asset).includes(roomId))
       .reduce((sum, asset) => sum + asset.size, 0);
-    if (roomTotal + incoming > this.maxRoomBytes) {
+    if (roomTotal + incoming > limits.maxRoomBytes) {
       throw new AssetRejectedError("This table's asset storage is full", 507);
     }
   }
@@ -307,29 +323,12 @@ export class AssetService {
 
   private loadIndex(): Promise<AssetIndex> {
     if (!this.indexPromise) {
-      this.indexPromise = (async (): Promise<AssetIndex> => {
-        try {
-          const raw = await readFile(path.join(this.directory, "index.json"), "utf-8");
-          const parsed = JSON.parse(raw) as AssetIndex;
-          if (parsed?.schemaVersion === 1 && parsed.assets && typeof parsed.assets === "object") {
-            return parsed;
-          }
-        } catch {
-          // Missing or corrupt index: start fresh; stored files re-attach on
-          // re-upload thanks to content addressing.
-        }
-        return { schemaVersion: 1, assets: {} };
-      })();
+      this.indexPromise = loadAssetIndex(this.directory);
     }
     return this.indexPromise;
   }
 
-  // Callers hold the mutation lock, so a plain atomic write is safe here.
-  private async writeIndex(index: AssetIndex): Promise<void> {
-    await mkdir(this.directory, { recursive: true });
-    const indexPath = path.join(this.directory, "index.json");
-    const tmpPath = `${indexPath}.tmp`;
-    await writeFile(tmpPath, JSON.stringify(index, null, 2));
-    await rename(tmpPath, indexPath);
+  private writeIndex(index: AssetIndex): Promise<void> {
+    return writeAssetIndex(this.directory, index);
   }
 }

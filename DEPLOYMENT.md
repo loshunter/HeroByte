@@ -99,7 +99,7 @@ Every variable the server reads. All are optional; the defaults run a working de
 | `HEROBYTE_DEFAULT_ROOM_CLEAR_HOURS` | `1`                                                | How long the default table may sit empty before the server wipes it, while it still uses the published password (see §4). **Set `0` to disable.**                                                                                                                                                                          |
 | `HEROBYTE_DATA_DIR`                 | the `apps/server` package root                     | **The persistent-disk lever.** Re-anchors every on-disk store default below onto one directory. Set in production to the Render disk's mount path; always use an absolute path. The server refuses to boot if this points at a directory that does not exist (an unmounted disk or a typo — either way, silent data loss). |
 | `HEROBYTE_ALLOW_EPHEMERAL_DATA`     | off                                                | In production (`NODE_ENV=production`, or any Render service) the server refuses to boot without `HEROBYTE_DATA_DIR` — otherwise every store is silently wiped on redeploy. `true` opts a deliberately diskless deploy (e.g. a free-tier demo) back in.                                                                     |
-| `HEROBYTE_ASSET_DIR`                | `<data dir>/herobyte-assets/`                      | Uploaded-image store directory (content-addressed, 200MB quota).                                                                                                                                                                                                                                                           |
+| `HEROBYTE_ASSET_DIR`                | `<data dir>/herobyte-assets/`                      | Uploaded-image store directory (content-addressed). Quota is derived from the disk it sits on (available space minus a 256MB reserve; per-table = a quarter of that, min 50MB), logged at boot. `HEROBYTE_ASSET_MAX_TOTAL_MB` / `HEROBYTE_ASSET_MAX_ROOM_MB` override.                                                     |
 | `HEROBYTE_MAP_STORE_FILE`           | `<data dir>/herobyte-maps.json`                    | Map Studio document store.                                                                                                                                                                                                                                                                                                 |
 | `ROOM_STATE_FILE`                   | `<data dir>/herobyte-state.json`                   | The DEFAULT room's state file (exists for parallel E2E runs). Custom rooms always write `herobyte-state.<roomId>.json` in the data dir.                                                                                                                                                                                    |
 | `ROOM_STORE`                        | in-memory                                          | `redis` backs room state with Redis instead of process memory + JSON files.                                                                                                                                                                                                                                                |
@@ -245,9 +245,10 @@ your own free-tier copy:
 The default table (**Main Hall**) is the one the documented fallback password opens, so on any
 public deployment it is effectively an open scratch space. It is also the one room that is never
 unloaded — it backs the legacy single-room surface. Left alone, that combination means everything
-anyone drops there accumulates forever against its **50 MB per-room asset quota**, and once that
-fills, every upload in that table returns HTTP 507 permanently. (On an ephemeral filesystem the
-spin-down used to hide this; a persistent disk makes it stick.)
+anyone drops there accumulates forever against its **per-room asset quota** (derived from the disk
+at boot — see `HEROBYTE_ASSET_MAX_ROOM_MB` above), and once that fills, every upload in that table
+returns HTTP 507 permanently. (On an ephemeral filesystem the spin-down used to hide this; a
+persistent disk makes it stick.)
 
 **The default table's passwords are immutable.** The server refuses `set-room-password` and
 `set-dm-password` for it, so the published `HEROBYTE_ROOM_SECRET` / `HEROBYTE_DM_PASSWORD` always
