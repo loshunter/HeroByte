@@ -266,6 +266,10 @@ state, map documents, and its claim on uploaded images. Specifics worth knowing:
 - Uploads are content-addressed, so clearing **un-claims** rather than deletes — bytes another table
   also uploaded stay on disk and keep serving.
 - The idle clock starts at boot, so a restart cannot wipe a table nobody has rejoined yet.
+- Independently of the clear, **every table reclaims replaced uploads**: a background sweep (every
+  5 minutes) un-claims images a table's state no longer references — swapping a map background five
+  times costs one image of quota, not five. Uploads never yet seen in table state (e.g. My Stuff
+  palette items waiting to be placed) are never touched.
 - Users keep work via **DM Menu → Session → Save as a Private Table** (`fork-table`), which copies
   the whole table into a fresh private one — including a co-claim on its uploads, so a later sweep
   of the source cannot delete images the copy still uses.

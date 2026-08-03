@@ -94,6 +94,11 @@ export class RoomRegistry {
     return Array.from(this.services.keys());
   }
 
+  /** Whether a room is currently loaded, without get()'s create-on-miss. */
+  has(roomId: string): boolean {
+    return this.services.has(roomId);
+  }
+
   async destroy(): Promise<void> {
     this.services.clear();
     if (this.redisClient) {

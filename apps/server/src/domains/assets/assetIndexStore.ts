@@ -7,7 +7,7 @@
 
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { StoredAsset } from "./service.js";
+import type { StoredAsset } from "./assetTypes.js";
 
 export interface AssetIndex {
   schemaVersion: 1;

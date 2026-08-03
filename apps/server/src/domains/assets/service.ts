@@ -13,62 +13,28 @@ import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { resolveServerPath } from "../../config/serverPaths.js";
 import { sniffImageMime } from "./mimeSniff.js";
-import { planClaimCopy, planRoomRelease } from "./assetRoomClaims.js";
+import {
+  planClaimCopy,
+  planRoomReclaim,
+  planRoomRelease,
+  type ClaimPlan,
+} from "./assetRoomClaims.js";
 import { resolveQuotaLimits, type AssetQuotaLimits } from "./quota.js";
 import { loadAssetIndex, writeAssetIndex, type AssetIndex } from "./assetIndexStore.js";
+import {
+  AssetRejectedError,
+  roomsOf,
+  type AssetServiceOptions,
+  type StoredAsset,
+} from "./assetTypes.js";
 
 const HASH_PATTERN = /^[a-f0-9]{64}$/;
 
-export interface StoredAsset {
-  hash: string;
-  mime: string;
-  extension: string;
-  size: number;
-  createdAt: number;
-  /**
-   * Rooms that have uploaded these bytes. Content addressing means two rooms
-   * uploading the same image share ONE file — so ownership is a set, not a
-   * field, and the asset lives until no room claims it.
-   *
-   * Optional: an index written before this existed has none, and those assets
-   * are treated as unclaimed (see roomsOf).
-   */
-  rooms?: string[];
-}
-
-export class AssetRejectedError extends Error {
-  readonly statusCode: number;
-
-  constructor(message: string, statusCode: number) {
-    super(message);
-    this.name = "AssetRejectedError";
-    this.statusCode = statusCode;
-  }
-}
-
-export interface AssetServiceOptions {
-  directory?: string;
-  /** Per-asset ceiling. Default 5MB (mirrored client-side; change both or neither). */
-  maxAssetBytes?: number;
-  /** Whole-store quota. Default: derived from the real disk — see quota.ts. */
-  maxTotalBytes?: number;
-  /** Per-room quota, so one table cannot spend the whole store. Default: a
-   * quarter of the resolved total, floored at 50MB. */
-  maxRoomBytes?: number;
-}
+export { AssetRejectedError, roomsOf } from "./assetTypes.js";
+export type { AssetServiceOptions, StoredAsset } from "./assetTypes.js";
 
 /** Uploads with no room header belong to the default table. */
 const DEFAULT_ROOM = "default";
-
-/**
- * An asset's claiming rooms. An index written before rooms existed has none —
- * those assets count against the whole-store quota (they are on the disk) but
- * against no room's, which is the right way round: charging them to a room that
- * may not have uploaded them would be a guess.
- */
-function roomsOf(asset: StoredAsset): string[] {
-  return asset.rooms ?? [];
-}
 
 export class AssetService {
   private readonly directory: string;
@@ -301,24 +267,43 @@ export class AssetService {
   async releaseRoom(roomId: string): Promise<number> {
     return this.runExclusive(async () => {
       const index = await this.loadIndex();
-      const plan = planRoomRelease(index.assets, roomId);
-      if (!plan.changed) return 0;
-
-      // Index first, then unlink — the same ordering store() uses and for the
-      // same reason: an index that no longer names a file is harmless (the
-      // orphan re-attaches on the next identical upload), whereas a file
-      // deleted while still indexed 404s forever.
-      await this.writeIndex({ schemaVersion: 1, assets: plan.assets });
-      index.assets = plan.assets;
-
-      for (const asset of plan.orphaned) {
-        await unlink(path.join(this.directory, `${asset.hash}.${asset.extension}`)).catch(() => {
-          // Already gone, or the disk refused: the index no longer references
-          // it, so this is a stray file at worst — never a broken reference.
-        });
-      }
-      return plan.freed;
+      return this.applyClaimPlan(index, planRoomRelease(index.assets, roomId));
     });
+  }
+
+  /**
+   * Reconcile a room's claims against what its state references right now —
+   * the replacement-leak fix. `referenced` comes from the caller's scan of the
+   * room's serialized state + map documents (see assetReferences.ts); the
+   * three-way mark/keep/un-claim split lives in planRoomReclaim.
+   *
+   * Returns the bytes actually freed from disk.
+   */
+  async reclaimRoom(roomId: string, referenced: ReadonlySet<string>): Promise<number> {
+    return this.runExclusive(async () => {
+      const index = await this.loadIndex();
+      return this.applyClaimPlan(index, planRoomReclaim(index.assets, roomId, referenced));
+    });
+  }
+
+  /** Persist a claim plan. Callers hold the mutation lock. */
+  private async applyClaimPlan(index: AssetIndex, plan: ClaimPlan): Promise<number> {
+    if (!plan.changed) return 0;
+
+    // Index first, then unlink — the same ordering store() uses and for the
+    // same reason: an index that no longer names a file is harmless (the
+    // orphan re-attaches on the next identical upload), whereas a file
+    // deleted while still indexed 404s forever.
+    await this.writeIndex({ schemaVersion: 1, assets: plan.assets });
+    index.assets = plan.assets;
+
+    for (const asset of plan.orphaned) {
+      await unlink(path.join(this.directory, `${asset.hash}.${asset.extension}`)).catch(() => {
+        // Already gone, or the disk refused: the index no longer references
+        // it, so this is a stray file at worst — never a broken reference.
+      });
+    }
+    return plan.freed;
   }
 
   private loadIndex(): Promise<AssetIndex> {

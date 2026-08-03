@@ -527,3 +527,94 @@ describe("idle default-table clear", () => {
     expect(releaseRoom).not.toHaveBeenCalledWith("table-abc123");
   });
 });
+
+// ============================================================================
+// ASSET RECLAIM SWEEP (replacement leak, arc §7.3)
+// ============================================================================
+// A replaced upload used to stay claimed forever — releasing required clearing
+// the whole room. These drive the Container's real sweep entry points against
+// real room state and assert exactly which hashes reach the asset service.
+describe("asset reclaim sweep", () => {
+  const HASH = "d".repeat(64);
+  let container: Container;
+  let reclaimRoom: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    reclaimRoom = vi.fn().mockResolvedValue(0);
+    container = new Container(
+      {} as unknown as WebSocketServer,
+      authServiceStub,
+      new RoomRegistry({ defaultRoomId: "default" }),
+      undefined,
+      { reclaimRoom } as unknown as ConstructorParameters<typeof Container>[4],
+    );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("hands the asset service the hashes a room's state actually references", async () => {
+    const roomService = container.getRoomServiceForRoom("default");
+    roomService.getState().props.push({
+      id: "prop-1",
+      label: "Old Map",
+      imageUrl: `https://server.example/assets/${HASH}`,
+      owner: null,
+      size: "medium",
+      x: 0,
+      y: 0,
+      scaleX: 1,
+      scaleY: 1,
+      rotation: 0,
+    });
+
+    await container.reclaimUnreferencedAssets();
+
+    expect(reclaimRoom).toHaveBeenCalledWith("default", expect.any(Set));
+    const referenced = reclaimRoom.mock.calls.find(
+      ([room]) => room === "default",
+    )![1] as Set<string>;
+    expect(referenced.has(HASH)).toBe(true);
+  });
+
+  it("sweeps every loaded room, not just the default one", async () => {
+    container.getRoomServiceForRoom("table-second");
+
+    await container.reclaimUnreferencedAssets();
+
+    const swept = reclaimRoom.mock.calls.map(([room]) => room).sort();
+    expect(swept).toEqual(["default", "table-second"]);
+  });
+
+  it("gives an idle room one last reclaim on its way out of memory", async () => {
+    const roomService = container.getRoomServiceForRoom("room-idle");
+    roomService.getState().tokens.push({
+      id: "t1",
+      owner: "p1",
+      x: 0,
+      y: 0,
+      color: "red",
+      imageUrl: `/assets/${HASH}`,
+    });
+    container.touchRoomActivity("room-idle");
+    vi.advanceTimersByTime(31 * 60 * 1000);
+
+    const unloaded = await container.unloadIdleRooms(30 * 60 * 1000);
+
+    expect(unloaded).toEqual(["room-idle"]);
+    const call = reclaimRoom.mock.calls.find(([room]) => room === "room-idle");
+    expect(call).toBeDefined();
+    expect((call![1] as Set<string>).has(HASH)).toBe(true);
+  });
+
+  it("survives a container built without an asset service", async () => {
+    const bare = new Container(
+      {} as unknown as WebSocketServer,
+      authServiceStub,
+      new RoomRegistry({ defaultRoomId: "default" }),
+    );
+    await expect(bare.reclaimUnreferencedAssets()).resolves.toBeUndefined();
+  });
+});

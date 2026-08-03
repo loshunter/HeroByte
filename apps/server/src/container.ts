@@ -22,6 +22,7 @@ import { isRoomStatePristine } from "./domains/room/roomStatePristine.js";
 import { MapStudioService } from "./domains/mapStudio/service.js";
 import { FileMapDocumentStore } from "./domains/mapStudio/fileStore.js";
 import type { AssetService } from "./domains/assets/service.js";
+import { AssetReclaimSweeper } from "./domains/assets/reclaimSweep.js";
 import { getDefaultRoomId } from "./config/auth.js";
 
 /**
@@ -63,6 +64,8 @@ export class Container {
 
   /** Optional: without it, clearing the default table skips its uploads. */
   private readonly assetService?: AssetService;
+  /** The replacement-leak reclaim sweep (no-ops without an asset service). */
+  private readonly assetReclaim: AssetReclaimSweeper;
 
   /** Same instance, for the fork path (which must co-claim the uploads). */
   get assetServiceForFork(): AssetService | undefined {
@@ -94,6 +97,11 @@ export class Container {
     this.authService = authService;
     this.mapStudioService = mapStudioService ?? new MapStudioService(new FileMapDocumentStore());
     this.assetService = assetService;
+    this.assetReclaim = new AssetReclaimSweeper({
+      assetService,
+      rooms: this.roomRegistry,
+      mapDocuments: this.mapStudioService,
+    });
 
     // Initialize middleware. The auth-work limiter can be injected so the
     // HTTP routes (built before this container) share the same budget.
@@ -114,21 +122,12 @@ export class Container {
     // table nobody has joined yet as long-idle and wipe state that had just
     // been loaded from disk.
     this.touchRoomActivity(this.defaultRoomId);
-    this.markDefaultTableAsPublic();
-  }
-
-  /**
-   * Mark the default table as the public test table so the UI can label it.
-   *
-   * It is public because it IS the default table — the one whose credentials
-   * every server publishes — not because of what its password happens to be.
-   * That password cannot be changed (RoomMessageHandler refuses), precisely so
-   * nobody can padlock a host's own test bed.
-   */
-  private markDefaultTableAsPublic(): void {
-    const roomService = this.roomRegistry.get(this.defaultRoomId);
-    if (roomService.getState().isPublicTable === true) return;
-    roomService.setState({ isPublicTable: true });
+    // Label the default table public for the UI. Public because it IS the
+    // default table (its credentials are published and immutable — see
+    // RoomMessageHandler), not because of what its password happens to be.
+    if (this.roomService.getState().isPublicTable !== true) {
+      this.roomService.setState({ isPublicTable: true });
+    }
   }
 
   /**
@@ -201,8 +200,12 @@ export class Container {
       const roomService = this.roomRegistry.get(roomId);
       roomService.saveState();
       await roomService.awaitPendingWrites();
-      // The await above is this sweep's ONLY yield point, and a client can
-      // authenticate into the room DURING it: the join runs synchronously,
+      // Last claim reconciliation while the state is loaded (unloaded rooms
+      // are invisible to the periodic sweep). Deliberately BEFORE the
+      // re-checks: if a join vetoes the unload, a live-room sweep is harmless.
+      await this.assetReclaim.sweepRoom(roomId, JSON.stringify(roomService.getState()));
+      // The awaits above are this sweep's only yield points, and a client can
+      // authenticate into the room DURING them: the join runs synchronously,
       // mutates this same RoomService, and queues a state write the awaited
       // promise does not cover (the queue promise was captured at call time).
       // Re-check both guards before tearing down — a join marks the session
@@ -221,6 +224,11 @@ export class Container {
       console.log(`[Container] Unloaded ${unloaded.length} idle room(s): ${unloaded.join(", ")}`);
     }
     return unloaded;
+  }
+
+  /** The replacement-leak sweep over loaded rooms; see AssetReclaimSweeper. */
+  reclaimUnreferencedAssets(): Promise<void> {
+    return this.assetReclaim.sweepLoadedRooms();
   }
 
   /**

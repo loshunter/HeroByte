@@ -324,6 +324,83 @@ describe("AssetService", () => {
     });
   });
 
+  describe("reclaimRoom (replacement leak, arc §7.3)", () => {
+    it("reclaims a replaced upload through the full mark-then-reclaim cycle", async () => {
+      const service = new AssetService({ directory: TMP_DIR });
+      const bytes = pngBytes("the-old-map-background");
+      const { asset } = await service.store(bytes, "default", 1);
+      const file = path.join(TMP_DIR, `${asset.hash}.png`);
+
+      // Sweep 1: the state references it → the claim gets marked, not touched.
+      expect(await service.reclaimRoom("default", new Set([asset.hash]))).toBe(0);
+      expect(existsSync(file)).toBe(true);
+
+      // Sweep 2: replaced — the state no longer references it. Un-claim, delete.
+      const freed = await service.reclaimRoom("default", new Set());
+      expect(freed).toBe(bytes.length);
+      expect(existsSync(file)).toBe(false);
+      expect(await service.roomBytes("default")).toBe(0);
+    });
+
+    it("never deletes an upload the state has not referenced yet", async () => {
+      // Palette stock and in-flight applies: claimed, never observed
+      // referenced. Reclaim must leave them alone no matter how often it runs.
+      const service = new AssetService({ directory: TMP_DIR });
+      const { asset } = await service.store(pngBytes("my-stuff-palette-item"), "default", 1);
+
+      await service.reclaimRoom("default", new Set());
+      await service.reclaimRoom("default", new Set());
+
+      expect(await service.read(asset.hash)).not.toBeNull();
+      expect(await service.roomBytes("default")).toBeGreaterThan(0);
+    });
+
+    it("keeps shared bytes another room still claims", async () => {
+      const service = new AssetService({ directory: TMP_DIR });
+      const shared = pngBytes("both-tables-use-this");
+      const { asset } = await service.store(shared, "default", 1);
+      await service.store(shared, "table-b", 2);
+      await service.reclaimRoom("default", new Set([asset.hash]));
+      await service.reclaimRoom("table-b", new Set([asset.hash]));
+
+      const freed = await service.reclaimRoom("default", new Set());
+
+      expect(freed).toBe(0);
+      expect(await service.read(asset.hash)).not.toBeNull();
+      expect(await service.roomBytes("table-b")).toBe(shared.length);
+      expect(await service.roomBytes("default")).toBe(0);
+    });
+
+    it("gives the quota back so the room can upload again", async () => {
+      const service = new AssetService({
+        directory: TMP_DIR,
+        maxRoomBytes: 40,
+        maxTotalBytes: 10_000,
+      });
+      const { asset } = await service.store(pngBytes("fills-the-small-quota"), "default", 1);
+      await service.reclaimRoom("default", new Set([asset.hash])); // mark
+      await expect(service.store(pngBytes("over-the-quota-line"), "default", 2)).rejects.toThrow(
+        /table's asset storage is full/i,
+      );
+
+      await service.reclaimRoom("default", new Set()); // replaced
+
+      const after = await service.store(pngBytes("works-after-reclaim"), "default", 3);
+      expect(after.deduplicated).toBe(false);
+    });
+
+    it("survives an index round-trip: marks persist to disk", async () => {
+      const first = new AssetService({ directory: TMP_DIR });
+      const { asset } = await first.store(pngBytes("marked-then-reloaded"), "default", 1);
+      await first.reclaimRoom("default", new Set([asset.hash]));
+
+      // A fresh service (fresh index load) must still see the mark.
+      const second = new AssetService({ directory: TMP_DIR });
+      const freed = await second.reclaimRoom("default", new Set());
+      expect(freed).toBeGreaterThan(0);
+    });
+  });
+
   it("refuses malformed or unknown hashes on read — no path traversal", async () => {
     const service = new AssetService({ directory: TMP_DIR });
     await service.store(pngBytes("real"), ROOM, 1);
