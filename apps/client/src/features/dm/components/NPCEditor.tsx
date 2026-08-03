@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import type { Character } from "@herobyte/shared";
 import { normalizeHPValues, parseHPInput, parseMaxHPInput } from "@herobyte/shared";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
-import { useImageUrlNormalization } from "../../../hooks/useImageUrlNormalization";
+import { ImageField } from "../../../components/ui/ImageField";
 import { StatusBanner } from "../../../components/ui/StatusBanner";
 
 interface NPCEditorProps {
@@ -49,7 +49,6 @@ export function NPCEditor({
   );
   const [portrait, setPortrait] = useState(npc.portrait ?? "");
   const [tokenImage, setTokenImage] = useState(npc.tokenImage ?? "");
-  const { normalizeUrl } = useImageUrlNormalization();
 
   useEffect(() => {
     setName(npc.name);
@@ -117,16 +116,6 @@ export function NPCEditor({
   const handleMaxHpBlur = () => commitUpdate();
   const handleTempHpBlur = () => commitUpdate();
   const handleInitiativeModifierBlur = () => commitUpdate();
-  const handlePortraitBlur = async () => {
-    const normalizedPortrait = await normalizeUrl(portrait);
-    setPortrait(normalizedPortrait);
-    commitUpdate({ portrait: normalizedPortrait });
-  };
-  const handleTokenImageBlur = async () => {
-    const normalizedTokenImage = await normalizeUrl(tokenImage);
-    setTokenImage(normalizedTokenImage);
-    commitUpdate({ tokenImage: normalizedTokenImage });
-  };
 
   return (
     <JRPGPanel variant="simple" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -261,28 +250,16 @@ export function NPCEditor({
         </label>
       </div>
 
-      <label
-        className="jrpg-text-small"
-        style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-      >
-        Portrait URL
-        <input
-          type="text"
-          value={portrait}
-          onChange={(e) => setPortrait(e.target.value)}
-          onBlur={handlePortraitBlur}
-          disabled={isUpdating}
-          style={{
-            width: "100%",
-            padding: "4px",
-            background: "#111",
-            color: "var(--jrpg-white)",
-            border: "1px solid var(--jrpg-border-gold)",
-            opacity: isUpdating ? 0.5 : 1,
-            cursor: isUpdating ? "not-allowed" : "text",
-          }}
-        />
-      </label>
+      <ImageField
+        label="Portrait URL"
+        value={portrait}
+        onChange={setPortrait}
+        onCommit={(url) => {
+          setPortrait(url);
+          commitUpdate({ portrait: url });
+        }}
+        disabled={isUpdating}
+      />
       {portrait && (
         <img
           src={portrait}
@@ -299,28 +276,16 @@ export function NPCEditor({
         />
       )}
 
-      <label
-        className="jrpg-text-small"
-        style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-      >
-        Token Image URL
-        <input
-          type="text"
-          value={tokenImage}
-          onChange={(e) => setTokenImage(e.target.value)}
-          onBlur={handleTokenImageBlur}
-          disabled={isUpdating}
-          style={{
-            width: "100%",
-            padding: "4px",
-            background: "#111",
-            color: "var(--jrpg-white)",
-            border: "1px solid var(--jrpg-border-gold)",
-            opacity: isUpdating ? 0.5 : 1,
-            cursor: isUpdating ? "not-allowed" : "text",
-          }}
-        />
-      </label>
+      <ImageField
+        label="Token Image URL"
+        value={tokenImage}
+        onChange={setTokenImage}
+        onCommit={(url) => {
+          setTokenImage(url);
+          commitUpdate({ tokenImage: url });
+        }}
+        disabled={isUpdating}
+      />
       {tokenImage && (
         <img
           src={tokenImage}

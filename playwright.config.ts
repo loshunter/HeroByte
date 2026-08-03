@@ -9,6 +9,10 @@ const WS_PORT = Number(process.env.E2E_WS_PORT ?? 8788);
 const WS_HOST = process.env.E2E_WS_HOST ?? "127.0.0.1";
 const E2E_STATE_FILE = process.env.E2E_STATE_FILE ?? "herobyte-state.e2e.json";
 const E2E_MAP_STORE_FILE = process.env.E2E_MAP_STORE_FILE ?? "herobyte-maps.e2e.json";
+// The asset store default is the SAME directory the owner's dev server uses
+// (and it is git-tracked). Without this, an upload e2e writes real files and
+// claims into the live store — the same trap the .e2e state files exist for.
+const E2E_ASSET_DIR = process.env.E2E_ASSET_DIR ?? "herobyte-assets-e2e";
 const REUSE_EXISTING_SERVERS = process.env.E2E_REUSE_EXISTING_SERVER === "true";
 
 export default defineConfig({
@@ -51,6 +55,8 @@ export default defineConfig({
         PORT: String(WS_PORT),
         ROOM_STATE_FILE: E2E_STATE_FILE,
         HEROBYTE_MAP_STORE_FILE: E2E_MAP_STORE_FILE,
+        HEROBYTE_ASSET_DIR: E2E_ASSET_DIR,
+        E2E_ASSET_DIR,
       },
     },
     {

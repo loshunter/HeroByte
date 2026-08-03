@@ -44,6 +44,7 @@ herobyte-state.e2e.json.tmp
 
 # Content-addressed upload store (user data, never committed)
 herobyte-assets/
+herobyte-assets-e2e/
 herobyte-maps.json
 herobyte-maps.json.tmp
 herobyte-maps*.json
