@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { existsSync, unlinkSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, unlinkSync, readFileSync, writeFileSync, readdirSync } from "fs";
 
 vi.mock("fs/promises", async () => {
   const actual = await vi.importActual<typeof import("fs/promises")>("fs/promises");
@@ -59,14 +59,14 @@ describe("StatePersistence - Characterization Tests", () => {
     await roomService.awaitPendingWrites();
 
     // Clean up test state file (and atomic-write/quarantine leftovers)
-    for (const leftover of [
-      TEST_STATE_FILE,
-      `${PROD_STATE_FILE}.tmp`,
-      `${PROD_STATE_FILE}.corrupt`,
-    ]) {
+    for (const leftover of [TEST_STATE_FILE, `${PROD_STATE_FILE}.corrupt`]) {
       if (existsSync(leftover)) {
         unlinkSync(leftover);
       }
+    }
+    // Atomic-write leftovers now carry a pid/counter suffix.
+    for (const entry of readdirSync(".")) {
+      if (/^herobyte-state\.json\.\d+\.\d+\.tmp$/.test(entry)) unlinkSync(entry);
     }
 
     // Restore production state file if it existed
@@ -683,11 +683,34 @@ describe("StatePersistence - Characterization Tests", () => {
       const renameSpy = fsPromises.rename as ReturnType<typeof vi.fn>;
 
       const lastWrite = writeFileSpy.mock.calls.at(-1);
-      expect(String(lastWrite?.[0])).toMatch(/herobyte-state\.json\.tmp$/);
+      expect(String(lastWrite?.[0])).toMatch(/herobyte-state\.json\.\d+\.\d+\.tmp$/);
 
       const lastRename = renameSpy.mock.calls.at(-1);
-      expect(String(lastRename?.[0])).toMatch(/herobyte-state\.json\.tmp$/);
+      expect(String(lastRename?.[0])).toMatch(/herobyte-state\.json\.\d+\.\d+\.tmp$/);
       expect(String(lastRename?.[1])).toMatch(/herobyte-state\.json$/);
+    });
+
+    it("uses a tmp path unique per process AND per write", async () => {
+      // A fixed `<file>.tmp` is safe only within one process. The dev server,
+      // the e2e server and parallel vitest workers all default to this same
+      // state file — two of them writing one shared tmp name interleave their
+      // bytes, and the rename then publishes the torn result. Found in the
+      // wild as a quarantined herobyte-state.json.corrupt.
+      const writeFileSpy = fsPromises.writeFile as ReturnType<typeof vi.fn>;
+      writeFileSpy.mockClear();
+
+      roomService.setState({ gridSize: 71 });
+      roomService.saveState();
+      roomService.setState({ gridSize: 72 });
+      roomService.saveState();
+      await roomService.awaitPendingWrites();
+
+      const tmpPaths = writeFileSpy.mock.calls.map(([p]) => String(p));
+      expect(tmpPaths.length).toBeGreaterThanOrEqual(2);
+      expect(new Set(tmpPaths).size).toBe(tmpPaths.length); // all distinct
+      for (const tmpPath of tmpPaths) {
+        expect(tmpPath).toContain(`.${process.pid}.`);
+      }
     });
 
     it("a crash between write and rename leaves the previous good file intact", async () => {

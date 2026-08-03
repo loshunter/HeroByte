@@ -10,6 +10,7 @@
 // prove nothing about what crossed the wire.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import path from "node:path";
 import type { WebSocket, WebSocketServer } from "ws";
 import type { ChatMessage, ClientMessage, RoomSnapshot } from "@herobyte/shared";
 import { MessageRouter } from "../messageRouter.js";
@@ -80,7 +81,14 @@ describe("chat secrecy contracts", () => {
     // followed by a timer flush — otherwise the sockets receive nothing and
     // an "it never leaked" assertion would pass for the wrong reason.
     vi.useFakeTimers();
-    roomService = new RoomService();
+    // Scratch state file, NOT the package-root default. broadcast() calls
+    // saveState(), so a bare `new RoomService()` writes into the REAL
+    // apps/server/herobyte-state.json — which the dev server then loads. That
+    // is not hypothetical: this suite put two chat messages into a running
+    // dev table before this line existed.
+    roomService = new RoomService({
+      stateFile: path.join(process.cwd(), ".tmp", "chat-secrecy-test-state.json"),
+    });
     roomService.setState({
       players: [player(ALICE, false), player(BOB, false), player(DM, true)],
       tokens: [],

@@ -36,6 +36,8 @@ const DEFAULT_STATE_FILE = resolveServerPath("herobyte-state.json");
 export class StatePersistence {
   private readonly stateFile: string;
   private writeQueue: Promise<void> = Promise.resolve();
+  /** Makes each write's tmp file unique alongside the pid (see saveToDisk). */
+  private writeCounter = 0;
 
   /**
    * Creates a new StatePersistence instance.
@@ -232,11 +234,20 @@ export class StatePersistence {
     }
 
     // Queue writes to avoid overlapping file operations that can corrupt JSON.
-    // Each write is tmp+rename (the asset store's pattern): a crash mid-write
-    // truncates only the tmp file, never the state file itself, so the last
-    // completed save always survives. The queue serializes writes per file,
-    // so the fixed tmp path cannot collide with itself.
-    const tmpPath = `${this.stateFile}.tmp`;
+    // Each write is tmp+rename: a crash mid-write truncates only the tmp file,
+    // never the state file itself, so the last completed save always survives.
+    //
+    // The tmp path is unique per PROCESS and per write, not the fixed
+    // `<file>.tmp` this originally used. The write queue only serializes
+    // within one process, and more than one process legitimately targets the
+    // same state file here: the dev server, the e2e server (which also
+    // defaults to the package root), and parallel vitest workers. With a
+    // shared tmp name two of them interleave their bytes into one file and
+    // then rename that torn result over the real state — which is exactly
+    // how this was found, via a quarantined herobyte-state.json.corrupt.
+    // A unique name makes the rename the only shared step, and rename is
+    // atomic.
+    const tmpPath = `${this.stateFile}.${process.pid}.${(this.writeCounter += 1)}.tmp`;
     this.writeQueue = this.writeQueue
       .catch(() => {
         // Swallow errors from previous writes so the queue can continue.
