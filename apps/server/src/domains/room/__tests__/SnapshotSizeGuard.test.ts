@@ -15,6 +15,7 @@
 // it never checked. If the wire ever does enable compression, change the
 // RUNTIME guard first and let these follow it.
 
+import path from "node:path";
 import { describe, it, expect } from "vitest";
 import {
   MAX_TERRAIN_WIRE_BYTES,
@@ -30,6 +31,11 @@ import {
 import { RoomService, SNAPSHOT_SIZE_LIMIT_BYTES } from "../service.js";
 import { dungeonRecipe } from "../../generation/dungeonRecipe.js";
 
+// Scratch state file: a bare `new RoomService({ stateFile: TEST_STATE_FILE })` writes the REAL
+// apps/server/herobyte-state.json, which parallel workers and the dev
+// server then fight over (observed: a torn file, quarantined as .corrupt).
+const TEST_STATE_FILE = path.join(process.cwd(), ".tmp", "SnapshotSizeGuard-state.json");
+
 /** Exactly what service.ts weighs before it warns. */
 function wireBytes(snapshot: unknown): number {
   return Buffer.byteLength(JSON.stringify(snapshot), "utf8");
@@ -37,7 +43,7 @@ function wireBytes(snapshot: unknown): number {
 
 describe("Snapshot size guard", () => {
   it("keeps a background + drawings payload below the guard", () => {
-    const service = new RoomService();
+    const service = new RoomService({ stateFile: TEST_STATE_FILE });
     service.setState({
       mapBackground: "#".repeat(25_000),
       drawings: [
@@ -95,7 +101,7 @@ describe("Snapshot size guard", () => {
       })),
     );
 
-    const service = new RoomService();
+    const service = new RoomService({ stateFile: TEST_STATE_FILE });
     service.setState({
       liveMapDocumentId: "live-doc",
       compiledScene,
@@ -186,7 +192,7 @@ describe("Snapshot size guard", () => {
       1,
     );
 
-    const service = new RoomService();
+    const service = new RoomService({ stateFile: TEST_STATE_FILE });
     service.setState({
       liveMapDocumentId: "live-doc",
       compiledScene,
@@ -244,7 +250,7 @@ describe("Snapshot size guard", () => {
       layers: [{ opacity: 1, elements }],
     };
 
-    const service = new RoomService();
+    const service = new RoomService({ stateFile: TEST_STATE_FILE });
     service.setState({ liveMapDocumentId: "live-doc", mapElements });
 
     expect(wireBytes(service.createSnapshot())).toBeLessThan(SNAPSHOT_SIZE_LIMIT_BYTES);
@@ -273,7 +279,7 @@ describe("Snapshot size guard", () => {
       return setTerrainCells(createTerrainMap(), cells);
     };
     const snapshotBytes = (terrain: ReturnType<typeof scatter>) => {
-      const service = new RoomService();
+      const service = new RoomService({ stateFile: TEST_STATE_FILE });
       service.setState({
         mapTerrain: { terrain, grid: { size: 50, offsetX: 0, offsetY: 0 }, opacity: 1 },
       });

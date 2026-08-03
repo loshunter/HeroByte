@@ -23,6 +23,7 @@ import { CharacterService } from "../../domains/character/service.js";
 import { PropService } from "../../domains/prop/service.js";
 import { SelectionService } from "../../domains/selection/service.js";
 import { AuthService } from "../../domains/auth/service.js";
+import { DisconnectionCleanupManager } from "../lifecycle/DisconnectionCleanupManager.js";
 
 const ALICE = "player-alice";
 const BOB = "player-bob";
@@ -197,6 +198,63 @@ describe("chat secrecy contracts", () => {
     expect(chatSeenBy(aliceWs).map((m) => m.text)).toContain("into the void");
     expect(rawBytesSentTo(bobWs)).not.toContain("into the void");
     expect(rawBytesSentTo(dmWs)).not.toContain("into the void");
+  });
+
+  it("does not let one player disconnecting erase everyone else's whispers", () => {
+    // Drives the REAL DisconnectionCleanupManager, not a hand-rolled
+    // broadcast call. An earlier version of this test called
+    // roomService.broadcast directly with a uidToWs map and therefore passed
+    // even with the bug present — it exercised a path nothing was broken on.
+    //
+    // The bug: cleanup broadcast omitted uidToWs, so every recipient resolved
+    // to undefined, the filter failed closed, and the frame shipped a chat
+    // log with EVERY whisper stripped — to the two people in the conversation
+    // included. The client replaces its log wholesale from each snapshot, so
+    // an unrelated tab closing silently wiped the screen.
+    route({ t: "chat", text: "the amulet is a fake", to: BOB }, ALICE);
+
+    const uidToWs = new Map<string, WebSocket>([
+      [ALICE, aliceWs as unknown as WebSocket],
+      [BOB, bobWs as unknown as WebSocket],
+      [DM, dmWs as unknown as WebSocket],
+    ]);
+    const cleanup = new DisconnectionCleanupManager(
+      {
+        getRoomIdForUid: () => "default",
+        getRoomServiceForRoom: () => roomService,
+        getAuthenticatedClientsForRoom: () =>
+          new Set<WebSocket>([
+            aliceWs as unknown as WebSocket,
+            bobWs as unknown as WebSocket,
+            dmWs as unknown as WebSocket,
+          ]),
+        selectionService: new SelectionService(),
+      },
+      uidToWs,
+      new Set<string>([ALICE, BOB, DM, "bystander"]),
+      new Map<string, { roomId: string; authedAt: number }>(),
+    );
+
+    aliceWs.send.mockClear();
+    bobWs.send.mockClear();
+    dmWs.send.mockClear();
+
+    // An UNRELATED player's tab closes.
+    cleanup.cleanupPlayer("bystander", {});
+
+    expect(chatSeenBy(aliceWs).map((m) => m.text)).toContain("the amulet is a fake");
+    expect(chatSeenBy(bobWs).map((m) => m.text)).toContain("the amulet is a fake");
+    // ...and it still does not reach the DM.
+    expect(rawBytesSentTo(dmWs)).not.toContain("amulet");
+  });
+
+  it("survives a poisoned non-array chatLog instead of taking the process down", () => {
+    // Defence in depth behind the load-session validator: a state file
+    // written before that guard existed can still hold one.
+    (roomService.getState() as unknown as { chatLog: unknown }).chatLog = { not: "an array" };
+
+    expect(() => roomService.createSnapshotForPlayer(ALICE)).not.toThrow();
+    expect(roomService.createSnapshotForPlayer(ALICE).chatLog).toEqual([]);
   });
 
   it("keeps whispers out of the unfiltered snapshot that seeds forks and exports", () => {

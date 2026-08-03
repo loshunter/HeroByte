@@ -117,10 +117,16 @@ describe("ChatTab", () => {
     expect(onSendChat).toHaveBeenCalledWith("still here?", undefined);
   });
 
-  it("renders message text as text, never as markup", () => {
+  it("renders punctuation literally instead of HTML-entity-escaping it", () => {
+    // Chat prose contains < and & far more often than a player name does.
+    // Running the text through DOMPurify before handing it to React as a text
+    // child double-encodes: DOMPurify's parse path returns "a &lt; b", and
+    // React then renders that string verbatim. React already escapes text
+    // children, so the sanitize call added no safety and only corrupted
+    // content.
     render(
       <ChatTab
-        messages={[message({ text: "<img src=x onerror=alert(1)>" })]}
+        messages={[message({ text: "5 < 6 && you owe me 3 gold" })]}
         players={players}
         currentUid={ALICE}
         onSendChat={vi.fn()}
@@ -128,8 +134,61 @@ describe("ChatTab", () => {
     );
 
     const entry = screen.getByTestId("chat-message");
+    expect(entry.textContent).toContain("5 < 6 && you owe me 3 gold");
+    expect(entry.textContent).not.toContain("&lt;");
+    expect(entry.textContent).not.toContain("&amp;");
+  });
+
+  it("scrolls to the newest message when the log grows", () => {
+    // Newest-last means a new message lands below the fold; without an
+    // autoscroll you send a message and watch nothing happen.
+    const first = [message({ id: "m1", text: "one" })];
+    const { rerender, container } = render(
+      <ChatTab messages={first} players={players} currentUid={ALICE} onSendChat={vi.fn()} />,
+    );
+
+    const scroller = container.querySelector('[data-testid="chat-message"]')?.parentElement
+      ?.parentElement as HTMLElement;
+    // jsdom reports 0 heights, so drive the values the effect reads.
+    Object.defineProperty(scroller, "scrollHeight", { value: 500, configurable: true });
+    scroller.scrollTop = 0;
+
+    rerender(
+      <ChatTab
+        messages={[...first, message({ id: "m2", text: "two" })]}
+        players={players}
+        currentUid={ALICE}
+        onSendChat={vi.fn()}
+      />,
+    );
+
+    expect(scroller.scrollTop).toBe(500);
+  });
+
+  it("renders markup-looking text as inert text, never as elements", () => {
+    const payload = "<img src=x onerror=alert(1)><script>alert(2)</script>";
+    render(
+      <ChatTab
+        messages={[message({ text: payload })]}
+        players={players}
+        currentUid={ALICE}
+        onSendChat={vi.fn()}
+      />,
+    );
+
+    const entry = screen.getByTestId("chat-message");
+    // The security property is that NO element is constructed from the text.
     expect(entry.querySelector("img")).toBeNull();
-    expect(entry.innerHTML).not.toContain("onerror");
+    expect(entry.querySelector("script")).toBeNull();
+    expect(entry.querySelectorAll("*")).toHaveLength(1); // just the author <span>
+    // ...and the property that "onerror" does not appear as an ATTRIBUTE.
+    expect(entry.querySelector("[onerror]")).toBeNull();
+
+    // The characters themselves SHOULD survive: the user typed them, and
+    // showing them verbatim is correct. DOMPurify used to delete the whole
+    // run silently, which lost message content without making anything safer
+    // — React escapes text children by construction.
+    expect(entry.textContent).toContain(payload);
   });
 });
 

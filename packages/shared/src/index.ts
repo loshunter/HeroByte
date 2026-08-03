@@ -187,6 +187,11 @@ export interface ChatMessage {
    * SECRECY: the server filters this per recipient in the snapshot, so a
    * whisper is never serialized to anyone but its author and its target.
    * Do not rely on the client to hide it.
+   *
+   * Bounded by the identity model, though: `uid` is client-asserted (signed
+   * session tokens are deferred — see session-one-arc.md §7), so a whisper is
+   * private from the other people at the table, NOT from someone willing to
+   * reconnect under their uid. See visibleChatFor for the full note.
    */
   to?: string;
   timestamp: number; // When the message was sent

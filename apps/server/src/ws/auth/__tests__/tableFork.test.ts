@@ -1,8 +1,14 @@
+import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { handleForkTable, type ForkTableDeps } from "../tableFork.js";
 import { RoomService } from "../../../domains/room/service.js";
 import { MapStudioService } from "../../../domains/mapStudio/service.js";
 import { InMemoryMapDocumentStore } from "../../../domains/mapStudio/store.js";
+
+// Scratch state file: a bare `new RoomService({ stateFile: TEST_STATE_FILE })` writes the REAL
+// apps/server/herobyte-state.json, which parallel workers and the dev
+// server then fight over (observed: a torn file, quarantined as .corrupt).
+const TEST_STATE_FILE = path.join(process.cwd(), ".tmp", "tableFork-state.json");
 
 /**
  * Forking is the answer to "the test table's password is fixed and it gets
@@ -15,7 +21,7 @@ function setup(overrides: Partial<ForkTableDeps> = {}) {
     send: vi.fn((payload: string) => sent.push(JSON.parse(payload))),
   } as unknown as Parameters<typeof handleForkTable>[0];
 
-  const source = new RoomService();
+  const source = new RoomService({ stateFile: TEST_STATE_FILE });
   source.getState().tokens.push({ id: "tok-1", owner: "p1", x: 2, y: 3, color: "red" });
   source.getState().characters.push({
     id: "npc-1",
@@ -38,7 +44,7 @@ function setup(overrides: Partial<ForkTableDeps> = {}) {
     getRoomServiceForRoom: (id: string) => {
       let room = rooms.get(id);
       if (!room) {
-        room = new RoomService();
+        room = new RoomService({ stateFile: TEST_STATE_FILE });
         rooms.set(id, room);
       }
       return room;

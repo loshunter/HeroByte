@@ -57,6 +57,50 @@ describe("validateChatMessage", () => {
   });
 });
 
+describe("load-session validates chatLog like every other restored collection", () => {
+  // chatLog reaches live room state through SnapshotLoader. It was missing
+  // from SNAPSHOT_LIMITS for one commit, which made a non-array reach
+  // visibleChatFor's .filter — thrown inside the debounced broadcast timer,
+  // outside route()'s try/catch, with no uncaughtException handler: the one
+  // process serving every room dies, and the poison persists to disk so it
+  // dies again on restart.
+  const base = { players: [], tokens: [], drawings: [] };
+
+  it("rejects a non-array chatLog", () => {
+    for (const poison of [{}, "x", 7, true]) {
+      const result = validateMessage({ t: "load-session", snapshot: { ...base, chatLog: poison } });
+      expect(result.valid).toBe(false);
+      expect(result.error).toMatch(/chatLog must be an array/);
+    }
+  });
+
+  it("rejects chatLog entries that are not objects", () => {
+    const result = validateMessage({
+      t: "load-session",
+      snapshot: { ...base, chatLog: ["just a string"] },
+    });
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/chatLog entries must be objects/);
+  });
+
+  it("caps chatLog length so a session file cannot bloat every snapshot", () => {
+    const overCap = Array.from({ length: 201 }, () => ({ id: "x", text: "y" }));
+    const result = validateMessage({ t: "load-session", snapshot: { ...base, chatLog: overCap } });
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/exceeds limit/);
+  });
+
+  it("accepts an absent or well-formed chatLog", () => {
+    expect(validateMessage({ t: "load-session", snapshot: base }).valid).toBe(true);
+    expect(
+      validateMessage({
+        t: "load-session",
+        snapshot: { ...base, chatLog: [{ id: "m1", text: "hi" }] },
+      }).valid,
+    ).toBe(true);
+  });
+});
+
 describe("chat is registered in the message validator map", () => {
   // The registry is the gate: an unregistered type is rejected at runtime
   // with "Unknown message type", regardless of how correct its handler is.

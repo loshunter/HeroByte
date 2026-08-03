@@ -56,8 +56,29 @@ export interface RecipientView {
  * Note this ignores `isDM` on purpose. A DM is a player at the table, not an
  * auditor of everyone's private conversations; granting blanket read would
  * be a surveillance decision, and it is not this slice's to make.
+ *
+ * WHAT THIS DOES NOT PROTECT AGAINST. The filter is only as strong as the
+ * recipient identity it keys on, and `uid` is CLIENT-SUPPLIED — read straight
+ * off the connection query string, bound to no secret (see
+ * ConnectionLifecycleManager, and the note in AuthenticationHandler). Anyone
+ * already holding the table password can therefore reconnect as another
+ * player's uid and receive their whispers; the uid list is published to every
+ * player in the snapshot, so guessing is not required either.
+ *
+ * That is the known, accepted limitation of the current identity model —
+ * signed session tokens are explicitly deferred to a later arc
+ * (docs/planning/session-one-arc.md §7). So: whispers are private FROM the
+ * other people at your table, not from an attacker willing to impersonate
+ * one. Do not describe them to users as secure against a table member.
  */
 export function visibleChatFor(chatLog: ChatMessage[], recipientUid?: string): ChatMessage[] {
+  // Defence in depth, not paranoia: this runs inside the DEBOUNCED broadcast
+  // timer, outside route()'s try/catch, and the process has no
+  // uncaughtException handler — so a non-array here kills the one process
+  // serving every room, and a persisted one does it again on every restart.
+  // The load-session validator is the primary guard; this disarms a state
+  // file already poisoned before that guard existed.
+  if (!Array.isArray(chatLog)) return [];
   return chatLog.filter((message) => {
     if (!message.to) return true; // public
     if (!recipientUid) return false; // fail closed

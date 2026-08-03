@@ -10,15 +10,21 @@
  * Target: apps/server/src/domains/room/snapshot/SnapshotLoader.ts
  */
 
+import path from "node:path";
 import { describe, it, expect, beforeEach } from "vitest";
 import { RoomService } from "../../service.js";
 import type { RoomSnapshot, Player, Character, PlayerStagingZone } from "@herobyte/shared";
+
+// Scratch state file: a bare `new RoomService({ stateFile: TEST_STATE_FILE })` writes the REAL
+// apps/server/herobyte-state.json, which parallel workers and the dev
+// server then fight over (observed: a torn file, quarantined as .corrupt).
+const TEST_STATE_FILE = path.join(process.cwd(), ".tmp", "SnapshotLoader-state.json");
 
 describe("SnapshotLoader - Characterization Tests", () => {
   let roomService: RoomService;
 
   beforeEach(() => {
-    roomService = new RoomService();
+    roomService = new RoomService({ stateFile: TEST_STATE_FILE });
   });
 
   describe("Player merging", () => {
@@ -780,7 +786,7 @@ describe("SnapshotLoader - Characterization Tests", () => {
       expect(roomService.getState().sceneObjects.length).toBeGreaterThan(0);
 
       // Case 2: No sceneObjects - drawings loaded
-      roomService = new RoomService();
+      roomService = new RoomService({ stateFile: TEST_STATE_FILE });
       const snapshotWithoutSceneObjects: RoomSnapshot = {
         users: [],
         pointers: [],

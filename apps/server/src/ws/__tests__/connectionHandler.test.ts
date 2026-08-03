@@ -1,3 +1,4 @@
+import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MockInstance } from "vitest";
 
@@ -24,6 +25,11 @@ import { TokenBucketLimiter } from "../../middleware/authWorkLimit.js";
 import type { ClientMessage } from "@herobyte/shared";
 import type { WebSocket, WebSocketServer } from "ws";
 import { AuthService } from "../../domains/auth/service.js";
+
+// Scratch state file: a bare `new RoomService({ stateFile: TEST_STATE_FILE })` writes the REAL
+// apps/server/herobyte-state.json, which parallel workers and the dev
+// server then fight over (observed: a torn file, quarantined as .corrupt).
+const TEST_STATE_FILE = path.join(process.cwd(), ".tmp", "connectionHandler-state.json");
 
 type WebSocketEvent = "message" | "close";
 
@@ -75,7 +81,7 @@ class FakeWebSocketServer {
 }
 
 const setupContainer = () => {
-  const roomService = new RoomService();
+  const roomService = new RoomService({ stateFile: TEST_STATE_FILE });
   const playerService = new PlayerService();
   const tokenService = new TokenService();
   const mapService = new MapService();

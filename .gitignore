@@ -34,6 +34,11 @@ yarn-error.log*
 herobyte-state.json
 herobyte-state*.json
 herobyte-state*.json.tmp
+# Atomic-write staging files carry a .<pid>.<n>.tmp suffix (see
+# StatePersistence.saveToDisk). They hold full room state INCLUDING
+# whispers, so they must never be committable by an accidental
+# `git add apps/server`.
+herobyte-state*.json.*.tmp
 herobyte-state.e2e.json
 herobyte-state.e2e.json.tmp
 

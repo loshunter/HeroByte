@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { existsSync, unlinkSync, readFileSync, writeFileSync, readdirSync } from "fs";
+import { existsSync, unlinkSync, readFileSync, writeFileSync, readdirSync, mkdirSync } from "fs";
 
 vi.mock("fs/promises", async () => {
   const actual = await vi.importActual<typeof import("fs/promises")>("fs/promises");
@@ -30,7 +30,13 @@ import * as fsPromises from "fs/promises";
 import { RoomService } from "../../service.js";
 
 const TEST_STATE_FILE = "./test-herobyte-state.json";
-const PROD_STATE_FILE = "./herobyte-state.json";
+// A SCRATCH path, deliberately not the real "./herobyte-state.json". This
+// suite unlinks, rewrites and restores its state file directly, and pointing
+// that at the package-root file meant parallel workers (and the dev server)
+// fought over it — the observed result was a torn file quarantined as
+// herobyte-state.json.corrupt. The behaviour under test is identical; only
+// the path changes, and RoomService is now given it explicitly.
+const PROD_STATE_FILE = "./.tmp/state-persistence-suite.json";
 
 describe("StatePersistence - Characterization Tests", () => {
   let roomService: RoomService;
@@ -38,6 +44,7 @@ describe("StatePersistence - Characterization Tests", () => {
   let originalStateFileContent = "";
 
   beforeEach(() => {
+    mkdirSync(".tmp", { recursive: true });
     // Backup production state file if it exists
     if (existsSync(PROD_STATE_FILE)) {
       originalStateFileExists = true;
@@ -51,7 +58,7 @@ describe("StatePersistence - Characterization Tests", () => {
       unlinkSync(TEST_STATE_FILE);
     }
 
-    roomService = new RoomService();
+    roomService = new RoomService({ stateFile: PROD_STATE_FILE });
   });
 
   afterEach(async () => {
@@ -65,8 +72,10 @@ describe("StatePersistence - Characterization Tests", () => {
       }
     }
     // Atomic-write leftovers now carry a pid/counter suffix.
-    for (const entry of readdirSync(".")) {
-      if (/^herobyte-state\.json\.\d+\.\d+\.tmp$/.test(entry)) unlinkSync(entry);
+    for (const entry of readdirSync(".tmp")) {
+      if (/^state-persistence-suite\.json\.\d+\.\d+\.tmp$/.test(entry)) {
+        unlinkSync(`.tmp/${entry}`);
+      }
     }
 
     // Restore production state file if it existed
@@ -93,7 +102,7 @@ describe("StatePersistence - Characterization Tests", () => {
       roomService.saveState();
       await roomService.awaitPendingWrites();
 
-      const restored = new RoomService();
+      const restored = new RoomService({ stateFile: PROD_STATE_FILE });
       restored.loadState();
 
       expect(restored.getState().mapTerrain).toEqual(state.mapTerrain);
@@ -668,7 +677,7 @@ describe("StatePersistence - Characterization Tests", () => {
       roomService.saveState();
       await roomService.awaitPendingWrites();
 
-      const restarted = new RoomService();
+      const restarted = new RoomService({ stateFile: PROD_STATE_FILE });
       restarted.loadState();
 
       expect(restarted.getState().combatActive).toBe(true);
@@ -683,11 +692,43 @@ describe("StatePersistence - Characterization Tests", () => {
       const renameSpy = fsPromises.rename as ReturnType<typeof vi.fn>;
 
       const lastWrite = writeFileSpy.mock.calls.at(-1);
-      expect(String(lastWrite?.[0])).toMatch(/herobyte-state\.json\.\d+\.\d+\.tmp$/);
+      expect(String(lastWrite?.[0])).toMatch(/state-persistence-suite\.json\.\d+\.\d+\.tmp$/);
 
       const lastRename = renameSpy.mock.calls.at(-1);
-      expect(String(lastRename?.[0])).toMatch(/herobyte-state\.json\.\d+\.\d+\.tmp$/);
-      expect(String(lastRename?.[1])).toMatch(/herobyte-state\.json$/);
+      expect(String(lastRename?.[0])).toMatch(/state-persistence-suite\.json\.\d+\.\d+\.tmp$/);
+      expect(String(lastRename?.[1])).toMatch(/state-persistence-suite\.json$/);
+    });
+
+    it("round-trips the chat log across a restart, whispers included", async () => {
+      // Chat persists for the same reason initiative does. Whispers are kept
+      // on disk deliberately — the file is server-local and the per-recipient
+      // filter runs on the way OUT — so this asserts they survive rather than
+      // quietly documenting a gap.
+      const state = roomService.getState();
+      state.chatLog.push(
+        { id: "c1", authorUid: "u1", authorName: "Alice", text: "public", timestamp: 1 },
+        { id: "c2", authorUid: "u1", authorName: "Alice", text: "private", to: "u2", timestamp: 2 },
+      );
+
+      roomService.saveState();
+      await roomService.awaitPendingWrites();
+
+      const restarted = new RoomService({ stateFile: PROD_STATE_FILE });
+      restarted.loadState();
+
+      expect(restarted.getState().chatLog).toHaveLength(2);
+      expect(restarted.getState().chatLog[1]).toMatchObject({ text: "private", to: "u2" });
+    });
+
+    it("refuses to load a non-array chatLog instead of reviving a crash loop", async () => {
+      // `data.chatLog || []` kept a poisoned {} ({} is truthy), so a state
+      // file written before the load-session validator existed would take the
+      // process down on the first broadcast after every restart.
+      writeFileSync(PROD_STATE_FILE, JSON.stringify({ chatLog: { not: "an array" } }), "utf-8");
+
+      roomService.loadState();
+
+      expect(roomService.getState().chatLog).toEqual([]);
     });
 
     it("uses a tmp path unique per process AND per write", async () => {
@@ -734,7 +775,7 @@ describe("StatePersistence - Characterization Tests", () => {
       expect(saved.gridSize).toBe(61);
 
       // And the room loads cleanly from it on the next boot.
-      const restarted = new RoomService();
+      const restarted = new RoomService({ stateFile: PROD_STATE_FILE });
       restarted.loadState();
       expect(restarted.getState().gridSize).toBe(61);
     });

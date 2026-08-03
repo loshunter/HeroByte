@@ -106,7 +106,10 @@ export class StatePersistence {
           gridSize: data.gridSize || 50,
           gridSquareSize: data.gridSquareSize || 5,
           diceRolls: data.diceRolls || [],
-          chatLog: data.chatLog || [],
+          // `|| []` alone would keep a poisoned non-array ({} is truthy),
+          // reviving the crash on every restart. Anything that is not an
+          // array is not chat.
+          chatLog: Array.isArray(data.chatLog) ? data.chatLog : [],
           drawingUndoStacks: {},
           drawingRedoStacks: {},
           sceneObjects,

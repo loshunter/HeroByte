@@ -9,10 +9,9 @@
 // hardcoded 5-column grid (Party/Tools/Dice/Log/View), so a sixth button
 // would silently overflow it. A tab costs no dock slot.
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { ChatMessage, Player } from "@herobyte/shared";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
-import { sanitizeText } from "../../utils/sanitize";
 
 /** Matches the server's STRING_LIMITS.CHAT_TEXT_MAX; the server rejects past it. */
 const CHAT_TEXT_MAX = 2000;
@@ -30,6 +29,19 @@ export interface ChatTabProps {
 export const ChatTab: React.FC<ChatTabProps> = ({ messages, players, currentUid, onSendChat }) => {
   const [draft, setDraft] = useState("");
   const [target, setTarget] = useState<string>(WHOLE_TABLE);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+
+  // Newest message last (chat reads top-to-bottom, unlike the roll log which
+  // reverses). Without this the newest entry renders below the fold and the
+  // panel never moves: you send a message and watch nothing happen, and
+  // incoming messages arrive invisibly.
+  // The ref sits on the CONTENT div and we scroll its parent: JRPGPanel is a
+  // plain function component and does not forward refs, and the scrolling
+  // box (flex:1, overflow:auto) is the panel's own div.
+  useEffect(() => {
+    const scroller = scrollerRef.current?.parentElement;
+    if (scroller) scroller.scrollTop = scroller.scrollHeight;
+  }, [messages]);
 
   // Everyone but you — whispering to yourself is not a feature.
   const whisperTargets = useMemo(
@@ -55,7 +67,7 @@ export const ChatTab: React.FC<ChatTabProps> = ({ messages, players, currentUid,
   return (
     <>
       <JRPGPanel variant="simple" style={{ flex: 1, overflow: "auto", padding: "8px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        <div ref={scrollerRef} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           {messages.length === 0 ? (
             <div
               className="jrpg-text-small"
@@ -88,13 +100,20 @@ export const ChatTab: React.FC<ChatTabProps> = ({ messages, players, currentUid,
                   <span style={{ color: isMine ? "var(--jrpg-gold)" : "var(--jrpg-cyan)" }}>
                     {isWhisper
                       ? isMine
-                        ? `→ ${sanitizeText(nameFor(message.to as string))}`
-                        : `${sanitizeText(message.authorName)} →`
-                      : sanitizeText(message.authorName)}
+                        ? `→ ${nameFor(message.to as string)}`
+                        : `${message.authorName} →`
+                      : message.authorName}
                     :{" "}
                   </span>
-                  {/* Rendered as React text, never as HTML. */}
-                  {sanitizeText(message.text)}
+                  {/* Deliberately NOT sanitizeText. These are React text
+                      children, which React escapes by construction — there is
+                      no HTML parse here to attack. Running DOMPurify over
+                      them adds no safety and actively corrupts the message:
+                      any text containing "<" takes DOMPurify's parse path and
+                      comes back entity-escaped, so "a < b" renders as
+                      "a &lt; b". sanitizeText belongs on innerHTML paths;
+                      this is not one. */}
+                  {message.text}
                 </div>
               );
             })

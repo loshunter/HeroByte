@@ -10,6 +10,7 @@
 // Room-snapshot broadcasts are debounced by 16ms (BroadcastService), so tests
 // `await flush()` before reading snapshot frames.
 
+import path from "node:path";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { WebSocket, WebSocketServer } from "ws";
 import type { ClientMessage, RoomSnapshot, ServerMessage } from "@herobyte/shared";
@@ -23,6 +24,11 @@ import { CharacterService } from "../../domains/character/service.js";
 import { PropService } from "../../domains/prop/service.js";
 import { SelectionService } from "../../domains/selection/service.js";
 import { AuthService } from "../../domains/auth/service.js";
+
+// Scratch state file: a bare `new RoomService({ stateFile: TEST_STATE_FILE })` writes the REAL
+// apps/server/herobyte-state.json, which parallel workers and the dev
+// server then fight over (observed: a torn file, quarantined as .corrupt).
+const TEST_STATE_FILE = path.join(process.cwd(), ".tmp", "generateDungeon-state.json");
 
 const DM = "dm-player";
 const PLAYER = "watcher";
@@ -102,7 +108,7 @@ describe("map-studio-generate contracts", () => {
   let playerWs: FakeSocket;
 
   beforeEach(() => {
-    roomService = new RoomService();
+    roomService = new RoomService({ stateFile: TEST_STATE_FILE });
     roomService.setState({
       players: [player(DM, true), player(PLAYER, false)],
       tokens: [],
