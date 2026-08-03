@@ -47,6 +47,25 @@ export function roomBytesFromTotal(totalBytes: number): number {
   return Math.min(totalBytes, Math.max(ROOM_FLOOR_BYTES, Math.floor(totalBytes / 4)));
 }
 
+/**
+ * Grace between a condemned asset losing its last claim and its bytes leaving
+ * the disk. Long on purpose: it is the survival window for references no
+ * server-side scan can see (My Stuff shelves, saved player files, another
+ * table's pasted URL) to come back and resurrect the claim. 0 disables the
+ * grace (immediate deletion).
+ */
+export function reclaimGraceMs(env: NodeJS.ProcessEnv = process.env): number {
+  const raw = env.HEROBYTE_ASSET_RECLAIM_GRACE_HOURS;
+  if (raw !== undefined && raw.trim() !== "") {
+    const hours = Number(raw);
+    if (Number.isFinite(hours) && hours >= 0) return hours * 60 * 60 * 1000;
+    console.warn(
+      `[Assets] Ignoring HEROBYTE_ASSET_RECLAIM_GRACE_HOURS="${raw}" — expected hours >= 0`,
+    );
+  }
+  return 7 * 24 * 60 * 60 * 1000;
+}
+
 /** A positive number of megabytes, or undefined (with a warning for garbage). */
 export function parseQuotaEnvMb(name: string, raw: string | undefined): number | undefined {
   if (raw === undefined || raw.trim() === "") return undefined;

@@ -325,21 +325,59 @@ describe("AssetService", () => {
   });
 
   describe("reclaimRoom (replacement leak, arc §7.3)", () => {
-    it("reclaims a replaced upload through the full mark-then-reclaim cycle", async () => {
+    const GRACE = 7 * 24 * 60 * 60 * 1000;
+
+    it("condemns a replaced upload, still serves it, then expires it after the grace", async () => {
       const service = new AssetService({ directory: TMP_DIR });
       const bytes = pngBytes("the-old-map-background");
       const { asset } = await service.store(bytes, "default", 1);
       const file = path.join(TMP_DIR, `${asset.hash}.png`);
 
       // Sweep 1: the state references it → the claim gets marked, not touched.
-      expect(await service.reclaimRoom("default", new Set([asset.hash]))).toBe(0);
+      expect(await service.reclaimRoom("default", new Set([asset.hash]), 1000)).toBe(0);
       expect(existsSync(file)).toBe(true);
 
-      // Sweep 2: replaced — the state no longer references it. Un-claim, delete.
-      const freed = await service.reclaimRoom("default", new Set());
+      // Sweep 2: replaced. The room's quota is freed, but the bytes stay and
+      // keep serving — references no scan can see get the grace to come back.
+      expect(await service.reclaimRoom("default", new Set(), 2000)).toBe(0);
+      expect(await service.roomBytes("default")).toBe(0);
+      expect(existsSync(file)).toBe(true);
+      expect(await service.read(asset.hash)).not.toBeNull();
+
+      // Inside the grace: nothing expires. After it: the bytes leave the disk.
+      expect(await service.expireCondemned(2000 + GRACE - 1)).toBe(0);
+      const freed = await service.expireCondemned(2000 + GRACE);
       expect(freed).toBe(bytes.length);
       expect(existsSync(file)).toBe(false);
-      expect(await service.roomBytes("default")).toBe(0);
+    });
+
+    it("resurrects a condemned upload the room references again before expiry", async () => {
+      const service = new AssetService({ directory: TMP_DIR });
+      const bytes = pngBytes("undo-brings-me-back");
+      const { asset } = await service.store(bytes, "default", 1);
+      await service.reclaimRoom("default", new Set([asset.hash]), 1000); // mark
+      await service.reclaimRoom("default", new Set(), 2000); // condemn
+
+      // Undo restored the reference: the next sweep re-claims it.
+      await service.reclaimRoom("default", new Set([asset.hash]), 3000);
+
+      expect(await service.roomBytes("default")).toBe(bytes.length);
+      // The pardon sticks: expiry far in the future no longer touches it.
+      expect(await service.expireCondemned(3000 + GRACE * 10)).toBe(0);
+      expect(await service.read(asset.hash)).not.toBeNull();
+    });
+
+    it("a re-upload of condemned bytes clears the expiry stamp", async () => {
+      const service = new AssetService({ directory: TMP_DIR });
+      const bytes = pngBytes("re-uploaded-in-time");
+      const { asset } = await service.store(bytes, "default", 1);
+      await service.reclaimRoom("default", new Set([asset.hash]), 1000);
+      await service.reclaimRoom("default", new Set(), 2000); // condemn
+
+      await service.store(bytes, "table-b", 3000); // same bytes, new table
+
+      expect(await service.expireCondemned(2000 + GRACE * 10)).toBe(0);
+      expect(await service.roomBytes("table-b")).toBe(bytes.length);
     });
 
     it("never deletes an upload the state has not referenced yet", async () => {
@@ -348,8 +386,8 @@ describe("AssetService", () => {
       const service = new AssetService({ directory: TMP_DIR });
       const { asset } = await service.store(pngBytes("my-stuff-palette-item"), "default", 1);
 
-      await service.reclaimRoom("default", new Set());
-      await service.reclaimRoom("default", new Set());
+      await service.reclaimRoom("default", new Set(), 1000);
+      await service.reclaimRoom("default", new Set(), 2000);
 
       expect(await service.read(asset.hash)).not.toBeNull();
       expect(await service.roomBytes("default")).toBeGreaterThan(0);
@@ -360,15 +398,17 @@ describe("AssetService", () => {
       const shared = pngBytes("both-tables-use-this");
       const { asset } = await service.store(shared, "default", 1);
       await service.store(shared, "table-b", 2);
-      await service.reclaimRoom("default", new Set([asset.hash]));
-      await service.reclaimRoom("table-b", new Set([asset.hash]));
+      await service.reclaimRoom("default", new Set([asset.hash]), 1000);
+      await service.reclaimRoom("table-b", new Set([asset.hash]), 1000);
 
-      const freed = await service.reclaimRoom("default", new Set());
+      const freed = await service.reclaimRoom("default", new Set(), 2000);
 
       expect(freed).toBe(0);
       expect(await service.read(asset.hash)).not.toBeNull();
       expect(await service.roomBytes("table-b")).toBe(shared.length);
       expect(await service.roomBytes("default")).toBe(0);
+      // Still claimed by table-b: nothing is condemned, nothing ever expires.
+      expect(await service.expireCondemned(2000 + GRACE * 10)).toBe(0);
     });
 
     it("gives the quota back so the room can upload again", async () => {
@@ -378,26 +418,29 @@ describe("AssetService", () => {
         maxTotalBytes: 10_000,
       });
       const { asset } = await service.store(pngBytes("fills-the-small-quota"), "default", 1);
-      await service.reclaimRoom("default", new Set([asset.hash])); // mark
+      await service.reclaimRoom("default", new Set([asset.hash]), 1000); // mark
       await expect(service.store(pngBytes("over-the-quota-line"), "default", 2)).rejects.toThrow(
         /table's asset storage is full/i,
       );
 
-      await service.reclaimRoom("default", new Set()); // replaced
+      await service.reclaimRoom("default", new Set(), 2000); // replaced
 
       const after = await service.store(pngBytes("works-after-reclaim"), "default", 3);
       expect(after.deduplicated).toBe(false);
     });
 
-    it("survives an index round-trip: marks persist to disk", async () => {
+    it("survives an index round-trip: marks and condemnation stamps persist to disk", async () => {
       const first = new AssetService({ directory: TMP_DIR });
       const { asset } = await first.store(pngBytes("marked-then-reloaded"), "default", 1);
-      await first.reclaimRoom("default", new Set([asset.hash]));
+      await first.reclaimRoom("default", new Set([asset.hash]), 1000);
 
-      // A fresh service (fresh index load) must still see the mark.
+      // A fresh service (fresh index load) must still see the mark…
       const second = new AssetService({ directory: TMP_DIR });
-      const freed = await second.reclaimRoom("default", new Set());
-      expect(freed).toBeGreaterThan(0);
+      await second.reclaimRoom("default", new Set(), 2000); // condemns
+      // …and a third must still see the condemnation stamp to expire it.
+      const third = new AssetService({ directory: TMP_DIR });
+      expect(await third.expireCondemned(2000 + GRACE)).toBeGreaterThan(0);
+      expect(await third.read(asset.hash)).toBeNull();
     });
   });
 

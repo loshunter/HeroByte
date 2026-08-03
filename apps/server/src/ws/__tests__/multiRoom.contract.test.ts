@@ -547,7 +547,10 @@ describe("asset reclaim sweep", () => {
       authServiceStub,
       new RoomRegistry({ defaultRoomId: "default" }),
       undefined,
-      { reclaimRoom } as unknown as ConstructorParameters<typeof Container>[4],
+      {
+        reclaimRoom,
+        expireCondemned: vi.fn().mockResolvedValue(0),
+      } as unknown as ConstructorParameters<typeof Container>[4],
     );
   });
 

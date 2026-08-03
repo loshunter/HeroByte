@@ -269,7 +269,10 @@ state, map documents, and its claim on uploaded images. Specifics worth knowing:
 - Independently of the clear, **every table reclaims replaced uploads**: a background sweep (every
   5 minutes) un-claims images a table's state no longer references — swapping a map background five
   times costs one image of quota, not five. Uploads never yet seen in table state (e.g. My Stuff
-  palette items waiting to be placed) are never touched.
+  palette items waiting to be placed) are never touched, and un-claimed bytes stay on disk (still
+  serving) for a grace window — 7 days by default, `HEROBYTE_ASSET_RECLAIM_GRACE_HOURS` to change,
+  `0` for immediate deletion — so an Undo, a re-placed palette item, or a saved player file
+  re-claims them instead of finding a dead link.
 - Users keep work via **DM Menu → Session → Save as a Private Table** (`fork-table`), which copies
   the whole table into a fresh private one — including a co-claim on its uploads, so a later sweep
   of the source cannot delete images the copy still uses.

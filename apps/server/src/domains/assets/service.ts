@@ -15,11 +15,13 @@ import { resolveServerPath } from "../../config/serverPaths.js";
 import { sniffImageMime } from "./mimeSniff.js";
 import {
   planClaimCopy,
+  planCondemnedExpiry,
   planRoomReclaim,
   planRoomRelease,
   type ClaimPlan,
 } from "./assetRoomClaims.js";
-import { resolveQuotaLimits, type AssetQuotaLimits } from "./quota.js";
+import { getDefaultRoomId } from "../../config/auth.js";
+import { reclaimGraceMs, resolveQuotaLimits, type AssetQuotaLimits } from "./quota.js";
 import { loadAssetIndex, writeAssetIndex, type AssetIndex } from "./assetIndexStore.js";
 import {
   AssetRejectedError,
@@ -32,9 +34,6 @@ const HASH_PATTERN = /^[a-f0-9]{64}$/;
 
 export { AssetRejectedError, roomsOf } from "./assetTypes.js";
 export type { AssetServiceOptions, StoredAsset } from "./assetTypes.js";
-
-/** Uploads with no room header belong to the default table. */
-const DEFAULT_ROOM = "default";
 
 export class AssetService {
   private readonly directory: string;
@@ -90,7 +89,10 @@ export class AssetService {
    */
   async store(
     bytes: Buffer,
-    roomId: string = DEFAULT_ROOM,
+    // Header-less uploads belong to the default table — the CONFIGURED one
+    // (HEROBYTE_DEFAULT_ROOM_ID), not a hardcoded "default" the sweep could
+    // never reconcile against a renamed default room.
+    roomId: string = getDefaultRoomId(),
     timestamp: number = Date.now(),
   ): Promise<{ asset: StoredAsset; deduplicated: boolean }> {
     // Stateless checks run outside the lock (no shared state, no yield needed).
@@ -123,9 +125,14 @@ export class AssetService {
 
       // The bytes exist but this room has not claimed them. Charge this room's
       // quota and record the claim — but do NOT report deduplicated, which would
-      // tell the caller these bytes exist in some OTHER room.
+      // tell the caller these bytes exist in some OTHER room. A re-upload of
+      // condemned bytes is a pardon: the expiry stamp is cleared.
       if (existing) {
-        const claimed = { ...existing, rooms: [...roomsOf(existing), roomId] };
+        const claimed = {
+          ...existing,
+          rooms: [...roomsOf(existing), roomId],
+          unreferencedAt: undefined,
+        };
         this.assertQuota(index, bytes.length, roomId, await this.limits(index));
         await this.writeIndex({
           schemaVersion: 1,
@@ -274,15 +281,30 @@ export class AssetService {
   /**
    * Reconcile a room's claims against what its state references right now —
    * the replacement-leak fix. `referenced` comes from the caller's scan of the
-   * room's serialized state + map documents (see assetReferences.ts); the
-   * three-way mark/keep/un-claim split lives in planRoomReclaim.
-   *
-   * Returns the bytes actually freed from disk.
+   * room's serialized state + map documents + undo histories (see
+   * assetReferences.ts); the mark/resurrect/condemn split lives in
+   * planRoomReclaim. Bytes never leave the disk here — that is
+   * expireCondemned's job, after the grace window.
    */
-  async reclaimRoom(roomId: string, referenced: ReadonlySet<string>): Promise<number> {
+  async reclaimRoom(
+    roomId: string,
+    referenced: ReadonlySet<string>,
+    now: number = Date.now(),
+  ): Promise<number> {
     return this.runExclusive(async () => {
       const index = await this.loadIndex();
-      return this.applyClaimPlan(index, planRoomReclaim(index.assets, roomId, referenced));
+      return this.applyClaimPlan(index, planRoomReclaim(index.assets, roomId, referenced, now));
+    });
+  }
+
+  /**
+   * Delete condemned assets whose grace window has passed with no room coming
+   * back for them. Returns the bytes actually freed from disk.
+   */
+  async expireCondemned(now: number = Date.now()): Promise<number> {
+    return this.runExclusive(async () => {
+      const index = await this.loadIndex();
+      return this.applyClaimPlan(index, planCondemnedExpiry(index.assets, now, reclaimGraceMs()));
     });
   }
 

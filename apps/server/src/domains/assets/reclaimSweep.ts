@@ -21,6 +21,9 @@ interface RoomStateSource {
 
 interface MapDocumentSource {
   list(roomId: string): unknown[];
+  /** Undo/redo-reachable document versions — Undo must not restore a
+   * reference to bytes the sweep already released. */
+  historyDocuments(roomId: string): unknown[];
 }
 
 export class AssetReclaimSweeper {
@@ -51,19 +54,37 @@ export class AssetReclaimSweeper {
       // disk load). has() and get() share one synchronous block, so nothing
       // can unload between them.
       if (!this.rooms.has(roomId)) continue;
-      const stateJson = JSON.stringify(this.rooms.get(roomId).getState());
-      await this.sweepRoom(roomId, stateJson);
+      try {
+        const stateJson = JSON.stringify(this.rooms.get(roomId).getState());
+        await this.sweepRoom(roomId, stateJson);
+      } catch (error) {
+        // One room's unserializable state must not starve the others' sweeps.
+        console.error(`[AssetReclaim] Skipping "${roomId}" — state not scannable`, error);
+      }
+    }
+    // Deletion is decoupled from un-claiming: bytes leave the disk only once
+    // a condemned asset's grace has passed with no room resurrecting it.
+    try {
+      const freed = await this.assetService.expireCondemned();
+      if (freed > 0) {
+        console.log(`[AssetReclaim] Expired ${Math.round(freed / 1024)}KB of condemned uploads`);
+      }
+    } catch (error) {
+      console.error("[AssetReclaim] Condemned-asset expiry failed", error);
     }
   }
 
   /** Reconcile one room from an already-serialized state snapshot. */
   async sweepRoom(roomId: string, stateJson: string): Promise<void> {
     if (!this.assetService) return;
-    const referenced = collectAssetHashes(
-      stateJson,
-      JSON.stringify(this.mapDocuments.list(roomId)),
-    );
     try {
+      const referenced = collectAssetHashes(
+        stateJson,
+        JSON.stringify(this.mapDocuments.list(roomId)),
+        // Undo/redo can restore any of these versions verbatim — everything
+        // they reference is still reachable (adversarial review finding).
+        JSON.stringify(this.mapDocuments.historyDocuments(roomId)),
+      );
       const freed = await this.assetService.reclaimRoom(roomId, referenced);
       if (freed > 0) {
         console.log(

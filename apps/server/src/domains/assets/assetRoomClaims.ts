@@ -107,37 +107,57 @@ export function planRoomRelease(assets: Assets, roomId: string): ClaimPlan {
  * releasing a claim required clearing the whole room, so every replaced
  * background/portrait/prop image stayed claimed forever.
  *
- * Three-way split, driven by the per-room referenced-by mark:
+ * The split, driven by the per-room referenced-by mark:
  *
  *   referenced now            → mark the claim. A later disappearance is then
- *                               provably a REPLACEMENT, not a fresh upload.
- *   marked, not referenced    → the replacement case. Un-claim; delete the
- *                               bytes only when no room claims them.
- *   unmarked, not referenced  → NOT ours to take. This is an upload the state
- *                               has not caught up with yet (apply still in
- *                               flight) or deliberate palette stock (My Stuff
- *                               uploads sit unreferenced until placed). The
+ *                               a replacement or removal, not a fresh upload.
+ *   referenced, unclaimed,    → RESURRECT. A condemned asset some room still
+ *   condemned                   (or again — Undo, another table's pasted URL)
+ *                               references gets re-claimed by that room.
+ *   marked, not referenced    → un-claim. On the LAST claim the entry is not
+ *                               deleted but CONDEMNED (`unreferencedAt`): it
+ *                               keeps serving through the grace window, so
+ *                               references no scan can see — My Stuff
+ *                               shelves, saved player files — survive, and
+ *                               planCondemnedExpiry deletes the bytes only
+ *                               once the grace passes with nobody coming
+ *                               back. (Adversarial review: the immediate
+ *                               delete this replaced broke Undo and the
+ *                               shelf's "bytes live on the server" promise.)
+ *   unmarked, not referenced  → NOT ours to take. An upload the state has
+ *                               not caught up with, or palette stock. The
  *                               cost is that an upload abandoned before any
  *                               sweep observed it referenced leaks until the
- *                               room is cleared — bounded by the room quota,
- *                               and the honest trade against deleting a
- *                               player's palette out from under them.
+ *                               room is cleared — bounded by the room quota.
+ *
+ * Resurrection deliberately skips legacy unclaimed assets (no
+ * `unreferencedAt`): charging those to a room that may not have uploaded
+ * them would be a guess — see roomsOf.
  */
 export function planRoomReclaim(
   assets: Assets,
   roomId: string,
   referenced: ReadonlySet<string>,
+  now: number,
 ): ClaimPlan {
   const next: Assets = {};
-  const orphaned: StoredAsset[] = [];
-  let freed = 0;
   let changed = false;
 
   for (const [hash, asset] of Object.entries(assets)) {
     const rooms = roomsOf(asset);
     const marked = referencedByOf(asset).includes(roomId);
     if (!rooms.includes(roomId)) {
-      next[hash] = asset;
+      if (referenced.has(hash) && rooms.length === 0 && asset.unreferencedAt !== undefined) {
+        next[hash] = {
+          ...asset,
+          rooms: [roomId],
+          referencedBy: [roomId],
+          unreferencedAt: undefined,
+        };
+        changed = true;
+      } else {
+        next[hash] = asset;
+      }
       continue;
     }
     if (referenced.has(hash)) {
@@ -162,8 +182,35 @@ export function planRoomReclaim(
         referencedBy: orUndefined(referencedByOf(asset).filter((room) => room !== roomId)),
       };
     } else {
+      next[hash] = { ...asset, rooms: undefined, referencedBy: undefined, unreferencedAt: now };
+    }
+  }
+
+  return { assets: next, orphaned: [], freed: 0, changed };
+}
+
+/**
+ * Delete condemned assets whose grace has passed. Only entries stamped by
+ * planRoomReclaim expire — a legacy unclaimed asset (no stamp) is never
+ * touched, and anything re-claimed had its stamp cleared.
+ */
+export function planCondemnedExpiry(assets: Assets, now: number, graceMs: number): ClaimPlan {
+  const next: Assets = {};
+  const orphaned: StoredAsset[] = [];
+  let freed = 0;
+  let changed = false;
+
+  for (const [hash, asset] of Object.entries(assets)) {
+    const expired =
+      roomsOf(asset).length === 0 &&
+      asset.unreferencedAt !== undefined &&
+      now - asset.unreferencedAt >= graceMs;
+    if (expired) {
+      changed = true;
       orphaned.push(asset);
       freed += asset.size;
+    } else {
+      next[hash] = asset;
     }
   }
 

@@ -28,6 +28,16 @@ export interface StoredAsset {
    * observed yet. See planRoomReclaim.
    */
   referencedBy?: string[];
+  /**
+   * When the reclaim sweep dropped this asset's LAST claim. A condemned
+   * entry keeps serving (it stays in the index) until the grace window
+   * passes — references the scan cannot see (a My Stuff shelf, a saved
+   * player file, another table's pasted URL) get that long to come back, and
+   * a room that references it again re-claims it (see planRoomReclaim's
+   * resurrection branch). Absent on anything still claimed, and on legacy
+   * unclaimed assets — those were never condemned and are never expired.
+   */
+  unreferencedAt?: number;
 }
 
 export class AssetRejectedError extends Error {

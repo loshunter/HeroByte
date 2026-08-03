@@ -136,6 +136,24 @@ describe("resolveQuotaLimits", () => {
 });
 
 describe("AssetService quota integration", () => {
+  it("enforces the env-derived WHOLE-STORE ceiling through the real store() path", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    // Total is the binding ceiling here (room is generous), and the two
+    // ceilings have distinct messages — assert the exact one, so a room-only
+    // enforcement bug cannot hide behind the alternation.
+    vi.stubEnv("HEROBYTE_ASSET_MAX_TOTAL_MB", String(64 / MB));
+    vi.stubEnv("HEROBYTE_ASSET_MAX_ROOM_MB", String(10_000 / MB));
+    try {
+      const service = new AssetService({ directory: TMP_DIR });
+      await service.store(pngBytes("fits-under-the-cap!"), "room-a", 1); // 27 bytes
+      await expect(
+        service.store(pngBytes("this-second-upload-tips-the-whole-store-over"), "room-b", 2), // 52 bytes
+      ).rejects.toThrow(/storage quota exceeded/i);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("enforces an env-derived ceiling through the real store() path", async () => {
     vi.spyOn(console, "log").mockImplementation(() => {});
     // Smallest expressible env quota: a fraction of a MB. Two ~30-byte uploads

@@ -9,22 +9,27 @@ function sweeper(overrides: {
   reclaimRoom?: ReturnType<typeof vi.fn>;
   rooms?: Partial<ConstructorParameters<typeof AssetReclaimSweeper>[0]["rooms"]>;
   documents?: unknown[];
+  historyDocuments?: unknown[];
   noAssetService?: boolean;
 }) {
   const reclaimRoom = overrides.reclaimRoom ?? vi.fn().mockResolvedValue(0);
+  const expireCondemned = vi.fn().mockResolvedValue(0);
   const instance = new AssetReclaimSweeper({
     assetService: overrides.noAssetService
       ? undefined
-      : ({ reclaimRoom } as unknown as AssetService),
+      : ({ reclaimRoom, expireCondemned } as unknown as AssetService),
     rooms: {
       listRooms: () => ["room-a"],
       has: () => true,
       get: () => ({ getState: () => ({ props: [{ imageUrl: `/assets/${H1}` }] }) }),
       ...overrides.rooms,
     },
-    mapDocuments: { list: () => overrides.documents ?? [] },
+    mapDocuments: {
+      list: () => overrides.documents ?? [],
+      historyDocuments: () => overrides.historyDocuments ?? [],
+    },
   });
-  return { instance, reclaimRoom };
+  return { instance, reclaimRoom, expireCondemned };
 }
 
 describe("AssetReclaimSweeper", () => {
@@ -36,6 +41,29 @@ describe("AssetReclaimSweeper", () => {
     await instance.sweepLoadedRooms();
 
     expect(reclaimRoom).toHaveBeenCalledWith("room-a", new Set([H1, H2]));
+  });
+
+  it("counts undo/redo-reachable documents as referenced — Undo must never 404", async () => {
+    const H3 = "c".repeat(64);
+    const { instance, reclaimRoom } = sweeper({
+      historyDocuments: [{ elements: [{ data: { assetId: `upload:${H3}` } }] }],
+    });
+
+    await instance.sweepLoadedRooms();
+
+    const referenced = reclaimRoom.mock.calls[0]![1] as Set<string>;
+    expect(referenced.has(H3)).toBe(true);
+  });
+
+  it("expires condemned assets once per full sweep, after the rooms", async () => {
+    const { instance, expireCondemned, reclaimRoom } = sweeper({});
+
+    await instance.sweepLoadedRooms();
+
+    expect(expireCondemned).toHaveBeenCalledTimes(1);
+    expect(reclaimRoom.mock.invocationCallOrder[0]!).toBeLessThan(
+      expireCondemned.mock.invocationCallOrder[0]!,
+    );
   });
 
   it("skips rooms unloaded between listRooms and the visit — no resurrection", async () => {

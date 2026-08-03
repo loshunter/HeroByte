@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { planClaimCopy, planRoomReclaim, planRoomRelease } from "../assetRoomClaims.js";
+import {
+  planClaimCopy,
+  planCondemnedExpiry,
+  planRoomReclaim,
+  planRoomRelease,
+} from "../assetRoomClaims.js";
 import type { StoredAsset } from "../assetTypes.js";
 import { collectAssetHashes } from "../assetReferences.js";
 
+const NOW = 1_000_000;
 const H1 = "a".repeat(64);
 const H2 = "b".repeat(64);
 const H3 = "c".repeat(64);
@@ -24,6 +30,7 @@ describe("planRoomReclaim", () => {
       { [H1]: asset(H1, { rooms: ["room-a"] }) },
       "room-a",
       new Set([H1]),
+      NOW,
     );
     expect(plan.changed).toBe(true);
     expect(plan.assets[H1]!.referencedBy).toEqual(["room-a"]);
@@ -35,27 +42,59 @@ describe("planRoomReclaim", () => {
       { [H1]: asset(H1, { rooms: ["room-a"], referencedBy: ["room-a"] }) },
       "room-a",
       new Set([H1]),
+      NOW,
     );
     expect(plan.changed).toBe(false);
   });
 
   it("never touches a claim that was never observed referenced (palette stock, in-flight uploads)", () => {
-    const plan = planRoomReclaim({ [H1]: asset(H1, { rooms: ["room-a"] }) }, "room-a", new Set());
+    const plan = planRoomReclaim(
+      { [H1]: asset(H1, { rooms: ["room-a"] }) },
+      "room-a",
+      new Set(),
+      NOW,
+    );
     expect(plan.changed).toBe(false);
     expect(plan.assets[H1]!.rooms).toEqual(["room-a"]);
     expect(plan.orphaned).toEqual([]);
   });
 
-  it("un-claims a marked asset that is no longer referenced — the replacement case", () => {
+  it("condemns a marked asset that is no longer referenced — never deletes directly", () => {
     const plan = planRoomReclaim(
       { [H1]: asset(H1, { rooms: ["room-a"], referencedBy: ["room-a"] }) },
       "room-a",
       new Set(),
+      NOW,
     );
     expect(plan.changed).toBe(true);
-    expect(plan.orphaned.map((a) => a.hash)).toEqual([H1]);
-    expect(plan.freed).toBe(100);
-    expect(plan.assets[H1]).toBeUndefined();
+    // The entry SURVIVES un-claimed: it keeps serving through the grace
+    // window so references no scan can see (My Stuff shelves, saved player
+    // files) can come back. Deletion is planCondemnedExpiry's job.
+    expect(plan.orphaned).toEqual([]);
+    expect(plan.freed).toBe(0);
+    expect(plan.assets[H1]).toMatchObject({ unreferencedAt: NOW });
+    expect(plan.assets[H1]!.rooms).toBeUndefined();
+    expect(plan.assets[H1]!.referencedBy).toBeUndefined();
+  });
+
+  it("resurrects a condemned asset a room references again (Undo, cross-table URLs)", () => {
+    const plan = planRoomReclaim(
+      { [H1]: asset(H1, { unreferencedAt: NOW - 1000 }) },
+      "room-b",
+      new Set([H1]),
+      NOW,
+    );
+    expect(plan.changed).toBe(true);
+    expect(plan.assets[H1]).toEqual(asset(H1, { rooms: ["room-b"], referencedBy: ["room-b"] }));
+    expect(plan.assets[H1]!.unreferencedAt).toBeUndefined();
+  });
+
+  it("never adopts a LEGACY unclaimed asset, even when referenced", () => {
+    // Pre-rooms-era assets have no claims and no condemnation stamp; charging
+    // them to a room that may not have uploaded them would be a guess.
+    const plan = planRoomReclaim({ [H1]: asset(H1) }, "room-a", new Set([H1]), NOW);
+    expect(plan.changed).toBe(false);
+    expect(plan.assets[H1]).toEqual(asset(H1));
   });
 
   it("keeps the bytes when another room still claims them, and only strips this room", () => {
@@ -63,6 +102,7 @@ describe("planRoomReclaim", () => {
       { [H1]: asset(H1, { rooms: ["room-a", "room-b"], referencedBy: ["room-a", "room-b"] }) },
       "room-a",
       new Set(),
+      NOW,
     );
     expect(plan.orphaned).toEqual([]);
     expect(plan.freed).toBe(0);
@@ -78,6 +118,7 @@ describe("planRoomReclaim", () => {
       },
       "room-a",
       new Set(),
+      NOW,
     );
     expect(plan.changed).toBe(false);
     expect(plan.assets[H1]).toEqual(asset(H1, { rooms: ["room-b"], referencedBy: ["room-b"] }));
@@ -93,11 +134,12 @@ describe("planRoomReclaim", () => {
       },
       "room-a",
       new Set([H1]),
+      NOW,
     );
     expect(plan.assets[H1]!.referencedBy).toEqual(["room-a"]);
-    expect(plan.assets[H2]).toBeUndefined();
+    expect(plan.assets[H2]).toMatchObject({ unreferencedAt: NOW }); // condemned
     expect(plan.assets[H3]!.rooms).toEqual(["room-a"]);
-    expect(plan.orphaned.map((a) => a.hash)).toEqual([H2]);
+    expect(plan.orphaned).toEqual([]);
   });
 });
 
@@ -148,5 +190,45 @@ describe("collectAssetHashes", () => {
     const a = JSON.stringify({ x: `upload:${H1}` });
     const b = JSON.stringify({ y: "/assets/nothexnothexnothex", z: "upload:tooshort" });
     expect(collectAssetHashes(a, b)).toEqual(new Set([H1]));
+  });
+});
+
+describe("planCondemnedExpiry", () => {
+  const GRACE = 7 * 24 * 60 * 60 * 1000;
+
+  it("keeps a condemned asset inside the grace window", () => {
+    const plan = planCondemnedExpiry(
+      { [H1]: asset(H1, { unreferencedAt: NOW }) },
+      NOW + GRACE - 1,
+      GRACE,
+    );
+    expect(plan.changed).toBe(false);
+    expect(plan.assets[H1]).toBeDefined();
+  });
+
+  it("deletes a condemned asset once the grace has passed", () => {
+    const plan = planCondemnedExpiry(
+      { [H1]: asset(H1, { unreferencedAt: NOW }) },
+      NOW + GRACE,
+      GRACE,
+    );
+    expect(plan.changed).toBe(true);
+    expect(plan.orphaned.map((a) => a.hash)).toEqual([H1]);
+    expect(plan.freed).toBe(100);
+    expect(plan.assets[H1]).toBeUndefined();
+  });
+
+  it("never expires claimed assets or legacy unclaimed ones", () => {
+    const plan = planCondemnedExpiry(
+      {
+        [H1]: asset(H1, { rooms: ["room-a"] }), // claimed
+        [H2]: asset(H2), // legacy: no stamp, never condemned
+      },
+      NOW + GRACE * 10,
+      GRACE,
+    );
+    expect(plan.changed).toBe(false);
+    expect(plan.assets[H1]).toBeDefined();
+    expect(plan.assets[H2]).toBeDefined();
   });
 });
