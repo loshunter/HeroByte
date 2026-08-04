@@ -120,7 +120,7 @@ All verified in code.
 | D8  | **No player-facing image upload.** Exactly ONE file input in the whole client picks an image and pushes it through `/assets` (`MapEditAssetPicker`, DM-only). The other three are JSON. The `/assets` pipeline itself is built, room-credential gated, MIME-sniffed, quota'd and rate-limited                 | `apps/server/src/http/routes.ts`, `features/map-studio/uploads/assetUpload.ts` |
 | D9  | Tokens have **no name and no persistent HP**                                                                                                                                                                                                                                                                  | `TokensLayer.tsx`                                                              |
 | D10 | Vision has **no radius**; fog has **no memory**                                                                                                                                                                                                                                                               | `packages/shared/src/visibility.ts`, `FogLayer.tsx`                            |
-| D11 | Measurement is **Euclidean** — a 2-square diagonal reads "2.8 Squares (14 ft)" where 5e says 10                                                                                                                                                                                                               | `MeasureLayer.tsx`                                                             |
+| D11 | ~~Measurement is **Euclidean** — a 2-square diagonal reads "2.8 Squares (14 ft)" where 5e says 10~~ FIXED in S6                                                                                                                                                                                                               | `MeasureLayer.tsx`                                                             |
 
 D3–D6 bite while nobody is watching. Ship them first, alone.
 
@@ -314,13 +314,78 @@ visible `ROLL!` text. `FloatingPanelsLayout` crossed 350 LOC and the dice panels
 any player could wipe the table's roll history — and `StatePersistence` loaded `diceRolls` with a
 bare `|| []`, so a poisoned non-array survived restart. Both fixed separately.
 
-### S6 🟡 — Distance and templates the table agrees on (2–3 days)
+### S6 ✅ — Distance and templates the table agrees on — SHIPPED
 
-A per-room diagonal rule (5e every-square / PF alternating / Euclidean) in **one shared function**.
-Broadcast the active measurement so the table sees the same line. Circle/cone/square/line templates
-that snap to the grid and reuse the drawing render path.
+**The rule lives in one place.** `packages/shared/src/measurement.ts` owns `DiagonalRule`
+(`5e` / `pathfinder` / `euclidean`), `coerceDiagonalRule`, `worldPointToGridCell` and
+`measureGridDistance`; `MeasureLayer.tsx` now calls it instead of doing its own
+`Math.sqrt`. That closes D11: a two-square diagonal reads `2 Squares (10 ft)`, not
+`2.8 Squares (14 ft)`. A grid rule COUNTS CELLS, so both endpoints collapse to the cell
+containing them and the drawn line snaps to those cells' centres — the line and the number
+describe the same two squares. Euclidean keeps the raw points and reproduces the old
+readout exactly, for tables that want it.
 
-**Done when.** "Is Grak in it?" is answered by looking.
+**The default is `5e`, not `euclidean`.** Every coercion site (state file, session file,
+absent snapshot field) lands there, so existing tables get the corrected maths without
+touching anything. Counting a diagonal as 1.4 squares IS the defect; preserving it as the
+default would have shipped the bug behind a setting.
+
+**Per-room, DM-gated**, following S4's `monsterHpDisplay` path exactly: shared type +
+`RoomSnapshot` field + `set-diagonal-rule` + whitelist validator + a gate inside
+`SceneMessageHandler` (not `AuthorizationService`, which is dead code) + `RoomState` +
+persistence load/save + `SnapshotLoader`. The control sits in **Grid Controls**, next to
+Square Size, because they answer the same question.
+
+**The measurement is relayed, not stored.** `{ t: "measure", measure: {start,end} | null }`
+carries no identity; `PointerHandler.handleMeasure` stamps uid and name from the connection
+and `messageRouter.broadcastMeasure` sends it on its own channel. Nothing enters
+`RoomState`, so there is no persistence, no `SNAPSHOT_LIMITS` entry, no save per mouse move
+and no snapshot growth — and a client joining mid-drag simply picks up the next frame. The
+client throttles to ~16/s with a trailing flush (the last position always ships), prunes
+stale lines against `snapshot.users` (the connected set), and clears on tool-off and on
+unmount. Deliberately unfiltered: everyone seeing the same line is the feature, and it
+matches the existing rule that a DM's pointer ping is narration for the whole table.
+
+**Templates ride the drawing path.** `Drawing.type` gained `"template"` plus an
+`AreaTemplate` (`kind` + `sizeFeet`); `buildAreaTemplate` returns a closed polygon in world
+pixels and the polygon IS the geometry, so persistence, undo, the eraser, selection, the
+scene graph and the session file all work with no new collection. Origin snaps to the
+nearest half-grid step (cell centres AND corners, so a burst can centre on a token; the cube
+snaps to corners so its sides sit on grid lines) and size snaps to whole squares. The cone
+is 5e's triangle — as wide at its far edge as it is long. Direction stays continuous: a cone
+that can only point at 15-degree stops is a cone that cannot point at the goblin.
+
+**Mobile shipped in-slice** (§7a) at zero cost to the dock: template tools are DRAWING
+tools, so they inherit the armed touch path, the colour, the undo stack and the eraser, and
+they appear as four more chips in the sheet that already exists. Size comes from the drag,
+so there is no numeric field to find room for. Measured, not assumed: all **14** controls in
+the mobile drawing sheet are on screen and ≥44 px at both 375×812 and 812×375
+(`mobile-draw.spec.ts`).
+
+**Grew beyond plan — the measure tool could never hold a reading.** The click cycle keyed on
+`measureEnd`, which `onMouseMove` sets on every move, so the second click always took the
+"start over" branch and WIPED the measurement instead of freezing it. Nobody had noticed
+because nothing asserted on it — `docs/user-guide/img/measure-tool.jpg` is a recording of
+the bug, a measure-mode screenshot with no measurement in it, while the player guide already
+described the freeze that never happened. With the broadcast in place the bug got louder:
+the table saw the line, then saw a clear one frame later. Fixed with a `measureCommitted`
+flag, in its own commit.
+
+**Tests.** 45 new shared tests over the three rules and the four template kinds;
+`measurement.contract.test.ts` (DM gate, author bound from the connection, nothing written
+to state, no snapshot forced); validator coverage for `set-diagonal-rule`, `measure` and the
+template payload; first-ever tests for `MeasureLayer` and `usePointerTool`; five e2e,
+including a two-client relay test. **35 sabotages** were run against these — see the
+`GREEN-BAD` discipline: a sabotage that leaves its test green means the test cannot fail.
+
+**Traps that cost time.** `router.route()` runs AFTER validation, so a contract test that
+routes a malformed frame proves nothing about the validator (the same gap hid an untested
+validator in S5) — coordinate-shape coverage lives in `validation.test.ts` instead.
+`useDrawingTool` crossed 350 LOC and needed two extractions (`templateDraft.ts`,
+`eraseStroke.ts`). The e2e map canvas is SHORT — the entities panel takes the bottom half —
+so a few cells at a zoomed-in camera walks a click straight off it onto the panel.
+
+**Left for its own commit** (house rule): the measure-freeze fix above.
 
 ### S7 🔴 — Darkness that is dark, and a dungeon you remember (4–5 days, largest)
 
