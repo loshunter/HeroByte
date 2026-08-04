@@ -1,7 +1,10 @@
 # Session One — the table runs a whole game without leaving it
 
-**Status:** planned, not started (2026-08-01). Runs before the damage loop, mobile authoring, and
-the Atlas.
+**Status:** S0–S3 SHIPPED (2026-08-04) — durability, rate limiting, chat, and image upload are on
+`dev` and deployed. S3 grew beyond the plan under adversarial review: reclaim became
+condemn/resurrect/expire (grace-windowed deletion, `HEROBYTE_ASSET_RECLAIM_GRACE_HOURS`), and the
+quota fossil is now statfs-derived. Next: S4 (tokens have names and health). Runs before the
+damage loop, mobile authoring, and the Atlas.
 
 **Thesis.** The hardest thing is built — live on-table authoring, server-compiled scenes with real
 wall collision, per-recipient fog filtering with contract-test proof. What is missing is the part
