@@ -9,6 +9,7 @@ import type { TokenSize, SnapshotCharacter } from "@herobyte/shared";
 import { normalizeHPValues, parseHPInput, parseMaxHPInput } from "@herobyte/shared";
 import { PortraitSection } from "./PortraitSection";
 import { HPBar } from "./HPBar";
+import { RedactedHpBadge } from "./RedactedHpBadge";
 import { NpcSettingsMenu } from "./NpcSettingsMenu";
 import { sanitizeText } from "../../../utils/sanitize";
 import { normalizeImageUrl } from "../../../utils/imageUrlHelpers";
@@ -271,24 +272,8 @@ export function NpcCard({
           onTempHpSubmit={handleTempHpSubmit}
         />
       ) : (
-        // The server redacted this NPC's numbers (monsterHpDisplay). In
-        // "bloodied" mode a coarse badge rode along; in "hidden" mode players
-        // learn nothing beyond the monster's existence.
-        <div
-          className="jrpg-text-small"
-          data-testid="npc-hp-redacted"
-          style={{
-            padding: "2px 6px",
-            color:
-              character.hpBadge === "bloodied" ? "var(--jrpg-red, #d63c53)" : "var(--jrpg-gold)",
-          }}
-        >
-          {character.hpBadge === "bloodied"
-            ? "🩸 Bloodied"
-            : character.hpBadge === "healthy"
-              ? "Healthy"
-              : "HP: ???"}
-        </div>
+        // The server redacted this NPC's numbers (monsterHpDisplay).
+        <RedactedHpBadge badge={character.hpBadge} />
       )}
 
       <div className="player-card-controls">

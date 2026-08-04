@@ -5,6 +5,7 @@ type HeroByteE2EState = {
   uid?: string;
   gridSize?: number;
   cam?: { x: number; y: number; scale: number };
+  setCam?: (cam: { x: number; y: number; scale: number }) => void;
   viewport?: { width: number; height: number };
   sendMessage?: (message: ClientMessage) => void;
 };

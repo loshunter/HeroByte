@@ -701,8 +701,10 @@ export const TokensLayer = memo(function TokensLayer({
     const plate = platesByTokenId[object.id];
     if (!plate) return null;
     const sizeMultiplier = SIZE_MULTIPLIERS[object.data.size ?? "medium"] ?? 1.0;
-    const tokenSize = gridSize * 0.75 * sizeMultiplier;
-    const { x, y } = mapOverrides(object).transform;
+    const { x, y, scaleY } = mapOverrides(object).transform;
+    // The gizmo can scale a token beyond its size class — the plate's offset
+    // must clear the RENDERED extent or it overlaps the sprite.
+    const tokenSize = gridSize * 0.75 * sizeMultiplier * (scaleY || 1);
     return (
       <TokenNameplate
         plate={plate}

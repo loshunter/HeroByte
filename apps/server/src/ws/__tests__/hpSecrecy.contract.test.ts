@@ -29,6 +29,7 @@ const DM = "dm-uid";
 // not.toContain is meaningful.
 const SECRET_HP = 4471;
 const SECRET_MAX_HP = 9973;
+const SECRET_TEMP_HP = 3319;
 
 interface FakeSocket {
   readyState: number;
@@ -80,6 +81,7 @@ function goblin() {
     name: "Goblin 3",
     hp: SECRET_HP,
     maxHp: SECRET_MAX_HP,
+    tempHp: SECRET_TEMP_HP,
     tokenId: null,
     ownedByPlayerUID: null,
     visibleToPlayers: true,
@@ -160,11 +162,13 @@ describe("monster HP secrecy contracts", () => {
     expect(npc).toBeDefined();
     expect(npc?.hp).toBeUndefined();
     expect(npc?.maxHp).toBeUndefined();
+    expect(npc?.tempHp).toBeUndefined();
     expect(npc?.hpBadge).toBeUndefined();
     // The raw-bytes bar: a renderer-side filter would pass the object checks
     // above and fail these.
     expect(rawBytesSentTo(aliceWs)).not.toContain(String(SECRET_HP));
     expect(rawBytesSentTo(aliceWs)).not.toContain(String(SECRET_MAX_HP));
+    expect(rawBytesSentTo(aliceWs)).not.toContain(String(SECRET_TEMP_HP));
   });
 
   it("bloodied mode: players get the coarse badge, never the numbers", () => {
@@ -174,8 +178,10 @@ describe("monster HP secrecy contracts", () => {
     // 4471 * 2 <= 9973 → bloodied by the 5e half-max rule.
     expect(npc?.hpBadge).toBe("bloodied");
     expect(npc?.hp).toBeUndefined();
+    expect(npc?.tempHp).toBeUndefined();
     expect(rawBytesSentTo(aliceWs)).not.toContain(String(SECRET_HP));
     expect(rawBytesSentTo(aliceWs)).not.toContain(String(SECRET_MAX_HP));
+    expect(rawBytesSentTo(aliceWs)).not.toContain(String(SECRET_TEMP_HP));
   });
 
   it("the DM always sees exact numbers, whatever the mode", () => {
@@ -210,6 +216,19 @@ describe("monster HP secrecy contracts", () => {
     route({ t: "chat", text: "ping" }, ALICE);
     const [npc] = npcsSeenBy(aliceWs);
     expect(npc?.hp).toBe(SECRET_HP);
+  });
+
+  it("a player cannot WRITE their way to a hidden monster's numbers", () => {
+    // Write-side composition of the secrecy: update-character-hp is permission
+    // gated (owner or DM), so choosing a monster's hp — and thereby knowing
+    // it — is not available to players.
+    route({ t: "set-monster-hp-display", mode: "hidden" }, DM);
+    route({ t: "update-character-hp", characterId: "npc-goblin", hp: 1, maxHp: 1 }, ALICE);
+
+    const state = roomService.getState();
+    const npc = state.characters.find((c) => c.id === "npc-goblin");
+    expect(npc?.hp).toBe(SECRET_HP); // unchanged
+    expect(npc?.maxHp).toBe(SECRET_MAX_HP);
   });
 
   it("the session-export seed keeps exact numbers — a save file must restore them", () => {

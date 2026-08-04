@@ -31,6 +31,9 @@ interface E2ETestingSupportProps {
    * Optional - enriched by MapBoard component when camera is available
    */
   cam?: { x: number; y: number; scale: number };
+  /** Real camera setter (React state), so e2e can zoom through the app's own
+   * path — mutating the cam object in place never re-renders. */
+  setCam?: (cam: { x: number; y: number; scale: number }) => void;
 
   /**
    * Viewport dimensions in pixels
@@ -91,7 +94,7 @@ interface E2ETestingSupportProps {
  * });
  */
 export function useE2ETestingSupport(props: E2ETestingSupportProps): void {
-  const { snapshot, uid, gridSize, cam, viewport, sendMessage } = props;
+  const { snapshot, uid, gridSize, cam, setCam, viewport, sendMessage } = props;
 
   useEffect(() => {
     // SSR safety: Do nothing when window is undefined
@@ -111,6 +114,7 @@ export function useE2ETestingSupport(props: E2ETestingSupportProps): void {
         uid?: string;
         gridSize?: number;
         cam?: { x: number; y: number; scale: number };
+        setCam?: (cam: { x: number; y: number; scale: number }) => void;
         viewport?: { width: number; height: number };
         sendMessage?: (message: ClientMessage) => void;
       };
@@ -125,8 +129,9 @@ export function useE2ETestingSupport(props: E2ETestingSupportProps): void {
       gridSize,
       // Conditionally add cam and viewport if provided
       ...(cam && { cam }),
+      ...(setCam && { setCam }),
       ...(viewport && { viewport }),
       ...(sendMessage && { sendMessage }),
     };
-  }, [snapshot, uid, gridSize, cam, viewport, sendMessage]);
+  }, [snapshot, uid, gridSize, cam, setCam, viewport, sendMessage]);
 }

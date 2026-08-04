@@ -110,6 +110,26 @@ describe("StatePersistence - Characterization Tests", () => {
   });
 
   describe("loadState()", () => {
+    it("round-trips monsterHpDisplay through the state file, coercing garbage", () => {
+      // S4: the recipient filter branches on this value, and the whole point
+      // of "hidden" is defeated if a restart silently reverts it to "exact".
+      roomService.getState().monsterHpDisplay = "hidden";
+      roomService.saveState();
+      return roomService.awaitPendingWrites().then(() => {
+        const fresh = new RoomService({ stateFile: PROD_STATE_FILE });
+        fresh.loadState();
+        expect(fresh.getState().monsterHpDisplay).toBe("hidden");
+
+        // And a hand-edited file cannot smuggle a fourth mode into the branch.
+        const raw = JSON.parse(readFileSync(PROD_STATE_FILE, "utf-8"));
+        raw.monsterHpDisplay = "exact-but-evil";
+        writeFileSync(PROD_STATE_FILE, JSON.stringify(raw));
+        const poisoned = new RoomService({ stateFile: PROD_STATE_FILE });
+        poisoned.loadState();
+        expect(poisoned.getState().monsterHpDisplay).toBe("exact");
+      });
+    });
+
     it("should do nothing when state file does not exist", () => {
       // Ensure file doesn't exist
       expect(existsSync(PROD_STATE_FILE)).toBe(false);
