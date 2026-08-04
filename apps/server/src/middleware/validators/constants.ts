@@ -38,6 +38,14 @@ export const STRING_LIMITS = {
   /** Status effect label length: 1-64 characters */
   STATUS_EFFECT_MIN: 1,
   STATUS_EFFECT_MAX: 64,
+  /**
+   * Chat message body: 1-2000 characters, matching the Map Studio text
+   * element's cap. Generous enough to paste a block of read-aloud text,
+   * bounded because the whole chat log re-serializes into every snapshot,
+   * for every recipient, on every broadcast.
+   */
+  CHAT_TEXT_MIN: 1,
+  CHAT_TEXT_MAX: 2000,
 } as const;
 
 /**
@@ -54,6 +62,14 @@ export const ARRAY_LIMITS = {
   SYNCED_DRAWINGS: 200,
   /** Maximum points per drawing segment (also in commonValidators) */
   SEGMENT_POINTS: 10_000,
+  /**
+   * Chat messages retained per room. At the 2000-char cap this bounds the
+   * log's contribution to a snapshot at ~200KB worst case, against the
+   * 750KB snapshot warning threshold — so a full log alone cannot trip it,
+   * but a full log plus a heavy map can. Sized deliberately below dice's
+   * 100 because chat entries are far larger than rolls.
+   */
+  CHAT_HISTORY: 60,
 } as const;
 
 /**

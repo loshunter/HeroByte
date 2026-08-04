@@ -39,6 +39,13 @@ jobs:
       - name: Run lint checks
         run: pnpm lint
 
+      # ESLint enforces prettier via the prettier/prettier rule, but each
+      # package only lints its own src/, so apps/e2e (no package.json, not a
+      # workspace member), scripts/ and root docs were never checked and drifted
+      # freely. Seconds to run, and it is what would have caught that drift.
+      - name: Check formatting
+        run: pnpm format:check
+
       - name: Enforce structural guardrails
         run: pnpm lint:structure:enforce
 

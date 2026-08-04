@@ -7,7 +7,7 @@
 import { useState, useEffect } from "react";
 import type { Prop, Player, TokenSize } from "@herobyte/shared";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
-import { useImageUrlNormalization } from "../../../hooks/useImageUrlNormalization";
+import { ImageField } from "../../../components/ui/ImageField";
 
 interface PropEditorProps {
   prop: Prop;
@@ -39,7 +39,6 @@ export function PropEditor({
   const [imageUrl, setImageUrl] = useState(prop.imageUrl);
   const [owner, setOwner] = useState<string | null>(prop.owner);
   const [size, setSize] = useState<TokenSize>(prop.size);
-  const { normalizeUrl } = useImageUrlNormalization();
 
   useEffect(() => {
     setLabel(prop.label);
@@ -70,11 +69,6 @@ export function PropEditor({
   };
 
   const handleLabelBlur = () => commitUpdate({ label });
-  const handleImageUrlBlur = async () => {
-    const normalizedImageUrl = await normalizeUrl(imageUrl);
-    setImageUrl(normalizedImageUrl);
-    commitUpdate({ imageUrl: normalizedImageUrl });
-  };
   const handleOwnerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     const newOwner = value === "null" ? null : value === "*" ? "*" : value;
@@ -145,28 +139,17 @@ export function PropEditor({
         </label>
       </div>
 
-      <label
-        className="jrpg-text-small"
-        style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-      >
-        Image URL
-        <input
-          type="text"
-          value={imageUrl}
-          onChange={(e) => setImageUrl(e.target.value)}
-          onBlur={handleImageUrlBlur}
-          disabled={isUpdating}
-          style={{
-            width: "100%",
-            padding: "4px",
-            background: "#111",
-            color: "var(--jrpg-white)",
-            border: "1px solid var(--jrpg-border-gold)",
-            opacity: isUpdating ? 0.5 : 1,
-            cursor: isUpdating ? "not-allowed" : "text",
-          }}
-        />
-      </label>
+      <ImageField
+        label="Image URL"
+        value={imageUrl}
+        onChange={setImageUrl}
+        onCommit={(url) => {
+          setImageUrl(url);
+          commitUpdate({ imageUrl: url });
+        }}
+        disabled={isUpdating}
+        compact
+      />
       {imageUrl && (
         <img
           src={imageUrl}

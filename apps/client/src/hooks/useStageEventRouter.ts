@@ -22,6 +22,8 @@ import { useCallback, type RefObject } from "react";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { useDoubleTap } from "./useDoubleTap";
+import { useTouchGestureRouter } from "./useTouchGestureRouter";
+import { useArmedTouchTool } from "./useArmedTouchTool";
 
 /**
  * Props for useStageEventRouter hook
@@ -61,6 +63,11 @@ export interface UseStageEventRouterProps {
   handleDrawMouseUp: () => void;
   handleMapEditMouseUp: () => void;
   handleMarqueePointerUp: () => void;
+
+  /** Discard an in-progress stroke (a second finger, or an OS interrupt). */
+  handleDrawCancel: () => void;
+  /** Discard an in-progress marquee, same triggers. */
+  handleMarqueeCancel: () => void;
 
   // Touch handlers
   handleTouchStart: (
@@ -119,31 +126,8 @@ export interface UseStageEventRouterReturn {
  * 4. Default (selection clearing)
  *
  * @param props - Tool modes and handler functions
- * @returns Unified event handlers (onStageClick, onMouseDown, onMouseMove, onMouseUp, onTouchStart, onTouchMove, onTouchEnd)
- *
- * @example
- * ```tsx
- * const { onStageClick, onMouseDown, onMouseMove, onMouseUp, onTouchStart, ... } = useStageEventRouter({
- *   alignmentMode: false,
- *   selectMode: true,
- *   pointerMode: false,
- *   measureMode: false,
- *   drawMode: false,
- *   handleAlignmentClick,
- *   handlePointerClick,
- *   // ... other handlers
- * });
- *
- * <Stage
- *   onClick={onStageClick}
- *   onMouseDown={onMouseDown}
- *   onMouseMove={onMouseMove}
- *   onMouseUp={onMouseUp}
- *   onTouchStart={onTouchStart}
- *   onTouchMove={onTouchMove}
- *   onTouchEnd={onTouchEnd}
- * />
- * ```
+ * @returns Handlers to spread onto the Konva Stage: onStageClick, onTap,
+ *   onMouseDown/Move/Up, onTouchStart/Move/End. See MapBoard for the call site.
  */
 export function useStageEventRouter({
   alignmentMode,
@@ -170,6 +154,8 @@ export function useStageEventRouter({
   handleTouchStart,
   handleTouchMove,
   handleTouchEnd,
+  handleDrawCancel,
+  handleMarqueeCancel,
   handleDoubleTap,
   isMarqueeActive,
   onSelectObject,
@@ -301,31 +287,35 @@ export function useStageEventRouter({
   ]);
 
   /**
-   * Unified touch start handler
+   * Touch does NOT fan out to every tool the way the mouse path above does —
+   * it dispatches to whichever one owns the finger. Map-edit is still absent on
+   * purpose: its interactions rest on hover ghosts and modifier keys a finger
+   * does not have, so it needs a design pass rather than a wire-up.
+   *
+   * touchcancel is bound to the DOM inside the gesture hook; Konva delivers no
+   * node event for it, so there is nothing for the Stage to bind.
    */
-  const onTouchStart = useCallback(
-    (event: KonvaEventObject<TouchEvent>) => {
-      handleTouchStart(event, stageRef, shouldPan);
-    },
-    [shouldPan, handleTouchStart, stageRef],
-  );
+  const armedTouchTool = useArmedTouchTool({
+    drawMode,
+    selectMode,
+    handleDrawMouseDown,
+    handleDrawMouseMove,
+    handleDrawMouseUp,
+    handleDrawCancel,
+    handleMarqueePointerDown,
+    handleMarqueePointerMove,
+    handleMarqueePointerUp,
+    handleMarqueeCancel,
+  });
 
-  /**
-   * Unified touch move handler
-   */
-  const onTouchMove = useCallback(
-    (event: KonvaEventObject<TouchEvent>) => {
-      handleTouchMove(event, stageRef);
-    },
-    [handleTouchMove, stageRef],
-  );
-
-  /**
-   * Unified touch end handler
-   */
-  const onTouchEnd = useCallback(() => {
-    handleTouchEnd();
-  }, [handleTouchEnd]);
+  const { onTouchStart, onTouchMove, onTouchEnd } = useTouchGestureRouter({
+    tool: armedTouchTool,
+    shouldPan,
+    stageRef,
+    onCameraStart: handleTouchStart,
+    onCameraMove: handleTouchMove,
+    onCameraEnd: handleTouchEnd,
+  });
 
   return {
     onStageClick,

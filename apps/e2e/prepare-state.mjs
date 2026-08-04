@@ -1,4 +1,4 @@
-import { unlink } from "node:fs/promises";
+import { rm, unlink } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -20,3 +20,13 @@ for (const file of files) {
     }
   }
 }
+
+// The e2e asset store (playwright.config.ts points HEROBYTE_ASSET_DIR here so
+// upload tests never touch the real, git-tracked herobyte-assets/).
+const assetDir = resolve(
+  currentDir,
+  "../server",
+  process.env.E2E_ASSET_DIR ?? "herobyte-assets-e2e",
+);
+await rm(assetDir, { recursive: true, force: true });
+console.log(`[E2E Setup] Cleared ${assetDir}`);

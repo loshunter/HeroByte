@@ -14,6 +14,7 @@
 // server it means "preserved nothing" — which is exactly how the map came back
 // without its scenery and nobody noticed.
 
+import path from "node:path";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { WebSocket, WebSocketServer } from "ws";
 import type { ClientMessage, MapDocument, ServerMessage } from "@herobyte/shared";
@@ -28,8 +29,13 @@ import { CharacterService } from "../../domains/character/service.js";
 import { PropService } from "../../domains/prop/service.js";
 import { SelectionService } from "../../domains/selection/service.js";
 import { AuthService } from "../../domains/auth/service.js";
-import { validateLoadSessionMessage } from "../../middleware/validators/roomValidators.js";
+import { validateLoadSessionMessage } from "../../middleware/validators/sessionValidators.js";
 import { validateLoadSessionEnvelope } from "../../middleware/validators/sessionValidators.js";
+
+// Scratch state file: a bare `new RoomService({ stateFile: TEST_STATE_FILE })` writes the REAL
+// apps/server/herobyte-state.json, which parallel workers and the dev
+// server then fight over (observed: a torn file, quarantined as .corrupt).
+const TEST_STATE_FILE = path.join(process.cwd(), ".tmp", "sessionRoundTrip-state.json");
 
 const DM = "dm-player";
 
@@ -58,7 +64,7 @@ function player(uid: string, isDM: boolean) {
 
 /** One complete server: fresh services, fresh router, one DM socket. */
 function bootServer() {
-  const roomService = new RoomService();
+  const roomService = new RoomService({ stateFile: TEST_STATE_FILE });
   roomService.setState({
     players: [player(DM, true)],
     tokens: [],
@@ -477,6 +483,42 @@ describe("session round trip", () => {
     expect(restored.roomService.getState().liveMapDocumentId).toBeUndefined();
     // The table still renders — the derived map came along in the snapshot.
     expect(restored.roomService.getState().compiledScene?.walls.length).toBeGreaterThan(0);
+  });
+
+  it("never writes whispers into the exported file", () => {
+    // A session file exists to be handed to other people, and export builds it
+    // with toSnapshot(state, true, senderUid) — a REAL recipient uid — so the
+    // exporting DM's own whispers pass the per-recipient filter. The table
+    // FORK path is safe by construction (createSnapshot(), no uid); export is
+    // not, so it strips them explicitly.
+    origin.roomService.getState().chatLog.push(
+      { id: "c1", authorUid: DM, authorName: DM, text: "everyone hears this", timestamp: 1 },
+      {
+        id: "c2",
+        authorUid: DM,
+        authorName: DM,
+        text: "PRIVATE-ASIDE",
+        to: "player-1",
+        timestamp: 2,
+      },
+      {
+        id: "c3",
+        authorUid: "player-1",
+        authorName: "p1",
+        text: "REPLY-ASIDE",
+        to: DM,
+        timestamp: 3,
+      },
+    );
+
+    const file = exportSession();
+
+    const texts = ((file.snapshot.chatLog ?? []) as Array<{ text: string }>).map((m) => m.text);
+    expect(texts).toContain("everyone hears this");
+    expect(texts).not.toContain("PRIVATE-ASIDE");
+    expect(texts).not.toContain("REPLY-ASIDE");
+    // And not anywhere else in the serialized file either.
+    expect(JSON.stringify(file)).not.toContain("ASIDE");
   });
 
   it("survives one unreadable document without losing the rest of the table", () => {

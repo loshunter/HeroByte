@@ -121,6 +121,15 @@ export class SnapshotLoader {
       gridSize: snapshot.gridSize ?? 50,
       gridSquareSize: snapshot.gridSquareSize ?? currentGridSquareSize,
       diceRolls: snapshot.diceRolls ?? [],
+      // Whispers must not ride into a new table. The FORK path is safe by
+      // construction (tableFork uses createSnapshot(), no recipient uid, so
+      // visibleChatFor fails closed) — but the session-EXPORT path is not:
+      // RoomMessageHandler builds the file with toSnapshot(state, true,
+      // senderUid), so the exporting DM's own whispers survive the filter and
+      // land in a file meant to be shared. Export strips them explicitly now;
+      // this stays defensive because a session file is attacker-editable
+      // regardless of how it was produced.
+      chatLog: Array.isArray(snapshot.chatLog) ? snapshot.chatLog : [],
       drawingUndoStacks: {},
       drawingRedoStacks: {},
       sceneObjects: snapshot.sceneObjects ?? currentState.sceneObjects,

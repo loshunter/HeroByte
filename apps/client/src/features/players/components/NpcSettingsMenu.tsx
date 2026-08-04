@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 
 import type { TokenSize } from "@herobyte/shared";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
-import { useImageUrlNormalization } from "../../../hooks/useImageUrlNormalization";
+import { ImageField } from "../../../components/ui/ImageField";
 
 interface NpcSettingsMenuProps {
   isOpen: boolean;
@@ -53,12 +53,6 @@ export function NpcSettingsMenu({
   hasInitiative = false,
 }: NpcSettingsMenuProps): JSX.Element | null {
   const [wasDeleting, setWasDeleting] = useState(false);
-  const { normalizeUrl } = useImageUrlNormalization();
-
-  const handleApplyTokenImage = async () => {
-    const normalizedUrl = await normalizeUrl(tokenImageInput.trim());
-    onTokenImageApply(normalizedUrl);
-  };
 
   // Auto-close when deletion completes successfully
   useEffect(() => {
@@ -95,45 +89,14 @@ export function NpcSettingsMenu({
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-          <label className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-            Token Image URL
-          </label>
-          <input
-            type="text"
+          <ImageField
+            label="Token Image URL"
             value={tokenImageInput}
+            onChange={onTokenImageInputChange}
+            onCommit={onTokenImageApply}
+            onClear={onTokenImageClear}
             placeholder="https://enemy-token.png"
-            onChange={(event) => onTokenImageInputChange(event.target.value)}
-            onBlur={handleApplyTokenImage}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                handleApplyTokenImage();
-              }
-            }}
-            style={{
-              width: "100%",
-              background: "#211317",
-              color: "var(--jrpg-white)",
-              border: "1px solid var(--jrpg-border-gold)",
-              padding: "4px",
-              fontSize: "0.7rem",
-            }}
           />
-          <div style={{ display: "flex", gap: "6px", justifyContent: "space-between" }}>
-            <button
-              className="btn btn-primary"
-              style={{ flex: 1, fontSize: "0.65rem", padding: "4px 6px" }}
-              onClick={handleApplyTokenImage}
-            >
-              Apply
-            </button>
-            <button
-              className="btn btn-secondary"
-              style={{ flex: 1, fontSize: "0.65rem", padding: "4px 6px" }}
-              onClick={onTokenImageClear}
-            >
-              Clear
-            </button>
-          </div>
           {tokenImageUrl ? (
             <img
               src={tokenImageUrl}

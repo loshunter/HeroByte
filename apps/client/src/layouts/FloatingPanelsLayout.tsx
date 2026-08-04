@@ -11,7 +11,7 @@
  */
 
 import React, { Suspense, lazy } from "react";
-import type { RoomSnapshot, PlayerStagingZone, ClientMessage } from "@herobyte/shared";
+import type { RoomSnapshot, PlayerStagingZone, ClientMessage, ChatMessage } from "@herobyte/shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import type { RollResult } from "../components/dice/types";
 import { ContextMenu } from "../components/ui/ContextMenu";
@@ -102,6 +102,10 @@ export interface FloatingPanelsLayoutProps {
   // Roll Log (6)
   rollLogOpen: boolean;
   rollHistory: RollLogEntry[];
+  chatMessages: ChatMessage[];
+  handleSendChat: (text: string, to?: string) => void;
+  /** Local player's uid — chat styles your own lines and excludes you as a whisper target. */
+  uid: string;
   viewingRoll: RollLogEntry | null;
   toggleRollLog: (open: boolean) => void;
   handleClearLog: () => void;
@@ -168,6 +172,9 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
     handleRoll,
     rollLogOpen,
     rollHistory,
+    chatMessages,
+    handleSendChat,
+    uid,
     viewingRoll,
     toggleRollLog,
     handleClearLog,
@@ -313,6 +320,10 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
               onClearLog={handleClearLog}
               onViewRoll={(roll) => handleViewRoll(roll)}
               onClose={() => toggleRollLog(false)}
+              chatMessages={chatMessages}
+              players={snapshot?.players ?? []}
+              currentUid={uid}
+              onSendChat={handleSendChat}
             />
           </div>
         )}

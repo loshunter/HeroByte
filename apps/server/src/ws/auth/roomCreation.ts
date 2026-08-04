@@ -25,14 +25,14 @@ export interface CreateRoomRequest {
   name?: string;
 }
 
-export function handleCreateRoom(
+export async function handleCreateRoom(
   authService: AuthService,
   ws: WebSocket | undefined,
   defaultRoomId: string,
   request: CreateRoomRequest,
   /** Records the display name on the new room's state, when one was given. */
   setTableName?: (roomId: string, name: string) => void,
-): void {
+): Promise<void> {
   if (!ws) {
     return;
   }
@@ -50,7 +50,7 @@ export function handleCreateRoom(
   }
 
   try {
-    authService.createRoom(trimmedId, roomPassword, dmPassword);
+    await authService.createRoom(trimmedId, roomPassword, dmPassword);
     const name = request.name?.trim();
     if (name) setTableName?.(trimmedId, name.slice(0, 60));
     ws.send(JSON.stringify({ t: "room-created", roomId: trimmedId }));

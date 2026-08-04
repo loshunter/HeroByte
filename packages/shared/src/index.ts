@@ -166,6 +166,38 @@ export interface DiceRoll {
 }
 
 /**
+ * ChatMessage: one line of table talk.
+ *
+ * `authorUid` and `authorName` are stamped by the SERVER from the sending
+ * connection. Nothing a client sends can set them — compare DiceRoll above,
+ * whose playerUid arrives on the wire and is stored verbatim, which is why
+ * dice are forgeable today (arc defect D2). Chat does not repeat that.
+ *
+ * `authorName` is a snapshot of the name at send time rather than a join
+ * against `players`, so renaming yourself does not rewrite your history.
+ */
+export interface ChatMessage {
+  id: string; // Unique message identifier
+  authorUid: string; // Who sent it — bound from the connection, never the client
+  authorName: string; // Author's display name at send time
+  text: string; // Message body (plain text; never rendered as HTML)
+  /**
+   * Whisper target's uid. Absent means the whole table.
+   *
+   * SECRECY: the server filters this per recipient in the snapshot, so a
+   * whisper is never serialized to anyone but its author and its target.
+   * Do not rely on the client to hide it.
+   *
+   * Bounded by the identity model, though: `uid` is client-asserted (signed
+   * session tokens are deferred — see session-one-arc.md §7), so a whisper is
+   * private from the other people at the table, NOT from someone willing to
+   * reconnect under their uid. See visibleChatFor for the full note.
+   */
+  to?: string;
+  timestamp: number; // When the message was sent
+}
+
+/**
  * Player: Represents a connected player in the session
  */
 export interface Player {
@@ -370,6 +402,14 @@ export interface RoomSnapshot {
   gridSize: number; // Synchronized grid size for all clients
   gridSquareSize?: number; // How many feet per grid square (default: 5ft)
   diceRolls: DiceRoll[]; // History of dice rolls
+  /**
+   * Table chat, already filtered for THIS recipient — whispers addressed to
+   * anyone else were dropped server-side before serialization.
+   *
+   * Optional so an older client simply ignores it and an older server that
+   * omits it does not break a newer client.
+   */
+  chatLog?: ChatMessage[];
   sceneObjects?: SceneObject[]; // Unified scene graph (experimental)
   selectionState?: SelectionState; // Active object selections keyed by player UID
   playerStagingZone?: PlayerStagingZone; // DM-defined spawn area for player tokens
@@ -661,6 +701,11 @@ type ClientMessagePayload =
   // Dice rolls
   | { t: "dice-roll"; roll: DiceRoll } // Broadcast a dice roll
   | { t: "clear-roll-history" } // Clear all dice rolls
+  // Chat. Deliberately carries NO author field: the server stamps identity
+  // from the connection. `to` is a whisper target's uid; omit it for the
+  // whole table.
+  | { t: "chat"; text: string; to?: string } // Say something at the table
+  | { t: "clear-chat-log" } // Clear chat history (DM only)
 
   // Room management
   | { t: "clear-all-tokens" } // Remove all tokens/players except self

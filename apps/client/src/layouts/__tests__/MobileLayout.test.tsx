@@ -229,6 +229,8 @@ describe("MobileLayout", () => {
     handleAlignmentApply: vi.fn(),
     handleAlignmentPointCapture: vi.fn(),
     rollHistory: [],
+    chatMessages: [],
+    handleSendChat: vi.fn(),
     viewingRoll: null,
     handleRoll: vi.fn(),
     handleClearLog: vi.fn(),

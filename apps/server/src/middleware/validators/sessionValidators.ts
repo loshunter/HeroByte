@@ -4,11 +4,13 @@
 // Its own module because roomValidators.ts sits near the 350-LOC structural
 // ceiling (same precedent as generationValidators.ts / mapStudioLiveValidators.ts).
 //
-// These cover the SessionFile envelope only — the snapshot half of load-session
-// is still validated by roomValidators.validateLoadSessionMessage.
+// Covers BOTH halves of load-session: the SessionFile envelope, and the
+// snapshot's per-collection limits (moved here from roomValidators.ts, which
+// crossed the ceiling when chatLog was added to SNAPSHOT_LIMITS).
 
 import { z } from "zod";
 import type { MessageRecord, ValidationResult } from "./commonValidators.js";
+import { isRecord } from "./commonValidators.js";
 import { importDocument } from "./mapStudioValidators.js";
 
 /**
@@ -58,5 +60,76 @@ export function validateLoadSessionEnvelope(message: MessageRecord): ValidationR
 
 /** session-export carries no payload; the DM check is the handler's job. */
 export function validateSessionExportMessage(_message: MessageRecord): ValidationResult {
+  return { valid: true };
+}
+
+/**
+ * Per-collection entry caps for loaded session snapshots.
+ *
+ * EVERY collection SnapshotLoader writes into room state must appear here —
+ * the loop below is the only check that a restored collection is even an
+ * array of objects, so a key missing from this table reaches state entirely
+ * unvalidated. chatLog was missing for one commit, and `chatLog: {}` then hit
+ * visibleChatFor's `.filter` inside the debounced broadcast timer (outside
+ * route()'s try/catch), killing the one process that serves every room.
+ */
+const SNAPSHOT_LIMITS = {
+  players: 100,
+  tokens: 1000,
+  drawings: 5000,
+  props: 500,
+  characters: 500,
+  diceRolls: 1000,
+  sceneObjects: 5000,
+  chatLog: 200,
+} as const;
+
+/**
+ * Validate load-session message
+ * Required: snapshot (object with players, tokens, drawings arrays)
+ *
+ * Snapshot collections are merged into live room state, so each collection is
+ * bounded and every entry must at least be an object (not a primitive).
+ */
+export function validateLoadSessionMessage(message: MessageRecord): ValidationResult {
+  const snapshot = message.snapshot;
+  if (!isRecord(snapshot)) {
+    return { valid: false, error: "load-session: missing or invalid snapshot data" };
+  }
+  const hasPlayers = Array.isArray(snapshot.players);
+  const hasTokens = Array.isArray(snapshot.tokens);
+  const hasDrawingArray = Array.isArray(snapshot.drawings);
+  const assetRefs = isRecord(snapshot.assetRefs) ? snapshot.assetRefs : undefined;
+  const hasDrawingAsset = assetRefs && typeof assetRefs.drawings === "string";
+
+  if (!hasPlayers || !hasTokens || (!hasDrawingArray && !hasDrawingAsset)) {
+    return {
+      valid: false,
+      error:
+        "load-session: snapshot must contain players, tokens, and drawings (array or assetRef)",
+    };
+  }
+
+  for (const [key, limit] of Object.entries(SNAPSHOT_LIMITS)) {
+    const collection = snapshot[key];
+    if (collection === undefined) {
+      continue;
+    }
+    if (!Array.isArray(collection)) {
+      return { valid: false, error: `load-session: snapshot ${key} must be an array` };
+    }
+    if (collection.length > limit) {
+      return {
+        valid: false,
+        error: `load-session: snapshot ${key} exceeds limit (max ${limit} entries)`,
+      };
+    }
+    if (!collection.every((entry) => isRecord(entry))) {
+      return {
+        valid: false,
+        error: `load-session: snapshot ${key} entries must be objects`,
+      };
+    }
+  }
   return { valid: true };
 }

@@ -316,11 +316,13 @@ function AuthenticatedApp({
     rollLogOpen,
     viewingRoll,
     rollHistory,
+    chatMessages,
     toggleDiceRoller,
     toggleRollLog,
     handleRoll,
     handleClearLog,
     handleViewRoll,
+    handleSendChat,
   } = useDiceRolling({ snapshot, sendMessage, uid });
 
   // Server event handlers (room password, DM elevation)
@@ -855,6 +857,8 @@ function AuthenticatedApp({
     handleAlignmentPointCapture,
     // Dice
     rollHistory,
+    chatMessages,
+    handleSendChat,
     viewingRoll: viewingRollForLayout,
     handleRoll,
     handleClearLog,

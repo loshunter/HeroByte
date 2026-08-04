@@ -215,22 +215,38 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
       const newCenter = getCenter(p1, p2);
       const newDist = getDistance(p1, p2);
 
-      // Calculate scale change
+      /*
+       * The world point the gesture grabbed, fixed at touchstart.
+       *
+       * This used to be derived from newCenter — the CURRENT midpoint measured
+       * against the START camera — and then the centre travel was added back on
+       * as `+ dx`. That counts the travel twice. The error works out to exactly
+       *
+       *     (c - c0) * (1 - scale/scale0)
+       *
+       * which is zero for a pure zoom (the centre never moves) and zero for a
+       * pure two-finger drag (the scale never changes) — the two gestures
+       * anyone tests deliberately. It only appears when you zoom AND slide at
+       * once, which is what a real hand does: pinch to 2x while travelling
+       * 100px and the map lands ~100px away from your fingers, sliding out from
+       * under them mid-gesture. It is worst at the zoom limits, where the clamp
+       * makes scale/scale0 diverge furthest from 1.
+       *
+       * Anchoring on the frozen start centre instead makes the invariant exact:
+       * whatever was under the fingers when the pinch began stays under them,
+       * at any scale, including while clamped.
+       */
       const pointTo = {
-        x: (newCenter.x - camOrigin.current.x) / camOrigin.current.scale,
-        y: (newCenter.y - camOrigin.current.y) / camOrigin.current.scale,
+        x: (lastCenter.current.x - camOrigin.current.x) / camOrigin.current.scale,
+        y: (lastCenter.current.y - camOrigin.current.y) / camOrigin.current.scale,
       };
 
       const scale = camOrigin.current.scale * (newDist / lastDist.current);
       const clampedScale = Math.min(maxScale, Math.max(minScale, scale));
 
-      // Calculate new position to keep center stable
-      const dx = newCenter.x - lastCenter.current.x;
-      const dy = newCenter.y - lastCenter.current.y;
-
       const newPos = {
-        x: newCenter.x - pointTo.x * clampedScale + dx,
-        y: newCenter.y - pointTo.y * clampedScale + dy,
+        x: newCenter.x - pointTo.x * clampedScale,
+        y: newCenter.y - pointTo.y * clampedScale,
         scale: clampedScale,
       };
 

@@ -48,25 +48,33 @@ export class HeartbeatTimeoutManager {
   }
 
   /**
-   * Check for and remove players that haven't sent heartbeat
-   * Identifies players whose last heartbeat exceeds the timeout threshold
-   * and performs complete cleanup of their game state:
-   * - Removes player entity
-   * - Removes their tokens
-   * - Removes from users list
-   * - Cleans up WebSocket connection
-   * - Clears authentication state
-   * - Clears their selections
-   * - Broadcasts updated state to remaining clients
+   * Disconnect players that haven't sent a heartbeat, WITHOUT deleting their
+   * game state.
+   *
+   * This used to pass removePlayer/removeTokens, which made a 5-minute lid
+   * close delete the player's tokens — and since NPC tokens are owned by the
+   * placing DM's uid, a DM timeout took the monsters with it. Worse, players
+   * restored from disk at boot all carry stale heartbeats, so the first sweep
+   * after a restart wiped every token the restart had just recovered. Now a
+   * timeout is exactly a disconnection: close the socket, drop the user from
+   * the roster and auth maps, clear selections, broadcast — the player entity
+   * and tokens stay, just like a normal disconnect.
+   *
+   * Only CONNECTED players (in their room's `users` list) are swept: cleanup
+   * removes the uid from `users`, so each zombie is disconnected once rather
+   * than re-cleaned (and re-broadcast) every 30 seconds forever — and players
+   * loaded from disk, who are never in `users` until they authenticate, are
+   * never touched at all.
    */
   private checkForTimedOutPlayers(): void {
     const now = Date.now();
     const timedOutPlayers: string[] = [];
 
-    // Find players in ANY room who haven't sent heartbeat in timeout window
+    // Find connected players in ANY room who missed the heartbeat window
     for (const roomId of this.container.roomRegistry.listRooms()) {
       const state = this.container.roomRegistry.get(roomId).getState();
       for (const player of state.players) {
+        if (!state.users.includes(player.uid)) continue;
         const lastHeartbeat = player.lastHeartbeat || 0;
         if (now - lastHeartbeat > this.HEARTBEAT_TIMEOUT) {
           timedOutPlayers.push(player.uid);
@@ -74,17 +82,17 @@ export class HeartbeatTimeoutManager {
       }
     }
 
-    // Remove timed out players and their tokens
     if (timedOutPlayers.length > 0) {
-      console.log(`Removing ${timedOutPlayers.length} timed-out players:`, timedOutPlayers);
+      console.log(
+        `Disconnecting ${timedOutPlayers.length} timed-out players (state kept):`,
+        timedOutPlayers,
+      );
 
       for (const uid of timedOutPlayers) {
-        // Delegate cleanup to DisconnectionCleanupManager
-        // Use timeout-specific options: close WebSocket, remove player/tokens
+        // Same cleanup as a normal disconnect, plus closing the zombie socket.
+        // Player entity and tokens deliberately survive.
         this.cleanupManager.cleanupPlayer(uid, {
           closeWebSocket: true,
-          removePlayer: true,
-          removeTokens: true,
         });
       }
     }

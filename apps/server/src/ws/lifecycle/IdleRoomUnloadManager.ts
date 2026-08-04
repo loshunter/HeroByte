@@ -39,6 +39,12 @@ export class IdleRoomUnloadManager {
 
   start(): void {
     this.interval = setInterval(() => {
+      // Reclaim before unload, so a room leaving memory this tick has just
+      // been reconciled with fresh state (unload also sweeps on the way out).
+      // Its own catch: a reclaim failure must not take down the unload sweep.
+      this.container.reclaimUnreferencedAssets().catch((error) => {
+        console.error("[IdleRoomUnload] Asset reclaim failed", error);
+      });
       this.container.unloadIdleRooms(this.idleMs).catch((error) => {
         console.error("[IdleRoomUnload] Sweep failed", error);
       });

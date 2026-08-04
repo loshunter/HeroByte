@@ -19,6 +19,7 @@ import { PublicTableNotice } from "../features/rooms/PublicTableNotice";
 import { MobileFloatingControls } from "../components/layout/MobileFloatingControls";
 import { useEntityEditHandlers } from "../hooks/useEntityEditHandlers";
 import { MobileDrawingControls } from "./MobileDrawingControls";
+import { MobileSelectionSheet } from "./MobileSelectionSheet";
 
 // Lazy load MapBoard to reduce initial bundle size
 const MapBoard = React.lazy(() => import("../ui/MapBoard"));
@@ -77,6 +78,8 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
 
     // Dice
     rollHistory,
+    chatMessages,
+    handleSendChat,
     viewingRoll,
     handleRoll,
     handleClearLog,
@@ -224,40 +227,23 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
         onToggleTools={toggleTools}
       />
 
-      {selectedObjectCount > 0 && (transformMode || selectMode) && (
-        <div className="mobile-selection-sheet" role="region" aria-label="Selected object actions">
-          <strong>{selectedObjectCount} selected</strong>
-          <button
-            type="button"
-            className={transformMode ? "mobile-chip mobile-chip--active" : "mobile-chip"}
-            onClick={() => setActiveTool("transform")}
-          >
-            Transform
-          </button>
-          {isDM && (
-            <>
-              <button type="button" className="mobile-chip" onClick={lockSelected}>
-                Lock
-              </button>
-              <button type="button" className="mobile-chip" onClick={unlockSelected}>
-                Unlock
-              </button>
-            </>
-          )}
-          <button
-            type="button"
-            className="mobile-chip"
-            onClick={() => {
-              handleObjectSelection(null);
-              handleObjectSelectionBatch([]);
-            }}
-          >
-            Clear
-          </button>
-        </div>
+      {selectedObjectCount > 0 && (transformMode || selectMode) && !showTools && (
+        <MobileSelectionSheet
+          selectedCount={selectedObjectCount}
+          transformMode={transformMode}
+          isDM={isDM}
+          onTransform={() => setActiveTool("transform")}
+          onLock={lockSelected}
+          onUnlock={unlockSelected}
+          onClear={() => {
+            handleObjectSelection(null);
+            handleObjectSelectionBatch([]);
+          }}
+        />
       )}
 
-      {drawMode && (
+      {/* Both sheets yield to the tool sheet: same anchor, same z-index. */}
+      {drawMode && !showTools && (
         <MobileDrawingControls
           drawTool={drawingToolbarProps.drawTool}
           drawColor={drawingToolbarProps.drawColor}
@@ -329,6 +315,10 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             onClearLog={handleClearLog}
             onClose={() => toggleRollLog(false)}
             onViewRoll={handleViewRoll}
+            chatMessages={chatMessages}
+            players={snapshot?.players ?? []}
+            currentUid={uid}
+            onSendChat={handleSendChat}
           />
         </div>
       )}

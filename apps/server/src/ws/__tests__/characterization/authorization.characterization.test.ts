@@ -87,6 +87,7 @@ describe("MessageRouter - Authorization Characterization", () => {
       gridSize: 50,
       gridSquareSize: 5,
       diceRolls: [],
+      chatLog: [],
       drawingUndoStacks: {},
       drawingRedoStacks: {},
       sceneObjects: [],

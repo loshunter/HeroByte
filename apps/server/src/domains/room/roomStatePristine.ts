@@ -23,6 +23,11 @@ export function isRoomStatePristine(state: RoomState): boolean {
     state.drawings.length === 0 &&
     state.sceneObjects.length === 0 &&
     state.diceRolls.length === 0 &&
+    // Chat counts as content, exactly like a roll: someone typed it. Omitting
+    // it would let the public table's idle sweep wipe a log people are still
+    // reading, on the grounds that a room with only conversation in it is
+    // "untouched".
+    state.chatLog.length === 0 &&
     state.mapBackground === undefined &&
     state.compiledScene === undefined &&
     state.mapTerrain === undefined &&

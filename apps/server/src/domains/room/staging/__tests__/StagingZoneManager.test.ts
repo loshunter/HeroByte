@@ -12,15 +12,21 @@
  * Target: apps/server/src/domains/room/staging/StagingZoneManager.ts
  */
 
+import path from "node:path";
 import { describe, it, expect, beforeEach } from "vitest";
 import { RoomService } from "../../service.js";
 import type { PlayerStagingZone } from "@herobyte/shared";
+
+// Scratch state file: a bare `new RoomService({ stateFile: TEST_STATE_FILE })` writes the REAL
+// apps/server/herobyte-state.json, which parallel workers and the dev
+// server then fight over (observed: a torn file, quarantined as .corrupt).
+const TEST_STATE_FILE = path.join(process.cwd(), ".tmp", "StagingZoneManager-state.json");
 
 describe("StagingZoneManager - Characterization Tests", () => {
   let roomService: RoomService;
 
   beforeEach(() => {
-    roomService = new RoomService();
+    roomService = new RoomService({ stateFile: TEST_STATE_FILE });
   });
 
   describe("sanitizeStagingZone (via setPlayerStagingZone)", () => {

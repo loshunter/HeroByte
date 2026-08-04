@@ -407,17 +407,13 @@ describe("NpcSettingsMenu", () => {
       });
     });
 
-    it("input has correct styling attributes", () => {
+    it("renders the shared ImageField input (S3: one widget, one look)", () => {
       const props = createProps();
       render(<NpcSettingsMenu {...props} />);
 
       const input = screen.getByPlaceholderText("https://enemy-token.png");
       expect(input).toHaveAttribute("type", "text");
-      expect(input).toHaveStyle({
-        width: "100%",
-        background: "#211317",
-        fontSize: "0.7rem",
-      });
+      expect(input).toHaveClass("jrpg-input");
     });
 
     it("does not call normalizeUrl when other keys are pressed", () => {
@@ -439,8 +435,10 @@ describe("NpcSettingsMenu", () => {
       const applyButton = screen.getByRole("button", { name: "Apply" });
       const clearButton = screen.getByRole("button", { name: "Clear" });
 
-      expect(applyButton).toHaveClass("btn", "btn-primary");
-      expect(clearButton).toHaveClass("btn", "btn-secondary");
+      // S3 unified the five image inputs onto ImageField, whose buttons are
+      // JRPGButtons — not the raw .btn classes this menu used to hand-roll.
+      expect(applyButton).toHaveClass("jrpg-button");
+      expect(clearButton).toHaveClass("jrpg-button");
     });
 
     it("renders Token Image URL label", () => {

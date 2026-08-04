@@ -92,6 +92,24 @@ export class MapStudioService {
   }
 
   /**
+   * Every document version still reachable through undo/redo. The asset
+   * reclaim sweep scans these alongside the live documents: an upload that
+   * Undo can restore must count as referenced, or pressing Undo after the
+   * sweep would resurrect a reference to bytes that no longer exist. Entries
+   * age out naturally at HISTORY_LIMIT.
+   */
+  historyDocuments(roomId: string): MapDocument[] {
+    requireRoomId(roomId);
+    const prefix = `${roomId}:`;
+    const documents: MapDocument[] = [];
+    for (const [key, history] of this.histories) {
+      if (!key.startsWith(prefix)) continue;
+      documents.push(...history.undo, ...history.redo);
+    }
+    return documents;
+  }
+
+  /**
    * The result of an already-applied commandId, or undefined if it is new.
    *
    * Exposed so callers that do expensive or *validating* work before `apply`

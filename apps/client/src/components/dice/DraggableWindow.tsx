@@ -188,7 +188,12 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
     top: position.y,
     width: `clamp(${minWidth}px, ${width}px, ${maxWidth}px)`,
     height: height ? `${height}px` : "auto",
-    maxHeight: "calc(100vh - 40px)",
+    // Cap at the space actually below the window's top edge, not a flat
+    // 100vh-40: a window positioned at y with a viewport-sized cap extends
+    // past the bottom of the screen, and content in that clipped band can
+    // never be scrolled into view. The 160px floor keeps a window someone
+    // dragged to the bottom edge usable enough to drag back.
+    maxHeight: `max(160px, calc(100vh - ${Math.max(position.y, 0)}px - 20px))`,
     zIndex,
     background:
       "repeating-conic-gradient(rgba(255,255,255,0.02) 0% 25%, transparent 0% 50%) 50% / 2px 2px, linear-gradient(180deg, #2a2845 0%, #1a1835 50%, #0f0e2a 100%)",

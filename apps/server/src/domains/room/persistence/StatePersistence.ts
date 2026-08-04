@@ -10,8 +10,8 @@
  * @module domains/room/persistence/StatePersistence
  */
 
-import { readFileSync, existsSync } from "fs";
-import { writeFile } from "fs/promises";
+import { readFileSync, existsSync, renameSync } from "fs";
+import { writeFile, rename } from "fs/promises";
 import type { Player, Character, SceneObject } from "@herobyte/shared";
 import { resolveServerPath } from "../../../config/serverPaths.js";
 import type { RoomState } from "../model.js";
@@ -36,6 +36,8 @@ const DEFAULT_STATE_FILE = resolveServerPath("herobyte-state.json");
 export class StatePersistence {
   private readonly stateFile: string;
   private writeQueue: Promise<void> = Promise.resolve();
+  /** Makes each write's tmp file unique alongside the pid (see saveToDisk). */
+  private writeCounter = 0;
 
   /**
    * Creates a new StatePersistence instance.
@@ -104,6 +106,10 @@ export class StatePersistence {
           gridSize: data.gridSize || 50,
           gridSquareSize: data.gridSquareSize || 5,
           diceRolls: data.diceRolls || [],
+          // `|| []` alone would keep a poisoned non-array ({} is truthy),
+          // reviving the crash on every restart. Anything that is not an
+          // array is not chat.
+          chatLog: Array.isArray(data.chatLog) ? data.chatLog : [],
           drawingUndoStacks: {},
           drawingRedoStacks: {},
           sceneObjects,
@@ -126,7 +132,31 @@ export class StatePersistence {
         console.log("Loaded state from disk");
       } catch (err) {
         console.error("Failed to load state:", err);
+        this.quarantineUnreadableStateFile();
       }
+    }
+  }
+
+  /**
+   * Move an unreadable state file aside instead of leaving it in place.
+   *
+   * Without this, a corrupt file was a PERMANENT loss: the parse failure left
+   * the room empty, and the very next broadcast saved that empty room over
+   * the only copy of the data. Renaming to `<file>.corrupt` preserves the
+   * evidence for manual recovery while letting the room start clean. A fixed
+   * suffix (rename-over-existing is atomic on Windows too) keeps at most one
+   * quarantined copy — the point is preservation, not archival.
+   */
+  private quarantineUnreadableStateFile(): void {
+    const quarantinePath = `${this.stateFile}.corrupt`;
+    try {
+      renameSync(this.stateFile, quarantinePath);
+      console.error(
+        `[StatePersistence] Unreadable state file preserved at ${quarantinePath}; ` +
+          `starting from empty state.`,
+      );
+    } catch (renameErr) {
+      console.error("[StatePersistence] Failed to quarantine unreadable state file:", renameErr);
     }
   }
 
@@ -142,13 +172,13 @@ export class StatePersistence {
    * - gridSize, gridSquareSize
    * - diceRolls, sceneObjects
    * - playerStagingZone
+   * - combatActive, currentTurnCharacterId (initiative survives a restart)
    *
    * NOT persisted (ephemeral/runtime state):
    * - users (reconnect with new connection)
    * - pointers (expire after 3 seconds)
    * - drawingUndoStacks, drawingRedoStacks (runtime-only)
    * - selectionState (UI state, not game state)
-   * - combatActive, currentTurnCharacterId (session-specific)
    *
    * Error handling:
    * - Logs errors to console
@@ -173,6 +203,11 @@ export class StatePersistence {
       gridSize: state.gridSize,
       gridSquareSize: state.gridSquareSize,
       diceRolls: state.diceRolls,
+      // Chat survives a restart for the same reason initiative does: a crash
+      // mid-session must not silently erase what the table said. Whispers are
+      // included — this file is server-local, and the per-recipient filter
+      // runs on the way OUT, so nothing here reaches the wrong client.
+      chatLog: state.chatLog,
       sceneObjects: state.sceneObjects,
       playerStagingZone: state.playerStagingZone,
       compiledScene: state.compiledScene,
@@ -181,6 +216,10 @@ export class StatePersistence {
       liveMapDocumentId: state.liveMapDocumentId,
       fogEnabled: state.fogEnabled,
       stateVersion: state.stateVersion,
+      // Combat state survives a restart on purpose (VISION.md calls this a
+      // launch gate): a mid-fight crash or redeploy must not lose initiative.
+      combatActive: state.combatActive,
+      currentTurnCharacterId: state.currentTurnCharacterId,
     };
 
     // Serialize NOW (synchronously) so the queued write captures a consistent
@@ -198,11 +237,28 @@ export class StatePersistence {
     }
 
     // Queue writes to avoid overlapping file operations that can corrupt JSON.
+    // Each write is tmp+rename: a crash mid-write truncates only the tmp file,
+    // never the state file itself, so the last completed save always survives.
+    //
+    // The tmp path is unique per PROCESS and per write, not the fixed
+    // `<file>.tmp` this originally used. The write queue only serializes
+    // within one process, and more than one process legitimately targets the
+    // same state file here: the dev server, the e2e server (which also
+    // defaults to the package root), and parallel vitest workers. With a
+    // shared tmp name two of them interleave their bytes into one file and
+    // then rename that torn result over the real state — which is exactly
+    // how this was found, via a quarantined herobyte-state.json.corrupt.
+    // A unique name makes the rename the only shared step, and rename is
+    // atomic.
+    const tmpPath = `${this.stateFile}.${process.pid}.${(this.writeCounter += 1)}.tmp`;
     this.writeQueue = this.writeQueue
       .catch(() => {
         // Swallow errors from previous writes so the queue can continue.
       })
-      .then(() => writeFile(this.stateFile, serialized))
+      .then(async () => {
+        await writeFile(tmpPath, serialized);
+        await rename(tmpPath, this.stateFile);
+      })
       .catch((err) => {
         console.error("Failed to save state:", err);
       });

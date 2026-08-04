@@ -9,7 +9,7 @@ import { createPortal } from "react-dom";
 import type { TokenSize } from "@herobyte/shared";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
-import { useImageUrlNormalization } from "../../../hooks/useImageUrlNormalization";
+import { ImageField } from "../../../components/ui/ImageField";
 import { STATUS_OPTIONS } from "../constants/statusOptions";
 import { CharacterCreationModal } from "./CharacterCreationModal";
 
@@ -105,24 +105,10 @@ export function PlayerSettingsMenu({
   onPortraitApply,
 }: PlayerSettingsMenuProps): JSX.Element | null {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const { normalizeUrl } = useImageUrlNormalization();
   const [showCharacterModal, setShowCharacterModal] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const [localEffects, setLocalEffects] = useState<string[]>(selectedEffects);
-
-  const handleApplyTokenImage = async () => {
-    if (!onTokenImageApply) return;
-    const normalizedUrl = await normalizeUrl((tokenImageInput ?? "").trim());
-    onTokenImageApply(normalizedUrl);
-  };
-
-  const handleApplyPortraitImage = async () => {
-    if (onPortraitApply && portraitImageInput) {
-      const normalizedUrl = await normalizeUrl(portraitImageInput.trim());
-      onPortraitApply(normalizedUrl);
-    }
-  };
 
   const handleToggleEffect = (value: string) => {
     const newEffects = localEffects.includes(value)
@@ -212,7 +198,7 @@ export function PlayerSettingsMenu({
           </JRPGPanel>
         )}
 
-        {/* Portrait URL Editing */}
+        {/* Portrait: upload from disk/camera roll, or paste a URL (S3) */}
         {onPortraitInputChange && onPortraitApply && portraitImageInput !== undefined && (
           <JRPGPanel
             variant="simple"
@@ -223,29 +209,18 @@ export function PlayerSettingsMenu({
               padding: "12px",
             }}
           >
-            <label className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-              Portrait Image URL
-            </label>
-            <input
-              className="jrpg-input"
-              type="text"
+            <ImageField
+              label="Portrait Image URL"
               value={portraitImageInput}
-              placeholder="https://example.com/portrait.png"
-              onChange={(event) => onPortraitInputChange(event.target.value)}
-              onBlur={handleApplyPortraitImage}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  handleApplyPortraitImage();
-                }
+              onChange={onPortraitInputChange}
+              onCommit={(url) => {
+                // An empty commit means "typed nothing"; portraits keep their
+                // long-standing skip-empty behavior (Clear never existed here).
+                if (url) onPortraitApply(url);
               }}
+              placeholder="https://example.com/portrait.png"
+              applyLabel="Apply Portrait"
             />
-            <JRPGButton
-              onClick={handleApplyPortraitImage}
-              variant="primary"
-              style={{ fontSize: "10px", padding: "6px 8px" }}
-            >
-              Apply Portrait
-            </JRPGButton>
           </JRPGPanel>
         )}
 
@@ -265,37 +240,14 @@ export function PlayerSettingsMenu({
               padding: "12px",
             }}
           >
-            <label className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-              Token Image URL
-            </label>
-            <input
-              className="jrpg-input"
-              type="text"
-              value={tokenImageInput}
+            <ImageField
+              label="Token Image URL"
+              value={tokenImageInput ?? ""}
+              onChange={onTokenImageInputChange}
+              onCommit={onTokenImageApply}
+              onClear={onTokenImageClear}
               placeholder="https://example.com/token.png"
-              onChange={(event) => onTokenImageInputChange(event.target.value)}
-              onBlur={handleApplyTokenImage}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  handleApplyTokenImage();
-                }
-              }}
             />
-            <div style={{ display: "flex", gap: "8px" }}>
-              <JRPGButton
-                onClick={handleApplyTokenImage}
-                variant="primary"
-                style={{ flex: 1, fontSize: "10px", padding: "6px 8px" }}
-              >
-                Apply
-              </JRPGButton>
-              <JRPGButton
-                onClick={onTokenImageClear}
-                style={{ flex: 1, fontSize: "10px", padding: "6px 8px" }}
-              >
-                Clear
-              </JRPGButton>
-            </div>
             {tokenImageUrl ? (
               <img
                 src={tokenImageUrl}

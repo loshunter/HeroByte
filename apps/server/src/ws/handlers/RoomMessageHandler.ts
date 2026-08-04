@@ -46,6 +46,14 @@ function flattenForFile(snapshot: RoomSnapshot, state: RoomState): RoomSnapshot 
   return {
     ...rest,
     drawings: state.drawings,
+    // Public chat only. The snapshot handed to this function was built with
+    // toSnapshot(state, true, senderUid) — a REAL recipient uid — so the
+    // exporting DM's own whispers passed visibleChatFor and would otherwise
+    // be written into a file whose entire purpose is to be handed to other
+    // people. A table fork avoids this by using createSnapshot() (no uid);
+    // export cannot, because it must round-trip the DM's secrets. So the one
+    // secret that is not the DM's to share gets stripped here.
+    chatLog: (rest.chatLog ?? []).filter((message) => !message.to),
     ...(state.mapBackground === undefined ? {} : { mapBackground: state.mapBackground }),
   };
 }

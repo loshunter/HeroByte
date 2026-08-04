@@ -39,6 +39,32 @@ These scripts will:
 
 WSL is optional. The older WSL-specific launchers live under `scripts/windows/` for legacy setups only.
 
+### Testing on a real phone
+
+`pnpm dev` already serves the client on `0.0.0.0`, so Vite prints a LAN address
+alongside localhost:
+
+```
+➜  Network: http://192.168.50.225:5174/
+```
+
+Open that address on a phone on the same Wi-Fi. Nothing else to configure — the
+client works out its WebSocket host from whatever address you loaded it from
+(`apps/client/src/config.ts`), and `pnpm dev` sets `HEROBYTE_DEV_ALLOW_LAN=true`
+so the server accepts private-network origins it cannot predict in a fixed
+allowlist.
+
+That flag is **dev-only by construction**: production runs `node dist/index.js`
+and never sets it, and `NODE_ENV=production` disables it as a second latch even
+if it leaks into an environment. Only private ranges are accepted — 10/8,
+172.16/12, 192.168/16, 169.254/16, loopback and `*.local`. A public origin is
+still rejected with a 403 whether the flag is on or not.
+
+If your phone still cannot reach it, the usual cause is the host firewall
+rather than the app: Windows Defender must allow inbound TCP on 5174 and 8787
+for a Private network. Some routers also block client-to-client traffic ("AP
+isolation" / "client isolation").
+
 ## Development Workflow
 
 1. **Make changes on dev branch**

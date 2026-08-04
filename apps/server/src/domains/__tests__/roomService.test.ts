@@ -3,10 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("fs", () => ({
   readFileSync: vi.fn(),
   existsSync: vi.fn().mockReturnValue(false),
+  renameSync: vi.fn(),
 }));
 
 vi.mock("fs/promises", () => ({
   writeFile: vi.fn().mockResolvedValue(undefined),
+  rename: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { readFileSync, existsSync } from "fs";

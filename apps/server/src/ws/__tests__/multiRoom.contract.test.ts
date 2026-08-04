@@ -12,6 +12,7 @@ vi.mock("fs", () => ({
   writeFileSync: vi.fn(),
   readFileSync: vi.fn(),
   existsSync: vi.fn().mockReturnValue(false),
+  renameSync: vi.fn(),
 }));
 vi.mock("fs/promises", () => ({
   writeFile: vi.fn().mockResolvedValue(undefined),
@@ -191,11 +192,11 @@ describe("authentication creates and scopes rooms", () => {
     );
   });
 
-  it("creates a room on first join and binds the session to it", () => {
+  it("creates a room on first join and binds the session to it", async () => {
     const ws = fakeSocket();
     container.uidToWs.set("wanderer", ws as unknown as WebSocket);
 
-    handler.authenticate("wanderer", "password", "castle-3f9");
+    await handler.authenticate("wanderer", "password", "castle-3f9");
 
     expect(frameTypes(ws)).toContain("auth-ok");
     expect(container.roomIdForUid("wanderer")).toBe("castle-3f9");
@@ -205,22 +206,22 @@ describe("authentication creates and scopes rooms", () => {
     expect(container.roomService.getState().players).toHaveLength(0);
   });
 
-  it("rejects malformed room ids before touching any state", () => {
+  it("rejects malformed room ids before touching any state", async () => {
     const ws = fakeSocket();
     container.uidToWs.set("intruder", ws as unknown as WebSocket);
 
-    handler.authenticate("intruder", "password", "../etc/passwd");
+    await handler.authenticate("intruder", "password", "../etc/passwd");
 
     const frames = ws.send.mock.calls.map(([p]) => JSON.parse(p as string) as { t?: string });
     expect(frames[0]).toMatchObject({ t: "auth-failed", reason: "Invalid room id" });
     expect(container.authenticatedUids.has("intruder")).toBe(false);
   });
 
-  it("defaults to the default room when no roomId is provided", () => {
+  it("defaults to the default room when no roomId is provided", async () => {
     const ws = fakeSocket();
     container.uidToWs.set("homer", ws as unknown as WebSocket);
 
-    handler.authenticate("homer", "password");
+    await handler.authenticate("homer", "password");
 
     expect(container.roomIdForUid("homer")).toBe("default");
     expect(container.roomService.getState().players.map((p) => p.uid)).toEqual(["homer"]);
@@ -234,21 +235,21 @@ describe("per-room secrets", () => {
 
     const defaultSecret = "Fun1";
     // The default room uses the server password...
-    expect(auth.verify(defaultSecret)).toBe(true);
+    await expect(auth.verify(defaultSecret)).resolves.toBe(true);
     // ...but a never-created custom room is NOT joinable — the default password
     // (or any password) is refused until the room is minted with its own.
-    expect(auth.verify(defaultSecret, "room-a")).toBe(false);
-    expect(auth.verify("guess", "room-a")).toBe(false);
+    await expect(auth.verify(defaultSecret, "room-a")).resolves.toBe(false);
+    await expect(auth.verify("guess", "room-a")).resolves.toBe(false);
 
     // Create room A with its own password: only that opens it; the default and
     // room B are untouched, and room A's password doesn't open anything else.
-    auth.createRoom("room-a", "room-a-secret");
-    expect(auth.verify("room-a-secret", "room-a")).toBe(true);
-    expect(auth.verify(defaultSecret, "room-a")).toBe(false);
-    expect(auth.verify("room-a-secret", "room-b")).toBe(false); // room B still uncreated
-    expect(auth.verify(defaultSecret, "room-b")).toBe(false);
-    expect(auth.verify("room-a-secret")).toBe(false); // not the default room's password
-    expect(auth.verify(defaultSecret)).toBe(true);
+    await auth.createRoom("room-a", "room-a-secret");
+    await expect(auth.verify("room-a-secret", "room-a")).resolves.toBe(true);
+    await expect(auth.verify(defaultSecret, "room-a")).resolves.toBe(false);
+    await expect(auth.verify("room-a-secret", "room-b")).resolves.toBe(false); // room B still uncreated
+    await expect(auth.verify(defaultSecret, "room-b")).resolves.toBe(false);
+    await expect(auth.verify("room-a-secret")).resolves.toBe(false); // not the default room's password
+    await expect(auth.verify(defaultSecret)).resolves.toBe(true);
   });
 
   it("scopes DM passwords per room — custom rooms never fall back to the server DM password", async () => {
@@ -256,21 +257,21 @@ describe("per-room secrets", () => {
     const auth = new AuthService({ storagePath: "./test-room-secret.json" });
 
     // The default room keeps the server-wide DM password...
-    expect(auth.verifyDMPassword("FunDM")).toBe(true);
+    await expect(auth.verifyDMPassword("FunDM")).resolves.toBe(true);
     expect(auth.hasDMPassword()).toBe(true);
     // ...but the server DM password must NEVER elevate inside a custom room, and
     // a custom room with no DM credential of its own reports none (mirrors the
     // room-password privacy contract). Prevents an invited player from seizing
     // DM with the shared default password.
-    expect(auth.verifyDMPassword("FunDM", "room-a")).toBe(false);
+    await expect(auth.verifyDMPassword("FunDM", "room-a")).resolves.toBe(false);
     expect(auth.hasDMPassword("room-a")).toBe(false);
 
     auth.updateDMPassword("room-a-dm-pass", "room-a");
-    expect(auth.verifyDMPassword("room-a-dm-pass", "room-a")).toBe(true);
-    expect(auth.verifyDMPassword("FunDM", "room-a")).toBe(false);
+    await expect(auth.verifyDMPassword("room-a-dm-pass", "room-a")).resolves.toBe(true);
+    await expect(auth.verifyDMPassword("FunDM", "room-a")).resolves.toBe(false);
     // A different custom room stays independent — no fallback, no cross-room key.
-    expect(auth.verifyDMPassword("FunDM", "room-b")).toBe(false);
-    expect(auth.verifyDMPassword("room-a-dm-pass", "room-b")).toBe(false);
+    await expect(auth.verifyDMPassword("FunDM", "room-b")).resolves.toBe(false);
+    await expect(auth.verifyDMPassword("room-a-dm-pass", "room-b")).resolves.toBe(false);
     expect(auth.hasDMPassword("room-b")).toBe(false);
   });
 });
@@ -524,5 +525,99 @@ describe("idle default-table clear", () => {
     expect(privateRoom.getState().tokens).toHaveLength(1);
     expect(releaseRoom).toHaveBeenCalledTimes(1);
     expect(releaseRoom).not.toHaveBeenCalledWith("table-abc123");
+  });
+});
+
+// ============================================================================
+// ASSET RECLAIM SWEEP (replacement leak, arc §7.3)
+// ============================================================================
+// A replaced upload used to stay claimed forever — releasing required clearing
+// the whole room. These drive the Container's real sweep entry points against
+// real room state and assert exactly which hashes reach the asset service.
+describe("asset reclaim sweep", () => {
+  const HASH = "d".repeat(64);
+  let container: Container;
+  let reclaimRoom: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    reclaimRoom = vi.fn().mockResolvedValue(0);
+    container = new Container(
+      {} as unknown as WebSocketServer,
+      authServiceStub,
+      new RoomRegistry({ defaultRoomId: "default" }),
+      undefined,
+      {
+        reclaimRoom,
+        expireCondemned: vi.fn().mockResolvedValue(0),
+      } as unknown as ConstructorParameters<typeof Container>[4],
+    );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("hands the asset service the hashes a room's state actually references", async () => {
+    const roomService = container.getRoomServiceForRoom("default");
+    roomService.getState().props.push({
+      id: "prop-1",
+      label: "Old Map",
+      imageUrl: `https://server.example/assets/${HASH}`,
+      owner: null,
+      size: "medium",
+      x: 0,
+      y: 0,
+      scaleX: 1,
+      scaleY: 1,
+      rotation: 0,
+    });
+
+    await container.reclaimUnreferencedAssets();
+
+    expect(reclaimRoom).toHaveBeenCalledWith("default", expect.any(Set));
+    const referenced = reclaimRoom.mock.calls.find(
+      ([room]) => room === "default",
+    )![1] as Set<string>;
+    expect(referenced.has(HASH)).toBe(true);
+  });
+
+  it("sweeps every loaded room, not just the default one", async () => {
+    container.getRoomServiceForRoom("table-second");
+
+    await container.reclaimUnreferencedAssets();
+
+    const swept = reclaimRoom.mock.calls.map(([room]) => room).sort();
+    expect(swept).toEqual(["default", "table-second"]);
+  });
+
+  it("gives an idle room one last reclaim on its way out of memory", async () => {
+    const roomService = container.getRoomServiceForRoom("room-idle");
+    roomService.getState().tokens.push({
+      id: "t1",
+      owner: "p1",
+      x: 0,
+      y: 0,
+      color: "red",
+      imageUrl: `/assets/${HASH}`,
+    });
+    container.touchRoomActivity("room-idle");
+    vi.advanceTimersByTime(31 * 60 * 1000);
+
+    const unloaded = await container.unloadIdleRooms(30 * 60 * 1000);
+
+    expect(unloaded).toEqual(["room-idle"]);
+    const call = reclaimRoom.mock.calls.find(([room]) => room === "room-idle");
+    expect(call).toBeDefined();
+    expect((call![1] as Set<string>).has(HASH)).toBe(true);
+  });
+
+  it("survives a container built without an asset service", async () => {
+    const bare = new Container(
+      {} as unknown as WebSocketServer,
+      authServiceStub,
+      new RoomRegistry({ defaultRoomId: "default" }),
+    );
+    await expect(bare.reclaimUnreferencedAssets()).resolves.toBeUndefined();
   });
 });

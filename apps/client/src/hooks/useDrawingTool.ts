@@ -29,6 +29,8 @@ interface UseDrawingToolReturn {
   onMouseDown: (stageRef: RefObject<Konva.Stage | null>) => void;
   onMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
   onMouseUp: () => void;
+  /** Abandon the in-progress stroke without sending it. */
+  cancel: () => void;
 }
 
 /**
@@ -188,11 +190,24 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
       return;
     }
 
+    /*
+     * A tap is not a shape. onMouseDown seeds line/rect/circle with
+     * [world, world], so a press-and-release that never moved already
+     * satisfies `length >= 2` and would commit a zero-size drawing. Harmless
+     * to click past on a desktop; on a phone it is reachable by every stray
+     * tap, and double-tap-to-ping fires two of them.
+     */
+    const isDegenerate =
+      finalDrawing.length === 2 &&
+      finalDrawing[0].x === finalDrawing[1].x &&
+      finalDrawing[0].y === finalDrawing[1].y;
+
     // Only send drawing if we have meaningful content
     const shouldSend =
-      (drawTool === "freehand" && finalDrawing.length > 1) ||
-      ((drawTool === "line" || drawTool === "rect" || drawTool === "circle") &&
-        finalDrawing.length >= 2);
+      !isDegenerate &&
+      ((drawTool === "freehand" && finalDrawing.length > 1) ||
+        ((drawTool === "line" || drawTool === "rect" || drawTool === "circle") &&
+          finalDrawing.length >= 2));
 
     if (shouldSend) {
       const drawingId = generateUUID();
@@ -230,11 +245,30 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
     drawingObjects,
   ]);
 
+  /**
+   * Drop the in-progress stroke on the floor.
+   *
+   * onMouseUp is a commit — it always tries to send. Touch needs the other
+   * half: a second finger landing mid-stroke means the user wants to pinch,
+   * and turning that into a drawing would leave a mark every time they zoom.
+   */
+  const cancel = useCallback(() => {
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    drawingPointsRef.current = [];
+    setCurrentDrawing([]);
+    setIsDrawing(false);
+  }, []);
+
   return {
     currentDrawing,
     isDrawing,
     onMouseDown,
     onMouseMove,
     onMouseUp,
+    cancel,
   };
 }

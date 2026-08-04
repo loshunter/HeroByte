@@ -55,7 +55,8 @@ describe("collectAssetHashes", () => {
   });
 
   it("finds nothing in a session that only uses external image URLs", () => {
-    // The imgur path — the primary one today. It needs no inlining at all.
+    // External-URL images (the escape valve above the upload quota — S3 made
+    // self-hosted uploads the default). They need no inlining at all.
     const file = sessionFile({
       snapshot: { gridSize: 50, mapBackground: "https://i.imgur.com/abc.png" } as never,
     });

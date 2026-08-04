@@ -45,67 +45,6 @@ export function validateRoomControlMessage(): ValidationResult {
   return { valid: true };
 }
 
-/** Per-collection entry caps for loaded session snapshots */
-const SNAPSHOT_LIMITS = {
-  players: 100,
-  tokens: 1000,
-  drawings: 5000,
-  props: 500,
-  characters: 500,
-  diceRolls: 1000,
-  sceneObjects: 5000,
-} as const;
-
-/**
- * Validate load-session message
- * Required: snapshot (object with players, tokens, drawings arrays)
- *
- * Snapshot collections are merged into live room state, so each collection is
- * bounded and every entry must at least be an object (not a primitive).
- */
-export function validateLoadSessionMessage(message: MessageRecord): ValidationResult {
-  const snapshot = message.snapshot;
-  if (!isRecord(snapshot)) {
-    return { valid: false, error: "load-session: missing or invalid snapshot data" };
-  }
-  const hasPlayers = Array.isArray(snapshot.players);
-  const hasTokens = Array.isArray(snapshot.tokens);
-  const hasDrawingArray = Array.isArray(snapshot.drawings);
-  const assetRefs = isRecord(snapshot.assetRefs) ? snapshot.assetRefs : undefined;
-  const hasDrawingAsset = assetRefs && typeof assetRefs.drawings === "string";
-
-  if (!hasPlayers || !hasTokens || (!hasDrawingArray && !hasDrawingAsset)) {
-    return {
-      valid: false,
-      error:
-        "load-session: snapshot must contain players, tokens, and drawings (array or assetRef)",
-    };
-  }
-
-  for (const [key, limit] of Object.entries(SNAPSHOT_LIMITS)) {
-    const collection = snapshot[key];
-    if (collection === undefined) {
-      continue;
-    }
-    if (!Array.isArray(collection)) {
-      return { valid: false, error: `load-session: snapshot ${key} must be an array` };
-    }
-    if (collection.length > limit) {
-      return {
-        valid: false,
-        error: `load-session: snapshot ${key} exceeds limit (max ${limit} entries)`,
-      };
-    }
-    if (!collection.every((entry) => isRecord(entry))) {
-      return {
-        valid: false,
-        error: `load-session: snapshot ${key} entries must be objects`,
-      };
-    }
-  }
-  return { valid: true };
-}
-
 /**
  * Validate authenticate message
  * Required: secret (non-empty string, max 256 chars)

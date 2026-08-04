@@ -13,71 +13,34 @@ import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { resolveServerPath } from "../../config/serverPaths.js";
 import { sniffImageMime } from "./mimeSniff.js";
-import { planClaimCopy, planRoomRelease } from "./assetRoomClaims.js";
+import {
+  planClaimCopy,
+  planCondemnedExpiry,
+  planRoomReclaim,
+  planRoomRelease,
+  type ClaimPlan,
+} from "./assetRoomClaims.js";
+import { getDefaultRoomId } from "../../config/auth.js";
+import { reclaimGraceMs, resolveQuotaLimits, type AssetQuotaLimits } from "./quota.js";
+import { loadAssetIndex, writeAssetIndex, type AssetIndex } from "./assetIndexStore.js";
+import {
+  AssetRejectedError,
+  roomsOf,
+  type AssetServiceOptions,
+  type StoredAsset,
+} from "./assetTypes.js";
 
 const HASH_PATTERN = /^[a-f0-9]{64}$/;
 
-export interface StoredAsset {
-  hash: string;
-  mime: string;
-  extension: string;
-  size: number;
-  createdAt: number;
-  /**
-   * Rooms that have uploaded these bytes. Content addressing means two rooms
-   * uploading the same image share ONE file — so ownership is a set, not a
-   * field, and the asset lives until no room claims it.
-   *
-   * Optional: an index written before this existed has none, and those assets
-   * are treated as unclaimed (see roomsOf).
-   */
-  rooms?: string[];
-}
-
-export class AssetRejectedError extends Error {
-  readonly statusCode: number;
-
-  constructor(message: string, statusCode: number) {
-    super(message);
-    this.name = "AssetRejectedError";
-    this.statusCode = statusCode;
-  }
-}
-
-interface AssetIndex {
-  schemaVersion: 1;
-  assets: Record<string, StoredAsset>;
-}
-
-export interface AssetServiceOptions {
-  directory?: string;
-  /** Per-asset ceiling. Default 5MB. */
-  maxAssetBytes?: number;
-  /** Whole-store quota — the disk is finite. Default 200MB (the free-tier number). */
-  maxTotalBytes?: number;
-  /** Per-room quota, so one table cannot spend the whole store. Default 50MB. */
-  maxRoomBytes?: number;
-}
-
-/** Uploads with no room header belong to the default table. */
-const DEFAULT_ROOM = "default";
-
-/**
- * An asset's claiming rooms. An index written before rooms existed has none —
- * those assets count against the whole-store quota (they are on the disk) but
- * against no room's, which is the right way round: charging them to a room that
- * may not have uploaded them would be a guess.
- */
-function roomsOf(asset: StoredAsset): string[] {
-  return asset.rooms ?? [];
-}
+export { AssetRejectedError, roomsOf } from "./assetTypes.js";
+export type { AssetServiceOptions, StoredAsset } from "./assetTypes.js";
 
 export class AssetService {
   private readonly directory: string;
   private readonly maxAssetBytes: number;
-  private readonly maxTotalBytes: number;
-  private readonly maxRoomBytes: number;
+  private readonly quotaOptions: { maxTotalBytes?: number; maxRoomBytes?: number };
   private indexPromise: Promise<AssetIndex> | null = null;
+  private limitsPromise: Promise<AssetQuotaLimits> | null = null;
   private mutationQueue: Promise<unknown> = Promise.resolve();
 
   constructor(options: AssetServiceOptions = {}) {
@@ -87,8 +50,22 @@ export class AssetService {
     this.directory =
       options.directory ?? process.env.HEROBYTE_ASSET_DIR ?? resolveServerPath("herobyte-assets");
     this.maxAssetBytes = options.maxAssetBytes ?? 5 * 1024 * 1024;
-    this.maxTotalBytes = options.maxTotalBytes ?? 200 * 1024 * 1024;
-    this.maxRoomBytes = options.maxRoomBytes ?? 50 * 1024 * 1024;
+    this.quotaOptions = {
+      maxTotalBytes: options.maxTotalBytes,
+      maxRoomBytes: options.maxRoomBytes,
+    };
+  }
+
+  /** Resolved once, lazily — the disk is measured on the first quota check. */
+  private limits(index: AssetIndex): Promise<AssetQuotaLimits> {
+    if (!this.limitsPromise) {
+      this.limitsPromise = resolveQuotaLimits({
+        directory: this.directory,
+        storeBytes: Object.values(index.assets).reduce((sum, asset) => sum + asset.size, 0),
+        options: this.quotaOptions,
+      });
+    }
+    return this.limitsPromise;
   }
 
   /**
@@ -99,10 +76,9 @@ export class AssetService {
    * because the store used to have NO room concept at all, which made two things
    * shared that should not be:
    *
-   *   QUOTA. One table filling the 200MB store returned 507 to every OTHER
-   *   table. Today that self-heals on the free tier's 15-minute spin-down; on a
-   *   persistent disk it would be permanent, so this gets worse exactly when the
-   *   disk lands.
+   *   QUOTA. One table filling the whole store returned 507 to every OTHER
+   *   table. On the old free tier that self-healed on the 15-minute spin-down;
+   *   on the persistent disk it would be permanent.
    *
    *   DEDUP. `deduplicated: true` answered "do these exact bytes exist ANYWHERE
    *   on this server?" — a cross-room existence oracle for anyone who could
@@ -113,7 +89,10 @@ export class AssetService {
    */
   async store(
     bytes: Buffer,
-    roomId: string = DEFAULT_ROOM,
+    // Header-less uploads belong to the default table — the CONFIGURED one
+    // (HEROBYTE_DEFAULT_ROOM_ID), not a hardcoded "default" the sweep could
+    // never reconcile against a renamed default room.
+    roomId: string = getDefaultRoomId(),
     timestamp: number = Date.now(),
   ): Promise<{ asset: StoredAsset; deduplicated: boolean }> {
     // Stateless checks run outside the lock (no shared state, no yield needed).
@@ -146,10 +125,15 @@ export class AssetService {
 
       // The bytes exist but this room has not claimed them. Charge this room's
       // quota and record the claim — but do NOT report deduplicated, which would
-      // tell the caller these bytes exist in some OTHER room.
+      // tell the caller these bytes exist in some OTHER room. A re-upload of
+      // condemned bytes is a pardon: the expiry stamp is cleared.
       if (existing) {
-        const claimed = { ...existing, rooms: [...roomsOf(existing), roomId] };
-        this.assertQuota(index, bytes.length, roomId);
+        const claimed = {
+          ...existing,
+          rooms: [...roomsOf(existing), roomId],
+          unreferencedAt: undefined,
+        };
+        this.assertQuota(index, bytes.length, roomId, await this.limits(index));
         await this.writeIndex({
           schemaVersion: 1,
           assets: { ...index.assets, [hash]: claimed },
@@ -158,7 +142,7 @@ export class AssetService {
         return { asset: claimed, deduplicated: false };
       }
 
-      this.assertQuota(index, bytes.length, roomId);
+      this.assertQuota(index, bytes.length, roomId, await this.limits(index));
 
       await mkdir(this.directory, { recursive: true });
       const filePath = path.join(this.directory, `${hash}.${sniffed.extension}`);
@@ -198,16 +182,21 @@ export class AssetService {
    * checking outside the lock would reintroduce the quota TOCTOU that an earlier
    * review already found here once.
    */
-  private assertQuota(index: AssetIndex, incoming: number, roomId: string): void {
+  private assertQuota(
+    index: AssetIndex,
+    incoming: number,
+    roomId: string,
+    limits: AssetQuotaLimits,
+  ): void {
     const assets = Object.values(index.assets);
     const total = assets.reduce((sum, asset) => sum + asset.size, 0);
-    if (total + incoming > this.maxTotalBytes) {
+    if (total + incoming > limits.maxTotalBytes) {
       throw new AssetRejectedError("Asset storage quota exceeded", 507);
     }
     const roomTotal = assets
       .filter((asset) => roomsOf(asset).includes(roomId))
       .reduce((sum, asset) => sum + asset.size, 0);
-    if (roomTotal + incoming > this.maxRoomBytes) {
+    if (roomTotal + incoming > limits.maxRoomBytes) {
       throw new AssetRejectedError("This table's asset storage is full", 507);
     }
   }
@@ -285,51 +274,68 @@ export class AssetService {
   async releaseRoom(roomId: string): Promise<number> {
     return this.runExclusive(async () => {
       const index = await this.loadIndex();
-      const plan = planRoomRelease(index.assets, roomId);
-      if (!plan.changed) return 0;
-
-      // Index first, then unlink — the same ordering store() uses and for the
-      // same reason: an index that no longer names a file is harmless (the
-      // orphan re-attaches on the next identical upload), whereas a file
-      // deleted while still indexed 404s forever.
-      await this.writeIndex({ schemaVersion: 1, assets: plan.assets });
-      index.assets = plan.assets;
-
-      for (const asset of plan.orphaned) {
-        await unlink(path.join(this.directory, `${asset.hash}.${asset.extension}`)).catch(() => {
-          // Already gone, or the disk refused: the index no longer references
-          // it, so this is a stray file at worst — never a broken reference.
-        });
-      }
-      return plan.freed;
+      return this.applyClaimPlan(index, planRoomRelease(index.assets, roomId));
     });
+  }
+
+  /**
+   * Reconcile a room's claims against what its state references right now —
+   * the replacement-leak fix. `referenced` comes from the caller's scan of the
+   * room's serialized state + map documents + undo histories (see
+   * assetReferences.ts); the mark/resurrect/condemn split lives in
+   * planRoomReclaim. Bytes never leave the disk here — that is
+   * expireCondemned's job, after the grace window.
+   */
+  async reclaimRoom(
+    roomId: string,
+    referenced: ReadonlySet<string>,
+    now: number = Date.now(),
+  ): Promise<number> {
+    return this.runExclusive(async () => {
+      const index = await this.loadIndex();
+      return this.applyClaimPlan(index, planRoomReclaim(index.assets, roomId, referenced, now));
+    });
+  }
+
+  /**
+   * Delete condemned assets whose grace window has passed with no room coming
+   * back for them. Returns the bytes actually freed from disk.
+   */
+  async expireCondemned(now: number = Date.now()): Promise<number> {
+    return this.runExclusive(async () => {
+      const index = await this.loadIndex();
+      return this.applyClaimPlan(index, planCondemnedExpiry(index.assets, now, reclaimGraceMs()));
+    });
+  }
+
+  /** Persist a claim plan. Callers hold the mutation lock. */
+  private async applyClaimPlan(index: AssetIndex, plan: ClaimPlan): Promise<number> {
+    if (!plan.changed) return 0;
+
+    // Index first, then unlink — the same ordering store() uses and for the
+    // same reason: an index that no longer names a file is harmless (the
+    // orphan re-attaches on the next identical upload), whereas a file
+    // deleted while still indexed 404s forever.
+    await this.writeIndex({ schemaVersion: 1, assets: plan.assets });
+    index.assets = plan.assets;
+
+    for (const asset of plan.orphaned) {
+      await unlink(path.join(this.directory, `${asset.hash}.${asset.extension}`)).catch(() => {
+        // Already gone, or the disk refused: the index no longer references
+        // it, so this is a stray file at worst — never a broken reference.
+      });
+    }
+    return plan.freed;
   }
 
   private loadIndex(): Promise<AssetIndex> {
     if (!this.indexPromise) {
-      this.indexPromise = (async (): Promise<AssetIndex> => {
-        try {
-          const raw = await readFile(path.join(this.directory, "index.json"), "utf-8");
-          const parsed = JSON.parse(raw) as AssetIndex;
-          if (parsed?.schemaVersion === 1 && parsed.assets && typeof parsed.assets === "object") {
-            return parsed;
-          }
-        } catch {
-          // Missing or corrupt index: start fresh; stored files re-attach on
-          // re-upload thanks to content addressing.
-        }
-        return { schemaVersion: 1, assets: {} };
-      })();
+      this.indexPromise = loadAssetIndex(this.directory);
     }
     return this.indexPromise;
   }
 
-  // Callers hold the mutation lock, so a plain atomic write is safe here.
-  private async writeIndex(index: AssetIndex): Promise<void> {
-    await mkdir(this.directory, { recursive: true });
-    const indexPath = path.join(this.directory, "index.json");
-    const tmpPath = `${indexPath}.tmp`;
-    await writeFile(tmpPath, JSON.stringify(index, null, 2));
-    await rename(tmpPath, indexPath);
+  private writeIndex(index: AssetIndex): Promise<void> {
+    return writeAssetIndex(this.directory, index);
   }
 }

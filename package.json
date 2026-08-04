@@ -43,8 +43,8 @@
     "lint:structure:enforce": "node scripts/structure-report.mjs --threshold 350 --fail-on-new",
     "baseline:update": "node scripts/update-baseline.mjs",
     "gen:sfx": "node scripts/generate-sfx.mjs",
-    "format": "prettier --write \"apps/**/*.{ts,tsx,js,json,md}\" \"packages/**/*.{ts,tsx,js,json,md}\" \"*.{js,json,md}\"",
-    "format:check": "prettier --check \"apps/**/*.{ts,tsx,js,json,md}\" \"packages/**/*.{ts,tsx,js,json,md}\" \"*.{js,json,md}\""
+    "format": "prettier --write \"apps/**/*.{ts,tsx,js,json,md}\" \"packages/**/*.{ts,tsx,js,json,md}\" \"scripts/**/*.{mjs,js,json}\" \"*.{js,json,md}\"",
+    "format:check": "prettier --check \"apps/**/*.{ts,tsx,js,json,md}\" \"packages/**/*.{ts,tsx,js,json,md}\" \"scripts/**/*.{mjs,js,json}\" \"*.{js,json,md}\""
   },
   "keywords": [],
   "author": "",

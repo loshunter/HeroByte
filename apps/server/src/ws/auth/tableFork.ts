@@ -49,17 +49,17 @@ function fail(ws: WebSocket, reason: string): void {
  * here rather than in AuthenticationHandler so that file stays under the
  * structural size guard.
  */
-export function forkTableForUid(
+export async function forkTableForUid(
   container: Container,
   ws: WebSocket | undefined,
   uid: string,
   request: ForkTableRequest,
-): void {
+): Promise<void> {
   const roomId = container.roomIdForUid(uid);
   const roomService = container.getRoomServiceForRoom(roomId);
   const player = container.playerService.findPlayer(roomService.getState(), uid);
 
-  handleForkTable(ws, request, {
+  await handleForkTable(ws, request, {
     authService: container.authService,
     mapStudioService: container.mapStudioService,
     assetService: container.assetServiceForFork,
@@ -74,11 +74,11 @@ export function forkTableForUid(
  * Copy `sourceRoomId` into a brand-new private table. Replies `table-forked`
  * on success or `table-fork-failed` with a human reason. Never throws.
  */
-export function handleForkTable(
+export async function handleForkTable(
   ws: WebSocket | undefined,
   request: ForkTableRequest,
   deps: ForkTableDeps,
-): void {
+): Promise<void> {
   if (!ws) return;
 
   if (!deps.isDM) {
@@ -105,7 +105,7 @@ export function handleForkTable(
   // Mint it first: this validates both passwords and the table ceiling, so a
   // rejection happens before anything has been copied anywhere.
   try {
-    deps.authService.createRoom(roomId, request.roomPassword, request.dmPassword);
+    await deps.authService.createRoom(roomId, request.roomPassword, request.dmPassword);
   } catch (error) {
     fail(ws, error instanceof Error ? error.message : "Unable to create the table.");
     return;

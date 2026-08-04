@@ -10,6 +10,7 @@
  * Target: apps/server/src/ws/handlers/PointerHandler.ts
  */
 
+import path from "node:path";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { MessageRouter } from "../../messageRouter.js";
 import { RoomService } from "../../../domains/room/service.js";
@@ -23,6 +24,12 @@ import { SelectionService } from "../../../domains/selection/service.js";
 import { AuthService } from "../../../domains/auth/service.js";
 import type { ClientMessage } from "@herobyte/shared";
 import type { WebSocketServer, WebSocket } from "ws";
+
+// Isolated state file. A bare `new RoomService({ stateFile: TEST_STATE_FILE })` writes the REAL
+// apps/server/herobyte-state.json — the same file the dev server reads —
+// so parallel vitest workers tore it and polluted a live table more than
+// once. Scratch path per test file keeps them from racing each other too.
+const TEST_STATE_FILE = path.join(process.cwd(), ".tmp", "PointerHandler-state.json");
 
 describe("PointerHandler - Characterization Tests", () => {
   let messageRouter: MessageRouter;
@@ -44,7 +51,7 @@ describe("PointerHandler - Characterization Tests", () => {
 
   beforeEach(() => {
     // Initialize services
-    roomService = new RoomService();
+    roomService = new RoomService({ stateFile: TEST_STATE_FILE });
     playerService = new PlayerService();
     tokenService = new TokenService();
     mapService = new MapService();

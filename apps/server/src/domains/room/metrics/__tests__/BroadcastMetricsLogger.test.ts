@@ -6,9 +6,26 @@ describe("BroadcastMetricsLogger", () => {
 
   afterEach(() => {
     console.log = originalLog;
+    vi.unstubAllEnvs();
   });
 
-  it("emits structured JSON payloads with telemetry fields", () => {
+  it("is silent by default so telemetry cannot bury real errors", () => {
+    const logger = new BroadcastMetricsLogger();
+    const logSpy = vi.fn();
+    console.log = logSpy;
+
+    logger.log({
+      clientCount: 3,
+      snapshotBytes: 4096,
+      durationMs: 12.3456,
+      reason: "token-move",
+    });
+
+    expect(logSpy).not.toHaveBeenCalled();
+  });
+
+  it("emits structured JSON payloads with telemetry fields when enabled", () => {
+    vi.stubEnv("HEROBYTE_BROADCAST_METRICS", "true");
     const logger = new BroadcastMetricsLogger();
     const logSpy = vi.fn();
     console.log = logSpy;

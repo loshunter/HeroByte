@@ -13,6 +13,9 @@ import { createRoutes } from "./http/routes.js";
 import { Container } from "./container.js";
 import { ConnectionHandler } from "./ws/connectionHandler.js";
 import { isOriginAllowed } from "./config/security.js";
+import { assertDataDirUsable } from "./config/serverPaths.js";
+import { flushStoresForShutdown } from "./shutdownFlush.js";
+import { clientIpFor, createAuthWorkLimiter } from "./middleware/authWorkLimit.js";
 import { AuthService } from "./domains/auth/service.js";
 import { AssetService } from "./domains/assets/service.js";
 import { RoomRegistry } from "./domains/room/RoomRegistry.js";
@@ -34,8 +37,16 @@ const HOST = "0.0.0.0";
  * Creates all infrastructure and wires dependencies
  */
 async function bootstrap() {
+  // Before any store touches disk: AuthService reads the secret file in its
+  // constructor, so a misconfigured data dir must be caught here or never.
+  assertDataDirUsable();
+
   const authService = new AuthService();
   const assetService = new AssetService();
+  // One per-IP budget for every scrypt-priced endpoint — the HTTP routes and
+  // the WS auth handler must drain the SAME bucket, or an attacker just
+  // splits the loop across both surfaces.
+  const authWorkLimiter = createAuthWorkLimiter();
   let resetE2EState: (() => void) | undefined;
   // Create HTTP routes
   const app = createRoutes(
@@ -47,6 +58,8 @@ async function bootstrap() {
       resetE2EState();
     },
     assetService,
+    undefined,
+    authWorkLimiter,
   );
 
   const buildFetchRequest = (req: IncomingMessage): Request => {
@@ -68,6 +81,16 @@ async function bootstrap() {
         headers.set(key, value);
       }
     }
+
+    // The Hono Request is synthesized from headers + URL only, so the socket's
+    // remote address would otherwise never reach a route handler (S1 trap:
+    // req.socket.remoteAddress is real, x-forwarded-for is trusted only behind
+    // Render/a declared proxy). Set AFTER the client-header copy above, so a
+    // client-supplied x-herobyte-client-ip is always overwritten, never trusted.
+    headers.set(
+      "x-herobyte-client-ip",
+      clientIpFor(req.socket.remoteAddress, req.headers["x-forwarded-for"]),
+    );
 
     const hasBody = method !== "GET" && method !== "HEAD";
     const body = hasBody ? Readable.toWeb(req) : undefined;
@@ -120,9 +143,14 @@ async function bootstrap() {
     }
   });
 
-  // Create WebSocket server with origin validation
+  // Create WebSocket server with origin validation.
+  // maxPayload: ws defaults to 100 MiB per message; the application-level
+  // 1 MB check runs only AFTER a frame has been fully buffered, so without
+  // this socket-level cap a client could make the server buffer 100 MiB per
+  // message before any guard saw it. Matches the pipeline's inbound limit.
   const wss = new WebSocketServer({
     server,
+    maxPayload: 1024 * 1024,
     verifyClient: (info, done) => {
       if (!isOriginAllowed(info.origin)) {
         console.warn(`Rejected WebSocket connection from disallowed origin: ${info.origin}`);
@@ -140,8 +168,22 @@ async function bootstrap() {
   await roomRegistry.whenReady();
 
   // Initialize dependency container
-  const container = new Container(wss, authService, roomRegistry, undefined, assetService);
+  const container = new Container(
+    wss,
+    authService,
+    roomRegistry,
+    undefined,
+    assetService,
+    authWorkLimiter,
+  );
   resetE2EState = () => container.resetForE2E();
+
+  // Server-level errors (handshake failures and the like) need a listener for
+  // the same reason per-socket errors do: an unhandled "error" on an
+  // EventEmitter throws, and here that would kill the process.
+  wss.on("error", (error) => {
+    console.error("[WebSocket] Server error:", error);
+  });
 
   // Attach WebSocket connection handler
   const connectionHandler = new ConnectionHandler(container, wss);
@@ -153,14 +195,43 @@ async function bootstrap() {
     console.log(`Architecture: Domain-driven with dependency injection`);
   });
 
-  // Graceful shutdown
+  // Graceful shutdown. Render sends SIGTERM (then SIGKILL ~30s later). The old
+  // handler exited only from server.close()'s callback — which never fires
+  // while a single WebSocket stays open, so a busy table meant no exit, no
+  // final flush, and SIGKILL took whatever the last debounced save missed.
+  // Now: flush every room's state to disk first, then exit behind a hard
+  // deadline that does not depend on any socket closing.
+  let shuttingDown = false;
   process.on("SIGTERM", () => {
+    if (shuttingDown) return;
+    shuttingDown = true;
     console.log("SIGTERM received, shutting down gracefully...");
-    server.close(() => {
-      console.log("Server closed");
-      container.destroy();
+
+    // Hard deadline: exit even if a flush hangs (e.g. a dead disk). Not
+    // unref'd — this timer firing IS the shutdown path of last resort.
+    const hardExit = setTimeout(() => {
+      console.error("[Shutdown] Flush deadline exceeded; exiting without full flush.");
+      process.exit(1);
+    }, 8000);
+
+    void (async () => {
+      try {
+        await flushStoresForShutdown(container.roomRegistry, container.mapStudioService);
+        console.log("[Shutdown] State flushed to disk.");
+      } catch (error) {
+        console.error("[Shutdown] State flush failed:", error);
+      }
+      // Best effort only — nothing below may block the exit.
+      try {
+        for (const client of wss.clients) client.terminate();
+        server.close(() => {});
+        container.destroy();
+      } catch (error) {
+        console.error("[Shutdown] Cleanup failed:", error);
+      }
+      clearTimeout(hardExit);
       process.exit(0);
-    });
+    })();
   });
 }
 

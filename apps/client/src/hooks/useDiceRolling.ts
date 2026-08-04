@@ -15,7 +15,7 @@
  */
 
 import { useCallback, useMemo, useRef, useState, useEffect } from "react";
-import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
+import type { RoomSnapshot, ClientMessage, ChatMessage } from "@herobyte/shared";
 import type { RollResult, DieType } from "../components/dice/types";
 
 /**
@@ -42,6 +42,15 @@ export interface UseDiceRollingReturn {
   viewingRoll: RollResult | null;
   /** Array of roll history entries transformed from snapshot */
   rollHistory: RollLogEntry[];
+  /**
+   * Chat visible to THIS player, straight off the snapshot. Whispers meant
+   * for other people were already dropped server-side, so there is nothing
+   * to filter here — and deliberately no client-side filtering, because a
+   * renderer that hides messages it received is not secrecy.
+   */
+  chatMessages: ChatMessage[];
+  /** Send a chat message. Omit `to` for the whole table. */
+  handleSendChat: (text: string, to?: string) => void;
   /** Toggle the dice roller panel */
   toggleDiceRoller: (open: boolean) => void;
   /** Toggle the roll log panel */
@@ -136,6 +145,9 @@ export function useDiceRolling({
     }));
   }, [snapshot]);
 
+  /** Already recipient-filtered by the server; passed through as-is. */
+  const chatMessages: ChatMessage[] = useMemo(() => snapshot?.chatLog ?? [], [snapshot]);
+
   // -------------------------------------------------------------------------
   // HANDLERS
   // -------------------------------------------------------------------------
@@ -212,6 +224,23 @@ export function useDiceRolling({
     sendMessage({ t: "clear-roll-history" });
   }, [sendMessage]);
 
+  /**
+   * Send a chat message.
+   *
+   * Note what is NOT sent: any author field. The server stamps identity from
+   * the connection, so there is nothing here for a tampered client to lie
+   * about — unlike handleRoll above, which still ships a client-asserted
+   * playerUid (arc defect D2, fixed in S5).
+   */
+  const handleSendChat = useCallback(
+    (text: string, to?: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      sendMessage(to ? { t: "chat", text: trimmed, to } : { t: "chat", text: trimmed });
+    },
+    [sendMessage],
+  );
+
   // -------------------------------------------------------------------------
   // RETURN
   // -------------------------------------------------------------------------
@@ -221,10 +250,12 @@ export function useDiceRolling({
     rollLogOpen,
     viewingRoll,
     rollHistory,
+    chatMessages,
     toggleDiceRoller,
     toggleRollLog,
     handleRoll,
     handleClearLog,
     handleViewRoll,
+    handleSendChat,
   };
 }

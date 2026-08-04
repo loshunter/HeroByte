@@ -1,12 +1,15 @@
 // ============================================================================
 // MAP BACKGROUND CONTROL
 // ============================================================================
-// Extracted from DMMenu.tsx as part of Phase 3: Simple Map Controls.
-// Provides interface for setting map background image URL with preview.
+// Sets the table's background image. The input surface is the shared
+// ImageField (S3): upload from disk is the default, pasting a URL stays the
+// escape valve. This control keeps its one extra behavior — pre-flighting
+// that a pasted URL actually loads as an image before committing it to the
+// whole table — plus the DM toast on success/failure.
 
 import { useState, useEffect } from "react";
-import { JRPGPanel, JRPGButton } from "../../../../components/ui/JRPGPanel";
-import { useImageUrlNormalization } from "../../../../hooks/useImageUrlNormalization";
+import { JRPGPanel } from "../../../../components/ui/JRPGPanel";
+import { ImageField } from "../../../../components/ui/ImageField";
 import { Spinner } from "../../../../components/ui/Spinner";
 
 export interface MapBackgroundControlProps {
@@ -23,88 +26,57 @@ export function MapBackgroundControl({
   onError,
 }: MapBackgroundControlProps) {
   const [mapUrl, setMapUrl] = useState(mapBackground ?? "");
-  const [isUploading, setIsUploading] = useState(false);
-  const { normalizeUrl, isNormalizing, normalizationError } = useImageUrlNormalization();
+  const [isApplying, setIsApplying] = useState(false);
 
   useEffect(() => {
     setMapUrl(mapBackground ?? "");
   }, [mapBackground]);
 
-  const handleMapApply = async () => {
-    if (!mapUrl.trim()) return;
+  const handleCommit = async (url: string) => {
+    if (!url.trim()) return;
 
-    setIsUploading(true);
+    setIsApplying(true);
     try {
-      // Automatically convert Imgur URLs to direct image links
-      const normalizedUrl = await normalizeUrl(mapUrl);
-
-      // Verify the image can be loaded
+      // Verify the image can be loaded before pushing it to the whole table.
       const img = new Image();
       await new Promise<void>((resolve, reject) => {
         img.onload = () => resolve();
         img.onerror = () => reject(new Error("Failed to load image"));
-        img.src = normalizedUrl;
+        img.src = url;
       });
 
-      onSetMapBackground(normalizedUrl);
+      onSetMapBackground(url);
       onSuccess?.("Map background updated successfully");
     } catch (error) {
       console.error("[MapBackgroundControl] Error applying map background:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to load image";
       onError?.(errorMessage);
     } finally {
-      setIsUploading(false);
+      setIsApplying(false);
     }
   };
 
   return (
     <JRPGPanel variant="simple" title="Map Background">
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        <input
-          type="text"
+        <ImageField
+          label="Map Background URL"
           value={mapUrl}
+          onChange={setMapUrl}
+          onCommit={(url) => void handleCommit(url)}
           placeholder="Paste image URL"
-          onChange={(event) => setMapUrl(event.target.value)}
-          style={{
-            width: "100%",
-            padding: "6px",
-            background: "#111",
-            color: "var(--jrpg-white)",
-            border: "1px solid var(--jrpg-border-gold)",
-          }}
+          applyLabel="Apply Background"
+          applyRequiresValue
+          commitOnBlur={false}
+          disabled={isApplying}
         />
-        <JRPGButton
-          onClick={handleMapApply}
-          variant="success"
-          disabled={!mapUrl.trim() || isNormalizing || isUploading}
-          style={{
-            fontSize: "10px",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            justifyContent: "center",
-          }}
-        >
-          {isNormalizing || isUploading ? (
-            <>
-              <Spinner size={12} color="var(--jrpg-white)" />
-              <span>{isNormalizing ? "Converting URL..." : "Loading image..."}</span>
-            </>
-          ) : (
-            "Apply Background"
-          )}
-        </JRPGButton>
-        {normalizationError && (
+        {isApplying && (
           <div
-            style={{
-              fontSize: "9px",
-              color: "var(--jrpg-warning)",
-              padding: "4px",
-              background: "rgba(255, 200, 0, 0.1)",
-              borderRadius: "2px",
-            }}
+            className="jrpg-text-small"
+            style={{ display: "flex", alignItems: "center", gap: "6px" }}
           >
-            {normalizationError}
+            <Spinner size={12} color="var(--jrpg-white)" />
+            <span>Loading image...</span>
           </div>
         )}
         {mapBackground && (

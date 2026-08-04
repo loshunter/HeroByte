@@ -176,8 +176,16 @@ export class DisconnectionCleanupManager {
     // Deselect any objects the player had selected
     this.config.selectionService.deselect(state, uid);
 
-    // Broadcast updated state to the room's remaining clients
-    roomService.broadcast(this.config.getAuthenticatedClientsForRoom(roomId), undefined, {
+    // Broadcast updated state to the room's remaining clients.
+    //
+    // uidToWs is REQUIRED, not optional garnish: broadcast reverse-maps each
+    // socket through it to decide who the recipient is, and without it every
+    // recipient resolves to undefined. Per-recipient filtering then fails
+    // closed and this frame ships a chat log with every whisper stripped — to
+    // everyone, including the two people in the conversation. The client
+    // replaces its log wholesale from each snapshot, so one unrelated player
+    // closing a tab would silently erase whispers from the others' screens.
+    roomService.broadcast(this.config.getAuthenticatedClientsForRoom(roomId), this.uidToWs, {
       reason: "disconnection-cleanup",
     });
   }

@@ -11,6 +11,7 @@
 // (gridSize 50): the watcher's token sits at cell (1,3) — left side — so the
 // right side of the map is hidden from them.
 
+import path from "node:path";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { WebSocket, WebSocketServer } from "ws";
 import type { ClientMessage, ServerMessage } from "@herobyte/shared";
@@ -24,6 +25,11 @@ import { CharacterService } from "../../domains/character/service.js";
 import { PropService } from "../../domains/prop/service.js";
 import { SelectionService } from "../../domains/selection/service.js";
 import { AuthService } from "../../domains/auth/service.js";
+
+// Scratch state file: a bare `new RoomService({ stateFile: TEST_STATE_FILE })` writes the REAL
+// apps/server/herobyte-state.json, which parallel workers and the dev
+// server then fight over (observed: a torn file, quarantined as .corrupt).
+const TEST_STATE_FILE = path.join(process.cwd(), ".tmp", "visionChannels-state.json");
 
 const MOVER = "player-mover";
 const WATCHER = "player-watcher";
@@ -66,7 +72,7 @@ describe("vision-filtered channel contracts", () => {
   let dmWs: FakeSocket;
 
   beforeEach(() => {
-    roomService = new RoomService();
+    roomService = new RoomService({ stateFile: TEST_STATE_FILE });
     roomService.setState({
       players: [player(MOVER, false), player(WATCHER, false), player(DM, true)],
       tokens: [

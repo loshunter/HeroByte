@@ -1,6 +1,10 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig, devices } from "@playwright/test";
 
 sanitizeColorEnv(process.env);
+
+const CONFIG_DIR = path.dirname(fileURLToPath(import.meta.url));
 
 const PORT = Number(process.env.E2E_PORT ?? 5175);
 const HOST = process.env.E2E_HOST ?? "127.0.0.1";
@@ -9,6 +13,16 @@ const WS_PORT = Number(process.env.E2E_WS_PORT ?? 8788);
 const WS_HOST = process.env.E2E_WS_HOST ?? "127.0.0.1";
 const E2E_STATE_FILE = process.env.E2E_STATE_FILE ?? "herobyte-state.e2e.json";
 const E2E_MAP_STORE_FILE = process.env.E2E_MAP_STORE_FILE ?? "herobyte-maps.e2e.json";
+// The asset store default is the SAME directory the owner's dev server uses
+// (and it is git-tracked). Without this, an upload e2e writes real files and
+// claims into the live store — the same trap the .e2e state files exist for.
+// Resolved to an absolute path: the server passes HEROBYTE_ASSET_DIR through
+// untouched, so a relative value would silently depend on the child's cwd.
+const E2E_ASSET_DIR = path.resolve(
+  CONFIG_DIR,
+  "apps/server",
+  process.env.E2E_ASSET_DIR ?? "herobyte-assets-e2e",
+);
 const REUSE_EXISTING_SERVERS = process.env.E2E_REUSE_EXISTING_SERVER === "true";
 
 export default defineConfig({
@@ -51,6 +65,8 @@ export default defineConfig({
         PORT: String(WS_PORT),
         ROOM_STATE_FILE: E2E_STATE_FILE,
         HEROBYTE_MAP_STORE_FILE: E2E_MAP_STORE_FILE,
+        HEROBYTE_ASSET_DIR: E2E_ASSET_DIR,
+        E2E_ASSET_DIR,
       },
     },
     {
@@ -67,6 +83,26 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+      // The mobile project owns apps/e2e/mobile. Without this the desktop
+      // project would also pick those specs up (testDir above covers the whole
+      // tree) and run touch gestures in a hasTouch:false context.
+      // Deliberately NOT a filename filter: apps/e2e/mobile-layout.spec.ts is
+      // mouse-driven and must keep running here.
+      testIgnore: /[\\/]mobile[\\/]/,
+    },
+    {
+      // Touch is a different event path, not a narrower viewport, so it needs
+      // its own context: hasTouch drives Emulation.setTouchEmulationEnabled,
+      // which is what makes Input.dispatchTouchEvent reach the page at all.
+      // Chromium-backed device on purpose — the iPhone descriptors are webkit
+      // and only chromium is installed locally and in CI.
+      name: "mobile-chromium",
+      // Scoped by testDir, NOT testMatch: playwright.docs.config.ts spreads
+      // this config and sets its own top-level testMatch, which a project-level
+      // testMatch would override — pulling these specs into the docs run at a
+      // 180s timeout.
+      testDir: "./apps/e2e/mobile",
+      use: { ...devices["Pixel 7"] },
     },
   ],
 });

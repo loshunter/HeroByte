@@ -175,6 +175,8 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
 
     // Dice
     rollHistory,
+    chatMessages,
+    handleSendChat,
     viewingRoll,
     handleRoll,
     handleClearLog,
@@ -437,6 +439,9 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         handleRoll={handleRoll}
         rollLogOpen={rollLogOpen}
         rollHistory={rollHistory}
+        chatMessages={chatMessages}
+        handleSendChat={handleSendChat}
+        uid={uid}
         viewingRoll={viewingRoll}
         toggleRollLog={toggleRollLog}
         handleClearLog={handleClearLog}

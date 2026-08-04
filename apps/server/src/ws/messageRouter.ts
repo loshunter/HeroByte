@@ -43,6 +43,8 @@ import { MapMessageHandler } from "./handlers/MapMessageHandler.js";
 import { DrawingMessageHandler } from "./handlers/DrawingMessageHandler.js";
 import { SelectionMessageHandler } from "./handlers/SelectionMessageHandler.js";
 import { DiceMessageHandler } from "./handlers/DiceMessageHandler.js";
+import { ChatMessageHandler } from "./handlers/ChatMessageHandler.js";
+import { ChatService } from "../domains/chat/service.js";
 import { RoomMessageHandler } from "./handlers/RoomMessageHandler.js";
 import { TransformMessageHandler } from "./handlers/TransformMessageHandler.js";
 import { MapStudioMessageHandler } from "./handlers/MapStudioMessageHandler.js";
@@ -60,6 +62,7 @@ import { PropDispatcher } from "./dispatchers/PropDispatcher.js";
 import { InitiativeDispatcher } from "./dispatchers/InitiativeDispatcher.js";
 import { SelectionDispatcher } from "./dispatchers/SelectionDispatcher.js";
 import { DiceDispatcher } from "./dispatchers/DiceDispatcher.js";
+import { ChatDispatcher } from "./dispatchers/ChatDispatcher.js";
 import { RoomDispatcher } from "./dispatchers/RoomDispatcher.js";
 import { DMAuthorizationEnforcer } from "./services/DMAuthorizationEnforcer.js";
 import { AuthorizationCheckWrapper } from "./services/AuthorizationCheckWrapper.js";
@@ -102,6 +105,7 @@ export class MessageRouter {
   private drawingMessageHandler: DrawingMessageHandler;
   private selectionMessageHandler: SelectionMessageHandler;
   private diceMessageHandler: DiceMessageHandler;
+  private chatMessageHandler: ChatMessageHandler;
   private roomMessageHandler: RoomMessageHandler;
   private transformMessageHandler: TransformMessageHandler;
   private mapStudioMessageHandler: MapStudioMessageHandler;
@@ -114,6 +118,7 @@ export class MessageRouter {
   private initiativeDispatcher: InitiativeDispatcher;
   private selectionDispatcher: SelectionDispatcher;
   private diceDispatcher: DiceDispatcher;
+  private chatDispatcher: ChatDispatcher;
   private roomDispatcher: RoomDispatcher;
   private wss: WebSocketServer;
   private uidToWs: Map<string, WebSocket>;
@@ -226,6 +231,10 @@ export class MessageRouter {
     this.selectionDispatcher = new SelectionDispatcher(this.selectionMessageHandler);
     this.diceMessageHandler = new DiceMessageHandler(diceService);
     this.diceDispatcher = new DiceDispatcher(this.diceMessageHandler);
+    // Chat has no injected service of its own: it is stateless beyond the
+    // room's own chatLog, so the router owns the instance.
+    this.chatMessageHandler = new ChatMessageHandler(new ChatService(), playerService);
+    this.chatDispatcher = new ChatDispatcher(this.chatMessageHandler);
     this.roomMessageHandler = new RoomMessageHandler(
       roomService,
       authService,
@@ -347,6 +356,14 @@ export class MessageRouter {
       const diceResult = this.diceDispatcher.dispatch(message, context, senderUid);
       if (diceResult) {
         this.handleRouteResult(diceResult, message.t);
+        this.acknowledgeSuccess(message, senderUid);
+        return;
+      }
+
+      // Delegate to ChatDispatcher
+      const chatResult = this.chatDispatcher.dispatch(message, context, senderUid);
+      if (chatResult) {
+        this.handleRouteResult(chatResult, message.t);
         this.acknowledgeSuccess(message, senderUid);
         return;
       }

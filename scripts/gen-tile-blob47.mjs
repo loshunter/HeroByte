@@ -60,7 +60,12 @@ function encodePNG(width, height, rgba) {
     rgba.copy(raw, y * (stride + 1) + 1, y * stride, y * stride + stride);
   }
   const idat = deflateSync(raw, { level: 9 });
-  return Buffer.concat([sig, chunk("IHDR", ihdr), chunk("IDAT", idat), chunk("IEND", Buffer.alloc(0))]);
+  return Buffer.concat([
+    sig,
+    chunk("IHDR", ihdr),
+    chunk("IDAT", idat),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
 }
 
 // --- Palette (grass silhouette: flat base + cool rim). ---
@@ -128,7 +133,13 @@ function renderQuarter(corner, variant) {
       const lx = gx - PAD;
       const ly = gy - PAD;
       const inside = lx >= 0 && lx < Q && ly >= 0 && ly < Q;
-      solid[gy * S + gx] = inside ? (insideSolid(corner, variant, lx, ly) ? 1 : 0) : padSolid(corner, variant, lx, ly) ? 1 : 0;
+      solid[gy * S + gx] = inside
+        ? insideSolid(corner, variant, lx, ly)
+          ? 1
+          : 0
+        : padSolid(corner, variant, lx, ly)
+          ? 1
+          : 0;
     }
   }
   const out = new Uint8Array(Q * Q * 4);
