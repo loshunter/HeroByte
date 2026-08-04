@@ -47,6 +47,9 @@ export const BuildStrip: React.FC<BuildStripProps> = ({
 
   return (
     <div
+      // Named so a test can scope to the strip: die labels now also appear on
+      // the macro bar beside it, and a bare getByText("d20") matches both.
+      data-testid="dice-build-strip"
       style={{
         display: "flex",
         gap: "12px",

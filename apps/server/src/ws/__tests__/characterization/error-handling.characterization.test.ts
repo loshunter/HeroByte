@@ -343,18 +343,10 @@ describe("MessageRouter - Error Handling Characterization", () => {
         {
           msg: {
             t: "dice-roll",
-            roll: {
-              id: "roll-1",
-              playerUid: "player-1",
-              playerName: "Alice",
-              formula: "1d20",
-              total: 15,
-              breakdown: [{ tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 }],
-              timestamp: Date.now(),
-            },
+            formula: "1d20",
           },
           mockSetup: () => {
-            mockDiceService.addRoll = vi.fn(() => {
+            mockDiceService.rollFor = vi.fn(() => {
               throw new Error("Dice error");
             });
           },

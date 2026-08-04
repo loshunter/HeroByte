@@ -48,8 +48,11 @@ test.describe("Mobile Layout", () => {
     await diceButton.click();
 
     // Check if Dice Roller component is visible
-    // The actual component has title "⚂ DICE ROLLER" and a roll button
+    // The actual component has title "⚂ Dice Roller" and a roll button. The
+    // button's accessible name is its aria-label ("Roll dice"), not its visible
+    // "⚂ ROLL!" text — the mobile button gained that label in S5 so it matches
+    // the desktop one.
     await expect(page.getByText(/DICE ROLLER/i)).toBeVisible();
-    await expect(page.getByRole("button", { name: /ROLL!/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /roll dice/i })).toBeVisible();
   });
 });

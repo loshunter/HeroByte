@@ -13,6 +13,7 @@ import type {
 import type { MapStudioCommand } from "./mapStudioCommands.js";
 import type { CompiledDoorState, CompiledScene } from "./sceneCompiler.js";
 import type { TerrainMap } from "./terrain.js";
+import type { DiceRollMode, DiceVisibility } from "./dice.js";
 
 // WebSocket close codes — value re-export from a sub-module (see wsCloseCodes.ts
 // for why it must not be a direct `export const` here).
@@ -58,6 +59,10 @@ export * from "./autotile.js";
 // Seeded RNG: the determinism contract under the scatter brush, generation
 // recipes, and Cartridge Codes.
 export * from "./rng.js";
+
+// Dice NOTATION only — what a formula means, and nothing that rolls one. The
+// roller is server-side on purpose (see dice.ts).
+export * from "./dice.js";
 
 // Terrain storage: RLE-compressed 16x16 chunks — the Terrain Brush's wire
 // format (golden-tested; changes are schema migrations).
@@ -154,21 +159,43 @@ export interface Token {
 }
 
 /**
- * DiceRoll: Represents a dice roll result for network sync
+ * DiceRoll: one settled roll, as the SERVER produced it.
+ *
+ * Every field here is the server's own work. `playerUid` and `playerName` are
+ * stamped from the sending connection (like ChatMessage below), and `total`,
+ * `breakdown` and `formula` come from evaluating the client's formula with the
+ * server's RNG. Nothing on the wire from a client can set any of them — which
+ * is the whole of arc defect D2, and why `{ t: "dice-roll" }` carries a
+ * formula rather than a result.
  */
 export interface DiceRoll {
-  id: string; // Unique roll identifier
-  playerUid: string; // Who made the roll
-  playerName: string; // Player name at time of roll
-  formula: string; // Human-readable formula (e.g., "2d20 + 5")
-  total: number; // Final result
+  id: string; // Server-minted roll identifier
+  playerUid: string; // Who rolled — bound from the connection, never the client
+  playerName: string; // Roller's display name at roll time
+  formula: string; // Canonical notation the server actually rolled (e.g., "2d20 + 5")
+  total: number; // Final result, computed server-side
   breakdown: {
-    // Detailed breakdown per die/modifier
-    tokenId: string;
+    // Detailed breakdown per term, in formula order
+    tokenId: string; // Positional key ("t0", "t1", …) for rendering
     die?: string;
     rolls?: number[];
-    subtotal: number;
+    /**
+     * Under advantage/disadvantage, the set that was thrown away. Present only
+     * on the one term the mode applied to; the log shows it struck through.
+     */
+    dropped?: number[];
+    subtotal: number; // Signed: a "- 1d4" term contributes a negative subtotal
   }[];
+  /** Absent means "normal" — the wire default and every pre-S5 roll. */
+  mode?: DiceRollMode;
+  /**
+   * Who may see this roll. Absent means public.
+   *
+   * SECRECY: filtered per recipient in the snapshot, so a `self` or `dm` roll
+   * is never serialized to a socket that should not have it. Bounded by the
+   * same client-asserted-uid caveat as whispers — see visibleRollsFor.
+   */
+  visibility?: DiceVisibility;
   timestamp: number; // When the roll occurred
 }
 
@@ -176,9 +203,9 @@ export interface DiceRoll {
  * ChatMessage: one line of table talk.
  *
  * `authorUid` and `authorName` are stamped by the SERVER from the sending
- * connection. Nothing a client sends can set them — compare DiceRoll above,
- * whose playerUid arrives on the wire and is stored verbatim, which is why
- * dice are forgeable today (arc defect D2). Chat does not repeat that.
+ * connection. Nothing a client sends can set them — the same rule DiceRoll
+ * above now follows. (Dice did not, until S5: a client-supplied playerUid was
+ * stored verbatim, which was arc defect D2.)
  *
  * `authorName` is a snapshot of the name at send time rather than a join
  * against `players`, so renaming yourself does not rewrite your history.
@@ -731,8 +758,16 @@ type ClientMessagePayload =
   | { t: "set-fog-enabled"; enabled: boolean } // DM-only: toggle fog of war for the published scene
   | { t: "set-monster-hp-display"; mode: MonsterHpDisplay } // DM-only: how much monster HP players see (enforced in the snapshot filter)
 
-  // Dice rolls
-  | { t: "dice-roll"; roll: DiceRoll } // Broadcast a dice roll
+  // Dice. Carries a FORMULA, not a result: the server parses it, rolls it with
+  // its own RNG, and stamps the author from the connection. There is nothing
+  // here for a tampered client to lie about — no total, no uid, no name.
+  // (Before S5 this was `{ roll: DiceRoll }`, stored verbatim: arc defect D2.)
+  | {
+      t: "dice-roll";
+      formula: string; // Dice notation, e.g. "2d6 + 3" — parsed by parseDiceFormula
+      mode?: DiceRollMode; // Absent means "normal"
+      visibility?: DiceVisibility; // Absent means "public"
+    }
   | { t: "clear-roll-history" } // Clear all dice rolls
   // Chat. Deliberately carries NO author field: the server stamps identity
   // from the connection. `to` is a whisper target's uid; omit it for the

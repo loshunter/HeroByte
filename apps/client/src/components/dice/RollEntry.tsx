@@ -8,40 +8,27 @@
 // shell room to host two tabs instead.
 
 import React, { useState } from "react";
-import type { RollResult } from "./types";
 import { DIE_SYMBOLS } from "./types";
 import { sanitizeText } from "../../utils/sanitize";
 import type { RollLogEntry } from "./rollLogTypes";
 
 /**
- * Helper to format a roll formula as compact text
- * Example: "2d20 + 3d6 + 5"
+ * Check if a formula is "long" (likely to wrap or cause readability issues)
+ * Consider it long if it has 5+ terms or is over 30 characters.
  */
-function formatFormulaCompact(tokens: RollResult["tokens"]): string {
-  const parts: string[] = [];
-  for (const token of tokens) {
-    if (token.kind === "die") {
-      parts.push(token.qty > 1 ? `${token.qty}${token.die}` : token.die);
-    } else {
-      if (parts.length === 0) {
-        // First token is a modifier
-        parts.push(`${token.value}`);
-      } else {
-        parts.push(token.value >= 0 ? `+${token.value}` : `${token.value}`);
-      }
-    }
-  }
-  return parts.join(" ");
+function isLongFormula(roll: RollLogEntry): boolean {
+  if (roll.perDie.length >= 5) return true;
+  return roll.formula.length > 30;
 }
 
-/**
- * Check if a formula is "long" (likely to wrap or cause readability issues)
- * Consider it long if it has 5+ tokens or estimated character length > 30
- */
-function isLongFormula(tokens: RollResult["tokens"]): boolean {
-  if (tokens.length >= 5) return true;
-  const formulaText = formatFormulaCompact(tokens);
-  return formulaText.length > 30;
+/** ADV / DIS / who could see it — the two things a total alone cannot say. */
+function badgesFor(roll: RollLogEntry): string[] {
+  const badges: string[] = [];
+  if (roll.mode === "advantage") badges.push("ADV");
+  if (roll.mode === "disadvantage") badges.push("DIS");
+  if (roll.visibility === "dm") badges.push("DM ONLY");
+  if (roll.visibility === "self") badges.push("PRIVATE");
+  return badges;
 }
 
 /**
@@ -53,8 +40,13 @@ export const RollEntry: React.FC<{
   onViewRoll: (roll: RollLogEntry) => void;
 }> = ({ roll, onViewRoll }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const isLong = isLongFormula(roll.tokens);
-  const formulaText = formatFormulaCompact(roll.tokens);
+  // The formula is the SERVER's canonical string now, and the breakdown
+  // carries each term's die. Both used to be read off a `tokens` array that
+  // history entries never had — which is why every row in this log rendered a
+  // blank formula line in production.
+  const isLong = isLongFormula(roll);
+  const formulaText = roll.formula;
+  const badges = badgesFor(roll);
 
   return (
     <div
@@ -93,6 +85,22 @@ export const RollEntry: React.FC<{
           }}
         >
           {sanitizeText(roll.playerName)}
+          {badges.map((badge) => (
+            <span
+              key={badge}
+              data-testid="roll-badge"
+              style={{
+                marginLeft: "6px",
+                padding: "1px 4px",
+                fontSize: "8px",
+                border: "1px solid var(--jrpg-border-gold)",
+                color: "var(--jrpg-white)",
+                opacity: 0.8,
+              }}
+            >
+              {badge}
+            </span>
+          ))}
         </div>
         <div
           className="jrpg-text-small"
@@ -159,31 +167,30 @@ export const RollEntry: React.FC<{
                 lineHeight: "1.6",
               }}
             >
-              {roll.tokens.map((token, idx) => (
-                <React.Fragment key={token.id}>
-                  {idx > 0 && token.kind === "mod" && token.value >= 0 && (
-                    <span style={{ opacity: 0.7 }}>+</span>
-                  )}
-                  {idx > 0 && token.kind === "mod" && token.value < 0 && (
-                    <span style={{ opacity: 0.7 }}>−</span>
-                  )}
-                  {token.kind === "die" ? (
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "2px",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      <span style={{ fontSize: "12px" }}>{DIE_SYMBOLS[token.die]}</span>
-                      <span>{token.qty > 1 ? `${token.qty}${token.die}` : token.die}</span>
-                    </span>
-                  ) : (
-                    <span style={{ whiteSpace: "nowrap" }}>{Math.abs(token.value)}</span>
-                  )}
-                </React.Fragment>
-              ))}
+              {roll.perDie.map((term, idx) => {
+                const qty = term.rolls?.length ?? 0;
+                const negated = term.subtotal < 0;
+                return (
+                  <React.Fragment key={term.tokenId}>
+                    {idx > 0 && <span style={{ opacity: 0.7 }}>{negated ? "−" : "+"}</span>}
+                    {term.die ? (
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "2px",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <span style={{ fontSize: "12px" }}>{DIE_SYMBOLS[term.die]}</span>
+                        <span>{qty > 1 ? `${qty}${term.die}` : term.die}</span>
+                      </span>
+                    ) : (
+                      <span style={{ whiteSpace: "nowrap" }}>{Math.abs(term.subtotal)}</span>
+                    )}
+                  </React.Fragment>
+                );
+              })}
             </div>
             {isLong && isExpanded && (
               <button

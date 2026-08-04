@@ -39,14 +39,14 @@ export const RollResultContent: React.FC<RollResultContentProps> = ({
             : {}),
         }}
       >
-        {result.perDie.map((roll, index) => {
-          // Defensive check: ensure token exists at this index
-          if (index >= result.tokens.length) {
-            console.warn(`Token missing for roll at index ${index}`);
-            return null;
-          }
-          const token = result.tokens[index];
-          if (!token) return null;
+        {result.perDie.map((roll) => {
+          // Rendered from the breakdown ALONE. This used to pair perDie[i]
+          // with a `tokens[i]` from the build that produced the roll — which
+          // no history entry has, so every roll opened from the log bailed out
+          // here and showed a bare total. The server sends the die and its
+          // faces on the entry itself; nothing else is needed.
+          const qty = roll.rolls?.length ?? 0;
+          const negated = roll.subtotal < 0;
 
           return (
             <div
@@ -63,8 +63,8 @@ export const RollResultContent: React.FC<RollResultContentProps> = ({
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                {/* Token label */}
-                {token.kind === "die" ? (
+                {/* Term label */}
+                {roll.die ? (
                   <div
                     style={{
                       fontSize: "16px",
@@ -72,8 +72,8 @@ export const RollResultContent: React.FC<RollResultContentProps> = ({
                       color: "var(--hero-gold-light)",
                     }}
                   >
-                    {DIE_SYMBOLS[token.die]}{" "}
-                    {token.qty > 1 ? `${token.qty}${token.die}` : token.die}
+                    {DIE_SYMBOLS[roll.die]} {negated ? "−" : ""}
+                    {qty > 1 ? `${qty}${roll.die}` : roll.die}
                   </div>
                 ) : (
                   <div
@@ -83,7 +83,7 @@ export const RollResultContent: React.FC<RollResultContentProps> = ({
                       color: "var(--hero-gold)",
                     }}
                   >
-                    {token.value >= 0 ? `+${token.value}` : token.value}
+                    {roll.subtotal >= 0 ? `+${roll.subtotal}` : roll.subtotal}
                   </div>
                 )}
 
@@ -91,6 +91,22 @@ export const RollResultContent: React.FC<RollResultContentProps> = ({
                 {roll.rolls && roll.rolls.length > 0 && (
                   <div style={{ fontSize: "14px", color: "var(--hero-text-dim)" }}>
                     [{roll.rolls.join(" + ")}]
+                  </div>
+                )}
+
+                {/* What advantage/disadvantage threw away */}
+                {roll.dropped && roll.dropped.length > 0 && (
+                  <div
+                    data-testid="roll-dropped"
+                    title="Discarded by advantage/disadvantage"
+                    style={{
+                      fontSize: "14px",
+                      color: "var(--hero-text-dim)",
+                      opacity: 0.6,
+                      textDecoration: "line-through",
+                    }}
+                  >
+                    [{roll.dropped.join(" + ")}]
                   </div>
                 )}
               </div>

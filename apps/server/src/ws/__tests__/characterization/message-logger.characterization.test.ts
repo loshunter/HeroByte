@@ -172,15 +172,7 @@ describe("Message Logging Characterization Tests", () => {
         consoleErrorSpy.mockClear();
         const message: ClientMessage = {
           t: "dice-roll",
-          roll: {
-            id: "roll-1",
-            playerUid: "sender-789",
-            playerName: "Sender",
-            formula: "1d20",
-            total: 15,
-            breakdown: [{ tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 }],
-            timestamp: 1700000000000,
-          },
+          formula: "1d20",
         };
 
         errorHandler.handleError(error, message, "sender-789");

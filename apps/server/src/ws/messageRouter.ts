@@ -229,7 +229,7 @@ export class MessageRouter {
     );
     this.selectionMessageHandler = new SelectionMessageHandler(selectionService, roomService);
     this.selectionDispatcher = new SelectionDispatcher(this.selectionMessageHandler);
-    this.diceMessageHandler = new DiceMessageHandler(diceService);
+    this.diceMessageHandler = new DiceMessageHandler(diceService, playerService);
     this.diceDispatcher = new DiceDispatcher(this.diceMessageHandler);
     // Chat has no injected service of its own: it is stateless beyond the
     // room's own chatLog, so the router owns the instance.

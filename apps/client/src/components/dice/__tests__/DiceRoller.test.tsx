@@ -13,15 +13,34 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act, within } from "@testing-library/react";
 import { DiceRoller } from "../DiceRoller";
-import type { Build, Token } from "../types";
+import type { RollLogEntry } from "../rollLogTypes";
+import { DIE_SYMBOLS } from "../types";
 
-// Mock dice logic
-const mockRollBuild = vi.fn();
-vi.mock("../diceLogic", () => ({
-  rollBuild: (build: Build) => mockRollBuild(build),
-}));
+// No diceLogic mock any more: nothing random happens on this side. The roller
+// sends a formula and the SERVER answers, which arrives as `latestOwnRoll`.
+function serverRoll(id: string, total = 15): RollLogEntry {
+  return {
+    id,
+    playerUid: "me",
+    playerName: "Me",
+    formula: "d20",
+    perDie: [{ tokenId: "t0", die: "d20", rolls: [total], subtotal: total }],
+    total,
+    timestamp: 0,
+  };
+}
+
+/**
+ * The build strip only.
+ *
+ * These assertions used to be `screen.getByText("d20")` — which matched the
+ * ADD D20 button in the dice bar, present from the first render, so they
+ * passed before any die was added and could not fail. The strip renders a die
+ * as its SYMBOL, so that is what proves a token is really in the build.
+ */
+const strip = () => within(screen.getByTestId("dice-build-strip"));
 
 describe("DiceRoller", () => {
   const mockOnClose = vi.fn();
@@ -30,18 +49,6 @@ describe("DiceRoller", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
-    mockRollBuild.mockImplementation((build: Build) => ({
-      id: `roll-${Date.now()}`,
-      tokens: build,
-      perDie: build.map((token: Token) => ({
-        tokenId: token.id,
-        die: token.kind === "die" ? token.die : undefined,
-        rolls: token.kind === "die" ? [10] : undefined,
-        subtotal: token.kind === "die" ? 10 : token.value,
-      })),
-      total: 15,
-      timestamp: Date.now(),
-    }));
   });
 
   afterEach(() => {
@@ -71,7 +78,7 @@ describe("DiceRoller", () => {
     it("should render Roll button disabled when empty", () => {
       render(<DiceRoller onClose={mockOnClose} onRoll={mockOnRoll} />);
 
-      const rollButton = screen.getByRole("button", { name: /roll/i });
+      const rollButton = screen.getByRole("button", { name: /roll dice/i });
       expect(rollButton).toBeDisabled();
     });
 
@@ -89,7 +96,7 @@ describe("DiceRoller", () => {
       fireEvent.click(screen.getByRole("button", { name: /add d20/i }));
 
       expect(screen.queryByText(/add dice to start building/i)).not.toBeInTheDocument();
-      expect(screen.getByText("d20")).toBeInTheDocument();
+      expect(strip().getByText(DIE_SYMBOLS.d20)).toBeInTheDocument();
     });
 
     it("should add multiple different dice", () => {
@@ -98,8 +105,8 @@ describe("DiceRoller", () => {
       fireEvent.click(screen.getByRole("button", { name: /add d20/i }));
       fireEvent.click(screen.getByRole("button", { name: /add d6/i }));
 
-      expect(screen.getByText("d20")).toBeInTheDocument();
-      expect(screen.getByText("d6")).toBeInTheDocument();
+      expect(strip().getByText(DIE_SYMBOLS.d20)).toBeInTheDocument();
+      expect(strip().getByText(DIE_SYMBOLS.d6)).toBeInTheDocument();
     });
 
     it("should enable Roll button when dice are added", () => {
@@ -107,7 +114,7 @@ describe("DiceRoller", () => {
 
       fireEvent.click(screen.getByRole("button", { name: /add d20/i }));
 
-      const rollButton = screen.getByRole("button", { name: /roll/i });
+      const rollButton = screen.getByRole("button", { name: /roll dice/i });
       expect(rollButton).not.toBeDisabled();
     });
   });
@@ -126,7 +133,7 @@ describe("DiceRoller", () => {
 
       fireEvent.click(screen.getByRole("button", { name: /add \+1 modifier/i }));
 
-      const rollButton = screen.getByRole("button", { name: /roll/i });
+      const rollButton = screen.getByRole("button", { name: /roll dice/i });
       expect(rollButton).not.toBeDisabled();
     });
   });
@@ -136,7 +143,7 @@ describe("DiceRoller", () => {
       render(<DiceRoller onClose={mockOnClose} onRoll={mockOnRoll} />);
 
       fireEvent.click(screen.getByRole("button", { name: /add d20/i }));
-      const rollButton = screen.getByRole("button", { name: /roll/i });
+      const rollButton = screen.getByRole("button", { name: /roll dice/i });
 
       fireEvent.click(rollButton);
 
@@ -147,11 +154,73 @@ describe("DiceRoller", () => {
       render(<DiceRoller onClose={mockOnClose} onRoll={mockOnRoll} />);
 
       fireEvent.click(screen.getByRole("button", { name: /add d20/i }));
-      const rollButton = screen.getByRole("button", { name: /roll/i });
+      const rollButton = screen.getByRole("button", { name: /roll dice/i });
 
       expect(rollButton).not.toBeDisabled();
       fireEvent.click(rollButton);
-      expect(rollButton).toBeDisabled(); // Disabled during animation
+      expect(rollButton).toBeDisabled(); // Disabled while the answer is in flight
+    });
+
+    it("sends the formula and no result of its own", () => {
+      render(<DiceRoller onClose={mockOnClose} onRoll={mockOnRoll} />);
+
+      fireEvent.click(screen.getByRole("button", { name: /add d20/i }));
+      fireEvent.click(screen.getByRole("button", { name: /add \+1 modifier/i }));
+      fireEvent.click(screen.getByRole("button", { name: /roll dice/i }));
+
+      expect(mockOnRoll).toHaveBeenCalledWith({
+        formula: "d20 + 1",
+        mode: "normal",
+        visibility: "public",
+      });
+    });
+
+    it("shows the SERVER's total when the snapshot brings it back", () => {
+      const { rerender } = render(
+        <DiceRoller onClose={mockOnClose} onRoll={mockOnRoll} latestOwnRoll={null} />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: /add d20/i }));
+      fireEvent.click(screen.getByRole("button", { name: /roll dice/i }));
+      rerender(
+        <DiceRoller
+          onClose={mockOnClose}
+          onRoll={mockOnRoll}
+          latestOwnRoll={serverRoll("r1", 17)}
+        />,
+      );
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+
+      expect(screen.getByTestId("roll-result-total").textContent).toBe("17");
+    });
+
+    it("carries advantage and visibility from the option toggles", () => {
+      render(<DiceRoller onClose={mockOnClose} onRoll={mockOnRoll} />);
+
+      fireEvent.click(screen.getByRole("button", { name: /add d20/i }));
+      fireEvent.click(screen.getByRole("button", { name: "DIS" }));
+      fireEvent.click(screen.getByRole("button", { name: "DM" }));
+      fireEvent.click(screen.getByRole("button", { name: /roll dice/i }));
+
+      expect(mockOnRoll).toHaveBeenCalledWith({
+        formula: "d20",
+        mode: "disadvantage",
+        visibility: "dm",
+      });
+    });
+
+    it("rolls a built-in macro with the macro's own mode", () => {
+      render(<DiceRoller onClose={mockOnClose} onRoll={mockOnRoll} />);
+
+      fireEvent.click(screen.getByRole("button", { name: "ADV d20" }));
+
+      expect(mockOnRoll).toHaveBeenCalledWith({
+        formula: "d20",
+        mode: "advantage",
+        visibility: "public",
+      });
     });
   });
 
@@ -160,7 +229,7 @@ describe("DiceRoller", () => {
       render(<DiceRoller onClose={mockOnClose} onRoll={mockOnRoll} />);
 
       fireEvent.click(screen.getByRole("button", { name: /add d20/i }));
-      expect(screen.getByText("d20")).toBeInTheDocument();
+      expect(strip().getByText(DIE_SYMBOLS.d20)).toBeInTheDocument();
 
       // Should have clear button
       expect(screen.getByRole("button", { name: /clear/i })).toBeInTheDocument();
@@ -172,7 +241,7 @@ describe("DiceRoller", () => {
       fireEvent.click(screen.getByRole("button", { name: /add d20/i }));
       fireEvent.click(screen.getByRole("button", { name: /clear/i }));
 
-      const rollButton = screen.getByRole("button", { name: /roll/i });
+      const rollButton = screen.getByRole("button", { name: /roll dice/i });
       expect(rollButton).toBeDisabled();
     });
   });
@@ -185,8 +254,8 @@ describe("DiceRoller", () => {
       fireEvent.click(screen.getByRole("button", { name: /add d6/i }));
       fireEvent.click(screen.getByRole("button", { name: /add \+1 modifier/i }));
 
-      expect(screen.getByText("d20")).toBeInTheDocument();
-      expect(screen.getByText("d6")).toBeInTheDocument();
+      expect(strip().getByText(DIE_SYMBOLS.d20)).toBeInTheDocument();
+      expect(strip().getByText(DIE_SYMBOLS.d6)).toBeInTheDocument();
     });
 
     it("should enable roll button with complex build", () => {
@@ -195,7 +264,7 @@ describe("DiceRoller", () => {
       fireEvent.click(screen.getByRole("button", { name: /add d20/i }));
       fireEvent.click(screen.getByRole("button", { name: /add \+1 modifier/i }));
 
-      const rollButton = screen.getByRole("button", { name: /roll/i });
+      const rollButton = screen.getByRole("button", { name: /roll dice/i });
       expect(rollButton).not.toBeDisabled();
     });
   });
@@ -205,10 +274,10 @@ describe("DiceRoller", () => {
       render(<DiceRoller onClose={mockOnClose} />);
 
       fireEvent.click(screen.getByRole("button", { name: /add d20/i }));
-      fireEvent.click(screen.getByRole("button", { name: /roll/i }));
+      fireEvent.click(screen.getByRole("button", { name: /roll dice/i }));
 
       // Should not throw error - just check component is still there
-      expect(screen.getByText("d20")).toBeInTheDocument();
+      expect(strip().getByText(DIE_SYMBOLS.d20)).toBeInTheDocument();
     });
 
     it("should handle rapid clicking of add buttons", () => {
@@ -221,8 +290,11 @@ describe("DiceRoller", () => {
       fireEvent.click(addD20);
 
       // Should only have one d20 token (with qty=3)
-      const tokens = screen.getAllByText("d20");
-      expect(tokens).toHaveLength(1);
+      // One token, carrying all three: addDie increments rather than appending,
+      // and now does it with a functional update, so a batched burst cannot
+      // drop one of the clicks.
+      expect(strip().getAllByText(DIE_SYMBOLS.d20)).toHaveLength(1);
+      expect(strip().getByText("×3")).toBeInTheDocument();
     });
   });
 });

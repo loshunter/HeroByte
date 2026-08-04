@@ -6,9 +6,9 @@
 // The signature that matters is addMessage's: it takes `authorUid` and
 // `authorName` as SEPARATE arguments from the text, and the only caller
 // passes them from the connection. There is deliberately no overload that
-// accepts a whole client-built ChatMessage — that shape is what makes dice
-// forgeable (arc defect D2), and refusing to offer it is what stops the
-// same mistake being made here by accident.
+// accepts a whole client-built ChatMessage — that shape is what MADE dice
+// forgeable (arc defect D2, fixed in S5 by removing it), and refusing to
+// offer it is what stops the same mistake being made here by accident.
 
 import { randomUUID } from "node:crypto";
 import type { ChatMessage } from "@herobyte/shared";

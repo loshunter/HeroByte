@@ -133,7 +133,7 @@ export function toSnapshot(
     pointers: view.pointers,
     gridSize: state.gridSize,
     gridSquareSize: state.gridSquareSize,
-    diceRolls: state.diceRolls,
+    diceRolls: view.diceRolls,
     chatLog: view.chatLog,
     sceneObjects: view.sceneObjects,
     selectionState: view.selectionState,

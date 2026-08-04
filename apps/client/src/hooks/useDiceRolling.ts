@@ -4,8 +4,8 @@
  * Manages dice rolling state and functionality including:
  * - Dice roller panel visibility
  * - Roll log panel visibility
- * - Roll history transformation from server snapshot
- * - Roll handling (formula generation and message sending)
+ * - Roll history read from the server snapshot
+ * - Sending roll REQUESTS (the server does the rolling)
  * - Viewing individual rolls from history
  *
  * Extracted from: apps/client/src/ui/App.tsx (lines 14-17, 59-62, 228-230, 235-249, 1017-1078)
@@ -14,9 +14,24 @@
  * @module hooks/useDiceRolling
  */
 
-import { useCallback, useMemo, useRef, useState, useEffect } from "react";
-import type { RoomSnapshot, ClientMessage, ChatMessage } from "@herobyte/shared";
-import type { RollResult, DieType } from "../components/dice/types";
+import { useCallback, useMemo, useState } from "react";
+import type {
+  RoomSnapshot,
+  ClientMessage,
+  ChatMessage,
+  DiceRollMode,
+  DiceVisibility,
+} from "@herobyte/shared";
+import type { RollLogEntry } from "../components/dice/rollLogTypes";
+import type { DieType, RollResult } from "../components/dice/types";
+
+/** What the roller asks the server to roll. Deliberately carries no result. */
+export interface DiceRollRequest {
+  /** Dice notation, e.g. "2d6 + 3". The server parses and rolls it. */
+  formula: string;
+  mode: DiceRollMode;
+  visibility: DiceVisibility;
+}
 
 /**
  * Options for the useDiceRolling hook
@@ -39,9 +54,18 @@ export interface UseDiceRollingReturn {
   /** Whether the roll log panel is open */
   rollLogOpen: boolean;
   /** Currently viewing roll from history (null if not viewing) */
-  viewingRoll: RollResult | null;
+  viewingRoll: RollLogEntry | null;
   /** Array of roll history entries transformed from snapshot */
   rollHistory: RollLogEntry[];
+  /**
+   * The newest roll in history authored by THIS player, or null.
+   *
+   * How the roller learns its own result: it sends a formula and the answer
+   * arrives asynchronously in the next snapshot. Correlating on "my newest
+   * roll" rather than an id works because the roll button is disabled while a
+   * request is in flight, so a player can only ever have one outstanding.
+   */
+  latestOwnRoll: RollLogEntry | null;
   /**
    * Chat visible to THIS player, straight off the snapshot. Whispers meant
    * for other people were already dropped server-side, so there is nothing
@@ -55,20 +79,12 @@ export interface UseDiceRollingReturn {
   toggleDiceRoller: (open: boolean) => void;
   /** Toggle the roll log panel */
   toggleRollLog: (open: boolean) => void;
-  /** Handle a new dice roll from the dice roller */
-  handleRoll: (result: RollResult) => void;
+  /** Ask the server to roll. It answers through the snapshot. */
+  handleRoll: (request: DiceRollRequest) => void;
   /** Clear all roll history */
   handleClearLog: () => void;
   /** View a specific roll from history */
-  handleViewRoll: (roll: RollResult | null) => void;
-}
-
-/**
- * Roll log entry format (extends RollResult with player name)
- */
-export interface RollLogEntry extends RollResult {
-  playerName: string;
-  formula?: string; // Human-readable formula from server
+  handleViewRoll: (roll: RollLogEntry | null) => void;
 }
 
 /**
@@ -82,19 +98,11 @@ export interface RollLogEntry extends RollResult {
  *   uid: 'player-123'
  * });
  *
- * // Use in Header component
- * <Header
- *   diceRollerOpen={diceState.diceRollerOpen}
- *   rollLogOpen={diceState.rollLogOpen}
- *   onDiceRollerToggle={diceState.toggleDiceRoller}
- *   onRollLogToggle={diceState.toggleRollLog}
- *   // ... other props
+ * <DiceRoller
+ *   onRoll={diceState.handleRoll}
+ *   latestOwnRoll={diceState.latestOwnRoll}
+ *   onClose={() => diceState.toggleDiceRoller(false)}
  * />
- *
- * // Render panels conditionally
- * {diceState.diceRollerOpen && (
- *   <DiceRoller onRoll={diceState.handleRoll} onClose={() => diceState.toggleDiceRoller(false)} />
- * )}
  * ```
  */
 export function useDiceRolling({
@@ -108,42 +116,59 @@ export function useDiceRolling({
 
   const [diceRollerOpen, setDiceRollerOpen] = useState(false);
   const [rollLogOpen, setRollLogOpen] = useState(false);
-  const [viewingRoll, setViewingRoll] = useState<RollResult | null>(null);
-
-  // Use ref to maintain stable callback for handleRoll
-  const snapshotRef = useRef(snapshot);
-  useEffect(() => {
-    snapshotRef.current = snapshot;
-  }, [snapshot]);
+  const [viewingRoll, setViewingRoll] = useState<RollLogEntry | null>(null);
 
   // -------------------------------------------------------------------------
   // COMPUTED STATE
   // -------------------------------------------------------------------------
 
   /**
-   * Transform dice rolls from server snapshot to client roll log format
+   * The server's roll history, as the log renders it.
    *
-   * This transformation:
-   * 1. Adds playerName to each roll
-   * 2. Converts breakdown format (casts die field to DieType)
-   * 3. Adds empty tokens array (not needed for display)
+   * Every field here comes off the wire. There is no local reconstruction and
+   * no `tokens` array: the breakdown carries its own die and faces, and the
+   * formula is the string the server actually rolled.
+   *
+   * Nothing is filtered here — rolls another player marked private were never
+   * serialized to this client. A renderer that hides rolls it received would
+   * not be secrecy.
    */
   const rollHistory: RollLogEntry[] = useMemo(() => {
-    return (snapshot?.diceRolls || []).map((roll) => ({
+    const rolls = snapshot?.diceRolls;
+    if (!Array.isArray(rolls)) return [];
+    return rolls.map((roll) => ({
       id: roll.id,
+      playerUid: roll.playerUid,
       playerName: roll.playerName,
-      formula: roll.formula, // Human-readable formula from server
-      tokens: [], // Not needed for display
-      perDie: (roll.breakdown || []).map((b) => ({
+      // Coerced, for the same reason the breakdown is array-guarded below: a
+      // roll with no formula reaches RollEntry's isLongFormula, which reads
+      // `.length` on it inside the render path.
+      formula: typeof roll.formula === "string" ? roll.formula : "",
+      // Array-guarded, not `|| []`: a session file a DM was handed can carry a
+      // truthy non-array here (load-session checks entries are objects, not
+      // their field shapes), and this runs inside a render-path useMemo where
+      // a TypeError takes the whole table's UI down.
+      perDie: (Array.isArray(roll.breakdown) ? roll.breakdown : []).map((b) => ({
         tokenId: b.tokenId,
         die: b.die as DieType | undefined,
         rolls: b.rolls,
+        dropped: b.dropped,
         subtotal: b.subtotal,
       })),
       total: roll.total,
+      mode: roll.mode,
+      visibility: roll.visibility,
       timestamp: roll.timestamp,
     }));
   }, [snapshot]);
+
+  const latestOwnRoll = useMemo(() => {
+    for (let i = rollHistory.length - 1; i >= 0; i--) {
+      const roll = rollHistory[i];
+      if (roll && roll.playerUid === uid) return roll;
+    }
+    return null;
+  }, [rollHistory, uid]);
 
   /** Already recipient-filtered by the server; passed through as-is. */
   const chatMessages: ChatMessage[] = useMemo(() => snapshot?.chatLog ?? [], [snapshot]);
@@ -169,52 +194,28 @@ export function useDiceRolling({
   /**
    * Handle viewing a roll from history
    */
-  const handleViewRoll = useCallback((roll: RollResult | null) => {
+  const handleViewRoll = useCallback((roll: RollLogEntry | null) => {
     setViewingRoll(roll);
   }, []);
 
   /**
-   * Handle a new dice roll from the dice roller
+   * Ask the server to roll a formula.
    *
-   * This function:
-   * 1. Resolves player name from snapshot (or uses "Unknown")
-   * 2. Builds formula string from roll tokens
-   * 3. Sends dice-roll message to server
+   * Note what is NOT sent: a total, a breakdown, an id, a timestamp, a uid or
+   * a name. The server rolls the dice and stamps the author from the
+   * connection, so there is nothing here for a tampered client to lie about
+   * (arc defect D2). This used to send a fully-formed roll, and the server
+   * stored it verbatim.
    */
   const handleRoll = useCallback(
-    (result: RollResult) => {
-      // Get player name from snapshot (using ref for stable callback)
-      const me = snapshotRef.current?.players?.find((p) => p.uid === uid);
-      const playerName = me?.name || "Unknown";
-
-      // Build formula string from tokens
-      const formula = result.tokens
-        .map((t) => {
-          if (t.kind === "die") {
-            // For dice: show quantity if > 1 (e.g., "2d20" vs "d20")
-            return t.qty > 1 ? `${t.qty}${t.die}` : t.die;
-          } else {
-            // For modifiers: show sign explicitly for positive values
-            return t.value >= 0 ? `+${t.value}` : `${t.value}`;
-          }
-        })
-        .join(" ");
-
-      // Broadcast to server
-      sendMessage({
-        t: "dice-roll",
-        roll: {
-          id: result.id,
-          playerUid: uid,
-          playerName,
-          formula,
-          total: result.total,
-          breakdown: result.perDie,
-          timestamp: result.timestamp,
-        },
-      });
+    ({ formula, mode, visibility }: DiceRollRequest) => {
+      if (!formula.trim()) return;
+      const message: ClientMessage = { t: "dice-roll", formula };
+      if (mode !== "normal") message.mode = mode;
+      if (visibility !== "public") message.visibility = visibility;
+      sendMessage(message);
     },
-    [uid, sendMessage],
+    [sendMessage],
   );
 
   /**
@@ -227,10 +228,8 @@ export function useDiceRolling({
   /**
    * Send a chat message.
    *
-   * Note what is NOT sent: any author field. The server stamps identity from
-   * the connection, so there is nothing here for a tampered client to lie
-   * about — unlike handleRoll above, which still ships a client-asserted
-   * playerUid (arc defect D2, fixed in S5).
+   * Like handleRoll above, it carries no author field: the server stamps
+   * identity from the connection.
    */
   const handleSendChat = useCallback(
     (text: string, to?: string) => {
@@ -250,6 +249,7 @@ export function useDiceRolling({
     rollLogOpen,
     viewingRoll,
     rollHistory,
+    latestOwnRoll,
     chatMessages,
     toggleDiceRoller,
     toggleRollLog,
@@ -259,3 +259,5 @@ export function useDiceRolling({
     handleSendChat,
   };
 }
+
+export type { RollLogEntry, RollResult };

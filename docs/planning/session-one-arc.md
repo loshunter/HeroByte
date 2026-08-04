@@ -1,12 +1,14 @@
 # Session One — the table runs a whole game without leaving it
 
-**Status:** S0–S4 SHIPPED. S0–S3 are deployed to production (dev→main `1dc00e00`, 2026-08-04);
-S4 (token nameplates + HP bars + DM monster-HP redaction) is on `dev`, CI green, awaiting the next
-deploy. Two slices grew beyond plan under adversarial review: S3's reclaim became
-condemn/resurrect/expire (grace-windowed deletion, `HEROBYTE_ASSET_RECLAIM_GRACE_HOURS`) and its
-quota fossil is now statfs-derived; S4 closed a pre-existing hole where any player could rewrite
-any character's HP. Next: S5 (honest dice). Runs before the damage loop, mobile authoring, and the
-Atlas.
+**Status:** S0–S5 SHIPPED. S0–S3 are deployed to production (dev→main `1dc00e00`, 2026-08-04);
+S4 (token nameplates + HP bars + DM monster-HP redaction) and S5 (honest dice) are on `dev`, CI
+green, awaiting the next deploy. Three slices grew beyond plan under adversarial review: S3's
+reclaim became condemn/resurrect/expire (grace-windowed deletion,
+`HEROBYTE_ASSET_RECLAIM_GRACE_HOURS`) and its quota fossil is now statfs-derived; S4 closed a
+pre-existing hole where any player could rewrite any character's HP; S5 turned out to require
+rewriting the roll display, because the log had been rendering a blank formula and no breakdown
+for every historical roll. Next: S6 (distance and templates). Runs before the damage loop, mobile
+authoring, and the Atlas.
 
 **Thesis.** The hardest thing is built — live on-table authoring, server-compiled scenes with real
 wall collision, per-recipient fog filtering with contract-test proof. What is missing is the part
@@ -249,23 +251,68 @@ only what the vision filter already gave them — do not add a new privacy path.
 and bar into their own module; `TokensLayer.tsx` is ~807 LOC and renaming it would make it a _new_
 guard violator.
 
-### S5 🟡 — Honest dice (3–4 days)
+### S5 ✅ — Honest dice — SHIPPED
 
-Move evaluation server-side: the client sends a formula, the server rolls, computes the total, and
-stamps `playerUid`/`playerName` from the connection. Add `visibility: "public" | "dm" | "self"` and
-filter in the snapshot. Advantage/disadvantage first-class; a few saved macros.
+Evaluation moved server-side. `{ t: "dice-roll" }` now carries `formula` + optional
+`mode`/`visibility` and **nothing else** — no total, no breakdown, no uid, no name — so there is
+nothing on the wire for a tampered client to lie about. The server parses, rolls with
+`node:crypto.randomInt`, and stamps the author from the connection.
 
-**Tests.** Golden-seed determinism; a **forgery test** (client sends `total: 999` and another
-player's uid → the server's numbers and the server's author win); a private-roll secrecy test.
+**The wire format decision.** Shared owns the NOTATION (`packages/shared/src/dice.ts`:
+`parseDiceFormula`, `formatDiceTerms`, `DICE_LIMITS`); the server owns the RANDOMNESS
+(`apps/server/src/domains/dice/roller.ts`, one caller). A roller in `shared` would be an
+invitation to roll on the client again "just for the preview", and the second caller is the one
+that puts D2 back. The parser is also the validator — `diceValidators.ts` calls the same function
+the handler does, so no formula the gate admits can choke the roller.
 
-**Done when.** Devtools cannot change a roll, its total, or its author.
+**Advantage** applies to the FIRST die term, rolled twice at full quantity, better/worse SUBTOTAL
+kept; the discarded set survives as `breakdown[].dropped` and renders struck through. A formula
+with no dice reports `mode: "normal"` rather than badging a roll where nothing was doubled.
 
-**Traps.** The dispatcher does not pass the sender uid into the handler — a signature change. The
-test that pins the old shape is `apps/server/src/ws/__tests__/messageRouter.test.ts:847`
-(`expect(mockDiceService.addRoll).toHaveBeenCalledWith(mockState, roll)`), **not** in the
-characterization folder. The client half is larger than it looks: the client's roll model is a
-structured token array and `formula` is only a display string built in `useDiceRolling.ts`, so
-"send the formula" means designing a wire format first. Size accordingly.
+**Visibility** (`public` / `dm` / `self`) is filtered in `visibleRollsFor` inside
+`recipientFilter.ts` — whole records dropped, not blanked, because the numbers ARE the secret.
+Fails closed on an unidentified recipient (so a table fork carries only public rolls) and on an
+unrecognized visibility string (so a corrupt state file cannot promote a secret roll). `self`
+excludes the DM, matching the whisper rule: a DM is a player at the table, not an auditor. The
+session export strips non-public rolls in `flattenForFile`, beside the existing whisper strip.
+
+**Macros** are client-local (localStorage), with four built-ins. A macro is a personal shortcut;
+putting it in `RoomState` would mean a new persisted collection and a per-player namespace inside
+shared state for something whose value is that it is yours. Documented as not following you to
+another device.
+
+**Grew beyond plan — the client display was already broken.** History entries have no build, and
+both renderers paired `perDie[i]` with `tokens[i]`: every log row showed a blank formula and every
+roll opened from the log showed a bare total with `console.warn("Token missing…")`. Fixed by
+rendering from the breakdown alone, which the server now makes self-describing. Also fixed:
+clicking a log row opened a second, empty `<DiceRoller>` (`viewingRoll` read as a boolean) instead
+of the breakdown — and that roller could fire real rolls into a no-op `onRoll`. Four separate
+declarations of `RollLogEntry` that disagreed about whether `formula` existed were collapsed into
+one.
+
+**Mobile shipped in-slice** (§7a): `useDiceBuild` is now shared by both rollers, so
+`MobileDiceRoller` gained the roll SFX and crit sting it had silently lacked, plus the same
+options and macros. The dock stayed at five buttons.
+
+**Tests.** Golden-seed determinism (`diceRoller.test.ts` pins the exact faces for seed 1234);
+`diceSecrecy.contract.test.ts` — forgery (a smuggled `total`/`playerUid`/`playerName`/`id` all
+lose, and the claimed number appears in no socket's bytes) and private-roll secrecy on raw bytes,
+including the `DisconnectionCleanupManager` regression and the fork/export seeds; parser ceilings
+in `packages/shared`; two e2e — devtools forgery through the real socket, and a two-browser test
+that a `self` roll never reaches the other client. Seven code sabotages and two e2e sabotages were
+each confirmed to turn these red.
+
+**Traps that cost time.** The old `getByText("d20")` assertions in `DiceRoller.test.tsx` were
+matching the ADD D20 **button**, not the build strip — they passed before any die was added and
+could not fail; the strip renders a die as its SYMBOL. `screen.getByText` collides between the
+build strip and the macro bar, hence `data-testid="dice-build-strip"`. Giving the mobile ROLL
+button an `aria-label` (to match desktop) broke `mobile-layout.spec.ts`, which matched on the
+visible `ROLL!` text. `FloatingPanelsLayout` crossed 350 LOC and the dice panels were extracted to
+`layouts/DicePanels.tsx`.
+
+**Left for its own commit** (house rule): `clear-roll-history` had no permission check at all —
+any player could wipe the table's roll history — and `StatePersistence` loaded `diceRolls` with a
+bare `|| []`, so a poisoned non-array survived restart. Both fixed separately.
 
 ### S6 🟡 — Distance and templates the table agrees on (2–3 days)
 

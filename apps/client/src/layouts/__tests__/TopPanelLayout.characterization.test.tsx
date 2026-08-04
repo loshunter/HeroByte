@@ -360,6 +360,7 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
     handleSendChat: vi.fn(),
     viewingRoll: null,
     handleRoll: vi.fn(),
+    latestOwnRoll: null,
     handleClearLog: vi.fn(),
     handleViewRoll: vi.fn(),
 

@@ -179,6 +179,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     handleSendChat,
     viewingRoll,
     handleRoll,
+    latestOwnRoll,
     handleClearLog,
     handleViewRoll,
 
@@ -437,6 +438,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         diceRollerOpen={diceRollerOpen}
         toggleDiceRoller={toggleDiceRoller}
         handleRoll={handleRoll}
+        latestOwnRoll={latestOwnRoll}
         rollLogOpen={rollLogOpen}
         rollHistory={rollHistory}
         chatMessages={chatMessages}

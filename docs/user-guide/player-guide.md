@@ -71,7 +71,8 @@ Press **⚂ DICE** for the roller and **📜 LOG** for the shared history.
 
 1. Click dice to add them to the tray — **d4, d6, d8, d10, d12, d20, d100** — and click again for more of the same (a `×N` badge appears; click the badge to type an exact count).
 2. Add **+1 / −1** modifier chips; click a chip to type any value (−99 to +99).
-3. Press **⚂ ROLL!**
+3. Pick **NORMAL / ADV / DIS** and **TABLE / DM / ME** (below).
+4. Press **⚂ ROLL!**
 
 The dice tumble, land with a satisfying rattle, and the result panel breaks down every die:
 
@@ -79,6 +80,36 @@ The dice tumble, land with a satisfying rattle, and the result panel breaks down
 
 - Natural 20 on a d20 → a gold **★ CRITICAL! ★** banner (and a sting). Natural 1 → **✖ FUMBLE! ✖**.
 - Every roll lands in the **📜 ROLL LOG** with your name, timestamp, formula, and total — shared with the whole table, newest first. Long formulas collapse; click an entry for its full breakdown.
+
+### Advantage and disadvantage
+
+**ADV** rolls the first die of your formula twice and keeps the higher; **DIS** keeps the
+lower. The discarded dice stay in the breakdown, struck through, so you can see what you
+got away with. The log tags the entry **ADV** or **DIS**.
+
+### Who sees a roll
+
+- **TABLE** — everyone. The default.
+- **DM** — you and the DM only.
+- **ME** — you only, the DM included.
+
+A hidden roll is not merely hidden in other people's app: it is never sent to them. Their
+browser has no copy to find. (Within reason: this protects you from the other people at
+your table, not from someone determined to impersonate one of them — HeroByte identifies
+players by a browser-supplied id today.)
+
+### Macros
+
+**d20**, **ADV d20**, **DIS d20** and **2d6** are always there. Build any roll and press
+**+ SAVE** to name it and keep it. Saved macros live in **this browser** — they do not
+follow you to another device.
+
+### The dice are the server's
+
+You do not roll — the server does. Your browser sends the formula ("2d20 + 5") and nothing
+else; the server rolls it, adds it up, and stamps your name on it from your connection.
+There is no number in the message for a modified client to change, and no name field to
+put someone else's in.
 
 ## Drawing, measuring, pointing
 

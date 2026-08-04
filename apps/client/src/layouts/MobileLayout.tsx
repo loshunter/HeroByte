@@ -82,6 +82,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     handleSendChat,
     viewingRoll,
     handleRoll,
+    latestOwnRoll,
     handleClearLog,
     handleViewRoll,
     diceRollerOpen,
@@ -261,7 +262,11 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
 
       {/* Mobile Dice Roller Overlay */}
       {diceRollerOpen && (
-        <MobileDiceRoller onRoll={handleRoll} onClose={() => toggleDiceRoller(false)} />
+        <MobileDiceRoller
+          onRoll={handleRoll}
+          latestOwnRoll={latestOwnRoll}
+          onClose={() => toggleDiceRoller(false)}
+        />
       )}
 
       {/* Mobile Entities List Overlay */}

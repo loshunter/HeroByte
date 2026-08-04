@@ -15,6 +15,7 @@
 
 import type {
   ChatMessage,
+  DiceRoll,
   Pointer,
   Prop,
   SceneObject,
@@ -22,7 +23,7 @@ import type {
   SnapshotCharacter,
   Token,
 } from "@herobyte/shared";
-import { gridCellToWorldPoint, hpBadgeFor } from "@herobyte/shared";
+import { coerceDiceVisibility, gridCellToWorldPoint, hpBadgeFor } from "@herobyte/shared";
 import type { RoomState } from "../model.js";
 import { selectionMapToRecord } from "../selectionSerialization.js";
 import { createVisionContext, isWorldPointVisible } from "../scene/visionFilter.js";
@@ -39,6 +40,8 @@ export interface RecipientView {
   currentTurnCharacterId: string | undefined;
   /** Chat with other people's whispers removed. */
   chatLog: ChatMessage[];
+  /** Roll history with other people's private rolls removed. */
+  diceRolls: DiceRoll[];
 }
 
 /**
@@ -83,6 +86,50 @@ export function visibleChatFor(chatLog: ChatMessage[], recipientUid?: string): C
     if (!message.to) return true; // public
     if (!recipientUid) return false; // fail closed
     return message.to === recipientUid || message.authorUid === recipientUid;
+  });
+}
+
+/**
+ * Rolls this recipient is entitled to, whole records — a hidden roll is absent
+ * from the payload, not blanked in it. The numbers ARE the secret, so there is
+ * nothing to redact down to.
+ *
+ * FAILS CLOSED, for the same reasons as visibleChatFor above and then one
+ * more: `createSnapshot()` (no uid, isDM defaulting to true) is what seeds a
+ * table fork, so "no identified recipient" must mean "public rolls only" or a
+ * fork would carry the previous table's secret rolls into a new one.
+ *
+ * `dm` visibility is the one place a DM IS privileged, and deliberately so:
+ * "roll it to the DM" is a request addressed to them, the way a whisper is
+ * addressed to a player. `self` grants nothing to anyone — a DM is a player at
+ * the table, not an auditor of everyone's private dice, which is the same call
+ * visibleChatFor makes for whispers.
+ *
+ * Unknown visibility strings collapse to `self` (coerceDiceVisibility), so a
+ * corrupt or forward-dated state file cannot turn a secret roll into a
+ * broadcast one.
+ *
+ * Same identity bound as whispers: `uid` is CLIENT-SUPPLIED, so a private roll
+ * is private FROM the other people at your table, not from someone willing to
+ * reconnect under another player's uid. Do not describe it to users as secure
+ * against a table member.
+ */
+export function visibleRollsFor(
+  diceRolls: DiceRoll[],
+  isDM: boolean,
+  recipientUid?: string,
+): DiceRoll[] {
+  // Defence in depth, exactly as visibleChatFor: this runs inside the
+  // DEBOUNCED broadcast timer, outside route()'s try/catch, in a process with
+  // no uncaughtException handler. A persisted non-array would otherwise kill
+  // the process serving every room, on every restart.
+  if (!Array.isArray(diceRolls)) return [];
+  return diceRolls.filter((roll) => {
+    const visibility = coerceDiceVisibility(roll.visibility);
+    if (visibility === "public") return true;
+    if (!recipientUid) return false; // fail closed
+    if (roll.playerUid === recipientUid) return true;
+    return visibility === "dm" && isDM;
   });
 }
 
@@ -277,5 +324,6 @@ export function buildRecipientView(
     selectionState: visibleSelection,
     currentTurnCharacterId: visibleTurnCharacterId,
     chatLog: visibleChatFor(state.chatLog, recipientUid),
+    diceRolls: visibleRollsFor(state.diceRolls, isDM, recipientUid),
   };
 }

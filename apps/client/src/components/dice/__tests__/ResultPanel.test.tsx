@@ -20,6 +20,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ResultPanel } from "../ResultPanel";
 import type { RollResult, Token, DieType } from "../types";
+import { formulaFromBuild } from "../diceLogic";
 import { DIE_SYMBOLS } from "../types";
 
 // ============================================================================
@@ -82,9 +83,13 @@ function createRollResult(
   perDie: RollResult["perDie"],
   total: number,
 ): RollResult {
+  // `tokens` no longer rides on a RollResult — the breakdown carries each
+  // term's die and faces. Kept as a parameter so the ~40 call sites below
+  // still read as "this build produced this breakdown", and used for the
+  // formula string the panel now shows.
   return {
     id: "result-1",
-    tokens,
+    formula: formulaFromBuild(tokens),
     perDie,
     total,
     timestamp: Date.now(),
@@ -571,77 +576,77 @@ describe("ResultPanel", () => {
   // GROUP 6: Defensive Checks
   // ==========================================================================
 
-  describe("Defensive Checks", () => {
-    it("should handle missing token for roll (console.warn)", () => {
-      // Create result where perDie has more entries than tokens
-      const result = createRollResult(
-        [createDieToken("d20")], // Only 1 token
-        [
-          { tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 },
-          { tokenId: "token-2", die: "d6", rolls: [4], subtotal: 4 }, // No matching token
+  describe("Breakdown needs no build", () => {
+    // This group used to assert the OPPOSITE: that a perDie entry with no
+    // matching `tokens[i]` was skipped with a console.warn. That "defensive
+    // check" was the bug — every roll opened from the log has no tokens at
+    // all, so the whole breakdown vanished and only the total rendered. The
+    // breakdown is now self-describing.
+    it("renders every term of a roll that carries no build at all", () => {
+      const result: RollResult = {
+        id: "from-history",
+        formula: "d20 + 5",
+        perDie: [
+          { tokenId: "t0", die: "d20", rolls: [15], subtotal: 15 },
+          { tokenId: "t1", subtotal: 5 },
         ],
-        19,
-      );
+        total: 20,
+        timestamp: Date.now(),
+      };
 
       render(<ResultPanel result={result} onClose={vi.fn()} />);
 
-      expect(console.warn).toHaveBeenCalledWith("Token missing for roll at index 1");
+      expect(screen.getByText(/d20/)).toBeInTheDocument();
+      expect(screen.getByText("[15]")).toBeInTheDocument();
+      expect(screen.getByText("+5")).toBeInTheDocument();
+      expect(screen.getByTestId("roll-result-total")).toHaveTextContent("20");
+      expect(console.warn).not.toHaveBeenCalled();
     });
 
-    it("should not crash when token is missing", () => {
-      const result = createRollResult(
-        [createDieToken("d20")],
-        [
-          { tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 },
-          { tokenId: "token-2", die: "d6", rolls: [4], subtotal: 4 },
-        ],
-        19,
-      );
-
-      expect(() => render(<ResultPanel result={result} onClose={vi.fn()} />)).not.toThrow();
-    });
-
-    it("should handle token being null", () => {
-      const result = createRollResult(
-        [createDieToken("d20"), null as unknown as Token],
-        [
-          { tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 },
-          { tokenId: "token-2", die: "d6", rolls: [4], subtotal: 4 },
-        ],
-        19,
-      );
-
-      expect(() => render(<ResultPanel result={result} onClose={vi.fn()} />)).not.toThrow();
-    });
-
-    it("should not render null token", () => {
-      const result = createRollResult(
-        [createDieToken("d20"), null as unknown as Token],
-        [
-          { tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 },
-          { tokenId: "token-2", die: "d6", rolls: [4], subtotal: 4 },
-        ],
-        19,
-      );
-
-      const { container } = render(<ResultPanel result={result} onClose={vi.fn()} />);
-
-      // Should only render one die (d20), not the null token
-      expect(container.textContent).toContain("d20");
-      expect(container.textContent).not.toContain("d6");
-    });
-
-    it("should handle token index out of bounds", () => {
+    it("reads a term's quantity from its faces", () => {
       const result: RollResult = {
-        id: "result-1",
-        tokens: [], // Empty tokens array
-        perDie: [{ tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 }],
-        total: 15,
+        id: "from-history",
+        formula: "3d6",
+        perDie: [{ tokenId: "t0", die: "d6", rolls: [1, 2, 3], subtotal: 6 }],
+        total: 6,
+        timestamp: Date.now(),
+      };
+
+      render(<ResultPanel result={result} onClose={vi.fn()} />);
+
+      expect(screen.getByText(/3d6/)).toBeInTheDocument();
+    });
+
+    it("shows what advantage threw away, and marks a subtracted die", () => {
+      const result: RollResult = {
+        id: "adv",
+        formula: "d20 - d4",
+        mode: "advantage",
+        perDie: [
+          { tokenId: "t0", die: "d20", rolls: [18], dropped: [3], subtotal: 18 },
+          { tokenId: "t1", die: "d4", rolls: [2], subtotal: -2 },
+        ],
+        total: 16,
+        timestamp: Date.now(),
+      };
+
+      render(<ResultPanel result={result} onClose={vi.fn()} />);
+
+      expect(screen.getByTestId("roll-dropped")).toHaveTextContent("[3]");
+      expect(screen.getByText(/−d4/)).toBeInTheDocument();
+    });
+
+    it("renders an empty breakdown as a bare total instead of throwing", () => {
+      const result: RollResult = {
+        id: "empty",
+        formula: "+0",
+        perDie: [],
+        total: 0,
         timestamp: Date.now(),
       };
 
       expect(() => render(<ResultPanel result={result} onClose={vi.fn()} />)).not.toThrow();
-      expect(console.warn).toHaveBeenCalledWith("Token missing for roll at index 0");
+      expect(screen.getByTestId("roll-result-total")).toHaveTextContent("0");
     });
   });
 
@@ -827,10 +832,10 @@ describe("ResultPanel", () => {
   // ==========================================================================
 
   describe("Edge Cases", () => {
-    it("should handle result with no tokens or perDie entries", () => {
+    it("should handle result with no perDie entries", () => {
       const result: RollResult = {
         id: "result-1",
-        tokens: [],
+        formula: "+0",
         perDie: [],
         total: 0,
         timestamp: Date.now(),

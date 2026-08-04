@@ -17,6 +17,7 @@ import { isRecord } from "./validators/index.js";
 // Token validators
 import { validateForkTableMessage } from "./validators/forkValidators.js";
 import { validateChatMessage, validateClearChatLogMessage } from "./validators/chatValidators.js";
+import { validateDiceRollMessage } from "./validators/diceValidators.js";
 import { validateLoadSessionMessage } from "./validators/sessionValidators.js";
 import {
   validateMoveMessage,
@@ -103,7 +104,6 @@ import {
   validateElevateToDmMessage,
   validateSetDmPasswordMessage,
   validateTransformObjectMessage,
-  validateDiceRollMessage,
   validateRequestRoomResyncMessage,
   validateRtcSignalMessage,
 } from "./validators/index.js";

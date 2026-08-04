@@ -2,59 +2,53 @@
 // MOBILE DICE ROLLER
 // ============================================================================
 // Full-screen overlay dice roller optimized for touch devices.
+//
+// It shares useDiceBuild with the desktop roller, so the two cannot drift
+// again — the previous copy-paste is why phones rolled in silence for months
+// (no rattle, no crit sting) while the desktop had all of it. Advantage,
+// visibility and macros land here in the same slice, not as a follow-up: the
+// dock is a hardcoded 5-column grid and a new control has nowhere else to go.
 
-import React, { useState } from "react";
-import type { Build, DieType, RollResult } from "./types";
-import { rollBuild } from "./diceLogic";
+import React from "react";
+import { useDiceBuild } from "./useDiceBuild";
+import { formulaFromBuild } from "./diceLogic";
+import type { RollLogEntry } from "./rollLogTypes";
+import type { DiceRollMode, DiceVisibility } from "./types";
 import { DiceBar } from "./DiceBar";
 import { BuildStrip } from "./BuildStrip";
+import { MacroBar } from "./MacroBar";
 import { MobileResultOverlay } from "./MobileResultOverlay";
+import { RollOptions } from "./RollOptions";
 import { JRPGButton } from "../ui/JRPGPanel";
-import { generateUUID } from "../../utils/uuid";
 
 interface MobileDiceRollerProps {
-  onRoll?: (result: RollResult) => void;
+  onRoll?: (request: { formula: string; mode: DiceRollMode; visibility: DiceVisibility }) => void;
+  latestOwnRoll?: RollLogEntry | null;
   onClose: () => void;
 }
 
-export const MobileDiceRoller: React.FC<MobileDiceRollerProps> = ({ onRoll, onClose }) => {
-  const [build, setBuild] = useState<Build>([]);
-  const [result, setResult] = useState<RollResult | null>(null);
-  const [isAnimating, setIsAnimating] = useState(false);
-
-  const addDie = (die: DieType) => {
-    const existing = build.find((t) => t.kind === "die" && t.die === die);
-    if (existing) {
-      setBuild(
-        build.map((t) => (t.id === existing.id && t.kind === "die" ? { ...t, qty: t.qty + 1 } : t)),
-      );
-    } else {
-      setBuild([...build, { kind: "die", die, qty: 1, id: generateUUID() }]);
-    }
-  };
-
-  const addModifier = (value: number) => {
-    setBuild([...build, { kind: "mod", value, id: generateUUID() }]);
-  };
-
-  const handleRoll = () => {
-    if (build.length === 0) return;
-
-    setIsAnimating(true);
-    setTimeout(() => {
-      const rollResult = rollBuild(build);
-      setResult(rollResult);
-      setIsAnimating(false);
-      if (onRoll) {
-        onRoll(rollResult);
-      }
-    }, 600);
-  };
-
-  const clearBuild = () => {
-    setBuild([]);
-    setResult(null);
-  };
+export const MobileDiceRoller: React.FC<MobileDiceRollerProps> = ({
+  onRoll,
+  latestOwnRoll,
+  onClose,
+}) => {
+  const {
+    build,
+    setBuild,
+    mode,
+    setMode,
+    visibility,
+    setVisibility,
+    result,
+    setResult,
+    isAnimating,
+    error,
+    addDie,
+    addModifier,
+    clearBuild,
+    roll,
+    rollFormula,
+  } = useDiceBuild({ onRoll, latestOwnRoll });
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -86,9 +80,11 @@ export const MobileDiceRoller: React.FC<MobileDiceRollerProps> = ({ onRoll, onCl
         style={{
           width: "100%",
           maxWidth: "400px",
+          maxHeight: "100%",
+          overflowY: "auto",
           display: "flex",
           flexDirection: "column",
-          gap: "16px",
+          gap: "12px",
           position: "relative",
           pointerEvents: "auto",
         }}
@@ -140,6 +136,36 @@ export const MobileDiceRoller: React.FC<MobileDiceRollerProps> = ({ onRoll, onCl
           )}
         </div>
 
+        {/* Advantage / disadvantage and who sees it */}
+        <RollOptions
+          mode={mode}
+          onModeChange={setMode}
+          visibility={visibility}
+          onVisibilityChange={setVisibility}
+          disabled={isAnimating}
+          compact
+        />
+
+        {/* Saved macros */}
+        <MacroBar
+          onRollMacro={rollFormula}
+          currentFormula={build.length > 0 ? formulaFromBuild(build) : ""}
+          currentMode={mode}
+          disabled={isAnimating}
+          compact
+        />
+
+        {/* Why a roll was refused — see the desktop roller for the reasoning. */}
+        {error && (
+          <div
+            role="alert"
+            data-testid="dice-error"
+            style={{ color: "var(--hero-danger, #FF6B6B)", fontSize: "12px", textAlign: "center" }}
+          >
+            {error}
+          </div>
+        )}
+
         {/* Actions */}
         <div style={{ display: "flex", gap: "12px" }}>
           <JRPGButton
@@ -151,9 +177,10 @@ export const MobileDiceRoller: React.FC<MobileDiceRollerProps> = ({ onRoll, onCl
             CLEAR
           </JRPGButton>
           <JRPGButton
-            onClick={handleRoll}
+            onClick={roll}
             variant="primary"
             disabled={build.length === 0 || isAnimating}
+            aria-label="Roll dice"
             style={{ flex: 2, padding: "16px", fontSize: "18px", fontWeight: "bold" }}
           >
             ⚂ ROLL!

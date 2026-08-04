@@ -14,7 +14,7 @@ import type { RollResult } from "../types";
 function createResult(): RollResult {
   return {
     id: "result-1",
-    tokens: [{ kind: "die", die: "d20", qty: 1, id: "token-1" }],
+    formula: "d20",
     perDie: [{ tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 }],
     total: 15,
     timestamp: 0,

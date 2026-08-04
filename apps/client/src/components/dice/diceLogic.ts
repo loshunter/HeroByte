@@ -1,92 +1,39 @@
 // ============================================================================
-// DICE LOGIC - SECURE RNG ENGINE
+// DICE LOGIC — the build/formula bridge
 // ============================================================================
+// This file used to hold the RNG: `rngIntSecure` and `rollBuild` produced the
+// numbers, and the server stored them (arc defect D2). Both are gone. The
+// client's only job now is to say what it wants rolled; the roller lives in
+// apps/server/src/domains/dice/roller.ts and has one caller.
+//
+// What remains is the translation between the build strip's token array and
+// the notation the server's parser reads — and it goes through the SHARED
+// formatter, so the string this produces is by construction one that
+// parseDiceFormula accepts.
 
-import type { Build, DieType, RollResult } from "./types";
-import { generateUUID } from "../../utils/uuid";
-
-/**
- * Secure random integer generator using crypto API
- * Returns integer in range [min, max] inclusive
- */
-export function rngIntSecure(min: number, max: number): number {
-  const range = max - min + 1;
-  const buf = new Uint32Array(1);
-  let x: number;
-
-  do {
-    crypto.getRandomValues(buf);
-    x = buf[0];
-  } while (x >= Math.floor(0xffffffff / range) * range);
-
-  return min + (x % range);
-}
-
-const DIE_FACES: Record<DieType, number> = {
-  d4: 4,
-  d6: 6,
-  d8: 8,
-  d10: 10,
-  d12: 12,
-  d20: 20,
-  d100: 100,
-};
+import { formatDiceTerms, type DiceTerm } from "@herobyte/shared";
+import type { Build, RollResult } from "./types";
 
 /**
- * Roll a complete build and return detailed results
+ * Render the build strip's tokens as dice notation, e.g. "2d20 + 5 - 1".
+ *
+ * Quantities are clamped to at least 1: the strip's stepper can reach zero,
+ * and "0d6" is a formula the server refuses — better to send the roll the
+ * player obviously meant than to fail the request on a UI edge.
  */
-export function rollBuild(build: Build): RollResult {
-  const perDie: RollResult["perDie"] = [];
-  let total = 0;
-
-  for (const token of build) {
-    if (token.kind === "die") {
-      const faces = DIE_FACES[token.die];
-      const rolls = Array.from({ length: token.qty }, () => rngIntSecure(1, faces));
-      const subtotal = rolls.reduce((a, b) => a + b, 0);
-
-      perDie.push({
-        tokenId: token.id,
-        die: token.die,
-        rolls,
-        subtotal,
-      });
-
-      total += subtotal;
-    } else {
-      // Modifier
-      perDie.push({
-        tokenId: token.id,
-        subtotal: token.value,
-      });
-
-      total += token.value;
-    }
-  }
-
-  return {
-    id: generateUUID(),
-    tokens: build,
-    perDie,
-    total,
-    timestamp: Date.now(),
-  };
+export function formulaFromBuild(build: Build): string {
+  const terms: DiceTerm[] = build.map((token) =>
+    token.kind === "die"
+      ? { kind: "die", die: token.die, qty: Math.max(1, Math.floor(token.qty)), sign: 1 }
+      : { kind: "mod", value: Math.trunc(token.value) },
+  );
+  return formatDiceTerms(terms);
 }
 
 /**
- * Format roll result as copyable text
- * Example: "1d20 + 3d4 + 3 → 26"
+ * Format a settled roll as copyable text.
+ * Example: "2d20 + 5 → 26"
  */
 export function formatRollText(result: RollResult): string {
-  const parts: string[] = [];
-
-  for (const token of result.tokens) {
-    if (token.kind === "die") {
-      parts.push(token.qty > 1 ? `${token.qty}${token.die}` : token.die);
-    } else {
-      parts.push(token.value >= 0 ? `+${token.value}` : `${token.value}`);
-    }
-  }
-
-  return `${parts.join(" ")} → ${result.total}`;
+  return `${result.formula} → ${result.total}`;
 }
