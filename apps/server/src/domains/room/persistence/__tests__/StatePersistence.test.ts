@@ -478,6 +478,29 @@ describe("StatePersistence - Characterization Tests", () => {
       expect(state.sceneObjects).toEqual([]);
     });
 
+    // A poisoned `tokens` is worse than a poisoned field: every broadcast
+    // walks state.tokens inside the DEBOUNCED timer, outside route()'s
+    // try/catch, in a process with no uncaughtException handler. Before the
+    // guard, `tokens: data.tokens || []` let a non-array through and the
+    // first broadcast took down the process serving every room — then did it
+    // again on the next restart, because the file is still on disk.
+    it.each([
+      ["an object", { nope: true }],
+      ["a string", "tokens"],
+      ["a number", 7],
+      ["true", true],
+    ])("survives %s where the tokens array should be", (_label, poison) => {
+      writeFileSync(PROD_STATE_FILE, JSON.stringify({ tokens: poison }), "utf-8");
+
+      roomService.loadState();
+      const state = roomService.getState();
+
+      expect(Array.isArray(state.tokens)).toBe(true);
+      expect(state.tokens).toEqual([]);
+      // The collection is walked on every broadcast — prove it actually can be.
+      expect(() => state.tokens.filter((token) => token.owner === "anyone")).not.toThrow();
+    });
+
     it("should handle corrupted JSON gracefully (error logged, state unchanged)", () => {
       writeFileSync(PROD_STATE_FILE, "{ this is not valid JSON }", "utf-8");
 

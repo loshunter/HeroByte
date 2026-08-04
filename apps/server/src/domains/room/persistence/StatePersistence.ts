@@ -88,7 +88,12 @@ export class StatePersistence {
         const loadedState: RoomState = {
           users: [], // Don't persist users - they reconnect
           stateVersion: typeof data.stateVersion === "number" ? data.stateVersion : 0,
-          tokens: data.tokens || [],
+          // Array-guarded like diceRolls below: this array is walked inside the
+          // DEBOUNCED broadcast timer, outside route()'s try/catch, in a
+          // process with no uncaughtException handler — so a poisoned non-array
+          // would kill the process serving every room, and do it again on every
+          // restart.
+          tokens: Array.isArray(data.tokens) ? data.tokens : [],
           players: (data.players || []).map((player: Player) => ({
             ...player,
             isDM: player.isDM ?? false,
