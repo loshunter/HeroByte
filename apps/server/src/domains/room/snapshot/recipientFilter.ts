@@ -14,15 +14,15 @@
 // collections that recipient may receive. Nothing here writes to state.
 
 import type {
-  Character,
   ChatMessage,
   Pointer,
   Prop,
   SceneObject,
   SelectionState,
+  SnapshotCharacter,
   Token,
 } from "@herobyte/shared";
-import { gridCellToWorldPoint } from "@herobyte/shared";
+import { gridCellToWorldPoint, hpBadgeFor } from "@herobyte/shared";
 import type { RoomState } from "../model.js";
 import { selectionMapToRecord } from "../selectionSerialization.js";
 import { createVisionContext, isWorldPointVisible } from "../scene/visionFilter.js";
@@ -30,7 +30,7 @@ import { createVisionContext, isWorldPointVisible } from "../scene/visionFilter.
 /** The per-recipient view of every position-sensitive collection. */
 export interface RecipientView {
   tokens: Token[];
-  characters: Character[];
+  characters: SnapshotCharacter[];
   props: Prop[];
   pointers: Pointer[];
   sceneObjects: SceneObject[];
@@ -144,6 +144,33 @@ export function buildRecipientView(
       )
     : visibleCharacters;
 
+  // Monster HP display (S4): in "bloodied"/"hidden" mode an NPC's numbers are
+  // REDACTED from the wire — a player socket never receives them, so devtools
+  // and sniffing show nothing (same principle as fog and whispers). Bloodied
+  // mode substitutes a coarse badge computed with the SHARED hpBadgeFor, the
+  // same function the client's player lens uses, so the two views can never
+  // disagree. PCs always keep exact numbers: party health is the party's own
+  // information. Shallow CLONES on the redacted records only — every object in
+  // this view aliases live RoomState, and mutating one would corrupt the
+  // authoritative state and persist it on the next save.
+  const hpMode = state.monsterHpDisplay ?? "exact";
+  const hpRedactedCharacters: SnapshotCharacter[] =
+    isDM || hpMode === "exact"
+      ? fogFilteredCharacters
+      : fogFilteredCharacters.map((character) => {
+          if (character.type !== "npc") return character;
+          const redacted: SnapshotCharacter = {
+            ...character,
+            hp: undefined,
+            maxHp: undefined,
+            tempHp: undefined,
+          };
+          if (hpMode === "bloodied") {
+            redacted.hpBadge = hpBadgeFor(character.hp, character.maxHp);
+          }
+          return redacted;
+        });
+
   // The active combatant must be someone the recipient can actually resolve.
   // Both filters above already strip a hidden or fogged NPC's record AND its
   // token — shipping its id anyway puts back exactly what they removed: proof
@@ -243,7 +270,7 @@ export function buildRecipientView(
 
   return {
     tokens: visibleTokens,
-    characters: fogFilteredCharacters,
+    characters: hpRedactedCharacters,
     props: visibleProps,
     pointers: visiblePointers,
     sceneObjects: visibleSceneObjects,

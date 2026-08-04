@@ -13,6 +13,7 @@ import type { Camera } from "../types";
 import { LockIndicator } from "./LockIndicator";
 import type { StatusOption } from "../../players/constants/statusOptions";
 import { TokenHpFeedback } from "../../juice/TokenHpFeedback";
+import { TokenNameplate, type TokenPlateData } from "./TokenNameplate";
 import { decorativeMotionDisabled, motionDisabled, useSfx } from "../../juice";
 
 interface TokenSpriteProps {
@@ -351,6 +352,8 @@ interface TokensLayerProps {
   statusEffectsByTokenId?: Record<string, StatusOption[] | string>;
   /** Map of token scene ID to the current HP of the entity it represents. */
   hpByTokenId?: Record<string, number>;
+  /** Map of token scene ID to its nameplate data (name + HP bar/badge). */
+  platesByTokenId?: Record<string, TokenPlateData>;
   onDragPreview?: (updates: DragPreviewUpdate[]) => void;
   isDM: boolean;
 }
@@ -373,6 +376,7 @@ export const TokensLayer = memo(function TokensLayer({
   statusEffectsByTokenId = {},
   onDragPreview,
   hpByTokenId = {},
+  platesByTokenId = {},
   isDM,
 }: TokensLayerProps) {
   const localOverrides = useRef<Record<string, { x: number; y: number }>>({});
@@ -691,6 +695,25 @@ export const TokensLayer = memo(function TokensLayer({
     );
   };
 
+  // S4 nameplate + HP bar. Uses mapOverrides like renderHpFeedback so the
+  // plate follows a token mid-drag instead of detaching.
+  const renderNameplate = (object: SceneObject & { type: "token" }) => {
+    const plate = platesByTokenId[object.id];
+    if (!plate) return null;
+    const sizeMultiplier = SIZE_MULTIPLIERS[object.data.size ?? "medium"] ?? 1.0;
+    const tokenSize = gridSize * 0.75 * sizeMultiplier;
+    const { x, y } = mapOverrides(object).transform;
+    return (
+      <TokenNameplate
+        plate={plate}
+        x={x * gridSize + gridSize / 2}
+        y={y * gridSize + gridSize / 2}
+        tokenSize={tokenSize}
+        camScale={cam.scale}
+      />
+    );
+  };
+
   const selectToken = useCallback(
     (objectId: string, event: KonvaEventObject<MouseEvent | TouchEvent>) => {
       if (!onSelectObject) {
@@ -744,6 +767,7 @@ export const TokensLayer = memo(function TokensLayer({
             )}
             {renderStatusBadges(object)}
             {renderHpFeedback(object)}
+            {renderNameplate(object)}
             {isFirstSelected && (
               <MultiSelectBadge
                 x={object.transform.x * gridSize + gridSize * 0.85}
@@ -791,6 +815,7 @@ export const TokensLayer = memo(function TokensLayer({
             )}
             {renderStatusBadges(object)}
             {renderHpFeedback(object)}
+            {renderNameplate(object)}
             {isFirstSelected && (
               <MultiSelectBadge
                 x={object.transform.x * gridSize + gridSize * 0.85}

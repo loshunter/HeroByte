@@ -13,6 +13,7 @@
 import { readFileSync, existsSync, renameSync } from "fs";
 import { writeFile, rename } from "fs/promises";
 import type { Player, Character, SceneObject } from "@herobyte/shared";
+import { coerceMonsterHpDisplay } from "@herobyte/shared";
 import { resolveServerPath } from "../../../config/serverPaths.js";
 import type { RoomState } from "../model.js";
 import { createSelectionMap } from "../model.js";
@@ -122,6 +123,9 @@ export class StatePersistence {
           mapElements: data.mapElements ?? undefined,
           liveMapDocumentId: data.liveMapDocumentId ?? undefined,
           fogEnabled: data.fogEnabled ?? false,
+          // Whitelist, not passthrough: a hand-edited file must not smuggle a
+          // fourth mode into a field the recipient filter branches on.
+          monsterHpDisplay: coerceMonsterHpDisplay(data.monsterHpDisplay),
         };
 
         this.setState(loadedState);
@@ -215,6 +219,7 @@ export class StatePersistence {
       mapElements: state.mapElements,
       liveMapDocumentId: state.liveMapDocumentId,
       fogEnabled: state.fogEnabled,
+      monsterHpDisplay: state.monsterHpDisplay,
       stateVersion: state.stateVersion,
       // Combat state survives a restart on purpose (VISION.md calls this a
       // launch gate): a mid-fight crash or redeploy must not lose initiative.

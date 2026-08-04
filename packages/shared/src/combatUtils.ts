@@ -27,7 +27,9 @@ import type { Character, Player } from "./index.js";
  * ```
  */
 export function shouldCharacterParticipateInCombat(
-  character: Character,
+  // Only these two fields matter, and taking a Pick lets both the full domain
+  // Character and the wire SnapshotCharacter (hp possibly redacted) qualify.
+  character: Pick<Character, "type" | "ownedByPlayerUID">,
   players: Player[],
 ): boolean {
   // NPCs always participate in combat

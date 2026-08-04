@@ -162,8 +162,10 @@ export function useNpcUpdate(options: UseNpcUpdateOptions): UseNpcUpdateReturn {
       // Calculate final values (merge updates with existing)
       const finalValues = {
         name: updates.name ?? existing.name,
-        hp: updates.hp ?? existing.hp,
-        maxHp: updates.maxHp ?? existing.maxHp,
+        // A DM's snapshot always carries exact numbers (the redaction is for
+        // players), so the trailing fallbacks are type honesty, not a path.
+        hp: updates.hp ?? existing.hp ?? 0,
+        maxHp: updates.maxHp ?? existing.maxHp ?? 1,
         tempHp: updates.tempHp ?? existing.tempHp,
         portrait: updates.portrait ?? existing.portrait,
         tokenImage: updates.tokenImage ?? existing.tokenImage ?? undefined,

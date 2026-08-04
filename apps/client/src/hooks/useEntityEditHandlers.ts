@@ -120,7 +120,8 @@ export function useEntityEditHandlers(
       if (!editingHpUID) return;
       const character = snapshot?.characters?.find((c) => c.id === editingHpUID);
       if (!character) return;
-      playerActions.updateCharacterHP(character.id, hp, character.maxHp, character.tempHp);
+      // Own-character edits: PCs are never HP-redacted, so ?? is type honesty.
+      playerActions.updateCharacterHP(character.id, hp, character.maxHp ?? 1, character.tempHp);
     });
   }, [submitHpEdit, editingHpUID, snapshot?.characters, playerActions]);
 
@@ -135,7 +136,7 @@ export function useEntityEditHandlers(
       if (!character) return;
 
       // Ensure HP doesn't exceed new Max HP (QoL: clamp HP down if Max HP is lowered below it)
-      const newHp = Math.min(character.hp, maxHp);
+      const newHp = Math.min(character.hp ?? 0, maxHp);
       playerActions.updateCharacterHP(character.id, newHp, maxHp, character.tempHp);
     });
   }, [submitMaxHpEdit, editingMaxHpUID, snapshot?.characters, playerActions]);
@@ -149,7 +150,12 @@ export function useEntityEditHandlers(
       if (!editingTempHpUID) return;
       const character = snapshot?.characters?.find((c) => c.id === editingTempHpUID);
       if (!character) return;
-      playerActions.updateCharacterHP(character.id, character.hp, character.maxHp, tempHp);
+      playerActions.updateCharacterHP(
+        character.id,
+        character.hp ?? 0,
+        character.maxHp ?? 1,
+        tempHp,
+      );
     });
   }, [submitTempHpEdit, editingTempHpUID, snapshot?.characters, playerActions]);
 

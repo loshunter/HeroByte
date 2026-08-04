@@ -30,6 +30,15 @@ export class SceneMessageHandler {
       this.getRoomState(roomId).fogEnabled = message.enabled;
       return { broadcast: true, save: true };
     }
+    if (message.t === "set-monster-hp-display") {
+      if (!isDM) {
+        throw new Error("Monster HP display changes require DM permission");
+      }
+      // The setting only STORES here; enforcement is the recipient filter's,
+      // so a player socket in "hidden" mode never receives the numbers at all.
+      this.getRoomState(roomId).monsterHpDisplay = message.mode;
+      return { broadcast: true, save: true };
+    }
     return null;
   }
 

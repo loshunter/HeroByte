@@ -128,8 +128,9 @@ export function useNpcManagement(params: UseNpcManagementParams): UseNpcManageme
         t: "update-npc",
         id,
         name: updates.name ?? existing.name,
-        hp: updates.hp ?? existing.hp,
-        maxHp: updates.maxHp ?? existing.maxHp,
+        // DM snapshots are never redacted; fallbacks are type honesty only.
+        hp: updates.hp ?? existing.hp ?? 0,
+        maxHp: updates.maxHp ?? existing.maxHp ?? 1,
         portrait: updates.portrait ?? existing.portrait,
         tokenImage: updates.tokenImage ?? existing.tokenImage ?? undefined,
       });

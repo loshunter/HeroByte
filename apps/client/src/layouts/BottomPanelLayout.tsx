@@ -24,12 +24,12 @@
 import React from "react";
 import type {
   Player,
-  Character,
   Token,
   SceneObject,
   Drawing,
   PlayerState,
   TokenSize,
+  SnapshotCharacter,
 } from "@herobyte/shared";
 import { EntitiesPanel } from "../components/layout/EntitiesPanel";
 
@@ -69,7 +69,7 @@ export interface BottomPanelLayoutProps {
   /** Array of all players in the session */
   players: Player[];
   /** Array of all characters in the session */
-  characters: Character[];
+  characters: SnapshotCharacter[];
   /** Array of all tokens on the board */
   tokens: Token[];
   /** Array of all scene objects on the board */

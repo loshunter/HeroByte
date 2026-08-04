@@ -5,7 +5,7 @@
 // player card while using a red accent to indicate an enemy.
 
 import { useCallback, useEffect, useState } from "react";
-import type { Character, TokenSize } from "@herobyte/shared";
+import type { TokenSize, SnapshotCharacter } from "@herobyte/shared";
 import { normalizeHPValues, parseHPInput, parseMaxHPInput } from "@herobyte/shared";
 import { PortraitSection } from "./PortraitSection";
 import { HPBar } from "./HPBar";
@@ -15,7 +15,7 @@ import { normalizeImageUrl } from "../../../utils/imageUrlHelpers";
 import { useHpFeedback, FloatingDamageNumber } from "../../juice";
 
 interface NpcCardProps {
-  character: Character;
+  character: SnapshotCharacter;
   isDM: boolean;
   onUpdate?: (
     id: string,
@@ -92,8 +92,9 @@ export function NpcCard({
   const handleHpSubmit = useCallback(
     (value: string) => {
       if (!isDM) return;
+      // DM cards always carry exact numbers (redaction is player-only).
       const parsedHp = parseHPInput(value, 0);
-      const parsedMaxHp = character.maxHp;
+      const parsedMaxHp = character.maxHp ?? 1;
 
       // Use new QoL validation: if HP > Max HP, auto-adjust Max HP
       const normalized = normalizeHPValues(parsedHp, parsedMaxHp);
@@ -108,7 +109,7 @@ export function NpcCard({
     (value: string) => {
       if (!isDM) return;
       const parsedMaxHp = parseMaxHPInput(value, 1);
-      const parsedHp = character.hp;
+      const parsedHp = character.hp ?? 0;
 
       // Use new QoL validation: if HP > Max HP, auto-adjust Max HP
       const normalized = normalizeHPValues(parsedHp, parsedMaxHp);
@@ -233,41 +234,62 @@ export function NpcCard({
         />
       </div>
 
-      <HPBar
-        hp={character.hp}
-        maxHp={character.maxHp}
-        tempHp={character.tempHp}
-        isMe={canEdit}
-        isEditingHp={editingHp}
-        hpInput={hpInput}
-        onHpInputChange={setHpInput}
-        onHpEdit={(_uid: string) => {
-          if (!canEdit) return;
-          setEditingHp(true);
-          setHpInput(String(character.hp));
-        }}
-        onHpSubmit={handleHpSubmit}
-        isEditingMaxHp={editingMaxHp}
-        maxHpInput={maxHpInput}
-        playerUid={character.id}
-        onHpChange={handleHpChange}
-        onMaxHpInputChange={setMaxHpInput}
-        onMaxHpEdit={() => {
-          if (!canEdit) return;
-          setEditingMaxHp(true);
-          setMaxHpInput(String(character.maxHp));
-        }}
-        onMaxHpSubmit={handleMaxHpSubmit}
-        isEditingTempHp={editingTempHp}
-        tempHpInput={tempHpInput}
-        onTempHpInputChange={setTempHpInput}
-        onTempHpEdit={() => {
-          if (!canEdit) return;
-          setEditingTempHp(true);
-          setTempHpInput(String(character.tempHp ?? 0));
-        }}
-        onTempHpSubmit={handleTempHpSubmit}
-      />
+      {character.hp !== undefined && character.maxHp !== undefined ? (
+        <HPBar
+          hp={character.hp}
+          maxHp={character.maxHp}
+          tempHp={character.tempHp}
+          isMe={canEdit}
+          isEditingHp={editingHp}
+          hpInput={hpInput}
+          onHpInputChange={setHpInput}
+          onHpEdit={(_uid: string) => {
+            if (!canEdit) return;
+            setEditingHp(true);
+            setHpInput(String(character.hp));
+          }}
+          onHpSubmit={handleHpSubmit}
+          isEditingMaxHp={editingMaxHp}
+          maxHpInput={maxHpInput}
+          playerUid={character.id}
+          onHpChange={handleHpChange}
+          onMaxHpInputChange={setMaxHpInput}
+          onMaxHpEdit={() => {
+            if (!canEdit) return;
+            setEditingMaxHp(true);
+            setMaxHpInput(String(character.maxHp));
+          }}
+          onMaxHpSubmit={handleMaxHpSubmit}
+          isEditingTempHp={editingTempHp}
+          tempHpInput={tempHpInput}
+          onTempHpInputChange={setTempHpInput}
+          onTempHpEdit={() => {
+            if (!canEdit) return;
+            setEditingTempHp(true);
+            setTempHpInput(String(character.tempHp ?? 0));
+          }}
+          onTempHpSubmit={handleTempHpSubmit}
+        />
+      ) : (
+        // The server redacted this NPC's numbers (monsterHpDisplay). In
+        // "bloodied" mode a coarse badge rode along; in "hidden" mode players
+        // learn nothing beyond the monster's existence.
+        <div
+          className="jrpg-text-small"
+          data-testid="npc-hp-redacted"
+          style={{
+            padding: "2px 6px",
+            color:
+              character.hpBadge === "bloodied" ? "var(--jrpg-red, #d63c53)" : "var(--jrpg-gold)",
+          }}
+        >
+          {character.hpBadge === "bloodied"
+            ? "🩸 Bloodied"
+            : character.hpBadge === "healthy"
+              ? "Healthy"
+              : "HP: ???"}
+        </div>
+      )}
 
       <div className="player-card-controls">
         {onToggleVisibility && canEdit && (

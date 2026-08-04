@@ -22,7 +22,14 @@ export { WS_CLOSE_AUTH_REJECTED, WS_CLOSE_REPLACED } from "./wsCloseCodes.js";
 export { TokenModel, PlayerModel, CharacterModel } from "./models.js";
 
 // Export HP utilities
-export { normalizeHPValues, parseHPInput, parseMaxHPInput } from "./hpUtils.js";
+export {
+  normalizeHPValues,
+  parseHPInput,
+  parseMaxHPInput,
+  hpBadgeFor,
+  coerceMonsterHpDisplay,
+  MONSTER_HP_DISPLAY_MODES,
+} from "./hpUtils.js";
 export type { NormalizedHP } from "./hpUtils.js";
 
 // Export combat utilities
@@ -327,6 +334,30 @@ export interface Character {
 }
 
 /**
+ * How much of a monster's health a player may see. A per-room DM setting,
+ * enforced SERVER-SIDE in the recipient filter — "hidden" means the numbers
+ * never serialize to a player's socket, not that a renderer skips them.
+ */
+export type MonsterHpDisplay = "exact" | "bloodied" | "hidden";
+
+/** The coarse health signal players get in "bloodied" mode (5e: hp ≤ max/2). */
+export type HpBadge = "healthy" | "bloodied";
+
+/**
+ * A character as ONE RECIPIENT sees it. Server room state always holds full
+ * `Character` records (hp/maxHp required — domain code keeps its invariants);
+ * this is the wire shape, where an NPC's numbers may have been redacted per
+ * the room's `monsterHpDisplay`. `hpBadge` exists only in "bloodied" mode,
+ * and only on redacted NPCs; PCs always carry exact numbers.
+ */
+export interface SnapshotCharacter extends Omit<Character, "hp" | "maxHp" | "tempHp"> {
+  hp?: number;
+  maxHp?: number;
+  tempHp?: number;
+  hpBadge?: HpBadge;
+}
+
+/**
  * Prop: Represents a placeable object, item, or scenery on the map
  * Props can be assigned ownership to control who can move/transform them
  */
@@ -393,7 +424,7 @@ export interface RoomSnapshot {
   users: string[]; // Legacy array of UIDs (deprecated, use players)
   tokens: Token[]; // All tokens on the map
   players: Player[]; // All connected players
-  characters: Character[]; // All characters (PCs and NPCs)
+  characters: SnapshotCharacter[]; // All characters (PCs and NPCs), NPC hp possibly redacted per monsterHpDisplay
   stateVersion?: number; // Monotonically increasing room state version
   props?: Prop[]; // Props placed on the map (items, scenery, objects)
   mapBackground?: string; // Base64 encoded background image or URL
@@ -420,6 +451,7 @@ export interface RoomSnapshot {
   mapElements?: MapElementsSnapshot; // Player-safe live-authored scenery (tiles/stamps/shapes/visible text); privacy-filtered, sent to ALL recipients
   liveMapDocumentId?: string; // DM-only: the map document auto-compiled into the live scene on every command (absent for players)
   fogEnabled?: boolean; // Whether fog of war hides the map beyond player token sightlines
+  monsterHpDisplay?: MonsterHpDisplay; // DM setting: how much monster HP players see (absent = "exact")
   /**
    * True only for the default table WHILE it still opens with the password
    * published in the setup docs — i.e. it is genuinely reachable by anyone, and
@@ -697,6 +729,7 @@ type ClientMessagePayload =
   | { t: "toggle-door"; doorId: string } // Flip a door open/closed; locked and secret doors refuse non-DM toggles
   | { t: "set-door-state"; doorId: string; state: CompiledDoorState } // DM-only: set any door state (lock, unlock, reveal)
   | { t: "set-fog-enabled"; enabled: boolean } // DM-only: toggle fog of war for the published scene
+  | { t: "set-monster-hp-display"; mode: MonsterHpDisplay } // DM-only: how much monster HP players see (enforced in the snapshot filter)
 
   // Dice rolls
   | { t: "dice-roll"; roll: DiceRoll } // Broadcast a dice roll

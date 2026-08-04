@@ -237,6 +237,8 @@ export function DMMenuContainer({
       sceneObjects={sceneObjects}
       onSelectPlayerTokens={onSelectPlayerTokens}
       combatActive={combatActive}
+      monsterHpDisplay={snapshot?.monsterHpDisplay ?? "exact"}
+      onMonsterHpDisplayChange={dmContext.combatControls.handleSetMonsterHpDisplay}
       onStartCombat={dmContext.combatControls.handleStartCombat}
       onEndCombat={dmContext.combatControls.handleEndCombat}
       onClearAllInitiative={dmContext.combatControls.handleClearAllInitiative}

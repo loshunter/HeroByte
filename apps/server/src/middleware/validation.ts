@@ -81,6 +81,7 @@ import {
   validateToggleDoorMessage,
   validateSetDoorStateMessage,
   validateSetFogEnabledMessage,
+  validateSetMonsterHpDisplayMessage,
 } from "./validators/index.js";
 
 // Prop validators
@@ -206,6 +207,7 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   "toggle-door": validateToggleDoorMessage,
   "set-door-state": validateSetDoorStateMessage,
   "set-fog-enabled": validateSetFogEnabledMessage,
+  "set-monster-hp-display": validateSetMonsterHpDisplayMessage,
 
   // ==========================================================================
   // PROP MESSAGES

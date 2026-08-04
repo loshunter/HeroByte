@@ -4,6 +4,7 @@
 // Loads and merges saved game sessions with current server state
 
 import type { Drawing, Player, RoomSnapshot } from "@herobyte/shared";
+import { coerceMonsterHpDisplay, normalizeHPValues } from "@herobyte/shared";
 import type { RoomState } from "../model.js";
 import { createSelectionMap } from "../model.js";
 import type { StagingZoneManager } from "../staging/StagingZoneManager.js";
@@ -57,13 +58,24 @@ export class SnapshotLoader {
       return { ...currentPlayer, isDM: currentPlayer.isDM ?? false };
     });
 
-    // Normalize loaded characters
-    const loadedCharacters = (snapshot.characters ?? []).map((character) => ({
-      ...character,
-      type: character.type === "npc" ? ("npc" as const) : ("pc" as const),
-      tokenId: character.tokenId ?? null,
-      tokenImage: character.tokenImage ?? null,
-    }));
+    // Normalize loaded characters. Snapshot characters are the WIRE shape:
+    // hp/maxHp may be absent (a redacted or hand-edited file) and hpBadge is a
+    // wire-only field that must never enter room state. Room state requires
+    // real numbers — normalizeHPValues turns absence into 0/1, visibly wrong
+    // rather than silently NaN.
+    const loadedCharacters = (snapshot.characters ?? []).map(
+      ({ hpBadge: _wireOnly, ...character }) => {
+        const { hp, maxHp } = normalizeHPValues(character.hp ?? 0, character.maxHp ?? 1);
+        return {
+          ...character,
+          hp,
+          maxHp,
+          type: character.type === "npc" ? ("npc" as const) : ("pc" as const),
+          tokenId: character.tokenId ?? null,
+          tokenImage: character.tokenImage ?? null,
+        };
+      },
+    );
 
     // Get UIDs of currently connected players
     const currentPlayerUIDs = new Set(currentState.players.map((p) => p.uid));
@@ -155,6 +167,9 @@ export class SnapshotLoader {
       // makes the DM's editor open onto a 12s timeout. See handleLoadSession.
       liveMapDocumentId: snapshot.liveMapDocumentId ?? undefined,
       fogEnabled: snapshot.fogEnabled ?? false,
+      // Whitelist-coerced: the file is attacker-editable, and the recipient
+      // filter branches on this value.
+      monsterHpDisplay: coerceMonsterHpDisplay(snapshot.monsterHpDisplay),
     };
   }
 }

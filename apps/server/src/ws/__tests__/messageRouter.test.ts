@@ -69,6 +69,7 @@ describe("MessageRouter", () => {
       combatActive: false,
       currentTurnCharacterId: undefined,
       fogEnabled: false,
+      monsterHpDisplay: "exact" as const,
     };
 
     const snapshotTemplate: RoomSnapshot = {

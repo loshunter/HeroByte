@@ -85,3 +85,30 @@ export function parseMaxHPInput(value: string | number, defaultValue: number = 1
   const numeric = typeof value === "string" ? Number.parseInt(value, 10) : value;
   return Number.isFinite(numeric) && numeric > 0 ? numeric : defaultValue;
 }
+
+/**
+ * The coarse health signal for "bloodied" monster-HP display (5e: a creature
+ * is bloodied at or below half its maximum). SHARED on purpose: the server's
+ * recipient filter computes the badge it serializes to players, and the
+ * client's player lens uses the same function to preview that view — one
+ * implementation, so the two can never disagree.
+ */
+export function hpBadgeFor(hp: number, maxHp: number): "healthy" | "bloodied" {
+  const { hp: safeHp, maxHp: safeMaxHp } = normalizeHPValues(hp, maxHp);
+  return safeHp * 2 <= safeMaxHp ? "bloodied" : "healthy";
+}
+
+/** The one authoritative list of monster-HP display modes. */
+export const MONSTER_HP_DISPLAY_MODES = ["exact", "bloodied", "hidden"] as const;
+
+/**
+ * Whitelist-coerce an untrusted value to a display mode. Used everywhere a
+ * mode enters from outside the type system — a state file off disk, a session
+ * file a client uploaded — so the recipient filter only ever branches on the
+ * three real modes. Unknown input falls back to "exact" (the pre-S4 behavior).
+ */
+export function coerceMonsterHpDisplay(value: unknown): "exact" | "bloodied" | "hidden" {
+  return MONSTER_HP_DISPLAY_MODES.includes(value as never)
+    ? (value as "exact" | "bloodied" | "hidden")
+    : "exact";
+}

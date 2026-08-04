@@ -15,13 +15,7 @@
  */
 
 import { useCallback, useMemo } from "react";
-import type {
-  ClientMessage,
-  PlayerState,
-  PlayerStagingZone,
-  RoomSnapshot,
-  Character,
-} from "@herobyte/shared";
+import type { ClientMessage, PlayerState, PlayerStagingZone, RoomSnapshot } from "@herobyte/shared";
 import { normalizeHPValues } from "@herobyte/shared";
 
 /**
@@ -280,12 +274,11 @@ export function usePlayerActions({
   const deleteCharacter = useCallback(
     (characterId: string) => {
       // Find this character
-      const character = snapshot?.characters?.find((c: Character) => c.id === characterId);
+      const character = snapshot?.characters?.find((c) => c.id === characterId);
       if (!character) return;
 
       // Count player's characters
-      const myCharacters =
-        snapshot?.characters?.filter((c: Character) => c.ownedByPlayerUID === uid) || [];
+      const myCharacters = snapshot?.characters?.filter((c) => c.ownedByPlayerUID === uid) || [];
       const isLastCharacter = myCharacters.length === 1;
 
       // Confirm deletion

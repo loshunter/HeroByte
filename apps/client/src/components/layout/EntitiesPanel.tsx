@@ -4,7 +4,14 @@
 // Fixed bottom panel displaying both players and NPCs in the scene.
 
 import React, { useEffect, useMemo, useState } from "react";
-import type { Character, Drawing, Player, PlayerState, Token, SceneObject } from "@herobyte/shared";
+import type {
+  Drawing,
+  Player,
+  PlayerState,
+  Token,
+  SceneObject,
+  SnapshotCharacter,
+} from "@herobyte/shared";
 import { PlayerCard } from "../../features/players/components";
 import { NpcCard } from "../../features/players/components/NpcCard";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
@@ -18,7 +25,7 @@ import type { TokenSize } from "@herobyte/shared";
 
 interface EntitiesPanelProps {
   players: Player[];
-  characters: Character[];
+  characters: SnapshotCharacter[];
   tokens: Token[];
   sceneObjects: SceneObject[];
   drawings: Drawing[];

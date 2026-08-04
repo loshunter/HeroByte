@@ -51,6 +51,8 @@ Everything about your character in one draggable window:
 
 Your token is your presence on the map:
 
+- **Nameplate and HP bar** — every token wears its character's name, and a thin health bar when you're allowed the numbers (your party always; monsters at the DM's discretion — a red dot means bloodied). Names hold their size at any zoom.
+
 - **Move** — drag it. With **SNAP** on (top toolbar) it clicks to grid cells; everyone sees your drag live.
 - **Recolor** — double-click your token for a new random color.
 - **Select** — click it. **Shift-click** adds to a selection, **Ctrl/Cmd-click** toggles. With the **🖱️ SELECT** tool you can drag a marquee to grab several tokens and drawings at once, then drag any one of them to move the whole group.
