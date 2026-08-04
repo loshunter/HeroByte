@@ -255,15 +255,30 @@ export class MapService {
   }
 
   /**
-   * Delete a specific drawing
+   * Delete a specific drawing.
+   *
+   * Ownership-gated, matching `handlePartialErase` below and the behaviour the
+   * player guide already promises ("you can erase and move only your own
+   * drawings"). It was not: any player could delete any other player's work by
+   * id, and the eraser reaches this path for every non-freehand shape it
+   * crosses — so one stroke over a neighbour's circle removed it for the whole
+   * table. A DM is exempt: `clear-drawings` is already theirs, and tidying the
+   * map is the job.
+   *
+   * Unowned drawings (no `owner`) stay deletable by anyone: they predate owner
+   * stamping, and orphaning them would leave marks nobody can remove.
    */
-  deleteDrawing(state: RoomState, drawingId: string): boolean {
+  deleteDrawing(state: RoomState, drawingId: string, actorUid?: string, isDM = false): boolean {
     const index = state.drawings.findIndex((d) => d.id === drawingId);
-    if (index !== -1) {
-      state.drawings.splice(index, 1);
-      return true;
+    if (index === -1) {
+      return false;
     }
-    return false;
+    const drawing = state.drawings[index];
+    if (!isDM && actorUid !== undefined && drawing.owner && drawing.owner !== actorUid) {
+      return false;
+    }
+    state.drawings.splice(index, 1);
+    return true;
   }
 
   /**

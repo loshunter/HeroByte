@@ -83,7 +83,7 @@ export class MapDispatcher {
         );
 
       case "delete-drawing":
-        return this.drawingHandler.handleDeleteDrawing(state, message.id);
+        return this.drawingHandler.handleDeleteDrawing(state, message.id, senderUid, isDM);
 
       case "erase-partial":
         return this.drawingHandler.handleErasePartial(

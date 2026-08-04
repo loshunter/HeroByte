@@ -369,4 +369,45 @@ describe("MapService", () => {
       expect(state.drawings[0].type).toBe("freehand");
     });
   });
+  describe("deleteDrawing ownership", () => {
+    // The player guide already promised this ("you can erase and move only your
+    // own drawings") and the sibling operation handlePartialErase already
+    // enforced it — but delete-drawing did not, and the ERASER reaches this
+    // path for every non-freehand shape it crosses. One stroke over a
+    // neighbour's circle removed it for the whole table.
+    function stateWithDrawing() {
+      const state = createEmptyRoomState();
+      service.addDrawing(state, baseDrawing(), "owner-uid");
+      return state;
+    }
+
+    it("lets the owner delete their own drawing", () => {
+      const state = stateWithDrawing();
+      expect(service.deleteDrawing(state, "drawing-1", "owner-uid")).toBe(true);
+      expect(state.drawings).toHaveLength(0);
+    });
+
+    it("refuses another player", () => {
+      const state = stateWithDrawing();
+      expect(service.deleteDrawing(state, "drawing-1", "someone-else")).toBe(false);
+      expect(state.drawings).toHaveLength(1);
+    });
+
+    it("lets a DM delete anyone's — tidying the map is the job", () => {
+      const state = stateWithDrawing();
+      expect(service.deleteDrawing(state, "drawing-1", "the-dm", true)).toBe(true);
+      expect(state.drawings).toHaveLength(0);
+    });
+
+    it("still deletes an unowned drawing, which nobody could otherwise remove", () => {
+      const state = createEmptyRoomState();
+      state.drawings.push({ ...baseDrawing(), owner: undefined });
+      expect(service.deleteDrawing(state, "drawing-1", "anyone")).toBe(true);
+    });
+
+    it("returns false for an id that is not there", () => {
+      const state = stateWithDrawing();
+      expect(service.deleteDrawing(state, "no-such-id", "owner-uid")).toBe(false);
+    });
+  });
 });

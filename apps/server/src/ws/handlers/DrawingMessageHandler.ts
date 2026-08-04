@@ -217,8 +217,13 @@ export class DrawingMessageHandler {
    * @param id - Drawing ID
    * @returns Result indicating if broadcast/save is needed
    */
-  handleDeleteDrawing(state: RoomState, id: string): DrawingMessageResult {
-    if (this.mapService.deleteDrawing(state, id)) {
+  handleDeleteDrawing(
+    state: RoomState,
+    id: string,
+    senderUid?: string,
+    isDM = false,
+  ): DrawingMessageResult {
+    if (this.mapService.deleteDrawing(state, id, senderUid, isDM)) {
       this.selectionService.removeObject(state, id);
       return { broadcast: true, save: false };
     }

@@ -228,16 +228,26 @@ describe("DrawingMessageHandler", () => {
     it("should delete drawing, remove from selection, and broadcast", () => {
       state.drawings = [{ id: "draw1", owner: "player1" } as Drawing];
 
-      const result = handler.handleDeleteDrawing(state, "draw1");
+      const result = handler.handleDeleteDrawing(state, "draw1", "player1", false);
 
       expect(result.broadcast).toBe(true);
       expect(result.save).toBe(false);
-      expect(mockMapService.deleteDrawing).toHaveBeenCalledWith(state, "draw1");
+      // The actor and their DM flag must reach the service, or the ownership
+      // check there can never fire.
+      expect(mockMapService.deleteDrawing).toHaveBeenCalledWith(state, "draw1", "player1", false);
       expect(mockSelectionService.removeObject).toHaveBeenCalledWith(state, "draw1");
     });
 
+    it("passes the DM flag through, so a DM can tidy anyone's drawing", () => {
+      state.drawings = [{ id: "draw1", owner: "player1" } as Drawing];
+
+      handler.handleDeleteDrawing(state, "draw1", "the-dm", true);
+
+      expect(mockMapService.deleteDrawing).toHaveBeenCalledWith(state, "draw1", "the-dm", true);
+    });
+
     it("should not broadcast if drawing not found", () => {
-      const result = handler.handleDeleteDrawing(state, "nonexistent");
+      const result = handler.handleDeleteDrawing(state, "nonexistent", "player1", false);
 
       expect(result.broadcast).toBe(false);
       expect(result.save).toBe(false);

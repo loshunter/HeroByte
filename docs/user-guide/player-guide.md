@@ -122,7 +122,7 @@ A draggable toolbox with five tools — **Draw** (freehand), **Line**, **Rect**,
 - Drawings sync to everyone, live as you draw.
 - **Undo/redo** (buttons, or **Ctrl+Z / Ctrl+Y** while draw mode is active) affect **your own** drawings only.
 - The **Eraser** is surgical on freehand strokes: dragging across one removes just the crossed section and leaves the rest. Lines, rects, and circles are all-or-nothing.
-- You can erase and move only your own drawings. **🗑️ CLEAR ALL** wipes the whole map — that one is DM-only.
+- You can erase, move and delete only your own drawings; the DM can remove anyone's. **🗑️ CLEAR ALL** wipes the whole map — that one is DM-only.
 
 ### Area templates
 
