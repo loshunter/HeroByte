@@ -45,6 +45,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     drawMode,
     pointerMode,
     measureMode,
+    remoteMeasurements,
     transformMode,
     selectMode,
     alignmentMode,
@@ -179,6 +180,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             snapToGrid={snapToGrid}
             pointerMode={pointerMode}
             measureMode={measureMode}
+            remoteMeasurements={remoteMeasurements}
             drawMode={drawMode}
             transformMode={transformMode}
             selectMode={selectMode}

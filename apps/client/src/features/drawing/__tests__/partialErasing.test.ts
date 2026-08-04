@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Drawing, SceneObject } from "@herobyte/shared";
 import { splitFreehandDrawing } from "../utils/splitFreehandDrawing";
+import { evaluatePartialErase } from "../utils/partialErase";
 
 type DrawingPoint = { x: number; y: number };
 type DrawingSceneObject = SceneObject & { type: "drawing" };
@@ -376,5 +377,93 @@ describe("splitFreehandDrawing", () => {
       { x: 0.1, y: 0 },
       { x: 2, y: 0 },
     ]);
+  });
+});
+
+describe("area templates (S6)", () => {
+  const templateObject = () => ({
+    id: "drawing:t",
+    type: "drawing" as const,
+    owner: "uid-1",
+    locked: false,
+    zIndex: 1,
+    transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+    data: {
+      drawing: {
+        id: "t-1",
+        owner: "uid-1",
+        type: "template" as const,
+        // A square from (0,0) to (100,100).
+        points: [
+          { x: 0, y: 0 },
+          { x: 100, y: 0 },
+          { x: 100, y: 100 },
+          { x: 0, y: 100 },
+        ],
+        color: "#ff8800",
+        width: 2,
+        opacity: 0.8,
+        filled: true,
+        template: { kind: "square" as const, sizeFeet: 10 },
+      },
+    },
+  });
+
+  it("deletes a template the eraser crosses", () => {
+    // The switch in drawingIntersectsEraser ends in `return false`, so a
+    // missing case makes a template unerasable — and on a phone the eraser
+    // is the quickest delete there is.
+    const result = evaluatePartialErase(
+      templateObject(),
+      // drawingIntersectsEraser samples the eraser's POINTS, not the segments
+      // between them, so the stroke has to actually land on the edge.
+      [
+        { x: 50, y: -4 },
+        { x: 50, y: 0 },
+        { x: 50, y: 4 },
+      ],
+      4,
+    );
+    expect(result.kind).toBe("delete");
+  });
+
+  it("closes the ring — the edge back to the first vertex counts", () => {
+    // A plain polyline walk would miss the left edge entirely.
+    const result = evaluatePartialErase(
+      templateObject(),
+      [
+        { x: -4, y: 50 },
+        { x: 0, y: 50 },
+        { x: 4, y: 50 },
+      ],
+      4,
+    );
+    expect(result.kind).toBe("delete");
+  });
+
+  it("leaves a template the eraser missed alone", () => {
+    const result = evaluatePartialErase(
+      templateObject(),
+      [
+        { x: 400, y: 400 },
+        { x: 500, y: 500 },
+      ],
+      4,
+    );
+    expect(result.kind).toBe("none");
+  });
+
+  it("is all-or-nothing, never partial", () => {
+    // Splitting a closed area into sub-segments would leave a shape that is
+    // no longer the area it claims to be.
+    const result = evaluatePartialErase(
+      templateObject(),
+      [
+        { x: 50, y: 0 },
+        { x: 50, y: 4 },
+      ],
+      4,
+    );
+    expect(result.kind).not.toBe("partial");
   });
 });

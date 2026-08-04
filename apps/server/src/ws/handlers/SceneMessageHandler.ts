@@ -39,6 +39,16 @@ export class SceneMessageHandler {
       this.getRoomState(roomId).monsterHpDisplay = message.mode;
       return { broadcast: true, save: true };
     }
+    if (message.t === "set-diagonal-rule") {
+      if (!isDM) {
+        throw new Error("Diagonal rule changes require DM permission");
+      }
+      // Per-room on purpose: a table agrees on one way to count diagonals, and
+      // the snapshot carries it to every client so the measure overlay and any
+      // future range check read the same number.
+      this.getRoomState(roomId).diagonalRule = message.rule;
+      return { broadcast: true, save: true };
+    }
     return null;
   }
 

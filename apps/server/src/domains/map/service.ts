@@ -4,6 +4,7 @@
 // Handles map-related features: background, grid, drawings, pointers
 
 import { randomUUID } from "crypto";
+import { coerceAreaTemplate } from "@herobyte/shared";
 import type { Drawing, DrawingSegmentPayload, Pointer } from "@herobyte/shared";
 import type { RoomState } from "../room/model.js";
 import type { DrawingOperation, DrawingOperationStack } from "./types.js";
@@ -36,9 +37,16 @@ export class MapService {
     const clonedPoints = Array.isArray(drawing.points)
       ? drawing.points.map((point) => ({ x: point.x, y: point.y }))
       : [];
+    // The template is re-derived through the whitelist rather than aliased:
+    // the message validator only REJECTS a bad one, so without this the raw
+    // object a client sent — extra keys and all — would be what gets stored,
+    // broadcast and written to disk. A state file poisoned before S6's
+    // validator existed is disarmed here too.
+    const template = coerceAreaTemplate(drawing.template);
     return {
       ...rest,
       points: clonedPoints,
+      ...(template ? { template } : { template: undefined }),
     };
   }
 

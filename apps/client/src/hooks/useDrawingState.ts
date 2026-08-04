@@ -5,9 +5,10 @@
 // and undo history for drawings
 
 import { useState, useCallback } from "react";
+import type { DrawTool } from "@herobyte/shared";
 
 interface UseDrawingStateReturn {
-  drawTool: "freehand" | "line" | "rect" | "circle" | "eraser";
+  drawTool: DrawTool;
   drawColor: string;
   drawWidth: number;
   drawOpacity: number;
@@ -15,7 +16,7 @@ interface UseDrawingStateReturn {
   drawingHistory: string[];
   canUndo: boolean;
   canRedo: boolean;
-  setDrawTool: (tool: "freehand" | "line" | "rect" | "circle" | "eraser") => void;
+  setDrawTool: (tool: DrawTool) => void;
   setDrawColor: (color: string) => void;
   setDrawWidth: (width: number) => void;
   setDrawOpacity: (opacity: number) => void;
@@ -48,9 +49,7 @@ interface UseDrawingStateReturn {
  * ```
  */
 export function useDrawingState(): UseDrawingStateReturn {
-  const [drawTool, setDrawTool] = useState<"freehand" | "line" | "rect" | "circle" | "eraser">(
-    "freehand",
-  );
+  const [drawTool, setDrawTool] = useState<DrawTool>("freehand");
   const [drawColor, setDrawColor] = useState("#ffffff");
   const [drawWidth, setDrawWidth] = useState(3);
   const [drawOpacity, setDrawOpacity] = useState(1);

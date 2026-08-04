@@ -47,7 +47,7 @@
  * See: docs/refactoring/CLIENT_WEBSOCKET_PLAN.md
  */
 
-import type { RoomSnapshot, ClientMessage, ServerMessage } from "@herobyte/shared";
+import type { RoomSnapshot, ClientMessage, MeasureEvent, ServerMessage } from "@herobyte/shared";
 import type { SignalData } from "simple-peer";
 import { MessageRouter } from "./websocket/MessageRouter";
 import {
@@ -99,6 +99,8 @@ interface WebSocketServiceConfig {
   onStateChange?: ConnectionStateHandler;
   onAuthEvent?: (event: AuthEvent) => void;
   onControlMessage?: (message: ControlMessage) => void;
+  /** Someone's live measurement (S6). Ephemeral — never part of a snapshot. */
+  onMeasure?: (measure: MeasureEvent) => void;
   /** A RELIABLE command (one carrying a commandId) was dropped for good —
    * retries exhausted or the offline queue overflowed. The user's change did
    * NOT reach the server; surface it (toast) instead of losing it to the
@@ -198,6 +200,7 @@ export class WebSocketService {
       onAuthEvent: () => {},
       onControlMessage: () => {},
       onCommandDropped: () => {},
+      onMeasure: () => {},
       ...config,
     };
 
@@ -222,6 +225,9 @@ export class WebSocketService {
       onDelta: (delta) => this.snapshotReconciler.applyDelta(delta),
       onPointerPreview: (pointer) => this.snapshotReconciler.applyPointerPreview(pointer),
       onDragPreview: (preview) => this.snapshotReconciler.applyDragPreview(preview),
+      // Straight through: there is no snapshot to reconcile a measurement into,
+      // which is the whole point of putting it on its own channel.
+      onMeasure: (measure) => this.config.onMeasure?.(measure),
       onHeartbeatAck: (timestamp) => this.heartbeatManager.recordHeartbeatAck(timestamp),
       onAck: (commandId) => {
         this.commandAckManager.handleAck(commandId);

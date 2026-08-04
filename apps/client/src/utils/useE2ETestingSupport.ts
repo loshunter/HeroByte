@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
+import type { RoomSnapshot, ClientMessage, MeasureEvent } from "@herobyte/shared";
 
 /**
  * Interface for E2E testing support hook parameters
@@ -25,6 +25,9 @@ interface E2ETestingSupportProps {
    * Used for coordinate calculations in tests
    */
   gridSize: number;
+
+  /** Other players' live measurements (S6) — relayed, never in a snapshot. */
+  remoteMeasurements?: MeasureEvent[];
 
   /**
    * Camera state (position and zoom scale)
@@ -94,7 +97,7 @@ interface E2ETestingSupportProps {
  * });
  */
 export function useE2ETestingSupport(props: E2ETestingSupportProps): void {
-  const { snapshot, uid, gridSize, cam, setCam, viewport, sendMessage } = props;
+  const { snapshot, uid, gridSize, cam, setCam, viewport, sendMessage, remoteMeasurements } = props;
 
   useEffect(() => {
     // SSR safety: Do nothing when window is undefined
@@ -117,6 +120,7 @@ export function useE2ETestingSupport(props: E2ETestingSupportProps): void {
         setCam?: (cam: { x: number; y: number; scale: number }) => void;
         viewport?: { width: number; height: number };
         sendMessage?: (message: ClientMessage) => void;
+        remoteMeasurements?: MeasureEvent[];
       };
     };
 
@@ -132,6 +136,8 @@ export function useE2ETestingSupport(props: E2ETestingSupportProps): void {
       ...(setCam && { setCam }),
       ...(viewport && { viewport }),
       ...(sendMessage && { sendMessage }),
+      // Relayed, never in a snapshot — see the note in types/e2e.d.ts.
+      ...(remoteMeasurements && { remoteMeasurements }),
     };
-  }, [snapshot, uid, gridSize, cam, setCam, viewport, sendMessage]);
+  }, [snapshot, uid, gridSize, cam, setCam, viewport, sendMessage, remoteMeasurements]);
 }

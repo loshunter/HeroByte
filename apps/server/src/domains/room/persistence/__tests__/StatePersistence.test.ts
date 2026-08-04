@@ -130,6 +130,38 @@ describe("StatePersistence - Characterization Tests", () => {
       });
     });
 
+    it("round-trips diagonalRule through the state file, coercing garbage", async () => {
+      // S6: the table agreed on a rule; a restart that silently reverted it
+      // would change every distance on the map without telling anyone.
+      roomService.getState().diagonalRule = "pathfinder";
+      roomService.saveState();
+      await roomService.awaitPendingWrites();
+
+      const fresh = new RoomService({ stateFile: PROD_STATE_FILE });
+      fresh.loadState();
+      expect(fresh.getState().diagonalRule).toBe("pathfinder");
+
+      // A hand-edited file cannot smuggle a fourth rule into the maths.
+      const raw = JSON.parse(readFileSync(PROD_STATE_FILE, "utf-8"));
+      raw.diagonalRule = "chebyshev";
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(raw));
+      const poisoned = new RoomService({ stateFile: PROD_STATE_FILE });
+      poisoned.loadState();
+      expect(poisoned.getState().diagonalRule).toBe("5e");
+    });
+
+    it("gives a file written before S6 the corrected default, not Euclidean", async () => {
+      roomService.saveState();
+      await roomService.awaitPendingWrites();
+      const raw = JSON.parse(readFileSync(PROD_STATE_FILE, "utf-8"));
+      delete raw.diagonalRule;
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(raw));
+
+      const legacy = new RoomService({ stateFile: PROD_STATE_FILE });
+      legacy.loadState();
+      expect(legacy.getState().diagonalRule).toBe("5e");
+    });
+
     it("should do nothing when state file does not exist", () => {
       // Ensure file doesn't exist
       expect(existsSync(PROD_STATE_FILE)).toBe(false);

@@ -4,7 +4,7 @@
 // Loads and merges saved game sessions with current server state
 
 import type { Drawing, Player, RoomSnapshot } from "@herobyte/shared";
-import { coerceMonsterHpDisplay, normalizeHPValues } from "@herobyte/shared";
+import { coerceDiagonalRule, coerceMonsterHpDisplay, normalizeHPValues } from "@herobyte/shared";
 import type { RoomState } from "../model.js";
 import { createSelectionMap } from "../model.js";
 import type { StagingZoneManager } from "../staging/StagingZoneManager.js";
@@ -170,6 +170,9 @@ export class SnapshotLoader {
       // Whitelist-coerced: the file is attacker-editable, and the recipient
       // filter branches on this value.
       monsterHpDisplay: coerceMonsterHpDisplay(snapshot.monsterHpDisplay),
+      // Same treatment: the distance maths branches on this value, and an
+      // uploaded file is the least trustworthy source there is.
+      diagonalRule: coerceDiagonalRule(snapshot.diagonalRule),
     };
   }
 }

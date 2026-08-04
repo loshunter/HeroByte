@@ -14,6 +14,8 @@ import type { MapStudioCommand } from "./mapStudioCommands.js";
 import type { CompiledDoorState, CompiledScene } from "./sceneCompiler.js";
 import type { TerrainMap } from "./terrain.js";
 import type { DiceRollMode, DiceVisibility } from "./dice.js";
+import type { DiagonalRule, MeasurePoint } from "./measurement.js";
+import type { AreaTemplate, AreaTemplateTool } from "./areaTemplates.js";
 
 // WebSocket close codes — value re-export from a sub-module (see wsCloseCodes.ts
 // for why it must not be a direct `export const` here).
@@ -63,6 +65,11 @@ export * from "./rng.js";
 // Dice NOTATION only — what a formula means, and nothing that rolls one. The
 // roller is server-side on purpose (see dice.ts).
 export * from "./dice.js";
+
+// The table's diagonal rule and the area-template geometry. One copy of each,
+// so the number on screen and any future range check cannot disagree.
+export * from "./measurement.js";
+export * from "./areaTemplates.js";
 
 // Terrain storage: RLE-compressed 16x16 chunks — the Terrain Brush's wire
 // format (golden-tested; changes are schema migrations).
@@ -304,6 +311,31 @@ export interface DragPreviewObject extends DragPreviewUpdate {
 }
 
 /**
+ * MeasureEvent: one player's live measurement, relayed to the whole table so
+ * everyone sees the same line while it is being dragged.
+ *
+ * `uid` and `name` are stamped by the SERVER from the connection — the client
+ * message carries no identity, so a tampered client cannot draw a line under
+ * someone else's name.
+ *
+ * `start`/`end` are absent when the player stopped measuring; that clears
+ * their line. Ephemeral by design: nothing here is stored on RoomState,
+ * persisted, or sent in a snapshot, so a client that joins mid-measurement
+ * simply sees the next update.
+ *
+ * NOT privacy-filtered, and deliberately so: measuring is a communicative act,
+ * the same class as a pointer ping — and DM pings are already narration
+ * visible to the whole table (see recipientFilter's pointer rule). A DM who
+ * wants to measure unobserved switches the tool off.
+ */
+export interface MeasureEvent {
+  uid: string;
+  name: string;
+  start?: MeasurePoint;
+  end?: MeasurePoint;
+}
+
+/**
  * DragPreviewEvent: High-frequency token drag preview payload broadcast to clients.
  */
 export interface DragPreviewEvent {
@@ -313,19 +345,42 @@ export interface DragPreviewEvent {
 }
 
 /**
+ * Every shape kind a `Drawing` can hold. `eraser` is a gesture, never a stored
+ * record — it is in the union because the client's tool state shares it.
+ * `template` is an area of effect: its `points` are a closed polygon and its
+ * `template` field says what shape produced them (see areaTemplates.ts).
+ */
+export const DRAWING_TYPES = ["freehand", "line", "rect", "circle", "eraser", "template"] as const;
+export type DrawingType = (typeof DRAWING_TYPES)[number];
+
+/**
+ * The tool the drawing toolbar is holding. Wider than `DrawingType` because a
+ * template tool names the SHAPE it will draw ("template-cone") while every
+ * template commits as one `type: "template"` record. Declared once here so the
+ * seven places that used to spell the union out by hand cannot drift apart.
+ */
+export type DrawTool = "freehand" | "line" | "rect" | "circle" | "eraser" | AreaTemplateTool;
+
+/**
  * Drawing: Represents any drawing on the map canvas
  * Supports multiple tool types: freehand, line, rectangle, circle, etc.
  */
 export interface Drawing {
   id: string; // Unique identifier
   owner?: string; // UID of player who created this drawing
-  type: "freehand" | "line" | "rect" | "circle" | "eraser"; // Drawing tool type
+  type: DrawingType; // Drawing tool type
   points: { x: number; y: number }[]; // Path points or shape bounds
   color: string; // Line/fill color
   width: number; // Line thickness
   opacity: number; // Opacity (0-1)
   filled?: boolean; // For shapes: filled vs outline only
   selectedBy?: string; // UID of player who has this drawing selected (for editing)
+  /**
+   * Present only on `type: "template"`. Describes the area — "20 ft cone" —
+   * for the readout; `points` remains the authority on where it sits, so
+   * dragging a placed template never makes this stale.
+   */
+  template?: AreaTemplate;
 }
 
 /**
@@ -479,6 +534,7 @@ export interface RoomSnapshot {
   liveMapDocumentId?: string; // DM-only: the map document auto-compiled into the live scene on every command (absent for players)
   fogEnabled?: boolean; // Whether fog of war hides the map beyond player token sightlines
   monsterHpDisplay?: MonsterHpDisplay; // DM setting: how much monster HP players see (absent = "exact")
+  diagonalRule?: DiagonalRule; // DM setting: how the table counts diagonals (absent = "5e")
   /**
    * True only for the default table WHILE it still opens with the password
    * published in the setup docs — i.e. it is genuinely reachable by anyone, and
@@ -757,6 +813,13 @@ type ClientMessagePayload =
   | { t: "set-door-state"; doorId: string; state: CompiledDoorState } // DM-only: set any door state (lock, unlock, reveal)
   | { t: "set-fog-enabled"; enabled: boolean } // DM-only: toggle fog of war for the published scene
   | { t: "set-monster-hp-display"; mode: MonsterHpDisplay } // DM-only: how much monster HP players see (enforced in the snapshot filter)
+  | { t: "set-diagonal-rule"; rule: DiagonalRule } // DM-only: how the table counts diagonal distance
+
+  // The measurement in progress. Carries NO author — the server stamps
+  // identity from the connection, the same rule chat and dice follow. `measure`
+  // is null when the player stops measuring, which clears their line for
+  // everyone. Ephemeral: never stored, never persisted, never in a snapshot.
+  | { t: "measure"; measure: { start: MeasurePoint; end: MeasurePoint } | null }
 
   // Dice. Carries a FORMULA, not a result: the server parses it, rolls it with
   // its own RNG, and stamps the author from the connection. There is nothing
@@ -845,6 +908,7 @@ export type ServerMessage =
   | { t: "state-sync"; stateVersion: number } // Contentless version advance for deltas withheld by vision filtering
   | { t: "pointer-preview"; pointer: Pointer } // Pointer preview event (high-frequency channel)
   | { t: "drag-preview"; preview: DragPreviewEvent } // Drag preview event (high-frequency channel)
+  | { t: "measure"; measure: MeasureEvent } // Someone's measurement, live (high-frequency channel)
   | { t: "map-studio-documents"; documents: MapDocumentSummary[] }
   | {
       t: "map-studio-document";

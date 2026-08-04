@@ -13,7 +13,7 @@
 import { readFileSync, existsSync, renameSync } from "fs";
 import { writeFile, rename } from "fs/promises";
 import type { Player, Character, SceneObject } from "@herobyte/shared";
-import { coerceMonsterHpDisplay } from "@herobyte/shared";
+import { coerceDiagonalRule, coerceMonsterHpDisplay } from "@herobyte/shared";
 import { resolveServerPath } from "../../../config/serverPaths.js";
 import type { RoomState } from "../model.js";
 import { createSelectionMap } from "../model.js";
@@ -126,6 +126,10 @@ export class StatePersistence {
           // Whitelist, not passthrough: a hand-edited file must not smuggle a
           // fourth mode into a field the recipient filter branches on.
           monsterHpDisplay: coerceMonsterHpDisplay(data.monsterHpDisplay),
+          // Same whitelist for the same reason: the measurement maths branches
+          // on this, and a file written by an older server has no key at all
+          // (which coerces to "5e", the corrected default).
+          diagonalRule: coerceDiagonalRule(data.diagonalRule),
         };
 
         this.setState(loadedState);
@@ -220,6 +224,7 @@ export class StatePersistence {
       liveMapDocumentId: state.liveMapDocumentId,
       fogEnabled: state.fogEnabled,
       monsterHpDisplay: state.monsterHpDisplay,
+      diagonalRule: state.diagonalRule,
       stateVersion: state.stateVersion,
       // Combat state survives a restart on purpose (VISION.md calls this a
       // launch gate): a mid-fight crash or redeploy must not lose initiative.

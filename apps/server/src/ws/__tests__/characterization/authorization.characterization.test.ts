@@ -98,6 +98,7 @@ describe("MessageRouter - Authorization Characterization", () => {
       currentTurnCharacterId: undefined,
       fogEnabled: false,
       monsterHpDisplay: "exact" as const,
+      diagonalRule: "5e" as const,
     };
 
     // Create minimal mocks that return success without deep execution

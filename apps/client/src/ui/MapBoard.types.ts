@@ -1,4 +1,4 @@
-import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
+import type { RoomSnapshot, ClientMessage, DrawTool, MeasureEvent } from "@herobyte/shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import type { Camera } from "../hooks/useCamera";
 import type { MapStudioController } from "../features/map-studio/types";
@@ -35,6 +35,7 @@ export interface MapBoardProps {
   snapToGrid: boolean; // Whether to snap tokens to grid
   pointerMode: boolean; // Pointer tool active
   measureMode: boolean; // Measure tool active
+  remoteMeasurements?: MeasureEvent[]; // Other players' live measurements (S6)
   drawMode: boolean; // Draw tool active
   transformMode: boolean; // Transform tool active (gizmo mode)
   selectMode: boolean; // Selection tool active
@@ -63,7 +64,7 @@ export interface MapBoardProps {
   alignmentPoints?: AlignmentPoint[]; // Captured alignment points
   alignmentSuggestion?: AlignmentSuggestion | null; // Preview transform for alignment
   onAlignmentPointCapture?: (point: AlignmentPoint) => void;
-  drawTool: "freehand" | "line" | "rect" | "circle" | "eraser"; // Active drawing tool
+  drawTool: DrawTool; // Active drawing tool
   drawColor: string; // Drawing color
   drawWidth: number; // Drawing brush size
   drawOpacity: number; // Drawing opacity (0-1)

@@ -610,4 +610,46 @@ describe("MessageQueueManager - Characterization Tests", () => {
       expect(queueManager.getQueueLength()).toBe(0);
     });
   });
+  describe("ephemeral messages (S6)", () => {
+    it("drops a live measurement instead of queueing it when the socket is down", () => {
+      // The offline buffer is 200 slots and evicts the OLDEST. A measurement
+      // broadcasts ~16 times a second, so twelve seconds of measuring through
+      // a reconnect blip would evict every real command — and then replay 200
+      // obsolete lines onto the table.
+      const canSend = vi.fn(() => true);
+      const closed = { readyState: 3, send: vi.fn() } as unknown as WebSocket;
+
+      for (let i = 0; i < 50; i += 1) {
+        queueManager.send(
+          { t: "measure", measure: { start: { x: 0, y: 0 }, end: { x: i, y: i } } },
+          closed,
+          canSend,
+        );
+      }
+
+      expect(queueManager.getQueueLength()).toBe(0);
+    });
+
+    it("still queues a real command through the same closed socket", () => {
+      // Guards the guard: a send path that dropped everything would satisfy
+      // the test above for the wrong reason.
+      const canSend = vi.fn(() => true);
+      const closed = { readyState: 3, send: vi.fn() } as unknown as WebSocket;
+
+      queueManager.send({ t: "move", id: "token-1", x: 1, y: 1 }, closed, canSend);
+
+      expect(queueManager.getQueueLength()).toBe(1);
+    });
+
+    it("sends a measurement normally while the socket is open", () => {
+      const canSend = vi.fn(() => true);
+      queueManager.send(
+        { t: "measure", measure: { start: { x: 0, y: 0 }, end: { x: 5, y: 5 } } },
+        mockWebSocket,
+        canSend,
+      );
+
+      expect(mockWebSocket.send).toHaveBeenCalledTimes(1);
+    });
+  });
 });

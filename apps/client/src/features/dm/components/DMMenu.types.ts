@@ -5,6 +5,7 @@ import type {
   Player,
   SceneObject,
   SnapshotCharacter,
+  DiagonalRule,
   MonsterHpDisplay,
 } from "@herobyte/shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignment";
@@ -20,6 +21,8 @@ export interface DMMenuProps {
   onGridLockToggle: () => void;
   onGridSizeChange: (size: number) => void;
   onGridSquareSizeChange?: (size: number) => void;
+  diagonalRule?: DiagonalRule;
+  onDiagonalRuleChange?: (rule: DiagonalRule) => void;
   fogEnabled?: boolean;
   hasCompiledScene?: boolean;
   onFogEnabledChange?: (enabled: boolean) => void;

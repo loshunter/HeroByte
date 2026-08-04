@@ -21,7 +21,7 @@
  */
 
 import React, { Suspense } from "react";
-import type { RoomSnapshot, ClientMessage } from "@herobyte/shared";
+import type { RoomSnapshot, ClientMessage, MeasureEvent } from "@herobyte/shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
 import type { CameraCommand } from "../ui/MapBoard";
 import type { UseDrawingStateManagerReturn } from "../hooks/useDrawingStateManager";
@@ -79,6 +79,7 @@ export interface CenterCanvasLayoutProps {
   pointerMode: boolean;
   /** Whether measure mode is active (distance measurement) */
   measureMode: boolean;
+  remoteMeasurements?: MeasureEvent[];
   /** Whether draw mode is active (freehand drawing) */
   drawMode: boolean;
   /** Whether transform mode is active (object manipulation) */
@@ -221,6 +222,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
     isDM,
     pointerMode,
     measureMode,
+    remoteMeasurements,
     drawMode,
     transformMode,
     selectMode,
@@ -278,6 +280,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
             snapToGrid={snapToGrid}
             pointerMode={pointerMode}
             measureMode={measureMode}
+            remoteMeasurements={remoteMeasurements}
             drawMode={drawMode}
             transformMode={transformMode}
             selectMode={selectMode}

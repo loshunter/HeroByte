@@ -90,6 +90,7 @@ export default function MapBoard({
   snapToGrid,
   pointerMode,
   measureMode,
+  remoteMeasurements,
   drawMode,
   transformMode,
   selectMode,
@@ -311,6 +312,7 @@ export default function MapBoard({
   // Drawing tool
   const {
     currentDrawing,
+    currentTemplate,
     onMouseDown: handleDrawMouseDown,
     onMouseMove: handleDrawMouseMove,
     onMouseUp: handleDrawMouseUp,
@@ -322,6 +324,11 @@ export default function MapBoard({
     drawWidth,
     drawOpacity,
     drawFilled,
+    // The prop, not `grid.size`: useGridConfig mirrors this value through
+    // state (so it trails by one render after a resize) and is declared
+    // further down the file anyway.
+    gridSize,
+    gridSquareSize: snapshot?.gridSquareSize ?? 5,
     toWorld,
     sendMessage,
     onDrawingComplete,
@@ -725,6 +732,7 @@ export default function MapBoard({
             drawingObjects={drawingObjects}
             currentDrawing={currentDrawing}
             currentTool={drawTool}
+            currentTemplate={currentTemplate}
             currentColor={drawColor}
             currentWidth={drawWidth}
             currentOpacity={drawOpacity}
@@ -807,6 +815,8 @@ export default function MapBoard({
             measureEnd={measureEnd}
             gridSize={grid.size}
             gridSquareSize={snapshot?.gridSquareSize}
+            diagonalRule={snapshot?.diagonalRule}
+            remoteMeasurements={remoteMeasurements}
           />
           <AlignmentOverlay
             alignmentMode={alignmentMode}

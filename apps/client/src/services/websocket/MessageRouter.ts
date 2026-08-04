@@ -16,7 +16,13 @@
  * @see CLIENT_WEBSOCKET_PLAN.md - Manager 5: MessageRouter
  */
 
-import type { DragPreviewEvent, Pointer, RoomSnapshot, ServerMessage } from "@herobyte/shared";
+import type {
+  DragPreviewEvent,
+  MeasureEvent,
+  Pointer,
+  RoomSnapshot,
+  ServerMessage,
+} from "@herobyte/shared";
 import type { SignalData } from "simple-peer";
 
 /**
@@ -62,6 +68,8 @@ type DeltaMessage = Extract<ServerMessage, { t: "token-updated" | "state-sync" }
 type PointerPreviewMessage = Extract<ServerMessage, { t: "pointer-preview" }>;
 
 type DragPreviewMessage = Extract<ServerMessage, { t: "drag-preview" }>;
+
+type MeasureMessage = Extract<ServerMessage, { t: "measure" }>;
 
 type AckMessage = Extract<ServerMessage, { t: "ack" }>;
 type NackMessage = Extract<ServerMessage, { t: "nack" }>;
@@ -110,6 +118,13 @@ export interface MessageRouterConfig {
    * Optional callback for drag preview messages
    */
   onDragPreview?: (preview: DragPreviewEvent) => void;
+
+  /**
+   * Optional callback for someone's live measurement (S6). Ephemeral: this
+   * never lands in a snapshot, so the only way a client learns about another
+   * player's ruler is this channel.
+   */
+  onMeasure?: (measure: MeasureEvent) => void;
 
   /**
    * Optional callback for heartbeat acknowledgements
@@ -213,6 +228,11 @@ export class MessageRouter {
 
       if (this.isDragPreviewMessage(parsed)) {
         this.handleDragPreviewMessage(parsed);
+        return;
+      }
+
+      if (this.isMeasureMessage(parsed)) {
+        this.handleMeasureMessage(parsed);
         return;
       }
 
@@ -369,6 +389,14 @@ export class MessageRouter {
     return candidate.t === "drag-preview" && Boolean(candidate.preview);
   }
 
+  private isMeasureMessage(value: unknown): value is MeasureMessage {
+    if (!value || typeof value !== "object") return false;
+    const candidate = value as Partial<MeasureMessage>;
+    // A measure frame with no start/end is the CLEAR signal, so `measure` must
+    // be present but its endpoints must not be required.
+    return candidate.t === "measure" && Boolean(candidate.measure?.uid);
+  }
+
   /**
    * Type guard for heartbeat acknowledgement messages
    */
@@ -443,6 +471,10 @@ export class MessageRouter {
 
   private handleDragPreviewMessage(message: DragPreviewMessage): void {
     this.config.onDragPreview?.(message.preview);
+  }
+
+  private handleMeasureMessage(message: MeasureMessage): void {
+    this.config.onMeasure?.(message.measure);
   }
 
   /**

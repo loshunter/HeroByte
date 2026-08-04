@@ -10,7 +10,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Camera } from "../hooks/useCamera";
-import type { RoomSnapshot, ClientMessage, ServerMessage } from "@herobyte/shared";
+import type { RoomSnapshot, ClientMessage, MeasureEvent, ServerMessage } from "@herobyte/shared";
 import { WS_URL } from "../config";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useDrawingStateManager } from "../hooks/useDrawingStateManager";
@@ -72,6 +72,7 @@ export const App: React.FC = () => {
   const uid = getSessionUID(); // This player's unique ID
   const {
     snapshot,
+    remoteMeasurements,
     connectionState,
     send: sendMessage,
     authState,
@@ -110,6 +111,7 @@ export const App: React.FC = () => {
       <AuthenticatedApp
         uid={uid}
         snapshot={snapshot}
+        remoteMeasurements={remoteMeasurements}
         sendMessage={sendMessage}
         getAuthCredentials={getAuthCredentials}
         registerRtcHandler={registerRtcHandler}
@@ -125,6 +127,8 @@ export const App: React.FC = () => {
 interface AuthenticatedAppProps {
   uid: string;
   snapshot: RoomSnapshot | null;
+  /** Everyone else's live measurement (S6); relayed, never in the snapshot. */
+  remoteMeasurements: MeasureEvent[];
   sendMessage: (message: ClientMessage) => void;
   getAuthCredentials: () => { secret: string; roomId?: string } | null;
   registerRtcHandler: (handler: (from: string, signal: unknown) => void) => void;
@@ -137,6 +141,7 @@ interface AuthenticatedAppProps {
 function AuthenticatedApp({
   uid,
   snapshot,
+  remoteMeasurements,
   sendMessage,
   getAuthCredentials,
   registerRtcHandler,
@@ -483,6 +488,7 @@ function AuthenticatedApp({
     uid,
     gridSize,
     sendMessage,
+    remoteMeasurements,
   });
 
   const mapSceneObject = useMemo(
@@ -733,6 +739,7 @@ function AuthenticatedApp({
     drawMode,
     pointerMode,
     measureMode,
+    remoteMeasurements,
     transformMode,
     selectMode,
     alignmentMode,

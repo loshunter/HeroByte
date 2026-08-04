@@ -236,6 +236,10 @@ describe("session round trip", () => {
       combatActive: true,
       fogEnabled: true,
       monsterHpDisplay: "bloodied",
+      // NOT the "5e" default on purpose: the sweep below only catches a field
+      // that is LOST, so a loader that hardcoded the default would pass with a
+      // default-valued fixture. (A sabotage proved exactly that.)
+      diagonalRule: "pathfinder",
       playerStagingZone: { x: 1, y: 2, width: 3, height: 4, rotation: 0 },
       characters: [
         { id: "char-1", name: "Hero", type: "pc", hp: 5, maxHp: 5, initiative: 12 } as never,
@@ -303,6 +307,7 @@ describe("session round trip", () => {
     expect(after.combatActive).toBe(true);
     expect(after.fogEnabled).toBe(true);
     expect(after.monsterHpDisplay).toBe("bloodied");
+    expect(after.diagonalRule).toBe("pathfinder");
     expect(after.playerStagingZone).toEqual({ x: 1, y: 2, width: 3, height: 4, rotation: 0 });
     expect(after.props).toHaveLength(1);
     expect(after.drawings).toHaveLength(1);

@@ -125,6 +125,17 @@ function createRectMock() {
   return Component;
 }
 
+function createTextMock() {
+  // TemplateShape (S6) draws the size readout with Konva's Text; without this
+  // the mock throws "No Text export is defined", which is how a missing mock
+  // reads as a product failure.
+  const Component = (props: Record<string, unknown>) => (
+    <div data-testid="konva-text">{String(props.text)}</div>
+  );
+  Component.displayName = "MockKonvaText";
+  return Component;
+}
+
 function createCircleMock() {
   const Component = forwardRef<HTMLDivElement, Record<string, unknown>>(
     ({ onClick, onTap, ...props }, ref) => (
@@ -153,6 +164,7 @@ vi.mock("react-konva", () => ({
   Line: createLineMock(),
   Rect: createRectMock(),
   Circle: createCircleMock(),
+  Text: createTextMock(),
 }));
 
 describe("DrawingsLayer", () => {
@@ -1983,6 +1995,83 @@ describe("DrawingsLayer", () => {
       );
 
       consoleSpy.mockRestore();
+    });
+  });
+  describe("Area templates (S6)", () => {
+    // TemplateShape's own rendering is covered in TemplateShape.test.tsx; what
+    // is proven here is the WIRING — that a drawing whose type is "template"
+    // reaches it at all. Both switches end in `default: return null`, so a
+    // missing case renders nothing and stays silently green.
+    const TRIANGLE = [
+      { x: 0, y: 0 },
+      { x: 100, y: 50 },
+      { x: 100, y: -50 },
+    ];
+
+    const templateObject = () =>
+      createDrawingObject({
+        data: {
+          drawing: {
+            id: "draw-template",
+            owner: "user-1",
+            type: "template",
+            points: TRIANGLE,
+            color: "#ff8800",
+            width: 3,
+            opacity: 0.8,
+            filled: true,
+            template: { kind: "cone", sizeFeet: 15 },
+          },
+        },
+      });
+
+    it("renders a committed template as a closed polygon", () => {
+      render(<DrawingsLayer {...defaultProps} drawingObjects={[templateObject()]} />);
+
+      const flat = [0, 0, 100, 50, 100, -50];
+      const lines = screen.getAllByTestId("konva-line");
+      expect(lines.length).toBeGreaterThan(0);
+      for (const line of lines) {
+        expect(JSON.parse(line.getAttribute("data-points") ?? "[]")).toEqual(flat);
+      }
+    });
+
+    it("labels the committed template with its size", () => {
+      render(<DrawingsLayer {...defaultProps} drawingObjects={[templateObject()]} />);
+
+      expect(screen.getByText("15 ft cone")).toBeInTheDocument();
+    });
+
+    it("renders the in-progress template preview", () => {
+      render(
+        <DrawingsLayer
+          {...defaultProps}
+          currentTool={"template-cone" as never}
+          currentDrawing={TRIANGLE}
+          currentTemplate={{ kind: "cone", sizeFeet: 15 }}
+        />,
+      );
+
+      expect(screen.getByText("15 ft cone")).toBeInTheDocument();
+    });
+
+    it("draws nothing for a template whose polygon is degenerate", () => {
+      const degenerate = createDrawingObject({
+        data: {
+          drawing: {
+            id: "draw-bad",
+            owner: "user-1",
+            type: "template",
+            points: [{ x: 0, y: 0 }],
+            color: "#ff8800",
+            width: 3,
+            opacity: 0.8,
+          },
+        },
+      });
+      render(<DrawingsLayer {...defaultProps} drawingObjects={[degenerate]} />);
+
+      expect(screen.queryAllByTestId("konva-line")).toHaveLength(0);
     });
   });
 });

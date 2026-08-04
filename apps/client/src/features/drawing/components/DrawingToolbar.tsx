@@ -4,11 +4,12 @@
 // Draggable toolbar when draw mode is active
 // Provides controls for drawing tool selection, colors, brush size, opacity, etc.
 
+import { AREA_TEMPLATE_TOOLS, type AreaTemplateTool, type DrawTool } from "@herobyte/shared";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 
 export interface DrawingToolbarProps {
-  drawTool: "freehand" | "line" | "rect" | "circle" | "eraser";
+  drawTool: DrawTool;
   drawColor: string;
   drawWidth: number;
   drawOpacity: number;
@@ -16,7 +17,7 @@ export interface DrawingToolbarProps {
   onClose?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
-  onToolChange: (tool: "freehand" | "line" | "rect" | "circle" | "eraser") => void;
+  onToolChange: (tool: DrawTool) => void;
   onColorChange: (color: string) => void;
   onWidthChange: (width: number) => void;
   onOpacityChange: (opacity: number) => void;
@@ -25,6 +26,18 @@ export interface DrawingToolbarProps {
   onRedo?: () => void;
   onClearAll: () => void;
 }
+
+/**
+ * Named for the EFFECT, not the shape: "Circle" and "Line" are already tool
+ * names two rows up, and two buttons reading CIRCLE in the same panel is a
+ * coin toss. Matches the mobile sheet's chips word for word.
+ */
+const TEMPLATE_TOOL_LABELS: Record<AreaTemplateTool, string> = {
+  "template-circle": "◯ Burst",
+  "template-cone": "◺ Cone",
+  "template-square": "▢ Cube",
+  "template-line": "▬ Bolt",
+};
 
 const PRESET_COLORS = [
   "#ffffff", // White
@@ -124,6 +137,35 @@ export function DrawingToolbar({
                 🧹 Eraser
               </JRPGButton>
             </div>
+          </div>
+
+          {/* Area templates (S6). They live in the DRAWING toolbar rather than
+              claiming a tool mode of their own: they share the colour, the
+              undo stack, the eraser and the touch path already armed for
+              drawing. Size comes from the drag — snapped to whole squares —
+              so there is no extra field to find a home for on a phone. */}
+          <div>
+            <label
+              className="jrpg-text-small"
+              style={{ display: "block", marginBottom: "4px", color: "var(--jrpg-gold)" }}
+            >
+              Templates:
+            </label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px" }}>
+              {AREA_TEMPLATE_TOOLS.map((tool) => (
+                <JRPGButton
+                  key={tool}
+                  onClick={() => onToolChange(tool)}
+                  variant={drawTool === tool ? "primary" : "default"}
+                  style={{ fontSize: "8px", padding: "6px 4px" }}
+                >
+                  {TEMPLATE_TOOL_LABELS[tool]}
+                </JRPGButton>
+              ))}
+            </div>
+            <span style={{ fontSize: "9px", opacity: 0.8, lineHeight: 1.3, display: "block" }}>
+              Drag from the origin; size snaps to whole squares.
+            </span>
           </div>
 
           {/* Color Palette - Limited Retro Colors */}

@@ -15,6 +15,7 @@ import type {
   DiceRoll,
   ChatMessage,
   Character,
+  DiagonalRule,
   MonsterHpDisplay,
   Prop,
   SceneObject,
@@ -59,6 +60,7 @@ export interface RoomState {
   liveMapDocumentId?: string; // Map document whose edits auto-compile into the live scene (DM-authored)
   fogEnabled: boolean; // Whether fog of war hides the map beyond player sightlines
   monsterHpDisplay: MonsterHpDisplay; // How much monster HP players see (enforced in the recipient filter)
+  diagonalRule: DiagonalRule; // How the table counts diagonal distance (measureGridDistance)
   /** The public test table (see RoomSnapshot.isPublicTable). Set at boot. */
   isPublicTable?: boolean;
   /** Display name a private table was created or forked with. */
@@ -96,6 +98,7 @@ export function createEmptyRoomState(): RoomState {
     liveMapDocumentId: undefined,
     fogEnabled: false,
     monsterHpDisplay: "exact",
+    diagonalRule: "5e",
   };
 }
 
@@ -144,6 +147,9 @@ export function toSnapshot(
     // Sent to everyone: enforcement is the recipient filter's redaction, not
     // this flag — but the client uses it to label the redacted view.
     monsterHpDisplay: state.monsterHpDisplay,
+    // A table rule, not a secret: every recipient must measure the same way or
+    // "is Grak in range" gets two answers.
+    diagonalRule: state.diagonalRule,
   };
 
   // Only ever sent when true — absent reads as "not a public table".

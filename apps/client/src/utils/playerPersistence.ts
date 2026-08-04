@@ -7,6 +7,7 @@ import type {
   Token,
   TokenSize,
 } from "@herobyte/shared";
+import { cloneDrawingForExport, sanitizeDrawingFromImport } from "./characterDrawings";
 
 interface SavePlayerStateParams {
   player: Player;
@@ -18,41 +19,9 @@ interface SavePlayerStateParams {
 
 const TOKEN_SIZES: TokenSize[] = ["tiny", "small", "medium", "large", "huge", "gargantuan"];
 const MAX_DRAWINGS = 200;
-const MAX_DRAWING_POINTS = 10_000;
-const VALID_DRAWING_TYPES = ["circle", "line", "rect", "freehand", "eraser"] as const;
-type ValidDrawingType = (typeof VALID_DRAWING_TYPES)[number];
 
 function sanitizeFilenameSegment(value: string): string {
   return value.replace(/[^a-z0-9-_]+/gi, "-").replace(/-+/g, "-");
-}
-
-function generateId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return `draw-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-function cloneDrawingForExport(drawing: Drawing): Drawing {
-  const points = Array.isArray(drawing.points)
-    ? drawing.points.slice(0, MAX_DRAWING_POINTS).map((point) => ({
-        x: Number(point.x) || 0,
-        y: Number(point.y) || 0,
-      }))
-    : [];
-
-  return {
-    id:
-      typeof drawing.id === "string" && drawing.id.trim().length > 0
-        ? drawing.id.trim()
-        : generateId(),
-    type: drawing.type,
-    points,
-    color: drawing.color,
-    width: drawing.width,
-    opacity: drawing.opacity,
-    filled: drawing.filled,
-  };
 }
 
 function sanitizeStatusEffects(source: unknown): string[] | undefined {
@@ -123,57 +92,6 @@ function parseTokenSnapshot(raw: unknown): PlayerStateTokenSnapshot | undefined 
 
   const definedKeys = Object.keys(snapshot);
   return definedKeys.length === 0 ? undefined : snapshot;
-}
-
-function sanitizeDrawingFromImport(raw: unknown, index: number): Drawing | null {
-  if (!isRecord(raw)) {
-    console.warn(`Skipping drawing[${index}] - not an object`);
-    return null;
-  }
-
-  const id = typeof raw.id === "string" && raw.id.trim().length > 0 ? raw.id.trim() : generateId();
-  const typeRaw = typeof raw.type === "string" ? raw.type.trim() : "";
-  const type: ValidDrawingType = VALID_DRAWING_TYPES.includes(typeRaw as ValidDrawingType)
-    ? (typeRaw as ValidDrawingType)
-    : "freehand";
-
-  if (!Array.isArray(raw.points) || raw.points.length === 0) {
-    console.warn(`Skipping drawing[${index}] - missing points array`);
-    return null;
-  }
-
-  const points =
-    raw.points
-      .slice(0, MAX_DRAWING_POINTS)
-      .map((point) =>
-        isRecord(point) && isFiniteNumber(point.x) && isFiniteNumber(point.y)
-          ? { x: point.x, y: point.y }
-          : null,
-      )
-      .filter((point): point is { x: number; y: number } => point !== null) ?? [];
-
-  if (points.length === 0) {
-    console.warn(`Skipping drawing[${index}] - invalid points`);
-    return null;
-  }
-
-  const color =
-    typeof raw.color === "string" && raw.color.trim().length > 0 ? raw.color.trim() : "#ffffff";
-  const width = isFiniteNumber(raw.width) && raw.width > 0 ? Math.min(raw.width, 200) : 5;
-  const opacity =
-    isFiniteNumber(raw.opacity) && raw.opacity >= 0 && raw.opacity <= 1 ? raw.opacity : 1;
-  const filled =
-    raw.filled === undefined ? undefined : typeof raw.filled === "boolean" ? raw.filled : undefined;
-
-  return {
-    id,
-    type,
-    points,
-    color,
-    width,
-    opacity,
-    filled,
-  };
 }
 
 export function savePlayerState({

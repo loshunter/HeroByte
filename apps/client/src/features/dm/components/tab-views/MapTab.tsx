@@ -16,7 +16,7 @@
 // This is purely a composition component - it does not contain business logic,
 // only arranges child components and passes through their props.
 
-import type { PlayerStagingZone } from "@herobyte/shared";
+import type { DiagonalRule, PlayerStagingZone } from "@herobyte/shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../../../types/alignment";
 import type { Camera } from "../../../../hooks/useCamera";
 import { MapBackgroundControl } from "../map-controls/MapBackgroundControl";
@@ -57,6 +57,8 @@ export interface MapTabProps {
   onGridSizeChange: (size: number) => void;
   onGridSquareSizeChange?: (size: number) => void;
   onGridLockToggle: () => void;
+  diagonalRule?: DiagonalRule;
+  onDiagonalRuleChange?: (rule: DiagonalRule) => void;
 
   // FogControl props
   fogEnabled?: boolean;
@@ -110,6 +112,8 @@ export default function MapTab({
   onGridSizeChange,
   onGridSquareSizeChange,
   onGridLockToggle,
+  diagonalRule,
+  onDiagonalRuleChange,
   fogEnabled,
   hasCompiledScene,
   onFogEnabledChange,
@@ -170,6 +174,8 @@ export default function MapTab({
         onGridSizeChange={onGridSizeChange}
         onGridSquareSizeChange={onGridSquareSizeChange}
         onGridLockToggle={onGridLockToggle}
+        diagonalRule={diagonalRule}
+        onDiagonalRuleChange={onDiagonalRuleChange}
       />
 
       {onFogEnabledChange && (

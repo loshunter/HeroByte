@@ -3,7 +3,7 @@
 // ============================================================================
 // Validates map and drawing-related messages
 
-import { MONSTER_HP_DISPLAY_MODES } from "@herobyte/shared";
+import { DIAGONAL_RULES, MONSTER_HP_DISPLAY_MODES } from "@herobyte/shared";
 import type { ValidationResult, MessageRecord } from "./commonValidators.js";
 import {
   isFiniteNumber,
@@ -116,6 +116,51 @@ export function validateSetMonsterHpDisplayMessage(message: MessageRecord): Vali
       valid: false,
       error: "set-monster-hp-display: mode must be exact, bloodied, or hidden",
     };
+  }
+  return { valid: true };
+}
+
+// Same discipline as the HP modes above: one authoritative list, so neither a
+// message nor a save file can smuggle a fourth rule into the distance maths.
+const DIAGONAL_RULE_SET = new Set<string>(DIAGONAL_RULES);
+
+/**
+ * Validate set-diagonal-rule message
+ * Required: rule (5e|pathfinder|euclidean)
+ */
+export function validateSetDiagonalRuleMessage(message: MessageRecord): ValidationResult {
+  if (typeof message.rule !== "string" || !DIAGONAL_RULE_SET.has(message.rule)) {
+    return {
+      valid: false,
+      error: "set-diagonal-rule: rule must be 5e, pathfinder, or euclidean",
+    };
+  }
+  return { valid: true };
+}
+
+/**
+ * Validate measure message (the live measurement relayed to the table)
+ * Required: measure — either null (stop measuring) or { start, end } with
+ * finite world-pixel coordinates.
+ */
+export function validateMeasureMessage(message: MessageRecord): ValidationResult {
+  const { measure } = message;
+  if (measure === null) {
+    return { valid: true };
+  }
+  // null already returned above, so "object" here means a real record.
+  if (typeof measure !== "object") {
+    return { valid: false, error: "measure: measure must be an object or null" };
+  }
+  const payload = measure as { start?: unknown; end?: unknown };
+  for (const key of ["start", "end"] as const) {
+    const point = payload[key] as { x?: unknown; y?: unknown } | undefined;
+    if (typeof point !== "object" || point === null) {
+      return { valid: false, error: `measure: ${key} must be a point` };
+    }
+    if (!isFiniteNumber(point.x) || !isFiniteNumber(point.y)) {
+      return { valid: false, error: `measure: ${key} must have finite x/y coordinates` };
+    }
   }
   return { valid: true };
 }

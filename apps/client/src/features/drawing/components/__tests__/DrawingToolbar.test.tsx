@@ -1246,3 +1246,67 @@ describe("DrawingToolbar", () => {
     });
   });
 });
+
+describe("DrawingToolbar - area templates (S6)", () => {
+  const baseProps: DrawingToolbarProps = {
+    drawTool: "freehand",
+    drawColor: "#ff0000",
+    drawWidth: 5,
+    drawOpacity: 1,
+    drawFilled: false,
+    onToolChange: vi.fn(),
+    onColorChange: vi.fn(),
+    onWidthChange: vi.fn(),
+    onOpacityChange: vi.fn(),
+    onFilledChange: vi.fn(),
+    onClearAll: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("offers all four template tools", () => {
+    render(<DrawingToolbar {...baseProps} />);
+    for (const label of [/◯ Burst/, /◺ Cone/, /▢ Cube/, /▬ Bolt/]) {
+      expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
+    }
+  });
+
+  it("sends the template tool the user picked", () => {
+    const onToolChange = vi.fn();
+    render(<DrawingToolbar {...baseProps} onToolChange={onToolChange} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /◺ Cone/ }));
+
+    expect(onToolChange).toHaveBeenCalledWith("template-cone");
+  });
+
+  it("marks the active template", () => {
+    render(<DrawingToolbar {...baseProps} drawTool="template-square" />);
+
+    expect(screen.getByRole("button", { name: /▢ Cube/ })).toHaveAttribute(
+      "data-variant",
+      "primary",
+    );
+    expect(screen.getByRole("button", { name: "✏️ Draw" })).toHaveAttribute(
+      "data-variant",
+      "default",
+    );
+  });
+
+  it("keeps colour and opacity available for templates", () => {
+    // A template IS a drawing: it shares the palette, and the interior wash is
+    // drawn from the same opacity slider.
+    render(<DrawingToolbar {...baseProps} drawTool="template-circle" />);
+
+    expect(screen.getByText("Color:")).toBeInTheDocument();
+    expect(screen.getByText(/Opacity:/)).toBeInTheDocument();
+  });
+
+  it("tells the user the size comes from the drag", () => {
+    render(<DrawingToolbar {...baseProps} />);
+
+    expect(screen.getByText(/size snaps to whole squares/i)).toBeInTheDocument();
+  });
+});

@@ -17,6 +17,7 @@ import type {
   RoomSnapshot,
   ClientMessage,
   ChatMessage,
+  MeasureEvent,
   SceneObjectTransform,
   TokenSize,
   PlayerState,
@@ -104,6 +105,11 @@ export interface MainLayoutProps {
   pointerMode: boolean;
   /** Whether measure mode is active */
   measureMode: boolean;
+  /**
+   * Everyone else's live measurement (S6). OPTIONAL so the four layout
+   * fixtures stay untouched, matching the convention above.
+   */
+  remoteMeasurements?: MeasureEvent[];
   /** Whether transform mode is active */
   transformMode: boolean;
   /** Whether select mode is active */

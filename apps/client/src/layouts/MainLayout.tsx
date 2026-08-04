@@ -63,6 +63,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     drawMode,
     pointerMode,
     measureMode,
+    remoteMeasurements,
     transformMode,
     selectMode,
     alignmentMode,
@@ -295,6 +296,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         playerLens={playerLens}
         pointerMode={pointerMode}
         measureMode={measureMode}
+        remoteMeasurements={remoteMeasurements}
         drawMode={drawMode}
         transformMode={transformMode}
         selectMode={selectMode}

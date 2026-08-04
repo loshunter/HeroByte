@@ -4,8 +4,16 @@
 // Extracted from DMMenu.tsx as part of Phase 3: Simple Map Controls.
 // Provides interface for configuring grid size, square size (feet), and lock state.
 
+import { DIAGONAL_RULES, DIAGONAL_RULE_LABELS, type DiagonalRule } from "@herobyte/shared";
 import { JRPGPanel, JRPGButton } from "../../../../components/ui/JRPGPanel";
 import { CollapsibleSection } from "../../../../components/ui/CollapsibleSection";
+
+/** One line each, so a DM picking a rule knows what it costs a diagonal. */
+const DIAGONAL_RULE_HINTS: Record<DiagonalRule, string> = {
+  "5e": "Every square costs the same. A 2-square diagonal is 10 ft.",
+  pathfinder: "Diagonals alternate 5-10. A 2-square diagonal is 15 ft.",
+  euclidean: "Straight-line distance, in fractions of a square.",
+};
 
 export interface GridControlProps {
   gridSize: number;
@@ -14,6 +22,9 @@ export interface GridControlProps {
   onGridSizeChange: (size: number) => void;
   onGridSquareSizeChange?: (size: number) => void;
   onGridLockToggle: () => void;
+  /** The table's diagonal rule (S6). Absent handler = no control, as elsewhere. */
+  diagonalRule?: DiagonalRule;
+  onDiagonalRuleChange?: (rule: DiagonalRule) => void;
 }
 
 export function GridControl({
@@ -23,6 +34,8 @@ export function GridControl({
   onGridSizeChange,
   onGridSquareSizeChange,
   onGridLockToggle,
+  diagonalRule = "5e",
+  onDiagonalRuleChange,
 }: GridControlProps) {
   const formatSquareSize = (value: number) =>
     Number.isInteger(value) ? `${value}` : value.toFixed(1);
@@ -109,6 +122,40 @@ export function GridControl({
             </span>
           </div>
         </CollapsibleSection>
+        {/* Diagonal rule (S6): OUTSIDE the collapsible on purpose. "Grid
+            locked" freezes the grid's SIZES so nobody nudges them mid-session;
+            how the table counts a diagonal is a rules decision, not a size,
+            and a DM should not have to unlock the grid to change it. */}
+        {onDiagonalRuleChange && (
+          <div style={{ marginTop: "8px" }}>
+            <span className="jrpg-text-small" style={{ display: "block", marginBottom: "4px" }}>
+              Diagonals
+            </span>
+            <div style={{ display: "flex", gap: "4px" }}>
+              {DIAGONAL_RULES.map((rule) => (
+                <JRPGButton
+                  key={rule}
+                  onClick={() => onDiagonalRuleChange(rule)}
+                  variant={diagonalRule === rule ? "primary" : "default"}
+                  style={{ flex: 1, fontSize: "9px", padding: "6px 4px" }}
+                >
+                  {DIAGONAL_RULE_LABELS[rule]}
+                </JRPGButton>
+              ))}
+            </div>
+            <span
+              style={{
+                fontSize: "10px",
+                opacity: 0.8,
+                lineHeight: 1.3,
+                display: "block",
+                marginTop: "4px",
+              }}
+            >
+              {DIAGONAL_RULE_HINTS[diagonalRule]}
+            </span>
+          </div>
+        )}
       </div>
     </JRPGPanel>
   );

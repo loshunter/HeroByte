@@ -316,4 +316,57 @@ describe("MapService", () => {
     expect(service.undoDrawing(state, "uid-1")).toBe(true);
     expect(state.drawings).toHaveLength(0);
   });
+  describe("area templates (S6)", () => {
+    const templateDrawing = (template: unknown) =>
+      ({
+        ...baseDrawing(),
+        id: "drawing-template",
+        type: "template",
+        points: [
+          { x: 0, y: 0 },
+          { x: 50, y: 0 },
+          { x: 50, y: 50 },
+        ],
+        template,
+      }) as never;
+
+    it("stores a well-formed template", () => {
+      const state = createEmptyRoomState();
+      service.addDrawing(state, templateDrawing({ kind: "cone", sizeFeet: 15 }), "uid-1");
+
+      expect(state.drawings[0].template).toEqual({ kind: "cone", sizeFeet: 15 });
+    });
+
+    it("stores the COERCED template, not the payload the client sent", () => {
+      // The message validator only REJECTS a bad template; it does not hand a
+      // sanitized one back. Without re-deriving it here, extra keys a client
+      // attached would be stored, broadcast to the table and written to disk.
+      const state = createEmptyRoomState();
+      service.addDrawing(
+        state,
+        templateDrawing({ kind: "circle", sizeFeet: 20, evil: "payload" }),
+        "uid-1",
+      );
+
+      expect(state.drawings[0].template).toEqual({ kind: "circle", sizeFeet: 20 });
+      expect(JSON.stringify(state.drawings[0])).not.toContain("evil");
+    });
+
+    it("drops a template that is not a real kind", () => {
+      // Reachable without the validator: a state file written before S6, or
+      // hand-edited afterwards, loads with no validation at all.
+      const state = createEmptyRoomState();
+      service.addDrawing(state, templateDrawing({ kind: "hypercube", sizeFeet: 15 }), "uid-1");
+
+      expect(state.drawings[0].template).toBeUndefined();
+    });
+
+    it("leaves an ordinary drawing without a template alone", () => {
+      const state = createEmptyRoomState();
+      service.addDrawing(state, baseDrawing(), "uid-1");
+
+      expect(state.drawings[0].template).toBeUndefined();
+      expect(state.drawings[0].type).toBe("freehand");
+    });
+  });
 });
