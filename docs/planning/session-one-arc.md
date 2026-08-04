@@ -1,9 +1,9 @@
 # Session One — the table runs a whole game without leaving it
 
-**Status:** S0–S5 SHIPPED. S0–S3 are deployed to production (dev→main `1dc00e00`, 2026-08-04);
-S4 (token nameplates + HP bars + DM monster-HP redaction) and S5 (honest dice) are on `dev`, CI
-green, awaiting the next deploy. Three slices grew beyond plan under adversarial review: S3's
-reclaim became condemn/resurrect/expire (grace-windowed deletion,
+**Status:** S0–S5 SHIPPED AND IN PRODUCTION (dev→main `0555ba35`, 2026-08-04; CI green on both
+branches, verified live on the public table: an advantage d20 returned `[10]` kept / `[2]`
+dropped with an ADV badge and a rendered formula). Three slices grew beyond plan under
+adversarial review: S3's reclaim became condemn/resurrect/expire (grace-windowed deletion,
 `HEROBYTE_ASSET_RECLAIM_GRACE_HOURS`) and its quota fossil is now statfs-derived; S4 closed a
 pre-existing hole where any player could rewrite any character's HP; S5 turned out to require
 rewriting the roll display, because the log had been rendering a blank formula and no breakdown
