@@ -1,10 +1,12 @@
 # Session One — the table runs a whole game without leaving it
 
-**Status:** S0–S3 SHIPPED (2026-08-04) — durability, rate limiting, chat, and image upload are on
-`dev` and deployed. S3 grew beyond the plan under adversarial review: reclaim became
-condemn/resurrect/expire (grace-windowed deletion, `HEROBYTE_ASSET_RECLAIM_GRACE_HOURS`), and the
-quota fossil is now statfs-derived. Next: S4 (tokens have names and health). Runs before the
-damage loop, mobile authoring, and the Atlas.
+**Status:** S0–S4 SHIPPED. S0–S3 are deployed to production (dev→main `1dc00e00`, 2026-08-04);
+S4 (token nameplates + HP bars + DM monster-HP redaction) is on `dev`, CI green, awaiting the next
+deploy. Two slices grew beyond plan under adversarial review: S3's reclaim became
+condemn/resurrect/expire (grace-windowed deletion, `HEROBYTE_ASSET_RECLAIM_GRACE_HOURS`) and its
+quota fossil is now statfs-derived; S4 closed a pre-existing hole where any player could rewrite
+any character's HP. Next: S5 (honest dice). Runs before the damage loop, mobile authoring, and the
+Atlas.
 
 **Thesis.** The hardest thing is built — live on-table authoring, server-compiled scenes with real
 wall collision, per-recipient fog filtering with contract-test proof. What is missing is the part
