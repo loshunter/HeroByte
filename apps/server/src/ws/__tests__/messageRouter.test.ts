@@ -894,12 +894,25 @@ describe("MessageRouter", () => {
       expect(mockRoomService.broadcast).not.toHaveBeenCalled();
     });
 
-    it("routes clear-roll-history message", () => {
+    it("routes clear-roll-history message from a DM", () => {
+      mockState.players[0]!.isDM = true;
       const msg: ClientMessage = { t: "clear-roll-history" };
       routeAndFlush(msg, "player-1");
 
       expect(mockDiceService.clearHistory).toHaveBeenCalledWith(mockState);
       expect(mockRoomService.broadcast).toHaveBeenCalled();
+    });
+
+    it("refuses clear-roll-history from a player", () => {
+      // Roll history is shared history, and since S5 it holds `dm` and `self`
+      // rolls the recipient filter deliberately withholds from this player —
+      // so an ungated wipe destroyed records they were never allowed to see.
+      // This test used to assert the opposite, with "player-1" seeded isDM:false.
+      const msg: ClientMessage = { t: "clear-roll-history" };
+      routeAndFlush(msg, "player-1");
+
+      expect(mockDiceService.clearHistory).not.toHaveBeenCalled();
+      expect(mockRoomService.broadcast).not.toHaveBeenCalled();
     });
   });
 

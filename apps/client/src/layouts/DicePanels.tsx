@@ -31,6 +31,8 @@ export interface DicePanelsProps {
   players: Player[];
   uid: string;
   handleSendChat: (text: string, to?: string) => void;
+  /** Clearing the shared roll log is DM-only, server-side. */
+  isDM: boolean;
 }
 
 export const DicePanels: React.FC<DicePanelsProps> = ({
@@ -48,6 +50,7 @@ export const DicePanels: React.FC<DicePanelsProps> = ({
   players,
   uid,
   handleSendChat,
+  isDM,
 }) => (
   <>
     {diceRollerOpen && (
@@ -78,6 +81,7 @@ export const DicePanels: React.FC<DicePanelsProps> = ({
           players={players}
           currentUid={uid}
           onSendChat={handleSendChat}
+          canClearLog={isDM}
         />
       </div>
     )}

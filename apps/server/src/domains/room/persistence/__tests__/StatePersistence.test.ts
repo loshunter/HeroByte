@@ -751,6 +751,19 @@ describe("StatePersistence - Characterization Tests", () => {
       expect(roomService.getState().chatLog).toEqual([]);
     });
 
+    it("refuses to load a non-array diceRolls for the same reason", async () => {
+      // chatLog got this guard when the crash was found; diceRolls kept the
+      // bare `|| []` next to it. Since S5 the roll log is also read inside the
+      // debounced broadcast (visibleRollsFor) and mapped in a client render
+      // path, so a poisoned one is the same crash loop with a different name.
+      writeFileSync(PROD_STATE_FILE, JSON.stringify({ diceRolls: { not: "an array" } }), "utf-8");
+
+      roomService.loadState();
+
+      expect(roomService.getState().diceRolls).toEqual([]);
+      expect(() => roomService.createSnapshotForPlayer("anyone")).not.toThrow();
+    });
+
     it("uses a tmp path unique per process AND per write", async () => {
       // A fixed `<file>.tmp` is safe only within one process. The dev server,
       // the e2e server and parallel vitest workers all default to this same

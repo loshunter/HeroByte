@@ -316,6 +316,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
       {rollLogOpen && (
         <div className="mobile-roll-log-panel">
           <RollLog
+            canClearLog={isDM}
             rolls={rollHistory}
             onClearLog={handleClearLog}
             onClose={() => toggleRollLog(false)}

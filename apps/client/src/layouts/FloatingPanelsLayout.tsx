@@ -321,6 +321,7 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
           players={snapshot?.players ?? []}
           uid={uid}
           handleSendChat={handleSendChat}
+          isDM={isDM}
         />
 
         <ToastContainer messages={toast.messages} onDismiss={toast.dismiss} />

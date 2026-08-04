@@ -357,6 +357,26 @@ describe("dice secrecy and forgery contracts", () => {
     expect(rawBytesSentTo(dmWs)).not.toContain(String(SECRET_MOD));
   });
 
+  it("does not let a player wipe rolls they were never allowed to see", () => {
+    route({ t: "dice-roll", formula: SECRET_FORMULA, visibility: "self" }, ALICE);
+    route({ t: "dice-roll", formula: "d20" }, DM);
+    expect(roomService.getState().diceRolls).toHaveLength(2);
+
+    route({ t: "clear-roll-history" }, BOB);
+
+    expect(roomService.getState().diceRolls).toHaveLength(2);
+    expect(rollsSeenBy(aliceWs).map((r) => r.formula)).toContain(SECRET_FORMULA);
+  });
+
+  it("lets the DM clear the shared log", () => {
+    route({ t: "dice-roll", formula: "d20" }, ALICE);
+    expect(roomService.getState().diceRolls).toHaveLength(1);
+
+    route({ t: "clear-roll-history" }, DM);
+
+    expect(roomService.getState().diceRolls).toHaveLength(0);
+  });
+
   it("survives a poisoned non-array diceRolls instead of taking the process down", () => {
     // Defence in depth behind the load-session validator: a state file written
     // before that guard existed can still hold one, and this runs inside the

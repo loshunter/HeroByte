@@ -31,7 +31,7 @@ export class DiceDispatcher {
         );
 
       case "clear-roll-history":
-        return this.handler.handleClearRollHistory(state);
+        return this.handler.handleClearRollHistory(state, senderUid, context.isDM());
 
       default:
         return null;

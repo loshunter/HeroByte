@@ -93,14 +93,25 @@ export class DiceMessageHandler {
   }
 
   /**
-   * Handle clear-roll-history message
+   * Wipe the log. DM-only, for the same reason clearing the chat log is: roll
+   * history is shared history, and one player should not be able to erase what
+   * the table rolled.
    *
-   * Clears all dice rolls from the history.
+   * S5 raised the stakes on an existing gap. The collection now holds `dm` and
+   * `self` rolls the recipient filter deliberately withholds from a player —
+   * so an ungated wipe let them destroy records they were never allowed to
+   * see, and the CLEAR button in the roll log is rendered for everyone.
    *
    * @param state - Current room state
+   * @param senderUid - Who asked, taken from the connection
+   * @param isDM - Whether they may
    * @returns Result indicating if broadcast/save is needed
    */
-  handleClearRollHistory(state: RoomState): DiceMessageResult {
+  handleClearRollHistory(state: RoomState, senderUid: string, isDM: boolean): DiceMessageResult {
+    if (!isDM) {
+      console.warn(`[Dice] Non-DM ${senderUid} attempted to clear the roll history`);
+      return { broadcast: false, save: false };
+    }
     this.diceService.clearHistory(state);
     return { broadcast: true, save: false };
   }
