@@ -68,6 +68,8 @@ export class CharacterDispatcher {
           message.characterId,
           message.hp,
           message.maxHp,
+          senderUid,
+          isDM,
         );
 
       case "set-character-status-effects":
