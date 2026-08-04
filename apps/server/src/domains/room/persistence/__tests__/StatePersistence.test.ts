@@ -110,6 +110,26 @@ describe("StatePersistence - Characterization Tests", () => {
   });
 
   describe("loadState()", () => {
+    it("round-trips monsterHpDisplay through the state file, coercing garbage", () => {
+      // S4: the recipient filter branches on this value, and the whole point
+      // of "hidden" is defeated if a restart silently reverts it to "exact".
+      roomService.getState().monsterHpDisplay = "hidden";
+      roomService.saveState();
+      return roomService.awaitPendingWrites().then(() => {
+        const fresh = new RoomService({ stateFile: PROD_STATE_FILE });
+        fresh.loadState();
+        expect(fresh.getState().monsterHpDisplay).toBe("hidden");
+
+        // And a hand-edited file cannot smuggle a fourth mode into the branch.
+        const raw = JSON.parse(readFileSync(PROD_STATE_FILE, "utf-8"));
+        raw.monsterHpDisplay = "exact-but-evil";
+        writeFileSync(PROD_STATE_FILE, JSON.stringify(raw));
+        const poisoned = new RoomService({ stateFile: PROD_STATE_FILE });
+        poisoned.loadState();
+        expect(poisoned.getState().monsterHpDisplay).toBe("exact");
+      });
+    });
+
     it("should do nothing when state file does not exist", () => {
       // Ensure file doesn't exist
       expect(existsSync(PROD_STATE_FILE)).toBe(false);
@@ -729,6 +749,19 @@ describe("StatePersistence - Characterization Tests", () => {
       roomService.loadState();
 
       expect(roomService.getState().chatLog).toEqual([]);
+    });
+
+    it("refuses to load a non-array diceRolls for the same reason", async () => {
+      // chatLog got this guard when the crash was found; diceRolls kept the
+      // bare `|| []` next to it. Since S5 the roll log is also read inside the
+      // debounced broadcast (visibleRollsFor) and mapped in a client render
+      // path, so a poisoned one is the same crash loop with a different name.
+      writeFileSync(PROD_STATE_FILE, JSON.stringify({ diceRolls: { not: "an array" } }), "utf-8");
+
+      roomService.loadState();
+
+      expect(roomService.getState().diceRolls).toEqual([]);
+      expect(() => roomService.createSnapshotForPlayer("anyone")).not.toThrow();
     });
 
     it("uses a tmp path unique per process AND per write", async () => {

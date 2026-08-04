@@ -17,6 +17,7 @@ import { isRecord } from "./validators/index.js";
 // Token validators
 import { validateForkTableMessage } from "./validators/forkValidators.js";
 import { validateChatMessage, validateClearChatLogMessage } from "./validators/chatValidators.js";
+import { validateDiceRollMessage } from "./validators/diceValidators.js";
 import { validateLoadSessionMessage } from "./validators/sessionValidators.js";
 import {
   validateMoveMessage,
@@ -81,6 +82,7 @@ import {
   validateToggleDoorMessage,
   validateSetDoorStateMessage,
   validateSetFogEnabledMessage,
+  validateSetMonsterHpDisplayMessage,
 } from "./validators/index.js";
 
 // Prop validators
@@ -102,7 +104,6 @@ import {
   validateElevateToDmMessage,
   validateSetDmPasswordMessage,
   validateTransformObjectMessage,
-  validateDiceRollMessage,
   validateRequestRoomResyncMessage,
   validateRtcSignalMessage,
 } from "./validators/index.js";
@@ -206,6 +207,7 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   "toggle-door": validateToggleDoorMessage,
   "set-door-state": validateSetDoorStateMessage,
   "set-fog-enabled": validateSetFogEnabledMessage,
+  "set-monster-hp-display": validateSetMonsterHpDisplayMessage,
 
   // ==========================================================================
   // PROP MESSAGES

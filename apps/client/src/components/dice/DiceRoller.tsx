@@ -1,91 +1,49 @@
 // ============================================================================
 // DICE ROLLER - Main orchestrator component
 // ============================================================================
+// The build strip, the options, and the macros. It does NOT roll: it asks the
+// server to, and shows the answer the snapshot brings back (S5). All of that
+// lives in useDiceBuild, shared with MobileDiceRoller.
 
-import React, { useState } from "react";
-import type { Build, DieType, RollResult } from "./types";
-import { rollBuild } from "./diceLogic";
+import React from "react";
+import { useDiceBuild } from "./useDiceBuild";
+import { formulaFromBuild } from "./diceLogic";
+import type { RollLogEntry } from "./rollLogTypes";
+import type { DiceRollMode, DiceVisibility } from "./types";
 import { DiceBar } from "./DiceBar";
 import { BuildStrip } from "./BuildStrip";
+import { MacroBar } from "./MacroBar";
 import { ResultPanel } from "./ResultPanel";
+import { RollOptions } from "./RollOptions";
 import { DraggableWindow } from "./DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
-import { generateUUID } from "../../utils/uuid";
-import { useSfx, detectRollFlavor } from "../../features/juice";
 
 interface DiceRollerProps {
-  onRoll?: (result: RollResult) => void;
+  /** Ask the server to roll. The result returns through `latestOwnRoll`. */
+  onRoll?: (request: { formula: string; mode: DiceRollMode; visibility: DiceVisibility }) => void;
+  /** Newest roll in history authored by this player. */
+  latestOwnRoll?: RollLogEntry | null;
   onClose?: () => void;
 }
 
-export const DiceRoller: React.FC<DiceRollerProps> = ({ onRoll, onClose }) => {
-  const [build, setBuild] = useState<Build>([]);
-  const [result, setResult] = useState<RollResult | null>(null);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const { play } = useSfx();
-
-  const addDie = (die: DieType) => {
-    console.log("[DiceRoller] addDie called with:", die);
-    // Check if die already exists in build
-    const existing = build.find((t) => t.kind === "die" && t.die === die);
-    if (existing) {
-      console.log("[DiceRoller] Incrementing existing die");
-      // Increment quantity
-      setBuild(
-        build.map((t) => (t.id === existing.id && t.kind === "die" ? { ...t, qty: t.qty + 1 } : t)),
-      );
-    } else {
-      console.log("[DiceRoller] Adding new die");
-      // Add new die token
-      setBuild([...build, { kind: "die", die, qty: 1, id: generateUUID() }]);
-    }
-  };
-
-  const addModifier = (value: number) => {
-    console.log("[DiceRoller] addModifier called with:", value);
-    setBuild([...build, { kind: "mod", value, id: generateUUID() }]);
-  };
-
-  const handleRoll = () => {
-    console.log(
-      "[DiceRoller] handleRoll called, build length:",
-      build.length,
-      "isAnimating:",
-      isAnimating,
-    );
-    if (build.length === 0) return;
-
-    setIsAnimating(true);
-    console.log("[DiceRoller] Set isAnimating to true");
-
-    // Dice tumble while the animation plays.
-    play("diceRattle");
-
-    // Roll after animation delay
-    setTimeout(() => {
-      console.log("[DiceRoller] Timeout callback executing");
-      const rollResult = rollBuild(build);
-      setResult(rollResult);
-      setIsAnimating(false);
-      console.log("[DiceRoller] Set isAnimating to false");
-
-      // Dice settle, then celebrate a nat-20 / lament a nat-1.
-      play("diceLand");
-      const flavor = detectRollFlavor(rollResult);
-      if (flavor === "crit") play("critSting");
-      else if (flavor === "fumble") play("failThud");
-
-      // Notify parent component
-      if (onRoll) {
-        onRoll(rollResult);
-      }
-    }, 600); // Match animation duration
-  };
-
-  const clearBuild = () => {
-    setBuild([]);
-    setResult(null);
-  };
+export const DiceRoller: React.FC<DiceRollerProps> = ({ onRoll, latestOwnRoll, onClose }) => {
+  const {
+    build,
+    setBuild,
+    mode,
+    setMode,
+    visibility,
+    setVisibility,
+    result,
+    setResult,
+    isAnimating,
+    error,
+    addDie,
+    addModifier,
+    clearBuild,
+    roll,
+    rollFormula,
+  } = useDiceBuild({ onRoll, latestOwnRoll });
 
   return (
     <DraggableWindow
@@ -137,10 +95,44 @@ export const DiceRoller: React.FC<DiceRollerProps> = ({ onRoll, onClose }) => {
             <BuildStrip build={build} onUpdateBuild={setBuild} isAnimating={isAnimating} />
           </JRPGPanel>
 
+          {/* Advantage / disadvantage and who sees it */}
+          <RollOptions
+            mode={mode}
+            onModeChange={setMode}
+            visibility={visibility}
+            onVisibilityChange={setVisibility}
+            disabled={isAnimating}
+          />
+
+          {/* Saved macros */}
+          <MacroBar
+            onRollMacro={rollFormula}
+            currentFormula={build.length > 0 ? formulaFromBuild(build) : ""}
+            currentMode={mode}
+            disabled={isAnimating}
+          />
+
+          {/* Why a roll was refused. The build strip can assemble more dice or
+              more terms than the server accepts; saying so beats a roll that
+              silently never happens. */}
+          {error && (
+            <div
+              role="alert"
+              data-testid="dice-error"
+              style={{
+                color: "var(--hero-danger, #FF6B6B)",
+                fontSize: "10px",
+                textAlign: "center",
+              }}
+            >
+              {error}
+            </div>
+          )}
+
           {/* Roll button */}
           <div style={{ display: "flex", justifyContent: "center" }}>
             <JRPGButton
-              onClick={handleRoll}
+              onClick={roll}
               disabled={build.length === 0 || isAnimating}
               variant="primary"
               aria-label="Roll dice"

@@ -4,13 +4,13 @@
 // Slide-out drawer for viewing players/entities on mobile.
 
 import React from "react";
-import type { Player, Character } from "@herobyte/shared";
+import type { Player, SnapshotCharacter } from "@herobyte/shared";
 import { MobilePlayerRow } from "./MobilePlayerRow";
 import { JRPGButton } from "../ui/JRPGPanel";
 
 interface MobileEntitiesListProps {
   players: Player[];
-  characters: Character[];
+  characters: SnapshotCharacter[];
   uid: string;
   /** The VIEWER's DM state — mobile passes the same flag to every row. */
   isDM: boolean;

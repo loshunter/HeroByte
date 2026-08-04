@@ -1,4 +1,12 @@
-import type { Character, PlayerStagingZone, Prop, Player, SceneObject } from "@herobyte/shared";
+import type {
+  Character,
+  PlayerStagingZone,
+  Prop,
+  Player,
+  SceneObject,
+  SnapshotCharacter,
+  MonsterHpDisplay,
+} from "@herobyte/shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignment";
 import type { Camera } from "../../../hooks/useCamera";
 import type { MapStudioController } from "../../map-studio";
@@ -26,7 +34,7 @@ export interface DMMenuProps {
   onStagingZoneLockToggle?: () => void;
   camera: Camera;
   playerCount: number;
-  characters: Character[];
+  characters: SnapshotCharacter[];
   onRequestSaveSession?: (sessionName: string) => void;
   onRequestLoadSession?: (file: File) => void;
   onCreateNPC: () => void;
@@ -81,6 +89,8 @@ export interface DMMenuProps {
   sceneObjects: SceneObject[];
   onSelectPlayerTokens: (playerUid: string) => void;
   combatActive?: boolean;
+  monsterHpDisplay?: MonsterHpDisplay;
+  onMonsterHpDisplayChange?: (mode: MonsterHpDisplay) => void;
   onStartCombat?: () => void;
   onEndCombat?: () => void;
   onClearAllInitiative?: () => void;

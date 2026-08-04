@@ -54,6 +54,13 @@ function flattenForFile(snapshot: RoomSnapshot, state: RoomState): RoomSnapshot 
     // export cannot, because it must round-trip the DM's secrets. So the one
     // secret that is not the DM's to share gets stripped here.
     chatLog: (rest.chatLog ?? []).filter((message) => !message.to),
+    // Public rolls only, for exactly the reason above: the real recipient uid
+    // let the exporting DM's own `self` rolls, and every `dm` roll the table
+    // sent them, through visibleRollsFor. Neither belongs in a file handed to
+    // other people.
+    diceRolls: (rest.diceRolls ?? []).filter(
+      (roll) => roll.visibility === undefined || roll.visibility === "public",
+    ),
     ...(state.mapBackground === undefined ? {} : { mapBackground: state.mapBackground }),
   };
 }

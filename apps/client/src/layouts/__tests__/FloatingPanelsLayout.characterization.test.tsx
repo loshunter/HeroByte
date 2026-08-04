@@ -453,6 +453,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
     handleSendChat: vi.fn(),
     viewingRoll: null,
     handleRoll: vi.fn(),
+    latestOwnRoll: null,
     handleClearLog: vi.fn(),
     handleViewRoll: vi.fn(),
 
@@ -1429,7 +1430,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       props.rollHistory = [
         {
           id: "roll-1",
-          tokens: [],
+          formula: "d20",
           perDie: [],
           total: 10,
           timestamp: Date.now(),
@@ -1437,7 +1438,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
         },
         {
           id: "roll-2",
-          tokens: [],
+          formula: "d20",
           perDie: [],
           total: 15,
           timestamp: Date.now(),
@@ -1533,7 +1534,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       props.rollHistory = [
         {
           id: "roll-1",
-          tokens: [],
+          formula: "d20",
           perDie: [],
           total: 10,
           timestamp: Date.now(),
@@ -1541,7 +1542,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
         },
         {
           id: "roll-2",
-          tokens: [],
+          formula: "d20",
           perDie: [],
           total: 15,
           timestamp: Date.now(),
@@ -1549,7 +1550,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
         },
         {
           id: "roll-3",
-          tokens: [],
+          formula: "d20",
           perDie: [],
           total: 20,
           timestamp: Date.now(),
@@ -1606,244 +1607,85 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
   // DiceRoller (Viewing) Component Tests
   // ============================================================================
 
-  describe("DiceRoller viewing mode conditional rendering", () => {
-    it("should render viewing DiceRoller when viewingRoll is not null", async () => {
+  describe("viewing a roll from the log", () => {
+    // This group used to characterize a BUG: `viewingRoll` was read as a
+    // boolean and mounted a second, empty <DiceRoller> — so clicking a row in
+    // the log opened a blank roller instead of that roll's breakdown, and that
+    // roller could fire real rolls into a no-op onRoll. The assertions below
+    // are the behaviour, not the artefact: viewing a roll shows ITS numbers.
+    const viewed = {
+      id: "roll-1",
+      playerUid: "player-1",
+      playerName: "Player 1",
+      formula: "2d6 + 4",
+      perDie: [
+        { tokenId: "t0", die: "d6" as const, rolls: [5, 2], subtotal: 7 },
+        { tokenId: "t1", subtotal: 4 },
+      ],
+      total: 11,
+      timestamp: Date.now(),
+    };
+
+    it("shows the viewed roll's breakdown and total, not a dice roller", () => {
       const props = createDefaultProps();
-      props.viewingRoll = {
-        id: "roll-1",
-        tokens: [],
-        perDie: [],
-        total: 10,
-        timestamp: Date.now(),
-        playerName: "Player 1",
-      };
+      props.viewingRoll = viewed;
 
       render(<MainLayout {...props} />);
 
-      const diceRollers = screen.getAllByTestId("dice-roller");
-      expect(diceRollers.length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByTestId("roll-result-total")).toHaveTextContent("11");
+      expect(screen.getByText("[5 + 2]")).toBeInTheDocument();
+      expect(screen.queryByTestId("dice-roller")).not.toBeInTheDocument();
     });
 
-    it("should NOT render viewing DiceRoller when viewingRoll is null", async () => {
+    it("shows nothing when no roll is being viewed", () => {
       const props = createDefaultProps();
       props.viewingRoll = null;
       props.diceRollerOpen = false;
 
       render(<MainLayout {...props} />);
 
+      expect(screen.queryByTestId("roll-result-total")).not.toBeInTheDocument();
       expect(screen.queryByTestId("dice-roller")).not.toBeInTheDocument();
     });
 
-    it("should render viewing DiceRoller wrapper div with correct styles when viewingRoll is not null", async () => {
-      const props = createDefaultProps();
-      props.viewingRoll = {
-        id: "roll-1",
-        tokens: [],
-        perDie: [],
-        total: 10,
-        timestamp: Date.now(),
-        playerName: "Player 1",
-      };
-
-      const { container } = render(<MainLayout {...props} />);
-
-      // Find the wrapper by checking for position: fixed and zIndex: 2000
-      const fixedDivs = Array.from(container.querySelectorAll("div")).filter((div) => {
-        const style = div.getAttribute("style");
-        return style && style.includes("position: fixed") && style.includes("z-index: 2000");
-      });
-
-      expect(fixedDivs.length).toBeGreaterThan(0);
-      const wrapper = fixedDivs[0];
-      expect(wrapper.style.position).toBe("fixed");
-      expect(wrapper.style.zIndex).toBe("2000");
-    });
-
-    it("should render viewing DiceRoller when viewingRoll changes from null to non-null", async () => {
+    it("appears and disappears as viewingRoll changes", () => {
       const props = createDefaultProps();
       props.viewingRoll = null;
       props.diceRollerOpen = false;
 
       const { rerender } = render(<MainLayout {...props} />);
+      expect(screen.queryByTestId("roll-result-total")).not.toBeInTheDocument();
 
-      expect(screen.queryByTestId("dice-roller")).not.toBeInTheDocument();
-
-      props.viewingRoll = {
-        id: "roll-1",
-        tokens: [],
-        perDie: [],
-        total: 10,
-        timestamp: Date.now(),
-        playerName: "Player 1",
-      };
+      props.viewingRoll = viewed;
       rerender(<MainLayout {...props} />);
-
-      expect(screen.getByTestId("dice-roller")).toBeInTheDocument();
-    });
-
-    it("should remove viewing DiceRoller when viewingRoll changes to null", async () => {
-      const props = createDefaultProps();
-      props.viewingRoll = {
-        id: "roll-1",
-        tokens: [],
-        perDie: [],
-        total: 10,
-        timestamp: Date.now(),
-        playerName: "Player 1",
-      };
-
-      const { rerender } = render(<MainLayout {...props} />);
-
-      expect(screen.getByTestId("dice-roller")).toBeInTheDocument();
+      expect(screen.getByTestId("roll-result-total")).toBeInTheDocument();
 
       props.viewingRoll = null;
       rerender(<MainLayout {...props} />);
-
-      expect(screen.queryByTestId("dice-roller")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("roll-result-total")).not.toBeInTheDocument();
     });
 
-    it("should render both DiceRoller and viewing DiceRoller when both conditions are true", async () => {
+    it("switches to a different roll's numbers", () => {
+      const props = createDefaultProps();
+      props.viewingRoll = viewed;
+
+      const { rerender } = render(<MainLayout {...props} />);
+      expect(screen.getByTestId("roll-result-total")).toHaveTextContent("11");
+
+      props.viewingRoll = { ...viewed, id: "roll-2", total: 20, playerName: "Player 2" };
+      rerender(<MainLayout {...props} />);
+      expect(screen.getByTestId("roll-result-total")).toHaveTextContent("20");
+    });
+
+    it("can show the roller and a viewed roll at the same time", () => {
       const props = createDefaultProps();
       props.diceRollerOpen = true;
-      props.viewingRoll = {
-        id: "roll-1",
-        tokens: [],
-        perDie: [],
-        total: 10,
-        timestamp: Date.now(),
-        playerName: "Player 1",
-      };
+      props.viewingRoll = viewed;
 
       render(<MainLayout {...props} />);
 
-      const diceRollers = screen.getAllByTestId("dice-roller");
-      expect(diceRollers.length).toBe(2);
-    });
-
-    it("should pass empty onRoll function to viewing DiceRoller", async () => {
-      const props = createDefaultProps();
-      props.viewingRoll = {
-        id: "roll-1",
-        tokens: [],
-        perDie: [],
-        total: 10,
-        timestamp: Date.now(),
-        playerName: "Player 1",
-      };
-
-      render(<MainLayout {...props} />);
-
-      expect(screen.getByTestId("dice-roller")).toBeInTheDocument();
-    });
-
-    it("should pass onClose handler that calls handleViewRoll(null)", async () => {
-      const props = createDefaultProps();
-      props.viewingRoll = {
-        id: "roll-1",
-        tokens: [],
-        perDie: [],
-        total: 10,
-        timestamp: Date.now(),
-        playerName: "Player 1",
-      };
-      props.handleViewRoll = vi.fn();
-
-      render(<MainLayout {...props} />);
-
-      expect(screen.getByTestId("dice-roller")).toBeInTheDocument();
-    });
-
-    it("should update viewing DiceRoller when viewingRoll changes to different roll", async () => {
-      const props = createDefaultProps();
-      props.viewingRoll = {
-        id: "roll-1",
-        tokens: [],
-        perDie: [],
-        total: 10,
-        timestamp: Date.now(),
-        playerName: "Player 1",
-      };
-
-      const { rerender } = render(<MainLayout {...props} />);
-
-      expect(screen.getByTestId("dice-roller")).toBeInTheDocument();
-
-      props.viewingRoll = {
-        id: "roll-2",
-        tokens: [],
-        perDie: [],
-        total: 20,
-        timestamp: Date.now(),
-        playerName: "Player 2",
-      };
-      rerender(<MainLayout {...props} />);
-
-      expect(screen.getByTestId("dice-roller")).toBeInTheDocument();
-    });
-
-    it("should maintain viewing DiceRoller when other props change", async () => {
-      const props = createDefaultProps();
-      props.viewingRoll = {
-        id: "roll-1",
-        tokens: [],
-        perDie: [],
-        total: 10,
-        timestamp: Date.now(),
-        playerName: "Player 1",
-      };
-
-      const { rerender } = render(<MainLayout {...props} />);
-
-      expect(screen.getByTestId("dice-roller")).toBeInTheDocument();
-
-      // Change other props
-      props.crtFilter = true;
-      props.isDM = true;
-      props.rollLogOpen = true;
-      rerender(<MainLayout {...props} />);
-
-      expect(screen.getByTestId("dice-roller")).toBeInTheDocument();
-    });
-
-    it("should render viewing DiceRoller independently of diceRollerOpen state", async () => {
-      const props = createDefaultProps();
-      props.viewingRoll = {
-        id: "roll-1",
-        tokens: [],
-        perDie: [],
-        total: 10,
-        timestamp: Date.now(),
-        playerName: "Player 1",
-      };
-      props.diceRollerOpen = false;
-
-      render(<MainLayout {...props} />);
-
-      const diceRollers = screen.getAllByTestId("dice-roller");
-      expect(diceRollers.length).toBe(1);
-    });
-
-    it("should have higher z-index for viewing DiceRoller than regular DiceRoller", async () => {
-      const props = createDefaultProps();
-      props.diceRollerOpen = true;
-      props.viewingRoll = {
-        id: "roll-1",
-        tokens: [],
-        perDie: [],
-        total: 10,
-        timestamp: Date.now(),
-        playerName: "Player 1",
-      };
-
-      const { container } = render(<MainLayout {...props} />);
-
-      // Viewing DiceRoller has z-index 2000, regular has default (implicit)
-      const fixedDivs = Array.from(container.querySelectorAll("div")).filter((div) => {
-        const style = div.getAttribute("style");
-        return style && style.includes("position: fixed") && style.includes("z-index: 2000");
-      });
-
-      expect(fixedDivs.length).toBeGreaterThan(0);
+      expect(screen.getAllByTestId("dice-roller")).toHaveLength(1);
+      expect(screen.getByTestId("roll-result-total")).toHaveTextContent("11");
     });
   });
 
@@ -1957,7 +1799,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       props.rollLogOpen = true;
       props.viewingRoll = {
         id: "roll-1",
-        tokens: [],
+        formula: "d20",
         perDie: [],
         total: 10,
         timestamp: Date.now(),
@@ -1970,7 +1812,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       const diceRollers = screen.getAllByTestId("dice-roller");
       const rollLog = screen.getByTestId("roll-log");
 
-      expect(diceRollers.length).toBe(2); // One for diceRollerOpen, one for viewingRoll
+      expect(diceRollers.length).toBe(1); // The roller. A viewed roll opens a ResultPanel, not a second roller.
       expect(rollLog).toBeInTheDocument();
     });
   });
@@ -2071,7 +1913,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       props.rollLogOpen = true;
       props.rollHistory = Array.from({ length: 50 }, (_, i) => ({
         id: `roll-${i}`,
-        tokens: [],
+        formula: "d20",
         perDie: [],
         total: i * 10,
         timestamp: Date.now() + i,
@@ -2194,7 +2036,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       props.rollLogOpen = true;
       props.viewingRoll = {
         id: "viewing-roll",
-        tokens: [],
+        formula: "d20",
         perDie: [],
         total: 20,
         timestamp: Date.now(),
@@ -2212,7 +2054,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       props.rollHistory = [
         {
           id: "roll-1",
-          tokens: [],
+          formula: "d20",
           perDie: [],
           total: 15,
           timestamp: Date.now(),
@@ -2230,7 +2072,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(await screen.findByTestId("dm-menu")).toBeInTheDocument();
       expect(screen.getByTestId("context-menu")).toBeInTheDocument();
       expect(screen.getByTestId("visual-effects")).toBeInTheDocument();
-      expect(screen.getAllByTestId("dice-roller").length).toBe(2);
+      expect(screen.getAllByTestId("dice-roller").length).toBe(1);
       expect(screen.getByTestId("roll-log")).toBeInTheDocument();
       expect(screen.getByTestId("toast-container")).toBeInTheDocument();
 
@@ -2279,7 +2121,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       props.rollLogOpen = true;
       props.viewingRoll = {
         id: "roll-view",
-        tokens: [],
+        formula: "d20",
         perDie: [],
         total: 25,
         timestamp: Date.now(),
@@ -2307,7 +2149,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       expect(screen.getByTestId("toast-container")).toHaveAttribute("data-messages-count", "2");
 
       const diceRollers = screen.getAllByTestId("dice-roller");
-      expect(diceRollers.length).toBe(2);
+      expect(diceRollers.length).toBe(1);
       expect(screen.getByTestId("roll-log")).toBeInTheDocument();
     });
 
@@ -2442,7 +2284,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
           i % 2 === 1
             ? {
                 id: `roll-${i}`,
-                tokens: [],
+                formula: "d20",
                 perDie: [],
                 total: i * 10,
                 timestamp: Date.now(),
@@ -2474,7 +2316,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       props.rollLogOpen = true;
       props.rollHistory = Array.from({ length: largeNumber }, (_, i) => ({
         id: `roll-${i}`,
-        tokens: [],
+        formula: "d20",
         perDie: [],
         total: i,
         timestamp: Date.now() + i,
@@ -2543,7 +2385,7 @@ describe("FloatingPanelsLayout Section - Characterization Tests", () => {
       props.rollLogOpen = true;
       props.viewingRoll = {
         id: "roll-1",
-        tokens: [],
+        formula: "d20",
         perDie: [],
         total: 10,
         timestamp: Date.now(),

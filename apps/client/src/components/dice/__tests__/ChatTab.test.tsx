@@ -220,10 +220,10 @@ describe("RollLog tab strip", () => {
     const roll = {
       id: "r1",
       playerName: "Alice",
-      tokens: [],
       perDie: [],
       total: 7,
       timestamp: 1,
+      formula: "d6 + 1",
     };
     render(
       <RollLog

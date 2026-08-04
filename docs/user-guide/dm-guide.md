@@ -48,6 +48,7 @@ For _built-in_ scenery art (crates, tables, boats, standing stones…) you'll us
 ![The Players tab: combat controls and per-player token selection](img/dm-menu-players.jpg)
 
 - **Combat Controls** — **⚔️ START COMBAT** / **🏁 END COMBAT** and **🗑️ CLEAR ALL INITIATIVE**. (Combat also auto-starts the moment the first initiative is saved.) While combat runs, everyone sees the turn banner and ordered cards; see [the player guide](player-guide.md#initiative-and-combat).
+- **Monster HP Display** — how much of a monster's health players see: **Exact** (numbers and bars), **Bloodied** (a coarse healthy/bloodied dot, 5e-style at half HP), or **Hidden** (nothing). Enforced on the server — in Bloodied and Hidden the numbers never reach a player's connection, so devtools show nothing either.
 - **Player Token Shortcuts** — **SELECT ALL** grabs every token a player owns; useful for moving a whole party or checking what someone's left scattered around.
 
 ## Session
@@ -56,7 +57,7 @@ For _built-in_ scenery art (crates, tables, boats, standing stones…) you'll us
 
 ### Saving and loading sessions
 
-**SAVE GAME STATE** downloads the entire table as one JSON file — tokens, characters (PCs _and_ NPCs), props, drawings, dice history, grid, fog state, the full live map with every terrain cell and door, and any uploaded images (inlined, up to 64 MB). The **Session Name** field just names the file.
+**SAVE GAME STATE** downloads the entire table as one JSON file — tokens, characters (PCs _and_ NPCs), props, drawings, dice history, grid, fog state, the full live map with every terrain cell and door, and any uploaded images (inlined, up to 64 MB). The **Session Name** field just names the file. Private dice rolls (**DM** or **ME**) and whispers are left out on purpose: a save file is made to be handed to other people.
 
 **LOAD GAME STATE** restores a save. Read the confirmation carefully: loading **replaces the table for everyone connected**. Players currently at the table keep their live connection and their own characters; everything else becomes the file's contents.
 

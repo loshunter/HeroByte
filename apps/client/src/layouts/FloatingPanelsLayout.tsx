@@ -13,11 +13,11 @@
 import React, { Suspense, lazy } from "react";
 import type { RoomSnapshot, PlayerStagingZone, ClientMessage, ChatMessage } from "@herobyte/shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../types/alignment";
-import type { RollResult } from "../components/dice/types";
+import type { RollLogEntry } from "../components/dice/rollLogTypes";
+import type { DiceRollRequest } from "../hooks/useDiceRolling";
 import { ContextMenu } from "../components/ui/ContextMenu";
 import { VisualEffects } from "../components/effects/VisualEffects";
-import { DiceRoller } from "../components/dice/DiceRoller";
-import { RollLog } from "../components/dice/RollLog";
+import { DicePanels } from "./DicePanels";
 import { ToastContainer } from "../components/ui/Toast";
 import { Spinner } from "../components/ui/Spinner";
 import type { ToastMessage } from "../components/ui/Toast";
@@ -34,9 +34,12 @@ type PasswordStatus = { type: "success" | "error"; message: string } | null;
 type SceneObject = { id: string; locked: boolean; transform?: Transform };
 type Transform = { x: number; y: number; scaleX: number; scaleY: number; rotation: number };
 
-export interface RollLogEntry extends RollResult {
-  playerName: string;
-}
+// RollLogEntry lives in components/dice/rollLogTypes and is re-exported here
+// for the layouts that already import it from this module. It was a THIRD
+// declaration of the same name (the hook had one too); they disagreed about
+// whether `formula` existed, which is what let the roll log render a blank
+// formula line while the string sat unread on the object.
+export type { RollLogEntry };
 
 /**
  * Props for FloatingPanelsLayout
@@ -98,7 +101,9 @@ export interface FloatingPanelsLayoutProps {
   // Dice Roller (3)
   diceRollerOpen: boolean;
   toggleDiceRoller: (open: boolean) => void;
-  handleRoll: (roll: RollResult) => void;
+  handleRoll: (request: DiceRollRequest) => void;
+  /** Newest roll authored by this player — how the roller learns its result. */
+  latestOwnRoll: RollLogEntry | null;
   // Roll Log (6)
   rollLogOpen: boolean;
   rollHistory: RollLogEntry[];
@@ -170,6 +175,7 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
     diceRollerOpen,
     toggleDiceRoller,
     handleRoll,
+    latestOwnRoll,
     rollLogOpen,
     rollHistory,
     chatMessages,
@@ -300,39 +306,23 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
 
         <VisualEffects crtFilter={crtFilter} />
 
-        {diceRollerOpen && (
-          <DiceRoller onRoll={handleRoll} onClose={() => toggleDiceRoller(false)} />
-        )}
-
-        {rollLogOpen && (
-          <div
-            style={{
-              position: "fixed",
-              right: 20,
-              top: 200,
-              width: 350,
-              height: 500,
-              zIndex: 1000,
-            }}
-          >
-            <RollLog
-              rolls={rollHistory}
-              onClearLog={handleClearLog}
-              onViewRoll={(roll) => handleViewRoll(roll)}
-              onClose={() => toggleRollLog(false)}
-              chatMessages={chatMessages}
-              players={snapshot?.players ?? []}
-              currentUid={uid}
-              onSendChat={handleSendChat}
-            />
-          </div>
-        )}
-
-        {viewingRoll && (
-          <div style={{ position: "fixed", zIndex: 2000 }}>
-            <DiceRoller onRoll={() => {}} onClose={() => handleViewRoll(null)} />
-          </div>
-        )}
+        <DicePanels
+          diceRollerOpen={diceRollerOpen}
+          toggleDiceRoller={toggleDiceRoller}
+          handleRoll={handleRoll}
+          latestOwnRoll={latestOwnRoll}
+          rollLogOpen={rollLogOpen}
+          toggleRollLog={toggleRollLog}
+          rollHistory={rollHistory}
+          handleClearLog={handleClearLog}
+          viewingRoll={viewingRoll}
+          handleViewRoll={handleViewRoll}
+          chatMessages={chatMessages}
+          players={snapshot?.players ?? []}
+          uid={uid}
+          handleSendChat={handleSendChat}
+          isDM={isDM}
+        />
 
         <ToastContainer messages={toast.messages} onDismiss={toast.dismiss} />
       </>

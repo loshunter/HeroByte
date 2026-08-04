@@ -12,7 +12,7 @@
 // Extraction date: 2025-10-21
 
 import { useState, useMemo, useEffect, useCallback } from "react";
-import type { Character } from "@herobyte/shared";
+import type { SnapshotCharacter } from "@herobyte/shared";
 
 /**
  * Type for DMMenu tab identifiers
@@ -61,7 +61,7 @@ export interface DMMenuState {
   /**
    * Filtered list of NPC characters (excludes PCs)
    */
-  npcs: Character[];
+  npcs: SnapshotCharacter[];
 }
 
 /**
@@ -76,7 +76,7 @@ export interface UseDMMenuStateOptions {
   /**
    * All characters in the game (PCs and NPCs)
    */
-  characters: Character[];
+  characters: SnapshotCharacter[];
 }
 
 /**

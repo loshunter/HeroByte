@@ -316,6 +316,7 @@ function AuthenticatedApp({
     rollLogOpen,
     viewingRoll,
     rollHistory,
+    latestOwnRoll,
     chatMessages,
     toggleDiceRoller,
     toggleRollLog,
@@ -703,21 +704,6 @@ function AuthenticatedApp({
     };
   }, [stagingZoneSceneObject]);
 
-  // Transform viewingRoll from RollResult to RollLogEntry by adding playerName
-  const viewingRollForLayout = useMemo(() => {
-    if (!viewingRoll) return null;
-    // Find the matching roll in rollHistory which already has playerName
-    const matchingHistoryEntry = rollHistory.find((r) => r.id === viewingRoll.id);
-    if (matchingHistoryEntry) {
-      return matchingHistoryEntry;
-    }
-    // Fallback: create entry with "Unknown" player name
-    return {
-      ...viewingRoll,
-      playerName: "Unknown",
-    };
-  }, [viewingRoll, rollHistory]);
-
   const handleCharacterPortraitUpdate = useCallback(
     (characterId: string, url: string) => {
       playerActions.setCharacterPortrait(characterId, url);
@@ -859,8 +845,9 @@ function AuthenticatedApp({
     rollHistory,
     chatMessages,
     handleSendChat,
-    viewingRoll: viewingRollForLayout,
+    viewingRoll,
     handleRoll,
+    latestOwnRoll,
     handleClearLog,
     handleViewRoll,
     // Room password

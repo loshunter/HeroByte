@@ -18,7 +18,13 @@
  */
 
 import { useCallback } from "react";
-import type { RoomSnapshot, ClientMessage, Character, Prop } from "@herobyte/shared";
+import type {
+  RoomSnapshot,
+  ClientMessage,
+  Character,
+  Prop,
+  MonsterHpDisplay,
+} from "@herobyte/shared";
 import { useNpcCreation } from "./useNpcCreation";
 import { useNpcUpdate } from "./useNpcUpdate";
 import { useNpcDeletion } from "./useNpcDeletion";
@@ -105,6 +111,7 @@ export interface UseDMContextReturn {
     handleNextTurn: () => void;
     handlePreviousTurn: () => void;
     handleDeletePlayerToken: (tokenId: string) => void;
+    handleSetMonsterHpDisplay: (mode: MonsterHpDisplay) => void;
   };
 }
 
@@ -239,6 +246,13 @@ export function useDMContext({
     sendMessage({ t: "previous-turn" });
   }, [sendMessage]);
 
+  const handleSetMonsterHpDisplay = useCallback(
+    (mode: MonsterHpDisplay) => {
+      sendMessage({ t: "set-monster-hp-display", mode });
+    },
+    [sendMessage],
+  );
+
   const handleDeletePlayerToken = useCallback(
     (tokenId: string) => {
       sendMessage({ t: "delete-token", id: tokenId });
@@ -288,6 +302,7 @@ export function useDMContext({
       handleNextTurn,
       handlePreviousTurn,
       handleDeletePlayerToken,
+      handleSetMonsterHpDisplay,
     },
   };
 }

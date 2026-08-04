@@ -11,7 +11,7 @@
 import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import type { Character, TokenSize } from "@herobyte/shared";
+import type { SnapshotCharacter, Character, TokenSize } from "@herobyte/shared";
 
 // ============================================================================
 // MOCKS
@@ -1455,5 +1455,34 @@ describe("NpcCard", () => {
       fireEvent.click(screen.getByTestId("portrait-section-initiative-click"));
       expect(onInitiativeClick).toHaveBeenCalledTimes(1);
     });
+  });
+});
+
+describe("Redacted HP (S4 monsterHpDisplay)", () => {
+  // What a PLAYER's client holds for an NPC in bloodied/hidden mode: the
+  // server stripped the numbers, maybe substituting a coarse badge.
+  const redacted = (hpBadge?: "healthy" | "bloodied"): SnapshotCharacter => ({
+    id: "npc-1",
+    type: "npc",
+    name: "Goblin",
+    tokenId: null,
+    ownedByPlayerUID: null,
+    ...(hpBadge ? { hpBadge } : {}),
+  });
+
+  it("bloodied mode renders the badge, not an HP bar", () => {
+    render(<NpcCard {...createDefaultProps({ character: redacted("bloodied"), isDM: false })} />);
+    expect(screen.getByTestId("npc-hp-redacted")).toHaveTextContent(/bloodied/i);
+    expect(screen.queryByText(/HP:/)).not.toBeInTheDocument();
+  });
+
+  it("healthy badge renders as Healthy", () => {
+    render(<NpcCard {...createDefaultProps({ character: redacted("healthy"), isDM: false })} />);
+    expect(screen.getByTestId("npc-hp-redacted")).toHaveTextContent(/healthy/i);
+  });
+
+  it("hidden mode (no badge) renders HP: ??? and nothing to infer from", () => {
+    render(<NpcCard {...createDefaultProps({ character: redacted(), isDM: false })} />);
+    expect(screen.getByTestId("npc-hp-redacted")).toHaveTextContent("HP: ???");
   });
 });

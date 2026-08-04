@@ -69,6 +69,7 @@ describe("MessageRouter", () => {
       combatActive: false,
       currentTurnCharacterId: undefined,
       fogEnabled: false,
+      monsterHpDisplay: "exact" as const,
     };
 
     const snapshotTemplate: RoomSnapshot = {
@@ -121,6 +122,11 @@ describe("MessageRouter", () => {
       setHP: vi.fn(() => true),
       setDMMode: vi.fn(() => true),
       setStatusEffects: vi.fn(() => true),
+      // The dice and chat handlers resolve the AUTHOR's display name through
+      // this, from the sender's own record — never from the payload.
+      findPlayer: vi.fn((state: RoomState, uid: string) =>
+        state.players.find((player) => player.uid === uid),
+      ),
     } as unknown as PlayerService;
 
     mockTokenService = {
@@ -153,6 +159,7 @@ describe("MessageRouter", () => {
     } as unknown as MapService;
 
     mockDiceService = {
+      rollFor: vi.fn(),
       addRoll: vi.fn(),
       clearHistory: vi.fn(),
     } as unknown as DiceService;
@@ -832,29 +839,80 @@ describe("MessageRouter", () => {
   });
 
   describe("Dice Actions", () => {
-    it("routes dice-roll message", () => {
-      const roll = {
-        id: "roll-1",
-        playerUid: "player-1",
-        playerName: "Alice",
-        formula: "1d20",
-        total: 15,
-        breakdown: [{ tokenId: "roll-1-token", die: "d20", rolls: [15], subtotal: 15 }],
-        timestamp: Date.now(),
-      };
-      const msg: ClientMessage = { t: "dice-roll", roll };
+    it("routes dice-roll message, binding the author from the connection", () => {
+      // What used to be pinned here was the opposite: addRoll called with the
+      // client's whole roll object, stored byte-identical (arc defect D2). The
+      // message carries a formula now, and identity comes from senderUid.
+      const msg: ClientMessage = { t: "dice-roll", formula: "1d20 + 5" };
       routeAndFlush(msg, "player-1");
 
-      expect(mockDiceService.addRoll).toHaveBeenCalledWith(mockState, roll);
+      expect(mockDiceService.rollFor).toHaveBeenCalledWith(mockState, {
+        playerUid: "player-1",
+        playerName: "Alice",
+        terms: [
+          { kind: "die", die: "d20", qty: 1, sign: 1 },
+          { kind: "mod", value: 5 },
+        ],
+        mode: "normal",
+        visibility: "public",
+      });
       expect(mockRoomService.broadcast).toHaveBeenCalled();
     });
 
-    it("routes clear-roll-history message", () => {
+    it("ignores a total, a uid and a name smuggled onto a dice-roll", () => {
+      routeAndFlush(
+        {
+          t: "dice-roll",
+          formula: "1d20",
+          total: 999,
+          playerUid: "dm-user",
+          playerName: "Alice The Great",
+          breakdown: [{ tokenId: "t0", die: "d20", rolls: [20], subtotal: 20 }],
+        } as unknown as ClientMessage,
+        "player-1",
+      );
+
+      const request = vi.mocked(mockDiceService.rollFor).mock.calls[0]?.[1];
+      expect(request?.playerUid).toBe("player-1");
+      expect(request?.playerName).toBe("Alice");
+      // There is nowhere for a total to go: DiceRollRequest has no such field,
+      // and rollFor computes it.
+      expect(request).not.toHaveProperty("total");
+    });
+
+    it("drops a roll whose formula does not parse", () => {
+      routeAndFlush({ t: "dice-roll", formula: "2d7" } as ClientMessage, "player-1");
+
+      expect(mockDiceService.rollFor).not.toHaveBeenCalled();
+      expect(mockRoomService.broadcast).not.toHaveBeenCalled();
+    });
+
+    it("drops a roll from a uid with no player record", () => {
+      routeAndFlush({ t: "dice-roll", formula: "1d20" }, "ghost-uid");
+
+      expect(mockDiceService.rollFor).not.toHaveBeenCalled();
+      expect(mockRoomService.broadcast).not.toHaveBeenCalled();
+    });
+
+    it("routes clear-roll-history message from a DM", () => {
+      mockState.players[0]!.isDM = true;
       const msg: ClientMessage = { t: "clear-roll-history" };
       routeAndFlush(msg, "player-1");
 
       expect(mockDiceService.clearHistory).toHaveBeenCalledWith(mockState);
       expect(mockRoomService.broadcast).toHaveBeenCalled();
+    });
+
+    it("refuses clear-roll-history from a player", () => {
+      // Roll history is shared history, and since S5 it holds `dm` and `self`
+      // rolls the recipient filter deliberately withholds from this player —
+      // so an ungated wipe destroyed records they were never allowed to see.
+      // This test used to assert the opposite, with "player-1" seeded isDM:false.
+      const msg: ClientMessage = { t: "clear-roll-history" };
+      routeAndFlush(msg, "player-1");
+
+      expect(mockDiceService.clearHistory).not.toHaveBeenCalled();
+      expect(mockRoomService.broadcast).not.toHaveBeenCalled();
     });
   });
 

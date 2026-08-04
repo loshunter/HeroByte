@@ -13,7 +13,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import type { Character } from "@herobyte/shared";
+import type { SnapshotCharacter } from "@herobyte/shared";
 
 export interface UseCharacterCreationOptions {
   /**
@@ -24,7 +24,7 @@ export interface UseCharacterCreationOptions {
   /**
    * Array of all characters in the session to watch for new characters.
    */
-  characters: Character[];
+  characters: SnapshotCharacter[];
 
   /**
    * Current player's unique identifier.

@@ -337,9 +337,11 @@ describe("CharacterMessageHandler - Characterization Tests", () => {
     let characterId: string;
 
     beforeEach(() => {
-      // Create a character
+      // Create a character CLAIMED by the sender — HP writes are permission
+      // gated (owner or DM) like every other character mutation.
       const state = roomService.getState();
       const character = characterService.createCharacter(state, "Test Char", 100, "");
+      characterService.claimCharacter(state, character.id, playerUid);
       characterId = character.id;
       roomService.createSnapshot();
     });
@@ -358,6 +360,25 @@ describe("CharacterMessageHandler - Characterization Tests", () => {
       const character = state.characters.find((c) => c.id === characterId);
       expect(character?.hp).toBe(50);
       expect(character?.maxHp).toBe(120);
+    });
+
+    it("denies an HP write from a player who does not control the character", () => {
+      // The hole the S4 review closed: hp had NO permission check, so any
+      // player could rewrite any character's numbers — including a monster
+      // whose hp the recipient filter hides (choose the values, know them).
+      const updateMessage: ClientMessage = {
+        t: "update-character-hp",
+        characterId: characterId,
+        hp: 1,
+        maxHp: 1,
+      };
+
+      messageRouter.route(updateMessage, "some-other-player");
+
+      const state = roomService.getState();
+      const character = state.characters.find((c) => c.id === characterId);
+      expect(character?.hp).toBe(100); // unchanged
+      expect(character?.maxHp).toBe(100);
     });
   });
 

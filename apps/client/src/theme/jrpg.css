@@ -5,39 +5,39 @@
  * Pixel-perfect UI with crisp borders, limited palette, and framed menus
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
 
 /* ---------------------------------------------------------------------------
  * CORE PALETTE (FF6 / Chrono Trigger Style)
  * --------------------------------------------------------------------------- */
 :root {
   /* Primary Menu Colors - Deep Indigo/Navy (SNES Style) */
-  --jrpg-indigo: #1C1734;          /* Deep indigo background (darker, richer) */
-  --jrpg-navy: #0F0E1E;            /* Darkest navy for shadows */
-  --jrpg-gold: #E2B75C;            /* Muted gold for section headers */
-  --jrpg-cyan: #00E0D1;            /* Bright cyan for highlights/hover */
-  --jrpg-white: #FFFFFF;           /* Pure white for text */
+  --jrpg-indigo: #1c1734; /* Deep indigo background (darker, richer) */
+  --jrpg-navy: #0f0e1e; /* Darkest navy for shadows */
+  --jrpg-gold: #e2b75c; /* Muted gold for section headers */
+  --jrpg-cyan: #00e0d1; /* Bright cyan for highlights/hover */
+  --jrpg-white: #ffffff; /* Pure white for text */
 
   /* Dice Colors (muted pastels, not neon) */
-  --jrpg-dice-red: #E89A9C;        /* d4 - soft red */
-  --jrpg-dice-green: #A2D7C8;      /* d6 - soft green */
-  --jrpg-dice-yellow: #F2A65A;     /* d8 - soft yellow */
-  --jrpg-dice-cyan: #7DD3C0;       /* d10 - soft cyan */
-  --jrpg-dice-blue: #7BA3C7;       /* d12 - soft blue */
-  --jrpg-dice-purple: #B19CD9;     /* d20 - soft purple */
+  --jrpg-dice-red: #e89a9c; /* d4 - soft red */
+  --jrpg-dice-green: #a2d7c8; /* d6 - soft green */
+  --jrpg-dice-yellow: #f2a65a; /* d8 - soft yellow */
+  --jrpg-dice-cyan: #7dd3c0; /* d10 - soft cyan */
+  --jrpg-dice-blue: #7ba3c7; /* d12 - soft blue */
+  --jrpg-dice-purple: #b19cd9; /* d20 - soft purple */
 
   /* UI State Colors */
-  --jrpg-hp-full: #A2D7C8;         /* Soft green HP bar */
-  --jrpg-mp-full: #7BA3C7;         /* Soft blue MP bar */
-  --jrpg-hp-medium: #F2A65A;       /* Soft yellow HP warning */
-  --jrpg-hp-low: #E89A9C;          /* Soft red HP critical */
+  --jrpg-hp-full: #a2d7c8; /* Soft green HP bar */
+  --jrpg-mp-full: #7ba3c7; /* Soft blue MP bar */
+  --jrpg-hp-medium: #f2a65a; /* Soft yellow HP warning */
+  --jrpg-hp-low: #e89a9c; /* Soft red HP critical */
 
   /* Border & Frame Colors - SNES Chunky Borders */
-  --jrpg-border-outer: #0F0E1E;    /* Dark navy outer border */
-  --jrpg-border-gold: #E2B75C;     /* Gold middle trim */
-  --jrpg-border-inner: #1C1734;    /* Indigo inner fill */
-  --jrpg-border-highlight: #00E0D1; /* Cyan highlight */
-  --jrpg-border-shadow: #000000;   /* Black shadow */
+  --jrpg-border-outer: #0f0e1e; /* Dark navy outer border */
+  --jrpg-border-gold: #e2b75c; /* Gold middle trim */
+  --jrpg-border-inner: #1c1734; /* Indigo inner fill */
+  --jrpg-border-highlight: #00e0d1; /* Cyan highlight */
+  --jrpg-border-shadow: #000000; /* Black shadow */
 
   /* -------------------------------------------------------------------------
    * SEMANTIC ALIASES
@@ -51,25 +51,25 @@
    * They alias the palette above rather than introducing new colours, so the
    * "muted pastels, not neon" rule this file opens with still holds.
    */
-  --jrpg-bg: var(--jrpg-indigo);       /* Default surface behind menus/inputs */
-  --jrpg-bg-dark: var(--jrpg-navy);    /* Recessed / disabled surface */
-  --jrpg-text: var(--jrpg-white);      /* Default body text on those surfaces */
+  --jrpg-bg: var(--jrpg-indigo); /* Default surface behind menus/inputs */
+  --jrpg-bg-dark: var(--jrpg-navy); /* Recessed / disabled surface */
+  --jrpg-text: var(--jrpg-white); /* Default body text on those surfaces */
   --jrpg-border: var(--jrpg-border-gold); /* The visible frame edge */
-  --jrpg-red: var(--jrpg-hp-low);      /* Errors, refusals, negative modifiers */
-  --jrpg-green: var(--jrpg-hp-full);   /* Success, positive modifiers */
+  --jrpg-red: var(--jrpg-hp-low); /* Errors, refusals, negative modifiers */
+  --jrpg-green: var(--jrpg-hp-full); /* Success, positive modifiers */
 
   /* Toast surfaces. Previously these existed ONLY as inline fallbacks in
    * Toast.tsx, so 100% of toasts rendered in neon that appears in no palette. */
-  --jrpg-success-bg: #16301F;
+  --jrpg-success-bg: #16301f;
   --jrpg-success-border: var(--jrpg-hp-full);
   --jrpg-success-text: var(--jrpg-hp-full);
-  --jrpg-error-bg: #331A1C;
+  --jrpg-error-bg: #331a1c;
   --jrpg-error-border: var(--jrpg-hp-low);
   --jrpg-error-text: var(--jrpg-hp-low);
-  --jrpg-warning-bg: #33261A;
+  --jrpg-warning-bg: #33261a;
   --jrpg-warning-border: var(--jrpg-hp-medium);
   --jrpg-warning-text: var(--jrpg-hp-medium);
-  --jrpg-info-bg: #1A2333;
+  --jrpg-info-bg: #1a2333;
   --jrpg-info-border: var(--jrpg-dice-blue);
   --jrpg-info-text: var(--jrpg-dice-blue);
 
@@ -77,11 +77,11 @@
    * definition rather than trusting a list. Three of these are referenced by
    * THIS FILE and were silently unset: the HP label and menu-item text colour,
    * the portrait-frame fill, and the active toggle/menu background. */
-  --jrpg-ivory: var(--hero-text-light);   /* Warm off-white for pixel labels */
-  --jrpg-text-dim: var(--hero-text-dim);  /* Secondary / helper text */
-  --jrpg-sapphire: var(--jrpg-indigo);    /* Portrait-frame fill */
-  --jrpg-dark-bg: var(--jrpg-navy);       /* Full-bleed dark surface */
-  --jrpg-panel-dark: var(--jrpg-navy);    /* Floating chip / picker surface */
+  --jrpg-ivory: var(--hero-text-light); /* Warm off-white for pixel labels */
+  --jrpg-text-dim: var(--hero-text-dim); /* Secondary / helper text */
+  --jrpg-sapphire: var(--jrpg-indigo); /* Portrait-frame fill */
+  --jrpg-dark-bg: var(--jrpg-navy); /* Full-bleed dark surface */
+  --jrpg-panel-dark: var(--jrpg-navy); /* Floating chip / picker surface */
   --jrpg-font: var(--font-pixel);
   --jrpg-danger: var(--jrpg-red);
   --jrpg-warning: var(--jrpg-hp-medium);
@@ -90,7 +90,7 @@
    * toggles and menu items, which carry gold text — so it has to be dark enough
    * for gold to read while still separating from the indigo of the inactive
    * row. Sits deliberately between --jrpg-indigo and --jrpg-mp-full. */
-  --jrpg-sky: #2B3F6B;
+  --jrpg-sky: #2b3f6b;
 }
 
 /* ---------------------------------------------------------------------------
@@ -98,7 +98,7 @@
  * --------------------------------------------------------------------------- */
 
 .jrpg-text {
-  font-family: 'Press Start 2P', monospace;
+  font-family: "Press Start 2P", monospace;
   text-rendering: optimizeSpeed;
   image-rendering: pixelated;
   -webkit-font-smoothing: none;
@@ -107,7 +107,7 @@
 }
 
 .jrpg-text-command {
-  font-family: 'Press Start 2P', monospace;
+  font-family: "Press Start 2P", monospace;
   font-size: 12px;
   text-transform: uppercase;
   color: var(--jrpg-white);
@@ -170,15 +170,15 @@
 /* Chunky Frame (3px triple-layer border) */
 .jrpg-frame {
   background: var(--jrpg-indigo);
-  border: 3px solid var(--jrpg-border-outer);     /* Dark navy outer (3px) */
+  border: 3px solid var(--jrpg-border-outer); /* Dark navy outer (3px) */
   box-shadow:
-    inset 0 0 0 2px var(--jrpg-border-gold),     /* Gold middle trim (2px) */
-    inset 0 0 0 3px var(--jrpg-border-inner),    /* Indigo inner (fills) */
-    0 4px 0 var(--jrpg-border-shadow);           /* Drop shadow */
+    inset 0 0 0 2px var(--jrpg-border-gold),
+    /* Gold middle trim (2px) */ inset 0 0 0 3px var(--jrpg-border-inner),
+    /* Indigo inner (fills) */ 0 4px 0 var(--jrpg-border-shadow); /* Drop shadow */
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
-  padding: 4px;  /* Tighter spacing */
+  padding: 4px; /* Tighter spacing */
 }
 
 /* Beveled Frame (3D pixel block effect) */
@@ -188,9 +188,9 @@
   box-shadow:
     inset 0 0 0 2px var(--jrpg-border-gold),
     inset 0 0 0 3px var(--jrpg-border-inner),
-    inset 2px 2px 0 rgba(255, 255, 255, 0.15),   /* Top-left highlight */
-    inset -2px -2px 0 var(--jrpg-border-shadow), /* Bottom-right shadow */
-    0 4px 0 var(--jrpg-border-shadow);
+    inset 2px 2px 0 rgba(255, 255, 255, 0.15),
+    /* Top-left highlight */ inset -2px -2px 0 var(--jrpg-border-shadow),
+    /* Bottom-right shadow */ 0 4px 0 var(--jrpg-border-shadow);
   padding: 4px;
 }
 
@@ -216,17 +216,17 @@
  * --------------------------------------------------------------------------- */
 
 .jrpg-button {
-  font-family: 'Press Start 2P', monospace;
+  font-family: "Press Start 2P", monospace;
   font-size: 10px;
   text-transform: uppercase;
   color: var(--jrpg-gold);
   background: var(--jrpg-indigo);
   border: 2px solid var(--jrpg-border-outer);
   box-shadow:
-    inset 0 0 0 1px var(--jrpg-border-gold),      /* Gold inner trim */
-    inset 2px 2px 0 rgba(255, 255, 255, 0.2),     /* Top-left highlight */
-    inset -2px -2px 0 var(--jrpg-border-shadow),  /* Bottom-right shadow */
-    0 3px 0 var(--jrpg-border-shadow);            /* Drop shadow below */
+    inset 0 0 0 1px var(--jrpg-border-gold),
+    /* Gold inner trim */ inset 2px 2px 0 rgba(255, 255, 255, 0.2),
+    /* Top-left highlight */ inset -2px -2px 0 var(--jrpg-border-shadow),
+    /* Bottom-right shadow */ 0 3px 0 var(--jrpg-border-shadow); /* Drop shadow below */
   padding: 6px 12px;
   cursor: pointer;
   image-rendering: pixelated;
@@ -237,28 +237,28 @@
 
 .jrpg-button:hover {
   box-shadow:
-    inset 0 0 0 1px var(--jrpg-border-highlight),  /* Cyan highlight */
-    inset 2px 2px 0 rgba(0, 224, 209, 0.3),
+    inset 0 0 0 1px var(--jrpg-border-highlight),
+    /* Cyan highlight */ inset 2px 2px 0 rgba(0, 224, 209, 0.3),
     inset -2px -2px 0 var(--jrpg-border-shadow),
     0 3px 0 var(--jrpg-border-shadow),
-    0 0 8px var(--jrpg-border-highlight);          /* Cyan glow */
+    0 0 8px var(--jrpg-border-highlight); /* Cyan glow */
   color: var(--jrpg-cyan);
 }
 
 .jrpg-button:active {
   background: var(--jrpg-gold);
-  color: var(--jrpg-border-shadow);  /* Black text */
+  color: var(--jrpg-border-shadow); /* Black text */
   text-shadow: none;
   box-shadow:
     inset 0 0 0 1px var(--jrpg-border-shadow),
-    inset 2px 2px 0 rgba(0, 0, 0, 0.4),   /* Inverted shadows */
-    0 1px 0 var(--jrpg-border-shadow);    /* Pressed down */
+    inset 2px 2px 0 rgba(0, 0, 0, 0.4),
+    /* Inverted shadows */ 0 1px 0 var(--jrpg-border-shadow); /* Pressed down */
   /* Removed transform to prevent interference with absolutely positioned buttons */
 }
 
 .jrpg-button-primary {
   background: var(--jrpg-gold);
-  color: var(--jrpg-border-shadow);  /* Black text */
+  color: var(--jrpg-border-shadow); /* Black text */
   font-weight: bold;
   text-shadow: none;
   box-shadow:
@@ -298,7 +298,7 @@
     inset 0 0 0 1px rgba(255, 255, 255, 0.08),
     0 2px 0 rgba(0, 0, 0, 0.6);
   color: var(--jrpg-white);
-  font-family: 'Press Start 2P', monospace;
+  font-family: "Press Start 2P", monospace;
   font-size: 0.65rem;
   letter-spacing: 0.05em;
   padding: 6px 8px;
@@ -317,7 +317,7 @@
 }
 
 .jrpg-button-toggle::before {
-  content: '▶';
+  content: "▶";
   position: absolute;
   left: 8px;
   color: var(--jrpg-gold);
@@ -352,26 +352,27 @@
   height: 100%;
   background: var(--jrpg-hp-full);
   image-rendering: pixelated;
-  transition: width 0.2s steps(10), background-color 0.2s;
+  transition:
+    width 0.2s steps(10),
+    background-color 0.2s;
   position: relative;
 }
 
 /* Chunky pixel blocks pattern */
 .jrpg-hp-bar-fill::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background:
-    repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 3px,
-      rgba(0, 0, 0, 0.2) 3px,
-      rgba(0, 0, 0, 0.2) 4px
-    );
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 0, 0, 0.2) 3px,
+    rgba(0, 0, 0, 0.2) 4px
+  );
 }
 
 /* HP Color States */
@@ -389,13 +390,18 @@
 }
 
 @keyframes jrpg-hp-flash {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 /* HP Text Label */
 .jrpg-hp-text {
-  font-family: 'Press Start 2P', monospace;
+  font-family: "Press Start 2P", monospace;
   font-size: 8px;
   color: var(--jrpg-ivory);
   text-shadow: 1px 1px 0 var(--jrpg-border-outer);
@@ -423,7 +429,7 @@
 }
 
 .jrpg-portrait-frame::before {
-  content: '';
+  content: "";
   position: absolute;
   top: -8px;
   left: 50%;
@@ -453,7 +459,7 @@
 }
 
 .jrpg-menu-item {
-  font-family: 'Press Start 2P', monospace;
+  font-family: "Press Start 2P", monospace;
   font-size: 10px;
   color: var(--jrpg-ivory);
   padding: 8px 12px;
@@ -464,7 +470,7 @@
 }
 
 .jrpg-menu-item::before {
-  content: '▶';
+  content: "▶";
   position: absolute;
   left: 8px;
   color: var(--jrpg-gold);
@@ -519,8 +525,13 @@
 }
 
 @keyframes jrpg-bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
 }
 
 .jrpg-anim-slide-in {

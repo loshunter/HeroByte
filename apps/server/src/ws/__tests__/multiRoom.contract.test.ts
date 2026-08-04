@@ -114,20 +114,7 @@ describe("multi-room isolation contracts", () => {
   });
 
   it("keeps debounced full broadcasts inside the originating room", () => {
-    route(
-      {
-        t: "dice-roll",
-        roll: {
-          id: "roll-1",
-          playerName: "alice",
-          formula: "1d20",
-          total: 15,
-          breakdown: [{ die: "d20", rolls: [15] }],
-          timestamp: 1,
-        },
-      } as unknown as ClientMessage,
-      "alice",
-    );
+    route({ t: "dice-roll", formula: "1d20" }, "alice");
     vi.advanceTimersByTime(50);
 
     // Snapshots have no `t`; both room-a sockets received one, bella none.

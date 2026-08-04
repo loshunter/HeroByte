@@ -290,15 +290,7 @@ describe("MessageLogger", () => {
         { t: "set-hp", hp: 50, maxHp: 100 },
         {
           t: "dice-roll",
-          roll: {
-            id: "roll-1",
-            playerUid: "player-123",
-            playerName: "Test Player",
-            formula: "1d20",
-            total: 15,
-            breakdown: [{ tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 }],
-            timestamp: 1700000000000,
-          },
+          formula: "1d20",
         },
         { t: "heartbeat" },
         { t: "rename", name: "New Name" },

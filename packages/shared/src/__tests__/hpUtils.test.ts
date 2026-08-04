@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { normalizeHPValues, parseHPInput, parseMaxHPInput } from "../hpUtils.js";
+import {
+  normalizeHPValues,
+  parseHPInput,
+  parseMaxHPInput,
+  hpBadgeFor,
+  coerceMonsterHpDisplay,
+} from "../hpUtils.js";
 
 describe("hpUtils", () => {
   describe("normalizeHPValues", () => {
@@ -39,5 +45,30 @@ describe("hpUtils", () => {
       expect(parseMaxHPInput(0)).toBe(1);
       expect(parseMaxHPInput(-10, 5)).toBe(5);
     });
+  });
+});
+
+describe("hpBadgeFor (S4 bloodied badge — shared so server filter and player lens agree)", () => {
+  it("is bloodied at or below half max (5e), healthy above", () => {
+    expect(hpBadgeFor(5, 10)).toBe("bloodied");
+    expect(hpBadgeFor(6, 10)).toBe("healthy");
+    expect(hpBadgeFor(0, 10)).toBe("bloodied");
+    expect(hpBadgeFor(10, 10)).toBe("healthy");
+  });
+
+  it("normalizes garbage before judging", () => {
+    expect(hpBadgeFor(-5, 10)).toBe("bloodied");
+    expect(hpBadgeFor(34, 10)).toBe("healthy"); // maxHp auto-adjusts up to hp
+  });
+});
+
+describe("coerceMonsterHpDisplay", () => {
+  it("passes the three real modes and defaults everything else to exact", () => {
+    expect(coerceMonsterHpDisplay("hidden")).toBe("hidden");
+    expect(coerceMonsterHpDisplay("bloodied")).toBe("bloodied");
+    expect(coerceMonsterHpDisplay("exact")).toBe("exact");
+    expect(coerceMonsterHpDisplay("exact-but-evil")).toBe("exact");
+    expect(coerceMonsterHpDisplay(undefined)).toBe("exact");
+    expect(coerceMonsterHpDisplay(42)).toBe("exact");
   });
 });

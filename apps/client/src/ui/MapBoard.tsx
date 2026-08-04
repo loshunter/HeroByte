@@ -19,6 +19,7 @@ import {
   type CompiledDoorState,
   type DragPreviewUpdate,
 } from "@herobyte/shared";
+import { buildTokenPlates } from "../features/map/tokenPlates";
 import { ENABLE_DRAG_PREVIEWS } from "../config.js";
 import { usePointerTool } from "../hooks/usePointerTool.js";
 import { useDrawingTool } from "../hooks/useDrawingTool.js";
@@ -185,12 +186,45 @@ export default function MapBoard({
   // authoritative for token-linked entities (see update-character-hp).
   const hpByTokenId = useMemo(() => {
     const result: Record<string, number> = {};
+    const lensRedact = Boolean(isDM && playerLens);
+    const hpMode = snapshot?.monsterHpDisplay ?? "exact";
     for (const character of snapshot?.characters ?? []) {
       if (!character.tokenId) continue;
+      // Redacted NPCs (monsterHpDisplay bloodied/hidden) arrive without hp —
+      // no entry means no damage-flash feedback, which is the point. The
+      // player lens applies the same rule to the DM's own numbers, so the
+      // preview does not flash exact damage a player would never see.
+      if (character.hp === undefined) continue;
+      if (lensRedact && character.type === "npc" && hpMode !== "exact") continue;
       result[`token:${character.tokenId}`] = character.hp;
     }
     return result;
-  }, [snapshot?.characters]);
+  }, [snapshot?.characters, snapshot?.monsterHpDisplay, isDM, playerLens]);
+
+  // S4 nameplates: name + HP per token. Characters win (their name is the
+  // display name for PC and NPC tokens alike — token.owner would put the DM's
+  // name under every monster); unlinked tokens fall back to the owner's player
+  // name. The player lens simulates the server's NPC redaction with the SAME
+  // shared hpBadgeFor the recipient filter uses, so a DM previews exactly what
+  // players receive.
+  const platesByTokenId = useMemo(
+    () =>
+      buildTokenPlates({
+        characters: snapshot?.characters ?? [],
+        tokens: snapshot?.tokens ?? [],
+        players: snapshot?.players ?? [],
+        monsterHpDisplay: snapshot?.monsterHpDisplay ?? "exact",
+        lensRedact: Boolean(isDM && playerLens),
+      }),
+    [
+      snapshot?.characters,
+      snapshot?.tokens,
+      snapshot?.players,
+      snapshot?.monsterHpDisplay,
+      isDM,
+      playerLens,
+    ],
+  );
 
   const { registerNode, getSelectedNode, getAllNodes } = useKonvaNodeRefs(
     selectedObjectId,
@@ -234,6 +268,7 @@ export default function MapBoard({
     handleTouchMove: handleCameraTouchMove,
     handleTouchEnd: handleCameraTouchEnd,
     toWorld,
+    setCam,
   } = useCameraControl({
     cameraCommand,
     onCameraCommandHandled,
@@ -548,6 +583,7 @@ export default function MapBoard({
     uid,
     gridSize,
     cam,
+    setCam,
     viewport: { width: w, height: h },
   });
 
@@ -734,6 +770,7 @@ export default function MapBoard({
             onDragPreview={dragPreviewEnabled ? handleDragPreview : undefined}
             statusEffectsByTokenId={statusEffectsByTokenId}
             hpByTokenId={hpByTokenId}
+            platesByTokenId={platesByTokenId}
             isDM={isDM}
           />
         </Layer>

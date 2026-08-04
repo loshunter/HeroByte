@@ -4,10 +4,12 @@ import type { RoutingContext } from "../services/MessageRoutingContext.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 
 /**
- * Note the contrast with DiceDispatcher, which names its third parameter
- * `_senderUid` and throws it away — that discard is exactly why dice are
- * forgeable (arc defect D2). Chat threads it straight through to the handler,
- * because who sent a message is not the sender's claim to make.
+ * `senderUid` is threaded straight through to the handler, because who sent a
+ * message is not the sender's claim to make.
+ *
+ * This comment used to point at DiceDispatcher as the counter-example — it
+ * named its third parameter `_senderUid` and threw it away, which was arc
+ * defect D2. S5 fixed that, so dice now work the same way chat always has.
  */
 export class ChatDispatcher {
   constructor(private handler: ChatMessageHandler) {}

@@ -23,23 +23,6 @@ const basePartialSegment = {
   filled: false,
 };
 
-const baseRoll = {
-  id: "roll-1",
-  playerUid: "uid-1",
-  playerName: "Player 1",
-  formula: "1d20",
-  total: 15,
-  breakdown: [
-    {
-      tokenId: "token-1",
-      die: "d20",
-      rolls: [15],
-      subtotal: 15,
-    },
-  ],
-  timestamp: Date.now(),
-};
-
 describe("validateMessage", () => {
   it("accepts all supported message variations", () => {
     const validMessages = [
@@ -77,7 +60,8 @@ describe("validateMessage", () => {
         deleteId: "drawing-1",
         segments: [basePartialSegment],
       } as unknown as ClientMessage,
-      { t: "dice-roll", roll: baseRoll },
+      { t: "dice-roll", formula: "2d6 + 3" },
+      { t: "dice-roll", formula: "d20", mode: "advantage", visibility: "dm" },
       { t: "clear-roll-history" },
       { t: "clear-all-tokens" },
       { t: "heartbeat" },
@@ -190,6 +174,75 @@ describe("validateMessage", () => {
       });
     });
   });
+
+  describe("dice-roll validation", () => {
+    // The gate IS parseDiceFormula — the same function the handler uses to
+    // produce terms — so there is no formula this admits and the roller then
+    // chokes on. These pin that the wire really is gated, not just the handler:
+    // route() bypasses validateMessage entirely, so the router-level contract
+    // test cannot cover this file.
+    it("rejects a formula that is missing or not a string", () => {
+      expect(validateMessage({ t: "dice-roll" } as unknown as ClientMessage)).toMatchObject({
+        valid: false,
+        error: "dice-roll: formula must be text",
+      });
+      expect(
+        validateMessage({ t: "dice-roll", formula: 20 } as unknown as ClientMessage),
+      ).toMatchObject({ valid: false, error: "dice-roll: formula must be text" });
+    });
+
+    it("rejects notation the roller does not understand", () => {
+      for (const formula of ["2d7", "d20 drop lowest", "", "2d6+", "0d6"]) {
+        expect(validateMessage({ t: "dice-roll", formula } as ClientMessage)).toMatchObject({
+          valid: false,
+        });
+      }
+    });
+
+    it("rejects a formula that would make the server roll a bucket of dice", () => {
+      expect(
+        validateMessage({ t: "dice-roll", formula: "99d100 + 99d100" } as ClientMessage),
+      ).toMatchObject({ valid: false, error: expect.stringContaining("more than") });
+    });
+
+    it("rejects an unrecognized mode or visibility rather than silently downgrading it", () => {
+      expect(
+        validateMessage({
+          t: "dice-roll",
+          formula: "d20",
+          mode: "superadvantage",
+        } as unknown as ClientMessage),
+      ).toMatchObject({
+        valid: false,
+        error: "dice-roll: mode must be normal, advantage or disadvantage",
+      });
+      expect(
+        validateMessage({
+          t: "dice-roll",
+          formula: "d20",
+          visibility: "everyone",
+        } as unknown as ClientMessage),
+      ).toMatchObject({
+        valid: false,
+        error: "dice-roll: visibility must be public, dm or self",
+      });
+    });
+
+    it("does not care about a total, a uid or a name — there is nowhere for them to go", () => {
+      // They pass validation and are then ignored: the handler reads only
+      // formula/mode/visibility. Pinned so nobody "fixes" this by bounding
+      // them, which is how the forgeable shape came back into scope.
+      expect(
+        validateMessage({
+          t: "dice-roll",
+          formula: "d20",
+          total: 999,
+          playerUid: "somebody-else",
+        } as unknown as ClientMessage),
+      ).toEqual({ valid: true });
+    });
+  });
+
   it("rejects unknown message types", () => {
     expect(validateMessage({})).toEqual({ valid: false, error: "Missing or invalid message type" });
     expect(validateMessage({ t: "unknown" })).toEqual({

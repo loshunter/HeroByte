@@ -80,6 +80,8 @@ export function DMMenu({
   sceneObjects,
   onSelectPlayerTokens,
   combatActive,
+  monsterHpDisplay,
+  onMonsterHpDisplayChange,
   onStartCombat,
   onEndCombat,
   onClearAllInitiative,
@@ -226,6 +228,8 @@ export function DMMenu({
                 sceneObjects={sceneObjects}
                 onSelectPlayerTokens={onSelectPlayerTokens}
                 combatActive={combatActive}
+                monsterHpDisplay={monsterHpDisplay}
+                onMonsterHpDisplayChange={onMonsterHpDisplayChange}
                 onStartCombat={onStartCombat}
                 onEndCombat={onEndCombat}
                 onClearAllInitiative={onClearAllInitiative}

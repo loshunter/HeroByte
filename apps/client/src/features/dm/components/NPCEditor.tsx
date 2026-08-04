@@ -5,14 +5,14 @@
 // Provides editing interface for NPC properties including name, HP, and images.
 
 import { useState, useEffect } from "react";
-import type { Character } from "@herobyte/shared";
+import type { SnapshotCharacter } from "@herobyte/shared";
 import { normalizeHPValues, parseHPInput, parseMaxHPInput } from "@herobyte/shared";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import { ImageField } from "../../../components/ui/ImageField";
 import { StatusBanner } from "../../../components/ui/StatusBanner";
 
 interface NPCEditorProps {
-  npc: Character;
+  npc: SnapshotCharacter;
   onUpdate: (updates: {
     name: string;
     hp: number;

@@ -13,7 +13,8 @@
 // This is a pure composition component that arranges existing UI components
 // (JRPGPanel, JRPGButton) without implementing business logic.
 
-import type { Player, SceneObject } from "@herobyte/shared";
+import { MONSTER_HP_DISPLAY_MODES } from "@herobyte/shared";
+import type { Player, SceneObject, MonsterHpDisplay } from "@herobyte/shared";
 import { JRPGButton, JRPGPanel } from "../../../../components/ui/JRPGPanel";
 import { TurnNavigationControls } from "../../../initiative/components/TurnNavigationControls";
 
@@ -39,6 +40,10 @@ interface PlayersTabProps {
   onNextTurn?: () => void;
   /** Callback to go to previous turn */
   onPreviousTurn?: () => void;
+  /** Current monster HP display mode (S4) */
+  monsterHpDisplay?: MonsterHpDisplay;
+  /** Callback to change how much monster HP players see (S4) */
+  onMonsterHpDisplayChange?: (mode: MonsterHpDisplay) => void;
 }
 
 /**
@@ -71,6 +76,8 @@ export default function PlayersTab({
   onClearAllInitiative,
   onNextTurn,
   onPreviousTurn,
+  monsterHpDisplay = "exact",
+  onMonsterHpDisplayChange,
 }: PlayersTabProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -135,6 +142,36 @@ export default function PlayersTab({
           </div>
         </JRPGPanel>
       </div>
+
+      {/* Monster HP Display Section (S4) — enforced server-side; this is the dial */}
+      {onMonsterHpDisplayChange && (
+        <div>
+          <h4 className="jrpg-text-command" style={{ margin: 0, marginBottom: "8px" }}>
+            Monster HP Display
+          </h4>
+          <p
+            className="jrpg-text-small"
+            style={{ margin: 0, marginBottom: "12px", color: "var(--jrpg-white)" }}
+          >
+            How much of a monster&apos;s health players can see. Hidden and Bloodied strip the
+            numbers from their connection entirely.
+          </p>
+          <JRPGPanel variant="simple">
+            <div style={{ display: "flex", gap: "8px" }}>
+              {MONSTER_HP_DISPLAY_MODES.map((mode) => (
+                <JRPGButton
+                  key={mode}
+                  onClick={() => onMonsterHpDisplayChange(mode)}
+                  variant={monsterHpDisplay === mode ? "primary" : "default"}
+                  style={{ flex: 1, fontSize: "10px", padding: "6px 8px" }}
+                >
+                  {mode === "exact" ? "Exact" : mode === "bloodied" ? "Bloodied" : "Hidden"}
+                </JRPGButton>
+              ))}
+            </div>
+          </JRPGPanel>
+        </div>
+      )}
 
       {/* Player Token Shortcuts Section */}
       <div>

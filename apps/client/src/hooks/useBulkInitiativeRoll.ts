@@ -4,7 +4,7 @@
 // Custom hook for rolling initiative for multiple NPCs at once
 
 import { useState, useCallback } from "react";
-import type { Character } from "@herobyte/shared";
+import type { SnapshotCharacter } from "@herobyte/shared";
 
 /**
  * Hook for bulk initiative rolling
@@ -17,7 +17,7 @@ import type { Character } from "@herobyte/shared";
  * @returns Object with rollAllInitiative function and isRolling state
  */
 export function useBulkInitiativeRoll(
-  npcs: Character[],
+  npcs: SnapshotCharacter[],
   onSetInitiative: (characterId: string, initiative: number, initiativeModifier: number) => void,
 ) {
   const [isRolling, setIsRolling] = useState(false);

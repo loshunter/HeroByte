@@ -14,15 +14,16 @@
 // collections that recipient may receive. Nothing here writes to state.
 
 import type {
-  Character,
   ChatMessage,
+  DiceRoll,
   Pointer,
   Prop,
   SceneObject,
   SelectionState,
+  SnapshotCharacter,
   Token,
 } from "@herobyte/shared";
-import { gridCellToWorldPoint } from "@herobyte/shared";
+import { coerceDiceVisibility, gridCellToWorldPoint, hpBadgeFor } from "@herobyte/shared";
 import type { RoomState } from "../model.js";
 import { selectionMapToRecord } from "../selectionSerialization.js";
 import { createVisionContext, isWorldPointVisible } from "../scene/visionFilter.js";
@@ -30,7 +31,7 @@ import { createVisionContext, isWorldPointVisible } from "../scene/visionFilter.
 /** The per-recipient view of every position-sensitive collection. */
 export interface RecipientView {
   tokens: Token[];
-  characters: Character[];
+  characters: SnapshotCharacter[];
   props: Prop[];
   pointers: Pointer[];
   sceneObjects: SceneObject[];
@@ -39,6 +40,8 @@ export interface RecipientView {
   currentTurnCharacterId: string | undefined;
   /** Chat with other people's whispers removed. */
   chatLog: ChatMessage[];
+  /** Roll history with other people's private rolls removed. */
+  diceRolls: DiceRoll[];
 }
 
 /**
@@ -83,6 +86,50 @@ export function visibleChatFor(chatLog: ChatMessage[], recipientUid?: string): C
     if (!message.to) return true; // public
     if (!recipientUid) return false; // fail closed
     return message.to === recipientUid || message.authorUid === recipientUid;
+  });
+}
+
+/**
+ * Rolls this recipient is entitled to, whole records — a hidden roll is absent
+ * from the payload, not blanked in it. The numbers ARE the secret, so there is
+ * nothing to redact down to.
+ *
+ * FAILS CLOSED, for the same reasons as visibleChatFor above and then one
+ * more: `createSnapshot()` (no uid, isDM defaulting to true) is what seeds a
+ * table fork, so "no identified recipient" must mean "public rolls only" or a
+ * fork would carry the previous table's secret rolls into a new one.
+ *
+ * `dm` visibility is the one place a DM IS privileged, and deliberately so:
+ * "roll it to the DM" is a request addressed to them, the way a whisper is
+ * addressed to a player. `self` grants nothing to anyone — a DM is a player at
+ * the table, not an auditor of everyone's private dice, which is the same call
+ * visibleChatFor makes for whispers.
+ *
+ * Unknown visibility strings collapse to `self` (coerceDiceVisibility), so a
+ * corrupt or forward-dated state file cannot turn a secret roll into a
+ * broadcast one.
+ *
+ * Same identity bound as whispers: `uid` is CLIENT-SUPPLIED, so a private roll
+ * is private FROM the other people at your table, not from someone willing to
+ * reconnect under another player's uid. Do not describe it to users as secure
+ * against a table member.
+ */
+export function visibleRollsFor(
+  diceRolls: DiceRoll[],
+  isDM: boolean,
+  recipientUid?: string,
+): DiceRoll[] {
+  // Defence in depth, exactly as visibleChatFor: this runs inside the
+  // DEBOUNCED broadcast timer, outside route()'s try/catch, in a process with
+  // no uncaughtException handler. A persisted non-array would otherwise kill
+  // the process serving every room, on every restart.
+  if (!Array.isArray(diceRolls)) return [];
+  return diceRolls.filter((roll) => {
+    const visibility = coerceDiceVisibility(roll.visibility);
+    if (visibility === "public") return true;
+    if (!recipientUid) return false; // fail closed
+    if (roll.playerUid === recipientUid) return true;
+    return visibility === "dm" && isDM;
   });
 }
 
@@ -143,6 +190,33 @@ export function buildRecipientView(
           character.type !== "npc" || !character.tokenId || visionTokenIds.has(character.tokenId),
       )
     : visibleCharacters;
+
+  // Monster HP display (S4): in "bloodied"/"hidden" mode an NPC's numbers are
+  // REDACTED from the wire — a player socket never receives them, so devtools
+  // and sniffing show nothing (same principle as fog and whispers). Bloodied
+  // mode substitutes a coarse badge computed with the SHARED hpBadgeFor, the
+  // same function the client's player lens uses, so the two views can never
+  // disagree. PCs always keep exact numbers: party health is the party's own
+  // information. Shallow CLONES on the redacted records only — every object in
+  // this view aliases live RoomState, and mutating one would corrupt the
+  // authoritative state and persist it on the next save.
+  const hpMode = state.monsterHpDisplay ?? "exact";
+  const hpRedactedCharacters: SnapshotCharacter[] =
+    isDM || hpMode === "exact"
+      ? fogFilteredCharacters
+      : fogFilteredCharacters.map((character) => {
+          if (character.type !== "npc") return character;
+          const redacted: SnapshotCharacter = {
+            ...character,
+            hp: undefined,
+            maxHp: undefined,
+            tempHp: undefined,
+          };
+          if (hpMode === "bloodied") {
+            redacted.hpBadge = hpBadgeFor(character.hp, character.maxHp);
+          }
+          return redacted;
+        });
 
   // The active combatant must be someone the recipient can actually resolve.
   // Both filters above already strip a hidden or fogged NPC's record AND its
@@ -243,12 +317,13 @@ export function buildRecipientView(
 
   return {
     tokens: visibleTokens,
-    characters: fogFilteredCharacters,
+    characters: hpRedactedCharacters,
     props: visibleProps,
     pointers: visiblePointers,
     sceneObjects: visibleSceneObjects,
     selectionState: visibleSelection,
     currentTurnCharacterId: visibleTurnCharacterId,
     chatLog: visibleChatFor(state.chatLog, recipientUid),
+    diceRolls: visibleRollsFor(state.diceRolls, isDM, recipientUid),
   };
 }

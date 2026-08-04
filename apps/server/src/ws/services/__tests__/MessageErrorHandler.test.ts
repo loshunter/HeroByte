@@ -183,15 +183,7 @@ describe("MessageErrorHandler", () => {
       {
         msg: {
           t: "dice-roll",
-          roll: {
-            id: "roll-1",
-            playerUid: "player-1",
-            playerName: "Player One",
-            formula: "1d20",
-            total: 15,
-            breakdown: [{ tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 }],
-            timestamp: 1700000000000,
-          },
+          formula: "1d20",
         },
         expectedType: "dice-roll",
       },

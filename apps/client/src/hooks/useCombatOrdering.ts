@@ -5,13 +5,13 @@
 // Separates combat ordering logic from presentation concerns
 
 import { useMemo } from "react";
-import type { Character, Player, Token } from "@herobyte/shared";
+import type { Player, Token, SnapshotCharacter } from "@herobyte/shared";
 import { shouldCharacterParticipateInCombat } from "@herobyte/shared";
 
 export interface EntityInfo {
   kind: "character" | "npc" | "dm";
   id: string;
-  character: Character;
+  character: SnapshotCharacter;
   player?: Player;
   token?: Token;
   isMe: boolean;
@@ -21,7 +21,7 @@ export interface EntityInfo {
 
 interface UseCombatOrderingProps {
   players: Player[];
-  characters: Character[];
+  characters: SnapshotCharacter[];
   tokens: Token[];
   currentUid: string;
   combatActive: boolean;

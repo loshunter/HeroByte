@@ -3,6 +3,7 @@
 // ============================================================================
 // Validates map and drawing-related messages
 
+import { MONSTER_HP_DISPLAY_MODES } from "@herobyte/shared";
 import type { ValidationResult, MessageRecord } from "./commonValidators.js";
 import {
   isFiniteNumber,
@@ -97,6 +98,24 @@ function isDoorId(doorId: unknown): doorId is string {
 export function validateSetFogEnabledMessage(message: MessageRecord): ValidationResult {
   if (typeof message.enabled !== "boolean") {
     return { valid: false, error: "set-fog-enabled: enabled must be a boolean" };
+  }
+  return { valid: true };
+}
+
+// One authoritative mode list (shared with the session-load coercion), so a
+// save file or message cannot smuggle a fourth value into the filter's branch.
+const MONSTER_HP_DISPLAY_MODE_SET = new Set<string>(MONSTER_HP_DISPLAY_MODES);
+
+/**
+ * Validate set-monster-hp-display message
+ * Required: mode (exact|bloodied|hidden)
+ */
+export function validateSetMonsterHpDisplayMessage(message: MessageRecord): ValidationResult {
+  if (typeof message.mode !== "string" || !MONSTER_HP_DISPLAY_MODE_SET.has(message.mode)) {
+    return {
+      valid: false,
+      error: "set-monster-hp-display: mode must be exact, bloodied, or hidden",
+    };
   }
   return { valid: true };
 }

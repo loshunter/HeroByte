@@ -5,10 +5,10 @@
 
 import React, { useState, useCallback, useEffect } from "react";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
-import type { Character } from "@herobyte/shared";
+import type { SnapshotCharacter } from "@herobyte/shared";
 
 interface InitiativeModalProps {
-  character: Character;
+  character: SnapshotCharacter;
   onClose: () => void;
   onSetInitiative: (initiative: number, modifier: number) => void;
   isLoading?: boolean;

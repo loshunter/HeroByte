@@ -3,7 +3,7 @@ import { detectRollFlavor } from "../diceJuice";
 import type { RollResult } from "../../../components/dice/types";
 
 function makeResult(perDie: RollResult["perDie"]): RollResult {
-  return { id: "r", tokens: [], perDie, total: 0, timestamp: 0 };
+  return { id: "r", formula: "d20", perDie, total: 0, timestamp: 0 };
 }
 
 describe("detectRollFlavor", () => {

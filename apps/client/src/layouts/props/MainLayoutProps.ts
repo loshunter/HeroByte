@@ -31,7 +31,8 @@ import type {
 } from "../../features/map-edit/mapEditTypes";
 import type { RoomBounds } from "../../features/map-edit/roomBuilder";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../types/alignment";
-import type { RollResult } from "../../components/dice/types";
+import type { RollLogEntry } from "../../components/dice/rollLogTypes";
+import type { DiceRollRequest } from "../../hooks/useDiceRolling";
 import type { UseDrawingStateManagerReturn } from "../../hooks/useDrawingStateManager";
 import type { ToolMode } from "../../components/layout/Header";
 import type { CameraCommand } from "../../ui/MapBoard";
@@ -56,13 +57,10 @@ export type ToastState = ReturnType<typeof import("../../hooks/useToast").useToa
 // Interfaces
 // ============================================================================
 
-/**
- * Roll log entry interface
- * This extends RollResult with playerName to match what RollLog.tsx expects
- */
-export interface RollLogEntry extends RollResult {
-  playerName: string;
-}
+// RollLogEntry lives in components/dice/rollLogTypes. It was declared here
+// too, and in FloatingPanelsLayout, and in useDiceRolling — four copies of one
+// name that disagreed about whether `formula` existed.
+export type { RollLogEntry };
 
 /**
  * Props for the MainLayout component
@@ -363,8 +361,10 @@ export interface MainLayoutProps {
   handleSendChat: (text: string, to?: string) => void;
   /** Currently viewing roll */
   viewingRoll: RollLogEntry | null;
-  /** Handler for dice roll */
-  handleRoll: (result: RollResult) => void;
+  /** Ask the server to roll. It answers through the snapshot, not this call. */
+  handleRoll: (request: DiceRollRequest) => void;
+  /** Newest roll authored by this player — how the roller learns its result */
+  latestOwnRoll: RollLogEntry | null;
   /** Handler to clear roll log */
   handleClearLog: () => void;
   /** Handler to view a roll from history */

@@ -29,6 +29,13 @@ interface RollLogProps {
   players?: Player[];
   currentUid?: string;
   onSendChat?: (text: string, to?: string) => void;
+  /**
+   * Whether this viewer may wipe the log. DM-only server-side, so offering the
+   * button to a player would be offering one that silently does nothing.
+   * Defaults true so existing render sites (and the formatting tests) are
+   * unchanged.
+   */
+  canClearLog?: boolean;
 }
 
 type LogTab = "rolls" | "chat";
@@ -42,6 +49,7 @@ export const RollLog: React.FC<RollLogProps> = ({
   players,
   currentUid,
   onSendChat,
+  canClearLog = true,
 }) => {
   const [tab, setTab] = useState<LogTab>("rolls");
   const chatEnabled = Boolean(onSendChat);
@@ -90,7 +98,7 @@ export const RollLog: React.FC<RollLogProps> = ({
 
         {/* Clear button — roll-specific, so it must not offer to clear rolls
             while the chat tab is showing. */}
-        {activeTab === "rolls" && rolls.length > 0 && (
+        {activeTab === "rolls" && canClearLog && rolls.length > 0 && (
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
             <JRPGButton
               onClick={onClearLog}

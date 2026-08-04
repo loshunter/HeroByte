@@ -224,10 +224,17 @@ export class CharacterMessageHandler {
   /**
    * Handle update character HP message
    *
+   * Permission-gated like every sibling mutation: owner or DM. This was the
+   * one character write with NO check — any player could rewrite any
+   * character's hp, including a monster whose numbers the recipient filter
+   * hides (choose the values, know the values) and rival PCs mid-fight.
+   *
    * @param state - Room state
    * @param characterId - ID of character
    * @param hp - New HP
    * @param maxHp - New max HP
+   * @param senderUid - Author, bound from the connection
+   * @param isDM - Whether the sender holds the DM seat
    * @returns Result indicating broadcast/save needs
    */
   handleUpdateCharacterHP(
@@ -235,7 +242,14 @@ export class CharacterMessageHandler {
     characterId: string,
     hp: number,
     maxHp: number,
+    senderUid: string,
+    isDM: boolean,
   ): CharacterMessageResult {
+    const character = this.characterService.findCharacter(state, characterId);
+    if (!character || (!isDM && !this.characterService.canControlCharacter(character, senderUid))) {
+      console.warn(`Player ${senderUid} tried to update HP of a character they don't control`);
+      return { broadcast: false, save: false };
+    }
     const updated = this.characterService.updateHP(state, characterId, hp, maxHp);
     return { broadcast: updated, save: updated };
   }

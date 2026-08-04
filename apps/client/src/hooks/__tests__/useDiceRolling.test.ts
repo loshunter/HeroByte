@@ -1,22 +1,27 @@
 /**
- * Characterization tests for useDiceRolling hook
+ * Tests for useDiceRolling
  *
- * These tests capture the behavior of the original dice rolling code BEFORE extraction.
- * They serve as regression tests during and after refactoring.
+ * This suite used to pin the shape S5 removed: it asserted that the client
+ * sent `total`, `breakdown`, `timestamp` and `playerUid: mockUid` on the wire
+ * — every one of them forgeable, and the reason dice were (arc defect D2).
+ * What it pins now is the opposite: that the message carries a formula and
+ * NOTHING a tampered client could use to lie about who rolled what.
  *
- * Source: apps/client/src/ui/App.tsx (lines 14-17, 59-62, 228-230, 235-249, 1017-1078)
- * Target: apps/client/src/hooks/useDiceRolling.ts
+ * Source: apps/client/src/hooks/useDiceRolling.ts
  */
 
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { useDiceRolling } from "../useDiceRolling.js";
 import type { RoomSnapshot, Player, DiceRoll, ClientMessage } from "@herobyte/shared";
-import type { RollResult } from "../../components/dice/types.js";
 
-describe("useDiceRolling - Characterization", () => {
+describe("useDiceRolling", () => {
   const mockUid = "test-player-uid";
   const mockSendMessage = vi.fn();
+
+  beforeEach(() => {
+    mockSendMessage.mockClear();
+  });
 
   const createMockSnapshot = (
     diceRolls: DiceRoll[] = [],
@@ -37,633 +42,296 @@ describe("useDiceRolling - Characterization", () => {
     props: [],
   });
 
-  const createMockPlayer = (uid: string, name: string): Player => ({
-    uid,
-    name,
-    hp: 100,
-    maxHp: 100,
+  const createServerRoll = (overrides: Partial<DiceRoll> = {}): DiceRoll => ({
+    id: "roll-1",
+    playerUid: mockUid,
+    playerName: "Alice",
+    formula: "d20 + 5",
+    total: 18,
+    breakdown: [
+      { tokenId: "t0", die: "d20", rolls: [13], subtotal: 13 },
+      { tokenId: "t1", subtotal: 5 },
+    ],
+    timestamp: 1000,
+    ...overrides,
   });
 
-  describe("State Management", () => {
-    it("should initialize with all panels closed and no viewing roll", () => {
-      const { result } = renderHook(() =>
-        useDiceRolling({
-          snapshot: createMockSnapshot(),
-          sendMessage: mockSendMessage,
-          uid: mockUid,
-        }),
-      );
+  const renderDice = (snapshot: RoomSnapshot | null) =>
+    renderHook(() => useDiceRolling({ snapshot, sendMessage: mockSendMessage, uid: mockUid }));
+
+  // --------------------------------------------------------------------------
+  // Panels
+  // --------------------------------------------------------------------------
+
+  describe("panel state", () => {
+    it("starts with everything closed", () => {
+      const { result } = renderDice(createMockSnapshot());
 
       expect(result.current.diceRollerOpen).toBe(false);
       expect(result.current.rollLogOpen).toBe(false);
       expect(result.current.viewingRoll).toBe(null);
     });
 
-    it("should toggle dice roller open state", () => {
-      const { result } = renderHook(() =>
-        useDiceRolling({
-          snapshot: createMockSnapshot(),
-          sendMessage: mockSendMessage,
-          uid: mockUid,
-        }),
-      );
+    it("toggles each panel independently", () => {
+      const { result } = renderDice(createMockSnapshot());
 
-      act(() => {
-        result.current.toggleDiceRoller(true);
-      });
-
+      act(() => result.current.toggleDiceRoller(true));
       expect(result.current.diceRollerOpen).toBe(true);
-
-      act(() => {
-        result.current.toggleDiceRoller(false);
-      });
-
-      expect(result.current.diceRollerOpen).toBe(false);
-    });
-
-    it("should toggle roll log open state", () => {
-      const { result } = renderHook(() =>
-        useDiceRolling({
-          snapshot: createMockSnapshot(),
-          sendMessage: mockSendMessage,
-          uid: mockUid,
-        }),
-      );
-
-      act(() => {
-        result.current.toggleRollLog(true);
-      });
-
-      expect(result.current.rollLogOpen).toBe(true);
-
-      act(() => {
-        result.current.toggleRollLog(false);
-      });
-
       expect(result.current.rollLogOpen).toBe(false);
+
+      act(() => result.current.toggleRollLog(true));
+      act(() => result.current.toggleDiceRoller(false));
+      expect(result.current.diceRollerOpen).toBe(false);
+      expect(result.current.rollLogOpen).toBe(true);
     });
 
-    it("should set and clear viewing roll", () => {
-      const { result } = renderHook(() =>
-        useDiceRolling({
-          snapshot: createMockSnapshot(),
-          sendMessage: mockSendMessage,
-          uid: mockUid,
-        }),
-      );
+    it("remembers and clears the roll being viewed", () => {
+      const { result } = renderDice(createMockSnapshot([createServerRoll()]));
+      const entry = result.current.rollHistory[0]!;
 
-      const mockRoll: RollResult = {
-        id: "roll-1",
-        tokens: [{ kind: "die", die: "d20", qty: 1, id: "token-1" }],
-        perDie: [{ tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 }],
-        total: 15,
-        timestamp: Date.now(),
-      };
+      act(() => result.current.handleViewRoll(entry));
+      expect(result.current.viewingRoll).toBe(entry);
 
-      act(() => {
-        result.current.handleViewRoll(mockRoll);
-      });
-
-      expect(result.current.viewingRoll).toEqual(mockRoll);
-
-      act(() => {
-        result.current.handleViewRoll(null);
-      });
-
+      act(() => result.current.handleViewRoll(null));
       expect(result.current.viewingRoll).toBe(null);
     });
   });
 
-  describe("Roll History Transformation", () => {
-    it("should transform empty dice rolls array to empty roll history", () => {
-      const { result } = renderHook(() =>
-        useDiceRolling({
-          snapshot: createMockSnapshot([]),
-          sendMessage: mockSendMessage,
-          uid: mockUid,
-        }),
+  // --------------------------------------------------------------------------
+  // What goes on the wire
+  // --------------------------------------------------------------------------
+
+  describe("sending a roll", () => {
+    it("sends the formula and nothing else", () => {
+      const { result } = renderDice(createMockSnapshot());
+
+      act(() =>
+        result.current.handleRoll({ formula: "2d6 + 3", mode: "normal", visibility: "public" }),
       );
-
-      expect(result.current.rollHistory).toEqual([]);
-    });
-
-    it("should transform dice rolls from snapshot to roll history format", () => {
-      const mockDiceRolls: DiceRoll[] = [
-        {
-          id: "roll-1",
-          playerUid: "player-1",
-          playerName: "Alice",
-          formula: "2d20 + 5",
-          total: 30,
-          breakdown: [
-            { tokenId: "t1", die: "d20", rolls: [15, 10], subtotal: 25 },
-            { tokenId: "t2", subtotal: 5 },
-          ],
-          timestamp: 1234567890,
-        },
-      ];
-
-      const { result } = renderHook(() =>
-        useDiceRolling({
-          snapshot: createMockSnapshot(mockDiceRolls),
-          sendMessage: mockSendMessage,
-          uid: mockUid,
-        }),
-      );
-
-      expect(result.current.rollHistory).toHaveLength(1);
-      expect(result.current.rollHistory[0]).toEqual({
-        id: "roll-1",
-        playerName: "Alice",
-        formula: "2d20 + 5",
-        tokens: [],
-        perDie: [
-          { tokenId: "t1", die: "d20", rolls: [15, 10], subtotal: 25 },
-          { tokenId: "t2", die: undefined, rolls: undefined, subtotal: 5 },
-        ],
-        total: 30,
-        timestamp: 1234567890,
-      });
-    });
-
-    it("should cast die field to DieType in breakdown transformation", () => {
-      const mockDiceRolls: DiceRoll[] = [
-        {
-          id: "roll-1",
-          playerUid: "player-1",
-          playerName: "Bob",
-          formula: "1d6",
-          total: 4,
-          breakdown: [{ tokenId: "t1", die: "d6", rolls: [4], subtotal: 4 }],
-          timestamp: 1234567890,
-        },
-      ];
-
-      const { result } = renderHook(() =>
-        useDiceRolling({
-          snapshot: createMockSnapshot(mockDiceRolls),
-          sendMessage: mockSendMessage,
-          uid: mockUid,
-        }),
-      );
-
-      const perDie = result.current.rollHistory[0].perDie[0];
-      expect(perDie.die).toBe("d6");
-    });
-
-    it("should update roll history when snapshot changes", () => {
-      const { result, rerender } = renderHook(
-        ({ snapshot }) =>
-          useDiceRolling({
-            snapshot,
-            sendMessage: mockSendMessage,
-            uid: mockUid,
-          }),
-        {
-          initialProps: {
-            snapshot: createMockSnapshot([]),
-          },
-        },
-      );
-
-      expect(result.current.rollHistory).toHaveLength(0);
-
-      const newSnapshot = createMockSnapshot([
-        {
-          id: "roll-1",
-          playerUid: "player-1",
-          playerName: "Charlie",
-          formula: "1d20",
-          total: 15,
-          breakdown: [{ tokenId: "t1", die: "d20", rolls: [15], subtotal: 15 }],
-          timestamp: 1234567890,
-        },
-      ]);
-
-      rerender({ snapshot: newSnapshot });
-
-      expect(result.current.rollHistory).toHaveLength(1);
-    });
-
-    it("should handle null snapshot gracefully", () => {
-      const { result } = renderHook(() =>
-        useDiceRolling({
-          snapshot: null,
-          sendMessage: mockSendMessage,
-          uid: mockUid,
-        }),
-      );
-
-      expect(result.current.rollHistory).toEqual([]);
-    });
-  });
-
-  describe("Roll Handler - Formula Generation", () => {
-    it("should send dice-roll message with correct formula for single die", () => {
-      const mockSendMessage = vi.fn();
-      const players = [createMockPlayer(mockUid, "TestPlayer")];
-      const { result } = renderHook(() =>
-        useDiceRolling({
-          snapshot: createMockSnapshot([], players),
-          sendMessage: mockSendMessage,
-          uid: mockUid,
-        }),
-      );
-
-      const rollResult: RollResult = {
-        id: "roll-1",
-        tokens: [{ kind: "die", die: "d20", qty: 1, id: "token-1" }],
-        perDie: [{ tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 }],
-        total: 15,
-        timestamp: Date.now(),
-      };
-
-      act(() => {
-        result.current.handleRoll(rollResult);
-      });
 
       expect(mockSendMessage).toHaveBeenCalledTimes(1);
-      const message = mockSendMessage.mock.calls[0][0] as ClientMessage;
-      expect(message.t).toBe("dice-roll");
-      if (message.t === "dice-roll") {
-        expect(message.roll.formula).toBe("d20");
-      }
+      const message = mockSendMessage.mock.calls[0]![0] as ClientMessage;
+      // Exact shape, not a subset: this is the assertion that fails the day
+      // someone reintroduces a client-computed total or a client uid.
+      expect(message).toEqual({ t: "dice-roll", formula: "2d6 + 3" });
     });
 
-    it("should send dice-roll message with correct formula for multiple dice (qty > 1)", () => {
-      const mockSendMessage = vi.fn();
-      const players = [createMockPlayer(mockUid, "TestPlayer")];
-      const { result } = renderHook(() =>
-        useDiceRolling({
-          snapshot: createMockSnapshot([], players),
-          sendMessage: mockSendMessage,
-          uid: mockUid,
-        }),
-      );
+    it("omits mode and visibility at their defaults, and sends them otherwise", () => {
+      const { result } = renderDice(createMockSnapshot());
 
-      const rollResult: RollResult = {
-        id: "roll-2",
-        tokens: [{ kind: "die", die: "d6", qty: 3, id: "token-1" }],
-        perDie: [{ tokenId: "token-1", die: "d6", rolls: [3, 4, 5], subtotal: 12 }],
-        total: 12,
-        timestamp: Date.now(),
-      };
-
-      act(() => {
-        result.current.handleRoll(rollResult);
+      act(() => result.current.handleRoll({ formula: "d20", mode: "advantage", visibility: "dm" }));
+      expect(mockSendMessage).toHaveBeenLastCalledWith({
+        t: "dice-roll",
+        formula: "d20",
+        mode: "advantage",
+        visibility: "dm",
       });
 
-      const message = mockSendMessage.mock.calls[0][0] as ClientMessage;
-      if (message.t === "dice-roll") {
-        expect(message.roll.formula).toBe("3d6");
-      }
+      act(() =>
+        result.current.handleRoll({
+          formula: "d20",
+          mode: "disadvantage",
+          visibility: "self",
+        }),
+      );
+      expect(mockSendMessage).toHaveBeenLastCalledWith({
+        t: "dice-roll",
+        formula: "d20",
+        mode: "disadvantage",
+        visibility: "self",
+      });
     });
 
-    it("should send dice-roll message with positive modifier formatted correctly", () => {
-      const mockSendMessage = vi.fn();
-      const players = [createMockPlayer(mockUid, "TestPlayer")];
-      const { result } = renderHook(() =>
-        useDiceRolling({
-          snapshot: createMockSnapshot([], players),
-          sendMessage: mockSendMessage,
-          uid: mockUid,
-        }),
+    it("refuses to send an empty formula", () => {
+      const { result } = renderDice(createMockSnapshot());
+
+      act(() => result.current.handleRoll({ formula: "", mode: "normal", visibility: "public" }));
+      act(() =>
+        result.current.handleRoll({ formula: "   ", mode: "normal", visibility: "public" }),
       );
 
-      const rollResult: RollResult = {
-        id: "roll-3",
-        tokens: [
-          { kind: "die", die: "d20", qty: 1, id: "token-1" },
-          { kind: "mod", value: 5, id: "token-2" },
-        ],
-        perDie: [
-          { tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 },
-          { tokenId: "token-2", subtotal: 5 },
-        ],
-        total: 20,
-        timestamp: Date.now(),
-      };
-
-      act(() => {
-        result.current.handleRoll(rollResult);
-      });
-
-      const message = mockSendMessage.mock.calls[0][0] as ClientMessage;
-      if (message.t === "dice-roll") {
-        expect(message.roll.formula).toBe("d20 +5");
-      }
+      expect(mockSendMessage).not.toHaveBeenCalled();
     });
 
-    it("should send dice-roll message with negative modifier formatted correctly", () => {
-      const mockSendMessage = vi.fn();
-      const players = [createMockPlayer(mockUid, "TestPlayer")];
-      const { result } = renderHook(() =>
-        useDiceRolling({
-          snapshot: createMockSnapshot([], players),
-          sendMessage: mockSendMessage,
-          uid: mockUid,
-        }),
-      );
+    it("sends clear-roll-history with no payload", () => {
+      const { result } = renderDice(createMockSnapshot());
 
-      const rollResult: RollResult = {
-        id: "roll-4",
-        tokens: [
-          { kind: "die", die: "d20", qty: 1, id: "token-1" },
-          { kind: "mod", value: -3, id: "token-2" },
-        ],
-        perDie: [
-          { tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 },
-          { tokenId: "token-2", subtotal: -3 },
-        ],
-        total: 12,
-        timestamp: Date.now(),
-      };
+      act(() => result.current.handleClearLog());
 
-      act(() => {
-        result.current.handleRoll(rollResult);
-      });
-
-      const message = mockSendMessage.mock.calls[0][0] as ClientMessage;
-      if (message.t === "dice-roll") {
-        expect(message.roll.formula).toBe("d20 -3");
-      }
-    });
-
-    it("should send dice-roll message with complex formula (multiple dice + modifiers)", () => {
-      const mockSendMessage = vi.fn();
-      const players = [createMockPlayer(mockUid, "TestPlayer")];
-      const { result } = renderHook(() =>
-        useDiceRolling({
-          snapshot: createMockSnapshot([], players),
-          sendMessage: mockSendMessage,
-          uid: mockUid,
-        }),
-      );
-
-      const rollResult: RollResult = {
-        id: "roll-5",
-        tokens: [
-          { kind: "die", die: "d20", qty: 2, id: "token-1" },
-          { kind: "mod", value: 5, id: "token-2" },
-          { kind: "die", die: "d6", qty: 1, id: "token-3" },
-        ],
-        perDie: [
-          { tokenId: "token-1", die: "d20", rolls: [10, 15], subtotal: 25 },
-          { tokenId: "token-2", subtotal: 5 },
-          { tokenId: "token-3", die: "d6", rolls: [4], subtotal: 4 },
-        ],
-        total: 34,
-        timestamp: Date.now(),
-      };
-
-      act(() => {
-        result.current.handleRoll(rollResult);
-      });
-
-      const message = mockSendMessage.mock.calls[0][0] as ClientMessage;
-      if (message.t === "dice-roll") {
-        expect(message.roll.formula).toBe("2d20 +5 d6");
-      }
-    });
-
-    it("should use player name from snapshot when available", () => {
-      const mockSendMessage = vi.fn();
-      const players = [createMockPlayer(mockUid, "Alice")];
-      const { result } = renderHook(() =>
-        useDiceRolling({
-          snapshot: createMockSnapshot([], players),
-          sendMessage: mockSendMessage,
-          uid: mockUid,
-        }),
-      );
-
-      const rollResult: RollResult = {
-        id: "roll-6",
-        tokens: [{ kind: "die", die: "d20", qty: 1, id: "token-1" }],
-        perDie: [{ tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 }],
-        total: 15,
-        timestamp: Date.now(),
-      };
-
-      act(() => {
-        result.current.handleRoll(rollResult);
-      });
-
-      const message = mockSendMessage.mock.calls[0][0] as ClientMessage;
-      if (message.t === "dice-roll") {
-        expect(message.roll.playerName).toBe("Alice");
-      }
-    });
-
-    it("should use 'Unknown' as player name when player not found in snapshot", () => {
-      const mockSendMessage = vi.fn();
-      const { result } = renderHook(() =>
-        useDiceRolling({
-          snapshot: createMockSnapshot([], []),
-          sendMessage: mockSendMessage,
-          uid: mockUid,
-        }),
-      );
-
-      const rollResult: RollResult = {
-        id: "roll-7",
-        tokens: [{ kind: "die", die: "d20", qty: 1, id: "token-1" }],
-        perDie: [{ tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 }],
-        total: 15,
-        timestamp: Date.now(),
-      };
-
-      act(() => {
-        result.current.handleRoll(rollResult);
-      });
-
-      const message = mockSendMessage.mock.calls[0][0] as ClientMessage;
-      if (message.t === "dice-roll") {
-        expect(message.roll.playerName).toBe("Unknown");
-      }
-    });
-
-    it("should use 'Unknown' as player name when snapshot is null", () => {
-      const mockSendMessage = vi.fn();
-      const { result } = renderHook(() =>
-        useDiceRolling({
-          snapshot: null,
-          sendMessage: mockSendMessage,
-          uid: mockUid,
-        }),
-      );
-
-      const rollResult: RollResult = {
-        id: "roll-8",
-        tokens: [{ kind: "die", die: "d20", qty: 1, id: "token-1" }],
-        perDie: [{ tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 }],
-        total: 15,
-        timestamp: Date.now(),
-      };
-
-      act(() => {
-        result.current.handleRoll(rollResult);
-      });
-
-      const message = mockSendMessage.mock.calls[0][0] as ClientMessage;
-      if (message.t === "dice-roll") {
-        expect(message.roll.playerName).toBe("Unknown");
-      }
-    });
-
-    it("should send dice-roll message with correct breakdown structure", () => {
-      const mockSendMessage = vi.fn();
-      const players = [createMockPlayer(mockUid, "TestPlayer")];
-      const { result } = renderHook(() =>
-        useDiceRolling({
-          snapshot: createMockSnapshot([], players),
-          sendMessage: mockSendMessage,
-          uid: mockUid,
-        }),
-      );
-
-      const rollResult: RollResult = {
-        id: "roll-9",
-        tokens: [{ kind: "die", die: "d20", qty: 1, id: "token-1" }],
-        perDie: [{ tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 }],
-        total: 15,
-        timestamp: 12345,
-      };
-
-      act(() => {
-        result.current.handleRoll(rollResult);
-      });
-
-      const message = mockSendMessage.mock.calls[0][0] as ClientMessage;
-      if (message.t === "dice-roll") {
-        expect(message.roll.breakdown).toEqual([
-          { tokenId: "token-1", die: "d20", rolls: [15], subtotal: 15 },
-        ]);
-        expect(message.roll.total).toBe(15);
-        expect(message.roll.timestamp).toBe(12345);
-        expect(message.roll.playerUid).toBe(mockUid);
-      }
-    });
-  });
-
-  describe("Clear Log Handler", () => {
-    it("should send clear-roll-history message when handleClearLog is called", () => {
-      const mockSendMessage = vi.fn();
-      const { result } = renderHook(() =>
-        useDiceRolling({
-          snapshot: createMockSnapshot(),
-          sendMessage: mockSendMessage,
-          uid: mockUid,
-        }),
-      );
-
-      act(() => {
-        result.current.handleClearLog();
-      });
-
-      expect(mockSendMessage).toHaveBeenCalledTimes(1);
       expect(mockSendMessage).toHaveBeenCalledWith({ t: "clear-roll-history" });
     });
-  });
 
-  describe("Callback Stability", () => {
-    it("should maintain callback stability across re-renders", () => {
-      const { result, rerender } = renderHook(() =>
-        useDiceRolling({
-          snapshot: createMockSnapshot(),
-          sendMessage: mockSendMessage,
-          uid: mockUid,
-        }),
-      );
-
-      const initialToggleDiceRoller = result.current.toggleDiceRoller;
-      const initialToggleRollLog = result.current.toggleRollLog;
-      const initialHandleRoll = result.current.handleRoll;
-      const initialHandleClearLog = result.current.handleClearLog;
-      const initialHandleViewRoll = result.current.handleViewRoll;
+    it("keeps its callbacks stable across rerenders", () => {
+      const { result, rerender } = renderDice(createMockSnapshot());
+      const first = {
+        roll: result.current.handleRoll,
+        clear: result.current.handleClearLog,
+        view: result.current.handleViewRoll,
+      };
 
       rerender();
 
-      expect(result.current.toggleDiceRoller).toBe(initialToggleDiceRoller);
-      expect(result.current.toggleRollLog).toBe(initialToggleRollLog);
-      expect(result.current.handleRoll).toBe(initialHandleRoll);
-      expect(result.current.handleClearLog).toBe(initialHandleClearLog);
-      expect(result.current.handleViewRoll).toBe(initialHandleViewRoll);
+      expect(result.current.handleRoll).toBe(first.roll);
+      expect(result.current.handleClearLog).toBe(first.clear);
+      expect(result.current.handleViewRoll).toBe(first.view);
     });
   });
 
-  describe("Edge Cases", () => {
-    it("should handle roll result with zero total", () => {
-      const mockSendMessage = vi.fn();
-      const players = [createMockPlayer(mockUid, "TestPlayer")];
-      const { result } = renderHook(() =>
-        useDiceRolling({
-          snapshot: createMockSnapshot([], players),
-          sendMessage: mockSendMessage,
-          uid: mockUid,
-        }),
-      );
+  // --------------------------------------------------------------------------
+  // What comes back
+  // --------------------------------------------------------------------------
 
-      const rollResult: RollResult = {
-        id: "roll-10",
-        tokens: [{ kind: "mod", value: 0, id: "token-1" }],
-        perDie: [{ tokenId: "token-1", subtotal: 0 }],
-        total: 0,
-        timestamp: Date.now(),
-      };
-
-      act(() => {
-        result.current.handleRoll(rollResult);
-      });
-
-      expect(mockSendMessage).toHaveBeenCalledTimes(1);
+  describe("roll history", () => {
+    it("is empty without a snapshot", () => {
+      const { result } = renderDice(null);
+      expect(result.current.rollHistory).toEqual([]);
+      expect(result.current.latestOwnRoll).toBe(null);
     });
 
-    it("should handle roll result with empty tokens array", () => {
-      const mockSendMessage = vi.fn();
-      const players = [createMockPlayer(mockUid, "TestPlayer")];
-      const { result } = renderHook(() =>
-        useDiceRolling({
-          snapshot: createMockSnapshot([], players),
-          sendMessage: mockSendMessage,
-          uid: mockUid,
-        }),
+    it("carries the server's formula, author, breakdown and total", () => {
+      const { result } = renderDice(createMockSnapshot([createServerRoll()]));
+
+      expect(result.current.rollHistory).toEqual([
+        {
+          id: "roll-1",
+          playerUid: mockUid,
+          playerName: "Alice",
+          formula: "d20 + 5",
+          perDie: [
+            { tokenId: "t0", die: "d20", rolls: [13], dropped: undefined, subtotal: 13 },
+            { tokenId: "t1", die: undefined, rolls: undefined, dropped: undefined, subtotal: 5 },
+          ],
+          total: 18,
+          mode: undefined,
+          visibility: undefined,
+          timestamp: 1000,
+        },
+      ]);
+    });
+
+    it("carries advantage's discarded dice and the visibility badge", () => {
+      const { result } = renderDice(
+        createMockSnapshot([
+          createServerRoll({
+            mode: "advantage",
+            visibility: "dm",
+            breakdown: [{ tokenId: "t0", die: "d20", rolls: [19], dropped: [4], subtotal: 19 }],
+          }),
+        ]),
       );
 
-      const rollResult: RollResult = {
-        id: "roll-11",
-        tokens: [],
-        perDie: [],
-        total: 0,
-        timestamp: Date.now(),
-      };
+      const entry = result.current.rollHistory[0]!;
+      expect(entry.mode).toBe("advantage");
+      expect(entry.visibility).toBe("dm");
+      expect(entry.perDie[0]?.dropped).toEqual([4]);
+    });
 
-      act(() => {
-        result.current.handleRoll(rollResult);
-      });
+    it("survives a roll with no formula", () => {
+      // RollEntry reads `.length` on it to decide whether to collapse the row,
+      // inside the render path — an absent formula would take the log down.
+      const { result } = renderDice(
+        createMockSnapshot([{ ...createServerRoll(), formula: undefined as unknown as string }]),
+      );
 
-      const message = mockSendMessage.mock.calls[0][0] as ClientMessage;
-      if (message.t === "dice-roll") {
-        expect(message.roll.formula).toBe("");
+      expect(result.current.rollHistory[0]?.formula).toBe("");
+    });
+
+    it("survives a roll with a missing or non-array breakdown", () => {
+      // A session file handed to a DM can carry either: load-session checks
+      // that each roll is an object, not that its fields have the right shape.
+      // This runs inside a render-path useMemo, so a TypeError here takes the
+      // whole table's UI down rather than dropping one log row.
+      for (const breakdown of [undefined, { not: "an array" }, "nope", 7]) {
+        const { result } = renderDice(
+          createMockSnapshot([
+            { ...createServerRoll(), breakdown: breakdown as unknown as DiceRoll["breakdown"] },
+          ]),
+        );
+        expect(result.current.rollHistory[0]?.perDie).toEqual([]);
       }
     });
 
-    it("should handle multiple consecutive toggle calls", () => {
-      const { result } = renderHook(() =>
-        useDiceRolling({
-          snapshot: createMockSnapshot(),
-          sendMessage: mockSendMessage,
-          uid: mockUid,
-        }),
+    it("survives a poisoned non-array diceRolls instead of throwing", () => {
+      const snapshot = createMockSnapshot();
+      (snapshot as unknown as { diceRolls: unknown }).diceRolls = { not: "an array" };
+
+      const { result } = renderDice(snapshot);
+
+      expect(result.current.rollHistory).toEqual([]);
+    });
+
+    it("does not filter anything — rolls it should not see never arrived", () => {
+      // A renderer that hid rolls it received would not be secrecy. The
+      // server's recipient filter is the only gate; whatever is in the
+      // snapshot is what this player is entitled to.
+      const { result } = renderDice(
+        createMockSnapshot([
+          createServerRoll({ id: "mine", playerUid: mockUid, visibility: "self" }),
+          createServerRoll({ id: "theirs", playerUid: "someone-else", visibility: "dm" }),
+        ]),
       );
 
-      act(() => {
-        result.current.toggleDiceRoller(true);
-        result.current.toggleDiceRoller(false);
-        result.current.toggleDiceRoller(true);
-      });
+      expect(result.current.rollHistory.map((r) => r.id)).toEqual(["mine", "theirs"]);
+    });
+  });
 
-      expect(result.current.diceRollerOpen).toBe(true);
+  describe("latestOwnRoll", () => {
+    it("is the newest roll authored by this player", () => {
+      const { result } = renderDice(
+        createMockSnapshot([
+          createServerRoll({ id: "a", playerUid: mockUid }),
+          createServerRoll({ id: "b", playerUid: "someone-else" }),
+          createServerRoll({ id: "c", playerUid: mockUid }),
+          createServerRoll({ id: "d", playerUid: "someone-else" }),
+        ]),
+      );
+
+      expect(result.current.latestOwnRoll?.id).toBe("c");
+    });
+
+    it("is null when this player has not rolled", () => {
+      const { result } = renderDice(
+        createMockSnapshot([createServerRoll({ id: "a", playerUid: "someone-else" })]),
+      );
+
+      expect(result.current.latestOwnRoll).toBe(null);
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // Chat rides along
+  // --------------------------------------------------------------------------
+
+  describe("chat", () => {
+    it("sends a public line and a whisper, carrying no author either way", () => {
+      const { result } = renderDice(createMockSnapshot());
+
+      act(() => result.current.handleSendChat("  hello  "));
+      expect(mockSendMessage).toHaveBeenLastCalledWith({ t: "chat", text: "hello" });
+
+      act(() => result.current.handleSendChat("psst", "bob-uid"));
+      expect(mockSendMessage).toHaveBeenLastCalledWith({
+        t: "chat",
+        text: "psst",
+        to: "bob-uid",
+      });
+    });
+
+    it("refuses an empty line", () => {
+      const { result } = renderDice(createMockSnapshot());
+
+      act(() => result.current.handleSendChat("   "));
+
+      expect(mockSendMessage).not.toHaveBeenCalled();
+    });
+
+    it("passes the server's already-filtered chat log straight through", () => {
+      const snapshot = createMockSnapshot();
+      snapshot.chatLog = [{ id: "m1", authorUid: "a", authorName: "A", text: "hi", timestamp: 1 }];
+
+      const { result } = renderDice(snapshot);
+
+      expect(result.current.chatMessages).toEqual(snapshot.chatLog);
     });
   });
 });

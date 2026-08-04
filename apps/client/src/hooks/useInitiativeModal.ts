@@ -5,7 +5,7 @@
 // Separates modal state from presentation and business logic
 
 import { useState, useCallback } from "react";
-import type { Character } from "@herobyte/shared";
+import type { SnapshotCharacter } from "@herobyte/shared";
 
 /**
  * Custom hook for managing initiative modal state.
@@ -22,9 +22,9 @@ import type { Character } from "@herobyte/shared";
  * - Rendering logic
  */
 export function useInitiativeModal() {
-  const [character, setCharacter] = useState<Character | null>(null);
+  const [character, setCharacter] = useState<SnapshotCharacter | null>(null);
 
-  const openModal = useCallback((char: Character) => {
+  const openModal = useCallback((char: SnapshotCharacter) => {
     setCharacter(char);
   }, []);
 
