@@ -365,6 +365,10 @@ export interface DragPreviewEvent {
 export const DRAWING_TYPES = ["freehand", "line", "rect", "circle", "eraser", "template"] as const;
 export type DrawingType = (typeof DRAWING_TYPES)[number];
 
+// Bulk-NPC bounds — value re-export from a sub-module (see npcLimits.ts for
+// why it must not be a direct `export const` here: the server imports it).
+export { NPC_CREATE_LIMITS } from "./npcLimits.js";
+
 /**
  * The tool the drawing toolbar is holding. Wider than `DrawingType` because a
  * template tool names the SHAPE it will draw ("template-cone") while every
@@ -725,6 +729,13 @@ type ClientMessagePayload =
       tempHp?: number;
       portrait?: string;
       tokenImage?: string;
+      /**
+       * How many to create, defaulting to 1. The server loops and numbers
+       * them, so "five goblins" is one message, one broadcast and one state
+       * write — and stays compatible with the client's single-flight guard,
+       * which was built to have exactly one create in the air.
+       */
+      count?: number;
     }
   | {
       t: "update-npc";

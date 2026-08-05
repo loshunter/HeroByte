@@ -26,7 +26,7 @@ import type {
   DiagonalRule,
   MonsterHpDisplay,
 } from "@herobyte/shared";
-import { useNpcCreation } from "./useNpcCreation";
+import { useNpcCreation, type CreateNpcRequest } from "./useNpcCreation";
 import { useNpcUpdate } from "./useNpcUpdate";
 import { useNpcDeletion } from "./useNpcDeletion";
 import { useNpcTokenPlacement } from "./useNpcTokenPlacement";
@@ -62,7 +62,9 @@ export interface UseDMContextReturn {
   npcManagement: {
     // Creation
     isCreating: boolean;
-    createNpc: () => void;
+    createNpc: (request?: CreateNpcRequest) => void;
+    /** Copy an existing NPC's stats and art; the server picks the next number. */
+    duplicateNpc: (id: string) => void;
     creationError: string | null;
     // Update
     isUpdating: boolean;
@@ -189,6 +191,28 @@ export function useDMContext({
 
   // Note: toggleNpcVisibility hook removed - feature not currently used in DMMenu
 
+  /**
+   * Duplicate an NPC by replaying its own fields through create-npc. There is
+   * no duplicate message: the server already numbers a colliding name, so a
+   * copy is just a create whose base name is the original's.
+   */
+  const duplicateNpc = useCallback(
+    (id: string) => {
+      const source = snapshot?.characters?.find((character) => character.id === id);
+      if (!source) return;
+
+      createNpc({
+        name: source.name,
+        // A DM snapshot is never redacted; the fallbacks are type honesty.
+        hp: source.hp ?? 0,
+        maxHp: source.maxHp ?? 1,
+        portrait: source.portrait ?? undefined,
+        tokenImage: source.tokenImage ?? undefined,
+      });
+    },
+    [createNpc, snapshot?.characters],
+  );
+
   // Prop Management Hooks
   const {
     isCreating: isCreatingProp,
@@ -274,6 +298,7 @@ export function useDMContext({
     npcManagement: {
       isCreating: isCreatingNpc,
       createNpc,
+      duplicateNpc,
       creationError: npcCreationError,
       isUpdating: isUpdatingNpc,
       updateNpc,

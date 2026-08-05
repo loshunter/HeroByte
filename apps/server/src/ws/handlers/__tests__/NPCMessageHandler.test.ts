@@ -154,6 +154,109 @@ describe("NPCMessageHandler - Characterization Tests", () => {
     });
   });
 
+  /**
+   * S8: one message creates several. Note these route through the real
+   * dispatcher, so the DM gate is exercised too — but NOT the validator, which
+   * runs before route() in production. The count bound is tested in
+   * middleware/__tests__/validation.test.ts.
+   */
+  describe("create-npc with a count", () => {
+    const bulk = (count: number | undefined, name = "Goblin"): ClientMessage => ({
+      t: "create-npc",
+      name,
+      hp: 7,
+      maxHp: 7,
+      ...(count === undefined ? {} : { count }),
+    });
+
+    it("creates exactly count NPCs from one message", () => {
+      messageRouter.route(bulk(5), dmUid);
+
+      const state = roomService.getState();
+      expect(state.characters).toHaveLength(5);
+      expect(state.characters.every((c) => c.type === "npc")).toBe(true);
+      expect(state.characters.every((c) => c.maxHp === 7)).toBe(true);
+    });
+
+    it("numbers them so a DM can tell one from another", () => {
+      messageRouter.route(bulk(5), dmUid);
+
+      expect(roomService.getState().characters.map((c) => c.name)).toEqual([
+        "Goblin 1",
+        "Goblin 2",
+        "Goblin 3",
+        "Goblin 4",
+        "Goblin 5",
+      ]);
+    });
+
+    it("continues the series on a second batch instead of repeating it", () => {
+      messageRouter.route(bulk(5), dmUid);
+      messageRouter.route(bulk(3), dmUid);
+
+      const names = roomService.getState().characters.map((c) => c.name);
+      expect(names).toHaveLength(8);
+      expect(new Set(names).size).toBe(8);
+      expect(names.slice(5)).toEqual(["Goblin 6", "Goblin 7", "Goblin 8"]);
+    });
+
+    it("leaves a single unnumbered create exactly as it always behaved", () => {
+      // The plain "+ Add NPC" button sends no count at all.
+      messageRouter.route(bulk(undefined, "New NPC"), dmUid);
+
+      expect(roomService.getState().characters.map((c) => c.name)).toEqual(["New NPC"]);
+    });
+
+    it("still refuses a non-DM, however many are asked for", () => {
+      messageRouter.route(bulk(20), playerUid);
+
+      expect(roomService.getState().characters).toHaveLength(0);
+    });
+
+    it("gives every NPC in the batch its own identity", () => {
+      messageRouter.route(bulk(4), dmUid);
+
+      const ids = roomService.getState().characters.map((c) => c.id);
+      expect(new Set(ids).size).toBe(4);
+    });
+
+    it("copies portrait and token art to every NPC in the batch", () => {
+      messageRouter.route(
+        { ...bulk(3), portrait: "goblin.png", tokenImage: "goblin-token.png" } as ClientMessage,
+        dmUid,
+      );
+
+      const state = roomService.getState();
+      expect(state.characters.every((c) => c.portrait === "goblin.png")).toBe(true);
+      expect(state.characters.every((c) => c.tokenImage === "goblin-token.png")).toBe(true);
+    });
+
+    it("stops at the 500-character snapshot limit rather than making an unloadable table", () => {
+      // A room past the limit exports a session file that fails its own load
+      // validation — the DM's backup silently stops being a backup.
+      const state = roomService.getState();
+      for (let i = 0; i < 495; i += 1) {
+        characterService.createCharacter(state, `Filler ${i}`, 1, undefined, "npc");
+      }
+
+      messageRouter.route(bulk(20), dmUid);
+
+      // Partial batch, not zero: 5 goblins beats none, and the DM can see it.
+      expect(roomService.getState().characters).toHaveLength(500);
+    });
+
+    it("refuses outright once the room is already full", () => {
+      const state = roomService.getState();
+      for (let i = 0; i < 500; i += 1) {
+        characterService.createCharacter(state, `Filler ${i}`, 1, undefined, "npc");
+      }
+
+      messageRouter.route(bulk(3), dmUid);
+
+      expect(roomService.getState().characters).toHaveLength(500);
+    });
+  });
+
   describe("update-npc message", () => {
     let npcId: string;
 

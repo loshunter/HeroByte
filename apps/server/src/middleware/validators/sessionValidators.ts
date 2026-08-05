@@ -73,7 +73,7 @@ export function validateSessionExportMessage(_message: MessageRecord): Validatio
  * visibleChatFor's `.filter` inside the debounced broadcast timer (outside
  * route()'s try/catch), killing the one process that serves every room.
  */
-const SNAPSHOT_LIMITS = {
+export const SNAPSHOT_LIMITS = {
   players: 100,
   tokens: 1000,
   drawings: 5000,

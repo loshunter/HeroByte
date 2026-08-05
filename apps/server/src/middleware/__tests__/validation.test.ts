@@ -506,6 +506,55 @@ describe("validateMessage", () => {
       ).toEqual({ valid: true });
     });
 
+    /**
+     * The count bound lives here rather than in a router test on purpose:
+     * router.route() runs AFTER validation in production, so routing a
+     * malformed frame proves nothing about the gate that would have stopped
+     * it. The handler LOOPS on this value, which is what makes the bound
+     * load-bearing rather than cosmetic.
+     */
+    describe("create-npc count (S8 bulk add)", () => {
+      const base = { t: "create-npc", name: "Goblin", hp: 10, maxHp: 10 };
+
+      it("accepts an absent count — the plain + Add NPC button sends none", () => {
+        expect(validateMessage({ ...base })).toEqual({ valid: true });
+      });
+
+      it("accepts the whole permitted range", () => {
+        for (const count of [1, 2, 5, 19, 20]) {
+          expect(validateMessage({ ...base, count })).toEqual({ valid: true });
+        }
+      });
+
+      it("rejects a count above the ceiling", () => {
+        expect(validateMessage({ ...base, count: 21 })).toMatchObject({ valid: false });
+        expect(validateMessage({ ...base, count: 10_000 })).toMatchObject({ valid: false });
+      });
+
+      it("rejects zero and negatives", () => {
+        expect(validateMessage({ ...base, count: 0 })).toMatchObject({ valid: false });
+        expect(validateMessage({ ...base, count: -3 })).toMatchObject({ valid: false });
+      });
+
+      it("rejects a non-integer count, which would spin the loop on a fraction", () => {
+        expect(validateMessage({ ...base, count: 2.5 })).toMatchObject({ valid: false });
+      });
+
+      it("rejects the values isFiniteNumber alone would admit", () => {
+        // 1e308 is finite. Looping on it is a self-inflicted denial of service.
+        expect(validateMessage({ ...base, count: 1e308 })).toMatchObject({ valid: false });
+        expect(validateMessage({ ...base, count: Number.MAX_SAFE_INTEGER })).toMatchObject({
+          valid: false,
+        });
+      });
+
+      it("rejects a non-number count", () => {
+        for (const count of ["5", null, {}, [], true, Number.NaN, Infinity]) {
+          expect(validateMessage({ ...base, count })).toMatchObject({ valid: false });
+        }
+      });
+    });
+
     it("rejects create-npc with negative hp", () => {
       expect(
         validateMessage({

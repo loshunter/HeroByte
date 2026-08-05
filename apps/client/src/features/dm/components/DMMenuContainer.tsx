@@ -193,6 +193,7 @@ export function DMMenuContainer({
       onRequestSaveSession={snapshot ? dmContext.sessionManagement.handleSaveSession : undefined}
       onRequestLoadSession={dmContext.sessionManagement.handleLoadSession}
       onCreateNPC={dmContext.npcManagement.createNpc}
+      onDuplicateNPC={dmContext.npcManagement.duplicateNpc}
       onUpdateNPC={dmContext.npcManagement.updateNpc}
       onDeleteNPC={dmContext.npcManagement.deleteNpc}
       onPlaceNPCToken={dmContext.npcManagement.placeToken}

@@ -69,6 +69,7 @@ const createProps = () => ({
   onRequestSaveSession: undefined as ((name: string) => void) | undefined,
   onRequestLoadSession: vi.fn(),
   onCreateNPC: vi.fn(),
+  onDuplicateNPC: vi.fn(),
   onUpdateNPC: vi.fn(),
   onDeleteNPC: vi.fn(),
   onPlaceNPCToken: vi.fn(),

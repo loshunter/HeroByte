@@ -69,6 +69,17 @@ export function isFiniteNumber(value: unknown): value is number {
 }
 
 /**
+ * A whole number within an inclusive range.
+ *
+ * The range is what does the real work: `Number.isInteger(1e308)` is TRUE, so
+ * an integer check alone is not a bound. Use this wherever a value drives a
+ * loop or an allocation, where "finite" is not the same as "sane".
+ */
+export function isIntegerInRange(value: unknown, min: number, max: number): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= min && value <= max;
+}
+
+/**
  * Type guard: Check if value is a valid point with finite coordinates
  */
 export function isPoint(value: unknown): value is Point {

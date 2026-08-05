@@ -26,6 +26,21 @@ export interface UseNpcCreationOptions {
   sendMessage: (message: ClientMessage) => void;
 }
 
+/**
+ * What to create. Everything is optional: the plain "+ Add NPC" button passes
+ * nothing and gets the historic default NPC.
+ */
+export interface CreateNpcRequest {
+  /** Base name. The SERVER numbers it — see domains/character/npcNaming.ts. */
+  name?: string;
+  hp?: number;
+  maxHp?: number;
+  portrait?: string;
+  tokenImage?: string;
+  /** How many to create (1..NPC_CREATE_LIMITS.COUNT_MAX). Defaults to 1. */
+  count?: number;
+}
+
 export interface UseNpcCreationReturn {
   /**
    * Whether an NPC creation is in progress
@@ -35,7 +50,7 @@ export interface UseNpcCreationReturn {
   /**
    * Initiate NPC creation with loading state
    */
-  createNpc: () => void;
+  createNpc: (request?: CreateNpcRequest) => void;
 
   /**
    * Error message if creation failed, null otherwise
@@ -102,33 +117,48 @@ export function useNpcCreation(options: UseNpcCreationOptions): UseNpcCreationRe
   /**
    * Initiate NPC creation
    */
-  const createNpc = useCallback(() => {
-    if (isCreating) {
-      console.warn("[useNpcCreation] NPC creation already in progress");
-      return;
-    }
+  const createNpc = useCallback(
+    (request?: CreateNpcRequest) => {
+      if (isCreating) {
+        console.warn("[useNpcCreation] NPC creation already in progress");
+        return;
+      }
 
-    console.log("[useNpcCreation] Starting NPC creation");
+      console.log("[useNpcCreation] Starting NPC creation");
 
-    // Set loading state BEFORE sending message
-    setIsCreating(true);
-    setError(null);
+      // Set loading state BEFORE sending message
+      setIsCreating(true);
+      setError(null);
 
-    // Send the creation message
-    sendMessage({ t: "create-npc", name: "New NPC", hp: 10, maxHp: 10 });
-
-    // Set a timeout in case server doesn't respond
-    setTimeout(() => {
-      setIsCreating((prev) => {
-        if (prev) {
-          // Only set error if STILL creating
-          setError("NPC creation timed out. Please try again.");
-          return false;
-        }
-        return prev;
+      // ONE message however many NPCs are wanted, because this hook refuses to
+      // run a second create while one is in flight and detects success by
+      // watching the character count. N separate messages would be dropped by
+      // that guard on the way out; a server-side loop lands as a single count
+      // jump, which the watcher above already handles.
+      sendMessage({
+        t: "create-npc",
+        name: request?.name ?? "New NPC",
+        hp: request?.hp ?? 10,
+        maxHp: request?.maxHp ?? 10,
+        ...(request?.portrait !== undefined ? { portrait: request.portrait } : {}),
+        ...(request?.tokenImage !== undefined ? { tokenImage: request.tokenImage } : {}),
+        ...(request?.count !== undefined ? { count: request.count } : {}),
       });
-    }, 5000);
-  }, [isCreating, sendMessage]);
+
+      // Set a timeout in case server doesn't respond
+      setTimeout(() => {
+        setIsCreating((prev) => {
+          if (prev) {
+            // Only set error if STILL creating
+            setError("NPC creation timed out. Please try again.");
+            return false;
+          }
+          return prev;
+        });
+      }, 5000);
+    },
+    [isCreating, sendMessage],
+  );
 
   return {
     isCreating,

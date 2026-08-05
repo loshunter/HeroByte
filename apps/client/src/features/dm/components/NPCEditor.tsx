@@ -7,9 +7,10 @@
 import { useState, useEffect } from "react";
 import type { SnapshotCharacter } from "@herobyte/shared";
 import { normalizeHPValues, parseHPInput, parseMaxHPInput } from "@herobyte/shared";
-import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
+import { JRPGPanel } from "../../../components/ui/JRPGPanel";
 import { ImageField } from "../../../components/ui/ImageField";
 import { StatusBanner } from "../../../components/ui/StatusBanner";
+import { NPCEditorActions } from "./NPCEditorActions";
 
 interface NPCEditorProps {
   npc: SnapshotCharacter;
@@ -23,10 +24,12 @@ interface NPCEditorProps {
     initiativeModifier?: number;
   }) => void;
   onPlace: () => void;
+  onDuplicate: () => void;
   onDelete: () => void;
   isUpdating?: boolean;
   updateError?: string | null;
   isPlacingToken?: boolean;
+  isDuplicating?: boolean;
   tokenPlacementError?: string | null;
 }
 
@@ -34,7 +37,9 @@ export function NPCEditor({
   npc,
   onUpdate,
   onPlace,
+  onDuplicate,
   onDelete,
+  isDuplicating = false,
   isUpdating = false,
   updateError = null,
   isPlacingToken = false,
@@ -306,34 +311,23 @@ export function NPCEditor({
         />
       )}
 
-      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-        <JRPGButton
-          variant="primary"
-          onClick={() => {
-            commitUpdate();
-            onPlace();
-          }}
-          disabled={isUpdating || isPlacingToken}
-          style={{ fontSize: "10px", flex: 1 }}
-        >
-          {isPlacingToken ? "Placing..." : "Place on Map"}
-        </JRPGButton>
-        <JRPGButton
-          variant="danger"
-          onClick={() => {
-            // Deleting an NPC also force-removes its placed token server-side,
-            // and Ctrl+Z does not cover either. Every sibling delete in the app
-            // confirms first; this one used to fire on a single click.
-            if (window.confirm(`Delete "${npc.name}"? This also removes its token from the map.`)) {
-              onDelete();
-            }
-          }}
-          disabled={isUpdating || isPlacingToken}
-          style={{ fontSize: "10px", flex: 1 }}
-        >
-          Delete
-        </JRPGButton>
-      </div>
+      <NPCEditorActions
+        npcName={npc.name}
+        onPlace={() => {
+          commitUpdate();
+          onPlace();
+        }}
+        // Commit first: duplicating copies what the SERVER holds, so an edit
+        // still sitting in the form would be silently dropped from the copy.
+        onDuplicate={() => {
+          commitUpdate();
+          onDuplicate();
+        }}
+        onDelete={onDelete}
+        isUpdating={isUpdating}
+        isPlacingToken={isPlacingToken}
+        isDuplicating={isDuplicating}
+      />
     </JRPGPanel>
   );
 }

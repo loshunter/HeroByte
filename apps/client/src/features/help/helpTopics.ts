@@ -263,6 +263,16 @@ export const HELP_TOPICS: HelpTopic[] = [
           "DM Menu → NPCs. Name, HP, initiative modifier, portrait and token art — the same plumbing as a player.",
       },
       {
+        term: "Adding a whole pack",
+        detail:
+          "Set the ×N field before + Add NPC to make up to 20 at once. They come out numbered — Goblin 1, Goblin 2 — and a second batch carries on from where the first stopped rather than repeating it.",
+      },
+      {
+        term: "⧉ Duplicate",
+        detail:
+          "Copies an NPC's stats and art into a new one under the next free number, so a tweaked goblin becomes five tweaked goblins.",
+      },
+      {
         term: "PLACE ON MAP",
         detail:
           "Drops that NPC's token at the centre of your view. The 👁️ eye hides an NPC from players entirely.",

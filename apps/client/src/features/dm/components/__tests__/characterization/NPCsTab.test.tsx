@@ -72,6 +72,7 @@ function NPCsTab({ npcs, onCreateNPC, onUpdateNPC, onPlaceNPCToken, onDeleteNPC 
               npc={npc}
               onUpdate={(updates) => onUpdateNPC(npc.id, updates)}
               onPlace={() => onPlaceNPCToken(npc.id)}
+              onDuplicate={() => {}}
               onDelete={() => onDeleteNPC(npc.id)}
             />
           ))}

@@ -27,6 +27,7 @@ describe("NPCEditor - Characterization Tests", () => {
   const createMockHandlers = () => ({
     onUpdate: vi.fn(),
     onPlace: vi.fn(),
+    onDuplicate: vi.fn(),
     onDelete: vi.fn(),
   });
 

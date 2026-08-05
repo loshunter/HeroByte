@@ -36,6 +36,7 @@ export function DMMenu({
   onRequestSaveSession,
   onRequestLoadSession,
   onCreateNPC,
+  onDuplicateNPC,
   onUpdateNPC,
   onDeleteNPC,
   onPlaceNPCToken,
@@ -194,6 +195,7 @@ export function DMMenu({
               <NPCsTab
                 npcs={npcs}
                 onCreateNPC={onCreateNPC}
+                onDuplicateNPC={onDuplicateNPC}
                 onUpdateNPC={onUpdateNPC}
                 onPlaceNPCToken={onPlaceNPCToken}
                 onDeleteNPC={onDeleteNPC}
