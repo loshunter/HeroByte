@@ -151,7 +151,11 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
               {player.isDM ? "Dungeon Master" : "Adventurer"}
             </div>
           </div>
-          {isMe && (
+          {/* Your own row always, and every row for a DM — matching desktop,
+              where EntitiesPanel gives a DM a settings button on every card.
+              Without the DM case the phone had no way to reach the DM-only
+              controls inside (S7's sight radius), so they shipped unreachable. */}
+          {(isMe || isDM) && (
             <JRPGButton
               onClick={() => setSettingsOpen(true)}
               variant="primary"
