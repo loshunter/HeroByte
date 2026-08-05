@@ -94,11 +94,16 @@ and you get `Error: No tests found`. Omit it.
 - On Windows (the owner's environment) `kill -9` does not exist — use `Stop-Process -Force` or the
   repo's `kill-windows-port.bat`.
 
-**Known-failing on `dev`, pre-existing, NOT yours.** `apps/e2e/comprehensive-mvp.spec.ts:33`
-"Authentication Flow" — and note this is a **wrong test**, not an app defect: it asserts the
-password field clears after a rejected attempt, which the gate does not do by design. It is not in
-the 4-spec CI smoke set. `shadowTint.test.ts` and `staging-zone-visual.spec.ts` are load-flaky;
-both pass in isolation.
+**Known-failing on `dev`, pre-existing, NOT yours.** `shadowTint.test.ts` and
+`staging-zone-visual.spec.ts` are load-flaky; both pass in isolation.
+
+~~`apps/e2e/comprehensive-mvp.spec.ts:33` "Authentication Flow"~~ — **fixed 2026-08-05.** It was a
+wrong test, not an app defect: it asserted the password field clears after a rejected attempt,
+which the gate does not do by design. The assertion now matches the gate — the field *keeps* what
+was typed, and the rejection shows up as the server's "Invalid table password" under the field.
+Because this spec is outside the 4-spec smoke set, it failed only in the nightly `e2e-full-suite`,
+which it was the sole cause of reddening (runs #744/#748/#756 on `main`) — so the nightly badge
+had stopped carrying information.
 
 **CI** (`.github/workflows/ci.yml`, every push/PR to `dev` and `main`): lint → format:check →
 structure guard → build → typecheck → bundle size, then unit tests on Node 18 and 20, then a 4-spec
