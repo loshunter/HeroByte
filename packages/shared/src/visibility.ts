@@ -113,9 +113,23 @@ export function computeVisionPolygon(
   // rather than dearer: the sweep costs 6*(M+4) rays each testing M+4
   // segments, so halving M quarters the work. The bounds box is never pruned;
   // it is what stops the rays.
-  const reachable = radius
-    ? segments.filter((s) => segmentWithinRadius(origin, radius, s))
-    : segments;
+  // A polygon whose vertices sit ON the sight circle is INSCRIBED: between two
+  // samples its boundary falls back to r*cos(PI/N), about a document pixel
+  // short. That pixel is not academic, because a token can only stand on a cell
+  // CENTRE and every radius the UI offers is a whole number of squares — so a
+  // creature exactly at the stated range sits exactly ON the circle and lands
+  // on the wrong side of the chord. "30 ft" then reached 5 squares, not 6, in
+  // three of the four cardinal directions (due west happened to work, because
+  // the i=0 sample lands at exactly -PI).
+  //
+  // So push the vertices out to the CIRCUMSCRIBING polygon: at r/cos(PI/N) the
+  // chords are tangent to the true circle, and every point within r is inside.
+  // The error now runs outward by at most r*(sec(PI/N)-1) — the same ~1px,
+  // spent in the direction that keeps the promise on the label rather than the
+  // one that quietly breaks it.
+  const samples = radius ? arcSampleCount(radius) : 0;
+  const clip = radius ? inflateToCircumscribe(radius, samples) : null;
+  const reachable = clip ? segments.filter((s) => segmentWithinRadius(origin, clip, s)) : segments;
   const all: RawSegment[] = [
     ...reachable,
     { x1: minX, y1: minY, x2: maxX, y2: minY },
@@ -138,8 +152,7 @@ export function computeVisionPolygon(
   // vertices as the room has corners — a four-walled room would clip a circle
   // to a square. These trace the arc itself, and are added ONLY when a radius
   // is set so an unlimited viewer's polygon is unchanged, vertex for vertex.
-  if (radius) {
-    const samples = arcSampleCount(radius);
+  if (clip) {
     for (let i = 0; i < samples; i += 1) {
       angles.push((i * 2 * Math.PI) / samples - Math.PI);
     }
@@ -150,7 +163,7 @@ export function computeVisionPolygon(
     const dx = Math.cos(angle);
     const dy = Math.sin(angle);
     const wallDistance = nearestHitDistance(origin, dx, dy, all);
-    const limit = radius ? rayDistanceToRadius(dx, dy, radius) : null;
+    const limit = clip ? rayDistanceToRadius(dx, dy, clip) : null;
     const distance =
       limit === null ? wallDistance : wallDistance === null ? limit : Math.min(wallDistance, limit);
     if (distance === null) continue;
@@ -205,13 +218,44 @@ function segmentWithinRadius(
 }
 
 /**
- * How far along a unit ray the sight ellipse is, or null when the ellipse is
- * unbounded in that direction. Normalising by the semi-axes turns the ellipse
- * back into a unit circle, where the crossing is just `1 / |normalised dir|`.
+ * Semi-axes pushed out so the sampled polygon CIRCUMSCRIBES the sight ellipse
+ * rather than being inscribed in it. A regular N-gon whose vertices sit at
+ * `r / cos(PI/N)` has its edges tangent to the circle of radius `r`.
+ */
+function inflateToCircumscribe(radius: VisionRadius, samples: number): VisionRadius {
+  // The secant alone makes the chords exactly TANGENT, which leaves a target at
+  // exactly the stated range sitting exactly ON the boundary — and a parity
+  // ray-cast on its own boundary is arbitrary. Measured: with the sample angles
+  // starting at -PI and an odd count, due east lands on the tangent point every
+  // time, so "6 squares east at 30 ft" came back unseen while west came back
+  // seen. The extra hair makes the circle strictly interior. It is relative, so
+  // it stays far above double-precision noise at table coordinates while adding
+  // 0.0003 px at a 300 px radius.
+  const factor = (1 / Math.cos(Math.PI / samples)) * (1 + BOUNDARY_MARGIN);
+  if (!Number.isFinite(factor) || factor < 1) return radius;
+  return { x: radius.x * factor, y: radius.y * factor };
+}
+
+/** Relative slack that puts a target at exactly the stated range strictly inside. */
+const BOUNDARY_MARGIN = 1e-6;
+
+/**
+ * How far along a unit ray the sight ellipse is.
+ *
+ * Normalising by the semi-axes turns the ellipse back into a unit circle, where
+ * the crossing is just `1 / |normalised dir|`. Returns 0 — BLIND — rather than
+ * null when that normalisation is not a usable finite number, which happens for
+ * a semi-axis so tiny that dividing by it overflows. Returning null there would
+ * mean "unbounded in this direction", and combined with the segment prune (which
+ * also divides by the semi-axes, so it drops EVERY occluder) a viewer with an
+ * absurdly small radius would have seen the whole published map straight through
+ * every wall. `tokenVisionRadius` floors the value long before this, but the
+ * geometry must fail closed on its own.
  */
 function rayDistanceToRadius(dx: number, dy: number, radius: VisionRadius): number | null {
   const normalised = Math.hypot(dx / radius.x, dy / radius.y);
-  if (!(normalised > 0) || !Number.isFinite(normalised)) return null;
+  if (!Number.isFinite(normalised)) return 0;
+  if (normalised <= 0) return null; // genuinely unbounded (an infinite semi-axis)
   return 1 / normalised;
 }
 

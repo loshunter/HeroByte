@@ -5,6 +5,7 @@ import {
   coerceVisionRadius,
   computeViewerVisionPolygon,
   computeVisionPolygon,
+  gridCellToWorldPoint,
   getVisionBlockingSegments,
   inverseTransformScenePoint,
   pointInPolygon,
@@ -250,9 +251,12 @@ describe("computeVisionPolygon with a radius", () => {
 
     expect(pointInPolygon({ x: 240, y: 200 }, polygon)).toBe(true); // 40 away
     expect(pointInPolygon({ x: 275, y: 200 }, polygon)).toBe(false); // 75 away
-    // Every vertex sits on or inside the circle (a hair of slack for the
-    // chord/arc discrepancy at the sampled angles).
-    expect(maxReach(polygon)).toBeLessThanOrEqual(60.0001);
+    // The polygon CIRCUMSCRIBES the sight circle, so it reaches at least the
+    // stated radius everywhere and overshoots by a bounded hair. Inscribing it
+    // instead (vertices exactly ON the circle) is what made a target at exactly
+    // the stated range come back unseen — see the boundary suite below.
+    expect(maxReach(polygon)).toBeGreaterThanOrEqual(60);
+    expect(maxReach(polygon)).toBeLessThan(60 * 1.005);
   });
 
   it("traces the arc finely enough to stay round, not polygonal", () => {
@@ -476,9 +480,11 @@ describe("computeViewerVisionPolygon keeps the radius honest in world units", ()
       return Math.hypot(world.x - worldOrigin.x, world.y - worldOrigin.y);
     });
     // 60 ft = 12 squares = 600 world px, whatever the map has been scaled to.
+    // At least 600 (the polygon circumscribes the circle, so it never falls
+    // short of the promise on the label) and under half a percent over.
     for (const reach of reaches) {
-      expect(reach).toBeGreaterThan(599);
-      expect(reach).toBeLessThan(601);
+      expect(reach).toBeGreaterThanOrEqual(600);
+      expect(reach).toBeLessThan(600 * 1.005);
     }
   });
 
@@ -623,5 +629,148 @@ describe("coerceTokenVisionRadii", () => {
 
   it("survives a non-array, which is what a hand-edited file can hold", () => {
     expect(coerceTokenVisionRadii({} as unknown as { visionRadius?: number }[])).toEqual([]);
+  });
+});
+
+// ============================================================================
+// S7 — the BOUNDARY, at exactly the stated range
+// ============================================================================
+// The case the original arc tests never probed: they checked 118 of a 120
+// radius and 40/75 of a 60, so a polygon inscribed a pixel INSIDE the circle
+// passed everything. It matters because a token can only stand on a cell
+// CENTRE and every radius the UI offers is a whole number of squares — so a
+// creature at exactly the stated range sits exactly ON the circle. Inscribed,
+// "30 ft" reached five squares, not six, in three of the four cardinal
+// directions (due west worked by luck: the i=0 arc sample lands at -PI).
+describe("a creature at exactly the stated range is seen", () => {
+  const GRID = { gridSize: 50, gridSquareSize: 5 };
+  const BIG = { width: 8000, height: 8000 };
+
+  /** The production entry point, on the room's default grid. */
+  function seenFrom(viewerCell: ScenePoint, radiusFeet: number, targetCell: ScenePoint) {
+    const origin = gridCellToWorldPoint(GRID.gridSize, viewerCell);
+    const polygon = computeViewerVisionPolygon({
+      origin,
+      radiusFeet,
+      segments: [],
+      bounds: BIG,
+      ...GRID,
+    });
+    return pointInPolygon(gridCellToWorldPoint(GRID.gridSize, targetCell), polygon);
+  }
+
+  const presets: [number, number][] = [
+    [30, 6],
+    [60, 12],
+    [120, 24],
+  ];
+
+  it.each(presets)("%i ft reaches exactly %i squares in EVERY direction", (feet, squares) => {
+    const viewer = { x: 30, y: 30 };
+    for (const [dx, dy] of [
+      [squares, 0],
+      [-squares, 0],
+      [0, squares],
+      [0, -squares],
+    ]) {
+      expect(seenFrom(viewer, feet, { x: viewer.x + dx, y: viewer.y + dy })).toBe(true);
+    }
+  });
+
+  it.each(presets)("%i ft does NOT reach %i squares — one past the limit", (feet, squares) => {
+    const viewer = { x: 30, y: 30 };
+    for (const [dx, dy] of [
+      [squares + 1, 0],
+      [-(squares + 1), 0],
+      [0, squares + 1],
+      [0, -(squares + 1)],
+    ]) {
+      expect(seenFrom(viewer, feet, { x: viewer.x + dx, y: viewer.y + dy })).toBe(false);
+    }
+  });
+
+  // The old shortfall was direction-dependent, which is the tell that it was a
+  // sampling artefact rather than a rule. Sweep many viewer positions so no
+  // single lucky alignment can hide it.
+  it("is not direction-dependent across many viewer positions", () => {
+    for (let i = 0; i < 24; i += 1) {
+      const viewer = { x: 20 + i, y: 17 + i * 2 };
+      for (const [dx, dy] of [
+        [6, 0],
+        [-6, 0],
+        [0, 6],
+        [0, -6],
+      ]) {
+        expect(seenFrom(viewer, 30, { x: viewer.x + dx, y: viewer.y + dy })).toBe(true);
+      }
+    }
+  });
+
+  it("also holds for a diagonal at exactly the range (a 3-4-5 triangle at 25 ft)", () => {
+    // 25 ft = 5 squares; offset (3,4) is exactly 5 squares away.
+    expect(seenFrom({ x: 30, y: 30 }, 25, { x: 33, y: 34 })).toBe(true);
+    expect(seenFrom({ x: 30, y: 30 }, 25, { x: 34, y: 33 })).toBe(true);
+  });
+
+  // The outward error must stay small: reaching a whole extra square would be
+  // just as wrong in the other direction.
+  it("overshoots by well under one square", () => {
+    const origin = gridCellToWorldPoint(50, { x: 30, y: 30 });
+    const polygon = computeViewerVisionPolygon({
+      origin,
+      radiusFeet: 30,
+      segments: [],
+      bounds: BIG,
+      ...GRID,
+    });
+    const reach = Math.max(...polygon.map((p) => Math.hypot(p.x - origin.x, p.y - origin.y)));
+    expect(reach).toBeGreaterThanOrEqual(300); // never short of the promise
+    expect(reach).toBeLessThan(310); // and never a fifth of a square over
+  });
+});
+
+// A positive-but-absurdly-small radius used to divide by a subnormal semi-axis:
+// the segment prune dropped EVERY occluder and the ray limit stopped being
+// finite, so the viewer saw the whole published map through every wall. The
+// validator's range is [0, 1000] FEET, which admits such a value, and
+// coerceVisionRadius clamps rather than rejects — so a hand-edited state file
+// could put one on a player's token. Both layers must fail closed.
+describe("an unusably small radius blinds rather than reveals", () => {
+  const GRID = { gridSize: 50, gridSquareSize: 5 };
+
+  it.each([[Number.MIN_VALUE], [5e-320], [1e-12]])(
+    "treats %p feet as blind, not as unlimited",
+    (feet) => {
+      expect(tokenVisionRadius({ radiusFeet: feet, ...GRID })).toEqual({ x: 0, y: 0 });
+    },
+  );
+
+  it("shows a wall-blocked point as HIDDEN even at a subnormal radius", () => {
+    const wall = { id: "w", x1: 200, y1: 0, x2: 200, y2: 400 };
+    const polygon = computeViewerVisionPolygon({
+      origin: { x: 100, y: 200 },
+      radiusFeet: Number.MIN_VALUE,
+      segments: [wall],
+      bounds: BOUNDS,
+      ...GRID,
+    });
+
+    // Blind: no polygon at all, so nothing on either side of the wall is seen.
+    expect(polygon).toEqual([]);
+    expect(pointInPolygon({ x: 300, y: 200 }, polygon)).toBe(false);
+    expect(pointInPolygon({ x: 150, y: 200 }, polygon)).toBe(false);
+  });
+
+  // Second layer, driven directly: even if a degenerate ellipse reached the
+  // geometry, it must not read as "unbounded in every direction".
+  it("does not let a degenerate ellipse become unlimited sight in the sweep", () => {
+    const wall = { id: "w", x1: 200, y1: 0, x2: 200, y2: 400 };
+    const polygon = computeVisionPolygon({ x: 100, y: 200 }, [wall], BOUNDS, {
+      x: Number.MIN_VALUE,
+      y: Number.MIN_VALUE,
+    });
+
+    expect(pointInPolygon({ x: 300, y: 200 }, polygon)).toBe(false);
+    expect(pointInPolygon({ x: 390, y: 20 }, polygon)).toBe(false);
   });
 });

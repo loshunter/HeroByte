@@ -144,8 +144,10 @@ describe("FogLayer", () => {
       const viewer: FogViewer = { x: 50, y: 150, radiusFeet: 10 };
       render(<FogLayer cam={cam} compiledScene={scene()} viewers={[viewer]} {...GRID} />);
 
-      expect(reach(0, viewer)).toBeLessThanOrEqual(100.001);
-      expect(reach(0, viewer)).toBeGreaterThan(99);
+      // Circumscribed, so it reaches AT LEAST the stated radius (a target at
+      // exactly 10 ft must be seen) and overshoots by under half a percent.
+      expect(reach(0, viewer)).toBeGreaterThanOrEqual(100);
+      expect(reach(0, viewer)).toBeLessThan(100 * 1.005);
     });
 
     it("punches no hole at all for a blind viewer", () => {
@@ -166,7 +168,7 @@ describe("FogLayer", () => {
       const far: FogViewer = { x: 100, y: 100, radiusFeet: 20 };
       render(<FogLayer cam={cam} compiledScene={scene()} viewers={[near, far]} {...GRID} />);
 
-      expect(reach(0, near)).toBeLessThanOrEqual(100.001);
+      expect(reach(0, near)).toBeLessThan(100 * 1.005);
       expect(reach(1, far)).toBeGreaterThan(150);
     });
 
@@ -183,8 +185,8 @@ describe("FogLayer", () => {
         />,
       );
 
-      expect(reach(0, viewer)).toBeLessThanOrEqual(50.001);
-      expect(reach(0, viewer)).toBeGreaterThan(49);
+      expect(reach(0, viewer)).toBeGreaterThanOrEqual(50);
+      expect(reach(0, viewer)).toBeLessThan(50 * 1.005);
     });
 
     it("divides the radius by the map scale, because the sweep is in document space", () => {
@@ -206,8 +208,8 @@ describe("FogLayer", () => {
       for (let i = 0; i < points.length; i += 2) {
         max = Math.max(max, Math.hypot(points[i]! - 200, points[i + 1]! - 150));
       }
-      expect(max).toBeLessThanOrEqual(50.001);
-      expect(max).toBeGreaterThan(49);
+      expect(max).toBeGreaterThanOrEqual(50);
+      expect(max).toBeLessThan(50 * 1.005);
     });
 
     // The memo key is the whole reason a radius change is visible at all. It

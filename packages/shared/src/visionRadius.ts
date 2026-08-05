@@ -79,8 +79,26 @@ export function tokenVisionRadius(input: {
   if (!Number.isFinite(scaleX) || scaleX <= 0) return null;
   if (!Number.isFinite(scaleY) || scaleY <= 0) return null;
 
-  return { x: worldRadius / scaleX, y: worldRadius / scaleY };
+  const semi = { x: worldRadius / scaleX, y: worldRadius / scaleY };
+  // FAIL CLOSED on a radius too small to be a radius. Below this the geometry
+  // divides by the semi-axes and overflows: the segment prune drops every
+  // occluder and the ray limit stops being finite, so a viewer would have seen
+  // the whole published map straight through every wall. Anything under a
+  // thousandth of a document pixel is indistinguishable from blind anyway, and
+  // "blind" is the safe reading of "sees essentially nothing".
+  //
+  // The validator's range is [0, 1000] FEET, which admits a positive subnormal,
+  // and `coerceVisionRadius` clamps rather than rejects — so a hand-edited state
+  // or session file can put one here. The geometry also guards itself
+  // (`rayDistanceToRadius`), because one layer is not a guarantee.
+  if (semi.x < MIN_USABLE_SEMI_AXIS || semi.y < MIN_USABLE_SEMI_AXIS) {
+    return { x: 0, y: 0 };
+  }
+  return semi;
 }
+
+/** Document units below which a sight radius is treated as blind, not tiny. */
+const MIN_USABLE_SEMI_AXIS = 1e-3;
 
 /**
  * Bounds on `Token.visionRadius`, in feet. Zero is blind; the ceiling is far
