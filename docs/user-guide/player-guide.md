@@ -177,6 +177,8 @@ When the DM runs a built map (walls, doors, fog of war):
 ![A player's view with fog of war: you see what your character sees](img/player-fog-view.jpg)
 
 - **Fog of war** hides everything your characters can't see. Vision radiates from **your own tokens** and is blocked by walls and closed doors — move, and your view moves with you.
+- **Your token may have a sight limit.** The DM can give any token a radius in feet — a torch, darkvision, a blindfold — and beyond it you see nothing even down an open corridor. Unset means you see as far as the walls allow, which is how every table worked before. Ask your DM; there is no player control for it, by design (a limit only ever narrows what you can see, so being able to switch it off would just undo the dark).
+- **Somewhere you have already been stays dimly lit.** Once your tokens have seen a patch of map it is remembered and drawn shaded rather than black, so you can find your way back through a dungeon you have explored. It is only a memory of the GROUND — anything that has wandered in since is still hidden, because the table never sent it to you. The memory is stored in your own browser, per table and per map, so it does not follow you to another device and clears when the DM publishes a different map.
 - **Doors are clickable**: click to open or close (everyone hears the creak/slam). A small gold square marks a **locked** door — only the DM can open those.
 - **Secret doors exist.** You won't see them until the DM reveals one — to you it's just wall.
 - At night the whole map cools and darkens, and torches, braziers, and other glowing props cast light pools.
