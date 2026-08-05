@@ -534,12 +534,31 @@ accumulating, because the test stub handed out a fresh 2D context per
 `getContext` call, so a canvas rebuilt on every vision update would have
 destroyed every player's memory with the whole suite green.
 
-**⚠️ THE REVIEW ERRORED PARTWAY.** 18 of 41 agents hit a session limit, taking
-the entire **correctness** and **regression** lenses and every security refuter
-with them. Per §8, verdicts from an errored run are void — nothing shipped here
-rests on a refuter's say-so. **The geometry and regression lenses have not been
-reviewed by anyone but the author.** Re-running those two is the cheapest
-remaining assurance on this slice, and is worth doing before dev→main.
+**The first review ERRORED PARTWAY** — 18 of 41 agents hit a session limit, taking the entire
+**correctness** and **regression** lenses with them. Those two were **RE-RUN on 2026-08-05** and came
+back with no deploy blockers (14/14 agents, zero errors). They found two real defects in the geometry
+the errored run never reached, both fixed in `9ac36074`:
+
+- **"30 ft" reached five squares, not six.** The arc polygon was INSCRIBED in the sight circle, so its
+  boundary fell ~1px short between samples — and because a token stands on a cell CENTRE and every
+  offered radius is a whole number of squares, a creature at exactly the stated range sat exactly ON
+  the circle and fell outside the chord. Due WEST worked by luck (the `i=0` sample lands at exactly
+  `-PI`), so it presented as nonsense rather than as a bug. The polygon now CIRCUMSCRIBES the circle,
+  plus a relative hair — pure tangency leaves the target exactly ON the boundary, where a parity
+  ray-cast is arbitrary. The old arc tests probed 118 of a 120 radius and never at `r`, which is
+  exactly why an inscribed polygon passed all of them.
+- **A positive-but-subnormal radius revealed the whole map through every wall** — fail-OPEN. Dividing
+  by that semi-axis overflowed, so the segment prune dropped every occluder AND the ray limit stopped
+  being finite (read as "unbounded"). Now floored to blind, and guarded on both layers.
+
+**⚠️ KNOWN LIMITATION (inherited, not new).** The mobile party drawer renders one row per PLAYER and
+resolves it to that player's FIRST character, so a DM on a phone cannot reach a second character's
+token at all — its HP, portrait and now its sight radius are equally unreachable there. Because
+vision is the union over a player's tokens, a radius set on character #1 does nothing while character
+#2's token is unlimited. Desktop is unaffected (EntitiesPanel is per character). Mitigated in
+practice by the `createToken` inheritance below — any token minted AFTER the radius is set inherits
+it — so the residual case is a player who already had two tokens. Fixing it properly means making the
+mobile list per-character, which belongs to the mobile authoring arc, not here.
 
 **⚠️ KNOWN GAP, deliberately open.** A radius lives on ONE token record and
 vision is the UNION over every token its owner has. `createToken` now inherits
