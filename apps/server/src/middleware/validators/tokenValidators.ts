@@ -3,6 +3,7 @@
 // ============================================================================
 // Validates token-related messages: move, recolor, delete, update-image, set-size, set-color
 
+import { VISION_RADIUS_MAX_FEET, VISION_RADIUS_MIN_FEET } from "@herobyte/shared";
 import type { ValidationResult, MessageRecord } from "./commonValidators.js";
 import { isFiniteNumber, isRecord, VALID_TOKEN_SIZES } from "./commonValidators.js";
 import { STRING_LIMITS } from "./constants.js";
@@ -76,6 +77,33 @@ export function validateSetTokenSizeMessage(message: MessageRecord): ValidationR
     return {
       valid: false,
       error: "set-token-size: invalid size (must be tiny/small/medium/large/huge/gargantuan)",
+    };
+  }
+  return { valid: true };
+}
+
+/**
+ * Validate set-token-vision-radius message (S7)
+ * Required: tokenId (string), radius (null for unlimited, or feet in range)
+ *
+ * `isFiniteNumber` alone would admit -1 and 1e308; the first would silently
+ * blind a token and the second would hand an absurd extent to the sweep. The
+ * bounds are the shared ones, so the validator and the geometry cannot drift.
+ */
+export function validateSetTokenVisionRadiusMessage(message: MessageRecord): ValidationResult {
+  if (typeof message.tokenId !== "string" || message.tokenId.length === 0) {
+    return { valid: false, error: "set-token-vision-radius: tokenId required" };
+  }
+  if (message.radius === null) {
+    return { valid: true };
+  }
+  if (!isFiniteNumber(message.radius)) {
+    return { valid: false, error: "set-token-vision-radius: radius must be a number or null" };
+  }
+  if (message.radius < VISION_RADIUS_MIN_FEET || message.radius > VISION_RADIUS_MAX_FEET) {
+    return {
+      valid: false,
+      error: `set-token-vision-radius: radius must be between ${VISION_RADIUS_MIN_FEET} and ${VISION_RADIUS_MAX_FEET} feet`,
     };
   }
   return { valid: true };

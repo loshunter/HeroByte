@@ -335,6 +335,9 @@ export interface MainLayoutProps {
   updateTokenImage: (id: string, imageUrl: string) => void;
   /** Handler to update token size */
   updateTokenSize: (tokenId: string, size: TokenSize) => void;
+  /** DM-only: set a token's sight limit in feet, or null for unlimited (S7;
+   * optional so the layout fixtures stay untouched). */
+  updateTokenVisionRadius?: (tokenId: string, radiusFeet: number | null) => void;
 
   // -------------------------------------------------------------------------
   // Alignment

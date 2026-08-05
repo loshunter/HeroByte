@@ -14,11 +14,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Stage, Layer } from "react-konva";
 import type Konva from "konva";
-import {
-  gridCellToWorldPoint,
-  type CompiledDoorState,
-  type DragPreviewUpdate,
-} from "@herobyte/shared";
+import type { CompiledDoorState, DragPreviewUpdate } from "@herobyte/shared";
 import { buildTokenPlates } from "../features/map/tokenPlates";
 import { ENABLE_DRAG_PREVIEWS } from "../config.js";
 import { usePointerTool } from "../hooks/usePointerTool.js";
@@ -60,7 +56,7 @@ import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 import { useMapEditTool } from "../features/map-edit/useMapEditTool";
 import { MapEditPreviewLayer } from "../features/map-edit/MapEditPreviewLayer";
 import { MapEditQuickWheel } from "../features/map-edit/MapEditQuickWheel";
-import { dmViewActive, fogViewerTokens, visibleDoors } from "../features/map/playerLens";
+import { dmViewActive, fogViewers, visibleDoors } from "../features/map/playerLens";
 import { WallsOverlayLayer } from "../features/map-edit/WallsOverlayLayer";
 import { NotesOverlayLayer } from "../features/map-edit/NotesOverlayLayer";
 import type { CameraCommand, MapBoardProps, SelectionRequestOptions } from "./MapBoard.types";
@@ -786,15 +782,16 @@ export default function MapBoard({
         {/* Fog of war: players see only what their own tokens can see.
             Token positions are grid cells; vision origins are their world-
             pixel centers, matching the renderer. The player lens (P4) turns
-            fog ON for the DM with the party's union vision (fogViewerTokens). */}
+            fog ON for the DM with the party's union vision (fogViewers), and
+            each viewer clips to its own sight radius. */}
         {!dmView && snapshot?.fogEnabled && snapshot.compiledScene && (
           <FogLayer
             cam={cam}
             compiledScene={snapshot.compiledScene}
             mapTransform={mapObject?.transform}
-            viewers={fogViewerTokens(snapshot.tokens ?? [], uid, isDM && playerLens).map((token) =>
-              gridCellToWorldPoint(grid.size, { x: token.x, y: token.y }),
-            )}
+            viewers={fogViewers(snapshot.tokens ?? [], uid, isDM && playerLens, grid.size)}
+            gridSize={grid.size}
+            gridSquareSize={snapshot?.gridSquareSize ?? 5}
           />
         )}
 

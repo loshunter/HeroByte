@@ -4,7 +4,7 @@
 // Slide-out drawer for viewing players/entities on mobile.
 
 import React from "react";
-import type { Player, SnapshotCharacter } from "@herobyte/shared";
+import type { Player, SnapshotCharacter, Token } from "@herobyte/shared";
 import { MobilePlayerRow } from "./MobilePlayerRow";
 import { JRPGButton } from "../ui/JRPGPanel";
 
@@ -33,6 +33,9 @@ interface MobileEntitiesListProps {
   onCharacterStatusEffectsChange: (characterId: string, effects: string[]) => void;
   onCharacterNameUpdate: (characterId: string, name: string) => void;
   onCharacterPortraitUpdate: (characterId: string, url: string) => void;
+  /** Live tokens, so a DM can set each player's sight radius from a phone (S7). */
+  tokens?: Token[];
+  onTokenVisionRadiusChange?: (tokenId: string, radiusFeet: number | null) => void;
 }
 
 export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
@@ -56,6 +59,8 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   onCharacterStatusEffectsChange,
   onCharacterNameUpdate,
   onCharacterPortraitUpdate,
+  tokens,
+  onTokenVisionRadiusChange,
 }) => {
   // Merge player and character data
   const entities = players.map((player) => {
@@ -131,38 +136,49 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
           gap: "12px",
         }}
       >
-        {entities.map((entity) => (
-          <MobilePlayerRow
-            key={entity.uid}
-            player={entity}
-            isMe={entity.uid === uid}
-            isDM={isDM}
-            onToggleDMMode={onToggleDMMode}
-            editingHpUID={editingHpUID}
-            hpInput={hpInput}
-            onHpInputChange={onHpInputChange}
-            onHpEdit={onHpEdit}
-            onHpSubmit={(_hpStr) => {
-              // HPBar passes the string value, but onHpSubmit expects void in EntitiesPanel
-              // Here we just trigger the submit logic
-              onHpSubmit();
-            }}
-            editingMaxHpUID={editingMaxHpUID}
-            maxHpInput={maxHpInput}
-            onMaxHpInputChange={onMaxHpInputChange}
-            onMaxHpEdit={onMaxHpEdit}
-            onMaxHpSubmit={(_maxHpStr) => {
-              // HPBar passes the string value, but onMaxHpSubmit expects void here
-              onMaxHpSubmit();
-            }}
-            onCharacterHpChange={onCharacterHpChange}
-            onStatusEffectsChange={(effects) =>
-              onCharacterStatusEffectsChange(entity.characterId, effects)
-            }
-            onCharacterNameUpdate={onCharacterNameUpdate}
-            onCharacterPortraitUpdate={onCharacterPortraitUpdate}
-          />
-        ))}
+        {entities.map((entity) => {
+          // Same derivation the desktop list uses (useCombatOrdering): a
+          // player's token is the one they own.
+          const entityToken = tokens?.find((candidate) => candidate.owner === entity.uid);
+          return (
+            <MobilePlayerRow
+              key={entity.uid}
+              player={entity}
+              isMe={entity.uid === uid}
+              token={entityToken}
+              onTokenVisionRadiusChange={
+                entityToken && onTokenVisionRadiusChange
+                  ? (radiusFeet) => onTokenVisionRadiusChange(entityToken.id, radiusFeet)
+                  : undefined
+              }
+              isDM={isDM}
+              onToggleDMMode={onToggleDMMode}
+              editingHpUID={editingHpUID}
+              hpInput={hpInput}
+              onHpInputChange={onHpInputChange}
+              onHpEdit={onHpEdit}
+              onHpSubmit={(_hpStr) => {
+                // HPBar passes the string value, but onHpSubmit expects void in EntitiesPanel
+                // Here we just trigger the submit logic
+                onHpSubmit();
+              }}
+              editingMaxHpUID={editingMaxHpUID}
+              maxHpInput={maxHpInput}
+              onMaxHpInputChange={onMaxHpInputChange}
+              onMaxHpEdit={onMaxHpEdit}
+              onMaxHpSubmit={(_maxHpStr) => {
+                // HPBar passes the string value, but onMaxHpSubmit expects void here
+                onMaxHpSubmit();
+              }}
+              onCharacterHpChange={onCharacterHpChange}
+              onStatusEffectsChange={(effects) =>
+                onCharacterStatusEffectsChange(entity.characterId, effects)
+              }
+              onCharacterNameUpdate={onCharacterNameUpdate}
+              onCharacterPortraitUpdate={onCharacterPortraitUpdate}
+            />
+          );
+        })}
       </div>
     </div>
   );

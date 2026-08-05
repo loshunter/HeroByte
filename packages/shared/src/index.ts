@@ -54,6 +54,7 @@ export * from "./sceneCompiler.js";
 export * from "./scenePublish.js";
 export * from "./sceneGeometry.js";
 export * from "./visibility.js";
+export * from "./visionRadius.js";
 
 // The Terrain Brush's pure autotiling core (47-blob + quarter-tile math).
 export * from "./autotile.js";
@@ -163,6 +164,17 @@ export interface Token {
   imageUrl?: string; // Optional image to render instead of colored circle
   size?: TokenSize; // Token size (defaults to medium)
   locked?: boolean; // Whether the token is locked (Phase 10/11)
+  /**
+   * How far this token can see, in FEET. Absent means UNLIMITED — sight is
+   * stopped only by walls, exactly as it was before S7 — so every token that
+   * predates the field, and every token nobody has configured, behaves as it
+   * always did. Zero means blind.
+   *
+   * DM-set (`set-token-vision-radius`). It is deliberately not a player's own
+   * setting: a radius can only NARROW what fog already allows, so letting a
+   * player clear their own would just undo the darkness the DM authored.
+   */
+  visionRadius?: number;
 }
 
 /**
@@ -678,6 +690,7 @@ type ClientMessagePayload =
   | { t: "update-token-image"; tokenId: string; imageUrl: string } // Update token image URL
   | { t: "set-token-size"; tokenId: string; size: TokenSize } // Change token size (Phase 11)
   | { t: "set-token-color"; tokenId: string; color: string } // Explicitly set token color
+  | { t: "set-token-vision-radius"; tokenId: string; radius: number | null } // DM-only: sight limit in feet, null = unlimited (S7)
 
   // Selection actions
   | SelectObjectMessage

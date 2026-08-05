@@ -454,6 +454,7 @@ function AuthenticatedApp({
     deleteToken,
     updateTokenImage,
     updateTokenSize,
+    updateTokenVisionRadius,
   } = useSceneObjectActions({ sendMessage });
 
   /**
@@ -839,6 +840,7 @@ function AuthenticatedApp({
     deleteToken,
     updateTokenImage,
     updateTokenSize,
+    updateTokenVisionRadius,
     // Alignment
     alignmentPoints,
     alignmentSuggestion,

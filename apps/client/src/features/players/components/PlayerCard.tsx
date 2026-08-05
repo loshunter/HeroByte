@@ -60,6 +60,9 @@ export interface PlayerCardProps {
   onToggleTokenLock?: (locked: boolean) => void;
   tokenSize?: TokenSize;
   onTokenSizeChange?: (size: TokenSize) => void;
+  /** Sight limit in feet; undefined is unlimited. DM-only (S7). */
+  tokenVisionRadius?: number;
+  onTokenVisionRadiusChange?: (radiusFeet: number | null) => void;
   onAddCharacter?: (name: string) => boolean;
   isCreatingCharacter?: boolean;
   characterId?: string;
@@ -119,6 +122,8 @@ export const PlayerCard = memo<PlayerCardProps>(
     onToggleTokenLock,
     tokenSize,
     onTokenSizeChange,
+    tokenVisionRadius,
+    onTokenVisionRadiusChange,
     onStatusEffectsChange,
     onAddCharacter,
     isCreatingCharacter,
@@ -363,6 +368,8 @@ export const PlayerCard = memo<PlayerCardProps>(
           onToggleTokenLock={onToggleTokenLock}
           tokenSize={tokenSize}
           onTokenSizeChange={onTokenSizeChange}
+          tokenVisionRadius={tokenVisionRadius}
+          onTokenVisionRadiusChange={onTokenVisionRadiusChange}
           onAddCharacter={onAddCharacter}
           isCreatingCharacter={isCreatingCharacter}
           characterId={characterId}

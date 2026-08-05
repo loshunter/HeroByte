@@ -110,6 +110,8 @@ export interface UseSceneObjectActionsReturn {
    * @param size - New token size (tiny, small, medium, large, huge, gargantuan)
    */
   updateTokenSize: (tokenId: string, size: TokenSize) => void;
+  /** DM-only: set a token's sight limit in feet, or null for unlimited (S7). */
+  updateTokenVisionRadius: (tokenId: string, radiusFeet: number | null) => void;
 }
 
 /**
@@ -226,6 +228,21 @@ export function useSceneObjectActions({
     [sendMessage],
   );
 
+  /**
+   * Set a token's sight limit in feet, or clear it back to unlimited.
+   * DM-only; the server refuses the message from anyone else.
+   */
+  const updateTokenVisionRadius = useCallback(
+    (tokenId: string, radiusFeet: number | null) => {
+      sendMessage({
+        t: "set-token-vision-radius",
+        tokenId,
+        radius: radiusFeet,
+      });
+    },
+    [sendMessage],
+  );
+
   return {
     recolorToken,
     transformSceneObject,
@@ -233,5 +250,6 @@ export function useSceneObjectActions({
     deleteToken,
     updateTokenImage,
     updateTokenSize,
+    updateTokenVisionRadius,
   };
 }

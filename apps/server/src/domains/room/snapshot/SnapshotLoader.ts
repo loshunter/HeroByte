@@ -4,7 +4,12 @@
 // Loads and merges saved game sessions with current server state
 
 import type { Drawing, Player, RoomSnapshot } from "@herobyte/shared";
-import { coerceDiagonalRule, coerceMonsterHpDisplay, normalizeHPValues } from "@herobyte/shared";
+import {
+  coerceDiagonalRule,
+  coerceMonsterHpDisplay,
+  coerceTokenVisionRadii,
+  normalizeHPValues,
+} from "@herobyte/shared";
 import type { RoomState } from "../model.js";
 import { createSelectionMap } from "../model.js";
 import type { StagingZoneManager } from "../staging/StagingZoneManager.js";
@@ -102,10 +107,15 @@ export class SnapshotLoader {
     // Get IDs of preserved tokens to avoid duplicates
     const preservedTokenIds = new Set(currentPlayerTokens.map((t) => t.id));
 
-    // Add loaded tokens that don't conflict with preserved ones
+    // Add loaded tokens that don't conflict with preserved ones. The uploaded
+    // half is whitelist-coerced (S7) — tokens are otherwise copied verbatim
+    // out of the least trustworthy source there is, straight into the vision
+    // geometry. The live half is already ours, so it keeps its identity.
     const mergedTokens = [
       ...currentPlayerTokens,
-      ...(snapshot.tokens ?? []).filter((token) => !preservedTokenIds.has(token.id)),
+      ...coerceTokenVisionRadii(
+        (snapshot.tokens ?? []).filter((token) => !preservedTokenIds.has(token.id)),
+      ),
     ];
 
     const currentGridSquareSize = currentState.gridSquareSize ?? 5;

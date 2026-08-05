@@ -13,7 +13,11 @@
 import { readFileSync, existsSync, renameSync } from "fs";
 import { writeFile, rename } from "fs/promises";
 import type { Player, Character, SceneObject } from "@herobyte/shared";
-import { coerceDiagonalRule, coerceMonsterHpDisplay } from "@herobyte/shared";
+import {
+  coerceDiagonalRule,
+  coerceMonsterHpDisplay,
+  coerceTokenVisionRadii,
+} from "@herobyte/shared";
 import { resolveServerPath } from "../../../config/serverPaths.js";
 import type { RoomState } from "../model.js";
 import { createSelectionMap } from "../model.js";
@@ -92,8 +96,16 @@ export class StatePersistence {
           // DEBOUNCED broadcast timer, outside route()'s try/catch, in a
           // process with no uncaughtException handler — so a poisoned non-array
           // would kill the process serving every room, and do it again on every
-          // restart.
-          tokens: Array.isArray(data.tokens) ? data.tokens : [],
+          // restart. Whitelist-coerced on the way in for the same reason
+          // diagonalRule is: a hand-edited visionRadius otherwise reaches the
+          // vision geometry unchecked, since tokens are copied verbatim.
+          //
+          // The two guards are now redundant on purpose — `coerceTokenVisionRadii`
+          // array-guards as well, so removing the `Array.isArray` here no longer
+          // changes behaviour and no test notices. Keep both: they protect
+          // different things (a crash, and a poisoned field), and either could
+          // be moved or dropped by a later refactor of the other.
+          tokens: coerceTokenVisionRadii(Array.isArray(data.tokens) ? data.tokens : []),
           players: (data.players || []).map((player: Player) => ({
             ...player,
             isDM: player.isDM ?? false,

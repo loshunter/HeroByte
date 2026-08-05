@@ -7,7 +7,18 @@
 //   - fog of war (players render it, the DM sees through),
 //   - the DM-only walls/notes overlays (gated off dmView in MapBoard).
 
-import type { CompiledDoor, Token } from "@herobyte/shared";
+import {
+  gridCellToWorldPoint,
+  type CompiledDoor,
+  type ScenePoint,
+  type Token,
+} from "@herobyte/shared";
+
+/** One sightline source for the fog: where it stands, and how far it sees. */
+export interface FogViewer extends ScenePoint {
+  /** `Token.visionRadius` in feet. Undefined means unlimited. */
+  radiusFeet?: number;
+}
 
 /** DM chrome and DM-only data render only when this is true. */
 export function dmViewActive(isDM: boolean, playerLens: boolean): boolean {
@@ -38,4 +49,25 @@ export function fogViewerTokens(
   return playerLens
     ? tokens.filter((token) => token.owner !== uid)
     : tokens.filter((token) => token.owner === uid);
+}
+
+/**
+ * The same tokens as world-space viewers, each carrying its OWN sight radius.
+ *
+ * Vision origins are cell centres, matching the renderer and the server's
+ * `createVisionContext`. Under the DM's lens this is a union of discs, one per
+ * party token — a lens that ignored the radii would show the DM a brighter
+ * table than any player actually has, which is the opposite of what the lens
+ * is for.
+ */
+export function fogViewers(
+  tokens: readonly Token[],
+  uid: string,
+  playerLens: boolean,
+  gridSize: number,
+): FogViewer[] {
+  return fogViewerTokens(tokens, uid, playerLens).map((token) => ({
+    ...gridCellToWorldPoint(gridSize, { x: token.x, y: token.y }),
+    radiusFeet: token.visionRadius,
+  }));
 }

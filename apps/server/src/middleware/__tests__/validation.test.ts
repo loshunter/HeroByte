@@ -1649,6 +1649,55 @@ describe("validateMessage", () => {
     });
   });
 
+  describe("set-token-vision-radius", () => {
+    it("accepts null — the clear-back-to-unlimited signal", () => {
+      expect(
+        validateMessage({ t: "set-token-vision-radius", tokenId: "t1", radius: null }),
+      ).toEqual({ valid: true });
+    });
+
+    it("accepts the ends of the range and a typical darkvision", () => {
+      for (const radius of [0, 5, 60, 120, 1000]) {
+        expect(validateMessage({ t: "set-token-vision-radius", tokenId: "t1", radius })).toEqual({
+          valid: true,
+        });
+      }
+    });
+
+    it("rejects a missing or empty tokenId", () => {
+      expect(validateMessage({ t: "set-token-vision-radius", radius: 60 }).valid).toBe(false);
+      expect(validateMessage({ t: "set-token-vision-radius", tokenId: "", radius: 60 }).valid).toBe(
+        false,
+      );
+      expect(validateMessage({ t: "set-token-vision-radius", tokenId: 7, radius: 60 }).valid).toBe(
+        false,
+      );
+    });
+
+    // `isFiniteNumber` alone would let all of these through, and each one
+    // reaches the vision sweep: a negative silently blinds the token, and an
+    // absurd one hands the geometry a nonsense extent.
+    it("rejects a radius outside the range", () => {
+      expect(
+        validateMessage({ t: "set-token-vision-radius", tokenId: "t1", radius: -1 }).valid,
+      ).toBe(false);
+      expect(
+        validateMessage({ t: "set-token-vision-radius", tokenId: "t1", radius: 1001 }).valid,
+      ).toBe(false);
+      expect(
+        validateMessage({ t: "set-token-vision-radius", tokenId: "t1", radius: 1e308 }).valid,
+      ).toBe(false);
+    });
+
+    it("rejects a non-numeric radius", () => {
+      for (const radius of ["60", undefined, {}, [], true, Number.NaN, Number.POSITIVE_INFINITY]) {
+        expect(validateMessage({ t: "set-token-vision-radius", tokenId: "t1", radius }).valid).toBe(
+          false,
+        );
+      }
+    });
+  });
+
   describe("measure", () => {
     const line = { start: { x: 10, y: 20 }, end: { x: 30, y: 40 } };
 

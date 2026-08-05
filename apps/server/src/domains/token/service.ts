@@ -198,6 +198,31 @@ export class TokenService {
   }
 
   /**
+   * Set a token's sight limit in feet, or clear it back to unlimited (S7).
+   *
+   * DM ONLY, and not by copying a permission from a neighbour: a vision radius
+   * can only ever NARROW what the walls already allow, so a player able to
+   * clear their own would simply undo the darkness the DM authored. That makes
+   * this closer to a scene setting than to token colour, and the gate belongs
+   * with the DM.
+   *
+   * `null` deletes the field rather than storing a sentinel, so "unlimited" has
+   * exactly one representation on the wire, on disk and in the cache key.
+   */
+  setVisionRadius(state: RoomState, tokenId: string, radius: number | null): boolean {
+    const token = state.tokens.find((t) => t.id === tokenId);
+    if (!token) {
+      return false;
+    }
+    if (radius === null) {
+      delete token.visionRadius;
+    } else {
+      token.visionRadius = radius;
+    }
+    return true;
+  }
+
+  /**
    * Remove all tokens except those owned by specified UID
    */
   clearAllTokensExcept(state: RoomState, keepOwnerUid: string): void {

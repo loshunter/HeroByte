@@ -501,6 +501,37 @@ describe("StatePersistence - Characterization Tests", () => {
       expect(() => state.tokens.filter((token) => token.owner === "anyone")).not.toThrow();
     });
 
+    // Tokens are the one collection this loader copies VERBATIM — no per-field
+    // work at all — so the coercion here is the only thing standing between a
+    // hand-edited herobyte-state.json and the vision sweep. A negative radius
+    // would silently blind a player; an absurd one would hand the geometry
+    // nonsense. `diagonalRule` and `monsterHpDisplay` are whitelist-coerced on
+    // the same object for exactly this reason.
+    it("coerces a hand-edited vision radius on the way in", () => {
+      writeFileSync(
+        PROD_STATE_FILE,
+        JSON.stringify({
+          tokens: [
+            { id: "sane", owner: "p1", x: 0, y: 0, color: "red", visionRadius: 60 },
+            { id: "negative", owner: "p1", x: 1, y: 0, color: "red", visionRadius: -40 },
+            { id: "absurd", owner: "p1", x: 2, y: 0, color: "red", visionRadius: 1e12 },
+            { id: "stringy", owner: "p1", x: 3, y: 0, color: "red", visionRadius: "60" },
+          ],
+        }),
+        "utf-8",
+      );
+
+      roomService.loadState();
+      const byId = new Map(roomService.getState().tokens.map((token) => [token.id, token]));
+
+      expect(byId.get("sane")!.visionRadius).toBe(60);
+      expect(byId.get("negative")!.visionRadius).toBe(0);
+      expect(byId.get("absurd")!.visionRadius).toBe(1000);
+      // Not a number at all, so it degrades to UNLIMITED — the pre-S7
+      // behaviour — rather than to a garbage value or a blinded token.
+      expect("visionRadius" in byId.get("stringy")!).toBe(false);
+    });
+
     it("should handle corrupted JSON gracefully (error logged, state unchanged)", () => {
       writeFileSync(PROD_STATE_FILE, "{ this is not valid JSON }", "utf-8");
 

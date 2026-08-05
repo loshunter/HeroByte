@@ -310,6 +310,8 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             onCharacterStatusEffectsChange={playerActions.setCharacterStatusEffects}
             onCharacterNameUpdate={playerActions.updateCharacterName}
             onCharacterPortraitUpdate={playerActions.setCharacterPortrait}
+            tokens={snapshot?.tokens || []}
+            onTokenVisionRadiusChange={props.updateTokenVisionRadius}
           />
         )}
       </div>

@@ -163,6 +163,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     deleteToken,
     updateTokenImage,
     updateTokenSize,
+    updateTokenVisionRadius,
 
     // Alignment
     alignmentPoints,
@@ -386,6 +387,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         npcDeletionError={undefined}
         onToggleTokenLock={toggleSceneObjectLock}
         onTokenSizeChange={updateTokenSize}
+        onTokenVisionRadiusChange={updateTokenVisionRadius}
         onTokenImageChange={updateTokenImage}
         onAddCharacter={playerActions.addCharacter}
         onDeleteCharacter={playerActions.deleteCharacter}

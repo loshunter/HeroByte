@@ -4,7 +4,7 @@
 // Compact player/character row for mobile list view.
 
 import React, { memo, useState } from "react";
-import type { Player } from "@herobyte/shared";
+import type { Player, Token } from "@herobyte/shared";
 import { HPBar } from "../../features/players/components/HPBar";
 import { STATUS_OPTIONS } from "../../features/players/constants/statusOptions";
 import { JRPGButton } from "../ui/JRPGPanel";
@@ -34,6 +34,9 @@ interface MobilePlayerRowProps {
   onCharacterHpChange: (characterId: string, hp: number, maxHp: number, tempHp?: number) => void;
   onCharacterNameUpdate: (characterId: string, name: string) => void;
   onCharacterPortraitUpdate: (characterId: string, url: string) => void;
+  /** This player's token, for the DM-only sight controls (S7). */
+  token?: Token;
+  onTokenVisionRadiusChange?: (radiusFeet: number | null) => void;
 }
 
 export const MobilePlayerRow = memo<MobilePlayerRowProps>(
@@ -56,6 +59,8 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
     onCharacterHpChange,
     onCharacterNameUpdate,
     onCharacterPortraitUpdate,
+    token,
+    onTokenVisionRadiusChange,
   }) => {
     const isEditingHp = editingHpUID === player.characterId;
     const isEditingMaxHp = editingMaxHpUID === player.characterId;
@@ -266,6 +271,9 @@ export const MobilePlayerRow = memo<MobilePlayerRowProps>(
         <PlayerSettingsMenu
           isOpen={settingsOpen}
           onClose={() => setSettingsOpen(false)}
+          tokenVisionRadius={token?.visionRadius}
+          onTokenVisionRadiusChange={onTokenVisionRadiusChange}
+          compactControls
           nameInput={localNameInput}
           onNameInputChange={setLocalNameInput}
           onNameSubmit={() => {

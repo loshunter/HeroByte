@@ -26,6 +26,7 @@ import {
   validateUpdateTokenImageMessage,
   validateSetTokenSizeMessage,
   validateSetTokenColorMessage,
+  validateSetTokenVisionRadiusMessage,
   validateDragPreviewMessage,
 } from "./validators/index.js";
 
@@ -140,6 +141,7 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   "update-token-image": validateUpdateTokenImageMessage,
   "set-token-size": validateSetTokenSizeMessage,
   "set-token-color": validateSetTokenColorMessage,
+  "set-token-vision-radius": validateSetTokenVisionRadiusMessage,
   "drag-preview": validateDragPreviewMessage,
 
   // ==========================================================================
