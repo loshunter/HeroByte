@@ -525,6 +525,35 @@ here (value keys, memoized hole elements), because they are the same `useMemo` t
 to change; splitting them would have meant shipping a version of that hook that never existed
 and reverting the radius wiring in three other files.
 
+**Adversarial review found six defects and three tests that could not fail** —
+all fixed in their own commit (`505165e7`), all re-verified by reading the code
+rather than trusting the report, all sabotaged back. The worst was mobile
+shipping the DM-only sight control to plain players (found independently by
+three lenses); the subtlest was that NOTHING pinned the explored mask
+accumulating, because the test stub handed out a fresh 2D context per
+`getContext` call, so a canvas rebuilt on every vision update would have
+destroyed every player's memory with the whole suite green.
+
+**⚠️ THE REVIEW ERRORED PARTWAY.** 18 of 41 agents hit a session limit, taking
+the entire **correctness** and **regression** lenses and every security refuter
+with them. Per §8, verdicts from an errored run are void — nothing shipped here
+rests on a refuter's say-so. **The geometry and regression lenses have not been
+reviewed by anyone but the author.** Re-running those two is the cheapest
+remaining assurance on this slice, and is worth doing before dev→main.
+
+**⚠️ KNOWN GAP, deliberately open.** A radius lives on ONE token record and
+vision is the UNION over every token its owner has. `createToken` now inherits
+the owner's tightest existing limit, which closes the "+ Add Character" path
+(an ordinary, un-DM-gated button that used to restore unlimited sight with no
+signal to the DM). It cannot close the case where there is nothing left to
+inherit from: **a player who deletes their only token and reconnects respawns an
+unlimited one.** Closing that needs a room-level default vision radius — a new
+required `RoomState` field, four fixtures, persistence and a snapshot field —
+which is a bigger change than the remaining hole justifies. It is also the
+feature a DM probably wants anyway ("this dungeon is dark"), so it is the
+natural follow-up. Until then the escape requires deliberately destroying your
+own token, which a DM watching the table would see.
+
 ### S8 🟢 — Staging an encounter, and finding the manual (2 days)
 
 Duplicate-NPC and add-×N (one loop over `create-npc`, auto-numbered). A `?` in the header opening
