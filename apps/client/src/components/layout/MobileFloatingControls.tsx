@@ -3,8 +3,9 @@
 // ============================================================================
 // Bottom action dock and tool sheet for mobile layout.
 
-import React from "react";
+import React, { useState } from "react";
 import type { ToolMode } from "./Header";
+import { HelpPanel } from "../../features/help/HelpPanel";
 
 interface MobileFloatingControlsProps {
   onShowEntities: () => void;
@@ -36,10 +37,20 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
   toolsOpen,
   onToggleTools,
 }) => {
+  // Help state is owned HERE rather than by MobileLayout, which sits at 347 of
+  // the 348-line ceiling. The manual is a self-contained overlay — it arbitrates
+  // with nothing — so lifting it would have cost an extraction for no gain.
+  const [helpOpen, setHelpOpen] = useState(false);
+
   // The sheet only renders when toolsOpen, so toggling from here always closes it.
   const selectTool = (tool: ToolMode) => {
     onToolSelect(tool);
     onToggleTools();
+  };
+
+  const openHelp = () => {
+    onToggleTools();
+    setHelpOpen(true);
   };
 
   const toolButtonClass = (tool: ToolMode) =>
@@ -119,7 +130,28 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
               <span aria-hidden="true">#</span>
               Snap
             </button>
+            <button type="button" className="mobile-tool-sheet__button" onClick={openHelp}>
+              <span aria-hidden="true">?</span>
+              Help
+            </button>
           </div>
+        </div>
+      )}
+
+      {helpOpen && (
+        <div className="mobile-help-sheet" role="dialog" aria-label="HeroByte help">
+          <div className="mobile-tool-sheet__header">
+            <strong>Help</strong>
+            <button
+              type="button"
+              className="mobile-tool-sheet__close"
+              onClick={() => setHelpOpen(false)}
+              aria-label="Close help"
+            >
+              ✕
+            </button>
+          </div>
+          <HelpPanel />
         </div>
       )}
 

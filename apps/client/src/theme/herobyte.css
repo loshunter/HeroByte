@@ -1311,7 +1311,8 @@ h4 {
 .mobile-tool-sheet,
 .mobile-selection-sheet,
 .mobile-drawing-sheet,
-.mobile-roll-log-panel {
+.mobile-roll-log-panel,
+.mobile-help-sheet {
   position: absolute;
   right: var(--mobile-safe-right);
   left: var(--mobile-safe-left);
@@ -1358,6 +1359,169 @@ h4 {
   align-items: center;
   justify-content: center;
   gap: 4px;
+}
+
+/* The manual on a phone. Taller than the tool sheet because it is prose, and
+   it sits above the dock rather than over it so the dock stays reachable. */
+/*
+ * The manual on a phone. Its height is derived from its own bottom offset
+ * rather than a vh fraction, because a fraction and an offset do not know
+ * about each other: at 812x375 the shared 82vh landscape cap (307px) plus the
+ * 102px dock offset came to 409px in a 375px viewport, so the sheet's header —
+ * and the ✕ that closes it — sat 34px above the top of the screen. Subtracting
+ * the offset makes "fits on screen" arithmetic instead of a guess, and the
+ * extra 48px keeps the connection banner visible above it.
+ */
+.mobile-help-sheet {
+  --mobile-help-sheet-offset: calc(
+    var(--mobile-safe-bottom) + var(--mobile-dock-height) + 22px
+  );
+
+  bottom: var(--mobile-help-sheet-offset);
+  max-height: calc(100vh - var(--mobile-help-sheet-offset) - 48px);
+  padding: 10px;
+  overflow-y: auto;
+}
+
+/* One scroller, not two: the sheet already scrolls, so the panel inside it
+   should grow to its content rather than cap and scroll on its own. */
+.mobile-help-sheet .help-panel {
+  max-height: none;
+  overflow-y: visible;
+}
+
+/* The ✕ is the only way out of this sheet, and the manual is long enough to
+   scroll it off the top — so it rides along. Opaque, or the topic buttons
+   read through it. */
+.mobile-help-sheet .mobile-tool-sheet__header {
+  position: sticky;
+  top: -10px; /* cancels the sheet's own 10px padding */
+  z-index: 1;
+  margin: -10px -10px 10px;
+  padding: 10px;
+  background: linear-gradient(180deg, rgba(26, 24, 53, 0.99) 0%, rgba(11, 10, 36, 0.99) 100%);
+}
+
+/* ----------------------------------------------------------------------------
+   HELP PANEL — shared by the desktop header popover and the mobile help sheet
+   ---------------------------------------------------------------------------- */
+
+.help-panel {
+  display: flex;
+  /* The desktop popover measures the space under the button and sets this;
+     the mobile sheet leaves it unset and caps itself instead (below). */
+  max-height: var(--help-panel-max-height, min(70vh, 560px));
+  /* Shrink-and-scroll when the parent is a height-capped flex column (the
+     desktop popover). Inert where the parent is a block (the mobile sheet). */
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  color: var(--hero-text-light);
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.help-panel__intro {
+  margin: 0;
+  color: var(--jrpg-white);
+  opacity: 0.85;
+}
+
+.help-panel__topics {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  gap: 4px;
+  list-style: none;
+}
+
+.help-panel__topic-button {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 2px solid var(--hero-gold-light);
+  background: linear-gradient(180deg, #2f2f73 0%, #1c1d4d 100%);
+  color: var(--hero-text-light);
+  font-family: var(--font-pixel);
+  font-size: 0.7rem;
+  line-height: 1.25;
+  text-align: left;
+  touch-action: manipulation;
+}
+
+.help-panel__topic-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.help-panel__entries {
+  margin: 4px 0 8px;
+  padding: 0 2px 0 10px;
+  border-left: 2px solid var(--hero-gold-light);
+}
+
+.help-panel__entry {
+  margin-bottom: 7px;
+}
+
+.help-panel__entry dt {
+  color: var(--jrpg-gold);
+  font-weight: 700;
+}
+
+.help-panel__entry dd {
+  margin: 0;
+  color: var(--jrpg-white);
+}
+
+.help-panel__links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 2px solid var(--hero-gold-light);
+}
+
+.help-panel__links-heading {
+  color: var(--jrpg-gold);
+  font-family: var(--font-pixel);
+  font-size: 0.7rem;
+}
+
+.help-panel__link {
+  display: flex;
+  min-height: 44px;
+  flex-direction: column;
+  justify-content: center;
+  padding: 4px 6px;
+  color: var(--hero-text-light);
+  text-decoration: none;
+  touch-action: manipulation;
+}
+
+.help-panel__link:hover,
+.help-panel__link:focus-visible {
+  background: rgba(68, 125, 247, 0.18);
+}
+
+.help-panel__link-label {
+  color: var(--jrpg-gold);
+  font-family: var(--font-pixel);
+  font-size: 0.7rem;
+}
+
+.help-panel__link-detail {
+  color: var(--jrpg-white);
+  font-size: 11px;
+  opacity: 0.85;
 }
 
 /*
@@ -1554,6 +1718,8 @@ h4 {
     gap: 1px;
   }
 
+  /* .mobile-help-sheet is deliberately absent: its own max-height already
+     subtracts the dock offset, and 82vh here would put it back off-screen. */
   .mobile-tool-sheet,
   .mobile-selection-sheet,
   .mobile-drawing-sheet,

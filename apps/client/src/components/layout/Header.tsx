@@ -7,6 +7,7 @@
 import React from "react";
 import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
 import { JuiceMenuButton } from "../../features/juice/JuiceMenuButton";
+import { HelpMenuButton } from "../../features/help/HelpMenuButton";
 
 export type ToolMode =
   | "pointer"
@@ -248,6 +249,10 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 📜 Log
               </JRPGButton>
+
+              {/* The manual. Last in the row so it reads as "and if you're
+                  stuck, here" rather than competing with the tools. */}
+              <HelpMenuButton />
             </div>
           </JRPGPanel>
         </div>
