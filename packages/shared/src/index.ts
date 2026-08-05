@@ -16,6 +16,8 @@ import type { TerrainMap } from "./terrain.js";
 import type { DiceRollMode, DiceVisibility } from "./dice.js";
 import type { DiagonalRule, MeasurePoint } from "./measurement.js";
 import type { AreaTemplate, AreaTemplateTool } from "./areaTemplates.js";
+// Imported as well as re-exported below: the barrel's own declarations use it.
+import type { DrawingType } from "./drawingTypes.js";
 
 // WebSocket close codes — value re-export from a sub-module (see wsCloseCodes.ts
 // for why it must not be a direct `export const` here).
@@ -356,14 +358,9 @@ export interface DragPreviewEvent {
   objects: DragPreviewObject[];
 }
 
-/**
- * Every shape kind a `Drawing` can hold. `eraser` is a gesture, never a stored
- * record — it is in the union because the client's tool state shares it.
- * `template` is an area of effect: its `points` are a closed polygon and its
- * `template` field says what shape produced them (see areaTemplates.ts).
- */
-export const DRAWING_TYPES = ["freehand", "line", "rect", "circle", "eraser", "template"] as const;
-export type DrawingType = (typeof DRAWING_TYPES)[number];
+// Drawing kinds — value re-export from a sub-module (see drawingTypes.ts).
+export { DRAWING_TYPES } from "./drawingTypes.js";
+export type { DrawingType } from "./drawingTypes.js";
 
 // Bulk-NPC bounds — value re-export from a sub-module (see npcLimits.ts for
 // why it must not be a direct `export const` here: the server imports it).
