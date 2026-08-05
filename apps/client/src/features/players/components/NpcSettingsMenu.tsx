@@ -10,7 +10,6 @@ import { useEffect, useState } from "react";
 import type { TokenSize } from "@herobyte/shared";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import { ImageField } from "../../../components/ui/ImageField";
-import { VisionRadiusField } from "./VisionRadiusField";
 
 interface NpcSettingsMenuProps {
   isOpen: boolean;
@@ -26,9 +25,14 @@ interface NpcSettingsMenuProps {
   onToggleTokenLock?: (locked: boolean) => void;
   tokenSize?: TokenSize;
   onTokenSizeChange?: (size: TokenSize) => void;
-  /** Sight limit in feet; undefined is unlimited. DM-only (S7). */
-  tokenVisionRadius?: number;
-  onTokenVisionRadiusChange?: (radiusFeet: number | null) => void;
+  /*
+   * NO SIGHT RADIUS HERE, deliberately. Fog is computed per RECIPIENT from the
+   * tokens that recipient OWNS, and an NPC token is always owned by the DM who
+   * placed it (`place-npc-token` is DM-gated, and createToken stamps the
+   * sender). No player's fog ever reads one, and the DM's player lens uses the
+   * tokens the DM does NOT own — so a radius on an NPC token is inert.
+   * A control that silently does nothing is worse than one that isn't there.
+   */
   /** Whether NPC deletion is in progress */
   isDeleting?: boolean;
   /** Error message from deletion attempt */
@@ -51,8 +55,6 @@ export function NpcSettingsMenu({
   onToggleTokenLock,
   tokenSize = "medium",
   onTokenSizeChange,
-  tokenVisionRadius,
-  onTokenVisionRadiusChange,
   isDeleting = false,
   deletionError = null,
   onClearInitiative,
@@ -188,13 +190,6 @@ export function NpcSettingsMenu({
                   🧹 Clear Initiative
                 </button>
               </div>
-              <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "4px 0" }} />
-            </>
-          )}
-
-          {onTokenVisionRadiusChange && (
-            <>
-              <VisionRadiusField value={tokenVisionRadius} onChange={onTokenVisionRadiusChange} />
               <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", margin: "4px 0" }} />
             </>
           )}

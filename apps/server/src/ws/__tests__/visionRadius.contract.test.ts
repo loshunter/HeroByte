@@ -225,11 +225,17 @@ describe("vision radius contracts (S7)", () => {
 
     it("never puts the out-of-range token's id in the player's bytes at all", () => {
       aliceWs.send.mockClear();
+      dmWs.send.mockClear();
       route({ t: "set-token-vision-radius", tokenId: "alice-token", radius: 10 }, DM);
       route({ t: "chat", text: "ping" }, ALICE);
 
       expect(rawBytesSentTo(aliceWs)).not.toContain("far-monster");
-      // The DM is not filtered, so this is a real absence and not an empty log.
+      // NON-VACUITY, on ALICE's own log: an absence assertion is worthless if
+      // she simply received nothing. Her own token proves frames arrived in
+      // this window and were filtered, rather than never sent. (Checking the
+      // DM's log instead would pass on frames from before the clear.)
+      expect(rawBytesSentTo(aliceWs)).toContain("alice-token");
+      // And the DM, who is not filtered, still gets the monster in this window.
       expect(rawBytesSentTo(dmWs)).toContain("far-monster");
     });
 

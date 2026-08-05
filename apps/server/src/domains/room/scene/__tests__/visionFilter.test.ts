@@ -322,3 +322,27 @@ describe("visionSignature", () => {
     );
   });
 });
+
+// Why there is no sight-radius control on an NPC card (S7): fog is computed per
+// RECIPIENT from the tokens that recipient OWNS, and an NPC token is always
+// owned by the DM who placed it. So a radius on one is inert — and the UI must
+// not offer a control that silently does nothing.
+describe("a radius on a token the recipient does not own", () => {
+  it("does not change what that recipient can see", () => {
+    const withoutRadius = createVisionContext(stateWithFog(), "player-1")!;
+    const state = stateWithFog();
+    state.tokens[1]!.visionRadius = 5; // player-2's token, i.e. not the recipient's
+    const withRadius = createVisionContext(state, "player-1")!;
+
+    expect(withRadius.polygons).toEqual(withoutRadius.polygons);
+    expect(isWorldPointVisible(withRadius, { x: 180, y: 175 })).toBe(true);
+  });
+
+  it("cannot blind a recipient through someone else's token", () => {
+    const state = stateWithFog();
+    state.tokens[1]!.visionRadius = 0;
+    const context = createVisionContext(state, "player-1")!;
+
+    expect(isWorldPointVisible(context, { x: 150, y: 175 })).toBe(true);
+  });
+});

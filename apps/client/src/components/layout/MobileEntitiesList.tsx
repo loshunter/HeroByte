@@ -76,6 +76,11 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
       portrait: character?.portrait ?? player.portrait,
       statusEffects: character?.statusEffects ?? player.statusEffects,
       characterId: character?.id ?? player.uid, // Use character ID for updates if available
+      // The token this ROW is about. Bound through the CHARACTER, as
+      // EntitiesPanel does, and not by owner: a player can own several tokens —
+      // one from joining, one per "+ Add Character" — so picking by owner shows
+      // one character's row while writing to a different character's token.
+      tokenId: character?.tokenId,
     };
   });
 
@@ -137,17 +142,24 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
         }}
       >
         {entities.map((entity) => {
-          // Same derivation the desktop list uses (useCombatOrdering): a
-          // player's token is the one they own.
-          const entityToken = tokens?.find((candidate) => candidate.owner === entity.uid);
+          // Prefer the row's own character token; fall back to an owned token
+          // only for a legacy player with no character link.
+          const entityToken = entity.tokenId
+            ? tokens?.find((candidate) => candidate.id === entity.tokenId)
+            : tokens?.find((candidate) => candidate.owner === entity.uid);
           return (
             <MobilePlayerRow
               key={entity.uid}
               player={entity}
               isMe={entity.uid === uid}
               token={entityToken}
+              // `isDM` is the VIEWER's flag (see the prop doc above), and it is
+              // required here for the same reason EntitiesPanel gates on
+              // `currentIsDM`: sight radius is DM-only, the server refuses it
+              // from anyone else, and a control that silently does nothing is
+              // worse than one that isn't there.
               onTokenVisionRadiusChange={
-                entityToken && onTokenVisionRadiusChange
+                isDM && entityToken && onTokenVisionRadiusChange
                   ? (radiusFeet) => onTokenVisionRadiusChange(entityToken.id, radiusFeet)
                   : undefined
               }

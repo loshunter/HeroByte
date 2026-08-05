@@ -285,6 +285,9 @@ describe("computeVisionPolygon with a radius", () => {
     const segments = [wall("w", 240, 150, 240, 250)];
     const unlimited = computeVisionPolygon(origin, segments, BOUNDS);
     const limited = computeVisionPolygon(origin, segments, BOUNDS, { x: 120, y: 120 });
+    // Every assertion below sits inside an `if`, so without this the test would
+    // pass having proved nothing the moment `limited` came back empty.
+    expect(pointInPolygon({ x: 220, y: 200 }, limited)).toBe(true);
     // Radius is a strict narrowing: anything the limited viewer can see, the
     // unlimited one could too.
     for (const probe of [

@@ -41,10 +41,14 @@ export function VisionRadiusField({ value, onChange, compact = false }: VisionRa
     setDraft(value === undefined ? "" : String(value));
   }, [value]);
 
+  // Every send costs a room-wide snapshot re-filter and a state-file write —
+  // TokenService.setVisionRadius reports success whenever the token EXISTS, not
+  // when the value moved — so a blur that changed nothing must stay silent.
+  // Tapping into the box and back out again is not an edit.
   const commit = (raw: string) => {
     const trimmed = raw.trim();
     if (trimmed === "") {
-      onChange(null);
+      if (value !== undefined) onChange(null);
       return;
     }
     const parsed = Number(trimmed);
@@ -52,7 +56,13 @@ export function VisionRadiusField({ value, onChange, compact = false }: VisionRa
       setDraft(value === undefined ? "" : String(value));
       return;
     }
-    onChange(Math.min(VISION_RADIUS_MAX_FEET, Math.max(VISION_RADIUS_MIN_FEET, parsed)));
+    const clamped = Math.min(VISION_RADIUS_MAX_FEET, Math.max(VISION_RADIUS_MIN_FEET, parsed));
+    if (clamped === value) {
+      // Snap the draft to the canonical spelling ("060" -> "60") without a send.
+      setDraft(String(clamped));
+      return;
+    }
+    onChange(clamped);
   };
 
   const buttonStyle = compact

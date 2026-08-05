@@ -650,15 +650,6 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                                 onTokenSizeChange(entity.character.tokenId!, size)
                             : undefined
                         }
-                        tokenVisionRadius={
-                          tokens.find((t) => t.id === entity.character.tokenId)?.visionRadius
-                        }
-                        onTokenVisionRadiusChange={
-                          currentIsDM && entity.character.tokenId && onTokenVisionRadiusChange
-                            ? (radiusFeet: number | null) =>
-                                onTokenVisionRadiusChange(entity.character.tokenId!, radiusFeet)
-                            : undefined
-                        }
                         onFocusToken={
                           entity.character.tokenId
                             ? () => onFocusToken(entity.character.tokenId!)

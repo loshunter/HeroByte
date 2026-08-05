@@ -35,9 +35,6 @@ interface NpcCardProps {
   onToggleTokenLock?: (locked: boolean) => void;
   tokenSize?: TokenSize;
   onTokenSizeChange?: (size: TokenSize) => void;
-  /** Sight limit in feet; undefined is unlimited. DM-only (S7). */
-  tokenVisionRadius?: number;
-  onTokenVisionRadiusChange?: (radiusFeet: number | null) => void;
   onFocusToken?: () => void;
   initiative?: number;
   onInitiativeClick?: () => void;
@@ -62,8 +59,6 @@ export function NpcCard({
   onToggleTokenLock,
   tokenSize,
   onTokenSizeChange,
-  tokenVisionRadius,
-  onTokenVisionRadiusChange,
   onFocusToken,
   initiative,
   onInitiativeClick,
@@ -334,8 +329,6 @@ export function NpcCard({
         onToggleTokenLock={onToggleTokenLock}
         tokenSize={tokenSize}
         onTokenSizeChange={onTokenSizeChange}
-        tokenVisionRadius={tokenVisionRadius}
-        onTokenVisionRadiusChange={onTokenVisionRadiusChange}
         isDeleting={isDeleting}
         deletionError={deletionError}
         onClearInitiative={onClearInitiative}
