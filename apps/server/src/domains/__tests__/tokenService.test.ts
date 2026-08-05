@@ -163,3 +163,64 @@ describe("TokenService", () => {
     expect(state.tokens).toHaveLength(0);
   });
 });
+
+// ============================================================================
+// S7 — a new token must not hand back the sight the DM took away
+// ============================================================================
+// A radius lives on ONE token record, but vision is the UNION over every token
+// its owner has. So minting a second token used to restore unlimited sight —
+// and "+ Add Character" mints one, is NOT DM-gated, and is a perfectly normal
+// thing for an honest player to click. The darkness would vanish with no signal
+// to the DM.
+describe("vision radius inheritance on token creation", () => {
+  it("gives a new token the owner's existing sight limit", () => {
+    const state = createEmptyRoomState();
+    state.tokens = [{ id: "first", owner: "player-1", x: 0, y: 0, color: "red", visionRadius: 30 }];
+
+    const created = new TokenService().createToken(state, "player-1", 1, 1);
+
+    expect(created.visionRadius).toBe(30);
+  });
+
+  it("inherits the MOST RESTRICTIVE one, failing closed", () => {
+    const state = createEmptyRoomState();
+    state.tokens = [
+      { id: "far", owner: "player-1", x: 0, y: 0, color: "red", visionRadius: 60 },
+      { id: "near", owner: "player-1", x: 1, y: 0, color: "red", visionRadius: 15 },
+    ];
+
+    expect(new TokenService().createToken(state, "player-1", 2, 2).visionRadius).toBe(15);
+  });
+
+  it("inherits a blinding zero rather than reading it as unset", () => {
+    const state = createEmptyRoomState();
+    state.tokens = [{ id: "blind", owner: "player-1", x: 0, y: 0, color: "red", visionRadius: 0 }];
+
+    expect(new TokenService().createToken(state, "player-1", 1, 1).visionRadius).toBe(0);
+  });
+
+  it("stays unlimited when the owner has no limited token — nothing regresses", () => {
+    const state = createEmptyRoomState();
+    state.tokens = [{ id: "first", owner: "player-1", x: 0, y: 0, color: "red" }];
+
+    const created = new TokenService().createToken(state, "player-1", 1, 1);
+
+    expect(created.visionRadius).toBeUndefined();
+    expect("visionRadius" in created).toBe(false);
+  });
+
+  it("stays unlimited for a player's FIRST token", () => {
+    const state = createEmptyRoomState();
+
+    expect(new TokenService().createToken(state, "newcomer", 0, 0).visionRadius).toBeUndefined();
+  });
+
+  it("does not inherit from someone else's token", () => {
+    const state = createEmptyRoomState();
+    state.tokens = [
+      { id: "theirs", owner: "player-2", x: 0, y: 0, color: "blue", visionRadius: 5 },
+    ];
+
+    expect(new TokenService().createToken(state, "player-1", 1, 1).visionRadius).toBeUndefined();
+  });
+});
