@@ -20,6 +20,7 @@ type MockProps = Record<string, unknown> & { children?: ReactNode };
 const rectProps: MockProps[] = [];
 const lineProps: MockProps[] = [];
 const groupProps: MockProps[] = [];
+const imageProps: MockProps[] = [];
 
 vi.mock("react-konva", () => ({
   Layer: ({ children }: MockProps) => <div data-testid="konva-layer">{children}</div>,
@@ -34,6 +35,10 @@ vi.mock("react-konva", () => ({
   Rect: (props: MockProps) => {
     rectProps.push(props);
     return <div data-testid="konva-rect" />;
+  },
+  Image: (props: MockProps) => {
+    imageProps.push(props);
+    return <div data-testid="konva-image" />;
   },
 }));
 
@@ -60,6 +65,7 @@ describe("FogLayer", () => {
     rectProps.length = 0;
     lineProps.length = 0;
     groupProps.length = 0;
+    imageProps.length = 0;
   });
 
   it("covers the compiled scene with a fog rectangle", () => {
@@ -364,6 +370,59 @@ describe("FogLayer", () => {
       );
 
       expect(lineProps).toHaveLength(1);
+    });
+  });
+
+  // ==========================================================================
+  // S7 — the explored band
+  // ==========================================================================
+  // Three bands in one layer: opaque fog, remembered area lifted PARTIALLY,
+  // current sight lifted fully. Konva applies node opacity before the composite
+  // operation, so a partial-opacity destination-out erases part of the fog —
+  // which is what makes "dimmed, not black" a single node rather than a second
+  // layer.
+  describe("explored fog", () => {
+    it("renders no explored band when the viewer remembers nothing", () => {
+      render(<FogLayer cam={cam} compiledScene={scene()} viewers={[]} {...GRID} />);
+
+      expect(imageProps).toHaveLength(0);
+    });
+
+    it("lifts the remembered area only PARTIALLY, and only where it is remembered", () => {
+      render(
+        <FogLayer
+          cam={cam}
+          compiledScene={scene()}
+          viewers={[{ x: 50, y: 150 }]}
+          exploredStorageKey="herobyte:fog-explored:v1:t:uid:doc"
+          {...GRID}
+        />,
+      );
+
+      expect(imageProps).toHaveLength(1);
+      const band = imageProps[0]!;
+      expect(band.globalCompositeOperation).toBe("destination-out");
+      expect(band.opacity).toBeGreaterThan(0);
+      expect(band.opacity).toBeLessThan(1);
+      // Stretched over the whole published rect, in DOCUMENT units — the mask
+      // it carries is what varies, not the node's geometry.
+      expect(band).toMatchObject({ x: 0, y: 0, width: 400, height: 300, listening: false });
+    });
+
+    it("draws the explored band UNDER the live sightlines", () => {
+      render(
+        <FogLayer
+          cam={cam}
+          compiledScene={scene()}
+          viewers={[{ x: 50, y: 150 }]}
+          exploredStorageKey="herobyte:fog-explored:v1:t:uid:doc"
+          {...GRID}
+        />,
+      );
+
+      // Current sight erases fully (opacity defaults to 1); memory does not.
+      expect(lineProps[0]!.opacity).toBeUndefined();
+      expect(imageProps[0]!.opacity).toBeLessThan(1);
     });
   });
 });

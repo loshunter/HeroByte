@@ -57,6 +57,8 @@ import { useMapEditTool } from "../features/map-edit/useMapEditTool";
 import { MapEditPreviewLayer } from "../features/map-edit/MapEditPreviewLayer";
 import { MapEditQuickWheel } from "../features/map-edit/MapEditQuickWheel";
 import { dmViewActive, fogViewers, visibleDoors } from "../features/map/playerLens";
+import { exploredFogKey } from "../features/map/exploredFogStore";
+import { currentRoomId } from "../features/rooms/roomDirectory";
 import { WallsOverlayLayer } from "../features/map-edit/WallsOverlayLayer";
 import { NotesOverlayLayer } from "../features/map-edit/NotesOverlayLayer";
 import type { CameraCommand, MapBoardProps, SelectionRequestOptions } from "./MapBoard.types";
@@ -142,6 +144,15 @@ export default function MapBoard({
 
   const { sceneObjects, mapObject, drawingObjects, stagingZoneObject, stagingZoneDimensions } =
     useSceneObjectsData(snapshot, gridSize);
+
+  // Where THIS player's memory of THIS map on THIS table is kept (S7). The uid
+  // segment is what stops a DM's player-lens session — which sees the party's
+  // union, not any one player's — from writing into a player's memory.
+  const exploredStorageKey = useMemo(() => {
+    const documentId = snapshot?.compiledScene?.sourceDocumentId;
+    if (!documentId || !uid) return null;
+    return exploredFogKey(currentRoomId(), uid, documentId);
+  }, [snapshot?.compiledScene?.sourceDocumentId, uid]);
 
   // Build statusEffectsByTokenId map from characters array
   // Maps token IDs to their character's status effect details
@@ -792,6 +803,7 @@ export default function MapBoard({
             viewers={fogViewers(snapshot.tokens ?? [], uid, isDM && playerLens, grid.size)}
             gridSize={grid.size}
             gridSquareSize={snapshot?.gridSquareSize ?? 5}
+            exploredStorageKey={exploredStorageKey}
           />
         )}
 

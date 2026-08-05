@@ -9,9 +9,19 @@
 //
 // Each viewer carries its own sight radius in feet (S7). Undefined means
 // unlimited, which is how fog behaved before radii existed.
+//
+// Three bands, drawn in this order inside ONE layer so a single composite pass
+// produces all of them:
+//   1. opaque fog over the whole published rect — never seen,
+//   2. the EXPLORED mask punched out at partial opacity — seen before, dimmed,
+//   3. current sightlines punched out fully — seen right now.
+// Konva applies node opacity BEFORE the composite operation, so a
+// `destination-out` image at 0.55 erases 55% of the fog rather than all of it.
+// The explored band is a RENDERING convenience only: it re-shows map art the
+// client already holds, never an entity, because the server never sent one.
 
 import { useMemo } from "react";
-import { Group, Layer, Line, Rect } from "react-konva";
+import { Group, Image as KonvaImage, Layer, Line, Rect } from "react-konva";
 import {
   computeViewerVisionPolygon,
   getVisionBlockingSegments,
@@ -20,6 +30,7 @@ import {
 } from "@herobyte/shared";
 import type { FogViewer } from "../playerLens";
 import type { Camera } from "../types";
+import { useExploredFog } from "./useExploredFog";
 
 interface FogLayerProps {
   cam: Camera;
@@ -31,9 +42,20 @@ interface FogLayerProps {
   gridSize: number;
   /** Feet per grid square (`RoomSnapshot.gridSquareSize`, default 5). */
   gridSquareSize: number;
+  /**
+   * Where this viewer's memory of the map is kept, or null to remember nothing.
+   *
+   * Scoped per table, per PLAYER uid and per map document by the caller. The
+   * uid segment is the structural guard that a DM inspecting through the player
+   * lens — whose viewers are the whole party's union, not any one player's —
+   * accumulates under their OWN key and can never write into a player's memory.
+   */
+  exploredStorageKey?: string | null;
 }
 
 const FOG_COLOR = "#0b0b16";
+/** How much of the fog a remembered area lifts. Dimmed, deliberately not clear. */
+const EXPLORED_LIFT = 0.55;
 
 export function FogLayer({
   cam,
@@ -42,6 +64,7 @@ export function FogLayer({
   viewers,
   gridSize,
   gridSquareSize,
+  exploredStorageKey = null,
 }: FogLayerProps) {
   // VALUE keys, not object identity. A full room snapshot is re-parsed from
   // JSON on every broadcast, so `compiledScene` and `mapTransform` arrive as
@@ -106,6 +129,13 @@ export function FogLayer({
     [polygons],
   );
 
+  const explored = useExploredFog({
+    storageKey: exploredStorageKey,
+    sceneWidth: compiledScene.width,
+    sceneHeight: compiledScene.height,
+    polygons,
+  });
+
   const { x = 0, y = 0, scaleX = 1, scaleY = 1, rotation = 0 } = mapTransform ?? {};
 
   return (
@@ -120,6 +150,21 @@ export function FogLayer({
             fill={FOG_COLOR}
             opacity={0.97}
           />
+          {explored.canvas && (
+            <KonvaImage
+              // Mutating canvas pixels does not change its identity, so the
+              // revision is what tells react-konva the node is dirty.
+              key={`explored-${explored.revision}`}
+              image={explored.canvas}
+              x={0}
+              y={0}
+              width={compiledScene.width}
+              height={compiledScene.height}
+              listening={false}
+              opacity={EXPLORED_LIFT}
+              globalCompositeOperation="destination-out"
+            />
+          )}
           {holes}
         </Group>
       </Group>
