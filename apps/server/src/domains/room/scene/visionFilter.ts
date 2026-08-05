@@ -9,7 +9,7 @@
 // anything outside it — staging zones, off-map tokens — is never filtered.
 
 import {
-  computeVisionPolygon,
+  computeViewerVisionPolygon,
   getVisionBlockingSegments,
   gridCellToWorldPoint,
   inverseTransformScenePoint,
@@ -44,14 +44,22 @@ export function createVisionContext(state: RoomState, recipientUid: string): Vis
   const segments = getVisionBlockingSegments(scene);
   const bounds = { width: scene.width, height: scene.height };
   // Tokens live in grid cells; vision origins are their world-pixel centers.
+  // `computeViewerVisionPolygon` — not `computeVisionPolygon` — is what keeps
+  // this identical to the client's fog: it owns BOTH the world->document
+  // conversion of the origin and the feet->document conversion of the radius,
+  // so neither half of the app can spell that chain its own way.
   const polygons = state.tokens
     .filter((token) => token.owner === recipientUid)
     .map((token) =>
-      computeVisionPolygon(
-        toDocSpace(gridCellToWorldPoint(state.gridSize, { x: token.x, y: token.y })),
+      computeViewerVisionPolygon({
+        origin: gridCellToWorldPoint(state.gridSize, { x: token.x, y: token.y }),
+        radiusFeet: token.visionRadius,
         segments,
         bounds,
-      ),
+        gridSize: state.gridSize,
+        gridSquareSize: state.gridSquareSize,
+        mapTransform,
+      }),
     );
 
   return { polygons, scene, toDocSpace };
@@ -80,15 +88,22 @@ export function getHiddenNpcTokenIds(state: RoomState): Set<string> {
 
 /**
  * Cache key covering everything a recipient's vision polygons depend on:
- * fog flag, published scene identity, grid scale, door states, the
- * recipient's own token cells, and the live map transform.
+ * fog flag, published scene identity, grid scale, feet per square, door
+ * states, the recipient's own token cells AND their sight radii, and the live
+ * map transform.
+ *
+ * Every input the polygon reads must appear here or the router serves a stale
+ * one. S7 added the last two: `visionRadius` because setting one otherwise
+ * does nothing until the token also moves (presenting as "the message never
+ * sent"), and `gridSquareSize` because the radius is in FEET and a table can
+ * change feet-per-square live, with no republish.
  */
 export function visionSignature(state: RoomState, recipientUid: string): string {
   const scene = state.compiledScene;
   const doors = scene ? scene.doors.map((door) => door.state).join(",") : "";
   const ownTokens = state.tokens
     .filter((token) => token.owner === recipientUid)
-    .map((token) => `${token.x}:${token.y}`)
+    .map((token) => `${token.x}:${token.y}:${token.visionRadius ?? ""}`)
     .join(";");
   const transform = state.sceneObjects.find((object) => object.type === "map")?.transform;
   const transformKey = transform
@@ -99,6 +114,7 @@ export function visionSignature(state: RoomState, recipientUid: string): string 
     scene?.compiledAt ?? 0,
     scene?.sourceRevision ?? 0,
     state.gridSize,
+    state.gridSquareSize,
     doors,
     ownTokens,
     transformKey,

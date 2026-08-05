@@ -1,4 +1,30 @@
+import { AREA_TEMPLATE_TOOLS, type DrawTool } from "@herobyte/shared";
 import type { MainLayoutProps } from "./props/MainLayoutProps";
+
+const DRAWING_TOOLS: readonly DrawTool[] = [
+  "freehand",
+  "line",
+  "rect",
+  "circle",
+  "eraser",
+  ...AREA_TEMPLATE_TOOLS,
+];
+
+/** Short enough to fit a 96px chip at 375px wide. */
+const MOBILE_TOOL_LABELS: Record<DrawTool, string> = {
+  freehand: "Free",
+  line: "line",
+  rect: "rect",
+  circle: "circle",
+  eraser: "eraser",
+  // Named for what they ARE, not for their shape: "line" already appears in
+  // this row as the freehand line tool, and two chips reading LINE at 375px is
+  // a coin toss. The 5e names disambiguate and are shorter than the geometry.
+  "template-circle": "AoE Burst",
+  "template-cone": "AoE Cone",
+  "template-square": "AoE Cube",
+  "template-line": "AoE Bolt",
+};
 
 interface MobileDrawingControlsProps {
   drawTool: MainLayoutProps["drawingToolbarProps"]["drawTool"];
@@ -29,15 +55,20 @@ export function MobileDrawingControls({
 }: MobileDrawingControlsProps): JSX.Element {
   return (
     <div className="mobile-drawing-sheet" role="toolbar" aria-label="Drawing tools">
+      {/* Templates ride the same chip row as the plain tools (S6). This is
+          their mobile home: the dock is a hardcoded 5-column grid, and a
+          template tool is a DRAWING tool, so it needs no new sheet, no new
+          prop and no new gesture — the touch path already arms drawing. Size
+          comes from the drag, so there is no numeric field to squeeze in. */}
       <div className="mobile-drawing-sheet__tools">
-        {(["freehand", "line", "rect", "circle", "eraser"] as const).map((tool) => (
+        {DRAWING_TOOLS.map((tool) => (
           <button
             key={tool}
             type="button"
             className={`mobile-chip${drawTool === tool ? " mobile-chip--active" : ""}`}
             onClick={() => onToolChange(tool)}
           >
-            {tool === "freehand" ? "Free" : tool}
+            {MOBILE_TOOL_LABELS[tool]}
           </button>
         ))}
       </div>

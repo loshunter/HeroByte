@@ -1,14 +1,14 @@
 # Session One — the table runs a whole game without leaving it
 
-**Status:** S0–S5 SHIPPED. S0–S3 are deployed to production (dev→main `1dc00e00`, 2026-08-04);
-S4 (token nameplates + HP bars + DM monster-HP redaction) and S5 (honest dice) are on `dev`, CI
-green, awaiting the next deploy. Three slices grew beyond plan under adversarial review: S3's
-reclaim became condemn/resurrect/expire (grace-windowed deletion,
-`HEROBYTE_ASSET_RECLAIM_GRACE_HOURS`) and its quota fossil is now statfs-derived; S4 closed a
-pre-existing hole where any player could rewrite any character's HP; S5 turned out to require
-rewriting the roll display, because the log had been rendering a blank formula and no breakdown
-for every historical roll. Next: S6 (distance and templates). Runs before the damage loop, mobile
-authoring, and the Atlas.
+**Status:** S0–S5 SHIPPED AND IN PRODUCTION (dev→main `0555ba35`, 2026-08-04; CI green on both
+branches, verified live on the public table). **S6 and S7 are on `dev` and NOT deployed.** Only S8
+remains. Four slices grew beyond plan under adversarial review: S3's reclaim became
+condemn/resurrect/expire (grace-windowed deletion, `HEROBYTE_ASSET_RECLAIM_GRACE_HOURS`) and its
+quota fossil is now statfs-derived; S4 closed a pre-existing hole where any player could rewrite
+any character's HP; S5 turned out to require rewriting the roll display, because the log had been
+rendering a blank formula and no breakdown for every historical roll; S7 found its own DM control
+wired and unreachable on a phone, and turned out to make fog 95× FASTER on a large dungeon rather
+than slower. Runs before the damage loop, mobile authoring, and the Atlas.
 
 **Thesis.** The hardest thing is built — live on-table authoring, server-compiled scenes with real
 wall collision, per-recipient fog filtering with contract-test proof. What is missing is the part
@@ -119,8 +119,8 @@ All verified in code.
 | D7  | Rate limiting is keyed on a **client-supplied uid** and there is no per-IP logic. The limiter lives in `MessagePipelineManager` (constructed in `container.ts`); `ConnectionLifecycleManager` is only where the uid is read from the query string. Auth runs a sync ~30ms `scryptSync` on the one Node thread | `MessagePipelineManager.ts`, `ConnectionLifecycleManager.ts`, `authCrypto.ts`  |
 | D8  | **No player-facing image upload.** Exactly ONE file input in the whole client picks an image and pushes it through `/assets` (`MapEditAssetPicker`, DM-only). The other three are JSON. The `/assets` pipeline itself is built, room-credential gated, MIME-sniffed, quota'd and rate-limited                 | `apps/server/src/http/routes.ts`, `features/map-studio/uploads/assetUpload.ts` |
 | D9  | Tokens have **no name and no persistent HP**                                                                                                                                                                                                                                                                  | `TokensLayer.tsx`                                                              |
-| D10 | Vision has **no radius**; fog has **no memory**                                                                                                                                                                                                                                                               | `packages/shared/src/visibility.ts`, `FogLayer.tsx`                            |
-| D11 | Measurement is **Euclidean** — a 2-square diagonal reads "2.8 Squares (14 ft)" where 5e says 10                                                                                                                                                                                                               | `MeasureLayer.tsx`                                                             |
+| D10 | ~~Vision has **no radius**; fog has **no memory**~~ FIXED in S7                                                                                                                                                                                                                                               | `packages/shared/src/visibility.ts`, `FogLayer.tsx`                            |
+| D11 | ~~Measurement is **Euclidean** — a 2-square diagonal reads "2.8 Squares (14 ft)" where 5e says 10~~ FIXED in S6                                                                                                                                                                                               | `MeasureLayer.tsx`                                                             |
 
 D3–D6 bite while nobody is watching. Ship them first, alone.
 
@@ -314,30 +314,264 @@ visible `ROLL!` text. `FloatingPanelsLayout` crossed 350 LOC and the dice panels
 any player could wipe the table's roll history — and `StatePersistence` loaded `diceRolls` with a
 bare `|| []`, so a poisoned non-array survived restart. Both fixed separately.
 
-### S6 🟡 — Distance and templates the table agrees on (2–3 days)
+### S6 ✅ — Distance and templates the table agrees on — SHIPPED
 
-A per-room diagonal rule (5e every-square / PF alternating / Euclidean) in **one shared function**.
-Broadcast the active measurement so the table sees the same line. Circle/cone/square/line templates
-that snap to the grid and reuse the drawing render path.
+**The rule lives in one place.** `packages/shared/src/measurement.ts` owns `DiagonalRule`
+(`5e` / `pathfinder` / `euclidean`), `coerceDiagonalRule`, `worldPointToGridCell` and
+`measureGridDistance`; `MeasureLayer.tsx` now calls it instead of doing its own
+`Math.sqrt`. That closes D11: a two-square diagonal reads `2 Squares (10 ft)`, not
+`2.8 Squares (14 ft)`. A grid rule COUNTS CELLS, so both endpoints collapse to the cell
+containing them and the drawn line snaps to those cells' centres — the line and the number
+describe the same two squares. Euclidean keeps the raw points and reproduces the old
+readout exactly, for tables that want it.
 
-**Done when.** "Is Grak in it?" is answered by looking.
+**The default is `5e`, not `euclidean`.** Every coercion site (state file, session file,
+absent snapshot field) lands there, so existing tables get the corrected maths without
+touching anything. Counting a diagonal as 1.4 squares IS the defect; preserving it as the
+default would have shipped the bug behind a setting.
 
-### S7 🔴 — Darkness that is dark, and a dungeon you remember (4–5 days, largest)
+**Per-room, DM-gated**, following S4's `monsterHpDisplay` path exactly: shared type +
+`RoomSnapshot` field + `set-diagonal-rule` + whitelist validator + a gate inside
+`SceneMessageHandler` (not `AuthorizationService`, which is dead code) + `RoomState` +
+persistence load/save + `SnapshotLoader`. The control sits in **Grid Controls**, next to
+Square Size, because they answer the same question.
 
-Add an optional `radius` and clip the polygon **in the one shared visibility function**, so client
-fog and server filtering stay identical by construction — that invariant is what makes fog
-trustworthy. Per-token `visionRadius` defaulting to unlimited so nothing regresses. Explored fog as
-a per-player accumulated union, dimmed rather than black.
+**The measurement is relayed, not stored.** `{ t: "measure", measure: {start,end} | null }`
+carries no identity; `PointerHandler.handleMeasure` stamps uid and name from the connection
+and `messageRouter.broadcastMeasure` sends it on its own channel. Nothing enters
+`RoomState`, so there is no persistence, no `SNAPSHOT_LIMITS` entry, no save per mouse move
+and no snapshot growth — and a client joining mid-drag simply picks up the next frame. The
+client throttles to ~16/s with a trailing flush (the last position always ships), prunes
+stale lines against `snapshot.users` (the connected set), and clears on tool-off and on
+unmount. Deliberately unfiltered: everyone seeing the same line is the feature, and it
+matches the existing rule that a DM's pointer ping is narration for the whole table.
 
-**Tests.** A parity test that client and server compute the same polygon for a radius-limited
-viewer; a regression test that unlimited radius reproduces today's polygons exactly.
+**Templates ride the drawing path.** `Drawing.type` gained `"template"` plus an
+`AreaTemplate` (`kind` + `sizeFeet`); `buildAreaTemplate` returns a closed polygon in world
+pixels and the polygon IS the geometry, so persistence, undo, the eraser, selection, the
+scene graph and the session file all work with no new collection. Origin snaps to the
+nearest half-grid step (cell centres AND corners, so a burst can centre on a token; the cube
+snaps to corners so its sides sit on grid lines) and size snaps to whole squares. The cone
+is 5e's triangle — as wide at its far edge as it is long. Direction stays continuous: a cone
+that can only point at 15-degree stops is a cone that cannot point at the goblin.
 
-**Traps.** **Vision polygons are CACHED on both sides and neither cache key includes a radius** —
-the server caches under `visionSignature(state, uid)` in `messageRouter.ts:517`. Change the radius
-without changing the signature and you will get stale vision that looks like your maths is wrong.
-Fix the cache key first. If persisting a per-player visibility grid grows the snapshot, ship
-explored fog **client-local** (accumulate in the browser, localStorage) and defer server-side
-memory fog. Do not let this become a persistence arc.
+**Mobile shipped in-slice** (§7a) at zero cost to the dock: template tools are DRAWING
+tools, so they inherit the armed touch path, the colour, the undo stack and the eraser, and
+they appear as four more chips in the sheet that already exists. Size comes from the drag,
+so there is no numeric field to find room for. Measured, not assumed: all **14** controls in
+the mobile drawing sheet are on screen and ≥44 px at both 375×812 and 812×375
+(`mobile-draw.spec.ts`).
+
+**Grew beyond plan — the measure tool could never hold a reading.** The click cycle keyed on
+`measureEnd`, which `onMouseMove` sets on every move, so the second click always took the
+"start over" branch and WIPED the measurement instead of freezing it. Nobody had noticed
+because nothing asserted on it — `docs/user-guide/img/measure-tool.jpg` is a recording of
+the bug, a measure-mode screenshot with no measurement in it, while the player guide already
+described the freeze that never happened. With the broadcast in place the bug got louder:
+the table saw the line, then saw a clear one frame later. Fixed with a `measureCommitted`
+flag, in its own commit.
+
+**Tests.** 45 new shared tests over the three rules and the four template kinds;
+`measurement.contract.test.ts` (DM gate, author bound from the connection, nothing written
+to state, no snapshot forced); validator coverage for `set-diagonal-rule`, `measure` and the
+template payload; first-ever tests for `MeasureLayer` and `usePointerTool`; five e2e,
+including a two-client relay test. **35 sabotages** were run against these — see the
+`GREEN-BAD` discipline: a sabotage that leaves its test green means the test cannot fail.
+
+**Traps that cost time.** `router.route()` runs AFTER validation, so a contract test that
+routes a malformed frame proves nothing about the validator (the same gap hid an untested
+validator in S5) — coordinate-shape coverage lives in `validation.test.ts` instead.
+`useDrawingTool` crossed 350 LOC and needed two extractions (`templateDraft.ts`,
+`eraseStroke.ts`). The e2e map canvas is SHORT — the entities panel takes the bottom half —
+so a few cells at a zoomed-in camera walks a click straight off it onto the panel.
+
+**Left for its own commit** (house rule): the measure-freeze fix above.
+
+### S7 ✅ — Darkness that is dark, and a dungeon you remember — SHIPPED
+
+**The radius clips inside the one shared function**, and both halves reach it through one
+entry point. `computeViewerVisionPolygon` (`packages/shared/src/visibility.ts`) owns
+BOTH conversions — world→document for the origin, feet→document for the radius — so the
+client's fog and the server's entity filtering agree because they run the same code on
+the same numbers, not because two implementations were kept in step. `computeVisionPolygon`
+stays exported for the geometry's own tests; reaching for it from product code would put a
+second conversion site back and forfeit the invariant. That closes D10.
+
+**The units were the risk, and they get their own module.** A radius is authored in FEET;
+the grid measures feet in squares (`gridSquareSize`, live-changeable with no republish);
+squares measure world pixels (`gridSize`); and the sweep runs in map-DOCUMENT pixels,
+which the map transform scales. Get it wrong and sight is off by exactly the map's scale
+factor — invisible at the default scale of 1, which is what every pre-S7 test used.
+`packages/shared/src/visionRadius.ts` owns that chain end to end.
+
+**A world circle is an axis-aligned ELLIPSE in document space**, with semi-axes
+`r/|scaleX|` and `r/|scaleY|`. That is exact rather than an approximation:
+`inverseTransformScenePoint` rotates by `-rotation` and then divides by each axis
+independently, and rotation maps a circle to a circle — so rotation drops out entirely.
+Non-uniform scale is reachable (the transform gizmo sets `keepRatio={false}`), so the
+clip is elliptical rather than assuming a circle.
+
+**DM-only, and not by copying a neighbour's permission.** A radius can only ever NARROW
+what the walls already allow, so a player able to clear their own would simply undo the
+darkness the DM authored. That makes it an authority question rather than a privacy one,
+and the gate is server-side in `TokenMessageHandler` (not `AuthorizationService`, which
+is dead code). `undefined` means unlimited, so every token that predates the field
+behaves exactly as it did; `0` means blind, which is a real setting rather than an error.
+
+**It is FASTER than unlimited sight, not slower.** A segment lying wholly beyond the limit
+can neither be hit nor shadow anything inside it, so it is dropped before the sweep. The
+sweep costs `6*(M+4)` rays each testing `M+4` segments, so this is a quadratic saving.
+Measured on synthetic scenes at the real generator's segment counts, one polygon:
+
+| segments | unlimited | 60 ft radius | survive pruning |
+| -------- | --------- | ------------ | --------------- |
+| 42       | 0.29 ms   | 0.07 ms      | 6 / 42          |
+| 656      | 12.97 ms  | 0.18 ms      | 52 / 656        |
+| 2000     | 105.90 ms | 1.12 ms      | 156 / 2000      |
+
+A DM who runs several generates builds N in the low thousands, where unlimited sight was
+already a visible hitch per fogged player per broadcast. The radius is a scalability fix
+as much as a game rule.
+
+**Both caches were fixed FIRST**, as the trap below warned. `visionSignature` gained the
+per-token radius AND `gridSquareSize` (the radius is in feet, and a table can change
+feet-per-square live); FogLayer's memo key gained the radius. Without them a radius change
+serves the previous polygon and reads to a DM as "the control is broken". `visionSignature`
+had never had a direct test.
+
+**Explored fog is client-local**, taking the plan's escape hatch. A per-player accumulated
+union of everywhere your own tokens have had line of sight, rendered DIMMED rather than
+black. **It is a RENDERING convenience, not a privacy boundary** — it can only re-show map
+ART the client already holds, and the server keeps stripping every entity outside CURRENT
+vision exactly as before. A remembered room shows remembered walls, never the monster that
+walked into it while you were away.
+
+Three bands in ONE layer and one composite pass: opaque fog, memory at partial opacity,
+current sightlines at full. Konva applies node opacity BEFORE the composite operation, so
+a `destination-out` image at 0.55 erases 55% of the fog rather than all of it. The canvas
+IS the union — each polygon is filled into a small offscreen canvas without clearing, so
+the browser rasterises the merge natively and there is no polygon geometry to maintain.
+Resolution caps at 512 on the longest side and is never multiplied by the device pixel
+ratio (Konva applies DPR once at the Stage).
+
+**The storage key is the guard**: `herobyte:fog-explored:v1:<table>:<uid>:<document>`. The
+table segment is not decoration — switching tables is a same-tab navigation, and a flat key
+is exactly how the room-secret store once auto-submitted the previous table's password at a
+new one; here the same bug would bleed what map area a player has seen. The uid segment
+makes it structurally impossible for a DM inspecting through the player lens (whose viewers
+are the party's UNION, not any one player's) to write into a player's memory. The document
+id is percent-encoded because a `:` in it could forge a segment. `sourceRevision` is
+deliberately NOT part of invalidation: a live-bound table recompiles the scene on every
+applied DM command, so keying on it would wipe the party's memory on every brush stroke.
+
+This is the first client store with a version token and a byte budget — the other seven cap
+by entry count and none is versioned — plus an LRU index capping it at six maps, for which
+there was no prior art in the repo.
+
+**Mobile shipped in-slice** (§7a) by reusing the SAME control: `MobilePlayerRow` already
+renders `PlayerSettingsMenu`, so the phone gets the desktop field at 44px touch targets via
+`compactControls`, and the dock stayed at five buttons. Measured on a real 375×812 viewport:
+all five presets exactly 44px and on screen.
+
+**Grew beyond plan — the control was wired and unreachable on mobile.** The party drawer's
+EDIT button was gated on `isMe`, so a DM tapping another player's row got nothing, while
+desktop has always given a DM a settings button on every card. Invisible while everything
+behind that button was self-serve; load-bearing the moment a DM-only per-token control
+landed there. Reading the code would not have shown it — it took opening the drawer at
+375px. Fixed in its own commit.
+
+**Verified in a real browser, because it had to be.** Explored fog is entirely a 2D canvas
+context and jsdom has none (`getContext("2d")` returns null), so every unit test of it runs
+against a stub. On the live table at 8192px: mask 512×512 at cell 16, 841 of 262,144 cells
+remembered, 43,692 bytes — the designed ceiling, hit exactly. One screenshot shows the whole
+"done when": a clean circular torch radius, the room seen a moment ago dimmed, never-seen
+space black, and the DM's token four squares away absent from `snapshot.tokens`.
+
+**Tests.** 65 shared (including a frozen hash per case proving unlimited sight reproduces
+the pre-S7 polygons vertex for vertex, generated by running the OLD implementation before
+the refactor); 21 vision-filter including a server-vs-shared parity assertion under a scaled
+and rotated transform; 12 wire-level contracts on raw socket bytes; validator coverage in
+`validation.test.ts` (NOT a router test — `route()` runs after validation); 20 store, 11
+hook, 5 fog-band and 5 mobile-row on the client; and an e2e that drives the real rasteriser
+in Chromium. First tests `fogViewers`, `visionSignature` and `MobilePlayerRow` have ever had.
+
+**35 sabotages**, all red. Four came back GREEN and three were real gaps — the state-file
+coercion, the session-file coercion, and `fogViewers` had no test at all. The fourth stayed
+green legitimately (`coerceTokenVisionRadii` array-guards too, making the guard beside it
+redundant), which is recorded in a comment rather than removed. One sabotage was itself
+defective and reported a false GREEN until rewritten: it left the real debounce in place.
+
+**Traps that cost time.** Both vision caches were keyed on token x/y only, and a stale
+polygon presents as "the message never sent" rather than as a maths error — fix the keys
+before touching the geometry. `visibility.ts` crossed 350 LOC and needed the
+`visionRadius.ts` extraction. `MobileLayout` had three lines of headroom and now sits at
+347 of 348. Bash heredocs with apostrophes break on Windows — write patch scripts to a file
+and run them with `python`. A Python sabotage harness must use PACKAGE-relative test paths
+(`pnpm --filter` sets cwd to the package) and force UTF-8 decoding, or every run reports a
+false BROKEN.
+
+**Left for its own commit** (house rule): the mobile EDIT gate above, and a pre-existing
+crash — `StatePersistence` read tokens as `data.tokens || []`, so any truthy non-array
+survived and the first broadcast after such a load took down the process serving every
+room, then did it again on the next restart. `diceRolls` and `chatLog` on the same object
+were array-guarded in S5; `tokens` was missed, and it is the collection every broadcast
+walks.
+
+**Also in the feature commit, and said loudly rather than buried:** FogLayer re-swept every
+viewer's polygons on snapshot OBJECT identity, so every chat message, dice roll, HP change
+and door toggle recomputed vision — tens of milliseconds on a large dungeon — and rebuilt
+the Konva points array on every pan and zoom frame. Both are pre-existing and both are fixed
+here (value keys, memoized hole elements), because they are the same `useMemo` the radius had
+to change; splitting them would have meant shipping a version of that hook that never existed
+and reverting the radius wiring in three other files.
+
+**Adversarial review found six defects and three tests that could not fail** —
+all fixed in their own commit (`505165e7`), all re-verified by reading the code
+rather than trusting the report, all sabotaged back. The worst was mobile
+shipping the DM-only sight control to plain players (found independently by
+three lenses); the subtlest was that NOTHING pinned the explored mask
+accumulating, because the test stub handed out a fresh 2D context per
+`getContext` call, so a canvas rebuilt on every vision update would have
+destroyed every player's memory with the whole suite green.
+
+**The first review ERRORED PARTWAY** — 18 of 41 agents hit a session limit, taking the entire
+**correctness** and **regression** lenses with them. Those two were **RE-RUN on 2026-08-05** and came
+back with no deploy blockers (14/14 agents, zero errors). They found two real defects in the geometry
+the errored run never reached, both fixed in `9ac36074`:
+
+- **"30 ft" reached five squares, not six.** The arc polygon was INSCRIBED in the sight circle, so its
+  boundary fell ~1px short between samples — and because a token stands on a cell CENTRE and every
+  offered radius is a whole number of squares, a creature at exactly the stated range sat exactly ON
+  the circle and fell outside the chord. Due WEST worked by luck (the `i=0` sample lands at exactly
+  `-PI`), so it presented as nonsense rather than as a bug. The polygon now CIRCUMSCRIBES the circle,
+  plus a relative hair — pure tangency leaves the target exactly ON the boundary, where a parity
+  ray-cast is arbitrary. The old arc tests probed 118 of a 120 radius and never at `r`, which is
+  exactly why an inscribed polygon passed all of them.
+- **A positive-but-subnormal radius revealed the whole map through every wall** — fail-OPEN. Dividing
+  by that semi-axis overflowed, so the segment prune dropped every occluder AND the ray limit stopped
+  being finite (read as "unbounded"). Now floored to blind, and guarded on both layers.
+
+**⚠️ KNOWN LIMITATION (inherited, not new).** The mobile party drawer renders one row per PLAYER and
+resolves it to that player's FIRST character, so a DM on a phone cannot reach a second character's
+token at all — its HP, portrait and now its sight radius are equally unreachable there. Because
+vision is the union over a player's tokens, a radius set on character #1 does nothing while character
+#2's token is unlimited. Desktop is unaffected (EntitiesPanel is per character). Mitigated in
+practice by the `createToken` inheritance below — any token minted AFTER the radius is set inherits
+it — so the residual case is a player who already had two tokens. Fixing it properly means making the
+mobile list per-character, which belongs to the mobile authoring arc, not here.
+
+**⚠️ KNOWN GAP, deliberately open.** A radius lives on ONE token record and
+vision is the UNION over every token its owner has. `createToken` now inherits
+the owner's tightest existing limit, which closes the "+ Add Character" path
+(an ordinary, un-DM-gated button that used to restore unlimited sight with no
+signal to the DM). It cannot close the case where there is nothing left to
+inherit from: **a player who deletes their only token and reconnects respawns an
+unlimited one.** Closing that needs a room-level default vision radius — a new
+required `RoomState` field, four fixtures, persistence and a snapshot field —
+which is a bigger change than the remaining hole justifies. It is also the
+feature a DM probably wants anyway ("this dungeon is dark"), so it is the
+natural follow-up. Until then the escape requires deliberately destroying your
+own token, which a DM watching the table would see.
 
 ### S8 🟢 — Staging an encounter, and finding the manual (2 days)
 

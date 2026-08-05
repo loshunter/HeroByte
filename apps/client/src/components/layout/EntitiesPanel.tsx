@@ -76,6 +76,9 @@ interface EntitiesPanelProps {
   npcDeletionError?: string | null;
   onToggleTokenLock: (sceneObjectId: string, locked: boolean) => void;
   onTokenSizeChange: (tokenId: string, size: TokenSize) => void;
+  /** DM-only: set a token's sight limit in feet, or null for unlimited (S7;
+   * optional so the layout fixtures stay untouched). */
+  onTokenVisionRadiusChange?: (tokenId: string, radiusFeet: number | null) => void;
   onAddCharacter: (name: string) => void;
   onDeleteCharacter: (characterId: string) => void;
   onFocusToken: (tokenId: string) => void;
@@ -137,6 +140,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   npcDeletionError = null,
   onToggleTokenLock,
   onTokenSizeChange,
+  onTokenVisionRadiusChange,
   onAddCharacter,
   onDeleteCharacter,
   onFocusToken,
@@ -578,6 +582,13 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
                           onTokenSizeChange={
                             isMe && token
                               ? (size: TokenSize) => onTokenSizeChange(token.id, size)
+                              : undefined
+                          }
+                          tokenVisionRadius={token?.visionRadius}
+                          onTokenVisionRadiusChange={
+                            currentIsDM && token && onTokenVisionRadiusChange
+                              ? (radiusFeet: number | null) =>
+                                  onTokenVisionRadiusChange(token.id, radiusFeet)
                               : undefined
                           }
                           onAddCharacter={isMe ? characterCreation.createCharacter : undefined}

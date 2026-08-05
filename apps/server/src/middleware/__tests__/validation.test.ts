@@ -1620,4 +1620,168 @@ describe("validateMessage", () => {
       ).toEqual({ valid: true });
     });
   });
+  // ==========================================================================
+  // S6: DIAGONAL RULE, MEASUREMENT RELAY, AREA TEMPLATES
+  // ==========================================================================
+  // These live here rather than in a router contract test because
+  // `router.route()` runs AFTER the pipeline has validated — a malformed frame
+  // never reaches route() in production, and a contract test that routes one
+  // directly proves nothing about the validator.
+
+  describe("set-diagonal-rule", () => {
+    it("accepts each of the three real rules", () => {
+      for (const rule of ["5e", "pathfinder", "euclidean"]) {
+        expect(validateMessage({ t: "set-diagonal-rule", rule })).toEqual({ valid: true });
+      }
+    });
+
+    it("rejects a rule outside the whitelist", () => {
+      expect(validateMessage({ t: "set-diagonal-rule", rule: "chebyshev" })).toEqual({
+        valid: false,
+        error: "set-diagonal-rule: rule must be 5e, pathfinder, or euclidean",
+      });
+    });
+
+    it("rejects a missing or non-string rule", () => {
+      expect(validateMessage({ t: "set-diagonal-rule" }).valid).toBe(false);
+      expect(validateMessage({ t: "set-diagonal-rule", rule: 5 }).valid).toBe(false);
+      expect(validateMessage({ t: "set-diagonal-rule", rule: null }).valid).toBe(false);
+    });
+  });
+
+  describe("set-token-vision-radius", () => {
+    it("accepts null — the clear-back-to-unlimited signal", () => {
+      expect(
+        validateMessage({ t: "set-token-vision-radius", tokenId: "t1", radius: null }),
+      ).toEqual({ valid: true });
+    });
+
+    it("accepts the ends of the range and a typical darkvision", () => {
+      for (const radius of [0, 5, 60, 120, 1000]) {
+        expect(validateMessage({ t: "set-token-vision-radius", tokenId: "t1", radius })).toEqual({
+          valid: true,
+        });
+      }
+    });
+
+    it("rejects a missing or empty tokenId", () => {
+      expect(validateMessage({ t: "set-token-vision-radius", radius: 60 }).valid).toBe(false);
+      expect(validateMessage({ t: "set-token-vision-radius", tokenId: "", radius: 60 }).valid).toBe(
+        false,
+      );
+      expect(validateMessage({ t: "set-token-vision-radius", tokenId: 7, radius: 60 }).valid).toBe(
+        false,
+      );
+    });
+
+    // `isFiniteNumber` alone would let all of these through, and each one
+    // reaches the vision sweep: a negative silently blinds the token, and an
+    // absurd one hands the geometry a nonsense extent.
+    it("rejects a radius outside the range", () => {
+      expect(
+        validateMessage({ t: "set-token-vision-radius", tokenId: "t1", radius: -1 }).valid,
+      ).toBe(false);
+      expect(
+        validateMessage({ t: "set-token-vision-radius", tokenId: "t1", radius: 1001 }).valid,
+      ).toBe(false);
+      expect(
+        validateMessage({ t: "set-token-vision-radius", tokenId: "t1", radius: 1e308 }).valid,
+      ).toBe(false);
+    });
+
+    it("rejects a non-numeric radius", () => {
+      for (const radius of ["60", undefined, {}, [], true, Number.NaN, Number.POSITIVE_INFINITY]) {
+        expect(validateMessage({ t: "set-token-vision-radius", tokenId: "t1", radius }).valid).toBe(
+          false,
+        );
+      }
+    });
+  });
+
+  describe("measure", () => {
+    const line = { start: { x: 10, y: 20 }, end: { x: 30, y: 40 } };
+
+    it("accepts a two-point measurement", () => {
+      expect(validateMessage({ t: "measure", measure: line })).toEqual({ valid: true });
+    });
+
+    it("accepts null — the stop-measuring signal", () => {
+      expect(validateMessage({ t: "measure", measure: null })).toEqual({ valid: true });
+    });
+
+    it("rejects a missing measure field", () => {
+      expect(validateMessage({ t: "measure" }).valid).toBe(false);
+    });
+
+    it("rejects a missing endpoint", () => {
+      expect(validateMessage({ t: "measure", measure: { start: line.start } }).valid).toBe(false);
+      expect(validateMessage({ t: "measure", measure: { end: line.end } }).valid).toBe(false);
+    });
+
+    it("rejects coordinates that are not finite numbers", () => {
+      // A hand-built frame can carry a string or Infinity where JSON cannot
+      // carry NaN; both would reach the renderer as garbage geometry.
+      expect(
+        validateMessage({ t: "measure", measure: { start: { x: "0", y: 0 }, end: line.end } })
+          .valid,
+      ).toBe(false);
+      expect(
+        validateMessage({
+          t: "measure",
+          measure: { start: { x: 0, y: 0 }, end: { x: Number.POSITIVE_INFINITY, y: 0 } },
+        }).valid,
+      ).toBe(false);
+      expect(validateMessage({ t: "measure", measure: { start: null, end: line.end } }).valid).toBe(
+        false,
+      );
+    });
+  });
+
+  describe("draw with an area template", () => {
+    const templateDrawing = {
+      ...baseDrawing,
+      type: "template" as const,
+      points: [
+        { x: 0, y: 0 },
+        { x: 50, y: 0 },
+        { x: 50, y: 50 },
+      ],
+    };
+
+    it("accepts a well-formed template", () => {
+      expect(
+        validateMessage({
+          t: "draw",
+          drawing: { ...templateDrawing, template: { kind: "cone", sizeFeet: 15 } },
+        }),
+      ).toEqual({ valid: true });
+    });
+
+    it("rejects a template kind outside the whitelist", () => {
+      expect(
+        validateMessage({
+          t: "draw",
+          drawing: { ...templateDrawing, template: { kind: "hypercube", sizeFeet: 15 } },
+        }),
+      ).toEqual({
+        valid: false,
+        error: "draw: drawing template must name a real kind with a positive size",
+      });
+    });
+
+    it("rejects a template with a missing or impossible size", () => {
+      for (const sizeFeet of [undefined, 0, -5, "15"]) {
+        expect(
+          validateMessage({
+            t: "draw",
+            drawing: { ...templateDrawing, template: { kind: "cone", sizeFeet } },
+          }).valid,
+        ).toBe(false);
+      }
+    });
+
+    it("still accepts a drawing with no template field at all", () => {
+      expect(validateMessage({ t: "draw", drawing: baseDrawing })).toEqual({ valid: true });
+    });
+  });
 });

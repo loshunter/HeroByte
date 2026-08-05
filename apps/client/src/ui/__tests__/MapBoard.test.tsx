@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { forwardRef } from "react";
 import type { ReactNode, Ref } from "react";
 import MapBoard from "../MapBoard";
@@ -63,7 +63,16 @@ vi.mock("../../features/map/components", () => ({
   TokensLayer: () => <div data-testid="tokens-layer" />,
   PointersLayer: () => <div data-testid="pointers-layer" />,
   DrawingsLayer: () => <div data-testid="drawings-layer" />,
-  MeasureLayer: () => <div data-testid="measure-layer" />,
+  // Surfaces the props MapBoard hands it, so the S6 wiring is assertable: the
+  // diagonal rule and the relayed measurements reach the overlay from the
+  // snapshot, and deleting either line has somewhere to fail.
+  MeasureLayer: (props: { diagonalRule?: string; remoteMeasurements?: unknown[] }) => (
+    <div
+      data-testid="measure-layer"
+      data-diagonal-rule={props.diagonalRule ?? ""}
+      data-remote-count={props.remoteMeasurements?.length ?? -1}
+    />
+  ),
   TransformGizmo: () => <div data-testid="transform-gizmo" />,
   PropsLayer: () => <div data-testid="props-layer" />,
   StagingZoneLayer: () => <div data-testid="staging-zone-layer" />,
@@ -438,6 +447,46 @@ describe("MapBoard", () => {
       const { container } = render(<MapBoard {...props} />);
 
       expect(container).toBeTruthy();
+    });
+  });
+  describe("S6 measurement wiring", () => {
+    it("hands MeasureLayer the room's diagonal rule from the snapshot", () => {
+      // The headline D11 fix is only as good as this one line: without it the
+      // overlay silently falls back to its own default and the DM's setting does
+      // nothing.
+      const props = getDefaultProps({
+        snapshot: {
+          users: [],
+          gridSize: 50,
+          gridSquareSize: 5,
+          players: [],
+          characters: [],
+          tokens: [],
+          drawings: [],
+          diceRolls: [],
+          pointers: [],
+          sceneObjects: [],
+          props: [],
+          diagonalRule: "pathfinder",
+        },
+      });
+      render(<MapBoard {...props} />);
+
+      expect(screen.getByTestId("measure-layer")).toHaveAttribute(
+        "data-diagonal-rule",
+        "pathfinder",
+      );
+    });
+
+    it("hands MeasureLayer the relayed measurements", () => {
+      const props = getDefaultProps({
+        remoteMeasurements: [
+          { uid: "bob", name: "Bob", start: { x: 0, y: 0 }, end: { x: 50, y: 50 } },
+        ],
+      });
+      render(<MapBoard {...props} />);
+
+      expect(screen.getByTestId("measure-layer")).toHaveAttribute("data-remote-count", "1");
     });
   });
 });

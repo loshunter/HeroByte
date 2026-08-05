@@ -25,6 +25,14 @@ interface NpcSettingsMenuProps {
   onToggleTokenLock?: (locked: boolean) => void;
   tokenSize?: TokenSize;
   onTokenSizeChange?: (size: TokenSize) => void;
+  /*
+   * NO SIGHT RADIUS HERE, deliberately. Fog is computed per RECIPIENT from the
+   * tokens that recipient OWNS, and an NPC token is always owned by the DM who
+   * placed it (`place-npc-token` is DM-gated, and createToken stamps the
+   * sender). No player's fog ever reads one, and the DM's player lens uses the
+   * tokens the DM does NOT own — so a radius on an NPC token is inert.
+   * A control that silently does nothing is worse than one that isn't there.
+   */
   /** Whether NPC deletion is in progress */
   isDeleting?: boolean;
   /** Error message from deletion attempt */

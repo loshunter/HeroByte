@@ -34,6 +34,22 @@ export class TokenService {
   }
 
   /**
+   * The most restrictive sight limit among the tokens this owner already has,
+   * or undefined when none of them is limited.
+   */
+  private tightestVisionRadius(state: RoomState, ownerUid: string): number | undefined {
+    let tightest: number | undefined;
+    for (const token of state.tokens) {
+      if (token.owner !== ownerUid) continue;
+      if (typeof token.visionRadius !== "number") continue;
+      if (tightest === undefined || token.visionRadius < tightest) {
+        tightest = token.visionRadius;
+      }
+    }
+    return tightest;
+  }
+
+  /**
    * Create a new token for a player
    */
   createToken(
@@ -53,6 +69,22 @@ export class TokenService {
       imageUrl,
       size,
     };
+    // Inherit the owner's tightest existing sight limit (S7). A radius is
+    // DM-authored and is supposed to only ever NARROW what a player can see —
+    // but it lives on ONE token record, and vision is the UNION over every
+    // token that player owns. Without this, a player who clicks "+ Add
+    // Character" (not DM-gated, and it spawns a second token) gets an
+    // unclipped polygon and the darkness the DM set is simply gone, with no
+    // signal to the DM. Inheriting the MINIMUM fails closed.
+    //
+    // KNOWN GAP: this cannot help when the player has no tokens left to
+    // inherit from — deleting your only token and reconnecting still respawns
+    // an unlimited one. Closing that needs a room-level default; see the arc
+    // note on S7.
+    const inherited = this.tightestVisionRadius(state, ownerUid);
+    if (inherited !== undefined) {
+      newToken.visionRadius = inherited;
+    }
 
     state.tokens.push(newToken);
     console.log("Spawned token", newToken);
@@ -195,6 +227,31 @@ export class TokenService {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Set a token's sight limit in feet, or clear it back to unlimited (S7).
+   *
+   * DM ONLY, and not by copying a permission from a neighbour: a vision radius
+   * can only ever NARROW what the walls already allow, so a player able to
+   * clear their own would simply undo the darkness the DM authored. That makes
+   * this closer to a scene setting than to token colour, and the gate belongs
+   * with the DM.
+   *
+   * `null` deletes the field rather than storing a sentinel, so "unlimited" has
+   * exactly one representation on the wire, on disk and in the cache key.
+   */
+  setVisionRadius(state: RoomState, tokenId: string, radius: number | null): boolean {
+    const token = state.tokens.find((t) => t.id === tokenId);
+    if (!token) {
+      return false;
+    }
+    if (radius === null) {
+      delete token.visionRadius;
+    } else {
+      token.visionRadius = radius;
+    }
+    return true;
   }
 
   /**

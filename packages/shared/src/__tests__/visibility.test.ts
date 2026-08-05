@@ -1,10 +1,21 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
+  coerceTokenVisionRadii,
+  coerceVisionRadius,
+  computeViewerVisionPolygon,
   computeVisionPolygon,
+  gridCellToWorldPoint,
   getVisionBlockingSegments,
+  inverseTransformScenePoint,
   pointInPolygon,
+  tokenVisionRadius,
+  transformScenePoint,
+  VISION_RADIUS_MAX_FEET,
+  VISION_RADIUS_MIN_FEET,
   type BlockingSegment,
   type CompiledScene,
+  type SceneTransform,
   type ScenePoint,
 } from "../index.js";
 
@@ -138,6 +149,363 @@ describe("computeVisionPolygon", () => {
   });
 });
 
+// ============================================================================
+// S7 — unlimited sight must not have moved by a single vertex
+// ============================================================================
+// Every hash below was produced by running the PRE-S7 implementation
+// (git HEAD fcab3046) over these cases, before the radius parameter existed.
+// They are frozen on purpose: S7 refactored the sweep's inner loop to hand the
+// ray direction to a distance function so the radius could clamp it, and
+// "unlimited sight is untouched" is the promise that made that refactor safe
+// to ship. A vertex count or hash that moves here means today's fog is not
+// yesterday's fog — fix the product code, never the fixture.
+describe("unlimited sight reproduces the pre-S7 polygons exactly", () => {
+  const GOLDEN: Record<string, { count: number; hash: string }> = {
+    "open scene": { count: 24, hash: "0ca56f2dd3af5a31" },
+    "single wall": { count: 30, hash: "1a3629986e9fe1e3" },
+    doorway: { count: 36, hash: "a7712904748aa78a" },
+    "enclosed room": { count: 48, hash: "de009199f0cb5ff4" },
+    "origin outside left": { count: 30, hash: "80ac577834129a62" },
+    "origin outside corner": { count: 24, hash: "df05f11377390932" },
+    "origin on edge": { count: 24, hash: "b6d75be433a191e7" },
+    "many walls": { count: 60, hash: "42844f11636e5e4b" },
+  };
+
+  const CASES: [string, ScenePoint, BlockingSegment[]][] = [
+    ["open scene", { x: 200, y: 200 }, []],
+    ["single wall", { x: 100, y: 200 }, [wall("w", 200, 150, 200, 250)]],
+    [
+      "doorway",
+      { x: 100, y: 200 },
+      [wall("top", 200, 0, 200, 180), wall("bottom", 200, 220, 200, 400)],
+    ],
+    [
+      "enclosed room",
+      { x: 200, y: 200 },
+      [
+        wall("n", 150, 150, 250, 150),
+        wall("e", 250, 150, 250, 250),
+        wall("s", 250, 250, 150, 250),
+        wall("w", 150, 250, 150, 150),
+      ],
+    ],
+    ["origin outside left", { x: -25, y: 200 }, [wall("w", 200, 0, 200, 400)]],
+    ["origin outside corner", { x: 425, y: 425 }, []],
+    ["origin on edge", { x: 0, y: 200 }, []],
+    [
+      "many walls",
+      { x: 137, y: 211 },
+      [
+        wall("a", 50, 50, 350, 50),
+        wall("b", 350, 50, 350, 350),
+        wall("c", 350, 350, 50, 350),
+        wall("d", 50, 350, 50, 50),
+        wall("e", 180, 120, 180, 260),
+        wall("f", 240, 90, 300, 200),
+      ],
+    ],
+  ];
+
+  function fingerprint(polygon: ScenePoint[]): { count: number; hash: string } {
+    const flat = polygon.flatMap((point) => [point.x, point.y]);
+    return {
+      count: polygon.length,
+      hash: createHash("sha256").update(flat.join(",")).digest("hex").slice(0, 16),
+    };
+  }
+
+  it.each(CASES)("%s is unchanged with no radius argument", (label, origin, segments) => {
+    expect(fingerprint(computeVisionPolygon(origin, segments, BOUNDS))).toEqual(GOLDEN[label]);
+  });
+
+  it.each(CASES)("%s is unchanged with an explicit null radius", (label, origin, segments) => {
+    expect(fingerprint(computeVisionPolygon(origin, segments, BOUNDS, null))).toEqual(
+      GOLDEN[label],
+    );
+  });
+
+  it("is unchanged when a viewer has no visionRadius set", () => {
+    const polygon = computeViewerVisionPolygon({
+      origin: { x: 200, y: 200 },
+      segments: [],
+      bounds: BOUNDS,
+      gridSize: 50,
+      gridSquareSize: 5,
+    });
+    expect(fingerprint(polygon)).toEqual(GOLDEN["open scene"]);
+  });
+});
+
+// ============================================================================
+// S7 — the radius itself
+// ============================================================================
+describe("computeVisionPolygon with a radius", () => {
+  const origin = { x: 200, y: 200 };
+
+  function maxReach(polygon: ScenePoint[]): number {
+    return Math.max(...polygon.map((p) => Math.hypot(p.x - origin.x, p.y - origin.y)));
+  }
+
+  it("stops sight at the radius in open ground", () => {
+    const polygon = computeVisionPolygon(origin, [], BOUNDS, { x: 60, y: 60 });
+
+    expect(pointInPolygon({ x: 240, y: 200 }, polygon)).toBe(true); // 40 away
+    expect(pointInPolygon({ x: 275, y: 200 }, polygon)).toBe(false); // 75 away
+    // The polygon CIRCUMSCRIBES the sight circle, so it reaches at least the
+    // stated radius everywhere and overshoots by a bounded hair. Inscribing it
+    // instead (vertices exactly ON the circle) is what made a target at exactly
+    // the stated range come back unseen — see the boundary suite below.
+    expect(maxReach(polygon)).toBeGreaterThanOrEqual(60);
+    expect(maxReach(polygon)).toBeLessThan(60 * 1.005);
+  });
+
+  it("traces the arc finely enough to stay round, not polygonal", () => {
+    const polygon = computeVisionPolygon(origin, [], BOUNDS, { x: 120, y: 120 });
+    // Sample the circle between the traced vertices: a coarse polygon would
+    // cut the chord and report these just-inside points as unseen.
+    for (let degrees = 0; degrees < 360; degrees += 1) {
+      const radians = (degrees * Math.PI) / 180;
+      const probe = {
+        x: origin.x + Math.cos(radians) * 118,
+        y: origin.y + Math.sin(radians) * 118,
+      };
+      expect(pointInPolygon(probe, polygon)).toBe(true);
+    }
+  });
+
+  it("still lets walls occlude inside the radius", () => {
+    const segments = [wall("w", 240, 150, 240, 250)];
+    const polygon = computeVisionPolygon(origin, segments, BOUNDS, { x: 120, y: 120 });
+
+    // Behind the wall (100 away) but well inside the 120 radius.
+    expect(pointInPolygon({ x: 300, y: 200 }, polygon)).toBe(false);
+    // Past the wall's top end, so beside its shadow — and 94 away, inside.
+    expect(pointInPolygon({ x: 250, y: 120 }, polygon)).toBe(true);
+    // In front of the wall.
+    expect(pointInPolygon({ x: 220, y: 200 }, polygon)).toBe(true);
+  });
+
+  it("never reaches further than the walls already allowed", () => {
+    const segments = [wall("w", 240, 150, 240, 250)];
+    const unlimited = computeVisionPolygon(origin, segments, BOUNDS);
+    const limited = computeVisionPolygon(origin, segments, BOUNDS, { x: 120, y: 120 });
+    // Every assertion below sits inside an `if`, so without this the test would
+    // pass having proved nothing the moment `limited` came back empty.
+    expect(pointInPolygon({ x: 220, y: 200 }, limited)).toBe(true);
+    // Radius is a strict narrowing: anything the limited viewer can see, the
+    // unlimited one could too.
+    for (const probe of [
+      { x: 300, y: 120 },
+      { x: 220, y: 200 },
+      { x: 200, y: 260 },
+      { x: 150, y: 150 },
+    ]) {
+      if (pointInPolygon(probe, limited)) {
+        expect(pointInPolygon(probe, unlimited)).toBe(true);
+      }
+    }
+  });
+
+  it("clips to an ellipse when the document is scaled unevenly", () => {
+    const polygon = computeVisionPolygon(origin, [], BOUNDS, { x: 100, y: 40 });
+
+    expect(pointInPolygon({ x: 290, y: 200 }, polygon)).toBe(true); // 90 along x
+    expect(pointInPolygon({ x: 200, y: 230 }, polygon)).toBe(true); // 30 along y
+    expect(pointInPolygon({ x: 200, y: 250 }, polygon)).toBe(false); // 50 along y
+  });
+
+  // The sweep drops segments that lie wholly beyond the sight limit, which is
+  // what makes a radius cheaper than unlimited sight instead of dearer. It is
+  // only sound because such a segment can neither be hit NOR shadow anything
+  // inside the limit — everything it hides is further away than it is. These
+  // pin that: pruning must change the answer nowhere.
+  describe("pruning segments beyond the limit", () => {
+    it("gives the same answer as if the far wall had been kept", () => {
+      const near = wall("near", 240, 150, 240, 250);
+      const far = wall("far", 380, 0, 380, 400); // 180 away, outside a 120 radius
+      const withFar = computeVisionPolygon(origin, [near, far], BOUNDS, { x: 120, y: 120 });
+      const withoutFar = computeVisionPolygon(origin, [near], BOUNDS, { x: 120, y: 120 });
+      expect(withFar).toEqual(withoutFar);
+    });
+
+    it("keeps a wall that only partly reaches inside the limit", () => {
+      // Its near end is 61 away, inside the 120 radius; the rest runs far
+      // outside it.
+      const straddling = wall("straddle", 260, 190, 260, 900);
+      const polygon = computeVisionPolygon(origin, [straddling], BOUNDS, { x: 120, y: 120 });
+      // Behind it and inside the radius: still occluded.
+      expect(pointInPolygon({ x: 300, y: 200 }, polygon)).toBe(false);
+      // And the wall did not blind everything else.
+      expect(pointInPolygon({ x: 200, y: 140 }, polygon)).toBe(true);
+    });
+
+    it("keeps a wall that passes near the origin without either endpoint inside", () => {
+      // Both endpoints are 500 away, but the segment crosses 20px from the
+      // origin — a bounding-box or endpoint test would wrongly drop it.
+      const grazing = wall("graze", -300, 220, 700, 220);
+      const polygon = computeVisionPolygon(origin, [grazing], BOUNDS, { x: 120, y: 120 });
+      expect(pointInPolygon({ x: 200, y: 260 }, polygon)).toBe(false); // behind it
+      expect(pointInPolygon({ x: 200, y: 160 }, polygon)).toBe(true); // in front
+    });
+  });
+
+  it("blinds a viewer whose radius is zero or negative", () => {
+    expect(computeVisionPolygon(origin, [], BOUNDS, { x: 0, y: 0 })).toEqual([]);
+    expect(computeVisionPolygon(origin, [], BOUNDS, { x: -5, y: -5 })).toEqual([]);
+    // Both consumers already treat a degenerate polygon as "sees nothing".
+    expect(pointInPolygon(origin, computeVisionPolygon(origin, [], BOUNDS, { x: 0, y: 0 }))).toBe(
+      false,
+    );
+  });
+
+  it("does not blind a viewer standing outside the document rect", () => {
+    const polygon = computeVisionPolygon({ x: -25, y: 200 }, [], BOUNDS, { x: 120, y: 120 });
+    expect(pointInPolygon({ x: 50, y: 200 }, polygon)).toBe(true);
+    expect(pointInPolygon({ x: 200, y: 200 }, polygon)).toBe(false); // 225 away
+  });
+});
+
+describe("tokenVisionRadius", () => {
+  const grid = { gridSize: 50, gridSquareSize: 5 };
+
+  it("converts feet to document units through the grid", () => {
+    // 60 ft / 5 ft per square = 12 squares * 50 px = 600 world px.
+    expect(tokenVisionRadius({ radiusFeet: 60, ...grid })).toEqual({ x: 600, y: 600 });
+  });
+
+  it("divides by the map scale, because the sweep runs in document space", () => {
+    const radius = tokenVisionRadius({
+      radiusFeet: 60,
+      ...grid,
+      mapTransform: { x: 0, y: 0, scaleX: 2, scaleY: 2, rotation: 0 },
+    });
+    expect(radius).toEqual({ x: 300, y: 300 });
+  });
+
+  it("becomes an ellipse under a non-uniform scale", () => {
+    const radius = tokenVisionRadius({
+      radiusFeet: 60,
+      ...grid,
+      mapTransform: { x: 0, y: 0, scaleX: 2, scaleY: 4, rotation: 0 },
+    });
+    expect(radius).toEqual({ x: 300, y: 150 });
+  });
+
+  it("ignores rotation — a rotated circle is still a circle", () => {
+    const upright = tokenVisionRadius({
+      radiusFeet: 60,
+      ...grid,
+      mapTransform: { x: 12, y: 34, scaleX: 2, scaleY: 2, rotation: 0 },
+    });
+    const turned = tokenVisionRadius({
+      radiusFeet: 60,
+      ...grid,
+      mapTransform: { x: 12, y: 34, scaleX: 2, scaleY: 2, rotation: 37 },
+    });
+    expect(turned).toEqual(upright);
+  });
+
+  it("ignores a negative scale's sign", () => {
+    const radius = tokenVisionRadius({
+      radiusFeet: 60,
+      ...grid,
+      mapTransform: { x: 0, y: 0, scaleX: -2, scaleY: 2, rotation: 0 },
+    });
+    expect(radius).toEqual({ x: 300, y: 300 });
+  });
+
+  it("means UNLIMITED for an unset, null or non-finite radius", () => {
+    expect(tokenVisionRadius({ ...grid })).toBeNull();
+    expect(tokenVisionRadius({ radiusFeet: undefined, ...grid })).toBeNull();
+    expect(tokenVisionRadius({ radiusFeet: null, ...grid })).toBeNull();
+    expect(tokenVisionRadius({ radiusFeet: Number.NaN, ...grid })).toBeNull();
+    expect(tokenVisionRadius({ radiusFeet: Number.POSITIVE_INFINITY, ...grid })).toBeNull();
+  });
+
+  it("means BLIND for zero or negative feet", () => {
+    expect(tokenVisionRadius({ radiusFeet: 0, ...grid })).toEqual({ x: 0, y: 0 });
+    expect(tokenVisionRadius({ radiusFeet: -30, ...grid })).toEqual({ x: 0, y: 0 });
+  });
+
+  it("declines to clip when the grid or scale is unusable", () => {
+    expect(tokenVisionRadius({ radiusFeet: 60, gridSize: 0, gridSquareSize: 5 })).toBeNull();
+    expect(tokenVisionRadius({ radiusFeet: 60, gridSize: 50, gridSquareSize: 0 })).toBeNull();
+    expect(
+      tokenVisionRadius({ radiusFeet: 60, gridSize: Number.NaN, gridSquareSize: 5 }),
+    ).toBeNull();
+    expect(
+      tokenVisionRadius({
+        radiusFeet: 60,
+        ...grid,
+        mapTransform: { x: 0, y: 0, scaleX: 0, scaleY: 1, rotation: 0 },
+      }),
+    ).toBeNull();
+  });
+});
+
+// The units trap this slice exists to avoid: a radius the DM sets in FEET has
+// to survive feet -> squares -> world pixels -> document units, and the map
+// transform scales the last step. Getting it wrong shows up as vision that is
+// exactly the map's scale factor too big or too small — which is invisible at
+// scale 1, the default. So measure the polygon back in WORLD space, where the
+// answer is a number the DM would recognise.
+describe("computeViewerVisionPolygon keeps the radius honest in world units", () => {
+  const transforms: [string, SceneTransform | undefined][] = [
+    ["no transform", undefined],
+    ["identity", { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 }],
+    ["translated", { x: 137, y: -64, scaleX: 1, scaleY: 1, rotation: 0 }],
+    ["scaled 2x", { x: 0, y: 0, scaleX: 2, scaleY: 2, rotation: 0 }],
+    ["scaled 0.5x and moved", { x: -80, y: 220, scaleX: 0.5, scaleY: 0.5, rotation: 0 }],
+    ["scaled and rotated", { x: 30, y: 40, scaleX: 1.75, scaleY: 1.75, rotation: 30 }],
+  ];
+
+  it.each(transforms)("60 ft reads as 600 world px under %s", (_label, mapTransform) => {
+    // Deep inside a deliberately huge document, so the RADIUS is what stops
+    // the sweep. Nearer an edge the bounds box would clip first and the test
+    // would be measuring the scene rect instead of the radius.
+    const worldOrigin = { x: 3000, y: 3000 };
+    const polygon = computeViewerVisionPolygon({
+      origin: worldOrigin,
+      radiusFeet: 60,
+      segments: [],
+      bounds: { width: 20000, height: 20000 },
+      gridSize: 50,
+      gridSquareSize: 5,
+      mapTransform,
+    });
+
+    expect(polygon.length).toBeGreaterThan(8);
+    const reaches = polygon.map((vertex) => {
+      const world = mapTransform ? transformScenePoint(mapTransform, vertex) : vertex;
+      return Math.hypot(world.x - worldOrigin.x, world.y - worldOrigin.y);
+    });
+    // 60 ft = 12 squares = 600 world px, whatever the map has been scaled to.
+    // At least 600 (the polygon circumscribes the circle, so it never falls
+    // short of the promise on the label) and under half a percent over.
+    for (const reach of reaches) {
+      expect(reach).toBeGreaterThanOrEqual(600);
+      expect(reach).toBeLessThan(600 * 1.005);
+    }
+  });
+
+  it("puts the origin where the inverse transform puts it", () => {
+    const mapTransform: SceneTransform = { x: 30, y: 40, scaleX: 2, scaleY: 2, rotation: 15 };
+    const worldOrigin = { x: 500, y: 600 };
+    const polygon = computeViewerVisionPolygon({
+      origin: worldOrigin,
+      radiusFeet: 60,
+      segments: [],
+      bounds: { width: 4000, height: 4000 },
+      gridSize: 50,
+      gridSquareSize: 5,
+      mapTransform,
+    });
+    expect(pointInPolygon(inverseTransformScenePoint(mapTransform, worldOrigin), polygon)).toBe(
+      true,
+    );
+  });
+});
+
 describe("getVisionBlockingSegments", () => {
   it("collects vision-blocking walls and shut doors, skipping open and transparent ones", () => {
     const scene: CompiledScene = {
@@ -199,5 +567,210 @@ describe("getVisionBlockingSegments", () => {
       "door-shut",
       "door-secret",
     ]);
+  });
+});
+
+// ============================================================================
+// S7 — coercing a radius that came off disk
+// ============================================================================
+// Tokens are the one collection both restore paths copy VERBATIM, so this is
+// the only hook between a hand-edited file and the vision geometry.
+describe("coerceVisionRadius", () => {
+  it("keeps a sane radius unchanged", () => {
+    expect(coerceVisionRadius(60)).toBe(60);
+    expect(coerceVisionRadius(0)).toBe(0);
+    expect(coerceVisionRadius(VISION_RADIUS_MAX_FEET)).toBe(VISION_RADIUS_MAX_FEET);
+  });
+
+  it("clamps a radius outside the range instead of handing it to the sweep", () => {
+    expect(coerceVisionRadius(-40)).toBe(VISION_RADIUS_MIN_FEET);
+    expect(coerceVisionRadius(1e12)).toBe(VISION_RADIUS_MAX_FEET);
+  });
+
+  it("degrades anything non-numeric to UNLIMITED, which is how fog always worked", () => {
+    expect(coerceVisionRadius(undefined)).toBeUndefined();
+    expect(coerceVisionRadius(null)).toBeUndefined();
+    expect(coerceVisionRadius("60")).toBeUndefined();
+    expect(coerceVisionRadius(Number.NaN)).toBeUndefined();
+    expect(coerceVisionRadius(Number.POSITIVE_INFINITY)).toBeUndefined();
+    expect(coerceVisionRadius({})).toBeUndefined();
+  });
+});
+
+describe("coerceTokenVisionRadii", () => {
+  it("keeps a clean token's identity, so nothing churns on load", () => {
+    const token = { id: "t", visionRadius: 60 };
+    const [out] = coerceTokenVisionRadii([token]);
+    expect(out).toBe(token);
+  });
+
+  it("keeps an unset token's identity too", () => {
+    const token: { id: string; visionRadius?: number } = { id: "t" };
+    const [out] = coerceTokenVisionRadii([token]);
+    expect(out).toBe(token);
+  });
+
+  it("clones and repairs only the poisoned ones", () => {
+    const clean = { id: "clean", visionRadius: 30 };
+    const poisoned = { id: "poisoned", visionRadius: -99 };
+    const [a, b] = coerceTokenVisionRadii([clean, poisoned]);
+
+    expect(a).toBe(clean);
+    expect(b).not.toBe(poisoned);
+    expect(b!.visionRadius).toBe(0);
+    // The original is untouched — the caller may still hold it.
+    expect(poisoned.visionRadius).toBe(-99);
+  });
+
+  it("DELETES a garbage radius rather than leaving a sentinel", () => {
+    const [out] = coerceTokenVisionRadii([{ id: "t", visionRadius: "sixty" as unknown as number }]);
+    expect("visionRadius" in out!).toBe(false);
+  });
+
+  it("survives a non-array, which is what a hand-edited file can hold", () => {
+    expect(coerceTokenVisionRadii({} as unknown as { visionRadius?: number }[])).toEqual([]);
+  });
+});
+
+// ============================================================================
+// S7 — the BOUNDARY, at exactly the stated range
+// ============================================================================
+// The case the original arc tests never probed: they checked 118 of a 120
+// radius and 40/75 of a 60, so a polygon inscribed a pixel INSIDE the circle
+// passed everything. It matters because a token can only stand on a cell
+// CENTRE and every radius the UI offers is a whole number of squares — so a
+// creature at exactly the stated range sits exactly ON the circle. Inscribed,
+// "30 ft" reached five squares, not six, in three of the four cardinal
+// directions (due west worked by luck: the i=0 arc sample lands at -PI).
+describe("a creature at exactly the stated range is seen", () => {
+  const GRID = { gridSize: 50, gridSquareSize: 5 };
+  const BIG = { width: 8000, height: 8000 };
+
+  /** The production entry point, on the room's default grid. */
+  function seenFrom(viewerCell: ScenePoint, radiusFeet: number, targetCell: ScenePoint) {
+    const origin = gridCellToWorldPoint(GRID.gridSize, viewerCell);
+    const polygon = computeViewerVisionPolygon({
+      origin,
+      radiusFeet,
+      segments: [],
+      bounds: BIG,
+      ...GRID,
+    });
+    return pointInPolygon(gridCellToWorldPoint(GRID.gridSize, targetCell), polygon);
+  }
+
+  const presets: [number, number][] = [
+    [30, 6],
+    [60, 12],
+    [120, 24],
+  ];
+
+  it.each(presets)("%i ft reaches exactly %i squares in EVERY direction", (feet, squares) => {
+    const viewer = { x: 30, y: 30 };
+    for (const [dx, dy] of [
+      [squares, 0],
+      [-squares, 0],
+      [0, squares],
+      [0, -squares],
+    ]) {
+      expect(seenFrom(viewer, feet, { x: viewer.x + dx, y: viewer.y + dy })).toBe(true);
+    }
+  });
+
+  it.each(presets)("%i ft does NOT reach %i squares — one past the limit", (feet, squares) => {
+    const viewer = { x: 30, y: 30 };
+    for (const [dx, dy] of [
+      [squares + 1, 0],
+      [-(squares + 1), 0],
+      [0, squares + 1],
+      [0, -(squares + 1)],
+    ]) {
+      expect(seenFrom(viewer, feet, { x: viewer.x + dx, y: viewer.y + dy })).toBe(false);
+    }
+  });
+
+  // The old shortfall was direction-dependent, which is the tell that it was a
+  // sampling artefact rather than a rule. Sweep many viewer positions so no
+  // single lucky alignment can hide it.
+  it("is not direction-dependent across many viewer positions", () => {
+    for (let i = 0; i < 24; i += 1) {
+      const viewer = { x: 20 + i, y: 17 + i * 2 };
+      for (const [dx, dy] of [
+        [6, 0],
+        [-6, 0],
+        [0, 6],
+        [0, -6],
+      ]) {
+        expect(seenFrom(viewer, 30, { x: viewer.x + dx, y: viewer.y + dy })).toBe(true);
+      }
+    }
+  });
+
+  it("also holds for a diagonal at exactly the range (a 3-4-5 triangle at 25 ft)", () => {
+    // 25 ft = 5 squares; offset (3,4) is exactly 5 squares away.
+    expect(seenFrom({ x: 30, y: 30 }, 25, { x: 33, y: 34 })).toBe(true);
+    expect(seenFrom({ x: 30, y: 30 }, 25, { x: 34, y: 33 })).toBe(true);
+  });
+
+  // The outward error must stay small: reaching a whole extra square would be
+  // just as wrong in the other direction.
+  it("overshoots by well under one square", () => {
+    const origin = gridCellToWorldPoint(50, { x: 30, y: 30 });
+    const polygon = computeViewerVisionPolygon({
+      origin,
+      radiusFeet: 30,
+      segments: [],
+      bounds: BIG,
+      ...GRID,
+    });
+    const reach = Math.max(...polygon.map((p) => Math.hypot(p.x - origin.x, p.y - origin.y)));
+    expect(reach).toBeGreaterThanOrEqual(300); // never short of the promise
+    expect(reach).toBeLessThan(310); // and never a fifth of a square over
+  });
+});
+
+// A positive-but-absurdly-small radius used to divide by a subnormal semi-axis:
+// the segment prune dropped EVERY occluder and the ray limit stopped being
+// finite, so the viewer saw the whole published map through every wall. The
+// validator's range is [0, 1000] FEET, which admits such a value, and
+// coerceVisionRadius clamps rather than rejects — so a hand-edited state file
+// could put one on a player's token. Both layers must fail closed.
+describe("an unusably small radius blinds rather than reveals", () => {
+  const GRID = { gridSize: 50, gridSquareSize: 5 };
+
+  it.each([[Number.MIN_VALUE], [5e-320], [1e-12]])(
+    "treats %p feet as blind, not as unlimited",
+    (feet) => {
+      expect(tokenVisionRadius({ radiusFeet: feet, ...GRID })).toEqual({ x: 0, y: 0 });
+    },
+  );
+
+  it("shows a wall-blocked point as HIDDEN even at a subnormal radius", () => {
+    const wall = { id: "w", x1: 200, y1: 0, x2: 200, y2: 400 };
+    const polygon = computeViewerVisionPolygon({
+      origin: { x: 100, y: 200 },
+      radiusFeet: Number.MIN_VALUE,
+      segments: [wall],
+      bounds: BOUNDS,
+      ...GRID,
+    });
+
+    // Blind: no polygon at all, so nothing on either side of the wall is seen.
+    expect(polygon).toEqual([]);
+    expect(pointInPolygon({ x: 300, y: 200 }, polygon)).toBe(false);
+    expect(pointInPolygon({ x: 150, y: 200 }, polygon)).toBe(false);
+  });
+
+  // Second layer, driven directly: even if a degenerate ellipse reached the
+  // geometry, it must not read as "unbounded in every direction".
+  it("does not let a degenerate ellipse become unlimited sight in the sweep", () => {
+    const wall = { id: "w", x1: 200, y1: 0, x2: 200, y2: 400 };
+    const polygon = computeVisionPolygon({ x: 100, y: 200 }, [wall], BOUNDS, {
+      x: Number.MIN_VALUE,
+      y: Number.MIN_VALUE,
+    });
+
+    expect(pointInPolygon({ x: 300, y: 200 }, polygon)).toBe(false);
+    expect(pointInPolygon({ x: 390, y: 20 }, polygon)).toBe(false);
   });
 });

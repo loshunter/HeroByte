@@ -130,6 +130,38 @@ describe("StatePersistence - Characterization Tests", () => {
       });
     });
 
+    it("round-trips diagonalRule through the state file, coercing garbage", async () => {
+      // S6: the table agreed on a rule; a restart that silently reverted it
+      // would change every distance on the map without telling anyone.
+      roomService.getState().diagonalRule = "pathfinder";
+      roomService.saveState();
+      await roomService.awaitPendingWrites();
+
+      const fresh = new RoomService({ stateFile: PROD_STATE_FILE });
+      fresh.loadState();
+      expect(fresh.getState().diagonalRule).toBe("pathfinder");
+
+      // A hand-edited file cannot smuggle a fourth rule into the maths.
+      const raw = JSON.parse(readFileSync(PROD_STATE_FILE, "utf-8"));
+      raw.diagonalRule = "chebyshev";
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(raw));
+      const poisoned = new RoomService({ stateFile: PROD_STATE_FILE });
+      poisoned.loadState();
+      expect(poisoned.getState().diagonalRule).toBe("5e");
+    });
+
+    it("gives a file written before S6 the corrected default, not Euclidean", async () => {
+      roomService.saveState();
+      await roomService.awaitPendingWrites();
+      const raw = JSON.parse(readFileSync(PROD_STATE_FILE, "utf-8"));
+      delete raw.diagonalRule;
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(raw));
+
+      const legacy = new RoomService({ stateFile: PROD_STATE_FILE });
+      legacy.loadState();
+      expect(legacy.getState().diagonalRule).toBe("5e");
+    });
+
     it("should do nothing when state file does not exist", () => {
       // Ensure file doesn't exist
       expect(existsSync(PROD_STATE_FILE)).toBe(false);
@@ -444,6 +476,60 @@ describe("StatePersistence - Characterization Tests", () => {
       expect(state.gridSquareSize).toBe(5); // Default
       expect(state.diceRolls).toEqual([]);
       expect(state.sceneObjects).toEqual([]);
+    });
+
+    // A poisoned `tokens` is worse than a poisoned field: every broadcast
+    // walks state.tokens inside the DEBOUNCED timer, outside route()'s
+    // try/catch, in a process with no uncaughtException handler. Before the
+    // guard, `tokens: data.tokens || []` let a non-array through and the
+    // first broadcast took down the process serving every room — then did it
+    // again on the next restart, because the file is still on disk.
+    it.each([
+      ["an object", { nope: true }],
+      ["a string", "tokens"],
+      ["a number", 7],
+      ["true", true],
+    ])("survives %s where the tokens array should be", (_label, poison) => {
+      writeFileSync(PROD_STATE_FILE, JSON.stringify({ tokens: poison }), "utf-8");
+
+      roomService.loadState();
+      const state = roomService.getState();
+
+      expect(Array.isArray(state.tokens)).toBe(true);
+      expect(state.tokens).toEqual([]);
+      // The collection is walked on every broadcast — prove it actually can be.
+      expect(() => state.tokens.filter((token) => token.owner === "anyone")).not.toThrow();
+    });
+
+    // Tokens are the one collection this loader copies VERBATIM — no per-field
+    // work at all — so the coercion here is the only thing standing between a
+    // hand-edited herobyte-state.json and the vision sweep. A negative radius
+    // would silently blind a player; an absurd one would hand the geometry
+    // nonsense. `diagonalRule` and `monsterHpDisplay` are whitelist-coerced on
+    // the same object for exactly this reason.
+    it("coerces a hand-edited vision radius on the way in", () => {
+      writeFileSync(
+        PROD_STATE_FILE,
+        JSON.stringify({
+          tokens: [
+            { id: "sane", owner: "p1", x: 0, y: 0, color: "red", visionRadius: 60 },
+            { id: "negative", owner: "p1", x: 1, y: 0, color: "red", visionRadius: -40 },
+            { id: "absurd", owner: "p1", x: 2, y: 0, color: "red", visionRadius: 1e12 },
+            { id: "stringy", owner: "p1", x: 3, y: 0, color: "red", visionRadius: "60" },
+          ],
+        }),
+        "utf-8",
+      );
+
+      roomService.loadState();
+      const byId = new Map(roomService.getState().tokens.map((token) => [token.id, token]));
+
+      expect(byId.get("sane")!.visionRadius).toBe(60);
+      expect(byId.get("negative")!.visionRadius).toBe(0);
+      expect(byId.get("absurd")!.visionRadius).toBe(1000);
+      // Not a number at all, so it degrades to UNLIMITED — the pre-S7
+      // behaviour — rather than to a garbage value or a blinded token.
+      expect("visionRadius" in byId.get("stringy")!).toBe(false);
     });
 
     it("should handle corrupted JSON gracefully (error logged, state unchanged)", () => {

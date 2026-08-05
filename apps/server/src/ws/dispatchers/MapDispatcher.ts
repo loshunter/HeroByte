@@ -1,4 +1,4 @@
-import type { ClientMessage, Pointer } from "@herobyte/shared";
+import type { ClientMessage, MeasureEvent, Pointer } from "@herobyte/shared";
 import type { DrawingMessageHandler } from "../handlers/DrawingMessageHandler.js";
 import type { MapMessageHandler } from "../handlers/MapMessageHandler.js";
 import type { PointerHandler } from "../handlers/PointerHandler.js";
@@ -7,6 +7,7 @@ import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 
 export interface MapDispatcherResult extends RouteHandlerResult {
   pointerPreview?: Pointer;
+  measureEvent?: MeasureEvent;
 }
 
 export class MapDispatcher {
@@ -47,6 +48,9 @@ export class MapDispatcher {
         };
       }
 
+      case "measure":
+        return this.pointerHandler.handleMeasure(state, senderUid, message.measure);
+
       // Drawing Handler
       case "draw":
         return this.drawingHandler.handleDraw(state, message.drawing, senderUid);
@@ -79,7 +83,7 @@ export class MapDispatcher {
         );
 
       case "delete-drawing":
-        return this.drawingHandler.handleDeleteDrawing(state, message.id);
+        return this.drawingHandler.handleDeleteDrawing(state, message.id, senderUid, isDM);
 
       case "erase-partial":
         return this.drawingHandler.handleErasePartial(

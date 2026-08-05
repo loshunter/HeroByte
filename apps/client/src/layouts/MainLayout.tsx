@@ -63,6 +63,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     drawMode,
     pointerMode,
     measureMode,
+    remoteMeasurements,
     transformMode,
     selectMode,
     alignmentMode,
@@ -162,6 +163,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     deleteToken,
     updateTokenImage,
     updateTokenSize,
+    updateTokenVisionRadius,
 
     // Alignment
     alignmentPoints,
@@ -295,6 +297,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         playerLens={playerLens}
         pointerMode={pointerMode}
         measureMode={measureMode}
+        remoteMeasurements={remoteMeasurements}
         drawMode={drawMode}
         transformMode={transformMode}
         selectMode={selectMode}
@@ -384,6 +387,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         npcDeletionError={undefined}
         onToggleTokenLock={toggleSceneObjectLock}
         onTokenSizeChange={updateTokenSize}
+        onTokenVisionRadiusChange={updateTokenVisionRadius}
         onTokenImageChange={updateTokenImage}
         onAddCharacter={playerActions.addCharacter}
         onDeleteCharacter={playerActions.deleteCharacter}

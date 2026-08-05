@@ -23,6 +23,7 @@ import type {
   ClientMessage,
   Character,
   Prop,
+  DiagonalRule,
   MonsterHpDisplay,
 } from "@herobyte/shared";
 import { useNpcCreation } from "./useNpcCreation";
@@ -112,6 +113,7 @@ export interface UseDMContextReturn {
     handlePreviousTurn: () => void;
     handleDeletePlayerToken: (tokenId: string) => void;
     handleSetMonsterHpDisplay: (mode: MonsterHpDisplay) => void;
+    handleSetDiagonalRule: (rule: DiagonalRule) => void;
   };
 }
 
@@ -253,6 +255,13 @@ export function useDMContext({
     [sendMessage],
   );
 
+  const handleSetDiagonalRule = useCallback(
+    (rule: DiagonalRule) => {
+      sendMessage({ t: "set-diagonal-rule", rule });
+    },
+    [sendMessage],
+  );
+
   const handleDeletePlayerToken = useCallback(
     (tokenId: string) => {
       sendMessage({ t: "delete-token", id: tokenId });
@@ -303,6 +312,7 @@ export function useDMContext({
       handlePreviousTurn,
       handleDeletePlayerToken,
       handleSetMonsterHpDisplay,
+      handleSetDiagonalRule,
     },
   };
 }

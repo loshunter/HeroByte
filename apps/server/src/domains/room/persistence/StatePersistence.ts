@@ -13,7 +13,11 @@
 import { readFileSync, existsSync, renameSync } from "fs";
 import { writeFile, rename } from "fs/promises";
 import type { Player, Character, SceneObject } from "@herobyte/shared";
-import { coerceMonsterHpDisplay } from "@herobyte/shared";
+import {
+  coerceDiagonalRule,
+  coerceMonsterHpDisplay,
+  coerceTokenVisionRadii,
+} from "@herobyte/shared";
 import { resolveServerPath } from "../../../config/serverPaths.js";
 import type { RoomState } from "../model.js";
 import { createSelectionMap } from "../model.js";
@@ -88,7 +92,20 @@ export class StatePersistence {
         const loadedState: RoomState = {
           users: [], // Don't persist users - they reconnect
           stateVersion: typeof data.stateVersion === "number" ? data.stateVersion : 0,
-          tokens: data.tokens || [],
+          // Array-guarded like diceRolls below: this array is walked inside the
+          // DEBOUNCED broadcast timer, outside route()'s try/catch, in a
+          // process with no uncaughtException handler — so a poisoned non-array
+          // would kill the process serving every room, and do it again on every
+          // restart. Whitelist-coerced on the way in for the same reason
+          // diagonalRule is: a hand-edited visionRadius otherwise reaches the
+          // vision geometry unchecked, since tokens are copied verbatim.
+          //
+          // The two guards are now redundant on purpose — `coerceTokenVisionRadii`
+          // array-guards as well, so removing the `Array.isArray` here no longer
+          // changes behaviour and no test notices. Keep both: they protect
+          // different things (a crash, and a poisoned field), and either could
+          // be moved or dropped by a later refactor of the other.
+          tokens: coerceTokenVisionRadii(Array.isArray(data.tokens) ? data.tokens : []),
           players: (data.players || []).map((player: Player) => ({
             ...player,
             isDM: player.isDM ?? false,
@@ -126,6 +143,10 @@ export class StatePersistence {
           // Whitelist, not passthrough: a hand-edited file must not smuggle a
           // fourth mode into a field the recipient filter branches on.
           monsterHpDisplay: coerceMonsterHpDisplay(data.monsterHpDisplay),
+          // Same whitelist for the same reason: the measurement maths branches
+          // on this, and a file written by an older server has no key at all
+          // (which coerces to "5e", the corrected default).
+          diagonalRule: coerceDiagonalRule(data.diagonalRule),
         };
 
         this.setState(loadedState);
@@ -220,6 +241,7 @@ export class StatePersistence {
       liveMapDocumentId: state.liveMapDocumentId,
       fogEnabled: state.fogEnabled,
       monsterHpDisplay: state.monsterHpDisplay,
+      diagonalRule: state.diagonalRule,
       stateVersion: state.stateVersion,
       // Combat state survives a restart on purpose (VISION.md calls this a
       // launch gate): a mid-fight crash or redeploy must not lose initiative.

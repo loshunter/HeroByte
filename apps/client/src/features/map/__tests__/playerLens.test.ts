@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from "vitest";
 import type { CompiledDoor, Token } from "@herobyte/shared";
-import { dmViewActive, fogViewerTokens, visibleDoors } from "../playerLens";
+import { dmViewActive, fogViewers, fogViewerTokens, visibleDoors } from "../playerLens";
 
 const door = (id: string, state: CompiledDoor["state"]): CompiledDoor =>
   ({ id, state, x1: 0, y1: 0, x2: 50, y2: 0 }) as CompiledDoor;
@@ -42,5 +42,35 @@ describe("fogViewerTokens", () => {
 
   it("uses the PARTY's union vision under the lens (every token the DM does not own)", () => {
     expect(fogViewerTokens(tokens, "dm-uid", true).map((t) => t.id)).toEqual(["p1", "p2"]);
+  });
+});
+
+// The step MapBoard used to do inline, where it discarded the Token and kept
+// only {x,y} — which is exactly how a per-token sight radius would have been
+// lost between the snapshot and the fog.
+describe("fogViewers", () => {
+  const tokens: Token[] = [
+    { id: "mine", owner: "dm-uid", x: 1, y: 2, color: "red" },
+    { id: "p1", owner: "player-1", x: 3, y: 4, color: "blue", visionRadius: 60 },
+    { id: "p2", owner: "player-2", x: 5, y: 6, color: "green" },
+  ];
+
+  it("converts cells to world-pixel CELL CENTRES, matching the renderer", () => {
+    // Cell (3,4) at gridSize 50 is world (3*50+25, 4*50+25).
+    expect(fogViewers(tokens, "player-1", false, 50)).toEqual([{ x: 175, y: 225, radiusFeet: 60 }]);
+  });
+
+  it("carries each token's own sight radius through", () => {
+    const viewers = fogViewers(tokens, "dm-uid", true, 50);
+    expect(viewers.map((viewer) => viewer.radiusFeet)).toEqual([60, undefined]);
+  });
+
+  it("leaves an unset radius undefined rather than inventing a default", () => {
+    expect(fogViewers(tokens, "player-2", false, 50)[0]!.radiusFeet).toBeUndefined();
+  });
+
+  it("uses the party union under the lens, exactly as fogViewerTokens does", () => {
+    expect(fogViewers(tokens, "dm-uid", true, 50)).toHaveLength(2);
+    expect(fogViewers(tokens, "dm-uid", false, 50)).toHaveLength(1);
   });
 });

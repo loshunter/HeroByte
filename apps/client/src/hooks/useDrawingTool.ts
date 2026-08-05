@@ -6,17 +6,28 @@
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import type Konva from "konva";
-import type { ClientMessage, SceneObject } from "@herobyte/shared";
+import {
+  templateKindForTool,
+  type AreaTemplate,
+  type ClientMessage,
+  type DrawTool,
+  type SceneObject,
+} from "@herobyte/shared";
+import { projectTemplateDrag, templateDrawingFor } from "../features/drawing/utils/templateDraft";
 import { generateUUID } from "../utils/uuid";
-import { evaluatePartialErase } from "../features/drawing/utils/partialErase";
+import { commitEraseStroke } from "../features/drawing/utils/eraseStroke";
 
 interface UseDrawingToolOptions {
   drawMode: boolean;
-  drawTool: "freehand" | "line" | "rect" | "circle" | "eraser";
+  drawTool: DrawTool;
   drawColor: string;
   drawWidth: number;
   drawOpacity: number;
   drawFilled: boolean;
+  /** World pixels per grid square — templates snap to it. */
+  gridSize: number;
+  /** Feet per grid square, so a template can report its size. */
+  gridSquareSize: number;
   toWorld: (sx: number, sy: number) => { x: number; y: number };
   sendMessage: (msg: ClientMessage) => void;
   onDrawingComplete?: (drawingId: string) => void;
@@ -24,7 +35,14 @@ interface UseDrawingToolOptions {
 }
 
 interface UseDrawingToolReturn {
+  /**
+   * The preview geometry. For a template tool this is the SNAPPED POLYGON,
+   * not the raw drag — the shape the player releases on is the shape that
+   * lands, because both come from the same `buildAreaTemplate` call.
+   */
   currentDrawing: { x: number; y: number }[];
+  /** Size/kind of the template being dragged, for its readout. */
+  currentTemplate?: AreaTemplate;
   isDrawing: boolean;
   onMouseDown: (stageRef: RefObject<Konva.Stage | null>) => void;
   onMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
@@ -44,6 +62,8 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
     drawWidth,
     drawOpacity,
     drawFilled,
+    gridSize,
+    gridSquareSize,
     toWorld,
     sendMessage,
     onDrawingComplete,
@@ -52,15 +72,37 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
 
   // Drawing tool state
   const [currentDrawing, setCurrentDrawing] = useState<{ x: number; y: number }[]>([]);
+  const [currentTemplate, setCurrentTemplate] = useState<AreaTemplate | undefined>(undefined);
   const [isDrawing, setIsDrawing] = useState(false);
 
   // Use ref to track drawing points during mouse movement to avoid excessive re-renders
   const drawingPointsRef = useRef<{ x: number; y: number }[]>([]);
   const animationFrameRef = useRef<number | null>(null);
 
+  // Which template shape this tool draws, or null for a plain drawing tool.
+  const templateKind = templateKindForTool(drawTool);
+
+  const projectTemplate = useCallback(
+    (raw: { x: number; y: number }[]) =>
+      projectTemplateDrag({ drawTool, raw, gridSize, gridSquareSize }),
+    [drawTool, gridSize, gridSquareSize],
+  );
+
+  const publishPreview = useCallback(() => {
+    const built = projectTemplate(drawingPointsRef.current);
+    if (built) {
+      setCurrentDrawing(built.points);
+      setCurrentTemplate(built.template);
+      return;
+    }
+    setCurrentDrawing([...drawingPointsRef.current]);
+    setCurrentTemplate(undefined);
+  }, [projectTemplate]);
+
   useEffect(() => {
     if (!drawMode) {
       setCurrentDrawing([]);
+      setCurrentTemplate(undefined);
       setIsDrawing(false);
       drawingPointsRef.current = [];
       // Cancel any pending animation frame when exiting draw mode
@@ -85,10 +127,10 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
     if (animationFrameRef.current !== null) return;
 
     animationFrameRef.current = requestAnimationFrame(() => {
-      setCurrentDrawing([...drawingPointsRef.current]);
+      publishPreview();
       animationFrameRef.current = null;
     });
-  }, []);
+  }, [publishPreview]);
 
   /**
    * Start a new drawing on mouse down
@@ -108,13 +150,14 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
       if (drawTool === "freehand" || drawTool === "eraser") {
         drawingPointsRef.current = [world];
         setCurrentDrawing([world]);
+        setCurrentTemplate(undefined);
       } else {
-        // For line, rect, circle: store start point
+        // For line, rect, circle and every template: store start point
         drawingPointsRef.current = [world, world];
-        setCurrentDrawing([world, world]);
+        publishPreview();
       }
     },
-    [drawMode, drawTool, toWorld],
+    [drawMode, drawTool, toWorld, publishPreview],
   );
 
   /**
@@ -163,28 +206,39 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
 
     // Handle eraser tool differently - delete intersecting drawings
     if (drawTool === "eraser" && finalDrawing.length > 1) {
-      for (const drawing of drawingObjects) {
-        const drawingId = drawing.data.drawing.id;
-
-        const result = evaluatePartialErase(drawing, finalDrawing, drawWidth);
-        if (result.kind === "none") {
-          continue;
-        }
-
-        if (result.kind === "partial") {
-          sendMessage({
-            t: "erase-partial",
-            deleteId: drawingId,
-            segments: result.segments,
-          });
-          continue;
-        }
-
-        sendMessage({ t: "delete-drawing", id: drawingId });
-      }
+      commitEraseStroke(drawingObjects, finalDrawing, drawWidth, sendMessage);
 
       // Clear the eraser path (don't save it)
       setCurrentDrawing([]);
+      setCurrentTemplate(undefined);
+      setIsDrawing(false);
+      drawingPointsRef.current = [];
+      return;
+    }
+
+    // Templates commit as ONE record type with the polygon already baked in,
+    // so the shape on the table is byte-for-byte the shape the player let go
+    // of. A tap that never moved is not a template — the origin and the aim
+    // are the same point — and must not litter the map from a stray touch.
+    if (templateKind) {
+      const drawing = templateDrawingFor({
+        drawTool,
+        raw: finalDrawing,
+        gridSize,
+        gridSquareSize,
+        style: {
+          id: generateUUID(),
+          color: drawColor,
+          width: drawWidth,
+          opacity: drawOpacity,
+        },
+      });
+      if (drawing) {
+        sendMessage({ t: "draw", drawing });
+        onDrawingComplete?.(drawing.id);
+      }
+      setCurrentDrawing([]);
+      setCurrentTemplate(undefined);
       setIsDrawing(false);
       drawingPointsRef.current = [];
       return;
@@ -230,12 +284,16 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
     }
 
     setCurrentDrawing([]);
+    setCurrentTemplate(undefined);
     setIsDrawing(false);
     drawingPointsRef.current = [];
   }, [
     drawMode,
     isDrawing,
     drawTool,
+    templateKind,
+    gridSize,
+    gridSquareSize,
     drawColor,
     drawWidth,
     drawOpacity,
@@ -260,11 +318,13 @@ export function useDrawingTool(options: UseDrawingToolOptions): UseDrawingToolRe
 
     drawingPointsRef.current = [];
     setCurrentDrawing([]);
+    setCurrentTemplate(undefined);
     setIsDrawing(false);
   }, []);
 
   return {
     currentDrawing,
+    currentTemplate,
     isDrawing,
     onMouseDown,
     onMouseMove,

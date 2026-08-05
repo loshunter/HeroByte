@@ -4,7 +4,7 @@
 // Slide-out drawer for viewing players/entities on mobile.
 
 import React from "react";
-import type { Player, SnapshotCharacter } from "@herobyte/shared";
+import type { Player, SnapshotCharacter, Token } from "@herobyte/shared";
 import { MobilePlayerRow } from "./MobilePlayerRow";
 import { JRPGButton } from "../ui/JRPGPanel";
 
@@ -33,6 +33,9 @@ interface MobileEntitiesListProps {
   onCharacterStatusEffectsChange: (characterId: string, effects: string[]) => void;
   onCharacterNameUpdate: (characterId: string, name: string) => void;
   onCharacterPortraitUpdate: (characterId: string, url: string) => void;
+  /** Live tokens, so a DM can set each player's sight radius from a phone (S7). */
+  tokens?: Token[];
+  onTokenVisionRadiusChange?: (tokenId: string, radiusFeet: number | null) => void;
 }
 
 export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
@@ -56,6 +59,8 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   onCharacterStatusEffectsChange,
   onCharacterNameUpdate,
   onCharacterPortraitUpdate,
+  tokens,
+  onTokenVisionRadiusChange,
 }) => {
   // Merge player and character data
   const entities = players.map((player) => {
@@ -71,6 +76,11 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
       portrait: character?.portrait ?? player.portrait,
       statusEffects: character?.statusEffects ?? player.statusEffects,
       characterId: character?.id ?? player.uid, // Use character ID for updates if available
+      // The token this ROW is about. Bound through the CHARACTER, as
+      // EntitiesPanel does, and not by owner: a player can own several tokens —
+      // one from joining, one per "+ Add Character" — so picking by owner shows
+      // one character's row while writing to a different character's token.
+      tokenId: character?.tokenId,
     };
   });
 
@@ -131,38 +141,56 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
           gap: "12px",
         }}
       >
-        {entities.map((entity) => (
-          <MobilePlayerRow
-            key={entity.uid}
-            player={entity}
-            isMe={entity.uid === uid}
-            isDM={isDM}
-            onToggleDMMode={onToggleDMMode}
-            editingHpUID={editingHpUID}
-            hpInput={hpInput}
-            onHpInputChange={onHpInputChange}
-            onHpEdit={onHpEdit}
-            onHpSubmit={(_hpStr) => {
-              // HPBar passes the string value, but onHpSubmit expects void in EntitiesPanel
-              // Here we just trigger the submit logic
-              onHpSubmit();
-            }}
-            editingMaxHpUID={editingMaxHpUID}
-            maxHpInput={maxHpInput}
-            onMaxHpInputChange={onMaxHpInputChange}
-            onMaxHpEdit={onMaxHpEdit}
-            onMaxHpSubmit={(_maxHpStr) => {
-              // HPBar passes the string value, but onMaxHpSubmit expects void here
-              onMaxHpSubmit();
-            }}
-            onCharacterHpChange={onCharacterHpChange}
-            onStatusEffectsChange={(effects) =>
-              onCharacterStatusEffectsChange(entity.characterId, effects)
-            }
-            onCharacterNameUpdate={onCharacterNameUpdate}
-            onCharacterPortraitUpdate={onCharacterPortraitUpdate}
-          />
-        ))}
+        {entities.map((entity) => {
+          // Prefer the row's own character token; fall back to an owned token
+          // only for a legacy player with no character link.
+          const entityToken = entity.tokenId
+            ? tokens?.find((candidate) => candidate.id === entity.tokenId)
+            : tokens?.find((candidate) => candidate.owner === entity.uid);
+          return (
+            <MobilePlayerRow
+              key={entity.uid}
+              player={entity}
+              isMe={entity.uid === uid}
+              token={entityToken}
+              // `isDM` is the VIEWER's flag (see the prop doc above), and it is
+              // required here for the same reason EntitiesPanel gates on
+              // `currentIsDM`: sight radius is DM-only, the server refuses it
+              // from anyone else, and a control that silently does nothing is
+              // worse than one that isn't there.
+              onTokenVisionRadiusChange={
+                isDM && entityToken && onTokenVisionRadiusChange
+                  ? (radiusFeet) => onTokenVisionRadiusChange(entityToken.id, radiusFeet)
+                  : undefined
+              }
+              isDM={isDM}
+              onToggleDMMode={onToggleDMMode}
+              editingHpUID={editingHpUID}
+              hpInput={hpInput}
+              onHpInputChange={onHpInputChange}
+              onHpEdit={onHpEdit}
+              onHpSubmit={(_hpStr) => {
+                // HPBar passes the string value, but onHpSubmit expects void in EntitiesPanel
+                // Here we just trigger the submit logic
+                onHpSubmit();
+              }}
+              editingMaxHpUID={editingMaxHpUID}
+              maxHpInput={maxHpInput}
+              onMaxHpInputChange={onMaxHpInputChange}
+              onMaxHpEdit={onMaxHpEdit}
+              onMaxHpSubmit={(_maxHpStr) => {
+                // HPBar passes the string value, but onMaxHpSubmit expects void here
+                onMaxHpSubmit();
+              }}
+              onCharacterHpChange={onCharacterHpChange}
+              onStatusEffectsChange={(effects) =>
+                onCharacterStatusEffectsChange(entity.characterId, effects)
+              }
+              onCharacterNameUpdate={onCharacterNameUpdate}
+              onCharacterPortraitUpdate={onCharacterPortraitUpdate}
+            />
+          );
+        })}
       </div>
     </div>
   );

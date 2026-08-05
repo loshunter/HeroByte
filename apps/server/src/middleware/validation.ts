@@ -26,6 +26,7 @@ import {
   validateUpdateTokenImageMessage,
   validateSetTokenSizeMessage,
   validateSetTokenColorMessage,
+  validateSetTokenVisionRadiusMessage,
   validateDragPreviewMessage,
 } from "./validators/index.js";
 
@@ -83,6 +84,8 @@ import {
   validateSetDoorStateMessage,
   validateSetFogEnabledMessage,
   validateSetMonsterHpDisplayMessage,
+  validateSetDiagonalRuleMessage,
+  validateMeasureMessage,
 } from "./validators/index.js";
 
 // Prop validators
@@ -138,6 +141,7 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   "update-token-image": validateUpdateTokenImageMessage,
   "set-token-size": validateSetTokenSizeMessage,
   "set-token-color": validateSetTokenColorMessage,
+  "set-token-vision-radius": validateSetTokenVisionRadiusMessage,
   "drag-preview": validateDragPreviewMessage,
 
   // ==========================================================================
@@ -208,6 +212,8 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   "set-door-state": validateSetDoorStateMessage,
   "set-fog-enabled": validateSetFogEnabledMessage,
   "set-monster-hp-display": validateSetMonsterHpDisplayMessage,
+  "set-diagonal-rule": validateSetDiagonalRuleMessage,
+  measure: validateMeasureMessage,
 
   // ==========================================================================
   // PROP MESSAGES

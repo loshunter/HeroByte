@@ -169,7 +169,11 @@ test.describe("mobile touch — drawing toolbar reach", () => {
       });
 
       expect(report).not.toBeNull();
-      expect(report!.count).toBe(10);
+      // 14 = five drawing tools + four area templates (S6) + colour + size
+      // + Undo + Redo + Done. Pinned deliberately: the point of this test is
+      // that ADDING a control cannot quietly push another one off screen, so a
+      // new count must be seen and re-measured, not auto-accepted.
+      expect(report!.count).toBe(14);
       expect(report!.offScreen).toEqual([]);
       expect(report!.under44).toEqual([]);
     });

@@ -117,16 +117,26 @@ put someone else's in.
 
 ![The drawing toolbar with freehand strokes and a circle on the map](img/drawing-tools.jpg)
 
-A draggable toolbox with five tools — **Draw** (freehand), **Line**, **Rect**, **Circle**, **Eraser** — plus 12 preset colors, a full color picker, **brush size** (1–50 px), **opacity**, and a **Filled** checkbox for shapes.
+A draggable toolbox with five tools — **Draw** (freehand), **Line**, **Rect**, **Circle**, **Eraser** — plus four **area templates** (below), 12 preset colors, a full color picker, **brush size** (1–50 px), **opacity**, and a **Filled** checkbox for shapes.
 
 - Drawings sync to everyone, live as you draw.
 - **Undo/redo** (buttons, or **Ctrl+Z / Ctrl+Y** while draw mode is active) affect **your own** drawings only.
 - The **Eraser** is surgical on freehand strokes: dragging across one removes just the crossed section and leaves the rest. Lines, rects, and circles are all-or-nothing.
-- You can erase and move only your own drawings. **🗑️ CLEAR ALL** wipes the whole map — that one is DM-only.
+- You can erase, move and delete only your own drawings; the DM can remove anyone's. **🗑️ CLEAR ALL** wipes the whole map — that one is DM-only.
+
+### Area templates
+
+Under **Templates** in the same toolbox: **◯ Circle** (a burst or sphere), **◺ Cone**, **▢ Square** (a cube), and **▬ Line**. Drag from the point of origin outward — the origin snaps to the grid, and the size snaps to whole squares, so a template always reads as a round number of feet. Release and it lands on the map labelled with its size (`15 ft cone`), filled faintly enough to see the tokens standing inside it.
+
+Templates are ordinary drawings: they take your color and opacity, they undo and redo, the eraser removes them, and everyone at the table sees them. A cone is drawn to 5e's rule — as wide at its far edge as it is long.
 
 ### 📏 Measure
 
-Click a start point, and a dashed line follows your cursor with a live readout like `7.5 Squares (37.5 ft)`; click again to freeze it, click a third time to start fresh. Measurements are private to you. (Feet-per-square is set by the DM; 5 ft is the default.)
+Click a start point, and a dashed line follows your cursor with a live readout like `3 Squares (15 ft)`; click again to freeze it, click a third time to start fresh.
+
+**The whole table sees your line while you draw it**, labelled with your name, so "is Grak in range?" is one question with one answer. Putting the tool away clears it again.
+
+Distance is counted by the table's **diagonal rule**, which the DM sets (5e by default: every square costs the same, so a two-square diagonal is 10 ft). Feet-per-square is a DM setting too; 5 ft is the default.
 
 ![Measuring a diagonal: squares and feet update as the line moves](img/measure-tool.jpg)
 
@@ -167,6 +177,8 @@ When the DM runs a built map (walls, doors, fog of war):
 ![A player's view with fog of war: you see what your character sees](img/player-fog-view.jpg)
 
 - **Fog of war** hides everything your characters can't see. Vision radiates from **your own tokens** and is blocked by walls and closed doors — move, and your view moves with you.
+- **Your token may have a sight limit.** The DM can give any token a radius in feet — a torch, darkvision, a blindfold — and beyond it you see nothing even down an open corridor. Unset means you see as far as the walls allow, which is how every table worked before. Ask your DM; there is no player control for it, by design (a limit only ever narrows what you can see, so being able to switch it off would just undo the dark).
+- **Somewhere you have already been stays dimly lit.** Once your tokens have seen a patch of map it is remembered and drawn shaded rather than black, so you can find your way back through a dungeon you have explored. It is only a memory of the GROUND — anything that has wandered in since is still hidden, because the table never sent it to you. The memory is stored in your own browser, per table and per map, so it does not follow you to another device and clears when the DM publishes a different map.
 - **Doors are clickable**: click to open or close (everyone hears the creak/slam). A small gold square marks a **locked** door — only the DM can open those.
 - **Secret doors exist.** You won't see them until the DM reveals one — to you it's just wall.
 - At night the whole map cools and darkens, and torches, braziers, and other glowing props cast light pools.

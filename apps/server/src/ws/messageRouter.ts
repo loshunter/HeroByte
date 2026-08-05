@@ -8,6 +8,7 @@ import {
   gridCellToWorldPoint,
   type ClientMessage,
   type DragPreviewEvent,
+  type MeasureEvent,
   type Pointer,
   type ScenePoint,
   type ServerMessage,
@@ -411,6 +412,25 @@ export class MessageRouter {
     if (pointerResult.preview) {
       this.broadcastPointerPreview(pointerResult.preview, reason);
     }
+    const measureResult = result as { measureEvent?: MeasureEvent };
+    if (measureResult.measureEvent) {
+      this.broadcastMeasure(measureResult.measureEvent, reason);
+    }
+  }
+
+  /**
+   * Relay a live measurement to the whole table.
+   *
+   * Unfiltered on purpose, unlike a pointer ping: a ping marks a SPOT and can
+   * therefore give away what is in an unseen room, while a measurement is a
+   * line the measurer drew between two places they already chose to look at.
+   * The whole point of the feature is that everyone sees the same line — a
+   * per-recipient version would answer "is Grak in it?" differently for
+   * different people, which is the disagreement S6 exists to end.
+   */
+  private broadcastMeasure(measure: MeasureEvent, reason?: string): void {
+    this.sendToAuthorizedClients({ t: "measure", measure });
+    this.messageLogger.logMessageRouting("measure", reason ?? "measure");
   }
 
   /**

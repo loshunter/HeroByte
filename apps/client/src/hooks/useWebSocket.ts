@@ -3,9 +3,9 @@
 // ============================================================================
 // React hook for WebSocket connection management
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { WebSocketService, ConnectionState, AuthState, AuthEvent } from "../services/websocket";
-import type { RoomSnapshot, ClientMessage, ServerMessage } from "@herobyte/shared";
+import type { RoomSnapshot, ClientMessage, MeasureEvent, ServerMessage } from "@herobyte/shared";
 
 interface UseWebSocketOptions {
   url: string;
@@ -16,6 +16,13 @@ interface UseWebSocketOptions {
 
 interface UseWebSocketReturn {
   snapshot: RoomSnapshot | null;
+  /**
+   * Everyone ELSE's live measurement (S6). Your own echo is dropped here — the
+   * local overlay already draws it, and drawing it twice makes the line look
+   * doubled while dragging. Ephemeral: measurements never enter a snapshot, so
+   * this channel is the only way they arrive.
+   */
+  remoteMeasurements: MeasureEvent[];
   connectionState: ConnectionState;
   isConnected: boolean;
   authState: AuthState;
@@ -54,6 +61,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
   );
   const [authState, setAuthState] = useState<AuthState>(AuthState.UNAUTHENTICATED);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [measurements, setMeasurements] = useState<Record<string, MeasureEvent>>({});
 
   // Use ref to store the current RTC signal handler
   const rtcHandlerRef = useRef<((from: string, signal: unknown) => void) | undefined>(onRtcSignal);
@@ -72,6 +80,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
         case "reset":
           setAuthState(AuthState.UNAUTHENTICATED);
           setSnapshot(null);
+          setMeasurements({});
           // authError is deliberately PRESERVED here. The server sends
           // `auth-failed` and then closes the socket ~100 ms later; that close
           // raises `reset`, which used to null the reason out from under the
@@ -92,6 +101,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
           setAuthState(AuthState.FAILED);
           setAuthError(event.reason ?? "Authentication failed");
           setSnapshot(null);
+          setMeasurements({});
           break;
       }
     };
@@ -122,6 +132,21 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
       onCommandDropped: (messageType, reason) => {
         commandDropHandlerRef.current?.(messageType, reason);
       },
+      onMeasure: (measure) => {
+        setMeasurements((current) => {
+          // The server echoes to everyone including the sender; our own line is
+          // already on screen from local state.
+          if (measure.uid === uid) return current;
+          // No endpoints IS the stop-measuring signal.
+          if (!measure.start || !measure.end) {
+            if (!(measure.uid in current)) return current;
+            const next = { ...current };
+            delete next[measure.uid];
+            return next;
+          }
+          return { ...current, [measure.uid]: measure };
+        });
+      },
     });
 
     serviceRef.current = service;
@@ -135,6 +160,31 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
       service.disconnect();
     };
   }, [url, uid]); // Only recreate if URL or UID changes
+
+  // A measurement is relayed, not stored, so nothing on the server tells us
+  // when to forget one. `snapshot.users` IS the connected set (pushed on auth,
+  // filtered on every disconnect), so pruning against it retires a line left
+  // behind by a closed tab, a crash, or a heartbeat timeout alike — without a
+  // second server path that could itself go missing.
+  const connectedUids = snapshot?.users;
+  useEffect(() => {
+    if (!connectedUids) return;
+    setMeasurements((current) => {
+      const uids = Object.keys(current);
+      if (uids.length === 0) return current;
+      const live = new Set(connectedUids);
+      const next: Record<string, MeasureEvent> = {};
+      let dropped = false;
+      for (const key of uids) {
+        if (live.has(key)) next[key] = current[key];
+        else dropped = true;
+      }
+      // Same reference when nothing changed, so this cannot loop a render.
+      return dropped ? next : current;
+    });
+  }, [connectedUids]);
+
+  const remoteMeasurements = useMemo(() => Object.values(measurements), [measurements]);
 
   const send = useCallback((message: ClientMessage) => {
     serviceRef.current?.send(message);
@@ -176,6 +226,7 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
 
   return {
     snapshot,
+    remoteMeasurements,
     connectionState,
     isConnected,
     authState,

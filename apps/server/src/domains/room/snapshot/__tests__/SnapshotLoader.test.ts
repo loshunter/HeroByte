@@ -305,6 +305,58 @@ describe("SnapshotLoader - Characterization Tests", () => {
     });
   });
 
+  // An uploaded session file is the least trustworthy source there is, and
+  // tokens are merged VERBATIM out of it — no per-field work, unlike the
+  // characters rebuilt directly above them in the same function. S7's sight
+  // radius rides that path straight into the vision sweep, so it is coerced on
+  // the way in, exactly as diagonalRule and monsterHpDisplay are.
+  describe("Token vision radius coercion (S7)", () => {
+    function snapshotWithTokens(tokens: unknown[]) {
+      return {
+        players: [],
+        characters: [],
+        tokens,
+        props: [],
+        pointers: [],
+        drawings: [],
+        gridSize: 50,
+        gridSquareSize: 5,
+        diceRolls: [],
+        sceneObjects: [],
+        combatActive: false,
+      } as unknown as Parameters<typeof roomService.loadSnapshot>[0];
+    }
+
+    it("keeps a sane radius", () => {
+      roomService.loadSnapshot(
+        snapshotWithTokens([{ id: "t", owner: "p", x: 0, y: 0, color: "red", visionRadius: 60 }]),
+      );
+
+      expect(roomService.getState().tokens[0]!.visionRadius).toBe(60);
+    });
+
+    it("clamps a radius the file put outside the range", () => {
+      roomService.loadSnapshot(
+        snapshotWithTokens([
+          { id: "negative", owner: "p", x: 0, y: 0, color: "red", visionRadius: -40 },
+          { id: "absurd", owner: "p", x: 1, y: 0, color: "red", visionRadius: 1e12 },
+        ]),
+      );
+
+      const byId = new Map(roomService.getState().tokens.map((token) => [token.id, token]));
+      expect(byId.get("negative")!.visionRadius).toBe(0);
+      expect(byId.get("absurd")!.visionRadius).toBe(1000);
+    });
+
+    it("drops a non-numeric radius back to unlimited", () => {
+      roomService.loadSnapshot(
+        snapshotWithTokens([{ id: "t", owner: "p", x: 0, y: 0, color: "red", visionRadius: "60" }]),
+      );
+
+      expect("visionRadius" in roomService.getState().tokens[0]!).toBe(false);
+    });
+  });
+
   describe("Character merging", () => {
     it("should preserve characters owned by connected players", () => {
       // Setup: Connected player with character

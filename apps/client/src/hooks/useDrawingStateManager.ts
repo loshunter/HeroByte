@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useMemo } from "react";
-import type { ClientMessage } from "@herobyte/shared";
+import type { ClientMessage, DrawTool } from "@herobyte/shared";
 import type { ToolMode } from "../components/layout/Header";
 import { useDrawingState } from "./useDrawingState";
 
@@ -53,7 +53,8 @@ export interface UseDrawingStateManagerOptions {
 /**
  * Drawing tool type
  */
-export type DrawTool = "freehand" | "line" | "rect" | "circle" | "eraser";
+/** Re-export: the union now lives in @herobyte/shared (see DrawTool there). */
+export type { DrawTool };
 
 /**
  * Return type for the drawing state manager

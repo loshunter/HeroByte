@@ -10,6 +10,7 @@ import type { TokenSize } from "@herobyte/shared";
 import { DraggableWindow } from "../../../components/dice/DraggableWindow";
 import { JRPGPanel, JRPGButton } from "../../../components/ui/JRPGPanel";
 import { ImageField } from "../../../components/ui/ImageField";
+import { VisionRadiusField } from "./VisionRadiusField";
 import { STATUS_OPTIONS } from "../constants/statusOptions";
 import { CharacterCreationModal } from "./CharacterCreationModal";
 
@@ -55,6 +56,11 @@ interface PlayerSettingsMenuProps {
   onToggleTokenLock?: (locked: boolean) => void;
   tokenSize?: TokenSize;
   onTokenSizeChange?: (size: TokenSize) => void;
+  /** Sight limit in feet; undefined is unlimited. DM-only (S7). */
+  tokenVisionRadius?: number;
+  onTokenVisionRadiusChange?: (radiusFeet: number | null) => void;
+  /** Render the sight controls at the 44px touch floor (mobile rows). */
+  compactControls?: boolean;
   onAddCharacter?: (name: string) => boolean;
   isCreatingCharacter?: boolean;
   characterId?: string;
@@ -91,6 +97,9 @@ export function PlayerSettingsMenu({
   onToggleTokenLock,
   tokenSize = "medium",
   onTokenSizeChange,
+  tokenVisionRadius,
+  onTokenVisionRadiusChange,
+  compactControls = false,
   onAddCharacter,
   isCreatingCharacter,
   characterId,
@@ -379,6 +388,22 @@ export function PlayerSettingsMenu({
                 },
               )}
             </div>
+          </JRPGPanel>
+        )}
+
+        {/* Sight Radius — supplied only for a DM viewer (EntitiesPanel), so
+            unlike Token Size this is NOT gated on the card owner's role: a DM
+            sets the darkness on every token, including their own. */}
+        {onTokenVisionRadiusChange && (
+          <JRPGPanel
+            variant="simple"
+            style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "12px" }}
+          >
+            <VisionRadiusField
+              value={tokenVisionRadius}
+              onChange={onTokenVisionRadiusChange}
+              compact={compactControls}
+            />
           </JRPGPanel>
         )}
 

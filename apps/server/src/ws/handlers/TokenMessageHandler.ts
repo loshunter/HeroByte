@@ -271,6 +271,25 @@ export class TokenMessageHandler {
   }
 
   /**
+   * Handle set token vision radius message (DM only — see TokenService).
+   *
+   * @param isDM - Whether sender is a DM; a non-DM change is refused outright
+   * @returns Result indicating broadcast/save needs
+   */
+  handleSetVisionRadius(
+    state: RoomState,
+    tokenId: string,
+    radius: number | null,
+    isDM: boolean,
+  ): TokenMessageResult {
+    if (!isDM) {
+      return { broadcast: false, save: false };
+    }
+    const updated = this.tokenService.setVisionRadius(state, tokenId, radius);
+    return { broadcast: updated, save: updated };
+  }
+
+  /**
    * Handle link token to character message
    *
    * @param state - Room state

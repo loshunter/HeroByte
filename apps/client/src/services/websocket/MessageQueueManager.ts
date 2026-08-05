@@ -99,12 +99,31 @@ export class MessageQueueManager {
   private readonly retryBackoffMs: number;
   private readonly onRetryDispatch?: (message: ClientMessage) => void;
   private readonly onRetryExhausted?: (message: ClientMessage) => void;
+  /**
+   * Messages that are DROPPED rather than queued while the socket is down.
+   *
+   * A live gesture is only true at the instant it is sent. Queueing one means
+   * the offline buffer (200 slots, oldest evicted) fills with obsolete frames
+   * that push out real commands — and then replays them on reconnect, drawing
+   * lines where nobody is standing any more. Superseded by the next frame is
+   * the correct outcome; arriving twelve seconds late is not.
+   *
+   * `drag-preview` has the same shape and is NOT listed here: it predates this
+   * and changing its behaviour is not this slice's to make.
+   */
+  private readonly ephemeralTypes = new Set<ClientMessage["t"]>(["measure"]);
+
   private readonly nonRetriableTypes = new Set<ClientMessage["t"]>([
     "authenticate",
     "heartbeat",
     "rtc-signal",
     "request-room-resync",
     "drag-preview",
+    // A measurement is a live gesture: the next frame supersedes it, and the
+    // clear that ends it is sent again on unmount. Tracking or retrying one
+    // would spend the per-uid rate budget replaying a line nobody is
+    // looking at any more — the same reasoning as drag-preview above.
+    "measure",
     // DM-auth plane: never acked by the router (see CommandAckManager's
     // NON_TRACKED_TYPES — these normally carry no commandId at all); a retry
     // would replay a password attempt into the brute-force throttle.
@@ -168,6 +187,13 @@ export class MessageQueueManager {
     // Drop heartbeat attempts until authenticated to prevent queue bloat
     if (message.t === "heartbeat") {
       console.log("[WebSocket] Dropping heartbeat message (not authenticated yet)");
+      return;
+    }
+
+    // ...and drop a live gesture for the same reason, with more force: see
+    // ephemeralTypes. A queued measurement is a line drawn where nobody is
+    // standing any more, and 200 of them evict every real command first.
+    if (this.ephemeralTypes.has(message.t)) {
       return;
     }
 
@@ -272,6 +298,9 @@ export class MessageQueueManager {
    */
   private sendRaw(message: ClientMessage, ws: WebSocket | null): void {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
+      if (this.ephemeralTypes.has(message.t)) {
+        return; // see ephemeralTypes: a stale gesture is worse than none
+      }
       console.log(
         `[WebSocket] sendRaw() - WebSocket not ready (readyState=${ws?.readyState}), queueing message type=${message.t}`,
       );
@@ -285,7 +314,9 @@ export class MessageQueueManager {
       this.registerInFlight(message);
     } catch (error) {
       console.error("[WebSocket] Send error:", error);
-      this.queueMessage(message);
+      if (!this.ephemeralTypes.has(message.t)) {
+        this.queueMessage(message);
+      }
     }
   }
 

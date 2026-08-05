@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { CompiledScene } from "@herobyte/shared";
+import {
+  computeViewerVisionPolygon,
+  getVisionBlockingSegments,
+  gridCellToWorldPoint,
+} from "@herobyte/shared";
 import { createEmptyRoomState, type RoomState } from "../../model.js";
-import { createVisionContext, isWorldPointVisible } from "../visionFilter.js";
+import { createVisionContext, isWorldPointVisible, visionSignature } from "../visionFilter.js";
 
 // A 400x400 scene split by a vertical wall at x=200: viewers on the left
 // cannot see the right half.
@@ -137,5 +142,207 @@ describe("isWorldPointVisible", () => {
     state.compiledScene!.doors[0]!.state = "open";
     const open = createVisionContext(state, "player-1")!;
     expect(isWorldPointVisible(open, { x: 300, y: 200 })).toBe(true);
+  });
+});
+
+// ============================================================================
+// S7 — per-token sight radius
+// ============================================================================
+// Grid is 50 world px per square and 5 ft per square, so 10 ft = 100 px.
+// The viewer's token sits at cell (1,3) = world (75,175).
+describe("per-token vision radius", () => {
+  it("does not shorten sight when no radius is set", () => {
+    const context = createVisionContext(stateWithFog(), "player-1")!;
+    // 75 px away, and 105 px away — both on the viewer's side of the wall.
+    expect(isWorldPointVisible(context, { x: 150, y: 175 })).toBe(true);
+    expect(isWorldPointVisible(context, { x: 180, y: 175 })).toBe(true);
+  });
+
+  it("stops sight at the radius", () => {
+    const state = stateWithFog();
+    state.tokens[0]!.visionRadius = 10; // 2 squares = 100 world px
+    const context = createVisionContext(state, "player-1")!;
+
+    expect(isWorldPointVisible(context, { x: 150, y: 175 })).toBe(true); // 75 away
+    expect(isWorldPointVisible(context, { x: 180, y: 175 })).toBe(false); // 105 away
+  });
+
+  it("reads the radius in FEET, against the room's feet-per-square", () => {
+    const state = stateWithFog();
+    state.tokens[0]!.visionRadius = 10;
+    state.gridSquareSize = 10; // 10 ft is now ONE square = 50 world px
+    const context = createVisionContext(state, "player-1")!;
+
+    expect(isWorldPointVisible(context, { x: 110, y: 175 })).toBe(true); // 35 away
+    expect(isWorldPointVisible(context, { x: 150, y: 175 })).toBe(false); // 75 away
+  });
+
+  it("blinds a token whose radius is zero", () => {
+    const state = stateWithFog();
+    state.tokens[0]!.visionRadius = 0;
+    const context = createVisionContext(state, "player-1")!;
+
+    expect(isWorldPointVisible(context, { x: 76, y: 175 })).toBe(false);
+    expect(isWorldPointVisible(context, { x: 150, y: 175 })).toBe(false);
+    // Outside the fogged rect is still not hidden — staging zones live there.
+    expect(isWorldPointVisible(context, { x: -50, y: 200 })).toBe(true);
+  });
+
+  it("gives a second token its own radius, and the union is what is seen", () => {
+    const state = stateWithFog();
+    state.tokens = [
+      { id: "short", owner: "player-1", x: 1, y: 3, color: "red", visionRadius: 5 },
+      { id: "long", owner: "player-1", x: 1, y: 6, color: "red", visionRadius: 30 },
+    ];
+    const context = createVisionContext(state, "player-1")!;
+    expect(context.polygons).toHaveLength(2);
+
+    // 105 px from the short-sighted token but well inside the far one's 300 px.
+    expect(isWorldPointVisible(context, { x: 180, y: 175 })).toBe(true);
+  });
+
+  // The units trap: the sweep runs in DOCUMENT space and the map transform
+  // scales between the two. Get it wrong and sight is off by exactly the scale
+  // factor — invisible at the default scale of 1.
+  it("scales the radius through the live map transform", () => {
+    const state = stateWithFog();
+    state.sceneObjects = [
+      {
+        id: "map",
+        type: "map",
+        owner: undefined,
+        locked: true,
+        zIndex: -100,
+        transform: { x: 0, y: 0, scaleX: 2, scaleY: 2, rotation: 0 },
+        data: { imageUrl: "url" },
+      },
+    ];
+    // Token at cell (3,3) = world (175,175) = doc (87.5, 87.5).
+    state.tokens = [{ id: "mine", owner: "player-1", x: 3, y: 3, color: "red", visionRadius: 10 }];
+    const context = createVisionContext(state, "player-1")!;
+
+    // 10 ft is 100 WORLD px whatever the map scale, so a point 80 world px away
+    // is seen and one 120 away is not.
+    expect(isWorldPointVisible(context, { x: 255, y: 175 })).toBe(true); // 80 away
+    expect(isWorldPointVisible(context, { x: 295, y: 175 })).toBe(false); // 120 away
+  });
+
+  // The invariant the whole slice exists to protect: the server's polygon IS
+  // the client's polygon, because both call the same function on the same
+  // numbers. If createVisionContext ever converts units itself, this catches it.
+  it("produces exactly the polygon the shared viewer helper produces", () => {
+    const state = stateWithFog();
+    state.tokens[0]!.visionRadius = 25;
+    state.sceneObjects = [
+      {
+        id: "map",
+        type: "map",
+        owner: undefined,
+        locked: true,
+        zIndex: -100,
+        transform: { x: 30, y: -12, scaleX: 1.5, scaleY: 1.5, rotation: 20 },
+        data: { imageUrl: "url" },
+      },
+    ];
+
+    const context = createVisionContext(state, "player-1")!;
+    const expected = computeViewerVisionPolygon({
+      origin: gridCellToWorldPoint(state.gridSize, {
+        x: state.tokens[0]!.x,
+        y: state.tokens[0]!.y,
+      }),
+      radiusFeet: 25,
+      segments: getVisionBlockingSegments(state.compiledScene!),
+      bounds: { width: state.compiledScene!.width, height: state.compiledScene!.height },
+      gridSize: state.gridSize,
+      gridSquareSize: state.gridSquareSize,
+      mapTransform: state.sceneObjects[0]!.transform,
+    });
+
+    expect(context.polygons[0]).toEqual(expected);
+    expect(context.polygons[0]!.length).toBeGreaterThan(8);
+  });
+});
+
+// ============================================================================
+// S7 — the cache key
+// ============================================================================
+// visionSignature is what messageRouter memoizes polygons on. Anything the
+// polygon reads that is missing here produces STALE vision: the DM changes a
+// radius, nothing happens, and it reads as "the message never sent". These are
+// the first direct tests this function has ever had.
+describe("visionSignature", () => {
+  it("changes when the recipient's own token gains a radius", () => {
+    const before = stateWithFog();
+    const after = stateWithFog();
+    after.tokens[0]!.visionRadius = 60;
+
+    expect(visionSignature(after, "player-1")).not.toBe(visionSignature(before, "player-1"));
+  });
+
+  it("changes when an existing radius is edited", () => {
+    const state = stateWithFog();
+    state.tokens[0]!.visionRadius = 60;
+    const before = visionSignature(state, "player-1");
+    state.tokens[0]!.visionRadius = 30;
+
+    expect(visionSignature(state, "player-1")).not.toBe(before);
+  });
+
+  it("changes when a radius is cleared back to unlimited", () => {
+    const state = stateWithFog();
+    state.tokens[0]!.visionRadius = 60;
+    const limited = visionSignature(state, "player-1");
+    delete state.tokens[0]!.visionRadius;
+
+    expect(visionSignature(state, "player-1")).not.toBe(limited);
+  });
+
+  it("changes when feet-per-square changes, because the radius is in feet", () => {
+    const state = stateWithFog();
+    state.tokens[0]!.visionRadius = 60;
+    const before = visionSignature(state, "player-1");
+    // A live `grid-square-size` message can do this with no republish.
+    state.gridSquareSize = 10;
+
+    expect(visionSignature(state, "player-1")).not.toBe(before);
+  });
+
+  it("ignores a radius on someone else's token", () => {
+    const before = stateWithFog();
+    const after = stateWithFog();
+    after.tokens[1]!.visionRadius = 5;
+
+    expect(visionSignature(after, "player-1")).toBe(visionSignature(before, "player-1"));
+  });
+
+  it("is stable when nothing relevant changed", () => {
+    expect(visionSignature(stateWithFog(), "player-1")).toBe(
+      visionSignature(stateWithFog(), "player-1"),
+    );
+  });
+});
+
+// Why there is no sight-radius control on an NPC card (S7): fog is computed per
+// RECIPIENT from the tokens that recipient OWNS, and an NPC token is always
+// owned by the DM who placed it. So a radius on one is inert — and the UI must
+// not offer a control that silently does nothing.
+describe("a radius on a token the recipient does not own", () => {
+  it("does not change what that recipient can see", () => {
+    const withoutRadius = createVisionContext(stateWithFog(), "player-1")!;
+    const state = stateWithFog();
+    state.tokens[1]!.visionRadius = 5; // player-2's token, i.e. not the recipient's
+    const withRadius = createVisionContext(state, "player-1")!;
+
+    expect(withRadius.polygons).toEqual(withoutRadius.polygons);
+    expect(isWorldPointVisible(withRadius, { x: 180, y: 175 })).toBe(true);
+  });
+
+  it("cannot blind a recipient through someone else's token", () => {
+    const state = stateWithFog();
+    state.tokens[1]!.visionRadius = 0;
+    const context = createVisionContext(state, "player-1")!;
+
+    expect(isWorldPointVisible(context, { x: 150, y: 175 })).toBe(true);
   });
 });

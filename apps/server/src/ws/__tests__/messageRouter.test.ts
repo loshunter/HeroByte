@@ -70,6 +70,7 @@ describe("MessageRouter", () => {
       currentTurnCharacterId: undefined,
       fogEnabled: false,
       monsterHpDisplay: "exact" as const,
+      diagonalRule: "5e" as const,
     };
 
     const snapshotTemplate: RoomSnapshot = {
@@ -574,7 +575,14 @@ describe("MessageRouter", () => {
       const msg: ClientMessage = { t: "delete-drawing", id: "draw-1" };
       routeAndFlush(msg, "player-1");
 
-      expect(mockMapService.deleteDrawing).toHaveBeenCalledWith(mockState, "draw-1");
+      // The actor and their DM flag ride along now: deleteDrawing refuses to
+      // remove another player's drawing, and it cannot enforce that without them.
+      expect(mockMapService.deleteDrawing).toHaveBeenCalledWith(
+        mockState,
+        "draw-1",
+        "player-1",
+        false,
+      );
       expect(mockSelectionService.removeObject).toHaveBeenCalledWith(mockState, "draw-1");
       expect(mockRoomService.broadcast).toHaveBeenCalled();
     });

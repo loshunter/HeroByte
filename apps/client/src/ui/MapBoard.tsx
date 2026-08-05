@@ -14,11 +14,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Stage, Layer } from "react-konva";
 import type Konva from "konva";
-import {
-  gridCellToWorldPoint,
-  type CompiledDoorState,
-  type DragPreviewUpdate,
-} from "@herobyte/shared";
+import type { CompiledDoorState, DragPreviewUpdate } from "@herobyte/shared";
 import { buildTokenPlates } from "../features/map/tokenPlates";
 import { ENABLE_DRAG_PREVIEWS } from "../config.js";
 import { usePointerTool } from "../hooks/usePointerTool.js";
@@ -60,7 +56,9 @@ import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 import { useMapEditTool } from "../features/map-edit/useMapEditTool";
 import { MapEditPreviewLayer } from "../features/map-edit/MapEditPreviewLayer";
 import { MapEditQuickWheel } from "../features/map-edit/MapEditQuickWheel";
-import { dmViewActive, fogViewerTokens, visibleDoors } from "../features/map/playerLens";
+import { dmViewActive, fogViewers, visibleDoors } from "../features/map/playerLens";
+import { exploredFogKey } from "../features/map/exploredFogStore";
+import { currentRoomId } from "../features/rooms/roomDirectory";
 import { WallsOverlayLayer } from "../features/map-edit/WallsOverlayLayer";
 import { NotesOverlayLayer } from "../features/map-edit/NotesOverlayLayer";
 import type { CameraCommand, MapBoardProps, SelectionRequestOptions } from "./MapBoard.types";
@@ -90,6 +88,7 @@ export default function MapBoard({
   snapToGrid,
   pointerMode,
   measureMode,
+  remoteMeasurements,
   drawMode,
   transformMode,
   selectMode,
@@ -145,6 +144,15 @@ export default function MapBoard({
 
   const { sceneObjects, mapObject, drawingObjects, stagingZoneObject, stagingZoneDimensions } =
     useSceneObjectsData(snapshot, gridSize);
+
+  // Where THIS player's memory of THIS map on THIS table is kept (S7). The uid
+  // segment is what stops a DM's player-lens session — which sees the party's
+  // union, not any one player's — from writing into a player's memory.
+  const exploredStorageKey = useMemo(() => {
+    const documentId = snapshot?.compiledScene?.sourceDocumentId;
+    if (!documentId || !uid) return null;
+    return exploredFogKey(currentRoomId(), uid, documentId);
+  }, [snapshot?.compiledScene?.sourceDocumentId, uid]);
 
   // Build statusEffectsByTokenId map from characters array
   // Maps token IDs to their character's status effect details
@@ -311,6 +319,7 @@ export default function MapBoard({
   // Drawing tool
   const {
     currentDrawing,
+    currentTemplate,
     onMouseDown: handleDrawMouseDown,
     onMouseMove: handleDrawMouseMove,
     onMouseUp: handleDrawMouseUp,
@@ -322,6 +331,11 @@ export default function MapBoard({
     drawWidth,
     drawOpacity,
     drawFilled,
+    // The prop, not `grid.size`: useGridConfig mirrors this value through
+    // state (so it trails by one render after a resize) and is declared
+    // further down the file anyway.
+    gridSize,
+    gridSquareSize: snapshot?.gridSquareSize ?? 5,
     toWorld,
     sendMessage,
     onDrawingComplete,
@@ -725,6 +739,7 @@ export default function MapBoard({
             drawingObjects={drawingObjects}
             currentDrawing={currentDrawing}
             currentTool={drawTool}
+            currentTemplate={currentTemplate}
             currentColor={drawColor}
             currentWidth={drawWidth}
             currentOpacity={drawOpacity}
@@ -778,15 +793,17 @@ export default function MapBoard({
         {/* Fog of war: players see only what their own tokens can see.
             Token positions are grid cells; vision origins are their world-
             pixel centers, matching the renderer. The player lens (P4) turns
-            fog ON for the DM with the party's union vision (fogViewerTokens). */}
+            fog ON for the DM with the party's union vision (fogViewers), and
+            each viewer clips to its own sight radius. */}
         {!dmView && snapshot?.fogEnabled && snapshot.compiledScene && (
           <FogLayer
             cam={cam}
             compiledScene={snapshot.compiledScene}
             mapTransform={mapObject?.transform}
-            viewers={fogViewerTokens(snapshot.tokens ?? [], uid, isDM && playerLens).map((token) =>
-              gridCellToWorldPoint(grid.size, { x: token.x, y: token.y }),
-            )}
+            viewers={fogViewers(snapshot.tokens ?? [], uid, isDM && playerLens, grid.size)}
+            gridSize={grid.size}
+            gridSquareSize={snapshot?.gridSquareSize ?? 5}
+            exploredStorageKey={exploredStorageKey}
           />
         )}
 
@@ -807,6 +824,8 @@ export default function MapBoard({
             measureEnd={measureEnd}
             gridSize={grid.size}
             gridSquareSize={snapshot?.gridSquareSize}
+            diagonalRule={snapshot?.diagonalRule}
+            remoteMeasurements={remoteMeasurements}
           />
           <AlignmentOverlay
             alignmentMode={alignmentMode}

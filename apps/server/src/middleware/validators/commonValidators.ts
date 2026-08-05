@@ -3,7 +3,7 @@
 // ============================================================================
 // Shared type guards, helpers, and constants used across domain validators
 
-import type { DrawingSegmentPayload } from "@herobyte/shared";
+import { coerceAreaTemplate, type DrawingSegmentPayload } from "@herobyte/shared";
 import { STRING_LIMITS } from "./constants.js";
 
 /**
@@ -235,6 +235,20 @@ export function validateDrawingPayload(drawing: unknown, context: string): Valid
 
   if ("selectedBy" in payload && payload.selectedBy !== undefined) {
     return { valid: false, error: `${context}: drawing cannot include selection metadata` };
+  }
+
+  // Area templates (S6) carry metadata that gets persisted, broadcast and
+  // rendered as a label. `type` itself is only length-checked here (an unknown
+  // type renders as nothing), but this field is READ, so it is whitelisted:
+  // coerceAreaTemplate returns undefined for anything that is not a real kind
+  // with a finite positive size.
+  if ("template" in payload && payload.template !== undefined) {
+    if (!coerceAreaTemplate(payload.template)) {
+      return {
+        valid: false,
+        error: `${context}: drawing template must name a real kind with a positive size`,
+      };
+    }
   }
 
   return { valid: true };

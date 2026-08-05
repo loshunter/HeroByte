@@ -56,6 +56,9 @@ export class TokenDispatcher {
       case "set-token-color":
         return this.handler.handleSetColor(state, message.tokenId, senderUid, message.color, isDM);
 
+      case "set-token-vision-radius":
+        return this.handler.handleSetVisionRadius(state, message.tokenId, message.radius, isDM);
+
       case "link-token":
         return this.handler.handleLinkToken(state, message.characterId, message.tokenId);
 

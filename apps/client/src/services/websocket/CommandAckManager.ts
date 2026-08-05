@@ -9,6 +9,11 @@ const NON_TRACKED_TYPES: AckEligibleType[] = [
   "rtc-signal",
   "request-room-resync",
   "drag-preview",
+  // A measurement is a live gesture: the next frame supersedes it, and the
+  // clear that ends it is sent again on unmount. Tracking or retrying one
+  // would spend the per-uid rate budget replaying a line nobody is
+  // looking at any more — the same reasoning as drag-preview above.
+  "measure",
   // The DM-auth plane is intercepted by MessageAuthenticator BEFORE the
   // server's message router — the only place ack/nack is emitted — and
   // answers with its own protocol (dm-status / dm-elevation-failed /

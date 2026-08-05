@@ -195,6 +195,31 @@ function drawingIntersectsEraser(
         break;
       }
 
+      // An area template is a CLOSED polygon, so the eraser has to test the
+      // ring — including the edge back to the first vertex, which a plain
+      // polyline walk would miss. Without this case the switch falls through
+      // to `return false` and a template becomes unerasable; on a phone,
+      // where the eraser is the quickest delete there is, that means a stray
+      // burst stays on the map.
+      case "template": {
+        for (let i = 0; i < points.length; i++) {
+          const start = transformPoint(points[i]!, drawing);
+          const end = transformPoint(points[(i + 1) % points.length]!, drawing);
+          const distance = pointToSegmentDistance(
+            eraserPoint.x,
+            eraserPoint.y,
+            start.x,
+            start.y,
+            end.x,
+            end.y,
+          );
+          if (distance < hitRadius) {
+            return true;
+          }
+        }
+        break;
+      }
+
       case "eraser": {
         break;
       }

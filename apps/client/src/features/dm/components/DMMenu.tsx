@@ -80,6 +80,8 @@ export function DMMenu({
   sceneObjects,
   onSelectPlayerTokens,
   combatActive,
+  diagonalRule,
+  onDiagonalRuleChange,
   monsterHpDisplay,
   onMonsterHpDisplayChange,
   onStartCombat,
@@ -166,6 +168,8 @@ export function DMMenu({
                 onGridSizeChange={onGridSizeChange}
                 onGridSquareSizeChange={onGridSquareSizeChange}
                 onGridLockToggle={onGridLockToggle}
+                diagonalRule={diagonalRule}
+                onDiagonalRuleChange={onDiagonalRuleChange}
                 fogEnabled={fogEnabled}
                 hasCompiledScene={hasCompiledScene}
                 onFogEnabledChange={onFogEnabledChange}

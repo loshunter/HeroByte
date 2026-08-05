@@ -723,4 +723,114 @@ describe("useWebSocket", () => {
       expect(result.current.authState).toBe(AuthState.UNAUTHENTICATED);
     });
   });
+  describe("Remote measurements (S6)", () => {
+    // A measurement is RELAYED, never part of a snapshot, so this hook's map is
+    // the only place a remote line exists on the client. Nothing else can
+    // catch a regression here.
+    async function connected(uid = "me") {
+      const hook = renderHook(() =>
+        useWebSocket({ url: "ws://localhost:3001", uid, autoConnect: true }),
+      );
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(20);
+      });
+      return { ...hook, ws: wsInstances[0] };
+    }
+
+    const LINE = { start: { x: 10, y: 10 }, end: { x: 60, y: 60 } };
+
+    it("starts with nobody measuring", async () => {
+      const { result } = await connected();
+      expect(result.current.remoteMeasurements).toEqual([]);
+    });
+
+    it("keeps another player's measurement", async () => {
+      const { result, ws } = await connected();
+      await act(async () => {
+        ws.simulateMessage({ t: "measure", measure: { uid: "bob", name: "Bob", ...LINE } });
+      });
+
+      expect(result.current.remoteMeasurements).toEqual([{ uid: "bob", name: "Bob", ...LINE }]);
+    });
+
+    it("drops your OWN echo — the local overlay already draws it", async () => {
+      // Keeping it would draw your line twice, which reads as a doubled,
+      // lagging band while you drag.
+      const { result, ws } = await connected("me");
+      await act(async () => {
+        ws.simulateMessage({ t: "measure", measure: { uid: "me", name: "Me", ...LINE } });
+      });
+
+      expect(result.current.remoteMeasurements).toEqual([]);
+    });
+
+    it("replaces a player's line rather than accumulating one per frame", async () => {
+      const { result, ws } = await connected();
+      await act(async () => {
+        ws.simulateMessage({ t: "measure", measure: { uid: "bob", name: "Bob", ...LINE } });
+        ws.simulateMessage({
+          t: "measure",
+          measure: { uid: "bob", name: "Bob", start: LINE.start, end: { x: 999, y: 999 } },
+        });
+      });
+
+      expect(result.current.remoteMeasurements).toHaveLength(1);
+      expect(result.current.remoteMeasurements[0].end).toEqual({ x: 999, y: 999 });
+    });
+
+    it("an endpoint-less frame clears that player's line", async () => {
+      const { result, ws } = await connected();
+      await act(async () => {
+        ws.simulateMessage({ t: "measure", measure: { uid: "bob", name: "Bob", ...LINE } });
+      });
+      expect(result.current.remoteMeasurements).toHaveLength(1);
+
+      await act(async () => {
+        ws.simulateMessage({ t: "measure", measure: { uid: "bob", name: "Bob" } });
+      });
+      expect(result.current.remoteMeasurements).toEqual([]);
+    });
+
+    it("prunes a line left behind by a player who left the table", async () => {
+      // Nothing on the server tells us to forget a relayed measurement, so a
+      // closed tab or a heartbeat timeout would otherwise strand the line
+      // forever. snapshot.users IS the connected set.
+      const { result, ws } = await connected();
+      await act(async () => {
+        ws.simulateMessage({ t: "measure", measure: { uid: "bob", name: "Bob", ...LINE } });
+        ws.simulateMessage({ users: ["me", "bob"], tokens: [], players: [], characters: [] });
+      });
+      expect(result.current.remoteMeasurements).toHaveLength(1);
+
+      await act(async () => {
+        ws.simulateMessage({ users: ["me"], tokens: [], players: [], characters: [] });
+      });
+      expect(result.current.remoteMeasurements).toEqual([]);
+    });
+
+    it("keeps a line while its owner is still connected", async () => {
+      // Guards the guard: a prune that dropped everything would satisfy the
+      // test above for the wrong reason.
+      const { result, ws } = await connected();
+      await act(async () => {
+        ws.simulateMessage({ t: "measure", measure: { uid: "bob", name: "Bob", ...LINE } });
+        ws.simulateMessage({ users: ["me", "bob"], tokens: [], players: [], characters: [] });
+      });
+
+      expect(result.current.remoteMeasurements).toHaveLength(1);
+    });
+
+    it("forgets every line when authentication is reset", async () => {
+      const { result, ws } = await connected();
+      await act(async () => {
+        ws.simulateMessage({ t: "measure", measure: { uid: "bob", name: "Bob", ...LINE } });
+      });
+      expect(result.current.remoteMeasurements).toHaveLength(1);
+
+      await act(async () => {
+        ws.simulateMessage({ t: "auth-failed", reason: "nope" });
+      });
+      expect(result.current.remoteMeasurements).toEqual([]);
+    });
+  });
 });

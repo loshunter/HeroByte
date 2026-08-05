@@ -8,14 +8,22 @@ import { memo, useEffect, useRef, useState } from "react";
 import { Circle, Group, Line, Rect } from "react-konva";
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import type { SceneObject } from "@herobyte/shared";
+import {
+  templateKindForTool,
+  type AreaTemplate,
+  type DrawTool,
+  type SceneObject,
+} from "@herobyte/shared";
+import { TemplateShape } from "./TemplateShape";
 import type { Camera } from "../../../hooks/useCamera";
 
 interface DrawingsLayerProps {
   cam: Camera;
   drawingObjects: (SceneObject & { type: "drawing" })[];
   currentDrawing: { x: number; y: number }[];
-  currentTool: "freehand" | "line" | "rect" | "circle" | "eraser";
+  currentTool: DrawTool;
+  /** Metadata for the template being dragged, so the preview can name its size. */
+  currentTemplate?: AreaTemplate;
   currentColor?: string;
   currentWidth?: number;
   currentOpacity?: number;
@@ -43,6 +51,7 @@ export const DrawingsLayer = memo(function DrawingsLayer({
   drawingObjects,
   currentDrawing,
   currentTool,
+  currentTemplate,
   currentColor,
   currentWidth,
   currentOpacity,
@@ -456,6 +465,37 @@ export const DrawingsLayer = memo(function DrawingsLayer({
         );
       }
 
+      case "template": {
+        // The polygon IS the shape — nothing is re-derived here, so a template
+        // renders identically to the preview the player released the mouse on.
+        return (
+          <Group
+            key={sceneObject.id}
+            x={transform.x}
+            y={transform.y}
+            scaleX={transform.scaleX}
+            scaleY={transform.scaleY}
+            rotation={transform.rotation}
+            draggable={allowDrag}
+            {...groupHandlers}
+            ref={
+              onDrawingNodeReady ? (node) => onDrawingNodeReady(sceneObject.id, node) : undefined
+            }
+          >
+            <TemplateShape
+              points={points}
+              color={drawing.color}
+              width={drawing.width}
+              opacity={drawing.opacity}
+              template={drawing.template}
+              scale={cam.scale}
+              selected={Boolean(isSelected && canShowSelection)}
+              handlers={allowClickSelection ? interactiveProps : undefined}
+            />
+          </Group>
+        );
+      }
+
       default:
         return null;
     }
@@ -467,6 +507,22 @@ export const DrawingsLayer = memo(function DrawingsLayer({
     const color = currentColor || "#fff";
     const width = (currentWidth || 3) / cam.scale;
     const opacity = currentOpacity || 0.7;
+
+    // Templates are handled before the switch: every template tool renders the
+    // same way (the hook already turned the drag into a polygon), so a case per
+    // kind would be four copies of one branch.
+    if (templateKindForTool(currentTool)) {
+      return (
+        <TemplateShape
+          points={currentDrawing}
+          color={color}
+          width={currentWidth || 3}
+          opacity={opacity}
+          template={currentTemplate}
+          scale={cam.scale}
+        />
+      );
+    }
 
     switch (currentTool) {
       case "eraser":

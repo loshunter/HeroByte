@@ -11,7 +11,7 @@
  * @module ws/handlers/PointerHandler
  */
 
-import type { Pointer } from "@herobyte/shared";
+import type { MeasureEvent, MeasurePoint, Pointer } from "@herobyte/shared";
 import type { RoomState } from "../../domains/room/model.js";
 import type { MapService } from "../../domains/map/service.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
@@ -21,6 +21,8 @@ import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
  */
 export interface PointerHandlerResult extends RouteHandlerResult {
   preview?: Pointer;
+  /** The live measurement to relay. Never touches state, never persisted. */
+  measureEvent?: MeasureEvent;
 }
 
 /**
@@ -76,5 +78,38 @@ export class PointerHandler {
       broadcast: true,
       preview: pointer,
     };
+  }
+
+  /**
+   * Relay one player's live measurement to the table.
+   *
+   * The AUTHOR IS BOUND FROM THE CONNECTION, never read off the message — the
+   * same rule chat (S2) and dice (S5) follow, so a tampered client cannot draw
+   * a line under someone else's name. The client message carries coordinates
+   * and nothing else.
+   *
+   * Nothing is written to `state`: a measurement is a gesture, not game data.
+   * That means no persistence, no snapshot growth, no `SNAPSHOT_LIMITS` entry,
+   * and no save on every mouse move — and a client that joins mid-drag simply
+   * picks up the next update. `null` clears the sender's line for everyone.
+   *
+   * @returns A result that broadcasts nothing by itself; the router relays the
+   *   event on the low-latency channel, exactly as it does a pointer preview.
+   */
+  handleMeasure(
+    state: RoomState,
+    senderUid: string,
+    measure: { start: MeasurePoint; end: MeasurePoint } | null,
+  ): PointerHandlerResult {
+    const player = state.players.find((candidate) => candidate.uid === senderUid);
+    const event: MeasureEvent = {
+      uid: senderUid,
+      name: player?.name ?? senderUid.slice(0, 6),
+    };
+    if (measure) {
+      event.start = { x: measure.start.x, y: measure.start.y };
+      event.end = { x: measure.end.x, y: measure.end.y };
+    }
+    return { broadcast: false, save: false, measureEvent: event };
   }
 }
