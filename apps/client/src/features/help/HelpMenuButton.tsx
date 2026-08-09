@@ -68,10 +68,26 @@ export const HelpMenuButton: React.FC = () => {
       if (e.key === "Escape") setOpen(false);
     };
 
+    // A window resize is NOT the only way this button moves. The header is a
+    // wrapping toolbar whose contents change — elevating to DM adds "🏗️ Map"
+    // and "👁 Player View", which can rewrap the row — and its top offset moves
+    // with the connection banner appearing or disappearing. None of that fires
+    // `resize`, and the popover is portalled to document.body, so it cannot
+    // simply be positioned relative to its button. Observing the button's own
+    // box catches every case: a rewrap changes where it is, and that is exactly
+    // what an observer on it reports.
+    const observer =
+      typeof ResizeObserver === "undefined" || !wrapRef.current
+        ? null
+        : new ResizeObserver(reanchor);
+    observer?.observe(wrapRef.current as Element);
+    if (wrapRef.current?.parentElement) observer?.observe(wrapRef.current.parentElement);
+
     window.addEventListener("resize", reanchor);
     document.addEventListener("mousedown", onDocClick);
     document.addEventListener("keydown", onKeyDown);
     return () => {
+      observer?.disconnect();
       window.removeEventListener("resize", reanchor);
       document.removeEventListener("mousedown", onDocClick);
       document.removeEventListener("keydown", onKeyDown);

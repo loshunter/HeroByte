@@ -79,6 +79,39 @@ describe("HelpMenuButton", () => {
     expect(removed).toContain("keydown");
     removeSpy.mockRestore();
   });
+
+  it("re-anchors when the toolbar reflows, not only on a window resize", () => {
+    // The header rewraps when DM elevation adds buttons, and its offset moves
+    // with the connection banner. Neither fires `resize`, and the popover is
+    // portalled to document.body so it cannot inherit the button's position.
+    const observed: Element[] = [];
+    let observerCallback: ResizeObserverCallback | null = null;
+    const disconnect = vi.fn();
+    const original = global.ResizeObserver;
+    global.ResizeObserver = vi.fn().mockImplementation((cb: ResizeObserverCallback) => {
+      observerCallback = cb;
+      return {
+        observe: (el: Element) => observed.push(el),
+        unobserve: vi.fn(),
+        disconnect,
+      };
+    }) as unknown as typeof ResizeObserver;
+
+    try {
+      const { unmount } = render(<HelpMenuButton />);
+      fireEvent.click(screen.getByRole("button", { name: /help/i }));
+
+      expect(observerCallback).not.toBeNull();
+      expect(observed.length).toBeGreaterThan(0);
+
+      // Closing must tear it down — an observer outliving the popover is a leak
+      // the existing listener assertions could never have seen.
+      unmount();
+      expect(disconnect).toHaveBeenCalled();
+    } finally {
+      global.ResizeObserver = original;
+    }
+  });
 });
 
 describe("HelpPanel", () => {
