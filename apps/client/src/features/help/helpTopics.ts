@@ -270,7 +270,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "⧉ Duplicate",
         detail:
-          "Copies an NPC's stats and art into a new one under the next free number, so a tweaked goblin becomes five tweaked goblins.",
+          "Copies an NPC's stats and art into a new one under the next free number, so a tweaked goblin becomes five tweaked goblins. A copy of a hidden NPC stays hidden.",
       },
       {
         term: "PLACE ON MAP",
