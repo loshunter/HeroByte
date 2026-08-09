@@ -59,4 +59,69 @@ describe("useBulkInitiativeRoll", () => {
 
     expect(mockSetInitiative).toHaveBeenCalledWith("1", expect.any(Number), 0);
   });
+
+  describe("against the server's rate limiter", () => {
+    const many = (n: number): Character[] =>
+      Array.from({ length: n }, (_, i) => ({
+        id: `npc-${i}`,
+        name: `NPC ${i}`,
+        type: "npc" as const,
+        hp: 10,
+        maxHp: 10,
+      }));
+
+    it("sends an ordinary encounter in one go, with no delay", async () => {
+      // 20 is a full ×N batch — the common case must not have become slower.
+      vi.useFakeTimers();
+      try {
+        const { result } = renderHook(() => useBulkInitiativeRoll(many(20), mockSetInitiative));
+
+        let done = false;
+        await act(async () => {
+          void result.current.rollAllInitiative().then(() => {
+            done = true;
+          });
+          await Promise.resolve();
+        });
+
+        expect(mockSetInitiative).toHaveBeenCalledTimes(20);
+        expect(done).toBe(true);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("does not fire more than the limiter's budget in one tick", async () => {
+      // The server allows 100 messages per second per client and drops the
+      // rest with no reply, so a 200-NPC room used to lose the tail silently
+      // while the toast reported the full count. The loop is bounded by NPCs
+      // lacking initiative — up to the 500-character room ceiling — NOT by the
+      // ×N ceiling of 20.
+      vi.useFakeTimers();
+      try {
+        const { result } = renderHook(() => useBulkInitiativeRoll(many(200), mockSetInitiative));
+
+        const pending = result.current.rollAllInitiative();
+        await act(async () => {
+          await Promise.resolve();
+        });
+
+        // First batch only — the rest are waiting on a timer.
+        expect(mockSetInitiative.mock.calls.length).toBeLessThanOrEqual(100);
+        const afterFirstBatch = mockSetInitiative.mock.calls.length;
+
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(5000);
+        });
+        await act(async () => {
+          await expect(pending).resolves.toBe(200);
+        });
+
+        expect(mockSetInitiative).toHaveBeenCalledTimes(200);
+        expect(afterFirstBatch).toBeLessThan(200);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
 });
