@@ -81,8 +81,10 @@ async function roundTrip(drawings: Drawing[]): Promise<Drawing[]> {
 describe("playerPersistence — area templates survive Save/Load Character", () => {
   it("keeps the template TYPE instead of rewriting it to freehand", async () => {
     // The sanitiser falls back to "freehand" for any type it does not know, so
-    // a missing entry in VALID_DRAWING_TYPES silently turns a cone into a
-    // scribble — with no warning and no failing test.
+    // a missing entry in DRAWING_TYPES silently turns a cone into a scribble —
+    // with no warning. This is now the guard for the SHARED list, which the
+    // sanitiser imports rather than copying; a subset copy used to compile,
+    // lint and typecheck green while corrupting every imported cone.
     const [restored] = await roundTrip([CONE]);
     expect(restored.type).toBe("template");
   });

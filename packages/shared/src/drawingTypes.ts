@@ -5,8 +5,17 @@
 // reason wsCloseCodes.ts and npcLimits.ts both record: the server maps
 // `@herobyte/shared` to dist/index.d.ts and tsx honors that at runtime, where a
 // direct declaration in the barrel is erased as an ambient type and cannot be
-// imported as a value. Nothing on the server imports this one TODAY — which is
-// exactly why it was a latent trap rather than a visible break.
+// imported as a value. Nothing on the SERVER imports this one, which is exactly
+// why it was a latent trap rather than a visible break — keep it a sub-module
+// even so, or the trap re-arms the moment a server file wants the list.
+//
+// The client DOES import the value now (utils/characterDrawings.ts). Note that
+// proves nothing about the erasure hazard above: the client resolves this
+// package from src/, so it never goes near dist/index.d.ts. What that import
+// buys is a single source of truth — the sanitiser used to keep its own copy,
+// and a SUBSET copy still assigns cleanly to Drawing["type"], so dropping a
+// member from it compiled and typechecked green while silently rewriting every
+// imported cone to "freehand".
 
 /**
  * Every shape kind a `Drawing` can hold. `eraser` is a gesture, never a stored
