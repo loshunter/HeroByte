@@ -27,6 +27,8 @@ const snapshot = {
       tokenImage: "goblin-token.png",
     },
     { id: "npc-2", type: "npc", name: "Orc", hp: 12, maxHp: 12 },
+    // Knocked to 0 mid-fight — the case that used to be rejected server-side.
+    { id: "npc-3", type: "npc", name: "Downed Goblin", hp: 0, maxHp: 7 },
   ],
 } as unknown as RoomSnapshot;
 
@@ -72,6 +74,20 @@ describe("useDMContext.duplicateNpc", () => {
     expect(sent).toMatchObject({ t: "create-npc", name: "Orc", hp: 12, maxHp: 12 });
     expect(sent.portrait).toBeUndefined();
     expect(sent.tokenImage).toBeUndefined();
+  });
+
+  it("copies a downed NPC at 0 hp rather than inventing a healthy one", () => {
+    // The pair to validation.test.ts's "accepts create-npc with zero hp": this
+    // side has always sent 0, and the server rejected it, so Duplicate on a
+    // downed NPC failed with a bogus "creation timed out". Pinned on both sides
+    // because either half reverting alone puts the silent failure back.
+    const { result, sendMessage } = setup();
+
+    act(() => result.current.npcManagement.duplicateNpc("npc-3"));
+
+    expect(sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ t: "create-npc", name: "Downed Goblin", hp: 0, maxHp: 7 }),
+    );
   });
 
   it("sends nothing for an id that is not at the table", () => {

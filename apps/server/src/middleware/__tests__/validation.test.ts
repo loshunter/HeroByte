@@ -568,6 +568,39 @@ describe("validateMessage", () => {
       ).toMatchObject({ valid: false });
     });
 
+    it("accepts create-npc with zero hp, the same as update-npc", () => {
+      // S8's Duplicate replays the source NPC's own hp, so duplicating a goblin
+      // that had been knocked to 0 sent hp: 0 — which this validator rejected,
+      // and a rejected frame gets no reply, so the DM saw "NPC creation timed
+      // out" and retrying never worked. update-npc has always allowed 0 and
+      // createCharacter clamps with Math.max(0, …); create-npc was the outlier.
+      expect(
+        validateMessage({
+          t: "create-npc",
+          name: "Downed Goblin",
+          hp: 0,
+          maxHp: 7,
+          portrait: undefined,
+          tokenImage: undefined,
+        }),
+      ).toMatchObject({ valid: true });
+    });
+
+    it("still rejects create-npc with zero maxHp", () => {
+      // Relaxing hp must not relax maxHp: a character with no maximum is not a
+      // downed character, it is a broken one.
+      expect(
+        validateMessage({
+          t: "create-npc",
+          name: "Nothing",
+          hp: 0,
+          maxHp: 0,
+          portrait: undefined,
+          tokenImage: undefined,
+        }),
+      ).toMatchObject({ valid: false });
+    });
+
     it("validates update-npc with zero hp (dead NPC)", () => {
       expect(
         validateMessage({

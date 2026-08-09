@@ -90,8 +90,13 @@ export function validateCreateNpcMessage(message: MessageRecord): ValidationResu
   ) {
     return { valid: false, error: "create-npc: name must be 1-50 characters" };
   }
-  if (!isFiniteNumber(hp) || hp <= 0) {
-    return { valid: false, error: "create-npc: hp must be positive" };
+  // A downed NPC at 0 hp is ordinary everywhere else: update-npc admits it and
+  // createCharacter clamps with Math.max(0, …). Only create-npc refused it, and
+  // S8's Duplicate made that reachable by replaying the source's own hp — so
+  // duplicating a goblin knocked to 0 was dropped silently and surfaced to the
+  // DM as "NPC creation timed out", forever. maxHp must still be positive.
+  if (!isFiniteNumber(hp) || hp < 0) {
+    return { valid: false, error: "create-npc: hp must not be negative" };
   }
   if (!isFiniteNumber(maxHp) || maxHp <= 0) {
     return { valid: false, error: "create-npc: maxHp must be positive" };
