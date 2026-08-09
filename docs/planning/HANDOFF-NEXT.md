@@ -1,18 +1,18 @@
 # Handoff — after S8, with the Session One arc complete
 
-Read this whole file before touching anything. Every path and number below was opened and
-verified on 2026-08-05 at `dev` = `951a3d2a`. Where something is a judgement call rather than a
-fact, it says so.
+Read this whole file before touching anything. Paths and numbers were verified on 2026-08-05 at
+`dev` = `951a3d2a`, and §0 was re-verified on 2026-08-08 after S8's review landed. Where something
+is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
 **The Session One arc is DONE.** `docs/planning/session-one-arc.md` is the source of truth.
-S0–S7 are in production; **S8 is on `dev` and NOT deployed.**
+S0–S7 are in production; **S8 and its review fixes are on `dev` and NOT deployed.**
 
-| Branch | Commit    | State                                                          |
-| ------ | --------- | -------------------------------------------------------------- |
-| `dev`  | `951a3d2a` | 5 S8 commits on top of `main`. CI not yet run on these.        |
-| `main` | `5307d0dd` | production, deployed, green                                    |
+| Branch | Commit     | State                                                      |
+| ------ | ---------- | ---------------------------------------------------------- |
+| `dev`  | `56d96bb8` | 5 S8 commits + 7 review-fix commits on `main`. CI not run. |
+| `main` | `5307d0dd` | production, deployed, green                                |
 
 S8's five commits:
 
@@ -29,14 +29,48 @@ Help entry in the mobile tool sheet opening the same one), plus a `×N` field be
 and a `⧉ Duplicate` on every NPC card. `create-npc` gained an optional `count`; the server loops
 and numbers.
 
-**⚠️ S8 has never been adversarially reviewed.** All six lenses errored on the account's *weekly*
-usage limit before doing any work, and the workflow returned `{rawCount: 0, survived: []}` — the
-identical shape a genuinely clean review returns. `agents_done: 0`, `agents_error: 6`, and
-`journal.jsonl` had zero `result` lines. It is the only slice of the nine with no independent
-review. A self-review by empirically probing the name allocator's edges found one real regression
-(`" "` became `""`) which is fixed in `201cda89`, but that is not a substitute. **If you do one
-thing from this document, make it re-running that review** — the limit resets 2026-08-08 19:00
-America/Vancouver.
+### ✅ S8's adversarial review has now RUN (2026-08-08)
+
+Six lenses over `391676a1..951a3d2a`, each finding refuted by an independent agent (two refuters
+for anything claimed high or blocker), then a completeness critic. **70 agents, `agents_error: 0`,
+`agents_skipped: 0`, `agents_empty_result: 0`** — so the verdict is trustworthy in the way the
+previous run's was not. **53 raw findings, 11 survived**, collapsing to 7 distinct defects once
+the lenses that had reached the same bug independently were merged. Every one was reproduced by
+hand before being fixed, and all 7 are fixed:
+
+```
+56d96bb8 fix(dm): duplicating a hidden NPC put the copy in front of the players
+ea4553fc fix(dm): numbering could push a name past the limit, bricking that NPC
+4e7fb1ac fix(dm): duplicating a downed NPC failed forever, and blamed a timeout
+066204be fix(mobile): the manual stacked with the other sheets instead of replacing them
+c2f570a6 fix(mobile): the help sheet's only exit was clipped off the top of real phones
+750f11db fix(help): the manual sent DMs looking for a token that was never there
+f7d0b38b fix(dm): a goblin numbered past 2^53 wedged the whole server
+```
+
+The worst of them was an availability bug, not a UX one: `allocateNpcNames` advanced its candidate
+with `next += 1`, which is a no-op at 2^53, so the loop could never terminate — and because
+`handleCreateNPC` is synchronous on the socket path, that wedges the single process serving every
+table. Reachable because `update-npc` stores a name verbatim, and the Main Hall's DM password is
+published on purpose.
+
+**Two findings were refuted that are worth knowing about**, because three lenses each raised them
+and the refuters were right both times:
+
+- _"`commitUpdate()` before Duplicate does not prevent the stale copy it claims to prevent."_ The
+  hook pair really is order-sensitive — calling `updateNpc` then `duplicateNpc` in one tick sends
+  the PRE-edit stats. But it is not reachable through the UI: mousedown on Duplicate blurs the
+  field first, `useNpcUpdate` sets `isUpdating` synchronously, and `NPCEditorActions` disables the
+  button on it, so the click never lands until the snapshot has round-tripped. Don't re-file it
+  without first reproducing it in a browser.
+- _"The barrel guard's regex misses other runtime-value forms."_ True as mechanics — `export async
+function`, `export enum` and `export abstract class` all emit the same `export declare` erasure
+  and all slip past `/^export (const|let|var|function|class) /` (verified by compiling an isolated
+  barrel). But `packages/shared/src` contains no enums, no async functions and no default exports,
+  and every value export is already the correct re-export form. It is a hardening wish, not a live
+  defect — a one-line regex widening if someone wants it.
+
+The completeness critic's gaps are listed in §11 and are NOT fixed.
 
 The working tree is clean apart from untracked files under `temp/`. Those are the owner's local
 art assets. **Never `git add temp/` and never `git add <directory>`** — a broad add swept them
@@ -83,18 +117,23 @@ CI=true pnpm test:e2e --reporter=list
 
 **And one thing the gate cannot see — boot the dev server.** See §7.
 
-### Baselines at `951a3d2a`
+### Baselines at `56d96bb8` (re-measured 2026-08-08)
 
-| suite         | count                                    |
-| ------------- | ---------------------------------------- |
-| shared        | 411 tests / 23 files                     |
-| server        | 2042 tests / 109 files                   |
-| client        | all 43 batches green                     |
-| client bundle | 96.75 KB gzip vs a 175 KB threshold      |
-| e2e           | **97 passed / 0 failed / 3 skipped**     |
+| suite         | count                                | was at `951a3d2a` |
+| ------------- | ------------------------------------ | ----------------- |
+| shared        | 411 tests / 23 files                 | same              |
+| server        | 2055 tests / 109 files               | 2042              |
+| client        | all 44 batches green                 | 43 batches        |
+| client bundle | 96.80 KB gzip vs a 175 KB threshold  | 96.75 KB          |
+| e2e           | **97 passed / 0 failed / 3 skipped** | same              |
 
-E2E was 83 before S8's 14 new specs (4 desktop help, 5 mobile help, 5 bulk-NPC). Get the true
-tally with `--reporter=list` and read the summary line — the human-readable reporter miscounts.
+The client gained a batch because the review fixes added test files; the server gained 13 tests
+and the bundle 0.05 KB (a corrected help string). E2E was 83 before S8's 14 new specs (4 desktop
+help, 5 mobile help, 5 bulk-NPC) and is unchanged by the fixes. Get the true tally with
+`--reporter=list` and read the summary line — the human-readable reporter miscounts.
+
+**`characterValidators.ts` is now at exactly 348**, the ceiling. Anything added there needs an
+extraction first.
 
 Single file, not the whole suite. **The path is relative to the PACKAGE, not the repo** — `pnpm
 --filter` sets cwd to the package, and getting this wrong makes every run look broken for the
@@ -111,18 +150,13 @@ CI=true pnpm test:e2e --project=mobile-chromium --grep "some name"
 The arc is complete, so there is no queued slice. In rough order of how strongly the code argues
 for them:
 
-### A. Re-run S8's adversarial review (do this first, ~half a day)
+### A. ~~Re-run S8's adversarial review~~ — DONE 2026-08-08, see §0
 
-Fan out read-only reviewers by lens over `git diff 391676a1..951a3d2a` — correctness, regression,
-security, test quality, mobile/a11y, and factual accuracy of the manual — then a separate pass
-that tries to REFUTE each finding. A ready-made script is at
-`~/.claude/projects/D--HeroByte/.../workflows/scripts/s8-adversarial-review-wf_b25ece50-2c3.js`;
-it is correct, it simply never got to run. **Check `agents_error` before believing the verdict.**
+All seven surviving defects are fixed and committed. The next decision is the owner's: B, C or D
+below. **Nothing here is queued** — this is a genuine fork, not a backlog.
 
-Highest-value lenses given what S8 touched: **correctness** on `npcNaming.ts` (the allocator is
-the only real logic in the slice), and **ux-copy** on `helpTopics.ts`, which makes roughly sixty
-factual claims about how HeroByte works — a manual that lies is worse than no manual, and only a
-sample of those claims was checked by hand.
+What is still open from the review is §11, the completeness critic's list of things NOBODY looked
+at. None of it is a known defect; it is unexamined ground.
 
 ### B. A room-level default vision radius (~2 days) — the strongest feature candidate
 
@@ -205,10 +239,16 @@ copy is a `create-npc` whose base name is the original's.
 **The 350-LOC guard** flags `content.split("\n").length >= 350`, i.e. `wc -l >= 349`, so **348 is
 the real ceiling**. `__tests__` files are exempt; source files are not. It fails only on NEW
 violators. `prettier --write` EXPANDS files — re-check LOC after formatting. Live headroom on
-files S8 left near the line: `MobileLayout.tsx` **347** (one line!), `characterValidators.ts` 343,
-`useDMContext.ts` 343, `NPCEditor.tsx` 333, `helpTopics.ts` 301, `Header.tsx` 262,
-`NPCsTab.tsx` 230, `MobileFloatingControls.tsx` 209. Already over and baselined (extract, don't
-grow): `layouts/props/MainLayoutProps.ts` 432, `domains/character/service.ts` 376.
+files near the line, re-measured 2026-08-08 after the review fixes:
+`characterValidators.ts` **348 — AT the ceiling, extract before adding anything**,
+`MobileLayout.tsx` **347** (one line), `useDMContext.ts` 346, `NPCEditor.tsx` 333,
+`helpTopics.ts` 301, `Header.tsx` 262, `NPCsTab.tsx` 230, `MobileFloatingControls.tsx` 223.
+Already over and baselined (extract, don't grow): `layouts/props/MainLayoutProps.ts` 432,
+`domains/character/service.ts` 376.
+
+This bit twice while fixing the review's findings: a comment explaining _why_ a validator changed
+pushed `characterValidators.ts` to 351 and had to be cut back, and the hidden-NPC fix went into
+`NPCMessageHandler` rather than `createCharacter` partly because the alternatives were full.
 
 **A new `ClientMessage` type is a compile error until you register a validator** in
 `messageValidators` (`middleware/validation.ts`) — that table is exhaustive-by-construction. At
@@ -241,7 +281,7 @@ finds nothing and times out looking like an app bug. And `new RegExp(someTitle)`
 containing `(DM)` — the parens become a capture group. Prefer the exact accessible-name string.
 
 **A scrolling panel's controls are legitimately off-screen.** "Every control on screen at once" is
-the *drawing toolbar's* invariant because it cannot scroll; for a scrolling sheet assert
+the _drawing toolbar's_ invariant because it cannot scroll; for a scrolling sheet assert
 reachable-by-scrolling instead, and assert separately that the CLOSE control never scrolls away.
 
 **E2E specs that create NPCs must delete them.** The default table is shared between specs AND
@@ -251,6 +291,21 @@ snapshot the ids before, `try/finally` a cleanup that deletes only what appeared
 **The e2e map canvas is SHORT** — the entities panel takes the bottom half — so a few grid cells
 at a zoomed-in camera walks a click clean off it onto the panel. Anchor by canvas FRACTION unless
 the test needs an exact world delta.
+
+**A synchronous infinite loop cannot be caught by a test timeout.** vitest's per-test timeout needs
+the event loop, and a `while` loop that never yields never gives it back — the first version of the
+2^53 test did not go red, it hung the runner for 90 seconds and then died to an external `timeout`.
+In CI that is a stalled job, not a failure. If you fix a potential-hang, **also make the loop
+structurally bounded** so a regression returns a wrong value that a test can assert on. That is why
+`allocateNpcNames` has both a safe-integer reset and an attempt ceiling; only the first is the fix.
+
+**Every browser you can test in makes `vh`, `dvh` and `svh` identical.** Playwright's fixed viewport
+does, and so does the in-app browser pane at any size — measured, `100vh === 100dvh === 100svh ===
+innerHeight`. So a bug caused by mixing viewport units is invisible to the e2e suite, to jsdom, AND
+to looking at it in the preview. To see one, force the container to a realistic small-viewport
+height (`element.style.height` AND `min-height`, since `.mobile-layout-root` pins `min-height:
+100svh` and it will otherwise win) while the cap still resolves against the large viewport. That is
+what turned "the sheet looks fine" into "its close button is at −57px".
 
 **Windows.** No `kill -9` — use `Stop-Process -Force` or `kill-windows-port.bat`. Bash heredocs
 break on embedded apostrophes and backticks; write the payload with the Write tool and run it with
@@ -356,12 +411,61 @@ turns a cone into something else.
 
 ## 10. Suggested order of work
 
-1. `git log --oneline -6 && git status --porcelain | grep -v '^?? temp/'` — confirm you are at
-   `951a3d2a` with a clean tree.
+1. `git log --oneline -6 && git status --porcelain | grep -v 'temp/'` — confirm you are at
+   `56d96bb8` with a clean tree. (Use `grep -v 'temp/'`, not `grep -v '^?? temp/'`: three of the
+   owner's untracked files have spaces in their names, so git quotes them and the anchored form
+   misses them.)
 2. Run the full gate once (§2) to establish that the baselines in this document still hold, and
    **boot `pnpm dev`** (§7).
-3. Re-run S8's adversarial review (§3A). Check `agents_error` before believing it. Fix what
-   survives refutation, each in its own commit.
-4. Ask the owner which of §3B / §3C / §3D they want next — the arc is complete, so this is a
-   genuine fork, not a queue.
-5. Stop before merging to `main`. That is the owner's call, and it deploys.
+3. Ask the owner which of §3B / §3C / §3D they want next, or whether to clear §11 first — the arc
+   is complete and its review is closed, so this is a genuine fork, not a queue.
+4. Stop before merging to `main`. That is the owner's call, and it deploys.
+
+## 11. Unexamined ground, from the review's completeness critic
+
+None of these is a known defect. They are places nobody looked, ordered by how cheaply they could
+bite. Not fixed, deliberately — several are judgement calls the owner should make.
+
+- **The three new e2e specs never run on a push.** `help-panel.spec.ts`, `mobile/mobile-help.spec.ts`
+  and `npc-bulk-add.spec.ts` (456 lines, including S8's headline proof) live in the
+  `e2e-full-suite` job, gated on `schedule || workflow_dispatch`. The `e2e-smoke-tests` job that
+  runs on every push executes a hard-coded four-spec list containing none of them. The commit
+  messages cite these counts as the end-to-end verification; in the gate that actually runs on the
+  branch, they do not execute. **This is the highest-leverage item here.**
+- **`DRAWING_TYPES` still has zero importers**, so the very re-export mechanism `3f22ad08` was
+  written to prove is the one thing never exercised — its first server import would also be its
+  first test. `apps/client/src/utils/characterDrawings.ts` still hand-maintains the same six
+  strings. A background-task chip is queued for wiring them together.
+- **`barrelValueExports.test.ts` is a proxy, not the invariant.** It checks declaration syntax in
+  one file; it cannot catch a broken re-export path or a sub-module missing from the build.
+  `scripts/smoke-server-start.mjs` already exists and is not wired to it. Widening the regex (see
+  §0) would not change that.
+- **`SNAPSHOT_LIMITS.characters` now governs two unrelated things** — what a session file may hold
+  on load, and how many characters a DM may ever create. Its doc comment still describes only the
+  first, and no test ties the two. Raising it for imports silently raises the creation cap.
+- **`count` is passed into `createCharacter` once per NPC.** It is inert only because that function
+  builds its fields one by one; the day it spreads its options, a loop-control value lands in room
+  state and goes over the wire.
+- **`useNpcManagement.ts` is a second, fully-tested, caller-less NPC hook** with no `count` and no
+  duplicate. It looks maintained, and wiring it up loses both features with the suite green.
+- **`duplicateNpc` has no `type === "npc"` guard**, so an id lookup one caller away could clone a
+  player character into a DM-owned NPC. Also unexamined: whether `portrait`/`tokenImage` are asset
+  refs (a copy shares them, and reclaim would affect both) or inline data (a batch multiplies
+  storage).
+- **The desktop popover re-anchors on `window.resize` only.** The header is a `flexWrap` toolbar
+  whose contents change on DM elevation and whose offset moves with the status banner; an open
+  popover keeps a stale position through all of it.
+- **`dm-guide.md`'s new bulk section was inserted mid-list**, so ROLL MISSING INITIATIVE, the 👁️
+  eye and DELETE now render under it, and a "Two notes worth knowing" list has five entries. Its
+  screenshot (`img/dm-menu-npcs.jpg`) predates the feature and shows no ×N and no Duplicate —
+  `pnpm docs:screenshots` was not re-run.
+- **The in-app guide links point at `main`**, which has no S4–S8 content, so a DM following the ×N
+  entry's link gets a guide with no ×N in it until `dev` merges. The test asserts URL _shape_, not
+  that the four files exist.
+- **`useBulkInitiativeRoll` sends one message per NPC in one tick.** Twenty goblins is twenty
+  messages against a 100/s limiter — fine today, but `COUNT_MAX` and the limiter budget live in
+  different packages with nothing tying them together, so raising the ceiling looks like a
+  one-liner.
+- **`countInput` is never reset after a batch**, so the press after "+ Add 5 NPCs" silently adds
+  five more. Its comment claims the field "can never disagree with the button next to it"; type 99
+  and it reads 99 while the button reads "+ Add 20 NPCs" until blur.
