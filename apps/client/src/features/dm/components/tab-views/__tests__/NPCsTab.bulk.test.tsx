@@ -71,6 +71,41 @@ describe("NPCsTab — adding several at once", () => {
     expect(props.onCreateNPC).toHaveBeenCalledWith({ count: NPC_CREATE_LIMITS.COUNT_MAX });
   });
 
+  it("shows the clamped total on the button while the field still reads what was typed", () => {
+    // The field's own comment used to claim the blur snap meant it "can never
+    // disagree with the button next to it". It can, in exactly this window:
+    // `count` is clamped on every render but `countInput` is only reconciled on
+    // blur. The BUTTON is the honest one — it is what the press will actually
+    // do — so that is what this pins.
+    renderTab();
+
+    fireEvent.change(countField(), { target: { value: "99" } });
+
+    expect(countField()).toHaveValue(99);
+    expect(
+      screen.getByRole("button", { name: `+ Add ${NPC_CREATE_LIMITS.COUNT_MAX} NPCs` }),
+    ).toBeInTheDocument();
+
+    fireEvent.blur(countField());
+    expect(countField()).toHaveValue(NPC_CREATE_LIMITS.COUNT_MAX);
+  });
+
+  it("keeps the count across batches instead of resetting it", () => {
+    // Sticky ON PURPOSE — a DM staging wave after wave should not retype it,
+    // and the button label says "+ Add 5 NPCs" the whole time. Pinned because
+    // it is a design choice made by omission, and the next reader would
+    // otherwise be free to "fix" it.
+    const props = renderTab();
+
+    fireEvent.change(countField(), { target: { value: "5" } });
+    fireEvent.click(addButton());
+    fireEvent.click(addButton());
+
+    expect(props.onCreateNPC).toHaveBeenCalledTimes(2);
+    expect(props.onCreateNPC).toHaveBeenNthCalledWith(2, { count: 5 });
+    expect(screen.getByRole("button", { name: "+ Add 5 NPCs" })).toBeInTheDocument();
+  });
+
   it("clamps zero, negatives and junk up to one", () => {
     const props = renderTab();
 

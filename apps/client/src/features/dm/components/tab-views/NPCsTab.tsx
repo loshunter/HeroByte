@@ -164,8 +164,13 @@ export default function NPCsTab({
               step={1}
               value={countInput}
               onChange={(e) => setCountInput(e.target.value)}
-              // Snap the display back to what will actually be sent, so the
-              // field can never disagree with the button next to it.
+              // Snap the display back to what will actually be sent. This
+              // reconciles ON BLUR, not while typing: type 99 and the field
+              // reads 99 while the button already reads "+ Add 20 NPCs", since
+              // `count` is clamped above. The button label is the honest one —
+              // it is what the press will do. The field is also deliberately
+              // STICKY across batches, so a DM staging wave after wave does not
+              // retype it; the label is what tells them it is still 5.
               onBlur={() => setCountInput(String(count))}
               aria-label="How many NPCs to add"
               style={{ width: "44px", fontSize: "10px", padding: "4px" }}
