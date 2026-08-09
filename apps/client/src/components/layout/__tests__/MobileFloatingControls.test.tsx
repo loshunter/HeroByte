@@ -9,6 +9,9 @@
  */
 
 import React from "react";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
 import { MobileFloatingControls } from "../MobileFloatingControls";
@@ -98,6 +101,48 @@ describe("MobileFloatingControls", () => {
       fireEvent.click(screen.getByRole("button", { name: /close help/i }));
 
       expect(screen.queryByRole("dialog", { name: /herobyte help/i })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("the help sheet's height rule", () => {
+    // A SOURCE-TEXT rule, for the same reason barrelValueExports.test.ts is one:
+    // nothing that executes in this repo can see this bug. jsdom computes no
+    // layout, and Playwright's fixed viewport makes vh, dvh and svh identical —
+    // so a cap in the wrong unit stays green everywhere and only breaks on a
+    // real phone, where it clipped the sheet's only close button off-screen.
+    const css = readFileSync(
+      path.join(
+        path.dirname(fileURLToPath(import.meta.url)),
+        "..",
+        "..",
+        "..",
+        "theme",
+        "herobyte.css",
+      ),
+      "utf8",
+    );
+    // The lookbehind is load-bearing. `.mobile-help-sheet` is ALSO the last
+    // selector of the shared sheet block above, written one selector per line —
+    // so both a bare match and a newline-anchored one silently read that rule
+    // instead, and every assertion below goes vacuous. Requiring that the line
+    // before it does not end in a comma is what picks out the standalone rule.
+    const helpSheetRule = /(?<!,)\n\.mobile-help-sheet\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+
+    it("caps itself in the same viewport unit as .mobile-layout-root", () => {
+      expect(helpSheetRule).not.toBe("");
+      // The container is 100dvh with overflow:hidden. 100vh is the LARGE
+      // viewport, taller by the browser chrome, and the sheet is bottom-anchored
+      // — so a vh-only cap pushes its top off the screen by exactly that much.
+      expect(helpSheetRule).toMatch(/max-height:\s*calc\(\s*100dvh\b/);
+    });
+
+    it("keeps a plain vh cap before it as the fallback", () => {
+      // Declaration order is the whole mechanism: browsers without dvh keep the
+      // vh line, browsers with it take the later one.
+      const vhAt = helpSheetRule.search(/max-height:\s*calc\(\s*100vh\b/);
+      const dvhAt = helpSheetRule.search(/max-height:\s*calc\(\s*100dvh\b/);
+      expect(vhAt).toBeGreaterThanOrEqual(0);
+      expect(dvhAt).toBeGreaterThan(vhAt);
     });
   });
 });

@@ -1361,24 +1361,35 @@ h4 {
   gap: 4px;
 }
 
-/* The manual on a phone. Taller than the tool sheet because it is prose, and
-   it sits above the dock rather than over it so the dock stays reachable. */
 /*
- * The manual on a phone. Its height is derived from its own bottom offset
- * rather than a vh fraction, because a fraction and an offset do not know
- * about each other: at 812x375 the shared 82vh landscape cap (307px) plus the
- * 102px dock offset came to 409px in a 375px viewport, so the sheet's header —
- * and the ✕ that closes it — sat 34px above the top of the screen. Subtracting
- * the offset makes "fits on screen" arithmetic instead of a guess, and the
- * extra 48px keeps the connection banner visible above it.
+ * The manual on a phone. Taller than the tool sheet because it is prose, and it
+ * sits above the dock rather than over it so the dock stays reachable.
+ *
+ * Its height is derived from its own bottom offset rather than a vh fraction,
+ * because a fraction and an offset do not know about each other: at 812x375 the
+ * shared 82vh landscape cap (307px) plus the 102px dock offset came to 409px in
+ * a 375px viewport, so the sheet's header — and the ✕ that closes it — sat 34px
+ * above the top of the screen. Subtracting the offset makes "fits on screen"
+ * arithmetic instead of a guess, and the extra 48px keeps the connection banner
+ * visible above it.
+ *
+ * The cap MUST be in the same viewport unit as the containing block, for the
+ * same reason. .mobile-layout-root is 100dvh with overflow:hidden, but 100vh is
+ * the LARGE viewport — taller by the browser chrome (~56px Android Chrome,
+ * ~90-110px iOS Safari) whenever the URL bar is showing. Bottom-anchored, that
+ * surplus goes off the TOP: top = 48px - (lvh - dvh), negative on any real
+ * phone, and the root then clips the sticky header carrying the only ✕. The
+ * sheet opened with no way to close it. No test in this repo could see it —
+ * Playwright's fixed viewport makes vh, dvh and svh identical, which is also
+ * why the landscape e2e stayed green. The vh line is the fallback for browsers
+ * without dvh; the dvh line is the one that matters.
  */
 .mobile-help-sheet {
-  --mobile-help-sheet-offset: calc(
-    var(--mobile-safe-bottom) + var(--mobile-dock-height) + 22px
-  );
+  --mobile-help-sheet-offset: calc(var(--mobile-safe-bottom) + var(--mobile-dock-height) + 22px);
 
   bottom: var(--mobile-help-sheet-offset);
   max-height: calc(100vh - var(--mobile-help-sheet-offset) - 48px);
+  max-height: calc(100dvh - var(--mobile-help-sheet-offset) - 48px);
   padding: 10px;
   overflow-y: auto;
 }
