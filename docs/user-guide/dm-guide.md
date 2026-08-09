@@ -25,7 +25,9 @@ Top to bottom:
 **+ ADD NPC** creates a monster with a full stat row:
 
 - **Name, HP / Max HP / Temp HP, Init Mod, Portrait, Token Image** — same character plumbing as players. Both image fields take an **⬆ UPLOAD IMAGE** from your device or a pasted URL.
-- **PLACE ON MAP** drops its token at the center of your view; from there it drags like any token.
+- **PLACE ON MAP** drops its token at the map's top-left corner cell — not at the center of your
+  view — so recenter or drag it across from there. Pressing it again relocates that same token back
+  to the corner rather than adding a second one.
 
 ### Adding a pack at once
 

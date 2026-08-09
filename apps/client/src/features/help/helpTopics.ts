@@ -275,7 +275,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "PLACE ON MAP",
         detail:
-          "Drops that NPC's token at the centre of your view. The 👁️ eye hides an NPC from players entirely.",
+          "Drops that NPC's token at the map's top-left corner cell, not where you are looking — recentre or drag it in. Pressing it again moves that same token rather than adding a second. The 👁️ eye hides an NPC from players entirely.",
       },
       {
         term: "Fog of War",

@@ -98,6 +98,12 @@ describe("CharacterService", () => {
     expect(storedNPC.tokenId).toBeDefined();
     expect(state.tokens).toHaveLength(1);
     expect(state.tokens[0]?.imageUrl).toBe("https://img/new");
+    // Pinned because the in-app manual and dm-guide.md both describe it:
+    // place-npc-token carries no coordinates, so the token lands at the map's
+    // top-left cell, NOT at the DM's camera. If this ever follows the camera,
+    // helpTopics.ts ("PLACE ON MAP") and dm-guide.md have to change with it.
+    expect(state.tokens[0]?.x).toBe(0);
+    expect(state.tokens[0]?.y).toBe(0);
 
     // Delete character and ensure token removed
     const removed = service.deleteCharacter(state, npc.id);
