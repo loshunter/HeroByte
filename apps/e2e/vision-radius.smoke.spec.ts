@@ -145,8 +145,11 @@ test.describe("Vision radius and explored fog (S7)", () => {
       // Wait past the store's debounce, then read the mask back out.
       const explored = await player.evaluate(async () => {
         await new Promise((resolve) => setTimeout(resolve, 5000));
-        const key = Object.keys(localStorage).find((k) =>
-          k.startsWith("herobyte:fog-explored:v1:"),
+        // The store's own LRU index is "…:v1:index", which matches that prefix
+        // too, and localStorage does NOT enumerate in insertion order.
+        const key = Object.keys(localStorage).find(
+          (k) =>
+            k.startsWith("herobyte:fog-explored:v1:") && k !== "herobyte:fog-explored:v1:index",
         );
         if (!key) return { key: null as string | null, exploredCells: 0, totalCells: 0 };
         const record = JSON.parse(localStorage.getItem(key)!) as {
