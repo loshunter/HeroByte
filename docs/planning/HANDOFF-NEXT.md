@@ -131,6 +131,10 @@ CI=true pnpm test:e2e --reporter=list
 | client bundle | 96.89 KB gzip vs a 175 KB threshold  | 96.75 KB                   |
 | e2e           | **97 passed / 0 failed / 3 skipped** | same                       |
 
+Re-run in full on 2026-08-09 at `9f4b3f15`: every row above still holds, and `tsx` boots the server
+(§7) cleanly. The e2e row held only after `5f93db94` — the first run of it was `96 passed / 1 flaky`
+(§5).
+
 The client is back to 43 batches: the fixes added test files (44), then deleting
 `useNpcManagement`'s 709-line suite took one away again. E2E was 83 before S8's 14 new specs
 (4 desktop help, 5 mobile help, 5 bulk-NPC) and is unchanged by any of the fixes — worth noting,
@@ -314,6 +318,16 @@ to looking at it in the preview. To see one, force the container to a realistic 
 height (`element.style.height` AND `min-height`, since `.mobile-layout-root` pins `min-height:
 100svh` and it will otherwise win) while the cap still resolves against the large viewport. That is
 what turned "the sheet looks fine" into "its close button is at −57px".
+
+**A flaky test reports as a PASS.** Playwright retries, so a failure that clears on the second
+attempt prints `1 flaky` and still exits 0 — and `pnpm test:e2e` looks green. Read the summary
+line, not the exit code. Re-running the gate on 2026-08-09 turned up exactly one:
+`vision-radius.smoke.spec.ts` found its explored-fog entry with a bare prefix match, which also
+matches `exploredFogStore`'s own LRU index key — and **Chromium does not enumerate `localStorage`
+in insertion order**, so writing the mask first did not make it come first. Measured over 60
+trials: the index won 7 times (~12%), throwing inside `atob()` every one of those. Fixed in
+`5f93db94`. The general shape — a prefix that matches more keys than you meant, ordered by
+something you assumed — is worth checking wherever a test picks a key out of storage.
 
 **You cannot push `.github/workflows/*`.** Git here uses Git Credential Manager over HTTPS, and the
 stored token is an OAuth-app token issued WITHOUT the `workflow` scope. GitHub then refuses the
