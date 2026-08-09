@@ -55,10 +55,31 @@ function highestIndexFor(existingNames: readonly string[], base: string): number
  * - Allocation is cumulative within one call, so a single batch cannot collide
  *   with itself.
  */
+/**
+ * Longest name this may return.
+ *
+ * It has to match what validateCreateNpcMessage and validateUpdateNpcMessage
+ * accept, or the server hands itself back a name it will refuse: numbering a
+ * 49-character base pushed it to 51, and from then on every edit to that NPC
+ * was rejected on length and dropped without a reply, so the card reported a
+ * timeout and Duplicate did nothing. npcNaming.test.ts pins this against
+ * STRING_LIMITS.PLAYER_NAME_MAX so the two cannot drift apart.
+ */
+export const NPC_NAME_MAX = 50;
+
+/** `base` truncated so that appending ` ${index}` still fits within `max`. */
+function fitNumbered(base: string, index: number, max: number): string {
+  const suffix = ` ${index}`;
+  if (base.length + suffix.length <= max) return `${base}${suffix}`;
+  // trimEnd so a cut landing mid-space does not leave "Ancient Red  7".
+  return `${base.slice(0, Math.max(0, max - suffix.length)).trimEnd()}${suffix}`;
+}
+
 export function allocateNpcNames(
   existingNames: readonly string[],
   baseName: string,
   count: number,
+  maxLength: number = NPC_NAME_MAX,
 ): string[] {
   const requested = Math.max(1, Math.floor(count));
   const { base, index } = splitNumberedName(baseName);
@@ -99,7 +120,7 @@ export function allocateNpcNames(
   let attemptsLeft = requested + taken.size;
   while (names.length < requested && attemptsLeft > 0) {
     attemptsLeft -= 1;
-    const candidate = `${safeBase} ${next}`;
+    const candidate = fitNumbered(safeBase, next, maxLength);
     next += 1;
     // Reachable once the reset above fires: restarting at 1 walks back over
     // numbers that are already in use. Outside that case it is unreachable,

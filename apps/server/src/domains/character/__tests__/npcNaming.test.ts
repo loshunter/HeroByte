@@ -7,7 +7,8 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { allocateNpcNames, splitNumberedName } from "../npcNaming.js";
+import { allocateNpcNames, splitNumberedName, NPC_NAME_MAX } from "../npcNaming.js";
+import { STRING_LIMITS } from "../../../middleware/validators/constants.js";
 
 describe("splitNumberedName", () => {
   it("splits a trailing integer off the base", () => {
@@ -131,6 +132,44 @@ describe("allocateNpcNames", () => {
     expect(new Set(names).size).toBe(2);
     expect(names).not.toContain("G 9007199254740991");
   }, 1000);
+
+  describe("the length ceiling", () => {
+    it("agrees with the limit the validators actually enforce", () => {
+      // If these drift, the server starts handing itself names its own
+      // validators reject — which is the bug this ceiling exists to stop.
+      expect(NPC_NAME_MAX).toBe(STRING_LIMITS.PLAYER_NAME_MAX);
+    });
+
+    it("never returns a name longer than the validators accept", () => {
+      // 49 chars is admitted by create-npc, and " 1" used to push it to 51.
+      const base = "A".repeat(49);
+
+      for (const name of allocateNpcNames([], base, 5)) {
+        expect(name.length).toBeLessThanOrEqual(NPC_NAME_MAX);
+      }
+    });
+
+    it("keeps the numbers distinct when the base has to be truncated", () => {
+      // Truncation must not collapse the series into one repeated name — the
+      // number is the entire point, so it is the base that gives way.
+      const names = allocateNpcNames([], "B".repeat(50), 12);
+
+      expect(new Set(names).size).toBe(12);
+      expect(names[0]).toMatch(/ 1$/);
+      expect(names[11]).toMatch(/ 12$/);
+      for (const name of names) expect(name.length).toBeLessThanOrEqual(NPC_NAME_MAX);
+    });
+
+    it("does not truncate a name that already fits", () => {
+      expect(allocateNpcNames(["Goblin"], "Goblin", 2)).toEqual(["Goblin 2", "Goblin 3"]);
+    });
+
+    it("does not leave a dangling space where the cut landed", () => {
+      const [name] = allocateNpcNames([], `${"C".repeat(47)} D`, 2);
+
+      expect(name).not.toMatch(/\s\s/);
+    });
+  });
 
   it("skips numbers already in use after restarting at the ceiling", () => {
     // The restart walks back over low numbers, so the collision skip inside the
