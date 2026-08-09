@@ -39,6 +39,8 @@ export interface CreateNpcRequest {
   tokenImage?: string;
   /** How many to create (1..NPC_CREATE_LIMITS.COUNT_MAX). Defaults to 1. */
   count?: number;
+  /** Carried by Duplicate so a hidden NPC's copy stays hidden. */
+  visibleToPlayers?: boolean;
 }
 
 export interface UseNpcCreationReturn {
@@ -143,6 +145,9 @@ export function useNpcCreation(options: UseNpcCreationOptions): UseNpcCreationRe
         ...(request?.portrait !== undefined ? { portrait: request.portrait } : {}),
         ...(request?.tokenImage !== undefined ? { tokenImage: request.tokenImage } : {}),
         ...(request?.count !== undefined ? { count: request.count } : {}),
+        ...(request?.visibleToPlayers !== undefined
+          ? { visibleToPlayers: request.visibleToPlayers }
+          : {}),
       });
 
       // Set a timeout in case server doesn't respond

@@ -98,6 +98,7 @@ export class CharacterDispatcher {
               hp: message.hp,
               tokenImage: message.tokenImage,
               count: message.count,
+              visibleToPlayers: message.visibleToPlayers,
             }),
           ) ?? {}
         );

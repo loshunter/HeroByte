@@ -733,6 +733,13 @@ type ClientMessagePayload =
        * which was built to have exactly one create in the air.
        */
       count?: number;
+      /**
+       * Carried so Duplicate can copy a HIDDEN NPC as hidden. Only an explicit
+       * `false` does anything — anything else leaves the new NPC visible, which
+       * is the default everywhere else — so this needs no validator branch of
+       * its own the way `count` does, since it drives a flag rather than a loop.
+       */
+      visibleToPlayers?: boolean;
     }
   | {
       t: "update-npc";

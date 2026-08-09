@@ -29,6 +29,8 @@ const snapshot = {
     { id: "npc-2", type: "npc", name: "Orc", hp: 12, maxHp: 12 },
     // Knocked to 0 mid-fight — the case that used to be rejected server-side.
     { id: "npc-3", type: "npc", name: "Downed Goblin", hp: 0, maxHp: 7 },
+    // Hidden from players: an ambush the DM has not sprung yet.
+    { id: "npc-4", type: "npc", name: "Assassin", hp: 20, maxHp: 20, visibleToPlayers: false },
   ],
 } as unknown as RoomSnapshot;
 
@@ -88,6 +90,30 @@ describe("useDMContext.duplicateNpc", () => {
     expect(sendMessage).toHaveBeenCalledWith(
       expect.objectContaining({ t: "create-npc", name: "Downed Goblin", hp: 0, maxHp: 7 }),
     );
+  });
+
+  it("copies a hidden NPC as hidden", () => {
+    // Duplicate's promise is "another one of these", and hidden-ness is the
+    // property a DM prepping an ambush most needs kept. Without this the copy
+    // defaults to visible while the original stays hidden — so the prep leaks
+    // and nothing on screen suggests it has.
+    const { result, sendMessage } = setup();
+
+    act(() => result.current.npcManagement.duplicateNpc("npc-4"));
+
+    expect(sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ t: "create-npc", name: "Assassin", visibleToPlayers: false }),
+    );
+  });
+
+  it("does not send a visibility flag for an ordinary NPC", () => {
+    // Absent, not `true`: everywhere else "not false" means visible, and an
+    // explicit true would be a second way to say the default.
+    const { result, sendMessage } = setup();
+
+    act(() => result.current.npcManagement.duplicateNpc("npc-2"));
+
+    expect(sendMessage.mock.calls[0][0].visibleToPlayers).toBeUndefined();
   });
 
   it("sends nothing for an id that is not at the table", () => {

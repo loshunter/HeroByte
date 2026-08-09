@@ -40,6 +40,8 @@ export interface CreateNPCOptions {
   tokenImage?: string;
   /** How many to create, defaulting to 1. Validated upstream against NPC_CREATE_LIMITS. */
   count?: number;
+  /** Hidden-from-players flag to carry onto the copy. Only `false` is honoured. */
+  visibleToPlayers?: boolean;
 }
 
 /**
@@ -116,7 +118,22 @@ export class NPCMessageHandler {
       toCreate,
     );
     for (const allocated of names) {
-      this.characterService.createCharacter(state, allocated, maxHp, portrait, "npc", options);
+      const created = this.characterService.createCharacter(
+        state,
+        allocated,
+        maxHp,
+        portrait,
+        "npc",
+        options,
+      );
+      // Only an explicit `false` is honoured — everywhere else in the codebase
+      // "not false" means visible, so a hostile or malformed value can only
+      // ever produce the default. Set here rather than in createCharacter so a
+      // hidden NPC's copy stays hidden without every PC creation path growing
+      // a visibility argument it has no use for.
+      if (options?.visibleToPlayers === false) {
+        created.visibleToPlayers = false;
+      }
     }
 
     return { broadcast: true, save: true };

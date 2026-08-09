@@ -257,6 +257,41 @@ describe("NPCMessageHandler - Characterization Tests", () => {
     });
   });
 
+  describe("create-npc carrying a hidden flag (Duplicate)", () => {
+    const create = (visibleToPlayers?: unknown): ClientMessage =>
+      ({
+        t: "create-npc",
+        name: "Assassin",
+        hp: 20,
+        maxHp: 20,
+        ...(visibleToPlayers === undefined ? {} : { visibleToPlayers }),
+      }) as ClientMessage;
+
+    it("creates a hidden NPC when the flag is explicitly false", () => {
+      messageRouter.route(create(false), dmUid);
+
+      expect(roomService.getState().characters[0]?.visibleToPlayers).toBe(false);
+    });
+
+    it("leaves an ordinary create visible", () => {
+      messageRouter.route(create(undefined), dmUid);
+
+      expect(roomService.getState().characters[0]?.visibleToPlayers).not.toBe(false);
+    });
+
+    it("honours only an exact false, so a junk value cannot hide an NPC", () => {
+      // The flag has no validator branch of its own — it drives a boolean, not
+      // a loop — so the handler's `=== false` is what makes anything else inert.
+      for (const junk of ["false", 0, null, {}]) {
+        messageRouter.route(create(junk), dmUid);
+      }
+
+      const created = roomService.getState().characters;
+      expect(created).toHaveLength(4);
+      expect(created.every((c) => c.visibleToPlayers !== false)).toBe(true);
+    });
+  });
+
   describe("update-npc message", () => {
     let npcId: string;
 
