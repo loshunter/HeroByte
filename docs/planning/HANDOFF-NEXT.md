@@ -9,10 +9,12 @@ is a judgement call rather than a fact, it says so.
 **The Session One arc is DONE.** `docs/planning/session-one-arc.md` is the source of truth.
 S0–S7 are in production; **S8 and its review fixes are on `dev` and NOT deployed.**
 
-| Branch | Commit     | State                                                      |
-| ------ | ---------- | ---------------------------------------------------------- |
-| `dev`  | `56d96bb8` | 5 S8 commits + 7 review-fix commits on `main`. CI not run. |
-| `main` | `5307d0dd` | production, deployed, green                                |
+| Branch | Commit     | State                                                               |
+| ------ | ---------- | ------------------------------------------------------------------- |
+| `dev`  | `7c780642` | 26 commits on `main`: S8, its 7 review fixes, then the §11 cleanup. |
+| `main` | `5307d0dd` | production, deployed, green                                         |
+
+`dev` is pushed to origin. Nothing has been merged to `main`, so none of it is deployed.
 
 S8's five commits:
 
@@ -70,7 +72,8 @@ function`, `export enum` and `export abstract class` all emit the same `export d
   and every value export is already the correct re-export form. It is a hardening wish, not a live
   defect — a one-line regex widening if someone wants it.
 
-The completeness critic's gaps are listed in §11 and are NOT fixed.
+The completeness critic then listed twelve areas nobody had looked at. Ten are now closed
+and two are waiting on an owner decision — see §11.
 
 The working tree is clean apart from untracked files under `temp/`. Those are the owner's local
 art assets. **Never `git add temp/` and never `git add <directory>`** — a broad add swept them
@@ -117,19 +120,19 @@ CI=true pnpm test:e2e --reporter=list
 
 **And one thing the gate cannot see — boot the dev server.** See §7.
 
-### Baselines at `56d96bb8` (re-measured 2026-08-08)
+### Baselines at `7c780642` (re-measured 2026-08-09)
 
-| suite         | count                                | was at `951a3d2a` |
-| ------------- | ------------------------------------ | ----------------- |
-| shared        | 411 tests / 23 files                 | same              |
-| server        | 2055 tests / 109 files               | 2042              |
-| client        | all 44 batches green                 | 43 batches        |
-| client bundle | 96.80 KB gzip vs a 175 KB threshold  | 96.75 KB          |
-| e2e           | **97 passed / 0 failed / 3 skipped** | same              |
+| suite         | count                                | at `951a3d2a` (pre-review) |
+| ------------- | ------------------------------------ | -------------------------- |
+| shared        | 414 tests / 23 files                 | 411                        |
+| server        | 2057 tests / 109 files               | 2042                       |
+| client        | all 44 batches green                 | 43 batches                 |
+| client bundle | 96.89 KB gzip vs a 175 KB threshold  | 96.75 KB                   |
+| e2e           | **97 passed / 0 failed / 3 skipped** | same                       |
 
-The client gained a batch because the review fixes added test files; the server gained 13 tests
-and the bundle 0.05 KB (a corrected help string). E2E was 83 before S8's 14 new specs (4 desktop
-help, 5 mobile help, 5 bulk-NPC) and is unchanged by the fixes. Get the true tally with
+The client gained a batch because the fixes added test files. E2E was 83 before S8's 14 new specs
+(4 desktop help, 5 mobile help, 5 bulk-NPC) and is unchanged by any of the fixes — worth noting,
+because it is also the suite that does not run on a push (§11). Get the true tally with
 `--reporter=list` and read the summary line — the human-readable reporter miscounts.
 
 **`characterValidators.ts` is now at exactly 348**, the ceiling. Anything added there needs an
@@ -239,16 +242,19 @@ copy is a `create-npc` whose base name is the original's.
 **The 350-LOC guard** flags `content.split("\n").length >= 350`, i.e. `wc -l >= 349`, so **348 is
 the real ceiling**. `__tests__` files are exempt; source files are not. It fails only on NEW
 violators. `prettier --write` EXPANDS files — re-check LOC after formatting. Live headroom on
-files near the line, re-measured 2026-08-08 after the review fixes:
-`characterValidators.ts` **348 — AT the ceiling, extract before adding anything**,
-`MobileLayout.tsx` **347** (one line), `useDMContext.ts` 346, `NPCEditor.tsx` 333,
-`helpTopics.ts` 301, `Header.tsx` 262, `NPCsTab.tsx` 230, `MobileFloatingControls.tsx` 223.
-Already over and baselined (extract, don't grow): `layouts/props/MainLayoutProps.ts` 432,
-`domains/character/service.ts` 376.
+files near the line, re-measured 2026-08-09 after the §11 cleanup. **Three are within one line of
+the ceiling** — `characterValidators.ts` **348**, `MobileLayout.tsx` **347**, `useDMContext.ts`
+**347** — so any of them needs an extraction before it gains anything at all. Then
+`NPCEditor.tsx` 333, `helpTopics.ts` 301, `Header.tsx` 262, `NPCsTab.tsx` 235,
+`MobileFloatingControls.tsx` 223, `HelpMenuButton.tsx` 153. Already over and baselined (extract,
+don't grow): `layouts/props/MainLayoutProps.ts` 432, `domains/character/service.ts` 376.
 
-This bit twice while fixing the review's findings: a comment explaining _why_ a validator changed
-pushed `characterValidators.ts` to 351 and had to be cut back, and the hidden-NPC fix went into
-`NPCMessageHandler` rather than `createCharacter` partly because the alternatives were full.
+This bit three times in two days, always the same way — a comment explaining WHY a change was made
+is what crosses the line. A validator comment pushed `characterValidators.ts` to 351 and had to be
+cut back; a five-line comment on a one-line type guard pushed `useDMContext.ts` to 353; and the
+hidden-NPC fix went into `NPCMessageHandler` rather than `createCharacter` partly because the
+alternatives were full. The way out is the same each time: the reasoning goes in the commit message
+and the test (tests are exempt), and the code keeps one line.
 
 **A new `ClientMessage` type is a compile error until you register a validator** in
 `messageValidators` (`middleware/validation.ts`) — that table is exhaustive-by-construction. At
@@ -412,60 +418,68 @@ turns a cone into something else.
 ## 10. Suggested order of work
 
 1. `git log --oneline -6 && git status --porcelain | grep -v 'temp/'` — confirm you are at
-   `56d96bb8` with a clean tree. (Use `grep -v 'temp/'`, not `grep -v '^?? temp/'`: three of the
+   `7c780642` with a clean tree. (Use `grep -v 'temp/'`, not `grep -v '^?? temp/'`: three of the
    owner's untracked files have spaces in their names, so git quotes them and the anchored form
    misses them.)
 2. Run the full gate once (§2) to establish that the baselines in this document still hold, and
    **boot `pnpm dev`** (§7).
-3. Ask the owner which of §3B / §3C / §3D they want next, or whether to clear §11 first — the arc
-   is complete and its review is closed, so this is a genuine fork, not a queue.
-4. Stop before merging to `main`. That is the owner's call, and it deploys.
+3. Put §11's two open questions to the owner — whether S8's e2e specs should run on a push (a
+   CI-minutes call), and whether the caller-less `useNpcManagement.ts` and its 709-line suite
+   should be deleted. Both are one-line-to-small changes once decided.
+4. Ask which of §3B / §3C / §3D they want next — the arc is complete, its review is closed and
+   §11 is down to those two questions, so this is a genuine fork, not a queue.
+5. Stop before merging to `main`. That is the owner's call, and it deploys.
 
-## 11. Unexamined ground, from the review's completeness critic
+## 11. The completeness critic's list — mostly cleared 2026-08-09
 
-None of these is a known defect. They are places nobody looked, ordered by how cheaply they could
-bite. Not fixed, deliberately — several are judgement calls the owner should make.
+Twelve areas nobody had examined. Four were investigated by a read-only agent fan-out, the rest by
+hand. **Ten are closed; two are waiting on the owner.** Nothing here was a defect found by testing
+— these were places no lens had looked, and several turned out to be fine.
 
-- **The three new e2e specs never run on a push.** `help-panel.spec.ts`, `mobile/mobile-help.spec.ts`
-  and `npc-bulk-add.spec.ts` (456 lines, including S8's headline proof) live in the
-  `e2e-full-suite` job, gated on `schedule || workflow_dispatch`. The `e2e-smoke-tests` job that
-  runs on every push executes a hard-coded four-spec list containing none of them. The commit
-  messages cite these counts as the end-to-end verification; in the gate that actually runs on the
-  branch, they do not execute. **This is the highest-leverage item here.**
-- **`DRAWING_TYPES` still has zero importers**, so the very re-export mechanism `3f22ad08` was
-  written to prove is the one thing never exercised — its first server import would also be its
-  first test. `apps/client/src/utils/characterDrawings.ts` still hand-maintains the same six
-  strings. A background-task chip is queued for wiring them together.
-- **`barrelValueExports.test.ts` is a proxy, not the invariant.** It checks declaration syntax in
-  one file; it cannot catch a broken re-export path or a sub-module missing from the build.
-  `scripts/smoke-server-start.mjs` already exists and is not wired to it. Widening the regex (see
-  §0) would not change that.
-- **`SNAPSHOT_LIMITS.characters` now governs two unrelated things** — what a session file may hold
-  on load, and how many characters a DM may ever create. Its doc comment still describes only the
-  first, and no test ties the two. Raising it for imports silently raises the creation cap.
-- **`count` is passed into `createCharacter` once per NPC.** It is inert only because that function
-  builds its fields one by one; the day it spreads its options, a loop-control value lands in room
-  state and goes over the wire.
-- **`useNpcManagement.ts` is a second, fully-tested, caller-less NPC hook** with no `count` and no
-  duplicate. It looks maintained, and wiring it up loses both features with the suite green.
-- **`duplicateNpc` has no `type === "npc"` guard**, so an id lookup one caller away could clone a
-  player character into a DM-owned NPC. Also unexamined: whether `portrait`/`tokenImage` are asset
-  refs (a copy shares them, and reclaim would affect both) or inline data (a batch multiplies
-  storage).
-- **The desktop popover re-anchors on `window.resize` only.** The header is a `flexWrap` toolbar
-  whose contents change on DM elevation and whose offset moves with the status banner; an open
-  popover keeps a stale position through all of it.
-- **`dm-guide.md`'s new bulk section was inserted mid-list**, so ROLL MISSING INITIATIVE, the 👁️
-  eye and DELETE now render under it, and a "Two notes worth knowing" list has five entries. Its
-  screenshot (`img/dm-menu-npcs.jpg`) predates the feature and shows no ×N and no Duplicate —
-  `pnpm docs:screenshots` was not re-run.
-- **The in-app guide links point at `main`**, which has no S4–S8 content, so a DM following the ×N
-  entry's link gets a guide with no ×N in it until `dev` merges. The test asserts URL _shape_, not
-  that the four files exist.
-- **`useBulkInitiativeRoll` sends one message per NPC in one tick.** Twenty goblins is twenty
-  messages against a 100/s limiter — fine today, but `COUNT_MAX` and the limiter budget live in
-  different packages with nothing tying them together, so raising the ceiling looks like a
-  one-liner.
-- **`countInput` is never reset after a batch**, so the press after "+ Add 5 NPCs" silently adds
-  five more. Its comment claims the field "can never disagree with the button next to it"; type 99
-  and it reads 99 while the button reads "+ Add 20 NPCs" until blur.
+### Waiting on the owner
+
+- **S8's e2e specs still never run on a push.** `e2e-smoke-tests` runs a hard-coded four-spec list
+  (`smoke`, `character-creation.smoke`, `session-load.smoke`, `partial-erase.smoke`);
+  `e2e-full-suite` runs everything but is gated on `schedule || workflow_dispatch`, and there is a
+  nightly cron at 02:30 UTC. The job's own comment says the subset is deliberate — "the PR pipeline
+  uses the 4-spec smoke subset for faster feedback" — so this is a **CI-minutes trade-off, not an
+  oversight**. The full suite is 97 tests, ~3.5 min locally, and the job already has a 30-min
+  timeout. Adding `help-panel.spec.ts`, `mobile/mobile-help.spec.ts` and `npc-bulk-add.spec.ts` to
+  the smoke list is a one-line change if the owner wants push coverage for them.
+- **`useNpcManagement.ts` is a caller-less duplicate of the live NPC path.** 167 lines of hook plus
+  a 709-line characterization suite, with zero production importers (verified by grep — only its
+  own definition and its tests). It has no `count` and no duplicate, so wiring it up would silently
+  lose ×N and Duplicate with the whole suite green. Deleting working, fully-tested code is the
+  owner's call; leaving it means the next maintainer may reach for it.
+
+### Closed
+
+| area                       | outcome                                                                 |
+| -------------------------- | ----------------------------------------------------------------------- |
+| `DRAWING_TYPES` unused     | deduped — the sanitiser imports it; a subset copy used to compile green |
+| barrel guard is a proxy    | now also asserts against built `dist/index.d.ts`                        |
+| `SNAPSHOT_LIMITS` dual use | second consumer documented and pinned by a test                         |
+| `count` into constructor   | call site narrowed to a literal; excess-property check restored         |
+| `duplicateNpc` type guard  | added; the asset-sharing half was refuted (see below)                   |
+| popover re-anchoring       | ResizeObserver on the button, not just `window.resize`                  |
+| dm-guide structure         | three controls un-orphaned; screenshot re-recorded                      |
+| guide links                | existence now asserted; branch deliberately left at `main`              |
+| bulk initiative vs limiter | batched at 80/window — the real bound was 500, not 20                   |
+| sticky `countInput`        | behaviour pinned; the false "can never disagree" comment corrected      |
+
+### Two claims that were refuted, and should not be re-filed
+
+- **Duplicate does NOT multiply image storage.** Uploads are content-addressed to
+  `/assets/<sha256>` and ownership is a SET of rooms, not a per-character reference — so copies
+  share one file and reclaim is per-room. Duplicate is cheap by design.
+- **The popover was not leaking its resize listener.** Cleanup already removed it. The observer
+  added for the re-anchor fix is the thing that could leak, so its teardown is now asserted.
+
+One correction to what this document said before: it suggested wiring
+`scripts/smoke-server-start.mjs` into the gate as the fix for the barrel-guard gap. That would not
+have worked. The script runs the COMPILED server under plain node, which resolves
+`@herobyte/shared` through `node_modules` to `package.json` "main" (`dist/index.js`) and never
+consults the tsconfig path mapping — so it cannot see this bug class at all. Asserting against
+`dist/index.js` fails for the same reason, and worse: under the S8 bug the value really was present
+in the emitted `.js`. Only `dist/index.d.ts` shows the erasure. Wiring the smoke script up is still
+worth doing one day, for boot failures in general — just not for this.
