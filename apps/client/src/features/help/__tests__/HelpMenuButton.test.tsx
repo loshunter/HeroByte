@@ -7,6 +7,9 @@
  */
 
 import React from "react";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { HelpMenuButton } from "../HelpMenuButton";
@@ -157,5 +160,34 @@ describe("help content", () => {
         /^https:\/\/github\.com\/loshunter\/HeroByte\/blob\/main\/docs\/user-guide\/[\w-]+\.md$/,
       );
     }
+  });
+
+  it("links only to guides that exist", () => {
+    // The shape check above passes for a guide that was renamed or deleted —
+    // the panel would ship a dead link with the suite green. The files are in
+    // this repo, so existence is checkable rather than assumed.
+    //
+    // What this deliberately does NOT check is that `main` carries the content
+    // the manual describes. It does not today: the guides on main predate S4-S8,
+    // so the DM Guide link resolves to a page with no ×N in it until dev merges.
+    // That self-heals on the next release, and pointing the links at dev instead
+    // would show visitors unreleased docs permanently — the worse trade.
+    const guideDir = path.join(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "..",
+      "..",
+      "..",
+      "..",
+      "..",
+      "..",
+      "docs",
+      "user-guide",
+    );
+
+    const missing = HELP_LINKS.map((link) => link.href.split("/").pop() as string).filter(
+      (file) => !existsSync(path.join(guideDir, file)),
+    );
+
+    expect(missing, `docs/user-guide is at ${guideDir}`).toEqual([]);
   });
 });
