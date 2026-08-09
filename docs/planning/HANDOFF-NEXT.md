@@ -11,10 +11,11 @@ S0–S7 are in production; **S8 and its review fixes are on `dev` and NOT deploy
 
 | Branch | Commit     | State                                                               |
 | ------ | ---------- | ------------------------------------------------------------------- |
-| `dev`  | `7c780642` | 26 commits on `main`: S8, its 7 review fixes, then the §11 cleanup. |
+| `dev`  | `197fb434` | 29 commits on `main`: S8, its 7 review fixes, then the §11 cleanup. |
 | `main` | `5307d0dd` | production, deployed, green                                         |
 
-`dev` is pushed to origin. Nothing has been merged to `main`, so none of it is deployed.
+`dev` is pushed and **CI is green on it** — run #765 finished Success in 7m 4s. Nothing has been
+merged to `main`, so none of it is deployed.
 
 S8's five commits:
 
@@ -314,6 +315,16 @@ height (`element.style.height` AND `min-height`, since `.mobile-layout-root` pin
 100svh` and it will otherwise win) while the cap still resolves against the large viewport. That is
 what turned "the sheet looks fine" into "its close button is at −57px".
 
+**You cannot push `.github/workflows/*`.** Git here uses Git Credential Manager over HTTPS, and the
+stored token is an OAuth-app token issued WITHOUT the `workflow` scope. GitHub then refuses the
+whole ref update — not just that file — with `refusing to allow an OAuth App to create or update
+workflow ... without workflow scope`. **The owner hits the identical rejection from their own
+PowerShell**, because it is the same cached credential, so "just push it yourself" is not a fix.
+What works: put the workflow commit LAST, `git push origin HEAD~1:dev` to land everything else,
+and have the owner paste the change into GitHub's web editor (the browser session is not bound by
+the token's scopes). Watch for the web editor auto-indenting the first line of a pasted comment
+block — harmless in YAML, but it will not match your local copy byte-for-byte.
+
 **Windows.** No `kill -9` — use `Stop-Process -Force` or `kill-windows-port.bat`. Bash heredocs
 break on embedded apostrophes and backticks; write the payload with the Write tool and run it with
 `python`. **The Bash tool's cwd PERSISTS between calls** — a `cd apps/client` in one call silently
@@ -434,11 +445,25 @@ Twelve areas nobody had examined. Four were investigated by a read-only agent fa
 hand. **Ten are closed; two are waiting on the owner.** Nothing here was a defect found by testing
 — these were places no lens had looked, and several turned out to be fine.
 
-### Both owner decisions are now made and applied (2026-08-09)
+### Both owner decisions are now made, applied, and VERIFIED IN CI (2026-08-09)
 
 - **The full e2e suite runs on push and pull_request.** The `if:` gate on `e2e-full-suite` is gone;
   the nightly cron stays as a backstop. `e2e-smoke-tests` is now a strict subset, kept only for the
   faster first signal — dropping it later costs no coverage.
+
+  Confirmed from the runs themselves, not assumed. Run **#764** (before): `e2e-full-suite` **skipped**,
+  no `playwright-report-full` artifact, 7m 32s total. Run **#765** (after): that job **succeeded in
+  3m 55s**, the artifact exists, and its log reads `97 passed (3.1m)` / `3 skipped` — matching a
+  local run exactly. S8's own specs ran in CI for the first time ever, including
+  `npc-bulk-add.spec.ts › five goblins take five inputs`, the test its commit message cited as the
+  verification.
+
+  **The CI-minutes worry was misplaced, and this settles a question §11 used to raise.** #765's total
+  wall-clock was 7m 4s — SHORTER than #764's 7m 32s — because `e2e-full-suite` has no `needs:` and
+  runs in parallel with the test matrix, finishing inside a window that was already occupied. So do
+  NOT "fix" it by adding `needs: lint-and-build`: that would serialize it and make every run slower,
+  to save a runner on a branch that does not compile.
+
 - **`useNpcManagement.ts` and its 709-line suite are deleted.** Verified caller-less first: the only
   references anywhere were a stale git worktree, generated coverage artifacts, and historical docs
   (`DONE.md`, `docs/refactoring/REFACTOR_ROADMAP.md`, `HANDOFF-S8.md`), which are records of when it
