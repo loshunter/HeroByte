@@ -279,6 +279,46 @@ describe("NPCMessageHandler - Characterization Tests", () => {
       expect(roomService.getState().characters[0]?.visibleToPlayers).not.toBe(false);
     });
 
+    it("puts no field on a created character beyond the Character shape", () => {
+      // The real guard against forwarding wire-only options into a per-entity
+      // constructor is COMPILE-TIME (a fresh object literal at the call site
+      // restores TypeScript's excess-property check), which no runtime test can
+      // observe. What this pins instead is the consequence, from any cause: the
+      // recipient filter spreads `...character` into the snapshot and
+      // StatePersistence writes the array straight to the session file, so an
+      // unexpected key here reaches every player AND the DM's backup. It fails
+      // if createCharacter ever starts spreading its options, whatever the call
+      // site hands it.
+      messageRouter.route(
+        { t: "create-npc", name: "Goblin", hp: 7, maxHp: 7, count: 3 } as ClientMessage,
+        dmUid,
+      );
+
+      const allowed = new Set([
+        "id",
+        "type",
+        "name",
+        "portrait",
+        "hp",
+        "maxHp",
+        "tempHp",
+        "tokenId",
+        "ownedByPlayerUID",
+        "tokenImage",
+        "initiative",
+        "initiativeModifier",
+        "statusEffects",
+        "visibleToPlayers",
+      ]);
+
+      const created = roomService.getState().characters;
+      expect(created).toHaveLength(3);
+      for (const character of created) {
+        const unexpected = Object.keys(character).filter((key) => !allowed.has(key));
+        expect(unexpected).toEqual([]);
+      }
+    });
+
     it("honours only an exact false, so a junk value cannot hide an NPC", () => {
       // The flag has no validator branch of its own — it drives a boolean, not
       // a loop — so the handler's `=== false` is what makes anything else inert.

@@ -118,13 +118,26 @@ export class NPCMessageHandler {
       toCreate,
     );
     for (const allocated of names) {
+      // An explicit literal, NOT the options bag. The bag carries `count` and
+      // `visibleToPlayers`, which are loop control and a post-creation flag —
+      // neither belongs in a per-entity constructor, and it was being handed
+      // over once per NPC. It compiled only because excess-property checks do
+      // not apply to a variable, and it was inert only because createCharacter
+      // happens to build its fields one at a time. The day that becomes
+      // `...options`, `count` lands in room state, in the snapshot (the
+      // recipient filter spreads `...character`) and in the saved session file.
+      // A fresh literal restores the excess-property check here, so the next
+      // field added to CreateNPCOptions fails typecheck instead of leaking.
       const created = this.characterService.createCharacter(
         state,
         allocated,
         maxHp,
         portrait,
         "npc",
-        options,
+        {
+          hp: options?.hp,
+          tokenImage: options?.tokenImage,
+        },
       );
       // Only an explicit `false` is honoured — everywhere else in the codebase
       // "not false" means visible, so a hostile or malformed value can only
