@@ -38,9 +38,23 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
   onToggleTools,
 }) => {
   // Help state is owned HERE rather than by MobileLayout, which sits at 347 of
-  // the 348-line ceiling. The manual is a self-contained overlay — it arbitrates
-  // with nothing — so lifting it would have cost an extraction for no gain.
+  // the 348-line ceiling, so lifting it would cost an extraction.
+  //
+  // The original comment here claimed the manual "arbitrates with nothing".
+  // That was wrong: .mobile-help-sheet shares the shared sheet rule block with
+  // the tool, selection, drawing and roll-log sheets — same bottom anchor, same
+  // z-index — so it stacked with them instead of replacing them. Tapping Tools
+  // with the manual open mounted the tool sheet UNDERNEATH it, and a hit test in
+  // the tool sheet's own area landed on the help panel, so Tools looked broken.
   const [helpOpen, setHelpOpen] = useState(false);
+
+  // Every dock button that opens a sheet also dismisses the manual, which is
+  // what MobileLayout's closeAllSheets does for the sheets it owns. Help cannot
+  // simply join that list, hence this.
+  const closingHelp = (action: () => void) => () => {
+    setHelpOpen(false);
+    action();
+  };
 
   // The sheet only renders when toolsOpen, so toggling from here always closes it.
   const selectTool = (tool: ToolMode) => {
@@ -156,7 +170,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
       )}
 
       <nav className="mobile-action-dock" aria-label="Mobile actions">
-        <button type="button" className="mobile-dock-button" onClick={onShowEntities}>
+        <button type="button" className="mobile-dock-button" onClick={closingHelp(onShowEntities)}>
           <span className="mobile-dock-button__icon" aria-hidden="true">
             ◉
           </span>
@@ -167,7 +181,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
           className={`mobile-dock-button${
             toolsOpen || activeTool ? " mobile-dock-button--active" : ""
           }`}
-          onClick={onToggleTools}
+          onClick={closingHelp(onToggleTools)}
           aria-expanded={toolsOpen}
         >
           <span className="mobile-dock-button__icon" aria-hidden="true">
@@ -178,7 +192,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
         <button
           type="button"
           className={`mobile-dock-button${diceRollerOpen ? " mobile-dock-button--active" : ""}`}
-          onClick={onToggleDiceRoller}
+          onClick={closingHelp(onToggleDiceRoller)}
           aria-pressed={diceRollerOpen}
         >
           <span className="mobile-dock-button__icon" aria-hidden="true">
@@ -189,7 +203,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
         <button
           type="button"
           className={`mobile-dock-button${rollLogOpen ? " mobile-dock-button--active" : ""}`}
-          onClick={onToggleRollLog}
+          onClick={closingHelp(onToggleRollLog)}
           aria-pressed={rollLogOpen}
         >
           <span className="mobile-dock-button__icon" aria-hidden="true">

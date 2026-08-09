@@ -1392,6 +1392,16 @@ h4 {
   max-height: calc(100dvh - var(--mobile-help-sheet-offset) - 48px);
   padding: 10px;
   overflow-y: auto;
+  /*
+   * Above the shared 1600, not equal to it. The dock buttons dismiss the manual
+   * in JS, but the drawing and selection sheets are mounted by MobileLayout on
+   * `drawMode && !showTools` — and opening help sets showTools false, which
+   * UN-suppresses them. MobileLayout is at its line ceiling and cannot be told
+   * about help, so paint order is what keeps the manual on top; at equal
+   * z-index those sheets win purely by being later in the DOM. Still below the
+   * dock's own stacking needs — the sheet sits above the dock, never over it.
+   */
+  z-index: 1650;
 }
 
 /* One scroller, not two: the sheet already scrolls, so the panel inside it

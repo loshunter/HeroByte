@@ -104,6 +104,40 @@ describe("MobileFloatingControls", () => {
     });
   });
 
+  describe("the manual takes part in single-sheet arbitration", () => {
+    // It did not, despite a comment saying it "arbitrates with nothing". It
+    // shares the tool sheet's bottom anchor and z-index, so tapping Tools with
+    // the manual open mounted the tool sheet UNDERNEATH it and Tools read as
+    // broken. Verified in a real browser before this fix: with both open, a hit
+    // test in the tool sheet's own area returned the help panel.
+    const openHelp = (props: ReturnType<typeof createProps>) => {
+      render(<MobileFloatingControls {...props} />);
+      fireEvent.click(screen.getByRole("button", { name: /help/i }));
+      expect(screen.getByRole("dialog", { name: /herobyte help/i })).toBeInTheDocument();
+    };
+
+    const dockButton = (name: RegExp) =>
+      within(screen.getByRole("navigation", { name: /mobile actions/i })).getByRole("button", {
+        name,
+      });
+
+    it.each([
+      ["Party", /party/i, "onShowEntities"],
+      ["Tools", /tools/i, "onToggleTools"],
+      ["Dice", /dice/i, "onToggleDiceRoller"],
+      ["Log", /log/i, "onToggleRollLog"],
+    ])("closes the manual when %s is tapped", (_label, pattern, callback) => {
+      const props = createProps({ toolsOpen: true });
+      openHelp(props);
+
+      fireEvent.click(dockButton(pattern));
+
+      expect(screen.queryByRole("dialog", { name: /herobyte help/i })).not.toBeInTheDocument();
+      // The dock button must still do its own job, not merely swallow the tap.
+      expect(props[callback as keyof typeof props]).toHaveBeenCalled();
+    });
+  });
+
   describe("the help sheet's height rule", () => {
     // A SOURCE-TEXT rule, for the same reason barrelValueExports.test.ts is one:
     // nothing that executes in this repo can see this bug. jsdom computes no
@@ -134,6 +168,21 @@ describe("MobileFloatingControls", () => {
       // viewport, taller by the browser chrome, and the sheet is bottom-anchored
       // — so a vh-only cap pushes its top off the screen by exactly that much.
       expect(helpSheetRule).toMatch(/max-height:\s*calc\(\s*100dvh\b/);
+    });
+
+    it("paints above the sheets MobileLayout mounts, not level with them", () => {
+      // The dock buttons are handled in JS, but the drawing and selection sheets
+      // are mounted by MobileLayout on `drawMode && !showTools` — and opening
+      // help sets showTools false, un-suppressing them. MobileLayout is at its
+      // line ceiling and cannot be told about help, so paint order is the only
+      // thing keeping the manual on top; at the shared 1600 it loses to whatever
+      // is later in the DOM.
+      const shared = /\.mobile-tool-sheet,[\s\S]*?\{([^}]*)\}/.exec(css)?.[1] ?? "";
+      const sharedZ = Number(/z-index:\s*(\d+)/.exec(shared)?.[1]);
+      const helpZ = Number(/z-index:\s*(\d+)/.exec(helpSheetRule)?.[1]);
+
+      expect(sharedZ).toBeGreaterThan(0);
+      expect(helpZ).toBeGreaterThan(sharedZ);
     });
 
     it("keeps a plain vh cap before it as the fallback", () => {
