@@ -198,7 +198,8 @@ export function useDMContext({
    */
   const duplicateNpc = useCallback(
     (id: string) => {
-      const source = snapshot?.characters?.find((character) => character.id === id);
+      // Guarded: `characters` holds PCs too, and create-npc always makes an NPC.
+      const source = snapshot?.characters?.find((c) => c.id === id && c.type === "npc");
       if (!source) return;
 
       createNpc({

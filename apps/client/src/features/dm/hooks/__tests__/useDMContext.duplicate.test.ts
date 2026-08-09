@@ -31,6 +31,8 @@ const snapshot = {
     { id: "npc-3", type: "npc", name: "Downed Goblin", hp: 0, maxHp: 7 },
     // Hidden from players: an ambush the DM has not sprung yet.
     { id: "npc-4", type: "npc", name: "Assassin", hp: 20, maxHp: 20, visibleToPlayers: false },
+    // A PLAYER character sharing the same collection — never duplicable.
+    { id: "pc-1", type: "pc", name: "Seraphina", hp: 30, maxHp: 30, portrait: "hero.png" },
   ],
 } as unknown as RoomSnapshot;
 
@@ -114,6 +116,18 @@ describe("useDMContext.duplicateNpc", () => {
     act(() => result.current.npcManagement.duplicateNpc("npc-2"));
 
     expect(sendMessage.mock.calls[0][0].visibleToPlayers).toBeUndefined();
+  });
+
+  it("refuses to clone a player character into an NPC", () => {
+    // create-npc always builds an NPC, and snapshot.characters holds both
+    // kinds. Without a type guard a PC's id would turn that player's name,
+    // portrait and token art into a DM-owned monster. NPCsTab's list is already
+    // filtered, so this guards the hook's public shape, not today's UI.
+    const { result, sendMessage } = setup();
+
+    act(() => result.current.npcManagement.duplicateNpc("pc-1"));
+
+    expect(sendMessage).not.toHaveBeenCalled();
   });
 
   it("sends nothing for an id that is not at the table", () => {
