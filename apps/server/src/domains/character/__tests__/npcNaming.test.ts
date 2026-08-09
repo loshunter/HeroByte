@@ -101,4 +101,17 @@ describe("allocateNpcNames", () => {
     expect(allocateNpcNames([], "42", 1)).toEqual(["42"]);
     expect(allocateNpcNames(["42"], "42", 1)).toEqual(["42 2"]);
   });
+
+  it("does not turn a whitespace-only name into no name at all", () => {
+    // validateCreateNpcMessage admits " " (one character), and such a name was
+    // stored verbatim before this function existed. Trimming it to "" would
+    // render as a blank nameplate — strictly worse than the odd name asked for.
+    expect(allocateNpcNames([], " ", 1)).toEqual([" "]);
+    expect(allocateNpcNames([], "   ", 1)).toEqual(["   "]);
+  });
+
+  it("trims a name that has a usable base", () => {
+    expect(allocateNpcNames([], "Goblin   ", 1)).toEqual(["Goblin"]);
+    expect(allocateNpcNames(["Goblin"], "  Goblin  ", 1)).toEqual(["Goblin 2"]);
+  });
 });

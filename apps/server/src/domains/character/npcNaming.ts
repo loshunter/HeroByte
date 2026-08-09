@@ -62,8 +62,12 @@ export function allocateNpcNames(
 ): string[] {
   const requested = Math.max(1, Math.floor(count));
   const { base, index } = splitNumberedName(baseName);
-  // A name that is only a number ("42") has no base to build on; leave it be.
-  const safeBase = base.length > 0 ? base : baseName.trim();
+  // `base` is only empty when the caller's name was entirely whitespace, which
+  // validateCreateNpcMessage admits (" " is one character). Fall back to the
+  // name AS GIVEN rather than to its trimmed form: trimming would turn " " into
+  // "", and an NPC with no name at all renders as a blank nameplate. Before
+  // this function existed such a name was stored verbatim, and it still is.
+  const safeBase = base.length > 0 ? base : baseName;
 
   const taken = new Set(existingNames);
   // The as-typed shortcut requires that the caller did NOT hand us a numbered
