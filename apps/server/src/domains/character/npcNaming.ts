@@ -80,18 +80,32 @@ export function allocateNpcNames(
 
   const names: string[] = [];
   let next = highestIndexFor(existingNames, safeBase) + 1;
-  while (names.length < requested) {
+  // Past 2^53 `next += 1` is a no-op in float64, so `candidate` would stop
+  // changing and the collision skip below would spin forever — wedging the one
+  // process that serves every table, since handleCreateNPC is synchronous on
+  // the socket path. An existing "G 9007199254740991" is enough to get here:
+  // update-npc stores a name verbatim, so a DM can type one. Restart the
+  // search from 1 and let the taken-set skip find the first free number.
+  if (!Number.isSafeInteger(next)) {
+    next = 1;
+  }
+  // Every pass either takes a name or skips one already taken, so
+  // `requested + taken.size` passes is always more than enough. This ceiling is
+  // a BACKSTOP, not the mechanism — the reset above is what handles the real
+  // case. It exists so that arithmetic which stops advancing returns a short
+  // batch, which a test can catch, rather than spinning forever: a synchronous
+  // infinite loop here blocks the event loop outright, so even vitest's own
+  // timeout cannot interrupt it and CI would hang instead of going red.
+  let attemptsLeft = requested + taken.size;
+  while (names.length < requested && attemptsLeft > 0) {
+    attemptsLeft -= 1;
     const candidate = `${safeBase} ${next}`;
     next += 1;
-    // UNREACHABLE TODAY, and kept deliberately. If `${safeBase} ${n}` already
-    // existed then splitNumberedName would have parsed it as (safeBase, n), so
-    // highestIndexFor would have returned at least n and `next` would already
-    // be past it. A sabotage removing this line leaves every test green, which
-    // is recorded here rather than papered over with a test that only pretends
-    // to reach it. It stays because it makes the no-duplicates invariant local
-    // to this loop instead of a property inherited from highestIndexFor at a
-    // distance — if that function ever stops scanning every name, this is what
-    // keeps the bug from becoming two identically-named goblins.
+    // Reachable once the reset above fires: restarting at 1 walks back over
+    // numbers that are already in use. Outside that case it is unreachable,
+    // because highestIndexFor has already carried `next` past every name that
+    // parses as this base — but it keeps the no-duplicates invariant local to
+    // this loop rather than inherited from that function at a distance.
     if (taken.has(candidate)) continue;
     taken.add(candidate);
     names.push(candidate);

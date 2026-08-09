@@ -114,4 +114,36 @@ describe("allocateNpcNames", () => {
     expect(allocateNpcNames([], "Goblin   ", 1)).toEqual(["Goblin"]);
     expect(allocateNpcNames(["Goblin"], "  Goblin  ", 1)).toEqual(["Goblin 2"]);
   });
+
+  it("terminates when the series has reached the float64 integer ceiling", () => {
+    // `next` would land on 2^53, where `next += 1` is a no-op — the candidate
+    // never changes, the collision skip fires every pass, and the loop cannot
+    // finish. This is not theoretical: update-npc stores a name verbatim, so a
+    // DM can rename an NPC to "G 9007199254740991", and the next bulk add on
+    // base "G" hangs the single process that serves every table.
+    //
+    // Removing the reset makes this return ONE name rather than hanging, which
+    // is the whole point of the attempt ceiling beside it — a synchronous spin
+    // blocks the event loop, so vitest could not have timed it out either.
+    const names = allocateNpcNames(["G 9007199254740991"], "G", 2);
+
+    expect(names).toHaveLength(2);
+    expect(new Set(names).size).toBe(2);
+    expect(names).not.toContain("G 9007199254740991");
+  }, 1000);
+
+  it("skips numbers already in use after restarting at the ceiling", () => {
+    // The restart walks back over low numbers, so the collision skip inside the
+    // loop is genuinely reachable here — it was not before this guard existed.
+    expect(allocateNpcNames(["G 9007199254740991", "G 1", "G 2"], "G", 2)).toEqual(["G 3", "G 4"]);
+  }, 1000);
+
+  it("still numbers normally one below the ceiling", () => {
+    // Guards the fix against over-reach: just under the boundary the ordinary
+    // "carry on from the highest" rule must be untouched.
+    expect(allocateNpcNames(["G 9007199254740990"], "G", 2)).toEqual([
+      "G 9007199254740991",
+      "G 9007199254740992",
+    ]);
+  });
 });
