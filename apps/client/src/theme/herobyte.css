@@ -1243,12 +1243,24 @@ h4 {
   pointer-events: auto;
 }
 
+/*
+ * --mobile-dock-height names the WHOLE dock, and border-box is what makes that
+ * true. Every sheet is positioned with `bottom: calc(safe + dock + 22px)`, so
+ * the variable is load-bearing arithmetic, not decoration — and under the
+ * default content-box it described only the content: measured at 375x812 the
+ * dock rendered 86px against a declared 68 (68 + 12 padding + 6 border), and
+ * 82px at 812x375, so the 22px gap those sheets thought they were leaving was
+ * really 4px. Scoped to this element deliberately: a GLOBAL box-sizing reset
+ * would take .mobile-chip's 38px min-height below the 44px floor it currently
+ * clears only by accident.
+ */
 .mobile-action-dock {
   position: absolute;
   right: var(--mobile-safe-right);
   bottom: var(--mobile-safe-bottom);
   left: var(--mobile-safe-left);
   z-index: 1500;
+  box-sizing: border-box;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 6px;
@@ -1729,13 +1741,30 @@ h4 {
 /* Landscape phones (short viewport): a full dock + full-height sheet would bury
    the map. Slim the dock and cap the sheets so the canvas stays usable. */
 @media (orientation: landscape) and (max-height: 500px) {
+  /*
+   * The slim dock this block always meant to produce. It never happened: the
+   * button's 40px did win the cascade, but .mobile-action-dock's own
+   * min-height: var(--mobile-dock-height) then stretched the grid row back out,
+   * so the button measured 68px here exactly as it did in portrait. The height
+   * has to come off the dock, and the variable must be overridden on the ROOT
+   * rather than on the dock, because the sheets read it too.
+   *
+   * 62px = a 48px content box inside 8px of padding and 6px of border, and a
+   * dock button needs ~47px (16px icon + 14px label + the 1px gap below, plus
+   * its own 12px padding and 4px border). That clears the project's 44px touch
+   * floor, which the old 40px would now genuinely have broken the moment it
+   * started taking effect.
+   */
+  .mobile-layout-root {
+    --mobile-dock-height: 62px;
+  }
+
   .mobile-action-dock {
     gap: 4px;
     padding: 4px;
   }
 
   .mobile-dock-button {
-    min-height: 40px;
     gap: 1px;
   }
 
