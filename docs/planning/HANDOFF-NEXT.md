@@ -72,8 +72,8 @@ function`, `export enum` and `export abstract class` all emit the same `export d
   and every value export is already the correct re-export form. It is a hardening wish, not a live
   defect — a one-line regex widening if someone wants it.
 
-The completeness critic then listed twelve areas nobody had looked at. Ten are now closed
-and two are waiting on an owner decision — see §11.
+The completeness critic then listed twelve areas nobody had looked at. All twelve are now
+closed — see §11.
 
 The working tree is clean apart from untracked files under `temp/`. Those are the owner's local
 art assets. **Never `git add temp/` and never `git add <directory>`** — a broad add swept them
@@ -126,11 +126,12 @@ CI=true pnpm test:e2e --reporter=list
 | ------------- | ------------------------------------ | -------------------------- |
 | shared        | 414 tests / 23 files                 | 411                        |
 | server        | 2057 tests / 109 files               | 2042                       |
-| client        | all 44 batches green                 | 43 batches                 |
+| client        | all 43 batches green                 | 43 batches                 |
 | client bundle | 96.89 KB gzip vs a 175 KB threshold  | 96.75 KB                   |
 | e2e           | **97 passed / 0 failed / 3 skipped** | same                       |
 
-The client gained a batch because the fixes added test files. E2E was 83 before S8's 14 new specs
+The client is back to 43 batches: the fixes added test files (44), then deleting
+`useNpcManagement`'s 709-line suite took one away again. E2E was 83 before S8's 14 new specs
 (4 desktop help, 5 mobile help, 5 bulk-NPC) and is unchanged by any of the fixes — worth noting,
 because it is also the suite that does not run on a push (§11). Get the true tally with
 `--reporter=list` and read the summary line — the human-readable reporter miscounts.
@@ -423,34 +424,25 @@ turns a cone into something else.
    misses them.)
 2. Run the full gate once (§2) to establish that the baselines in this document still hold, and
    **boot `pnpm dev`** (§7).
-3. Put §11's two open questions to the owner — whether S8's e2e specs should run on a push (a
-   CI-minutes call), and whether the caller-less `useNpcManagement.ts` and its 709-line suite
-   should be deleted. Both are one-line-to-small changes once decided.
-4. Ask which of §3B / §3C / §3D they want next — the arc is complete, its review is closed and
-   §11 is down to those two questions, so this is a genuine fork, not a queue.
-5. Stop before merging to `main`. That is the owner's call, and it deploys.
+3. Ask which of §3B / §3C / §3D they want next. The arc is complete, its review is closed and §11
+   is fully cleared, so this is a genuine fork, not a queue — there is nothing queued at all.
+4. Stop before merging to `main`. That is the owner's call, and it deploys.
 
-## 11. The completeness critic's list — mostly cleared 2026-08-09
+## 11. The completeness critic's list — CLEARED 2026-08-09
 
 Twelve areas nobody had examined. Four were investigated by a read-only agent fan-out, the rest by
 hand. **Ten are closed; two are waiting on the owner.** Nothing here was a defect found by testing
 — these were places no lens had looked, and several turned out to be fine.
 
-### Waiting on the owner
+### Both owner decisions are now made and applied (2026-08-09)
 
-- **S8's e2e specs still never run on a push.** `e2e-smoke-tests` runs a hard-coded four-spec list
-  (`smoke`, `character-creation.smoke`, `session-load.smoke`, `partial-erase.smoke`);
-  `e2e-full-suite` runs everything but is gated on `schedule || workflow_dispatch`, and there is a
-  nightly cron at 02:30 UTC. The job's own comment says the subset is deliberate — "the PR pipeline
-  uses the 4-spec smoke subset for faster feedback" — so this is a **CI-minutes trade-off, not an
-  oversight**. The full suite is 97 tests, ~3.5 min locally, and the job already has a 30-min
-  timeout. Adding `help-panel.spec.ts`, `mobile/mobile-help.spec.ts` and `npc-bulk-add.spec.ts` to
-  the smoke list is a one-line change if the owner wants push coverage for them.
-- **`useNpcManagement.ts` is a caller-less duplicate of the live NPC path.** 167 lines of hook plus
-  a 709-line characterization suite, with zero production importers (verified by grep — only its
-  own definition and its tests). It has no `count` and no duplicate, so wiring it up would silently
-  lose ×N and Duplicate with the whole suite green. Deleting working, fully-tested code is the
-  owner's call; leaving it means the next maintainer may reach for it.
+- **The full e2e suite runs on push and pull_request.** The `if:` gate on `e2e-full-suite` is gone;
+  the nightly cron stays as a backstop. `e2e-smoke-tests` is now a strict subset, kept only for the
+  faster first signal — dropping it later costs no coverage.
+- **`useNpcManagement.ts` and its 709-line suite are deleted.** Verified caller-less first: the only
+  references anywhere were a stale git worktree, generated coverage artifacts, and historical docs
+  (`DONE.md`, `docs/refactoring/REFACTOR_ROADMAP.md`, `HANDOFF-S8.md`), which are records of when it
+  was written and are left as they are.
 
 ### Closed
 
