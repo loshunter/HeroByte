@@ -11,8 +11,9 @@ on:
       - dev
       - main
   schedule:
-    # Nightly full E2E run on dev (02:30 UTC) — the PR pipeline only runs the
-    # 4-spec smoke suite, so this keeps the remaining specs from rotting.
+        # Nightly full E2E run on dev (02:30 UTC). The full suite now also runs on
+    # push and pull_request, so this is a backstop rather than the only place
+    # those specs execute.
     - cron: "30 2 * * *"
 
 jobs:
@@ -180,9 +181,13 @@ jobs:
           retention-days: 7
 
   e2e-full-suite:
-    # Scheduled and manual runs execute the full Playwright suite. The PR
-    # pipeline uses the 4-spec smoke subset for faster feedback.
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        # Runs on EVERY trigger, including push and pull_request. It used to be
+    # scheduled/manual only, which meant the specs a slice shipped with never
+    # ran on the branch that shipped them — S8 added 456 lines of e2e and cited
+    # their counts as its verification, and none of them executed on a push.
+    # The nightly cron below still runs, as a backstop for a red branch nobody
+    # pushed to. e2e-smoke-tests is now a strict subset and is kept only for
+    # the faster first signal; dropping it costs nothing but that.
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
