@@ -16,6 +16,7 @@
 import path from "node:path";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { MessageRouter } from "../../messageRouter.js";
+import { SNAPSHOT_LIMITS } from "../../../middleware/validators/sessionValidators.js";
 import { RoomService } from "../../../domains/room/service.js";
 import { PlayerService } from "../../../domains/player/service.js";
 import { TokenService } from "../../../domains/token/service.js";
@@ -254,6 +255,36 @@ describe("NPCMessageHandler - Characterization Tests", () => {
       messageRouter.route(bulk(3), dmUid);
 
       expect(roomService.getState().characters).toHaveLength(500);
+    });
+  });
+
+  describe("the character ceiling's two consumers", () => {
+    it("creates against the same number a session snapshot is validated with", () => {
+      // SNAPSHOT_LIMITS.characters answers two questions from one constant:
+      // what a loaded session file may contain, and how many characters a DM
+      // may ever create. They MUST agree — a room allowed past what a snapshot
+      // holds produces a save that fails its own load validation, so the DM's
+      // backup quietly stops being one. Nothing but this test says so, and the
+      // two consumers sit in different layers (a ws handler reaching into
+      // middleware/validators, the only such edge in the codebase).
+      expect(SNAPSHOT_LIMITS.characters).toBe(500);
+
+      const state = roomService.getState();
+      state.characters = Array.from({ length: SNAPSHOT_LIMITS.characters - 2 }, (_, i) => ({
+        id: `filler-${i}`,
+        type: "npc" as const,
+        name: `Filler ${i}`,
+        hp: 1,
+        maxHp: 1,
+      }));
+
+      // Ask for five with room for two: a partial batch, not a refusal.
+      messageRouter.route(
+        { t: "create-npc", name: "Goblin", hp: 7, maxHp: 7, count: 5 } as ClientMessage,
+        dmUid,
+      );
+
+      expect(roomService.getState().characters).toHaveLength(SNAPSHOT_LIMITS.characters);
     });
   });
 
