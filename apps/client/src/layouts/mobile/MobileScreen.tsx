@@ -46,8 +46,15 @@ export function MobileScreen({
 
   const onTouchStart = (event: React.TouchEvent) => {
     // A second finger is the camera's escape everywhere else in the shell;
-    // here it simply isn't a drag.
-    dragStartY.current = event.touches.length === 1 ? event.touches[0].clientY : null;
+    // here it simply isn't a drag. settle(), not just null: a second finger
+    // landing MID-drag must also clear the translate the first finger built,
+    // or the screen stays wedged part-way down with no gesture able to move
+    // it back (touchend early-returns once the start is null).
+    if (event.touches.length !== 1) {
+      settle();
+      return;
+    }
+    dragStartY.current = event.touches[0].clientY;
   };
 
   const onTouchMove = (event: React.TouchEvent) => {

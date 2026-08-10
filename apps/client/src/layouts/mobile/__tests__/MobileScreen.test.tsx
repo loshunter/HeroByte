@@ -85,12 +85,21 @@ describe("MobileScreen", () => {
 
   it("a second finger cancels the drag instead of dismissing", () => {
     const onClose = renderScreen();
+    const dialog = screen.getByRole("dialog", { name: "Roll Log" });
 
+    // The first finger has already dragged the screen part-way down when the
+    // second finger lands (touches.length is 2 on that touchstart).
     fireEvent.touchStart(header(), { touches: [{ clientY: 100 }] });
-    // The second finger lands: touches.length is 2 on this touchstart.
-    fireEvent.touchStart(header(), { touches: [{ clientY: 100 }, { clientY: 110 }] });
-    fireEvent.touchEnd(header(), { changedTouches: [{ clientY: 300 }] });
+    fireEvent.touchMove(header(), { touches: [{ clientY: 150 }] });
+    expect((dialog as HTMLElement).style.transform).toBe("translateY(50px)");
+    fireEvent.touchStart(header(), { touches: [{ clientY: 150 }, { clientY: 160 }] });
 
+    // Cancelling must SETTLE, not merely stop: the review found the translate
+    // stayed at 50px forever, because touchend early-returns once the start is
+    // null and nothing else ever clears the style.
+    expect((dialog as HTMLElement).style.transform).toBe("");
+
+    fireEvent.touchEnd(header(), { changedTouches: [{ clientY: 300 }] });
     expect(onClose).not.toHaveBeenCalled();
   });
 
