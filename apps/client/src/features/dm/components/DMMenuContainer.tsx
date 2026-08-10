@@ -19,7 +19,10 @@ import { useDMContext, type UseDMContextOptions } from "../hooks/useDMContext";
 import { DMMenu } from "./DMMenu";
 import type { MapStudioController } from "../../map-studio";
 
-interface DMMenuContainerProps {
+// Exported for buildDMMenuProps, which maps the MainLayoutProps bag onto this
+// shape once, for BOTH layouts. Import it `type`-only: a value import here
+// would pull the DM chunk into the entry bundle and undo the lazy split.
+export interface DMMenuContainerProps {
   // DM Status
   isDM: boolean;
   onToggleDM: (next: boolean) => void;
