@@ -1715,14 +1715,25 @@ h4 {
  * The roll log is NOT a bottom sheet, and this wrapper is not its box.
  * MobileLayout wraps <RollLog> in it, but RollLog renders a DraggableWindow,
  * which is position:fixed — so the window escapes this element entirely and
- * every geometry rule written here has always been inert.
+ * every geometry rule ever written here has been inert.
  *
  * The border and background were not inert, though: they painted an empty
  * bordered rectangle behind the window. It went unnoticed while the wrapper
  * collapsed to ~18px, and joining the sheet contract stretched it to 206px,
  * which is how it finally became visible in a landscape screenshot. So the
- * wrapper leaves the contract instead, and the dead geometry goes with it.
+ * wrapper leaves the contract, and the dead geometry goes with it.
+ *
+ * What is left is the wrapper's one real job: a stacking context. On mobile
+ * the window is a full-screen opaque takeover at DraggableWindow's z-index of
+ * 1100, and the bottom sheets sit at 1600 — so the drawing sheet painted
+ * straight across the middle of the log. `position: relative` does not change
+ * the containing block of a fixed descendant, so this lifts the window without
+ * moving it a pixel.
  */
+.mobile-roll-log-panel {
+  position: relative;
+  z-index: 1700;
+}
 
 
 @media (max-width: 420px) {

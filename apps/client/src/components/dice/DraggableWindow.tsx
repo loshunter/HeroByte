@@ -4,6 +4,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { registerOpenPanel } from "../effects/panelPresence";
+import { isMobileLayout } from "../../utils/mobileLayout";
 
 interface DraggableWindowProps {
   title: string;
@@ -65,7 +66,10 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   const [position, setPosition] = useState(getInitialPosition);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  // Not `innerWidth < 768`: that disagreed with the layout App.tsx actually
+  // rendered on every tablet and every landscape phone, so this window came up
+  // in desktop dress inside the phone shell. See utils/mobileLayout.
+  const [isMobile, setIsMobile] = useState(isMobileLayout);
   const windowRef = useRef<HTMLDivElement>(null);
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -132,7 +136,7 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
   // Handle window resize - ensure window stays visible and toggle mobile mode
   useEffect(() => {
     const handleResize = () => {
-      const mobile = window.innerWidth < 768;
+      const mobile = isMobileLayout();
       setIsMobile(mobile);
 
       if (!mobile) {
@@ -235,16 +239,23 @@ export const DraggableWindow: React.FC<DraggableWindowProps> = ({
         {onClose && (
           <button
             onClick={onClose}
+            // "×" is not an accessible name, so this control had none at all —
+            // invisible to a screen reader and unfindable by getByRole.
+            aria-label={`Close ${title}`}
             className="jrpg-button jrpg-button-danger"
             style={{
               position: "absolute",
               right: isMobile ? "12px" : "8px",
               top: "50%",
               transform: "translateY(-50%)",
-              width: isMobile ? "32px" : "24px",
-              height: isMobile ? "32px" : "24px",
+              // On mobile this is a full-screen takeover and the ✕ is the only
+              // way out of it, so it holds the 44px floor the rest of the
+              // mobile UI honours. It was 32px, and 24px on any device wide
+              // enough to fool the old breakpoint.
+              width: isMobile ? "44px" : "24px",
+              height: isMobile ? "44px" : "24px",
               padding: 0,
-              fontSize: isMobile ? "18px" : "14px",
+              fontSize: isMobile ? "20px" : "14px",
               lineHeight: "1",
             }}
           >

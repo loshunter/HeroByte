@@ -115,3 +115,75 @@ test.describe("mobile shell — a sheet taller than the screen", () => {
     });
   }
 });
+
+/**
+ * The roll log is a full-screen takeover on mobile, so its ✕ is the only way
+ * out — and it was 32px in portrait and 24px in landscape, because
+ * DraggableWindow decided "mobile" with its own `innerWidth < 768` while
+ * App.tsx routes an 812x375 phone and a 1024px tablet into MobileLayout. The
+ * landscape case is the one that proves the two now agree.
+ */
+test.describe("mobile shell — the roll log", () => {
+  for (const vp of VIEWPORTS) {
+    test(`opens over the sheets with a reachable exit (${vp.label})`, async ({ page }) => {
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await joinMobileTable(page);
+
+      // Arm Draw first: the drawing sheet renders on `drawMode && !showTools`,
+      // and opening the log clears showTools — so this is the state in which
+      // the sheet used to paint straight across the middle of the log.
+      await page
+        .getByRole("navigation", { name: /Mobile actions/i })
+        .getByRole("button", { name: /Tools/i })
+        .click();
+      await page.getByRole("button", { name: /^Draw$/i }).click();
+      await expect(page.locator(".mobile-drawing-sheet")).toBeVisible();
+
+      await page
+        .getByRole("navigation", { name: /Mobile actions/i })
+        .getByRole("button", { name: /Log/i })
+        .click();
+
+      const close = page.getByRole("button", { name: /^Close .*ROLL LOG$/i });
+      await expect(close).toBeVisible();
+
+      const box = (await close.boundingBox())!;
+      expect(Math.round(box.width)).toBeGreaterThanOrEqual(44);
+      expect(Math.round(box.height)).toBeGreaterThanOrEqual(44);
+
+      // Occlusion, sampled down the MIDDLE of the window rather than at the
+      // close button. The sheet covers the log's body, not its title bar, so a
+      // hit-test on the ✕ passes whether or not the bug is present — which is
+      // exactly what removing the stacking context proved.
+      const covered = await page.evaluate(() => {
+        const panel = document.querySelector(".mobile-roll-log-panel")!;
+        const win = panel.firstElementChild as HTMLElement;
+        const r = win.getBoundingClientRect();
+        const intruders: string[] = [];
+        // Five points down the window's spine: the body is the part that was
+        // painted over, and a single centre sample can slip between rows.
+        for (const f of [0.3, 0.45, 0.6, 0.75, 0.9]) {
+          const hit = document.elementFromPoint(
+            Math.round(r.left + r.width / 2),
+            Math.round(r.top + r.height * f),
+          );
+          if (hit && !panel.contains(hit)) {
+            intruders.push(`${f}: ${(hit.className || hit.tagName).toString().slice(0, 40)}`);
+          }
+        }
+        return intruders;
+      });
+      expect(covered).toEqual([]);
+
+      // And it really does close.
+      await close.click();
+      await expect(page.getByText(/No rolls yet/i)).toBeHidden();
+      // Closing the log leaves the drawing sheet where it was.
+      await expect(page.locator(".mobile-drawing-sheet")).toBeVisible();
+    });
+  }
+});
+
+function mid(box: { x: number; y: number; width: number; height: number }) {
+  return { x: Math.round(box.x + box.width / 2), y: Math.round(box.y + box.height / 2) };
+}

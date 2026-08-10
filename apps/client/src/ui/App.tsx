@@ -26,6 +26,7 @@ import { AuthState } from "../services/websocket";
 import { useToast } from "../hooks/useToast";
 import { useStatusEffects } from "../hooks/useStatusEffects";
 import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
+import { MOBILE_LAYOUT_QUERY, isLayoutForced, isMobileLayout } from "../utils/mobileLayout";
 import { AuthenticationGate } from "../features/auth";
 import { useCreateRoom } from "../features/rooms/useCreateRoom";
 import { useForkTable } from "../features/rooms/useForkTable";
@@ -373,31 +374,17 @@ function AuthenticatedApp({
     onMapStudioMessage: mapStudio.handleServerMessage,
   });
 
-  // Mobile detection
+  // Mobile detection. The rule itself lives in utils/mobileLayout so that
+  // DraggableWindow answers the same question the same way — it used to carry
+  // its own 768px guess and disagreed with this on every tablet.
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const mobileParam = params.get("mobile");
-
-    if (mobileParam === "true") {
-      setIsMobile(true);
-      return;
-    } else if (mobileParam === "false") {
-      setIsMobile(false);
-      return;
-    }
+    const updateMobileLayout = () => setIsMobile(isMobileLayout());
+    updateMobileLayout();
+    if (isLayoutForced()) return;
 
     const mobileLayoutQuery =
-      typeof window.matchMedia === "function"
-        ? window.matchMedia("(max-width: 700px), (pointer: coarse) and (max-width: 1024px)")
-        : null;
-    const updateMobileLayout = () => {
-      const narrowViewport = window.innerWidth <= 700;
-      const shortViewport = window.innerHeight <= 520 && window.innerWidth <= 900;
-      setIsMobile(Boolean(mobileLayoutQuery?.matches) || narrowViewport || shortViewport);
-    };
-
-    updateMobileLayout();
+      typeof window.matchMedia === "function" ? window.matchMedia(MOBILE_LAYOUT_QUERY) : null;
     mobileLayoutQuery?.addEventListener("change", updateMobileLayout);
     window.addEventListener("resize", updateMobileLayout);
     window.addEventListener("orientationchange", updateMobileLayout);

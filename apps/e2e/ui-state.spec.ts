@@ -24,8 +24,11 @@ test.describe("HeroByte UI state and accessibility", () => {
     await diceButton.click();
     await expect(page.locator("text=DICE ROLLER")).not.toBeVisible({ timeout: 5000 });
 
-    // Test Log panel
-    const logButton = page.getByRole("button", { name: /Log/i });
+    // Test Log panel. Exact, not /Log/i: the panel's own close button is named
+    // "Close ⚂ ROLL LOG", so the loose regex matches two buttons the moment the
+    // panel is open. It only ever worked because that button had no accessible
+    // name at all.
+    const logButton = page.getByRole("button", { name: "📜 Log" });
     await expect(logButton).toBeVisible();
     await logButton.click();
     await expect(page.locator("text=ROLL LOG")).toBeVisible({ timeout: 5000 });
