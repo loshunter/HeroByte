@@ -187,3 +187,74 @@ test.describe("mobile shell — the roll log", () => {
 function mid(box: { x: number; y: number; width: number; height: number }) {
   return { x: Math.round(box.x + box.width / 2), y: Math.round(box.y + box.height / 2) };
 }
+
+/**
+ * The fixed chrome across the top: the connection banner and the public-table
+ * chip. Both are new to mobile as of S8, which is when their 8px and 7px text
+ * and their hard-coded `top` first mattered on a device with a notch.
+ *
+ * NOTE the visibility test. An earlier sweep used `offsetParent !== null`,
+ * which is null for EVERY position:fixed element — so it silently skipped the
+ * two elements this describe block exists to check, and reported a clean bill
+ * of health while a 7px chip sat on screen.
+ */
+test.describe("mobile shell — the fixed chrome", () => {
+  for (const vp of VIEWPORTS) {
+    test(`is readable and clear of the insets (${vp.label})`, async ({ page }) => {
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await joinMobileTable(page);
+
+      const report = await page.evaluate(() => {
+        const rectOf = (el: Element) => el.getBoundingClientRect();
+        const visible = [...document.querySelectorAll<HTMLElement>("*")].filter((el) =>
+          el.checkVisibility(),
+        );
+
+        const tooSmall = visible
+          .filter(
+            (el) =>
+              parseFloat(getComputedStyle(el).fontSize) < 11 &&
+              el.children.length === 0 &&
+              (el.textContent || "").trim().length > 0,
+          )
+          .map((el) => `${getComputedStyle(el).fontSize} "${(el.textContent || "").trim()}"`);
+
+        const find = (test: (t: string) => boolean) =>
+          visible.find(
+            (el) =>
+              getComputedStyle(el).position === "fixed" && test((el.textContent || "").trim()),
+          );
+        const banner = find((t) => /^(🟢|🔴)(ONLINE|OFFLINE)$/.test(t));
+        const chip = find((t) => t.startsWith("⚠ PUBLIC"));
+
+        return {
+          tooSmall,
+          bannerTop: banner ? Math.round(rectOf(banner).top) : null,
+          bannerBottom: banner ? Math.round(rectOf(banner).bottom) : null,
+          chipTop: chip ? Math.round(rectOf(chip).top) : null,
+          chipLeft: chip ? Math.round(rectOf(chip).left) : null,
+          chipRight: chip ? Math.round(rectOf(chip).right) : null,
+          viewportWidth: window.innerWidth,
+          bodyOverflowsX: document.documentElement.scrollWidth > window.innerWidth,
+        };
+      });
+
+      // The readability floor, over everything actually on screen.
+      expect(report.tooSmall).toEqual([]);
+
+      // Both were pinned to the top edge and to a literal 26px. Playwright
+      // emulates no notch, so env(safe-area-inset-top) is 0 here and the
+      // max(12px, …) floor is what shows — which is enough to prove the offset
+      // comes from the variable rather than from a hard-coded number.
+      expect(report.bannerTop).toBeGreaterThanOrEqual(12);
+      expect(report.chipTop).toBeGreaterThanOrEqual(report.bannerBottom!);
+
+      // Raising the chip from 7px to 11px makes its one long sentence far
+      // wider than a phone, so it must wrap inside the screen rather than run
+      // off both edges.
+      expect(report.chipLeft).toBeGreaterThanOrEqual(0);
+      expect(report.chipRight).toBeLessThanOrEqual(report.viewportWidth);
+      expect(report.bodyOverflowsX).toBe(false);
+    });
+  }
+});

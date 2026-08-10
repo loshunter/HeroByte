@@ -1735,6 +1735,60 @@ h4 {
   z-index: 1700;
 }
 
+/*
+ * PUBLIC TABLE CHIP — one component, two presentations.
+ *
+ * The base rule is the DESKTOP one, unchanged, and it is deliberately still
+ * 7px. It sits at z-index 199 in the same band as the fixed header, with
+ * pointer-events on, so its width decides what the header can still be clicked
+ * through. At 11px the same sentence measured 682px wide and covered the
+ * header's buttons outright — `elementFromPoint` at the centre of "Draw Tools"
+ * returned this chip, and six desktop e2e specs sat waiting for a click that
+ * could never land. Making it readable on desktop therefore needs it moved out
+ * of the header band first, which is a design decision, not a font size.
+ */
+.public-table-chip {
+  position: fixed;
+  top: 26px;
+  left: 50%;
+  z-index: 199;
+  padding: 3px 10px;
+  transform: translateX(-50%);
+  border: 2px solid var(--jrpg-border-outer, #f0e2c3);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  background: var(--jrpg-navy, #16162b);
+  color: var(--jrpg-gold, #f0e2c3);
+  font-family: "Press Start 2P", monospace;
+  font-size: 7px;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
+/*
+ * The phone version, where there is no header to collide with — the chip's only
+ * neighbour is the connection banner, which it stacks below.
+ *
+ * width: max-content is as load-bearing as the cap. A fixed element with only
+ * `left` set shrinks to fit, and once wrapping is allowed it collapses far
+ * narrower than the cap: measured 187px and five lines deep on a 375px phone.
+ * Asking for max-content first makes the cap the binding constraint. border-box
+ * matters for the same reason it does on the dock — without it the 20px of
+ * padding and 4px of border land outside the cap and the chip renders exactly
+ * viewport-wide, touching both edges.
+ */
+.mobile-layout-root .public-table-chip {
+  top: calc(var(--mobile-safe-top) + 30px);
+  box-sizing: border-box;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  /* Was 7px, the smallest functional text anywhere in the app. */
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: normal;
+  text-align: center;
+}
+
 
 @media (max-width: 420px) {
   .mobile-action-dock {
