@@ -14,11 +14,13 @@ S0–S7 are in production; **S8 and its review fixes are on `dev` and NOT deploy
 | `dev`  | `f1952138` | +docs: S8 + review + §11 cleanup, an e2e flake fix, **M3**, the M4 design doc, then **M4a**. |
 | `main` | `5307d0dd` | production, deployed, green                                                                  |
 
-**Read §3C first — M4a SHIPPED on 2026-08-09 and M4b is next.** The owner chose the mobile
-authoring arc on 2026-08-09, M3 shipped the same day, and the design for M4 is settled in
-[mobile-shell-redesign.md](./mobile-shell-redesign.md), whose §2 M4a note now records what
-shipped and where it deviated (Recenter went into the tool sheet; the DM screen is a placeholder
-until M4b).
+**Read §3C first — M4a AND M4b are SHIPPED; M4c (map-edit reachable) is next.** The owner chose
+the mobile authoring arc on 2026-08-09; M3, M4a and M4b landed in sequence, and the design is in
+[mobile-shell-redesign.md](./mobile-shell-redesign.md), whose §2 notes record what each slice
+shipped and where it deviated. M4b's headline: a DM on a phone now has the FULL menu (five tabs,
+chip row, same lazy chunk as desktop), `buildDMMenuProps` is the one bag→menu mapping both
+layouts share, and the predicted phone treatment measured out as unnecessary — the fit is guarded
+by `apps/e2e/mobile/mobile-dm.spec.ts`, not fixed by hand.
 
 `dev` is pushed and **CI is green on it** — run #765 finished Success in 7m 4s. Nothing has been
 merged to `main`, so none of it is deployed.
@@ -145,6 +147,12 @@ Re-run in full on 2026-08-09 at `9f4b3f15`: every row above still holds, and `ts
 already taken e2e to 106; at `f1952138` it is **109 passed / 0 failed / 3 skipped** (a drag-dismiss
 spec and two dock specs joined), the client is 44 batches, bundle 97.28 KB, shared/server counts
 unchanged.
+
+**M4b moved them again (2026-08-10):** e2e is **115 passed / 0 failed / 3 skipped** at `9cc11906`
+(six `mobile-dm.spec.ts` specs joined: tab reach, an NPC create/delete round trip by touch, fit
+guards in both viewports, the armed alignment wizard). Bundle 97.18 KB — the DM chunk is still
+lazy on both layouts. MainLayout 462→415 and FloatingPanelsLayout 333→180 after `buildDMMenuProps`
+absorbed the DM wiring; things a DM feature now needs are wired ONCE, in that builder.
 
 **M4a's adversarial review RAN 2026-08-10 and its verdict needs this caveat:** the four finder
 lenses completed (9 raw findings) but **all 11 verify/critic agents died on a session limit**, so

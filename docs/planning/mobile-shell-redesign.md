@@ -130,7 +130,25 @@ ended up mounting _underneath_ the tool sheet.
 nothing stacking; `mobile-shell.spec.ts` still green; a new test asserts at most one surface is
 mounted at a time.
 
-### M4b — the DM screen
+### M4b — the DM screen — **SHIPPED 2026-08-10**
+
+Three commits on `dev`: `d11164e7` (`buildDMMenuProps` + desktop switches to it in the same
+commit; the FloatingPanelsLayout characterization suite — MainLayoutProps in, mocked container
+out — passed UNCHANGED, which is the byte-identical proof), `c4247e06` (the menu on the screen),
+`9cc11906` (the fit guards). Deltas against the plan below, all deliberate:
+
+- **`presentation: "window" | "content"` instead of a content extraction** — DMMenu's ~90 props
+  made an extracted `DMMenuContent` pure churn; the shared-JSX variant costs 15 lines and keeps
+  the desktop path byte-identical by construction.
+- **`onSetInitiative` rides `buildDMMenuProps`' second argument** — it is a `useInitiativeSetting`
+  hook result, not bag state; the doc's trace glossed that. Mobile owns its own hook instance
+  (it has no entities panel to share one with).
+- **The predicted phone treatment was NOT needed**: measured at both viewports, no tab view clips
+  content — the views were written for a 360–500px window and ~351px of body is close enough.
+  The measurement shipped as e2e guards (`mobile-dm.spec.ts`) instead of fixes.
+- Two recorded non-goals: 44px floors INSIDE the tab views (the owner's deferred panel-wide pass,
+  like chat's SEND) and alignment CAPTURE on a phone (arming works from the screen; capturing
+  needs the map, so close-tap-reopen — an M4c candidate).
 
 **This is much cheaper than it looks, and here is the verified reason.** `DMMenuContainer` takes
 **50 props**, hand-wired in `FloatingPanelsLayout.tsx:225-297`. All 50 are derivable from
@@ -210,9 +228,10 @@ At `dev` = `c7d83f8f`, 2026-08-09 — **M4a has since moved four of these** (mar
   (`useMobileSurface` arbitrates, `MobileSurfaces` hosts the panels).
 - ✎ The dock's five buttons: Party, Tools, Dice, Log, then **View (player) / DM (isDM)**.
 - ✎ The tool sheet holds nine: Move, Ping, Measure, Draw, Transform, Select, Snap, Recenter, Help.
-- `DMMenuContainer` (255) ← `DMMenu` / `DMMenuTabs` (31) / five tab views (`MapTab` 217, `NPCsTab`
-  235, `PlayersTab` 243, `PropsTab` 140, `SessionTab` 127). Rendered **only** from
-  `FloatingPanelsLayout.tsx:225`, whose only non-test importer is `MainLayout.tsx:28`.
+- ✎ `DMMenuContainer` ← `DMMenu` / `DMMenuTabs` / five tab views (`MapTab` 217, `NPCsTab`
+  235, `PlayersTab` 243, `PropsTab` 140, `SessionTab` 127). Since M4b it renders from BOTH
+  layouts — `FloatingPanelsLayout` (window) and `MobileSurfaces` (screen content) — through the
+  same lazy chunk, fed by `buildDMMenuProps` in both cases.
 - The M3 sheet contract: join the selector list in `herobyte.css` and a new sheet is capped,
   scrolls, and keeps a sticky header for free. `--mobile-sheet-offset` is the one variable.
 - `mobile-chromium` (Pixel 7, scoped by testDir to `apps/e2e/mobile/`) is the harness. `?mobile=true`
