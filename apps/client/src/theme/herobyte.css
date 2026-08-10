@@ -1732,7 +1732,13 @@ h4 {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: max(var(--mobile-safe-top), 10px) 12px 10px;
+  /* The safe-area vars, not literals: on a notched landscape phone the left
+     and right insets are ~44px, and 12px of padding puts the title and rows
+     under the housing. The vars already floor at 12px, so flat screens are
+     unchanged — this is the same contract the dock and the sheets honour,
+     which is exactly why the screen must too. (No browser here emulates a
+     notch, so no test can see this; the dock learned the same lesson in M3.) */
+  padding: var(--mobile-safe-top) var(--mobile-safe-right) 10px var(--mobile-safe-left);
   border-bottom: 3px solid var(--hero-gold-light);
   background: linear-gradient(180deg, rgba(42, 40, 69, 0.98) 0%, rgba(15, 14, 42, 0.99) 100%);
   color: var(--hero-gold);
@@ -1769,7 +1775,8 @@ h4 {
   flex: 1;
   flex-direction: column;
   min-height: 0;
-  padding: 12px 12px calc(var(--mobile-safe-bottom) + 12px);
+  padding: 12px var(--mobile-safe-right) calc(var(--mobile-safe-bottom) + 12px)
+    var(--mobile-safe-left);
   color: var(--hero-text-light);
   font-family: var(--font-body);
 }
