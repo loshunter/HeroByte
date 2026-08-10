@@ -179,10 +179,27 @@ Closing it needs a room-level default: a new **required** `RoomState` field, per
 snapshot field, and four server fixtures that build state literals (see §7). It is also probably
 the feature a DM wants anyway — "this dungeon is dark" as a table setting rather than per token.
 
-### C. The mobile authoring arc (`docs/planning/mobile-authoring-arc.md`, M3–M8)
+### C. The mobile authoring arc — **CHOSEN 2026-08-09; M3 SHIPPED, M4 is next**
 
-A launch commitment, and the arc doc says it runs AFTER Session One — which is now. Two known
-mobile gaps feed straight into it:
+The owner picked this fork. **M3 (mobile sheet shell repair) is done** — four commits, `7a333036`
+→ `9583a176`, guarded by `apps/e2e/mobile/mobile-shell.spec.ts` and
+`apps/e2e/public-table-chip.spec.ts`. Half of it turned out to be already done and two of its six
+items were understated; the full write-up is in the arc doc's §4 M3, which is the thing to read
+before M4.
+
+**What M3 built that M4 stands on:** every bottom sheet now derives its height from
+`--mobile-sheet-offset`, the same variable that positions it, so a sheet taller than the screen
+scrolls inside the viewport instead of opening above the top of it. A new sheet gets that by
+joining the shared selector list in `herobyte.css`. It was measured with 900px of injected filler,
+because nothing shipped today is tall enough to reach the cap — M4's palette is the first thing
+that will be.
+
+**M4 is `docs/planning/mobile-authoring-arc.md` §4.** Its context capsule was written 2026-08-01
+and the line numbers in it are stale; the file names held up. Two owner questions are still open
+and both bite at M4/M8, not before: Q3 (does a mobile DM get the DM Menu, or only map authoring?)
+and Q4 (should there be an in-app "use the desktop layout" switch?).
+
+Two known mobile gaps also feed into it:
 
 - **The mobile party drawer renders one row per PLAYER** and resolves it to that player's FIRST
   character, so a DM on a phone cannot reach a second character's token at all — HP, portrait and
@@ -338,6 +355,14 @@ What works: put the workflow commit LAST, `git push origin HEAD~1:dev` to land e
 and have the owner paste the change into GitHub's web editor (the browser session is not bound by
 the token's scopes). Watch for the web editor auto-indenting the first line of a pasted comment
 block — harmless in YAML, but it will not match your local copy byte-for-byte.
+
+**Never write a repo file with Python's text mode.** `io.open(p, "w", encoding="utf-8")` translates
+`\n` to `\r\n` on Windows, so a one-line patch silently rewrites the whole file to CRLF. Prettier
+did not object, and `git diff --stat` still looked like a one-line change because `.gitattributes`
+normalises on the way in — but vitest reads the WORKING COPY, and
+`MobileFloatingControls.test.tsx`'s `(?<!,)\n` lookbehind then matched a different CSS rule and
+three assertions went red for a reason that had nothing to do with the change. Pass `newline=""`,
+or read/write bytes.
 
 **Windows.** No `kill -9` — use `Stop-Process -Force` or `kill-windows-port.bat`. Bash heredocs
 break on embedded apostrophes and backticks; write the payload with the Write tool and run it with
