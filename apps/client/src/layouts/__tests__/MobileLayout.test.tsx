@@ -53,6 +53,17 @@ vi.mock("../../components/dice/RollLogContent", () => ({
   RollLogContent: () => <div data-testid="roll-log">RollLogContent</div>,
 }));
 
+// The DM menu is lazy on mobile exactly as on desktop; the shell test mocks
+// the chunk and asserts the shell's half of the contract — that the container
+// mounts inside the dm screen, bare (presentation="content").
+vi.mock("../../features/dm/lazy-entry", () => ({
+  DMMenuContainer: ({ presentation }: { presentation?: string }) => (
+    <div data-testid="dm-menu-content" data-presentation={presentation}>
+      DMMenuContainer
+    </div>
+  ),
+}));
+
 vi.mock("../../components/dice/MobileResultOverlay", () => ({
   MobileResultOverlay: ({ result, onClose }: { result: unknown; onClose: () => void }) =>
     result ? (
@@ -526,7 +537,7 @@ describe("MobileLayout", () => {
       expect(screen.queryByRole("dialog", { name: /herobyte help/i })).not.toBeInTheDocument();
     });
 
-    it("a DM's slot five opens the DM screen through the same machine", () => {
+    it("a DM's slot five opens the DM screen through the same machine", async () => {
       const props = createDefaultProps();
       props.isDM = true;
       render(<MobileLayout {...props} />);
@@ -534,6 +545,9 @@ describe("MobileLayout", () => {
       fireEvent.click(dock(/dm/i));
       expect(openSurfaces()).toEqual(["dm"]);
       expect(screen.getByRole("dialog", { name: "DM Menu" })).toBeInTheDocument();
+      // The REAL menu (M4b), lazily — bare content, no desktop dress.
+      const menu = await screen.findByTestId("dm-menu-content");
+      expect(menu).toHaveAttribute("data-presentation", "content");
 
       // One machine, so any other surface replaces it rather than stacking.
       fireEvent.click(dock(/party/i));
@@ -541,6 +555,21 @@ describe("MobileLayout", () => {
 
       fireEvent.click(dock(/dm/i));
       fireEvent.click(screen.getByRole("button", { name: "Close DM Menu" }));
+      expect(openSurfaces()).toEqual([]);
+    });
+
+    it("de-elevating with the DM screen open takes the shell down with it", async () => {
+      const props = createDefaultProps();
+      props.isDM = true;
+      const { rerender } = render(<MobileLayout {...props} />);
+
+      fireEvent.click(dock(/dm/i));
+      expect(await screen.findByTestId("dm-menu-content")).toBeInTheDocument();
+
+      // The server revokes DM (or EXIT DM MODE lands): the screen must not
+      // stay up as an empty shell around a menu that renders null.
+      rerender(<MobileLayout {...props} isDM={false} />);
+      expect(screen.queryByRole("dialog", { name: "DM Menu" })).not.toBeInTheDocument();
       expect(openSurfaces()).toEqual([]);
     });
 

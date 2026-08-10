@@ -94,6 +94,9 @@ export interface DMMenuContainerProps {
   onSelectPlayerTokens: (playerUid: string) => void;
   onSetInitiative?: (characterId: string, initiative: number, modifier: number) => void;
   mapStudio?: MapStudioController;
+  /** "window" (desktop launcher + DraggableWindow) or "content" (bare, for
+   *  a host that provides the surface — the mobile DM screen). */
+  presentation?: "window" | "content";
 }
 
 /**
@@ -150,6 +153,7 @@ export function DMMenuContainer({
   onSelectPlayerTokens,
   onSetInitiative,
   mapStudio,
+  presentation,
 }: DMMenuContainerProps) {
   // Instantiate DM context with all DM-specific hooks
   const dmContext = useDMContext({
@@ -253,6 +257,7 @@ export function DMMenuContainer({
       toast={toast}
       onSetInitiative={onSetInitiative}
       mapStudio={mapStudio}
+      presentation={presentation}
     />
   );
 }

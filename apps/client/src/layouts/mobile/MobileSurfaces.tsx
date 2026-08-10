@@ -7,15 +7,24 @@
 // every open surface root carries data-mobile-surface so a test can count
 // them rather than trust that claim.
 
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import type { MainLayoutProps } from "../props/MainLayoutProps";
 import type { MobileSurfaceMachine } from "../../hooks/useMobileSurface";
 import { RollLogContent } from "../../components/dice/RollLogContent";
 import { MobileDiceRoller } from "../../components/dice/MobileDiceRoller";
 import { MobileEntitiesList } from "../../components/layout/MobileEntitiesList";
 import { HelpPanel } from "../../features/help/HelpPanel";
+import { Spinner } from "../../components/ui/Spinner";
 import { useEntityEditHandlers } from "../../hooks/useEntityEditHandlers";
+import { useInitiativeSetting } from "../../hooks/useInitiativeSetting";
+import { buildDMMenuProps } from "../../features/dm/buildDMMenuProps";
 import { MobileScreen } from "./MobileScreen";
+
+// The same lazy split the desktop uses: DM-only code stays out of the entry
+// bundle until someone actually elevates (FloatingPanelsLayout does this too).
+const DMMenuContainer = lazy(() =>
+  import("../../features/dm/lazy-entry").then((mod) => ({ default: mod.DMMenuContainer })),
+);
 
 interface MobileSurfacesProps {
   props: MainLayoutProps;
@@ -37,6 +46,15 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
     submitNameEdit: props.submitNameEdit,
     playerActions: props.playerActions,
   });
+
+  // Mobile's own instance, deliberately: on desktop MainLayout shares one
+  // between the entities panel and the DM menu, but mobile has no entities
+  // panel — and the builder cannot call hooks, so the caller owns this.
+  const { setInitiative } = useInitiativeSetting({
+    snapshot: props.snapshot,
+    sendMessage: props.sendMessage,
+  });
+  const dmMenuProps = buildDMMenuProps(props, { setInitiative });
 
   return (
     <>
@@ -96,14 +114,21 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
         </MobileScreen>
       )}
 
-      {surface === "dm" && (
+      {/* Gated on isDM as well as the surface: de-elevating with the screen
+          open must not leave an empty shell up (DMMenu would render null),
+          and the same guard is what the desktop's auto-close effect does. */}
+      {surface === "dm" && props.isDM && (
         <MobileScreen title="DM Menu" surface="dm" onClose={closeSurface}>
-          {/* M4a ships the SLOT; M4b ships the menu. An honest placeholder
-              beats a dock button that silently does nothing. */}
-          <p>
-            The DM menu lands on this screen in the next slice. Until then, DM tools live on the
-            desktop layout.
-          </p>
+          <Suspense
+            fallback={
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Spinner size={14} />
+                Loading DM tools…
+              </div>
+            }
+          >
+            <DMMenuContainer {...dmMenuProps} presentation="content" />
+          </Suspense>
         </MobileScreen>
       )}
 

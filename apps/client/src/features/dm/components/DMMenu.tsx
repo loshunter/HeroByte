@@ -93,6 +93,7 @@ export function DMMenu({
   toast,
   onSetInitiative,
   mapStudio,
+  presentation = "window",
 }: DMMenuProps) {
   const { open, setOpen, toggleOpen, activeTab, setActiveTab, sessionName, setSessionName, npcs } =
     useDMMenuState({
@@ -102,6 +103,144 @@ export function DMMenu({
 
   if (!isDM) {
     return null;
+  }
+
+  // Shared between both presentations: the window wraps it, the mobile DM
+  // screen renders it bare (the screen already provides surface and exit).
+  const content = (
+    <div style={{ padding: "12px" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: "12px",
+        }}
+      >
+        <JRPGButton
+          onClick={() => onToggleDM(false)}
+          variant="danger"
+          style={{ fontSize: "10px", padding: "6px 12px" }}
+        >
+          🔓 EXIT DM MODE
+        </JRPGButton>
+      </div>
+
+      <DMMenuTabs
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        scrollable={presentation === "content"}
+      />
+      {activeTab === "map" && (
+        <MapTab
+          mapBackground={mapBackground}
+          onSetMapBackground={onSetMapBackground}
+          onMapBackgroundSuccess={onMapBackgroundSuccess}
+          onMapBackgroundError={onMapBackgroundError}
+          mapTransform={mapTransform}
+          mapLocked={mapLocked}
+          onMapTransformChange={onMapTransformChange}
+          onMapLockToggle={onMapLockToggle}
+          gridSize={gridSize}
+          gridSquareSize={gridSquareSize}
+          gridLocked={gridLocked}
+          onGridSizeChange={onGridSizeChange}
+          onGridSquareSizeChange={onGridSquareSizeChange}
+          onGridLockToggle={onGridLockToggle}
+          diagonalRule={diagonalRule}
+          onDiagonalRuleChange={onDiagonalRuleChange}
+          fogEnabled={fogEnabled}
+          hasCompiledScene={hasCompiledScene}
+          onFogEnabledChange={onFogEnabledChange}
+          alignmentModeActive={alignmentModeActive}
+          alignmentPoints={alignmentPoints}
+          alignmentSuggestion={alignmentSuggestion}
+          alignmentError={alignmentError}
+          onAlignmentStart={onAlignmentStart}
+          onAlignmentReset={onAlignmentReset}
+          onAlignmentCancel={onAlignmentCancel}
+          onAlignmentApply={onAlignmentApply}
+          playerStagingZone={playerStagingZone}
+          camera={camera}
+          stagingZoneLocked={stagingZoneLocked}
+          onStagingZoneLockToggle={onStagingZoneLockToggle}
+          onSetPlayerStagingZone={onSetPlayerStagingZone}
+          onClearDrawings={onClearDrawings}
+          mapStudio={mapStudio}
+        />
+      )}
+      {activeTab === "npcs" && (
+        <NPCsTab
+          npcs={npcs}
+          onCreateNPC={onCreateNPC}
+          onDuplicateNPC={onDuplicateNPC}
+          onUpdateNPC={onUpdateNPC}
+          onPlaceNPCToken={onPlaceNPCToken}
+          onDeleteNPC={onDeleteNPC}
+          isCreatingNpc={isCreatingNpc}
+          npcCreationError={npcCreationError}
+          isUpdatingNpc={isUpdatingNpc}
+          npcUpdateError={npcUpdateError}
+          updatingNpcId={updatingNpcId}
+          isPlacingToken={isPlacingToken}
+          tokenPlacementError={tokenPlacementError}
+          placingTokenForNpcId={placingTokenForNpcId}
+          toast={toast}
+          onSetInitiative={onSetInitiative}
+        />
+      )}
+      {activeTab === "props" && (
+        <PropsTab
+          props={props}
+          players={players}
+          onCreateProp={onCreateProp}
+          onUpdateProp={onUpdateProp}
+          onDeleteProp={onDeleteProp}
+          isCreatingProp={isCreatingProp}
+          propCreationError={propCreationError}
+          isDeletingProp={isDeletingProp}
+          deletingPropId={deletingPropId}
+          propDeletionError={propDeletionError}
+          isUpdatingProp={isUpdatingProp}
+          propUpdateError={propUpdateError}
+          updatingPropId={updatingPropId}
+        />
+      )}
+      {activeTab === "players" && (
+        <PlayersTab
+          players={players}
+          sceneObjects={sceneObjects}
+          onSelectPlayerTokens={onSelectPlayerTokens}
+          combatActive={combatActive}
+          monsterHpDisplay={monsterHpDisplay}
+          onMonsterHpDisplayChange={onMonsterHpDisplayChange}
+          onStartCombat={onStartCombat}
+          onEndCombat={onEndCombat}
+          onClearAllInitiative={onClearAllInitiative}
+          onNextTurn={onNextTurn}
+          onPreviousTurn={onPreviousTurn}
+        />
+      )}
+      {activeTab === "session" && (
+        <SessionTab
+          sessionName={sessionName}
+          setSessionName={setSessionName}
+          onRequestSaveSession={onRequestSaveSession}
+          onRequestLoadSession={onRequestLoadSession}
+          saveDisabled={!onRequestSaveSession}
+          loadDisabled={!onRequestLoadSession}
+          onSetRoomPassword={onSetRoomPassword}
+          roomPasswordStatus={roomPasswordStatus}
+          roomPasswordPending={roomPasswordPending}
+          onDismissRoomPasswordStatus={onDismissRoomPasswordStatus}
+          onSaveAsPrivateTable={onSaveAsPrivateTable}
+          playerCount={playerCount}
+        />
+      )}
+    </div>
+  );
+
+  if (presentation === "content") {
+    return content;
   }
 
   return (
@@ -135,131 +274,7 @@ export function DMMenu({
           storageKey="dm-menu"
           zIndex={1002}
         >
-          <div style={{ padding: "12px" }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                marginBottom: "12px",
-              }}
-            >
-              <JRPGButton
-                onClick={() => onToggleDM(false)}
-                variant="danger"
-                style={{ fontSize: "10px", padding: "6px 12px" }}
-              >
-                🔓 EXIT DM MODE
-              </JRPGButton>
-            </div>
-
-            <DMMenuTabs activeTab={activeTab} onTabChange={setActiveTab} />
-            {activeTab === "map" && (
-              <MapTab
-                mapBackground={mapBackground}
-                onSetMapBackground={onSetMapBackground}
-                onMapBackgroundSuccess={onMapBackgroundSuccess}
-                onMapBackgroundError={onMapBackgroundError}
-                mapTransform={mapTransform}
-                mapLocked={mapLocked}
-                onMapTransformChange={onMapTransformChange}
-                onMapLockToggle={onMapLockToggle}
-                gridSize={gridSize}
-                gridSquareSize={gridSquareSize}
-                gridLocked={gridLocked}
-                onGridSizeChange={onGridSizeChange}
-                onGridSquareSizeChange={onGridSquareSizeChange}
-                onGridLockToggle={onGridLockToggle}
-                diagonalRule={diagonalRule}
-                onDiagonalRuleChange={onDiagonalRuleChange}
-                fogEnabled={fogEnabled}
-                hasCompiledScene={hasCompiledScene}
-                onFogEnabledChange={onFogEnabledChange}
-                alignmentModeActive={alignmentModeActive}
-                alignmentPoints={alignmentPoints}
-                alignmentSuggestion={alignmentSuggestion}
-                alignmentError={alignmentError}
-                onAlignmentStart={onAlignmentStart}
-                onAlignmentReset={onAlignmentReset}
-                onAlignmentCancel={onAlignmentCancel}
-                onAlignmentApply={onAlignmentApply}
-                playerStagingZone={playerStagingZone}
-                camera={camera}
-                stagingZoneLocked={stagingZoneLocked}
-                onStagingZoneLockToggle={onStagingZoneLockToggle}
-                onSetPlayerStagingZone={onSetPlayerStagingZone}
-                onClearDrawings={onClearDrawings}
-                mapStudio={mapStudio}
-              />
-            )}
-            {activeTab === "npcs" && (
-              <NPCsTab
-                npcs={npcs}
-                onCreateNPC={onCreateNPC}
-                onDuplicateNPC={onDuplicateNPC}
-                onUpdateNPC={onUpdateNPC}
-                onPlaceNPCToken={onPlaceNPCToken}
-                onDeleteNPC={onDeleteNPC}
-                isCreatingNpc={isCreatingNpc}
-                npcCreationError={npcCreationError}
-                isUpdatingNpc={isUpdatingNpc}
-                npcUpdateError={npcUpdateError}
-                updatingNpcId={updatingNpcId}
-                isPlacingToken={isPlacingToken}
-                tokenPlacementError={tokenPlacementError}
-                placingTokenForNpcId={placingTokenForNpcId}
-                toast={toast}
-                onSetInitiative={onSetInitiative}
-              />
-            )}
-            {activeTab === "props" && (
-              <PropsTab
-                props={props}
-                players={players}
-                onCreateProp={onCreateProp}
-                onUpdateProp={onUpdateProp}
-                onDeleteProp={onDeleteProp}
-                isCreatingProp={isCreatingProp}
-                propCreationError={propCreationError}
-                isDeletingProp={isDeletingProp}
-                deletingPropId={deletingPropId}
-                propDeletionError={propDeletionError}
-                isUpdatingProp={isUpdatingProp}
-                propUpdateError={propUpdateError}
-                updatingPropId={updatingPropId}
-              />
-            )}
-            {activeTab === "players" && (
-              <PlayersTab
-                players={players}
-                sceneObjects={sceneObjects}
-                onSelectPlayerTokens={onSelectPlayerTokens}
-                combatActive={combatActive}
-                monsterHpDisplay={monsterHpDisplay}
-                onMonsterHpDisplayChange={onMonsterHpDisplayChange}
-                onStartCombat={onStartCombat}
-                onEndCombat={onEndCombat}
-                onClearAllInitiative={onClearAllInitiative}
-                onNextTurn={onNextTurn}
-                onPreviousTurn={onPreviousTurn}
-              />
-            )}
-            {activeTab === "session" && (
-              <SessionTab
-                sessionName={sessionName}
-                setSessionName={setSessionName}
-                onRequestSaveSession={onRequestSaveSession}
-                onRequestLoadSession={onRequestLoadSession}
-                saveDisabled={!onRequestSaveSession}
-                loadDisabled={!onRequestLoadSession}
-                onSetRoomPassword={onSetRoomPassword}
-                roomPasswordStatus={roomPasswordStatus}
-                roomPasswordPending={roomPasswordPending}
-                onDismissRoomPasswordStatus={onDismissRoomPasswordStatus}
-                onSaveAsPrivateTable={onSaveAsPrivateTable}
-                playerCount={playerCount}
-              />
-            )}
-          </div>
+          {content}
         </DraggableWindow>
       )}
     </>
