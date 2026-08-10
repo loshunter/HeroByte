@@ -138,12 +138,16 @@ describe("MobileFloatingControls", () => {
     });
   });
 
-  describe("the help sheet's height rule", () => {
+  describe("the shared sheet height rule", () => {
     // A SOURCE-TEXT rule, for the same reason barrelValueExports.test.ts is one:
     // nothing that executes in this repo can see this bug. jsdom computes no
     // layout, and Playwright's fixed viewport makes vh, dvh and svh identical —
     // so a cap in the wrong unit stays green everywhere and only breaks on a
     // real phone, where it clipped the sheet's only close button off-screen.
+    //
+    // The rule started life on .mobile-help-sheet and now lives on the shared
+    // block, so a new bottom sheet inherits it by joining the selector list
+    // instead of by remembering to re-derive it.
     const css = readFileSync(
       path.join(
         path.dirname(fileURLToPath(import.meta.url)),
@@ -155,43 +159,57 @@ describe("MobileFloatingControls", () => {
       ),
       "utf8",
     );
-    // The lookbehind is load-bearing. `.mobile-help-sheet` is ALSO the last
-    // selector of the shared sheet block above, written one selector per line —
-    // so both a bare match and a newline-anchored one silently read that rule
-    // instead, and every assertion below goes vacuous. Requiring that the line
-    // before it does not end in a comma is what picks out the standalone rule.
-    const helpSheetRule = /(?<!,)\n\.mobile-help-sheet\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    // \r? is load-bearing on Windows: without it the block below is still found,
+    // but every anchored lookup in this file silently reads a different rule.
+    const sharedSheetRule =
+      /\.mobile-tool-sheet,\r?\n[\s\S]*?\.mobile-help-sheet\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    const helpSheetRule = /(?<![,\r])\r?\n\.mobile-help-sheet\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
 
-    it("caps itself in the same viewport unit as .mobile-layout-root", () => {
-      expect(helpSheetRule).not.toBe("");
+    it("caps every sheet in the same viewport unit as .mobile-layout-root", () => {
+      expect(sharedSheetRule).not.toBe("");
       // The container is 100dvh with overflow:hidden. 100vh is the LARGE
-      // viewport, taller by the browser chrome, and the sheet is bottom-anchored
-      // — so a vh-only cap pushes its top off the screen by exactly that much.
-      expect(helpSheetRule).toMatch(/max-height:\s*calc\(\s*100dvh\b/);
+      // viewport, taller by the browser chrome, and the sheets are bottom-
+      // anchored — so a vh-only cap pushes the top off the screen by that much.
+      expect(sharedSheetRule).toMatch(/max-height:\s*calc\(\s*100dvh\b/);
     });
 
-    it("paints above the sheets MobileLayout mounts, not level with them", () => {
+    it("derives the cap from the same offset it is anchored by", () => {
+      // The bug this whole rule exists for is a height and a position that do
+      // not know about each other. One variable in both places is the fix.
+      expect(sharedSheetRule).toMatch(/bottom:\s*var\(--mobile-sheet-offset\)/);
+      expect(sharedSheetRule).toMatch(
+        /max-height:\s*calc\(\s*100dvh\s*-\s*var\(--mobile-sheet-offset\)/,
+      );
+    });
+
+    it("keeps a plain vh cap before it as the fallback", () => {
+      // Declaration order is the whole mechanism: browsers without dvh keep the
+      // vh line, browsers with it take the later one.
+      const vhAt = sharedSheetRule.search(/max-height:\s*calc\(\s*100vh\b/);
+      const dvhAt = sharedSheetRule.search(/max-height:\s*calc\(\s*100dvh\b/);
+      expect(vhAt).toBeGreaterThanOrEqual(0);
+      expect(dvhAt).toBeGreaterThan(vhAt);
+    });
+
+    it("measures the cap against the border box, not the content box", () => {
+      // Padding and border are added AFTER the calc on a content box, so a
+      // capped sheet renders 26px taller than it was told to be and spends the
+      // difference out of the breathing room the calc just reserved.
+      expect(sharedSheetRule).toMatch(/box-sizing:\s*border-box/);
+    });
+
+    it("still paints the manual above the sheets MobileLayout mounts", () => {
       // The dock buttons are handled in JS, but the drawing and selection sheets
       // are mounted by MobileLayout on `drawMode && !showTools` — and opening
       // help sets showTools false, un-suppressing them. MobileLayout is at its
       // line ceiling and cannot be told about help, so paint order is the only
       // thing keeping the manual on top; at the shared 1600 it loses to whatever
       // is later in the DOM.
-      const shared = /\.mobile-tool-sheet,[\s\S]*?\{([^}]*)\}/.exec(css)?.[1] ?? "";
-      const sharedZ = Number(/z-index:\s*(\d+)/.exec(shared)?.[1]);
+      const sharedZ = Number(/z-index:\s*(\d+)/.exec(sharedSheetRule)?.[1]);
       const helpZ = Number(/z-index:\s*(\d+)/.exec(helpSheetRule)?.[1]);
 
       expect(sharedZ).toBeGreaterThan(0);
       expect(helpZ).toBeGreaterThan(sharedZ);
-    });
-
-    it("keeps a plain vh cap before it as the fallback", () => {
-      // Declaration order is the whole mechanism: browsers without dvh keep the
-      // vh line, browsers with it take the later one.
-      const vhAt = helpSheetRule.search(/max-height:\s*calc\(\s*100vh\b/);
-      const dvhAt = helpSheetRule.search(/max-height:\s*calc\(\s*100dvh\b/);
-      expect(vhAt).toBeGreaterThanOrEqual(0);
-      expect(dvhAt).toBeGreaterThan(vhAt);
     });
   });
 });

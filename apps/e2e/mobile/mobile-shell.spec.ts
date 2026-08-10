@@ -49,3 +49,69 @@ test.describe("mobile shell — the dock", () => {
     });
   }
 });
+
+/**
+ * The cap, tested against content taller than the screen.
+ *
+ * Nothing shipped today is tall enough to reach it — which is exactly why this
+ * injects 900px of filler rather than trusting the sheets as they stand. M4
+ * puts a map-edit palette in this slot, and the question that matters is what
+ * happens then. Measured before the shared cap landed: the tool sheet's top
+ * went to -428px in portrait, where there was no cap at all, and to -60px in
+ * landscape, where the 82vh cap was too large to intervene.
+ */
+test.describe("mobile shell — a sheet taller than the screen", () => {
+  for (const vp of VIEWPORTS) {
+    test(`stays on screen, scrolls, and keeps its header (${vp.label})`, async ({ page }) => {
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await joinMobileTable(page);
+
+      // Scoped to the dock: once the sheet is open its own header says "Tools"
+      // too, and an unscoped getByRole is a strict-mode violation.
+      await page
+        .getByRole("navigation", { name: /Mobile actions/i })
+        .getByRole("button", { name: /Tools/i })
+        .click();
+
+      const report = await page.evaluate(() => {
+        const sheet = document.querySelector(".mobile-tool-sheet") as HTMLElement;
+        const header = sheet.querySelector(".mobile-tool-sheet__header") as HTMLElement;
+        const filler = document.createElement("div");
+        filler.style.height = "900px";
+        sheet.appendChild(filler);
+
+        const rect = sheet.getBoundingClientRect();
+        sheet.scrollTop = sheet.scrollHeight;
+        const headerAtBottom = header.getBoundingClientRect();
+        const closeAtBottom = (
+          sheet.querySelector(".mobile-tool-sheet__close") as HTMLElement
+        ).getBoundingClientRect();
+
+        const out = {
+          top: Math.round(rect.top),
+          bottom: Math.round(rect.bottom),
+          viewport: window.innerHeight,
+          scrolls: sheet.scrollHeight > sheet.clientHeight,
+          headerTop: Math.round(headerAtBottom.top),
+          closeTop: Math.round(closeAtBottom.top),
+          closeBottom: Math.round(closeAtBottom.bottom),
+          rootClips: getComputedStyle(document.querySelector(".mobile-layout-root")!).overflow,
+        };
+        filler.remove();
+        return out;
+      });
+
+      // .mobile-layout-root is overflow:hidden, so a negative top is not merely
+      // ugly — it is unreachable. This is the assertion that was -428/-60.
+      expect(report.top).toBeGreaterThanOrEqual(0);
+      expect(report.bottom).toBeLessThanOrEqual(report.viewport);
+      expect(report.rootClips).toBe("hidden");
+      // Overflowing content has to be reachable rather than clipped away.
+      expect(report.scrolls).toBe(true);
+      // ...and scrolling to the very bottom must not take the exit with it.
+      expect(report.headerTop).toBeGreaterThanOrEqual(0);
+      expect(report.closeTop).toBeGreaterThanOrEqual(0);
+      expect(report.closeBottom).toBeLessThanOrEqual(report.viewport);
+    });
+  }
+});

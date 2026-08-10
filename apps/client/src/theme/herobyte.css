@@ -1223,6 +1223,14 @@ h4 {
   --mobile-safe-right: max(12px, env(safe-area-inset-right));
   --mobile-safe-top: max(12px, env(safe-area-inset-top));
   --mobile-dock-height: 68px;
+  /*
+   * Where every bottom sheet sits, and therefore how tall one is allowed to be.
+   * One variable because the two facts are the same fact: a sheet anchored this
+   * far up the screen has exactly `100dvh - this - breathing room` left to grow
+   * into, and a height that does not subtract its own offset is how S8 shipped
+   * a help sheet whose close button sat 34px above the top of the screen.
+   */
+  --mobile-sheet-offset: calc(var(--mobile-safe-bottom) + var(--mobile-dock-height) + 22px);
 }
 
 .mobile-map-surface {
@@ -1320,15 +1328,40 @@ h4 {
     0 0 12px var(--hero-blue-glow);
 }
 
+/*
+ * THE SHEET CONTRACT. A new bottom sheet joins this selector list and is
+ * correct by default; that is the point of putting the cap here rather than on
+ * each sheet.
+ *
+ * Anchor and cap are one derivation, so neither can drift from the other. Read
+ * the note on --mobile-sheet-offset above for why: a vh fraction and a dock
+ * offset do not know about each other, and the sheet that mixed them opened
+ * with its only close button off the top of the screen.
+ *
+ * The cap MUST be in the same viewport unit as the containing block.
+ * .mobile-layout-root is 100dvh with overflow:hidden, while 100vh is the LARGE
+ * viewport — taller by the browser chrome (~56px Android Chrome, ~90-110px iOS
+ * Safari) whenever the URL bar shows. Bottom-anchored, that surplus goes off
+ * the TOP. The vh line is the fallback for browsers without dvh; the dvh line
+ * is the one that matters. Declaration order is the whole mechanism.
+ *
+ * border-box makes the cap exact: on a content box the 20px of padding and 6px
+ * of border are added AFTER the calc, so a capped sheet renders 26px taller
+ * than it was told to be and spends that out of the 48px of breathing room.
+ */
 .mobile-tool-sheet,
 .mobile-selection-sheet,
 .mobile-drawing-sheet,
-.mobile-roll-log-panel,
 .mobile-help-sheet {
   position: absolute;
   right: var(--mobile-safe-right);
+  bottom: var(--mobile-sheet-offset);
   left: var(--mobile-safe-left);
   z-index: 1600;
+  box-sizing: border-box;
+  max-height: calc(100vh - var(--mobile-sheet-offset) - 48px);
+  max-height: calc(100dvh - var(--mobile-sheet-offset) - 48px);
+  overflow-y: auto;
   border: 3px solid var(--hero-gold-light);
   background:
     repeating-conic-gradient(rgba(255, 255, 255, 0.02) 0% 25%, transparent 0% 50%) 50% / 2px 2px,
@@ -1340,16 +1373,30 @@ h4 {
 }
 
 .mobile-tool-sheet {
-  bottom: calc(var(--mobile-safe-bottom) + var(--mobile-dock-height) + 22px);
   padding: 10px;
 }
 
+/*
+ * The ✕ is the only way out of a sheet, and any sheet allowed to scroll is one
+ * that can carry its own header off the top — so the header sticks. This rides
+ * with the shared cap deliberately: "the sheet scrolls" and "the close button
+ * stays reachable" are the same decision, and separating them is how a sheet
+ * ends up scrollable with no way out of it.
+ *
+ * The -10px cancels the 10px padding of the sheets that carry this header, and
+ * the background is opaque so content does not read through as it passes under.
+ */
 .mobile-tool-sheet__header {
+  position: sticky;
+  top: -10px;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 10px;
+  margin: -10px -10px 10px;
+  padding: 10px;
+  background: linear-gradient(180deg, rgba(26, 24, 53, 0.99) 0%, rgba(11, 10, 36, 0.99) 100%);
   color: var(--hero-gold);
   font-size: 0.72rem;
 }
@@ -1374,36 +1421,13 @@ h4 {
 }
 
 /*
- * The manual on a phone. Taller than the tool sheet because it is prose, and it
- * sits above the dock rather than over it so the dock stays reachable.
- *
- * Its height is derived from its own bottom offset rather than a vh fraction,
- * because a fraction and an offset do not know about each other: at 812x375 the
- * shared 82vh landscape cap (307px) plus the 102px dock offset came to 409px in
- * a 375px viewport, so the sheet's header — and the ✕ that closes it — sat 34px
- * above the top of the screen. Subtracting the offset makes "fits on screen"
- * arithmetic instead of a guess, and the extra 48px keeps the connection banner
- * visible above it.
- *
- * The cap MUST be in the same viewport unit as the containing block, for the
- * same reason. .mobile-layout-root is 100dvh with overflow:hidden, but 100vh is
- * the LARGE viewport — taller by the browser chrome (~56px Android Chrome,
- * ~90-110px iOS Safari) whenever the URL bar is showing. Bottom-anchored, that
- * surplus goes off the TOP: top = 48px - (lvh - dvh), negative on any real
- * phone, and the root then clips the sticky header carrying the only ✕. The
- * sheet opened with no way to close it. No test in this repo could see it —
- * Playwright's fixed viewport makes vh, dvh and svh identical, which is also
- * why the landscape e2e stayed green. The vh line is the fallback for browsers
- * without dvh; the dvh line is the one that matters.
+ * The manual on a phone. Its anchor, its cap and its scrolling now all come
+ * from the shared sheet contract above — this rule was where that pattern was
+ * first worked out, and generalising it is what closes the same hole in the
+ * tool, selection and drawing sheets before a bigger palette lands on them.
  */
 .mobile-help-sheet {
-  --mobile-help-sheet-offset: calc(var(--mobile-safe-bottom) + var(--mobile-dock-height) + 22px);
-
-  bottom: var(--mobile-help-sheet-offset);
-  max-height: calc(100vh - var(--mobile-help-sheet-offset) - 48px);
-  max-height: calc(100dvh - var(--mobile-help-sheet-offset) - 48px);
   padding: 10px;
-  overflow-y: auto;
   /*
    * Above the shared 1600, not equal to it. The dock buttons dismiss the manual
    * in JS, but the drawing and selection sheets are mounted by MobileLayout on
@@ -1421,18 +1445,6 @@ h4 {
 .mobile-help-sheet .help-panel {
   max-height: none;
   overflow-y: visible;
-}
-
-/* The ✕ is the only way out of this sheet, and the manual is long enough to
-   scroll it off the top — so it rides along. Opaque, or the topic buttons
-   read through it. */
-.mobile-help-sheet .mobile-tool-sheet__header {
-  position: sticky;
-  top: -10px; /* cancels the sheet's own 10px padding */
-  z-index: 1;
-  margin: -10px -10px 10px;
-  padding: 10px;
-  background: linear-gradient(180deg, rgba(26, 24, 53, 0.99) 0%, rgba(11, 10, 36, 0.99) 100%);
 }
 
 /* ----------------------------------------------------------------------------
@@ -1569,7 +1581,6 @@ h4 {
  * actions wrap beneath it.
  */
 .mobile-selection-sheet {
-  bottom: calc(var(--mobile-safe-bottom) + var(--mobile-dock-height) + 22px);
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
   align-items: center;
@@ -1622,11 +1633,6 @@ h4 {
  *   undo   redo    done
  */
 .mobile-drawing-sheet {
-  /* +22px, matching the tool sheet, rather than the +88px this used to carry.
-     The 88 left a dead gap above the dock that cost 66px of map, and the sheet
-     it would have been clearing — the selection sheet — cannot co-render here:
-     activeTool is a single value, so draw excludes transform and select. */
-  bottom: calc(var(--mobile-safe-bottom) + var(--mobile-dock-height) + 22px);
   display: grid;
   /* auto-fit rather than a fixed 3: portrait (329px of content) resolves to 3
      columns and 4 rows, landscape (766px) to 7 columns and 3 rows. Landscape is
@@ -1705,14 +1711,19 @@ h4 {
   margin-top: -6px;
 }
 
-.mobile-roll-log-panel {
-  top: calc(var(--mobile-safe-top) + 12px);
-  left: auto;
-  width: min(92vw, 380px);
-  max-height: min(55vh, 460px);
-  overflow: auto;
-  padding: 6px;
-}
+/*
+ * The roll log is NOT a bottom sheet, and this wrapper is not its box.
+ * MobileLayout wraps <RollLog> in it, but RollLog renders a DraggableWindow,
+ * which is position:fixed — so the window escapes this element entirely and
+ * every geometry rule written here has always been inert.
+ *
+ * The border and background were not inert, though: they painted an empty
+ * bordered rectangle behind the window. It went unnoticed while the wrapper
+ * collapsed to ~18px, and joining the sheet contract stretched it to 206px,
+ * which is how it finally became visible in a landscape screenshot. So the
+ * wrapper leaves the contract instead, and the dead geometry goes with it.
+ */
+
 
 @media (max-width: 420px) {
   .mobile-action-dock {
@@ -1768,16 +1779,16 @@ h4 {
     gap: 1px;
   }
 
-  /* .mobile-help-sheet is deliberately absent: its own max-height already
-     subtracts the dock offset, and 82vh here would put it back off-screen. */
-  .mobile-tool-sheet,
-  .mobile-selection-sheet,
-  .mobile-drawing-sheet,
-  .mobile-roll-log-panel {
-    max-height: 82vh;
-    overflow-y: auto;
-  }
-
+  /*
+   * The 82vh cap that used to live here is gone, not moved. It was the exact
+   * bug S8 had to exempt the help sheet from: 82vh of a 375px landscape
+   * viewport is 307px, and a 307px sheet anchored 102px up the screen has its
+   * top at -34px. Measured before removal, forcing tall content into the tool
+   * sheet put its top at -60px here and -428px in portrait, where there was no
+   * cap at all. The shared rule subtracts the offset in both orientations, so
+   * this override could only ever make things worse — and the exemption
+   * comment that used to sit here was a sign the rule itself was wrong.
+   */
   .mobile-entities-drawer {
     width: min(360px, 72vw);
   }
