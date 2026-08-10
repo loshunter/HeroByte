@@ -146,6 +146,19 @@ already taken e2e to 106; at `f1952138` it is **109 passed / 0 failed / 3 skippe
 spec and two dock specs joined), the client is 44 batches, bundle 97.28 KB, shared/server counts
 unchanged.
 
+**M4a's adversarial review RAN 2026-08-10 and its verdict needs this caveat:** the four finder
+lenses completed (9 raw findings) but **all 11 verify/critic agents died on a session limit**, so
+no adversarial refutation happened and the completeness critic never ran — those angles are
+unexamined, not clean. Every finding was instead reproduced BY HAND; six were real and all six are
+fixed on `dev` (`34cf38d0` second-finger drag freeze, `0e15de4b` horizontal safe-area, `983ae6d2`
+OFFLINE banner above screens + pointer-events, `cdfe7307` dead drawer CSS, `47cf60ec` four test
+holes). Two process notes from those fixes, both now also in §5's spirit: lifting the banner
+REGRESSED drag-to-dismiss and only the full per-commit gate caught it (the fix needed
+pointer-events: none — and note `elementFromPoint` skips such elements, so paint must be asserted
+structurally); and a strengthened assertion must be proven able to PASS as well as fail — the
+first paint-pin regex never matched the healthy tree because Chromium drops the default `180deg`
+when serializing gradients.
+
 **Known-broken, pre-existing, NOT M4a's:** two of `pnpm docs:screenshots`' five walkthroughs fail —
 `docs-screenshots.player.ts` "player basics" (the character-name edit input intercepts the dice-bar
 click) and `docs-screenshots.dm.ts` "live map authoring" (the `Region: N × N cells` badge never
