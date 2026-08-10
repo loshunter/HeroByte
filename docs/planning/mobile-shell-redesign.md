@@ -20,11 +20,11 @@ Nothing here is inferred from the arc doc, whose line numbers are from 2026-08-0
 The mobile shell has exactly **three presentation kinds**, and which one a feature gets is decided
 by _whether you need to see the map while using it_ — not by how it was built on desktop.
 
-| kind       | geometry                                              | map visible? | what belongs here                              |
-| ---------- | ----------------------------------------------------- | ------------ | ---------------------------------------------- |
-| **Sheet**  | bottom, capped by `--mobile-sheet-offset` (M3)        | yes          | tool palette, selection, drawing, map-edit tools |
-| **Screen** | full height, opaque, own sticky header with a Back    | no           | Party, Dice, Log, Help, **DM**                 |
-| **Mode**   | no panel of its own — it re-purposes the dock          | **fully**    | map authoring                                  |
+| kind       | geometry                                           | map visible? | what belongs here                                |
+| ---------- | -------------------------------------------------- | ------------ | ------------------------------------------------ |
+| **Sheet**  | bottom, capped by `--mobile-sheet-offset` (M3)     | yes          | tool palette, selection, drawing, map-edit tools |
+| **Screen** | full height, opaque, own sticky header with a Back | no           | Party, Dice, Log, Help, **DM**                   |
+| **Mode**   | no panel of its own — it re-purposes the dock      | **fully**    | map authoring                                    |
 
 **Sheets are for things you operate _against_ the map. Screens are for things you read.** The
 current shell gets this wrong in both directions: the roll log is a full-screen takeover built out
@@ -87,7 +87,24 @@ surface with a header. Body copy already has permission to leave Press Start 2P
 
 The arc doc's M4 is three slices, not one. M5–M8 are unchanged and still stack after these.
 
-### M4a — the shell (no new features)
+### M4a — the shell (no new features) — **SHIPPED 2026-08-09**
+
+Four commits on `dev`: `5507e741` (the machine + the extraction), `a2f6737d` (MobileScreen; Log
+and Party become Screens), then the slot-five commit and the docs commit that carries this note.
+Two deltas against the plan below, both deliberate:
+
+- **Reset-camera went into the tool sheet** (`◇ Recenter`, beside Snap) rather than floating on
+  the map: every floating anchor collides with something (combat strip top-centre, sheets and the
+  selection sheet bottom), and the sheet slot was free. A player's dock slot five is still `View`,
+  so for players this is a second copy, not a move. The floating-control option remains open as
+  §5's taste call.
+- **The DM screen is a placeholder** ("the menu lands here next slice") — M4a ships the slot and
+  the surface; M4b ships the menu.
+
+`MobileLayout.tsx` ended at 219 lines; the machine's invariant is pinned by unit tests counting
+`data-mobile-surface` roots and by the e2e log-screen spec. `mobile-shell.spec.ts` was split
+(the slot-five specs live in `mobile-dock.spec.ts`) because e2e specs are NOT `__tests__`-exempt
+from the 350 guard.
 
 The keystone, and the analogue of what `--mobile-sheet-offset` did for M3: **one owner of "which
 surface is open."** Today that state is split across two components with two different arbitration
@@ -183,14 +200,16 @@ browser as a player sees fog respect the wall.
 
 ## 3. Verified facts (do not re-derive these)
 
-At `dev` = `c7d83f8f`, 2026-08-09:
+At `dev` = `c7d83f8f`, 2026-08-09 — **M4a has since moved four of these** (marked ✎):
 
-- `MobileLayout.tsx` is **347 lines of a 348 ceiling** and takes the whole `MainLayoutProps` bag —
-  so anything the desktop has, mobile already receives. It is a plumbing problem, not a data one.
+- ✎ `MobileLayout.tsx` was **347 lines of a 348 ceiling**; M4a's extraction took it to **219**,
+  and it still takes the whole `MainLayoutProps` bag — so anything the desktop has, mobile
+  already receives. It is a plumbing problem, not a data one.
 - `MainLayoutProps.ts` is **432 lines** and already over the guard (baselined; extract, don't grow).
-- `MobileFloatingControls.tsx` (223) owns the dock and the tool sheet, and owns `helpOpen` locally.
-- The dock's five buttons: Party, Tools, Dice, Log, **View (reset camera only)**.
-- The tool sheet holds eight: Move, Ping, Measure, Draw, Transform, Select, Snap, Help.
+- ✎ `MobileFloatingControls.tsx` owns the dock and the tool sheet; since M4a it owns **no state**
+  (`useMobileSurface` arbitrates, `MobileSurfaces` hosts the panels).
+- ✎ The dock's five buttons: Party, Tools, Dice, Log, then **View (player) / DM (isDM)**.
+- ✎ The tool sheet holds nine: Move, Ping, Measure, Draw, Transform, Select, Snap, Recenter, Help.
 - `DMMenuContainer` (255) ← `DMMenu` / `DMMenuTabs` (31) / five tab views (`MapTab` 217, `NPCsTab`
   235, `PlayersTab` 243, `PropsTab` 140, `SessionTab` 127). Rendered **only** from
   `FloatingPanelsLayout.tsx:225`, whose only non-test importer is `MainLayout.tsx:28`.
@@ -222,4 +241,6 @@ At `dev` = `c7d83f8f`, 2026-08-09:
   exists and it is undocumented. A tablet DM who would rather have the real palette cannot ask for
   it. M4a is the natural place if the answer is yes.
 - **The reset-camera control's new home** (floating on the map vs into the tool sheet) is a taste
-  call worth one screenshot before it is settled.
+  call worth one screenshot before it is settled. M4a put it in the tool sheet (`◇ Recenter`,
+  beside Snap) because every floating anchor collides with existing chrome; the floating control
+  is still on the table if the owner prefers it after seeing the screenshot.

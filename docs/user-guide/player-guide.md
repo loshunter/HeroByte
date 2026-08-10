@@ -196,11 +196,13 @@ On a small or touch screen, HeroByte switches to a full-screen map with a five-b
 | ---------------------------------------------------------------------------- | ----------------------------------------------- |
 | ![Mobile layout: full-screen map with the bottom dock](img/mobile-table.jpg) | ![The mobile tools sheet](img/mobile-tools.jpg) |
 
-- **◉ PARTY** — the party drawer: portraits, HP (tap or drag to edit), status effects, and — on your own row — **⚙️ EDIT** for name, portrait, and DM mode.
-- **⚒ TOOLS** — Move, Ping, Measure, Draw (a compact strip: tool, size, color, undo/redo), Transform, Select, and Snap.
+- **◉ PARTY** — the party screen: portraits, HP (tap or drag to edit), status effects, and — on your own row — **⚙️ EDIT** for name, portrait, and DM mode.
+- **⚒ TOOLS** — Move, Ping, Measure, Draw (a compact strip: tool, size, color, undo/redo), Transform, Select, Snap, Recenter (re-centers the camera), and Help.
 - **⚂ DICE** — a full-screen roller; the result appears as a tap-to-dismiss card.
-- **≡ LOG** — the shared roll history. **◇ VIEW** recenters the camera.
+- **≡ LOG** — the shared roll history and the chat, full screen. **◇ VIEW** recenters the camera; if you're the DM, that slot reads **♛ DM** instead (the DM menu is on its way to mobile — Recenter in TOOLS covers the camera).
 
-![The mobile party drawer](img/mobile-party.jpg)
+Party and Log open as full screens: close them with the **✕**, or drag their title bar downward to flick them away.
+
+![The mobile party screen](img/mobile-party.jpg)
 
 One finger pans, two fingers pinch-zoom. A few desktop-only extras (CRT, game-feel settings, DM map authoring, player-state files) don't exist on mobile.

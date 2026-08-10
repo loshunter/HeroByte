@@ -9,14 +9,16 @@ is a judgement call rather than a fact, it says so.
 **The Session One arc is DONE.** `docs/planning/session-one-arc.md` is the source of truth.
 S0–S7 are in production; **S8 and its review fixes are on `dev` and NOT deployed.**
 
-| Branch | Commit     | State                                                                          |
-| ------ | ---------- | ------------------------------------------------------------------------------ |
-| `dev`  | `c7d83f8f` | 38 commits on `main`: S8 + review + §11 cleanup, an e2e flake fix, then **M3**. |
-| `main` | `5307d0dd` | production, deployed, green                                                     |
+| Branch | Commit     | State                                                                                        |
+| ------ | ---------- | -------------------------------------------------------------------------------------------- |
+| `dev`  | `f1952138` | +docs: S8 + review + §11 cleanup, an e2e flake fix, **M3**, the M4 design doc, then **M4a**. |
+| `main` | `5307d0dd` | production, deployed, green                                                                  |
 
-**Read §3C first — the fork is closed and M4a is queued.** The owner chose the mobile authoring arc
-on 2026-08-09, M3 shipped the same day, and the design for M4 is settled in
-[mobile-shell-redesign.md](./mobile-shell-redesign.md).
+**Read §3C first — M4a SHIPPED on 2026-08-09 and M4b is next.** The owner chose the mobile
+authoring arc on 2026-08-09, M3 shipped the same day, and the design for M4 is settled in
+[mobile-shell-redesign.md](./mobile-shell-redesign.md), whose §2 M4a note now records what
+shipped and where it deviated (Recenter went into the tool sheet; the DM screen is a placeholder
+until M4b).
 
 `dev` is pushed and **CI is green on it** — run #765 finished Success in 7m 4s. Nothing has been
 merged to `main`, so none of it is deployed.
@@ -139,6 +141,18 @@ Re-run in full on 2026-08-09 at `9f4b3f15`: every row above still holds, and `ts
 (§7) cleanly. The e2e row held only after `5f93db94` — the first run of it was `96 passed / 1 flaky`
 (§5).
 
+**M4a moved the baselines (gate run in full before each of its commits, 2026-08-09):** M3 had
+already taken e2e to 106; at `f1952138` it is **109 passed / 0 failed / 3 skipped** (a drag-dismiss
+spec and two dock specs joined), the client is 44 batches, bundle 97.28 KB, shared/server counts
+unchanged.
+
+**Known-broken, pre-existing, NOT M4a's:** two of `pnpm docs:screenshots`' five walkthroughs fail —
+`docs-screenshots.player.ts` "player basics" (the character-name edit input intercepts the dice-bar
+click) and `docs-screenshots.dm.ts` "live map authoring" (the `Region: N × N cells` badge never
+appears for the Generate step). Verified identical at pre-M4a `0441bcfd` before concluding that.
+The harness is not in the §2 gate, so nothing guards it; the mobile walkthrough still passes and
+the three mobile screenshots were re-recorded from it.
+
 The client is back to 43 batches: the fixes added test files (44), then deleting
 `useNpcManagement`'s 709-line suite took one away again. E2E was 83 before S8's 14 new specs
 (4 desktop help, 5 mobile help, 5 bulk-NPC) and is unchanged by any of the fixes — worth noting,
@@ -199,8 +213,12 @@ joining the shared selector list in `herobyte.css`. It was measured with 900px o
 because nothing shipped today is tall enough to reach the cap — M4's palette is the first thing
 that will be.
 
-**M4 is designed and queued — read [mobile-shell-redesign.md](./mobile-shell-redesign.md), not the
-arc doc's §4 M4.** The owner answered Q3 on 2026-08-09 (**a mobile DM gets a full menu**) and asked
+**M4a SHIPPED 2026-08-09** (`5507e741` machine/extraction, `a2f6737d` Screens, `f1952138` slot
+five — each behind the full gate, each fix sabotage-proven). **M4b (the DM screen) is next — read
+[mobile-shell-redesign.md](./mobile-shell-redesign.md), not the arc doc's §4 M4.** The redesign
+doc's 50-prop trace for `buildDMMenuProps` is the part that saves the most time, and the `dm`
+surface + placeholder `MobileScreen` it will fill already exist. The owner answered Q3 on
+2026-08-09 (**a mobile DM gets a full menu**) and asked
 for a mobile-native shell — a separate screen rather than another sheet, "a more mobile focused
 usable UI over the RPG of it". That doc holds the model, the three slices M4 became (M4a shell /
 M4b DM screen / M4c room+wall), and — the part that saves the most time — **all 50 of
@@ -274,14 +292,18 @@ copy is a `create-npc` whose base name is the original's.
 ## 5. Traps that will cost you hours
 
 **The 350-LOC guard** flags `content.split("\n").length >= 350`, i.e. `wc -l >= 349`, so **348 is
-the real ceiling**. `__tests__` files are exempt; source files are not. It fails only on NEW
-violators. `prettier --write` EXPANDS files — re-check LOC after formatting. Live headroom on
-files near the line, re-measured 2026-08-09 after the §11 cleanup. **Three are within one line of
-the ceiling** — `characterValidators.ts` **348**, `MobileLayout.tsx` **347**, `useDMContext.ts`
-**347** — so any of them needs an extraction before it gains anything at all. Then
-`NPCEditor.tsx` 333, `helpTopics.ts` 301, `Header.tsx` 262, `NPCsTab.tsx` 235,
-`MobileFloatingControls.tsx` 223, `HelpMenuButton.tsx` 153. Already over and baselined (extract,
-don't grow): `layouts/props/MainLayoutProps.ts` 432, `domains/character/service.ts` 376.
+the real ceiling**. `__tests__` files are exempt; source files are not — and **e2e specs are NOT
+exempt** (M4a learned this at 374 lines: `mobile-shell.spec.ts` had to split off
+`mobile-dock.spec.ts`). It fails only on NEW violators. `prettier --write` EXPANDS files —
+re-check LOC after formatting. Live headroom on files near the line, re-measured 2026-08-09 after
+M4a. **Two are within one line of the ceiling** — `characterValidators.ts` **348**,
+`useDMContext.ts` **347** — so either needs an extraction before it gains anything at all.
+`MobileLayout.tsx` is no longer one of them: M4a's extraction took it 347 → **219** (the surface
+machine went to `hooks/useMobileSurface.ts`, the panels to `layouts/mobile/MobileSurfaces.tsx`).
+Then `NPCEditor.tsx` 333, `mobile-shell.spec.ts` 306, `helpTopics.ts` 301, `Header.tsx` 262,
+`NPCsTab.tsx` 235, `MobileFloatingControls.tsx` 220, `HelpMenuButton.tsx` 153. Already over and
+baselined (extract, don't grow): `layouts/props/MainLayoutProps.ts` 432,
+`domains/character/service.ts` 376.
 
 This bit three times in two days, always the same way — a comment explaining WHY a change was made
 is what crosses the line. A validator comment pushed `characterValidators.ts` to 351 and had to be
