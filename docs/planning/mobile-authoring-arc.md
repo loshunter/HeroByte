@@ -418,7 +418,7 @@ by timing.
 ### M3 ✅ SHIPPED 2026-08-09 — Mobile sheet shell repair
 
 Four commits on `dev`: `7a333036` (dock height), `e6d896a7` (the sheet cap), `38039b96` (roll log),
-and the chrome pass. Guarded by `apps/e2e/mobile/mobile-shell.spec.ts` (8 tests, both orientations)
+`9583a176` (the chrome pass). Guarded by `apps/e2e/mobile/mobile-shell.spec.ts` (8 tests, both orientations)
 plus `utils/__tests__/mobileLayout.test.ts`. Every number below was measured in a Pixel 7 context,
 not computed.
 
