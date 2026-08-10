@@ -48,7 +48,11 @@ const createBag = (overrides: Partial<MainLayoutProps> = {}): MainLayoutProps =>
     dismissRoomPasswordStatus: vi.fn(),
     selectPlayerTokens: vi.fn(),
     toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
-    mapStudio: undefined,
+    // A SENTINEL, not undefined: the review proved that with the fixture at
+    // undefined and no assertion, deleting the builder's mapStudio mapping
+    // passed every gated suite while silently removing the Map Studio section
+    // from BOTH layouts (the prop is optional, so tsc is blind too).
+    mapStudio: { marker: "map-studio-controller" } as unknown as MainLayoutProps["mapStudio"],
     ...overrides,
   }) as MainLayoutProps;
 
@@ -75,7 +79,63 @@ describe("buildDMMenuProps", () => {
     expect(built.sendMessage).toBe(bag.sendMessage);
     expect(built.camera).toBe(bag.camera);
     expect(built.toast).toBe(bag.toast);
+    expect(built.mapStudio).toBe(bag.mapStudio);
     expect(built.alignmentModeActive).toBe(bag.alignmentMode);
+  });
+
+  it("builds the COMPLETE prop surface — a dropped mapping is a missing key, not a quiet gap", () => {
+    // The cast-shaped blindness the review confirmed: optional props make a
+    // deleted mapping invisible to tsc, and a fixture only exercises fields
+    // someone remembered to assert. Pinning the key set makes ANY dropped (or
+    // sneaked-in) mapping red, whatever its optionality.
+    const built = buildDMMenuProps(createBag(), { setInitiative: vi.fn() });
+
+    expect(Object.keys(built).sort()).toEqual(
+      [
+        "isDM",
+        "onToggleDM",
+        "gridSize",
+        "gridSquareSize",
+        "gridLocked",
+        "onGridLockToggle",
+        "onGridSizeChange",
+        "onGridSquareSizeChange",
+        "fogEnabled",
+        "hasCompiledScene",
+        "onFogEnabledChange",
+        "onClearDrawings",
+        "onSetMapBackground",
+        "mapBackground",
+        "mapLocked",
+        "onMapLockToggle",
+        "mapTransform",
+        "onMapTransformChange",
+        "playerStagingZone",
+        "onSetPlayerStagingZone",
+        "stagingZoneLocked",
+        "onStagingZoneLockToggle",
+        "alignmentModeActive",
+        "alignmentPoints",
+        "alignmentSuggestion",
+        "alignmentError",
+        "onAlignmentStart",
+        "onAlignmentReset",
+        "onAlignmentCancel",
+        "onAlignmentApply",
+        "onSetRoomPassword",
+        "onSaveAsPrivateTable",
+        "roomPasswordStatus",
+        "roomPasswordPending",
+        "onDismissRoomPasswordStatus",
+        "snapshot",
+        "sendMessage",
+        "camera",
+        "toast",
+        "onSelectPlayerTokens",
+        "onSetInitiative",
+        "mapStudio",
+      ].sort(),
+    );
   });
 
   it("derives the snapshot-backed fields with the wiring's exact defaults", () => {

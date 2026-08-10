@@ -110,6 +110,10 @@ describe("DMMenu", () => {
     render(<DMMenu {...props} />);
 
     fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
+    // The desktop dress is the wrapper, not just the launcher: the review
+    // found nothing asserted the window actually WRAPS in window mode (the
+    // content renders identically bare, so the old tests passed either way).
+    expect(screen.getByTestId("draggable-window")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Map Setup" })).toBeInTheDocument();
     const input = screen.getByPlaceholderText("Paste image URL");
     fireEvent.change(input, { target: { value: "https://example.com/map.png" } });

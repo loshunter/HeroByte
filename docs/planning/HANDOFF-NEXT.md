@@ -154,6 +154,20 @@ guards in both viewports, the armed alignment wizard). Bundle 97.18 KB — the D
 lazy on both layouts. MainLayout 462→415 and FloatingPanelsLayout 333→180 after `buildDMMenuProps`
 absorbed the DM wiring; things a DM feature now needs are wired ONCE, in that builder.
 
+**M4b's adversarial review ran CLEAN (2026-08-10, 15 agents, `agents_error: 0`)** — unlike M4a's,
+whose verifiers died. 6 findings: 4 refuted with engine-level reasoning (the chip row's
+touch-action fear is wrong because used touch-action RESETS at a scroll container — worth knowing
+next time that fear comes up), 1 low fixed alongside, and **1 confirmed by both refuters**:
+deleting the builder's `mapStudio: props.mapStudio` line passed tsc (optional prop), every unit
+suite, every characterization suite AND the full e2e while silently removing the Map Studio
+section from BOTH layouts. Fixed by pinning the mapping (sentinel + identity assertion) and, for
+the whole class, pinning the builder's COMPLETE key set — any dropped mapping is now a missing
+key. The critic's unexamined areas, recorded not cleared: the mobile Suspense has no local error
+boundary (a failed DM-chunk load bubbles to the app-root boundary and replaces the whole table —
+the realistic trigger is a deploy invalidating hashed chunk names mid-session);
+software-keyboard/iOS behaviour is invisible to every browser here; and MapStudioControl is now
+reachable from a phone with no phone-specific coverage.
+
 **M4a's adversarial review RAN 2026-08-10 and its verdict needs this caveat:** the four finder
 lenses completed (9 raw findings) but **all 11 verify/critic agents died on a session limit**, so
 no adversarial refutation happened and the completeness critic never ran — those angles are
