@@ -39,6 +39,11 @@ export const ServerStatus: React.FC<ServerStatusProps> = ({ isConnected }) => {
         boxShadow: "0 2px 4px rgba(0,0,0,0.5), inset 0 0 0 1px var(--jrpg-border-shadow)",
         fontFamily: "'Press Start 2P', monospace",
         minWidth: "120px",
+        // Purely informational, and since M4a it paints ABOVE the mobile
+        // screens — without this it swallows the touches meant for whatever
+        // is under it, which broke drag-to-dismiss on the screen header the
+        // moment the banner was lifted over it.
+        pointerEvents: "none",
       }}
     >
       <span style={{ fontSize: "12px" }}>{isConnected ? "🟢" : "🔴"}</span>

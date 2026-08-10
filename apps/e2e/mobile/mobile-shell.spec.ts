@@ -173,7 +173,32 @@ test.describe("mobile shell — the log screen", () => {
             intruders.push(`${f}: ${(hit.className || hit.tagName).toString().slice(0, 40)}`);
           }
         }
+        // The connection banner is the only place the table reports a lost
+        // server, and the screen is an opaque full-viewport cover — so the
+        // banner must PAINT above the screen while it is open, yet stay
+        // transparent to INPUT (it swallowed the header's drag-to-dismiss the
+        // first time it was lifted). It cannot be probed with
+        // elementFromPoint: hit tests skip pointer-events:none elements, so
+        // the probe is structural — the banner's lift and the screen are both
+        // direct children of the root (no intervening stacking context), so
+        // the larger z-index paints later.
+        const root = document.querySelector(".mobile-layout-root");
+        const banner = [...document.querySelectorAll<HTMLElement>("*")].find(
+          (n) =>
+            getComputedStyle(n).position === "fixed" &&
+            /^(🟢|🔴)(ONLINE|OFFLINE)$/.test((n.textContent || "").trim()),
+        );
+        const lift = banner?.parentElement ?? null;
+        const liftStyle = lift ? getComputedStyle(lift) : null;
+
         return {
+          bannerVisible: banner ? banner.checkVisibility() : false,
+          bannerLiftZ:
+            liftStyle && liftStyle.position !== "static" && lift?.parentElement === root
+              ? Number(liftStyle.zIndex)
+              : null,
+          screenZ: el.parentElement === root ? Number(style.zIndex) : null,
+          bannerInert: banner ? getComputedStyle(banner).pointerEvents === "none" : false,
           top: Math.round(r.top),
           left: Math.round(r.left),
           bottom: Math.round(r.bottom),
@@ -198,6 +223,13 @@ test.describe("mobile shell — the log screen", () => {
       expect(report.right).toBe(report.viewportWidth);
       expect(report.background).toContain("gradient");
       expect(report.intruders).toEqual([]);
+      // The banner paints above the screen (bigger z, same stacking parent),
+      // stays visible, and passes touches through to the header beneath it.
+      expect(report.bannerVisible).toBe(true);
+      expect(report.bannerLiftZ).not.toBeNull();
+      expect(report.screenZ).not.toBeNull();
+      expect(report.bannerLiftZ!).toBeGreaterThan(report.screenZ!);
+      expect(report.bannerInert).toBe(true);
       // The machine's invariant, counted in a real DOM: one surface, this one.
       expect(report.surfaces).toEqual(["log"]);
 

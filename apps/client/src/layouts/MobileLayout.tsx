@@ -211,7 +211,14 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
       {/* Mobile rendered neither of these, so a phone user got no non-blocking
           feedback ever — no save confirmation, no dropped-command warning, no
           sign the server had gone. Both props were already being passed in. */}
-      <ServerStatus isConnected={props.isConnected} />
+      {/* The banner is the only place the table reports a lost server, and an
+          open Screen is an opaque full-viewport cover at z-index 1700 — so the
+          banner rides a stacking context above the screens (and below the dice
+          overlay at 2000). position:relative does not move a fixed descendant;
+          it only lifts its paint. */}
+      <div style={{ position: "relative", zIndex: 1800 }}>
+        <ServerStatus isConnected={props.isConnected} />
+      </div>
       {props.snapshot?.isPublicTable ? <PublicTableNotice variant="chip" /> : null}
       <ToastContainer messages={props.toast.messages} onDismiss={props.toast.dismiss} />
     </div>
