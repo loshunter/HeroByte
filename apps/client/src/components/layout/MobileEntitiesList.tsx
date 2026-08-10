@@ -1,12 +1,13 @@
 // ============================================================================
 // MOBILE ENTITIES LIST
 // ============================================================================
-// Slide-out drawer for viewing players/entities on mobile.
+// The party rows on mobile. Since M4a this is ONLY the list: the full-height
+// surface, header and exit around it belong to MobileScreen, which is what
+// retired the right-edge drawer this file used to be.
 
 import React from "react";
 import type { Player, SnapshotCharacter, Token } from "@herobyte/shared";
 import { MobilePlayerRow } from "./MobilePlayerRow";
-import { JRPGButton } from "../ui/JRPGPanel";
 
 interface MobileEntitiesListProps {
   players: Player[];
@@ -16,7 +17,6 @@ interface MobileEntitiesListProps {
   isDM: boolean;
   /** Grant/revoke the viewer's own DM status. */
   onToggleDMMode: (next: boolean) => void;
-  onClose: () => void;
 
   // Edit props passed through to row
   editingHpUID: string | null;
@@ -44,7 +44,6 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   uid,
   isDM,
   onToggleDMMode,
-  onClose,
   editingHpUID,
   hpInput,
   onHpInputChange,
@@ -96,102 +95,61 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   return (
     <div
       style={{
-        position: "fixed",
-        top: 0,
-        right: 0,
-        bottom: 0,
-        width: "min(92vw, 380px)",
-        backgroundColor: "#0c1228",
-        boxShadow: "-4px 0 12px rgba(0,0,0,0.5)",
-        zIndex: 1900,
         display: "flex",
         flexDirection: "column",
-        borderLeft: "1px solid var(--hero-gold)",
-        transform: "translateX(0)",
-        transition: "transform 0.3s ease",
-        paddingTop: "env(safe-area-inset-top)",
-        paddingBottom: "env(safe-area-inset-bottom)",
+        gap: "12px",
       }}
     >
-      {/* Header */}
-      <div
-        style={{
-          padding: "16px",
-          borderBottom: "1px solid rgba(255,255,255,0.1)",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          background: "rgba(0,0,0,0.2)",
-        }}
-      >
-        <h2 style={{ color: "var(--hero-gold)", margin: 0, fontSize: "1.2rem" }}>Party Members</h2>
-        <JRPGButton onClick={onClose} variant="default" style={{ padding: "4px 12px" }}>
-          ✕
-        </JRPGButton>
-      </div>
-
-      {/* List */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: "16px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "12px",
-        }}
-      >
-        {entities.map((entity) => {
-          // Prefer the row's own character token; fall back to an owned token
-          // only for a legacy player with no character link.
-          const entityToken = entity.tokenId
-            ? tokens?.find((candidate) => candidate.id === entity.tokenId)
-            : tokens?.find((candidate) => candidate.owner === entity.uid);
-          return (
-            <MobilePlayerRow
-              key={entity.uid}
-              player={entity}
-              isMe={entity.uid === uid}
-              token={entityToken}
-              // `isDM` is the VIEWER's flag (see the prop doc above), and it is
-              // required here for the same reason EntitiesPanel gates on
-              // `currentIsDM`: sight radius is DM-only, the server refuses it
-              // from anyone else, and a control that silently does nothing is
-              // worse than one that isn't there.
-              onTokenVisionRadiusChange={
-                isDM && entityToken && onTokenVisionRadiusChange
-                  ? (radiusFeet) => onTokenVisionRadiusChange(entityToken.id, radiusFeet)
-                  : undefined
-              }
-              isDM={isDM}
-              onToggleDMMode={onToggleDMMode}
-              editingHpUID={editingHpUID}
-              hpInput={hpInput}
-              onHpInputChange={onHpInputChange}
-              onHpEdit={onHpEdit}
-              onHpSubmit={(_hpStr) => {
-                // HPBar passes the string value, but onHpSubmit expects void in EntitiesPanel
-                // Here we just trigger the submit logic
-                onHpSubmit();
-              }}
-              editingMaxHpUID={editingMaxHpUID}
-              maxHpInput={maxHpInput}
-              onMaxHpInputChange={onMaxHpInputChange}
-              onMaxHpEdit={onMaxHpEdit}
-              onMaxHpSubmit={(_maxHpStr) => {
-                // HPBar passes the string value, but onMaxHpSubmit expects void here
-                onMaxHpSubmit();
-              }}
-              onCharacterHpChange={onCharacterHpChange}
-              onStatusEffectsChange={(effects) =>
-                onCharacterStatusEffectsChange(entity.characterId, effects)
-              }
-              onCharacterNameUpdate={onCharacterNameUpdate}
-              onCharacterPortraitUpdate={onCharacterPortraitUpdate}
-            />
-          );
-        })}
-      </div>
+      {entities.map((entity) => {
+        // Prefer the row's own character token; fall back to an owned token
+        // only for a legacy player with no character link.
+        const entityToken = entity.tokenId
+          ? tokens?.find((candidate) => candidate.id === entity.tokenId)
+          : tokens?.find((candidate) => candidate.owner === entity.uid);
+        return (
+          <MobilePlayerRow
+            key={entity.uid}
+            player={entity}
+            isMe={entity.uid === uid}
+            token={entityToken}
+            // `isDM` is the VIEWER's flag (see the prop doc above), and it is
+            // required here for the same reason EntitiesPanel gates on
+            // `currentIsDM`: sight radius is DM-only, the server refuses it
+            // from anyone else, and a control that silently does nothing is
+            // worse than one that isn't there.
+            onTokenVisionRadiusChange={
+              isDM && entityToken && onTokenVisionRadiusChange
+                ? (radiusFeet) => onTokenVisionRadiusChange(entityToken.id, radiusFeet)
+                : undefined
+            }
+            isDM={isDM}
+            onToggleDMMode={onToggleDMMode}
+            editingHpUID={editingHpUID}
+            hpInput={hpInput}
+            onHpInputChange={onHpInputChange}
+            onHpEdit={onHpEdit}
+            onHpSubmit={(_hpStr) => {
+              // HPBar passes the string value, but onHpSubmit expects void in EntitiesPanel
+              // Here we just trigger the submit logic
+              onHpSubmit();
+            }}
+            editingMaxHpUID={editingMaxHpUID}
+            maxHpInput={maxHpInput}
+            onMaxHpInputChange={onMaxHpInputChange}
+            onMaxHpEdit={onMaxHpEdit}
+            onMaxHpSubmit={(_maxHpStr) => {
+              // HPBar passes the string value, but onMaxHpSubmit expects void here
+              onMaxHpSubmit();
+            }}
+            onCharacterHpChange={onCharacterHpChange}
+            onStatusEffectsChange={(effects) =>
+              onCharacterStatusEffectsChange(entity.characterId, effects)
+            }
+            onCharacterNameUpdate={onCharacterNameUpdate}
+            onCharacterPortraitUpdate={onCharacterPortraitUpdate}
+          />
+        );
+      })}
     </div>
   );
 };

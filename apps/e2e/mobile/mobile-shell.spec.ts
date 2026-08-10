@@ -11,6 +11,7 @@
  */
 import { expect, test } from "../fixtures";
 import { joinMobileTable } from "./mobile.helpers";
+import { openTouch, touchDrag } from "./touch.helpers";
 
 const VIEWPORTS = [
   { width: 375, height: 812, label: "portrait" },
@@ -117,21 +118,25 @@ test.describe("mobile shell — a sheet taller than the screen", () => {
 });
 
 /**
- * The roll log is a full-screen takeover on mobile, so its ✕ is the only way
- * out — and it was 32px in portrait and 24px in landscape, because
- * DraggableWindow decided "mobile" with its own `innerWidth < 768` while
- * App.tsx routes an 812x375 phone and a 1024px tablet into MobileLayout. The
- * landscape case is the one that proves the two now agree.
+ * The log is a SCREEN since M4a (redesign §1): full height, opaque, its own
+ * header, dock covered, ✕ ≥44px. Its predecessor was a DraggableWindow in
+ * phone dress whose ✕ was 24px on every tablet and landscape phone, plus a
+ * stacking-context workaround so the drawing sheet stopped painting across
+ * its middle — the screen replaces both, and this block measures the
+ * replacement rather than trusting it.
  */
-test.describe("mobile shell — the roll log", () => {
+test.describe("mobile shell — the log screen", () => {
   for (const vp of VIEWPORTS) {
-    test(`opens over the sheets with a reachable exit (${vp.label})`, async ({ page }) => {
+    test(`covers the shell with a >=44px exit, then yields to the drawing sheet (${vp.label})`, async ({
+      page,
+    }) => {
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await joinMobileTable(page);
 
-      // Arm Draw first: the drawing sheet renders on `drawMode && !showTools`,
-      // and opening the log clears showTools — so this is the state in which
-      // the sheet used to paint straight across the middle of the log.
+      // Arm Draw first: the drawing sheet is tool-derived, not a surface, so
+      // it stays MOUNTED under the opaque screen exactly as it stayed under
+      // the old takeover — which makes it the intruder that would betray a
+      // transparent or mis-stacked screen.
       await page
         .getByRole("navigation", { name: /Mobile actions/i })
         .getByRole("button", { name: /Tools/i })
@@ -144,36 +149,57 @@ test.describe("mobile shell — the roll log", () => {
         .getByRole("button", { name: /Log/i })
         .click();
 
-      const close = page.getByRole("button", { name: /^Close .*ROLL LOG$/i });
+      const close = page.getByRole("button", { name: "Close Roll Log" });
       await expect(close).toBeVisible();
 
       const box = (await close.boundingBox())!;
       expect(Math.round(box.width)).toBeGreaterThanOrEqual(44);
       expect(Math.round(box.height)).toBeGreaterThanOrEqual(44);
 
-      // Occlusion, sampled down the MIDDLE of the window rather than at the
-      // close button. The sheet covers the log's body, not its title bar, so a
-      // hit-test on the ✕ passes whether or not the bug is present — which is
-      // exactly what removing the stacking context proved.
-      const covered = await page.evaluate(() => {
-        const panel = document.querySelector(".mobile-roll-log-panel")!;
-        const win = panel.firstElementChild as HTMLElement;
-        const r = win.getBoundingClientRect();
+      const report = await page.evaluate(() => {
+        const el = document.querySelector(".mobile-screen") as HTMLElement;
+        const r = el.getBoundingClientRect();
+        const style = getComputedStyle(el);
+        // Occlusion, sampled down the screen's SPINE rather than at the close
+        // button: the old bug covered the body and never the title bar, so a
+        // hit-test on the ✕ passes whether or not the bug is present.
         const intruders: string[] = [];
-        // Five points down the window's spine: the body is the part that was
-        // painted over, and a single centre sample can slip between rows.
         for (const f of [0.3, 0.45, 0.6, 0.75, 0.9]) {
           const hit = document.elementFromPoint(
             Math.round(r.left + r.width / 2),
             Math.round(r.top + r.height * f),
           );
-          if (hit && !panel.contains(hit)) {
+          if (hit && !el.contains(hit)) {
             intruders.push(`${f}: ${(hit.className || hit.tagName).toString().slice(0, 40)}`);
           }
         }
-        return intruders;
+        return {
+          top: Math.round(r.top),
+          left: Math.round(r.left),
+          bottom: Math.round(r.bottom),
+          right: Math.round(r.right),
+          viewportWidth: window.innerWidth,
+          viewportHeight: window.innerHeight,
+          // elementFromPoint proves stacking, not paint: a fully transparent
+          // screen would still win the hit test while the sheet showed
+          // through it. The gradient background is the opacity claim.
+          background: style.backgroundImage,
+          intruders,
+          surfaces: [...document.querySelectorAll("[data-mobile-surface]")].map((n) =>
+            n.getAttribute("data-mobile-surface"),
+          ),
+        };
       });
-      expect(covered).toEqual([]);
+
+      // Full height and full width — a Screen, not a window in phone dress.
+      expect(report.top).toBe(0);
+      expect(report.left).toBe(0);
+      expect(report.bottom).toBe(report.viewportHeight);
+      expect(report.right).toBe(report.viewportWidth);
+      expect(report.background).toContain("gradient");
+      expect(report.intruders).toEqual([]);
+      // The machine's invariant, counted in a real DOM: one surface, this one.
+      expect(report.surfaces).toEqual(["log"]);
 
       // And it really does close.
       await close.click();
@@ -182,11 +208,31 @@ test.describe("mobile shell — the roll log", () => {
       await expect(page.locator(".mobile-drawing-sheet")).toBeVisible();
     });
   }
-});
 
-function mid(box: { x: number; y: number; width: number; height: number }) {
-  return { x: Math.round(box.x + box.width / 2), y: Math.round(box.y + box.height / 2) };
-}
+  test("drag-down on the header dismisses; a short drag settles back", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await joinMobileTable(page);
+
+    await page
+      .getByRole("navigation", { name: /Mobile actions/i })
+      .getByRole("button", { name: /Log/i })
+      .click();
+    await expect(page.locator(".mobile-screen")).toBeVisible();
+
+    const header = (await page.locator(".mobile-screen__header").boundingBox())!;
+    // Left of centre, clear of the ✕ that lives at the header's right edge.
+    const grip = { x: header.x + header.width * 0.3, y: header.y + header.height / 2 };
+    const cdp = await openTouch(page);
+
+    // 40px is an adjustment, not an exit: the screen settles back.
+    await touchDrag(cdp, grip, [{ x: grip.x, y: grip.y + 40 }]);
+    await expect(page.locator(".mobile-screen")).toBeVisible();
+
+    // 200px is past the threshold: dismissed, and the ✕ was never needed.
+    await touchDrag(cdp, grip, [{ x: grip.x, y: grip.y + 200 }]);
+    await expect(page.locator(".mobile-screen")).toBeHidden();
+  });
+});
 
 /**
  * The fixed chrome across the top: the connection banner and the public-table

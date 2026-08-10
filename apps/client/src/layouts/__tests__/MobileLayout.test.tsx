@@ -47,15 +47,10 @@ vi.mock("../../components/dice/DiceRoller", () => ({
   ),
 }));
 
-vi.mock("../../components/dice/RollLog", () => ({
-  RollLog: ({ onClose }: { onClose: () => void }) => (
-    <div data-testid="roll-log">
-      RollLog
-      <button onClick={onClose} data-testid="close-log-btn">
-        Close
-      </button>
-    </div>
-  ),
+// The mobile shell renders the log's CONTENT inside a MobileScreen since M4a;
+// the RollLog window is desktop-only and never mounts here.
+vi.mock("../../components/dice/RollLogContent", () => ({
+  RollLogContent: () => <div data-testid="roll-log">RollLogContent</div>,
 }));
 
 vi.mock("../../components/dice/MobileResultOverlay", () => ({
@@ -517,6 +512,25 @@ describe("MobileLayout", () => {
 
       fireEvent.click(screen.getByRole("button", { name: /close help/i }));
       expect(screen.queryByRole("dialog", { name: /herobyte help/i })).not.toBeInTheDocument();
+    });
+
+    it("Party and Log open as screens with a labelled exit that closes them", () => {
+      const props = createDefaultProps();
+      render(<MobileLayout {...props} />);
+
+      fireEvent.click(dock(/party/i));
+      const party = screen.getByRole("dialog", { name: "Party Members" });
+      expect(within(party).getByText(/Party Members/i)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Close Party Members" }));
+      expect(screen.queryByRole("dialog", { name: "Party Members" })).not.toBeInTheDocument();
+
+      // The log is prop-controlled: its screen mounts on the prop, and its ✕
+      // hands the close back to the App rather than unmounting anything.
+      props.rollLogOpen = true;
+      const { unmount } = render(<MobileLayout {...props} />);
+      fireEvent.click(screen.getByRole("button", { name: "Close Roll Log" }));
+      expect(props.toggleRollLog).toHaveBeenCalledWith(false);
+      unmount();
     });
 
     it("the drawing sheet yields the sheet slot to tools AND help", () => {

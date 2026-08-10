@@ -1703,27 +1703,75 @@ h4 {
 }
 
 /*
- * The roll log is NOT a bottom sheet, and this wrapper is not its box.
- * MobileLayout wraps <RollLog> in it, but RollLog renders a DraggableWindow,
- * which is position:fixed — so the window escapes this element entirely and
- * every geometry rule ever written here has been inert.
+ * SCREENS (M4a, redesign §1). Sheets are for things you operate AGAINST the
+ * map; a Screen is for things you READ — Party, Log, and from M4b the DM
+ * menu. Full height, opaque, its own header, and it covers the dock on
+ * purpose: Back/✕ is the path out, and the header is also the drag-down
+ * dismiss handle, which is why it declares touch-action: none.
  *
- * The border and background were not inert, though: they painted an empty
- * bordered rectangle behind the window. It went unnoticed while the wrapper
- * collapsed to ~18px, and joining the sheet contract stretched it to 206px,
- * which is how it finally became visible in a landscape screenshot. So the
- * wrapper leaves the contract, and the dead geometry goes with it.
- *
- * What is left is the wrapper's one real job: a stacking context. On mobile
- * the window is a full-screen opaque takeover at DraggableWindow's z-index of
- * 1100, and the bottom sheets sit at 1600 — so the drawing sheet painted
- * straight across the middle of the log. `position: relative` does not change
- * the containing block of a fixed descendant, so this lifts the window without
- * moving it a pixel.
+ * z-index 1700 is the band the roll-log takeover used to claim through the
+ * .mobile-roll-log-panel stacking-context workaround this replaces: above the
+ * sheets (1600) and the dock (1500), below the result overlay (2000). Being
+ * OPAQUE is load-bearing, not dress — the tool-derived drawing sheet stays
+ * mounted underneath, exactly as it stayed under the old takeover.
  */
-.mobile-roll-log-panel {
-  position: relative;
+.mobile-screen {
+  position: absolute;
+  inset: 0;
   z-index: 1700;
+  display: flex;
+  flex-direction: column;
+  background:
+    repeating-conic-gradient(rgba(255, 255, 255, 0.02) 0% 25%, transparent 0% 50%) 50% / 2px 2px,
+    linear-gradient(180deg, #1a1835 0%, #0f0e2a 100%);
+  touch-action: pan-y;
+}
+
+.mobile-screen__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: max(var(--mobile-safe-top), 10px) 12px 10px;
+  border-bottom: 3px solid var(--hero-gold-light);
+  background: linear-gradient(180deg, rgba(42, 40, 69, 0.98) 0%, rgba(15, 14, 42, 0.99) 100%);
+  color: var(--hero-gold);
+  touch-action: none;
+}
+
+.mobile-screen__title {
+  margin: 0;
+  overflow: hidden;
+  flex: 1;
+  font-family: var(--font-pixel);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* The exit holds the 44px floor the rest of the mobile UI honours. */
+.mobile-screen__close {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+  touch-action: manipulation;
+}
+
+/* Body copy has permission to leave Press Start 2P (ux-cleanup); a Screen's
+   content is the reading surface, so it takes the body font by default. */
+.mobile-screen__body {
+  display: flex;
+  overflow-y: auto;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: 12px 12px calc(var(--mobile-safe-bottom) + 12px);
+  color: var(--hero-text-light);
+  font-family: var(--font-body);
 }
 
 /*
