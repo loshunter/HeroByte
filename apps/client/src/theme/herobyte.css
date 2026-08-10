@@ -1853,12 +1853,6 @@ h4 {
   }
 }
 
-/* Reduced motion: the entities drawer's slide is an inline transition, so the
-   override needs !important to win. Instant show/hide for [data-motion="off"]. */
-[data-motion="off"] .mobile-entities-drawer {
-  transition: none !important;
-}
-
 /* Landscape phones (short viewport): a full dock + full-height sheet would bury
    the map. Slim the dock and cap the sheets so the canvas stays usable. */
 @media (orientation: landscape) and (max-height: 500px) {
@@ -1898,10 +1892,11 @@ h4 {
    * cap at all. The shared rule subtracts the offset in both orientations, so
    * this override could only ever make things worse — and the exemption
    * comment that used to sit here was a sign the rule itself was wrong.
+   *
+   * The entities drawer's width override is gone too, with its subject: M4a
+   * made the party a full-height Screen, and no element carries the
+   * .mobile-entities-drawer class any more.
    */
-  .mobile-entities-drawer {
-    width: min(360px, 72vw);
-  }
 }
 
 /* ----------------------------------------------------------------------------
