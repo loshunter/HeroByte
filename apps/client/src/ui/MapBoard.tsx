@@ -110,6 +110,7 @@ export default function MapBoard({
   onMapEditRegionDragged,
   onMapEditSelectElement,
   onMapEditSampleAsset,
+  mapEditCancelSignal,
   isDM,
   alignmentMode,
   alignmentPoints = [],
@@ -368,6 +369,7 @@ export default function MapBoard({
     onRegionDragged: onMapEditRegionDragged,
     onSelectElement: onMapEditSelectElement,
     onSampleAsset: onMapEditSampleAsset,
+    cancelSignal: mapEditCancelSignal,
     toWorld,
     mapTransform: mapObject?.transform,
   });

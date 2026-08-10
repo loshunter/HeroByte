@@ -683,6 +683,11 @@ describe("useMapEditTool", () => {
     );
 
     act(() => result.current.onMouseDown(makeStage({ x: 100, y: 100 }).ref));
+    // The move is what makes this test able to fail at all. Without it the
+    // drag is zero-length, wallDraftFromDrag returns null, and addWall is
+    // uncalled whether Escape cancelled anything or not — measured: deleting
+    // the Escape handler outright left this test GREEN.
+    act(() => result.current.onMouseMove(makeStage({ x: 200, y: 100 }).ref));
     act(() => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
     });
@@ -690,5 +695,99 @@ describe("useMapEditTool", () => {
 
     expect(controller.addWall).not.toHaveBeenCalled();
     expect(result.current.previewDrag).toBeNull();
+  });
+});
+
+// A finger has no Escape key, and on touch RELEASING is what commits — so the
+// abort has to arrive from outside the canvas while the gesture is still live.
+describe("useMapEditTool — cancelling from outside the canvas", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  function renderWithSignal(subTool: "wall" | "terrain", controller: MapStudioController) {
+    return renderHook(
+      ({ cancelSignal }: { cancelSignal: number }) =>
+        useMapEditTool({
+          mapEditMode: true,
+          activeSubTool: subTool,
+          controller,
+          liveDocumentId: "live",
+          floorFamily: "grass",
+          cancelSignal,
+          toWorld: identityToWorld,
+          mapTransform: undefined,
+        }),
+      { initialProps: { cancelSignal: 0 } },
+    );
+  }
+
+  it("a bumped signal mid-drag makes the RELEASE commit nothing", () => {
+    const controller = makeController();
+    const { result, rerender } = renderWithSignal("wall", controller);
+
+    act(() => result.current.onMouseDown(makeStage({ x: 100, y: 100 }).ref));
+    act(() => result.current.onMouseMove(makeStage({ x: 200, y: 100 }).ref));
+
+    // The finger is still down. This is the whole point: the dock button is a
+    // SECOND touch, so the first finger's lift still arrives afterwards.
+    act(() => rerender({ cancelSignal: 1 }));
+    act(() => result.current.onMouseUp());
+
+    expect(controller.addWall).not.toHaveBeenCalled();
+    expect(result.current.previewDrag).toBeNull();
+  });
+
+  it("a cancel is not sticky — the NEXT drag still commits", () => {
+    const controller = makeController();
+    const { result, rerender } = renderWithSignal("wall", controller);
+
+    act(() => result.current.onMouseDown(makeStage({ x: 100, y: 100 }).ref));
+    act(() => result.current.onMouseMove(makeStage({ x: 200, y: 100 }).ref));
+    act(() => rerender({ cancelSignal: 1 }));
+    act(() => result.current.onMouseUp());
+    expect(controller.addWall).not.toHaveBeenCalled();
+
+    act(() => result.current.onMouseDown(makeStage({ x: 300, y: 300 }).ref));
+    act(() => result.current.onMouseMove(makeStage({ x: 400, y: 300 }).ref));
+    act(() => result.current.onMouseUp());
+
+    expect(controller.addWall).toHaveBeenCalledTimes(1);
+    expect(controller.addWall).toHaveBeenCalledWith(
+      expect.objectContaining({ x1: 300, y1: 300, x2: 400, y2: 300 }),
+    );
+  });
+
+  it("onCancel THROWS AWAY an accumulating terrain stroke rather than painting it", () => {
+    const controller = makeController();
+    const { result } = renderWithSignal("terrain", controller);
+
+    act(() => result.current.onMouseDown(makeStage({ x: 20, y: 20 }).ref));
+    act(() => result.current.onMouseMove(makeStage({ x: 70, y: 20 }).ref));
+    expect(result.current.strokeCells.length).toBeGreaterThan(0);
+
+    act(() => result.current.onCancel());
+    expect(result.current.strokeCells).toEqual([]);
+
+    // The release must not paint, AND the abandoned cells must not ride along
+    // on the next stroke's flush.
+    act(() => result.current.onMouseUp());
+    expect(controller.paintTerrain).not.toHaveBeenCalled();
+
+    act(() => result.current.onMouseDown(makeStage({ x: 320, y: 320 }).ref));
+    act(() => result.current.onMouseUp());
+    expect(controller.paintTerrain).toHaveBeenCalledTimes(1);
+    expect(controller.paintTerrain).toHaveBeenCalledWith([
+      { x: 6, y: 6, assetId: "terrain:grass" },
+    ]);
+  });
+
+  it("the signal cancels a terrain stroke too, not just a drag", () => {
+    const controller = makeController();
+    const { result, rerender } = renderWithSignal("terrain", controller);
+
+    act(() => result.current.onMouseDown(makeStage({ x: 20, y: 20 }).ref));
+    act(() => rerender({ cancelSignal: 1 }));
+    act(() => result.current.onMouseUp());
+
+    expect(controller.paintTerrain).not.toHaveBeenCalled();
   });
 });

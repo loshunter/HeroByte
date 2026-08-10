@@ -17,6 +17,7 @@ import type { RoomBounds } from "./roomBuilder";
 import { commitDragTool } from "./commitDragTool";
 import { placeLightAt } from "./lightPlacement";
 import { effectiveGrid, isBrushTool, isClickTool, isDragTool } from "./mapEditToolKinds";
+import { useMapEditCancel } from "./useMapEditCancel";
 import { useMapEditDragPreview } from "./useMapEditDragPreview";
 import { useMapEditPlacement, type PlacementGhost } from "./useMapEditPlacement";
 import { useMapEditSelection } from "./useMapEditSelection";
@@ -62,6 +63,12 @@ interface UseMapEditToolOptions {
   onSelectElement?: (elementId: string | null) => void;
   /** Re-arm the place tool with an eyedropper-sampled asset id. */
   onSampleAsset?: (assetId: string) => void;
+  /**
+   * Bumped by a control OUTSIDE the canvas to abandon the gesture in flight.
+   * A finger has no Escape key and releasing it commits, so this is the only
+   * abort a touch user has — see useMapEditCancel for why it is a counter.
+   */
+  cancelSignal?: number;
   toWorld: (sx: number, sy: number) => { x: number; y: number };
   mapTransform: SceneObjectTransform | undefined;
 }
@@ -79,6 +86,8 @@ interface UseMapEditToolReturn {
   onMouseDown: (stageRef: RefObject<Konva.Stage | null>) => void;
   onMouseMove: (stageRef: RefObject<Konva.Stage | null>) => void;
   onMouseUp: () => void;
+  /** Abandon the gesture in flight — the touch path's "not this one". */
+  onCancel: () => void;
 }
 
 // Re-exported so existing importers (and tests) keep their entry point.
@@ -100,6 +109,7 @@ export function useMapEditTool({
   selectedElementId = null,
   onSelectElement,
   onSampleAsset,
+  cancelSignal,
   toWorld,
   mapTransform,
 }: UseMapEditToolOptions): UseMapEditToolReturn {
@@ -112,7 +122,7 @@ export function useMapEditTool({
   } = useMapEditDragPreview();
   const brushingRef = useRef(false);
 
-  const { addStrokePoint, flushStroke, strokeCells } = useTerrainBrush({
+  const { addStrokePoint, flushStroke, discardStroke, strokeCells } = useTerrainBrush({
     activeDocument: controller?.activeDocument,
     paintTerrain: controller?.paintTerrain ?? NO_OP_PAINT,
   });
@@ -149,6 +159,15 @@ export function useMapEditTool({
   });
   // Terrain family "terrain:grass" for the paint brush; null erases.
   const brushAssetId = activeSubTool === "terrain" ? `terrain:${floorFamily}` : null;
+
+  const cancelGesture = useMapEditCancel({
+    active,
+    cancelSignal,
+    currentDrag,
+    clearDrag,
+    brushingRef,
+    discardStroke,
+  });
 
   // Leaving map-edit abandons any drag and commits any in-progress brush stroke.
   useEffect(() => {
@@ -301,21 +320,6 @@ export function useMapEditTool({
     clearDrag,
   ]);
 
-  // Escape cancels an in-progress drag WITHOUT clearing the tool: capture-phase
-  // + stopImmediatePropagation preempts the global Escape-clears-tool listener.
-  useEffect(() => {
-    if (!active) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && currentDrag()) {
-        event.stopImmediatePropagation();
-        event.preventDefault();
-        clearDrag();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown, { capture: true });
-    return () => window.removeEventListener("keydown", onKeyDown, { capture: true });
-  }, [active, currentDrag, clearDrag]);
-
   return {
     previewDrag,
     strokeCells,
@@ -325,5 +329,6 @@ export function useMapEditTool({
     onMouseDown,
     onMouseMove,
     onMouseUp,
+    onCancel: cancelGesture,
   };
 }
