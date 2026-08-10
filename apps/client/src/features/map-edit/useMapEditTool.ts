@@ -7,7 +7,7 @@
 // room/hallway) go through commitDragTool; place/scatter go through
 // useMapEditPlacement; terrain/erase stream through useTerrainBrush.
 
-import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, type RefObject } from "react";
 import type Konva from "konva";
 import type { SceneObjectTransform, TerrainPaintCell } from "@herobyte/shared";
 import { useTerrainBrush } from "../map-studio/components/useTerrainBrush";
@@ -17,6 +17,7 @@ import type { RoomBounds } from "./roomBuilder";
 import { commitDragTool } from "./commitDragTool";
 import { placeLightAt } from "./lightPlacement";
 import { effectiveGrid, isBrushTool, isClickTool, isDragTool } from "./mapEditToolKinds";
+import { useMapEditDragPreview } from "./useMapEditDragPreview";
 import { useMapEditPlacement, type PlacementGhost } from "./useMapEditPlacement";
 import { useMapEditSelection } from "./useMapEditSelection";
 import { usePointerToDoc } from "./usePointerToDoc";
@@ -102,10 +103,14 @@ export function useMapEditTool({
   toWorld,
   mapTransform,
 }: UseMapEditToolOptions): UseMapEditToolReturn {
-  const [previewDrag, setPreviewDrag] = useState<RoomDrag | null>(null);
-  const dragRef = useRef<RoomDrag | null>(null);
+  const {
+    previewDrag,
+    current: currentDrag,
+    begin,
+    extend,
+    clear: clearDrag,
+  } = useMapEditDragPreview();
   const brushingRef = useRef(false);
-  const frameRef = useRef<number | null>(null);
 
   const { addStrokePoint, flushStroke, strokeCells } = useTerrainBrush({
     activeDocument: controller?.activeDocument,
@@ -145,19 +150,6 @@ export function useMapEditTool({
   // Terrain family "terrain:grass" for the paint brush; null erases.
   const brushAssetId = activeSubTool === "terrain" ? `terrain:${floorFamily}` : null;
 
-  const cancelFrame = useCallback(() => {
-    if (frameRef.current !== null) {
-      cancelAnimationFrame(frameRef.current);
-      frameRef.current = null;
-    }
-  }, []);
-
-  const clearDrag = useCallback(() => {
-    dragRef.current = null;
-    cancelFrame();
-    setPreviewDrag(null);
-  }, [cancelFrame]);
-
   // Leaving map-edit abandons any drag and commits any in-progress brush stroke.
   useEffect(() => {
     if (!active) {
@@ -168,16 +160,6 @@ export function useMapEditTool({
       }
     }
   }, [active, clearDrag, flushStroke]);
-
-  useEffect(() => () => cancelFrame(), [cancelFrame]);
-
-  const flushPreview = useCallback(() => {
-    if (frameRef.current !== null) return;
-    frameRef.current = requestAnimationFrame(() => {
-      frameRef.current = null;
-      setPreviewDrag(dragRef.current ? { ...dragRef.current } : null);
-    });
-  }, []);
 
   const { toDocPoint, toSnappedDocPoint } = usePointerToDoc(toWorld, mapTransform);
 
@@ -207,8 +189,7 @@ export function useMapEditTool({
       }
       const point = toSnappedDocPoint(stageRef, effectiveGrid(document.grid, activeSubTool));
       if (!point) return;
-      dragRef.current = { start: point, end: point };
-      setPreviewDrag({ start: point, end: point });
+      begin(point);
     },
     [
       active,
@@ -224,6 +205,7 @@ export function useMapEditTool({
       toDocPoint,
       addStrokePoint,
       toSnappedDocPoint,
+      begin,
     ],
   );
 
@@ -243,11 +225,10 @@ export function useMapEditTool({
         if (point) addStrokePoint(point, brushAssetId);
         return;
       }
-      if (!dragRef.current) return;
+      if (!currentDrag()) return;
       const point = toSnappedDocPoint(stageRef, effectiveGrid(document.grid, activeSubTool));
       if (!point) return;
-      dragRef.current = { start: dragRef.current.start, end: point };
-      flushPreview();
+      extend(point);
     },
     [
       active,
@@ -260,7 +241,8 @@ export function useMapEditTool({
       toDocPoint,
       addStrokePoint,
       toSnappedDocPoint,
-      flushPreview,
+      currentDrag,
+      extend,
     ],
   );
 
@@ -274,7 +256,7 @@ export function useMapEditTool({
       }
       return;
     }
-    const drag = dragRef.current;
+    const drag = currentDrag();
     if (!active || !drag) {
       clearDrag();
       return;
@@ -315,6 +297,7 @@ export function useMapEditTool({
     onRoomRejected,
     onRegionPlaced,
     onRegionDragged,
+    currentDrag,
     clearDrag,
   ]);
 
@@ -323,7 +306,7 @@ export function useMapEditTool({
   useEffect(() => {
     if (!active) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && dragRef.current) {
+      if (event.key === "Escape" && currentDrag()) {
         event.stopImmediatePropagation();
         event.preventDefault();
         clearDrag();
@@ -331,7 +314,7 @@ export function useMapEditTool({
     };
     window.addEventListener("keydown", onKeyDown, { capture: true });
     return () => window.removeEventListener("keydown", onKeyDown, { capture: true });
-  }, [active, clearDrag]);
+  }, [active, currentDrag, clearDrag]);
 
   return {
     previewDrag,
