@@ -462,6 +462,18 @@ describe("MobileLayout", () => {
       expect(openSurfaces()).toEqual([]);
     });
 
+    it("the dice overlay registers in the surface count like every other surface", () => {
+      // The review found dice was the one surface whose data-mobile-surface
+      // attribute nothing asserted — so deleting it would silently blind the
+      // counting instrument to dice, and a dice-stacks-with-X regression
+      // would pass both this suite and the e2e surfaces check.
+      const props = createDefaultProps();
+      props.diceRollerOpen = true;
+      render(<MobileLayout {...props} />);
+
+      expect(openSurfaces()).toEqual(["dice"]);
+    });
+
     it("derives one surface even when the prop-controlled panels disagree", () => {
       const props = createDefaultProps();
       props.diceRollerOpen = true;

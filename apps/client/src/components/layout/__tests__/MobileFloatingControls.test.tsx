@@ -216,7 +216,14 @@ describe("MobileFloatingControls", () => {
     // but every anchored lookup in this file silently reads a different rule.
     const sharedSheetRule =
       /\.mobile-tool-sheet,\r?\n[\s\S]*?\.mobile-help-sheet\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
-    const helpSheetRule = /(?<![,\r])\r?\n\.mobile-help-sheet\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    // ALL standalone .mobile-help-sheet blocks, not just the first: the review
+    // showed a single .exec() lets a duplicate rule appended later (or nested
+    // in a media block, hence the \s* indent allowance) reinstate an override
+    // while the inspected first block stays clean. The lookbehind still
+    // excludes the shared selector list, whose preceding line ends in a comma.
+    const helpSheetRules = [
+      ...css.matchAll(/(?<![,\r])\r?\n\s*\.mobile-help-sheet\s*\{([^}]*)\}/g),
+    ].map((m) => m[1]);
 
     it("caps every sheet in the same viewport unit as .mobile-layout-root", () => {
       expect(sharedSheetRule).not.toBe("");
@@ -251,14 +258,16 @@ describe("MobileFloatingControls", () => {
       expect(sharedSheetRule).toMatch(/box-sizing:\s*border-box/);
     });
 
-    it("no longer lets the manual carry its own z-index", () => {
+    it("no longer lets the manual carry its own z-index — in ANY of its rules", () => {
       // The 1650 override existed to out-paint sheets that could mount while
       // the manual was open. The surface machine unmounts them instead — one
       // surface at a time, by construction (MobileLayout.test.tsx pins it) —
-      // and a reintroduced override would be a sign that exclusion broke and
-      // someone reached for paint order again.
-      expect(helpSheetRule).not.toBe("");
-      expect(helpSheetRule).not.toMatch(/z-index/);
+      // and a reintroduced override anywhere in the file would be a sign that
+      // exclusion broke and someone reached for paint order again.
+      expect(helpSheetRules.length).toBeGreaterThan(0);
+      for (const rule of helpSheetRules) {
+        expect(rule).not.toMatch(/z-index/);
+      }
     });
   });
 });

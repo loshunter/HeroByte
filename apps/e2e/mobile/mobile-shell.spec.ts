@@ -221,7 +221,11 @@ test.describe("mobile shell — the log screen", () => {
       expect(report.left).toBe(0);
       expect(report.bottom).toBe(report.viewportHeight);
       expect(report.right).toBe(report.viewportWidth);
-      expect(report.background).toContain("gradient");
+      // Pin the PAINT, not the word "gradient": a fully transparent gradient
+      // contains the word too. Chromium serializes opaque stops as rgb() and
+      // drops the default 180deg direction, so this is the exact computed
+      // string — swap either stop for an rgba() and it stops matching.
+      expect(report.background).toMatch(/linear-gradient\(rgb\(26, 24, 53\), rgb\(15, 14, 42\)\)/);
       expect(report.intruders).toEqual([]);
       // The banner paints above the screen (bigger z, same stacking parent),
       // stays visible, and passes touches through to the header beneath it.
@@ -233,9 +237,12 @@ test.describe("mobile shell — the log screen", () => {
       // The machine's invariant, counted in a real DOM: one surface, this one.
       expect(report.surfaces).toEqual(["log"]);
 
-      // And it really does close.
+      // And it really does close. Asserted on the SCREEN, not on "No rolls
+      // yet": the shared table usually has roll history by this point in a
+      // full run, so that text never rendered and its toBeHidden was vacuous.
       await close.click();
-      await expect(page.getByText(/No rolls yet/i)).toBeHidden();
+      await expect(page.locator(".mobile-screen")).toBeHidden();
+      await expect(page.locator("[data-mobile-surface]")).toHaveCount(0);
       // Closing the log leaves the drawing sheet where it was.
       await expect(page.locator(".mobile-drawing-sheet")).toBeVisible();
     });
