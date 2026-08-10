@@ -3,32 +3,28 @@
  *
  * A streamlined layout for mobile devices, focusing purely on the map interaction.
  * Used when the user is on a small screen or explicitly requests mobile mode.
+ *
+ * Which surface is open is owned by useMobileSurface — one machine, not a set
+ * of callbacks — and the surfaces themselves render in MobileSurfaces.
  */
 
-import React, { Suspense, useState, useCallback } from "react";
+import React, { Suspense, useCallback } from "react";
 import type { MainLayoutProps } from "./props/MainLayoutProps";
 import { MapLoading } from "../components/ui/MapLoading";
-import { MobileDiceRoller } from "../components/dice/MobileDiceRoller";
-import { RollLog } from "../components/dice/RollLog";
 import { MobileResultOverlay } from "../components/dice/MobileResultOverlay";
 import { TurnNavigationControls } from "../features/initiative/components/TurnNavigationControls";
-import { MobileEntitiesList } from "../components/layout/MobileEntitiesList";
 import { ToastContainer } from "../components/ui/Toast";
 import { ServerStatus } from "../components/layout/ServerStatus";
 import { PublicTableNotice } from "../features/rooms/PublicTableNotice";
 import { MobileFloatingControls } from "../components/layout/MobileFloatingControls";
-import { useEntityEditHandlers } from "../hooks/useEntityEditHandlers";
+import { useMobileSurface } from "../hooks/useMobileSurface";
 import { MobileDrawingControls } from "./MobileDrawingControls";
 import { MobileSelectionSheet } from "./MobileSelectionSheet";
+import { MobileSurfaces } from "./mobile/MobileSurfaces";
 
 // Lazy load MapBoard to reduce initial bundle size
 const MapBoard = React.lazy(() => import("../ui/MapBoard"));
 
-/**
- * MobileLayout Component
- *
- * Renders a full-screen map with minimal UI controls and mobile-optimized overlays.
- */
 export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutProps): JSX.Element {
   const {
     // Data
@@ -77,57 +73,35 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     alignmentSuggestion,
     handleAlignmentPointCapture,
 
-    // Dice
-    rollHistory,
-    chatMessages,
-    handleSendChat,
-    viewingRoll,
-    handleRoll,
-    latestOwnRoll,
-    handleClearLog,
-    handleViewRoll,
+    // Dice/log open state lives at the App level; the machine drives it
     diceRollerOpen,
     rollLogOpen,
     toggleDiceRoller,
     toggleRollLog,
+    viewingRoll,
+    handleViewRoll,
+
+    // Map-edit (the machine's orthogonal axis)
+    mapEditMode,
 
     // WebSocket
     sendMessage,
-
-    // Entity Data & Actions (Added for Mobile Entities List)
-    playerActions,
-    editingHpUID,
-    editingMaxHpUID,
-    editingTempHpUID,
-    hpInput,
-    updateHpInput,
-    maxHpInput,
-    updateMaxHpInput,
-    startHpEdit,
-    startMaxHpEdit,
-    submitHpEdit,
-    submitMaxHpEdit,
-    submitTempHpEdit,
-    submitNameEdit,
   } = props;
 
-  // Mobile specific UI state
-  const [showEntities, setShowEntities] = useState(false);
+  const machine = useMobileSurface({
+    diceRollerOpen,
+    rollLogOpen,
+    toggleDiceRoller,
+    toggleRollLog,
+    mapEditMode,
+  });
+  const { surface, toggleSurface } = machine;
+  // The two tool-derived sheets share the bottom-sheet slot with these
+  // surfaces, so they yield while either occupies it: same anchor, same
+  // z-index, and stacking them is the bug S8 shipped.
+  const sheetSlotOccupied = surface === "tools" || surface === "help";
 
   const selectedObjectCount = selectedObjectIds.length || (selectedObjectId ? 1 : 0);
-
-  // Extract entity editing handlers
-  const { handleCharacterHpSubmit, handleCharacterMaxHpSubmit } = useEntityEditHandlers({
-    editingHpUID,
-    editingMaxHpUID,
-    editingTempHpUID,
-    snapshot,
-    submitHpEdit,
-    submitMaxHpEdit,
-    submitTempHpEdit,
-    submitNameEdit,
-    playerActions,
-  });
 
   // Turn navigation handlers
   const handleNextTurn = useCallback(() => {
@@ -137,35 +111,6 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
   const handlePreviousTurn = useCallback(() => {
     sendMessage({ t: "previous-turn" });
   }, [sendMessage]);
-
-  // Single-sheet arbitration: opening any of Party/Tools/Dice/Log closes the rest.
-  const [showTools, setShowTools] = useState(false);
-  const closeAllSheets = useCallback(() => {
-    setShowEntities(false);
-    setShowTools(false);
-    if (diceRollerOpen) toggleDiceRoller(false);
-    if (rollLogOpen) toggleRollLog(false);
-  }, [diceRollerOpen, rollLogOpen, toggleDiceRoller, toggleRollLog]);
-  const toggleParty = useCallback(() => {
-    const willOpen = !showEntities;
-    closeAllSheets();
-    setShowEntities(willOpen);
-  }, [showEntities, closeAllSheets]);
-  const toggleTools = useCallback(() => {
-    const willOpen = !showTools;
-    closeAllSheets();
-    setShowTools(willOpen);
-  }, [showTools, closeAllSheets]);
-  const toggleDice = useCallback(() => {
-    const willOpen = !diceRollerOpen;
-    closeAllSheets();
-    toggleDiceRoller(willOpen);
-  }, [diceRollerOpen, closeAllSheets, toggleDiceRoller]);
-  const toggleLog = useCallback(() => {
-    const willOpen = !rollLogOpen;
-    closeAllSheets();
-    toggleRollLog(willOpen);
-  }, [rollLogOpen, closeAllSheets, toggleRollLog]);
 
   return (
     <div className="mobile-layout-root">
@@ -216,21 +161,16 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
 
       {/* Mobile Floating Controls */}
       <MobileFloatingControls
-        onShowEntities={toggleParty}
-        onToggleDiceRoller={toggleDice}
-        onToggleRollLog={toggleLog}
+        surface={surface}
+        onToggleSurface={toggleSurface}
         onToolSelect={setActiveTool}
         onSnapToGridChange={setSnapToGrid}
         onResetCamera={handleResetCamera}
         activeTool={activeTool}
         snapToGrid={snapToGrid}
-        diceRollerOpen={diceRollerOpen}
-        rollLogOpen={rollLogOpen}
-        toolsOpen={showTools}
-        onToggleTools={toggleTools}
       />
 
-      {selectedObjectCount > 0 && (transformMode || selectMode) && !showTools && (
+      {selectedObjectCount > 0 && (transformMode || selectMode) && !sheetSlotOccupied && (
         <MobileSelectionSheet
           selectedCount={selectedObjectCount}
           transformMode={transformMode}
@@ -245,8 +185,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
         />
       )}
 
-      {/* Both sheets yield to the tool sheet: same anchor, same z-index. */}
-      {drawMode && !showTools && (
+      {drawMode && !sheetSlotOccupied && (
         <MobileDrawingControls
           drawTool={drawingToolbarProps.drawTool}
           drawColor={drawingToolbarProps.drawColor}
@@ -262,76 +201,8 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
         />
       )}
 
-      {/* Mobile Dice Roller Overlay */}
-      {diceRollerOpen && (
-        <MobileDiceRoller
-          onRoll={handleRoll}
-          latestOwnRoll={latestOwnRoll}
-          onClose={() => toggleDiceRoller(false)}
-        />
-      )}
-
-      {/* Mobile Entities List Overlay */}
-      <div
-        className="mobile-entities-drawer"
-        style={{
-          position: "fixed",
-          top: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 2000,
-          pointerEvents: showEntities ? "auto" : "none",
-          transform: showEntities ? "translateX(0)" : "translateX(100%)",
-          transition: "transform 0.3s ease",
-        }}
-      >
-        {showEntities && (
-          <MobileEntitiesList
-            players={snapshot?.players || []}
-            characters={snapshot?.characters || []}
-            uid={uid}
-            isDM={isDM}
-            // The mobile settings sheet is the ONLY DM-elevation control on a
-            // phone, and it used to be wired to a no-op — so a mobile user
-            // could never become DM at all.
-            onToggleDMMode={props.handleToggleDM}
-            onClose={() => setShowEntities(false)}
-            editingHpUID={editingHpUID}
-            hpInput={hpInput}
-            onHpInputChange={updateHpInput}
-            onHpEdit={startHpEdit}
-            onHpSubmit={handleCharacterHpSubmit}
-            editingMaxHpUID={editingMaxHpUID}
-            maxHpInput={maxHpInput}
-            onMaxHpInputChange={updateMaxHpInput}
-            onMaxHpEdit={startMaxHpEdit}
-            onMaxHpSubmit={handleCharacterMaxHpSubmit}
-            onCharacterHpChange={playerActions.updateCharacterHP}
-            onCharacterStatusEffectsChange={playerActions.setCharacterStatusEffects}
-            onCharacterNameUpdate={playerActions.updateCharacterName}
-            onCharacterPortraitUpdate={playerActions.setCharacterPortrait}
-            tokens={snapshot?.tokens || []}
-            onTokenVisionRadiusChange={props.updateTokenVisionRadius}
-          />
-        )}
-      </div>
-
-      {/* Roll Log Overlay */}
-      {rollLogOpen && (
-        <div className="mobile-roll-log-panel">
-          <RollLog
-            canClearLog={isDM}
-            rolls={rollHistory}
-            onClearLog={handleClearLog}
-            onClose={() => toggleRollLog(false)}
-            onViewRoll={handleViewRoll}
-            chatMessages={chatMessages}
-            players={snapshot?.players ?? []}
-            currentUid={uid}
-            onSendChat={handleSendChat}
-          />
-        </div>
-      )}
+      {/* Party, dice, log and help all render (one at a time) in here */}
+      <MobileSurfaces props={props} machine={machine} />
 
       {/* Viewing Roll Result */}
       <MobileResultOverlay result={viewingRoll} onClose={() => handleViewRoll(null)} />

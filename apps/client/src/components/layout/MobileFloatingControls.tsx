@@ -1,70 +1,40 @@
 // ============================================================================
 // MOBILE FLOATING CONTROLS
 // ============================================================================
-// Bottom action dock and tool sheet for mobile layout.
+// Bottom action dock and tool sheet for mobile layout. Which surface is open
+// is useMobileSurface's call, not this component's — every button here just
+// reports the surface it stands for, and the machine arbitrates.
 
-import React, { useState } from "react";
+import React from "react";
 import type { ToolMode } from "./Header";
-import { HelpPanel } from "../../features/help/HelpPanel";
+import type { MobileSurface } from "../../hooks/useMobileSurface";
 
 interface MobileFloatingControlsProps {
-  onShowEntities: () => void;
-  onToggleDiceRoller: () => void;
-  onToggleRollLog: () => void;
+  surface: MobileSurface;
+  onToggleSurface: (surface: Exclude<MobileSurface, "none">) => void;
   onToolSelect: (mode: ToolMode) => void;
   onSnapToGridChange: (snap: boolean) => void;
   onResetCamera: () => void;
   activeTool: ToolMode;
   snapToGrid: boolean;
-  diceRollerOpen: boolean;
-  rollLogOpen: boolean;
-  /** Tool sheet open state is owned by MobileLayout for single-sheet arbitration. */
-  toolsOpen: boolean;
-  onToggleTools: () => void;
 }
 
 export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
-  onShowEntities,
-  onToggleDiceRoller,
-  onToggleRollLog,
+  surface,
+  onToggleSurface,
   onToolSelect,
   onSnapToGridChange,
   onResetCamera,
   activeTool,
   snapToGrid,
-  diceRollerOpen,
-  rollLogOpen,
-  toolsOpen,
-  onToggleTools,
 }) => {
-  // Help state is owned HERE rather than by MobileLayout, which sits at 347 of
-  // the 348-line ceiling, so lifting it would cost an extraction.
-  //
-  // The original comment here claimed the manual "arbitrates with nothing".
-  // That was wrong: .mobile-help-sheet shares the shared sheet rule block with
-  // the tool, selection, drawing and roll-log sheets — same bottom anchor, same
-  // z-index — so it stacked with them instead of replacing them. Tapping Tools
-  // with the manual open mounted the tool sheet UNDERNEATH it, and a hit test in
-  // the tool sheet's own area landed on the help panel, so Tools looked broken.
-  const [helpOpen, setHelpOpen] = useState(false);
+  const toolsOpen = surface === "tools";
 
-  // Every dock button that opens a sheet also dismisses the manual, which is
-  // what MobileLayout's closeAllSheets does for the sheets it owns. Help cannot
-  // simply join that list, hence this.
-  const closingHelp = (action: () => void) => () => {
-    setHelpOpen(false);
-    action();
-  };
-
-  // The sheet only renders when toolsOpen, so toggling from here always closes it.
+  // The sheet only renders while the tools surface is open, so toggling from
+  // here always closes it.
   const selectTool = (tool: ToolMode) => {
     onToolSelect(tool);
-    onToggleTools();
-  };
-
-  const openHelp = () => {
-    onToggleTools();
-    setHelpOpen(true);
+    onToggleSurface("tools");
   };
 
   const toolButtonClass = (tool: ToolMode) =>
@@ -73,13 +43,18 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
   return (
     <>
       {toolsOpen && (
-        <div className="mobile-tool-sheet" role="dialog" aria-label="Map tools">
+        <div
+          className="mobile-tool-sheet"
+          role="dialog"
+          aria-label="Map tools"
+          data-mobile-surface="tools"
+        >
           <div className="mobile-tool-sheet__header">
             <strong>Tools</strong>
             <button
               type="button"
               className="mobile-tool-sheet__close"
-              onClick={onToggleTools}
+              onClick={() => onToggleSurface("tools")}
               aria-label="Close tools"
             >
               ✕
@@ -144,7 +119,11 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
               <span aria-hidden="true">#</span>
               Snap
             </button>
-            <button type="button" className="mobile-tool-sheet__button" onClick={openHelp}>
+            <button
+              type="button"
+              className="mobile-tool-sheet__button"
+              onClick={() => onToggleSurface("help")}
+            >
               <span aria-hidden="true">?</span>
               Help
             </button>
@@ -152,25 +131,12 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
         </div>
       )}
 
-      {helpOpen && (
-        <div className="mobile-help-sheet" role="dialog" aria-label="HeroByte help">
-          <div className="mobile-tool-sheet__header">
-            <strong>Help</strong>
-            <button
-              type="button"
-              className="mobile-tool-sheet__close"
-              onClick={() => setHelpOpen(false)}
-              aria-label="Close help"
-            >
-              ✕
-            </button>
-          </div>
-          <HelpPanel />
-        </div>
-      )}
-
       <nav className="mobile-action-dock" aria-label="Mobile actions">
-        <button type="button" className="mobile-dock-button" onClick={closingHelp(onShowEntities)}>
+        <button
+          type="button"
+          className="mobile-dock-button"
+          onClick={() => onToggleSurface("party")}
+        >
           <span className="mobile-dock-button__icon" aria-hidden="true">
             ◉
           </span>
@@ -181,7 +147,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
           className={`mobile-dock-button${
             toolsOpen || activeTool ? " mobile-dock-button--active" : ""
           }`}
-          onClick={closingHelp(onToggleTools)}
+          onClick={() => onToggleSurface("tools")}
           aria-expanded={toolsOpen}
         >
           <span className="mobile-dock-button__icon" aria-hidden="true">
@@ -191,9 +157,9 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
         </button>
         <button
           type="button"
-          className={`mobile-dock-button${diceRollerOpen ? " mobile-dock-button--active" : ""}`}
-          onClick={closingHelp(onToggleDiceRoller)}
-          aria-pressed={diceRollerOpen}
+          className={`mobile-dock-button${surface === "dice" ? " mobile-dock-button--active" : ""}`}
+          onClick={() => onToggleSurface("dice")}
+          aria-pressed={surface === "dice"}
         >
           <span className="mobile-dock-button__icon" aria-hidden="true">
             ⚂
@@ -202,9 +168,9 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
         </button>
         <button
           type="button"
-          className={`mobile-dock-button${rollLogOpen ? " mobile-dock-button--active" : ""}`}
-          onClick={closingHelp(onToggleRollLog)}
-          aria-pressed={rollLogOpen}
+          className={`mobile-dock-button${surface === "log" ? " mobile-dock-button--active" : ""}`}
+          onClick={() => onToggleSurface("log")}
+          aria-pressed={surface === "log"}
         >
           <span className="mobile-dock-button__icon" aria-hidden="true">
             ≡

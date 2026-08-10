@@ -6,6 +6,11 @@
  * `repeat(5, minmax(0, 1fr))`, and a sixth child would silently overflow it.
  * That rule is why chat became a tab in the roll log and why the dice options
  * went inside the roller — so it is worth a test rather than a comment.
+ *
+ * Since M4a this component no longer owns any open/closed state: every button
+ * reports the surface it stands for and useMobileSurface arbitrates. The
+ * manual itself renders in MobileSurfaces, and the tests that used to watch
+ * it arbitrate here now live in MobileLayout.test.tsx, against the machine.
  */
 
 import React from "react";
@@ -15,23 +20,18 @@ import path from "node:path";
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
 import { MobileFloatingControls } from "../MobileFloatingControls";
-import { HELP_TOPICS } from "../../../features/help/helpTopics";
+import type { MobileSurface } from "../../../hooks/useMobileSurface";
 
 afterEach(() => cleanup());
 
 const createProps = (overrides: Record<string, unknown> = {}) => ({
-  onShowEntities: vi.fn(),
-  onToggleDiceRoller: vi.fn(),
-  onToggleRollLog: vi.fn(),
+  surface: "none" as MobileSurface,
+  onToggleSurface: vi.fn(),
   onToolSelect: vi.fn(),
   onSnapToGridChange: vi.fn(),
   onResetCamera: vi.fn(),
   activeTool: null,
   snapToGrid: false,
-  diceRollerOpen: false,
-  rollLogOpen: false,
-  toolsOpen: false,
-  onToggleTools: vi.fn(),
   ...overrides,
 });
 
@@ -50,91 +50,96 @@ describe("MobileFloatingControls", () => {
     expect(within(dock).queryByText(/help/i)).not.toBeInTheDocument();
   });
 
-  describe("help entry", () => {
-    it("offers Help inside the tool sheet", () => {
-      render(<MobileFloatingControls {...createProps({ toolsOpen: true })} />);
-
-      const sheet = screen.getByRole("dialog", { name: /map tools/i });
-      expect(within(sheet).getByRole("button", { name: /help/i })).toBeInTheDocument();
-    });
-
-    it("is unreachable while the tool sheet is closed", () => {
-      render(<MobileFloatingControls {...createProps({ toolsOpen: false })} />);
-
-      expect(screen.queryByRole("button", { name: /help/i })).not.toBeInTheDocument();
-    });
-
-    it("opens the manual and dismisses the tool sheet", () => {
-      const props = createProps({ toolsOpen: true });
-      render(<MobileFloatingControls {...props} />);
-
-      fireEvent.click(screen.getByRole("button", { name: /help/i }));
-
-      // The sheet is arbitrated by MobileLayout, so closing it is a callback.
-      expect(props.onToggleTools).toHaveBeenCalledTimes(1);
-      expect(screen.getByRole("dialog", { name: /herobyte help/i })).toBeInTheDocument();
-    });
-
-    it("does not select a tool when opening help", () => {
-      const props = createProps({ toolsOpen: true });
-      render(<MobileFloatingControls {...props} />);
-
-      fireEvent.click(screen.getByRole("button", { name: /help/i }));
-
-      expect(props.onToolSelect).not.toHaveBeenCalled();
-    });
-
-    it("shows the same manual the desktop popover shows", () => {
-      render(<MobileFloatingControls {...createProps({ toolsOpen: true })} />);
-      fireEvent.click(screen.getByRole("button", { name: /help/i }));
-
-      const dialog = screen.getByRole("dialog", { name: /herobyte help/i });
-      for (const topic of HELP_TOPICS) {
-        expect(within(dialog).getByRole("button", { name: topic.title })).toBeInTheDocument();
-      }
-    });
-
-    it("closes again from its own close button", () => {
-      render(<MobileFloatingControls {...createProps({ toolsOpen: true })} />);
-      fireEvent.click(screen.getByRole("button", { name: /help/i }));
-
-      fireEvent.click(screen.getByRole("button", { name: /close help/i }));
-
-      expect(screen.queryByRole("dialog", { name: /herobyte help/i })).not.toBeInTheDocument();
-    });
-  });
-
-  describe("the manual takes part in single-sheet arbitration", () => {
-    // It did not, despite a comment saying it "arbitrates with nothing". It
-    // shares the tool sheet's bottom anchor and z-index, so tapping Tools with
-    // the manual open mounted the tool sheet UNDERNEATH it and Tools read as
-    // broken. Verified in a real browser before this fix: with both open, a hit
-    // test in the tool sheet's own area returned the help panel.
-    const openHelp = (props: ReturnType<typeof createProps>) => {
-      render(<MobileFloatingControls {...props} />);
-      fireEvent.click(screen.getByRole("button", { name: /help/i }));
-      expect(screen.getByRole("dialog", { name: /herobyte help/i })).toBeInTheDocument();
-    };
-
+  describe("the dock reports surfaces to the machine", () => {
     const dockButton = (name: RegExp) =>
       within(screen.getByRole("navigation", { name: /mobile actions/i })).getByRole("button", {
         name,
       });
 
     it.each([
-      ["Party", /party/i, "onShowEntities"],
-      ["Tools", /tools/i, "onToggleTools"],
-      ["Dice", /dice/i, "onToggleDiceRoller"],
-      ["Log", /log/i, "onToggleRollLog"],
-    ])("closes the manual when %s is tapped", (_label, pattern, callback) => {
-      const props = createProps({ toolsOpen: true });
-      openHelp(props);
+      ["Party", /party/i, "party"],
+      ["Tools", /tools/i, "tools"],
+      ["Dice", /dice/i, "dice"],
+      ["Log", /log/i, "log"],
+    ])("%s toggles its surface", (_label, pattern, surface) => {
+      const props = createProps();
+      render(<MobileFloatingControls {...props} />);
 
       fireEvent.click(dockButton(pattern));
 
-      expect(screen.queryByRole("dialog", { name: /herobyte help/i })).not.toBeInTheDocument();
-      // The dock button must still do its own job, not merely swallow the tap.
-      expect(props[callback as keyof typeof props]).toHaveBeenCalled();
+      expect(props.onToggleSurface).toHaveBeenCalledExactlyOnceWith(surface);
+    });
+
+    it("View resets the camera without touching the machine", () => {
+      const props = createProps();
+      render(<MobileFloatingControls {...props} />);
+
+      fireEvent.click(dockButton(/view/i));
+
+      expect(props.onResetCamera).toHaveBeenCalledTimes(1);
+      expect(props.onToggleSurface).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("the tool sheet", () => {
+    it("renders only while the tools surface is open", () => {
+      const { rerender } = render(<MobileFloatingControls {...createProps()} />);
+      expect(screen.queryByRole("dialog", { name: /map tools/i })).not.toBeInTheDocument();
+
+      rerender(<MobileFloatingControls {...createProps({ surface: "tools" })} />);
+      expect(screen.getByRole("dialog", { name: /map tools/i })).toBeInTheDocument();
+    });
+
+    it("closes from its own ✕ by toggling the tools surface", () => {
+      const props = createProps({ surface: "tools" });
+      render(<MobileFloatingControls {...props} />);
+
+      fireEvent.click(screen.getByRole("button", { name: /close tools/i }));
+
+      expect(props.onToggleSurface).toHaveBeenCalledExactlyOnceWith("tools");
+    });
+
+    it("selects a tool and closes the sheet in one tap", () => {
+      const props = createProps({ surface: "tools" });
+      render(<MobileFloatingControls {...props} />);
+
+      fireEvent.click(screen.getByRole("button", { name: /ping/i }));
+
+      expect(props.onToolSelect).toHaveBeenCalledExactlyOnceWith("pointer");
+      expect(props.onToggleSurface).toHaveBeenCalledExactlyOnceWith("tools");
+    });
+  });
+
+  describe("help entry", () => {
+    it("offers Help inside the tool sheet", () => {
+      render(<MobileFloatingControls {...createProps({ surface: "tools" })} />);
+
+      const sheet = screen.getByRole("dialog", { name: /map tools/i });
+      expect(within(sheet).getByRole("button", { name: /help/i })).toBeInTheDocument();
+    });
+
+    it("is unreachable while the tool sheet is closed", () => {
+      render(<MobileFloatingControls {...createProps()} />);
+
+      expect(screen.queryByRole("button", { name: /help/i })).not.toBeInTheDocument();
+    });
+
+    it("asks the machine for the help surface, which closes the sheet by construction", () => {
+      const props = createProps({ surface: "tools" });
+      render(<MobileFloatingControls {...props} />);
+
+      fireEvent.click(screen.getByRole("button", { name: /help/i }));
+
+      expect(props.onToggleSurface).toHaveBeenCalledExactlyOnceWith("help");
+    });
+
+    it("does not select a tool when opening help", () => {
+      const props = createProps({ surface: "tools" });
+      render(<MobileFloatingControls {...props} />);
+
+      fireEvent.click(screen.getByRole("button", { name: /help/i }));
+
+      expect(props.onToolSelect).not.toHaveBeenCalled();
     });
   });
 
@@ -198,18 +203,14 @@ describe("MobileFloatingControls", () => {
       expect(sharedSheetRule).toMatch(/box-sizing:\s*border-box/);
     });
 
-    it("still paints the manual above the sheets MobileLayout mounts", () => {
-      // The dock buttons are handled in JS, but the drawing and selection sheets
-      // are mounted by MobileLayout on `drawMode && !showTools` — and opening
-      // help sets showTools false, un-suppressing them. MobileLayout is at its
-      // line ceiling and cannot be told about help, so paint order is the only
-      // thing keeping the manual on top; at the shared 1600 it loses to whatever
-      // is later in the DOM.
-      const sharedZ = Number(/z-index:\s*(\d+)/.exec(sharedSheetRule)?.[1]);
-      const helpZ = Number(/z-index:\s*(\d+)/.exec(helpSheetRule)?.[1]);
-
-      expect(sharedZ).toBeGreaterThan(0);
-      expect(helpZ).toBeGreaterThan(sharedZ);
+    it("no longer lets the manual carry its own z-index", () => {
+      // The 1650 override existed to out-paint sheets that could mount while
+      // the manual was open. The surface machine unmounts them instead — one
+      // surface at a time, by construction (MobileLayout.test.tsx pins it) —
+      // and a reintroduced override would be a sign that exclusion broke and
+      // someone reached for paint order again.
+      expect(helpSheetRule).not.toBe("");
+      expect(helpSheetRule).not.toMatch(/z-index/);
     });
   });
 });

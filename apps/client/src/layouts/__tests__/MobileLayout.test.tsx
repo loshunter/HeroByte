@@ -1,7 +1,8 @@
 import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { MobileLayout } from "../MobileLayout";
+import { HELP_TOPICS } from "../../features/help/helpTopics";
 import type { MainLayoutProps } from "../props/MainLayoutProps";
 type DrawingToolbarProps = MainLayoutProps["drawingToolbarProps"];
 type DrawingProps = MainLayoutProps["drawingProps"];
@@ -424,5 +425,130 @@ describe("MobileLayout", () => {
 
     fireEvent.click(screen.getByTestId("prev-turn-btn"));
     expect(props.sendMessage).toHaveBeenCalledWith({ t: "previous-turn" });
+  });
+
+  describe("the surface machine (M4a)", () => {
+    // Every open surface root carries data-mobile-surface, so the invariant
+    // the machine claims — at most one surface, by construction — is counted
+    // in the DOM rather than trusted.
+    const openSurfaces = () =>
+      [...document.querySelectorAll("[data-mobile-surface]")].map((el) =>
+        el.getAttribute("data-mobile-surface"),
+      );
+
+    const dock = (name: RegExp) =>
+      within(screen.getByRole("navigation", { name: /mobile actions/i })).getByRole("button", {
+        name,
+      });
+
+    const openHelp = () => {
+      fireEvent.click(dock(/tools/i));
+      fireEvent.click(screen.getByRole("button", { name: /^help$/i }));
+      expect(screen.getByRole("dialog", { name: /herobyte help/i })).toBeInTheDocument();
+    };
+
+    it("mounts at most one surface, in whatever order things open", () => {
+      render(<MobileLayout {...createDefaultProps()} />);
+      expect(openSurfaces()).toEqual([]);
+
+      fireEvent.click(dock(/party/i));
+      expect(openSurfaces()).toEqual(["party"]);
+
+      fireEvent.click(dock(/tools/i));
+      expect(openSurfaces()).toEqual(["tools"]);
+
+      fireEvent.click(screen.getByRole("button", { name: /^help$/i }));
+      expect(openSurfaces()).toEqual(["help"]);
+
+      fireEvent.click(dock(/party/i));
+      expect(openSurfaces()).toEqual(["party"]);
+
+      fireEvent.click(dock(/party/i));
+      expect(openSurfaces()).toEqual([]);
+    });
+
+    it("derives one surface even when the prop-controlled panels disagree", () => {
+      const props = createDefaultProps();
+      props.diceRollerOpen = true;
+      props.rollLogOpen = true;
+      render(<MobileLayout {...props} />);
+
+      expect(openSurfaces()).toEqual(["log"]);
+    });
+
+    it("hands a prop-controlled panel back to the App before opening its own", () => {
+      const props = createDefaultProps();
+      props.rollLogOpen = true;
+      const { rerender } = render(<MobileLayout {...props} />);
+      expect(openSurfaces()).toEqual(["log"]);
+
+      fireEvent.click(dock(/party/i));
+      // The machine cannot unmount what the App owns; it asks, and the panel
+      // stays until the App answers.
+      expect(props.toggleRollLog).toHaveBeenCalledWith(false);
+      expect(openSurfaces()).toEqual(["log"]);
+
+      rerender(<MobileLayout {...props} rollLogOpen={false} />);
+      expect(openSurfaces()).toEqual(["party"]);
+    });
+
+    it.each([
+      ["Party", /party/i],
+      ["Tools", /tools/i],
+      ["Dice", /dice/i],
+      ["Log", /log/i],
+    ])("closes the manual when %s is tapped on the dock", (_label, pattern) => {
+      render(<MobileLayout {...createDefaultProps()} />);
+      openHelp();
+
+      fireEvent.click(dock(pattern));
+
+      expect(screen.queryByRole("dialog", { name: /herobyte help/i })).not.toBeInTheDocument();
+    });
+
+    it("shows the same manual the desktop popover shows, and closes from its ✕", () => {
+      render(<MobileLayout {...createDefaultProps()} />);
+      openHelp();
+
+      const dialog = screen.getByRole("dialog", { name: /herobyte help/i });
+      for (const topic of HELP_TOPICS) {
+        expect(within(dialog).getByRole("button", { name: topic.title })).toBeInTheDocument();
+      }
+
+      fireEvent.click(screen.getByRole("button", { name: /close help/i }));
+      expect(screen.queryByRole("dialog", { name: /herobyte help/i })).not.toBeInTheDocument();
+    });
+
+    it("the drawing sheet yields the sheet slot to tools AND help", () => {
+      const props = createDefaultProps();
+      props.activeTool = "draw";
+      props.drawMode = true;
+      props.drawingToolbarProps = {
+        drawTool: "freehand",
+        drawColor: "#ff0000",
+        drawWidth: 3,
+        canUndo: false,
+        canRedo: false,
+        onToolChange: vi.fn(),
+        onColorChange: vi.fn(),
+        onWidthChange: vi.fn(),
+        onUndo: vi.fn(),
+        onRedo: vi.fn(),
+      } as unknown as DrawingToolbarProps;
+      render(<MobileLayout {...props} />);
+      expect(document.querySelector(".mobile-drawing-sheet")).not.toBeNull();
+
+      fireEvent.click(dock(/tools/i));
+      expect(document.querySelector(".mobile-drawing-sheet")).toBeNull();
+
+      fireEvent.click(screen.getByRole("button", { name: /^help$/i }));
+      // The old shell suppressed on showTools only, and the manual relied on a
+      // z-index override to out-paint this sheet. Mount exclusion replaces
+      // paint order; if this mounts under the manual again, that regressed.
+      expect(document.querySelector(".mobile-drawing-sheet")).toBeNull();
+
+      fireEvent.click(screen.getByRole("button", { name: /close help/i }));
+      expect(document.querySelector(".mobile-drawing-sheet")).not.toBeNull();
+    });
   });
 });
