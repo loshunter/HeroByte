@@ -9,10 +9,14 @@ is a judgement call rather than a fact, it says so.
 **The Session One arc is DONE.** `docs/planning/session-one-arc.md` is the source of truth.
 S0–S7 are in production; **S8 and its review fixes are on `dev` and NOT deployed.**
 
-| Branch | Commit     | State                                                               |
-| ------ | ---------- | ------------------------------------------------------------------- |
-| `dev`  | `197fb434` | 29 commits on `main`: S8, its 7 review fixes, then the §11 cleanup. |
-| `main` | `5307d0dd` | production, deployed, green                                         |
+| Branch | Commit     | State                                                                          |
+| ------ | ---------- | ------------------------------------------------------------------------------ |
+| `dev`  | `c7d83f8f` | 38 commits on `main`: S8 + review + §11 cleanup, an e2e flake fix, then **M3**. |
+| `main` | `5307d0dd` | production, deployed, green                                                     |
+
+**Read §3C first — the fork is closed and M4a is queued.** The owner chose the mobile authoring arc
+on 2026-08-09, M3 shipped the same day, and the design for M4 is settled in
+[mobile-shell-redesign.md](./mobile-shell-redesign.md).
 
 `dev` is pushed and **CI is green on it** — run #765 finished Success in 7m 4s. Nothing has been
 merged to `main`, so none of it is deployed.
@@ -154,10 +158,11 @@ CI=true pnpm --filter vtt-server exec vitest run src/path/to/file.test.ts
 CI=true pnpm test:e2e --project=mobile-chromium --grep "some name"
 ```
 
-## 3. What to do next — the field is open
+## 3. What to do next — **M4a is queued** (§3C)
 
-The arc is complete, so there is no queued slice. In rough order of how strongly the code argues
-for them:
+The Session One arc is complete and the owner has since chosen the mobile authoring arc and
+approved M4's design. **Start at §3C.** B and D below are the roads not taken; they are still real
+and still unclaimed, but they are not next.
 
 ### A. ~~Re-run S8's adversarial review~~ — DONE 2026-08-08, see §0
 
@@ -194,10 +199,16 @@ joining the shared selector list in `herobyte.css`. It was measured with 900px o
 because nothing shipped today is tall enough to reach the cap — M4's palette is the first thing
 that will be.
 
-**M4 is `docs/planning/mobile-authoring-arc.md` §4.** Its context capsule was written 2026-08-01
-and the line numbers in it are stale; the file names held up. Two owner questions are still open
-and both bite at M4/M8, not before: Q3 (does a mobile DM get the DM Menu, or only map authoring?)
-and Q4 (should there be an in-app "use the desktop layout" switch?).
+**M4 is designed and queued — read [mobile-shell-redesign.md](./mobile-shell-redesign.md), not the
+arc doc's §4 M4.** The owner answered Q3 on 2026-08-09 (**a mobile DM gets a full menu**) and asked
+for a mobile-native shell — a separate screen rather than another sheet, "a more mobile focused
+usable UI over the RPG of it". That doc holds the model, the three slices M4 became (M4a shell /
+M4b DM screen / M4c room+wall), and — the part that saves the most time — **all 50 of
+`DMMenuContainer`'s props traced back to `MainLayoutProps`, one by one.** The arc doc's own §4 M4
+assumed one slice and a `MobileMapEditSheet`; it is superseded. Its line numbers are from
+2026-08-01 and stale, though its file names held up.
+
+Only **Q4** is still open (an in-app "use the desktop layout" switch), and it does not block M4a.
 
 Two known mobile gaps also feed into it:
 
