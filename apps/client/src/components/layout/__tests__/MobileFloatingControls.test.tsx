@@ -32,12 +32,13 @@ const createProps = (overrides: Record<string, unknown> = {}) => ({
   onResetCamera: vi.fn(),
   activeTool: null,
   snapToGrid: false,
+  isDM: false,
   ...overrides,
 });
 
 describe("MobileFloatingControls", () => {
-  it("keeps the action dock at exactly five buttons", () => {
-    render(<MobileFloatingControls {...createProps()} />);
+  it.each([[false], [true]])("keeps the action dock at exactly five buttons (isDM: %s)", (isDM) => {
+    render(<MobileFloatingControls {...createProps({ isDM })} />);
 
     const dock = screen.getByRole("navigation", { name: /mobile actions/i });
     expect(within(dock).getAllByRole("button")).toHaveLength(5);
@@ -78,6 +79,53 @@ describe("MobileFloatingControls", () => {
 
       expect(props.onResetCamera).toHaveBeenCalledTimes(1);
       expect(props.onToggleSurface).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("slot five is contextual (M4a)", () => {
+    // The dock is a hardcoded 5-column grid; a sixth child overlaps rather
+    // than wraps (settled, handoff §9). So the DM entry does not get a sixth
+    // button — it gets slot five, which was a whole slot spent on the single
+    // reset-camera action.
+    it("a player gets View and no DM entry", () => {
+      render(<MobileFloatingControls {...createProps()} />);
+
+      const dock = screen.getByRole("navigation", { name: /mobile actions/i });
+      expect(within(dock).getByRole("button", { name: /view/i })).toBeInTheDocument();
+      expect(within(dock).queryByRole("button", { name: /dm/i })).not.toBeInTheDocument();
+    });
+
+    it("a DM gets DM in slot five and View leaves the dock", () => {
+      render(<MobileFloatingControls {...createProps({ isDM: true })} />);
+
+      const dock = screen.getByRole("navigation", { name: /mobile actions/i });
+      const buttons = within(dock).getAllByRole("button");
+      expect(buttons[4]).toHaveTextContent(/dm/i);
+      expect(within(dock).queryByRole("button", { name: /view/i })).not.toBeInTheDocument();
+    });
+
+    it("the DM button toggles the dm surface", () => {
+      const props = createProps({ isDM: true });
+      render(<MobileFloatingControls {...props} />);
+
+      fireEvent.click(
+        within(screen.getByRole("navigation", { name: /mobile actions/i })).getByRole("button", {
+          name: /dm/i,
+        }),
+      );
+
+      expect(props.onToggleSurface).toHaveBeenCalledExactlyOnceWith("dm");
+    });
+
+    it("a DM keeps reset-camera: Recenter sits in the tool sheet and closes it", () => {
+      const props = createProps({ isDM: true, surface: "tools" });
+      render(<MobileFloatingControls {...props} />);
+
+      fireEvent.click(screen.getByRole("button", { name: /recenter/i }));
+
+      expect(props.onResetCamera).toHaveBeenCalledTimes(1);
+      expect(props.onToggleSurface).toHaveBeenCalledExactlyOnceWith("tools");
+      expect(props.onToolSelect).not.toHaveBeenCalled();
     });
   });
 

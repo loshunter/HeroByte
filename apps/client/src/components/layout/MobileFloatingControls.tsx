@@ -17,6 +17,8 @@ interface MobileFloatingControlsProps {
   onResetCamera: () => void;
   activeTool: ToolMode;
   snapToGrid: boolean;
+  /** Slot five is contextual: `DM` for a DM, `View` (reset camera) otherwise. */
+  isDM: boolean;
 }
 
 export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
@@ -27,8 +29,17 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
   onResetCamera,
   activeTool,
   snapToGrid,
+  isDM,
 }) => {
   const toolsOpen = surface === "tools";
+
+  // Recenter lives in the sheet so a DM — whose dock slot five is `DM`, not
+  // `View` — still has reset-camera. Closing the sheet on tap is the point:
+  // you recenter to SEE the map.
+  const recenter = () => {
+    onResetCamera();
+    onToggleSurface("tools");
+  };
 
   // The sheet only renders while the tools surface is open, so toggling from
   // here always closes it.
@@ -119,6 +130,10 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
               <span aria-hidden="true">#</span>
               Snap
             </button>
+            <button type="button" className="mobile-tool-sheet__button" onClick={recenter}>
+              <span aria-hidden="true">◇</span>
+              Recenter
+            </button>
             <button
               type="button"
               className="mobile-tool-sheet__button"
@@ -177,12 +192,28 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
           </span>
           Log
         </button>
-        <button type="button" className="mobile-dock-button" onClick={onResetCamera}>
-          <span className="mobile-dock-button__icon" aria-hidden="true">
-            ◇
-          </span>
-          View
-        </button>
+        {isDM ? (
+          // Slot five, not slot six: the dock is a hardcoded 5-column grid and
+          // a sixth child overlaps rather than wraps (settled, handoff §9).
+          <button
+            type="button"
+            className={`mobile-dock-button${surface === "dm" ? " mobile-dock-button--active" : ""}`}
+            onClick={() => onToggleSurface("dm")}
+            aria-pressed={surface === "dm"}
+          >
+            <span className="mobile-dock-button__icon" aria-hidden="true">
+              ♛
+            </span>
+            DM
+          </button>
+        ) : (
+          <button type="button" className="mobile-dock-button" onClick={onResetCamera}>
+            <span className="mobile-dock-button__icon" aria-hidden="true">
+              ◇
+            </span>
+            View
+          </button>
+        )}
       </nav>
     </>
   );

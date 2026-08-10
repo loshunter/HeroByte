@@ -514,6 +514,24 @@ describe("MobileLayout", () => {
       expect(screen.queryByRole("dialog", { name: /herobyte help/i })).not.toBeInTheDocument();
     });
 
+    it("a DM's slot five opens the DM screen through the same machine", () => {
+      const props = createDefaultProps();
+      props.isDM = true;
+      render(<MobileLayout {...props} />);
+
+      fireEvent.click(dock(/dm/i));
+      expect(openSurfaces()).toEqual(["dm"]);
+      expect(screen.getByRole("dialog", { name: "DM Menu" })).toBeInTheDocument();
+
+      // One machine, so any other surface replaces it rather than stacking.
+      fireEvent.click(dock(/party/i));
+      expect(openSurfaces()).toEqual(["party"]);
+
+      fireEvent.click(dock(/dm/i));
+      fireEvent.click(screen.getByRole("button", { name: "Close DM Menu" }));
+      expect(openSurfaces()).toEqual([]);
+    });
+
     it("Party and Log open as screens with a labelled exit that closes them", () => {
       const props = createDefaultProps();
       render(<MobileLayout {...props} />);

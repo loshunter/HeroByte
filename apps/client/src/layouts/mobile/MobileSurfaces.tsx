@@ -2,10 +2,10 @@
 // MOBILE SURFACES
 // ============================================================================
 // The single host for every surface the mobile shell can open: party, dice,
-// log, help (and, from M4b, the DM screen). MobileLayout renders exactly one
-// of these because useMobileSurface derives exactly one — every open surface
-// root carries data-mobile-surface so a test can count them rather than trust
-// that claim.
+// log, help and dm (a placeholder until M4b ships the menu). MobileLayout
+// renders exactly one of these because useMobileSurface derives exactly one —
+// every open surface root carries data-mobile-surface so a test can count
+// them rather than trust that claim.
 
 import React from "react";
 import type { MainLayoutProps } from "../props/MainLayoutProps";
@@ -93,6 +93,17 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
             currentUid={props.uid}
             onSendChat={props.handleSendChat}
           />
+        </MobileScreen>
+      )}
+
+      {surface === "dm" && (
+        <MobileScreen title="DM Menu" surface="dm" onClose={closeSurface}>
+          {/* M4a ships the SLOT; M4b ships the menu. An honest placeholder
+              beats a dock button that silently does nothing. */}
+          <p>
+            The DM menu lands on this screen in the next slice. Until then, DM tools live on the
+            desktop layout.
+          </p>
         </MobileScreen>
       )}
 

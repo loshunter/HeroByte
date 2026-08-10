@@ -168,6 +168,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
         onResetCamera={handleResetCamera}
         activeTool={activeTool}
         snapToGrid={snapToGrid}
+        isDM={isDM}
       />
 
       {selectedObjectCount > 0 && (transformMode || selectMode) && !sheetSlotOccupied && (
