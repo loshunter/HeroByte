@@ -289,7 +289,8 @@ export const HELP_TOPICS: HelpTopic[] = [
       },
       {
         term: "🏗️ Map",
-        detail: "The live map editor — rooms, walls, doors, terrain, lighting, generator.",
+        detail:
+          "The live map editor — rooms, walls, doors, terrain, lighting, generator. On a phone or tablet it lives at DM → 🏗️ Edit the live map, and the bottom dock becomes the palette: Exit, Tool, Undo, Redo, Cancel. Room and Wall by finger; ⨯ CANCEL is the abort, because lifting a finger commits.",
       },
       {
         term: "SAVE GAME STATE",

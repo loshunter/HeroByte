@@ -189,7 +189,46 @@ screen** — a tablet gets everything, a phone gets what fits.
 **Done when:** a DM on a phone can reach background, grid size, fog, staging zone, NPC/prop CRUD,
 session save/load, invite link and table password; desktop is byte-identical in behaviour.
 
-### M4c — map-edit reachable: room + wall, end to end
+### M4c — map-edit reachable: room + wall, end to end — **SHIPPED 2026-08-10**
+
+Nine commits on `dev`, `2eb5ed8b` → `c58c5bbc`, each behind the full §2 gate and each
+sabotage-proven. **The plan below was wrong about one load-bearing thing, and it cost the
+most:**
+
+- **"Room and Wall … already work through M2's touch path" is FALSE.** Touch never
+  dispatched to map-edit at all — `useArmedTouchTool`'s own comment said so
+  ("deliberately absent … needs a design pass, not a wire-up"), and `useStageEventRouter`
+  repeated it. Every control M4c adds would have driven nothing. Arming it is
+  `ceb73f63`, and it is armed for the **drag sub-tools only**: a touch DRAG generates no
+  compat mouse events but a TAP generates a full pair, and the mouse path routes to the
+  same handlers — so `place`/`scatter`/`light` would drop two stamps per tap. Room and
+  wall are both drag tools, so the scope is unchanged; the restriction is recorded in the
+  hook.
+- **The 348 ceiling bit before anything could be added.** `useMapEditTool` was at 346, so
+  the drag+preview came out first (`useMapEditDragPreview`, `2eb5ed8b`) and the
+  cancellation second (`useMapEditCancel`, `f8af4af2`).
+- **Slot five is `Cancel`, not the §1 sketch's `More`.** The sketch never said what More
+  held, and the persistent CANCEL DRAG the plan asks for is the one control a DM can need
+  mid-gesture. Recenter went into the sheet instead. The mechanism is a **counter**
+  (`mapEditCancelSignal`) crossing from `MobileLayout` to `MapBoard`, because the dock and
+  the canvas are siblings — and it works with the finger still down, since clearing the
+  drag ref makes the release commit nothing.
+- **Two bugs fixed that the traps pointed at but did not name.** Losing DM mid-edit left
+  the table unusable on BOTH layouts (`86ab1fd0`) — every exit from map-edit is DM-gated
+  while the mode's effects are not, so a revoked DM could neither author nor pan nor
+  select. And the pre-existing Escape test could not fail: it never moved the pointer, so
+  the drag was zero-length and `addWall` was uncalled either way.
+- **Both M4b feed-ins landed** (`e29ced62`): arming alignment now yields the screen (the
+  same edge as map-edit, but disarming deliberately does NOT — its Cancel lives inside the
+  menu), and both layouts' lazy DM chunk got a scoped error boundary. M4b's own fit guard
+  went red on the alignment change and was updated, not relaxed.
+- **The resize-crossing rule: KEEP the mode** (`0251b9db`). It is now true rather than
+  merely tolerated — each layout has a palette, so `useMapEditHotkeys` staying armed is
+  consistent with a visible Undo. Encoded as a spec with no `?mobile` parameter, and
+  sabotage-proven against the road not taken.
+
+Baselines: e2e **121 passed / 0 failed / 3 skipped**, bundle **98.05 KB**, client 44
+batches, shared 414, server 2057.
 
 The arc doc's original M4, minus the shell work M4a already did.
 
@@ -211,8 +250,19 @@ The arc doc's original M4, minus the shell work M4a already did.
 `MapBoard` kills token interaction in map-edit, so the selection Sheet becomes unreachable in the
 mode — check a DM cannot get stranded.
 
+_All three held._ The first is why Room and Wall do not RENDER until `isLive` (and why Undo/Redo
+carry their own `isLive` gate — a DM with a Studio document open has `canUndo` true while `isLive`
+is false, and an ungated Undo would rewind the wrong document). The second was already handled by
+`useTouchGestureRouter`'s promotion rule, which needed only a real `cancel` to call — wiring it to
+the COMMIT handler instead makes the e2e land a second wall, measured. The third turned out not to
+strand: `transformMode` and `selectMode` are false in the mode by construction, so the selection
+sheet cannot be orphaned behind it — but the de-elevation path DID strand, on both layouts, and is
+fixed.
+
 **Done when:** on a tablet, `DM → Map → START LIVE MAP → drag a room → drag a wall`, and a second
-browser as a player sees fog respect the wall.
+browser as a player sees fog respect the wall. — **Met**, driven end to end by
+`apps/e2e/mobile/mobile-map-edit.spec.ts` at 820×1180, with the player in a second browser context
+receiving the walls as `blocksVision: true` occluders.
 
 ---
 
@@ -228,6 +278,11 @@ At `dev` = `c7d83f8f`, 2026-08-09 — **M4a has since moved four of these** (mar
   (`useMobileSurface` arbitrates, `MobileSurfaces` hosts the panels).
 - ✎ The dock's five buttons: Party, Tools, Dice, Log, then **View (player) / DM (isDM)**.
 - ✎ The tool sheet holds nine: Move, Ping, Measure, Draw, Transform, Select, Snap, Recenter, Help.
+  Since M4c the same sheet slot ALSO hosts the map-edit palette's sheet while the mode is armed
+  (`MobileMapEditPalette`) — Start live map, then Room / Wall / Recenter.
+- ✎ **Touch reaches map-edit's drag sub-tools since M4c** (`useArmedTouchTool`). The click ones
+  (`place`, `scatter`, `light`) are still out, and the reason is now recorded rather than a
+  general "needs a design pass": a tap's compat mouse events would double-fire them.
 - ✎ `DMMenuContainer` ← `DMMenu` / `DMMenuTabs` / five tab views (`MapTab` 217, `NPCsTab`
   235, `PlayersTab` 243, `PropsTab` 140, `SessionTab` 127). Since M4b it renders from BOTH
   layouts — `FloatingPanelsLayout` (window) and `MobileSurfaces` (screen content) — through the

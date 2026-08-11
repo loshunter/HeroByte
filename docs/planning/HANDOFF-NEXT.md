@@ -14,13 +14,16 @@ S0–S7 are in production; **S8 and its review fixes are on `dev` and NOT deploy
 | `dev`  | `f1952138` | +docs: S8 + review + §11 cleanup, an e2e flake fix, **M3**, the M4 design doc, then **M4a**. |
 | `main` | `5307d0dd` | production, deployed, green                                                                  |
 
-**Read §3C first — M4a AND M4b are SHIPPED; M4c (map-edit reachable) is next.** The owner chose
-the mobile authoring arc on 2026-08-09; M3, M4a and M4b landed in sequence, and the design is in
-[mobile-shell-redesign.md](./mobile-shell-redesign.md), whose §2 notes record what each slice
-shipped and where it deviated. M4b's headline: a DM on a phone now has the FULL menu (five tabs,
-chip row, same lazy chunk as desktop), `buildDMMenuProps` is the one bag→menu mapping both
-layouts share, and the predicted phone treatment measured out as unnecessary — the fit is guarded
-by `apps/e2e/mobile/mobile-dm.spec.ts`, not fixed by hand.
+**Read §3C first — M4a, M4b AND M4c are SHIPPED; the whole of M4 is done, M5 is next.** The owner
+chose the mobile authoring arc on 2026-08-09; M3, M4a, M4b and M4c landed in sequence, and the
+design is in [mobile-shell-redesign.md](./mobile-shell-redesign.md), whose §2 notes record what
+each slice shipped and where it deviated. M4b's headline: a DM on a phone now has the FULL menu
+(five tabs, chip row, same lazy chunk as desktop), `buildDMMenuProps` is the one bag→menu mapping
+both layouts share, and the predicted phone treatment measured out as unnecessary — the fit is
+guarded by `apps/e2e/mobile/mobile-dm.spec.ts`, not fixed by hand. **M4c's headline: a DM can
+author the live map with a finger.** The design doc's one wrong claim cost the most — "room and
+wall already work through M2's touch path" was false, touch never dispatched to map-edit at all —
+so read that slice's SHIPPED note before touching the input path.
 
 `dev` is pushed and **CI is green on it** — run #765 finished Success in 7m 4s. Nothing has been
 merged to `main`, so none of it is deployed.
@@ -168,6 +171,26 @@ the realistic trigger is a deploy invalidating hashed chunk names mid-session);
 software-keyboard/iOS behaviour is invisible to every browser here; and MapStudioControl is now
 reachable from a phone with no phone-specific coverage.
 
+**M4c moved them again (2026-08-10):** e2e is **121 passed / 0 failed / 3 skipped** at `c58c5bbc`
+(six specs joined: a finger authoring a wall on the desktop layout with a second-finger cancel, the
+full mobile DM→Map→START LIVE MAP→room→wall path with a player in a second context, the palette's
+fit in both phone orientations, two resize-crossing specs, and Map Studio measured on a phone).
+Bundle 98.05 KB. `useMapEditTool` came DOWN from 346 to 334 despite gaining the cancel work, because
+the extraction went first — `useMapEditDragPreview` (80) and `useMapEditCancel` (~90) are the two
+new files. `MobileLayout` 226 → 276, `MobileFloatingControls` 220 → 244, and the new
+`MobileMapEditPalette` is 176.
+
+**M4c's traps, for whoever touches this next.** Four are worth carrying forward. (1) **Touch and the
+mouse path both reach the same tool handlers**, and a touch TAP generates compat mouse events while
+a touch DRAG does not — that asymmetry is why only the DRAG sub-tools are armed for touch, and it is
+the seam where double-firing reappears if anyone widens it. (2) **A test whose drag never moves
+cannot fail**: `wallDraftFromDrag` rejects a zero-length drag, so the pre-existing Escape test was
+green with the whole Escape handler deleted. (3) **An edge latch tested only from the side it starts
+on is blind** — freezing both refs in `useMobileSurface` left every one of its tests green until one
+crossed the boundary from outside it. (4) **A prop whose consumer treats it as optional can be
+deleted silently**, which is M4b's lesson again: `MobileLayout`'s map-edit forwarding is pinned by a
+complete-key-set test for exactly that reason.
+
 **M4a's adversarial review RAN 2026-08-10 and its verdict needs this caveat:** the four finder
 lenses completed (9 raw findings) but **all 11 verify/critic agents died on a session limit**, so
 no adversarial refutation happened and the completeness critic never ran — those angles are
@@ -248,29 +271,31 @@ joining the shared selector list in `herobyte.css`. It was measured with 900px o
 because nothing shipped today is tall enough to reach the cap — M4's palette is the first thing
 that will be.
 
-**M4a SHIPPED 2026-08-09** (`5507e741` machine/extraction, `a2f6737d` Screens, `f1952138` slot
-five — each behind the full gate, each fix sabotage-proven). **M4b (the DM screen) is next — read
-[mobile-shell-redesign.md](./mobile-shell-redesign.md), not the arc doc's §4 M4.** The redesign
-doc's 50-prop trace for `buildDMMenuProps` is the part that saves the most time, and the `dm`
-surface + placeholder `MobileScreen` it will fill already exist. The owner answered Q3 on
-2026-08-09 (**a mobile DM gets a full menu**) and asked
+**M4a, M4b and M4c are all SHIPPED (2026-08-09/10). M5 is next — read
+[mobile-authoring-arc.md](./mobile-authoring-arc.md) §4 for M5–M8; its §4 M4 is superseded by
+[mobile-shell-redesign.md](./mobile-shell-redesign.md), whose §2 carries all three SHIPPED notes.**
+M4c closed the arc's Blocker 2: the mobile path can now produce the map-edit tool mode, the 17
+`mapEdit*` props are no longer dropped on the floor, and a finger can author a room and a wall.
+
+The owner answered Q3 on 2026-08-09 (**a mobile DM gets a full menu**) and asked
 for a mobile-native shell — a separate screen rather than another sheet, "a more mobile focused
 usable UI over the RPG of it". That doc holds the model, the three slices M4 became (M4a shell /
-M4b DM screen / M4c room+wall), and — the part that saves the most time — **all 50 of
+M4b DM screen / M4c room+wall), and — the part that saved the most time in M4b — **all 50 of
 `DMMenuContainer`'s props traced back to `MainLayoutProps`, one by one.** The arc doc's own §4 M4
 assumed one slice and a `MobileMapEditSheet`; it is superseded. Its line numbers are from
 2026-08-01 and stale, though its file names held up.
 
-Only **Q4** is still open (an in-app "use the desktop layout" switch), and it does not block M4a.
+Only **Q4** is still open (an in-app "use the desktop layout" switch), and it does not block M5.
+It is worth re-asking now: a tablet DM authoring maps is exactly the user who might want the real
+desktop palette, and M4c's resize-crossing spec shows the mode survives the switch cleanly.
 
-Two known mobile gaps also feed into it:
+One known mobile gap still feeds into M5+:
 
 - **The mobile party drawer renders one row per PLAYER** and resolves it to that player's FIRST
   character, so a DM on a phone cannot reach a second character's token at all — HP, portrait and
   sight radius alike. Fixing it means making that list per-character.
-- **There is no mobile DM menu at all.** Mobile renders `MobileLayout`, which never reaches
-  `FloatingPanelsLayout`, which is the only thing that renders `DMMenu`. That is why S8's bulk-add
-  is desktop-only. It was explicitly out of Session One's scope (§6), not an oversight.
+
+_(The second gap listed here — "there is no mobile DM menu at all" — was closed by M4b.)_
 
 ### D. Smaller, real, and unclaimed
 
@@ -333,10 +358,15 @@ exempt** (M4a learned this at 374 lines: `mobile-shell.spec.ts` had to split off
 re-check LOC after formatting. Live headroom on files near the line, re-measured 2026-08-09 after
 M4a. **Two are within one line of the ceiling** — `characterValidators.ts` **348**,
 `useDMContext.ts` **347** — so either needs an extraction before it gains anything at all.
-`MobileLayout.tsx` is no longer one of them: M4a's extraction took it 347 → **219** (the surface
-machine went to `hooks/useMobileSurface.ts`, the panels to `layouts/mobile/MobileSurfaces.tsx`).
-Then `NPCEditor.tsx` 333, `mobile-shell.spec.ts` 306, `helpTopics.ts` 301, `Header.tsx` 262,
-`NPCsTab.tsx` 235, `MobileFloatingControls.tsx` 220, `HelpMenuButton.tsx` 153. Already over and
+`MobileLayout.tsx` is no longer one of them: M4a's extraction took it 347 → 219, and M4c's
+forwarding put it back to **276**. **`useMapEditTool.ts` was the third file within two lines of the
+ceiling (346) and M4c had to extract before it could add anything** — it is **334** now, with
+`useMapEditDragPreview.ts` (80) and `useMapEditCancel.ts` (90) carrying the difference. Re-measured
+2026-08-10: `NPCEditor.tsx` 333, `mobile-shell.spec.ts` 345, `mobile-dm.spec.ts` 291,
+`MobileLayout.tsx` 276, `helpTopics.ts` 301, `Header.tsx` 262, `mobile-map-edit.spec.ts` 241,
+`MobileFloatingControls.tsx` 244, `NPCsTab.tsx` 235, `MobileMapEditPalette.tsx` 176. **`mobile-shell.spec.ts`
+at 345 is three lines from the ceiling** — the next mobile-shell spec goes in a new file, as
+`mobile-dock.spec.ts` and `mobile-map-edit-resize.spec.ts` already did. Already over and
 baselined (extract, don't grow): `layouts/props/MainLayoutProps.ts` 432,
 `domains/character/service.ts` 376.
 

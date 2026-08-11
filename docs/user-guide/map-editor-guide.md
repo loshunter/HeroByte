@@ -2,7 +2,7 @@
 
 HeroByte's map editor runs **on the live table**: every room, wall, door, and brushstroke appears for your players the moment you commit it. No export step, no "load map" — you build the dungeon around the party, even mid-session.
 
-It's DM-only: [elevate first](getting-started.md#becoming-the-dm), then press **🏗️ MAP** in the top toolbar.
+It's DM-only: [elevate first](getting-started.md#becoming-the-dm), then press **🏗️ MAP** in the top toolbar. On a phone or tablet the door is a different one — see [On a phone or tablet](#on-a-phone-or-tablet) at the end.
 
 ## Starting a live map
 
@@ -14,7 +14,7 @@ The palette opens with one button:
 
 Things to know before your first wall:
 
-- **Escape** cancels an in-progress drag; pressing it again (with nothing in progress) leaves map-edit mode. The map *stays* live — closing the palette never unbinds it, and reopening resumes where you left off.
+- **Escape** cancels an in-progress drag; pressing it again (with nothing in progress) leaves map-edit mode. The map _stays_ live — closing the palette never unbinds it, and reopening resumes where you left off.
 - **↶ UNDO / ↷ REDO** at the palette's foot work on map edits (Ctrl+Z / Ctrl+Y while in the mode). Each drag, stroke, or generate is exactly one undo step.
 - Tokens don't respond to clicks while you're editing — leave the mode to move them.
 - If the table still has a raster background image, the palette warns you: live terrain and a background photo fight visually. Clear the background (DM Menu → Map Setup) for a clean canvas.
@@ -107,7 +107,7 @@ Drag two anchors: **Rope** and **Chain** sag naturally; **Ribbon** and **Filigre
 
 ## 🗂 Layers
 
-Six layers, top to bottom: **GM Notes, Lighting, Walls & Doors, Objects, Terrain, Background** — each with visibility, lock, reorder, and an opacity slider (remember: Lighting's opacity *is* the ambient light). Background ships locked so you can't paint under the floor by accident. GM Notes never reach players.
+Six layers, top to bottom: **GM Notes, Lighting, Walls & Doors, Objects, Terrain, Background** — each with visibility, lock, reorder, and an opacity slider (remember: Lighting's opacity _is_ the ambient light). Background ships locked so you can't paint under the floor by accident. GM Notes never reach players.
 
 ## The quick wheel
 
@@ -128,12 +128,36 @@ Flip on **👁 PLAYER VIEW** any time to see the table through their eyes — an
 
 ## Cheat sheet
 
-| Shortcut | Effect |
-| --- | --- |
-| **Esc** | Cancel drag → close wheel → leave map-edit |
-| **Ctrl/Cmd+Z / Ctrl/Cmd+Y** | Undo / redo map edits |
-| **Right-click** | Quick wheel |
-| **R / Shift+R** | Rotate pending stamp ±15° (Place/Scatter/Row) |
-| **Alt + click** (Place) | Free stamp, unsnapped, rotated |
-| **Ctrl/Cmd + click** | Eyedropper — sample asset or terrain |
-| **Alt + click a door** | Cycle lock / reveal secret (at the table) |
+| Shortcut                    | Effect                                        |
+| --------------------------- | --------------------------------------------- |
+| **Esc**                     | Cancel drag → close wheel → leave map-edit    |
+| **Ctrl/Cmd+Z / Ctrl/Cmd+Y** | Undo / redo map edits                         |
+| **Right-click**             | Quick wheel                                   |
+| **R / Shift+R**             | Rotate pending stamp ±15° (Place/Scatter/Row) |
+| **Alt + click** (Place)     | Free stamp, unsnapped, rotated                |
+| **Ctrl/Cmd + click**        | Eyedropper — sample asset or terrain          |
+| **Alt + click a door**      | Cycle lock / reveal secret (at the table)     |
+
+## On a phone or tablet
+
+The editor is not desktop-only. On a touch layout it is a **mode**: the dock at the bottom of the screen is replaced by the palette, and nothing covers the map.
+
+**Getting in:** **DM** (dock slot five) → **🏗️ Edit the live map**. The DM screen closes itself on the way — the mode needs the whole canvas, so it will not sit behind the menu you just used.
+
+The dock becomes five slots:
+
+| Slot                | What it does                                                                                                                                                                            |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **✕ Exit**          | Leaves the mode. The map stays live.                                                                                                                                                    |
+| **⚒ Tool**         | Opens the sheet: **▶ Start live map** before you have one, then **🏠 Room**, **▬ Wall** and **◇ Recenter**. Picking a tool closes the sheet, because you picked it in order to use it. |
+| **↶ Undo / ↷ Redo** | The same map-edit history the desktop palette drives. Both stay greyed until the map is live.                                                                                           |
+| **⨯ Cancel**        | Abandons the drag in progress.                                                                                                                                                          |
+
+**Room and Wall are the two tools here**, and both are a drag: press, move, lift. The rest of the toolbox (doors, terrain, place, generate) is still desktop-only.
+
+Two things behave differently from a mouse, and both are worth knowing before your first drag:
+
+- **Lifting your finger commits.** There is no Escape key, which is what **⨯ CANCEL** is for — press it with a second finger while the first is still down, and the release lands nothing.
+- **A second finger always means the camera.** Reach for a pinch mid-drag and the drag is _discarded_, not committed — you wanted to zoom, not to stamp a half-built room on the table.
+
+**Start live map** is the same button as on desktop and creates the same document, so a map begun on a tablet opens on a laptop and the other way round. Rotating the device, or resizing a window across the phone/desktop boundary, keeps the mode armed and simply swaps which palette you get.
