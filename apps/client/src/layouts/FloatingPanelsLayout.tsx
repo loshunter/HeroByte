@@ -119,7 +119,7 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
           // the same exposure — a chunk that 404s (a deploy mid-session
           // invalidating hashed names) throws during render, and without this
           // it reaches the app root and replaces the whole table.
-          <ErrorBoundary fallback={(retry) => <DMMenuLoadFailure retry={retry} />}>
+          <ErrorBoundary fallback={<DMMenuLoadFailure />}>
             {/* Not `null`: elevating to DM fires a success toast and then,
                 while the chunk downloads, nothing visible happens at all —
                 which reads as the elevation having failed. */}

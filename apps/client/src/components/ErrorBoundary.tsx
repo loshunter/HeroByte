@@ -9,10 +9,15 @@ interface Props {
    * hashed chunk names mid-session — takes the whole table down with it, and
    * a table is a live shared thing you cannot just reload out from under.
    *
-   * Called with a retry that clears the boundary, so a transient failure can
-   * be re-attempted without losing the session.
+   * A plain node, NOT a render prop taking a retry. This boundary shipped with
+   * one and it was a lie for its only caller: React caches a lazy payload's
+   * REJECTION permanently (react 18.3.1, lazyInitializer re-runs the ctor only
+   * while `_status === Uninitialized`, and a rejected payload re-throws
+   * `_result` on every subsequent render). Clearing the boundary just renders
+   * the same rejected lazy and throws again. A fallback that cannot recover
+   * should not offer to.
    */
-  fallback?: (retry: () => void) => ReactNode;
+  fallback?: ReactNode;
 }
 
 interface State {
@@ -39,11 +44,9 @@ export class ErrorBoundary extends Component<Props, State> {
     });
   }
 
-  private retry = () => this.setState({ hasError: false, error: null, errorInfo: null });
-
   render() {
     if (this.state.hasError) {
-      if (this.props.fallback) return this.props.fallback(this.retry);
+      if (this.props.fallback) return this.props.fallback;
       return (
         <div
           style={{

@@ -136,7 +136,7 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
           {/* Local boundary: a failed chunk load costs the DM their menu, not
               the table. Without it the throw reaches the app root and replaces
               the whole session with a full-page error. */}
-          <ErrorBoundary fallback={(retry) => <DMMenuLoadFailure retry={retry} />}>
+          <ErrorBoundary fallback={<DMMenuLoadFailure />}>
             <Suspense
               fallback={
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
