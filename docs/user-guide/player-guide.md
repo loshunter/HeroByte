@@ -146,6 +146,17 @@ Your cursor becomes a pulsing ring; click to plant a ping — a colored burst wi
 
 ![A ping on the map, labeled with the player's name](img/pointer-ping.jpg)
 
+## Props (when your DM turns them on)
+
+If your DM ticks **Players can add props** in their menu, a **📦 PROPS** button appears at the bottom right (on a phone: **Tools → Props**). It turns any picture into a piece of the scene:
+
+- **Add a prop** — upload an image or paste a URL, give it a label, pick a size, press **+ ADD PROP**. It lands at the centre of your view; drag it into place. Generate a treasure chest in your favorite image tool and put it on the table while the DM describes the room — that's exactly what this is for.
+- **Scatter** — set **×N** before adding and that many copies land in a loose pile, numbered, each grabbable on its own.
+- **Reshape it** — the **🔄 Transform** tool puts scale and rotate handles on your props, the same handles drawings get.
+- **Yours are yours** — you can edit and delete only the props *you* created. The DM can adjust or remove anything.
+
+If the button isn't there, the table has props switched off — ask your DM.
+
 ## Voice chat
 
 Press the **🎤** on your own card and grant the browser's microphone permission. That's the whole setup:
