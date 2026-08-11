@@ -8,9 +8,16 @@ type DrawingToolbarProps = MainLayoutProps["drawingToolbarProps"];
 type DrawingProps = MainLayoutProps["drawingProps"];
 type PlayerActions = MainLayoutProps["playerActions"];
 
-// Mock child components
+// Mock child components. MapBoard's mock RECORDS its props: the mobile shell's
+// only job for map-edit is forwarding, so what it forwards is the behaviour.
+const mapBoardProps = vi.hoisted(() => ({
+  current: null as Record<string, unknown> | null,
+}));
 vi.mock("../../ui/MapBoard", () => ({
-  default: () => <div data-testid="map-board">MapBoard</div>,
+  default: (props: Record<string, unknown>) => {
+    mapBoardProps.current = props;
+    return <div data-testid="map-board">MapBoard</div>;
+  },
 }));
 
 vi.mock("../../components/ui/MapLoading", () => ({
@@ -269,6 +276,76 @@ describe("MobileLayout", () => {
   it("renders the MapBoard", async () => {
     render(<MobileLayout {...createDefaultProps()} />);
     expect(await screen.findByTestId("map-board")).toBeInTheDocument();
+  });
+
+  describe("map-edit forwarding", () => {
+    // The gap M4c closed was plumbing: every one of these was already computed
+    // on a mobile render and dropped on the floor. Nothing downstream can tell
+    // "never wired" from "wired and inert", so the forwarding IS the feature.
+    const MAP_EDIT_PROPS = [
+      "mapEditMode",
+      "mapEditActiveSubTool",
+      "mapEditFloorFamily",
+      "mapEditRoomWallFamily",
+      "mapEditSelectedAssetId",
+      "mapEditHallwayWidth",
+      "mapEditSplineKind",
+      "mapEditPopulateGhosts",
+      "mapEditWheelActions",
+      "mapEditSelectedElementId",
+      "mapEditController",
+      "mapEditWallsOverlayPinned",
+      "onMapEditRoomRejected",
+      "onMapEditRegionPlaced",
+      "onMapEditRegionDragged",
+      "onMapEditSelectElement",
+      "onMapEditSampleAsset",
+    ];
+
+    it("forwards the COMPLETE map-edit surface — a dropped line is a missing key", async () => {
+      // The M4b lesson, applied here: every one of these is OPTIONAL on
+      // MapBoard, so deleting a forward passes tsc, every unit suite and the
+      // full e2e while silently disarming a tool. Pinning the key set is what
+      // makes a drop red.
+      render(<MobileLayout {...createDefaultProps()} />);
+      await screen.findByTestId("map-board");
+
+      const received = Object.keys(mapBoardProps.current!).filter((key) =>
+        /^(mapEdit|onMapEdit)/.test(key),
+      );
+      expect(received.sort()).toEqual([...MAP_EDIT_PROPS].sort());
+    });
+
+    it("forwards them by IDENTITY, and the controller un-gated on isDM", async () => {
+      const props = createDefaultProps();
+      props.isDM = false;
+      props.mapEditMode = true;
+      props.mapEditActiveSubTool = "room";
+      props.mapStudio = {
+        marker: "the-one-controller",
+      } as unknown as MainLayoutProps["mapStudio"];
+      render(<MobileLayout {...props} />);
+      await screen.findByTestId("map-board");
+      const received = mapBoardProps.current!;
+
+      // Desktop passes the controller at CenterCanvasLayout with no isDM gate
+      // because the SERVER gates the commands. Two authorization stories is
+      // how a client-only gate ends up mistaken for a real one.
+      expect(received.mapEditController).toBe(props.mapStudio);
+      expect(received.mapEditMode).toBe(true);
+      expect(received.mapEditActiveSubTool).toBe("room");
+      expect(received.onMapEditRegionPlaced).toBe(props.onMapEditRegionPlaced);
+      expect(received.onMapEditRoomRejected).toBe(props.onMapEditRoomRejected);
+      expect(received.onMapEditSelectElement).toBe(props.onMapEditSelectElement);
+      expect(received.onMapEditSampleAsset).toBe(props.onMapEditSampleAsset);
+      expect(received.onMapEditRegionDragged).toBe(props.onMapEditRegionDragged);
+    });
+
+    it("does NOT forward mapEditToolbarProps — that feeds the palette, not the canvas", async () => {
+      render(<MobileLayout {...createDefaultProps()} />);
+      await screen.findByTestId("map-board");
+      expect(mapBoardProps.current).not.toHaveProperty("mapEditToolbarProps");
+    });
   });
 
   it("renders turn controls when combat is active", () => {

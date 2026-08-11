@@ -81,8 +81,30 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     viewingRoll,
     handleViewRoll,
 
-    // Map-edit (the machine's orthogonal axis)
+    // Map-edit (the machine's orthogonal axis). Every one of these was already
+    // computed on every mobile render and dropped on the floor — the gap was
+    // plumbing, not data. mapEditToolbarProps is deliberately NOT here: it
+    // feeds the palette, not the canvas.
     mapEditMode,
+    mapEditActiveSubTool,
+    mapEditFloorFamily,
+    mapEditRoomWallFamily,
+    mapEditSelectedAssetId,
+    mapEditHallwayWidth,
+    mapEditSplineKind,
+    mapEditPopulateGhosts,
+    mapEditWheelActions,
+    mapEditSelectedElementId,
+    mapEditWallsOverlayPinned,
+    onMapEditRoomRejected,
+    onMapEditRegionPlaced,
+    onMapEditRegionDragged,
+    onMapEditSelectElement,
+    onMapEditSampleAsset,
+    // The controller itself. Desktop passes it un-gated on isDM
+    // (CenterCanvasLayout) because the SERVER gates the commands; matching
+    // that here keeps one authorization story rather than two.
+    mapStudio,
 
     // WebSocket
     sendMessage,
@@ -129,6 +151,23 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             drawMode={drawMode}
             transformMode={transformMode}
             selectMode={selectMode}
+            mapEditMode={mapEditMode}
+            mapEditActiveSubTool={mapEditActiveSubTool}
+            mapEditFloorFamily={mapEditFloorFamily}
+            mapEditRoomWallFamily={mapEditRoomWallFamily}
+            mapEditSelectedAssetId={mapEditSelectedAssetId}
+            mapEditHallwayWidth={mapEditHallwayWidth}
+            mapEditSplineKind={mapEditSplineKind}
+            mapEditPopulateGhosts={mapEditPopulateGhosts}
+            mapEditWheelActions={mapEditWheelActions}
+            mapEditSelectedElementId={mapEditSelectedElementId}
+            mapEditController={mapStudio}
+            mapEditWallsOverlayPinned={mapEditWallsOverlayPinned}
+            onMapEditRoomRejected={onMapEditRoomRejected}
+            onMapEditRegionPlaced={onMapEditRegionPlaced}
+            onMapEditRegionDragged={onMapEditRegionDragged}
+            onMapEditSelectElement={onMapEditSelectElement}
+            onMapEditSampleAsset={onMapEditSampleAsset}
             isDM={isDM}
             alignmentMode={alignmentMode}
             alignmentPoints={alignmentPoints}
