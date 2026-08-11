@@ -357,6 +357,10 @@ describe("MessageRouter - Error Handling Characterization", () => {
         {
           msg: { t: "grid-size", size: 60 },
           mockSetup: () => {
+            // The DM gate now sits BEFORE the service (grid-size was one of
+            // the three UI-gated-only messages); elevate so the throw stays
+            // reachable and error capture is what this exercises.
+            mockState.players[0].isDM = true;
             mockMapService.setGridSize = vi.fn(() => {
               throw new Error("Grid error");
             });

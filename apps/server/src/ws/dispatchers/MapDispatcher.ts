@@ -26,15 +26,17 @@ export class MapDispatcher {
     const isDM = context.isDM();
 
     switch (message.t) {
-      // Map Handler
+      // Map Handler. All three of these were UI-gated only — any player's
+      // socket could wipe the background or rewrite the grid every vision and
+      // measurement computation reads (the update-character-hp defect shape).
       case "map-background":
-        return this.mapHandler.handleMapBackground(state, message.data);
+        return this.mapHandler.handleMapBackground(state, message.data, isDM);
 
       case "grid-size":
-        return this.mapHandler.handleGridSize(state, message.size);
+        return this.mapHandler.handleGridSize(state, message.size, isDM);
 
       case "grid-square-size":
-        return this.mapHandler.handleGridSquareSize(state, message.size);
+        return this.mapHandler.handleGridSquareSize(state, message.size, isDM);
 
       case "set-player-staging-zone":
         return this.mapHandler.handleSetPlayerStagingZone(state, senderUid, message.zone, isDM);

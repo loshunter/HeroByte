@@ -43,43 +43,66 @@ export class MapMessageHandler {
   }
 
   /**
-   * Handle map-background message
+   * Handle map-background message (DM only)
    *
-   * Sets the background image for the map.
+   * Sets the background image for the map. The DM gate lives HERE, not just
+   * in the client: the background control renders only in the DM menu, but a
+   * crafted frame reaches this handler with no UI in the way, and it would
+   * replace the table's map for everyone.
    *
    * @param state - Current room state
    * @param background - Background image URL or null to clear
+   * @param isDM - Whether sender is DM
    * @returns Result indicating if broadcast/save is needed
    */
-  handleMapBackground(state: RoomState, background: string | null): MapMessageResult {
+  handleMapBackground(
+    state: RoomState,
+    background: string | null,
+    isDM: boolean,
+  ): MapMessageResult {
+    // Same silent-refusal shape as the staging zone below.
+    if (!isDM) {
+      return { broadcast: false, save: false };
+    }
     this.mapService.setBackground(state, background);
     return { broadcast: true, save: false };
   }
 
   /**
-   * Handle grid-size message
+   * Handle grid-size message (DM only)
    *
-   * Sets the size of the grid in pixels.
+   * Sets the size of the grid in pixels — the lattice every vision,
+   * measurement, and movement computation reads, which is why a player
+   * socket must not be able to rewrite it.
    *
    * @param state - Current room state
    * @param size - Grid size in pixels
+   * @param isDM - Whether sender is DM
    * @returns Result indicating if broadcast/save is needed
    */
-  handleGridSize(state: RoomState, size: number): MapMessageResult {
+  handleGridSize(state: RoomState, size: number, isDM: boolean): MapMessageResult {
+    if (!isDM) {
+      return { broadcast: false, save: false };
+    }
     this.mapService.setGridSize(state, size);
     return { broadcast: true, save: false };
   }
 
   /**
-   * Handle grid-square-size message
+   * Handle grid-square-size message (DM only)
    *
-   * Sets the size of each grid square in feet.
+   * Sets the size of each grid square in feet — the feet-per-cell every
+   * distance in the room is quoted in.
    *
    * @param state - Current room state
    * @param size - Grid square size in feet
+   * @param isDM - Whether sender is DM
    * @returns Result indicating if broadcast/save is needed
    */
-  handleGridSquareSize(state: RoomState, size: number): MapMessageResult {
+  handleGridSquareSize(state: RoomState, size: number, isDM: boolean): MapMessageResult {
+    if (!isDM) {
+      return { broadcast: false, save: false };
+    }
     this.mapService.setGridSquareSize(state, size);
     return { broadcast: true, save: false };
   }

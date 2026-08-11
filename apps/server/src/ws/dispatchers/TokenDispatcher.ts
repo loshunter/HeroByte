@@ -51,7 +51,7 @@ export class TokenDispatcher {
         );
 
       case "set-token-size":
-        return this.handler.handleSetSize(state, message.tokenId, senderUid, message.size);
+        return this.handler.handleSetSize(state, message.tokenId, senderUid, message.size, isDM);
 
       case "set-token-color":
         return this.handler.handleSetColor(state, message.tokenId, senderUid, message.color, isDM);
@@ -60,7 +60,13 @@ export class TokenDispatcher {
         return this.handler.handleSetVisionRadius(state, message.tokenId, message.radius, isDM);
 
       case "link-token":
-        return this.handler.handleLinkToken(state, message.characterId, message.tokenId);
+        return this.handler.handleLinkToken(
+          state,
+          message.characterId,
+          message.tokenId,
+          senderUid,
+          isDM,
+        );
 
       case "clear-all-tokens":
         return (

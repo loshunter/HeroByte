@@ -58,7 +58,7 @@ describe("MapMessageHandler", () => {
 
   describe("handleMapBackground", () => {
     it("should set map background", () => {
-      const result = handler.handleMapBackground(state, "https://example.com/map.jpg");
+      const result = handler.handleMapBackground(state, "https://example.com/map.jpg", true);
 
       expect(result.broadcast).toBe(true);
       expect(result.save).toBe(false);
@@ -71,17 +71,26 @@ describe("MapMessageHandler", () => {
     it("should allow clearing map background", () => {
       state.mapBackground = "https://example.com/old.jpg";
 
-      const result = handler.handleMapBackground(state, null);
+      const result = handler.handleMapBackground(state, null, true);
 
       expect(result.broadcast).toBe(true);
       expect(result.save).toBe(false);
       expect(mockMapService.setBackground).toHaveBeenCalledWith(state, null);
     });
+
+    it("refuses a non-DM replacing or wiping the table's background", () => {
+      // The control renders only in the DM menu, but a crafted frame reaches
+      // this handler with no UI in the way — the update-character-hp shape.
+      const result = handler.handleMapBackground(state, null, false);
+
+      expect(result).toEqual({ broadcast: false, save: false });
+      expect(mockMapService.setBackground).not.toHaveBeenCalled();
+    });
   });
 
   describe("handleGridSize", () => {
     it("should set grid size", () => {
-      const result = handler.handleGridSize(state, 100);
+      const result = handler.handleGridSize(state, 100, true);
 
       expect(result.broadcast).toBe(true);
       expect(result.save).toBe(false);
@@ -91,17 +100,24 @@ describe("MapMessageHandler", () => {
     it("should allow changing grid size", () => {
       state.gridSize = 50;
 
-      const result = handler.handleGridSize(state, 75);
+      const result = handler.handleGridSize(state, 75, true);
 
       expect(result.broadcast).toBe(true);
       expect(result.save).toBe(false);
       expect(mockMapService.setGridSize).toHaveBeenCalledWith(state, 75);
     });
+
+    it("refuses a non-DM rewriting the lattice every measurement reads", () => {
+      const result = handler.handleGridSize(state, 9999, false);
+
+      expect(result).toEqual({ broadcast: false, save: false });
+      expect(mockMapService.setGridSize).not.toHaveBeenCalled();
+    });
   });
 
   describe("handleGridSquareSize", () => {
     it("should set grid square size", () => {
-      const result = handler.handleGridSquareSize(state, 10);
+      const result = handler.handleGridSquareSize(state, 10, true);
 
       expect(result.broadcast).toBe(true);
       expect(result.save).toBe(false);
@@ -111,11 +127,18 @@ describe("MapMessageHandler", () => {
     it("should allow changing grid square size", () => {
       state.gridSquareSize = 5;
 
-      const result = handler.handleGridSquareSize(state, 15);
+      const result = handler.handleGridSquareSize(state, 15, true);
 
       expect(result.broadcast).toBe(true);
       expect(result.save).toBe(false);
       expect(mockMapService.setGridSquareSize).toHaveBeenCalledWith(state, 15);
+    });
+
+    it("refuses a non-DM changing the feet-per-square", () => {
+      const result = handler.handleGridSquareSize(state, 500, false);
+
+      expect(result).toEqual({ broadcast: false, save: false });
+      expect(mockMapService.setGridSquareSize).not.toHaveBeenCalled();
     });
   });
 
