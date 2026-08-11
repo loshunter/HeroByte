@@ -1420,6 +1420,23 @@ h4 {
   gap: 4px;
 }
 
+/* The map-edit palette's START LIVE MAP: one action, not a grid cell, so it
+   spans the sheet rather than sitting in a lone 1-of-4 column. */
+.mobile-tool-sheet__button--wide {
+  width: 100%;
+}
+
+/* Prose inside a sheet — the live-map explainer and the controller's errors.
+   Body copy has permission to leave Press Start 2P (ux-cleanup decisions), and
+   a sentence set in the pixel font at this width is unreadable. */
+.mobile-tool-sheet__note {
+  margin: 0 0 8px;
+  color: var(--hero-text-light);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
 /*
  * The manual on a phone. Its anchor, its cap and its scrolling all come from
  * the shared sheet contract above. It used to carry a z-index above the shared
@@ -1765,6 +1782,14 @@ h4 {
   font-size: 18px;
   line-height: 1;
   touch-action: manipulation;
+}
+
+/* An action a Screen offers that LEAVES the screen (today: arming map-edit).
+   Full width and flush to the top of the body so it reads as the screen's own
+   verb rather than as part of whatever panel follows it. */
+.mobile-screen__action {
+  width: 100%;
+  margin-bottom: 12px;
 }
 
 /* Body copy has permission to leave Press Start 2P (ux-cleanup); a Screen's

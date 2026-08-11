@@ -119,6 +119,18 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
           and the same guard is what the desktop's auto-close effect does. */}
       {surface === "dm" && props.isDM && (
         <MobileScreen title="DM Menu" surface="dm" onClose={closeSurface}>
+          {/* The one way into map-edit on a phone. It lives HERE rather than
+              in the tool sheet because the mode is DM-only and this screen is
+              already the DM gate — and because arming it closes this screen
+              by itself (useMobileSurface), which is the behaviour a Mode
+              needs: nothing may cover the map. */}
+          <button
+            type="button"
+            className="mobile-chip mobile-screen__action"
+            onClick={() => props.setActiveTool("map-edit")}
+          >
+            🏗️ Edit the live map
+          </button>
           <Suspense
             fallback={
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>

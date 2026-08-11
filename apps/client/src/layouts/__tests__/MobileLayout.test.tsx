@@ -300,6 +300,9 @@ describe("MobileLayout", () => {
       "onMapEditRegionDragged",
       "onMapEditSelectElement",
       "onMapEditSampleAsset",
+      // Not from the bag — MobileLayout's own counter, because the dock and
+      // the canvas are siblings and a finger has no Escape key.
+      "mapEditCancelSignal",
     ];
 
     it("forwards the COMPLETE map-edit surface — a dropped line is a missing key", async () => {

@@ -8,6 +8,8 @@
 import React from "react";
 import type { ToolMode } from "./Header";
 import type { MobileSurface } from "../../hooks/useMobileSurface";
+import type { MapEditToolbarProps } from "../../features/map-edit/mapEditTypes";
+import { MobileMapEditPalette } from "./MobileMapEditPalette";
 
 interface MobileFloatingControlsProps {
   surface: MobileSurface;
@@ -19,6 +21,10 @@ interface MobileFloatingControlsProps {
   snapToGrid: boolean;
   /** Slot five is contextual: `DM` for a DM, `View` (reset camera) otherwise. */
   isDM: boolean;
+  /** Map-edit armed — the dock is REPLACED by the palette (redesign §1). */
+  mode: boolean;
+  mapEditToolbarProps: MapEditToolbarProps;
+  onCancelMapEditDrag: () => void;
 }
 
 export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
@@ -30,8 +36,26 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
   activeTool,
   snapToGrid,
   isDM,
+  mode,
+  mapEditToolbarProps,
+  onCancelMapEditDrag,
 }) => {
   const toolsOpen = surface === "tools";
+
+  // A Mode re-purposes the dock rather than stacking on it, so this is a
+  // replacement and not a branch inside the nav below: five slots, all
+  // different, and none of the player-facing surfaces reachable while armed.
+  if (mode) {
+    return (
+      <MobileMapEditPalette
+        toolbar={mapEditToolbarProps}
+        toolsOpen={toolsOpen}
+        onToggleTools={() => onToggleSurface("tools")}
+        onCancelDrag={onCancelMapEditDrag}
+        onResetCamera={onResetCamera}
+      />
+    );
+  }
 
   // Recenter lives in the sheet so a DM — whose dock slot five is `DM`, not
   // `View` — still has reset-camera. Closing the sheet on tap is the point:

@@ -21,8 +21,27 @@ import { describe, expect, it, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
 import { MobileFloatingControls } from "../MobileFloatingControls";
 import type { MobileSurface } from "../../../hooks/useMobileSurface";
+import type { MapEditToolbarProps } from "../../../features/map-edit/mapEditTypes";
 
 afterEach(() => cleanup());
+
+/** Only the fields the mobile palette reads; the rest of the 40-prop toolbar
+ *  bag belongs to the desktop window and would be noise here. */
+export const createToolbarProps = (overrides: Record<string, unknown> = {}) =>
+  ({
+    isLive: false,
+    busy: false,
+    activeSubTool: "wall",
+    onSelectSubTool: vi.fn(),
+    canUndo: false,
+    canRedo: false,
+    onUndo: vi.fn(),
+    onRedo: vi.fn(),
+    onStartLiveMap: vi.fn(),
+    onClose: vi.fn(),
+    error: null,
+    ...overrides,
+  }) as unknown as MapEditToolbarProps;
 
 const createProps = (overrides: Record<string, unknown> = {}) => ({
   surface: "none" as MobileSurface,
@@ -33,6 +52,9 @@ const createProps = (overrides: Record<string, unknown> = {}) => ({
   activeTool: null,
   snapToGrid: false,
   isDM: false,
+  mode: false,
+  mapEditToolbarProps: createToolbarProps(),
+  onCancelMapEditDrag: vi.fn(),
   ...overrides,
 });
 

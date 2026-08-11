@@ -8,7 +8,7 @@
  * of callbacks — and the surfaces themselves render in MobileSurfaces.
  */
 
-import React, { Suspense, useCallback } from "react";
+import React, { Suspense, useCallback, useReducer } from "react";
 import type { MainLayoutProps } from "./props/MainLayoutProps";
 import { MapLoading } from "../components/ui/MapLoading";
 import { MobileResultOverlay } from "../components/dice/MobileResultOverlay";
@@ -101,6 +101,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     onMapEditRegionDragged,
     onMapEditSelectElement,
     onMapEditSampleAsset,
+    mapEditToolbarProps,
     // The controller itself. Desktop passes it un-gated on isDM
     // (CenterCanvasLayout) because the SERVER gates the commands; matching
     // that here keeps one authorization story rather than two.
@@ -122,6 +123,12 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
   // surfaces, so they yield while either occupies it: same anchor, same
   // z-index, and stacking them is the bug S8 shipped.
   const sheetSlotOccupied = surface === "tools" || surface === "help";
+
+  // The dock's Cancel and the canvas are SIBLINGS, so the abort travels as a
+  // counter rather than a callback (useMapEditCancel explains the mechanism).
+  // Mobile-local on purpose: desktop has Escape, and threading this through
+  // MainLayoutProps would put a mobile affordance in four layout fixtures.
+  const [mapEditCancelSignal, cancelMapEditDrag] = useReducer((n: number) => n + 1, 0);
 
   const selectedObjectCount = selectedObjectIds.length || (selectedObjectId ? 1 : 0);
 
@@ -168,6 +175,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             onMapEditRegionDragged={onMapEditRegionDragged}
             onMapEditSelectElement={onMapEditSelectElement}
             onMapEditSampleAsset={onMapEditSampleAsset}
+            mapEditCancelSignal={mapEditCancelSignal}
             isDM={isDM}
             alignmentMode={alignmentMode}
             alignmentPoints={alignmentPoints}
@@ -208,6 +216,9 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
         activeTool={activeTool}
         snapToGrid={snapToGrid}
         isDM={isDM}
+        mode={machine.mode}
+        mapEditToolbarProps={mapEditToolbarProps}
+        onCancelMapEditDrag={cancelMapEditDrag}
       />
 
       {selectedObjectCount > 0 && (transformMode || selectMode) && !sheetSlotOccupied && (

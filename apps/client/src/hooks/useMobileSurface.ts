@@ -7,7 +7,7 @@
 // underneath the tool sheet: a third surface joined a split that only two
 // parties knew about.
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /** Every surface the mobile shell can present. At most one is open at a time. */
 export type MobileSurface = "none" | "party" | "tools" | "dice" | "log" | "help" | "dm";
@@ -25,7 +25,7 @@ export interface UseMobileSurfaceOptions {
   toggleRollLog: (open: boolean) => void;
   // Map-edit is the ORTHOGONAL axis (redesign §1): a Mode re-purposes the dock
   // and never occupies the surface slot. It is already App-level state, so it
-  // is passed through, not duplicated. M4c wires the behaviour.
+  // is passed through, not duplicated.
   mapEditMode: boolean;
 }
 
@@ -70,6 +70,27 @@ export function useMobileSurface(options: UseMobileSurfaceOptions): MobileSurfac
   );
 
   const closeSurface = useCallback(() => openSurface("none"), [openSurface]);
+
+  // CROSSING THE MODE BOUNDARY CLEARS THE SURFACE.
+  //
+  // A Mode is defined by the map being fully visible, and the DM arms map-edit
+  // FROM the DM screen — a full-height opaque cover. Without this, the mode
+  // would arm behind it and the first thing the DM saw would be the menu they
+  // were already looking at. Leaving clears too, so Exit never drops you back
+  // into a sheet you opened three taps ago.
+  //
+  // Latched on the EDGE through refs so the effect depends on the mode alone.
+  // Depending on closeSurface would re-fire whenever its identity changed —
+  // which it does whenever the dice/log props move — and close a sheet the DM
+  // had just opened.
+  const closeRef = useRef(closeSurface);
+  closeRef.current = closeSurface;
+  const previousMode = useRef(mapEditMode);
+  useEffect(() => {
+    if (previousMode.current === mapEditMode) return;
+    previousMode.current = mapEditMode;
+    closeRef.current();
+  }, [mapEditMode]);
 
   return { surface, mode: mapEditMode, openSurface, toggleSurface, closeSurface };
 }
