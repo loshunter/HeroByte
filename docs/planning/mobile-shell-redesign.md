@@ -227,8 +227,23 @@ most:**
   consistent with a visible Undo. Encoded as a spec with no `?mobile` parameter, and
   sabotage-proven against the road not taken.
 
-Baselines: e2e **121 passed / 0 failed / 3 skipped**, bundle **98.05 KB**, client 44
-batches, shared 414, server 2057.
+**Then its adversarial review found three defects in it** (41 agents, `agents_error: 0`; 17 raw,
+8 survivors collapsing to 3), all in code this slice had just shipped, plus a fourth found by
+closing the critic's gap:
+
+- the de-elevation guard read `isDM`, which is DERIVED from the snapshot — and **any** socket close
+  nulls the snapshot while the app stays mounted, so a phone locking its screen dropped the DM out
+  of map-edit and left them out after the reconnect;
+- `needsTheMap = mapEditMode || alignmentMode` has no RISING edge when alignment is already armed,
+  so map-edit could still arm behind the DM screen — by the one path the edge could not see;
+- the chunk-failure panel's "Try again" could never work: React caches a lazy payload's REJECTION
+  permanently (verified against the installed react 18.3.1, not the docs);
+- and the **⨯ ABORT button did nothing in the one case it exists for** — Chromium generates no
+  compat click for a second finger during an active multi-touch sequence, so an `onClick` abort
+  never fired during the drag it was there to abandon. It fires on `pointerdown` now.
+
+Baselines after the fixes: e2e **122 passed / 0 failed / 3 skipped**, bundle **98.13 KB**, client
+44 batches, shared 414, server 2057.
 
 The arc doc's original M4, minus the shell work M4a already did.
 

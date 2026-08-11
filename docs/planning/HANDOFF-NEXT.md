@@ -180,6 +180,45 @@ the extraction went first — `useMapEditDragPreview` (80) and `useMapEditCancel
 new files. `MobileLayout` 226 → 276, `MobileFloatingControls` 220 → 244, and the new
 `MobileMapEditPalette` is 176.
 
+**M4c's adversarial review ran CLEAN (2026-08-10, 41 agents, `agents_error: 0`,
+`agents_skipped: 0`, `agents_empty_result: 0`).** Six finder lenses, two skeptics per finding (one
+pure refuter, one asked to write the user's path to it), then a completeness critic. **17 raw
+findings, 8 survived, collapsing to 3 distinct defects** once the lenses that had reached the same
+bug independently were merged. All three were verified BY HAND against the source before being
+fixed, and all three were in code M4c itself had just shipped:
+
+```
+da53a370 fix(map-edit): a dropped socket looked exactly like losing DM
+e3bd751a fix(mobile): map-edit could arm behind the DM screen after all
+9b5f6091 fix(dm): the chunk-failure panel offered a retry that could never work
+ddcc4534 fix(mobile): the abort button did nothing in the one case it exists for
+```
+
+The worst was the first: the de-elevation guard read `isDM`, which is DERIVED from the snapshot,
+and **any** socket close nulls the snapshot while the app stays mounted — so a phone locking its
+screen dropped the DM out of map-edit and left them out after reconnecting. The last was not a
+review finding but what the critic's "the Abort button's path is never driven end to end" turned
+into once it WAS driven: **Chromium generates no compat click for a second finger during an active
+multi-touch sequence**, so an `onClick` abort could never fire during the drag it exists to
+abandon. That one is worth carrying forward as a general fact about touch UI here.
+
+**The critic's unexamined areas, recorded not cleared.** Two were closed by the fixes above (the
+abort's end-to-end path, and the uncommitted work then in the tree). The rest stand: the click and
+brush sub-tools remain reachable BY TAP on the mobile layout through the compat mouse path, and the
+resize-crossing rule deliberately carries them across; the terrain-discard half of the new cancel
+has no reachable caller in the shipped wiring (brushes are not armed for touch); a drag committed
+while a map-studio command is in flight is dropped silently and the mobile palette has no way to
+show it; the whole touch contract is verified on Chromium's CDP emulation only, because WebKit is
+not installed here or in CI; nothing in the slice touches focus, announcement or modal semantics
+for the new mode; and no lens considered a second DM at the same table now that Undo/Redo are on a
+phone dock.
+
+**One notable refutation, four lenses deep.** "A stray TAP with Room armed commits a 1×1 walled
+room" was raised by four independent finders and refuted every time, correctly: a one-cell room is
+the Room tool's minimum unit by design (`roomBoundsFromDrag` is inclusive, `buildRoomCommand`
+floors at 1), it is pre-existing desktop-mouse behaviour, and the `saving` gate means the touch and
+compat paths still produce exactly one. Do not re-file it.
+
 **M4c's traps, for whoever touches this next.** Four are worth carrying forward. (1) **Touch and the
 mouse path both reach the same tool handlers**, and a touch TAP generates compat mouse events while
 a touch DRAG does not — that asymmetry is why only the DRAG sub-tools are armed for touch, and it is
@@ -189,7 +228,19 @@ green with the whole Escape handler deleted. (3) **An edge latch tested only fro
 on is blind** — freezing both refs in `useMobileSurface` left every one of its tests green until one
 crossed the boundary from outside it. (4) **A prop whose consumer treats it as optional can be
 deleted silently**, which is M4b's lesson again: `MobileLayout`'s map-edit forwarding is pinned by a
-complete-key-set test for exactly that reason.
+complete-key-set test for exactly that reason. (5) **A boolean derived from the snapshot is FALSE
+during every reconnect**, not just when the server says so — `isDM` is the one that bit, and any
+new "the server told us X" guard needs to know the difference. (6) **A second finger gets no compat
+click**, so a control meant to be used mid-gesture must bind a pointer or touch event.
+
+**Baselines after the review fixes:** e2e **122 passed / 0 failed / 3 skipped**, bundle **98.13
+KB**, client 44 batches, shared 414, server 2057. One unrelated desktop flake was observed ONCE in
+nine full runs — `map-navigation.spec.ts › player can zoom in and out with mouse wheel` — and
+passed on retry; it is outside M4c's surface and was not diagnosed.
+
+**`useMapEditState.ts` is now 347 of the 348 ceiling** — it joins `characterValidators.ts` (348)
+and `useDMContext.ts` (347) on the list of files that need an extraction before they gain a single
+line.
 
 **M4a's adversarial review RAN 2026-08-10 and its verdict needs this caveat:** the four finder
 lenses completed (9 raw findings) but **all 11 verify/critic agents died on a session limit**, so
