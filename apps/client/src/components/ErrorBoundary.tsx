@@ -2,6 +2,22 @@ import React, { Component, ErrorInfo, ReactNode } from "react";
 
 interface Props {
   children: ReactNode;
+  /**
+   * What to show INSTEAD of the full-page error, for a boundary that guards
+   * one panel rather than the app. Without this every boundary is a total
+   * loss: a lazy chunk that 404s — the realistic case is a deploy invalidating
+   * hashed chunk names mid-session — takes the whole table down with it, and
+   * a table is a live shared thing you cannot just reload out from under.
+   *
+   * A plain node, NOT a render prop taking a retry. This boundary shipped with
+   * one and it was a lie for its only caller: React caches a lazy payload's
+   * REJECTION permanently (react 18.3.1, lazyInitializer re-runs the ctor only
+   * while `_status === Uninitialized`, and a rejected payload re-throws
+   * `_result` on every subsequent render). Clearing the boundary just renders
+   * the same rejected lazy and throws again. A fallback that cannot recover
+   * should not offer to.
+   */
+  fallback?: ReactNode;
 }
 
 interface State {
@@ -30,6 +46,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      if (this.props.fallback) return this.props.fallback;
       return (
         <div
           style={{

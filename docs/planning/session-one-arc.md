@@ -1,14 +1,20 @@
 # Session One — the table runs a whole game without leaving it
 
-**Status:** S0–S5 SHIPPED AND IN PRODUCTION (dev→main `0555ba35`, 2026-08-04; CI green on both
-branches, verified live on the public table). **S6 and S7 are on `dev` and NOT deployed.** Only S8
-remains. Four slices grew beyond plan under adversarial review: S3's reclaim became
+**Status: THE ARC IS COMPLETE.** S0–S7 are SHIPPED AND IN PRODUCTION (S0–S5 via dev→main
+`0555ba35`; S6+S7 via dev→main `5307d0dd`, 2026-08-05, verified live on the public table).
+**S8 is on `dev` and NOT deployed** — four commits, and the only one of the nine slices never
+put through an adversarial review, because the review errored on a usage limit before running.
+Read S8's own ⚠️ before merging it.
+
+Five slices grew beyond plan under adversarial review: S3's reclaim became
 condemn/resurrect/expire (grace-windowed deletion, `HEROBYTE_ASSET_RECLAIM_GRACE_HOURS`) and its
 quota fossil is now statfs-derived; S4 closed a pre-existing hole where any player could rewrite
 any character's HP; S5 turned out to require rewriting the roll display, because the log had been
 rendering a blank formula and no breakdown for every historical roll; S7 found its own DM control
 wired and unreachable on a phone, and turned out to make fog 95× FASTER on a large dungeon rather
-than slower. Runs before the damage loop, mobile authoring, and the Atlas.
+than slower; and S8's one-line shared constant stopped `pnpm dev` booting entirely while every
+suite stayed green, which turned into a structural rule about what the barrel may declare.
+Runs before the damage loop, mobile authoring, and the Atlas.
 
 **Thesis.** The hardest thing is built — live on-table authoring, server-compiled scenes with real
 wall collision, per-recipient fog filtering with contract-test proof. What is missing is the part
@@ -91,14 +97,30 @@ and you get `Error: No tests found`. Omit it.
   will not stop an already-flagged file from getting worse, and it keys on the exact repo path — so
   renaming a baselined file makes it a new violator.
 - `prettier --write` expands files. Re-check LOC after formatting.
+- **The gate cannot see a broken `pnpm dev`.** A runtime constant declared directly in
+  `packages/shared/src/index.ts` is erased from `dist/index.d.ts`, which is what the server's
+  tsconfig maps `@herobyte/shared` to and what tsx honors at runtime — so the server dies on
+  import while every unit suite AND the full e2e suite pass, because they resolve the package by
+  other routes. Constants the server imports must live in a sub-module and be re-exported
+  (`npcLimits.ts`, `drawingTypes.ts`, `wsCloseCodes.ts`).
+  `__tests__/barrelValueExports.test.ts` now enforces this. If you add a shared constant, **boot
+  the dev server once** — that is the only check that exercises the path.
 - On Windows (the owner's environment) `kill -9` does not exist — use `Stop-Process -Force` or the
   repo's `kill-windows-port.bat`.
 
-**Known-failing on `dev`, pre-existing, NOT yours.** `apps/e2e/comprehensive-mvp.spec.ts:33`
-"Authentication Flow" — and note this is a **wrong test**, not an app defect: it asserts the
-password field clears after a rejected attempt, which the gate does not do by design. It is not in
-the 4-spec CI smoke set. `shadowTint.test.ts` and `staging-zone-visual.spec.ts` are load-flaky;
-both pass in isolation.
+**Known-failing on `dev`, pre-existing, NOT yours.** `shadowTint.test.ts` and
+`staging-zone-visual.spec.ts` are load-flaky; both pass in isolation.
+
+~~`apps/e2e/comprehensive-mvp.spec.ts:33` "Authentication Flow"~~ — **fixed 2026-08-05.** It was a
+wrong test, not an app defect: it asserted the password field clears after a rejected attempt,
+which the gate does not do by design. The assertion now matches the gate — the field *keeps* what
+was typed, and the rejection shows up as the server's "Invalid table password" under the field.
+Because this spec is outside the 4-spec smoke set, it failed only in the nightly `e2e-full-suite`,
+which it was the sole cause of reddening (runs #744/#748/#756 on `main`) — so the nightly badge
+had stopped carrying information.
+
+**E2E baseline on `dev` after S8:** 97 passed / 0 failed / 3 skipped (was 83 before S8's 14 new
+specs). Read the summary line from `--reporter=list`; the human-readable reporter miscounts.
 
 **CI** (`.github/workflows/ci.yml`, every push/PR to `dev` and `main`): lint → format:check →
 structure guard → build → typecheck → bundle size, then unit tests on Node 18 and 20, then a 4-spec
@@ -118,7 +140,7 @@ All verified in code.
 | D6  | **A 5-minute lid-close deletes your tokens** — and the same call passes `removePlayer: true`. NPC tokens are owned by the placing DM's uid, so a DM timeout can take the monsters with it                                                                                                                     | `HeartbeatTimeoutManager.ts`                                                   |
 | D7  | Rate limiting is keyed on a **client-supplied uid** and there is no per-IP logic. The limiter lives in `MessagePipelineManager` (constructed in `container.ts`); `ConnectionLifecycleManager` is only where the uid is read from the query string. Auth runs a sync ~30ms `scryptSync` on the one Node thread | `MessagePipelineManager.ts`, `ConnectionLifecycleManager.ts`, `authCrypto.ts`  |
 | D8  | **No player-facing image upload.** Exactly ONE file input in the whole client picks an image and pushes it through `/assets` (`MapEditAssetPicker`, DM-only). The other three are JSON. The `/assets` pipeline itself is built, room-credential gated, MIME-sniffed, quota'd and rate-limited                 | `apps/server/src/http/routes.ts`, `features/map-studio/uploads/assetUpload.ts` |
-| D9  | Tokens have **no name and no persistent HP**                                                                                                                                                                                                                                                                  | `TokensLayer.tsx`                                                              |
+| D9  | ~~Tokens have **no name and no persistent HP**~~ FIXED in S4; S8 made the NAMES distinguishable in bulk                                                                                                                                                                                                                                                                 | `TokensLayer.tsx`                                                              |
 | D10 | ~~Vision has **no radius**; fog has **no memory**~~ FIXED in S7                                                                                                                                                                                                                                               | `packages/shared/src/visibility.ts`, `FogLayer.tsx`                            |
 | D11 | ~~Measurement is **Euclidean** — a 2-square diagonal reads "2.8 Squares (14 ft)" where 5e says 10~~ FIXED in S6                                                                                                                                                                                               | `MeasureLayer.tsx`                                                             |
 
@@ -573,17 +595,91 @@ feature a DM probably wants anyway ("this dungeon is dark"), so it is the
 natural follow-up. Until then the escape requires deliberately destroying your
 own token, which a DM watching the table would see.
 
-### S8 🟢 — Staging an encounter, and finding the manual (2 days)
+### S8 ✅ — Staging an encounter, and finding the manual — SHIPPED
 
-Duplicate-NPC and add-×N (one loop over `create-npc`, auto-numbered). A `?` in the header opening
-an in-app help panel.
+**Five goblins take five inputs**, verified by an e2e that drives the real DM Menu with real
+clicks: open the menu, open the tab, type 5, press **+ ADD 5 NPCS**.
 
-**Done when.** Adding five goblins takes five inputs.
+**The count rides on ONE message and the server loops.** This was the slice's only real design
+call, and the client's existing machinery made it. `useNpcCreation` refuses to start a second
+create while one is in flight and only `console.warn`s about it, and it detects success by
+watching the character COUNT against a ref — so a naive `for (…) createNpc()` fires once and
+silently drops the rest, which would have presented as a flaky server rather than as a client
+bug. One message means one round trip, one broadcast, one state-file write, and a single count
+jump the existing watcher already handles. N messages would have meant rewriting that
+completion detection so a guard could tolerate exactly what it was built to prevent.
 
-**Trap.** `docs/user-guide/` is **outside** `apps/client`, which is what Cloudflare Pages builds,
-and its `img/` is ~4.7 MB. "Link into the guide" has no asset path today — either link out to the
-GitHub-hosted copy, or copy a subset into `apps/client/public` and accept the bundle cost. Decide
-before starting.
+**Naming continues rather than restarts.** Five goblins then three more gives Goblin 1–8, not
+two overlapping sets of 1–5 — handing back duplicates would defeat the entire point of telling
+Goblin 3 from Goblin 5. A single create whose name is free is left exactly as typed, so the
+plain **+ ADD NPC** button (which sends no count at all) behaves precisely as it always did.
+`domains/character/npcNaming.ts` owns the rule; the server owns it rather than the client so
+that two DMs adding goblins at the same moment cannot each number from the state they last saw.
+
+**Duplicate needed no new message.** The server already renumbers a colliding name, so a copy is
+just a `create-npc` whose base name is the original's, carrying its HP, portrait and token art.
+The DM gate is therefore untouched — `create-npc` already runs through `executeIfDMAuthorized`.
+Duplicating "Goblin 7" while "Goblin 8" exists gives 9, not "Goblin 7 2".
+
+**The count bound is load-bearing because the handler LOOPS on it**, and the RANGE is what
+enforces it: `Number.isInteger(1e308)` is true. Coverage lives in `validation.test.ts`, not a
+router test — `route()` runs after validation, so routing a malformed frame proves nothing.
+Creation also stops at the 500-character snapshot limit now: a room past it exports a session
+file that fails its own load validation, so the DM's backup quietly stops being a backup, and
+bulk creation is the first way to reach that by accident. Partial batches are deliberate.
+
+**The docs-asset question, answered:** curated in-app content, links out for the guides. The
+prose is authored as data in `features/help/helpTopics.ts` and costs 3.7 KB gzip
+(92.83 → 96.55 KB against a 175 KB cap). Bundling the guide markdown was priced first and
+rejected: `docs/user-guide/` is outside `apps/client`, its `img/` is **4.8 MB** across 36
+screenshots, and the client has no markdown renderer — so "bundle the guides" meant either a new
+runtime dependency or a hand-written renderer for one panel. Owner decision, 2026-08-05.
+
+**Two layout bugs, both found by measuring rather than reading.** The desktop popover was cut in
+half: the header is a fixed container at z-index 100, which makes it a stacking context, so a
+child cannot paint above the entities panel — a later sibling at the same z-index — however high
+its own z-index. `JuiceMenuButton` never notices because it is a few rows tall; a 500px manual
+lost its bottom half to a panel drawn over it. It is portalled to `document.body` now. And the
+mobile sheet ran off the TOP of a landscape phone: its height came from a vh fraction while its
+position came from the dock offset, and at 812×375 the shared 82vh cap plus a 102px offset made
+a 409px sheet in a 375px viewport, putting the ✕ that closes it 34px above the screen. Height is
+derived from that same offset now, so "it fits" is arithmetic. Its header is sticky for the same
+reason: the manual is long enough to scroll its close button away.
+
+**Mobile: the help panel ships one; bulk-add cannot.** Mobile renders `MobileLayout`, which never
+reaches `FloatingPanelsLayout` and therefore has **no DM Menu at all**. A mobile DM menu is in §6's
+NOT list, so add-×N and Duplicate are desktop-only by the arc's own scope, not by omission. The
+dock stayed at five buttons and a test now pins that rather than a comment.
+
+**Grew beyond plan — the shared barrel cannot declare a runtime const.** `NPC_CREATE_LIMITS` as a
+plain `export const` in `packages/shared/src/index.ts` meant `pnpm dev` **could not boot**, dying
+with `does not provide an export named NPC_CREATE_LIMITS` — while the shared, server, client AND
+full e2e suites were green, because each resolves the package by a route that skips the server's
+`dist/index.d.ts` path mapping, where a direct declaration is erased as an ambient type. Nothing
+in the verification gate can see this. `wsCloseCodes.ts` had documented the hazard in prose after
+hitting it first; prose did not stop it recurring, so there is now a test over the barrel's source
+text. That guard immediately found the next one: `DRAWING_TYPES` was still a direct `export const`
+with no importers — a trap rather than a break, since the first server import would have
+reproduced the same undebuggable failure. Both moved to sub-modules (`ad25f4a`… see
+`npcLimits.ts`, `drawingTypes.ts`).
+
+**Tests.** 15 on the naming rule, 11 on the handler loop and the ceiling, 7 validator cases, 8 on
+the hook's single-flight guard, 5 on duplicate, 12 driving the real NPCs tab, 13 on the help panel
+and its content, 8 on the mobile dock and sheet, and 14 e2e (4 desktop help, 5 mobile help across
+both orientations, 5 bulk-NPC). E2E went 83 → **97 passed / 0 failed / 3 skipped**.
+
+**42 sabotages, 41 red.** The one that stayed green is recorded in `npcNaming.ts`: a collision
+skip that is unreachable by construction — any existing `"base N"` would itself have contributed
+N to the maximum, so `next` is always past it. It is kept as a local invariant and documented,
+rather than deleted or given a test that only pretends to reach it.
+
+**Left for its own commit** (house rule): the barrel fix above, and a whitespace-only NPC name
+turning into no name at all (`" "` became `""`, a blank nameplate — the validator admits a
+one-character name, and it used to be stored verbatim).
+
+**⚠️ The adversarial review did NOT run.** All six lenses errored on the account's weekly usage
+limit before doing any work, and returned an empty findings list — which reads exactly like a
+clean bill of health and is not one. Nothing here has been through independent review. See §8.
 
 ## 6. Explicitly NOT in this arc
 
@@ -662,6 +758,13 @@ inspector, Generate's region aim) left tablet-and-up. That is a design stance, n
   each finding and drop what does not survive. On the mobile arc this turned 20 raw findings into 7
   real ones — every one in code already called done. On the first draft of _this document_ it found
   12 errors.
+- **A review that did not run returns the same shape as a clean one.** S7's first review died
+  partway and handed back a tidy list while two whole lenses had never executed; re-running them
+  found the worst bug in the slice. S8's review was worse — all six lenses errored on a usage limit
+  before doing any work, and the result was `{rawCount: 0, survived: []}`, which reads as "nothing
+  found". **Always check `agents_error` and the journal before believing a verdict**, and say
+  plainly when a lens never ran. An empty findings list is only evidence if the reviewers were
+  alive to produce it.
 - **Prove a test can fail.** Break the fix and watch it go red before trusting it. Two bugs in the
   mobile arc were found only this way; a third hid behind a test passing for the wrong reason.
 - **Measure in the browser; do not compute.** Layout arithmetic was directionally right and

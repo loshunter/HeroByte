@@ -2,7 +2,9 @@
 
 **Status:** audit complete (2026-07-31). **M1–M2 shipped plus B1/B4/B6/B8-partial, and marquee
 select** (2026-08-01) — drawing and rectangular select both work with a finger, **verified on a
-real iPhone** (see the device-pass note at the end). M4–M8 (map authoring) not started; see §4.
+real iPhone** (see the device-pass note at the end). **M3 shipped 2026-08-09** (four commits;
+B3/B4 had already been closed by other slices, and B5/B8 are now closed too — see §4 M3).
+M4–M8 (map authoring) not started; see §4.
 **Branch audited:** `dev`. Read-only; nothing in the original audit was run in a browser.
 
 **What the drawing branch settled that the audit could only flag as unknown:**
@@ -127,7 +129,10 @@ off the selection sheet** — and Clear is the stated recovery from B3.
 both scrollers. The spec's intersection walk arguably stops at the scroll container, so it may
 scroll fine — **one device check decides B4's severity and M3's scroll plan.**
 
-### B5 🟡 — The mobile roll log is a full-screen takeover with a 32px exit. **S**
+### B5 ✅ FIXED (M3) — The mobile roll log is a full-screen takeover with a 32px exit. **S**
+
+**It was 24px in landscape, not 32** — see §4 M3. The takeover itself is kept; the exit is now 44px
+with an accessible name, and the window paints above the bottom sheets instead of under them.
 
 `MobileLayout.tsx:326` wraps `RollLog`, which returns a `DraggableWindow`
 (`RollLog.tsx:255-266`). `DraggableWindow.tsx:68` sets `isMobile = innerWidth < 768` and
@@ -162,7 +167,7 @@ or OOM is demonstrated anywhere in the repo** — a confirmed no-op with an unme
 (sharper today, a memory risk on high-DPR devices). Note the comment at `MapBoard.tsx:140-142`
 argues for native-resolution rendering, not capping — the two intents were never reconciled.
 
-### B8 🟢 — Sub-11px functional text and missing safe-area insets on fixed chrome. **S**
+### B8 ✅ FIXED (M3 closed the remainder) — Sub-11px functional text and missing safe-area insets on fixed chrome. **S**
 
 V5's ≥11px floor landed only on the dock/tool-sheet group (`herobyte.css:1259-1260, :1413-1414`).
 Still under it: `.mobile-drawing-sheet__control` 0.58rem = 9.28px (`:1386`),
@@ -410,7 +415,76 @@ adding `shouldPan` — ungated pinch is correct and is the user's only escape to
 fires both a touch path and a mouse path you will double-commit — de-duplicate by gesture id, not
 by timing.
 
-### M3 🟢 — Mobile sheet shell repair (independent; pure layout)
+### M3 ✅ SHIPPED 2026-08-09 — Mobile sheet shell repair
+
+Four commits on `dev`: `7a333036` (dock height), `e6d896a7` (the sheet cap), `38039b96` (roll log),
+`9583a176` (the chrome pass). Guarded by `apps/e2e/mobile/mobile-shell.spec.ts` (8 tests, both orientations)
+plus `utils/__tests__/mobileLayout.test.ts`. Every number below was measured in a Pixel 7 context,
+not computed.
+
+**Half of this slice was already done when it started, and two of its six items were wrong.**
+B3 (the two sheets at the same slot) had been closed by the single-sheet arbitration in
+`MobileLayout` — both sheets carry `&& !showTools`. B4 (horizontal overflow) had been closed by
+turning both sheets into `auto-fit` wrapping grids. What remained:
+
+- **Item 6 was bigger than "a stale landscape value".** `--mobile-dock-height` is used as the whole
+  dock's height by every sheet's `bottom: calc(safe + dock + 22px)`, but under content-box it
+  described only the content: 68 declared against **86 rendered** portrait, **82** landscape. The
+  22px gap was really 4px. `box-sizing: border-box` scoped to `.mobile-action-dock` makes the
+  variable true; landscape overrides it to 62px on the ROOT (the sheets read it too). The
+  landscape `min-height: 40px` on the button was deleted rather than honoured — it had never taken
+  effect, and now that it could it would break the 44px floor.
+- **Item 2 was live in BOTH orientations, not just landscape.** Injecting 900px of filler put the
+  tool sheet's top at **-428px** portrait (no cap at all) and **-60px** landscape (82vh was too
+  large to intervene). The fix is the shared `--mobile-sheet-offset`, so anchor and cap are one
+  derivation, plus `border-box` — on a content box the 26px of padding and border land outside the
+  calc. The landscape `82vh` override is deleted, not moved: it was the rule the help sheet had
+  needed an exemption from, and a rule needing an exemption is the wrong rule. Sticky headers moved
+  out of their help-only scope for the same reason. Now: +48px top, scrolls, header stays.
+- **Item 4 (B5) was worse than recorded.** The close button was 32px portrait AND **24px
+  landscape**, because `DraggableWindow` decided "mobile" with its own `innerWidth < 768` while
+  `App.tsx` routes an 812x375 phone and a 1024px tablet into `MobileLayout`. Every landscape phone
+  and every tablet got the desktop window inside the phone shell. The rule now lives in
+  `utils/mobileLayout.ts` and both read it. The button also had **no accessible name at all**
+  ("×" is not one).
+- **Item 5 (B8) is closed on mobile, and deliberately NOT on desktop.** `ServerStatus` 8px→11px at
+  `var(--mobile-safe-top)`, `PublicTableNotice` chip 7px→11px stacked below it,
+  `TurnNavigationControls` 10px→11px, `Toast` anchored off the insets. These only started
+  mattering when S8 began rendering all three on mobile.
+
+  **The chip is still 7px on desktop, and that is now a recorded constraint rather than an
+  oversight.** It is `position: fixed` at z-index 199 with pointer-events on, centred in the same
+  band as the header, so its WIDTH decides what the header can still be clicked through. At 11px
+  the sentence measures 682px and covers the buttons: `elementFromPoint` at the centre of "Draw
+  Tools" returned the chip, and six specs in `ui-state.spec.ts` each sat out a full timeout. The
+  suite went from 3.5 minutes to over 25 with nothing in the output naming the chip. Presentation
+  therefore moved from inline styles to `.public-table-chip` in `herobyte.css`, with the phone
+  treatment scoped under `.mobile-layout-root`. **Making it readable on desktop needs it moved out
+  of the header band first — a design decision, not a font size.** Guarded by
+  `apps/e2e/public-table-chip.spec.ts`.
+
+**Three things found along the way**, each fixed in the commit whose blast radius it was: the
+`.mobile-roll-log-panel` wrapper painted an empty bordered box behind the window (it is not a sheet
+— its child is `position: fixed` and escapes it) and now does nothing but establish a stacking
+context, because the drawing sheet at z 1600 was painting across the log at 1100; and
+`ui-state.spec.ts`'s `getByRole("button", {name: /Log/i})` had matched one element only because the
+close button was anonymous.
+
+**Traps worth carrying into M4:**
+
+- **Sabotage the assertion, not just the code.** The first occlusion check hit-tested the roll log's
+  ✕ and stayed GREEN with the fix removed — the sheet covers the log's BODY, never its title bar.
+- **A `position: fixed` element has a null `offsetParent`.** A "find every element under 11px" sweep
+  built on `offsetParent !== null` skips exactly the fixed chrome it is looking for, and reports
+  clean while a 7px chip is on screen. Use `checkVisibility()`.
+- **content-box bites three times in this stylesheet** — the dock, the sheet cap, and the chip's
+  `maxWidth`. Assume it until measured.
+- **A CSS source-text test's line anchors need `\r?`.** Under CRLF a `(?<!,)\n` lookbehind matches
+  the wrong rule silently.
+
+---
+
+**Original plan below.**
 
 **Goal:** the existing sheets stop colliding, stop hiding their own buttons, and gain the scroll
 machinery any larger palette will need.

@@ -12,10 +12,13 @@
 // This is a pure composition component that arranges existing UI components
 // (JRPGPanel, JRPGButton, NPCEditor) without implementing business logic.
 
+import { useState } from "react";
 import type { Character, SnapshotCharacter } from "@herobyte/shared";
+import { NPC_CREATE_LIMITS } from "@herobyte/shared";
 import { JRPGButton, JRPGPanel } from "../../../../components/ui/JRPGPanel";
 import { NPCEditor } from "../NPCEditor";
 import { useBulkInitiativeRoll } from "../../../../hooks/useBulkInitiativeRoll";
+import type { CreateNpcRequest } from "../../hooks/useNpcCreation";
 
 /**
  * Props for the NPCsTab component
@@ -23,8 +26,10 @@ import { useBulkInitiativeRoll } from "../../../../hooks/useBulkInitiativeRoll";
 interface NPCsTabProps {
   /** Array of NPC characters to display */
   npcs: SnapshotCharacter[];
-  /** Callback to create a new NPC */
-  onCreateNPC: () => void;
+  /** Callback to create a new NPC (optionally several at once) */
+  onCreateNPC: (request?: CreateNpcRequest) => void;
+  /** Callback to copy an existing NPC's stats and art into a new one */
+  onDuplicateNPC: (id: string) => void;
   /** Callback to update an NPC's properties */
   onUpdateNPC: (id: string, updates: Partial<Character>) => void;
   /** Callback to place an NPC token on the map */
@@ -70,6 +75,7 @@ interface NPCsTabProps {
 export default function NPCsTab({
   npcs,
   onCreateNPC,
+  onDuplicateNPC,
   onUpdateNPC,
   onPlaceNPCToken,
   onDeleteNPC,
@@ -97,6 +103,14 @@ export default function NPCsTab({
 
   const { rollAllInitiative, isRolling } = useBulkInitiativeRoll(npcs, handleSetInitiative);
 
+  // How many the next "+ Add NPC" makes. Kept as a string so the field can be
+  // empty mid-edit instead of snapping back to 1 under the DM's cursor.
+  const [countInput, setCountInput] = useState("1");
+  const parsedCount = Number.parseInt(countInput, 10);
+  const count = Number.isFinite(parsedCount)
+    ? Math.min(Math.max(parsedCount, NPC_CREATE_LIMITS.COUNT_MIN), NPC_CREATE_LIMITS.COUNT_MAX)
+    : NPC_CREATE_LIMITS.COUNT_MIN;
+
   const handleRollAllInitiative = async () => {
     const count = await rollAllInitiative();
     if (count > 0 && toast) {
@@ -107,17 +121,24 @@ export default function NPCsTab({
   };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      {/* Wraps because the ×N control made this row wider than the DM panel:
+          measured at 907px of content in an 881px box, which pushed the Add
+          button's right edge off the panel. Same shape of bug the drawing and
+          selection sheets each hit, and the same fix — let it fall to a second
+          line rather than silently clipping a control. */}
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          flexWrap: "wrap",
+          gap: "8px",
         }}
       >
         <h4 className="jrpg-text-command" style={{ margin: 0 }}>
           NPCs & Monsters
         </h4>
-        <div style={{ display: "flex", gap: "8px" }}>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
           {npcs.length > 0 && (
             <JRPGButton
               variant="primary"
@@ -129,13 +150,42 @@ export default function NPCsTab({
               {isRolling ? "Rolling..." : "⚔️ Roll Missing Initiative"}
             </JRPGButton>
           )}
+          {/* The count sits BEFORE the button so it reads as "× 5 → + Add NPC",
+              and so a DM who wants one never has to touch it. */}
+          <label
+            style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "10px" }}
+            className="jrpg-text-small"
+          >
+            <span aria-hidden="true">×</span>
+            <input
+              type="number"
+              min={NPC_CREATE_LIMITS.COUNT_MIN}
+              max={NPC_CREATE_LIMITS.COUNT_MAX}
+              step={1}
+              value={countInput}
+              onChange={(e) => setCountInput(e.target.value)}
+              // Snap the display back to what will actually be sent. This
+              // reconciles ON BLUR, not while typing: type 99 and the field
+              // reads 99 while the button already reads "+ Add 20 NPCs", since
+              // `count` is clamped above. The button label is the honest one —
+              // it is what the press will do. The field is also deliberately
+              // STICKY across batches, so a DM staging wave after wave does not
+              // retype it; the label is what tells them it is still 5.
+              onBlur={() => setCountInput(String(count))}
+              aria-label="How many NPCs to add"
+              style={{ width: "44px", fontSize: "10px", padding: "4px" }}
+            />
+          </label>
           <JRPGButton
             variant="success"
-            onClick={onCreateNPC}
+            onClick={() => onCreateNPC({ count })}
             disabled={isCreatingNpc}
             style={{ fontSize: "10px", padding: "6px 12px" }}
+            title={
+              count > 1 ? `Add ${count} NPCs, numbered from the next free one` : "Add a single NPC"
+            }
           >
-            {isCreatingNpc ? "Creating..." : "+ Add NPC"}
+            {isCreatingNpc ? "Creating..." : count > 1 ? `+ Add ${count} NPCs` : "+ Add NPC"}
           </JRPGButton>
         </div>
       </div>
@@ -169,7 +219,9 @@ export default function NPCsTab({
               npc={npc}
               onUpdate={(updates) => onUpdateNPC(npc.id, updates)}
               onPlace={() => onPlaceNPCToken(npc.id)}
+              onDuplicate={() => onDuplicateNPC(npc.id)}
               onDelete={() => onDeleteNPC(npc.id)}
+              isDuplicating={isCreatingNpc}
               isUpdating={isUpdatingNpc && updatingNpcId === npc.id}
               updateError={updatingNpcId === npc.id ? npcUpdateError : null}
               isPlacingToken={isPlacingToken && placingTokenForNpcId === npc.id}

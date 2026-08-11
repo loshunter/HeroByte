@@ -70,7 +70,9 @@ export const TurnNavigationControls: React.FC<TurnNavigationControlsProps> = ({
         className="jrpg-text-command"
         style={{
           color: "var(--jrpg-gold)",
-          fontSize: "10px",
+          // Was 10px, under the 11px readability floor. This strip is the only
+          // combat chrome a phone gets.
+          fontSize: "11px",
           fontWeight: "bold",
           textTransform: "uppercase",
         }}

@@ -506,6 +506,55 @@ describe("validateMessage", () => {
       ).toEqual({ valid: true });
     });
 
+    /**
+     * The count bound lives here rather than in a router test on purpose:
+     * router.route() runs AFTER validation in production, so routing a
+     * malformed frame proves nothing about the gate that would have stopped
+     * it. The handler LOOPS on this value, which is what makes the bound
+     * load-bearing rather than cosmetic.
+     */
+    describe("create-npc count (S8 bulk add)", () => {
+      const base = { t: "create-npc", name: "Goblin", hp: 10, maxHp: 10 };
+
+      it("accepts an absent count — the plain + Add NPC button sends none", () => {
+        expect(validateMessage({ ...base })).toEqual({ valid: true });
+      });
+
+      it("accepts the whole permitted range", () => {
+        for (const count of [1, 2, 5, 19, 20]) {
+          expect(validateMessage({ ...base, count })).toEqual({ valid: true });
+        }
+      });
+
+      it("rejects a count above the ceiling", () => {
+        expect(validateMessage({ ...base, count: 21 })).toMatchObject({ valid: false });
+        expect(validateMessage({ ...base, count: 10_000 })).toMatchObject({ valid: false });
+      });
+
+      it("rejects zero and negatives", () => {
+        expect(validateMessage({ ...base, count: 0 })).toMatchObject({ valid: false });
+        expect(validateMessage({ ...base, count: -3 })).toMatchObject({ valid: false });
+      });
+
+      it("rejects a non-integer count, which would spin the loop on a fraction", () => {
+        expect(validateMessage({ ...base, count: 2.5 })).toMatchObject({ valid: false });
+      });
+
+      it("rejects the values isFiniteNumber alone would admit", () => {
+        // 1e308 is finite. Looping on it is a self-inflicted denial of service.
+        expect(validateMessage({ ...base, count: 1e308 })).toMatchObject({ valid: false });
+        expect(validateMessage({ ...base, count: Number.MAX_SAFE_INTEGER })).toMatchObject({
+          valid: false,
+        });
+      });
+
+      it("rejects a non-number count", () => {
+        for (const count of ["5", null, {}, [], true, Number.NaN, Infinity]) {
+          expect(validateMessage({ ...base, count })).toMatchObject({ valid: false });
+        }
+      });
+    });
+
     it("rejects create-npc with negative hp", () => {
       expect(
         validateMessage({
@@ -513,6 +562,39 @@ describe("validateMessage", () => {
           name: "Orc",
           hp: -10,
           maxHp: 30,
+          portrait: undefined,
+          tokenImage: undefined,
+        }),
+      ).toMatchObject({ valid: false });
+    });
+
+    it("accepts create-npc with zero hp, the same as update-npc", () => {
+      // S8's Duplicate replays the source NPC's own hp, so duplicating a goblin
+      // that had been knocked to 0 sent hp: 0 — which this validator rejected,
+      // and a rejected frame gets no reply, so the DM saw "NPC creation timed
+      // out" and retrying never worked. update-npc has always allowed 0 and
+      // createCharacter clamps with Math.max(0, …); create-npc was the outlier.
+      expect(
+        validateMessage({
+          t: "create-npc",
+          name: "Downed Goblin",
+          hp: 0,
+          maxHp: 7,
+          portrait: undefined,
+          tokenImage: undefined,
+        }),
+      ).toMatchObject({ valid: true });
+    });
+
+    it("still rejects create-npc with zero maxHp", () => {
+      // Relaxing hp must not relax maxHp: a character with no maximum is not a
+      // downed character, it is a broken one.
+      expect(
+        validateMessage({
+          t: "create-npc",
+          name: "Nothing",
+          hp: 0,
+          maxHp: 0,
           portrait: undefined,
           tokenImage: undefined,
         }),

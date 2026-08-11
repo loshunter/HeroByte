@@ -69,6 +69,7 @@ const createProps = () => ({
   onRequestSaveSession: undefined as ((name: string) => void) | undefined,
   onRequestLoadSession: vi.fn(),
   onCreateNPC: vi.fn(),
+  onDuplicateNPC: vi.fn(),
   onUpdateNPC: vi.fn(),
   onDeleteNPC: vi.fn(),
   onPlaceNPCToken: vi.fn(),
@@ -109,6 +110,10 @@ describe("DMMenu", () => {
     render(<DMMenu {...props} />);
 
     fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
+    // The desktop dress is the wrapper, not just the launcher: the review
+    // found nothing asserted the window actually WRAPS in window mode (the
+    // content renders identically bare, so the old tests passed either way).
+    expect(screen.getByTestId("draggable-window")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Map Setup" })).toBeInTheDocument();
     const input = screen.getByPlaceholderText("Paste image URL");
     fireEvent.change(input, { target: { value: "https://example.com/map.png" } });
@@ -133,5 +138,44 @@ describe("DMMenu", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "+ Add NPC" }));
     expect(props.onCreateNPC).toHaveBeenCalledTimes(1);
+  });
+
+  describe('presentation="content" (the mobile DM screen, M4b)', () => {
+    it("renders the content bare: no launcher, no window, tabs immediately live", () => {
+      const props = createProps();
+      render(<DMMenu {...props} presentation="content" />);
+
+      // The desktop dress is gone — the host surface provides both.
+      expect(screen.queryByRole("button", { name: /DM MENU/i })).not.toBeInTheDocument();
+      expect(screen.queryByTestId("draggable-window")).not.toBeInTheDocument();
+
+      // The content is there without any launcher click: all five tabs, the
+      // exit row, and the default Map tab's controls.
+      expect(screen.getByRole("button", { name: "Map Setup" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Session" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /EXIT DM MODE/i })).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("Paste image URL")).toBeInTheDocument();
+
+      // And the tabs still switch.
+      fireEvent.click(screen.getByRole("button", { name: "NPCs & Monsters" }));
+      expect(screen.getByText(/No NPCs yet/i)).toBeInTheDocument();
+    });
+
+    it("EXIT DM MODE still demotes from the content presentation", () => {
+      const props = createProps();
+      render(<DMMenu {...props} presentation="content" />);
+
+      fireEvent.click(screen.getByRole("button", { name: /EXIT DM MODE/i }));
+
+      expect(props.onToggleDM).toHaveBeenCalledExactlyOnceWith(false);
+    });
+
+    it("still renders nothing for a non-DM, whatever the presentation", () => {
+      const props = createProps();
+      props.isDM = false;
+      const { container } = render(<DMMenu {...props} presentation="content" />);
+
+      expect(container).toBeEmptyDOMElement();
+    });
   });
 });

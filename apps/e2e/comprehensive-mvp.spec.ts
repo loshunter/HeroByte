@@ -15,6 +15,10 @@ import { test, expect, type Page } from "./fixtures";
 import { elevateToDM, joinDefaultRoom } from "./helpers";
 
 const DEFAULT_ROOM_PASSWORD = "Fun1"; // DEV_FALLBACK_SECRET from apps/server/src/config/auth.ts
+const WRONG_ROOM_PASSWORD = "wrongpassword";
+// The server's own wording for a rejected table password, verbatim:
+// apps/server/src/ws/auth/AuthenticationHandler.ts -> rejectAuthentication().
+const REJECTION_MESSAGE = "Invalid table password";
 
 /**
  * Helper: Connect to room with player password
@@ -42,13 +46,24 @@ test.describe("HeroByte Comprehensive MVP Tests", () => {
     const passwordInput = page.getByPlaceholder("Table password");
     const enterRoomButton = page.getByRole("button", { name: /Enter Table/i });
 
-    await passwordInput.fill("wrongpassword");
+    await passwordInput.fill(WRONG_ROOM_PASSWORD);
     await expect(enterRoomButton).toBeEnabled();
     await enterRoomButton.click();
 
-    // Wait and check - should stay on auth screen
+    // A rejection is surfaced as the server's reason, printed under the field.
+    // It outlives the socket close that follows ~100ms later on purpose, so the
+    // user still sees WHY (apps/client/src/hooks/useWebSocket.ts, "reset").
+    await expect(page.getByText(REJECTION_MESSAGE)).toBeVisible({ timeout: 10_000 });
+
+    // The typed password is deliberately KEPT, not blanked: wiping it while the
+    // status label cycled Reconnecting -> Connecting made a mistyped password
+    // look like a flaky network, so the text stays put to be corrected
+    // (apps/client/src/features/auth/AuthenticationGate.tsx, the FAILED effect).
+    // Only the *stored* secret is cleared, which is what stops the auto-retry.
     await expect(passwordInput).toBeEnabled({ timeout: 10_000 });
-    await expect(passwordInput).toHaveValue("");
+    await expect(passwordInput).toHaveValue(WRONG_ROOM_PASSWORD);
+
+    // And we stay on the auth screen either way.
     const hasCanvas = await page.locator("canvas").count();
     expect(hasCanvas).toBe(0); // Should not connect with wrong password
 

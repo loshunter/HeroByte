@@ -13,6 +13,7 @@ import {
 // Run via `pnpm docs:screenshots`; images land in docs/user-guide/img/.
 
 const ROOM_PASSWORD = process.env.E2E_ROOM_PASSWORD ?? "Fun1";
+const DM_PASSWORD = process.env.E2E_DM_PASSWORD ?? "FunDM";
 
 test.describe("docs screenshots: player", () => {
   test("login screen and table lobby", async ({ page }) => {
@@ -191,6 +192,27 @@ test.describe("docs screenshots: player", () => {
         await page.getByRole("button", { name: /Party/ }).click();
         await expect(page.getByText("Party Members")).toBeVisible();
         await shotPage(page, "mobile-party");
+        await page.getByRole("button", { name: "Close Party Members" }).click();
+      });
+
+      await step("mobile dm screen", async () => {
+        // Elevate through the app's own message, as the e2e helpers do.
+        await page.evaluate((dmPassword) => {
+          window.__HERO_BYTE_E2E__?.sendMessage?.({ t: "elevate-to-dm", dmPassword });
+        }, DM_PASSWORD);
+        await page.waitForFunction(() => {
+          const data = window.__HERO_BYTE_E2E__;
+          return data?.snapshot?.players?.find((p) => p.uid === data.uid)?.isDM === true;
+        });
+        await page.getByRole("button", { name: /^DM$/ }).click();
+        // The menu is a lazy chunk; wait for its tabs before shooting — and
+        // for the elevation toast to clear, or it covers the chip row.
+        await expect(page.getByRole("button", { name: "Map Setup" })).toBeVisible({
+          timeout: 15_000,
+        });
+        await expect(page.getByText(/DM elevation successful/i)).toBeHidden({ timeout: 10_000 });
+        await page.waitForTimeout(300);
+        await shotPage(page, "mobile-dm");
       });
 
       expect(failures, failures.join("\n")).toEqual([]);

@@ -10,6 +10,7 @@ import type {
 } from "@herobyte/shared";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../../types/alignment";
 import type { Camera } from "../../../hooks/useCamera";
+import type { CreateNpcRequest } from "../hooks/useNpcCreation";
 import type { MapStudioController } from "../../map-studio";
 
 export interface DMMenuProps {
@@ -40,8 +41,9 @@ export interface DMMenuProps {
   characters: SnapshotCharacter[];
   onRequestSaveSession?: (sessionName: string) => void;
   onRequestLoadSession?: (file: File) => void;
-  onCreateNPC: () => void;
+  onCreateNPC: (request?: CreateNpcRequest) => void;
   onUpdateNPC: (id: string, updates: Partial<Character>) => void;
+  onDuplicateNPC: (id: string) => void;
   onDeleteNPC: (id: string) => void;
   onPlaceNPCToken: (id: string) => void;
   isCreatingNpc?: boolean;
@@ -105,4 +107,11 @@ export interface DMMenuProps {
   };
   onSetInitiative?: (characterId: string, initiative: number, modifier: number) => void;
   mapStudio?: MapStudioController;
+  /**
+   * How the menu presents (M4b). "window" is the desktop shape: the floating
+   * 🛠️ DM MENU launcher plus a DraggableWindow. "content" renders ONLY the
+   * inner content — exit row, tabs (as a scrollable chip row), active tab —
+   * for a host that already provides the surface, like the mobile DM screen.
+   */
+  presentation?: "window" | "content";
 }

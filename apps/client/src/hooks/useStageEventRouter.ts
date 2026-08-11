@@ -36,6 +36,8 @@ export interface UseStageEventRouterProps {
   measureMode: boolean;
   drawMode: boolean;
   mapEditMode: boolean;
+  /** Map-edit with a DRAG sub-tool — the subset the touch path arms. */
+  mapEditDragMode: boolean;
 
   // Click handlers
   handleAlignmentClick: (event: KonvaEventObject<MouseEvent | PointerEvent>) => void;
@@ -68,6 +70,8 @@ export interface UseStageEventRouterProps {
   handleDrawCancel: () => void;
   /** Discard an in-progress marquee, same triggers. */
   handleMarqueeCancel: () => void;
+  /** Discard an in-progress map-edit drag, same triggers. */
+  handleMapEditCancel: () => void;
 
   // Touch handlers
   handleTouchStart: (
@@ -136,6 +140,7 @@ export function useStageEventRouter({
   measureMode,
   drawMode,
   mapEditMode,
+  mapEditDragMode,
   handleAlignmentClick,
   handlePointerClick,
   handleCameraMouseDown,
@@ -156,6 +161,7 @@ export function useStageEventRouter({
   handleTouchEnd,
   handleDrawCancel,
   handleMarqueeCancel,
+  handleMapEditCancel,
   handleDoubleTap,
   isMarqueeActive,
   onSelectObject,
@@ -288,9 +294,9 @@ export function useStageEventRouter({
 
   /**
    * Touch does NOT fan out to every tool the way the mouse path above does —
-   * it dispatches to whichever one owns the finger. Map-edit is still absent on
-   * purpose: its interactions rest on hover ghosts and modifier keys a finger
-   * does not have, so it needs a design pass rather than a wire-up.
+   * it dispatches to whichever one owns the finger. Since M4c that includes
+   * map-edit's drag sub-tools; see useArmedTouchTool for why the click and
+   * brush ones stay out.
    *
    * touchcancel is bound to the DOM inside the gesture hook; Konva delivers no
    * node event for it, so there is nothing for the Stage to bind.
@@ -298,6 +304,7 @@ export function useStageEventRouter({
   const armedTouchTool = useArmedTouchTool({
     drawMode,
     selectMode,
+    mapEditDragMode,
     handleDrawMouseDown,
     handleDrawMouseMove,
     handleDrawMouseUp,
@@ -306,6 +313,10 @@ export function useStageEventRouter({
     handleMarqueePointerMove,
     handleMarqueePointerUp,
     handleMarqueeCancel,
+    handleMapEditMouseDown,
+    handleMapEditMouseMove,
+    handleMapEditMouseUp,
+    handleMapEditCancel,
   });
 
   const { onTouchStart, onTouchMove, onTouchEnd } = useTouchGestureRouter({

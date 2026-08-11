@@ -1,62 +1,21 @@
 // ============================================================================
-// ROLL LOG - scrollable history of rolls, plus the chat tab
+// ROLL LOG - the desktop window over RollLogContent
 // ============================================================================
-// The panel is a shell over two tabs. Chat lives here rather than in a window
-// of its own because the mobile dock is a hardcoded 5-column grid — a sixth
-// button would overflow it, whereas a tab inside the existing "Log" panel
-// reaches mobile for free.
-//
-// ROLLS IS THE DEFAULT TAB ON PURPOSE: apps/e2e/dice.spec.ts asserts on
-// data-testid="roll-log-entry" being present when the panel opens.
+// The tabs, clear button and entries live in RollLogContent, shared with the
+// mobile shell's log screen. This file is only the DraggableWindow dressing —
+// which is exactly the part the mobile path no longer wants: a desktop window
+// pretending to be a phone surface is how the log's ✕ ended up 24px on every
+// tablet and landscape phone.
 
-import React, { useState } from "react";
-import type { ChatMessage, Player } from "@herobyte/shared";
+import React from "react";
 import { DraggableWindow } from "./DraggableWindow";
-import { JRPGPanel, JRPGButton } from "../ui/JRPGPanel";
-import { RollEntry } from "./RollEntry";
-import { ChatTab } from "./ChatTab";
-import type { RollLogEntry } from "./rollLogTypes";
+import { RollLogContent, type RollLogContentProps } from "./RollLogContent";
 
-interface RollLogProps {
-  rolls: RollLogEntry[];
-  onClearLog: () => void;
-  onViewRoll: (roll: RollLogEntry) => void;
+interface RollLogProps extends RollLogContentProps {
   onClose?: () => void;
-  // Chat props are OPTIONAL so every existing render site (and the six
-  // render calls in RollLog.formatting.test.tsx) keeps compiling. Without
-  // them the panel is exactly what it was, minus the tab strip.
-  chatMessages?: ChatMessage[];
-  players?: Player[];
-  currentUid?: string;
-  onSendChat?: (text: string, to?: string) => void;
-  /**
-   * Whether this viewer may wipe the log. DM-only server-side, so offering the
-   * button to a player would be offering one that silently does nothing.
-   * Defaults true so existing render sites (and the formatting tests) are
-   * unchanged.
-   */
-  canClearLog?: boolean;
 }
 
-type LogTab = "rolls" | "chat";
-
-export const RollLog: React.FC<RollLogProps> = ({
-  rolls,
-  onClearLog,
-  onViewRoll,
-  onClose,
-  chatMessages,
-  players,
-  currentUid,
-  onSendChat,
-  canClearLog = true,
-}) => {
-  const [tab, setTab] = useState<LogTab>("rolls");
-  const chatEnabled = Boolean(onSendChat);
-  // Guard the render too: a caller that passes onSendChat but no arrays
-  // should get an empty chat, not a crash.
-  const activeTab: LogTab = chatEnabled ? tab : "rolls";
-
+export const RollLog: React.FC<RollLogProps> = ({ onClose, ...content }) => {
   return (
     <DraggableWindow
       title="⚂ ROLL LOG"
@@ -70,85 +29,7 @@ export const RollLog: React.FC<RollLogProps> = ({
       storageKey="roll-log"
       zIndex={999}
     >
-      <JRPGPanel
-        variant="bevel"
-        style={{ padding: "8px", height: "100%", display: "flex", flexDirection: "column" }}
-      >
-        {/* Tab strip — matches the DMMenuTabs idiom (JRPGButton variant swap).
-            Hidden entirely when chat is not wired, so nothing changes for a
-            caller that has not adopted it. */}
-        {chatEnabled && (
-          <div style={{ display: "flex", gap: "8px", marginBottom: "8px", flexWrap: "wrap" }}>
-            <JRPGButton
-              onClick={() => setTab("rolls")}
-              variant={activeTab === "rolls" ? "primary" : "default"}
-              style={{ fontSize: "8px", padding: "6px 12px" }}
-            >
-              ROLLS
-            </JRPGButton>
-            <JRPGButton
-              onClick={() => setTab("chat")}
-              variant={activeTab === "chat" ? "primary" : "default"}
-              style={{ fontSize: "8px", padding: "6px 12px" }}
-            >
-              CHAT
-            </JRPGButton>
-          </div>
-        )}
-
-        {/* Clear button — roll-specific, so it must not offer to clear rolls
-            while the chat tab is showing. */}
-        {activeTab === "rolls" && canClearLog && rolls.length > 0 && (
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
-            <JRPGButton
-              onClick={onClearLog}
-              variant="danger"
-              style={{ fontSize: "8px", padding: "6px 12px" }}
-            >
-              CLEAR
-            </JRPGButton>
-          </div>
-        )}
-
-        {activeTab === "chat" ? (
-          <ChatTab
-            messages={chatMessages ?? []}
-            players={players ?? []}
-            currentUid={currentUid}
-            onSendChat={onSendChat as (text: string, to?: string) => void}
-          />
-        ) : (
-          /* Roll entries */
-          <JRPGPanel variant="simple" style={{ flex: 1, overflow: "auto", padding: "8px" }}>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "8px",
-              }}
-            >
-              {rolls.length === 0 ? (
-                <div
-                  className="jrpg-text-small"
-                  style={{
-                    textAlign: "center",
-                    color: "var(--jrpg-white)",
-                    opacity: 0.5,
-                    padding: "20px",
-                  }}
-                >
-                  No rolls yet...
-                </div>
-              ) : (
-                rolls
-                  .slice()
-                  .reverse()
-                  .map((roll) => <RollEntry key={roll.id} roll={roll} onViewRoll={onViewRoll} />)
-              )}
-            </div>
-          </JRPGPanel>
-        )}
-      </JRPGPanel>
+      <RollLogContent {...content} />
     </DraggableWindow>
   );
 };

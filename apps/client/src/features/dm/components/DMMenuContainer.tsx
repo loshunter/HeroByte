@@ -19,7 +19,10 @@ import { useDMContext, type UseDMContextOptions } from "../hooks/useDMContext";
 import { DMMenu } from "./DMMenu";
 import type { MapStudioController } from "../../map-studio";
 
-interface DMMenuContainerProps {
+// Exported for buildDMMenuProps, which maps the MainLayoutProps bag onto this
+// shape once, for BOTH layouts. Import it `type`-only: a value import here
+// would pull the DM chunk into the entry bundle and undo the lazy split.
+export interface DMMenuContainerProps {
   // DM Status
   isDM: boolean;
   onToggleDM: (next: boolean) => void;
@@ -91,6 +94,9 @@ interface DMMenuContainerProps {
   onSelectPlayerTokens: (playerUid: string) => void;
   onSetInitiative?: (characterId: string, initiative: number, modifier: number) => void;
   mapStudio?: MapStudioController;
+  /** "window" (desktop launcher + DraggableWindow) or "content" (bare, for
+   *  a host that provides the surface — the mobile DM screen). */
+  presentation?: "window" | "content";
 }
 
 /**
@@ -147,6 +153,7 @@ export function DMMenuContainer({
   onSelectPlayerTokens,
   onSetInitiative,
   mapStudio,
+  presentation,
 }: DMMenuContainerProps) {
   // Instantiate DM context with all DM-specific hooks
   const dmContext = useDMContext({
@@ -193,6 +200,7 @@ export function DMMenuContainer({
       onRequestSaveSession={snapshot ? dmContext.sessionManagement.handleSaveSession : undefined}
       onRequestLoadSession={dmContext.sessionManagement.handleLoadSession}
       onCreateNPC={dmContext.npcManagement.createNpc}
+      onDuplicateNPC={dmContext.npcManagement.duplicateNpc}
       onUpdateNPC={dmContext.npcManagement.updateNpc}
       onDeleteNPC={dmContext.npcManagement.deleteNpc}
       onPlaceNPCToken={dmContext.npcManagement.placeToken}
@@ -249,6 +257,7 @@ export function DMMenuContainer({
       toast={toast}
       onSetInitiative={onSetInitiative}
       mapStudio={mapStudio}
+      presentation={presentation}
     />
   );
 }

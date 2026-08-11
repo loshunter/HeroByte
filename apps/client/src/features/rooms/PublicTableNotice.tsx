@@ -33,24 +33,11 @@ export const PublicTableNotice: React.FC<PublicTableNoticeProps> = ({ variant })
     return (
       <div
         data-testid="public-table-chip"
+        // Presentation is in herobyte.css, because the phone needs a readable
+        // version of this and the desktop cannot have one: enlarging the chip
+        // for both widened it across the header's buttons.
+        className="public-table-chip"
         title={`Anyone with the published password can join this table, and it is wiped once it has sat empty for an hour. To keep what you build here, copy it to a private table of your own: ${KEEP_PATH}.`}
-        style={{
-          position: "fixed",
-          top: "26px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 199,
-          background: "var(--jrpg-navy, #16162b)",
-          color: "var(--jrpg-gold, #f0e2c3)",
-          padding: "3px 10px",
-          fontSize: "7px",
-          fontFamily: "'Press Start 2P', monospace",
-          border: "2px solid var(--jrpg-border-outer, #f0e2c3)",
-          borderTop: "none",
-          borderRadius: "0 0 8px 8px",
-          whiteSpace: "nowrap",
-          pointerEvents: "auto",
-        }}
       >
         ⚠ PUBLIC TEST TABLE — CLEARS WHEN EMPTY · SAVE IT TO KEEP IT
       </div>

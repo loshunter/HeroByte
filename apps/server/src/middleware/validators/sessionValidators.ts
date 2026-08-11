@@ -72,8 +72,19 @@ export function validateSessionExportMessage(_message: MessageRecord): Validatio
  * unvalidated. chatLog was missing for one commit, and `chatLog: {}` then hit
  * visibleChatFor's `.filter` inside the debounced broadcast timer (outside
  * route()'s try/catch), killing the one process that serves every room.
+ *
+ * ⚠️ `characters` HAS A SECOND CONSUMER, and it is not on the load path.
+ * NPCMessageHandler.handleCreateNPC reads it as the room's LIVE creation
+ * ceiling, so this number now answers two different questions: what a session
+ * file may contain, and how many characters a DM may ever make. They agree on
+ * purpose — a room allowed to grow past what a snapshot may hold produces a
+ * save that fails its own load validation, so the DM's backup silently stops
+ * being a backup — but the coupling is invisible from either end. Raising this
+ * to tolerate a big imported session also raises the creation cap; lowering it
+ * to be stricter starts refusing NPC creation in rooms that already exist.
+ * `sessionValidators.test.ts` pins them together; change it deliberately.
  */
-const SNAPSHOT_LIMITS = {
+export const SNAPSHOT_LIMITS = {
   players: 100,
   tokens: 1000,
   drawings: 5000,

@@ -1,15 +1,23 @@
 import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { MobileLayout } from "../MobileLayout";
+import { HELP_TOPICS } from "../../features/help/helpTopics";
 import type { MainLayoutProps } from "../props/MainLayoutProps";
 type DrawingToolbarProps = MainLayoutProps["drawingToolbarProps"];
 type DrawingProps = MainLayoutProps["drawingProps"];
 type PlayerActions = MainLayoutProps["playerActions"];
 
-// Mock child components
+// Mock child components. MapBoard's mock RECORDS its props: the mobile shell's
+// only job for map-edit is forwarding, so what it forwards is the behaviour.
+const mapBoardProps = vi.hoisted(() => ({
+  current: null as Record<string, unknown> | null,
+}));
 vi.mock("../../ui/MapBoard", () => ({
-  default: () => <div data-testid="map-board">MapBoard</div>,
+  default: (props: Record<string, unknown>) => {
+    mapBoardProps.current = props;
+    return <div data-testid="map-board">MapBoard</div>;
+  },
 }));
 
 vi.mock("../../components/ui/MapLoading", () => ({
@@ -46,13 +54,19 @@ vi.mock("../../components/dice/DiceRoller", () => ({
   ),
 }));
 
-vi.mock("../../components/dice/RollLog", () => ({
-  RollLog: ({ onClose }: { onClose: () => void }) => (
-    <div data-testid="roll-log">
-      RollLog
-      <button onClick={onClose} data-testid="close-log-btn">
-        Close
-      </button>
+// The mobile shell renders the log's CONTENT inside a MobileScreen since M4a;
+// the RollLog window is desktop-only and never mounts here.
+vi.mock("../../components/dice/RollLogContent", () => ({
+  RollLogContent: () => <div data-testid="roll-log">RollLogContent</div>,
+}));
+
+// The DM menu is lazy on mobile exactly as on desktop; the shell test mocks
+// the chunk and asserts the shell's half of the contract — that the container
+// mounts inside the dm screen, bare (presentation="content").
+vi.mock("../../features/dm/lazy-entry", () => ({
+  DMMenuContainer: ({ presentation }: { presentation?: string }) => (
+    <div data-testid="dm-menu-content" data-presentation={presentation}>
+      DMMenuContainer
     </div>
   ),
 }));
@@ -264,6 +278,79 @@ describe("MobileLayout", () => {
     expect(await screen.findByTestId("map-board")).toBeInTheDocument();
   });
 
+  describe("map-edit forwarding", () => {
+    // The gap M4c closed was plumbing: every one of these was already computed
+    // on a mobile render and dropped on the floor. Nothing downstream can tell
+    // "never wired" from "wired and inert", so the forwarding IS the feature.
+    const MAP_EDIT_PROPS = [
+      "mapEditMode",
+      "mapEditActiveSubTool",
+      "mapEditFloorFamily",
+      "mapEditRoomWallFamily",
+      "mapEditSelectedAssetId",
+      "mapEditHallwayWidth",
+      "mapEditSplineKind",
+      "mapEditPopulateGhosts",
+      "mapEditWheelActions",
+      "mapEditSelectedElementId",
+      "mapEditController",
+      "mapEditWallsOverlayPinned",
+      "onMapEditRoomRejected",
+      "onMapEditRegionPlaced",
+      "onMapEditRegionDragged",
+      "onMapEditSelectElement",
+      "onMapEditSampleAsset",
+      // Not from the bag — MobileLayout's own counter, because the dock and
+      // the canvas are siblings and a finger has no Escape key.
+      "mapEditCancelSignal",
+    ];
+
+    it("forwards the COMPLETE map-edit surface — a dropped line is a missing key", async () => {
+      // The M4b lesson, applied here: every one of these is OPTIONAL on
+      // MapBoard, so deleting a forward passes tsc, every unit suite and the
+      // full e2e while silently disarming a tool. Pinning the key set is what
+      // makes a drop red.
+      render(<MobileLayout {...createDefaultProps()} />);
+      await screen.findByTestId("map-board");
+
+      const received = Object.keys(mapBoardProps.current!).filter((key) =>
+        /^(mapEdit|onMapEdit)/.test(key),
+      );
+      expect(received.sort()).toEqual([...MAP_EDIT_PROPS].sort());
+    });
+
+    it("forwards them by IDENTITY, and the controller un-gated on isDM", async () => {
+      const props = createDefaultProps();
+      props.isDM = false;
+      props.mapEditMode = true;
+      props.mapEditActiveSubTool = "room";
+      props.mapStudio = {
+        marker: "the-one-controller",
+      } as unknown as MainLayoutProps["mapStudio"];
+      render(<MobileLayout {...props} />);
+      await screen.findByTestId("map-board");
+      const received = mapBoardProps.current!;
+
+      // Desktop passes the controller at CenterCanvasLayout with no isDM gate
+      // because the SERVER gates the commands. Two authorization stories is
+      // how a client-only gate ends up mistaken for a real one.
+      expect(received.mapEditController).toBe(props.mapStudio);
+      expect(received.mapEditMode).toBe(true);
+      expect(received.mapEditActiveSubTool).toBe("room");
+      expect(received.onMapEditRegionPlaced).toBe(props.onMapEditRegionPlaced);
+      expect(received.onMapEditRoomRejected).toBe(props.onMapEditRoomRejected);
+      expect(received.onMapEditSelectElement).toBe(props.onMapEditSelectElement);
+      expect(received.onMapEditSampleAsset).toBe(props.onMapEditSampleAsset);
+      expect(received.onMapEditRegionDragged).toBe(props.onMapEditRegionDragged);
+    });
+
+    it("does NOT forward mapEditToolbarProps — that feeds the palette, not the canvas", async () => {
+      render(<MobileLayout {...createDefaultProps()} />);
+      await screen.findByTestId("map-board");
+      expect(mapBoardProps.current).not.toHaveProperty("mapEditToolbarProps");
+    });
+  });
+
   it("renders turn controls when combat is active", () => {
     const props = createDefaultProps();
     props.snapshot = { combatActive: true } as MainLayoutProps["snapshot"];
@@ -424,5 +511,197 @@ describe("MobileLayout", () => {
 
     fireEvent.click(screen.getByTestId("prev-turn-btn"));
     expect(props.sendMessage).toHaveBeenCalledWith({ t: "previous-turn" });
+  });
+
+  describe("the surface machine (M4a)", () => {
+    // Every open surface root carries data-mobile-surface, so the invariant
+    // the machine claims — at most one surface, by construction — is counted
+    // in the DOM rather than trusted.
+    const openSurfaces = () =>
+      [...document.querySelectorAll("[data-mobile-surface]")].map((el) =>
+        el.getAttribute("data-mobile-surface"),
+      );
+
+    const dock = (name: RegExp) =>
+      within(screen.getByRole("navigation", { name: /mobile actions/i })).getByRole("button", {
+        name,
+      });
+
+    const openHelp = () => {
+      fireEvent.click(dock(/tools/i));
+      fireEvent.click(screen.getByRole("button", { name: /^help$/i }));
+      expect(screen.getByRole("dialog", { name: /herobyte help/i })).toBeInTheDocument();
+    };
+
+    it("mounts at most one surface, in whatever order things open", () => {
+      render(<MobileLayout {...createDefaultProps()} />);
+      expect(openSurfaces()).toEqual([]);
+
+      fireEvent.click(dock(/party/i));
+      expect(openSurfaces()).toEqual(["party"]);
+
+      fireEvent.click(dock(/tools/i));
+      expect(openSurfaces()).toEqual(["tools"]);
+
+      fireEvent.click(screen.getByRole("button", { name: /^help$/i }));
+      expect(openSurfaces()).toEqual(["help"]);
+
+      fireEvent.click(dock(/party/i));
+      expect(openSurfaces()).toEqual(["party"]);
+
+      fireEvent.click(dock(/party/i));
+      expect(openSurfaces()).toEqual([]);
+    });
+
+    it("the dice overlay registers in the surface count like every other surface", () => {
+      // The review found dice was the one surface whose data-mobile-surface
+      // attribute nothing asserted — so deleting it would silently blind the
+      // counting instrument to dice, and a dice-stacks-with-X regression
+      // would pass both this suite and the e2e surfaces check.
+      const props = createDefaultProps();
+      props.diceRollerOpen = true;
+      render(<MobileLayout {...props} />);
+
+      expect(openSurfaces()).toEqual(["dice"]);
+    });
+
+    it("derives one surface even when the prop-controlled panels disagree", () => {
+      const props = createDefaultProps();
+      props.diceRollerOpen = true;
+      props.rollLogOpen = true;
+      render(<MobileLayout {...props} />);
+
+      expect(openSurfaces()).toEqual(["log"]);
+    });
+
+    it("hands a prop-controlled panel back to the App before opening its own", () => {
+      const props = createDefaultProps();
+      props.rollLogOpen = true;
+      const { rerender } = render(<MobileLayout {...props} />);
+      expect(openSurfaces()).toEqual(["log"]);
+
+      fireEvent.click(dock(/party/i));
+      // The machine cannot unmount what the App owns; it asks, and the panel
+      // stays until the App answers.
+      expect(props.toggleRollLog).toHaveBeenCalledWith(false);
+      expect(openSurfaces()).toEqual(["log"]);
+
+      rerender(<MobileLayout {...props} rollLogOpen={false} />);
+      expect(openSurfaces()).toEqual(["party"]);
+    });
+
+    it.each([
+      ["Party", /party/i],
+      ["Tools", /tools/i],
+      ["Dice", /dice/i],
+      ["Log", /log/i],
+    ])("closes the manual when %s is tapped on the dock", (_label, pattern) => {
+      render(<MobileLayout {...createDefaultProps()} />);
+      openHelp();
+
+      fireEvent.click(dock(pattern));
+
+      expect(screen.queryByRole("dialog", { name: /herobyte help/i })).not.toBeInTheDocument();
+    });
+
+    it("shows the same manual the desktop popover shows, and closes from its ✕", () => {
+      render(<MobileLayout {...createDefaultProps()} />);
+      openHelp();
+
+      const dialog = screen.getByRole("dialog", { name: /herobyte help/i });
+      for (const topic of HELP_TOPICS) {
+        expect(within(dialog).getByRole("button", { name: topic.title })).toBeInTheDocument();
+      }
+
+      fireEvent.click(screen.getByRole("button", { name: /close help/i }));
+      expect(screen.queryByRole("dialog", { name: /herobyte help/i })).not.toBeInTheDocument();
+    });
+
+    it("a DM's slot five opens the DM screen through the same machine", async () => {
+      const props = createDefaultProps();
+      props.isDM = true;
+      render(<MobileLayout {...props} />);
+
+      fireEvent.click(dock(/dm/i));
+      expect(openSurfaces()).toEqual(["dm"]);
+      expect(screen.getByRole("dialog", { name: "DM Menu" })).toBeInTheDocument();
+      // The REAL menu (M4b), lazily — bare content, no desktop dress.
+      const menu = await screen.findByTestId("dm-menu-content");
+      expect(menu).toHaveAttribute("data-presentation", "content");
+
+      // One machine, so any other surface replaces it rather than stacking.
+      fireEvent.click(dock(/party/i));
+      expect(openSurfaces()).toEqual(["party"]);
+
+      fireEvent.click(dock(/dm/i));
+      fireEvent.click(screen.getByRole("button", { name: "Close DM Menu" }));
+      expect(openSurfaces()).toEqual([]);
+    });
+
+    it("de-elevating with the DM screen open takes the shell down with it", async () => {
+      const props = createDefaultProps();
+      props.isDM = true;
+      const { rerender } = render(<MobileLayout {...props} />);
+
+      fireEvent.click(dock(/dm/i));
+      expect(await screen.findByTestId("dm-menu-content")).toBeInTheDocument();
+
+      // The server revokes DM (or EXIT DM MODE lands): the screen must not
+      // stay up as an empty shell around a menu that renders null.
+      rerender(<MobileLayout {...props} isDM={false} />);
+      expect(screen.queryByRole("dialog", { name: "DM Menu" })).not.toBeInTheDocument();
+      expect(openSurfaces()).toEqual([]);
+    });
+
+    it("Party and Log open as screens with a labelled exit that closes them", () => {
+      const props = createDefaultProps();
+      render(<MobileLayout {...props} />);
+
+      fireEvent.click(dock(/party/i));
+      const party = screen.getByRole("dialog", { name: "Party Members" });
+      expect(within(party).getByText(/Party Members/i)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Close Party Members" }));
+      expect(screen.queryByRole("dialog", { name: "Party Members" })).not.toBeInTheDocument();
+
+      // The log is prop-controlled: its screen mounts on the prop, and its ✕
+      // hands the close back to the App rather than unmounting anything.
+      props.rollLogOpen = true;
+      const { unmount } = render(<MobileLayout {...props} />);
+      fireEvent.click(screen.getByRole("button", { name: "Close Roll Log" }));
+      expect(props.toggleRollLog).toHaveBeenCalledWith(false);
+      unmount();
+    });
+
+    it("the drawing sheet yields the sheet slot to tools AND help", () => {
+      const props = createDefaultProps();
+      props.activeTool = "draw";
+      props.drawMode = true;
+      props.drawingToolbarProps = {
+        drawTool: "freehand",
+        drawColor: "#ff0000",
+        drawWidth: 3,
+        canUndo: false,
+        canRedo: false,
+        onToolChange: vi.fn(),
+        onColorChange: vi.fn(),
+        onWidthChange: vi.fn(),
+        onUndo: vi.fn(),
+        onRedo: vi.fn(),
+      } as unknown as DrawingToolbarProps;
+      render(<MobileLayout {...props} />);
+      expect(document.querySelector(".mobile-drawing-sheet")).not.toBeNull();
+
+      fireEvent.click(dock(/tools/i));
+      expect(document.querySelector(".mobile-drawing-sheet")).toBeNull();
+
+      fireEvent.click(screen.getByRole("button", { name: /^help$/i }));
+      // The old shell suppressed on showTools only, and the manual relied on a
+      // z-index override to out-paint this sheet. Mount exclusion replaces
+      // paint order; if this mounts under the manual again, that regressed.
+      expect(document.querySelector(".mobile-drawing-sheet")).toBeNull();
+
+      fireEvent.click(screen.getByRole("button", { name: /close help/i }));
+      expect(document.querySelector(".mobile-drawing-sheet")).not.toBeNull();
+    });
   });
 });

@@ -16,6 +16,8 @@ import type { TerrainMap } from "./terrain.js";
 import type { DiceRollMode, DiceVisibility } from "./dice.js";
 import type { DiagonalRule, MeasurePoint } from "./measurement.js";
 import type { AreaTemplate, AreaTemplateTool } from "./areaTemplates.js";
+// Imported as well as re-exported below: the barrel's own declarations use it.
+import type { DrawingType } from "./drawingTypes.js";
 
 // WebSocket close codes — value re-export from a sub-module (see wsCloseCodes.ts
 // for why it must not be a direct `export const` here).
@@ -356,14 +358,13 @@ export interface DragPreviewEvent {
   objects: DragPreviewObject[];
 }
 
-/**
- * Every shape kind a `Drawing` can hold. `eraser` is a gesture, never a stored
- * record — it is in the union because the client's tool state shares it.
- * `template` is an area of effect: its `points` are a closed polygon and its
- * `template` field says what shape produced them (see areaTemplates.ts).
- */
-export const DRAWING_TYPES = ["freehand", "line", "rect", "circle", "eraser", "template"] as const;
-export type DrawingType = (typeof DRAWING_TYPES)[number];
+// Drawing kinds — value re-export from a sub-module (see drawingTypes.ts).
+export { DRAWING_TYPES } from "./drawingTypes.js";
+export type { DrawingType } from "./drawingTypes.js";
+
+// Bulk-NPC bounds — value re-export from a sub-module (see npcLimits.ts for
+// why it must not be a direct `export const` here: the server imports it).
+export { NPC_CREATE_LIMITS } from "./npcLimits.js";
 
 /**
  * The tool the drawing toolbar is holding. Wider than `DrawingType` because a
@@ -725,6 +726,20 @@ type ClientMessagePayload =
       tempHp?: number;
       portrait?: string;
       tokenImage?: string;
+      /**
+       * How many to create, defaulting to 1. The server loops and numbers
+       * them, so "five goblins" is one message, one broadcast and one state
+       * write — and stays compatible with the client's single-flight guard,
+       * which was built to have exactly one create in the air.
+       */
+      count?: number;
+      /**
+       * Carried so Duplicate can copy a HIDDEN NPC as hidden. Only an explicit
+       * `false` does anything — anything else leaves the new NPC visible, which
+       * is the default everywhere else — so this needs no validator branch of
+       * its own the way `count` does, since it drives a flag rather than a loop.
+       */
+      visibleToPlayers?: boolean;
     }
   | {
       t: "update-npc";

@@ -45,6 +45,8 @@ describe("useMapEditState", () => {
       sendMessage,
       mapEditMode: true,
       setActiveTool: vi.fn(),
+      isDM: true,
+      snapshotLoaded: true,
       liveMapDocumentId: undefined as string | undefined,
       roomGridSize: 64,
       hasRasterBackground: false,
@@ -79,6 +81,8 @@ describe("useMapEditState", () => {
         sendMessage: vi.fn(),
         mapEditMode: true,
         setActiveTool: vi.fn(),
+        isDM: true,
+        snapshotLoaded: true,
         liveMapDocumentId: undefined,
         roomGridSize: 50,
         hasRasterBackground: false,
@@ -102,6 +106,8 @@ describe("useMapEditState", () => {
         sendMessage: vi.fn(),
         mapEditMode: true,
         setActiveTool: vi.fn(),
+        isDM: true,
+        snapshotLoaded: true,
         liveMapDocumentId: "existing-id",
         roomGridSize: 50,
         hasRasterBackground: false,
@@ -123,6 +129,8 @@ describe("useMapEditState", () => {
         sendMessage: vi.fn(),
         mapEditMode: true,
         setActiveTool: vi.fn(),
+        isDM: true,
+        snapshotLoaded: true,
         liveMapDocumentId: "existing-id",
         roomGridSize: 50,
         hasRasterBackground: false,
@@ -140,6 +148,8 @@ describe("useMapEditState", () => {
       sendMessage,
       mapEditMode: true,
       setActiveTool: vi.fn(),
+      isDM: true,
+      snapshotLoaded: true,
       liveMapDocumentId: "gone-id" as string | undefined,
       roomGridSize: 50,
       hasRasterBackground: false,
@@ -173,6 +183,8 @@ describe("useMapEditState", () => {
         sendMessage: vi.fn(),
         mapEditMode: true,
         setActiveTool: vi.fn(),
+        isDM: true,
+        snapshotLoaded: true,
         liveMapDocumentId: "live-id",
         roomGridSize: 50,
         hasRasterBackground: false,
@@ -193,6 +205,8 @@ describe("useMapEditState", () => {
         sendMessage: vi.fn(),
         mapEditMode: true,
         setActiveTool: vi.fn(),
+        isDM: true,
+        snapshotLoaded: true,
         liveMapDocumentId: "live-id",
         roomGridSize: 50,
         hasRasterBackground: false,
@@ -213,6 +227,8 @@ describe("useMapEditState", () => {
         sendMessage: vi.fn(),
         mapEditMode: false,
         setActiveTool: vi.fn(),
+        isDM: true,
+        snapshotLoaded: true,
         liveMapDocumentId: "existing-id",
         roomGridSize: 50,
         hasRasterBackground: false,
@@ -231,6 +247,8 @@ describe("useMapEditState", () => {
         sendMessage: vi.fn(),
         mapEditMode: true,
         setActiveTool,
+        isDM: true,
+        snapshotLoaded: true,
         liveMapDocumentId: "live-id",
         roomGridSize: 50,
         hasRasterBackground: false,
@@ -241,6 +259,107 @@ describe("useMapEditState", () => {
     expect(setActiveTool).toHaveBeenCalledWith(null);
   });
 
+  describe("losing DM leaves the mode", () => {
+    // Every way OUT of map-edit is DM-gated (the header entry, and the palette
+    // itself via TopPanelLayout's `mapEditMode && isDM`) while the mode's
+    // EFFECTS are not: shouldPan excludes map-edit, so one-finger and mouse
+    // panning stop, and tokenInteractionsEnabled is false. A revoked DM was
+    // therefore left on a table they could neither author nor move.
+    const base = (isDM: boolean, setActiveTool: () => void, snapshotLoaded = true) => ({
+      sendMessage: vi.fn(),
+      mapEditMode: true,
+      setActiveTool,
+      isDM,
+      snapshotLoaded,
+      liveMapDocumentId: "live-id",
+      roomGridSize: 50,
+      hasRasterBackground: false,
+    });
+
+    it("drops the tool the moment DM is revoked mid-edit", () => {
+      const methods = makeMethods();
+      const setActiveTool = vi.fn();
+      const controller = makeController(methods, doc("live-id"));
+
+      const { rerender } = renderHook((props) => useMapEditState(props), {
+        initialProps: { ...base(true, setActiveTool), controller },
+      });
+      expect(setActiveTool).not.toHaveBeenCalled();
+
+      rerender({ ...base(false, setActiveTool), controller });
+
+      expect(setActiveTool).toHaveBeenCalledWith(null);
+    });
+
+    it("leaves a DM in the mode alone", () => {
+      const methods = makeMethods();
+      const setActiveTool = vi.fn();
+      const controller = makeController(methods, doc("live-id"));
+
+      const { rerender } = renderHook((props) => useMapEditState(props), {
+        initialProps: { ...base(true, setActiveTool), controller },
+      });
+      rerender({ ...base(true, setActiveTool), controller });
+
+      expect(setActiveTool).not.toHaveBeenCalled();
+    });
+
+    it("does not fire for a player who was never in the mode", () => {
+      const methods = makeMethods();
+      const setActiveTool = vi.fn();
+      renderHook(() =>
+        useMapEditState({
+          ...base(false, setActiveTool),
+          mapEditMode: false,
+          controller: makeController(methods, null),
+        }),
+      );
+
+      expect(setActiveTool).not.toHaveBeenCalled();
+    });
+
+    it("SURVIVES a reconnect — a null snapshot is not a revocation", () => {
+      // The defect this guard shipped with. isDM is DERIVED from the snapshot,
+      // and ANY socket close nulls it (handleClose -> authManager.reset -> the
+      // "reset" auth event -> setSnapshot(null)) while AuthenticationGate keeps
+      // the app MOUNTED behind a Reconnecting banner. So a phone locking its
+      // screen looked exactly like "the server revoked your DM", and the DM
+      // came back from the blip no longer in map-edit.
+      const methods = makeMethods();
+      const setActiveTool = vi.fn();
+      const controller = makeController(methods, doc("live-id"));
+
+      const { rerender } = renderHook((props) => useMapEditState(props), {
+        initialProps: { ...base(true, setActiveTool), controller },
+      });
+
+      // The socket drops: no snapshot, so isDM reads false.
+      rerender({ ...base(false, setActiveTool, false), controller });
+      expect(setActiveTool).not.toHaveBeenCalled();
+
+      // ...and comes back with the DM still a DM. The mode was never dropped.
+      rerender({ ...base(true, setActiveTool), controller });
+      expect(setActiveTool).not.toHaveBeenCalled();
+    });
+
+    it("still fires once the server HAS spoken and says you are not a DM", () => {
+      // The other half: the guard must not become a no-op. Same shape as the
+      // reconnect above, but the snapshot arrives and the roster no longer
+      // lists this client as a DM.
+      const methods = makeMethods();
+      const setActiveTool = vi.fn();
+      const controller = makeController(methods, doc("live-id"));
+
+      const { rerender } = renderHook((props) => useMapEditState(props), {
+        initialProps: { ...base(true, setActiveTool), controller },
+      });
+      rerender({ ...base(false, setActiveTool, false), controller });
+      rerender({ ...base(false, setActiveTool, true), controller });
+
+      expect(setActiveTool).toHaveBeenCalledWith(null);
+    });
+  });
+
   it("toasts a server error once when it appears during map-edit", () => {
     const methods = makeMethods();
     const notifyError = vi.fn();
@@ -248,6 +367,8 @@ describe("useMapEditState", () => {
       sendMessage: vi.fn(),
       mapEditMode: true,
       setActiveTool: vi.fn(),
+      isDM: true,
+      snapshotLoaded: true,
       liveMapDocumentId: "live-id",
       roomGridSize: 50,
       hasRasterBackground: false,
@@ -276,6 +397,8 @@ describe("useMapEditState", () => {
         sendMessage: vi.fn(),
         mapEditMode: false,
         setActiveTool: vi.fn(),
+        isDM: true,
+        snapshotLoaded: true,
         liveMapDocumentId: "live-id",
         roomGridSize: 50,
         hasRasterBackground: false,

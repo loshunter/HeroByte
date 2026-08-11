@@ -59,6 +59,7 @@ export interface MapBoardProps {
   onMapEditRegionDragged?: (bounds: RoomBounds) => void; // Generate region swept → recipe target
   onMapEditSelectElement?: (elementId: string | null) => void; // Select tool picked an element
   onMapEditSampleAsset?: (assetId: string) => void; // Eyedropper sampled an asset
+  mapEditCancelSignal?: number; // Bumped OUTSIDE the canvas to abandon the gesture in flight
   isDM: boolean; // Whether the current user can manage all objects
   alignmentMode: boolean; // Alignment tool active
   alignmentPoints?: AlignmentPoint[]; // Captured alignment points

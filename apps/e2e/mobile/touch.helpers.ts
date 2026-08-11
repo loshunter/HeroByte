@@ -144,3 +144,40 @@ export async function touchDragThenSecondFinger(
 
   await send(cdp, "touchEnd", []);
 }
+
+/**
+ * Drag with one finger, hold STILL, tap a second finger somewhere off the
+ * canvas, then lift the first.
+ *
+ * This is the gesture that isolates the dock's abort button from the
+ * two-finger rule, and the distinction is not academic. The gesture router
+ * cancels when it SEES more than one touch — at the stage's own touchstart, or
+ * at the next touchmove. A second finger landing on the dock produces neither:
+ * the touchstart targets the button, not the stage, and if the first finger
+ * never moves again there is no touchmove to notice. So the drag survives to
+ * the lift, and the lift COMMITS. Only the button's own signal can stop it.
+ *
+ * The lifts are separate events on purpose — the second finger comes up first,
+ * which is what generates the button's compat click.
+ */
+export async function touchDragThenTapElsewhere(
+  cdp: CDPSession,
+  from: Pt,
+  dragTo: Pt,
+  tapAt: Pt,
+  options: { steps?: number } = {},
+): Promise<void> {
+  const steps = options.steps ?? 6;
+
+  await send(cdp, "touchStart", [from]);
+  for (const point of lerpPoints(from, dragTo, steps)) {
+    await send(cdp, "touchMove", [point]);
+  }
+
+  // Second finger lands off-canvas. NO touchmove after this point.
+  await send(cdp, "touchStart", [dragTo, tapAt]);
+  // Second finger lifts (the first is still down) -> the button's click.
+  await send(cdp, "touchEnd", [dragTo]);
+  // First finger lifts. Without an abort this is where the drag commits.
+  await send(cdp, "touchEnd", []);
+}

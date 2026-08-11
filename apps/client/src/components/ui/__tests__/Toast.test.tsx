@@ -754,12 +754,17 @@ describe("ToastContainer Component", () => {
       const { container } = render(<ToastContainer messages={[message]} onDismiss={vi.fn()} />);
       const containerDiv = container.querySelector('[style*="position: fixed"]') as HTMLElement;
 
+      // The offsets are expressed against the mobile safe-area insets rather
+      // than as bare pixels, so that a notch or a rounded corner cannot eat the
+      // corner a toast appears in. The insets are declared on
+      // .mobile-layout-root and inherit down; the fallbacks are what desktop
+      // gets, which is the 80/20 this used to assert literally.
       expect(containerDiv).toHaveStyle({
         position: "fixed",
-        top: "80px",
-        right: "20px",
+        top: "calc(var(--mobile-safe-top, 0px) + 80px)",
+        right: "calc(var(--mobile-safe-right, 0px) + 20px)",
         zIndex: "10000",
-        maxWidth: "400px",
+        maxWidth: "min(400px, calc(100vw - 40px))",
         pointerEvents: "auto",
       });
     });
@@ -788,8 +793,8 @@ describe("ToastContainer Component", () => {
       const containerDiv = container.querySelector('[style*="position: fixed"]') as HTMLElement;
 
       expect(containerDiv).toHaveStyle({
-        top: "80px",
-        right: "20px",
+        top: "calc(var(--mobile-safe-top, 0px) + 80px)",
+        right: "calc(var(--mobile-safe-right, 0px) + 20px)",
       });
     });
 
@@ -803,7 +808,9 @@ describe("ToastContainer Component", () => {
       const { container } = render(<ToastContainer messages={[message]} onDismiss={vi.fn()} />);
       const containerDiv = container.querySelector('[style*="position: fixed"]') as HTMLElement;
 
-      expect(containerDiv).toHaveStyle({ maxWidth: "400px" });
+      // 400px flat overflowed a 375px phone, which mobile only started
+      // rendering toasts on in S8.
+      expect(containerDiv).toHaveStyle({ maxWidth: "min(400px, calc(100vw - 40px))" });
     });
 
     it("should enable pointer events on container", () => {

@@ -45,5 +45,13 @@ export function useTerrainBrush({ activeDocument, paintTerrain }: UseTerrainBrus
     if (cells.length > 0) paintTerrain(cells);
   }, [paintTerrain]);
 
-  return { addStrokePoint, flushStroke, strokeCells };
+  // Throw the stroke away instead of painting it. On touch a second finger
+  // means "I want to zoom", not "commit what I have so far" — and without a
+  // discard the abandoned cells would simply ride along on the next flush.
+  const discardStroke = useCallback(() => {
+    stroke.current = new Map();
+    setStrokeCells([]);
+  }, []);
+
+  return { addStrokePoint, flushStroke, discardStroke, strokeCells };
 }

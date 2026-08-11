@@ -164,11 +164,15 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ messages, onDism
       </style>
       <div
         style={{
+          // Offsets ride on the safe-area insets, which inherit from
+          // .mobile-layout-root; desktop takes the fallbacks and is unchanged.
+          // A notch or a rounded corner would otherwise eat the corner a toast
+          // appears in — and mobile only started rendering these in S8.
           position: "fixed",
-          top: "80px",
-          right: "20px",
+          top: "calc(var(--mobile-safe-top, 0px) + 80px)",
+          right: "calc(var(--mobile-safe-right, 0px) + 20px)",
           zIndex: 10000,
-          maxWidth: "400px",
+          maxWidth: "min(400px, calc(100vw - 40px))",
           pointerEvents: "auto",
         }}
       >

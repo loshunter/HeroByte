@@ -1,0 +1,135 @@
+/**
+ * Naming for bulk-created and duplicated NPCs.
+ *
+ * Lives on the server because the server owns character creation: if the
+ * client picked names, two DMs adding goblins at the same moment would each
+ * number from the state they last saw and collide. One caller, one authority.
+ *
+ * @module domains/character/npcNaming
+ */
+
+/**
+ * Split "Goblin 3" into its base and number, "Goblin" into a base with none.
+ *
+ * Duplicating an already-numbered NPC must continue that NPC's series rather
+ * than starting "Goblin 3 2" — so the number is stripped before allocating.
+ */
+export function splitNumberedName(name: string): { base: string; index?: number } {
+  const match = /^(.*?)\s+(\d+)$/.exec(name.trim());
+  if (!match) return { base: name.trim() };
+  const index = Number(match[2]);
+  // "Goblin 007" is a name, not an index — round-tripping it would rewrite it.
+  if (!Number.isSafeInteger(index) || String(index) !== match[2]) {
+    return { base: name.trim() };
+  }
+  return { base: match[1], index };
+}
+
+/**
+ * Highest number already in use for a base name, treating a bare "Goblin" as 1
+ * so that duplicating it yields "Goblin 2" rather than a second "Goblin".
+ */
+function highestIndexFor(existingNames: readonly string[], base: string): number {
+  let highest = 0;
+  for (const name of existingNames) {
+    const parsed = splitNumberedName(name);
+    if (parsed.base !== base) continue;
+    highest = Math.max(highest, parsed.index ?? 1);
+  }
+  return highest;
+}
+
+/**
+ * Allocate `count` names for `baseName` that do not collide with `existingNames`.
+ *
+ * The rule, and why:
+ *
+ * - Creating ONE NPC whose name is free leaves it exactly as typed. That keeps
+ *   the existing "+ Add NPC" button's behaviour identical — it sends "New NPC"
+ *   with no count — so this change is invisible until a DM asks for more than
+ *   one or reuses a name.
+ * - Otherwise names are numbered, continuing PAST what already exists. Adding
+ *   five goblins and then three more gives Goblin 1–5 then Goblin 6–8, not two
+ *   sets of the same numbers. Telling Goblin 3 from Goblin 5 is the entire
+ *   point of the feature; handing back duplicates would defeat it.
+ * - Allocation is cumulative within one call, so a single batch cannot collide
+ *   with itself.
+ */
+/**
+ * Longest name this may return.
+ *
+ * It has to match what validateCreateNpcMessage and validateUpdateNpcMessage
+ * accept, or the server hands itself back a name it will refuse: numbering a
+ * 49-character base pushed it to 51, and from then on every edit to that NPC
+ * was rejected on length and dropped without a reply, so the card reported a
+ * timeout and Duplicate did nothing. npcNaming.test.ts pins this against
+ * STRING_LIMITS.PLAYER_NAME_MAX so the two cannot drift apart.
+ */
+export const NPC_NAME_MAX = 50;
+
+/** `base` truncated so that appending ` ${index}` still fits within `max`. */
+function fitNumbered(base: string, index: number, max: number): string {
+  const suffix = ` ${index}`;
+  if (base.length + suffix.length <= max) return `${base}${suffix}`;
+  // trimEnd so a cut landing mid-space does not leave "Ancient Red  7".
+  return `${base.slice(0, Math.max(0, max - suffix.length)).trimEnd()}${suffix}`;
+}
+
+export function allocateNpcNames(
+  existingNames: readonly string[],
+  baseName: string,
+  count: number,
+  maxLength: number = NPC_NAME_MAX,
+): string[] {
+  const requested = Math.max(1, Math.floor(count));
+  const { base, index } = splitNumberedName(baseName);
+  // `base` is only empty when the caller's name was entirely whitespace, which
+  // validateCreateNpcMessage admits (" " is one character). Fall back to the
+  // name AS GIVEN rather than to its trimmed form: trimming would turn " " into
+  // "", and an NPC with no name at all renders as a blank nameplate. Before
+  // this function existed such a name was stored verbatim, and it still is.
+  const safeBase = base.length > 0 ? base : baseName;
+
+  const taken = new Set(existingNames);
+  // The as-typed shortcut requires that the caller did NOT hand us a numbered
+  // name. Duplicating "Goblin 7" asks to continue that series; returning the
+  // bare "Goblin" because it happens to be free would both rename the copy and
+  // drop it out of the series it came from.
+  if (requested === 1 && index === undefined && !taken.has(safeBase)) {
+    return [safeBase];
+  }
+
+  const names: string[] = [];
+  let next = highestIndexFor(existingNames, safeBase) + 1;
+  // Past 2^53 `next += 1` is a no-op in float64, so `candidate` would stop
+  // changing and the collision skip below would spin forever — wedging the one
+  // process that serves every table, since handleCreateNPC is synchronous on
+  // the socket path. An existing "G 9007199254740991" is enough to get here:
+  // update-npc stores a name verbatim, so a DM can type one. Restart the
+  // search from 1 and let the taken-set skip find the first free number.
+  if (!Number.isSafeInteger(next)) {
+    next = 1;
+  }
+  // Every pass either takes a name or skips one already taken, so
+  // `requested + taken.size` passes is always more than enough. This ceiling is
+  // a BACKSTOP, not the mechanism — the reset above is what handles the real
+  // case. It exists so that arithmetic which stops advancing returns a short
+  // batch, which a test can catch, rather than spinning forever: a synchronous
+  // infinite loop here blocks the event loop outright, so even vitest's own
+  // timeout cannot interrupt it and CI would hang instead of going red.
+  let attemptsLeft = requested + taken.size;
+  while (names.length < requested && attemptsLeft > 0) {
+    attemptsLeft -= 1;
+    const candidate = fitNumbered(safeBase, next, maxLength);
+    next += 1;
+    // Reachable once the reset above fires: restarting at 1 walks back over
+    // numbers that are already in use. Outside that case it is unreachable,
+    // because highestIndexFor has already carried `next` past every name that
+    // parses as this base — but it keeps the no-duplicates invariant local to
+    // this loop rather than inherited from that function at a distance.
+    if (taken.has(candidate)) continue;
+    taken.add(candidate);
+    names.push(candidate);
+  }
+  return names;
+}

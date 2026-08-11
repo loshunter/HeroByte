@@ -1,45 +1,75 @@
 // ============================================================================
 // MOBILE FLOATING CONTROLS
 // ============================================================================
-// Bottom action dock and tool sheet for mobile layout.
+// Bottom action dock and tool sheet for mobile layout. Which surface is open
+// is useMobileSurface's call, not this component's — every button here just
+// reports the surface it stands for, and the machine arbitrates.
 
 import React from "react";
 import type { ToolMode } from "./Header";
+import type { MobileSurface } from "../../hooks/useMobileSurface";
+import type { MapEditToolbarProps } from "../../features/map-edit/mapEditTypes";
+import { MobileMapEditPalette } from "./MobileMapEditPalette";
 
 interface MobileFloatingControlsProps {
-  onShowEntities: () => void;
-  onToggleDiceRoller: () => void;
-  onToggleRollLog: () => void;
+  surface: MobileSurface;
+  onToggleSurface: (surface: Exclude<MobileSurface, "none">) => void;
   onToolSelect: (mode: ToolMode) => void;
   onSnapToGridChange: (snap: boolean) => void;
   onResetCamera: () => void;
   activeTool: ToolMode;
   snapToGrid: boolean;
-  diceRollerOpen: boolean;
-  rollLogOpen: boolean;
-  /** Tool sheet open state is owned by MobileLayout for single-sheet arbitration. */
-  toolsOpen: boolean;
-  onToggleTools: () => void;
+  /** Slot five is contextual: `DM` for a DM, `View` (reset camera) otherwise. */
+  isDM: boolean;
+  /** Map-edit armed — the dock is REPLACED by the palette (redesign §1). */
+  mode: boolean;
+  mapEditToolbarProps: MapEditToolbarProps;
+  onCancelMapEditDrag: () => void;
 }
 
 export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
-  onShowEntities,
-  onToggleDiceRoller,
-  onToggleRollLog,
+  surface,
+  onToggleSurface,
   onToolSelect,
   onSnapToGridChange,
   onResetCamera,
   activeTool,
   snapToGrid,
-  diceRollerOpen,
-  rollLogOpen,
-  toolsOpen,
-  onToggleTools,
+  isDM,
+  mode,
+  mapEditToolbarProps,
+  onCancelMapEditDrag,
 }) => {
-  // The sheet only renders when toolsOpen, so toggling from here always closes it.
+  const toolsOpen = surface === "tools";
+
+  // A Mode re-purposes the dock rather than stacking on it, so this is a
+  // replacement and not a branch inside the nav below: five slots, all
+  // different, and none of the player-facing surfaces reachable while armed.
+  if (mode) {
+    return (
+      <MobileMapEditPalette
+        toolbar={mapEditToolbarProps}
+        toolsOpen={toolsOpen}
+        onToggleTools={() => onToggleSurface("tools")}
+        onCancelDrag={onCancelMapEditDrag}
+        onResetCamera={onResetCamera}
+      />
+    );
+  }
+
+  // Recenter lives in the sheet so a DM — whose dock slot five is `DM`, not
+  // `View` — still has reset-camera. Closing the sheet on tap is the point:
+  // you recenter to SEE the map.
+  const recenter = () => {
+    onResetCamera();
+    onToggleSurface("tools");
+  };
+
+  // The sheet only renders while the tools surface is open, so toggling from
+  // here always closes it.
   const selectTool = (tool: ToolMode) => {
     onToolSelect(tool);
-    onToggleTools();
+    onToggleSurface("tools");
   };
 
   const toolButtonClass = (tool: ToolMode) =>
@@ -48,13 +78,18 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
   return (
     <>
       {toolsOpen && (
-        <div className="mobile-tool-sheet" role="dialog" aria-label="Map tools">
+        <div
+          className="mobile-tool-sheet"
+          role="dialog"
+          aria-label="Map tools"
+          data-mobile-surface="tools"
+        >
           <div className="mobile-tool-sheet__header">
             <strong>Tools</strong>
             <button
               type="button"
               className="mobile-tool-sheet__close"
-              onClick={onToggleTools}
+              onClick={() => onToggleSurface("tools")}
               aria-label="Close tools"
             >
               ✕
@@ -119,12 +154,28 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
               <span aria-hidden="true">#</span>
               Snap
             </button>
+            <button type="button" className="mobile-tool-sheet__button" onClick={recenter}>
+              <span aria-hidden="true">◇</span>
+              Recenter
+            </button>
+            <button
+              type="button"
+              className="mobile-tool-sheet__button"
+              onClick={() => onToggleSurface("help")}
+            >
+              <span aria-hidden="true">?</span>
+              Help
+            </button>
           </div>
         </div>
       )}
 
       <nav className="mobile-action-dock" aria-label="Mobile actions">
-        <button type="button" className="mobile-dock-button" onClick={onShowEntities}>
+        <button
+          type="button"
+          className="mobile-dock-button"
+          onClick={() => onToggleSurface("party")}
+        >
           <span className="mobile-dock-button__icon" aria-hidden="true">
             ◉
           </span>
@@ -135,7 +186,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
           className={`mobile-dock-button${
             toolsOpen || activeTool ? " mobile-dock-button--active" : ""
           }`}
-          onClick={onToggleTools}
+          onClick={() => onToggleSurface("tools")}
           aria-expanded={toolsOpen}
         >
           <span className="mobile-dock-button__icon" aria-hidden="true">
@@ -145,9 +196,9 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
         </button>
         <button
           type="button"
-          className={`mobile-dock-button${diceRollerOpen ? " mobile-dock-button--active" : ""}`}
-          onClick={onToggleDiceRoller}
-          aria-pressed={diceRollerOpen}
+          className={`mobile-dock-button${surface === "dice" ? " mobile-dock-button--active" : ""}`}
+          onClick={() => onToggleSurface("dice")}
+          aria-pressed={surface === "dice"}
         >
           <span className="mobile-dock-button__icon" aria-hidden="true">
             ⚂
@@ -156,21 +207,37 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
         </button>
         <button
           type="button"
-          className={`mobile-dock-button${rollLogOpen ? " mobile-dock-button--active" : ""}`}
-          onClick={onToggleRollLog}
-          aria-pressed={rollLogOpen}
+          className={`mobile-dock-button${surface === "log" ? " mobile-dock-button--active" : ""}`}
+          onClick={() => onToggleSurface("log")}
+          aria-pressed={surface === "log"}
         >
           <span className="mobile-dock-button__icon" aria-hidden="true">
             ≡
           </span>
           Log
         </button>
-        <button type="button" className="mobile-dock-button" onClick={onResetCamera}>
-          <span className="mobile-dock-button__icon" aria-hidden="true">
-            ◇
-          </span>
-          View
-        </button>
+        {isDM ? (
+          // Slot five, not slot six: the dock is a hardcoded 5-column grid and
+          // a sixth child overlaps rather than wraps (settled, handoff §9).
+          <button
+            type="button"
+            className={`mobile-dock-button${surface === "dm" ? " mobile-dock-button--active" : ""}`}
+            onClick={() => onToggleSurface("dm")}
+            aria-pressed={surface === "dm"}
+          >
+            <span className="mobile-dock-button__icon" aria-hidden="true">
+              ♛
+            </span>
+            DM
+          </button>
+        ) : (
+          <button type="button" className="mobile-dock-button" onClick={onResetCamera}>
+            <span className="mobile-dock-button__icon" aria-hidden="true">
+              ◇
+            </span>
+            View
+          </button>
+        )}
       </nav>
     </>
   );

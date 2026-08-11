@@ -16,6 +16,7 @@
 import path from "node:path";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { MessageRouter } from "../../messageRouter.js";
+import { SNAPSHOT_LIMITS } from "../../../middleware/validators/sessionValidators.js";
 import { RoomService } from "../../../domains/room/service.js";
 import { PlayerService } from "../../../domains/player/service.js";
 import { TokenService } from "../../../domains/token/service.js";
@@ -151,6 +152,214 @@ describe("NPCMessageHandler - Characterization Tests", () => {
 
       const state = roomService.getState();
       expect(state.characters).toHaveLength(0);
+    });
+  });
+
+  /**
+   * S8: one message creates several. Note these route through the real
+   * dispatcher, so the DM gate is exercised too — but NOT the validator, which
+   * runs before route() in production. The count bound is tested in
+   * middleware/__tests__/validation.test.ts.
+   */
+  describe("create-npc with a count", () => {
+    const bulk = (count: number | undefined, name = "Goblin"): ClientMessage => ({
+      t: "create-npc",
+      name,
+      hp: 7,
+      maxHp: 7,
+      ...(count === undefined ? {} : { count }),
+    });
+
+    it("creates exactly count NPCs from one message", () => {
+      messageRouter.route(bulk(5), dmUid);
+
+      const state = roomService.getState();
+      expect(state.characters).toHaveLength(5);
+      expect(state.characters.every((c) => c.type === "npc")).toBe(true);
+      expect(state.characters.every((c) => c.maxHp === 7)).toBe(true);
+    });
+
+    it("numbers them so a DM can tell one from another", () => {
+      messageRouter.route(bulk(5), dmUid);
+
+      expect(roomService.getState().characters.map((c) => c.name)).toEqual([
+        "Goblin 1",
+        "Goblin 2",
+        "Goblin 3",
+        "Goblin 4",
+        "Goblin 5",
+      ]);
+    });
+
+    it("continues the series on a second batch instead of repeating it", () => {
+      messageRouter.route(bulk(5), dmUid);
+      messageRouter.route(bulk(3), dmUid);
+
+      const names = roomService.getState().characters.map((c) => c.name);
+      expect(names).toHaveLength(8);
+      expect(new Set(names).size).toBe(8);
+      expect(names.slice(5)).toEqual(["Goblin 6", "Goblin 7", "Goblin 8"]);
+    });
+
+    it("leaves a single unnumbered create exactly as it always behaved", () => {
+      // The plain "+ Add NPC" button sends no count at all.
+      messageRouter.route(bulk(undefined, "New NPC"), dmUid);
+
+      expect(roomService.getState().characters.map((c) => c.name)).toEqual(["New NPC"]);
+    });
+
+    it("still refuses a non-DM, however many are asked for", () => {
+      messageRouter.route(bulk(20), playerUid);
+
+      expect(roomService.getState().characters).toHaveLength(0);
+    });
+
+    it("gives every NPC in the batch its own identity", () => {
+      messageRouter.route(bulk(4), dmUid);
+
+      const ids = roomService.getState().characters.map((c) => c.id);
+      expect(new Set(ids).size).toBe(4);
+    });
+
+    it("copies portrait and token art to every NPC in the batch", () => {
+      messageRouter.route(
+        { ...bulk(3), portrait: "goblin.png", tokenImage: "goblin-token.png" } as ClientMessage,
+        dmUid,
+      );
+
+      const state = roomService.getState();
+      expect(state.characters.every((c) => c.portrait === "goblin.png")).toBe(true);
+      expect(state.characters.every((c) => c.tokenImage === "goblin-token.png")).toBe(true);
+    });
+
+    it("stops at the 500-character snapshot limit rather than making an unloadable table", () => {
+      // A room past the limit exports a session file that fails its own load
+      // validation — the DM's backup silently stops being a backup.
+      const state = roomService.getState();
+      for (let i = 0; i < 495; i += 1) {
+        characterService.createCharacter(state, `Filler ${i}`, 1, undefined, "npc");
+      }
+
+      messageRouter.route(bulk(20), dmUid);
+
+      // Partial batch, not zero: 5 goblins beats none, and the DM can see it.
+      expect(roomService.getState().characters).toHaveLength(500);
+    });
+
+    it("refuses outright once the room is already full", () => {
+      const state = roomService.getState();
+      for (let i = 0; i < 500; i += 1) {
+        characterService.createCharacter(state, `Filler ${i}`, 1, undefined, "npc");
+      }
+
+      messageRouter.route(bulk(3), dmUid);
+
+      expect(roomService.getState().characters).toHaveLength(500);
+    });
+  });
+
+  describe("the character ceiling's two consumers", () => {
+    it("creates against the same number a session snapshot is validated with", () => {
+      // SNAPSHOT_LIMITS.characters answers two questions from one constant:
+      // what a loaded session file may contain, and how many characters a DM
+      // may ever create. They MUST agree — a room allowed past what a snapshot
+      // holds produces a save that fails its own load validation, so the DM's
+      // backup quietly stops being one. Nothing but this test says so, and the
+      // two consumers sit in different layers (a ws handler reaching into
+      // middleware/validators, the only such edge in the codebase).
+      expect(SNAPSHOT_LIMITS.characters).toBe(500);
+
+      const state = roomService.getState();
+      state.characters = Array.from({ length: SNAPSHOT_LIMITS.characters - 2 }, (_, i) => ({
+        id: `filler-${i}`,
+        type: "npc" as const,
+        name: `Filler ${i}`,
+        hp: 1,
+        maxHp: 1,
+      }));
+
+      // Ask for five with room for two: a partial batch, not a refusal.
+      messageRouter.route(
+        { t: "create-npc", name: "Goblin", hp: 7, maxHp: 7, count: 5 } as ClientMessage,
+        dmUid,
+      );
+
+      expect(roomService.getState().characters).toHaveLength(SNAPSHOT_LIMITS.characters);
+    });
+  });
+
+  describe("create-npc carrying a hidden flag (Duplicate)", () => {
+    const create = (visibleToPlayers?: unknown): ClientMessage =>
+      ({
+        t: "create-npc",
+        name: "Assassin",
+        hp: 20,
+        maxHp: 20,
+        ...(visibleToPlayers === undefined ? {} : { visibleToPlayers }),
+      }) as ClientMessage;
+
+    it("creates a hidden NPC when the flag is explicitly false", () => {
+      messageRouter.route(create(false), dmUid);
+
+      expect(roomService.getState().characters[0]?.visibleToPlayers).toBe(false);
+    });
+
+    it("leaves an ordinary create visible", () => {
+      messageRouter.route(create(undefined), dmUid);
+
+      expect(roomService.getState().characters[0]?.visibleToPlayers).not.toBe(false);
+    });
+
+    it("puts no field on a created character beyond the Character shape", () => {
+      // The real guard against forwarding wire-only options into a per-entity
+      // constructor is COMPILE-TIME (a fresh object literal at the call site
+      // restores TypeScript's excess-property check), which no runtime test can
+      // observe. What this pins instead is the consequence, from any cause: the
+      // recipient filter spreads `...character` into the snapshot and
+      // StatePersistence writes the array straight to the session file, so an
+      // unexpected key here reaches every player AND the DM's backup. It fails
+      // if createCharacter ever starts spreading its options, whatever the call
+      // site hands it.
+      messageRouter.route(
+        { t: "create-npc", name: "Goblin", hp: 7, maxHp: 7, count: 3 } as ClientMessage,
+        dmUid,
+      );
+
+      const allowed = new Set([
+        "id",
+        "type",
+        "name",
+        "portrait",
+        "hp",
+        "maxHp",
+        "tempHp",
+        "tokenId",
+        "ownedByPlayerUID",
+        "tokenImage",
+        "initiative",
+        "initiativeModifier",
+        "statusEffects",
+        "visibleToPlayers",
+      ]);
+
+      const created = roomService.getState().characters;
+      expect(created).toHaveLength(3);
+      for (const character of created) {
+        const unexpected = Object.keys(character).filter((key) => !allowed.has(key));
+        expect(unexpected).toEqual([]);
+      }
+    });
+
+    it("honours only an exact false, so a junk value cannot hide an NPC", () => {
+      // The flag has no validator branch of its own — it drives a boolean, not
+      // a loop — so the handler's `=== false` is what makes anything else inert.
+      for (const junk of ["false", 0, null, {}]) {
+        messageRouter.route(create(junk), dmUid);
+      }
+
+      const created = roomService.getState().characters;
+      expect(created).toHaveLength(4);
+      expect(created.every((c) => c.visibleToPlayers !== false)).toBe(true);
     });
   });
 

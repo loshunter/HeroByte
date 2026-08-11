@@ -7,16 +7,17 @@
 // sync-player-drawings. Everything that decides what survives that round trip
 // lives here, in one place, rather than mixed in with player stats.
 
-import { coerceAreaTemplate } from "@herobyte/shared";
-import type { Drawing } from "@herobyte/shared";
+import { coerceAreaTemplate, DRAWING_TYPES } from "@herobyte/shared";
+import type { Drawing, DrawingType } from "@herobyte/shared";
 
 export const MAX_DRAWING_POINTS = 10_000;
 
-// "template" is here for the same reason as the rest: an unlisted type is
-// silently rewritten to "freehand" on import, which would turn a saved cone
-// into a scribble and push the corruption back to the table.
-const VALID_DRAWING_TYPES = ["circle", "line", "rect", "freehand", "eraser", "template"] as const;
-type ValidDrawingType = (typeof VALID_DRAWING_TYPES)[number];
+// The list comes from @herobyte/shared rather than a local copy. An unlisted
+// type is silently rewritten to "freehand" on import, which turns a saved cone
+// into a scribble and pushes the corruption back to the table — and the type
+// system could NOT catch that drift, because a local SUBSET still assigns
+// cleanly to Drawing["type"]. Dropping "template" from a local copy would have
+// compiled, linted and typechecked green.
 
 /** Only ever mints DRAWING ids, so it belongs beside the sanitisers. */
 function generateId(): string {
@@ -67,8 +68,8 @@ export function sanitizeDrawingFromImport(raw: unknown, index: number): Drawing 
 
   const id = typeof raw.id === "string" && raw.id.trim().length > 0 ? raw.id.trim() : generateId();
   const typeRaw = typeof raw.type === "string" ? raw.type.trim() : "";
-  const type: ValidDrawingType = VALID_DRAWING_TYPES.includes(typeRaw as ValidDrawingType)
-    ? (typeRaw as ValidDrawingType)
+  const type: DrawingType = DRAWING_TYPES.includes(typeRaw as DrawingType)
+    ? (typeRaw as DrawingType)
     : "freehand";
 
   if (!Array.isArray(raw.points) || raw.points.length === 0) {

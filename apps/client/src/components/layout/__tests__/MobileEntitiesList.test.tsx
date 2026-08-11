@@ -29,7 +29,6 @@ function renderList(isDM: boolean, onTokenVisionRadiusChange = vi.fn()) {
       uid={ME}
       isDM={isDM}
       onToggleDMMode={vi.fn()}
-      onClose={vi.fn()}
       editingHpUID={null}
       hpInput=""
       onHpInputChange={vi.fn()}
@@ -100,7 +99,6 @@ describe("MobileEntitiesList sight-radius gate", () => {
         uid={ME}
         isDM
         onToggleDMMode={vi.fn()}
-        onClose={vi.fn()}
         editingHpUID={null}
         hpInput=""
         onHpInputChange={vi.fn()}
@@ -136,7 +134,6 @@ describe("MobileEntitiesList sight-radius gate", () => {
         uid={ME}
         isDM
         onToggleDMMode={vi.fn()}
-        onClose={vi.fn()}
         editingHpUID={null}
         hpInput=""
         onHpInputChange={vi.fn()}

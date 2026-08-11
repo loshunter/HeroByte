@@ -97,6 +97,8 @@ export class CharacterDispatcher {
             this.npcHandler.handleCreateNPC(state, message.name, message.maxHp, message.portrait, {
               hp: message.hp,
               tokenImage: message.tokenImage,
+              count: message.count,
+              visibleToPlayers: message.visibleToPlayers,
             }),
           ) ?? {}
         );

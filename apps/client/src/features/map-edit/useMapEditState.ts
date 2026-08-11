@@ -28,6 +28,15 @@ interface UseMapEditStateOptions {
   sendMessage: (message: ClientMessage) => void;
   mapEditMode: boolean;
   setActiveTool: (tool: ToolMode) => void;
+  /** Whether this client currently holds DM. Losing it leaves the mode. */
+  isDM: boolean;
+  /**
+   * Has the server actually told us the roster yet? `isDM` is DERIVED from the
+   * snapshot, so it reads false whenever there is no snapshot — which includes
+   * every reconnect. Without this the guard below cannot tell "the server
+   * revoked you" from "the server has not spoken yet".
+   */
+  snapshotLoaded: boolean;
   /** The room's live-bound document id (from the snapshot), if any. */
   liveMapDocumentId: string | undefined;
   /** The room's current live grid size, synced onto a freshly created document. */
@@ -77,6 +86,8 @@ export function useMapEditState({
   sendMessage,
   mapEditMode,
   setActiveTool,
+  isDM,
+  snapshotLoaded,
   liveMapDocumentId,
   roomGridSize,
   hasRasterBackground,
@@ -180,6 +191,24 @@ export function useMapEditState({
   useEffect(() => {
     if (isLive) setAwaitingLiveBind(false);
   }, [isLive]);
+
+  // LOSING DM LEAVES THE MODE. Every way OUT of map-edit is DM-gated — the
+  // header's entry, and the palette itself (TopPanelLayout gates on isDM) —
+  // while the mode's effects are not: one-finger pan is off (shouldPan
+  // excludes it) and tokens are non-interactive. So a revoked DM was left on
+  // a table they could neither author nor move, with only an undiscoverable
+  // Escape as the way out. Revocation is not always self-inflicted, either.
+  //
+  // The snapshotLoaded half is not belt-and-braces, it is the whole
+  // correctness of this guard. `isDM` is derived from the snapshot, and ANY
+  // socket close nulls it: handleClose -> authManager.reset -> the "reset"
+  // auth event -> setSnapshot(null), while AuthenticationGate keeps the app
+  // MOUNTED behind a Reconnecting banner. A phone locking its screen would
+  // otherwise drop the DM out of map-edit and leave them there after the
+  // reconnect, looking like the mode had quit on its own.
+  useEffect(() => {
+    if (mapEditMode && snapshotLoaded && !isDM) setActiveTool(null);
+  }, [mapEditMode, snapshotLoaded, isDM, setActiveTool]);
 
   // Create → bind: once the freshly created document activates, bind it live and
   // sync its grid to the room. set-live FIRST so the grid command rides the S1

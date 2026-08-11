@@ -31,6 +31,7 @@ import { useEntityEditHandlers } from "../hooks/useEntityEditHandlers";
 import { useInitiativeSetting } from "../hooks/useInitiativeSetting";
 import { useNpcVisibility } from "../hooks/useNpcVisibility";
 import { PublicTableNotice } from "../features/rooms/PublicTableNotice";
+import { buildDMMenuProps } from "../features/dm/buildDMMenuProps";
 
 // Re-export for backward compatibility
 export type { MainLayoutProps, RollLogEntry };
@@ -98,13 +99,10 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     toggleRollLog,
     micEnabled,
     toggleMic,
-    gridLocked,
-    setGridLocked,
 
     // Data
     uid,
     gridSize,
-    gridSquareSize,
     isDM,
     snapshot,
     playerActions,
@@ -115,12 +113,10 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     setCameraState,
     handleFocusToken,
     handleResetCamera,
-    camera,
 
     // Drawing
     drawingToolbarProps,
     drawingProps,
-    handleClearDrawings,
 
     // Editing
     editingPlayerUID,
@@ -152,11 +148,8 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     handleObjectSelectionBatch,
     lockSelected,
     unlockSelected,
-    selectPlayerTokens,
 
     // Scene objects
-    mapSceneObject,
-    stagingZoneSceneObject,
     recolorToken,
     transformSceneObject,
     toggleSceneObjectLock,
@@ -168,11 +161,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     // Alignment
     alignmentPoints,
     alignmentSuggestion,
-    alignmentError,
-    handleAlignmentStart,
-    handleAlignmentReset,
-    handleAlignmentCancel,
-    handleAlignmentApply,
     handleAlignmentPointCapture,
 
     // Dice
@@ -185,18 +173,9 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     handleClearLog,
     handleViewRoll,
 
-    // Room password
-    roomPasswordStatus,
-    roomPasswordPending,
-    handleSetRoomPassword,
-    onSaveAsPrivateTable,
-    dismissRoomPasswordStatus,
-
-    // DM management (hooks now in DMMenuContainer)
+    // DM management (hooks now in DMMenuContainer; the rename/derive wiring
+    // now lives in buildDMMenuProps)
     handleToggleDM,
-    setMapBackgroundURL,
-    setGridSize,
-    setGridSquareSize,
 
     // Toast
     toast,
@@ -238,6 +217,11 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
 
   // DM-only NPC visibility toggles
   const { toggleNpcVisibility } = useNpcVisibility({ sendMessage });
+
+  // The one mapping from the props bag onto DMMenuContainer's shape — shared
+  // with the mobile shell, so a DM feature is wired once, not per layout.
+  // setInitiative rides as an extra because it is a hook result, not bag state.
+  const dmMenuProps = buildDMMenuProps(props, { setInitiative });
 
   // Turn navigation handlers for combat controls
   const handleNextTurn = useCallback(() => {
@@ -408,37 +392,8 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         contextMenu={contextMenu}
         deleteToken={deleteToken}
         setContextMenu={setContextMenu}
-        gridSize={gridSize}
-        gridSquareSize={gridSquareSize}
-        gridLocked={gridLocked}
-        onGridSizeChange={setGridSize}
-        onGridSquareSizeChange={setGridSquareSize}
-        onToggleDM={handleToggleDM}
-        onGridLockToggle={() => setGridLocked((prev) => !prev)}
-        onClearDrawings={handleClearDrawings}
-        camera={camera}
+        dmMenuProps={dmMenuProps}
         snapshot={snapshot}
-        selectPlayerTokens={selectPlayerTokens}
-        mapSceneObject={mapSceneObject}
-        stagingZoneSceneObject={stagingZoneSceneObject}
-        onSetMapBackground={setMapBackgroundURL}
-        toggleSceneObjectLock={toggleSceneObjectLock}
-        transformSceneObject={transformSceneObject}
-        onSetPlayerStagingZone={playerActions.setPlayerStagingZone}
-        alignmentMode={alignmentMode}
-        alignmentPoints={alignmentPoints}
-        alignmentSuggestion={alignmentSuggestion}
-        alignmentError={alignmentError}
-        onAlignmentStart={handleAlignmentStart}
-        onAlignmentReset={handleAlignmentReset}
-        onAlignmentCancel={handleAlignmentCancel}
-        onAlignmentApply={handleAlignmentApply}
-        sendMessage={sendMessage}
-        onSetRoomPassword={handleSetRoomPassword}
-        onSaveAsPrivateTable={onSaveAsPrivateTable}
-        roomPasswordStatus={roomPasswordStatus}
-        roomPasswordPending={roomPasswordPending}
-        onDismissRoomPasswordStatus={dismissRoomPasswordStatus}
         diceRollerOpen={diceRollerOpen}
         toggleDiceRoller={toggleDiceRoller}
         handleRoll={handleRoll}
@@ -454,8 +409,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         handleViewRoll={handleViewRoll}
         crtFilter={crtFilter}
         toast={toast}
-        onSetInitiative={setInitiative}
-        mapStudio={mapStudio}
       />
     </div>
   );
