@@ -3,6 +3,7 @@ import { describe, expect, it, beforeEach, vi } from "vitest";
 import React from "react";
 import { AuthState, ConnectionState } from "../services/websocket";
 import { App } from "./App";
+import { useDMRole } from "../hooks/useDMRole";
 
 const mockUseWebSocket = vi.fn();
 const mockUseObjectSelection = vi.fn();
@@ -517,5 +518,82 @@ describe("App", () => {
       onSetRoomPassword?.("Secret123");
     });
     expect(send).toHaveBeenCalledWith({ t: "set-room-password", secret: "Secret123" });
+  });
+  // ---------------------------------------------------------------------
+  // The map-edit mode across a reconnect (M4c review finding).
+  //
+  // These live at the App level and not in useMapEditState's own suite for a
+  // measured reason: with `snapshotLoaded` hard-coded to true at THIS call
+  // site, every hook-level test still passes. The wiring is the thing under
+  // test, and only App can drive isDM and the snapshot together the way a
+  // real socket drop does.
+  // ---------------------------------------------------------------------
+  const armMapEdit = async () => {
+    await waitFor(() => expect(latestHeaderProps).not.toBeNull());
+    await act(async () => {
+      latestHeaderProps!.onToolSelect("map-edit");
+    });
+    await waitFor(() => expect(latestMapBoardProps?.mapEditMode).toBe(true));
+  };
+
+  it("keeps map-edit armed across a socket drop — a null snapshot is not a revocation", async () => {
+    mockUseWebSocket.mockReturnValue({
+      ...baseWebSocketState,
+      authState: AuthState.AUTHENTICATED,
+      snapshot: buildSnapshot(),
+    });
+
+    const { rerender } = render(<App />);
+    await armMapEdit();
+
+    // The socket closes: authManager.reset() nulls the snapshot, so isDM —
+    // which is DERIVED from it — reads false. The app stays MOUNTED behind
+    // AuthenticationGate's Reconnecting banner, which is what makes this
+    // reachable at all.
+    vi.mocked(useDMRole).mockReturnValue({ isDM: false, elevateToDM: vi.fn() });
+    mockUseWebSocket.mockReturnValue({
+      ...baseWebSocketState,
+      authState: AuthState.AUTHENTICATED,
+      snapshot: null,
+    });
+    await act(async () => {
+      rerender(<App />);
+    });
+
+    expect(latestMapBoardProps?.mapEditMode).toBe(true);
+
+    // ...and it is still armed once the table comes back.
+    vi.mocked(useDMRole).mockReturnValue({ isDM: true, elevateToDM: vi.fn() });
+    mockUseWebSocket.mockReturnValue({
+      ...baseWebSocketState,
+      authState: AuthState.AUTHENTICATED,
+      snapshot: buildSnapshot(),
+    });
+    await act(async () => {
+      rerender(<App />);
+    });
+
+    expect(latestMapBoardProps?.mapEditMode).toBe(true);
+  });
+
+  it("still drops map-edit when the server says you are no longer a DM", async () => {
+    mockUseWebSocket.mockReturnValue({
+      ...baseWebSocketState,
+      authState: AuthState.AUTHENTICATED,
+      snapshot: buildSnapshot(),
+    });
+
+    const { rerender } = render(<App />);
+    await armMapEdit();
+
+    // A real revocation: the snapshot is PRESENT and no longer lists this
+    // client as a DM. Without this half the guard would be a no-op and the
+    // soft-lock it exists for would be back.
+    vi.mocked(useDMRole).mockReturnValue({ isDM: false, elevateToDM: vi.fn() });
+    await act(async () => {
+      rerender(<App />);
+    });
+
+    await waitFor(() => expect(latestMapBoardProps?.mapEditMode).toBe(false));
   });
 });

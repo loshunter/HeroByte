@@ -342,6 +342,7 @@ function AuthenticatedApp({
     mapEditMode,
     setActiveTool,
     isDM,
+    snapshotLoaded: Boolean(snapshot),
     liveMapDocumentId: snapshot?.liveMapDocumentId,
     roomGridSize: snapshot?.gridSize ?? 50,
     hasRasterBackground: Boolean(snapshot?.mapBackground),
