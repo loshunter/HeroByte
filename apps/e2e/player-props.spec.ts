@@ -30,11 +30,14 @@ async function props(page: Page): Promise<PropRow[]> {
 
 async function setToggle(dmPage: Page, enabled: boolean): Promise<void> {
   await dmPage.evaluate(
-    (enabled) => window.__HERO_BYTE_E2E__?.sendMessage?.({ t: "set-player-props-enabled", enabled }),
+    (enabled) =>
+      window.__HERO_BYTE_E2E__?.sendMessage?.({ t: "set-player-props-enabled", enabled }),
     enabled,
   );
   await expect
-    .poll(() => dmPage.evaluate(() => window.__HERO_BYTE_E2E__?.snapshot?.playerPropsEnabled ?? false))
+    .poll(() =>
+      dmPage.evaluate(() => window.__HERO_BYTE_E2E__?.snapshot?.playerPropsEnabled ?? false),
+    )
     .toBe(enabled);
 }
 
@@ -129,9 +132,7 @@ test.describe("player props toggle", () => {
       await labelInput.fill(`${label}-renamed`);
       await labelInput.blur();
       await expect
-        .poll(async () =>
-          (await props(page)).filter((p) => p.label === `${label}-renamed`).length,
-        )
+        .poll(async () => (await props(page)).filter((p) => p.label === `${label}-renamed`).length)
         .toBe(1);
     } finally {
       await removeProps(page, created);
