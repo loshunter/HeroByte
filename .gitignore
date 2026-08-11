@@ -25,12 +25,16 @@ yarn-error.log*
 .vscode/
 .idea/
 # Claude Code config is personal (like .vscode/.idea) EXCEPT the shared
-# permission allowlist, which encodes this repo's verification gate so every
-# contributor's agent stops re-approving the same commands.
+# pieces: the permission allowlist (encodes this repo's verification gate so
+# every contributor's agent stops re-approving the same commands), and the
+# agents/ + skills/ directories (the cheap-model delegation layer — gates
+# runner, CI watcher, fixture repair — which is workflow, not preference).
 # Pattern must be `.claude/*`, not `.claude/` — git never descends into an
 # ignored DIRECTORY, so a negation inside one has no effect.
 .claude/*
 !.claude/settings.json
+!.claude/agents/
+!.claude/skills/
 *.swp
 *.swo
 *~
