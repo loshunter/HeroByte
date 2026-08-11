@@ -769,6 +769,8 @@ export default function MapBoard({
             sceneObjects={sceneObjects}
             gridSize={grid.size}
             interactive={!measureMode && !mapEditMode}
+            uid={uid}
+            canManageAllProps={isDM}
             selectedObjectId={selectedObjectId}
             selectedObjectIds={selectedObjectIds}
             onSelectObject={onSelectObject}

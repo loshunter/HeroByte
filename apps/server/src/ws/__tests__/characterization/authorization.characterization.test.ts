@@ -99,6 +99,7 @@ describe("MessageRouter - Authorization Characterization", () => {
       fogEnabled: false,
       monsterHpDisplay: "exact" as const,
       diagonalRule: "5e" as const,
+      playerPropsEnabled: false,
     };
 
     // Create minimal mocks that return success without deep execution

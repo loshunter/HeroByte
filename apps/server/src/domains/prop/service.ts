@@ -31,6 +31,7 @@ export class PropService {
     size: TokenSize,
     viewport: { x: number; y: number; scale: number },
     gridSize: number,
+    offset?: { dx: number; dy: number }, // Grid-cell jitter for scattered copies
   ): Prop {
     // Calculate viewport center in world coordinates
     const viewportWidth = 800; // Default fallback
@@ -43,8 +44,8 @@ export class PropService {
     const centerWorldY = (centerScreenY - viewport.y) / viewport.scale;
 
     // Convert to grid coordinates
-    const gridX = centerWorldX / gridSize;
-    const gridY = centerWorldY / gridSize;
+    const gridX = centerWorldX / gridSize + (offset?.dx ?? 0);
+    const gridY = centerWorldY / gridSize + (offset?.dy ?? 0);
 
     const newProp: Prop = {
       id: randomUUID(),
@@ -138,35 +139,10 @@ export class PropService {
     return removed;
   }
 
-  /**
-   * Check if a user can transform (move/scale/rotate) a prop
-   * @param prop - The prop to check
-   * @param actorUid - Player UID attempting the transform
-   * @param isDM - Whether the actor is a DM
-   * @param isLocked - Whether the prop scene object is locked
-   */
-  canTransform(prop: Prop, actorUid: string, isDM: boolean, isLocked: boolean): boolean {
-    // Locked props cannot be transformed by anyone
-    if (isLocked) return false;
-
-    // DMs can always transform unlocked props
-    if (isDM) return true;
-
-    // Everyone can transform if owner is "*"
-    if (prop.owner === "*") return true;
-
-    // Specific player can transform their own props
-    if (prop.owner === actorUid) return true;
-
-    // DM-only props (owner=null) and other players' props cannot be transformed
-    return false;
-  }
-
-  /**
-   * Check if a user can delete a prop
-   * Deletion is always DM-only
-   */
-  canDelete(isDM: boolean): boolean {
-    return isDM;
-  }
+  // NOTE: the permission questions used to be mirrored here as canTransform /
+  // canDelete, but nothing ever called them — TransformHandler owns the
+  // move/scale/rotate rule inline, and create/update/delete authorization
+  // lives in PropDispatcher (owner-or-DM, gated on the room's
+  // playerPropsEnabled toggle). Dead mirrors of permission logic drift into
+  // lies, so they were removed rather than updated.
 }

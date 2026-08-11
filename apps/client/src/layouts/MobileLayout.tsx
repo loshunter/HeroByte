@@ -217,6 +217,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
         activeTool={activeTool}
         snapToGrid={snapToGrid}
         isDM={isDM}
+        playerPropsEnabled={snapshot?.playerPropsEnabled ?? false}
         mode={machine.mode}
         mapEditToolbarProps={mapEditToolbarProps}
         onCancelMapEditDrag={cancelMapEditDrag}

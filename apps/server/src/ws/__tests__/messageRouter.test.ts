@@ -71,6 +71,7 @@ describe("MessageRouter", () => {
       fogEnabled: false,
       monsterHpDisplay: "exact" as const,
       diagonalRule: "5e" as const,
+      playerPropsEnabled: false,
     };
 
     const snapshotTemplate: RoomSnapshot = {

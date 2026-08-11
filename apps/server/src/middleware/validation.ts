@@ -93,6 +93,7 @@ import {
   validateCreatePropMessage,
   validateUpdatePropMessage,
   validateDeletePropMessage,
+  validateSetPlayerPropsEnabledMessage,
 } from "./validators/index.js";
 
 // Room validators
@@ -221,6 +222,7 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   "create-prop": validateCreatePropMessage,
   "update-prop": validateUpdatePropMessage,
   "delete-prop": validateDeletePropMessage,
+  "set-player-props-enabled": validateSetPlayerPropsEnabledMessage,
 
   // ==========================================================================
   // SELECTION MESSAGES

@@ -747,6 +747,41 @@ describe("SnapshotLoader - Characterization Tests", () => {
       expect(props[0].label).toBe("Chest");
     });
 
+    it("coerces the player-props toggle — boolean true only, absent means off", () => {
+      const base: RoomSnapshot = {
+        users: [],
+        pointers: [],
+        players: [],
+        characters: [],
+        tokens: [],
+        props: [],
+        drawings: [],
+        gridSize: 50,
+        gridSquareSize: 5,
+        diceRolls: [],
+        sceneObjects: [],
+        combatActive: false,
+      };
+
+      roomService.loadSnapshot({ ...base, playerPropsEnabled: true });
+      expect(roomService.getState().playerPropsEnabled).toBe(true);
+
+      // A session file is attacker-editable and this flag ADMITS writes:
+      // a truthy string must not open the prop tools to the table.
+      roomService.loadSnapshot({
+        ...base,
+        playerPropsEnabled: "yes" as unknown as boolean,
+      });
+      expect(roomService.getState().playerPropsEnabled).toBe(false);
+
+      // And loading a pre-slice file switches the toggle OFF rather than
+      // preserving whatever the room had — the file is authoritative, the
+      // same rule mapElements settled.
+      roomService.getState().playerPropsEnabled = true;
+      roomService.loadSnapshot(base);
+      expect(roomService.getState().playerPropsEnabled).toBe(false);
+    });
+
     it("should clear pointers on load", () => {
       // Set current pointers
       roomService.setState({

@@ -20,6 +20,7 @@ import { useInitiativeSetting } from "../../hooks/useInitiativeSetting";
 import { buildDMMenuProps } from "../../features/dm/buildDMMenuProps";
 import { DMMenuLoadFailure } from "../../features/dm/DMMenuLoadFailure";
 import { ErrorBoundary } from "../../components/ErrorBoundary";
+import { PlayerPropsPanel } from "../../features/props/PlayerPropsPanel";
 import { MobileScreen } from "./MobileScreen";
 
 // The same lazy split the desktop uses: DM-only code stays out of the entry
@@ -148,6 +149,23 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
               <DMMenuContainer {...dmMenuProps} presentation="content" />
             </Suspense>
           </ErrorBoundary>
+        </MobileScreen>
+      )}
+
+      {/* Gated on the snapshot flag as well as the surface — the DM flipping
+          the toggle off must not leave an empty shell up, the same shape the
+          dm screen uses for de-elevation. A dropped socket nulls the snapshot
+          and unmounts this too; that is a hidden screen during reconnect, not
+          a destructive act, and it re-renders when the roster returns. */}
+      {surface === "props" && !props.isDM && props.snapshot?.playerPropsEnabled && (
+        <MobileScreen title="Props" surface="props" onClose={closeSurface}>
+          <PlayerPropsPanel
+            snapshot={props.snapshot}
+            uid={props.uid}
+            sendMessage={props.sendMessage}
+            camera={props.camera}
+            presentation="content"
+          />
         </MobileScreen>
       )}
 

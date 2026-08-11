@@ -39,9 +39,11 @@ export interface UsePropCreationReturn {
   isCreating: boolean;
 
   /**
-   * Initiate prop creation with loading state
+   * Initiate prop creation with loading state.
+   * @param count - How many to scatter in ONE message (default 1). The server
+   *   loops; N client sends would be dropped by this hook's own guard.
    */
-  createProp: () => void;
+  createProp: (count?: number) => void;
 
   /**
    * Error message if creation failed, null otherwise
@@ -109,40 +111,44 @@ export function usePropCreation(options: UsePropCreationOptions): UsePropCreatio
   /**
    * Initiate prop creation
    */
-  const createProp = useCallback(() => {
-    if (isCreating) {
-      console.warn("[usePropCreation] Prop creation already in progress");
-      return;
-    }
+  const createProp = useCallback(
+    (count?: number) => {
+      if (isCreating) {
+        console.warn("[usePropCreation] Prop creation already in progress");
+        return;
+      }
 
-    console.log("[usePropCreation] Starting prop creation");
+      console.log("[usePropCreation] Starting prop creation");
 
-    // Set loading state BEFORE sending message
-    setIsCreating(true);
-    setError(null);
+      // Set loading state BEFORE sending message
+      setIsCreating(true);
+      setError(null);
 
-    // Send the creation message
-    sendMessage({
-      t: "create-prop",
-      label: "New Prop",
-      imageUrl: "",
-      owner: null,
-      size: "medium",
-      viewport: cameraState,
-    });
-
-    // Set a timeout in case server doesn't respond
-    setTimeout(() => {
-      setIsCreating((prev) => {
-        if (prev) {
-          // Only set error if STILL creating
-          setError("Prop creation timed out. Please try again.");
-          return false;
-        }
-        return prev;
+      // Send the creation message
+      sendMessage({
+        t: "create-prop",
+        label: "New Prop",
+        imageUrl: "",
+        owner: null,
+        size: "medium",
+        viewport: cameraState,
+        count: count !== undefined && count > 1 ? count : undefined,
       });
-    }, 5000);
-  }, [isCreating, sendMessage, cameraState]);
+
+      // Set a timeout in case server doesn't respond
+      setTimeout(() => {
+        setIsCreating((prev) => {
+          if (prev) {
+            // Only set error if STILL creating
+            setError("Prop creation timed out. Please try again.");
+            return false;
+          }
+          return prev;
+        });
+      }, 5000);
+    },
+    [isCreating, sendMessage, cameraState],
+  );
 
   return {
     isCreating,

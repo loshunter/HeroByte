@@ -92,6 +92,8 @@ export function DMMenu({
   onPreviousTurn,
   toast,
   onSetInitiative,
+  playerPropsEnabled,
+  onPlayerPropsEnabledChange,
   mapStudio,
   presentation = "window",
 }: DMMenuProps) {
@@ -234,6 +236,8 @@ export function DMMenu({
           onDismissRoomPasswordStatus={onDismissRoomPasswordStatus}
           onSaveAsPrivateTable={onSaveAsPrivateTable}
           playerCount={playerCount}
+          playerPropsEnabled={playerPropsEnabled}
+          onPlayerPropsEnabledChange={onPlayerPropsEnabledChange}
         />
       )}
     </div>
