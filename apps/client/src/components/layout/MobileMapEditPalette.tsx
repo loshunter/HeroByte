@@ -170,7 +170,24 @@ export const MobileMapEditPalette: React.FC<MobileMapEditPaletteProps> = ({
             fix it, and a single word has no break opportunity to wrap on.
             Five characters is the real constraint every other dock label in
             the app already happens to respect. */}
-        <button type="button" className="mobile-dock-button" onClick={onCancelDrag}>
+        {/* onPointerDown, not just onClick, and this is the whole reason the
+            control works at all. The gesture it exists for is "my finger is
+            down on the canvas and I want out", which needs a SECOND touch —
+            and Chromium generates no compat click for a second finger during
+            an active multi-touch sequence. Measured on the real gesture: the
+            button received pointerdown, touchstart and touchend, and no click
+            at all, so an onClick-only abort silently did nothing and the
+            release committed the room anyway.
+
+            onClick stays for the keyboard, which fires click and no pointer
+            event. Both firing on a mouse press is harmless: cancelling twice
+            clears an already-cleared drag. */}
+        <button
+          type="button"
+          className="mobile-dock-button"
+          onPointerDown={onCancelDrag}
+          onClick={onCancelDrag}
+        >
           <span className="mobile-dock-button__icon" aria-hidden="true">
             ⨯
           </span>

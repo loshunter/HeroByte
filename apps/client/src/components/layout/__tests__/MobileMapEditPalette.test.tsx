@@ -94,6 +94,40 @@ describe("the map-edit palette", () => {
     expect(onCancelMapEditDrag).toHaveBeenCalledTimes(1);
   });
 
+  it("Abort fires on POINTER DOWN, because its own gesture generates no click", () => {
+    // Measured on the real gesture, not reasoned about: with a finger already
+    // down on the canvas, a second finger on this button delivers pointerdown,
+    // touchstart and touchend — and NO click, because Chromium suppresses the
+    // compat click during an active multi-touch sequence. An onClick-only
+    // abort therefore did nothing in the one situation it exists for, and the
+    // release committed the room anyway (apps/e2e/mobile/mobile-map-edit-abort
+    // .spec.ts is the end-to-end half of this).
+    const onCancelMapEditDrag = vi.fn();
+    render(<MobileFloatingControls {...props({ onCancelMapEditDrag })} />);
+
+    fireEvent.pointerDown(within(dock()).getByRole("button", { name: /Abort/ }));
+
+    expect(onCancelMapEditDrag).toHaveBeenCalledTimes(1);
+  });
+
+  it("no OTHER dock slot acts on pointer down", () => {
+    // Abort is the exception and should stay one: Exit, Tool, Undo and Redo
+    // are ordinary buttons, and a dock that fired everything on touch-down
+    // would leave no way to slide a thumb off a mis-aimed press.
+    const bar = toolbar({ isLive: true, canUndo: true, canRedo: true });
+    const onToggleSurface = vi.fn();
+    render(<MobileFloatingControls {...props({ mapEditToolbarProps: bar, onToggleSurface })} />);
+
+    for (const name of [/Exit/, /Tool/, /Undo/, /Redo/]) {
+      fireEvent.pointerDown(within(dock()).getByRole("button", { name }));
+    }
+
+    expect(bar.onClose).not.toHaveBeenCalled();
+    expect(bar.onUndo).not.toHaveBeenCalled();
+    expect(bar.onRedo).not.toHaveBeenCalled();
+    expect(onToggleSurface).not.toHaveBeenCalled();
+  });
+
   describe("before a live map exists", () => {
     it("offers START LIVE MAP and NOTHING that would silently no-op", () => {
       render(<MobileFloatingControls {...props({ surface: "tools" })} />);
