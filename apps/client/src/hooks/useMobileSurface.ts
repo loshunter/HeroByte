@@ -79,20 +79,28 @@ export function useMobileSurface(options: UseMobileSurfaceOptions): MobileSurfac
 
   const closeSurface = useCallback(() => openSurface("none"), [openSurface]);
 
-  // TWO EDGES CLEAR THE SURFACE, and they are not the same edge inverted.
+  // WHEN THE SURFACE IS CLEARED, and it is not one edge and its inverse.
   //
-  // ARMING something that needs the map: both modes are armed FROM the DM
-  // screen, a full-height opaque cover, so without this the mode arms behind
-  // it and the first thing the DM sees is the menu they were already looking
-  // at. For alignment that meant close, tap two points, reopen, apply.
+  // ANY CHANGE TO MAP-EDIT clears. Entering, because the mode is defined by
+  // the map being fully visible and it is armed FROM the DM screen — a
+  // full-height opaque cover, so without this the mode arms behind the menu
+  // the DM is still looking at. Leaving, because the only sheet reachable in
+  // the mode is the mode's own, and its contents (Room, Wall, Start live map)
+  // are meaningless outside it — left open, Exit would swap in the ordinary
+  // tool grid nobody asked for.
   //
-  // LEAVING MAP-EDIT: the only sheet reachable in the mode is the mode's own,
-  // and its contents (Room, Wall, Start live map) are meaningless outside it —
-  // left open, Exit would swap in the ordinary tool grid nobody asked for.
+  // ARMING ALIGNMENT clears too. It is not a Mode — it keeps the ordinary
+  // dock, because its controls live in the DM menu you come back to — but
+  // capturing a point needs the map just as much.
   //
-  // Disarming ALIGNMENT is deliberately NOT an edge: its Cancel lives inside
-  // the DM menu, and closing the menu out from under the DM who just pressed
-  // it would be the machine picking a fight.
+  // DISARMING ALIGNMENT deliberately does not: its Cancel lives inside the DM
+  // menu, and closing the menu out from under the DM who just pressed it would
+  // be the machine picking a fight.
+  //
+  // The two conditions are separate because `needsTheMap` alone cannot see
+  // map-edit arming while alignment is ALREADY armed — the OR is true both
+  // before and after, so there is no rising edge, and the DM screen would sit
+  // over the canvas with the palette live underneath it.
   //
   // Latched through refs so the effect depends on the modes alone. Depending
   // on closeSurface would re-fire whenever its identity changed — which it
@@ -102,11 +110,11 @@ export function useMobileSurface(options: UseMobileSurfaceOptions): MobileSurfac
   const previousNeed = useRef(needsTheMap);
   const previousMapEdit = useRef(mapEditMode);
   useEffect(() => {
-    const armed = needsTheMap && !previousNeed.current;
-    const leftTheMode = !mapEditMode && previousMapEdit.current;
+    const armedSomething = needsTheMap && !previousNeed.current;
+    const modeChanged = mapEditMode !== previousMapEdit.current;
     previousNeed.current = needsTheMap;
     previousMapEdit.current = mapEditMode;
-    if (armed || leftTheMode) closeRef.current();
+    if (armedSomething || modeChanged) closeRef.current();
   }, [needsTheMap, mapEditMode]);
 
   return { surface, mode: mapEditMode, openSurface, toggleSurface, closeSurface };

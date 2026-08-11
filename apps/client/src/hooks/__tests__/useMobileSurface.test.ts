@@ -121,9 +121,9 @@ describe("useMobileSurface — the map-edit mode boundary", () => {
     expect(result.current.surface).toBe("dm");
   });
 
-  it("does not re-clear when the second map-needing mode arms on top", () => {
-    // Both true is one need, not two edges — otherwise arming alignment while
-    // already in map-edit would slam the tool sheet shut.
+  it("arming ALIGNMENT on top of map-edit leaves the mode's own sheet open", () => {
+    // Alignment arming is not a reason to shut the palette's sheet: the DM is
+    // already looking at the map, which is the whole point of the edge.
     const { result, rerender } = renderHook(
       (current: UseMobileSurfaceOptions) => useMobileSurface(current),
       { initialProps: options({ mapEditMode: true }) },
@@ -133,6 +133,27 @@ describe("useMobileSurface — the map-edit mode boundary", () => {
     rerender(options({ mapEditMode: true, alignmentMode: true }));
 
     expect(result.current.surface).toBe("tools");
+  });
+
+  it("arming MAP-EDIT on top of alignment still clears — the OR has no rising edge", () => {
+    // The review's finding. `needsTheMap` is already true because alignment is
+    // armed, so a rising-edge-of-the-OR rule sees nothing happen — and the DM
+    // screen the mode was armed FROM stays over the canvas, palette live and
+    // invisible underneath it. Entering the mode is its own edge.
+    const { result, rerender } = renderHook(
+      (current: UseMobileSurfaceOptions) => useMobileSurface(current),
+      { initialProps: options({ alignmentMode: true }) },
+    );
+
+    // The DM armed alignment, the screen closed, and they reopened it — which
+    // is the ordinary way back to Apply.
+    act(() => result.current.openSurface("dm"));
+    expect(result.current.surface).toBe("dm");
+
+    rerender(options({ alignmentMode: true, mapEditMode: true }));
+
+    expect(result.current.surface).toBe("none");
+    expect(result.current.mode).toBe(true);
   });
 
   it("tracks the mode ACROSS a full enter-and-exit, not just from mount", () => {
