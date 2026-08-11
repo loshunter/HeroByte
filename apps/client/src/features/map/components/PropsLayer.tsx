@@ -11,11 +11,14 @@ import useImage from "use-image";
 import type { KonvaEventObject } from "konva/lib/Node";
 import type { Camera } from "../types";
 import { LockIndicator } from "./LockIndicator";
+import { propRenderSize } from "../propSizing";
 
 interface PropsSpriteProps {
   object: SceneObject & { type: "prop" };
   gridSize: number;
   interactive: boolean;
+  /** Whether THIS viewer may drag this prop — the server's rule, mirrored. */
+  canDrag: boolean;
   cam: Camera;
   isSelected: boolean;
   onClick?: (event: KonvaEventObject<MouseEvent | PointerEvent>) => void;
@@ -24,21 +27,11 @@ interface PropsSpriteProps {
   onDragEnd?: (event: KonvaEventObject<DragEvent>) => void;
 }
 
-// Size multiplier per size category (same as tokens; module scope for stable
-// identity instead of re-creating the object on every render)
-const SIZE_MULTIPLIERS: Record<string, number> = {
-  tiny: 0.5,
-  small: 0.75,
-  medium: 1.0,
-  large: 1.5,
-  huge: 2.0,
-  gargantuan: 3.0,
-};
-
 const PropSprite = memo(function PropSprite({
   object,
   gridSize,
   interactive,
+  canDrag,
   cam,
   isSelected,
   onClick,
@@ -49,10 +42,7 @@ const PropSprite = memo(function PropSprite({
   const { data, transform, locked } = object;
   const [image, status] = useImage(data.imageUrl);
 
-  // Calculate size multiplier based on size category (same as tokens)
-  const sizeMultiplier = SIZE_MULTIPLIERS[data.size ?? "medium"] ?? 1.0;
-
-  const size = gridSize * 0.75 * sizeMultiplier;
+  const size = propRenderSize(gridSize, data.size);
   const offset = size / 2;
 
   const commonProps = {
@@ -64,7 +54,10 @@ const PropSprite = memo(function PropSprite({
     scaleX: transform.scaleX,
     scaleY: transform.scaleY,
     listening: interactive,
-    draggable: !locked && interactive,
+    // Mirrors TransformHandler's server rule so a refused drag never happens:
+    // before this gate, ANY player could grab ANY prop and watch it rubber-
+    // band back when the server refused the transform.
+    draggable: !locked && interactive && canDrag,
     stroke: isSelected ? "#447DF7" : "transparent",
     strokeWidth: isSelected ? 4 / cam.scale : 0,
     onClick: onClick,
@@ -99,6 +92,10 @@ interface PropsLayerProps {
   sceneObjects: SceneObject[];
   gridSize: number;
   interactive: boolean;
+  /** This viewer's uid — owner gate for dragging. */
+  uid?: string;
+  /** DMs drag everything (the server lets them). */
+  canManageAllProps?: boolean;
   selectedObjectId?: string | null;
   selectedObjectIds?: string[];
   onSelectObject?: (
@@ -114,6 +111,8 @@ export const PropsLayer = memo(function PropsLayer({
   sceneObjects,
   gridSize,
   interactive,
+  uid,
+  canManageAllProps = false,
   selectedObjectId,
   selectedObjectIds = [],
   onSelectObject,
@@ -143,12 +142,16 @@ export const PropsLayer = memo(function PropsLayer({
     <Group x={cam.x} y={cam.y} scaleX={cam.scale} scaleY={cam.scale}>
       {propObjects.map((obj) => {
         const isSelected = selectedObjectIds.includes(obj.id) || selectedObjectId === obj.id;
+        // TransformHandler's exact predicate: DM, shared ("*"), or owner.
+        // owner null means DM-only, and an owner we aren't isn't ours.
+        const canDrag = canManageAllProps || obj.owner === "*" || (!!uid && obj.owner === uid);
         return (
           <PropSprite
             key={obj.id}
             object={obj}
             gridSize={gridSize}
             interactive={interactive}
+            canDrag={canDrag}
             cam={cam}
             isSelected={isSelected}
             onClick={(event) => selectProp(obj.id, event)}

@@ -56,7 +56,8 @@ export interface DMMenuProps {
   placingTokenForNpcId?: string | null;
   props: Prop[];
   players: Player[];
-  onCreateProp: () => void;
+  /** Create `count` props in ONE message (scatter); absent means one. */
+  onCreateProp: (count?: number) => void;
   onUpdateProp: (id: string, updates: Pick<Prop, "label" | "imageUrl" | "owner" | "size">) => void;
   onDeleteProp: (id: string) => void;
   isCreatingProp?: boolean;
@@ -106,6 +107,9 @@ export interface DMMenuProps {
     error: (message: string) => void;
   };
   onSetInitiative?: (characterId: string, initiative: number, modifier: number) => void;
+  /** Player-props toggle (Session tab): players may manage their OWN props. */
+  playerPropsEnabled?: boolean;
+  onPlayerPropsEnabledChange?: (enabled: boolean) => void;
   mapStudio?: MapStudioController;
   /**
    * How the menu presents (M4b). "window" is the desktop shape: the floating

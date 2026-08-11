@@ -365,6 +365,8 @@ export type { DrawingType } from "./drawingTypes.js";
 // Bulk-NPC bounds — value re-export from a sub-module (see npcLimits.ts for
 // why it must not be a direct `export const` here: the server imports it).
 export { NPC_CREATE_LIMITS } from "./npcLimits.js";
+// Bulk-prop bounds — same sub-module rule (see propLimits.ts).
+export { PROP_CREATE_LIMITS } from "./propLimits.js";
 
 /**
  * The tool the drawing toolbar is holding. Wider than `DrawingType` because a
@@ -548,6 +550,13 @@ export interface RoomSnapshot {
   fogEnabled?: boolean; // Whether fog of war hides the map beyond player token sightlines
   monsterHpDisplay?: MonsterHpDisplay; // DM setting: how much monster HP players see (absent = "exact")
   diagonalRule?: DiagonalRule; // DM setting: how the table counts diagonals (absent = "5e")
+  /**
+   * DM setting: players may create/edit/delete their OWN props (absent = off).
+   * A capability flag, not a secret — every recipient needs it to decide
+   * whether the prop tools render. Enforcement lives in the prop dispatcher,
+   * which re-checks room state on every message rather than trusting the UI.
+   */
+  playerPropsEnabled?: boolean;
   /**
    * True only for the default table WHILE it still opens with the password
    * published in the setup docs — i.e. it is genuinely reachable by anyone, and
@@ -777,6 +786,8 @@ type ClientMessagePayload =
       owner: string | null;
       size: TokenSize;
       viewport: { x: number; y: number; scale: number };
+      /** How many to scatter, defaulting to 1. Validated against PROP_CREATE_LIMITS. */
+      count?: number;
     }
   | {
       t: "update-prop";
@@ -842,6 +853,7 @@ type ClientMessagePayload =
   | { t: "set-fog-enabled"; enabled: boolean } // DM-only: toggle fog of war for the published scene
   | { t: "set-monster-hp-display"; mode: MonsterHpDisplay } // DM-only: how much monster HP players see (enforced in the snapshot filter)
   | { t: "set-diagonal-rule"; rule: DiagonalRule } // DM-only: how the table counts diagonal distance
+  | { t: "set-player-props-enabled"; enabled: boolean } // DM-only: players may place/manage their own props
 
   // The measurement in progress. Carries NO author — the server stamps
   // identity from the connection, the same rule chat and dice follow. `measure`

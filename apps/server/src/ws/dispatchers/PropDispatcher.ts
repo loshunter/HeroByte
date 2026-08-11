@@ -18,40 +18,61 @@ export class PropDispatcher {
     const state = context.getState();
     const isDM = context.isDM();
 
+    // The wrapper's second argument is "is this sender authorized", which for
+    // props is no longer purely the role: the room's playerPropsEnabled toggle
+    // admits players too, re-read from state on EVERY message so flipping it
+    // off bites immediately, whatever the client's toolbar still shows.
     switch (message.t) {
-      case "create-prop":
+      case "create-prop": {
+        const authorized = isDM || state.playerPropsEnabled;
         return (
-          this.authWrapper.executeIfDMAuthorized(senderUid, isDM, "create prop", () =>
+          this.authWrapper.executeIfDMAuthorized(senderUid, authorized, "create prop", () =>
             this.handler.handleCreateProp(
               state,
               message.label,
               message.imageUrl,
-              message.owner,
+              // A non-DM's `owner` field is overwritten, not trusted: the wire
+              // must not mint DM-only (null), shared ("*"), or someone-else's
+              // props on a player's behalf.
+              isDM ? message.owner : senderUid,
               message.size,
               message.viewport,
               state.gridSize,
+              message.count,
             ),
           ) ?? {}
         );
+      }
 
-      case "update-prop":
+      case "update-prop": {
+        const prop = state.props.find((candidate) => candidate.id === message.id);
+        // Strict owner match on purpose: owner "*" means everyone may MOVE a
+        // prop (TransformHandler's rule), not re-label or re-image it.
+        const authorized =
+          isDM || (state.playerPropsEnabled && prop !== undefined && prop.owner === senderUid);
         return (
-          this.authWrapper.executeIfDMAuthorized(senderUid, isDM, "update prop", () =>
+          this.authWrapper.executeIfDMAuthorized(senderUid, authorized, "update prop", () =>
             this.handler.handleUpdateProp(state, message.id, {
               label: message.label,
               imageUrl: message.imageUrl,
-              owner: message.owner,
+              // A player edit can't re-home a prop; only a DM assigns owners.
+              owner: isDM ? message.owner : (prop?.owner ?? senderUid),
               size: message.size,
             }),
           ) ?? {}
         );
+      }
 
-      case "delete-prop":
+      case "delete-prop": {
+        const prop = state.props.find((candidate) => candidate.id === message.id);
+        const authorized =
+          isDM || (state.playerPropsEnabled && prop !== undefined && prop.owner === senderUid);
         return (
-          this.authWrapper.executeIfDMAuthorized(senderUid, isDM, "delete prop", () =>
+          this.authWrapper.executeIfDMAuthorized(senderUid, authorized, "delete prop", () =>
             this.handler.handleDeleteProp(state, message.id),
           ) ?? {}
         );
+      }
 
       default:
         return null;

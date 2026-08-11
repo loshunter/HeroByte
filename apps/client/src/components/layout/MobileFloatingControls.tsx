@@ -21,6 +21,10 @@ interface MobileFloatingControlsProps {
   snapToGrid: boolean;
   /** Slot five is contextual: `DM` for a DM, `View` (reset camera) otherwise. */
   isDM: boolean;
+  /** The table's player-props toggle — gates the Props tile in the sheet.
+   *  Optional (default off) so the existing fixtures stay untouched, the
+   *  same escape hatch MainLayoutProps documents. */
+  playerPropsEnabled?: boolean;
   /** Map-edit armed — the dock is REPLACED by the palette (redesign §1). */
   mode: boolean;
   mapEditToolbarProps: MapEditToolbarProps;
@@ -36,6 +40,7 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
   activeTool,
   snapToGrid,
   isDM,
+  playerPropsEnabled = false,
   mode,
   mapEditToolbarProps,
   onCancelMapEditDrag,
@@ -158,6 +163,20 @@ export const MobileFloatingControls: React.FC<MobileFloatingControlsProps> = ({
               <span aria-hidden="true">◇</span>
               Recenter
             </button>
+            {/* A surface, not a tool — but it earns a tile here because this
+                sheet is where players look for "things I can do to the map".
+                DMs never see it; their prop editor is the DM menu's Props
+                tab. Conditional, so the toggle being off costs no slot. */}
+            {!isDM && playerPropsEnabled && (
+              <button
+                type="button"
+                className="mobile-tool-sheet__button"
+                onClick={() => onToggleSurface("props")}
+              >
+                <span aria-hidden="true">▣</span>
+                Props
+              </button>
+            )}
             <button
               type="button"
               className="mobile-tool-sheet__button"

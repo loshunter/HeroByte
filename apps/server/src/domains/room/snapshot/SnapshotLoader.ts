@@ -183,6 +183,10 @@ export class SnapshotLoader {
       // Same treatment: the distance maths branches on this value, and an
       // uploaded file is the least trustworthy source there is.
       diagonalRule: coerceDiagonalRule(snapshot.diagonalRule),
+      // `=== true` because a session file is attacker-editable and this flag
+      // ADMITS writes (PropDispatcher checks it): a truthy string must not
+      // open the prop tools to the table. Absent (older files) reads as off.
+      playerPropsEnabled: snapshot.playerPropsEnabled === true,
     };
   }
 }

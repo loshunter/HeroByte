@@ -256,6 +256,12 @@ export function DMMenuContainer({
       onPreviousTurn={dmContext.combatControls.handlePreviousTurn}
       toast={toast}
       onSetInitiative={onSetInitiative}
+      playerPropsEnabled={snapshot?.playerPropsEnabled ?? false}
+      // Sent inline rather than through useDMContext — that hook sits at the
+      // 350-line ceiling, and this is one message with no state to manage.
+      onPlayerPropsEnabledChange={(enabled) =>
+        sendMessage({ t: "set-player-props-enabled", enabled })
+      }
       mapStudio={mapStudio}
       presentation={presentation}
     />

@@ -228,12 +228,13 @@ export class TokenMessageHandler {
   }
 
   /**
-   * Handle set token size message
+   * Handle set token size message (owner, or DM override)
    *
    * @param state - Room state
    * @param tokenId - ID of token to resize
    * @param senderUid - UID of player resizing the token
    * @param size - New size
+   * @param isDM - Whether sender is DM
    * @returns Result indicating broadcast/save needs
    */
   handleSetSize(
@@ -241,8 +242,14 @@ export class TokenMessageHandler {
     tokenId: string,
     senderUid: string,
     size: TokenSize,
+    isDM: boolean,
   ): TokenMessageResult {
-    const updated = this.tokenService.setTokenSize(state, tokenId, senderUid, size);
+    // The DM path existed as TokenService.setTokenSizeByDM and was never
+    // wired, leaving size the ONE token mutation a DM could not override
+    // while move/recolor/delete/image/color all took owner-or-DM.
+    const updated = isDM
+      ? this.tokenService.setTokenSizeByDM(state, tokenId, size)
+      : this.tokenService.setTokenSize(state, tokenId, senderUid, size);
     return { broadcast: updated, save: updated };
   }
 
@@ -290,14 +297,36 @@ export class TokenMessageHandler {
   }
 
   /**
-   * Handle link token to character message
+   * Handle link token to character message (owner of BOTH ends, or DM)
    *
    * @param state - Room state
    * @param characterId - ID of character
    * @param tokenId - ID of token to link
+   * @param senderUid - UID of the sender
+   * @param isDM - Whether sender is DM
    * @returns Result indicating broadcast/save needs
    */
-  handleLinkToken(state: RoomState, characterId: string, tokenId: string): TokenMessageResult {
+  handleLinkToken(
+    state: RoomState,
+    characterId: string,
+    tokenId: string,
+    senderUid: string,
+    isDM: boolean,
+  ): TokenMessageResult {
+    // Nothing in the client sends this today, which is exactly why it must
+    // be gated: the only possible senders are crafted frames, and it had no
+    // check at all. Linking rebinds which token a character record follows —
+    // HP display, turn focus, vision all key off it — so a non-DM needs to
+    // own BOTH ends, not either.
+    if (!isDM) {
+      const token = state.tokens.find((candidate) => candidate.id === tokenId);
+      const character = state.characters.find((candidate) => candidate.id === characterId);
+      const ownsToken = token !== undefined && token.owner === senderUid;
+      const ownsCharacter = character !== undefined && character.ownedByPlayerUID === senderUid;
+      if (!ownsToken || !ownsCharacter) {
+        return { broadcast: false, save: false };
+      }
+    }
     const linked = this.characterService.linkToken(state, characterId, tokenId);
     return { broadcast: linked, save: linked };
   }

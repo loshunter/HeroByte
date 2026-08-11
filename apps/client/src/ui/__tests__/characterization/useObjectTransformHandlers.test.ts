@@ -180,14 +180,20 @@ describe("useObjectTransformHandlers", () => {
 
       result.current.handleGizmoTransform({
         id: "prop-1",
-        position: { x: 200, y: 250 }, // pixels -> grid units (200/50=4, 250/50=5)
+        position: { x: 200, y: 250 },
         scale: { x: 1.2, y: 1.2 },
         rotation: 30,
       });
 
+      // DELIBERATE re-pin: the originally characterized bare `pixels/gridSize`
+      // WAS the gizmo drift bug — props render at cell-centre minus their own
+      // half-size, so the inverse adds the half-size (medium: 50*0.75/2 =
+      // 18.75) and subtracts the half-cell (25) before dividing. See
+      // hooks/__tests__/useObjectTransformHandlers.test.ts for the round-trip
+      // pin against PropsLayer's render mapping.
       expect(onTransformObject).toHaveBeenCalledWith({
         id: "prop-1",
-        position: { x: 4, y: 5 },
+        position: { x: (200 + 18.75 - 25) / 50, y: (250 + 18.75 - 25) / 50 },
         scale: { x: 1.2, y: 1.2 },
         rotation: 30,
       });

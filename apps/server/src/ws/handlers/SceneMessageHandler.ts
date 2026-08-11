@@ -49,6 +49,16 @@ export class SceneMessageHandler {
       this.getRoomState(roomId).diagonalRule = message.rule;
       return { broadcast: true, save: true };
     }
+    if (message.t === "set-player-props-enabled") {
+      if (!isDM) {
+        throw new Error("Player prop permission changes require DM permission");
+      }
+      // The setting only STORES here; enforcement is PropDispatcher's, which
+      // re-reads room state on every create/update/delete rather than
+      // trusting the client that its toolbar was visible.
+      this.getRoomState(roomId).playerPropsEnabled = message.enabled;
+      return { broadcast: true, save: true };
+    }
     return null;
   }
 

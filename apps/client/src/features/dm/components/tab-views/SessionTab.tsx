@@ -57,6 +57,12 @@ interface SessionTabProps {
   // Players panel props
   /** Current number of players online */
   playerCount: number;
+
+  // Player props toggle
+  /** Whether players may create/edit/delete their own props. */
+  playerPropsEnabled?: boolean;
+  /** Callback to flip the player-props toggle. */
+  onPlayerPropsEnabledChange?: (enabled: boolean) => void;
 }
 
 /**
@@ -87,6 +93,8 @@ export default function SessionTab({
   onDismissRoomPasswordStatus,
   onSaveAsPrivateTable,
   playerCount,
+  playerPropsEnabled = false,
+  onPlayerPropsEnabledChange,
 }: SessionTabProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -115,6 +123,44 @@ export default function SessionTab({
           roomPasswordPending={roomPasswordPending}
           onDismissRoomPasswordStatus={onDismissRoomPasswordStatus}
         />
+      )}
+
+      {/* Table policy, so it lives with the other table-level controls. Only
+          the players' OWN props open up — never the map editor; that
+          distinction is the whole reason this toggle is safe to offer. */}
+      {onPlayerPropsEnabledChange && (
+        <JRPGPanel variant="simple" title="Player Props">
+          <label
+            className="jrpg-text-small"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              color: "var(--jrpg-white)",
+              cursor: "pointer",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={playerPropsEnabled}
+              onChange={(e) => onPlayerPropsEnabledChange(e.target.checked)}
+            />
+            Players can add props
+          </label>
+          <div
+            style={{
+              marginTop: "6px",
+              fontFamily: "var(--font-body)",
+              fontSize: "11px",
+              lineHeight: 1.5,
+              color: "var(--jrpg-white)",
+              opacity: 0.8,
+            }}
+          >
+            Lets players place, edit, and remove their own image props (furniture, chests, scene
+            dressing). They never gain map tools, and you can always adjust or delete what they add.
+          </div>
+        </JRPGPanel>
       )}
 
       <JRPGPanel variant="simple" title="Players">

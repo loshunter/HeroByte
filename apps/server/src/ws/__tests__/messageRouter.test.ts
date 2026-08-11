@@ -71,6 +71,7 @@ describe("MessageRouter", () => {
       fogEnabled: false,
       monsterHpDisplay: "exact" as const,
       diagonalRule: "5e" as const,
+      playerPropsEnabled: false,
     };
 
     const snapshotTemplate: RoomSnapshot = {
@@ -510,6 +511,25 @@ describe("MessageRouter", () => {
     });
 
     it("routes link-token message", () => {
+      // The gate takes ownership of BOTH ends now (link-token shipped with no
+      // check at all) — seed them so this wiring test exercises the
+      // allow-path rather than the refusal.
+      mockState.tokens.push({
+        id: "token-1",
+        owner: "player-1",
+        x: 0,
+        y: 0,
+        color: "red",
+        size: "medium",
+      } as RoomState["tokens"][number]);
+      mockState.characters.push({
+        id: "char-1",
+        name: "Linked",
+        hp: 1,
+        maxHp: 1,
+        type: "pc",
+        ownedByPlayerUID: "player-1",
+      } as RoomState["characters"][number]);
       const msg: ClientMessage = { t: "link-token", characterId: "char-1", tokenId: "token-1" };
       routeAndFlush(msg, "player-1");
 
@@ -521,6 +541,8 @@ describe("MessageRouter", () => {
 
   describe("Map Actions", () => {
     it("routes map-background message", () => {
+      // DM-gated now (it was one of the three UI-gated-only messages).
+      mockState.players[0].isDM = true;
       const msg: ClientMessage = { t: "map-background", data: "background-data" };
       routeAndFlush(msg, "player-1");
 
@@ -528,7 +550,16 @@ describe("MessageRouter", () => {
       expect(mockRoomService.broadcast).toHaveBeenCalled();
     });
 
+    it("refuses map-background and grid-size from a non-DM socket", () => {
+      routeAndFlush({ t: "map-background", data: "vandalized" }, "player-1");
+      routeAndFlush({ t: "grid-size", size: 9999 }, "player-1");
+
+      expect(mockMapService.setBackground).not.toHaveBeenCalled();
+      expect(mockMapService.setGridSize).not.toHaveBeenCalled();
+    });
+
     it("routes grid-size message", () => {
+      mockState.players[0].isDM = true;
       const msg: ClientMessage = { t: "grid-size", size: 100 };
       routeAndFlush(msg, "player-1");
 

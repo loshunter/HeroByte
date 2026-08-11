@@ -147,6 +147,10 @@ export class StatePersistence {
           // on this, and a file written by an older server has no key at all
           // (which coerces to "5e", the corrected default).
           diagonalRule: coerceDiagonalRule(data.diagonalRule),
+          // `=== true`, not truthiness: a capability toggle must not switch on
+          // because a hand-edited file carried "yes" or 1. Older files have no
+          // key at all, which reads as off — the shipped default.
+          playerPropsEnabled: data.playerPropsEnabled === true,
         };
 
         this.setState(loadedState);
@@ -242,6 +246,7 @@ export class StatePersistence {
       fogEnabled: state.fogEnabled,
       monsterHpDisplay: state.monsterHpDisplay,
       diagonalRule: state.diagonalRule,
+      playerPropsEnabled: state.playerPropsEnabled,
       stateVersion: state.stateVersion,
       // Combat state survives a restart on purpose (VISION.md calls this a
       // launch gate): a mid-fight crash or redeploy must not lose initiative.

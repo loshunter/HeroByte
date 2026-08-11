@@ -20,6 +20,7 @@ import type { DiceRollRequest } from "../hooks/useDiceRolling";
 import type { DMMenuContainerProps } from "../features/dm/components/DMMenuContainer";
 import { DMMenuLoadFailure } from "../features/dm/DMMenuLoadFailure";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import { PlayerPropsPanel } from "../features/props/PlayerPropsPanel";
 import { ContextMenu } from "../components/ui/ContextMenu";
 import { VisualEffects } from "../components/effects/VisualEffects";
 import { DicePanels } from "./DicePanels";
@@ -151,6 +152,23 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
               <DMMenuContainer {...dmMenuProps} />
             </Suspense>
           </ErrorBoundary>
+        )}
+
+        {/* The player half of the props toggle. Gated on the SNAPSHOT flag so
+            flipping it off in the DM menu removes the launcher on the next
+            broadcast; the server re-checks the flag per message regardless.
+            Eager import on purpose — features/props stays OUT of the DM lazy
+            chunk, since its whole audience is the players. Its raw deps ride
+            the dmMenuProps bag, which is built for every user (only the DM
+            MENU render is role-gated), so mounting this costs the layouts no
+            new threaded props. */}
+        {!isDM && snapshot?.playerPropsEnabled && (
+          <PlayerPropsPanel
+            snapshot={snapshot}
+            uid={uid}
+            sendMessage={dmMenuProps.sendMessage}
+            camera={dmMenuProps.camera}
+          />
         )}
 
         <ContextMenu

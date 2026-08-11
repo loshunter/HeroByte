@@ -162,6 +162,32 @@ describe("StatePersistence - Characterization Tests", () => {
       expect(legacy.getState().diagonalRule).toBe("5e");
     });
 
+    it("round-trips the player-props toggle, refusing a hand-edited truthy string", async () => {
+      roomService.getState().playerPropsEnabled = true;
+      roomService.saveState();
+      await roomService.awaitPendingWrites();
+
+      const fresh = new RoomService({ stateFile: PROD_STATE_FILE });
+      fresh.loadState();
+      expect(fresh.getState().playerPropsEnabled).toBe(true);
+
+      // This flag ADMITS writes (PropDispatcher checks it), so a hand-edited
+      // "yes" must read as off — `=== true`, not truthiness.
+      const raw = JSON.parse(readFileSync(PROD_STATE_FILE, "utf-8"));
+      raw.playerPropsEnabled = "yes";
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(raw));
+      const poisoned = new RoomService({ stateFile: PROD_STATE_FILE });
+      poisoned.loadState();
+      expect(poisoned.getState().playerPropsEnabled).toBe(false);
+
+      // A file written before this slice has no key at all: off, the default.
+      delete raw.playerPropsEnabled;
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(raw));
+      const legacy = new RoomService({ stateFile: PROD_STATE_FILE });
+      legacy.loadState();
+      expect(legacy.getState().playerPropsEnabled).toBe(false);
+    });
+
     it("should do nothing when state file does not exist", () => {
       // Ensure file doesn't exist
       expect(existsSync(PROD_STATE_FILE)).toBe(false);
@@ -743,6 +769,7 @@ describe("StatePersistence - Characterization Tests", () => {
       expect(savedData).toHaveProperty("diceRolls");
       expect(savedData).toHaveProperty("sceneObjects");
       expect(savedData).toHaveProperty("playerStagingZone");
+      expect(savedData).toHaveProperty("playerPropsEnabled");
     });
 
     it("should be fire-and-forget (async, non-blocking)", () => {

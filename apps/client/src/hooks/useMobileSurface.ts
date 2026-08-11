@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /** Every surface the mobile shell can present. At most one is open at a time. */
-export type MobileSurface = "none" | "party" | "tools" | "dice" | "log" | "help" | "dm";
+export type MobileSurface = "none" | "party" | "tools" | "dice" | "log" | "help" | "dm" | "props";
 
 /** The surfaces whose open state has no App-level home and so lives here. */
 type LocalSurface = Exclude<MobileSurface, "dice" | "log">;

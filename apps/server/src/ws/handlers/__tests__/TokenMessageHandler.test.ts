@@ -310,6 +310,21 @@ describe("TokenMessageHandler - Characterization Tests", () => {
       const token = state.tokens.find((t) => t.id === tokenId);
       expect(token?.size).toBe("medium"); // Should not change
     });
+
+    it("lets the DM resize another player's token (the override that was never wired)", () => {
+      // TokenService.setTokenSizeByDM existed unused; size was the ONE token
+      // mutation a DM could not override while every sibling took owner-or-DM.
+      const sizeMessage: ClientMessage = {
+        t: "set-token-size",
+        tokenId: tokenId,
+        size: "gargantuan",
+      };
+
+      messageRouter.route(sizeMessage, dmUid);
+
+      const state = roomService.getState();
+      expect(state.tokens.find((t) => t.id === tokenId)?.size).toBe("gargantuan");
+    });
   });
 
   describe("set-token-color message", () => {
@@ -358,17 +373,41 @@ describe("TokenMessageHandler - Characterization Tests", () => {
   });
 
   describe("link-token message", () => {
-    it("should link token to character", () => {
-      const linkMessage: ClientMessage = {
-        t: "link-token",
-        characterId: characterId,
-        tokenId: tokenId,
-      };
+    it("refuses a player linking to a character that isn't theirs (DELIBERATE re-pin)", () => {
+      // The originally characterized behavior WAS the hole: no check at all,
+      // so any player could rebind which token any character follows — HP
+      // display, turn focus, vision all key off that binding. The fixture
+      // character is unowned (ownedByPlayerUID: null), so a non-DM linking
+      // to it now dies at the gate.
+      messageRouter.route({ t: "link-token", characterId, tokenId }, playerUid);
 
-      messageRouter.route(linkMessage, playerUid);
+      const character = roomService.getState().characters.find((c) => c.id === characterId);
+      expect(character?.tokenId).toBeUndefined();
+    });
 
+    it("links when the sender owns BOTH the token and the character", () => {
       const state = roomService.getState();
-      const character = state.characters.find((c) => c.id === characterId);
+      state.characters.find((c) => c.id === characterId)!.ownedByPlayerUID = playerUid;
+
+      messageRouter.route({ t: "link-token", characterId, tokenId }, playerUid);
+
+      expect(state.characters.find((c) => c.id === characterId)?.tokenId).toBe(tokenId);
+    });
+
+    it("refuses a player linking someone else's token even to their own character", () => {
+      const state = roomService.getState();
+      state.characters.find((c) => c.id === characterId)!.ownedByPlayerUID = "other-player";
+
+      // other-player owns the character but NOT the token: both ends or nothing.
+      messageRouter.route({ t: "link-token", characterId, tokenId }, "other-player");
+
+      expect(state.characters.find((c) => c.id === characterId)?.tokenId).toBeUndefined();
+    });
+
+    it("lets the DM link anything to anything", () => {
+      messageRouter.route({ t: "link-token", characterId, tokenId }, dmUid);
+
+      const character = roomService.getState().characters.find((c) => c.id === characterId);
       expect(character?.tokenId).toBe(tokenId);
     });
   });

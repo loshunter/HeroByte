@@ -49,6 +49,24 @@ describe("SceneMessageHandler", () => {
     expect(handler.handle({ t: "heartbeat" }, "room", false)).toBeNull();
   });
 
+  it("stores the player-props toggle for the DM and refuses players", () => {
+    expect(handler.handle({ t: "set-player-props-enabled", enabled: true }, "room", true)).toEqual({
+      broadcast: true,
+      save: true,
+    });
+    expect(roomState.playerPropsEnabled).toBe(true);
+
+    // A player flipping the switch that admits player writes would be
+    // self-authorization; the refusal must also leave the stored value alone.
+    expect(() =>
+      handler.handle({ t: "set-player-props-enabled", enabled: false }, "room", false),
+    ).toThrow("Player prop permission changes require DM permission");
+    expect(roomState.playerPropsEnabled).toBe(true);
+
+    handler.handle({ t: "set-player-props-enabled", enabled: false }, "room", true);
+    expect(roomState.playerPropsEnabled).toBe(false);
+  });
+
   it("lets anyone toggle a closed door open and back", () => {
     expect(handler.handle({ t: "toggle-door", doorId: "door-closed" }, "room", false)).toEqual({
       broadcast: true,

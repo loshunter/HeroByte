@@ -57,6 +57,7 @@ NPCs are yours alone to edit: players can't rename, damage, or move them.
 - **Label** and **Image** — any image becomes a draggable map piece: **⬆ UPLOAD IMAGE** from your device, or paste a URL.
 - **Ownership** — **DM Only** (players see it but can't touch), **Everyone**, or a specific player (hand the wizard their familiar).
 - **Size** — the same six token sizes.
+- **×N** — type a count before pressing add and that many copies scatter around your view centre in one go, numbered (`Crate 1`…`Crate 6`). Made for crate piles and market stalls; the ceiling is 20 per press.
 
 For _built-in_ scenery art (crates, tables, boats, standing stones…) you'll usually place assets with the [map editor's Place tool](map-editor-guide.md#-place-scatter-and-row--set-dressing) instead; Props shine for custom images and player-ownable objects.
 
@@ -84,6 +85,14 @@ Habits that save campaigns:
 - Save before risky experiments (mass-deleting, big map surgery).
 - On free-tier hosting the server's disk can reset when it idles — a session file in your downloads folder is your real persistence.
 - The save is a **DM artifact**: it contains secret doors, hidden NPCs, and GM notes in plain text. Don't hand it to players.
+
+### Player props
+
+Ticking **Players can add props** opens a **📦 PROPS** window for everyone at your table (on a phone it's **Tools → Props**): upload or paste an image, name it, pick a size, optionally scatter **×N** copies. It's made for shared set dressing — a player conjures a chest in an image generator and places it for you while you narrate.
+
+Player props belong to whoever made them. A player can re-label, re-image, resize, move, scale, rotate, and delete **their own props only** — the server refuses everything else, whatever their client claims. They never gain any part of the map editor, and you can always edit, re-home, or delete anything they add from the Props tab above.
+
+Untick it to close the tools again. Anything already placed stays on the table, and owners can still *move* what's theirs (prop ownership has always worked that way) — they just can't add, edit, or remove props until you re-enable it.
 
 ### Invite Players
 

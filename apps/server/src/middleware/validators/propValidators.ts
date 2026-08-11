@@ -3,6 +3,7 @@
 // ============================================================================
 // Validates prop-related messages: create, update, delete
 
+import { PROP_CREATE_LIMITS } from "@herobyte/shared";
 import type { ValidationResult, MessageRecord } from "./commonValidators.js";
 import { VALID_TOKEN_SIZES } from "./commonValidators.js";
 import { STRING_LIMITS } from "./constants.js";
@@ -45,6 +46,33 @@ export function validateCreatePropMessage(message: MessageRecord): ValidationRes
     typeof viewport.scale !== "number"
   ) {
     return { valid: false, error: "create-prop: viewport must be {x, y, scale}" };
+  }
+  // The handler LOOPS on count, so the RANGE is the actual bound —
+  // Number.isInteger alone admits 1e15 crates. See PROP_CREATE_LIMITS.
+  if (message.count !== undefined) {
+    const { COUNT_MIN, COUNT_MAX } = PROP_CREATE_LIMITS;
+    if (
+      typeof message.count !== "number" ||
+      !Number.isInteger(message.count) ||
+      message.count < COUNT_MIN ||
+      message.count > COUNT_MAX
+    ) {
+      return {
+        valid: false,
+        error: `create-prop: count must be an integer ${COUNT_MIN}-${COUNT_MAX}`,
+      };
+    }
+  }
+  return { valid: true };
+}
+
+/**
+ * Validate set-player-props-enabled message
+ * Required: enabled (boolean)
+ */
+export function validateSetPlayerPropsEnabledMessage(message: MessageRecord): ValidationResult {
+  if (typeof message.enabled !== "boolean") {
+    return { valid: false, error: "set-player-props-enabled: enabled must be a boolean" };
   }
   return { valid: true };
 }

@@ -61,6 +61,7 @@ export interface RoomState {
   fogEnabled: boolean; // Whether fog of war hides the map beyond player sightlines
   monsterHpDisplay: MonsterHpDisplay; // How much monster HP players see (enforced in the recipient filter)
   diagonalRule: DiagonalRule; // How the table counts diagonal distance (measureGridDistance)
+  playerPropsEnabled: boolean; // Players may create/edit/delete their OWN props (enforced in PropDispatcher)
   /** The public test table (see RoomSnapshot.isPublicTable). Set at boot. */
   isPublicTable?: boolean;
   /** Display name a private table was created or forked with. */
@@ -99,6 +100,7 @@ export function createEmptyRoomState(): RoomState {
     fogEnabled: false,
     monsterHpDisplay: "exact",
     diagonalRule: "5e",
+    playerPropsEnabled: false,
   };
 }
 
@@ -150,6 +152,10 @@ export function toSnapshot(
     // A table rule, not a secret: every recipient must measure the same way or
     // "is Grak in range" gets two answers.
     diagonalRule: state.diagonalRule,
+    // A capability flag, not a secret: players need it to know whether the
+    // prop tools render at all. Enforcement is the prop dispatcher's re-check
+    // of room state per message, never this field.
+    playerPropsEnabled: state.playerPropsEnabled,
   };
 
   // Only ever sent when true — absent reads as "not a public table".
