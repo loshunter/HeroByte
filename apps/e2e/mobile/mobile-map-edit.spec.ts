@@ -227,6 +227,19 @@ test.describe("the mobile map-edit mode", () => {
         expect(Math.round(slot.x + slot.width)).toBeLessThanOrEqual(size.width);
       }
 
+      // And the LABELS fit inside those slots, which is a different question
+      // the boxes above cannot answer. Found in the browser, not here: at the
+      // 11px readability floor "Cancel" rendered 67px in a 59px content box
+      // and was clipped, while every box assertion above stayed green. One
+      // pixel-font word has no break opportunity, so it overflows rather than
+      // wrapping — five characters is the real ceiling for a dock label.
+      const clipped = await page.evaluate(() =>
+        [...document.querySelectorAll<HTMLElement>('nav[aria-label="Map edit actions"] button')]
+          .filter((button) => button.scrollWidth > button.clientWidth + 1)
+          .map((button) => button.textContent?.trim().replace(/\s+/g, " ") ?? ""),
+      );
+      expect(clipped).toEqual([]);
+
       // The sheet the mode opens must fit too — M3's contract, and the first
       // sheet in this mode is the one holding START LIVE MAP.
       await dock.getByRole("button", { name: /Tool/ }).click();

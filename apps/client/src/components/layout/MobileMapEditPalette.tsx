@@ -164,11 +164,17 @@ export const MobileMapEditPalette: React.FC<MobileMapEditPaletteProps> = ({
           </span>
           Redo
         </button>
+        {/* "Abort", not "Cancel", and the reason is measured rather than
+            stylistic: at the 11px readability floor "Cancel" renders 67px in a
+            59px content box on a 375px phone and is CLIPPED — no padding can
+            fix it, and a single word has no break opportunity to wrap on.
+            Five characters is the real constraint every other dock label in
+            the app already happens to respect. */}
         <button type="button" className="mobile-dock-button" onClick={onCancelDrag}>
           <span className="mobile-dock-button__icon" aria-hidden="true">
             ⨯
           </span>
-          Cancel
+          Abort
         </button>
       </nav>
     </>

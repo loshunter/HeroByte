@@ -64,7 +64,7 @@ describe("the map-edit palette", () => {
     for (const gone of [/^Party$/, /^Dice$/, /^Log$/, /^DM$/, /^View$/]) {
       expect(screen.queryByRole("button", { name: gone })).toBeNull();
     }
-    for (const present of [/Exit/, /Tool/, /Undo/, /Redo/, /Cancel/]) {
+    for (const present of [/Exit/, /Tool/, /Undo/, /Redo/, /Abort/]) {
       expect(within(dock()).getByRole("button", { name: present })).toBeVisible();
     }
   });
@@ -84,11 +84,11 @@ describe("the map-edit palette", () => {
     expect(bar.onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("Cancel is ALWAYS enabled — it is the only abort a finger has", () => {
+  it("Abort is ALWAYS enabled — it is the only cancel a finger has", () => {
     const onCancelMapEditDrag = vi.fn();
     render(<MobileFloatingControls {...props({ onCancelMapEditDrag })} />);
 
-    const cancel = within(dock()).getByRole("button", { name: /Cancel/ });
+    const cancel = within(dock()).getByRole("button", { name: /Abort/ });
     expect(cancel).toBeEnabled();
     fireEvent.click(cancel);
     expect(onCancelMapEditDrag).toHaveBeenCalledTimes(1);

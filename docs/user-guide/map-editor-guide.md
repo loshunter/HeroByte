@@ -151,13 +151,13 @@ The dock becomes five slots:
 | **✕ Exit**          | Leaves the mode. The map stays live.                                                                                                                                                    |
 | **⚒ Tool**         | Opens the sheet: **▶ Start live map** before you have one, then **🏠 Room**, **▬ Wall** and **◇ Recenter**. Picking a tool closes the sheet, because you picked it in order to use it. |
 | **↶ Undo / ↷ Redo** | The same map-edit history the desktop palette drives. Both stay greyed until the map is live.                                                                                           |
-| **⨯ Cancel**        | Abandons the drag in progress.                                                                                                                                                          |
+| **⨯ Abort**         | Abandons the drag in progress.                                                                                                                                                          |
 
 **Room and Wall are the two tools here**, and both are a drag: press, move, lift. The rest of the toolbox (doors, terrain, place, generate) is still desktop-only.
 
 Two things behave differently from a mouse, and both are worth knowing before your first drag:
 
-- **Lifting your finger commits.** There is no Escape key, which is what **⨯ CANCEL** is for — press it with a second finger while the first is still down, and the release lands nothing.
+- **Lifting your finger commits.** There is no Escape key, which is what **⨯ ABORT** is for — press it with a second finger while the first is still down, and the release lands nothing.
 - **A second finger always means the camera.** Reach for a pinch mid-drag and the drag is _discarded_, not committed — you wanted to zoom, not to stamp a half-built room on the table.
 
 **Start live map** is the same button as on desktop and creates the same document, so a map begun on a tablet opens on a laptop and the other way round. Rotating the device, or resizing a window across the phone/desktop boundary, keeps the mode armed and simply swaps which palette you get.
