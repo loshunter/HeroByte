@@ -19,6 +19,7 @@ function options(overrides: Partial<UseMobileSurfaceOptions> = {}): UseMobileSur
     toggleDiceRoller: vi.fn(),
     toggleRollLog: vi.fn(),
     mapEditMode: false,
+    alignmentMode: false,
     ...overrides,
   };
 }
@@ -85,6 +86,73 @@ describe("useMobileSurface — the map-edit mode boundary", () => {
     rerender(options({ mapEditMode: true, toggleDiceRoller: vi.fn(), toggleRollLog: vi.fn() }));
 
     expect(result.current.surface).toBe("tools");
+  });
+
+  it("arming ALIGNMENT clears the surface too, without re-purposing the dock", () => {
+    // M4b's recorded gap: arming worked from the DM screen but capturing needs
+    // the map, so the DM had to close, tap two points, and reopen. Alignment
+    // is not a Mode — its controls live in the menu you come back to — but it
+    // shares the one property the edge cares about.
+    const { result, rerender } = renderHook(
+      (current: UseMobileSurfaceOptions) => useMobileSurface(current),
+      { initialProps: options() },
+    );
+
+    act(() => result.current.openSurface("dm"));
+    rerender(options({ alignmentMode: true }));
+
+    expect(result.current.surface).toBe("none");
+    // The dock is NOT swapped: `mode` is map-edit's alone.
+    expect(result.current.mode).toBe(false);
+  });
+
+  it("DISARMING alignment leaves the menu alone — its Cancel lives inside it", () => {
+    // The asymmetry that matters: leaving map-edit clears (below), leaving
+    // alignment must not. A DM who presses Cancel in the wizard is still in
+    // the menu and did not ask to be thrown out of it.
+    const { result, rerender } = renderHook(
+      (current: UseMobileSurfaceOptions) => useMobileSurface(current),
+      { initialProps: options({ alignmentMode: true }) },
+    );
+
+    act(() => result.current.openSurface("dm"));
+    rerender(options({ alignmentMode: false }));
+
+    expect(result.current.surface).toBe("dm");
+  });
+
+  it("does not re-clear when the second map-needing mode arms on top", () => {
+    // Both true is one need, not two edges — otherwise arming alignment while
+    // already in map-edit would slam the tool sheet shut.
+    const { result, rerender } = renderHook(
+      (current: UseMobileSurfaceOptions) => useMobileSurface(current),
+      { initialProps: options({ mapEditMode: true }) },
+    );
+
+    act(() => result.current.openSurface("tools"));
+    rerender(options({ mapEditMode: true, alignmentMode: true }));
+
+    expect(result.current.surface).toBe("tools");
+  });
+
+  it("tracks the mode ACROSS a full enter-and-exit, not just from mount", () => {
+    // Enter, open the mode's sheet, leave. Every other test here starts on the
+    // side it is about, so the latch is right by accident even if it never
+    // advances — measured: freezing both refs left all of them green. This one
+    // starts OUTSIDE the mode, so the exit edge can only be seen by a ref that
+    // moved when the mode was armed.
+    const { result, rerender } = renderHook(
+      (current: UseMobileSurfaceOptions) => useMobileSurface(current),
+      { initialProps: options() },
+    );
+
+    rerender(options({ mapEditMode: true }));
+    act(() => result.current.openSurface("tools"));
+    expect(result.current.surface).toBe("tools");
+
+    rerender(options({ mapEditMode: false }));
+
+    expect(result.current.surface).toBe("none");
   });
 
   it("mounting already in the mode is not an edge", () => {

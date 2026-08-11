@@ -117,6 +117,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     toggleDiceRoller,
     toggleRollLog,
     mapEditMode,
+    alignmentMode,
   });
   const { surface, toggleSurface } = machine;
   // The two tool-derived sheets share the bottom-sheet slot with these

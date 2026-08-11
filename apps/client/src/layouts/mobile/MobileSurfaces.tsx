@@ -18,6 +18,8 @@ import { Spinner } from "../../components/ui/Spinner";
 import { useEntityEditHandlers } from "../../hooks/useEntityEditHandlers";
 import { useInitiativeSetting } from "../../hooks/useInitiativeSetting";
 import { buildDMMenuProps } from "../../features/dm/buildDMMenuProps";
+import { DMMenuLoadFailure } from "../../features/dm/DMMenuLoadFailure";
+import { ErrorBoundary } from "../../components/ErrorBoundary";
 import { MobileScreen } from "./MobileScreen";
 
 // The same lazy split the desktop uses: DM-only code stays out of the entry
@@ -131,16 +133,21 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
           >
             🏗️ Edit the live map
           </button>
-          <Suspense
-            fallback={
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <Spinner size={14} />
-                Loading DM tools…
-              </div>
-            }
-          >
-            <DMMenuContainer {...dmMenuProps} presentation="content" />
-          </Suspense>
+          {/* Local boundary: a failed chunk load costs the DM their menu, not
+              the table. Without it the throw reaches the app root and replaces
+              the whole session with a full-page error. */}
+          <ErrorBoundary fallback={(retry) => <DMMenuLoadFailure retry={retry} />}>
+            <Suspense
+              fallback={
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <Spinner size={14} />
+                  Loading DM tools…
+                </div>
+              }
+            >
+              <DMMenuContainer {...dmMenuProps} presentation="content" />
+            </Suspense>
+          </ErrorBoundary>
         </MobileScreen>
       )}
 

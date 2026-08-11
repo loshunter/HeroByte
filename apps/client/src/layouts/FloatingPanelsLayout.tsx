@@ -18,6 +18,8 @@ import type { RoomSnapshot, ChatMessage } from "@herobyte/shared";
 import type { RollLogEntry } from "../components/dice/rollLogTypes";
 import type { DiceRollRequest } from "../hooks/useDiceRolling";
 import type { DMMenuContainerProps } from "../features/dm/components/DMMenuContainer";
+import { DMMenuLoadFailure } from "../features/dm/DMMenuLoadFailure";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 import { ContextMenu } from "../components/ui/ContextMenu";
 import { VisualEffects } from "../components/effects/VisualEffects";
 import { DicePanels } from "./DicePanels";
@@ -113,36 +115,42 @@ export const FloatingPanelsLayout = React.memo<FloatingPanelsLayoutProps>(
     return (
       <>
         {isDM && (
-          // Not `null`: elevating to DM fires a success toast and then, while
-          // the chunk downloads, nothing visible happens at all — which reads
-          // as the elevation having failed.
-          <Suspense
-            fallback={
-              <div
-                style={{
-                  position: "fixed",
-                  right: "16px",
-                  bottom: "16px",
-                  zIndex: 1002,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  padding: "10px 14px",
-                  background: "var(--jrpg-bg)",
-                  border: "2px solid var(--jrpg-border)",
-                  borderRadius: "4px",
-                  color: "var(--jrpg-text)",
-                  fontFamily: "var(--font-body)",
-                  fontSize: "13px",
-                }}
-              >
-                <Spinner size={14} />
-                Loading DM tools…
-              </div>
-            }
-          >
-            <DMMenuContainer {...dmMenuProps} />
-          </Suspense>
+          // Local boundary: the same lazy chunk the mobile screen loads, with
+          // the same exposure — a chunk that 404s (a deploy mid-session
+          // invalidating hashed names) throws during render, and without this
+          // it reaches the app root and replaces the whole table.
+          <ErrorBoundary fallback={(retry) => <DMMenuLoadFailure retry={retry} />}>
+            {/* Not `null`: elevating to DM fires a success toast and then,
+                while the chunk downloads, nothing visible happens at all —
+                which reads as the elevation having failed. */}
+            <Suspense
+              fallback={
+                <div
+                  style={{
+                    position: "fixed",
+                    right: "16px",
+                    bottom: "16px",
+                    zIndex: 1002,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "10px 14px",
+                    background: "var(--jrpg-bg)",
+                    border: "2px solid var(--jrpg-border)",
+                    borderRadius: "4px",
+                    color: "var(--jrpg-text)",
+                    fontFamily: "var(--font-body)",
+                    fontSize: "13px",
+                  }}
+                >
+                  <Spinner size={14} />
+                  Loading DM tools…
+                </div>
+              }
+            >
+              <DMMenuContainer {...dmMenuProps} />
+            </Suspense>
+          </ErrorBoundary>
         )}
 
         <ContextMenu

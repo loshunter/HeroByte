@@ -2,6 +2,17 @@ import React, { Component, ErrorInfo, ReactNode } from "react";
 
 interface Props {
   children: ReactNode;
+  /**
+   * What to show INSTEAD of the full-page error, for a boundary that guards
+   * one panel rather than the app. Without this every boundary is a total
+   * loss: a lazy chunk that 404s — the realistic case is a deploy invalidating
+   * hashed chunk names mid-session — takes the whole table down with it, and
+   * a table is a live shared thing you cannot just reload out from under.
+   *
+   * Called with a retry that clears the boundary, so a transient failure can
+   * be re-attempted without losing the session.
+   */
+  fallback?: (retry: () => void) => ReactNode;
 }
 
 interface State {
@@ -28,8 +39,11 @@ export class ErrorBoundary extends Component<Props, State> {
     });
   }
 
+  private retry = () => this.setState({ hasError: false, error: null, errorInfo: null });
+
   render() {
     if (this.state.hasError) {
+      if (this.props.fallback) return this.props.fallback(this.retry);
       return (
         <div
           style={{

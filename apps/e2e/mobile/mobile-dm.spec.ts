@@ -190,12 +190,20 @@ test.describe("mobile — the DM screen", () => {
 
     await reach(page, dialog.getByText("Grid Alignment Wizard"));
     await dialog.getByRole("button", { name: "Start Alignment" }).click();
+
+    // M4c closed the gap M4b recorded here. Arming now YIELDS THE SCREEN,
+    // because capturing points needs the map underneath it — it used to mean
+    // close, tap two points, reopen, apply. The wizard stays armed across the
+    // dismissal: the mode is App state, not screen state.
+    await expect(dialog).toBeHidden();
+    await page
+      .getByRole("navigation", { name: /Mobile actions/i })
+      .getByRole("button", { name: /^DM$/i })
+      .click();
     await expect(dialog.getByRole("button", { name: "Cancel" })).toBeVisible();
 
     // The armed wizard was the redesign doc's predicted offender — measure it
-    // armed, not at rest. (Capturing points then needs the MAP, which the
-    // screen covers: close the screen, tap, reopen. Clunky but functional;
-    // recorded as an M4c candidate, not silently ignored.)
+    // armed, not at rest.
     const report = await page.evaluate(() => {
       const body = document.querySelector(".mobile-screen__body") as HTMLElement;
       return {
@@ -206,8 +214,11 @@ test.describe("mobile — the DM screen", () => {
     expect(report.bodyClips).toBe(false);
     expect(report.pageOverflows).toBe(false);
 
-    // And it disarms cleanly from the same screen.
+    // And it disarms cleanly from the same screen — WITHOUT the screen
+    // vanishing under the DM who pressed Cancel. Arming yields the map;
+    // disarming is not the same edge inverted.
     await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog).toBeVisible();
     await expect(dialog.getByRole("button", { name: "Start Alignment" })).toBeVisible();
   });
 

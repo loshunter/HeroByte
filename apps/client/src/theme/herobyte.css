@@ -1784,6 +1784,32 @@ h4 {
   touch-action: manipulation;
 }
 
+/* The DM menu's own chunk-load failure. Scoped, not full-page: losing the menu
+   is survivable, losing the table is not. Positioned by whichever surface
+   hosts it (a floating window on desktop, the screen body on a phone). */
+.dm-menu-load-failure {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 1002;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 12px 14px;
+  border: 2px solid var(--jrpg-border, #f0e2c3);
+  background: var(--jrpg-bg, #1a1835);
+  color: var(--jrpg-text, #f8f5ee);
+  font-family: var(--font-body);
+  font-size: 13px;
+}
+
+/* Inside a Screen it is ordinary content, not floating chrome. */
+.mobile-screen__body .dm-menu-load-failure {
+  position: static;
+  max-width: none;
+}
+
 /* An action a Screen offers that LEAVES the screen (today: arming map-edit).
    Full width and flush to the top of the body so it reads as the screen's own
    verb rather than as part of whatever panel follows it. */
