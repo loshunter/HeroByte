@@ -21,6 +21,7 @@
 
 import type { DragPreviewEvent, DragPreviewUpdate, Token, TokenSize } from "@herobyte/shared";
 import { isDeltaChannelEnabled } from "../../config/featureFlags.js";
+import { buildTokenDragPreview } from "./tokenDragPreview.js";
 import type { RoomState } from "../../domains/room/model.js";
 import type { TokenService } from "../../domains/token/service.js";
 import type { CharacterService } from "../../domains/character/service.js";
@@ -96,9 +97,8 @@ export class TokenMessageHandler {
 
   /**
    * Build a drag preview payload without mutating state.
-   *
-   * Filters updates so only authorized tokens are included and annotates each
-   * entry with the canonical tokenId for downstream reconciliation.
+   * Delegates to tokenDragPreview.ts — extracted for the structural
+   * guardrail; the public seam here is unchanged.
    */
   buildDragPreview(
     state: RoomState,
@@ -106,59 +106,7 @@ export class TokenMessageHandler {
     updates: DragPreviewUpdate[],
     isDM: boolean,
   ): DragPreviewEvent | null {
-    if (!updates || updates.length === 0) {
-      return null;
-    }
-
-    const sanitized: DragPreviewEvent["objects"] = [];
-    for (const update of updates) {
-      const entry = this.toPreviewObject(state, senderUid, update, isDM);
-      if (entry) {
-        sanitized.push(entry);
-      }
-    }
-
-    if (sanitized.length === 0) {
-      return null;
-    }
-
-    return {
-      uid: senderUid,
-      timestamp: Date.now(),
-      objects: sanitized,
-    };
-  }
-
-  private toPreviewObject(
-    state: RoomState,
-    senderUid: string,
-    update: DragPreviewUpdate,
-    isDM: boolean,
-  ) {
-    if (!update || typeof update.id !== "string") {
-      return null;
-    }
-
-    const tokenId = update.id.replace(/^token:/, "");
-    if (!tokenId) {
-      return null;
-    }
-
-    const token = state.tokens.find((candidate) => candidate.id === tokenId);
-    if (!token) {
-      return null;
-    }
-
-    if (!isDM && token.owner !== senderUid) {
-      return null;
-    }
-
-    return {
-      tokenId,
-      id: `token:${tokenId}`,
-      x: update.x,
-      y: update.y,
-    };
+    return buildTokenDragPreview(state, senderUid, updates, isDM);
   }
 
   /**
