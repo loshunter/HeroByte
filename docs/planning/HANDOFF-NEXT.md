@@ -14,7 +14,9 @@ S0–S7 are in production; **S8 and its review fixes are on `dev` and NOT deploy
 | `dev`  | `f1952138` | +docs: S8 + review + §11 cleanup, an e2e flake fix, **M3**, the M4 design doc, then **M4a**. |
 | `main` | `5307d0dd` | production, deployed, green                                                                  |
 
-**Read §3C first — M4a, M4b AND M4c are SHIPPED; the whole of M4 is done, M5 is next.** The owner
+**Read §3C first — M4a, M4b AND M4c are SHIPPED; the whole of M4 is done.** _Update 2026-08-11:
+the owner chose §3B (the room-level default vision radius) as the next slice, ahead of M5 — the
+full plan is [room-vision-default-plan.md](./room-vision-default-plan.md); start there._ The owner
 chose the mobile authoring arc on 2026-08-09; M3, M4a, M4b and M4c landed in sequence, and the
 design is in [mobile-shell-redesign.md](./mobile-shell-redesign.md), whose §2 notes record what
 each slice shipped and where it deviated. M4b's headline: a DM on a phone now has the FULL menu
@@ -295,7 +297,12 @@ below. **Nothing here is queued** — this is a genuine fork, not a backlog.
 What is still open from the review is §11, the completeness critic's list of things NOBODY looked
 at. None of it is a known defect; it is unexamined ground.
 
-### B. A room-level default vision radius (~2 days) — the strongest feature candidate
+### B. A room-level default vision radius (~2 days) — **CHOSEN 2026-08-11, PLANNED**
+
+The owner picked this slice on 2026-08-11 and the full implementation plan — verified paths,
+design decisions, six-commit build order, fixture ripple, traps — is
+[room-vision-default-plan.md](./room-vision-default-plan.md). What follows is the original
+framing, kept for context.
 
 S7 left this open deliberately and it is still the best next slice. A player who deletes their
 ONLY token and reconnects respawns with **unlimited sight**: a radius lives on one token record
