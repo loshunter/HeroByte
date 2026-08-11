@@ -98,6 +98,7 @@ import {
 
 // Room validators
 import {
+  validateSetDefaultVisionRadiusMessage,
   validateSetPlayerStagingZoneMessage,
   validateSetRoomPasswordMessage,
   validateRoomControlMessage,
@@ -214,6 +215,7 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   "set-fog-enabled": validateSetFogEnabledMessage,
   "set-monster-hp-display": validateSetMonsterHpDisplayMessage,
   "set-diagonal-rule": validateSetDiagonalRuleMessage,
+  "set-default-vision-radius": validateSetDefaultVisionRadiusMessage,
   measure: validateMeasureMessage,
 
   // ==========================================================================

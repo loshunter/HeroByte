@@ -861,6 +861,7 @@ type ClientMessagePayload =
   | { t: "set-monster-hp-display"; mode: MonsterHpDisplay } // DM-only: how much monster HP players see (enforced in the snapshot filter)
   | { t: "set-diagonal-rule"; rule: DiagonalRule } // DM-only: how the table counts diagonal distance
   | { t: "set-player-props-enabled"; enabled: boolean } // DM-only: players may place/manage their own props
+  | { t: "set-default-vision-radius"; radius: number | null } // DM-only: table-wide sight limit in feet for tokens with none of their own, null = unlimited
 
   // The measurement in progress. Carries NO author — the server stamps
   // identity from the connection, the same rule chat and dice follow. `measure`

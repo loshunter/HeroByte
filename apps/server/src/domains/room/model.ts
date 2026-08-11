@@ -62,6 +62,8 @@ export interface RoomState {
   monsterHpDisplay: MonsterHpDisplay; // How much monster HP players see (enforced in the recipient filter)
   diagonalRule: DiagonalRule; // How the table counts diagonal distance (measureGridDistance)
   playerPropsEnabled: boolean; // Players may create/edit/delete their OWN props (enforced in PropDispatcher)
+  /** Sight limit in FEET for tokens carrying no radius of their own; null = unlimited. Applied at read time. */
+  defaultVisionRadius: number | null;
   /** The public test table (see RoomSnapshot.isPublicTable). Set at boot. */
   isPublicTable?: boolean;
   /** Display name a private table was created or forked with. */
@@ -101,6 +103,7 @@ export function createEmptyRoomState(): RoomState {
     monsterHpDisplay: "exact",
     diagonalRule: "5e",
     playerPropsEnabled: false,
+    defaultVisionRadius: null,
   };
 }
 
@@ -157,6 +160,13 @@ export function toSnapshot(
     // of room state per message, never this field.
     playerPropsEnabled: state.playerPropsEnabled,
   };
+
+  // `!== null`, never truthiness: 0 is a real default ("total darkness, torches
+  // only"). Sent to EVERY recipient, because players compute their own fog — a
+  // DM-only copy would leave the two halves of the app disagreeing.
+  if (state.defaultVisionRadius !== null) {
+    snapshot.defaultVisionRadius = state.defaultVisionRadius;
+  }
 
   // Only ever sent when true — absent reads as "not a public table".
   if (state.isPublicTable) snapshot.isPublicTable = true;

@@ -89,6 +89,7 @@ describe("MessageRouter - Error Handling Characterization", () => {
       monsterHpDisplay: "exact" as const,
       diagonalRule: "5e" as const,
       playerPropsEnabled: false,
+      defaultVisionRadius: null,
     };
 
     mockRoomService = {

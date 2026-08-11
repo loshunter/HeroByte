@@ -67,6 +67,28 @@ describe("SceneMessageHandler", () => {
     expect(roomState.playerPropsEnabled).toBe(false);
   });
 
+  it("stores the table sight default for a DM and refuses a player", () => {
+    expect(handler.handle({ t: "set-default-vision-radius", radius: 60 }, "room", true)).toEqual({
+      broadcast: true,
+      save: true,
+    });
+    expect(roomState.defaultVisionRadius).toBe(60);
+
+    // A player clearing the table default would hand themselves back exactly
+    // the sight the DM took away, so the refusal must also leave it alone.
+    expect(() =>
+      handler.handle({ t: "set-default-vision-radius", radius: null }, "room", false),
+    ).toThrow("Default vision radius changes require DM permission");
+    expect(roomState.defaultVisionRadius).toBe(60);
+
+    // 0 is a real table setting — total darkness — not a clear.
+    handler.handle({ t: "set-default-vision-radius", radius: 0 }, "room", true);
+    expect(roomState.defaultVisionRadius).toBe(0);
+
+    handler.handle({ t: "set-default-vision-radius", radius: null }, "room", true);
+    expect(roomState.defaultVisionRadius).toBeNull();
+  });
+
   it("lets anyone toggle a closed door open and back", () => {
     expect(handler.handle({ t: "toggle-door", doorId: "door-closed" }, "room", false)).toEqual({
       broadcast: true,

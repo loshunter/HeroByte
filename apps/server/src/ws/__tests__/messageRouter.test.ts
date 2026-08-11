@@ -72,6 +72,7 @@ describe("MessageRouter", () => {
       monsterHpDisplay: "exact" as const,
       diagonalRule: "5e" as const,
       playerPropsEnabled: false,
+      defaultVisionRadius: null,
     };
 
     const snapshotTemplate: RoomSnapshot = {
@@ -1091,6 +1092,9 @@ describe("MessageRouter", () => {
         ...mockState,
         name: "Loaded Session",
         selectionState: selectionMapToRecord(mockState.selectionState),
+        // RoomState spells "no table default" as null; the wire omits the field
+        // entirely, so a spread of one into the other has to drop it.
+        defaultVisionRadius: undefined,
       };
       const msg: ClientMessage = { t: "load-session", snapshot };
       routeAndFlush(msg, "player-1");
