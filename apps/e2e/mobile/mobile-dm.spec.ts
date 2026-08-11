@@ -182,6 +182,54 @@ test.describe("mobile — the DM screen", () => {
     });
   }
 
+  test("Map Studio is reachable and usable on a phone", async ({ page }) => {
+    // M4b's completeness critic named this: MapStudioControl became
+    // phone-reachable with no phone coverage at all. It is a dense control —
+    // a text field, two number fields, a select and six buttons — written for
+    // a 360-500px desktop window, so "it renders" is not the question; the
+    // question is whether a finger can operate it.
+    await page.setViewportSize({ width: 375, height: 812 });
+    await joinMobileTable(page);
+    await openDMScreen(page);
+    const dialog = page.getByRole("dialog", { name: "DM Menu" });
+
+    await reach(page, dialog.getByText("HeroByte Map Studio"));
+
+    // The create form: every field reachable, and nothing clipped sideways.
+    await reach(page, dialog.getByLabel("New map name"));
+    await reach(page, dialog.getByLabel("Width in pixels"));
+    await reach(page, dialog.getByLabel("Height in pixels"));
+    const create = dialog.getByRole("button", { name: /CREATE EDITABLE MAP/i });
+    await reach(page, create);
+    // NOT asserting the 44px floor here. Measured: 26px — and that is the
+    // OWNER-DEFERRED class, not a new defect. Every JRPGButton inside these
+    // tab views is the same height (handoff §3D records chat's SEND at 25px),
+    // and M4b recorded "44px floors INSIDE the tab views" as an explicit
+    // non-goal awaiting a deliberate panel-wide pass. Asserting it here would
+    // either fail on shipped behaviour or quietly re-scope that decision.
+
+    // The saved-maps row is four controls wide on a 375px screen — the shape
+    // most likely to spill. Assert it does not, rather than assuming.
+    await reach(page, dialog.getByLabel("Saved maps"));
+    for (const name of [/^OPEN$/, /^DELETE$/, /IMPORT JSON BACKUP/i]) {
+      const control = dialog.getByRole("button", { name });
+      await reach(page, control);
+      const box = (await control.boundingBox())!;
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(Math.round(box.x + box.width)).toBeLessThanOrEqual(375);
+    }
+
+    const report = await page.evaluate(() => {
+      const body = document.querySelector(".mobile-screen__body") as HTMLElement;
+      return {
+        bodyClips: body.scrollWidth > body.clientWidth + 1,
+        pageOverflows: document.documentElement.scrollWidth > window.innerWidth,
+      };
+    });
+    expect(report.bodyClips).toBe(false);
+    expect(report.pageOverflows).toBe(false);
+  });
+
   test("the alignment wizard, armed, still fits the phone", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await joinMobileTable(page);
