@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import type { SceneObject } from "@herobyte/shared";
+import { propRenderSize } from "../features/map/propSizing";
 
 /**
  * Hook parameters for object transform handlers
@@ -137,12 +138,22 @@ export function useObjectTransformHandlers({
           rotation: transform.rotation,
         });
       } else if (obj.type === "prop") {
-        // For props, convert position from pixels to grid units (same as staging-zone)
-        // Props are rendered with transform.x * gridSize, so position must be in grid units
+        // Props do NOT render at bare transform.x * gridSize — PropsLayer
+        // places the sprite at cell-centre minus its own half-size
+        // (`t.x*g + g/2 − size/2`), so the inverse must add the half-size
+        // back and subtract the half-cell, exactly like the layer's own
+        // onDragEnd. The bare `/ gridSize` this branch used to do shifted
+        // every gizmo drag by (0.5 − 0.375·sizeMultiplier) cells: +0.125
+        // cells for a medium prop, +0.3125 for a tiny one, compounding per
+        // drag while plain drags stayed put.
+        const halfSize = propRenderSize(gridSize, obj.data.size) / 2;
         onTransformObject({
           id: transform.id,
           position: transform.position
-            ? { x: transform.position.x / gridSize, y: transform.position.y / gridSize }
+            ? {
+                x: (transform.position.x + halfSize - gridSize / 2) / gridSize,
+                y: (transform.position.y + halfSize - gridSize / 2) / gridSize,
+              }
             : undefined,
           scale: transform.scale,
           rotation: transform.rotation,
