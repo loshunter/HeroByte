@@ -54,6 +54,7 @@ import {
 } from "../features/map/components";
 import { useE2ETestingSupport } from "../utils/useE2ETestingSupport";
 import { useMapEditTool } from "../features/map-edit/useMapEditTool";
+import { isDragTool } from "../features/map-edit/mapEditToolKinds";
 import { MapEditPreviewLayer } from "../features/map-edit/MapEditPreviewLayer";
 import { MapEditQuickWheel } from "../features/map-edit/MapEditQuickWheel";
 import { dmViewActive, fogViewers, visibleDoors } from "../features/map/playerLens";
@@ -353,6 +354,7 @@ export default function MapBoard({
     onMouseDown: handleMapEditMouseDown,
     onMouseMove: handleMapEditMouseMove,
     onMouseUp: handleMapEditMouseUp,
+    onCancel: handleMapEditCancel,
   } = useMapEditTool({
     mapEditMode,
     activeSubTool: mapEditActiveSubTool,
@@ -452,6 +454,9 @@ export default function MapBoard({
     measureMode,
     drawMode,
     mapEditMode,
+    // Only the drag sub-tools take the finger — useArmedTouchTool explains why
+    // the click ones would double-fire through the compat mouse path.
+    mapEditDragMode: mapEditMode && isDragTool(mapEditActiveSubTool),
     handleAlignmentClick,
     handlePointerClick,
     handleCameraMouseDown,
@@ -469,6 +474,7 @@ export default function MapBoard({
     handleMarqueePointerUp,
     handleDrawCancel,
     handleMarqueeCancel,
+    handleMapEditCancel,
     handleTouchStart: handleCameraTouchStart,
     handleTouchMove: handleCameraTouchMove,
     handleTouchEnd: handleCameraTouchEnd,
