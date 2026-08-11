@@ -28,6 +28,8 @@ interface UseMapEditStateOptions {
   sendMessage: (message: ClientMessage) => void;
   mapEditMode: boolean;
   setActiveTool: (tool: ToolMode) => void;
+  /** Whether this client currently holds DM. Losing it leaves the mode. */
+  isDM: boolean;
   /** The room's live-bound document id (from the snapshot), if any. */
   liveMapDocumentId: string | undefined;
   /** The room's current live grid size, synced onto a freshly created document. */
@@ -77,6 +79,7 @@ export function useMapEditState({
   sendMessage,
   mapEditMode,
   setActiveTool,
+  isDM,
   liveMapDocumentId,
   roomGridSize,
   hasRasterBackground,
@@ -180,6 +183,16 @@ export function useMapEditState({
   useEffect(() => {
     if (isLive) setAwaitingLiveBind(false);
   }, [isLive]);
+
+  // LOSING DM LEAVES THE MODE. Every way OUT of map-edit is DM-gated — the
+  // header's entry, and the palette itself (TopPanelLayout gates on isDM) —
+  // while the mode's effects are not: one-finger pan is off (shouldPan
+  // excludes it) and tokens are non-interactive. So a revoked DM was left on
+  // a table they could neither author nor move, with only an undiscoverable
+  // Escape as the way out. Revocation is not always self-inflicted, either.
+  useEffect(() => {
+    if (mapEditMode && !isDM) setActiveTool(null);
+  }, [mapEditMode, isDM, setActiveTool]);
 
   // Create → bind: once the freshly created document activates, bind it live and
   // sync its grid to the room. set-live FIRST so the grid command rides the S1
