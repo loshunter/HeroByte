@@ -558,6 +558,13 @@ export interface RoomSnapshot {
    */
   playerPropsEnabled?: boolean;
   /**
+   * DM setting: sight limit in FEET for every token with no radius of its own
+   * (absent = unlimited, today's behaviour). A table rule like `diagonalRule`,
+   * not a secret — it goes to EVERY recipient, because players compute their
+   * own fog and a DM-only copy would make the two halves disagree.
+   */
+  defaultVisionRadius?: number;
+  /**
    * True only for the default table WHILE it still opens with the password
    * published in the setup docs — i.e. it is genuinely reachable by anyone, and
    * the server clears it when it empties. Setting any other password (a DM via

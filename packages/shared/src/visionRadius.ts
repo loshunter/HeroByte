@@ -125,6 +125,41 @@ export function coerceVisionRadius(value: unknown): number | undefined {
 }
 
 /**
+ * Resolve the radius a token actually sees by, given the table's default.
+ *
+ * Precedence is explicit token radius -> room default -> unlimited, and it is
+ * resolved at READ time rather than stamped onto the token at create time, so
+ * a DM loosening the darkness loosens it everywhere at once instead of
+ * re-opening a per-token chore. Both halves of the app call THIS, for the same
+ * reason they both call `tokenVisionRadius`: a fallback spelled twice is a
+ * fallback that will eventually disagree with itself.
+ *
+ * `??`, never `||`: an explicit radius of **0 beats the default**, because a
+ * blinded token is a real DM setting and 0 is not nullish.
+ */
+export function effectiveVisionRadiusFeet(
+  tokenRadiusFeet: number | undefined,
+  defaultRadiusFeet: number | null | undefined,
+): number | undefined {
+  return tokenRadiusFeet ?? defaultRadiusFeet ?? undefined;
+}
+
+/**
+ * Coerce an untrusted ROOM DEFAULT radius. Same two on-disk sources as
+ * `coerceVisionRadius`, and the same clamp — but "no value" spells `null` here
+ * rather than `undefined`, because the field is required on `RoomState` and a
+ * present-but-null default is the shipped behaviour (unlimited).
+ *
+ * ABSENT coerces to `null` too, and that path is the one that matters: every
+ * state file already on the production disk predates this field, so the first
+ * boot after shipping reads files with no key at all.
+ */
+export function coerceDefaultVisionRadius(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  return Math.min(VISION_RADIUS_MAX_FEET, Math.max(VISION_RADIUS_MIN_FEET, value));
+}
+
+/**
  * Apply `coerceVisionRadius` across a token list arriving from an untrusted
  * source. Tokens are the one collection both restore paths copy VERBATIM —
  * `StatePersistence` and `SnapshotLoader` do no per-field work on them at all
