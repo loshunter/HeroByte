@@ -86,7 +86,10 @@ describe("MobilePlayerRow settings access", () => {
     fireEvent.click(screen.getByRole("button", { name: "60 ft" }));
     expect(onTokenVisionRadiusChange).toHaveBeenCalledWith(60);
 
-    fireEvent.click(screen.getByRole("button", { name: "Unlimited" }));
+    // "Table Default", not "Unlimited": this is the per-token control, where
+    // clearing the value makes the token follow the room-level default rather
+    // than see forever. The wire value is still null.
+    fireEvent.click(screen.getByRole("button", { name: "Table Default" }));
     expect(onTokenVisionRadiusChange).toHaveBeenLastCalledWith(null);
   });
 

@@ -401,6 +401,7 @@ export function PlayerSettingsMenu({
           >
             <VisionRadiusField
               value={tokenVisionRadius}
+              inheritsTableDefault
               onChange={onTokenVisionRadiusChange}
               compact={compactControls}
             />

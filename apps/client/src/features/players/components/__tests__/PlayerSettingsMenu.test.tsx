@@ -19,6 +19,19 @@ describe("PlayerSettingsMenu", () => {
     onToggleDMMode: vi.fn(),
   };
 
+  // This menu is only ever the PER-TOKEN control, so an empty value here means
+  // "inherit the table default", never "unlimited". The flag is a plain boolean
+  // that tsc will not miss if it is dropped, and dropping it puts back exactly
+  // the wrong label the review caught.
+  describe("Sight radius wording", () => {
+    it("tells the shared field that an empty value inherits the table default", () => {
+      render(<PlayerSettingsMenu {...defaultProps} onTokenVisionRadiusChange={vi.fn()} />);
+
+      expect(screen.getByRole("button", { name: "Table Default" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Unlimited" })).not.toBeInTheDocument();
+    });
+  });
+
   describe("Status Effects Dropdown", () => {
     it("displays 'No Effects' when no status effects are selected", () => {
       render(<PlayerSettingsMenu {...defaultProps} selectedEffects={[]} />);

@@ -28,6 +28,15 @@ interface VisionRadiusFieldProps {
   /** Accessible name for the custom input. Distinct per surface, so two of
    *  these on one screen stay tellable apart by a locator. */
   inputAriaLabel?: string;
+  /**
+   * Set on the PER-TOKEN control, where clearing the value now means "inherit
+   * the table default" rather than "unlimited". Both readings were the same
+   * thing until a room-level default existed; now they are not, and the
+   * unqualified "Unlimited" would tell a DM a token sees further than it does.
+   * True whether or not a default is currently set — with none, the table
+   * default IS unlimited, so the label stays honest either way.
+   */
+  inheritsTableDefault?: boolean;
 }
 
 /** Darkvision as the rulebooks hand it out, plus the two ends of the scale. */
@@ -46,7 +55,12 @@ export function VisionRadiusField({
   label = "Sight Radius",
   subject = "This token",
   inputAriaLabel = "Sight radius in feet",
+  inheritsTableDefault = false,
 }: VisionRadiusFieldProps) {
+  const clearLabel = inheritsTableDefault ? "Table Default" : "Unlimited";
+  const clearTitle = inheritsTableDefault
+    ? "Follow the table default, set on the DM menu's Map tab"
+    : "Sight is stopped only by walls";
   // Local draft so a half-typed number ("6" on the way to "60") does not
   // broadcast a radius nobody asked for. Re-synced whenever the authoritative
   // value changes underneath — another DM can be editing the same token.
@@ -109,13 +123,13 @@ export function VisionRadiusField({
               aria-pressed={active}
               title={
                 preset.value === null
-                  ? "Sight is stopped only by walls"
+                  ? clearTitle
                   : preset.value === 0
                     ? `${subject} sees nothing`
                     : `${subject} sees ${preset.value} feet`
               }
             >
-              {preset.label}
+              {preset.value === null ? clearLabel : preset.label}
             </button>
           );
         })}
@@ -129,7 +143,7 @@ export function VisionRadiusField({
           min={VISION_RADIUS_MIN_FEET}
           max={VISION_RADIUS_MAX_FEET}
           step={5}
-          placeholder="Unlimited"
+          placeholder={inheritsTableDefault ? "Table default" : "Unlimited"}
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onBlur={(event) => commit(event.target.value)}
