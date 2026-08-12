@@ -20,6 +20,7 @@ import React from "react";
 import type { DragTool } from "../mapEditToolKinds";
 import type { MapEditToolbarProps } from "../mapEditTypes";
 import { MobileMapEditToolPanels, PANEL_TOOLS } from "./MobileMapEditToolPanels";
+import { MobilePopulateBlock } from "./MobilePopulateBlock";
 import { MOBILE_TOOL_TILES } from "./mobileToolTiles";
 
 interface MobileMapEditSheetProps {
@@ -126,6 +127,12 @@ export const MobileMapEditSheet: React.FC<MobileMapEditSheetProps> = ({
           </button>
         </>
       )}
+
+      {/* Populate is a footer on every live tool, not a panel for one of them.
+          It has no tile because it is not a sub-tool, and with the dock full
+          there is nowhere else it could live — so gating it behind a
+          particular armed tool would make it unreachable by accident. */}
+      {isLive && <MobilePopulateBlock {...toolbar} />}
 
       {toolbar.error && (
         <p className="mobile-tool-sheet__note" role="alert">
