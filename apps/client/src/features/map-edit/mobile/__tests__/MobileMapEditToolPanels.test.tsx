@@ -127,6 +127,28 @@ describe("the phone's tool dials", () => {
     for (const tool of PANEL_TOOLS) expect(isDragTool(tool)).toBe(true);
   });
 
+  // Selection reached a stylesheet and nothing else until the review caught it.
+  // The house convention already existed in the components these replace —
+  // MapEditBrushDeck and the player dock both mark selection this way — so this
+  // pins the dials to it rather than inventing anything.
+  it("tells a screen reader which option is selected, not just a CSS class", () => {
+    render(<MobileMapEditToolPanels {...bag({ activeSubTool: "hallway", hallwayWidth: 3 })} />);
+
+    const widths = within(section("Width (cells)")).getAllByRole("button");
+    const pressed = widths.filter((b) => b.getAttribute("aria-pressed") === "true");
+    expect(pressed).toHaveLength(1);
+    expect(pressed[0]).toHaveTextContent("3");
+    // Both halves: every option must carry the attribute, or "exactly one is
+    // pressed" would also pass with the attribute present on only one button.
+    expect(widths.every((b) => b.hasAttribute("aria-pressed"))).toBe(true);
+
+    const shelves = screen.getByText("Floor").closest(".mobile-tool-sheet__section")!;
+    const chips = [...shelves.querySelectorAll(".mobile-chip")];
+    expect(chips.length).toBeGreaterThan(0);
+    expect(chips.every((c) => c.hasAttribute("aria-pressed"))).toBe(true);
+    expect(chips.filter((c) => c.getAttribute("aria-pressed") === "true")).toHaveLength(1);
+  });
+
   // THE NO-LAZY PIN. No await, no findBy, no act — if anything in this subtree
   // is wrapped in React.lazy + Suspense, the fallback is what renders on the
   // first paint and this assertion fails immediately. The slice's answer to

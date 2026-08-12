@@ -98,6 +98,7 @@ export const MobileMapEditSheet: React.FC<MobileMapEditSheetProps> = ({
             <button
               key={tile.id}
               type="button"
+              aria-pressed={activeSubTool === tile.id}
               className={subToolClass(tile.id)}
               onClick={() => selectSubTool(tile.id)}
             >

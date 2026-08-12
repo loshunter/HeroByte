@@ -148,9 +148,11 @@ The panels:
 | Spline | `Curve:` [Rope\|Chain\|Ribbon\|Filigree]                                    |
 | Gen    | region readout, theme, density, seed + ⟳, GENERATE, and the disabled reason |
 
-**The `Floor:` picker is shelf-grouped, not a flat row.** There are **38** `terrain:` assets in the
-catalog (counted). A flat grid at the 44px touch floor is ~13 rows ≈ 570px — unusable in a landscape
-sheet capped near 240px. So: material shelf chips first, then only that shelf's swatches, over
+**The `Floor:` picker is shelf-grouped, not a flat row.** `PAINT_FAMILIES` is **19** — the catalog
+holds 38 `terrain:` assets, but only those with a `VILLAGE_TERRAIN` palette entry are paintable, and
+that intersection is 19. A flat grid at the 44px touch floor is 7 rows ≈ 385px — still unusable in a
+landscape sheet capped near 240px. (This section originally said 38 and ~570px, counting the catalog
+rather than the subset the picker renders; the review caught it. The conclusion was unaffected.) So: material shelf chips first, then only that shelf's swatches, over
 `buildBrushDeckGroups()` (pure data, already written). This is the one place the design departs from
 the desktop shape rather than shrinking it.
 

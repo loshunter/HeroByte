@@ -1,10 +1,14 @@
 // The floor/paint family picker, shelved.
 //
 // This is the one panel that does NOT simply shrink its desktop counterpart,
-// and the reason is arithmetic. There are 38 `terrain:` families in the bundled
-// catalog. A flat grid of them at the 44px touch floor is ~13 rows, roughly
-// 570px — taller than the entire sheet cap in landscape (~240px), so the DM
-// would scroll a wall of chips to reach a floor. The desktop MapEditBrushDeck
+// and the reason is arithmetic. PAINT_FAMILIES is 19 — the catalog holds 38
+// `terrain:` assets, but only those with a VILLAGE_TERRAIN palette entry are
+// paintable, and that intersection is 19. A flat grid of them at the 44px touch
+// floor is 7 rows, roughly 385px — still taller than the entire sheet cap in
+// landscape (~240px), so the DM would scroll a wall of chips to reach a floor.
+// (An earlier version of this comment said 38 and ~570px, counting the catalog
+// rather than the palette-backed subset the picker actually renders. The
+// conclusion held; the number did not.) The desktop MapEditBrushDeck
 // solves the same problem with a hover preview card, a search box and
 // right-click-to-pin; a finger has none of those.
 //
@@ -54,6 +58,7 @@ export function MobileFloorPicker({
           <button
             key={group.material}
             type="button"
+            aria-pressed={group.material === openShelf}
             className={`mobile-chip${group.material === openShelf ? " mobile-chip--active" : ""}`}
             onClick={() => setPickedShelf(group.material)}
           >

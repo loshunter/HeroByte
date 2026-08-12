@@ -43,6 +43,10 @@ export function MobileSwatchRow<T extends string | number>({
           <button
             key={String(option.id)}
             type="button"
+            // Selected state reaches a screen reader, not just a stylesheet.
+            // The house convention already exists in the components these
+            // replace — MapEditBrushDeck and the player dock both do this.
+            aria-pressed={option.id === selected}
             className={`mobile-tool-sheet__button${
               option.id === selected ? " mobile-tool-sheet__button--active" : ""
             }`}
