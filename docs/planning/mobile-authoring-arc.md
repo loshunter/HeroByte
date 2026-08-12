@@ -554,7 +554,20 @@ browser as player sees fog respect the wall.
 (`MobileLayout.tsx:227`) becomes unreachable in the mode — verify a DM cannot get stranded. Do not
 statically import the sheet from an entry-reachable file; `build:check` enforces the bundle budget.
 
-### M5 🟡 — The rest of the drag tools + Generate/Populate
+### M5 ✅ — The rest of the drag tools + Generate/Populate — **SHIPPED 2026-08-12**
+
+Eleven commits on `dev`, `a8639d8a..39fd5ac0`. The slice plan and its SHIPPED banner are
+`docs/planning/m5-mobile-drag-tools-plan.md` — read that before touching the mobile palette.
+
+**The paragraph below understated the ground and should be read as history.** "Same rails as M4" is
+true in a stronger sense than it means: M4c armed the whole DRAG CLASS, not just room and wall
+(`DRAG_TOOLS` holds all seven and `useArmedTouchTool` arms off `isDragTool` alone), and the complete
+`MapEditToolbarProps` bag already reached the phone. So M5 changed **no input-path code at all** —
+it was a UI and bundle-placement slice, and the phone's tool grid is now derived from `DRAG_TOOLS`
+so the two can no longer drift.
+
+The Populate trap below is also softer than stated: the adjacency was already two-thirds visible,
+because `previewGhosts` render on the mobile canvas today. What was missing was the sentence.
 
 Hall, Door, Spline, Row, Generate's region aim (`commitDragTool.ts:61-133`,
 `useGenerate.ts:34-36, :61-91`, `usePopulate.ts:66-130`). Same rails as M4 — chips plus the

@@ -7,7 +7,27 @@ than a fact, it says so.
 
 ## 0. Where things stand
 
-**Current state (2026-08-12).** The vision-default slice (§3B) is SHIPPED to `dev`, adversarially
+**Current state (2026-08-12, later).** **M5 of the mobile authoring arc is SHIPPED to `dev`** —
+eleven commits, `a8639d8a..39fd5ac0`, each behind the full §2 gate, on top of the vision-default
+slice below. A DM on a phone can now author with every drag tool: Room, Hall, Wall, Door, Row,
+Spline and Generate, plus Populate. The slice plan and its SHIPPED banner are
+`docs/planning/m5-mobile-drag-tools-plan.md`; read that banner before touching the mobile palette.
+
+**M5 has NOT had its adversarial review yet** — that is the first thing to do (§8: check
+`agents_error`, and remember a review that never ran returns the same shape as a clean one).
+Baselines now: shared 424/24, server 2108/110, client **266 files / 5276 passed + 4 skipped**, e2e
+**132 passed / 0 failed / 3 skipped**, entry bundle **102.67 KB** of a 175 KB budget. Three
+pre-existing DESKTOP bugs were fixed along the way (GENERATE never said why it was disabled;
+POPULATE disagreed with its own ghosts; a failed map-edit chunk took the whole table down).
+**Nothing is pushed and nothing is deployed.**
+
+Two traps this slice added to §5's list, both earned the hard way. **A degenerate-drag sabotage
+does NOT prove a region-tool spec can fail** — a tap on Room or Hall legitimately commits a
+minimum unit, so the drag-never-moved sabotage stays green; sabotage `mapEditDragMode` instead.
+And **`useMapEditState.ts` is now 349 against a guard that flags at 350** — it has no legal lines
+left, so it joins `characterValidators.ts` on the extract-before-you-touch-it list.
+
+**Prior state (2026-08-12).** The vision-default slice (§3B) is SHIPPED to `dev`, adversarially
 reviewed, and NOT merged — thirteen commits since `93e284f8`: the six-commit slice
 (`120103f8..dd29bec0`), three review fixes, two docs corrections, the review-closure tests
 (`7a8bb703`), and this handoff update. CI green through run #780. **Nothing new is deployed.**

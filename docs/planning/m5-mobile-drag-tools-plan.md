@@ -1,5 +1,49 @@
 # M5 — the rest of the drag tools on the phone — slice plan
 
+> **SHIPPED to `dev` 2026-08-12 — eleven commits, `a8639d8a..39fd5ac0`, each behind the full §2
+> gate. NOT merged to `main`, so not deployed.** Baselines moved: client 263 files / 5249 → **266 /
+> 5276** (+4 skipped unchanged), e2e 129 → **132 passed / 0 failed / 3 skipped**; shared (424/24) and
+> server (2108/110) untouched.
+>
+> **The bundle bet paid, measured the same way both times (`gzip -9` on the real dist).** Entry
+> 102,153 → 104,711 bytes = **+2.50 KB**, against an estimate of 3.5–4 KB and a flip trigger of 8 KB.
+> The desktop `MapEditToolbar` chunk is **still split** at 7,442 bytes — writing touch-sized panels
+> instead of reusing desktop ones kept DM-only UI out of every player's first load, and avoided the
+> Rollup hazard where a static import from an entry-reachable file hoists a chunk and silently
+> deletes an existing split. `build:check`: 102.67 KB of a 175 KB budget, 58.7% used.
+>
+> **Three things below turned out to be WRONG. Sabotage and the gate caught each; reading did not.**
+>
+> 1. **§4's sabotage for commit 9 is false for a REGION tool.** "Change `touchDrag`'s waypoint to
+>    equal its start — every leg goes red at the positive control" left the hall leg GREEN.
+>    `roomBoundsFromDrag` is inclusive and floors at one cell, so a tap on Room or Hall legitimately
+>    commits a minimum unit with walls — the same designed behaviour four review lenses mis-filed as
+>    a bug in M4c. The zero-before assertion proves the CHAIN is alive, not that the drag had the
+>    shape intended. What actually reds that spec is setting `mapEditDragMode` to `false`. Anything
+>    later that wants to pin drag GEOMETRY must measure extent, not existence.
+> 2. **Commit 5 could not carry the open/close rule the ladder gave it.** The plan had "dial-bearing
+>    tools keep the sheet open" landing before any dials existed, which makes Room-stays-open-but-
+>    Wall-closes look arbitrary. It moved to commit 6, beside the dials that motivate it.
+> 3. **Commit 6 broke an e2e that every unit suite was structurally unable to see.**
+>    `mobile-map-edit.spec.ts` asserted the sheet was hidden after tapping Room — the contract that
+>    commit deliberately replaced. Unit tests render the sheet in isolation, so only the full gate
+>    could catch it. The spec now encodes BOTH halves of the rule, which is stronger than the single
+>    direction it had.
+>
+> **Two coverage holes found while gating, both now closed.** The sibling
+> "palette fits a 375x812 phone" spec never binds a live document, so it measures the dock and the
+> one-button pre-bind sheet and would pass however badly the real grid fitted — commit 10 is the spec
+> that opens it. And **POPULATE had no e2e at all**, on either layout, which meant commit 2 changed
+> its enabled state with nothing to catch a regression; commit 9 closes that.
+>
+> **Follow-ups, none of them defects:** `useMapEditState.ts` spent its last legal line in commit 1
+> and is now 349 against a guard that flags at 350 — anything further there needs an extraction
+> first. The deferrals in §6 stand (phone asset upload, the walls-overlay pin, Layers/Inspector, and
+> a real touch brush deck). The mobile party drawer still resolves one row per PLAYER to that
+> player's FIRST character (`MobileEntitiesList.tsx:67`), which is adjacent to this arc and still
+> unclaimed. Owner question Q4 (an in-app "use the desktop layout" switch) remains open and did not
+> block anything here.
+
 Owner chose M5 on 2026-08-12, after the vision-default slice. Every path, line number and measurement
 below was verified against `dev` = `b9af0a15` on 2026-08-12 by reading the files and by measuring the
 real `dist/` the gate had just built — not from memory and not from the arc doc. Where something is a
@@ -34,12 +78,12 @@ sub-panels on mobile at all, so mobile Room and Hall silently use whatever defau
 
 Measured from the real `dist/` (built by the gate at `b9af0a15`):
 
-| chunk                        |     raw |     gzip |
-| ---------------------------- | ------: | -------: |
-| `index-*.js` (entry)          | 345,482 | 99.8 KB |
-| `MapEditToolbar-*.js`         |  23,114 |  7.2 KB |
-| `MapBoard-*.js`               | 111,066 | 36.1 KB |
-| threshold (`check-bundle-size.mjs:32`) | | **175 KB** |
+| chunk                                  |     raw |       gzip |
+| -------------------------------------- | ------: | ---------: |
+| `index-*.js` (entry)                   | 345,482 |    99.8 KB |
+| `MapEditToolbar-*.js`                  |  23,114 |     7.2 KB |
+| `MapBoard-*.js`                        | 111,066 |    36.1 KB |
+| threshold (`check-bundle-size.mjs:32`) |         | **175 KB** |
 
 Two facts settle the design, and both are counter-intuitive:
 
@@ -54,7 +98,7 @@ Two facts settle the design, and both are counter-intuitive:
    at roughly 20px tall.
 
 **Therefore writing touch-sized panels is bundle-CHEAPER than reusing the desktop ones**, not more
-expensive: reuse would pull 7.2 KB into the entry *and* ship sub-44px controls to a phone. Estimated
+expensive: reuse would pull 7.2 KB into the entry _and_ ship sub-44px controls to a phone. Estimated
 cost of the mobile panels: **+3.5–4 KB gzip**, entry ~99.8 → ~104 KB against a 175 KB ceiling.
 
 **No new lazy boundary, deliberately.** Map-edit mode disables one-finger pan, makes tokens
@@ -64,8 +108,8 @@ this seam. 3.6 KB out of 75 KB of headroom does not buy a new failure axis in th
 failure consequence.
 
 **Flip trigger, stated in advance so it is not rationalised later:** if `build:check` shows the entry
-grew by more than **8 KB gzip**, `features/map-edit/mobile/` goes behind a lazy boundary *inside the
-sheet* — never around the dock — with a reload-only fallback modelled on `DMMenuLoadFailure.tsx`,
+grew by more than **8 KB gzip**, `features/map-edit/mobile/` goes behind a lazy boundary _inside the
+sheet_ — never around the dock — with a reload-only fallback modelled on `DMMenuLoadFailure.tsx`,
 never a retry.
 
 ## 2. The UI model
@@ -85,7 +129,7 @@ refuses to arm (constraint 7 becomes true by construction rather than by a test 
 Level 2 — the armed tool's dials, below the grid in the same sheet.
 
 **The one behavioural change:** a tool with no dials (Wall, Door) arms and closes the sheet, as
-today. A tool with dials (Room, Hall, Row, Spline, Gen) arms and *keeps the sheet open*, revealing
+today. A tool with dials (Room, Hall, Row, Spline, Gen) arms and _keeps the sheet open_, revealing
 its dials plus a wide `▶ To the map` that closes it. Tap counts are identical (4 either way), but the
 dial-bearing version never requires the DM to know they must reopen the sheet.
 
@@ -96,12 +140,12 @@ can collide with them.
 
 The panels:
 
-| tool   | dials                                                                    |
-| ------ | ------------------------------------------------------------------------ |
-| Room   | `Wall ring:` + `Floor:` (shelf-grouped, see below)                        |
-| Hall   | `Width:` [1–4] + `Side walls:` + `Floor:`                                 |
-| Row    | `Asset:` a 6-tile strip over the bundled `objects:*`; no upload, no search |
-| Spline | `Curve:` [Rope\|Chain\|Ribbon\|Filigree]                                  |
+| tool   | dials                                                                       |
+| ------ | --------------------------------------------------------------------------- |
+| Room   | `Wall ring:` + `Floor:` (shelf-grouped, see below)                          |
+| Hall   | `Width:` [1–4] + `Side walls:` + `Floor:`                                   |
+| Row    | `Asset:` a 6-tile strip over the bundled `objects:*`; no upload, no search  |
+| Spline | `Curve:` [Rope\|Chain\|Ribbon\|Filigree]                                    |
 | Gen    | region readout, theme, density, seed + ⟳, GENERATE, and the disabled reason |
 
 **The `Floor:` picker is shelf-grouped, not a flat row.** There are **38** `terrain:` assets in the
@@ -114,7 +158,7 @@ the desktop shape rather than shrinking it.
 solved and nobody noticed**: `usePopulate.ts:99-116` builds `previewGhosts` — the exact drafts the
 button would commit — and `MobileLayout.tsx:169` already forwards them to MapBoard. A phone DM who
 drags a room already sees translucent footprints, and they re-render live when density changes. What
-is missing is the *sentence*, not the affordance. M5 adds a three-state message:
+is missing is the _sentence_, not the affordance. M5 adds a three-state message:
 
 ```
 saving      -> "Saving…"
@@ -147,18 +191,18 @@ All three are **pre-existing and desktop-affecting**, not introduced by M5.
 
 Each commit passes the full §2 gate independently.
 
-| #   | commit                                                              | why it is here                         |
-| --- | ------------------------------------------------------------------- | -------------------------------------- |
-| 1   | `fix(map-edit): GENERATE says why it is disabled`                    | bug 1; adds REQUIRED `generateHint`    |
-| 2   | `fix(map-edit): POPULATE stayed armed over a room that was undone`   | bug 2                                  |
-| 3   | `fix(map-edit): a failed tool chunk no longer takes the table with it` | bug 3                                |
-| 4   | `refactor(mobile): split the palette into dock and sheet`            | extraction BEFORE addition; bisect anchor |
-| 5   | `feat(mobile): the remaining drag tools reach the phone's tool grid` | the 8-tile derived grid                |
-| 6   | `feat(mobile): touch-sized sub-panels for Room, Hall, Row and Spline` | + the shelf-grouped floor picker      |
-| 7   | `feat(mobile): the Generate panel, carrying the reason it is disabled` | consumes commit 1                     |
-| 8   | `feat(mobile): Populate on the phone, with its adjacency said out loud` | consumes commit 2                    |
-| 9   | `test(e2e): the phone authors a hall, a door and a spline`           | drives the chain by finger             |
-| 10  | `test(e2e): the tallest sheet this shell has ever had fits`          | both orientations                      |
+| #   | commit                                                                  | why it is here                            |
+| --- | ----------------------------------------------------------------------- | ----------------------------------------- |
+| 1   | `fix(map-edit): GENERATE says why it is disabled`                       | bug 1; adds REQUIRED `generateHint`       |
+| 2   | `fix(map-edit): POPULATE stayed armed over a room that was undone`      | bug 2                                     |
+| 3   | `fix(map-edit): a failed tool chunk no longer takes the table with it`  | bug 3                                     |
+| 4   | `refactor(mobile): split the palette into dock and sheet`               | extraction BEFORE addition; bisect anchor |
+| 5   | `feat(mobile): the remaining drag tools reach the phone's tool grid`    | the 8-tile derived grid                   |
+| 6   | `feat(mobile): touch-sized sub-panels for Room, Hall, Row and Spline`   | + the shelf-grouped floor picker          |
+| 7   | `feat(mobile): the Generate panel, carrying the reason it is disabled`  | consumes commit 1                         |
+| 8   | `feat(mobile): Populate on the phone, with its adjacency said out loud` | consumes commit 2                         |
+| 9   | `test(e2e): the phone authors a hall, a door and a spline`              | drives the chain by finger                |
+| 10  | `test(e2e): the tallest sheet this shell has ever had fits`             | both orientations                         |
 
 `generateHint` is **REQUIRED, not optional**, and so is every new forwarding prop in this slice. An
 optional field can be deleted with zero typecheck errors and every suite green — the defect shape
@@ -170,7 +214,7 @@ the `fix-fixture-ripple` skill rather than hand-editing.
 1. **348 is the real LOC ceiling** and the exemption is the filename pattern `/\.test\./`, **not** the
    `__tests__` directory. e2e specs are not exempt. `MobileMapEditPalette.tsx` is at 199 and cannot
    absorb 5 tools + 5 panels + Populate — hence commit 4 goes first. Re-run
-   `lint:structure:enforce` *after* prettier, which expands files.
+   `lint:structure:enforce` _after_ prettier, which expands files.
 2. **The CSS test anchors on block ORDER.** `MobileFloatingControls.test.tsx:240` runs
    `/\.mobile-tool-sheet,\r?\n[\s\S]*?\.mobile-help-sheet\s*\{([^}]*)\}/` against the raw
    `herobyte.css` text. Appending a selector into that comma list, or inserting any `.mobile-*-sheet`
