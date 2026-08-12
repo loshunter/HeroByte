@@ -13,13 +13,25 @@ slice below. A DM on a phone can now author with every drag tool: Room, Hall, Wa
 Spline and Generate, plus Populate. The slice plan and its SHIPPED banner are
 `docs/planning/m5-mobile-drag-tools-plan.md`; read that banner before touching the mobile palette.
 
-**M5 has NOT had its adversarial review yet** — that is the first thing to do (§8: check
-`agents_error`, and remember a review that never ran returns the same shape as a clean one).
-Baselines now: shared 424/24, server 2108/110, client **266 files / 5276 passed + 4 skipped**, e2e
-**132 passed / 0 failed / 3 skipped**, entry bundle **102.67 KB** of a 175 KB budget. Three
-pre-existing DESKTOP bugs were fixed along the way (GENERATE never said why it was disabled;
-POPULATE disagreed with its own ghosts; a failed map-edit chunk took the whole table down).
-**Nothing is pushed and nothing is deployed.**
+**M5's adversarial review has RUN and its findings are fixed** (39 agents, `agents_error: 0`; 16 raw
+findings, 3 survivors collapsing to 2 distinct defects, plus 2 more from the completeness critic —
+four fix commits, `c9b72444`, `53009cf2`, `a8b82e29`). The tree was fingerprinted before and after
+and is byte-identical. Full write-up in the plan doc's review section, including the critic's six
+still-unexamined areas.
+
+Baselines now: shared 424/24, server 2108/110, client **266 files / 5277 passed + 4 skipped**, e2e
+**132 passed / 0 failed / 3 skipped**, entry bundle **102.67 KB** of a 175 KB budget (that figure is
+`build:check`'s own measure; the +2.50 KB slice delta is `gzip -9`, a different tool — do not mix
+them). Three pre-existing DESKTOP bugs were fixed along the way (GENERATE never said why it was
+disabled; POPULATE disagreed with its own ghosts; a failed map-edit chunk took the whole table
+down). **Nothing is pushed and nothing is deployed.**
+
+**The one thing the review found that is NOT fixed, and wants an owner decision:** a drag whose
+commit is skipped because a command is still in flight is silent on every surface —
+`useMapEditTool.ts:284-287` returns early and does not retry, and nothing raises an error, so no
+toast fires. The e2e specs sleep 800ms between legs to dodge it. M5 multiplies the tools exposed to
+it and real-device latency is nothing like localhost. A busy affordance has nowhere obvious to go:
+the dock is pinned at five slots.
 
 Two traps this slice added to §5's list, both earned the hard way. **A degenerate-drag sabotage
 does NOT prove a region-tool spec can fail** — a tap on Room or Hall legitimately commits a

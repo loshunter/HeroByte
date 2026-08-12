@@ -44,6 +44,68 @@
 > unclaimed. Owner question Q4 (an in-app "use the desktop layout" switch) remains open and did not
 > block anything here.
 
+## ✅ The adversarial review RAN, 2026-08-12
+
+39 agents, `agents_error: 0`, `agents_skipped: 0`, `agents_empty_result: 0` — so the verdict is
+trustworthy in the way S7's (died partway) and S8's first attempt (died entirely) were not. The tree
+was fingerprinted before and after and is byte-identical (`549f1126`); no mutation probe.
+
+Six finder lenses (UI logic, the three bug fixes, touch reality, module boundaries, test vacuity,
+prop plumbing), two skeptics per finding — one pure refuter defaulting to REFUTED, one asked only to
+write the literal sequence of taps a DM performs — then a completeness critic. **16 raw findings, 3
+survivors, collapsing to 2 distinct defects** once two lenses that had reached the same bug were
+merged. Both were reproduced BY HAND before being fixed.
+
+| commit     | defect                                                                     |
+| ---------- | -------------------------------------------------------------------------- |
+| `c9b72444` | the Generate seed's ⟳ was **31px wide**, and the fit spec could not see it |
+| `c9b72444` | both chunk-failure boxes share one position; the DM-menu one hid the exit  |
+| `53009cf2` | the Generate button read `busy`, a flag that is always false in that panel |
+| `a8b82e29` | ~13 new selection controls had no `aria-pressed`, against house convention |
+| `a8b82e29` | "38 terrain families" was **19**; the argument held, the number did not    |
+
+**The ⟳ is the one to learn from.** `.mobile-tool-sheet__button` re-declares `min-width: 0` LATER in
+herobyte.css than the shared 44px rule at equal specificity, so a sheet button inherits the height
+half of the floor only. Every other button gets its width back from the grid track or `--wide`; the
+seed row is the sheet's first flex row. Two things then failed together: a comment asserted the
+floor was inherited, and the fit spec armed Room so the seed row was never in the DOM it measured.
+The spec now arms Room AND Gen, and was proven to fail without the fix — `^Gen$ @ 375x812: controls
+under the 44px touch floor` naming `"⟳"`.
+
+**One SPLIT verdict was acted on anyway** (`53009cf2`), and the reasoning is recorded because the
+rule says it should have died: both skeptics agreed `busy` is not the in-flight flag and the branch
+was dead, and split only on harm. The refuter's objection was not that the flag is right but that
+the obvious repair is wrong — `saving` is true for ANY queued command, so "Generating…" would state
+something false. Hence "⏳ Working…".
+
+**Two refutations worth not re-filing.** A stray tap committing a 1-cell room is BY DESIGN (four
+lenses mis-filed it in M4c; it was pre-loaded into this review as settled and still surfaced once).
+And the docs do NOT conflate two bundle measurements — the plan names `gzip -9` for the delta and
+`build:check` for the budget figure.
+
+### The critic's unexamined areas — recorded, not cleared
+
+Two are closed (`aria-pressed`; the Generate panel's fit). The rest stand, ranked by what would most
+likely hide a real defect:
+
+1. **A drag silently dropped while a command is in flight has no signal anywhere.**
+   `useMapEditTool.ts:284-287` skips the commit and does not retry; no error fires, so the toast
+   channel never speaks. The e2e specs wait 800ms between legs precisely to dodge it. M5 multiplies
+   the tools that hit it, and real-device latency is nothing like localhost. **This is the one
+   failure mode with no channel at all, and it wants an owner decision — the dock has no free slot.**
+2. **A tablet rotating across the layout rule** swaps the mobile sheet for the desktop lazy palette
+   mid-edit (`mobileLayout.ts`, 1024px + short-viewport), losing the sheet's local state. The e2e
+   can never see it: the mobile project pins `?mobile=true`.
+3. **Row and Spline can be created on a phone but not removed.** Select is a click tool and barred
+   from touch, and Layers/Inspector have no mobile consumer, so the only remedy is dock Undo.
+4. **No test drives the tool journey at phone width.** The functional spec runs at 820×1180, a
+   tablet; the fit spec reaches 375 but only measures, never taps a dial or drags after rotating.
+5. **Generate's aimed region is invisible once the finger lifts** and nothing clears it on tool
+   switch — only the panel's "Region: N × M" label says it exists.
+6. **Real-device iOS is unexamined.** Every number in this slice came from Chromium via CDP. The
+   horizontally-scrolling shelf strip inside a vertically-scrolling sheet with a negative-offset
+   sticky header is exactly where WebKit diverges.
+
 Owner chose M5 on 2026-08-12, after the vision-default slice. Every path, line number and measurement
 below was verified against `dev` = `b9af0a15` on 2026-08-12 by reading the files and by measuring the
 real `dist/` the gate had just built — not from memory and not from the arc doc. Where something is a
