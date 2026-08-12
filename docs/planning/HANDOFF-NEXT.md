@@ -1,22 +1,40 @@
 # Handoff — after S8, with the Session One arc complete
 
 Read this whole file before touching anything. Paths and numbers were verified on 2026-08-05 at
-`dev` = `951a3d2a`, and §0 was re-verified on 2026-08-08 after S8's review landed. Where something
-is a judgement call rather than a fact, it says so.
+`dev` = `951a3d2a`; §0 was re-verified on 2026-08-08 after S8's review landed, and again on
+2026-08-12 after the vision-default slice shipped. Where something is a judgement call rather
+than a fact, it says so.
 
 ## 0. Where things stand
 
-**The Session One arc is DONE.** `docs/planning/session-one-arc.md` is the source of truth.
-S0–S7 are in production; **S8 and its review fixes are on `dev` and NOT deployed.**
+**Current state (2026-08-12).** The vision-default slice (§3B) is SHIPPED to `dev`, adversarially
+reviewed, and NOT merged — thirteen commits since `93e284f8`: the six-commit slice
+(`120103f8..dd29bec0`), three review fixes, two docs corrections, the review-closure tests
+(`7a8bb703`), and this handoff update. CI green through run #780. **Nothing new is deployed.**
 
-| Branch | Commit     | State                                                                                        |
-| ------ | ---------- | -------------------------------------------------------------------------------------------- |
-| `dev`  | `f1952138` | +docs: S8 + review + §11 cleanup, an e2e flake fix, **M3**, the M4 design doc, then **M4a**. |
-| `main` | `5307d0dd` | production, deployed, green                                                                  |
+| Branch | Commit     | State                                                                        |
+| ------ | ---------- | ---------------------------------------------------------------------------- |
+| `dev`  | `7a8bb703` | +§3B shipped + reviewed (+ this handoff on top). Pushed; CI #777–#780 green. |
+| `main` | `8db688e2` | production, deployed (through the player-props slice), green                 |
+
+Two documents carry what this file cannot: the **SHIPPED banner** atop
+[room-vision-default-plan.md](./room-vision-default-plan.md) — the three places that plan was
+wrong (a union member cannot precede its validator; the snapshot contract test cannot guard the
+`visionSignature` cache, only the pointer-relay test can; "reuse VisionRadiusField as-is" shipped
+a per-token control that called an inherited radius "Unlimited") and the follow-ups it left — and
+§5's newest trap here (a client build DURING the e2e collapses the whole suite looking exactly
+like a systemic regression). **Go to §10 for what to do next.**
+
+The paragraphs below are the S8/M4-era history this document was written for; they remain
+accurate as history.
+
+**The Session One arc is DONE.** `docs/planning/session-one-arc.md` is the source of truth.
+S0–S7 are in production; S8 and everything since is on `dev`.
 
 **Read §3C first — M4a, M4b AND M4c are SHIPPED; the whole of M4 is done.** _Update 2026-08-11:
 the owner chose §3B (the room-level default vision radius) as the next slice, ahead of M5 — the
-full plan is [room-vision-default-plan.md](./room-vision-default-plan.md); start there._ The owner
+full plan is [room-vision-default-plan.md](./room-vision-default-plan.md); it has since shipped
+(see above)._ The owner
 chose the mobile authoring arc on 2026-08-09; M3, M4a, M4b and M4c landed in sequence, and the
 design is in [mobile-shell-redesign.md](./mobile-shell-redesign.md), whose §2 notes record what
 each slice shipped and where it deviated. M4b's headline: a DM on a phone now has the FULL menu
@@ -239,6 +257,14 @@ click**, so a control meant to be used mid-gesture must bind a pointer or touch 
 KB**, client 44 batches, shared 414, server 2057. One unrelated desktop flake was observed ONCE in
 nine full runs — `map-navigation.spec.ts › player can zoom in and out with mouse wheel` — and
 passed on retry; it is outside M4c's surface and was not diagnosed.
+
+**The player-props and vision-default slices moved them again (2026-08-12, measured at
+`7a8bb703`):** shared **424** tests / 24 files, server **2108** / 110 files, client **5249
+passed / 4 skipped** across 263 files, e2e **129 passed / 0 failed / 3 skipped**
+(`vision-default.spec.ts` joined), bundle **~99.97 KB** gzip against the 175 KB threshold. None
+of the at-ceiling files in §5 gained a line — the vision-default slice's DM control rides
+`DMMenuContainer`'s inline `sendMessage` precedent, dodging `useDMContext` (347) and
+`MainLayoutProps` entirely.
 
 **`useMapEditState.ts` is now 347 of the 348 ceiling** — it joins `characterValidators.ts` (348)
 and `useDMContext.ts` (347) on the list of files that need an extraction before they gain a single
@@ -654,15 +680,25 @@ turns a cone into something else.
 
 ## 10. Suggested order of work
 
-1. `git log --oneline -6 && git status --porcelain | grep -v 'temp/'` — confirm you are at
-   `7c780642` with a clean tree. (Use `grep -v 'temp/'`, not `grep -v '^?? temp/'`: three of the
-   owner's untracked files have spaces in their names, so git quotes them and the anchored form
-   misses them.)
-2. Run the full gate once (§2) to establish that the baselines in this document still hold, and
-   **boot `pnpm dev`** (§7).
-3. Ask which of §3B / §3C / §3D they want next. The arc is complete, its review is closed and §11
-   is fully cleared, so this is a genuine fork, not a queue — there is nothing queued at all.
-4. Stop before merging to `main`. That is the owner's call, and it deploys.
+1. `git log --oneline -3 && git status --porcelain | grep -v 'temp/'` — confirm you are at or
+   just past `7a8bb703` with a clean tree. (Use `grep -v 'temp/'`, not `grep -v '^?? temp/'`:
+   three of the owner's untracked files have spaces in their names, so git quotes them and the
+   anchored form misses them.)
+2. Read the **SHIPPED banner** atop
+   [room-vision-default-plan.md](./room-vision-default-plan.md) and §5's newest trap (the
+   concurrent-build e2e collapse) before touching vision, fog, `RoomState`, or the gates agent.
+3. Run the full gate once (§2) to confirm the 2026-08-12 baselines still hold, and **boot
+   `pnpm dev`** (§7) if anything in `packages/shared` will change.
+4. The fork is the owner's, and nothing is queued:
+   - **Merge `dev` → `main`** — thirteen CI-green commits are waiting. Merging DEPLOYS
+     immediately (Render + Cloudflare, ungated by CI), and already-open player tabs must reload.
+   - **M5 of the mobile arc** (§3C; `mobile-authoring-arc.md` §4). The known adjacent gap: the
+     mobile party drawer renders one row per PLAYER (first character only), which also keeps a
+     phone DM from a second character's sight controls — directly adjacent to §3B's subject.
+   - **Smaller work**: §3D, or the vision-default follow-ups listed in the plan doc's banner
+     (the per-token card showing the inherited NUMBER, the stale Map Setup screenshot, the
+     DM-menu 44px panel-wide pass).
+5. Stop before merging to `main`. That is the owner's call, and it deploys.
 
 ## 11. The completeness critic's list — CLEARED 2026-08-09
 
