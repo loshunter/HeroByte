@@ -23,6 +23,7 @@ const bag = (overrides: Record<string, unknown> = {}) =>
   ({
     activeSubTool: "generate",
     busy: false,
+    saving: false,
     generateParams: { theme: "stone", density: "medium", seed: 4242 },
     onGenerateParamsChange: vi.fn(),
     onRerollSeed: vi.fn(),
@@ -33,7 +34,10 @@ const bag = (overrides: Record<string, unknown> = {}) =>
     ...overrides,
   }) as unknown as MapEditToolbarProps;
 
-const generateButton = () => screen.getByRole("button", { name: /Generat/i });
+// By testid, not by name: the label legitimately changes to "⏳ Working…" while
+// a command is in flight, and a name-based locator would silently stop finding
+// the button in exactly the state this file exists to assert on.
+const generateButton = () => screen.getByTestId("mobile-generate-fire");
 
 describe("GENERATE on a phone", () => {
   it("never refuses silently — every disabled state says why on screen", () => {
@@ -45,7 +49,10 @@ describe("GENERATE on a phone", () => {
         props: { canGenerate: false, generateHint: TOO_SMALL },
         explains: /at least 20/i,
       },
-      { props: { canGenerate: false, busy: true }, explains: /Generating/i },
+      // `saving`, NOT `busy`. busy means the create/open/bind round-trip and is
+      // false by the time this panel can render at all, so the old wiring was
+      // dead code and this case passed only because the fixture forced it.
+      { props: { canGenerate: false, saving: true }, explains: /Working/i },
     ];
 
     for (const { props, explains } of cases) {

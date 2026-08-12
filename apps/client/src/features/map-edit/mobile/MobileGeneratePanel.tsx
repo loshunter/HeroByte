@@ -16,6 +16,18 @@
 // spoken was a toast inside onGenerate — unreachable, because the same
 // condition that produces the reason is what disables the button. So the hint
 // is rendered here, next to the control it explains.
+//
+// THREE of those four are answered here: the region label, and generateHint for
+// the two size problems. The fourth is answered by `saving`, and the label
+// deliberately reads "Working" rather than "Generating" — `saving` is true for
+// ANY queued command, so a wall drawn a moment earlier would otherwise make
+// this button announce a dungeon that is not being built. No field in the bag
+// means "this generate is in flight".
+//
+// `busy` is NOT that flag and never was: it is awaitingLiveBind || pendingLiveId
+// || loading, every disjunct of which is false by the time this panel can
+// render (it only renders once isLive). An earlier version of this file spelled
+// the in-flight state off `busy`, which was dead code.
 
 import React from "react";
 import type { MapEditToolbarProps, PopulateDensity } from "../mapEditTypes";
@@ -40,7 +52,7 @@ export function MobileGeneratePanel({
   canGenerate,
   generateRegion,
   generateHint,
-  busy,
+  saving,
 }: MapEditToolbarProps): JSX.Element {
   return (
     <div className="mobile-tool-sheet__section" data-testid="mobile-generate-panel">
@@ -83,10 +95,11 @@ export function MobileGeneratePanel({
       <button
         type="button"
         className="mobile-tool-sheet__button mobile-tool-sheet__button--wide"
+        data-testid="mobile-generate-fire"
         onClick={onGenerate}
         disabled={!canGenerate}
       >
-        {busy ? "⏳ Generating…" : "🎲 Generate"}
+        {saving ? "⏳ Working…" : "🎲 Generate"}
       </button>
 
       {generateHint && (
