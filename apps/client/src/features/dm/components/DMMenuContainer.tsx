@@ -262,6 +262,11 @@ export function DMMenuContainer({
       onPlayerPropsEnabledChange={(enabled) =>
         sendMessage({ t: "set-player-props-enabled", enabled })
       }
+      defaultVisionRadius={snapshot?.defaultVisionRadius}
+      // Inline for the same reason: one message, no state to manage.
+      onDefaultVisionRadiusChange={(radius) =>
+        sendMessage({ t: "set-default-vision-radius", radius })
+      }
       mapStudio={mapStudio}
       presentation={presentation}
     />

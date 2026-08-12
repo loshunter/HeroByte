@@ -21,6 +21,13 @@ interface VisionRadiusFieldProps {
   onChange: (radiusFeet: number | null) => void;
   /** Rendered as thumb-sized controls on the mobile surface. */
   compact?: boolean;
+  /** Heading above the presets. */
+  label?: string;
+  /** Tooltip sentence subject: "<subject> sees 60 feet". */
+  subject?: string;
+  /** Accessible name for the custom input. Distinct per surface, so two of
+   *  these on one screen stay tellable apart by a locator. */
+  inputAriaLabel?: string;
 }
 
 /** Darkvision as the rulebooks hand it out, plus the two ends of the scale. */
@@ -32,7 +39,14 @@ const PRESETS: { label: string; value: number | null }[] = [
   { label: "Blind", value: 0 },
 ];
 
-export function VisionRadiusField({ value, onChange, compact = false }: VisionRadiusFieldProps) {
+export function VisionRadiusField({
+  value,
+  onChange,
+  compact = false,
+  label = "Sight Radius",
+  subject = "This token",
+  inputAriaLabel = "Sight radius in feet",
+}: VisionRadiusFieldProps) {
   // Local draft so a half-typed number ("6" on the way to "60") does not
   // broadcast a radius nobody asked for. Re-synced whenever the authoritative
   // value changes underneath — another DM can be editing the same token.
@@ -72,7 +86,7 @@ export function VisionRadiusField({ value, onChange, compact = false }: VisionRa
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "4px" }}>
       <span className="jrpg-text-small" style={{ color: "var(--jrpg-gold)" }}>
-        Sight Radius
+        {label}
       </span>
       <div
         style={
@@ -97,8 +111,8 @@ export function VisionRadiusField({ value, onChange, compact = false }: VisionRa
                 preset.value === null
                   ? "Sight is stopped only by walls"
                   : preset.value === 0
-                    ? "This token sees nothing"
-                    : `This token sees ${preset.value} feet`
+                    ? `${subject} sees nothing`
+                    : `${subject} sees ${preset.value} feet`
               }
             >
               {preset.label}
@@ -109,7 +123,7 @@ export function VisionRadiusField({ value, onChange, compact = false }: VisionRa
       <label style={{ display: "flex", alignItems: "center", gap: "6px" }}>
         <span className="jrpg-text-small">Custom</span>
         <input
-          aria-label="Sight radius in feet"
+          aria-label={inputAriaLabel}
           type="number"
           inputMode="numeric"
           min={VISION_RADIUS_MIN_FEET}

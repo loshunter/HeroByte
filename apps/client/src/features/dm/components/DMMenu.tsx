@@ -21,6 +21,8 @@ export function DMMenu({
   fogEnabled,
   hasCompiledScene,
   onFogEnabledChange,
+  defaultVisionRadius,
+  onDefaultVisionRadiusChange,
   onClearDrawings,
   onSetMapBackground,
   mapBackground,
@@ -153,6 +155,8 @@ export function DMMenu({
           fogEnabled={fogEnabled}
           hasCompiledScene={hasCompiledScene}
           onFogEnabledChange={onFogEnabledChange}
+          defaultVisionRadius={defaultVisionRadius}
+          onDefaultVisionRadiusChange={onDefaultVisionRadiusChange}
           alignmentModeActive={alignmentModeActive}
           alignmentPoints={alignmentPoints}
           alignmentSuggestion={alignmentSuggestion}

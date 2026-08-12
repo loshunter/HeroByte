@@ -27,6 +27,8 @@ export interface DMMenuProps {
   fogEnabled?: boolean;
   hasCompiledScene?: boolean;
   onFogEnabledChange?: (enabled: boolean) => void;
+  defaultVisionRadius?: number;
+  onDefaultVisionRadiusChange?: (radiusFeet: number | null) => void;
   onClearDrawings: () => void;
   onSetMapBackground: (url: string) => void;
   mapBackground?: string;
