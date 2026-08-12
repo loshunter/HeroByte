@@ -21,6 +21,7 @@ import { PAINT_FAMILIES, WALL_FAMILIES } from "../mapEditFamilies";
 import type { DragTool } from "../mapEditToolKinds";
 import type { MapEditSplineKind, MapEditToolbarProps, MapEditWallFamily } from "../mapEditTypes";
 import { MobileFloorPicker } from "./MobileFloorPicker";
+import { MobileGeneratePanel } from "./MobileGeneratePanel";
 import { MobileSwatchRow } from "./MobileSwatchRow";
 
 /** The tools whose panel below is non-empty — the sheet's open/close rule. */
@@ -29,6 +30,7 @@ export const PANEL_TOOLS: ReadonlySet<DragTool> = new Set<DragTool>([
   "hallway",
   "row",
   "spline",
+  "generate",
 ]);
 
 const HALLWAY_WIDTHS = [1, 2, 3, 4] as const;
@@ -61,7 +63,14 @@ const ROW_ASSETS = MAP_STUDIO_TILE_ASSETS.filter((asset) => asset.category === "
   (asset) => ({ id: asset.id, label: asset.name, fill: asset.fill, stroke: asset.stroke }),
 );
 
-export function MobileMapEditToolPanels({
+export function MobileMapEditToolPanels(props: MapEditToolbarProps): JSX.Element | null {
+  // Generate takes the whole bag: it reads eight fields, and listing them here
+  // to forward them one by one is how a forwarding prop goes missing.
+  if (props.activeSubTool === "generate") return <MobileGeneratePanel {...props} />;
+  return <ToolDials {...props} />;
+}
+
+function ToolDials({
   activeSubTool,
   floorFamily,
   onSelectFloorFamily,

@@ -38,6 +38,16 @@ const bag = (overrides: Record<string, unknown> = {}) =>
     onSelectSplineKind: vi.fn(),
     selectedAssetId: "objects:crate",
     onSelectAsset: vi.fn(),
+    // Generate joined PANEL_TOOLS in the commit that added its panel, and the
+    // coverage test below immediately rendered it with none of these — which
+    // is the coverage test doing exactly its job.
+    generateParams: { theme: "stone", density: "medium", seed: 7 },
+    onGenerateParamsChange: vi.fn(),
+    onRerollSeed: vi.fn(),
+    onGenerate: vi.fn(),
+    canGenerate: true,
+    generateRegion: { cols: 24, rows: 30 },
+    generateHint: null,
     ...overrides,
   }) as unknown as MapEditToolbarProps;
 
