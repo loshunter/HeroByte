@@ -19,6 +19,7 @@
 import React from "react";
 import type { DragTool } from "../mapEditToolKinds";
 import type { MapEditToolbarProps } from "../mapEditTypes";
+import { MobileMapEditToolPanels, PANEL_TOOLS } from "./MobileMapEditToolPanels";
 import { MOBILE_TOOL_TILES } from "./mobileToolTiles";
 
 interface MobileMapEditSheetProps {
@@ -37,10 +38,17 @@ export const MobileMapEditSheet: React.FC<MobileMapEditSheetProps> = ({
   // THE trap this mode carries: the controller no-ops SILENTLY without an
   // active live document, so a tool that looks armed does nothing and says
   // nothing. Every tool stays disabled until the palette can say ● LIVE.
+  //
+  // The sheet closes on a tool with NO dials and stays open on one that has
+  // them. Tap counts are the same either way (Tool, tile, dial, To the map),
+  // but the open version never requires the DM to KNOW that a tool they just
+  // armed has options and that reopening the sheet is how to reach them.
   const selectSubTool = (tool: DragTool) => {
     onSelectSubTool(tool);
-    onToggleTools();
+    if (!PANEL_TOOLS.has(tool)) onToggleTools();
   };
+
+  const panelsOpen = isLive && PANEL_TOOLS.has(activeSubTool as DragTool);
 
   const recenter = () => {
     onResetCamera();
@@ -101,6 +109,22 @@ export const MobileMapEditSheet: React.FC<MobileMapEditSheetProps> = ({
             Recenter
           </button>
         </div>
+      )}
+
+      {panelsOpen && (
+        <>
+          <MobileMapEditToolPanels {...toolbar} />
+          {/* "To the map", NOT "Use Room". The e2e locators for the tool tiles
+              match on accessible name, and a second button carrying a tool's
+              name is an immediate Playwright strict-mode violation. */}
+          <button
+            type="button"
+            className="mobile-tool-sheet__button mobile-tool-sheet__button--wide"
+            onClick={onToggleTools}
+          >
+            ▶ To the map
+          </button>
+        </>
       )}
 
       {toolbar.error && (

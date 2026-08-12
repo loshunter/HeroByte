@@ -179,7 +179,10 @@ describe("the map-edit palette", () => {
     const live = (overrides: Record<string, unknown> = {}) =>
       props({ surface: "tools", mapEditToolbarProps: toolbar({ isLive: true, ...overrides }) });
 
-    it("offers Room and Wall, and picking one closes the sheet to show the map", () => {
+    // M5's one behavioural change. Both halves are required: a rule that never
+    // closes passes the Room half alone, and one that always closes passes the
+    // Wall half alone.
+    it("closes the sheet for a dial-less tool and keeps it open for one with dials", () => {
       const bar = toolbar({ isLive: true });
       const onToggleSurface = vi.fn();
       render(
@@ -187,14 +190,42 @@ describe("the map-edit palette", () => {
           {...props({ surface: "tools", mapEditToolbarProps: bar, onToggleSurface })}
         />,
       );
+      const sheet = screen.getByRole("dialog", { name: /map tools/i });
 
-      fireEvent.click(screen.getByRole("button", { name: /Room/ }));
-      expect(bar.onSelectSubTool).toHaveBeenCalledWith("room");
-      // You pick a tool in order to USE it, and the tool needs the canvas.
+      // Wall has no dials: you picked it in order to USE it, and it needs the
+      // canvas that the sheet is covering.
+      fireEvent.click(within(sheet).getByRole("button", { name: /^Wall$/ }));
+      expect(bar.onSelectSubTool).toHaveBeenCalledWith("wall");
       expect(onToggleSurface).toHaveBeenCalledWith("tools");
 
-      fireEvent.click(screen.getByRole("button", { name: /Wall/ }));
-      expect(bar.onSelectSubTool).toHaveBeenCalledWith("wall");
+      onToggleSurface.mockClear();
+
+      // Room has dials. Closing over them would hide the options behind a
+      // reopen the DM has no way to know is needed.
+      fireEvent.click(within(sheet).getByRole("button", { name: /^Room$/ }));
+      expect(bar.onSelectSubTool).toHaveBeenCalledWith("room");
+      expect(onToggleSurface).not.toHaveBeenCalled();
+    });
+
+    it("shows the dials of the armed tool, and an explicit way back to the map", () => {
+      const onToggleSurface = vi.fn();
+      render(
+        <MobileFloatingControls
+          {...props({
+            surface: "tools",
+            mapEditToolbarProps: toolbar({ isLive: true, activeSubTool: "room" }),
+            onToggleSurface,
+          })}
+        />,
+      );
+
+      expect(screen.getByText("Wall ring")).toBeInTheDocument();
+      expect(screen.getByText("Floor")).toBeInTheDocument();
+
+      // Not "Use Room": a second button carrying a tool's name would make the
+      // e2e tile locators ambiguous and fail as a strict-mode violation.
+      fireEvent.click(screen.getByRole("button", { name: /To the map/i }));
+      expect(onToggleSurface).toHaveBeenCalledWith("tools");
     });
 
     it("marks the armed sub-tool, so the DM can tell room from wall without dragging", () => {

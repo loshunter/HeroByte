@@ -1437,6 +1437,49 @@ h4 {
   line-height: 1.4;
 }
 
+/* M5's tool dials. Deliberately NO button rule here: every option reuses
+   .mobile-tool-sheet__button and .mobile-chip, so the 44px touch floor and the
+   4-to-3 column drop are inherited rather than restated, and cannot be lost by
+   editing this block. These sit beside .mobile-tool-sheet__note rather than up
+   with the shared sheet rules, because MobileFloatingControls.test.tsx regexes
+   the raw stylesheet between `.mobile-tool-sheet,` and `.mobile-help-sheet {`
+   and any selector inserted into that region changes what it captures. */
+.mobile-tool-sheet__section {
+  margin-top: 8px;
+}
+
+.mobile-tool-sheet__label {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--hero-gold-light);
+  font-family: var(--font-pixel);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+/* Material shelves scroll sideways rather than wrapping: eight shelves wrapped
+   to three rows would push the families themselves off a landscape sheet. */
+.mobile-tool-sheet__shelves {
+  display: flex;
+  overflow-x: auto;
+  gap: 6px;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-tool-sheet__shelves .mobile-chip {
+  flex: 0 0 auto;
+}
+
+/* The colour of the family, beside its name — the phone's stand-in for the
+   desktop deck's baked thumbnails, which need a 2D canvas jsdom does not have. */
+.mobile-swatch-chip {
+  display: block;
+  width: 18px;
+  height: 10px;
+  border: 1px solid var(--hero-gold-light);
+}
+
 /*
  * The manual on a phone. Its anchor, its cap and its scrolling all come from
  * the shared sheet contract above. It used to carry a z-index above the shared
