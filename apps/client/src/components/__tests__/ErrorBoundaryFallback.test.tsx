@@ -20,6 +20,7 @@ import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
 import { render, screen, cleanup, act, fireEvent } from "@testing-library/react";
 import { ErrorBoundary } from "../ErrorBoundary";
 import { DMMenuLoadFailure } from "../../features/dm/DMMenuLoadFailure";
+import { MapEditToolbarLoadFailure } from "../../features/map-edit/MapEditToolbarLoadFailure";
 
 afterEach(() => cleanup());
 
@@ -46,6 +47,27 @@ describe("ErrorBoundary with a scoped fallback", () => {
     // The full-page treatment is what this exists to avoid.
     expect(screen.queryByText(/Application Error/i)).toBeNull();
     expect(screen.queryByRole("button", { name: /Reload Page/ })).toBeNull();
+  });
+
+  // The map-edit twin has one job the DM-menu twin does not: map-edit mode is
+  // still ARMED when the palette dies, and the palette is where ✕ Close lives.
+  // A fallback that can only reload leaves the DM on a canvas whose rules have
+  // changed, so this one carries the exit.
+  it("lets a DM leave map-edit when the palette that holds ✕ Close is the thing that died", () => {
+    const onClose = vi.fn();
+    render(
+      <ErrorBoundary fallback={<MapEditToolbarLoadFailure onClose={onClose} />}>
+        <Boom throws />
+      </ErrorBoundary>,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/map tools could not be loaded/i);
+    expect(screen.queryByText(/Application Error/i)).toBeNull();
+    // No retry here either — a rejected lazy re-throws forever (pinned below).
+    expect(screen.queryByRole("button", { name: /Try again/i })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /Leave map editing/i }));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it("still shows the full-page error when no fallback is given", () => {

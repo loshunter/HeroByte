@@ -22,6 +22,15 @@ import { act, render, screen } from "@testing-library/react";
 import type { DrawingToolbarProps } from "../../features/drawing/components/DrawingToolbar";
 import type { ToolMode } from "../../components/layout/Header";
 
+// The lazy map-edit palette, forced to fail the way a post-deploy 404 does.
+// Inert for every test above: the fixture ships mapEditMode: false, so nothing
+// renders it until the boundary describe at the bottom turns it on.
+vi.mock("../../features/map-edit/MapEditToolbar", () => ({
+  MapEditToolbar: () => {
+    throw new Error("Failed to fetch dynamically imported module");
+  },
+}));
+
 // Mock all child components with prop tracking
 vi.mock("../../components/layout/ServerStatus", () => ({
   ServerStatus: ({ isConnected }: { isConnected: boolean }) => (
@@ -1092,6 +1101,47 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
       expect(toolbar).toHaveAttribute("data-selected-count", "3");
       expect(toolbar).toHaveAttribute("data-is-dm", "true");
       expect(toolbar).toHaveAttribute("data-top-height", "200");
+    });
+  });
+
+  // Not characterization — new behaviour. This Suspense was bare from the day
+  // it was written, so a hashed-chunk 404 after a deploy threw past it to the
+  // app root and replaced a live shared table with a full-page error. The
+  // fallback's own behaviour is pinned in ErrorBoundaryFallback.test.tsx; what
+  // is pinned HERE is that this layout actually wraps the palette in one,
+  // because a fallback nobody mounts is worth nothing.
+  describe("map-edit palette chunk failure", () => {
+    beforeEach(() => {
+      vi.spyOn(console, "error").mockImplementation(() => {});
+    });
+
+    async function renderWithDeadPalette() {
+      const props = createDefaultProps();
+      props.mapEditMode = true;
+      props.isDM = true;
+      render(<MainLayout {...props} />);
+      await act(async () => {});
+      return props;
+    }
+
+    it("keeps the table when the palette chunk cannot load", async () => {
+      await renderWithDeadPalette();
+
+      expect(screen.getByRole("alert")).toHaveTextContent(/map tools could not be loaded/i);
+      // The whole point: the rest of the layout is still standing. If the
+      // boundary is removed, the throw reaches the app root and the header
+      // goes with it — which is what makes this assertion the real pin.
+      expect(screen.getByTestId("server-status")).toBeInTheDocument();
+      expect(screen.getByTestId("header")).toBeInTheDocument();
+      expect(screen.queryByText(/Application Error/i)).toBeNull();
+    });
+
+    it("wires the fallback's exit to the same onClose the palette would have used", async () => {
+      const props = await renderWithDeadPalette();
+
+      screen.getByRole("button", { name: /Leave map editing/i }).click();
+
+      expect(props.mapEditToolbarProps.onClose).toHaveBeenCalledTimes(1);
     });
   });
 });

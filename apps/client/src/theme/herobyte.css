@@ -1787,7 +1787,8 @@ h4 {
 /* The DM menu's own chunk-load failure. Scoped, not full-page: losing the menu
    is survivable, losing the table is not. Positioned by whichever surface
    hosts it (a floating window on desktop, the screen body on a phone). */
-.dm-menu-load-failure {
+.dm-menu-load-failure,
+.map-edit-load-failure {
   position: fixed;
   right: 16px;
   bottom: 16px;
