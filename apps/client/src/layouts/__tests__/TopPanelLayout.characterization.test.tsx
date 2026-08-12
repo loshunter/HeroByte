@@ -213,6 +213,7 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
       onGenerate: vi.fn(),
       canGenerate: false,
       generateRegion: null,
+      generateHint: null,
       saving: false,
       layers: [],
       selectedElement: null,

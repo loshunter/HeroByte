@@ -43,6 +43,8 @@ export interface UseGenerateReturn {
   onRegionDragged: (bounds: RoomBounds) => void;
   onGenerate: () => void;
   canGenerate: boolean;
+  /** Why GENERATE is refused, or null when the region is fine (or absent). */
+  hint: string | null;
   region: { cols: number; rows: number } | null;
 }
 
@@ -73,11 +75,15 @@ export function useGenerate(
     setParams((current) => ({ ...current, seed: freshSeed() }));
   }, []);
 
+  // Computed once and surfaced, not recomputed and discarded. `canGenerate`
+  // already folds this in, which DISABLES the button — so the notifyError below
+  // could never fire for a bad region, and the DM got a mute dead button.
+  const problem = regionProblem(bounds);
+
   const onGenerate = useCallback(() => {
     if (!bounds || !isLive || controller.saving) return;
     // Refuse locally with the same rules the server enforces, so a bad drag
     // reads as a hint on the button rather than a round-trip and a red toast.
-    const problem = regionProblem(bounds);
     if (problem) {
       notifyError?.(problem);
       return;
@@ -88,7 +94,7 @@ export function useGenerate(
       bounds,
       params: { theme: params.theme, density: params.density },
     });
-  }, [bounds, isLive, controller, params, notifyError]);
+  }, [bounds, isLive, controller, params, notifyError, problem]);
 
   return {
     params,
@@ -96,7 +102,8 @@ export function useGenerate(
     rerollSeed,
     onRegionDragged,
     onGenerate,
-    canGenerate: Boolean(bounds) && isLive && !controller.saving && !regionProblem(bounds),
+    canGenerate: Boolean(bounds) && isLive && !controller.saving && !problem,
+    hint: problem,
     region: bounds ? { cols: bounds.cols, rows: bounds.rows } : null,
   };
 }

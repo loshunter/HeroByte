@@ -205,4 +205,46 @@ describe("useGenerate", () => {
       expect(calls[0]![0].seed).toBe(calls[1]![0].seed);
     });
   });
+
+  // `canGenerate` folding regionProblem in DISABLES the button, which made the
+  // notifyError inside onGenerate unreachable for a bad region — a mute dead
+  // button. These pin the reason reaching the panel instead.
+  describe("the reason GENERATE is refused", () => {
+    // Grid 50: cells x 50 = pixels.
+    const cells = (n: number) => ({ x: 0, y: 0, width: n * 50, height: n * 50 });
+
+    it("names a too-small region, then clears once the region is big enough", () => {
+      const { result } = renderHook(() => useGenerate(controller(), true));
+
+      act(() => result.current.onRegionDragged(cells(10)));
+      expect(result.current.canGenerate).toBe(false);
+      expect(result.current.hint).toMatch(/20/);
+
+      // The second region is the half that matters: a hint hard-coded to a
+      // constant satisfies the first assertion and dies here.
+      act(() => result.current.onRegionDragged(cells(40)));
+      expect(result.current.canGenerate).toBe(true);
+      expect(result.current.hint).toBeNull();
+    });
+
+    it("gives too-small and too-big DIFFERENT reasons", () => {
+      const { result } = renderHook(() => useGenerate(controller(), true));
+
+      act(() => result.current.onRegionDragged(cells(10)));
+      const tooSmall = result.current.hint;
+      act(() => result.current.onRegionDragged(cells(200))); // 40000 > 16384 cells
+      const tooBig = result.current.hint;
+
+      expect(tooSmall).toBeTruthy();
+      expect(tooBig).toBeTruthy();
+      expect(tooBig).not.toBe(tooSmall);
+    });
+
+    it("stays silent before the first drag — the region label covers that case", () => {
+      const { result } = renderHook(() => useGenerate(controller(), true));
+
+      expect(result.current.canGenerate).toBe(false);
+      expect(result.current.hint).toBeNull();
+    });
+  });
 });

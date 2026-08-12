@@ -20,6 +20,8 @@ interface GeneratePanelProps {
   busy: boolean;
   /** The dragged region in cells, or null before the first drag. */
   region: { cols: number; rows: number } | null;
+  /** Why GENERATE is refused, or null. Absent region is covered by the label. */
+  hint: string | null;
 }
 
 const THEMES: { id: GenerateParams["theme"]; label: string }[] = [
@@ -39,6 +41,7 @@ export function GeneratePanel({
   canGenerate,
   busy,
   region,
+  hint,
 }: GeneratePanelProps) {
   return (
     <div data-testid="generate-panel">
@@ -112,6 +115,17 @@ export function GeneratePanel({
       >
         {busy ? "⏳ GENERATING…" : "🎲 GENERATE"}
       </JRPGButton>
+
+      {hint && (
+        <p
+          className="jrpg-text-small"
+          data-testid="generate-hint"
+          role="status"
+          style={{ marginTop: "6px", color: "var(--jrpg-gold)", fontSize: "8px" }}
+        >
+          {hint}
+        </p>
+      )}
 
       {/* Say it out loud rather than let a DM wonder where the option went — or
           worse, assume a generated door might be hidden when none ever is. */}

@@ -313,6 +313,7 @@ export function useMapEditState({
     onGenerate: generate.onGenerate,
     canGenerate: generate.canGenerate,
     generateRegion: generate.region,
+    generateHint: generate.hint,
     saving: controller.saving,
     layers: activeDocument?.layers ?? [],
     selectedElement,
