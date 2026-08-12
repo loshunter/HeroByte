@@ -73,6 +73,16 @@ vi.mock("../../features/map/components", () => ({
       data-remote-count={props.remoteMeasurements?.length ?? -1}
     />
   ),
+  // Same idea for the fog wiring: MapBoard's fogViewers call is the ONE place
+  // the client resolves the table default, and the slice review flagged it as
+  // untested. The required 5th parameter makes DROPPING the argument a compile
+  // error; this surfaces the VALUE, so passing undefined has somewhere to fail.
+  FogLayer: (props: { viewers: { radiusFeet?: number }[] }) => (
+    <div
+      data-testid="fog-layer"
+      data-viewer-radii={props.viewers.map((viewer) => viewer.radiusFeet ?? "unlimited").join("|")}
+    />
+  ),
   TransformGizmo: () => <div data-testid="transform-gizmo" />,
   PropsLayer: () => <div data-testid="props-layer" />,
   StagingZoneLayer: () => <div data-testid="staging-zone-layer" />,
@@ -487,6 +497,56 @@ describe("MapBoard", () => {
       render(<MapBoard {...props} />);
 
       expect(screen.getByTestId("measure-layer")).toHaveAttribute("data-remote-count", "1");
+    });
+  });
+
+  // The review's last surviving finding: nothing exercised the fogViewers call
+  // site itself, and `undefined` in its 5th slot compiles while quietly
+  // splitting client fog from server filtering.
+  describe("fog wiring", () => {
+    const fogSnapshot = (defaultVisionRadius?: number): RoomSnapshot => ({
+      users: [],
+      gridSize: 50,
+      gridSquareSize: 5,
+      players: [],
+      characters: [],
+      // Owned by the default props' uid, with NO radius of its own — the exact
+      // shape the table default exists for.
+      tokens: [{ id: "mine", owner: "test-user", x: 1, y: 1, color: "red" }],
+      drawings: [],
+      diceRolls: [],
+      pointers: [],
+      sceneObjects: [],
+      props: [],
+      fogEnabled: true,
+      compiledScene: {
+        schemaVersion: 1,
+        sourceDocumentId: "map",
+        sourceRevision: 1,
+        compiledAt: 1,
+        width: 400,
+        height: 400,
+        walls: [],
+        doors: [],
+        lights: [],
+      },
+      ...(defaultVisionRadius !== undefined ? { defaultVisionRadius } : {}),
+    });
+
+    it("hands FogLayer a viewer resolved through the snapshot's table default", () => {
+      const props = getDefaultProps({ snapshot: fogSnapshot(30) });
+      render(<MapBoard {...props} />);
+
+      expect(screen.getByTestId("fog-layer")).toHaveAttribute("data-viewer-radii", "30");
+    });
+
+    // NON-VACUITY: the same render with no default stays unlimited, so the
+    // test above cannot be satisfied by a hardcoded radius.
+    it("leaves the viewer unlimited when the snapshot carries no default", () => {
+      const props = getDefaultProps({ snapshot: fogSnapshot() });
+      render(<MapBoard {...props} />);
+
+      expect(screen.getByTestId("fog-layer")).toHaveAttribute("data-viewer-radii", "unlimited");
     });
   });
 });

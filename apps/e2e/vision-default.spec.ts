@@ -179,12 +179,26 @@ test.describe("Table default sight radius", () => {
         () => (window.__HERO_BYTE_E2E__?.snapshot?.tokens ?? []).length === 2,
       );
     } finally {
-      // Leave the shared table as it was found — the default persists.
+      // Leave the shared table as it was found. The default PERSISTS to disk,
+      // workers:1 means every later spec inherits whatever this leaves behind,
+      // and a send raced against context.close() can be dropped — so CONFIRM
+      // the reset landed (bounded) before closing, and only then swallow
+      // failures so cleanup never masks the real assertion.
       await page
         .evaluate(() => {
           window.__HERO_BYTE_E2E__?.sendMessage?.({ t: "set-default-vision-radius", radius: null });
           window.__HERO_BYTE_E2E__?.sendMessage?.({ t: "set-fog-enabled", enabled: false });
         })
+        .then(() =>
+          page.waitForFunction(
+            () => {
+              const snap = window.__HERO_BYTE_E2E__?.snapshot;
+              return snap?.defaultVisionRadius === undefined && !snap?.fogEnabled;
+            },
+            undefined,
+            { timeout: 5_000 },
+          ),
+        )
         .catch(() => {});
       await playerContext.close();
       await dmContext.close();
