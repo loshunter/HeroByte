@@ -810,7 +810,13 @@ export default function MapBoard({
             cam={cam}
             compiledScene={snapshot.compiledScene}
             mapTransform={mapObject?.transform}
-            viewers={fogViewers(snapshot.tokens ?? [], uid, isDM && playerLens, grid.size)}
+            viewers={fogViewers(
+              snapshot.tokens ?? [],
+              uid,
+              isDM && playerLens,
+              grid.size,
+              snapshot.defaultVisionRadius,
+            )}
             gridSize={grid.size}
             gridSquareSize={snapshot?.gridSquareSize ?? 5}
             exploredStorageKey={exploredStorageKey}
