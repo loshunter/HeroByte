@@ -271,6 +271,57 @@ describe("per-token vision radius", () => {
 // polygon reads that is missing here produces STALE vision: the DM changes a
 // radius, nothing happens, and it reads as "the message never sent". These are
 // the first direct tests this function has ever had.
+// Grid 50 px/square at 5 ft/square, so R feet is R*10 world px. The viewer
+// sits at (75,175); (150,175) is 75 px away and (180,175) is 105 px away.
+describe("the table default vision radius", () => {
+  it("clips a token that carries no radius of its own", () => {
+    const state = stateWithFog();
+    state.defaultVisionRadius = 10; // 100 world px
+
+    const context = createVisionContext(state, "player-1")!;
+    expect(isWorldPointVisible(context, { x: 150, y: 175 })).toBe(true);
+    expect(isWorldPointVisible(context, { x: 180, y: 175 })).toBe(false);
+  });
+
+  it("lets a token's own radius beat the table default, in both directions", () => {
+    const wide = stateWithFog();
+    wide.defaultVisionRadius = 10;
+    wide.tokens[0]!.visionRadius = 30; // 300 px, well past the default
+    expect(isWorldPointVisible(createVisionContext(wide, "player-1")!, { x: 180, y: 175 })).toBe(
+      true,
+    );
+
+    const narrow = stateWithFog();
+    narrow.defaultVisionRadius = 120;
+    narrow.tokens[0]!.visionRadius = 5; // 50 px, well inside the default
+    expect(isWorldPointVisible(createVisionContext(narrow, "player-1")!, { x: 150, y: 175 })).toBe(
+      false,
+    );
+  });
+
+  // The ??-not-|| case at the layer that matters: a DM who blinded one token
+  // must not have a generous table default hand its sight back.
+  it("lets an explicit 0 beat a generous default", () => {
+    const state = stateWithFog();
+    state.defaultVisionRadius = 120;
+    state.tokens[0]!.visionRadius = 0;
+
+    const context = createVisionContext(state, "player-1")!;
+    expect(isWorldPointVisible(context, { x: 76, y: 175 })).toBe(false);
+    expect(isWorldPointVisible(context, { x: 150, y: 175 })).toBe(false);
+  });
+
+  it("blinds a token with no radius of its own when the table default is 0", () => {
+    const state = stateWithFog();
+    state.defaultVisionRadius = 0;
+
+    const context = createVisionContext(state, "player-1")!;
+    expect(isWorldPointVisible(context, { x: 76, y: 175 })).toBe(false);
+    // Outside the fogged rect is still not hidden — staging zones live there.
+    expect(isWorldPointVisible(context, { x: -50, y: 200 })).toBe(true);
+  });
+});
+
 describe("visionSignature", () => {
   it("changes when the recipient's own token gains a radius", () => {
     const before = stateWithFog();
@@ -296,6 +347,37 @@ describe("visionSignature", () => {
     delete state.tokens[0]!.visionRadius;
 
     expect(visionSignature(state, "player-1")).not.toBe(limited);
+  });
+
+  // THE landmine. Without the default in the key the router serves a stale
+  // filter, so a DM setting it changes nothing for any player until some
+  // token happens to move — presenting as "the message never sent".
+  it("changes when only the table default changes, with no token touched", () => {
+    const state = stateWithFog();
+    const before = visionSignature(state, "player-1");
+    state.defaultVisionRadius = 60;
+
+    expect(visionSignature(state, "player-1")).not.toBe(before);
+  });
+
+  it("changes when the table default is cleared", () => {
+    const state = stateWithFog();
+    state.defaultVisionRadius = 60;
+    const limited = visionSignature(state, "player-1");
+    state.defaultVisionRadius = null;
+
+    expect(visionSignature(state, "player-1")).not.toBe(limited);
+  });
+
+  // 0 is a real default, and an empty-string spelling of "none" must not
+  // collide with it.
+  it("tells a blind table apart from no default at all", () => {
+    const blind = stateWithFog();
+    blind.defaultVisionRadius = 0;
+
+    expect(visionSignature(blind, "player-1")).not.toBe(
+      visionSignature(stateWithFog(), "player-1"),
+    );
   });
 
   it("changes when feet-per-square changes, because the radius is in feet", () => {

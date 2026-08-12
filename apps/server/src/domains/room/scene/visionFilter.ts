@@ -10,6 +10,7 @@
 
 import {
   computeViewerVisionPolygon,
+  effectiveVisionRadiusFeet,
   getVisionBlockingSegments,
   gridCellToWorldPoint,
   inverseTransformScenePoint,
@@ -53,7 +54,7 @@ export function createVisionContext(state: RoomState, recipientUid: string): Vis
     .map((token) =>
       computeViewerVisionPolygon({
         origin: gridCellToWorldPoint(state.gridSize, { x: token.x, y: token.y }),
-        radiusFeet: token.visionRadius,
+        radiusFeet: effectiveVisionRadiusFeet(token.visionRadius, state.defaultVisionRadius),
         segments,
         bounds,
         gridSize: state.gridSize,
@@ -93,10 +94,13 @@ export function getHiddenNpcTokenIds(state: RoomState): Set<string> {
  * map transform.
  *
  * Every input the polygon reads must appear here or the router serves a stale
- * one. S7 added the last two: `visionRadius` because setting one otherwise
- * does nothing until the token also moves (presenting as "the message never
- * sent"), and `gridSquareSize` because the radius is in FEET and a table can
- * change feet-per-square live, with no republish.
+ * one. S7 added two: `visionRadius` because setting one otherwise does nothing
+ * until the token also moves (presenting as "the message never sent"), and
+ * `gridSquareSize` because the radius is in FEET and a table can change
+ * feet-per-square live, with no republish. The room default is here for the
+ * first of those reasons and more sharply: it is resolved at READ time for
+ * every token that has no radius of its own, so a DM setting it changes what
+ * every such player may see while nothing about any token has changed.
  */
 export function visionSignature(state: RoomState, recipientUid: string): string {
   const scene = state.compiledScene;
@@ -117,6 +121,7 @@ export function visionSignature(state: RoomState, recipientUid: string): string 
     state.gridSquareSize,
     doors,
     ownTokens,
+    state.defaultVisionRadius ?? "",
     transformKey,
   ].join("|");
 }
