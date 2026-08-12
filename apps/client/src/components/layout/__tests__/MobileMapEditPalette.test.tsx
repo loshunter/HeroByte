@@ -17,6 +17,11 @@ import { render, screen, fireEvent, cleanup, within } from "@testing-library/rea
 import { MobileFloatingControls } from "../MobileFloatingControls";
 import type { MobileSurface } from "../../../hooks/useMobileSurface";
 import type { MapEditToolbarProps } from "../../../features/map-edit/mapEditTypes";
+import { isDragTool } from "../../../features/map-edit/mapEditToolKinds";
+import {
+  DRAG_TOOL_COUNT,
+  MOBILE_TOOL_TILES,
+} from "../../../features/map-edit/mobile/mobileToolTiles";
 
 afterEach(() => cleanup());
 
@@ -235,6 +240,35 @@ describe("the map-edit palette", () => {
     it("surfaces a controller error where the DM is looking", () => {
       render(<MobileFloatingControls {...live({ error: "revision conflict" })} />);
       expect(screen.getByRole("alert")).toHaveTextContent("revision conflict");
+    });
+
+    // The grid is DERIVED from DRAG_TOOLS rather than hand-listed. These two
+    // are what make that derivation honest instead of decorative: one proves
+    // every armed tool is reachable, the other proves nothing else got in.
+    it("reaches every tool the touch path arms — one tile each, wired to its own id", () => {
+      const bar = toolbar({ isLive: true });
+      render(<MobileFloatingControls {...props({ surface: "tools", mapEditToolbarProps: bar })} />);
+
+      const grid = screen.getByRole("dialog", { name: /map tools/i });
+      for (const tile of MOBILE_TOOL_TILES) {
+        fireEvent.click(within(grid).getByRole("button", { name: new RegExp(`^${tile.label}$`) }));
+        expect(bar.onSelectSubTool).toHaveBeenCalledWith(tile.id);
+      }
+      // A tile list that silently lost one would still pass the loop above.
+      expect(MOBILE_TOOL_TILES).toHaveLength(DRAG_TOOL_COUNT);
+    });
+
+    it("offers NOTHING the touch path refuses to arm", () => {
+      render(<MobileFloatingControls {...live()} />);
+      const grid = screen.getByRole("dialog", { name: /map tools/i });
+
+      // A tap generates compat mouse events where a drag does not, so a click
+      // tool on the phone would drop two stamps per tap. These must not appear
+      // until that design pass lands (M6/M7).
+      for (const absent of [/Place/, /Scatter/, /Light/, /Paint/, /Erase/, /Select/]) {
+        expect(within(grid).queryByRole("button", { name: absent })).toBeNull();
+      }
+      expect(MOBILE_TOOL_TILES.every((tile) => isDragTool(tile.id))).toBe(true);
     });
   });
 });

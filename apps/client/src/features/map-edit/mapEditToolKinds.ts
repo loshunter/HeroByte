@@ -5,21 +5,25 @@
 import type { MapGridSettings } from "@herobyte/shared";
 import type { MapEditSubTool } from "./mapEditTypes";
 
-const DRAG_TOOLS: MapEditSubTool[] = [
-  "wall",
-  "door",
-  "room",
-  "hallway",
-  "generate",
-  "row",
-  "spline",
-];
+/**
+ * Exported and `as const` so the mobile tool grid can be DERIVED from it rather
+ * than hand-listed beside it. The phone arms exactly this set (MapBoard's
+ * mapEditDragMode is `isDragTool(activeSubTool)`), so a second hand-kept list
+ * would be a way for the two to disagree — the trap mapEditFamilies.ts records
+ * killing for swatches. A new drag tool now has to be given a phone tile before
+ * it compiles.
+ */
+export const DRAG_TOOLS = ["wall", "door", "room", "hallway", "generate", "row", "spline"] as const;
+
+/** A sub-tool that drives the drag machine — the set touch is armed for. */
+export type DragTool = (typeof DRAG_TOOLS)[number];
+
 const BRUSH_TOOLS: MapEditSubTool[] = ["terrain", "erase"];
 const CLICK_TOOLS: MapEditSubTool[] = ["place", "scatter", "light"];
 
 /** Wall, door, room, hallway, and generate all drive the same drag machine. */
-export function isDragTool(subTool: MapEditSubTool): boolean {
-  return DRAG_TOOLS.includes(subTool);
+export function isDragTool(subTool: MapEditSubTool): subTool is DragTool {
+  return (DRAG_TOOLS as readonly MapEditSubTool[]).includes(subTool);
 }
 
 /** Terrain + erase are pointer-STREAM brushes (paint cells while down). */

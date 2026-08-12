@@ -17,7 +17,9 @@
 // green typecheck.
 
 import React from "react";
+import type { DragTool } from "../mapEditToolKinds";
 import type { MapEditToolbarProps } from "../mapEditTypes";
+import { MOBILE_TOOL_TILES } from "./mobileToolTiles";
 
 interface MobileMapEditSheetProps {
   toolbar: MapEditToolbarProps;
@@ -35,7 +37,7 @@ export const MobileMapEditSheet: React.FC<MobileMapEditSheetProps> = ({
   // THE trap this mode carries: the controller no-ops SILENTLY without an
   // active live document, so a tool that looks armed does nothing and says
   // nothing. Every tool stays disabled until the palette can say ● LIVE.
-  const selectSubTool = (tool: "room" | "wall") => {
+  const selectSubTool = (tool: DragTool) => {
     onSelectSubTool(tool);
     onToggleTools();
   };
@@ -83,22 +85,17 @@ export const MobileMapEditSheet: React.FC<MobileMapEditSheetProps> = ({
         </>
       ) : (
         <div className="mobile-tool-sheet__grid">
-          <button
-            type="button"
-            className={subToolClass("room")}
-            onClick={() => selectSubTool("room")}
-          >
-            <span aria-hidden="true">🏠</span>
-            Room
-          </button>
-          <button
-            type="button"
-            className={subToolClass("wall")}
-            onClick={() => selectSubTool("wall")}
-          >
-            <span aria-hidden="true">▬</span>
-            Wall
-          </button>
+          {MOBILE_TOOL_TILES.map((tile) => (
+            <button
+              key={tile.id}
+              type="button"
+              className={subToolClass(tile.id)}
+              onClick={() => selectSubTool(tile.id)}
+            >
+              <span aria-hidden="true">{tile.icon}</span>
+              {tile.label}
+            </button>
+          ))}
           <button type="button" className="mobile-tool-sheet__button" onClick={recenter}>
             <span aria-hidden="true">◇</span>
             Recenter

@@ -142,7 +142,14 @@ test.describe("the mobile map-edit mode", () => {
         { timeout: 30_000 },
       );
       // Room and Wall only exist once the controller is on the bound document.
-      const roomTool = page.getByRole("button", { name: /Room/ });
+      // Scoped to the tool GRID, not the page: M5 adds sub-panels below it whose
+      // swatch labels are terrain family names, and the Room panel's "Wall ring:"
+      // options are one badly-named family away from matching /Wall/ too (desktop
+      // derives those labels by stripping a " Wall" suffix, so a family that does
+      // not end in it keeps the word). An unscoped match becomes a strict-mode
+      // violation the moment that happens, and the failure reads as a UI bug.
+      const toolGrid = page.locator(".mobile-tool-sheet__grid");
+      const roomTool = toolGrid.getByRole("button", { name: /Room/ });
       await expect(roomTool).toBeVisible({ timeout: 30_000 });
 
       const box = (await page.getByTestId("map-board").locator("canvas").first().boundingBox())!;
@@ -173,7 +180,7 @@ test.describe("the mobile map-edit mode", () => {
       // smoke spec takes for the same reason.
       await page.waitForTimeout(800);
       await dock.getByRole("button", { name: /Tool/ }).click();
-      await page.getByRole("button", { name: /Wall/ }).click();
+      await toolGrid.getByRole("button", { name: /Wall/ }).click();
       await touchDrag(cdp, at(0.3, 0.75), [at(0.7, 0.75)]);
       await expect.poll(() => wallCount(page), { timeout: 30_000 }).toBeGreaterThan(afterRoom);
 
