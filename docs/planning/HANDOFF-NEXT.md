@@ -513,6 +513,25 @@ trials: the index won 7 times (~12%), throwing inside `atob()` every one of thos
 `5f93db94`. The general shape — a prefix that matches more keys than you meant, ordered by
 something you assumed — is worth checking wherever a test picks a key out of storage.
 
+**A client build running DURING the e2e fails almost every test, and it looks exactly like a
+systemic regression.** Playwright's webServer serves the client; a concurrent `pnpm build`
+rewrites the `dist/` underneath it, and from then on every test dies at the ~30.5s default
+timeout across totally unrelated features (dice, voice, reconnect), then at 0ms once the run
+gives up. On 2026-08-11 this happened twice and cost over an hour. **The cause was asking the
+`gates-runner` agent for a "client bundle gzip size" alongside `e2e`** — that figure is not part
+of the ladder, so the agent satisfies it with an extra build and has twice overlapped the two.
+The proof is in the log timestamps (`.tmp/gates-*/`): `11-client-bundle.log` written 18:49 while
+`10-e2e.log` ran 18:48→19:48; the runs that PASSED had the build as an earlier numbered step than
+e2e. **Ask for e2e or a bundle figure, never both in one prompt.** Two corollaries: a mass e2e
+failure across unrelated features is a HARNESS fault until proven otherwise (re-run one named
+failing spec alone — if it passes in seconds, the suite result was environmental), and a collapse
+can orphan `node` on 5175/8788, so check those ports before re-running.
+
+**Correction to `7fb0bc7e`'s commit message:** it blames the first of these collapses on resuming
+a gate agent whose e2e was still in flight. That was wrong — it was the concurrent build above.
+Resuming a mid-e2e agent is still a bad idea (it starts a second run against the same ports), but
+it was not the cause.
+
 **You cannot push `.github/workflows/*`.** Git here uses Git Credential Manager over HTTPS, and the
 stored token is an OAuth-app token issued WITHOUT the `workflow` scope. GitHub then refuses the
 whole ref update — not just that file — with `refusing to allow an OAuth App to create or update
