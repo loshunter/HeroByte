@@ -1473,11 +1473,24 @@ h4 {
 
 /* The generate seed and its reroll: the value reads as a value, not a button,
    because the same seed rebuilds the same dungeon and the DM may want to copy
-   it. Only the ⟳ is pressable, and it keeps the inherited 44px floor. */
+   it. Only the ⟳ is pressable.
+
+   It has to RESTORE its width floor rather than inherit one. The shared rule
+   above sets min-width: 44px, but `.mobile-tool-sheet__button` re-declares
+   `min-width: 0` at equal specificity and later in this file, so the inherited
+   floor is height-only. Every other sheet button gets its width back from the
+   grid's `minmax(0, 1fr)` track or from `--wide`; this seed row is the first
+   flex row in the sheet and its button is content-sized, which measured 31px
+   against a 44px standard. An earlier version of this comment claimed the
+   floor was inherited here. It was not. */
 .mobile-tool-sheet__seed {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.mobile-tool-sheet__seed .mobile-tool-sheet__button {
+  min-width: 44px;
 }
 
 .mobile-tool-sheet__seed span {
@@ -1866,6 +1879,20 @@ h4 {
   color: var(--jrpg-text, #f8f5ee);
   font-family: var(--font-body);
   font-size: 13px;
+}
+
+/* Both fallbacks are bottom-right fixed boxes and BOTH can be mounted at once:
+   one deploy invalidates every hashed chunk, so a DM who elevates and then arms
+   map-edit gets the DM-menu box and then the palette box. MainLayout renders
+   FloatingPanelsLayout after TopPanelLayout, so at equal z-index the DM-menu
+   box painted over the map-edit one — hiding "Leave map editing", which is the
+   entire reason that fallback differs from its twin.
+
+   The map-edit box wins instead of being offset, because it is a superset: it
+   offers the same reload AND the exit. Offsetting would depend on the other
+   box's height, which varies with its text. */
+.map-edit-load-failure {
+  z-index: 1003;
 }
 
 /* Inside a Screen it is ordinary content, not floating chrome. */

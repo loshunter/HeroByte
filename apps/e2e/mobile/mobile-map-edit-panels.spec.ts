@@ -115,33 +115,43 @@ test.describe("the map-edit sheet at its tallest", () => {
       page.locator(".mobile-tool-sheet__label").filter({ hasText: /^Floor$/ }),
     ).toBeVisible();
 
-    for (const size of [
-      { width: 375, height: 812 },
-      { width: 812, height: 375 },
-    ]) {
-      await page.setViewportSize(size);
-      // Give the layout a frame to settle before measuring.
-      await page.waitForTimeout(300);
+    // Both dial-heavy panels, not just Room. Arming only Room left the Generate
+    // panel's seed row out of the measured DOM entirely, and that row holds the
+    // one control in the sheet that is NOT sized by the grid — a content-sized
+    // ⟳ that measured 31px wide while this spec reported the floor clean.
+    for (const tool of [/^Room$/, /^Gen$/]) {
+      await toolGrid.getByRole("button", { name: tool }).click();
 
-      const fit = await measure(page);
-      const where = `${size.width}x${size.height}`;
+      for (const size of [
+        { width: 375, height: 812 },
+        { width: 812, height: 375 },
+      ]) {
+        await page.setViewportSize(size);
+        // Give the layout a frame to settle before measuring.
+        await page.waitForTimeout(300);
 
-      expect(fit.sheet.top, `${where}: sheet starts above the viewport`).toBeGreaterThanOrEqual(0);
-      expect(fit.sheet.bottom, `${where}: sheet runs past the viewport`).toBeLessThanOrEqual(
-        fit.viewport.h,
-      );
-      // After scrolling to the very bottom — this is the S8 bug, exactly.
-      expect(
-        fit.closeAfterScroll.top,
-        `${where}: close scrolled off the top`,
-      ).toBeGreaterThanOrEqual(0);
-      expect(
-        fit.closeAfterScroll.bottom,
-        `${where}: close scrolled off the bottom`,
-      ).toBeLessThanOrEqual(fit.viewport.h);
-      expect(fit.tooSmall, `${where}: controls under the 44px touch floor`).toEqual([]);
-      expect(fit.clipped, `${where}: clipped labels`).toEqual([]);
-      expect(fit.bodyScrollsSideways, `${where}: the page scrolls sideways`).toBe(false);
+        const fit = await measure(page);
+        const where = `${tool.source} @ ${size.width}x${size.height}`;
+
+        expect(fit.sheet.top, `${where}: sheet starts above the viewport`).toBeGreaterThanOrEqual(
+          0,
+        );
+        expect(fit.sheet.bottom, `${where}: sheet runs past the viewport`).toBeLessThanOrEqual(
+          fit.viewport.h,
+        );
+        // After scrolling to the very bottom — this is the S8 bug, exactly.
+        expect(
+          fit.closeAfterScroll.top,
+          `${where}: close scrolled off the top`,
+        ).toBeGreaterThanOrEqual(0);
+        expect(
+          fit.closeAfterScroll.bottom,
+          `${where}: close scrolled off the bottom`,
+        ).toBeLessThanOrEqual(fit.viewport.h);
+        expect(fit.tooSmall, `${where}: controls under the 44px touch floor`).toEqual([]);
+        expect(fit.clipped, `${where}: clipped labels`).toEqual([]);
+        expect(fit.bodyScrollsSideways, `${where}: the page scrolls sideways`).toBe(false);
+      }
     }
   });
 });
