@@ -160,4 +160,25 @@ describe("usePopulate", () => {
     act(() => result.current.onRegionPlaced({ x: 0, y: 0, width: 500, height: 500 }));
     expect(result.current.previewGhosts).toBeNull();
   });
+
+  // The stale-region test above pins onPopulate's RECOVERY, which only runs
+  // once the DM presses. This pins the state BEFORE the press: the ghosts
+  // already vanish there, and the button must not stay lit beside them.
+  it("stops looking armed over a stale region, not just stops ghosting", () => {
+    const region = { x: 0, y: 0, width: 500, height: 500 };
+
+    const live = renderHook(() => usePopulate(makeController()));
+    act(() => live.result.current.onRegionPlaced(region));
+    expect(live.result.current.canPopulate).toBe(true);
+
+    const stale = renderHook(() =>
+      usePopulate(makeController({ activeDocument: makeDocument(false) })),
+    );
+    act(() => stale.result.current.onRegionPlaced(region));
+
+    // Both halves are needed: a canPopulate hard-coded false passes the second
+    // assertion alone, and the first is what catches it.
+    expect(stale.result.current.previewGhosts).toBeNull();
+    expect(stale.result.current.canPopulate).toBe(false);
+  });
 });
