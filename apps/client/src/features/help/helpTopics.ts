@@ -210,7 +210,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "Sight radius",
         detail:
-          "Your token may have a limit in feet — a torch, darkvision, a blindfold — and beyond it you see nothing even down an open corridor. Only the DM can set it, because a limit can only ever narrow what you see.",
+          "Your token may have a limit in feet — a torch, darkvision, a blindfold — and beyond it you see nothing even down an open corridor. Only the DM can set it, because a limit can only ever narrow what you see. The DM can also darken the whole table at once, which applies to every token that has no limit of its own.",
       },
       {
         term: "Explored ground",
