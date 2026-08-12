@@ -297,7 +297,18 @@ below. **Nothing here is queued** — this is a genuine fork, not a backlog.
 What is still open from the review is §11, the completeness critic's list of things NOBODY looked
 at. None of it is a known defect; it is unexamined ground.
 
-### B. A room-level default vision radius (~2 days) — **CHOSEN 2026-08-11, PLANNED**
+### B. A room-level default vision radius — **SHIPPED to `dev` 2026-08-11, NOT deployed**
+
+Nine commits, `120103f8..df6e1103`, CI green (#777), adversarially reviewed. `main` has
+NOT moved, so this is not in production. The plan doc
+([room-vision-default-plan.md](./room-vision-default-plan.md)) now opens with a SHIPPED
+block listing the three things it got wrong and the two follow-ups it left. **Read that
+block before touching vision, fog, or `RoomState`** — in particular, the snapshot-payload
+contract test does NOT guard the `visionSignature` cache; the pointer-relay test does.
+
+The original framing follows, for context.
+
+### B (original). A room-level default vision radius (~2 days)
 
 The owner picked this slice on 2026-08-11 and the full implementation plan — verified paths,
 design decisions, six-commit build order, fixture ripple, traps — is

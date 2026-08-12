@@ -1,5 +1,38 @@
 # Room-level default vision radius — slice plan
 
+> **SHIPPED to `dev` 2026-08-11 — nine commits, `120103f8..df6e1103`, CI green (#777).
+> NOT merged to `main`, so not deployed.** Baselines moved: shared 414→424, server
+> 2080→2108, client 5233→5247, e2e 128→129. Six build commits, then three from the
+> adversarial review (19 agents, `agents_error: 0`; 6 raw findings, 3 survived).
+>
+> **Three things below turned out to be WRONG. Sabotage caught each; reading did not.**
+>
+> 1. **§3 commit 1 cannot ship the `ClientMessage` union member without its validator.**
+>    `messageValidators` is a mapped type over `ClientMessageType`, so the member alone is
+>    a compile error. It moved into commit 2 alongside the validator.
+> 2. **§5 trap 1 names the wrong guard.** The snapshot-payload contract test does not go
+>    red when `visionSignature` loses the default, and structurally cannot:
+>    `recipientFilter` rebuilds vision on every broadcast and never consults the cache.
+>    The cache serves the per-recipient RELAY path (`pointer-preview` through
+>    `getVisionContextFor`) — which is where S7 put its own staleness tests, and where the
+>    real guard now lives.
+> 3. **§2 item 8's "reuse `VisionRadiusField` as-is" shipped a lie.** This slice changed
+>    what an empty per-token radius MEANS — from "unlimited" to "inherits the table
+>    default" — and the per-token control went on lighting **Unlimited** with the tooltip
+>    "Sight is stopped only by walls" while the server clipped that token. Fixed in
+>    `8d955b45` by an `inheritsTableDefault` flag on the per-token surface only.
+>
+> **Two parameters were made REQUIRED against the plan, deliberately:** `fogViewers`' new
+> argument and the `DMMenu` forwarding pin. An optional one can be deleted with ZERO
+> typecheck errors and every suite green — the M4b defect shape, reproduced twice here.
+>
+> **Follow-ups, none of them defects:** the per-token card says "Table Default" but not the
+> inherited NUMBER (needs a new field through `MainLayoutProps` → `EntitiesPanel` →
+> `PlayerCard` → `MobilePlayerRow`, plus four layout fixtures); `img/dm-menu-map-setup.jpg`
+> predates the new panel and was deliberately not re-recorded; DM-menu controls on mobile
+> are sub-44px exactly like every neighbour on that tab, which is the panel-wide pass the
+> handoff already identified for the chat SEND button.
+
 Owner chose this slice on 2026-08-11, over M5 of the mobile authoring arc. Every path and line
 number below was verified against `dev` = `5b79f1aa` on 2026-08-11 by reading the files, not from
 memory. Where something is a judgement call rather than a fact, it says so. Read
