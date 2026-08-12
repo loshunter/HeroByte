@@ -231,6 +231,31 @@ describe("vision-filtered channel contracts", () => {
       expect(framesOf(watcherWs, "snapshot")).toHaveLength(0);
     });
 
+    // The table default reaches this channel too: it resolves inside
+    // createVisionContext, which sawBefore/seesNow both consult. 7 ft is 70 px
+    // at 50 px per 5 ft square; the watcher stands at px 75 and cell (3,3) is
+    // px 175, so 100 px away — past the default, but on the watcher's own side
+    // of the wall in plain sight, which the control test below proves.
+    it("keeps a token the table default hides out of the watcher delta channel", () => {
+      roomService.setState({ defaultVisionRadius: 7 });
+
+      route({ t: "move", id: "t-mover", x: 3, y: 3 }, DM);
+
+      expect(framesOf(watcherWs, "token-updated")).toHaveLength(0);
+      const snapshots = framesOf(watcherWs, "snapshot") as { tokens: { id: string }[] }[];
+      const ids = snapshots.flatMap((snapshot) => snapshot.tokens.map((token) => token.id));
+      expect(ids).not.toContain("t-mover");
+    });
+
+    // NON-VACUITY for the test above: the same square, no default.
+    it("reveals that same square when no table default is set", () => {
+      route({ t: "move", id: "t-mover", x: 3, y: 3 }, DM);
+
+      const snapshots = framesOf(watcherWs, "snapshot") as { tokens: { id: string }[] }[];
+      const ids = snapshots.flatMap((snapshot) => snapshot.tokens.map((token) => token.id));
+      expect(ids).toContain("t-mover");
+    });
+
     it("broadcasts unfiltered when fog is disabled", () => {
       roomService.setState({ fogEnabled: false });
 
@@ -285,6 +310,25 @@ describe("vision-filtered channel contracts", () => {
     it("always shows owners their own token being dragged by the DM", () => {
       // The DM drags the watcher's token deep into fog the watcher cannot see.
       route({ t: "drag-preview", objects: [{ id: "token:t-watch", x: 6, y: 5 }] }, DM);
+
+      expect(framesOf(watcherWs, "drag-preview")).toHaveLength(1);
+    });
+
+    // A DM dragging a token across open ground now vanishes mid-drag for any
+    // player whose token carries no radius of its own. That is the table
+    // default doing its job, but nothing asserted it until here.
+    it("strips a drag the table default puts out of range", () => {
+      roomService.setState({ defaultVisionRadius: 7 });
+
+      route({ t: "drag-preview", objects: [{ id: "token:t-mover", x: 3, y: 3 }] }, MOVER);
+
+      expect(framesOf(watcherWs, "drag-preview")).toHaveLength(0);
+      // The DM is never filtered, so the router really did run in this window.
+      expect(framesOf(dmWs, "drag-preview")).toHaveLength(1);
+    });
+
+    it("delivers that same drag when no table default is set", () => {
+      route({ t: "drag-preview", objects: [{ id: "token:t-mover", x: 3, y: 3 }] }, MOVER);
 
       expect(framesOf(watcherWs, "drag-preview")).toHaveLength(1);
     });
