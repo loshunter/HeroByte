@@ -12,7 +12,7 @@
 // map-studio-error whose commandId it did not mint). `controller.saving` is the
 // pending state; `controller.error` is the toast, exactly like every other tool.
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { MapGridSettings } from "@herobyte/shared";
 import type { MapStudioController } from "../map-studio/types";
 import type { RoomBounds } from "./roomBuilder";
@@ -35,6 +35,8 @@ const MIN_REGION_SIDE = 20;
 /** Mirrors MAX_TERRAIN_PAINT_CELLS — the server refuses more in one command. */
 const MAX_REGION_CELLS = 16384;
 
+const ALREADY_BUILT = "Built here already — reroll the seed or change a dial to build again.";
+
 export interface UseGenerateReturn {
   params: GenerateParams;
   setParams: (params: GenerateParams) => void;
@@ -51,6 +53,7 @@ export interface UseGenerateReturn {
 export function useGenerate(
   controller: MapStudioController,
   isLive: boolean,
+  armed: boolean,
   notifyError?: (message: string) => void,
 ): UseGenerateReturn {
   const [params, setParams] = useState<GenerateParams>({
@@ -59,6 +62,21 @@ export function useGenerate(
     seed: freshSeed(),
   });
   const [bounds, setBounds] = useState<CellBounds | null>(null);
+
+  // The aimed region is spatial, but the only thing that ever showed it was the
+  // rubber band, and that is dropped on release (useMapEditDragPreview.clear).
+  // Nothing else cleared it — setBounds had exactly one caller — so a DM who
+  // aimed, switched to Wall, built for a while and came back found the panel
+  // still reading "Region: 24 × 30 cells", armed for a rectangle that had not
+  // been visible for minutes and might be off-screen entirely. Disarming the
+  // tool is the honest moment to forget it.
+  //
+  // Deliberately NOT cleared on a successful generate: rerolling the seed and
+  // firing again at the same rectangle is a real workflow, and that needs the
+  // bounds to survive. See the note on canGenerate below for the other half.
+  useEffect(() => {
+    if (!armed) setBounds(null);
+  }, [armed]);
 
   const onRegionDragged = useCallback(
     (dragged: RoomBounds) => {
@@ -80,6 +98,21 @@ export function useGenerate(
   // could never fire for a bad region, and the DM got a mute dead button.
   const problem = regionProblem(bounds);
 
+  /**
+   * The recipe is PURE: same seed, same bounds, same dials builds the same
+   * dungeon. So a second press with nothing changed does not rebuild — it
+   * places an identical copy on top, doubling every element, and one undo
+   * removes only the copy. `usePopulate` guards exactly this ("a second click
+   * can't silently stack a byte-identical scatter") and Generate did not.
+   *
+   * Keyed on the whole recipe rather than a fired-once flag, so rerolling the
+   * seed, changing a dial or aiming somewhere new all re-arm it — which is the
+   * reroll-and-try-again workflow the effect above deliberately preserves.
+   */
+  const [lastBuilt, setLastBuilt] = useState<string | null>(null);
+  const recipeKey = bounds ? JSON.stringify([bounds, params]) : null;
+  const alreadyBuilt = recipeKey !== null && recipeKey === lastBuilt;
+
   const onGenerate = useCallback(() => {
     if (!bounds || !isLive || controller.saving) return;
     // Refuse locally with the same rules the server enforces, so a bad drag
@@ -88,13 +121,22 @@ export function useGenerate(
       notifyError?.(problem);
       return;
     }
+    // Guarded HERE as well as in canGenerate, matching how `problem` works. The
+    // disabled button is the only thing stopping this today, and onGenerate is
+    // a bare callback in a props bag — the next surface to wire it (a hotkey,
+    // the quick wheel) would not inherit the UI guard.
+    if (alreadyBuilt) {
+      notifyError?.(ALREADY_BUILT);
+      return;
+    }
     controller.generate({
       recipe: "dungeon",
       seed: params.seed,
       bounds,
       params: { theme: params.theme, density: params.density },
     });
-  }, [bounds, isLive, controller, params, notifyError, problem]);
+    setLastBuilt(recipeKey);
+  }, [bounds, isLive, controller, params, notifyError, problem, recipeKey, alreadyBuilt]);
 
   return {
     params,
@@ -102,8 +144,8 @@ export function useGenerate(
     rerollSeed,
     onRegionDragged,
     onGenerate,
-    canGenerate: Boolean(bounds) && isLive && !controller.saving && !problem,
-    hint: problem,
+    canGenerate: Boolean(bounds) && isLive && !controller.saving && !problem && !alreadyBuilt,
+    hint: problem ?? (alreadyBuilt ? ALREADY_BUILT : null),
     region: bounds ? { cols: bounds.cols, rows: bounds.rows } : null,
   };
 }
