@@ -150,11 +150,15 @@ The dock becomes five slots:
 | Slot                | What it does                                                                                                                                                                            |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **✕ Exit**          | Leaves the mode. The map stays live.                                                                                                                                                    |
-| **⚒ Tool**         | Opens the sheet: **▶ Start live map** before you have one, then **🏠 Room**, **▬ Wall** and **◇ Recenter**. Picking a tool closes the sheet, because you picked it in order to use it. |
+| **⚒ Tool**         | Opens the sheet: **▶ Start live map** before you have one, then the seven tools below, that tool's own dials, and **◇ Recenter**. Picking a tool with no dials closes the sheet, because you picked it in order to use it; a tool that _has_ dials leaves it open so you can set them. |
 | **↶ Undo / ↷ Redo** | The same map-edit history the desktop palette drives. Both stay greyed until the map is live.                                                                                           |
 | **⨯ Abort**         | Abandons the drag in progress.                                                                                                                                                          |
 
-**Room and Wall are the two tools here**, and both are a drag: press, move, lift. The rest of the toolbox (doors, terrain, place, generate) is still desktop-only.
+**Seven tools are here** — **🏠 Room**, **🚇 Hall**, **▬ Wall**, **🚪 Door**, **📏 Row**, **〰️ Spline** and **🏰 Gen** — and every one of them is a drag: press, move, lift. That is not a coincidence: the phone arms the drag tools and only the drag tools.
+
+What is missing is the tap-and-brush half of the toolbox — **Place**, **Scatter**, **Light**, **Paint**, **Erase** and **Select**. A touch tap generates compatibility mouse events that a drag does not, so arming those on a phone would drop two stamps per tap. They are absent by design until that gets its own pass, not by oversight.
+
+> **One trap before you use Row or Spline on a phone.** You can _create_ them there but you cannot _remove_ them there — deleting an element needs **Select**, which is in the missing half above. Until you are next at a desktop, **↶ Undo** is the only way to take one back, and only until you have made other edits on top of it. If you lay down a spline you are unsure about, check it before you carry on.
 
 Two things behave differently from a mouse, and both are worth knowing before your first drag:
 

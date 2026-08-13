@@ -218,4 +218,4 @@ Party and Log open as full screens: close them with the **✕**, or drag their t
 
 ![The mobile party screen](img/mobile-party.jpg)
 
-One finger pans, two fingers pinch-zoom. A few desktop-only extras (CRT, game-feel settings, DM map authoring, player-state files) don't exist on mobile.
+One finger pans, two fingers pinch-zoom. A few desktop-only extras (CRT, game-feel settings, player-state files) don't exist on mobile. DM map authoring _does_ — see [On a phone or tablet](map-editor-guide.md#on-a-phone-or-tablet) in the map editor guide.
