@@ -61,36 +61,66 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
   tokens,
   onTokenVisionRadiusChange,
 }) => {
-  // Merge player and character data
-  const entities = players.map((player) => {
-    // Find associated character if any
-    const character = characters.find((c) => c.ownedByPlayerUID === player.uid);
-    // If character exists, use its stats, otherwise fall back to player stats (legacy)
-    return {
+  // One row per (player, character) PAIR — the desktop model, and the same
+  // flatMap useCombatOrdering builds EntitiesPanel's rows from. This used to be
+  // players.map + characters.find, which resolved every player to whichever
+  // owned character the find hit first: anyone's second character
+  // ("+ Add Character") had NO row on a phone — no HP, no status, no rename,
+  // and S7's sight radius unreachable for exactly the extra tokens a DM most
+  // needs to reach. MobilePlayerRow was already character-keyed throughout
+  // (editing state, HP, name, portrait all go by characterId); the list was
+  // the only place still thinking in players.
+  const entities = players.flatMap((player) => {
+    const owned = characters.filter(
+      // type gate matches useCombatOrdering: an NPC is the DM's to run from
+      // the DM screen, not a party member — and without it a DM who owns NPCs
+      // can have their own row resolve to one.
+      (c) => c.type === "pc" && c.ownedByPlayerUID === player.uid,
+    );
+    if (owned.length === 0) {
+      // A player with no character link (legacy shape) keeps one stats row.
+      return [
+        {
+          ...player,
+          hp: player.hp ?? 100,
+          maxHp: player.maxHp ?? 100,
+          characterId: player.uid,
+          tokenId: undefined as SnapshotCharacter["tokenId"],
+          ownerTokenFallbackOk: true,
+        },
+      ];
+    }
+    return owned.map((character) => ({
+      // The by-owner token fallback is only MEANINGFUL when it cannot be
+      // ambiguous: for the legacy row above, and for a player with exactly one
+      // character whose token predates linking. With two characters it is
+      // guaranteed wrong for at least one of them — measured live: a token-less
+      // second character's row rendered a sight control bound to the FIRST
+      // character's token, which a DM would use believing it was the second's.
+      ownerTokenFallbackOk: owned.length === 1,
       ...player,
-      name: character?.name ?? player.name,
-      hp: character?.hp ?? player.hp ?? 100,
-      maxHp: character?.maxHp ?? player.maxHp ?? 100,
-      tempHp: character?.tempHp ?? player.tempHp,
-      portrait: character?.portrait ?? player.portrait,
-      statusEffects: character?.statusEffects ?? player.statusEffects,
-      characterId: character?.id ?? player.uid, // Use character ID for updates if available
+      name: character.name,
+      hp: character.hp ?? player.hp ?? 100,
+      maxHp: character.maxHp ?? player.maxHp ?? 100,
+      tempHp: character.tempHp ?? player.tempHp,
+      portrait: character.portrait ?? player.portrait,
+      statusEffects: character.statusEffects ?? player.statusEffects,
+      characterId: character.id,
       // The token this ROW is about. Bound through the CHARACTER, as
       // EntitiesPanel does, and not by owner: a player can own several tokens —
       // one from joining, one per "+ Add Character" — so picking by owner shows
       // one character's row while writing to a different character's token.
-      tokenId: character?.tokenId,
-    };
+      tokenId: character.tokenId,
+    }));
   });
 
-  // Sort: Me first, then DM, then others alphabetically
-  entities.sort((a, b) => {
-    if (a.uid === uid) return -1;
-    if (b.uid === uid) return 1;
-    if (a.isDM) return -1;
-    if (b.isDM) return 1;
-    return a.name.localeCompare(b.name);
-  });
+  // Me first, then the DM, then everyone else alphabetically. Rank-based on
+  // purpose: the old comparator answered "a first" whenever a was mine without
+  // looking at b, which is consistent only while a player can never meet their
+  // own second row. Array.sort is stable, so one player's characters keep
+  // their creation order within a rank.
+  const rank = (e: { uid: string; isDM?: boolean }) => (e.uid === uid ? 0 : e.isDM ? 1 : 2);
+  entities.sort((a, b) => rank(a) - rank(b) || (rank(a) === 2 ? a.name.localeCompare(b.name) : 0));
 
   return (
     <div
@@ -101,14 +131,18 @@ export const MobileEntitiesList: React.FC<MobileEntitiesListProps> = ({
       }}
     >
       {entities.map((entity) => {
-        // Prefer the row's own character token; fall back to an owned token
-        // only for a legacy player with no character link.
+        // Prefer the row's own character token; the by-owner fallback is
+        // gated to rows where it cannot pick the wrong character's token.
         const entityToken = entity.tokenId
           ? tokens?.find((candidate) => candidate.id === entity.tokenId)
-          : tokens?.find((candidate) => candidate.owner === entity.uid);
+          : entity.ownerTokenFallbackOk
+            ? tokens?.find((candidate) => candidate.owner === entity.uid)
+            : undefined;
         return (
           <MobilePlayerRow
-            key={entity.uid}
+            // uid alone duplicates the moment a player has two rows; the pair
+            // mirrors useCombatOrdering's `${player.uid}-${character.id}` ids.
+            key={`${entity.uid}-${entity.characterId}`}
             player={entity}
             isMe={entity.uid === uid}
             token={entityToken}
