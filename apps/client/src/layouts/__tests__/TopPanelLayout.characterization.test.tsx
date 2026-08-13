@@ -174,6 +174,7 @@ describe("TopPanelLayout Section - Characterization Tests", () => {
     mapEditSelectedElementId: null,
     mapEditWallsOverlayPinned: false,
     onMapEditRoomRejected: vi.fn(),
+    onMapEditGestureDropped: vi.fn(),
     onMapEditRegionPlaced: vi.fn(),
     onMapEditRegionDragged: vi.fn(),
     onMapEditSelectElement: vi.fn(),

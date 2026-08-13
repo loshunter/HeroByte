@@ -143,6 +143,11 @@ export interface MainLayoutProps {
   mapEditWallsOverlayPinned: boolean;
   /** Called when a room drag is refused (too large / no walls layer) */
   onMapEditRoomRejected: (message: string) => void;
+  /** Called when a finished gesture's commit was SKIPPED because a map command
+   * was in flight. REQUIRED, not optional: an optional forwarding prop can be
+   * dropped with a green typecheck and every suite passing (the generateHint
+   * lesson two fields down), and this one's whole job is breaking a silence. */
+  onMapEditGestureDropped: () => void;
   /** Called when a room/hallway lands — records the POPULATE target */
   onMapEditRegionPlaced: (bounds: RoomBounds) => void;
   onMapEditRegionDragged: (bounds: RoomBounds) => void;

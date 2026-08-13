@@ -16,6 +16,7 @@ Things to know before your first wall:
 
 - **Escape** cancels an in-progress drag; pressing it again (with nothing in progress) leaves map-edit mode. The map _stays_ live — closing the palette never unbinds it, and reopening resumes where you left off.
 - **↶ UNDO / ↷ REDO** at the palette's foot work on map edits (Ctrl+Z / Ctrl+Y while in the mode). Each drag, stroke, or generate is exactly one undo step.
+- Only one edit is sent at a time. If you finish a drag or a click while the previous one is still in flight, that gesture is dropped rather than queued, and you'll get **"Still saving the last change — draw that again."** Draw it again — nothing was half-applied. You'll notice this most on a phone, where the round trip is longest.
 - Tokens don't respond to clicks while you're editing — leave the mode to move them.
 - If the table still has a raster background image, the palette warns you: live terrain and a background photo fight visually. Clear the background (DM Menu → Map Setup) for a clean canvas.
 
