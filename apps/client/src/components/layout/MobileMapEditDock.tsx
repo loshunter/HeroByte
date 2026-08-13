@@ -43,6 +43,25 @@ export const MobileMapEditDock: React.FC<MobileMapEditDockProps> = ({
 
   return (
     <nav className="mobile-action-dock" aria-label="Map edit actions">
+      {/* The in-flight window, on the surface that needs it most: a phone DM
+          authors over a real round trip, and a gesture finished inside one is
+          dropped (useMapEditTool's mouse-up gate). The toast says so after the
+          fact; this is what lets the rhythm be learned instead.
+
+          Absolutely positioned, which is load-bearing rather than cosmetic:
+          the dock is `grid-template-columns: repeat(5, minmax(0, 1fr))`, a
+          sixth IN-FLOW child takes a column and overlaps rather than wraps,
+          and a ::after on a grid container is itself a grid item. Out of flow
+          is what keeps the five slots — and the test that pins them — intact.
+
+          No role="status" and no aria-live, on purpose. There is no
+          visually-hidden utility here, and a live region that fires on every
+          command — a few hundred milliseconds apart while authoring — would
+          narrate a screen reader into uselessness. The event actually worth
+          announcing already speaks: the dropped-gesture toast, which fires
+          only when something was LOST. This is ambient, and reads as ordinary
+          text to anyone browsing the dock. */}
+      {toolbar.saving && <span className="mobile-dock-saving">Saving…</span>}
       <button type="button" className="mobile-dock-button" onClick={toolbar.onClose}>
         <span className="mobile-dock-button__icon" aria-hidden="true">
           ✕

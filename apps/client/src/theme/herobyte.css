@@ -1284,6 +1284,37 @@ h4 {
   pointer-events: auto;
 }
 
+/*
+ * The map-edit dock's "a command is in flight" chip, sitting just above the
+ * dock's top edge.
+ *
+ * position: absolute is the whole trick. The dock is a five-column grid and a
+ * sixth in-flow child takes a column (a ::after would too — generated content
+ * on a grid container is a grid item). Out of flow, it is positioned against
+ * the dock's own padding box and the five slots never know it exists.
+ *
+ * pointer-events: none because it floats over the canvas: the DM must be able
+ * to draw through the spot it occupies.
+ */
+.mobile-dock-saving {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  margin-bottom: 6px;
+  padding: 3px 8px;
+  border: 2px solid var(--hero-gold-light);
+  background: linear-gradient(180deg, #2f2f73 0%, #1c1d4d 100%);
+  box-shadow: 0 3px 0 var(--hero-navy-dark);
+  color: var(--hero-gold-light);
+  font-family: var(--font-pixel);
+  font-size: 0.7rem;
+  line-height: 1.25;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
 .mobile-dock-button,
 .mobile-tool-sheet__button,
 .mobile-tool-sheet__close,

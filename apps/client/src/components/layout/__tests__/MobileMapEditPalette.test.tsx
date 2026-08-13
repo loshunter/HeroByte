@@ -273,6 +273,44 @@ describe("the map-edit palette", () => {
       expect(screen.getByRole("alert")).toHaveTextContent("revision conflict");
     });
 
+    // The phone is where the in-flight window actually bites: a DM here is
+    // authoring over a real round trip, and a gesture finished inside one is
+    // dropped. `saving` is the command-in-flight flag — NOT `busy`, which is
+    // the create/open/bind round trip and which this same palette spent five
+    // milestones mislabelling as "saving…" on the desktop.
+    it("shows the save round trip while a command is in flight", () => {
+      render(<MobileFloatingControls {...live({ saving: true })} />);
+
+      expect(within(dock()).getByText("Saving…")).toBeVisible();
+    });
+
+    it("says nothing when the controller is idle, or merely BINDING", () => {
+      const { unmount } = render(<MobileFloatingControls {...live()} />);
+      expect(within(dock()).queryByText("Saving…")).toBeNull();
+      unmount();
+
+      // The half that matters: wired to the wrong flag this would light up on
+      // every bind and stay dark for every command — the exact desktop bug.
+      render(<MobileFloatingControls {...live({ busy: true, saving: false })} />);
+      expect(within(dock()).queryByText("Saving…")).toBeNull();
+    });
+
+    it("adds no sixth SLOT — the chip is not a control", () => {
+      render(<MobileFloatingControls {...live({ saving: true })} />);
+
+      expect(within(dock()).getAllByRole("button")).toHaveLength(5);
+      expect(within(dock()).getByText("Saving…")).toBeVisible();
+    });
+
+    // Scope, stated rather than implied: that pins the chip as a non-control.
+    // It does NOT prove the chip stays out of the grid's flow — jsdom does no
+    // layout and the theme stylesheet is not loaded here, so losing
+    // `position: absolute` keeps every assertion green while the real dock
+    // breaks. Measured in a browser instead (375x812): five 63px buttons on
+    // one row, dock 68px, chip 98x24 centred above it — and flipping the chip
+    // to position:static put the dock on TWO rows at 120px. Landscape
+    // 812x375, where the slim-dock media query applies, holds at one row/63px.
+
     // The grid is DERIVED from DRAG_TOOLS rather than hand-listed. These two
     // are what make that derivation honest instead of decorative: one proves
     // every armed tool is reachable, the other proves nothing else got in.
