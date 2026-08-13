@@ -90,3 +90,19 @@ vitest.config.ts.timestamp-*
 
 # Opt-in perf benchmark kept locally (PERF_BENCH=1); its own header says never commit
 apps/client/src/features/render/__tests__/zz_perfbench.test.ts
+
+# A Windows absolute path handed to a POSIX redirect does not create directories — the
+# colon and backslashes collapse and the whole path becomes ONE filename in the current
+# directory, which for anything run here is the repo root. A subagent did exactly this
+# (2026-08-13) and the resulting `...AppData...run_final.json` matched format:check's root
+# `*.{js,json,md}` glob, reddening that gate under a filename the author had never seen —
+# while CI, which checks out clean, stayed green.
+#
+# Prettier 3 reads .gitignore by default, so this one line serves both tools: the gate stays
+# honest AND a stray `git add .` cannot commit the debris. The real fix is that agents write
+# no files at all (.claude/agents/ci-watcher.md); this is insurance for the shape we've seen.
+#
+# Not the first time: the `C:\\Users\\*\\AppData\\Local\\lighthouse.*/` line under "Lighthouse
+# CI cache" above is the same phenomenon from a different tool, patched by its literal name.
+# This rule generalises it. That one is left in place as documentation of the precedent.
+/*AppData*
