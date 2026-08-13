@@ -16,7 +16,7 @@ import type { MapStudioController } from "../map-studio/types";
 import type { RoomBounds } from "./roomBuilder";
 import { commitDragTool } from "./commitDragTool";
 import { placeLightAt } from "./lightPlacement";
-import { effectiveGrid, isBrushTool, isClickTool, isDragTool } from "./mapEditToolKinds";
+import { effectiveGrid, isAimTool, isBrushTool, isClickTool, isDragTool } from "./mapEditToolKinds";
 import { useMapEditCancel } from "./useMapEditCancel";
 import { useMapEditDragPreview } from "./useMapEditDragPreview";
 import { useMapEditPlacement, type PlacementGhost } from "./useMapEditPlacement";
@@ -292,7 +292,8 @@ export function useMapEditTool({
       // Tools do not self-gate on `saving`; skip the commit while a command is
       // in flight (the Studio's rule) so drags don't pile up. A skip never sets
       // controller.error and clearDrag() runs anyway, so this must say so.
-      if (controller.saving) {
+      // Aim-only tools are exempt — nothing of theirs can pile up.
+      if (controller.saving && !isAimTool(activeSubTool)) {
         onGestureDropped?.();
       } else {
         commitDragTool({

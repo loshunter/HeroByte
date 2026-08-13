@@ -278,6 +278,43 @@ describe("useMapEditTool", () => {
     expect(onGestureDropped).not.toHaveBeenCalled();
   });
 
+  // Generate's release sends NO command — it only reports the region the DM
+  // aimed at, which the panel fires later (commitDragTool says so in as many
+  // words). Gating that on `saving` bought nothing, because there was nothing
+  // of its own to pile up, and cost the aim: the rubber band clears on release
+  // either way, so the DM watched their rectangle vanish and the panel not
+  // update. The notice would have been accurate but the loss was avoidable.
+  it("aims a generate region while saving, rather than dropping it", () => {
+    const onRegionDragged = vi.fn();
+    const onGestureDropped = vi.fn();
+    const controller = makeController({ saving: true });
+    const { result } = renderHook(() =>
+      useMapEditTool({
+        mapEditMode: true,
+        activeSubTool: "generate",
+        controller,
+        liveDocumentId: "live",
+        floorFamily: "grass",
+        onRegionDragged,
+        onGestureDropped,
+        toWorld: identityToWorld,
+        mapTransform: undefined,
+      }),
+    );
+
+    act(() => result.current.onMouseDown(makeStage({ x: 100, y: 100 }).ref));
+    act(() => result.current.onMouseMove(makeStage({ x: 600, y: 600 }).ref));
+    act(() => result.current.onMouseUp());
+
+    expect(onRegionDragged).toHaveBeenCalledTimes(1);
+    expect(onGestureDropped).not.toHaveBeenCalled();
+    // Nothing reached the controller, which is exactly why the gate must not
+    // apply — and is what keeps the exemption honest if generate ever grows a
+    // command of its own.
+    expect(controller.placeRoom).not.toHaveBeenCalled();
+    expect(controller.addWall).not.toHaveBeenCalled();
+  });
+
   it("stays SILENT when the document changed out from under the drag", () => {
     // A deliberate asymmetry, and the live-binding re-check is the only way to
     // reach it: onMouseDown already refuses to START on a non-live document,

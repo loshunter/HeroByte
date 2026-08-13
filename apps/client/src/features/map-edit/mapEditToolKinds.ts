@@ -26,6 +26,20 @@ export function isDragTool(subTool: MapEditSubTool): subTool is DragTool {
   return (DRAG_TOOLS as readonly MapEditSubTool[]).includes(subTool);
 }
 
+/**
+ * Drag tools whose release sends NO command — the drag only AIMS something the
+ * DM fires later from a panel (see commitDragTool: generate's drop just reports
+ * the region). They must not be gated on `controller.saving`: there is no
+ * command to pile up behind, so the gate buys nothing and costs the aim, which
+ * is lost silently because the rubber band clears on release either way.
+ */
+const AIM_ONLY_TOOLS: MapEditSubTool[] = ["generate"];
+
+/** True when the release aims something rather than committing it. */
+export function isAimTool(subTool: MapEditSubTool): boolean {
+  return AIM_ONLY_TOOLS.includes(subTool);
+}
+
 /** Terrain + erase are pointer-STREAM brushes (paint cells while down). */
 export function isBrushTool(subTool: MapEditSubTool): boolean {
   return BRUSH_TOOLS.includes(subTool);
