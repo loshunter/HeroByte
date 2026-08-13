@@ -8,7 +8,7 @@ It's DM-only: [elevate first](getting-started.md#becoming-the-dm), then press **
 
 The palette opens with one button:
 
-**▶ START LIVE MAP** creates a fresh editable map (date-stamped, huge — 8192×8192), binds it to the table, and lights up the **● LIVE** badge. From now on every edit auto-compiles and broadcasts; you'll see a brief `saving…` flicker as each commit lands.
+**▶ START LIVE MAP** creates a fresh editable map (date-stamped, huge — 8192×8192), binds it to the table, and lights up the **● LIVE** badge — `loading…` sits beside the badge while that round trip runs. From now on every edit auto-compiles and broadcasts; you'll see a brief `saving…` flicker in the same spot as each commit lands.
 
 ![The map tools palette, live and ready](img/mapedit-start.jpg)
 

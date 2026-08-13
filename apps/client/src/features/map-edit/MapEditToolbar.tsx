@@ -53,6 +53,7 @@ export function MapEditToolbar(props: MapEditToolbarProps) {
   const {
     isLive,
     busy,
+    saving,
     activeSubTool,
     onSelectSubTool,
     floorFamily,
@@ -120,7 +121,21 @@ export function MapEditToolbar(props: MapEditToolbarProps) {
                 >
                   ● LIVE
                 </span>
+                {/* Two flags, two words, and the split is the whole point.
+                    `busy` is the create/open/bind round trip; `saving` is a map
+                    command in flight — and `saving` is the one that silently
+                    SKIPS a gesture (useMapEditTool's mouse-up gate). This span
+                    read "saving…" off `busy` from M1 to M5, so the only
+                    in-flight label in the app was absent during exactly the
+                    window it appeared to name. Folding the two into one flag
+                    was the tempting fix and is wrong: everything gated on
+                    `busy` would flicker-disable on every command. */}
                 {busy && (
+                  <span className="jrpg-text-small" style={{ color: "var(--jrpg-white)" }}>
+                    loading…
+                  </span>
+                )}
+                {saving && (
                   <span className="jrpg-text-small" style={{ color: "var(--jrpg-white)" }}>
                     saving…
                   </span>

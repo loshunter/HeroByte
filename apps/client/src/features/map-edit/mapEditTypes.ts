@@ -78,7 +78,12 @@ export interface GenerateParams {
  */
 export interface MapEditToolbarProps {
   isLive: boolean; // a live document is bound AND active in the controller
-  busy: boolean; // a create/open/command round-trip is in flight
+  // The two round-trip flags, side by side BECAUSE they were confusable: the
+  // palette rendered "saving…" off `busy` from M1 to M5, so the label was
+  // absent during exactly the window it appeared to name.
+  busy: boolean; // a create/open/BIND round-trip is in flight — NOT a command
+  saving: boolean; // a map command is in flight; this is the flag that silently
+  // skips a gesture (useMapEditTool's mouse-up gate, useMapEditPlacement's drop)
   activeSubTool: MapEditSubTool;
   onSelectSubTool: (tool: MapEditSubTool) => void;
   floorFamily: MapEditFloorFamily; // room/terrain paint family (floors + walls)
@@ -126,7 +131,6 @@ export interface MapEditToolbarProps {
   // in the vision slice). Required makes a dropped mapping a compile error.
   generateHint: string | null; // why GENERATE is refused, shown under the button
   // --- Layers + inspector (select sub-tool) ---
-  saving: boolean;
   layers: MapLayer[];
   selectedElement: MapElement | null;
   onUpdateLayer: (layerId: string, update: MapLayerUpdate) => void;
