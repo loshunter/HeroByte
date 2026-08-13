@@ -127,6 +127,36 @@ describe("DMMenu", () => {
     global.Image = originalImage;
   });
 
+  // Both props ride OPTIONAL the whole way from DMMenuContainer through
+  // DMMenu to MapTab, so deleting either forwarding line compiles, passes
+  // every other suite, and silently removes the control from both layouts —
+  // the M4b defect exactly. This is the guard for that chain.
+  it("forwards the table sight default onto the Map tab", () => {
+    const props = createProps();
+    const onDefaultVisionRadiusChange = vi.fn();
+
+    render(
+      <DMMenu
+        {...props}
+        defaultVisionRadius={60}
+        onDefaultVisionRadiusChange={onDefaultVisionRadiusChange}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
+    expect(screen.getByLabelText("Default sight radius in feet")).toHaveValue(60);
+
+    fireEvent.click(screen.getByRole("button", { name: "Blind" }));
+    expect(onDefaultVisionRadiusChange).toHaveBeenCalledWith(0);
+  });
+
+  it("omits the table sight default when no handler is supplied", () => {
+    render(<DMMenu {...createProps()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /DM MENU/i }));
+    expect(screen.queryByLabelText("Default sight radius in feet")).not.toBeInTheDocument();
+  });
+
   it("switches to the NPC tab and triggers NPC creation", () => {
     const props = createProps();
 

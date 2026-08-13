@@ -176,3 +176,41 @@ describe("VisionRadiusField custom value", () => {
     expect(input()).toHaveAttribute("placeholder", "Unlimited");
   });
 });
+
+// Clearing the value stopped meaning "unlimited" the moment a room-level default
+// existed: such a token INHERITS the table's radius. If the label keeps saying
+// unlimited, a DM checking whether Alice can see down a corridor is told the
+// opposite of what the server will actually do to her payload.
+describe("VisionRadiusField under a table default", () => {
+  it("calls the empty value a table default rather than unlimited", () => {
+    render(<VisionRadiusField value={undefined} onChange={vi.fn()} inheritsTableDefault />);
+
+    const clear = preset("Table Default");
+    expect(clear).toHaveAttribute("aria-pressed", "true");
+    expect(clear).toHaveAttribute(
+      "title",
+      "Follow the table default, set on the DM menu's Map tab",
+    );
+    expect(screen.queryByRole("button", { name: "Unlimited" })).not.toBeInTheDocument();
+    expect(input()).toHaveAttribute("placeholder", "Table default");
+  });
+
+  // The label changed; the wire value must not. null is exactly what makes the
+  // server drop the token back to the table default.
+  it("still sends null, which is what makes the token follow the table", () => {
+    const onChange = vi.fn();
+    render(<VisionRadiusField value={60} onChange={onChange} inheritsTableDefault />);
+
+    fireEvent.click(preset("Table Default"));
+    expect(onChange).toHaveBeenCalledWith(null);
+  });
+
+  // The table control itself has no table above it to inherit from, so its
+  // empty value really does mean unlimited.
+  it("keeps the plain Unlimited wording when nothing is inherited", () => {
+    render(<VisionRadiusField value={undefined} onChange={vi.fn()} />);
+
+    expect(preset("Unlimited")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Table Default" })).not.toBeInTheDocument();
+  });
+});

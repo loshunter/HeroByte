@@ -8,7 +8,7 @@ It's DM-only: [elevate first](getting-started.md#becoming-the-dm), then press **
 
 The palette opens with one button:
 
-**▶ START LIVE MAP** creates a fresh editable map (date-stamped, huge — 8192×8192), binds it to the table, and lights up the **● LIVE** badge. From now on every edit auto-compiles and broadcasts; you'll see a brief `saving…` flicker as each commit lands.
+**▶ START LIVE MAP** creates a fresh editable map (date-stamped, huge — 8192×8192), binds it to the table, and lights up the **● LIVE** badge — `loading…` sits beside the badge while that round trip runs. From now on every edit auto-compiles and broadcasts; you'll see a brief `saving…` flicker in the same spot as each commit lands.
 
 ![The map tools palette, live and ready](img/mapedit-start.jpg)
 
@@ -16,6 +16,7 @@ Things to know before your first wall:
 
 - **Escape** cancels an in-progress drag; pressing it again (with nothing in progress) leaves map-edit mode. The map _stays_ live — closing the palette never unbinds it, and reopening resumes where you left off.
 - **↶ UNDO / ↷ REDO** at the palette's foot work on map edits (Ctrl+Z / Ctrl+Y while in the mode). Each drag, stroke, or generate is exactly one undo step.
+- Only one edit is sent at a time. If you finish a drag or a click while the previous one is still in flight, that gesture is dropped rather than queued, and you'll get **"Still saving the last change — draw that again."** Draw it again — nothing was half-applied. You'll notice this most on a phone, where the round trip is longest.
 - Tokens don't respond to clicks while you're editing — leave the mode to move them.
 - If the table still has a raster background image, the palette warns you: live terrain and a background photo fight visually. Clear the background (DM Menu → Map Setup) for a clean canvas.
 
@@ -149,15 +150,21 @@ The dock becomes five slots:
 | Slot                | What it does                                                                                                                                                                            |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **✕ Exit**          | Leaves the mode. The map stays live.                                                                                                                                                    |
-| **⚒ Tool**         | Opens the sheet: **▶ Start live map** before you have one, then **🏠 Room**, **▬ Wall** and **◇ Recenter**. Picking a tool closes the sheet, because you picked it in order to use it. |
+| **⚒ Tool**         | Opens the sheet: **▶ Start live map** before you have one, then the seven tools below, that tool's own dials, and **◇ Recenter**. Picking a tool with no dials closes the sheet, because you picked it in order to use it; a tool that _has_ dials leaves it open so you can set them. |
 | **↶ Undo / ↷ Redo** | The same map-edit history the desktop palette drives. Both stay greyed until the map is live.                                                                                           |
 | **⨯ Abort**         | Abandons the drag in progress.                                                                                                                                                          |
 
-**Room and Wall are the two tools here**, and both are a drag: press, move, lift. The rest of the toolbox (doors, terrain, place, generate) is still desktop-only.
+**Seven tools are here** — **🏠 Room**, **🚇 Hall**, **▬ Wall**, **🚪 Door**, **📏 Row**, **〰️ Spline** and **🏰 Gen** — and every one of them is a drag: press, move, lift. That is not a coincidence: the phone arms the drag tools and only the drag tools.
+
+What is missing is the tap-and-brush half of the toolbox — **Place**, **Scatter**, **Light**, **Paint**, **Erase** and **Select**. A touch tap generates compatibility mouse events that a drag does not, so arming those on a phone would drop two stamps per tap. They are absent by design until that gets its own pass, not by oversight.
+
+> **One trap before you use Row or Spline on a phone.** You can _create_ them there but you cannot _remove_ them there — deleting an element needs **Select**, which is in the missing half above. Until you are next at a desktop, **↶ Undo** is the only way to take one back, and only until you have made other edits on top of it. If you lay down a spline you are unsure about, check it before you carry on.
 
 Two things behave differently from a mouse, and both are worth knowing before your first drag:
 
 - **Lifting your finger commits.** There is no Escape key, which is what **⨯ ABORT** is for — press it with a second finger while the first is still down, and the release lands nothing.
 - **A second finger always means the camera.** Reach for a pinch mid-drag and the drag is _discarded_, not committed — you wanted to zoom, not to stamp a half-built room on the table.
+
+A **SAVING…** chip appears just above the dock while an edit is on its way to the server. It matters more here than on a desktop, because a phone's round trip is longer: finish a gesture while the chip is up and that gesture is dropped rather than queued, and you get the "Still saving the last change" notice instead of a wall. The chip is how you learn the table's rhythm and time the next drag.
 
 **Start live map** is the same button as on desktop and creates the same document, so a map begun on a tablet opens on a laptop and the other way round. Rotating the device, or resizing a window across the phone/desktop boundary, keeps the mode armed and simply swaps which palette you get.

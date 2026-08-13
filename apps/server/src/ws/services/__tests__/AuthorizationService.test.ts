@@ -57,6 +57,7 @@ describe("AuthorizationService", () => {
       monsterHpDisplay: "exact" as const,
       diagonalRule: "5e" as const,
       playerPropsEnabled: false,
+      defaultVisionRadius: null,
     };
   });
 

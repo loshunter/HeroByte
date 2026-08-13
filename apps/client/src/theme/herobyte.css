@@ -1284,6 +1284,37 @@ h4 {
   pointer-events: auto;
 }
 
+/*
+ * The map-edit dock's "a command is in flight" chip, sitting just above the
+ * dock's top edge.
+ *
+ * position: absolute is the whole trick. The dock is a five-column grid and a
+ * sixth in-flow child takes a column (a ::after would too — generated content
+ * on a grid container is a grid item). Out of flow, it is positioned against
+ * the dock's own padding box and the five slots never know it exists.
+ *
+ * pointer-events: none because it floats over the canvas: the DM must be able
+ * to draw through the spot it occupies.
+ */
+.mobile-dock-saving {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  margin-bottom: 6px;
+  padding: 3px 8px;
+  border: 2px solid var(--hero-gold-light);
+  background: linear-gradient(180deg, #2f2f73 0%, #1c1d4d 100%);
+  box-shadow: 0 3px 0 var(--hero-navy-dark);
+  color: var(--hero-gold-light);
+  font-family: var(--font-pixel);
+  font-size: 0.7rem;
+  line-height: 1.25;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
 .mobile-dock-button,
 .mobile-tool-sheet__button,
 .mobile-tool-sheet__close,
@@ -1435,6 +1466,82 @@ h4 {
   font-family: var(--font-body);
   font-size: 0.82rem;
   line-height: 1.4;
+}
+
+/* M5's tool dials. Deliberately NO button rule here: every option reuses
+   .mobile-tool-sheet__button and .mobile-chip, so the 44px touch floor and the
+   4-to-3 column drop are inherited rather than restated, and cannot be lost by
+   editing this block. These sit beside .mobile-tool-sheet__note rather than up
+   with the shared sheet rules, because MobileFloatingControls.test.tsx regexes
+   the raw stylesheet between `.mobile-tool-sheet,` and `.mobile-help-sheet {`
+   and any selector inserted into that region changes what it captures. */
+.mobile-tool-sheet__section {
+  margin-top: 8px;
+}
+
+.mobile-tool-sheet__label {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--hero-gold-light);
+  font-family: var(--font-pixel);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+/* Material shelves scroll sideways rather than wrapping: eight shelves wrapped
+   to three rows would push the families themselves off a landscape sheet. */
+.mobile-tool-sheet__shelves {
+  display: flex;
+  overflow-x: auto;
+  gap: 6px;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-tool-sheet__shelves .mobile-chip {
+  flex: 0 0 auto;
+}
+
+/* The generate seed and its reroll: the value reads as a value, not a button,
+   because the same seed rebuilds the same dungeon and the DM may want to copy
+   it. Only the ⟳ is pressable.
+
+   It has to RESTORE its width floor rather than inherit one. The shared rule
+   above sets min-width: 44px, but `.mobile-tool-sheet__button` re-declares
+   `min-width: 0` at equal specificity and later in this file, so the inherited
+   floor is height-only. Every other sheet button gets its width back from the
+   grid's `minmax(0, 1fr)` track or from `--wide`; this seed row is the first
+   flex row in the sheet and its button is content-sized, which measured 31px
+   against a 44px standard. An earlier version of this comment claimed the
+   floor was inherited here. It was not. */
+.mobile-tool-sheet__seed {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mobile-tool-sheet__seed .mobile-tool-sheet__button {
+  min-width: 44px;
+}
+
+.mobile-tool-sheet__seed span {
+  overflow: hidden;
+  flex: 1 1 auto;
+  padding: 6px 8px;
+  border: 1px solid var(--hero-gold-light);
+  color: var(--hero-text-light);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+}
+
+/* The colour of the family, beside its name — the phone's stand-in for the
+   desktop deck's baked thumbnails, which need a 2D canvas jsdom does not have. */
+.mobile-swatch-chip {
+  display: block;
+  width: 18px;
+  height: 10px;
+  border: 1px solid var(--hero-gold-light);
 }
 
 /*
@@ -1787,7 +1894,8 @@ h4 {
 /* The DM menu's own chunk-load failure. Scoped, not full-page: losing the menu
    is survivable, losing the table is not. Positioned by whichever surface
    hosts it (a floating window on desktop, the screen body on a phone). */
-.dm-menu-load-failure {
+.dm-menu-load-failure,
+.map-edit-load-failure {
   position: fixed;
   right: 16px;
   bottom: 16px;
@@ -1802,6 +1910,20 @@ h4 {
   color: var(--jrpg-text, #f8f5ee);
   font-family: var(--font-body);
   font-size: 13px;
+}
+
+/* Both fallbacks are bottom-right fixed boxes and BOTH can be mounted at once:
+   one deploy invalidates every hashed chunk, so a DM who elevates and then arms
+   map-edit gets the DM-menu box and then the palette box. MainLayout renders
+   FloatingPanelsLayout after TopPanelLayout, so at equal z-index the DM-menu
+   box painted over the map-edit one — hiding "Leave map editing", which is the
+   entire reason that fallback differs from its twin.
+
+   The map-edit box wins instead of being offset, because it is a superset: it
+   offers the same reload AND the exit. Offsetting would depend on the other
+   box's height, which varies with its text. */
+.map-edit-load-failure {
+  z-index: 1003;
 }
 
 /* Inside a Screen it is ordinary content, not floating chrome. */

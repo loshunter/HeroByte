@@ -43,6 +43,9 @@ interface UseMapEditPlacementOptions {
   document: MapDocument | null;
   selectedAssetId: string;
   saving: boolean;
+  /** A drop was SKIPPED because a command was in flight. Without this the click
+   * vanishes with the ghost still under the cursor and nothing added. */
+  onGestureDropped?: () => void;
   addTile: (draft: MapTileDraft) => unknown;
   addStamp: (draft: MapStampDraft) => unknown;
   addStamps: (drafts: MapStampDraft[]) => unknown;
@@ -67,6 +70,7 @@ export function useMapEditPlacement({
   document,
   selectedAssetId,
   saving,
+  onGestureDropped,
   addTile,
   addStamp,
   addStamps,
@@ -104,7 +108,15 @@ export function useMapEditPlacement({
 
   const place = useCallback(
     (point: { x: number; y: number }) => {
-      if (!document || saving) return;
+      if (!document) return;
+      // The two refusals are not the same event. No document means the tool is
+      // pointed at a non-live doc and the ghost is already hidden — nothing was
+      // promised. `saving` means the DM aimed at a visible ghost and clicked,
+      // and the click evaporates: say so rather than look like an empty tile.
+      if (saving) {
+        onGestureDropped?.();
+        return;
+      }
       if (altHeld) {
         const draft = buildStampPlacement(document, asset, point, rotation);
         if (draft) addStamp(draft);
@@ -113,16 +125,20 @@ export function useMapEditPlacement({
       const draft = buildTilePlacement(document, asset, point);
       if (draft) addTile(draft);
     },
-    [document, saving, altHeld, asset, rotation, addStamp, addTile],
+    [document, saving, onGestureDropped, altHeld, asset, rotation, addStamp, addTile],
   );
 
   const scatter = useCallback(
     (point: { x: number; y: number }) => {
-      if (!document || saving) return;
+      if (!document) return;
+      if (saving) {
+        onGestureDropped?.();
+        return;
+      }
       const drafts = buildScatterDrafts(document, asset, point, scatterSeedFromPoint(point));
       if (drafts.length > 0) addStamps(drafts);
     },
-    [document, saving, asset, addStamps],
+    [document, saving, onGestureDropped, asset, addStamps],
   );
 
   const ghost = useMemo<PlacementGhost | null>(() => {

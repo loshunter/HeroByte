@@ -782,6 +782,47 @@ describe("SnapshotLoader - Characterization Tests", () => {
       expect(roomService.getState().playerPropsEnabled).toBe(false);
     });
 
+    it("coerces the table sight default — clamped, junk means none, 0 survives", () => {
+      const base: RoomSnapshot = {
+        users: [],
+        pointers: [],
+        players: [],
+        characters: [],
+        tokens: [],
+        props: [],
+        drawings: [],
+        gridSize: 50,
+        gridSquareSize: 5,
+        diceRolls: [],
+        sceneObjects: [],
+        combatActive: false,
+      };
+
+      roomService.loadSnapshot({ ...base, defaultVisionRadius: 60 });
+      expect(roomService.getState().defaultVisionRadius).toBe(60);
+
+      // 0 is a real table setting — total darkness — and must survive a path
+      // that is full of chances to mistake it for "unset".
+      roomService.loadSnapshot({ ...base, defaultVisionRadius: 0 });
+      expect(roomService.getState().defaultVisionRadius).toBe(0);
+
+      roomService.loadSnapshot({ ...base, defaultVisionRadius: 5000 });
+      expect(roomService.getState().defaultVisionRadius).toBe(1000);
+
+      // An uploaded session file is the least trustworthy source there is.
+      roomService.loadSnapshot({
+        ...base,
+        defaultVisionRadius: "60" as unknown as number,
+      });
+      expect(roomService.getState().defaultVisionRadius).toBeNull();
+
+      // A pre-slice file clears the default rather than preserving whatever
+      // the room happened to have — the file is authoritative.
+      roomService.getState().defaultVisionRadius = 60;
+      roomService.loadSnapshot(base);
+      expect(roomService.getState().defaultVisionRadius).toBeNull();
+    });
+
     it("should clear pointers on load", () => {
       // Set current pointers
       roomService.setState({

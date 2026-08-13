@@ -210,7 +210,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "Sight radius",
         detail:
-          "Your token may have a limit in feet — a torch, darkvision, a blindfold — and beyond it you see nothing even down an open corridor. Only the DM can set it, because a limit can only ever narrow what you see.",
+          "Your token may have a limit in feet — a torch, darkvision, a blindfold — and beyond it you see nothing even down an open corridor. Only the DM can set it, because a limit can only ever narrow what you see. The DM can also darken the whole table at once, which applies to every token that has no limit of its own.",
       },
       {
         term: "Explored ground",
@@ -290,7 +290,7 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         term: "🏗️ Map",
         detail:
-          "The live map editor — rooms, walls, doors, terrain, lighting, generator. On a phone or tablet it lives at DM → 🏗️ Edit the live map, and the bottom dock becomes the palette: Exit, Tool, Undo, Redo, Abort. Room and Wall by finger; ⨯ ABORT discards the drag in progress, because lifting a finger commits.",
+          "The live map editor — rooms, walls, doors, terrain, lighting, generator. On a phone or tablet it lives at DM → 🏗️ Edit the live map, and the bottom dock becomes the palette: Exit, Tool, Undo, Redo, Abort. Every drag tool is there by finger — Room, Hall, Wall, Door, Row, Spline and Gen — but not the tap and brush ones (Place, Scatter, Light, Paint, Erase, Select). ⨯ ABORT discards the drag in progress, because lifting a finger commits.",
       },
       {
         term: "SAVE GAME STATE",

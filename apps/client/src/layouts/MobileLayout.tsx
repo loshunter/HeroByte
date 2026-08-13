@@ -97,6 +97,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
     mapEditSelectedElementId,
     mapEditWallsOverlayPinned,
     onMapEditRoomRejected,
+    onMapEditGestureDropped,
     onMapEditRegionPlaced,
     onMapEditRegionDragged,
     onMapEditSelectElement,
@@ -172,6 +173,7 @@ export const MobileLayout = React.memo(function MobileLayout(props: MainLayoutPr
             mapEditController={mapStudio}
             mapEditWallsOverlayPinned={mapEditWallsOverlayPinned}
             onMapEditRoomRejected={onMapEditRoomRejected}
+            onMapEditGestureDropped={onMapEditGestureDropped}
             onMapEditRegionPlaced={onMapEditRegionPlaced}
             onMapEditRegionDragged={onMapEditRegionDragged}
             onMapEditSelectElement={onMapEditSelectElement}

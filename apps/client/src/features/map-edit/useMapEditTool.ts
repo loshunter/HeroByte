@@ -16,7 +16,7 @@ import type { MapStudioController } from "../map-studio/types";
 import type { RoomBounds } from "./roomBuilder";
 import { commitDragTool } from "./commitDragTool";
 import { placeLightAt } from "./lightPlacement";
-import { effectiveGrid, isBrushTool, isClickTool, isDragTool } from "./mapEditToolKinds";
+import { effectiveGrid, isAimTool, isBrushTool, isClickTool, isDragTool } from "./mapEditToolKinds";
 import { useMapEditCancel } from "./useMapEditCancel";
 import { useMapEditDragPreview } from "./useMapEditDragPreview";
 import { useMapEditPlacement, type PlacementGhost } from "./useMapEditPlacement";
@@ -54,6 +54,9 @@ interface UseMapEditToolOptions {
   splineKind?: MapEditSplineKind;
   /** Surfaced when a room/hallway drag is refused (too large / no walls layer). */
   onRoomRejected?: (message: string) => void;
+  /** The gesture finished and its commit was SKIPPED because a command was in
+   * flight — the one outcome here that otherwise leaves no evidence at all. */
+  onGestureDropped?: () => void;
   /** A room/hallway landed — its bounds become the POPULATE target. */
   onRegionPlaced?: (bounds: RoomBounds) => void;
   /** A generate region was swept — the recipe's target (nothing placed yet). */
@@ -104,6 +107,7 @@ export function useMapEditTool({
   hallwayWidth = 2,
   splineKind = "rope",
   onRoomRejected,
+  onGestureDropped,
   onRegionPlaced,
   onRegionDragged,
   selectedElementId = null,
@@ -146,6 +150,7 @@ export function useMapEditTool({
     document: liveDocument,
     selectedAssetId,
     saving: Boolean(controller?.saving),
+    onGestureDropped,
     addTile: controller?.addTile ?? (() => null),
     addStamp: controller?.addStamp ?? (() => null),
     addStamps: controller?.addStamps ?? (() => []),
@@ -281,24 +286,31 @@ export function useMapEditTool({
       return;
     }
     const document = controller?.activeDocument;
-    // Tools do not self-gate on `saving`; skip the commit while a command is in
-    // flight (the Studio's rule) so drags don't pile up. Re-check the live
-    // binding too: the active document must still be the live-bound one.
-    if (document && document.id === liveDocumentId && controller && !controller.saving) {
-      commitDragTool({
-        subTool: activeSubTool,
-        drag,
-        document,
-        controller,
-        floorFamily,
-        roomWallFamily,
-        hallwayWidth,
-        selectedAssetId,
-        splineKind,
-        onRoomRejected,
-        onRegionPlaced,
-        onRegionDragged,
-      });
+    // The live-binding re-check stays SILENT when it fails: refusing to author
+    // into a stray Studio doc is a guard working, not a gesture going missing.
+    if (document && controller && document.id === liveDocumentId) {
+      // Tools do not self-gate on `saving`; skip the commit while a command is
+      // in flight (the Studio's rule) so drags don't pile up. A skip never sets
+      // controller.error and clearDrag() runs anyway, so this must say so.
+      // Aim-only tools are exempt — nothing of theirs can pile up.
+      if (controller.saving && !isAimTool(activeSubTool)) {
+        onGestureDropped?.();
+      } else {
+        commitDragTool({
+          subTool: activeSubTool,
+          drag,
+          document,
+          controller,
+          floorFamily,
+          roomWallFamily,
+          hallwayWidth,
+          selectedAssetId,
+          splineKind,
+          onRoomRejected,
+          onRegionPlaced,
+          onRegionDragged,
+        });
+      }
     }
     clearDrag();
   }, [
@@ -314,6 +326,7 @@ export function useMapEditTool({
     selectedAssetId,
     splineKind,
     onRoomRejected,
+    onGestureDropped,
     onRegionPlaced,
     onRegionDragged,
     currentDrag,

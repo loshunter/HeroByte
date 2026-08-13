@@ -141,7 +141,7 @@ export function useMapEditState({
 
   const isLive = Boolean(liveMapDocumentId) && activeId === liveMapDocumentId;
 
-  const generate = useGenerate(controller, isLive, notifyError);
+  const generate = useGenerate(controller, isLive, activeSubTool === "generate", notifyError);
 
   // Ctrl/Cmd+Z / +Y route to the active (live) map document while map-edit is
   // on; the useKeyboardShortcuts selection-undo branch is guarded off in the
@@ -313,6 +313,7 @@ export function useMapEditState({
     onGenerate: generate.onGenerate,
     canGenerate: generate.canGenerate,
     generateRegion: generate.region,
+    generateHint: generate.hint,
     saving: controller.saving,
     layers: activeDocument?.layers ?? [],
     selectedElement,

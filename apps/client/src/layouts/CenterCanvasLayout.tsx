@@ -113,6 +113,8 @@ export interface CenterCanvasLayoutProps {
   mapEditWallsOverlayPinned: boolean;
   /** Called when a room drag is refused (too large / no walls layer) */
   onMapEditRoomRejected: (message: string) => void;
+  /** Called when a finished gesture's commit was skipped (command in flight) */
+  onMapEditGestureDropped: () => void;
   /** Called when a room/hallway lands — records the POPULATE target */
   onMapEditRegionPlaced: (bounds: RoomBounds) => void;
   onMapEditRegionDragged: (bounds: RoomBounds) => void;
@@ -240,6 +242,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
     mapEditSelectedElementId,
     mapEditWallsOverlayPinned,
     onMapEditRoomRejected,
+    onMapEditGestureDropped,
     onMapEditRegionPlaced,
     onMapEditRegionDragged,
     onMapEditSelectElement,
@@ -297,6 +300,7 @@ export const CenterCanvasLayout: React.FC<CenterCanvasLayoutProps> = React.memo(
             mapEditController={mapStudio}
             mapEditWallsOverlayPinned={mapEditWallsOverlayPinned}
             onMapEditRoomRejected={onMapEditRoomRejected}
+            onMapEditGestureDropped={onMapEditGestureDropped}
             onMapEditRegionPlaced={onMapEditRegionPlaced}
             onMapEditRegionDragged={onMapEditRegionDragged}
             onMapEditSelectElement={onMapEditSelectElement}

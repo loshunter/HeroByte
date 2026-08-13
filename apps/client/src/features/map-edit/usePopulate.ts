@@ -96,9 +96,23 @@ export function usePopulate(
   }, [controller, lastPlacedBounds, category, density, notifyError]);
 
   const activeDocument = controller.activeDocument;
+
+  // ONE floor evaluation behind both the ghosts and the button's enabled state.
+  // They disagreed: the ghosts checked the floor and vanished after an undo,
+  // canPopulate did not, so the button stayed lit over a region that was gone.
+  // Pressing it recovered (onPopulate clears and explains), so on desktop this
+  // was a wart rather than a trap — but the phone panel says "Fills the room
+  // you just drew" beside that button, and enabled-plus-that-sentence is a lie.
+  const regionIsLive = useMemo(
+    () =>
+      Boolean(
+        activeDocument && lastPlacedBounds && regionHasFloor(activeDocument, lastPlacedBounds),
+      ),
+    [activeDocument, lastPlacedBounds],
+  );
+
   const previewGhosts = useMemo<PlacementGhost[] | null>(() => {
-    if (!activeDocument || !lastPlacedBounds) return null;
-    if (!regionHasFloor(activeDocument, lastPlacedBounds)) return null;
+    if (!activeDocument || !lastPlacedBounds || !regionIsLive) return null;
     const drafts = draftsForRegion(activeDocument, lastPlacedBounds, category, density);
     if (!drafts || drafts.length === 0) return null;
     return drafts.map((draft) => {
@@ -113,9 +127,9 @@ export function usePopulate(
         stroke: asset.stroke,
       };
     });
-  }, [activeDocument, lastPlacedBounds, category, density]);
+  }, [activeDocument, lastPlacedBounds, category, density, regionIsLive]);
 
-  const canPopulate = Boolean(lastPlacedBounds) && !controller.saving;
+  const canPopulate = regionIsLive && !controller.saving;
 
   return {
     density,

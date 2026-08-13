@@ -8,6 +8,7 @@
 //   - the DM-only walls/notes overlays (gated off dmView in MapBoard).
 
 import {
+  effectiveVisionRadiusFeet,
   gridCellToWorldPoint,
   type CompiledDoor,
   type ScenePoint,
@@ -58,16 +59,25 @@ export function fogViewerTokens(
  * `createVisionContext`. Under the DM's lens this is a union of discs, one per
  * party token — a lens that ignored the radii would show the DM a brighter
  * table than any player actually has, which is the opposite of what the lens
- * is for.
+ * is for. The table default is resolved through the SHARED resolver for the
+ * same reason, and it matters as much under the lens: a DM who set the table
+ * dark must see that darkness when they look through the players' eyes.
  */
 export function fogViewers(
   tokens: readonly Token[],
   uid: string,
   playerLens: boolean,
   gridSize: number,
+  /**
+   * `RoomSnapshot.defaultVisionRadius` — the fallback for tokens with none.
+   * REQUIRED, though it is frequently undefined: an optional parameter can be
+   * dropped from the single call site with every gate staying green, and the
+   * result is client fog and server filtering disagreeing in silence.
+   */
+  defaultRadiusFeet: number | undefined,
 ): FogViewer[] {
   return fogViewerTokens(tokens, uid, playerLens).map((token) => ({
     ...gridCellToWorldPoint(gridSize, { x: token.x, y: token.y }),
-    radiusFeet: token.visionRadius,
+    radiusFeet: effectiveVisionRadiusFeet(token.visionRadius, defaultRadiusFeet),
   }));
 }

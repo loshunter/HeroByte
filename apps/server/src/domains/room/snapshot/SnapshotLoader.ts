@@ -5,6 +5,7 @@
 
 import type { Drawing, Player, RoomSnapshot } from "@herobyte/shared";
 import {
+  coerceDefaultVisionRadius,
   coerceDiagonalRule,
   coerceMonsterHpDisplay,
   coerceTokenVisionRadii,
@@ -187,6 +188,9 @@ export class SnapshotLoader {
       // ADMITS writes (PropDispatcher checks it): a truthy string must not
       // open the prop tools to the table. Absent (older files) reads as off.
       playerPropsEnabled: snapshot.playerPropsEnabled === true,
+      // Same clamp, for the least trustworthy source there is. Absent reads as
+      // no default, which is how every session file written before now loads.
+      defaultVisionRadius: coerceDefaultVisionRadius(snapshot.defaultVisionRadius),
     };
   }
 }

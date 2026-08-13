@@ -44,6 +44,7 @@ export function MapEditToolPanels({
   onGenerate,
   canGenerate,
   generateRegion,
+  generateHint,
   busy,
   populateCategory,
   onSelectPopulateCategory,
@@ -100,6 +101,7 @@ export function MapEditToolPanels({
         canGenerate={canGenerate}
         busy={busy}
         region={generateRegion}
+        hint={generateHint}
       />
     );
   }

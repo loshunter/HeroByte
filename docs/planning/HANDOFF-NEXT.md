@@ -1,20 +1,72 @@
 # Handoff — after S8, with the Session One arc complete
 
 Read this whole file before touching anything. Paths and numbers were verified on 2026-08-05 at
-`dev` = `951a3d2a`, and §0 was re-verified on 2026-08-08 after S8's review landed. Where something
-is a judgement call rather than a fact, it says so.
+`dev` = `951a3d2a`; §0 was re-verified on 2026-08-08 after S8's review landed, and again on
+2026-08-12 after the vision-default slice shipped. Where something is a judgement call rather
+than a fact, it says so.
 
 ## 0. Where things stand
 
+**Current state (2026-08-12, later).** **M5 of the mobile authoring arc is SHIPPED to `dev`** —
+eleven commits, `a8639d8a..39fd5ac0`, each behind the full §2 gate, on top of the vision-default
+slice below. A DM on a phone can now author with every drag tool: Room, Hall, Wall, Door, Row,
+Spline and Generate, plus Populate. The slice plan and its SHIPPED banner are
+`docs/planning/m5-mobile-drag-tools-plan.md`; read that banner before touching the mobile palette.
+
+**M5's adversarial review has RUN and its findings are fixed** (39 agents, `agents_error: 0`; 16 raw
+findings, 3 survivors collapsing to 2 distinct defects, plus 2 more from the completeness critic —
+four fix commits, `c9b72444`, `53009cf2`, `a8b82e29`). The tree was fingerprinted before and after
+and is byte-identical. Full write-up in the plan doc's review section, including the critic's six
+still-unexamined areas.
+
+Baselines now: shared 424/24, server 2108/110, client **266 files / 5277 passed + 4 skipped**, e2e
+**132 passed / 0 failed / 3 skipped**, entry bundle **102.67 KB** of a 175 KB budget (that figure is
+`build:check`'s own measure; the +2.50 KB slice delta is `gzip -9`, a different tool — do not mix
+them). Three pre-existing DESKTOP bugs were fixed along the way (GENERATE never said why it was
+disabled; POPULATE disagreed with its own ghosts; a failed map-edit chunk took the whole table
+down). **Nothing is pushed and nothing is deployed.**
+
+**The one thing the review found that is NOT fixed, and wants an owner decision:** a drag whose
+commit is skipped because a command is still in flight is silent on every surface —
+`useMapEditTool.ts:284-287` returns early and does not retry, and nothing raises an error, so no
+toast fires. The e2e specs sleep 800ms between legs to dodge it. M5 multiplies the tools exposed to
+it and real-device latency is nothing like localhost. A busy affordance has nowhere obvious to go:
+the dock is pinned at five slots.
+
+Two traps this slice added to §5's list, both earned the hard way. **A degenerate-drag sabotage
+does NOT prove a region-tool spec can fail** — a tap on Room or Hall legitimately commits a
+minimum unit, so the drag-never-moved sabotage stays green; sabotage `mapEditDragMode` instead.
+And **`useMapEditState.ts` is now 349 against a guard that flags at 350** — it has no legal lines
+left, so it joins `characterValidators.ts` on the extract-before-you-touch-it list.
+
+**Prior state (2026-08-12).** The vision-default slice (§3B) is SHIPPED to `dev`, adversarially
+reviewed, and NOT merged — thirteen commits since `93e284f8`: the six-commit slice
+(`120103f8..dd29bec0`), three review fixes, two docs corrections, the review-closure tests
+(`7a8bb703`), and this handoff update. CI green through run #780. **Nothing new is deployed.**
+
+| Branch | Commit     | State                                                                        |
+| ------ | ---------- | ---------------------------------------------------------------------------- |
+| `dev`  | `7a8bb703` | +§3B shipped + reviewed (+ this handoff on top). Pushed; CI #777–#780 green. |
+| `main` | `8db688e2` | production, deployed (through the player-props slice), green                 |
+
+Two documents carry what this file cannot: the **SHIPPED banner** atop
+[room-vision-default-plan.md](./room-vision-default-plan.md) — the three places that plan was
+wrong (a union member cannot precede its validator; the snapshot contract test cannot guard the
+`visionSignature` cache, only the pointer-relay test can; "reuse VisionRadiusField as-is" shipped
+a per-token control that called an inherited radius "Unlimited") and the follow-ups it left — and
+§5's newest trap here (a client build DURING the e2e collapses the whole suite looking exactly
+like a systemic regression). **Go to §10 for what to do next.**
+
+The paragraphs below are the S8/M4-era history this document was written for; they remain
+accurate as history.
+
 **The Session One arc is DONE.** `docs/planning/session-one-arc.md` is the source of truth.
-S0–S7 are in production; **S8 and its review fixes are on `dev` and NOT deployed.**
+S0–S7 are in production; S8 and everything since is on `dev`.
 
-| Branch | Commit     | State                                                                                        |
-| ------ | ---------- | -------------------------------------------------------------------------------------------- |
-| `dev`  | `f1952138` | +docs: S8 + review + §11 cleanup, an e2e flake fix, **M3**, the M4 design doc, then **M4a**. |
-| `main` | `5307d0dd` | production, deployed, green                                                                  |
-
-**Read §3C first — M4a, M4b AND M4c are SHIPPED; the whole of M4 is done, M5 is next.** The owner
+**Read §3C first — M4a, M4b AND M4c are SHIPPED; the whole of M4 is done.** _Update 2026-08-11:
+the owner chose §3B (the room-level default vision radius) as the next slice, ahead of M5 — the
+full plan is [room-vision-default-plan.md](./room-vision-default-plan.md); it has since shipped
+(see above)._ The owner
 chose the mobile authoring arc on 2026-08-09; M3, M4a, M4b and M4c landed in sequence, and the
 design is in [mobile-shell-redesign.md](./mobile-shell-redesign.md), whose §2 notes record what
 each slice shipped and where it deviated. M4b's headline: a DM on a phone now has the FULL menu
@@ -238,6 +290,14 @@ KB**, client 44 batches, shared 414, server 2057. One unrelated desktop flake wa
 nine full runs — `map-navigation.spec.ts › player can zoom in and out with mouse wheel` — and
 passed on retry; it is outside M4c's surface and was not diagnosed.
 
+**The player-props and vision-default slices moved them again (2026-08-12, measured at
+`7a8bb703`):** shared **424** tests / 24 files, server **2108** / 110 files, client **5249
+passed / 4 skipped** across 263 files, e2e **129 passed / 0 failed / 3 skipped**
+(`vision-default.spec.ts` joined), bundle **~99.97 KB** gzip against the 175 KB threshold. None
+of the at-ceiling files in §5 gained a line — the vision-default slice's DM control rides
+`DMMenuContainer`'s inline `sendMessage` precedent, dodging `useDMContext` (347) and
+`MainLayoutProps` entirely.
+
 **`useMapEditState.ts` is now 347 of the 348 ceiling** — it joins `characterValidators.ts` (348)
 and `useDMContext.ts` (347) on the list of files that need an extraction before they gain a single
 line.
@@ -295,7 +355,23 @@ below. **Nothing here is queued** — this is a genuine fork, not a backlog.
 What is still open from the review is §11, the completeness critic's list of things NOBODY looked
 at. None of it is a known defect; it is unexamined ground.
 
-### B. A room-level default vision radius (~2 days) — the strongest feature candidate
+### B. A room-level default vision radius — **SHIPPED to `dev` 2026-08-11, NOT deployed**
+
+Nine commits, `120103f8..df6e1103`, CI green (#777), adversarially reviewed. `main` has
+NOT moved, so this is not in production. The plan doc
+([room-vision-default-plan.md](./room-vision-default-plan.md)) now opens with a SHIPPED
+block listing the three things it got wrong and the two follow-ups it left. **Read that
+block before touching vision, fog, or `RoomState`** — in particular, the snapshot-payload
+contract test does NOT guard the `visionSignature` cache; the pointer-relay test does.
+
+The original framing follows, for context.
+
+### B (original). A room-level default vision radius (~2 days)
+
+The owner picked this slice on 2026-08-11 and the full implementation plan — verified paths,
+design decisions, six-commit build order, fixture ripple, traps — is
+[room-vision-default-plan.md](./room-vision-default-plan.md). What follows is the original
+framing, kept for context.
 
 S7 left this open deliberately and it is still the best next slice. A player who deletes their
 ONLY token and reconnects respawns with **unlimited sight**: a radius lives on one token record
@@ -495,6 +571,25 @@ trials: the index won 7 times (~12%), throwing inside `atob()` every one of thos
 `5f93db94`. The general shape — a prefix that matches more keys than you meant, ordered by
 something you assumed — is worth checking wherever a test picks a key out of storage.
 
+**A client build running DURING the e2e fails almost every test, and it looks exactly like a
+systemic regression.** Playwright's webServer serves the client; a concurrent `pnpm build`
+rewrites the `dist/` underneath it, and from then on every test dies at the ~30.5s default
+timeout across totally unrelated features (dice, voice, reconnect), then at 0ms once the run
+gives up. On 2026-08-11 this happened twice and cost over an hour. **The cause was asking the
+`gates-runner` agent for a "client bundle gzip size" alongside `e2e`** — that figure is not part
+of the ladder, so the agent satisfies it with an extra build and has twice overlapped the two.
+The proof is in the log timestamps (`.tmp/gates-*/`): `11-client-bundle.log` written 18:49 while
+`10-e2e.log` ran 18:48→19:48; the runs that PASSED had the build as an earlier numbered step than
+e2e. **Ask for e2e or a bundle figure, never both in one prompt.** Two corollaries: a mass e2e
+failure across unrelated features is a HARNESS fault until proven otherwise (re-run one named
+failing spec alone — if it passes in seconds, the suite result was environmental), and a collapse
+can orphan `node` on 5175/8788, so check those ports before re-running.
+
+**Correction to `7fb0bc7e`'s commit message:** it blames the first of these collapses on resuming
+a gate agent whose e2e was still in flight. That was wrong — it was the concurrent build above.
+Resuming a mid-e2e agent is still a bad idea (it starts a second run against the same ports), but
+it was not the cause.
+
 **You cannot push `.github/workflows/*`.** Git here uses Git Credential Manager over HTTPS, and the
 stored token is an OAuth-app token issued WITHOUT the `workflow` scope. GitHub then refuses the
 whole ref update — not just that file — with `refusing to allow an OAuth App to create or update
@@ -617,15 +712,25 @@ turns a cone into something else.
 
 ## 10. Suggested order of work
 
-1. `git log --oneline -6 && git status --porcelain | grep -v 'temp/'` — confirm you are at
-   `7c780642` with a clean tree. (Use `grep -v 'temp/'`, not `grep -v '^?? temp/'`: three of the
-   owner's untracked files have spaces in their names, so git quotes them and the anchored form
-   misses them.)
-2. Run the full gate once (§2) to establish that the baselines in this document still hold, and
-   **boot `pnpm dev`** (§7).
-3. Ask which of §3B / §3C / §3D they want next. The arc is complete, its review is closed and §11
-   is fully cleared, so this is a genuine fork, not a queue — there is nothing queued at all.
-4. Stop before merging to `main`. That is the owner's call, and it deploys.
+1. `git log --oneline -3 && git status --porcelain | grep -v 'temp/'` — confirm you are at or
+   just past `7a8bb703` with a clean tree. (Use `grep -v 'temp/'`, not `grep -v '^?? temp/'`:
+   three of the owner's untracked files have spaces in their names, so git quotes them and the
+   anchored form misses them.)
+2. Read the **SHIPPED banner** atop
+   [room-vision-default-plan.md](./room-vision-default-plan.md) and §5's newest trap (the
+   concurrent-build e2e collapse) before touching vision, fog, `RoomState`, or the gates agent.
+3. Run the full gate once (§2) to confirm the 2026-08-12 baselines still hold, and **boot
+   `pnpm dev`** (§7) if anything in `packages/shared` will change.
+4. The fork is the owner's, and nothing is queued:
+   - **Merge `dev` → `main`** — thirteen CI-green commits are waiting. Merging DEPLOYS
+     immediately (Render + Cloudflare, ungated by CI), and already-open player tabs must reload.
+   - **M5 of the mobile arc** (§3C; `mobile-authoring-arc.md` §4). The known adjacent gap: the
+     mobile party drawer renders one row per PLAYER (first character only), which also keeps a
+     phone DM from a second character's sight controls — directly adjacent to §3B's subject.
+   - **Smaller work**: §3D, or the vision-default follow-ups listed in the plan doc's banner
+     (the per-token card showing the inherited NUMBER, the stale Map Setup screenshot, the
+     DM-menu 44px panel-wide pass).
+5. Stop before merging to `main`. That is the owner's call, and it deploys.
 
 ## 11. The completeness critic's list — CLEARED 2026-08-09
 

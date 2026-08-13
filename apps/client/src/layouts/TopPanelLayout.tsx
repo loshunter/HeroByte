@@ -20,6 +20,8 @@ import React, { Suspense } from "react";
 import type { ToolMode } from "../components/layout/Header";
 import type { UseDrawingStateManagerReturn } from "../hooks/useDrawingStateManager";
 import type { MapEditToolbarProps } from "../features/map-edit/mapEditTypes";
+import { ErrorBoundary } from "../components/ErrorBoundary";
+import { MapEditToolbarLoadFailure } from "../features/map-edit/MapEditToolbarLoadFailure";
 import { ServerStatus } from "../components/layout/ServerStatus";
 import { DrawingToolbar } from "../features/drawing/components";
 import { Header } from "../components/layout/Header";
@@ -159,26 +161,36 @@ export const TopPanelLayout = React.memo<TopPanelLayoutProps>(
         {mapEditMode && isDM && (
           // Same reasoning as the DM menu: entering map-edit mode with a blank
           // toolbar strip reads as the mode not having engaged.
-          <Suspense
-            fallback={
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  padding: "8px 12px",
-                  color: "var(--jrpg-gold)",
-                  fontFamily: "var(--font-body)",
-                  fontSize: "12px",
-                }}
-              >
-                <Spinner size={12} />
-                Loading map tools…
-              </div>
-            }
+          //
+          // The boundary is the DM menu's, arriving late. This Suspense has been
+          // bare since it was written, so a 404'd chunk after a deploy threw
+          // past it to the app root and replaced a live shared table with a
+          // full-page error. M4c fixed exactly this for the DM chunk on both
+          // layouts and did not reach the desktop palette.
+          <ErrorBoundary
+            fallback={<MapEditToolbarLoadFailure onClose={mapEditToolbarProps.onClose} />}
           >
-            <MapEditToolbar {...mapEditToolbarProps} />
-          </Suspense>
+            <Suspense
+              fallback={
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "8px 12px",
+                    color: "var(--jrpg-gold)",
+                    fontFamily: "var(--font-body)",
+                    fontSize: "12px",
+                  }}
+                >
+                  <Spinner size={12} />
+                  Loading map tools…
+                </div>
+              }
+            >
+              <MapEditToolbar {...mapEditToolbarProps} />
+            </Suspense>
+          </ErrorBoundary>
         )}
 
         {/* Header - Fixed at top */}

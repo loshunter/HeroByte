@@ -55,6 +55,7 @@ export interface MapBoardProps {
   mapEditController?: MapStudioController; // Shared Map Studio controller the tools drive
   mapEditWallsOverlayPinned?: boolean; // Keep the DM walls overlay visible outside map-edit
   onMapEditRoomRejected?: (message: string) => void; // Room drag refused (too large / no layer)
+  onMapEditGestureDropped?: () => void; // Gesture's commit skipped — a command was in flight
   onMapEditRegionPlaced?: (bounds: RoomBounds) => void; // Room/hallway placed → POPULATE target
   onMapEditRegionDragged?: (bounds: RoomBounds) => void; // Generate region swept → recipe target
   onMapEditSelectElement?: (elementId: string | null) => void; // Select tool picked an element

@@ -23,6 +23,7 @@ import { MapBackgroundControl } from "../map-controls/MapBackgroundControl";
 import { MapTransformControl } from "../map-controls/MapTransformControl";
 import { GridControl } from "../map-controls/GridControl";
 import { FogControl } from "../map-controls/FogControl";
+import { DefaultVisionControl } from "../map-controls/DefaultVisionControl";
 import { GridAlignmentWizard } from "../map-controls/GridAlignmentWizard";
 import { StagingZoneControl } from "../map-controls/StagingZoneControl";
 import { DrawingControls } from "../map-controls/DrawingControls";
@@ -64,6 +65,8 @@ export interface MapTabProps {
   fogEnabled?: boolean;
   hasCompiledScene?: boolean;
   onFogEnabledChange?: (enabled: boolean) => void;
+  defaultVisionRadius?: number;
+  onDefaultVisionRadiusChange?: (radiusFeet: number | null) => void;
 
   // GridAlignmentWizard props
   alignmentModeActive: boolean;
@@ -117,6 +120,8 @@ export default function MapTab({
   fogEnabled,
   hasCompiledScene,
   onFogEnabledChange,
+  defaultVisionRadius,
+  onDefaultVisionRadiusChange,
   alignmentModeActive,
   alignmentPoints,
   alignmentSuggestion,
@@ -183,6 +188,14 @@ export default function MapTab({
           fogEnabled={fogEnabled ?? false}
           hasCompiledScene={hasCompiledScene ?? false}
           onFogEnabledChange={onFogEnabledChange}
+        />
+      )}
+
+      {onDefaultVisionRadiusChange && (
+        <DefaultVisionControl
+          defaultVisionRadius={defaultVisionRadius}
+          onDefaultVisionRadiusChange={onDefaultVisionRadiusChange}
+          fogEnabled={fogEnabled ?? false}
         />
       )}
 

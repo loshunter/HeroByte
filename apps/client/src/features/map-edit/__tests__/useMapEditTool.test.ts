@@ -224,7 +224,12 @@ describe("useMapEditTool", () => {
     expect(controller.addWall).not.toHaveBeenCalled();
   });
 
-  it("skips the commit while the controller is saving", () => {
+  // The skip is right — one command in flight at a time is the Studio's rule.
+  // Doing it in total silence was not: clearDrag() removes the rubber band
+  // either way and a skip never sets controller.error, so on a phone at real
+  // latency the DM draws a wall and simply does not get one.
+  it("skips the commit while the controller is saving, and SAYS it dropped the gesture", () => {
+    const onGestureDropped = vi.fn();
     const controller = makeController({ saving: true });
     const { result } = renderHook(() =>
       useMapEditTool({
@@ -233,6 +238,7 @@ describe("useMapEditTool", () => {
         controller,
         liveDocumentId: "live",
         floorFamily: "grass",
+        onGestureDropped,
         toWorld: identityToWorld,
         mapTransform: undefined,
       }),
@@ -243,6 +249,111 @@ describe("useMapEditTool", () => {
     act(() => result.current.onMouseUp());
 
     expect(controller.addWall).not.toHaveBeenCalled();
+    expect(onGestureDropped).toHaveBeenCalledTimes(1);
+  });
+
+  it("stays quiet when the commit actually lands", () => {
+    // Without this half, a notice wired to fire unconditionally passes the
+    // test above and cries wolf on every successful wall in the app.
+    const onGestureDropped = vi.fn();
+    const controller = makeController();
+    const { result } = renderHook(() =>
+      useMapEditTool({
+        mapEditMode: true,
+        activeSubTool: "wall",
+        controller,
+        liveDocumentId: "live",
+        floorFamily: "grass",
+        onGestureDropped,
+        toWorld: identityToWorld,
+        mapTransform: undefined,
+      }),
+    );
+
+    act(() => result.current.onMouseDown(makeStage({ x: 100, y: 100 }).ref));
+    act(() => result.current.onMouseMove(makeStage({ x: 200, y: 100 }).ref));
+    act(() => result.current.onMouseUp());
+
+    expect(controller.addWall).toHaveBeenCalledTimes(1);
+    expect(onGestureDropped).not.toHaveBeenCalled();
+  });
+
+  // Generate's release sends NO command — it only reports the region the DM
+  // aimed at, which the panel fires later (commitDragTool says so in as many
+  // words). Gating that on `saving` bought nothing, because there was nothing
+  // of its own to pile up, and cost the aim: the rubber band clears on release
+  // either way, so the DM watched their rectangle vanish and the panel not
+  // update. The notice would have been accurate but the loss was avoidable.
+  it("aims a generate region while saving, rather than dropping it", () => {
+    const onRegionDragged = vi.fn();
+    const onGestureDropped = vi.fn();
+    const controller = makeController({ saving: true });
+    const { result } = renderHook(() =>
+      useMapEditTool({
+        mapEditMode: true,
+        activeSubTool: "generate",
+        controller,
+        liveDocumentId: "live",
+        floorFamily: "grass",
+        onRegionDragged,
+        onGestureDropped,
+        toWorld: identityToWorld,
+        mapTransform: undefined,
+      }),
+    );
+
+    act(() => result.current.onMouseDown(makeStage({ x: 100, y: 100 }).ref));
+    act(() => result.current.onMouseMove(makeStage({ x: 600, y: 600 }).ref));
+    act(() => result.current.onMouseUp());
+
+    expect(onRegionDragged).toHaveBeenCalledTimes(1);
+    expect(onGestureDropped).not.toHaveBeenCalled();
+    // Nothing reached the controller, which is exactly why the gate must not
+    // apply — and is what keeps the exemption honest if generate ever grows a
+    // command of its own.
+    expect(controller.placeRoom).not.toHaveBeenCalled();
+    expect(controller.addWall).not.toHaveBeenCalled();
+  });
+
+  it("stays SILENT when the document changed out from under the drag", () => {
+    // A deliberate asymmetry, and the live-binding re-check is the only way to
+    // reach it: onMouseDown already refuses to START on a non-live document,
+    // so the release-time guard exists for the doc changing MID-drag. That
+    // guard refusing a stray Map Studio document is the feature working, not
+    // the DM's gesture going missing, so it must not toast.
+    //
+    // Both controllers are saving:true on purpose. If the release checked
+    // `saving` before the document match, this would fire and the assertion
+    // below would catch it.
+    const onGestureDropped = vi.fn();
+    const live = makeController({ saving: true });
+    const stray = makeController({
+      activeDocument: { ...makeDocument(), id: "studio-doc" },
+      saving: true,
+    });
+    const { result, rerender } = renderHook(
+      ({ controller }) =>
+        useMapEditTool({
+          mapEditMode: true,
+          activeSubTool: "wall",
+          controller,
+          liveDocumentId: "live",
+          floorFamily: "grass",
+          onGestureDropped,
+          toWorld: identityToWorld,
+          mapTransform: undefined,
+        }),
+      { initialProps: { controller: live } },
+    );
+
+    act(() => result.current.onMouseDown(makeStage({ x: 100, y: 100 }).ref));
+    act(() => result.current.onMouseMove(makeStage({ x: 200, y: 100 }).ref));
+    rerender({ controller: stray });
+    act(() => result.current.onMouseUp());
+
+    expect(live.addWall).not.toHaveBeenCalled();
+    expect(stray.addWall).not.toHaveBeenCalled();
+    expect(onGestureDropped).not.toHaveBeenCalled();
   });
 
   it("places a room (floor cells + perimeter) via a rect drag", () => {
@@ -548,8 +659,40 @@ describe("useMapEditTool", () => {
     expect(controller.addTile).not.toHaveBeenCalled();
   });
 
-  it("skips a placement while the controller is saving", () => {
-    const controller = makeController({ activeDocument: makeObjectsDocument(), saving: true });
+  // The click tools drop through a SECOND gate (useMapEditPlacement's own
+  // `saving` check), not the drag one — so covering the drag path leaves these
+  // two silent. Worse than a drag: the ghost is still sitting under the cursor
+  // afterwards, so the tool looks armed and willing.
+  it.each(["place", "scatter"] as const)(
+    "skips a %s while the controller is saving, and SAYS it dropped the gesture",
+    (subTool) => {
+      const onGestureDropped = vi.fn();
+      const controller = makeController({ activeDocument: makeObjectsDocument(), saving: true });
+      const { result } = renderHook(() =>
+        useMapEditTool({
+          mapEditMode: true,
+          activeSubTool: subTool,
+          controller,
+          liveDocumentId: "live",
+          floorFamily: "grass",
+          selectedAssetId: "objects:crate",
+          onGestureDropped,
+          toWorld: identityToWorld,
+          mapTransform: undefined,
+        }),
+      );
+
+      act(() => result.current.onMouseDown(makeStage({ x: 100, y: 100 }).ref));
+
+      expect(controller.addTile).not.toHaveBeenCalled();
+      expect(controller.addStamps).not.toHaveBeenCalled();
+      expect(onGestureDropped).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("stays quiet when a placement actually lands", () => {
+    const onGestureDropped = vi.fn();
+    const controller = makeController({ activeDocument: makeObjectsDocument() });
     const { result } = renderHook(() =>
       useMapEditTool({
         mapEditMode: true,
@@ -558,6 +701,32 @@ describe("useMapEditTool", () => {
         liveDocumentId: "live",
         floorFamily: "grass",
         selectedAssetId: "objects:crate",
+        onGestureDropped,
+        toWorld: identityToWorld,
+        mapTransform: undefined,
+      }),
+    );
+
+    act(() => result.current.onMouseDown(makeStage({ x: 100, y: 100 }).ref));
+
+    expect(controller.addTile).toHaveBeenCalledTimes(1);
+    expect(onGestureDropped).not.toHaveBeenCalled();
+  });
+
+  it("stays SILENT when the click tool is pointed at a non-live document", () => {
+    // Same asymmetry as the drag path: the ghost is already hidden there, so
+    // nothing was promised and nothing was taken away.
+    const onGestureDropped = vi.fn();
+    const controller = makeController({ activeDocument: makeObjectsDocument(), saving: true });
+    const { result } = renderHook(() =>
+      useMapEditTool({
+        mapEditMode: true,
+        activeSubTool: "place",
+        controller,
+        liveDocumentId: "some-other-doc",
+        floorFamily: "grass",
+        selectedAssetId: "objects:crate",
+        onGestureDropped,
         toWorld: identityToWorld,
         mapTransform: undefined,
       }),
@@ -566,6 +735,7 @@ describe("useMapEditTool", () => {
     act(() => result.current.onMouseDown(makeStage({ x: 100, y: 100 }).ref));
 
     expect(controller.addTile).not.toHaveBeenCalled();
+    expect(onGestureDropped).not.toHaveBeenCalled();
   });
 
   it("does not place into a non-live active document", () => {

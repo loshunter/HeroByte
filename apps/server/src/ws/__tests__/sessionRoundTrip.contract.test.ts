@@ -240,6 +240,9 @@ describe("session round trip", () => {
       // that is LOST, so a loader that hardcoded the default would pass with a
       // default-valued fixture. (A sabotage proved exactly that.)
       diagonalRule: "pathfinder",
+      // Non-null for the same reason, twice over: the sweep skips a null field
+      // as "had no value", and 45 is none of the presets the UI can produce.
+      defaultVisionRadius: 45,
       playerStagingZone: { x: 1, y: 2, width: 3, height: 4, rotation: 0 },
       characters: [
         { id: "char-1", name: "Hero", type: "pc", hp: 5, maxHp: 5, initiative: 12 } as never,
@@ -308,6 +311,7 @@ describe("session round trip", () => {
     expect(after.fogEnabled).toBe(true);
     expect(after.monsterHpDisplay).toBe("bloodied");
     expect(after.diagonalRule).toBe("pathfinder");
+    expect(after.defaultVisionRadius).toBe(45);
     expect(after.playerStagingZone).toEqual({ x: 1, y: 2, width: 3, height: 4, rotation: 0 });
     expect(after.props).toHaveLength(1);
     expect(after.drawings).toHaveLength(1);

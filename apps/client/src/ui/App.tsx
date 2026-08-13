@@ -44,6 +44,7 @@ import { MobileLayout } from "../layouts/MobileLayout";
 import { DMElevationModal } from "../features/dm/components/DMElevationModal";
 import { useMapStudio } from "../features/map-studio";
 import { useMapEditState } from "../features/map-edit/useMapEditState";
+import { useDroppedGestureNotice } from "../features/map-edit/useDroppedGestureNotice";
 import { useDoorSfx, useJuiceRuntime, useTurnChime } from "../features/juice";
 import { provideSessionCredentials } from "../features/session/sessionBridge";
 
@@ -348,6 +349,9 @@ function AuthenticatedApp({
     hasRasterBackground: Boolean(snapshot?.mapBackground),
     notifyError: toast.error,
   });
+  // A gesture whose commit was skipped mid-command. Same toast channel as a
+  // rejected room, throttled — see useDroppedGestureNotice for why.
+  const onMapEditGestureDropped = useDroppedGestureNotice(toast.error);
   // Bridge: useDMManagement mounts further down but must hear elevation
   // failures routed by useServerEventHandlers (single event subscriber).
   const dmElevationFailedRef = useRef<((reason: string) => void) | null>(null);
@@ -745,6 +749,7 @@ function AuthenticatedApp({
     mapEditSelectedElementId: mapEdit.selectedElementId,
     mapEditWallsOverlayPinned: mapEdit.wallsOverlayPinned,
     onMapEditRoomRejected: toast.error,
+    onMapEditGestureDropped,
     onMapEditRegionPlaced: mapEdit.onRegionPlaced,
     onMapEditRegionDragged: mapEdit.onRegionDragged,
     onMapEditSelectElement: mapEdit.onSelectElement,

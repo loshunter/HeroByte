@@ -142,7 +142,14 @@ test.describe("the mobile map-edit mode", () => {
         { timeout: 30_000 },
       );
       // Room and Wall only exist once the controller is on the bound document.
-      const roomTool = page.getByRole("button", { name: /Room/ });
+      // Scoped to the tool GRID, not the page: M5 adds sub-panels below it whose
+      // swatch labels are terrain family names, and the Room panel's "Wall ring:"
+      // options are one badly-named family away from matching /Wall/ too (desktop
+      // derives those labels by stripping a " Wall" suffix, so a family that does
+      // not end in it keeps the word). An unscoped match becomes a strict-mode
+      // violation the moment that happens, and the failure reads as a UI bug.
+      const toolGrid = page.locator(".mobile-tool-sheet__grid");
+      const roomTool = toolGrid.getByRole("button", { name: /Room/ });
       await expect(roomTool).toBeVisible({ timeout: 30_000 });
 
       const box = (await page.getByTestId("map-board").locator("canvas").first().boundingBox())!;
@@ -153,7 +160,13 @@ test.describe("the mobile map-edit mode", () => {
       });
 
       // ---- drag a room ----
+      // Room carries dials (wall ring, floor), so since M5 the sheet STAYS
+      // open on selection and the DM dismisses it deliberately. Asserting the
+      // open state first is the point: it is what makes this leg fail if the
+      // rule is ever silently reverted to close-on-any-tool.
       await roomTool.click();
+      await expect(page.locator(".mobile-tool-sheet")).toBeVisible();
+      await page.getByRole("button", { name: /To the map/i }).click();
       await expect(page.locator(".mobile-tool-sheet")).toBeHidden();
       await touchDrag(cdp, at(0.25, 0.3), [at(0.75, 0.6)]);
       await page.waitForFunction(
@@ -173,7 +186,11 @@ test.describe("the mobile map-edit mode", () => {
       // smoke spec takes for the same reason.
       await page.waitForTimeout(800);
       await dock.getByRole("button", { name: /Tool/ }).click();
-      await page.getByRole("button", { name: /Wall/ }).click();
+      await toolGrid.getByRole("button", { name: /Wall/ }).click();
+      // Wall has NO dials, so it closes the sheet on its own — the other half
+      // of the same rule, and the half that would pass vacuously if the sheet
+      // simply never closed.
+      await expect(page.locator(".mobile-tool-sheet")).toBeHidden();
       await touchDrag(cdp, at(0.3, 0.75), [at(0.7, 0.75)]);
       await expect.poll(() => wallCount(page), { timeout: 30_000 }).toBeGreaterThan(afterRoom);
 

@@ -59,6 +59,16 @@ export class SceneMessageHandler {
       this.getRoomState(roomId).playerPropsEnabled = message.enabled;
       return { broadcast: true, save: true };
     }
+    if (message.t === "set-default-vision-radius") {
+      if (!isDM) {
+        throw new Error("Default vision radius changes require DM permission");
+      }
+      // Stored only. The fallback is applied at READ time by the vision filter,
+      // so clearing this loosens every token with no radius of its own without
+      // touching a single token record.
+      this.getRoomState(roomId).defaultVisionRadius = message.radius;
+      return { broadcast: true, save: true };
+    }
     return null;
   }
 

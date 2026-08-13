@@ -109,6 +109,7 @@ describe("MobileLayout", () => {
     mapEditSelectedElementId: null,
     mapEditWallsOverlayPinned: false,
     onMapEditRoomRejected: vi.fn(),
+    onMapEditGestureDropped: vi.fn(),
     onMapEditRegionPlaced: vi.fn(),
     onMapEditRegionDragged: vi.fn(),
     onMapEditSelectElement: vi.fn(),
@@ -157,6 +158,7 @@ describe("MobileLayout", () => {
       onGenerate: vi.fn(),
       canGenerate: false,
       generateRegion: null,
+      generateHint: null,
       saving: false,
       layers: [],
       selectedElement: null,
@@ -296,6 +298,7 @@ describe("MobileLayout", () => {
       "mapEditController",
       "mapEditWallsOverlayPinned",
       "onMapEditRoomRejected",
+      "onMapEditGestureDropped",
       "onMapEditRegionPlaced",
       "onMapEditRegionDragged",
       "onMapEditSelectElement",
@@ -339,6 +342,9 @@ describe("MobileLayout", () => {
       expect(received.mapEditActiveSubTool).toBe("room");
       expect(received.onMapEditRegionPlaced).toBe(props.onMapEditRegionPlaced);
       expect(received.onMapEditRoomRejected).toBe(props.onMapEditRoomRejected);
+      // The phone is the surface this one exists for: a DM authoring over a
+      // real network drops gestures the desktop never notices.
+      expect(received.onMapEditGestureDropped).toBe(props.onMapEditGestureDropped);
       expect(received.onMapEditSelectElement).toBe(props.onMapEditSelectElement);
       expect(received.onMapEditSampleAsset).toBe(props.onMapEditSampleAsset);
       expect(received.onMapEditRegionDragged).toBe(props.onMapEditRegionDragged);

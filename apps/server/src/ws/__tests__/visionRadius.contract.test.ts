@@ -255,6 +255,68 @@ describe("vision radius contracts (S7)", () => {
     });
   });
 
+  describe("the table default, through the real router", () => {
+    // Nothing about any token changes here — only a room setting. Note this
+    // exercises the SNAPSHOT path, which rebuilds vision per broadcast and is
+    // therefore blind to a stale visionSignature; the cache guard is the
+    // pointer-relay test below.
+    it("clips a player who has no radius of their own, no token having moved", () => {
+      route({ t: "chat", text: "ping" }, ALICE);
+      expect(tokenIdsLastSeenBy(aliceWs)).toContain("far-monster");
+
+      route({ t: "set-default-vision-radius", radius: 10 }, DM);
+
+      const ids = tokenIdsLastSeenBy(aliceWs);
+      expect(ids).toContain("alice-token");
+      expect(ids).not.toContain("far-monster");
+    });
+
+    it("gives the sight back when the default is cleared", () => {
+      route({ t: "set-default-vision-radius", radius: 10 }, DM);
+      expect(tokenIdsLastSeenBy(aliceWs)).not.toContain("far-monster");
+
+      route({ t: "set-default-vision-radius", radius: null }, DM);
+      expect(tokenIdsLastSeenBy(aliceWs)).toContain("far-monster");
+    });
+
+    it("lets a token's own radius override the table default", () => {
+      route({ t: "set-default-vision-radius", radius: 10 }, DM);
+      expect(tokenIdsLastSeenBy(aliceWs)).not.toContain("far-monster");
+
+      route({ t: "set-token-vision-radius", tokenId: "alice-token", radius: 60 }, DM);
+      expect(tokenIdsLastSeenBy(aliceWs)).toContain("far-monster");
+    });
+
+    it("refuses a player setting it, and the payloads do not move", () => {
+      route({ t: "set-default-vision-radius", radius: 10 }, DM);
+      route({ t: "set-default-vision-radius", radius: 1000 }, ALICE);
+
+      expect(roomService.getState().defaultVisionRadius).toBe(10);
+      expect(tokenIdsLastSeenBy(aliceWs)).not.toContain("far-monster");
+    });
+
+    // The gap S7 documented and this slice closes. The respawn itself belongs
+    // to AuthenticationHandler; what matters here is the shape it produces —
+    // a fresh token with NO radius, nothing left to inherit from — and that
+    // the table default clips it anyway.
+    it("clips a token that respawned with nothing to inherit from", () => {
+      route({ t: "set-default-vision-radius", radius: 10 }, DM);
+      route({ t: "delete-token", id: "alice-token" }, ALICE);
+
+      roomService.setState({
+        tokens: [
+          ...roomService.getState().tokens,
+          { id: "alice-respawn", owner: ALICE, x: 1, y: 1, color: "red" },
+        ],
+      });
+      route({ t: "chat", text: "ping" }, ALICE);
+
+      const ids = tokenIdsLastSeenBy(aliceWs);
+      expect(ids).toContain("alice-respawn");
+      expect(ids).not.toContain("far-monster");
+    });
+  });
+
   // The staleness landmine, driven through the REAL router cache rather than
   // through visionSignature directly. A player's `pointer-preview` is routed
   // per recipient through getVisionContextFor, which is the cached path.
@@ -282,6 +344,35 @@ describe("vision radius contracts (S7)", () => {
       expect(pointerFramesSeenBy(aliceWs)).toBe(0);
       // Bob still gets his own echo, so the router really did run.
       expect(pointerFramesSeenBy(bobWs)).toBeGreaterThan(0);
+    });
+
+    // The same landmine for the ROOM setting, and the only end-to-end guard
+    // that a visionSignature missing the default actually has: the snapshot
+    // path recomputes vision every broadcast and cannot show this.
+    it("stops relaying a ping once the TABLE default puts it out of range", () => {
+      route({ t: "point", x: 275, y: 75 }, BOB);
+      expect(pointerFramesSeenBy(aliceWs)).toBeGreaterThan(0);
+
+      route({ t: "set-default-vision-radius", radius: 10 }, DM);
+      aliceWs.send.mockClear();
+      bobWs.send.mockClear();
+      route({ t: "point", x: 275, y: 75 }, BOB);
+
+      expect(pointerFramesSeenBy(aliceWs)).toBe(0);
+      expect(pointerFramesSeenBy(bobWs)).toBeGreaterThan(0);
+    });
+
+    it("starts relaying again the moment the table default is cleared", () => {
+      route({ t: "set-default-vision-radius", radius: 10 }, DM);
+      aliceWs.send.mockClear();
+      route({ t: "point", x: 275, y: 75 }, BOB);
+      expect(pointerFramesSeenBy(aliceWs)).toBe(0);
+
+      route({ t: "set-default-vision-radius", radius: null }, DM);
+      aliceWs.send.mockClear();
+      route({ t: "point", x: 275, y: 75 }, BOB);
+
+      expect(pointerFramesSeenBy(aliceWs)).toBeGreaterThan(0);
     });
 
     it("starts relaying again the moment the radius is widened", () => {

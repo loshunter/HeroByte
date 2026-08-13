@@ -651,5 +651,38 @@ describe("MessageQueueManager - Characterization Tests", () => {
 
       expect(mockWebSocket.send).toHaveBeenCalledTimes(1);
     });
+
+    // drag-preview joined the set after S6 deliberately left it out — it has
+    // the same shape (a live gesture, superseded by its own next frame) and the
+    // same consequence: a reconnect replayed a token being dragged along a path
+    // it had already finished travelling.
+    it("drops a drag preview instead of queueing it when the socket is down", () => {
+      const canSend = vi.fn(() => true);
+      const closed = { readyState: 3, send: vi.fn() } as unknown as WebSocket;
+
+      for (let i = 0; i < 50; i += 1) {
+        queueManager.send(
+          { t: "drag-preview", objects: [{ id: "token-1", x: i, y: i }] },
+          closed,
+          canSend,
+        );
+      }
+
+      expect(queueManager.getQueueLength()).toBe(0);
+    });
+
+    it("sends a drag preview normally while the socket is open", () => {
+      // The other half: a type that is dropped ALWAYS would satisfy the test
+      // above while breaking the live gesture it exists to carry.
+      const canSend = vi.fn(() => true);
+
+      queueManager.send(
+        { t: "drag-preview", objects: [{ id: "token-1", x: 5, y: 5 }] },
+        mockWebSocket,
+        canSend,
+      );
+
+      expect(mockWebSocket.send).toHaveBeenCalledTimes(1);
+    });
   });
 });

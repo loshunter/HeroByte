@@ -71,6 +71,27 @@ describe("Room Model - toSnapshot", () => {
       expect(toSnapshot(createEmptyRoomState(), false).compiledScene).toBeUndefined();
     });
 
+    // The table sight default is a RULE, not DM chrome. Gate it behind isDM
+    // and it works in the DM's own fog preview while doing nothing on every
+    // player's screen — and the server filter would still strip their
+    // payloads, leaving the two halves of the app disagreeing.
+    it("sends the table sight default to players, not just the DM", () => {
+      const state = createEmptyRoomState();
+      state.defaultVisionRadius = 60;
+
+      expect(toSnapshot(state, true).defaultVisionRadius).toBe(60);
+      expect(toSnapshot(state, false, "player-1").defaultVisionRadius).toBe(60);
+    });
+
+    it("omits the table sight default when there is none, and sends a 0 default", () => {
+      // `!== null`, not truthiness: a blind-by-default table is a real setting.
+      expect(toSnapshot(createEmptyRoomState(), false).defaultVisionRadius).toBeUndefined();
+
+      const blind = createEmptyRoomState();
+      blind.defaultVisionRadius = 0;
+      expect(toSnapshot(blind, false, "player-1").defaultVisionRadius).toBe(0);
+    });
+
     it("passes published terrain through to DM and player snapshots alike", () => {
       // Terrain is visible map art (no hidden info), so unlike compiledScene
       // it needs no per-role stripping — but it must actually ride along.

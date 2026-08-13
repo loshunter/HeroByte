@@ -17,6 +17,11 @@ import { render, screen, fireEvent, cleanup, within } from "@testing-library/rea
 import { MobileFloatingControls } from "../MobileFloatingControls";
 import type { MobileSurface } from "../../../hooks/useMobileSurface";
 import type { MapEditToolbarProps } from "../../../features/map-edit/mapEditTypes";
+import { isDragTool } from "../../../features/map-edit/mapEditToolKinds";
+import {
+  DRAG_TOOL_COUNT,
+  MOBILE_TOOL_TILES,
+} from "../../../features/map-edit/mobile/mobileToolTiles";
 
 afterEach(() => cleanup());
 
@@ -174,7 +179,10 @@ describe("the map-edit palette", () => {
     const live = (overrides: Record<string, unknown> = {}) =>
       props({ surface: "tools", mapEditToolbarProps: toolbar({ isLive: true, ...overrides }) });
 
-    it("offers Room and Wall, and picking one closes the sheet to show the map", () => {
+    // M5's one behavioural change. Both halves are required: a rule that never
+    // closes passes the Room half alone, and one that always closes passes the
+    // Wall half alone.
+    it("closes the sheet for a dial-less tool and keeps it open for one with dials", () => {
       const bar = toolbar({ isLive: true });
       const onToggleSurface = vi.fn();
       render(
@@ -182,14 +190,42 @@ describe("the map-edit palette", () => {
           {...props({ surface: "tools", mapEditToolbarProps: bar, onToggleSurface })}
         />,
       );
+      const sheet = screen.getByRole("dialog", { name: /map tools/i });
 
-      fireEvent.click(screen.getByRole("button", { name: /Room/ }));
-      expect(bar.onSelectSubTool).toHaveBeenCalledWith("room");
-      // You pick a tool in order to USE it, and the tool needs the canvas.
+      // Wall has no dials: you picked it in order to USE it, and it needs the
+      // canvas that the sheet is covering.
+      fireEvent.click(within(sheet).getByRole("button", { name: /^Wall$/ }));
+      expect(bar.onSelectSubTool).toHaveBeenCalledWith("wall");
       expect(onToggleSurface).toHaveBeenCalledWith("tools");
 
-      fireEvent.click(screen.getByRole("button", { name: /Wall/ }));
-      expect(bar.onSelectSubTool).toHaveBeenCalledWith("wall");
+      onToggleSurface.mockClear();
+
+      // Room has dials. Closing over them would hide the options behind a
+      // reopen the DM has no way to know is needed.
+      fireEvent.click(within(sheet).getByRole("button", { name: /^Room$/ }));
+      expect(bar.onSelectSubTool).toHaveBeenCalledWith("room");
+      expect(onToggleSurface).not.toHaveBeenCalled();
+    });
+
+    it("shows the dials of the armed tool, and an explicit way back to the map", () => {
+      const onToggleSurface = vi.fn();
+      render(
+        <MobileFloatingControls
+          {...props({
+            surface: "tools",
+            mapEditToolbarProps: toolbar({ isLive: true, activeSubTool: "room" }),
+            onToggleSurface,
+          })}
+        />,
+      );
+
+      expect(screen.getByText("Wall ring")).toBeInTheDocument();
+      expect(screen.getByText("Floor")).toBeInTheDocument();
+
+      // Not "Use Room": a second button carrying a tool's name would make the
+      // e2e tile locators ambiguous and fail as a strict-mode violation.
+      fireEvent.click(screen.getByRole("button", { name: /To the map/i }));
+      expect(onToggleSurface).toHaveBeenCalledWith("tools");
     });
 
     it("marks the armed sub-tool, so the DM can tell room from wall without dragging", () => {
@@ -235,6 +271,73 @@ describe("the map-edit palette", () => {
     it("surfaces a controller error where the DM is looking", () => {
       render(<MobileFloatingControls {...live({ error: "revision conflict" })} />);
       expect(screen.getByRole("alert")).toHaveTextContent("revision conflict");
+    });
+
+    // The phone is where the in-flight window actually bites: a DM here is
+    // authoring over a real round trip, and a gesture finished inside one is
+    // dropped. `saving` is the command-in-flight flag — NOT `busy`, which is
+    // the create/open/bind round trip and which this same palette spent five
+    // milestones mislabelling as "saving…" on the desktop.
+    it("shows the save round trip while a command is in flight", () => {
+      render(<MobileFloatingControls {...live({ saving: true })} />);
+
+      expect(within(dock()).getByText("Saving…")).toBeVisible();
+    });
+
+    it("says nothing when the controller is idle, or merely BINDING", () => {
+      const { unmount } = render(<MobileFloatingControls {...live()} />);
+      expect(within(dock()).queryByText("Saving…")).toBeNull();
+      unmount();
+
+      // The half that matters: wired to the wrong flag this would light up on
+      // every bind and stay dark for every command — the exact desktop bug.
+      render(<MobileFloatingControls {...live({ busy: true, saving: false })} />);
+      expect(within(dock()).queryByText("Saving…")).toBeNull();
+    });
+
+    it("adds no sixth SLOT — the chip is not a control", () => {
+      render(<MobileFloatingControls {...live({ saving: true })} />);
+
+      expect(within(dock()).getAllByRole("button")).toHaveLength(5);
+      expect(within(dock()).getByText("Saving…")).toBeVisible();
+    });
+
+    // Scope, stated rather than implied: that pins the chip as a non-control.
+    // It does NOT prove the chip stays out of the grid's flow — jsdom does no
+    // layout and the theme stylesheet is not loaded here, so losing
+    // `position: absolute` keeps every assertion green while the real dock
+    // breaks. Measured in a browser instead (375x812): five 63px buttons on
+    // one row, dock 68px, chip 98x24 centred above it — and flipping the chip
+    // to position:static put the dock on TWO rows at 120px. Landscape
+    // 812x375, where the slim-dock media query applies, holds at one row/63px.
+
+    // The grid is DERIVED from DRAG_TOOLS rather than hand-listed. These two
+    // are what make that derivation honest instead of decorative: one proves
+    // every armed tool is reachable, the other proves nothing else got in.
+    it("reaches every tool the touch path arms — one tile each, wired to its own id", () => {
+      const bar = toolbar({ isLive: true });
+      render(<MobileFloatingControls {...props({ surface: "tools", mapEditToolbarProps: bar })} />);
+
+      const grid = screen.getByRole("dialog", { name: /map tools/i });
+      for (const tile of MOBILE_TOOL_TILES) {
+        fireEvent.click(within(grid).getByRole("button", { name: new RegExp(`^${tile.label}$`) }));
+        expect(bar.onSelectSubTool).toHaveBeenCalledWith(tile.id);
+      }
+      // A tile list that silently lost one would still pass the loop above.
+      expect(MOBILE_TOOL_TILES).toHaveLength(DRAG_TOOL_COUNT);
+    });
+
+    it("offers NOTHING the touch path refuses to arm", () => {
+      render(<MobileFloatingControls {...live()} />);
+      const grid = screen.getByRole("dialog", { name: /map tools/i });
+
+      // A tap generates compat mouse events where a drag does not, so a click
+      // tool on the phone would drop two stamps per tap. These must not appear
+      // until that design pass lands (M6/M7).
+      for (const absent of [/Place/, /Scatter/, /Light/, /Paint/, /Erase/, /Select/]) {
+        expect(within(grid).queryByRole("button", { name: absent })).toBeNull();
+      }
+      expect(MOBILE_TOOL_TILES.every((tile) => isDragTool(tile.id))).toBe(true);
     });
   });
 });

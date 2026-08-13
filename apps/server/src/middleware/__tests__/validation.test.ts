@@ -1780,6 +1780,40 @@ describe("validateMessage", () => {
     });
   });
 
+  describe("set-default-vision-radius", () => {
+    it("accepts null — the clear-the-table-default signal", () => {
+      expect(validateMessage({ t: "set-default-vision-radius", radius: null })).toEqual({
+        valid: true,
+      });
+    });
+
+    it("accepts the ends of the range, including a blind table", () => {
+      for (const radius of [0, 5, 60, 120, 1000]) {
+        expect(validateMessage({ t: "set-default-vision-radius", radius })).toEqual({
+          valid: true,
+        });
+      }
+    });
+
+    // The same reach as the per-token radius: this value lands in the vision
+    // sweep for every token that has none of its own, so a negative would
+    // blind the whole table and an absurd one hands the geometry nonsense.
+    it("rejects a radius outside the range", () => {
+      expect(validateMessage({ t: "set-default-vision-radius", radius: -1 }).valid).toBe(false);
+      expect(validateMessage({ t: "set-default-vision-radius", radius: 1001 }).valid).toBe(false);
+      expect(validateMessage({ t: "set-default-vision-radius", radius: 1e308 }).valid).toBe(false);
+    });
+
+    // Absent is refused rather than read as null: clearing the table default
+    // is a deliberate act and has to be spelled.
+    it("rejects a non-numeric or absent radius", () => {
+      for (const radius of ["60", undefined, {}, [], true, Number.NaN, Number.POSITIVE_INFINITY]) {
+        expect(validateMessage({ t: "set-default-vision-radius", radius }).valid).toBe(false);
+      }
+      expect(validateMessage({ t: "set-default-vision-radius" }).valid).toBe(false);
+    });
+  });
+
   describe("measure", () => {
     const line = { start: { x: 10, y: 20 }, end: { x: 30, y: 40 } };
 

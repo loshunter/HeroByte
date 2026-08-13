@@ -18,6 +18,7 @@ function renderPanel(overrides: Partial<Parameters<typeof GeneratePanel>[0]> = {
     canGenerate: true,
     busy: false,
     region: { cols: 24, rows: 18 },
+    hint: null,
     ...overrides,
   };
   render(<GeneratePanel {...props} />);
@@ -41,6 +42,22 @@ describe("GeneratePanel", () => {
     renderPanel();
 
     expect(screen.getByTestId("generate-seed")).toHaveTextContent("4242");
+  });
+
+  // A disabled GENERATE with nothing explaining it is the failure this mode is
+  // worst at: the button cannot be pressed, so the toast inside onGenerate can
+  // never fire, and the DM is left guessing.
+  it("puts the refusal on screen beside the button it disables", () => {
+    renderPanel({ canGenerate: false, hint: "Drag at least 20×20 cells — needs room." });
+
+    expect(screen.getByTestId("generate-hint")).toHaveTextContent(/20×20/);
+    expect(screen.getByRole("button", { name: /GENERATE/i })).toBeDisabled();
+  });
+
+  it("says nothing when there is nothing to say", () => {
+    renderPanel({ canGenerate: true, hint: null });
+
+    expect(screen.queryByTestId("generate-hint")).not.toBeInTheDocument();
   });
 
   it("fires the recipe", () => {

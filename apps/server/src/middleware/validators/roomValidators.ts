@@ -3,9 +3,35 @@
 // ============================================================================
 // Validates room management, session, and auth messages
 
+import { VISION_RADIUS_MAX_FEET, VISION_RADIUS_MIN_FEET } from "@herobyte/shared";
 import type { ValidationResult, MessageRecord } from "./commonValidators.js";
 import { isRecord, isFiniteNumber, validateStagingZone } from "./commonValidators.js";
 import { STRING_LIMITS } from "./constants.js";
+
+/**
+ * Validate set-default-vision-radius message
+ * Required: radius (null for no table default, or feet in range)
+ *
+ * Mirrors validateSetTokenVisionRadiusMessage minus the tokenId, and borrows
+ * the same shared bounds so the validator and the geometry cannot drift. An
+ * ABSENT radius is refused rather than read as null: clearing the default is a
+ * deliberate act and must be spelled.
+ */
+export function validateSetDefaultVisionRadiusMessage(message: MessageRecord): ValidationResult {
+  if (message.radius === null) {
+    return { valid: true };
+  }
+  if (!isFiniteNumber(message.radius)) {
+    return { valid: false, error: "set-default-vision-radius: radius must be a number or null" };
+  }
+  if (message.radius < VISION_RADIUS_MIN_FEET || message.radius > VISION_RADIUS_MAX_FEET) {
+    return {
+      valid: false,
+      error: `set-default-vision-radius: radius must be between ${VISION_RADIUS_MIN_FEET} and ${VISION_RADIUS_MAX_FEET} feet`,
+    };
+  }
+  return { valid: true };
+}
 
 /**
  * Validate set-player-staging-zone message

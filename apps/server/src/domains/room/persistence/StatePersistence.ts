@@ -14,6 +14,7 @@ import { readFileSync, existsSync, renameSync } from "fs";
 import { writeFile, rename } from "fs/promises";
 import type { Player, Character, SceneObject } from "@herobyte/shared";
 import {
+  coerceDefaultVisionRadius,
   coerceDiagonalRule,
   coerceMonsterHpDisplay,
   coerceTokenVisionRadii,
@@ -151,6 +152,10 @@ export class StatePersistence {
           // because a hand-edited file carried "yes" or 1. Older files have no
           // key at all, which reads as off — the shipped default.
           playerPropsEnabled: data.playerPropsEnabled === true,
+          // Clamped rather than passed through: the sweep divides by this, and
+          // ABSENT is the normal case — every state file already on the
+          // production disk predates the field and must read as no default.
+          defaultVisionRadius: coerceDefaultVisionRadius(data.defaultVisionRadius),
         };
 
         this.setState(loadedState);
@@ -247,6 +252,7 @@ export class StatePersistence {
       monsterHpDisplay: state.monsterHpDisplay,
       diagonalRule: state.diagonalRule,
       playerPropsEnabled: state.playerPropsEnabled,
+      defaultVisionRadius: state.defaultVisionRadius,
       stateVersion: state.stateVersion,
       // Combat state survives a restart on purpose (VISION.md calls this a
       // launch gate): a mid-fight crash or redeploy must not lose initiative.

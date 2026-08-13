@@ -188,6 +188,52 @@ describe("StatePersistence - Characterization Tests", () => {
       expect(legacy.getState().playerPropsEnabled).toBe(false);
     });
 
+    it("round-trips the table sight default, clamping junk and reading an absent key as none", async () => {
+      roomService.getState().defaultVisionRadius = 60;
+      roomService.saveState();
+      await roomService.awaitPendingWrites();
+
+      const fresh = new RoomService({ stateFile: PROD_STATE_FILE });
+      fresh.loadState();
+      expect(fresh.getState().defaultVisionRadius).toBe(60);
+
+      // Clamped rather than rejected: the sweep divides by this value, so an
+      // absurd one has to land somewhere sane instead of being dropped.
+      const raw = JSON.parse(readFileSync(PROD_STATE_FILE, "utf-8"));
+      raw.defaultVisionRadius = 5000;
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(raw));
+      const clamped = new RoomService({ stateFile: PROD_STATE_FILE });
+      clamped.loadState();
+      expect(clamped.getState().defaultVisionRadius).toBe(1000);
+
+      // Junk reads as NO default, never as blind — a coercion bug must not
+      // silently black out a table.
+      raw.defaultVisionRadius = "60";
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(raw));
+      const poisoned = new RoomService({ stateFile: PROD_STATE_FILE });
+      poisoned.loadState();
+      expect(poisoned.getState().defaultVisionRadius).toBeNull();
+
+      // Every state file already on the production disk predates this field,
+      // and the Render disk survives deploys — so this is the first boot after
+      // shipping, not a hypothetical.
+      delete raw.defaultVisionRadius;
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(raw));
+      const legacy = new RoomService({ stateFile: PROD_STATE_FILE });
+      legacy.loadState();
+      expect(legacy.getState().defaultVisionRadius).toBeNull();
+    });
+
+    it("persists a table default of 0, which is blind rather than absent", async () => {
+      roomService.getState().defaultVisionRadius = 0;
+      roomService.saveState();
+      await roomService.awaitPendingWrites();
+
+      const fresh = new RoomService({ stateFile: PROD_STATE_FILE });
+      fresh.loadState();
+      expect(fresh.getState().defaultVisionRadius).toBe(0);
+    });
+
     it("should do nothing when state file does not exist", () => {
       // Ensure file doesn't exist
       expect(existsSync(PROD_STATE_FILE)).toBe(false);
@@ -770,6 +816,7 @@ describe("StatePersistence - Characterization Tests", () => {
       expect(savedData).toHaveProperty("sceneObjects");
       expect(savedData).toHaveProperty("playerStagingZone");
       expect(savedData).toHaveProperty("playerPropsEnabled");
+      expect(savedData).toHaveProperty("defaultVisionRadius");
     });
 
     it("should be fire-and-forget (async, non-blocking)", () => {

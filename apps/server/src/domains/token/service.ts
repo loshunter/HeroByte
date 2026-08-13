@@ -77,10 +77,12 @@ export class TokenService {
     // unclipped polygon and the darkness the DM set is simply gone, with no
     // signal to the DM. Inheriting the MINIMUM fails closed.
     //
-    // KNOWN GAP: this cannot help when the player has no tokens left to
-    // inherit from — deleting your only token and reconnecting still respawns
-    // an unlimited one. Closing that needs a room-level default; see the arc
-    // note on S7.
+    // A player with NO token left to inherit from is caught by the ROOM
+    // default, resolved at read time in visionFilter — but only on a table
+    // whose DM has set one. Where defaultVisionRadius is null (the shipped
+    // value, and every table until someone opens the Map tab) the S7 gap is
+    // exactly as wide as it was: delete your only token, reconnect, see
+    // everything.
     const inherited = this.tightestVisionRadius(state, ownerUid);
     if (inherited !== undefined) {
       newToken.visionRadius = inherited;

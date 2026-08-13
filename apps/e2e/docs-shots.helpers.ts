@@ -99,10 +99,20 @@ export async function waitSnap(page: Page, predicate: () => boolean, timeout = 2
 }
 
 // Let an in-flight map-studio command land and the terrain bake settle before
-// capturing: the palette shows "saving…" while a command is outstanding, and
-// a "Painting terrain… N%" chip tracks the local worker bake.
+// capturing: the palette shows "saving…" while a command is outstanding and
+// "loading…" while a create/open/bind round trip is, and a "Painting terrain…
+// N%" chip tracks the local worker bake.
+//
+// Both labels are waited on because until M5 they were ONE span that rendered
+// "saving…" off the BIND flag. So this helper has been waiting out the bind and
+// never once waited for a command — the thing its own comment said it was for,
+// and the 1.2s extraMs below was quietly covering the difference.
+//
+// exact on the new one: Playwright's default string match is a case-insensitive
+// SUBSTRING, and both upload buttons render "Uploading…", which contains it.
 export async function waitBake(page: Page, extraMs = 1_200) {
   await expect(page.getByText("saving…")).toBeHidden({ timeout: 15_000 });
+  await expect(page.getByText("loading…", { exact: true })).toBeHidden({ timeout: 15_000 });
   await expect(page.getByText(/Painting terrain/)).toBeHidden({ timeout: 30_000 });
   await page.waitForTimeout(extraMs);
 }

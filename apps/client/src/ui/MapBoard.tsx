@@ -107,6 +107,7 @@ export default function MapBoard({
   mapEditController,
   mapEditWallsOverlayPinned = false,
   onMapEditRoomRejected,
+  onMapEditGestureDropped,
   onMapEditRegionPlaced,
   onMapEditRegionDragged,
   onMapEditSelectElement,
@@ -367,6 +368,7 @@ export default function MapBoard({
     splineKind: mapEditSplineKind,
     selectedElementId: mapEditSelectedElementId,
     onRoomRejected: onMapEditRoomRejected,
+    onGestureDropped: onMapEditGestureDropped,
     onRegionPlaced: onMapEditRegionPlaced,
     onRegionDragged: onMapEditRegionDragged,
     onSelectElement: onMapEditSelectElement,
@@ -810,7 +812,13 @@ export default function MapBoard({
             cam={cam}
             compiledScene={snapshot.compiledScene}
             mapTransform={mapObject?.transform}
-            viewers={fogViewers(snapshot.tokens ?? [], uid, isDM && playerLens, grid.size)}
+            viewers={fogViewers(
+              snapshot.tokens ?? [],
+              uid,
+              isDM && playerLens,
+              grid.size,
+              snapshot.defaultVisionRadius,
+            )}
             gridSize={grid.size}
             gridSquareSize={snapshot?.gridSquareSize ?? 5}
             exploredStorageKey={exploredStorageKey}
