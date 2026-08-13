@@ -108,10 +108,15 @@ export class MessageQueueManager {
    * lines where nobody is standing any more. Superseded by the next frame is
    * the correct outcome; arriving twelve seconds late is not.
    *
-   * `drag-preview` has the same shape and is NOT listed here: it predates this
-   * and changing its behaviour is not this slice's to make.
+   * `drag-preview` is listed for exactly the same reason, and the reasoning
+   * transferred without modification: it is a live gesture broadcast many times
+   * a second, superseded by its own next frame, and the drop that ends it is
+   * re-sent anyway. S6 left it alone because it predated that slice and
+   * widening the change was not S6's to make — not because it differed.
+   * It is already in nonRetriableTypes below, which is the same judgement
+   * applied to a different concern.
    */
-  private readonly ephemeralTypes = new Set<ClientMessage["t"]>(["measure"]);
+  private readonly ephemeralTypes = new Set<ClientMessage["t"]>(["measure", "drag-preview"]);
 
   private readonly nonRetriableTypes = new Set<ClientMessage["t"]>([
     "authenticate",
