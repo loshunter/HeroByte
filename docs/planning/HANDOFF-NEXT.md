@@ -7,7 +7,53 @@ than a fact, it says so.
 
 ## 0. Where things stand
 
-**Current state (2026-08-12, later).** **M5 of the mobile authoring arc is SHIPPED to `dev`** —
+**Current state (2026-08-14).** A **loose-ends batch** is on `dev`, eight commits,
+`c24845d9..ca36ed03`, each behind the §2 gate and each sabotage-proven before commit. It closes
+five of the six "unexamined areas" M5's review left (the sixth, real-device iOS, is now probeable
+but not closed). **Not pushed, not merged, not deployed.**
+
+| Branch | Commit     | State                                                          |
+| ------ | ---------- | -------------------------------------------------------------- |
+| `dev`  | `ca36ed03` | +the loose-ends batch. NOT pushed.                             |
+| `main` | `c0b6e648` | production, deployed, green (CI #790)                          |
+
+What the batch did, in dependency order rather than commit order:
+
+- **`c24845d9`** — `/__e2e/reset` answered a transient teardown race with a bare 500, identical to
+  a dead server, and the fixture gave up after one POST. Now 409 + the real reason, and a bounded
+  3s retry. Found by the WebKit run below, but it is engine-independent hardening: the race is
+  Chromium's too, just rarer.
+- **`eed07ce3`** — the `webkit-check` skill is committed. It was written but untracked, so it
+  existed only in one working tree. Run it by hand; it is deliberately NOT in CI (see its SKILL.md
+  for why, and read that before adding a webkit project to `playwright.config.ts`).
+- **`a5059036`** — the asset store charged a cross-room claim twice against the WHOLE-STORE
+  ceiling. §3D listed this; it is fixed. The per-room ceiling was correct and is unchanged.
+- **`d75fe22b`** — GENERATE's aimed region survived leaving map-edit, because `armed` only ever
+  watched the sub-tool and `activeSubTool` outlives the mode. Reopening came back armed at an
+  invisible rectangle.
+- **`1a0c351c` + `70b36238`** — portraits go through ImageField. The player card was the only
+  surface still prompting (the phone had been routing correctly all along); **NPCs had no upload
+  path anywhere** and now do. The dead prop chain and the last image-path `window.prompt` went with
+  it.
+- **`4336387b`** — the authoring journey now runs at 390 as well as at the tablet's 820.
+- **`ca36ed03`** — a tablet rotating across the layout rule keeps its armed tool and dial values.
+  The review feared it did not; it does, because those live in App-level `useMapEditState`. Also
+  the first coverage `(pointer: coarse)` has ever had.
+
+**Baselines at `ca36ed03` (measured, not carried forward):** shared **424** / 24 files, server
+**2110** / 110 files, client **5302 passed + 4 skipped** / 268 files, e2e **134 passed / 0 failed /
+3 skipped**, entry bundle **103.05 KB** of the 175 KB budget (`build:check`'s own measure — do not
+mix it with a `gzip -9` figure). The bundle moved +0.38 KB, which is the NPC portrait field minus
+the deleted prompt handler.
+
+**One flake observed once and not reproduced.** A full e2e run had
+`mobile-help.spec.ts` "…(landscape)" fail in `joinMobileTable` on a 15s timeout. The page snapshot
+was `main [ref=e2]` and nothing else — and `apps/client/index.html:46` is `<main id="root">`, so
+that is the UNFILLED mount point: React never mounted, the bundle did not run. Not a landscape bug
+and not a layout bug; that test merely held the dice. It passed in isolation (5/5) and the two
+full runs since were clean at 134. If it recurs, look at client asset delivery, not at the sheet.
+
+**The prior state follows.** **M5 of the mobile authoring arc is SHIPPED to `dev`** —
 eleven commits, `a8639d8a..39fd5ac0`, each behind the full §2 gate, on top of the vision-default
 slice below. A DM on a phone can now author with every drag tool: Room, Hall, Wall, Door, Row,
 Spline and Generate, plus Populate. The slice plan and its SHIPPED banner are
@@ -44,10 +90,8 @@ reviewed, and NOT merged — thirteen commits since `93e284f8`: the six-commit s
 (`120103f8..dd29bec0`), three review fixes, two docs corrections, the review-closure tests
 (`7a8bb703`), and this handoff update. CI green through run #780. **Nothing new is deployed.**
 
-| Branch | Commit     | State                                                                        |
-| ------ | ---------- | ---------------------------------------------------------------------------- |
-| `dev`  | `7a8bb703` | +§3B shipped + reviewed (+ this handoff on top). Pushed; CI #777–#780 green. |
-| `main` | `8db688e2` | production, deployed (through the player-props slice), green                 |
+_(That table is superseded by §0's, above. Both branches have moved since: `main` took the
+silence arc to production on 2026-08-13 and now sits at `c0b6e648`.)_
 
 Two documents carry what this file cannot: the **SHIPPED banner** atop
 [room-vision-default-plan.md](./room-vision-default-plan.md) — the three places that plan was
@@ -426,23 +470,42 @@ _(The second gap listed here — "there is no mobile DM menu at all" — was clo
 
 ### D. Smaller, real, and unclaimed
 
-- **`+ ADD PORTRAIT` and the NpcCard portrait still use `window.prompt("Enter image URL")`** —
-  URL-only secondary paths to fields that already have upload. S8 touched the NPC surface and did
-  NOT fold this in. Ask the owner before doing it.
+- ~~`+ ADD PORTRAIT` and the NpcCard portrait still use `window.prompt`~~ — **DONE 2026-08-14**
+  (`1a0c351c`, `70b36238`). Both go through ImageField now, and NPCs gained a portrait upload they
+  never had. Two non-image prompts remain and are NOT this item: `usePlayerActions.ts:296`
+  (character name) and `NpcCard.tsx:214` (NPC rename).
 - **Chat's SEND button is a 25px tap target** (guideline 44px). It matches every other JRPGButton
   in those panels, so it wants a deliberate panel-wide pass, not a one-button fix.
-- **Client-side `Math.random()` initiative rolls** remain in `hooks/useBulkInitiativeRoll.ts` and
-  `features/initiative/components/InitiativeModal.tsx`. Not a forgery hole (both are DM-only paths
-  where the DM can set the value directly), but they are the last client-owned randomness.
-  `InitiativeModal.test.tsx:692` explicitly pins `Math.random()` as behaviour.
+- **Client-side `Math.random()` initiative rolls** remain in `hooks/useBulkInitiativeRoll.ts:76`
+  and `features/initiative/components/InitiativeModal.tsx:63`.
+
+  **Correction to what this entry used to say:** it called both "DM-only paths". That is wrong for
+  the modal. `EntitiesPanel.tsx` passes `onInitiativeClick` **unconditionally** (three call sites),
+  so any player can open it and roll for their own character; the SERVER is what enforces
+  ownership, in `InitiativeMessageHandler.handleSetInitiative`. Still not a forgery hole — manual
+  entry exists on purpose — but do not reason from "DM-only".
+
+  **The owner chose a design for this on 2026-08-14, deferred to its own slice.** Rolls go
+  server-side on the same crypto RNG as dice AND land in the roll log, so the table can see them.
+  Players keep a manual override for the case it exists to serve: a bad roll, the DM allows a
+  physical re-roll, the real number is entered by hand and recorded as that player's roll, with the
+  superseded value struck through. The override is a DM-toggleable table setting, **on by default**.
+
+  Four pieces of machinery to reuse rather than reinvent: `DiceRoll.breakdown[].dropped` is already
+  the struck-through channel (it is how advantage renders its discard); `{ t: "dice-roll" }` carries
+  a FORMULA not a result and an initiative roll must follow that rule or it reintroduces arc defect
+  D2; `cryptoDiceRng` is the one RNG caller; and `set-player-props-enabled` is the exact shape of
+  the DM toggle. Two traps it will hit: a new REQUIRED `RoomState` field breaks five server fixtures
+  (§5 — use `/fix-fixture-ripple`), and any new snapshot collection must join `SNAPSHOT_LIMITS` or
+  load-session crashes. `InitiativeModal.test.tsx:692` pins `Math.random()` as behaviour and will
+  need rewriting, not deleting.
 - **The dice parser accepts juxtaposition** (`"d20d6"` → two dice, no operator). Unreachable
   today — there is no free-text formula input anywhere in the UI. It becomes real the moment
   someone adds one.
 - **`drag-preview` is queued rather than dropped while the socket is down**, so a reconnect can
   replay stale previews. S6 fixed this for `measure` via an `ephemeralTypes` set in
   `MessageQueueManager` and deliberately did NOT change `drag-preview`; the same fix applies.
-- **The asset-store dedup path double-counts existing bytes** against the whole-store quota on a
-  cross-room claim. Pre-existing and conservative in direction (refuses too early).
+- ~~The asset-store dedup path double-counts existing bytes~~ — **DONE 2026-08-14** (`a5059036`).
 - **A background-task chip is already queued** for wiring `characterDrawings.ts` to the shared
   `DRAWING_TYPES` instead of its hand-copied `VALID_DRAWING_TYPES` (see §7).
 
@@ -560,6 +623,28 @@ to looking at it in the preview. To see one, force the container to a realistic 
 height (`element.style.height` AND `min-height`, since `.mobile-layout-root` pins `min-height:
 100svh` and it will otherwise win) while the cap still resolves against the large viewport. That is
 what turned "the sheet looks fine" into "its close button is at −57px".
+
+**A PIPE HIDES THE EXIT CODE, and it bit twice in one session.** `cmd | tail -40` reports
+`tail`'s status, not `cmd`'s. A WebKit run that failed a test printed `exited with code 0`, and
+later `pnpm format:check | tail -2 && git commit` committed an UNFORMATTED file because the `&&`
+saw a zero from `tail`. Capture the real one — `cmd > log 2>&1; echo "EXIT=$?"` — and read the
+summary line as well. This is the same family as the flaky-test note below and the `cmd | tail`
+warning M4a already recorded; it keeps recurring because the masked run looks green.
+
+**Do not run `node scripts/run-e2e.mjs` directly.** It spawns `pnpm` without a shell, so on
+Windows it dies with `spawn pnpm ENOENT` before running a single test — and prints a plausible
+"HeroByte ports are free" first, so it reads like a successful no-op run. Go through
+`pnpm test:e2e ...`, which puts pnpm's shim dir on PATH for the nested spawn. Two "re-runs" that
+proved nothing were lost to this.
+
+**The 44px touch floor is ONE shared selector list**, near the top of `herobyte.css`:
+`.mobile-dock-button, .mobile-tool-sheet__button, .mobile-tool-sheet__close, .mobile-chip`. The
+per-class rules further down (`.mobile-chip`, `.mobile-screen__close`, `.help-panel__link`) are
+narrower overrides. The map-edit sheet's dials are `.mobile-tool-sheet__button` — deliberately, so
+the floor "cannot be lost by editing this file" (`MobileSwatchRow`'s own header says so). **A
+sabotage aimed at `.mobile-chip` to prove a dial-size assertion can fail stays GREEN**, and reads
+exactly like a vacuous test when the test is fine and the sabotage simply missed. Suspect the test
+first, per §8 — but confirm the sabotage reached the code path before concluding anything.
 
 **A flaky test reports as a PASS.** Playwright retries, so a failure that clears on the second
 attempt prints `1 flaky` and still exits 0 — and `pnpm test:e2e` looks green. Read the summary
@@ -722,12 +807,22 @@ turns a cone into something else.
 3. Run the full gate once (§2) to confirm the 2026-08-12 baselines still hold, and **boot
    `pnpm dev`** (§7) if anything in `packages/shared` will change.
 4. The fork is the owner's, and nothing is queued:
-   - **Merge `dev` → `main`** — thirteen CI-green commits are waiting. Merging DEPLOYS
-     immediately (Render + Cloudflare, ungated by CI), and already-open player tabs must reload.
-   - **M5 of the mobile arc** (§3C; `mobile-authoring-arc.md` §4). The known adjacent gap: the
-     mobile party drawer renders one row per PLAYER (first character only), which also keeps a
-     phone DM from a second character's sight controls — directly adjacent to §3B's subject.
-   - **Smaller work**: §3D, or the vision-default follow-ups listed in the plan doc's banner
+   - **Push `dev` and merge to `main`** — the eight-commit loose-ends batch is waiting and has
+     never been pushed, so CI has not seen it. Merging DEPLOYS immediately (Render + Cloudflare,
+     ungated by CI), and already-open player tabs must reload.
+   - **Initiative → server-side + roll log + manual override.** Owner-chosen design, 2026-08-14;
+     the full shape and the machinery to reuse are in §3D. This is the biggest *user-visible* item
+     outstanding.
+   - **Mobile element removal (M6)** — the largest gap left, and genuinely unstarted. There is
+     **no** mobile-reachable way to delete a single map element: `MOBILE_TOOL_TILES` is typed
+     `id: DragTool` so `"select"` cannot compile as a tile, no inspector or layers popover is
+     mounted under `features/map-edit/mobile/`, the quick wheel is desktop-right-click only, and
+     there is no Delete hotkey. Dock Undo is a document-wide map-studio undo, not a targeted
+     delete — so a Row or Spline laid down on a phone can be created but never removed, which the
+     user guide now warns about. The desktop path to copy is Select → Inspect popover → `onRemove`
+     → `{ type: "remove-element" }`. **Needs a design decision on what the phone affordance is
+     before any code**, because the dock is pinned at five slots.
+   - **Smaller work**: §3D's remainder, or the vision-default follow-ups in that plan doc's banner
      (the per-token card showing the inherited NUMBER, the stale Map Setup screenshot, the
      DM-menu 44px panel-wide pass).
 5. Stop before merging to `main`. That is the owner's call, and it deploys.
