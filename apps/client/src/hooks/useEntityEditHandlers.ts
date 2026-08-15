@@ -18,7 +18,6 @@
 
 import { useCallback } from "react";
 import type { RoomSnapshot } from "@herobyte/shared";
-import { normalizeImageUrl } from "../utils/imageUrlHelpers";
 
 /**
  * Parameters for the useEntityEditHandlers hook
@@ -63,8 +62,6 @@ export interface UseEntityEditHandlersReturn {
   handleCharacterMaxHpSubmit: () => void;
   /** Handler for submitting character temp HP changes */
   handleCharacterTempHpSubmit: () => void;
-  /** Handler for loading a new portrait image */
-  handlePortraitLoad: (characterId?: string) => void;
   /** Handler for submitting player name changes */
   handleNameSubmit: () => void;
 }
@@ -73,7 +70,9 @@ export interface UseEntityEditHandlersReturn {
  * Custom hook for entity editing handlers
  *
  * Provides memoized callbacks for handling entity editing operations
- * including HP, max HP, portrait, and name changes.
+ * including HP, max HP, and name changes. Portraits are NOT here: they go
+ * through ImageField in the settings menus, which owns upload, URL
+ * normalization and the single commit path.
  *
  * @param params - Hook parameters including editing state and action handlers
  * @returns Object containing the four handler functions
@@ -83,7 +82,6 @@ export interface UseEntityEditHandlersReturn {
  * const {
  *   handleCharacterHpSubmit,
  *   handleCharacterMaxHpSubmit,
- *   handlePortraitLoad,
  *   handleNameSubmit,
  * } = useEntityEditHandlers({
  *   editingHpUID,
@@ -160,28 +158,6 @@ export function useEntityEditHandlers(
   }, [submitTempHpEdit, editingTempHpUID, snapshot?.characters, playerActions]);
 
   /**
-   * Handles loading a new portrait image.
-   * Prompts the user for an image URL and updates the player's portrait if valid.
-   * Converts Imgur share links to direct image URLs automatically.
-   */
-  const handlePortraitLoad = useCallback(
-    async (characterId?: string) => {
-      const url = prompt("Enter image URL:");
-      if (!url || !url.trim()) {
-        return;
-      }
-
-      const normalizedUrl = await normalizeImageUrl(url.trim());
-      if (characterId) {
-        playerActions.setCharacterPortrait(characterId, normalizedUrl);
-      } else {
-        playerActions.setPortrait(normalizedUrl);
-      }
-    },
-    [playerActions],
-  );
-
-  /**
    * Handles submission of player name changes.
    * Delegates to the submitNameEdit callback with the renamePlayer action.
    */
@@ -193,7 +169,6 @@ export function useEntityEditHandlers(
     handleCharacterHpSubmit,
     handleCharacterMaxHpSubmit,
     handleCharacterTempHpSubmit,
-    handlePortraitLoad,
     handleNameSubmit,
   };
 }

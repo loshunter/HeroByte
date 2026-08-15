@@ -28,7 +28,6 @@ export interface PlayerCardProps {
   onNameInputChange: (name: string) => void;
   onNameEdit: () => void;
   onNameSubmit: () => void;
-  onPortraitLoad: (characterId?: string) => void;
   onToggleMic: () => void;
   onHpChange: (hp: number) => void;
   editingHpUID: string | null;

@@ -422,7 +422,6 @@ const createDefaultProps = (overrides?: Partial<React.ComponentProps<typeof Play
   onNameInputChange: vi.fn(),
   onNameEdit: vi.fn(),
   onNameSubmit: vi.fn(),
-  onPortraitLoad: vi.fn(),
   onToggleMic: vi.fn(),
   onHpChange: vi.fn(),
   editingHpUID: null,
