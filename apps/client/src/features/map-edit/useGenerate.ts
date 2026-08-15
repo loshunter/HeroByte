@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { MapGridSettings } from "@herobyte/shared";
 import type { MapStudioController } from "../map-studio/types";
 import type { RoomBounds } from "./roomBuilder";
-import type { GenerateParams } from "./mapEditTypes";
+import type { GenerateParams, MapEditSubTool } from "./mapEditTypes";
 
 /** The recipe's region, in document-grid CELLS (what the wire expects). */
 interface CellBounds {
@@ -53,9 +53,14 @@ export interface UseGenerateReturn {
 export function useGenerate(
   controller: MapStudioController,
   isLive: boolean,
-  armed: boolean,
+  subTool: MapEditSubTool,
+  mapEditMode: boolean,
   notifyError?: (message: string) => void,
 ): UseGenerateReturn {
+  // Armed is BOTH halves. Taking the caller's pre-computed boolean meant it
+  // only ever knew about the sub-tool, and the mode half had nowhere to live
+  // at the call site — see the note on the clearing effect below.
+  const armed = mapEditMode && subTool === "generate";
   const [params, setParams] = useState<GenerateParams>({
     theme: "stone",
     density: "medium",
@@ -74,6 +79,11 @@ export function useGenerate(
   // Deliberately NOT cleared on a successful generate: rerolling the seed and
   // firing again at the same rectangle is a real workflow, and that needs the
   // bounds to survive. See the note on canGenerate below for the other half.
+  //
+  // LEAVING MAP-EDIT counts as disarming too. useMapEditState is mounted at
+  // the App level and its activeSubTool outlives the mode, so a DM who aimed
+  // a region and then hit Exit came back — minutes or a session later — with
+  // GENERATE still armed at a rectangle from before.
   useEffect(() => {
     if (!armed) setBounds(null);
   }, [armed]);
