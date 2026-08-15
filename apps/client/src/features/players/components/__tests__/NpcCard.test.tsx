@@ -10,7 +10,7 @@
 
 import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import type { SnapshotCharacter, Character, TokenSize } from "@herobyte/shared";
 
 // ============================================================================
@@ -22,15 +22,13 @@ vi.mock("../../../../utils/sanitize", () => ({
   sanitizeText: vi.fn((text: string) => text),
 }));
 
-vi.mock("../../../../utils/imageUrlHelpers", () => ({
-  normalizeImageUrl: vi.fn(async (url: string) => url),
-}));
+// No imageUrlHelpers mock: NpcCard no longer normalizes URLs itself. ImageField
+// does it, inside the settings menu, on the one commit path every image takes.
 
 // Import component
 import { NpcCard } from "../NpcCard";
 // Import mocked utilities
 import { sanitizeText } from "../../../../utils/sanitize";
-import { normalizeImageUrl } from "../../../../utils/imageUrlHelpers";
 
 // Mock child components
 interface MockPortraitSectionProps {
@@ -158,6 +156,9 @@ interface MockNpcSettingsMenuProps {
   onTokenImageInputChange: (input: string) => void;
   onTokenImageApply: (input: string) => void;
   onTokenImageClear: () => void;
+  portraitImageInput: string;
+  onPortraitInputChange: (input: string) => void;
+  onPortraitApply: (input: string) => void;
   onPlaceToken: () => void;
   onDelete: () => void;
   tokenLocked: boolean;
@@ -177,6 +178,9 @@ vi.mock("../NpcSettingsMenu", () => ({
     onTokenImageInputChange,
     onTokenImageApply,
     onTokenImageClear,
+    portraitImageInput,
+    onPortraitInputChange,
+    onPortraitApply,
     onPlaceToken,
     onDelete,
     tokenLocked,
@@ -190,6 +194,19 @@ vi.mock("../NpcSettingsMenu", () => ({
       <span data-testid="settings-is-open">{String(isOpen)}</span>
       <span data-testid="settings-token-image-input">{tokenImageInput}</span>
       <span data-testid="settings-token-image-url">{tokenImageUrl}</span>
+      <span data-testid="settings-portrait-input">{portraitImageInput}</span>
+      <button
+        data-testid="settings-change-portrait-input"
+        onClick={() => onPortraitInputChange("  https://example.com/goblin-king.png  ")}
+      >
+        Change Portrait Input
+      </button>
+      <button
+        data-testid="settings-apply-portrait"
+        onClick={() => onPortraitApply(portraitImageInput)}
+      >
+        Apply Portrait
+      </button>
       <span data-testid="settings-token-locked">{String(tokenLocked)}</span>
       <span data-testid="settings-token-size">{tokenSize}</span>
       <span data-testid="settings-is-deleting">{String(isDeleting)}</span>
@@ -616,65 +633,40 @@ describe("NpcCard", () => {
       expect(screen.getByTestId("portrait-section-is-editable")).toHaveTextContent("false");
     });
 
-    it("shows prompt when portrait change is requested and isDM is true", async () => {
-      mockPrompt.mockReturnValue("new-portrait.jpg");
+    /*
+     * These replace the window.prompt suite. The card's portrait click used to
+     * open a native prompt — URL only, no upload — while every other image in
+     * HeroByte goes through ImageField. It now opens the settings menu, where
+     * the portrait field lives, so the assertions move with it: the click is
+     * about REACHING the control, and applying is what changes the character.
+     */
+    it("opens the settings menu, where the uploader lives", () => {
+      const props = createDefaultProps({ isDM: true });
+      render(<NpcCard {...props} />);
+      expect(screen.getByTestId("settings-is-open")).toHaveTextContent("false");
+
+      fireEvent.click(screen.getByTestId("portrait-section-change"));
+
+      expect(screen.getByTestId("settings-is-open")).toHaveTextContent("true");
+    });
+
+    it("seeds the portrait field from the character", () => {
       const props = createDefaultProps({ isDM: true });
       render(<NpcCard {...props} />);
 
-      const changeButton = screen.getByTestId("portrait-section-change");
-      fireEvent.click(changeButton);
-
-      await waitFor(() => {
-        expect(mockPrompt).toHaveBeenCalledWith("Enter portrait URL", "goblin.jpg");
-      });
+      expect(screen.getByTestId("settings-portrait-input")).toHaveTextContent("goblin.jpg");
     });
 
-    it("uses empty string as default when portrait is undefined", async () => {
-      mockPrompt.mockReturnValue("new-portrait.jpg");
+    it("seeds an empty field for an NPC that has no portrait yet", () => {
       const props = createDefaultProps({
         character: createMockCharacter({ portrait: undefined }),
       });
       render(<NpcCard {...props} />);
 
-      const changeButton = screen.getByTestId("portrait-section-change");
-      fireEvent.click(changeButton);
-
-      await waitFor(() => {
-        expect(mockPrompt).toHaveBeenCalledWith("Enter portrait URL", "");
-      });
+      expect(screen.getByTestId("settings-portrait-input")).toHaveTextContent("");
     });
 
-    it("does not update when prompt returns empty string", async () => {
-      mockPrompt.mockReturnValue("");
-      const onUpdate = vi.fn();
-      const props = createDefaultProps({ onUpdate });
-      render(<NpcCard {...props} />);
-
-      const changeButton = screen.getByTestId("portrait-section-change");
-      fireEvent.click(changeButton);
-
-      await waitFor(() => {
-        expect(onUpdate).not.toHaveBeenCalled();
-      });
-    });
-
-    it("does not update when prompt returns null", async () => {
-      mockPrompt.mockReturnValue(null);
-      const onUpdate = vi.fn();
-      const props = createDefaultProps({ onUpdate });
-      render(<NpcCard {...props} />);
-
-      const changeButton = screen.getByTestId("portrait-section-change");
-      fireEvent.click(changeButton);
-
-      await waitFor(() => {
-        expect(onUpdate).not.toHaveBeenCalled();
-      });
-    });
-
-    it("normalizes URL before updating", async () => {
-      mockPrompt.mockReturnValue("  https://imgur.com/abc123  ");
-      vi.mocked(normalizeImageUrl).mockResolvedValue("https://i.imgur.com/abc123.jpg");
+    it("applying a portrait updates the character", () => {
       const onUpdate = vi.fn();
       const props = createDefaultProps({
         character: createMockCharacter({ id: "npc-123" }),
@@ -682,51 +674,26 @@ describe("NpcCard", () => {
       });
       render(<NpcCard {...props} />);
 
-      const changeButton = screen.getByTestId("portrait-section-change");
-      fireEvent.click(changeButton);
+      // Type (or finish an upload), then apply — ImageField has already
+      // normalized by the time the value reaches onPortraitApply, so the card
+      // only has to trim and send.
+      fireEvent.click(screen.getByTestId("settings-change-portrait-input"));
+      fireEvent.click(screen.getByTestId("settings-apply-portrait"));
 
-      await waitFor(() => {
-        expect(normalizeImageUrl).toHaveBeenCalledWith("https://imgur.com/abc123");
-        expect(onUpdate).toHaveBeenCalledWith("npc-123", {
-          portrait: "https://i.imgur.com/abc123.jpg",
-        });
+      expect(onUpdate).toHaveBeenCalledWith("npc-123", {
+        portrait: "https://example.com/goblin-king.png",
       });
     });
 
-    it("calls onUpdate with normalized URL and character.id", async () => {
-      mockPrompt.mockReturnValue("portrait.png");
-      vi.mocked(normalizeImageUrl).mockResolvedValue("portrait.png");
+    it("refuses to apply a portrait when the viewer is not the DM", () => {
       const onUpdate = vi.fn();
-      const props = createDefaultProps({
-        character: createMockCharacter({ id: "npc-456" }),
-        onUpdate,
-      });
+      const props = createDefaultProps({ isDM: false, onUpdate });
       render(<NpcCard {...props} />);
 
-      const changeButton = screen.getByTestId("portrait-section-change");
-      fireEvent.click(changeButton);
+      fireEvent.click(screen.getByTestId("settings-change-portrait-input"));
+      fireEvent.click(screen.getByTestId("settings-apply-portrait"));
 
-      await waitFor(() => {
-        expect(onUpdate).toHaveBeenCalledWith("npc-456", { portrait: "portrait.png" });
-      });
-    });
-
-    it("handles async normalizeImageUrl", async () => {
-      mockPrompt.mockReturnValue("test.jpg");
-      vi.mocked(normalizeImageUrl).mockImplementation(async (url: string) => {
-        await new Promise((resolve) => setTimeout(resolve, 10));
-        return url;
-      });
-      const onUpdate = vi.fn();
-      const props = createDefaultProps({ onUpdate });
-      render(<NpcCard {...props} />);
-
-      const changeButton = screen.getByTestId("portrait-section-change");
-      fireEvent.click(changeButton);
-
-      await waitFor(() => {
-        expect(onUpdate).toHaveBeenCalledWith("npc-1", { portrait: "test.jpg" });
-      });
+      expect(onUpdate).not.toHaveBeenCalled();
     });
 
     it("passes portrait prop to PortraitSection", () => {

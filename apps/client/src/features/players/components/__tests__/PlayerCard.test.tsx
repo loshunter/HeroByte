@@ -1601,19 +1601,13 @@ describe("PlayerCard", () => {
       });
 
       it("receives callbacks", () => {
-        const onPortraitLoad = vi.fn();
         const onFocusToken = vi.fn();
         const onInitiativeClick = vi.fn();
         const props = createDefaultProps({
-          onPortraitLoad,
           onFocusToken,
           onInitiativeClick,
         });
         render(<PlayerCard {...props} />);
-
-        fireEvent.click(screen.getByTestId("portrait-section-change"));
-        expect(onPortraitLoad).toHaveBeenCalledTimes(1);
-        expect(onPortraitLoad).toHaveBeenCalledWith(undefined);
 
         fireEvent.click(screen.getByTestId("portrait-section-focus"));
         expect(onFocusToken).toHaveBeenCalledTimes(1);
@@ -1622,16 +1616,25 @@ describe("PlayerCard", () => {
         expect(onInitiativeClick).toHaveBeenCalledTimes(1);
       });
 
-      it("passes characterId to onPortraitLoad when provided", () => {
-        const onPortraitLoad = vi.fn();
-        const props = createDefaultProps({
-          onPortraitLoad,
-          characterId: "char-123",
-        });
+      /*
+       * Was "passes characterId to onPortraitLoad" — the click used to fire a
+       * window.prompt for a URL. It now opens the settings menu, which is
+       * where the ImageField (upload + URL) already lived, so there is nothing
+       * for the card to pass: the menu is bound to this card's character
+       * already. The assertion is that the control is REACHED.
+       */
+      it("opens the settings menu rather than prompting for a URL", () => {
+        // isMe matters: PortraitSection only fires onRequestChange when it is
+        // editable (isMe || viewerIsDM), and the menu gates its own isOpen on
+        // the same pair. The mock PortraitSection is looser than the real one
+        // and will click either way, so the flag has to be set deliberately.
+        const props = createDefaultProps({ characterId: "char-123", isMe: true });
         render(<PlayerCard {...props} />);
+        expect(screen.getByTestId("settings-is-open")).toHaveTextContent("false");
 
         fireEvent.click(screen.getByTestId("portrait-section-change"));
-        expect(onPortraitLoad).toHaveBeenCalledWith("char-123");
+
+        expect(screen.getByTestId("settings-is-open")).toHaveTextContent("true");
       });
     });
 

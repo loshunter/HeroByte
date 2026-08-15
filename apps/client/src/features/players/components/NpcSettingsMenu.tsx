@@ -19,6 +19,13 @@ interface NpcSettingsMenuProps {
   onTokenImageInputChange: (value: string) => void;
   onTokenImageApply: (value: string) => void;
   onTokenImageClear: () => void;
+  /*
+   * Portrait, mirroring PlayerSettingsMenu. Optional as a trio so a caller
+   * that has no portrait to offer renders no half-wired control.
+   */
+  portraitImageInput?: string;
+  onPortraitInputChange?: (value: string) => void;
+  onPortraitApply?: (value: string) => void;
   onPlaceToken?: () => void;
   onDelete?: () => void;
   tokenLocked?: boolean;
@@ -49,6 +56,9 @@ export function NpcSettingsMenu({
   onTokenImageInputChange,
   onTokenImageApply,
   onTokenImageClear,
+  portraitImageInput,
+  onPortraitInputChange,
+  onPortraitApply,
   onPlaceToken,
   onDelete,
   tokenLocked,
@@ -96,6 +106,26 @@ export function NpcSettingsMenu({
           gap: "8px",
         }}
       >
+        {/* Portrait: upload from disk/camera roll, or paste a URL. Until now
+            the only way to set an NPC portrait anywhere was a window.prompt
+            on the card, so NPCs alone had no upload path. */}
+        {onPortraitInputChange && onPortraitApply && portraitImageInput !== undefined && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <ImageField
+              label="Portrait Image URL"
+              value={portraitImageInput}
+              onChange={onPortraitInputChange}
+              onCommit={(url) => {
+                // Empty means "typed nothing" — portraits have never had a
+                // Clear, and an empty commit must not wipe the existing one.
+                if (url) onPortraitApply(url);
+              }}
+              placeholder="https://example.com/portrait.png"
+              applyLabel="Apply Portrait"
+            />
+          </div>
+        )}
+
         <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
           <ImageField
             label="Token Image URL"
