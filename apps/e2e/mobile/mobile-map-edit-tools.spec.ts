@@ -23,9 +23,17 @@ import { elevateToDM } from "../helpers";
 import { joinMobileTable } from "./mobile.helpers";
 import { openTouch, touchDrag } from "./touch.helpers";
 
-/** A DM on a tablet, in map-edit, with a live document bound. */
-async function armLiveMapEdit(page: Page) {
-  await page.setViewportSize({ width: 820, height: 1180 });
+/**
+ * 820x1180 is a TABLET. Everything below ran only at that width, which left the
+ * width most players actually hold untested: the fit spec reaches 375 but only
+ * measures, and measuring cannot catch a dial that is reachable yet unusable.
+ */
+const TABLET = { width: 820, height: 1180 };
+const PHONE = { width: 390, height: 844 };
+
+/** A DM on a touch device, in map-edit, with a live document bound. */
+async function armLiveMapEdit(page: Page, viewport = TABLET) {
+  await page.setViewportSize(viewport);
   await joinMobileTable(page);
   await elevateToDM(page);
 
@@ -118,6 +126,38 @@ test.describe("M5 tools by finger", () => {
     await touchDrag(cdp, at(0.25, 0.8), [at(0.7, 0.8)]);
     await expect.poll(() => elements(page), { timeout: 30_000 }).toBeGreaterThan(beforeSpline);
     expect(await walls(page)).toBe(afterHall);
+  });
+
+  test("a dial tool is usable at PHONE width, not just tablet width", async ({ page }) => {
+    // The gap this closes: no test drove the authoring journey at 390. Hall is
+    // the tool to prove it with, because it is the narrow case — it carries a
+    // dial, so the sheet must STAY open and the width row must still be
+    // operable in less than half the horizontal space the tablet gives it.
+    test.setTimeout(150_000);
+    const { toolGrid } = await armLiveMapEdit(page, PHONE);
+
+    const box = (await page.getByTestId("map-board").locator("canvas").first().boundingBox())!;
+    const cdp = await openTouch(page);
+    const at = (fx: number, fy: number) => ({
+      x: box.x + box.width * fx,
+      y: box.y + box.height * fy,
+    });
+
+    expect(await walls(page)).toBe(0); // positive control
+    await toolGrid.getByRole("button", { name: /^Hall$/ }).click();
+
+    // Reachable AND hittable: a control scrolled into view but sized under the
+    // touch guideline is not usable, and at this width it is the one at risk.
+    const widthRow = page.locator(".mobile-tool-sheet__section", { hasText: "Width (cells)" });
+    const three = widthRow.getByRole("button", { name: "3", exact: true });
+    await three.scrollIntoViewIfNeeded();
+    const dial = (await three.boundingBox())!;
+    expect(dial.height).toBeGreaterThanOrEqual(44);
+    await three.click();
+
+    await page.getByRole("button", { name: /To the map/i }).click();
+    await touchDrag(cdp, at(0.2, 0.3), [at(0.8, 0.3)]);
+    await expect.poll(() => walls(page), { timeout: 30_000 }).toBeGreaterThan(0);
   });
 
   test("POPULATE fills the room the DM just drew", async ({ page }) => {
