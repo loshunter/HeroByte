@@ -58,6 +58,9 @@ import {
   validateLinkTokenMessage,
   validateSetInitiativeMessage,
   validateCombatControlMessage,
+  validateRollInitiativeMessage,
+  validateRollInitiativeAllMessage,
+  validateSetInitiativeManualOverrideMessage,
 } from "./validators/index.js";
 
 // Map validators
@@ -183,6 +186,9 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   "next-turn": validateCombatControlMessage,
   "previous-turn": validateCombatControlMessage,
   "clear-all-initiative": validateCombatControlMessage,
+  "roll-initiative": validateRollInitiativeMessage,
+  "roll-initiative-all": validateRollInitiativeAllMessage,
+  "set-initiative-manual-override": validateSetInitiativeManualOverrideMessage,
 
   // ==========================================================================
   // MAP MESSAGES

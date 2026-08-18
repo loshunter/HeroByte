@@ -565,6 +565,20 @@ export interface RoomSnapshot {
    */
   defaultVisionRadius?: number;
   /**
+   * DM setting: players may enter their own initiative BY HAND, overriding a
+   * server roll (absent = ON, today's behaviour and the default).
+   *
+   * Reads inverted from every other flag here on purpose. `playerPropsEnabled`
+   * defaults off, so it persists and loads as `=== true`; this one defaults on,
+   * so it must be `!== false` everywhere it is read back. A saved session that
+   * coerces it the usual way comes back with the override silently disabled.
+   *
+   * A capability flag, not a secret — every recipient needs it to decide
+   * whether the manual-entry control renders. Enforcement is in the initiative
+   * handler, which re-checks room state per message rather than trusting the UI.
+   */
+  initiativeManualOverride?: boolean;
+  /**
    * True only for the default table WHILE it still opens with the password
    * published in the setup docs — i.e. it is genuinely reachable by anyone, and
    * the server clears it when it empties. Setting any other password (a DM via
@@ -773,12 +787,28 @@ type ClientMessagePayload =
   | { t: "toggle-npc-visibility"; id: string; visible: boolean }
 
   // Initiative/Combat actions
+  //
+  // `set-initiative` is the MANUAL path and carries a number on purpose: a bad
+  // roll, the DM allows a physical re-roll, and the real value is entered by
+  // hand. It is not a forgery hole — the server checks ownership — but it is
+  // the reason the two messages below exist rather than this one growing a
+  // "roll it for me" flag.
   | {
       t: "set-initiative";
       characterId: string;
       initiative?: number;
       initiativeModifier?: number;
     }
+  // Rolling. Carries a TARGET and nothing else: no formula, no result. The
+  // server rolls d20 on cryptoDiceRng — the same generator dice use — applies
+  // the character's stored modifier, and appends the roll to the log so the
+  // table witnesses it. Strictly less for a tampered client to lie about than
+  // `dice-roll`, which at least carries a formula.
+  | { t: "roll-initiative"; characterId: string }
+  // DM-only, and ONE message rather than one per NPC: the server loops over
+  // every NPC that has no initiative yet. N separate messages is what made the
+  // old client loop yield around the rate limiter.
+  | { t: "roll-initiative-all" }
   | { t: "start-combat" } // Activates combat mode, sorts by initiative
   | { t: "end-combat" } // Clears all initiative and exits combat mode
   | { t: "next-turn" } // Advances to next character in initiative order
@@ -862,6 +892,7 @@ type ClientMessagePayload =
   | { t: "set-diagonal-rule"; rule: DiagonalRule } // DM-only: how the table counts diagonal distance
   | { t: "set-player-props-enabled"; enabled: boolean } // DM-only: players may place/manage their own props
   | { t: "set-default-vision-radius"; radius: number | null } // DM-only: table-wide sight limit in feet for tokens with none of their own, null = unlimited
+  | { t: "set-initiative-manual-override"; enabled: boolean } // DM-only: players may enter initiative by hand (absent = ON — see the snapshot field)
 
   // The measurement in progress. Carries NO author — the server stamps
   // identity from the connection, the same rule chat and dice follow. `measure`
