@@ -1,10 +1,14 @@
 import type { ClientMessage } from "@herobyte/shared";
 import type { InitiativeMessageHandler } from "../handlers/InitiativeMessageHandler.js";
+import type { InitiativeRollHandler } from "../handlers/InitiativeRollHandler.js";
 import type { RoutingContext } from "../services/MessageRoutingContext.js";
 import type { RouteHandlerResult } from "../services/RouteResultHandler.js";
 
 export class InitiativeDispatcher {
-  constructor(private handler: InitiativeMessageHandler) {}
+  constructor(
+    private handler: InitiativeMessageHandler,
+    private rollHandler: InitiativeRollHandler,
+  ) {}
 
   dispatch(
     message: ClientMessage,
@@ -24,6 +28,9 @@ export class InitiativeDispatcher {
           message.initiativeModifier,
           isDM,
         );
+
+      case "roll-initiative":
+        return this.rollHandler.handleRollInitiative(state, message.characterId, senderUid, isDM);
 
       case "start-combat":
         return this.handler.handleStartCombat(state, senderUid, isDM);

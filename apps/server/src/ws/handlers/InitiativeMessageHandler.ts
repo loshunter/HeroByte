@@ -18,10 +18,10 @@
  * @module ws/handlers/InitiativeMessageHandler
  */
 
-import type {} from "@herobyte/shared";
 import type { RoomState } from "../../domains/room/model.js";
 import type { CharacterService } from "../../domains/character/service.js";
 import type { RoomService } from "../../domains/room/service.js";
+import { applyInitiative } from "./applyInitiative.js";
 
 /**
  * Result of handling an initiative message
@@ -95,28 +95,8 @@ export class InitiativeMessageHandler {
       `[Server] Setting initiative for ${character.name} (${characterId}): initiative=${initiative}, modifier=${modifier}`,
     );
 
-    if (this.characterService.setInitiative(state, characterId, initiative, modifier)) {
+    if (applyInitiative(this.characterService, state, characterId, initiative, modifier)) {
       console.log(`[Server] Broadcasting updated initiative for ${character.name}`);
-
-      // Auto-start combat if not already active and this is the first initiative roll
-      if (!state.combatActive) {
-        state.combatActive = true;
-        state.currentTurnCharacterId = characterId;
-        console.log(
-          `[Server] Auto-starting combat with first initiative roll from ${character.name}`,
-        );
-      }
-      // If combat is active but no turn is set, set the first character with initiative as current turn
-      else if (!state.currentTurnCharacterId) {
-        const charactersInOrder = this.characterService.getCharactersInInitiativeOrder(state);
-        if (charactersInOrder.length > 0) {
-          state.currentTurnCharacterId = charactersInOrder[0].id;
-          console.log(
-            `[Server] Combat active with no current turn, setting first character as current turn: ${charactersInOrder[0].name}`,
-          );
-        }
-      }
-
       return { broadcast: true, save: true };
     }
 

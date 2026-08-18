@@ -210,6 +210,18 @@ export interface DiceRoll {
   /** Absent means "normal" — the wire default and every pre-S5 roll. */
   mode?: DiceRollMode;
   /**
+   * What the roll was FOR, when it was not a bare `/roll` — e.g. "Goblin A —
+   * initiative". Server-set like everything else here; absent on a plain dice
+   * roll, which is every roll before initiative moved server-side.
+   *
+   * It exists because `playerName` answers "who rolled", and for initiative
+   * that is not the interesting question: a DM rolling for five goblins would
+   * otherwise produce five identical log lines under their own name. Putting
+   * the character in `playerName` instead would be a lie in the data model —
+   * that field is bound from the connection.
+   */
+  label?: string;
+  /**
    * Who may see this roll. Absent means public.
    *
    * SECRECY: filtered per recipient in the snapshot, so a `self` or `dm` roll

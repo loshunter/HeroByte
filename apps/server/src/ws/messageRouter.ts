@@ -40,6 +40,7 @@ import { NPCMessageHandler } from "./handlers/NPCMessageHandler.js";
 import { PropMessageHandler } from "./handlers/PropMessageHandler.js";
 import { PlayerMessageHandler } from "./handlers/PlayerMessageHandler.js";
 import { InitiativeMessageHandler } from "./handlers/InitiativeMessageHandler.js";
+import { InitiativeRollHandler } from "./handlers/InitiativeRollHandler.js";
 import { MapMessageHandler } from "./handlers/MapMessageHandler.js";
 import { DrawingMessageHandler } from "./handlers/DrawingMessageHandler.js";
 import { SelectionMessageHandler } from "./handlers/SelectionMessageHandler.js";
@@ -102,6 +103,7 @@ export class MessageRouter {
   private propMessageHandler: PropMessageHandler;
   private playerMessageHandler: PlayerMessageHandler;
   private initiativeMessageHandler: InitiativeMessageHandler;
+  private initiativeRollHandler: InitiativeRollHandler;
   private mapMessageHandler: MapMessageHandler;
   private drawingMessageHandler: DrawingMessageHandler;
   private selectionMessageHandler: SelectionMessageHandler;
@@ -216,7 +218,15 @@ export class MessageRouter {
     this.playerMessageHandler = new PlayerMessageHandler(playerService, roomService);
     this.playerDispatcher = new PlayerDispatcher(this.playerMessageHandler);
     this.initiativeMessageHandler = new InitiativeMessageHandler(characterService, roomService);
-    this.initiativeDispatcher = new InitiativeDispatcher(this.initiativeMessageHandler);
+    this.initiativeRollHandler = new InitiativeRollHandler(
+      characterService,
+      diceService,
+      playerService,
+    );
+    this.initiativeDispatcher = new InitiativeDispatcher(
+      this.initiativeMessageHandler,
+      this.initiativeRollHandler,
+    );
     this.mapMessageHandler = new MapMessageHandler(mapService, roomService);
     this.drawingMessageHandler = new DrawingMessageHandler(
       mapService,

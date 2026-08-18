@@ -30,6 +30,13 @@ export interface DiceRollRequest {
   terms: DiceTerm[];
   mode: DiceRollMode;
   visibility: DiceVisibility;
+  /**
+   * Optional "what this was for" line. Set by callers that roll on behalf of
+   * something the table needs named — initiative is the first. Never from the
+   * wire: `{ t: "dice-roll" }` has no field for it, so a client cannot caption
+   * its own roll.
+   */
+  label?: string;
 }
 
 /**
@@ -66,6 +73,7 @@ export class DiceService {
     // reads as normal/public, which is what every pre-S5 roll already means.
     if (rolled.mode !== "normal") roll.mode = rolled.mode;
     if (request.visibility !== "public") roll.visibility = request.visibility;
+    if (request.label !== undefined) roll.label = request.label;
 
     this.addRoll(state, roll);
     return roll;
