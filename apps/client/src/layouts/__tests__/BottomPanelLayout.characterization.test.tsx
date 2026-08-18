@@ -70,7 +70,6 @@ vi.mock("../../components/layout/EntitiesPanel", () => ({
     onMaxHpSubmit: () => void;
 
     // Portrait & Mic (2 props)
-    onPortraitLoad: (characterId?: string) => void;
     onToggleMic: () => void;
 
     // DM & Player State (4 props)
@@ -164,7 +163,6 @@ export interface BottomPanelLayoutProps {
   onTempHpSubmit: () => void;
 
   // Portrait & Mic (2 props)
-  onPortraitLoad: (characterId?: string) => void;
   onCharacterPortraitUpdate: (characterId: string, url: string) => void;
   onToggleMic: () => void;
 
@@ -247,7 +245,6 @@ describe("BottomPanelLayout - Characterization Tests", () => {
     onTempHpSubmit: vi.fn(),
 
     // Portrait & Mic
-    onPortraitLoad: vi.fn(),
     onCharacterPortraitUpdate: vi.fn(),
     onToggleMic: vi.fn(),
 
@@ -747,20 +744,10 @@ describe("BottomPanelLayout - Characterization Tests", () => {
   });
 
   // ============================================================================
-  // Portrait & Mic Props Tests (2 props)
+  // Mic Props Tests (1 prop)
   // ============================================================================
 
-  describe("Portrait & Mic props", () => {
-    it("should pass onPortraitLoad handler to EntitiesPanel", () => {
-      const props = createDefaultProps();
-      const mockHandler = vi.fn();
-      props.onPortraitLoad = mockHandler;
-
-      render(<BottomPanelLayout {...props} />);
-
-      expect(screen.getByTestId("entities-panel")).toBeInTheDocument();
-    });
-
+  describe("Mic props", () => {
     it("should pass onToggleMic handler to EntitiesPanel", () => {
       const props = createDefaultProps();
       const mockHandler = vi.fn();

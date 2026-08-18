@@ -12,7 +12,6 @@ import { HPBar } from "./HPBar";
 import { RedactedHpBadge } from "./RedactedHpBadge";
 import { NpcSettingsMenu } from "./NpcSettingsMenu";
 import { sanitizeText } from "../../../utils/sanitize";
-import { normalizeImageUrl } from "../../../utils/imageUrlHelpers";
 import { useHpFeedback, FloatingDamageNumber } from "../../juice";
 
 interface NpcCardProps {
@@ -77,6 +76,7 @@ export function NpcCard({
   const [tempHpInput, setTempHpInput] = useState(String(character.tempHp ?? 0));
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tokenImageInput, setTokenImageInput] = useState(character.tokenImage ?? "");
+  const [portraitInput, setPortraitInput] = useState(character.portrait ?? "");
   const { feedback, flashClass } = useHpFeedback(character.hp);
 
   useEffect(() => {
@@ -131,13 +131,15 @@ export function NpcCard({
     [isDM, character.id, onUpdate],
   );
 
-  const handlePortraitChange = useCallback(async () => {
-    if (!isDM) return;
-    const url = prompt("Enter portrait URL", character.portrait ?? "");
-    if (!url) return;
-    const normalizedUrl = await normalizeImageUrl(url.trim());
-    onUpdate?.(character.id, { portrait: normalizedUrl });
-  }, [isDM, character.id, character.portrait, onUpdate]);
+  const handlePortraitApply = useCallback(
+    (value: string) => {
+      if (!isDM) return;
+      // ImageField normalizes (and uploads) before committing, so the value
+      // that arrives here is already a URL worth storing.
+      onUpdate?.(character.id, { portrait: value.trim() });
+    },
+    [isDM, character.id, onUpdate],
+  );
 
   const handleTokenImageApply = useCallback(
     (value: string) => {
@@ -225,7 +227,7 @@ export function NpcCard({
         <PortraitSection
           portrait={character.portrait ?? undefined}
           isEditable={canEdit}
-          onRequestChange={handlePortraitChange}
+          onRequestChange={handleSettingsToggle}
           statusEffects={character.statusEffects ?? []}
           tokenColor="#D63C53"
           onFocusToken={onFocusToken}
@@ -323,6 +325,9 @@ export function NpcCard({
           setTokenImageInput("");
           handleTokenImageApply("");
         }}
+        portraitImageInput={portraitInput}
+        onPortraitInputChange={setPortraitInput}
+        onPortraitApply={handlePortraitApply}
         onPlaceToken={onPlaceToken ? () => onPlaceToken(character.id) : undefined}
         onDelete={onDelete ? () => onDelete(character.id) : undefined}
         tokenLocked={tokenLocked}

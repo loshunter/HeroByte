@@ -8,7 +8,7 @@ import {
   resolveQuotaLimits,
   roomBytesFromTotal,
 } from "../quota.js";
-import { AssetService } from "../service.js";
+import { AssetService, roomsOf } from "../service.js";
 
 const MB = 1024 * 1024;
 const TMP_DIR = path.join(process.cwd(), ".tmp", "asset-quota-test");
@@ -166,6 +166,53 @@ describe("AssetService quota integration", () => {
       await service.store(pngBytes("fits-under-the-cap!"), "room-a", 1); // 27 bytes
       await expect(service.store(pngBytes("this-one-tips-it-over"), "room-a", 2)).rejects.toThrow(
         /storage is full|quota/i,
+      );
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  // The two halves of the cross-room claim, pinned separately. Zeroing BOTH
+  // deltas would satisfy the first test alone, so the second exists to fail
+  // in that case — the room ceiling must still be charged in full.
+  it("does not charge the whole store twice when a second room claims bytes it already holds", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    // The total leaves room for ONE copy and no more; the room ceiling is
+    // generous, so only the whole-store rule can refuse here.
+    vi.stubEnv("HEROBYTE_ASSET_MAX_TOTAL_MB", String(40 / MB));
+    vi.stubEnv("HEROBYTE_ASSET_MAX_ROOM_MB", String(10_000 / MB));
+    try {
+      const service = new AssetService({ directory: TMP_DIR });
+      const shared = pngBytes("shared-across-two-tables"); // 32 bytes
+      await service.store(shared, "room-a", 1);
+
+      // Content-addressed: room-b's claim writes no new bytes, so the store
+      // gains nothing. Charging bytes.length against the total counted the
+      // same file twice (32 + 32 > 40) and refused a claim that costs no disk.
+      const claim = await service.store(shared, "room-b", 2);
+      expect(roomsOf(claim.asset)).toEqual(["room-a", "room-b"]);
+      expect(await service.totalBytes()).toBe(shared.length);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("still charges the CLAIMING room in full for bytes another room uploaded", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    // Mirror image: the total is generous, the room ceiling binds.
+    vi.stubEnv("HEROBYTE_ASSET_MAX_TOTAL_MB", String(10_000 / MB));
+    vi.stubEnv("HEROBYTE_ASSET_MAX_ROOM_MB", String(40 / MB));
+    try {
+      const service = new AssetService({ directory: TMP_DIR });
+      const roomAFile = pngBytes("first-file-for-room-a"); // 29 bytes
+      await service.store(roomAFile, "room-a", 1);
+      await service.store(pngBytes("second-file-for-room-b!!"), "room-b", 2); // 32 bytes
+
+      // room-b holds 32 of its 40. Claiming room-a's 29 would make 61 — the
+      // room pays full price for a file it did not upload, because fairness
+      // is about what a table USES, not about who wrote the bytes.
+      await expect(service.store(roomAFile, "room-b", 3)).rejects.toThrow(
+        /table's asset storage is full/i,
       );
     } finally {
       vi.unstubAllEnvs();

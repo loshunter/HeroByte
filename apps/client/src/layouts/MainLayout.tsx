@@ -191,7 +191,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     handleCharacterHpSubmit,
     handleCharacterMaxHpSubmit,
     handleCharacterTempHpSubmit,
-    handlePortraitLoad,
     handleNameSubmit,
   } = useEntityEditHandlers({
     editingHpUID,
@@ -353,7 +352,6 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         onTempHpInputChange={updateTempHpInput}
         onTempHpEdit={startTempHpEdit}
         onTempHpSubmit={handleCharacterTempHpSubmit}
-        onPortraitLoad={handlePortraitLoad}
         onCharacterPortraitUpdate={onCharacterPortraitUpdate}
         onToggleMic={toggleMic}
         onToggleDMMode={handleToggleDM}

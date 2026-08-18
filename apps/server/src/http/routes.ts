@@ -286,7 +286,16 @@ export function createRoutes(
 
   if (process.env.HEROBYTE_E2E === "true" && resetE2EState) {
     app.post("/__e2e/reset", (c) => {
-      resetE2EState();
+      try {
+        resetE2EState();
+      } catch (error) {
+        // Say WHY. The reset refuses while a socket is still authenticated —
+        // a transient teardown race, since the previous test's page is still
+        // closing — but an uncaught throw reaches hono's handler as a bare 500
+        // "Internal Server Error", which reads exactly like a dead server. The
+        // fixture retries on this, so the message has to survive to it.
+        return jsonError(error instanceof Error ? error.message : String(error), 409);
+      }
       return c.json({ status: "reset" });
     });
   }

@@ -194,7 +194,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
-          ref: dev
+          # The nightly cron fires on the DEFAULT branch (main), but this job is
+          # a backstop for dev — hence the pin, for that trigger only. Every
+          # other trigger must test what was actually pushed: an unconditional
+          # `ref: dev` meant a push to main, or a PR targeting it, ran this
+          # suite against dev's tree and reported the result as main's. An empty
+          # string is checkout's own default, i.e. the event's ref/SHA.
+          ref: ${{ github.event_name == 'schedule' && 'dev' || '' }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -210,7 +216,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Bounded because this step hung for 29m53s on run #796 and ate the whole
+      # job budget, so the suite never ran and the result read as `cancelled`
+      # rather than as a failure. It normally takes 21s-2m; --with-deps shells
+      # out to apt-get, which is what stalls. Ten minutes fails fast, says which
+      # step did it, and still leaves twenty for the suite itself.
       - name: Install Playwright browsers
+        timeout-minutes: 10
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Run full E2E suite

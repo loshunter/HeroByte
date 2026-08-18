@@ -265,7 +265,7 @@ export const PortraitSection: React.FC<PortraitSectionProps> = ({
                   letterSpacing: "0.04em",
                 }}
               >
-                Click to enter an image URL.
+                Click to upload one, or paste a URL.
               </span>
             ) : null}
           </div>

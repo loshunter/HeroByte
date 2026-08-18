@@ -127,13 +127,17 @@ export class AssetService {
       // quota and record the claim — but do NOT report deduplicated, which would
       // tell the caller these bytes exist in some OTHER room. A re-upload of
       // condemned bytes is a pardon: the expiry stamp is cleared.
+      //
+      // The STORE gains nothing here: the file is already on disk and already
+      // in the index total, so the trailing 0. Passing bytes.length counted it
+      // twice and refused claims a full-ish store had room for.
       if (existing) {
         const claimed = {
           ...existing,
           rooms: [...roomsOf(existing), roomId],
           unreferencedAt: undefined,
         };
-        this.assertQuota(index, bytes.length, roomId, await this.limits(index));
+        this.assertQuota(index, bytes.length, roomId, await this.limits(index), 0);
         await this.writeIndex({
           schemaVersion: 1,
           assets: { ...index.assets, [hash]: claimed },
@@ -187,10 +191,12 @@ export class AssetService {
     incoming: number,
     roomId: string,
     limits: AssetQuotaLimits,
+    /** Bytes the STORE gains — 0 when the file is already on disk. */
+    storeIncoming: number = incoming,
   ): void {
     const assets = Object.values(index.assets);
     const total = assets.reduce((sum, asset) => sum + asset.size, 0);
-    if (total + incoming > limits.maxTotalBytes) {
+    if (total + storeIncoming > limits.maxTotalBytes) {
       throw new AssetRejectedError("Asset storage quota exceeded", 507);
     }
     const roomTotal = assets
