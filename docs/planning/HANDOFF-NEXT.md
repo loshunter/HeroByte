@@ -1,21 +1,27 @@
 # Handoff — after S8, with the Session One arc complete
 
 Read this whole file before touching anything. Paths and numbers were verified on 2026-08-05 at
-`dev` = `951a3d2a`; §0 was re-verified on 2026-08-08 after S8's review landed, and again on
-2026-08-12 after the vision-default slice shipped. Where something is a judgement call rather
-than a fact, it says so.
+`dev` = `951a3d2a`; §0 was re-verified on 2026-08-08 after S8's review landed, on 2026-08-12 after
+the vision-default slice shipped, and on **2026-08-18** when the loose-ends batch went to
+production. Where something is a judgement call rather than a fact, it says so.
 
 ## 0. Where things stand
 
-**Current state (2026-08-14).** A **loose-ends batch** is on `dev`, eight commits,
-`c24845d9..ca36ed03`, each behind the §2 gate and each sabotage-proven before commit. It closes
-five of the six "unexamined areas" M5's review left (the sixth, real-device iOS, is now probeable
-but not closed). **Not pushed, not merged, not deployed.**
+**Current state (2026-08-18).** The **loose-ends batch is IN PRODUCTION.** Ten commits,
+`c24845d9..a7bfb961`, each behind the §2 gate and each sabotage-proven before commit, merged to
+`main` as `a78dd0e7` and deployed to Render + Cloudflare on 2026-08-18. It closes five of the six
+"unexamined areas" M5's review left (the sixth, real-device iOS, is now probeable but not closed).
 
-| Branch | Commit     | State                                                          |
-| ------ | ---------- | -------------------------------------------------------------- |
-| `dev`  | `ca36ed03` | +the loose-ends batch. NOT pushed.                             |
-| `main` | `c0b6e648` | production, deployed, green (CI #790)                          |
+| Branch | Commit     | State                                                                    |
+| ------ | ---------- | ------------------------------------------------------------------------ |
+| `dev`  | `a7bfb961` | pushed, CI **#797** green — tree byte-identical to `main`                 |
+| `main` | `a78dd0e7` | **PRODUCTION**, deployed 2026-08-18, CI **#798** green, probe-verified    |
+
+**CI #797 was the first run in which the full e2e suite ever executed against this work** — see
+the `cancelled`-is-not-`failure` trap in §5, which is why #796 looked green-ish and proved nothing.
+Production was verified serving this build by the discriminating-string probe in §5, not by a
+bundle-hash comparison (which cannot work here — same entry). **Players with a tab open from
+before the deploy must reload**; stale clients blank silently.
 
 What the batch did, in dependency order rather than commit order:
 
@@ -39,12 +45,21 @@ What the batch did, in dependency order rather than commit order:
 - **`ca36ed03`** — a tablet rotating across the layout rule keeps its armed tool and dial values.
   The review feared it did not; it does, because those live in App-level `useMapEditState`. Also
   the first coverage `(pointer: coarse)` has ever had.
+- **`a7bfb961`** — `e2e-full-suite` pinned its checkout to `ref: dev` **unconditionally**, and that
+  job runs on every trigger. So a push to `main`, or a PR targeting it, checked out dev's tree and
+  reported the result as the pushed commit's. Now scoped to the `schedule` trigger, which is the
+  only one that needs it. **This fix is NOT yet proven by a run.** The merge made both trees
+  byte-identical, so #798 could not tell the old pin from the new one — the first run that can is
+  the next one where `dev` and `main` genuinely differ. Same commit bounds the Playwright install
+  at 10 minutes (§5).
 
 **Baselines at `ca36ed03` (measured, not carried forward):** shared **424** / 24 files, server
 **2110** / 110 files, client **5302 passed + 4 skipped** / 268 files, e2e **134 passed / 0 failed /
 3 skipped**, entry bundle **103.05 KB** of the 175 KB budget (`build:check`'s own measure — do not
 mix it with a `gzip -9` figure). The bundle moved +0.38 KB, which is the NPC portrait field minus
-the deleted prompt handler.
+the deleted prompt handler. **These still stand at `a7bfb961`**: the two commits added since
+`ca36ed03` are this file (`4efe1064`) and a workflow-only change (`a7bfb961`), neither of which
+touches a test, a source file, or the bundle. CI #797 and #798 both ran the full suite green.
 
 **One flake observed once and not reproduced.** A full e2e run had
 `mobile-help.spec.ts` "…(landscape)" fail in `joinMobileTable` on a 15s timeout. The page snapshot
@@ -70,7 +85,8 @@ Baselines now: shared 424/24, server 2108/110, client **266 files / 5277 passed 
 `build:check`'s own measure; the +2.50 KB slice delta is `gzip -9`, a different tool — do not mix
 them). Three pre-existing DESKTOP bugs were fixed along the way (GENERATE never said why it was
 disabled; POPULATE disagreed with its own ghosts; a failed map-edit chunk took the whole table
-down). **Nothing is pushed and nothing is deployed.**
+down). ~~Nothing is pushed and nothing is deployed.~~ **(True when written on 2026-08-12; all of
+this reached production on 2026-08-18 — §0.)**
 
 **The one thing the review found that is NOT fixed, and wants an owner decision:** a drag whose
 commit is skipped because a command is still in flight is silent on every surface —
@@ -88,7 +104,8 @@ left, so it joins `characterValidators.ts` on the extract-before-you-touch-it li
 **Prior state (2026-08-12).** The vision-default slice (§3B) is SHIPPED to `dev`, adversarially
 reviewed, and NOT merged — thirteen commits since `93e284f8`: the six-commit slice
 (`120103f8..dd29bec0`), three review fixes, two docs corrections, the review-closure tests
-(`7a8bb703`), and this handoff update. CI green through run #780. **Nothing new is deployed.**
+(`7a8bb703`), and this handoff update. CI green through run #780. ~~Nothing new is deployed.~~
+**(True when written; in production since 2026-08-18 — §0.)**
 
 _(That table is superseded by §0's, above. Both branches have moved since: `main` took the
 silence arc to production on 2026-08-13 and now sits at `c0b6e648`.)_
@@ -541,6 +558,39 @@ copy is a `create-npc` whose base name is the original's.
 
 ## 5. Traps that will cost you hours
 
+**A job timeout reports as `cancelled`, not `failure` — and the run summary hides which.** Run
+**#796** read as "cancelled" and looked like somebody pressed the button. What actually happened:
+`e2e-full-suite`'s "Install Playwright browsers" hung for **29m53s** in `--with-deps` (it shells
+out to apt-get, which is what stalls), consumed the job's whole 30-minute budget, and the suite
+step was marked **`skipped`**. Every other job was green, so the batch looked verified when its
+e2e coverage had never run at all. **Check that "Run full E2E suite" says `success` and not
+`skipped`** before believing an e2e claim — and note that `Upload test artifacts` is gated
+`if: failure()`, so its being skipped is independent evidence nothing failed. The install step is
+now bounded at 10 minutes (`a7bfb961`); normal duration is 21s, or ~2m on a cold runner.
+
+**You cannot push a commit that touches `.github/workflows/` from the CLI here.** The credential
+is an OAuth App token without the `workflow` scope, and the push is rejected outright — nothing in
+the repo can fix it. **GitHub Desktop can** (the owner installed it 2026-08-18 for exactly this);
+push that one commit from its top bar. Two things to know: in that window the Changes tab lists the
+owner's ~87 untracked `temp/` files **pre-checked** under a "Commit N files to dev" button — do not
+touch it — and the rejection does **not** recur on a later merge, because GitHub only blocks a push
+that introduces a NEW workflow blob. So `main` merges and pushes normally from the CLI afterwards.
+
+**A local bundle hash can never match production's, so do not probe a deploy that way.** The client
+bakes in `import.meta.env.VITE_WS_URL`, which is set in the Cloudflare dashboard; there is no
+`.env.production` in the repo, so a local `pnpm build` omits it and content-hashes differently
+(`index-BOgYtKle.js` local vs `index-C27sMvnF.js` live, 2026-08-18 — a mismatch that means
+nothing). **Probe with a DISCRIMINATING string instead**: one whose presence differs between the
+outgoing and incoming production commits, which `git grep <string> <old-sha>` settles before you
+fetch anything. Pair it with a **control** string that should be present either way — if the
+control also reads zero, the method is broken and the marker's zero is meaningless. And grep
+**every served chunk**, not just the entry bundle, or a string that merely MOVED into a lazy chunk
+reads as removed: fetch `assets/index-*.js`, extract the chunk names it references, download those
+too (10 files / ~1.14 MB on 2026-08-18). Worked example in that deploy: `"Enter image URL"` and
+`"Enter portrait URL"` existed at the outgoing `c0b6e648` and were deleted by the batch → 0 hits
+across all 10 files, while controls `"Apply Portrait"` and `"Portrait Image URL"` returned 1 each.
+**Render 502s for ~15s after the push** — that is its restart, not a failure; poll until 200.
+
 **The 350-LOC guard** flags `content.split("\n").length >= 350`, i.e. `wc -l >= 349`, so **348 is
 the real ceiling**. `__tests__` files are exempt; source files are not — and **e2e specs are NOT
 exempt** (M4a learned this at 374 lines: `mobile-shell.spec.ts` had to split off
@@ -798,18 +848,17 @@ turns a cone into something else.
 ## 10. Suggested order of work
 
 1. `git log --oneline -3 && git status --porcelain | grep -v 'temp/'` — confirm you are at or
-   just past `7a8bb703` with a clean tree. (Use `grep -v 'temp/'`, not `grep -v '^?? temp/'`:
-   three of the owner's untracked files have spaces in their names, so git quotes them and the
-   anchored form misses them.)
+   just past `a7bfb961` on `dev` with a clean tree. (Use `grep -v 'temp/'`, not
+   `grep -v '^?? temp/'`: three of the owner's untracked files have spaces in their names, so git
+   quotes them and the anchored form misses them.)
 2. Read the **SHIPPED banner** atop
    [room-vision-default-plan.md](./room-vision-default-plan.md) and §5's newest trap (the
    concurrent-build e2e collapse) before touching vision, fog, `RoomState`, or the gates agent.
 3. Run the full gate once (§2) to confirm the 2026-08-12 baselines still hold, and **boot
    `pnpm dev`** (§7) if anything in `packages/shared` will change.
-4. The fork is the owner's, and nothing is queued:
-   - **Push `dev` and merge to `main`** — the eight-commit loose-ends batch is waiting and has
-     never been pushed, so CI has not seen it. Merging DEPLOYS immediately (Render + Cloudflare,
-     ungated by CI), and already-open player tabs must reload.
+4. The fork is the owner's, and nothing is queued. ~~Push `dev` and merge to `main`~~ — **DONE
+   2026-08-18**, see §0; both branches are pushed, both runs green, production probe-verified.
+   What remains:
    - **Initiative → server-side + roll log + manual override.** Owner-chosen design, 2026-08-14;
      the full shape and the machinery to reuse are in §3D. This is the biggest *user-visible* item
      outstanding.
@@ -824,7 +873,9 @@ turns a cone into something else.
      before any code**, because the dock is pinned at five slots.
    - **Smaller work**: §3D's remainder, or the vision-default follow-ups in that plan doc's banner
      (the per-token card showing the inherited NUMBER, the stale Map Setup screenshot, the
-     DM-menu 44px panel-wide pass).
+     DM-menu 44px panel-wide pass). One more now on that list: **prove the `ref: dev` fix**
+     (`a7bfb961`) the first time `dev` and `main` differ, by reading the full-suite job's checkout
+     step — #798 could not, because the merge left the two trees byte-identical.
 5. Stop before merging to `main`. That is the owner's call, and it deploys.
 
 ## 11. The completeness critic's list — CLEARED 2026-08-09
