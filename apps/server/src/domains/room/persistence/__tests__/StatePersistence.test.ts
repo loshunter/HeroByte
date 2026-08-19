@@ -188,6 +188,37 @@ describe("StatePersistence - Characterization Tests", () => {
       expect(legacy.getState().playerPropsEnabled).toBe(false);
     });
 
+    it("round-trips the initiative override, reading an ABSENT key as ON", async () => {
+      roomService.getState().initiativeManualOverride = false;
+      roomService.saveState();
+      await roomService.awaitPendingWrites();
+
+      const fresh = new RoomService({ stateFile: PROD_STATE_FILE });
+      fresh.loadState();
+      expect(fresh.getState().initiativeManualOverride).toBe(false);
+
+      // This is the inverse of the player-props case above, and the whole
+      // reason it gets its own test: the flag defaults ON, so a file written
+      // before this slice — no key at all — must load as ON. Coercing it the
+      // usual `=== true` way would silently disable manual entry for every
+      // table on the production disk at the next restart.
+      const raw = JSON.parse(readFileSync(PROD_STATE_FILE, "utf-8"));
+      delete raw.initiativeManualOverride;
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(raw));
+      const legacy = new RoomService({ stateFile: PROD_STATE_FILE });
+      legacy.loadState();
+      expect(legacy.getState().initiativeManualOverride).toBe(true);
+
+      // Only an explicit `false` turns it off. Unlike playerPropsEnabled this
+      // flag admits nothing new — manual entry predates it — so a hand-edited
+      // truthy value landing on ON is the safe direction to fail.
+      raw.initiativeManualOverride = "no";
+      writeFileSync(PROD_STATE_FILE, JSON.stringify(raw));
+      const poisoned = new RoomService({ stateFile: PROD_STATE_FILE });
+      poisoned.loadState();
+      expect(poisoned.getState().initiativeManualOverride).toBe(true);
+    });
+
     it("round-trips the table sight default, clamping junk and reading an absent key as none", async () => {
       roomService.getState().defaultVisionRadius = 60;
       roomService.saveState();

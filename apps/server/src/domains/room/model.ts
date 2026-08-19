@@ -62,6 +62,13 @@ export interface RoomState {
   monsterHpDisplay: MonsterHpDisplay; // How much monster HP players see (enforced in the recipient filter)
   diagonalRule: DiagonalRule; // How the table counts diagonal distance (measureGridDistance)
   playerPropsEnabled: boolean; // Players may create/edit/delete their OWN props (enforced in PropDispatcher)
+  /**
+   * Players may enter initiative BY HAND, overriding a server roll. Defaults
+   * ON — the opposite of playerPropsEnabled above, because manual entry is
+   * existing behaviour this slice must not take away. Enforced in
+   * InitiativeMessageHandler.handleSetInitiative, never by the UI.
+   */
+  initiativeManualOverride: boolean;
   /** Sight limit in FEET for tokens carrying no radius of their own; null = unlimited. Applied at read time. */
   defaultVisionRadius: number | null;
   /** The public test table (see RoomSnapshot.isPublicTable). Set at boot. */
@@ -103,6 +110,7 @@ export function createEmptyRoomState(): RoomState {
     monsterHpDisplay: "exact",
     diagonalRule: "5e",
     playerPropsEnabled: false,
+    initiativeManualOverride: true,
     defaultVisionRadius: null,
   };
 }
@@ -160,6 +168,13 @@ export function toSnapshot(
     // of room state per message, never this field.
     playerPropsEnabled: state.playerPropsEnabled,
   };
+
+  // Absent means ON, so only an OFF setting is worth wire bytes — and a client
+  // reading a snapshot with no key gets today's behaviour, which is what every
+  // client before this slice assumes.
+  if (!state.initiativeManualOverride) {
+    snapshot.initiativeManualOverride = false;
+  }
 
   // `!== null`, never truthiness: 0 is a real default ("total darkness, torches
   // only"). Sent to EVERY recipient, because players compute their own fog — a

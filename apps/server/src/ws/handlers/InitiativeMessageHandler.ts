@@ -81,6 +81,21 @@ export class InitiativeMessageHandler {
       return { broadcast: false, save: false };
     }
 
+    // The manual path is a DM-toggleable table setting, ON by default. The DM
+    // is never blocked: they are who the toggle exists for, and they are the
+    // one who authorises a physical re-roll in the first place.
+    //
+    // Gated on SETTING a value, not on clearing one. Clearing is not an
+    // override — a player withdrawing from a fight is not claiming a number —
+    // and folding the two together would make "turn off overrides" quietly
+    // mean "players can never remove themselves from the order".
+    if (!isDM && initiative !== undefined && !state.initiativeManualOverride) {
+      console.warn(
+        `Player ${senderUid} attempted manual initiative entry while the table has it disabled`,
+      );
+      return { broadcast: false, save: false };
+    }
+
     if (initiative === undefined) {
       if (this.characterService.clearInitiative(state, characterId)) {
         console.log(`[Server] Cleared initiative for ${character.name}`);

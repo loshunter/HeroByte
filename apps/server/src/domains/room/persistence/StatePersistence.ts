@@ -152,6 +152,11 @@ export class StatePersistence {
           // because a hand-edited file carried "yes" or 1. Older files have no
           // key at all, which reads as off — the shipped default.
           playerPropsEnabled: data.playerPropsEnabled === true,
+          // `!== false`, the INVERSE of the line above, because this one
+          // defaults ON. Coercing it the usual `=== true` way would switch
+          // manual entry off for every table on the next restart — every state
+          // file already on the production disk predates the key.
+          initiativeManualOverride: data.initiativeManualOverride !== false,
           // Clamped rather than passed through: the sweep divides by this, and
           // ABSENT is the normal case — every state file already on the
           // production disk predates the field and must read as no default.
@@ -252,6 +257,7 @@ export class StatePersistence {
       monsterHpDisplay: state.monsterHpDisplay,
       diagonalRule: state.diagonalRule,
       playerPropsEnabled: state.playerPropsEnabled,
+      initiativeManualOverride: state.initiativeManualOverride,
       defaultVisionRadius: state.defaultVisionRadius,
       stateVersion: state.stateVersion,
       // Combat state survives a restart on purpose (VISION.md calls this a

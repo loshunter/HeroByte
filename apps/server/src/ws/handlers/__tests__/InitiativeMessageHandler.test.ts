@@ -279,6 +279,45 @@ describe("InitiativeMessageHandler", () => {
     });
   });
 
+  describe("the manual-entry toggle", () => {
+    it("defaults ON, so manual entry works with nothing configured", () => {
+      expect(state.initiativeManualOverride).toBe(true);
+
+      const result = handler.handleSetInitiative(state, "char1", "player1", 15, 2, false);
+
+      expect(result).toEqual({ broadcast: true, save: true });
+    });
+
+    it("refuses a player's manual entry when the DM has turned it off", () => {
+      state.initiativeManualOverride = false;
+
+      const result = handler.handleSetInitiative(state, "char1", "player1", 15, 2, false);
+
+      expect(result).toEqual({ broadcast: false, save: false });
+      expect(mockCharacterService.setInitiative).not.toHaveBeenCalled();
+    });
+
+    it("never blocks the DM, who is who the toggle exists for", () => {
+      state.initiativeManualOverride = false;
+
+      const result = handler.handleSetInitiative(state, "char1", "dm-uid", 15, 2, true);
+
+      expect(result).toEqual({ broadcast: true, save: true });
+    });
+
+    it("still lets a player CLEAR their initiative while the toggle is off", () => {
+      // Clearing is not an override: a player withdrawing from a fight is not
+      // claiming a number. Folding the two together would make "no overrides"
+      // quietly mean "you can never leave the order".
+      state.initiativeManualOverride = false;
+
+      const result = handler.handleSetInitiative(state, "char1", "player1", undefined, 0, false);
+
+      expect(result).toEqual({ broadcast: true, save: true });
+      expect(mockCharacterService.clearInitiative).toHaveBeenCalledWith(state, "char1");
+    });
+  });
+
   describe("handleStartCombat", () => {
     beforeEach(() => {
       // Set up characters with initiative
