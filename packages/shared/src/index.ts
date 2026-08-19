@@ -811,12 +811,18 @@ type ClientMessagePayload =
       initiative?: number;
       initiativeModifier?: number;
     }
-  // Rolling. Carries a TARGET and nothing else: no formula, no result. The
-  // server rolls d20 on cryptoDiceRng — the same generator dice use — applies
-  // the character's stored modifier, and appends the roll to the log so the
-  // table witnesses it. Strictly less for a tampered client to lie about than
-  // `dice-roll`, which at least carries a formula.
-  | { t: "roll-initiative"; characterId: string }
+  // Rolling. Carries a TARGET and no result: the server rolls d20 on
+  // cryptoDiceRng — the same generator dice use — and appends the roll to the
+  // log so the table witnesses it. Strictly less for a tampered client to lie
+  // about than `dice-roll`, which at least carries a formula.
+  //
+  // `modifier` is the one number that may ride along, and it is deliberately
+  // not a roll result — it is the character's own stat, which `set-initiative`
+  // has always accepted off the wire. It exists because the modal lets you drag
+  // the dial and roll in a single gesture: without it the server applies the
+  // STORED modifier and the dial silently stops contributing. Omitted means
+  // "use what is stored"; supplied means "persist this, then roll with it".
+  | { t: "roll-initiative"; characterId: string; modifier?: number }
   // DM-only, and ONE message rather than one per NPC: the server loops over
   // every NPC that has no initiative yet. N separate messages is what made the
   // old client loop yield around the rate limiter.

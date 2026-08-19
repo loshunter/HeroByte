@@ -11,6 +11,12 @@ interface InitiativeModalProps {
   character: SnapshotCharacter;
   onClose: () => void;
   onSetInitiative: (initiative: number, modifier: number) => void;
+  /**
+   * Ask the SERVER to roll. Carries the dial's current modifier, which the
+   * server persists and rolls with — without it the roll would silently apply
+   * whatever modifier was last stored and the dial would stop mattering.
+   */
+  onRollInitiative: (modifier: number) => void;
   isLoading?: boolean;
   error?: string | null;
 }
@@ -19,6 +25,7 @@ export function InitiativeModal({
   character,
   onClose,
   onSetInitiative,
+  onRollInitiative,
   isLoading = false,
   error = null,
 }: InitiativeModalProps) {
@@ -58,13 +65,19 @@ export function InitiativeModal({
     [modifier],
   );
 
-  // Roll d20
-  const rollD20 = useCallback(() => {
-    const roll = Math.floor(Math.random() * 20) + 1;
-    setRolledValue(roll);
-    setManualMode(false);
-    setManualValue("");
-  }, []);
+  // Roll: the SERVER throws the die, on the same generator dice use, and the
+  // result lands in the public roll log labelled with this character's name.
+  //
+  // This sends and closes rather than showing the number here first. That is
+  // not a shortcut: the server APPLIES the value as it rolls, so there is
+  // nothing left for a confirm press to confirm — a second press could only
+  // re-send it down the manual path, which would log it a second time as
+  // "(entered)" and strike the server's own roll through. The number is not
+  // lost by closing; it appears in the roll log, which every seat can see.
+  const handleRoll = useCallback(() => {
+    onRollInitiative(modifier);
+    onClose();
+  }, [onRollInitiative, modifier, onClose]);
 
   // Switch to manual entry mode
   const enterManualMode = useCallback(() => {
@@ -176,7 +189,7 @@ export function InitiativeModal({
 
             {/* Roll Options */}
             <div style={{ display: "flex", gap: "8px" }}>
-              <JRPGButton variant="primary" onClick={rollD20} style={{ flex: 1 }}>
+              <JRPGButton variant="primary" onClick={handleRoll} style={{ flex: 1 }}>
                 Roll Initiative
               </JRPGButton>
               <JRPGButton onClick={enterManualMode} style={{ flex: 1 }}>

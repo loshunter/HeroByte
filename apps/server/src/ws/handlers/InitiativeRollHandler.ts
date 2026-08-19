@@ -43,10 +43,18 @@ export class InitiativeRollHandler {
    * the sequence, so "the server rolled this" is provable rather than asserted.
    * Production takes the crypto default.
    *
+   * `requestedModifier` is the character's own stat, not a result. It arrives
+   * when the sender changed the dial in the same gesture as the roll; supplying
+   * it PERSISTS the new value (via applyInitiative, the one writer) and then
+   * rolls with it. Omitting it keeps the stored one. Without this parameter the
+   * dial and the roll would disagree silently — you would drag to +5, roll, and
+   * the server would apply the +2 it still had on file.
+   *
    * @param state - Current room state
    * @param characterId - Who to roll for
    * @param senderUid - UID of the sender, taken from the connection
    * @param isDM - Whether sender is DM
+   * @param requestedModifier - Modifier to persist and roll with; stored one if omitted
    * @param rng - Test seam only
    * @returns Result indicating if broadcast/save is needed
    */
@@ -55,6 +63,7 @@ export class InitiativeRollHandler {
     characterId: string,
     senderUid: string,
     isDM: boolean,
+    requestedModifier?: number,
     rng: DiceRng = cryptoDiceRng,
   ): InitiativeMessageResult {
     const character = this.characterService.findCharacter(state, characterId);
@@ -79,7 +88,7 @@ export class InitiativeRollHandler {
       return { broadcast: false, save: false };
     }
 
-    const modifier = character.initiativeModifier ?? 0;
+    const modifier = requestedModifier ?? character.initiativeModifier ?? 0;
     // A zero modifier contributes no term, so the log reads "d20" rather than
     // "d20 + 0" — the same formula a player typing /roll would have got.
     const terms: DiceTerm[] = [{ kind: "die", die: "d20", qty: 1, sign: 1 }];

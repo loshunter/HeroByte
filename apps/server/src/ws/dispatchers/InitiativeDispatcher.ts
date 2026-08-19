@@ -30,7 +30,13 @@ export class InitiativeDispatcher {
         );
 
       case "roll-initiative":
-        return this.rollHandler.handleRollInitiative(state, message.characterId, senderUid, isDM);
+        return this.rollHandler.handleRollInitiative(
+          state,
+          message.characterId,
+          senderUid,
+          isDM,
+          message.modifier,
+        );
 
       case "start-combat":
         return this.handler.handleStartCombat(state, senderUid, isDM);

@@ -132,6 +132,7 @@ describe("InitiativeRollHandler", () => {
         "char1",
         "player1",
         false,
+        undefined,
         seeded([14]),
       );
 
@@ -140,7 +141,7 @@ describe("InitiativeRollHandler", () => {
     });
 
     it("puts the roll in the log where the table can see it", () => {
-      rollHandler.handleRollInitiative(state, "char1", "player1", false, seeded([9]));
+      rollHandler.handleRollInitiative(state, "char1", "player1", false, undefined, seeded([9]));
 
       expect(state.diceRolls).toHaveLength(1);
       const roll = state.diceRolls[0];
@@ -157,7 +158,7 @@ describe("InitiativeRollHandler", () => {
     it("adds the character's modifier, and says so in the formula", () => {
       state.characters[0].initiativeModifier = 3;
 
-      rollHandler.handleRollInitiative(state, "char1", "player1", false, seeded([14]));
+      rollHandler.handleRollInitiative(state, "char1", "player1", false, undefined, seeded([14]));
 
       expect(state.diceRolls[0].formula).toBe("d20 + 3");
       expect(state.diceRolls[0].total).toBe(17);
@@ -167,10 +168,39 @@ describe("InitiativeRollHandler", () => {
     it("contributes no term for a zero modifier, so the log reads d20", () => {
       // "d20 + 0" is noise on every roll by a character with no bonus, which
       // is most of them.
-      rollHandler.handleRollInitiative(state, "char1", "player1", false, seeded([5]));
+      rollHandler.handleRollInitiative(state, "char1", "player1", false, undefined, seeded([5]));
 
       expect(state.diceRolls[0].formula).toBe("d20");
       expect(state.diceRolls[0].breakdown).toHaveLength(1);
+    });
+
+    it("rolls with the modifier the sender supplied, and persists it over the stored one", () => {
+      // The dial and the roll are ONE gesture in the modal: drag to +5, press
+      // Roll. Before the message carried a modifier the server applied the +2
+      // it still had on file, and nothing anywhere failed — the number just
+      // came back wrong.
+      state.characters[0].initiativeModifier = 2;
+
+      rollHandler.handleRollInitiative(state, "char1", "player1", false, 5, seeded([10]));
+
+      expect(state.diceRolls[0].formula).toBe("d20 + 5");
+      expect(state.diceRolls[0].total).toBe(15);
+      // The fourth argument is what applyInitiative writes back, so a supplied
+      // modifier STICKS rather than applying to one roll and then reverting.
+      expect(mockCharacterService.setInitiative).toHaveBeenCalledWith(state, "char1", 15, 5);
+    });
+
+    it("treats a supplied zero as a real value, not as 'use the stored one'", () => {
+      // Guards the `??` in the fallback. Under `||` a deliberate 0 — a player
+      // clearing their bonus — would silently pick the stored modifier back up,
+      // and the only visible symptom would be a total nobody can account for.
+      state.characters[0].initiativeModifier = 4;
+
+      rollHandler.handleRollInitiative(state, "char1", "player1", false, 0, seeded([11]));
+
+      expect(state.diceRolls[0].formula).toBe("d20");
+      expect(state.diceRolls[0].total).toBe(11);
+      expect(mockCharacterService.setInitiative).toHaveBeenCalledWith(state, "char1", 11, 0);
     });
 
     it("refuses a player rolling for a character they do not own, and logs nothing", () => {
@@ -179,6 +209,7 @@ describe("InitiativeRollHandler", () => {
         "char2",
         "player1",
         false,
+        undefined,
         seeded([20]),
       );
 
@@ -188,21 +219,42 @@ describe("InitiativeRollHandler", () => {
     });
 
     it("lets the DM roll for a character they do not own", () => {
-      const result = rollHandler.handleRollInitiative(state, "char3", "dm-uid", true, seeded([12]));
+      const result = rollHandler.handleRollInitiative(
+        state,
+        "char3",
+        "dm-uid",
+        true,
+        undefined,
+        seeded([12]),
+      );
 
       expect(result).toEqual({ broadcast: true, save: true });
       expect(state.diceRolls[0].label).toBe("Goblin — initiative");
     });
 
     it("drops a roll from a uid with no player record rather than inventing one", () => {
-      const result = rollHandler.handleRollInitiative(state, "char3", "ghost", true, seeded([20]));
+      const result = rollHandler.handleRollInitiative(
+        state,
+        "char3",
+        "ghost",
+        true,
+        undefined,
+        seeded([20]),
+      );
 
       expect(result).toEqual({ broadcast: false, save: false });
       expect(state.diceRolls).toHaveLength(0);
     });
 
     it("refuses an unknown character", () => {
-      const result = rollHandler.handleRollInitiative(state, "nope", "player1", true, seeded([20]));
+      const result = rollHandler.handleRollInitiative(
+        state,
+        "nope",
+        "player1",
+        true,
+        undefined,
+        seeded([20]),
+      );
 
       expect(result).toEqual({ broadcast: false, save: false });
       expect(state.diceRolls).toHaveLength(0);
@@ -211,7 +263,7 @@ describe("InitiativeRollHandler", () => {
     it("auto-starts combat on the first roll, like the manual path does", () => {
       expect(state.combatActive).toBe(false);
 
-      rollHandler.handleRollInitiative(state, "char1", "player1", false, seeded([14]));
+      rollHandler.handleRollInitiative(state, "char1", "player1", false, undefined, seeded([14]));
 
       expect(state.combatActive).toBe(true);
       expect(state.currentTurnCharacterId).toBe("char1");

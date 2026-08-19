@@ -209,6 +209,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     isSetting: isSettingInitiative,
     setInitiative,
     clearInitiative,
+    rollInitiative,
     error: initiativeError,
   } = useInitiativeSetting({
     snapshot,
@@ -379,6 +380,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         combatActive={snapshot?.combatActive}
         currentTurnCharacterId={snapshot?.currentTurnCharacterId}
         onSetInitiative={setInitiative}
+        onRollInitiative={rollInitiative}
         isSettingInitiative={isSettingInitiative}
         initiativeError={initiativeError}
         onClearInitiative={clearInitiative}

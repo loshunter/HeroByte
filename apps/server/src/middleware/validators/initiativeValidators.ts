@@ -9,19 +9,29 @@
  * @module middleware/validators/initiativeValidators
  */
 
-import type { MessageRecord, ValidationResult } from "./commonValidators.js";
+import { isFiniteNumber, type MessageRecord, type ValidationResult } from "./commonValidators.js";
 
 /**
  * Validate roll-initiative message
  * Required: characterId (non-empty string)
+ * Optional: modifier (finite number)
  *
- * There is deliberately nothing else to validate. The message carries a TARGET
- * and no result — the server rolls the die itself — so unlike `set-initiative`
- * there is no number here that could be out of range or forged.
+ * No RESULT is validated here because none is carried — the server rolls the
+ * die itself, so there is no d20 value off the wire that could be forged.
+ *
+ * `modifier` is the exception, and it is not a result: it is the character's
+ * own stat, arriving so that dragging the modal's dial and rolling can be one
+ * gesture. The bound is `isFiniteNumber` and nothing tighter ON PURPOSE —
+ * `set-initiative` has always accepted any finite number for the same field
+ * (characterValidators.ts:333-338), and a roll that rejected what a manual
+ * entry accepts would be the more surprising rule of the two.
  */
 export function validateRollInitiativeMessage(message: MessageRecord): ValidationResult {
   if (typeof message.characterId !== "string" || message.characterId.length === 0) {
     return { valid: false, error: "roll-initiative: missing or invalid characterId" };
+  }
+  if (message.modifier !== undefined && !isFiniteNumber(message.modifier)) {
+    return { valid: false, error: "roll-initiative: modifier must be a number" };
   }
   return { valid: true };
 }

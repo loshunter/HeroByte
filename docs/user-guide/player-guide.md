@@ -153,7 +153,7 @@ If your DM ticks **Players can add props** in their menu, a **📦 PROPS** butto
 - **Add a prop** — upload an image or paste a URL, give it a label, pick a size, press **+ ADD PROP**. It lands at the centre of your view; drag it into place. Generate a treasure chest in your favorite image tool and put it on the table while the DM describes the room — that's exactly what this is for.
 - **Scatter** — set **×N** before adding and that many copies land in a loose pile, numbered, each grabbable on its own.
 - **Reshape it** — the **🔄 Transform** tool puts scale and rotate handles on your props, the same handles drawings get.
-- **Yours are yours** — you can edit and delete only the props *you* created. The DM can adjust or remove anything.
+- **Yours are yours** — you can edit and delete only the props _you_ created. The DM can adjust or remove anything.
 
 If the button isn't there, the table has props switched off — ask your DM.
 
@@ -172,8 +172,9 @@ Press **INIT** on your card to set initiative:
 
 ![The initiative dialog: modifier, roll, or enter a physical die](img/initiative-modal.jpg)
 
-- Drag the **Initiative Modifier** number left/right (or roll with it at 0), then **ROLL INITIATIVE** — or press **USE PHYSICAL DICE** and type the d20 you rolled at your real table.
-- **The first initiative saved starts combat** for the whole table: cards reorder by initiative, a **⚔️ Combat Active** banner appears with `Turn N of M`, and the current combatant's card glows gold.
+- Drag the **Initiative Modifier** number left/right (or roll with it at 0), then **ROLL INITIATIVE**. The **server** throws the die, on the same generator the dice roller uses, and the result appears in the roll log for the whole table with your character's name on it. The dialog closes itself — there is nothing further to save.
+- Or press **USE PHYSICAL DICE**, type the d20 you rolled at your real table, and press **SAVE**. That reaches the log too, marked as entered by hand, so the table sees both kinds of roll the same way.
+- **The first initiative set starts combat** for the whole table: cards reorder by initiative, a **⚔️ Combat Active** banner appears with `Turn N of M`, and the current combatant's card glows gold.
 
 ![Combat active: turn banner, ordered cards, and the current turn highlighted](img/combat-active.jpg)
 

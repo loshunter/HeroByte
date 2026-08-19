@@ -40,6 +40,35 @@ describe("validateRollInitiativeMessage", () => {
     };
     expect(validateRollInitiativeMessage(withJunk)).toEqual({ valid: true });
   });
+
+  it("accepts an optional modifier, including a negative one and zero", () => {
+    // A modifier is a character stat, not a result — the exception the message
+    // carries so that dragging the dial and rolling can be one gesture.
+    for (const modifier of [5, -3, 0]) {
+      expect(
+        validateRollInitiativeMessage({ t: "roll-initiative", characterId: "char-1", modifier }),
+      ).toEqual({ valid: true });
+    }
+  });
+
+  it("rejects a non-finite or non-numeric modifier", () => {
+    for (const modifier of ["3", NaN, Infinity, null, {}]) {
+      expect(
+        validateRollInitiativeMessage({ t: "roll-initiative", characterId: "char-1", modifier })
+          .valid,
+      ).toBe(false);
+    }
+  });
+
+  it("still accepts a message with no modifier at all, meaning 'use the stored one'", () => {
+    expect(
+      validateRollInitiativeMessage({
+        t: "roll-initiative",
+        characterId: "char-1",
+        modifier: undefined,
+      }),
+    ).toEqual({ valid: true });
+  });
 });
 
 describe("validateRollInitiativeAllMessage", () => {

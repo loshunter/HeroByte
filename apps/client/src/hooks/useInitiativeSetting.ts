@@ -127,5 +127,33 @@ export function useInitiativeSetting({
     [sendInitiativeUpdate],
   );
 
-  return { isSetting, setInitiative, clearInitiative, error };
+  /**
+   * Ask the SERVER to roll initiative for a character.
+   *
+   * Fire-and-forget, unlike setInitiative, and that is not laziness on two
+   * counts. The server applies the value as it rolls, and the result reaches
+   * every seat through the public roll log — so there is no pending state worth
+   * holding and nothing here to await. More importantly, reusing the
+   * confirmation machinery above would be actively WRONG for a roll: it
+   * resolves by noticing that the character's initiative CHANGED, and a roll
+   * that lands on the number already stored changes nothing. That request would
+   * hang for the full five seconds and then report a timeout for a roll the
+   * table watched succeed.
+   *
+   * @param characterId - Who to roll for
+   * @param initiativeModifier - The dial's current value; the server persists
+   *   it and rolls with it. Omitted means "use the stored modifier".
+   */
+  const rollInitiative = useCallback(
+    (characterId: string, initiativeModifier?: number) => {
+      sendMessage({
+        t: "roll-initiative",
+        characterId,
+        ...(initiativeModifier !== undefined ? { modifier: initiativeModifier } : {}),
+      });
+    },
+    [sendMessage],
+  );
+
+  return { isSetting, setInitiative, clearInitiative, rollInitiative, error };
 }

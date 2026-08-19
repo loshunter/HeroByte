@@ -86,6 +86,7 @@ interface EntitiesPanelProps {
   combatActive?: boolean;
   currentTurnCharacterId?: string;
   onSetInitiative: (characterId: string, initiative: number, modifier: number) => void;
+  onRollInitiative: (characterId: string, modifier?: number) => void;
   onClearInitiative?: (characterId: string) => void;
   isSettingInitiative?: boolean;
   initiativeError?: string | null;
@@ -147,6 +148,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   combatActive = false,
   currentTurnCharacterId,
   onSetInitiative,
+  onRollInitiative,
   onClearInitiative,
   isSettingInitiative = false,
   initiativeError = null,
@@ -684,6 +686,12 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
             });
             onSetInitiative(initiativeModalCharacter.id, initiative, modifier);
             // Don't close immediately - let the modal auto-close when the hook confirms success
+          }}
+          onRollInitiative={(modifier) => {
+            // The roll closes the modal itself: the server applies the value as
+            // it rolls, and the number arrives in the public roll log rather
+            // than back in this component. There is no confirmation to wait on.
+            onRollInitiative(initiativeModalCharacter.id, modifier);
           }}
           isLoading={isSettingInitiative}
           error={initiativeError}

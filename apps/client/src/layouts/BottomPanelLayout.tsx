@@ -196,6 +196,8 @@ export interface BottomPanelLayoutProps {
   currentTurnCharacterId?: string;
   /** Handler to set a character's initiative roll and modifier */
   onSetInitiative: (characterId: string, initiative: number, modifier: number) => void;
+  /** Handler to ask the SERVER to roll initiative, carrying the dial's modifier */
+  onRollInitiative: (characterId: string, modifier?: number) => void;
   /** Whether an initiative setting operation is in progress */
   isSettingInitiative?: boolean;
   /** Error message from initiative setting operation */
@@ -318,6 +320,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
     combatActive,
     currentTurnCharacterId,
     onSetInitiative,
+    onRollInitiative,
     isSettingInitiative,
     initiativeError,
     onClearInitiative,
@@ -380,6 +383,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
         combatActive={combatActive}
         currentTurnCharacterId={currentTurnCharacterId}
         onSetInitiative={onSetInitiative}
+        onRollInitiative={onRollInitiative}
         isSettingInitiative={isSettingInitiative}
         initiativeError={initiativeError}
         onClearInitiative={onClearInitiative}
