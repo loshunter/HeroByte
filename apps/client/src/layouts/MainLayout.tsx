@@ -210,6 +210,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
     setInitiative,
     clearInitiative,
     rollInitiative,
+    rollAllInitiative,
     error: initiativeError,
   } = useInitiativeSetting({
     snapshot,
@@ -221,8 +222,8 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
 
   // The one mapping from the props bag onto DMMenuContainer's shape — shared
   // with the mobile shell, so a DM feature is wired once, not per layout.
-  // setInitiative rides as an extra because it is a hook result, not bag state.
-  const dmMenuProps = buildDMMenuProps(props, { setInitiative });
+  // rollAllInitiative rides as an extra because it is a hook result, not bag state.
+  const dmMenuProps = buildDMMenuProps(props, { rollAllInitiative });
 
   // Turn navigation handlers for combat controls
   const handleNextTurn = useCallback(() => {

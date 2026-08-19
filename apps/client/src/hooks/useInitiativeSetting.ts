@@ -155,5 +155,18 @@ export function useInitiativeSetting({
     [sendMessage],
   );
 
-  return { isSetting, setInitiative, clearInitiative, rollInitiative, error };
+  /**
+   * Ask the SERVER to roll for every NPC that still has no initiative.
+   *
+   * ONE message, not one per NPC. The client used to run that loop itself; the
+   * limiter allows 100 messages per client per second and drops the rest
+   * silently, so a large enough encounter left its tail without initiative
+   * while the toast reported the full count. The loop lives on the server now,
+   * where nothing rate-limits one iteration from the next.
+   */
+  const rollAllInitiative = useCallback(() => {
+    sendMessage({ t: "roll-initiative-all" });
+  }, [sendMessage]);
+
+  return { isSetting, setInitiative, clearInitiative, rollInitiative, rollAllInitiative, error };
 }

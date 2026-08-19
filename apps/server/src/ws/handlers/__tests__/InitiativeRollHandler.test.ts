@@ -269,4 +269,113 @@ describe("InitiativeRollHandler", () => {
       expect(state.currentTurnCharacterId).toBe("char1");
     });
   });
+
+  describe("handleRollInitiativeAll", () => {
+    const seeded = (values: number[]) => {
+      let i = 0;
+      return () => values[i++ % values.length];
+    };
+
+    beforeEach(() => {
+      // The base fixture has a single NPC. A bulk roll is only interesting
+      // across several, one of which is already in the order.
+      state.characters.push(
+        {
+          id: "char4",
+          name: "Orc",
+          type: "npc",
+          ownedByPlayerUID: null,
+          hp: 12,
+          maxHp: 12,
+          initiative: undefined,
+          initiativeModifier: 1,
+        },
+        {
+          id: "char5",
+          name: "Kobold",
+          type: "npc",
+          ownedByPlayerUID: null,
+          hp: 5,
+          maxHp: 5,
+          initiative: 12,
+          initiativeModifier: 0,
+        },
+      );
+    });
+
+    it("rolls every NPC that has no initiative yet, each with its own modifier", () => {
+      const result = rollHandler.handleRollInitiativeAll(state, "dm-uid", true, seeded([10, 15]));
+
+      expect(result).toEqual({ broadcast: true, save: true });
+      expect(mockCharacterService.setInitiative).toHaveBeenCalledWith(state, "char3", 10, 0);
+      expect(mockCharacterService.setInitiative).toHaveBeenCalledWith(state, "char4", 16, 1);
+      expect(mockCharacterService.setInitiative).toHaveBeenCalledTimes(2);
+    });
+
+    it("gives each NPC its own log line, named — not one line for the batch", () => {
+      // The whole point of the label: a DM rolling five goblins must be able to
+      // tell which line belongs to which creature.
+      rollHandler.handleRollInitiativeAll(state, "dm-uid", true, seeded([10, 15]));
+
+      expect(state.diceRolls).toHaveLength(2);
+      expect(state.diceRolls.map((roll) => roll.label)).toEqual([
+        "Goblin — initiative",
+        "Orc — initiative",
+      ]);
+      expect(state.diceRolls[1].formula).toBe("d20 + 1");
+    });
+
+    it("leaves an NPC that already has initiative alone", () => {
+      rollHandler.handleRollInitiativeAll(state, "dm-uid", true, seeded([10, 15]));
+
+      expect(mockCharacterService.setInitiative).not.toHaveBeenCalledWith(
+        state,
+        "char5",
+        expect.anything(),
+        expect.anything(),
+      );
+      expect(state.characters.find((c) => c.id === "char5")?.initiative).toBe(12);
+    });
+
+    it("does not roll for player characters, however empty their initiative", () => {
+      // char1 and char2 are PCs with no initiative. Rolling for a player is the
+      // player's gesture, and a DM sweep that silently took it would be worse
+      // than one that missed them.
+      rollHandler.handleRollInitiativeAll(state, "dm-uid", true, seeded([10, 15]));
+
+      const rolledIds = (
+        mockCharacterService.setInitiative as ReturnType<typeof vi.fn>
+      ).mock.calls.map((call) => call[1]);
+      expect(rolledIds).not.toContain("char1");
+      expect(rolledIds).not.toContain("char2");
+    });
+
+    it("refuses a non-DM even for an NPC they own — a sweep is a DM action", () => {
+      // The ownership is the whole point of this fixture. Written the obvious
+      // way, against an UNOWNED npc, this test passes with the DM guard deleted:
+      // it falls through to the per-character check inside handleRollInitiative,
+      // which refuses an unowned creature for its own reasons and returns the
+      // same shape. Sabotage caught that. Giving the NPC to the sender removes
+      // the inner check's objection, so only the outer guard can refuse.
+      const goblin = state.characters.find((character) => character.id === "char3");
+      if (goblin) goblin.ownedByPlayerUID = "player1";
+
+      const result = rollHandler.handleRollInitiativeAll(state, "player1", false, seeded([10]));
+
+      expect(result).toEqual({ broadcast: false, save: false });
+      expect(state.diceRolls).toHaveLength(0);
+      expect(mockCharacterService.setInitiative).not.toHaveBeenCalled();
+    });
+
+    it("reports nothing to broadcast when every NPC already has a value", () => {
+      for (const character of state.characters) {
+        if (character.type === "npc") character.initiative = 7;
+      }
+
+      const result = rollHandler.handleRollInitiativeAll(state, "dm-uid", true, seeded([10]));
+
+      expect(result).toEqual({ broadcast: false, save: false });
+      expect(state.diceRolls).toHaveLength(0);
+    });
+  });
 });

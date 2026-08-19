@@ -38,6 +38,9 @@ export class InitiativeDispatcher {
           message.modifier,
         );
 
+      case "roll-initiative-all":
+        return this.rollHandler.handleRollInitiativeAll(state, senderUid, isDM);
+
       case "start-combat":
         return this.handler.handleStartCombat(state, senderUid, isDM);
 

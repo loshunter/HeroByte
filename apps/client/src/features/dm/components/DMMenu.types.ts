@@ -108,7 +108,7 @@ export interface DMMenuProps {
     success: (message: string) => void;
     error: (message: string) => void;
   };
-  onSetInitiative?: (characterId: string, initiative: number, modifier: number) => void;
+  onRollAllInitiative?: () => void;
   /** Player-props toggle (Session tab): players may manage their OWN props. */
   playerPropsEnabled?: boolean;
   onPlayerPropsEnabledChange?: (enabled: boolean) => void;

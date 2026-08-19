@@ -29,7 +29,7 @@ Top to bottom:
 - **PLACE ON MAP** drops its token at the map's top-left corner cell — not at the center of your
   view — so recenter or drag it across from there. Pressing it again relocates that same token back
   to the corner rather than adding a second one.
-- **⚔️ ROLL MISSING INITIATIVE** rolls a d20 + modifier for every NPC that doesn't have initiative yet — one click to get the whole opposing side into the turn order.
+- **⚔️ ROLL MISSING INITIATIVE** asks the server to roll a d20 + modifier for every NPC that doesn't have initiative yet — one click to get the whole opposing side into the turn order. Each creature gets its own line in the roll log, named, so you can see which goblin rolled what. NPCs that already have a value are left alone.
 - NPC cards appear in the Entities panel labeled **Enemy**. The **👁️ eye button** on an NPC's card toggles whether players can see it at all — prep an ambush hidden, reveal it on the pounce. (Hidden NPCs stay visible to you.)
 - **DELETE** removes the NPC and its token.
 

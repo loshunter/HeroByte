@@ -88,7 +88,7 @@ describe("buildDMMenuProps", () => {
     // deleted mapping invisible to tsc, and a fixture only exercises fields
     // someone remembered to assert. Pinning the key set makes ANY dropped (or
     // sneaked-in) mapping red, whatever its optionality.
-    const built = buildDMMenuProps(createBag(), { setInitiative: vi.fn() });
+    const built = buildDMMenuProps(createBag(), { rollAllInitiative: vi.fn() });
 
     expect(Object.keys(built).sort()).toEqual(
       [
@@ -132,7 +132,7 @@ describe("buildDMMenuProps", () => {
         "camera",
         "toast",
         "onSelectPlayerTokens",
-        "onSetInitiative",
+        "onRollAllInitiative",
         "mapStudio",
       ].sort(),
     );
@@ -250,9 +250,11 @@ describe("buildDMMenuProps", () => {
     expect(bag.toggleSceneObjectLock).toHaveBeenCalledExactlyOnceWith("staging-1", false);
   });
 
-  it("onSetInitiative rides the extras, because it is a hook result", () => {
-    const setInitiative = vi.fn();
-    expect(buildDMMenuProps(createBag(), { setInitiative }).onSetInitiative).toBe(setInitiative);
-    expect(buildDMMenuProps(createBag(), {}).onSetInitiative).toBeUndefined();
+  it("onRollAllInitiative rides the extras, because it is a hook result", () => {
+    const rollAllInitiative = vi.fn();
+    expect(buildDMMenuProps(createBag(), { rollAllInitiative }).onRollAllInitiative).toBe(
+      rollAllInitiative,
+    );
+    expect(buildDMMenuProps(createBag(), {}).onRollAllInitiative).toBeUndefined();
   });
 });

@@ -57,8 +57,8 @@ interface NPCsTabProps {
     success: (message: string) => void;
     error: (message: string) => void;
   };
-  /** Callback to set initiative for a character */
-  onSetInitiative?: (characterId: string, initiative: number, modifier: number) => void;
+  /** Asks the server to roll initiative for every NPC that still lacks one */
+  onRollAllInitiative?: () => void;
 }
 
 /**
@@ -88,20 +88,16 @@ export default function NPCsTab({
   tokenPlacementError = null,
   placingTokenForNpcId = null,
   toast,
-  onSetInitiative,
+  onRollAllInitiative,
 }: NPCsTabProps) {
-  // Callback to set initiative for a character - uses proper set-initiative WebSocket message
-  const handleSetInitiative = (
-    characterId: string,
-    initiative: number,
-    initiativeModifier: number,
-  ) => {
-    if (onSetInitiative) {
-      onSetInitiative(characterId, initiative, initiativeModifier);
+  // One message asks the server to sweep every NPC that still lacks initiative.
+  const handleRollAll = () => {
+    if (onRollAllInitiative) {
+      onRollAllInitiative();
     }
   };
 
-  const { rollAllInitiative, isRolling } = useBulkInitiativeRoll(npcs, handleSetInitiative);
+  const { rollAllInitiative } = useBulkInitiativeRoll(npcs, handleRollAll);
 
   // How many the next "+ Add NPC" makes. Kept as a string so the field can be
   // empty mid-edit instead of snapping back to 1 under the DM's cursor.
@@ -111,8 +107,8 @@ export default function NPCsTab({
     ? Math.min(Math.max(parsedCount, NPC_CREATE_LIMITS.COUNT_MIN), NPC_CREATE_LIMITS.COUNT_MAX)
     : NPC_CREATE_LIMITS.COUNT_MIN;
 
-  const handleRollAllInitiative = async () => {
-    const count = await rollAllInitiative();
+  const handleRollAllInitiative = () => {
+    const count = rollAllInitiative();
     if (count > 0 && toast) {
       toast.success(`Rolled initiative for ${count} NPC${count === 1 ? "" : "s"}`);
     } else if (count === 0 && toast) {
@@ -143,11 +139,13 @@ export default function NPCsTab({
             <JRPGButton
               variant="primary"
               onClick={handleRollAllInitiative}
-              disabled={isRolling || !toast}
+              disabled={!toast}
               style={{ fontSize: "10px", padding: "6px 12px" }}
             >
-              {/* "Missing", not "all": it skips any NPC that already has a value. */}
-              {isRolling ? "Rolling..." : "⚔️ Roll Missing Initiative"}
+              {/* "Missing", not "all": it skips any NPC that already has a value.
+                  No "Rolling..." state any more — one message goes out and the
+                  press is over; the waiting used to be the batching delay. */}
+              ⚔️ Roll Missing Initiative
             </JRPGButton>
           )}
           {/* The count sits BEFORE the button so it reads as "× 5 → + Add NPC",

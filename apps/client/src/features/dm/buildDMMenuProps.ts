@@ -9,7 +9,7 @@
  * the whole bag too, so a second hand-wiring there is exactly the drift that
  * made the mobile gap expensive — both layouts call this instead.
  *
- * PURE over the bag, with one exception carried explicitly: onSetInitiative
+ * PURE over the bag, with one exception carried explicitly: onRollAllInitiative
  * comes from useInitiativeSetting, a HOOK the caller must own — a builder
  * cannot call hooks, and hiding one inside a "pure" mapper would be worse
  * than the extra argument.
@@ -20,7 +20,7 @@ import type { DMMenuContainerProps } from "./components/DMMenuContainer";
 
 export interface DMMenuPropExtras {
   /** From useInitiativeSetting({ snapshot, sendMessage }) at the call site. */
-  setInitiative?: (characterId: string, initiative: number, modifier: number) => void;
+  rollAllInitiative?: () => void;
 }
 
 export function buildDMMenuProps(
@@ -109,7 +109,7 @@ export function buildDMMenuProps(
 
     // Other actions
     onSelectPlayerTokens: props.selectPlayerTokens,
-    onSetInitiative: extras.setInitiative,
+    onRollAllInitiative: extras.rollAllInitiative,
     mapStudio: props.mapStudio,
   };
 }

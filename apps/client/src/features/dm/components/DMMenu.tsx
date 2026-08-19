@@ -93,7 +93,7 @@ export function DMMenu({
   onNextTurn,
   onPreviousTurn,
   toast,
-  onSetInitiative,
+  onRollAllInitiative,
   playerPropsEnabled,
   onPlayerPropsEnabledChange,
   mapStudio,
@@ -191,7 +191,7 @@ export function DMMenu({
           tokenPlacementError={tokenPlacementError}
           placingTokenForNpcId={placingTokenForNpcId}
           toast={toast}
-          onSetInitiative={onSetInitiative}
+          onRollAllInitiative={onRollAllInitiative}
         />
       )}
       {activeTab === "props" && (

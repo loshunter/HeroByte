@@ -120,4 +120,62 @@ export class InitiativeRollHandler {
     );
     return { broadcast: true, save: true };
   }
+
+  /**
+   * Handle roll-initiative-all message
+   *
+   * DM-only, and ONE message rather than one per NPC. The client used to run
+   * this loop itself, sending a `set-initiative` per creature; the limiter
+   * allows 100 messages per client per second and drops the rest SILENTLY, so
+   * a big enough encounter left its tail without initiative while the toast
+   * reported the full count. The loop belongs here, where nothing rate-limits
+   * one iteration from the next.
+   *
+   * Each NPC goes through `handleRollInitiative` rather than a second copy of
+   * the roll, so the labels, the public log lines and the combat auto-start
+   * rules cannot drift from the single-character case. No modifier is passed:
+   * a bulk roll is not a gesture on any one dial, so every NPC uses its own
+   * stored value.
+   *
+   * @param state - Current room state
+   * @param senderUid - UID of the sender, taken from the connection
+   * @param isDM - Whether sender is DM
+   * @param rng - Test seam only
+   * @returns Result indicating if broadcast/save is needed
+   */
+  handleRollInitiativeAll(
+    state: RoomState,
+    senderUid: string,
+    isDM: boolean,
+    rng: DiceRng = cryptoDiceRng,
+  ): InitiativeMessageResult {
+    if (!isDM) {
+      console.warn(`Non-DM ${senderUid} attempted to roll initiative for every NPC`);
+      return { broadcast: false, save: false };
+    }
+
+    // Snapshot the targets before rolling: handleRollInitiative writes into
+    // state.characters as it goes, and filtering lazily over a collection being
+    // mutated is how a loop like this starts skipping entries.
+    const pending = state.characters.filter(
+      (character) => character.type === "npc" && character.initiative === undefined,
+    );
+
+    let rolled = 0;
+    for (const npc of pending) {
+      const result = this.handleRollInitiative(state, npc.id, senderUid, isDM, undefined, rng);
+      if (result.broadcast) {
+        rolled += 1;
+      }
+    }
+
+    if (rolled === 0) {
+      // Nothing changed, so nothing to broadcast or persist. Not an error: a
+      // DM pressing this twice is the ordinary way to reach it.
+      return { broadcast: false, save: false };
+    }
+
+    console.log(`[Server] Rolled initiative for ${rolled} NPC(s) of ${pending.length} pending`);
+    return { broadcast: true, save: true };
+  }
 }

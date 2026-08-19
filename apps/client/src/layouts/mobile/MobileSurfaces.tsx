@@ -53,11 +53,11 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
   // Mobile's own instance, deliberately: on desktop MainLayout shares one
   // between the entities panel and the DM menu, but mobile has no entities
   // panel — and the builder cannot call hooks, so the caller owns this.
-  const { setInitiative } = useInitiativeSetting({
+  const { rollAllInitiative } = useInitiativeSetting({
     snapshot: props.snapshot,
     sendMessage: props.sendMessage,
   });
-  const dmMenuProps = buildDMMenuProps(props, { setInitiative });
+  const dmMenuProps = buildDMMenuProps(props, { rollAllInitiative });
 
   return (
     <>

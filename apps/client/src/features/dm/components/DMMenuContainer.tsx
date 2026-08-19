@@ -92,7 +92,7 @@ export interface DMMenuContainerProps {
 
   // Other actions
   onSelectPlayerTokens: (playerUid: string) => void;
-  onSetInitiative?: (characterId: string, initiative: number, modifier: number) => void;
+  onRollAllInitiative?: () => void;
   mapStudio?: MapStudioController;
   /** "window" (desktop launcher + DraggableWindow) or "content" (bare, for
    *  a host that provides the surface — the mobile DM screen). */
@@ -151,7 +151,7 @@ export function DMMenuContainer({
   camera,
   toast,
   onSelectPlayerTokens,
-  onSetInitiative,
+  onRollAllInitiative,
   mapStudio,
   presentation,
 }: DMMenuContainerProps) {
@@ -255,7 +255,7 @@ export function DMMenuContainer({
       onNextTurn={dmContext.combatControls.handleNextTurn}
       onPreviousTurn={dmContext.combatControls.handlePreviousTurn}
       toast={toast}
-      onSetInitiative={onSetInitiative}
+      onRollAllInitiative={onRollAllInitiative}
       playerPropsEnabled={snapshot?.playerPropsEnabled ?? false}
       // Sent inline rather than through useDMContext — that hook sits at the
       // 350-line ceiling, and this is one message with no state to manage.
