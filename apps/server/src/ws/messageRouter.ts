@@ -217,7 +217,12 @@ export class MessageRouter {
     );
     this.playerMessageHandler = new PlayerMessageHandler(playerService, roomService);
     this.playerDispatcher = new PlayerDispatcher(this.playerMessageHandler);
-    this.initiativeMessageHandler = new InitiativeMessageHandler(characterService, roomService);
+    this.initiativeMessageHandler = new InitiativeMessageHandler(
+      characterService,
+      roomService,
+      diceService,
+      playerService,
+    );
     this.initiativeRollHandler = new InitiativeRollHandler(
       characterService,
       diceService,

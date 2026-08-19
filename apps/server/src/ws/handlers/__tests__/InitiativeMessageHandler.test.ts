@@ -22,11 +22,17 @@ import { createEmptyRoomState } from "../../../domains/room/model.js";
 import type { RoomState } from "../../../domains/room/model.js";
 import type { CharacterService } from "../../../domains/character/service.js";
 import type { RoomService } from "../../../domains/room/service.js";
+import { DiceService } from "../../../domains/dice/service.js";
+import type { PlayerService } from "../../../domains/player/service.js";
 
 describe("InitiativeMessageHandler", () => {
   let handler: InitiativeMessageHandler;
   let mockCharacterService: CharacterService;
   let mockRoomService: RoomService;
+  // Real, not a stub: commit 4 makes the manual path WRITE to the log, and a
+  // stub would let "it was recorded" pass while nothing was.
+  let diceService: DiceService;
+  let mockPlayerService: PlayerService;
   let state: RoomState;
 
   beforeEach(() => {
@@ -115,7 +121,19 @@ describe("InitiativeMessageHandler", () => {
       saveState: vi.fn(),
     } as unknown as RoomService;
 
-    handler = new InitiativeMessageHandler(mockCharacterService, mockRoomService);
+    diceService = new DiceService();
+    mockPlayerService = {
+      findPlayer: vi.fn((_state: RoomState, uid: string) =>
+        uid === "ghost" ? undefined : { uid, name: `Player ${uid}` },
+      ),
+    } as unknown as PlayerService;
+
+    handler = new InitiativeMessageHandler(
+      mockCharacterService,
+      mockRoomService,
+      diceService,
+      mockPlayerService,
+    );
   });
 
   describe("handleSetInitiative", () => {
@@ -315,6 +333,70 @@ describe("InitiativeMessageHandler", () => {
 
       expect(result).toEqual({ broadcast: true, save: true });
       expect(mockCharacterService.clearInitiative).toHaveBeenCalledWith(state, "char1");
+    });
+  });
+
+  describe("a hand-entered initiative reaches the roll log", () => {
+    it("records it as a d20 result, labelled as entered rather than rolled", () => {
+      state.characters[0].initiativeModifier = 3;
+
+      handler.handleSetInitiative(state, "char1", "player1", 17, 3, false);
+
+      expect(state.diceRolls).toHaveLength(1);
+      const roll = state.diceRolls[0];
+      expect(roll.label).toBe("Fighter — initiative (entered)");
+      expect(roll.formula).toBe("d20 + 3");
+      expect(roll.total).toBe(17);
+      // The implied face: what the player says the physical die showed.
+      expect(roll.breakdown[0].rolls).toEqual([14]);
+      expect(roll.playerUid).toBe("player1");
+    });
+
+    it("strikes the superseded value through, in the channel advantage uses", () => {
+      // First value, then the override the DM allowed after a physical re-roll.
+      handler.handleSetInitiative(state, "char1", "player1", 4, 0, false);
+      state.characters[0].initiative = 4;
+      state.characters[0].initiativeModifier = 0;
+
+      handler.handleSetInitiative(state, "char1", "player1", 18, 0, false);
+
+      expect(state.diceRolls).toHaveLength(2);
+      expect(state.diceRolls[1].breakdown[0].rolls).toEqual([18]);
+      expect(state.diceRolls[1].breakdown[0].dropped).toEqual([4]);
+    });
+
+    it("has nothing to strike through on a first entry", () => {
+      handler.handleSetInitiative(state, "char1", "player1", 11, 0, false);
+
+      expect(state.diceRolls[0].breakdown[0].dropped).toBeUndefined();
+    });
+
+    it("refuses to call an impossible number a d20 roll", () => {
+      // A DM typing 47 for a monster is legitimate; logging it as "d20 rolled
+      // 47" would make the log the one thing at the table lying about dice.
+      handler.handleSetInitiative(state, "char3", "dm-uid", 47, 0, true);
+
+      const roll = state.diceRolls[0];
+      expect(roll.formula).toBe("47");
+      expect(roll.total).toBe(47);
+      expect(roll.breakdown[0].die).toBeUndefined();
+      expect(roll.breakdown[0].rolls).toBeUndefined();
+    });
+
+    it("logs nothing when initiative is CLEARED — there is no roll to show", () => {
+      handler.handleSetInitiative(state, "char1", "player1", undefined, 0, false);
+
+      expect(state.diceRolls).toHaveLength(0);
+    });
+
+    it("stores the value even when the log line cannot be written", () => {
+      // A missing player record must cost the LOG LINE, never the initiative:
+      // a turn order with no explanation beats no turn order.
+      const result = handler.handleSetInitiative(state, "char3", "ghost", 12, 0, true);
+
+      expect(result).toEqual({ broadcast: true, save: true });
+      expect(mockCharacterService.setInitiative).toHaveBeenCalledWith(state, "char3", 12, 0);
+      expect(state.diceRolls).toHaveLength(0);
     });
   });
 

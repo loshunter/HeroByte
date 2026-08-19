@@ -80,6 +80,54 @@ export class DiceService {
   }
 
   /**
+   * Record a roll the server did NOT throw: a physical die, reported by hand.
+   *
+   * Read the file header first, because this is the one method that bends it.
+   * `rollFor` refuses a client-built DiceRoll on purpose — that shape is what
+   * made dice forgeable (arc defect D2). Here a client number really does
+   * reach the log, and the reason it is not the same hole is worth being
+   * precise about:
+   *
+   *   - identity is still the connection's. `playerUid` and `playerName` come
+   *     from the caller's own record, exactly as in `rollFor`
+   *   - `id` and `timestamp` are still minted here, so history cannot be
+   *     back-dated or given a colliding id
+   *   - the entry is LABELLED. A manual initiative says so in the log; it is
+   *     not passed off as something the server rolled
+   *   - and it buys nothing a player did not already have: hand-entered
+   *     initiative predates this method, and the DM can switch it off
+   *
+   * What it must never become is a general "record my roll" entry point. It
+   * takes a presentation, not a formula, and the only caller is initiative.
+   */
+  recordManual(
+    state: RoomState,
+    request: {
+      playerUid: string;
+      playerName: string;
+      formula: string;
+      total: number;
+      breakdown: DiceRoll["breakdown"];
+      label: string;
+    },
+    now: number = Date.now(),
+  ): DiceRoll {
+    const roll: DiceRoll = {
+      id: randomUUID(),
+      playerUid: request.playerUid,
+      playerName: request.playerName,
+      formula: request.formula,
+      total: request.total,
+      breakdown: request.breakdown,
+      timestamp: now,
+      label: request.label,
+    };
+
+    this.addRoll(state, roll);
+    return roll;
+  }
+
+  /**
    * Append a settled roll to history, trimming the oldest beyond MAX_ROLLS.
    */
   addRoll(state: RoomState, roll: DiceRoll): void {

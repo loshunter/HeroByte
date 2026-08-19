@@ -21,7 +21,10 @@
 import type { RoomState } from "../../domains/room/model.js";
 import type { CharacterService } from "../../domains/character/service.js";
 import type { RoomService } from "../../domains/room/service.js";
+import type { DiceService } from "../../domains/dice/service.js";
+import type { PlayerService } from "../../domains/player/service.js";
 import { applyInitiative } from "./applyInitiative.js";
+import { buildManualInitiativeRecord } from "./initiativeRollRecord.js";
 
 /**
  * Result of handling an initiative message
@@ -39,10 +42,19 @@ export interface InitiativeMessageResult {
 export class InitiativeMessageHandler {
   private characterService: CharacterService;
   private roomService: RoomService;
+  private diceService: DiceService;
+  private playerService: PlayerService;
 
-  constructor(characterService: CharacterService, roomService: RoomService) {
+  constructor(
+    characterService: CharacterService,
+    roomService: RoomService,
+    diceService: DiceService,
+    playerService: PlayerService,
+  ) {
     this.characterService = characterService;
     this.roomService = roomService;
+    this.diceService = diceService;
+    this.playerService = playerService;
   }
 
   /**
@@ -110,12 +122,55 @@ export class InitiativeMessageHandler {
       `[Server] Setting initiative for ${character.name} (${characterId}): initiative=${initiative}, modifier=${modifier}`,
     );
 
+    // Read BEFORE applyInitiative overwrites it: this is the value the entry
+    // supersedes, and the log strikes it through. The stored modifier is the
+    // one it was set with, so the difference is the face that was claimed.
+    const supersededFace =
+      character.initiative === undefined
+        ? undefined
+        : character.initiative - (character.initiativeModifier ?? 0);
+
     if (applyInitiative(this.characterService, state, characterId, initiative, modifier)) {
+      this.logManualEntry(state, senderUid, character.name, initiative, modifier, supersededFace);
       console.log(`[Server] Broadcasting updated initiative for ${character.name}`);
       return { broadcast: true, save: true };
     }
 
     return { broadcast: false, save: false };
+  }
+
+  /**
+   * Put a hand-entered initiative in the roll log.
+   *
+   * Best-effort by design: a missing player record drops the LOG LINE, never
+   * the initiative itself. The value is already stored by the time this runs,
+   * and refusing to record it would be a strictly worse outcome than recording
+   * nothing — the table would have a turn order with no explanation.
+   */
+  private logManualEntry(
+    state: RoomState,
+    senderUid: string,
+    characterName: string,
+    initiative: number,
+    modifier: number,
+    supersededFace?: number,
+  ): void {
+    const author = this.playerService.findPlayer(state, senderUid);
+    if (!author) {
+      console.warn(`[Initiative] No player record for ${senderUid}; entry stored but not logged`);
+      return;
+    }
+
+    const record = buildManualInitiativeRecord(initiative, modifier, supersededFace);
+    this.diceService.recordManual(state, {
+      playerUid: senderUid,
+      playerName: author.name,
+      formula: record.formula,
+      total: record.total,
+      breakdown: record.breakdown,
+      // Says what it is. A hand-entered number must not read as a server roll.
+      label: `${characterName} — initiative (entered)`,
+    });
   }
 
   /**
