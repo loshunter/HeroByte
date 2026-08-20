@@ -209,6 +209,25 @@ describe("useDiceRolling", () => {
       ]);
     });
 
+    it("carries the server's label, so an initiative roll says which creature", () => {
+      // This mapper ENUMERATES the fields it copies. Adding `label` to the
+      // client type alone leaves TypeScript green while the log renders
+      // undefined for ever — and a component test built on a hand-made
+      // RollLogEntry would pass without ever crossing the wire boundary. This
+      // is the only assertion in the suite that catches that.
+      const { result } = renderDice(
+        createMockSnapshot([createServerRoll({ label: "Goblin A — initiative" })]),
+      );
+
+      expect(result.current.rollHistory[0]?.label).toBe("Goblin A — initiative");
+    });
+
+    it("leaves the label undefined on an ordinary dice roll", () => {
+      const { result } = renderDice(createMockSnapshot([createServerRoll()]));
+
+      expect(result.current.rollHistory[0]?.label).toBeUndefined();
+    });
+
     it("carries advantage's discarded dice and the visibility badge", () => {
       const { result } = renderDice(
         createMockSnapshot([

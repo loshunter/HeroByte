@@ -85,6 +85,22 @@ export const RollEntry: React.FC<{
           }}
         >
           {sanitizeText(roll.playerName)}
+          {/* What the roll was FOR, when the server said. Sits next to the
+              roller rather than replacing them: a DM rolling for five goblins
+              needs both "who pressed it" and "which creature this is". */}
+          {roll.label ? (
+            <span
+              data-testid="roll-label"
+              style={{
+                marginLeft: "6px",
+                color: "var(--jrpg-white)",
+                fontWeight: "normal",
+                opacity: 0.85,
+              }}
+            >
+              {sanitizeText(roll.label)}
+            </span>
+          ) : null}
           {badges.map((badge) => (
             <span
               key={badge}

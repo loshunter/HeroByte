@@ -198,6 +198,8 @@ export interface BottomPanelLayoutProps {
   onSetInitiative: (characterId: string, initiative: number, modifier: number) => void;
   /** Handler to ask the SERVER to roll initiative, carrying the dial's modifier */
   onRollInitiative: (characterId: string, modifier?: number) => void;
+  /** Whether the initiative modal offers hand-entry (table setting, or DM) */
+  manualInitiativeAllowed?: boolean;
   /** Whether an initiative setting operation is in progress */
   isSettingInitiative?: boolean;
   /** Error message from initiative setting operation */
@@ -321,6 +323,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
     currentTurnCharacterId,
     onSetInitiative,
     onRollInitiative,
+    manualInitiativeAllowed,
     isSettingInitiative,
     initiativeError,
     onClearInitiative,
@@ -384,6 +387,7 @@ export const BottomPanelLayout: React.FC<BottomPanelLayoutProps> = React.memo(
         currentTurnCharacterId={currentTurnCharacterId}
         onSetInitiative={onSetInitiative}
         onRollInitiative={onRollInitiative}
+        manualInitiativeAllowed={manualInitiativeAllowed}
         isSettingInitiative={isSettingInitiative}
         initiativeError={initiativeError}
         onClearInitiative={onClearInitiative}

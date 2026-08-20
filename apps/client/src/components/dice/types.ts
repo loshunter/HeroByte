@@ -34,6 +34,15 @@ export type RollResult = {
   playerUid?: string;
   /** Canonical notation the server rolled, e.g. "2d20 + 5". */
   formula: string;
+  /**
+   * What the roll was FOR, when it was not a bare `/roll` — e.g. "Goblin A —
+   * initiative". Server-set; absent on an ordinary dice roll.
+   *
+   * `playerUid`/`playerName` answer "who rolled", which for initiative is not
+   * the interesting question: a DM rolling five goblins would otherwise get
+   * five identical rows under their own name.
+   */
+  label?: string;
   perDie: {
     tokenId: string;
     die?: DieType;

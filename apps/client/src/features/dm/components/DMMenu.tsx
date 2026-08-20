@@ -96,6 +96,8 @@ export function DMMenu({
   onRollAllInitiative,
   playerPropsEnabled,
   onPlayerPropsEnabledChange,
+  initiativeManualOverride,
+  onInitiativeManualOverrideChange,
   mapStudio,
   presentation = "window",
 }: DMMenuProps) {
@@ -242,6 +244,8 @@ export function DMMenu({
           playerCount={playerCount}
           playerPropsEnabled={playerPropsEnabled}
           onPlayerPropsEnabledChange={onPlayerPropsEnabledChange}
+          initiativeManualOverride={initiativeManualOverride}
+          onInitiativeManualOverrideChange={onInitiativeManualOverrideChange}
         />
       )}
     </div>

@@ -63,6 +63,17 @@ interface SessionTabProps {
   playerPropsEnabled?: boolean;
   /** Callback to flip the player-props toggle. */
   onPlayerPropsEnabledChange?: (enabled: boolean) => void;
+
+  // Initiative manual-override toggle
+  /**
+   * Whether players may enter an initiative by hand instead of rolling.
+   *
+   * Defaults to TRUE, unlike playerPropsEnabled — the caller derives it with
+   * `!== false`, because the snapshot only carries this key when it is off.
+   */
+  initiativeManualOverride?: boolean;
+  /** Callback to flip the manual-override toggle. */
+  onInitiativeManualOverrideChange?: (enabled: boolean) => void;
 }
 
 /**
@@ -95,6 +106,10 @@ export default function SessionTab({
   playerCount,
   playerPropsEnabled = false,
   onPlayerPropsEnabledChange,
+  // Default TRUE, and deliberately not `= false` like the prop above: a table
+  // that has never touched this setting has it ON.
+  initiativeManualOverride = true,
+  onInitiativeManualOverrideChange,
 }: SessionTabProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -159,6 +174,47 @@ export default function SessionTab({
           >
             Lets players place, edit, and remove their own image props (furniture, chests, scene
             dressing). They never gain map tools, and you can always adjust or delete what they add.
+          </div>
+        </JRPGPanel>
+      )}
+
+      {/* Also table policy, and ON by default: entering a number by hand is
+          what the control exists to serve — a bad roll, you allow a physical
+          re-roll, the real number goes in. Turning it off makes the server's
+          die the only way in. */}
+      {onInitiativeManualOverrideChange && (
+        <JRPGPanel variant="simple" title="Initiative">
+          <label
+            className="jrpg-text-small"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              color: "var(--jrpg-white)",
+              cursor: "pointer",
+            }}
+          >
+            <input
+              type="checkbox"
+              data-testid="initiative-manual-override-toggle"
+              checked={initiativeManualOverride}
+              onChange={(e) => onInitiativeManualOverrideChange(e.target.checked)}
+            />
+            Players can enter initiative by hand
+          </label>
+          <div
+            style={{
+              marginTop: "6px",
+              fontFamily: "var(--font-body)",
+              fontSize: "11px",
+              lineHeight: 1.5,
+              color: "var(--jrpg-white)",
+              opacity: 0.8,
+            }}
+          >
+            Keeps <strong>USE PHYSICAL DICE</strong> available, for tables rolling real dice at a
+            real table. Every hand-entered number still reaches the roll log, marked as entered, so
+            nothing is hidden. Turn it off and the server&rsquo;s die is the only way in.
           </div>
         </JRPGPanel>
       )}

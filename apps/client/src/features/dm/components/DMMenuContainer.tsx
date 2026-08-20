@@ -18,6 +18,7 @@ import type { Camera } from "../../../hooks/useCamera";
 import { useDMContext, type UseDMContextOptions } from "../hooks/useDMContext";
 import { DMMenu } from "./DMMenu";
 import type { MapStudioController } from "../../map-studio";
+import { manualInitiativeEnabled } from "../../initiative/manualOverride";
 
 // Exported for buildDMMenuProps, which maps the MainLayoutProps bag onto this
 // shape once, for BOTH layouts. Import it `type`-only: a value import here
@@ -261,6 +262,13 @@ export function DMMenuContainer({
       // 350-line ceiling, and this is one message with no state to manage.
       onPlayerPropsEnabledChange={(enabled) =>
         sendMessage({ t: "set-player-props-enabled", enabled })
+      }
+      // A named rule, NOT `?? false` like the line above: this flag defaults
+      // ON and the snapshot carries the key only when it is off. See
+      // features/initiative/manualOverride.ts.
+      initiativeManualOverride={manualInitiativeEnabled(snapshot)}
+      onInitiativeManualOverrideChange={(enabled) =>
+        sendMessage({ t: "set-initiative-manual-override", enabled })
       }
       defaultVisionRadius={snapshot?.defaultVisionRadius}
       // Inline for the same reason: one message, no state to manage.

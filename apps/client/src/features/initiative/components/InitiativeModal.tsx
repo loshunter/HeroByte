@@ -17,6 +17,19 @@ interface InitiativeModalProps {
    * whatever modifier was last stored and the dial would stop mattering.
    */
   onRollInitiative: (modifier: number) => void;
+  /**
+   * Whether entering a number by hand is offered at all.
+   *
+   * The table setting `initiativeManualOverride` decides this for players; a DM
+   * always keeps it. Defaults TRUE so a caller that has not threaded it through
+   * gets the permissive shape rather than silently losing the control.
+   *
+   * Gating the CONTROL matters because the server refuses a gated manual entry
+   * without telling anyone: it returns no-broadcast/no-save and no error, so a
+   * player who got this far would watch "Setting..." for five seconds and then
+   * be told the update timed out.
+   */
+  manualEntryAllowed?: boolean;
   isLoading?: boolean;
   error?: string | null;
 }
@@ -26,6 +39,7 @@ export function InitiativeModal({
   onClose,
   onSetInitiative,
   onRollInitiative,
+  manualEntryAllowed = true,
   isLoading = false,
   error = null,
 }: InitiativeModalProps) {
@@ -192,9 +206,11 @@ export function InitiativeModal({
               <JRPGButton variant="primary" onClick={handleRoll} style={{ flex: 1 }}>
                 Roll Initiative
               </JRPGButton>
-              <JRPGButton onClick={enterManualMode} style={{ flex: 1 }}>
-                Use Physical Dice
-              </JRPGButton>
+              {manualEntryAllowed && (
+                <JRPGButton onClick={enterManualMode} style={{ flex: 1 }}>
+                  Use Physical Dice
+                </JRPGButton>
+              )}
             </div>
 
             {/* Manual Entry */}

@@ -144,6 +144,11 @@ export function useDiceRolling({
       // roll with no formula reaches RollEntry's isLongFormula, which reads
       // `.length` on it inside the render path.
       formula: typeof roll.formula === "string" ? roll.formula : "",
+      // This mapper enumerates what it copies, so a field added to the wire
+      // type reaches the log only by being named here. Adding `label` to the
+      // client type alone leaves TypeScript green and renders undefined for
+      // ever — and a test built on a hand-made RollLogEntry passes vacuously.
+      label: roll.label,
       // Array-guarded, not `|| []`: a session file a DM was handed can carry a
       // truthy non-array here (load-session checks entries are objects, not
       // their field shapes), and this runs inside a render-path useMemo where

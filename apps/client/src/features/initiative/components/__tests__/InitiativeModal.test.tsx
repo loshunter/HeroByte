@@ -127,6 +127,7 @@ function createDefaultProps(
     onClose?: () => void;
     onSetInitiative?: (initiative: number, modifier: number) => void;
     onRollInitiative?: (modifier: number) => void;
+    manualEntryAllowed?: boolean;
     isLoading?: boolean;
     error?: string | null;
   } = {},
@@ -668,6 +669,55 @@ describe("InitiativeModal - Roll Initiative", () => {
     expect(onRollInitiative).toHaveBeenCalledWith(2);
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onSetInitiative).not.toHaveBeenCalled();
+  });
+});
+
+// ============================================================================
+// MANUAL ENTRY GATE (SoC: the table's initiativeManualOverride setting)
+// ============================================================================
+
+describe("InitiativeModal - manual entry gate", () => {
+  it("offers Use Physical Dice by default", () => {
+    // Defaulting to permissive matters: a caller that has not threaded the
+    // setting through should not silently lose the control.
+    render(<InitiativeModal {...createDefaultProps()} />);
+
+    expect(screen.getByRole("button", { name: "Use Physical Dice" })).toBeInTheDocument();
+  });
+
+  it("offers it when the table allows hand-entry", () => {
+    render(<InitiativeModal {...createDefaultProps({ manualEntryAllowed: true })} />);
+
+    expect(screen.getByRole("button", { name: "Use Physical Dice" })).toBeInTheDocument();
+  });
+
+  it("hides it when the table has turned hand-entry off", () => {
+    // Hiding the CONTROL is the whole fix. The server refuses a gated manual
+    // entry without telling anyone — no broadcast, no save, no error — so a
+    // player who reached the Save button would watch "Setting..." for five
+    // seconds and then be told the update timed out.
+    render(<InitiativeModal {...createDefaultProps({ manualEntryAllowed: false })} />);
+
+    expect(screen.queryByRole("button", { name: "Use Physical Dice" })).not.toBeInTheDocument();
+  });
+
+  it("still lets you roll when hand-entry is off", () => {
+    // The modal must not become a dead end: turning the setting off leaves the
+    // server's die as the only way in, not no way in.
+    const onRollInitiative = vi.fn();
+    render(
+      <InitiativeModal {...createDefaultProps({ manualEntryAllowed: false, onRollInitiative })} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Roll Initiative" }));
+
+    expect(onRollInitiative).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves no way to reach the number input when hand-entry is off", () => {
+    render(<InitiativeModal {...createDefaultProps({ manualEntryAllowed: false })} />);
+
+    expect(screen.queryByPlaceholderText("Enter roll...")).not.toBeInTheDocument();
   });
 });
 

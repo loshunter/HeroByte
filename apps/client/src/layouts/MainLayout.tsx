@@ -32,6 +32,7 @@ import { useInitiativeSetting } from "../hooks/useInitiativeSetting";
 import { useNpcVisibility } from "../hooks/useNpcVisibility";
 import { PublicTableNotice } from "../features/rooms/PublicTableNotice";
 import { buildDMMenuProps } from "../features/dm/buildDMMenuProps";
+import { manualInitiativeAllowedFor } from "../features/initiative/manualOverride";
 
 // Re-export for backward compatibility
 export type { MainLayoutProps, RollLogEntry };
@@ -382,6 +383,7 @@ export const MainLayout = React.memo(function MainLayout(props: MainLayoutProps)
         currentTurnCharacterId={snapshot?.currentTurnCharacterId}
         onSetInitiative={setInitiative}
         onRollInitiative={rollInitiative}
+        manualInitiativeAllowed={manualInitiativeAllowedFor(snapshot, isDM)}
         isSettingInitiative={isSettingInitiative}
         initiativeError={initiativeError}
         onClearInitiative={clearInitiative}

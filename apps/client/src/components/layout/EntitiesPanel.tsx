@@ -87,6 +87,8 @@ interface EntitiesPanelProps {
   currentTurnCharacterId?: string;
   onSetInitiative: (characterId: string, initiative: number, modifier: number) => void;
   onRollInitiative: (characterId: string, modifier?: number) => void;
+  /** Whether the modal offers hand-entry: the table setting, or DM always. */
+  manualInitiativeAllowed?: boolean;
   onClearInitiative?: (characterId: string) => void;
   isSettingInitiative?: boolean;
   initiativeError?: string | null;
@@ -149,6 +151,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
   currentTurnCharacterId,
   onSetInitiative,
   onRollInitiative,
+  manualInitiativeAllowed = true,
   onClearInitiative,
   isSettingInitiative = false,
   initiativeError = null,
@@ -693,6 +696,7 @@ export const EntitiesPanel: React.FC<EntitiesPanelProps> = ({
             // than back in this component. There is no confirmation to wait on.
             onRollInitiative(initiativeModalCharacter.id, modifier);
           }}
+          manualEntryAllowed={manualInitiativeAllowed}
           isLoading={isSettingInitiative}
           error={initiativeError}
         />
