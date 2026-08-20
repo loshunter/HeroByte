@@ -9,7 +9,11 @@
  * @module middleware/validators/initiativeValidators
  */
 
-import { isFiniteNumber, type MessageRecord, type ValidationResult } from "./commonValidators.js";
+import {
+  isInitiativeModifier,
+  type MessageRecord,
+  type ValidationResult,
+} from "./commonValidators.js";
 
 /**
  * Validate roll-initiative message
@@ -21,17 +25,22 @@ import { isFiniteNumber, type MessageRecord, type ValidationResult } from "./com
  *
  * `modifier` is the exception, and it is not a result: it is the character's
  * own stat, arriving so that dragging the modal's dial and rolling can be one
- * gesture. The bound is `isFiniteNumber` and nothing tighter ON PURPOSE —
- * `set-initiative` has always accepted any finite number for the same field
- * (characterValidators.ts:333-338), and a roll that rejected what a manual
- * entry accepts would be the more surprising rule of the two.
+ * gesture. It is bounded to the same range both client editors clamp to, and
+ * `set-initiative` now enforces the identical bound on its own copy of the
+ * field — a limit on one path only would be a limit on neither, since either
+ * message can write the stored modifier through applyInitiative.
+ *
+ * An earlier version accepted any finite number here, reasoning that it merely
+ * matched what `set-initiative` already allowed. That was true and still wrong:
+ * it left `{ modifier: 9999 }` as a way to pick your own initiative at a table
+ * whose DM had turned hand-entry off precisely to stop that.
  */
 export function validateRollInitiativeMessage(message: MessageRecord): ValidationResult {
   if (typeof message.characterId !== "string" || message.characterId.length === 0) {
     return { valid: false, error: "roll-initiative: missing or invalid characterId" };
   }
-  if (message.modifier !== undefined && !isFiniteNumber(message.modifier)) {
-    return { valid: false, error: "roll-initiative: modifier must be a number" };
+  if (message.modifier !== undefined && !isInitiativeModifier(message.modifier)) {
+    return { valid: false, error: "roll-initiative: modifier out of range" };
   }
   return { valid: true };
 }

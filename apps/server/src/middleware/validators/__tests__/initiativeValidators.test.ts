@@ -60,6 +60,36 @@ describe("validateRollInitiativeMessage", () => {
     }
   });
 
+  it("rejects a modifier outside the range both client editors clamp to", () => {
+    // The hole this closed: `{ modifier: 9999 }` on a hand-crafted socket
+    // message stored an initiative of ~10000 and made every later roll 9999+,
+    // at a table whose DM had turned hand-entry OFF precisely to stop players
+    // choosing their own number.
+    for (const modifier of [21, -21, 9999, 1e308]) {
+      expect(
+        validateRollInitiativeMessage({ t: "roll-initiative", characterId: "char-1", modifier })
+          .valid,
+      ).toBe(false);
+    }
+  });
+
+  it("accepts the exact endpoints, so the dial's own extremes still work", () => {
+    for (const modifier of [20, -20]) {
+      expect(
+        validateRollInitiativeMessage({ t: "roll-initiative", characterId: "char-1", modifier }),
+      ).toEqual({ valid: true });
+    }
+  });
+
+  it("rejects a fractional modifier", () => {
+    // A d20 bonus is a whole number, and a fraction would render as one in the
+    // formula ("d20 + 2.5") while summing as another.
+    expect(
+      validateRollInitiativeMessage({ t: "roll-initiative", characterId: "char-1", modifier: 2.5 })
+        .valid,
+    ).toBe(false);
+  });
+
   it("still accepts a message with no modifier at all, meaning 'use the stored one'", () => {
     expect(
       validateRollInitiativeMessage({
