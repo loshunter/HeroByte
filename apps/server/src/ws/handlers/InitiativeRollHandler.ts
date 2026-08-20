@@ -96,6 +96,23 @@ export class InitiativeRollHandler {
       terms.push({ kind: "mod", value: modifier });
     }
 
+    // A HIDDEN creature's roll must not travel in this channel.
+    //
+    // `visibleRollsFor` filters on the ROLL's own visibility and never consults
+    // state.characters, so a public roll routes straight around
+    // buildRecipientView — which strips a `visibleToPlayers === false`
+    // character, strips its token, and blanks `currentTurnCharacterId` rather
+    // than prove that a combatant the recipient cannot see is acting now. A
+    // named roll-log line hands over strictly more than the id that filter
+    // withholds. Rolling initiative for a hidden ambush is the ordinary DM
+    // workflow the guide advertises, so this is reached by pressing a button,
+    // not by contriving anything.
+    //
+    // Fixed at roll time: visibleRollsFor has no re-evaluation hook, so
+    // revealing the creature later does not retroactively surface the line.
+    // That is the right way round — a spoiler cannot be un-shown.
+    const concealed = character.visibleToPlayers === false;
+
     const roll = this.diceService.rollFor(
       state,
       {
@@ -103,9 +120,11 @@ export class InitiativeRollHandler {
         playerName: author.name,
         terms,
         mode: "normal",
-        // Initiative is turn order: a hidden one would leave the table unable
-        // to check the sequence it is about to play.
-        visibility: "public",
+        // Initiative is turn order, and a hidden one leaves the table unable to
+        // check the sequence it is about to play — but only for creatures the
+        // table can see. There is no sequence to check for a creature the
+        // recipient filter is actively concealing.
+        visibility: concealed ? "dm" : "public",
         label: `${character.name} — initiative`,
       },
       rng,

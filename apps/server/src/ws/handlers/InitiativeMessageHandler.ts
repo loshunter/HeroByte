@@ -131,7 +131,15 @@ export class InitiativeMessageHandler {
         : character.initiative - (character.initiativeModifier ?? 0);
 
     if (applyInitiative(this.characterService, state, characterId, initiative, modifier)) {
-      this.logManualEntry(state, senderUid, character.name, initiative, modifier, supersededFace);
+      this.logManualEntry(
+        state,
+        senderUid,
+        character.name,
+        initiative,
+        modifier,
+        supersededFace,
+        character.visibleToPlayers === false,
+      );
       console.log(`[Server] Broadcasting updated initiative for ${character.name}`);
       return { broadcast: true, save: true };
     }
@@ -154,6 +162,7 @@ export class InitiativeMessageHandler {
     initiative: number,
     modifier: number,
     supersededFace?: number,
+    concealed = false,
   ): void {
     const author = this.playerService.findPlayer(state, senderUid);
     if (!author) {
@@ -170,6 +179,10 @@ export class InitiativeMessageHandler {
       breakdown: record.breakdown,
       // Says what it is. A hand-entered number must not read as a server roll.
       label: `${characterName} — initiative (entered)`,
+      // A hidden creature's name must not reach the table by this path either.
+      // Fixing only the ROLLED path would have moved the leak here rather than
+      // closed it — hand entry is the ordinary physical-dice workflow.
+      visibility: concealed ? "dm" : "public",
     });
   }
 

@@ -352,6 +352,25 @@ describe("InitiativeMessageHandler", () => {
       expect(roll.playerUid).toBe("player1");
     });
 
+    it("is public for a visible character", () => {
+      handler.handleSetInitiative(state, "char1", "player1", 17, 3, false);
+
+      // Absent means public, the convention rollFor already follows.
+      expect(state.diceRolls[0].visibility).toBeUndefined();
+    });
+
+    it("keeps a HIDDEN character's hand-entered line away from players", () => {
+      // The rolled path and this one both name the creature, so gating only
+      // the roll would have moved the leak here rather than closed it — and
+      // hand entry is the ordinary physical-dice workflow, not an edge case.
+      const target = state.characters.find((character) => character.id === "char1");
+      if (target) target.visibleToPlayers = false;
+
+      handler.handleSetInitiative(state, "char1", "player1", 17, 3, true);
+
+      expect(state.diceRolls[0].visibility).toBe("dm");
+    });
+
     it("strikes the superseded value through, in the channel advantage uses", () => {
       // First value, then the override the DM allowed after a physical re-roll.
       handler.handleSetInitiative(state, "char1", "player1", 4, 0, false);

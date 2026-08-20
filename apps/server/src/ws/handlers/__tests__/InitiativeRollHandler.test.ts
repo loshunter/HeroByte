@@ -17,6 +17,7 @@ import type { RoomState } from "../../../domains/room/model.js";
 import type { CharacterService } from "../../../domains/character/service.js";
 import { DiceService } from "../../../domains/dice/service.js";
 import type { PlayerService } from "../../../domains/player/service.js";
+import { visibleRollsFor } from "../../../domains/room/snapshot/recipientFilter.js";
 
 describe("InitiativeRollHandler", () => {
   let rollHandler: InitiativeRollHandler;
@@ -348,6 +349,34 @@ describe("InitiativeRollHandler", () => {
       ).mock.calls.map((call) => call[1]);
       expect(rolledIds).not.toContain("char1");
       expect(rolledIds).not.toContain("char2");
+    });
+
+    it("keeps a HIDDEN NPC's roll away from players, name and all", () => {
+      // The leak this slice introduced. buildRecipientView strips a
+      // visibleToPlayers === false character, its token, and even
+      // currentTurnCharacterId — but visibleRollsFor filters on the ROLL's own
+      // visibility and never consults state.characters, so a public roll
+      // labelled with the creature's name walks straight past all of it.
+      const goblin = state.characters.find((character) => character.id === "char3");
+      if (goblin) goblin.visibleToPlayers = false;
+
+      rollHandler.handleRollInitiativeAll(state, "dm-uid", true, seeded([10, 15]));
+
+      const hidden = state.diceRolls.find((roll) => roll.label === "Goblin — initiative");
+      const shown = state.diceRolls.find((roll) => roll.label === "Orc — initiative");
+      expect(hidden?.visibility).toBe("dm");
+      // The visible one must NOT get swept up in the fix.
+      expect(shown?.visibility).toBeUndefined();
+
+      // Asserting the stored field is not enough: what matters is what the
+      // recipient filter does with it, which is the thing that was wrong.
+      const asPlayer = visibleRollsFor(state.diceRolls, false, "player1");
+      expect(asPlayer.map((roll) => roll.label)).toEqual(["Orc — initiative"]);
+
+      // The DM who rolled still sees both, or the fix would have hidden the
+      // ambush from the person running it.
+      const asDM = visibleRollsFor(state.diceRolls, true, "dm-uid");
+      expect(asDM).toHaveLength(2);
     });
 
     it("refuses a non-DM even for an NPC they own — a sweep is a DM action", () => {

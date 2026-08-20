@@ -109,6 +109,13 @@ export class DiceService {
       total: number;
       breakdown: DiceRoll["breakdown"];
       label: string;
+      /**
+       * Absent means public, the same rule `rollFor` follows. Supplied when the
+       * SUBJECT of the entry is concealed: a hidden NPC's name must not travel
+       * in the roll log, which `visibleRollsFor` filters on the roll's own
+       * visibility without ever consulting state.characters.
+       */
+      visibility?: DiceVisibility;
     },
     now: number = Date.now(),
   ): DiceRoll {
@@ -122,6 +129,11 @@ export class DiceService {
       timestamp: now,
       label: request.label,
     };
+    // Set only when it carries information, exactly as rollFor does: an absent
+    // visibility already reads as public everywhere downstream.
+    if (request.visibility !== undefined && request.visibility !== "public") {
+      roll.visibility = request.visibility;
+    }
 
     this.addRoll(state, roll);
     return roll;
