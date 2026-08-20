@@ -73,17 +73,27 @@ describe("RollEntry - label", () => {
     expect(screen.getByTestId("roll-label")).toHaveTextContent("Goblin B — initiative");
   });
 
-  it("sanitizes the label rather than trusting it", () => {
+  it("strips markup out of the label rather than trusting it", () => {
     // Server-set today, but it reaches the DOM through the same path as every
     // other piece of roll text, all of which is sanitized.
+    //
+    // Asserting `querySelector("img") === null` here proved NOTHING and this
+    // test used to do exactly that: React escapes text children, so no element
+    // is ever created from a string no matter what it contains — the assertion
+    // passed with sanitizeText deleted. Verified by sabotage.
+    //
+    // What sanitizeText actually does is strip the tag while KEEPING inner text
+    // (DOMPurify, ALLOWED_TAGS: [], KEEP_CONTENT: true), so the discriminating
+    // question is what the rendered TEXT says.
     render(
       <RollEntry
-        roll={createRoll({ label: "<img src=x onerror=alert(1)> — initiative" })}
+        roll={createRoll({ label: "<img src=x onerror=alert(1)>Goblin — initiative" })}
         onViewRoll={onViewRoll}
       />,
     );
 
     const label = screen.getByTestId("roll-label");
-    expect(label.querySelector("img")).toBeNull();
+    expect(label.textContent).toBe("Goblin — initiative");
+    expect(label.textContent).not.toContain("<img");
   });
 });
