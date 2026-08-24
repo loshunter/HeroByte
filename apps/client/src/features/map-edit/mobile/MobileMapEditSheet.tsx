@@ -17,9 +17,12 @@
 // green typecheck.
 
 import React from "react";
-import type { DragTool } from "../mapEditToolKinds";
 import type { MapEditToolbarProps } from "../mapEditTypes";
-import { MobileMapEditToolPanels, PANEL_TOOLS } from "./MobileMapEditToolPanels";
+import {
+  MobileMapEditToolPanels,
+  PANEL_TOOLS,
+  type SheetPanelTool,
+} from "./MobileMapEditToolPanels";
 import { MobilePopulateBlock } from "./MobilePopulateBlock";
 import { MOBILE_TOOL_TILES } from "./mobileToolTiles";
 
@@ -44,12 +47,12 @@ export const MobileMapEditSheet: React.FC<MobileMapEditSheetProps> = ({
   // them. Tap counts are the same either way (Tool, tile, dial, To the map),
   // but the open version never requires the DM to KNOW that a tool they just
   // armed has options and that reopening the sheet is how to reach them.
-  const selectSubTool = (tool: DragTool) => {
+  const selectSubTool = (tool: SheetPanelTool) => {
     onSelectSubTool(tool);
     if (!PANEL_TOOLS.has(tool)) onToggleTools();
   };
 
-  const panelsOpen = isLive && PANEL_TOOLS.has(activeSubTool as DragTool);
+  const panelsOpen = isLive && PANEL_TOOLS.has(activeSubTool as SheetPanelTool);
 
   const recenter = () => {
     onResetCamera();
@@ -106,6 +109,21 @@ export const MobileMapEditSheet: React.FC<MobileMapEditSheetProps> = ({
               {tile.label}
             </button>
           ))}
+          {/* Select sits with the tiles rather than below them because it is a
+              MODE like they are — Recenter, the one action in this grid, stays
+              last. It is deliberately not a MOBILE_TOOL_TILES entry: that list
+              is a Record over DragTool, and keeping select out of it preserves
+              the compile-time guarantee that every armed drag tool has exactly
+              one tile and nothing else does. */}
+          <button
+            type="button"
+            aria-pressed={activeSubTool === "select"}
+            className={subToolClass("select")}
+            onClick={() => selectSubTool("select")}
+          >
+            <span aria-hidden="true">👆</span>
+            Select
+          </button>
           <button type="button" className="mobile-tool-sheet__button" onClick={recenter}>
             <span aria-hidden="true">◇</span>
             Recenter

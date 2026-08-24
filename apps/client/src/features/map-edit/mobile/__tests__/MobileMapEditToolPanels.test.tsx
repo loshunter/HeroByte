@@ -123,8 +123,15 @@ describe("the phone's tool dials", () => {
     }
   });
 
-  it("only ever claims panels for tools the touch path arms", () => {
-    for (const tool of PANEL_TOOLS) expect(isDragTool(tool)).toBe(true);
+  // "select" is the ONE deliberate non-drag member, and it is named rather than
+  // waved through by a loosened predicate: any OTHER non-drag tool sneaking into
+  // PANEL_TOOLS would be a sheet that stays open over a tool touch never arms,
+  // which is exactly the silent-no-op failure this mode is worst at.
+  it("only ever claims panels for tools the touch path arms, plus select", () => {
+    for (const tool of PANEL_TOOLS) {
+      expect(isDragTool(tool) || tool === "select").toBe(true);
+    }
+    expect(PANEL_TOOLS.has("select")).toBe(true);
   });
 
   // Selection reached a stylesheet and nothing else until the review caught it.
