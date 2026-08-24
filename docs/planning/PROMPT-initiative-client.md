@@ -7,6 +7,11 @@ Everything below was verified by reading the files on 2026-08-18 at `dev` = `08c
 numbers are from that commit. You should not need to search for anything — if a path here is
 wrong, trust the file and say so.
 
+> **DONE 2026-08-24.** All three commits landed, plus the review's fixes (hidden-NPC log leak
+> `d4dfda6e`, modifier bound `ac47ab9e`, vacuous sanitization test `b30fffd8`). Slice complete
+> on `dev` at `ac47ab9e`, CI #808 green. Still open for the owner: the §5 `recordManual`
+> judgement call. Kept for the record — do not execute.
+
 ---
 
 ## 0. Orient (do this first, it is five commands)
@@ -36,13 +41,13 @@ test can fail" is enforced here, not aspirational.
 
 Four commits, `850c4fc6..08c6e540`:
 
-| commit     | what it did                                                                    |
-| ---------- | ------------------------------------------------------------------------------ |
-| `8aa91795` | the plan doc                                                                   |
-| `850c4fc6` | wire shape: three messages + validators, no behaviour                          |
-| `bcd6aefe` | the server rolls d20 on `cryptoDiceRng` and logs it; `DiceRoll.label` added    |
-| `6f37fa6e` | `initiativeManualOverride` — a DM-toggleable table setting, **default ON**     |
-| `08c6e540` | manual entries also log, with the superseded value struck through              |
+| commit     | what it did                                                                 |
+| ---------- | --------------------------------------------------------------------------- |
+| `8aa91795` | the plan doc                                                                |
+| `850c4fc6` | wire shape: three messages + validators, no behaviour                       |
+| `bcd6aefe` | the server rolls d20 on `cryptoDiceRng` and logs it; `DiceRoll.label` added |
+| `6f37fa6e` | `initiativeManualOverride` — a DM-toggleable table setting, **default ON**  |
+| `08c6e540` | manual entries also log, with the superseded value struck through           |
 
 **The server is finished and works. The client does not use any of it yet.** Both
 `Math.random()` callers are still what the UI calls. That is the entire remaining job.
@@ -135,13 +140,13 @@ have the server return it. Say in the commit body which you chose and why.
 
 **a) The toggle UI.** Copy the `playerPropsEnabled` wiring exactly; it threads through five files:
 
-| file                                                   | line  | what is there                                          |
-| ------------------------------------------------------ | ----- | ------------------------------------------------------ |
-| `features/dm/components/tab-views/SessionTab.tsx`       | 63,96 | prop declaration and default                           |
-| `features/dm/components/tab-views/SessionTab.tsx`       | 145   | the `<input type="checkbox">` + its explanatory blurb  |
-| `features/dm/components/DMMenu.types.ts`                | 113   | the prop pair on the menu's type                       |
-| `features/dm/components/DMMenu.tsx`                     | 97,243| destructure and forward                                |
-| `features/dm/components/DMMenuContainer.tsx`            | 259   | `snapshot?.playerPropsEnabled ?? false`                |
+| file                                              | line   | what is there                                         |
+| ------------------------------------------------- | ------ | ----------------------------------------------------- |
+| `features/dm/components/tab-views/SessionTab.tsx` | 63,96  | prop declaration and default                          |
+| `features/dm/components/tab-views/SessionTab.tsx` | 145    | the `<input type="checkbox">` + its explanatory blurb |
+| `features/dm/components/DMMenu.types.ts`          | 113    | the prop pair on the menu's type                      |
+| `features/dm/components/DMMenu.tsx`               | 97,243 | destructure and forward                               |
+| `features/dm/components/DMMenuContainer.tsx`      | 259    | `snapshot?.playerPropsEnabled ?? false`               |
 
 **The one line you must NOT copy verbatim is that last one.** Props default OFF; this flag defaults
 **ON**, and the snapshot only carries it when it is off. So it reads

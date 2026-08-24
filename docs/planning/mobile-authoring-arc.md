@@ -593,6 +593,10 @@ Ctrl modifier (`useMapEditSelection.ts:16, :42-75`). The most novel design in th
 
 ### M8 🟢 — Select + Inspector + a mobile DM sheet
 
+The Select + delete half is planned in `PROMPT-mobile-element-delete.md` (owner affordance
+decision 2026-08-24: sheet mode now, long-press later); the Inspector's edit fields and the
+mobile DM sheet remain M8's tablet-and-up remainder.
+
 Select (`useMapEditSelection.ts:68-84`) plus a touch Inspector
 (`MapEditInspectorPopover.tsx:28-173`) and Layers (`MapEditLayersPopover.tsx:20-90`) — both hostile
 on a phone, plausible on a tablet. Fold in the minimum DM chrome a mobile author cannot work

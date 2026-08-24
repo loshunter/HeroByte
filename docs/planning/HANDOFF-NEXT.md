@@ -12,10 +12,17 @@ production. Where something is a judgement call rather than a fact, it says so.
 `main` as `a78dd0e7` and deployed to Render + Cloudflare on 2026-08-18. It closes five of the six
 "unexamined areas" M5's review left (the sixth, real-device iOS, is now probeable but not closed).
 
-| Branch | Commit     | State                                                                    |
-| ------ | ---------- | ------------------------------------------------------------------------ |
-| `dev`  | `a7bfb961` | pushed, CI **#797** green — tree byte-identical to `main`                 |
-| `main` | `a78dd0e7` | **PRODUCTION**, deployed 2026-08-18, CI **#798** green, probe-verified    |
+| Branch | Commit     | State                                                                                   |
+| ------ | ---------- | --------------------------------------------------------------------------------------- |
+| `dev`  | `ac47ab9e` | pushed, CI **#808** green — carries the initiative slice, 13 commits past `main`'s tree |
+| `main` | `a78dd0e7` | **PRODUCTION**, deployed 2026-08-18, CI **#798** green, probe-verified                  |
+
+> **Update (2026-08-24).** The initiative slice (server-side rolls on the crypto RNG, the roll
+> log naming the character, manual override with strikethrough, DM toggle on by default — §3D's
+> owner-chosen design) is **COMPLETE on `dev`** at `ac47ab9e`, CI **#808** green including the
+> full e2e job. NOT merged to `main`; that is the owner's call and deploys. The adversarial
+> review's hidden-NPC roll-log leak was fixed on both log writers (`d4dfda6e`). Open for the
+> owner: the `recordManual` judgement call, PROMPT-initiative-client.md §5.
 
 **CI #797 was the first run in which the full e2e suite ever executed against this work** — see
 the `cancelled`-is-not-`failure` trap in §5, which is why #796 looked green-ish and proved nothing.
@@ -493,8 +500,9 @@ _(The second gap listed here — "there is no mobile DM menu at all" — was clo
   (character name) and `NpcCard.tsx:214` (NPC rename).
 - **Chat's SEND button is a 25px tap target** (guideline 44px). It matches every other JRPGButton
   in those panels, so it wants a deliberate panel-wide pass, not a one-button fix.
-- **Client-side `Math.random()` initiative rolls** remain in `hooks/useBulkInitiativeRoll.ts:76`
-  and `features/initiative/components/InitiativeModal.tsx:63`.
+- ~~**Client-side `Math.random()` initiative rolls** remain in `hooks/useBulkInitiativeRoll.ts:76`
+  and `features/initiative/components/InitiativeModal.tsx:63`.~~ — **DONE 2026-08-24** (`dev`
+  `ac47ab9e`, CI #808) — neither `Math.random()` remains (the DoD grep was run).
 
   **Correction to what this entry used to say:** it called both "DM-only paths". That is wrong for
   the modal. `EntitiesPanel.tsx` passes `onInitiativeClick` **unconditionally** (three call sites),
@@ -516,12 +524,13 @@ _(The second gap listed here — "there is no mobile DM menu at all" — was clo
   (§5 — use `/fix-fixture-ripple`), and any new snapshot collection must join `SNAPSHOT_LIMITS` or
   load-session crashes. `InitiativeModal.test.tsx:692` pins `Math.random()` as behaviour and will
   need rewriting, not deleting.
+
 - **The dice parser accepts juxtaposition** (`"d20d6"` → two dice, no operator). Unreachable
   today — there is no free-text formula input anywhere in the UI. It becomes real the moment
   someone adds one.
-- **`drag-preview` is queued rather than dropped while the socket is down**, so a reconnect can
-  replay stale previews. S6 fixed this for `measure` via an `ephemeralTypes` set in
-  `MessageQueueManager` and deliberately did NOT change `drag-preview`; the same fix applies.
+- ~~`drag-preview` is queued rather than dropped while the socket is down~~ — **DONE
+  2026-08-12** (`ba48e741`); it sits beside `measure` in `ephemeralTypes` at
+  `MessageQueueManager.ts:119`. This bullet just was never updated.
 - ~~The asset-store dedup path double-counts existing bytes~~ — **DONE 2026-08-14** (`a5059036`).
 - **A background-task chip is already queued** for wiring `characterDrawings.ts` to the shared
   `DRAWING_TYPES` instead of its hand-copied `VALID_DRAWING_TYPES` (see §7).
@@ -859,23 +868,31 @@ turns a cone into something else.
 4. The fork is the owner's, and nothing is queued. ~~Push `dev` and merge to `main`~~ — **DONE
    2026-08-18**, see §0; both branches are pushed, both runs green, production probe-verified.
    What remains:
-   - **Initiative → server-side + roll log + manual override.** Owner-chosen design, 2026-08-14;
-     the full shape and the machinery to reuse are in §3D. This is the biggest *user-visible* item
-     outstanding.
-   - **Mobile element removal (M6)** — the largest gap left, and genuinely unstarted. There is
-     **no** mobile-reachable way to delete a single map element: `MOBILE_TOOL_TILES` is typed
-     `id: DragTool` so `"select"` cannot compile as a tile, no inspector or layers popover is
-     mounted under `features/map-edit/mobile/`, the quick wheel is desktop-right-click only, and
-     there is no Delete hotkey. Dock Undo is a document-wide map-studio undo, not a targeted
-     delete — so a Row or Spline laid down on a phone can be created but never removed, which the
-     user guide now warns about. The desktop path to copy is Select → Inspect popover → `onRemove`
-     → `{ type: "remove-element" }`. **Needs a design decision on what the phone affordance is
-     before any code**, because the dock is pinned at five slots.
+   - ~~**Initiative → server-side + roll log + manual override.** Owner-chosen design, 2026-08-14;
+     the full shape and the machinery to reuse are in §3D. This is the biggest _user-visible_ item
+     outstanding.~~ — **DONE — see the §0 update (2026-08-24)**.
+   - **Mobile element removal — the Select half of M8** (`mobile-authoring-arc.md:594`; M6 is
+     Paint/Erase, `mobile-authoring-arc.md:579`) — the largest gap left, and genuinely unstarted as
+     of this writing. There is **no** mobile-reachable way to delete a single map element:
+     `MOBILE_TOOL_TILES` is typed `id: DragTool` so `"select"` cannot compile as a tile, no
+     inspector or layers popover is mounted under `features/map-edit/mobile/`, the quick wheel is
+     desktop-right-click only, and there is no Delete hotkey. Dock Undo is a document-wide
+     map-studio undo, not a targeted delete — so a Row or Spline laid down on a phone can be
+     created but never removed, which the user guide now warns about. The desktop path to copy is
+     Select → Inspect popover → `onRemove` → `{ type: "remove-element" }`. **The owner made the
+     affordance decision on 2026-08-24**: a Select mode in the map-edit tool sheet now; long-press
+     is a recorded deferral, to be unified later with the quick wheel's already-deferred touch
+     variant. The "dock is pinned at five slots" blocker is dissolved — the affordance never
+     needed a dock slot; it lives in the sheet. Full plan:
+     `docs/planning/PROMPT-mobile-element-delete.md`.
    - **Smaller work**: §3D's remainder, or the vision-default follow-ups in that plan doc's banner
      (the per-token card showing the inherited NUMBER, the stale Map Setup screenshot, the
      DM-menu 44px panel-wide pass). One more now on that list: **prove the `ref: dev` fix**
      (`a7bfb961`) the first time `dev` and `main` differ, by reading the full-suite job's checkout
-     step — #798 could not, because the merge left the two trees byte-identical.
+     step — #798 could not, because the merge left the two trees byte-identical, and **#808**
+     could not either, because that push was **to** `dev`, so the old hardcoded `ref: dev` and the
+     new event-ref default resolve to the same SHA. The discriminating case is the next push to
+     `main`.
 5. Stop before merging to `main`. That is the owner's call, and it deploys.
 
 ## 11. The completeness critic's list — CLEARED 2026-08-09
