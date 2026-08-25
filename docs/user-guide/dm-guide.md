@@ -87,6 +87,14 @@ Habits that save campaigns:
 - On free-tier hosting the server's disk can reset when it idles — a session file in your downloads folder is your real persistence.
 - The save is a **DM artifact**: it contains secret doors, hidden NPCs, and GM notes in plain text. Don't hand it to players.
 
+### Rolls entered by hand
+
+Ticking **Players can enter rolls by hand** is for tables that roll physical dice. Players can type what they threw — for initiative, in the dice roller, or over a result the app already gave — and the entry lands in the shared log wearing a **BY HAND** badge, in its own colour, with anything it replaced struck through beside it. Nothing typed is disguised as an app roll, which is the point: your table is not being deceived by a number it watched someone throw, only by one it cannot tell apart.
+
+Who may correct what: a player can rewrite **their own** rolls, and you can rewrite anybody's, because you adjudicate the table. Correcting the same roll twice keeps the **original** app roll struck through rather than the intermediate guess.
+
+Untick it and the app's dice become the only way in **for players**. You keep hand entry either way — the switch exists for you to grant, not to take a vow.
+
 ### Player props
 
 Ticking **Players can add props** opens a **📦 PROPS** window for everyone at your table (on a phone it's **Tools → Props**): upload or paste an image, name it, pick a size, optionally scatter **×N** copies. It's made for shared set dressing — a player conjures a chest in an image generator and places it for you while you narrate.
