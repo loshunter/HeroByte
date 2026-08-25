@@ -328,10 +328,12 @@ function AuthenticatedApp({
     toggleDiceRoller,
     toggleRollLog,
     handleRoll,
+    handleEnterRoll,
+    canEnterOver,
     handleClearLog,
     handleViewRoll,
     handleSendChat,
-  } = useDiceRolling({ snapshot, sendMessage, uid });
+  } = useDiceRolling({ snapshot, sendMessage, uid, isDM });
 
   // Server event handlers (room password, DM elevation)
   const mapStudio = useMapStudio(sendMessage, getAuthCredentials, isConnected);
@@ -850,6 +852,8 @@ function AuthenticatedApp({
     handleSendChat,
     viewingRoll,
     handleRoll,
+    handleEnterRoll,
+    canEnterOver,
     latestOwnRoll,
     handleClearLog,
     handleViewRoll,

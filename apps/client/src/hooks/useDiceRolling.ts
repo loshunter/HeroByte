@@ -34,6 +34,22 @@ export interface DiceRollRequest {
 }
 
 /**
+ * What a person typed after rolling real dice. The counterpart to
+ * DiceRollRequest, and deliberately the opposite shape: this one carries a
+ * result, because at a physical table the result is the only thing the server
+ * cannot work out for itself.
+ */
+export interface EnterRollRequest {
+  /** What they read off the table. */
+  total: number;
+  /** Rewrite this roll in place. Absent records a fresh entry. */
+  rollId?: string;
+  /** Notation for a fresh entry; a bare entry has none. */
+  formula?: string;
+  visibility?: DiceVisibility;
+}
+
+/**
  * Options for the useDiceRolling hook
  */
 export interface UseDiceRollingOptions {
@@ -43,6 +59,15 @@ export interface UseDiceRollingOptions {
   sendMessage: (message: ClientMessage) => void;
   /** Unique identifier for the current player */
   uid: string;
+  /**
+   * Whether this viewer is the DM — decides whether the override control is
+   * offered on somebody else's roll.
+   *
+   * Passed in rather than derived from the snapshot on purpose: a
+   * snapshot-derived isDM reads FALSE on reconnect until the snapshot lands,
+   * and a DM who reconnected mid-session would silently lose the control.
+   */
+  isDM: boolean;
 }
 
 /**
@@ -81,6 +106,10 @@ export interface UseDiceRollingReturn {
   toggleRollLog: (open: boolean) => void;
   /** Ask the server to roll. It answers through the snapshot. */
   handleRoll: (request: DiceRollRequest) => void;
+  /** Record what was thrown on physical dice, fresh or over an existing roll. */
+  handleEnterRoll: (request: EnterRollRequest) => void;
+  /** Whether this viewer may rewrite that roll. The server enforces it too. */
+  canEnterOver: (roll: RollLogEntry | RollResult | null | undefined) => boolean;
   /** Clear all roll history */
   handleClearLog: () => void;
   /** View a specific roll from history */
@@ -109,6 +138,7 @@ export function useDiceRolling({
   snapshot,
   sendMessage,
   uid,
+  isDM,
 }: UseDiceRollingOptions): UseDiceRollingReturn {
   // -------------------------------------------------------------------------
   // STATE
@@ -229,6 +259,45 @@ export function useDiceRolling({
   );
 
   /**
+   * Record what was thrown on physical dice.
+   *
+   * The deliberate counterpart to `handleRoll`: this one DOES send a number,
+   * because a table playing with real dice has one and the server cannot know
+   * it. The safety is not that the number is trusted — it is that every roll
+   * this produces carries `handEntered`, so the log shows it as typed rather
+   * than rolled. Identity is still the connection's; only the total is asked.
+   *
+   * `rollId` rewrites that roll in place — one row, the server's total struck
+   * through beside the real one. Absent records a fresh entry.
+   */
+  const handleEnterRoll = useCallback(
+    ({ total, rollId, formula, visibility }: EnterRollRequest) => {
+      if (!Number.isInteger(total)) return;
+      const message: ClientMessage = { t: "enter-roll", total };
+      if (rollId) message.rollId = rollId;
+      // A bare entry sends no formula at all; the server makes the total its
+      // own notation rather than inventing dice nobody named.
+      if (formula && formula.trim()) message.formula = formula;
+      if (visibility && visibility !== "public") message.visibility = visibility;
+      sendMessage(message);
+    },
+    [sendMessage],
+  );
+
+  /**
+   * Whether THIS viewer may rewrite a given roll: their own always, anybody's
+   * if they are the DM. Mirrors the server gate in DiceMessageHandler — the
+   * server is what enforces it; this only decides whether to offer the control.
+   */
+  const canEnterOver = useCallback(
+    (roll: RollLogEntry | RollResult | null | undefined): boolean => {
+      if (!roll) return false;
+      return isDM || roll.playerUid === uid;
+    },
+    [isDM, uid],
+  );
+
+  /**
    * Clear all roll history
    */
   const handleClearLog = useCallback(() => {
@@ -264,6 +333,8 @@ export function useDiceRolling({
     toggleDiceRoller,
     toggleRollLog,
     handleRoll,
+    handleEnterRoll,
+    canEnterOver,
     handleClearLog,
     handleViewRoll,
     handleSendChat,

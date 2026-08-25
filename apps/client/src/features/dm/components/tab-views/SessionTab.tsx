@@ -200,7 +200,7 @@ export default function SessionTab({
               checked={initiativeManualOverride}
               onChange={(e) => onInitiativeManualOverrideChange(e.target.checked)}
             />
-            Players can enter initiative by hand
+            Players can enter rolls by hand
           </label>
           <div
             style={{
@@ -212,9 +212,12 @@ export default function SessionTab({
               opacity: 0.8,
             }}
           >
-            Keeps <strong>USE PHYSICAL DICE</strong> available, for tables rolling real dice at a
-            real table. Every hand-entered number still reaches the roll log, marked as entered, so
-            nothing is hidden. Turn it off and the server&rsquo;s die is the only way in.
+            For tables rolling real dice at a real table. Players can type what they threw &mdash;
+            for initiative, in the dice roller, or over a result the server already gave &mdash; and
+            every number lands in the roll log wearing a <strong>BY HAND</strong> badge, in its own
+            colour, with anything it replaced struck through beside it. Nothing is disguised as a
+            server roll. Turn it off and the server&rsquo;s die is the only way in for players; you
+            keep hand entry either way.
           </div>
         </JRPGPanel>
       )}

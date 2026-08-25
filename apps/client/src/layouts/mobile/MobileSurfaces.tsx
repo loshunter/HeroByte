@@ -66,6 +66,8 @@ export function MobileSurfaces({ props, machine }: MobileSurfacesProps): JSX.Ele
           <MobileDiceRoller
             onRoll={props.handleRoll}
             latestOwnRoll={props.latestOwnRoll}
+            onEnterRoll={props.handleEnterRoll}
+            onOverrideRoll={(rollId, total) => props.handleEnterRoll({ rollId, total })}
             onClose={closeSurface}
           />
         </div>

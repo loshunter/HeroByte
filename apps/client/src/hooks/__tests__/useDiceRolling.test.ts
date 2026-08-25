@@ -56,8 +56,10 @@ describe("useDiceRolling", () => {
     ...overrides,
   });
 
-  const renderDice = (snapshot: RoomSnapshot | null) =>
-    renderHook(() => useDiceRolling({ snapshot, sendMessage: mockSendMessage, uid: mockUid }));
+  const renderDice = (snapshot: RoomSnapshot | null, isDM = false) =>
+    renderHook(() =>
+      useDiceRolling({ snapshot, sendMessage: mockSendMessage, uid: mockUid, isDM }),
+    );
 
   // --------------------------------------------------------------------------
   // Panels

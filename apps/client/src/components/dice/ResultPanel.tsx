@@ -10,9 +10,11 @@ import { RollResultContent } from "./RollResultContent";
 interface ResultPanelProps {
   result: RollResult | null;
   onClose: () => void;
+  /** Rewrite this roll with what was actually thrown. Absent hides the control. */
+  onEnterRoll?: (total: number) => void;
 }
 
-export const ResultPanel: React.FC<ResultPanelProps> = ({ result, onClose }) => {
+export const ResultPanel: React.FC<ResultPanelProps> = ({ result, onClose, onEnterRoll }) => {
   if (!result) return null;
 
   return (
@@ -26,7 +28,7 @@ export const ResultPanel: React.FC<ResultPanelProps> = ({ result, onClose }) => 
       maxWidth={600}
       zIndex={1001}
     >
-      <RollResultContent result={result} />
+      <RollResultContent result={result} onEnterRoll={onEnterRoll} />
     </DraggableWindow>
   );
 };

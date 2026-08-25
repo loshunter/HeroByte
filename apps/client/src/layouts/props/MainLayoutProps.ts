@@ -33,7 +33,7 @@ import type {
 import type { RoomBounds } from "../../features/map-edit/roomBuilder";
 import type { AlignmentPoint, AlignmentSuggestion } from "../../types/alignment";
 import type { RollLogEntry } from "../../components/dice/rollLogTypes";
-import type { DiceRollRequest } from "../../hooks/useDiceRolling";
+import type { DiceRollRequest, EnterRollRequest } from "../../hooks/useDiceRolling";
 import type { UseDrawingStateManagerReturn } from "../../hooks/useDrawingStateManager";
 import type { ToolMode } from "../../components/layout/Header";
 import type { CameraCommand } from "../../ui/MapBoard";
@@ -377,6 +377,10 @@ export interface MainLayoutProps {
   viewingRoll: RollLogEntry | null;
   /** Ask the server to roll. It answers through the snapshot, not this call. */
   handleRoll: (request: DiceRollRequest) => void;
+  /** Record what was thrown on physical dice, fresh or over an existing roll. */
+  handleEnterRoll: (request: EnterRollRequest) => void;
+  /** Whether this viewer may rewrite that roll — the server enforces it too. */
+  canEnterOver: (roll: RollLogEntry | null | undefined) => boolean;
   /** Newest roll authored by this player — how the roller learns its result */
   latestOwnRoll: RollLogEntry | null;
   /** Handler to clear roll log */

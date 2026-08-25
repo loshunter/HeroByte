@@ -68,10 +68,24 @@ describe("SessionTab - initiative manual override", () => {
 
   it("says what turning it off actually does", () => {
     // The blurb is the only place a DM learns that hand-entered numbers still
-    // reach the log — without which the setting reads as "let players cheat".
+    // reach the log, and reach it MARKED — without which the setting reads as
+    // "let players cheat". Asserted on the substance rather than a phrase, so
+    // rewording the copy cannot break it while dropping the promise can.
     renderTab();
 
-    expect(screen.getByText(/still reaches the roll log/i)).toBeInTheDocument();
+    const blurb = screen.getByTestId("initiative-manual-override-toggle").closest("div");
+    expect(blurb).toHaveTextContent(/roll log/i);
+    expect(blurb).toHaveTextContent(/BY HAND/i);
+  });
+
+  it("no longer describes the setting as initiative-only", () => {
+    // It governs every roll since the physical-dice slice. A DM reading
+    // "initiative" here would not know they had just switched off the dice
+    // roller's entry control too.
+    renderTab();
+
+    const blurb = screen.getByTestId("initiative-manual-override-toggle").closest("div");
+    expect(blurb).not.toHaveTextContent(/enter initiative by hand/i);
   });
 
   it("renders no panel at all when the handler is absent", () => {
