@@ -17,7 +17,7 @@ import { isRecord } from "./validators/index.js";
 // Token validators
 import { validateForkTableMessage } from "./validators/forkValidators.js";
 import { validateChatMessage, validateClearChatLogMessage } from "./validators/chatValidators.js";
-import { validateDiceRollMessage } from "./validators/diceValidators.js";
+import { validateDiceRollMessage, validateEnterRollMessage } from "./validators/diceValidators.js";
 import { validateLoadSessionMessage } from "./validators/sessionValidators.js";
 import {
   validateMoveMessage,
@@ -269,6 +269,7 @@ const messageValidators: { readonly [K in ClientMessageType]: MessageValidator }
   // DICE / RTC MESSAGES
   // ==========================================================================
   "dice-roll": validateDiceRollMessage,
+  "enter-roll": validateEnterRollMessage,
   "clear-roll-history": validateRoomControlMessage,
 
   // ==========================================================================

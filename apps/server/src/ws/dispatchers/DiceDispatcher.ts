@@ -30,6 +30,17 @@ export class DiceDispatcher {
           message.visibility,
         );
 
+      case "enter-roll":
+        return this.handler.handleEnterRoll(
+          state,
+          senderUid,
+          context.isDM(),
+          message.total,
+          message.rollId,
+          message.formula,
+          message.visibility,
+        );
+
       case "clear-roll-history":
         return this.handler.handleClearRollHistory(state, senderUid, context.isDM());
 

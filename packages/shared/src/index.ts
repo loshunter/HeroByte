@@ -182,12 +182,18 @@ export interface Token {
 /**
  * DiceRoll: one settled roll, as the SERVER produced it.
  *
- * Every field here is the server's own work. `playerUid` and `playerName` are
- * stamped from the sending connection (like ChatMessage below), and `total`,
- * `breakdown` and `formula` come from evaluating the client's formula with the
- * server's RNG. Nothing on the wire from a client can set any of them — which
- * is the whole of arc defect D2, and why `{ t: "dice-roll" }` carries a
+ * Identity here is always the server's own work: `playerUid` and `playerName`
+ * are stamped from the sending connection (like ChatMessage below), and no
+ * client can roll — or type — under someone else's name. That part of arc
+ * defect D2 is closed for good, and is why `{ t: "dice-roll" }` carries a
  * formula rather than a result.
+ *
+ * The RESULT has one deliberate exception, added 2026-08-24: `{ t: "enter-roll" }`
+ * lets a player record what they threw on physical dice. It does not reopen D2,
+ * because the defect was never "a client sent a number" — it was "a client's
+ * number was indistinguishable from the server's". Such a roll always carries
+ * `handEntered`, and the log renders it in its own colour with the superseded
+ * value struck through. Read that field's note before touching either path.
  */
 export interface DiceRoll {
   id: string; // Server-minted roll identifier
@@ -939,6 +945,34 @@ type ClientMessagePayload =
   | { t: "set-player-props-enabled"; enabled: boolean } // DM-only: players may place/manage their own props
   | { t: "set-default-vision-radius"; radius: number | null } // DM-only: table-wide sight limit in feet for tokens with none of their own, null = unlimited
   | { t: "set-initiative-manual-override"; enabled: boolean } // DM-only: players may enter initiative by hand (absent = ON — see the snapshot field)
+
+  /**
+   * Record what was actually thrown on the table.
+   *
+   * The ONE client message that carries a result rather than a formula, and
+   * the deliberate exception to the rule stated above `{ t: "dice-roll" }`.
+   * It exists because a table that plays with physical dice cannot use a VTT
+   * that refuses to hear what the dice said.
+   *
+   * What keeps it from being arc defect D2 again is not that the number is
+   * trusted — it is that the number is MARKED. Every roll this produces or
+   * rewrites carries `handEntered`, which the log renders in its own colour
+   * with a BY HAND badge and the superseded value struck through. Identity is
+   * still bound from the connection, the total is still bounded server-side,
+   * and the table setting still gates it for players.
+   *
+   * `rollId` present rewrites that roll in place — one row showing what the
+   * server rolled, struck, beside what the table actually threw. Absent
+   * records a fresh entry, which is the common case at a table that never asks
+   * the server to roll at all.
+   */
+  | {
+      t: "enter-roll";
+      rollId?: string; // The roll to rewrite. Absent records a fresh one.
+      total: number; // What the person read off the table
+      formula?: string; // Notation for a FRESH entry ("2d6 + 3"); ignored when rewriting
+      visibility?: DiceVisibility; // For a FRESH entry; a rewrite keeps the original's
+    }
 
   // The measurement in progress. Carries NO author — the server stamps
   // identity from the connection, the same rule chat and dice follow. `measure`

@@ -127,7 +127,13 @@ export class DiceService {
       formula: string;
       total: number;
       breakdown: DiceRoll["breakdown"];
-      label: string;
+      /**
+       * What the roll was FOR. Optional since the generic physical-dice path
+       * joined initiative here: "Goblin A — initiative" names a creature the
+       * roller is not, but a player typing their own attack total has nothing
+       * to say that `playerName` does not already say.
+       */
+      label?: string;
       /**
        * Absent means public, the same rule `rollFor` follows. Supplied when the
        * SUBJECT of the entry is concealed: a hidden NPC's name must not travel
@@ -152,13 +158,15 @@ export class DiceService {
       total: request.total,
       breakdown: request.breakdown,
       timestamp: now,
-      label: request.label,
       // Unconditional, and every caller gets it whether they asked or not.
       // This is the marker that makes a client-asserted number honest, so it
       // is set HERE rather than passed in — a caller that could omit it is a
       // caller that could launder a typed number into looking rolled.
       handEntered: true,
     };
+    if (request.label !== undefined) {
+      roll.label = request.label;
+    }
     if (request.supersededTotal !== undefined) {
       roll.supersededTotal = request.supersededTotal;
     }
